@@ -1,0 +1,68 @@
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="assy_part_demo">
+  <xacro:include filename="$(find o2ac_parts_description)/urdf/assembly_parts_macros.urdf.xacro"/>
+  <!-- This displays all the assembly parts in the scene for reference -->
+  <xacro:property name="x_0" value="0.15"/>
+  <xacro:property name="x_delta" value="0.1"/>
+  <xacro:property name="y_0" value="-0.3"/>
+  <xacro:property name="y_delta" value="0.1"/>
+  <xacro:property name="z_0" value="0.15"/>
+  <xacro:property name="z_delta" value="-0.05"/>
+  
+  <xacro:assy_part_01 prefix="showcase_" parent="workspace_center" spawn_attached="true">
+    <origin xyz="${x_0 + x_delta*0} ${y_0 + y_delta*0} ${z_0 + z_delta*0}" rpy="0 0 0" />   
+  </xacro:assy_part_01>
+  <xacro:assy_part_02 prefix="showcase_" parent="workspace_center" spawn_attached="true">
+    <origin xyz="${x_0 + x_delta*0} ${y_0 + y_delta*1} ${z_0 + z_delta*0}" rpy="0 0 0" />   
+  </xacro:assy_part_02>
+  <xacro:assy_part_03 prefix="showcase_" parent="workspace_center" spawn_attached="true">
+    <origin xyz="${x_0 + x_delta*0} ${y_0 + y_delta*2} ${z_0 + z_delta*0}" rpy="0 0 0" />   
+  </xacro:assy_part_03>
+  <xacro:assy_part_04 prefix="showcase_" parent="workspace_center" spawn_attached="true">
+    <origin xyz="${x_0 + x_delta*0} ${y_0 + y_delta*3} ${z_0 + z_delta*0}" rpy="0 0 0" />   
+  </xacro:assy_part_04>
+  <xacro:assy_part_05 prefix="showcase_" parent="workspace_center" spawn_attached="true">
+    <origin xyz="${x_0 + x_delta*0} ${y_0 + y_delta*4} ${z_0 + z_delta*0}" rpy="0 0 0" />   
+  </xacro:assy_part_05>
+  <xacro:assy_part_06 prefix="showcase_" parent="workspace_center" spawn_attached="true">
+    <origin xyz="${x_0 + x_delta*0} ${y_0 + y_delta*5} ${z_0 + z_delta*0}" rpy="0 0 0" />   
+  </xacro:assy_part_06>
+
+
+  <xacro:assy_part_07 prefix="showcase_" parent="workspace_center" spawn_attached="true">
+    <origin xyz="${x_0 + x_delta*1} ${y_0 + y_delta*0} ${z_0 + z_delta*1}" rpy="0 0 0" />   
+  </xacro:assy_part_07>
+  <xacro:assy_part_08 prefix="showcase_" parent="workspace_center" spawn_attached="true">
+    <origin xyz="${x_0 + x_delta*1} ${y_0 + y_delta*1} ${z_0 + z_delta*1}" rpy="0 0 0" />   
+  </xacro:assy_part_08>
+  <xacro:assy_part_09 prefix="showcase_" parent="workspace_center" spawn_attached="true">
+    <origin xyz="${x_0 + x_delta*1} ${y_0 + y_delta*2} ${z_0 + z_delta*1}" rpy="0 0 0" />   
+  </xacro:assy_part_09>
+  <xacro:assy_part_10 prefix="showcase_" parent="workspace_center" spawn_attached="true">
+    <origin xyz="${x_0 + x_delta*1} ${y_0 + y_delta*3} ${z_0 + z_delta*1}" rpy="0 0 0" />   
+  </xacro:assy_part_10>
+  <xacro:assy_part_11 prefix="showcase_" parent="workspace_center" spawn_attached="true">
+    <origin xyz="${x_0 + x_delta*1} ${y_0 + y_delta*4} ${z_0 + z_delta*1}" rpy="0 0 0" />   
+  </xacro:assy_part_11>
+  <xacro:assy_part_12 prefix="showcase_" parent="workspace_center" spawn_attached="true">
+    <origin xyz="${x_0 + x_delta*1} ${y_0 + y_delta*5} ${z_0 + z_delta*1}" rpy="0 0 0" />   
+  </xacro:assy_part_12>
+
+  <xacro:assy_part_13 prefix="showcase_" parent="workspace_center" spawn_attached="true">
+    <origin xyz="${x_0 + x_delta*2} ${y_0 + y_delta*0} ${z_0 + z_delta*2}" rpy="0 0 0" />   
+  </xacro:assy_part_13>
+  <xacro:assy_part_14 prefix="showcase_" parent="workspace_center" spawn_attached="true">
+    <origin xyz="${x_0 + x_delta*2} ${y_0 + y_delta*1} ${z_0 + z_delta*2}" rpy="0 0 0" />   
+  </xacro:assy_part_14>
+  <xacro:assy_part_15 prefix="showcase_" parent="workspace_center" spawn_attached="true">
+    <origin xyz="${x_0 + x_delta*2} ${y_0 + y_delta*2} ${z_0 + z_delta*2}" rpy="0 0 0" />   
+  </xacro:assy_part_15>
+  <xacro:assy_part_16 prefix="showcase_" parent="workspace_center" spawn_attached="true">
+    <origin xyz="${x_0 + x_delta*2} ${y_0 + y_delta*3} ${z_0 + z_delta*2}" rpy="0 0 0" />   
+  </xacro:assy_part_16>
+  <xacro:assy_part_17 prefix="showcase_" parent="workspace_center" spawn_attached="true">
+    <origin xyz="${x_0 + x_delta*2} ${y_0 + y_delta*4} ${z_0 + z_delta*2}" rpy="0 0 0" />   
+  </xacro:assy_part_17>
+  <xacro:assy_part_18 prefix="showcase_" parent="workspace_center" spawn_attached="true">
+    <origin xyz="${x_0 + x_delta*2} ${y_0 + y_delta*5} ${z_0 + z_delta*2}" rpy="0 0 0" />   
+  </xacro:assy_part_18>
+</robot>

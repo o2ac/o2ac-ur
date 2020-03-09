@@ -1,0 +1,4 @@
+<launch>
+    <node name="dynamixel_controller" pkg="o2ac_fastening_tools" type="dynamixel_controller" output="screen"/>
+    <node name="motor_id_setup" pkg="o2ac_fastening_tools" type="motor_id_setup.py" output="screen"/>
+</launch>

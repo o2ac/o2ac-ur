@@ -1,0 +1,9 @@
+def move_back_forth_5cm():
+    textmsg("Moving back and forth 5 cm.")
+    start_pos=get_forward_kin()
+    target_pos=pose_trans(start_pos,p[0.0, 0.0, 0.05, 0.0, 0.0, 0.0])
+    movel(pose_trans(p[0.0,0.0,0.0,0.0,0.0,0.0], target_pos), a=0.5, v=0.1)
+    sleep(0.5)
+    movel(pose_trans(p[0.0,0.0,0.0,0.0,0.0,0.0], start_pos), a=0.5, v=0.1)
+    textmsg("Done.")
+end

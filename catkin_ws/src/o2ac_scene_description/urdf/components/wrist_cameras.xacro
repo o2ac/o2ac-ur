@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+
+<!-- This macro adds a convenient TF frame at the tip of the closed gripper. -->
+<!-- The position of the TF frame has not been measured at all and needs to be calibrated. -->
+
+<robot name="robotiq_85_gripper_o2ac" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="wrist_cameras" params="prefix parent">
+    
+    <xacro:include filename="$(find o2ac_scene_description)/urdf/components/_sr305.urdf.xacro" />
+      <!-- Add the holder and two SR305 cameras -->
+    <xacro:property name="mount_mesh_file" value="package://o2ac_scene_description/meshes/sr305_mount.stl" />
+
+    <link name="${prefix}cam_mount">
+      <inertial>
+        <origin rpy="${pi} 0 ${pi/2}" xyz="0 0 0.0"/>
+        <mass value="1.0"/>
+        <inertia ixx="1.0" ixy="0" ixz="0" iyy="1.0" iyz="0" izz="1.0"/>
+      </inertial>
+      <visual>
+        <origin rpy="${pi} 0 ${pi/2}" xyz="0 0 0.0"/>
+        <geometry>
+          <mesh filename="${mount_mesh_file}" scale=".001 .001 .001"/>
+        </geometry>
+        <material name="white">
+          <color rgba="1 1 1 1"/>
+        </material>
+      </visual>
+      <collision>
+        <origin rpy="0 0 0" xyz="-.01 0.0 .035"/>  
+        <geometry>
+          <box size=".03 .12 .08"/>
+        </geometry>
+      </collision>
+    </link>
+    <joint name="${prefix}cam_mount_joint" type="fixed">
+      <parent link="${parent}" />
+      <child link = "${prefix}cam_mount" />
+      <origin xyz="0.035 0.0 0.025" rpy="0 0 0"/>
+    </joint>    
+    
+    <link name="${prefix}cam_1_link" />
+    <joint name="${prefix}cam_1_joint" type="fixed">
+      <parent link="${parent}" />
+      <child link="${prefix}cam_1_link" />
+      <origin xyz="0.026 0 0.0595" rpy="0 ${20.0*pi/180.0} 0" />
+    </joint>
+    <xacro:sensor_sr305 prefix="${prefix}_cam_1_" parent="${prefix}cam_1_link">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </xacro:sensor_sr305>
+    
+    <link name="${prefix}cam_2_link" />
+    <joint name="${prefix}cam_2_joint" type="fixed">
+      <parent link="${parent}" />
+      <child link="${prefix}cam_2_link" />
+      <origin xyz="0.026 0 ${0.0595+.024}" rpy="0 ${-15.0*pi/180.0} 0" />
+    </joint>
+    <xacro:sensor_sr305 prefix="${prefix}_cam_2_" parent="${prefix}cam_2_link">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </xacro:sensor_sr305>
+
+  </xacro:macro>
+</robot>

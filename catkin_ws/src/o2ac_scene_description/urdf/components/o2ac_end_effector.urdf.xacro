@@ -1,0 +1,79 @@
+<?xml version="1.0"?>
+
+<!-- This macro adds a convenient TF frame at the tip of the closed gripper. -->
+<!-- The position of the TF frame has not been measured at all and needs to be calibrated. -->
+
+<robot name="robotiq_85_gripper_o2ac" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="o2ac_end_effector" params="prefix use_soft_wrist:=false use_cameras:=false parent">
+    <xacro:if value="${use_soft_wrist}">
+      <xacro:include filename="$(find o2ac_scene_description)/urdf/components/robotiq_85_gripper_with_soft_wrist.urdf.xacro" />
+      <xacro:robotiq_85_gripper_with_soft_wrist prefix="${prefix}" parent="${parent}"/>
+    </xacro:if>
+    <xacro:if value="${not use_soft_wrist}">
+      <xacro:include filename="$(find o2ac_scene_description)/urdf/components/robotiq_85_gripper_with_ft300.urdf.xacro" />
+      <xacro:robotiq_85_gripper_with_ft300 prefix="${prefix}" parent="${parent}"/>
+    </xacro:if>
+
+    <xacro:if value="${use_cameras}">
+      <xacro:include filename="$(find o2ac_scene_description)/urdf/components/wrist_cameras.xacro" />
+      <xacro:wrist_cameras prefix="${prefix}" parent="${prefix}robotiq_85_base_link"/>
+    </xacro:if>
+
+    <!-- ========= -->
+    <!-- Screw tool tip frames. X-axis points along the screw into the hole. -->
+    
+    <!-- Offset of the gripper tooltips -->
+    <xacro:property name="dx" value="-.03"/>
+
+    <joint name="${prefix}robotiq_85_screw_tool_m6_tip_joint" type="fixed">
+      <parent link="${prefix}robotiq_85_tip_link"/>
+      <child link="${prefix}screw_tool_m6_tip_link"/>
+      <origin rpy="0.0 ${pi/2} 0.0" xyz="${dx} 0.0 -0.135 "/>
+    </joint>
+    <link name="${prefix}screw_tool_m6_tip_link"/>
+
+    <joint name="${prefix}robotiq_85_nut_tool_m6_tip_joint" type="fixed">
+      <parent link="${prefix}robotiq_85_tip_link"/>
+      <child link="${prefix}nut_tool_m6_tip_link"/>
+      <origin rpy="0.0 ${pi/4} 0.0" xyz="${dx} 0.0 -0.12 "/>
+    </joint>
+    <link name="${prefix}nut_tool_m6_tip_link"/>
+    
+    <joint name="${prefix}robotiq_85_screw_tool_m4_tip_joint" type="fixed">
+      <parent link="${prefix}robotiq_85_tip_link"/>
+      <child link="${prefix}screw_tool_m4_tip_link"/>
+      <origin rpy="0.0 ${pi/2} 0.0" xyz="${dx-.002} 0.0 -0.146 "/>
+    </joint>
+    <link name="${prefix}screw_tool_m4_tip_link"/>
+
+    <joint name="${prefix}robotiq_85_screw_tool_m3_tip_joint" type="fixed">
+      <parent link="${prefix}robotiq_85_tip_link"/>
+      <child link="${prefix}screw_tool_m3_tip_link"/>
+      <origin rpy="0.0 ${pi/2} 0.0" xyz="${dx-.004} 0.0 -0.125 "/>
+    </joint>
+    <link name="${prefix}screw_tool_m3_tip_link"/>
+
+    <joint name="${prefix}robotiq_85_set_screw_tool_tip_joint" type="fixed">
+      <parent link="${prefix}robotiq_85_tip_link"/>
+      <child link="${prefix}set_screw_tool_tip_link"/>
+      <origin rpy="0.0 ${pi/2} 0.0" xyz="${dx+.01} 0.0 -0.085 "/>
+    </joint>
+    <link name="${prefix}set_screw_tool_tip_link"/>
+
+    <joint name="${prefix}robotiq_85_suction_tool_tip_joint" type="fixed">
+      <parent link="${prefix}robotiq_85_tip_link"/>
+      <child link="${prefix}suction_tool_tip_link"/>
+      <origin rpy="0.0 ${pi/2} 0.0" xyz="${dx+.02} 0.0 -0.131 "/>
+    </joint>
+    <link name="${prefix}suction_tool_tip_link"/>
+
+    <joint name="${prefix}dual_suction_gripper_pad_joint" type="fixed">
+      <parent link="${prefix}suction_tool_tip_link"/>
+      <child link="${prefix}dual_suction_gripper_pad_link"/>
+      <origin rpy="0.0 0 0.0" xyz="0 0 0 "/>
+    </joint>
+    <link name="${prefix}dual_suction_gripper_pad_link"/>
+
+  </xacro:macro>
+</robot>

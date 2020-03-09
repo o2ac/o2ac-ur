@@ -1,0 +1,11 @@
+# Define the goal
+string fastening_tool_name  # "m3_tool", "m4_tool", "m5_tool", "nut_tool1" ... (see config file of package)
+uint32 speed                # 0 to 1023
+float32 duration            # in s
+string direction            # "tighten" or "loosen"
+---
+# Define the result
+bool control_result
+---
+# Define a feedback message
+uint32 motor_speed

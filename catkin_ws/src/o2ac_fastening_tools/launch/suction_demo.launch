@@ -1,0 +1,13 @@
+<launch>
+    <arg name="config_dir"         default="$(find o2ac_fastening_tools)/config"/>
+    <arg name="suction_control"      default="suction_control"/>
+    <arg name="operation_mode"      default="operation_mode"/>
+    
+    <node name="suction_action_client" pkg="o2ac_fastening_tools" type="suction_controller_client.py" output="screen"/>
+
+    <node name="suction_controller" pkg="o2ac_fastening_tools" type="suction_controller.py" output="screen">
+        <param name="config_dir"    type="string" value="$(arg config_dir)"/>
+        <param name="suction_control" type="string" value="$(arg suction_control)"/>
+        <param name="operation_mode" type="string" value="$(arg operation_mode)"/>
+    </node>
+</launch>

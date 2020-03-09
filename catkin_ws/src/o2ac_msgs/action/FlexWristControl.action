@@ -1,0 +1,10 @@
+# Define the goal
+string name     # 'name' in suction_control.yaml
+bool turn_rigid_on           #  True: on, False: off
+bool turn_flex_on               #  True: expel air, False: do nothing 
+---
+# # Define the result
+bool success
+---
+# # Define a feedback message
+uint32 empty

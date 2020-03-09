@@ -1,0 +1,27 @@
+[submodule "gitlab-wiki"]
+	path = gitlab-wiki
+	url = https://gitlab.com/o2ac/o2ac-ur.wiki.git
+[submodule "underlay_ws/src/moveit"]
+	path = underlay_ws/src/moveit
+	url = https://github.com/felixvd/moveit
+[submodule "underlay_ws/src/moveit_msgs"]
+	path = underlay_ws/src/moveit_msgs
+	url = https://github.com/felixvd/moveit_msgs
+[submodule "underlay_ws/src/robotiq"]
+	path = underlay_ws/src/robotiq
+	url = https://github.com/felixvd/robotiq.git
+[submodule "underlay_ws/src/third_party/ur_drivers"]
+	path = underlay_ws/src/third_party/ur_drivers
+	url = https://github.com/UniversalRobots/Universal_Robots_ROS_Driver.git
+[submodule "underlay_ws/src/realsense"]
+	path = underlay_ws/src/third_party/realsense
+	url = https://github.com/intel-ros/realsense.git
+[submodule "underlay_ws/src/third_party/rviz_visual_tools"]
+	path = underlay_ws/src/third_party/rviz_visual_tools
+	url = https://github.com/PickNikRobotics/rviz_visual_tools.git
+[submodule "underlay_ws/src/third_party/universal_robot"]
+	path = underlay_ws/src/third_party/universal_robot
+	url = https://github.com/fmauch/universal_robot.git
+[submodule "underlay_ws/src/moveit_task_constructor"]
+	path = underlay_ws/src/moveit_task_constructor
+	url = https://gitlab.com/o2ac/moveit-task-constructor.git

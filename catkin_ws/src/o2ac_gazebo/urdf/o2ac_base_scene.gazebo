@@ -1,0 +1,134 @@
+<?xml version="1.0"?>
+<robot>
+  <gazebo reference="a_bot_camera_depth_frame">
+    <sensor type="depth" name="a_bot_camera">
+      <always_on>true</always_on>
+      <visualize>true</visualize>             
+      <camera>
+        <horizontal_fov>1.047</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>480</height>
+          <format>R8G8B8</format>
+        </image>
+        <depth_camera>
+        </depth_camera>
+        <clip>
+          <near>0.1</near>
+          <far>100</far>
+        </clip>
+      </camera>
+      <plugin name="a_bot_cam_controller" filename="libgazebo_ros_openni_kinect.so">
+        <baseline>0.2</baseline>
+        <alwaysOn>true</alwaysOn>
+        <updateRate>10.0</updateRate>
+        <cameraName>a_bot_camera</cameraName>
+        <frameName>a_bot_camera_depth_frame</frameName>
+        <imageTopicName>rgb/image_raw</imageTopicName>
+        <depthImageTopicName>depth/image_raw</depthImageTopicName>
+        <pointCloudTopicName>depth/points</pointCloudTopicName>
+        <cameraInfoTopicName>rgb/camera_info</cameraInfoTopicName>              
+        <depthImageCameraInfoTopicName>depth/camera_info</depthImageCameraInfoTopicName>            
+        <pointCloudCutoff>0.4</pointCloudCutoff>                
+        <hackBaseline>0.07</hackBaseline>
+        <distortionK1>0.0</distortionK1>
+        <distortionK2>0.0</distortionK2>
+        <distortionK3>0.0</distortionK3>
+        <distortionT1>0.0</distortionT1>
+        <distortionT2>0.0</distortionT2>
+        <CxPrime>0.0</CxPrime>
+        <Cx>0.0</Cx>
+        <Cy>0.0</Cy>
+        <focalLength>0.0</focalLength>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <gazebo reference="c_bot_camera_depth_frame">
+    <sensor type="depth" name="c_bot_camera">       
+      <always_on>true</always_on>
+      <visualize>true</visualize>             
+      <camera>
+        <horizontal_fov>1.047</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>480</height>
+          <format>R8G8B8</format>
+        </image>
+        <depth_camera>
+        </depth_camera>
+        <clip>
+          <near>0.1</near>
+          <far>100</far>
+        </clip>
+      </camera>
+      <plugin name="camera_controller" filename="libgazebo_ros_openni_kinect.so">
+        <baseline>0.2</baseline>
+        <alwaysOn>true</alwaysOn>
+        <updateRate>10.0</updateRate>
+        <cameraName>c_bot_camera</cameraName>
+        <frameName>c_bot_camera_depth_frame</frameName>
+        <imageTopicName>rgb/image_raw</imageTopicName>
+        <depthImageTopicName>depth/image_raw</depthImageTopicName>
+        <pointCloudTopicName>depth/points</pointCloudTopicName>
+        <cameraInfoTopicName>rgb/camera_info</cameraInfoTopicName>             
+        <depthImageCameraInfoTopicName>depth/camera_info</depthImageCameraInfoTopicName>            
+        <pointCloudCutoff>0.4</pointCloudCutoff>
+        <hackBaseline>0.07</hackBaseline>
+        <distortionK1>0.0</distortionK1>
+        <distortionK2>0.0</distortionK2>
+        <distortionK3>0.0</distortionK3>
+        <distortionT1>0.0</distortionT1>
+        <distortionT2>0.0</distortionT2>
+        <CxPrime>0.0</CxPrime>
+        <Cx>0.0</Cx>
+        <Cy>0.0</Cy>
+        <focalLength>0.0</focalLength>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <gazebo reference="a_phoxi_m_camera_link">
+    <sensor name="a_phoxi_m_camera" type="depth">
+      <always_on>true</always_on>
+      <visualize>true</visualize>
+      <camera>
+        <horizontal_fov>0.876</horizontal_fov>
+        <image>
+          <width>2064</width>
+          <height>1544</height>
+          <format>L8</format>
+        </image>
+        <depth_camera>
+        </depth_camera>
+        <clip>
+          <near>0.1</near>
+          <far>100</far>
+        </clip>
+      </camera>
+      <plugin name="a_phoxi_m_cam_controller" filename="libgazebo_ros_openni_kinect.so">
+        <baseline>0.35</baseline>
+        <alwaysOn>true</alwaysOn>
+        <updateRate>2.5</updateRate>
+        <cameraName>a_phoxi_m_camera</cameraName>
+        <frameName>a_phoxi_m_camera_link</frameName>
+        <imageTopicName>texture</imageTopicName>
+        <depthImageTopicName>depth_map</depthImageTopicName>
+        <pointCloudTopicName>pointcloud</pointCloudTopicName>
+        <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+        <depthImageCameraInfoTopicName>camera_info</depthImageCameraInfoTopicName>
+        <pointCloudCutoff>0.4</pointCloudCutoff>  
+        <!-- <hackBaseline>0.35</hackBaseline> -->
+        <distortionK1>0.0</distortionK1>
+        <distortionK2>0.0</distortionK2>
+        <distortionK3>0.0</distortionK3>
+        <distortionT1>0.0</distortionT1>
+        <distortionT2>0.0</distortionT2>
+        <CxPrime>0.0</CxPrime>
+        <Cx>0.0</Cx>
+        <Cy>0.0</Cy>
+        <focalLength>0.0</focalLength>
+      </plugin>
+    </sensor>
+  </gazebo>
+</robot>

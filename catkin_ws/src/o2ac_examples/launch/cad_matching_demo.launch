@@ -1,0 +1,34 @@
+<launch>
+    <!-- moveit -->
+	<include file="$(find o2ac_moveit_config)/launch/demo.launch">
+	</include>
+
+    <!-- skill_server -->
+	<include file="$(find o2ac_skills)/launch/o2ac_skill_server.launch">
+	</include>
+
+    <!-- camera1 -->
+    <arg name="camera1" default="b_bot_camera"/>
+    <arg name="camera1_type" default="realsense"/>
+    <arg name="camera1_serial_number" default="616205004841"/>
+    <!-- <arg name="camera1_serial_number" default="612201001671"/> -->
+    <!-- <arg name="camera1_serial_number" default="616205004841"/> -->
+    <!-- <arg name="camera1_serial_number" default="605201001486"/> -->
+	<include file="$(find o2ac_vision)/launch/vision_group_realsense.launch">
+        <arg name="camera" value="$(arg camera1)"/>
+        <arg name="camera_type" value="$(arg camera1_type)"/>
+        <arg name="camera_serial_number" value="$(arg camera1_serial_number)"/>
+    </include>
+
+    <!-- vision server -->
+    <arg name="camera_list" default="[$(arg camera1)]"/>
+    <arg name="parts_list_filename" default="$(find o2ac_parts_description)/config/assembly_parts_list.yaml"/>
+	<include file="$(find o2ac_vision)/launch/vision.launch">
+	    <arg name="parts_list_filename" value="$(arg parts_list_filename)"/>
+	    <arg name="camera_list" value="$(arg camera_list)"/>
+    </include>
+
+    <!-- routines -->
+	<node name="cad_matching_demo" pkg="o2ac_examples" type="cad_matching_demo.py" output="screen">
+	</node>
+</launch>

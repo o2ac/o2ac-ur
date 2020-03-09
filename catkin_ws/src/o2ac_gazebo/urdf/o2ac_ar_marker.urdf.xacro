@@ -1,0 +1,70 @@
+<?xml version="1.0" ?>
+
+<robot name="o2ac_ar_marker" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="o2ac_ar_marker" params="marker_id prefix parent *origin">
+
+    <joint name="${prefix}ar_marker_joint" type="fixed">
+      <parent link="${parent}" />
+      <child link = "${prefix}ar_marker" />
+      <xacro:insert_block name="origin" />
+    </joint>
+
+    <link name="${prefix}ar_marker">
+      <visual name="${prefix}ar_marker_visual">
+	<origin xyz="0 0 -0.0025" rpy="0 0 ${pi}"/>
+        <geometry>
+          <box size="0.08 0.08 0.005" />
+        </geometry>
+        <!--<material name="orange" />-->
+      </visual>
+      <collision name="${prefix}ar_marker_collision">
+	<origin xyz="0 0 -0.0025" rpy="0 0 ${pi}"/>
+        <geometry>
+          <box size="0.08 0.08 0.005" />
+        </geometry>
+      </collision>
+    </link>
+
+    <!-- For Gazebo, material of AR marker is defined in
+         o2ac_gazebo/media/material. You also need to export
+         gazebo_media_path in package.xml. -->
+    <gazebo reference="${prefix}ar_marker">
+      <material>Aruco/marker${marker_id}</material>
+    </gazebo>
+
+  </xacro:macro>
+
+  <xacro:macro name="o2ac_ar_marker_16cm" params="marker_id prefix parent *origin">
+
+    <joint name="${prefix}ar_marker_joint" type="fixed">
+      <parent link="${parent}" />
+      <child link = "${prefix}ar_marker" />
+      <xacro:insert_block name="origin" />
+    </joint>
+
+    <link name="${prefix}ar_marker">
+      <visual name="${prefix}ar_marker_visual">
+	<origin xyz="0 0 -0.0005" rpy="0 0 ${pi}"/>
+        <geometry>
+          <box size="0.18 0.18 0.001" />
+        </geometry>
+        <!--<material name="orange" />-->
+      </visual>
+      <collision name="${prefix}ar_marker_collision">
+	<origin xyz="0 0 -0.0005" rpy="0 0 ${pi}"/>
+        <geometry>
+          <box size="0.18 0.18 0.001" />
+        </geometry>
+      </collision>
+    </link>
+
+    <!-- For Gazebo, material of AR marker is defined in
+         o2ac_gazebo/media/material. You also need to export
+         gazebo_media_path in package.xml. -->
+    <gazebo reference="${prefix}ar_marker">
+      <material>Aruco/marker${marker_id}-160-10</material>
+    </gazebo>
+
+  </xacro:macro>
+</robot>

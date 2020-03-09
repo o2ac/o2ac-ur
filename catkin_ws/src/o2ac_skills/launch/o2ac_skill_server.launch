@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- <include file="$(find o2ac_fastening_tools)/launch/fastening_tools.launch">
+    <arg name="num_controllers"    default="1"/>
+    <arg name="serial_port_1" default="/dev/for_docker/screw"/>
+  </include> -->
+    
+  <!-- <include file="$(find o2ac_debug_monitor)/launch/test.launch" /> -->
+  <!-- <include file="$(find o2ac_debug_monitor)/launch/kitting.launch" /> -->
+  <!-- <include file="$(find o2ac_debug_monitor)/launch/assembly.launch" /> -->
+  <!-- <include file="$(find o2ac_debug_monitor)/launch/taskboard.launch" /> -->
+
+  <!-- <group ns="o2ac_skill_server"> -->
+  <node name="ur_program_relay" pkg="o2ac_skills" type="ur_program_relay.py" respawn="false" output="screen"/>
+  <node name="o2ac_skill_server" pkg="o2ac_skills" type="o2ac_skill_server" respawn="false" output="screen"/>
+  
+  <!-- </group> -->
+</launch>

@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="limited" default="false"/>
+  <arg name="paused" default="true"/>
+  <arg name="gui" default="true"/>
+  <!-- Gazebo needs to start up paused in order for us to be able to set the initial joint configurations.
+       This is a known bug as of July 2018. -->
+  
+  <!-- startup simulated world -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" default="worlds/empty.world"/>
+    <arg name="paused" value="$(arg paused)"/>
+    <arg name="gui" value="$(arg gui)"/>
+    <arg name="verbose" value="true"/>
+  </include>
+
+  <!-- send robot urdf to param server -->
+  <!-- In this case the "robot" is the ensemble of the 3 arms -->
+  <include file="$(find o2ac_scene_description)/launch/o2ac_base_scene_upload.launch" />
+
+  <!-- push robot_description to factory and spawn robot in gazebo -->
+  <!-- Initial pose modified on 9 July 2018 -->
+  <!-- Do not change this without updating the home pose in o2ac_base_scene.srdf accordingly. -->
+  <node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model" 
+        args="-urdf -param robot_description -model o2ac_bots 
+        -J a_bot_elbow_joint 1.4      -J a_bot_shoulder_lift_joint -2.1  -J a_bot_shoulder_pan_joint 1.57 
+        -J a_bot_wrist_1_joint -0.85  -J a_bot_wrist_2_joint -1.57       -J a_bot_wrist_3_joint 0
+        -J b_bot_elbow_joint 1.4      -J b_bot_shoulder_lift_joint -2.1  -J b_bot_shoulder_pan_joint 1.57 
+        -J b_bot_wrist_1_joint -0.85  -J b_bot_wrist_2_joint -1.57       -J b_bot_wrist_3_joint 0
+        -J c_bot_elbow_joint 1.4      -J c_bot_shoulder_lift_joint -2.1  -J c_bot_shoulder_pan_joint 1.57 
+        -J c_bot_wrist_1_joint -0.85  -J c_bot_wrist_2_joint -1.57       -J c_bot_wrist_3_joint 0  
+        -unpause" respawn="false" output="screen" />
+  <include file="$(find o2ac_gazebo)/launch/controller_utils.launch"/>
+
+  <!-- spawn controllers -->
+  <rosparam file="$(find o2ac_gazebo)/controller/3_bot_controllers.yaml" command="load"/>
+  <node name="a_bot_controller_spawner" pkg="controller_manager" type="controller_manager" args="spawn a_bot_controller" respawn="false" output="screen"/>
+  <node name="b_bot_controller_spawner" pkg="controller_manager" type="controller_manager" args="spawn b_bot_controller" respawn="false" output="screen"/>
+  <node name="c_bot_controller_spawner" pkg="controller_manager" type="controller_manager" args="spawn c_bot_controller" respawn="false" output="screen"/>
+
+</launch>

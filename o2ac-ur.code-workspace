@@ -1,0 +1,100 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		// Controls which editor is shown at startup, if none is restored from the previous session. Select 'none' to start without an editor, 'welcomePage' to open the Welcome page (default), 'newUntitledFile' to open a new untitled file (only opening an empty workspace).
+		"workbench.startupEditor": "newUntitledFile",
+		// If set to true, recommendations will not be fetched or shown unless specifically requested by the user.
+		"extensions.showRecommendationsOnlyOnDemand": false,
+		// If set to true, the notifications for extension recommendations will stop showing up.
+		"extensions.ignoreRecommendations": false,
+
+		// Controls how the editor should render whitespace characters, possibilities are 'none', 'boundary', and 'all'. The 'boundary' option does not render single spaces between words.
+		"editor.renderWhitespace": "all",
+		// When enabled, insert a final new line at the end of the file when saving it.
+		"files.insertFinalNewline": true,
+		
+		// Path to Python, you can use a custom version of Python by modifying this setting to include the full path.
+		"python.pythonPath": "/usr/bin/python",
+		// Provider for formatting. Possible options include 'autopep8', 'black', and 'yapf'.
+		"python.formatting.provider": "autopep8",
+
+		// ROS distro name to use (kinetic, jade, ...).
+		"ros.distro": "kinetic",
+		"files.associations": {
+			"*.script": "python",
+			"*.ipp": "cpp",
+			"future": "cpp",
+			"*.txt": "shellscript",
+			"cctype": "cpp",
+			"clocale": "cpp",
+			"cmath": "cpp",
+			"csignal": "cpp",
+			"cstdarg": "cpp",
+			"cstddef": "cpp",
+			"cstdio": "cpp",
+			"cstdlib": "cpp",
+			"cstring": "cpp",
+			"ctime": "cpp",
+			"cwchar": "cpp",
+			"cwctype": "cpp",
+			"atomic": "cpp",
+			"strstream": "cpp",
+			"*.tcc": "cpp",
+			"chrono": "cpp",
+			"codecvt": "cpp",
+			"condition_variable": "cpp",
+			"cstdint": "cpp",
+			"initializer_list": "cpp",
+			"iosfwd": "cpp",
+			"mutex": "cpp",
+			"ratio": "cpp",
+			"system_error": "cpp",
+			"thread": "cpp",
+			"typeindex": "cpp",
+			"array": "cpp",
+			"bitset": "cpp",
+			"deque": "cpp",
+			"unordered_map": "cpp",
+			"vector": "cpp",
+			"exception": "cpp",
+			"fstream": "cpp",
+			"iomanip": "cpp",
+			"iostream": "cpp",
+			"istream": "cpp",
+			"limits": "cpp",
+			"memory": "cpp",
+			"new": "cpp",
+			"optional": "cpp",
+			"ostream": "cpp",
+			"sstream": "cpp",
+			"stdexcept": "cpp",
+			"streambuf": "cpp",
+			"string_view": "cpp",
+			"cinttypes": "cpp",
+			"type_traits": "cpp",
+			"tuple": "cpp",
+			"typeinfo": "cpp",
+			"utility": "cpp",
+			"algorithm": "cpp",
+			"map": "cpp",
+			"memory_resource": "cpp",
+			"set": "cpp",
+			"string": "cpp"
+		}
+	},
+	"extensions": {
+		"recommendations": [
+			"ms-python.python",
+			"ms-vscode.cpptools",
+			"ms-azuretools.vscode-docker",
+			"ms-iot.vscode-ros",
+			"streetsidesoftware.code-spell-checker",
+			"eamodio.gitlens",
+			"mhutchie.git-graph"			
+		]
+	}
+}

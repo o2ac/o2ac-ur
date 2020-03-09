@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="task_board">
+
+  <xacro:macro name="taskboard" params="boardname parent *origin">
+  <xacro:property name="mesh_file_base" value="package://o2ac_scene_description/meshes/taskboard_01_base.stl" />
+  <xacro:property name="mesh_file_plate" value="package://o2ac_scene_description/meshes/taskboard_02_plate.stl" />
+
+  <link name="${boardname}_base">
+    <inertial>
+      <origin rpy="${-pi/2} 0 ${pi/2}" xyz="0 0 0.0"/>
+      <mass value="1.0"/>
+      <inertia ixx="1.0" ixy="0" ixz="0" iyy="1.0" iyz="0" izz="1.0"/>
+    </inertial>
+    <visual>
+      <origin rpy="${-pi/2} 0 ${pi/2}" xyz="0 0 0.0"/>
+      <geometry>
+        <mesh filename="${mesh_file_base}" scale=".001 .001 .001"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="${-pi/2} 0 ${pi/2}" xyz="0 0 0.0"/>
+      <geometry>
+        <mesh filename="${mesh_file_base}" scale=".001 .001 .001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="${boardname}_base" type="fixed">
+    <parent link="${parent}" />
+    <child link = "${boardname}_base" />
+    <xacro:insert_block name="origin"/>
+  </joint>
+
+  <link name="${boardname}_plate">
+    <inertial>
+      <origin rpy="${pi/2} 0 ${pi/2}" xyz="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="1.0" ixy="0" ixz="0" iyy="1.0" iyz="0" izz="1.0"/>
+    </inertial>
+    <visual>
+      <origin rpy="${pi/2} 0 ${pi/2}" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="${mesh_file_plate}" scale=".001 .001 .001"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="${pi/2} 0 ${pi/2}" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="${mesh_file_plate}" scale=".001 .001 .001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="${boardname}_plate" type="fixed">
+    <parent link="${boardname}_base" />
+    <child link = "${boardname}_plate" />
+    <origin rpy="0 0 0" xyz="-0.06 0.0 0.0"/>
+  </joint>
+
+  <joint name="${boardname}_surface_joint" type="fixed">
+    <parent link="${boardname}_plate"/>
+    <child link="${boardname}_surface"/>
+    <origin rpy="0.0 ${pi} 0" xyz="0.025 0.1 0.05"/>
+  </joint>
+  <link name="${boardname}_surface"/>
+
+  <joint name="${boardname}_set_screw_tool_joint" type="fixed">
+    <parent link="${boardname}_plate"/>
+    <child link="${boardname}_set_screw_tool_link"/>
+    <origin rpy="0.0 ${pi/2} ${pi/2}" xyz="-0.08 0.3 0"/>
+  </joint>
+  <link name="${boardname}_set_screw_tool_link"/>
+
+  <!-- <joint name="${boardname}_part7_2" type="fixed">
+    <parent link="${boardname}_part7_1"/>
+    <child link="${boardname}_part7_2"/>
+    <origin rpy="0.0 0.0 ${pi*1.0}" xyz="0.003 0.0 0.0"/>
+  </joint>
+  <link name="${boardname}_part7_2">
+    <visual>
+      <origin xyz="0.0015 0 -0.0125" rpy="0 0 ${pi/2}"/>
+      <geometry>
+        <box size=".025 0.003 .076"/> 
+      </geometry>
+      <material name="grey">
+        <color rgba=".3 .3 .3 1"/>
+      </material>
+    </visual> 
+  </link> -->
+
+
+  </xacro:macro>
+  <!-- Add additional links for us to plan with.-->
+</robot>
+

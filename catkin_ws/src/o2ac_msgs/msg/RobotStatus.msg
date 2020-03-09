@@ -1,0 +1,3 @@
+bool carrying_object
+bool carrying_tool
+string held_tool_id

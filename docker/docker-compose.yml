@@ -1,0 +1,47 @@
+version: "2.4"
+
+################################################################################
+
+services:
+  o2ac-ur:
+    hostname: o2ac-ur
+    runtime: ${DOCKER_RUNTIME}
+    privileged: true
+    environment:
+      # Pass host user information.
+      - HOST_USER=${USER}
+      - HOST_UID=1000
+      - HOST_GID=1000
+      # Display X Server GUI.
+      - DISPLAY
+      - QT_X11_NO_MITSHM=1
+      # Configure Nvidia Docker interface.
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - NVIDIA_REQUIRE_CUDA=cuda>=9.0
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile
+    volumes:
+      # Map ROS workspace folders.
+      - ./scripts/:/root/docker/scripts/
+      - ../catkin_ws/:/root/catkin_ws/
+      - ../underlay_ws/:/root/underlay_ws/
+      - /mnt/docker/share/:/root/share/
+      - /mnt/docker/o2ac-ur/_.ros/:/root/.ros/
+      # Make sources accessible with same path as host.  ## Not sure if this is useful or necessary
+      - ../../o2ac-ur/:/home/${USER}/o2ac-ur/
+      # Grant display access to X Server.
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      # Grant bus access to FlexBE App.
+      - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket
+      # Grant access to serial usb ports for u2d2
+      - /dev/for_docker:/dev/for_docker
+    network_mode: host
+    extra_hosts:
+      - "o2ac-ur:127.0.0.1"   # Seems that this might be needed for ROS networking
+      - "olivier:127.0.0.1"     
+      - "o2ac-ur:192.168.0.5" # The host PC
+      - "osx-panda-desk:192.168.0.6"
+    command: ./scripts/keep-container-running.sh
+    shm_size: 1g # a PhoXi data size about 100MB.

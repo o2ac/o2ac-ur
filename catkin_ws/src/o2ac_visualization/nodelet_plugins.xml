@@ -1,0 +1,9 @@
+<library path="lib/libo2ac_visualization">
+  <class name="o2ac_visualization/o2acDebugMonitor"
+         type="o2ac_visualization::o2acDebugMonitor"
+         base_class_type="nodelet::Nodelet">
+  <description>
+    This is a debug monitor of o2ac robot system for WRC2018.
+  </description>
+  </class>
+</library>

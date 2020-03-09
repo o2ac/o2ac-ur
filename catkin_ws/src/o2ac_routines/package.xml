@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<package>
+  <name>o2ac_routines</name>
+  <version>0.0.0</version>
+  <description>The o2ac_routines package</description>
+
+  <maintainer email="f.drigalski@sinicx.com">Felix von Drigalski</maintainer>
+
+  <license>TODO</license>
+
+ 
+  <build_depend>roscpp</build_depend>
+  <build_depend>rospy</build_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>rospy</run_depend>
+
+  <build_depend>std_msgs</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>geometry_msgs</run_depend>
+
+  <run_depend>tf</run_depend>
+  <run_depend>tf_conversions</run_depend>
+  <build_depend>tf</build_depend>
+  <build_depend>tf_conversions</build_depend>
+
+  <run_depend>ur_description</run_depend>
+  <run_depend>moveit_core</run_depend>
+  <run_depend>moveit_commander</run_depend>
+  <run_depend>moveit_ros_planning_interface</run_depend>
+  <run_depend>moveit_ros_planning</run_depend>
+
+  <run_depend>robotiq_msgs</run_depend>
+  <build_depend>robotiq_msgs</build_depend>
+  <run_depend>o2ac_msgs</run_depend>
+  <build_depend>o2ac_msgs</build_depend>
+
+  <run_depend>ur_msgs</run_depend>
+  <build_depend>ur_msgs</build_depend>
+  <run_depend>o2ac_usb_relay</run_depend>
+  <build_depend>o2ac_usb_relay</build_depend>
+
+  <build_depend>message_generation</build_depend>
+  
+  <buildtool_depend>catkin</buildtool_depend>
+  
+</package>

@@ -1,0 +1,5 @@
+<launch>
+	<arg name="parts_list_filename" default="$(find o2ac_parts_description)/config/assembly_parts_list.yaml"/>
+    
+    <rosparam command="load" file="$(arg parts_list_filename)"/>
+</launch>

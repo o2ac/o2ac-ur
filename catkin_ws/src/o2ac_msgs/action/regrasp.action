@@ -1,0 +1,15 @@
+# This is used when one gripper should grasp the item held by another gripper.
+# The second gripper is oriented opposite and rotated to the first by default.
+
+# Request
+string giver_robot_name                         
+string receiver_robot_name                      
+float64 gripper_distance_before_grasp           # Default: .1
+float64 grasp_distance                          # Default: .02 (the distance of the tips of the grippers during handover)
+float64 gripper_distance_after_grasp            # Default: .1
+---
+# Result
+bool success
+---
+# Feedback
+float32 progress

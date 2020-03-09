@@ -1,0 +1,11 @@
+fastening_tools:
+  - name: screw_tool_m6
+    motor_id: 1
+  - name: screw_tool_m4
+    motor_id: 3
+  - name: screw_tool_m3
+    motor_id: 5
+  - name: nut_tool_m6
+    motor_id: 4
+  - name: set_screw_tool
+    motor_id: 10

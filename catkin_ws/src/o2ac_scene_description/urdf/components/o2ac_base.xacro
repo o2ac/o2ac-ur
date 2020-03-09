@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  
+  <xacro:macro name="o2ac_base" params="boxname parent *origin">
+    <!-- This creates a box with the origin in the bottom corner, fixed to the world link. -->
+    
+    <xacro:property name="box_w" value=".65"/>
+    <xacro:property name="box_l" value=".65"/>
+    <xacro:property name="box_h" value=".05"/>
+
+    <link name="${boxname}">
+      <!-- w is in x, l is in y, h is in z -->
+      <visual>
+        <origin xyz="${box_w/2} ${box_l/2} ${box_h/2}" rpy="0 0 0"/>
+        <geometry>
+          <box size="${box_w} ${box_l} ${box_h}"/> 
+        </geometry>
+        <material name="DarkGrey">
+          <color rgba="0.2 0.2 0.2 1.0"/>
+        </material>
+      </visual>
+      <collision>
+      <origin xyz="${box_w/2} ${box_l/2} ${box_h/2}" rpy="0 0 0"/>
+        <geometry>
+          <box size="${box_w} ${box_l} ${box_h}"/> 
+        </geometry>
+      </collision>
+
+      <!-- This is required for Gazebo. -->
+      <inertial>
+        <mass value="1.0" />
+        <!-- <origin xyz="${box_w/2} ${box_l} ${box_h/2}" rpy="0 0 0"/> -->
+        <inertia ixx="0.0" ixy="0.0" ixz="0.0"
+          iyy="0.0" iyz="0.0"
+          izz="0.0" />
+      </inertial>
+      
+    </link>
+    <gazebo reference="${boxname}">
+      <material>Gazebo/FlatBlack</material>
+    </gazebo>
+
+    <joint name="${boxname}" type="fixed">
+      <parent link="${parent}" />
+      <child link = "${boxname}" />
+      <xacro:insert_block name="origin"/>
+    </joint>
+  </xacro:macro>
+</robot> 

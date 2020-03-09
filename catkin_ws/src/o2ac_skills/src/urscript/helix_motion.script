@@ -1,0 +1,291 @@
+def HelixMotion():
+    set_standard_analog_input_domain(0, 1)
+    set_standard_analog_input_domain(1, 1)
+    set_tool_analog_input_domain(0, 1)
+    set_tool_analog_input_domain(1, 1)
+    set_analog_outputdomain(0, 0)
+    set_analog_outputdomain(1, 0)
+    set_tool_voltage(0)
+    set_input_actions_to_default()
+    set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+    set_payload(0.0)
+    set_gravity([0.0, 0.0, 9.82])
+    path_server = rpc_factory("xmlrpc","http://localhost:4251/path")
+    linalg = rpc_factory("xmlrpc","http://localhost:4251/linalg")
+    global rq_from=0.0
+    global rq_path_id=0
+    global rq_timeof_path=-1
+    global rq_path_reference_frame = get_actual_tcp_pose()
+    global Fx = 0.0
+    global Fy = 0.0
+    global Fz = 0.0
+    global Mx = 0.0
+    global My = 0.0
+    global Mz = 0.0
+    def rq_move_relative(P_from, P_to, Pi):
+        return pose_trans(P_to, pose_trans(pose_inv(P_from), Pi))
+    end  
+    def poseToList(p):
+        return [p[0], p[1], p[2], p[3], p[4], p[5]]
+    end
+    def listToPose(l):
+        return p[l[0], l[1], l[2], l[3], l[4], l[5]]
+    end
+    def rq_element_wise_substract(l1, l2):
+        global r = l1
+        i=0
+        while i<length(r):
+        r[i]=l1[i]-l2[i]
+        i=i+1
+        end
+        return r
+    end
+    def rq_element_wise_abs(val):
+        global rval = val
+        i=0
+        while i<length(rval):
+            rval[i]=norm(rval[i])
+            i=i+1
+        end
+        return rval
+    end
+    def rq_max(l):
+        global vmax = l[0]
+        i=1
+        while i<length(l):
+        if l[i] > vmax:
+            vmax = l[i]
+        end
+        i=i+1
+        end
+        return vmax
+    end
+    def rq_is_savate(j1, j2):
+        max_joint_displacement = rq_max(rq_element_wise_abs(rq_element_wise_substract(j1, j2)))
+        if max_joint_displacement > d2r(45):
+            handleInitPathStatusCode(1)
+        end
+    end
+    thread rq_getjointpositions():
+        textmsg("rq_getjointpositions from ", rq_from)
+        rq_jointpositions_buffer  = path_server.getjointpositions(rq_path_id, rq_from, rq_from + 1.9999, 0.008)
+        rq_tcppositions_buffer = path_server.gettcpposes(rq_path_id, rq_from, rq_from + 1.9999, 0.008)
+    end
+    def rqinitpath(pathId):
+        initPathAnswer = path_server.initpath(pathId)
+        rq_timeof_path = initPathAnswer[0]
+        initPathStatusCode = initPathAnswer[1]
+        textmsg("rq_timeof_path: ", rq_timeof_path)
+        textmsg("init path status code: ", initPathStatusCode)
+        handleInitPathStatusCode(initPathStatusCode)
+    end
+    def handleInitPathStatusCode(initPathStatusCode):
+        if initPathStatusCode == -1:
+        popup("Could not compute path with the selected options.", "Robotiq's FT Sensor", error=True)
+        rq_timeof_path = 0
+        elif initPathStatusCode == 1:
+        popup("Discontinuous path detected. Change your starting position.", "Robotiq's FT Sensor", error=True)
+        rq_timeof_path = 0
+        elif initPathStatusCode == 2:
+        popup("Joint solution impossible. Change your starting position.", "Robotiq's FT Sensor", error=True)
+        rq_timeof_path = 0
+        elif initPathStatusCode == 3:
+        popup("Path time limit has been reached. Increase the speed of your path or break it down in multiple shorter paths.", "Robotiq's FT Sensor", error=True)
+        rq_timeof_path = 0
+        elif initPathStatusCode == 4:
+        popup("Could not compute path with the selected options. Computing path timeout.", "Robotiq's FT Sensor", error=True)
+        rq_timeof_path = 0
+        end
+        if initPathStatusCode != 0:
+        halt
+        end
+    end
+    def rqpath(pathId):
+        rq_path_id = pathId
+        if rq_timeof_path == -1:
+        rqinitpath(pathId)
+        end
+        if rq_timeof_path != 0:
+            textmsg("starting path")
+            rq_path_starting_pose = rq_path_reference_frame
+            pathsize = rq_timeof_path * 125
+            global rq_tcppositions_buffer = path_server.gettcpposes(rq_path_id, 0.0, 1.9999, 0.008)
+            global rq_jointpositions_buffer  = path_server.getjointpositions(rq_path_id, 0.0, 1.9999, 0.008)
+            rq_tcp_path = rq_tcppositions_buffer[0]
+            rq_joint_path = get_inverse_kin(rq_tcp_path, poseToList(rq_jointpositions_buffer[0]))
+            rq_previous_joint_path = rq_joint_path
+            movej(rq_joint_path, a=0.4)
+            servoj(rq_joint_path, 0.1, 0.1, 0.000, 0.1, 500)#évite un "bang", bug UR dans le target pose des servoj semble-t-il...
+            rq_path_starting_pose = get_actual_tcp_pose()
+            rq_path_reference_frame = rq_path_starting_pose
+            textmsg("start")
+            i=0
+            while i < pathsize:
+            jointpositions = rq_jointpositions_buffer
+            tcppositions = rq_tcppositions_buffer
+            
+            if (i+250) < pathsize:
+                rq_from = (i+250)*0.008
+                thrd = run rq_getjointpositions()
+            end
+            j = 0
+            while (j < 250) and (i < pathsize) :
+                rq_tcp_path = tcppositions[j]
+                rq_joint_path = get_inverse_kin(rq_move_relative(rq_path_starting_pose, rq_path_reference_frame, rq_tcp_path))
+                rq_is_savate(rq_previous_joint_path, rq_joint_path)
+                rq_previous_joint_path = rq_joint_path
+                servoj(rq_joint_path, 0.1, 0.1, 0.008, 0.05, 500)
+                j = j+1
+                i = i+1
+            end
+            if i != pathsize:
+                join thrd
+            end
+            end
+            textmsg("path finished")
+        end
+    end #rqpath
+    def rq_zero_sensor():
+        if (socket_open("127.0.0.1", 63350, "rq_ft_sensor_acc")):
+            socket_send_string("SET ZRO", "rq_ft_sensor_acc")
+            sleep(0.1)
+            socket_close("rq_ft_sensor_acc")
+        end
+    end
+    thread read_force():
+        while True:
+            socket_send_string("READ DATA", "rq_ft_sensor_stream")
+            rq_sensor_data = socket_read_ascii_float(6, "rq_ft_sensor_stream")
+            if (rq_sensor_data[0] >= 6):
+                Fx = rq_sensor_data[1]
+                Fy = rq_sensor_data[2]
+                Fz = rq_sensor_data[3]
+                Mx = rq_sensor_data[4]
+                My = rq_sensor_data[5]
+                Mz = rq_sensor_data[6]
+            else:
+                Fx = 0.0
+                Fy = 0.0
+                Fz = 0.0
+                Mx = 0.0
+                My = 0.0
+                Mz = 0.0
+            end
+        end
+    end
+    if (not socket_open("127.0.0.1", 63351, "rq_ft_sensor_stream")):
+        popup("Can't connect to the FT Sensor driver", "Robotiq's FT Sensor", error=True)
+    end
+    socket_close("rq_ft_sensor_stream")
+    if (socket_open("127.0.0.1", 63350, "rq_ft_sensor_stream")):
+        run read_force()
+    else:
+        popup("Can't connect to the FT Sensor driver", "Robotiq's FT Sensor", error=True)
+    end
+    rtde_set_watchdog("external_force_torque", 5, "ignore")
+    enable_external_ft_sensor(False)
+    textmsg("disable external sensor")
+    def total_force():
+        return norm( pow( pow(Fx, 2) + pow(Fy, 2) + pow(Fz, 2) , 0.5))
+    end
+    # =================================
+    def get_spiral_position(theta, r, spiral_axis):
+        newpose = p[0,0,0,0,0,0]
+        x=cos(d2r(theta))*r
+        y=sin(d2r(theta))*r
+        if (spiral_axis == "Z"):
+            newpose[0] = x
+            newpose[1] = y
+        elif (spiral_axis == "Y"):
+            newpose[2] = x
+            newpose[0] = y
+        elif (spiral_axis == "X"):
+            newpose[1] = x
+            newpose[2] = y
+        elif (spiral_axis == "YZ"):
+            newpose[0] = x
+            newpose[1] = y/1.41
+            newpose[2] = y/1.41
+        end
+        return newpose
+    end
+    def helix_motion(max_radius=5.0, radius_incr=0.3, speed=0.01, acceleration=0.05, spiral_axis="Z", theta_incr=30, helix_forward_axis="Z", forward_incr=0.01, forward_limit=0.05, max_force=20):
+        if (max_radius < 0.0005) or (max_radius > .05):
+            textmsg("ERROR: max_radius parameter in m must be between 0.0005 m and 0.05 m")
+        else:
+            rq_zero_sensor()
+            global helix_forward_axis_x = (helix_forward_axis=="X")
+            global helix_forward_axis_y = (helix_forward_axis=="Y")
+            global helix_forward_axis_z = (helix_forward_axis=="Z")
+            
+            # This thread stops the robot when it encounters a max force (e.g. it gets stuck)
+            global max_force_global = max_force
+            thread supervise_wrist_force():
+                force_exceeded = False
+                while not force_exceeded:
+                    if total_force()>max_force_global:
+                        force_exceeded = True
+                    end
+                    sleep(0.05)
+                end
+                textmsg("Force was detected. Stopping. Force is ", total_force())
+                halt
+            end
+            thread_handler = run supervise_wrist_force()
+            
+            if (radius_incr < 0.0001) or (radius_incr > 0.05):
+                textmsg("ERROR: radius_incr parameter in m must be between 0.0001 m and .05 m")
+            else:
+                global max_radius_set = max_radius
+                # global theta_incr = 30  # Degrees
+                global radius_inc_set = radius_incr / (360 / theta_incr)
+                global forward_inc_set = forward_incr / (360 / theta_incr)
+                global r=0.0003  #Start radius
+                global x=0
+                global y=0
+                global z=0
+                global pos=p[0,0,0,0,0,0]
+                global next_position=p[0,0,0,0,0,0]
+                global start_pose=p[0,0,0,0,0,0]
+                global theta=0
+                global RealRadius=0
+                
+                sync()
+                start_pose=get_actual_tcp_pose()
+                textmsg("=== Spiral motion with forward motion ===")
+                textmsg("Starting with a spiral from the center")
+                sync()
+                while ((r <= max_radius_set)):
+                    #standard method
+                    theta=theta+theta_incr
+                    pos = get_spiral_position(theta, r, spiral_axis)
+                    r=r + radius_inc_set
+                    next_pos=pose_trans(start_pose,pos)
+                    movep(next_pos, a=acceleration, v=speed, r=0.0)
+                    sleep(0.02)  # Can this be tuned to go faster?
+                end
+                textmsg("Moved from center to the outside. Now move downward while continuing spiral at radius")
+                total_forward_feed = 0
+                while ((total_forward_feed <= forward_limit)):
+                    theta=theta+theta_incr
+                    pos = get_spiral_position(theta, r, spiral_axis)
+                    idx = 2
+                    if helix_forward_axis_x:
+                        idx = 0
+                    elif helix_forward_axis_y:
+                        idx = 1
+                    elif helix_forward_axis_z:
+                        idx = 2
+                    end
+                    pos[idx] = pos[idx] + total_forward_feed
+                    total_forward_feed = total_forward_feed+forward_inc_set
+                    next_pos = pose_trans(start_pose,pos)
+                    movep(next_pos, a=acceleration, v=speed, r=0.0)
+                    sleep(0.02)
+                end
+                return True
+            end
+        end
+    end
+
+    # Insert real program here.

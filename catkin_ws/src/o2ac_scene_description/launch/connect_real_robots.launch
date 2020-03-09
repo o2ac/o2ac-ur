@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<!--
+  This file launches the drivers of the real robots instead of the simulation.
+  The first section starts the robot drivers.
+  The second section starts cameras, grippers, tools etc.
+-->
+<launch>
+
+  <!-- This parameter enables/disables the usage of direct UR script commands in ur_routines/ur_skills. \
+       It cannot be used in simulation. -->
+  <param name="use_real_robot" type="bool" value="true" />
+
+  <!-- ======================================== -->
+  
+  <include file="$(find o2ac_scene_description)/launch/osx_arms_bringup.launch"/>
+  
+  <!-- ======================================== -->
+  
+  <!-- Grippers -->
+  <include file="$(find robotiq_control)/launch/ur_cmodel_action_controller.launch">
+    <arg name="namespace" value="b_bot" />
+    <arg name="gripper_prefix" value="b_bot_" />
+    <arg name="topic" value="/b_bot/ur_hardware_interface/script_command" />
+  </include>
+
+  <!-- <include file="$(find robotiq_control)/launch/ur_cmodel_action_controller.launch">
+    <arg name="namespace" value="c_bot" />
+    <arg name="gripper_prefix" value="c_bot_" />
+    <arg name="topic" value="/c_bot/ur_hardware_interface/script_command" />
+  </include> -->
+
+  <!-- <include file="$(find o2ac_fastening_tools)/launch/fastening_tools.launch">
+    <arg name="serial_port_1" default="/dev/for_docker/screw" />
+  </include> -->
+
+  
+  <!-- Realsense parameters -->
+  <arg name="trigger_mode" default="false"/>
+
+  <!-- scene camera -->
+  <!-- serial_no 605201001486 is ID60*86 -->
+  <!-- serial_no 819612071364 is probably a D435 -->
+  <!-- <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <arg name="camera" default="scene_camera"/>
+    <arg name="serial_no" value="605201001486"/> 
+    <arg name="enable_pointcloud" value="false"/>
+    <arg name="fisheye_fps"         default="15"/>
+    <arg name="depth_fps"           default="15"/>
+    <arg name="infra_fps"           default="15"/>
+    <arg name="color_fps"           default="30"/>
+    <arg name="enable_infra1"       default="false"/>
+    <arg name="enable_infra2"       default="false"/>
+  </include> -->
+
+  <!-- Launch Flexible Wrist Controller -->
+  <node name="wrist_controller" pkg="osx_flex_wrist" type="wrist_controller.py" output="screen">
+      <param name="config_dir"    type="string" value="$(find osx_flex_wrist)/config"/>
+      <param name="config_filename" type="string" value="wrist_control"/>
+      <param name="operation_mode" type="string" value="operation_mode"/>
+      <param name="robot_controller_namespace_prefix" type="string" value="/b_bot"/>
+  </node>
+</launch>

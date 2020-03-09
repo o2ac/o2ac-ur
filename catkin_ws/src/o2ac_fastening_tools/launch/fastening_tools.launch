@@ -1,0 +1,24 @@
+<launch>
+    <arg name="num_controllers"       default="1"/>
+    <arg name="serial_port_1"         default="/dev/for_docker/screw"/>
+    <arg name="config_dir"            default="$(find o2ac_fastening_tools)/config"/>
+    <arg name="fastening_tools"       default="fastening_tools"/>
+    <arg name="suction_control"       default="suction_control"/>
+    <arg name="operation_mode"        default="operation_mode"/>
+
+    <node name="dynamixel_controller" pkg="o2ac_fastening_tools" type="dynamixel_controller" output="screen">
+        <param name="num_controllers" type="int"    value="$(arg num_controllers)"/>
+        <param name="serial_port_1"   type="string" value="$(arg serial_port_1)"/>
+    </node>
+
+    <node name="fastening_tool_action_server" pkg="o2ac_fastening_tools" type="fastening_tool_action_server.py" output="screen">
+        <param name="config_dir"      type="string" value="$(arg config_dir)"/>
+        <param name="fastening_tools" type="string" value="$(arg fastening_tools)"/>
+    </node>
+
+    <node name="suction_controller" pkg="o2ac_fastening_tools" type="suction_controller.py" output="screen">
+        <param name="config_dir"    type="string" value="$(arg config_dir)"/>
+        <param name="suction_control" type="string" value="$(arg suction_control)"/>
+        <param name="operation_mode" type="string" value="$(arg operation_mode)"/>
+    </node>
+</launch>

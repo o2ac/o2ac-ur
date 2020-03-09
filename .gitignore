@@ -1,0 +1,41 @@
+# macOS auto-generated files.
+
+*.DS_Store
+
+# ROS auto-generated files.
+
+catkin_ws/CMakeLists.txt
+catkin_ws/.catkin_tools/
+catkin_ws/build/
+catkin_ws/devel/
+catkin_ws/logs/
+
+underlay_ws/CMakeLists.txt
+underlay_ws/.catkin_tools/
+underlay_ws/build/
+underlay_ws/devel/
+underlay_ws/logs/
+
+# Experiment recordings and data
+
+catkin_ws/experiment*
+catkin_ws/bagfiles/
+*.bag
+
+# URDF files that are generated from lists and CAD models
+catkin_ws/src/o2ac_parts_description/urdf/generated/
+
+# Python auto-generated files.
+*.pyc
+
+# PyCharm
+.idea
+
+# Temporary files
+*.csv#
+*.ods#
+
+# VSCode files
+*.bin
+*.ipch
+
