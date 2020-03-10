@@ -1,9 +1,9 @@
 #!/bin/bash
 
-DOCKER_VERSION="5:19.03.1~3-0~ubuntu-$(lsb_release -cs)"
+DOCKER_VERSION="5:18.09.3~3-0~ubuntu-$(lsb_release -cs)"
 DOCKER_COMPOSE_VERSION="1.23.2"
-NVIDIA_DOCKER_VERSION="2.2.0-1"
-NVIDIA_RUNTIME_VERSION="3.1.0-1"
+NVIDIA_DOCKER_VERSION="2.0.3+docker18.09.3-1"
+NVIDIA_RUNTIME_VERSION="2.0.0+docker18.09.3-1"
 
 ################################################################################
 
@@ -42,7 +42,7 @@ add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(
 
 # Install Docker version 'DOCKER_VERSION'.
 # Any existing installation will be replaced.
-apt-get update && apt-get install -y \
+apt-get update && apt-get install -y --allow-downgrades \
   docker-ce=${DOCKER_VERSION} \
   docker-ce-cli=${DOCKER_VERSION} \
   containerd.io
@@ -111,7 +111,7 @@ distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
 curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | tee /etc/apt/sources.list.d/nvidia-docker.list
 
 # Install 'nvidia-docker2' version 'NVIDIA_DOCKER_VERSION' and reload the Docker daemon configuration.
-apt-get update && apt-get install -y \
+apt-get update && apt-get install -y --allow-downgrades \
   nvidia-docker2=${NVIDIA_DOCKER_VERSION} \
   nvidia-container-runtime=${NVIDIA_RUNTIME_VERSION}
 
