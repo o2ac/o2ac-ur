@@ -2,7 +2,7 @@
 
 # Software License Agreement (BSD License)
 #
-# Copyright (c) 2019, OMRON SINIC X Corp.
+# Copyright (c) 2020, OMRON SINIC X Corp.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -39,41 +39,50 @@ import geometry_msgs.msg
 import tf_conversions
 from math import pi
 
-from o2ac_routines.base import o2acBaseRoutines
+from o2ac_routines.base import O2ACCommonBase
 
-class CalibrationTestClass(o2acBaseRoutines):
-  # Use this class to move a robot to the position of a marker it is seeing.
-  # The handeye calibration plugin in Rviz must be running for this to work.
+class ExampleClass(O2ACCommonBase):
+  # Use a class like this to extend the base class and create your own routines.
 
   def __init__(self):
-    super(CalibrationTestClass, self).__init__()
+    super(ExampleClass, self).__init__()
     rospy.sleep(.5)
 
-  def move_to_marker(self, robot="b_bot"):
-    marker_pose = geometry_msgs.msg.PoseStamped()
-    marker_pose.header.frame_id = "handeye_target"
-    marker_pose.pose.orientation.w = 1.0
-    marker_in_world = self.listener.transformPose("workspace_center", marker_pose)
-    downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi*3/4, pi/2))
-    marker_in_world.pose.orientation = downward_orientation
-    marker_in_world.pose.position.x -= 0.01
-    self.go_to_pose_goal(robot, marker_in_world, speed=0.03, acceleration=.1, end_effector_link=robot+"_robotiq_85_tip_link", move_lin=True)
+  def my_move_function(self, robot="b_bot"):
+    # Create a target Pose in the world
+    target_pose = geometry_msgs.msg.PoseStamped()
+    target_pose.header.frame_id = "workspace_center"  # The frame in which the pose is defined
+    target_pose.pose.position.x = 0.1 
+    target_pose.pose.position.y = 0.0
+    target_pose.pose.position.z = 0.1 
+    
+    target_pose.pose.orientation.w = 1.0  # This sets the orientation to neutral (= the same as the frame_id)
+    
+    # This command sets an orientation from roll, pitch, yaw
+    target_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi*3/4, pi/2))
+    
+    # This uses the go_to_pose_goal function defined in base.py to go to the pose
+    self.go_to_pose_goal(robot, target_pose, 
+            speed=0.03, acceleration=.1, end_effector_link=robot+"_robotiq_85_tip_link", move_lin=False)
+    
+    # The end_effector_link defines which part of the robot is moved to the target pose (it can be another part, or a tool!)
+    # move_lin defines if the robot will attempt a linear motion or "free motion" planning
 
 
 if __name__ == '__main__':
   try:
-    c = CalibrationTestClass()
+    c = ExampleClass()
     i = 1
     while i:
-      rospy.loginfo("Enter 1 to move a_bot to the marker.")
-      rospy.loginfo("Enter 2 to move b_bot to the marker.")
-      rospy.loginfo("Enter 3 to move to home position.")
+      rospy.loginfo("Enter 1 to move a_bot to the target pose.")
+      rospy.loginfo("Enter 2 to move b_bot to the target pose.")
+      rospy.loginfo("Enter 3 to move robhots to home position.")
       rospy.loginfo("Enter x to exit.")
       i = raw_input()
       if i == '1':
-        c.move_to_marker("a_bot")
+        c.my_move_function("a_bot")
       if i == '2':
-        c.move_to_marker("b_bot")
+        c.my_move_function("b_bot")
       if i == '3':
         c.go_to_named_pose("home","a_bot")
         c.go_to_named_pose("home","b_bot")

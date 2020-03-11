@@ -43,7 +43,7 @@ import tf
 import tf_conversions
 from math import pi
 
-from o2ac_routines.base import o2acBaseRoutines
+from o2ac_routines.base import O2ACCommonBase
 
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
@@ -51,7 +51,7 @@ import cv2
 import actionlib
 import o2ac_msgs.msg
 
-class CalibrationClass(o2acBaseRoutines):
+class CalibrationClass(O2ACCommonBase):
   """
   These routines check the robots' calibration by moving them to
   objects defined in the scene.

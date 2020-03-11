@@ -17,7 +17,7 @@ from o2ac_msgs.srv import *
 import actionlib
 import o2ac_msgs.msg
 
-from o2ac_routines.base import o2acBaseRoutines
+from o2ac_routines.base import O2ACCommonBase
 from o2ac_routines.vision import VisionProxy
 
 def ros_service_proxy(service_name, service_type):
@@ -31,7 +31,7 @@ def ros_service_proxy(service_name, service_type):
     return proxy
 
     
-class VisionDemo(o2acBaseRoutines):
+class VisionDemo(O2ACCommonBase):
   """
   This contains the routine used to run the vi task.
   """

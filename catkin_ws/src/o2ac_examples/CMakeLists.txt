@@ -120,8 +120,7 @@ add_dependencies(action_example
   	${catkin_EXPORTED_TARGETS})
 target_link_libraries(action_example ${catkin_LIBRARIES})
 
-catkin_install_python(PROGRAMS scripts/example_movegroupcommander.py
-                      scripts/send_program_to_ur.py
+catkin_install_python(PROGRAMS scripts/send_program_to_ur.py
                       DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 ## Rename C++ executable without prefix
