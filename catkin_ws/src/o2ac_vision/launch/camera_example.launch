@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- This is an example launch file to start up multiple cameras. -->
+  <!-- It only works when a single camera is connected., -->
+  <!-- This launch file simply executes "roslaunch realsense2_camera rs_camera.launch" -->
+  
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch"/>
+</launch>

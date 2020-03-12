@@ -42,22 +42,41 @@ from math import pi
 from o2ac_routines.base import O2ACCommonBase
 
 class CalibrationTestClass(O2ACCommonBase):
-  # Use this class to move a robot to the position of a marker it is seeing.
+  # Use this class to move a robot to the position of a marker it is seeing, to check a camera's calibration.
   # The handeye calibration plugin in Rviz must be running for this to work.
+  # This class inherits from O2ACCommonBase, which is defined in o2ac_routines/src/o2ac_routines/base.py,
+  # where convenience functions like "get_current_pose" and "go_to_pose_goal" are defined.
 
   def __init__(self):
     super(CalibrationTestClass, self).__init__()
     rospy.sleep(.5)
 
   def move_to_marker(self, robot="b_bot"):
-    marker_pose = geometry_msgs.msg.PoseStamped()
-    marker_pose.header.frame_id = "handeye_target"
-    marker_pose.pose.orientation.w = 1.0
+    # We want to move the robot to a marker, but we don't want it to hit the marker.
+    # We want it to move above the marker, so we apply a vertical offset of 1 cm
+    # Also, we want to ignore the orientation of the marker.
+    # The easiest way is to apply the orientation and offset in a fixed frame, so:
+
+    # First we create a Pose that is on the marker
+    marker_pose = geometry_msgs.msg.PoseStamped()   # "Stamped" means that a "header" is included
+    marker_pose.header.frame_id = "handeye_target"  # The frame in which the pose is defined
+    marker_pose.pose.orientation.w = 1.0    # This sets the orientation of the quaternion to neutral
+
+    # Then we transform it to a fixed frame in the world, so we can apply the offset and orientation
+    # The result of the next line is PoseStamped with header.frame_id = "workspace_center"
     marker_in_world = self.listener.transformPose("workspace_center", marker_pose)
+
+    # Next, we apply a known orientation to the target pose and the vertical offset
     downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi*3/4, pi/2))
     marker_in_world.pose.orientation = downward_orientation
-    marker_in_world.pose.position.x -= 0.01
-    self.go_to_pose_goal(robot, marker_in_world, speed=0.03, acceleration=.1, end_effector_link=robot+"_robotiq_85_tip_link", move_lin=True)
+    marker_in_world.pose.position.z += 0.01  # 1 cm (all ROS values are in basic SI units!)
+    
+    # Finally, we move the robot to the marker.
+    # "end_effector_link" defines which part of the robot is moved to the target pose. It can be another frame,
+    # such as a tool or the camera frame. 
+    # move_lin defines if the robot will attempt a linear motion or "free motion" planning.
+    self.go_to_pose_goal(robot, marker_in_world, speed=0.03, acceleration=.1, 
+          end_effector_link=robot+"_robotiq_85_tip_link", move_lin=True)
 
 
 if __name__ == '__main__':
@@ -124,7 +143,7 @@ import geometry_msgs.msg
 import tf_conversions
 from math import pi
 
-from o2ac_routines.base import O2ACCommonBase
+from o2ac_vision.base import O2ACCommonBase
 
 class CalibrationTestClass(O2ACCommonBase):
   # Use this class to move a robot to the position of a marker it is seeing.
