@@ -2,7 +2,7 @@
 <launch>
 
   <!-- Set arguments for the robot connection -->
-  <!-- <include file="$(find o2as_moveit_config)/launch/demo.launch"/> -->
+  <!-- <include file="$(find o2ac_moveit_config)/launch/demo.launch"/> -->
 
   <!-- Grippers -->
   <include file="$(find robotiq_control)/launch/ur_cmodel_action_controller.launch">

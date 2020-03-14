@@ -13,7 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_commander
   moveit_ros_planning
   moveit_ros_planning_interface
-  o2as_routines
+  o2ac_routines
 )
 
 ## System dependencies are found with CMake's conventions
