@@ -25,3 +25,6 @@
 [submodule "underlay_ws/src/moveit_task_constructor"]
 	path = underlay_ws/src/moveit_task_constructor
 	url = https://gitlab.com/o2ac/moveit-task-constructor.git
+[submodule "underlay_ws/src/third_party/realsense-ros"]
+	path = underlay_ws/src/third_party/realsense-ros
+	url = https://github.com/t-ueshiba/realsense-ros

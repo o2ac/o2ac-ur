@@ -84,6 +84,17 @@ function o2ac-magic-rosdep-command () {
   popd
 }
 
+###############################################################################
+
+# PhoXi settings
+
+if [ -d /opt/PhotoneoPhoXiControl ]; then
+  export PHOXI_CONTROL_PATH=/opt/PhotoneoPhoXiControl
+  export PATH=${PATH}:${PHOXI_CONTROL_PATH}/bin
+  export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${PHOXI_CONTROL_PATH}/API/lib
+  export CPATH=${CPATH}:${PHOXI_CONTROL_PATH}/API/include
+fi
+
 ################################################################################
 
 # Move to the working directory.

@@ -1,0 +1,52 @@
+<?xml version="1.0" ?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+    <!--PhoXi3Dscanner XS-->
+    <xacro:macro name="PhoXi3DscannerXS_default_sensor_origin">
+        <!-- <origin xyz="0.1 0.025 0.035" rpy="0 -0.26965337 0" /> -->
+        <origin xyz="-0.1 -0.03 0.035" rpy="0 0 0" />
+    </xacro:macro>
+    <xacro:macro name="PhoXi3DscannerXS_meshes">
+        <mesh filename="package://aist_phoxi_camera/meshes/visual/PhoXi_XS.f.STL" scale = "0.001 0.001 0.001"/>
+        <mesh filename="package://aist_phoxi_camera/meshes/collision/PhoXi_XS.c.STL" scale = "0.001 0.001 0.001"/>
+    </xacro:macro>
+
+    <!--PhoXi3Dscanner S-->
+    <xacro:macro name="PhoXi3DscannerS_default_sensor_origin">
+        <!-- <origin xyz="${0.23 / 2.0} 0.0168 0.035" rpy="0 -0.26965337 0" /> -->
+        <origin xyz="${0.23 / 2.0} -0.03 0.035" rpy="0 -0.26965337 0" />
+    </xacro:macro>
+    <xacro:macro name="PhoXi3DscannerS_meshes">
+        <mesh filename="package://aist_phoxi_camera/meshes/visual/PhoXi_S.f.STL" scale = "0.001 0.001 0.001"/>
+        <mesh filename="package://aist_phoxi_camera/meshes/collision/PhoXi_S.c.STL" scale = "0.001 0.001 0.001"/>
+    </xacro:macro>
+
+    <!--PhoXi3Dscanner M-->
+    <xacro:macro name="PhoXi3DscannerM_default_sensor_origin">
+        <!-- <origin xyz="${0.350 / 2.0} 0.0168 0.035" rpy="0 -0.20507619 0" /> -->
+        <origin xyz="${0.350 / 2.0} -0.03 0.035" rpy="0 -0.20507619 0" />
+    </xacro:macro>
+    <xacro:macro name="PhoXi3DscannerM_meshes">
+        <mesh filename="package://aist_phoxi_camera/meshes/visual/PhoXi_M.f.STL" scale = "0.001 0.001 0.001"/>
+        <mesh filename="package://aist_phoxi_camera/meshes/collision/PhoXi_M.c.STL" scale = "0.001 0.001 0.001"/>
+    </xacro:macro>
+
+    <!--PhoXi3Dscanner L-->
+    <xacro:macro name="PhoXi3DscannerL_default_sensor_origin">
+        <!-- <origin xyz="${(0.55 / 2.0)} 0.0168 0.035" rpy="0 -0.1649336 0" /> -->
+        <origin xyz="${(0.55 / 2.0)} -0.03 0.035" rpy="0 -0.1649336 0" />
+    </xacro:macro>
+    <xacro:macro name="PhoXi3DscannerL_meshes">
+        <mesh filename="package://aist_phoxi_camera/meshes/visual/PhoXi_L.f.STL" scale = "0.001 0.001 0.001"/>
+        <mesh filename="package://aist_phoxi_camera/meshes/collision/PhoXi_L.c.STL" scale = "0.001 0.001 0.001"/>
+    </xacro:macro>
+
+    <!--PhoXi3Dscanner XL-->
+    <xacro:macro name="PhoXi3DscannerXL_default_sensor_origin">
+        <!-- <origin xyz="${0.850 / 2.0} 0.0168 0.035" rpy="0 -0.1309 0" /> -->
+        <origin xyz="${0.850 / 2.0} -0.03 0.035" rpy="0 -0.1309 0" />
+    </xacro:macro>
+    <xacro:macro name="PhoXi3DscannerXL_meshes">
+        <mesh filename="package://aist_phoxi_camera/meshes/visual/PhoXi_XL.f.STL" scale = "0.001 0.001 0.001"/>
+        <mesh filename="package://aist_phoxi_camera/meshes/collision/PhoXi_XL.c.STL" scale = "0.001 0.001 0.001"/>
+    </xacro:macro>
+</robot>

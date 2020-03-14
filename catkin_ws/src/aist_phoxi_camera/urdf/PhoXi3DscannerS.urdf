@@ -1,0 +1,14 @@
+<?xml version="1.0" ?>
+<robot name="aaa" xmlns:xacro="http://ros.org/wiki/xacro">
+
+    <xacro:include filename="$(find aist_phoxi_camera)/urdf/PhoXi3Dscanner_values.xacro"/> <!--Scanner values-->
+    <xacro:include filename="$(find aist_phoxi_camera)/urdf/PhoXi3Dscanner_macro.xacro"/>  <!--Scanner macro-->
+
+    <xacro:PhoXi3Dscanner scanner_parent = "base_link" scanner_name = "PhoXi3Dscanner" sensor_parent = "PhoXi3Dscanner" sensor_name = "PhoXi3Dscanner_sensor" >
+        <origin xyz="0 0 0" rpy="0 0 0" /> <!--PhoXi3Dscanner origin-->
+        <xacro:PhoXi3DscannerS_default_sensor_origin /> <!--Extrinsic calibration data-->
+        <xacro:PhoXi3DscannerS_meshes /> <!--meshes-->
+    </xacro:PhoXi3Dscanner>
+
+    <link name ="base_link"/>
+</robot>

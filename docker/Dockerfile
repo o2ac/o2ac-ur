@@ -308,6 +308,9 @@ WORKDIR /root/
 COPY ./docker/scripts/. /root/scripts/
 RUN chmod -R +x /root/scripts/*
 
+# Install PhoXiControl
+RUN /root/scripts/install-phoxi-control.sh
+
 # Setup the Bash shell environment with '/root/.bashrc'.
 RUN cat /root/scripts/initialize-bash-shell.sh >> /root/.bashrc
 

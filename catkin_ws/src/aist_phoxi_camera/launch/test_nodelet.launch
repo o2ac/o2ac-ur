@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- <arg name="id" default="InstalledExamples-PhoXi-example(File3DCamera)"/> -->
+  <!-- <arg name="id" default="InstalledExamples-basic-example"/> -->
+  <arg name="camera_name"	default="a_phoxi_m_camera"/>
+  <arg name="id"		default='"1711015"'/>
+  <arg name="trigger_mode"	default="0"/>
+  <arg name="intensity_scale"	default="0.5"/>
+  <arg name="rate"		default="10"/>
+  <arg name="manager_name"	default="nodelet_manager"/>
+  <arg name="manager_threads"	default="4"/>
+
+  <node name="$(arg manager_name)"
+	pkg ="nodelet" type="nodelet" args="manager" output="screen">
+    <param name="num_worker_threads"	value="$(arg manager_threads)"/>
+  </node>
+
+  <node name="$(arg camera_name)"
+  	pkg ="nodelet" type="nodelet"
+  	args="load aist_phoxi_camera/aist_phoxi_camera_nodelet $(arg manager_name)">
+    <param name="id"			value="$(arg id)"/>
+    <param name="trigger_mode"		value="$(arg trigger_mode)"/>
+    <param name="intensity_scale"	value="$(arg intensity_scale)"/>
+    <param name="rate"			value="$(arg rate)"/>
+  </node>
+
+  <node name="image_view"
+  	pkg ="nodelet" type="nodelet"
+  	args="load image_view/image $(arg manager_name)">
+    <remap from="image"	to="/$(arg camera_name)/texture"/>
+  </node>
+
+  <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure"/>
+
+</launch>
