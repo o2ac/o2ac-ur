@@ -28,3 +28,12 @@
 [submodule "underlay_ws/src/third_party/realsense-ros"]
 	path = underlay_ws/src/third_party/realsense-ros
 	url = https://github.com/t-ueshiba/realsense-ros
+[submodule "underlay_ws/src/ddynamic_reconfigure"]
+	path = underlay_ws/src/ddynamic_reconfigure
+	url = https://github.com/t-ueshiba/ddynamic_reconfigure
+[submodule "underlay_ws/src/aruco_ros"]
+	path = underlay_ws/src/aruco_ros
+	url = https://github.com/pal-robotics/aruco_ros
+[submodule "underlay_ws/src/third_party/realsense"]
+	path = underlay_ws/src/third_party/realsense
+	url = https://github.com/t-ueshiba/realsense-ros.git

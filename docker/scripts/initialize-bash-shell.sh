@@ -86,13 +86,37 @@ function o2ac-magic-rosdep-command () {
 
 ###############################################################################
 
+# aliases
+
+alias cw='cd /root/catkin_ws'
+alias cs='cd /root/catkin_ws/src'
+alias cb='catkin build'
+alias setup='source /root/catkin_ws/devel/setup.bash'
+
+alias ucw='cd /root/underlay_ws'
+alias ucs='cd /root/underlay_ws/src'
+alias usetup='source /root/underlay_ws/devel/setup.bash'
+
+###############################################################################
+
 # PhoXi settings
 
-if [ -d /opt/PhotoneoPhoXiControl ]; then
-  export PHOXI_CONTROL_PATH=/opt/PhotoneoPhoXiControl
+if [ -d /opt/PhotoneoPhoXiControl-1.2.14 ]; then
+  export PHOXI_CONTROL_PATH=/opt/PhotoneoPhoXiControl-1.2.14
   export PATH=${PATH}:${PHOXI_CONTROL_PATH}/bin
   export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${PHOXI_CONTROL_PATH}/API/lib
   export CPATH=${CPATH}:${PHOXI_CONTROL_PATH}/API/include
+fi
+
+###############################################################################
+
+# PhoLocalizationSDK settings
+
+if [ -d /opt/PhotoneoSDK/Localization ]; then
+  export PHO_LOCALIZATION_PATH=/opt/PhotoneoSDK/Localization
+  export PATH=${PATH}:${PHO_LOCALIZATION_PATH}/bin
+  export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${PHO_LOCALIZATION_PATH}/lib
+  export CPATH=${CPATH}:${PHO_LOCALIZATION_PATH}/include
 fi
 
 ################################################################################

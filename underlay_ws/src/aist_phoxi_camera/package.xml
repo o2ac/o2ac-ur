@@ -5,9 +5,9 @@
   <description>The aist_phoxi_camera is a package that enables interfacing Photoneo Phoxi Scanner/Camera from ROS</description>
 
   <author>Toshio UESHIBA</author>
-  <maintainer email="t.ueshiba@paist.go.jp">Toshio UESHIBA</maintainer>
+  <maintainer email="t.ueshiba@aist.go.jp">Toshio UESHIBA</maintainer>
   <license>BSD</license>
-  <url>http://gitlab.com/o2as-aist/artros/aist_phoxi_camera</url>
+  <url>http://gitlab.com/o2oc/o2ac-ur</url>
 
   <buildtool_depend>catkin</buildtool_depend>
 

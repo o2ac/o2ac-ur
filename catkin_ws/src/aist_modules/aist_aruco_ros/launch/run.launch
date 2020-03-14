@@ -1,0 +1,32 @@
+<launch>
+
+  <arg name="marker_id"			default="26"/>
+  <arg name="marker_size"		default="0.070"/>    <!-- in meters -->
+  <arg name="camera_name"		default="a_phoxi_m_camera"/>
+  <arg name="camera_frame"		default="$(arg camera_name)_from_b_bot"/>
+  <arg name="marker_frame"		default="marker_frame"/>
+  <arg name="reference_frame"		default=""/>
+  <arg name="corner_refinement"		default="LINES"/>
+  <arg name="planarity_tolerance"	default="0.001"/>
+  <arg name="camera_info_topic"		default="camera_info"/>
+  <arg name="image_topic"		default="texture"/>
+  <arg name="depth_topic"		default="depth_map"/>
+
+  <node name="aruco_detector" pkg="aist_aruco_ros" type="aist_aruco_detector"
+  	output="screen">
+    <remap from="/camera_info"	to="/$(arg camera_name)/$(arg camera_info_topic)"/>
+    <remap from="/image"	to="/$(arg camera_name)/$(arg image_topic)"/>
+    <remap from="/depth"	to="/$(arg camera_name)/$(arg depth_topic)"/>
+
+    <!-- Other parameters -->
+    <param name="image_is_rectified"	value="false"/>
+    <param name="marker_id"		value="$(arg marker_id)"/>
+    <param name="marker_size"		value="$(arg marker_size)"/>
+    <param name="reference_frame"	value="$(arg reference_frame)"/>
+    <param name="camera_frame"		value="$(arg camera_frame)"/>
+    <param name="marker_frame"		value="$(arg marker_frame)"/>
+    <param name="corner_refinement"	value="$(arg corner_refinement)"/>
+    <param name="planarity_tolerance"	value="$(arg planarity_tolerance)"/>
+  </node>
+
+</launch>

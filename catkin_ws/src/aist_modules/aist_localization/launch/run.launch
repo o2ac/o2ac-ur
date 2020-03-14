@@ -1,0 +1,13 @@
+<?xml version="1.0" ?>
+<launch>
+
+  <arg name="plcf_dir"		default="$(find aist_localization)/plcf"/>
+  <arg name="camera_frame"	default="world"/>
+
+  <node name="localization" pkg="aist_localization" type="aist_localization"
+  	output="screen">
+    <param name="camera_frame"	value="$(arg camera_frame)"/>
+    <param name="plcf_dir"	value="$(arg plcf_dir)"/>
+  </node>
+
+</launch>

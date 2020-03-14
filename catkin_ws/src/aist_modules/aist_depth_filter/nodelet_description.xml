@@ -1,0 +1,8 @@
+<library path="lib/libaist_depth_filter_nodelet">
+  <class name="aist_depth_filter/aist_depth_filter_nodelet"
+	 type="aist_depth_filter::DepthFilterNodelet"
+	 base_class_type="nodelet::Nodelet">
+    <description>
+    </description>
+  </class>
+</library>

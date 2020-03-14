@@ -1,0 +1,10 @@
+# Goal definition
+string object_name        # [object_name].plcf gives configuration
+int32  number_of_poses    # number of candidate poses
+---
+# Result definition
+bool success
+---
+# Feedback definition
+geometry_msgs/PoseStamped pose
+float32 overlap
