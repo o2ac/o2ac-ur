@@ -1,0 +1,15 @@
+# This action will be called when the camera is looking at the cable while held
+# by the robot gripper. It should return the 3D position of the cable tip.
+
+# Request
+string item_id     # Name of the item.
+string robot_holding_cable  # "a_bot" or "b_bot"
+
+---
+# Result
+bool succeeded
+float32 confidence
+geometry_msgs/PoseStamped detected_pose
+
+---
+# Feedback (values that can be sent to the client while the action is running)

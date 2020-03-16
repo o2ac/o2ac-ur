@@ -47,7 +47,7 @@ import std_srvs.srv
 
 import o2ac_routines.helpers
 
-import o2as_msgs.msg   # This is needed to advertise the actions
+import o2ac_msgs.msg   # This is needed to advertise the actions
 import sensor_msgs.msg # This is needed to receive images from the camera
 import cv_bridge       # This offers conversion methods between OpenCV and ROS formats
                        # See here: http://wiki.ros.org/cv_bridge/Tutorials/ConvertingBetweenROSImagesAndOpenCVImagesPython
@@ -59,10 +59,10 @@ class ActionExampleClass(object):
   # Use a class like this to advertise vision-based functions.
 
   def __init__(self):
-    rospy.init_node('o2ac_vision', anonymous=False)
+    rospy.init_node('action_example', anonymous=False)
     self.listener = tf.TransformListener()
     
-    # This creates the action server.nSee this tutorial, and also check out base.py: 
+    # This creates the action server. See this tutorial, and also check out base.py: 
     # http://wiki.ros.org/actionlib_tutorials/Tutorials/Writing%20a%20Simple%20Action%20Server%20using%20the%20Execute%20Callback%20%28Python%29
     self.detect_object_action_server = actionlib.SimpleActionServer("detectObject", o2ac_msgs.msg.detectObjectAction, 
         execute_cb = self.detect_object_callback, auto_start = True)
@@ -70,17 +70,17 @@ class ActionExampleClass(object):
     rospy.loginfo("ActionExampleClass has started up!")
 
   def detect_object_callback(self, goal):
-    # Goal is of type o2as_msgs.msg.detectObjectActionRequest
-    # It is defined in o2as_msgs/msg/detectObject.action
+    # Goal is of type o2ac_msgs.msg.detectObjectActionRequest
+    # It is defined in o2ac_msgs/msg/detectObject.action
     rospy.loginfo("Received a request to detect object named " + goal.object_id)
     
     # Actions need to do two things:
     # 1. Set the status of the action (success, failure)
-    # 2. Return a result. The result is of type o2as_msgs.msg.detectObjectActionResult
-    action_result = o2as_msgs.msg.detectObjectActionResult() # We fill the fields of this object
+    # 2. Return a result. The result is of type o2ac_msgs.msg.detectObjectActionResult
+    action_result = o2ac_msgs.msg.detectObjectActionResult() # We fill the fields of this object
 
     # First, obtain the image from the camera and convert it
-    image_msg = rospy.wait_for_message("/screw_tool_m" + str(screw_size) + "/screw_suctioned", Bool, 1.0)
+    image_msg = rospy.wait_for_message("/" + goal.camera_id + "/color", sensor_msgs.msg.Image, 1.0) # This topic name is probably incorrect
     cv_image = bridge.imgmsg_to_cv2(image_message, desired_encoding="passthrough")
 
     detected_pose = self.detect_object_in_image(cv_image)
@@ -88,7 +88,7 @@ class ActionExampleClass(object):
       self.detect_object_action_server.set_aborted(action_result) # This sets the action status to "Aborted" (= Failed)
     else:
       action_result.detected_pose.pose = detected_pose # Note the difference between Pose and PoseStamped
-    action_result.detected_pose.header.frame_id = goal.camera_id + "_camera_depth_frame"  # This is probably incorrect, but you get the idea
+    action_result.detected_pose.header.frame_id = goal.camera_id + "_camera_color_frame"  # This is probably incorrect, but you get the idea
     
     o2ac_routines.helpers.publish_marker(action_result.detected_pose, "pose")
 
