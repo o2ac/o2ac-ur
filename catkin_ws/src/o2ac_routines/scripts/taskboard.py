@@ -50,11 +50,11 @@ import o2ac_msgs
 import o2ac_msgs.srv
 
 
-from o2ac_routines.base import o2acBaseRoutines
+from o2ac_routines.base import O2ACCommonBase
 from o2ac.routines.helpers import is_program_running
 from o2ac.routines.helpers import wait_for_UR_program
 
-class TaskboardClass(o2acBaseRoutines):
+class TaskboardClass(O2ACCommonBase):
   """
   This contains the routines used to run the taskboard task.
   """

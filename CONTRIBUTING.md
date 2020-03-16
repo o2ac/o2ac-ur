@@ -60,7 +60,7 @@ Please read the famous post *"[How to Write a Git Commit Message](https://chris.
 ## File Names
 
 *   Always prefer hyphens `-` to underscores `_` except when required by convention, such as in ROS.
-*   Use prefixes to distinguish first-party resources from third-party ones. For example, add the prefix `o2as_` to the names of our own packages, nodes, topics, and services where appropriate.
+*   Use prefixes to distinguish first-party resources from third-party ones. For example, add the prefix `o2ac_` to the names of our own packages, nodes, topics, and services where appropriate.
 
 ## Dockerfile changes
 

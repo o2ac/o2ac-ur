@@ -73,8 +73,77 @@ def all_close(goal, actual, tolerance):
 
   return True
 
-# This is a helper function for publishMarker. Publishes a TF-like frame.
-def publishPoseMarker(marker_publisher, marker_pose_stamped):
+
+# Below are some ugly helper functions that should really be replaced. 
+def publish_marker(marker_pose_stamped, marker_type):
+  publisher = rospy.Publisher("vision_markers", visualization_msgs.msg.Marker, queue_size = 100)
+  rospy.sleep(0.5)
+  return publish_marker(publisher, marker_pose_stamped, marker_type)
+
+def publish_marker(marker_publisher, marker_pose_stamped, marker_type):
+  marker = visualization_msgs.msg.Marker()
+  marker.header = marker_pose.header
+  # marker.header.stamp = rospy.Time.now()
+  marker.pose = marker_pose.pose
+
+  marker.ns = "markers"
+  marker.id = 0
+  marker.lifetime = rospy.Duration(60.0)
+  marker.action = visualization_msgs.msg.Marker.ADD
+
+  if (marker_type == "pose"):
+    publish_pose_marker(marker_pose)
+
+    # Add a flat sphere
+    marker.type = visualization_msgs.msg.Marker.SPHERE
+    marker.scale.x = .01
+    marker.scale.y = .05
+    marker.scale.z = .05
+    marker.color.g = 1.0
+    marker.color.a = 0.8
+    marker_publisher.publish(marker)
+    return true
+  if (marker_type == "place_pose"):
+    publish_pose_marker(marker_pose)
+
+    # Add a flat sphere
+    marker.type = visualization_msgs.msg.Marker.SPHERE
+    marker.scale.x = .01
+    marker.scale.y = .05
+    marker.scale.z = .05
+    marker.color.g = 1.0
+    marker.color.a = 0.8
+    marker_publisher.publish(marker)
+    return true
+  if (marker_type == "pick_pose"):
+    publish_pose_marker(marker_pose)
+
+    # Add a flat sphere
+    marker.type = visualization_msgs.msg.Marker.SPHERE
+    marker.scale.x = .01
+    marker.scale.y = .05
+    marker.scale.z = .05
+    marker.color.r = 0.8
+    marker.color.g = 0.4
+    marker.color.a = 0.8
+  elif (marker_type == ""):
+    marker.type = visualization_msgs.msg.Marker.SPHERE
+    marker.scale.x = .02
+    marker.scale.y = .1
+    marker.scale.z = .1
+    
+    marker.color.g = 1.0
+    marker.color.a = 0.8
+  else:
+    rospy.warn("No supported marker message received.")
+  marker_publisher.publish(marker)
+  
+  if (helper_fct_marker_id_count > 50):
+    helper_fct_marker_id_count = 0
+  return True
+
+# This is a helper function for publish_marker. Publishes a TF-like frame. Should probably be replaced by rviz_visual_tools
+def publish_pose_marker(marker_publisher, marker_pose_stamped):
   marker = visualization_msgs.msg.Marker()
   marker.header = marker_pose.header
   marker.header.stamp = rospy.Time.now()
@@ -114,65 +183,3 @@ def publishPoseMarker(marker_publisher, marker_pose_stamped):
   marker_publisher.publish(arrow_y)
   marker_publisher.publish(arrow_z)
   return True
-
-def publishMarker(marker_publisher, marker_pose_stamped, marker_type):
-    marker = visualization_msgs.msg.Marker()
-    marker.header = marker_pose.header
-    # marker.header.stamp = rospy.Time.now()
-    marker.pose = marker_pose.pose
-
-    marker.ns = "markers"
-    marker.id = helper_fct_marker_id_count = 0
-    marker.lifetime = rospy.Duration(60.0)
-    marker.action = visualization_msgs.msg.Marker.ADD
-
-    if (marker_type == "pose"):
-      publishPoseMarker(marker_pose)
-
-      # Add a flat sphere
-      marker.type = visualization_msgs.msg.Marker.SPHERE
-      marker.scale.x = .01
-      marker.scale.y = .05
-      marker.scale.z = .05
-      marker.color.g = 1.0
-      marker.color.a = 0.8
-      marker_publisher.publish(marker)
-      return true
-    if (marker_type == "place_pose"):
-      publishPoseMarker(marker_pose)
-
-      # Add a flat sphere
-      marker.type = visualization_msgs.msg.Marker.SPHERE
-      marker.scale.x = .01
-      marker.scale.y = .05
-      marker.scale.z = .05
-      marker.color.g = 1.0
-      marker.color.a = 0.8
-      marker_publisher.publish(marker)
-      return true
-    if (marker_type == "pick_pose"):
-      publishPoseMarker(marker_pose)
-
-      # Add a flat sphere
-      marker.type = visualization_msgs.msg.Marker.SPHERE
-      marker.scale.x = .01
-      marker.scale.y = .05
-      marker.scale.z = .05
-      marker.color.r = 0.8
-      marker.color.g = 0.4
-      marker.color.a = 0.8
-    elif (marker_type == ""):
-      marker.type = visualization_msgs.msg.Marker.SPHERE
-      marker.scale.x = .02
-      marker.scale.y = .1
-      marker.scale.z = .1
-      
-      marker.color.g = 1.0
-      marker.color.a = 0.8
-    else:
-      rospy.warn("No useful marker message received.")
-    marker_publisher.publish(marker)
-    
-    if (helper_fct_marker_id_count > 50):
-      helper_fct_marker_id_count = 0
-    return True

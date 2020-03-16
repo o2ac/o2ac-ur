@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- Set arguments for the robot connection -->
+  <!-- <include file="$(find o2ac_moveit_config)/launch/demo.launch"/> -->
+
+  <!-- Grippers -->
+  <include file="$(find robotiq_control)/launch/ur_cmodel_action_controller.launch">
+    <arg name="namespace" value="b_bot" />
+    <arg name="gripper_prefix" value="b_bot_" />
+    <arg name="topic" value="/b_bot/ur_hardware_interface/script_command" />
+  </include>
+
+</launch>

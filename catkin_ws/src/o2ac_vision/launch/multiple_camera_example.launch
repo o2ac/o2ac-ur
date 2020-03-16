@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- This is an example launch file to start up multiple cameras. -->
+  <!-- Use either "roslaunch realsense2_camera rs_camera.launch" when only one camera is connected
+       or the realsense-viewer to find out the serial number of your cameras. -->
+  <arg name="serial_no_1" default="635201000481"/> 
+  <arg name="serial_no_2" default="605201001486"/> 
+
+
+  <!-- scene camera -->
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <arg name="camera" default="camera_1"/>
+    <arg name="serial_no" value="$(arg serial_no_1)"/> 
+    <arg name="enable_pointcloud" value="false"/>
+    <arg name="depth_fps"           default="15"/>
+    <arg name="infra_fps"           default="15"/>
+    <arg name="color_fps"           default="30"/>
+    <arg name="enable_infra1"       default="false"/>
+    <arg name="enable_infra2"       default="false"/>
+  </include>
+
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <arg name="camera" default="camera_2"/>
+    <arg name="serial_no" value="$(arg serial_no_2)"/> 
+    <arg name="enable_pointcloud" value="false"/>
+    <arg name="depth_fps"           default="15"/>
+    <arg name="infra_fps"           default="15"/>
+    <arg name="color_fps"           default="30"/>
+    <arg name="enable_infra1"       default="false"/>
+    <arg name="enable_infra2"       default="false"/>
+  </include>
+</launch>

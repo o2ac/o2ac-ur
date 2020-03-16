@@ -42,7 +42,7 @@
   <!-- serial_no 819612071364 is probably a D435 -->
   <!-- <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="camera" default="scene_camera"/>
-    <arg name="serial_no" value="605201001486"/> 
+    <arg name="serial_no" value="635201000481"/> 
     <arg name="enable_pointcloud" value="false"/>
     <arg name="fisheye_fps"         default="15"/>
     <arg name="depth_fps"           default="15"/>
@@ -51,12 +51,4 @@
     <arg name="enable_infra1"       default="false"/>
     <arg name="enable_infra2"       default="false"/>
   </include> -->
-
-  <!-- Launch Flexible Wrist Controller -->
-  <node name="wrist_controller" pkg="osx_flex_wrist" type="wrist_controller.py" output="screen">
-      <param name="config_dir"    type="string" value="$(find osx_flex_wrist)/config"/>
-      <param name="config_filename" type="string" value="wrist_control"/>
-      <param name="operation_mode" type="string" value="operation_mode"/>
-      <param name="robot_controller_namespace_prefix" type="string" value="/b_bot"/>
-  </node>
 </launch>

@@ -1,0 +1,17 @@
+# This action will be called when a tool is being held close to a target.
+# It should return the distance from the tooltip to the target,
+# for the robot to adjust its position.
+
+# Request
+string tool_id     # "screw_tool_m4", "nut_tool_m6", "set_screw_tool"...
+string camera_id   # Which camera to use. "a_bot_cam_outside", "a_bot_cam_inside"...
+
+---
+# Result (returned from the server to the client)
+
+bool succeeded
+float32 confidence
+geometry_msgs/PoseStamped detected_pose
+
+---
+# Feedback (values that can be sent to the client while the action is running)

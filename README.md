@@ -1,6 +1,6 @@
 # O2AC UR Project
 
-`master`: [![pipeline status](https://gitlab.com/o2ac/ur-o2ac/badges/master/pipeline.svg)](https://gitlab.com/o2ac/ur-o2ac/commits/master) `devel`: [![pipeline status](https://gitlab.com/o2ac/ur-o2ac/badges/devel/pipeline.svg)](https://gitlab.com/o2ac/ur-o2ac/commits/devel) 
+`master`: [![pipeline status](https://gitlab.com/o2ac/o2ac-ur/badges/master/pipeline.svg)](https://gitlab.com/o2ac/o2ac-ur/commits/master) `devel`: [![pipeline status](https://gitlab.com/o2ac/o2ac-ur/badges/devel/pipeline.svg)](https://gitlab.com/o2ac/ur-o2ac/commits/devel) 
 
 This project aims to develop a common framework for research and development for Team O2AC in the Industrial Challenge of the [World Robot Summit 2020](http://worldrobotsummit.org/en/).
 The goal is to provide a robust, maintainable, virtualized, and documented environment to all internal and external contributors.
@@ -14,17 +14,17 @@ The goal is to provide a robust, maintainable, virtualized, and documented envir
 ## Getting Started
 
 All the necessary documentation and step-by-step guides to get started can be found in the Gitlab wiki:  
-https://gitlab.com/o2ac/ur-o2ac/wikis/home
+https://gitlab.com/o2ac/o2ac-ur/wikis/home
 
 ## Contribution Guidelines
 
 Please carefully read the contribution guidelines before pushing code or requesting a merge. Details can be found in the GitLab wiki:  
-https://gitlab.com/o2ac/ur-o2ac/wikis/contribution-guidelines
+https://gitlab.com/o2ac/o2ac-ur/wikis/contribution-guidelines
 
 ## Reporting Issues
 
 Minor compatibility issues are expected to arise. Please report any issue by using the GitLab issue tracker:  
-https://gitlab.com/o2ac/ur-o2ac/issues
+https://gitlab.com/o2ac/o2ac-ur/issues
 
 ## Credits
 

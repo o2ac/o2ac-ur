@@ -64,14 +64,14 @@ from moveit_commander.conversions import pose_to_list
 import ur_msgs.msg
 from o2ac_routines.helpers import *
 
-class o2acBaseRoutines(object):
+class O2ACCommonBase(object):
   """
   This class contains the common helper and convenience functions used in the routines.
   The common functions include the initialization of the services and actions,
   and shorthand functions for the most common actions.
   """
   def __init__(self):
-    # super(o2acBaseRoutines, self).__init__()
+    # super(O2ACCommonBase, self).__init__()
     rospy.init_node('o2ac_routines', anonymous=False)
     moveit_commander.roscpp_initialize(sys.argv)
 
@@ -218,6 +218,7 @@ class o2acBaseRoutines(object):
     
 
   def publish_marker(self, pose_stamped, marker_type):
+    # Publishes a marker to Rviz for visualization
     if self.disable_markers:
       return True
     req = o2ac_msgs.srv.publishMarkerRequest()
@@ -416,7 +417,7 @@ class o2acBaseRoutines(object):
     self.groups[group_name].set_max_velocity_scaling_factor(speed)
     return self.groups[group_name].go(wait=True)
 
-  def move_front_bots(self, pose_goal_a_bot, pose_goal_b_bot, speed = 0.05):
+  def move_both_robots(self, pose_goal_a_bot, pose_goal_b_bot, speed = 0.05):
     if self.pause_mode_ or self.test_mode_:
       if speed > .25:
         rospy.loginfo("Reducing speed from " + str(speed) + " to .25 because robot is in test or pause mode")
@@ -672,21 +673,6 @@ class o2acBaseRoutines(object):
       self._suction_client.wait_for_result(rospy.Duration(2.0))
     return self._suction_client.get_result()
 
-  # TODO: Fix this weird naming convention and replace it with something sensible
-  def set_flex_wrist(self, rigid_mode = False, wait=True):
-    if not self.use_real_robot:
-      return True
-    goal = o2ac_msgs.msg.FlexWristControlGoal()
-    
-    goal.name = "flex_wrist_control"
-    goal.turn_rigid_on = rigid_mode
-    goal.turn_flex_on = not rigid_mode
-    rospy.loginfo("Sending flex wrist action goal.")
-    self._flex_wrist_client.send_goal(goal)
-    if wait:
-      self._flex_wrist_client.wait_for_result(rospy.Duration(3.0))
-    return self._flex_wrist_client.get_result()
-
   def do_nut_fasten_action(self, item_name, wait = True):
     if not self.use_real_robot:
       return True
@@ -781,40 +767,6 @@ class o2acBaseRoutines(object):
       wait_for_UR_program("/" + robot_name, rospy.Duration.from_sec(60.0))
     return res.success
 
-  def force_mode_move(self, robot_name, stop_force = .0, 
-                        wait = True, applied_force = [0,0,0,0,0,0], desired_twist = [0,0,0,0,0,0],
-                        goal_pose = [0,0,0,0,0,0], goal_speed = [0.1,0.1,0.1,0.05,0.05,0.05], 
-                        compliant_axis = "X", use_relative_pos = True):
-    """
-    Moves the robot by desired_twist while applying a certain force in force mode, until stop_force is measured by the FT300 force sensor. 
-    The force and compliant axis (defined in the TCP frame) cannot be parallel to the motion defined with desired_twist (because of UR script limitations).
-
-    robot_name: "a_bot","b_bot","c_bot"
-    max_force: force value input for UR force_mode
-    desired_twist: pose input for UR movel command in force_mode
-    goal_pose and goal_speed: inputs for adaptive control algorithm, which is not applied at the moment
-    compliant_axis: sets the chosen axis as compliant, force can be applied onto it but no movel on this axis
-    use_relative_pos: switch between TCP and Base frame (for interpreting desired_twist (and goal_pose?))
-    """
-    if not self.use_real_robot:
-      return True
-    # Directly calls the UR service rather than the action of the skill_server
-    req = o2ac_msgs.srv.sendScriptToURRequest()
-    req.robot_name = robot_name
-    req.program_id = "force_mode_move"
-    req.goal_force = applied_force
-    req.desired_twist = desired_twist
-    req.goal_pose = goal_pose
-    req.goal_speed = goal_speed
-    req.compliant_axis = compliant_axis
-    req.max_force = stop_force
-    req.use_relative_pos = use_relative_pos
-    res = self.urscript_client.call(req)
-    if wait:
-      rospy.sleep(2.0)
-      wait_for_UR_program("/" + robot_name, rospy.Duration.from_sec(30.0))
-    return res.success
-  
   def movelin_around_shifted_tcp(self, robot_name, wait = True, desired_twist = [0,0,0,0,0,0], tcp_position = [0.0,0.0,0.0,0.0,0.0,0.0],
                         velocity = 0.1, acceleration = 0.02):
     """
@@ -1229,32 +1181,6 @@ class o2acBaseRoutines(object):
 
 ######
 
-  def get_tray_placement_orientation_for_suction_in_kitting(self, set_number, tray_number):
-    required_intermediate_pose = ""
-    if set_number == 1:
-      if tray_number == 1:  # tray 1
-        orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, -pi*160/180))
-        required_intermediate_pose = "joints_above_set_1_tray_1"
-      elif tray_number == 2:  # tray 2
-        orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, -pi/2+pi))
-        required_intermediate_pose = "joints_above_set_1_tray_2"
-    elif set_number == 2:
-      if tray_number == 1:  # tray 1
-        orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, 0)) 
-      elif tray_number == 2:  # tray 2
-        orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, -pi/2+pi))
-        required_intermediate_pose = "joints_above_set_2_tray_2"
-    elif set_number == 3:
-      if tray_number == 1:  # tray 1
-        orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, -pi*150/180+pi)) 
-      elif tray_number == 2:  # tray 2
-        orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, +pi))
-        required_intermediate_pose = "joints_above_set_3_tray_2"
-    else:
-      rospy.loginfo("Error.")
-      return False
-    return orientation, required_intermediate_pose
-    
   def start_task_timer(self):
     """Reset timer in debug monitor"""
     try:
