@@ -38,7 +38,7 @@ RUN apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key C1CF6
 
 # Install ROS-desktop-full packages (including ROS, rqt, rviz, and more).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-	ros-melodic-desktop-full \
+	ros-melodic-desktop-full python-rosdep \
 	&& rm -rf /var/lib/apt/lists/*
 
 # Initialize 'rosdep'.
@@ -94,7 +94,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install JSK tools for visualization in Rviz
 RUN apt-get update && apt-get install -y --no-install-recommends \
-	ros-melodic-jsk-visualization=2.1.5-0bionic.20200229.074605
+	ros-melodic-jsk-visualization
 
 ################################################################################
 
@@ -305,14 +305,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ################################################################################
 
 # Deep Learning
-RUN pip install torch \
-	tensorboardX
-RUN pip install --upgrade scipy
+# RUN pip install torch \
+# 	tensorboardX
+# RUN pip install --upgrade scipy
 
 ################################################################################
 
 # Add industrial_core submodule
-RUN apt-get update && apt-get install -y ros-melodic-industrial-core=0.7.1-1bionic.20200218.163030
+RUN apt-get update && apt-get install -y ros-melodic-industrial-core
 
 ################################################################################
 
