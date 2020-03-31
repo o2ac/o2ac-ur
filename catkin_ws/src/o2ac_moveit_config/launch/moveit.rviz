@@ -10,8 +10,9 @@ Panels:
         - /MotionPlanning1/Planning Request1
         - /MotionPlanning1/Planned Path1
         - /TF1
+        - /TF1/Frames1
       Splitter Ratio: 0.7425600290298462
-    Tree Height: 145
+    Tree Height: 403
   - Class: rviz/Help
     Name: Help
   - Class: rviz/Views
@@ -1855,43 +1856,38 @@ Visualization Manager:
       Tree:
         world:
           move_group/bearing:
-            {}
-          move_group/bearing/back_hole:
-            {}
-          move_group/bearing/back_tip:
-            {}
-          move_group/bearing/front_hole:
-            {}
-          move_group/bearing/inserted:
-            {}
-          move_group/bearing/screw_hole_1:
-            {}
-          move_group/bearing/screw_hole_2:
-            {}
-          move_group/bearing/screw_hole_3:
-            {}
-          move_group/bearing/screw_hole_4:
-            {}
+            move_group/bearing/back_hole:
+              {}
+            move_group/bearing/back_tip:
+              {}
+            move_group/bearing/front_hole:
+              {}
+            move_group/bearing/inserted:
+              {}
+            move_group/bearing/screw_hole_1:
+              {}
+            move_group/bearing/screw_hole_2:
+              {}
+            move_group/bearing/screw_hole_3:
+              {}
+            move_group/bearing/screw_hole_4:
+              {}
           move_group/drive_shaft:
-            {}
-          move_group/drive_shaft/back_tip:
-            {}
-          move_group/drive_shaft/front_tip:
-            {}
+            move_group/drive_shaft/back_tip:
+              {}
+            move_group/drive_shaft/front_tip:
+              {}
           move_group/endcap:
-            {}
-          move_group/endcap/inner_surface:
-            {}
-          move_group/endcap/screw_hole:
-            {}
+            move_group/endcap/inner_surface:
+              {}
+            move_group/endcap/screw_hole:
+              {}
           move_group/motor_pulley:
-            {}
-          move_group/motor_pulley/center:
-            {}
+            move_group/motor_pulley/center:
+              {}
           move_group/taskboard_idler_pulley_small:
-            {}
-          move_group/taskboard_idler_pulley_small/center:
-            {}
+            move_group/taskboard_idler_pulley_small/center:
+              {}
           o2ac_ground:
             a_bot_base_link:
               a_bot_base:
@@ -2145,25 +2141,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.7891405820846558
+      Distance: 0.3346724808216095
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.1330500990152359
-        Y: -0.08036655187606812
-        Z: 0.8924720883369446
+        X: 0.1615670919418335
+        Y: -0.015535170212388039
+        Z: 0.7954472303390503
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.47479286789894104
+      Pitch: 0.8147926926612854
       Target Frame: world
       Value: Orbit (rviz)
-      Yaw: 0.3668241798877716
+      Yaw: 0.5268242359161377
     Saved: ~
 Window Geometry:
   Displays:
@@ -2177,7 +2173,7 @@ Window Geometry:
     collapsed: false
   MotionPlanning - Trajectory Slider:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd000000010000000000000274000003abfc0200000007fb000000100044006900730070006c006100790073010000003b00000120000000c700fffffffb0000000800480065006c00700000000342000000bb0000006e00fffffffb0000000a005600690065007700730100000161000000ac000000a000fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670100000374000001890000000000000000fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000003f00fffffffb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e00670100000213000001d30000018300ffffff00000506000003ab00000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd000000010000000000000274000003abfc0200000007fb000000100044006900730070006c006100790073010000003b00000222000000c700fffffffb0000000800480065006c00700000000342000000bb0000006e00fffffffb0000000a005600690065007700730000000161000000ac000000a000fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670100000374000001890000000000000000fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000003f00fffffffb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e00670100000263000001830000018300ffffff00000506000003ab00000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Views:
     collapsed: false
   Width: 1920

@@ -160,6 +160,30 @@
     <group_state name="close" group="b_bot_robotiq_85">
         <joint name="b_bot_robotiq_85_left_knuckle_joint" value="0.8028" />
     </group_state>
+    <group_state name="above_tray" group="a_bot">
+        <joint name="a_bot_elbow_joint" value="1.96" />
+        <joint name="a_bot_shoulder_lift_joint" value="-1.876" />
+        <joint name="a_bot_shoulder_pan_joint" value="0.717" />
+        <joint name="a_bot_wrist_1_joint" value="-1.64" />
+        <joint name="a_bot_wrist_2_joint" value="-1.58" />
+        <joint name="a_bot_wrist_3_joint" value="-0.85" />
+    </group_state>
+    <group_state name="bearing_handover" group="b_bot">
+        <joint name="b_bot_elbow_joint" value="2.06" />
+        <joint name="b_bot_shoulder_lift_joint" value="-1.78" />
+        <joint name="b_bot_shoulder_pan_joint" value="1.9" />
+        <joint name="b_bot_wrist_1_joint" value="-0.2741" />
+        <joint name="b_bot_wrist_2_joint" value="1.8984" />
+        <joint name="b_bot_wrist_3_joint" value="0" />
+    </group_state>
+    <group_state name="bearing_handover" group="a_bot">
+        <joint name="a_bot_elbow_joint" value="2.2677" />
+        <joint name="a_bot_shoulder_lift_joint" value="-1.779" />
+        <joint name="a_bot_shoulder_pan_joint" value="0.105" />
+        <joint name="a_bot_wrist_1_joint" value="-0.1918" />
+        <joint name="a_bot_wrist_2_joint" value="0.0758" />
+        <joint name="a_bot_wrist_3_joint" value="-1.9336" />
+    </group_state>
     <!--END EFFECTOR: Purpose: Represent information about an end effector.-->
     <end_effector name="a_bot_tip" parent_link="a_bot_ee_link" group="a_bot_robotiq_85" parent_group="a_bot" />
     <end_effector name="b_bot_tip" parent_link="b_bot_ee_link" group="b_bot_robotiq_85" parent_group="b_bot" />
