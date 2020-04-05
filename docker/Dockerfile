@@ -205,6 +205,15 @@ RUN pip install pyserial==3.4
 
 ################################################################################
 
+# Install URe controller dependencies.
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	ros-melodic-ros-control ros-melodic-robot-controllers \
+	ros-melodic-velocity-controllers ros-melodic-joint-trajectory-controller \
+   	ros-melodic-force-torque-sensor-controller
+
+################################################################################
+
 # Install pymodbus for the Robotiq gripper driver
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
