@@ -64,14 +64,13 @@ from moveit_commander.conversions import pose_to_list
 import ur_msgs.msg
 from o2ac_routines.helpers import *
 
-class O2ACCommonBase(object):
+class O2ACBase(object):
   """
-  This class contains the common helper and convenience functions used in the routines.
-  The common functions include the initialization of the services and actions,
+  This class contains the basic helper and convenience functions used in the routines.
+  The basic functions include the initialization of the services and actions,
   and shorthand functions for the most common actions.
   """
   def __init__(self):
-    # super(O2ACCommonBase, self).__init__()
     rospy.init_node('o2ac_routines', anonymous=False)
     moveit_commander.roscpp_initialize(sys.argv)
 

@@ -48,10 +48,11 @@ import actionlib
 import o2ac_msgs.msg
 import std_msgs.msg
 
+from o2ac_assembly_handler.assy_reader import AssyReader
+from o2ac_assembly_handler.assy import AssyHandler
+from o2ac_routines.common import O2ACCommon
 
-from o2ac_routines.base import O2ACCommonBase
-
-class AssemblyClass(O2ACCommonBase):
+class AssemblyClass(O2ACCommon):
   """
   This contains the routine used to run the taskboard task.
   """
