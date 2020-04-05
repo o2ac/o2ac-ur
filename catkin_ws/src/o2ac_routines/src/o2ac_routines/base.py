@@ -94,16 +94,15 @@ class O2ACCommonBase(object):
     self.groups = {"a_bot":moveit_commander.MoveGroupCommander("a_bot"), "b_bot":moveit_commander.MoveGroupCommander("b_bot")}
     self.gripper_action_clients = {"b_bot":actionlib.SimpleActionClient('/b_bot/gripper_action_controller', robotiq_msgs.msg.CModelCommandAction)}
     
-    self.pick_client = actionlib.SimpleActionClient('/o2ac_skills/pick', o2ac_msgs.msg.pickAction)
+    self.pick_screw_client = actionlib.SimpleActionClient('/o2ac_skills/pick_screw', o2ac_msgs.msg.pickScrewAction)
     self.place_client = actionlib.SimpleActionClient('/o2ac_skills/place', o2ac_msgs.msg.placeAction)
     self.regrasp_client = actionlib.SimpleActionClient('/o2ac_skills/regrasp', o2ac_msgs.msg.regraspAction)
     self.screw_client = actionlib.SimpleActionClient('/o2ac_skills/screw', o2ac_msgs.msg.screwAction)
-    self.change_tool_client = actionlib.SimpleActionClient('/o2ac_skills/changeTool', o2ac_msgs.msg.changeToolAction)
+    self.change_tool_client = actionlib.SimpleActionClient('/o2ac_skills/change_tool', o2ac_msgs.msg.changeToolAction)
     
     self._suction_client = actionlib.SimpleActionClient('/suction_control', o2ac_msgs.msg.SuctionControlAction)
     self._fastening_tool_client = actionlib.SimpleActionClient('/screw_tool_control', o2ac_msgs.msg.FastenerGripperControlAction)
     self._nut_peg_tool_client = actionlib.SimpleActionClient('/nut_tools_action', o2ac_msgs.msg.ToolsCommandAction)
-    self._flex_wrist_client = actionlib.SimpleActionClient('flex_wrist_control', o2ac_msgs.msg.FlexWristControlAction)
 
     self.ur_dashboard_clients = {
       "a_bot_get_loaded_program":rospy.ServiceProxy('/a_bot/ur_hardware_interface/dashboard/get_loaded_program', ur_dashboard_msgs.srv.GetLoadedProgram),
@@ -135,6 +134,7 @@ class O2ACCommonBase(object):
     self.robot_safety_mode = dict() 
     self.screw_is_suctioned = dict()
     self.reduced_mode_speed_limit = .25
+    self.robot_status = { "a_bot":o2ac_msgs.msg.RobotStatus(), "b_bot":o2ac_msgs.msg.RobotStatus() }
     
     # self.my_mutex = threading.Lock()
 
@@ -229,6 +229,98 @@ class O2ACCommonBase(object):
     req.marker_type = marker_type
     self.publishMarker_client.call(req)
     return True
+
+  def define_tool_collision_objects(self):
+    screw_tool_m3 = moveit_msgs.msg.CollisionObject()
+    screw_tool_m4 = moveit_msgs.msg.CollisionObject()
+    
+    #M4 tool
+    screw_tool_m4.header.frame_id = "screw_tool_m4_link"
+    screw_tool_m4.id = "screw_tool_m4"
+
+    # The bit cushion and motor
+    screw_tool_m4.primitives[0].type = screw_tool_m4.primitives[0].BOX
+    screw_tool_m4.primitives[0].dimensions.resize(3)
+    screw_tool_m4.primitives[0].dimensions[0] = 0.026
+    screw_tool_m4.primitives[0].dimensions[1] = 0.04
+    screw_tool_m4.primitives[0].dimensions[2] = 0.055
+    screw_tool_m4.primitive_poses[0].position.x = 0
+    screw_tool_m4.primitive_poses[0].position.y = -0.009
+    screw_tool_m4.primitive_poses[0].position.z = 0.0275
+
+    # The "shaft" + suction attachment
+    screw_tool_m4.primitives[1].type = screw_tool_m4.primitives[1].BOX
+    screw_tool_m4.primitives[1].dimensions.resize(3)
+    screw_tool_m4.primitives[1].dimensions[0] = 0.02
+    screw_tool_m4.primitives[1].dimensions[1] = 0.03
+    screw_tool_m4.primitives[1].dimensions[2] = 0.08
+    screw_tool_m4.primitive_poses[1].position.x = 0
+    screw_tool_m4.primitive_poses[1].position.y = -0.0055  # 21 mm distance from axis
+    screw_tool_m4.primitive_poses[1].position.z = -0.04
+
+    # The cylinder representing the tip
+    screw_tool_m4.primitives[2].type = screw_tool_m4.primitives[2].CYLINDER
+    screw_tool_m4.primitives[2].dimensions.resize(2)
+    screw_tool_m4.primitives[2].dimensions[0] = 0.038    # Cylinder height
+    screw_tool_m4.primitives[2].dimensions[1] = 0.0035   # Cylinder radius
+    screw_tool_m4.primitive_poses[2].position.x = 0
+    screw_tool_m4.primitive_poses[2].position.y = 0  # 21 mm distance from axis
+    screw_tool_m4.primitive_poses[2].position.z = -0.099
+    screw_tool_m4.operation = screw_tool_m4.ADD
+
+    # The tool tip
+    screw_tool_m4.subframe_poses.resize(1)
+    screw_tool_m4.subframe_names.resize(1)
+    screw_tool_m4.subframe_poses[0].position.z = -.12
+    screw_tool_m4.subframe_poses[0].orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 90.0/180.0*pi, -pi/2))
+    screw_tool_m4.subframe_names[0] = "screw_tool_m4_tip"
+
+
+    # M3 tool
+    screw_tool_m3.header.frame_id = "screw_tool_m3_link"
+    screw_tool_m3.id = "screw_tool_m3"
+
+    # The bit cushion and motor
+    screw_tool_m3.primitives[0].type = screw_tool_m3.primitives[0].BOX
+    screw_tool_m3.primitives[0].dimensions.resize(3)
+    screw_tool_m3.primitives[0].dimensions[0] = 0.026
+    screw_tool_m3.primitives[0].dimensions[1] = 0.04
+    screw_tool_m3.primitives[0].dimensions[2] = 0.055
+    screw_tool_m3.primitive_poses[0].position.x = 0
+    screw_tool_m3.primitive_poses[0].position.y = -0.009
+    screw_tool_m3.primitive_poses[0].position.z = 0.0275
+
+    # The "shaft" + suction attachment
+    screw_tool_m3.primitives[1].type = screw_tool_m3.primitives[1].BOX
+    screw_tool_m3.primitives[1].dimensions.resize(3)
+    screw_tool_m3.primitives[1].dimensions[0] = 0.02
+    screw_tool_m3.primitives[1].dimensions[1] = 0.03
+    screw_tool_m3.primitives[1].dimensions[2] = 0.08
+    screw_tool_m3.primitive_poses[1].position.x = 0
+    screw_tool_m3.primitive_poses[1].position.y = -0.0055  # 21 mm distance from axis
+    screw_tool_m3.primitive_poses[1].position.z = -0.04
+
+    # The cylinder representing the tip
+    screw_tool_m3.primitives[2].type = screw_tool_m3.primitives[2].CYLINDER
+    screw_tool_m3.primitives[2].dimensions.resize(2)
+    screw_tool_m3.primitives[2].dimensions[0] = 0.018    # Cylinder height
+    screw_tool_m3.primitives[2].dimensions[1] = 0.0035   # Cylinder radius
+    screw_tool_m3.primitive_poses[2].position.x = 0
+    screw_tool_m3.primitive_poses[2].position.y = 0  # 21 mm distance from axis
+    screw_tool_m3.primitive_poses[2].position.z = -0.089
+    screw_tool_m3.operation = screw_tool_m3.ADD
+
+    # The tool tip
+    screw_tool_m3.subframe_poses.resize(1)
+    screw_tool_m3.subframe_names.resize(1)
+    screw_tool_m3.subframe_poses[0].position.z = -.11
+    screw_tool_m3.subframe_poses[0].orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 90.0/180.0*pi, -pi/2))
+    screw_tool_m3.subframe_names[0] = "screw_tool_m3_tip"
+
+    # TODO: Write these to a YAML file
+    return True
+
+  ############# ------ Robot motion functions
 
   def get_current_pose_stamped(self, group_name):
     group = self.groups[group_name]
@@ -486,89 +578,9 @@ class O2ACCommonBase(object):
 
   ######
 
-  def pick(self, robotname, object_pose, grasp_height, speed_fast, speed_slow, gripper_command, approach_height = 0.05, 
-          special_pick = False, lift_up_after_pick=True, force_ur_script=False, acc_fast=1.0, acc_slow=.5, gripper_force=40.0,
-          gripper_velocity = .1,):
-    # TODO: 
-    
-    self.log_to_debug_monitor("Pick", "operation")
-    if speed_fast > 1.0:
-      acceleration=speed_fast
-    else:
-      acceleration=1.0
-
-    rospy.logdebug("Approach height 0: " + str(approach_height))
-    object_pose.pose.position.z += approach_height
-    rospy.logdebug("Height 1: " + str(object_pose.pose.position.z))
-    if special_pick == True:
-      object_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi, pi*45/180, pi/2))
-    rospy.logdebug("Going to height " + str(object_pose.pose.position.z))
-    self.go_to_pose_goal(robotname, object_pose, speed=speed_fast, acceleration=acc_fast, move_lin=True)
-    object_pose.pose.position.z -= approach_height
-    rospy.logdebug("Height 2: " + str(object_pose.pose.position.z))
-    # self.publish_marker(object_pose, "place_pose")
-
-    if gripper_command=="none":
-      pass
-    else: 
-      self.send_gripper_command(gripper=robotname, command="open")
-
-    rospy.loginfo("Moving down to object")
-    object_pose.pose.position.z += grasp_height
-    rospy.logdebug("Going to height " + str(object_pose.pose.position.z))
-    self.go_to_pose_goal(robotname, object_pose, speed=speed_slow, acceleration=acc_slow, high_precision=True, move_lin=True)
-    object_pose.pose.position.z -= grasp_height
-
-    #gripper close
-    if gripper_command=="none":
-      pass
-    else: 
-      self.send_gripper_command(gripper=robotname, command="close", force = gripper_force, velocity = gripper_velocity,)
-
-    if lift_up_after_pick:
-      rospy.sleep(1.0)
-      rospy.loginfo("Going back up")
-
-      object_pose.pose.position.z += approach_height
-      rospy.loginfo("Going to height " + str(object_pose.pose.position.z))
-      self.go_to_pose_goal(robotname, object_pose, speed=speed_fast, acceleration=acc_fast, move_lin=True)
-      object_pose.pose.position.z -= approach_height
-    return True
-
-  ######
-
-  def place(self,robotname, object_pose, place_height, speed_fast, speed_slow, gripper_command, approach_height = 0.05, lift_up_after_place = True, acc_fast=1.0, acc_slow=.5):
-    #self.publish_marker(object_pose, "place_pose")
-    self.log_to_debug_monitor("Place", "operation")
-    rospy.loginfo("Going above place target")
-    object_pose.pose.position.z += approach_height
-    self.go_to_pose_goal(robotname, object_pose, speed=speed_fast, acceleration=acc_fast, move_lin=True)
-    object_pose.pose.position.z -= approach_height
-
-    rospy.loginfo("Moving to place target")
-    object_pose.pose.position.z += place_height
-    self.go_to_pose_goal(robotname, object_pose, speed=speed_slow, acceleration=acc_slow, move_lin=True)
-    object_pose.pose.position.z -= place_height
-
-    #gripper open
-    if gripper_command=="none":
-      pass
-    else: 
-      self.send_gripper_command(gripper=robotname, command="open")
-
-    
-    if lift_up_after_place:
-      rospy.loginfo("Moving back up")
-      object_pose.pose.position.z += approach_height
-      self.go_to_pose_goal(robotname, object_pose, speed=speed_fast, move_lin=True)  
-      object_pose.pose.position.z -= approach_height
-    return True
-
-  ######
-
-  def do_pick_action(self, robot_name, pose_stamped, screw_size = 0, z_axis_rotation = 0.0, use_complex_planning = False, tool_name = ""):
+  def do_pick_screw_action(self, robot_name, pose_stamped, screw_size = 0, z_axis_rotation = 0.0, use_complex_planning = False, tool_name = ""):
     # Call the pick action. It is useful for picking screws with the tool.
-    goal = o2ac_msgs.msg.pickGoal()
+    goal = o2ac_msgs.msg.pickScrewGoal()
     goal.robot_name = robot_name
     goal.item_pose = pose_stamped
     goal.tool_name = tool_name
@@ -578,14 +590,14 @@ class O2ACCommonBase(object):
     rospy.loginfo("Sending pick action goal")
     rospy.logdebug(goal)
 
-    self.pick_client.send_goal(goal)
+    self.pick_screw_client.send_goal(goal)
     rospy.logdebug("Waiting for result")
-    self.pick_client.wait_for_result()
+    self.pick_screw_client.wait_for_result()
     rospy.logdebug("Getting result")
-    return self.pick_client.get_result()
+    return self.pick_screw_client.get_result()
 
   def do_place_action(self, robot_name, pose_stamped, tool_name = "", screw_size=0):
-    # Call the pick action
+    # Call the place action
     goal = o2ac_msgs.msg.placeGoal()
     goal.robot_name = robot_name
     goal.item_pose = pose_stamped
@@ -622,6 +634,8 @@ class O2ACCommonBase(object):
 
   def do_change_tool_action(self, robot_name, equip=True, 
                         screw_size = 4):
+    self.equip_unequip_tool(robot_name, screw_tool_id, )
+    ### DEPRECATED
     self.log_to_debug_monitor("Change tool", "operation")
     goal = o2ac_msgs.msg.changeToolGoal()
     goal.robot_name = robot_name
@@ -880,9 +894,11 @@ class O2ACCommonBase(object):
     res = self.toggleCollisions_client.call(req)
     return res.success
 
+  def close_gripper(self, robot, force=40.0):
+    return self.send_gripper_command(robot, "close", force=force)
+  def open_gripper(self, robot):
+    return self.send_gripper_command(robot, "open")
 
-  ################ ----- Gripper interfaces
-  
   def send_gripper_command(self, gripper, command, this_action_grasps_an_object = False, force = 40.0, velocity = .1, wait=True):
     """
     force: Gripper force in N. From 40 to 100
@@ -919,248 +935,175 @@ class O2ACCommonBase(object):
     result = action_client.get_result()
     rospy.loginfo(result)
     return 
+
+  def equip_tool(self, robot_name, tool_name, angle = 0.0):
+    return self.equip_unequip_tool(robot_name, tool_name, angle, "equip")
   
-  def put_screw_in_feeder(self, screw_size):
-    if not screw_size in [3,4]:
-      rospy.logerr("There are no feeders of size " + str(screw_size) + ". Aborting.")
+  def unequip_tool(self, robot_name, tool_name, angle = 0.0):
+    return self.equip_unequip_tool(robot_name, tool_name, angle, "unequip")
+
+  def equip_unequip_tool(self, robot_name, tool_name, angle, equip_or_unequip):
+    # Sanity check on the input instruction
+    equip = (equip_or_unequip == "equip")
+    unequip = (equip_or_unequip == "unequip")
+    lin_speed = 0.01
+    # The second comparison is not always necessary, but readability comes first.
+    if ((not equip) and (not unequip)):
+      rospy.logerr("Cannot read the instruction " + equip_or_unequip + ". Returning False.")
       return False
 
-    self.log_to_debug_monitor("Put screw in feeder", "operation")
-
-    self.go_to_named_pose("above_feeder", "a_bot", speed=1.5, acceleration=1.0, force_ur_script=self.use_real_robot)
-    drop_pose = geometry_msgs.msg.PoseStamped()
-    drop_pose.pose.position.z = .015
-    drop_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, pi))
-    drop_pose.header.frame_id = "m" + str(screw_size) + "_feeder_inlet_link"
-
-    self.set_feeder_power(False)
-    self.move_lin("a_bot", drop_pose, speed = 1.0, acceleration = 1.0, end_effector_link = "a_bot_gripper_tip_link")
-    self.send_gripper_command(gripper= "precision_gripper_inner", command="open")
-    self.set_feeder_power(True)
-    return True
-        
-  def pick_screw_from_feeder(self, screw_size, attempts = 1):
-    """
-    Picks a screw from one of the feeders. The screw tool already has to be equipped!
-    """
-    # Use this command to equip the screw tool: do_change_tool_action(self, "b_bot", equip=True, screw_size = 4)
+    if ((self.robot_status[robot_name].carrying_object == True)):
+      rospy.logerr("Robot holds an object. Cannot " + equip_or_unequip + " tool.")
+      return False
+    if ( (self.robot_status[robot_name].carrying_tool == True) and equip):
+      rospy.logerr("Robot already holds a tool. Cannot equip another.")
+      return False
+    if ( (self.robot_status[robot_name].carrying_tool == False) and unequip):
+      rospy.logerr("Robot is not holding a tool. Cannot unequip any.")
+      return False
     
-    if not screw_size==3 and not screw_size==4:
-      rospy.logerr("Screw size needs to be 3 or 4!")
+    rospy.loginfo("Going to before_tool_pickup pose.")
+    
+    if not self.go_to_named_pose("tool_pick_ready", robot_name):
+      rospy.logerr("Could not plan to before_tool_pickup joint state. Abort!")
+      return False
+    
+    # Set up poses
+    ps_approach = geometry_msgs.msg.PoseStamped()
+    ps_tool_holder = geometry_msgs.msg.PoseStamped()
+    ps_move_away = geometry_msgs.msg.PoseStamped()
+    ps_high_up = geometry_msgs.msg.PoseStamped()
+    ps_end = geometry_msgs.msg.PoseStamped()
+    ps_approach.header.frame_id = tool_name + "_pickup_link"
+
+    # Define approach pose
+    ps_approach.pose.position.x = -.06
+    ps_approach.pose.position.z = .017
+    rospy.loginfo("tool_name: " + tool_name)
+    if (tool_name == "nut_tool_m6"):
+      ps_approach.pose.position.z = .052
+    if (tool_name == "set_screw_tool"):
+      ps_approach.pose.position.z = .045
+    if (tool_name == "suction_tool"):
+      rospy.logerr("Suction tool is not implemented!")
       return False
 
-    self.log_to_debug_monitor("Pick screw from feeder", "operation")
+    ps_approach.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
+    ps_move_away = copy.deepcopy(ps_approach)
 
-    # Turn to the right to face the feeders
-    self.go_to_named_pose("feeder_pick_ready", "b_bot", speed=3.0, acceleration=3.0, force_ur_script=self.use_real_robot)
+    # Define pickup pose
+    ps_tool_holder = copy.deepcopy(ps_approach)
+    ps_tool_holder.pose.position.x = 0.03
+    if tool_name == "nut_tool_m6":
+      ps_tool_holder.pose.position.x = 0.02
+    if tool_name == "set_screw_tool":
+      ps_tool_holder.pose.position.x = 0.03
+    if tool_name == "suction_tool":
+      ps_tool_holder.pose.position.x = 0.01
+    if unequip: 
+      ps_tool_holder.pose.position.x -= 0.001 # The tool is dropped slightly before the magnet
 
-    pose_feeder = geometry_msgs.msg.PoseStamped()
-    pose_feeder.header.frame_id = "m" + str(screw_size) + "_feeder_outlet_link"
-    pose_feeder.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
-    pose_feeder.pose.position.x = 0.0
+    ps_high_up = copy.deepcopy(ps_approach)
+    ps_end = copy.deepcopy(ps_high_up)
 
-    attempt = 0
-    screw_picked = False
-    while attempt < attempts:
-      self.set_feeder_power(False)
-      self.do_pick_action("b_bot", pose_feeder, screw_size = screw_size, use_complex_planning = True, tool_name = "screw_tool")
-      self.set_feeder_power(True)
-      bool_msg = Bool()
-      try:
-        bool_msg = rospy.wait_for_message("/screw_tool_m" + str(screw_size) + "/screw_suctioned", Bool, 1.0)
-      except:
-        pass
-      screw_picked = bool_msg.data
-      if screw_picked:
-        rospy.loginfo("Successfully picked the screw")
-        return True
-      if not self.use_real_robot:
-        rospy.loginfo("Pretending the screw is picked, because this is simulation.")
-        return True
-      attempt += 1
+    if equip:
+      self.open_gripper(robot_name)
+      rospy.loginfo("Spawning tool.")
+      spawnTool(tool_name)
+      held_screw_tool_ = tool_name
 
-    return False
+    self.toggle_collisions(collisions_on=False)
 
-  def pick_nut_from_table(self,robot_name, object_pose, max_radius=0.005, end_effector_link="c_bot_nut_tool_m6_tip_link"):
-    self.log_to_debug_monitor("Pick nut from table", "operation")
-    approach_pose = copy.deepcopy(object_pose)
-    approach_pose.pose.position.z += .02  # Assumes that z points upward
-    self.go_to_pose_goal(robot_name, approach_pose, speed=self.speed_fast, move_lin = True, end_effector_link=end_effector_link)
-    if robot_name == "c_bot":
-      spiral_axis = "YZ"
-      push_direction = "c_bot_diagonal"
+    rospy.loginfo("Moving to screw tool approach pose LIN.")
+    preparation_succeeded = self.move_lin(robot_name, ps_approach, True, robot_name + "_robotiq_85_tip_link")
+    if (not preparation_succeeded):
+      rospy.logerr("Could not go to approach pose. Aborting tool pickup.")
+      planning_scene_interface_.applyPlanningScene(planning_scene_)
+      self.toggle_collisions(collisions_on=False)
+      return False
+
+    # Plan & execute linear motion to the tool change position
+    rospy.loginfo("Moving to pose in tool holder LIN.")
+    
+    if equip:
+      lin_speed = 0.5
+    elif unequip:
+      lin_speed = 0.08  
+    
+    if not self.move_lin_rel(robot_name, velocity=lin_speed,
+              relative_translation=[0,0,(ps_tool_holder.pose.position.x - ps_approach.pose.position.x)]):
+      rospy.logerr("Was not able to move to tool holder. ABORTING!")
+      return False
+
+    # Close gripper, attach the tool object to the gripper in the Planning Scene.
+    # Its collision with the parent link is set to allowed in the original planning scene.
+    if equip:
+      closeGripper(robot_name)
+      attachTool(tool_name, robot_name)
+      self.planning_scene_interface.allow_collisions(tool_name, robot_name + "_robotiq_85_tip_link")
+      self.planning_scene_interface.allow_collisions(tool_name, robot_name + "_robotiq_85_left_finger_tip_link")
+      self.planning_scene_interface.allow_collisions(tool_name, robot_name + "_robotiq_85_left_inner_knuckle_link")
+      self.planning_scene_interface.allow_collisions(tool_name, robot_name + "_robotiq_85_right_finger_tip_link")
+      self.planning_scene_interface.allow_collisions(tool_name, robot_name + "_robotiq_85_right_inner_knuckle_link")
+      
+      acm_no_collisions.setEntry(tool_name, True)      # To allow collisions now
+      planning_scene_interface_.applyPlanningScene(ps_no_collisions)
+      
+      self.robot_status[robot_name].carrying_tool = True
+      self.robot_status[robot_name].held_tool_id = tool_name
+    elif unequip:
+      self.open_gripper(robot_name)
+      detachTool(tool_name, robot_name)
+      held_screw_tool_ = ""
+      acm_original.removeEntry(tool_name)
+      self.robot_status[robot_name].carrying_tool = False
+      self.robot_status[robot_name].held_tool_id = ""
+
+    
+    acm_original.getMessage(planning_scene_.allowed_collision_matrix)
+    rospy.sleep(.5)
+    
+    # Plan & execute linear motion away from the tool change position
+    rospy.loginfo("Moving back to screw tool approach pose LIN.")
+    
+    if equip:
+      lin_speed = 1.0
+    elif unequip:
+      lin_speed = 1.0
+
+    if (use_real_robot_):
+      rospy.sleep(.3)
+      UR_srv.request.velocity = .05
+      t_rel.z = -(ps_tool_holder.pose.position.x - ps_approach.pose.position.x)
+      UR_srv.request.relative_translation = t_rel
+      sendScriptToURClient_.call(UR_srv)
+      if (UR_srv.response.success == True):
+        rospy.loginfo("Successfully called the URScript client to perform a linear movement backward.")
+        waitForURProgram("/" + robot_name + "_controller")
+      else:
+        ROS_WARN("Could not call the URScript client to perform a linear movement backward.")
+    else :
+      self.move_lin(ps_move_away, robot_name)
+    
+    # Reactivate the collisions, with the updated entry about the tool
+    planning_scene_interface_.applyPlanningScene(planning_scene_)
+
+    rospy.loginfo("Moving higher up to facilitate later movements.")
+    self.move_lin(ps_high_up, robot_name)
+    
+    # Delete tool collision object only after collision reinitialization to avoid errors
+    if unequip:
+      despawnTool(tool_name)
+
+    if unequip:
+      self.go_to_named_pose("home", robot_name)
     else:
-      spiral_axis = "Y"
-      push_direction = "Z+"
-    self.do_linear_push(robot_name, 10, direction=push_direction, wait = True)
-    self.set_motor("nut_tool_m6", direction="loosen", duration=10)
-    self.horizontal_spiral_motion(robot_name, max_radius = .006, radius_increment = .02, spiral_axis=spiral_axis)
-    self.do_linear_push(robot_name, 10, direction=push_direction, wait = True)
-    self.go_to_pose_goal(robot_name, approach_pose, speed=.03, move_lin = True, end_effector_link=end_effector_link)
-
-  def pick_nut_using_spiral_search(self,object_pose, max_radius=0.005, end_effector_link="c_bot_nut_tool_m6_tip_link"):
-    self.log_to_debug_monitor("Pick nut using spiral search", "operation")
-
-    # This spiral search does not work as well as we hoped. When the nut is not perfectly picked, it falls to a completely different place
-    max_radius = .005
-    theta_incr = pi/3
-    r=0.00015
-    radius_increment = .0008
-    radius_inc_set = radius_increment / (2*pi / theta_incr)
-    theta=0
-    RealRadius=0
-    
-    # Try to pick the nut multiple times
-    adjusted_pose = copy.deepcopy(object_pose)
-    while RealRadius < max_radius and not rospy.is_shutdown():
-      rospy.loginfo("Moving into screw to pick it up.")
-      # adjusted_pose.pose.position.x += .02
-      # self.go_to_pose_goal("c_bot", adjusted_pose, speed=.1, move_lin = True, end_effector_link="c_bot_nut_tool_m6_tip_link")
-      self.pick(robotname="c_bot",object_pose=object_pose,grasp_height=-0.002,
-                                  speed_fast = .3, speed_slow = .03, gripper_command="none",
-                                  approach_height = .05,end_effector_link=end_effector_link)
-
-      # TODO: Test if pushing linear works better
-
-      # Adjust the position (spiral search)
-      rospy.loginfo("Retrying pickup with adjusted position")
-      theta=theta+theta_incr
-      y=math.cos(theta)*r
-      z=math.sin(theta)*r
-      adjusted_pose = copy.deepcopy(object_pose)
-      adjusted_pose.pose.position.y += y
-      adjusted_pose.pose.position.z += z
-      r = r + radius_inc_set
-      RealRadius = math.sqrt(math.pow(y,2)+math.pow(z,2))
-
-  def adjust_tool_centering(self, tool_end_effector_link="b_bot_screw_tool_m4_tip_link", go_fast=False):
-    rospy.logwarn("THIS IS UNTESTED!!")
-    rospy.loginfo("============ Adjusting the position of the pin/shaft ============")
-    self.go_to_named_pose("screw_ready", "b_bot")
-    self.send_gripper_command(gripper="c_bot",command = "open")
-
-    speed = .3
-    acceleration = .5
-    force_ur_script = False
-    if go_fast:
-      speed = 1.5
-      acceleration = 1.5
-      force_ur_script = True
-
-    b_pose = geometry_msgs.msg.PoseStamped()
-    b_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, -pi/2))
-    b_pose.header.frame_id = "workspace_center"
-    b_pose.pose.position.z = 0.4
-    self.go_to_pose_goal("b_bot", b_pose, end_effector_link=tool_end_effector_link, speed=speed, acceleration=acceleration, move_lin = True)
-
-    rospy.sleep(1)
-
-    c_pose = geometry_msgs.msg.PoseStamped()
-    c_pose.header.frame_id = "b_bot_robotiq_85_tip_link"
-    c_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-pi/2,0,pi/2))
-    c_pose.pose.position.z = 0.0  # MAGIC NUMBER!
-    c_pose.pose.position.y = 0.025
-    c_pose.pose.position.x = 0.015
-    self.go_to_pose_goal("c_bot", c_pose, speed=speed, acceleration=acceleration, move_lin = True)
-
-    # self.send_gripper_command(gripper="b_bot",command = "close", velocity = .015, force = 1.0)
-    self.send_gripper_command(gripper="c_bot",command = "close")
-    rospy.sleep(.5)
-    self.send_gripper_command(gripper="b_bot",command = .01)
-    rospy.sleep(.5)
-
-    c_wiggle_1 = copy.deepcopy(c_pose)
-    c_wiggle_1.pose.position.z += 0.002
-    c_wiggle_2 = copy.deepcopy(c_pose)
-    c_wiggle_2.pose.position.z -= 0.002
-    self.go_to_pose_goal("c_bot", c_wiggle_1, speed=.03, acceleration=acceleration, move_lin = True)
-    self.go_to_pose_goal("c_bot", c_wiggle_2, speed=.03, acceleration=acceleration, move_lin = True)
-    self.go_to_pose_goal("c_bot", c_pose, speed=.03, acceleration=acceleration, move_lin = True)
-    self.send_gripper_command(gripper="c_bot",command = "open")
-
-    self.go_to_named_pose("home", "c_bot", speed=speed, acceleration=acceleration, force_ur_script=force_ur_script)
-    return
-
-  def adjust_centering(self, go_fast=False, handover_motor_to_c_bot=False):
-
-    #rospy.loginfo("============ Adjusting the position of the pin/shaft
-    # ============")
-    speed = .3
-    acceleration = .5
-    force_ur_script = False
-    if go_fast:
-      speed = 3.0
-      acceleration = 2.0
-      force_ur_script = True
-    
-    self.log_to_debug_monitor("Adjust centering", "operation")
-    self.go_to_named_pose("home", "b_bot", speed=speed, acceleration=acceleration, force_ur_script=force_ur_script)
-    self.go_to_named_pose("home", "c_bot", speed=speed, acceleration=acceleration, force_ur_script=force_ur_script)
-    self.send_gripper_command(gripper="c_bot",command = "open")
-
-    pose1 = geometry_msgs.msg.PoseStamped()
-    pose1.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
-    pose1.header.frame_id = "b_bot_robotiq_85_tip_link"
-    pose1.pose.position.y = -0.15
-    pose1.pose.position.z = 0.15
-    self.go_to_pose_goal("b_bot", pose1,speed=speed, acceleration=acceleration, move_lin = True)
-
-    rospy.sleep(1)
-
-    pose2 = geometry_msgs.msg.PoseStamped()
-    pose2.header.frame_id = "b_bot_robotiq_85_tip_link"
-    pose2.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-pi/2,0,pi/2))
-    pose2.pose.position.z = -0.0015   # MAGIC NUMBER (positive moves c_bot towards ??)
-    pose2.pose.position.y = 0.025 # (positive moves c_bot forward)
-    if handover_motor_to_c_bot:
-      pose2.pose.position.y = 0.015 
-    pose2.pose.position.x = 0.015 # (positive moves c_bot down)
-    self.go_to_pose_goal("c_bot", pose2, speed=speed, acceleration=acceleration, move_lin = True)
-
-    self.send_gripper_command(gripper="c_bot",command = "close")
-    rospy.sleep(.5)
-    self.send_gripper_command(gripper="b_bot",command = .03)
-    rospy.sleep(.5)
-    self.send_gripper_command(gripper="b_bot",command = "open")
-    rospy.sleep(1.0)
-    self.send_gripper_command(gripper="b_bot",command = "close", velocity = .05, force = 1.0)
-    rospy.sleep(.5)
-    self.send_gripper_command(gripper="c_bot",command = "open")
-    rospy.sleep(.5)
-
-    pose3 = geometry_msgs.msg.PoseStamped()
-    pose3.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi/2, 0, 0))
-    pose3.header.frame_id = "b_bot_robotiq_85_tip_link"
-    pose3.pose.position.y = 0
-    pose3.pose.position.z = 0
-    self.go_to_pose_goal("b_bot", pose3, speed=speed, acceleration=acceleration, move_lin = True)
-
-    self.send_gripper_command(gripper="c_bot",command = "close")
-    rospy.sleep(1)
-    self.send_gripper_command(gripper="b_bot",command = "open")
-    rospy.sleep(2)
-    if not handover_motor_to_c_bot:
-      self.send_gripper_command(gripper="b_bot",command = "close")
-      rospy.sleep(2)
-      self.send_gripper_command(gripper="c_bot",command = "open")
-      rospy.sleep(1)
-
-    ### This can be used to adjust the rotation during the handover
-    # if handover_motor_to_c_bot:
-    #   pose4 = geometry_msgs.msg.PoseStamped()
-    #   pose4.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi*(90+5)/180, 0, 0))
-    #   pose4.header.frame_id = "b_bot_robotiq_85_tip_link"
-    #   pose4.pose.position.y = 0
-    #   pose4.pose.position.z = 0
-    #   self.confirm_to_proceed("How much extra rotation from here?")
-    #   self.go_to_pose_goal("b_bot", pose4, speed=speed, acceleration=acceleration, move_lin = True)
-    #   self.send_gripper_command(gripper="c_bot",command = "close")
-    #   rospy.sleep(2)
-    #   self.send_gripper_command(gripper="b_bot",command = "open")
-    #   rospy.sleep(1)
-
-    self.go_to_named_pose("home", "c_bot", speed=speed, acceleration=acceleration, force_ur_script=force_ur_script)
-    return
+      if (robot_name == "b_bot"):
+        pass
+        # self.go_to_named_pose("screw_ready", robot_name)
+      elif (robot_name == "c_bot"):
+        self.go_to_named_pose("screw_ready", robot_name)
+    return True
 
 ######
 
