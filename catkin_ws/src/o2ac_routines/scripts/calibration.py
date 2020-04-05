@@ -138,14 +138,15 @@ class CalibrationClass(O2ACCommon):
     
 
     rospy.loginfo("============ Testing robot calibration. ============")
-    rospy.loginfo("Each robot will move to this position in front of c_bot:")
+    rospy.loginfo("Each robot will move to this position:")
     rospy.loginfo(calib_pose)
 
     self.go_to_named_pose("back", "a_bot")
-    self.go_to_named_pose("back", "b_bot")
+    self.go_to_named_pose("home", "b_bot")
 
     rospy.loginfo("============ Press `Enter` to move b_bot to calibration position, enter 0 to skip.")
     if raw_input() != "0":
+      
       self.send_gripper_command("b_bot", "close")
       self.go_to_pose_goal("b_bot", calib_pose, speed=1.0)
 
@@ -308,28 +309,6 @@ class CalibrationClass(O2ACCommon):
     self.go_to_named_pose("home", "b_bot")
     return
 
-  def place_screw_test(self, set_name = "set_1_", screw_size = 4, screw_number = 1):
-    # TODO: Update this function for the 2020 scene
-    rospy.loginfo("============ Placing a screw in a tray using c_bot ============")
-    rospy.loginfo("============ Screw tool m4 and a screw have to be carried by the robot! ============")
-    self.go_to_named_pose("back", "a_bot")
-    self.go_to_named_pose("back", "b_bot")
-
-    ps = geometry_msgs.msg.PoseStamped()
-    ps.header.frame_id = set_name + "tray_2_screw_m" + str(screw_size) + "_" + str(screw_number)
-    if set_name == "set_1_":
-      self.go_to_named_pose("feeder_pick_ready", "c_bot")
-      ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi/2, 0, 0))
-    elif set_name == "set_2_":
-      self.go_to_named_pose("feeder_pick_ready", "c_bot")
-      ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi/4, 0, 0))
-    elif set_name == "set_3_":
-      self.go_to_named_pose("screw_place_ready_near_b_bot", "c_bot")
-      ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
-    
-    self.do_place_action("c_bot", ps, tool_name="screw_tool", screw_size = 4)
-    return
-  
   def screw_tool_tests(self):
     # TODO: Update this function for the 2020 scene
     rospy.loginfo("============ Calibrating screw_tool M4 with b_bot. ============")
@@ -394,8 +373,8 @@ class CalibrationClass(O2ACCommon):
     rospy.loginfo("============ Moving the screw tool m4 to the four corners of the base plate ============")
     rospy.loginfo("============ The screw tool m4 has to be carried by the robot! ============")
     if robot_name=="b_bot":
-      self.go_to_named_pose("back", "c_bot")
-    elif robot_name=="c_bot":
+      self.go_to_named_pose("back", "a_bot")
+    elif robot_name=="a_bot":
       self.go_to_named_pose("back", "b_bot")
 
     self.go_to_named_pose("screw_ready", robot_name)
@@ -435,7 +414,7 @@ class CalibrationClass(O2ACCommon):
     print("published marker")
     return
     
-    self.do_pick_action(robot_name, pose0, screw_size = 4, z_axis_rotation = 0.0, use_complex_planning = True, tool_name = "screw_tool")
+    self.do_pick_screw_action(robot_name, pose0, screw_size = 4, z_axis_rotation = 0.0, use_complex_planning = True, tool_name = "screw_tool")
     return
   
   def screw_action_test(self, robot_name = "b_bot"):
@@ -456,28 +435,16 @@ class CalibrationClass(O2ACCommon):
     self.go_to_named_pose("screw_plate_ready", robot_name)
     return
 
-  def screw_feeder_calibration(self, robot_name = "c_bot"):
+  def screw_feeder_calibration(self, robot_name = "b_bot"):
     rospy.loginfo("============ Moving the screw tool m4 to the screw feeder ============")
     rospy.loginfo("============ The screw tool m4 has to be carried by the robot! ============")
-    if robot_name=="c_bot":
-      self.go_to_named_pose("back", "b_bot")
-      self.go_to_named_pose("back", "a_bot")
-
+    
     self.go_to_named_pose("feeder_pick_ready", robot_name)
     
-    # Turn to the right
-    self.groups["c_bot"].set_joint_value_target([0, -2.0980, 1.3992, -1.6153, -1.5712, -3.1401])
-    self.groups["c_bot"].set_max_velocity_scaling_factor(1.0)
-    self.groups["c_bot"].go(wait=True)
-    self.groups["c_bot"].stop()
-
     poses = []
     pose0 = geometry_msgs.msg.PoseStamped()
     self.toggle_collisions(collisions_on=False)
     pose0.header.frame_id = "m3_feeder_outlet_link"
-    if robot_name=="c_bot":
-      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
-      pose0.pose.position.x = -.03
     
     for i in range(6):
       poses.append(copy.deepcopy(pose0))
@@ -493,27 +460,16 @@ class CalibrationClass(O2ACCommon):
     self.toggle_collisions(collisions_on=True)
     return
   
-  def screw_feeder_pick_test(self, robot_name = "c_bot", screw_size = 4):
+  def screw_feeder_pick_test(self, robot_name = "b_bot", screw_size = 4):
     rospy.loginfo("============ Picking a screw from a feeder ============")
-    rospy.loginfo("============ The screw tool has to be carried by c_bot! ============")
-    if robot_name=="c_bot":
-      self.go_to_named_pose("back", "b_bot")
-      self.go_to_named_pose("back", "a_bot")
-
+    rospy.loginfo("============ The screw tool has to be carried by the robot! ============")
+    
     self.go_to_named_pose("feeder_pick_ready", robot_name)
     
-    # Turn to the right
-    self.groups["c_bot"].set_joint_value_target([0, -2.0980, 1.3992, -1.6153, -1.5712, -3.1401])
-    self.groups["c_bot"].set_max_velocity_scaling_factor(1.0)
-    self.groups["c_bot"].go(wait=True)
-    self.groups["c_bot"].stop()
-
     ps = geometry_msgs.msg.PoseStamped()
     ps.header.frame_id = "m" + str(screw_size) + "_feeder_outlet_link"
-    if robot_name=="c_bot":
-      ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
     
-    self.do_pick_action("c_bot", ps, screw_size=screw_size, tool_name="screw_tool")
+    self.do_pick_screw_action(robot_name, ps, screw_size=screw_size, tool_name="screw_tool")
     return
 
 if __name__ == '__main__':
@@ -524,7 +480,6 @@ if __name__ == '__main__':
       rospy.loginfo("============ Calibration procedures ============ ")
       rospy.loginfo("Enter a number to check calibrations for the following things: ")
       rospy.loginfo("1: The robots (central position with nothing on the table)")
-      rospy.loginfo("01: run ROS external control on b_bot")
       rospy.loginfo("1000: Move with different jerk values")
       rospy.loginfo("100 (1001): Go home with all robots (using UR script joint move)")
       rospy.loginfo("101 (1011): Go back with all robots (using UR script joint move)")
@@ -542,7 +497,7 @@ if __name__ == '__main__':
       rospy.loginfo("61: Go to screw holder with b_bot")
       rospy.loginfo("621, 622: Equip/unequip m4 screw tool with b_bot")
       rospy.loginfo("623, 624: Equip/unequip m3 screw tool with b_bot")
-      rospy.loginfo("625, 626: Equip/unequip m6 screw tool with b_bot")
+      rospy.loginfo("625, 626: Equip/unequip m6 nut tool with b_bot")
       rospy.loginfo("627, 628: Equip/unequip suction tool with b_bot")
       rospy.loginfo("63: Go to assembly base plate with m4 screw tool (b_bot)")
       rospy.loginfo("691: Do screw action with b_bot on rightmost hole")
@@ -551,8 +506,6 @@ if __name__ == '__main__':
       r = raw_input()
       if r == '1':
         c.check_robot_calibration()
-      elif r == '01':
-        c.activate_ros_control_on_ur() 
       elif r == '1000':
         ps = geometry_msgs.msg.PoseStamped()
         ps.header.frame_id = "workspace_center"
@@ -632,10 +585,10 @@ if __name__ == '__main__':
         c.do_change_tool_action("b_bot", equip=False, screw_size = 3)
       elif r == '625':
         c.go_to_named_pose("back", "a_bot")
-        c.do_change_tool_action("b_bot", equip=True, screw_size = 6)
+        c.do_change_tool_action("b_bot", equip=True, screw_size = 66)
       elif r == '626':
         c.go_to_named_pose("back", "a_bot")
-        c.do_change_tool_action("b_bot", equip=False, screw_size = 6)
+        c.do_change_tool_action("b_bot", equip=False, screw_size = 66)
       elif r == '627':
         c.go_to_named_pose("back", "a_bot")
         c.do_change_tool_action("b_bot", equip=True, screw_size = 50)

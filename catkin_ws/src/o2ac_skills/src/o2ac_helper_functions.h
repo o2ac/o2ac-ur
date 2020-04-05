@@ -67,7 +67,7 @@ geometry_msgs::PoseStamped transform_pose_now(geometry_msgs::PoseStamped& pose, 
         return result_pose;
       } catch (tf::ExtrapolationException e) {
         ROS_ERROR_STREAM("Something went wrong in transform_pose_now, trying to transform from " << pose.header.frame_id << " to " << referenceFrame);
-        ROS_ERROR(e.what());
+        // ROS_ERROR(e.what());
       }
       sleep(0.1);
     }
@@ -91,7 +91,7 @@ geometry_msgs::PoseStamped transformTargetPoseFromTipLinkToURTCP(geometry_msgs::
       success = true;
     } catch (tf::ExtrapolationException e) {
       ROS_ERROR_STREAM("Something went wrong in transformTargetPoseFromTipLinkToURTCP");
-      ROS_ERROR(e.what());
+      // ROS_ERROR(e.what());
     }
     sleep(0.1);
   }

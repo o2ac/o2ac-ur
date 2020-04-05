@@ -2,7 +2,7 @@
 
 # Software License Agreement (BSD License)
 #
-# Copyright (c) 2018, Team o2ac
+# Copyright (c) 2020, Team o2ac
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -58,130 +58,85 @@ class AssemblyClass(O2ACCommon):
   """
   def __init__(self):
     super(AssemblyClass, self).__init__()
-    self.set_up_item_parameters()
     
-    # self.action_client.wait_for_server()
-    rospy.sleep(.5)
-
-    # Initialize variables
-    self.screw_is_suctioned = dict()
-    self.screw_is_suctioned["m3"] = False
-    self.screw_is_suctioned["m4"] = False
-
+    self.set_assembly()
+    
     # Initialize debug monitor
     self.start_task_timer()
     self.log_to_debug_monitor(text="Init", category="task")
     self.log_to_debug_monitor(text="Init", category="subtask")
     self.log_to_debug_monitor(text="Init", category="operation")
 
-  def set_up_item_parameters(self):
-    # TODO: Publish the items to the scene, or do something equivalent. 
-    self.item_names = []
-    downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, 0))
-    
+    self.downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, 0))
 
-  ################ ----- Routines  
-  ################ 
-  ################ 
-
-
-  def fasten_motor_screw(self, screw_hole_number):
-    self.log_to_debug_monitor("Fasten motor screw", "operation")
-    pose1 = geometry_msgs.msg.PoseStamped()
-    pose1.header.frame_id = "assembled_assy_part_02_motor_screw_hole_"+str(screw_hole_number)
-    pose1.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(-pi*90/180, 0,0))
-    
-    self.pick_screw_from_feeder("b_bot", screw_size=3, screw_number="auto") # I commented this because this takes a long time in simulation
-    self.go_to_named_pose("horizontal_screw_ready", "b_bot")
-    self.go_to_pose_goal("b_bot", pose1, speed=0.3,end_effector_link="b_bot_screw_tool_m3_tip_link", move_lin=True)
-    
-    # TODO: add fastening action
-    return
-
-  def insert_bearing(self):
-    self.log_to_debug_monitor("Insert bearing", "operation")
-    pre_insertion = geometry_msgs.msg.PoseStamped()
-    pre_insertion.header.frame_id = "assembled_assy_part_11_front_hole"
-    pre_insertion.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
-    pre_insertion.pose.position.x = -0.04
-    self.go_to_pose_goal("b_bot", pre_insertion, speed=.3, move_lin = True)
-
-  ########
-
-  def subtask_f(self):
-    self.log_to_debug_monitor("SUBTASK F (motor plate)", "subtask")
-    self.log_to_debug_monitor("=== Subtask F start ===", "operation")
-    self.place_plate_2_and_screw()
-    self.log_to_debug_monitor("=== Subtask F end ===", "operation")
-
-  def subtask_g(self):
-    # ===== SUBTASK G (Placing and fastening the output (large) plate, for idle pulley set and clamping pulley set) =========
-    self.log_to_debug_monitor("SUBTASK G (large plate)", "subtask")
-    self.log_to_debug_monitor("=== Subtask G (large plate) start ===", "operation")
-    success = self.place_plate_3_and_screw()
-    self.log_to_debug_monitor("=== Subtask G (large plate) end ===", "operation")
-    return success
-
-  def subtask_a(self, do_screwing=False):
-    # ============= SUBTASK A (picking and inserting and fastening the motor shaft) =======================
-    self.log_to_debug_monitor("SUBTASK A (motor)", "subtask")
-    self.log_to_debug_monitor("=== Subtask A (motor) start ===", "operation")
-    self.pick_motor()
-    self.adjust_centering(go_fast=True, handover_motor_to_c_bot=True)
-    self.insert_motor() # Joshua thinks this may be possible to do without impedance control, otherwise use insertion script in Y negative direction
-
-    if do_screwing:
-      self.do_change_tool_action("b_bot", equip=True, screw_size=3)
-      self.go_to_named_pose("screw_ready", "b_bot")
-      for i in range(1,7):
-        self.fasten_motor_screw(screw_hole_number=i) # please ask Felix about the pick_screw function, I am not sure how he defined it
-        self.do_change_tool_action("b_bot", equip=False, screw_size=3)
-    self.log_to_debug_monitor("=== Subtask A (motor) end ===", "operation")
-
-  def subtask_b(self):
-    self.log_to_debug_monitor("SUBTASK B (motor pulley)", "subtask")
-    self.log_to_debug_monitor("=== Subtask B (motor pulley) start ===", "operation")
-    self.pick_motor_pulley()
-    self.insert_motor_pulley()
-    rospy.loginfo("todo: fasten motor pulley") # With the set screw
-    self.log_to_debug_monitor("=== Subtask B (motor pulley) end ===", "operation")
-    return
-
-  def subtask_e(self, pick_from_holder=False, exit_before_spacer=False, force_continue_task_to_the_end=False, exit_on_level_2=False):
-    rospy.loginfo("======== SUBTASK E ========")
-    self.log_to_debug_monitor("SUBTASK E (idler pin)", "subtask")
-    self.log_to_debug_monitor("=== Subtask E (idler pin) start ===", "operation")
-
-    self.go_to_named_pose("home", "b_bot", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
-    
-    # TODO: Reimplement this.
-    
-    self.go_to_pose_goal("b_bot", b_bot_retreat, speed=self.speed_fast, acceleration=self.acc_fast, move_lin = True)
-    self.go_to_named_pose("home", "b_bot", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
-
-    self.log_to_debug_monitor("=== Subtask E end ===", "operation")
+  def set_assembly(self, assembly_name="wrs_assembly_1"):
+    # Change the assembly
     return True
 
+  ################ ----- Subroutines  
+
+  def subtask_a(self, start_from_screwing=False):
+    # ============= SUBTASK A (picking and inserting and fastening the motor shaft) =======================
+    rospy.loginfo("======== SUBTASK A (motor) ========")
+    rospy.logerr("Subtask A not implemented yet")
+    return False
+
+    # if start_from_screwing:
+    #   self.do_change_tool_action("b_bot", equip=True, screw_size=3)
+    #   self.go_to_named_pose("screw_ready", "b_bot")
+    #   for i in range(1,7):
+    #     self.fasten_motor_screw(screw_hole_number=i)
+    #   self.do_change_tool_action("b_bot", equip=False, screw_size=3)
+
+  def subtask_b(self):
+    rospy.loginfo("======== SUBTASK B (motor pulley) ========")
+    rospy.logerr("Subtask B not implemented yet")
+    return
+
   def subtask_c(self):
-    # ==== SUBTASK C (clamping pulley set; everything but inserting and fastening clamping pulley) =================
-    self.log_to_debug_monitor("SUBTASK C (bearing + shaft)", "subtask")
-    self.log_to_debug_monitor("=== Subtask C start ===", "operation")
+    rospy.loginfo("======== SUBTASK C (output bearing + shaft) ========")
+    rospy.logerr("Subtask C not implemented yet")
+    self.go_to_named_pose("home", "b_bot", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
+    return False
 
-    self.pick_clamping_shaft()
-    self.adjust_centering(go_fast=True)
+  def subtask_d(self):
+    # Fasten large pulley to output shaft
+    rospy.loginfo("======== SUBTASK D (output pulley) ========")
+    rospy.logerr("Subtask D not implemented yet")
+    return False
 
-    self.insert_clamping_shaft()   
+  def subtask_e(self, pick_from_holder=False, exit_before_spacer=False, force_continue_task_to_the_end=False, exit_on_level_2=False):
+    rospy.loginfo("======== SUBTASK E (idler pulley) ========")
+    rospy.logerr("Subtask E not implemented yet")
 
     self.go_to_named_pose("home", "b_bot", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
-    self.log_to_debug_monitor("=== Subtask C end ===", "operation")
+    return True
 
-  ##### 
+  def subtask_f(self):
+    rospy.loginfo("======== SUBTASK F (small L-plate) ========")
+    rospy.logerr("Subtask F not implemented yet")
+    return False
+
+  def subtask_g(self):
+    rospy.loginfo("======== SUBTASK G (large L-plate) ========")
+    rospy.logerr("Subtask G not implemented yet")
+    return False
+
+  def subtask_h(self):
+    # Attach belt
+    rospy.loginfo("======== SUBTASK H (belt) ========")
+    rospy.logerr("Subtask H not implemented yet")
+    return False
+
+  def subtask_i(self):
+    # Insert motor cables
+    rospy.loginfo("======== SUBTASK I (cables) ========")
+    rospy.logerr("Subtask I not implemented yet")
+    return False
 
   def real_assembly_task(self):
     self.start_task_timer()
     self.log_to_debug_monitor(text="Assembly", category="task")
-    self.picked_screw_counter["m4"] = 1
-    self.picked_screw_counter["m3"] = 1
 
     self.subtask_c() # bearing shaft insertion
 
@@ -221,7 +176,7 @@ if __name__ == '__main__':
   try:
     rospy.loginfo("Please refer to this page for details of each subtask. https://docs.google.com/spreadsheets/d/1Os2CfH80A7vzj6temt5L8BYpLvHKBzWT0dVuTvpx5Mk/edit#gid=1216221803")
     assy = AssemblyClass()
-    assy.set_up_item_parameters()
+    assy.set_assembly()
     i = 1
     while i:
       rospy.loginfo("Enter 11 (12) to equip (unequip) m4 tool (b_bot).")

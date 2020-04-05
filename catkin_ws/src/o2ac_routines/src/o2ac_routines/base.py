@@ -75,17 +75,17 @@ class O2ACBase(object):
     moveit_commander.roscpp_initialize(sys.argv)
 
     self.listener = tf.TransformListener()
-    self.use_real_robot = rospy.get_param("use_real_robot")
-    self.force_ur_script_linear_motion = True
+    self.use_real_robot = rospy.get_param("use_real_robot", False)
+    self.force_ur_script_linear_motion = False
     self.force_moveit_linear_motion = False
     self.disable_markers = True
 
     self.competition_mode = False   # Setting this to True disables confirmation dialogs etc., thus enabling uninterrupted automatic motion
 
-    self.speed_fast = 1.5
-    self.speed_fastest = 3.0
-    self.acc_fast = 1.0
-    self.acc_fastest = 2.0
+    self.speed_fast = 0.1
+    self.speed_fastest = 0.2
+    self.acc_fast = 0.1
+    self.acc_fastest = 0.2
 
     self.robots = moveit_commander.RobotCommander()
     self.planning_scene_interface = moveit_commander.PlanningSceneInterface()
@@ -114,10 +114,7 @@ class O2ACBase(object):
       "b_bot_play":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/play', std_srvs.srv.Trigger)
     }
 
-    self.inner_pick_detection_client = actionlib.SimpleActionClient('inner_pick_detection_action', o2ac_msgs.msg.innerPickDetectionAction)
-
     self.urscript_client = rospy.ServiceProxy('/o2ac_skills/sendScriptToUR', o2ac_msgs.srv.sendScriptToUR)
-    self.goToNamedPose_client = rospy.ServiceProxy('/o2ac_skills/goToNamedPose', o2ac_msgs.srv.goToNamedPose)
     self.publishMarker_client = rospy.ServiceProxy('/o2ac_skills/publishMarker', o2ac_msgs.srv.publishMarker)
     self.toggleCollisions_client = rospy.ServiceProxy('/o2ac_skills/toggleCollisions', std_srvs.srv.SetBool)
 
@@ -218,7 +215,6 @@ class O2ACBase(object):
     rospy.sleep(2)
     return response.success
     
-
   def publish_marker(self, pose_stamped, marker_type):
     # Publishes a marker to Rviz for visualization
     if self.disable_markers:
@@ -329,9 +325,6 @@ class O2ACBase(object):
     group = self.groups[group_name]
     return group.get_current_pose().pose
   
-  def lookup_transform(self, robot_name, end_effector_link):
-    return self.listener.lookupTransform(end_effector_link, robot_name, rospy.Time())
-
   def go_to_pose_goal(self, group_name, pose_goal_stamped, speed = 1.0, acceleration = 0.0, high_precision = False, 
                       end_effector_link = "", move_lin = True):
     if self.pause_mode_ or self.test_mode_:
@@ -481,6 +474,35 @@ class O2ACBase(object):
 
     current_pose = group.get_current_pose().pose
     return plan_success
+
+  def move_lin_rel(self, robot_name, relative_translation = [0,0,0], relative_rotation = [0,0,0], acceleration = 0.5, velocity = .03, wait = True):
+    '''
+    Does a lin_move relative to the current position of the robot. Uses the robot's TCP.
+
+    robot_name = "b_bot" for example
+    relative_translation: translatory movement relative to current tcp position, expressed in robot's own base frame
+    relative_rotation: rotatory movement relative to current tcp position, expressed in robot's own base frame
+    '''
+    # Uses UR coordinates
+    if not self.use_real_robot:
+      return True
+    # Directly calls the UR service
+    req = o2ac_msgs.srv.sendScriptToURRequest()
+    req.robot_name = robot_name
+    req.relative_translation.x = relative_translation[0]
+    req.relative_translation.y = relative_translation[1]
+    req.relative_translation.z = relative_translation[2]
+    req.relative_rotation.x = relative_rotation[0]
+    req.relative_rotation.y = relative_rotation[1]
+    req.relative_rotation.z = relative_rotation[2]
+    req.acceleration = acceleration
+    req.velocity = velocity
+    req.program_id = "lin_move_rel"
+    res = self.urscript_client.call(req)
+    if wait:
+      rospy.sleep(1.0)
+      wait_for_UR_program("/" + robot_name, rospy.Duration.from_sec(30.0))
+    return res.success
 
   def move_joints(self, group_name, joint_pose_goal, speed = 1.0, acceleration = 0.0, force_ur_script=False, force_moveit=False):
     if self.pause_mode_ or self.test_mode_:
@@ -843,35 +865,6 @@ class O2ACBase(object):
       rospy.sleep(1.0)
       wait_for_UR_program("/" + robot_name, rospy.Duration.from_sec(30.0))
     return res.success
-  
-  def move_lin_rel(self, robot_name, relative_translation = [0,0,0], relative_rotation = [0,0,0], acceleration = 0.5, velocity = .03, wait = True):
-    '''
-    Does a lin_move relative to the current position of the robot. Uses the robot's TCP.
-
-    robot_name = "b_bot" for example
-    relative_translation: translatory movement relative to current tcp position, expressed in robot's own base frame
-    relative_rotation: rotatory movement relative to current tcp position, expressed in robot's own base frame
-    '''
-    # Uses UR coordinates
-    if not self.use_real_robot:
-      return True
-    # Directly calls the UR service
-    req = o2ac_msgs.srv.sendScriptToURRequest()
-    req.robot_name = robot_name
-    req.relative_translation.x = relative_translation[0]
-    req.relative_translation.y = relative_translation[1]
-    req.relative_translation.z = relative_translation[2]
-    req.relative_rotation.x = relative_rotation[0]
-    req.relative_rotation.y = relative_rotation[1]
-    req.relative_rotation.z = relative_rotation[2]
-    req.acceleration = acceleration
-    req.velocity = velocity
-    req.program_id = "lin_move_rel"
-    res = self.urscript_client.call(req)
-    if wait:
-      rospy.sleep(1.0)
-      wait_for_UR_program("/" + robot_name, rospy.Duration.from_sec(30.0))
-    return res.success
 
   def do_regrasp(self, giver_robot_name, receiver_robot_name, grasp_distance = .02):
     """The item goes from giver to receiver."""
@@ -1133,3 +1126,5 @@ class O2ACBase(object):
     msg = String()
     msg.data = text
     pub.publish(msg)
+
+
