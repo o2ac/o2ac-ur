@@ -1,4 +1,10 @@
 planner_configs:
+  AnytimePathShortening:
+    type: geometric::AnytimePathShortening
+    shortcut: true  # Attempt to shortcut all new solution paths
+    hybridize: true  # Compute hybrid solution trajectories
+    max_hybrid_paths: 24  # Number of hybrid paths generated per iteration
+    num_planners: 4  # The number of default planners to use for planning
   SBL:
     type: geometric::SBL
     range: 0.0  # Max motion added to tree. ==> maxDistance_ default: 0.0, if 0.0, set on setup()
@@ -123,6 +129,7 @@ planner_configs:
 a_bot:
   default_planner_config: None
   planner_configs:
+    - AnytimePathShortening
     - SBL
     - EST
     - LBKPIECE
@@ -151,6 +158,7 @@ a_bot:
 b_bot:
   default_planner_config: None
   planner_configs:
+    - AnytimePathShortening
     - SBL
     - EST
     - LBKPIECE
@@ -177,31 +185,9 @@ b_bot:
   projection_evaluator: joints(b_bot_shoulder_pan_joint,b_bot_shoulder_lift_joint)
   longest_valid_segment_fraction: 0.005
 a_bot_robotiq_85:
-  default_planner_config: None
+  default_planner_config: ""
   planner_configs:
-    - SBL
-    - EST
-    - LBKPIECE
-    - BKPIECE
-    - KPIECE
-    - RRT
-    - RRTConnect
-    - RRTstar
-    - TRRT
-    - PRM
-    - PRMstar
-    - FMT
-    - BFMT
-    - PDST
-    - STRIDE
-    - BiTRRT
-    - LBTRRT
-    - BiEST
-    - ProjEST
-    - LazyPRM
-    - LazyPRMstar
-    - SPARS
-    - SPARStwo
+    - AnytimePathShortening
     - SBL
     - EST
     - LBKPIECE
@@ -226,8 +212,9 @@ a_bot_robotiq_85:
     - SPARS
     - SPARStwo
 b_bot_robotiq_85:
-  default_planner_config: None
+  default_planner_config: ""
   planner_configs:
+    - AnytimePathShortening
     - SBL
     - EST
     - LBKPIECE

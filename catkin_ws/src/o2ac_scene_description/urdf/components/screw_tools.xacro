@@ -1,4 +1,4 @@
-<!-- This has a size of about 155 mm x 40 mm x 26 mm -->
+<!-- This holder has a size of about 155 mm x 40 mm x 26 mm -->
 <!-- The Bit cushion has a height of 30.5 mm, starts about 24 mm from the top-->
 <!-- The gripper center would be about 44 mm from the top, so the tip might be 111 mm further down -->
 <!-- The tip\axis seems to be 11.5 mm from the "front" side. The front side looks into the gripper -->
@@ -6,10 +6,9 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
   <joint name="screw_holder_to_environment_joint" type="fixed">
-    <parent link="cross_column_2" />
+    <parent link="horizontal_column_for_tools" />
     <child link="screw_tool_holder" />
     <origin xyz=".04 .0 .04" rpy="0.0 0.0 ${-pi/2}" />
-    <!-- +.005 is a MAGIC NUMBER added on Sep 17 to put the tool roughly between c_bot and b_bot's physical position. -->
   </joint>
 
   <link name="screw_tool_holder">
@@ -24,6 +23,9 @@
       <geometry>
         <box size=".3 .066 .004"/> 
       </geometry>
+      <material name="grey">
+        <color rgba=".5 .5 .5 1"/>
+      </material>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="-0.15 .0033 0.002"/>
@@ -38,6 +40,9 @@
       <geometry>
         <box size=".3 .004 .035"/>  
       </geometry>
+      <material name="grey">
+        <color rgba=".5 .5 .5 1"/>
+      </material>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="-0.15 -.011 0.0179"/>
@@ -53,16 +58,16 @@
   <xacro:property name="tool_offset" value="${-.005 + bit_cushion_to_axis}" />  
   <!-- The collision boxes of the tools only include the top part (not what is hanging underneath the holder) -->
 
-  <link name="screw_tool_m6_link">
+  <link name="belt_tool_link">
     <inertial>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <mass value="1.0"/>
       <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
     </inertial>
     <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="0 0 ${pi}" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://o2ac_scene_description/meshes/screw_tool_m6_BC5-XL320-LG20-R_v2.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://o2ac_scene_description/meshes/belt_hook_tool.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="white">
         <color rgba=".9 .9 .9 1"/>
@@ -75,9 +80,9 @@
       </geometry>
     </collision>
   </link>
-  <joint name="screw_tool_m6_to_holder" type="fixed">
+  <joint name="belt_tool_to_holder" type="fixed">
     <parent link="screw_tool_holder" />
-    <child link="screw_tool_m6_link" />
+    <child link="belt_tool_link" />
     <origin xyz="-0.05 ${tool_offset} 0.004" rpy="0.0 0.0 0.0" />
   </joint>
 
@@ -109,35 +114,7 @@
     <origin xyz="-0.35 ${tool_offset} 0.004" rpy="0.0 0.0 0.0" />
   </joint>
 
-  
-  <link name="suction_tool_link">
-    <inertial>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <mass value="1.0"/>
-      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
-    </inertial>
-    <visual>
-      <origin rpy="${pi/2} 0 ${-pi/2}" xyz="0 0.009 0.047"/>
-      <geometry>
-        <mesh filename="package://o2ac_scene_description/meshes/suction_tool_phi10.stl" scale="0.001 0.001 0.001"/>
-      </geometry>
-      <material name="white">
-        <color rgba=".9 .9 .9 1"/>
-      </material>
-    </visual>
-    <collision>
-      <origin rpy="0 0 0" xyz="0 ${bit_cushion_to_axis - .02} .0275"/>
-      <geometry>
-        <box size=".026 .04 .055"/>
-      </geometry>
-    </collision>
-  </link>
-  <joint name="suction_tool_to_holder" type="fixed">
-    <parent link="screw_tool_holder" />
-    <child link="suction_tool_link" />
-    <origin xyz="-0.355 ${tool_offset - .015} 0.004" rpy="0.0 0.0 0.0" />
-  </joint>
-  
+    
   <link name="set_screw_tool_link">
     <inertial>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -211,45 +188,38 @@
 
   <!-- Extra links to position the gripper more easily -->
 
-  <link name="screw_tool_m3_helper_link"/>
-  <joint name="screw_tool_m3_helper_joint" type="fixed">
+  <link name="screw_tool_m3_pickup_link"/>
+  <joint name="screw_tool_m3_pickup_joint" type="fixed">
     <parent link="screw_tool_m3_link" />
-    <child link="screw_tool_m3_helper_link" />
+    <child link="screw_tool_m3_pickup_link" />
     <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 ${-pi/2}" />
   </joint>
 
-  <link name="screw_tool_m4_helper_link"/>
-  <joint name="screw_tool_m4_helper_joint" type="fixed">
+  <link name="screw_tool_m4_pickup_link"/>
+  <joint name="screw_tool_m4_pickup_joint" type="fixed">
     <parent link="screw_tool_m4_link" />
-    <child link="screw_tool_m4_helper_link" />
+    <child link="screw_tool_m4_pickup_link" />
     <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 ${-pi/2}" />
   </joint>
 
-  <link name="screw_tool_m6_helper_link"/>
-  <joint name="screw_tool_m6_helper_joint" type="fixed">
-    <parent link="screw_tool_m6_link" />
-    <child link="screw_tool_m6_helper_link" />
+  <link name="belt_tool_pickup_link"/>
+  <joint name="belt_tool_pickup_joint" type="fixed">
+    <parent link="belt_tool_link" />
+    <child link="belt_tool_pickup_link" />
     <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 ${-pi/2}" />
   </joint>
 
-  <link name="nut_tool_m6_helper_link"/>
-  <joint name="nut_tool_m6_helper_joint" type="fixed">
+  <link name="nut_tool_m6_pickup_link"/>
+  <joint name="nut_tool_m6_pickup_joint" type="fixed">
     <parent link="nut_tool_m6_link" />
-    <child link="nut_tool_m6_helper_link" />
+    <child link="nut_tool_m6_pickup_link" />
     <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 ${-pi/2}" />
   </joint>
 
-  <link name="suction_tool_helper_link"/>
-  <joint name="suction_tool_helper_joint" type="fixed">
-    <parent link="suction_tool_link" />
-    <child link="suction_tool_helper_link" />
-    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 ${-pi/2}" />
-  </joint>
-
-  <link name="set_screw_tool_helper_link"/>
-  <joint name="set_screw_tool_helper_joint" type="fixed">
+  <link name="set_screw_tool_pickup_link"/>
+  <joint name="set_screw_tool_pickup_joint" type="fixed">
     <parent link="set_screw_tool_link" />
-    <child link="set_screw_tool_helper_link" />
+    <child link="set_screw_tool_pickup_link" />
     <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 ${-pi/2}" />
   </joint>
 

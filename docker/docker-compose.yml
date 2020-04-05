@@ -43,5 +43,7 @@ services:
       - "olivier:127.0.0.1"     
       - "o2ac-ur:192.168.0.5" # The host PC
       - "osx-panda-desk:192.168.0.6"
+      - "a_bot:192.168.0.41"
+      - "b_bot:192.168.0.42"
     command: ./scripts/keep-container-running.sh
     shm_size: 1g # a PhoXi data size about 100MB.

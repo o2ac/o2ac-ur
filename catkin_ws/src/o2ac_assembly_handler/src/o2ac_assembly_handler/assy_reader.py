@@ -54,23 +54,32 @@ except:
 
 class AssyReader():
     '''
-    This class can be used for loading the parts of an assemly as 'CollisionObject' messages,
-    to be published to moveit planning scene, as well as creating a tf tree representation of the assembly.
+    This class can be used for loading the parts of an assembly as 'CollisionObject' messages,
+    to be published to the MoveIt planning scene, as well as creating a TF tree representation of the assembly.
     '''
 
-    def __init__(self, assembly_name):
-        self._rospack = rospkg.RosPack() # Is this ok to be here as a class property?
+    def __init__(self, assembly_name="assy_1"):
+        self._rospack = rospkg.RosPack()
         self.assy_name = assembly_name
         self._directory = os.path.join(self._rospack.get_path('o2ac_assembly_handler'), 'config', assembly_name)
         self._parts_list = self._read_parts_list()
+        self.collision_objects = self.get_collision_objects_with_subframes()
 
     def change_assembly(self, assembly_name):
         '''
-        Switch between assembies
+        Switch between assemblies
         '''
         self.assy_name = assembly_name
         self._directory = os.path.join(self._rospack.get_path('o2ac_assembly_handler'), 'config', assembly_name)
         self._parts_list = self._read_parts_list()
+    
+    def get_collision_object(self, object_name):
+        '''
+        This returns the collision object (including subframes) for an object_name.
+        '''
+        collision_object = next((c_obj for c_obj in self.collision_objects if c_obj.id == object_name), None)
+        return collision_object
+
 
     def _read_parts_list(self):
         path = os.path.join(self._directory, 'parts_list.yaml')
@@ -199,7 +208,7 @@ class AssyReader():
         Return a list of collision objects of the parts listed in 'parts list'
 
         This function loops through the loaded 'parts list' and for each part
-        it searces for the 3D representation (mesh) described in the 'cad' field
+        it searches for the 3D representation (mesh) described in the 'cad' field
         of the 'parts list file', creates a collision object from the mesh and
         returns a list of such collision objects
 
@@ -267,15 +276,14 @@ class AssyReader():
 
         return transforms
 
-
-    def _get_collision_object_as_tf_tree(self, collision_object):
+    def _collision_object_to_tf_tree(self, collision_object):
         '''
-        Create a tf tree of the object, based on the transformations between the object frame and its subrames
+        Create a tf tree of the object, based on the transformations between the object frame and its subframes
         '''
         transformer = tf.Transformer(True, rospy.Duration(10.0))
         collision_object_tree = tf.Transformer(True, rospy.Duration(10.0))
 
-        # Get the transformaion between the collision object and the frame indicated in its header, from the pose of the mesh
+        # Get the transformation between the collision object and the frame indicated in its header, from the pose of the mesh
         collision_object_transform = geometry_msgs.msg.TransformStamped()
         collision_object_transform.header.frame_id = collision_object.header.frame_id
         part_id = next((str(part['id']) for part in self._parts_list if collision_object.id == part['name']), '')
@@ -314,7 +322,6 @@ class AssyReader():
 
         return collision_object_tree
 
- 
     def _add_part_to_assembly_tree(self, tree_1, tree_2, mating_transform):
         '''
         Add 'tree_2' to 'tree_1' using the mating_transform.
@@ -387,18 +394,17 @@ class AssyReader():
         '''
         Return the assembly target represented as a tree of tf transforms
         '''
-        if not collision_objects:
-            collision_objects = self.get_collision_objects_with_subframes()
+        
         mating_transforms = self._read_frames_to_mate_csv()
         base_id = int(mating_transforms[0].header.frame_id.split('_')[2])
         base_name = next((part['name'] for part in self._parts_list if part['id'] == base_id), None)
-        base_object = next((collision_object for collision_object in collision_objects if collision_object.id == base_name), None)
-        assy_tree = self._get_collision_object_as_tf_tree(base_object)
+        base_object = next((collision_object for collision_object in self.collision_objects if collision_object.id == base_name), None)
+        assy_tree = self._collision_object_to_tf_tree(base_object)
         for mating_transform in mating_transforms:
             child_id = int(mating_transform.child_frame_id.split('_')[2])
             child_name = next((part['name'] for part in self._parts_list if part['id'] == child_id), None)
-            child_object = next((collision_object for collision_object in collision_objects if collision_object.id == child_name), None)
-            tree_2 = self._get_collision_object_as_tf_tree(child_object)
+            child_object = next((collision_object for collision_object in self.collision_objects if collision_object.id == child_name), None)
+            tree_2 = self._collision_object_to_tf_tree(child_object)
             mating_transform.header.frame_id = mating_transform.header.frame_id.replace('assy_', '')
             mating_transform.child_frame_id = mating_transform.child_frame_id.replace('assy_', '')
             self._add_part_to_assembly_tree(assy_tree, tree_2, mating_transform)

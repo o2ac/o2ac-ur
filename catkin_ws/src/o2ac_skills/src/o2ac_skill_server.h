@@ -40,7 +40,7 @@
 
 // Actions
 #include <actionlib/server/simple_action_server.h>
-#include "o2ac_msgs/pickAction.h"
+#include "o2ac_msgs/pickScrewAction.h"
 #include "o2ac_msgs/placeAction.h"
 #include "o2ac_msgs/regraspAction.h"
 #include "o2ac_msgs/screwAction.h"
@@ -56,6 +56,7 @@ class SkillServer
 public:
   //Constructor
   SkillServer();
+  void initializeCollisionObjects(); // Defines tool objects
 
   //Helpers (convenience functions)
   bool moveToJointPose(std::vector<double> joint_positions, std::string robot_name, bool wait = true, double velocity_scaling_factor = 1.0, bool use_UR_script = false, double acceleration = 0.0);
@@ -102,7 +103,7 @@ public:
   void testModeCallback(const std_msgs::BoolConstPtr& msg);
 
   // Actions
-  void executePick(const o2ac_msgs::pickGoalConstPtr& goal);
+  void executePickScrew(const o2ac_msgs::pickScrewGoalConstPtr& goal);
   void executePlace(const o2ac_msgs::placeGoalConstPtr& goal);
   void executeRegrasp(const o2ac_msgs::regraspGoalConstPtr& goal);
   void executeScrew(const o2ac_msgs::screwGoalConstPtr& goal);
@@ -131,7 +132,7 @@ public:
   ros::ServiceClient sendScriptToURClient_;
   
   // Action declarations
-  actionlib::SimpleActionServer<o2ac_msgs::pickAction> pickActionServer_;
+  actionlib::SimpleActionServer<o2ac_msgs::pickScrewAction> pickScrewActionServer_;
   actionlib::SimpleActionServer<o2ac_msgs::placeAction> placeActionServer_;
   actionlib::SimpleActionServer<o2ac_msgs::regraspAction> regraspActionServer_;
   actionlib::SimpleActionServer<o2ac_msgs::screwAction> screwActionServer_;  

@@ -1,4 +1,4 @@
-# This should be the b_bot specific controller file defining the prefixed joints
+# This is the b_bot specific controller file defining the prefixed joints
 
 # Settings for ros_control control loop
 hardware_control_loop:

@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 import sys
-import rospy 
+import rospy
+import geometry_msgs.msg
 import actionlib
 from math import *
 

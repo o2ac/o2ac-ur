@@ -1,6 +1,6 @@
 # Introduction
 
-This node contains routines using high-level actions. It is meant to enable quick prototyping and to represent task instructions in a simple and compact way.
+This node contains routines using high-level actions to complete our tasks.
 
 # Structure
 

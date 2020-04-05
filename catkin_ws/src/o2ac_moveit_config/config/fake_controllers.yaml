@@ -21,8 +21,12 @@ controller_list:
   - name: fake_b_bot_robotiq_85_controller
     joints:
       - b_bot_robotiq_85_left_knuckle_joint
-initial:
+initial:  # Define initial robot poses.
   - group: a_bot
-    pose:  home
+    pose: home
   - group: b_bot
-    pose:  home
+    pose: home
+  - group: a_bot_robotiq_85
+    pose: open
+  - group: b_bot_robotiq_85
+    pose: open

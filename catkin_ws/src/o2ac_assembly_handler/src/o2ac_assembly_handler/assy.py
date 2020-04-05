@@ -39,23 +39,23 @@ import rospy
 
 import geometry_msgs.msg
 
-from assy_reader import AssyReader
+from o2ac_assembly_handler.assy_reader import AssyReader
 
 class AssyHandler():
     '''
     Load/store collision objects and assembly tree, publish assembly target frames to tf
     '''
 
-    def __init__(self, assembly_name):
+    def __init__(self, assembly_name="wrs_assembly_1"):
         self._reader = AssyReader(assembly_name)
         self._broadcaster = tf2_ros.StaticTransformBroadcaster()
         self.collision_objects = self._reader.get_collision_objects_with_subframes()
-        self.assemby_tree = self._reader.get_assembly_tree(self.collision_objects)
+        self.assembly_tree = self._reader.get_assembly_tree(self.collision_objects)
 
     def change_assembly(self, assembly_name):
         self._reader.change_assembly(assembly_name)
         self.collision_objects = self._reader.get_collision_objects_with_subframes()
-        self.assemby_tree = self._reader.get_assembly_tree(self.collision_objects)
+        self.assembly_tree = self._reader.get_assembly_tree(self.collision_objects)
 
     def publish_target_frames(self, assy_pose = None):
         '''
@@ -69,8 +69,8 @@ class AssyHandler():
         '''
 
         # Find the base of the assembly tree
-        all_frames_dict = yaml.load(self.assemby_tree._buffer.all_frames_as_yaml())
-        assembly_base_frame = next((properties['parent'] for (frame, properties) in all_frames_dict.items() if properties['parent'] not in self.assemby_tree.getFrameStrings()),None)
+        all_frames_dict = yaml.load(self.assembly_tree._buffer.all_frames_as_yaml())
+        assembly_base_frame = next((properties['parent'] for (frame, properties) in all_frames_dict.items() if properties['parent'] not in self.assembly_tree.getFrameStrings()),None)
 
         base_transform = geometry_msgs.msg.TransformStamped()
 
@@ -92,7 +92,7 @@ class AssyHandler():
 
         # Get all transforms in the assembly tree as a list and start publishing it
         for (frame, properties) in all_frames_dict.items():
-            (trans,rot) = self.assemby_tree.lookupTransform(properties['parent'],frame,rospy.Time(0))
+            (trans,rot) = self.assembly_tree.lookupTransform(properties['parent'],frame,rospy.Time(0))
             mating_transform = geometry_msgs.msg.TransformStamped()
             mating_transform.header.frame_id = '_'.join([self._reader.assy_name, properties['parent']])
             mating_transform.child_frame_id = '_'.join([self._reader.assy_name, frame])
@@ -104,3 +104,21 @@ class AssyHandler():
 
     def lookup_frame(self, collision_object_id):
         return self._reader.lookup_frame(collision_object_id)
+
+if __name__ == '__main__':
+  print("Testing assembly handler.")
+  try:
+    c = AssyHandler()
+    rospy.init_node('o2ac_assy', anonymous=True)
+    while not rospy.is_shutdown():
+      rospy.loginfo("============ Calibration procedures ============ ")
+      rospy.loginfo("Enter a number to do things with the Assembly Handler: ")
+      rospy.loginfo("1: Publish TF tree")
+      rospy.loginfo(" ")
+      r = raw_input()
+      if r == '1':
+        c.publish_target_frames()
+      if r == 'x':
+        break
+  except Exception as e:
+    print("Received error:" + type(e))

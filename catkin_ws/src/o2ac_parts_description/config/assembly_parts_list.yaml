@@ -1,16 +1,31 @@
+# All parts in this list are made into xacro macros and URDF files.
+# id: Part number according to the manual. Is used to name the macro.
+# name: Used for the filename
+# cad: Used to find the mesh file
+# description: Comments
 parts_list:
   - id: 1
     name: base
     type: 01-BASE
     cad: 01-BASE.stl
-    description: Base Panel
+    description: Base Plate
   - id: 2
-    name: panel
+    name: l_plate_small
     type: 02-PANEL
     cad: 02-PANEL.stl
     description: Output shaft fixing plate
+  - id: 61
+    name: base_2019
+    type: 01-base-01
+    cad: 01-base-01.stl
+    description: Base Plate
+  - id: 62
+    name: l_plate_small_2020
+    type: 02-panel-01
+    cad: 02-panel-01.stl
+    description: Output shaft fixing plate
   - id: 3
-    name: panel2
+    name: l_plate_large
     type: 03-PANEL2
     cad: 03-PANEL2.stl
     description: Motor fixing plate
@@ -94,6 +109,16 @@ parts_list:
     type: 19_MSSFS3-6 
     cad: 19_MSSFS3-6.stl
     description: 6mm M3 Hex Socket Set Screw  (metric coarse thread)
+  - id: 50
+    name: taskboard_idler_small
+    type: MBGNA30-2
+    cad: 50_MBGNA30-2.stl
+    description: Small idler pulley with integrated axis (for taskboard task)
+  - id: 51
+    name: taskboard_idler_large
+    type: MBGNA60-2
+    cad: 51_MBGNA60-2.stl
+    description: Small idler pulley with integrated axis (for taskboard task)
   - id: 99
     name: holder
     type: 99_holder
