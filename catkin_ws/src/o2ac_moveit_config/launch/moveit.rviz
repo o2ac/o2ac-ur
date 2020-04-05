@@ -11,7 +11,7 @@ Panels:
         - /MotionPlanning1/Planned Path1
         - /TF1
       Splitter Ratio: 0.7425600290298462
-    Tree Height: 213
+    Tree Height: 145
   - Class: rviz/Help
     Name: Help
   - Class: rviz/Views
@@ -538,30 +538,25 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          cross_column_1:
+          belt_tool_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          cross_column_2:
+          belt_tool_pickup_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          horizontal_column_for_tools:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          cross_column_top:
+          horizontal_column_top:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          jig_flat_slope:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          jig_flat_slope_drop_point_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
           m3_feeder_inlet_link:
             Alpha: 1
             Show Axes: false
@@ -588,11 +583,11 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          nut_tool_m6_helper_link:
+          nut_tool_m6_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          nut_tool_m6_link:
+          nut_tool_m6_pickup_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -605,16 +600,12 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          screw_tool_m3_helper_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
           screw_tool_m3_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          screw_tool_m4_helper_link:
+          screw_tool_m3_pickup_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -623,16 +614,7 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          screw_tool_m6_helper_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          screw_tool_m6_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          set_screw_tool_helper_link:
+          screw_tool_m4_pickup_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -640,29 +622,92 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          suction_tool_helper_link:
+          set_screw_tool_pickup_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          suction_tool_link:
+          taskboard_assy_part_07:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
+          taskboard_assy_part_07_back_hole:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_back_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_front_hole:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_inserted:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_screw_hole_1:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_screw_hole_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_screw_hole_3:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_screw_hole_4:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           taskboard_base:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
+          taskboard_bearing_target_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_large_pulley:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          taskboard_long_hole_middle_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_m3_screw_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_m4_screw_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           taskboard_plate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          taskboard_set_screw_tool_link:
+          taskboard_set_screw_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          taskboard_small_pulley:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          taskboard_small_shaft:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
           taskboard_surface:
             Alpha: 1
             Show Axes: false
@@ -720,7 +765,7 @@ Visualization Manager:
         Robot Alpha: 0.5
         Robot Color: 150; 50; 150
         Show Robot Collision: false
-        Show Robot Visual: true
+        Show Robot Visual: false
         Show Trail: false
         State Display Time: 0.05 s
         Trail Step Size: 1
@@ -738,7 +783,7 @@ Visualization Manager:
         Goal State Color: 250; 128; 0
         Interactive Marker Size: 0.20000000298023224
         Joint Violation Color: 255; 0; 255
-        Planning Group: b_bot
+        Planning Group: a_bot
         Query Goal State: true
         Query Start State: false
         Show Workspace: false
@@ -1221,30 +1266,25 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          cross_column_1:
+          belt_tool_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          cross_column_2:
+          belt_tool_pickup_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          horizontal_column_for_tools:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          cross_column_top:
+          horizontal_column_top:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          jig_flat_slope:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          jig_flat_slope_drop_point_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
           m3_feeder_inlet_link:
             Alpha: 1
             Show Axes: false
@@ -1271,11 +1311,11 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          nut_tool_m6_helper_link:
+          nut_tool_m6_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          nut_tool_m6_link:
+          nut_tool_m6_pickup_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -1288,16 +1328,12 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          screw_tool_m3_helper_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
           screw_tool_m3_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          screw_tool_m4_helper_link:
+          screw_tool_m3_pickup_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -1306,16 +1342,7 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          screw_tool_m6_helper_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          screw_tool_m6_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          set_screw_tool_helper_link:
+          screw_tool_m4_pickup_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -1323,29 +1350,92 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          suction_tool_helper_link:
+          set_screw_tool_pickup_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          suction_tool_link:
+          taskboard_assy_part_07:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
+          taskboard_assy_part_07_back_hole:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_back_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_front_hole:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_inserted:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_screw_hole_1:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_screw_hole_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_screw_hole_3:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_screw_hole_4:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           taskboard_base:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
+          taskboard_bearing_target_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_large_pulley:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          taskboard_long_hole_middle_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_m3_screw_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_m4_screw_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           taskboard_plate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          taskboard_set_screw_tool_link:
+          taskboard_set_screw_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          taskboard_small_pulley:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          taskboard_small_shaft:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
           taskboard_surface:
             Alpha: 1
             Show Axes: false
@@ -1617,15 +1707,13 @@ Visualization Manager:
           Value: true
         b_bot_wrist_3_link:
           Value: true
-        cross_column_1:
+        belt_tool_link:
           Value: true
-        cross_column_2:
+        belt_tool_pickup_link:
           Value: true
-        cross_column_top:
+        horizontal_column_for_tools:
           Value: true
-        jig_flat_slope:
-          Value: true
-        jig_flat_slope_drop_point_link:
+        horizontal_column_top:
           Value: true
         m3_feeder_inlet_link:
           Value: true
@@ -1639,39 +1727,101 @@ Visualization Manager:
           Value: true
         m4_feeder_outlet_link:
           Value: true
-        nut_tool_m6_helper_link:
+        move_group/bearing:
+          Value: true
+        move_group/bearing/back_hole:
+          Value: true
+        move_group/bearing/back_tip:
+          Value: true
+        move_group/bearing/front_hole:
+          Value: true
+        move_group/bearing/inserted:
+          Value: true
+        move_group/bearing/screw_hole_1:
+          Value: true
+        move_group/bearing/screw_hole_2:
+          Value: true
+        move_group/bearing/screw_hole_3:
+          Value: true
+        move_group/bearing/screw_hole_4:
+          Value: true
+        move_group/drive_shaft:
+          Value: true
+        move_group/drive_shaft/back_tip:
+          Value: true
+        move_group/drive_shaft/front_tip:
+          Value: true
+        move_group/endcap:
+          Value: true
+        move_group/endcap/inner_surface:
+          Value: true
+        move_group/endcap/screw_hole:
+          Value: true
+        move_group/motor_pulley:
+          Value: true
+        move_group/motor_pulley/center:
+          Value: true
+        move_group/taskboard_idler_pulley_small:
+          Value: true
+        move_group/taskboard_idler_pulley_small/center:
           Value: true
         nut_tool_m6_link:
+          Value: true
+        nut_tool_m6_pickup_link:
           Value: true
         o2ac_ground:
           Value: true
         screw_tool_holder:
           Value: true
-        screw_tool_m3_helper_link:
-          Value: true
         screw_tool_m3_link:
           Value: true
-        screw_tool_m4_helper_link:
+        screw_tool_m3_pickup_link:
           Value: true
         screw_tool_m4_link:
           Value: true
-        screw_tool_m6_helper_link:
-          Value: true
-        screw_tool_m6_link:
-          Value: true
-        set_screw_tool_helper_link:
+        screw_tool_m4_pickup_link:
           Value: true
         set_screw_tool_link:
           Value: true
-        suction_tool_helper_link:
+        set_screw_tool_pickup_link:
           Value: true
-        suction_tool_link:
+        taskboard_assy_part_07:
+          Value: true
+        taskboard_assy_part_07_back_hole:
+          Value: true
+        taskboard_assy_part_07_back_tip:
+          Value: true
+        taskboard_assy_part_07_front_hole:
+          Value: true
+        taskboard_assy_part_07_inserted:
+          Value: true
+        taskboard_assy_part_07_screw_hole_1:
+          Value: true
+        taskboard_assy_part_07_screw_hole_2:
+          Value: true
+        taskboard_assy_part_07_screw_hole_3:
+          Value: true
+        taskboard_assy_part_07_screw_hole_4:
           Value: true
         taskboard_base:
           Value: true
+        taskboard_bearing_target_link:
+          Value: true
+        taskboard_large_pulley:
+          Value: true
+        taskboard_long_hole_middle_link:
+          Value: true
+        taskboard_m3_screw_link:
+          Value: true
+        taskboard_m4_screw_link:
+          Value: true
         taskboard_plate:
           Value: true
-        taskboard_set_screw_tool_link:
+        taskboard_set_screw_link:
+          Value: true
+        taskboard_small_pulley:
+          Value: true
+        taskboard_small_shaft:
           Value: true
         taskboard_surface:
           Value: true
@@ -1700,10 +1850,48 @@ Visualization Manager:
       Marker Scale: 0.05000000074505806
       Name: TF
       Show Arrows: false
-      Show Axes: false
+      Show Axes: true
       Show Names: false
       Tree:
         world:
+          move_group/bearing:
+            {}
+          move_group/bearing/back_hole:
+            {}
+          move_group/bearing/back_tip:
+            {}
+          move_group/bearing/front_hole:
+            {}
+          move_group/bearing/inserted:
+            {}
+          move_group/bearing/screw_hole_1:
+            {}
+          move_group/bearing/screw_hole_2:
+            {}
+          move_group/bearing/screw_hole_3:
+            {}
+          move_group/bearing/screw_hole_4:
+            {}
+          move_group/drive_shaft:
+            {}
+          move_group/drive_shaft/back_tip:
+            {}
+          move_group/drive_shaft/front_tip:
+            {}
+          move_group/endcap:
+            {}
+          move_group/endcap/inner_surface:
+            {}
+          move_group/endcap/screw_hole:
+            {}
+          move_group/motor_pulley:
+            {}
+          move_group/motor_pulley/center:
+            {}
+          move_group/taskboard_idler_pulley_small:
+            {}
+          move_group/taskboard_idler_pulley_small/center:
+            {}
           o2ac_ground:
             a_bot_base_link:
               a_bot_base:
@@ -1855,31 +2043,24 @@ Visualization Manager:
                             {}
             b_bot_base_smfl:
               {}
-            cross_column_1:
-              jig_flat_slope:
-                jig_flat_slope_drop_point_link:
-                  {}
-            cross_column_2:
+            horizontal_column_for_tools:
               screw_tool_holder:
+                belt_tool_link:
+                  belt_tool_pickup_link:
+                    {}
                 nut_tool_m6_link:
-                  nut_tool_m6_helper_link:
+                  nut_tool_m6_pickup_link:
                     {}
                 screw_tool_m3_link:
-                  screw_tool_m3_helper_link:
+                  screw_tool_m3_pickup_link:
                     {}
                 screw_tool_m4_link:
-                  screw_tool_m4_helper_link:
-                    {}
-                screw_tool_m6_link:
-                  screw_tool_m6_helper_link:
+                  screw_tool_m4_pickup_link:
                     {}
                 set_screw_tool_link:
-                  set_screw_tool_helper_link:
+                  set_screw_tool_pickup_link:
                     {}
-                suction_tool_link:
-                  suction_tool_helper_link:
-                    {}
-            cross_column_top:
+            horizontal_column_top:
               {}
             vertical_column_left:
               {}
@@ -1900,7 +2081,38 @@ Visualization Manager:
                   {}
               taskboard_base:
                 taskboard_plate:
-                  taskboard_set_screw_tool_link:
+                  taskboard_assy_part_07:
+                    taskboard_assy_part_07_back_hole:
+                      {}
+                    taskboard_assy_part_07_back_tip:
+                      {}
+                    taskboard_assy_part_07_front_hole:
+                      {}
+                    taskboard_assy_part_07_inserted:
+                      {}
+                    taskboard_assy_part_07_screw_hole_1:
+                      {}
+                    taskboard_assy_part_07_screw_hole_2:
+                      {}
+                    taskboard_assy_part_07_screw_hole_3:
+                      {}
+                    taskboard_assy_part_07_screw_hole_4:
+                      {}
+                  taskboard_bearing_target_link:
+                    {}
+                  taskboard_large_pulley:
+                    {}
+                  taskboard_long_hole_middle_link:
+                    {}
+                  taskboard_m3_screw_link:
+                    {}
+                  taskboard_m4_screw_link:
+                    {}
+                  taskboard_set_screw_link:
+                    {}
+                  taskboard_small_pulley:
+                    {}
+                  taskboard_small_shaft:
                     {}
                   taskboard_surface:
                     {}
@@ -1933,25 +2145,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 2.1755576133728027
+      Distance: 1.7891405820846558
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.025319982320070267
-        Y: -0.0029984046705067158
-        Z: 0.8635280728340149
+        X: 0.1330500990152359
+        Y: -0.08036655187606812
+        Z: 0.8924720883369446
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.6497930288314819
+      Pitch: 0.47479286789894104
       Target Frame: world
       Value: Orbit (rviz)
-      Yaw: 0.3518039286136627
+      Yaw: 0.3668241798877716
     Saved: ~
 Window Geometry:
   Displays:
@@ -1965,7 +2177,7 @@ Window Geometry:
     collapsed: false
   MotionPlanning - Trajectory Slider:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd0000000100000000000002a2000003abfc0200000007fb000000100044006900730070006c006100790073010000003b00000164000000c700fffffffb0000000800480065006c00700000000342000000bb0000006e00fffffffb0000000a0056006900650077007301000001a5000000ac000000a000fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670100000374000001890000000000000000fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000003f00fffffffb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e006701000002570000018f0000018300ffffff000004d8000003ab00000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd000000010000000000000274000003abfc0200000007fb000000100044006900730070006c006100790073010000003b00000120000000c700fffffffb0000000800480065006c00700000000342000000bb0000006e00fffffffb0000000a005600690065007700730100000161000000ac000000a000fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670100000374000001890000000000000000fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000003f00fffffffb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e00670100000213000001d30000018300ffffff00000506000003ab00000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Views:
     collapsed: false
   Width: 1920

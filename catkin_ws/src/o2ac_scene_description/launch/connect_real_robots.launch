@@ -18,16 +18,16 @@
   
   <!-- Grippers -->
   <include file="$(find robotiq_control)/launch/ur_cmodel_action_controller.launch">
+    <arg name="namespace" value="a_bot" />
+    <arg name="gripper_prefix" value="a_bot_" />
+    <arg name="topic" value="/a_bot/ur_hardware_interface/script_command" />
+  </include>
+
+  <include file="$(find robotiq_control)/launch/ur_cmodel_action_controller.launch">
     <arg name="namespace" value="b_bot" />
     <arg name="gripper_prefix" value="b_bot_" />
     <arg name="topic" value="/b_bot/ur_hardware_interface/script_command" />
   </include>
-
-  <!-- <include file="$(find robotiq_control)/launch/ur_cmodel_action_controller.launch">
-    <arg name="namespace" value="c_bot" />
-    <arg name="gripper_prefix" value="c_bot_" />
-    <arg name="topic" value="/c_bot/ur_hardware_interface/script_command" />
-  </include> -->
 
   <!-- <include file="$(find o2ac_fastening_tools)/launch/fastening_tools.launch">
     <arg name="serial_port_1" default="/dev/for_docker/screw" />

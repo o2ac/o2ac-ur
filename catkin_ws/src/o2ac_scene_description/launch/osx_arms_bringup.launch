@@ -15,7 +15,6 @@
   <arg name="tool_tcp_port_b" default="54322" doc="Port on which the robot controller publishes the tool comm interface. Only used, when `use_tool_communication` is set to true."/>
   <arg name="controller_config_file_a" default="$(find o2ac_scene_description)/config/a_bot_controllers.yaml"/>
   <arg name="controller_config_file_b" default="$(find o2ac_scene_description)/config/b_bot_controllers.yaml" doc="Config file used for defining the ROS-Control controllers."/>
-  <!-- TODO: Replace this with the actual factory calibration for each robot -->
   <arg name="kinematics_config_a" default="$(find o2ac_scene_description)/config/a_bot_calibration.yaml"/>
   <arg name="kinematics_config_b" default="$(find o2ac_scene_description)/config/b_bot_calibration.yaml" doc="Kinematics config file used for calibration correction. This will be used to verify the robot's calibration is matching the robot_description."/>
   
@@ -57,6 +56,34 @@
     <arg name="stopped_controllers" value="$(arg stopped_controllers)"/>
     <arg name="headless_mode" value="$(arg headless_mode)"/>
   </include>
+
+  <!-- Adapted from ur5e_bringup.launch -->
+  <!-- <remap from="/a_bot/joint_states" to="/joint_states"/>
+  <include file="$(find ur_robot_driver)/launch/ur_common.launch" ns="a_bot">
+    <arg name="debug" value="$(arg debug)"/>
+    <arg name="use_tool_communication" value="$(arg use_tool_communication_a)"/>
+    <arg name="controller_config_file" value="$(arg controller_config_file_a)"/>
+    <arg name="robot_description_file" value="$(arg robot_description_file)"/>
+    <arg name="kinematics_config" value="$(arg kinematics_config_a)"/>
+    <arg name="robot_ip" value="$(arg robot_ip_a)"/>
+    <arg name="reverse_port" value="$(arg reverse_port_a)"/>
+    <arg name="script_sender_port" value="$(arg script_sender_port_a)"/>
+    <arg name="limited" value="$(arg limited)"/>
+    <arg name="tf_prefix" value="$(arg tf_prefix)"/>
+    <arg name="controllers" value="$(arg controllers)"/>
+    <arg name="stopped_controllers" value="$(arg stopped_controllers)"/>
+    <arg name="headless_mode" value="$(arg headless_mode)"/>
+    <arg name="tool_voltage" value="$(arg tool_voltage)"/>
+    <arg name="tool_parity" value="$(arg tool_parity)"/>
+    <arg name="tool_baud_rate" value="$(arg tool_baud_rate)"/>
+    <arg name="tool_stop_bits" value="$(arg tool_stop_bits)"/>
+    <arg name="tool_rx_idle_chars" value="$(arg tool_rx_idle_chars)"/>
+    <arg name="tool_tx_idle_chars" value="$(arg tool_tx_idle_chars)"/>
+    <arg name="tool_device_name" value="$(arg tool_device_name_a)"/>
+    <arg name="tool_tcp_port" value="$(arg tool_tcp_port_a)"/>
+  </include> -->
+  <!--  -->
+  <!--  -->
 
   <!-- TODO: Use this to aggregate the joint state messages from both robots -->
   <!-- <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" respawn="false">

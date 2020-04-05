@@ -180,6 +180,8 @@ class O2ACCommonBase(object):
     return self.robot_safety_mode[robot_name] == 1
 
   def unlock_protective_stop(self, robot="b_bot"):
+    if not self.use_real_robot:
+      return True
     if robot is not "b_bot" and robot is not "a_bot":
       rospy.logerr("Robot name was not found!")
     service_client = rospy.ServiceProxy("/" + robot + "/ur_hardware_interface/dashboard/unlock_protective_stop", std_srvs.srv.Trigger)
@@ -191,8 +193,9 @@ class O2ACCommonBase(object):
     return response.success
 
   def activate_ros_control_on_ur(self, robot="b_bot"):
-    if robot is not "b_bot":
-    # if robot is not "b_bot" and robot is not "a_bot":
+    if not self.use_real_robot:
+      return True
+    if robot is not "b_bot" and robot is not "a_bot":
       rospy.logerr("Robot name was not found or the robot is not a UR!")
       return False
     
@@ -251,12 +254,10 @@ class O2ACCommonBase(object):
     group = self.groups[group_name]
     
     if not end_effector_link:
-      if group_name == "c_bot":
-        end_effector_link = "c_bot_robotiq_85_tip_link"
-      elif group_name == "b_bot":
+      if group_name == "b_bot":
         end_effector_link = "b_bot_robotiq_85_tip_link"
       elif group_name == "a_bot":
-        end_effector_link = "a_bot_gripper_tip_link"
+        end_effector_link = "a_bot_robotiq_85_tip_link"
     group.set_end_effector_link(end_effector_link)
     
     group.set_pose_target(pose_goal_stamped)
@@ -333,12 +334,10 @@ class O2ACCommonBase(object):
         speed = self.reduced_mode_speed_limit
 
     if not end_effector_link:
-      if group_name == "c_bot":
-        end_effector_link = "c_bot_robotiq_85_tip_link"
-      elif group_name == "b_bot":
+      if group_name == "b_bot":
         end_effector_link = "b_bot_robotiq_85_tip_link"
       elif group_name == "a_bot":
-        end_effector_link = "a_bot_gripper_tip_link"
+        end_effector_link = "a_bot_robotiq_85_tip_link"
 
     if self.force_ur_script_linear_motion and self.use_real_robot and group_name == "b_bot":
       if not self.force_moveit_linear_motion:
@@ -424,7 +423,7 @@ class O2ACCommonBase(object):
         speed = .25
     rospy.logwarn("CAUTION: Moving front bots together, but MoveIt does not do continuous collision checking.")
     group = self.groups["front_bots"]
-    group.set_pose_target(pose_goal_a_bot, end_effector_link="a_bot_gripper_tip_link")
+    group.set_pose_target(pose_goal_a_bot, end_effector_link="a_bot_robotiq_85_tip_link")
     group.set_pose_target(pose_goal_b_bot, end_effector_link="b_bot_robotiq_85_tip_link")
     rospy.loginfo("Setting velocity scaling to " + str(speed))
     group.set_max_velocity_scaling_factor(speed)
@@ -894,23 +893,7 @@ class O2ACCommonBase(object):
     if not self.use_real_robot:
       # TODO: Set the gripper width
       return True
-    if gripper == "precision_gripper_outer" or gripper == "precision_gripper_inner" or gripper == "a_bot":
-      goal = o2ac_msgs.msg.PrecisionGripperCommandGoal()
-      if command == "stop":
-        goal.stop = True
-      elif command == "close":
-        if gripper == "precision_gripper_inner" or gripper == "a_bot":
-          goal.close_inner_gripper_fully = True
-        else:
-          goal.close_outer_gripper_fully = True
-      elif command == "open":
-        if gripper == "precision_gripper_inner" or gripper == "a_bot":
-          goal.open_inner_gripper_fully = True
-        else:
-          goal.open_outer_gripper_fully = True
-      goal.this_action_grasps_an_object = this_action_grasps_an_object
-      action_client = self.gripper_action_clients["a_bot"]
-    elif gripper == "b_bot" or gripper == "c_bot":
+    if gripper == "b_bot" or gripper == "a_bot":
       goal = robotiq_msgs.msg.CModelCommandGoal()
       action_client = self.gripper_action_clients[gripper]
       goal.velocity = velocity   
