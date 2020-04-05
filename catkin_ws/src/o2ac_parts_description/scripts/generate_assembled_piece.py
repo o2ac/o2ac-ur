@@ -10,7 +10,7 @@ from math import pi
 rp = rospkg.RosPack()
 
 # Read in the assembly matings
-mating_filename = os.path.join(rp.get_path("o2ac_parts_description"), "urdf/templates", "frames_to_mate.csv")
+mating_filename = os.path.join(rp.get_path("o2ac_parts_description"), "config", "frames_to_mate.csv")
 frame_matings = []
 with open(mating_filename, 'r') as f:
     reader = csv.reader(f)
@@ -24,7 +24,7 @@ with open(mating_filename, 'r') as f:
                 row_stripped.append(el.strip())       # Removes whitespaces
             frame_matings.append(row_stripped)
 
-frames_filename = os.path.join(rp.get_path("o2ac_parts_description"), "urdf/templates", "extra_frames.csv")
+frames_filename = os.path.join(rp.get_path("o2ac_parts_description"), "config", "extra_frames.csv")
 extra_frames = []
 with open(frames_filename, 'r') as f:
     reader = csv.reader(f)
