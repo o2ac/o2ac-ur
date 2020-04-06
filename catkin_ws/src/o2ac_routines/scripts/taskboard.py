@@ -455,6 +455,7 @@ if __name__ == '__main__':
   try:
     taskboard = TaskboardClass()
     taskboard.spawn_example_objects()
+    taskboard.define_tool_collision_objects()
 
     i = 1
     while(i):

@@ -52,6 +52,8 @@ import ur_dashboard_msgs.msg
 import ur_dashboard_msgs.srv
 import std_srvs.srv
 from std_msgs.msg import Bool
+from shape_msgs.msg import SolidPrimitive
+from geometry_msgs.msg import Pose
 
 import o2ac_msgs
 import o2ac_msgs.msg
@@ -136,6 +138,8 @@ class O2ACBase(object):
 
     self.resetTimerForDebugMonitor_client = rospy.ServiceProxy('/o2ac_debug_monitor/reset_timer', std_srvs.srv.Trigger)
     self.debugmonitor_publishers = dict() # used in log_to_debug_monitor()
+
+    self.screw_tools = {}
 
     rospy.sleep(.5)
     rospy.loginfo("Finished initializing class")
@@ -234,38 +238,33 @@ class O2ACBase(object):
     screw_tool_m4.id = "screw_tool_m4"
 
     # The bit cushion and motor
-    screw_tool_m4.primitives[0].type = screw_tool_m4.primitives[0].BOX
-    screw_tool_m4.primitives[0].dimensions.resize(3)
-    screw_tool_m4.primitives[0].dimensions[0] = 0.026
-    screw_tool_m4.primitives[0].dimensions[1] = 0.04
-    screw_tool_m4.primitives[0].dimensions[2] = 0.055
+    screw_tool_m4.primitives = [SolidPrimitive() for _ in range(3)] # instead of resize()
+    screw_tool_m4.primitive_poses = [Pose() for _ in range(3)] 
+    
+    screw_tool_m4.primitives[0].type = SolidPrimitive.BOX
+    screw_tool_m4.primitives[0].dimensions = [.026, .04, .055]
     screw_tool_m4.primitive_poses[0].position.x = 0
     screw_tool_m4.primitive_poses[0].position.y = -0.009
     screw_tool_m4.primitive_poses[0].position.z = 0.0275
 
     # The "shaft" + suction attachment
-    screw_tool_m4.primitives[1].type = screw_tool_m4.primitives[1].BOX
-    screw_tool_m4.primitives[1].dimensions.resize(3)
-    screw_tool_m4.primitives[1].dimensions[0] = 0.02
-    screw_tool_m4.primitives[1].dimensions[1] = 0.03
-    screw_tool_m4.primitives[1].dimensions[2] = 0.08
+    screw_tool_m4.primitives[1].type = SolidPrimitive.BOX
+    screw_tool_m4.primitives[1].dimensions = [.02, .03, .08]
     screw_tool_m4.primitive_poses[1].position.x = 0
     screw_tool_m4.primitive_poses[1].position.y = -0.0055  # 21 mm distance from axis
     screw_tool_m4.primitive_poses[1].position.z = -0.04
 
     # The cylinder representing the tip
-    screw_tool_m4.primitives[2].type = screw_tool_m4.primitives[2].CYLINDER
-    screw_tool_m4.primitives[2].dimensions.resize(2)
-    screw_tool_m4.primitives[2].dimensions[0] = 0.038    # Cylinder height
-    screw_tool_m4.primitives[2].dimensions[1] = 0.0035   # Cylinder radius
+    screw_tool_m4.primitives[2].type = SolidPrimitive.CYLINDER
+    screw_tool_m4.primitives[2].dimensions = [.038, .0035] # Cylinder height, radius
     screw_tool_m4.primitive_poses[2].position.x = 0
     screw_tool_m4.primitive_poses[2].position.y = 0  # 21 mm distance from axis
     screw_tool_m4.primitive_poses[2].position.z = -0.099
     screw_tool_m4.operation = screw_tool_m4.ADD
 
     # The tool tip
-    screw_tool_m4.subframe_poses.resize(1)
-    screw_tool_m4.subframe_names.resize(1)
+    screw_tool_m4.subframe_poses = [Pose()]
+    screw_tool_m4.subframe_names = [""]
     screw_tool_m4.subframe_poses[0].position.z = -.12
     screw_tool_m4.subframe_poses[0].orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 90.0/180.0*pi, -pi/2))
     screw_tool_m4.subframe_names[0] = "screw_tool_m4_tip"
@@ -276,41 +275,38 @@ class O2ACBase(object):
     screw_tool_m3.id = "screw_tool_m3"
 
     # The bit cushion and motor
-    screw_tool_m3.primitives[0].type = screw_tool_m3.primitives[0].BOX
-    screw_tool_m3.primitives[0].dimensions.resize(3)
-    screw_tool_m3.primitives[0].dimensions[0] = 0.026
-    screw_tool_m3.primitives[0].dimensions[1] = 0.04
-    screw_tool_m3.primitives[0].dimensions[2] = 0.055
+    screw_tool_m3.primitives = [SolidPrimitive() for _ in range(3)]
+    screw_tool_m3.primitive_poses = [Pose() for _ in range(3)] 
+    screw_tool_m3.primitives[0].type = SolidPrimitive.BOX
+    screw_tool_m3.primitives[0].dimensions = [.026, .04, .055]
     screw_tool_m3.primitive_poses[0].position.x = 0
     screw_tool_m3.primitive_poses[0].position.y = -0.009
     screw_tool_m3.primitive_poses[0].position.z = 0.0275
 
     # The "shaft" + suction attachment
-    screw_tool_m3.primitives[1].type = screw_tool_m3.primitives[1].BOX
-    screw_tool_m3.primitives[1].dimensions.resize(3)
-    screw_tool_m3.primitives[1].dimensions[0] = 0.02
-    screw_tool_m3.primitives[1].dimensions[1] = 0.03
-    screw_tool_m3.primitives[1].dimensions[2] = 0.08
+    screw_tool_m3.primitives[1].type = SolidPrimitive.BOX
+    screw_tool_m3.primitives[1].dimensions = [.02, .03, .08]
     screw_tool_m3.primitive_poses[1].position.x = 0
     screw_tool_m3.primitive_poses[1].position.y = -0.0055  # 21 mm distance from axis
     screw_tool_m3.primitive_poses[1].position.z = -0.04
 
     # The cylinder representing the tip
-    screw_tool_m3.primitives[2].type = screw_tool_m3.primitives[2].CYLINDER
-    screw_tool_m3.primitives[2].dimensions.resize(2)
-    screw_tool_m3.primitives[2].dimensions[0] = 0.018    # Cylinder height
-    screw_tool_m3.primitives[2].dimensions[1] = 0.0035   # Cylinder radius
+    screw_tool_m3.primitives[2].type = SolidPrimitive.CYLINDER
+    screw_tool_m3.primitives[2].dimensions = [.018, .0035] # Cylinder height, radius
     screw_tool_m3.primitive_poses[2].position.x = 0
     screw_tool_m3.primitive_poses[2].position.y = 0  # 21 mm distance from axis
     screw_tool_m3.primitive_poses[2].position.z = -0.089
     screw_tool_m3.operation = screw_tool_m3.ADD
 
     # The tool tip
-    screw_tool_m3.subframe_poses.resize(1)
-    screw_tool_m3.subframe_names.resize(1)
+    screw_tool_m3.subframe_poses = [Pose()]
+    screw_tool_m3.subframe_names = [""]
     screw_tool_m3.subframe_poses[0].position.z = -.11
     screw_tool_m3.subframe_poses[0].orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 90.0/180.0*pi, -pi/2))
     screw_tool_m3.subframe_names[0] = "screw_tool_m3_tip"
+
+    self.screw_tools["screw_tool_m3"] = screw_tool_m3
+    self.screw_tools["screw_tool_m4"] = screw_tool_m4
 
     # TODO: Write these to a YAML file
     return True
@@ -928,6 +924,41 @@ class O2ACBase(object):
     rospy.loginfo(result)
     return 
 
+  def spawn_tool(self, tool_name):
+    if tool_name == "screw_tool_m3" or tool_name == "screw_tool_m4": 
+      rospy.loginfo("Spawn: " + tool_name)
+      self.planning_scene_interface.add_object(self.screw_tools[tool_name])
+      return True
+    else:
+      rospy.logerr("Cannot spawn tool: " + tool_name)
+      return False
+
+  def despawn_tool(self, tool_name):
+    if tool_name == "screw_tool_m3" or tool_name == "screw_tool_m4": 
+      rospy.loginfo("Despawn: " + tool_name)
+      self.planning_scene_interface.remove_world_object(self.screw_tools[tool_name].id)
+      return True
+    else:
+      rospy.logerr("Cannot despawn tool: " + tool_name)
+      return False
+
+  def attach_tool(self, robot_name, toolname):
+    try:
+      self.groups[robot_name].attach_object(toolname, robot_name + "_ee_link", touch_links= 
+      [robot_name + "_robotiq_85_tip_link", 
+      robot_name + "_robotiq_85_left_finger_tip_link", 
+      robot_name + "_robotiq_85_left_inner_knuckle_link", 
+      robot_name + "_robotiq_85_right_finger_tip_link", 
+      robot_name + "_robotiq_85_right_inner_knuckle_link"])
+    except:
+      rospy.logerr(item_id_to_attach + " could not be attached! robot_name = " + robot_name)
+
+  def detach_tool(self, robot_name, toolname):
+    try:
+      self.groups[robot_name].detach_object(toolname)
+    except:
+      rospy.logerr(item_id_to_attach + " could not be detached! robot_name = " + robot_name)
+
   def equip_tool(self, robot_name, tool_name, angle = 0.0):
     return self.equip_unequip_tool(robot_name, tool_name, angle, "equip")
   
@@ -969,29 +1000,22 @@ class O2ACBase(object):
     ps_approach.header.frame_id = tool_name + "_pickup_link"
 
     # Define approach pose
-    ps_approach.pose.position.x = -.06
-    ps_approach.pose.position.z = .017
     rospy.loginfo("tool_name: " + tool_name)
-    if (tool_name == "nut_tool_m6"):
-      ps_approach.pose.position.z = .052
-    if (tool_name == "set_screw_tool"):
-      ps_approach.pose.position.z = .045
-    if (tool_name == "suction_tool"):
-      rospy.logerr("Suction tool is not implemented!")
+    if tool_name == "screw_tool_m3" or tool_name == "screw_tool_m4":
+      ps_approach.pose.position.x = -.05
+      ps_approach.pose.position.z = .1
+    else:
+      rospy.logerr(tool_name, "is not implemented!")
       return False
 
-    ps_approach.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
+    ps_approach.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi, 0, 0))
     ps_move_away = copy.deepcopy(ps_approach)
 
     # Define pickup pose
-    ps_tool_holder = copy.deepcopy(ps_approach)
-    ps_tool_holder.pose.position.x = 0.03
-    if tool_name == "nut_tool_m6":
-      ps_tool_holder.pose.position.x = 0.02
-    if tool_name == "set_screw_tool":
-      ps_tool_holder.pose.position.x = 0.03
-    if tool_name == "suction_tool":
-      ps_tool_holder.pose.position.x = 0.01
+    ps_pickup = copy.deepcopy(ps_approach)
+    ps_pickup.pose.position.x = .015
+    ps_pickup.pose.position.z = .03
+
     if unequip: 
       ps_tool_holder.pose.position.x -= 0.001 # The tool is dropped slightly before the magnet
 
@@ -1001,58 +1025,53 @@ class O2ACBase(object):
     if equip:
       self.open_gripper(robot_name)
       rospy.loginfo("Spawning tool.")
-      spawnTool(tool_name)
+      if not self.spawn_tool(tool_name):
+        rospy.logerr("Could not spawn the tool. Abort.")
+        return False
       held_screw_tool_ = tool_name
+    
+    def allow_collisions_with_robot_hand(link_name, robot_name):
+      self.planning_scene_interface.allow_collisions(link_name, robot_name + "_robotiq_85_tip_link")
+      self.planning_scene_interface.allow_collisions(link_name, robot_name + "_robotiq_85_left_finger_tip_link")
+      self.planning_scene_interface.allow_collisions(link_name, robot_name + "_robotiq_85_left_inner_knuckle_link")
+      self.planning_scene_interface.allow_collisions(link_name, robot_name + "_robotiq_85_right_finger_tip_link")
+      self.planning_scene_interface.allow_collisions(link_name, robot_name + "_robotiq_85_right_inner_knuckle_link")    
 
-    self.toggle_collisions(collisions_on=False)
+    allow_collisions_with_robot_hand(tool_name, robot_name)
+    allow_collisions_with_robot_hand('screw_tool_holder', robot_name)
 
     rospy.loginfo("Moving to screw tool approach pose LIN.")
-    preparation_succeeded = self.move_lin(robot_name, ps_approach, True, robot_name + "_robotiq_85_tip_link")
-    if (not preparation_succeeded):
-      rospy.logerr("Could not go to approach pose. Aborting tool pickup.")
-      planning_scene_interface_.applyPlanningScene(planning_scene_)
-      self.toggle_collisions(collisions_on=False)
-      return False
-
+    self.go_to_pose_goal(robot_name, ps_approach, move_lin=False)
+  
     # Plan & execute linear motion to the tool change position
     rospy.loginfo("Moving to pose in tool holder LIN.")
-    
     if equip:
       lin_speed = 0.5
     elif unequip:
-      lin_speed = 0.08  
-    
-    if not self.move_lin_rel(robot_name, velocity=lin_speed,
-              relative_translation=[0,0,(ps_tool_holder.pose.position.x - ps_approach.pose.position.x)]):
-      rospy.logerr("Was not able to move to tool holder. ABORTING!")
-      return False
+      lin_speed = 0.08 
 
+    self.go_to_pose_goal(robot_name, ps_pickup, speed=lin_speed, move_lin=False)
+  
     # Close gripper, attach the tool object to the gripper in the Planning Scene.
     # Its collision with the parent link is set to allowed in the original planning scene.
     if equip:
-      closeGripper(robot_name)
-      attachTool(tool_name, robot_name)
+      rospy.loginfo("Closing the gripper.")
+      self.close_gripper(robot_name)
+      self.attach_tool(robot_name, tool_name)
       self.planning_scene_interface.allow_collisions(tool_name, robot_name + "_robotiq_85_tip_link")
       self.planning_scene_interface.allow_collisions(tool_name, robot_name + "_robotiq_85_left_finger_tip_link")
       self.planning_scene_interface.allow_collisions(tool_name, robot_name + "_robotiq_85_left_inner_knuckle_link")
       self.planning_scene_interface.allow_collisions(tool_name, robot_name + "_robotiq_85_right_finger_tip_link")
-      self.planning_scene_interface.allow_collisions(tool_name, robot_name + "_robotiq_85_right_inner_knuckle_link")
-      
-      acm_no_collisions.setEntry(tool_name, True)      # To allow collisions now
-      planning_scene_interface_.applyPlanningScene(ps_no_collisions)
-      
+      self.planning_scene_interface.allow_collisions(tool_name, robot_name + "_robotiq_85_right_inner_knuckle_link")    
       self.robot_status[robot_name].carrying_tool = True
       self.robot_status[robot_name].held_tool_id = tool_name
     elif unequip:
       self.open_gripper(robot_name)
-      detachTool(tool_name, robot_name)
+      self.detach_tool(robot_name, tool_name)
       held_screw_tool_ = ""
-      acm_original.removeEntry(tool_name)
       self.robot_status[robot_name].carrying_tool = False
       self.robot_status[robot_name].held_tool_id = ""
 
-    
-    acm_original.getMessage(planning_scene_.allowed_collision_matrix)
     rospy.sleep(.5)
     
     # Plan & execute linear motion away from the tool change position
@@ -1063,7 +1082,7 @@ class O2ACBase(object):
     elif unequip:
       lin_speed = 1.0
 
-    if (use_real_robot_):
+    if self.use_real_robot:
       rospy.sleep(.3)
       UR_srv.request.velocity = .05
       t_rel.z = -(ps_tool_holder.pose.position.x - ps_approach.pose.position.x)
@@ -1075,17 +1094,18 @@ class O2ACBase(object):
       else:
         ROS_WARN("Could not call the URScript client to perform a linear movement backward.")
     else :
-      self.move_lin(ps_move_away, robot_name)
+      self.go_to_pose_goal(robot_name, ps_move_away, speed=lin_speed, move_lin=False)
+
     
     # Reactivate the collisions, with the updated entry about the tool
-    planning_scene_interface_.applyPlanningScene(planning_scene_)
+    # planning_scene_interface_.applyPlanningScene(planning_scene_)
 
     rospy.loginfo("Moving higher up to facilitate later movements.")
-    self.move_lin(ps_high_up, robot_name)
+    self.go_to_pose_goal(robot_name, ps_high_up, move_lin=False)
     
     # Delete tool collision object only after collision reinitialization to avoid errors
     if unequip:
-      despawnTool(tool_name)
+      self.despawn_tool(tool_name)
 
     if unequip:
       self.go_to_named_pose("home", robot_name)
