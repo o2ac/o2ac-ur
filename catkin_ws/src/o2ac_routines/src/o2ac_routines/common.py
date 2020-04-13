@@ -155,7 +155,7 @@ class O2ACCommon(O2ACBase):
 
   ########
 
-  def simple_pick(self, robot_name, object_pose, grasp_height=0.01, speed_fast=0.1, speed_slow=0.02, gripper_command="close", approach_height=0.05, 
+  def simple_pick(self, robot_name, object_pose, grasp_height=0.0, speed_fast=0.1, speed_slow=0.02, gripper_command="close", approach_height=0.05, 
           item_id_to_attach = "", lift_up_after_pick=True, force_ur_script=False, acc_fast=1.0, acc_slow=.1, gripper_force=40.0,
           gripper_velocity = .1, axis="x", sign=+1):
     """
@@ -178,7 +178,7 @@ class O2ACCommon(O2ACBase):
     if axis =="z":
       object_pose.pose.position.z += approach_height * sign
     rospy.logdebug("Going to height " + str(object_pose.pose.position.z))
-    self.go_to_pose_goal(robot_name, object_pose, speed=speed_fast, acceleration=acc_fast, move_lin=False)
+    self.go_to_pose_goal(robot_name, object_pose, speed=speed_fast, acceleration=acc_fast, move_lin=True)
     if axis =="x":
       object_pose.pose.position.x -= approach_height * sign
     if axis =="z":

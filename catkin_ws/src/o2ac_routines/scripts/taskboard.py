@@ -42,6 +42,8 @@ import tf_conversions
 import tf
 from math import pi
 from math import *
+import traceback
+import time
 
 from o2ac_msgs.srv import *
 import actionlib
@@ -86,7 +88,7 @@ class TaskboardClass(O2ACCommon):
   def spawn_example_objects(self):
     # This function spawns the objects into the tray as if they had been recognized by the vision node
     names = ["taskboard_idler_pulley_small", "bearing", "drive_shaft", "motor_pulley", "endcap"]
-    offsets = {"bearing": [-.04, -.02, .001], # [-.04, -.02, .041],
+    offsets = {"bearing": [-.04, -.02, .041], # [-.04, -.02, .001], 
     "taskboard_idler_pulley_small": [.05, .06, .03], 
     "drive_shaft": [.03, -.06, .005], 
     "motor_pulley": [.01, .08, .005], 
@@ -96,8 +98,8 @@ class TaskboardClass(O2ACCommon):
       if collision_object:
         collision_object.header.frame_id = "tray_center"
         if name == "bearing":
-          q_rotate = self.downward_orientation
-          # q_rotate = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, -pi/2, 0))
+          # q_rotate = self.downward_orientation
+          q_rotate = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, -pi/2, 0))
         if name == "taskboard_idler_pulley_small" or name == "endcap" or name == "motor_pulley":
           q_rotate = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, -pi/2, 0))
         elif name == "drive_shaft":
@@ -450,6 +452,20 @@ class TaskboardClass(O2ACCommon):
       taskboard.go_to_named_pose("home","a_bot")
     if task_name == "Idler pulley":
       rospy.logerr("Idler pulley is not implemented yet!")
+    if i == "screw_bearing":
+        taskboard.equip_tool('a_bot', 'screw_tool_m3')
+        taskboard.go_to_named_pose("screw_bearing","a_bot")
+        for n in range(4):
+          screw_pose = geometry_msgs.msg.PoseStamped()
+          screw_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, -pi/2))
+          screw_pose.header.frame_id = "move_group/bearing/screw_hole_{}".format(n+1)
+          screw_pose.pose.position = geometry_msgs.msg.Point(0.0, 0.01, 0.0)
+          taskboard.go_to_pose_goal("a_bot", screw_pose, end_effector_link = "a_bot_screw_tool_m3_tip_link", move_lin=False)
+          if self.use_real_robot:
+            self.do_screw_action("a_bot", screw_pose)
+          else:
+            time.sleep(1.0)
+        taskboard.unequip_tool('a_bot', 'screw_tool_m3')
 
 if __name__ == '__main__':
   try:
@@ -542,7 +558,7 @@ if __name__ == '__main__':
       try:
         taskboard.do_task(i)
       except:
-        pass
+        traceback.print_exc()
 
     print "============ Done!"
   except rospy.ROSInterruptException:
