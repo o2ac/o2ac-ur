@@ -1,0 +1,26 @@
+extra_frames:
+- pose_xyzrpy:
+  - 0.03
+  - 0.0
+  - 0.0
+  - -pi/2
+  - 0.0
+  - 0.0
+  subframe_name: screw_tip
+- pose_xyzrpy:
+  - 0.0
+  - 0.0
+  - 0.0
+  - -pi/2
+  - 0.0
+  - 0.0
+  subframe_name: screw_inserted
+- pose_xyzrpy:
+  - -0.002
+  - 0.0
+  - 0.0
+  - -pi/2
+  - 0.0
+  - 0.0
+  subframe_name: screw_head
+grasp_points: []

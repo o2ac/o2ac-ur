@@ -1,0 +1,26 @@
+extra_frames:
+- pose_xyzrpy:
+  - 0.019
+  - -0.006
+  - 0.042
+  - -pi/2
+  - -pi/2
+  - 0.0
+  subframe_name: tip
+- pose_xyzrpy:
+  - 0.019
+  - -0.006
+  - 0.027
+  - -pi/2
+  - -pi/2
+  - 0.0
+  subframe_name: inserted_13
+- pose_xyzrpy:
+  - 0.019
+  - -0.006
+  - 0.021
+  - -pi/2
+  - -pi/2
+  - 0.0
+  subframe_name: inserted_02
+grasp_points: []

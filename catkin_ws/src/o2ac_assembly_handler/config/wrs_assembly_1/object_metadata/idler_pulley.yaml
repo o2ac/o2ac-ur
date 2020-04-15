@@ -1,0 +1,18 @@
+extra_frames:
+- pose_xyzrpy:
+  - 0.0
+  - 0.0
+  - 0.0
+  - -pi/2
+  - 0.0
+  - 0.0
+  subframe_name: center
+- pose_xyzrpy:
+  - 0.0
+  - 0.016
+  - 0.0
+  - -pi/2
+  - 0.0
+  - -pi/2
+  subframe_name: screw_head
+grasp_points: []

@@ -1,0 +1,18 @@
+extra_frames:
+- pose_xyzrpy:
+  - 0.002
+  - 0.0
+  - 0.0
+  - -pi/2
+  - 0.0
+  - 0.0
+  subframe_name: inner_surface
+- pose_xyzrpy:
+  - 0.0
+  - 0.0
+  - 0.0
+  - pi/2
+  - 0.0
+  - pi
+  subframe_name: screw_hole
+grasp_points: []

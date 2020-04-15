@@ -1,0 +1,74 @@
+extra_frames:
+- pose_xyzrpy:
+  - 0.01
+  - 0.0
+  - 0.01
+  - -pi/2
+  - 0.0
+  - 0.0
+  subframe_name: under_outer_hole
+- pose_xyzrpy:
+  - 0.0
+  - 0.01
+  - 0.0
+  - -pi/2
+  - 0.0
+  - -pi/2
+  subframe_name: corner_1
+- pose_xyzrpy:
+  - 0.2
+  - 0.01
+  - 0.0
+  - -pi/2
+  - 0.0
+  - -pi/2
+  subframe_name: corner_2
+- pose_xyzrpy:
+  - 0.2
+  - 0.01
+  - 0.12
+  - -pi/2
+  - 0.0
+  - -pi/2
+  subframe_name: corner_3
+- pose_xyzrpy:
+  - 0.0
+  - 0.01
+  - 0.12
+  - -pi/2
+  - 0.0
+  - -pi/2
+  subframe_name: corner_4
+- pose_xyzrpy:
+  - 0.006
+  - 0.01
+  - 0.052
+  - -pi/2
+  - 0.0
+  - -pi/2
+  subframe_name: screw_hole_panel1_1
+- pose_xyzrpy:
+  - 0.11
+  - 0.01
+  - 0.052
+  - -pi/2
+  - 0.0
+  - -pi/2
+  subframe_name: screw_hole_panel1_2
+- pose_xyzrpy:
+  - 0.136
+  - 0.01
+  - 0.05
+  - -pi/2
+  - 0.0
+  - -pi/2
+  subframe_name: screw_hole_panel2_1
+- pose_xyzrpy:
+  - 0.196
+  - 0.01
+  - 0.05
+  - -pi/2
+  - 0.0
+  - -pi/2
+  subframe_name: screw_hole_panel2_2
+grasp_points: []

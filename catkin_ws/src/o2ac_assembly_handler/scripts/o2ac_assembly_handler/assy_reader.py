@@ -80,6 +80,13 @@ class AssyReader():
         collision_object = next((c_obj for c_obj in self.collision_objects if c_obj.id == object_name), None)
         return collision_object
 
+    def _tofloat(self, val):
+        if type(val)==float:
+            return val
+        elif type(val)==str:
+            return(float(eval(val)))
+        else:
+            return(float(val))
 
     def _read_parts_list(self):
         path = os.path.join(self._directory, 'parts_list.yaml')
@@ -148,6 +155,56 @@ class AssyReader():
             subframe_poses.append(subframe_pose)
         
         return (subframe_names, subframe_poses)
+
+    def _read_object_metadata(self, object_name):
+        '''Read and return the object metadata including the subframes and the grasp points
+        of the object reffered to by input 'object_name'
+        '''
+        metadata_directory = os.path.join(self._directory, 'object_metadata')
+        objects_with_metadta = [f.split('.')[0] for f in os.listdir(metadata_directory) if os.path.isfile(os.path.join(metadata_directory, f))]
+        subframe_names = []
+        subframe_poses = []
+        if object_name in objects_with_metadta:
+            with open(os.path.join(metadata_directory, object_name + '.yaml'), 'r') as f:
+                data = yaml.load(f)
+            subframes = data['extra_frames']
+
+            # Create the transformation between the world and the collision object        
+            transformer = tf.Transformer(True, rospy.Duration(10.0))
+            collision_object_transform = geometry_msgs.msg.TransformStamped()
+            collision_object_transform.header.frame_id = 'WORLD'
+            collision_object_transform.child_frame_id = 'OBJECT'
+            collision_object_transform.transform.rotation.w = 1
+            transformer.setTransform(collision_object_transform)
+
+            for subframe in subframes:
+                subframe_names.append(subframe['subframe_name'])
+
+                # Create the transformations between the collision object and the given subframe
+                subframe_transform = geometry_msgs.msg.TransformStamped()
+                subframe_transform.header.frame_id = 'OBJECT'
+                subframe_transform.child_frame_id = subframe['subframe_name']
+                subframe_transform.transform.translation.x = float(subframe['pose_xyzrpy'][0])
+                subframe_transform.transform.translation.y = float(subframe['pose_xyzrpy'][1])
+                subframe_transform.transform.translation.z = float(subframe['pose_xyzrpy'][2])
+                quaternion = tf.transformations.quaternion_from_euler(self._tofloat(subframe['pose_xyzrpy'][3]),self._tofloat(subframe['pose_xyzrpy'][4]),self._tofloat(subframe['pose_xyzrpy'][5]))
+                subframe_transform.transform.rotation = geometry_msgs.msg.Quaternion(*quaternion)
+    
+                transformer.setTransform(subframe_transform)
+
+                # Get the pose of the subframe in the world frame and add the subframe pose to the subframe poses of the collision object
+                (trans,rot) = transformer.lookupTransform('WORLD', subframe['subframe_name'], rospy.Time(0))
+
+                subframe_pose = geometry_msgs.msg.Pose()
+                subframe_pose.position = geometry_msgs.msg.Point(*trans)
+                subframe_pose.orientation = geometry_msgs.msg.Quaternion(*rot)
+
+                subframe_poses.append(subframe_pose)
+
+        else:
+            print('\nObject \'' + object_name + '\' has no metadata defined!\nReturning empty metadta information!\n')
+        return (subframe_names, subframe_poses)
+
 
     def _make_collision_object_from_mesh(self, name, pose, filename, scale=(1, 1, 1)):
         '''
@@ -231,7 +288,8 @@ class AssyReader():
             collision_object_pose.orientation.w = 1
             posestamped.pose = collision_object_pose
 
-            subframe_names, subframe_poses = self._read_subframe_csv(part['id'])
+            # subframe_names, subframe_poses = self._read_subframe_csv(part['id'])
+            subframe_names, subframe_poses = self._read_object_metadata(part['name'])
 
             collision_object = self._make_collision_object_from_mesh(part['name'], posestamped, mesh_file, scale=(0.001, 0.001, 0.001))
 
