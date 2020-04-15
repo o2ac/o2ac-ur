@@ -87,37 +87,38 @@ class TaskboardClass(O2ACCommon):
     
   def spawn_example_objects(self):
     # This function spawns the objects into the tray as if they had been recognized by the vision node
-    names = ["taskboard_idler_pulley_small", "bearing", "drive_shaft", "motor_pulley", "endcap"]
-    offsets = {"bearing": [-.04, -.02, .041], # [-.04, -.02, .001], 
-    "taskboard_idler_pulley_small": [.05, .06, .03], 
+    names = ["taskboard_idler_pulley_small", "bearing", "drive_shaft", "motor_pulley"]
+    offsets = {"bearing": [-.04, -.02, .001],
+    "taskboard_idler_pulley_small": [.07, .06, .03], 
     "drive_shaft": [.03, -.06, .005], 
-    "motor_pulley": [.01, .08, .005], 
+    "motor_pulley": [-.01, .12, .005], 
     "endcap": [-.05, -.1, .005]}
+
+    # We publish each object to its own frame.
+    broadcaster = tf.TransformBroadcaster()
+    counter = 0
     for name in names:
       collision_object = self.assy_reader.get_collision_object(name)
       if collision_object:
-        collision_object.header.frame_id = "tray_center"
+        counter += 1
+        collision_object.header.frame_id = "collision_object_spawn_helper_frame" + str(counter)
         if name == "bearing":
-          # q_rotate = self.downward_orientation
-          q_rotate = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, -pi/2, 0))
-        if name == "taskboard_idler_pulley_small" or name == "endcap" or name == "motor_pulley":
-          q_rotate = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, -pi/2, 0))
+          q_rotate = tf_conversions.transformations.quaternion_from_euler(0, pi/2, 0)
+        if name == "taskboard_idler_pulley_small" or name == "motor_pulley":
+          q_rotate = tf_conversions.transformations.quaternion_from_euler(0, pi/2, 0)
         elif name == "drive_shaft":
-          q_rotate = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
+          q_rotate = tf_conversions.transformations.quaternion_from_euler(0, 0, 0)
           
         offset = offsets[name]
-        for poselist in [collision_object.mesh_poses, collision_object.subframe_poses]:
-          for pose in poselist:
-            pose.position.x += offset[0]
-            pose.position.y += offset[1]
-            pose.position.z += offset[2]
-            pose.orientation = self.multiply_quaternion_msgs(pose.orientation, q_rotate)
+        broadcaster.sendTransform((offset[0], offset[1], offset[2]), q_rotate, rospy.Time.now(), 
+            "collision_object_spawn_helper_frame" + str(counter), "tray_center")
+        rospy.sleep(2.0) # Wait for the transform to have propagated through the system
 
         self.planning_scene_interface.add_object(collision_object)
-        print("======== collision object: " + name)
-        print(collision_object.mesh_poses)
-        print(collision_object.subframe_names)
-        print(collision_object.subframe_poses)
+        # print("======== collision object: " + name)
+        # print(collision_object.mesh_poses)
+        # print(collision_object.subframe_names)
+        # print(collision_object.subframe_poses)
       else:
         rospy.logerr("Could not retrieve collision object:" + name)
 
@@ -553,6 +554,19 @@ if __name__ == '__main__':
         ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, 0))
         ps.pose.position.x = -0.05
         taskboard.go_to_pose_goal("a_bot", ps, speed=0.1, end_effector_link="a_bot_robotiq_85_tip_link", move_lin = False)
+
+      if i == "f1":
+        pick_pose = geometry_msgs.msg.PoseStamped()
+        pick_pose.header.frame_id = "tray_center"
+        pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
+        pick_pose.pose.position.x = 0.03
+        taskboard.simple_pick("a_bot", pick_pose, approach_height = 0.05, item_id_to_attach = "bearing", lift_up_after_pick=True)
+      if i == "f2":
+        ps = geometry_msgs.msg.PoseStamped()
+        ps.header.frame_id = "tray_center"
+        ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
+        ps.pose.position.z = -0.15
+        taskboard.go_to_pose_goal("a_bot", ps, speed=0.1, end_effector_link="bearing/back_hole", move_lin = False)
       if i == "x":
         break
       try:
