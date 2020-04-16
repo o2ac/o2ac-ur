@@ -111,15 +111,16 @@ for part_num, partname in enumerate(partnames):
     macro_frames_only_file.write(macro_frames_only_filecontent)
     print("Wrote " + os.path.join(out_dir, partname+"_macro.urdf.xacro"))
     print("Wrote " + os.path.join(out_dir, partname+"_frames_only_macro.urdf.xacro"))
+    macrofile.close()
+    macro_frames_only_file.close()
 
 for part_num, partname in enumerate(partnames):
-    non_macrofile = open(os.path.join(out_dir, partname+"_non_macro.urdf.xacro"),'w+')
-    mname_ext = "assy_part_" + partname[0:2]
-    non_macrofile_content = non_macro_template.replace("MACRONAME_EXTERNAL", mname_ext)
-    non_macrofile_content = non_macrofile_content.replace("PARTNAME", partname)
-    non_macrofile.write(non_macrofile_content)
-    print("Wrote " + os.path.join(out_dir, partname+"_macro.urdf.xacro"))
-
+    with open(os.path.join(out_dir, partname+"_non_macro.urdf.xacro"),'w+') as non_macrofile:
+        mname_ext = "assy_part_" + partname[0:2]
+        non_macrofile_content = non_macro_template.replace("MACRONAME_EXTERNAL", mname_ext)
+        non_macrofile_content = non_macrofile_content.replace("PARTNAME", partname)
+        non_macrofile.write(non_macrofile_content)
+        print("Wrote " + os.path.join(out_dir, partname+"_macro.urdf.xacro"))
 
 # Convert xacro files to urdf (necessary for the URDF-to-msg converter)
 import subprocess
