@@ -236,15 +236,6 @@ RUN pip install opencv-python==4.0.0.21
 
 ################################################################################
 
-# Install Tensorflow
-# https://www.tensorflow.org/install
-RUN pip install tensorflow-gpu==1.14.0
-
-# Possible option: Install TensorRT
-# RUN apt-get install -y --no-install-recommends \
-#  nvinfer-runtime-trt-repo-ubuntu1804-5.0.2-ga-cuda10.0 \
-#  libnvinfer-dev=5.0.2-1+cuda10.0
-
 # Install keras
 # https://keras.io/#installation
 RUN pip install keras==2.2.4
@@ -261,19 +252,6 @@ RUN pip install cupy-cuda101==5.4.0 chainer==5.4.0
 
 # Install gym for reinforcement learning
 RUN pip install gym
-
-################################################################################
-
-# Install Python3 & dependencies for PILCO
-# This is required for running Python3 nodes in ROS
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-		python3-pip=9.0.1-2.3~ubuntu1.18.04.1 python3-yaml=3.12-1build2
-RUN pip3 install gpflow==1.4.1
-RUN pip3 install tensorflow-gpu==1.14.0
-RUN pip3 install box2d-py==2.3.8  \
-			rospkg==1.1.9  \
-			catkin_pkg==0.4.13
 
 ################################################################################
 
