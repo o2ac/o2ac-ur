@@ -417,10 +417,11 @@ class TaskboardClass(O2ACCommon):
         taskboard.simple_pick("a_bot", pick_pose, item_id_to_attach="bearing")
       # insert bearing
       rospy.loginfo("Insert bearing by a_bot")
+      self.allow_collision_with_hand('b_bot', 'taskboard_plate')
       self.allow_collision_with_hand('b_bot', 'taskboard_bearing_target_link')
       insert_pose = geometry_msgs.msg.PoseStamped()
       insert_pose.header.frame_id = "taskboard_bearing_target_link"
-      insert_pose.pose.position = geometry_msgs.msg.Point(0.01, 0.0, 0.0)
+      insert_pose.pose.position = geometry_msgs.msg.Point(0.02, 0.0, 0.0)
       insert_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi/2, 0, 0))
       taskboard.simple_place("a_bot", insert_pose, item_id_to_detach="bearing")
       self.disallow_collision_with_hand('b_bot', 'bearing')
@@ -458,10 +459,11 @@ class TaskboardClass(O2ACCommon):
         taskboard.go_to_named_pose("screw_bearing","a_bot")
         for n in range(4):
           screw_pose = geometry_msgs.msg.PoseStamped()
-          screw_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, -pi/2))
-          screw_pose.header.frame_id = "move_group/bearing/screw_hole_{}".format(n+1)
-          screw_pose.pose.position = geometry_msgs.msg.Point(0.0, 0.01, 0.0)
-          taskboard.go_to_pose_goal("a_bot", screw_pose, end_effector_link = "a_bot_screw_tool_m3_tip_link", move_lin=False)
+          screw_pose.header.frame_id = "move_group/bearing/screw_hole_" + str(n+1)
+          screw_pose.pose.position = geometry_msgs.msg.Point(-0.01, 0.0, 0.0)
+          screw_pose_in_world = taskboard.listener.transformPose("workspace_center", screw_pose)
+          screw_pose_in_world.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi, 0))
+          taskboard.go_to_pose_goal("a_bot", screw_pose_in_world, end_effector_link = "a_bot_screw_tool_m3_tip_link", move_lin=False)
           if self.use_real_robot:
             self.do_screw_action("a_bot", screw_pose)
           else:
