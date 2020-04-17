@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro"
+       name="o2ac_end_effector" >
+
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector.urdf.xacro" />
+  <xacro:o2ac_end_effector prefix="" parent = "world" />
+
+  <link name="world" />
+
+</robot>

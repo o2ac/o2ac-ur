@@ -1,0 +1,8 @@
+<launch>
+
+  <include file="$(find o2ac_assembly_handler)/launch/visualization_rviz.launch">
+  </include>
+
+  <node name="visualize_metadata" pkg="o2ac_assembly_handler" type="visualize_metadata.py"/>
+
+</launch>

@@ -63,7 +63,7 @@ class AssyReader():
         self.assy_name = assembly_name
         self._directory = os.path.join(self._rospack.get_path('o2ac_assembly_handler'), 'config', assembly_name)
         self._parts_list = self._read_parts_list()
-        self.collision_objects = self.get_collision_objects_with_subframes()
+        self.collision_objects, self.grasps = self.get_collision_objects_with_metadata()
 
     def change_assembly(self, assembly_name):
         '''
@@ -164,10 +164,13 @@ class AssyReader():
         objects_with_metadta = [f.split('.')[0] for f in os.listdir(metadata_directory) if os.path.isfile(os.path.join(metadata_directory, f))]
         subframe_names = []
         subframe_poses = []
+        grasp_names = []
+        grasp_transforms = []
         if object_name in objects_with_metadta:
             with open(os.path.join(metadata_directory, object_name + '.yaml'), 'r') as f:
                 data = yaml.load(f)
             subframes = data['extra_frames']
+            grasps = data['grasp_points']
 
             # Create the transformation between the world and the collision object        
             transformer = tf.Transformer(True, rospy.Duration(10.0))
@@ -201,9 +204,33 @@ class AssyReader():
 
                 subframe_poses.append(subframe_pose)
 
+            for grasp in grasps:
+                grasp_names.append(grasp['grasp_name'])
+
+                # Create the transformations between the collision object and the given grasp
+                grasp_transform = geometry_msgs.msg.TransformStamped()
+                grasp_transform.header.frame_id = 'OBJECT'
+                grasp_transform.child_frame_id = grasp['grasp_name']
+                grasp_transform.transform.translation.x = float(grasp['pose_xyzrpy'][0])
+                grasp_transform.transform.translation.y = float(grasp['pose_xyzrpy'][1])
+                grasp_transform.transform.translation.z = float(grasp['pose_xyzrpy'][2])
+                quaternion = tf.transformations.quaternion_from_euler(self._tofloat(grasp['pose_xyzrpy'][3]),self._tofloat(grasp['pose_xyzrpy'][4]),self._tofloat(grasp['pose_xyzrpy'][5]))
+                grasp_transform.transform.rotation = geometry_msgs.msg.Quaternion(*quaternion)
+    
+                transformer.setTransform(grasp_transform)
+
+                # Get the pose of the grasp in the world frame and add the grasp pose to the grasp poses of the collision object
+                (trans,rot) = transformer.lookupTransform('WORLD', grasp['grasp_name'], rospy.Time(0))
+
+                grasp_trans = geometry_msgs.msg.Transform()
+                grasp_trans.translation = geometry_msgs.msg.Vector3(*trans)
+                grasp_trans.rotation = geometry_msgs.msg.Quaternion(*rot)
+
+                grasp_transforms.append(grasp_trans)
+
         else:
             print('\nObject \'' + object_name + '\' has no metadata defined!\nReturning empty metadta information!\n')
-        return (subframe_names, subframe_poses)
+        return (subframe_names, subframe_poses, grasp_names, grasp_transforms)
 
 
     def _make_collision_object_from_mesh(self, name, pose, filename, scale=(1, 1, 1)):
@@ -260,7 +287,7 @@ class AssyReader():
         pyassimp.release(scene)
         return co
 
-    def get_collision_objects_with_subframes(self):
+    def get_collision_objects_with_metadata(self):
         '''
         Return a list of collision objects of the parts listed in 'parts list'
 
@@ -276,12 +303,13 @@ class AssyReader():
 
         # List of collision objects to return
         collision_objects = []
+        grasps = []
 
         for part in self._parts_list:
             # Find mesh
             mesh_file = os.path.join(self._directory, 'meshes', part['cad'])
 
-            # Set thepose of the collision object for the origin of the 'world' frame
+            # Set the pose of the collision object for the origin of the 'world' frame
             posestamped = geometry_msgs.msg.PoseStamped()
             posestamped.header.frame_id = 'world'
             collision_object_pose = geometry_msgs.msg.Pose()
@@ -289,18 +317,28 @@ class AssyReader():
             posestamped.pose = collision_object_pose
 
             # subframe_names, subframe_poses = self._read_subframe_csv(part['id'])
-            subframe_names, subframe_poses = self._read_object_metadata(part['name'])
+            subframe_names, subframe_poses, grasp_names, grasp_trans = self._read_object_metadata(part['name'])
+
+            grasp_transforms = []
+            for (name, transform) in zip(grasp_names, grasp_trans):
+                grasp_transform = geometry_msgs.msg.TransformStamped()
+                grasp_transform.header.frame_id = 'world'
+                grasp_transform.child_frame_id = name
+                grasp_transform.transform = transform
+                grasp_transforms.append(grasp_transform)
 
             collision_object = self._make_collision_object_from_mesh(part['name'], posestamped, mesh_file, scale=(0.001, 0.001, 0.001))
 
             collision_object.subframe_names = subframe_names
             collision_object.subframe_poses = subframe_poses
 
+            grasps.append({'part_name': part['name'], 'grasps': grasp_transforms})
+
             # Here do we need the 'type' field of collision object (can be filled in from parts_list)?
 
             collision_objects.append(collision_object)
 
-        return collision_objects
+        return (collision_objects, grasps)
 
     def _read_frames_to_mate_csv(self):
 

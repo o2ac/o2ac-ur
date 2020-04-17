@@ -49,13 +49,22 @@ class AssyHandler():
     def __init__(self, assembly_name="wrs_assembly_1"):
         self._reader = AssyReader(assembly_name)
         self._broadcaster = tf2_ros.StaticTransformBroadcaster()
-        self.collision_objects = self._reader.get_collision_objects_with_subframes()
+        self.collision_objects, self.grasps = self._reader.get_collision_objects_with_metadata()
         self.assembly_tree = self._reader.get_assembly_tree(self.collision_objects)
+        self._load_grasps_to_param_server(assembly_name)
 
     def change_assembly(self, assembly_name):
         self._reader.change_assembly(assembly_name)
-        self.collision_objects = self._reader.get_collision_objects_with_subframes()
+        self.collision_objects, self.grasps = self._reader.get_collision_objects_with_metadata()
         self.assembly_tree = self._reader.get_assembly_tree(self.collision_objects)
+
+    def _load_grasps_to_param_server(self, namespace):
+        for part in self.grasps:
+            for grasp in part['grasps']:
+              d = {'position': [grasp.transform.translation.x, grasp.transform.translation.y, grasp.transform.translation.z],
+               'orientation': [grasp.transform.rotation.x, grasp.transform.rotation.y, grasp.transform.rotation.z, grasp.transform.rotation.w]}
+              param_name = '/'.join(['', namespace, part['part_name'], grasp.child_frame_id])
+              rospy.set_param(param_name, d)
 
     def publish_target_frames(self, assy_pose = None):
         '''
