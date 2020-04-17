@@ -1,0 +1,16 @@
+# This action should be called when the camera looks at the tray.
+# It is only used for grasping the belt.
+
+# Request (sent from the action client to the action server)
+string item_id     # Name of the item. Can be empty or "belt"
+string camera_id   # Which camera to use. "a_bot_cam_outside", "a_bot_cam_inside"...
+
+---
+# Result (returned from the server to the client)
+
+bool succeeded
+float32 confidence
+geometry_msgs/PoseStamped[] grasp_candidates  # x-axis should point into the tray, y-axis along the belt
+
+---
+# Feedback (values that can be sent to the client while the action is running)

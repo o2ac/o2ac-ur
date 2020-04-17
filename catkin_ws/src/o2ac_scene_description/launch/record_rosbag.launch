@@ -1,0 +1,19 @@
+<launch>
+  <arg name="record_cameras" default="false" />
+  <arg name="record_robots" default="false" />
+  <arg name="record_all" default="true" />
+
+  <arg name="file_dir" default="/$(find o2ac_scene_description)/../../bagfiles/" />
+
+ <node pkg="rosbag" type="record" name="rosbag_record_cam"
+       args="record -o /$(find o2ac_scene_description)/../../bagfiles/cameras -e '/._bot_(in|out)side_camera/(.*)' -x '/._bot_(in|out)side_camera/(.*)'" 
+       if="$(arg record_cameras)" />
+
+ <node pkg="rosbag" type="record" name="rosbag_record_robots"
+       args="record -o /$(find o2ac_scene_description)/../../bagfiles/robots /joint_states -e '/._bot/(.*)' -x '/._bot_(in|out)side_camera/(.*)'"
+       if="$(arg record_robots)" />
+
+ <node pkg="rosbag" type="record" name="rosbag_record_all"
+       args="record -o /$(find o2ac_scene_description)/../../bagfiles/o2ac -a"
+       if="$(arg record_all)" />
+</launch>

@@ -45,7 +45,10 @@ import geometry_msgs.msg
 import std_msgs.msg
 import std_srvs.srv
 
+
 import o2ac_routines.helpers
+from o2ac_routines.base import O2ACBase
+
 
 import o2ac_msgs.msg   # This is needed to advertise the actions
 import sensor_msgs.msg # This is needed to receive images from the camera
@@ -66,15 +69,39 @@ class O2ACVision(object):
     # http://wiki.ros.org/actionlib_tutorials/Tutorials/Writing%20a%20Simple%20Action%20Server%20using%20the%20Execute%20Callback%20%28Python%29
     self.detect_object_action_server = actionlib.SimpleActionServer("detectObject", o2ac_msgs.msg.detectObjectAction, 
         execute_cb = self.detect_object_callback, auto_start = True)
-    self.detect_object_orientation_server = actionlib.SimpleActionServer("detectOrientation", o2ac_msgs.msg.detectOrientationAction, 
-        execute_cb = self.detect_orientation_callback, auto_start = True)
-    self.detect_object_cable_tip_server = actionlib.SimpleActionServer("detectCableTip", o2ac_msgs.msg.detectCableTipAction, 
+    self.detect_orientation_from_front_view_server = actionlib.SimpleActionServer("detectOrientationFromFrontView", o2ac_msgs.msg.detectOrientationFromFrontViewAction, 
+        execute_cb = self.detect_orientation_from_front_view_callback, auto_start = True)
+    self.get_grasp_candidates_server = actionlib.SimpleActionServer("getGraspCandidates", o2ac_msgs.msg.getGraspCandidatesAction, 
+        execute_cb = self.get_grasp_candidates_callback, auto_start = True)
+    self.detect_cable_tip_server = actionlib.SimpleActionServer("detectCableTip", o2ac_msgs.msg.detectCableTipAction, 
         execute_cb = self.detect_cable_tip_callback, auto_start = True)
+    self.detect_object_tip_server = actionlib.SimpleActionServer("detectObjectTip", o2ac_msgs.msg.detectObjectTipAction, 
+        execute_cb = self.detect_object_tip_callback, auto_start = True)
+    self.get_tip_distance_to_hole_server = actionlib.SimpleActionServer("getTipDistanceToHole", o2ac_msgs.msg.getTipDistanceToHoleAction, 
+        execute_cb = self.get_tip_distance_to_hole_callback, auto_start = True)
+    self.adjust_pulley_angle_server = actionlib.SimpleActionServer("adjustPulleyAngle", o2ac_msgs.msg.adjustPulleyAngleAction, 
+        execute_cb = self.adjust_pulley_angle_callback, auto_start = True)
 
-    self.estimate_tooltip_distance_server = actionlib.SimpleActionServer("estimateTooltipDistance", o2ac_msgs.msg.estimateTooltipDistanceAction, 
-        execute_cb = self.estimate_tooltip_distance_callback, auto_start = True)
-    
+    self.use_robots = False
+    if self.use_robots:
+      self.robots = O2ACBase()
+
     rospy.loginfo("O2AC_vision has started up!")
+
+  ### ======= Helper functions
+
+  def move_camera_to_pose(self, target_pose, camera_id="a_bot_outside", camera_frame=""):
+    # TODO (felixvd): Move the camera to the target pose
+    if not camera_frame:
+      # construct the link frame
+    
+    return self.robots.go_to_pose_goal(robot_name, goal_pose)
+
+  def turn_pulley(self, pulley_name, angle):
+    # TODO (felixvd): 
+    return self._turn_pulley_client.get_result()
+
+  ### ======= Action server definitions
 
   def detect_object_callback(self, goal):
     rospy.loginfo("Received a request to detect object named " + goal.object_id)
@@ -96,9 +123,9 @@ class O2ACVision(object):
     o2ac_routines.helpers.publish_marker(action_result.detected_pose, "pose")
     self.detect_object_action_server.set_succeeded(action_result)
   
-  def detect_orientation_callback(self, goal):
+  def detect_orientation_from_front_view_callback(self, goal):
     rospy.loginfo("Received a request to detect orientation of " + goal.object_id)
-    action_result = o2ac_msgs.msg.detectOrientationActionResult()
+    action_result = o2ac_msgs.msg.detectOrientationFromFrontViewActionResult()
 
     # First, obtain the image from the camera and convert it
     image_msg = rospy.wait_for_message("/" + goal.camera_id + "/color", sensor_msgs.msg.Image, 1.0)
@@ -109,13 +136,28 @@ class O2ACVision(object):
     # object should be turned to arrive at the target position would be best.
     if goal.object_id == "bearing":
       goal.angle_offset = self.detect_bearing_angle(cv_image)
-    elif goal.object_id == "motor_pulley":
-      goal.angle_offset = self.detect_motor_pulley_screw_hole(cv_image)
     elif goal.object_id == "large_pulley":
       goal.angle_offset = self.detect_large_pulley_angle(cv_image)
     
     # Return
-    self.detect_object_orientation_server.set_succeeded(action_result)
+    self.detect_orientation_from_front_view_server.set_succeeded(action_result)
+
+  def detect_orientation_from_front_view_callback(self, goal):
+    rospy.loginfo("Received a request to detect grasp candidates for belt")
+    action_result = o2ac_msgs.msg.getGraspCandidatesActionResult()
+
+    # First, obtain the image from the camera and convert it
+    image_msg = rospy.wait_for_message("/" + goal.camera_id + "/color", sensor_msgs.msg.Image, 1.0)
+    cv_image = bridge.imgmsg_to_cv2(image_message, desired_encoding="passthrough")
+
+    # Detect grasp candidates
+    if goal.object_id == "bearing":
+      goal.grasp_candidates = self.detect_bearing_angle(cv_image)
+    elif goal.object_id == "large_pulley":
+      goal.grasp_candidates = self.detect_large_pulley_angle(cv_image)
+    
+    # Return
+    self.get_grasp_candidates_server.set_succeeded(action_result)
 
   def detect_cable_tip_callback(self, goal):
     rospy.loginfo("Received a request to detect the tip of the cable")
@@ -125,37 +167,73 @@ class O2ACVision(object):
     cv_image = bridge.imgmsg_to_cv2(image_message, desired_encoding="passthrough")
 
     # Detect the cable tip
-    detected_pose = self.detect_object_in_image(cv_image)
-    if not detected_pose:
-      self.detect_object_cable_tip_server.set_aborted(action_result)
+    detected_point = self.detect_cable_tip_in_image(cv_image)
+    if not detected_point:
+      self.detect_cable_tip_server.set_aborted(action_result)
     else:
-      action_result.detected_pose.pose = detected_pose
-    action_result.detected_pose.header.frame_id = goal.camera_id + "_camera_color_frame"
+      action_result.detected_point = detected_point
+    action_result.detected_point.header.frame_id = goal.camera_id + "_camera_color_frame"
+    
+    # Return
+    o2ac_routines.helpers.publish_marker(action_result.detected_pose, "pose")
+    self.detect_cable_tip_server.set_succeeded(action_result)
+  
+  def detect_object_tip_callback(self, goal):
+    rospy.loginfo("Received a request to detect the tip of the object")
+    action_result = o2ac_msgs.msg.detectObjectTipActionResult()
+
+    image_msg = rospy.wait_for_message("/" + goal.camera_id + "/color", sensor_msgs.msg.Image, 1.0)
+    cv_image = bridge.imgmsg_to_cv2(image_message, desired_encoding="passthrough")
+
+    # Detect the object tip
+    detected_point = self.detect_object_tip_in_image(cv_image)
+    if not detected_point:
+      self.detect_object_tip_server.set_aborted(action_result)
+    else:
+      action_result.detected_pose = detected_point
     
     # Return
     o2ac_routines.helpers.publish_marker(action_result.detected_pose, "pose")
     self.detect_object_cable_tip_server.set_succeeded(action_result)
 
-  def estimate_tooltip_distance_callback(self, goal):
-    rospy.loginfo("Received a request to detect the tooltip distance to target")
-    action_result = o2ac_msgs.msg.estimateTooltipDistanceActionResult()
+  def get_tip_distance_to_hole_callback(self, goal):
+    rospy.loginfo("Received a request to detect the tooltip distance to target hole")
+    action_result = o2ac_msgs.msg.getTipDistanceToHoleActionResult()
 
     image_msg = rospy.wait_for_message("/" + goal.camera_id + "/color", sensor_msgs.msg.Image, 1.0)
     cv_image = bridge.imgmsg_to_cv2(image_message, desired_encoding="passthrough")
 
     # Detect the image
-    target_pose = self.detect_object_in_image(cv_image)
-    if not target_pose:
-      self.estimate_tooltip_distance_server.set_aborted(action_result)
+    target_hole_pose = self.detect_object_in_image(cv_image)
+    if not target_hole_pose:
+      self.get_tip_distance_to_hole_server.set_aborted(action_result)
     else:
-      action_result.detected_pose.pose = target_pose
-    action_result.detected_pose.header.frame_id = goal.camera_id + "_camera_color_frame"
+      action_result.detected_pose = target_hole_pose
     
     # Return
     o2ac_routines.helpers.publish_marker(action_result.detected_pose, "pose")
-    self.estimate_tooltip_distance_server.set_succeeded(action_result)
+    self.get_tip_distance_to_hole_server.set_succeeded(action_result)
 
-### =======
+  def adjust_pulley_angle_callback(self, goal):
+    rospy.loginfo("Received a request to adjust pulley " + goal.pulley_name)
+    action_result = o2ac_msgs.msg.adjustPulleyAngleActionResult()
+
+    image_msg = rospy.wait_for_message("/" + goal.camera_id + "/color", sensor_msgs.msg.Image, 1.0)
+    cv_image = bridge.imgmsg_to_cv2(image_message, desired_encoding="passthrough")
+
+    # Detect the cable tip
+    success = self.adjust_pulley_angle(goal.pulley_name, goal.camera_id)
+    if not success:
+      self.adjust_pulley_angle_server.set_aborted(action_result)
+    else:
+      action_result.detected_point = detected_point
+    action_result.detected_point.header.frame_id = goal.camera_id + "_camera_color_frame"
+    
+    # Return
+    o2ac_routines.helpers.publish_marker(action_result.detected_pose, "pose")
+    self.adjust_pulley_angle_server.set_succeeded(action_result)
+
+  ### ======= Implementations
     
   def detect_object_in_image(self, cv_image):
     # TODO: Detect the object here
@@ -164,6 +242,28 @@ class O2ACVision(object):
       object_pose = []
     return object_pose
   
+  def detect_cable_tip_in_image(self, cv_image):
+    # TODO: Detect the cable tip here
+    success = True
+    if not success:
+      object_pose = []
+    return object_pose
+  
+  def detect_object_tip_in_image(self, cv_image):
+    # TODO: Detect the object tip here
+    success = True
+    if not success:
+      object_pose = []
+    return object_pose
+  
+  def detect_belt_grasp_candidates(self, cv_image):
+    # TODO: Detect the belt grasp candidates here. 
+    # Each grasp candidate is a pose. The x-axis should point into the tray, the y-axis along the belt.
+    success = True
+    if not success:
+      grasp_candidates = []
+    return grasp_candidates
+
   def detect_bearing_angle(self, cv_image):
     # TODO: Detect the difference between current and target angle of the bearing
     success = True
@@ -187,12 +287,17 @@ class O2ACVision(object):
       angle = []
     return angle
 
-  def estimate_tooltip_distance(self, cv_image):
+  def get_tip_distance_to_hole(self, cv_image):
     # TODO: Detect the tooltip and estimate the distance between it and the presumed target.
     success = True
     if not success:
       target_pose = []
     return target_pose
+  
+  def adjust_pulley_angle(self, pulley_name, camera_id):
+    # TODO: Find the set screw hole or screws and turn them so they face the camera
+    success = True
+    return success
 
 if __name__ == '__main__':
   try:

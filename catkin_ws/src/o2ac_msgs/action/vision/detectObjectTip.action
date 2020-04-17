@@ -1,0 +1,15 @@
+# This action is called to find the tip of a tool or an object held
+# by the robot gripper. 
+
+# Request
+geometry_msgs/PointStamped expected_tip_point
+string camera_id      # Which camera should be used: a_bot_outside, b_bot_inside...
+
+---
+# Result
+bool succeeded
+float32 confidence
+geometry_msgs/PointStamped detected_point
+
+---
+# Feedback (values that can be sent to the client while the action is running)

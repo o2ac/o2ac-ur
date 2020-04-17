@@ -5,15 +5,13 @@
 
   <!-- Calibration parameters -->
   <xacro:property name="a_bot_x" value="-0.0"/>
-  <xacro:property name="a_bot_y" value="-0.445"/>
-  <xacro:property name="a_bot_y_base_offset" value="-0.08"/>   <!-- Moves the robot around on its plate -->
+  <xacro:property name="a_bot_y" value="-0.525"/>
   <xacro:property name="a_bot_theta" value="0.0"/>
   <xacro:property name="b_bot_x" value="-0.0"/>
   <xacro:property name="b_bot_y" value="0.525"/>
   <xacro:property name="b_bot_theta" value="-3.141"/>
 
   <xacro:property name="bots_z" value="0.75"/>
-
 
   <!-- common stuff -->
   <xacro:include filename="$(find ur_description)/urdf/common.gazebo.xacro" />
@@ -28,15 +26,15 @@
   <!-- Scene items (trays, columns, tools, jigs, feeders...) -->
   <xacro:include filename="$(find o2ac_scene_description)/urdf/o2ac_environment.xacro" />
   <!-- <xacro:include filename="$(find flexwrist_experiment)/urdf/2020-01-experiment-scene.xacro" /> -->
-  <xacro:include filename="$(find o2ac_scene_description)/urdf/taskboard_scene.xacro" />
-  <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/assembly_scene.xacro" /> -->
+  <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/taskboard_scene.xacro" /> -->
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/assembly_scene.xacro" />
   
   <!-- Robot bases -->
   <!-- Putting these at height 0.0 makes them intersect with the ground, so they are elevated. -->
   <!-- There are some instabilities in Gazebo when the box is big, for some reason. -->
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_base.xacro" />
   <xacro:o2ac_base boxname="a_bot_base_smfl" parent="o2ac_ground">
-    <origin xyz="${a_bot_x-.65/2} ${a_bot_y+a_bot_y_base_offset-.65/2} ${bots_z-.05}" rpy="0 0 0" />
+    <origin xyz="${a_bot_x-.65/2} ${a_bot_y-.65/2} ${bots_z-.05}" rpy="0 0 0" />
   </xacro:o2ac_base>
   <xacro:o2ac_base boxname="b_bot_base_smfl" parent="o2ac_ground">
     <origin xyz="${b_bot_x-.65/2} ${b_bot_y-.65/2} ${bots_z-.05}" rpy="0 0 0" />
@@ -57,16 +55,6 @@
     <child link="workspace_center" />
     <origin xyz="0.0 0.0 ${bots_z-robot_mount_plate+workplate_h}" rpy="0.0 0.0 0.0" />
   </joint>
-  
-  <!-- robot arms -->    
-  <!-- <xacro:panda_arm arm_id="panda" />
-  <xacro:hand ns="panda" rpy="0 0 ${-pi/4}" connected_to="panda_link8"/>
-  <joint name="panda_tip_joint" type="fixed">
-    <parent link="panda_link8"/>
-    <child link="panda_tip"/>
-    <origin rpy="0.0 -1.5708 -0.7854" xyz="0.0 0.0 .11 "/>
-  </joint>
-  <link name="panda_tip"/> -->
 
   <xacro:ur5e_robot prefix="a_bot_" joint_limited="true"
     shoulder_pan_lower_limit="${-pi}" shoulder_pan_upper_limit="${pi}"
@@ -109,8 +97,8 @@
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector.urdf.xacro" />
   <xacro:o2ac_end_effector prefix="a_bot_" use_soft_wrist="false" use_cameras="true" parent = "a_bot_ee_link" />
   
-  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector.urdf.xacro" />
-  <xacro:o2ac_end_effector prefix="b_bot_" use_soft_wrist="false" use_cameras="true" parent = "b_bot_ee_link" />
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector_old.urdf.xacro" />
+  <xacro:o2ac_end_effector_old prefix="b_bot_" use_soft_wrist="false" use_cameras="true" parent = "b_bot_ee_link" />
 
   <!-- Add cameras -->
   <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/components/_d435.urdf.xacro" />

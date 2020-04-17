@@ -52,4 +52,19 @@
     <origin xyz="0.05 -0.2 0" rpy="0 0 0" />   
   </xacro:tray> 
 
+
+
+  <!-- <link name="scene_cam_holder_link" />
+  <joint name="scene_cam_holder_joint" type="fixed">
+    <parent link="workspace_center" />
+    <child link="scene_cam_holder_link" />
+    <origin xyz="-0.265 0.03 0.115" rpy="0 0 ${pi/2}" />
+  </joint>
+
+  <xacro:include filename="$(find realsense2_description)/urdf/_d435.urdf.xacro" />
+  <xacro:arg name="use_nominal_extrinsics" default="True" />
+  <xacro:sensor_d435 parent="scene_cam_holder_link" name="scene_cam">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </xacro:sensor_d435> -->
+
 </robot>

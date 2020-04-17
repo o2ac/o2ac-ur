@@ -15,7 +15,10 @@
   <include file="$(find o2ac_scene_description)/launch/osx_arms_bringup.launch"/>
   
   <!-- ======================================== -->
+    
+  <include file="$(find o2ac_scene_description)/launch/osx_bringup_cameras.launch"/>
   
+  <!-- ======================================== -->
   <!-- Grippers -->
   <include file="$(find robotiq_control)/launch/ur_cmodel_action_controller.launch">
     <arg name="namespace" value="a_bot" />
@@ -33,22 +36,4 @@
     <arg name="serial_port_1" default="/dev/for_docker/screw" />
   </include> -->
 
-  
-  <!-- Realsense parameters -->
-  <arg name="trigger_mode" default="false"/>
-
-  <!-- scene camera -->
-  <!-- serial_no 605201001486 is ID60*86 -->
-  <!-- serial_no 819612071364 is probably a D435 -->
-  <!-- <include file="$(find realsense2_camera)/launch/rs_camera.launch">
-    <arg name="camera" default="scene_camera"/>
-    <arg name="serial_no" value="635201000481"/> 
-    <arg name="enable_pointcloud" value="false"/>
-    <arg name="fisheye_fps"         default="15"/>
-    <arg name="depth_fps"           default="15"/>
-    <arg name="infra_fps"           default="15"/>
-    <arg name="color_fps"           default="30"/>
-    <arg name="enable_infra1"       default="false"/>
-    <arg name="enable_infra2"       default="false"/>
-  </include> -->
 </launch>
