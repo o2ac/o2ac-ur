@@ -42,6 +42,8 @@ import tf_conversions
 import tf
 from math import pi
 from math import *
+import traceback
+import time
 
 from o2ac_msgs.srv import *
 import actionlib
@@ -83,40 +85,59 @@ class TaskboardClass(O2ACCommon):
     q2 = [q2_msg.x, q2_msg.y, q2_msg.z, q2_msg.w]
     return geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_multiply(q1, q2))
     
-  def  _example_objects(self):
+  def spawn_example_objects(self):
     # This function spawns the objects into the tray as if they had been recognized by the vision node
-    names = ["taskboard_idler_pulley_small", "bearing", "drive_shaft", "motor_pulley", "endcap"]
+    names = ["taskboard_idler_pulley_small", "bearing", "drive_shaft", "motor_pulley"]
     offsets = {"bearing": [-.04, -.02, .001],
-    "taskboard_idler_pulley_small": [.05, .06, .03], 
+    "taskboard_idler_pulley_small": [.07, .06, .03], 
     "drive_shaft": [.03, -.06, .005], 
-    "motor_pulley": [.01, .08, .005], 
+    "motor_pulley": [-.01, .12, .005], 
     "endcap": [-.05, -.1, .005]}
+
+    # We publish each object to its own frame.
+    broadcaster = tf.TransformBroadcaster()
+    counter = 0
     for name in names:
       collision_object = self.assy_reader.get_collision_object(name)
       if collision_object:
-        collision_object.header.frame_id = "tray_center"
-        if name == "bearing" or name == "taskboard_idler_pulley_small" or name == "endcap" or name == "motor_pulley":
-          q_rotate = self.downward_orientation
+        counter += 1
+        collision_object.header.frame_id = "collision_object_spawn_helper_frame" + str(counter)
+        if name == "bearing":
+          q_rotate = tf_conversions.transformations.quaternion_from_euler(0, pi/2, 0)
+        if name == "taskboard_idler_pulley_small" or name == "motor_pulley":
+          q_rotate = tf_conversions.transformations.quaternion_from_euler(0, pi/2, 0)
         elif name == "drive_shaft":
-          q_rotate = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
+          q_rotate = tf_conversions.transformations.quaternion_from_euler(0, 0, 0)
           
         offset = offsets[name]
-        for poselist in [collision_object.mesh_poses, collision_object.subframe_poses]:
-          for pose in poselist:
-            pose.position.x += offset[0]
-            pose.position.y += offset[1]
-            pose.position.z += offset[2]
-            pose.orientation = self.multiply_quaternion_msgs(pose.orientation, q_rotate)
+        broadcaster.sendTransform((offset[0], offset[1], offset[2]), q_rotate, rospy.Time.now(), 
+            "collision_object_spawn_helper_frame" + str(counter), "tray_center")
+        rospy.sleep(2.0) # Wait for the transform to have propagated through the system
+
         self.planning_scene_interface.add_object(collision_object)
-        print("======== collision object: " + name)
-        print(collision_object.mesh_poses)
-        print(collision_object.subframe_names)
-        print(collision_object.subframe_poses)
+        # print("======== collision object: " + name)
+        # print(collision_object.mesh_poses)
+        # print(collision_object.subframe_names)
+        # print(collision_object.subframe_poses)
       else:
         rospy.logerr("Could not retrieve collision object:" + name)
 
   #####
   
+  def allow_collision_with_hand(self, robot_name, object_name):
+    self.planning_scene_interface.allow_collisions(object_name, robot_name + "_robotiq_85_tip_link")
+    self.planning_scene_interface.allow_collisions(object_name, robot_name + "_robotiq_85_left_finger_tip_link")
+    self.planning_scene_interface.allow_collisions(object_name, robot_name + "_robotiq_85_left_inner_knuckle_link")
+    self.planning_scene_interface.allow_collisions(object_name, robot_name + "_robotiq_85_right_finger_tip_link")
+    self.planning_scene_interface.allow_collisions(object_name, robot_name + "_robotiq_85_right_inner_knuckle_link")
+
+  def disallow_collision_with_hand(self, robot_name, object_name):
+    self.planning_scene_interface.disallow_collisions(object_name, robot_name + "_robotiq_85_tip_link")
+    self.planning_scene_interface.disallow_collisions(object_name, robot_name + "_robotiq_85_left_finger_tip_link")
+    self.planning_scene_interface.disallow_collisions(object_name, robot_name + "_robotiq_85_left_inner_knuckle_link")
+    self.planning_scene_interface.disallow_collisions(object_name, robot_name + "_robotiq_85_right_finger_tip_link")
+    self.planning_scene_interface.disallow_collisions(object_name, robot_name + "_robotiq_85_right_inner_knuckle_link")
+
   def full_taskboard_task(self):
     self.start_task_timer()
     self.go_to_named_pose("home", "b_bot", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
@@ -326,19 +347,134 @@ class TaskboardClass(O2ACCommon):
         self.do_change_tool_action("b_bot", equip=False, screw_size = screw_size)
       self.go_to_named_pose("back", "b_bot", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
 
-    if task_name == "Pulley":
-      rospy.logerr("Pulley is not implemented yet!")
-    if task_name == "Bearing":
-      rospy.logerr("Bearing is not implemented yet!")
-    if task_name == "Shaft":
-      rospy.logerr("Shaft is not implemented yet!")
+    if task_name == "pulley":
+      # pick up pulley
+      self.allow_collision_with_hand('b_bot', 'motor_pulley')
+      pick_pose = geometry_msgs.msg.PoseStamped()
+      pick_pose.header.frame_id = "move_group/motor_pulley"
+      pick_pose.pose.position = geometry_msgs.msg.Point(-0.02, 0, 0)
+      pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, pi))
+      tool_name = "motor_pulley"
+      robot_name = "b_bot"
+      taskboard.simple_pick("b_bot", pick_pose, item_id_to_attach="motor_pulley")
+      # insert pulley
+      self.allow_collision_with_hand('b_bot', 'taskboard_base')
+      insert_pose = geometry_msgs.msg.PoseStamped()
+      insert_pose.header.frame_id = "taskboard_small_shaft"
+      insert_pose.pose.position = geometry_msgs.msg.Point(0.025, 0, 0)
+      insert_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi/2, pi, pi))
+      taskboard.simple_place("b_bot", insert_pose, item_id_to_detach="motor_pulley")
+      self.disallow_collision_with_hand('b_bot', 'taskboard_base')
+      self.disallow_collision_with_hand('b_bot', 'motor_pulley')
+      self.planning_scene_interface.allow_collisions('motor_pulley', 'taskboard_small_shaft')
+      self.planning_scene_interface.allow_collisions('motor_pulley', 'taskboard_base')
+      self.planning_scene_interface.allow_collisions('taskboard_base', 'taskboard_plate')
+      # Go back to home position
+      taskboard.go_to_named_pose("home","b_bot")
+    if task_name == "bearing":
+      # Check if bearing is facing upright
+      bearing_hole_pose = geometry_msgs.msg.PoseStamped()
+      bearing_hole_pose.header.frame_id = "move_group/bearing/front_hole"
+      bearing_hole_pose.pose.orientation.w = 1.0
+      bearing_hole_pose_in_world = taskboard.listener.transformPose("workspace_center", bearing_hole_pose)
+      self.allow_collision_with_hand('b_bot', 'bearing')
+      if (bearing_hole_pose_in_world.pose.position.z < 0.03): # Bearing faces upward
+        rospy.loginfo("Regrasp and Insert")
+        # Pick up the bearing by b_bot
+        rospy.loginfo("Pick up the bearing")
+        pick_pose = geometry_msgs.msg.PoseStamped()
+        pick_pose.header.frame_id = "move_group/bearing"
+        pick_pose.pose.position = geometry_msgs.msg.Point(-0.065, 0, 0)
+        pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-pi/2, 0, 0))
+        taskboard.simple_pick("b_bot", pick_pose, item_id_to_attach="bearing", approach_height=-0.05, grasp_height=-0.05, sign=-1)
+        # Hand over the bearing from b_bot to a_bot
+        rospy.loginfo("Handover pose (B)")
+        taskboard.go_to_named_pose("bearing_handover", "b_bot")
+        rospy.loginfo("Handover pose (A)")
+        handover_pose = geometry_msgs.msg.PoseStamped()
+        handover_pose.header.frame_id = "b_bot_robotiq_85_tip_link"
+        handover_pose.pose.position = geometry_msgs.msg.Point(0.05, 0, 0)
+        handover_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-pi/2, 0, pi))
+        taskboard.go_to_pose_goal("a_bot", handover_pose, move_lin=False)
+        rospy.loginfo("Handover")
+        handover_pose2 = geometry_msgs.msg.PoseStamped()
+        handover_pose2.header.frame_id = "b_bot_robotiq_85_tip_link"
+        handover_pose2.pose.position = geometry_msgs.msg.Point(-0.01, 0, 0)
+        handover_pose2.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-pi/2, 0, pi))
+        taskboard.go_to_pose_goal("a_bot", handover_pose2, move_lin=False)
+        taskboard.groups["b_bot"].detach_object("bearing")
+        taskboard.groups["a_bot"].attach_object("bearing")
+        # Move hands to avoid collision
+        rospy.loginfo("Escape")
+        taskboard.go_to_pose_goal("a_bot", handover_pose, move_lin=False)
+        taskboard.go_to_named_pose("home","b_bot")
+      else:
+        # pick up bearing
+        pick_pose = geometry_msgs.msg.PoseStamped()
+        pick_pose.header.frame_id = "move_group/bearing"
+        pick_pose.pose.position = geometry_msgs.msg.Point(-0.03, 0.0, 0.0)
+        pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi/2, 0, pi))
+        taskboard.simple_pick("a_bot", pick_pose, item_id_to_attach="bearing")
+      # insert bearing
+      rospy.loginfo("Insert bearing by a_bot")
+      self.allow_collision_with_hand('b_bot', 'taskboard_plate')
+      self.allow_collision_with_hand('b_bot', 'taskboard_bearing_target_link')
+      insert_pose = geometry_msgs.msg.PoseStamped()
+      insert_pose.header.frame_id = "taskboard_bearing_target_link"
+      insert_pose.pose.position = geometry_msgs.msg.Point(0.02, 0.0, 0.0)
+      insert_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi/2, 0, 0))
+      taskboard.simple_place("a_bot", insert_pose, item_id_to_detach="bearing")
+      self.disallow_collision_with_hand('b_bot', 'bearing')
+      self.disallow_collision_with_hand('b_bot', 'taskboard_bearing_target_link')
+      # self.planning_scene_interface.allow_collisions('taskboard_base', 'taskboard_plate')
+      self.planning_scene_interface.allow_collisions('bearing', 'taskboard_plate')
+      taskboard.go_to_named_pose("home","a_bot")
+    if task_name == "shaft":
+      # pick up shaft
+      pick_pose = geometry_msgs.msg.PoseStamped()
+      pick_pose.header.frame_id = "move_group/drive_shaft"
+      pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi, pi/2, pi))
+      pick_pose.pose.position = geometry_msgs.msg.Point(0.08, 0.0, -0.05)
+      self.allow_collision_with_hand('b_bot', 'drive_shaft')
+      taskboard.simple_pick("a_bot", pick_pose, item_id_to_attach="drive_shaft", axis="z")
+      # insert shaft
+      insert_pose = geometry_msgs.msg.PoseStamped()
+      insert_pose.header.frame_id = "taskboard_assy_part_07_front_hole"
+      insert_pose.pose.position = geometry_msgs.msg.Point(-0.04, 0.0, -0.01)
+      insert_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, pi))
+      self.allow_collision_with_hand('b_bot', 'taskboard_assy_part_07')
+      self.allow_collision_with_hand('b_bot', 'taskboard_assy_part_07_front_hole')
+      taskboard.simple_place("a_bot", insert_pose, approach_height=0.1, place_height=0.1, item_id_to_detach="drive_shaft")
+      self.disallow_collision_with_hand('b_bot', 'taskboard_assy_part_07')
+      self.disallow_collision_with_hand('b_bot', 'taskboard_assy_part_07_front_hole')
+      self.disallow_collision_with_hand('b_bot', 'drive_shaft')
+      self.planning_scene_interface.allow_collisions('drive_shaft', 'taskboard_assy_part_07')
+      self.planning_scene_interface.allow_collisions('taskboard_assy_part_07', 'taskboard_plate')
+      # Go back to home position
+      taskboard.go_to_named_pose("home","a_bot")
     if task_name == "Idler pulley":
       rospy.logerr("Idler pulley is not implemented yet!")
+    if i == "screw_bearing":
+        taskboard.equip_tool('a_bot', 'screw_tool_m3')
+        taskboard.go_to_named_pose("screw_bearing","a_bot")
+        for n in range(4):
+          screw_pose = geometry_msgs.msg.PoseStamped()
+          screw_pose.header.frame_id = "move_group/bearing/screw_hole_" + str(n+1)
+          screw_pose.pose.position = geometry_msgs.msg.Point(-0.01, 0.0, 0.0)
+          screw_pose_in_world = taskboard.listener.transformPose("workspace_center", screw_pose)
+          screw_pose_in_world.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi, 0))
+          taskboard.go_to_pose_goal("a_bot", screw_pose_in_world, end_effector_link = "a_bot_screw_tool_m3_tip_link", move_lin=False)
+          if self.use_real_robot:
+            self.do_screw_action("a_bot", screw_pose)
+          else:
+            time.sleep(1.0)
+        taskboard.unequip_tool('a_bot', 'screw_tool_m3')
 
 if __name__ == '__main__':
   try:
     taskboard = TaskboardClass()
     taskboard.spawn_example_objects()
+    taskboard.define_tool_collision_objects()
 
     i = 1
     while(i):
@@ -356,19 +492,6 @@ if __name__ == '__main__':
 
       if i == "start":
         taskboard.full_taskboard_task()
-      if i == "y001":  # insert shaft sample
-        pick_pose = geometry_msgs.msg.PoseStamped()
-        pick_pose.header.frame_id = "tray_center"
-        pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, 0))
-        pick_pose.pose.position.z = 0.1
-        taskboard.go_to_pose_goal("a_bot", pick_pose, speed=0.1, end_effector_link="a_bot_robotiq_85_tip_link", move_lin = False)
-        # taskboard.pick("a_bot", ...)
-        insert_pose = geometry_msgs.msg.PoseStamped()
-        insert_pose.header.frame_id = "taskboard_small_shaft"
-        insert_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
-        insert_pose.pose.position.z = 0.1
-        taskboard.go_to_pose_goal("a_bot", insert_pose, speed=0.1, end_effector_link="a_bot_robotiq_85_tip_link", move_lin = False)
-        taskboard.do_insert_action("a_bot")
       if i == "11":
         taskboard.do_change_tool_action("b_bot", equip=True, screw_size = 66)
       if i == "12":
@@ -433,12 +556,25 @@ if __name__ == '__main__':
         ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, 0))
         ps.pose.position.x = -0.05
         taskboard.go_to_pose_goal("a_bot", ps, speed=0.1, end_effector_link="a_bot_robotiq_85_tip_link", move_lin = False)
+
+      if i == "f1":
+        pick_pose = geometry_msgs.msg.PoseStamped()
+        pick_pose.header.frame_id = "tray_center"
+        pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
+        pick_pose.pose.position.x = 0.03
+        taskboard.simple_pick("a_bot", pick_pose, approach_height = 0.05, item_id_to_attach = "bearing", lift_up_after_pick=True)
+      if i == "f2":
+        ps = geometry_msgs.msg.PoseStamped()
+        ps.header.frame_id = "tray_center"
+        ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
+        ps.pose.position.z = -0.15
+        taskboard.go_to_pose_goal("a_bot", ps, speed=0.1, end_effector_link="bearing/back_hole", move_lin = False)
       if i == "x":
         break
       try:
         taskboard.do_task(i)
       except:
-        pass
+        traceback.print_exc()
 
     print "============ Done!"
   except rospy.ROSInterruptException:

@@ -155,9 +155,9 @@ class O2ACCommon(O2ACBase):
 
   ########
 
-  def simple_pick(self, robot_name, object_pose, grasp_height=0.0, speed_fast=0.1, speed_slow=0.02, gripper_command="close", approach_height = 0.05, 
+  def simple_pick(self, robot_name, object_pose, grasp_height=0.0, speed_fast=0.1, speed_slow=0.02, gripper_command="close", approach_height=0.05, 
           item_id_to_attach = "", lift_up_after_pick=True, force_ur_script=False, acc_fast=1.0, acc_slow=.1, gripper_force=40.0,
-          gripper_velocity = .1):
+          gripper_velocity = .1, axis="x", sign=+1):
     """
     This function (outdated) performs a grasp with the robot, but it is not updated in the planning scene.
     It does not use the object in simulation. It can be used for simple tests and prototyping, but should
@@ -173,10 +173,16 @@ class O2ACCommon(O2ACBase):
     else:
       acceleration=1.0
 
-    object_pose.pose.position.z += approach_height
+    if axis =="x":
+      object_pose.pose.position.x += approach_height * sign
+    if axis =="z":
+      object_pose.pose.position.z += approach_height * sign
     rospy.logdebug("Going to height " + str(object_pose.pose.position.z))
     self.go_to_pose_goal(robot_name, object_pose, speed=speed_fast, acceleration=acc_fast, move_lin=True)
-    object_pose.pose.position.z -= approach_height
+    if axis =="x":
+      object_pose.pose.position.x -= approach_height * sign
+    if axis =="z":
+      object_pose.pose.position.z -= approach_height * sign
 
     if gripper_command=="do_nothing":
       pass
@@ -184,10 +190,16 @@ class O2ACCommon(O2ACBase):
       self.send_gripper_command(gripper=robot_name, command="open")
 
     rospy.loginfo("Moving down to object")
-    object_pose.pose.position.z += grasp_height
+    if axis =="x":
+      object_pose.pose.position.x += grasp_height * sign
+    if axis =="z":
+      object_pose.pose.position.z += grasp_height * sign
     rospy.logdebug("Going to height " + str(object_pose.pose.position.z))
     self.go_to_pose_goal(robot_name, object_pose, speed=speed_slow, acceleration=acc_slow, high_precision=True, move_lin=True)
-    object_pose.pose.position.z -= grasp_height
+    if axis =="x":
+      object_pose.pose.position.x -= grasp_height * sign
+    if axis =="z":
+      object_pose.pose.position.z -= grasp_height * sign
 
     if gripper_command=="do_nothing":
       pass
@@ -209,34 +221,39 @@ class O2ACCommon(O2ACBase):
       rospy.sleep(1.0)
       rospy.loginfo("Going back up")
 
-      object_pose.pose.position.z += approach_height
+      if axis =="x":
+        object_pose.pose.position.x += approach_height * sign
+      if axis =="z":
+        object_pose.pose.position.z += approach_height * sign
       rospy.loginfo("Going to height " + str(object_pose.pose.position.z))
       self.go_to_pose_goal(robot_name, object_pose, speed=speed_fast, acceleration=acc_fast, move_lin=True)
-      object_pose.pose.position.z -= approach_height
+      if axis =="x":
+        object_pose.pose.position.x -= approach_height * sign
+      if axis =="z":
+        object_pose.pose.position.z -= approach_height * sign
     return True
 
-  def simple_place(self, robot_name, object_pose, placeheight=0.05, speed_fast=0.1, speed_slow=0.02, 
-      gripper_command="open", approach_height = 0.05, item_id_to_detach = "", lift_up_after_place = True, acc_fast=1.0, acc_slow=.1):
+  def simple_place(self, robot_name, object_pose, place_height=0.05, speed_fast=0.1, speed_slow=0.02, 
+      gripper_command="open", approach_height=0.05, item_id_to_detach = "", lift_up_after_place = True, acc_fast=1.0, acc_slow=.1):
     """
     A very simple place operation. item_id_to_detach is used to update the planning scene by
     removing an item that has been attached (=grasped) by the robot in the MoveIt planning scene.
     It is ignored if empty.
 
-    This procedure works by changing the z axis of the target pose's frame. 
+    This procedure works by changing the x axis of the target pose's frame. 
     It may produce dangerous motions in other configurations.
     """
     #self.publish_marker(object_pose, "place_pose")
     self.log_to_debug_monitor("Place", "operation")
     rospy.loginfo("Going above place target")
-    object_pose.pose.position.z += approach_height
-    self.go_to_pose_goal(robot_name, object_pose, speed=speed_fast, acceleration=acc_fast, move_lin=True)
-    object_pose.pose.position.z -= approach_height
-
+    object_pose.pose.position.x -= approach_height
+    self.go_to_pose_goal(robot_name, object_pose, speed=speed_fast, acceleration=acc_fast, move_lin=False)
+   
     rospy.loginfo("Moving to place target")
-    object_pose.pose.position.z += place_height
-    self.go_to_pose_goal(robot_name, object_pose, speed=speed_slow, acceleration=acc_slow, move_lin=True)
-    object_pose.pose.position.z -= place_height
-
+    object_pose.pose.position.x += place_height
+    self.go_to_pose_goal(robot_name, object_pose, speed=speed_slow, acceleration=acc_slow, move_lin=False)
+    object_pose.pose.position.x -= place_height
+    
     #gripper open
     if gripper_command=="do_nothing":
       pass
@@ -244,13 +261,11 @@ class O2ACCommon(O2ACBase):
       self.send_gripper_command(gripper=robot_name, command="open")
 
     if item_id_to_detach:
-      self.groups[robot_name].attach_object(item_id_to_attach, robot_name + "_ee_link")
+      self.groups[robot_name].detach_object(item_id_to_detach)
 
     if lift_up_after_place:
       rospy.loginfo("Moving back up")
-      object_pose.pose.position.z += approach_height
-      self.go_to_pose_goal(robot_name, object_pose, speed=speed_fast, move_lin=True)  
-      object_pose.pose.position.z -= approach_height
+      self.go_to_pose_goal(robot_name, object_pose, speed=speed_fast, move_lin=False)  
     return True
 
 
