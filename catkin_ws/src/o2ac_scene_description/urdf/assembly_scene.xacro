@@ -8,14 +8,10 @@
   
   <xacro:include filename="$(find o2ac_parts_description)/urdf/assembly_parts_macros.urdf.xacro"/>
   <!-- <xacro:include filename="$(find o2ac_parts_description)/urdf/display_all_parts.urdf.xacro"/> -->
-
-  <!-- The holes in the new table are spaced 10 cm apart. (.65/2) is the width of the robot base. 15 mm is the bracket. -->
-  <!-- -.415+.65/2 = -.415+.325 = -.09 -->
-  <xacro:property name="assy_dx" value="-.09" />
   
   <xacro:include filename="$(find o2ac_parts_description)/urdf/generated/full_assembly.urdf.xacro"/>
-  <xacro:full_assembly prefix="assembled_" parent="workspace_center">
-    <origin xyz="${assy_dx} 0.11 .08" rpy="0 0 ${-pi/2}" />
+  <xacro:full_assembly prefix="assembled_" parent="attached_base_origin_link">
+    <origin xyz=".12 .2 0" rpy="0 0 ${-pi/2}" />
   </xacro:full_assembly>
 
   <!-- <xacro:include filename="$(find o2ac_parts_description)/urdf/generated/full_assembly_frames_only.urdf.xacro"/>

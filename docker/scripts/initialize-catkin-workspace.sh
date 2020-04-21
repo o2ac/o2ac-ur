@@ -43,3 +43,9 @@ cd /root/catkin_ws/ && rosdep install --from-paths src --ignore-src -r -y
 ## "Extending: [env] /root/underlay_ws/devel:/opt/ros/melodic"
 cd /root/catkin_ws/ && catkin config -init && catkin build
 source /root/catkin_ws/devel/setup.bash
+
+################################################################################
+
+# Generate the URDF files in o2ac_parts_description
+
+rosrun o2ac_parts_description generate_urdf_from_meshes.py
