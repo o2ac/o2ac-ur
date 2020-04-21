@@ -21,9 +21,8 @@
     <origin xyz="${vert_column_x_back} -.2 1.05" rpy="0 0 0" />   
   </xacro:o2ac_box> 
 
-
   <!-- Screw holder & screw tool visual -->
-  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/screw_tools.xacro" />
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/tools.xacro" />
 
   <!-- Add screw feeders -->
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/screw_feeder.xacro" />
@@ -35,6 +34,19 @@
     <origin xyz="-.55 -.15 -0.043" rpy="0 0 0" />   
   </xacro:screw_feeder> 
 
+  <!-- Base fixture -->
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/base_fixture.xacro" />
+  <xacro:base_fixture parent="workspace_center">
+    <origin xyz="-0.27 -.18 0" rpy="0 0 0" />   
+  </xacro:base_fixture> 
+
+  <!-- Tray -->
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/tray.xacro" />
+  <xacro:tray trayname="tray" parent="workspace_center">
+    <origin xyz="0.05 -0.2 0" rpy="0 0 0" />   
+  </xacro:tray> 
+
+
   <!-- Add the jigs -->
   <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/components/jig_flat_slope.xacro" />
   <xacro:jig_flat_slope jigname="jig_flat_slope" parent="horizontal_column_1">
@@ -45,14 +57,6 @@
   <!-- <xacro:jig_v_slope jigname="jig_v_slope" parent="horizontal_column_1">
     <origin xyz="0 0 0" rpy="0 0 0" />   
   </xacro:jig_v_slope>  -->
-
-  <!-- Tray -->
-  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/tray.xacro" />
-  <xacro:tray trayname="tray" parent="workspace_center">
-    <origin xyz="0.05 -0.2 0" rpy="0 0 0" />   
-  </xacro:tray> 
-
-
 
   <!-- <link name="scene_cam_holder_link" />
   <joint name="scene_cam_holder_joint" type="fixed">
