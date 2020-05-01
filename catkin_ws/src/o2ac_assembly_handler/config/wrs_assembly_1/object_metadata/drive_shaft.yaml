@@ -1,4 +1,4 @@
-extra_frames:
+subframes:
 - pose_xyzrpy:
   - 0.075
   - 0.0
@@ -6,7 +6,7 @@ extra_frames:
   - -pi/2
   - 0.0
   - 0.0
-  subframe_name: front_tip
+  name: front_tip
 - pose_xyzrpy:
   - 0.026
   - 0.0
@@ -14,7 +14,7 @@ extra_frames:
   - pi/2
   - 0.0
   - pi
-  subframe_name: inserted
+  name: inserted
 - pose_xyzrpy:
   - 0.0
   - 0.0
@@ -22,7 +22,7 @@ extra_frames:
   - pi/2
   - 0.0
   - pi
-  subframe_name: back_tip
+  name: back_tip
 grasp_points:
 - grasp_name: grasp_1
   pose_xyzrpy:

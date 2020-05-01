@@ -1,4 +1,4 @@
-extra_frames:
+subframes:
 - pose_xyzrpy:
   - 0.033
   - 0.04
@@ -6,7 +6,7 @@ extra_frames:
   - -pi/2
   - pi/2
   - 0.0
-  subframe_name: back_hole
+  name: back_hole
 - pose_xyzrpy:
   - 0.006
   - 0.0
@@ -14,7 +14,7 @@ extra_frames:
   - -pi/2
   - 0.0
   - -pi/2
-  subframe_name: bottom_screw_hole_aligner_1
+  name: bottom_screw_hole_aligner_1
 - pose_xyzrpy:
   - 0.064
   - 0.0
@@ -22,7 +22,7 @@ extra_frames:
   - -pi/2
   - 0.0
   - -pi/2
-  subframe_name: bottom_screw_hole_aligner_2
+  name: bottom_screw_hole_aligner_2
 - pose_xyzrpy:
   - 0.006
   - 0.005
@@ -30,7 +30,7 @@ extra_frames:
   - -pi/2
   - 0.0
   - -pi/2
-  subframe_name: bottom_screw_hole_1
+  name: bottom_screw_hole_1
 - pose_xyzrpy:
   - 0.064
   - 0.005
@@ -38,7 +38,7 @@ extra_frames:
   - -pi/2
   - 0.0
   - -pi/2
-  subframe_name: bottom_screw_hole_2
+  name: bottom_screw_hole_2
 - pose_xyzrpy:
   - 0.04275
   - 0.04642
@@ -46,7 +46,7 @@ extra_frames:
   - -pi/2
   - -pi/2
   - 0.0
-  subframe_name: motor_screw_hole_1
+  name: motor_screw_hole_1
 - pose_xyzrpy:
   - 0.0505
   - 0.033
@@ -54,7 +54,7 @@ extra_frames:
   - -pi/2
   - -pi/2
   - 0.0
-  subframe_name: motor_screw_hole_2
+  name: motor_screw_hole_2
 - pose_xyzrpy:
   - 0.04275
   - 0.01958
@@ -62,7 +62,7 @@ extra_frames:
   - -pi/2
   - -pi/2
   - 0.0
-  subframe_name: motor_screw_hole_3
+  name: motor_screw_hole_3
 - pose_xyzrpy:
   - 0.02725
   - 0.01958
@@ -70,7 +70,7 @@ extra_frames:
   - -pi/2
   - -pi/2
   - 0.0
-  subframe_name: motor_screw_hole_4
+  name: motor_screw_hole_4
 - pose_xyzrpy:
   - 0.0195
   - 0.033
@@ -78,7 +78,7 @@ extra_frames:
   - -pi/2
   - -pi/2
   - 0.0
-  subframe_name: motor_screw_hole_5
+  name: motor_screw_hole_5
 - pose_xyzrpy:
   - 0.02725
   - 0.04642
@@ -86,7 +86,7 @@ extra_frames:
   - -pi/2
   - -pi/2
   - 0.0
-  subframe_name: motor_screw_hole_6
+  name: motor_screw_hole_6
 grasp_points:
 - grasp_name: grasp_1
   pose_xyzrpy:
