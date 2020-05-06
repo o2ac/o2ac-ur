@@ -1,16 +1,15 @@
 Panels:
   - Class: rviz/Displays
-    Help Height: 70
+    Help Height: 0
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /Status1
         - /MotionPlanning1/Scene Robot1
         - /MotionPlanning1/Planning Request1
         - /MotionPlanning1/Planned Path1
-        - /TF1/Frames1
-      Splitter Ratio: 0.7425600290298462
-    Tree Height: 374
+        - /Image1
+      Splitter Ratio: 0.5462822318077087
+    Tree Height: 140
   - Class: rviz/Help
     Name: Help
   - Class: rviz/Views
@@ -1573,83 +1572,83 @@ Visualization Manager:
       Frames:
         All Enabled: false
         a_bot_base:
-          Value: true
+          Value: false
         a_bot_base_link:
-          Value: true
+          Value: false
         a_bot_base_smfl:
-          Value: true
+          Value: false
         a_bot_cam_mount:
-          Value: true
+          Value: false
         a_bot_dual_suction_gripper_pad_link:
-          Value: true
+          Value: false
         a_bot_ee_link:
-          Value: true
+          Value: false
         a_bot_forearm_link:
-          Value: true
+          Value: false
         a_bot_inside_cam_camera_color_frame:
-          Value: true
+          Value: false
         a_bot_inside_cam_camera_color_optical_frame:
           Value: true
         a_bot_inside_cam_camera_connector_link:
-          Value: true
+          Value: false
         a_bot_inside_cam_camera_depth_frame:
-          Value: true
+          Value: false
         a_bot_inside_cam_camera_depth_optical_frame:
-          Value: true
+          Value: false
         a_bot_inside_cam_camera_left_ir_frame:
-          Value: true
+          Value: false
         a_bot_inside_cam_camera_left_ir_optical_frame:
-          Value: true
+          Value: false
         a_bot_inside_cam_camera_link:
-          Value: true
+          Value: false
         a_bot_inside_cam_camera_right_ir_frame:
-          Value: true
+          Value: false
         a_bot_inside_cam_camera_right_ir_optical_frame:
-          Value: true
+          Value: false
         a_bot_inside_cam_link:
-          Value: true
+          Value: false
         a_bot_nut_tool_m6_tip_link:
           Value: true
         a_bot_outside_cam_camera_color_frame:
-          Value: true
+          Value: false
         a_bot_outside_cam_camera_color_optical_frame:
           Value: true
         a_bot_outside_cam_camera_connector_link:
-          Value: true
+          Value: false
         a_bot_outside_cam_camera_depth_frame:
-          Value: true
+          Value: false
         a_bot_outside_cam_camera_depth_optical_frame:
-          Value: true
+          Value: false
         a_bot_outside_cam_camera_left_ir_frame:
-          Value: true
+          Value: false
         a_bot_outside_cam_camera_left_ir_optical_frame:
-          Value: true
+          Value: false
         a_bot_outside_cam_camera_link:
-          Value: true
+          Value: false
         a_bot_outside_cam_camera_right_ir_frame:
-          Value: true
+          Value: false
         a_bot_outside_cam_camera_right_ir_optical_frame:
-          Value: true
+          Value: false
         a_bot_outside_cam_link:
-          Value: true
+          Value: false
         a_bot_robotiq_85_base_link:
-          Value: true
+          Value: false
         a_bot_robotiq_85_left_finger_link:
-          Value: true
+          Value: false
         a_bot_robotiq_85_left_finger_tip_link:
-          Value: true
+          Value: false
         a_bot_robotiq_85_left_inner_knuckle_link:
-          Value: true
+          Value: false
         a_bot_robotiq_85_left_knuckle_link:
-          Value: true
+          Value: false
         a_bot_robotiq_85_right_finger_link:
-          Value: true
+          Value: false
         a_bot_robotiq_85_right_finger_tip_link:
-          Value: true
+          Value: false
         a_bot_robotiq_85_right_inner_knuckle_link:
-          Value: true
+          Value: false
         a_bot_robotiq_85_right_knuckle_link:
-          Value: true
+          Value: false
         a_bot_robotiq_85_tip_link:
           Value: true
         a_bot_screw_tool_m3_tip_link:
@@ -1661,103 +1660,103 @@ Visualization Manager:
         a_bot_set_screw_tool_tip_link:
           Value: true
         a_bot_shoulder_link:
-          Value: true
+          Value: false
         a_bot_suction_tool_tip_link:
           Value: true
         a_bot_tool0:
-          Value: true
+          Value: false
         a_bot_tool_intermediate_link:
-          Value: true
+          Value: false
         a_bot_upper_arm_link:
-          Value: true
+          Value: false
         a_bot_wrist_1_link:
-          Value: true
+          Value: false
         a_bot_wrist_2_link:
-          Value: true
+          Value: false
         a_bot_wrist_3_link:
-          Value: true
+          Value: false
         attached_base_origin_link:
-          Value: true
+          Value: false
         b_bot_base:
-          Value: true
+          Value: false
         b_bot_base_link:
-          Value: true
+          Value: false
         b_bot_base_smfl:
-          Value: true
+          Value: false
         b_bot_cam_mount:
-          Value: true
+          Value: false
         b_bot_dual_suction_gripper_pad_link:
-          Value: true
+          Value: false
         b_bot_ee_link:
-          Value: true
+          Value: false
         b_bot_forearm_link:
-          Value: true
+          Value: false
         b_bot_ft300_link:
-          Value: true
+          Value: false
         b_bot_inside_cam_camera_color_frame:
-          Value: true
+          Value: false
         b_bot_inside_cam_camera_color_optical_frame:
           Value: true
         b_bot_inside_cam_camera_connector_link:
-          Value: true
+          Value: false
         b_bot_inside_cam_camera_depth_frame:
-          Value: true
+          Value: false
         b_bot_inside_cam_camera_depth_optical_frame:
-          Value: true
+          Value: false
         b_bot_inside_cam_camera_left_ir_frame:
-          Value: true
+          Value: false
         b_bot_inside_cam_camera_left_ir_optical_frame:
-          Value: true
+          Value: false
         b_bot_inside_cam_camera_link:
-          Value: true
+          Value: false
         b_bot_inside_cam_camera_right_ir_frame:
-          Value: true
+          Value: false
         b_bot_inside_cam_camera_right_ir_optical_frame:
-          Value: true
+          Value: false
         b_bot_inside_cam_link:
-          Value: true
+          Value: false
         b_bot_nut_tool_m6_tip_link:
           Value: true
         b_bot_outside_cam_camera_color_frame:
-          Value: true
+          Value: false
         b_bot_outside_cam_camera_color_optical_frame:
           Value: true
         b_bot_outside_cam_camera_connector_link:
-          Value: true
+          Value: false
         b_bot_outside_cam_camera_depth_frame:
-          Value: true
+          Value: false
         b_bot_outside_cam_camera_depth_optical_frame:
-          Value: true
+          Value: false
         b_bot_outside_cam_camera_left_ir_frame:
-          Value: true
+          Value: false
         b_bot_outside_cam_camera_left_ir_optical_frame:
-          Value: true
+          Value: false
         b_bot_outside_cam_camera_link:
-          Value: true
+          Value: false
         b_bot_outside_cam_camera_right_ir_frame:
-          Value: true
+          Value: false
         b_bot_outside_cam_camera_right_ir_optical_frame:
-          Value: true
+          Value: false
         b_bot_outside_cam_link:
-          Value: true
+          Value: false
         b_bot_robotiq_85_base_link:
-          Value: true
+          Value: false
         b_bot_robotiq_85_left_finger_link:
-          Value: true
+          Value: false
         b_bot_robotiq_85_left_finger_tip_link:
-          Value: true
+          Value: false
         b_bot_robotiq_85_left_inner_knuckle_link:
-          Value: true
+          Value: false
         b_bot_robotiq_85_left_knuckle_link:
-          Value: true
+          Value: false
         b_bot_robotiq_85_right_finger_link:
-          Value: true
+          Value: false
         b_bot_robotiq_85_right_finger_tip_link:
-          Value: true
+          Value: false
         b_bot_robotiq_85_right_inner_knuckle_link:
-          Value: true
+          Value: false
         b_bot_robotiq_85_right_knuckle_link:
-          Value: true
+          Value: false
         b_bot_robotiq_85_tip_link:
           Value: true
         b_bot_screw_tool_m3_tip_link:
@@ -1769,21 +1768,21 @@ Visualization Manager:
         b_bot_set_screw_tool_tip_link:
           Value: true
         b_bot_shoulder_link:
-          Value: true
+          Value: false
         b_bot_suction_tool_tip_link:
           Value: true
         b_bot_tool0:
-          Value: true
+          Value: false
         b_bot_upper_arm_link:
-          Value: true
+          Value: false
         b_bot_wrist_1_link:
-          Value: true
+          Value: false
         b_bot_wrist_2_link:
-          Value: true
+          Value: false
         b_bot_wrist_3_link:
-          Value: true
+          Value: false
         b_bot_wrist_camera_helper_link:
-          Value: true
+          Value: false
         back_bar:
           Value: true
         base_fixture_top:
@@ -1819,7 +1818,7 @@ Visualization Manager:
         nut_tool_m6_pickup_link:
           Value: true
         o2ac_ground:
-          Value: true
+          Value: false
         right_bar:
           Value: true
         screw_tool_holder:
@@ -1898,7 +1897,7 @@ Visualization Manager:
           Value: true
         world:
           Value: true
-      Marker Scale: 0.05000000074505806
+      Marker Scale: 0.10000000149011612
       Name: TF
       Show Arrows: false
       Show Axes: true
@@ -2153,6 +2152,18 @@ Visualization Manager:
                   {}
       Update Interval: 0
       Value: true
+    - Class: rviz/Image
+      Enabled: true
+      Image Topic: /a_bot_inside_cam_camera/color/image_raw
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
+      Name: Image
+      Normalize Range: true
+      Queue Size: 2
+      Transport Hint: raw
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -2169,7 +2180,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 2.275296688079834
+      Distance: 2.1104018688201904
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -2184,24 +2195,26 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.4097965955734253
+      Pitch: 0.37979641556739807
       Target Frame: world
       Value: Orbit (rviz)
-      Yaw: 0.15184155106544495
+      Yaw: 0.01684415712952614
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 1023
+  Height: 1025
   Help:
     collapsed: false
   Hide Left Dock: false
   Hide Right Dock: false
+  Image:
+    collapsed: false
   MotionPlanning:
     collapsed: false
   MotionPlanning - Trajectory Slider:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd000000010000000000000295000003a5fc0200000007fb000000100044006900730070006c006100790073010000003d000001f9000000c900fffffffb0000000800480065006c00700000000342000000bb0000006e00fffffffb0000000a005600690065007700730000000161000000ac000000a400fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670100000374000001890000000000000000fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000004100fffffffb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e0067010000023c000001a60000019b00ffffff000004b2000003a500000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd000000010000000000000295000003a7fc0200000008fb000000100044006900730070006c006100790073010000003d000000c9000000c900fffffffb0000000800480065006c00700000000342000000bb0000006e00fffffffb0000000a005600690065007700730000000161000000ac000000a400fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670100000374000001890000000000000000fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000004100fffffffb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e0067010000010c000001a60000019b00fffffffb0000000a0049006d00610067006501000002b80000012c0000001600ffffff000004b2000003a700000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Views:
     collapsed: false
   Width: 1869

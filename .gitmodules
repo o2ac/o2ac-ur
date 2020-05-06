@@ -9,7 +9,7 @@
 	url = https://github.com/felixvd/moveit_msgs
 [submodule "underlay_ws/src/robotiq"]
 	path = underlay_ws/src/robotiq
-	url = https://github.com/felixvd/robotiq.git
+	url = https://gitlab.com/art-aist/robotiq-cri
 [submodule "underlay_ws/src/third_party/ur_drivers"]
 	path = underlay_ws/src/third_party/ur_drivers
 	url = https://github.com/UniversalRobots/Universal_Robots_ROS_Driver.git
@@ -30,10 +30,10 @@
 	url = https://github.com/t-ueshiba/realsense-ros
 [submodule "underlay_ws/src/ddynamic_reconfigure"]
 	path = underlay_ws/src/ddynamic_reconfigure
-	url = https://github.com/t-ueshiba/ddynamic_reconfigure
+	url = https://gitlab.com/art-aist/ddynamic_reconfigure
 [submodule "underlay_ws/src/aruco_ros"]
 	path = underlay_ws/src/aruco_ros
 	url = https://github.com/pal-robotics/aruco_ros
 [submodule "underlay_ws/src/third_party/realsense"]
 	path = underlay_ws/src/third_party/realsense
-	url = https://github.com/t-ueshiba/realsense-ros.git
+	url = https://gitlab.com/art-aist/realsense-ros

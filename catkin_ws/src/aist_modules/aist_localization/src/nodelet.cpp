@@ -8,7 +8,7 @@
 namespace aist_localization
 {
 /************************************************************************
-*  class DetectorNodelet						*
+*  class LocalizationNodelet						*
 ************************************************************************/
 class LocalizationNodelet : public nodelet::Nodelet
 {

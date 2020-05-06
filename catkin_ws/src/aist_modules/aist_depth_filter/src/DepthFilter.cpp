@@ -35,7 +35,7 @@ DepthFilter::DepthFilter(const std::string& name)
      _colored_normal_pub(_it.advertise("colored_normal", 1)),
      _camera_info_pub(_nh.advertise<camera_info_t>("camera_info", 1)),
      _file_info_pub(_nh.advertise<file_info_t>("file_info", 1)),
-     _ddr(),
+     _ddr(_nh),
      _camera_info(),
      _image(),
      _depth(nullptr),
@@ -171,6 +171,9 @@ DepthFilter::filter_with_normal_cb(const camera_info_cp& camera_info,
     _left   = std::max(0,     std::min(_left,   int(image->width)));
     _right  = std::max(_left, std::min(_right,  int(image->width)));
 
+    if (_top == _bottom || _left == _right)
+	return;
+
     try
     {
 	using	namespace sensor_msgs;
@@ -218,6 +221,9 @@ DepthFilter::filter_without_normal_cb(const camera_info_cp& camera_info,
     _bottom = std::max(_top,  std::min(_bottom, int(image->height)));
     _left   = std::max(0,     std::min(_left,   int(image->width)));
     _right  = std::max(_left, std::min(_right,  int(image->width)));
+
+    if (_top == _bottom || _left == _right)
+	return;
 
     try
     {

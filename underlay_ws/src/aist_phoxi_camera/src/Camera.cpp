@@ -33,7 +33,7 @@ Camera::Camera(const std::string& name)
             0.0       ,    0.0        ,    1.0        }),
      _pointFormat(XYZ),
      _intensityScale(255.0/4095.0),
-     _ddr(),
+     _ddr(_nh),
      _get_device_list_server(
 	 _nh.advertiseService("get_device_list",   &get_device_list,	this)),
      _is_acquiring_server(

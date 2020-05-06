@@ -15,7 +15,7 @@ install_photoneo()
     tar xvf $2.tar
     ./$2.run
     rm $2.tar $2.run
-    cd /opt/PhotoneoPhoXiCotrol-1.2.14/bin/3rdParty
+    cd /opt/PhotoneoPhoXiControl-1.2.14/bin/3rdParty
     mv Qt Qt.BAK
 }
 
