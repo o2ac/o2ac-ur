@@ -1,0 +1,3 @@
+string object_name        # [object_name].plcf gives configuration
+---
+bool success

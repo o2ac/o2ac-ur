@@ -1,5 +1,6 @@
 <?xml version="1.0" ?>
 <launch>
+
   <arg name="data_dir"		default="~/data/WRS_Dataset"/>
   <arg name="intrinsic"		default="~/data/realsense_intrinsic.json"/>
   <arg name="camera_frame"	default="map"/>
@@ -11,18 +12,15 @@
     <param name="camera_frame"	value="$(arg camera_frame)"/>
   </node>
 
-  <!-- <include file="$(find aist_depth_filter)/launch/run.launch" -->
-  <!-- 	   ns="$(arg camera_name)"> -->
-  <!--   <arg name="camera_info_topic"	value="color/camera_info"/> -->
-  <!--   <arg name="image_topic"		value="color/image_raw"/> -->
-  <!--   <arg name="depth_topic"		value="aligned_depth_to_color/image_raw"/> -->
-  <!--   <arg name="normal_topic"		value=""/> -->
-  <!-- </include> -->
+  <include file="$(find aist_depth_filter)/launch/run.launch"
+  	   ns="feeder">
+    <arg name="camera_info_topic"	value="camera_info"/>
+    <arg name="image_topic"		value="image"/>
+    <arg name="depth_topic"		value="depth"/>
+    <arg name="normal_topic"		value=""/>
+  </include>
 
-  <arg name="command_args"
-       value="-d $(find aist_depth_filter)/launch/feeder.rviz"/>
-  <node name="$(anon rviz)" pkg="rviz" type="rviz"
-	respawn="false" args="$(arg command_args)" output="screen"/>
+  <node name="$(anon rviz)" pkg="rviz" type="rviz" output="screen"
+	args="-d $(find aist_depth_filter)/launch/feeder.rviz"/>
 
-  <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure"/>
 </launch>

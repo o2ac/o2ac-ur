@@ -319,6 +319,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ################################################################################
 
+# Install PhoXiControl
+RUN /root/scripts/install-phoxi-control.sh
+
+################################################################################
+
+# Install PhotoneoLocalizationSDK
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	libssh2-1
+RUN /root/scripts/install-photoneo-localization.sh
+
+################################################################################
+
 # Define the working directory.
 WORKDIR /root/
 
@@ -326,11 +338,7 @@ WORKDIR /root/
 COPY ./docker/scripts/. /root/scripts/
 RUN chmod -R +x /root/scripts/*
 
-# Install PhoXiControl
-RUN /root/scripts/install-phoxi-control.sh
-
-# Install PhotoneoLocalizationSDK
-RUN /root/scripts/install-photoneo-localization.sh
+################################################################################
 
 # Setup the Bash shell environment with '/root/.bashrc'.
 RUN cat /root/scripts/initialize-bash-shell.sh >> /root/.bashrc

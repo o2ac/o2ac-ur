@@ -25,4 +25,4 @@ if [ `lsb_release -sc` == "bionic" ]; then
     install_pkg libw/libwebp libwebpmux1_0.4.4-1_amd64.deb
 fi
 
-install_photoneo Localization/1.2.2 PhotoneoLocalizationSDKInstaller-1.2.2+49076c4-Linux-gcc5.4.0.run
+install_photoneo Localization/1.3.1 PhotoneoLocalizationSDKInstaller-1.3.1+ed614d8-Linux-gcc5.5.0.run

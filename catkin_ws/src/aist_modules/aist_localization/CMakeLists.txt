@@ -23,6 +23,7 @@ find_package(
     actionlib
     geometry_msgs
     std_msgs
+    ddynamic_reconfigure
     tf
     aist_depth_filter
 )
@@ -37,6 +38,7 @@ include_directories(
   ${PHOLOCALIZATION_INCLUDE_DIRS}
 )
 
+add_service_files(DIRECTORY srv)
 add_action_files(DIRECTORY action)
 
 generate_messages(

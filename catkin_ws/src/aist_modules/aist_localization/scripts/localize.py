@@ -1,49 +1,22 @@
 #!/usr/bin/env python
 
-import re
-import rospy, argparse
+import rospy, sys, re
 from aist_depth_filter  import DepthFilterClient
 from aist_localization  import LocalizationClient
 from aist_model_spawner import ModelSpawnerClient
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Localize through depth filter')
-    parser.add_argument('-c',
-                        '--camera_name',
-                        action='store',
-                        nargs='?',
-                        default="a_bot_camera",
-                        type=str,
-                        choices=None,
-                        help='camera name',
-                        metavar=None)
-    parser.add_argument('-n',
-                        '--number_of_poses',
-                        action='store',
-                        nargs='?',
-                        default=2,
-                        type=int,
-                        choices=None,
-                        help='the number of candidate poses',
-                        metavar=None)
-    parser.add_argument('-t',
-                        '--timeout',
-                        action='store',
-                        nargs='?',
-                        default=10,
-                        type=float,
-                        choices=None,
-                        help='timeout value',
-                        metavar=None)
-    args = parser.parse_args()
+if __name__ == "__main__":
 
-    rospy.init_node('localization_client')
+    rospy.init_node("~")
+    camera_name = rospy.get_param("camera_name", "a_bot_camera")
+    nposes      = rospy.get_param("nposes", 2)
+    timeout     = rospy.get_param("timeout", 10)
 
-    dfilter   = DepthFilterClient(args.camera_name + "/depth_filter")
+    dfilter   = DepthFilterClient(camera_name + "/depth_filter")
     dfilter.set_window_radius(2)
-    localizer = LocalizationClient(args.camera_name + "/localization")
+    localizer = LocalizationClient(camera_name + "/localizer")
     spawner   = ModelSpawnerClient()
-    models    = rospy.get_param("aist_localization", [])
+    models    = rospy.get_param("models", [])
 
     while not rospy.is_shutdown():
         print("\nmodels: {}\n".format(models))
@@ -52,21 +25,22 @@ if __name__ == '__main__':
             if key == "q":
                 break
             num = int(key)
+            model = [m for m in models if int(re.split("[_-]", m)[0]) == num][0]
 
             spawner.delete_all()
+            dfilter.savePly()             # Load PLY to the localizer
+            localizer.load_config(model)  # Load model to the localizer
+            localizer.send_goal(nposes)   # Start localization
+            (poses, overlaps, success) \
+                = localizer.wait_for_result(rospy.Duration(timeout))
+            print("{} poses found. Overlaps are {}."
+                  .format(len(poses), overlaps))
 
-            for model in models:
-                if int(re.split("[_-]", model)[0]) == num:
-                    dfilter.savePly()
-                    localizer.send_goal(model, args.number_of_poses)
-                    (poses, overlaps, success) \
-                        = localizer.wait_for_result(rospy.Duration(args.timeout))
-                    print("{} poses found. Overlaps are {}."
-                          .format(len(poses), overlaps))
+            for pose in reversed(poses):
+                spawner.add(model, pose)
+                rospy.sleep(3)
 
-                    for pose in reversed(poses):
-                        spawner.add(model, pose)
-                        rospy.sleep(3)
-                    break
         except ValueError:
             print("Please specify model number.")
+        except KeyboardInterrupt:
+            sys.exit()

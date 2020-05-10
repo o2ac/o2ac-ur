@@ -8,16 +8,28 @@ from aist_depth_filter import DepthFilterClient
 #########################################################################
 #  class ImagePublisher                                                 #
 #########################################################################
-class ImagePublisher(object):
-    def __init__(self, data_dir, frame, intrinsic):
-        super(ImagePublisher, self).__init__()
+class ImageFeeder(object):
+    _Colors = ((0, 0, 255), (0, 255, 0), (255, 0, 0),
+               (255, 255, 0), (255, 0, 255), (0, 255, 255))
+
+    def __init__(self, data_dir):
+        super(ImageFeeder, self).__init__()
 
         self._data_dir = data_dir
+
+        filename = rospy.get_param("intrinsic", "realsense_intrinsic.json")
+        with open(data_dir + "/" + filename) as f:
+            try:
+                intrinsic = json.loads(f.read())
+                pprint.pprint(intrinsic, width=40)
+            except Exception as e:
+                print(e)
+                return
 
         Kt = intrinsic["intrinsic_matrix"]
         K  = [Kt[0], Kt[3], Kt[6], Kt[1], Kt[4], Kt[7], Kt[2], Kt[5], Kt[8]]
         self._cinfo                  = smsg.CameraInfo()
-        self._cinfo.header.frame_id  = frame
+        self._cinfo.header.frame_id  = rospy.get_param("frame", "map")
         self._cinfo.height           = intrinsic["height"]
         self._cinfo.width            = intrinsic["width"]
         self._cinfo.distortion_model = "plumb_bob"
@@ -32,6 +44,9 @@ class ImagePublisher(object):
                                           smsg.CameraInfo, queue_size=1)
         self._image_pub = rospy.Publisher("~image", smsg.Image, queue_size=1)
         self._depth_pub = rospy.Publisher("~depth", smsg.Image, queue_size=1)
+
+        self._dfilter   = DepthFilterClient("~depth_filter")
+        self._dfilter.set_window_radius(2)
 
     def load_and_publish_images(self, annotation_filename):
         try:
@@ -54,13 +69,17 @@ class ImagePublisher(object):
             print(annotation_filename + ": " + str(e))
             return
 
-        now = rospy.Time.now()
-        self._cinfo.header.stamp = now
-        imgmsg.header = self._cinfo.header
-        dptmsg.header = self._cinfo.header
-        self._cinfo_pub.publish(self._cinfo)
-        self._image_pub.publish(imgmsg)
-        self._depth_pub.publish(dptmsg)
+        for bbox in bboxes:
+            self._dfilter.set_roi(bbox[1], bbox[3], bbox[0], bbox[2])
+            now = rospy.Time.now()
+            self._cinfo.header.stamp = now
+            imgmsg.header = self._cinfo.header
+            dptmsg.header = self._cinfo.header
+            self._cinfo_pub.publish(self._cinfo)
+            self._image_pub.publish(imgmsg)
+            self._depth_pub.publish(dptmsg)
+            if raw_input("  Hit return key >> ") == "q":
+                sys.exit()
 
     def draw_bbox(self, image, id, bbox):
         colors = ((0, 0, 255), (0, 255, 0), (255, 0, 0),
@@ -79,22 +98,10 @@ class ImagePublisher(object):
 if __name__ == "__main__":
 
     rospy.init_node("~")
-    data_dir       = rospy.get_param("data_dir",  "~/data/WRS_Dataset")
-    intrinsic_file = rospy.get_param("intrinsic", "realsense_intrinsic.json")
-    frame          = rospy.get_param("frame",     "map")
 
-    data_dir = os.path.expanduser(data_dir)
-    with open(data_dir + "/" + intrinsic_file) as f:
-        try:
-            intrinsic = json.loads(f.read())
-            pprint.pprint(intrinsic, width=40)
-        except Exception as e:
-            print(e)
-
-    print("{}x{}: {}".format(intrinsic["width"], intrinsic["height"],
-                             intrinsic["intrinsic_matrix"]))
-
-    image_publisher = ImagePublisher(data_dir, frame, intrinsic)
+    data_dir = os.path.expanduser(rospy.get_param("data_dir",
+                                                  "~/data/WRS_Dataset"))
+    feeder   = ImageFeeder(data_dir)
 
     while not rospy.is_shutdown():
         datasets = ("Close", "Far")
@@ -102,6 +109,5 @@ if __name__ == "__main__":
             annotation_filenames = glob.glob(data_dir + "/Annotations/" +
                                              dataset + "/Image-wise/*.json")
             for annotation_filename in annotation_filenames:
-                image_publisher.load_and_publish_images(annotation_filename)
-                if raw_input("Hit return key >> ") == "q":
-                    sys.exit()
+                print("*** " + annotation_filename)
+                feeder.load_and_publish_images(annotation_filename)

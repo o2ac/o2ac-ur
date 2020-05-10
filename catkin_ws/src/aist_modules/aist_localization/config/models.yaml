@@ -1,7 +1,7 @@
-aist_localization:
-  - 01_BASE
-  - 02_PANEL
-  - 03_PANEL2
+models:
+  - 01-BASE
+  - 02-PANEL
+  - 03-PANEL2
   - 04_37D-GEARMOTOR-50-70
   - 05_MBRFA30-2-P6
   - 07_SBARB6200ZZ_30

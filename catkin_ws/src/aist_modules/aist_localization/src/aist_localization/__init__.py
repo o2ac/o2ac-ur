@@ -1,7 +1,8 @@
 import rospy
+import dynamic_reconfigure.client
 import actionlib
-from aist_depth_filter import msg as dmsg
-from aist_localization import msg as lmsg
+from std_srvs          import srv as ssrv
+from aist_localization import msg as lmsg, srv as lsrv
 from operator          import itemgetter
 
 #########################################################################
@@ -11,20 +12,33 @@ class LocalizationClient(object):
     def __init__(self, name="localization"):
         super(LocalizationClient, self).__init__()
 
-        self._file_path_pub = rospy.Publisher(name + "/file_info",
-                                              dmsg.FileInfo, queue_size=1)
-        self._localize = actionlib.SimpleActionClient(name + "/localize",
-                                                      lmsg.LocalizeAction)
+        self._dyn_reconf = dynamic_reconfigure.client.Client(name, timeout=5.0)
+        self._load_plcf = rospy.ServiceProxy(name + "/load_plcf", lsrv.LoadPlcf)
+        self._save_plcf = rospy.ServiceProxy(name + "/load_plcf", ssrv.Trigger)
+        self._localize  = actionlib.SimpleActionClient(name + "/localize",
+                                                       lmsg.LocalizeAction)
         self._localize.wait_for_server()
 
-    def load_scene(self, file_path, frame):
-        self._file_path_pub.publish(file_path, frame)
+    def set_setting(self, name, value):
+        self._dyn_reconf.update_configuration({name : value})
+        return self.get_setting(name)
 
-    def send_goal(self, object_name, number_of_poses=1):
+    def get_setting(self, name):
+        return self.get_settings()[name]
+
+    def get_settings(self):
+        return self._dyn_reconf.get_configuration()
+
+    def load_config(self, object_name):
+        return self._load_plcf(object_name).success
+
+    def save_config(self, object_name):
+        return self._save_plcf().success
+
+    def send_goal(self, number_of_poses=1):
         self._poses    = []
         self._overlaps = []
         goal = lmsg.LocalizeGoal()
-        goal.object_name     = object_name
         goal.number_of_poses = number_of_poses
         self._localize.send_goal(goal, feedback_cb=self._feedback_cb)
 
