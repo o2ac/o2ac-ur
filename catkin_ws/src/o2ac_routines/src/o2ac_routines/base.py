@@ -51,6 +51,7 @@ import robotiq_msgs.msg
 import ur_dashboard_msgs.msg
 import ur_dashboard_msgs.srv
 import std_srvs.srv
+import moveit_task_constructor_msgs.msg
 from std_msgs.msg import Bool
 from shape_msgs.msg import SolidPrimitive
 from geometry_msgs.msg import Pose
@@ -100,6 +101,8 @@ class O2ACBase(object):
     self.regrasp_client = actionlib.SimpleActionClient('/o2ac_skills/regrasp', o2ac_msgs.msg.regraspAction)
     self.screw_client = actionlib.SimpleActionClient('/o2ac_skills/screw', o2ac_msgs.msg.screwAction)
     self.change_tool_client = actionlib.SimpleActionClient('/o2ac_skills/change_tool', o2ac_msgs.msg.changeToolAction)
+
+    self.pick_place_planning_client = actionlib.SimpleActionClient('/pick_place_planning', moveit_task_constructor_msgs.msg.PickPlacePlanningAction)
     
     self._suction_client = actionlib.SimpleActionClient('/suction_control', o2ac_msgs.msg.SuctionControlAction)
     self._fastening_tool_client = actionlib.SimpleActionClient('/screw_tool_control', o2ac_msgs.msg.FastenerGripperControlAction)
@@ -677,6 +680,17 @@ class O2ACBase(object):
     self.screw_client.send_goal(goal)
     self.screw_client.wait_for_result()
     return self.screw_client.get_result()
+
+  def do_pickplace_action(self, robot_name, object_name, object_target_pose, object_frame_to_place):
+    goal = moveit_task_constructor_msgs.msg.PickPlacePlanningGoal()
+    goal.robot = robot_name
+    goal.object_name = object_name
+    goal.object_target_pose = object_target_pose
+    goal.object_frame_to_place = object_frame_to_place
+    rospy.loginfo("Sending pick-place planning goal.")
+    self.pick_place_planning_client.send_goal(goal)
+    self.pick_place_planning_client.wait_for_result()
+    return self.pick_place_planning_client.get_result()
 
   def set_motor(self, motor_name, direction = "tighten", wait=False, speed = 0, duration = 0):
     if not self.use_real_robot:

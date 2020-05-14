@@ -60,6 +60,40 @@ class O2ACCommon(O2ACBase):
     # TODO: Implement this with MTC
     success = False
     return success
+
+  def pick_place(self, robot_name, object_name, object_target_pose, object_frame_to_place, speed = 1.0):
+    """This function picks the object and places its subframe 'object_frame_to_place' at 'object_target_pose'
+    using the robot referred to by 'robot_name'
+    """
+    result = self.do_pickplace_action(robot_name, object_name, object_target_pose, object_frame_to_place)
+    success = False
+    if speed > 1.0:
+      speed = 1.0
+    if result.success:
+      # Execute pick-place task
+      success = True
+      i = 0
+      for solution in result.solution.sub_trajectory:
+        if solution.trajectory.joint_trajectory.joint_names: 
+          #  Joint names is not empty, this is stage that performs motion
+          if len(solution.trajectory.joint_trajectory.joint_names) == 1:
+            # gripper motion
+            if i == 1:
+              self.send_gripper_command(robot_name, 'close', True)
+            else:
+              self.send_gripper_command(robot_name, 'open')
+          else:
+            #robot motion
+            self.activate_ros_control_on_ur(robot_name)
+            group = self.groups[robot_name]
+            plan = group.retime_trajectory(self.robots.get_current_state(), solution.trajectory, speed)
+            plan_success = group.execute(plan, wait=True)
+            success = success and plan_success
+            group.stop()
+    else:
+      rospy.logwarn("Planning pick-place task failed")
+      success = False
+    return success
   
   def look_for_item_in_tray(self, item_name, robot_name):
     """
