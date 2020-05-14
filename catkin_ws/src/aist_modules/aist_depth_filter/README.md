@@ -29,15 +29,15 @@ Compute surface normals from depth images.This is done by fitting a plane to the
 
 Multiply a constant value specified by the parameter `~scale` to the input depths. This function is intended to be used for transforming the unit of distance or compensating errors in the depth scale of the 3D camera.
 
-## Available ROS services
+## ROS services
 
 ### `~/saveBG`
 
 Save the original depth image with no filteres applied to `~/.ros/.tif`. This file is used as the backgroud in processing the subsequent input images.
 
-### `~/savePly`
+### `~/capture`
 
-Create a pointcloud from filtered intensity/color, depth and a normal images, then save it to `~/.ros/scene.ply` in PLY format . After the save operation competed, its file path as well as the frame id of the camera is published to the topic `~/file_info`.
+First, capture the filtered intensity/color, depth and normal images. Then, create a PLY file from them and save it to `~/.ros/scene.ply`. Finally, its file path as well as the frame id of the camera is published to the topic `~/file_info`.
 
 ## ROS parameters
 

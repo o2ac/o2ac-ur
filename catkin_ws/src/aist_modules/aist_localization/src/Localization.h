@@ -12,8 +12,6 @@
 
 #include <ros/ros.h>
 #include <actionlib/server/simple_action_server.h>
-#include <std_srvs/Trigger.h>
-#include <aist_localization/LoadPlcf.h>
 #include <aist_localization/LocalizeAction.h>
 #include <aist_depth_filter/FileInfo.h>
 #include <ddynamic_reconfigure/ddynamic_reconfigure.h>
@@ -44,7 +42,7 @@ class Localization
 	static std::string
 			get_path(const std::string& name)
 			{
-			    auto	path = "User/" + name;
+			    auto	path = name;
 			    std::replace(path.begin(), path.end(), '_', ' ');
 			    return path;
 			}
@@ -59,9 +57,11 @@ class Localization
 	const std::string	path;
     };
 
+  //! Setting parameter of type T for localization
     template <class T>
     struct setting : public setting_base
     {
+      //! Initialize the variable with the current value set to the localizer.
 			setting(const std::string& name,
 				const localization_t& localization)
 			    :setting_base(name), value()
@@ -69,18 +69,22 @@ class Localization
 			    get_from(localization);
 			}
 
+      //! Set the value to the localizer.
 	virtual void	set_to(localization_t& localization) const
 			{
 			    localization.setSetting(path, value);
 
-			    // ROS_INFO_STREAM('\"' << path << "\" <-- " << value);
+			    ROS_DEBUG_STREAM('\"' << path
+					     << "\" <-- " << value);
 			}
 
+      //! Get the value from the localizer.
 	virtual void	get_from(const localization_t& localization)
 			{
 			    value = localization.getSetting<T>(path);
 
-			    // ROS_INFO_STREAM('\"' << path << "\" --> " << value);
+			    ROS_DEBUG_STREAM('\"' << path
+					     << "\" --> " << value);
 			}
 
 	T		value;
@@ -100,31 +104,21 @@ class Localization
 				  const std::string& description,
 				  std::initializer_list<
 					  std::string> vals)		;
-    bool	load_plcf_cb(LoadPlcf::Request&  req,
-			     LoadPlcf::Response& res)			;
-    bool	save_plcf_cb(std_srvs::Trigger::Request&  req,
-			     std_srvs::Trigger::Response& res)		;
     void	file_info_cb(const file_info_cp& file_info)		;
     void	localize_cb(const goal_cp& goal)			;
     void	preempt_cb()					  const	;
-    void	publish_feedback(const pho::sdk::LocalizationPose& locPose,
-				 ros::Time time,
-				 const std::string& object_frame) const	;
 
   private:
     ros::NodeHandle				_nh;
 
     std::string					_camera_frame;
-    std::string					_plcf_dir;
-    std::string					_object_name;
+    std::string					_ply_dir;
 
     std::unique_ptr<localization_t>		_localization;
     pho::sdk::SceneSource			_scene;
     bool					_is_valid_scene;
 
     ros::Subscriber				_file_info_sub;
-    const ros::ServiceServer			_load_plcf_srv;
-    const ros::ServiceServer			_save_plcf_srv;
     server_t					_localize_srv;
 
     ddynamic_reconfigure::DDynamicReconfigure	_ddr;

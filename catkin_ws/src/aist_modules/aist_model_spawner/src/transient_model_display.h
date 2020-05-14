@@ -56,6 +56,7 @@ class Axes;
 namespace rviz
 {
 
+class ColorProperty;
 class FloatProperty;
 class Property;
 class Robot;
@@ -92,6 +93,7 @@ class TransientModelDisplay : public Display
     void		updateVisualVisible()				;
     void		updateCollisionVisible()			;
     void		updateTfPrefix()				;
+    void		updateColor()					;
     void		updateAlpha()					;
     void		updateTopic()					;
 
@@ -118,6 +120,7 @@ class TransientModelDisplay : public Display
     Property*		collision_enabled_property_;
     FloatProperty*	update_rate_property_;
     RosTopicProperty*	model_description_topic_property_;
+    ColorProperty*	color_property_;
     FloatProperty*	alpha_property_;
     StringProperty*	tf_prefix_property_;
 };

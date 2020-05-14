@@ -4,9 +4,8 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /Image1
         - /DepthCloud1/Auto Size1
-      Splitter Ratio: 0.5
+      Splitter Ratio: 0.36058980226516724
     Tree Height: 246
   - Class: rviz/Selection
     Name: Selection
@@ -84,6 +83,36 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
+    - Alpha: 0.5
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 0.1257736086845398
+        Min Value: -0.09906710684299469
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 233; 185; 110
+      Color Transformer: FlatColor
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 4096
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: PointCloud2
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 2
+      Size (m): 0.009999999776482582
+      Style: Points
+      Topic: /a_bot_camera/depth_filter/bottom
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -112,7 +141,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.24725820124149323
+      Distance: 0.5231302976608276
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -127,10 +156,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: -0.14479750394821167
+      Pitch: -0.005203325301408768
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.8832955360412598
+      Yaw: 3.137904405593872
     Saved: ~
 Window Geometry:
   Displays:
@@ -150,5 +179,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1138
-  X: 311
-  Y: 116
+  X: 565
+  Y: 92

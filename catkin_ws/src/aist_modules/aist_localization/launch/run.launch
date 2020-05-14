@@ -7,6 +7,8 @@
   <arg name="normal_topic"	default="normal_map"/>
   <arg name="manager"		default=""/>
   <arg name="plcf_dir"		default="$(find aist_localization)/plcf"/>
+  <arg name="ply_dir"		default="$(find o2ac_parts_description
+					 )/meshes"/>
 
   <!-- Spawn depth_filter -->
   <include file="$(find aist_depth_filter)/launch/run.launch">
@@ -23,6 +25,7 @@
   	output="screen">
     <remap from="/file_info"	to="depth_filter/file_info"/>
     <param name="plcf_dir"	value="$(arg plcf_dir)"/>
+    <param name="ply_dir"	value="$(arg ply_dir)"/>
   </node>
 
   <!-- Spawn localizer as a nodelet if manager name is specified -->
@@ -31,6 +34,7 @@
   	args="load aist_localization/aist_localization_nodelet $(arg manager)">
     <remap from="/file_info"	to="depth_filter/file_info"/>
     <param name="plcf_dir"	value="$(arg plcf_dir)"/>
+    <param name="ply_dir"	value="$(arg ply_dir)"/>
   </node>
 
 </launch>

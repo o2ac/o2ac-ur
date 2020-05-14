@@ -15,15 +15,12 @@ namespace aist_localization
 Localization::Localization(const std::string& name)
     :_nh(name),
      _camera_frame("world"),
-     _plcf_dir(""),
-     _object_name(""),
+     _ply_dir(""),
      _localization(new localization_t()),
      _scene(),
      _is_valid_scene(false),
      _file_info_sub(_nh.subscribe<file_info_t>(
 			"/file_info", 1, &Localization::file_info_cb, this)),
-     _load_plcf_srv(_nh.advertiseService("load_plcf", &load_plcf_cb, this)),
-     _save_plcf_srv(_nh.advertiseService("save_plcf", &save_plcf_cb, this)),
      _localize_srv(_nh, "localize",
 		   boost::bind(&Localization::localize_cb, this, _1), false),
      _ddr(_nh)
@@ -32,8 +29,8 @@ Localization::Localization(const std::string& name)
 	boost::bind(&Localization::preempt_cb, this));
     _localize_srv.start();
 
-    _nh.param("plcf_dir", _plcf_dir,
-	      ros::package::getPath("aist_localization") + "/plcf");
+    _nh.param("ply_dir", _ply_dir,
+	      ros::package::getPath("o2ac_scene_description") + "/meshes");
 
   // Setup dynamic reconfigure parameters for localization.
   //   0: Preprocessing and overall search strategy
@@ -112,6 +109,8 @@ template <class T> void
 Localization::register_variable(const std::string& name,
 				const std::string& description, T min, T max)
 {
+  // Initialize the setting in the dynamic_reconfigure server
+  // with the current value set to the localizer.
     const auto	p = new setting<T>(name, *_localization);
     _settings.emplace_back(p);
     _ddr.registerVariable<T>(name, &p->value, description, min, max);
@@ -126,70 +125,12 @@ Localization::register_variable(const std::string& name,
     for (const auto& val : vals)
 	enum_dict[val] = val;
 
+  // Initialize the setting in the dynamic_reconfigure server
+  // with the current value set to the localizer.
     const auto	p = new setting<std::string>(name, *_localization);
     _settings.emplace_back(p);
     _ddr.registerEnumVariable<std::string>(name, &p->value,
 					   description, enum_dict);
-}
-
-bool
-Localization::load_plcf_cb(LoadPlcf::Request& req, LoadPlcf::Response& res)
-{
-    try
-    {
-	ROS_INFO_STREAM("(Localization) Loading configuration of model["
-			<< req.object_name << "]...");
-
-      // Load configuration.
-	const auto plcf_file = _plcf_dir + '/' + req.object_name + ".plcf";
-	if (!_localization->LoadLocalizationConfiguration(plcf_file))
-	    throw std::runtime_error("  Failed to load configuration["
-				     + plcf_file + "].");
-
-      // Get settings from localizer and publish them.
-	for (auto& setting : _settings)
-	    setting->get_from(*_localization);
-	_ddr.updatePublishedInformation();
-
-	_object_name = req.object_name;
-	res.success = true;
-
-	ROS_INFO_STREAM("(Localization)   succeeded.");
-    }
-    catch (const std::exception& err)
-    {
-	ROS_ERROR_STREAM("(Localization) " << err.what());
-
-	_object_name = "";
-	res.success = false;
-    }
-
-    return true;
-}
-
-bool
-Localization::save_plcf_cb(std_srvs::Trigger::Request&  req,
-			   std_srvs::Trigger::Response& res)
-{
-    try
-    {
-	if (_object_name == "")
-	    throw std::runtime_error("Cannot save configuration because it is empty.");
-
-	ROS_INFO_STREAM("(Localization) Saving configuration for object["
-			<< _object_name << "]...");
-
-	const auto	plcf_file = _plcf_dir + _object_name + ".plcf";
-	if (!_localization->SaveLocalizationConfiguration(plcf_file))
-	    throw std::runtime_error("  Failed to save configuration["
-				     + plcf_file + "].");
-
-	ROS_INFO_STREAM("(Localization)   completed.");
-    }
-    catch (const std::exception& err)
-    {
-	ROS_ERROR_STREAM("(Localization) " << err.what());
-    }
 }
 
 void
@@ -197,16 +138,16 @@ Localization::file_info_cb(const file_info_cp& file_info)
 {
     try
     {
-	ROS_INFO_STREAM("(Localization) Set frame[" << file_info->frame
-			<< "] and loading scene["
-			<< file_info->file_path << "]...");
+	ROS_DEBUG_STREAM("(Localization) Set frame[" << file_info->frame
+			 << "] and loading scene["
+			 << file_info->file_path << "]...");
 
 	_camera_frame = file_info->frame;
 	_scene = pho::sdk::SceneSource::File(file_info->file_path);
 	_localization->SetSceneSource(_scene);
 	_is_valid_scene = true;
 
-	ROS_INFO_STREAM("(Localization)   succeeded.");
+	ROS_DEBUG_STREAM("(Localization)   succeeded.");
     }
     catch (const std::exception& err)
     {
@@ -221,57 +162,55 @@ Localization::localize_cb(const goal_cp& goal)
 {
     try
     {
-	ROS_INFO_STREAM("(Localization) Localizing object...");
+	ROS_INFO_STREAM("(Localization) Localizing object["
+			<< goal->object_name << "]...");
 
 	if (!_is_valid_scene)
 	    throw std::runtime_error("  Scene is not set.");
-	if (_object_name == "")
-	    throw std::runtime_error("  Object model is not set.");
-	ROS_INFO_STREAM("(Localization)   object_name = " << _object_name);
 
-      // Set settings to localizer.
+      // Set model.
+	_localization->RemoveModel();
+	_localization->AddModel(pho::sdk::ModelOfObject::LoadModelFromFile(
+				  _ply_dir + '/' + goal->object_name + ".ply"));
+
+      // Set settings in dynamic_reconfigure server to the localizer.
 	for (const auto& setting : _settings)
 	    setting->set_to(*_localization);
-
-	ROS_INFO_STREAM("(Localization)   setting completed succesfully.");
+	ROS_DEBUG_STREAM("(Localization)   setting completed succesfully.");
 
       // Set stop criteria.
 	_localization->AddStopCriterion(
 	    pho::sdk::StopCriterion::NumberOfResults(goal->number_of_poses));
-
-	ROS_INFO_STREAM("(Localization)   stop citeria succesfully set.");
+	ROS_DEBUG_STREAM("(Localization)   stop citeria succesfully set.");
 
       // Execute localization.
-	const auto	now = ros::Time::now();
-	for (auto queue = _localization->StartAsync();
-	     queue.Size() != goal->number_of_poses; )
+	result_t	result;
+	const auto	now   = ros::Time::now();
+	auto		queue = _localization->StartAsync();
+	for (pho::sdk::LocalizationPose locPose; queue.GetNext(locPose); )
 	{
-	    ROS_INFO_STREAM("(Localization)     "
-			    << queue.Size() << "-th trial.");
-
-	    if (_localize_srv.isPreemptRequested())
-	    {
-		_localization->StopAsync();
-		ROS_INFO_STREAM("(Localization)   preempted.");
-		return;
-	    }
-
-	    pho::sdk::LocalizationPose	locPose;
-	    if (queue.GetNext(locPose, 500))	// Timeout = 500ms
-	    {
-		const auto object_frame = _object_name + '_'
+	    const auto object_frame = goal->object_name + '_'
 					+ std::to_string(queue.Size() - 1);
-		publish_feedback(locPose, now, object_frame);
+	    const auto	k   = 0.001;
+	    const auto&	mat = locPose.Transformation;
+	    const tf::Transform
+		transform(tf::Matrix3x3(mat[0][0], mat[0][1], mat[0][2],
+					mat[1][0], mat[1][1], mat[1][2],
+					mat[2][0], mat[2][1], mat[2][2]),
+			  tf::Vector3(k*mat[0][3], k*mat[1][3], k*mat[2][3]));
 
-		ROS_INFO_STREAM("(Localization)   found "
-				<< queue.Size() << "-th pose.");
-	    }
+	    feedback_t	feedback;
+	    feedback.pose.header.stamp	  = now;
+	    feedback.pose.header.frame_id = _camera_frame;
+	    tf::poseTFToMsg(transform, feedback.pose.pose);
+	    feedback.overlap = locPose.VisibleOverlap;
+	    _localize_srv.publishFeedback(feedback);
+
+	    ROS_INFO_STREAM("(Localization)   found "
+			    << queue.Size() << "-th pose.");
 	}
 
-	_localization->StopAsync();
 	ROS_INFO_STREAM("(Localization)   completed.");
-
-	result_t	result;
 	result.success = true;
 	_localize_srv.setSucceeded(result);
     }
@@ -282,7 +221,6 @@ Localization::localize_cb(const goal_cp& goal)
 	_localization->StopAsync();
 
 	result_t	result;
-	result.success = false;
 	_localize_srv.setAborted(result);
     }
 }
@@ -290,27 +228,8 @@ Localization::localize_cb(const goal_cp& goal)
 void
 Localization::preempt_cb() const
 {
-    _localize_srv.setPreempted();
-}
-
-void
-Localization::publish_feedback(const pho::sdk::LocalizationPose& locPose,
-			       ros::Time time,
-			       const std::string& object_frame) const
-{
-    const auto	k   = 0.001;
-    const auto&	mat = locPose.Transformation;
-    const tf::Transform
-		transform(tf::Matrix3x3(mat[0][0], mat[0][1], mat[0][2],
-					mat[1][0], mat[1][1], mat[1][2],
-					mat[2][0], mat[2][1], mat[2][2]),
-			  tf::Vector3(k*mat[0][3], k*mat[1][3], k*mat[2][3]));
-    feedback_t	feedback;
-    feedback.pose.header.stamp	  = time;
-    feedback.pose.header.frame_id = _camera_frame;
-    tf::poseTFToMsg(transform, feedback.pose.pose);
-    feedback.overlap = locPose.VisibleOverlap;
-    _localize_srv.publishFeedback(feedback);
+    ROS_INFO_STREAM("(Localization)   *preempted*");
+    _localization->StopAsync();
 }
 
 }	// namespace aist_localization

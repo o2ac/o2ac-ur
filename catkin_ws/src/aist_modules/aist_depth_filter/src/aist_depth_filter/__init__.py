@@ -9,14 +9,14 @@ class DepthFilterClient(object):
     def __init__(self, name="depth_filter"):
         super(DepthFilterClient, self).__init__()
         self._saveBG     = rospy.ServiceProxy(name + "/saveBG",  ssrv.Trigger)
-        self._savePly    = rospy.ServiceProxy(name + "/savePly", ssrv.Trigger)
+        self._capture    = rospy.ServiceProxy(name + "/capture", ssrv.Trigger)
         self._dyn_reconf = dynamic_reconfigure.client.Client(name, timeout=5.0)
 
     def saveBG(self):
         return self._saveBG().success
 
-    def savePly(self):
-        return self._savePly().success
+    def capture(self):
+        return self._capture().success
 
     def set_background_threshold(self, thresh_bg):
         self._dyn_reconf.update_configuration({"thresh_bg": thresh_bg})

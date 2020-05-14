@@ -319,6 +319,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ################################################################################
 
+# Define the working directory.
+WORKDIR /root/
+
+# Copy the helper scripts to the working directory.
+COPY ./docker/scripts/. /root/scripts/
+RUN chmod -R +x /root/scripts/*
+
+################################################################################
+
 # Install PhoXiControl
 RUN /root/scripts/install-phoxi-control.sh
 
@@ -328,15 +337,6 @@ RUN /root/scripts/install-phoxi-control.sh
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	libssh2-1
 RUN /root/scripts/install-photoneo-localization.sh
-
-################################################################################
-
-# Define the working directory.
-WORKDIR /root/
-
-# Copy the helper scripts to the working directory.
-COPY ./docker/scripts/. /root/scripts/
-RUN chmod -R +x /root/scripts/*
 
 ################################################################################
 

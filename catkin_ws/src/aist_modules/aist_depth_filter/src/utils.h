@@ -6,17 +6,36 @@
 #ifndef TU_UTILS_H
 #define TU_UTILS_H
 
+#include <array>
 #include <algorithm>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/point_cloud2_iterator.h>
 #include <opencv2/imgproc.hpp>
 
 namespace aist_depth_filter
 {
+//! Get intensity value
+template <class T>
+inline float	intensity(const T& grey)	{ return grey; }
+template <>
+inline float	intensity(const std::array<uint8_t, 3>& rgb)
+		{
+		    return 0.299f*rgb[0] + 0.587f*rgb[1] + 0.114f*rgb[2];
+		}
+
 //! Get depth value in meters.
 template <class T>
-inline float	fval(const T depth)		{ return depth; }
-inline float	fval(const uint16_t depth)	{ return 0.001f * depth; }
+inline float	meters(T depth)			{ return depth; }
+template <>
+inline float	meters(uint16_t depth)		{ return 0.001f * depth; }
+
+//! Get depth value in milimeters.
+template <class T>
+inline float	milimeters(T depth)		{ return 1000.0f * depth; }
+template <>
+inline float	milimeters(uint16_t depth)	{ return depth; }
 
 //! Get pointer to the leftmost pixel of v-th scanline of the image.
 template <class T> inline T*
@@ -33,9 +52,9 @@ ptr(const sensor_msgs::Image& image, int v)
 }
 
 //! Convert depth image to sequence of 3D points.
-template <class T, class ITER> ITER
+template <class T, class ITER, class UNIT> ITER
 depth_to_points(const sensor_msgs::CameraInfo& camera_info,
-		const sensor_msgs::Image& depth, ITER out)
+		const sensor_msgs::Image& depth, ITER out, UNIT unit)
 {
     cv::Mat_<float>	K(3, 3);
     std::copy_n(std::begin(camera_info.K), 9, K.begin());
@@ -52,11 +71,11 @@ depth_to_points(const sensor_msgs::CameraInfo& camera_info,
 	    uv(u).y = v;
 
 	cv::undistortPoints(uv, xy, K, D);
-	
+
 	auto	p = ptr<T>(depth, v);
 	for (int u = 0; u < depth.width; ++u)
 	{
-	    const auto	d = 1000.0f * fval(*p++);	// unit: milimeters
+	    const auto	d = unit(*p++);		// meters or milimeters
 	    *out++ = {xy(u).x * d, xy(u).y * d, d};
 	}
     }
@@ -73,6 +92,40 @@ operator %(const cv::Matx<T, M, 1>& x, const cv::Matx<T, N, 1>& y)
 	for (size_t j = 0; j < N; ++j)
 	    mat(i, j) = x(i) * y(j);
     return mat;
+}
+
+template <class IN> sensor_msgs::PointCloud2
+create_pointcloud(IN in, IN ie,
+		  const ros::Time& stamp, const std::string& frame)
+{
+    using namespace	sensor_msgs;
+
+    PointCloud2	cloud;
+    cloud.is_bigendian	  = false;
+    cloud.is_dense	  = true;
+    cloud.header.stamp	  = stamp;
+    cloud.header.frame_id = frame;
+    cloud.height	  = 1;
+    cloud.width		  = std::distance(in, ie);
+
+    PointCloud2Modifier	modifier(cloud);
+    modifier.setPointCloud2Fields(3,
+				  "x", 1, PointField::FLOAT32,
+				  "y", 1, PointField::FLOAT32,
+				  "z", 1, PointField::FLOAT32);
+    modifier.resize(cloud.width);
+    cloud.row_step = cloud.width * cloud.point_step;
+
+    PointCloud2Iterator<float>	out(cloud, "x");
+    for (; in != ie; ++in, ++out)
+    {
+	const auto&	xyz = *in;
+	out[0] = xyz(0);
+	out[1] = xyz(1);
+	out[2] = xyz(2);
+    }
+
+    return cloud;
 }
 
 }	// namespace aist_depth_filter

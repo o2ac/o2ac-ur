@@ -35,7 +35,9 @@
 
 #include "rviz/display_context.h"
 #include "rviz/robot/robot.h"
+#include "rviz/robot/robot_link.h"
 #include "rviz/robot/tf_link_updater.h"
+#include "rviz/properties/color_property.h"
 #include "rviz/properties/float_property.h"
 #include "rviz/properties/property.h"
 #include "rviz/properties/string_property.h"
@@ -83,6 +85,11 @@ TransientModelDisplay::TransientModelDisplay()
 	this);
     update_rate_property_->setMin(0);
 
+    color_property_ = new ColorProperty(
+	"Color", QColor(204, 51, 51),
+	"Colort to draw the model.",
+	this, SLOT(updateColor()));
+
     alpha_property_ = new FloatProperty(
 	"Alpha", 1,
 	"Amount of transparency to apply to the links.",
@@ -121,6 +128,7 @@ TransientModelDisplay::onInitialize()
 {
     updateVisualVisible();
     updateCollisionVisible();
+    updateColor();
     updateAlpha();
 }
 
@@ -131,7 +139,7 @@ TransientModelDisplay::update(float wall_dt, float  /*ros_dt*/)
     float rate = update_rate_property_->getFloat();
     bool update = rate < 0.0001f || time_since_last_transform_ >= rate;
 
-    if(has_new_transforms_ || update)
+    if (has_new_transforms_ || update)
     {
 	for (const auto& robot : robots_)
 	    robot.second->update(TFLinkUpdater(
@@ -201,6 +209,16 @@ void
 TransientModelDisplay::updateTfPrefix()
 {
     clearStatuses();
+    context_->queueRender();
+}
+
+void
+TransientModelDisplay::updateColor()
+{
+    const auto	color = color_property_->getOgreColor();
+    for (const auto& robot : robots_)
+	for (const auto& link : robot.second->getLinks())
+	    link.second->setColor(color.r, color.g, color.b);
     context_->queueRender();
 }
 
@@ -336,6 +354,9 @@ TransientModelDisplay::incomingDescription(const desc_msg_cp& desc_msg)
 					     _1, _2, _3, this),
 				 tf_prefix_property_->getStdString()));
     }
+
+    updateColor();
+    updateAlpha();
 }
 
 } // namespace rviz

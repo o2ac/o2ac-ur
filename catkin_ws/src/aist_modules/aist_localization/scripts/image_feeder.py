@@ -25,7 +25,7 @@ class ImageFeeder(object):
                "06_MBT4-400",                   # 12
                "09_EDCS10",                     # 13
                "09_EDCS10",                     # 14
-               "15_SLBNR6",                     # 15
+               "12_CLBUS6-9-9.5",               # 15
                "10_CLBPS10_17_4"                # 16
                )
     _Colors = ((0, 0, 255), (0, 255, 0), (255, 0, 0),
@@ -35,9 +35,9 @@ class ImageFeeder(object):
         super(ImageFeeder, self).__init__()
 
         self._data_dir = data_dir
-        self._nposes   = rospy.get_param("~nposes",  2)
-        self._timeout  = rospy.get_param("~timeout", 10)
-        self._models   = rospy.get_param("~models",  [])
+        self._nposes   = rospy.get_param("~nposes",   2)
+        self._timeout  = rospy.get_param("~timeout",  10)
+        self._settings = rospy.get_param("~settings", {})
 
         # Load camera intrinsics
         filename = rospy.get_param("~intrinsic", "realsense_intrinsic.json")
@@ -102,24 +102,27 @@ class ImageFeeder(object):
             self._cinfo_pub.publish(self._cinfo)
             self._image_pub.publish(imgmsg)
             self._depth_pub.publish(dptmsg)
-            rospy.loginfo("(Feeder) localize id=%d", id)
+            rospy.loginfo("*** (Feeder) --------------")
+            rospy.loginfo("*** (Feeder) localize id=%d", id + 1)
             self.localize(ImageFeeder._Models[id])
 
     def draw_bbox(self, image, id, bbox):
         idx = id % len(ImageFeeder._Colors)
         cv2.rectangle(image, (bbox[0], bbox[1]), (bbox[2], bbox[3]),
                       ImageFeeder._Colors[idx], 3)
-        cv2.putText(image, str(id), (bbox[0] + 5, bbox[3] - 10),
+        cv2.putText(image, str(id + 1), (bbox[0] + 5, bbox[3] - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, 1, ImageFeeder._Colors[idx], 2,
                     cv2.LINE_AA)
 
     def localize(self, model):
-        self._dfilter.savePly()                  # Load PLY to the localizer
-        self._localizer.load_config(model)       # Load model to the localizer
-        self._localizer.send_goal(self._nposes)  # Start localization
-        (poses, overlaps, success) \
+        self._dfilter.capture()  # Load PLY data to the localizer
+        self._localizer.set_settings(self._settings["default"])
+        if model in self._settings:
+            self._localizer.set_settings(self._settings[model])
+        self._localizer.send_goal(model, self._nposes)
+        (poses, overlaps) \
             = self._localizer.wait_for_result(rospy.Duration(self._timeout))
-        rospy.loginfo("(Feeder) %d poses found. Overlaps are %s.",
+        rospy.loginfo("*** (Feeder) %d pose(s) found. Overlaps: %s.",
                       len(poses), str(overlaps))
 
         for pose in reversed(poses):
@@ -143,7 +146,9 @@ if __name__ == "__main__":
             annotation_filenames = glob.glob(data_dir + "/Annotations/" +
                                              dataset + "/Image-wise/*.json")
             for annotation_filename in annotation_filenames:
-                rospy.loginfo("(Feeder) annotation: %s", annotation_filename)
+                rospy.loginfo("*** (Feeder) ==================")
+                rospy.loginfo("*** (Feeder) annotation: %s",
+                              annotation_filename)
                 feeder.load_and_localize(annotation_filename)
                 if raw_input("Hit return key >> ".format(id)) == "q":
                     sys.exit()

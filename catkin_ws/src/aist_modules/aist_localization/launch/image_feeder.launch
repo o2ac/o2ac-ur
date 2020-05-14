@@ -8,22 +8,20 @@
 
   <!-- Localization parameters -->
   <arg name="nposes"		default="1"/>
-  <arg name="timeout"		default="10"/>
+  <arg name="timeout"		default="5"/>
   <arg name="plcf_dir"		default="$(find aist_localization)/plcf"/>
   <arg name="urdf_dir"		default="$(find o2ac_parts_description
 					 )/urdf/generated"/>
 
-  <rosparam file="$(find aist_localization)/config/models.yaml"/>
-
   <!-- Spawn feeder -->
   <node name="feeder"
 	pkg="aist_localization" type="image_feeder.py" output="screen">
-    <!-- <param name="data_dir"	value="$(arg data_dir)"/> -->
+    <param name="data_dir"	value="$(arg data_dir)"/>
     <param name="intrinsic"	value="$(arg intrinsic)"/>
     <param name="nposes"	value="$(arg nposes)"/>
     <param name="timeout"	value="$(arg timeout)"/>
     <param name="camera_frame"	value="$(arg camera_frame)"/>
-    <rosparam file="$(find aist_localization)/config/models.yaml"/>
+    <rosparam file="$(find aist_localization)/config/settings.yaml"/>
   </node>
 
   <!-- Spawn depth_filter and localizer -->

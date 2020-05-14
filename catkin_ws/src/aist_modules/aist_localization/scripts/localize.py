@@ -8,9 +8,10 @@ from aist_model_spawner import ModelSpawnerClient
 if __name__ == "__main__":
 
     rospy.init_node("~")
-    nposes  = rospy.get_param("~nposes",  2)
-    timeout = rospy.get_param("~timeout", 10)
-    models  = rospy.get_param("~models",  [])
+    nposes   = rospy.get_param("~nposes",   2)
+    timeout  = rospy.get_param("~timeout",  10)
+    models   = rospy.get_param("~models",   [])
+    settings = rospy.get_param("~settings", {})
 
     dfilter   = DepthFilterClient("depth_filter")
     dfilter.set_window_radius(2)
@@ -27,17 +28,20 @@ if __name__ == "__main__":
             model = [m for m in models if int(re.split("[_-]", m)[0]) == num][0]
 
             spawner.delete_all()
-            dfilter.savePly()             # Load PLY to the localizer
-            localizer.load_config(model)  # Load model to the localizer
-            localizer.send_goal(nposes)   # Start localization
-            (poses, overlaps, success) \
+            dfilter.capture()                   # Load PLY to the localizer
+            localizer.set_settings(settings["default"])
+            if model in settings:
+                localizer.set_settings(settings[model])
+            localizer.send_goal(model, nposes)  # Start localization
+            (poses, overlaps) \
                 = localizer.wait_for_result(rospy.Duration(timeout))
+
             print("{} poses found. Overlaps are {}."
                   .format(len(poses), overlaps))
 
             for pose in reversed(poses):
                 spawner.add(model, pose)
-                rospy.sleep(3)
+                rospy.sleep(1)
 
         except ValueError:
             print("Please specify model number.")

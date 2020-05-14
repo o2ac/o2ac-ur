@@ -38,8 +38,7 @@ include_directories(
   ${PHOLOCALIZATION_INCLUDE_DIRS}
 )
 
-add_service_files(DIRECTORY srv)
-add_action_files(DIRECTORY action)
+add_action_files(FILES Localize.action)
 
 generate_messages(
   DEPENDENCIES
