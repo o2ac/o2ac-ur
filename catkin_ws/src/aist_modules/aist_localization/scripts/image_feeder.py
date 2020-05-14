@@ -1,14 +1,33 @@
 #!/usr/bin/env python
 
-import os, sys, glob, rospy, json, pprint, skimage, cv2
-from cv_bridge         import CvBridge
-from sensor_msgs       import msg as smsg
-from aist_depth_filter import DepthFilterClient
+import os, sys, glob, rospy, re, json, pprint, skimage, cv2
+from cv_bridge          import CvBridge
+from sensor_msgs        import msg as smsg
+from aist_depth_filter  import DepthFilterClient
+from aist_localization  import LocalizationClient
+from aist_model_spawner import ModelSpawnerClient
 
 #########################################################################
-#  class ImagePublisher                                                 #
+#  class ImageFeeder                                                    #
 #########################################################################
 class ImageFeeder(object):
+    _Models = ("01-BASE",                       # 1
+               "03-PANEL2",                     # 2
+               "02-PANEL",                      # 3
+               "04_37D-GEARMOTOR-50-70",        # 4
+               "11_MBRAC60-2-10",               # 5
+               "07_SBARB6200ZZ_30",             # 6
+               "13_MBGA30-2",                   # 7
+               "13_MBGA30-2",                   # 8
+               "05_MBRFA30-2-P6",               # 9
+               "14_BGPSL6-9-L30-F8",            # 10
+               "08_KZAF1075NA4WA55GA20AA0",     # 11
+               "06_MBT4-400",                   # 12
+               "09_EDCS10",                     # 13
+               "09_EDCS10",                     # 14
+               "15_SLBNR6",                     # 15
+               "10_CLBPS10_17_4"                # 16
+               )
     _Colors = ((0, 0, 255), (0, 255, 0), (255, 0, 0),
                (255, 255, 0), (255, 0, 255), (0, 255, 255))
 
@@ -16,19 +35,22 @@ class ImageFeeder(object):
         super(ImageFeeder, self).__init__()
 
         self._data_dir = data_dir
+        self._nposes   = rospy.get_param("~nposes",  2)
+        self._timeout  = rospy.get_param("~timeout", 10)
+        self._models   = rospy.get_param("~models",  [])
 
-        filename = rospy.get_param("intrinsic", "realsense_intrinsic.json")
-        with open(data_dir + "/" + filename) as f:
+        # Load camera intrinsics
+        filename = rospy.get_param("~intrinsic", "realsense_intrinsic.json")
+        with open(self._data_dir + "/" + filename) as f:
             try:
                 intrinsic = json.loads(f.read())
             except Exception as e:
-                rospy.logerr(str(e))
-                return
+                rospy.logerr("(Feeder) %s", str(e))
 
         Kt = intrinsic["intrinsic_matrix"]
         K  = [Kt[0], Kt[3], Kt[6], Kt[1], Kt[4], Kt[7], Kt[2], Kt[5], Kt[8]]
         self._cinfo                  = smsg.CameraInfo()
-        self._cinfo.header.frame_id  = rospy.get_param("frame", "map")
+        self._cinfo.header.frame_id  = rospy.get_param("~camera_frame", "map")
         self._cinfo.height           = intrinsic["height"]
         self._cinfo.width            = intrinsic["width"]
         self._cinfo.distortion_model = "plumb_bob"
@@ -46,8 +68,11 @@ class ImageFeeder(object):
 
         self._dfilter   = DepthFilterClient("~depth_filter")
         self._dfilter.set_window_radius(2)
+        self._localizer = LocalizationClient("~localizer")
+        self._spawner   = ModelSpawnerClient()
 
-    def load_and_publish_images(self, annotation_filename):
+    def load_and_localize(self, annotation_filename):
+        self._spawner.delete_all()
         try:
             f = open(annotation_filename)
             annotation = json.loads(f.read())
@@ -65,10 +90,10 @@ class ImageFeeder(object):
             dptmsg = CvBridge().cv2_to_imgmsg(depth, encoding="passthrough")
 
         except Exception as e:
-            rospy.logerr("%s(%s)", str(e), annotation_filename)
+            rospy.logerr("(Feeder) %s(%s)", str(e), annotation_filename)
             return
 
-        for bbox in bboxes:
+        for id, bbox in zip(ids, bboxes):
             self._dfilter.set_roi(bbox[1], bbox[3], bbox[0], bbox[2])
             now = rospy.Time.now()
             self._cinfo.header.stamp = now
@@ -77,19 +102,29 @@ class ImageFeeder(object):
             self._cinfo_pub.publish(self._cinfo)
             self._image_pub.publish(imgmsg)
             self._depth_pub.publish(dptmsg)
-            if raw_input("  Hit return key >> ") == "q":
-                sys.exit()
+            rospy.loginfo("(Feeder) localize id=%d", id)
+            self.localize(ImageFeeder._Models[id])
 
     def draw_bbox(self, image, id, bbox):
-        colors = ((0, 0, 255), (0, 255, 0), (255, 0, 0),
-                  (255, 255, 0), (255, 0, 255), (0, 255, 255))
-        color_idx = id % len(colors)
+        idx = id % len(ImageFeeder._Colors)
         cv2.rectangle(image, (bbox[0], bbox[1]), (bbox[2], bbox[3]),
-                      colors[color_idx], 3)
-        cv2.putText(image, str(id),
-                    ((bbox[0] + bbox[2])/2, (bbox[1] + bbox[3])/2),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, colors[color_idx], 2,
+                      ImageFeeder._Colors[idx], 3)
+        cv2.putText(image, str(id), (bbox[0] + 5, bbox[3] - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, ImageFeeder._Colors[idx], 2,
                     cv2.LINE_AA)
+
+    def localize(self, model):
+        self._dfilter.savePly()                  # Load PLY to the localizer
+        self._localizer.load_config(model)       # Load model to the localizer
+        self._localizer.send_goal(self._nposes)  # Start localization
+        (poses, overlaps, success) \
+            = self._localizer.wait_for_result(rospy.Duration(self._timeout))
+        rospy.loginfo("(Feeder) %d poses found. Overlaps are %s.",
+                      len(poses), str(overlaps))
+
+        for pose in reversed(poses):
+            self._spawner.add(model, pose)
+            rospy.sleep(3)
 
 #########################################################################
 #  main                                                                 #
@@ -98,9 +133,9 @@ if __name__ == "__main__":
 
     rospy.init_node("~")
 
-    data_dir = os.path.expanduser(rospy.get_param("data_dir",
+    data_dir = os.path.expanduser(rospy.get_param("~data_dir",
                                                   "~/data/WRS_Dataset"))
-    feeder   = ImageFeeder(data_dir)
+    feeder = ImageFeeder(data_dir)
 
     while not rospy.is_shutdown():
         datasets = ("Close", "Far")
@@ -108,5 +143,7 @@ if __name__ == "__main__":
             annotation_filenames = glob.glob(data_dir + "/Annotations/" +
                                              dataset + "/Image-wise/*.json")
             for annotation_filename in annotation_filenames:
-                rospy.loginfo(annotation_filename)
-                feeder.load_and_publish_images(annotation_filename)
+                rospy.loginfo("(Feeder) annotation: %s", annotation_filename)
+                feeder.load_and_localize(annotation_filename)
+                if raw_input("Hit return key >> ".format(id)) == "q":
+                    sys.exit()

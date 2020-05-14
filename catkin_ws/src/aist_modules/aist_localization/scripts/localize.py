@@ -8,15 +8,14 @@ from aist_model_spawner import ModelSpawnerClient
 if __name__ == "__main__":
 
     rospy.init_node("~")
-    camera_name = rospy.get_param("camera_name", "a_bot_camera")
-    nposes      = rospy.get_param("nposes", 2)
-    timeout     = rospy.get_param("timeout", 10)
+    nposes  = rospy.get_param("~nposes",  2)
+    timeout = rospy.get_param("~timeout", 10)
+    models  = rospy.get_param("~models",  [])
 
-    dfilter   = DepthFilterClient(camera_name + "/depth_filter")
+    dfilter   = DepthFilterClient("depth_filter")
     dfilter.set_window_radius(2)
-    localizer = LocalizationClient(camera_name + "/localizer")
-    spawner   = ModelSpawnerClient()
-    models    = rospy.get_param("models", [])
+    localizer = LocalizationClient("localizer")
+    spawner   = ModelSpawnerClient("/model_spawner")
 
     while not rospy.is_shutdown():
         print("\nmodels: {}\n".format(models))

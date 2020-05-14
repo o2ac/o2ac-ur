@@ -32,7 +32,6 @@ Localization::Localization(const std::string& name)
 	boost::bind(&Localization::preempt_cb, this));
     _localize_srv.start();
 
-    _nh.param("camera_frame", _camera_frame, std::string("world"));
     _nh.param("plcf_dir", _plcf_dir,
 	      ros::package::getPath("aist_localization") + "/plcf");
 
@@ -70,9 +69,6 @@ Localization::Localization(const std::string& name)
   //   3: Tolerance of matching to noise and accuracy
     register_variable("Feature_fit_consideration_level",
 		      "Minimum percentage of the object segement size to the view",
-		      0, 100);
-    register_variable("Maximal_feature_fit_overflow",
-		      "Percentage of the segment allowed to overflow the fitted object",
 		      0, 100);
     register_variable("Global_maximal_feature_fit_overflow",
 		      "Percentage of all segments allowed to overflow the sum of segment sizes",
@@ -157,6 +153,8 @@ Localization::load_plcf_cb(LoadPlcf::Request& req, LoadPlcf::Response& res)
 
 	_object_name = req.object_name;
 	res.success = true;
+
+	ROS_INFO_STREAM("(Localization)   succeeded.");
     }
     catch (const std::exception& err)
     {
@@ -235,15 +233,22 @@ Localization::localize_cb(const goal_cp& goal)
 	for (const auto& setting : _settings)
 	    setting->set_to(*_localization);
 
+	ROS_INFO_STREAM("(Localization)   setting completed succesfully.");
+
       // Set stop criteria.
 	_localization->AddStopCriterion(
 	    pho::sdk::StopCriterion::NumberOfResults(goal->number_of_poses));
+
+	ROS_INFO_STREAM("(Localization)   stop citeria succesfully set.");
 
       // Execute localization.
 	const auto	now = ros::Time::now();
 	for (auto queue = _localization->StartAsync();
 	     queue.Size() != goal->number_of_poses; )
 	{
+	    ROS_INFO_STREAM("(Localization)     "
+			    << queue.Size() << "-th trial.");
+
 	    if (_localize_srv.isPreemptRequested())
 	    {
 		_localization->StopAsync();

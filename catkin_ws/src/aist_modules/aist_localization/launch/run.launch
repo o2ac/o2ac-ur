@@ -1,8 +1,12 @@
 <?xml version="1.0" ?>
 <launch>
 
+  <arg name="camera_info_topic"	default="camera_info"/>
+  <arg name="image_topic"	default="texture"/>
+  <arg name="depth_topic"	default="depth_map"/>
+  <arg name="normal_topic"	default="normal_map"/>
+  <arg name="manager"		default=""/>
   <arg name="plcf_dir"		default="$(find aist_localization)/plcf"/>
-  <arg name="camera_frame"	default="world"/>
 
   <!-- Spawn depth_filter -->
   <include file="$(find aist_depth_filter)/launch/run.launch">
@@ -17,7 +21,7 @@
   <node if="$(eval manager == '')"
 	name="localizer" pkg="aist_localization" type="aist_localization"
   	output="screen">
-    <param name="camera_frame"	value="$(arg camera_frame)"/>
+    <remap from="/file_info"	to="depth_filter/file_info"/>
     <param name="plcf_dir"	value="$(arg plcf_dir)"/>
   </node>
 
@@ -26,7 +30,6 @@
 	name="localizer" pkg="nodelet" type="nodelet" output="screen"
   	args="load aist_localization/aist_localization_nodelet $(arg manager)">
     <remap from="/file_info"	to="depth_filter/file_info"/>
-    <param name="camera_frame"	value="$(arg camera_frame)"/>
     <param name="plcf_dir"	value="$(arg plcf_dir)"/>
   </node>
 

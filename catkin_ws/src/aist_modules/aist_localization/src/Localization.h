@@ -73,14 +73,14 @@ class Localization
 			{
 			    localization.setSetting(path, value);
 
-			    ROS_INFO_STREAM('\"' << path << "\" <-- " << value);
+			    // ROS_INFO_STREAM('\"' << path << "\" <-- " << value);
 			}
 
 	virtual void	get_from(const localization_t& localization)
 			{
 			    value = localization.getSetting<T>(path);
 
-			    ROS_INFO_STREAM('\"' << path << "\" --> " << value);
+			    // ROS_INFO_STREAM('\"' << path << "\" --> " << value);
 			}
 
 	T		value;
