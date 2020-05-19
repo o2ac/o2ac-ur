@@ -9,9 +9,9 @@
 int
 main(int argc, char** argv)
 {
-    ros::init(argc, argv, "depth_filter");
-    ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME,
-				   ros::console::levels::Debug);
+    ros::init(argc, argv, "aist_depth_filter");
+    // ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME,
+    // 				   ros::console::levels::Debug);
 
     try
     {

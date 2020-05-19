@@ -10,6 +10,7 @@
 #include "ply.h"
 #include "utils.h"
 #include "binarize.h"
+#include "ransac.h"
 #include "DepthFilter.h"
 
 namespace aist_depth_filter
@@ -85,7 +86,8 @@ DepthFilter::DepthFilter(const std::string& name)
      _left(0),
      _right(3072),
      _scale(1.0),
-     _window_radius(0)
+     _window_radius(0),
+     _threshPlane(0.001)
 {
     _nh.param("thresh_bg", _threshBG, 0.0);
     _ddr.registerVariable<double>("thresh_bg", &_threshBG,
@@ -107,6 +109,9 @@ DepthFilter::DepthFilter(const std::string& name)
     _ddr.registerVariable<int>("right",  &_right,  "Right of ROI",  0, 3072);
     _nh.param("scale", _scale, 1.0);
     _ddr.registerVariable<double>("scale", &_scale, "Scale depth", 0.5, 1.5);
+    _nh.param("thresh_plane", _threshPlane, 0.001);
+    _ddr.registerVariable<double>("thresh_plane", &_threshPlane,
+				  "Threshold of plane fitting", 0.0, 0.01);
 
     bool	subscribe_normal;
     _nh.param("subscribe_normal", subscribe_normal, true);
@@ -175,11 +180,24 @@ DepthFilter::capture_cb(std_srvs::Trigger::Request&  req,
 	savePly(_camera_info, _image, _depth, _normal, file_path);
 	_depth.data.clear();
 
-	detect_bottom_plane(*_camera_info_org, *_image_org, *_depth_org);
-
 	file_info_t	file_info;
 	file_info.file_path = file_path;
-	file_info.frame     = _camera_info.header.frame_id;
+	file_info.header    = _camera_info.header;
+
+	if (_threshPlane > 0.0)
+	{
+	    const auto	plane = detect_bottom_plane(*_camera_info_org,
+						    *_image_org, *_depth_org,
+						    _threshPlane);
+	    file_info.plane_detected = true;
+	    file_info.normal.x	     = plane.normal()(0);
+	    file_info.normal.y	     = plane.normal()(1);
+	    file_info.normal.z	     = plane.normal()(2);
+	    file_info.distance	     = plane.distance();
+	}
+	else
+	    file_info.plane_detected = false;
+
 	_file_info_pub.publish(file_info);
 
 	res.success = true;
@@ -370,11 +388,12 @@ DepthFilter::computeNormal(const camera_info_t& camera_info,
 {
     using	namespace sensor_msgs;
 
-    using value_t		= double;
-    using normal_t		= std::array<float, 3>;
+  // Computation of normals shoud be done in double-precision
+  // in order to avoid truncation error when sliding windows
+    using normal_t		= std::array<value_t, 3>;
     using colored_normal_t	= std::array<uint8_t, 3>;
-    using vector3_t		= cv::Matx<value_t, 3, 1>;
-    using matrix33_t		= cv::Matx<value_t, 3, 3>;
+    using vector3_t		= cv::Vec<double, 3>;	   // double-precision
+    using matrix33_t		= cv::Matx<double, 3, 3>;  // double-precision
 
   // 0: Allocate image for output normals.
     _normal.header		= depth.header;
@@ -410,9 +429,9 @@ DepthFilter::computeNormal(const camera_info_t& camera_info,
   // 3.1: Convovle with a box filter in horizontal direction.
     for (int v = 0; v < n.cols; ++v)
     {
-	auto	sum_n = 0;
-	auto	sum_c = vector3_t::zeros();
-	auto	sum_M = matrix33_t::zeros();
+	auto		sum_n = 0;
+	vector3_t	sum_c(0, 0, 0);
+	auto		sum_M = matrix33_t::zeros();
 	for (int u = 0; u < ws1; ++u)
 	{
 	    const auto&	head = xyz(v, u);
@@ -525,18 +544,18 @@ DepthFilter::scale(image_t& depth) const
     }
 }
 
-void
+DepthFilter::plane_t
 DepthFilter::detect_bottom_plane(const camera_info_t& camera_info,
 				 const image_t& image,
-				 const image_t& depth) const
+				 const image_t& depth, float thresh) const
 {
     using	namespace sensor_msgs;
 
     using grey_t	= uint8_t;
     using rgb_t		= std::array<uint8_t, 3>;
-    using vector3_t	= cv::Matx<float, 3, 1>;
+    using vector3_t	= cv::Vec<value_t, 3>;
 
-  // Compute 3D coordinates.
+  // Convert depths to 3D coordinates.
     std::vector<vector3_t>	xyz(depth.height * depth.width);
     if (depth.encoding == image_encodings::MONO16 ||
 	depth.encoding == image_encodings::TYPE_16UC1)
@@ -553,11 +572,20 @@ DepthFilter::detect_bottom_plane(const camera_info_t& camera_info,
     		       get_dark_pixels< rgb_t>(image, xyz.begin()) :
     		       get_dark_pixels<grey_t>(image, xyz.begin()));
 
+  // Fit a dominant plane to the extract pixels.
+    plane_t	plane;
+    const auto	inliers = TU::ransac(xyz.begin(), end, plane,
+				     [thresh](const auto& p, const auto& plane)
+				     { return plane.distance(p) < thresh; },
+				     value_t(0.5), value_t(0.99));
+
   // Create pointcloud and publish it.
-    const auto	cloud = create_pointcloud(xyz.begin(), end,
+    const auto	cloud = create_pointcloud(inliers.begin(), inliers.end(),
 					  depth.header.stamp,
 					  depth.header.frame_id);
     _bottom_pub.publish(cloud);
+
+    return plane;
 }
 
 void

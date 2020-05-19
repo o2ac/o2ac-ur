@@ -15,6 +15,7 @@
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 #include <ddynamic_reconfigure/ddynamic_reconfigure.h>
+#include "Plane.h"
 
 namespace aist_depth_filter
 {
@@ -24,7 +25,7 @@ namespace aist_depth_filter
 class DepthFilter
 {
   private:
-    using value_type	 = float;
+    using value_t	 = float;
     using camera_info_t	 = sensor_msgs::CameraInfo;
     using camera_info_cp = sensor_msgs::CameraInfoConstPtr;
     using image_t	 = sensor_msgs::Image;
@@ -38,6 +39,7 @@ class DepthFilter
 				ApproximateTime<camera_info_t,
 						image_t, image_t>;
     using file_info_t	 = aist_depth_filter::FileInfo;
+    using plane_t	 = TU::Plane<value_t, 3>;
 
   public:
 		DepthFilter(const std::string& name)			;
@@ -69,9 +71,10 @@ class DepthFilter
 			      const image_t& depth)			;
     template <class T>
     void	scale(image_t& depth)				  const	;
-    void	detect_bottom_plane(const camera_info_t& camera_info,
+    plane_t	detect_bottom_plane(const camera_info_t& camera_info,
 				    const image_t& image,
-				    const image_t& depth)	  const	;
+				    const image_t& depth,
+				    float thresh)		  const	;
     void	create_subimage(const image_t& image,
 				image_t& subimage)		  const	;
     void	create_colored_normal(const image_t& normal,
@@ -135,6 +138,9 @@ class DepthFilter
 
   // Radius of window for computing normals.
     int							_window_radius;
+
+  // Threshold of plane fitting for bottom plane detection
+    double						_threshPlane;
 
   private:
     constexpr static double				FarMax = 4.0;

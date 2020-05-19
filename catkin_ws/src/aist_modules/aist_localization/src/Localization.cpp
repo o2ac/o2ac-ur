@@ -138,11 +138,12 @@ Localization::file_info_cb(const file_info_cp& file_info)
 {
     try
     {
-	ROS_DEBUG_STREAM("(Localization) Set frame[" << file_info->frame
+	ROS_DEBUG_STREAM("(Localization) Set frame["
+			 << file_info->header.frame_id
 			 << "] and loading scene["
 			 << file_info->file_path << "]...");
 
-	_camera_frame = file_info->frame;
+	_camera_frame = file_info->header.frame_id;
 	_scene = pho::sdk::SceneSource::File(file_info->file_path);
 	_localization->SetSceneSource(_scene);
 	_is_valid_scene = true;
