@@ -15,6 +15,7 @@
 #include <aist_localization/LocalizeAction.h>
 #include <aist_depth_filter/FileInfo.h>
 #include <ddynamic_reconfigure/ddynamic_reconfigure.h>
+#include <opencv2/core.hpp>
 
 #include <PhoLocalization.h>
 
@@ -36,6 +37,9 @@ class Localization
 
     using file_info_t	 = aist_depth_filter::FileInfo;
     using file_info_cp	 = aist_depth_filter::FileInfoConstPtr;
+
+    using value_t	 = float;
+    using vector3_t	 = cv::Vec<value_t, 3>;
 
     struct setting_base
     {
@@ -108,17 +112,20 @@ class Localization
     void	localize_cb(const goal_cp& goal)			;
     void	preempt_cb()					  const	;
 
+    void	localize_full(const goal_cp& goal)			;
+    void	localize_bbox_center(const goal_cp& goal)		;
+    void	localize_bbox_diagonal(const goal_cp& goal)		;
+    vector3_t	view_vector(value_t u, value_t v)		  const	;
+
   private:
     ros::NodeHandle				_nh;
 
-    std::string					_camera_frame;
     std::string					_ply_dir;
-
     std::unique_ptr<localization_t>		_localization;
-    pho::sdk::SceneSource			_scene;
-    bool					_is_valid_scene;
 
     ros::Subscriber				_file_info_sub;
+    file_info_cp				_file_info;
+
     server_t					_localize_srv;
 
     ddynamic_reconfigure::DDynamicReconfigure	_ddr;

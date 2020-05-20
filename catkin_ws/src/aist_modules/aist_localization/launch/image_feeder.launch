@@ -9,7 +9,6 @@
   <!-- Localization parameters -->
   <arg name="nposes"		default="1"/>
   <arg name="timeout"		default="5"/>
-  <arg name="plcf_dir"		default="$(find aist_localization)/plcf"/>
   <arg name="urdf_dir"		default="$(find o2ac_parts_description
 					 )/urdf/generated"/>
 
@@ -30,7 +29,6 @@
     <arg name="image_topic"	  value="image"/>
     <arg name="depth_topic"	  value="depth"/>
     <arg name="normal_topic"	  value=""/>
-    <arg name="plcf_dir"	  value="$(arg plcf_dir)"/>
   </include>
 
   <!-- Spawn model_spawner -->

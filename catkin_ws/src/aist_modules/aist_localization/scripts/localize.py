@@ -8,10 +8,9 @@ from aist_model_spawner import ModelSpawnerClient
 if __name__ == "__main__":
 
     rospy.init_node("~")
-    nposes   = rospy.get_param("~nposes",   2)
-    timeout  = rospy.get_param("~timeout",  10)
-    models   = rospy.get_param("~models",   [])
-    settings = rospy.get_param("~settings", {})
+    nposes    = rospy.get_param("~nposes",  2)
+    timeout   = rospy.get_param("~timeout", 10)
+    models    = rospy.get_param("~models",  [])
 
     dfilter   = DepthFilterClient("depth_filter")
     dfilter.set_window_radius(2)
@@ -29,10 +28,7 @@ if __name__ == "__main__":
 
             spawner.delete_all()
             dfilter.capture()                   # Load PLY to the localizer
-            localizer.set_settings(settings["default"])
-            if model in settings:
-                localizer.set_settings(settings[model])
-            localizer.send_goal(model, nposes)  # Start localization
+            localizer.send_goal(model, nposes)
             (poses, overlaps) \
                 = localizer.wait_for_result(rospy.Duration(timeout))
 

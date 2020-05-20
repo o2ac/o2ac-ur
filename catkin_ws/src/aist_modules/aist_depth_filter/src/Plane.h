@@ -26,9 +26,10 @@ class Plane
     template <class ITER>
     void		fit(ITER begin, ITER end)	;
 
-    size_t		ndataMin()			const	{ return N;  }
-    const vector_type&	normal()			const	{ return _n; }
-    value_type		distance()			const	{ return _d; }
+    constexpr
+    static size_t	ndataMin()			{ return N;  }
+    const vector_type&	normal()		const	{ return _n; }
+    value_type		distance()		const	{ return _d; }
     value_type		distance(const vector_type& point) const
 			{
 			    return std::abs(_n.dot(point) + _d);

@@ -36,7 +36,7 @@ include_directories(
 
 add_message_files(FILES FileInfo.msg)
 
-generate_messages(DEPENDENCIES std_msgs geometry_msgs)
+generate_messages(DEPENDENCIES sensor_msgs geometry_msgs)
 
 catkin_package(
   CATKIN_DEPENDS
@@ -46,7 +46,6 @@ catkin_package(
     sensor_msgs
     pluginlib
     nodelet
-    rospy
 )
 
 add_executable(

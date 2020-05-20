@@ -16,13 +16,15 @@ find_package(
   catkin REQUIRED
   COMPONENTS
     roscpp
+    rospy
     roslib
     genmsg
     message_generation
     actionlib_msgs
     actionlib
-    geometry_msgs
     std_msgs
+    sensor_msgs
+    geometry_msgs
     ddynamic_reconfigure
     tf
     aist_depth_filter
@@ -52,6 +54,7 @@ catkin_package(
   CATKIN_DEPENDS
     roscpp
     message_runtime
+    sensor_msgs
     pluginlib
     nodelet
 )

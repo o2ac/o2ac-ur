@@ -16,6 +16,7 @@
   <depend>ddynamic_reconfigure</depend>
   <depend>actionlib</depend>
   <depend>actionlib_msgs</depend>
+  <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>pluginlib</depend>
   <depend>nodelet</depend>

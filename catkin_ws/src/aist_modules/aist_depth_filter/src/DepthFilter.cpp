@@ -181,8 +181,8 @@ DepthFilter::capture_cb(std_srvs::Trigger::Request&  req,
 	_depth.data.clear();
 
 	file_info_t	file_info;
-	file_info.file_path = file_path;
-	file_info.header    = _camera_info.header;
+	file_info.camera_info = _camera_info;
+	file_info.file_path   = file_path;
 
 	if (_threshPlane > 0.0)
 	{
@@ -196,7 +196,13 @@ DepthFilter::capture_cb(std_srvs::Trigger::Request&  req,
 	    file_info.distance	     = plane.distance();
 	}
 	else
+	{
 	    file_info.plane_detected = false;
+	    file_info.normal.x	     = 0;
+	    file_info.normal.y	     = 0;
+	    file_info.normal.z	     = -1;
+	    file_info.distance	     = 0;
+	}
 
 	_file_info_pub.publish(file_info);
 

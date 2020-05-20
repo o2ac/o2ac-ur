@@ -3,8 +3,7 @@
 
   <!-- Localization parameters -->
   <arg name="nposes"		default="2"/>
-  <arg name="timeout"		default="10"/>
-  <arg name="plcf_dir"		default="$(find aist_localization)/plcf"/>
+  <arg name="timeout"		default="5"/>
   <arg name="ply_dir"		default="$(find o2ac_parts_description
 					 )/meshes"/>
   <arg name="urdf_dir"		default="$(find o2ac_parts_description
@@ -41,7 +40,6 @@
     <arg name="image_topic"	  value="color/image_raw"/>
     <arg name="depth_topic"	  value="aligned_depth_to_color/image_raw"/>
     <arg name="normal_topic"	  value=""/>
-    <arg name="plcf_dir"	  value="$(arg plcf_dir)"/>
     <arg name="ply_dir"		  value="$(arg ply_dir)"/>
     <arg name="manager"
 	 value="$(eval ''
@@ -58,6 +56,7 @@
 	pkg="aist_localization" type="localize.py" output="screen">
     <param name="nposes"	value="$(arg nposes)"/>
     <param name="timeout"	value="$(arg timeout)"/>
+    <rosparam file="$(find aist_localization)/config/models.yaml"/>
     <rosparam file="$(find aist_localization)/config/settings.yaml"/>
   </node>
 

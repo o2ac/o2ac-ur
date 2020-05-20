@@ -6,7 +6,6 @@
   <arg name="depth_topic"	default="depth_map"/>
   <arg name="normal_topic"	default="normal_map"/>
   <arg name="manager"		default=""/>
-  <arg name="plcf_dir"		default="$(find aist_localization)/plcf"/>
   <arg name="ply_dir"		default="$(find o2ac_parts_description
 					 )/meshes"/>
 
@@ -24,7 +23,6 @@
 	name="localizer" pkg="aist_localization" type="aist_localization"
   	output="screen">
     <remap from="/file_info"	to="depth_filter/file_info"/>
-    <param name="plcf_dir"	value="$(arg plcf_dir)"/>
     <param name="ply_dir"	value="$(arg ply_dir)"/>
   </node>
 
@@ -33,7 +31,6 @@
 	name="localizer" pkg="nodelet" type="nodelet" output="screen"
   	args="load aist_localization/aist_localization_nodelet $(arg manager)">
     <remap from="/file_info"	to="depth_filter/file_info"/>
-    <param name="plcf_dir"	value="$(arg plcf_dir)"/>
     <param name="ply_dir"	value="$(arg ply_dir)"/>
   </node>
 

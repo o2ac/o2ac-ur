@@ -27,7 +27,7 @@ class ImageFeeder(object):
                "09_EDCS10",                     # 14
                "12_CLBUS6-9-9.5",               # 15
                "10_CLBPS10_17_4"                # 16
-               )
+              )
     _Colors = ((0, 0, 255), (0, 255, 0), (255, 0, 0),
                (255, 255, 0), (255, 0, 255), (0, 255, 255))
 
@@ -37,7 +37,6 @@ class ImageFeeder(object):
         self._data_dir = data_dir
         self._nposes   = rospy.get_param("~nposes",   2)
         self._timeout  = rospy.get_param("~timeout",  10)
-        self._settings = rospy.get_param("~settings", {})
 
         # Load camera intrinsics
         filename = rospy.get_param("~intrinsic", "realsense_intrinsic.json")
@@ -79,15 +78,15 @@ class ImageFeeder(object):
             ids    = annotation["class_id"]
             bboxes = annotation["bbox"]
 
-            image  = cv2.imread(self._data_dir + "/Annotations/" +
-                                annotation["img_path"], cv2.IMREAD_UNCHANGED)
+            image = cv2.imread(self._data_dir + "/Annotations/" +
+                               annotation["img_path"], cv2.IMREAD_UNCHANGED)
             for id, bbox in zip(ids, bboxes):
                 self.draw_bbox(image, id, bbox)
-            imgmsg = CvBridge().cv2_to_imgmsg(image, encoding="passthrough")
+            imsg  = CvBridge().cv2_to_imgmsg(image, encoding="passthrough")
 
-            depth  = cv2.imread(self._data_dir + "/Annotations/" +
-                                annotation["depth_path"], cv2.IMREAD_UNCHANGED)
-            dptmsg = CvBridge().cv2_to_imgmsg(depth, encoding="passthrough")
+            depth = cv2.imread(self._data_dir + "/Annotations/" +
+                               annotation["depth_path"], cv2.IMREAD_UNCHANGED)
+            dmsg  = CvBridge().cv2_to_imgmsg(depth, encoding="passthrough")
 
         except Exception as e:
             rospy.logerr("(Feeder) %s(%s)", str(e), annotation_filename)
@@ -97,11 +96,11 @@ class ImageFeeder(object):
             self._dfilter.set_roi(bbox[1], bbox[3], bbox[0], bbox[2])
             now = rospy.Time.now()
             self._cinfo.header.stamp = now
-            imgmsg.header = self._cinfo.header
-            dptmsg.header = self._cinfo.header
+            imsg.header = self._cinfo.header
+            dmsg.header = self._cinfo.header
             self._cinfo_pub.publish(self._cinfo)
-            self._image_pub.publish(imgmsg)
-            self._depth_pub.publish(dptmsg)
+            self._image_pub.publish(imsg)
+            self._depth_pub.publish(dmsg)
             rospy.loginfo("*** (Feeder) --------------")
             rospy.loginfo("*** (Feeder) localize id=%d", id + 1)
             self.localize(ImageFeeder._Models[id])
@@ -116,9 +115,6 @@ class ImageFeeder(object):
 
     def localize(self, model):
         self._dfilter.capture()  # Load PLY data to the localizer
-        self._localizer.set_settings(self._settings["default"])
-        if model in self._settings:
-            self._localizer.set_settings(self._settings[model])
         self._localizer.send_goal(model, self._nposes)
         (poses, overlaps) \
             = self._localizer.wait_for_result(rospy.Duration(self._timeout))

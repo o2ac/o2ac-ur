@@ -1,19 +1,10 @@
-models:
-  - 01-BASE
-  - 02-PANEL
-  - 03-PANEL2
-  - 04_37D-GEARMOTOR-50-70
-  - 05_MBRFA30-2-P6
-  - 06_MBT4-400
-  - 07_SBARB6200ZZ_30
-  - 08_KZAF1075NA4WA55GA20AA0
-  - 09_EDCS10
-  - 10_CLBPS10_17_4
-  - 11_MBRAC60-2-10
-  - 12_CLBUS6-9-9.5
-  - 13_MBGA30-2
-  - 14_BGPSL6-9-L30-F8
-  - 15_SLBNR6
+methods:
+  08_KZAF1075NA4WA55GA20AA0: 2
+  09_EDCS10: 1
+  10_CLBPS10_17_4: 1
+  12_CLBUS6-9-9.5: 1
+  14_BGPSL6-9-L30-F8: 2
+  15_SLBNR6: 1
 
 settings:
   04_37D-GEARMOTOR-50-70:
@@ -26,19 +17,3 @@ settings:
     Scene_Minimal_Cluster_Size: 50
   12_CLBPS10_17_4:
     Scene_Minimal_Cluster_Size: 50
-
-  default:
-    Scene_Clustering_Level: Normal
-    Scene_Minimal_Cluster_Size: 200
-    Scene_Maximal_Cluster_Size: 3500000
-    Matching_Algorithm: Surfaces
-    Model_Keypoints_Sampling: Medium
-    Local_Search_Radius: Normal
-    Feature_fit_consideration_level: 15
-    Global_maximal_feature_fit_overflow: 20
-    Fine_Alignment_Iterations: 30
-    Fine_Alignment_Point_Set: Surface
-    Fine_Alignment_Point_Set_Sampling: Sampled
-    Projection_Tolerance: 100
-    Projection_Hidden_Part_Tolerance: 100
-    Overlap: 15.0
