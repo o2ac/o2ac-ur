@@ -35,11 +35,11 @@ Localization::Localization(const ros::NodeHandle& nh)
   // Setup dynamic reconfigure parameters for localization.
   //   0: Preprocessing and overall search strategy
     register_variable("Scene_Noise_Reduction",
-		      "Reduce scene noise",
-		      false, true);
+    		      "Reduce scene noise",
+    		      false, true);
     register_variable("Smart_Memory",
-		      "Remember the object poses found in the last run and uses them in the next search.",
-		      false, true);
+    		      "Remember the object poses found in the last run and uses them in the next search.",
+    		      false, true);
 
   //   1: Segmentation
     register_variable("Scene_Clustering_Level",

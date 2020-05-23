@@ -38,7 +38,7 @@ class Detector
     using point3_t	= cv::Vec<float, 3>;
 
   public:
-		Detector(const std::string& name)			;
+		Detector(const ros::NodeHandle& nh)			;
 
     void	run()							;
 
@@ -61,7 +61,7 @@ class Detector
 				  const ros::Time& stamp,
 				  const std::string& marker_frame)	;
     void	publish_image(const cv::Mat& image,
-			      const ros::Time& stamp)		const	;
+			      const std_msgs::Header& header)	const	;
     bool	get_transform(const std::string& refFrame,
 			      const std::string& childFrame,
 			      tf::StampedTransform& transform)	const	;

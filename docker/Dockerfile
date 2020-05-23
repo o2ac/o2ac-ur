@@ -260,19 +260,6 @@ RUN pip install gym
 
 ################################################################################
 
-# Install Python3 & dependencies for PILCO
-# This is required for running Python3 nodes in ROS
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-		python3-pip=9.0.1-2.3~ubuntu1.18.04.1 python3-yaml=3.12-1build2
-RUN pip3 install gpflow==1.4.1
-#RUN pip3 install tensorflow-gpu==1.14.0
-RUN pip3 install box2d-py==2.3.8  \
-			rospkg==1.1.9  \
-			catkin_pkg==0.4.13
-
-################################################################################
-
 # Install PyCharm
 # https://www.jetbrains.com/pycharm/download/#section=linux
 # FIXME: These instructions fail to find the graphics interface
@@ -334,9 +321,9 @@ RUN /root/scripts/install-phoxi-control.sh
 ################################################################################
 
 # Install PhotoneoLocalizationSDK
-RUN apt-get update && apt-get install -y --no-install-recommends \
-	libssh2-1
-RUN /root/scripts/install-photoneo-localization.sh
+#RUN apt-get update && apt-get install -y --no-install-recommends \
+#	libssh2-1
+#RUN /root/scripts/install-photoneo-localization.sh
 
 ################################################################################
 

@@ -15,7 +15,8 @@ main(int argc, char** argv)
 
     try
     {
-	aist_aruco_ros::Detector	detector("~");
+	ros::NodeHandle			nh("~");
+	aist_aruco_ros::Detector	detector(nh);
 	detector.run();
     }
     catch (const std::exception& err)

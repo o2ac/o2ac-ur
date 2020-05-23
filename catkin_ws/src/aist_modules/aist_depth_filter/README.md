@@ -9,35 +9,31 @@ This package provides a ROS node applying a series of filters to the input depth
 
 The node applies the filtering process to the input depth images in the following order;
 
-### *Background subtraction* 
+### Background subtraction
 
 Compute differences in depth values between the input and the background depth images, then zero the depths at pixels with differences below the threshold. The backgournd depth image is saved in advance via the service `~/saveBG`. The threshold value is specified by the parameter `~thresh_bg`. The background subtraction is performed in advance of all the other filtering process, that is, the background image is saved as is and compared with the original incoming images withtout cropping.
 
-### *Region of Interest(ROI)*
+### Region of Interest(ROI)
 
 Sepcify a rectangular region of interest(ROI) of the input image and perform the subsequent filtering process only within this region. The ROI is determined by the upper-left corner (`~left`, `~top`) and lower-right corner (`~right`-1, `~bottom`-1) with four parameters `~top`, `~bottom`, `~left` and `~right`.
 
-### *Z-clipping*
+### Z-clipping
 
 Depth values are zeroed if the original value is below the minimum or above the maximum distance values specified by the parameters `~near` and `~far` respectively.
 
-### *Computing surface normals*
+### Computing surface normals
 
 Compute surface normals from depth images.This is done by fitting a plane to the 3D point coodinates within a square window centered at the pixel of interest. The size of the window is 2*r*+1 where *r* is the radius specified by the parameter `~window_radius`.
 
-### *Depth scaling*
+### Depth scaling
 
 Multiply a constant value specified by the parameter `~scale` to the input depths. This function is intended to be used for transforming the unit of distance or compensating errors in the depth scale of the 3D camera.
 
 ## ROS services
 
-### `~/saveBG`
+- **~/saveBG** -- Save the original depth image with no filteres applied to `~/.ros/.tif`. This file is used as the backgroud in processing the subsequent input images.
 
-Save the original depth image with no filteres applied to `~/.ros/.tif`. This file is used as the backgroud in processing the subsequent input images.
-
-### `~/capture`
-
-First, capture the filtered intensity/color, depth and normal images. Then, create a PLY file from them and save it to `~/.ros/scene.ply`. Finally, its file path as well as the frame id of the camera is published to the topic `~/file_info`.
+- **~/capture** -- First, capture the filtered intensity/color, depth and normal images. Then, create a PLY file from them and save it to `~/.ros/scene.ply`. Finally, its file path as well as the frame id of the camera is published to the topic `~/file_info`.
 
 ## ROS parameters
 

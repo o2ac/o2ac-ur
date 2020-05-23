@@ -39,11 +39,11 @@ val(const sensor_msgs::Image& image_msg, int u, int v)
 /************************************************************************
 *  class Detector							*
 ************************************************************************/
-Detector::Detector(const std::string& name)
-    :_nh(name),
+Detector::Detector(const ros::NodeHandle& nh)
+    :_nh(nh),
      _tfListener(),
      _tfBroadcaster(),
-     _marker_frame(""),
+     _marker_frame("marker_frame"),
      _camera_frame(""),
      _reference_frame(""),
      _camera_info_sub(_nh, "/camera_info", 1),
@@ -51,31 +51,26 @@ Detector::Detector(const std::string& name)
      _depth_sub(_nh, "/depth", 1),
      _sync(sync_policy_t(10), _camera_info_sub, _image_sub, _depth_sub),
      _camParam(),
-     _useRectifiedImages(true),
+     _useRectifiedImages(false),
      _rightToLeft(),
      _it(_nh),
      _image_pub(_it.advertise("result", 1)),
      _debug_pub(_it.advertise("debug",  1)),
-     _pose_pub(     _nh.advertise<geometry_msgs::PoseStamped>("pose", 100)),
+     _pose_pub(_nh.advertise<geometry_msgs::PoseStamped>("pose", 100)),
      _ddr(),
      _marker_detector(),
      _marker_map(),
      _marker_size(0.05),
-     _marker_id(0),
+     _marker_id(26),
      _useSimilarity(false),
      _planarityTolerance(0.001)
 {
-    _nh.param("marker_size",	    _marker_size,	 0.05);
-    _nh.param("marker_id",	    _marker_id,		 26);
-    _nh.param("marker_frame",	    _marker_frame,	 std::string(""));
-    _nh.param("camera_frame",	    _camera_frame,	 std::string(""));
-    _nh.param("reference_frame",    _reference_frame,    std::string(""));
-    _nh.param("image_is_rectified", _useRectifiedImages, true);
-
-    ROS_ASSERT(_camera_frame != "" && _marker_frame != "");
-
-    if (_reference_frame.empty())
-	_reference_frame = _camera_frame;
+    _nh.param("marker_size",	    _marker_size,	 _marker_size);
+    _nh.param("marker_id",	    _marker_id,		 _marker_id);
+    _nh.param("marker_frame",	    _marker_frame,	 _marker_frame);
+    _nh.param("camera_frame",	    _camera_frame,	 _camera_frame);
+    _nh.param("reference_frame",    _reference_frame,    _reference_frame);
+    _nh.param("image_is_rectified", _useRectifiedImages, _useRectifiedImages);
 
     ROS_INFO_STREAM("Aruco node started with marker size of "
 		    << _marker_size << " m and marker id to track: "
@@ -101,9 +96,25 @@ Detector::Detector(const std::string& name)
 	_marker_map.mInfoType = marker_map_t::METERS;
     }
 
-  // Setup ddynamic_reconfigure service for min/max sizes.
-    float	mins, maxs;
-    ROS_INFO_STREAM("Marker size min: " << mins << "  max: " << maxs);
+  // WIP: Setup ddynamic_reconfigure service for min/max sizes.
+    float	min_size, max_size;
+    _marker_detector.getMinMaxSize(min_size, max_size);
+    ROS_INFO_STREAM("Marker size min: " << min_size << "  max: " << max_size);
+
+
+  // Set desired speed and setup ddynamic_reconfigure service for it.
+    int		desiredSpeed;
+    _nh.param("desired_speed",
+	      desiredSpeed, _marker_detector.getDesiredSpeed());
+
+    std::map<std::string, int>	map_desiredSpeed = {{"very_precise",	0},
+						    {"precise",		1},
+						    {"fast",		2},
+						    {"very_fast",	3}};
+    _ddr.registerEnumVariable<int>(
+    	"desired_speed", desiredSpeed,
+    	boost::bind(&mdetector_t::setDesiredSpeed, _marker_detector, _1),
+	"Desired speed", map_desiredSpeed);
     ROS_INFO_STREAM("Desired speed: " << _marker_detector.getDesiredSpeed());
 
   // Set coner refinement method and setup ddynamic_reconfigure service for it.
@@ -162,13 +173,13 @@ Detector::Detector(const std::string& name)
 		    << " param1: " << param1 << " param2: " << param2);
 
   // Set usage of rigid transformation and setup its dynamic reconfigure service.
-    _nh.param("use_similarity", _useSimilarity, false);
+    _nh.param("use_similarity", _useSimilarity, _useSimilarity);
     _ddr.registerVariable<bool>(
 	"use_similarity", &_useSimilarity,
 	"Use similarity transformation to determine marker poses.");
 
   // Set planarity tolerance and setup its ddynamic_recoconfigure service.
-    _nh.param("planarity_tolerance", _planarityTolerance, 0.001);
+    _nh.param("planarity_tolerance", _planarityTolerance, _planarityTolerance);
     _ddr.registerVariable<double>(
     	"planarity_tolerance", &_planarityTolerance,
     	"Planarity tolerance for extracting marker region(in meters)",
@@ -235,6 +246,11 @@ void
 Detector::detect_marker_cb(const camera_info_p& camera_info_msg,
 			   const image_p& image_msg, const image_p& depth_msg)
 {
+    if (_camera_frame.empty())
+	_camera_frame = camera_info_msg->header.frame_id;
+    if (_reference_frame.empty())
+	_reference_frame = _camera_frame;
+    
     try
     {
       // Truncate distortion coefficiens because aruco_ros accepts only
@@ -331,7 +347,7 @@ Detector::detect_marker_cb(const camera_info_p& camera_info_msg,
 	    for (auto& marker : markers)
 		aruco::CvDrawingUtils::draw3dAxis(image, marker, _camParam);
 
-	publish_image(image, image_msg->header.stamp);
+	publish_image(image, image_msg->header);
     }
     catch (const std::exception& e)
     {
@@ -397,15 +413,16 @@ Detector::publish_transform(ITER begin, ITER end, const ros::Time& stamp,
 }
 
 void
-Detector::publish_image(const cv::Mat& image, const ros::Time& stamp) const
+Detector::publish_image(const cv::Mat& image,
+			const std_msgs::Header& header) const
 {
     if (_image_pub.getNumSubscribers() > 0)
     {
       //show input with augmented information
 	cv_bridge::CvImage	out_msg;
-	out_msg.header.stamp = stamp;
-	out_msg.encoding     = sensor_msgs::image_encodings::RGB8;
-	out_msg.image	     = image;
+	out_msg.header	 = header;
+	out_msg.encoding = sensor_msgs::image_encodings::RGB8;
+	out_msg.image	 = image;
 	_image_pub.publish(out_msg.toImageMsg());
     }
 
@@ -414,9 +431,9 @@ Detector::publish_image(const cv::Mat& image, const ros::Time& stamp) const
       //show also the internal image
       //resulting from the threshold operation
 	cv_bridge::CvImage	debug_msg;
-	debug_msg.header.stamp = stamp;
-	debug_msg.encoding     = sensor_msgs::image_encodings::MONO8;
-	debug_msg.image	       = _marker_detector.getThresholdedImage();
+	debug_msg.header   = header;
+	debug_msg.encoding = sensor_msgs::image_encodings::MONO8;
+	debug_msg.image	   = _marker_detector.getThresholdedImage();
 	_debug_pub.publish(debug_msg.toImageMsg());
     }
 }

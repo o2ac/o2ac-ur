@@ -1,0 +1,54 @@
+<?xml version="1.0" ?>
+<launch>
+
+  <arg name="serial_no"		default=""/>
+  <arg name="camera_name"	default="a_bot_camera"/>
+  <arg name="camera_width"	default="640"/>
+  <arg name="camera_height"	default="480"/>
+  <arg name="enable_streaming"	default="true"/>
+  <arg name="manager"		default="realsense2_camera_manager"/>
+
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <arg name="manager"			value="$(arg manager)"/>
+    <arg name="camera"			value="$(arg camera_name)"/>
+    <arg name="enable_depth"		value="true"/>
+    <arg name="enable_infra1"		value="true"/>
+    <arg name="enable_infra2"		value="false"/>
+    <arg name="enable_pointcloud"	value="false"/>
+    <arg name="align_depth"		value="true"/>
+    <arg name="depth_width"		value="$(arg camera_width)"/>
+    <arg name="depth_height"		value="$(arg camera_height)"/>
+    <arg name="infra_width"		value="$(arg camera_width)"/>
+    <arg name="infra_height"		value="$(arg camera_height)"/>
+    <arg name="color_width"		value="$(arg camera_width)"/>
+    <arg name="color_height"		value="$(arg camera_height)"/>
+    <arg name="enable_streaming"	value="$(arg enable_streaming)"/>
+  </include>
+
+  <include file="$(find aist_depth_filter)/launch/run.launch"
+	   ns="$(arg camera_name)">
+    <arg name="camera_info_topic" value="infra1/camera_info"/>
+    <arg name="image_topic"	  value="infra1/image_rect_raw"/>
+    <arg name="depth_topic"	  value="aligned_depth_to_infra1/image_raw"/>
+    <arg name="normal_topic"	  value=""/>
+    <arg name="manager"
+	 value="$(eval ''
+		if manager == 'realsense2_camera_manager' else manager)"/>
+  </include>
+
+  <include file="$(find aist_visual_tracker)/launch/run.launch"
+	   ns="$(arg camera_name)">
+    <arg name="camera_info_topic" value="depth_filter/camera_info"/>
+    <arg name="image_topic"	  value="depth_filter/image"/>
+    <arg name="depth_topic"	  value="depth_filter/depth"/>
+    <arg name="manager"
+	 value="$(eval ''
+		if manager == 'realsense2_camera_manager' else manager)"/>
+  </include>
+
+  <node name="$(anon rviz)" pkg="rviz" type="rviz" output="screen"
+	args="-d $(find aist_visual_tracker)/launch/infra.rviz"/>
+
+  <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure"/>
+
+</launch>

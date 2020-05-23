@@ -1,5 +1,6 @@
 /*!
  *  \file	nodelet.cpp
+ *  \author	Toshio UESHIBA
  */
 #include "Detector.h"
 #include <nodelet/nodelet.h>
@@ -18,7 +19,6 @@ class DetectorNodelet : public nodelet::Nodelet
     virtual void	onInit()					;
 
   private:
-    ros::NodeHandle		_nh;
     boost::shared_ptr<Detector>	_node;
 };
 
@@ -26,8 +26,7 @@ void
 DetectorNodelet::onInit()
 {
     NODELET_INFO("aist_aruco_ros::DetectorNodelet::onInit()");
-    _nh = getNodeHandle();
-    _node.reset(new Detector(getName()));
+    _node.reset(new Detector(getPrivateNodeHandle()));
 }
 
 }	// namespace aist_aruco_ros

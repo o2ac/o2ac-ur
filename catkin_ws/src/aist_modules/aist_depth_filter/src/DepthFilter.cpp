@@ -89,27 +89,27 @@ DepthFilter::DepthFilter(const std::string& name)
      _window_radius(0),
      _threshPlane(0.001)
 {
-    _nh.param("thresh_bg", _threshBG, 0.0);
+    _nh.param("thresh_bg", _threshBG, _threshBG);
     _ddr.registerVariable<double>("thresh_bg", &_threshBG,
 				  "Threshold value for background removal",
 				  0.0, 0.1);
-    _nh.param("near", _near, 0.0);
+    _nh.param("near", _near, _near);
     _ddr.registerVariable<double>("near", &_near,
 				  "Nearest depth value", 0.0, 1.0);
-    _nh.param("far", _far, 100.0);
+    _nh.param("far", _far, _far);
     _ddr.registerVariable<double>("far", &_far,
 				  "Farest depth value", 0.0, FarMax);
-    _nh.param("top", _top, 0);
+    _nh.param("top", _top, _top);
     _ddr.registerVariable<int>("top",    &_top,	   "Top of ROI",    0, 2048);
-    _nh.param("bottom", _bottom, 2048);
+    _nh.param("bottom", _bottom, _bottom);
     _ddr.registerVariable<int>("bottom", &_bottom, "Bottom of ROI", 0, 2048);
-    _nh.param("left", _left, 0);
+    _nh.param("left", _left, _left);
     _ddr.registerVariable<int>("left",   &_left,   "Left of ROI",   0, 3072);
-    _nh.param("right", _right, 3072);
+    _nh.param("right", _right, _right);
     _ddr.registerVariable<int>("right",  &_right,  "Right of ROI",  0, 3072);
-    _nh.param("scale", _scale, 1.0);
+    _nh.param("scale", _scale, _scale);
     _ddr.registerVariable<double>("scale", &_scale, "Scale depth", 0.5, 1.5);
-    _nh.param("thresh_plane", _threshPlane, 0.001);
+    _nh.param("thresh_plane", _threshPlane, _threshPlane);
     _ddr.registerVariable<double>("thresh_plane", &_threshPlane,
 				  "Threshold of plane fitting", 0.0, 0.01);
 

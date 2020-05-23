@@ -23,6 +23,7 @@ if [ `lsb_release -sc` == "bionic" ]; then
     install_pkg j/jasper libjasper1_1.900.1-14ubuntu3.5_amd64.deb
     install_pkg libw/libwebp libwebp5_0.4.4-1_amd64.deb
     install_pkg libw/libwebp libwebpmux1_0.4.4-1_amd64.deb
+    apt-get install -y --no-install-recommends libssh2-1
 fi
 
 install_photoneo Localization/1.3.1 PhotoneoLocalizationSDKInstaller-1.3.1+ed614d8-Linux-gcc5.5.0.run
