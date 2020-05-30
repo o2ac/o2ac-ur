@@ -79,24 +79,6 @@ Visualization Manager:
           Value: true
         assy_part_02_motor_screw_hole_6:
           Value: true
-        assy_part_03:
-          Value: true
-        assy_part_03_bottom_screw_hole_1:
-          Value: true
-        assy_part_03_bottom_screw_hole_2:
-          Value: true
-        assy_part_03_bottom_screw_hole_aligner_1:
-          Value: true
-        assy_part_03_bottom_screw_hole_aligner_2:
-          Value: true
-        assy_part_03_front_hole:
-          Value: true
-        assy_part_03_pulley_ridge_bottom:
-          Value: true
-        assy_part_03_pulley_ridge_middle:
-          Value: true
-        assy_part_03_pulley_ridge_top:
-          Value: true
         assy_part_04:
           Value: true
         assy_part_04_inserted_02:
@@ -109,35 +91,13 @@ Visualization Manager:
           Value: true
         assy_part_05_center:
           Value: true
-        assy_part_07:
+        assy_part_10:
           Value: true
-        assy_part_07_back_hole:
+        assy_part_10_center:
           Value: true
-        assy_part_07_back_tip:
+        assy_part_12:
           Value: true
-        assy_part_07_front_hole:
-          Value: true
-        assy_part_07_inserted:
-          Value: true
-        assy_part_07_screw_hole_1:
-          Value: true
-        assy_part_07_screw_hole_2:
-          Value: true
-        assy_part_07_screw_hole_3:
-          Value: true
-        assy_part_07_screw_hole_4:
-          Value: true
-        assy_part_11:
-          Value: true
-        assy_part_11_back_hole:
-          Value: true
-        assy_part_11_back_tip:
-          Value: true
-        assy_part_11_front_hole:
-          Value: true
-        assy_part_11_screw_head_1:
-          Value: true
-        assy_part_11_screw_head_2:
+        assy_part_12_center:
           Value: true
         assy_part_13:
           Value: true
@@ -177,23 +137,6 @@ Visualization Manager:
               {}
             assy_part_02_motor_screw_hole_6:
               {}
-          assy_part_03:
-            assy_part_03_bottom_screw_hole_1:
-              {}
-            assy_part_03_bottom_screw_hole_2:
-              {}
-            assy_part_03_bottom_screw_hole_aligner_1:
-              {}
-            assy_part_03_bottom_screw_hole_aligner_2:
-              {}
-            assy_part_03_front_hole:
-              {}
-            assy_part_03_pulley_ridge_bottom:
-              {}
-            assy_part_03_pulley_ridge_middle:
-              {}
-            assy_part_03_pulley_ridge_top:
-              {}
           assy_part_04:
             assy_part_04_inserted_02:
               {}
@@ -204,33 +147,11 @@ Visualization Manager:
           assy_part_05:
             assy_part_05_center:
               {}
-          assy_part_07:
-            assy_part_07_back_hole:
+          assy_part_10:
+            assy_part_10_center:
               {}
-            assy_part_07_back_tip:
-              {}
-            assy_part_07_front_hole:
-              {}
-            assy_part_07_inserted:
-              {}
-            assy_part_07_screw_hole_1:
-              {}
-            assy_part_07_screw_hole_2:
-              {}
-            assy_part_07_screw_hole_3:
-              {}
-            assy_part_07_screw_hole_4:
-              {}
-          assy_part_11:
-            assy_part_11_back_hole:
-              {}
-            assy_part_11_back_tip:
-              {}
-            assy_part_11_front_hole:
-              {}
-            assy_part_11_screw_head_1:
-              {}
-            assy_part_11_screw_head_2:
+          assy_part_12:
+            assy_part_12_center:
               {}
           assy_part_13:
             assy_part_13_center:
@@ -250,52 +171,12 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        assy_part_02:
+        assy_part_12:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        assy_part_02_back_hole:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        assy_part_02_bottom_screw_hole_1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        assy_part_02_bottom_screw_hole_2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        assy_part_02_bottom_screw_hole_aligner_1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        assy_part_02_bottom_screw_hole_aligner_2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        assy_part_02_motor_screw_hole_1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        assy_part_02_motor_screw_hole_2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        assy_part_02_motor_screw_hole_3:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        assy_part_02_motor_screw_hole_4:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        assy_part_02_motor_screw_hole_5:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        assy_part_02_motor_screw_hole_6:
+        assy_part_12_center:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -432,10 +313,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: -1.5697963237762451
+      Pitch: -1.5497963428497314
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.7269062995910645
+      Yaw: 4.696904182434082
     Saved: ~
 Window Geometry:
   Displays:

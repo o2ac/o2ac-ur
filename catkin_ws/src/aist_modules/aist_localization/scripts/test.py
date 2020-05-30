@@ -60,7 +60,7 @@ if __name__ == '__main__':
 
     localize = LocalizationClient()
     localize.load_scene(args.scene, args.frame)
-    models  = rospy.get_param("aist_localization", [])
+    models  = rospy.get_param('aist_localization', [])
     spawner = ModelSpawnerClient()
 
 
@@ -70,11 +70,11 @@ if __name__ == '__main__':
             = localize.wait_for_result(rospy.Duration(args.timeout))
 
         if poses:
-            print("{}\noverlap: {}".format(poses[0], overlaps[0]))
+            print('{}\noverlap: {}'.format(poses[0], overlaps[0]))
             spawner.add(model, poses[0])
 
         # for pose, overlap in zip(poses, overlaps):
-        #     print("{}\noverlap: {}".format(pose, overlap))
+        #     print('{}\noverlap: {}'.format(pose, overlap))
         #     spawner.add(model, pose)
 
     print(spawner.get_list())

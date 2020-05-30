@@ -5,25 +5,24 @@
     <xacro:include filename="$(find aist_phoxi_camera)/urdf/PhoXi3Dscanner_values.xacro"/>
     <xacro:include filename="$(find aist_phoxi_camera)/urdf/PhoXi3Dscanner_macro.xacro"/>
 
-    <xacro:PhoXi3Dscanner scanner_parent = "${parent}"
-			  scanner_name   = "${prefix}phoxi_m_camera"
-			  sensor_parent  = "${prefix}phoxi_m_camera"
-			  sensor_name    = "${prefix}phoxi_m_sensor" >
-      <xacro:insert_block name = "origin" />
-      <xacro:PhoXi3DscannerM_default_sensor_origin />
-      <xacro:PhoXi3DscannerM_meshes />
+    <xacro:PhoXi3Dscanner scanner_parent="${parent}"
+			  scanner_name  ="${prefix}camera"
+			  sensor_parent ="${prefix}camera"
+			  sensor_name   ="${prefix}sensor">
+      <xacro:insert_block name="origin"/>
+      <xacro:PhoXi3DscannerM_default_sensor_origin/>
+      <xacro:PhoXi3DscannerM_meshes/>
     </xacro:PhoXi3Dscanner>
 
-    <link name="${prefix}phoxi_m_camera_link"/>
-    <joint name="${prefix}phoxi_m_sensor_to_${prefix}phoxi_m_camera_link"
-    	   type="fixed">
-      <parent link="${prefix}phoxi_m_sensor"/>
-      <child  link="${prefix}phoxi_m_camera_link"/>
+    <link name="${prefix}camera_link"/>
+    <joint name="${prefix}sensor_to_${prefix}camera_link" type="fixed">
+      <parent link="${prefix}sensor"/>
+      <child  link="${prefix}camera_link"/>
       <origin xyz="0 0 0" rpy="${pi/2} ${-pi/2} 0"/>
     </joint>
 
-    <gazebo reference="${prefix}phoxi_m_camera_link">
-      <sensor name="${prefix}phoxi_m_camera" type="depth">
+    <gazebo reference="${prefix}camera_link">
+      <sensor name="${prefix}camera" type="depth">
 	<always_on>true</always_on>
 	<visualize>true</visualize>
 	<camera>
@@ -40,13 +39,13 @@
             <far>100</far>
           </clip>
 	</camera>
-	<plugin name="${prefix}phoxi_m_cam_controller"
+	<plugin name="${prefix}cam_controller"
 		filename="libgazebo_ros_openni_kinect.so">
           <baseline>0.35</baseline>
           <alwaysOn>true</alwaysOn>
           <updateRate>2.5</updateRate>
-          <cameraName>${prefix}phoxi_m_camera</cameraName>
-          <frameName>${prefix}phoxi_m_camera_link</frameName>
+          <cameraName>${prefix}camera</cameraName>
+          <frameName>${prefix}sensor</frameName>
           <imageTopicName>texture</imageTopicName>
           <depthImageTopicName>depth_map</depthImageTopicName>
           <pointCloudTopicName>pointcloud</pointCloudTopicName>

@@ -32,7 +32,7 @@ Camera::Camera(const std::string& name)
 	    0.0       , 2215.13350577 ,  756.735726174,
             0.0       ,    0.0        ,    1.0        }),
      _pointFormat(XYZ),
-     _intensityScale(255.0/4095.0),
+     _intensityScale(0.5),
      _ddr(_nh),
      _get_device_list_server(
 	 _nh.advertiseService("get_device_list",   &get_device_list,	this)),
@@ -64,12 +64,7 @@ Camera::Camera(const std::string& name)
 
   // Search for a device with specified ID.
     std::string	id;
-#if ((PHO_SOFTWARE_VERSION_MAJOR >= 1) && (PHO_SOFTWARE_VERSION_MINOR >= 2))
     _nh.param<std::string>("id", id, "InstalledExamples-basic-example");
-#else
-    _nh.param<std::string>("id", id,
-			   "InstalledExamples-PhoXi-example(File3DCamera)");
-#endif
     for (size_t pos; (pos = id.find('\"')) != std::string::npos; )
 	id.erase(pos, 1);
 
@@ -225,7 +220,7 @@ Camera::Camera(const std::string& name)
 	    "Format of points in published point cloud", enum_point_format);
 
   // -- intensity scale --
-    _nh.param<double>("intensity_scale", _intensityScale, 255.0/4095.0);
+    _nh.param<double>("intensity_scale", _intensityScale, _intensityScale);
     _ddr.registerVariable<double>(
 	    "intensity_scale", _intensityScale,
 	    boost::bind(&Camera::set_member<double>, this,
@@ -243,10 +238,11 @@ Camera::Camera(const std::string& name)
     std::copy(K[0], K[3], std::begin(_K));
 
   // Get frame name from parameter server and set it to _frame_id.
-    _nh.param<std::string>("frame", _frame_id, "map");
+    _nh.param<std::string>("frame", _frame_id,
+			   ros::this_node::getName() + "_sensor");
 
   // Get rate from parameter server and set it to _rate.
-    _nh.param<double>("rate", _rate, 10.0);
+    _nh.param<double>("rate", _rate, _rate);
 
   // Set trigger_mode according to the parameter.
     int	trigger_mode;

@@ -28,9 +28,15 @@ catkin_python_setup()
 
 include_directories(${rviz_INCLUDE_DIRS})
 
-add_service_files(DIRECTORY srv)
+add_service_files(
+  FILES
+    Add.srv Delete.srv DeleteAll.srv GetList.srv
+)
 
-add_message_files(DIRECTORY msg)
+add_message_files(
+  FILES
+    ModelDescription.msg
+)
 
 generate_messages(
   DEPENDENCIES

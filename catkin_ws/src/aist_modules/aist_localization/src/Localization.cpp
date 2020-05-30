@@ -30,7 +30,7 @@ Localization::Localization(const ros::NodeHandle& nh)
     _localize_srv.start();
 
     _nh.param("ply_dir", _ply_dir,
-	      ros::package::getPath("o2ac_scene_description") + "/meshes");
+	      ros::package::getPath("o2ac_parts_description") + "/meshes");
 
   // Setup dynamic reconfigure parameters for localization.
   //   0: Preprocessing and overall search strategy

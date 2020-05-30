@@ -1,0 +1,32 @@
+<?xml version="1.0" ?>
+<launch>
+
+  <arg name="camera_name"	default="a_bot_inside_camera"/>
+  <arg name="manager"		default=""/>
+
+  <include file="$(find aist_depth_filter)/launch/realsense.launch">
+    <arg name="camera_name"	value="$(arg camera_name)"/>
+    <arg name="manager"		value="$(arg manager)"/>
+    <arg name="vis"		value="false"/>
+  </include>
+
+  <node name="camera_multiplexer"
+  	pkg="aist_camera_multiplexer" type="aist_camera_multiplexer"
+  	output="screen">
+    <rosparam param="camera_names" subst_value="true">
+      [$(arg camera_name)]
+    </rosparam>
+
+    <remap from="/camera_info0"	to="$(arg camera_name
+				    )/depth_filter/camera_info"/>
+    <remap from="/image0"	to="$(arg camera_name)/depth_filter/image"/>
+    <remap from="/depth0"	to="$(arg camera_name)/depth_filter/depth"/>
+    <remap from="/normal0"	to="$(arg camera_name)/depth_filter/normal"/>
+  </node>
+
+  <node name="$(anon rviz)" pkg="rviz" type="rviz"
+  	args="-d $(find aist_camera_multiplexer)/launch/test.rviz"
+  	respawn="false" output="screen"/>
+  <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure"/>
+
+</launch>

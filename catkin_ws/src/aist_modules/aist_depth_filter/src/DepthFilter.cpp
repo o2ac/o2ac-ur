@@ -66,7 +66,7 @@ DepthFilter::DepthFilter(const std::string& name)
      _depth_pub( _it.advertise("depth",  1)),
      _normal_pub(_it.advertise("normal", 1)),
      _colored_normal_pub(_it.advertise("colored_normal", 1)),
-     _bottom_pub(_nh.advertise<cloud_t>("bottom", 1)),
+     _base_plane_pub(_nh.advertise<cloud_t>("base_plane", 1)),
      _camera_info_pub(_nh.advertise<camera_info_t>("camera_info", 1)),
      _file_info_pub(_nh.advertise<file_info_t>("file_info", 1)),
      _ddr(_nh),
@@ -186,9 +186,9 @@ DepthFilter::capture_cb(std_srvs::Trigger::Request&  req,
 
 	if (_threshPlane > 0.0)
 	{
-	    const auto	plane = detect_bottom_plane(*_camera_info_org,
-						    *_image_org, *_depth_org,
-						    _threshPlane);
+	    const auto	plane = detect_base_plane(*_camera_info_org,
+						  *_image_org, *_depth_org,
+						  _threshPlane);
 	    file_info.plane_detected = true;
 	    file_info.normal.x	     = plane.normal()(0);
 	    file_info.normal.y	     = plane.normal()(1);
@@ -551,7 +551,7 @@ DepthFilter::scale(image_t& depth) const
 }
 
 DepthFilter::plane_t
-DepthFilter::detect_bottom_plane(const camera_info_t& camera_info,
+DepthFilter::detect_base_plane(const camera_info_t& camera_info,
 				 const image_t& image,
 				 const image_t& depth, float thresh) const
 {
@@ -589,7 +589,7 @@ DepthFilter::detect_bottom_plane(const camera_info_t& camera_info,
     const auto	cloud = create_pointcloud(inliers.begin(), inliers.end(),
 					  depth.header.stamp,
 					  depth.header.frame_id);
-    _bottom_pub.publish(cloud);
+    _base_plane_pub.publish(cloud);
 
     return plane;
 }

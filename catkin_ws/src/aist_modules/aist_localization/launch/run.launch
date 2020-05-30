@@ -20,7 +20,7 @@
 
   <!-- Spawn localizer as a node unless manager name is specified -->
   <node if="$(eval manager == '')"
-	name="localizer" pkg="aist_localization" type="aist_localization"
+	name="localization" pkg="aist_localization" type="aist_localization"
   	output="screen">
     <remap from="/file_info"	to="depth_filter/file_info"/>
     <param name="ply_dir"	value="$(arg ply_dir)"/>
@@ -28,7 +28,7 @@
 
   <!-- Spawn localizer as a nodelet if manager name is specified -->
   <node unless="$(eval manager == '')"
-	name="localizer" pkg="nodelet" type="nodelet" output="screen"
+	name="localization" pkg="nodelet" type="nodelet" output="screen"
   	args="load aist_localization/aist_localization_nodelet $(arg manager)">
     <remap from="/file_info"	to="depth_filter/file_info"/>
     <param name="ply_dir"	value="$(arg ply_dir)"/>

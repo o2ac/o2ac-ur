@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <launch>
 
-  <arg name="marker_id"			default="0"/>
+  <arg name="marker_id"			default="26"/>
   <arg name="marker_map"		default="$(find aist_aruco_ros)/config/markermap-17-26-32-256.yaml"/>
   <arg name="marker_size"		default="0.070"/>    <!-- in meters -->
   <arg name="camera_name"		default="a_bot_camera"/>
@@ -12,11 +12,12 @@
   <arg name="reference_frame"		default=""/>
   <arg name="corner_refinement"		default="LINES"/>
   <arg name="planarity_tolerance"	default="0.005"/>
-  <arg name="manager"			default="realsense2_camera_manager"/>
+  <arg name="manager"			default=""/>
+  <arg name="vis"			default="true"/>
 
   <include file="$(find realsense2_camera)/launch/rs_camera.launch">
-    <arg name="manager"			value="$(arg manager)"/>
     <arg name="camera"			value="$(arg camera_name)"/>
+    <arg name="tf_prefix"		value="calibrated_$(arg camera_name)"/>
     <arg name="enable_depth"		value="true"/>
     <arg name="enable_infra1"		value="false"/>
     <arg name="enable_infra2"		value="false"/>
@@ -28,6 +29,8 @@
     <arg name="infra_height"		value="$(arg camera_height)"/>
     <arg name="color_width"		value="$(arg camera_width)"/>
     <arg name="color_height"		value="$(arg camera_height)"/>
+    <arg name="manager"			value="$(arg manager)"
+	 unless="$(eval manager == '')"/>
   </include>
 
   <include ns="$(arg camera_name)"
@@ -43,15 +46,14 @@
     <arg name="reference_frame"		value="$(arg reference_frame)"/>
     <arg name="corner_refinement"	value="$(arg corner_refinement)"/>
     <arg name="planarity_tolerance"	value="$(arg planarity_tolerance)"/>
-    <arg name="manager"
-	 value="$(eval ''
-		if manager == 'realsense2_camera_manager' else manager)"/>
+    <arg name="manager"			value="$(arg manager)"/>
   </include>
 
-  <node name="$(anon rviz)" pkg="rviz" type="rviz"
-	args="-d $(find aist_aruco_ros)/launch/realsense.rviz"
-	respawn="false" output="screen"/>
+  <group if="$(arg vis)">
+    <node name="$(anon rviz)" pkg="rviz" type="rviz" output="screen"
+	  args="-d $(find aist_aruco_ros)/launch/realsense.rviz"/>
 
-  <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure"/>
+    <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure"/>
+  </group>
 
 </launch>
