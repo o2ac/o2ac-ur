@@ -1,0 +1,11 @@
+# Name of the assembly (in o2ac_assembly_handler) to which the object belongs to
+assembly_name: "wrs_assembly_1"
+
+# Name of the object to be spawned
+object_name: "panel"
+
+# Frame of reference for the object
+object_reference_frame: "tray_center"
+
+# Pose of the object relative to the frame specified by 'object_reference_frame' (x,y,z,r,p,y)
+object_pose: [0.0, 0.0, 0.001, pi/2, 0.0, 0.0]
