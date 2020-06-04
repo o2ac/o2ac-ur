@@ -139,7 +139,7 @@ class AssemblyClass(O2ACCommon):
     pose = geometry_msgs.msg.PoseStamped()
     pose.header.frame_id = 'move_group/base/screw_hole_panel2_1'
     pose.pose.orientation.w = 1
-    success = self.pick_place('b_bot', 'panel', pose, 'panel/bottom_screw_hole_aligner_1')
+    success = self.pick_place('b_bot', 'panel_bearing', pose, 'panel_bearing/bottom_screw_hole_aligner_1')
     return success
 
   def real_assembly_task(self):

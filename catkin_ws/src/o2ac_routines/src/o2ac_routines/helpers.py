@@ -25,7 +25,7 @@ helper_fct_marker_id_count = 0
 class O2AC_Pick_Place_Action_Goal(moveit_task_constructor_msgs.msg.PickPlacePlanningGoal):
   '''A class for giving default values to some fields of the action message'''
   def __init__(self):
-    super().__init__()
+    moveit_task_constructor_msgs.msg.PickPlacePlanningGoal.__init__(self)
     self.assembly_name = 'wrs_assembly_1'
     self.approach_object_min_dist = 0.1
     self.approach_object_max_dist = 0.15
