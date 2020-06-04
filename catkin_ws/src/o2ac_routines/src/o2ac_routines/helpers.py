@@ -12,6 +12,8 @@ import o2ac_msgs
 import o2ac_msgs.msg
 import o2ac_msgs.srv
 
+import moveit_task_constructor_msgs.msg
+
 from math import pi
 from moveit_commander.conversions import pose_to_list
 
@@ -19,6 +21,17 @@ import ur_msgs.msg
 import ur_dashboard_msgs.msg
 
 helper_fct_marker_id_count = 0
+
+class O2AC_Pick_Place_Action_Goal(moveit_task_constructor_msgs.msg.PickPlacePlanningGoal):
+  '''A class for giving default values to some fields of the action message'''
+  def __init__(self):
+    super().__init__()
+    self.assembly_name = 'wrs_assembly_1'
+    self.approach_object_min_dist = 0.1
+    self.approach_object_max_dist = 0.15
+    self.lift_object_min_dist = 0.1
+    self.lift_object_max_dist = 0.15
+    self.surface_link = 'tray_center'
 
 def is_program_running(topic_namespace, service_client):
   req = ur_dashboard_msgs.srv.IsProgramRunningRequest()

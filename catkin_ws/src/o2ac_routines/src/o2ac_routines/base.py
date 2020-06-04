@@ -51,7 +51,6 @@ import robotiq_msgs.msg
 import ur_dashboard_msgs.msg
 import ur_dashboard_msgs.srv
 import std_srvs.srv
-import moveit_task_constructor_msgs.msg
 from std_msgs.msg import Bool
 from shape_msgs.msg import SolidPrimitive
 from geometry_msgs.msg import Pose
@@ -682,7 +681,7 @@ class O2ACBase(object):
     return self.screw_client.get_result()
 
   def do_pickplace_action(self, robot_name, object_name, object_target_pose, object_frame_to_place):
-    goal = moveit_task_constructor_msgs.msg.PickPlacePlanningGoal()
+    goal = O2AC_Pick_Place_Action_Goal()
     goal.robot = robot_name
     goal.object_name = object_name
     goal.object_target_pose = object_target_pose
