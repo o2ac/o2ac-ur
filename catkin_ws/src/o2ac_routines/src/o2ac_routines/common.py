@@ -61,11 +61,11 @@ class O2ACCommon(O2ACBase):
     success = False
     return success
 
-  def pick_place(self, robot_name, object_name, object_target_pose, object_frame_to_place, speed = 1.0):
-    """This function picks the object and places its subframe 'object_frame_to_place' at 'object_target_pose'
+  def pick_place(self, robot_name, object_name, object_target_pose, object_subframe_to_place, speed = 1.0):
+    """This function picks the object and places its subframe 'object_subframe_to_place' at 'object_target_pose'
     using the robot referred to by 'robot_name'
     """
-    result = self.do_pickplace_action(robot_name, object_name, object_target_pose, object_frame_to_place)
+    result = self.do_pickplace_action(robot_name, object_name, object_target_pose, object_subframe_to_place)
     success = False
     if speed > 1.0:
       speed = 1.0

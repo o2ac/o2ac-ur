@@ -680,12 +680,12 @@ class O2ACBase(object):
     self.screw_client.wait_for_result()
     return self.screw_client.get_result()
 
-  def do_pickplace_action(self, robot_name, object_name, object_target_pose, object_frame_to_place):
+  def do_pickplace_action(self, robot_name, object_name, object_target_pose, object_subframe_to_place):
     goal = O2AC_Pick_Place_Action_Goal()
     goal.robot = robot_name
     goal.object_name = object_name
     goal.object_target_pose = object_target_pose
-    goal.object_frame_to_place = object_frame_to_place
+    goal.object_subframe_to_place = object_subframe_to_place
     rospy.loginfo("Sending pick-place planning goal.")
     self.pick_place_planning_client.send_goal(goal)
     self.pick_place_planning_client.wait_for_result()
