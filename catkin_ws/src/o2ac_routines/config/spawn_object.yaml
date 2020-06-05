@@ -2,7 +2,7 @@
 assembly_name: "wrs_assembly_1"
 
 # Name of the object to be spawned
-object_name: "panel"
+object_name: "panel_bearing"
 
 # Frame of reference for the object
 object_reference_frame: "tray_center"
