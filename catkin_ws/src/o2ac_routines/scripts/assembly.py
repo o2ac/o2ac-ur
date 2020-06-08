@@ -134,6 +134,10 @@ class AssemblyClass(O2ACCommon):
     rospy.logerr("Subtask I not implemented yet")
     return False
 
+  def spawn_objects_for_demo(self):
+    self.spawn_multiple_objects('wrs_assembly_1', ['base'], [[0.0, 0.0, 0.03, pi/2, 0.0, pi/2]], 'attached_base_origin_link')
+    self.spawn_multiple_objects('wrs_assembly_1', ['panel_bearing'], [[0.0, 0.0, 0.001, pi/2, 0.0, 0.0]], 'tray_center')
+
   def pick_place_task(self):
     rospy.loginfo("======== PICK-PLACE TASK ========")
     pose = geometry_msgs.msg.PoseStamped()
@@ -192,6 +196,7 @@ if __name__ == '__main__':
       rospy.loginfo("Enter 2 to move the robots home to starting positions.")
       rospy.loginfo("Enter 30 to pick screw m3 from feeder with a_bot (31 for b_bot).")
       rospy.loginfo("Enter 40 to pick screw m4 from feeder with a_bot (41 for b_bot).")
+      rospy.loginfo("Enter 68 to spawn objects for testing pick-place task")
       rospy.loginfo("Enter 69 to test pick-place task")
       rospy.loginfo("Enter 91-94 for subtasks (Large plate, motor plate, idler pin, motor).")
       rospy.loginfo("Enter 95-98 for subtasks (motor pulley, bearing+shaft, clamp pulley, belt).")
@@ -230,6 +235,8 @@ if __name__ == '__main__':
         assy.go_to_named_pose("screw_pick_ready", "b_bot")
         assy.pick_screw_from_feeder("b_bot", screw_size=4, screw_number="auto")
         assy.go_to_named_pose("screw_pick_ready", "b_bot")
+      if i == '68':
+        assy.spawn_objects_for_demo()
       if i == '69':
         assy.pick_place_task()
       elif i == '91':

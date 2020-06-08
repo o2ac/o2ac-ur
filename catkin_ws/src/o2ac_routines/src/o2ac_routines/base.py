@@ -680,9 +680,15 @@ class O2ACBase(object):
     self.screw_client.wait_for_result()
     return self.screw_client.get_result()
 
+  def spawn_multiple_objects(self, assembly_name, objects, poses, referece_frame):
+    for (o, pose) in zip(objects, poses):
+      spawn_object(assembly_name, o, pose, referece_frame)
+
+
   def do_pickplace_action(self, robot_name, object_name, object_target_pose, object_subframe_to_place):
     goal = O2AC_Pick_Place_Action_Goal()
     goal.robot = robot_name
+    goal.hand_group_name = robot_name + '_robotiq_85'
     goal.object_name = object_name
     goal.object_target_pose = object_target_pose
     goal.object_subframe_to_place = object_subframe_to_place
