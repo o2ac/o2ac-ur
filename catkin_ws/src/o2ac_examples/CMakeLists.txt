@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(o2ac_examples)
 
 ## Add support for C++11, supported in ROS Kinetic and newer
-set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "-std=c++14 ${CMAKE_CXX_FLAGS}")
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -16,6 +16,8 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_commander
   moveit_ros_planning
   moveit_ros_planning_interface
+  moveit_task_constructor_core
+  rosparam_shortcuts
   robotiq_msgs
   o2ac_skills
   o2ac_routines
@@ -119,6 +121,25 @@ add_dependencies(action_example
 	${${PROJECT_NAME}_EXPORTED_TARGETS}
   	${catkin_EXPORTED_TARGETS})
 target_link_libraries(action_example ${catkin_LIBRARIES})
+
+add_library(o2ac_lib src/o2ac_pick_place_task.cpp)
+set_target_properties(o2ac_lib PROPERTIES OUTPUT_NAME o2ac_demo_pick_place)
+add_dependencies(o2ac_lib ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_executable(mtc_pick_place_demo src/mtc_pick_place_demo.cpp)
+target_link_libraries(mtc_pick_place_demo
+  o2ac_lib
+  ${catkin_LIBRARIES}
+)
+
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.h"
+)
+
+install(DIRECTORY launch config
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
 
 catkin_install_python(PROGRAMS scripts/send_program_to_ur.py
                       DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
