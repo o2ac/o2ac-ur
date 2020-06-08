@@ -5,12 +5,12 @@ parts_list:
     cad: 01-BASE.stl
     description: Base Panel
   - id: 2
-    name: panel
+    name: panel_bearing
     type: 02-PANEL
     cad: 02-PANEL.stl
     description: Output shaft fixing plate
   - id: 3
-    name: panel2
+    name: panel_motor
     type: 03-PANEL2
     cad: 03-PANEL2.stl
     description: Motor fixing plate

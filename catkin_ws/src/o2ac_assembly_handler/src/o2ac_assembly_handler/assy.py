@@ -49,13 +49,26 @@ class AssyHandler():
     def __init__(self, assembly_name="wrs_assembly_1"):
         self._reader = AssyReader(assembly_name)
         self._broadcaster = tf2_ros.StaticTransformBroadcaster()
-        self.collision_objects = self._reader.get_collision_objects_with_subframes()
+        self.collision_objects, self.grasps = self._reader.get_collision_objects_with_metadata()
         self.assembly_tree = self._reader.get_assembly_tree(self.collision_objects)
+        self._upload_grasps_to_param_server(assembly_name)
 
     def change_assembly(self, assembly_name):
         self._reader.change_assembly(assembly_name)
-        self.collision_objects = self._reader.get_collision_objects_with_subframes()
+        self.collision_objects, self.grasps = self._reader.get_collision_objects_with_metadata()
         self.assembly_tree = self._reader.get_assembly_tree(self.collision_objects)
+
+    def _upload_grasps_to_param_server(self, namespace):
+        '''Upload grasps to the ROS param server
+        Hierarchical params on the param server can be stored as dictionaries
+        All of these grasps can be retrieved by requesting the parent parameter from the rosparam server
+        '''
+        for part in self.grasps:
+            for (grasp_name, grasp_pose) in zip(part['grasp_names'], part['grasp_poses']):
+              d = {'position': [grasp_pose.position.x, grasp_pose.position.y, grasp_pose.position.z],
+               'orientation': [grasp_pose.orientation.x, grasp_pose.orientation.y, grasp_pose.orientation.z, grasp_pose.orientation.w]}
+              param_name = '/'.join(['', namespace, part['part_name'], grasp_name])
+              rospy.set_param(param_name, d)
 
     def publish_target_frames(self, assy_pose = None):
         '''

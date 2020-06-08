@@ -63,7 +63,7 @@ class AssyReader():
         self.assy_name = assembly_name
         self._directory = os.path.join(self._rospack.get_path('o2ac_assembly_handler'), 'config', assembly_name)
         self._parts_list = self._read_parts_list()
-        self.collision_objects = self.get_collision_objects_with_subframes()
+        self.collision_objects, self.grasps = self.get_collision_objects_with_metadata()
 
     def change_assembly(self, assembly_name):
         '''
@@ -80,6 +80,13 @@ class AssyReader():
         collision_object = next((c_obj for c_obj in self.collision_objects if c_obj.id == object_name), None)
         return collision_object
 
+    def _tofloat(self, val):
+        if type(val)==float:
+            return val
+        elif type(val)==str:
+            return(float(eval(val)))
+        else:
+            return(float(val))
 
     def _read_parts_list(self):
         path = os.path.join(self._directory, 'parts_list.yaml')
@@ -90,64 +97,74 @@ class AssyReader():
     def lookup_frame(self, collision_object_id):
         return next(('_'.join([self.assy_name, 'part', str(part['id']).zfill(2)]) for part in self._parts_list if part['name'] == collision_object_id))
 
-    def _read_subframe_csv(self, part_id):
+    def _read_object_metadata(self, object_name):
+        '''Read and return the object metadata including the subframes and the grasp points
+        of the object referred to by input 'object_name'
         '''
-        Read the information of the file 'extra_frames.csv' in the object metadata directory,
-        and return the subframe names and poses for the part referred to by input 'part_id'
-        '''
-
-        # Path to subframe definitions
-        subframes_file = os.path.join(self._directory, 'object_metadata', 'extra_frames.csv')
-
-        # Read the subframe definitions in the extra_frames.csv file
-        subframe_definitions = []
-        with open(subframes_file, 'r') as f:
-                reader = csv.reader(f)
-                header = next(reader)
-                for row in reader:
-                    row_stripped = []
-                    for el in row:
-                        row_stripped.append(el.strip())
-                    subframe_definitions.append(row_stripped)
-
-        # Get the subframes that belong to the given part 
-        relevant_subframes = [row for row in subframe_definitions if row[0] == str(part_id)]
-
-        # Create subframe names and subframe poses
-        subframe_names = [row[1] for row in relevant_subframes]
+        metadata_directory = os.path.join(self._directory, 'object_metadata')
+        objects_with_metadata = [f.split('.')[0] for f in os.listdir(metadata_directory) if os.path.isfile(os.path.join(metadata_directory, f))]
+        subframe_names = []
         subframe_poses = []
+        grasp_names = []
+        grasp_poses = []
+        if object_name in objects_with_metadata:
+            with open(os.path.join(metadata_directory, object_name + '.yaml'), 'r') as f:
+                data = yaml.load(f)
+            subframes = data['subframes']
+            grasps = data['grasp_points']
 
-        # Create the transformation between the world and the collision object        
-        transformer = tf.Transformer(True, rospy.Duration(10.0))
-        collision_object_transform = geometry_msgs.msg.TransformStamped()
-        collision_object_transform.header.frame_id = 'WORLD'
-        collision_object_transform.child_frame_id = 'OBJECT'
-        collision_object_transform.transform.rotation.w = 1
-        transformer.setTransform(collision_object_transform)
+            # Create the transformation between the world and the collision object        
+            transformer = tf.Transformer(True, rospy.Duration(10.0))
+            collision_object_transform = geometry_msgs.msg.TransformStamped()
+            collision_object_transform.header.frame_id = 'WORLD'
+            collision_object_transform.child_frame_id = 'OBJECT'
+            collision_object_transform.transform.rotation.w = 1
+            transformer.setTransform(collision_object_transform)
 
-        for row in relevant_subframes:
-            # Create the transformations between the collision object and the given subframe
-            subframe_transform = geometry_msgs.msg.TransformStamped()
-            subframe_transform.header.frame_id = 'OBJECT'
-            subframe_transform.child_frame_id = row[1]
-            subframe_transform.transform.translation.x = eval(row[5])
-            subframe_transform.transform.translation.y = eval(row[6])
-            subframe_transform.transform.translation.z = eval(row[7])
-            quaternion = tf.transformations.quaternion_from_euler(eval(row[2]),eval(row[3]),eval(row[4]))
-            subframe_transform.transform.rotation = geometry_msgs.msg.Quaternion(*quaternion)
- 
-            transformer.setTransform(subframe_transform)
+            for subframe in subframes:
+                subframe_names.append(subframe['name'])
 
-            # Get the pose of the subframe in the world frame and add the subframe pose to the subframe poses of the collision object
-            (trans,rot) = transformer.lookupTransform('WORLD', row[1], rospy.Time(0))
+                # Create the transformations between the collision object and the given subframe
+                # Currently the subframes poses in the CollosionObject message are interpreted to be poses in the frame specified by the frame_id of the header of the CollosionObject
+                # However, we want to define the subframe poses relative to the frame of the object, for ease of use
+                # So we have to make this transformation to tell the pose of the subframes, that were defined in the object's frame, in the frame specified by the frame_if of the header of the CollosionObject
+                subframe_transform = geometry_msgs.msg.TransformStamped()
+                subframe_transform.header.frame_id = 'OBJECT'
+                subframe_transform.child_frame_id = subframe['name']
+                subframe_transform.transform.translation.x = float(subframe['pose_xyzrpy'][0])
+                subframe_transform.transform.translation.y = float(subframe['pose_xyzrpy'][1])
+                subframe_transform.transform.translation.z = float(subframe['pose_xyzrpy'][2])
+                quaternion = tf.transformations.quaternion_from_euler(self._tofloat(subframe['pose_xyzrpy'][3]),self._tofloat(subframe['pose_xyzrpy'][4]),self._tofloat(subframe['pose_xyzrpy'][5]))
+                subframe_transform.transform.rotation = geometry_msgs.msg.Quaternion(*quaternion)
+    
+                transformer.setTransform(subframe_transform)
 
-            subframe_pose = geometry_msgs.msg.Pose()
-            subframe_pose.position = geometry_msgs.msg.Point(*trans)
-            subframe_pose.orientation = geometry_msgs.msg.Quaternion(*rot)
+                # Get the pose of the subframe in the world frame and add the subframe pose to the subframe poses of the collision object
+                (trans,rot) = transformer.lookupTransform('WORLD', subframe['name'], rospy.Time(0))
 
-            subframe_poses.append(subframe_pose)
-        
-        return (subframe_names, subframe_poses)
+                subframe_pose = geometry_msgs.msg.Pose()
+                subframe_pose.position = geometry_msgs.msg.Point(*trans)
+                subframe_pose.orientation = geometry_msgs.msg.Quaternion(*rot)
+
+                subframe_poses.append(subframe_pose)
+
+            for grasp in grasps:
+                grasp_names.append(grasp['grasp_name'])
+
+                # Create the pose message for the grasp
+                grasp_pose = geometry_msgs.msg.Pose()
+                grasp_pose.position.x = float(grasp['pose_xyzrpy'][0])
+                grasp_pose.position.y = float(grasp['pose_xyzrpy'][1])
+                grasp_pose.position.z = float(grasp['pose_xyzrpy'][2])
+                quaternion = tf.transformations.quaternion_from_euler(self._tofloat(grasp['pose_xyzrpy'][3]),self._tofloat(grasp['pose_xyzrpy'][4]),self._tofloat(grasp['pose_xyzrpy'][5]))
+                grasp_pose.orientation = geometry_msgs.msg.Quaternion(*quaternion.tolist())
+
+                grasp_poses.append(grasp_pose)
+
+        else:
+            print('\nObject \'' + object_name + '\' has no metadata defined!\nReturning empty metadata information!\n')
+        return (subframe_names, subframe_poses, grasp_names, grasp_poses)
+
 
     def _make_collision_object_from_mesh(self, name, pose, filename, scale=(1, 1, 1)):
         '''
@@ -203,9 +220,9 @@ class AssyReader():
         pyassimp.release(scene)
         return co
 
-    def get_collision_objects_with_subframes(self):
+    def get_collision_objects_with_metadata(self):
         '''
-        Return a list of collision objects of the parts listed in 'parts list'
+        Return a list of collision objects of the parts listed in 'parts list' along with their metadata (subframes, grasps)
 
         This function loops through the loaded 'parts list' and for each part
         it searches for the 3D representation (mesh) described in the 'cad' field
@@ -219,30 +236,33 @@ class AssyReader():
 
         # List of collision objects to return
         collision_objects = []
+        grasps = []
 
         for part in self._parts_list:
             # Find mesh
             mesh_file = os.path.join(self._directory, 'meshes', part['cad'])
 
-            # Set thepose of the collision object for the origin of the 'world' frame
+            # Set the pose of the collision object for the origin of the 'world' frame
             posestamped = geometry_msgs.msg.PoseStamped()
             posestamped.header.frame_id = 'world'
             collision_object_pose = geometry_msgs.msg.Pose()
             collision_object_pose.orientation.w = 1
             posestamped.pose = collision_object_pose
 
-            subframe_names, subframe_poses = self._read_subframe_csv(part['id'])
+            subframe_names, subframe_poses, grasp_names, grasp_poses = self._read_object_metadata(part['name'])
 
             collision_object = self._make_collision_object_from_mesh(part['name'], posestamped, mesh_file, scale=(0.001, 0.001, 0.001))
 
             collision_object.subframe_names = subframe_names
             collision_object.subframe_poses = subframe_poses
 
+            grasps.append({'part_name': part['name'], 'grasp_names': grasp_names, 'grasp_poses': grasp_poses})
+
             # Here do we need the 'type' field of collision object (can be filled in from parts_list)?
 
             collision_objects.append(collision_object)
 
-        return collision_objects
+        return (collision_objects, grasps)
 
     def _read_frames_to_mate_csv(self):
 
@@ -299,7 +319,7 @@ class AssyReader():
         collision_object_tree.setTransform(collision_object_transform)
 
         for (subframe_name, subframe_pose) in zip(collision_object.subframe_names, collision_object.subframe_poses):
-            # Get the transformaion between the subframes and the frame indicated in the collision objet's header, from 'subframe poses'
+            # Get the transformaion between the subframes and the frame indicated in the collision object's header, from 'subframe poses'
             subframe_transform = geometry_msgs.msg.TransformStamped()
             subframe_transform.header.frame_id = collision_object.header.frame_id
             subframe_transform.child_frame_id = '_'.join([collision_object_frame_id, subframe_name])

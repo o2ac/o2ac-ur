@@ -1,9 +1,6 @@
 parent_frame, child_frame, roll, pitch, yaw, x, y, z, notes
-# This is definitely bugged. The pulley (13) seems to behave differently from the idler parts. 
-# It might depend on the original orientation of the base frame, or the parent frame. I'm not sure at the moment.
-# But this static definition works for now, and I need a break from thinking about this.
 
-# The rpy,xyz offset is described in the child_frame (because the transformation is messily coded by hand) (MAYBE)
+# The rpy,xyz offset is described in the parent_frame
 
 # The panels
 assy_part_01_screw_hole_panel2_1, assy_part_02_bottom_screw_hole_aligner_1,   0, 0, 0,   0,0,0, Base + Panel1

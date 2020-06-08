@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
     # Create the assembly handler instance (loads and stores the assembly as a tf tree) and
     # publish the assembly frames to tf
-    assy_name = 'assy_1'
+    assy_name = 'wrs_assembly_1'
     assy_handler = AssyHandler(assy_name)
     assy_handler.publish_target_frames(assy_pose)
 
@@ -71,7 +71,7 @@ if __name__ == '__main__':
     pub = rospy.Publisher('/collision_object', moveit_msgs.msg.CollisionObject, queue_size=100)
 
     # Get the frame names of all frames in the assembly
-    assy_frames = assy_handler.assemby_tree.getFrameStrings()
+    assy_frames = assy_handler.assembly_tree.getFrameStrings()
     assy_frames = map(lambda x: '_'.join([assy_name, x]), assy_frames)
 
     # Loop through the loaded collision objects (stored in the assembly handler instance after constructing it) and

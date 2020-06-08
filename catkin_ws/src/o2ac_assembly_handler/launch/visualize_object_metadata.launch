@@ -1,0 +1,17 @@
+<launch>
+
+  <arg name="assy_name" default="wrs_assembly_1" />
+  <arg name="object_name" default="" />
+  <arg name="gripper_at_grasp" default="" />
+  <arg name="only_subframes" default="false" />
+  <arg name="only_grasps" default="false" />
+
+  <node name="visualize_metadata" pkg="o2ac_assembly_handler" type="visualize_metadata.py" output="screen">
+    <param name="assy_name" value="$(arg assy_name)" />
+    <param name="object_name" value="$(arg object_name)" />
+    <param name="gripper_at_grasp" value="$(arg gripper_at_grasp)" />
+    <param name="only_subframes" value="$(arg only_subframes)" />
+    <param name="only_grasps" value="$(arg only_grasps)" />
+  </node>
+
+</launch>
