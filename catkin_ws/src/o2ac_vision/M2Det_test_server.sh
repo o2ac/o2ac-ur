@@ -1,0 +1,2 @@
+#!/bin/bash
+rosrun o2ac_vision M2Det_test_server.py -c=../M2Det/configs/m2det320_vgg_wrs.py -m "../../trained/2020.04.01/K-fold-5_1/final_model" -o "../../trained/2020.04.01/K-fold-5_1/results" --cross_val True --K_fold 5 --K_num 1 --show

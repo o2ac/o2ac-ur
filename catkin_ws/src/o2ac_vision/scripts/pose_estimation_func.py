@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 import cv2
 import numpy as np
 import math
+import copy
 
 
 """
@@ -13,7 +15,7 @@ import math
 """
 def downsampling_binary( im, _fx=0.5, _fy=0.5 ):
     im_ds = cv2.resize( im, None, fx=_fx, fy=_fy, interpolation=cv2.INTER_AREA )
-    im_ds = (im_ds > 0) ==1
+    im_ds = np.clip(im_ds,0,1)
     
     return im_ds.copy()
 
@@ -65,12 +67,15 @@ class RotationEstimation():
         
         # Edge detection
         edges = cv2.Canny( cl1, self._canny1, self._canny2 )
-        # findContours
-        # for opencv 3
-        im, contours, hierarchy = cv2.findContours(edges, self._cont_mode, cv2.CHAIN_APPROX_NONE)
-        # for opencv 4
-        # contours, hierarchy = cv2.findContours(edges, self._cont_mode, cv2.CHAIN_APPROX_NONE)
         self._im_edge = edges
+        # findContours
+        # check version of cv2
+        cv2_versoin = cv2.__version__
+        if '4' == cv2_versoin[0]:
+            contours, hierarchy = cv2.findContours(edges, self._cont_mode, cv2.CHAIN_APPROX_NONE)
+        else:
+            _, contours, hierarchy = cv2.findContours(edges, self._cont_mode, cv2.CHAIN_APPROX_NONE)
+        
         
         return contours
 
@@ -170,8 +175,20 @@ class RotationEstimation():
         
         return im_res
     
-    def get_orientation( self ):
+    """
+      Get orientation
+      Input:
+        flip: if true, detected orientatios and fliped orientations are returned.
+      Return;
+        list of orientations
+    """
+    def get_orientation( self, flip=True ):
         
+        orientations = copy.deepcopy( self._iprs )
+        if flip is True:
+            for ori in orientations:
+                self._iprs.append( ori+180.0 )
+
         return self._iprs
 
 
@@ -225,6 +242,10 @@ class BinaryTemplateMatching():
         
         # padding
         pad_scene, pad_size = self.padding( self._scene, self._region )
+        pad_scene = (pad_scene >0 ) 
+        pad_scene = np.logical_not(pad_scene)
+        pad_scene = np.asarray( pad_scene, np.uint8 )
+        pad_scene = cv2.distanceTransform( pad_scene, cv2.DIST_L2, 5 )
 
         # score map
         s_map = np.zeros( [self._region[0]*2+1, self._region[1]*2+1] )
@@ -240,10 +261,10 @@ class BinaryTemplateMatching():
     
     # return the location in scene coordinate system and its score
     def get_result( self ):
-        res = np.argmax( self._s_map )
+        res = np.argmin( self._s_map )
         res_offset = self._offset_list[res] - self._initial_pad
         center_pixel = res_offset+self._t_size/2
-        return center_pixel, res_offset, np.max(self._s_map)
+        return center_pixel, res_offset, np.min(self._s_map)
     
     def get_result_image( self, _offset ):
         offset = _offset.copy()
@@ -258,7 +279,6 @@ class BinaryTemplateMatching():
         
         return self._s_map
 
-
 """
 Visualization function.
 
@@ -272,6 +292,10 @@ Return:
 """
 def visualize_result( im_temp, im_scene, ltop, orientation ):
 
+    # dilation for good visualization
+    kernel = np.ones((3,3),np.uint8)
+    im_temp = cv2.dilate( im_temp, kernel, iterations = 1 )
+
     # rotate template
     rows, cols = im_temp.shape
     # getRotationMatrix2D() takes clock-wise orientation, so we need convert ccw -> cw
@@ -279,21 +303,27 @@ def visualize_result( im_temp, im_scene, ltop, orientation ):
     res_im_temp =  cv2.warpAffine( im_temp, rot_mat, (cols, rows) )
     
     # padding input scene
-    res_pad = int(res_im_temp.shape[0]/2) # padding of result image
-    im_res_on_original = np.pad( im_scene.copy(), (res_pad,res_pad), "constant")
+    res_pad = int(res_im_temp.shape[0]) # padding of result image
+    if im_scene.ndim == 2:
+        im_res_on_original = np.pad( im_scene.copy(), (res_pad,res_pad), "constant")
+    else:
+        im_res_on_original = np.pad( im_scene.copy(), ((res_pad,res_pad),(res_pad,res_pad),(0,0)), "constant")
     ltop_pad = ltop + res_pad
-
 
     bbox_size = np.asarray( im_temp.shape, np.int )
     bb_center = ltop_pad + bbox_size/2
     
-
     # mapping edge pixels of template
     im_temp_edge_rot_vis = cv2.cvtColor(res_im_temp, cv2.COLOR_GRAY2BGR )
-    im_temp_edge_rot_vis[:,:,1] = 0
-    im_temp_edge_rot_vis[:,:,2] = 0
-    im_res_on_original = cv2.cvtColor( im_res_on_original, cv2.COLOR_GRAY2BGR )
+    im_temp_edge_rot_vis[:,:,1:3] = 0
+    if im_res_on_original.ndim != 3:
+        im_res_on_original = cv2.cvtColor( im_res_on_original, cv2.COLOR_GRAY2BGR )
+    
+    im_temp_edge_rot_vis = np.asarray( im_temp_edge_rot_vis, np.int )
+    im_res_on_original = np.asarray( im_res_on_original, np.int )
     im_res_on_original[ ltop_pad[0]:ltop_pad[0]+bbox_size[0],  ltop_pad[1]: ltop_pad[1]+bbox_size[1] ] += im_temp_edge_rot_vis
+    im_res_on_original = np.clip( im_res_on_original, 0, 255 )
+    im_res_on_original = np.asarray( im_res_on_original, np.uint8 )
 
     # draw bounding box
     im_res_on_original = cv2.rectangle( im_res_on_original, ( ltop_pad[1],  ltop_pad[0]), (ltop_pad[1]+bbox_size[1], ltop_pad[0]+bbox_size[0]), (0,255,0), 3 )
@@ -304,5 +334,201 @@ def visualize_result( im_temp, im_scene, ltop, orientation ):
     deg2rad = math.pi/180.0
     pt2 = (int(bb_center[1]+line_length*math.cos(orientation*deg2rad)), int(bb_center[0]+line_length*math.sin(orientation*deg2rad)) )
     im_res_on_original = cv2.arrowedLine( im_res_on_original, (bb_center[1], bb_center[0] ), pt2, (0,255,0), 2, cv2.LINE_AA )
+
+    im_res_on_original = im_res_on_original[res_pad:-res_pad, res_pad:-res_pad]
     
     return im_res_on_original
+
+"""
+  Fast Graspability Evaluation on RGB image
+
+  
+"""
+class FastGraspabilityEvaluation():
+    
+    def __init__( self, _im_in, _im_hand,  _im_collision, _param ):
+        self.im_in = _im_in.copy()
+        self.im_hand = _im_hand.copy()
+        self.im_collision = _im_collision.copy()
+        
+        self.im_belt = None    # belt = 1, other = 0
+        self.fg_mask = None  # foreground = 1, background = 0
+
+        self.im_hands = None
+        self.im_collisions = None
+        
+        self.candidate_idx = list()
+        self.pos_list = list()
+        self.score_list = list()
+        
+        #parameter
+        ds_rate = _param["ds_rate"]
+        target_lower = np.array( _param["target_lower"] ) 
+        target_upper = np.array( _param["target_upper"] )
+        self.threshold = _param["threshold"]
+         
+        # color range of the foreground
+        fg_lower = np.array( _param["fg_lower"] )
+        fg_upper = np.array( _param["fg_upper"] )
+        
+        # Down sampling
+        self.im_in = cv2.resize( self.im_in, None, fx=ds_rate, fy=ds_rate, interpolation=cv2.INTER_NEAREST )
+        self.im_hand = cv2.resize( self.im_hand, None, fx=ds_rate, fy=ds_rate, interpolation=cv2.INTER_NEAREST )
+        self.im_collision = cv2.resize( self.im_collision, None, fx=ds_rate, fy=ds_rate, interpolation=cv2.INTER_NEAREST )
+        
+        # Masking out the belt and foreground
+        self.im_belt = self.binarizationHSV( self.im_in, target_lower, target_upper )
+        self.fg_mask = self.binarizationHSV( self.im_in, fg_lower, fg_upper )
+        
+        # Generate obstacle mask
+        kernel = np.ones((3,3),np.uint8)
+        self.im_belt = cv2.morphologyEx( self.im_belt, cv2.MORPH_OPEN, kernel )
+        self.im_belt = cv2.dilate( self.im_belt, kernel, iterations = 1 )
+        
+        self.im_obstacles = np.array( self.fg_mask, np.int) - np.array( self.im_belt, np.int )
+        self.im_obstacles = np.asarray( np.clip( self.im_obstacles, 0, 1 ), np.uint8 )
+        
+        # Generation of rotated hand templates
+        self.im_hands, self.hands_area = self.RotationTemplate( self.im_hand )
+        self.im_collisions, self.collision_area = self.RotationTemplate( self.im_collision ) 
+        print(self.hands_area)
+        print(self.collision_area)
+        
+    def binarizationHSV( self, im, lower=[0,0,0], upper=[179,255,255] ):
+        """
+            Color extraction using HSV value
+            H(Hue) -> [0,179]
+            S(Saturation) -> [0,255]
+            V(Value) -> [0,255]
+            Input:
+                image: numpy array BGR, np.uint8
+                lower: lower threshold [ h, s, v ]
+                upper: upper threshold [ h, s, v ]
+            Output:
+                im_out: binarized image [0 or 1] np.uint8
+        """
+        im_hsv = cv2.cvtColor( im, cv2.COLOR_BGR2HSV )
+        im_out = cv2.inRange( im_hsv, lower, upper )
+        return im_out/255
+
+    def RotationTemplate( self, im_temp, rotation=(0, 45, 90, 135) ):
+        
+        cols, rows = im_temp.shape[1], im_temp.shape[0]
+        im_temps = list() # テンプレートのリスト
+        temp_area = list() # ハンド差込領域の面積
+        for deg in (0, 45, 90, 135):
+
+            rot_mat = cv2.getRotationMatrix2D( (cols/2, rows/2),  deg, 1 )
+            im_rot = cv2.warpAffine( im_temp, rot_mat, (cols, rows) )
+            im_temps.append( im_rot )
+            temp_area.append( np.sum(im_rot) )
+        
+        return im_temps, temp_area
+
+
+    def main_proc( self ):
+
+        
+        # Generate search point
+        ds_rate = 0.1
+        ds_reverse = 1.0 / ds_rate
+        im_sp = cv2.resize( self.im_belt, None, fx=ds_rate, fy=ds_rate, interpolation=cv2.INTER_NEAREST )
+        # 探索位置の取り出し
+        points = np.where( im_sp == 1 )
+        search_points = list()
+        for n in range(len(points[0])):
+            search_points.append( (points[0][n], points[1][n]) )
+
+        # 型変換とスケールを元解像度に戻す
+        search_points = np.asarray( search_points, np.float )
+        search_points *= ds_reverse
+        search_points = np.asarray( search_points, np.int )
+        print(search_points.shape[0])
+        
+        # Hand pattern matching
+        cols, rows = self.im_hand.shape[1], self.im_hand.shape[0]
+        s_cols, s_rows = self.im_obstacles.shape[1], self.im_obstacles.shape[0]
+        offset = np.array( (cols/2, rows/2), np.int )
+        score_list = list()
+        pos_list = list()
+        for sp in search_points:
+
+            ltop = sp - offset # left-top corner of search point
+            min_score = 1.0
+            pos = (0,0)
+            ori_id = 0
+            for i, (hand, collision) in enumerate( zip( self.im_hands, self.im_collisions) ):
+                # check border
+                if ltop[0] < 0 or ltop[1] < 0 or s_rows <= ltop[0]+rows or s_cols <= ltop[1]+cols:
+                    continue
+
+                conv_hand = self.fg_mask[ ltop[0]:ltop[0]+rows, ltop[1]:ltop[1]+cols ] * hand
+                score_hand = np.sum(conv_hand) / self.hands_area[i]
+
+                #conv_collision = self.im_belt[ ltop[0]:ltop[0]+rows, ltop[1]:ltop[1]+cols ] * collision
+                #score_collision= np.sum(conv_collision) / self.collision_area[i]
+
+                #score = (score_hand + score_collision) / 2.0
+                score = score_hand
+                # Update score on posision "sp"
+                if score < min_score:
+                    pos = (sp[0], sp[1])
+                    min_score = score
+                    ori_id = i
+
+            self.score_list.append( min_score )
+            self.pos_list.append( (pos[0], pos[1], ori_id) ) # position and orientation id
+            
+        
+        self.score_list = np.asarray( self.score_list )
+        self.candidate_idx = np.where( self.score_list < self.threshold )[0]
+        
+        return self.candidate_idx
+    
+    def get_hand_and_collision( self ):
+        
+        return self.im_hands, self.im_collisions
+    
+    def get_foreground_mask( self ):
+        
+        im_fg = self.fg_mask.copy()
+        im_fg = np.asarray( im_fg*255, np.uint8 )
+        
+        return im_fg
+    
+        
+    def get_im_belt( self ):
+        
+        im_out = self.im_belt.copy()
+        im_out = np.asarray( im_out*255, np.uint8 )
+        
+        return im_out
+    
+    def visualization( self ):
+        im_result = self.im_in.copy()
+
+        # Preparing of 3 channel hand templates
+        im_hands_c = list()
+        for im in self.im_hands:
+            im = np.clip( im*100.0, 0, 255 )
+            im = np.asarray( im, np.uint8 )
+            im = cv2.cvtColor( im, cv2.COLOR_GRAY2BGR) 
+            im[:,:,0] = im[:,:,2] = 0 
+            im_hands_c.append( im )
+
+        
+        # Overlay hand templates
+        im_result = np.asarray( im_result, np.int )
+        cols, rows = im_hands_c[0].shape[1], im_hands_c[0].shape[0]
+        offset = np.array( (cols/2, rows/2), np.int )
+        for n in self.candidate_idx:
+            pos = np.array( (self.pos_list[n][0], self.pos_list[n][1]) )
+            ltop = pos - offset
+            im_result[ ltop[0]:ltop[0]+rows, ltop[1]:ltop[1]+cols ] += im_hands_c[ self.pos_list[n][2] ]
+
+        im_result = np.clip( im_result, 0, 255 )    
+        im_result = np.asarray( im_result, np.uint8 )                   
+        for n in self.candidate_idx:    
+            im_result = cv2.circle( im_result, ( self.pos_list[n][1], self.pos_list[n][0] ), 3, (0,255,0), -1, cv2.LINE_AA )
+        
+        return im_result

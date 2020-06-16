@@ -1,11 +1,9 @@
-# This action will be called when a tool is being held close to a target hole.
+# This action will be called when a tool is being held close to a target.
 # It should return the distance from the tooltip to the target,
 # for the robot to adjust its position.
-# The important part is the x-y offset relative to the tooltip.
 
 # Request
-geometry_msgs/PointStamped expected_tooltip_point
-geometry_msgs/PointStamped expected_hole_point
+string tool_id     # "screw_tool_m4", "nut_tool_m6", "set_screw_tool"...
 string camera_id   # Which camera to use. "a_bot_cam_outside", "a_bot_cam_inside"...
 
 ---
@@ -13,9 +11,7 @@ string camera_id   # Which camera to use. "a_bot_cam_outside", "a_bot_cam_inside
 
 bool succeeded
 float32 confidence
-geometry_msgs/PointStamped detected_hole_point
-geometry_msgs/Point tooltip_hole_offset   # The vector from tooltip to hole center
+geometry_msgs/PoseStamped detected_pose
 
 ---
 # Feedback (values that can be sent to the client while the action is running)
-

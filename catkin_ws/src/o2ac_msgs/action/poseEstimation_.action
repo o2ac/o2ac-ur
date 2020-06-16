@@ -1,0 +1,11 @@
+# Request
+string cimg
+string tdir
+
+---
+# Result
+float64 rotation
+float64[] center
+
+---
+# Feedback

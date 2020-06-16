@@ -1,5 +1,6 @@
-# This action will be called when the camera is looking at the bearing or large pulley
-# from the front to check their orientation.
+# This action will be called when the camera is looking at either the bearing (from the front),
+# the idler pulley, or the large pulley (from above), to check their orientation so that their
+# screws can be fastened.
 
 # Request
 string item_id     # Name of the item.
@@ -16,4 +17,3 @@ float32 confidence
 
 ---
 # Feedback (values that can be sent to the client while the action is running)
-
