@@ -161,7 +161,7 @@ public:
   ros::ServiceClient get_planning_scene_client;
   moveit::planning_interface::MoveGroupInterface b_bot_group_;
   
-  moveit_msgs::CollisionObject screw_tool_m6, screw_tool_m4, screw_tool_m3, suction_tool;
+  moveit_msgs::CollisionObject screw_tool_m6, screw_tool_m4, screw_tool_m3, suction_tool, nut_tool, set_screw_tool;
 
 };//End of class SkillServer
 

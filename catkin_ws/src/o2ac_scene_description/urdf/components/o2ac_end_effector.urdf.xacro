@@ -9,8 +9,31 @@
     <xacro:include filename="$(find robotiq_description)/urdf/robotiq_85_gripper.urdf.xacro"/>
     
     <xacro:robotiq_85_gripper prefix="${prefix}" parent="${parent}">
-        <origin rpy="0.0 0.0 0.0" xyz="0 0 0"/>
+        <origin rpy="0.0 0.0 0.0" xyz="0.01 0 0"/> <!-- This 0.01 offset is the Robotiq/UR coupling -->
     </xacro:robotiq_85_gripper>
+
+    <link name="${prefix}_coupling">
+      <visual>
+        <origin rpy="0 ${pi/2} 0" xyz=".005 0 0"/>
+        <geometry>
+          <cylinder length="0.01" radius="0.0375"/>
+        </geometry>
+        <material name="black">
+        <color rgba=".1 .1 .1 1"/>
+      </material>
+      </visual>
+      <collision>
+        <origin rpy="0 ${pi/2} 0" xyz=".005 0 0"/>
+        <geometry>
+          <cylinder length="0.01" radius="0.0375"/>
+        </geometry>
+      </collision>
+    </link>
+    <joint name="${prefix}_coupling_joint" type="fixed">
+      <parent link="${parent}" />
+      <child link = "${prefix}_coupling" />
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+    </joint>
 
     <xacro:if value="${use_cameras}">
       <xacro:include filename="$(find o2ac_scene_description)/urdf/components/wrist_cameras.xacro" />
@@ -21,8 +44,7 @@
     <joint name="${prefix}robotiq_85_tip_link_joint" type="fixed">
       <parent link="${prefix}robotiq_85_base_link"/>
       <child link="${prefix}robotiq_85_tip_link"/>
-      <!-- <origin rpy="0.0 0.0 0.0" xyz=".163 0.0 0.0"/> -->
-      <origin rpy="0.0 0.0 0.0" xyz="${.163+.083} 0.0 0.0"/>
+      <origin rpy="0.0 0.0 0.0" xyz=".163 0.0 0.0"/>
     </joint>
     <link name="${prefix}robotiq_85_tip_link"/>
 
@@ -36,13 +58,6 @@
       <origin rpy="${pi} 0.0 0.0" xyz="-.03 0.0 0.0"/>
     </joint>
     <link name="${prefix}tool_intermediate_link"/>
-
-    <joint name="${prefix}robotiq_85_screw_tool_m6_tip_joint" type="fixed">
-      <parent link="${prefix}tool_intermediate_link"/>
-      <child link="${prefix}screw_tool_m6_tip_link"/>
-      <origin rpy="0.0 ${pi/2} 0.0" xyz="0.0 0.0 -0.135 "/>
-    </joint>
-    <link name="${prefix}screw_tool_m6_tip_link"/>
 
     <joint name="${prefix}robotiq_85_nut_tool_m6_tip_joint" type="fixed">
       <parent link="${prefix}tool_intermediate_link"/>
@@ -64,20 +79,14 @@
       <origin rpy="0.0 ${pi/2} 0.0" xyz=".015 0.0 -0.14 "/>
     </joint>
     <link name="${prefix}screw_tool_m3_tip_link"/>
+    
 
     <joint name="${prefix}robotiq_85_set_screw_tool_tip_joint" type="fixed">
-      <parent link="${prefix}tool_intermediate_link"/>
+      <parent link="${prefix}robotiq_85_tip_link"/>
       <child link="${prefix}set_screw_tool_tip_link"/>
-      <origin rpy="0.0 ${pi/2} 0.0" xyz=".01 0.0 -0.085 "/>
+      <origin rpy="0.0 ${-pi/6} 0.0" xyz=".0045 0.0 0.047 "/>
     </joint>
     <link name="${prefix}set_screw_tool_tip_link"/>
-
-    <joint name="${prefix}robotiq_85_suction_tool_tip_joint" type="fixed">
-      <parent link="${prefix}tool_intermediate_link"/>
-      <child link="${prefix}suction_tool_tip_link"/>
-      <origin rpy="0.0 ${pi/2} 0.0" xyz=".02 0.0 -0.131 "/>
-    </joint>
-    <link name="${prefix}suction_tool_tip_link"/>
 
     <joint name="${prefix}dual_suction_gripper_pad_joint" type="fixed">
       <parent link="${prefix}tool_intermediate_link"/>
