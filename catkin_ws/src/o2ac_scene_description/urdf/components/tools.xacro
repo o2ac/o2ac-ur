@@ -1,18 +1,13 @@
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
 <!-- This holder has a size of about 155 mm x 40 mm x 26 mm -->
 <!-- The Bit cushion has a height of 30.5 mm, starts about 24 mm from the top-->
 <!-- The gripper center would be about 44 mm from the top, so the tip might be 111 mm further down -->
 <!-- The tip\axis seems to be 11.5 mm from the "front" side. The front side looks into the gripper -->
 
-<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-
-  <!-- Tools at the front of the robot -->
-
-  <joint name="belt_holder_to_environment_joint" type="fixed">
-    <parent link="b_bot_base" />
-    <child link="belt_tool_holder" />
-    <origin xyz=".325 -.2 .0" rpy="0 0 0" />
-  </joint>
-
+  <!-- Belt hook tool -->
   <link name="belt_tool_holder">
     <visual>
       <origin rpy="${pi/2} 0 ${pi/2}" xyz="0 -.025 -.005"/>
@@ -30,6 +25,11 @@
       </geometry>
     </collision>
   </link>
+  <joint name="belt_holder_to_environment_joint" type="fixed">
+    <parent link="b_bot_base" />
+    <child link="belt_tool_holder" />
+    <origin xyz=".325 -.2 .0" rpy="0 0 0" />
+  </joint>
 
   <link name="belt_tool_link">
     <inertial>
@@ -56,6 +56,58 @@
   <joint name="belt_tool_to_holder" type="fixed">
     <parent link="belt_tool_holder" />
     <child link="belt_tool_link" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+
+  <!-- Plunger tool -->
+  <link name="plunger_tool_holder">
+    <visual>
+      <origin rpy="${pi/2} 0 ${pi/2}" xyz="0 -.025 -.005"/>
+      <geometry>
+        <mesh filename="package://o2ac_scene_description/meshes/gravity_tool_holder.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="grey">
+        <color rgba=".5 .5 .5 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size=".001 .001 .001"/> 
+      </geometry>
+    </collision>
+  </link>
+  <joint name="plunger_holder_to_environment_joint" type="fixed">
+    <parent link="b_bot_base" />
+    <child link="plunger_tool_holder" />
+    <origin xyz=".325 -.1 .0" rpy="0 0 0" />
+  </joint>
+
+  <link name="plunger_tool_link">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 ${pi/2} ${pi/2}" xyz="0.02 0 -0.017"/>
+      <geometry>
+        <mesh filename="package://o2ac_scene_description/meshes/plunger_tool.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="white">
+        <color rgba=".9 .9 .9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size=".026 .04 .055"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="plunger_tool_to_holder" type="fixed">
+    <parent link="plunger_tool_holder" />
+    <child link="plunger_tool_link" />
     <origin xyz="0 0 0" rpy="0 0 0" />
   </joint>
 

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
-<!-- This macro adds a convenient TF frame at the tip of the closed gripper. -->
-<!-- The position of the TF frame has not been measured at all and needs to be calibrated. -->
+<!-- This file is a safety measure because a_bot is temporarily using a 2F-140 gripper 
+     instead of a 2F-85 gripper. The tip link is set to the . -->
 
 <robot name="robotiq_85_gripper_o2ac" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
@@ -21,7 +21,7 @@
     <joint name="${prefix}robotiq_85_tip_link_joint" type="fixed">
       <parent link="${prefix}robotiq_85_base_link"/>
       <child link="${prefix}robotiq_85_tip_link"/>
-      <origin rpy="0.0 0.0 0.0" xyz=".163 0.0 0.0"/>
+      <origin rpy="0.0 0.0 0.0" xyz="${.163+.083} 0.0 0.0"/>
     </joint>
     <link name="${prefix}robotiq_85_tip_link"/>
 

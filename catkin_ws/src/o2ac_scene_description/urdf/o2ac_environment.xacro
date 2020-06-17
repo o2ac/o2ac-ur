@@ -44,8 +44,7 @@
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/tray.xacro" />
   <xacro:tray trayname="tray" parent="workspace_center">
     <origin xyz="0.05 -0.2 0" rpy="0 0 0" />   
-  </xacro:tray> 
-
+  </xacro:tray>
 
   <!-- Add the jigs -->
   <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/components/jig_flat_slope.xacro" />
@@ -53,7 +52,7 @@
     <origin xyz="0.04 0.15 0" rpy="0 0 0" />   
   </xacro:jig_flat_slope>  -->
   
-  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/jig_v_slope.xacro" />
+  <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/components/jig_v_slope.xacro" /> -->
   <!-- <xacro:jig_v_slope jigname="jig_v_slope" parent="horizontal_column_1">
     <origin xyz="0 0 0" rpy="0 0 0" />   
   </xacro:jig_v_slope>  -->
@@ -70,5 +69,21 @@
   <xacro:sensor_d435 parent="scene_cam_holder_link" name="scene_cam">
     <origin xyz="0 0 0" rpy="0 0 0"/>
   </xacro:sensor_d435> -->
+
+
+  <!-- ======== -->
+
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/nut_holder.xacro" />
+  <xacro:nut_holder partname="nut_holder" parent="a_bot_base_smfl">
+    <origin xyz="0 .6 0.02" rpy="0 0 0" />  
+  </xacro:nut_holder> 
+
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/washer_holder.xacro" />
+  <xacro:washer_holder partname="washer_holder" parent="a_bot_base_smfl">
+    <origin xyz="0 .54 0.02" rpy="0 0 0" />  
+  </xacro:washer_holder> 
+
+  <!-- Robotiq tip link at the tip of the nut holder  -->
+  <!-- -0.33429; -0.23224; 0.76964 -->
 
 </robot>
