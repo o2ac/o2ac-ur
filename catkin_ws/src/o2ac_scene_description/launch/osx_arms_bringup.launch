@@ -39,24 +39,6 @@
   <arg unless="$(arg debug)" name="launch_prefix" value="" />
   <arg     if="$(arg debug)" name="launch_prefix" value="gdb --ex run --args" />
   
-  <!-- Adapted from ur5_bringup.launch -->
-  <remap from="/b_bot/joint_states" to="/joint_states"/>
-  <include file="$(find ur_robot_driver)/launch/ur_common.launch" ns="b_bot">
-    <arg name="debug" value="$(arg debug)"/>
-    <arg name="use_tool_communication" value="$(arg use_tool_communication_b)"/>
-    <arg name="controller_config_file" value="$(arg controller_config_file_b)"/>
-    <arg name="robot_description_file" value="$(arg robot_description_file)"/>
-    <arg name="robot_ip" value="$(arg robot_ip_b)"/>
-    <arg name="reverse_port" value="$(arg reverse_port_b)"/>
-    <arg name="script_sender_port" value="$(arg script_sender_port_b)"/>
-    <arg name="kinematics_config" value="$(arg kinematics_config_b)"/>
-    <arg name="limited" value="$(arg limited)"/>
-    <arg name="tf_prefix" value="$(arg tf_prefix)"/>
-    <arg name="controllers" value="$(arg controllers)"/>
-    <arg name="stopped_controllers" value="$(arg stopped_controllers)"/>
-    <arg name="headless_mode" value="$(arg headless_mode)"/>
-  </include>
-
   <!-- Adapted from ur5e_bringup.launch -->
   <remap from="/a_bot/joint_states" to="/joint_states"/>
   <include file="$(find ur_robot_driver)/launch/ur_common.launch" ns="a_bot">
@@ -82,7 +64,31 @@
     <arg name="tool_device_name" value="$(arg tool_device_name_a)"/>
     <arg name="tool_tcp_port" value="$(arg tool_tcp_port_a)"/>
   </include>
-  <!--  -->
+  
+  <remap from="/b_bot/joint_states" to="/joint_states"/>
+  <include file="$(find ur_robot_driver)/launch/ur_common.launch" ns="b_bot">
+    <arg name="debug" value="$(arg debug)"/>
+    <arg name="use_tool_communication" value="$(arg use_tool_communication_b)"/>
+    <arg name="controller_config_file" value="$(arg controller_config_file_b)"/>
+    <arg name="robot_description_file" value="$(arg robot_description_file)"/>
+    <arg name="kinematics_config" value="$(arg kinematics_config_b)"/>
+    <arg name="robot_ip" value="$(arg robot_ip_b)"/>
+    <arg name="reverse_port" value="$(arg reverse_port_b)"/>
+    <arg name="script_sender_port" value="$(arg script_sender_port_b)"/>
+    <arg name="limited" value="$(arg limited)"/>
+    <arg name="tf_prefix" value="$(arg tf_prefix)"/>
+    <arg name="controllers" value="$(arg controllers)"/>
+    <arg name="stopped_controllers" value="$(arg stopped_controllers)"/>
+    <arg name="headless_mode" value="$(arg headless_mode)"/>
+    <arg name="tool_voltage" value="$(arg tool_voltage)"/>
+    <arg name="tool_parity" value="$(arg tool_parity)"/>
+    <arg name="tool_baud_rate" value="$(arg tool_baud_rate)"/>
+    <arg name="tool_stop_bits" value="$(arg tool_stop_bits)"/>
+    <arg name="tool_rx_idle_chars" value="$(arg tool_rx_idle_chars)"/>
+    <arg name="tool_tx_idle_chars" value="$(arg tool_tx_idle_chars)"/>
+    <arg name="tool_device_name" value="$(arg tool_device_name_b)"/>
+    <arg name="tool_tcp_port" value="$(arg tool_tcp_port_b)"/>
+  </include>
   <!--  -->
 
   <!-- TODO: Use this to aggregate the joint state messages from both robots -->

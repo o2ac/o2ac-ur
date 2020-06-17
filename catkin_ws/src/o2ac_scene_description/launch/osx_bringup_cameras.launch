@@ -7,7 +7,7 @@
 <launch>
 
   <!-- Cameras -->
-  <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+  <!-- <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="camera" default="b_bot_outside_camera"/>
     <arg name="serial_no" value="635201000481"/> 
     <arg name="enable_pointcloud" value="false"/>
@@ -20,7 +20,7 @@
     <arg name="color_height"        default="1080"/>
     <arg name="enable_infra1"       default="false"/>
     <arg name="enable_infra2"       default="false"/>
-  </include>
+  </include> -->
 
   <!-- <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="camera" default="b_bot_inside_camera"/>
@@ -37,19 +37,51 @@
     <arg name="enable_infra2"       default="false"/>
   </include>  -->
 
-  <!-- This is a scene-mounted camera that can be added for debugging or recording videos. -->
   <!-- <include file="$(find realsense2_camera)/launch/rs_camera.launch">
-    <arg name="camera" default="scene_camera"/>
-    <arg name="serial_no" value="819312070094"/> 
+    <arg name="camera" default="a_bot_outside_camera"/>
+    <arg name="serial_no" value="634206004668"/> 
     <arg name="enable_pointcloud" value="false"/>
     <arg name="fisheye_fps"         default="15"/>
-    <arg name="depth_fps"           default="15"/>
+    <arg name="depth_fps"           default="10"/>
+    <arg name="align_depth"         default="true"/>
     <arg name="infra_fps"           default="15"/>
-    <arg name="color_fps"           default="15"/>
+    <arg name="color_fps"           default="10"/>
     <arg name="color_width"         default="1920"/>
     <arg name="color_height"        default="1080"/>
     <arg name="enable_infra1"       default="false"/>
     <arg name="enable_infra2"       default="false"/>
+  </include>  -->
+
+  <!-- <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <arg name="camera" default="a_bot_inside_camera"/>
+    <arg name="serial_no" value="634206004668"/> 
+    <arg name="enable_pointcloud" value="false"/>
+    <arg name="fisheye_fps"         default="15"/>
+    <arg name="depth_fps"           default="10"/>
+    <arg name="align_depth"         default="true"/>
+    <arg name="infra_fps"           default="15"/>
+    <arg name="color_fps"           default="10"/>
+    <arg name="color_width"         default="1920"/>
+    <arg name="color_height"        default="1080"/>
+    <arg name="enable_infra1"       default="false"/>
+    <arg name="enable_infra2"       default="false"/>
+  </include>  -->
+
+  <!-- This is a scene-mounted D435 camera that can be added for debugging or recording videos. -->
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <arg name="camera" default="scene_camera"/>
+    <arg name="serial_no" value="819312070094"/> 
+    <arg name="enable_pointcloud" value="false"/>
+    <arg name="fisheye_fps"         default="15"/>
+    <arg name="depth_fps"           default="6"/>
+    <arg name="infra_fps"           default="6"/>
+    <arg name="color_fps"           default="6"/>
+    <arg name="color_width"         default="1920"/>
+    <arg name="color_height"        default="1080"/>
+    <!-- <arg name="color_width"         default="1280"/>
+    <arg name="color_height"        default="720"/> -->
+    <arg name="enable_infra1"       default="false"/>
+    <arg name="enable_infra2"       default="false"/>
     <arg name="enable_depth"       default="true"/>
-  </include> -->
+  </include>
 </launch>

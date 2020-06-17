@@ -8,12 +8,12 @@
 
   <link name="${boardname}_base">
     <inertial>
-      <origin rpy="${-pi/2} 0 ${pi/2}" xyz="0 0 0.0"/>
+      <origin rpy="${-pi/2} 0 ${pi/2}" xyz="0 0 0.01"/>
       <mass value="1.0"/>
       <inertia ixx="1.0" ixy="0" ixz="0" iyy="1.0" iyz="0" izz="1.0"/>
     </inertial>
     <visual>
-      <origin rpy="${-pi/2} 0 ${pi/2}" xyz="0 0 0.0"/>
+      <origin rpy="${-pi/2} 0 ${pi/2}" xyz=".12 0 0.01"/>
       <geometry>
         <mesh filename="${mesh_file_base}" scale=".001 .001 .001"/>
       </geometry>
@@ -22,7 +22,7 @@
       </material>
     </visual>
     <collision>
-      <origin rpy="${-pi/2} 0 ${pi/2}" xyz="0 0 0.0"/>
+      <origin rpy="${-pi/2} 0 ${pi/2}" xyz=".12 0 0.01"/>
       <geometry>
         <mesh filename="${mesh_file_base}" scale=".001 .001 .001"/>
       </geometry>
@@ -54,7 +54,7 @@
   <joint name="${boardname}_plate" type="fixed">
     <parent link="${boardname}_base" />
     <child link = "${boardname}_plate" />
-    <origin rpy="0 0 0" xyz="-0.06 0.0 0.0"/>
+    <origin rpy="0 0 0" xyz="0.058 0.0 0.01"/>
   </joint>
   
   <!-- ========== Shaft, pulleys, bearing -->
@@ -88,6 +88,7 @@
     <origin rpy="0 0 0" xyz="${0.025+.008} 0.165 0.12"/> 
   </xacro:assy_part_07> 
   
+  <!-- The large pulley -->
   <joint name="${boardname}_small_pulley" type="fixed">
     <parent link="${boardname}_plate" />
     <child link = "${boardname}_small_pulley" />
@@ -111,8 +112,7 @@
     </collision>
   </link>
 
-  <!-- 16.5 -->
-
+  <!-- The large pulley -->
   <joint name="${boardname}_large_pulley" type="fixed">
     <parent link="${boardname}_plate" />
     <child link = "${boardname}_large_pulley" />
@@ -180,35 +180,37 @@
   </joint>
   <link name="${boardname}_bearing_target_link"/>
 
-  <!-- I wrote these bearing screw frames out, but actually they should 
-      come from the subframes of the bearing that will be placed there. If they are used at all. -->
-  <!-- <joint name="${boardname}_bearing_screw_1_joint" type="fixed">
-    <parent link="${boardname}_plate"/>
-    <child link="${boardname}_bearing_screw_1_link"/>
-    <origin rpy="0 0 ${pi}" xyz="${.025+.008} ${0.034} ${0.12+.022}"/>
+  <!-- Screw positions of the base plate -->
+  <xacro:property name="base_l" value="0.2" />
+  <xacro:property name="base_w" value="0.12" />
+  <xacro:property name="d0" value="0.01" />
+  <joint name="${boardname}_base_screw_1_joint" type="fixed">
+    <parent link="${boardname}_base"/>
+    <child link="${boardname}_base_screw_1_link"/>
+    <origin rpy="0 ${pi/2} 0" xyz="${base_w-d0} ${base_l-d0} .01"/>
   </joint>
-  <link name="${boardname}_bearing_screw_1_link"/>
+  <link name="${boardname}_base_screw_1_link"/>
+  
+  <joint name="${boardname}_base_screw_2_joint" type="fixed">
+    <parent link="${boardname}_base"/>
+    <child link="${boardname}_base_screw_2_link"/>
+    <origin rpy="0 ${pi/2} 0" xyz="${d0} ${base_l-d0} .01"/>
+  </joint>
+  <link name="${boardname}_base_screw_2_link"/>
 
-  <joint name="${boardname}_bearing_screw_2_joint" type="fixed">
-    <parent link="${boardname}_plate"/>
-    <child link="${boardname}_bearing_screw_2_link"/>
-    <origin rpy="0 0 ${pi}" xyz="${.025+.008} ${0.034} ${0.12-.022}"/>
+  <joint name="${boardname}_base_screw_3_joint" type="fixed">
+    <parent link="${boardname}_base"/>
+    <child link="${boardname}_base_screw_3_link"/>
+    <origin rpy="0 ${pi/2} 0" xyz="${base_w-d0} ${d0} .01"/>
   </joint>
-  <link name="${boardname}_bearing_screw_2_link"/>
+  <link name="${boardname}_base_screw_3_link"/>
 
-  <joint name="${boardname}_bearing_screw_3_joint" type="fixed">
-    <parent link="${boardname}_plate"/>
-    <child link="${boardname}_bearing_screw_3_link"/>
-    <origin rpy="0 0 ${pi}" xyz="${.025+.008} ${0.034+.022} ${0.12}"/>
+  <joint name="${boardname}_base_screw_4_joint" type="fixed">
+    <parent link="${boardname}_base"/>
+    <child link="${boardname}_base_screw_4_link"/>
+    <origin rpy="0 ${pi/2} 0" xyz="${d0} ${d0} .01"/>
   </joint>
-  <link name="${boardname}_bearing_screw_3_link"/>
-
-  <joint name="${boardname}_bearing_screw_4_joint" type="fixed">
-    <parent link="${boardname}_plate"/>
-    <child link="${boardname}_bearing_screw_4_link"/>
-    <origin rpy="0 0 ${pi}" xyz="${.025+.008} ${0.034-.022} ${0.12}"/>
-  </joint>
-  <link name="${boardname}_bearing_screw_4_link"/> -->
+  <link name="${boardname}_base_screw_4_link"/>
 
   </xacro:macro>
   <!-- Add additional links for us to plan with.-->
