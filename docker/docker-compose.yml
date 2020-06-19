@@ -36,7 +36,7 @@ services:
       # Grant bus access to FlexBE App.
       - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket
       # Grant access to serial usb ports for u2d2
-      - /dev/for_docker:/dev/for_docker
+      - /dev/:/dev/
     network_mode: host
     extra_hosts:
       - "o2ac-ur:127.0.0.1"   # Seems that this might be needed for ROS networking
