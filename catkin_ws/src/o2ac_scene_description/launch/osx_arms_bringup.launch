@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <launch>
   <!-- Robot parameters that are separate for a_bot and b_bot -->
-  <arg name="robot_ip_a" default="192.168.0.41"/>
-  <arg name="robot_ip_b" default="192.168.0.42"/>
+  <arg name="robot_ip_a" default="192.168.1.41"/>
+  <arg name="robot_ip_b" default="192.168.1.42"/>
   <arg name="reverse_port_a" default="50001" />
   <arg name="script_sender_port_a" default="50002" />
   <arg name="reverse_port_b" default="50003" doc="Port that will be opened by the driver to allow direct communication between the driver and the robot controller."/>
