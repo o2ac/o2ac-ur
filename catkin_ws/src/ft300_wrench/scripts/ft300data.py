@@ -10,7 +10,7 @@ def WrenchPublish():
     rospy.init_node('FT300WrenchData', anonymous=True)
     rate = rospy.Rate(100)
     wrench = WrenchStamped()
-    HOST = rospy.get_param("ft300data/robot_ip", "192.168.0.42") # The remote host (UR controller)
+    HOST = rospy.get_param("ft300data/robot_ip", "192.168.1.42") # The remote host (UR controller)
     PORT = 63351    # The port that the FT300 sensor streams its data to
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((HOST, PORT))
