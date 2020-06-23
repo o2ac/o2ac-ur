@@ -8,21 +8,27 @@
 namespace aist_camera_multiplexer
 {
 /************************************************************************
-*  class Multiplexer::SyncedSubscribers					*
+*  class Multiplexer::Subscribers					*
 ************************************************************************/
-Multiplexer::SyncedSubscribers::SyncedSubscribers(Multiplexer* multiplexer,
-						  int camera_number)
-    :_camera_info_sub(multiplexer->_nh,
-		      "/camera_info" + std::to_string(camera_number), 1),
-     _image_sub( multiplexer->_nh, "/image" + std::to_string(camera_number), 1),
-     _depth_sub( multiplexer->_nh, "/depth" + std::to_string(camera_number), 1),
-     _normal_sub(multiplexer->_nh, "/normal"+ std::to_string(camera_number), 1),
-     _sync(sync_policy_t(10),
-	   _camera_info_sub, _image_sub, _depth_sub, _normal_sub)
+Multiplexer::Subscribers::Subscribers(Multiplexer* multiplexer,
+				      int camera_number)
+    :_camera_info_sub(multiplexer->_nh.subscribe<camera_info_t>(
+			  "/camera_info" + std::to_string(camera_number), 1,
+			  boost::bind(&Multiplexer::camera_info_cb,
+				      multiplexer, _1, camera_number))),
+     _image_sub( multiplexer->_nh.subscribe<image_t>(
+		     "/image" + std::to_string(camera_number), 1,
+		     boost::bind(&Multiplexer::image_cb,
+				 multiplexer, _1, camera_number))),
+     _depth_sub( multiplexer->_nh.subscribe<image_t>(
+		     "/depth" + std::to_string(camera_number), 1,
+		     boost::bind(&Multiplexer::depth_cb,
+				 multiplexer, _1, camera_number))),
+     _normal_sub(multiplexer->_nh.subscribe<image_t>(
+		     "/normal" + std::to_string(camera_number), 1,
+		     boost::bind(&Multiplexer::normal_cb,
+				 multiplexer, _1, camera_number)))
 {
-    _sync.registerCallback(boost::bind(&Multiplexer::synced_images_cb,
-				       multiplexer, _1, _2, _3, _4,
-				       camera_number));
 }
 
 /************************************************************************
@@ -50,7 +56,7 @@ Multiplexer::Multiplexer(const ros::NodeHandle& nh)
     for (int camera_number = 0; camera_number < camera_names.size();
 	 ++camera_number)
     {
-	_subscribers.emplace_back(new SyncedSubscribers(this, camera_number));
+	_subscribers.emplace_back(new Subscribers(this, camera_number));
 	enum_cameras[camera_names[camera_number]] = camera_number;
     }
 
@@ -85,22 +91,32 @@ Multiplexer::activate_camera(int camera_number)
 }
 
 void
-Multiplexer::synced_images_cb(const camera_info_cp& camera_info,
-			      const image_cp& image,
-			      const image_cp& depth,
-			      const image_cp& normal,
-			      int camera_number) const
+Multiplexer::camera_info_cb(const camera_info_cp& camera_info,
+			    int camera_number) const
 {
-    // std::cerr << "Current: " << _camera_number
-    // 	      << ", Requested: " << camera_number << std::endl;
-
     if (camera_number == _camera_number)
-    {
 	_camera_info_pub.publish(camera_info);
+}
+
+void
+Multiplexer::image_cb(const image_cp& image, int camera_number) const
+{
+    if (camera_number == _camera_number)
 	_image_pub.publish(image);
+}
+
+void
+Multiplexer::depth_cb(const image_cp& depth, int camera_number) const
+{
+    if (camera_number == _camera_number)
 	_depth_pub.publish(depth);
+}
+
+void
+Multiplexer::normal_cb(const image_cp& normal, int camera_number) const
+{
+    if (camera_number == _camera_number)
 	_normal_pub.publish(normal);
-    }
 }
 
 }	// namespace aist_camera_multiplexer

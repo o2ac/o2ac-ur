@@ -1,0 +1,63 @@
+<?xml version="1.0" ?>
+<robot name="ar_marker" xmlns:xacro="http://wiki.ros.org/xacro">
+
+  <xacro:macro name="ar_marker"
+	       params="prefix parent marker_id size margin thickness *origin">
+    <joint name="${prefix}ar_marker_joint" type="fixed">
+      <parent link="${parent}" />
+      <child  link="${prefix}ar_marker" />
+      <xacro:insert_block name="origin" />
+    </joint>
+
+    <link name="${prefix}ar_marker">
+      <visual name="${prefix}ar_marker_visual">
+	<origin xyz="0 0 ${-thickness/2}" rpy="0 0 ${pi}"/>
+        <geometry>
+          <box size="${size + 2*margin} ${size + 2*margin} ${thickness}" />
+        </geometry>
+      </visual>
+      <collision name="${prefix}ar_marker_collision">
+	<origin xyz="0 0 ${-thickness/2}" rpy="0 0 ${pi}"/>
+        <geometry>
+          <box size="${size + 2*margin} ${size + 2*margin} ${thickness}" />
+        </geometry>
+      </collision>
+    </link>
+
+    <!-- For Gazebo, material of AR marker is defined in
+         aist_description/media/material. You also need to export
+         gazebo_media_path in package.xml. -->
+    <gazebo reference="${prefix}ar_marker">
+      <material>Aruco/marker-${marker_id}-${int(1000*size)}-${int(1000*margin)}</material>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:macro name="ar_marker_70_5"
+	       params="prefix parent marker_id thickness *origin">
+
+    <xacro:ar_marker prefix="${prefix}" parent="${parent}"
+		     marker_id="${marker_id}" size="0.07"
+		     margin="0.005" thickness="${thickness}">
+      <xacro:insert_block name="origin"/>
+    </xacro:ar_marker>
+  </xacro:macro>
+
+  <xacro:macro name="ar_marker_80_10"
+	       params="prefix parent marker_id thickness *origin">
+    <xacro:ar_marker prefix="${prefix}" parent="${parent}"
+		     marker_id="${marker_id}" size="0.08"
+		     margin="0.01" thickness="${thickness}">
+      <xacro:insert_block name="origin"/>
+    </xacro:ar_marker>
+  </xacro:macro>
+
+  <xacro:macro name="ar_marker_160_10"
+	       params="prefix parent marker_id thickness *origin">
+    <xacro:ar_marker prefix="${prefix}" parent="${parent}"
+		     marker_id="${marker_id}" size="0.16"
+		     margin="0.01" thickness="${thickness}">
+      <xacro:insert_block name="origin"/>
+    </xacro:ar_marker>
+  </xacro:macro>
+
+</robot>

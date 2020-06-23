@@ -8,9 +8,6 @@
 
 #include <ros/ros.h>
 #include <image_transport/image_transport.h>
-#include <message_filters/subscriber.h>
-#include <message_filters/synchronizer.h>
-#include <message_filters/sync_policies/approximate_time.h>
 #include <ddynamic_reconfigure/ddynamic_reconfigure.h>
 
 namespace aist_camera_multiplexer
@@ -26,25 +23,19 @@ class Multiplexer
     using image_t	 = sensor_msgs::Image;
     using image_cp	 = sensor_msgs::ImageConstPtr;
 
-    class SyncedSubscribers
+    class Subscribers
     {
-      private:
-	using sync_policy_t = message_filters::sync_policies::
-				ApproximateTime<camera_info_t,
-						image_t, image_t, image_t>;
-
       public:
-	SyncedSubscribers(Multiplexer* multiplexer, int camera_number)	;
+	Subscribers(Multiplexer* multiplexer, int camera_number)	;
 
       private:
-	message_filters::Subscriber<camera_info_t>	_camera_info_sub;
-	message_filters::Subscriber<image_t>		_image_sub;
-	message_filters::Subscriber<image_t>		_depth_sub;
-	message_filters::Subscriber<image_t>		_normal_sub;
-	message_filters::Synchronizer<sync_policy_t>	_sync;
+	ros::Subscriber	_camera_info_sub;
+	ros::Subscriber	_image_sub;
+	ros::Subscriber	_depth_sub;
+	ros::Subscriber	_normal_sub;
     };
 
-    using subscribers_cp = std::shared_ptr<const SyncedSubscribers>;
+    using subscribers_cp = std::shared_ptr<const Subscribers>;
 
   public:
     Multiplexer(const ros::NodeHandle& nh)				;
@@ -53,11 +44,14 @@ class Multiplexer
 
   private:
     void	activate_camera(int camera_number)			;
-    void	synced_images_cb(const camera_info_cp& camera_info,
-				 const image_cp& image,
-				 const image_cp& depth,
-				 const image_cp& normal,
-				 int camera_number)		const	;
+    void	camera_info_cb(const camera_info_cp& camera_info,
+			       int camera_number)		const	;
+    void	image_cb(const image_cp& image,
+			 int camera_number)			const	;
+    void	depth_cb(const image_cp& depth,
+			 int camera_number)			const	;
+    void	normal_cb(const image_cp& normal,
+			 int camera_number)			const	;
 
   private:
     ros::NodeHandle				_nh;

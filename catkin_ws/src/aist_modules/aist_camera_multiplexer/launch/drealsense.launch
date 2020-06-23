@@ -11,26 +11,50 @@
   <arg name="manager"		default=""/>
 
   <!-- Launch RealSense cameras -->
-  <include file="$(find aist_depth_filter)/launch/realsense.launch">
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="serial_no"		value="$(arg camera0_serial_no)"/>
-    <arg name="camera_name"		value="$(arg camera0_name)"/>
-    <arg name="camera_width"		value="$(arg camera_width)"/>
-    <arg name="camera_height"		value="$(arg camera_height)"/>
-    <arg name="fps"			value="$(arg fps)"/>
+    <arg name="camera"			value="$(arg camera0_name)"/>
+    <arg name="tf_prefix"		value="calibrated_$(arg camera0_name)"/>
+    <arg name="enable_depth"		value="true"/>
+    <arg name="enable_infra1"		value="true"/>
+    <arg name="enable_infra2"		value="false"/>
+    <arg name="enable_pointcloud"	value="false"/>
+    <arg name="align_depth"		value="true"/>
+    <arg name="depth_width"		value="$(arg camera_width)"/>
+    <arg name="depth_height"		value="$(arg camera_height)"/>
+    <arg name="depth_fps"		value="$(arg fps)"/>
+    <arg name="infra_width"		value="$(arg camera_width)"/>
+    <arg name="infra_height"		value="$(arg camera_height)"/>
+    <arg name="infra_fps"		value="$(arg fps)"/>
+    <arg name="color_width"		value="$(arg camera_width)"/>
+    <arg name="color_height"		value="$(arg camera_height)"/>
+    <arg name="color_fps"		value="$(arg fps)"/>
     <arg name="enable_streaming"	value="true"/>
-    <arg name="manager"			value="$(arg manager)"/>
-    <arg name="vis"			value="false"/>
+    <arg name="manager"			value="$(arg manager)"
+	 unless="$(eval manager == '')"/>
   </include>
 
-  <include file="$(find aist_depth_filter)/launch/realsense.launch">
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="serial_no"		value="$(arg camera1_serial_no)"/>
-    <arg name="camera_name"		value="$(arg camera1_name)"/>
-    <arg name="camera_width"		value="$(arg camera_width)"/>
-    <arg name="camera_height"		value="$(arg camera_height)"/>
-    <arg name="fps"			value="$(arg fps)"/>
+    <arg name="camera"			value="$(arg camera1_name)"/>
+    <arg name="tf_prefix"		value="calibrated_$(arg camera1_name)"/>
+    <arg name="enable_depth"		value="true"/>
+    <arg name="enable_infra1"		value="true"/>
+    <arg name="enable_infra2"		value="false"/>
+    <arg name="enable_pointcloud"	value="false"/>
+    <arg name="align_depth"		value="true"/>
+    <arg name="depth_width"		value="$(arg camera_width)"/>
+    <arg name="depth_height"		value="$(arg camera_height)"/>
+    <arg name="depth_fps"		value="$(arg fps)"/>
+    <arg name="infra_width"		value="$(arg camera_width)"/>
+    <arg name="infra_height"		value="$(arg camera_height)"/>
+    <arg name="infra_fps"		value="$(arg fps)"/>
+    <arg name="color_width"		value="$(arg camera_width)"/>
+    <arg name="color_height"		value="$(arg camera_height)"/>
+    <arg name="color_fps"		value="$(arg fps)"/>
     <arg name="enable_streaming"	value="true"/>
-    <arg name="manager"			value="$(arg manager)"/>
-    <arg name="vis"			value="false"/>
+    <arg name="manager"			value="$(arg manager)"
+	 unless="$(eval manager == '')"/>
   </include>
 
   <!-- Setup transformation between two cameras -->
@@ -49,15 +73,15 @@
 
     <remap from="/camera_info0"	to="$(arg camera0_name
 				    )/depth_filter/camera_info"/>
-    <remap from="/image0"	to="$(arg camera0_name)/depth_filter/image"/>
-    <remap from="/depth0"	to="$(arg camera0_name)/depth_filter/depth"/>
-    <remap from="/normal0"	to="$(arg camera0_name)/depth_filter/normal"/>
+    <remap from="/image0"	to="$(arg camera0_name)/color/image_raw"/>
+    <remap from="/depth0"	to="$(arg camera0_name
+				    )/aligned_depth_to_color/image_raw"/>
 
     <remap from="/camera_info1"	to="$(arg camera1_name
-				    )/depth_filter/camera_info"/>
-    <remap from="/image1"	to="$(arg camera1_name)/depth_filter/image"/>
-    <remap from="/depth1"	to="$(arg camera1_name)/depth_filter/depth"/>
-    <remap from="/normal1"	to="$(arg camera1_name)/depth_filter/normal"/>
+				    )/color/camera_info"/>
+    <remap from="/image1"	to="$(arg camera1_name)/color/image_raw"/>
+    <remap from="/depth1"	to="$(arg camera1_name
+				    )/aligned_depth_to_color/image_raw"/>
   </node>
 
   <!-- Launch camera multiplexer client -->

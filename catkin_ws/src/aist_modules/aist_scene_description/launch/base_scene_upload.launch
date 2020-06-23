@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="scene"	default=""/>
+  
+  <!-- This file is used by MoveIt. -->
+  <param name="robot_description"
+	 command="$(find xacro)/xacro --inorder '$(find
+		  aist_scene_description)/urdf/base_scene.urdf.xacro'
+		  scene:='$(arg scene)'" />
+
+  <!-- These args are declared so the UR upload script does not complain. -->
+  <arg name="limited" default=""/>
+  <arg name="kinematics_config" default=""/>
+</launch>

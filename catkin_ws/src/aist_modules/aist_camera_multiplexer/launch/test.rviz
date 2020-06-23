@@ -88,7 +88,7 @@ Visualization Manager:
   Global Options:
     Background Color: 48; 48; 48
     Default Light: true
-    Fixed Frame: calibrated_a_bot_camera_link
+    Fixed Frame: calibrated_a_bot_inside_camera_link
     Frame Rate: 30
   Name: root
   Tools:
@@ -112,7 +112,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.7501187920570374
+      Distance: 0.6643282771110535
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -127,10 +127,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.009423067793250084
+      Pitch: -0.375576913356781
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.072798013687134
+      Yaw: 3.1778013706207275
     Saved: ~
 Window Geometry:
   Displays:
@@ -151,4 +151,4 @@ Window Geometry:
     collapsed: true
   Width: 1379
   X: 396
-  Y: 126
+  Y: 96

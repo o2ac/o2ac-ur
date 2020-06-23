@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro" name="ft300" >
+
+  <xacro:macro name="ft300" params="prefix parent *origin">
+    <!-- This seems too long when measuring the sensor,
+	 but works out when calibrating the tip_link to the world. -->
+    <xacro:property name="ft300_length" value="0.0525"/>
+
+    <!-- Add the force sensor in front of the gripper. -->
+    <joint name="${prefix}ft300_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child link="${prefix}ft300_link"/>
+      <xacro:insert_block name="origin"/>
+    </joint>
+    <link name="${prefix}ft300_link">
+      <visual>
+	<origin rpy="0.0 ${pi/2} 0.0" xyz="${ft300_length/2} 0.0 0.0"/>
+        <geometry>
+          <cylinder length="${ft300_length}" radius="0.0375"/>
+        </geometry>
+        <material name="Black">
+          <color rgba="0.1 0.1 0.1 1.0"/>
+        </material>
+      </visual>
+      <collision>
+	<origin rpy="0.0 ${pi/2} 0.0" xyz="${ft300_length/2} 0.0 0.0"/>
+        <geometry>
+          <cylinder length="${ft300_length}" radius="0.0375"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="${prefix}ft300_flage_joint" type="fixed">
+      <parent link="${prefix}ft300_link"/>
+      <child  link="${prefix}ft300_flange_link"/>
+      <origin rpy="0.0 0.0 0.0" xyz="${ft300_length} 0.0 0.0"/>
+    </joint>
+    <link name="${prefix}ft300_flange_link"/>
+  </xacro:macro>
+
+</robot>
