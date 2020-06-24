@@ -15,7 +15,7 @@
 	url = https://github.com/PickNikRobotics/rviz_visual_tools.git
 [submodule "underlay_ws/src/third_party/universal_robot"]
 	path = underlay_ws/src/third_party/universal_robot
-	url = https://gitlab.com/o2ac/third-party/universal_robot.git
+	url = https://gitlab.com/art-aist/universal_robot
 [submodule "underlay_ws/src/moveit_task_constructor"]
 	path = underlay_ws/src/moveit_task_constructor
 	url = https://gitlab.com/o2ac/moveit-task-constructor.git
