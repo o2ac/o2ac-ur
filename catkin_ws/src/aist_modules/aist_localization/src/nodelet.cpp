@@ -1,5 +1,6 @@
 /*!
  *  \file	nodelet.cpp
+ *  \author	Toshio UESHIBA
  */
 #include "Localization.h"
 #include <nodelet/nodelet.h>
@@ -26,8 +27,7 @@ void
 LocalizationNodelet::onInit()
 {
     NODELET_INFO("aist_localization::LocalizationNodelet::onInit()");
-    _nh = getNodeHandle();
-    _node.reset(new Localization(getName()));
+    _node.reset(new Localization(getPrivateNodeHandle()));
 }
 
 }	// namespace aist_localization

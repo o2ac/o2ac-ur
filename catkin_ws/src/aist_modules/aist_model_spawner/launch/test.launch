@@ -2,7 +2,7 @@
 <launch>
 
   <arg name="urdf_dir"
-       default="$(find o2as_parts_description)/urdf/generated"/>
+       default="$(find o2ac_parts_description)/urdf/generated"/>
 
   <include file="$(find aist_model_spawner)/launch/run.launch">
     <arg name="urdf_dir"	value="$(arg urdf_dir)"/>

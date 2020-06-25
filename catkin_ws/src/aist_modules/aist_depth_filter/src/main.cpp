@@ -1,7 +1,6 @@
 /*!
-* \file		depth_filter.cpp
+* \file		main.cpp
 * \author	Toshio UESHIBA
-* \brief	ARuCo marker detector using both intensity and depth images
 */
 #include <ros/ros.h>
 #include "DepthFilter.h"
@@ -15,7 +14,8 @@ main(int argc, char** argv)
 
     try
     {
-	aist_depth_filter::DepthFilter	filter("~");
+	ros::NodeHandle			nh("~");
+	aist_depth_filter::DepthFilter	filter(nh);
 	filter.run();
     }
     catch (const std::exception& err)

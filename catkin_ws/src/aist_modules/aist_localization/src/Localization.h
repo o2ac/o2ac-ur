@@ -95,7 +95,7 @@ class Localization
     };
 
   public:
-		Localization(const std::string& name)			;
+		Localization(const ros::NodeHandle& nh)			;
 
     void	run()						  const	;
 

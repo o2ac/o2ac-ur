@@ -1,9 +1,10 @@
 /*!
  *  \file	nodelet.cpp
+ *  \author	Toshio UESHIBA
  */
-#include "DepthFilter.h"
 #include <nodelet/nodelet.h>
 #include <pluginlib/class_list_macros.h>
+#include "DepthFilter.h"
 
 namespace aist_depth_filter
 {
@@ -18,7 +19,6 @@ class DepthFilterNodelet : public nodelet::Nodelet
     virtual void	onInit()					;
 
   private:
-    ros::NodeHandle			_nh;
     boost::shared_ptr<DepthFilter>	_node;
 };
 
@@ -26,8 +26,7 @@ void
 DepthFilterNodelet::onInit()
 {
     NODELET_INFO("aist_depth_filter::DepthFilterNodelet::onInit()");
-    _nh = getNodeHandle();
-    _node.reset(new DepthFilter(getName()));
+    _node.reset(new DepthFilter(getPrivateNodeHandle()));
 }
 
 }	// namespace aist_depth_filter

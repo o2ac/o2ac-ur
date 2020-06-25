@@ -42,7 +42,7 @@ class DepthFilter
     using plane_t	 = TU::Plane<value_t, 3>;
 
   public:
-		DepthFilter(const std::string& name)			;
+    DepthFilter(const ros::NodeHandle& nh)				;
 
     void	run()							;
 

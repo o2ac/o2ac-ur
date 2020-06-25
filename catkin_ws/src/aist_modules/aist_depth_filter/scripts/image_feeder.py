@@ -6,7 +6,7 @@ from sensor_msgs       import msg as smsg
 from aist_depth_filter import DepthFilterClient
 
 #########################################################################
-#  class ImagePublisher                                                 #
+#  class ImageFeeder                                                    #
 #########################################################################
 class ImageFeeder(object):
     _Colors = ((0, 0, 255), (0, 255, 0), (255, 0, 0),
@@ -81,14 +81,11 @@ class ImageFeeder(object):
                 sys.exit()
 
     def draw_bbox(self, image, id, bbox):
-        colors = ((0, 0, 255), (0, 255, 0), (255, 0, 0),
-                  (255, 255, 0), (255, 0, 255), (0, 255, 255))
-        color_idx = id % len(colors)
+        idx = id % len(ImageFeeder._Colors)
         cv2.rectangle(image, (bbox[0], bbox[1]), (bbox[2], bbox[3]),
-                      colors[color_idx], 3)
-        cv2.putText(image, str(id),
-                    ((bbox[0] + bbox[2])/2, (bbox[1] + bbox[3])/2),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, colors[color_idx], 2,
+                      ImageFeeder._Colors[idx], 3)
+        cv2.putText(image, str(id), (bbox[0] + 5, bbox[3] - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, ImageFeeder._Colors[idx], 2,
                     cv2.LINE_AA)
 
 #########################################################################

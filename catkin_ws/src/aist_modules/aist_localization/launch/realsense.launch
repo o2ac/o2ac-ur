@@ -51,7 +51,7 @@
 
   <!-- Spawn model_spawner -->
   <include file="$(find aist_model_spawner)/launch/run.launch">
-    <arg name="urdf_dir"		value="$(arg urdf_dir)"/>
+    <arg name="urdf_dir"	value="$(arg urdf_dir)"/>
   </include>
 
   <!-- Spawn localization client -->

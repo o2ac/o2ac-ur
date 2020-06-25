@@ -15,7 +15,8 @@ main(int argc, char* argv[])
 
     try
     {
-	aist_localization::Localization	localization("~");
+	ros::NodeHandle			nh("~");
+	aist_localization::Localization	localization(nh);
 	localization.run();
     }
     catch (const std::exception& err)

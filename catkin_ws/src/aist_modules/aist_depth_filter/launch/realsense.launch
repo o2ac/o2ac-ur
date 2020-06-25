@@ -1,5 +1,6 @@
 <?xml version="1.0" ?>
 <launch>
+
   <arg name="serial_no"		default=""/>
   <arg name="camera_name"	default="a_bot_camera"/>
   <arg name="camera_width"	default="640"/>

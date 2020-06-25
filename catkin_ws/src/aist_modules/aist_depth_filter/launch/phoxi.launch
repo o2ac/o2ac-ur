@@ -25,6 +25,7 @@
     <arg name="image_topic"		value="texture"/>
     <arg name="depth_topic"		value="depth_map"/>
     <arg name="normal_topic"		value="normal_map"/>
+    <arg name="manager"			value="$(arg manager)"/>
   </include>
 
   <group if="$(arg vis)">

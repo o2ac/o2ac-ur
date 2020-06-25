@@ -49,8 +49,8 @@ get_dark_pixels(const sensor_msgs::Image& image, ITER iter)
 /************************************************************************
 *  class DepthFilter							*
 ************************************************************************/
-DepthFilter::DepthFilter(const std::string& name)
-    :_nh(name),
+DepthFilter::DepthFilter(const ros::NodeHandle& nh)
+    :_nh(nh),
      _saveBG_srv(_nh.advertiseService("saveBG", &saveBG_cb, this)),
      _capture_srv(_nh.advertiseService("capture", &capture_cb, this)),
      _camera_info_sub(_nh, "/camera_info", 1),
@@ -128,7 +128,6 @@ DepthFilter::DepthFilter(const std::string& name)
     }
 
     _ddr.publishServicesTopics();
-
 }
 
 void

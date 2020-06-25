@@ -4,7 +4,7 @@
   <arg name="camera_frame"	default="world"/>
   <arg name="plcf_dir"		default="$(find aist_localization)/plcf"/>
   <arg name="urdf_dir"
-       default="$(find o2as_parts_description)/urdf/generated"/>
+       default="$(find o2ac_parts_description)/urdf/generated"/>
 
   <rosparam command="load"
 	    file="$(find aist_localization)/config/models.yaml"/>

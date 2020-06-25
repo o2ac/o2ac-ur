@@ -30,6 +30,8 @@ find_package(
     aist_depth_filter
 )
 
+find_package(OpenCV REQUIRED)
+
 catkin_python_setup()
 
 ###########
@@ -38,6 +40,7 @@ catkin_python_setup()
 include_directories(
   ${catkin_INCLUDE_DIRS}
   ${PHOLOCALIZATION_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 add_action_files(FILES Localize.action)
@@ -97,6 +100,7 @@ target_link_libraries(
   ${roscpp_LIBRARIES}
   ${catkin_LIBRARIES}
   ${PHOLOCALIZATION_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 
 #############
