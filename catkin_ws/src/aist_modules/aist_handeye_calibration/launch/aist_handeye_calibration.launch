@@ -1,0 +1,56 @@
+<?xml version="1.0" ?>
+<launch>
+
+  <arg name="sim"			default="false"/>
+  <arg name="camera_name"		default="a_phoxi_m_camera"/>
+  <arg name="check"			default="false"/>
+  <arg name="use_dual_quaternion"	default="true"/>
+  <arg name="rviz_config"
+       default="$(find aist_handeye_calibration
+		)/launch/include/handeye_calibration.rviz"/>
+
+  <!-- Launch gazebo if simulation -->
+  <include if="$(arg sim)"
+	   file="$(find o2ac_gazebo)/launch/aist_gazebo.launch">
+    <arg name="scene"	value="calibration"/>
+  </include>
+
+  <!-- Launch real robots and cameras if not simulation -->
+  <include unless="$(arg sim)"
+	   file="$(find aist_scene_description
+		 )/launch/connect_real_robots.launch"/>
+
+  <!-- Launch MoveIt! -->
+  <include file="$(find aist_moveit_config
+  		 )/launch/aist_moveit_planning_execution.launch">
+    <arg name="scene"	value="calibration"/>
+    <arg name="sim"	value="$(arg sim)"/>
+    <arg name="config"	value="$(arg rviz_config)"/>
+  </include>
+
+  <!-- Set camera topic names -->
+  <arg name="camera_info_topic"
+       value="$(eval 'camera_info' if 'phoxi' in camera_name
+  	      else 'color/camera_info')"/>
+  <arg name="image_topic"
+       value="$(eval 'texture' if 'phoxi' in camera_name
+  	      else 'color/image_raw')"/>
+  <arg name="depth_topic"
+       value="$(eval 'depth_map' if 'phoxi' in camera_name
+  	      else 'aligned_depth_to_color/image_raw')"/>
+
+  <!-- Launch aruco marker detector and handeye calibrator -->
+  <include file="$(find aist_handeye_calibration
+  		 )/launch/include/handeye_calibration.launch">
+    <arg name="config"			value="aist"/>
+
+    <arg name="camera_info_topic"	value="$(arg camera_info_topic)"/>
+    <arg name="image_topic"		value="$(arg image_topic)"/>
+    <arg name="depth_topic"		value="$(arg depth_topic)"/>
+
+    <arg name="camera_name"		value="$(arg camera_name)"/>
+    <arg name="check"			value="$(arg check)"/>
+    <arg name="use_dual_quaternion"	value="$(arg use_dual_quaternion)"/>
+  </include>
+
+</launch>
