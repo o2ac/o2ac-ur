@@ -31,6 +31,15 @@ SkillServer::SkillServer() :
   // Services to subscribe to
   sendScriptToURClient_ = n_.serviceClient<o2ac_msgs::sendScriptToUR>("o2ac_skills/sendScriptToUR");
 
+  a_bot_get_loaded_program_ = n_.serviceClient<ur_dashboard_msgs::GetLoadedProgram>("/a_bot/ur_hardware_interface/dashboard/get_loaded_program");
+  a_bot_program_running_ = n_.serviceClient<ur_dashboard_msgs::IsProgramRunning>("/a_bot/ur_hardware_interface/dashboard/program_running");
+  a_bot_load_program_ = n_.serviceClient<ur_dashboard_msgs::Load>("/a_bot/ur_hardware_interface/dashboard/load_program");
+  a_bot_play_ = n_.serviceClient<std_srvs::Trigger>("/a_bot/ur_hardware_interface/dashboard/play");
+  b_bot_get_loaded_program_ = n_.serviceClient<ur_dashboard_msgs::GetLoadedProgram>("/b_bot/ur_hardware_interface/dashboard/get_loaded_program");
+  b_bot_program_running_ = n_.serviceClient<ur_dashboard_msgs::IsProgramRunning>("/b_bot/ur_hardware_interface/dashboard/program_running");
+  b_bot_load_program_ = n_.serviceClient<ur_dashboard_msgs::Load>("/b_bot/ur_hardware_interface/dashboard/load_program");
+  b_bot_play_ = n_.serviceClient<std_srvs::Trigger>("/b_bot/ur_hardware_interface/dashboard/play");
+  
   // Actions we serve
   pickScrewActionServer_.start();
   placeActionServer_.start();
@@ -243,6 +252,63 @@ void SkillServer::initializeCollisionObjects()
   suction_tool.subframe_names[0] = "suction_tool_tip";
 }
 
+bool SkillServer::activateROSControlOnUR(std::string robot_name)
+{
+  if (!use_real_robot_)
+    return true;
+  if ((robot_name != "b_bot") && (robot_name != "a_bot"))
+  {
+    ROS_ERROR("Robot name was not found or the robot is not a UR!");
+    return false;
+  }
+
+  ros::ServiceClient get_loaded_program_, program_running_, load_program_, play_;
+  if (robot_name == "a_bot")
+  {
+    get_loaded_program_ = a_bot_get_loaded_program_;
+    program_running_ = a_bot_program_running_;
+    load_program_ = a_bot_load_program_;
+    play_ = a_bot_play_;
+  }
+  else // b_bot
+  {
+    get_loaded_program_ = b_bot_get_loaded_program_;
+    program_running_ = b_bot_program_running_;
+    load_program_ = b_bot_load_program_;
+    play_ = b_bot_play_;
+  }
+  ros::Duration(1.0).sleep();
+  
+  // Check if URCap is already running on UR
+  ur_dashboard_msgs::IsProgramRunning srv1;  
+  if (srv1.response.program_running)
+  {
+    ur_dashboard_msgs::GetLoadedProgram srv2;
+    get_loaded_program_.call(srv2);
+    ROS_WARN_STREAM("Got loaded program name:");
+    ROS_WARN_STREAM(srv2.response.program_name);
+    if (srv2.response.program_name == "/programs/ROS_external_control.urp")
+      return true;
+  }
+
+  // Load program
+  ur_dashboard_msgs::Load srv3;
+  srv3.request.filename = "ROS_external_control.urp";
+  load_program_.call(srv3);
+  if (!srv3.response.success)
+  {
+    ROS_ERROR("Could not load the ROS_external_control.urp URCap. Is the UR robot set up correctly and the program installed with the correct name?");
+    ROS_ERROR_STREAM("service answer: " << srv3.response.answer);
+    return false;
+  }
+
+  // Run the program
+  std_srvs::Trigger srv4;
+  play_.call(srv4);
+  ros::Duration(2.0).sleep();
+  return srv4.response.success;
+}
+
 bool SkillServer::moveToJointPose(std::vector<double> joint_positions, std::string robot_name, bool wait, double velocity_scaling_factor, bool use_UR_script, double acceleration)
 {
   if (pause_mode_ || test_mode_)
@@ -270,13 +336,20 @@ bool SkillServer::moveToJointPose(std::vector<double> joint_positions, std::stri
     if (UR_srv.response.success == true)
     {
       ROS_INFO("Successfully called the URScript client to move joints.");
-      return waitForURProgram("/" + robot_name +"_controller");
+      ros::Duration(1.0).sleep();
+      return waitForURProgram("/" + robot_name);
     }
     else
     {
       ROS_ERROR("Could not move joints with URscript.");
       return false;
     }
+  }
+
+  if (!activateROSControlOnUR(robot_name))
+  {
+    ROS_ERROR("Could not activate robot. Aborting move.");
+    return false;
   }
 
   moveit::planning_interface::MoveGroupInterface* group_pointer = robotNameToMoveGroup(robot_name);;
@@ -308,6 +381,12 @@ bool SkillServer::moveToCartPosePTP(geometry_msgs::PoseStamped pose, std::string
       ROS_INFO_STREAM("Reducing velocity_scaling_factor from " << velocity_scaling_factor << " to " << reduced_speed_limit_ << " because robot is in test or pause mode!");
       velocity_scaling_factor = reduced_speed_limit_;
     }
+  }
+
+  if (!activateROSControlOnUR(robot_name))
+  {
+    ROS_ERROR("Could not activate robot. Aborting move.");
+    return false;
   }
   moveit::planning_interface::MoveGroupInterface::Plan myplan;
   moveit::planning_interface::MoveItErrorCode 
@@ -382,7 +461,8 @@ bool SkillServer::moveToCartPoseLIN(geometry_msgs::PoseStamped pose, std::string
       if (UR_srv.response.success == true)
       {
         ROS_DEBUG("Successfully called the URScript client to do linear motion.");
-        waitForURProgram("/" + robot_name +"_controller");
+        ros::Duration(1.0).sleep();
+        waitForURProgram("/" + robot_name);
         return true;
       }
       else
@@ -392,7 +472,12 @@ bool SkillServer::moveToCartPoseLIN(geometry_msgs::PoseStamped pose, std::string
       }
     }
   }
-
+  
+  if (!activateROSControlOnUR(robot_name))
+  {
+    ROS_ERROR("Could not activate robot. Aborting move.");
+    return false;
+  }
   moveit::planning_interface::MoveGroupInterface::Plan myplan;
   moveit::planning_interface::MoveItErrorCode 
     success_plan = moveit_msgs::MoveItErrorCodes::FAILURE, 
@@ -484,6 +569,12 @@ bool SkillServer::goToNamedPose(std::string pose_name, std::string robot_name, d
       ROS_INFO_STREAM("Reducing speed from " << speed << " to " << reduced_speed_limit_ << " because robot is in test or pause mode!");
       speed = reduced_speed_limit_;
     }
+  }
+
+  if (!activateROSControlOnUR(robot_name))
+  {
+    ROS_ERROR("Could not activate robot. Aborting move.");
+    return false;
   }
   moveit::planning_interface::MoveGroupInterface* group_pointer;
   group_pointer = robotNameToMoveGroup(robot_name);
@@ -1574,7 +1665,8 @@ void SkillServer::executeScrew(const o2ac_msgs::screwGoalConstPtr& goal)
     if (srv.response.success == true)
     {
       ROS_DEBUG("Successfully called the service client to do spiral motion.");
-      waitForURProgram("/" + goal->robot_name +"_controller");
+      ros::Duration(1.0).sleep();
+      waitForURProgram("/" + goal->robot_name);
     }
     else
       ROS_ERROR("Could not call the service client to do spiral motion.");
