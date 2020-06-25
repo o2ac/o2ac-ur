@@ -2,20 +2,22 @@
 
 #include "ros/ros.h"
 #include "ur_msgs/RobotModeDataMsg.h"
+#include "std_msgs/Bool.h"
 // Do not forget to add ur_robot_driver to your CMakeLists.txt
 
 // Note: topic_namespace needs a leading slash.
 bool isProgramRunning(std::string topic_namespace = "")
 {
   ur_msgs::RobotModeDataMsg robot_mode_state;
-  auto msg = ros::topic::waitForMessage<ur_msgs::RobotModeDataMsg>(topic_namespace + "/ur_driver/robot_mode_state",
-                                                                   ros::Duration(2));
+  auto msg = ros::topic::waitForMessage<std_msgs::Bool>(topic_namespace + "/ur_hardware_interface/robot_program_running",
+                                                                   ros::Duration(3));
   if (msg)
-    return msg->is_program_running;
+    return msg->data;
   else
   {
     ROS_ERROR("No message received from the robot. Is everything running? Is the namespace entered correctly with a "
               "leading slash?");
+    ROS_ERROR_STREAM(topic_namespace << "/ur_hardware_interface/robot_program_running");
     ros::Exception e("No message received from the robot.");
     throw(e);
   }
