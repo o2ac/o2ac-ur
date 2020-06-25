@@ -87,50 +87,6 @@ void SkillServer::initializeCollisionObjects()
   // --- Define the tools as collision objects, so they can be used for planning
   // THIS IS OUTDATED AND NOW DEFINED IN YAML FILES.
   
-  //M6 tool
-  screw_tool_m6.header.frame_id = "screw_tool_m6_link";
-  screw_tool_m6.id = "screw_tool_m6";
-
-  screw_tool_m6.primitives.resize(3);
-  screw_tool_m6.primitive_poses.resize(3);
-  // The bit cushion and motor
-  screw_tool_m6.primitives[0].type = screw_tool_m6.primitives[0].BOX;
-  screw_tool_m6.primitives[0].dimensions.resize(3);
-  screw_tool_m6.primitives[0].dimensions[0] = 0.026;
-  screw_tool_m6.primitives[0].dimensions[1] = 0.04;
-  screw_tool_m6.primitives[0].dimensions[2] = 0.055;
-  screw_tool_m6.primitive_poses[0].position.x = 0;
-  screw_tool_m6.primitive_poses[0].position.y = -0.009;
-  screw_tool_m6.primitive_poses[0].position.z = 0.0275;
-
-  // The "shaft" + suction attachment
-  screw_tool_m6.primitives[1].type = screw_tool_m6.primitives[1].BOX;
-  screw_tool_m6.primitives[1].dimensions.resize(3);
-  screw_tool_m6.primitives[1].dimensions[0] = 0.02;
-  screw_tool_m6.primitives[1].dimensions[1] = 0.03;
-  screw_tool_m6.primitives[1].dimensions[2] = 0.091;
-  screw_tool_m6.primitive_poses[1].position.x = 0;
-  screw_tool_m6.primitive_poses[1].position.y = -0.0055;  // 21 mm distance from axis
-  screw_tool_m6.primitive_poses[1].position.z = -0.041;
-
-  // The cylinder representing the tip
-  screw_tool_m6.primitives[2].type = screw_tool_m6.primitives[2].CYLINDER;
-  screw_tool_m6.primitives[2].dimensions.resize(2);
-  screw_tool_m6.primitives[2].dimensions[0] = 0.019;    // Cylinder height
-  screw_tool_m6.primitives[2].dimensions[1] = 0.005;   // Cylinder radius
-  screw_tool_m6.primitive_poses[2].position.x = 0;
-  screw_tool_m6.primitive_poses[2].position.y = 0;  // 21 mm distance from axis
-  screw_tool_m6.primitive_poses[2].position.z = -0.096;
-  screw_tool_m6.operation = screw_tool_m6.ADD;
-
-  // The tool tip
-  screw_tool_m6.subframe_poses.resize(1);
-  screw_tool_m6.subframe_names.resize(1);
-  screw_tool_m6.subframe_poses[0].position.z = -.11;
-  screw_tool_m6.subframe_poses[0].orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 90.0/180.0 *M_PI, -M_PI/2);
-  screw_tool_m6.subframe_names[0] = "screw_tool_m6_tip";
-  
-
   //M4 tool
   screw_tool_m4.header.frame_id = "screw_tool_m4_link";
   screw_tool_m4.id = "screw_tool_m4";
@@ -250,6 +206,78 @@ void SkillServer::initializeCollisionObjects()
   suction_tool.subframe_poses[0].position.z = -.1;
   suction_tool.subframe_poses[0].orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 90.0/180.0 *M_PI, -M_PI/2);
   suction_tool.subframe_names[0] = "suction_tool_tip";
+
+  // ==== Nut tool M6
+  // Note: Y points "forward" to the front of the holder
+  nut_tool.header.frame_id = "nut_tool_link";
+  nut_tool.id = "nut_tool";
+
+  nut_tool.primitives.resize(2);
+  nut_tool.primitive_poses.resize(2);
+  // The upper box
+  nut_tool.primitives[0].type = nut_tool.primitives[0].BOX;
+  nut_tool.primitives[0].dimensions.resize(3);
+  nut_tool.primitives[0].dimensions[0] = 0.059;
+  nut_tool.primitives[0].dimensions[1] = 0.032;
+  nut_tool.primitives[0].dimensions[2] = 0.052;
+  nut_tool.primitive_poses[0].position.x = 0;
+  nut_tool.primitive_poses[0].position.y = -.0115;  // 59/2 mm - 15.5 mm
+  nut_tool.primitive_poses[0].position.z = 0.0275;
+
+  // The cylinder with the tooltip
+  nut_tool.primitives[1].type = nut_tool.primitives[1].CYLINDER;
+  nut_tool.primitives[1].dimensions.resize(2);
+  nut_tool.primitives[1].dimensions[0] = 0.011;    // Cylinder height
+  nut_tool.primitives[1].dimensions[1] = 0.011;   // Cylinder radius
+  nut_tool.primitive_poses[1].position.z = -0.055;
+  nut_tool.operation = nut_tool.ADD;
+
+  // The tool tip
+  nut_tool.subframe_poses.resize(1);
+  nut_tool.subframe_names.resize(1);
+  nut_tool.subframe_poses[0].position.z = -.11;
+  nut_tool.subframe_poses[0].orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 90.0/180.0 *M_PI, -M_PI/2);
+  nut_tool.subframe_names[0] = "nut_tool_tip";
+
+  // ==== Set screw tool
+  set_screw_tool.header.frame_id = "set_screw_tool_link";
+  set_screw_tool.id = "set_screw_tool";
+
+  set_screw_tool.primitives.resize(3);
+  set_screw_tool.primitive_poses.resize(3);
+  // The upper box
+  set_screw_tool.primitives[0].type = set_screw_tool.primitives[0].BOX;
+  set_screw_tool.primitives[0].dimensions.resize(3);
+  set_screw_tool.primitives[0].dimensions[0] = 0.059;
+  set_screw_tool.primitives[0].dimensions[1] = 0.032;
+  set_screw_tool.primitives[0].dimensions[2] = 0.052;
+  set_screw_tool.primitive_poses[0].position.x = 0;
+  set_screw_tool.primitive_poses[0].position.y = -.0115;  // 59/2 mm - 15.5 mm
+  set_screw_tool.primitive_poses[0].position.z = 0.0275;
+
+  // The cylinder holding the screw bit
+  set_screw_tool.primitives[1].type = set_screw_tool.primitives[1].CYLINDER;
+  set_screw_tool.primitives[1].dimensions.resize(2);
+  set_screw_tool.primitives[1].dimensions[0] = 0.008;    // Cylinder height
+  set_screw_tool.primitives[1].dimensions[1] = 0.008;   // Cylinder radius
+  set_screw_tool.primitive_poses[1].position.z = -0.04;
+  set_screw_tool.operation = set_screw_tool.ADD;
+
+  // The screw bit (approximated (I wish it was a cone (could be done with moveit_visual_tools)))
+  set_screw_tool.primitives[2].type = set_screw_tool.primitives[2].CYLINDER;
+  set_screw_tool.primitives[2].dimensions.resize(2);
+  set_screw_tool.primitives[2].dimensions[0] = 0.02;    // Cylinder height
+  set_screw_tool.primitives[2].dimensions[1] = 0.0035;   // Cylinder radius
+  set_screw_tool.primitive_poses[2].position.z = -0.18;
+  set_screw_tool.operation = set_screw_tool.ADD;
+
+  // The tool tip
+  set_screw_tool.subframe_poses.resize(1);
+  set_screw_tool.subframe_names.resize(1);
+  set_screw_tool.subframe_poses[0].position.y = -.0015;   // Offset because the bit's tip is inclined. Magic number.
+  set_screw_tool.subframe_poses[0].position.z = -.028;
+  set_screw_tool.subframe_poses[0].orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 90.0/180.0 *M_PI, -M_PI/2);
+  set_screw_tool.subframe_names[0] = "set_screw_tool_tip";
 }
 
 bool SkillServer::activateROSControlOnUR(std::string robot_name)
@@ -673,30 +701,19 @@ bool SkillServer::equipUnequipScrewTool(std::string robot_name, std::string scre
     return false;
   }
   
-  ROS_INFO("Going to before_tool_pickup pose.");
-  // STEP 0:
-  moveit::planning_interface::MoveGroupInterface* group_pointer;
-  std::vector<double> joint_group_positions_1, joint_group_positions_2, joint_group_positions_3;
-
-  if (!goToNamedPose("tool_pick_ready", robot_name))
-  {
-    ROS_ERROR("Could not plan to before_tool_pickup joint state. Abort!");
-    return false;
-  }
-  
-  // Set up poses
+  // ==== STEP 0: Set up poses
   geometry_msgs::PoseStamped ps_approach, ps_tool_holder, ps_move_away, ps_high_up, ps_end;
   ps_approach.header.frame_id = screw_tool_id + "_pickup_link";
 
   // Define approach pose
   ps_approach.pose.position.x = -.06;
-  ps_approach.pose.position.z = .017;
+  ps_approach.pose.position.z = -.017;
   ROS_INFO_STREAM("screw_tool_id: " << screw_tool_id);
   if (screw_tool_id == "nut_tool_m6")
-    ps_approach.pose.position.z = .052;
-  if (screw_tool_id == "set_screw_tool")
-    ps_approach.pose.position.z = .045;
-  if (screw_tool_id == "suction_tool")
+    ps_approach.pose.position.z = -.052;
+  else if (screw_tool_id == "set_screw_tool")
+    ps_approach.pose.position.z = -.045;
+  else if (screw_tool_id == "suction_tool")
   {
     ROS_ERROR("Suction tool is not implemented!");
     return false;
@@ -707,17 +724,28 @@ bool SkillServer::equipUnequipScrewTool(std::string robot_name, std::string scre
 
   // Define pickup pose
   ps_tool_holder = ps_approach;
-  ps_tool_holder.pose.position.x = 0.03;
+  ps_tool_holder.pose.position.x = 0.017;
   if (screw_tool_id == "nut_tool_m6")
-    ps_tool_holder.pose.position.x = 0.02;
-  if (screw_tool_id == "set_screw_tool")
-    ps_tool_holder.pose.position.x = 0.03;
-  if (screw_tool_id == "suction_tool")
     ps_tool_holder.pose.position.x = 0.01;
+  else if (screw_tool_id == "set_screw_tool")
+    ps_tool_holder.pose.position.x = 0.02;
+    
   if (unequip) ps_tool_holder.pose.position.x -= 0.001; // The tool is dropped slightly before the magnet
 
   ps_high_up = ps_approach;
   ps_end = ps_high_up;
+
+
+  // STEP 2: Move to keypose in front of tools, go to approach pose, move to final pose, 
+  // retreat to approach pose, then back to keypose
+  moveit::planning_interface::MoveGroupInterface* group_pointer;
+  ROS_INFO("Going to tool_pick_ready.");
+  
+  if (!goToNamedPose("tool_pick_ready", robot_name))
+  {
+    ROS_ERROR("Could not plan to before_tool_pickup joint state. Abort!");
+    return false;
+  }
 
   if (equip) {
     openGripper(robot_name);
@@ -758,34 +786,11 @@ bool SkillServer::equipUnequipScrewTool(std::string robot_name, std::string scre
   ROS_INFO("Moving to pose in tool holder LIN.");
   bool moved_to_tool_holder = true;
 
-  
-  o2ac_msgs::sendScriptToUR UR_srv;
-  geometry_msgs::Point t_rel;
   if (equip)        lin_speed = 0.5;
   else if (unequip) lin_speed = 0.08;  
-  UR_srv.request.program_id = "lin_move_rel";
-  UR_srv.request.robot_name = robot_name;  
-  if (use_real_robot_)
-  {
-    ros::Duration(.3).sleep();
-    UR_srv.request.velocity = lin_speed;
-    t_rel.z = (ps_tool_holder.pose.position.x - ps_approach.pose.position.x);
-    UR_srv.request.relative_translation = t_rel;
-    sendScriptToURClient_.call(UR_srv);
-    if (UR_srv.response.success == true)
-    {
-      ROS_INFO("Successfully called the URScript client to perform a linear movement forward.");
-      waitForURProgram("/" + robot_name +"_controller");
-    }
-    else
-      ROS_WARN("Could not call the URScript client to perform a linear movement forward.");
-  }
-  else 
-  {
-    moved_to_tool_holder = moveToCartPoseLIN(ps_tool_holder, robot_name, true, "", lin_speed);
-  }
+  moved_to_tool_holder = moveToCartPoseLIN(ps_tool_holder, robot_name, true, "", lin_speed);
   
-  if (!moved_to_tool_holder) 
+  if (!moved_to_tool_holder)
   {
     ROS_ERROR("Was not able to move to tool holder. ABORTING!");
     return false;
@@ -826,59 +831,16 @@ bool SkillServer::equipUnequipScrewTool(std::string robot_name, std::string scre
   if (equip)        lin_speed = 1.0;
   else if (unequip) lin_speed = 1.0;
 
-  if (use_real_robot_)
-  {
-    ros::Duration(.3).sleep();
-    UR_srv.request.velocity = .05;
-    t_rel.z = -(ps_tool_holder.pose.position.x - ps_approach.pose.position.x);
-    UR_srv.request.relative_translation = t_rel;
-    sendScriptToURClient_.call(UR_srv);
-    if (UR_srv.response.success == true)
-    {
-      ROS_INFO("Successfully called the URScript client to perform a linear movement backward.");
-      waitForURProgram("/" + robot_name + "_controller");
-    }
-    else
-      ROS_WARN("Could not call the URScript client to perform a linear movement backward.");
-  }
-  else 
-    moveToCartPoseLIN(ps_move_away, robot_name, true, "", lin_speed);
+  moveToCartPoseLIN(ps_move_away, robot_name, true, "", lin_speed);
   
   // Reactivate the collisions, with the updated entry about the tool
   planning_scene_interface_.applyPlanningScene(planning_scene_);
 
-  ROS_INFO("Moving higher up to facilitate later movements.");
-  moveToCartPoseLIN(ps_high_up, robot_name, true, "", 2.0, 2.0, use_real_robot_);
-  
-  if (robot_name == "b_bot")
-  {
-    ROS_INFO("Going to joint pose 3.");
-    moveToJointPose(joint_group_positions_3, robot_name, true, 3.0, use_real_robot_, 3.0);
-    ROS_INFO("Going to joint pose 2.");
-    moveToJointPose(joint_group_positions_2, robot_name, true, 3.0, use_real_robot_, 3.0);
-    ROS_INFO("Going to joint pose 1.");
-    moveToJointPose(joint_group_positions_1, robot_name, true, 3.0, use_real_robot_, 3.0);
-    ROS_INFO("Done with joint poses, and with life.");
-  }
+  ROS_INFO("Moving back to tool_pick_ready.");
+  goToNamedPose("tool_pick_ready", robot_name, 3.0, 3.0, use_real_robot_);
   
   // Delete tool collision object only after collision reinitialization to avoid errors
   if (unequip) despawnTool(screw_tool_id);
-
-  if (unequip)
-  {
-    goToNamedPose("home", robot_name, 3.0, 3.0, use_real_robot_);
-  }
-  else
-  {
-    if (robot_name == "b_bot")
-    {
-      // goToNamedPose("screw_ready", robot_name);
-    }
-    else if (robot_name == "c_bot")
-    {
-      goToNamedPose("screw_ready", robot_name, 3.0, 3.0, use_real_robot_);
-    }
-  }
 
   return true;
 }
@@ -1037,9 +999,10 @@ bool SkillServer::spawnTool(std::string screw_tool_id)
   std::vector<moveit_msgs::CollisionObject> collision_objects;
   collision_objects.resize(1);
 
-  if (screw_tool_id == "screw_tool_m6") collision_objects[0] = screw_tool_m6;
-  else if (screw_tool_id == "screw_tool_m4") collision_objects[0] = screw_tool_m4;
+  if (screw_tool_id == "screw_tool_m4") collision_objects[0] = screw_tool_m4;
   else if (screw_tool_id == "screw_tool_m3") collision_objects[0] = screw_tool_m3;
+  else if (screw_tool_id == "set_screw_tool") collision_objects[0] = set_screw_tool;
+  else if (screw_tool_id == "nut_tool_m6") collision_objects[0] = nut_tool;
   else if (screw_tool_id == "suction_tool") collision_objects[0] = suction_tool;
 
   collision_objects[0].operation = collision_objects[0].ADD;
@@ -1714,8 +1677,6 @@ void SkillServer::executeScrew(const o2ac_msgs::screwGoalConstPtr& goal)
 void SkillServer::executeChangeTool(const o2ac_msgs::changeToolGoalConstPtr& goal)
 {
   ROS_INFO("Received changeToolAction goal.");
-  ROS_ERROR("This function needs to be updated to the 2020 scene before it can be used!");
-  return;
   std::string equip_or_unequip = "equip";
   if (!goal->equip_the_tool) { equip_or_unequip = "unequip"; }
 

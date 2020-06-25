@@ -307,6 +307,7 @@ class O2ACBase(object):
 
     self.screw_tools["screw_tool_m3"] = screw_tool_m3
     self.screw_tools["screw_tool_m4"] = screw_tool_m4
+    # TODO(felixvd): Add the set screw and nut tool objects from the C++ file
 
     # TODO: Write these to a YAML file
     return True
@@ -651,7 +652,8 @@ class O2ACBase(object):
 
   def do_change_tool_action(self, robot_name, equip=True, 
                         screw_size = 4):
-    self.equip_unequip_tool(robot_name, screw_tool_id, )
+    # self.equip_unequip_tool(robot_name, screw_tool_id, angle=0.0, equip_or_unequip=)
+    # TODO(felixvd): Fix this
     ### DEPRECATED
     self.log_to_debug_monitor("Change tool", "operation")
     goal = o2ac_msgs.msg.changeToolGoal()
@@ -993,34 +995,39 @@ class O2ACBase(object):
     
     # Set up poses
     ps_approach = geometry_msgs.msg.PoseStamped()
-    ps_tool_holder = geometry_msgs.msg.PoseStamped()
     ps_move_away = geometry_msgs.msg.PoseStamped()
-    ps_high_up = geometry_msgs.msg.PoseStamped()
-    ps_end = geometry_msgs.msg.PoseStamped()
     ps_approach.header.frame_id = tool_name + "_pickup_link"
 
     # Define approach pose
     rospy.loginfo("tool_name: " + tool_name)
     if tool_name == "screw_tool_m3" or tool_name == "screw_tool_m4":
       ps_approach.pose.position.x = -.05
-      ps_approach.pose.position.z = .1
+      ps_approach.pose.position.z = -.17
+    elif tool_name == "nut_tool_m6":
+      ps_approach.pose.position.z = -.052
+    elif tool_name == "set_screw_tool":
+      ps_approach.pose.position.z = -.045
     else:
-      rospy.logerr(tool_name, "is not implemented!")
+      rospy.logerr(tool_name, " is not implemented!")
       return False
+
+    # Go to named pose, then approach
+    self.go_to_named_pose("tool_pick_ready", robot_name)
 
     ps_approach.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi, 0, 0))
     ps_move_away = copy.deepcopy(ps_approach)
 
     # Define pickup pose
     ps_pickup = copy.deepcopy(ps_approach)
-    ps_pickup.pose.position.x = .015
-    ps_pickup.pose.position.z = .03
+    ps_pickup.pose.position.x = .017
+    ps_pickup.pose.position.z = -.03
+    if tool_name == "nut_tool_m6":
+      ps_pickup.pose.position.x = 0.01
+    elif tool_name == "set_screw_tool":
+      ps_pickup.pose.position.x = 0.02
 
     if unequip: 
-      ps_tool_holder.pose.position.x -= 0.001 # The tool is dropped slightly before the magnet
-
-    ps_high_up = copy.deepcopy(ps_approach)
-    ps_end = copy.deepcopy(ps_high_up)
+      ps_pickup.pose.position.x -= 0.001 # The tool is dropped slightly before the magnet
 
     if equip:
       self.open_gripper(robot_name)
@@ -1029,19 +1036,9 @@ class O2ACBase(object):
         rospy.logerr("Could not spawn the tool. Abort.")
         return False
       held_screw_tool_ = tool_name
-    
-    def allow_collisions_with_robot_hand(link_name, robot_name):
-      self.planning_scene_interface.allow_collisions(link_name, robot_name + "_robotiq_85_tip_link")
-      self.planning_scene_interface.allow_collisions(link_name, robot_name + "_robotiq_85_left_finger_tip_link")
-      self.planning_scene_interface.allow_collisions(link_name, robot_name + "_robotiq_85_left_inner_knuckle_link")
-      self.planning_scene_interface.allow_collisions(link_name, robot_name + "_robotiq_85_right_finger_tip_link")
-      self.planning_scene_interface.allow_collisions(link_name, robot_name + "_robotiq_85_right_inner_knuckle_link")    
-
-    allow_collisions_with_robot_hand(tool_name, robot_name)
-    allow_collisions_with_robot_hand('screw_tool_holder', robot_name)
 
     rospy.loginfo("Moving to screw tool approach pose LIN.")
-    self.go_to_pose_goal(robot_name, ps_approach, move_lin=False)
+    self.go_to_pose_goal(robot_name, ps_approach, move_lin=True)
   
     # Plan & execute linear motion to the tool change position
     rospy.loginfo("Moving to pose in tool holder LIN.")
@@ -1050,7 +1047,7 @@ class O2ACBase(object):
     elif unequip:
       lin_speed = 0.08 
 
-    self.go_to_pose_goal(robot_name, ps_pickup, speed=lin_speed, move_lin=False)
+    self.go_to_pose_goal(robot_name, ps_pickup, speed=lin_speed, move_lin=True)
   
     # Close gripper, attach the tool object to the gripper in the Planning Scene.
     # Its collision with the parent link is set to allowed in the original planning scene.
@@ -1058,11 +1055,8 @@ class O2ACBase(object):
       rospy.loginfo("Closing the gripper.")
       self.close_gripper(robot_name)
       self.attach_tool(robot_name, tool_name)
-      self.planning_scene_interface.allow_collisions(tool_name, robot_name + "_robotiq_85_tip_link")
-      self.planning_scene_interface.allow_collisions(tool_name, robot_name + "_robotiq_85_left_finger_tip_link")
-      self.planning_scene_interface.allow_collisions(tool_name, robot_name + "_robotiq_85_left_inner_knuckle_link")
-      self.planning_scene_interface.allow_collisions(tool_name, robot_name + "_robotiq_85_right_finger_tip_link")
-      self.planning_scene_interface.allow_collisions(tool_name, robot_name + "_robotiq_85_right_inner_knuckle_link")    
+      self.allow_collisions_with_robot_hand(tool_name, robot_name)
+      self.allow_collisions_with_robot_hand('screw_tool_holder', robot_name)  # TODO(felixvd): Is this required?
       self.robot_status[robot_name].carrying_tool = True
       self.robot_status[robot_name].held_tool_id = tool_name
     elif unequip:
@@ -1082,40 +1076,41 @@ class O2ACBase(object):
     elif unequip:
       lin_speed = 1.0
 
-    if self.use_real_robot:
-      rospy.sleep(.3)
-      UR_srv.request.velocity = .05
-      t_rel.z = -(ps_tool_holder.pose.position.x - ps_approach.pose.position.x)
-      UR_srv.request.relative_translation = t_rel
-      sendScriptToURClient_.call(UR_srv)
-      if (UR_srv.response.success == True):
-        rospy.loginfo("Successfully called the URScript client to perform a linear movement backward.")
-        waitForURProgram("/" + robot_name + "_controller")
-      else:
-        ROS_WARN("Could not call the URScript client to perform a linear movement backward.")
-    else :
-      self.go_to_pose_goal(robot_name, ps_move_away, speed=lin_speed, move_lin=False)
+    ### This block is probably not needed anymore?
+    # if self.use_real_robot:
+    #   rospy.sleep(.3)
+    #   UR_srv.request.velocity = .05
+    #   t_rel.z = -(ps_tool_holder.pose.position.x - ps_approach.pose.position.x)
+    #   UR_srv.request.relative_translation = t_rel
+    #   sendScriptToURClient_.call(UR_srv)
+    #   if (UR_srv.response.success == True):
+    #     rospy.loginfo("Successfully called the URScript client to perform a linear movement backward.")
+    #     waitForURProgram("/" + robot_name + "_controller")
+    #   else:
+    #     ROS_WARN("Could not call the URScript client to perform a linear movement backward.")
+    # else:
+    #   self.go_to_pose_goal(robot_name, ps_move_away, speed=lin_speed, move_lin=True)
+    self.go_to_pose_goal(robot_name, ps_move_away, speed=lin_speed, move_lin=True)
 
     
     # Reactivate the collisions, with the updated entry about the tool
     # planning_scene_interface_.applyPlanningScene(planning_scene_)
-
-    rospy.loginfo("Moving higher up to facilitate later movements.")
-    self.go_to_pose_goal(robot_name, ps_high_up, move_lin=False)
+    self.go_to_named_pose("tool_pick_ready", robot_name)
     
     # Delete tool collision object only after collision reinitialization to avoid errors
     if unequip:
       self.despawn_tool(tool_name)
-
-    if unequip:
-      self.go_to_named_pose("home", robot_name)
-    else:
-      if (robot_name == "b_bot"):
-        pass
-        # self.go_to_named_pose("screw_ready", robot_name)
-      elif (robot_name == "c_bot"):
-        self.go_to_named_pose("screw_ready", robot_name)
+    
     return True
+
+  def allow_collisions_with_robot_hand(self, link_name, robot_name):
+      """Allow collisions of a link with the robot hand"""
+      self.planning_scene_interface.allow_collisions(link_name, robot_name + "_robotiq_85_tip_link")
+      self.planning_scene_interface.allow_collisions(link_name, robot_name + "_robotiq_85_left_finger_tip_link")
+      self.planning_scene_interface.allow_collisions(link_name, robot_name + "_robotiq_85_left_inner_knuckle_link")
+      self.planning_scene_interface.allow_collisions(link_name, robot_name + "_robotiq_85_right_finger_tip_link")
+      self.planning_scene_interface.allow_collisions(link_name, robot_name + "_robotiq_85_right_inner_knuckle_link")    
+      return
 
 ######
 
