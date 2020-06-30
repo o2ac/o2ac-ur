@@ -1,3 +1,4 @@
+# This file matches the tool names with the Dynamixel motor ID.
 fastening_tools:
   - name: screw_tool_m6
     motor_id: 1
