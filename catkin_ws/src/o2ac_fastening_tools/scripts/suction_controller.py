@@ -34,7 +34,6 @@ class SuctionController(object):
         # initialize ur_control table
         self.digital_in_port = dict()
         self.digital_out_port_vac = dict()
-        self.digital_out_port_blow = dict()
         self.in_state = dict()
         self.out_state = dict()
         self.tool_suction_publisher = dict()
@@ -48,7 +47,6 @@ class SuctionController(object):
             self.in_port_name.update({tool_data['digital_in_port']: tool_data['name']})
             self.digital_in_port.update({tool_data['name']: tool_data['digital_in_port']})
             self.digital_out_port_vac.update({tool_data['name']: tool_data['digital_out_port_vac']})
-            self.digital_out_port_blow.update({tool_data['name']: tool_data['digital_out_port_blow']})
             self.tool_suction_publisher[tool_data['name']] = rospy.Publisher(tool_data['name'] + '/screw_suctioned', Bool, queue_size=1)
             # Goal: Publish a boolean for each tool under '[tool_name]/screw_suctioned'
 
@@ -116,10 +114,6 @@ class SuctionController(object):
         if (goal.fastening_tool_name in self.digital_out_port_vac) == False:
             rospy.logerr("yaml file: '%s' does not exist in %s." % (goal.fastening_tool_name, self.digital_out_port_vac))
             success_flag = False
-
-        if (goal.fastening_tool_name in self.digital_out_port_blow) == False:
-            rospy.logerr("yaml file: '%s' does not exist in %s." % (goal.fastening_tool_name, self.digital_out_port_blow))
-            success_flag = False
             
         if not success_flag:
             res.success = success_flag
@@ -127,27 +121,18 @@ class SuctionController(object):
             return
 
         vac_port = self.digital_out_port_vac[goal.fastening_tool_name]
-        blow_port = self.digital_out_port_blow[goal.fastening_tool_name]
         
         if goal.turn_suction_on:
-            if not self.set_out_pin_switch(blow_port, 0):
-                success_flag = False
             if not self.set_out_pin_switch(vac_port, 1):
                 success_flag = False
         elif goal.eject_screw:
             if not self.set_out_pin_switch(vac_port, 0):
                 success_flag = False
-            if not self.set_out_pin_switch(blow_port, 1):
-                success_flag = False
         else: # turn_suction_on and pick_screw == False
-            if not self.set_out_pin_switch(blow_port, 0):
-                success_flag = False
             if not self.set_out_pin_switch(vac_port, 0):
                 success_flag = False
 
         if not success_flag:
-            if not self.set_out_pin_switch(blow_port, 0):
-                success_flag = False
             if not self.set_out_pin_switch(vac_port, 0):
                 success_flag = False
         
