@@ -2,18 +2,16 @@
 
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="assembly_scene">
   
-  <!-- Trays -->
-
-  
-  
   <xacro:include filename="$(find o2ac_parts_description)/urdf/assembly_parts_macros.urdf.xacro"/>
   <!-- <xacro:include filename="$(find o2ac_parts_description)/urdf/display_all_parts.urdf.xacro"/> -->
   
+  <!-- ====== Uncomment this block to show the completed assembly -->
   <xacro:include filename="$(find o2ac_parts_description)/urdf/generated/full_assembly.urdf.xacro"/>
   <xacro:full_assembly prefix="assembled_" parent="attached_base_origin_link">
     <origin xyz=".12 .2 0" rpy="0 0 ${-pi/2}" />
   </xacro:full_assembly>
 
+  <!-- ====== Uncomment this block to add the frames of the complete assembly, but not the objects -->
   <!-- <xacro:include filename="$(find o2ac_parts_description)/urdf/generated/full_assembly_frames_only.urdf.xacro"/>
   <xacro:full_assembly_frames_only prefix="assembled_" parent="workspace_center">
     <origin xyz="${assy_dx} 0.1 .08" rpy="0 0 ${-pi/2}" />   

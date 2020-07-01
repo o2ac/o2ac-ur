@@ -1,6 +1,8 @@
 <?xml version="1.0"?>
 
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="task_board">
+  <!-- To use the tip of the holder to place the macro, use these offsets: -->
+  <!-- <origin xyz="${+0.01} ${+.03} ${-0.0465}" rpy="0 0 0" />   -->
 
   <xacro:macro name="washer_holder" params="partname parent *origin">
   <xacro:property name="mesh_file" value="package://o2ac_scene_description/meshes/washer_holder.stl" />

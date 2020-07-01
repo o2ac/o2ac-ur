@@ -18,7 +18,7 @@
   </xacro:o2ac_box> 
 
   <xacro:o2ac_box boxname="horizontal_column_for_tools" box_w=".04" box_l=".4" box_h=".04" parent="o2ac_ground">
-    <origin xyz="${vert_column_x_back} -.2 1.05" rpy="0 0 0" />   
+    <origin xyz="${vert_column_x_back} -.2 1.058" rpy="0 0 0" />   
   </xacro:o2ac_box> 
 
   <!-- Screw holder & screw tool visual -->
