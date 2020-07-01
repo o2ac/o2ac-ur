@@ -93,25 +93,12 @@
     <origin xyz="${b_bot_x} ${b_bot_y} ${bots_z}" rpy="0.0 0.0 ${b_bot_theta}" />
   </joint>
 
-  <!-- spawn and attach robotiq 85 gripper (+ FT300 sensor, soft wrist...) -->
+  <!-- Spawn and attach robotiq 85 gripper (+ cameras) -->
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector_2F-140.urdf.xacro" />
   <xacro:o2ac_end_effector prefix="a_bot_" use_soft_wrist="false" use_cameras="true" parent = "a_bot_ee_link" />
   
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector.urdf.xacro" />
   <xacro:o2ac_end_effector prefix="b_bot_" use_soft_wrist="false" use_cameras="true" parent = "b_bot_ee_link" />
-
-  <!-- Add cameras -->
-  <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/components/_d435.urdf.xacro" />
-
-  <link name="scene_cam_holder_link" />
-  <joint name="scene_cam_holder_joint" type="fixed">
-    <parent link="workspace_center" />
-    <child  link="scene_cam_holder_link" />
-    <origin xyz="-0.0179662 -0.155013 0.101615" rpy="0.0281409 -0.137996 -0.0954644" />
-  </joint>
-  <xacro:sensor_d435 prefix="scene_" parent="scene_cam_holder_link">
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-  </xacro:sensor_d435> -->
   
   <!-- The "world" link definition should be removed, but apparently it is necessary for Gazebo -->
   <link name="world" />
