@@ -192,9 +192,15 @@
       </material>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="0 ${bit_cushion_to_axis - .02} .0275"/>
+      <origin rpy="0 0 0" xyz="0 ${-bit_cushion_to_axis + .02} .0275"/>
       <geometry>
         <box size=".026 .04 .055"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 ${-.12/2}"/>
+      <geometry>
+        <cylinder length=".12" radius=".01"/>
       </geometry>
     </collision>
   </link>
@@ -220,9 +226,15 @@
       </material>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="0 ${bit_cushion_to_axis - .02} .0275"/>
+      <origin rpy="0 0 0" xyz="0 ${-bit_cushion_to_axis + .02} .0275"/>
       <geometry>
         <box size=".026 .04 .055"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 ${-.1/2}"/>
+      <geometry>
+        <cylinder length=".1" radius=".01"/>
       </geometry>
     </collision>
   </link>
@@ -245,13 +257,6 @@
   <joint name="screw_tool_m4_pickup_joint" type="fixed">
     <parent link="screw_tool_m4_link" />
     <child link="screw_tool_m4_pickup_link" />
-    <origin xyz="0.0 0.0 0.0" rpy="0.0 ${pi} ${pi/2}" />
-  </joint>
-
-  <link name="belt_tool_pickup_link"/>
-  <joint name="belt_tool_pickup_joint" type="fixed">
-    <parent link="belt_tool_link" />
-    <child link="belt_tool_pickup_link" />
     <origin xyz="0.0 0.0 0.0" rpy="0.0 ${pi} ${pi/2}" />
   </joint>
 
@@ -284,9 +289,9 @@
       </material>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="0 0 0" xyz="${.05/2} 0 ${-.045/2}"/>
       <geometry>
-        <box size=".001 .001 .001"/> 
+        <box size=".05 .05 .045"/> 
       </geometry>
     </collision>
   </link>
@@ -311,17 +316,32 @@
         <color rgba=".9 .9 .9 1"/>
       </material>
     </visual>
+    <!-- The graspable part -->
     <collision>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="0 0 0" xyz="${.04/2} 0 ${-.01}"/>
       <geometry>
-        <box size=".026 .04 .055"/>
+        <box size=".04 .03 .055"/>
+      </geometry>
+    </collision>
+    <!-- The bottom part -->
+    <collision>
+      <origin rpy="0 0 0" xyz="${.02} 0 ${-.03-.1/2}"/>
+      <geometry>
+        <box size=".01 .035 .1"/>
       </geometry>
     </collision>
   </link>
-  <joint name="belt_tool_to_holder" type="fixed">
+  <joint name="belt_tool_to_holder_joint" type="fixed">
     <parent link="belt_tool_holder" />
     <child link="belt_tool_link" />
     <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+
+  <link name="belt_tool_pickup_link"/>
+  <joint name="belt_holder_to_pickup_link_joint" type="fixed">
+    <parent link="belt_tool_link" />
+    <child link="belt_tool_pickup_link" />
+    <origin xyz=".02 0 -.01" rpy="0 ${pi/2} 0" />
   </joint>
 
   <!-- Plunger tool -->
@@ -336,9 +356,9 @@
       </material>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="0 0 0" xyz="${.05/2} 0 ${-.045/2}"/>
       <geometry>
-        <box size=".001 .001 .001"/> 
+        <box size=".05 .05 .045"/> 
       </geometry>
     </collision>
   </link>
@@ -364,16 +384,29 @@
       </material>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="0 0 0" xyz="${.04/2} 0 ${-.01}"/>
       <geometry>
-        <box size=".026 .04 .055"/>
+        <box size=".04 .03 .055"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="${.02} 0 ${-.03-.08/2}"/>
+      <geometry>
+        <cylinder length=".08" radius=".01"/>
       </geometry>
     </collision>
   </link>
-  <joint name="plunger_tool_to_holder" type="fixed">
+  <joint name="plunger_tool_to_holder_joint" type="fixed">
     <parent link="plunger_tool_holder" />
     <child link="plunger_tool_link" />
     <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+
+  <link name="plunger_tool_pickup_link"/>
+  <joint name="plunger_holder_to_pickup_link_joint" type="fixed">
+    <parent link="plunger_tool_link" />
+    <child link="plunger_tool_pickup_link" />
+    <origin xyz=".02 0 -.01" rpy="0 ${pi/2} 0" />
   </joint>
 
 </robot>

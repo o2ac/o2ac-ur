@@ -8,7 +8,7 @@
   <xacro:property name="long_bar_mesh" value="package://o2ac_scene_description/meshes/HFSP5-2080-320.stl" />
 
   <xacro:property name="length" value=".32" />
-  <xacro:property name="width" value=".2" />
+  <xacro:property name="width" value=".24" />
 
   <link name="base_fixture_top">
     <visual>
@@ -21,10 +21,23 @@
       </material>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="${width/2} ${length/2} 0.095"/>
+      <origin rpy="0 0 0" xyz="${width/2} ${length/2} ${.08+.01/2}"/>
       <geometry>
-        <box size="${width} ${length} 0.03"/>
-        <!-- <mesh filename="${top_mesh}" scale=".001 .001 .001"/> -->
+        <box size="${width} ${length} 0.01"/>
+      </geometry>
+    </collision>
+    <!-- The long stopper bar -->
+    <collision>
+      <origin rpy="0 0 0" xyz="${width-.02/2} ${length-.20/2} ${.08+.03/2}"/>
+      <geometry>
+        <box size="${.02} ${.20} 0.03"/>
+      </geometry>
+    </collision>
+    <!-- The short stopper bar -->
+    <collision>
+      <origin rpy="0 0 0" xyz="${width-.16/2} ${length-.02/2} ${.08+.03/2}"/>
+      <geometry>
+        <box size="${.16} ${.02} 0.03"/>
       </geometry>
     </collision>
   </link>
@@ -39,7 +52,6 @@
       <origin rpy="0 0 0" xyz=".01 ${length/2} .04"/>
       <geometry>
         <box size=".02 ${length} .08"/>
-        <!-- <mesh filename="${long_bar_mesh}" scale=".001 .001 .001"/> -->
       </geometry>
       <material name="grey">
         <color rgba=".4 .4 .4 1"/>
