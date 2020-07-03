@@ -15,19 +15,19 @@
 	url = https://github.com/PickNikRobotics/rviz_visual_tools.git
 [submodule "underlay_ws/src/third_party/universal_robot"]
 	path = underlay_ws/src/third_party/universal_robot
-	url = https://gitlab.com/art-aist/universal_robot
+	url = https://gitlab.com/o2ac/third-party/universal_robot
 [submodule "underlay_ws/src/moveit_task_constructor"]
 	path = underlay_ws/src/moveit_task_constructor
 	url = https://gitlab.com/o2ac/moveit-task-constructor.git
-[submodule "underlay_ws/src/ddynamic_reconfigure"]
-	path = underlay_ws/src/ddynamic_reconfigure
-	url = https://gitlab.com/art-aist/ddynamic_reconfigure
-[submodule "underlay_ws/src/aruco_ros"]
-	path = underlay_ws/src/aruco_ros
+[submodule "underlay_ws/src/third_party/realsense-ros"]
+	path = underlay_ws/src/third_party/realsense-ros
+	url = https://gitlab.com/o2ac/third-party/realsense-ros
+[submodule "underlay_ws/src/third_party/ddynamic_reconfigure"]
+	path = underlay_ws/src/third_party/ddynamic_reconfigure
+	url = https://gitlab.com/o2ac/third-party/ddynamic_reconfigure
+[submodule "underlay_ws/src/third_party/robotiq-cri"]
+	path = underlay_ws/src/third_party/robotiq-cri
+	url = https://gitlab.com/o2ac/third-party/robotiq-cri
+[submodule "underlay_ws/src/third_party/aruco_ros"]
+	path = underlay_ws/src/third_party/aruco_ros
 	url = https://github.com/pal-robotics/aruco_ros
-[submodule "underlay_ws/src/robotiq"]
-	path = underlay_ws/src/robotiq
-	url = https://gitlab.com/art-aist/robotiq-cri
-[submodule "underlay_ws/src/third_party/realsense"]
-	path = underlay_ws/src/third_party/realsense
-	url = https://gitlab.com/art-aist/realsense-ros

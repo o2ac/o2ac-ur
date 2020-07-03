@@ -46,6 +46,12 @@ get_dark_pixels(const sensor_msgs::Image& image, ITER iter)
     return out;		// past-the-end of the dark pixels
 }
 
+template <class T> inline bool
+is_valid(T val)
+{
+    return (val != T(0) && !std::isnan(val));
+}
+
 /************************************************************************
 *  class DepthFilter							*
 ************************************************************************/
@@ -393,7 +399,7 @@ DepthFilter::computeNormal(const camera_info_t& camera_info,
 {
     using	namespace sensor_msgs;
 
-  // Computation of normals shoud be done in double-precision
+  // Computation of normals should be done in double-precision
   // in order to avoid truncation error when sliding windows
     using normal_t		= std::array<value_t, 3>;
     using colored_normal_t	= std::array<uint8_t, 3>;
@@ -441,7 +447,7 @@ DepthFilter::computeNormal(const camera_info_t& camera_info,
 	{
 	    const auto&	head = xyz(v, u);
 
-	    if (head(2) != 0)
+	    if (is_valid(head(2)))
 	    {
 		++sum_n;
 		sum_c += head;
@@ -453,7 +459,7 @@ DepthFilter::computeNormal(const camera_info_t& camera_info,
 	{
 	    const auto&	head = xyz(v, u + ws1);
 
-	    if (head(2) != 0)
+	    if (is_valid(head(2)))
 	    {
 		++sum_n;
 		sum_c += head;
@@ -466,7 +472,7 @@ DepthFilter::computeNormal(const camera_info_t& camera_info,
 
 	    const auto&	tail = xyz(v, u);
 
-	    if (tail(2) != 0)
+	    if (is_valid(tail(2)))
 	    {
 		--sum_n;
 		sum_c -= tail;

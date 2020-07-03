@@ -35,7 +35,7 @@ Visualization Manager:
   Displays:
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /a_phoxi_m_camera/depth_filter/colored_normal
+      Image Topic: /depth_filter/colored_normal
       Max Value: 1
       Median window: 5
       Min Value: 0
@@ -58,11 +58,11 @@ Visualization Manager:
       Channel Name: intensity
       Class: rviz/DepthCloud
       Color: 255; 255; 255
-      Color Image Topic: /a_phoxi_m_camera/depth_filter/image
+      Color Image Topic: /depth_filter/image
       Color Transformer: RGB8
       Color Transport Hint: raw
       Decay Time: 0
-      Depth Map Topic: /a_phoxi_m_camera/depth_filter/depth
+      Depth Map Topic: /depth_filter/depth
       Depth Map Transport Hint: raw
       Enabled: true
       Invert Rainbow: false
@@ -150,4 +150,4 @@ Window Geometry:
     collapsed: true
   Width: 1138
   X: 130
-  Y: 62
+  Y: 32

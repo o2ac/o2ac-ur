@@ -37,11 +37,10 @@
   </include>
 
   <!-- Spawn depth_filter and localizer -->
-  <include file="$(find aist_localization)/launch/run.launch"
-	   ns="$(arg camera_name)">
-    <arg name="camera_info_topic" value="color/camera_info"/>
-    <arg name="image_topic"	  value="color/image_raw"/>
-    <arg name="depth_topic"	  value="aligned_depth_to_color/image_raw"/>
+  <include file="$(find aist_localization)/launch/run.launch">
+    <arg name="camera_info_topic" value="$(arg camera_name)/color/camera_info"/>
+    <arg name="image_topic"	  value="$(arg camera_name)/color/image_raw"/>
+    <arg name="depth_topic"	  value="$(arg camera_name)/aligned_depth_to_color/image_raw"/>
     <arg name="normal_topic"	  value=""/>
     <arg name="ply_dir"		  value="$(arg ply_dir)"/>
     <arg name="manager"
@@ -55,7 +54,7 @@
   </include>
 
   <!-- Spawn localization client -->
-  <node ns="$(arg camera_name)" name="localize"
+  <node name="localize"
 	pkg="aist_localization" type="localize.py" output="screen">
     <param name="nposes"	value="$(arg nposes)"/>
     <param name="timeout"	value="$(arg timeout)"/>
