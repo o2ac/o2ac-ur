@@ -49,10 +49,17 @@ class O2ACCommon(O2ACBase):
 
   ######## Higher-level routines used in both assembly and taskboard
 
-  def pick(self, item_name, robot_name, speed=0.1):
+  def pick(self, object_name, grasp_parameter_location = '', lift_direction_reference_frame = '', lift_direction = [], speed=0.1):
     """This function picks the item. It needs to be in the planning scene as a collision object."""
-    success = False
-    return success
+    result = self.do_pick_action(object_name, grasp_parameter_location, lift_direction_reference_frame, lift_direction)
+    for solution in result.solution.sub_trajectory:
+      scene_diff = solution.scene_diff
+      print(scene_diff.robot_state.attached_collision_objects)
+      planning_scene_diff_req = moveit_msgs.srv.ApplyPlanningSceneRequest()
+      planning_scene_diff_req.scene = scene_diff
+      self.apply_planning_scene_diff.call(planning_scene_diff_req)
+    # TODO: EXECUTION OF PICK PLAN?
+    return result.success
 
   def pick_and_move_object_with_robot(self, item_name, item_target_pose, robot_name, speed=0.1):
     """This function picks the item and move it to the target pose.

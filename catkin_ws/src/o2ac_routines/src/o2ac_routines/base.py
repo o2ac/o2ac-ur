@@ -45,6 +45,7 @@ from math import *
 
 import moveit_commander
 import moveit_msgs.msg
+import moveit_msgs.srv
 import geometry_msgs.msg
 import std_msgs.msg
 import robotiq_msgs.msg
@@ -77,6 +78,7 @@ class O2ACBase(object):
     moveit_commander.roscpp_initialize(sys.argv)
 
     self.listener = tf.TransformListener()
+    self.co_pub = rospy.Publisher('/collision_object', moveit_msgs.msg.CollisionObject, queue_size=100)
     self.use_real_robot = rospy.get_param("use_real_robot", False)
     self.force_ur_script_linear_motion = False
     self.force_moveit_linear_motion = False
@@ -91,6 +93,8 @@ class O2ACBase(object):
 
     self.robots = moveit_commander.RobotCommander()
     self.planning_scene_interface = moveit_commander.PlanningSceneInterface()
+    self.apply_planning_scene_diff = rospy.ServiceProxy('/apply_planning_scene', moveit_msgs.srv.ApplyPlanningScene)
+    self.apply_planning_scene_diff.wait_for_service(5.0)
 
     self.groups = {"a_bot":moveit_commander.MoveGroupCommander("a_bot"), "b_bot":moveit_commander.MoveGroupCommander("b_bot")}
     self.gripper_action_clients = {"b_bot":actionlib.SimpleActionClient('/b_bot/gripper_action_controller', robotiq_msgs.msg.CModelCommandAction)}
@@ -101,7 +105,8 @@ class O2ACBase(object):
     self.screw_client = actionlib.SimpleActionClient('/o2ac_skills/screw', o2ac_msgs.msg.screwAction)
     self.change_tool_client = actionlib.SimpleActionClient('/o2ac_skills/change_tool', o2ac_msgs.msg.changeToolAction)
 
-    self.pick_place_planning_client = actionlib.SimpleActionClient('/pick_place_planning', moveit_task_constructor_msgs.msg.PickPlacePlanningAction)
+    self.pick_planning_client = actionlib.SimpleActionClient('/pick_planning', moveit_task_constructor_msgs.msg.PickObjectAction)
+    self.pick_place_planning_client = actionlib.SimpleActionClient('/pick_place_planning_q', moveit_task_constructor_msgs.msg.PickPlacePlanningAction)
     
     self._suction_client = actionlib.SimpleActionClient('/suction_control', o2ac_msgs.msg.SuctionControlAction)
     self._fastening_tool_client = actionlib.SimpleActionClient('/screw_tool_control', o2ac_msgs.msg.FastenerGripperControlAction)
@@ -681,9 +686,54 @@ class O2ACBase(object):
     return self.screw_client.get_result()
 
   def spawn_multiple_objects(self, assembly_name, objects, poses, referece_frame):
-    for (o, pose) in zip(objects, poses):
-      spawn_object(assembly_name, o, pose, referece_frame)
+    upload_mtc_modules_initial_params()
+    self.define_tool_collision_objects()
+    self.spawn_tool('screw_tool_m3')
+    self.spawn_tool('screw_tool_m4')
+    spawn_objects(assembly_name, objects, poses, referece_frame)
+    
+    transformer = tf.Transformer(True, rospy.Duration(10.0))
 
+    (trans,rot) = self.listener.lookupTransform('/screw_tool_m3_pickup_link', '/move_group/screw_tool_m3', rospy.Time())
+    collision_object_to_pickup_link = geometry_msgs.msg.TransformStamped()
+    collision_object_to_pickup_link.header.frame_id = 'screw_tool_m3_pickup_link'
+    collision_object_to_pickup_link.child_frame_id = 'screw_tool_m3'
+    collision_object_to_pickup_link.transform.translation = geometry_msgs.msg.Vector3(*trans)
+    collision_object_to_pickup_link.transform.rotation = geometry_msgs.msg.Quaternion(*rot)
+    transformer.setTransform(collision_object_to_pickup_link)
+
+    grasp_pose_to_pickup_link = geometry_msgs.msg.TransformStamped()
+    grasp_pose_to_pickup_link.header.frame_id = 'screw_tool_m3_pickup_link'
+    grasp_pose_to_pickup_link.child_frame_id = 'grasp_1'
+    grasp_pose_to_pickup_link.transform.translation = geometry_msgs.msg.Vector3(0.015,0.0,0.03)
+    grasp_pose_to_pickup_link.transform.rotation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi, 0, 0))
+    transformer.setTransform(grasp_pose_to_pickup_link)
+
+    grasp_pose_2_to_pickup_link = geometry_msgs.msg.TransformStamped()
+    grasp_pose_2_to_pickup_link.header.frame_id = 'screw_tool_m3_pickup_link'
+    grasp_pose_2_to_pickup_link.child_frame_id = 'grasp_2'
+    grasp_pose_2_to_pickup_link.transform.translation = geometry_msgs.msg.Vector3(0.015,0.0,0.03)
+    grasp_pose_2_to_pickup_link.transform.rotation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi, pi/6, 0))
+    transformer.setTransform(grasp_pose_2_to_pickup_link)
+
+    (trans,rot) = transformer.lookupTransform('screw_tool_m3', 'grasp_1', rospy.Time(0))
+    rospy.set_param('tools/screw_tool_m3/grasp_1/position', trans)
+    rospy.set_param('tools/screw_tool_m3/grasp_1/orientation', rot)
+
+    (trans,rot) = transformer.lookupTransform('screw_tool_m3', 'grasp_2', rospy.Time(0))
+    rospy.set_param('tools/screw_tool_m3/grasp_2/position', trans)
+    rospy.set_param('tools/screw_tool_m3/grasp_2/orientation', rot)
+
+  def do_pick_action(self, object_name, grasp_parameter_location = '', lift_direction_reference_frame = '', lift_direction = []):
+    goal = moveit_task_constructor_msgs.msg.PickObjectGoal()
+    goal.object_name = object_name
+    goal.grasp_parameter_location = grasp_parameter_location
+    goal.lift_direction_reference_frame = lift_direction_reference_frame
+    goal.lift_direction = lift_direction
+    rospy.loginfo("Sending pick planning goal.")
+    self.pick_planning_client.send_goal(goal)
+    self.pick_planning_client.wait_for_result()
+    return self.pick_planning_client.get_result()
 
   def do_pickplace_action(self, robot_name, object_name, object_target_pose, object_subframe_to_place):
     goal = O2AC_Pick_Place_Action_Goal()
@@ -948,7 +998,9 @@ class O2ACBase(object):
   def spawn_tool(self, tool_name):
     if tool_name == "screw_tool_m3" or tool_name == "screw_tool_m4": 
       rospy.loginfo("Spawn: " + tool_name)
-      self.planning_scene_interface.add_object(self.screw_tools[tool_name])
+      self.co_pub.publish(self.screw_tools[tool_name])
+      rospy.sleep(0.2)
+      # self.planning_scene_interface.add_object(self.screw_tools[tool_name])
       return True
     else:
       rospy.logerr("Cannot spawn tool: " + tool_name)

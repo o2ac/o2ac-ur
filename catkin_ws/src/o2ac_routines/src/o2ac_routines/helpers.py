@@ -36,63 +36,73 @@ class O2AC_Pick_Place_Action_Goal(moveit_task_constructor_msgs.msg.PickPlacePlan
     self.lift_object_max_dist = 0.15
     self.surface_link = 'tray_center'
 
-def spawn_object(assembly_name, object_name, object_pose, object_refrence_frame):
+def upload_mtc_modules_initial_params():
+  rospy.set_param('mtc_modules/arm_group_names', ['a_bot','b_bot'])
+  rospy.set_param('mtc_modules/hand_group_names', ['a_bot_robotiq_85','b_bot_robotiq_85'])
+  rospy.set_param('mtc_modules/grasp_parameter_location', 'wrs_assembly_1')
+  rospy.set_param('mtc_modules/lift_direction_reference_frame', 'world')
+  rospy.set_param('mtc_modules/lift_direction', [0.0, 0.0, 1.0])
+  rospy.set_param('mtc_modules/approach_place_direction_reference_frame', 'world')
+  rospy.set_param('mtc_modules/approach_place_direction', [0.0, 0.0, -1.0])
+
+def spawn_objects(assembly_name, object_names, object_poses, object_refrence_frame):
   assy_handler = AssyHandler(assembly_name)
   pub = rospy.Publisher('/collision_object', moveit_msgs.msg.CollisionObject, queue_size=100)
-
-  co_pose = geometry_msgs.msg.Pose()
-  co_pose.position.x = object_pose[0]
-  co_pose.position.y = object_pose[1]
-  co_pose.position.z = object_pose[2]
-  quaternion = tf.transformations.quaternion_from_euler(eval(str(object_pose[3])),eval(str(object_pose[4])),eval(str(object_pose[5])))
-  co_pose.orientation = geometry_msgs.msg.Quaternion(*quaternion)
-
   transformer = tf.Transformer(True, rospy.Duration(10.0))
-  collision_object_transform = geometry_msgs.msg.TransformStamped()
-  collision_object_transform.header.frame_id = 'WORLD'
-  collision_object_transform.child_frame_id = object_name
-  collision_object_transform.transform.translation.x = co_pose.position.x
-  collision_object_transform.transform.translation.y = co_pose.position.y
-  collision_object_transform.transform.translation.z = co_pose.position.z
-  collision_object_transform.transform.rotation.x = co_pose.orientation.x
-  collision_object_transform.transform.rotation.y = co_pose.orientation.y
-  collision_object_transform.transform.rotation.z = co_pose.orientation.z
-  collision_object_transform.transform.rotation.w = co_pose.orientation.w
-  transformer.setTransform(collision_object_transform)
 
-  collision_object = next(co for co in assy_handler.collision_objects if co.id == object_name)
-  collision_object.header.frame_id = object_refrence_frame
-  collision_object.mesh_poses[0] = co_pose
+  for (object_name, object_pose) in zip(object_names, object_poses):
+    co_pose = geometry_msgs.msg.Pose()
+    co_pose.position.x = object_pose[0]
+    co_pose.position.y = object_pose[1]
+    co_pose.position.z = object_pose[2]
+    quaternion = tf.transformations.quaternion_from_euler(eval(str(object_pose[3])),eval(str(object_pose[4])),eval(str(object_pose[5])))
+    co_pose.orientation = geometry_msgs.msg.Quaternion(*quaternion)
 
-  subframe_poses = []
+    collision_object_transform = geometry_msgs.msg.TransformStamped()
+    collision_object_transform.header.frame_id = 'WORLD'
+    collision_object_transform.child_frame_id = object_name
+    collision_object_transform.transform.translation.x = co_pose.position.x
+    collision_object_transform.transform.translation.y = co_pose.position.y
+    collision_object_transform.transform.translation.z = co_pose.position.z
+    collision_object_transform.transform.rotation.x = co_pose.orientation.x
+    collision_object_transform.transform.rotation.y = co_pose.orientation.y
+    collision_object_transform.transform.rotation.z = co_pose.orientation.z
+    collision_object_transform.transform.rotation.w = co_pose.orientation.w
+    transformer.setTransform(collision_object_transform)
 
-  for (subframe_name, subframe_pose) in zip(collision_object.subframe_names, collision_object.subframe_poses):
-      subframe_transform = geometry_msgs.msg.TransformStamped()
-      subframe_transform.header.frame_id = object_name
-      subframe_transform.child_frame_id = subframe_name
-      subframe_transform.transform.translation.x = subframe_pose.position.x
-      subframe_transform.transform.translation.y = subframe_pose.position.y
-      subframe_transform.transform.translation.z = subframe_pose.position.z
-      subframe_transform.transform.rotation.x = subframe_pose.orientation.x
-      subframe_transform.transform.rotation.y = subframe_pose.orientation.y
-      subframe_transform.transform.rotation.z = subframe_pose.orientation.z
-      subframe_transform.transform.rotation.w = subframe_pose.orientation.w
+    collision_object = next(co for co in assy_handler.collision_objects if co.id == object_name)
+    collision_object.header.frame_id = object_refrence_frame
+    collision_object.mesh_poses[0] = co_pose
 
-      transformer.setTransform(subframe_transform)
+    subframe_poses = []
 
-      (trans,rot) = transformer.lookupTransform('WORLD', subframe_name, rospy.Time(0))
+    for (subframe_name, subframe_pose) in zip(collision_object.subframe_names, collision_object.subframe_poses):
+        subframe_transform = geometry_msgs.msg.TransformStamped()
+        subframe_transform.header.frame_id = object_name
+        subframe_transform.child_frame_id = subframe_name
+        subframe_transform.transform.translation.x = subframe_pose.position.x
+        subframe_transform.transform.translation.y = subframe_pose.position.y
+        subframe_transform.transform.translation.z = subframe_pose.position.z
+        subframe_transform.transform.rotation.x = subframe_pose.orientation.x
+        subframe_transform.transform.rotation.y = subframe_pose.orientation.y
+        subframe_transform.transform.rotation.z = subframe_pose.orientation.z
+        subframe_transform.transform.rotation.w = subframe_pose.orientation.w
 
-      subframe_pose = geometry_msgs.msg.Pose()
-      subframe_pose.position = geometry_msgs.msg.Point(*trans)
-      subframe_pose.orientation = geometry_msgs.msg.Quaternion(*rot)
+        transformer.setTransform(subframe_transform)
 
-      subframe_poses.append(subframe_pose)
+        (trans,rot) = transformer.lookupTransform('WORLD', subframe_name, rospy.Time(0))
 
-  collision_object.subframe_poses = subframe_poses
+        subframe_pose = geometry_msgs.msg.Pose()
+        subframe_pose.position = geometry_msgs.msg.Point(*trans)
+        subframe_pose.orientation = geometry_msgs.msg.Quaternion(*rot)
 
-  rospy.sleep(0.2)
-  pub.publish(collision_object)
-  rospy.sleep(0.2)
+        subframe_poses.append(subframe_pose)
+
+    collision_object.subframe_poses = subframe_poses
+
+    rospy.sleep(0.2)
+    pub.publish(collision_object)
+    rospy.sleep(0.2)
 
 def is_program_running(topic_namespace, service_client):
   req = ur_dashboard_msgs.srv.IsProgramRunningRequest()
