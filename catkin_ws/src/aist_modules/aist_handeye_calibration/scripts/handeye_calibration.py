@@ -13,7 +13,7 @@ class HandEyeCalibrationRoutines(HandEyeCalibrationBaseRoutines):
         super(HandEyeCalibrationRoutines, self).__init__()
 
         self._eye_on_hand = rospy.get_param('~eye_on_hand', False)
-        self._initpose    = rospy.get_param('~initpose', [])
+        self._initpose    = rospy.get_param('~initpose', None)
         self._keyposes    = rospy.get_param('~keyposes', [])
         self._sleep_time  = rospy.get_param('~sleep_time', 1)
 
@@ -83,7 +83,8 @@ class HandEyeCalibrationRoutines(HandEyeCalibrationBaseRoutines):
 
         # Reset pose
         self.go_to_named_pose('home')
-        self.move(self._initpose, True)
+        if self._initpose:
+            self.move(self._initpose, True)
 
         # Collect samples over pre-defined poses
         keyposes = self._keyposes

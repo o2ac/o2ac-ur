@@ -1,8 +1,8 @@
 <?xml version="1.0" ?>
 <launch>
 
-  <arg name="config"		default="aist"/>
-  <arg name="camera_name"	default="a_phoxi_m_camera"/>
+  <arg name="config"		default="o2ac"/>
+  <arg name="camera_name"	default="a_bot_inside_camera"/>
 
   <node name="handeye_calibration"
 	pkg="aist_handeye_calibration" type="handeye_calibration.py"

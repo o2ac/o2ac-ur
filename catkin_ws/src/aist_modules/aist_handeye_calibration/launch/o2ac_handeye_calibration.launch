@@ -2,7 +2,7 @@
 <launch>
 
   <arg name="sim"			default="false"/>
-  <arg name="camera_name"		default="a_phoxi_m_camera"/>
+  <arg name="camera_name"		default="a_bot_inside_camera"/>
   <arg name="check"			default="false"/>
   <arg name="use_dual_quaternion"	default="true"/>
   <arg name="rviz_config"
@@ -11,33 +11,19 @@
 
   <!-- Launch gazebo if simulation -->
   <include if="$(arg sim)"
-	   file="$(find o2ac_gazebo)/launch/aist_gazebo.launch">
-    <arg name="scene"	value="calibration"/>
-  </include>
+	   file="$(find o2ac_gazebo)/launch/o2ac_gazebo.launch"/>
 
   <!-- Launch real robots and cameras if not simulation -->
   <include unless="$(arg sim)"
-	   file="$(find aist_scene_description
+	   file="$(find o2ac_scene_description
 		 )/launch/connect_real_robots.launch"/>
 
   <!-- Launch MoveIt! -->
-  <include file="$(find aist_moveit_config
-  		 )/launch/aist_moveit_planning_execution.launch">
-    <arg name="scene"	value="calibration"/>
+  <include file="$(find o2ac_moveit_config
+  		 )/launch/o2ac_moveit_planning_execution.launch">
     <arg name="sim"	value="$(arg sim)"/>
     <arg name="config"	value="$(arg rviz_config)"/>
   </include>
-
-  <!-- Set camera topic names -->
-  <arg name="camera_info_topic"
-       value="$(eval 'camera_info' if 'phoxi' in camera_name
-  	      else 'color/camera_info')"/>
-  <arg name="image_topic"
-       value="$(eval 'texture' if 'phoxi' in camera_name
-  	      else 'color/image_raw')"/>
-  <arg name="depth_topic"
-       value="$(eval 'depth_map' if 'phoxi' in camera_name
-  	      else 'aligned_depth_to_color/image_raw')"/>
 
   <!-- Turn on laser only for a camera to be calibrated -->
   <group unless="$(arg sim)">
@@ -52,16 +38,24 @@
 	  name="outside_laser_off" pkg="dynamic_reconfigure" type="dynparam"
 	  args="set a_bot_outside_camera/coded_light_depth_sensor
 		laser_power 0"/>
+    <node unless="$(eval camera_name == 'b_bot_inside_camera')"
+	  name="inside_laser_off" pkg="dynamic_reconfigure" type="dynparam"
+	  args="set b_bot_inside_camera/coded_light_depth_sensor
+		laser_power 0"/>
+    <node unless="$(eval camera_name == 'b_bot_outside_camera')"
+	  name="inside_laser_off" pkg="dynamic_reconfigure" type="dynparam"
+	  args="set b_bot_outside_camera/coded_light_depth_sensor
+		laser_power 0"/>
   </group>
 
   <!-- Launch aruco marker detector and handeye calibrator -->
   <include file="$(find aist_handeye_calibration
   		 )/launch/include/handeye_calibration.launch">
-    <arg name="config"			value="aist"/>
+    <arg name="config"			value="o2ac"/>
 
-    <arg name="camera_info_topic"	value="$(arg camera_info_topic)"/>
-    <arg name="image_topic"		value="$(arg image_topic)"/>
-    <arg name="depth_topic"		value="$(arg depth_topic)"/>
+    <arg name="camera_info_topic"	value="color/camera_info"/>
+    <arg name="image_topic"		value="color/image_raw"/>
+    <arg name="depth_topic"		value="aligned_depth_to_color/image_raw"/>
 
     <arg name="camera_name"		value="$(arg camera_name)"/>
     <arg name="check"			value="$(arg check)"/>

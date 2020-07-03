@@ -19,11 +19,11 @@
 	      )/.ros/aist_handeye_calibration/$(arg camera_name).yaml"/>
 
   <!-- Start ArUco -->
-  <node ns="$(arg camera_name)" name="aruco_detector"
+  <node name="aruco_detector"
 	pkg="aist_aruco_ros" type="aist_aruco_detector" output="screen">
-    <remap from="/camera_info"	to="$(arg camera_info_topic)"/>
-    <remap from="/image"	to="$(arg image_topic)"/>
-    <remap from="/depth"	to="$(arg depth_topic)"/>
+    <remap from="/camera_info"	to="$(arg camera_name)/$(arg camera_info_topic)"/>
+    <remap from="/image"	to="$(arg camera_name)/$(arg image_topic)"/>
+    <remap from="/depth"	to="$(arg camera_name)/$(arg depth_topic)"/>
     <rosparam file="$(arg config_file)"/>
   </node>
 
