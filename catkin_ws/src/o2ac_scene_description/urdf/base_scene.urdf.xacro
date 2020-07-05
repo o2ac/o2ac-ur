@@ -95,7 +95,7 @@
   </joint>
 
   <!-- spawn and attach robotiq 85 gripper (+ FT300 sensor, soft wrist...) -->
-  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector.urdf.xacro" />
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector_new.urdf.xacro" />
   <xacro:o2ac_end_effector prefix="a_bot_" use_soft_wrist="false" use_cameras="true" parent = "a_bot_ee_link" />
   
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector_old.urdf.xacro" />

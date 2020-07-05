@@ -15,7 +15,7 @@ hardware_interface:
     - a_bot_wrist_1_joint
     - a_bot_wrist_2_joint
     - a_bot_wrist_3_joint
-    - a_bot_robotiq_85_left_knuckle_joint
+    - a_bot_finger_joint
     - b_bot_shoulder_pan_joint
     - b_bot_shoulder_lift_joint
     - b_bot_elbow_joint
@@ -57,7 +57,7 @@ controller_list:
     default: True
     type: GripperCommand
     joints:
-      - a_bot_robotiq_85_left_knuckle_joint
+      - a_bot_finger_joint
   - name: b_bot/gripper_controller
     action_ns: gripper_cmd
     default: True
