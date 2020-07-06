@@ -82,12 +82,12 @@
         <color rgba=".7 .7 .7 1"/>
       </material>
     </visual>
-    <collision>
+    <!-- <collision>
       <origin rpy="0 0 0" xyz="-0.05 .0013 0.002"/>
       <geometry>
         <box size=".1 .066 .004"/> 
       </geometry>
-    </collision>
+    </collision> -->
 
     <!-- The vertical plate -->
     <visual>
@@ -99,12 +99,12 @@
         <color rgba=".5 .5 .5 1"/>
       </material>
     </visual>
-    <collision>
+    <!-- <collision>
       <origin rpy="0 0 0" xyz="-0.05 -.014 0.0179"/>
       <geometry>
         <box size=".1 .004 .035"/> 
       </geometry>
-    </collision>
+    </collision> -->
   </link>
   
 
@@ -191,12 +191,12 @@
         <color rgba=".9 .9 .9 1"/>
       </material>
     </visual>
-    <collision>
+    <!-- <collision>
       <origin rpy="0 0 0" xyz="0 ${-bit_cushion_to_axis + .02} .0275"/>
       <geometry>
         <box size=".026 .04 .055"/>
       </geometry>
-    </collision>
+    </collision> -->
     <collision>
       <origin rpy="0 0 0" xyz="0 0 ${-.12/2}"/>
       <geometry>
@@ -225,12 +225,12 @@
         <color rgba=".9 .9 .9 1"/>
       </material>
     </visual>
-    <collision>
+    <!-- <collision>
       <origin rpy="0 0 0" xyz="0 ${-bit_cushion_to_axis + .02} .0275"/>
       <geometry>
         <box size=".026 .04 .055"/>
       </geometry>
-    </collision>
+    </collision> -->
     <collision>
       <origin rpy="0 0 0" xyz="0 0 ${-.1/2}"/>
       <geometry>

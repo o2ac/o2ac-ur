@@ -23,7 +23,7 @@
   <!-- Scene items (trays, columns, tools, jigs, feeders...) -->
   <xacro:include filename="$(find o2ac_scene_description)/urdf/o2ac_environment.xacro" />
   <!-- <xacro:include filename="$(find flexwrist_experiment)/urdf/2020-01-experiment-scene.xacro" /> -->
-  <xacro:include filename="$(find o2ac_scene_description)/urdf/taskboard_scene.xacro" />
+  <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/taskboard_scene.xacro" /> -->
   <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/assembly_scene.xacro" /> -->
   
   <!-- Robot bases -->
@@ -54,8 +54,8 @@
   </joint>
 
   <xacro:ur5e_robot prefix="a_bot_" joint_limited="true"
-    shoulder_pan_lower_limit="${-pi}" shoulder_pan_upper_limit="${pi}"
-    shoulder_lift_lower_limit="${-pi}" shoulder_lift_upper_limit="${pi}"
+    shoulder_pan_lower_limit="${-pi/1.5}" shoulder_pan_upper_limit="${pi/1.5}"
+    shoulder_lift_lower_limit="${-pi/1.5}" shoulder_lift_upper_limit="${pi/1.5}"
     elbow_joint_lower_limit="0.0" elbow_joint_upper_limit="${pi}"
     wrist_1_lower_limit="${-pi}" wrist_1_upper_limit="${pi}"
     wrist_2_lower_limit="${-pi*1.5}" wrist_2_upper_limit="${pi*1.5}"
@@ -67,8 +67,8 @@
   />
 
   <xacro:ur5e_robot prefix="b_bot_" joint_limited="true"
-    shoulder_pan_lower_limit="${-pi}" shoulder_pan_upper_limit="${pi}"
-    shoulder_lift_lower_limit="${-pi}" shoulder_lift_upper_limit="${pi}"
+    shoulder_pan_lower_limit="${-pi/1.5}" shoulder_pan_upper_limit="${pi/1.5}"
+    shoulder_lift_lower_limit="${-pi/1.5}" shoulder_lift_upper_limit="${pi/1.5}"
     elbow_joint_lower_limit="0.0" elbow_joint_upper_limit="${pi}"
     wrist_1_lower_limit="${-pi}" wrist_1_upper_limit="${pi}"
     wrist_2_lower_limit="${-pi*1.5}" wrist_2_upper_limit="${pi*1.5}"
@@ -94,7 +94,8 @@
   </joint>
 
   <!-- Spawn and attach robotiq 85 gripper (+ cameras) -->
-  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector_2F-140.urdf.xacro" />
+  <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector_2F-140.urdf.xacro" /> -->
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector.urdf.xacro" />
   <xacro:o2ac_end_effector prefix="a_bot_" use_soft_wrist="false" use_cameras="true" parent = "a_bot_ee_link" />
   
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector.urdf.xacro" />
