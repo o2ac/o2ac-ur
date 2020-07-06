@@ -256,7 +256,7 @@ class O2ACBase(object):
 
     # The "shaft" + suction attachment
     screw_tool_m4.primitives[1].type = SolidPrimitive.BOX
-    screw_tool_m4.primitives[1].dimensions = [.02, .03, .08]
+    screw_tool_m4.primitives[1].dimensions = [.019, .03, .08]
     screw_tool_m4.primitive_poses[1].position.x = 0
     screw_tool_m4.primitive_poses[1].position.y = -0.0055  # 21 mm distance from axis
     screw_tool_m4.primitive_poses[1].position.z = -0.04
@@ -292,7 +292,7 @@ class O2ACBase(object):
 
     # The "shaft" + suction attachment
     screw_tool_m3.primitives[1].type = SolidPrimitive.BOX
-    screw_tool_m3.primitives[1].dimensions = [.02, .03, .08]
+    screw_tool_m3.primitives[1].dimensions = [.019, .03, .08]
     screw_tool_m3.primitive_poses[1].position.x = 0
     screw_tool_m3.primitive_poses[1].position.y = -0.0055  # 21 mm distance from axis
     screw_tool_m3.primitive_poses[1].position.z = -0.04
@@ -685,44 +685,48 @@ class O2ACBase(object):
     self.screw_client.wait_for_result()
     return self.screw_client.get_result()
 
-  def spawn_multiple_objects(self, assembly_name, objects, poses, referece_frame):
-    upload_mtc_modules_initial_params()
-    self.define_tool_collision_objects()
-    self.spawn_tool('screw_tool_m3')
-    self.spawn_tool('screw_tool_m4')
-    spawn_objects(assembly_name, objects, poses, referece_frame)
-    
+  def upload_tool_grasps_to_param_server(self, tool_id):
     transformer = tf.Transformer(True, rospy.Duration(10.0))
 
-    (trans,rot) = self.listener.lookupTransform('/screw_tool_m3_pickup_link', '/move_group/screw_tool_m3', rospy.Time())
+    (trans,rot) = self.listener.lookupTransform('/screw_tool_' + tool_id + '_pickup_link', '/move_group/screw_tool_' + tool_id, rospy.Time())
     collision_object_to_pickup_link = geometry_msgs.msg.TransformStamped()
-    collision_object_to_pickup_link.header.frame_id = 'screw_tool_m3_pickup_link'
-    collision_object_to_pickup_link.child_frame_id = 'screw_tool_m3'
+    collision_object_to_pickup_link.header.frame_id = 'screw_tool_' + tool_id + '_pickup_link'
+    collision_object_to_pickup_link.child_frame_id = 'screw_tool_' + tool_id
     collision_object_to_pickup_link.transform.translation = geometry_msgs.msg.Vector3(*trans)
     collision_object_to_pickup_link.transform.rotation = geometry_msgs.msg.Quaternion(*rot)
     transformer.setTransform(collision_object_to_pickup_link)
 
     grasp_pose_to_pickup_link = geometry_msgs.msg.TransformStamped()
-    grasp_pose_to_pickup_link.header.frame_id = 'screw_tool_m3_pickup_link'
+    grasp_pose_to_pickup_link.header.frame_id = 'screw_tool_' + tool_id + '_pickup_link'
     grasp_pose_to_pickup_link.child_frame_id = 'grasp_1'
     grasp_pose_to_pickup_link.transform.translation = geometry_msgs.msg.Vector3(0.015,0.0,0.03)
     grasp_pose_to_pickup_link.transform.rotation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi, 0, 0))
     transformer.setTransform(grasp_pose_to_pickup_link)
 
     grasp_pose_2_to_pickup_link = geometry_msgs.msg.TransformStamped()
-    grasp_pose_2_to_pickup_link.header.frame_id = 'screw_tool_m3_pickup_link'
+    grasp_pose_2_to_pickup_link.header.frame_id = 'screw_tool_' + tool_id + '_pickup_link'
     grasp_pose_2_to_pickup_link.child_frame_id = 'grasp_2'
     grasp_pose_2_to_pickup_link.transform.translation = geometry_msgs.msg.Vector3(0.015,0.0,0.03)
     grasp_pose_2_to_pickup_link.transform.rotation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi, pi/6, 0))
     transformer.setTransform(grasp_pose_2_to_pickup_link)
 
-    (trans,rot) = transformer.lookupTransform('screw_tool_m3', 'grasp_1', rospy.Time(0))
-    rospy.set_param('tools/screw_tool_m3/grasp_1/position', trans)
-    rospy.set_param('tools/screw_tool_m3/grasp_1/orientation', rot)
+    (trans,rot) = transformer.lookupTransform('screw_tool_' + tool_id, 'grasp_1', rospy.Time(0))
+    rospy.set_param('tools/screw_tool_' + tool_id + '/grasp_1/position', trans)
+    rospy.set_param('tools/screw_tool_' + tool_id + '/grasp_1/orientation', rot)
 
-    (trans,rot) = transformer.lookupTransform('screw_tool_m3', 'grasp_2', rospy.Time(0))
-    rospy.set_param('tools/screw_tool_m3/grasp_2/position', trans)
-    rospy.set_param('tools/screw_tool_m3/grasp_2/orientation', rot)
+    (trans,rot) = transformer.lookupTransform('screw_tool_' + tool_id, 'grasp_2', rospy.Time(0))
+    rospy.set_param('tools/screw_tool_' + tool_id + '/grasp_2/position', trans)
+    rospy.set_param('tools/screw_tool_' + tool_id + '/grasp_2/orientation', rot)
+
+  def spawn_multiple_objects(self, assembly_name, objects, poses, referece_frame):
+    upload_mtc_modules_initial_params()
+    self.define_tool_collision_objects()
+    screw_ids = ['m3', 'm4']
+    for screw_id in screw_ids:
+      self.spawn_tool('screw_tool_' + screw_id)
+      self.upload_tool_grasps_to_param_server(screw_id)
+    spawn_objects(assembly_name, objects, poses, referece_frame)
+    
 
   def do_pick_action(self, object_name, grasp_parameter_location = '', lift_direction_reference_frame = '', lift_direction = []):
     goal = moveit_task_constructor_msgs.msg.PickObjectGoal()
