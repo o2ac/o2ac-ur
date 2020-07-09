@@ -46,7 +46,7 @@ def upload_mtc_modules_initial_params():
   rospy.set_param('mtc_modules/approach_place_direction', [0.0, 0.0, -1.0])
   rospy.set_param('mtc_modules/retreat_direction_reference_frame', '')
   rospy.set_param('mtc_modules/retreat_direction', [-1.0, 0.0, 0.0])
-  rospy.set_param('mtc_modules/support_surfaces', ['tray_center', 'screw_tool_holder'])
+  rospy.set_param('mtc_modules/support_surfaces', ['tray_center', 'screw_tool_holder_long'])
 
 def spawn_objects(assembly_name, object_names, object_poses, object_refrence_frame):
   assy_handler = AssyHandler(assembly_name)

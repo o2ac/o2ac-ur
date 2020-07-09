@@ -699,15 +699,15 @@ class O2ACBase(object):
     grasp_pose_to_pickup_link = geometry_msgs.msg.TransformStamped()
     grasp_pose_to_pickup_link.header.frame_id = 'screw_tool_' + tool_id + '_pickup_link'
     grasp_pose_to_pickup_link.child_frame_id = 'grasp_1'
-    grasp_pose_to_pickup_link.transform.translation = geometry_msgs.msg.Vector3(0.015,0.0,0.03)
-    grasp_pose_to_pickup_link.transform.rotation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi, 0, 0))
+    grasp_pose_to_pickup_link.transform.translation = geometry_msgs.msg.Vector3(0.015,0.0,-0.03)
+    grasp_pose_to_pickup_link.transform.rotation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
     transformer.setTransform(grasp_pose_to_pickup_link)
 
     grasp_pose_2_to_pickup_link = geometry_msgs.msg.TransformStamped()
     grasp_pose_2_to_pickup_link.header.frame_id = 'screw_tool_' + tool_id + '_pickup_link'
     grasp_pose_2_to_pickup_link.child_frame_id = 'grasp_2'
-    grasp_pose_2_to_pickup_link.transform.translation = geometry_msgs.msg.Vector3(0.015,0.0,0.03)
-    grasp_pose_2_to_pickup_link.transform.rotation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi, pi/6, 0))
+    grasp_pose_2_to_pickup_link.transform.translation = geometry_msgs.msg.Vector3(0.015,0.0,-0.03)
+    grasp_pose_2_to_pickup_link.transform.rotation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, -pi/6, 0))
     transformer.setTransform(grasp_pose_2_to_pickup_link)
 
     (trans,rot) = transformer.lookupTransform('screw_tool_' + tool_id, 'grasp_1', rospy.Time(0))
