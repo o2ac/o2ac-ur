@@ -36,14 +36,14 @@ services:
       # Grant bus access to FlexBE App.
       - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket
       # Grant access to serial usb ports for u2d2
-      - /dev/for_docker:/dev/for_docker
+      - /dev/:/dev/
     network_mode: host
     extra_hosts:
       - "o2ac-ur:127.0.0.1"   # Seems that this might be needed for ROS networking
       - "olivier:127.0.0.1"     
-      - "o2ac-ur:192.168.0.5" # The host PC
-      - "osx-panda-desk:192.168.0.6"
-      - "a_bot:192.168.0.41"
-      - "b_bot:192.168.0.42"
+      - "o2ac-ur:192.168.1.5" # The host PC
+      - "osx-panda-desk:192.168.1.6"
+      - "a_bot:192.168.1.41"
+      - "b_bot:192.168.1.42"
     command: ./scripts/keep-container-running.sh
     shm_size: 1g # a PhoXi data size about 100MB.

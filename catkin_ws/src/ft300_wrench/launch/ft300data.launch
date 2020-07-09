@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
 
-  <arg name="robot_ip" default="192.168.0.42"/>
+  <arg name="robot_ip" default="192.168.1.42"/>
   <arg name="topic_name" default="wrench"/>
 
   <node name="ft300data" pkg="ft300_wrench" type="ft300data.py" output="screen">

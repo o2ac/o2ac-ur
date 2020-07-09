@@ -2,7 +2,7 @@
 <launch>
 
   <!-- Set arguments for the robot connection -->
-  <arg name="robot_ip_b" default="192.168.0.42"/>
+  <arg name="robot_ip_b" default="192.168.1.42"/>
 
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
 

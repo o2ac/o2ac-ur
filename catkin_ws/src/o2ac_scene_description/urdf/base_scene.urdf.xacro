@@ -18,10 +18,7 @@
   <xacro:include filename="$(find o2ac_gazebo)/urdf/o2ac_base_scene.gazebo" />
 
   <!-- robots -->
-  <xacro:include filename="$(find ur_description)/urdf/ur5.urdf.xacro" />
   <xacro:include filename="$(find ur_e_description)/urdf/ur5e.urdf.xacro" />
-  <!-- <xacro:include filename="$(find franka_description)/robots/panda_arm.xacro"/>
-  <xacro:include filename="$(find franka_description)/robots/hand.xacro"/> -->
   
   <!-- Scene items (trays, columns, tools, jigs, feeders...) -->
   <xacro:include filename="$(find o2ac_scene_description)/urdf/o2ac_environment.xacro" />
@@ -61,7 +58,7 @@
     shoulder_lift_lower_limit="${-pi}" shoulder_lift_upper_limit="${pi}"
     elbow_joint_lower_limit="0.0" elbow_joint_upper_limit="${pi}"
     wrist_1_lower_limit="${-pi}" wrist_1_upper_limit="${pi}"
-    wrist_2_lower_limit="${-pi}" wrist_2_upper_limit="${pi}"
+    wrist_2_lower_limit="${-pi*1.5}" wrist_2_upper_limit="${pi*1.5}"
     wrist_3_lower_limit="${-pi}" wrist_3_upper_limit="${pi}"
     transmission_hw_interface="hardware_interface/PositionJointInterface"
     safety_limits="false" safety_pos_margin="0.15"
@@ -69,13 +66,16 @@
     kinematics_file="${load_yaml('$(find o2ac_scene_description)/config/a_bot_calibration.yaml')}"
   />
 
-  <xacro:ur5_robot prefix="b_bot_" joint_limited="true"
+  <xacro:ur5e_robot prefix="b_bot_" joint_limited="true"
     shoulder_pan_lower_limit="${-pi}" shoulder_pan_upper_limit="${pi}"
     shoulder_lift_lower_limit="${-pi}" shoulder_lift_upper_limit="${pi}"
     elbow_joint_lower_limit="0.0" elbow_joint_upper_limit="${pi}"
     wrist_1_lower_limit="${-pi}" wrist_1_upper_limit="${pi}"
-    wrist_2_lower_limit="${-pi}" wrist_2_upper_limit="${pi}"
+    wrist_2_lower_limit="${-pi*1.5}" wrist_2_upper_limit="${pi*1.5}"
     wrist_3_lower_limit="${-pi}" wrist_3_upper_limit="${pi}"
+    transmission_hw_interface="hardware_interface/PositionJointInterface"
+    safety_limits="false" safety_pos_margin="0.15"
+    safety_k_position="20"
     kinematics_file="${load_yaml('$(find o2ac_scene_description)/config/b_bot_calibration.yaml')}"
   />
 
@@ -93,25 +93,12 @@
     <origin xyz="${b_bot_x} ${b_bot_y} ${bots_z}" rpy="0.0 0.0 ${b_bot_theta}" />
   </joint>
 
-  <!-- spawn and attach robotiq 85 gripper (+ FT300 sensor, soft wrist...) -->
-  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector.urdf.xacro" />
+  <!-- Spawn and attach robotiq 85 gripper (+ cameras) -->
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector_2F-140.urdf.xacro" />
   <xacro:o2ac_end_effector prefix="a_bot_" use_soft_wrist="false" use_cameras="true" parent = "a_bot_ee_link" />
   
-  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector_old.urdf.xacro" />
-  <xacro:o2ac_end_effector_old prefix="b_bot_" use_soft_wrist="false" use_cameras="true" parent = "b_bot_ee_link" />
-
-  <!-- Add cameras -->
-  <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/components/_d435.urdf.xacro" />
-
-  <link name="scene_cam_holder_link" />
-  <joint name="scene_cam_holder_joint" type="fixed">
-    <parent link="workspace_center" />
-    <child  link="scene_cam_holder_link" />
-    <origin xyz="-0.0179662 -0.155013 0.101615" rpy="0.0281409 -0.137996 -0.0954644" />
-  </joint>
-  <xacro:sensor_d435 prefix="scene_" parent="scene_cam_holder_link">
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-  </xacro:sensor_d435> -->
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector.urdf.xacro" />
+  <xacro:o2ac_end_effector prefix="b_bot_" use_soft_wrist="false" use_cameras="true" parent = "b_bot_ee_link" />
   
   <!-- The "world" link definition should be removed, but apparently it is necessary for Gazebo -->
   <link name="world" />

@@ -3,10 +3,11 @@
 <!-- This macro adds a rotated frame at the depth camera, for use with the OMRON cad matching library. -->
 
 <robot name="o2ac_sensor_d435" xmlns:xacro="http://wiki.ros.org/xacro">
-  <xacro:include filename="$(find realsense2_camera)/urdf/_d435.urdf.xacro" />
+  <xacro:include filename="$(find realsense2_description)/urdf/_d435.urdf.xacro" />
+  <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/components/_d435_internal.urdf.xacro" /> -->
   <xacro:macro name="o2ac_sensor_d435" params="prefix parent *origin">
     
-    <xacro:sensor_d435 prefix="${prefix}" parent="${parent}">
+    <xacro:sensor_d435 name="${prefix}camera" parent="${parent}">
       <xacro:insert_block name="origin" />
     </xacro:sensor_d435>
 

@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="task_board">
+  <!-- To use the tip of the holder to place the macro, use these offsets: -->
+  <!-- <origin xyz="${+0.01} ${+.03} ${-0.0465}" rpy="0 0 0" />   -->
+  
+  <xacro:macro name="nut_holder" params="partname parent *origin">
+  <xacro:property name="mesh_file" value="package://o2ac_scene_description/meshes/nut_holder.stl" />
+
+  <link name="${partname}">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0.0"/>
+      <mass value="1.0"/>
+      <inertia ixx="1.0" ixy="0" ixz="0" iyy="1.0" iyz="0" izz="1.0"/>
+    </inertial>
+    <visual>
+      <origin rpy="${pi/2} 0 ${-pi/2}" xyz="0 0 0.0"/>
+      <geometry>
+        <mesh filename="${mesh_file}" scale=".001 .001 .001"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="${-.02/2} ${-.06/2} ${.01/2}"/>
+      <geometry>
+        <box size=".02 .06 .01"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="${-.02/2} ${-.06/2} ${.05/2}"/>
+      <geometry>
+        <cylinder length="0.05" radius="0.005"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="${partname}" type="fixed">
+    <parent link="${parent}" />
+    <child link = "${partname}" />
+    <xacro:insert_block name="origin"/>
+  </joint>
+
+  <joint name="${partname}_collar_joint" type="fixed">
+    <parent link="${partname}"/>
+    <child link="${partname}_collar_link"/>
+    <origin rpy="0 ${pi/2} 0" xyz="-0.01 -.03 0.04"/>
+  </joint>
+  <link name="${partname}_collar_link"/>
+
+  <joint name="${partname}_tip_joint" type="fixed">
+    <parent link="${partname}_collar_link"/>
+    <child link="${partname}_tip_link"/>
+    <origin rpy="0 0 0" xyz="-0.01 0 0"/>
+  </joint>
+  <link name="${partname}_tip_link"/>
+
+  </xacro:macro>
+</robot>
+

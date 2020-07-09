@@ -7,6 +7,7 @@
 #include "std_msgs/String.h"
 #include "std_msgs/Bool.h"
 #include "std_srvs/SetBool.h"
+#include "std_srvs/Trigger.h"
 #include "geometry_msgs/PoseStamped.h"
 
 #include <tf/transform_listener.h>    // Includes the TF conversions
@@ -48,6 +49,11 @@
 #include "o2ac_msgs/FastenerGripperControlAction.h"
 #include "o2ac_msgs/SuctionControlAction.h"
 
+// For the URe program activation
+#include "ur_dashboard_msgs/GetLoadedProgram.h"
+#include "ur_dashboard_msgs/IsProgramRunning.h"
+#include "ur_dashboard_msgs/Load.h"
+
 #include <actionlib/client/simple_action_client.h>
 #include <robotiq_msgs/CModelCommandAction.h>
 
@@ -59,6 +65,7 @@ public:
   void initializeCollisionObjects(); // Defines tool objects
 
   //Helpers (convenience functions)
+  bool activateROSControlOnUR(std::string robot_name);
   bool moveToJointPose(std::vector<double> joint_positions, std::string robot_name, bool wait = true, double velocity_scaling_factor = 1.0, bool use_UR_script = false, double acceleration = 0.0);
   bool moveToCartPosePTP(geometry_msgs::PoseStamped pose, std::string robot_name, bool wait = true, std::string end_effector_link = "", double velocity_scaling_factor = 0.1);
   bool moveToCartPoseLIN(geometry_msgs::PoseStamped pose, std::string robot_name, bool wait = true, std::string end_effector_link = "", double velocity_scaling_factor = 0.1, double acceleration = 0.0, bool force_UR_script = false, bool force_moveit = false);
@@ -130,6 +137,7 @@ public:
 
   // Service clients
   ros::ServiceClient sendScriptToURClient_;
+  ros::ServiceClient a_bot_get_loaded_program_, a_bot_program_running_, a_bot_load_program_, a_bot_play_, b_bot_get_loaded_program_, b_bot_program_running_, b_bot_load_program_, b_bot_play_;
   
   // Action declarations
   actionlib::SimpleActionServer<o2ac_msgs::pickScrewAction> pickScrewActionServer_;
@@ -161,7 +169,7 @@ public:
   ros::ServiceClient get_planning_scene_client;
   moveit::planning_interface::MoveGroupInterface b_bot_group_;
   
-  moveit_msgs::CollisionObject screw_tool_m6, screw_tool_m4, screw_tool_m3, suction_tool;
+  moveit_msgs::CollisionObject screw_tool_m6, screw_tool_m4, screw_tool_m3, suction_tool, nut_tool, set_screw_tool;
 
 };//End of class SkillServer
 
