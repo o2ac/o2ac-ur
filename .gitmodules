@@ -3,7 +3,7 @@
 	url = https://gitlab.com/o2ac/o2ac-ur.wiki.git
 [submodule "underlay_ws/src/moveit"]
 	path = underlay_ws/src/moveit
-	url = https://github.com/felixvd/moveit
+	url = https://gitlab.com/o2ac/moveit.git
 [submodule "underlay_ws/src/moveit_msgs"]
 	path = underlay_ws/src/moveit_msgs
 	url = https://github.com/felixvd/moveit_msgs
