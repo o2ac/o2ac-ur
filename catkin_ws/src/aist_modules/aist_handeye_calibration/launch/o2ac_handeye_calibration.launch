@@ -26,27 +26,10 @@
   </include>
 
   <!-- Turn on laser only for a camera to be calibrated -->
-  <group unless="$(arg sim)">
-    <node name="laser_on" pkg="dynamic_reconfigure" type="dynparam"
-	  args="set '$(camera_name)'/coded_light_depth_sensor laser_power 16"/>
-
-    <node unless="$(eval camera_name == 'a_bot_inside_camera')"
-	  name="inside_laser_off" pkg="dynamic_reconfigure" type="dynparam"
-	  args="set a_bot_inside_camera/coded_light_depth_sensor
-		laser_power 0"/>
-    <node unless="$(eval camera_name == 'a_bot_outside_camera')"
-	  name="outside_laser_off" pkg="dynamic_reconfigure" type="dynparam"
-	  args="set a_bot_outside_camera/coded_light_depth_sensor
-		laser_power 0"/>
-    <node unless="$(eval camera_name == 'b_bot_inside_camera')"
-	  name="inside_laser_off" pkg="dynamic_reconfigure" type="dynparam"
-	  args="set b_bot_inside_camera/coded_light_depth_sensor
-		laser_power 0"/>
-    <node unless="$(eval camera_name == 'b_bot_outside_camera')"
-	  name="inside_laser_off" pkg="dynamic_reconfigure" type="dynparam"
-	  args="set b_bot_outside_camera/coded_light_depth_sensor
-		laser_power 0"/>
-  </group>
+  <node unless="$(arg sim)"
+	name="select_realsense_camera"
+	pkg="aist_camera_multiplexer" type="select_realsense_camera.py"
+	args="$(arg camera_name)"/>
 
   <!-- Launch aruco marker detector and handeye calibrator -->
   <include file="$(find aist_handeye_calibration
