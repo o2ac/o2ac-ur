@@ -1,17 +1,29 @@
-# Run handeye calibration in simulator and real environment
+aist_handeye_calibration: ROS package for estimating camera poses w.r.t. robots
+==================================================
+
+This package provides a set of software for estimating a relative transformation between a depth camera and a robotic arm. There are three main functions:
+
+- **Calibrating cameras** -- Estimate a relative transformation between the camera and the robot by showing an AR marker to the camera while moving the robot to several known positions.
+- **Checking calibration results** -- Validate the estimated parameters by showing a marker to the camera and then commanding the robot to move the tooltip to the center of the marker.
+- **Publishing calibration results** -- Broadcast the transformation between the camera and the robot as a tf message so that vision programs can make use of it.
+
+The calibration is possible in the following two situations:
+
+- **eye_on_hand** -- Camera is mouted on the end-effector of the robot.
+# 
 
 1: Launch simulator
 ```bash
 $ roslaunch o2as_gazebo o2as_gazebo.launch
 ```
 
-2: Do following for `$CAMERA_NAME={a_bot_camera, a_phoxi_m_camera}` and `$ROBOT_NAME={a_bot, b_bot and c_bot}`
+2: Do following for `$CAMERA_NAME={a_bot_inside_camera, a_bot_outside_camera, b_bot_inside_camera, b_bot_outside_camera}`
 
-2-1: Launch services for calibration
+2-1: Launch robots, cameras and the calibrator
 ```bash
-$ roslaunch aist_handeye_calibration calibrate.launch camera_name:=$CAMERA_NAME robot_name=$ROBOT_NAME
+$ roslaunch aist_handeye_calibration o2ac_handeye_calibrate.launch camera_name:=$CAMERA_NAME [sim:=true]
 ```
-After robots appear in the screen, open the RViz config file `aist_handeye_calibration.rviz`. Then the marker detector and the hand-eye calibrator start.
+Gazebo is launched if sim:=true is specified while real robots are brought up otherwise. After robots appear in the screen, open the RViz config file `aist_handeye_calibration.rviz`. Then the marker detector and the hand-eye calibrator start.
 
 2-2: Run calibration software in a different terminal
 ```bash

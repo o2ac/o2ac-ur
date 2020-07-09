@@ -5,7 +5,7 @@
 
 <robot name="robotiq_140_gripper_o2ac" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-  <xacro:macro name="o2ac_end_effector" params="prefix use_soft_wrist:=false use_cameras:=false parent">
+  <xacro:macro name="o2ac_end_effector_new" params="prefix use_soft_wrist:=false use_cameras:=false parent">
     <xacro:include filename="$(find robotiq_description)/urdf/robotiq_140_gripper.urdf.xacro"/>
 
     <xacro:robotiq_140_gripper prefix="${prefix}" parent="${parent}">

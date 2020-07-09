@@ -40,7 +40,7 @@
   	      else 'aligned_depth_to_color/image_raw')"/>
 
   <!-- Turn on laser only for a camera to be calibrated -->
-  <node unless="$(eval 'phoxi' in camera_name)"
+  <node unless="$(eval sim and 'phoxi' in camera_name)"
 	name="select_realsense_camera"
 	pkg="aist_camera_multiplexer" type="select_realsense_camera.py"
 	args="$(arg camera_name)"/>
