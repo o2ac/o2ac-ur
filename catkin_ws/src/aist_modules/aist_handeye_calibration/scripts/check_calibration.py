@@ -10,12 +10,11 @@ from aist_handeye_calibration import HandEyeCalibrationBaseRoutines
 class CheckCalibrationRoutines(HandEyeCalibrationBaseRoutines):
     def __init__(self):
         super(CheckCalibrationRoutines, self).__init__()
-        self._effector_frame = ''       # Move tooltip to the target pose
+        self._effector_frame = rospy.get_param('~robot_effector_tip_frame', '')
 
     def move_to_marker(self):
         self.trigger_frame()
-        marker_pose = rospy.wait_for_message(self._camera_name
-                                             + '/aruco_detector/pose',
+        marker_pose = rospy.wait_for_message('/aruco_detector/pose',
                                              gmsg.PoseStamped, 10)
         approach_pose = self.effector_target_pose(marker_pose, (0, 0, 0.05))
 
@@ -24,9 +23,13 @@ class CheckCalibrationRoutines(HandEyeCalibrationBaseRoutines):
         #  frame which will change while moving in the case of "eye on hand".
         target_pose = self.transform_pose_to_reference_frame(
                           self.effector_target_pose(marker_pose, (0, 0, 0)))
-        self.move(approach_pose, True)
+        self.go_to_pose_goal(self._robot_name, approach_pose,
+                             end_effector_link=self._effector_frame,
+                             speed=self._speed)
         rospy.sleep(1)
-        return self.move(target_pose, True)
+        self.go_to_pose_goal(self._robot_name, target_pose,
+                             end_effector_link=self._effector_frame,
+                             speed=self._speed)
 
     def run(self):
         self.go_to_named_pose('home')

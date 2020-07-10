@@ -83,26 +83,30 @@ class HandEyeCalibrationRoutines(HandEyeCalibrationBaseRoutines):
 
         # Reset pose
         self.go_to_named_pose('home')
-        if self._initpose:
-            self.move(self._initpose, True)
 
-        # Collect samples over pre-defined poses
-        keyposes = self._keyposes
-        for i, keypose in enumerate(keyposes, 1):
-            print('\n*** Keypose [{}/{}]: Try! ***'
-                  .format(i, len(keyposes)))
-            if self._eye_on_hand:
-                self.move_to(keypose, i, 1)
-            else:
-                self.move_to_subposes(keypose, i)
-            print('*** Keypose [{}/{}]: Completed. ***'
-                  .format(i, len(keyposes)))
+        try:
+            if self._initpose:
+                self.move(self._initpose, True)
 
-        if self.compute_calibration:
-            res = self.compute_calibration()
-            print(res.message)
-            res = self.save_calibration()
-            print(res.message)
+            # Collect samples over pre-defined poses
+            keyposes = self._keyposes
+            for i, keypose in enumerate(keyposes, 1):
+                print('\n*** Keypose [{}/{}]: Try! ***'
+                      .format(i, len(keyposes)))
+                if self._eye_on_hand:
+                    self.move_to(keypose, i, 1)
+                else:
+                    self.move_to_subposes(keypose, i)
+                print('*** Keypose [{}/{}]: Completed. ***'
+                      .format(i, len(keyposes)))
+
+            if self.compute_calibration:
+                res = self.compute_calibration()
+                print(res.message)
+                res = self.save_calibration()
+                print(res.message)
+        except Exception as e:
+            print(e)
 
         self.go_to_named_pose('home')
 
@@ -112,6 +116,7 @@ class HandEyeCalibrationRoutines(HandEyeCalibrationBaseRoutines):
 ######################################################################
 if __name__ == '__main__':
     calibrate = HandEyeCalibrationRoutines()
+
     while not rospy.is_shutdown():
         if raw_input('Hit return key to start >> ') == 'q':
             break

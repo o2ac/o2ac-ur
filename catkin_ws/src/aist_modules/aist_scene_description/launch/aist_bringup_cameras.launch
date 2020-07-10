@@ -25,6 +25,7 @@
   <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="serial_no"		value="$(arg camera0_serial_no)"/>
     <arg name="camera"			value="$(arg camera0_name)"/>
+    <arg name="publish_tf"		value="false"/>
     <arg name="tf_prefix"		value="calibrated_$(arg camera0_name)"/>
     <arg name="enable_depth"		value="true"/>
     <arg name="enable_infra1"		value="true"/>
@@ -46,6 +47,7 @@
   <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="serial_no"		value="$(arg camera1_serial_no)"/>
     <arg name="camera"			value="$(arg camera1_name)"/>
+    <arg name="publish_tf"		value="false"/>
     <arg name="tf_prefix"		value="calibrated_$(arg camera1_name)"/>
     <arg name="enable_depth"		value="true"/>
     <arg name="enable_infra1"		value="true"/>

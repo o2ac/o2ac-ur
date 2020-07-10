@@ -25,6 +25,7 @@ class InteractiveRoutines(HandEyeCalibrationBaseRoutines):
 
     def __init__(self):
         super(InteractiveRoutines, self).__init__()
+        self._effector_frame = rospy.get_param('~robot_effector_tip_frame', '')
 
     def run(self):
         self.go_to_named_pose('home')  # Reset pose

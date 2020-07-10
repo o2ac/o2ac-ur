@@ -72,13 +72,17 @@
   </joint>
 
   <!-- Spawn and attach gripper (+ FT300 sensor) -->
-  <xacro:include filename="$(find aist_scene_description
-			   )/urdf/components/aist_end_effector.urdf.xacro"/>
-  <xacro:aist_end_effector prefix="a_bot_" use_soft_wrist="false"
-			   use_cameras="true" parent="a_bot_ee_link"/>
-
-  <xacro:include filename="$(find aist_scene_description
+  <xacro:include filename="$(find o2ac_scene_description
 			   )/urdf/components/ft300.urdf.xacro"/>
+  <xacro:ft300 prefix="a_bot_" parent="a_bot_ee_link">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </xacro:ft300>
+  <xacro:include filename="$(find o2ac_scene_description
+			   )/urdf/components/o2ac_end_effector.urdf.xacro" />
+  <xacro:o2ac_end_effector prefix="a_bot_" use_soft_wrist="false"
+			   use_cameras="true"
+			   parent = "a_bot_ft300_flange_link" />
+
   <xacro:ft300 prefix="b_bot_" parent="b_bot_ee_link">
     <origin xyz="0 0 0" rpy="0 0 0"/>
   </xacro:ft300>

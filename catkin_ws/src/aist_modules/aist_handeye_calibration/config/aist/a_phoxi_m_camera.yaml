@@ -4,6 +4,7 @@ robot_name: b_bot
 eye_on_hand: false
 robot_base_frame: workspace_center
 robot_effector_frame: b_bot_ee_link
+robot_effector_tip_frame: b_bot_single_suction_gripper_pad_link
 camera_frame: calibrated_a_phoxi_m_camera
 marker_id: 26
 marker_size: 0.07

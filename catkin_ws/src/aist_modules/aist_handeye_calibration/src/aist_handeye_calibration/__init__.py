@@ -33,13 +33,13 @@ class HandEyeCalibrationBaseRoutines(O2ACBase):
         return super(HandEyeCalibrationBaseRoutines,
                      self).go_to_named_pose(named_pose, self._robot_name)
 
-    def move(self, pose, verbose=False):
+    def move(self, xyzrpy, verbose=False):
         target_pose = gmsg.PoseStamped()
         target_pose.header.frame_id = self._base_frame
-        target_pose.pose = gmsg.Pose(gmsg.Point(*pose[0:3]),
+        target_pose.pose = gmsg.Pose(gmsg.Point(*xyzrpy[0:3]),
                                      gmsg.Quaternion(
                                          *tfs.quaternion_from_euler(
-                                             *map(radians, pose[3:6]))))
+                                             *map(radians, xyzrpy[3:6]))))
         if verbose:
             print('  move to ' + self.format_pose(target_pose))
         res = self.go_to_pose_goal(self._robot_name, target_pose,
@@ -143,8 +143,7 @@ class RealSenseCamera(DepthCamera):
         self._dyn_camera = dynamic_reconfigure.client.Client(name, timeout=5.0)
         self._dyn_sensor = dynamic_reconfigure.client.Client(
                                name + "/coded_light_depth_sensor", timeout=5.0)
-        self._recent_laser_power = 16
-        self.laser_power = 0
+        self._recent_laser_power = self.laser_power
 
     @property
     def laser_power(self):
