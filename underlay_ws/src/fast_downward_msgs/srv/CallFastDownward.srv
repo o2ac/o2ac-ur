@@ -1,0 +1,41 @@
+# Constants
+string LOGLEVEL_DEBUG = "debug"
+string LOGLEVEL_INFO = "info"
+string LOGLEVEL_WARNING = "warning"
+
+# Request
+string log_level
+SearchComponent[] components
+bool run_all
+
+int32 translate_time_limit
+int32 translate_memory_limit
+
+int32 search_time_limit
+int32 search_memory_limit
+
+int32 overall_time_limit
+int32 overall_memory_limit
+
+string build
+
+string domain_file
+string task_file
+
+string plan_file
+string sas_file
+string failed_plans_file
+
+
+string[] translate_inputs
+string[] translate_options
+
+string search_input
+string[] search_options
+
+int32 portfolio_bound
+bool portfolio_single_plan
+string portfolio
+---
+# Response
+int32 exitcode

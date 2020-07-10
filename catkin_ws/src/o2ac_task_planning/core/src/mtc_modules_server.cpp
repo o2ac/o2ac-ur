@@ -62,6 +62,10 @@
 #include <o2ac_task_planning_msgs/PlaceObjectWithCorrectionAction.h>
 #include <o2ac_task_planning_msgs/ReleaseObjectAction.h>
 #include <o2ac_task_planning_msgs/PickPlaceWithRegraspAction.h>
+#include <o2ac_task_planning_msgs/AddPickAction.h>
+#include <o2ac_task_planning_msgs/AddPlaceAction.h>
+#include <o2ac_task_planning_msgs/AddRetreatAction.h>
+#include <o2ac_task_planning_msgs/ControlTaskAction.h>
 
 #include <actionlib/server/simple_action_server.h>
 #include <rosparam_shortcuts/rosparam_shortcuts.h>
@@ -84,7 +88,11 @@ class Modules_Planner{
 		release_planning_server(Modules_Planner::nh, "release_planning", boost::bind(&Modules_Planner::release_planning_server_cb, this, _1), false),
 		pick_place_planning_server(Modules_Planner::nh, "pick_place_planning", boost::bind(&Modules_Planner::pick_place_planning_server_cb, this, _1), false),
 		fastening_planning_server(Modules_Planner::nh, "fastening_planning", boost::bind(&Modules_Planner::fastening_planning_server_cb, this, _1), false),
-		wrs_subtask_b_planning_server(Modules_Planner::nh, "wrs_subtask_b_planning", boost::bind(&Modules_Planner::wrs_subtask_b_planning_server_cb, this, _1), false)
+		wrs_subtask_b_planning_server(Modules_Planner::nh, "wrs_subtask_b_planning", boost::bind(&Modules_Planner::wrs_subtask_b_planning_server_cb, this, _1), false),
+		add_pick_server(Modules_Planner::nh, "add_pick", boost::bind(&Modules_Planner::add_pick_server_cb, this, _1), false),
+		add_place_server(Modules_Planner::nh, "add_place", boost::bind(&Modules_Planner::add_place_server_cb, this, _1), false),
+		add_retreat_server(Modules_Planner::nh, "add_retreat", boost::bind(&Modules_Planner::add_retreat_server_cb, this, _1), false),
+		control_task_server(Modules_Planner::nh, "control_task", boost::bind(&Modules_Planner::control_task_server_cb, this, _1), false)
     	{
 			pick_place_planning_server.start();
         	pick_planning_server.start();
@@ -93,6 +101,10 @@ class Modules_Planner{
 			release_planning_server.start();
 			fastening_planning_server.start();
 			wrs_subtask_b_planning_server.start();
+			add_pick_server.start();
+			add_place_server.start();
+			add_retreat_server.start();
+			control_task_server.start();
 			ROS_INFO_NAMED(LOGNAME, "Starting MTC Modules action servers");
     	}
 
@@ -107,9 +119,9 @@ class Modules_Planner{
 		std::unique_ptr<SerialContainer> Place_Object(const std::string& object, const std::vector<geometry_msgs::PoseStamped>& target_pose, const std::string& object_subframe_to_place="");
 		std::unique_ptr<SerialContainer> Place_Object_With_Correction(const std::string& object, const geometry_msgs::PoseStamped& target_pose, const std::string& object_subframe_to_place="");
 		std::unique_ptr<SerialContainer> Place_Object_With_Correction(const std::string& object, const std::vector<geometry_msgs::PoseStamped>& target_pose, const std::string& object_subframe_to_place="");
-		std::unique_ptr<SerialContainer> Release_Object_and_Retreat(const std::string& object, const std::string& pose_to_retreat_to="");
+		std::unique_ptr<SerialContainer> Release_Object_and_Retreat(const std::string& object, const std::string& pose_to_retreat_to="", bool include_release=true);
 
-		std::unique_ptr<SerialContainer> Release_and_Retreat(const std::string& object, const std::string& arm_group_name, const std::string& pose_to_retreat_to="", bool this_is_start=true);
+		std::unique_ptr<SerialContainer> Release_and_Retreat(const std::string& object, const std::string& arm_group_name, const std::string& pose_to_retreat_to="", bool include_release=true, bool this_is_start=true);
 		std::unique_ptr<SerialContainer> Place(const std::string& object, const geometry_msgs::PoseStamped& target_pose, const std::string& arm_group_name, bool release_object=true, const std::string& object_subframe_to_place="", bool this_is_start=true);
 		std::unique_ptr<SerialContainer> Place_With_Correction(const std::string& object, const geometry_msgs::PoseStamped& target_pose, const std::string& arm_group_name, bool release_object=true, const std::string& object_subframe_to_place="", bool this_is_start=true);
 		std::unique_ptr<SerialContainer> Fasten(const std::string& object, const geometry_msgs::PoseStamped& target_pose, const std::string& arm_group_name, const std::string& object_subframe_to_place="", bool this_is_start=true, const std::string& container_name="Fasten");
@@ -126,6 +138,7 @@ class Modules_Planner{
 		std::unique_ptr<Alternatives> Pick_Place_Alternatives(const std::string& object, const geometry_msgs::PoseStamped& target_pose, bool release_object=true, const std::string& object_subframe_to_place="");
 		
 		std::unique_ptr<Fallbacks> Pick_Place_Fallback(const std::string& object, const geometry_msgs::PoseStamped& target_pose, bool release_object=true, const std::string& object_subframe_to_place="", bool force_robot_order = false);
+		std::unique_ptr<Fallbacks> Pick_with_Optional_Regrasp(const std::string& object, const std::string& arm_group_name, bool this_is_start=true);
 
 		// Task definitions
 		void createPickPlace(const std::string& object, const geometry_msgs::PoseStamped& target_pose, bool release_object=true, const std::string& object_subframe_to_place="", bool force_robot_order = false);
@@ -436,6 +449,213 @@ class Modules_Planner{
 			wrs_subtask_b_planning_server.setSucceeded(pick_place_result);
 		}
 
+		void add_pick_server_cb(const o2ac_task_planning_msgs::AddPickGoalConstPtr& goal){
+			bool this_is_start = false;
+			std::string temp_grasp_parameter_location = grasp_parameter_location;
+			std::string temp_lift_direction_reference_frame = lift_direction_reference_frame;
+			std::vector<double> temp_lift_direction = lift_direction;
+
+			if (goal->grasp_parameter_location != ""){
+				grasp_parameter_location = goal->grasp_parameter_location;
+			}
+
+			if (goal->lift_direction.header.frame_id != ""){
+				lift_direction_reference_frame = goal->lift_direction.header.frame_id;
+				lift_direction[0] = goal->lift_direction.vector.x;
+				lift_direction[1] = goal->lift_direction.vector.y;
+				lift_direction[2] = goal->lift_direction.vector.z;
+			}
+
+			if(!task_){
+				task_.reset();
+				task_.reset(new moveit::task_constructor::Task());
+				this_is_start = true;
+			}
+			task_->reset();
+			if (task_->stages()->numChildren() == 0){
+				this_is_start = true;
+			}
+			if (this_is_start){
+				task_->loadRobotModel();
+
+				robot_model_ = task_->getRobotModel();
+			}
+			
+			if (goal->disable_regrasp || arm_group_names.size() == 1){
+				task_->add(Pick_and_Lift(goal->object_name, goal->robot_name, this_is_start));
+			} else {
+				task_->add(Pick_with_Optional_Regrasp(goal->object_name, goal->robot_name, this_is_start));
+			}
+
+			std::stringstream ss;
+			task_->printState(ss);
+			std::string task_state = parse_task_state_string_stream(ss);
+
+			add_pick_result.success = true;
+			add_pick_result.task_state = task_state;
+
+			grasp_parameter_location = temp_grasp_parameter_location;
+			lift_direction_reference_frame = temp_lift_direction_reference_frame;
+			lift_direction = temp_lift_direction;
+			add_pick_server.setSucceeded(add_pick_result);
+		}
+
+		void add_place_server_cb(const o2ac_task_planning_msgs::AddPlaceGoalConstPtr& goal){
+			bool this_is_start = false;
+			std::string temp_approach_place_direction_reference_frame = approach_place_direction_reference_frame;
+			std::vector<double> temp_approach_place_direction = approach_place_direction;
+
+			if (goal->approach_place_direction.header.frame_id != ""){
+				approach_place_direction_reference_frame = goal->approach_place_direction.header.frame_id;
+				approach_place_direction[0] = goal->approach_place_direction.vector.x;
+				approach_place_direction[1] = goal->approach_place_direction.vector.y;
+				approach_place_direction[2] = goal->approach_place_direction.vector.z;
+			}
+
+			if(!task_){
+				task_.reset();
+				task_.reset(new moveit::task_constructor::Task());
+				this_is_start = true;
+			}
+			task_->reset();
+			if (task_->stages()->numChildren() == 0){
+				this_is_start = true;
+			}
+			if (this_is_start){
+				task_->loadRobotModel();
+
+				robot_model_ = task_->getRobotModel();
+			}
+			
+			task_->add(Place(goal->object_name, goal->object_target_pose, goal->robot_name, false, goal->object_subframe_to_place, this_is_start));
+
+			std::stringstream ss;
+			task_->printState(ss);
+			std::string task_state = parse_task_state_string_stream(ss);
+
+			add_place_result.success = true;
+			add_place_result.task_state = task_state;
+
+			approach_place_direction_reference_frame = temp_approach_place_direction_reference_frame;
+			approach_place_direction = temp_approach_place_direction;
+			add_place_server.setSucceeded(add_place_result);
+		}
+
+		void add_retreat_server_cb(const o2ac_task_planning_msgs::AddRetreatGoalConstPtr& goal){
+			bool this_is_start = false;
+			std::string temp_retreat_direction_reference_frame = retreat_direction_reference_frame;
+			std::vector<double> temp_retreat_direction = retreat_direction;
+
+			if (goal->retreat_direction.header.frame_id != ""){
+				retreat_direction_reference_frame = goal->retreat_direction.header.frame_id;
+				retreat_direction[0] = goal->retreat_direction.vector.x;
+				retreat_direction[1] = goal->retreat_direction.vector.y;
+				retreat_direction[2] = goal->retreat_direction.vector.z;
+			}
+
+			if(!task_){
+				task_.reset();
+				task_.reset(new moveit::task_constructor::Task());
+				this_is_start = true;
+			}
+			task_->reset();
+			if (task_->stages()->numChildren() == 0){
+				this_is_start = true;
+			}
+			if (this_is_start){
+				task_->loadRobotModel();
+
+				robot_model_ = task_->getRobotModel();
+			}
+			
+			task_->add(Release_and_Retreat(goal->object_name, goal->robot_name, goal->pose_to_retreat_to, goal->include_release, this_is_start));
+
+			std::stringstream ss;
+			task_->printState(ss);
+			std::string task_state = parse_task_state_string_stream(ss);
+
+			add_retreat_result.success = true;
+			add_retreat_result.task_state = task_state;
+
+			retreat_direction_reference_frame = temp_retreat_direction_reference_frame;
+			retreat_direction = temp_retreat_direction;
+			add_retreat_server.setSucceeded(add_retreat_result);
+		}
+
+		void control_task_server_cb(const o2ac_task_planning_msgs::ControlTaskGoalConstPtr& goal){
+
+			bool success = false;
+			moveit_task_constructor_msgs::Solution sol;
+			control_task_result.success = success;
+			control_task_result.solution = sol;
+			control_task_result.task_state = "";
+
+			if (!task_){
+				control_task_result.success = true;
+				control_task_result.task_state = "Empty task";
+				if (goal->operation == goal->SET_NAME || goal->operation == goal->PLAN || goal->operation == goal->CLEAR){
+					control_task_result.success = false;
+				}
+				control_task_server.setSucceeded(control_task_result);
+			} else {
+				task_->reset();
+				if (goal->operation == goal->CLEAR){
+					task_->clear();
+					sampling_planner = std::make_shared<solvers::PipelinePlanner>();
+					sampling_planner->setProperty("goal_joint_tolerance", 1e-5);
+					control_task_result.success = true;
+				} else if (goal->operation == goal->SET_NAME){
+					task_->stages()->setName(goal->task_name);
+					control_task_result.success = true;
+				} else if (goal->operation == goal->GET_STATUS)
+				{
+					control_task_result.success = true;
+				}
+
+				std::stringstream ss;
+				task_->printState(ss);
+				std::string task_state = parse_task_state_string_stream(ss);
+				control_task_result.task_state = task_state;
+
+				if (goal->operation == goal->PLAN){
+					try{
+						success = task_->plan(goal->number_of_required_solutions);
+						control_task_result.success = success;
+						if (success && task_->numSolutions() != 0){
+							ROS_INFO_NAMED(LOGNAME, "Planning succeeded");
+							task_->solutions().front()->fillMessage(sol);
+							control_task_result.solution = sol;
+						} else {
+							ROS_INFO_NAMED(LOGNAME, "Planning failed");
+							std::string failing_stage = "";
+							int failing_stage_id = 0;
+							for (std::string container_name : container_names) {
+								auto stage_pointer = task_->stages()->findChild(container_name);
+								if (stage_pointer){
+									if (stage_pointer->solutions().empty()){
+										failing_stage = container_name;
+										break;
+									}
+									failing_stage_id += 1;
+								}
+							}
+							control_task_result.success = false;
+							control_task_result.failing_stage_id = failing_stage_id;
+
+							control_task_result.task_state += "\nFailing stage: " + failing_stage;
+						}
+					} catch (const moveit::task_constructor::InitStageException& ex) {
+						std::cerr << "Planning failed with exception" << std::endl << ex;
+					} catch (const std::runtime_error& e) {
+						std::cerr << "Runtime error during the planning of the task: " << e.what() << std::endl;
+					} catch (...) {
+						std::cerr <<  "Unexpected error happened during the planning of the task";
+					}
+				}
+				control_task_server.setSucceeded(control_task_result);
+			}
+		}
+
 	private:
 		ros::NodeHandle nh;
 
@@ -447,11 +667,19 @@ class Modules_Planner{
 		actionlib::SimpleActionServer<o2ac_task_planning_msgs::PlaceObjectWithCorrectionAction> place_with_correction_planning_server;
 		actionlib::SimpleActionServer<o2ac_task_planning_msgs::ReleaseObjectAction> release_planning_server;
 		actionlib::SimpleActionServer<o2ac_task_planning_msgs::PlaceObjectAction> fastening_planning_server;
+		actionlib::SimpleActionServer<o2ac_task_planning_msgs::AddPickAction> add_pick_server;
+		actionlib::SimpleActionServer<o2ac_task_planning_msgs::AddPlaceAction> add_place_server;
+		actionlib::SimpleActionServer<o2ac_task_planning_msgs::AddRetreatAction> add_retreat_server;
+		actionlib::SimpleActionServer<o2ac_task_planning_msgs::ControlTaskAction> control_task_server;
 		o2ac_task_planning_msgs::PickPlaceWithRegraspResult pick_place_result;
 		o2ac_task_planning_msgs::PickObjectResult pick_result;
 		o2ac_task_planning_msgs::PlaceObjectResult place_result;
 		o2ac_task_planning_msgs::PlaceObjectWithCorrectionResult place_with_correction_result;
 		o2ac_task_planning_msgs::ReleaseObjectResult release_result;
+		o2ac_task_planning_msgs::AddPickResult add_pick_result;
+		o2ac_task_planning_msgs::AddPlaceResult add_place_result;
+		o2ac_task_planning_msgs::AddRetreatResult add_retreat_result;
+		o2ac_task_planning_msgs::ControlTaskResult control_task_result;
 
 		// The task (whenever there is a call for an action server this task is reset)
 		moveit::task_constructor::TaskPtr task_;
@@ -480,6 +708,8 @@ class Modules_Planner{
 		Stage* attach_object_stage;
 		Stage* lift_object_stage;
 
+		std::vector<std::string> container_names;
+
 		// Grasp parameter namespace
 		std::string grasp_parameter_location;
 
@@ -497,6 +727,37 @@ class Modules_Planner{
 
 		// Support surfaces
 		std::vector<std::string> support_surfaces;
+
+		/****************************************************
+		 *                                                  *
+		 *             Internal functions                   *
+		 *                                                  *
+		 ***************************************************/
+
+		std::string parse_task_state_string_stream(std::stringstream& stream){
+			std::string line;
+			std::string task_state = "";
+			std::string stage_name;
+			std::string whitespaces;
+			std::string dashes = "";
+
+			int line_count = 0;
+			int whitespace_num = 0;
+			while(getline(stream, line)){
+				whitespaces = line.substr(0, line.find("-"));
+				if (line_count == 0){
+					whitespace_num = whitespaces.length();
+				}
+				for (int i=0; i < (whitespaces.length()-whitespace_num)/2; i++){
+					dashes+="-";
+				}
+				stage_name = dashes + line.substr(line.find("/") + 2, line.length()-(line.find("/") + 2));
+				task_state += stage_name + '\n';
+				dashes = "";
+				line_count++;
+			}
+			return task_state;
+		}
 };
 
 void Modules_Planner::init(){
@@ -724,8 +985,11 @@ std::unique_ptr<SerialContainer> Modules_Planner::Pick_and_Lift(const std::strin
 	group = arm_group_name;
 	hand_group_name = group + "_robotiq_85";
 	hand_frame = hand_group_name + "_tip_link";
+
+	std::string container_name = "Pick '" + object + "' with " + group;
+	container_names.push_back(container_name);
 	
-	auto c = std::make_unique<SerialContainer>("Pick '" + object + "' with " + group);
+	auto c = std::make_unique<SerialContainer>(container_name);
 
 	/****************************************************
 	 *                                                  *
@@ -1037,46 +1301,46 @@ std::unique_ptr<SerialContainer> Modules_Planner::Place_Object_With_Correction(c
 ////////////////
 
 
-
-std::unique_ptr<SerialContainer> Modules_Planner::Release_Object_and_Retreat(const std::string& object, const std::string& pose_to_retreat_to){
+std::unique_ptr<SerialContainer> Modules_Planner::Release_Object_and_Retreat(const std::string& object, const std::string& pose_to_retreat_to, bool include_release){
 	auto c = std::make_unique<SerialContainer>("Release '" + object + "' and retreat, " + group);
 
-	// /******************************************************
-	//  *                                                    *
-	//  *                  Open Hand                         *
-	//  *                                                    *
-	//  *****************************************************/
-	{
-		auto stage = std::make_unique<stages::MoveTo>("open hand", sampling_planner);
-        stage->properties().set("group", hand_group_name);
-		stage->setGoal("open");
-		c->insert(std::move(stage));
-	}
+	if (include_release){
+		// /******************************************************
+		//  *                                                    *
+		//  *                  Open Hand                         *
+		//  *                                                    *
+		//  *****************************************************/
+		{
+			auto stage = std::make_unique<stages::MoveTo>("open hand", sampling_planner);
+			stage->properties().set("group", hand_group_name);
+			stage->setGoal("open");
+			c->insert(std::move(stage));
+		}
 
-	// /******************************************************
-	//  *                                                    *
-	//  *         Forbid collision (hand, object)            *
-	//  *                                                    *
-	//  *****************************************************/
-	{
-		auto stage = std::make_unique<stages::ModifyPlanningScene>("forbid collision (hand,object)");
-		stage->allowCollisions(
-			object,
-			robot_model_->getJointModelGroup(hand_group_name)->getLinkModelNamesWithCollisionGeometry(), false);
-		c->insert(std::move(stage));
-	}
+		// /******************************************************
+		//  *                                                    *
+		//  *         Forbid collision (hand, object)            *
+		//  *                                                    *
+		//  *****************************************************/
+		{
+			auto stage = std::make_unique<stages::ModifyPlanningScene>("forbid collision (hand,object)");
+			stage->allowCollisions(
+				object,
+				robot_model_->getJointModelGroup(hand_group_name)->getLinkModelNamesWithCollisionGeometry(), false);
+			c->insert(std::move(stage));
+		}
 
-	// /******************************************************
-	//  *                                                    *
-	//  *                 Detach Object                      *
-	//  *                                                    *
-	//  *****************************************************/
-	{
-		auto stage = std::make_unique<stages::ModifyPlanningScene>("detach object");
-		stage->detachObject(object, hand_frame);
-		c->insert(std::move(stage));
+		// /******************************************************
+		//  *                                                    *
+		//  *                 Detach Object                      *
+		//  *                                                    *
+		//  *****************************************************/
+		{
+			auto stage = std::make_unique<stages::ModifyPlanningScene>("detach object");
+			stage->detachObject(object, hand_frame);
+			c->insert(std::move(stage));
+		}
 	}
-
 	// /******************************************************
 	//  *                                                    *
 	//  *                Retreat Motion                      *
@@ -1117,14 +1381,17 @@ std::unique_ptr<SerialContainer> Modules_Planner::Release_Object_and_Retreat(con
 	return c;
 }
 
-std::unique_ptr<SerialContainer> Modules_Planner::Release_and_Retreat(const std::string& object, const std::string& arm_group_name, const std::string& pose_to_retreat_to, bool this_is_start){
+std::unique_ptr<SerialContainer> Modules_Planner::Release_and_Retreat(const std::string& object, const std::string& arm_group_name, const std::string& pose_to_retreat_to, bool include_release, bool this_is_start){
 	group = arm_group_name;
 	hand_group_name = group + "_robotiq_85";
 	hand_frame = hand_group_name + "_tip_link";
 
 	std::string tem = hand_frame;
+
+	std::string container_name = "Release '" + object + "' and retreat, " + group;
+	container_names.push_back(container_name);
 	
-	auto c = std::make_unique<SerialContainer>("Release '" + object + "' and retreat, " + group);
+	auto c = std::make_unique<SerialContainer>(container_name);
 
 	/****************************************************
 	 *                                                  *
@@ -1161,7 +1428,7 @@ std::unique_ptr<SerialContainer> Modules_Planner::Release_and_Retreat(const std:
 	}
 
 	// Release and retreat
-	c->insert(std::move(Modules_Planner::Release_Object_and_Retreat(object, pose_to_retreat_to)));
+	c->insert(std::move(Modules_Planner::Release_Object_and_Retreat(object, pose_to_retreat_to, include_release)));
 
 	return c;
 
@@ -1173,8 +1440,11 @@ std::unique_ptr<SerialContainer> Modules_Planner::Place(const std::string& objec
 	hand_frame = hand_group_name + "_tip_link";
 
 	std::string tem = hand_frame;
+
+	std::string container_name = "Place '" + object + "' with " + group;
+	container_names.push_back(container_name);
 	
-	auto c = std::make_unique<SerialContainer>("Place '" + object + "' with " + group);
+	auto c = std::make_unique<SerialContainer>(container_name);
 
 	/****************************************************
 	 *                                                  *
@@ -1621,7 +1891,7 @@ std::unique_ptr<Alternatives> Modules_Planner::Release_and_Retreat_Alternatives(
 	auto parallel = std::make_unique<Alternatives>("Release '" + object + "' and retreat");
 
 	for (std::string arm_group_name : arm_group_names){
-		parallel->insert(std::move(Modules_Planner::Release_and_Retreat(object, arm_group_name, pose_to_retreat_to, this_is_start)));
+		parallel->insert(std::move(Modules_Planner::Release_and_Retreat(object, arm_group_name, pose_to_retreat_to, true, this_is_start)));
 	}
 	return parallel;
 
@@ -1706,6 +1976,99 @@ std::unique_ptr<Fallbacks> Modules_Planner::Pick_Place_Fallback(const std::strin
 		parallel->insert(std::move(single_robot_task_solutions));
 	}
 
+	return parallel;
+}
+
+std::unique_ptr<Fallbacks> Modules_Planner::Pick_with_Optional_Regrasp(const std::string& object, const std::string& arm_group_name, bool this_is_start){
+	std::string container_name = "Pick '" + object + "'";
+	container_names.push_back(container_name);
+	auto parallel = std::make_unique<Fallbacks>(container_name);
+
+	auto single_robot_pick_pipeline = Modules_Planner::Pick_and_Lift(object, arm_group_name, this_is_start);
+	auto regrasp_pick_pipeline = std::make_unique<Alternatives>("Pick '" + object + "' with Regrasp");
+
+	for (std::string arm_group_name_iterated : arm_group_names){
+		if (arm_group_name_iterated != arm_group_name) {
+			auto c = std::make_unique<SerialContainer>("Pick '" + object + "' " + arm_group_name_iterated + "->" + arm_group_name);
+
+			group = arm_group_name_iterated;
+			hand_group_name = group + "_robotiq_85";
+			hand_frame = hand_group_name + "_tip_link";
+
+			// Pick and Lift
+			c->insert(std::move(Modules_Planner::Pick_and_Lift(object, group, this_is_start)));
+
+			geometry_msgs::PoseStamped handover_pose; //TODO: Make this a data member of the class and load it at init from the param server
+			handover_pose.header.frame_id = "workspace_center";
+			handover_pose.pose.orientation.w = 1.0;
+			handover_pose.pose.position.z = 0.25;
+
+			{
+				auto stage = std::make_unique<stages::Connect>(
+					"move to handover", stages::Connect::GroupPlannerVector{ { group, sampling_planner } });
+				stage->setTimeout(5.0);
+				current_state_stage = stage.get();
+				c->insert(std::move(stage));
+			}
+
+			{
+				auto stage = std::make_unique<stages::GenerateHandoverPose>("handover pose");
+				stage->properties().configureInitFrom(Stage::PARENT, { "ik_frame" });
+				stage->setPose(handover_pose);
+				stage->setObject(object);
+				stage->setMonitoredStage(lift_object_stage);
+
+				// Compute IK
+				auto wrapper = std::make_unique<stages::ComputeIK>("handover pose IK", std::move(stage));
+				wrapper->setMaxIKSolutions(2);
+				wrapper->setIKFrame(hand_frame);
+				wrapper->properties().set("group", group);
+				wrapper->setEndEffector(group + "_tip");
+				wrapper->properties().configureInitFrom(Stage::INTERFACE, { "target_pose" });
+				c->insert(std::move(wrapper));
+			}
+
+			group = arm_group_name;
+			hand_group_name = group + "_robotiq_85";
+			hand_frame = hand_group_name + "_tip_link";
+
+			// Pick
+			c->insert(std::move(Modules_Planner::Pick_Object(object)));
+
+			group = arm_group_name_iterated;
+			hand_group_name = group + "_robotiq_85";
+			hand_frame = hand_group_name + "_tip_link";
+
+			c->insert(std::move(Modules_Planner::Release_Object_and_Retreat(object)));
+
+			{
+			auto stage = std::make_unique<stages::MoveTo>("move_out_of_the_way", sampling_planner);
+				stage->setGroup(group);
+				stage->setGoal("tool_pick_ready");
+				c->insert(std::move(stage));
+			}
+
+			group = arm_group_name;
+			hand_group_name = group + "_robotiq_85";
+			hand_frame = hand_group_name + "_tip_link";
+
+			/****************************************************
+			 *                                                  *
+			 *                 Attach Object                    *
+			 *                                                  *
+			 ***************************************************/
+			{
+				auto stage = std::make_unique<stages::ModifyPlanningScene>("attach object to " + group);
+				stage->attachObject(object, hand_frame);
+				attach_object_stage = stage.get();
+				c->insert(std::move(stage));
+			}
+			
+			regrasp_pick_pipeline->insert(std::move(c));
+		}
+	}
+	parallel->insert(std::move(single_robot_pick_pipeline));
+	parallel->insert(std::move(regrasp_pick_pipeline));
 	return parallel;
 }
 
@@ -1906,7 +2269,7 @@ void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, cons
 	retreat_direction[2] = 1;
 
 	// release object and retreat
-	t.add(Modules_Planner::Release_and_Retreat(object, "a_bot", "home", false));
+	t.add(Modules_Planner::Release_and_Retreat(object, "a_bot", "home", true, false));
 
 	retreat_direction_reference_frame = "";
 	retreat_direction[0] = -1;

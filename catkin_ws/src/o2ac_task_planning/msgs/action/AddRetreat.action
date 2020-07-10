@@ -1,0 +1,20 @@
+# Add a retreat container to the task that is being constructed in the modules_server
+# Required fields:
+string robot_name  # Name of the robot holding the object
+string object_name
+
+# Optional fields: (If not set, the default values will be used. See README for more details)
+string pose_to_retreat_to   # If defined, the robot will move to the pose referred to by 'pose_to_retreat_to' with joint interpolation after releasing the object and retreating
+bool include_release  # If set to true, the robot will release the object it is holding and retreat afterwards
+geometry_msgs/Vector3Stamped retreat_direction  # 3D vector for setting the direction of retreating
+
+# Fields currently not in use (these have no effect yet)
+float64 retreat_min_dist  # Minimum lift distance in the retreat_direction
+float64 retreat_max_dist  # Maximum lift distance in the retreat_direction
+string surface_link  # name of link on which the object lies before picking
+---
+# Result
+bool success
+string task_state  # String representation of the current task hierarchy
+---
+# Feedback

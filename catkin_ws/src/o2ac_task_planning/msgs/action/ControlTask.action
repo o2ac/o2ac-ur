@@ -1,0 +1,19 @@
+# This action is used to start planning, reset/clear the task and issue other meta-commands to the task planning module
+# Required fields:
+byte GET_STATUS=0
+byte CLEAR=1
+byte SET_NAME=2
+byte PLAN=3
+
+string task_name  # name of the task (only used when operation is SET_NAME)
+int32 number_of_required_solutions  # minimum number of successful solutions before the planning is stopped
+
+byte operation
+---
+# Result
+bool success
+string task_state  # String representation of the current task hierarchy
+int32 failing_stage_id  # ID of the failig stage (This marks the row of the trace file that contains the operation that failed (starts from 0))
+moveit_task_constructor_msgs/Solution solution
+---
+# Feedback
