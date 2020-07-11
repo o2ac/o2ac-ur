@@ -111,6 +111,8 @@ class InteractiveRoutines(HandEyeCalibrationBaseRoutines):
                 self.go_to_named_pose('home')
             elif key == 'b':
                 self.go_to_named_pose('back')
+            elif key == 'i':
+                self.go_to_init_pose()
 
         self.go_to_named_pose('home')  # Reset pose
 

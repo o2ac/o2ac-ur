@@ -23,6 +23,7 @@ class HandEyeCalibrationBaseRoutines(O2ACBase):
         self._effector_frame = rospy.get_param('~robot_effector_frame',
                                                self._robot_name + '_ee_link')
         self._speed          = rospy.get_param('~speed', 0.1)
+        self._initpose       = rospy.get_param('~initpose', None)
 
     # Robot stuffs
     def get_current_pose_stamped(self):
@@ -32,6 +33,12 @@ class HandEyeCalibrationBaseRoutines(O2ACBase):
     def go_to_named_pose(self, named_pose):
         return super(HandEyeCalibrationBaseRoutines,
                      self).go_to_named_pose(named_pose, self._robot_name)
+
+    def go_to_init_pose(self, verbose=False):
+        if self._initpose:
+            return self.move(self._initpose, verbose)
+        else:
+            return False, False
 
     def move(self, xyzrpy, verbose=False):
         target_pose = gmsg.PoseStamped()

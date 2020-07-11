@@ -41,6 +41,8 @@ class CheckCalibrationRoutines(HandEyeCalibrationBaseRoutines):
                     break
                 elif key == 'h':
                     self.go_to_named_pose('home')
+                elif key == 'i':
+                    self.go_to_init_pose()
                 else:
                     self.move_to_marker()
             except rospy.ROSException as ex:
