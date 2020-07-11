@@ -17,7 +17,7 @@ class HandEyeCalibrationRoutines(HandEyeCalibrationBaseRoutines):
         self._keyposes    = rospy.get_param('~keyposes', [])
         self._sleep_time  = rospy.get_param('~sleep_time', 1)
 
-        if rospy.get_param('calibration', True):
+        if rospy.get_param('~calibration', True):
             ns = '/handeye_calibrator'
             self.get_sample_list \
                 = rospy.ServiceProxy(ns + '/get_sample_list', GetSampleList)
@@ -77,7 +77,7 @@ class HandEyeCalibrationRoutines(HandEyeCalibrationBaseRoutines):
                 print('--- Subpose [{}/5]: Failed. ---'.format(i + 4))
             subpose[4] -= 30
 
-    def run(self):
+    def calibrate(self):
         if self.reset:
             self.reset()
 
@@ -105,19 +105,23 @@ class HandEyeCalibrationRoutines(HandEyeCalibrationBaseRoutines):
                 print(res.message)
                 res = self.save_calibration()
                 print(res.message)
-        except Exception as e:
-            print(e)
+        except rospy.ROSException as ex:
+            rospy.logwarn(ex.message)
 
         self.go_to_named_pose('home')
+
+    def run(self):
+        while not rospy.is_shutdown():
+            print('\n  RET: do calibration')
+            print('  q  : go to home position and quit')
+            if raw_input('>> ') == 'q':
+                break
+            routines.calibrate()
 
 
 ######################################################################
 #  global functions                                                  #
 ######################################################################
 if __name__ == '__main__':
-    calibrate = HandEyeCalibrationRoutines()
-
-    while not rospy.is_shutdown():
-        if raw_input('Hit return key to start >> ') == 'q':
-            break
-        calibrate.run()
+    routines = HandEyeCalibrationRoutines()
+    routines.run()

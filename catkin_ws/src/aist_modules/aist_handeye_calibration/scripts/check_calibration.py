@@ -36,21 +36,24 @@ class CheckCalibrationRoutines(HandEyeCalibrationBaseRoutines):
 
         while not rospy.is_shutdown():
             try:
+                print('\n  RET: go to the marker')
+                print('  i  : go to initial position')
+                print('  h  : go to home position')
+                print('  q  : go to home position and quit')
                 key = raw_input('>> ')
-                if key == 'q':
-                    break
+                if key == 'i':
+                    self.go_to_init_pose()
                 elif key == 'h':
                     self.go_to_named_pose('home')
-                elif key == 'i':
-                    self.go_to_init_pose()
+                elif key == 'q':
+                    break
                 else:
                     self.move_to_marker()
             except rospy.ROSException as ex:
-                print ex.message
-            except rospy.ROSInterruptException:
-                return
-            except KeyboardInterrupt:
-                return
+                rospy.logwarn(ex.message)
+            except Exception as ex:
+                rospy.logerr(ex)
+                break
 
         self.go_to_named_pose('home')
 

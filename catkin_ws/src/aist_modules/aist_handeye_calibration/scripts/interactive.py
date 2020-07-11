@@ -32,16 +32,22 @@ class InteractiveRoutines(HandEyeCalibrationBaseRoutines):
         axis = 'Y'
 
         while not rospy.is_shutdown():
+            print('  r        : specify robot name to be driven')
+            print('  X|Y|Z    : set translational motion axis')
+            print('  R|P|W    : set rotational motion axis')
+            print('  +|-      : jog motion along the current axis')
+            print('  <numeric>: go to the position with the specified axis coordinate value')
+            print('  o        : go to reference position')
+            print('  h        : go to home position')
+            print('  b        : go to back position')
+            print('  q        : go to home position and quit')
+
             current_pose = self.get_current_pose_stamped()
             prompt = '{:>5}:{}>> '.format(axis, self.format_pose(current_pose))
             key = raw_input(prompt)
 
-            if key == 'q':
-                break
-            elif key == 'r':
+            if key == 'r':
                 self._robot_name = raw_input('  robot name? ')
-            elif key == 'c':
-                self._camera_name = raw_input('  camera name? ')
             elif key == 'X':
                 axis = 'X'
             elif key == 'Y':
@@ -99,20 +105,14 @@ class InteractiveRoutines(HandEyeCalibrationBaseRoutines):
                 else:
                     goal_pose[5] = float(key)
                 self.move(goal_pose)
-            elif key == 'cont':
-                self.continuous_shot(True)
-            elif key == 'stopcont':
-                self.continuous_shot(False)
-            elif key == 'trigger':
-                self.trigger_frame()
             elif key == 'o':
                 self.move(InteractiveRoutines.refposes[self._robot_name])
             elif key == 'h':
                 self.go_to_named_pose('home')
             elif key == 'b':
                 self.go_to_named_pose('back')
-            elif key == 'i':
-                self.go_to_init_pose()
+            elif key == 'q':
+                break
 
         self.go_to_named_pose('home')  # Reset pose
 
@@ -121,6 +121,5 @@ class InteractiveRoutines(HandEyeCalibrationBaseRoutines):
 #  global functions                                                  #
 ######################################################################
 if __name__ == '__main__':
-
     routines = InteractiveRoutines()
     routines.run()

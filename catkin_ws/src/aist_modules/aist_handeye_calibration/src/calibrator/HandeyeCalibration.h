@@ -282,15 +282,15 @@ evaluateAccuracy(std::ostream& out,
     adiff_mean = std::sqrt(adiff_mean/nposes);
 
     constexpr T	degree = 180.0/M_PI;
-    out << "trans. err(m)  : (mean, max) = ("
+    out << "\n=== estimated camera pose ====\n";
+    eMc.print(out);
+    out << "\n=== estimated marker pose ===\n";
+    wMo.print(out);
+    out << "\ntrans. err(m)  : (mean, max) = ("
 	<< tdiff_mean << ", " << tdiff_max
 	<< ")\nangle err(deg.): (mean, max) = ("
 	<< adiff_mean * degree << ", " << adiff_max * degree << ')'
 	<< std::endl;
-    std::cout << "=== estimated eMc: ====\n";
-    eMc.print(std::cout);
-    std::cout << "=== estimated wMo: ===\n";
-    wMo.print(std::cout);
 }
 }	// namespace TU
 #endif	// !HANDEYECALIBRATION_H

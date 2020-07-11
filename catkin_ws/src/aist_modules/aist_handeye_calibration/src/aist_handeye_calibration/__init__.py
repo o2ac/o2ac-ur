@@ -58,9 +58,6 @@ class HandEyeCalibrationBaseRoutines(O2ACBase):
         return res
 
     # Camera stuffs
-    def continuous_shot(self, enable):
-        return self._camera.continuous_shot(enable)
-
     def trigger_frame(self):
         return self._camera.trigger_frame()
 

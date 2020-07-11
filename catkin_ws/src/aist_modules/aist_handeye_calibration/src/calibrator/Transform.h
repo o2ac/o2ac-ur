@@ -118,9 +118,9 @@ class Transform : boost::multipliable<Transform<T> >
 			{
 			    constexpr scalar_type	degree = 180.0/M_PI;
 
-			    return out << "xyz(m)    = " << t()(0)
+			    return out << "xyz(m)   : " << t()(0)
 				       << ' ' << t()(1) << ' ' << t()(2)
-				       << "\nrot(deg.) = " << rpy()*degree
+				       << "\nrot(deg.): " << rpy()*degree
 				       << std::endl;
 			}
 
