@@ -55,7 +55,7 @@ material Aruco/marker-26-70-5
   }
 }
 
-material Aruco/marker-26-80-10
+material Aruco/marker-32-70-5
 {
   technique
   {
@@ -63,7 +63,35 @@ material Aruco/marker-26-80-10
     {
       texture_unit
       {
-	texture aruco-26-80-10.png
+	texture aruco-32-70-5.png
+      }
+    }
+  }
+}
+
+material Aruco/marker-32-80-10
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+	texture aruco-32-80-10.png
+      }
+    }
+  }
+}
+
+material Aruco/marker-32-160-10
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+	texture aruco-32-160-10.png
       }
     }
   }
@@ -96,18 +124,3 @@ material Aruco/marker-256-80-10
     }
   }
 }
-
-material Aruco/marker-32-160-10
-{
-  technique
-  {
-    pass
-    {
-      texture_unit
-      {
-	texture aruco-32-160-10.png
-      }
-    }
-  }
-}
-

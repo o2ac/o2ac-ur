@@ -14,10 +14,10 @@ class HandEyeCalibrationBaseRoutines(O2ACBase):
     def __init__(self):
         super(HandEyeCalibrationBaseRoutines, self).__init__()
 
-        camera_name = rospy.get_param('~camera_name', 'a_phoxi_m_camera')
-        camera_type = rospy.get_param('~camera_type', 'PhoXiCamera')
+        camera_name = rospy.get_param('~camera_name', 'a_bot_inside_camera')
+        camera_type = rospy.get_param('~camera_type', 'DepthCamera')
         self._camera         = DepthCamera.create(camera_name, camera_type)
-        self._robot_name     = rospy.get_param('~robot_name', 'b_bot')
+        self._robot_name     = rospy.get_param('~robot_name', 'a_bot')
         self._base_frame     = rospy.get_param('~robot_base_frame',
                                                'workspace_center')
         self._effector_frame = rospy.get_param('~robot_effector_frame',
@@ -128,41 +128,7 @@ class DepthCamera(object):
     def name(self):
         return self._name
 
-    def continuous_shot(self, enabled):
-        return True
-
     def trigger_frame(self):
-        return True
-
-######################################################################
-#  class RealSenseCamera                                             #
-######################################################################
-class RealSenseCamera(DepthCamera):
-    def __init__(self, name="a_bot_camera"):
-        super(RealSenseCamera, self).__init__(name)
-        self._dyn_camera = dynamic_reconfigure.client.Client(name, timeout=5.0)
-        self._dyn_sensor = dynamic_reconfigure.client.Client(
-                               name + "/coded_light_depth_sensor", timeout=5.0)
-        self._recent_laser_power = self.laser_power
-
-    @property
-    def laser_power(self):
-        ret = self._dyn_sensor.get_configuration()
-        return ret["laser_power"]
-
-    @laser_power.setter
-    def laser_power(self, value):
-        if value != 0:
-            self._recent_laser_power = value
-        self._dyn_sensor.update_configuration({"laser_power" : value})
-
-    def continuous_shot(self, enabled):
-        if enabled:
-            self.laser_power = self._recent_laser_power
-        else:
-            self.laser_power = 0
-        self._dyn_camera.update_configuration({"enable_streaming" : enabled})
-        rospy.sleep(0.2)
         return True
 
 ######################################################################
@@ -174,11 +140,8 @@ class PhoXiCamera(DepthCamera):
         self._dyn_reconf = dynamic_reconfigure.client.Client(name, timeout=5.0)
         self._trigger_frame = rospy.ServiceProxy(name + "/trigger_frame",
                                                  std_srvs.srv.Trigger)
-
-    def continuous_shot(self, enabled):
-        self._dyn_reconf.update_configuration({"trigger_mode" :
-                                               0 if enabled else 1})
-        return True
+        # Enable trigger mode
+        self._dyn_reconf.update_configuration({"trigger_mode" : 1})
 
     def trigger_frame(self):
         return self._trigger_frame().success

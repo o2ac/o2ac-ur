@@ -1,4 +1,4 @@
-camera_type: RealSenseCamera
+camera_type: DepthCamera
 camera_name: b_bot_inside_camera
 robot_name: b_bot
 eye_on_hand: true
