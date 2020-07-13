@@ -1,0 +1,8 @@
+<launch>
+    <!-- Load parameters -->
+    <rosparam file="$(find rosparam_shortcuts)/config/example.yaml" command="load"/>
+
+    <!-- Start node -->
+    <node name="example" pkg="rosparam_shortcuts" type="example" output="screen"/>
+
+</launch>
