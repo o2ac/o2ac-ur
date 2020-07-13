@@ -34,11 +34,11 @@
   <rosparam file="$(find o2ac_gazebo)/controller/2_bot_controllers.yaml" command="load"/>
   <node name="a_bot_controller_spawner" pkg="controller_manager"
 	type="controller_manager"
-	args="spawn a_bot/scaled_pos_traj_controller a_bot/gripper_controller"
+	args="spawn a_bot/scaled_pos_traj_controller"
 	respawn="false" output="screen"/>
   <node name="b_bot_controller_spawner" pkg="controller_manager"
 	type="controller_manager"
-	args="spawn b_bot/scaled_pos_traj_controller b_bot/gripper_controller"
+	args="spawn b_bot/scaled_pos_traj_controller"
 	respawn="false" output="screen"/>
 
   <!-- Launch camera multiplexer -->
