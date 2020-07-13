@@ -30,7 +30,7 @@ joint_state_controller:
   type: joint_state_controller/JointStateController
   publish_rate: 50
 controller_list:
-  - name: /a_bot/scaled_pos_joint_traj_controller
+  - name: /a_bot/scaled_pos_traj_controller
     action_ns: follow_joint_trajectory
     default: True
     type: FollowJointTrajectory
@@ -41,7 +41,7 @@ controller_list:
       - a_bot_wrist_1_joint
       - a_bot_wrist_2_joint
       - a_bot_wrist_3_joint
-  - name: /b_bot/scaled_pos_joint_traj_controller
+  - name: /b_bot/scaled_pos_traj_controller
     action_ns: follow_joint_trajectory
     default: True
     type: FollowJointTrajectory

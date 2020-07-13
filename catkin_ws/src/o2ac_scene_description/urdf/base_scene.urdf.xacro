@@ -70,7 +70,7 @@
     kinematics_file="${load_yaml('$(find o2ac_scene_description)/config/a_bot_calibration.yaml')}"
   />
 
-  <xacro:ur5_robot prefix="b_bot_" joint_limited="true"
+  <xacro:ur5e_robot prefix="b_bot_" joint_limited="true"
     shoulder_pan_lower_limit="${-pi}" shoulder_pan_upper_limit="${pi}"
     shoulder_lift_lower_limit="${-pi}" shoulder_lift_upper_limit="${pi}"
     elbow_joint_lower_limit="0.0" elbow_joint_upper_limit="${pi}"
@@ -95,25 +95,12 @@
   </joint>
 
   <!-- spawn and attach robotiq 85 gripper (+ FT300 sensor, soft wrist...) -->
-  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector_new.urdf.xacro" />
-  <xacro:o2ac_end_effector_new prefix="a_bot_" use_soft_wrist="false" use_cameras="true" parent = "a_bot_ee_link" />
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector_2F-140.urdf.xacro" />
+  <xacro:o2ac_end_effector prefix="a_bot_" use_soft_wrist="false" use_cameras="true" parent = "a_bot_ee_link" />
   
   <xacro:include filename="$(find o2ac_scene_description
 			   )/urdf/components/o2ac_end_effector.urdf.xacro" />
   <xacro:o2ac_end_effector prefix="b_bot_" use_soft_wrist="false" use_cameras="true" parent = "b_bot_ee_link" />
-
-  <!-- Add cameras -->
-  <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/components/_d435.urdf.xacro" />
-
-  <link name="scene_cam_holder_link" />
-  <joint name="scene_cam_holder_joint" type="fixed">
-    <parent link="workspace_center" />
-    <child  link="scene_cam_holder_link" />
-    <origin xyz="-0.0179662 -0.155013 0.101615" rpy="0.0281409 -0.137996 -0.0954644" />
-  </joint>
-  <xacro:sensor_d435 prefix="scene_" parent="scene_cam_holder_link">
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-  </xacro:sensor_d435> -->
   
   <!-- The "world" link definition should be removed, but apparently it is necessary for Gazebo -->
   <link name="world" />
@@ -122,6 +109,5 @@
     <child link="o2ac_ground" />
     <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
   </joint>
-  
  
 </robot>

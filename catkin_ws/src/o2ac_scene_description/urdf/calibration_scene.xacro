@@ -10,10 +10,10 @@
   <!--   <origin xyz="0.0 0.0 0.0185" rpy="0 0 0"/> -->
   <!-- </xacro:ar_marker_70_5> -->
 
-  <xacro:ar_marker_80_10 prefix="base_"
+  <xacro:ar_marker_70_5 prefix="base_"
 			parent="attached_base_origin_link"
-			marker_id="17"
+			marker_id="32"
 			thickness="0.001">
     <origin xyz="0.06 0.06 0.0005" rpy="0 0 0"/>
-  </xacro:ar_marker_80_10>
+  </xacro:ar_marker_70_5>
 </robot>
