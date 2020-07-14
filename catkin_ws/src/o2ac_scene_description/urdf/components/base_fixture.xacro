@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 
-<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="task_board">
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="base_fixture">
 
   <xacro:macro name="base_fixture" params="parent *origin">
   <xacro:property name="top_mesh" value="package://o2ac_scene_description/meshes/base_fixture_reoriented.stl" />
@@ -96,9 +96,9 @@
 
   <link name="left_bar">
     <visual>
-      <origin rpy="0 0 0" xyz="${width/2} 0.01 .04"/>
+      <origin rpy="0 0 0" xyz="${width/2-.02} 0.01 .04"/>
       <geometry>
-        <box size="${width} .02 .08"/>
+        <box size="${width-.04} .02 .08"/>
         <!-- <mesh filename="${long_bar_mesh}" scale=".001 .001 .001"/> -->
       </geometry>
       <material name="grey">
@@ -106,9 +106,9 @@
       </material>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="${width/2} 0.01 .04"/>
+      <origin rpy="0 0 0" xyz="${width/2-.02} 0.01 .04"/>
       <geometry>
-        <box size="${width} .02 .08"/>
+        <box size="${width-.04} .02 .08"/>
       </geometry>
     </collision>
   </link>
@@ -120,9 +120,9 @@
 
   <link name="right_bar">
     <visual>
-      <origin rpy="0 0 0" xyz="${width/2} 0.01 .04"/>
+      <origin rpy="0 0 0" xyz="${width/2-.02} 0.01 .04"/>
       <geometry>
-        <box size="${width} .02 .08"/>
+        <box size="${width-.04} .02 .08"/>
         <!-- <mesh filename="${long_bar_mesh}" scale=".001 .001 .001"/> -->
       </geometry>
       <material name="grey">
@@ -130,9 +130,9 @@
       </material>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="${width/2} 0.01 .04"/>
+      <origin rpy="0 0 0" xyz="${width/2-.02} 0.01 .04"/>
       <geometry>
-        <box size="${width} .02 .08"/>
+        <box size="${width-.04} .02 .08"/>
       </geometry>
     </collision>
   </link>

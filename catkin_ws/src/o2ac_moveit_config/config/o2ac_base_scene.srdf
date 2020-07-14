@@ -59,12 +59,12 @@
         <joint name="a_bot_wrist_3_joint" value="0" />
     </group_state>
     <group_state name="screw_ready" group="a_bot">
-        <joint name="a_bot_elbow_joint" value="1.996" />
-        <joint name="a_bot_shoulder_lift_joint" value="-1.9786" />
-        <joint name="a_bot_shoulder_pan_joint" value="1.57" />
-        <joint name="a_bot_wrist_1_joint" value="-0.0232" />
-        <joint name="a_bot_wrist_2_joint" value="1.57" />
-        <joint name="a_bot_wrist_3_joint" value="0" />
+        <joint name="a_bot_elbow_joint" value="2.050438" />
+        <joint name="a_bot_shoulder_lift_joint" value="-2.12091" />
+        <joint name="a_bot_shoulder_pan_joint" value="1.141092" />
+        <joint name="a_bot_wrist_1_joint" value="-2.16934" />
+        <joint name="a_bot_wrist_2_joint" value="-0.8542" />
+        <joint name="a_bot_wrist_3_joint" value="2.44546" />
     </group_state>
     <group_state name="screw_ready_back" group="a_bot">
         <joint name="a_bot_elbow_joint" value="1.5722" />
@@ -81,6 +81,14 @@
         <joint name="a_bot_wrist_1_joint" value="1.67" />
         <joint name="a_bot_wrist_2_joint" value="1.57" />
         <joint name="a_bot_wrist_3_joint" value="1.0046" />
+    </group_state>
+    <group_state name="horizontal_screw_ready_backside" group="a_bot">
+        <joint name="a_bot_elbow_joint" value="1.4194" />
+        <joint name="a_bot_shoulder_lift_joint" value="-1.58795" />
+        <joint name="a_bot_shoulder_pan_joint" value="2.10442" />
+        <joint name="a_bot_wrist_1_joint" value="-1.0816" />
+        <joint name="a_bot_wrist_2_joint" value="-2.05636" />
+        <joint name="a_bot_wrist_3_joint" value="2.1684" />
     </group_state>
     <group_state name="back" group="a_bot">
         <joint name="a_bot_elbow_joint" value="1" />
@@ -99,12 +107,12 @@
         <joint name="b_bot_wrist_3_joint" value="0" />
     </group_state>
     <group_state name="screw_ready" group="b_bot">
-        <joint name="b_bot_elbow_joint" value="1.996" />
-        <joint name="b_bot_shoulder_lift_joint" value="-1.9786" />
-        <joint name="b_bot_shoulder_pan_joint" value="1.57" />
-        <joint name="b_bot_wrist_1_joint" value="-0.0232" />
-        <joint name="b_bot_wrist_2_joint" value="1.57" />
-        <joint name="b_bot_wrist_3_joint" value="-3.1415" />
+        <joint name="b_bot_elbow_joint" value="2.01532" />
+        <joint name="b_bot_shoulder_lift_joint" value="-2.1281" />
+        <joint name="b_bot_shoulder_pan_joint" value="0.5415" />
+        <joint name="b_bot_wrist_1_joint" value="-2.1572" />
+        <joint name="b_bot_wrist_2_joint" value="-0.78613" />
+        <joint name="b_bot_wrist_3_joint" value="-3.86363" />
     </group_state>
     <group_state name="screw_ready_back" group="b_bot">
         <joint name="b_bot_elbow_joint" value="2.4472" />
@@ -115,12 +123,12 @@
         <joint name="b_bot_wrist_3_joint" value="-3.1415" />
     </group_state>
     <group_state name="horizontal_screw_ready" group="b_bot">
-        <joint name="b_bot_elbow_joint" value="1.0935" />
-        <joint name="b_bot_shoulder_lift_joint" value="-1.0935" />
-        <joint name="b_bot_shoulder_pan_joint" value="1.6141" />
-        <joint name="b_bot_wrist_1_joint" value="1.57" />
-        <joint name="b_bot_wrist_2_joint" value="1.57" />
-        <joint name="b_bot_wrist_3_joint" value="-1.5794" />
+        <joint name="b_bot_elbow_joint" value="1.6849" />
+        <joint name="b_bot_shoulder_lift_joint" value="-1.5258" />
+        <joint name="b_bot_shoulder_pan_joint" value="1.7818" />
+        <joint name="b_bot_wrist_1_joint" value="-1.5867" />
+        <joint name="b_bot_wrist_2_joint" value="-2.0464" />
+        <joint name="b_bot_wrist_3_joint" value="1.8501" />
     </group_state>
     <group_state name="back" group="b_bot">
         <joint name="b_bot_elbow_joint" value="1" />
@@ -130,8 +138,12 @@
         <joint name="b_bot_wrist_2_joint" value="-1.57" />
         <joint name="b_bot_wrist_3_joint" value="0" />
     </group_state>
-    <group_state name="open" group="a_bot_robotiq_85" />
-    <group_state name="close" group="a_bot_robotiq_85" />
+    <group_state name="open" group="a_bot_robotiq_85" >
+        <joint name="a_bot_robotiq_85_left_knuckle_joint" value="0" />
+    </group_state>
+    <group_state name="close" group="a_bot_robotiq_85" >
+        <joint name="a_bot_robotiq_85_left_knuckle_joint" value="0.8028" />
+    </group_state>
     <group_state name="open" group="b_bot_robotiq_85">
         <joint name="b_bot_robotiq_85_left_knuckle_joint" value="0" />
     </group_state>
@@ -187,7 +199,7 @@
         <joint name="a_bot_wrist_3_joint" value="-2.272" />
     </group_state>
     <!--END EFFECTOR: Purpose: Represent information about an end effector.-->
-    <end_effector name="a_bot_tip" parent_link="a_bot_ee_link" group="a_bot_robotiq_140" parent_group="a_bot" />
+    <end_effector name="a_bot_tip" parent_link="a_bot_ee_link" group="a_bot_robotiq_85" parent_group="a_bot" />
     <end_effector name="b_bot_tip" parent_link="b_bot_ee_link" group="b_bot_robotiq_85" parent_group="b_bot" />
     <!--VIRTUAL JOINT: Purpose: this element defines a virtual joint between a robot link and an external frame of reference (considered fixed with respect to the robot)-->
     <virtual_joint name="world_to_o2ac" type="fixed" parent_frame="world" child_link="o2ac_ground" />
