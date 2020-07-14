@@ -16,6 +16,7 @@
         <joint name="a_bot_wrist_1_joint" />
         <joint name="a_bot_wrist_2_joint" />
         <joint name="a_bot_wrist_3_joint" />
+        <chain base_link="a_bot_base_link" tip_link="a_bot_robotiq_85_tip_link" />
     </group>
     <group name="b_bot">
         <joint name="b_bot_shoulder_pan_joint" />
@@ -26,7 +27,7 @@
         <joint name="b_bot_wrist_3_joint" />
         <chain base_link="b_bot_base_link" tip_link="b_bot_robotiq_85_tip_link" />
     </group>
-    <group name="a_bot_robotiq_140">
+    <group name="a_bot_robotiq_85">
         <joint name="a_bot_robotiq_85_left_inner_knuckle_joint" />
         <joint name="a_bot_robotiq_85_left_finger_tip_joint" />
         <joint name="a_bot_robotiq_85_left_knuckle_joint" />
@@ -129,8 +130,8 @@
         <joint name="b_bot_wrist_2_joint" value="-1.57" />
         <joint name="b_bot_wrist_3_joint" value="0" />
     </group_state>
-    <group_state name="open" group="a_bot_robotiq_140" />
-    <group_state name="close" group="a_bot_robotiq_140" />
+    <group_state name="open" group="a_bot_robotiq_85" />
+    <group_state name="close" group="a_bot_robotiq_85" />
     <group_state name="open" group="b_bot_robotiq_85">
         <joint name="b_bot_robotiq_85_left_knuckle_joint" value="0" />
     </group_state>
