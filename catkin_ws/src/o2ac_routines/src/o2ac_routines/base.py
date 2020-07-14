@@ -98,8 +98,10 @@ class O2ACBase(object):
     self.apply_planning_scene_diff = rospy.ServiceProxy('/apply_planning_scene', moveit_msgs.srv.ApplyPlanningScene)
     self.apply_planning_scene_diff.wait_for_service(5.0)
 
-    self.groups = {"a_bot":moveit_commander.MoveGroupCommander("a_bot"), "b_bot":moveit_commander.MoveGroupCommander("b_bot")}
-    self.gripper_action_clients = {"b_bot":actionlib.SimpleActionClient('/b_bot/gripper_action_controller', robotiq_msgs.msg.CModelCommandAction)}
+    self.groups = {"a_bot":moveit_commander.MoveGroupCommander("a_bot"), "b_bot":moveit_commander.MoveGroupCommander("b_bot"),
+      "a_bot_robotiq_85":moveit_commander.MoveGroupCommander("a_bot_robotiq_85"), "b_bot_robotiq_85":moveit_commander.MoveGroupCommander("b_bot_robotiq_85")}
+    self.gripper_action_clients = {"a_bot":actionlib.SimpleActionClient('/a_bot/gripper_action_controller', robotiq_msgs.msg.CModelCommandAction),
+      "b_bot":actionlib.SimpleActionClient('/b_bot/gripper_action_controller', robotiq_msgs.msg.CModelCommandAction)}
     
     self.pick_screw_client = actionlib.SimpleActionClient('/o2ac_skills/pick_screw', o2ac_msgs.msg.pickScrewAction)
     self.place_client = actionlib.SimpleActionClient('/o2ac_skills/place', o2ac_msgs.msg.placeAction)
@@ -204,8 +206,8 @@ class O2ACBase(object):
   def activate_ros_control_on_ur(self, robot="b_bot"):
     if not self.use_real_robot:
       return True
-    if robot is not "b_bot" and robot is not "a_bot":
-      rospy.logerr("Robot name was not found or the robot is not a UR!")
+    if not robot == "b_bot" and not robot == "a_bot":
+      rospy.logerr("Robot name '" + robot + "' was not found or the robot is not a UR!")
       return False
     
     # Check if URCap is already running on UR
@@ -730,7 +732,7 @@ class O2ACBase(object):
     spawn_objects(assembly_name, objects, poses, referece_frame)
     
 
-  def do_pick_action(self, object_name, grasp_parameter_location = '', lift_direction_reference_frame = '', lift_direction = []):
+  def do_plan_pick_action(self, object_name, grasp_parameter_location = '', lift_direction_reference_frame = '', lift_direction = []):
     goal = moveit_task_constructor_msgs.msg.PickObjectGoal()
     goal.object_name = object_name
     goal.grasp_parameter_location = grasp_parameter_location
