@@ -46,20 +46,62 @@ class O2ACCommon(O2ACBase):
   """
   def __init__(self):
     super(O2ACCommon, self).__init__()
+    self.rospack = rospkg.RosPack()
 
   ######## Higher-level routines used in both assembly and taskboard
 
-  def pick(self, object_name, grasp_parameter_location = '', lift_direction_reference_frame = '', lift_direction = [], speed=0.1):
+  def pick(self, object_name, grasp_parameter_location = '', lift_direction_reference_frame = '', lift_direction = [], speed=0.1, save_solution_to_file=''):
     """This function picks the item. It needs to be in the planning scene as a collision object."""
     result = self.do_pick_action(object_name, grasp_parameter_location, lift_direction_reference_frame, lift_direction)
     for solution in result.solution.sub_trajectory:
       scene_diff = solution.scene_diff
-      print(scene_diff.robot_state.attached_collision_objects)
       planning_scene_diff_req = moveit_msgs.srv.ApplyPlanningSceneRequest()
       planning_scene_diff_req.scene = scene_diff
-      self.apply_planning_scene_diff.call(planning_scene_diff_req)
+      # self.apply_planning_scene_diff.call(planning_scene_diff_req)
+
+    path = self.rospack.get_path('o2ac_routines')
+    path += '/MP_solutions/'
+    if result.success and not save_solution_to_file == '':
+      file = path + save_solution_to_file + '.yaml'
+      with open(file,'wr') as f:
+        yaml.dump(result, f, default_flow_style=False)
     # TODO: EXECUTION OF PICK PLAN?
     return result.success
+
+  def load_and_execute_MP_solution(self, solution_file, speed = 1.0):
+    success = False
+
+    if not solution_file == '':
+      # Load the solution
+      file = self.rospack.get_path('o2ac_routines') + '/MP_solutions/' + solution_file + '.yaml'
+      with open(file, 'r') as f:
+        result = yaml.load(f)
+      
+      # Execute the solution
+      if speed > 1.0:
+        speed = 1.0
+      if result.success:
+        for solution in result.solution.sub_trajectory:
+          if solution.trajectory.joint_trajectory.joint_names:
+            #  Joint names is not empty, this is stage that performs motion
+            robot_name = solution.trajectory.joint_trajectory.joint_names[0][:5]
+            arm_group = self.groups[robot_name]
+            hand_group = moveit_commander.MoveGroupCommander(robot_name + '_robotiq_85')
+            if len(solution.trajectory.joint_trajectory.joint_names) == 1:
+              # gripper motion
+              hand_closed_joint_values = hand_group.get_named_target_values('close')
+              hand_open_joint_values = hand_group.get_named_target_values('open')
+              if 0.01 > abs(hand_open_joint_values[solution.trajectory.joint_trajectory.joint_names[0]] - solution.trajectory.joint_trajectory.points[-1].positions[0]):
+                self.send_gripper_command(robot_name, 'open')
+              else:
+                self.send_gripper_command(robot_name, 'close', True)
+            else:
+              #robot motion
+              self.activate_ros_control_on_ur(robot_name)
+              plan = arm_group.retime_trajectory(self.robots.get_current_state(), solution.trajectory, speed)
+              plan_success = arm_group.execute(plan, wait=True)
+              success = success and plan_success
+              arm_group.stop()
 
   def pick_and_move_object_with_robot(self, item_name, item_target_pose, robot_name, speed=0.1):
     """This function picks the item and move it to the target pose.

@@ -154,8 +154,8 @@ class AssemblyClass(O2ACCommon):
 
   def pick_screw_tool(self):
     rospy.loginfo("======== PICK TASK ========")
-    # success = self.pick('panel_bearing')
-    success = self.pick('screw_tool_m3', 'tools', 'screw_tool_m3_pickup_link', [-1.0, 0.0, 0.0])
+    success = self.pick('panel_bearing', save_solution_to_file = 'pick')
+    # success = self.pick('screw_tool_m3', 'tools', 'screw_tool_m3_pickup_link', [-1.0, 0.0, 0.0])
     return success
 
   def pick_place_task(self):
@@ -261,6 +261,8 @@ if __name__ == '__main__':
         assy.pick_place_task()
       if i == '70':
         assy.pick_screw_tool()
+      if i == '71':
+        assy.load_and_execute_MP_solution('pick')
       elif i == '91':
         assy.subtask_g()  # Large plate
       elif i == '92':
