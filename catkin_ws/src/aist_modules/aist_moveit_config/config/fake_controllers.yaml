@@ -1,0 +1,22 @@
+controller_list:
+  - name: fake_a_bot_controller
+    joints:
+      - a_bot_shoulder_pan_joint
+      - a_bot_shoulder_lift_joint
+      - a_bot_elbow_joint
+      - a_bot_wrist_1_joint
+      - a_bot_wrist_2_joint
+      - a_bot_wrist_3_joint
+  - name: fake_b_bot_controller
+    joints:
+      - b_bot_shoulder_pan_joint
+      - b_bot_shoulder_lift_joint
+      - b_bot_elbow_joint
+      - b_bot_wrist_1_joint
+      - b_bot_wrist_2_joint
+      - b_bot_wrist_3_joint
+initial:  # Define initial robot poses.
+  - group: a_bot
+    pose: home
+  - group: b_bot
+    pose: home

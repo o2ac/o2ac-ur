@@ -73,7 +73,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	&& rm -rf /var/lib/apt/lists/*
 
 # Pin pip version to make build more deterministic
-RUN pip install --upgrade pip==9.0.1 
+RUN pip install --upgrade pip==9.0.1
 
 ################################################################################
 
@@ -88,6 +88,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	openssh-client \
 	python-catkin-tools \
 	python-tk \
+	unzip \
+	vim \
+	less \
+	usbutils \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -150,7 +154,7 @@ RUN code --install-extension ms-python.python --user-data-dir=/root/.vscode/ \
 	&& code --install-extension mhutchie.git-graph --user-data-dir=/root/.vscode/ \
 	&& code --install-extension ms-iot.vscode-ros --user-data-dir=/root/.vscode/ \
 	&& code --install-extension ajshort.msg --user-data-dir=/root/.vscode/
-				
+
 # Install Python linter as recommended by Python extension.
 RUN /usr/bin/python -m pip install -U \
 	pylint \
@@ -190,6 +194,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	librealsense2-dkms \
 	librealsense2-utils \
 	librealsense2-dev \
+	librealsense2-udev-rules \
 	librealsense2-dbg
 
 ################################################################################
@@ -307,6 +312,20 @@ WORKDIR /root/
 # Copy the helper scripts to the working directory.
 COPY ./docker/scripts/. /root/scripts/
 RUN chmod -R +x /root/scripts/*
+
+################################################################################
+
+# Install PhoXiControl
+RUN /root/scripts/install-phoxi-control.sh
+
+################################################################################
+
+# Install PhotoneoLocalizationSDK
+#RUN apt-get update && apt-get install -y --no-install-recommends \
+#	libssh2-1
+#RUN /root/scripts/install-photoneo-localization.sh
+
+################################################################################
 
 # Setup the Bash shell environment with '/root/.bashrc'.
 RUN cat /root/scripts/initialize-bash-shell.sh >> /root/.bashrc

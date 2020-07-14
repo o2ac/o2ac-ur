@@ -1,0 +1,5 @@
+---
+bool success
+string message
+geometry_msgs/TransformStamped eMc  # effector <- camera transformation
+geometry_msgs/TransformStamped wMo  # world    <- object transformation

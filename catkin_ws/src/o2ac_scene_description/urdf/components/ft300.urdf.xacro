@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<robot name="ft300" xmlns:xacro="http://wiki.ros.org/xacro">
+
+  <xacro:property name="ft300_radius" value="0.0375"/>
+  <xacro:property name="ft300_length" value="0.0360"/>
+
+  <xacro:macro name="ft300" params="prefix parent *origin">
+    <link name="${prefix}ft300_link">
+      <visual>
+        <origin xyz="${ft300_length} 0 0" rpy="${pi} ${pi/2} 0"/>
+	<geometry>
+          <mesh filename="package://o2ac_scene_description/meshes/ft300.stl" scale="0.001 0.001 0.001"/>
+	</geometry>
+	<material name="Black">
+	  <color rgba="0.2 0.2 0.2 1"/>
+	</material>
+      </visual>
+      <!-- <visual> -->
+      <!--   <origin xyz="${ft300_length/2} 0 0" rpy="0 ${pi/2} 0"/> -->
+      <!--   <geometry> -->
+      <!--     <cylinder length="${ft300_length}" radius="0.0375"/> -->
+      <!--   </geometry> -->
+      <!--   <material name="Black"> -->
+      <!--     <color rgba="0.2 0.2 0.2 1.0"/> -->
+      <!--   </material> -->
+      <!-- </visual> -->
+      <collision>
+        <origin xyz="${ft300_length/2} 0 0" rpy="0 ${pi/2} 0"/>
+        <geometry>
+          <cylinder length="${ft300_length}" radius="${ft300_radius}"/>
+        </geometry>
+      </collision>
+    </link>
+    <!-- Add the force sensor in front of the gripper. -->
+    <joint name="${prefix}ft300_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child  link="${prefix}ft300_link"/>
+      <xacro:insert_block name="origin"/>
+
+    </joint>
+
+    <link name="${prefix}ft300_flange_link"/>
+    <joint name="${prefix}ft300_flange_joint" type="fixed">
+      <parent link="${prefix}ft300_link"/>
+      <child  link="${prefix}ft300_flange_link"/>
+      <origin xyz="${ft300_length} 0 0" rpy="0 0 0"/>
+    </joint>
+
+    <link name="${prefix}ft300_wrench_link"/>
+    <joint name="${prefix}ft300_wrench_joint" type="fixed">
+      <parent link="${prefix}ft300_flange_link"/>
+      <child  link="${prefix}ft300_wrench_link"/>
+      <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
+    </joint>
+
+  </xacro:macro>
+</robot>

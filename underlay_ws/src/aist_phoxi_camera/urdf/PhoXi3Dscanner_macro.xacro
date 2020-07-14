@@ -1,0 +1,41 @@
+<?xml version="1.0" ?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+    <xacro:macro name = "PhoXi3Dscanner" params ="scanner_parent scanner_name *scanner_origin sensor_parent sensor_name *sensor_origin *visual *collision">
+        <joint name="${scanner_parent}_to_${scanner_name}_joint" type="fixed">
+            <parent link="${scanner_parent}"/>
+            <child link="${scanner_name}"/>
+            <xacro:insert_block name="scanner_origin" />
+        </joint>
+
+        <joint name="${sensor_parent}_to_${sensor_name}_joint" type="fixed">
+            <parent link="${sensor_parent}"/>
+            <child link="${sensor_name}"/>
+            <xacro:insert_block name="sensor_origin" />
+        </joint>
+
+        <link name="${scanner_name}">
+            <visual>
+                <!-- <origin xyz="0 0 0" rpy="0 1.5707 0" /> -->
+		<origin xyz="0 0 0" rpy="0 ${pi/2} ${pi}"/>
+                <geometry>
+                    <xacro:insert_block name="visual" />
+                </geometry>
+                <material name="">
+                    <color rgba="0.8 0.8 0.8 1"/>
+                </material>
+            </visual>
+
+            <collision>
+                <!-- <origin xyz="0 0 0" rpy="0 1.5707 0" /> -->
+		<origin xyz="0 0 0" rpy="0 ${pi/2} ${pi}"/>
+                <geometry>
+                    <xacro:insert_block name="collision" />
+                </geometry>
+            </collision>
+
+        </link>
+
+        <link name="${sensor_name}"/>
+
+    </xacro:macro>
+</robot>

@@ -1,0 +1,57 @@
+<title> </title>
+
+<a href = "../index.html">
+<IMG SRC="../home_motif.gif" ALIGN=bottom>
+</a>
+<a href = "index.html">
+<IMG SRC="../toc_motif.gif" ALIGN=bottom>
+</a>
+<a href = "chpt7.html">
+<IMG SRC="../previous_motif.gif" ALIGN=bottom>
+</a>
+<a>
+<IMG SRC="../next_motif.gif" ALIGN=bottom>
+</a>
+
+<hr>
+
+<h2> Chapter 8: Affine Consistency Check of Features</h2>
+
+During the tracking of features from one frame to the next frame errors can accumulate. 
+To detect potentially bad features, it is advisable to monitor, if the image signal in the window around the feature in the current frame is still similar to the image signal around the feature in the first frame. Because features are tracked over many frames the image content will be deformed perspectively. For the consistency check the simple translational mapping, which is used for the feature tracking from frame to frame, is often insufficient. Therefore the consistency check can be performed with a similarity or an affine mapping.
+<br>
+<IMG SRC="./kltaffine.gif" >
+<br>
+
+You turn on the consistency check of features by changing the tracking context parameter
+<br>
+<pre width=80>
+ int affineConsistencyCheck; 
+</pre> 
+You can choose different mappings:
+<br>
+<pre width=120>
+tc->affineConsistencyCheck = -1; /* don't evaluates the consistency (default) */
+tc->affineConsistencyCheck = 0;  /* evaluates the consistency of features with translation mapping */
+tc->affineConsistencyCheck = 1;  /* evaluates the consistency of features with similarity mapping */
+tc->affineConsistencyCheck = 2;  /* evaluates the consistency of features with affine mapping */
+</pre> 
+</p>
+
+
+
+<hr>
+
+<a href = "../index.html">
+<IMG SRC="../home_motif.gif" ALIGN=bottom>
+</a>
+<a href = "index.html">
+<IMG SRC="../toc_motif.gif" ALIGN=bottom>
+</a>
+<a href = "chpt7.html">
+<IMG SRC="../previous_motif.gif" ALIGN=bottom>
+</a>
+<a>
+<IMG SRC="../next_motif.gif" ALIGN=bottom>
+</a>
+

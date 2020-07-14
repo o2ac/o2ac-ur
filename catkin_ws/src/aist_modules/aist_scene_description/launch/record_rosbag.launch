@@ -1,0 +1,51 @@
+<launch>
+  <arg name="record_cameras"	default="false" />
+  <arg name="record_robots"	default="false" />
+  <arg name="record_limited"	default="true" />
+  <arg name="file_dir"
+       default="/$(find aist_scene_description)/../../bagfiles/" />
+
+ <node pkg="rosbag" type="record" name="rosbag_record_cams"
+       args="record -o /$(find aist_scene_description)/../../bagfiles/cameras
+	     /joint_states -e '/._bot_(in|out)side_camera/(.*)'" 
+       if="$(arg record_cameras)" />
+
+ <node pkg="rosbag" type="record" name="rosbag_record_robots"
+       args="record -o /$(find aist_scene_description)/../../bagfiles/robots
+	     /joint_states -e '/._bot/(.*)' -x '/._bot_(in|out)side_camera(.*)'"
+       if="$(arg record_robots)" />
+
+  <!-- publish RGB and D frames with 5Hz on /camera_throttled -->
+  <arg name="throttled_rate" default="2.0" />
+  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_1"
+	args="messages
+	      /b_bot_outside_camera/aligned_depth_to_color/image_raw/compressedDepth
+	      $(arg throttled_rate)
+	      /b_bot_outside_camera_throttled/aligned_depth_to_color/image_raw/compressedDepth">
+  </node>
+
+  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_2"
+	args="messages /b_bot_outside_camera/color/image_raw/compressed
+	      $(arg throttled_rate)
+	      /b_bot_outside_camera_throttled/color/image_raw/compressed">
+  </node>
+  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_3"
+	args="messages
+	      /a_bot_outside_camera/aligned_depth_to_color/image_raw/compressedDepth
+	      $(arg throttled_rate)
+	      /a_bot_outside_camera_throttled/aligned_depth_to_color/image_raw/compressedDepth">
+  </node>
+  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_4"
+	args="messages /a_bot_outside_camera/color/image_raw/compressed
+	      $(arg throttled_rate)
+	      /a_bot_outside_camera_throttled/color/image_raw/compressed">
+  </node>
+
+  <group if="$(arg record_limited)">
+    <!-- Subscribe to compressed throttled cam images and joint states only -->
+    <node pkg="rosbag" type="record" name="rosbag_record_throttled"
+          args="record -o /$(find aist_scene_description)/../../bagfiles/throttled /joint_states -e '/._bot_(in|out)side_camera_throttled/(.*)'"
+          if="$(arg record_limited)" />
+  </group>
+
+</launch>

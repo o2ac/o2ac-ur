@@ -1,0 +1,21 @@
+<?xml version="1.0" ?>
+<launch>
+
+  <arg name="camera_frame"	default="world"/>
+  <arg name="plcf_dir"		default="$(find aist_localization)/plcf"/>
+  <arg name="urdf_dir"
+       default="$(find o2ac_parts_description)/urdf/generated"/>
+
+  <rosparam command="load"
+	    file="$(find aist_localization)/config/models.yaml"/>
+
+  <include file="$(find aist_localization)/launch/run.launch">
+    <arg name="camera_frame"	value="$(arg camera_frame)"/>
+    <arg name="plcf_dir"	value="$(arg plcf_dir)"/>
+  </include>
+
+  <include file="$(find aist_model_spawner)/launch/test.launch">
+    <arg name="urdf_dir"	value="$(arg urdf_dir)"/>
+  </include>
+
+</launch>

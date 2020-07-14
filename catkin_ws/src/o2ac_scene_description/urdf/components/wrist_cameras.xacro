@@ -6,7 +6,7 @@
 <robot name="robotiq_85_gripper_o2ac" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
   <xacro:macro name="wrist_cameras" params="prefix parent">
-    
+
     <xacro:include filename="$(find o2ac_scene_description)/urdf/components/_sr305.urdf.xacro" />
       <!-- Add the holder and two SR305 cameras -->
     <xacro:property name="mount_mesh_file" value="package://o2ac_scene_description/meshes/sr305_mount.stl" />
@@ -27,7 +27,7 @@
         </material>
       </visual>
       <collision>
-        <origin rpy="0 0 0" xyz="-.01 0.0 .035"/>  
+        <origin rpy="0 0 0" xyz="-.01 0.0 .035"/>
         <geometry>
           <box size=".03 .15 .08"/>
         </geometry>
@@ -37,25 +37,25 @@
       <parent link="${parent}" />
       <child link = "${prefix}cam_mount" />
       <origin xyz="0.035 0.0 0.025" rpy="0 0 0"/>
-    </joint>    
-    
+    </joint>
+
     <link name="${prefix}inside_cam_link" />
     <joint name="${prefix}inside_cam_joint" type="fixed">
       <parent link="${parent}" />
       <child link="${prefix}inside_cam_link" />
       <origin xyz="0.026 0 0.0595" rpy="0 ${20.0*pi/180.0} 0" />
     </joint>
-    <xacro:sensor_sr305 prefix="${prefix}inside_cam_" parent="${prefix}inside_cam_link">
+    <xacro:sensor_sr305 prefix="${prefix}inside_" parent="${prefix}inside_cam_link">
       <origin xyz="0 0 0" rpy="0 0 0"/>
     </xacro:sensor_sr305>
-    
+
     <link name="${prefix}outside_cam_link" />
     <joint name="${prefix}outside_cam_joint" type="fixed">
       <parent link="${parent}" />
       <child link="${prefix}outside_cam_link" />
       <origin xyz="0.026 0 ${0.0595+.024}" rpy="0 ${-15.0*pi/180.0} 0" />
     </joint>
-    <xacro:sensor_sr305 prefix="${prefix}outside_cam_" parent="${prefix}outside_cam_link">
+    <xacro:sensor_sr305 prefix="${prefix}outside_" parent="${prefix}outside_cam_link">
       <origin xyz="0 0 0" rpy="0 0 0"/>
     </xacro:sensor_sr305>
 

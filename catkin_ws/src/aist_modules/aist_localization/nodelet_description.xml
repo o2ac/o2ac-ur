@@ -1,0 +1,8 @@
+<library path="lib/libaist_localization_nodelet">
+  <class name="aist_localization/aist_localization_nodelet"
+	 type="aist_localization::LocalizationNodelet"
+	 base_class_type="nodelet::Nodelet">
+    <description>
+    </description>
+  </class>
+</library>
