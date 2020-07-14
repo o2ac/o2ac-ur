@@ -134,6 +134,38 @@ class AssemblyClass(O2ACCommon):
     rospy.logerr("Subtask I not implemented yet")
     return False
 
+  def spawn_objects_for_demo(self):
+    objects = ['panel_motor', 'panel_bearing', 'motor', 'motor_pulley', 'bearing_housing',
+      'drive_shaft', 'end_cap', 'bearing_spacer', 'output_pulley', 'idler_spacer', 'idler_pulley', 'idler_pin']  # , 'base']
+    poses = [[0.02, -0.06, 0.001, 0.0, 0.0, -pi/2],
+      [0.12, 0.02, 0.001, 0.0, 0.0, pi],
+      [-0.09, -0.12, 0.001, pi/2, -pi/2, 0.0],
+      [-0.02, -0.16, 0.005, 0.0, -pi/2, 0.0],
+      [0.0, 0.0, 0.001, 0.0, pi/2, 0.0],
+      [-0.04, 0.0, 0.005, 0.0, 0.0, -pi],
+      [-0.1, -0.06, 0.001, 0.0, -pi/2, 0.0],
+      [-0.07, -0.06, 0.001, 0.0, -pi/2, 0.0],
+      [-0.02, -0.08, 0.005, 0.0, -pi/2, 0.0],
+      [-0.04, -0.03, 0.001, 0.0, -pi/2, 0.0],
+      [-0.05, -0.13, 0.001, 0.0, -pi/2, 0.0],
+      [-0.1, -0.03, 0.005, 0.0, 0.0, 0.0]]  # , [-0.1, 0.16, 0.001, pi/2, 0.0, 0.0]]
+    self.spawn_multiple_objects('wrs_assembly_1', ['base'], [[0.12, 0.2, 0.03, pi/2, 0.0, -pi/2]], 'attached_base_origin_link')
+    self.spawn_multiple_objects('wrs_assembly_1', objects, poses, 'tray_center')
+
+  def pick_screw_tool(self):
+    rospy.loginfo("======== PICK TASK ========")
+    success = self.pick('panel_bearing', save_solution_to_file = 'pick')
+    # success = self.pick('screw_tool_m3', 'tools', 'screw_tool_m3_pickup_link', [-1.0, 0.0, 0.0])
+    return success
+
+  def pick_place_task(self):
+    rospy.loginfo("======== PICK-PLACE TASK ========")
+    pose = geometry_msgs.msg.PoseStamped()
+    pose.header.frame_id = 'move_group/base/screw_hole_panel2_1'
+    pose.pose.orientation.w = 1
+    success = self.pick_place('b_bot', 'panel_bearing', pose, 'panel_bearing/bottom_screw_hole_aligner_1')
+    return success
+
   def real_assembly_task(self):
     self.start_task_timer()
     self.log_to_debug_monitor(text="Assembly", category="task")
@@ -184,6 +216,8 @@ if __name__ == '__main__':
       rospy.loginfo("Enter 2 to move the robots home to starting positions.")
       rospy.loginfo("Enter 30 to pick screw m3 from feeder with a_bot (31 for b_bot).")
       rospy.loginfo("Enter 40 to pick screw m4 from feeder with a_bot (41 for b_bot).")
+      rospy.loginfo("Enter 68 to spawn objects for testing pick-place task")
+      rospy.loginfo("Enter 69 to test pick-place task")
       rospy.loginfo("Enter 91-94 for subtasks (Large plate, motor plate, idler pin, motor).")
       rospy.loginfo("Enter 95-98 for subtasks (motor pulley, bearing+shaft, clamp pulley, belt).")
       rospy.loginfo("Enter START to start the task.")
@@ -221,6 +255,14 @@ if __name__ == '__main__':
         assy.go_to_named_pose("screw_pick_ready", "b_bot")
         assy.pick_screw_from_feeder("b_bot", screw_size=4, screw_number="auto")
         assy.go_to_named_pose("screw_pick_ready", "b_bot")
+      if i == '68':
+        assy.spawn_objects_for_demo()
+      if i == '69':
+        assy.pick_place_task()
+      if i == '70':
+        assy.pick_screw_tool()
+      if i == '71':
+        assy.load_and_execute_MP_solution('pick')
       elif i == '91':
         assy.subtask_g()  # Large plate
       elif i == '92':

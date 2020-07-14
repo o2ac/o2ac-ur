@@ -7,6 +7,7 @@ Panels:
         - /MotionPlanning1/Scene Robot1
         - /MotionPlanning1/Planning Request1
         - /MotionPlanning1/Planned Path1
+        - /TF1/Frames1
         - /Image1
       Splitter Ratio: 0.5462822318077087
     Tree Height: 328
@@ -17,6 +18,27 @@ Panels:
       - /Current View1
     Name: Views
     Splitter Ratio: 0.5
+  - Class: moveit_task_constructor/Motion Planning Tasks
+    Global Settings:
+      Task View Settings:
+        Task Expansion: All Expanded
+    Name: Motion Planning Tasks
+    Tasks View:
+      property_splitter:
+        - 813
+        - 0
+      solution_sorting:
+        column: 0
+        order: 1
+      solutions_splitter:
+        - 377
+        - 153
+      solutions_view_columns: ~
+      tasks_view_columns:
+        - 264
+        - 36
+        - 26
+        - 35
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -524,6 +546,10 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          b_bot_tool_intermediate_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           b_bot_upper_arm_link:
             Alpha: 1
             Show Axes: false
@@ -544,10 +570,6 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          b_bot_wrist_camera_helper_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
           back_bar:
             Alpha: 1
             Show Axes: false
@@ -623,6 +645,15 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          nut_holder:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          nut_holder_collar_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           nut_tool_m6_link:
             Alpha: 1
             Show Axes: false
@@ -635,31 +666,17 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          plunger_tool_holder:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          plunger_tool_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
           right_bar:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          screw_tool_holder:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          screw_tool_m3_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          screw_tool_m3_pickup_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          screw_tool_m4_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          screw_tool_m4_pickup_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -707,6 +724,15 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
+          washer_holder:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          washer_holder_collar_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           workplate:
             Alpha: 1
             Show Axes: false
@@ -743,7 +769,7 @@ Visualization Manager:
         Interactive Marker Size: 0.20000000298023224
         Joint Violation Color: 255; 0; 255
         Planning Group: a_bot
-        Query Goal State: true
+        Query Goal State: false
         Query Start State: false
         Show Workspace: false
         Start State Alpha: 1
@@ -1213,6 +1239,10 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          b_bot_tool_intermediate_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           b_bot_upper_arm_link:
             Alpha: 1
             Show Axes: false
@@ -1233,10 +1263,6 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          b_bot_wrist_camera_helper_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
           back_bar:
             Alpha: 1
             Show Axes: false
@@ -1312,6 +1338,15 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          nut_holder:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          nut_holder_collar_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           nut_tool_m6_link:
             Alpha: 1
             Show Axes: false
@@ -1324,6 +1359,16 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          plunger_tool_holder:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          plunger_tool_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
           right_bar:
             Alpha: 1
             Show Axes: false
@@ -1396,6 +1441,15 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
+          washer_holder:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          washer_holder_collar_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           workplate:
             Alpha: 1
             Show Axes: false
@@ -1409,9 +1463,25 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-        Robot Alpha: 1
+        Robot Alpha: 0.5
         Show Robot Collision: false
         Show Robot Visual: true
+        Use Fixed Robot Color: false
+        Value: ""
+      Robot Description: robot_description
+      Scene:
+        Attached Body Color: 150; 50; 150
+        Scene Alpha: 0.8999999761581421
+        Scene Color: 50; 230; 50
+        Value: true
+        Voxel Coloring: Z-Axis
+        Voxel Rendering: Occupied Voxels
+      Show Trail: false
+      State Display Time: 0.05 s
+      Task Solution Topic: /mtc_modules/solution
+      Tasks:
+        Task: 0
+      Trail Step Size: 1
       Value: true
       Velocity_Scaling_Factor: 0.1
     - Class: rviz/TF
