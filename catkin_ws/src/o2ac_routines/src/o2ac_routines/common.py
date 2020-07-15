@@ -50,9 +50,11 @@ class O2ACCommon(O2ACBase):
 
   ######## Higher-level routines used in both assembly and taskboard
 
-  def pick(self, object_name, grasp_parameter_location = '', lift_direction_reference_frame = '', lift_direction = [], speed=0.1, save_solution_to_file=''):
-    """This function picks the item. It needs to be in the planning scene as a collision object."""
-    result = self.do_plan_pick_action(object_name, grasp_parameter_location, lift_direction_reference_frame, lift_direction)
+  def pick(self, object_name, grasp_parameter_location = '', lift_direction_reference_frame = '', lift_direction = [], robot_name = '', save_solution_to_file=''):
+    """This function creates a motion-plan for picking the item referred to by 'object_name' input.
+    The item needs to be in the planning scene as a collision object.
+    The resulted motion-plan is stored in a file, if the name for the file (save_solution_to_file) is provided."""
+    result = self.do_plan_pick_action(object_name, grasp_parameter_location, lift_direction_reference_frame, lift_direction, robot_name)
     for solution in result.solution.sub_trajectory:
       scene_diff = solution.scene_diff
       planning_scene_diff_req = moveit_msgs.srv.ApplyPlanningSceneRequest()
@@ -62,58 +64,158 @@ class O2ACCommon(O2ACBase):
     path = self.rospack.get_path('o2ac_routines')
     path += '/MP_solutions/'
     if result.success and not save_solution_to_file == '':
-      file = path + save_solution_to_file + '.yaml'
-      with open(file,'wr') as f:
-        yaml.dump(result, f, default_flow_style=False)
+      file = path + save_solution_to_file
+      with open(file,'wb') as f:
+        pickle.dump(result, f)
       rospy.loginfo("Exiting pick() after writing solution")
-      return
     # TODO: EXECUTION OF PICK PLAN?
     return result.success
 
+  def place(self, object_name, object_target_pose, release_object_after_place = True, object_subframe_to_place = '', approach_place_direction_reference_frame = '', approach_place_direction = [], save_solution_to_file=''):
+    """This function creates a motion-plan for placing the item referred to by 'object_name' input.
+    The item needs to be in the planning scene as an attached collision object.
+    The resulted motion-plan is stored in a file, if the name for the file (save_solution_to_file) is provided."""
+    result = self.do_plan_place_action(object_name, object_target_pose, release_object_after_place, object_subframe_to_place, approach_place_direction_reference_frame, approach_place_direction)
+
+    path = self.rospack.get_path('o2ac_routines')
+    path += '/MP_solutions/'
+    if result.success and not save_solution_to_file == '':
+      file = path + save_solution_to_file
+      with open(file,'wb') as f:
+        pickle.dump(result, f)
+      rospy.loginfo("Exiting place() after writing solution")
+    # TODO: EXECUTION OF PLACE PLAN?
+    return result.success
+
+  def release(self, object_name, pose_to_retreat_to = '', save_solution_to_file=''):
+    """This function creates a motion-plan for releasing the placed item referred to by 'object_name' input.
+    The item needs to be in the planning scene as an attached collision object.
+    The resulted motion-plan is stored in a file, if the name for the file (save_solution_to_file) is provided."""
+    result = self.do_plan_release_action(object_name, pose_to_retreat_to)
+
+    path = self.rospack.get_path('o2ac_routines')
+    path += '/MP_solutions/'
+    if result.success and not save_solution_to_file == '':
+      file = path + save_solution_to_file
+      with open(file,'wb') as f:
+        pickle.dump(result, f)
+      rospy.loginfo("Exiting release() after writing solution")
+    # TODO: EXECUTION OF RELEASE PLAN?
+    return result.success
+
+  def pick_place(self, object_name, object_target_pose, grasp_parameter_location = '', release_object_after_place = True, object_subframe_to_place = '',
+    lift_direction_reference_frame = '', lift_direction = [], approach_place_direction_reference_frame = '', approach_place_direction = [], robot_names = '', force_robot_order = False, save_solution_to_file=''):
+    """This function creates a motion-plan for picking and then placing item referred to by 'object_name' input.
+    The item needs to be in the planning scene as a collision object.
+    If the 'object_subframe_to_place' input provided, this subframe will be positioned instead of the object.
+    The resulted motion-plan is stored in a file, if the name for the file (save_solution_to_file) is provided."""
+    result = self.do_plan_pickplace_action(object_name, object_target_pose, grasp_parameter_location, release_object_after_place, object_subframe_to_place, lift_direction_reference_frame, 
+      lift_direction, approach_place_direction_reference_frame, approach_place_direction, robot_names, force_robot_order)
+
+    path = self.rospack.get_path('o2ac_routines')
+    path += '/MP_solutions/'
+    if result.success and not save_solution_to_file == '':
+      file = path + save_solution_to_file
+      with open(file,'wb') as f:
+        pickle.dump(result, f)
+      rospy.loginfo("Exiting pickplace() after writing solution")
+    # TODO: EXECUTION OF PICKPLACE PLAN?
+    return result.success
+
+  def fasten(self, object_name, object_target_pose, object_subframe_to_place = '', approach_place_direction_reference_frame = '', approach_place_direction = [], save_solution_to_file=''):
+    """This function creates a motion-plan for moving an item referred to by 'object_name' input.
+    The item needs to be in the planning scene as an attached collision object.
+    The motion is: going to approach pose->approach->retreat.
+    The resulted motion-plan is stored in a file, if the name for the file (save_solution_to_file) is provided."""
+    result = self.do_plan_fastening_action(object_name, object_target_pose, object_subframe_to_place, approach_place_direction_reference_frame, approach_place_direction)
+
+    path = self.rospack.get_path('o2ac_routines')
+    path += '/MP_solutions/'
+    if result.success and not save_solution_to_file == '':
+      file = path + save_solution_to_file
+      with open(file,'wb') as f:
+        pickle.dump(result, f)
+      rospy.loginfo("Exiting fasten() after writing solution")
+    # TODO: EXECUTION OF PLACE PLAN?
+    return result.success
+
+  def subassembly(self, object_name, object_target_pose, object_subframe_to_place, save_solution_to_file=''):
+    """This function creates a motion=plan for the subassembly task of attaching the 'object' on the base plate
+    """
+    result = self.do_plan_subassembly_action(object_name, object_target_pose, object_subframe_to_place)
+
+    path = self.rospack.get_path('o2ac_routines')
+    path += '/MP_solutions/'
+    if result.success and not save_solution_to_file == '':
+      file = path + save_solution_to_file
+      with open(file,'wb') as f:
+        pickle.dump(result, f)
+      rospy.loginfo("Exiting fasten() after writing solution")
+    # TODO: EXECUTION OF PLACE PLAN?
+    return result.success
+  
   def load_MP_solution(self, solution_file):
+    """Load the result of a motion-plan from a file."""
     if not solution_file == '':
       # Load the solution
-      file = self.rospack.get_path('o2ac_routines') + '/MP_solutions/' + solution_file + '.yaml'
-      with open(file, 'r') as f:
-        result = yaml.load(f)
+      file = self.rospack.get_path('o2ac_routines') + '/MP_solutions/' + solution_file
+      with open(file, 'rb') as f:
+        result = pickle.load(f)
     return result
-  
+
   def execute_MP_solution(self, solution, speed = 1.0):
+    """Execute the result of a motion plan."""
     # Execute the solution
     success = False
     if speed > 1.0:
       speed = 1.0
+    start_state = self.robots.get_current_state()
+    attached_collision_objects = start_state.attached_collision_objects
     for solution in solution.sub_trajectory:
-      # If joint_names is empty, the stage performs no motions and can be skipped
-      if solution.trajectory.joint_trajectory.joint_names: 
-        robot_name = solution.trajectory.joint_trajectory.joint_names[0][:5]
-        arm_group = self.groups[robot_name]
-        if len(solution.trajectory.joint_trajectory.joint_names) == 1:  # If only one joint is in the group, it is the gripper
-          # Gripper motion
-          hand_group = self.groups[robot_name + '_robotiq_85']
-          hand_closed_joint_values = hand_group.get_named_target_values('close')
-          hand_open_joint_values = hand_group.get_named_target_values('open')
-          if 0.01 > abs(hand_open_joint_values[solution.trajectory.joint_trajectory.joint_names[0]] - solution.trajectory.joint_trajectory.points[-1].positions[0]):
-            self.send_gripper_command(robot_name, 'open')
-          else:
-            self.send_gripper_command(robot_name, 'close', True)
-        else:
-          # Robot motion
-          self.activate_ros_control_on_ur(robot_name)
-          plan = arm_group.retime_trajectory(self.robots.get_current_state(), solution.trajectory, speed)
-          plan_success = arm_group.execute(plan, wait=True)
-          success = success and plan_success
-      elif not solution.scene_diff.robot_state.attached_collision_objects == self.robots.get_current_state().attached_collision_objects:  # Update attached collision objects
-        if not self.robots.get_current_state().attached_collision_objects:
-          for attached_object in solution.scene_diff.robot_state.attached_collision_objects:
+      if solution.scene_diff.robot_state.joint_state.name:  # If the robot state is changed (robot moved, object attached/detached)
+        # Update attached collision objects
+        if not attached_collision_objects == solution.scene_diff.robot_state.attached_collision_objects:
+          coll_objs_to_detach = [collision_object for collision_object in attached_collision_objects if collision_object not in solution.scene_diff.robot_state.attached_collision_objects]
+          coll_objs_to_attach = [collision_object for collision_object in solution.scene_diff.robot_state.attached_collision_objects if collision_object not in attached_collision_objects]
+          for attached_object in coll_objs_to_attach:
+            print('Attaching object ' + attached_object.object.id)
             attached_object_name = attached_object.object.id
             attach_to = attached_object.link_name[:5]
-            self.groups[robot_name].attach_object(attached_object_name, attached_object.link_name, touch_links=  # MODIFY attach_tool in base.py to attach_object ++ ROBOT NAME???
+            self.groups[attach_to].attach_object(attached_object_name, attached_object.link_name, touch_links=  # MODIFY attach_tool in base.py to attach_object ++ ROBOT NAME???
               [attach_to + "_robotiq_85_tip_link", 
               attach_to + "_robotiq_85_left_finger_tip_link", 
               attach_to + "_robotiq_85_left_inner_knuckle_link", 
               attach_to + "_robotiq_85_right_finger_tip_link", 
               attach_to + "_robotiq_85_right_inner_knuckle_link"])
+            attached_collision_objects.append(attached_object)
+          for attached_object in coll_objs_to_detach:
+            print('Detaching object ' + attached_object.object.id)
+            attached_object_name = attached_object.object.id
+            attach_to = attached_object.link_name[:5]
+            self.groups[attach_to].detach_object(attached_object_name)
+          attached_collision_objects = [attached_collision_object for attached_collision_object in attached_collision_objects if attached_collision_object not in coll_objs_to_detach]
+
+        # If joint_names is empty, the stage performs no motions and can be skipped
+        if solution.trajectory.joint_trajectory.joint_names: 
+          robot_name = solution.trajectory.joint_trajectory.joint_names[0][:5]
+          arm_group = self.groups[robot_name]
+          if len(solution.trajectory.joint_trajectory.joint_names) == 1:  # If only one joint is in the group, it is the gripper
+            # Gripper motion
+            hand_group = self.groups[robot_name + '_robotiq_85']
+            hand_closed_joint_values = hand_group.get_named_target_values('close')
+            hand_open_joint_values = hand_group.get_named_target_values('open')
+            if 0.01 > abs(hand_open_joint_values[solution.trajectory.joint_trajectory.joint_names[0]] - solution.trajectory.joint_trajectory.points[-1].positions[0]):
+              self.send_gripper_command(robot_name, 'open')
+            else:
+              self.send_gripper_command(robot_name, 'close', True)
+          else:
+            raw_input()
+            # Robot motion
+            self.activate_ros_control_on_ur(robot_name)
+            plan = arm_group.retime_trajectory(self.robots.get_current_state(), solution.trajectory, speed)
+            arm_group.set_max_velocity_scaling_factor(speed)
+            plan_success = arm_group.execute(plan, wait=True)
+            success = success and plan_success
     return True
 
   def pick_and_move_object_with_robot(self, item_name, item_target_pose, robot_name, speed=0.1):
@@ -121,40 +223,6 @@ class O2ACCommon(O2ACBase):
     It needs to be in the planning scene as a collision object."""
     # TODO: Implement this with MTC
     success = False
-    return success
-
-  def pick_place(self, robot_name, object_name, object_target_pose, object_subframe_to_place, speed = 1.0):
-    """This function picks the object and places its subframe 'object_subframe_to_place' at 'object_target_pose'
-    using the robot referred to by 'robot_name'
-    """
-    result = self.do_pickplace_action(robot_name, object_name, object_target_pose, object_subframe_to_place)
-    success = False
-    if speed > 1.0:
-      speed = 1.0
-    if result.success:
-      # Execute pick-place task
-      success = True
-      i = 0
-      for solution in result.solution.sub_trajectory:
-        if solution.trajectory.joint_trajectory.joint_names: 
-          #  Joint names is not empty, this is stage that performs motion
-          if len(solution.trajectory.joint_trajectory.joint_names) == 1:
-            # gripper motion
-            if i == 1:
-              self.send_gripper_command(robot_name, 'close', True)
-            else:
-              self.send_gripper_command(robot_name, 'open')
-          else:
-            #robot motion
-            self.activate_ros_control_on_ur(robot_name)
-            group = self.groups[robot_name]
-            plan = group.retime_trajectory(self.robots.get_current_state(), solution.trajectory, speed)
-            plan_success = group.execute(plan, wait=True)
-            success = success and plan_success
-            group.stop()
-    else:
-      rospy.logwarn("Planning pick-place task failed")
-      success = False
     return success
   
   def look_for_item_in_tray(self, item_name, robot_name):

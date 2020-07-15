@@ -44,6 +44,7 @@ import tf
 import actionlib
 from math import *
 import yaml
+import pickle
 
 import moveit_commander
 import moveit_msgs.msg
@@ -80,7 +81,6 @@ class O2ACBase(object):
     moveit_commander.roscpp_initialize(sys.argv)
 
     self.listener = tf.TransformListener()
-    self.co_pub = rospy.Publisher('/collision_object', moveit_msgs.msg.CollisionObject, queue_size=100)
     self.use_real_robot = rospy.get_param("use_real_robot", False)
     self.force_ur_script_linear_motion = False
     self.force_moveit_linear_motion = True
@@ -110,7 +110,11 @@ class O2ACBase(object):
     self.change_tool_client = actionlib.SimpleActionClient('/o2ac_skills/change_tool', o2ac_msgs.msg.changeToolAction)
 
     self.pick_planning_client = actionlib.SimpleActionClient('/pick_planning', moveit_task_constructor_msgs.msg.PickObjectAction)
-    self.pick_place_planning_client = actionlib.SimpleActionClient('/pick_place_planning_q', moveit_task_constructor_msgs.msg.PickPlacePlanningAction)
+    self.place_planning_client = actionlib.SimpleActionClient('/place_planning', moveit_task_constructor_msgs.msg.PlaceObjectAction)
+    self.release_planning_client = actionlib.SimpleActionClient('/release_planning', moveit_task_constructor_msgs.msg.ReleaseObjectAction)
+    self.pickplace_planning_client = actionlib.SimpleActionClient('/pick_place_planning', moveit_task_constructor_msgs.msg.PickPlaceWithRegraspAction)
+    self.fastening_planning_client = actionlib.SimpleActionClient('/fastening_planning', moveit_task_constructor_msgs.msg.PlaceObjectAction)
+    self.sub_assembly_planning_client = actionlib.SimpleActionClient('/sub_assembly_planning', moveit_task_constructor_msgs.msg.PickPlaceWithRegraspAction)
     
     self._suction_client = actionlib.SimpleActionClient('/suction_control', o2ac_msgs.msg.SuctionControlAction)
     self._fastening_tool_client = actionlib.SimpleActionClient('/screw_tool_control', o2ac_msgs.msg.FastenerGripperControlAction)
@@ -692,6 +696,7 @@ class O2ACBase(object):
   def upload_tool_grasps_to_param_server(self, tool_id):
     transformer = tf.Transformer(True, rospy.Duration(10.0))
 
+    rospy.sleep(0.2)
     (trans,rot) = self.listener.lookupTransform('/screw_tool_' + tool_id + '_pickup_link', '/move_group/screw_tool_' + tool_id, rospy.Time())
     collision_object_to_pickup_link = geometry_msgs.msg.TransformStamped()
     collision_object_to_pickup_link.header.frame_id = 'screw_tool_' + tool_id + '_pickup_link'
@@ -732,28 +737,80 @@ class O2ACBase(object):
     spawn_objects(assembly_name, objects, poses, referece_frame)
     
 
-  def do_plan_pick_action(self, object_name, grasp_parameter_location = '', lift_direction_reference_frame = '', lift_direction = []):
+  def do_plan_pick_action(self, object_name, grasp_parameter_location = '', lift_direction_reference_frame = '', lift_direction = [], robot_name = ''):
     goal = moveit_task_constructor_msgs.msg.PickObjectGoal()
     goal.object_name = object_name
     goal.grasp_parameter_location = grasp_parameter_location
     goal.lift_direction_reference_frame = lift_direction_reference_frame
     goal.lift_direction = lift_direction
+    goal.robot_name = robot_name
     rospy.loginfo("Sending pick planning goal.")
     self.pick_planning_client.send_goal(goal)
     self.pick_planning_client.wait_for_result()
     return self.pick_planning_client.get_result()
 
-  def do_pickplace_action(self, robot_name, object_name, object_target_pose, object_subframe_to_place):
-    goal = O2AC_Pick_Place_Action_Goal()
-    goal.robot = robot_name
-    goal.hand_group_name = robot_name + '_robotiq_85'
+  def do_plan_place_action(self, object_name, object_target_pose, release_object_after_place = True, object_subframe_to_place = '', approach_place_direction_reference_frame = '', approach_place_direction = []):
+    goal = moveit_task_constructor_msgs.msg.PlaceObjectGoal()
+    goal.object_name = object_name
+    goal.release_object_after_place = release_object_after_place
+    goal.object_target_pose = object_target_pose
+    goal.object_subframe_to_place = object_subframe_to_place
+    goal.approach_place_direction_reference_frame = approach_place_direction_reference_frame
+    goal.approach_place_direction = approach_place_direction
+    rospy.loginfo("Sending place planning goal.")
+    self.place_planning_client.send_goal(goal)
+    self.place_planning_client.wait_for_result()
+    return self.place_planning_client.get_result()
+
+  def do_plan_release_action(self, object_name, pose_to_retreat_to = ''):
+    goal = moveit_task_constructor_msgs.msg.ReleaseObjectGoal()
+    goal.object_name = object_name
+    goal.pose_to_retreat_to = pose_to_retreat_to
+    rospy.loginfo("Sending release planning goal.")
+    self.release_planning_client.send_goal(goal)
+    self.release_planning_client.wait_for_result()
+    return self.release_planning_client.get_result()
+
+  def do_plan_pickplace_action(self, object_name, object_target_pose, grasp_parameter_location = '', release_object_after_place = True, object_subframe_to_place = '',
+    lift_direction_reference_frame = '', lift_direction = [], approach_place_direction_reference_frame = '', approach_place_direction = [], robot_names = '', force_robot_order = False):
+    goal = moveit_task_constructor_msgs.msg.PickPlaceWithRegraspGoal()
+    goal.object_name = object_name
+    goal.object_target_pose = object_target_pose
+    goal.grasp_parameter_location = grasp_parameter_location
+    goal.release_object_after_place = release_object_after_place
+    goal.object_subframe_to_place = object_subframe_to_place
+    goal.lift_direction_reference_frame = lift_direction_reference_frame
+    goal.lift_direction = lift_direction
+    goal.approach_place_direction_reference_frame = approach_place_direction_reference_frame
+    goal.approach_place_direction = approach_place_direction
+    goal.robot_names = robot_names
+    goal.force_robot_order = force_robot_order
+    rospy.loginfo("Sending pickplace planning goal.")
+    self.pickplace_planning_client.send_goal(goal)
+    self.pickplace_planning_client.wait_for_result()
+    return self.pickplace_planning_client.get_result()
+
+  def do_plan_fastening_action(self, object_name, object_target_pose, object_subframe_to_place = '', approach_place_direction_reference_frame = '', approach_place_direction = []):
+    goal = moveit_task_constructor_msgs.msg.PlaceObjectGoal()
     goal.object_name = object_name
     goal.object_target_pose = object_target_pose
     goal.object_subframe_to_place = object_subframe_to_place
-    rospy.loginfo("Sending pick-place planning goal.")
-    self.pick_place_planning_client.send_goal(goal)
-    self.pick_place_planning_client.wait_for_result()
-    return self.pick_place_planning_client.get_result()
+    goal.approach_place_direction_reference_frame = approach_place_direction_reference_frame
+    goal.approach_place_direction = approach_place_direction
+    rospy.loginfo("Sending fastening planning goal.")
+    self.fastening_planning_client.send_goal(goal)
+    self.fastening_planning_client.wait_for_result()
+    return self.fastening_planning_client.get_result()
+
+  def do_plan_subassembly_action(self, object_name, object_target_pose, object_subframe_to_place):
+    goal = moveit_task_constructor_msgs.msg.PickPlaceWithRegraspGoal()
+    goal.object_name = object_name
+    goal.object_target_pose = object_target_pose
+    goal.object_subframe_to_place = object_subframe_to_place
+    rospy.loginfo("Sending sub-assembly planning goal.")
+    self.sub_assembly_planning_client.send_goal(goal)
+    self.sub_assembly_planning_client.wait_for_result()
+    return self.sub_assembly_planning_client.get_result()
 
   def set_motor(self, motor_name, direction = "tighten", wait=False, speed = 0, duration = 0):
     if not self.use_real_robot:
@@ -1006,9 +1063,7 @@ class O2ACBase(object):
   def spawn_tool(self, tool_name):
     if tool_name == "screw_tool_m3" or tool_name == "screw_tool_m4": 
       rospy.loginfo("Spawn: " + tool_name)
-      self.co_pub.publish(self.screw_tools[tool_name])
-      rospy.sleep(0.2)
-      # self.planning_scene_interface.add_object(self.screw_tools[tool_name])
+      self.planning_scene_interface.add_object(self.screw_tools[tool_name])
       return True
     else:
       rospy.logerr("Cannot spawn tool: " + tool_name)

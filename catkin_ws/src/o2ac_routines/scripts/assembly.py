@@ -152,10 +152,43 @@ class AssemblyClass(O2ACCommon):
     self.spawn_multiple_objects('wrs_assembly_1', ['base'], [[0.12, 0.2, 0.0, pi/2, 0.0, -pi/2]], 'attached_base_origin_link')
     self.spawn_multiple_objects('wrs_assembly_1', objects, poses, 'tray_center')
 
-  def pick_screw_tool(self):
+  def pick_screw_tool(self, screw_type):
     rospy.loginfo("======== PICK TASK ========")
-    success = self.pick('screw_tool_m3', 'tools', 'screw_tool_m3_pickup_link', [-1.0, 0.0, 0.0])
+    success = False
+    if screw_type in ['m3', 'm4']:
+      success = self.pick('screw_tool_' + screw_type, 'tools', 'screw_tool_m3_pickup_link', [-1.0, 0.0, 0.0], save_solution_to_file = 'pick_screw_tool')
     return success
+
+  def pick_screw(self, screw_type):
+    rospy.loginfo("======== FASTEN TASK ========")
+    success = False
+    tool = 'screw_tool_' + screw_type
+    screw_tool_tip_frame = tool + '/' + tool + '_tip'
+    screw_pickup_pose = geometry_msgs.msg.PoseStamped()
+    screw_pickup_pose.header.frame_id = screw_type + '_feeder_outlet_link'
+    screw_pickup_pose.pose.position.x = -0.01
+    screw_pickup_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(2*pi/3, 0, 0))
+    if screw_type in ['m3', 'm4']:
+      success = self.fasten('screw_tool_' + screw_type, screw_pickup_pose, object_subframe_to_place = screw_tool_tip_frame, save_solution_to_file = 'pick_screw')
+    return success
+
+  def place_object_in_tray_center(self, object_name):
+    rospy.loginfo("======== PLACE TASK ========")
+    target_pose = geometry_msgs.msg.PoseStamped()
+    target_pose.header.frame_id = 'tray_center'
+    target_pose.pose.position.x = -0.04
+    target_pose.pose.position.y = 0.08
+    target_pose.pose.orientation.w = 1
+    self.place(object_name, target_pose, save_solution_to_file = 'place_' + object_name)
+
+  def pickplace_l_panel(self):
+    rospy.loginfo("======== PICKPLACE TASK ========")
+
+    target_pose = geometry_msgs.msg.PoseStamped()
+    target_pose.header.frame_id = 'base/screw_hole_panel2_1'
+    target_pose.pose.orientation.w = 1
+
+    self.pick_place('panel_bearing', target_pose, object_subframe_to_place = 'panel_bearing/bottom_screw_hole_aligner_1', robot_names = [], force_robot_order = False, save_solution_to_file = 'pickplace')
 
   def pick_place_task(self):
     rospy.loginfo("======== PICK-PLACE TASK ========")
@@ -223,8 +256,8 @@ if __name__ == '__main__':
       rospy.loginfo("Enter x to exit.")
       i = raw_input()
       if i == '1':
-        assy.go_to_named_pose("home", "a_bot", speed=assy.speed_fastest, acceleration=assy.acc_fastest, force_ur_script=False)
-        assy.go_to_named_pose("home", "b_bot", speed=assy.speed_fastest, acceleration=assy.acc_fastest, force_ur_script=False)
+        assy.go_to_named_pose("home", "a_bot", speed=assy.speed_fastest, acceleration=assy.acc_fastest, force_ur_script=assy.use_real_robot)
+        assy.go_to_named_pose("home", "b_bot", speed=assy.speed_fastest, acceleration=assy.acc_fastest, force_ur_script=assy.use_real_robot)
       if i == '11':
         assy.go_to_named_pose("back", "c_bot", speed=assy.speed_fastest, acceleration=assy.acc_fastest, force_ur_script=assy.use_real_robot)
         assy.do_change_tool_action("b_bot", equip=True, screw_size=4)
@@ -256,14 +289,33 @@ if __name__ == '__main__':
       if i == '68':
         assy.spawn_objects_for_demo()
       if i == '69':
-        assy.pick_place_task()
+        assy.pick('panel_bearing', robot_name = '', save_solution_to_file = 'pick_panel_bearing')
       if i == '70':
-        assy.pick('panel_bearing', save_solution_to_file = 'pick')
+        assy.place_object_in_tray_center('panel_bearing')
       if i == '71':
-        mp_res = assy.load_MP_solution('pick')
-        assy.execute_MP_solution(mp_res.solution)
+        assy.pickplace_l_panel()
       if i == '72':
+        assy.pick_screw_tool('m4')
+      if i == '73':
+        assy.pick_screw('m4')
+      if i == '74':
+        mp_res = assy.load_MP_solution('subassembly')
+        assy.execute_MP_solution(mp_res.solution, speed = 0.2)
+      if i == '75':
         assy.open_gripper('b_bot')
+      if i == '76':
+        assy.close_gripper('b_bot')
+      if i == '77':
+        assy.open_gripper('a_bot')
+      if i == '78':
+        assy.close_gripper('a_bot')
+      if i == '79':
+        assy.release('panel_bearing', 'home', 'release_panel_bearing')
+      if i == '80':
+        target_pose = geometry_msgs.msg.PoseStamped()
+        target_pose.header.frame_id = 'base/screw_hole_panel2_1'
+        target_pose.pose.orientation.w = 1
+        assy.subassembly('panel_bearing', target_pose, 'panel_bearing/bottom_screw_hole_aligner_1', 'subassembly')
       elif i == '91':
         assy.subtask_g()  # Large plate
       elif i == '92':

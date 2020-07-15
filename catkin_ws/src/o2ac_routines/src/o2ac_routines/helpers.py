@@ -16,6 +16,7 @@ import o2ac_msgs.srv
 import moveit_task_constructor_msgs.msg
 
 from math import pi
+import moveit_commander
 from moveit_commander.conversions import pose_to_list
 from o2ac_assembly_handler.assy import AssyHandler
 
@@ -49,8 +50,9 @@ def upload_mtc_modules_initial_params():
   rospy.set_param('mtc_modules/support_surfaces', ['tray_center', 'screw_tool_holder_long'])
 
 def spawn_objects(assembly_name, object_names, object_poses, object_refrence_frame):
+  moveit_commander.roscpp_initialize(sys.argv)
   assy_handler = AssyHandler(assembly_name)
-  pub = rospy.Publisher('/collision_object', moveit_msgs.msg.CollisionObject, queue_size=100)
+  planning_scene_interface = moveit_commander.PlanningSceneInterface()
   transformer = tf.Transformer(True, rospy.Duration(10.0))
 
   for (object_name, object_pose) in zip(object_names, object_poses):
@@ -103,9 +105,7 @@ def spawn_objects(assembly_name, object_names, object_poses, object_refrence_fra
 
     collision_object.subframe_poses = subframe_poses
 
-    rospy.sleep(0.2)
-    pub.publish(collision_object)
-    rospy.sleep(0.2)
+    planning_scene_interface.add_object(collision_object)
 
 def is_program_running(topic_namespace, service_client):
   req = ur_dashboard_msgs.srv.IsProgramRunningRequest()
