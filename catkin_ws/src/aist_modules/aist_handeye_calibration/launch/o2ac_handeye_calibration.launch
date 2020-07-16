@@ -18,7 +18,7 @@
 	   file="$(find o2ac_scene_description
 		 )/launch/connect_real_robots.launch"/>
 
-  <!-- Launch MoveIt! -->
+  <!-- Turn on laser only for the camera to be calibrated -->
   <include file="$(find o2ac_moveit_config
   		 )/launch/o2ac_moveit_planning_execution.launch">
     <arg name="sim"	value="$(arg sim)"/>

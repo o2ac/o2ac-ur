@@ -9,7 +9,7 @@ This package provides a set of software for estimating a relative transformation
 
 The calibration is possible in the following two situations:
 
-- **eye_on_hand** -- Camera is mouted on the end-effector of the robot.
+- **eye_on_hand** -- Camera is mounted on the end-effector of the robot.
 # 
 
 1: Launch simulator
@@ -43,7 +43,7 @@ $ roslaunch aist_handeye_calibration publish.launch camera_name:=$CAMERA_NAME
 
 3-2: Launch services for calibration
 
-You need to specify `config:=real` when calibrating a real camera with a real robot. In addtion, you may need to specify marker ID according to the marker used in real situations. Since the marker ID attached to the top of workspace is 26 in OSX environment, you have to specify `marker_id:="26"` when calibrating `a_bot_camera` with `a_bot`:
+You need to specify `config:=real` when calibrating a real camera with a real robot. In addition, you may need to specify the marker ID according to the marker used in real situations. Since the marker ID attached to the top of workspace is 26 in OSX environment, you have to specify `marker_id:="26"` when calibrating `a_bot_camera` with `a_bot`:
 ```
 $ roslaunch aist_handeye_calibration o2ac_handeye_calibration.launch camera_name:=$CAMERA_NAME robot_name=$ROBOT_NAME config:=real [marker_id:="26"]
 ```
