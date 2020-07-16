@@ -63,11 +63,16 @@ class RealSenseMultiplexerClient(CameraMultiplexerClient):
             return True
 
     def __init__(self, server='camera_multiplexer'):
-        super(RealSenseMultiplexerClient, self).__init__(server)
-        self._cameras = dict(zip(self.camera_names,
+        try:
+            super(RealSenseMultiplexerClient, self).__init__(server)
+            self._cameras = dict(zip(self.camera_names,
                                  [RealSenseMultiplexerClient.RealSenseCamera(
                                      camera_name)
                                   for camera_name in self.camera_names]))
+        except:
+            rospy.logerr("Cameras failed to initialize. "
+            "Are the camera nodes started? Does /camera_multiplexer/camera_names"
+            "contain unused cameras? camera_names: " + str(self._camera_names))
         for camera in self._cameras.values():
             camera.enable_laser(False)
         self._cameras[self.active_camera()].enable_laser(True)

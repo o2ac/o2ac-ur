@@ -11,6 +11,8 @@
   <arg name="camera1_name"	value="a_bot_outside_camera"/>
   <arg name="camera2_name"	value="b_bot_inside_camera"/>
   <arg name="camera3_name"	value="b_bot_outside_camera"/>
+  <!-- <arg name="camera_names" value="$(arg camera0_name), $(arg camera1_name), $(arg camera2_name), $(arg camera3_name)"/> -->
+  <arg name="camera_names" value="$(arg camera3_name)"/>
   <arg name="camera0_serial_no"	value=""/>
   <arg name="camera1_serial_no"	value=""/>
   <arg name="camera2_serial_no" value="634206004668"/> 
@@ -96,7 +98,7 @@
   	pkg="aist_camera_multiplexer" type="aist_camera_multiplexer"
   	output="screen">
     <rosparam param="camera_names" subst_value="true">
-      [$(arg camera0_name), $(arg camera1_name), $(arg camera2_name), $(arg camera3_name)]
+      [$(arg camera_names)]
     </rosparam>
 
     <remap from="/camera_info0"	to="$(arg camera0_name)/color/camera_info"/>

@@ -21,20 +21,21 @@ $ roslaunch o2as_gazebo o2as_gazebo.launch
 
 2-1: Launch robots, cameras and the calibrator
 ```bash
-$ roslaunch aist_handeye_calibration o2ac_handeye_calibrate.launch camera_name:=$CAMERA_NAME [sim:=true]
+$ roslaunch aist_handeye_calibration o2ac_handeye_calibration.launch camera_name:=$CAMERA_NAME [sim:=true]
 ```
 Gazebo is launched if sim:=true is specified while real robots are brought up otherwise. After robots appear in the screen, open the RViz config file `aist_handeye_calibration.rviz`. Then the marker detector and the hand-eye calibrator start.
 
 2-2: Run calibration software in a different terminal
 ```bash
-$ rosrun aist_handeye_calibration run_handeye_calibration.py $CAMERA_NAME $ROBOT_NAME notrigger
+$ roslaunch aist_handeye_calibration run_calibration.launch camera_name:=$CAMERA_NAME
 ```
 
-2-3: Publish the estimated camera frames, loaded from the calibration files:
+The `marker_id` in the yaml file may need to be changed from `32` to `26` for the OSX environment. The estimated parameters are stored in `~/.ros/$CAMERA_NAME.yaml`.
+
+2-3: To use the calibrated camera frames, they need to be published from the calibration files:
 ```bash
-$ roslaunch aist_handeye_calibration publish.launch camera_name:=$CAMERA_NAME robot_name=$ROBOT_NAME
+$ roslaunch aist_handeye_calibration publish.launch camera_name:=$CAMERA_NAME
 ```
-Estimated parameters are stored in `~/.ros/easy_handeye/aist_handeye_calibration_$ROBOT_NAME_eye_on[base|hand].yaml`.
 
 3: Calibration with real camera and robot
 
@@ -44,7 +45,8 @@ Estimated parameters are stored in `~/.ros/easy_handeye/aist_handeye_calibration
 
 You need to specify `config:=real` when calibrating a real camera with a real robot. In addtion, you may need to specify marker ID according to the marker used in real situations. Since the marker ID attached to the top of workspace is 26 in OSX environment, you have to specify `marker_id:="26"` when calibrating `a_bot_camera` with `a_bot`:
 ```
-$ roslaunch aist_handeye_calibration o2as_calibrate.launch camera_name:=$CAMERA_NAME robot_name=$ROBOT_NAME config:=real [marker_id:="26"]
+$ roslaunch aist_handeye_calibration o2ac_handeye_calibration.launch camera_name:=$CAMERA_NAME robot_name=$ROBOT_NAME config:=real [marker_id:="26"]
 ```
+roslaunch aist_handeye_calibration o2ac_handeye_calibration.launch camera_name:="b_bot_outside_camera" robot_name="b_bot" config:=real marker_id:="26"
 
 3-3: The estimation results can be visualized and the estimated parameters can be obtained with the same procedure as 2-3.
