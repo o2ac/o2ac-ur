@@ -19,14 +19,14 @@
 
   <!-- robots -->
   <xacro:include filename="$(find ur_e_description)/urdf/ur5e.urdf.xacro" />
-  
+
   <!-- Scene items (trays, columns, tools, jigs, feeders...) -->
   <xacro:include filename="$(find o2ac_scene_description)/urdf/o2ac_environment.xacro" />
   <!-- <xacro:include filename="$(find flexwrist_experiment)/urdf/2020-01-experiment-scene.xacro" /> -->
   <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/taskboard_scene.xacro" /> -->
-  <xacro:include filename="$(find o2ac_scene_description)/urdf/assembly_scene.xacro" />
-  <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/calibration_scene.xacro" /> -->
-  
+  <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/assembly_scene.xacro" /> -->
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/calibration_scene.xacro" />
+
   <!-- Robot bases -->
   <!-- Putting these at height 0.0 makes them intersect with the ground, so they are elevated. -->
   <!-- There are some instabilities in Gazebo when the box is big, for some reason. -->
@@ -37,7 +37,7 @@
   <xacro:o2ac_base boxname="b_bot_base_smfl" parent="o2ac_ground">
     <origin xyz="${b_bot_x-.65/2} ${b_bot_y-.65/2} ${bots_z-.05}" rpy="0 0 0" />
   </xacro:o2ac_base>
-  
+
   <!-- Main workspace -->
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_box.xacro" />
   <xacro:property name="workplate_w" value="0.65"/>
@@ -45,7 +45,7 @@
   <xacro:property name="workplate_h" value="0.02"/>
   <xacro:property name="robot_mount_plate" value="0.005"/>  <!-- The plate holding the robots, resting on the alu frames -->
   <xacro:o2ac_box boxname="workplate" box_w="${workplate_w}" box_l="${workplate_l}" box_h="${workplate_h}" parent="o2ac_ground">
-    <origin xyz="${-workplate_w/2} ${-(workplate_l/2)} ${bots_z-robot_mount_plate}" rpy="0 0 0" />   
+    <origin xyz="${-workplate_w/2} ${-(workplate_l/2)} ${bots_z-robot_mount_plate}" rpy="0 0 0" />
   </xacro:o2ac_box>
   <link name="workspace_center" />
   <joint name="world_to_workspace" type="fixed">
@@ -97,10 +97,10 @@
   <!-- Spawn and attach robotiq 85 gripper (+ cameras) -->
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector_2F-140.urdf.xacro" />
   <xacro:o2ac_end_effector prefix="a_bot_" use_soft_wrist="false" use_cameras="true" parent = "a_bot_ee_link" />
-  
+
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector.urdf.xacro" />
   <xacro:o2ac_end_effector prefix="b_bot_" use_soft_wrist="false" use_cameras="true" parent = "b_bot_ee_link" />
-  
+
   <!-- The "world" link definition should be removed, but apparently it is necessary for Gazebo -->
   <link name="world" />
   <joint name="world_o2ac_joint" type="fixed">
@@ -108,5 +108,5 @@
     <child link="o2ac_ground" />
     <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
   </joint>
- 
+
 </robot>
