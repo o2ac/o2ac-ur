@@ -2,21 +2,20 @@
 <launch>
 
   <arg name="config"/>
+  <arg name="calib_file"/>
+
   <arg name="camera_name"/>
   <arg name="check"/>
   <arg name="use_dual_quaternion"/>
-
+  
   <arg name="camera_info_topic"/>
   <arg name="image_topic"/>
   <arg name="depth_topic"/>
 
-  <!-- Set file names for configuration and calibrated parameters -->
+  <!-- Set name of the configuration file -->
   <arg name="config_file"
        value="$(find aist_handeye_calibration
 	      )/config/$(arg config)/$(arg camera_name).yaml"/>
-  <arg name="calib_file"
-       value="$(env HOME
-	      )/.ros/aist_handeye_calibration/$(arg camera_name).yaml"/>
 
   <!-- Start ArUco -->
   <node name="aruco_detector"
@@ -29,7 +28,8 @@
 
   <!-- Publish dummy or calibrated camera pose -->
   <node name="$(anon handeye_publisher)"
-	pkg="aist_handeye_calibration" type="publish.py" output="screen">
+	pkg="aist_handeye_calibration" type="publish_calibration.py"
+	output="screen">
     <param name="dummy" value="$(eval not check)"/>
     <rosparam file="$(arg calib_file)" if="$(arg check)"/>
     <rosparam file="$(arg config_file)"/>

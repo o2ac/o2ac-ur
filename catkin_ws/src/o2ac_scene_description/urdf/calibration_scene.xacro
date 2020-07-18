@@ -12,7 +12,7 @@
 
   <xacro:ar_marker_70_5 prefix="base_"
 			parent="attached_base_origin_link"
-			marker_id="32"
+			marker_id="26"
 			thickness="0.001">
     <origin xyz="0.06 0.06 0.0005" rpy="0 0 0"/>
   </xacro:ar_marker_70_5>

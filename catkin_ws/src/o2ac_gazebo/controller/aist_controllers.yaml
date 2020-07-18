@@ -1,5 +1,5 @@
 a_bot:
-  scaled_pos_traj_controller:
+  scaled_pos_joint_traj_controller:
     type: position_controllers/JointTrajectoryController
     joints:
       - a_bot_shoulder_pan_joint
@@ -31,7 +31,7 @@ a_bot:
     stall_timeout: 1.0
 
 b_bot:
-  scaled_pos_traj_controller:
+  scaled_pos_joint_traj_controller:
     type: position_controllers/JointTrajectoryController
     joints:
       - b_bot_shoulder_pan_joint
