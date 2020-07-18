@@ -84,29 +84,30 @@ class HandEyeCalibrationRoutines(HandEyeCalibrationBaseRoutines):
         # Reset pose
         self.go_to_named_pose('home')
 
-        try:
-            if self._initpose:
-                self.move(self._initpose, True)
+        if self._initpose:
+            self.move(self._initpose, True)
 
-            # Collect samples over pre-defined poses
-            keyposes = self._keyposes
-            for i, keypose in enumerate(keyposes, 1):
-                print('\n*** Keypose [{}/{}]: Try! ***'
-                      .format(i, len(keyposes)))
-                if self._eye_on_hand:
-                    self.move_to(keypose, i, 1)
-                else:
-                    self.move_to_subposes(keypose, i)
-                print('*** Keypose [{}/{}]: Completed. ***'
-                      .format(i, len(keyposes)))
+        # Collect samples over pre-defined poses
+        keyposes = self._keyposes
+        for i, keypose in enumerate(keyposes, 1):
+            print('\n*** Keypose [{}/{}]: Try! ***'
+                  .format(i, len(keyposes)))
+            if self._eye_on_hand:
+                self.move_to(keypose, i, 1)
+            else:
+                self.move_to_subposes(keypose, i)
+            print('*** Keypose [{}/{}]: Completed. ***'
+                  .format(i, len(keyposes)))
 
-            if self.compute_calibration:
+        if self.compute_calibration:
+            try:
                 res = self.compute_calibration()
                 print(res.message)
-                res = self.save_calibration()
-                print(res.message)
-        except rospy.ROSException as ex:
-            rospy.logwarn(ex.message)
+                if res.success:
+                    res = self.save_calibration()
+                    print(res.message)
+            except rospy.ServiceException as e:
+                rospy.logerr('Service call failed: %s' % e)
 
         self.go_to_named_pose('home')
 
