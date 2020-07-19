@@ -2,8 +2,12 @@
   \file	 Calibrator.cpp
   \brief Calibrator node implementing a quick compute service, a compute service and 2 subscribers to world_effector_topic and camera_object_topic.
 */
+#define _BSD_SOURCE	// Add two fields, tm_gmtoff and tm_zone, to struct tm
+#define _XOPEN_SOURCE	// for putenv()
+
 #include <fstream>
 #include <sstream>
+#include <ctime>
 #include <cstdlib>	// for std::getenv()
 #include <sys/stat.h>	// for mkdir()
 #include <errno.h>
@@ -245,6 +249,12 @@ Calibrator::save_calibration(std_srvs::Trigger::Request&,
 		<< YAML::Key   << "qw"
 		<< YAML::Value << _eMc.transform.rotation.w
 		<< YAML::EndMap;
+
+	const auto	tval = time(nullptr);
+	const auto	tstr = ctime(&tmval);
+	tstr[strlen(tstr)-1] = '\0';
+	emitter << YAML::Key   << "calibration_date"
+		<< YAML::Value << tstr;
 
 	std::string	calib_file;
 	_nh.param<std::string>("calib_file", calib_file,
