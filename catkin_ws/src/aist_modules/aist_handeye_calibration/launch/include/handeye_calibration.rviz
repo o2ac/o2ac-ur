@@ -9,7 +9,7 @@ Panels:
         - /TF1/Frames1
         - /TF1/Tree1
       Splitter Ratio: 0.5402635335922241
-    Tree Height: 339
+    Tree Height: 600
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -321,7 +321,7 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          b_bot_ar_marker:
+          b_bot__coupling:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -355,11 +355,6 @@ Visualization Manager:
             Show Trail: false
             Value: true
           b_bot_forearm_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          b_bot_ft300_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -515,10 +510,6 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          b_bot_screw_tool_m6_tip_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
           b_bot_set_screw_tool_tip_link:
             Alpha: 1
             Show Axes: false
@@ -528,11 +519,11 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          b_bot_suction_tool_tip_link:
+          b_bot_tool0:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          b_bot_tool0:
+          b_bot_tool_intermediate_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -556,10 +547,6 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          b_bot_wrist_camera_helper_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
           back_bar:
             Alpha: 1
             Show Axes: false
@@ -586,6 +573,19 @@ Visualization Manager:
             Show Trail: false
             Value: true
           belt_tool_pickup_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          calibration_cone:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          calibration_cone_collar_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          calibration_cone_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -635,10 +635,24 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          nut_holder:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          nut_holder_collar_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          nut_holder_tip_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           nut_tool_m6_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           nut_tool_m6_pickup_link:
             Alpha: 1
             Show Axes: false
@@ -647,12 +661,31 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          plunger_tool_holder:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          plunger_tool_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          plunger_tool_pickup_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           right_bar:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          screw_tool_holder:
+          screw_tool_holder_long:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          screw_tool_holder_short:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -679,6 +712,7 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           set_screw_tool_pickup_link:
             Alpha: 1
             Show Axes: false
@@ -719,6 +753,19 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
+          washer_holder:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          washer_holder_collar_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          washer_holder_tip_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           workplate:
             Alpha: 1
             Show Axes: false
@@ -1010,7 +1057,7 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          b_bot_ar_marker:
+          b_bot__coupling:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -1044,11 +1091,6 @@ Visualization Manager:
             Show Trail: false
             Value: true
           b_bot_forearm_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          b_bot_ft300_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -1204,10 +1246,6 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          b_bot_screw_tool_m6_tip_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
           b_bot_set_screw_tool_tip_link:
             Alpha: 1
             Show Axes: false
@@ -1217,11 +1255,11 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          b_bot_suction_tool_tip_link:
+          b_bot_tool0:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          b_bot_tool0:
+          b_bot_tool_intermediate_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -1245,10 +1283,6 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          b_bot_wrist_camera_helper_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
           back_bar:
             Alpha: 1
             Show Axes: false
@@ -1275,6 +1309,19 @@ Visualization Manager:
             Show Trail: false
             Value: true
           belt_tool_pickup_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          calibration_cone:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          calibration_cone_collar_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          calibration_cone_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -1324,10 +1371,24 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          nut_holder:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          nut_holder_collar_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          nut_holder_tip_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           nut_tool_m6_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           nut_tool_m6_pickup_link:
             Alpha: 1
             Show Axes: false
@@ -1336,12 +1397,31 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          plunger_tool_holder:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          plunger_tool_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          plunger_tool_pickup_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           right_bar:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          screw_tool_holder:
+          screw_tool_holder_long:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          screw_tool_holder_short:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -1368,6 +1448,7 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           set_screw_tool_pickup_link:
             Alpha: 1
             Show Axes: false
@@ -1408,6 +1489,19 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
+          washer_holder:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          washer_holder_collar_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          washer_holder_tip_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           workplate:
             Alpha: 1
             Show Axes: false
@@ -1537,7 +1631,7 @@ Visualization Manager:
           Value: false
         attached_base_origin_link:
           Value: true
-        b_bot_ar_marker:
+        b_bot__coupling:
           Value: true
         b_bot_base:
           Value: false
@@ -1552,8 +1646,6 @@ Visualization Manager:
         b_bot_ee_link:
           Value: false
         b_bot_forearm_link:
-          Value: false
-        b_bot_ft300_link:
           Value: false
         b_bot_inside_cam_link:
           Value: true
@@ -1625,16 +1717,14 @@ Visualization Manager:
           Value: true
         b_bot_screw_tool_m4_tip_link:
           Value: true
-        b_bot_screw_tool_m6_tip_link:
-          Value: true
         b_bot_set_screw_tool_tip_link:
           Value: true
         b_bot_shoulder_link:
           Value: false
-        b_bot_suction_tool_tip_link:
-          Value: true
         b_bot_tool0:
           Value: false
+        b_bot_tool_intermediate_link:
+          Value: true
         b_bot_upper_arm_link:
           Value: false
         b_bot_wrist_1_link:
@@ -1643,8 +1733,6 @@ Visualization Manager:
           Value: false
         b_bot_wrist_3_link:
           Value: false
-        b_bot_wrist_camera_helper_link:
-          Value: true
         back_bar:
           Value: true
         base_ar_marker:
@@ -1657,7 +1745,13 @@ Visualization Manager:
           Value: true
         belt_tool_pickup_link:
           Value: true
-        calibrated_a_bot_outside_camera_color_optical_frame:
+        calibrated_a_bot_inside_camera_color_optical_frame:
+          Value: true
+        calibration_cone:
+          Value: true
+        calibration_cone_collar_link:
+          Value: true
+        calibration_cone_tip_link:
           Value: true
         front_bar:
           Value: true
@@ -1679,7 +1773,11 @@ Visualization Manager:
           Value: true
         m4_feeder_outlet_link:
           Value: true
-        marker_frame:
+        nut_holder:
+          Value: true
+        nut_holder_collar_link:
+          Value: true
+        nut_holder_tip_link:
           Value: true
         nut_tool_m6_link:
           Value: true
@@ -1687,9 +1785,17 @@ Visualization Manager:
           Value: true
         o2ac_ground:
           Value: true
+        plunger_tool_holder:
+          Value: true
+        plunger_tool_link:
+          Value: true
+        plunger_tool_pickup_link:
+          Value: true
         right_bar:
           Value: true
-        screw_tool_holder:
+        screw_tool_holder_long:
+          Value: true
+        screw_tool_holder_short:
           Value: true
         screw_tool_m3_link:
           Value: true
@@ -1718,6 +1824,12 @@ Visualization Manager:
         vertical_column_left:
           Value: true
         vertical_column_right:
+          Value: true
+        washer_holder:
+          Value: true
+        washer_holder_collar_link:
+          Value: true
+        washer_holder_tip_link:
           Value: true
         workplate:
           Value: true
@@ -1804,18 +1916,28 @@ Visualization Manager:
                                     {}
                                   a_bot_suction_tool_tip_link:
                                     {}
-                            calibrated_a_bot_outside_camera_color_optical_frame:
-                              marker_frame:
-                                {}
+                            calibrated_a_bot_inside_camera_color_optical_frame:
+                              {}
                           a_bot_tool0:
                             {}
             a_bot_base_smfl:
-              {}
+              nut_holder:
+                nut_holder_collar_link:
+                  nut_holder_tip_link:
+                    {}
+              washer_holder:
+                washer_holder_collar_link:
+                  washer_holder_tip_link:
+                    {}
             b_bot_base_link:
               b_bot_base:
                 belt_tool_holder:
                   belt_tool_link:
                     belt_tool_pickup_link:
+                      {}
+                plunger_tool_holder:
+                  plunger_tool_link:
+                    plunger_tool_pickup_link:
                       {}
               b_bot_shoulder_link:
                 b_bot_upper_arm_link:
@@ -1824,9 +1946,41 @@ Visualization Manager:
                       b_bot_wrist_2_link:
                         b_bot_wrist_3_link:
                           b_bot_ee_link:
-                            b_bot_ft300_link:
+                            b_bot__coupling:
                               {}
                             b_bot_robotiq_85_base_link:
+                              b_bot_cam_mount:
+                                {}
+                              b_bot_inside_cam_link:
+                                b_bot_inside_camera_connector_link:
+                                  b_bot_inside_camera_link:
+                                    b_bot_inside_camera_depth_frame:
+                                      b_bot_inside_camera_color_frame:
+                                        b_bot_inside_camera_color_optical_frame:
+                                          {}
+                                      b_bot_inside_camera_depth_optical_frame:
+                                        {}
+                                      b_bot_inside_camera_left_ir_frame:
+                                        b_bot_inside_camera_left_ir_optical_frame:
+                                          {}
+                                      b_bot_inside_camera_right_ir_frame:
+                                        b_bot_inside_camera_right_ir_optical_frame:
+                                          {}
+                              b_bot_outside_cam_link:
+                                b_bot_outside_camera_connector_link:
+                                  b_bot_outside_camera_link:
+                                    b_bot_outside_camera_depth_frame:
+                                      b_bot_outside_camera_color_frame:
+                                        b_bot_outside_camera_color_optical_frame:
+                                          {}
+                                      b_bot_outside_camera_depth_optical_frame:
+                                        {}
+                                      b_bot_outside_camera_left_ir_frame:
+                                        b_bot_outside_camera_left_ir_optical_frame:
+                                          {}
+                                      b_bot_outside_camera_right_ir_frame:
+                                        b_bot_outside_camera_right_ir_optical_frame:
+                                          {}
                               b_bot_robotiq_85_left_inner_knuckle_link:
                                 b_bot_robotiq_85_left_finger_tip_link:
                                   {}
@@ -1840,60 +1994,23 @@ Visualization Manager:
                                 b_bot_robotiq_85_right_finger_link:
                                   {}
                               b_bot_robotiq_85_tip_link:
-                                b_bot_ar_marker:
-                                  {}
-                                b_bot_nut_tool_m6_tip_link:
-                                  {}
-                                b_bot_screw_tool_m3_tip_link:
-                                  {}
-                                b_bot_screw_tool_m4_tip_link:
-                                  {}
-                                b_bot_screw_tool_m6_tip_link:
-                                  {}
                                 b_bot_set_screw_tool_tip_link:
                                   {}
-                                b_bot_suction_tool_tip_link:
+                                b_bot_tool_intermediate_link:
                                   b_bot_dual_suction_gripper_pad_link:
                                     {}
-                              b_bot_wrist_camera_helper_link:
-                                b_bot_cam_mount:
-                                  {}
-                                b_bot_inside_cam_link:
-                                  b_bot_inside_camera_connector_link:
-                                    b_bot_inside_camera_link:
-                                      b_bot_inside_camera_depth_frame:
-                                        b_bot_inside_camera_color_frame:
-                                          b_bot_inside_camera_color_optical_frame:
-                                            {}
-                                        b_bot_inside_camera_depth_optical_frame:
-                                          {}
-                                        b_bot_inside_camera_left_ir_frame:
-                                          b_bot_inside_camera_left_ir_optical_frame:
-                                            {}
-                                        b_bot_inside_camera_right_ir_frame:
-                                          b_bot_inside_camera_right_ir_optical_frame:
-                                            {}
-                                b_bot_outside_cam_link:
-                                  b_bot_outside_camera_connector_link:
-                                    b_bot_outside_camera_link:
-                                      b_bot_outside_camera_depth_frame:
-                                        b_bot_outside_camera_color_frame:
-                                          b_bot_outside_camera_color_optical_frame:
-                                            {}
-                                        b_bot_outside_camera_depth_optical_frame:
-                                          {}
-                                        b_bot_outside_camera_left_ir_frame:
-                                          b_bot_outside_camera_left_ir_optical_frame:
-                                            {}
-                                        b_bot_outside_camera_right_ir_frame:
-                                          b_bot_outside_camera_right_ir_optical_frame:
-                                            {}
+                                  b_bot_nut_tool_m6_tip_link:
+                                    {}
+                                  b_bot_screw_tool_m3_tip_link:
+                                    {}
+                                  b_bot_screw_tool_m4_tip_link:
+                                    {}
                           b_bot_tool0:
                             {}
             b_bot_base_smfl:
               {}
             horizontal_column_for_tools:
-              screw_tool_holder:
+              screw_tool_holder_long:
                 nut_tool_m6_link:
                   nut_tool_m6_pickup_link:
                     {}
@@ -1903,6 +2020,7 @@ Visualization Manager:
                 screw_tool_m4_link:
                   screw_tool_m4_pickup_link:
                     {}
+              screw_tool_holder_short:
                 set_screw_tool_link:
                   set_screw_tool_pickup_link:
                     {}
@@ -1927,6 +2045,10 @@ Visualization Manager:
                   {}
                 right_bar:
                   {}
+              calibration_cone:
+                calibration_cone_collar_link:
+                  calibration_cone_tip_link:
+                    {}
               m3_feeder_link:
                 m3_feeder_inlet_link:
                   {}
@@ -2025,7 +2147,7 @@ Visualization Manager:
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 759
+  Height: 1532
   Hide Left Dock: false
   Hide Right Dock: true
   Image:
@@ -2034,7 +2156,7 @@ Window Geometry:
     collapsed: false
   MotionPlanning - Trajectory Slider:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd0000000400000000000002ad000002a1fc020000000dfb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afc0000003b000001a90000019e0100001afa000000000100000002fb000000100044006900730070006c0061007900730100000000ffffffff0000015600fffffffb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e00670100000000000002ad0000027400fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb000000120020002d00200053006c00690064006500720000000000ffffffff0000000000000000fb0000002e004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d00200053006c00690064006500720000000000ffffffff0000000000000000fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000003f00fffffffb0000000a0049006d00610067006501000001ea000000770000001600fffffffb0000000a0049006d0061006700650100000267000000750000001600ffffff000000010000010f000003ccfc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003a000003cc000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000074f0000003efc0100000002fb0000000800540069006d006500000000000000074f0000024400fffffffb0000000800540069006d00650100000000000004500000000000000000000002cb000002a100000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000004000000000000047c0000056afc020000000dfb0000001200530065006c0065006300740069006f006e00000001e10000009b000000ab00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afc00000069000002f1000002e001000034fa000000000100000002fb000000100044006900730070006c0061007900730100000000ffffffff000001dc00fffffffb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e00670100000000000002ad0000047c00fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb000000120020002d00200053006c00690064006500720000000000ffffffff0000000000000000fb0000002e004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d00200053006c00690064006500720000000000ffffffff0000000000000000fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000007000fffffffb0000000a0049006d0061006700650100000366000001290000002100fffffffb0000000a0049006d006100670065010000049b000001380000002100ffffff000000010000010f000003ccfc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003a000003cc0000012300fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000074f0000003efc0100000002fb0000000800540069006d006500000000000000074f0000045300fffffffb0000000800540069006d006501000000000000045000000000000000000000069b0000056a00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -2043,6 +2165,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: true
-  Width: 1406
+  Width: 2851
   X: 346
-  Y: 103
+  Y: 55
