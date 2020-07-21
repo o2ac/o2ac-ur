@@ -2,9 +2,6 @@
   \file	 Calibrator.cpp
   \brief Calibrator node implementing a quick compute service, a compute service and 2 subscribers to world_effector_topic and camera_object_topic.
 */
-#define _BSD_SOURCE	// Add two fields, tm_gmtoff and tm_zone, to struct tm
-#define _XOPEN_SOURCE	// for putenv()
-
 #include <fstream>
 #include <sstream>
 #include <ctime>
