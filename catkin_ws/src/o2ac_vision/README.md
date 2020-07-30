@@ -17,11 +17,11 @@ The part recognition node consists of two components. One is the object detectio
 
 ### Object detection
 Python scripts of Single Shot MultiBox Detector (SSD) are cloned from [ssd.pytorch](https://github.com/amdegroot/ssd.pytorch).
-This module detects multiple objects in tray. A list of bounding boxes, classes, and confidences are returned.
+This module detects multiple objects in a tray. A list of bounding boxes, classes, and confidences are returned.
 
 
 ### Pose estimation
-This component feeds the output of object detection, a list of bounding box and object class id, and estimates accurate pose (x,y,theta) of targets in image coordinate system.
+This component estimates accurate pose (x,y,theta) of **small targets** in image coordinate system. It feeds the output of the object detection module, a list of bounding box and object class id.
 
 You can try this component using the following commands:
 ```
