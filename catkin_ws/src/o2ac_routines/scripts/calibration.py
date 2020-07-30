@@ -423,6 +423,11 @@ class CalibrationClass(O2ACCommon):
     
     poses = []
     pose0 = geometry_msgs.msg.PoseStamped()
+    if robot_name == "a_bot":
+      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi/6, 0, 0))
+    else:
+      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-pi/6, 0, 0))
+    poses[1].pose.position.x = -.002
     self.toggle_collisions(collisions_on=False)
     pose0.header.frame_id = "m3_feeder_outlet_link"
     
@@ -447,6 +452,10 @@ class CalibrationClass(O2ACCommon):
     self.go_to_named_pose("feeder_pick_ready", robot_name)
     
     ps = geometry_msgs.msg.PoseStamped()
+    if robot_name == "a_bot": # TODO(felixvd): Is this orientation even considered in the screwpick action?
+      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi/6, 0, 0))
+    else:
+      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-pi/6, 0, 0))
     ps.header.frame_id = "m" + str(screw_size) + "_feeder_outlet_link"
     
     self.do_pick_screw_action(robot_name, ps, screw_size=screw_size, tool_name="screw_tool")
@@ -479,7 +488,10 @@ if __name__ == '__main__':
       rospy.loginfo("63: Go to assembly base plate with m4 screw tool (b_bot)")
       rospy.loginfo("65 (651/652): Go to belt tool pickup position (and equip/unequip it)")
       rospy.loginfo("66 (661/662): Go to plunger tool pickup position (and equip/unequip it)")
-      rospy.loginfo("691: Do screw action with b_bot on rightmost hole")
+      rospy.loginfo("671, 672: Calibrate screw feeders (a_bot, b_bot)")
+      rospy.loginfo("681, 682: Pick m4 screw from feeder (a_bot, b_bot)")
+      rospy.loginfo("691, 692: Pick m3 screw from feeder (a_bot, b_bot)")
+      rospy.loginfo("70: Do screw action with b_bot on rightmost hole")
       rospy.loginfo("x: Exit ")
       rospy.loginfo(" ")
       r = raw_input()
@@ -590,9 +602,19 @@ if __name__ == '__main__':
         c.do_change_tool_action("b_bot", equip=True, screw_size = 200)
       elif r == '63':
         c.screw_tool_test_assembly(robot_name="b_bot")
-      elif r == '67':
-        c.screw_pickup_test(robot_name="b_bot")
+      elif r == '671':
+        c.screw_feeder_calibration(robot_name="a_bot")
+      elif r == '672':
+        c.screw_feeder_calibration(robot_name="b_bot")
+      elif r == '681':
+        c.screw_feeder_pick_test(robot_name="a_bot", screw_size=4)
+      elif r == '682':
+        c.screw_feeder_pick_test(robot_name="b_bot", screw_size=4)
       elif r == '691':
+        c.screw_feeder_pick_test(robot_name="a_bot", screw_size=3)
+      elif r == '692':
+        c.screw_feeder_pick_test(robot_name="b_bot", screw_size=3)
+      elif r == '70':
         c.screw_action_test(robot_name="b_bot")
       elif r == 'x':
         break

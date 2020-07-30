@@ -667,8 +667,8 @@ class O2ACBase(object):
 
   def do_change_tool_action(self, robot_name, equip=True, 
                         screw_size = 4):
-    # self.equip_unequip_tool(robot_name, screw_tool_id, angle=0.0, equip_or_unequip=)
-    # TODO(felixvd): Fix this
+    # self.equip_unequip_tool(robot_name, screw_tool_id, angle=0.0, equip_or_unequip=equip)
+    # return
     ### DEPRECATED
     self.log_to_debug_monitor("Change tool", "operation")
     goal = o2ac_msgs.msg.changeToolGoal()
@@ -1095,13 +1095,13 @@ class O2ACBase(object):
     except:
       rospy.logerr(item_id_to_attach + " could not be detached! robot_name = " + robot_name)
 
-  def equip_tool(self, robot_name, tool_name, angle = 0.0):
-    return self.equip_unequip_tool(robot_name, tool_name, angle, "equip")
+  def equip_tool(self, robot_name, tool_name):
+    return self.equip_unequip_tool(robot_name, tool_name, "equip")
   
-  def unequip_tool(self, robot_name, tool_name, angle = 0.0):
-    return self.equip_unequip_tool(robot_name, tool_name, angle, "unequip")
+  def unequip_tool(self, robot_name, tool_name):
+    return self.equip_unequip_tool(robot_name, tool_name, "unequip")
 
-  def equip_unequip_tool(self, robot_name, tool_name, angle, equip_or_unequip):
+  def equip_unequip_tool(self, robot_name, tool_name, equip_or_unequip):
     # TODO(felixvd): Finish this function
     # Sanity check on the input instruction
     equip = (equip_or_unequip == "equip")
@@ -1124,10 +1124,19 @@ class O2ACBase(object):
     
     rospy.loginfo("Going to before_tool_pickup pose.")
     
-    if not self.go_to_named_pose("tool_pick_ready", robot_name):
-      rospy.logerr("Could not plan to before_tool_pickup joint state. Abort!")
-      return False
+    if tool_name == "screw_tool_m3" or tool_name == "screw_tool_m4" or tool_name == "nut_tool_m6" or tool_name == "set_screw_tool":
+      tool_holder_used = "back"
+    elif tool_name == "belt_tool" or tool_name == "plunger_tool":
+      tool_holder_used = "front"
     
+    if tool_holder_used == "back":
+      if not self.go_to_named_pose("tool_pick_ready", robot_name):
+        rospy.logerr("Could not plan to before_tool_pickup joint state. Abort!")
+        return False
+    elif tool_holder_used == "back":
+      if not self.go_to_named_pose("tool_pick_ready", robot_name):
+        rospy.logerr("Could not plan to before_tool_pickup joint state. Abort!")
+        return False
     # Set up poses
     ps_approach = geometry_msgs.msg.PoseStamped()
     ps_move_away = geometry_msgs.msg.PoseStamped()
@@ -1138,10 +1147,14 @@ class O2ACBase(object):
     rospy.loginfo("tool_name: " + tool_name)
     if tool_name == "screw_tool_m3" or tool_name == "screw_tool_m4":
       ps_approach.pose.position.x = -.05
-      ps_approach.pose.position.z = -.17
+      ps_approach.pose.position.z = -.008
     elif tool_name == "nut_tool_m6":
       ps_approach.pose.position.z = -.025
     elif tool_name == "set_screw_tool":
+      ps_approach.pose.position.z = -.025
+    elif tool_name == "belt_tool":
+      ps_approach.pose.position.z = -.025
+    elif tool_name == "plunger_tool":
       ps_approach.pose.position.z = -.025
     else:
       rospy.logerr(tool_name, " is not implemented!")
@@ -1150,7 +1163,7 @@ class O2ACBase(object):
     # Go to named pose, then approach
     self.go_to_named_pose("tool_pick_ready", robot_name)
 
-    ps_approach.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi, 0, 0))
+    ps_approach.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, -pi/6, 0))
     ps_move_away = copy.deepcopy(ps_approach)
 
     # Define pickup pose

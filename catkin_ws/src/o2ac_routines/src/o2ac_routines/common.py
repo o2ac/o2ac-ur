@@ -458,9 +458,7 @@ class O2ACCommon(O2ACBase):
     attempt = 0
     screw_picked = False
     while attempt < attempts:
-      self.set_feeder_power(False)
       self.do_pick_screw_action("b_bot", pose_feeder, screw_size = screw_size, use_complex_planning = True, tool_name = "screw_tool")
-      self.set_feeder_power(True)
       bool_msg = Bool()
       try:
         bool_msg = rospy.wait_for_message("/screw_tool_m" + str(screw_size) + "/screw_suctioned", Bool, 1.0)
@@ -482,16 +480,28 @@ class O2ACCommon(O2ACBase):
     Use this command to equip: do_change_tool_action(self, "b_bot", equip=True, screw_size = 66)"""
     rospy.logerr("Not implemented yet")
     return False
+    
+    self.go_to_named_pose("home", "a_bot", speed=3.0, acceleration=3.0, force_ur_script=self.use_real_robot)
+    self.go_to_named_pose("nut_pick_ready", "a_bot", speed=1.0, acceleration=1.0, force_ur_script=self.use_real_robot)
+
+    nut_pose = geometry_msgs.msg.PoseStamped()
+    nut_pose.header.frame_id = "nut_holder_collar_link"
+    nut_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi/2, 0, 0))
     approach_pose = copy.deepcopy(nut_pose)
-    approach_pose.pose.position.z += .02  # Assumes that z points upward
-    self.go_to_pose_goal(robot_name, approach_pose, speed=self.speed_fast, move_lin = True, end_effector_link=end_effector_link)
-    spiral_axis = "Y"
-    push_direction = "Z+"
-    self.do_linear_push(robot_name, 10, direction=push_direction, wait = True)
+    approach_pose.pose.position.x -= .03
+    self.go_to_pose_goal(robot_name, approach_pose, speed=self.speed_fast, move_lin = True, end_effector_link="a_bot_nut_tool_m6_link")
+    # spiral_axis = "Y"
+    # push_direction = "Z+"
+    # self.do_linear_push(robot_name, 10, direction=push_direction, wait = True)
     self.set_motor("nut_tool_m6", direction="loosen", duration=10)
     self.horizontal_spiral_motion(robot_name, max_radius = .006, radius_increment = .02, spiral_axis=spiral_axis)
-    self.do_linear_push(robot_name, 10, direction=push_direction, wait = True)
+    self.go_to_pose_goal(robot_name, nut_pose, speed=.005, move_lin = True, end_effector_link="a_bot_nut_tool_m6_link")
+    rospy.sleep(3)
+    # self.do_linear_push(robot_name, 10, direction=push_direction, wait = True)
     self.go_to_pose_goal(robot_name, approach_pose, speed=.03, move_lin = True, end_effector_link=end_effector_link)
+
+  def move_camera_to_pose(self, pose_goal, robot_name="b_bot", camera_name="inside_camera"):
+    return self.go_to_pose_goal(robot_name, pose_goal, end_effector_link=robot_name+"_"+camera_name+"_color_optical_frame")
 
   def jigless_recenter(self, robot_carrying_the_item):
       pass

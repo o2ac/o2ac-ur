@@ -78,7 +78,7 @@
   <joint name="${feedername}_outlet_joint" type="fixed">
     <parent link="${feedername}_link"/>
     <child link="${feedername}_outlet_link"/>
-    <origin rpy="0.0 ${pi/2} 0.0" xyz="${length-.01} ${width/2} ${height/2}"/>
+    <origin rpy="0.0 ${pi/2} ${pi}" xyz="${length-.01} ${width/2} ${height/2}"/>
   </joint>
   <link name="${feedername}_outlet_link"/>
 

@@ -708,7 +708,7 @@ bool SkillServer::equipUnequipScrewTool(std::string robot_name, std::string scre
   // Define approach pose
   // z = 0 is at the holder surface, and z-axis of pickup_link points downwards!
   ps_approach.pose.position.x = -.06;
-  ps_approach.pose.position.z = -.017;
+  ps_approach.pose.position.z = -.008;
   ROS_INFO_STREAM("screw_tool_id: " << screw_tool_id);
   if (screw_tool_id == "nut_tool_m6")
     ps_approach.pose.position.z = -.025;
@@ -1149,21 +1149,16 @@ bool SkillServer::pickScrew(geometry_msgs::PoseStamped screw_head_pose, std::str
   // - Move up again slowly
   // - If the suction reports success, return true
   // - If not, try the same a few more times in nearby locations (spiral-search-like)
-  
-  // /// The block below is an attempt to put a helper transform into the scene, but too many issues occur with it.
-  // tf::Transform t;
-  // tf::Quaternion q(screw_head_pose.pose.orientation.x, screw_head_pose.pose.orientation.y, screw_head_pose.pose.orientation.z, screw_head_pose.pose.orientation.w);
-  // t.setOrigin(tf::Vector3(screw_head_pose.pose.position.x, screw_head_pose.pose.position.y, screw_head_pose.pose.position.z));
-  // t.setRotation(q);
-  // tfbroadcaster_.sendTransform(tf::StampedTransform(t, ros::Time::now(), screw_head_pose.header.frame_id, "screw_pick_frame_"));
-  // tflistener_.setTransform(tf::StampedTransform(t, ros::Time::now(), screw_head_pose.header.frame_id, "screw_pick_frame_"));
-  // ros::Duration(.5).sleep();
-  // geometry_msgs::PoseStamped screw_head_pose_;
-  // screw_head_pose_.header.frame_id = "screw_pick_frame_";
-  // screw_head_pose_.pose.orientation.w = 1.0;
+
+  // The frame needs to be the outlet_link of the screw feeder
   ROS_INFO_STREAM("Received pickScrew command.");
   
   geometry_msgs::PoseStamped above_screw_head_pose_ = screw_head_pose;
+  // TODO (felixvd): Test that this actually works
+  if (robot_name == "a_bot")
+    above_screw_head_pose_.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(M_PI/3, 0, 0);
+  else  // robot_name == "b_bot"
+    above_screw_head_pose_.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(-M_PI/3, 0, 0);
   ROS_INFO_STREAM("Moving close to screw.");
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
   above_screw_head_pose_.pose.position.x -= .01;
@@ -1184,14 +1179,8 @@ bool SkillServer::pickScrew(geometry_msgs::PoseStamped screw_head_pose, std::str
   double max_radius = .0025;
   double theta_incr = M_PI/3;
   double r, radius_increment;
-  if (robot_name == "c_bot") {
-    r=0.00015;
-    radius_increment = .0008;
-  }
-  else {
-    r=0.0003;
-    radius_increment = .001;
-  }
+  r=0.0002;
+  radius_increment = .001;
   double radius_inc_set = radius_increment / (2*M_PI / theta_incr);
   double theta=0;
   double RealRadius=0;
@@ -1201,8 +1190,6 @@ bool SkillServer::pickScrew(geometry_msgs::PoseStamped screw_head_pose, std::str
   setSuctionEjection(screw_tool_id, true);
   while (!screw_picked)
   {
-    // tflistener_.setTransform(tf::StampedTransform(t, ros::Time::now(), above_screw_head_pose_.header.frame_id, "screw_pick_frame_"));
-    // tfbroadcaster_.sendTransform(tf::StampedTransform(t, ros::Time::now(), above_screw_head_pose_.header.frame_id, "screw_pick_frame_"));
     sendFasteningToolCommand(fastening_tool_name, "loosen", false, 2.0);
 
     ROS_INFO_STREAM("Moving into screw to pick it up.");
@@ -1691,6 +1678,7 @@ void SkillServer::executeChangeTool(const o2ac_msgs::changeToolGoalConstPtr& goa
     screw_tool_id = "suction_tool";
   else if (goal->screw_size == 1)
     screw_tool_id = "set_screw_tool";
+
   bool success = equipUnequipScrewTool(goal->robot_name, screw_tool_id, equip_or_unequip);
   
   if (success) { changeToolActionServer_.setSucceeded(); }

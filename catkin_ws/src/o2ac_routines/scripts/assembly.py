@@ -212,7 +212,7 @@ class AssemblyClass(O2ACCommon):
     ## Equip screw tool for subtasks G, F
     self.go_to_named_pose("back", "c_bot", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
     self.do_change_tool_action("b_bot", equip=True, screw_size=4)
-    self.go_to_named_pose("screw_pick_ready", "b_bot", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
+    self.go_to_named_pose("feeder_pick_ready", "b_bot", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
 
     self.confirm_to_proceed("press enter to proceed to subtask_g")
     self.subtask_g()  # Large plate
@@ -256,36 +256,33 @@ if __name__ == '__main__':
       rospy.loginfo("Enter x to exit.")
       i = raw_input()
       if i == '1':
-        assy.go_to_named_pose("home", "a_bot", speed=assy.speed_fastest, acceleration=assy.acc_fastest, force_ur_script=assy.use_real_robot)
-        assy.go_to_named_pose("home", "b_bot", speed=assy.speed_fastest, acceleration=assy.acc_fastest, force_ur_script=assy.use_real_robot)
+        # speed=assy.speed_fastest, acceleration=assy.acc_fastest,
+        assy.go_to_named_pose("home", "a_bot", force_ur_script=False)
+        assy.go_to_named_pose("home", "b_bot", force_ur_script=False)
       if i == '11':
-        assy.go_to_named_pose("back", "c_bot", speed=assy.speed_fastest, acceleration=assy.acc_fastest, force_ur_script=assy.use_real_robot)
         assy.do_change_tool_action("b_bot", equip=True, screw_size=4)
       if i == '12':
-        assy.go_to_named_pose("back", "c_bot", speed=assy.speed_fastest, acceleration=assy.acc_fastest, force_ur_script=assy.use_real_robot)
         assy.do_change_tool_action("b_bot", equip=False, screw_size=4)
       if i == '13':
-        assy.go_to_named_pose("back", "c_bot", speed=assy.speed_fastest, acceleration=assy.acc_fastest, force_ur_script=assy.use_real_robot)
         assy.do_change_tool_action("b_bot", equip=True, screw_size=3)
       if i == '14':
-        assy.go_to_named_pose("back", "c_bot", speed=assy.speed_fastest, acceleration=assy.acc_fastest, force_ur_script=assy.use_real_robot)
         assy.do_change_tool_action("b_bot", equip=False, screw_size=3)
       if i == '30':
-        assy.go_to_named_pose("screw_pick_ready", "a_bot")
-        assy.pick_screw_from_feeder("a_bot", screw_size=3, screw_number="auto")
-        assy.go_to_named_pose("screw_pick_ready", "a_bot")
+        assy.go_to_named_pose("feeder_pick_ready", "a_bot")
+        assy.pick_screw_from_feeder("a_bot", screw_size=3)
+        assy.go_to_named_pose("feeder_pick_ready", "a_bot")
       if i == '31':
-        assy.go_to_named_pose("screw_pick_ready", "b_bot")
-        assy.pick_screw_from_feeder("b_bot", screw_size=3, screw_number="auto")
-        assy.go_to_named_pose("screw_pick_ready", "b_bot")
+        assy.go_to_named_pose("feeder_pick_ready", "b_bot")
+        assy.pick_screw_from_feeder("b_bot", screw_size=3)
+        assy.go_to_named_pose("feeder_pick_ready", "b_bot")
       if i == '40':
-        assy.go_to_named_pose("screw_pick_ready", "a_bot")
-        assy.pick_screw_from_feeder("a_bot", screw_size=4, screw_number="auto")
-        assy.go_to_named_pose("screw_pick_ready", "a_bot")
+        assy.go_to_named_pose("feeder_pick_ready", "a_bot")
+        assy.pick_screw_from_feeder("a_bot", screw_size=4)
+        assy.go_to_named_pose("feeder_pick_ready", "a_bot")
       if i == '41':
-        assy.go_to_named_pose("screw_pick_ready", "b_bot")
-        assy.pick_screw_from_feeder("b_bot", screw_size=4, screw_number="auto")
-        assy.go_to_named_pose("screw_pick_ready", "b_bot")
+        assy.go_to_named_pose("feeder_pick_ready", "b_bot")
+        assy.pick_screw_from_feeder("b_bot", screw_size=4)
+        assy.go_to_named_pose("feeder_pick_ready", "b_bot")
       if i == '68':
         assy.spawn_objects_for_demo()
       if i == '69':
