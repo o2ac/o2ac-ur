@@ -211,9 +211,9 @@ if __name__ == '__main__':
     assy.set_assembly()
     i = 1
     while i:
+      rospy.loginfo("Enter 1 to move the robots home.")
       rospy.loginfo("Enter 11 (12) to equip (unequip) m4 tool (b_bot).")
       rospy.loginfo("Enter 13 (14) to equip (unequip) m3 tool (b_bot).")
-      rospy.loginfo("Enter 2 to move the robots home to starting positions.")
       rospy.loginfo("Enter 30 to pick screw m3 from feeder with a_bot (31 for b_bot).")
       rospy.loginfo("Enter 40 to pick screw m4 from feeder with a_bot (41 for b_bot).")
       rospy.loginfo("Enter 68 to spawn objects for testing pick-place task")
@@ -223,6 +223,9 @@ if __name__ == '__main__':
       rospy.loginfo("Enter START to start the task.")
       rospy.loginfo("Enter x to exit.")
       i = raw_input()
+      if i == '1':
+        assy.go_to_named_pose("home", "a_bot", speed=assy.speed_fastest, acceleration=assy.acc_fastest, force_ur_script=False)
+        assy.go_to_named_pose("home", "b_bot", speed=assy.speed_fastest, acceleration=assy.acc_fastest, force_ur_script=False)
       if i == '11':
         assy.go_to_named_pose("back", "c_bot", speed=assy.speed_fastest, acceleration=assy.acc_fastest, force_ur_script=assy.use_real_robot)
         assy.do_change_tool_action("b_bot", equip=True, screw_size=4)
@@ -235,10 +238,6 @@ if __name__ == '__main__':
       if i == '14':
         assy.go_to_named_pose("back", "c_bot", speed=assy.speed_fastest, acceleration=assy.acc_fastest, force_ur_script=assy.use_real_robot)
         assy.do_change_tool_action("b_bot", equip=False, screw_size=3)
-      if i == '2':
-        assy.go_to_named_pose("back", "a_bot", speed=assy.speed_fastest, acceleration=assy.acc_fastest, force_ur_script=assy.use_real_robot)
-        assy.go_to_named_pose("home", "c_bot", speed=assy.speed_fastest, acceleration=assy.acc_fastest, force_ur_script=assy.use_real_robot)
-        assy.go_to_named_pose("home", "b_bot", speed=assy.speed_fastest, acceleration=assy.acc_fastest, force_ur_script=assy.use_real_robot)
       if i == '30':
         assy.go_to_named_pose("screw_pick_ready", "a_bot")
         assy.pick_screw_from_feeder("a_bot", screw_size=3, screw_number="auto")

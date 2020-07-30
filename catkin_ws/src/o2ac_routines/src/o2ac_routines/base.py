@@ -83,7 +83,7 @@ class O2ACBase(object):
     self.co_pub = rospy.Publisher('/collision_object', moveit_msgs.msg.CollisionObject, queue_size=100)
     self.use_real_robot = rospy.get_param("use_real_robot", False)
     self.force_ur_script_linear_motion = False
-    self.force_moveit_linear_motion = False
+    self.force_moveit_linear_motion = True
     self.disable_markers = True
 
     self.competition_mode = False   # Setting this to True disables confirmation dialogs etc., thus enabling uninterrupted automatic motion

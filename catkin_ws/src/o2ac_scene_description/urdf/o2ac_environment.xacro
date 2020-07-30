@@ -37,7 +37,7 @@
   <!-- Base fixture -->
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/base_fixture.xacro" />
   <xacro:base_fixture parent="workspace_center">
-    <origin xyz="-0.27 -.18 0" rpy="0 0 0" />   
+    <origin xyz="-0.294 -.18 0" rpy="0 0 0" />   
   </xacro:base_fixture> 
 
   <!-- Tray -->

@@ -1,0 +1,5 @@
+eye_on_hand: true
+parent: b_bot_ee_link
+child: calibrated_b_bot_outside_camera_color_optical_frame
+transform: {x: 0.03975740576884963, y: -0.0001831358152094009, z: 0.0840777582693094, qx: -0.4303040148646151, qy: 0.430782516977459, qz: -0.5610845231238364, qw: 0.5607575552490179}
+calibration_date: Mon Jul 20 12:46:27 2020

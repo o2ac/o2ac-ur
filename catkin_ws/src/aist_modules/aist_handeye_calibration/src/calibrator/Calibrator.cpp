@@ -4,6 +4,7 @@
 */
 #include <fstream>
 #include <sstream>
+#include <ctime>
 #include <cstdlib>	// for std::getenv()
 #include <sys/stat.h>	// for mkdir()
 #include <errno.h>
@@ -12,7 +13,7 @@
 #include "Calibrator.h"
 #include "HandeyeCalibration.h"
 
-#define DEBUG
+//#define DEBUG
 
 namespace aist_handeye_calibration
 {
@@ -246,10 +247,20 @@ Calibrator::save_calibration(std_srvs::Trigger::Request&,
 		<< YAML::Value << _eMc.transform.rotation.w
 		<< YAML::EndMap;
 
+	const auto	tval = time(nullptr);
+	const auto	tstr = ctime(&tval);
+	tstr[strlen(tstr)-1] = '\0';
+	emitter << YAML::Key   << "calibration_date"
+		<< YAML::Value << tstr;
+
+	emitter << YAML::EndMap;
+
+      // Read calibration file name from parameter server.
 	std::string	calib_file;
 	_nh.param<std::string>("calib_file", calib_file,
 			       getenv("HOME") + std::string("/.ros/aist_handeye_calibration/calib.yaml"));
 
+      // Open/create parent directory of the calibration file.
 	const auto	dir = calib_file.substr(0,
 						calib_file.find_last_of('/'));
 	struct stat	buf;
@@ -257,11 +268,13 @@ Calibrator::save_calibration(std_srvs::Trigger::Request&,
 	    throw std::runtime_error("cannot create " + dir + ": "
 						      + strerror(errno));
 
+      // Open calibration file.
 	std::ofstream	out(calib_file.c_str());
 	if (!out)
 	    throw std::runtime_error("cannot open " + calib_file + ": "
 						    + strerror(errno));
 
+      // Save calitration results.
 	out << emitter.c_str() << std::endl;
 
 	res.success = true;
