@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- This file launches all the vision and recognition nodes (but not the cameras) -->
+
+    <node name="ssd_test_server" pkg="o2ac_vision" type="ssd_test_server.py" output="screen" />
+    <node name="pose_estimation_test_server" pkg="o2ac_vision" type="pose_estimation_test_server.py" output="screen" />
+    <node name="belt_detection_server" pkg="o2ac_vision" type="belt_detection_test_server.py" output="screen" />
+    <node name="test_server" pkg="o2ac_vision" type="test_server.py" output="screen" />
+</launch>
