@@ -11,7 +11,9 @@
   <arg name="camera1_name"	value="a_bot_outside_camera"/>
   <arg name="camera2_name"	value="b_bot_inside_camera"/>
   <arg name="camera3_name"	value="b_bot_outside_camera"/>
+  <!--  -->
   <!-- <arg name="camera_names" value="$(arg camera0_name), $(arg camera1_name), $(arg camera2_name), $(arg camera3_name)"/> -->
+  <!-- <arg name="camera_names" value="$(arg camera2_name), $(arg camera3_name)"/> -->
   <arg name="camera_names" value="$(arg camera3_name)"/>
   <arg name="camera0_serial_no"	value=""/>
   <arg name="camera1_serial_no"	value=""/>
@@ -20,6 +22,8 @@
   <arg name="camera_fps"	default="10"/>
   <arg name="camera_width"	default="640"/>
   <arg name="camera_height"	default="480"/>
+  <!-- <arg name="camera_color_width"	default="1920"/>
+  <arg name="camera_color_height"	default="1080"/> -->
   
   <!-- <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="camera"		    value="$(arg camera0_name)"/>
@@ -50,10 +54,11 @@
     <arg name="color_height"        value="$(arg camera_height)"/>
     <arg name="enable_infra1"       value="false"/>
     <arg name="enable_infra2"       value="false"/>
-  </include> -->
+  </include> 
   <include file="$(find o2ac_scene_description)/launch/publish_camera_calibration.launch">
     <arg name="camera_name"	value="$(arg camera1_name)"/>
   </include>
+  -->
 
   <!-- <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="camera"		    value="$(arg camera2_name)"/>
@@ -67,10 +72,11 @@
     <arg name="color_height"        value="$(arg camera_height)"/>
     <arg name="enable_infra1"       value="false"/>
     <arg name="enable_infra2"       value="false"/>
-  </include> -->
+  </include> 
   <include file="$(find o2ac_scene_description)/launch/publish_camera_calibration.launch">
     <arg name="camera_name"	value="$(arg camera2_name)"/>
   </include>
+  -->
 
   <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="camera"		    value="$(arg camera3_name)"/>
