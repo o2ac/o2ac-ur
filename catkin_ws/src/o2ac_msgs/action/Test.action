@@ -1,11 +1,11 @@
 # Request
 int64 id
 string tdir
-o2ac_msgs/SSDResult[] ssd_result_list
 
 ---
 # Result
 o2ac_msgs/poseEstimationResult[] pose_estimation_result_list
+int64[] belt_detection_result
 
 ---
 # Feedback

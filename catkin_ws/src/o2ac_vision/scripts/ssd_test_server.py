@@ -7,7 +7,7 @@ import actionlib
 import o2ac_msgs.msg
 import sys
 rospack = rospkg.RosPack()
-sys.path.append(rospack.get_path("ssd_pytorch"))
+sys.path.append(rospack.get_path("WRS_Dataset") + '/ssd.pytorch')
 
 import os
 import glob, json, time
@@ -25,10 +25,29 @@ from ssd import build_ssd
 from data import WRS2020_Detection, WRS_ROOT, AnnotationTransform
 from data import WRS2020_CLASSES as labels
 
-anno_root = "../../WRS_Dataset/Annotations/Far/Image-wise/*.json"
-fname_weight = "../ssd.pytorch/WRS_lr1e3_bs16.pth"
+o2ac_label = {
+    0:(1,"01-BASE"),
+    1:(3,"03-PLATE2"),
+    2:(2,"02-PLATE"),
+    3:(4,"04_37D-GEARMOTOR-50-70"),
+    4:(11,"11_MBRAC60-2-10"),
+    5:(7,"07_SBARB6200ZZ_30"),
+    6:(13,"13_MBGA30-2"),
+    7:(13,"13_MBGA30-2"),
+    8:(5,"05_MBRFA30-2-P6"),
+    9:(14,"14_BGPSL6-9-L30-F7"),
+    10:(8,"08_SSFHRT10-75-M4-FC55-G20"),
+    11:(6,"06_MBT4-400"),
+    12:(9,"09_EDCS10"),
+    13:(9,"09_EDCS10"),
+    14:(12,"12_CLBUS6-9-9.5"),
+    15:(10,"10_CLBPS10_17_4")
+}
+
+annotation_root = rospack.get_path("WRS_Dataset") + "/Annotations/Far/Image-wise/*.json"
+fname_weight = rospack.get_path("WRS_Dataset") + "/ssd.pytorch/WRS_lr1e3_bs16.pth"
 # アノテーションファイルの取得
-annos = glob.glob(anno_root)
+annotations = glob.glob(annotation_root)
 
 class SSDTestServer(object):
     def __init__(self):
@@ -36,13 +55,12 @@ class SSDTestServer(object):
         self.net = build_ssd('test', 300, 17)    # initialize SSD
         self.net.load_weights( fname_weight )
 
-        rospy.init_node('ssd_test_once_server_py')
+        rospy.init_node('ssd_test_server_py')
 
-        self.ssd_test_once_action_server = actionlib.SimpleActionServer("SSDTest", o2ac_msgs.msg.SSDTestAction, 
-            execute_cb = self.ssd_test_once_callback, auto_start = True)
+        self.ssd_test_action_server = actionlib.SimpleActionServer("SSD", o2ac_msgs.msg.SSDTestAction, 
+            execute_cb = self.ssd_test_callback, auto_start = True)
 
-        rospy.loginfo("ssd_test_once_server has started up!")
-
+        rospy.loginfo("ssd_test_server has started up!")
 
     def object_detection( self, input_image, threshold = 0.6 ):
         """
@@ -87,8 +105,7 @@ class SSDTestServer(object):
         
         return results
 
-
-    def ssd_test_once_callback(self, goal):
+    def ssd_test_callback(self, goal):
         action_result = o2ac_msgs.msg.SSDTestResult()
 
         """Get arguments"""
@@ -96,10 +113,10 @@ class SSDTestServer(object):
 
         # Load image
         cnt = 0
-        for anno in annos:
-            f = open( anno )
+        for annotation in annotations:
+            f = open( annotation )
             json_data = json.load( f )
-            #print(json_data)
+            # print(json_data)
             bboxes = json_data["bbox"]
             class_id = json_data["class_id"]
             input_image = cv2.imread( json_data["rgb_path"], cv2.IMREAD_COLOR )
@@ -125,6 +142,11 @@ class SSDTestServer(object):
             image_vis = cv2.rectangle( image_vis, (bbox[0],  bbox[1]), 
                                     (bbox[0]+bbox[2], bbox[1]+bbox[3]), 
                                     (0,255,0), 3 )
+            cv2.putText( image_vis, o2ac_label[res["class"]][1], 
+                       ( bbox[0], bbox[1]),1, 0.7, (255,255,255), 2, cv2.LINE_AA )
+            cv2.putText( image_vis, o2ac_label[res["class"]][1], 
+                       ( bbox[0], bbox[1]),1, 0.7, (255,0,0), 1, cv2.LINE_AA )
+
 
         cv2.imwrite("ssd_result.png", image_vis)
 
@@ -136,20 +158,17 @@ class SSDTestServer(object):
         ious, n_objects = difference( bboxes, class_id, results )
 
         # Sending result to action
-        SSDObjectDetectionResult_msg_list = []
         for j in range(len(results)):
-            SSDObjectDetectionResult_msg = o2ac_msgs.msg.SSDObjectDetectionResult()
-            SSDObjectDetectionResult_msg.bbox = results[j]["bbox"]
-            SSDObjectDetectionResult_msg.label = results[j]["class"]
-            SSDObjectDetectionResult_msg.confidence = results[j]["confidence"].item()
-            SSDObjectDetectionResult_msg_list.append(SSDObjectDetectionResult_msg)
+            results[j]["class"] = o2ac_label[results[j]["class"]][0]
+            SSDResult_msg = o2ac_msgs.msg.SSDResult()
+            results[j]["bbox"][2] = results[j]["bbox"][0] + results[j]["bbox"][2]
+            results[j]["bbox"][3] = results[j]["bbox"][1] + results[j]["bbox"][3]
+            SSDResult_msg.bbox = results[j]["bbox"]
+            SSDResult_msg.label = results[j]["class"]
+            SSDResult_msg.confidence = results[j]["confidence"].item()
+            action_result.ssd_result_list.append(SSDResult_msg)
 
-        SSDResult_msg = o2ac_msgs.msg.SSDResult()
-        SSDResult_msg.SSD_result = SSDObjectDetectionResult_msg_list
-        action_result.SSD_result= SSDResult_msg
-
-        self.ssd_test_once_action_server.set_succeeded(action_result)
-
+        self.ssd_test_action_server.set_succeeded(action_result)
     
 def difference( gt_bboxes, gt_class_ids, preds ):
 
@@ -183,7 +202,6 @@ def difference( gt_bboxes, gt_class_ids, preds ):
     # print(class_wise_iou)
     # print(class_wise_n_object)
     return class_wise_iou, class_wise_n_object
-
 
 def bb_intersection_over_union(boxA, boxB):
 	# determine the (x, y)-coordinates of the intersection rectangle

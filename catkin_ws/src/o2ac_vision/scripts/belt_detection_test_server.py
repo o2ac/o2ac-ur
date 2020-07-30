@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
+import rospkg
 import cv2
 import numpy as np
 import argparse
@@ -15,8 +16,9 @@ from pose_estimation_func import *
 rad2deg = 180.0 / math.pi
 deg2rad = math.pi/180.0
 
-anno_root = "../../WRS_Dataset/Annotations/Far/Image-wise/*.json"
-annos = glob.glob(anno_root)
+rospack = rospkg.RosPack()
+annotation_root = rospack.get_path("WRS_Dataset") + "/Annotations/Far/Image-wise/*.json"
+annotations = glob.glob(annotation_root)
 
 class BeltDetectionTest(object):
     def __init__(self):
@@ -33,12 +35,12 @@ class BeltDetectionTest(object):
         """Get arguments"""
         test_id = goal.id
 
-        cnt = 0
-        print annos
-        for anno in annos:
+        count = 0
+        # print annotations
+        for anno in annotations:
             f = open( anno )
             json_data = json.load( f )
-            #print(json_data)
+            # print(json_data)
             bboxes = json_data["bbox"]
             class_id = json_data["class_id"]
 
@@ -47,8 +49,8 @@ class BeltDetectionTest(object):
             for bbox, cid in zip(bboxes, class_id):
                 image_bbox = cv2.rectangle( image_bbox, ( bbox[0], bbox[1]), (bbox[2], bbox[3]), (0,255,0), 3 ) 
 
-            cnt+=1
-            if test_id < cnt:
+            count+=1
+            if test_id < count:
                 break
 
         # Hand template

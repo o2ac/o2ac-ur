@@ -1,2 +1,3 @@
-float64[] rotation
-o2ac_msgs/objectCenters[] center
+float64 rotation
+int64 label
+float64[] center

@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import math
 import copy
+import os, json
 
 
 """
@@ -50,7 +51,7 @@ class RotationEstimation():
     Crop image 
     """
     def im_crop_bbox( self, im, bbox ):
-        im_bb = im[bbox[1]:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2] ]
+        im_bb = im[bbox[1]:bbox[3], bbox[0]:bbox[2]]
         im_out = im_bb.copy()
         return im_out
     
@@ -68,6 +69,7 @@ class RotationEstimation():
         # Edge detection
         edges = cv2.Canny( cl1, self._canny1, self._canny2 )
         self._im_edge = edges
+
         # findContours
         # check version of cv2
         cv2_versoin = cv2.__version__
@@ -278,6 +280,145 @@ class BinaryTemplateMatching():
     def get_score_map( self ):
         
         return self._s_map
+
+class template_matching():
+    def __init__( self, im_c, ds_rate, temp_root, temp_info_name="template_info.json" ):
+        """
+            im_c: an image of input scene
+            ds_rate: downsampling rate
+            temp_root: path to templates
+            temp_info_name: temp_info_name
+        """
+
+        # downsampling rate
+        self.ds_rate = ds_rate
+        # input image
+        self.im_c = im_c
+        #
+        self.temp_root = temp_root
+
+
+        """ Load template infomation """
+        temp_info_fullpath = os.path.join( temp_root, temp_info_name )
+        if os.path.isfile( temp_info_fullpath ):
+            json_open = open( temp_info_fullpath, 'r' )
+            self.temp_info = json.load( json_open )
+        else:
+            print("ERROR!!")
+            print( temp_info_fullpath, " couldn't read.")
+            exit()
+    
+    def read_template( self, result ):
+        """
+        Input:
+            result: Output of the object detection(SSD). list of {bbox, class, confidence}
+        Output:
+            im_temp_edge: edge_template
+            temp_ori: the dominant orientations of template 
+        """
+        class_id = result["class"]
+        info_id = -1
+        for n, info in enumerate( self.temp_info ):
+            print(n)
+            if result["class"] in info.values():
+                info_id = n
+                break
+
+        if info_id is -1:
+            print("ERROR!!")
+            print("Template info does not include id ",  class_id )
+
+        print(os.path.join( self.temp_root, self.temp_info[info_id]["name_edge"]))
+        im_temp_edge = cv2.imread( os.path.join( self.temp_root, self.temp_info[info_id]["name_edge"]), 0 )
+        temp_ori = self.temp_info[info_id]["orientation"]
+
+        return im_temp_edge, temp_ori
+
+    def compute( self, result ):
+        """
+        Input:
+            result: Output of the object detection(SSD). list of {bbox, class, confidence}
+        Output:
+            center: center coordinate of target. array(j,i)
+            orientation: in-plane rotation of target. float
+        """
+
+        class_id = result["class"]
+        bbox = result["bbox"]
+        re = RotationEstimation( self.im_c, bbox )
+        in_ori = re.get_orientation()
+        im_edge = re.get_im_edge()
+        im_edge_ds = downsampling_binary( im_edge, _fx=self.ds_rate, _fy=self.ds_rate )
+        print( bbox )
+
+        """Read orientation of the template"""
+        im_temp_edge, temp_ori = self.read_template( result )
+
+        # Rotation of template image
+        rows, cols = im_temp_edge.shape
+        res_orientations = list() # orientation in degree, ccw
+        for o_in in in_ori:
+            for o_temp in temp_ori:
+                res_orientations.append( o_in - o_temp )
+
+        print("difference of orientations")
+        print( res_orientations )
+
+
+        """ Create rotated templates """
+        im_temp_edge_rots = list()
+        im_temp_eds = list()
+        for res_ori in res_orientations:
+            # getRotationMatrix2D( center, angle(ccw), scale )
+            rot_mat = cv2.getRotationMatrix2D( (cols/2, rows/2), 360-res_ori,1 )
+            im_rot = cv2.warpAffine( im_temp_edge, rot_mat, (cols, rows) )
+            im_temp_edge_rots.append( im_rot )
+            im_temp_eds.append( downsampling_binary( im_rot, self.ds_rate, self.ds_rate) )
+
+        """ Binary Template Matching """
+        scores = list() # score list of each template
+        offsets = list() # offset list of each template
+        for temp in im_temp_eds: # Apply template matching
+            btm = BinaryTemplateMatching( temp, im_edge_ds, (20,20) )
+            _, offset, score = btm.get_result()
+            scores.append( score )
+            offsets.append( offset )
+
+        # Get ID of the most similar template 
+        res_idx = np.argmin( np.asarray( scores ) )
+
+        # Up scale
+        offset_original = offsets[res_idx]* 1.0/self.ds_rate
+
+        # compute center coordinate
+        ltop = np.asarray( [ bbox[1]+offset_original[0], bbox[0]+offset_original[1] ], np.int )
+        temp_center = np.asarray( im_temp_edge.shape, np.int )/2
+        center = ltop + temp_center
+        orientation = res_orientations[res_idx]
+
+        return center, orientation # array[j, i], float
+
+    def get_result_image( self, result, res_ori, res_center ):
+        """
+        Optional. for visualizatoin
+        Input:
+            result: object detection result
+            res_ori: orientation ( output of self.compute() )
+            res_center: center coordinate ( output of self.compute() )
+        Output:
+            im_res_on_original: output image. 
+        """
+        im_temp_edge, temp_ori = self.read_template( result )
+        temp_center = np.asarray( im_temp_edge.shape, np.int )/2
+        ltop = res_center - temp_center
+        im_res_on_original = visualize_result( im_temp_edge, self.im_c, ltop, res_ori )
+
+        return im_res_on_original # image
+
+    
+
+
+
 
 """
 Visualization function.

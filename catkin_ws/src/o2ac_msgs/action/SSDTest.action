@@ -3,7 +3,7 @@ int64 id
 
 ---
 # Result
-o2ac_msgs/SSDResult SSD_result
+o2ac_msgs/SSDResult[] ssd_result_list
 
 ---
 # Feedback

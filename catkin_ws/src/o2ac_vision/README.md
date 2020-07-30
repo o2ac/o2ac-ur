@@ -3,27 +3,60 @@
 This package contains nodes that execute and advertise vision actions, e.g.:
 
 - Part recognition
-- Tooltip alignment
-- Visual servoing
-- Orientation checks
 
 All vision skills should be action-based, so that calculations are allowed to fail and time out.
 
 For this, the Python nodes should advertise a number of actions, which are defined in o2ac_msgs.
 
+
 ## Part recognition
 Part recognition node consist of two compornents. One is the object detection, the other is pose estimation.
 
+
 ### Object detection
-M2det
+Python scripts of Single Shot MultiBox Detector (SSD) are cloned from [ssd.pytorch](https://github.com/amdegroot/ssd.pytorch).
+This module detects multiple objects in tray. A list of bounding boxes, classes, and confidences are returned.
+
 
 ### Pose estimatrion
 This component feeds the output of object detection, a list of bounding box and object class id, and estimates acculate pose (x,y,theta) of targets in image coordinate system.
 
-You can try this componet using this component:
+You can try this componet using following command:
 ```
-$ python pose_estimation_test.py --cimg [filename] --timg [filename]
+$ rosrun o2ac_vision pose_estimation_test_server.py
+$ rosrun o2ac_vision pose_estimation_test_client.py --id [image id] --tdir [path]
 ```
-Options --cimg and --timg take file name of the input image and template image, respectively.
+Options:
 
-Test image set can be download from [here](https://drive.google.com/drive/u/0/folders/1JIA7FTcoSxNIfv80T5eiqRywfnHOizXK).
+--id ... Index of the input image.
+
+--tdir ... Path to template info (template_info.json).
+
+
+### Belt detection
+You can try this compornent using following command:
+```
+$ rosrun o2ac_vision belt_detection_test_server.py
+$ rosrun o2ac_vision belt_detection_test_client.py
+```
+
+
+### Dataset
+All data including pre-trained model of SSD, templates, and image sets can be download from following link.
+Please put dataset.zip in directory "src/WRS_Dataset" and unzip it.
+Make sure "Annotations", "Images", "data", "labels.txt", "realsense_intrinsic.json", and "ssd.pytorch" are in "src/WRS_Dataset".
+
+[Download LINK](https://since1954-my.sharepoint.com/:f:/g/personal/z119104_since1954_onmicrosoft_com/EjnbKhpQsTRGnJWvP5ivM9sB3IzRr7gdRk0klG6oxHJyAQ?e=A3sxj1)
+
+
+### Test
+You can try this compornent using following command:
+```
+$ rosrun o2ac_vision ssd_test_server.py
+$ rosrun o2ac_vision pose_estimation_test_server.py
+$ rosrun o2ac_vision belt_detection_test_server.py
+$ rosrun o2ac_vision test_server.py
+$ rosrun o2ac_vision test_client.py --id [image id] --tdir [path]
+```
+
+test comment

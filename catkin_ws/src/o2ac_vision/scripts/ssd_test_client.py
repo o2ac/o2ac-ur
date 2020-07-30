@@ -19,7 +19,7 @@ def get_arguments():
 def ssd_test_once_client():
     args = get_arguments()
 
-    client = actionlib.SimpleActionClient('SSDTest', o2ac_msgs.msg.SSDTestAction)
+    client = actionlib.SimpleActionClient('SSD', o2ac_msgs.msg.SSDTestAction)
     client.wait_for_server()
 
     goal = o2ac_msgs.msg.SSDTestGoal(id=args.id)
@@ -30,15 +30,15 @@ def ssd_test_once_client():
 
 if __name__ == '__main__':
     try:
-        rospy.init_node('ssd_test_once_client_py')
+        rospy.init_node('ssd_test_client_py')
 
         # Call SSDTest.action
         result = ssd_test_once_client()
         for j in range(len(result.SSD_result.SSD_result)):
             print '================================'
-            print result.SSD_result.SSD_result[j].bbox
-            print result.SSD_result.SSD_result[j].label
-            print result.SSD_result.SSD_result[j].confidence
+            print 'bbox: ', result.SSD_result.SSD_result[j].bbox
+            print 'class label: ', result.SSD_result.SSD_result[j].label
+            print 'confidence: ', result.SSD_result.SSD_result[j].confidence
 
     except rospy.ROSInterruptException:
         pass
