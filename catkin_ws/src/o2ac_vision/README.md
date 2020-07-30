@@ -58,5 +58,3 @@ $ rosrun o2ac_vision belt_detection_test_server.py
 $ rosrun o2ac_vision test_server.py
 $ rosrun o2ac_vision test_client.py --id [image id] --tdir [path]
 ```
-
-test comment
