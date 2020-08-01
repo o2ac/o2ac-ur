@@ -64,7 +64,8 @@ In order to make the calibration results available to the vision programs, they 
 ```
 $ roslaunch aist_handeye_calibration publish_calibration.launch camera_name:=<camera name>
 ```
-where `<camera name>` is the name of the calibrated camera. The ID of the published camera frame is prefixed with `calibrated_<camera_name>`. For example, the ID of the frame associated with color images of the `a_bot_inside_camera` will become `calibrated_a_bot_inside_camera_color_optical_frame`.
+roslaunch aist_handeye_calibration o2ac_handeye_calibration.launch camera_name:="b_bot_outside_camera" robot_name="b_bot" config:=real marker_id:="26"
+where `<camera name>` is the name of the calibrated camera. The ID of the published camera frame is prefixed with `<camera_name>_calibrated`. For example, the ID of the frame associated with color images of the `a_bot_inside_camera` will become `a_bot_inside_camera_color_optical_frame_calibrated`.
 
 ## Parameters for configuring calibration
 
