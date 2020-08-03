@@ -20,9 +20,9 @@ class SuctionController(object):
         config_file = rospy.get_param("~suction_control")
         operation_mode_file = rospy.get_param("~operation_mode")
         
-        rospy.Subscriber("b_bot_controller/ur_driver/io_states", IOStates, self.io_state_callback, queue_size=1)
+        rospy.Subscriber("b_bot/ur_hardware_interface/io_states", IOStates, self.io_state_callback, queue_size=1)
         
-        self.set_io = rospy.ServiceProxy('b_bot_controller/ur_driver/set_io', SetIO)
+        self.set_io = rospy.ServiceProxy('b_bot/ur_hardware_interface/set_io', SetIO)
 
         # get data for .yaml
         conf_suction_filename = config_dir + "/" + config_file + ".yaml"

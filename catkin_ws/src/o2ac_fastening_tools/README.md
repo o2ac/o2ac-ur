@@ -101,8 +101,8 @@ This value is used to turn the suction on and off via the digital output pin of 
 - "eject_screw" :
 This value is used to turn the ejection on and off via the digital output pin of ur_control. If this is not set to True, the screw might stay attached to the tool for a few seconds after suction is turned off. Both turn_suction_on and eject_screw should be set to False after a screw was ejected.
 
-This action service uses the service 'b_bot_controller/ur_driver/set_io' of the sub module ur_robot_driver.
-Please be careful if you use 'b_bot_controller/ur_driver/set_io' as an alias.
+This action service uses the service 'b_bot/ur_hardware_interface/set_io' of the sub module ur_robot_driver.
+Please be careful if you use 'b_bot/ur_hardware_interface/set_io' as an alias.
 
 ## About Publish screw_suctioned
 
@@ -113,8 +113,8 @@ This topic publishes suction success for each screw tool as a std_msgs/Bool mess
 screw_tool_m4/screw_suctioned
 ```
 
-This topic uses the publish 'ur_driver/io_states' of the sub module ur_robot_driver.
-Please be careful if you use 'ur_driver/io_states' as an alias.
+This topic uses the publish 'ur_hardware_interface/io_states' of the sub module ur_robot_driver.
+Please be careful if you use 'ur_hardware_interface/io_states' as an alias.
 
 
 ## About the actual launch file

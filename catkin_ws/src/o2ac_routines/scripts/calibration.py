@@ -449,16 +449,7 @@ class CalibrationClass(O2ACCommon):
     rospy.loginfo("============ Picking a screw from a feeder ============")
     rospy.loginfo("============ The screw tool has to be carried by the robot! ============")
     
-    self.go_to_named_pose("feeder_pick_ready", robot_name)
-    
-    ps = geometry_msgs.msg.PoseStamped()
-    if robot_name == "a_bot": # TODO(felixvd): Is this orientation even considered in the screwpick action?
-      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi/6, 0, 0))
-    else:
-      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-pi/6, 0, 0))
-    ps.header.frame_id = "m" + str(screw_size) + "_feeder_outlet_link"
-    
-    self.do_pick_screw_action(robot_name, ps, screw_size=screw_size, tool_name="screw_tool")
+    self.pick_screw_from_feeder(robot_name, screw_size=screw_size)
     return
 
 if __name__ == '__main__':
