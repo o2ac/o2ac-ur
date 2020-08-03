@@ -197,7 +197,7 @@ class CalibrationClass(O2ACCommon):
     poses = []
     pose0 = geometry_msgs.msg.PoseStamped()
     pose0.pose.orientation.w = 1.0
-    pose0.pose.position.x = -.025
+    pose0.pose.position.x = -.01
     if context == "b_bot_m4_assembly_plates":
       self.go_to_named_pose("screw_ready", robot_name)
       pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-pi/4, 0, 0) )
@@ -215,8 +215,8 @@ class CalibrationClass(O2ACCommon):
         poses.append(copy.deepcopy(pose0))
       poses[0].header.frame_id = "assembled_assy_part_03_bottom_screw_hole_aligner_2"
       poses[1].header.frame_id = "assembled_assy_part_03_bottom_screw_hole_aligner_1"
-      poses[2].header.frame_id = "assembled_assy_part_01_corner_3"
-      poses[3].header.frame_id = "assembled_assy_part_01_corner_4"
+      poses[2].header.frame_id = "assembled_assy_part_01_fixation_hole_1"
+      poses[3].header.frame_id = "assembled_assy_part_01_fixation_hole_2"
 
     self.cycle_through_calibration_poses(poses, robot_name, speed=0.3, go_home=False, end_effector_link=end_effector_link, move_lin=True)
     return 
@@ -352,7 +352,6 @@ class CalibrationClass(O2ACCommon):
     return
 
   def screw_tool_test_assembly(self, robot_name = "b_bot", tool_name="_screw_tool_m4_tip_link"):
-    # TODO: Use screw frames instead of corners (since the fixation is in the way in 2020)
     rospy.loginfo("============ Moving the screw tool m4 to the screw holes on the base plate ============")
     rospy.loginfo("============ The screw tool m4 has to be carried by the robot! ============")
     self.make_space_for_robot(robot_name)
@@ -361,17 +360,17 @@ class CalibrationClass(O2ACCommon):
     poses = []
 
     pose0 = geometry_msgs.msg.PoseStamped()
-    pose0.header.frame_id = "assembled_assy_part_01_screw_2_link"
+    pose0.header.frame_id = "assembled_assy_part_01_screw_hole_panel1_1"
     if robot_name=="b_bot":
       pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi/4, 0, 0))
-      pose0.pose.position.x -= .02
+      pose0.pose.position.x -= .01
     
     for i in range(4):
       poses.append(copy.deepcopy(pose0))
 
-    poses[1].header.frame_id = "assembled_assy_part_01_screw_3_link"
-    poses[2].header.frame_id = "assembled_assy_part_01_screw_4_link"
-    poses[3].header.frame_id = "assembled_assy_part_01_screw_1_link"
+    poses[1].header.frame_id = "assembled_assy_part_01_screw_hole_panel1_2"
+    poses[2].header.frame_id = "assembled_assy_part_01_screw_hole_panel2_1"
+    poses[3].header.frame_id = "assembled_assy_part_01_screw_hole_panel2_2"
     end_effector_link=robot_name+ tool_name
     self.cycle_through_calibration_poses(poses, robot_name, speed=0.3, go_home=False, move_lin=True, end_effector_link=end_effector_link)
     return
