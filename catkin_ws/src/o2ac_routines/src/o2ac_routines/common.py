@@ -448,7 +448,7 @@ class O2ACCommon(O2ACBase):
     # self.log_to_debug_monitor("Pick screw from feeder", "operation")
 
     # Turn to the right to face the feeders
-    self.go_to_named_pose("feeder_pick_ready", robot_name, speed=1.0, acceleration=1.0)
+    self.go_to_named_pose("feeder_pick_ready", robot_name, speed=0.2, acceleration=0.2, force_ur_script=False)
 
     pose_feeder = geometry_msgs.msg.PoseStamped()
     pose_feeder.header.frame_id = "m" + str(screw_size) + "_feeder_outlet_link"
@@ -472,13 +472,18 @@ class O2ACCommon(O2ACBase):
         pass
       screw_picked = bool_msg.data
       if screw_picked:
+        self.go_to_named_pose("feeder_pick_ready", robot_name, speed=0.2, acceleration=0.2, force_ur_script=False)
         rospy.loginfo("Successfully picked the screw")
         return True
       if not self.use_real_robot:
+        self.go_to_named_pose("feeder_pick_ready", robot_name, speed=0.2, acceleration=0.2, force_ur_script=False)
         rospy.loginfo("Pretending the screw is picked, because this is simulation.")
         return True
       attempt += 1
 
+    if not screw_picked:
+      self.go_to_named_pose("feeder_pick_ready", robot_name, speed=0.2, acceleration=0.2, force_ur_script=False)
+      rospy.loginfo("Failed to pick the screw")
     return False
 
   def pick_nut(self, robot_name):

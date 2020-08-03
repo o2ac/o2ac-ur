@@ -27,16 +27,12 @@
   <!-- Add screw feeders -->
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/screw_feeder.xacro" />
   
-  <xacro:screw_feeder feedername="m4_feeder" parent="workspace_center">
-    <origin xyz="-.511 -.13 -0.043" rpy="0 0 0" />   
-    <!-- <origin xyz="-.55 .05 -0.043" rpy="0 0 0" />    -->
-  </xacro:screw_feeder> 
-  <!-- -0.016241; 0.18032; -0.039283 -->
   <xacro:screw_feeder feedername="m3_feeder" parent="workspace_center">
-    <origin xyz="-.512 0 -0.043" rpy="0 0 0" />   
-    <!-- <origin xyz="-.55 -.15 -0.043" rpy="0 0 0" />    -->
+    <origin xyz="-.511 -.13 -0.023" rpy="0 0 0" />   
   </xacro:screw_feeder> 
-  <!-- -0.018032; -0.15035; -0.038212 -->
+  <xacro:screw_feeder feedername="m4_feeder" parent="workspace_center">
+    <origin xyz="-.512 0 -0.023" rpy="0 0 0" />   
+  </xacro:screw_feeder> 
 
   <!-- Base fixture -->
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/base_fixture.xacro" />
