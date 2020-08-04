@@ -615,10 +615,9 @@ class O2ACBase(object):
     # Call the pick action. It is useful for picking screws with the tool.
     goal = o2ac_msgs.msg.pickScrewGoal()
     goal.robot_name = robot_name
-    goal.item_pose = pose_stamped
+    goal.screw_pose = pose_stamped
     goal.tool_name = tool_name
     goal.screw_size = screw_size
-    goal.use_complex_planning = use_complex_planning
     goal.z_axis_rotation = z_axis_rotation
     rospy.loginfo("Sending pick action goal")
     rospy.logdebug(goal)
@@ -709,23 +708,12 @@ class O2ACBase(object):
     grasp_pose_to_pickup_link.header.frame_id = 'screw_tool_' + tool_id + '_pickup_link'
     grasp_pose_to_pickup_link.child_frame_id = 'grasp_1'
     grasp_pose_to_pickup_link.transform.translation = geometry_msgs.msg.Vector3(0.015,0.0,-0.03)
-    grasp_pose_to_pickup_link.transform.rotation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
+    grasp_pose_to_pickup_link.transform.rotation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, -pi/6, 0))
     transformer.setTransform(grasp_pose_to_pickup_link)
-
-    grasp_pose_2_to_pickup_link = geometry_msgs.msg.TransformStamped()
-    grasp_pose_2_to_pickup_link.header.frame_id = 'screw_tool_' + tool_id + '_pickup_link'
-    grasp_pose_2_to_pickup_link.child_frame_id = 'grasp_2'
-    grasp_pose_2_to_pickup_link.transform.translation = geometry_msgs.msg.Vector3(0.015,0.0,-0.03)
-    grasp_pose_2_to_pickup_link.transform.rotation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, -pi/6, 0))
-    transformer.setTransform(grasp_pose_2_to_pickup_link)
 
     (trans,rot) = transformer.lookupTransform('screw_tool_' + tool_id, 'grasp_1', rospy.Time(0))
     rospy.set_param('tools/screw_tool_' + tool_id + '/grasp_1/position', trans)
     rospy.set_param('tools/screw_tool_' + tool_id + '/grasp_1/orientation', rot)
-
-    (trans,rot) = transformer.lookupTransform('screw_tool_' + tool_id, 'grasp_2', rospy.Time(0))
-    rospy.set_param('tools/screw_tool_' + tool_id + '/grasp_2/position', trans)
-    rospy.set_param('tools/screw_tool_' + tool_id + '/grasp_2/orientation', rot)
 
   def spawn_multiple_objects(self, assembly_name, objects, poses, referece_frame):
     upload_mtc_modules_initial_params()
@@ -802,11 +790,13 @@ class O2ACBase(object):
     self.fastening_planning_client.wait_for_result()
     return self.fastening_planning_client.get_result()
 
-  def do_plan_subassembly_action(self, object_name, object_target_pose, object_subframe_to_place):
+  def do_plan_subassembly_action(self, object_name, object_target_pose, object_subframe_to_place, approach_place_direction_reference_frame = '', approach_place_direction = []):
     goal = moveit_task_constructor_msgs.msg.PickPlaceWithRegraspGoal()
     goal.object_name = object_name
     goal.object_target_pose = object_target_pose
     goal.object_subframe_to_place = object_subframe_to_place
+    goal.approach_place_direction_reference_frame = approach_place_direction_reference_frame
+    goal.approach_place_direction = approach_place_direction
     rospy.loginfo("Sending sub-assembly planning goal.")
     self.sub_assembly_planning_client.send_goal(goal)
     self.sub_assembly_planning_client.wait_for_result()

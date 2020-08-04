@@ -33,7 +33,7 @@
   </include>
 
   <include file="$(find o2ac_fastening_tools)/launch/fastening_tools.launch">
-    <arg name="serial_port_1" default="/dev/for_docker/screw" />
+    <arg name="usb_port" default="/dev/for_docker/screw" />
   </include>
 
 </launch>

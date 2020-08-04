@@ -188,7 +188,7 @@ class AssemblyClass(O2ACCommon):
     target_pose.header.frame_id = 'base/screw_hole_panel2_1'
     target_pose.pose.orientation.w = 1
 
-    self.pick_place('panel_bearing', target_pose, object_subframe_to_place = 'panel_bearing/bottom_screw_hole_aligner_1', robot_names = [], force_robot_order = False, save_solution_to_file = 'pickplace')
+    self.pick_place('panel_bearing', target_pose, object_subframe_to_place = 'panel_bearing/bottom_screw_hole_aligner_1', robot_names = ['b_bot','a_bot'], force_robot_order = True, save_solution_to_file = 'pickplace')
 
   def pick_place_task(self):
     rospy.loginfo("======== PICK-PLACE TASK ========")
@@ -250,6 +250,7 @@ if __name__ == '__main__':
       rospy.loginfo("Enter 40 to pick screw m4 from feeder with a_bot (41 for b_bot).")
       rospy.loginfo("Enter 68 to spawn objects for testing pick-place task")
       rospy.loginfo("Enter 69 to test pick-place task")
+      rospy.loginfo("Enter 25,26(27,28) to open,close gripper for b_bot (a_bot)")
       rospy.loginfo("Enter 91-94 for subtasks (Large plate, motor plate, idler pin, motor).")
       rospy.loginfo("Enter 95-98 for subtasks (motor pulley, bearing+shaft, clamp pulley, belt).")
       rospy.loginfo("Enter START to start the task.")
@@ -267,6 +268,14 @@ if __name__ == '__main__':
         assy.do_change_tool_action("b_bot", equip=True, screw_size=3)
       if i == '14':
         assy.do_change_tool_action("b_bot", equip=False, screw_size=3)
+      if i == '25':
+        assy.open_gripper('b_bot')
+      if i == '26':
+        assy.close_gripper('b_bot')
+      if i == '27':
+        assy.open_gripper('a_bot')
+      if i == '28':
+        assy.close_gripper('a_bot')
       if i == '30':
         assy.go_to_named_pose("feeder_pick_ready", "a_bot")
         assy.pick_screw_from_feeder("a_bot", screw_size=3)
@@ -298,21 +307,24 @@ if __name__ == '__main__':
       if i == '74':
         mp_res = assy.load_MP_solution('subassembly')
         assy.execute_MP_solution(mp_res.solution, speed = 0.2)
-      if i == '75':
-        assy.open_gripper('b_bot')
-      if i == '76':
-        assy.close_gripper('b_bot')
-      if i == '77':
-        assy.open_gripper('a_bot')
-      if i == '78':
-        assy.close_gripper('a_bot')
       if i == '79':
         assy.release('panel_bearing', 'home', 'release_panel_bearing')
       if i == '80':
         target_pose = geometry_msgs.msg.PoseStamped()
         target_pose.header.frame_id = 'base/screw_hole_panel2_1'
         target_pose.pose.orientation.w = 1
-        assy.subassembly('panel_bearing', target_pose, 'panel_bearing/bottom_screw_hole_aligner_1', 'subassembly')
+        assy.subassembly('panel_bearing', target_pose, object_subframe_to_place = 'panel_bearing/bottom_screw_hole_aligner_1', save_solution_to_file = 'subassembly')
+      if i == '81':
+        assy.do_change_tool_action('b_bot', equip=True, screw_size=4)
+      if i == '82':
+        assy.pick_screw_from_feeder('b_bot', 4)
+      if i == '83':
+        assy.do_linear_push('a_bot', force=15, direction="Y-", max_approach_distance=0.05, forward_speed=0.003)
+      if i == '84':
+        target_pose = geometry_msgs.msg.PoseStamped()
+        target_pose.header.frame_id = 'move_group/base/screw_hole_panel2_1'
+        target_pose.pose.orientation.w = 1
+        assy.fasten_screw('b_bot', target_pose)
       elif i == '91':
         assy.subtask_g()  # Large plate
       elif i == '92':

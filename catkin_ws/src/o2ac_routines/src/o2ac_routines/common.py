@@ -139,10 +139,10 @@ class O2ACCommon(O2ACBase):
     # TODO: EXECUTION OF PLACE PLAN?
     return result.success
 
-  def subassembly(self, object_name, object_target_pose, object_subframe_to_place, save_solution_to_file=''):
+  def subassembly(self, object_name, object_target_pose, object_subframe_to_place, approach_place_direction_reference_frame = '', approach_place_direction = [], save_solution_to_file=''):
     """This function creates a motion=plan for the subassembly task of attaching the 'object' on the base plate
     """
-    result = self.do_plan_subassembly_action(object_name, object_target_pose, object_subframe_to_place)
+    result = self.do_plan_subassembly_action(object_name, object_target_pose, object_subframe_to_place, approach_place_direction_reference_frame, approach_place_direction)
 
     path = self.rospack.get_path('o2ac_routines')
     path += '/MP_solutions/'
@@ -150,7 +150,7 @@ class O2ACCommon(O2ACBase):
       file = path + save_solution_to_file
       with open(file,'wb') as f:
         pickle.dump(result, f)
-      rospy.loginfo("Exiting fasten() after writing solution")
+      rospy.loginfo("Exiting subassembly() after writing solution")
     # TODO: EXECUTION OF PLACE PLAN?
     return result.success
   
@@ -166,19 +166,34 @@ class O2ACCommon(O2ACBase):
   def execute_MP_solution(self, solution, speed = 1.0):
     """Execute the result of a motion plan."""
     # Execute the solution
+    executing_routine = False
     success = False
     if speed > 1.0:
       speed = 1.0
     start_state = self.robots.get_current_state()
     attached_collision_objects = start_state.attached_collision_objects
     for solution in solution.sub_trajectory:
-      if solution.scene_diff.robot_state.joint_state.name:  # If the robot state is changed (robot moved, object attached/detached)
+      stage_name = solution.info.creator_name
+      if stage_name == 'Fasten screw (dummy)':
+        rospy.sleep(2)
+      # print('STAGE NAME: ' + stage_name + '!!!!!!!!!!!!!!!!!!!!!!!!!!')
+      # raw_input()
+      if stage_name == 'pick_tool_start':
+        executing_routine = True
+        self.do_change_tool_action("b_bot", equip=True, screw_size=4)
+      if stage_name == 'place_tool_start':
+        executing_routine = True
+        self.do_change_tool_action("b_bot", equip=False, screw_size=4)
+      if stage_name == 'pick_screw_start':
+        executing_routine = True
+        self.pick_screw_from_feeder('b_bot', 4)
+      if solution.scene_diff.robot_state.joint_state.name and not executing_routine:  # If the robot state is changed (robot moved, object attached/detached)
         # Update attached collision objects
         if not attached_collision_objects == solution.scene_diff.robot_state.attached_collision_objects:
           coll_objs_to_detach = [collision_object for collision_object in attached_collision_objects if collision_object not in solution.scene_diff.robot_state.attached_collision_objects]
           coll_objs_to_attach = [collision_object for collision_object in solution.scene_diff.robot_state.attached_collision_objects if collision_object not in attached_collision_objects]
           for attached_object in coll_objs_to_attach:
-            print('Attaching object ' + attached_object.object.id)
+            print('Attaching object ' + attached_object.object.id + ' in stage ' + stage_name)
             attached_object_name = attached_object.object.id
             attach_to = attached_object.link_name[:5]
             self.groups[attach_to].attach_object(attached_object_name, attached_object.link_name, touch_links=  # MODIFY attach_tool in base.py to attach_object ++ ROBOT NAME???
@@ -189,7 +204,7 @@ class O2ACCommon(O2ACBase):
               attach_to + "_robotiq_85_right_inner_knuckle_link"])
             attached_collision_objects.append(attached_object)
           for attached_object in coll_objs_to_detach:
-            print('Detaching object ' + attached_object.object.id)
+            print('Detaching object ' + attached_object.object.id + ' in stage ' + stage_name)
             attached_object_name = attached_object.object.id
             attach_to = attached_object.link_name[:5]
             self.groups[attach_to].detach_object(attached_object_name)
@@ -209,13 +224,22 @@ class O2ACCommon(O2ACBase):
             else:
               self.send_gripper_command(robot_name, 'close', True)
           else:
-            raw_input()
+            # raw_input()
             # Robot motion
             self.activate_ros_control_on_ur(robot_name)
             plan = arm_group.retime_trajectory(self.robots.get_current_state(), solution.trajectory, speed)
             arm_group.set_max_velocity_scaling_factor(speed)
             plan_success = arm_group.execute(plan, wait=True)
             success = success and plan_success
+      if stage_name == 'pick_tool_end':
+        executing_routine = False
+        attached_collision_objects = self.robots.get_current_state().attached_collision_objects
+      if stage_name == 'place_tool_end':
+        executing_routine = False
+        attached_collision_objects = self.robots.get_current_state().attached_collision_objects
+      if stage_name == 'pick_screw_end':
+        executing_routine = False
+        attached_collision_objects = self.robots.get_current_state().attached_collision_objects
     return True
 
   def pick_and_move_object_with_robot(self, item_name, item_target_pose, robot_name, speed=0.1):
@@ -485,6 +509,18 @@ class O2ACCommon(O2ACBase):
       self.go_to_named_pose("feeder_pick_ready", robot_name, speed=0.2, acceleration=0.2, force_ur_script=False)
       rospy.loginfo("Failed to pick the screw")
     return False
+
+  def fasten_screw(self, robot_name, screw_hole_pose, screw_height = .02, screw_size = 4):
+
+    if not screw_size==3 and not screw_size==4:
+      rospy.logerr("Screw size needs to be 3 or 4 but is: " + str(screw_size))
+      return False
+
+    self.go_to_named_pose("feeder_pick_ready", robot_name)
+    
+    self.do_screw_action(robot_name, screw_hole_pose, screw_height, screw_size)
+    self.go_to_named_pose("feeder_pick_ready", robot_name)
+    return True
 
   def pick_nut(self, robot_name):
     """Pick the nut from the holder. The nut tool has to be equipped.
