@@ -4,7 +4,7 @@
   <!-- This is the main file defining our robot arrangement and physical environment. -->
 
   <!-- Calibration parameters -->
-  <xacro:property name="a_bot_x" value="-0.0"/>
+  <xacro:property name="a_bot_x" value="-0.004"/>
   <xacro:property name="a_bot_y" value="-0.525"/>
   <xacro:property name="a_bot_theta" value="0.0"/>
   <xacro:property name="b_bot_x" value="-0.0"/>
