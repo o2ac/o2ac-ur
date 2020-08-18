@@ -715,17 +715,24 @@ class O2ACBase(object):
     rospy.set_param('tools/screw_tool_' + tool_id + '/grasp_1/position', trans)
     rospy.set_param('tools/screw_tool_' + tool_id + '/grasp_1/orientation', rot)
 
-  def spawn_multiple_objects(self, assembly_name, objects, poses, referece_frame):
+  def spawn_multiple_objects(self, assembly_name, objects, poses, reference_frame):
+    # Init params
     upload_mtc_modules_initial_params()
+
+    # Spawn tools and objects
     self.define_tool_collision_objects()
     screw_ids = ['m3', 'm4']
     for screw_id in screw_ids:
       self.spawn_tool('screw_tool_' + screw_id)
       self.upload_tool_grasps_to_param_server(screw_id)
-    spawn_objects(assembly_name, objects, poses, referece_frame)
+    spawn_objects(assembly_name, objects, poses, reference_frame)
     
 
   def do_plan_pick_action(self, object_name, grasp_parameter_location = '', lift_direction_reference_frame = '', lift_direction = [], robot_name = ''):
+    '''
+    Function for calling the action for pick planning
+    The function returns the action result that contains the trajectories for the motion plan
+    '''
     goal = moveit_task_constructor_msgs.msg.PickObjectGoal()
     goal.object_name = object_name
     goal.grasp_parameter_location = grasp_parameter_location
@@ -738,6 +745,10 @@ class O2ACBase(object):
     return self.pick_planning_client.get_result()
 
   def do_plan_place_action(self, object_name, object_target_pose, release_object_after_place = True, object_subframe_to_place = '', approach_place_direction_reference_frame = '', approach_place_direction = []):
+    '''
+    Function for calling the action for place planning
+    The function returns the action result that contains the trajectories for the motion plan
+    '''
     goal = moveit_task_constructor_msgs.msg.PlaceObjectGoal()
     goal.object_name = object_name
     goal.release_object_after_place = release_object_after_place
@@ -751,6 +762,10 @@ class O2ACBase(object):
     return self.place_planning_client.get_result()
 
   def do_plan_release_action(self, object_name, pose_to_retreat_to = ''):
+    '''
+    Function for calling the action for release planning
+    The function returns the action result that contains the trajectories for the motion plan
+    '''
     goal = moveit_task_constructor_msgs.msg.ReleaseObjectGoal()
     goal.object_name = object_name
     goal.pose_to_retreat_to = pose_to_retreat_to
@@ -761,6 +776,10 @@ class O2ACBase(object):
 
   def do_plan_pickplace_action(self, object_name, object_target_pose, grasp_parameter_location = '', release_object_after_place = True, object_subframe_to_place = '',
     lift_direction_reference_frame = '', lift_direction = [], approach_place_direction_reference_frame = '', approach_place_direction = [], robot_names = '', force_robot_order = False):
+    '''
+    Function for calling the action for pick-place (potentially with regrasp) planning
+    The function returns the action result that contains the trajectories for the motion plan
+    '''
     goal = moveit_task_constructor_msgs.msg.PickPlaceWithRegraspGoal()
     goal.object_name = object_name
     goal.object_target_pose = object_target_pose
@@ -779,6 +798,10 @@ class O2ACBase(object):
     return self.pickplace_planning_client.get_result()
 
   def do_plan_fastening_action(self, object_name, object_target_pose, object_subframe_to_place = '', approach_place_direction_reference_frame = '', approach_place_direction = []):
+    '''
+    Function for calling the action for fastening planning
+    The function returns the action result that contains the trajectories for the motion plan
+    '''
     goal = moveit_task_constructor_msgs.msg.PlaceObjectGoal()
     goal.object_name = object_name
     goal.object_target_pose = object_target_pose
@@ -791,6 +814,10 @@ class O2ACBase(object):
     return self.fastening_planning_client.get_result()
 
   def do_plan_subassembly_action(self, object_name, object_target_pose, object_subframe_to_place, approach_place_direction_reference_frame = '', approach_place_direction = []):
+    '''
+    Function for calling the action for subassembly (fixing the L plate on the base plate) planning
+    The function returns the action result that contains the trajectories for the motion plan
+    '''
     goal = moveit_task_constructor_msgs.msg.PickPlaceWithRegraspGoal()
     goal.object_name = object_name
     goal.object_target_pose = object_target_pose

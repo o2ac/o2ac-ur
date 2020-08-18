@@ -246,11 +246,12 @@ if __name__ == '__main__':
       rospy.loginfo("Enter 1 to move the robots home.")
       rospy.loginfo("Enter 11 (12) to equip (unequip) m4 tool (b_bot).")
       rospy.loginfo("Enter 13 (14) to equip (unequip) m3 tool (b_bot).")
+      rospy.loginfo("Enter 25,26(27,28) to open,close gripper for b_bot (a_bot)")
       rospy.loginfo("Enter 30 to pick screw m3 from feeder with a_bot (31 for b_bot).")
       rospy.loginfo("Enter 40 to pick screw m4 from feeder with a_bot (41 for b_bot).")
-      rospy.loginfo("Enter 68 to spawn objects for testing pick-place task")
-      rospy.loginfo("Enter 69 to test pick-place task")
-      rospy.loginfo("Enter 25,26(27,28) to open,close gripper for b_bot (a_bot)")
+      rospy.loginfo("Enter 68 to spawn objects for testing mtc_modules tasks")
+      rospy.loginfo("Enter 69-75 to test mtc_modules tasks, (pick, place, pik-place, pick tool, pick screw, release, fix L plate on base)")
+      rospy.loginfo("Enter 80 to execute the planned subassembly (fix L plate on base)")
       rospy.loginfo("Enter 91-94 for subtasks (Large plate, motor plate, idler pin, motor).")
       rospy.loginfo("Enter 95-98 for subtasks (motor pulley, bearing+shaft, clamp pulley, belt).")
       rospy.loginfo("Enter START to start the task.")
@@ -305,15 +306,15 @@ if __name__ == '__main__':
       if i == '73':
         assy.pick_screw('m4')
       if i == '74':
-        mp_res = assy.load_MP_solution('subassembly')
-        assy.execute_MP_solution(mp_res.solution, speed = 0.2)
-      if i == '79':
         assy.release('panel_bearing', 'home', 'release_panel_bearing')
-      if i == '80':
+      if i == '75':
         target_pose = geometry_msgs.msg.PoseStamped()
         target_pose.header.frame_id = 'base/screw_hole_panel2_1'
         target_pose.pose.orientation.w = 1
         assy.subassembly('panel_bearing', target_pose, object_subframe_to_place = 'panel_bearing/bottom_screw_hole_aligner_1', save_solution_to_file = 'subassembly')
+      if i == '80':
+        mp_res = assy.load_MP_solution('subassembly')
+        assy.execute_MP_solution(mp_res.solution, speed = 0.2)
       if i == '81':
         assy.do_change_tool_action('b_bot', equip=True, screw_size=4)
       if i == '82':

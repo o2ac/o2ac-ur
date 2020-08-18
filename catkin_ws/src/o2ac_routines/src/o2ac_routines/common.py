@@ -68,7 +68,6 @@ class O2ACCommon(O2ACBase):
       with open(file,'wb') as f:
         pickle.dump(result, f)
       rospy.loginfo("Exiting pick() after writing solution")
-    # TODO: EXECUTION OF PICK PLAN?
     return result.success
 
   def place(self, object_name, object_target_pose, release_object_after_place = True, object_subframe_to_place = '', approach_place_direction_reference_frame = '', approach_place_direction = [], save_solution_to_file=''):
@@ -84,7 +83,6 @@ class O2ACCommon(O2ACBase):
       with open(file,'wb') as f:
         pickle.dump(result, f)
       rospy.loginfo("Exiting place() after writing solution")
-    # TODO: EXECUTION OF PLACE PLAN?
     return result.success
 
   def release(self, object_name, pose_to_retreat_to = '', save_solution_to_file=''):
@@ -100,7 +98,6 @@ class O2ACCommon(O2ACBase):
       with open(file,'wb') as f:
         pickle.dump(result, f)
       rospy.loginfo("Exiting release() after writing solution")
-    # TODO: EXECUTION OF RELEASE PLAN?
     return result.success
 
   def pick_place(self, object_name, object_target_pose, grasp_parameter_location = '', release_object_after_place = True, object_subframe_to_place = '',
@@ -119,7 +116,6 @@ class O2ACCommon(O2ACBase):
       with open(file,'wb') as f:
         pickle.dump(result, f)
       rospy.loginfo("Exiting pickplace() after writing solution")
-    # TODO: EXECUTION OF PICKPLACE PLAN?
     return result.success
 
   def fasten(self, object_name, object_target_pose, object_subframe_to_place = '', approach_place_direction_reference_frame = '', approach_place_direction = [], save_solution_to_file=''):
@@ -136,7 +132,6 @@ class O2ACCommon(O2ACBase):
       with open(file,'wb') as f:
         pickle.dump(result, f)
       rospy.loginfo("Exiting fasten() after writing solution")
-    # TODO: EXECUTION OF PLACE PLAN?
     return result.success
 
   def subassembly(self, object_name, object_target_pose, object_subframe_to_place, approach_place_direction_reference_frame = '', approach_place_direction = [], save_solution_to_file=''):
@@ -151,7 +146,6 @@ class O2ACCommon(O2ACBase):
       with open(file,'wb') as f:
         pickle.dump(result, f)
       rospy.loginfo("Exiting subassembly() after writing solution")
-    # TODO: EXECUTION OF PLACE PLAN?
     return result.success
   
   def load_MP_solution(self, solution_file):
@@ -164,7 +158,10 @@ class O2ACCommon(O2ACBase):
     return result
 
   def execute_MP_solution(self, solution, speed = 1.0):
-    """Execute the result of a motion plan."""
+    """
+    Execute the result of a motion plan.
+    The type of the input 'solution' is mtc_msgs.msg.Solution
+    """
     # Execute the solution
     executing_routine = False
     success = False
