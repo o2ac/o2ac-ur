@@ -1,26 +1,16 @@
-# moveit_task_constructor_demo
-
-Description: A simple pick & place demo using MoveIt Task Constructor. This uses the Panda from Franka Emika
-
-Developed by Henning Kayser & Simon Goldstein at [PickNik Consulting](http://picknik.ai/)
-
-## Run
-
-Run demo
-
-    roslaunch moveit_task_constructor_demo demo.launch
-
-# mtc_modules_server
+# o2ac_task_planning
 
 This node starts multiple action servers for different tasks, such as `Pick Object`, `Place Object` etc. The action servers do the task planning when a request arrives and they return the best solution if it is found, which contains the trajectories for executing the plan.
 
-## Run
+## Running mtc_modules_server
 
 ### Requirements
 
-The node requires certain parameters to be set on the ROS parameter server for its initialization. These are used as default values for the tasks' parameters (the parameters that most likely do not change for each call to the action servers, such as the name of the robots, directions for lifting, or placing objects, the name of the support surfaces ...)
+The node requires certain parameters to be set on the ROS parameter server for its initialization. **These are used as default values** for the tasks' parameters (the parameters that most likely do not change for each call to the action servers, such as the name of the robots, directions for lifting, or placing objects, the name of the support surfaces ...)
 
-Before starting the node make sure that the following parameters are available on the parameter server:
+An example for setting these parameters can be found [here](https://gitlab.com/o2ac/o2ac-ur/-/blob/integrate-mtc-in-o2ac-routines/catkin_ws/src/o2ac_routines/src/o2ac_routines/helpers.py#L29).
+
+Before starting the node make sure that these parameters are available on the parameter server:
 
  - `mtc_modules/arm_group_names`: list of strings (list of names for the planning groups of the robot arms)
  - `mtc_modules/hand_group_names`: list of strings (list of names for the planning groups of the grippers)
@@ -42,7 +32,13 @@ Before starting the node make sure that the following parameters are available o
 
 ### Grasps
 
-The node relies on a stage that looks for and loads the possible grasps from the ROS parameter server instead of the GenerateGraspPose stage. The grasps on the parameter server are expected to be in the following format:
+The node relies on a stage that looks for and loads the possible grasps from the ROS parameter server instead of the [GenerateGraspPose](https://gitlab.com/o2ac/moveit-task-constructor/-/blob/master/core/src/stages/generate_grasp_pose.cpp) stage in MTC.
+
+The grasps are expected to be in the format, in which [o2ac_assembly_handler](https://gitlab.com/o2ac/o2ac-ur/-/tree/integrate-mtc-in-o2ac-routines/catkin_ws/src/o2ac_assembly_handler) package uploads the grasps to the parameter server ([here](https://gitlab.com/o2ac/o2ac-ur/-/blob/integrate-mtc-in-o2ac-routines/catkin_ws/src/o2ac_assembly_handler/src/o2ac_assembly_handler/assy.py#L61)).
+
+However, the grasps can be set direstly (the use of o2ac_assembly_handler is not necessary, it is just convenient fo rthe objects that are already part of that package). For new objects (like the tools for example), the grasps can be defined directly as well, like [this](https://gitlab.com/o2ac/o2ac-ur/-/blob/integrate-mtc-in-o2ac-routines/catkin_ws/src/o2ac_routines/src/o2ac_routines/base.py#L696).
+
+The grasps on the parameter server are expected to be in the following format:
 
 ```
 /assembly_level_namespace/object_level_namespace/grasp_level_namespace/position  # A list of three values ([x,y,z])
@@ -59,7 +55,7 @@ The `mtc_modules/grasp_parameter_location` parameter refers to the `assembly_lev
 
 ### EEF names and frames
 
-The naming of the eef (defined in the srdf) is expected to follow the pattern:
+The naming of the eef (defined in the [srdf](https://gitlab.com/o2ac/o2ac-ur/-/blob/integrate-mtc-in-o2ac-routines/catkin_ws/src/o2ac_moveit_config/config/o2ac_base_scene.srdf#L219)) is expected to follow the pattern:
 
 `eef_name` = `arm_group_name` + `_tip`,
 
@@ -77,12 +73,12 @@ For the planning to work, moveit has to be running. Make sure to start moveit be
 
 ### Running the node
 
-**Before running the node make sure that the required parameters (initial parameters and grasps) are loaded to the parameter server, and Moveit is running.**
+**Before running the node make sure that the required parameters (initial parameters and grasps) are loaded to the parameter server, Moveit is running and the required collision objects are in the scene.**
 
 To run the node type:
 
 ```bash
-rosrun moveit_task_constructor_demo mtc_modules_server 
+rosrun o2ac_task_planning_core mtc_modules_server 
 ```
 
 If the node is initialized properly and the servers are running a message should be printed to the terminal, similar to this:
@@ -112,9 +108,61 @@ To test the action server for pick planning, type:
  ```bash
  rosrun actionlib axclient.py /pick_planning
  ```
+This opens a new window where the action goal can be set and the feedback/result can be inspected, and it looks like this:
 
-This opens a new window where the action goal can be set and the feedback/result can be inspected. After sending the goal, the planning should start. This can be seen in the terminal in which `mtc_modules_server` is running, or with RViz.
+<div align="center">
+    <img src="/uploads/ed309ffb1982093b0bf14cde9baa6108/Screenshot_2020-08-19_17_18_33.png" width="30%" height="30%">
+</div>
 
-To visualize the task planning with RViz add the `Motion Planning Tasks` display. In the `Motion Planning Tasks` panel, under `Task Tree` the hierarchical representation of the task should be visible if the planning has started. Selecting one of the stages in the task should reveal the solutions of the selected stage on the right side of the `Motion Planning Tasks` panel. By clicking on one of the solutions, the motion plan can be visualized.
+After sending the goal, the planning should start. This can be seen in the terminal in which `mtc_modules_server` is running, or with RViz.
 
-For a detailed explanation on the meaning of the fields of the action goal see the definition of the action messages.
+To visualize the task planning with RViz add the `Motion Planning Tasks` display.
+
+<div align="center">
+    <img src="/uploads/82c609bf04167baa6ff53d4b9d0d8587/Screenshot_2020-08-19_17_43_47.png" width="60%" height="60%">
+</div>
+
+In the `Motion Planning Tasks` panel, under `Task Tree` the hierarchical representation of the task should be visible if the planning has started. Selecting one of the stages in the task should reveal the solutions of the selected stage on the right side of the `Motion Planning Tasks` panel. By clicking on one of the solutions, the motion plan can be visualized.
+
+<div align="center">
+    <img src="/uploads/c2ea23252b9831a74a0b6da6cf2d18af/Screenshot_2020-08-19_17_43_48.png" width="60%" height="60%">
+</div>
+
+For a detailed explanation on the meaning of the fields of the action goal see the definition of the [action messages](https://gitlab.com/o2ac/o2ac-ur/-/tree/integrate-mtc-in-o2ac-routines/catkin_ws/src/o2ac_task_planning/msgs/action).
+
+## Example use
+
+For an example use case, first call
+
+```bash
+roslaunch o2ac_moveit_config demo.launch 
+```
+
+This starts moveit and loads the o2ac demo scene (to try the same thing with the real robots, use o2ac_moveit_planning_execution.launch instead of demo.launch).
+
+Next start [assembly.py](https://gitlab.com/o2ac/o2ac-ur/-/blob/integrate-mtc-in-o2ac-routines/catkin_ws/src/o2ac_routines/scripts/assembly.py) from `o2ac_routines`in a separate terminal:
+
+```bash
+rosrun o2ac_routines assembly.py 
+```
+and type `68`. This spawns the collision objects in the scene and [sets the required parameters](https://gitlab.com/o2ac/o2ac-ur/-/blob/integrate-mtc-in-o2ac-routines/catkin_ws/src/o2ac_routines/src/o2ac_routines/helpers.py#L29).
+
+After this start the action servers:
+
+```bash
+rosrun o2ac_task_planning_core mtc_modules_server
+```
+
+If the server is running, use the terminal of `assembly.py` and type `75` to start the subassembly planning.
+
+You can check that the planning is running in the terminal of `mtc_modules_server` and in RViz as well.
+
+If the planning finished successfully, the **best solution** (solution with the lowest cost) gets written into a file.
+
+To execute the solution start `o2ac_skill_server`:
+
+```bash
+roslaunch o2ac_skills o2ac_skill_server.launch
+```
+
+and type `80` in the terminal of `assembly.py`
