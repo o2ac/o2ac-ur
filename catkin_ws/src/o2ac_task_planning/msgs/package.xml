@@ -1,0 +1,19 @@
+<package format="2">
+	<name>o2ac_task_planning_msgs</name>
+	<version>0.0.0</version>
+	<description>Messages for O2AC Task Planning</description>
+
+	<maintainer email="artur.istvan.karoly@gmail.com">Artur Karoly</maintainer>
+  	<author email="artur.istvan.karoly@gmail.com">Artur Karoly</author>
+
+  	<license>BSD</license>
+
+	<buildtool_depend>catkin</buildtool_depend>
+
+	<depend>message_generation</depend>
+	<depend>moveit_msgs</depend>
+	<depend>moveit_task_constructor_msgs</depend>
+	<depend>visualization_msgs</depend>
+
+	<exec_depend>message_runtime</exec_depend>
+</package>

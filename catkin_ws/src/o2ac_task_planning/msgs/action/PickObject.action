@@ -1,0 +1,21 @@
+# Define the goal
+# Fields that have to be set:
+string object_name  # Name of the object to pick.
+
+# Optional fields: (If not set, the default values will be used. See README for more details)
+string grasp_parameter_location  # The parameter under which grasp information is stored. See README for details on the parameter tree structure.
+string lift_direction_reference_frame  # The coordinate frame in which the direction of lifting the object (lift_direction) is defined
+float64[] lift_direction  # Vector of the form [x,y,z] for setting the direction of lifting the object
+string robot_name  # Name of the robot for picking the object (if not set, and there are multiple robots, the planning is done for all robots and the best solution is returned)
+
+# Fields currently not in use (these have no effect yet)
+float64 lift_object_min_dist  # Minimum lift distance in the lift_direction
+float64 lift_object_max_dist  # Maximum lift distance in the lift_direction
+string surface_link  # name of link on which the object lies before picking
+# ADD APPROACH DISTANCE
+---
+# Define the result
+bool success
+moveit_task_constructor_msgs/Solution solution
+---
+# Define a feedback message
