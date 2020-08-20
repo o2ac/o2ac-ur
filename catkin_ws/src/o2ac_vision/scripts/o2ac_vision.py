@@ -85,9 +85,11 @@ class O2ACVision(object):
 
         # First, obtain the image from the camera and convert it
         # image_msg = rospy.wait_for_message("/" + goal.camera_id + "/color", sensor_msgs.msg.Image, 1.0)
-        image_msg = rospy.wait_for_message("/camera/color/image_raw", sensor_msgs.msg.Image, 1.0)
+        #image_msg = rospy.wait_for_message("/camera/color/image_raw", sensor_msgs.msg.Image, 1.0)
+        image_msg = rospy.wait_for_message("/b_bot_outside_camera_throttled/color/image_raw/compressed", sensor_msgs.msg.CompressedImage, 1.0)
         bridge = CvBridge()
-        cv_image = bridge.imgmsg_to_cv2(image_msg, desired_encoding="passthrough")
+        cv_image = bridge.compressed_imgmsg_to_cv2(image_msg, desired_encoding="passthrough")
+        cv2.imwrite("rgb.png", cv_image)
 
         # Detect the object
         ssd_results = self.detect_object_in_image(cv_image)
