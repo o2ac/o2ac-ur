@@ -14,7 +14,7 @@ from pose_estimation_func import *
 
 class pose_estimation():
 
-    def pose_estimation(self, im_in, ssd_results):
+    def pose_estimation(self, im_in, ssd_result):
         rospack = rospkg.RosPack()
         temp_root = rospack.get_path("o2ac_vision") + "/dataset/data/templates"
         # Name of template infomation
@@ -22,37 +22,29 @@ class pose_estimation():
         # downsampling rate
         ds_rate = 1.0/2.0
 
-        class_id = []
-        for result in ssd_results:
-            class_id.append(result["class"])
-        print(class_id)
+        if im_in.shape[2] == 3:
+            im_in = cv2.cvtColor(im_in, cv2.COLOR_BGR2GRAY)
+
+        class_id = ssd_result["class"]
 
         has_templates = [8,9,10,14]
         TM = template_matching( im_in, ds_rate, temp_root, temp_info_name )
 
-        # Sending result to action
-        center_list = []
-        orientation_list = []
-        results = list()
-        for result in ssd_results:
-            if class_id in has_templates:
-                start = time.time()
+        center = 0.0
+        ori = 0.0
+        if class_id in has_templates:
+            start = time.time()
 
-                # template matching
-                center, ori = TM.compute( result )
-                center_list.append(center)
-                orientation_list.append(ori)
-                # print( "Result: center [j, i], rotation [deg(ccw)]: ", center, ori )
+            # template matching
+            center, ori = TM.compute( ssd_result )
+            print( "Result: center [j, i], rotation [deg(ccw)]: ", center, ori )
 
-                elapsed_time = time.time() - start
-                # print( "Processing time[msec]: ", 1000*elapsed_time )
+            elapsed_time = time.time() - start
+            # print( "Processing time[msec]: ", 1000*elapsed_time )
 
-                # Generate detection result
-                res_name = "pose_estimation_"+str(class_id)+".png"
-                im_res = TM.get_result_image( result, ori, center )
-                # print( "Save", res_name )
-                cv2.imwrite( res_name, im_res )
+            # Generate detection result
+            im_res = TM.get_result_image( ssd_result, ori, center )
+            # print( "Save", res_name )
+            #cv2.imwrite( res_name, im_res )
         
-        results.append(center_list)
-        results.append(orientation_list)
-        return results
+        return center, ori

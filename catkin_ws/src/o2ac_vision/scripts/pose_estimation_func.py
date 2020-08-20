@@ -51,7 +51,7 @@ class RotationEstimation():
     Crop image 
     """
     def im_crop_bbox( self, im, bbox ):
-        im_bb = im[bbox[1]:bbox[3], bbox[0]:bbox[2]]
+        im_bb = im[bbox[1]:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2]]
         im_out = im_bb.copy()
         return im_out
     
@@ -68,6 +68,10 @@ class RotationEstimation():
         
         # Edge detection
         edges = cv2.Canny( cl1, self._canny1, self._canny2 )
+        #cv2.imshow("cl1",cl1)
+        #cv2.waitKey(0)
+        #cv2.imshow("edges",edges)
+        #cv2.waitKey(0)
         self._im_edge = edges
 
         # findContours
@@ -124,7 +128,7 @@ class RotationEstimation():
         
         # Normalize histogram
         sum = np.sum(hist)
-        hist = hist/sum
+        hist = hist/(sum+0.00001)
         
         # detect peak
         vote_max_bin = np.argmax(hist)
@@ -349,7 +353,6 @@ class template_matching():
         in_ori = re.get_orientation()
         im_edge = re.get_im_edge()
         im_edge_ds = downsampling_binary( im_edge, _fx=self.ds_rate, _fy=self.ds_rate )
-        print( bbox )
 
         """Read orientation of the template"""
         im_temp_edge, temp_ori = self.read_template( result )
