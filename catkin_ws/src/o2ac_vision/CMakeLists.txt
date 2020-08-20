@@ -37,8 +37,8 @@ catkin_package(
 
 include_directories(include ${catkin_INCLUDE_DIRS})
 
-catkin_install_python(PROGRAMS scripts/action_example.py
-                      DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+#catkin_install_python(PROGRAMS scripts/action_example.py
+#                      DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 #############
 ## Testing ##

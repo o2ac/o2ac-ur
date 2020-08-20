@@ -1,4 +1,5 @@
 #-*- encoding:utf-8 -*-
+import rospkg
 import os
 import sys
 import glob, json, time
@@ -11,6 +12,8 @@ import numpy as np
 import cv2
 if torch.cuda.is_available():
     torch.set_default_tensor_type('torch.cuda.FloatTensor')
+rospack = rospkg.RosPack()
+sys.path.append(rospack.get_path("o2ac_vision") + '/dataset/ssd.pytorch')
 
 from ssd import build_ssd
 from data import WRS2020_Detection, WRS_ROOT, AnnotationTransform
@@ -37,20 +40,18 @@ o2ac_label = {
     15:(10,"10_CLBPS10_17_4")
 }
 
-anno_root = "../../WRS_Dataset/Annotations/Far/Image-wise/*.json"
+annotation_root = rospack.get_path("o2ac_vision") + "/dataset/Annotations/Far/Image-wise/*.json"
 # アノテーションファイルの取得
-annos = glob.glob(anno_root)
-
+annotations = glob.glob(annotation_root)
 
 class ssd_detection():
 
-    def __init__( self, fname_weight ):
-        
+    def __init__(self):        
+        fname_weight = rospack.get_path("o2ac_vision") + "/dataset/ssd.pytorch/WRS_lr1e3_bs16.pth"
         self.net = build_ssd('test', 300, 17)    # initialize SSD
         self.net.load_weights( fname_weight )
 
-
-    def object_detection( self, im_in, threshold = 0.6 ):
+    def object_detection(self, im_in, threshold = 0.6):
         """
             Object detection by SSD
             Input: 
@@ -73,7 +74,6 @@ class ssd_detection():
             xx = xx.cuda()
         y = self.net(xx)
 
-
         detections = y.data
         # scale each detection back up to the image
         scale = torch.Tensor(im_in.shape[1::-1]).repeat(2)
@@ -90,61 +90,21 @@ class ssd_detection():
                 bbox = [ int(coords[0][0]), int(coords[0][1]), int(coords[1]), int(coords[2])]
                 result = {"bbox": bbox, "class": i-1, "confidence": score}
                 results.append( result )
+
+        im_vis = im_in.copy()
+        for res in results:
+            bbox = res["bbox"]
+            im_vis = cv2.rectangle( im_vis, (bbox[0],  bbox[1]), 
+                                    (bbox[0]+bbox[2], bbox[1]+bbox[3]), 
+                                    (0,255,0), 3 )
+            cv2.putText( im_vis, o2ac_label[res["class"]][1], 
+                         (bbox[0], bbox[1]),1, 0.7, (255,255,255), 2, cv2.LINE_AA )
+            cv2.putText( im_vis, o2ac_label[res["class"]][1], 
+                         (bbox[0], bbox[1]),1, 0.7, (255,0,0), 1, cv2.LINE_AA )
         
+        for j in range(len(results)):
+            results[j]["class"] = o2ac_label[results[j]["class"]][0]
+
+        cv2.imwrite("ssd_result.png", im_vis)
+
         return results
-
-
-"""
-if __name__ == "__main__":
-
-    #Get arguments
-    args = get_argumets()
-    test_id = args.id
-
-    # Load image
-    cnt = 0
-    for anno in annos:
-        f = open( anno )
-        json_data = json.load( f )
-        #print(json_data)
-        bboxes = json_data["bbox"]
-        class_id = json_data["class_id"]
-        im_in = cv2.imread( json_data["rgb_path"], cv2.IMREAD_COLOR )
-
-        cnt+=1
-        if test_id < cnt:
-            break
-
-    # prepare network model
-    ssd = SSD_detection( args.weight )
-    
-    start = time.time()
-
-    # detection
-    results = ssd.object_detection( im_in )
-
-    elapsed_time = time.time() - start
-
-
-    #visualization
-    im_vis = im_in.copy()
-    for res in results:
-        bbox = res["bbox"]
-        im_vis = cv2.rectangle( im_vis, (bbox[0],  bbox[1]), 
-                                (bbox[0]+bbox[2], bbox[1]+bbox[3]), 
-                                (0,255,0), 3 )
-        cv2.putText( im_vis, o2ac_label[res["class"]][1], 
-                     (bbox[0], bbox[1]),1, 0.7, (255,255,255), 2, cv2.LINE_AA )
-        cv2.putText( im_vis, o2ac_label[res["class"]][1], 
-                     (bbox[0], bbox[1]),1, 0.7, (255,0,0), 1, cv2.LINE_AA )
-
-    cv2.imwrite("ssd_result.png", im_vis)
-
-    print( results )
-    print( "Processing time[msec]: ", 1000*elapsed_time )
-
-    ious = np.zeros(17, np.float )
-    n_objects = np.zeros(17,np.float)
-    ious, n_objects = difference( bboxes, class_id, results )
-
-"""

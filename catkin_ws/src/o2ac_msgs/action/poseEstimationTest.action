@@ -1,7 +1,6 @@
 # Request
-int64 id
-string tdir
-o2ac_msgs/SSDResult[] ssd_result_list
+string object_id
+string camera_id
 
 ---
 # Result
