@@ -16,6 +16,10 @@ def SpiralMotion():
             newpose[0] = x
             newpose[1] = y/1.41
             newpose[2] = y/1.41
+        elif (spiral_axis == "Y30Z60"):
+            newpose[0] = x
+            newpose[1] = y*0.5
+            newpose[2] = y*0.866
         end
         return newpose
     end
