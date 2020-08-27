@@ -334,6 +334,13 @@ bool SkillServer::activateROSControlOnUR(std::string robot_name)
   std_srvs::Trigger srv4;
   play_.call(srv4);
   ros::Duration(2.0).sleep();
+  if (!srv4.response.success)
+  {
+    ROS_ERROR_STREAM("Could not start ROS_external_control.urp. Response: " << srv4.response);
+    play_.call(srv4);
+    ros::Duration(2.0).sleep();
+    ROS_ERROR_STREAM("Response after trying one more time: " << (srv4.response.success ? "success" : "failure"));
+  }
   return srv4.response.success;
 }
 
