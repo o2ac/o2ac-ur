@@ -165,6 +165,8 @@ class O2ACCommon(O2ACBase):
     # Execute the solution
     executing_routine = False
     success = False
+    how_many_times_we_operated_a_bot_gripper = 0
+    screw_counter = 0
     if speed > 1.0:
       speed = 1.0
     start_state = self.robots.get_current_state()
@@ -183,12 +185,31 @@ class O2ACCommon(O2ACBase):
         self.do_change_tool_action("b_bot", equip=False, screw_size=4)
       if stage_name == 'pick_screw_start':
         executing_routine = True
-        self.pick_screw_from_feeder('b_bot', 4)
+        self.pick_screw_from_feeder('b_bot', 4, attempts = 2)
+      if stage_name == 'fasten_screw_start':
+        executing_routine = True
+        target_pose = geometry_msgs.msg.PoseStamped()
+        if screw_counter == 0:
+          target_pose.header.frame_id = 'move_group/base/screw_hole_panel2_1'
+          screw_counter += 1
+        else:
+          target_pose.header.frame_id = 'move_group/base/screw_hole_panel2_2'
+        target_pose.pose.orientation.w = 1
+        self.fasten_screw('b_bot', target_pose)
       if solution.scene_diff.robot_state.joint_state.name and not executing_routine:  # If the robot state is changed (robot moved, object attached/detached)
         # Update attached collision objects
         if not attached_collision_objects == solution.scene_diff.robot_state.attached_collision_objects:
+          for co in attached_collision_objects:
+            print('IN MEMORY CO: ', co.object.id)
+          for co in solution.scene_diff.robot_state.attached_collision_objects:
+            print('IN SOLUTION CO: ', co.object.id)
           coll_objs_to_detach = [collision_object for collision_object in attached_collision_objects if collision_object not in solution.scene_diff.robot_state.attached_collision_objects]
           coll_objs_to_attach = [collision_object for collision_object in solution.scene_diff.robot_state.attached_collision_objects if collision_object not in attached_collision_objects]
+          for attached_object in coll_objs_to_detach:
+            print('Detaching object ' + attached_object.object.id + ' in stage ' + stage_name)
+            attached_object_name = attached_object.object.id
+            attach_to = attached_object.link_name[:5]
+            self.groups[attach_to].detach_object(attached_object_name)
           for attached_object in coll_objs_to_attach:
             print('Attaching object ' + attached_object.object.id + ' in stage ' + stage_name)
             attached_object_name = attached_object.object.id
@@ -200,11 +221,6 @@ class O2ACCommon(O2ACBase):
               attach_to + "_robotiq_85_right_finger_tip_link", 
               attach_to + "_robotiq_85_right_inner_knuckle_link"])
             attached_collision_objects.append(attached_object)
-          for attached_object in coll_objs_to_detach:
-            print('Detaching object ' + attached_object.object.id + ' in stage ' + stage_name)
-            attached_object_name = attached_object.object.id
-            attach_to = attached_object.link_name[:5]
-            self.groups[attach_to].detach_object(attached_object_name)
           attached_collision_objects = [attached_collision_object for attached_collision_object in attached_collision_objects if attached_collision_object not in coll_objs_to_detach]
 
         # If joint_names is empty, the stage performs no motions and can be skipped
@@ -217,15 +233,64 @@ class O2ACCommon(O2ACBase):
             hand_closed_joint_values = hand_group.get_named_target_values('close')
             hand_open_joint_values = hand_group.get_named_target_values('open')
             if 0.01 > abs(hand_open_joint_values[solution.trajectory.joint_trajectory.joint_names[0]] - solution.trajectory.joint_trajectory.points[-1].positions[0]):
-              self.send_gripper_command(robot_name, 'open')
+              if how_many_times_we_operated_a_bot_gripper == 2 and robot_name == 'a_bot':
+                l = 0.01
+                # self.move_lin_rel("a_bot", [-0.002, 0, 0])
+                self.move_lin_rel("a_bot", [-0.002, -math.sin(30.0/180.0*math.pi)*l, math.cos(30.0/180.0*math.pi)*l])
+                self.send_gripper_command(robot_name, 0.012)
+                rospy.sleep(1)
+                self.move_lin_rel("a_bot", [0, math.sin(30.0/180.0*math.pi)*l, -math.cos(30.0/180.0*math.pi)*l])
+              elif how_many_times_we_operated_a_bot_gripper == 4 and robot_name == 'a_bot':
+                self.send_gripper_command(robot_name, 'open')
+                self.move_lin_rel("a_bot", [0.002, 0, 0])
+              else:
+                self.send_gripper_command(robot_name, 'open')
             else:
               self.send_gripper_command(robot_name, 'close', True)
+            if robot_name == 'a_bot':
+              rospy.sleep(2)
+              how_many_times_we_operated_a_bot_gripper += 1
+            if self.use_real_robot:
+              if how_many_times_we_operated_a_bot_gripper == 3:
+                #  Execute positioning UR program
+                # Load program
+                request = ur_dashboard_msgs.srv.LoadRequest()
+                request.filename = "wrs2020_push_motor_plate.urp"
+                response = self.ur_dashboard_clients["b_bot_load_program"].call(request)
+                if not response.success:
+                  rospy.logerr("Could not load the wrs2020_push_motor_plate.urp URCap. Is the UR robot set up correctly and the program installed with the correct name?")
+                  return False
+                  
+                # Run the program
+                response = self.ur_dashboard_clients["b_bot_play"].call(std_srvs.srv.TriggerRequest())
+                response = self.ur_dashboard_clients["b_bot_program_running"].call(ur_dashboard_msgs.srv.IsProgramRunningRequest())
+                rospy.sleep(2)
+                rospy.loginfo("press enter when done with the UR script")
+                raw_input()
+                # TODO go to named pose with bbot
           else:
-            # raw_input()
-            # Robot motion
+            rospy.loginfo("========")
+            rospy.logwarn("self.groups[robot_name].get_current_joint_values():")
+            print(self.groups[robot_name].get_current_joint_values())
+            rospy.logwarn("solution.trajectory.joint_trajectory.points[0].positions:")
+            print(solution.trajectory.joint_trajectory.points[0].positions)
+            # First check that the trajectory is safe to execute (= robot is at start of trajectory)
+            if not all_close(self.groups[robot_name].get_current_joint_values(), 
+                             solution.trajectory.joint_trajectory.points[0].positions,
+                             0.001):
+              rospy.logerr("Robot " + robot_name + " is not at the start of the next trajectory! Aborting.")
+              rospy.logwarn("self.groups[robot_name].get_current_joint_values():")
+              print(self.groups[robot_name].get_current_joint_values())
+              rospy.logwarn("solution.trajectory.joint_trajectory.points[0].positions:")
+              print(solution.trajectory.joint_trajectory.points[0].positions)
+              return False
+
+            # Prepare robot motion
             self.activate_ros_control_on_ur(robot_name)
             plan = arm_group.retime_trajectory(self.robots.get_current_state(), solution.trajectory, speed)
             arm_group.set_max_velocity_scaling_factor(speed)
+
+            # Execute
             plan_success = arm_group.execute(plan, wait=True)
             success = success and plan_success
       if stage_name == 'pick_tool_end':
@@ -235,6 +300,9 @@ class O2ACCommon(O2ACBase):
         executing_routine = False
         attached_collision_objects = self.robots.get_current_state().attached_collision_objects
       if stage_name == 'pick_screw_end':
+        executing_routine = False
+        attached_collision_objects = self.robots.get_current_state().attached_collision_objects
+      if stage_name == 'fasten_screw_end':
         executing_routine = False
         attached_collision_objects = self.robots.get_current_state().attached_collision_objects
     return True

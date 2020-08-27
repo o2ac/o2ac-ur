@@ -62,6 +62,7 @@ from geometry_msgs.msg import Pose
 import o2ac_msgs
 import o2ac_msgs.msg
 import o2ac_msgs.srv
+import o2ac_task_planning_msgs.msg
 
 from math import pi
 from std_msgs.msg import String
@@ -109,12 +110,12 @@ class O2ACBase(object):
     self.screw_client = actionlib.SimpleActionClient('/o2ac_skills/screw', o2ac_msgs.msg.screwAction)
     self.change_tool_client = actionlib.SimpleActionClient('/o2ac_skills/change_tool', o2ac_msgs.msg.changeToolAction)
 
-    self.pick_planning_client = actionlib.SimpleActionClient('/pick_planning', moveit_task_constructor_msgs.msg.PickObjectAction)
-    self.place_planning_client = actionlib.SimpleActionClient('/place_planning', moveit_task_constructor_msgs.msg.PlaceObjectAction)
-    self.release_planning_client = actionlib.SimpleActionClient('/release_planning', moveit_task_constructor_msgs.msg.ReleaseObjectAction)
-    self.pickplace_planning_client = actionlib.SimpleActionClient('/pick_place_planning', moveit_task_constructor_msgs.msg.PickPlaceWithRegraspAction)
-    self.fastening_planning_client = actionlib.SimpleActionClient('/fastening_planning', moveit_task_constructor_msgs.msg.PlaceObjectAction)
-    self.sub_assembly_planning_client = actionlib.SimpleActionClient('/sub_assembly_planning', moveit_task_constructor_msgs.msg.PickPlaceWithRegraspAction)
+    self.pick_planning_client = actionlib.SimpleActionClient('/pick_planning', o2ac_task_planning_msgs.msg.PickObjectAction)
+    self.place_planning_client = actionlib.SimpleActionClient('/place_planning', o2ac_task_planning_msgs.msg.PlaceObjectAction)
+    self.release_planning_client = actionlib.SimpleActionClient('/release_planning', o2ac_task_planning_msgs.msg.ReleaseObjectAction)
+    self.pickplace_planning_client = actionlib.SimpleActionClient('/pick_place_planning', o2ac_task_planning_msgs.msg.PickPlaceWithRegraspAction)
+    self.fastening_planning_client = actionlib.SimpleActionClient('/fastening_planning', o2ac_task_planning_msgs.msg.PlaceObjectAction)
+    self.sub_assembly_planning_client = actionlib.SimpleActionClient('/sub_assembly_planning', o2ac_task_planning_msgs.msg.PickPlaceWithRegraspAction)
     
     self._suction_client = actionlib.SimpleActionClient('/suction_control', o2ac_msgs.msg.SuctionControlAction)
     self._fastening_tool_client = actionlib.SimpleActionClient('/screw_tool_control', o2ac_msgs.msg.FastenerGripperControlAction)
