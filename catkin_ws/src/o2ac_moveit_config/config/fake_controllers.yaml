@@ -17,10 +17,10 @@ controller_list:
       - b_bot_wrist_3_joint
   - name: fake_a_bot_robotiq_85_controller
     joints:
-      - a_bot_robotiq_85_left_knuckle_joint
+      - a_bot_finger_joint
   - name: fake_b_bot_robotiq_85_controller
     joints:
-      - b_bot_robotiq_85_left_knuckle_joint
+      - b_bot_finger_joint
 initial:  # Define initial robot poses.
   - group: a_bot
     pose: home
