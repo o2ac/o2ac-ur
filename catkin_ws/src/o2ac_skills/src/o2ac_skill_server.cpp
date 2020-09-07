@@ -1,4 +1,4 @@
-#include "o2ac_skill_server.h"
+#include "o2ac_skills/o2ac_skill_server.h"
 
 SkillServer::SkillServer() : 
                   pickScrewActionServer_(n_, "o2ac_skills/pick_screw", boost::bind(&SkillServer::executePickScrew, this, _1),false),
@@ -6,6 +6,7 @@ SkillServer::SkillServer() :
                   regraspActionServer_(n_, "o2ac_skills/regrasp", boost::bind(&SkillServer::executeRegrasp, this, _1),false),
                   screwActionServer_(n_, "o2ac_skills/screw", boost::bind(&SkillServer::executeScrew, this, _1),false),
                   changeToolActionServer_(n_, "o2ac_skills/change_tool", boost::bind(&SkillServer::executeChangeTool, this, _1),false),
+                  a_bot_group_("a_bot"),
                   b_bot_group_("b_bot"),
                   a_bot_gripper_client_("/a_bot/gripper_action_controller", true),
                   b_bot_gripper_client_("/b_bot/gripper_action_controller", true),
@@ -19,14 +20,8 @@ SkillServer::SkillServer() :
   subRunMode_ = n_.subscribe("run_mode", 1, &SkillServer::runModeCallback, this);
   subPauseMode_ = n_.subscribe("pause_mode", 1, &SkillServer::pauseModeCallback, this);
   subTestMode_ = n_.subscribe("test_mode", 1, &SkillServer::testModeCallback, this);
-
-  // Services to advertise
-  goToNamedPoseService_ = n_.advertiseService("o2ac_skills/goToNamedPose", &SkillServer::goToNamedPoseCallback,
-                                        this);
-  publishMarkerService_ = n_.advertiseService("o2ac_skills/publishMarker", &SkillServer::publishMarkerCallback,
-                                        this);
-  toggleCollisionsService_ = n_.advertiseService("o2ac_skills/toggleCollisions", &SkillServer::toggleCollisionsCallback,
-                                        this);
+  sub_a_bot_status_ = n_.subscribe("/a_bot/ur_hardware_interface/robot_program_running", 1, &SkillServer::aBotStatusCallback, this);
+  sub_b_bot_status_ = n_.subscribe("/b_bot/ur_hardware_interface/robot_program_running", 1, &SkillServer::bBotStatusCallback, this);
 
   // Services to subscribe to
   sendScriptToURClient_ = n_.serviceClient<o2ac_msgs::sendScriptToUR>("o2ac_skills/sendScriptToUR");
@@ -40,13 +35,6 @@ SkillServer::SkillServer() :
   b_bot_load_program_ = n_.serviceClient<ur_dashboard_msgs::Load>("/b_bot/ur_hardware_interface/dashboard/load_program");
   b_bot_play_ = n_.serviceClient<std_srvs::Trigger>("/b_bot/ur_hardware_interface/dashboard/play");
   
-  // Actions we serve
-  pickScrewActionServer_.start();
-  placeActionServer_.start();
-  regraspActionServer_.start();
-  screwActionServer_.start();
-  changeToolActionServer_.start();
-
   // Action clients
   // ROS_INFO("Waiting for action servers to start.");
   // a_bot_gripper_client.waitForServer(); 
@@ -54,6 +42,10 @@ SkillServer::SkillServer() :
   // ROS_INFO("Action servers started.");
 
   // Set up MoveGroups
+  a_bot_group_.setPlanningTime(PLANNING_TIME);
+  a_bot_group_.setPlannerId("RRTConnectkConfigDefault");
+  a_bot_group_.setEndEffectorLink("a_bot_robotiq_85_tip_link");
+  a_bot_group_.setNumPlanningAttempts(5);
   b_bot_group_.setPlanningTime(PLANNING_TIME);
   b_bot_group_.setPlannerId("RRTConnectkConfigDefault");
   b_bot_group_.setEndEffectorLink("b_bot_robotiq_85_tip_link");
@@ -80,6 +72,22 @@ SkillServer::SkillServer() :
   {
     ROS_INFO_STREAM("Using simulated robot.");
   }
+}
+
+void SkillServer::advertiseActionsAndServices()
+{
+  // Actions to advertise
+  pickScrewActionServer_.start();
+  placeActionServer_.start();
+  regraspActionServer_.start();
+  screwActionServer_.start();
+  changeToolActionServer_.start();
+
+  // Services to advertise
+  publishMarkerService_ = n_.advertiseService("o2ac_skills/publishMarker", &SkillServer::publishMarkerCallback,
+                                        this);
+  toggleCollisionsService_ = n_.advertiseService("o2ac_skills/toggleCollisions", &SkillServer::toggleCollisionsCallback,
+                                        this);
 }
 
 void SkillServer::initializeCollisionObjects()
@@ -282,62 +290,61 @@ void SkillServer::initializeCollisionObjects()
 
 bool SkillServer::activateROSControlOnUR(std::string robot_name)
 {
+  ROS_INFO_STREAM("DEBUG Checking if ros control active on " << robot_name);
   if (!use_real_robot_)
     return true;
-  if ((robot_name != "b_bot") && (robot_name != "a_bot"))
+
+  if (robot_name == "a_bot" && a_bot_ros_control_active_)
+    return true;
+  else if (robot_name == "b_bot" && b_bot_ros_control_active_)
+    return true;
+  else if (robot_name != "a_bot" && robot_name != "b_bot")
   {
     ROS_ERROR("Robot name was not found or the robot is not a UR!");
     return false;
   }
 
-  ros::ServiceClient get_loaded_program_, program_running_, load_program_, play_;
+  // If ROS External Control program is not running on UR, load and start it
+  ROS_ERROR_STREAM("Activating ROS control for robot: " << robot_name);
+  ros::ServiceClient get_loaded_program, load_program, play;
   if (robot_name == "a_bot")
   {
-    get_loaded_program_ = a_bot_get_loaded_program_;
-    program_running_ = a_bot_program_running_;
-    load_program_ = a_bot_load_program_;
-    play_ = a_bot_play_;
+    get_loaded_program = a_bot_get_loaded_program_;
+    load_program = a_bot_load_program_;
+    play = a_bot_play_;
   }
   else // b_bot
   {
-    get_loaded_program_ = b_bot_get_loaded_program_;
-    program_running_ = b_bot_program_running_;
-    load_program_ = b_bot_load_program_;
-    play_ = b_bot_play_;
+    get_loaded_program = b_bot_get_loaded_program_;
+    load_program = b_bot_load_program_;
+    play = b_bot_play_;
   }
-  ros::Duration(1.0).sleep();
   
-  // Check if URCap is already running on UR
-  ur_dashboard_msgs::IsProgramRunning srv1;  
-  if (srv1.response.program_running)
+  // Check if correct program loaded
+  ur_dashboard_msgs::GetLoadedProgram srv2;
+  get_loaded_program.call(srv2);
+  if (srv2.response.program_name != "/programs/ROS_external_control.urp")
   {
-    ur_dashboard_msgs::GetLoadedProgram srv2;
-    get_loaded_program_.call(srv2);
-    ROS_WARN_STREAM("Got loaded program name:");
-    ROS_WARN_STREAM(srv2.response.program_name);
-    if (srv2.response.program_name == "/programs/ROS_external_control.urp")
-      return true;
-  }
-
-  // Load program
-  ur_dashboard_msgs::Load srv3;
-  srv3.request.filename = "ROS_external_control.urp";
-  load_program_.call(srv3);
-  if (!srv3.response.success)
-  {
-    ROS_ERROR("Could not load the ROS_external_control.urp URCap. Is the UR robot set up correctly and the program installed with the correct name?");
-    ROS_ERROR_STREAM("service answer: " << srv3.response.answer);
-    return false;
+    // Load program
+    ur_dashboard_msgs::Load srv3;
+    srv3.request.filename = "ROS_external_control.urp";
+    load_program.call(srv3);
+    if (!srv3.response.success)
+    {
+      ROS_ERROR("Could not load the ROS_external_control.urp URCap. Is the UR robot set up correctly and the program installed with the correct name?");
+      ROS_ERROR_STREAM("service answer: " << srv3.response.answer);
+      return false;
+    }
   }
 
   // Run the program
   std_srvs::Trigger srv4;
-  play_.call(srv4);
+  play.call(srv4);
   ros::Duration(2.0).sleep();
   if (!srv4.response.success)
   {
     ROS_ERROR_STREAM("Could not start ROS_external_control.urp. Response: " << srv4.response);
-    play_.call(srv4);
+    play.call(srv4);
     ros::Duration(2.0).sleep();
     ROS_ERROR_STREAM("Response after trying one more time: " << (srv4.response.success ? "success" : "failure"));
   }
@@ -654,6 +661,7 @@ moveit::planning_interface::MoveGroupInterface* SkillServer::robotNameToMoveGrou
 {
   // This function converts the name of the robot to a pointer to the member variable containing the move group
   // Returning the move group itself does not seem to work, sadly.
+  if (robot_name == "a_bot") return &a_bot_group_;
   if (robot_name == "b_bot") return &b_bot_group_;
 }
 
@@ -1368,14 +1376,6 @@ bool SkillServer::publishPoseMarker(geometry_msgs::PoseStamped marker_pose)
   return true;
 }
 // ----------- Service definitions
-bool SkillServer::goToNamedPoseCallback(o2ac_msgs::goToNamedPose::Request &req,
-                                           o2ac_msgs::goToNamedPose::Response &res)
-{
-  ROS_INFO("Received goToNamedPose callback.");
-  res.success = goToNamedPose(req.named_pose, req.planning_group);
-  return true;
-}
-
 bool SkillServer::publishMarkerCallback(o2ac_msgs::publishMarker::Request &req,
                                            o2ac_msgs::publishMarker::Response &res)
 {
@@ -1403,6 +1403,16 @@ void SkillServer::testModeCallback(const std_msgs::BoolConstPtr& msg)
 {
   boost::mutex::scoped_lock lock(mutex_);
   test_mode_ = msg->data;
+}
+void SkillServer::aBotStatusCallback(const std_msgs::BoolConstPtr& msg)
+{
+  boost::mutex::scoped_lock lock(mutex_);
+  a_bot_ros_control_active_ = msg->data;
+}
+void SkillServer::bBotStatusCallback(const std_msgs::BoolConstPtr& msg)
+{
+  boost::mutex::scoped_lock lock(mutex_);
+  b_bot_ros_control_active_ = msg->data;
 }
 
 // ----------- Action servers
@@ -1713,6 +1723,7 @@ int main(int argc, char **argv)
 
   // Create an object of class SkillServer that will take care of everything
   SkillServer ss;
+  ss.advertiseActionsAndServices();
   ROS_INFO("o2ac skill server started");
   while (ros::ok())
   {

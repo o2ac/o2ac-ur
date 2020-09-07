@@ -35,7 +35,6 @@
 #include "o2ac_msgs/RobotStatus.h"
 
 // Services
-#include "o2ac_msgs/goToNamedPose.h"
 #include "o2ac_msgs/sendScriptToUR.h"
 #include "o2ac_msgs/publishMarker.h"
 
@@ -63,6 +62,7 @@ public:
   //Constructor
   SkillServer();
   void initializeCollisionObjects(); // Defines tool objects
+  void advertiseActionsAndServices();
 
   //Helpers (convenience functions)
   bool activateROSControlOnUR(std::string robot_name);
@@ -98,8 +98,6 @@ public:
   bool setSuctionEjection(std::string fastening_tool_name, bool turn_suction_on = true, bool eject_screw = false);
 
   // Callback declarations
-  bool goToNamedPoseCallback(o2ac_msgs::goToNamedPose::Request &req,
-                        o2ac_msgs::goToNamedPose::Response &res);
   bool publishMarkerCallback(o2ac_msgs::publishMarker::Request &req,
                         o2ac_msgs::publishMarker::Response &res);
   bool toggleCollisionsCallback(std_srvs::SetBool::Request &req,
@@ -108,6 +106,8 @@ public:
   void runModeCallback(const std_msgs::BoolConstPtr& msg);
   void pauseModeCallback(const std_msgs::BoolConstPtr& msg);
   void testModeCallback(const std_msgs::BoolConstPtr& msg);
+  void aBotStatusCallback(const std_msgs::BoolConstPtr& msg);
+  void bBotStatusCallback(const std_msgs::BoolConstPtr& msg);
 
   // Actions
   void executePickScrew(const o2ac_msgs::pickScrewGoalConstPtr& goal);
@@ -120,18 +120,19 @@ public:
 // private:
   ros::NodeHandle n_;
   bool use_real_robot_;
+  bool a_bot_ros_control_active_, b_bot_ros_control_active_;
   bool run_mode_, pause_mode_, test_mode_;
   double reduced_speed_limit_ = .25;
   double speed_fast = 1.5, speed_fastest = 3.0;
   double acc_fast = 1.5, acc_fastest = 2.0;
   boost::mutex mutex_;
 
+  ros::Subscriber sub_a_bot_status_, sub_b_bot_status_;
   ros::Subscriber subRunMode_, subPauseMode_, subTestMode_;
   ros::Publisher pubMarker_;
   int marker_id_count = 0;
 
   // Service declarations
-  ros::ServiceServer goToNamedPoseService_;
   ros::ServiceServer publishMarkerService_;
   ros::ServiceServer toggleCollisionsService_;
 
@@ -139,7 +140,7 @@ public:
   ros::ServiceClient sendScriptToURClient_;
   ros::ServiceClient a_bot_get_loaded_program_, a_bot_program_running_, a_bot_load_program_, a_bot_play_, b_bot_get_loaded_program_, b_bot_program_running_, b_bot_load_program_, b_bot_play_;
   
-  // Action declarations
+  // Action servers
   actionlib::SimpleActionServer<o2ac_msgs::pickScrewAction> pickScrewActionServer_;
   actionlib::SimpleActionServer<o2ac_msgs::placeAction> placeActionServer_;
   actionlib::SimpleActionServer<o2ac_msgs::regraspAction> regraspActionServer_;
@@ -167,7 +168,7 @@ public:
   moveit_msgs::PlanningScene planning_scene_;
   moveit::planning_interface::PlanningSceneInterface planning_scene_interface_;
   ros::ServiceClient get_planning_scene_client;
-  moveit::planning_interface::MoveGroupInterface b_bot_group_;
+  moveit::planning_interface::MoveGroupInterface a_bot_group_, b_bot_group_;
   
   moveit_msgs::CollisionObject screw_tool_m6, screw_tool_m4, screw_tool_m3, suction_tool, nut_tool, set_screw_tool;
 
