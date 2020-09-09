@@ -1,0 +1,9 @@
+<library path="lib/libo2ac_rviz">
+  <class name="o2ac/O2ACSetupPanel"
+         type="o2ac_rviz::O2ACSetupPanel"
+         base_class_type="rviz::Panel">
+    <description>
+      Simple commands to setup and debug the O2AC WRS system
+    </description>
+  </class>
+</library>
