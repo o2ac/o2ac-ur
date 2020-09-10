@@ -38,6 +38,23 @@
   <arg name="debug" default="false" doc="If set to true, will start the driver inside gdb" />
   <arg unless="$(arg debug)" name="launch_prefix" value="" />
   <arg     if="$(arg debug)" name="launch_prefix" value="gdb --ex run --args" />
+
+  <!-- ======================================================= -->
+  <!-- Grippers -->
+  <include file="$(find robotiq_control)/launch/urcap_cmodel_action_controller.launch">
+    <arg name="namespace" value="a_bot" />
+    <arg name="gripper_prefix" value="a_bot_" />
+    <arg name="address" value="$(arg robot_ip_a)" />
+    <arg name="config" value="cmodel_action_controller_140" />
+  </include>
+
+  <include file="$(find robotiq_control)/launch/urcap_cmodel_action_controller.launch">
+    <arg name="namespace" value="b_bot" />
+    <arg name="gripper_prefix" value="b_bot_" />
+    <arg name="address" value="$(arg robot_ip_b)" />
+    <arg name="config" value="cmodel_action_controller_85" />
+  </include>
+  <!-- ======================================================= -->
   
   <!-- Adapted from ur5e_bringup.launch -->
   <remap from="/a_bot/joint_states" to="/joint_states"/>
@@ -96,6 +113,5 @@
     <param name="source_list" value="['/b_bot/joint_states']"/>  
   </node> -->
   <!-- <param name="source_list" value="['/b_bot/joint_states','/a_bot/joint_states']"/> -->
-  
-  <!-- TODO: Add a_bot -->
+
 </launch>

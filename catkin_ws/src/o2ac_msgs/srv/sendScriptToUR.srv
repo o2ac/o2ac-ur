@@ -18,7 +18,7 @@ bool peck_mode                  # Used in original spiral search motion
 bool use_base_coords            # For linear_search
 
 # For spiral and helix motion
-string spiral_axis              # "X", "Y", "Z". In gripper CSYS.
+string spiral_axis              # "X", "Y", "Z", "YZ"(45 degrees), "Y30Z60"(30 deg). In gripper CSYS.
 string helix_forward_axis       # "X", "Y", "Z". In gripper CSYS.
 float64 helix_forward_increment # How far the motion feeds forward per full rotation
 float64 helix_forward_limit     # When the motion forward ends
