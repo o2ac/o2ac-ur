@@ -44,6 +44,7 @@ import tf
 import actionlib
 from math import *
 import yaml
+import pickle
 
 import moveit_commander
 import moveit_msgs.msg
@@ -61,6 +62,7 @@ from geometry_msgs.msg import Pose
 import o2ac_msgs
 import o2ac_msgs.msg
 import o2ac_msgs.srv
+import o2ac_task_planning_msgs.msg
 
 from math import pi
 from std_msgs.msg import String
@@ -80,7 +82,6 @@ class O2ACBase(object):
     moveit_commander.roscpp_initialize(sys.argv)
 
     self.listener = tf.TransformListener()
-    self.co_pub = rospy.Publisher('/collision_object', moveit_msgs.msg.CollisionObject, queue_size=100)
     self.use_real_robot = rospy.get_param("use_real_robot", False)
     self.force_ur_script_linear_motion = False
     self.force_moveit_linear_motion = True
@@ -98,8 +99,10 @@ class O2ACBase(object):
     self.apply_planning_scene_diff = rospy.ServiceProxy('/apply_planning_scene', moveit_msgs.srv.ApplyPlanningScene)
     self.apply_planning_scene_diff.wait_for_service(5.0)
 
-    self.groups = {"a_bot":moveit_commander.MoveGroupCommander("a_bot"), "b_bot":moveit_commander.MoveGroupCommander("b_bot")}
-    self.gripper_action_clients = {"b_bot":actionlib.SimpleActionClient('/b_bot/gripper_action_controller', robotiq_msgs.msg.CModelCommandAction)}
+    self.groups = {"a_bot":moveit_commander.MoveGroupCommander("a_bot"), "b_bot":moveit_commander.MoveGroupCommander("b_bot"),
+      "a_bot_robotiq_85":moveit_commander.MoveGroupCommander("a_bot_robotiq_85"), "b_bot_robotiq_85":moveit_commander.MoveGroupCommander("b_bot_robotiq_85")}
+    self.gripper_action_clients = {"a_bot":actionlib.SimpleActionClient('/a_bot/gripper_action_controller', robotiq_msgs.msg.CModelCommandAction),
+      "b_bot":actionlib.SimpleActionClient('/b_bot/gripper_action_controller', robotiq_msgs.msg.CModelCommandAction)}
     
     self.pick_screw_client = actionlib.SimpleActionClient('/o2ac_skills/pick_screw', o2ac_msgs.msg.pickScrewAction)
     self.place_client = actionlib.SimpleActionClient('/o2ac_skills/place', o2ac_msgs.msg.placeAction)
@@ -107,8 +110,12 @@ class O2ACBase(object):
     self.screw_client = actionlib.SimpleActionClient('/o2ac_skills/screw', o2ac_msgs.msg.screwAction)
     self.change_tool_client = actionlib.SimpleActionClient('/o2ac_skills/change_tool', o2ac_msgs.msg.changeToolAction)
 
-    self.pick_planning_client = actionlib.SimpleActionClient('/pick_planning', moveit_task_constructor_msgs.msg.PickObjectAction)
-    self.pick_place_planning_client = actionlib.SimpleActionClient('/pick_place_planning_q', moveit_task_constructor_msgs.msg.PickPlacePlanningAction)
+    self.pick_planning_client = actionlib.SimpleActionClient('/pick_planning', o2ac_task_planning_msgs.msg.PickObjectAction)
+    self.place_planning_client = actionlib.SimpleActionClient('/place_planning', o2ac_task_planning_msgs.msg.PlaceObjectAction)
+    self.release_planning_client = actionlib.SimpleActionClient('/release_planning', o2ac_task_planning_msgs.msg.ReleaseObjectAction)
+    self.pickplace_planning_client = actionlib.SimpleActionClient('/pick_place_planning', o2ac_task_planning_msgs.msg.PickPlaceWithRegraspAction)
+    self.fastening_planning_client = actionlib.SimpleActionClient('/fastening_planning', o2ac_task_planning_msgs.msg.PlaceObjectAction)
+    self.sub_assembly_planning_client = actionlib.SimpleActionClient('/sub_assembly_planning', o2ac_task_planning_msgs.msg.PickPlaceWithRegraspAction)
     
     self._suction_client = actionlib.SimpleActionClient('/suction_control', o2ac_msgs.msg.SuctionControlAction)
     self._fastening_tool_client = actionlib.SimpleActionClient('/screw_tool_control', o2ac_msgs.msg.FastenerGripperControlAction)
@@ -204,8 +211,8 @@ class O2ACBase(object):
   def activate_ros_control_on_ur(self, robot="b_bot"):
     if not self.use_real_robot:
       return True
-    if robot is not "b_bot" and robot is not "a_bot":
-      rospy.logerr("Robot name was not found or the robot is not a UR!")
+    if not robot == "b_bot" and not robot == "a_bot":
+      rospy.logerr("Robot name '" + robot + "' was not found or the robot is not a UR!")
       return False
     
     # Check if URCap is already running on UR
@@ -609,10 +616,9 @@ class O2ACBase(object):
     # Call the pick action. It is useful for picking screws with the tool.
     goal = o2ac_msgs.msg.pickScrewGoal()
     goal.robot_name = robot_name
-    goal.item_pose = pose_stamped
+    goal.screw_pose = pose_stamped
     goal.tool_name = tool_name
     goal.screw_size = screw_size
-    goal.use_complex_planning = use_complex_planning
     goal.z_axis_rotation = z_axis_rotation
     rospy.loginfo("Sending pick action goal")
     rospy.logdebug(goal)
@@ -661,8 +667,8 @@ class O2ACBase(object):
 
   def do_change_tool_action(self, robot_name, equip=True, 
                         screw_size = 4):
-    # self.equip_unequip_tool(robot_name, screw_tool_id, angle=0.0, equip_or_unequip=)
-    # TODO(felixvd): Fix this
+    # self.equip_unequip_tool(robot_name, screw_tool_id, angle=0.0, equip_or_unequip=equip)
+    # return
     ### DEPRECATED
     self.log_to_debug_monitor("Change tool", "operation")
     goal = o2ac_msgs.msg.changeToolGoal()
@@ -690,6 +696,7 @@ class O2ACBase(object):
   def upload_tool_grasps_to_param_server(self, tool_id):
     transformer = tf.Transformer(True, rospy.Duration(10.0))
 
+    rospy.sleep(0.2)
     (trans,rot) = self.listener.lookupTransform('/screw_tool_' + tool_id + '_pickup_link', '/move_group/screw_tool_' + tool_id, rospy.Time())
     collision_object_to_pickup_link = geometry_msgs.msg.TransformStamped()
     collision_object_to_pickup_link.header.frame_id = 'screw_tool_' + tool_id + '_pickup_link'
@@ -702,56 +709,126 @@ class O2ACBase(object):
     grasp_pose_to_pickup_link.header.frame_id = 'screw_tool_' + tool_id + '_pickup_link'
     grasp_pose_to_pickup_link.child_frame_id = 'grasp_1'
     grasp_pose_to_pickup_link.transform.translation = geometry_msgs.msg.Vector3(0.015,0.0,-0.03)
-    grasp_pose_to_pickup_link.transform.rotation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
+    grasp_pose_to_pickup_link.transform.rotation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, -pi/6, 0))
     transformer.setTransform(grasp_pose_to_pickup_link)
-
-    grasp_pose_2_to_pickup_link = geometry_msgs.msg.TransformStamped()
-    grasp_pose_2_to_pickup_link.header.frame_id = 'screw_tool_' + tool_id + '_pickup_link'
-    grasp_pose_2_to_pickup_link.child_frame_id = 'grasp_2'
-    grasp_pose_2_to_pickup_link.transform.translation = geometry_msgs.msg.Vector3(0.015,0.0,-0.03)
-    grasp_pose_2_to_pickup_link.transform.rotation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, -pi/6, 0))
-    transformer.setTransform(grasp_pose_2_to_pickup_link)
 
     (trans,rot) = transformer.lookupTransform('screw_tool_' + tool_id, 'grasp_1', rospy.Time(0))
     rospy.set_param('tools/screw_tool_' + tool_id + '/grasp_1/position', trans)
     rospy.set_param('tools/screw_tool_' + tool_id + '/grasp_1/orientation', rot)
 
-    (trans,rot) = transformer.lookupTransform('screw_tool_' + tool_id, 'grasp_2', rospy.Time(0))
-    rospy.set_param('tools/screw_tool_' + tool_id + '/grasp_2/position', trans)
-    rospy.set_param('tools/screw_tool_' + tool_id + '/grasp_2/orientation', rot)
-
-  def spawn_multiple_objects(self, assembly_name, objects, poses, referece_frame):
+  def spawn_multiple_objects(self, assembly_name, objects, poses, reference_frame):
+    # Init params
     upload_mtc_modules_initial_params()
+
+    # Spawn tools and objects
     self.define_tool_collision_objects()
     screw_ids = ['m3', 'm4']
     for screw_id in screw_ids:
       self.spawn_tool('screw_tool_' + screw_id)
       self.upload_tool_grasps_to_param_server(screw_id)
-    spawn_objects(assembly_name, objects, poses, referece_frame)
+    spawn_objects(assembly_name, objects, poses, reference_frame)
     
 
-  def do_pick_action(self, object_name, grasp_parameter_location = '', lift_direction_reference_frame = '', lift_direction = []):
+  def do_plan_pick_action(self, object_name, grasp_parameter_location = '', lift_direction_reference_frame = '', lift_direction = [], robot_name = ''):
+    '''
+    Function for calling the action for pick planning
+    The function returns the action result that contains the trajectories for the motion plan
+    '''
     goal = moveit_task_constructor_msgs.msg.PickObjectGoal()
     goal.object_name = object_name
     goal.grasp_parameter_location = grasp_parameter_location
     goal.lift_direction_reference_frame = lift_direction_reference_frame
     goal.lift_direction = lift_direction
+    goal.robot_name = robot_name
     rospy.loginfo("Sending pick planning goal.")
     self.pick_planning_client.send_goal(goal)
     self.pick_planning_client.wait_for_result()
     return self.pick_planning_client.get_result()
 
-  def do_pickplace_action(self, robot_name, object_name, object_target_pose, object_subframe_to_place):
-    goal = O2AC_Pick_Place_Action_Goal()
-    goal.robot = robot_name
-    goal.hand_group_name = robot_name + '_robotiq_85'
+  def do_plan_place_action(self, object_name, object_target_pose, release_object_after_place = True, object_subframe_to_place = '', approach_place_direction_reference_frame = '', approach_place_direction = []):
+    '''
+    Function for calling the action for place planning
+    The function returns the action result that contains the trajectories for the motion plan
+    '''
+    goal = moveit_task_constructor_msgs.msg.PlaceObjectGoal()
+    goal.object_name = object_name
+    goal.release_object_after_place = release_object_after_place
+    goal.object_target_pose = object_target_pose
+    goal.object_subframe_to_place = object_subframe_to_place
+    goal.approach_place_direction_reference_frame = approach_place_direction_reference_frame
+    goal.approach_place_direction = approach_place_direction
+    rospy.loginfo("Sending place planning goal.")
+    self.place_planning_client.send_goal(goal)
+    self.place_planning_client.wait_for_result()
+    return self.place_planning_client.get_result()
+
+  def do_plan_release_action(self, object_name, pose_to_retreat_to = ''):
+    '''
+    Function for calling the action for release planning
+    The function returns the action result that contains the trajectories for the motion plan
+    '''
+    goal = moveit_task_constructor_msgs.msg.ReleaseObjectGoal()
+    goal.object_name = object_name
+    goal.pose_to_retreat_to = pose_to_retreat_to
+    rospy.loginfo("Sending release planning goal.")
+    self.release_planning_client.send_goal(goal)
+    self.release_planning_client.wait_for_result()
+    return self.release_planning_client.get_result()
+
+  def do_plan_pickplace_action(self, object_name, object_target_pose, grasp_parameter_location = '', release_object_after_place = True, object_subframe_to_place = '',
+    lift_direction_reference_frame = '', lift_direction = [], approach_place_direction_reference_frame = '', approach_place_direction = [], robot_names = '', force_robot_order = False):
+    '''
+    Function for calling the action for pick-place (potentially with regrasp) planning
+    The function returns the action result that contains the trajectories for the motion plan
+    '''
+    goal = moveit_task_constructor_msgs.msg.PickPlaceWithRegraspGoal()
+    goal.object_name = object_name
+    goal.object_target_pose = object_target_pose
+    goal.grasp_parameter_location = grasp_parameter_location
+    goal.release_object_after_place = release_object_after_place
+    goal.object_subframe_to_place = object_subframe_to_place
+    goal.lift_direction_reference_frame = lift_direction_reference_frame
+    goal.lift_direction = lift_direction
+    goal.approach_place_direction_reference_frame = approach_place_direction_reference_frame
+    goal.approach_place_direction = approach_place_direction
+    goal.robot_names = robot_names
+    goal.force_robot_order = force_robot_order
+    rospy.loginfo("Sending pickplace planning goal.")
+    self.pickplace_planning_client.send_goal(goal)
+    self.pickplace_planning_client.wait_for_result()
+    return self.pickplace_planning_client.get_result()
+
+  def do_plan_fastening_action(self, object_name, object_target_pose, object_subframe_to_place = '', approach_place_direction_reference_frame = '', approach_place_direction = []):
+    '''
+    Function for calling the action for fastening planning
+    The function returns the action result that contains the trajectories for the motion plan
+    '''
+    goal = moveit_task_constructor_msgs.msg.PlaceObjectGoal()
     goal.object_name = object_name
     goal.object_target_pose = object_target_pose
     goal.object_subframe_to_place = object_subframe_to_place
-    rospy.loginfo("Sending pick-place planning goal.")
-    self.pick_place_planning_client.send_goal(goal)
-    self.pick_place_planning_client.wait_for_result()
-    return self.pick_place_planning_client.get_result()
+    goal.approach_place_direction_reference_frame = approach_place_direction_reference_frame
+    goal.approach_place_direction = approach_place_direction
+    rospy.loginfo("Sending fastening planning goal.")
+    self.fastening_planning_client.send_goal(goal)
+    self.fastening_planning_client.wait_for_result()
+    return self.fastening_planning_client.get_result()
+
+  def do_plan_subassembly_action(self, object_name, object_target_pose, object_subframe_to_place, approach_place_direction_reference_frame = '', approach_place_direction = []):
+    '''
+    Function for calling the action for subassembly (fixing the L plate on the base plate) planning
+    The function returns the action result that contains the trajectories for the motion plan
+    '''
+    goal = moveit_task_constructor_msgs.msg.PickPlaceWithRegraspGoal()
+    goal.object_name = object_name
+    goal.object_target_pose = object_target_pose
+    goal.object_subframe_to_place = object_subframe_to_place
+    goal.approach_place_direction_reference_frame = approach_place_direction_reference_frame
+    goal.approach_place_direction = approach_place_direction
+    rospy.loginfo("Sending sub-assembly planning goal.")
+    self.sub_assembly_planning_client.send_goal(goal)
+    self.sub_assembly_planning_client.wait_for_result()
+    return self.sub_assembly_planning_client.get_result()
 
   def set_motor(self, motor_name, direction = "tighten", wait=False, speed = 0, duration = 0):
     if not self.use_real_robot:
@@ -1004,9 +1081,7 @@ class O2ACBase(object):
   def spawn_tool(self, tool_name):
     if tool_name == "screw_tool_m3" or tool_name == "screw_tool_m4": 
       rospy.loginfo("Spawn: " + tool_name)
-      self.co_pub.publish(self.screw_tools[tool_name])
-      rospy.sleep(0.2)
-      # self.planning_scene_interface.add_object(self.screw_tools[tool_name])
+      self.planning_scene_interface.add_object(self.screw_tools[tool_name])
       return True
     else:
       rospy.logerr("Cannot spawn tool: " + tool_name)
@@ -1038,13 +1113,13 @@ class O2ACBase(object):
     except:
       rospy.logerr(item_id_to_attach + " could not be detached! robot_name = " + robot_name)
 
-  def equip_tool(self, robot_name, tool_name, angle = 0.0):
-    return self.equip_unequip_tool(robot_name, tool_name, angle, "equip")
+  def equip_tool(self, robot_name, tool_name):
+    return self.equip_unequip_tool(robot_name, tool_name, "equip")
   
-  def unequip_tool(self, robot_name, tool_name, angle = 0.0):
-    return self.equip_unequip_tool(robot_name, tool_name, angle, "unequip")
+  def unequip_tool(self, robot_name, tool_name):
+    return self.equip_unequip_tool(robot_name, tool_name, "unequip")
 
-  def equip_unequip_tool(self, robot_name, tool_name, angle, equip_or_unequip):
+  def equip_unequip_tool(self, robot_name, tool_name, equip_or_unequip):
     # TODO(felixvd): Finish this function
     # Sanity check on the input instruction
     equip = (equip_or_unequip == "equip")
@@ -1067,10 +1142,19 @@ class O2ACBase(object):
     
     rospy.loginfo("Going to before_tool_pickup pose.")
     
-    if not self.go_to_named_pose("tool_pick_ready", robot_name):
-      rospy.logerr("Could not plan to before_tool_pickup joint state. Abort!")
-      return False
+    if tool_name == "screw_tool_m3" or tool_name == "screw_tool_m4" or tool_name == "nut_tool_m6" or tool_name == "set_screw_tool":
+      tool_holder_used = "back"
+    elif tool_name == "belt_tool" or tool_name == "plunger_tool":
+      tool_holder_used = "front"
     
+    if tool_holder_used == "back":
+      if not self.go_to_named_pose("tool_pick_ready", robot_name):
+        rospy.logerr("Could not plan to before_tool_pickup joint state. Abort!")
+        return False
+    elif tool_holder_used == "back":
+      if not self.go_to_named_pose("tool_pick_ready", robot_name):
+        rospy.logerr("Could not plan to before_tool_pickup joint state. Abort!")
+        return False
     # Set up poses
     ps_approach = geometry_msgs.msg.PoseStamped()
     ps_move_away = geometry_msgs.msg.PoseStamped()
@@ -1081,10 +1165,14 @@ class O2ACBase(object):
     rospy.loginfo("tool_name: " + tool_name)
     if tool_name == "screw_tool_m3" or tool_name == "screw_tool_m4":
       ps_approach.pose.position.x = -.05
-      ps_approach.pose.position.z = -.17
+      ps_approach.pose.position.z = -.008
     elif tool_name == "nut_tool_m6":
       ps_approach.pose.position.z = -.025
     elif tool_name == "set_screw_tool":
+      ps_approach.pose.position.z = -.025
+    elif tool_name == "belt_tool":
+      ps_approach.pose.position.z = -.025
+    elif tool_name == "plunger_tool":
       ps_approach.pose.position.z = -.025
     else:
       rospy.logerr(tool_name, " is not implemented!")
@@ -1093,7 +1181,7 @@ class O2ACBase(object):
     # Go to named pose, then approach
     self.go_to_named_pose("tool_pick_ready", robot_name)
 
-    ps_approach.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi, 0, 0))
+    ps_approach.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, -pi/6, 0))
     ps_move_away = copy.deepcopy(ps_approach)
 
     # Define pickup pose

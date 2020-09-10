@@ -544,7 +544,7 @@ bool SkillServer::moveToCartPoseLIN(geometry_msgs::PoseStamped pose, std::string
   ros::Duration d = ros::Time::now() - start_time;
   ROS_INFO_STREAM("Cartesian motion plan took " << d.toSec() << " s and was " << cartesian_success * 100.0 << "% successful.");
 
-  // Scale the trajectory. This is workaround to setting the VelocityScalingFactor. Copied from k-okada
+  // Scale the trajectory. This is a workaround to setting the VelocityScalingFactor. Copied from k-okada
   if (cartesian_success > 0.95)
   {
     moveit_msgs::RobotTrajectory scaled_trajectory = moveit_msgs::RobotTrajectory(trajectory);
@@ -559,9 +559,14 @@ bool SkillServer::moveToCartPoseLIN(geometry_msgs::PoseStamped pose, std::string
     // Fourth: compute computeTimeStamps
     bool success =
         iptp.computeTimeStamps(rt, velocity_scaling_factor, velocity_scaling_factor);  // The second value is actually acceleration
-    ROS_INFO_STREAM("Computing time stamps for iptp scaling with factor " << velocity_scaling_factor << " " << success ? "SUCCEEDED" : "FAILED");
+    ROS_INFO_STREAM("Computing time stamps for iptp scaling with factor " << velocity_scaling_factor << ": " << (success ? "SUCCEEDED" : "FAILED"));
+    for (int i = 0; i < scaled_trajectory.joint_trajectory.points.size(); i++)
+      ROS_WARN_STREAM(scaled_trajectory.joint_trajectory.points[i].time_from_start.toSec() << " " << scaled_trajectory.joint_trajectory.points[i].positions[2]);
     // Get RobotTrajectory_msg from RobotTrajectory
     rt.getRobotTrajectoryMsg(scaled_trajectory);
+    if (scaled_trajectory.joint_trajectory.points[0].time_from_start.toSec() == scaled_trajectory.joint_trajectory.points[1].time_from_start.toSec()){
+      scaled_trajectory.joint_trajectory.points.erase(scaled_trajectory.joint_trajectory.points.begin());
+    }
     // Fill in move_group_
     myplan.trajectory_ = scaled_trajectory;
   
@@ -708,7 +713,7 @@ bool SkillServer::equipUnequipScrewTool(std::string robot_name, std::string scre
   // Define approach pose
   // z = 0 is at the holder surface, and z-axis of pickup_link points downwards!
   ps_approach.pose.position.x = -.06;
-  ps_approach.pose.position.z = -.017;
+  ps_approach.pose.position.z = -.008;
   ROS_INFO_STREAM("screw_tool_id: " << screw_tool_id);
   if (screw_tool_id == "nut_tool_m6")
     ps_approach.pose.position.z = -.025;
@@ -746,7 +751,7 @@ bool SkillServer::equipUnequipScrewTool(std::string robot_name, std::string scre
   moveit::planning_interface::MoveGroupInterface* group_pointer;
   ROS_INFO("Going to tool_pick_ready.");
   
-  if (!goToNamedPose("tool_pick_ready", robot_name))
+  if (!goToNamedPose("tool_pick_ready", robot_name, 0.2, 0.2, false))
   {
     ROS_ERROR("Could not plan to before_tool_pickup joint state. Abort!");
     return false;
@@ -754,8 +759,8 @@ bool SkillServer::equipUnequipScrewTool(std::string robot_name, std::string scre
 
   if (equip) {
     openGripper(robot_name);
-    ROS_INFO("Spawning tool.");
-    spawnTool(screw_tool_id);
+    // ROS_INFO("Spawning tool.");
+    // spawnTool(screw_tool_id);
     held_screw_tool_ = screw_tool_id;
   }
 
@@ -779,7 +784,7 @@ bool SkillServer::equipUnequipScrewTool(std::string robot_name, std::string scre
 
 
   ROS_INFO("Moving to screw tool approach pose LIN.");
-  bool preparation_succeeded = moveToCartPoseLIN(ps_approach, robot_name, true, robot_name + "_robotiq_85_tip_link", 3.0, 3.0, use_real_robot_);
+  bool preparation_succeeded = moveToCartPoseLIN(ps_approach, robot_name, true, robot_name + "_robotiq_85_tip_link", 0.2, 0.2, use_real_robot_, true);
   if (!preparation_succeeded)
   {
     ROS_ERROR("Could not go to approach pose. Aborting tool pickup.");
@@ -792,7 +797,7 @@ bool SkillServer::equipUnequipScrewTool(std::string robot_name, std::string scre
 
   if (equip)        lin_speed = 0.5;
   else if (unequip) lin_speed = 0.08;  
-  moved_to_tool_holder = moveToCartPoseLIN(ps_tool_holder, robot_name, true, "", lin_speed);
+  moved_to_tool_holder = moveToCartPoseLIN(ps_tool_holder, robot_name, true, "", lin_speed, lin_speed, use_real_robot_, true);
   
   if (!moved_to_tool_holder)
   {
@@ -835,16 +840,16 @@ bool SkillServer::equipUnequipScrewTool(std::string robot_name, std::string scre
   if (equip)        lin_speed = 1.0;
   else if (unequip) lin_speed = 1.0;
 
-  moveToCartPoseLIN(ps_move_away, robot_name, true, "", lin_speed);
+  moveToCartPoseLIN(ps_move_away, robot_name, true, "", lin_speed, lin_speed, use_real_robot_, true);
   
   // Reactivate the collisions, with the updated entry about the tool
   planning_scene_interface_.applyPlanningScene(planning_scene_);
 
   ROS_INFO("Moving back to tool_pick_ready.");
-  goToNamedPose("tool_pick_ready", robot_name, 3.0, 3.0, use_real_robot_);
+  goToNamedPose("tool_pick_ready", robot_name, 0.2, 0.2, false);
   
   // Delete tool collision object only after collision reinitialization to avoid errors
-  if (unequip) despawnTool(screw_tool_id);
+  // if (unequip) despawnTool(screw_tool_id);
 
   return true;
 }
@@ -860,6 +865,7 @@ bool SkillServer::updatePlanningScene()
   {
     ROS_INFO("Got planning scene from move group.");
     planning_scene_ = srv.response.scene;
+    planning_scene_.is_diff = true;
     return true;
   }
   else
@@ -1149,32 +1155,30 @@ bool SkillServer::pickScrew(geometry_msgs::PoseStamped screw_head_pose, std::str
   // - Move up again slowly
   // - If the suction reports success, return true
   // - If not, try the same a few more times in nearby locations (spiral-search-like)
-  
-  // /// The block below is an attempt to put a helper transform into the scene, but too many issues occur with it.
-  // tf::Transform t;
-  // tf::Quaternion q(screw_head_pose.pose.orientation.x, screw_head_pose.pose.orientation.y, screw_head_pose.pose.orientation.z, screw_head_pose.pose.orientation.w);
-  // t.setOrigin(tf::Vector3(screw_head_pose.pose.position.x, screw_head_pose.pose.position.y, screw_head_pose.pose.position.z));
-  // t.setRotation(q);
-  // tfbroadcaster_.sendTransform(tf::StampedTransform(t, ros::Time::now(), screw_head_pose.header.frame_id, "screw_pick_frame_"));
-  // tflistener_.setTransform(tf::StampedTransform(t, ros::Time::now(), screw_head_pose.header.frame_id, "screw_pick_frame_"));
-  // ros::Duration(.5).sleep();
-  // geometry_msgs::PoseStamped screw_head_pose_;
-  // screw_head_pose_.header.frame_id = "screw_pick_frame_";
-  // screw_head_pose_.pose.orientation.w = 1.0;
+
+  // The frame needs to be the outlet_link of the screw feeder
   ROS_INFO_STREAM("Received pickScrew command.");
   
   geometry_msgs::PoseStamped above_screw_head_pose_ = screw_head_pose;
+  // TODO (felixvd): Test that this actually works
+  if (robot_name == "a_bot")
+    above_screw_head_pose_.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(M_PI/3, 0, 0);
+  else  // robot_name == "b_bot"
+    above_screw_head_pose_.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(-M_PI/3, 0, 0);
   ROS_INFO_STREAM("Moving close to screw.");
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
   above_screw_head_pose_.pose.position.x -= .01;
-  bool success = moveToCartPoseLIN(above_screw_head_pose_, robot_name, true, screw_tool_link, 0.3);
+  bool success = moveToCartPoseLIN(above_screw_head_pose_, robot_name, true, screw_tool_link, 0.3, 0.3, use_real_robot_, true);
   if (!success)
   {
     ROS_INFO_STREAM("Linear motion plan to target pick pose failed. Returning false.");
     return false;
   }
 
-  planning_scene_interface_.allowCollisions(screw_tool_id, "tray_2_screw_holder");
+  if (screw_tool_id == "screw_tool_m3")
+    planning_scene_interface_.allowCollisions(screw_tool_id, "m3_feeder_link");
+  else if (screw_tool_id == "screw_tool_m4")
+    planning_scene_interface_.allowCollisions(screw_tool_id, "m4_feeder_link");
 
   auto adjusted_pose = above_screw_head_pose_;
   auto search_start_pose = above_screw_head_pose_;
@@ -1184,14 +1188,8 @@ bool SkillServer::pickScrew(geometry_msgs::PoseStamped screw_head_pose, std::str
   double max_radius = .0025;
   double theta_incr = M_PI/3;
   double r, radius_increment;
-  if (robot_name == "c_bot") {
-    r=0.00015;
-    radius_increment = .0008;
-  }
-  else {
-    r=0.0003;
-    radius_increment = .001;
-  }
+  r=0.0002;
+  radius_increment = .001;
   double radius_inc_set = radius_increment / (2*M_PI / theta_incr);
   double theta=0;
   double RealRadius=0;
@@ -1201,19 +1199,18 @@ bool SkillServer::pickScrew(geometry_msgs::PoseStamped screw_head_pose, std::str
   setSuctionEjection(screw_tool_id, true);
   while (!screw_picked)
   {
-    // tflistener_.setTransform(tf::StampedTransform(t, ros::Time::now(), above_screw_head_pose_.header.frame_id, "screw_pick_frame_"));
-    // tfbroadcaster_.sendTransform(tf::StampedTransform(t, ros::Time::now(), above_screw_head_pose_.header.frame_id, "screw_pick_frame_"));
-    sendFasteningToolCommand(fastening_tool_name, "loosen", false, 2.0);
+    sendFasteningToolCommand(fastening_tool_name, "loosen", false, 12.0);
 
     ROS_INFO_STREAM("Moving into screw to pick it up.");
     adjusted_pose.pose.position.x += .02;
-    moveToCartPoseLIN(adjusted_pose, robot_name, true, screw_tool_link, 0.05);
+    moveToCartPoseLIN(adjusted_pose, robot_name, true, screw_tool_link, 0.05, 0.05, use_real_robot_, true);
 
     ROS_INFO_STREAM("Moving back a bit slowly.");
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
     adjusted_pose.pose.position.x -= .02;
-    moveToCartPoseLIN(adjusted_pose, robot_name, true, screw_tool_link, 0.1);
+    moveToCartPoseLIN(adjusted_pose, robot_name, true, screw_tool_link, 0.1, 0.1, use_real_robot_, true);
 
+    // Break out of loop if screw suctioned or max search radius exceeded
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     bool_msg_pointer = ros::topic::waitForMessage<std_msgs::Bool>("/" + screw_tool_id + "/screw_suctioned", ros::Duration(1.0));
     if (bool_msg_pointer != NULL){
@@ -1238,10 +1235,13 @@ bool SkillServer::pickScrew(geometry_msgs::PoseStamped screw_head_pose, std::str
     RealRadius = sqrt(pow(y,2)+pow(z,2));
   }
 
-  planning_scene_interface_.disallowCollisions(screw_tool_id, "tray_2_screw_holder");
+  if (screw_tool_id == "screw_tool_m3")
+    planning_scene_interface_.disallowCollisions(screw_tool_id, "m3_feeder_link");
+  else if (screw_tool_id == "screw_tool_m4")
+    planning_scene_interface_.disallowCollisions(screw_tool_id, "m4_feeder_link");
   ROS_INFO_STREAM("Moving back up completely.");
   above_screw_head_pose_.pose.position.x -= .05;
-  moveToCartPoseLIN(above_screw_head_pose_, robot_name, true, screw_tool_link, 0.5);
+  moveToCartPoseLIN(above_screw_head_pose_, robot_name, true, screw_tool_link, 0.5, 0.5, use_real_robot_, true);
   
   ROS_INFO_STREAM((screw_picked ? "Finished picking up screw successfully." : "Failed to pick screw."));
   return screw_picked;
@@ -1604,7 +1604,7 @@ void SkillServer::executeScrew(const o2ac_msgs::screwGoalConstPtr& goal)
   // Move above the screw hole
   ROS_INFO("Moving above the screw hole.");
   target_tip_link_pose.pose.position.x -= approach_height;
-  moveToCartPoseLIN(target_tip_link_pose, goal->robot_name, true, screw_tool_link);
+  moveToCartPoseLIN(target_tip_link_pose, goal->robot_name, true, screw_tool_link, 0.2, 0.2, use_real_robot_, true);
 
   sendFasteningToolCommand(screw_tool_id, "tighten", false, 15.0, 800);
   // Disable collision for screw tool 
@@ -1615,7 +1615,7 @@ void SkillServer::executeScrew(const o2ac_msgs::screwGoalConstPtr& goal)
   // Move 1 cm into to the screw hole
   ROS_INFO("Pushing into the screw hole and doing spiral motion.");
   target_tip_link_pose.pose.position.x += approach_height + insertion_amount;
-  bool success = moveToCartPoseLIN(target_tip_link_pose, goal->robot_name, true, screw_tool_link, 0.02);
+  bool success = moveToCartPoseLIN(target_tip_link_pose, goal->robot_name, true, screw_tool_link, 0.02, 0.02, use_real_robot_);
 
   // Do spiral motion
   if (use_real_robot_)
@@ -1642,7 +1642,7 @@ void SkillServer::executeScrew(const o2ac_msgs::screwGoalConstPtr& goal)
   if (use_real_robot_) {
     bool finished_before_timeout = fastening_tool_client.waitForResult(ros::Duration(10.0));
     auto result = fastening_tool_client.getResult();
-    ROS_INFO_STREAM("Screw tool motor command " << (finished_before_timeout ? "returned" : "did not return before timeout") <<". Result: " << result->control_result);
+    ROS_INFO_STREAM("Screw tool motor command " << (finished_before_timeout ? "returned" : "did not return before timeout") <<". Result: " << (result->control_result ? "success":"failure"));
   }
 
 
@@ -1650,7 +1650,7 @@ void SkillServer::executeScrew(const o2ac_msgs::screwGoalConstPtr& goal)
   {
     // Move up and away
     target_tip_link_pose.pose.position.x -= approach_height + insertion_amount;
-    success = moveToCartPoseLIN(target_tip_link_pose, goal->robot_name, true, screw_tool_link);
+    success = moveToCartPoseLIN(target_tip_link_pose, goal->robot_name, true, screw_tool_link, 0.02, 0.02, use_real_robot_);
   }
 
   auto bool_msg_pointer = ros::topic::waitForMessage<std_msgs::Bool>("/" + screw_tool_id + "/screw_suctioned", ros::Duration(1.0));
@@ -1691,6 +1691,7 @@ void SkillServer::executeChangeTool(const o2ac_msgs::changeToolGoalConstPtr& goa
     screw_tool_id = "suction_tool";
   else if (goal->screw_size == 1)
     screw_tool_id = "set_screw_tool";
+
   bool success = equipUnequipScrewTool(goal->robot_name, screw_tool_id, equip_or_unequip);
   
   if (success) { changeToolActionServer_.setSucceeded(); }

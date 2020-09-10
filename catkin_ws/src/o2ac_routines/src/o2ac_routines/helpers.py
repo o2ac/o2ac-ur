@@ -16,6 +16,7 @@ import o2ac_msgs.srv
 import moveit_task_constructor_msgs.msg
 
 from math import pi
+import moveit_commander
 from moveit_commander.conversions import pose_to_list
 from o2ac_assembly_handler.assy import AssyHandler
 
@@ -25,18 +26,10 @@ import moveit_msgs.msg
 
 helper_fct_marker_id_count = 0
 
-class O2AC_Pick_Place_Action_Goal(moveit_task_constructor_msgs.msg.PickPlacePlanningGoal):
-  '''A class for giving default values to some fields of the action message'''
-  def __init__(self):
-    moveit_task_constructor_msgs.msg.PickPlacePlanningGoal.__init__(self)
-    self.grasp_parameter_location = 'wrs_assembly_1'
-    self.approach_object_min_dist = 0.1
-    self.approach_object_max_dist = 0.15
-    self.lift_object_min_dist = 0.1
-    self.lift_object_max_dist = 0.15
-    self.surface_link = 'tray_center'
-
 def upload_mtc_modules_initial_params():
+  '''
+  Set parameters that are needed for the initialization of the mtc_modules node
+  '''
   rospy.set_param('mtc_modules/arm_group_names', ['a_bot','b_bot'])
   rospy.set_param('mtc_modules/hand_group_names', ['a_bot_robotiq_85','b_bot_robotiq_85'])
   rospy.set_param('mtc_modules/grasp_parameter_location', 'wrs_assembly_1')
@@ -48,9 +41,20 @@ def upload_mtc_modules_initial_params():
   rospy.set_param('mtc_modules/retreat_direction', [-1.0, 0.0, 0.0])
   rospy.set_param('mtc_modules/support_surfaces', ['tray_center', 'screw_tool_holder_long'])
 
-def spawn_objects(assembly_name, object_names, object_poses, object_refrence_frame):
+def spawn_objects(assembly_name, object_names, object_poses, object_reference_frame):
+  '''
+  Spawn collision objects in the planning scene
+
+  This function uses the o2ac_assembly_handler module to spawn objects in the scene. The assembly, its objects and their metadata
+  has to be set up inside the o2ac_assembly_handler module.
+
+  Given a list of object names from an assembly, this functions spawns the listed objects in the corresponding poses in input 'object_poses'.
+  The inputs 'object_names' and 'object_poses' must have the same lengths.
+  The object poses are lists of floats in [x,y,z,r,p,y] format and are relative to the object_reference_frame
+  '''
+  moveit_commander.roscpp_initialize(sys.argv)
   assy_handler = AssyHandler(assembly_name)
-  pub = rospy.Publisher('/collision_object', moveit_msgs.msg.CollisionObject, queue_size=100)
+  planning_scene_interface = moveit_commander.PlanningSceneInterface()
   transformer = tf.Transformer(True, rospy.Duration(10.0))
 
   for (object_name, object_pose) in zip(object_names, object_poses):
@@ -74,7 +78,7 @@ def spawn_objects(assembly_name, object_names, object_poses, object_refrence_fra
     transformer.setTransform(collision_object_transform)
 
     collision_object = next(co for co in assy_handler.collision_objects if co.id == object_name)
-    collision_object.header.frame_id = object_refrence_frame
+    collision_object.header.frame_id = object_reference_frame
     collision_object.mesh_poses[0] = co_pose
 
     subframe_poses = []
@@ -103,9 +107,7 @@ def spawn_objects(assembly_name, object_names, object_poses, object_refrence_fra
 
     collision_object.subframe_poses = subframe_poses
 
-    rospy.sleep(0.2)
-    pub.publish(collision_object)
-    rospy.sleep(0.2)
+    planning_scene_interface.add_object(collision_object)
 
 def is_program_running(topic_namespace, service_client):
   req = ur_dashboard_msgs.srv.IsProgramRunningRequest()

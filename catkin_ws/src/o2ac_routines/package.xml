@@ -38,6 +38,9 @@
   <run_depend>o2ac_assembly_handler</run_depend>
   <build_depend>o2ac_assembly_handler</build_depend>
 
+  <run_depend>o2ac_task_planning_msgs</run_depend>
+  <build_depend>o2ac_task_planning_msgs</build_depend>
+
   <run_depend>ur_msgs</run_depend>
   <build_depend>ur_msgs</build_depend>
   <run_depend>o2ac_usb_relay</run_depend>

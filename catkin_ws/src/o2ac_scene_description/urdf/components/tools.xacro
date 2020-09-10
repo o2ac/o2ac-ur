@@ -213,7 +213,7 @@
   <joint name="screw_tool_m4_to_holder" type="fixed">
     <parent link="screw_tool_holder_long" />
     <child link="screw_tool_m4_link" />
-    <origin xyz="-0.15 ${tool_offset} 0.004" rpy="0.0 0.0 0.0" />
+    <origin xyz="-0.25 ${tool_offset} 0.004" rpy="0.0 0.0 0.0" />
   </joint>
 
   <link name="screw_tool_m3_link">
@@ -253,7 +253,7 @@
   <joint name="screw_tool_m3_to_holder" type="fixed">
     <parent link="screw_tool_holder_long" />
     <child link="screw_tool_m3_link" />
-    <origin xyz="-0.25 ${tool_offset} 0.004" rpy="0.0 0.0 0.0" />
+    <origin xyz="-0.15 ${tool_offset} 0.004" rpy="0.0 0.0 0.0" />
   </joint>
 
   <!-- Extra links to position the gripper more easily -->

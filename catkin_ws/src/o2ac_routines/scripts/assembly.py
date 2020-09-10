@@ -149,14 +149,46 @@ class AssemblyClass(O2ACCommon):
       [-0.04, -0.03, 0.001, 0.0, -pi/2, 0.0],
       [-0.05, -0.13, 0.001, 0.0, -pi/2, 0.0],
       [-0.1, -0.03, 0.005, 0.0, 0.0, 0.0]]  # , [-0.1, 0.16, 0.001, pi/2, 0.0, 0.0]]
-    self.spawn_multiple_objects('wrs_assembly_1', ['base'], [[0.12, 0.2, 0.03, pi/2, 0.0, -pi/2]], 'attached_base_origin_link')
+    self.spawn_multiple_objects('wrs_assembly_1', ['base'], [[0.12, 0.2, 0.0, pi/2, 0.0, -pi/2]], 'attached_base_origin_link')
     self.spawn_multiple_objects('wrs_assembly_1', objects, poses, 'tray_center')
 
-  def pick_screw_tool(self):
+  def pick_screw_tool(self, screw_type):
     rospy.loginfo("======== PICK TASK ========")
-    success = self.pick('panel_bearing', save_solution_to_file = 'pick')
-    # success = self.pick('screw_tool_m3', 'tools', 'screw_tool_m3_pickup_link', [-1.0, 0.0, 0.0])
+    success = False
+    if screw_type in ['m3', 'm4']:
+      success = self.pick('screw_tool_' + screw_type, 'tools', 'screw_tool_m3_pickup_link', [-1.0, 0.0, 0.0], save_solution_to_file = 'pick_screw_tool')
     return success
+
+  def pick_screw(self, screw_type):
+    rospy.loginfo("======== FASTEN TASK ========")
+    success = False
+    tool = 'screw_tool_' + screw_type
+    screw_tool_tip_frame = tool + '/' + tool + '_tip'
+    screw_pickup_pose = geometry_msgs.msg.PoseStamped()
+    screw_pickup_pose.header.frame_id = screw_type + '_feeder_outlet_link'
+    screw_pickup_pose.pose.position.x = -0.01
+    screw_pickup_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(2*pi/3, 0, 0))
+    if screw_type in ['m3', 'm4']:
+      success = self.fasten('screw_tool_' + screw_type, screw_pickup_pose, object_subframe_to_place = screw_tool_tip_frame, save_solution_to_file = 'pick_screw')
+    return success
+
+  def place_object_in_tray_center(self, object_name):
+    rospy.loginfo("======== PLACE TASK ========")
+    target_pose = geometry_msgs.msg.PoseStamped()
+    target_pose.header.frame_id = 'tray_center'
+    target_pose.pose.position.x = -0.04
+    target_pose.pose.position.y = 0.08
+    target_pose.pose.orientation.w = 1
+    self.place(object_name, target_pose, save_solution_to_file = 'place_' + object_name)
+
+  def pickplace_l_panel(self):
+    rospy.loginfo("======== PICKPLACE TASK ========")
+
+    target_pose = geometry_msgs.msg.PoseStamped()
+    target_pose.header.frame_id = 'base/screw_hole_panel2_1'
+    target_pose.pose.orientation.w = 1
+
+    self.pick_place('panel_bearing', target_pose, object_subframe_to_place = 'panel_bearing/bottom_screw_hole_aligner_1', robot_names = ['b_bot','a_bot'], force_robot_order = True, save_solution_to_file = 'pickplace')
 
   def pick_place_task(self):
     rospy.loginfo("======== PICK-PLACE TASK ========")
@@ -180,7 +212,7 @@ class AssemblyClass(O2ACCommon):
     ## Equip screw tool for subtasks G, F
     self.go_to_named_pose("back", "c_bot", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
     self.do_change_tool_action("b_bot", equip=True, screw_size=4)
-    self.go_to_named_pose("screw_pick_ready", "b_bot", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
+    self.go_to_named_pose("feeder_pick_ready", "b_bot", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
 
     self.confirm_to_proceed("press enter to proceed to subtask_g")
     self.subtask_g()  # Large plate
@@ -214,54 +246,86 @@ if __name__ == '__main__':
       rospy.loginfo("Enter 1 to move the robots home.")
       rospy.loginfo("Enter 11 (12) to equip (unequip) m4 tool (b_bot).")
       rospy.loginfo("Enter 13 (14) to equip (unequip) m3 tool (b_bot).")
+      rospy.loginfo("Enter 25,26(27,28) to open,close gripper for b_bot (a_bot)")
       rospy.loginfo("Enter 30 to pick screw m3 from feeder with a_bot (31 for b_bot).")
       rospy.loginfo("Enter 40 to pick screw m4 from feeder with a_bot (41 for b_bot).")
-      rospy.loginfo("Enter 68 to spawn objects for testing pick-place task")
-      rospy.loginfo("Enter 69 to test pick-place task")
+      rospy.loginfo("Enter 68 to spawn objects for testing mtc_modules tasks")
+      rospy.loginfo("Enter 69-75 to test mtc_modules tasks, (pick, place, pik-place, pick tool, pick screw, release, fix L plate on base)")
+      rospy.loginfo("Enter 80 to execute the planned subassembly (fix L plate on base)")
       rospy.loginfo("Enter 91-94 for subtasks (Large plate, motor plate, idler pin, motor).")
       rospy.loginfo("Enter 95-98 for subtasks (motor pulley, bearing+shaft, clamp pulley, belt).")
       rospy.loginfo("Enter START to start the task.")
       rospy.loginfo("Enter x to exit.")
       i = raw_input()
       if i == '1':
-        assy.go_to_named_pose("home", "a_bot", speed=assy.speed_fastest, acceleration=assy.acc_fastest, force_ur_script=False)
-        assy.go_to_named_pose("home", "b_bot", speed=assy.speed_fastest, acceleration=assy.acc_fastest, force_ur_script=False)
+        # speed=assy.speed_fastest, acceleration=assy.acc_fastest,
+        assy.go_to_named_pose("home", "a_bot", force_ur_script=False)
+        assy.go_to_named_pose("home", "b_bot", force_ur_script=False)
       if i == '11':
-        assy.go_to_named_pose("back", "c_bot", speed=assy.speed_fastest, acceleration=assy.acc_fastest, force_ur_script=assy.use_real_robot)
         assy.do_change_tool_action("b_bot", equip=True, screw_size=4)
       if i == '12':
-        assy.go_to_named_pose("back", "c_bot", speed=assy.speed_fastest, acceleration=assy.acc_fastest, force_ur_script=assy.use_real_robot)
         assy.do_change_tool_action("b_bot", equip=False, screw_size=4)
       if i == '13':
-        assy.go_to_named_pose("back", "c_bot", speed=assy.speed_fastest, acceleration=assy.acc_fastest, force_ur_script=assy.use_real_robot)
         assy.do_change_tool_action("b_bot", equip=True, screw_size=3)
       if i == '14':
-        assy.go_to_named_pose("back", "c_bot", speed=assy.speed_fastest, acceleration=assy.acc_fastest, force_ur_script=assy.use_real_robot)
         assy.do_change_tool_action("b_bot", equip=False, screw_size=3)
+      if i == '25':
+        assy.open_gripper('b_bot')
+      if i == '26':
+        assy.close_gripper('b_bot')
+      if i == '27':
+        assy.open_gripper('a_bot')
+      if i == '28':
+        assy.close_gripper('a_bot')
       if i == '30':
-        assy.go_to_named_pose("screw_pick_ready", "a_bot")
-        assy.pick_screw_from_feeder("a_bot", screw_size=3, screw_number="auto")
-        assy.go_to_named_pose("screw_pick_ready", "a_bot")
+        assy.go_to_named_pose("feeder_pick_ready", "a_bot")
+        assy.pick_screw_from_feeder("a_bot", screw_size=3)
+        assy.go_to_named_pose("feeder_pick_ready", "a_bot")
       if i == '31':
-        assy.go_to_named_pose("screw_pick_ready", "b_bot")
-        assy.pick_screw_from_feeder("b_bot", screw_size=3, screw_number="auto")
-        assy.go_to_named_pose("screw_pick_ready", "b_bot")
+        assy.go_to_named_pose("feeder_pick_ready", "b_bot")
+        assy.pick_screw_from_feeder("b_bot", screw_size=3)
+        assy.go_to_named_pose("feeder_pick_ready", "b_bot")
       if i == '40':
-        assy.go_to_named_pose("screw_pick_ready", "a_bot")
-        assy.pick_screw_from_feeder("a_bot", screw_size=4, screw_number="auto")
-        assy.go_to_named_pose("screw_pick_ready", "a_bot")
+        assy.go_to_named_pose("feeder_pick_ready", "a_bot")
+        assy.pick_screw_from_feeder("a_bot", screw_size=4)
+        assy.go_to_named_pose("feeder_pick_ready", "a_bot")
       if i == '41':
-        assy.go_to_named_pose("screw_pick_ready", "b_bot")
-        assy.pick_screw_from_feeder("b_bot", screw_size=4, screw_number="auto")
-        assy.go_to_named_pose("screw_pick_ready", "b_bot")
+        assy.go_to_named_pose("feeder_pick_ready", "b_bot")
+        assy.pick_screw_from_feeder("b_bot", screw_size=4)
+        assy.go_to_named_pose("feeder_pick_ready", "b_bot")
       if i == '68':
         assy.spawn_objects_for_demo()
       if i == '69':
-        assy.pick_place_task()
+        assy.pick('panel_bearing', robot_name = '', save_solution_to_file = 'pick_panel_bearing')
       if i == '70':
-        assy.pick_screw_tool()
+        assy.place_object_in_tray_center('panel_bearing')
       if i == '71':
-        assy.load_and_execute_MP_solution('pick')
+        assy.pickplace_l_panel()
+      if i == '72':
+        assy.pick_screw_tool('m4')
+      if i == '73':
+        assy.pick_screw('m4')
+      if i == '74':
+        assy.release('panel_bearing', 'home', 'release_panel_bearing')
+      if i == '75':
+        target_pose = geometry_msgs.msg.PoseStamped()
+        target_pose.header.frame_id = 'base/screw_hole_panel2_1'
+        target_pose.pose.orientation.w = 1
+        assy.subassembly('panel_bearing', target_pose, object_subframe_to_place = 'panel_bearing/bottom_screw_hole_aligner_1', save_solution_to_file = 'subassembly')
+      if i == '80':
+        mp_res = assy.load_MP_solution('subassembly')
+        assy.execute_MP_solution(mp_res.solution, speed = 0.2)
+      if i == '81':
+        assy.do_change_tool_action('b_bot', equip=True, screw_size=4)
+      if i == '82':
+        assy.pick_screw_from_feeder('b_bot', 4)
+      if i == '83':
+        assy.do_linear_push('a_bot', force=15, direction="Y-", max_approach_distance=0.05, forward_speed=0.003)
+      if i == '84':
+        target_pose = geometry_msgs.msg.PoseStamped()
+        target_pose.header.frame_id = 'move_group/base/screw_hole_panel2_1'
+        target_pose.pose.orientation.w = 1
+        assy.fasten_screw('b_bot', target_pose)
       elif i == '91':
         assy.subtask_g()  # Large plate
       elif i == '92':

@@ -21,6 +21,7 @@ underlay_ws/logs/
 catkin_ws/experiment*
 catkin_ws/bagfiles/
 *.bag
+catkin_ws/src/o2ac_routines/MP_solutions/*
 
 # URDF files that are generated from lists and CAD models
 catkin_ws/src/o2ac_parts_description/urdf/generated/

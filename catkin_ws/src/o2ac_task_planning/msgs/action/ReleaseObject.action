@@ -1,0 +1,20 @@
+# Define the goal
+# Fields that have to be set:
+string object_name
+
+# Optional fields: (If not set, the default values will be used. See README for more details)
+string pose_to_retreat_to   # If defined, the robot will move to the pose referred to by 'pose_to_retreat_to' with joint interpolation after releasing the object and retreating
+string robot_name  # Name of the robot holding the object
+
+# Fields currently not in use (these have no effect yet)
+string retreat_direction_reference_frame  # The coordinate frame in which the direction for retreating (retreat_direction) is defined
+float64[] retreat_direction  # Vector of the form [x,y,z] for setting the direction for retreating
+float64 retreat_min_dist  # Minimum lift distance in the retreat_direction
+float64 retreat_max_dist  # Maximum lift distance in the retreat_direction
+string surface_link  # name of link on which the object lies before picking
+---
+# Define the result
+bool success
+moveit_task_constructor_msgs/Solution solution
+---
+# Define a feedback message

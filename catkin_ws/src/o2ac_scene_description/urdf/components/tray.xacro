@@ -33,7 +33,7 @@
 
   <link name="${trayname}_center">
     <visual>
-      <origin rpy="0 0 0" xyz="0 0 -0.001"/>
+      <origin rpy="0 0 0" xyz="0 0 -0.0001"/>
       <geometry>
         <box size="${tray_w-0.01} ${tray_l-0.01} 0.001"/>
       </geometry>
@@ -51,7 +51,7 @@
   <joint name="${trayname}_center_joint" type="fixed">
     <parent link="${trayname}" />
     <child link = "${trayname}_center" />
-    <origin rpy="0 0 0" xyz="${tray_w/2} ${tray_l/2} 0.02"/>
+    <origin rpy="0 0 0" xyz="${tray_w/2} ${tray_l/2} 0.013"/>
   </joint>
 
 
