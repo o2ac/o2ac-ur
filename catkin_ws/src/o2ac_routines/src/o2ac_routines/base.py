@@ -261,6 +261,7 @@ class O2ACBase(object):
     return True
 
   def define_tool_collision_objects(self):
+    # TODO: Use o2ac_assembly_handler to load these instead
     screw_tool_m3 = moveit_msgs.msg.CollisionObject()
     screw_tool_m4 = moveit_msgs.msg.CollisionObject()
     

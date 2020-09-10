@@ -35,12 +35,6 @@ SkillServer::SkillServer() :
   b_bot_load_program_ = n_.serviceClient<ur_dashboard_msgs::Load>("/b_bot/ur_hardware_interface/dashboard/load_program");
   b_bot_play_ = n_.serviceClient<std_srvs::Trigger>("/b_bot/ur_hardware_interface/dashboard/play");
   
-  // Action clients
-  // ROS_INFO("Waiting for action servers to start.");
-  // a_bot_gripper_client.waitForServer(); 
-  // b_bot_gripper_client_.waitForServer();
-  // ROS_INFO("Action servers started.");
-
   // Set up MoveGroups
   a_bot_group_.setPlanningTime(PLANNING_TIME);
   a_bot_group_.setPlannerId("RRTConnectkConfigDefault");
@@ -93,7 +87,7 @@ void SkillServer::advertiseActionsAndServices()
 void SkillServer::initializeCollisionObjects()
 {
   // --- Define the tools as collision objects, so they can be used for planning
-  // THIS IS OUTDATED AND NOW DEFINED IN YAML FILES.
+  // TODO: Load these from o2ac_assembly_handler
   
   //M4 tool
   screw_tool_m4.header.frame_id = "screw_tool_m4_link";
@@ -290,7 +284,7 @@ void SkillServer::initializeCollisionObjects()
 
 bool SkillServer::activateROSControlOnUR(std::string robot_name)
 {
-  ROS_INFO_STREAM("DEBUG Checking if ros control active on " << robot_name);
+  ROS_DEBUG_STREAM("Checking if ros control active on " << robot_name);
   if (!use_real_robot_)
     return true;
 
@@ -305,7 +299,7 @@ bool SkillServer::activateROSControlOnUR(std::string robot_name)
   }
 
   // If ROS External Control program is not running on UR, load and start it
-  ROS_ERROR_STREAM("Activating ROS control for robot: " << robot_name);
+  ROS_INFO_STREAM("Activating ROS control for robot: " << robot_name);
   ros::ServiceClient get_loaded_program, load_program, play;
   if (robot_name == "a_bot")
   {
@@ -1005,7 +999,7 @@ bool SkillServer::setSuctionEjection(std::string fastening_tool_name, bool turn_
   o2ac_msgs::SuctionControlGoal goal;
   o2ac_msgs::SuctionControlResultConstPtr result;
 
-  ROS_INFO_STREAM("Setting suction of  " << fastening_tool_name << " to " << turn_suction_on << ", ejection = " << eject_screw);
+  ROS_INFO_STREAM("Setting suction of " << fastening_tool_name << " to " << (turn_suction_on ? "on":"off"));
 
   goal.fastening_tool_name = fastening_tool_name;
   goal.turn_suction_on = turn_suction_on;
