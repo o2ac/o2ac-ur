@@ -115,15 +115,11 @@ class O2ACVision(object):
         action_result = o2ac_msgs.msg.poseEstimationTestResult()
 
         # First, obtain the image from the camera and convert it
-        # image_msg = rospy.wait_for_message("/" + goal.camera_id + "/color", sensor_msgs.msg.Image, 1.0)
-        # image_msg = rospy.wait_for_message("/camera/color/image_raw", sensor_msgs.msg.Image, 1.0)
-        #image_msg = rospy.wait_for_message("/b_bot_outside_camera_throttled/color/image_raw/compressed", sensor_msgs.msg.CompressedImage, 1.0)
+        image_msg = rospy.wait_for_message("/b_bot_outside_camera_throttled/color/image_raw/compressed", sensor_msgs.msg.CompressedImage, 1.0)
         bridge = CvBridge()
-        # cv_image = bridge.compressed_imgmsg_to_cv2(image_msg, desired_encoding="passthrough")
-        cv_image = bridge.imgmsg_to_cv2(image, desired_encoding="passthrough")
-
-        im_in = cv2.resize(cv_image, None, fx=0.35, fy=0.35, interpolation=cv2.INTER_NEAREST )
-        # cv2.imwrite("rgb.png", im_in)
+        cv_image = bridge.compressed_imgmsg_to_cv2(image_msg, desired_encoding="passthrough")
+        #im_in = cv2.resize( cv_image, None, fx=0.35, fy=0.35, interpolation=cv2.INTER_NEAREST )
+        im_in = cv_image.copy()
 
         # Object detection in image (confidence, class_id, bbox)
         ssd_results = self.detect_object_in_image(im_in)
@@ -152,8 +148,9 @@ class O2ACVision(object):
 
             elif target in apply_grasp_detection:
                 print("Target id is ", target, " apply the grasp detection")
-                self.grasp_detection_in_image( im_in )
-
+                grasp_points = self.grasp_detection_in_image( im_in )
+                print("grasp_result")
+                print(grasp_points)
             else:
                 print("Target id is ", target, " NO Solution")
 
@@ -175,24 +172,24 @@ class O2ACVision(object):
 
         # Generation of a hand template
         im_hand = np.zeros( (60,60), np.float )
-        im_hand[0:16,20:40] = 1
-        im_hand[44:60,20:40] = 1
+        hand_width = 20 #in pixel
+        im_hand[0:10,20:20+hand_width] = 1
+        im_hand[50:60,20:20+hand_width] = 1
 
         # Generation of a colision template
         im_collision = np.zeros( (60,60), np.float )
-        im_collision[16:44,20:40] = 1
+        im_collision[10:50,20:20+hand_width] = 1
 
         param_fge = {"ds_rate": 0.5, "target_lower":[0, 150, 100], "target_upper":[15, 255, 255],
-                     "fg_lower": [0, 0, 50], "fg_upper": [179, 255, 255], "hand_rotation":[0,45,90,135], "threshold": 0.01}
+                    "fg_lower": [0, 0, 100], "fg_upper": [179, 255, 255], "hand_rotation":[0,45,90,135], "threshold": 0.01}
 
         fge = FastGraspabilityEvaluation( im_in, im_hand, im_collision, param_fge )
         results = fge.main_proc()
 
-        elapsed_time = time.time() - start
-
         im_result = fge.visualization()
-        print( "Processing time: ", int(1000*elapsed_time), "[msec]" )
-        cv2.imwrite( "im_belt_detection.png", im_result )
+        #cv2.imwrite("reslut_grasp_points.png", im_result )
+
+        return results
 
     def estimate_pose_in_image(self, im_in, ssd_result):
 

@@ -503,6 +503,7 @@ class FastGraspabilityEvaluation():
         self.candidate_idx = list()
         self.pos_list = list()
         self.score_list = list()
+        self.rotation = (0, 45, 90, 135)
         
         #parameter
         ds_rate = _param["ds_rate"]
@@ -532,10 +533,8 @@ class FastGraspabilityEvaluation():
         self.im_obstacles = np.asarray( np.clip( self.im_obstacles, 0, 1 ), np.uint8 )
         
         # Generation of rotated hand templates
-        self.im_hands, self.hands_area = self.RotationTemplate( self.im_hand )
-        self.im_collisions, self.collision_area = self.RotationTemplate( self.im_collision ) 
-        print(self.hands_area)
-        print(self.collision_area)
+        self.im_hands, self.hands_area = self.RotationTemplate( self.im_hand, self.rotation )
+        self.im_collisions, self.collision_area = self.RotationTemplate( self.im_collision, self.rotation ) 
         
     def binarizationHSV( self, im, lower=[0,0,0], upper=[179,255,255] ):
         """
@@ -571,7 +570,6 @@ class FastGraspabilityEvaluation():
 
     def main_proc( self ):
 
-        
         # Generate search point
         ds_rate = 0.1
         ds_reverse = 1.0 / ds_rate
@@ -586,7 +584,6 @@ class FastGraspabilityEvaluation():
         search_points = np.asarray( search_points, np.float )
         search_points *= ds_reverse
         search_points = np.asarray( search_points, np.int )
-        print(search_points.shape[0])
         
         # Hand pattern matching
         cols, rows = self.im_hand.shape[1], self.im_hand.shape[0]
@@ -625,8 +622,15 @@ class FastGraspabilityEvaluation():
         
         self.score_list = np.asarray( self.score_list )
         self.candidate_idx = np.where( self.score_list < self.threshold )[0]
+
+        # Make final result
+        gp_result = list()
+        for n in self.candidate_idx:    
+            # y, x, theta[deg]
+            gp_result.append( (self.pos_list[n][0], self.pos_list[n][1], self.rotation[self.pos_list[n][2]]) )
+       
         
-        return self.candidate_idx
+        return gp_result
     
     def get_hand_and_collision( self ):
         
