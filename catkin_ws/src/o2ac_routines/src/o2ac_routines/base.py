@@ -82,6 +82,8 @@ class O2ACBase(object):
     moveit_commander.roscpp_initialize(sys.argv)
 
     self.listener = tf.TransformListener()
+
+    # Status variables and settings
     self.use_real_robot = rospy.get_param("use_real_robot", False)
     self.force_ur_script_linear_motion = False
     self.force_moveit_linear_motion = True
@@ -89,16 +91,26 @@ class O2ACBase(object):
 
     self.competition_mode = False   # Setting this to True disables confirmation dialogs etc., thus enabling uninterrupted automatic motion
 
+    self.run_mode_ = True     # The modes limit the maximum speed of motions. Used with the safety system @WRS2020
+    self.pause_mode_ = False
+    self.test_mode_ = False
+    self.ur_ros_control_running_on_robot = {"a_bot": False, "b_bot": False}
+    self.robot_status = { "a_bot":o2ac_msgs.msg.RobotStatus(), "b_bot":o2ac_msgs.msg.RobotStatus() }
+
     self.speed_fast = 0.1
     self.speed_fastest = 0.2
     self.acc_fast = 0.1
     self.acc_fastest = 0.2
 
+    self.reduced_mode_speed_limit = .25
+
+    # Miscellaneous helpers
     self.robots = moveit_commander.RobotCommander()
     self.planning_scene_interface = moveit_commander.PlanningSceneInterface()
     self.apply_planning_scene_diff = rospy.ServiceProxy('/apply_planning_scene', moveit_msgs.srv.ApplyPlanningScene)
     self.apply_planning_scene_diff.wait_for_service(5.0)
 
+    # Action clients and movegroups
     self.groups = {"a_bot":moveit_commander.MoveGroupCommander("a_bot"), "b_bot":moveit_commander.MoveGroupCommander("b_bot"),
       "a_bot_robotiq_85":moveit_commander.MoveGroupCommander("a_bot_robotiq_85"), "b_bot_robotiq_85":moveit_commander.MoveGroupCommander("b_bot_robotiq_85")}
     self.gripper_action_clients = {"a_bot":actionlib.SimpleActionClient('/a_bot/gripper_action_controller', robotiq_msgs.msg.CModelCommandAction),
@@ -121,6 +133,7 @@ class O2ACBase(object):
     self._fastening_tool_client = actionlib.SimpleActionClient('/screw_tool_control', o2ac_msgs.msg.FastenerGripperControlAction)
     self._nut_peg_tool_client = actionlib.SimpleActionClient('/nut_tools_action', o2ac_msgs.msg.ToolsCommandAction)
 
+    # Service clients
     self.ur_dashboard_clients = {
       "a_bot_get_loaded_program":rospy.ServiceProxy('/a_bot/ur_hardware_interface/dashboard/get_loaded_program', ur_dashboard_msgs.srv.GetLoadedProgram),
       "b_bot_get_loaded_program":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/get_loaded_program', ur_dashboard_msgs.srv.GetLoadedProgram),
@@ -132,13 +145,13 @@ class O2ACBase(object):
       "b_bot_play":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/play', std_srvs.srv.Trigger)
     }
 
-    self.urscript_client = rospy.ServiceProxy('/o2ac_skills/sendScriptToUR', o2ac_msgs.srv.sendScriptToUR)
+    self.urscript_client = rospy.ServiceProxy('d/o2ac_skills/sendScriptToUR', o2ac_msgs.srv.sendScriptToUR)
     self.publishMarker_client = rospy.ServiceProxy('/o2ac_skills/publishMarker', o2ac_msgs.srv.publishMarker)
     self.toggleCollisions_client = rospy.ServiceProxy('/o2ac_skills/toggleCollisions', std_srvs.srv.SetBool)
 
-    self.run_mode_ = True     # The modes limit the maximum speed of motions. Used with the safety system @WRS2020
-    self.pause_mode_ = False
-    self.test_mode_ = False
+    # Subscribers
+    self.sub_a_bot_status_ = rospy.Subscriber("/a_bot/ur_hardware_interface/robot_program_running", Bool, self.a_bot_ros_control_status_callback)
+    self.sub_b_bot_status_ = rospy.Subscriber("/b_bot/ur_hardware_interface/robot_program_running", Bool, self.b_bot_ros_control_status_callback)
     self.sub_run_mode_ = rospy.Subscriber("/run_mode", Bool, self.run_mode_callback)
     self.sub_pause_mode_ = rospy.Subscriber("/pause_mode", Bool, self.pause_mode_callback)
     self.sub_test_mode_ = rospy.Subscriber("/test_mode", Bool, self.test_mode_callback)
@@ -147,8 +160,6 @@ class O2ACBase(object):
     self.sub_robot_safety_mode_b_bot = rospy.Subscriber("/b_bot/ur_hardware_interface/safety_mode", ur_dashboard_msgs.msg.SafetyMode, self.b_bot_safety_mode_callback)
     self.robot_safety_mode = dict() 
     self.screw_is_suctioned = dict()
-    self.reduced_mode_speed_limit = .25
-    self.robot_status = { "a_bot":o2ac_msgs.msg.RobotStatus(), "b_bot":o2ac_msgs.msg.RobotStatus() }
     
     # self.my_mutex = threading.Lock()
 
@@ -191,6 +202,10 @@ class O2ACBase(object):
     self.screw_is_suctioned["m3"] = msg.data
   def b_bot_safety_mode_callback(self, msg):
     self.robot_safety_mode["b_bot"] = msg.mode
+  def a_bot_ros_control_status_callback(self, msg):
+    self.ur_ros_control_running_on_robot["a_bot"] = msg.data
+  def b_bot_ros_control_status_callback(self, msg):
+    self.ur_ros_control_running_on_robot["b_bot"] = msg.data
   
   def is_robot_running_normally(self, robot_name):
     return self.robot_safety_mode[robot_name] == 1
@@ -211,24 +226,24 @@ class O2ACBase(object):
   def activate_ros_control_on_ur(self, robot="b_bot"):
     if not self.use_real_robot:
       return True
-    if not robot == "b_bot" and not robot == "a_bot":
-      rospy.logerr("Robot name '" + robot + "' was not found or the robot is not a UR!")
-      return False
     
     # Check if URCap is already running on UR
-    response = self.ur_dashboard_clients[robot + "_program_running"].call(ur_dashboard_msgs.srv.IsProgramRunningRequest())
-    if response.program_running:
-      response = self.ur_dashboard_clients[robot + "_get_loaded_program"].call(ur_dashboard_msgs.srv.GetLoadedProgramRequest())
-      if response.program_name == "/programs/ROS_external_control.urp":
+    try:
+      if self.ur_ros_control_running_on_robot[robot]:
         return True
-    
-    # Load program
-    request = ur_dashboard_msgs.srv.LoadRequest()
-    request.filename = "ROS_external_control.urp"
-    response = self.ur_dashboard_clients[robot + "_load_program"].call(request)
-    if not response.success:
-      rospy.logerr("Could not load the ROS_external_control.urp URCap. Is the UR robot set up correctly and the program installed with the correct name?")
+    except:
+      rospy.logerr("Robot name '" + robot + "' was not found or the robot is not a UR!")
       return False
+
+    # Load program if it not loaded already
+    response = self.ur_dashboard_clients[robot + "_get_loaded_program"].call(ur_dashboard_msgs.srv.GetLoadedProgramRequest())
+    if response.program_name != "/programs/ROS_external_control.urp":
+      request = ur_dashboard_msgs.srv.LoadRequest()
+      request.filename = "ROS_external_control.urp"
+      response = self.ur_dashboard_clients[robot + "_load_program"].call(request)
+      if not response.success:
+        rospy.logerr("Could not load the ROS_external_control.urp URCap. Is the UR robot set up correctly and the program installed with the correct name?")
+        return False
     
     # Run the program
     response = self.ur_dashboard_clients[robot + "_play"].call(std_srvs.srv.TriggerRequest())
