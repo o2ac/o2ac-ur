@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- This file launches all the vision and recognition nodes (but not the cameras) -->
+
+  <node name="o2ac_vision"
+	pkg="o2ac_vision" type="o2ac_vision.py" output="screen" />
+  <node name="o2ac_vision_client"
+	pkg="o2ac_vision" type="o2ac_vision_client.py" output="screen" />
+</launch>
