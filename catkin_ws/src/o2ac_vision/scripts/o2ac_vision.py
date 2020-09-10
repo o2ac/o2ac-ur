@@ -57,13 +57,15 @@ import cv_bridge       # This offers conversion methods between OpenCV and ROS f
 
 import cv2
 import sys
+import numpy as np
+import time
 import rospkg
 import o2ac_ssd
-import o2ac_pose_estimation
 from cv_bridge import CvBridge
+from pose_estimation_func import template_matching
+from pose_estimation_func import FastGraspabilityEvaluation
 
 ssd_detection = o2ac_ssd.ssd_detection()
-pose_estimation = o2ac_pose_estimation.pose_estimation()
 
 class O2ACVision(object):
     # This class advertises the vision actions that we will call during the tasks.
@@ -74,39 +76,61 @@ class O2ACVision(object):
 
     	# This creates the action server.nSee this tutorial, and also check out base.py: 
     	# http://wiki.ros.org/actionlib_tutorials/Tutorials/Writing%20a%20Simple%20Action%20Server%20using%20the%20Execute%20Callback%20%28Python%29
-        self.pose_estimation_test_server = actionlib.SimpleActionServer("poseEstimationTest", o2ac_msgs.msg.poseEstimationTestAction, 
-            execute_cb = self.pose_estimation_test_callback, auto_start = True)
+        self.pose_estimation_server = actionlib.SimpleActionServer("poseEstimationTest", o2ac_msgs.msg.poseEstimationTestAction, 
+            execute_cb = self.pose_estimation_callback, auto_start = True)
         
         rospy.loginfo("O2AC_vision has started up!")
 
-    def pose_estimation_test_callback(self, goal):
+    def pose_estimation_callback(self, goal):
         rospy.loginfo("Received a request to detect object named " + goal.object_id)
         action_result = o2ac_msgs.msg.poseEstimationTestResult()
 
         # First, obtain the image from the camera and convert it
         # image_msg = rospy.wait_for_message("/" + goal.camera_id + "/color", sensor_msgs.msg.Image, 1.0)
-        #image_msg = rospy.wait_for_message("/camera/color/image_raw", sensor_msgs.msg.Image, 1.0)
+        # image_msg = rospy.wait_for_message("/camera/color/image_raw", sensor_msgs.msg.Image, 1.0)
         image_msg = rospy.wait_for_message("/b_bot_outside_camera_throttled/color/image_raw/compressed", sensor_msgs.msg.CompressedImage, 1.0)
         bridge = CvBridge()
         cv_image = bridge.compressed_imgmsg_to_cv2(image_msg, desired_encoding="passthrough")
-        cv2.imwrite("rgb.png", cv_image)
+        im_in = cv2.resize( cv_image, None, fx=0.35, fy=0.35, interpolation=cv2.INTER_NEAREST )
+        # cv2.imwrite("rgb.png", im_in)
 
-        # Detect the object
-        ssd_results = self.detect_object_in_image(cv_image)
+        # Object detection in image (confidence, class_id, bbox) 
+        ssd_results = self.detect_object_in_image(im_in)
 
-        # Estimate the pose
-        pose_estimation_results = self.estimate_pose_in_image(cv_image, ssd_results)
-        """
-        for j in range(len(ssd_results)):
-            SSDResult_msg = o2ac_msgs.msg.SSDResult()
-            ssd_results[j]["bbox"][2] = ssd_results[j]["bbox"][0] + ssd_results[j]["bbox"][2]
-            ssd_results[j]["bbox"][3] = ssd_results[j]["bbox"][1] + ssd_results[j]["bbox"][3]
-            SSDResult_msg.bbox = ssd_results[j]["bbox"]
-        """
+        # Pose estimation
+        #  
+        apply_2d_pose_estimation = [8,9,10,14]
+        apply_3d_pose_estimation = [1,2,3,4,5,7,11,12,13]
+        apply_grasp_detection = [6]
+        for ssd_result in ssd_results:
+            poseEstimationResult_msg = o2ac_msgs.msg.poseEstimationResult()
+            target = ssd_result["class"]
+            poseEstimationResult_msg.confidence = ssd_result["confidence"]
+            poseEstimationResult_msg.class_id = target
+            
+            if target in apply_2d_pose_estimation:
+                print("Target id is ", target, " apply the 2d pose estimation")
+                pose_estimation_results = self.estimate_pose_in_image(im_in, ssd_result)
+                poseEstimationResult_msg.rotation = pose_estimation_results[1]
+                poseEstimationResult_msg.center.append(pose_estimation_results[0][0])
+                poseEstimationResult_msg.center.append(pose_estimation_results[0][1])
+
+            elif target in apply_3d_pose_estimation:
+                print("Target id is ", target, " apply the 3d pose estimation")
+                # poseEstimationResult_msg.3d_pose = ***
+
+            elif target in apply_grasp_detection:
+                print("Target id is ", target, " apply the grasp detection")
+                self.grasp_detection_in_image( im_in )
+
+            else:
+                print("Target id is ", target, " NO Solution")
+
+            action_result.pose_estimation_result_list.append(poseEstimationResult_msg)
 
         # Return
-        #o2ac_routines.helpers.publish_marker(action_result.detected_pose, "pose")
-        #self.ssd_test_server.set_succeeded(action_result)
+        # o2ac_routines.helpers.publish_marker(action_result.detected_pose, "pose")
+        self.pose_estimation_server.set_succeeded(action_result)
 
 ### =======
 
@@ -114,10 +138,65 @@ class O2ACVision(object):
         ssd_results = ssd_detection.object_detection(cv_image)
         return ssd_results
 
-    def estimate_pose_in_image(self, cv_image, ssd_results):
-        pose_estimation_results = pose_estimation.pose_estimation(cv_image, ssd_results)
-        return pose_estimation_results
+    def grasp_detection_in_image( self, im_in ):
 
+        start = time.time()
+
+        # Generation of a hand template
+        im_hand = np.zeros( (60,60), np.float )
+        im_hand[0:16,20:40] = 1
+        im_hand[44:60,20:40] = 1
+
+        # Generation of a colision template
+        im_collision = np.zeros( (60,60), np.float )
+        im_collision[16:44,20:40] = 1
+
+        param_fge = {"ds_rate": 0.5, "target_lower":[0, 150, 100], "target_upper":[15, 255, 255],
+                     "fg_lower": [0, 0, 50], "fg_upper": [179, 255, 255], "hand_rotation":[0,45,90,135], "threshold": 0.01}
+
+        fge = FastGraspabilityEvaluation( im_in, im_hand, im_collision, param_fge )
+        results = fge.main_proc()
+
+        elapsed_time = time.time() - start
+
+        im_result = fge.visualization()
+        print( "Processing time: ", int(1000*elapsed_time), "[msec]" )
+        cv2.imwrite( "im_belt_detection.png", im_result )
+
+    def estimate_pose_in_image(self, im_in, ssd_result):
+
+        start = time.time()
+
+        rospack = rospkg.RosPack()
+        temp_root = rospack.get_path("o2ac_vision") + "/dataset/data/templates"
+        # Name of template infomation
+        temp_info_name = "template_info.json"
+        # downsampling rate
+        ds_rate = 1.0/2.0
+
+        # RGB -> Gray
+        if im_in.shape[2] == 3:
+            im_in = cv2.cvtColor(im_in, cv2.COLOR_BGR2GRAY)
+
+        class_id = ssd_result["class"]
+
+        tm = template_matching( im_in, ds_rate, temp_root, temp_info_name )
+
+        center = ori = 0.0
+
+        # template matching
+        center, ori = tm.compute( ssd_result )
+        result = (center, ori)
+
+        elapsed_time = time.time() - start
+        print( "Processing time[msec]: ", 1000*elapsed_time )
+        im_result = tm.get_result_image( ssd_result, ori, center )
+
+        name ="tm_result"+str(class_id)+".png"
+        print( "Save", name )
+        cv2.imwrite( name, im_result )
+        
+        return result
 
 if __name__ == '__main__':
     try:

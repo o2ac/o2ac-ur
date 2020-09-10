@@ -14,7 +14,7 @@ from pose_estimation_func import *
 
 class pose_estimation():
 
-    def pose_estimation(self, im_in, ssd_result):
+    def __init__(self, im_in, ssd_result):
         rospack = rospkg.RosPack()
         temp_root = rospack.get_path("o2ac_vision") + "/dataset/data/templates"
         # Name of template infomation
@@ -28,7 +28,7 @@ class pose_estimation():
         class_id = ssd_result["class"]
 
         has_templates = [8,9,10,14]
-        TM = template_matching( im_in, ds_rate, temp_root, temp_info_name )
+        self.TM = template_matching( im_in, ds_rate, temp_root, temp_info_name )
 
         center = 0.0
         ori = 0.0
@@ -36,15 +36,23 @@ class pose_estimation():
             start = time.time()
 
             # template matching
-            center, ori = TM.compute( ssd_result )
-            print( "Result: center [j, i], rotation [deg(ccw)]: ", center, ori )
+            center, ori = self.TM.compute( ssd_result )
 
             elapsed_time = time.time() - start
-            # print( "Processing time[msec]: ", 1000*elapsed_time )
+            print( "Processing time[msec]: ", 1000*elapsed_time )
 
-            # Generate detection result
-            im_res = TM.get_result_image( ssd_result, ori, center )
-            # print( "Save", res_name )
-            #cv2.imwrite( res_name, im_res )
-        
+            self.save_result_image( "result.png", ssd_result, ori, center )
+
+        else:
+            print("!!ERROR!! o2ac_pose_estimation")
+            print("class_id =", class_id, "does not have the template file.")
+
         return center, ori
+
+    def save_result_image( self, name, ssd_result, ori, center ):
+
+        # Generate detection result
+        im_res = self.TM.get_result_image( ssd_result, ori, center )
+        print( "Save", name )
+        cv2.imwrite( name, im_res )
+        

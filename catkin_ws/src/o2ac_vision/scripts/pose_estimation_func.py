@@ -323,7 +323,6 @@ class template_matching():
         class_id = result["class"]
         info_id = -1
         for n, info in enumerate( self.temp_info ):
-            print(n)
             if result["class"] in info.values():
                 info_id = n
                 break

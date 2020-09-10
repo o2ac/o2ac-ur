@@ -1,3 +1,5 @@
+float64 confidence
 float64 rotation
-int64 label
 float64[] center
+geometry_msgs/PoseStamped pose
+int64 class_id

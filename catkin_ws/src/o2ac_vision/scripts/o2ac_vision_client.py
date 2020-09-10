@@ -20,11 +20,13 @@ if __name__ == '__main__':
         rospy.init_node('test_client_py')
 
         results = test_client()
-        #print 'ssd result'
-        #for j in range(len(results.ssd_result_list)):
-        #    print '--------------------------------'
-        #    print 'bbox: ', results.ssd_result_list[j].bbox
-        #    print 'class label: ', results.ssd_result_list[j].label
-        #    print 'confidence: ', results.ssd_result_list[j].confidence
+        print 'pose estimation result'
+        for j in range(len(results.pose_estimation_result_list)):
+            print '--------------------------------'
+            print "confidence: ", results.pose_estimation_result_list[j].confidence
+            print "rotation [deg(ccw)]: ", results.pose_estimation_result_list[j].rotation
+            print "center [j,i]: ", results.pose_estimation_result_list[j].center
+            print "3d pose: ", results.pose_estimation_result_list[j].pose
+            print "class id: ", results.pose_estimation_result_list[j].class_id
     except rospy.ROSInterruptException:
         pass
