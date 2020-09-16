@@ -1,9 +1,42 @@
 <?xml version="1.0"?>
 <launch>
+
+  <!-- Camera parameters -->
+  <arg name="serial_no"		default=""/>
+  <arg name="camera_name"	default="a_bot_camera"/>
+  <arg name="camera_width"	default="640"/>
+  <arg name="camera_height"	default="480"/>
+  <arg name="enable_streaming"	default="true"/>
+  <arg name="manager"		default=""/>
+
+  <!-- Spawn camera -->
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <arg name="camera"			value="$(arg camera_name)"/>
+    <arg name="enable_depth"		value="true"/>
+    <arg name="enable_infra1"		value="false"/>
+    <arg name="enable_infra2"		value="false"/>
+    <arg name="enable_pointcloud"	value="false"/>
+    <arg name="align_depth"		value="true"/>
+    <arg name="depth_width"		value="$(arg camera_width)"/>
+    <arg name="depth_height"		value="$(arg camera_height)"/>
+    <arg name="infra_width"		value="$(arg camera_width)"/>
+    <arg name="infra_height"		value="$(arg camera_height)"/>
+    <arg name="color_width"		value="$(arg camera_width)"/>
+    <arg name="color_height"		value="$(arg camera_height)"/>
+    <arg name="enable_streaming"	value="$(arg enable_streaming)"/>
+    <arg name="manager"			value="$(arg manager)"
+	 unless="$(eval manager == '')"/>
+  </include>
+
   <!-- This file launches all the vision and recognition nodes (but not the cameras) -->
 
   <node name="o2ac_vision"
-	pkg="o2ac_vision" type="o2ac_vision.py" output="screen" />
+	pkg="o2ac_vision" type="o2ac_vision.py" output="screen">
+    <remap from="/camera_info"	to="$(arg camera_name)/color/camera_info"/>
+    <remap from="/image"	to="$(arg camera_name)/color/image_raw"/>
+    <remap from="/depth"	to="$(arg camera_name)/aligned_depth_to_color/image_raw"/>
+  </node>.
+
   <node name="o2ac_vision_client"
-	pkg="o2ac_vision" type="o2ac_vision_client.py" output="screen" />
+  	pkg="o2ac_vision" type="o2ac_vision_client.py" output="screen" />
 </launch>

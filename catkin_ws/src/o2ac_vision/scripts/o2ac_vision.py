@@ -51,7 +51,7 @@ import o2ac_msgs.msg   # This is needed to advertise the actions
 import sensor_msgs.msg # This is needed to receive images from the camera
 import cv_bridge       # This offers conversion methods between OpenCV and ROS formats
                        # See here: http://wiki.ros.org/cv_bridge/Tutorials/ConvertingBetweenROSImagesAndOpenCVImagesPython
-    
+
                        # Note that a similar package exists for PCL:
                        # http://wiki.ros.org/pcl_ros
 
@@ -60,7 +60,11 @@ import sys
 import numpy as np
 import time
 import rospkg
+import message_filters
+import threading
 import o2ac_ssd
+from geometry_msgs     import msg as gmsg
+from sensor_msgs       import msg as smsg
 from cv_bridge import CvBridge
 from pose_estimation_func import template_matching
 from pose_estimation_func import FastGraspabilityEvaluation
@@ -74,31 +78,58 @@ class O2ACVision(object):
     	rospy.init_node('o2ac_vision_', anonymous=False)
     	self.listener = tf.TransformListener()
 
-    	# This creates the action server.nSee this tutorial, and also check out base.py: 
+        # Setup synchronized ROS subscribers for camera info and image topics
+        self.camera_info_sub = message_filters.Subscriber('/camera_info',
+                                                          smsg.CameraInfo)
+        self.image_sub = message_filters.Subscriber('/image', smsg.Image)
+        self.depth_sub = message_filters.Subscriber('/depth', smsg.Image)
+        sync = message_filters.ApproximateTimeSynchronizer(
+                [self.camera_info_sub, self.image_sub, self.depth_sub],
+                10, 0.01)
+        sync.registerCallback(self.synced_images_callback)
+
+    	# This creates the action server.nSee this tutorial, and also check out base.py:
     	# http://wiki.ros.org/actionlib_tutorials/Tutorials/Writing%20a%20Simple%20Action%20Server%20using%20the%20Execute%20Callback%20%28Python%29
-        self.pose_estimation_server = actionlib.SimpleActionServer("poseEstimationTest", o2ac_msgs.msg.poseEstimationTestAction, 
-            execute_cb = self.pose_estimation_callback, auto_start = True)
-        
+        self.pose_estimation_server = actionlib.SimpleActionServer("poseEstimationTest", o2ac_msgs.msg.poseEstimationTestAction, auto_start = False)
+        self.pose_estimation_server.register_goal_callback(self.goal_callback)
+        self.pose_estimation_server.register_preempt_callback(self.preempt_callback)
+        self.pose_estimation_server.start()
         rospy.loginfo("O2AC_vision has started up!")
 
-    def pose_estimation_callback(self, goal):
-        rospy.loginfo("Received a request to detect object named " + goal.object_id)
+    def goal_callback(self):
+        self.object_id = self.pose_estimation_server.accept_new_goal().object_id
+        rospy.loginfo("Received a request to detect object named "
+                      + self.object_id)
+
+    def preempt_callback(self):
+        rospy.loginfo("o2ac_msgs.msg.poseEstimationTestAction preempted")
+        self.pose_estimation_server.set_preempted()
+
+    def synced_images_callback(self, camera_info, image, depth):
+        """
+        Callback for storing camera_info and RGB/depth images from camera node
+        """
+        if not self.pose_estimation_server.is_active():
+            return
+
         action_result = o2ac_msgs.msg.poseEstimationTestResult()
 
         # First, obtain the image from the camera and convert it
         # image_msg = rospy.wait_for_message("/" + goal.camera_id + "/color", sensor_msgs.msg.Image, 1.0)
         # image_msg = rospy.wait_for_message("/camera/color/image_raw", sensor_msgs.msg.Image, 1.0)
-        image_msg = rospy.wait_for_message("/b_bot_outside_camera_throttled/color/image_raw/compressed", sensor_msgs.msg.CompressedImage, 1.0)
+        #image_msg = rospy.wait_for_message("/b_bot_outside_camera_throttled/color/image_raw/compressed", sensor_msgs.msg.CompressedImage, 1.0)
         bridge = CvBridge()
-        cv_image = bridge.compressed_imgmsg_to_cv2(image_msg, desired_encoding="passthrough")
-        im_in = cv2.resize( cv_image, None, fx=0.35, fy=0.35, interpolation=cv2.INTER_NEAREST )
+        # cv_image = bridge.compressed_imgmsg_to_cv2(image_msg, desired_encoding="passthrough")
+        cv_image = bridge.imgmsg_to_cv2(image, desired_encoding="passthrough")
+
+        im_in = cv2.resize(cv_image, None, fx=0.35, fy=0.35, interpolation=cv2.INTER_NEAREST )
         # cv2.imwrite("rgb.png", im_in)
 
-        # Object detection in image (confidence, class_id, bbox) 
+        # Object detection in image (confidence, class_id, bbox)
         ssd_results = self.detect_object_in_image(im_in)
 
         # Pose estimation
-        #  
+        #
         apply_2d_pose_estimation = [8,9,10,14]
         apply_3d_pose_estimation = [1,2,3,4,5,7,11,12,13]
         apply_grasp_detection = [6]
@@ -107,7 +138,7 @@ class O2ACVision(object):
             target = ssd_result["class"]
             poseEstimationResult_msg.confidence = ssd_result["confidence"]
             poseEstimationResult_msg.class_id = target
-            
+
             if target in apply_2d_pose_estimation:
                 print("Target id is ", target, " apply the 2d pose estimation")
                 pose_estimation_results = self.estimate_pose_in_image(im_in, ssd_result)
@@ -195,13 +226,14 @@ class O2ACVision(object):
         name ="tm_result"+str(class_id)+".png"
         print( "Save", name )
         cv2.imwrite( name, im_result )
-        
+
         return result
 
 if __name__ == '__main__':
     try:
         c = O2ACVision()
-        while not rospy.is_shutdown():
-            rospy.sleep(.1)
+        rospy.spin()
+        # while not rospy.is_shutdown():
+        #     rospy.sleep(.1)
     except rospy.ROSInterruptException:
         pass
