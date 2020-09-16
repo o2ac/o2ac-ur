@@ -94,6 +94,8 @@ class O2ACVision(object):
         self.pose_estimation_server.register_goal_callback(self.goal_callback)
         self.pose_estimation_server.register_preempt_callback(self.preempt_callback)
         self.pose_estimation_server.start()
+        self.belt_detection_server = actionlib.SimpleActionServer("beltDetectionTest", o2ac_msgs.msg.beltDetectionTestAction, 
+            execute_cb = self.belt_detection_callback, auto_start = True)
         rospy.loginfo("O2AC_vision has started up!")
 
     def goal_callback(self):
@@ -130,8 +132,8 @@ class O2ACVision(object):
         apply_3d_pose_estimation = [1,2,3,4,5,7,11,12,13]
         apply_grasp_detection = [6]
         for ssd_result in ssd_results:
-            poseEstimationResult_msg = o2ac_msgs.msg.poseEstimationResult()
             target = ssd_result["class"]
+            poseEstimationResult_msg = o2ac_msgs.msg.poseEstimationResult()
             poseEstimationResult_msg.confidence = ssd_result["confidence"]
             poseEstimationResult_msg.class_id = target
 
@@ -146,11 +148,16 @@ class O2ACVision(object):
                 print("Target id is ", target, " apply the 3d pose estimation")
                 # poseEstimationResult_msg.3d_pose = ***
 
-            elif target in apply_grasp_detection:
-                print("Target id is ", target, " apply the grasp detection")
-                grasp_points = self.grasp_detection_in_image( im_in )
-                print("grasp_result")
-                print(grasp_points)
+            #elif target in apply_grasp_detection:
+                #print("Target id is ", target, " apply the grasp detection")
+                #grasp_points = self.grasp_detection_in_image( im_in )
+                #print("grasp_result")
+                #print(grasp_points)
+                #for grasp_point in grasp_points:
+                #    GraspPoint_msg = o2ac_msgs.msg.GraspPoint()
+                #    GraspPoint_msg.grasp_point = grasp_point
+                #    poseEstimationResult_msg.grasp_points.append(GraspPoint_msg)
+
             else:
                 print("Target id is ", target, " NO Solution")
 
@@ -159,6 +166,30 @@ class O2ACVision(object):
         # Return
         # o2ac_routines.helpers.publish_marker(action_result.detected_pose, "pose")
         self.pose_estimation_server.set_succeeded(action_result)
+
+    def belt_detection_callback(self, goal):
+        rospy.loginfo("Received a request to detect object named " + goal.object_id)
+        action_result = o2ac_msgs.msg.beltDetectionTestResult()
+
+        # First, obtain the image from the camera and convert it
+        image_msg = rospy.wait_for_message("/b_bot_outside_camera_throttled/color/image_raw/compressed", sensor_msgs.msg.CompressedImage, 1.0)
+        bridge = CvBridge()
+        cv_image = bridge.compressed_imgmsg_to_cv2(image_msg, desired_encoding="passthrough")
+        #im_in = cv2.resize( cv_image, None, fx=0.35, fy=0.35, interpolation=cv2.INTER_NEAREST )
+        im_in = cv_image.copy()
+
+        # Belt detection in image
+        grasp_points = self.grasp_detection_in_image( im_in )
+        print("grasp_result")
+        print(grasp_points)
+        for grasp_point in grasp_points:
+            GraspPoint_msg = o2ac_msgs.msg.GraspPoint()
+            GraspPoint_msg.grasp_point = grasp_point
+            action_result.grasp_points.append(GraspPoint_msg)
+
+        # Return
+        # o2ac_routines.helpers.publish_marker(action_result.detected_pose, "pose")
+        self.belt_detection_server.set_succeeded(action_result)
 
 ### =======
 
@@ -187,7 +218,7 @@ class O2ACVision(object):
         results = fge.main_proc()
 
         im_result = fge.visualization()
-        #cv2.imwrite("reslut_grasp_points.png", im_result )
+        cv2.imwrite("reslut_grasp_points.png", im_result )
 
         return results
 

@@ -1,9 +1,10 @@
 # Request
-int64 id
+string object_id
+string camera_id
 
 ---
 # Result
-int64[] candidate_idx
+o2ac_msgs/GraspPoint[] grasp_points
 
 ---
 # Feedback
