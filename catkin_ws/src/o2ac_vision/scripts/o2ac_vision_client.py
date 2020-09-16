@@ -2,8 +2,8 @@
 
 import rospy
 import argparse
-import actionlib
-import o2ac_msgs.msg
+from o2ac_vision import PoseEstimationClient
+from o2ac_vision import BeltDetectionClient
 
 def pose_estimation_client():
     client = actionlib.SimpleActionClient('poseEstimationTest', o2ac_msgs.msg.poseEstimationTestAction)
@@ -26,23 +26,31 @@ def belt_detection_client():
     return client.get_result()
 
 if __name__ == '__main__':
-    try:
-        rospy.init_node('test_client_py')
 
-        results = pose_estimation_client()
+    rospy.init_node('test_client_py')
+
+    pose_estimator = PoseEstimationClient()
+    belt_detector  = BeltDetectionClient()
+
+    while not rospy.is_shutdown():
+        if raw_input('Hit return key >> ') == 'q':
+            break
+
+        pose_estimator,trigger()
+        results = pose_estimator.get_results()
+
         print 'pose estimation result'
-        for j in range(len(results.pose_estimation_result_list)):
+        for result in results:
             print '--------------------------------'
-            print "confidence: ", results.pose_estimation_result_list[j].confidence
-            print "rotation [deg(ccw)]: ", results.pose_estimation_result_list[j].rotation
-            print "center [j,i]: ", results.pose_estimation_result_list[j].center
+            print "confidence: ", result.confidence
+            print "rotation [deg(ccw)]: ", result.rotation
+            print "center [j,i]: ", result.center
             #print "3d pose: ", results.pose_estimation_result_list[j].pose
-            print "class id: ", results.pose_estimation_result_list[j].class_id
+            print "class id: ", result.class_id
+            print "bbox: ", result.bbox
             #print "grasp points: ", results.pose_estimation_result_list[j].grasp_points
 
-        results = belt_detection_client()
+        belt_detector.trigger()
+        grasp_points = belt_detector.get_grasp_points()
         print '\nbelt detection result'
-        print "grasp points: ", results.grasp_points
-
-    except rospy.ROSInterruptException:
-        pass
+        print "grasp points: ", grasp_points
