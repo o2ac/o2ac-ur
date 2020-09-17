@@ -32,9 +32,7 @@
 
   <node name="o2ac_vision"
 	pkg="o2ac_vision" type="o2ac_vision.py" output="screen">
-    <remap from="/camera_info"	to="$(arg camera_name)/color/camera_info"/>
     <remap from="/image"	to="$(arg camera_name)/color/image_raw"/>
-    <remap from="/depth"	to="$(arg camera_name)/aligned_depth_to_color/image_raw"/>
   </node>.
 
   <node name="o2ac_vision_test"
