@@ -143,7 +143,7 @@ void O2ACSetupPanel::spawnBackgroundJob(const boost::function<void()>& job)
 void O2ACSetupPanel::update_status(const ros::TimerEvent& event)
 {
     // Check tools
-    if (ss_.fastening_tool_client.waitForServer(ros::Duration(0.2)))
+    if (ss_.fastening_tool_client.waitForServer(ros::Duration(0.01)))
     {
         ui.label_tools_online->setStyleSheet(green_label_style);
         ui.label_tools_online_2->setStyleSheet(green_label_style);
@@ -155,7 +155,7 @@ void O2ACSetupPanel::update_status(const ros::TimerEvent& event)
     }
 
     // Check skill server
-    if (changeToolActionClient_.waitForServer(ros::Duration(0.2)))
+    if (changeToolActionClient_.waitForServer(ros::Duration(0.01)))
         ui.label_skill_server_online->setStyleSheet(green_label_style);
     else
         ui.label_skill_server_online->setStyleSheet(red_label_style);
