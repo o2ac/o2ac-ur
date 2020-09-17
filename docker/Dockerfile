@@ -327,6 +327,24 @@ RUN /root/scripts/install-phoxi-control.sh
 
 ################################################################################
 
+# Install other dependencies of our workspace
+
+RUN apt-get update && apt-get install -y ros-melodic-panda-moveit-config \
+	ros-melodic-effort-controllers \
+	ros-melodic-moveit-resources-panda-description \
+	ros-melodic-industrial-robot-status-controller \
+	ros-melodic-moveit-resources-fanuc-description \
+	ros-melodic-moveit-resources-fanuc-moveit-config \
+	ros-melodic-socketcan-interface \
+	ros-melodic-moveit-resources-panda-moveit-config \
+	ros-melodic-industrial-robot-status-interface \
+	ros-melodic-soem \
+	ros-melodic-graph-msgs \
+	ros-melodic-spacenav-node \
+	ros-melodic-joy-teleop
+
+################################################################################
+
 # Setup the Bash shell environment with '/root/.bashrc'.
 RUN cat /root/scripts/initialize-bash-shell.sh >> /root/.bashrc
 
