@@ -249,8 +249,8 @@ class O2ACVision(object):
 
         elapsed_time = time.time() - start
         print( "Processing time[msec]: ", 1000*elapsed_time )
-        im_result = tm.get_result_image( ssd_result, ori, center )
 
+        im_result = tm.get_result_image( ssd_result, ori, center )
         name ="tm_result"+str(class_id)+".png"
         print( "Save", name )
         cv2.imwrite( name, im_result )

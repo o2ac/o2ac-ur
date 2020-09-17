@@ -417,9 +417,11 @@ class template_matching():
 
         return im_res_on_original # image
 
-
-
-
+    def draw_result( self, image, result, res_ori, res_center ):
+        im_temp_edge, temp_ori = self.read_template( result )
+        temp_center = np.asarray( im_temp_edge.shape, np.int )/2
+        ltop = res_center - temp_center
+        im_res_on_original = visualize_result( im_temp_edge, image, ltop, res_ori )
 
 
 """

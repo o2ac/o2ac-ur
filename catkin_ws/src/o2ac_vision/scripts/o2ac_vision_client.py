@@ -4,8 +4,6 @@ import rospy
 import argparse
 import actionlib
 import o2ac_msgs.msg
-# from o2ac_vision import PoseEstimationClient
-# from o2ac_vision import BeltDetectionClient
 
 def pose_estimation_client():
     client = actionlib.SimpleActionClient('poseEstimation', o2ac_msgs.msg.poseEstimationAction)

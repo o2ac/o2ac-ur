@@ -10,8 +10,6 @@ from aist_model_spawner import ModelSpawnerClient
 import actionlib
 from o2ac_msgs import msg as omsg
 #from o2ac_vision import PoseEstimationClient, BeltDetectionClient
-# from o2ac_vision import PoseEstimationClient as PoseEstimationClient
-# from o2ac_vision import BeltDetectionClient as BeltDetectionClient
 
 #########################################################################
 #  class PoseEstimationClient                                           #
