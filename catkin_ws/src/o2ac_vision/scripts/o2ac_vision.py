@@ -128,12 +128,12 @@ class O2ACVision(object):
         # First, obtain the image from the camera and convert it
         image_msg = rospy.wait_for_message("/b_bot_outside_camera_throttled/color/image_raw/compressed", sensor_msgs.msg.CompressedImage, 1.0)
         bridge = CvBridge()
-        cv_image = bridge.compressed_imgmsg_to_cv2(image_msg, desired_encoding="passthrough")
-        #im_in = cv2.resize( cv_image, None, fx=0.35, fy=0.35, interpolation=cv2.INTER_NEAREST )
-        im_in = cv_image.copy()
+        #cv_image = bridge.imgmsg_to_cv2(image, desired_encoding="passthrough")
+        im_in = bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
+        im_out = im_in.copy()
 
-        # Object detection in image (confidence, class_id, bbox)
-        ssd_results = self.detect_object_in_image(im_in)
+        if self.pose_estimation_server.is_active():
+            action_result = o2ac_msgs.msg.poseEstimationTestResult()
 
         # Pose estimation
         #
@@ -172,7 +172,7 @@ class O2ACVision(object):
         # o2ac_routines.helpers.publish_marker(action_result.detected_pose, "pose")
         self.pose_estimation_server.set_succeeded(action_result)
 
-                self.draw_bbox(im_in,
+                self.draw_bbox(im_out,
                                poseEstimationResult_msg.class_id,
                                poseEstimationResult_msg.bbox)
 
@@ -181,7 +181,7 @@ class O2ACVision(object):
             self.pose_estimation_server.set_succeeded(action_result)
 
             # Draw bbox and publish the result image
-            imsg = CvBridge().cv2_to_imgmsg(im_in, encoding='passthrough')
+            imsg = CvBridge().cv2_to_imgmsg(im_out, encoding='passthrough')
             self.image_pub.publish(imsg)
 
         elif self.belt_detection_server.is_active():
@@ -264,13 +264,17 @@ class O2ACVision(object):
         print( "Save", name )
         cv2.imwrite( name, im_result )
 
+        imsg = CvBridge().cv2_to_imgmsg(im_result, encoding='passthrough')
+        self.image_pub.publish(imsg)
+
         return result
 
     def draw_bbox(self, image, id, bbox):
         idx = id % len(O2ACVision._Colors)
-        cv2.rectangle(image, (bbox[0], bbox[1]), (bbox[2], bbox[3]),
+        cv2.rectangle(image, (bbox[0], bbox[1]),
+                      (bbox[0] + bbox[2], bbox[1] + bbox[3]),
                       O2ACVision._Colors[idx], 3)
-        cv2.putText(image, str(id + 1), (bbox[0] + 5, bbox[3] - 10),
+        cv2.putText(image, str(id), (bbox[0] + 5, bbox[1] + bbox[3] - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, 1, O2ACVision._Colors[idx], 2,
                     cv2.LINE_AA)
 
