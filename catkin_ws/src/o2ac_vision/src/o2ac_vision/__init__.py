@@ -1,6 +1,7 @@
 import rospy
 import actionlib
 from o2ac_msgs import msg as omsg
+import helpers
 
 #########################################################################
 #  class PoseEstimationClient                                           #
@@ -9,12 +10,12 @@ class PoseEstimationClient(object):
     def __init__(self, server=''):
         super(PoseEstimationClient, self).__init__()
         self._client \
-            = actionlib.SimpleActionClient(server + '/poseEstimationTest',
-                                           omsg.poseEstimationTestAction)
+            = actionlib.SimpleActionClient(server + '/poseEstimation',
+                                           omsg.poseEstimationAction)
         self._client.wait_for_server()
 
     def trigger(self, object_id='', camera_id=''):
-        goal = omsg.poseEstimationTestGoal(object_id=object_id,
+        goal = omsg.poseEstimationGoal(object_id=object_id,
                                            camera_id=camera_id)
         self._client.send_goal(goal)
 
@@ -31,12 +32,12 @@ class BeltDetectionClient(object):
     def __init__(self, server=''):
         super(BeltDetectionClient, self).__init__()
         self._client \
-            = actionlib.SimpleActionClient(server + '/beltDetectionTest',
-                                           omsg.beltDetectionTestAction)
+            = actionlib.SimpleActionClient(server + '/beltDetection',
+                                           omsg.beltDetectionAction)
         self._client.wait_for_server()
 
     def trigger(self, object_id='', camera_id=''):
-        goal = omsg.beltDetectionTestGoal(object_id=object_id,
+        goal = omsg.beltDetectionGoal(object_id=object_id,
                                           camera_id=camera_id)
         self._client.send_goal(goal)
 

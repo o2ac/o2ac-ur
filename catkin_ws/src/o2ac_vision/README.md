@@ -25,8 +25,8 @@ This component estimates accurate pose (x,y,theta) of **small targets** in image
 
 You can try this component using the following commands:
 ```
-$ rosrun o2ac_vision pose_estimation_test_server.py
-$ rosrun o2ac_vision pose_estimation_test_client.py --id [image id] --tdir [path]
+$ rosrun o2ac_vision pose_estimation_server.py
+$ rosrun o2ac_vision pose_estimation_client.py --id [image id] --tdir [path]
 ```
 Options:  
 --id ... Index of the input image.  
@@ -36,8 +36,8 @@ Options:
 ### Belt detection
 You can try this component using the following commands:
 ```
-$ rosrun o2ac_vision belt_detection_test_server.py
-$ rosrun o2ac_vision belt_detection_test_client.py
+$ rosrun o2ac_vision belt_detection_server.py
+$ rosrun o2ac_vision belt_detection_client.py
 ```
 
 
@@ -52,9 +52,9 @@ Make sure "Annotations", "Images", "data", "labels.txt", "realsense_intrinsic.js
 ### Test
 You can try this component using the following commands:
 ```
-$ rosrun o2ac_vision ssd_test_server.py
-$ rosrun o2ac_vision pose_estimation_test_server.py
-$ rosrun o2ac_vision belt_detection_test_server.py
-$ rosrun o2ac_vision test_server.py
-$ rosrun o2ac_vision test_client.py --id [image id] --tdir [path]
+$ rosrun o2ac_vision ssd_server.py
+$ rosrun o2ac_vision pose_estimation_server.py
+$ rosrun o2ac_vision belt_detection_server.py
+$ rosrun o2ac_vision server.py
+$ rosrun o2ac_vision client.py --id [image id] --tdir [path]
 ```

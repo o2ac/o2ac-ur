@@ -8,20 +8,20 @@ import o2ac_msgs.msg
 # from o2ac_vision import BeltDetectionClient
 
 def pose_estimation_client():
-    client = actionlib.SimpleActionClient('poseEstimationTest', o2ac_msgs.msg.poseEstimationTestAction)
+    client = actionlib.SimpleActionClient('poseEstimation', o2ac_msgs.msg.poseEstimationAction)
     client.wait_for_server()
 
-    goal = o2ac_msgs.msg.poseEstimationTestGoal(object_id="1", camera_id="1")
+    goal = o2ac_msgs.msg.poseEstimationGoal(object_id="1", camera_id="1")
     client.send_goal(goal)
     client.wait_for_result()
 
     return client.get_result()
 
 def belt_detection_client():
-    client = actionlib.SimpleActionClient('beltDetectionTest', o2ac_msgs.msg.beltDetectionTestAction)
+    client = actionlib.SimpleActionClient('beltDetection', o2ac_msgs.msg.beltDetectionAction)
     client.wait_for_server()
 
-    goal = o2ac_msgs.msg.poseEstimationTestGoal(object_id="1", camera_id="1")
+    goal = o2ac_msgs.msg.poseEstimationGoal(object_id="1", camera_id="1")
     client.send_goal(goal)
     client.wait_for_result()
 

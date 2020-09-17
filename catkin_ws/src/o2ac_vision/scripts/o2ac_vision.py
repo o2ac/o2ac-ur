@@ -88,12 +88,12 @@ class O2ACVision(object):
     	# This creates the action server.nSee this tutorial, and also check out base.py:
     	# http://wiki.ros.org/actionlib_tutorials/Tutorials/Writing%20a%20Simple%20Action%20Server%20using%20the%20Execute%20Callback%20%28Python%29
 
-        self.pose_estimation_server = actionlib.SimpleActionServer("poseEstimationTest", o2ac_msgs.msg.poseEstimationTestAction, auto_start = False)
+        self.pose_estimation_server = actionlib.SimpleActionServer("poseEstimation", o2ac_msgs.msg.poseEstimationAction, auto_start = False)
         self.pose_estimation_server.register_goal_callback(self.pose_estimation_goal_callback)
         self.pose_estimation_server.register_preempt_callback(self.pose_estimation_preempt_callback)
         self.pose_estimation_server.start()
 
-        self.belt_detection_server = actionlib.SimpleActionServer("beltDetectionTest", o2ac_msgs.msg.beltDetectionTestAction, auto_start = False)
+        self.belt_detection_server = actionlib.SimpleActionServer("beltDetection", o2ac_msgs.msg.beltDetectionAction, auto_start = False)
         self.belt_detection_server.register_goal_callback(self.belt_detection_goal_callback)
         self.belt_detection_server.register_preempt_callback(self.belt_detection_preempt_callback)
         self.belt_detection_server.start()
@@ -108,7 +108,7 @@ class O2ACVision(object):
                       + self.object_id)
 
     def pose_estimation_preempt_callback(self):
-        rospy.loginfo("o2ac_msgs.msg.poseEstimationTestAction preempted")
+        rospy.loginfo("o2ac_msgs.msg.poseEstimationAction preempted")
         self.pose_estimation_server.set_preempted()
 
     def belt_detection_goal_callback(self):
@@ -117,7 +117,7 @@ class O2ACVision(object):
                       + self.object_id)
 
     def belt_detection_preempt_callback(self):
-        rospy.loginfo("o2ac_msgs.msg.beltDetectionTestAction preempted")
+        rospy.loginfo("o2ac_msgs.msg.beltDetectionAction preempted")
         self.belt_detection_server.set_preempted()
 
     def image_subscriber_callback(self, image):
@@ -131,7 +131,7 @@ class O2ACVision(object):
         im_out = im_in.copy()
 
         if self.pose_estimation_server.is_active():
-            action_result = o2ac_msgs.msg.poseEstimationTestResult()
+            action_result = o2ac_msgs.msg.poseEstimationResult()
 
             ssd_results = self.detect_object_in_image(im_in)
 
@@ -175,7 +175,7 @@ class O2ACVision(object):
             self.image_pub.publish(imsg)
 
         elif self.belt_detection_server.is_active():
-            action_result = o2ac_msgs.msg.beltDetectionTestResult()
+            action_result = o2ac_msgs.msg.beltDetectionResult()
 
             # Belt detection in image
             grasp_points = self.grasp_detection_in_image( im_in )
