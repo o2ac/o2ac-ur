@@ -69,8 +69,6 @@ from cv_bridge import CvBridge
 from pose_estimation_func import template_matching
 from pose_estimation_func import FastGraspabilityEvaluation
 
-ssd_detection = o2ac_ssd.ssd_detection()
-
 class O2ACVision(object):
     _Colors = ((0, 0, 255), (0, 255, 0), (255, 0, 0),
                (255, 255, 0), (255, 0, 255), (0, 255, 255))
@@ -99,6 +97,8 @@ class O2ACVision(object):
         self.belt_detection_server.start()
 
         self.image_pub = rospy.Publisher('~image', smsg.Image, queue_size=1)
+
+        self.ssd_detection = o2ac_ssd.ssd_detection()
 
         rospy.loginfo("O2AC_vision has started up!")
 
@@ -194,7 +194,7 @@ class O2ACVision(object):
 ### =======
 
     def detect_object_in_image(self, cv_image):
-        ssd_results = ssd_detection.object_detection(cv_image)
+        ssd_results = self.ssd_detection.object_detection(cv_image)
         return ssd_results
 
     def grasp_detection_in_image( self, im_in ):
