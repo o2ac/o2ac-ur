@@ -1,0 +1,150 @@
+#!/usr/bin/env python
+
+import sys
+import rospy
+import geometry_msgs.msg
+import actionlib
+import tf
+from math import *
+
+import visualization_msgs.msg  # For marker visualization
+
+import o2ac_msgs
+import o2ac_msgs.msg
+import o2ac_msgs.srv
+
+from math import pi
+
+helper_fct_marker_id_count = 0
+
+def all_close(goal, actual, tolerance):
+  """
+  Convenience method for testing if a list of values are within a tolerance of their counterparts in another list
+  @param: goal       A list of floats, a Pose or a PoseStamped
+  @param: actual     A list of floats, a Pose or a PoseStamped
+  @param: tolerance  A float
+  @returns: bool
+  """
+  all_equal = True
+  if type(goal) is list:
+    for index in range(len(goal)):
+      if abs(actual[index] - goal[index]) > tolerance:
+        return False
+
+  elif type(goal) is geometry_msgs.msg.PoseStamped:
+    return all_close(goal.pose, actual.pose, tolerance)
+
+  elif type(goal) is geometry_msgs.msg.Pose:
+    return all_close(pose_to_list(goal), pose_to_list(actual), tolerance)
+
+  return True
+
+# Below are some ugly helper functions that should really be replaced. 
+def publish_marker(marker_pose_stamped, marker_type):
+  publisher = rospy.Publisher("vision_markers", visualization_msgs.msg.Marker, queue_size = 100)
+  rospy.sleep(0.5)
+  return publish_marker(publisher, marker_pose_stamped, marker_type)
+
+def publish_marker(marker_publisher, marker_pose_stamped, marker_type):
+  marker = visualization_msgs.msg.Marker()
+  marker.header = marker_pose.header
+  # marker.header.stamp = rospy.Time.now()
+  marker.pose = marker_pose.pose
+
+  marker.ns = "markers"
+  marker.id = 0
+  marker.lifetime = rospy.Duration(60.0)
+  marker.action = visualization_msgs.msg.Marker.ADD
+
+  if (marker_type == "pose"):
+    publish_pose_marker(marker_pose)
+
+    # Add a flat sphere
+    marker.type = visualization_msgs.msg.Marker.SPHERE
+    marker.scale.x = .01
+    marker.scale.y = .05
+    marker.scale.z = .05
+    marker.color.g = 1.0
+    marker.color.a = 0.8
+    marker_publisher.publish(marker)
+    return true
+  if (marker_type == "place_pose"):
+    publish_pose_marker(marker_pose)
+
+    # Add a flat sphere
+    marker.type = visualization_msgs.msg.Marker.SPHERE
+    marker.scale.x = .01
+    marker.scale.y = .05
+    marker.scale.z = .05
+    marker.color.g = 1.0
+    marker.color.a = 0.8
+    marker_publisher.publish(marker)
+    return true
+  if (marker_type == "pick_pose"):
+    publish_pose_marker(marker_pose)
+
+    # Add a flat sphere
+    marker.type = visualization_msgs.msg.Marker.SPHERE
+    marker.scale.x = .01
+    marker.scale.y = .05
+    marker.scale.z = .05
+    marker.color.r = 0.8
+    marker.color.g = 0.4
+    marker.color.a = 0.8
+  elif (marker_type == ""):
+    marker.type = visualization_msgs.msg.Marker.SPHERE
+    marker.scale.x = .02
+    marker.scale.y = .1
+    marker.scale.z = .1
+    
+    marker.color.g = 1.0
+    marker.color.a = 0.8
+  else:
+    rospy.warn("No supported marker message received.")
+  marker_publisher.publish(marker)
+  
+  if (helper_fct_marker_id_count > 50):
+    helper_fct_marker_id_count = 0
+  return True
+
+# This is a helper function for publish_marker. Publishes a TF-like frame. Should probably be replaced by rviz_visual_tools
+def publish_pose_marker(marker_publisher, marker_pose_stamped):
+  marker = visualization_msgs.msg.Marker()
+  marker.header = marker_pose.header
+  marker.header.stamp = rospy.Time.now()
+  marker.pose = marker_pose.pose
+
+  marker.ns = "markers"
+  helper_fct_marker_id_count = 0
+  marker.id = helper_fct_marker_id_count = 0
+  marker.lifetime = rospy.Duration()
+  marker.action = visualization_msgs.msg.Marker.ADD
+
+  # This draws a TF-like frame.
+  marker.type = visualization_msgs.msg.Marker.ARROW
+  marker.scale.x = .1
+  marker.scale.y = .01
+  marker.scale.z = .01
+  marker.color.a = .8
+
+  arrow_x = visualization_msgs.msg.Marker()
+  arrow_y = visualization_msgs.msg.Marker()
+  arrow_z = visualization_msgs.msg.Marker()
+  arrow_x = marker; arrow_y = marker; arrow_z = marker;
+  helper_fct_marker_id_count += 1
+  arrow_x.id = helper_fct_marker_id_count = 0
+  helper_fct_marker_id_count += 1
+  arrow_y.id = helper_fct_marker_id_count = 0
+  helper_fct_marker_id_count += 1
+  arrow_z.id = helper_fct_marker_id_count = 0
+  arrow_x.color.r = 1.0
+  arrow_y.color.g = 1.0
+  arrow_z.color.b = 1.0
+
+  rotatePoseByRPY(0, 0, M_PI/2, arrow_y.pose)
+  rotatePoseByRPY(0, -M_PI/2, 0, arrow_z.pose)
+
+  marker_publisher.publish(arrow_x)
+  marker_publisher.publish(arrow_y)
+  marker_publisher.publish(arrow_z)
+  return True

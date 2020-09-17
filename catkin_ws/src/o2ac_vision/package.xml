@@ -38,8 +38,6 @@
   <build_depend>robotiq_msgs</build_depend>
   <run_depend>o2ac_msgs</run_depend>
   <build_depend>o2ac_msgs</build_depend>
-  <run_depend>o2ac_routines</run_depend>
-  <build_depend>o2ac_routines</build_depend>
 
   <run_depend>ur_msgs</run_depend>
   <build_depend>ur_msgs</build_depend>

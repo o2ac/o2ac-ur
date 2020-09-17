@@ -45,7 +45,7 @@ import geometry_msgs.msg
 import std_msgs.msg
 import std_srvs.srv
 
-import o2ac_routines.helpers
+import o2ac_vision.helpers
 
 import o2ac_msgs.msg   # This is needed to advertise the actions
 import sensor_msgs.msg # This is needed to receive images from the camera
@@ -167,7 +167,7 @@ class O2ACVision(object):
                                poseEstimationResult_msg.bbox)
 
             # Return
-            # o2ac_routines.helpers.publish_marker(action_result.detected_pose, "pose")
+            # o2ac_vision.helpers.publish_marker(action_result.detected_pose, "pose")
             self.pose_estimation_server.set_succeeded(action_result)
 
             # Draw bbox and publish the result image
@@ -188,7 +188,7 @@ class O2ACVision(object):
                 action_result.grasp_points.append(GraspPoint_msg)
 
             # Return
-            # o2ac_routines.helpers.publish_marker(action_result.detected_pose, "pose")
+            # o2ac_vision.helpers.publish_marker(action_result.detected_pose, "pose")
             self.belt_detection_server.set_succeeded(action_result)
 
 ### =======
