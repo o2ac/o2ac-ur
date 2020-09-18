@@ -161,19 +161,19 @@ class O2ACVision(object):
                     print("Target id is ", target, " NO Solution")
 
                 action_result.pose_estimation_result_list.append(poseEstimationResult_msg)
-            # Draw bbox and publish the result image
-            self.image_pub.publish(bridge.cv2_to_imgmsg(im_vis,
-                                                        encoding='passthrough'))
-
             # Return
             # o2ac_routines.helpers.publish_marker(action_result.detected_pose, "pose")
             self.pose_estimation_server.set_succeeded(action_result)
+
+            # Draw bbox and publish the result image
+            self.image_pub.publish(bridge.cv2_to_imgmsg(im_vis,
+                                                        encoding='passthrough'))
 
         elif self.belt_detection_server.is_active():
             action_result = o2ac_msgs.msg.beltDetectionTestResult()
 
             # Belt detection in image
-            grasp_points = self.grasp_detection_in_image( im_in )
+            grasp_points, im_vis = self.grasp_detection_in_image(im_in, im_vis)
             print("grasp_result")
             print(grasp_points)
 
@@ -186,13 +186,14 @@ class O2ACVision(object):
             # o2ac_routines.helpers.publish_marker(action_result.detected_pose, "pose")
             self.belt_detection_server.set_succeeded(action_result)
 
+
 ### =======
 
     def detect_object_in_image(self, cv_image, im_vis):
         ssd_results, im_vis = ssd_detection.object_detection(cv_image, im_vis)
         return ssd_results, im_vis
 
-    def grasp_detection_in_image( self, im_in ):
+    def grasp_detection_in_image( self, im_in, im_vis ):
 
         start = time.time()
 
@@ -211,11 +212,10 @@ class O2ACVision(object):
 
         fge = FastGraspabilityEvaluation( im_in, im_hand, im_collision, param_fge )
         results = fge.main_proc()
+        im_vis  = fge.visualization(im_vis)
+        cv2.imwrite("reslut_grasp_points.png", im_vis )
 
-        im_result = fge.visualization()
-        cv2.imwrite("reslut_grasp_points.png", im_result )
-
-        return results
+        return results, im_vis
 
     def estimate_pose_in_image(self, im_in, ssd_result):
 
@@ -249,9 +249,6 @@ class O2ACVision(object):
         name ="tm_result"+str(class_id)+".png"
         print( "Save", name )
         cv2.imwrite( name, im_result )
-
-        imsg = CvBridge().cv2_to_imgmsg(im_result, encoding='passthrough')
-        self.image_pub.publish(imsg)
 
         return result
 

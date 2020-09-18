@@ -1,0 +1,14 @@
+# This action should be called when the camera looks at the tray or an object.
+
+# Request (sent from the action client to the action server)
+int32 class_id
+
+---
+# Result (returned from the server to the client)
+
+bool succeeded
+float32 confidence
+geometry_msgs/PoseStamped detected_pose
+
+---
+# Feedback (values that can be sent to the client while the action is running)

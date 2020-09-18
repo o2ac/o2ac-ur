@@ -1,13 +1,5 @@
-<?xml version="1.0" ?>
+<?xml version="1.0"?>
 <launch>
-
-  <!-- Localization parameters -->
-  <arg name="nposes"		default="2"/>
-  <arg name="timeout"		default="10"/>
-  <arg name="ply_dir"		default="$(find o2ac_parts_description
-					 )/meshes"/>
-  <arg name="urdf_dir"		default="$(find o2ac_parts_description
-					 )/urdf/generated"/>
 
   <!-- Camera parameters -->
   <arg name="serial_no"		default=""/>
@@ -36,20 +28,16 @@
 	 unless="$(eval manager == '')"/>
   </include>
 
-  <!-- Construct recognition pipeline -->
-  <include file="$(find o2ac_vision)/launch/run.launch">
-    <arg name="ply_dir"		  value="$(arg ply_dir)"/>
-    <arg name="urdf_dir"	  value="$(arg urdf_dir)"/>
-    <arg name="camera_info_topic" value="$(arg camera_name)/color/camera_info"/>
-    <arg name="image_topic"	  value="$(arg camera_name)/color/image_raw"/>
-    <arg name="depth_topic"	  value="$(arg camera_name)/aligned_depth_to_color/image_raw"/>
-    <arg name="normal_topic"	  value=""/>
-    <arg name="manager"		  value="$(arg manager)"/>
-  </include>
+  <!-- This file launches all the vision and recognition nodes (but not the cameras) -->
+
+  <node name="object_detector"
+	pkg="o2ac_vision" type="object_detector.py" output="screen">
+    <remap from="/image"	to="$(arg camera_name)/color/image_raw"/>
+  </node>.
 
   <!-- Spawn visualizer and parameter configurator -->
   <node name="$(anon rviz)" pkg="rviz" type="rviz" output="screen"
-	args="-d $(find aist_localization)/launch/realsense.rviz"/>
+	args="-d $(find o2ac_vision)/launch/object_detector.rviz"/>
   <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure"/>
 
 </launch>

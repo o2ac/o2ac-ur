@@ -331,7 +331,7 @@ class template_matching():
             print("ERROR!!")
             print("Template info does not include id ",  class_id )
 
-        print(os.path.join( self.temp_root, self.temp_info[info_id]["name_edge"]))
+        #print(os.path.join( self.temp_root, self.temp_info[info_id]["name_edge"]))
         im_temp_edge = cv2.imread( os.path.join( self.temp_root, self.temp_info[info_id]["name_edge"]), 0 )
         temp_ori = self.temp_info[info_id]["orientation"]
 
@@ -363,8 +363,8 @@ class template_matching():
             for o_temp in temp_ori:
                 res_orientations.append( o_in - o_temp )
 
-        print("difference of orientations")
-        print( res_orientations )
+        # print("difference of orientations")
+        # print( res_orientations )
 
 
         """ Create rotated templates """

@@ -49,19 +49,16 @@ from pose_estimation_func import FastGraspabilityEvaluation
 ssd_detection = o2ac_ssd.ssd_detection()
 
 class ObjectDetector(object):
-
     def __init__(self):
-    	rospy.init_node('object_detector', anonymous=False)
+        super(ObjectDetector, self).__init__()
 
-        # Setup subscriber for RGB image
         self.image_sub   = rospy.Subscriber('/image', smsg.Image,
                                             self.image_subscriber_callback)
-        self.results_pub = rospy.Publisher('~results',
+        self.results_pub = rospy.Publisher('~detection_results',
                                            omsg.ObjectDetectionResults,
                                            queue_size=1)
         self.image_pub   = rospy.Publisher('~result_image', smsg.Image,
                                            queue_size=1)
-
         rospy.loginfo("object_detector has started up!")
 
     def image_subscriber_callback(self, image_msg):
@@ -88,25 +85,18 @@ class ObjectDetector(object):
             poseEstimationResult_msg.bbox = ssd_result["bbox"]
 
             if target in apply_2d_pose_estimation:
-                print("Target id is ", target, " apply the 2d pose estimation")
                 pose_estimation_results, im_vis = \
                     self.estimate_pose_in_image(im_in, im_vis, ssd_result)
                 poseEstimationResult_msg.rotation = pose_estimation_results[1]
                 poseEstimationResult_msg.center.append(pose_estimation_results[0][0])
                 poseEstimationResult_msg.center.append(pose_estimation_results[0][1])
-            elif target in apply_3d_pose_estimation:
-                print("Target id is ", target, " apply the 3d pose estimation")
-            else:
-                print("Target id is ", target, " NO Solution")
 
             objectDetectionResults_msg.pose_estimation_results.append(poseEstimationResult_msg)
 
         # Belt detection in image
         grasp_points, im_vis = self.grasp_detection_in_image( im_in, im_vis )
-        print("grasp_result")
-        print(grasp_points)
         for grasp_point in grasp_points:
-            GraspPoint_msg = o2ac_msgs.msg.GraspPoint()
+            GraspPoint_msg = omsg.GraspPoint()
             GraspPoint_msg.grasp_point = grasp_point
             objectDetectionResults_msg.grasp_points.append(GraspPoint_msg)
 
@@ -146,7 +136,7 @@ class ObjectDetector(object):
 
     def estimate_pose_in_image(self, im_in, im_vis, ssd_result):
 
-        start = time.time()
+        # start = time.time()
 
         rospack = rospkg.RosPack()
         temp_root = rospack.get_path("o2ac_vision") + "/dataset/data/templates"
@@ -169,8 +159,8 @@ class ObjectDetector(object):
         center, ori = tm.compute( ssd_result )
         result = (center, ori)
 
-        elapsed_time = time.time() - start
-        print( "Processing time[msec]: ", 1000*elapsed_time )
+        # elapsed_time = time.time() - start
+        # print( "Processing time[msec]: ", 1000*elapsed_time )
 
         im_vis = tm.get_result_image(ssd_result, ori, center, im_vis)
 
@@ -178,10 +168,6 @@ class ObjectDetector(object):
 
 
 if __name__ == '__main__':
-    try:
-        c = ObjectDetector()
-        rospy.spin()
-        # while not rospy.is_shutdown():
-        #     rospy.sleep(.1)
-    except rospy.ROSInterruptException:
-        pass
+    rospy.init_node('object_detector')
+    detector = ObjectDetector()
+    rospy.spin()

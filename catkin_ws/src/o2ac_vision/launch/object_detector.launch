@@ -28,12 +28,11 @@
 	 unless="$(eval manager == '')"/>
   </include>
 
-  <!-- This file launches all the vision and recognition nodes (but not the cameras) -->
-
+  <!-- Spawn object_detector -->
   <node name="object_detector"
 	pkg="o2ac_vision" type="object_detector.py" output="screen">
-    <remap from="/image"	to="$(arg camera_name)/color/image_raw"/>
-  </node>.
+    <remap from="/image" to="$(arg camera_name)/color/image_raw"/>
+  </node>
 
   <!-- Spawn visualizer and parameter configurator -->
   <node name="$(anon rviz)" pkg="rviz" type="rviz" output="screen"
