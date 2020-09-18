@@ -1,7 +1,8 @@
 #include "o2ac_skills/o2ac_skill_server.h"
 
 SkillServer::SkillServer() : 
-                  pickScrewActionServer_(n_, "o2ac_skills/pick_screw", boost::bind(&SkillServer::executePickScrew, this, _1),false),
+                  suckScrewActionServer_(n_, "o2ac_skills/suck_screw", boost::bind(&SkillServer::executeSuckScrew, this, _1),false),
+                  pickScrewFromFeederActionServer_(n_, "o2ac_skills/pick_screw_from_feeder", boost::bind(&SkillServer::executePickScrewFromFeeder, this, _1),false),
                   placeActionServer_(n_, "o2ac_skills/place", boost::bind(&SkillServer::executePlace, this, _1),false),
                   regraspActionServer_(n_, "o2ac_skills/regrasp", boost::bind(&SkillServer::executeRegrasp, this, _1),false),
                   screwActionServer_(n_, "o2ac_skills/screw", boost::bind(&SkillServer::executeScrew, this, _1),false),
@@ -71,7 +72,8 @@ SkillServer::SkillServer() :
 void SkillServer::advertiseActionsAndServices()
 {
   // Actions to advertise
-  pickScrewActionServer_.start();
+  suckScrewActionServer_.start();
+  pickScrewFromFeederActionServer_.start();
   placeActionServer_.start();
   regraspActionServer_.start();
   screwActionServer_.start();
@@ -1156,7 +1158,7 @@ bool SkillServer::pickFromAbove(geometry_msgs::PoseStamped target_tip_link_pose,
   return true;
 }
 
-bool SkillServer::pickScrew(geometry_msgs::PoseStamped screw_head_pose, std::string screw_tool_id, std::string robot_name, std::string screw_tool_link, std::string fastening_tool_name)
+bool SkillServer::suckScrew(geometry_msgs::PoseStamped screw_head_pose, std::string screw_tool_id, std::string robot_name, std::string screw_tool_link, std::string fastening_tool_name)
 {
   // Strategy: 
   // - Move 1 cm above the screw head pose
@@ -1166,7 +1168,7 @@ bool SkillServer::pickScrew(geometry_msgs::PoseStamped screw_head_pose, std::str
   // - If not, try the same a few more times in nearby locations (spiral-search-like)
 
   // The frame needs to be the outlet_link of the screw feeder
-  ROS_INFO_STREAM("Received pickScrew command.");
+  ROS_INFO_STREAM("Received suckScrew command.");
   
   geometry_msgs::PoseStamped above_screw_head_pose_ = screw_head_pose;
   // TODO (felixvd): Test that this actually works
@@ -1412,10 +1414,10 @@ void SkillServer::bBotStatusCallback(const std_msgs::BoolConstPtr& msg)
 // ----------- Action servers
 
 
-// pickScrewAction
-void SkillServer::executePickScrew(const o2ac_msgs::pickScrewGoalConstPtr& goal)
+// suckScrewAction
+void SkillServer::executeSuckScrew(const o2ac_msgs::suckScrewGoalConstPtr& goal)
 {
-  ROS_INFO("pickScrewAction was called");
+  ROS_INFO("suckScrewAction was called");
   geometry_msgs::PoseStamped target_pose = goal->screw_pose;
   if (target_pose.header.frame_id == "")
   {
@@ -1424,29 +1426,59 @@ void SkillServer::executePickScrew(const o2ac_msgs::pickScrewGoalConstPtr& goal)
   }
   target_pose = transform_pose_now(target_pose, "world", tflistener_);
 
-  if ((robot_statuses_[goal->robot_name].carrying_tool == true) && (goal->tool_name != "screw_tool"))
-  {
-    ROS_ERROR("Robot is carrying a tool. Nothing can be picked except screws.");
-    pickScrewActionServer_.setAborted();
-    return;
-  }
-  
   if (goal->tool_name == "screw_tool")
   {
     std::string screw_tool_id = "screw_tool_m" + std::to_string(goal->screw_size);
     std::string screw_tool_link = goal->robot_name + "_screw_tool_m" + std::to_string(goal->screw_size) + "_tip_link";
     std::string fastening_tool_name = "screw_tool_m" + std::to_string(goal->screw_size);
-    bool screw_picked = pickScrew(goal->screw_pose, screw_tool_id, goal->robot_name, screw_tool_link, fastening_tool_name);
+    bool screw_picked = suckScrew(goal->screw_pose, screw_tool_id, goal->robot_name, screw_tool_link, fastening_tool_name);
     if (!screw_picked)
     {
-      ROS_INFO("pickScrewAction has failed to pick the screw");
-      pickScrewActionServer_.setAborted();
+      ROS_INFO("suckScrewAction has failed to pick the screw");
+      suckScrewActionServer_.setAborted();
       return;
     }
   }
 
-  ROS_INFO("pickScrewAction is set as succeeded");
-  pickScrewActionServer_.setSucceeded();
+  ROS_INFO("suckScrewAction is set as succeeded");
+  suckScrewActionServer_.setSucceeded();
+}
+
+void SkillServer::executePickScrewFromFeeder(const o2ac_msgs::pickScrewFromFeederGoalConstPtr& goal)
+{
+  ROS_INFO("pickScrewFromFeederAction was called");
+
+  geometry_msgs::PoseStamped pose_feeder;
+  pose_feeder.pose.position.x = 0.0;
+  pose_feeder.header.frame_id = "m" + std::to_string(goal->screw_size) + "_feeder_outlet_link";
+  if (goal->robot_name == "b_bot")
+    pose_feeder.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(M_PI*(-60.0)/180.0, 0, 0);
+  else if (goal->robot_name == "a_bot")
+    pose_feeder.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(M_PI*60.0/180.0, 0, 0);
+  else
+  {
+    ROS_ERROR_STREAM("robot_name is not a_bot or b_bot but instead: " << goal->robot_name);
+    pickScrewFromFeederActionServer_.setAborted();
+    return;
+  }
+
+  goToNamedPose("feeder_pick_ready", goal->robot_name, 0.5, 0.5, false);
+
+  std::string screw_tool_id = "screw_tool_m" + std::to_string(goal->screw_size);
+  std::string screw_tool_link = goal->robot_name + "_screw_tool_m" + std::to_string(goal->screw_size) + "_tip_link";
+  std::string fastening_tool_name = "screw_tool_m" + std::to_string(goal->screw_size);
+  bool screw_picked = suckScrew(pose_feeder, screw_tool_id, goal->robot_name, screw_tool_link, fastening_tool_name);
+  if (!screw_picked)
+  {
+    ROS_INFO("pickScrewFromFeederAction has failed to pick the screw");
+    pickScrewFromFeederActionServer_.setAborted();
+    return;
+  }
+
+  goToNamedPose("feeder_pick_ready", goal->robot_name, 0.5, 0.5, false);
+
+  ROS_INFO("pickScrewFromFeederAction is set as succeeded");
+  pickScrewFromFeederActionServer_.setSucceeded();
 }
 
 // placeAction

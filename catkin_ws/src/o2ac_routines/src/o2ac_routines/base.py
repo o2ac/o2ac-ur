@@ -116,7 +116,8 @@ class O2ACBase(object):
     self.gripper_action_clients = {"a_bot":actionlib.SimpleActionClient('/a_bot/gripper_action_controller', robotiq_msgs.msg.CModelCommandAction),
       "b_bot":actionlib.SimpleActionClient('/b_bot/gripper_action_controller', robotiq_msgs.msg.CModelCommandAction)}
     
-    self.pick_screw_client = actionlib.SimpleActionClient('/o2ac_skills/pick_screw', o2ac_msgs.msg.pickScrewAction)
+    self.suck_screw_client = actionlib.SimpleActionClient('/o2ac_skills/suck_screw', o2ac_msgs.msg.suckScrewAction)
+    self.pick_screw_from_feeder_client = actionlib.SimpleActionClient('/o2ac_skills/pick_screw_from_feeder', o2ac_msgs.msg.pickScrewFromFeederAction)
     self.place_client = actionlib.SimpleActionClient('/o2ac_skills/place', o2ac_msgs.msg.placeAction)
     self.regrasp_client = actionlib.SimpleActionClient('/o2ac_skills/regrasp', o2ac_msgs.msg.regraspAction)
     self.screw_client = actionlib.SimpleActionClient('/o2ac_skills/screw', o2ac_msgs.msg.screwAction)
@@ -627,9 +628,9 @@ class O2ACBase(object):
 
   ######
 
-  def do_pick_screw_action(self, robot_name, pose_stamped, screw_size = 0, z_axis_rotation = 0.0, use_complex_planning = False, tool_name = ""):
-    # Call the pick action. It is useful for picking screws with the tool.
-    goal = o2ac_msgs.msg.pickScrewGoal()
+  def do_suck_screw_action(self, robot_name, pose_stamped, screw_size = 0, z_axis_rotation = 0.0, tool_name = ""):
+    # Call the suck screw action. Deprecated.
+    goal = o2ac_msgs.msg.suckScrewGoal()
     goal.robot_name = robot_name
     goal.screw_pose = pose_stamped
     goal.tool_name = tool_name
@@ -638,11 +639,29 @@ class O2ACBase(object):
     rospy.loginfo("Sending pick action goal")
     rospy.logdebug(goal)
 
-    self.pick_screw_client.send_goal(goal)
+    self.suck_screw_client.send_goal(goal)
     rospy.logdebug("Waiting for result")
-    self.pick_screw_client.wait_for_result()
+    self.suck_screw_client.wait_for_result()
     rospy.logdebug("Getting result")
-    return self.pick_screw_client.get_result()
+    return self.suck_screw_client.get_result()
+
+  def pick_screw_from_feeder(self, robot_name, screw_size):
+    """
+    Picks a screw from one of the feeders. The screw tool already has to be equipped!
+    Use this command to equip the screw tool: do_change_tool_action(self, "b_bot", equip=True, screw_size = 4)
+    """
+    goal = o2ac_msgs.msg.pickScrewFromFeederGoal()
+    goal.robot_name = robot_name
+    goal.screw_size = screw_size
+    rospy.loginfo("Sending pickScrewFromFeeder action goal")
+    rospy.logdebug(goal)
+
+    self.pick_screw_from_feeder_client.send_goal(goal)
+    rospy.logdebug("Waiting for result")
+    self.pick_screw_from_feeder_client.wait_for_result()
+    rospy.logdebug("Getting result")
+    return self.pick_screw_from_feeder_client.get_result()
+
 
   def do_place_action(self, robot_name, pose_stamped, tool_name = "", screw_size=0):
     # Call the place action

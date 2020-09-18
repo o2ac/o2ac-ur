@@ -159,7 +159,7 @@ class AssemblyClass(O2ACCommon):
       success = self.pick('screw_tool_' + screw_type, 'tools', 'screw_tool_m3_pickup_link', [-1.0, 0.0, 0.0], save_solution_to_file = 'pick_screw_tool')
     return success
 
-  def pick_screw(self, screw_type):
+  def suck_screw(self, screw_type):
     rospy.loginfo("======== FASTEN TASK ========")
     success = False
     tool = 'screw_tool_' + screw_type
@@ -304,7 +304,7 @@ if __name__ == '__main__':
       if i == '72':
         assy.pick_screw_tool('m4')
       if i == '73':
-        assy.pick_screw('m4')
+        assy.suck_screw('m4')
       if i == '74':
         assy.release('panel_bearing', 'home', 'release_panel_bearing')
       if i == '75':

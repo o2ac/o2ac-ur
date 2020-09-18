@@ -524,57 +524,6 @@ class O2ACCommon(O2ACBase):
 
   ########
 
-  def pick_screw_from_feeder(self, robot_name, screw_size, attempts = 1):
-    """
-    Picks a screw from one of the feeders. The screw tool already has to be equipped!
-    Use this command to equip the screw tool: do_change_tool_action(self, "b_bot", equip=True, screw_size = 4)
-    """
-    
-    if not screw_size==3 and not screw_size==4:
-      rospy.logerr("Screw size needs to be 3 or 4 but is: " + str(screw_size))
-      return False
-
-    # self.log_to_debug_monitor("Pick screw from feeder", "operation")
-
-    # Turn to the right to face the feeders
-    self.go_to_named_pose("feeder_pick_ready", robot_name, speed=0.2, acceleration=0.2, force_ur_script=False)
-
-    pose_feeder = geometry_msgs.msg.PoseStamped()
-    pose_feeder.header.frame_id = "m" + str(screw_size) + "_feeder_outlet_link"
-    if robot_name == "b_bot":
-      pose_feeder.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(radians(-60), 0, 0))
-    elif robot_name == "a_bot":
-      pose_feeder.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(radians(60), 0, 0))
-    else:
-      rospy.logerr("robot_name is not a_bot or b_bot but instead: " + robot_name)
-      return False
-    pose_feeder.pose.position.x = 0.0
-
-    attempt = 0
-    screw_picked = False
-    while attempt < attempts:
-      self.do_pick_screw_action(robot_name, pose_feeder, screw_size = screw_size, use_complex_planning = True, tool_name = "screw_tool")
-      bool_msg = Bool()
-      try:
-        bool_msg = rospy.wait_for_message("/screw_tool_m" + str(screw_size) + "/screw_suctioned", Bool, 1.0)
-      except:
-        pass
-      screw_picked = bool_msg.data
-      if screw_picked:
-        self.go_to_named_pose("feeder_pick_ready", robot_name, speed=0.2, acceleration=0.2, force_ur_script=False)
-        rospy.loginfo("Successfully picked the screw")
-        return True
-      if not self.use_real_robot:
-        self.go_to_named_pose("feeder_pick_ready", robot_name, speed=0.2, acceleration=0.2, force_ur_script=False)
-        rospy.loginfo("Pretending the screw is picked, because this is simulation.")
-        return True
-      attempt += 1
-
-    if not screw_picked:
-      self.go_to_named_pose("feeder_pick_ready", robot_name, speed=0.2, acceleration=0.2, force_ur_script=False)
-      rospy.loginfo("Failed to pick the screw")
-    return False
-
   def fasten_screw(self, robot_name, screw_hole_pose, screw_height = .02, screw_size = 4):
 
     if not screw_size==3 and not screw_size==4:

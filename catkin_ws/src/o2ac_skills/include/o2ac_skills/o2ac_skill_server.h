@@ -40,7 +40,8 @@
 
 // Actions
 #include <actionlib/server/simple_action_server.h>
-#include "o2ac_msgs/pickScrewAction.h"
+#include "o2ac_msgs/suckScrewAction.h"
+#include "o2ac_msgs/pickScrewFromFeederAction.h"
 #include "o2ac_msgs/placeAction.h"
 #include "o2ac_msgs/regraspAction.h"
 #include "o2ac_msgs/screwAction.h"
@@ -87,7 +88,7 @@ public:
   bool attachDetachTool(std::string screw_tool_id, std::string link_name, std::string attach_or_detach);
   bool placeFromAbove(geometry_msgs::PoseStamped target_tip_link_pose, std::string end_effector_link_name, std::string robot_name, std::string gripper_name = "");
   bool pickFromAbove(geometry_msgs::PoseStamped target_tip_link_pose, std::string end_effector_link_name, std::string robot_name, std::string gripper_name = "");
-  bool pickScrew(geometry_msgs::PoseStamped screw_head_pose, std::string screw_tool_id, std::string robot_name, std::string screw_tool_link, std::string fastening_tool_name);
+  bool suckScrew(geometry_msgs::PoseStamped screw_head_pose, std::string screw_tool_id, std::string robot_name, std::string screw_tool_link, std::string fastening_tool_name);
   bool publishMarker(geometry_msgs::PoseStamped marker_pose, std::string marker_type = "");
   bool publishPoseMarker(geometry_msgs::PoseStamped marker_pose);
 
@@ -110,7 +111,8 @@ public:
   void bBotStatusCallback(const std_msgs::BoolConstPtr& msg);
 
   // Actions
-  void executePickScrew(const o2ac_msgs::pickScrewGoalConstPtr& goal);
+  void executeSuckScrew(const o2ac_msgs::suckScrewGoalConstPtr& goal);
+  void executePickScrewFromFeeder(const o2ac_msgs::pickScrewFromFeederGoalConstPtr& goal);
   void executePlace(const o2ac_msgs::placeGoalConstPtr& goal);
   void executeRegrasp(const o2ac_msgs::regraspGoalConstPtr& goal);
   void executeScrew(const o2ac_msgs::screwGoalConstPtr& goal);
@@ -141,7 +143,9 @@ public:
   ros::ServiceClient a_bot_get_loaded_program_, a_bot_program_running_, a_bot_load_program_, a_bot_play_, b_bot_get_loaded_program_, b_bot_program_running_, b_bot_load_program_, b_bot_play_;
   
   // Action servers
-  actionlib::SimpleActionServer<o2ac_msgs::pickScrewAction> pickScrewActionServer_;
+  actionlib::SimpleActionServer<o2ac_msgs::suckScrewAction> suckScrewActionServer_;
+  actionlib::SimpleActionServer<o2ac_msgs::pickScrewFromFeederAction> pickScrewFromFeederActionServer_;
+  
   actionlib::SimpleActionServer<o2ac_msgs::placeAction> placeActionServer_;
   actionlib::SimpleActionServer<o2ac_msgs::regraspAction> regraspActionServer_;
   actionlib::SimpleActionServer<o2ac_msgs::screwAction> screwActionServer_;  

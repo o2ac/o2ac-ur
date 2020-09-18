@@ -84,6 +84,7 @@ private:
     void close_gripper_wrapper(std::string robot);
     void go_named_pose_wrapper(std::string robot_name, std::string pose);
     void equip_unequip_wrapper(std::string robot_name, std::string tool, std::string equip_or_unequip);
+    void pick_screw_from_feeder_wrapper(std::string robot_name, int screw_size);
 
 // members
 private:
@@ -282,7 +283,7 @@ void O2ACSetupPanel::on_button_a_bot_m3_unequip_clicked()
 }
 void O2ACSetupPanel::on_button_a_bot_m3_pick_screw_clicked()
 {
-    spawnBackgroundJob(boost::bind(&O2ACSetupPanel::equip_unequip_wrapper, this, "a_bot", "screw_tool_m3", "equip"));
+    spawnBackgroundJob(boost::bind(&O2ACSetupPanel::pick_screw_from_feeder_wrapper, this, "a_bot", 3));
 }
 
 void O2ACSetupPanel::on_button_b_bot_m4_equip_clicked()
@@ -295,7 +296,7 @@ void O2ACSetupPanel::on_button_b_bot_m4_unequip_clicked()
 }
 void O2ACSetupPanel::on_button_b_bot_m4_pick_screw_clicked()
 {
-    spawnBackgroundJob(boost::bind(&O2ACSetupPanel::equip_unequip_wrapper, this, "b_bot", "screw_tool_m4", "equip"));
+    spawnBackgroundJob(boost::bind(&O2ACSetupPanel::pick_screw_from_feeder_wrapper, this, "b_bot", 4));
 }
 
 void O2ACSetupPanel::on_button_a_bot_nut_equip_clicked()
@@ -385,6 +386,17 @@ void O2ACSetupPanel::go_named_pose_wrapper(std::string robot_name, std::string p
 void O2ACSetupPanel::equip_unequip_wrapper(std::string robot_name, std::string tool, std::string equip_or_unequip)
 {
     ss_.equipUnequipScrewTool(robot_name, tool, equip_or_unequip);
+}
+void O2ACSetupPanel::pick_screw_from_feeder_wrapper(std::string robot_name, int screw_size)
+{
+    o2ac_msgs::pickScrewFromFeederGoal goal;
+    goal.robot_name = robot_name;
+    goal.screw_size = screw_size;
+    o2ac_msgs::pickScrewFromFeederGoalConstPtr goalptr( new o2ac_msgs::pickScrewFromFeederGoal( goal ) );
+    // https://answers.ros.org/question/196697/get-constptr-from-message/
+    // auto goalptr = std::make_shared<const o2ac_msgs::pickScrewFromFeederGoal>(goal);
+    // std::shared_ptr<const o2ac_msgs::pickScrewFromFeederGoal> goalptr;
+    ss_.executePickScrewFromFeeder(goalptr);
 }
 
 // --- 
