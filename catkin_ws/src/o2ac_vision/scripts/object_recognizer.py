@@ -33,21 +33,27 @@ class ObjectRecognizer(object):
         self._nposes  = rospy.get_param('~nposes',  2)
         self._timeout = rospy.get_param('~timeout', 10)
 
-        # Setup subscriber for object detection results
-        self._detection_sub = rospy.Subscriber('/detection_results',
-                                               omsg.ObjectDetectionResults,
-                                               self.detection_callback)
-
         # Setup action server for recognition
         self._recognition_server = \
             actionlib.SimpleActionServer("~recognize_object",
                                          omsg.recognizeObjectAction,
+                                         execute_cb=self.recognition_callback,
                                          auto_start = False)
-        self._recognition_server \
-            .register_goal_callback(self.recognition_goal_callback)
         self._recognition_server \
             .register_preempt_callback(self.recognition_preempt_callback)
         self._recognition_server.start()
+
+        # Setup action client for pose estimation
+        self._object_detector \
+            = actionlib.SimpleActionClient('poseEstimationTest',
+                                           omsg.poseEstimationTestAction)
+        self._object_detector.wait_for_server()
+
+        # Setup action client for pose estimation
+        self._belt_detector \
+            = actionlib.SimpleActionClient('beltDetectionTest',
+                                           omsg.beltDetectionTestAction)
+        self._belt_detector.wait_for_server()
 
         self._dfilter = DepthFilterClient('depth_filter')
         self._dfilter.window_radius = 2
@@ -56,46 +62,42 @@ class ObjectRecognizer(object):
 
         self._class_id = 0
 
-    def detection_callback(self, detection_results):
-        if not self._recognition_server.is_active():
-            return
+    def recognition_callback(self, goal):
+        self._object_detector.send_goal(omsg.poseEstimationTestGoal())
+        self._object_detector.wait_for_result()
+        detection_results = self._object_detector.get_result()
 
         self._spawner.delete_all()
 
         recognition_result = omsg.recognizeObjectResult()
         recognition_result.succeeded = False
 
-        for result in detection_results.pose_estimation_results:
-            if self._class_id == result.class_id:
-                poses, overlaps = self.localize(result.bbox)
+        for result in detection_results.pose_estimation_result_list:
+            if goal.class_id == result.class_id:
+                poses, overlaps = self.localize(goal.class_id, result.bbox)
                 if len(poses) > 0:
                     recognition_result.succeeded = True
                     recognition_result.detected_pose = poses[0]
                     recognition_result.confidence    = overlaps[0]
-                    self._spawner.add(self.model, poses[0])
+                    self._spawner.add(self.model(goal.class_id), poses[0])
                     self._recognition_server.set_succeeded(recognition_result)
                     return
                 break
         self._recognition_server.set_aborted(recognition_result)
 
-    def localize(self, bbox):
-        self._dfilter.roi = (bbox[0],           bbox[1],
-                             bbox[0] + bbox[2], bbox[1] + bbox[3])
-        self._dfilter.capture()  # Load PLY data to the localizer
-        self._localizer.send_goal(self.model, self._nposes)
-        return self._localizer.wait_for_result(rospy.Duration(self._timeout))
-
-    def recognition_goal_callback(self):
-        self._class_id = self._recognition_server.accept_new_goal().class_id
-        rospy.loginfo('Received a request to recognize object[' + self.model + ']')
-
     def recognition_preempt_callback(self):
         rospy.loginfo("o2ac_msgs.msg.recognizeObjectAction preempted")
         self._recognition_server.set_preempted()
 
-    @property
-    def model(self):
-        return ObjectRecognizer._Models[self._class_id]
+    def model(self, class_id):
+        return ObjectRecognizer._Models[class_id]
+
+    def localize(self, class_id, bbox):
+        self._dfilter.roi = (bbox[0],           bbox[1],
+                             bbox[0] + bbox[2], bbox[1] + bbox[3])
+        self._dfilter.capture()  # Load PLY data to the localizer
+        self._localizer.send_goal(self.model(class_id), self._nposes)
+        return self._localizer.wait_for_result(rospy.Duration(self._timeout))
 
 #########################################################################
 #  main                                                                 #

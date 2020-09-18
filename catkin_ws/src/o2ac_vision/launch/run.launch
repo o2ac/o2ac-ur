@@ -35,7 +35,7 @@
 
   <!-- Spawn object_detector -->
   <node name="object_detector"
-	pkg="o2ac_vision" type="object_detector.py" output="screen">
+	pkg="o2ac_vision" type="o2ac_vision.py" output="screen">
     <remap from="/image"	to="$(arg image_topic)"/>
   </node>
 
