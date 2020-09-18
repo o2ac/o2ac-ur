@@ -437,7 +437,7 @@ bool SkillServer::moveToCartPosePTP(geometry_msgs::PoseStamped pose, std::string
   group_pointer->setMaxVelocityScalingFactor(velocity_scaling_factor);  // TODO: Check if this works
   if (end_effector_link == "")  // Define default end effector link explicitly
   {
-    if (robot_name == "a_bot") group_pointer->setEndEffectorLink("a_bot_gripper_tip_link");
+    if (robot_name == "a_bot") group_pointer->setEndEffectorLink("a_bot_robotiq_85_tip_link");
     else group_pointer->setEndEffectorLink(robot_name + "_robotiq_85_tip_link");
   }
   else group_pointer->setEndEffectorLink(end_effector_link);
@@ -483,7 +483,7 @@ bool SkillServer::moveToCartPoseLIN(geometry_msgs::PoseStamped pose, std::string
         else if (robot_name == "b_bot")
           end_effector_link = "b_bot_robotiq_85_tip_link";
         else if (robot_name == "a_bot")
-          end_effector_link = "a_bot_gripper_tip_link";
+          end_effector_link = "a_bot_robotiq_85_tip_link";
       }
       ROS_DEBUG("Real robot is being used. Sending linear motion to robot controller directly via URScript.");
       o2ac_msgs::sendScriptToUR UR_srv;
@@ -531,7 +531,7 @@ bool SkillServer::moveToCartPoseLIN(geometry_msgs::PoseStamped pose, std::string
   std::vector<geometry_msgs::Pose> waypoints;
   geometry_msgs::PoseStamped start_pose, end_pose;
   if (end_effector_link == "") {
-    if (robot_name == "a_bot") start_pose.header.frame_id = "a_bot_gripper_tip_link";
+    if (robot_name == "a_bot") start_pose.header.frame_id = "a_bot_robotiq_85_tip_link";
     else start_pose.header.frame_id = robot_name + "_robotiq_85_tip_link";
   }
   else start_pose.header.frame_id = end_effector_link;
@@ -1461,7 +1461,7 @@ void SkillServer::executePlace(const o2ac_msgs::placeGoalConstPtr& goal)
   }
   else
   {
-    if (goal->robot_name == "a_bot"){ee_link_name = goal->robot_name + "_gripper_tip_link"; }
+    if (goal->robot_name == "a_bot"){ee_link_name = goal->robot_name + "_robotiq_85_tip_link"; }
     else {ee_link_name = goal->robot_name + "_robotiq_85_tip_link";}
   }
   

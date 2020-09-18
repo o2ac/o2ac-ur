@@ -6,20 +6,20 @@
 <robot name="robotiq_85_gripper_o2ac" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
   <xacro:macro name="o2ac_end_effector" params="prefix use_soft_wrist:=false use_cameras:=false parent">
-    <xacro:include filename="$(find robotiq_description)/urdf/robotiq_85_gripper.urdf.xacro"/>
+    <xacro:include filename="$(find robotiq_description)/urdf/robotiq_140_gripper.urdf.xacro"/>
     
-    <xacro:robotiq_85_gripper prefix="${prefix}" parent="${parent}">
+    <xacro:robotiq_140_gripper prefix="${prefix}" parent="${parent}">
         <origin rpy="0.0 0.0 0.0" xyz="0 0 0"/>
-    </xacro:robotiq_85_gripper>
+    </xacro:robotiq_140_gripper>
 
     <xacro:if value="${use_cameras}">
       <xacro:include filename="$(find o2ac_scene_description)/urdf/components/wrist_cameras.xacro" />
-      <xacro:wrist_cameras prefix="${prefix}" parent="${prefix}robotiq_85_base_link"/>
+      <xacro:wrist_cameras prefix="${prefix}" parent="${prefix}robotiq_140_base_link"/>
     </xacro:if>
 
     <!-- Add an additional link to plan with. Oriented like the UR ee_link frame. -->
     <joint name="${prefix}robotiq_85_tip_link_joint" type="fixed">
-      <parent link="${prefix}robotiq_85_base_link"/>
+      <parent link="${prefix}robotiq_140_base_link"/>
       <child link="${prefix}robotiq_85_tip_link"/>
       <origin rpy="0.0 0.0 0.0" xyz="${.163+.083} 0.0 0.0"/>
     </joint>

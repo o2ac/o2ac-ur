@@ -160,7 +160,7 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_gripper_tip_link:
+          a_bot_robotiq_85_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -757,7 +757,7 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_gripper_tip_link:
+          a_bot_robotiq_85_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -1275,7 +1275,7 @@ Visualization Manager:
           Value: false
         a_bot_gripper_screw_pickup:
           Value: false
-        a_bot_gripper_tip_link:
+        a_bot_robotiq_85_tip_link:
           Value: false
         a_bot_shoulder_link:
           Value: false
@@ -1528,7 +1528,7 @@ Visualization Manager:
                           a_bot_tool0:
                             a_bot_gripper:
                               {}
-                            a_bot_gripper_tip_link:
+                            a_bot_robotiq_85_tip_link:
                               a_bot_gripper_screw_pickup:
                                 {}
             a_bot_base_smfl:
