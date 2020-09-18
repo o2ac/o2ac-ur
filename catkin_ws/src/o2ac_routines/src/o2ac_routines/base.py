@@ -131,7 +131,6 @@ class O2ACBase(object):
     
     self._suction_client = actionlib.SimpleActionClient('/suction_control', o2ac_msgs.msg.SuctionControlAction)
     self._fastening_tool_client = actionlib.SimpleActionClient('/screw_tool_control', o2ac_msgs.msg.FastenerGripperControlAction)
-    self._nut_peg_tool_client = actionlib.SimpleActionClient('/nut_tools_action', o2ac_msgs.msg.ToolsCommandAction)
 
     # Service clients
     self.ur_dashboard_clients = {
@@ -872,22 +871,6 @@ class O2ACBase(object):
     if wait:
       self._suction_client.wait_for_result(rospy.Duration(2.0))
     return self._suction_client.get_result()
-
-  def do_nut_fasten_action(self, item_name, wait = True):
-    if not self.use_real_robot:
-      return True
-    goal = o2ac_msgs.msg.ToolsCommandGoal()
-    # goal.stop = stop
-    goal.peg_fasten = (item_name == "peg" or item_name == "m10_nut")
-    goal.setScrew_fasten = (item_name == "set_screw")
-    # goal.big_nut_fasten = (item_name == "m10_nut")
-    # goal.big_nut_fasten = True
-    goal.small_nut_fasten = (item_name == "m6_nut")
-    rospy.loginfo("Sending nut_tool action goal.")
-    self._nut_peg_tool_client.send_goal(goal)
-    if wait:
-      self._nut_peg_tool_client.wait_for_result(rospy.Duration.from_sec(30.0))
-    return self._nut_peg_tool_client.get_result()
 
   def do_insertion(self, robot_name, max_insertion_distance= 0.0, 
                         max_approach_distance = 0.0, max_force = .0,

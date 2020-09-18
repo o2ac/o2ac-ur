@@ -249,7 +249,6 @@ class TaskboardClass(O2ACCommon):
       self.confirm_to_proceed("Turn on motor?")
       
       self.set_motor("set_screw_tool", "tighten", duration = 5.0)
-      self.do_nut_fasten_action("set_screw", wait = False)
       rospy.sleep(5.0)
 
       self.confirm_to_proceed("go down with motor?")
