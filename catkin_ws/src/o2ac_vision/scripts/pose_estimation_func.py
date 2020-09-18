@@ -400,7 +400,7 @@ class template_matching():
 
         return center, orientation # array[j, i], float
 
-    def get_result_image( self, result, res_ori, res_center ):
+    def get_result_image( self, result, res_ori, res_center, im_scene=None ):
         """
         Optional. for visualizatoin
         Input:
@@ -410,18 +410,14 @@ class template_matching():
         Output:
             im_res_on_original: output image.
         """
+        if im_scene is None:
+            im_scene = self.im_c
+
         im_temp_edge, temp_ori = self.read_template( result )
         temp_center = np.asarray( im_temp_edge.shape, np.int )/2
         ltop = res_center - temp_center
-        im_res_on_original = visualize_result( im_temp_edge, self.im_c, ltop, res_ori )
-
-        return im_res_on_original # image
-
-    def draw_result( self, image, result, res_ori, res_center ):
-        im_temp_edge, temp_ori = self.read_template( result )
-        temp_center = np.asarray( im_temp_edge.shape, np.int )/2
-        ltop = res_center - temp_center
-        im_res_on_original = visualize_result( im_temp_edge, image, ltop, res_ori )
+        im_res_on_original = visualize_result( im_temp_edge, im_scene, ltop, res_ori )
+        return im_res_on_original
 
 
 """
@@ -653,8 +649,9 @@ class FastGraspabilityEvaluation():
 
         return im_out
 
-    def visualization( self ):
-        im_result = self.im_in.copy()
+    def visualization( self, im_result=None ):
+        if im_result is None:
+            im_result = self.im_in.copy()
 
         # Preparing of 3 channel hand templates
         im_hands_c = list()

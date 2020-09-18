@@ -138,7 +138,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /o2ac_vision/result_image
+      Image Topic: /object_detector/result_image
       Max Value: 1
       Median window: 5
       Min Value: 0

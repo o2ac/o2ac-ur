@@ -49,43 +49,37 @@ from pose_estimation_func import FastGraspabilityEvaluation
 ssd_detection = o2ac_ssd.ssd_detection()
 
 class ObjectDetector(object):
-    _Colors = ((0, 0, 255), (0, 255, 0), (255, 0, 0),
-               (255, 255, 0), (255, 0, 255), (0, 255, 255))
 
     def __init__(self):
-    	rospy.init_node('o2ac_vision_', anonymous=False)
+    	rospy.init_node('object_detector', anonymous=False)
 
         # Setup subscriber for RGB image
-        self.image_sub = rospy.Subscriber('/image', smsg.Image,
-                                          self.image_subscriber_callback)
-        self.results_pub = rospy.Publisher('/results',
+        self.image_sub   = rospy.Subscriber('/image', smsg.Image,
+                                            self.image_subscriber_callback)
+        self.results_pub = rospy.Publisher('~results',
                                            omsg.ObjectDetectionResults,
                                            queue_size=1)
-        self.image_pub = rospy.Publisher('~result_image', smsg.Image,
-                                         queue_size=1)
+        self.image_pub   = rospy.Publisher('~result_image', smsg.Image,
+                                           queue_size=1)
 
-        rospy.loginfo("O2AC_vision has started up!")
+        rospy.loginfo("object_detector has started up!")
 
     def image_subscriber_callback(self, image_msg):
-        """
-        Callback for storing camera_info and RGB/depth images from camera node
-        """
-        # First, obtain the image from the camera and convert it
-        bridge = CvBridge()
-        im_in  = bridge.imgmsg_to_cv2(image_msg, desired_encoding="bgr8")
-        im_out = im_in.copy()
-
-        ssd_results = self.detect_object_in_image(im_in)
-
-        # Pose estimation
-        #
         objectDetectionResults_msg = omsg.ObjectDetectionResults()
         objectDetectionResults_msg.header = image_msg.header
 
+        # First, obtain the image from the camera and convert it
+        bridge = CvBridge()
+        im_in  = bridge.imgmsg_to_cv2(image_msg, desired_encoding="bgr8")
+        im_vis = im_in.copy()
+
+        # Object detection in image (confidence, class_id, bbox)
+        ssd_results, im_vis = self.detect_object_in_image(im_in, im_vis)
+
+        # Pose estimation
         apply_2d_pose_estimation = [8,9,10,14]
         apply_3d_pose_estimation = [1,2,3,4,5,7,11,12,13]
         apply_grasp_detection = [6]
-
         for ssd_result in ssd_results:
             target = ssd_result["class"]
             poseEstimationResult_msg = omsg.poseEstimationResult()
@@ -95,50 +89,39 @@ class ObjectDetector(object):
 
             if target in apply_2d_pose_estimation:
                 print("Target id is ", target, " apply the 2d pose estimation")
-                pose_estimation_results = self.estimate_pose_in_image(im_in, im_out, ssd_result)
+                pose_estimation_results, im_vis = \
+                    self.estimate_pose_in_image(im_in, im_vis, ssd_result)
                 poseEstimationResult_msg.rotation = pose_estimation_results[1]
                 poseEstimationResult_msg.center.append(pose_estimation_results[0][0])
                 poseEstimationResult_msg.center.append(pose_estimation_results[0][1])
-
             elif target in apply_3d_pose_estimation:
                 print("Target id is ", target, " apply the 3d pose estimation")
-
             else:
                 print("Target id is ", target, " NO Solution")
 
             objectDetectionResults_msg.pose_estimation_results.append(poseEstimationResult_msg)
 
-            self.draw_bbox(im_out,
-                           poseEstimationResult_msg.class_id,
-                           poseEstimationResult_msg.bbox)
-
         # Belt detection in image
-        grasp_points = self.grasp_detection_in_image( im_in )
+        grasp_points, im_vis = self.grasp_detection_in_image( im_in, im_vis )
         print("grasp_result")
         print(grasp_points)
-
         for grasp_point in grasp_points:
             GraspPoint_msg = o2ac_msgs.msg.GraspPoint()
             GraspPoint_msg.grasp_point = grasp_point
             objectDetectionResults_msg.grasp_points.append(GraspPoint_msg)
 
+        # Publish object detection results
         self.results_pub.publish(objectDetectionResults_msg)
 
-        # Draw bbox and publish the result image
-        imsg = CvBridge().cv2_to_imgmsg(im_out, encoding='passthrough')
-        self.image_pub.publish(imsg)
+        # Publish an image for visualizing results
+        self.image_pub.publish(bridge.cv2_to_imgmsg(im_vis,
+                                                    encoding='passthrough'))
 
-        # Return
-        # o2ac_routines.helpers.publish_marker(action_result.detected_pose, "pose")
-        #self.belt_detection_server.set_succeeded(action_result)
+    def detect_object_in_image(self, im_in, im_vis):
+        ssd_results, im_vis = ssd_detection.object_detection(im_in, im_vis)
+        return ssd_results, im_vis
 
-### =======
-
-    def detect_object_in_image(self, cv_image):
-        ssd_results = ssd_detection.object_detection(cv_image)
-        return ssd_results
-
-    def grasp_detection_in_image( self, im_in ):
+    def grasp_detection_in_image(self, im_in, im_vis):
 
         start = time.time()
 
@@ -157,10 +140,11 @@ class ObjectDetector(object):
 
         fge = FastGraspabilityEvaluation( im_in, im_hand, im_collision, param_fge )
         results = fge.main_proc()
+        im_vis  = fge.visualization(im_vis)
 
-        return results
+        return results, im_vis
 
-    def estimate_pose_in_image(self, im_in, im_out, ssd_result):
+    def estimate_pose_in_image(self, im_in, im_vis, ssd_result):
 
         start = time.time()
 
@@ -188,21 +172,9 @@ class ObjectDetector(object):
         elapsed_time = time.time() - start
         print( "Processing time[msec]: ", 1000*elapsed_time )
 
-        tm.draw_result(im_out, ssd_result, ori, center)
+        im_vis = tm.get_result_image(ssd_result, ori, center, im_vis)
 
-        imsg = CvBridge().cv2_to_imgmsg(im_result, encoding='passthrough')
-        self.image_pub.publish(imsg)
-
-        return result
-
-    def draw_bbox(self, image, id, bbox):
-        idx = id % len(ObjectDetector._Colors)
-        cv2.rectangle(image, (bbox[0], bbox[1]),
-                      (bbox[0] + bbox[2], bbox[1] + bbox[3]),
-                      ObjectDetector._Colors[idx], 3)
-        cv2.putText(image, str(id), (bbox[0] + 5, bbox[1] + bbox[3] - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, ObjectDetector._Colors[idx], 2,
-                    cv2.LINE_AA)
+        return result, im_vis
 
 
 if __name__ == '__main__':

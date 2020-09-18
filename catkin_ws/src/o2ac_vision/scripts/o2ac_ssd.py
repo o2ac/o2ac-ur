@@ -20,7 +20,7 @@ from data import WRS2020_Detection, WRS_ROOT, AnnotationTransform
 from data import WRS2020_CLASSES as labels
 
 # ID Mapping.
-# Chukyo label -> O2AC label 
+# Chukyo label -> O2AC label
 o2ac_label = {
     0:(1,"01-BASE"),
     1:(3,"03-PLATE2"),
@@ -46,15 +46,15 @@ annotations = glob.glob(annotation_root)
 
 class ssd_detection():
 
-    def __init__(self):        
+    def __init__(self):
         fname_weight = rospack.get_path("o2ac_vision") + "/dataset/ssd.pytorch/WRS_lr1e3_bs16.pth"
         self.net = build_ssd('test', 300, 17)    # initialize SSD
         self.net.load_weights( fname_weight )
 
-    def object_detection(self, im_in, threshold = 0.6):
+    def object_detection(self, im_in, im_vis=None, threshold = 0.6):
         """
             Object detection by SSD
-            Input: 
+            Input:
                 im_in... input_image
                 threshold... threshold of detection
             Return:
@@ -91,20 +91,22 @@ class ssd_detection():
                 result = {"bbox": bbox, "class": i-1, "confidence": score}
                 results.append( result )
 
-        im_vis = im_in.copy()
+        if im_vis is None:
+            return results
+
         for res in results:
             bbox = res["bbox"]
-            im_vis = cv2.rectangle( im_vis, (bbox[0],  bbox[1]), 
-                                    (bbox[0]+bbox[2], bbox[1]+bbox[3]), 
+            im_vis = cv2.rectangle( im_vis, (bbox[0],  bbox[1]),
+                                    (bbox[0]+bbox[2], bbox[1]+bbox[3]),
                                     (0,255,0), 3 )
-            cv2.putText( im_vis, o2ac_label[res["class"]][1], 
+            cv2.putText( im_vis, o2ac_label[res["class"]][1],
                          (bbox[0], bbox[1]),1, 0.7, (255,255,255), 2, cv2.LINE_AA )
-            cv2.putText( im_vis, o2ac_label[res["class"]][1], 
+            cv2.putText( im_vis, o2ac_label[res["class"]][1],
                          (bbox[0], bbox[1]),1, 0.7, (255,0,0), 1, cv2.LINE_AA )
-        
+
         for j in range(len(results)):
             results[j]["class"] = o2ac_label[results[j]["class"]][0]
 
-        cv2.imwrite("ssd_result.png", im_vis)
+        # cv2.imwrite("ssd_result.png", im_vis)
 
-        return results
+        return results, im_vis

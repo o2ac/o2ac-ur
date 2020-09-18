@@ -45,7 +45,7 @@ import geometry_msgs.msg
 import std_msgs.msg
 import std_srvs.srv
 
-import o2ac_vision.helpers
+import o2ac_routines.helpers
 
 import o2ac_msgs.msg   # This is needed to advertise the actions
 import sensor_msgs.msg # This is needed to receive images from the camera
@@ -69,6 +69,8 @@ from cv_bridge import CvBridge
 from pose_estimation_func import template_matching
 from pose_estimation_func import FastGraspabilityEvaluation
 
+ssd_detection = o2ac_ssd.ssd_detection()
+
 class O2ACVision(object):
     _Colors = ((0, 0, 255), (0, 255, 0), (255, 0, 0),
                (255, 255, 0), (255, 0, 255), (0, 255, 255))
@@ -86,19 +88,17 @@ class O2ACVision(object):
     	# This creates the action server.nSee this tutorial, and also check out base.py:
     	# http://wiki.ros.org/actionlib_tutorials/Tutorials/Writing%20a%20Simple%20Action%20Server%20using%20the%20Execute%20Callback%20%28Python%29
 
-        self.pose_estimation_server = actionlib.SimpleActionServer("poseEstimation", o2ac_msgs.msg.poseEstimationAction, auto_start = False)
+        self.pose_estimation_server = actionlib.SimpleActionServer("poseEstimationTest", o2ac_msgs.msg.poseEstimationTestAction, auto_start = False)
         self.pose_estimation_server.register_goal_callback(self.pose_estimation_goal_callback)
         self.pose_estimation_server.register_preempt_callback(self.pose_estimation_preempt_callback)
         self.pose_estimation_server.start()
 
-        self.belt_detection_server = actionlib.SimpleActionServer("beltDetection", o2ac_msgs.msg.beltDetectionAction, auto_start = False)
+        self.belt_detection_server = actionlib.SimpleActionServer("beltDetectionTest", o2ac_msgs.msg.beltDetectionTestAction, auto_start = False)
         self.belt_detection_server.register_goal_callback(self.belt_detection_goal_callback)
         self.belt_detection_server.register_preempt_callback(self.belt_detection_preempt_callback)
         self.belt_detection_server.start()
 
-        self.image_pub = rospy.Publisher('~image', smsg.Image, queue_size=1)
-
-        self.ssd_detection = o2ac_ssd.ssd_detection()
+        self.image_pub = rospy.Publisher('~result_image', smsg.Image, queue_size=1)
 
         rospy.loginfo("O2AC_vision has started up!")
 
@@ -108,7 +108,7 @@ class O2ACVision(object):
                       + self.object_id)
 
     def pose_estimation_preempt_callback(self):
-        rospy.loginfo("o2ac_msgs.msg.poseEstimationAction preempted")
+        rospy.loginfo("o2ac_msgs.msg.poseEstimationTestAction preempted")
         self.pose_estimation_server.set_preempted()
 
     def belt_detection_goal_callback(self):
@@ -117,7 +117,7 @@ class O2ACVision(object):
                       + self.object_id)
 
     def belt_detection_preempt_callback(self):
-        rospy.loginfo("o2ac_msgs.msg.beltDetectionAction preempted")
+        rospy.loginfo("o2ac_msgs.msg.beltDetectionTestAction preempted")
         self.belt_detection_server.set_preempted()
 
     def image_subscriber_callback(self, image):
@@ -128,12 +128,12 @@ class O2ACVision(object):
         bridge = CvBridge()
         #cv_image = bridge.imgmsg_to_cv2(image, desired_encoding="passthrough")
         im_in = bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
-        im_out = im_in.copy()
+        im_vis = im_in.copy()
 
         if self.pose_estimation_server.is_active():
-            action_result = o2ac_msgs.msg.poseEstimationResult()
+            action_result = o2ac_msgs.msg.poseEstimationTestResult()
 
-            ssd_results = self.detect_object_in_image(im_in)
+            ssd_results, im_vis = self.detect_object_in_image(im_in, im_vis)
 
             # Pose estimation
             #
@@ -161,21 +161,16 @@ class O2ACVision(object):
                     print("Target id is ", target, " NO Solution")
 
                 action_result.pose_estimation_result_list.append(poseEstimationResult_msg)
-
-                self.draw_bbox(im_out,
-                               poseEstimationResult_msg.class_id,
-                               poseEstimationResult_msg.bbox)
+            # Draw bbox and publish the result image
+            self.image_pub.publish(bridge.cv2_to_imgmsg(im_vis,
+                                                        encoding='passthrough'))
 
             # Return
-            # o2ac_vision.helpers.publish_marker(action_result.detected_pose, "pose")
+            # o2ac_routines.helpers.publish_marker(action_result.detected_pose, "pose")
             self.pose_estimation_server.set_succeeded(action_result)
 
-            # Draw bbox and publish the result image
-            imsg = CvBridge().cv2_to_imgmsg(im_out, encoding='passthrough')
-            self.image_pub.publish(imsg)
-
         elif self.belt_detection_server.is_active():
-            action_result = o2ac_msgs.msg.beltDetectionResult()
+            action_result = o2ac_msgs.msg.beltDetectionTestResult()
 
             # Belt detection in image
             grasp_points = self.grasp_detection_in_image( im_in )
@@ -188,14 +183,14 @@ class O2ACVision(object):
                 action_result.grasp_points.append(GraspPoint_msg)
 
             # Return
-            # o2ac_vision.helpers.publish_marker(action_result.detected_pose, "pose")
+            # o2ac_routines.helpers.publish_marker(action_result.detected_pose, "pose")
             self.belt_detection_server.set_succeeded(action_result)
 
 ### =======
 
-    def detect_object_in_image(self, cv_image):
-        ssd_results = self.ssd_detection.object_detection(cv_image)
-        return ssd_results
+    def detect_object_in_image(self, cv_image, im_vis):
+        ssd_results, im_vis = ssd_detection.object_detection(cv_image, im_vis)
+        return ssd_results, im_vis
 
     def grasp_detection_in_image( self, im_in ):
 
@@ -259,15 +254,6 @@ class O2ACVision(object):
         self.image_pub.publish(imsg)
 
         return result
-
-    def draw_bbox(self, image, id, bbox):
-        idx = id % len(O2ACVision._Colors)
-        cv2.rectangle(image, (bbox[0], bbox[1]),
-                      (bbox[0] + bbox[2], bbox[1] + bbox[3]),
-                      O2ACVision._Colors[idx], 3)
-        cv2.putText(image, str(id), (bbox[0] + 5, bbox[1] + bbox[3] - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, O2ACVision._Colors[idx], 2,
-                    cv2.LINE_AA)
 
 
 if __name__ == '__main__':
