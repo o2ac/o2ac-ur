@@ -32,57 +32,36 @@
     <joint name="${prefix}tool_intermediate_joint" type="fixed">
       <parent link="${prefix}robotiq_85_tip_link"/>
       <child link="${prefix}tool_intermediate_link"/>
-      <origin rpy="${pi} 0.0 0.0" xyz="-.03 0.0 0.0"/>
+      <origin rpy="${pi} ${-pi/3} 0" xyz="-.03 0 0"/>
     </joint>
     <link name="${prefix}tool_intermediate_link"/>
-
-    <joint name="${prefix}robotiq_85_screw_tool_m6_tip_joint" type="fixed">
-      <parent link="${prefix}tool_intermediate_link"/>
-      <child link="${prefix}screw_tool_m6_tip_link"/>
-      <origin rpy="0.0 ${pi/2} 0.0" xyz="0.0 0.0 -0.135 "/>
-    </joint>
-    <link name="${prefix}screw_tool_m6_tip_link"/>
 
     <joint name="${prefix}robotiq_85_nut_tool_m6_tip_joint" type="fixed">
       <parent link="${prefix}tool_intermediate_link"/>
       <child link="${prefix}nut_tool_m6_tip_link"/>
-      <origin rpy="0.0 ${pi/4} 0.0" xyz="0.0 0.0 -0.12 "/>
+      <origin rpy="0 0 0" xyz="0.12 0 0 "/>
     </joint>
     <link name="${prefix}nut_tool_m6_tip_link"/>
     
     <joint name="${prefix}robotiq_85_screw_tool_m4_tip_joint" type="fixed">
       <parent link="${prefix}tool_intermediate_link"/>
       <child link="${prefix}screw_tool_m4_tip_link"/>
-      <origin rpy="0.0 ${pi/2} 0.0" xyz="-.002 0.0 -0.146 "/>
+      <origin rpy="0 0 0" xyz=".141 0 0.005 "/>
     </joint>
     <link name="${prefix}screw_tool_m4_tip_link"/>
 
     <joint name="${prefix}robotiq_85_screw_tool_m3_tip_joint" type="fixed">
       <parent link="${prefix}tool_intermediate_link"/>
       <child link="${prefix}screw_tool_m3_tip_link"/>
-      <origin rpy="0.0 ${pi/2} 0.0" xyz=".015 0.0 -0.14 "/>
+      <origin rpy="0 0 0" xyz=".14 0 .015 "/>
     </joint>
     <link name="${prefix}screw_tool_m3_tip_link"/>
 
     <joint name="${prefix}robotiq_85_set_screw_tool_tip_joint" type="fixed">
       <parent link="${prefix}tool_intermediate_link"/>
       <child link="${prefix}set_screw_tool_tip_link"/>
-      <origin rpy="0.0 ${pi/2} 0.0" xyz=".01 0.0 -0.085 "/>
+      <origin rpy="0 0 0" xyz="0.0725 0 0.009"/>
     </joint>
     <link name="${prefix}set_screw_tool_tip_link"/>
-
-    <joint name="${prefix}robotiq_85_suction_tool_tip_joint" type="fixed">
-      <parent link="${prefix}tool_intermediate_link"/>
-      <child link="${prefix}suction_tool_tip_link"/>
-      <origin rpy="0.0 ${pi/2} 0.0" xyz=".02 0.0 -0.131 "/>
-    </joint>
-    <link name="${prefix}suction_tool_tip_link"/>
-
-    <joint name="${prefix}dual_suction_gripper_pad_joint" type="fixed">
-      <parent link="${prefix}tool_intermediate_link"/>
-      <child link="${prefix}dual_suction_gripper_pad_link"/>
-      <origin rpy="0.0 0 0.0" xyz="0 0 0 "/>
-    </joint>
-    <link name="${prefix}dual_suction_gripper_pad_link"/>
   </xacro:macro>
 </robot>
