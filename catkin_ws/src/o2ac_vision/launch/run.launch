@@ -42,9 +42,9 @@
   <!-- Spawn object_recognizer -->
   <node name="object_recognizer"
 	pkg="o2ac_vision" type="object_recognizer.py" output="screen">
-    <remap from="/detection_results" to="object_detector/detection_results"/>
     <param name="nposes"	value="$(arg nposes)"/>
     <param name="timeout"	value="$(arg timeout)"/>
+    <rosparam file="$(find aist_localization)/config/settings.yaml"/>
   </node>
 
 </launch>

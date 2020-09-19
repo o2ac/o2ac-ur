@@ -50,7 +50,7 @@ class LocalizationClient(object):
     def get_settings(self):
         return self._dyn_reconf.get_configuration()
 
-    def send_goal(self, model, number_of_poses=1):
+    def send_goal(self, model, number_of_poses=1, pose2d=[]):
         if model in self._methods:
             method = self._methods[model]      # Localization without SDK
         else:
@@ -70,6 +70,11 @@ class LocalizationClient(object):
         goal.method          = method
         goal.number_of_poses = number_of_poses
         goal.z_offset        = z_offset
+        if len(pose2d) == 3:
+            goal.method = lmsg.LocalizeGoal.IN_PLANE
+            goal.x      = pose2d[0]
+            goal.y      = pose2d[1]
+            goal.theta  = pose2d[2]
         self._localize.send_goal(goal, feedback_cb=self._feedback_cb)
 
     def wait_for_result(self, timeout=rospy.Duration()):

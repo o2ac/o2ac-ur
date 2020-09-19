@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import rospy, actionlib
+from math               import radians
 from o2ac_msgs          import msg as omsg
 from aist_depth_filter  import DepthFilterClient
 from aist_localization  import LocalizationClient
@@ -20,7 +21,7 @@ class ObjectRecognizer(object):
                '07_SBARB6200ZZ_30',             # 7
                '08_KZAF1075NA4WA55GA20AA0',     # 8
                '09_EDCS10',                     # 9
-               '10_CLBPS10_17_4'                # 10
+               '10_CLBPS10_17_4',               # 10
                '11_MBRAC60-2-10',               # 11
                '12_CLBUS6-9-9.5',               # 12
                '13_MBGA30-2',                   # 13
@@ -60,8 +61,6 @@ class ObjectRecognizer(object):
         self._localizer = LocalizationClient('localization')
         self._spawner = ModelSpawnerClient()
 
-        self._class_id = 0
-
     def recognition_callback(self, goal):
         self._object_detector.send_goal(omsg.poseEstimationTestGoal())
         self._object_detector.wait_for_result()
@@ -74,7 +73,11 @@ class ObjectRecognizer(object):
 
         for result in detection_results.pose_estimation_result_list:
             if goal.class_id == result.class_id:
-                poses, overlaps = self.localize(goal.class_id, result.bbox)
+                pose2d = [result.center[1] - result.bbox[0],
+                          result.center[0] - result.bbox[1],
+                          radians(result.rotation)] if result.center else []
+                poses, overlaps = self.localize(goal.class_id,
+                                                result.bbox, pose2d)
                 if len(poses) > 0:
                     recognition_result.succeeded = True
                     recognition_result.detected_pose = poses[0]
@@ -92,11 +95,12 @@ class ObjectRecognizer(object):
     def model(self, class_id):
         return ObjectRecognizer._Models[class_id]
 
-    def localize(self, class_id, bbox):
+    def localize(self, class_id, bbox, pose2d):
         self._dfilter.roi = (bbox[0],           bbox[1],
                              bbox[0] + bbox[2], bbox[1] + bbox[3])
-        self._dfilter.capture()  # Load PLY data to the localizer
-        self._localizer.send_goal(self.model(class_id), self._nposes)
+        while not self._dfilter.capture():  # Load PLY data to the localizer
+            pass
+        self._localizer.send_goal(self.model(class_id), self._nposes, pose2d)
         return self._localizer.wait_for_result(rospy.Duration(self._timeout))
 
 #########################################################################

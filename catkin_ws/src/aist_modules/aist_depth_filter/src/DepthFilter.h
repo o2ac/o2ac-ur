@@ -47,6 +47,7 @@ class DepthFilter
     void	run()							;
 
   private:
+    void	setRoiVariable(int DepthFilter::* p, int value)		;
     bool	saveBG_cb(std_srvs::Trigger::Request&  req,
 			  std_srvs::Trigger::Response& res)		;
     bool	capture_cb(std_srvs::Trigger::Request&  req,

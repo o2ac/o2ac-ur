@@ -106,13 +106,25 @@ DepthFilter::DepthFilter(const ros::NodeHandle& nh)
     _ddr.registerVariable<double>("far", &_far,
 				  "Farest depth value", 0.0, FarMax);
     _nh.param("top", _top, _top);
-    _ddr.registerVariable<int>("top",    &_top,	   "Top of ROI",    0, 2048);
+    _ddr.registerVariable<int>("top", _top,
+			       boost::bind(&DepthFilter::setRoiVariable,
+					   this, &DepthFilter::_top, _1),
+			       "Top of ROI", 0, 2048);
     _nh.param("bottom", _bottom, _bottom);
-    _ddr.registerVariable<int>("bottom", &_bottom, "Bottom of ROI", 0, 2048);
+    _ddr.registerVariable<int>("bottom", _bottom,
+			       boost::bind(&DepthFilter::setRoiVariable,
+					   this, &DepthFilter::_bottom, _1),
+			       "Bottom of ROI", 0, 2048);
     _nh.param("left", _left, _left);
-    _ddr.registerVariable<int>("left",   &_left,   "Left of ROI",   0, 3072);
+    _ddr.registerVariable<int>("left", _left,
+			       boost::bind(&DepthFilter::setRoiVariable,
+					   this, &DepthFilter::_left, _1),
+			       "Left of ROI", 0, 3072);
     _nh.param("right", _right, _right);
-    _ddr.registerVariable<int>("right",  &_right,  "Right of ROI",  0, 3072);
+    _ddr.registerVariable<int>("right", _right,
+			       boost::bind(&DepthFilter::setRoiVariable,
+					   this, &DepthFilter::_right, _1),
+			       "Right of ROI", 0, 3072);
     _nh.param("scale", _scale, _scale);
     _ddr.registerVariable<double>("scale", &_scale, "Scale depth", 0.5, 1.5);
     _nh.param("thresh_plane", _threshPlane, _threshPlane);
@@ -140,6 +152,13 @@ void
 DepthFilter::run()
 {
     ros::spin();
+}
+
+void
+DepthFilter::setRoiVariable(int DepthFilter::* p, int value)
+{
+    this->*p = value;
+    _depth.data.clear();	// Invalidate old depth data.
 }
 
 bool

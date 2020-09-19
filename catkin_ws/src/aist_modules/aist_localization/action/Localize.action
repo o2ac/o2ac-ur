@@ -1,12 +1,15 @@
 # Goal definition
 uint8 FULL=0             # Localzation in full 6D space with LocalizationSDK
 uint8 BBOX_CENTER=1      # Rotationally symmetric object centered at the bbox
-uint8 BBOX_DIAGONAL=2    # Stick-like object diagonally lying in the bbox
+uint8 IN_PLANE=2         # in-plane 2D pose is given
 
 string  object_name      # <object_name>.ply gives the name of the object model
-int32   method           # FULL, BBOX_CENTER or BBOX_DIAGONAL
+int32   method           # FULL, BBOX_CENTER or IN_PLANE
 int32   number_of_poses  # number of candidate poses (effective only for FULL)
-float32 z_offset         # height of the localized position above the tray bottom (effective for BBOX_CENTER and BBOX_DIAGONAL)
+float32 z_offset         # height of the localized position above the tray bottom (effective for BBOX_CENTER and IN_PLANE)
+float32 x
+float32 y
+float32 theta
 ---
 # Result definition
 bool success

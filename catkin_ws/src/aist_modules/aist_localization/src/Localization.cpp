@@ -173,8 +173,8 @@ Localization::localize_cb(const goal_cp& goal)
 	  case aist_localization::LocalizeGoal::BBOX_CENTER:
 	    localize_bbox_center(goal);
 	    break;
-	  case aist_localization::LocalizeGoal::BBOX_DIAGONAL:
-	    localize_bbox_diagonal(goal);
+	  case aist_localization::LocalizeGoal::IN_PLANE:
+	    localize_in_plane(goal);
 	    break;
 	  default:
 	    localize_full(goal);
@@ -283,10 +283,36 @@ Localization::localize_bbox_center(const goal_cp& goal)
 }
 
 void
-Localization::localize_bbox_diagonal(const goal_cp& goal)
+Localization::localize_in_plane(const goal_cp& goal)
 {
     if (!_file_info->plane_detected)
 	throw std::runtime_error("  Dominant plane is not set.");
+
+    const vector3_t	n(_file_info->normal.x,
+			  _file_info->normal.y,
+			  _file_info->normal.z);
+    const value_t	d = _file_info->distance;
+    const auto		v = view_vector(goal->x, goal->y);
+    const auto		x = (-d/n.dot(v)) * v;
+    auto		r = n.cross(vector3_t(std::cos(goal->theta),
+					      std::sin(goal->theta), 0));
+    r *= (value_t(1)/norm(r));
+    const auto		q = r.cross(n);
+
+    const tf::Transform	transform(tf::Matrix3x3(n(0), q(0), r(0),
+						n(1), q(1), r(1),
+						n(2), q(2), r(2)),
+				  tf::Vector3(x(0), x(1), x(2)));
+
+    feedback_t	feedback;
+    feedback.pose.header = _file_info->camera_info.header;
+    tf::poseTFToMsg(transform, feedback.pose.pose);
+    feedback.overlap = 1.0;
+    _localize_srv.publishFeedback(feedback);
+
+    ros::Duration(0.5).sleep();
+
+    ROS_INFO_STREAM("(Localization)   found.");
 }
 
 Localization::vector3_t
