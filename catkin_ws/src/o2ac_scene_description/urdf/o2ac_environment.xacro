@@ -28,7 +28,7 @@
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/screw_feeder.xacro" />
   
   <xacro:screw_feeder feedername="m3_feeder" parent="workspace_center">
-    <origin xyz="-.511 -.13 -0.023" rpy="0 0 0" />   
+    <origin xyz="-.511 -.132 -0.023" rpy="0 0 0" />   
   </xacro:screw_feeder> 
   <xacro:screw_feeder feedername="m4_feeder" parent="workspace_center">
     <origin xyz="-.513 -0.002 -0.023" rpy="0 0 0" />   

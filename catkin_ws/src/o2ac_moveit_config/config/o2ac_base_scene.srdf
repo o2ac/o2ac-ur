@@ -85,12 +85,12 @@
         <joint name="a_bot_wrist_3_joint" value="-3.1413" />
     </group_state>
     <group_state name="horizontal_screw_ready" group="a_bot">
-        <joint name="a_bot_elbow_joint" value="1.0587" />
-        <joint name="a_bot_shoulder_lift_joint" value="-1.1505" />
-        <joint name="a_bot_shoulder_pan_joint" value="0.9893" />
-        <joint name="a_bot_wrist_1_joint" value="1.67" />
-        <joint name="a_bot_wrist_2_joint" value="1.57" />
-        <joint name="a_bot_wrist_3_joint" value="1.0046" />
+        <joint name="a_bot_elbow_joint" value="1.4015" />
+        <joint name="a_bot_shoulder_lift_joint" value="-1.6187" />
+        <joint name="a_bot_shoulder_pan_joint" value="0.8568" />
+        <joint name="a_bot_wrist_1_joint" value="-1.0083" />
+        <joint name="a_bot_wrist_2_joint" value="-1.1634" />
+        <joint name="a_bot_wrist_3_joint" value="-2.3498" />
     </group_state>
     <group_state name="horizontal_screw_ready_backside" group="a_bot">
         <joint name="a_bot_elbow_joint" value="1.4194" />
@@ -117,12 +117,12 @@
         <joint name="b_bot_wrist_3_joint" value="0" />
     </group_state>
     <group_state name="feeder_pick_ready" group="b_bot">
-        <joint name="b_bot_elbow_joint" value="2.08883" />
-        <joint name="b_bot_shoulder_lift_joint" value="-2.00201" />
-        <joint name="b_bot_shoulder_pan_joint" value="0.631084" />
-        <joint name="b_bot_wrist_1_joint" value="-2.68808" />
-        <joint name="b_bot_wrist_2_joint" value="-1.30605" />
-        <joint name="b_bot_wrist_3_joint" value="-3.27301" />
+        <joint name="b_bot_elbow_joint" value="2.03430" />
+        <joint name="b_bot_shoulder_lift_joint" value="-1.92828" />
+        <joint name="b_bot_shoulder_pan_joint" value="0.5720" />
+        <joint name="b_bot_wrist_1_joint" value="-2.69848" />
+        <joint name="b_bot_wrist_2_joint" value="-1.25552" />
+        <joint name="b_bot_wrist_3_joint" value="-3.30464" />
     </group_state>
     <group_state name="screw_ready" group="b_bot">
         <joint name="b_bot_elbow_joint" value="2.01532" />
@@ -1915,14 +1915,23 @@
     <disable_collisions link1="vertical_column_right" link2="workplate" reason="Adjacent" />
     <disable_collisions link1="washer_holder" link2="workplate" reason="Never" />
     <!-- MANUALLY ADDED -->
+    <disable_collisions link1="a_bot_left_inner_finger" link2="a_bot_right_inner_finger" reason="Never" />
     <disable_collisions link1="a_bot_left_inner_finger" link2="a_bot_right_inner_finger_pad" reason="Never" />
+    <disable_collisions link1="a_bot_left_inner_finger" link2="a_bot_right_inner_knuckle" reason="Never" />
+
     <disable_collisions link1="a_bot_left_inner_finger_pad" link2="a_bot_right_inner_finger" reason="Never" />
     <disable_collisions link1="a_bot_left_inner_finger_pad" link2="a_bot_right_inner_finger_pad" reason="Never" />
+    <disable_collisions link1="a_bot_left_inner_finger_pad" link2="a_bot_right_inner_knuckle" reason="Never" />
+    
+    <disable_collisions link1="a_bot_left_inner_knuckle" link2="a_bot_right_inner_finger" reason="Never" />
+    <disable_collisions link1="a_bot_left_inner_knuckle" link2="a_bot_right_inner_finger_pad" reason="Never" />
     <disable_collisions link1="a_bot_left_inner_knuckle" link2="a_bot_right_inner_knuckle" reason="Never" />
+    
     <disable_collisions link1="b_bot_left_inner_finger" link2="b_bot_right_inner_finger_pad" reason="Never" />
     <disable_collisions link1="b_bot_left_inner_finger_pad" link2="b_bot_right_inner_finger" reason="Never" />
     <disable_collisions link1="b_bot_left_inner_finger_pad" link2="b_bot_right_inner_finger_pad" reason="Never" />
     <disable_collisions link1="b_bot_left_inner_knuckle" link2="b_bot_right_inner_knuckle" reason="Never" />
+
 </robot>
 
 

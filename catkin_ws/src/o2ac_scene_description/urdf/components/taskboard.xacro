@@ -85,7 +85,7 @@
   <!-- The bearing -->
   <xacro:include filename="$(find o2ac_parts_description)/urdf/generated/07_SBARB6200ZZ_30_macro.urdf.xacro" />
   <xacro:assy_part_07 prefix="${boardname}_" parent="${boardname}_plate" spawn_attached="true"> 
-    <origin rpy="0 0 0" xyz="${0.025+.008} 0.165 0.12"/> 
+    <origin rpy="${pi} 0 0" xyz="${0.025+.008} 0.165 0.12"/> 
   </xacro:assy_part_07> 
   
   <!-- The large pulley -->
@@ -148,28 +148,28 @@
   <joint name="${boardname}_set_screw_joint" type="fixed">
     <parent link="${boardname}_plate"/>
     <child link="${boardname}_set_screw_link"/>
-    <origin rpy="0 0 ${pi}" xyz=".025 0.054 0.075"/>
+    <origin rpy="${pi} 0 ${pi}" xyz=".025 0.054 0.075"/>
   </joint>
   <link name="${boardname}_set_screw_link"/>
 
   <joint name="${boardname}_m3_screw_joint" type="fixed">
     <parent link="${boardname}_plate"/>
     <child link="${boardname}_m3_screw_link"/>
-    <origin rpy="0 0 ${pi}" xyz=".025 0.072 0.035"/>
+    <origin rpy="${pi} 0 ${pi}" xyz=".025 0.072 0.035"/>
   </joint>
   <link name="${boardname}_m3_screw_link"/>
 
   <joint name="${boardname}_m4_screw_joint" type="fixed">
     <parent link="${boardname}_plate"/>
     <child link="${boardname}_m4_screw_link"/>
-    <origin rpy="0 0 ${pi}" xyz=".025 0.105 0.036"/>
+    <origin rpy="${pi} 0 ${pi}" xyz=".025 0.105 0.036"/>
   </joint>
   <link name="${boardname}_m4_screw_link"/>
 
   <joint name="${boardname}_long_hole_middle_joint" type="fixed">
     <parent link="${boardname}_plate"/>
     <child link="${boardname}_long_hole_middle_link"/>
-    <origin rpy="0 0 ${pi}" xyz=".025 0.1 0.125"/>
+    <origin rpy="${pi} 0 ${pi}" xyz=".025 0.1 0.125"/>
   </joint>
   <link name="${boardname}_long_hole_middle_link"/>
 
