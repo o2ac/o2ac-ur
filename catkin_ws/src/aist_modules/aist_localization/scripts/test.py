@@ -37,7 +37,7 @@ if __name__ == '__main__':
                         help='camera frame',
                         metavar=None)
     parser.add_argument('-n',
-                        '--number_of_poses',
+                        '--nposes',
                         action='store',
                         nargs='?',
                         default=2,
@@ -65,7 +65,7 @@ if __name__ == '__main__':
 
 
     for model in models:
-        localize.send_goal(model, args.number_of_poses)
+        localize.send_goal(model, args.nposes)
         (poses, overlaps, success) \
             = localize.wait_for_result(rospy.Duration(args.timeout))
 

@@ -40,8 +40,20 @@
   <run_depend>ur_msgs</run_depend>
   <build_depend>ur_msgs</build_depend>
 
+  <run_depend>o2ac_routines</run_depend>
+  <build_depend>o2ac_routines</build_depend>
+
   <run_depend>actionlib_msgs</run_depend>
   <build_depend>actionlib_msgs</build_depend>
+
+  <run_depend>aist_depth_filter</run_depend>
+  <build_depend>aist_depth_filter</build_depend>
+
+  <run_depend>aist_localization</run_depend>
+  <build_depend>aist_localization</build_depend>
+
+  <run_depend>aist_model_spawner</run_depend>
+  <build_depend>aist_model_spawner</build_depend>
 
   <buildtool_depend>catkin</buildtool_depend>
 

@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <launch>
 
-  <arg name="data_dir"		default="~/data/WRS_Dataset"/>
+  <arg name="data_dir"		default="$(find WRS_Dataset)"/>
   <arg name="intrinsic"		default="realsense_intrinsic.json"/>
   <arg name="camera_frame"	default="map"/>
 

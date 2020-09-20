@@ -13,28 +13,31 @@ import actionlib
 import o2ac_msgs.msg
 from pose_estimation_func import *
 
-class BeltDetectionServer(object):
+rad2deg = 180.0 / math.pi
+deg2rad = math.pi/180.0
+
+rospack = rospkg.RosPack()
+annotation_root = rospack.get_path("WRS_Dataset") + "/Annotations/Far/Image-wise/*.json"
+annotations = glob.glob(annotation_root)
+
+class BeltDetectionTest(object):
     def __init__(self):
-        rospy.init_node('belt_detection_server_py')
+        rospy.init_node('belt_detection_test_server_py')
 
-        self.belt_detection_action_server = actionlib.SimpleActionServer("beltDetection", o2ac_msgs.msg.beltDetectionAction, 
-            execute_cb = self.belt_detection_callback, auto_start = True)
+        self.belt_detection_test_action_server = actionlib.SimpleActionServer("beltDetectionTest", o2ac_msgs.msg.beltDetectionTestAction,
+            execute_cb = self.belt_detection_test_callback, auto_start = True)
 
-        rospack = rospkg.RosPack()
-        annotation_root = rospack.get_path("o2ac_vision") + "/dataset/Annotations/Far/Image-wise/*.json"
-        self.annotations = glob.glob(annotation_root)
+        rospy.loginfo("belt_detection_test_server has started up!")
 
-        rospy.loginfo("belt_detection_server has started up!")
-
-    def belt_detection_callback(self, goal):
-        action_result = o2ac_msgs.msg.beltDetectionResult()
+    def belt_detection_test_callback(self, goal):
+        action_result = o2ac_msgs.msg.beltDetectionTestResult()
 
         """Get arguments"""
         test_id = goal.id
 
         count = 0
-        # print self.annotations
-        for anno in self.annotations:
+        # print annotations
+        for anno in annotations:
             f = open( anno )
             json_data = json.load( f )
             # print(json_data)
@@ -44,7 +47,7 @@ class BeltDetectionServer(object):
             input_image = cv2.imread( json_data["rgb_path"], 1 )
             image_bbox = input_image.copy()
             for bbox, cid in zip(bboxes, class_id):
-                image_bbox = cv2.rectangle( image_bbox, ( bbox[0], bbox[1]), (bbox[2], bbox[3]), (0,255,0), 3 ) 
+                image_bbox = cv2.rectangle( image_bbox, ( bbox[0], bbox[1]), (bbox[2], bbox[3]), (0,255,0), 3 )
 
             count+=1
             if test_id < count:
@@ -75,11 +78,11 @@ class BeltDetectionServer(object):
 
         #Sending result to action
         action_result.candidate_idx = results
-        self.belt_detection_action_server.set_succeeded(action_result)
+        self.belt_detection_test_action_server.set_succeeded(action_result)
 
 if __name__ == '__main__':
     try:
-        server = BeltDetectionServer()
+        server = BeltDetectionTest()
         while not rospy.is_shutdown():
             rospy.sleep(.1)
     except rospy.ROSInterruptException:

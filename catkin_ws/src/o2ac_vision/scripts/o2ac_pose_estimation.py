@@ -16,7 +16,7 @@ class pose_estimation():
 
     def __init__(self, im_in, ssd_result):
         rospack = rospkg.RosPack()
-        temp_root = rospack.get_path("o2ac_vision") + "/dataset/data/templates"
+        temp_root = rospack.get_path("WRS_Dataset") + "/data/templates"
         # Name of template infomation
         temp_info_name = "template_info.json"
         # downsampling rate
@@ -55,4 +55,3 @@ class pose_estimation():
         im_res = self.TM.get_result_image( ssd_result, ori, center )
         print( "Save", name )
         cv2.imwrite( name, im_res )
-        

@@ -28,9 +28,10 @@ class LocalizationClient(object):
     def __init__(self, server='localization'):
         super(LocalizationClient, self).__init__()
 
-        self._methods    = rospy.get_param('~methods',   {})
-        self._settings   = rospy.get_param('~settings',  {})
-        self._z_offsets  = rospy.get_param('~z_offsets', {})
+        self._in_plane          = rospy.get_param('~in_plane',          {})
+        self._full_settings     = rospy.get_param('~full_settings',     {})
+        self._in_plane_settings = rospy.get_param('~in_plane_settings', {})
+
         self._dyn_reconf = dynamic_reconfigure.client.Client(server,
                                                              timeout=5.0)
         self._localize   = actionlib.SimpleActionClient(server + '/localize',
@@ -50,31 +51,40 @@ class LocalizationClient(object):
     def get_settings(self):
         return self._dyn_reconf.get_configuration()
 
-    def send_goal(self, model, number_of_poses=1, pose2d=[]):
-        if model in self._methods:
-            method = self._methods[model]      # Localization without SDK
+    def send_goal(self, model, nposes=1, pose2d=[]):
+        goal = lmsg.LocalizeGoal()
+        goal.object_name = model
+        goal.in_plane    = model in self._in_plane
+        goal.nposes      = nposes
+
+        if len(pose2d) == 3:
+            goal.in_plane = True
+            goal.x        = pose2d[0]
+            goal.y        = pose2d[1]
+            goal.theta    = pose2d[2]
         else:
-            method = lmsg.LocalizeGoal.FULL    # Full localization with SDK
-        if model in self._z_offsets:
-            z_offset = self._z_offsets[model]  # Offset from the base plane
-        else:
-            z_offset = 0                       # No offset
+            goal.x        = 0.0
+            goal.y        = 0.0
+            goal.theta    = 0.0
+
+        goal.sideways = False
+        goal.x_offset = 0.0
+        goal_z_offset = 0.0
+        if model in self._in_plane_settings:
+            in_plane_settings = self._in_plane_settings[model]
+            if 'sideways' in in_plane_settings:
+                goal.sideways = in_plane_settings['sideways']
+            if 'x_offset' in in_plane_settings:
+                goal.x_offset = in_plane_settings['x_offset']
+            if 'z_offset' in in_plane_settings:
+                goal.z_offset = in_plane_settings['z_offset']
+
         self.set_settings(LocalizationClient._DefaultSettings)
-        if model in self._settings:
-            self.set_settings(self._settings[model])
+        if model in self._full_settings:
+            self.set_settings(self._full_settings[model])
 
         self._poses    = []
         self._overlaps = []
-        goal = lmsg.LocalizeGoal()
-        goal.object_name     = model
-        goal.method          = method
-        goal.number_of_poses = number_of_poses
-        goal.z_offset        = z_offset
-        if len(pose2d) == 3:
-            goal.method = lmsg.LocalizeGoal.IN_PLANE
-            goal.x      = pose2d[0]
-            goal.y      = pose2d[1]
-            goal.theta  = pose2d[2]
         self._localize.send_goal(goal, feedback_cb=self._feedback_cb)
 
     def wait_for_result(self, timeout=rospy.Duration()):
