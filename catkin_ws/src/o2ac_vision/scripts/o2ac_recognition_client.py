@@ -69,12 +69,15 @@ if __name__ == '__main__':
         print('\n=============')
         for i in range(len(_Models)):
             print("{:4}: {}".format(i+1, _Models[i]))
+        print('   d: delete all models spawned')
+        print('   q: quit')
 
         key = raw_input('\nEnter object ID >> ')
-        spawner.delete_all()
 
-        if (key == 'q'):
+        if key == 'q':
             break
+        elif key == 'd':
+            spawner.delete_all()
         elif (is_num(key)):
             id = int(key)
 
