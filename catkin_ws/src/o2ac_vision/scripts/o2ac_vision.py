@@ -35,274 +35,240 @@
 # Author: Felix von Drigalski
 
 import rospy
-import geometry_msgs.msg
 import tf_conversions
 import tf
 import actionlib
 from math import pi
 
-import geometry_msgs.msg
-import std_msgs.msg
-import std_srvs.srv
-
-
 import o2ac_routines.helpers
-from o2ac_routines.base import O2ACBase
-
 
 import o2ac_msgs.msg   # This is needed to advertise the actions
 import sensor_msgs.msg # This is needed to receive images from the camera
 import cv_bridge       # This offers conversion methods between OpenCV and ROS formats
                        # See here: http://wiki.ros.org/cv_bridge/Tutorials/ConvertingBetweenROSImagesAndOpenCVImagesPython
-    
+
                        # Note that a similar package exists for PCL:
                        # http://wiki.ros.org/pcl_ros
 
+import cv2
+import sys
+import numpy as np
+import time
+import rospkg
+import o2ac_ssd
+from pose_estimation_func import template_matching
+from pose_estimation_func import FastGraspabilityEvaluation
+
+ssd_detection = o2ac_ssd.ssd_detection()
+
 class O2ACVision(object):
-  # This class advertises the vision actions that we will call during the tasks.
+    # This class advertises the vision actions that we will call during the tasks.
 
-  def __init__(self):
-    rospy.init_node('o2ac_vision', anonymous=False)
-    self.listener = tf.TransformListener()
-    
-    # This creates the action server.nSee this tutorial, and also check out base.py: 
-    # http://wiki.ros.org/actionlib_tutorials/Tutorials/Writing%20a%20Simple%20Action%20Server%20using%20the%20Execute%20Callback%20%28Python%29
-    self.detect_object_action_server = actionlib.SimpleActionServer("detectObject", o2ac_msgs.msg.detectObjectAction, 
-        execute_cb = self.detect_object_callback, auto_start = True)
-    self.detect_orientation_from_front_view_server = actionlib.SimpleActionServer("detectOrientationFromFrontView", o2ac_msgs.msg.detectOrientationFromFrontViewAction, 
-        execute_cb = self.detect_orientation_from_front_view_callback, auto_start = True)
-    self.get_grasp_candidates_server = actionlib.SimpleActionServer("getGraspCandidates", o2ac_msgs.msg.getGraspCandidatesAction, 
-        execute_cb = self.get_grasp_candidates_callback, auto_start = True)
-    self.detect_cable_tip_server = actionlib.SimpleActionServer("detectCableTip", o2ac_msgs.msg.detectCableTipAction, 
-        execute_cb = self.detect_cable_tip_callback, auto_start = True)
-    self.detect_object_tip_server = actionlib.SimpleActionServer("detectObjectTip", o2ac_msgs.msg.detectObjectTipAction, 
-        execute_cb = self.detect_object_tip_callback, auto_start = True)
-    self.get_tip_distance_to_hole_server = actionlib.SimpleActionServer("getTipDistanceToHole", o2ac_msgs.msg.getTipDistanceToHoleAction, 
-        execute_cb = self.get_tip_distance_to_hole_callback, auto_start = True)
-    self.adjust_pulley_angle_server = actionlib.SimpleActionServer("adjustPulleyAngle", o2ac_msgs.msg.adjustPulleyAngleAction, 
-        execute_cb = self.adjust_pulley_angle_callback, auto_start = True)
+    def __init__(self):
+    	rospy.init_node('o2ac_vision_', anonymous=False)
 
-    self.use_robots = False
-    if self.use_robots:
-      self.robots = O2ACBase()
+        # Setup subscriber for RGB image
+        self.image_sub = rospy.Subscriber('/image', sensor_msgs.msg.Image,
+                                          self.image_subscriber_callback)
+        self.image_pub = rospy.Publisher('~result_image',
+                                         sensor_msgs.msg.Image, queue_size=1)
 
-    rospy.loginfo("O2AC_vision has started up!")
+        self.cont = rospy.get_param('~cont', False)
 
-  ### ======= Helper functions
+        if self.cont:
+            self.results_pub \
+                = rospy.Publisher('~detection_results',
+                                  o2ac_msgs.msg.DetectedObjects,
+                                  queue_size=1)
+        else:
+            self.pose_estimation_server = actionlib.SimpleActionServer("poseEstimation", o2ac_msgs.msg.poseEstimationAction, auto_start = False)
+            self.pose_estimation_server.register_goal_callback(self.pose_estimation_goal_callback)
+            self.pose_estimation_server.register_preempt_callback(self.pose_estimation_preempt_callback)
+            self.pose_estimation_server.start()
 
-  def move_camera_to_pose(self, target_pose, camera_id="a_bot_outside", camera_frame=""):
-    # TODO (felixvd): Move the camera to the target pose
-    if not camera_frame:
-      # construct the link frame
-    
-    return self.robots.go_to_pose_goal(robot_name, goal_pose)
+            self.belt_detection_server = actionlib.SimpleActionServer("beltDetection", o2ac_msgs.msg.beltDetectionAction, auto_start = False)
+            self.belt_detection_server.register_goal_callback(self.belt_detection_goal_callback)
+            self.belt_detection_server.register_preempt_callback(self.belt_detection_preempt_callback)
+            self.belt_detection_server.start()
 
-  def turn_pulley(self, pulley_name, angle):
-    # TODO (felixvd): 
-    return self._turn_pulley_client.get_result()
+        rospy.loginfo("O2AC_vision has started up!")
 
-  ### ======= Action server definitions
+    def pose_estimation_goal_callback(self):
+        self.object_id = self.pose_estimation_server.accept_new_goal().object_id
+        rospy.loginfo("Received a request to detect object named "
+                      + self.object_id)
 
-  def detect_object_callback(self, goal):
-    rospy.loginfo("Received a request to detect object named " + goal.object_id)
-    action_result = o2ac_msgs.msg.detectObjectActionResult()
+    def pose_estimation_preempt_callback(self):
+        rospy.loginfo("o2ac_msgs.msg.poseEstimationAction preempted")
+        self.pose_estimation_server.set_preempted()
 
-    # First, obtain the image from the camera and convert it
-    image_msg = rospy.wait_for_message("/" + goal.camera_id + "/color", sensor_msgs.msg.Image, 1.0)
-    cv_image = bridge.imgmsg_to_cv2(image_message, desired_encoding="passthrough")
+    def belt_detection_goal_callback(self):
+        self.object_id = self.belt_detection_server.accept_new_goal().object_id
+        rospy.loginfo("Received a request to detect belt named "
+                      + self.object_id)
 
-    # Detect the object
-    detected_pose = self.detect_object_in_image(cv_image)
-    if not detected_pose:
-      self.detect_object_action_server.set_aborted(action_result)
-    else:
-      action_result.detected_pose.pose = detected_pose
-    action_result.detected_pose.header.frame_id = goal.camera_id + "_camera_color_frame"
-    
-    # Return
-    o2ac_routines.helpers.publish_marker(action_result.detected_pose, "pose")
-    self.detect_object_action_server.set_succeeded(action_result)
-  
-  def detect_orientation_from_front_view_callback(self, goal):
-    rospy.loginfo("Received a request to detect orientation of " + goal.object_id)
-    action_result = o2ac_msgs.msg.detectOrientationFromFrontViewActionResult()
+    def belt_detection_preempt_callback(self):
+        rospy.loginfo("o2ac_msgs.msg.beltDetectionAction preempted")
+        self.belt_detection_server.set_preempted()
 
-    # First, obtain the image from the camera and convert it
-    image_msg = rospy.wait_for_message("/" + goal.camera_id + "/color", sensor_msgs.msg.Image, 1.0)
-    cv_image = bridge.imgmsg_to_cv2(image_message, desired_encoding="passthrough")
+    def image_subscriber_callback(self, image):
+        # First, obtain the image from the camera and convert it
+        bridge = cv_bridge.CvBridge()
+        im_in  = bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
+        im_vis = im_in.copy()
 
-    # Detect orientation
-    # TODO: Decide which return parameters would be useful here. The angle by which the
-    # object should be turned to arrive at the target position would be best.
-    if goal.object_id == "bearing":
-      goal.angle_offset = self.detect_bearing_angle(cv_image)
-    elif goal.object_id == "large_pulley":
-      goal.angle_offset = self.detect_large_pulley_angle(cv_image)
-    
-    # Return
-    self.detect_orientation_from_front_view_server.set_succeeded(action_result)
+        if self.cont:
+            detectedObjects_msg = o2ac_msgs.msg.DetectedObjects()
+            detectedObjects_msg.header = image.header
+            detectedObjects_msg.pose_estimation_results, im_vis \
+                = self.get_pose_estimation_results(im_in, im_vis)
+            detectedObjects_msg.grasp_points, im_vis \
+                = self.get_grasp_detection_results(im_in, im_vis)
 
-  def detect_orientation_from_front_view_callback(self, goal):
-    rospy.loginfo("Received a request to detect grasp candidates for belt")
-    action_result = o2ac_msgs.msg.getGraspCandidatesActionResult()
+            self.results_pub.publish(detectedObjects_msg)
 
-    # First, obtain the image from the camera and convert it
-    image_msg = rospy.wait_for_message("/" + goal.camera_id + "/color", sensor_msgs.msg.Image, 1.0)
-    cv_image = bridge.imgmsg_to_cv2(image_message, desired_encoding="passthrough")
+            # Publish an image which visualizes the results
+            self.image_pub.publish(bridge.cv2_to_imgmsg(im_vis))
 
-    # Detect grasp candidates
-    if goal.object_id == "bearing":
-      goal.grasp_candidates = self.detect_bearing_angle(cv_image)
-    elif goal.object_id == "large_pulley":
-      goal.grasp_candidates = self.detect_large_pulley_angle(cv_image)
-    
-    # Return
-    self.get_grasp_candidates_server.set_succeeded(action_result)
+        elif self.pose_estimation_server.is_active():
+            action_result = o2ac_msgs.msg.poseEstimationResult()
+            action_result.pose_estimation_result_list, im_vis \
+                = self.get_pose_estimation_results(im_in, im_vis)
+            self.pose_estimation_server.set_succeeded(action_result)
 
-  def detect_cable_tip_callback(self, goal):
-    rospy.loginfo("Received a request to detect the tip of the cable")
-    action_result = o2ac_msgs.msg.detectCableTipActionResult()
+            # Publish an image which visualizes the results
+            self.image_pub.publish(bridge.cv2_to_imgmsg(im_vis))
 
-    image_msg = rospy.wait_for_message("/" + goal.camera_id + "/color", sensor_msgs.msg.Image, 1.0)
-    cv_image = bridge.imgmsg_to_cv2(image_message, desired_encoding="passthrough")
+        elif self.belt_detection_server.is_active():
+            action_result = o2ac_msgs.msg.beltDetectionResult()
+            action_result.grasp_points, im_vis \
+                = self.get_grasp_detection_results(im_in, im_vis)
+            self.belt_detection_server.set_succeeded(action_result)
 
-    # Detect the cable tip
-    detected_point = self.detect_cable_tip_in_image(cv_image)
-    if not detected_point:
-      self.detect_cable_tip_server.set_aborted(action_result)
-    else:
-      action_result.detected_point = detected_point
-    action_result.detected_point.header.frame_id = goal.camera_id + "_camera_color_frame"
-    
-    # Return
-    o2ac_routines.helpers.publish_marker(action_result.detected_pose, "pose")
-    self.detect_cable_tip_server.set_succeeded(action_result)
-  
-  def detect_object_tip_callback(self, goal):
-    rospy.loginfo("Received a request to detect the tip of the object")
-    action_result = o2ac_msgs.msg.detectObjectTipActionResult()
+            # Publish an image which visualizes the results
+            self.image_pub.publish(bridge.cv2_to_imgmsg(im_vis))
 
-    image_msg = rospy.wait_for_message("/" + goal.camera_id + "/color", sensor_msgs.msg.Image, 1.0)
-    cv_image = bridge.imgmsg_to_cv2(image_message, desired_encoding="passthrough")
 
-    # Detect the object tip
-    detected_point = self.detect_object_tip_in_image(cv_image)
-    if not detected_point:
-      self.detect_object_tip_server.set_aborted(action_result)
-    else:
-      action_result.detected_pose = detected_point
-    
-    # Return
-    o2ac_routines.helpers.publish_marker(action_result.detected_pose, "pose")
-    self.detect_object_cable_tip_server.set_succeeded(action_result)
+### =======
 
-  def get_tip_distance_to_hole_callback(self, goal):
-    rospy.loginfo("Received a request to detect the tooltip distance to target hole")
-    action_result = o2ac_msgs.msg.getTipDistanceToHoleActionResult()
+    def get_pose_estimation_results(self, im_in, im_vis):
+        # Object detection
+        ssd_results, im_vis = self.detect_object_in_image(im_in, im_vis)
 
-    image_msg = rospy.wait_for_message("/" + goal.camera_id + "/color", sensor_msgs.msg.Image, 1.0)
-    cv_image = bridge.imgmsg_to_cv2(image_message, desired_encoding="passthrough")
+        # Pose estimation
+        estimatedPose_msgs = []
+        apply_2d_pose_estimation = [8,9,10,14]
+        apply_3d_pose_estimation = [1,2,3,4,5,7,11,12,13]
+        apply_grasp_detection = [6]
+        for ssd_result in ssd_results:
+            target = ssd_result["class"]
+            estimatedPose_msg = o2ac_msgs.msg.EstimatedPose()
+            estimatedPose_msg.confidence = ssd_result["confidence"]
+            estimatedPose_msg.class_id = target
+            estimatedPose_msg.bbox = ssd_result["bbox"]
 
-    # Detect the image
-    target_hole_pose = self.detect_object_in_image(cv_image)
-    if not target_hole_pose:
-      self.get_tip_distance_to_hole_server.set_aborted(action_result)
-    else:
-      action_result.detected_pose = target_hole_pose
-    
-    # Return
-    o2ac_routines.helpers.publish_marker(action_result.detected_pose, "pose")
-    self.get_tip_distance_to_hole_server.set_succeeded(action_result)
+            if target in apply_2d_pose_estimation:
+                print("Target id is ", target, " apply the 2d pose estimation")
+                pose_estimation_results, im_vis = self.estimate_pose_in_image(im_in, im_vis, ssd_result)
+                estimatedPose_msg.rotation = pose_estimation_results[1]
+                estimatedPose_msg.center.append(pose_estimation_results[0][0])
+                estimatedPose_msg.center.append(pose_estimation_results[0][1])
 
-  def adjust_pulley_angle_callback(self, goal):
-    rospy.loginfo("Received a request to adjust pulley " + goal.pulley_name)
-    action_result = o2ac_msgs.msg.adjustPulleyAngleActionResult()
+            elif target in apply_3d_pose_estimation:
+                print("Target id is ", target, " apply the 3d pose estimation")
 
-    image_msg = rospy.wait_for_message("/" + goal.camera_id + "/color", sensor_msgs.msg.Image, 1.0)
-    cv_image = bridge.imgmsg_to_cv2(image_message, desired_encoding="passthrough")
+            else:
+                print("Target id is ", target, " NO Solution")
 
-    # Detect the cable tip
-    success = self.adjust_pulley_angle(goal.pulley_name, goal.camera_id)
-    if not success:
-      self.adjust_pulley_angle_server.set_aborted(action_result)
-    else:
-      action_result.detected_point = detected_point
-    action_result.detected_point.header.frame_id = goal.camera_id + "_camera_color_frame"
-    
-    # Return
-    o2ac_routines.helpers.publish_marker(action_result.detected_pose, "pose")
-    self.adjust_pulley_angle_server.set_succeeded(action_result)
+            estimatedPose_msgs.append(estimatedPose_msg)
 
-  ### ======= Implementations
-    
-  def detect_object_in_image(self, cv_image):
-    # TODO: Detect the object here
-    success = True
-    if not success:
-      object_pose = []
-    return object_pose
-  
-  def detect_cable_tip_in_image(self, cv_image):
-    # TODO: Detect the cable tip here
-    success = True
-    if not success:
-      object_pose = []
-    return object_pose
-  
-  def detect_object_tip_in_image(self, cv_image):
-    # TODO: Detect the object tip here
-    success = True
-    if not success:
-      object_pose = []
-    return object_pose
-  
-  def detect_belt_grasp_candidates(self, cv_image):
-    # TODO: Detect the belt grasp candidates here. 
-    # Each grasp candidate is a pose. The x-axis should point into the tray, the y-axis along the belt.
-    success = True
-    if not success:
-      grasp_candidates = []
-    return grasp_candidates
+        return estimatedPose_msgs, im_vis
 
-  def detect_bearing_angle(self, cv_image):
-    # TODO: Detect the difference between current and target angle of the bearing
-    success = True
-    if not success:
-      angle = []
-    return angle
-  
-  def detect_motor_pulley_screw_hole(self, cv_image):
-    # TODO: Detect the difference between current and target angle of the motor pulley
-    #       The set screw hole should be pointing upwards (facing the camera).
-    success = True
-    if not success:
-      angle = []
-    return angle
-  
-  def detect_large_pulley_angle(self, cv_image):
-    # TODO: Detect the difference between current and target angle of the large pulley
-    #       The screws should be pointing upwards (facing the camera).
-    success = True
-    if not success:
-      angle = []
-    return angle
+    def get_grasp_detection_results(self, im_in, im_vis):
+        # Belt detection in image
+        grasp_points, im_vis = self.grasp_detection_in_image(im_in, im_vis)
+        print("grasp_result")
+        print(grasp_points)
 
-  def get_tip_distance_to_hole(self, cv_image):
-    # TODO: Detect the tooltip and estimate the distance between it and the presumed target.
-    success = True
-    if not success:
-      target_pose = []
-    return target_pose
-  
-  def adjust_pulley_angle(self, pulley_name, camera_id):
-    # TODO: Find the set screw hole or screws and turn them so they face the camera
-    success = True
-    return success
+        GraspPoint_msgs = []
+        for grasp_point in grasp_points:
+            GraspPoint_msg = o2ac_msgs.msg.GraspPoint()
+            GraspPoint_msg.grasp_point = grasp_point
+            GraspPoint_msgs.append(GraspPoint_msg)
+
+        return GraspPoint_msgs, im_vis
+
+    def detect_object_in_image(self, cv_image, im_vis):
+        ssd_results, im_vis = ssd_detection.object_detection(cv_image, im_vis)
+        return ssd_results, im_vis
+
+    def grasp_detection_in_image( self, im_in, im_vis ):
+
+        start = time.time()
+
+        # Generation of a hand template
+        im_hand = np.zeros( (60,60), np.float )
+        hand_width = 20 #in pixel
+        im_hand[0:10,20:20+hand_width] = 1
+        im_hand[50:60,20:20+hand_width] = 1
+
+        # Generation of a colision template
+        im_collision = np.zeros( (60,60), np.float )
+        im_collision[10:50,20:20+hand_width] = 1
+
+        param_fge = {"ds_rate": 0.5, "target_lower":[0, 150, 100], "target_upper":[15, 255, 255],
+                    "fg_lower": [0, 0, 100], "fg_upper": [179, 255, 255], "hand_rotation":[0,45,90,135], "threshold": 0.01}
+
+        fge = FastGraspabilityEvaluation( im_in, im_hand, im_collision, param_fge )
+        results = fge.main_proc()
+        im_vis  = fge.visualization(im_vis)
+        cv2.imwrite("reslut_grasp_points.png", im_vis )
+
+        return results, im_vis
+
+    def estimate_pose_in_image(self, im_in, im_vis, ssd_result):
+
+        start = time.time()
+
+        rospack = rospkg.RosPack()
+        temp_root = rospack.get_path("wrs_dataset") + "/data/templates"
+        # Name of template infomation
+        temp_info_name = "template_info.json"
+        # downsampling rate
+        ds_rate = 1.0/2.0
+
+        # RGB -> Gray
+        if im_in.shape[2] == 3:
+            im_in = cv2.cvtColor(im_in, cv2.COLOR_BGR2GRAY)
+
+        class_id = ssd_result["class"]
+
+        tm = template_matching( im_in, ds_rate, temp_root, temp_info_name )
+
+        center = ori = 0.0
+
+        # template matching
+        center, ori = tm.compute( ssd_result )
+        result = (center, ori)
+
+        elapsed_time = time.time() - start
+        print( "Processing time[msec]: ", 1000*elapsed_time )
+
+        # im_result = tm.get_result_image( ssd_result, ori, center )
+        # name ="tm_result"+str(class_id)+".png"
+        # print( "Save", name )
+        # cv2.imwrite( name, im_result )
+
+        im_vis = tm.get_result_image(ssd_result, ori, center, im_vis)
+
+        return result, im_vis
+
 
 if __name__ == '__main__':
-  try:
-    c = O2ACVision()
-    while not rospy.is_shutdown():
-      rospy.sleep(.1)
-  except rospy.ROSInterruptException:
-    pass
+    try:
+        c = O2ACVision()
+        rospy.spin()
+        # while not rospy.is_shutdown():
+        #     rospy.sleep(.1)
+    except rospy.ROSInterruptException:
+        pass

@@ -1,0 +1,10 @@
+# Request
+string object_id
+string camera_id
+
+---
+# Result
+o2ac_msgs/GraspPoint[] grasp_points
+
+---
+# Feedback

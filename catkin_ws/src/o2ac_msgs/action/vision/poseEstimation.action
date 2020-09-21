@@ -1,0 +1,10 @@
+# Request
+string object_id
+string camera_id
+
+---
+# Result
+o2ac_msgs/EstimatedPose[] pose_estimation_result_list
+
+---
+# Feedback

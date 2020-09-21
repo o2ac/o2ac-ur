@@ -113,8 +113,7 @@ class Localization
     void	preempt_cb()					  const	;
 
     void	localize_full(const goal_cp& goal)			;
-    void	localize_bbox_center(const goal_cp& goal)		;
-    void	localize_bbox_diagonal(const goal_cp& goal)		;
+    void	localize_in_plane(const goal_cp& goal)			;
     vector3_t	view_vector(value_t u, value_t v)		  const	;
 
   private:

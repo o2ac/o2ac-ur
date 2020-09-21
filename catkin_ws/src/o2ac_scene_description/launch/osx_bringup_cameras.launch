@@ -28,7 +28,7 @@
   <!-- <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="camera"		    value="$(arg camera0_name)"/>
     <arg name="camera0_serial_no"   value="$(arg camera0_serial_no)"/>
-    <arg name="enable_pointcloud"   value="false"/>
+    <arg name="enable_pointcloud"   value="true"/>
     <arg name="align_depth"         value="true"/>
     <arg name="fisheye_fps"         value="$(arg camera_fps)"/>
     <arg name="depth_fps"           value="$(arg camera_fps)"/>
@@ -45,7 +45,7 @@
   <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="camera"		    value="$(arg camera1_name)"/>
     <arg name="camera1_serial_no"   value="$(arg camera1_serial_no)"/>
-    <arg name="enable_pointcloud"   value="false"/>
+    <arg name="enable_pointcloud"   value="true"/>
     <arg name="align_depth"         value="true"/>
     <arg name="fisheye_fps"         value="$(arg camera_fps)"/>
     <arg name="depth_fps"           value="$(arg camera_fps)"/>
@@ -63,7 +63,7 @@
   <!-- <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="camera"		    value="$(arg camera2_name)"/>
     <arg name="serial_no"           value="$(arg camera2_serial_no)"/>
-    <arg name="enable_pointcloud"   value="false"/>
+    <arg name="enable_pointcloud"   value="true"/>
     <arg name="align_depth"         value="true"/>
     <arg name="fisheye_fps"         value="$(arg camera_fps)"/>
     <arg name="depth_fps"           value="$(arg camera_fps)"/>
@@ -81,7 +81,7 @@
   <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="camera"		    value="$(arg camera3_name)"/>
     <arg name="serial_no"           value="$(arg camera3_serial_no)"/>
-    <arg name="enable_pointcloud"   value="false"/>
+    <arg name="enable_pointcloud"   value="true"/>
     <arg name="align_depth"         value="true"/>
     <arg name="fisheye_fps"         value="$(arg camera_fps)"/>
     <arg name="depth_fps"           value="$(arg camera_fps)"/>
@@ -99,7 +99,7 @@
   <!-- <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="camera" value="scene_camera"/>
     <arg name="serial_no" value="819312070094"/> 
-    <arg name="enable_pointcloud" value="false"/>
+    <arg name="enable_pointcloud" value="true"/>
     <arg name="fisheye_fps"         value="15"/>
     <arg name="depth_fps"           value="15"/>
     <arg name="infra_fps"           value="15"/>

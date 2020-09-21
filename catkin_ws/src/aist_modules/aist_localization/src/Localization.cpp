@@ -168,18 +168,10 @@ Localization::localize_cb(const goal_cp& goal)
 	if (!_file_info)
 	    throw std::runtime_error("  Scene is not set.");
 
-	switch (goal->method)
-	{
-	  case aist_localization::LocalizeGoal::BBOX_CENTER:
-	    localize_bbox_center(goal);
-	    break;
-	  case aist_localization::LocalizeGoal::BBOX_DIAGONAL:
-	    localize_bbox_diagonal(goal);
-	    break;
-	  default:
+	if (goal->in_plane)
+	    localize_in_plane(goal);
+	else
 	    localize_full(goal);
-	    break;
-	}
 
 	ROS_INFO_STREAM("(Localization)   completed.");
 
@@ -221,7 +213,7 @@ Localization::localize_full(const goal_cp& goal)
 
   // Set stop criteria.
     _localization->AddStopCriterion(
-	pho::sdk::StopCriterion::NumberOfResults(goal->number_of_poses));
+	pho::sdk::StopCriterion::NumberOfResults(goal->nposes));
     ROS_DEBUG_STREAM("(Localization)   stop citeria succesfully set.");
 
   // Execute localization.
@@ -250,7 +242,7 @@ Localization::localize_full(const goal_cp& goal)
 }
 
 void
-Localization::localize_bbox_center(const goal_cp& goal)
+Localization::localize_in_plane(const goal_cp& goal)
 {
     if (!_file_info->plane_detected)
 	throw std::runtime_error("  Dominant plane is not set.");
@@ -259,17 +251,34 @@ Localization::localize_bbox_center(const goal_cp& goal)
 			  _file_info->normal.y,
 			  _file_info->normal.z);
     const value_t	d = _file_info->distance;
-    const auto		v = view_vector(0.5*_file_info->camera_info.width,
-					0.5*_file_info->camera_info.height);
+    const auto		v = view_vector((goal->x > 0.0 ? goal->x :
+					 0.5*_file_info->camera_info.width),
+					(goal->y > 0.0 ? goal->y :
+					 0.5*_file_info->camera_info.height));
     const auto		x = (-d/n.dot(v)) * v;
-    auto		r = n.cross(vector3_t(0, 1, 0));
+    auto		r = n.cross(vector3_t(std::cos(goal->theta),
+					      std::sin(goal->theta), 0));
     r *= (value_t(1)/norm(r));
     const auto		q = r.cross(n);
 
-    const tf::Transform	transform(tf::Matrix3x3(n(0), q(0), r(0),
-						n(1), q(1), r(1),
-						n(2), q(2), r(2)),
+  // Transformation from gaze point to camera
+    const tf::Transform	transform(tf::Matrix3x3(q(0), r(0), n(0),
+						q(1), r(1), n(1),
+						q(2), r(2), n(2)),
 				  tf::Vector3(x(0), x(1), x(2)));
+
+    if (goal->sideways)
+	transform *= tf::Transform(tf::Matrix3x3(1.0, 0.0, 0.0,
+						 0.0, 1.0, 0.0,
+						 0.0, 0.0, 1.0),
+				   tf::Vector3(goal->x_offset, 0.0,
+					       goal->z_offset));
+    else
+	transform *= tf::Transform(tf::Matrix3x3(0.0, 1.0, 0.0,
+						 0.0, 0.0, 1.0,
+						 1.0, 0.0, 0.0),
+				   tf::Vector3(goal->x_offset, 0.0,
+					       goal->z_offset));
 
     feedback_t	feedback;
     feedback.pose.header = _file_info->camera_info.header;
@@ -280,13 +289,6 @@ Localization::localize_bbox_center(const goal_cp& goal)
     ros::Duration(0.5).sleep();
 
     ROS_INFO_STREAM("(Localization)   found.");
-}
-
-void
-Localization::localize_bbox_diagonal(const goal_cp& goal)
-{
-    if (!_file_info->plane_detected)
-	throw std::runtime_error("  Dominant plane is not set.");
 }
 
 Localization::vector3_t

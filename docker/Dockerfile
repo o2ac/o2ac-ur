@@ -288,9 +288,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ################################################################################
 
 # Deep Learning
+RUN pip install torch
 # RUN pip install torch \
 # 	tensorboardX
-# RUN pip install --upgrade scipy
+RUN pip install --upgrade scipy
 
 ################################################################################
 
