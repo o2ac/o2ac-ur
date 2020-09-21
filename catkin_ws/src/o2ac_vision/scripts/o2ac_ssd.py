@@ -13,7 +13,7 @@ import cv2
 if torch.cuda.is_available():
     torch.set_default_tensor_type('torch.cuda.FloatTensor')
 rospack = rospkg.RosPack()
-sys.path.append(rospack.get_path("WRS_Dataset") + '/ssd.pytorch')
+sys.path.append(rospack.get_path("wrs_dataset") + '/ssd.pytorch')
 
 from ssd import build_ssd
 from data import WRS2020_Detection, WRS_ROOT, AnnotationTransform
@@ -40,14 +40,14 @@ o2ac_label = {
     15:(10,"10_CLBPS10_17_4")
 }
 
-annotation_root = rospack.get_path("WRS_Dataset") + "/Annotations/Far/Image-wise/*.json"
+annotation_root = rospack.get_path("wrs_dataset") + "/Annotations/Far/Image-wise/*.json"
 # アノテーションファイルの取得
 annotations = glob.glob(annotation_root)
 
 class ssd_detection():
 
     def __init__(self):
-        fname_weight = rospack.get_path("WRS_Dataset") + "/ssd.pytorch/WRS_lr1e3_bs16.pth"
+        fname_weight = rospack.get_path("wrs_dataset") + "/ssd.pytorch/WRS_lr1e3_bs16.pth"
         self.net = build_ssd('test', 300, 17)    # initialize SSD
         self.net.load_weights( fname_weight )
 

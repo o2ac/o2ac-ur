@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>WRS_Dataset</name>
+  <name>wrs_dataset</name>
   <version>0.0.1</version>
-  <description>The WRS_Dataset package</description>
+  <description>The wrs_dataset package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->

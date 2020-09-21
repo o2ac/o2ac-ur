@@ -16,7 +16,7 @@ class pose_estimation():
 
     def __init__(self, im_in, ssd_result):
         rospack = rospkg.RosPack()
-        temp_root = rospack.get_path("WRS_Dataset") + "/data/templates"
+        temp_root = rospack.get_path("wrs_dataset") + "/data/templates"
         # Name of template infomation
         temp_info_name = "template_info.json"
         # downsampling rate

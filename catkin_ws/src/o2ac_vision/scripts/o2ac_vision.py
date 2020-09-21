@@ -231,7 +231,7 @@ class O2ACVision(object):
         start = time.time()
 
         rospack = rospkg.RosPack()
-        temp_root = rospack.get_path("WRS_Dataset") + "/data/templates"
+        temp_root = rospack.get_path("wrs_dataset") + "/data/templates"
         # Name of template infomation
         temp_info_name = "template_info.json"
         # downsampling rate

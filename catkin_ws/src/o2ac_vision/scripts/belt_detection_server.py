@@ -17,7 +17,7 @@ rad2deg = 180.0 / math.pi
 deg2rad = math.pi/180.0
 
 rospack = rospkg.RosPack()
-annotation_root = rospack.get_path("WRS_Dataset") + "/Annotations/Far/Image-wise/*.json"
+annotation_root = rospack.get_path("wrs_dataset") + "/Annotations/Far/Image-wise/*.json"
 annotations = glob.glob(annotation_root)
 
 class BeltDetectionTest(object):

@@ -20,7 +20,7 @@ WRS2020_CLASSES = (  # always index 0
     'base_plate', 'L-plate_midi', 'L-plate_small',
     'moter', 'ro', 'ro-tall', 'bering-front', 'bering-back',
     'circle', 'pin', "bar", "belt", "ring2-front", "ring2-back", "part", "midi-part")
-WRS_ROOT = osp.join(HOME, "WRS2020/WRS_Dataset")
+WRS_ROOT = osp.join(HOME, "WRS2020/wrs_dataset")
 
 class AnnotationTransform(object):
     """Transforms an annotation into a Tensor of bbox coords and label index
@@ -86,8 +86,8 @@ class WRS2020_Detection(data.Dataset):
     def __init__(self, root,
                  image_set=['train', 'test'],
                  transform=None, target_transform=AnnotationTransform(),
-                 dataset_name='WRS_Dataset'):
-        self.root = root #WRS_Dataset/
+                 dataset_name='wrs_dataset'):
+        self.root = root #wrs_dataset/
         self.image_set = image_set 
         
         
@@ -172,7 +172,7 @@ class WRS2020_Detection(data.Dataset):
             index (int): index of img to get annotation of
         Return:
             list:  [img_path, [(label, bbox coords),...]]
-                eg: ('../WRS_Dataset/Images/Far/RGB/rgb0.png', [('dog', (96, 13, 438, 332))])
+                eg: ('../wrs_dataset/Images/Far/RGB/rgb0.png', [('dog', (96, 13, 438, 332))])
         '''
         anno = open( self.ids[index][1] )
         target = json.load( anno )
@@ -216,8 +216,8 @@ class WRS2020_Detection2(data.Dataset):
     def __init__(self, root,
                  image_set=['train', 'test'],
                  transform=None, target_transform=AnnotationTransform(),
-                 dataset_name='WRS_Dataset'):
-        self.root = root #WRS_Dataset/
+                 dataset_name='wrs_dataset'):
+        self.root = root #wrs_dataset/
         self.image_set = image_set 
         
         
@@ -306,7 +306,7 @@ class WRS2020_Detection2(data.Dataset):
             index (int): index of img to get annotation of
         Return:
             list:  [img_path, [(label, bbox coords),...]]
-                eg: ('../WRS_Dataset/Images/Far/RGB/rgb0.png', [('dog', (96, 13, 438, 332))])
+                eg: ('../wrs_dataset/Images/Far/RGB/rgb0.png', [('dog', (96, 13, 438, 332))])
         '''
         target = self.targets[index]
         gt = self.target_transform(target, 1, 1)
