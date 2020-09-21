@@ -2,7 +2,7 @@
 
 # Software License Agreement (BSD License)
 #
-# Copyright (c) 2018, Team o2ac
+# Copyright (c) 2020, Team O2AC
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -15,7 +15,7 @@
 #    copyright notice, this list of conditions and the following
 #    disclaimer in the documentation and/or other materials provided
 #    with the distribution.
-#  * Neither the name of Team o2ac nor the names of its
+#  * Neither the name of Team O2AC nor the names of its
 #    contributors may be used to endorse or promote products derived
 #    from this software without specific prior written permission.
 #
@@ -51,6 +51,8 @@ import cv2
 import actionlib
 import o2ac_msgs.msg
 
+import o2ac_vision
+
 class TestClass(O2ACCommon):
 
   def __init__(self):
@@ -73,32 +75,41 @@ class TestClass(O2ACCommon):
     ps.header.frame_id = "tray_center"
     ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, 0))
     ps.pose.position.z = .37
-    c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_cam_camera_color_frame", speed=.1, acceleration=.04)
+    c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
     rospy.sleep(2)
 
     ps.pose.position.z = .22
-    c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_cam_camera_color_frame", speed=.1, acceleration=.04)
+    c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
     rospy.sleep(2)
 
     ps.pose.position.x = x_offset
     ps.pose.position.y = y_offset
-    c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_cam_camera_color_frame", speed=.1, acceleration=.04)
+    c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
     rospy.sleep(2)
 
     ps.pose.position.x = -x_offset
     ps.pose.position.y = y_offset
-    c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_cam_camera_color_frame", speed=.1, acceleration=.04)
+    c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
     rospy.sleep(2)
 
     ps.pose.position.x = -x_offset
     ps.pose.position.y = -y_offset
-    c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_cam_camera_color_frame", speed=.1, acceleration=.04)
+    c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
     rospy.sleep(2)
 
     ps.pose.position.x = x_offset
     ps.pose.position.y = -y_offset
-    c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_cam_camera_color_frame", speed=.1, acceleration=.04)
+    c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
     return True
+  
+  def call_belt_action_and_show(self):
+    belt_detector = o2ac_vision.BeltDetectionClient()
+    belt_detector.trigger()
+    grasp_points = belt_detector.get_grasp_points()
+    print '\nbelt detection result'
+    print "grasp points: ", grasp_points
+    
+    # self.publish_marker(pose, "place_pose")
 
 if __name__ == '__main__':
   try:
@@ -110,6 +121,7 @@ if __name__ == '__main__':
       rospy.loginfo("2: Move b_bot above tray at 37 cm")
       rospy.loginfo("3: Move b_bot above tray at 22 cm")
       rospy.loginfo("4: Do distant view and 4 close views")
+      rospy.loginfo("5: Call belt grasp point detection and show result")
       rospy.loginfo("x: Exit ")
       rospy.loginfo(" ")
       r = raw_input()
@@ -122,16 +134,18 @@ if __name__ == '__main__':
         ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, 0))
         ps.pose.position.z = .37
         # c.go_to_named_pose("home", "a_bot")
-        c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_cam_camera_color_frame", speed=.1, acceleration=.04)
+        c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
       elif r == '3':
         ps = geometry_msgs.msg.PoseStamped()
         ps.header.frame_id = "tray_center"
         ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, 0))
         ps.pose.position.z = .22
         # c.go_to_named_pose("home", "a_bot")
-        c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_cam_camera_color_frame", speed=.1, acceleration=.04)
+        c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
       if r == '4':
         c.views()
+      if r == '5':
+        c.call_belt_action_and_show()
       elif r == 'x':
         break
       else:
