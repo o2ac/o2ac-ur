@@ -142,15 +142,20 @@ class O2ACBase(object):
       "a_bot_load_program":rospy.ServiceProxy('/a_bot/ur_hardware_interface/dashboard/load_program', ur_dashboard_msgs.srv.Load),
       "b_bot_load_program":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/load_program', ur_dashboard_msgs.srv.Load),
       "a_bot_play":rospy.ServiceProxy('/a_bot/ur_hardware_interface/dashboard/play', std_srvs.srv.Trigger),
-      "b_bot_play":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/play', std_srvs.srv.Trigger)
+      "b_bot_play":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/play', std_srvs.srv.Trigger),
+      "a_bot_quit":rospy.ServiceProxy('/a_bot/ur_hardware_interface/dashboard/quit', std_srvs.srv.Trigger),
+      "b_bot_quit":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/quit', std_srvs.srv.Trigger),
+      "a_bot_connect":rospy.ServiceProxy('/a_bot/ur_hardware_interface/dashboard/connect', std_srvs.srv.Trigger),
+      "b_bot_connect":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/connect', std_srvs.srv.Trigger)
     }
 
-    self.urscript_client = rospy.ServiceProxy('d/o2ac_skills/sendScriptToUR', o2ac_msgs.srv.sendScriptToUR)
+    self.urscript_client = rospy.ServiceProxy('/o2ac_skills/sendScriptToUR', o2ac_msgs.srv.sendScriptToUR)
     self.publishMarker_client = rospy.ServiceProxy('/o2ac_skills/publishMarker', o2ac_msgs.srv.publishMarker)
     self.toggleCollisions_client = rospy.ServiceProxy('/o2ac_skills/toggleCollisions', std_srvs.srv.SetBool)
 
     # Subscribers
-    self.sub_a_bot_status_ = rospy.Subscriber("/a_bot/ur_hardware_interface/robot_program_running", Bool, self.a_bot_ros_control_status_callback)
+    # "robot_program_running" refers only to the ROS external control UR script, not just any program
+    self.sub_a_bot_status_ = rospy.Subscriber("/a_bot/ur_hardware_interface/robot_program_running", Bool, self.a_bot_ros_control_status_callback) 
     self.sub_b_bot_status_ = rospy.Subscriber("/b_bot/ur_hardware_interface/robot_program_running", Bool, self.b_bot_ros_control_status_callback)
     self.sub_run_mode_ = rospy.Subscriber("/run_mode", Bool, self.run_mode_callback)
     self.sub_pause_mode_ = rospy.Subscriber("/pause_mode", Bool, self.pause_mode_callback)
@@ -236,19 +241,33 @@ class O2ACBase(object):
       return False
 
     # Load program if it not loaded already
+    rospy.loginfo("Activating ROS control on robot " + robot)
     response = self.ur_dashboard_clients[robot + "_get_loaded_program"].call(ur_dashboard_msgs.srv.GetLoadedProgramRequest())
     if response.program_name != "/programs/ROS_external_control.urp":
       request = ur_dashboard_msgs.srv.LoadRequest()
       request.filename = "ROS_external_control.urp"
       response = self.ur_dashboard_clients[robot + "_load_program"].call(request)
-      if not response.success:
-        rospy.logerr("Could not load the ROS_external_control.urp URCap. Is the UR robot set up correctly and the program installed with the correct name?")
-        return False
+      if not response.success: # Try reconnecting to dashboard
+        if recursion_depth > 2:  # Break out after 3 tries
+          rospy.logerr("Could not load the ROS_external_control.urp URCap. Is the UR in Remote Control mode and program installed with correct name?")
+          return False
+        if recursion_depth > 0:  # If connect alone failed, try quit and then connect
+          response = ur_dashboard_clients[robot + "_quit"].call()
+          rospy.sleep(.5)
+        response = ur_dashboard_clients[robot + "_connect"].call()
+        rospy.sleep(.5)
+        return activate_ros_control_on_ur(robot, recursion_depth=recursion_depth+1)
+        
     
     # Run the program
     response = self.ur_dashboard_clients[robot + "_play"].call(std_srvs.srv.TriggerRequest())
     rospy.sleep(2)
-    return response.success
+    if not response.success:
+      rospy.logerr("Could not start UR control. Is the UR in Remote Control mode and program installed with correct name?")
+      return False
+    else:
+      rospy.loginfo("Successfully activated ROS control on robot " + robot)
+      return True
     
   def publish_marker(self, pose_stamped, marker_type):
     # Publishes a marker to Rviz for visualization

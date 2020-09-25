@@ -66,7 +66,7 @@ public:
   void advertiseActionsAndServices();
 
   //Helpers (convenience functions)
-  bool activateROSControlOnUR(std::string robot_name);
+  bool activateROSControlOnUR(std::string robot_name, int recursion_depth = 0);
   bool moveToJointPose(std::vector<double> joint_positions, std::string robot_name, bool wait = true, double velocity_scaling_factor = 1.0, bool use_UR_script = false, double acceleration = 0.0);
   bool moveToCartPosePTP(geometry_msgs::PoseStamped pose, std::string robot_name, bool wait = true, std::string end_effector_link = "", double velocity_scaling_factor = 0.1);
   bool moveToCartPoseLIN(geometry_msgs::PoseStamped pose, std::string robot_name, bool wait = true, std::string end_effector_link = "", double velocity_scaling_factor = 0.1, double acceleration = 0.0, bool force_UR_script = false, bool force_moveit = false);

@@ -284,7 +284,7 @@ void SkillServer::initializeCollisionObjects()
   set_screw_tool.subframe_names[0] = "set_screw_tool_tip";
 }
 
-bool SkillServer::activateROSControlOnUR(std::string robot_name)
+bool SkillServer::activateROSControlOnUR(std::string robot_name, int recursion_depth)
 {
   ROS_DEBUG_STREAM("Checking if ros control active on " << robot_name);
   if (!use_real_robot_)
@@ -327,9 +327,29 @@ bool SkillServer::activateROSControlOnUR(std::string robot_name)
     load_program.call(srv3);
     if (!srv3.response.success)
     {
-      ROS_ERROR("Could not load the ROS_external_control.urp URCap. Is the UR robot set up correctly and the program installed with the correct name?");
-      ROS_ERROR_STREAM("service answer: " << srv3.response.answer);
-      return false;
+      if (recursion_depth < 3) // Reconnect and try again
+      {
+        ROS_WARN_STREAM("Could not load ROS_external_control.urp.");
+        ROS_WARN_STREAM("Trying to reconnect dashboard client and then activating again.");
+        if (recursion_depth > 0) // If connect alone failed once, try with quit then connect
+        {
+          ros::ServiceClient quit_client = n_.serviceClient<std_srvs::Trigger>("/" + robot_name + "/ur_hardware_interface/dashboard/quit");
+          std_srvs::Trigger quit;
+          quit_client.call(quit);
+          ros::Duration(0.5).sleep();
+        }
+        ros::ServiceClient connect_client = n_.serviceClient<std_srvs::Trigger>("/" + robot_name + "/ur_hardware_interface/dashboard/connect");
+        std_srvs::Trigger conn;
+        connect_client.call(conn);
+        ros::Duration(0.5).sleep();
+        return activateROSControlOnUR(robot_name, recursion_depth+1);
+      }
+      else
+      {
+        ROS_ERROR_STREAM("Was not able to load ROS_external_control.urp. Is Remote Mode set on the pendant, the UR robot set up correctly and the program installed with the correct name?");
+        ROS_ERROR_STREAM("service answer: " << srv3.response.answer);
+        return false;
+      }
     }
   }
 
@@ -339,12 +359,31 @@ bool SkillServer::activateROSControlOnUR(std::string robot_name)
   ros::Duration(2.0).sleep();
   if (!srv4.response.success)
   {
-    ROS_ERROR_STREAM("Could not start ROS_external_control.urp. Response: " << srv4.response);
-    play.call(srv4);
-    ros::Duration(2.0).sleep();
-    ROS_ERROR_STREAM("Response after trying one more time: " << (srv4.response.success ? "success" : "failure"));
+    if (recursion_depth < 3) // Reconnect and try again (this second block is probably redundant)
+    {
+      ROS_WARN_STREAM("Could not start ROS_external_control.urp.");
+      ROS_WARN_STREAM("Trying to reconnect dashboard client and then activating again.");
+      if (recursion_depth > 0)
+      {
+        ros::ServiceClient quit_client = n_.serviceClient<std_srvs::Trigger>("/" + robot_name + "/ur_hardware_interface/dashboard/quit");
+        std_srvs::Trigger quit;
+        quit_client.call(quit);
+        ros::Duration(0.5).sleep();
+      }
+      ros::ServiceClient connect_client = n_.serviceClient<std_srvs::Trigger>("/" + robot_name + "/ur_hardware_interface/dashboard/connect");
+      std_srvs::Trigger conn;
+      connect_client.call(conn);
+      ros::Duration(0.5).sleep();
+      return activateROSControlOnUR(robot_name, recursion_depth+1);
+    }
+    else
+    {
+      ROS_ERROR_STREAM("Was not able to start ROS_external_control.urp. Is Remote Mode set on the pendant, the UR robot set up correctly and the program installed with the correct name?");
+      return false;
+    }
   }
-  return srv4.response.success;
+  ROS_INFO_STREAM("Successfully activated ROS control on robot: " << robot_name);
+  return true;
 }
 
 bool SkillServer::moveToJointPose(std::vector<double> joint_positions, std::string robot_name, bool wait, double velocity_scaling_factor, bool use_UR_script, double acceleration)
