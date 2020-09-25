@@ -539,7 +539,8 @@ bool SkillServer::moveToCartPoseLIN(geometry_msgs::PoseStamped pose, std::string
       {
         ROS_DEBUG("Successfully called the URScript client to do linear motion.");
         ros::Duration(1.0).sleep();
-        waitForURProgram("/" + robot_name);
+        waitForURProgram("/" + robot_name, ros::Duration(10.0));
+        ROS_DEBUG("UR should now have completed URScript linear motion.");
         return true;
       }
       else
@@ -613,23 +614,24 @@ bool SkillServer::moveToCartPoseLIN(geometry_msgs::PoseStamped pose, std::string
       ROS_WARN_STREAM(scaled_trajectory.joint_trajectory.points[i].time_from_start.toSec() << " " << scaled_trajectory.joint_trajectory.points[i].positions[2]);
     // Get RobotTrajectory_msg from RobotTrajectory
     rt.getRobotTrajectoryMsg(scaled_trajectory);
+
+    // Remove first point if needed (otherwise this can be dangerous)
     if (scaled_trajectory.joint_trajectory.points[0].time_from_start.toSec() == scaled_trajectory.joint_trajectory.points[1].time_from_start.toSec()){
       scaled_trajectory.joint_trajectory.points.erase(scaled_trajectory.joint_trajectory.points.begin());
     }
     // Fill in move_group_
     myplan.trajectory_ = scaled_trajectory;
   
-    if (true) 
+    if (wait) 
+      motion_done = group_pointer->execute(myplan);
+    else 
+      motion_done = group_pointer->asyncExecute(myplan);
+    if (motion_done) 
     {
-      if (wait) motion_done = group_pointer->execute(myplan);
-      else motion_done = group_pointer->asyncExecute(myplan);
-      if (motion_done) 
-      {
-        group_pointer->setMaxVelocityScalingFactor(1.0); // Reset the velocity
-        group_pointer->setPlanningTime(1.0);
-        if (cartesian_success > .95) return true;
-        else return false;
-      }
+      group_pointer->setMaxVelocityScalingFactor(1.0); // Reset the velocity
+      group_pointer->setPlanningTime(1.0);
+      if (cartesian_success > .95) return true;
+      else return false;
     }
   }
   else
