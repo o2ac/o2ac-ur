@@ -92,10 +92,10 @@ public:
   bool publishMarker(geometry_msgs::PoseStamped marker_pose, std::string marker_type = "");
   bool publishPoseMarker(geometry_msgs::PoseStamped marker_pose);
 
-  bool openGripper(std::string robot_name, std::string gripper_name = "");
-  bool closeGripper(std::string robot_name, std::string gripper_name = "");
-  bool sendGripperCommand(std::string robot_name, double opening_width, std::string gripper_name = "");
-  bool sendFasteningToolCommand(std::string fastening_tool_name, std::string direction = "tighten", bool wait = false, double duration = 20.0, int speed = 500);
+  bool openGripper(std::string robot_name, std::string gripper_name = "", bool wait = true);
+  bool closeGripper(std::string robot_name, std::string gripper_name = "", bool wait = true);
+  bool sendGripperCommand(std::string robot_name, double opening_width, std::string gripper_name = "", bool wait = true);
+  bool sendFasteningToolCommand(std::string fastening_tool_name, std::string direction = "tighten", bool wait = false, double duration = 20.0, int speed = 0);
   bool setSuctionEjection(std::string fastening_tool_name, bool turn_suction_on = true, bool eject_screw = false);
 
   // Callback declarations
