@@ -128,7 +128,7 @@ class O2ACBase(object):
     self.release_planning_client = actionlib.SimpleActionClient('/release_planning', o2ac_task_planning_msgs.msg.ReleaseObjectAction)
     self.pickplace_planning_client = actionlib.SimpleActionClient('/pick_place_planning', o2ac_task_planning_msgs.msg.PickPlaceWithRegraspAction)
     self.fastening_planning_client = actionlib.SimpleActionClient('/fastening_planning', o2ac_task_planning_msgs.msg.PlaceObjectAction)
-    self.sub_assembly_planning_client = actionlib.SimpleActionClient('/sub_assembly_planning', o2ac_task_planning_msgs.msg.PickPlaceWithRegraspAction)
+    self.wrs_subtask_b_planning_client = actionlib.SimpleActionClient('/wrs_subtask_b_planning', o2ac_task_planning_msgs.msg.PickPlaceWithRegraspAction)
     
     self._suction_client = actionlib.SimpleActionClient('/suction_control', o2ac_msgs.msg.SuctionControlAction)
     self._fastening_tool_client = actionlib.SimpleActionClient('/screw_tool_control', o2ac_msgs.msg.FastenerGripperControlAction)
@@ -867,9 +867,9 @@ class O2ACBase(object):
     self.fastening_planning_client.wait_for_result()
     return self.fastening_planning_client.get_result()
 
-  def do_plan_subassembly_action(self, object_name, object_target_pose, object_subframe_to_place, approach_place_direction_reference_frame = '', approach_place_direction = []):
+  def do_plan_wrs_subtask_b_action(self, object_name, object_target_pose, object_subframe_to_place, approach_place_direction_reference_frame = '', approach_place_direction = []):
     '''
-    Function for calling the action for subassembly (fixing the L plate on the base plate) planning
+    Function for calling the action for subassembly (fixing the motor L plate on the base plate) planning
     The function returns the action result that contains the trajectories for the motion plan
     '''
     goal = moveit_task_constructor_msgs.msg.PickPlaceWithRegraspGoal()
@@ -878,10 +878,10 @@ class O2ACBase(object):
     goal.object_subframe_to_place = object_subframe_to_place
     goal.approach_place_direction_reference_frame = approach_place_direction_reference_frame
     goal.approach_place_direction = approach_place_direction
-    rospy.loginfo("Sending sub-assembly planning goal.")
-    self.sub_assembly_planning_client.send_goal(goal)
-    self.sub_assembly_planning_client.wait_for_result()
-    return self.sub_assembly_planning_client.get_result()
+    rospy.loginfo("Sending wrs subtask B planning goal.")
+    self.wrs_subtask_b_planning_client.send_goal(goal)
+    self.wrs_subtask_b_planning_client.wait_for_result()
+    return self.wrs_subtask_b_planning_client.get_result()
 
   def set_motor(self, motor_name, direction = "tighten", wait=False, speed = 0, duration = 0):
     if not self.use_real_robot:

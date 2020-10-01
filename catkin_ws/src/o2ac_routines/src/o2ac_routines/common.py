@@ -134,10 +134,10 @@ class O2ACCommon(O2ACBase):
       rospy.loginfo("Exiting fasten() after writing solution")
     return result.success
 
-  def subassembly(self, object_name, object_target_pose, object_subframe_to_place, approach_place_direction_reference_frame = '', approach_place_direction = [], save_solution_to_file=''):
+  def plan_wrs_subtask_b(self, object_name, object_target_pose, object_subframe_to_place, approach_place_direction_reference_frame = '', approach_place_direction = [], save_solution_to_file=''):
     """This function creates a motion=plan for the subassembly task of attaching the 'object' on the base plate
     """
-    result = self.do_plan_subassembly_action(object_name, object_target_pose, object_subframe_to_place, approach_place_direction_reference_frame, approach_place_direction)
+    result = self.do_plan_wrs_subtask_b_action(object_name, object_target_pose, object_subframe_to_place, approach_place_direction_reference_frame, approach_place_direction)
 
     path = self.rospack.get_path('o2ac_routines')
     path += '/MP_solutions/'

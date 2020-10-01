@@ -84,7 +84,7 @@ class Modules_Planner{
 		release_planning_server(Modules_Planner::nh, "release_planning", boost::bind(&Modules_Planner::release_planning_server_cb, this, _1), false),
 		pick_place_planning_server(Modules_Planner::nh, "pick_place_planning", boost::bind(&Modules_Planner::pick_place_planning_server_cb, this, _1), false),
 		fastening_planning_server(Modules_Planner::nh, "fastening_planning", boost::bind(&Modules_Planner::fastening_planning_server_cb, this, _1), false),
-		sub_assembly_planning_server(Modules_Planner::nh, "sub_assembly_planning", boost::bind(&Modules_Planner::sub_assembly_planning_server_cb, this, _1), false)
+		wrs_subtask_b_planning_server(Modules_Planner::nh, "wrs_subtask_b_planning", boost::bind(&Modules_Planner::wrs_subtask_b_planning_server_cb, this, _1), false)
     	{
 			pick_place_planning_server.start();
         	pick_planning_server.start();
@@ -92,7 +92,7 @@ class Modules_Planner{
 			place_with_correction_planning_server.start();
 			release_planning_server.start();
 			fastening_planning_server.start();
-			sub_assembly_planning_server.start();
+			wrs_subtask_b_planning_server.start();
 			ROS_INFO_NAMED(LOGNAME, "Starting MTC Modules action servers");
     	}
 
@@ -134,7 +134,7 @@ class Modules_Planner{
 		void createPlaceWithCorrection(const std::string& object, const geometry_msgs::PoseStamped& target_pose, bool release_object=true, const std::string& object_subframe_to_place="");
 		void createReleaseRetreat(const std::string& object, const std::string& pose_to_retreat_to="");
 		void createFasten(const std::string& object, const geometry_msgs::PoseStamped& target_pose, const std::string& object_subframe_to_place="");
-		void createSubAssembly(const std::string& object, const geometry_msgs::PoseStamped& target_pose, bool release_object=true, const std::string& object_subframe_to_place="");
+		void createWRSSubtaskMotorPlate(const std::string& object, const geometry_msgs::PoseStamped& target_pose, bool release_object=true, const std::string& object_subframe_to_place="");
 
 		/****************************************************
 		 *                                                  *
@@ -387,7 +387,7 @@ class Modules_Planner{
 			pick_place_planning_server.setSucceeded(pick_place_result);
 		}
 
-		void sub_assembly_planning_server_cb(const o2ac_task_planning_msgs::PickPlaceWithRegraspGoalConstPtr& goal){
+		void wrs_subtask_b_planning_server_cb(const o2ac_task_planning_msgs::PickPlaceWithRegraspGoalConstPtr& goal){
 			bool success = false;
 			moveit_task_constructor_msgs::Solution sol;
 			std::string temp_grasp_parameter_location = grasp_parameter_location;
@@ -410,7 +410,7 @@ class Modules_Planner{
 				approach_place_direction = goal->approach_place_direction;
 			}
 
-			createSubAssembly(goal->object_name, goal->object_target_pose, goal->release_object_after_place, goal->object_subframe_to_place);
+			createWRSSubtaskMotorPlate(goal->object_name, goal->object_target_pose, goal->release_object_after_place, goal->object_subframe_to_place);
 
 			try {
 				success = task_->plan(10);
@@ -432,7 +432,7 @@ class Modules_Planner{
 			lift_direction = temp_lift_direction;
 			approach_place_direction_reference_frame = temp_approach_place_direction_reference_frame;
 			approach_place_direction = temp_approach_place_direction;
-			sub_assembly_planning_server.setSucceeded(pick_place_result);
+			wrs_subtask_b_planning_server.setSucceeded(pick_place_result);
 		}
 
 	private:
@@ -440,7 +440,7 @@ class Modules_Planner{
 
 		// Action servers and result messages
 		actionlib::SimpleActionServer<o2ac_task_planning_msgs::PickPlaceWithRegraspAction> pick_place_planning_server;
-		actionlib::SimpleActionServer<o2ac_task_planning_msgs::PickPlaceWithRegraspAction> sub_assembly_planning_server;
+		actionlib::SimpleActionServer<o2ac_task_planning_msgs::PickPlaceWithRegraspAction> wrs_subtask_b_planning_server;
 		actionlib::SimpleActionServer<o2ac_task_planning_msgs::PickObjectAction> pick_planning_server;
 		actionlib::SimpleActionServer<o2ac_task_planning_msgs::PlaceObjectAction> place_planning_server;
 		actionlib::SimpleActionServer<o2ac_task_planning_msgs::PlaceObjectAction> place_with_correction_planning_server;
@@ -1781,11 +1781,11 @@ void Modules_Planner::createFasten(const std::string& object, const geometry_msg
 	t.add(Modules_Planner::Fasten_Alternatives(object, target_pose, object_subframe_to_place));
 }
 
-void Modules_Planner::createSubAssembly(const std::string& object, const geometry_msgs::PoseStamped& target_pose, bool release_object, const std::string& object_subframe_to_place){
+void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, const geometry_msgs::PoseStamped& target_pose, bool release_object, const std::string& object_subframe_to_place){
 	task_.reset();
 	task_.reset(new moveit::task_constructor::Task());
 	moveit::task_constructor::Task& t = *task_;
-	t.stages()->setName("Attach L-plate to base plate");
+	t.stages()->setName("Attach motor L-plate to base plate");
 	t.loadRobotModel();
 
 	robot_model_ = t.getRobotModel();
@@ -1793,17 +1793,25 @@ void Modules_Planner::createSubAssembly(const std::string& object, const geometr
 	// pick-place object
 	t.add(Modules_Planner::Pick_Place_Fallback(object, target_pose, release_object, object_subframe_to_place));
 
+	// Try to position the object correctly
+	{
+		auto stage = std::make_unique<stages::Dummy>("'before adjusting plate position'");
+		t.add(std::move(stage));
+	}
 	{  // Open Hand
 		auto stage = std::make_unique<stages::MoveTo>("open hand", sampling_planner);
 		stage->setGroup("a_bot_robotiq_85");
 		stage->setGoal("open");
 		t.add(std::move(stage));
 	}
-
 	{  // Close Hand
 		auto stage = std::make_unique<stages::MoveTo>("close hand", sampling_planner);
 		stage->setGroup("a_bot_robotiq_85");
 		stage->setGoal("close");
+		t.add(std::move(stage));
+	}
+	{
+		auto stage = std::make_unique<stages::Dummy>("'after adjusting plate position'");
 		t.add(std::move(stage));
 	}
 
