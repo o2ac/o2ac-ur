@@ -1522,7 +1522,8 @@ void Modules_Planner::createSubAssembly(const std::string& object, const geometr
 	}
 
 	// pick screw tool
-	t.add(Modules_Planner::Pick_and_Lift_Alternatives(tool, false));
+	t.add(Modules_Planner::Pick_and_Lift(tool, "b_bot", false));
+	
 
 	// move back
 	{
@@ -1550,7 +1551,7 @@ void Modules_Planner::createSubAssembly(const std::string& object, const geometr
 	}
 
 	// pick up screw
-	t.add(Modules_Planner::Fasten_Alternatives(tool, screw_pickup_pose, screw_tool_tip_frame, false, "Pick up screw"));
+	t.add(Modules_Planner::Fasten(tool, screw_pickup_pose, "b_bot", screw_tool_tip_frame, false, "Pick up screw"));
 
 	// move back
 	{
@@ -1562,8 +1563,8 @@ void Modules_Planner::createSubAssembly(const std::string& object, const geometr
 
 	approach_place_direction_reference_frame = "panel_bearing/bottom_screw_hole_1";
 	approach_place_direction[0] = 1.0;
-	approach_place_direction[1] = 1.0;
-	approach_place_direction[2] = 1.0;
+	approach_place_direction[1] = 0.0;
+	approach_place_direction[2] = 0.0;
 
 	geometry_msgs::PoseStamped screwing_pose;
 	screwing_pose.header.frame_id = "panel_bearing/bottom_screw_hole_1";
@@ -1580,7 +1581,7 @@ void Modules_Planner::createSubAssembly(const std::string& object, const geometr
 		t.add(std::move(stage));
 	}
 
-	t.add(Modules_Planner::Fasten_Alternatives(tool, screwing_pose, screw_tool_tip_frame, false, "Fasten screw"));
+	t.add(Modules_Planner::Fasten(tool, screwing_pose, "b_bot", screw_tool_tip_frame, false, "Fasten screw"));
 
 	// move_back
 	{
@@ -1596,7 +1597,7 @@ void Modules_Planner::createSubAssembly(const std::string& object, const geometr
 	retreat_direction[2] = 1;
 
 	// release object and retreat
-	t.add(Modules_Planner::Release_and_Retreat_Alternatives(object, "home", false));
+	t.add(Modules_Planner::Release_and_Retreat(object, "a_bot", "home", false));
 
 	retreat_direction_reference_frame = "";
 	retreat_direction[0] = -1;
@@ -1617,7 +1618,7 @@ void Modules_Planner::createSubAssembly(const std::string& object, const geometr
 	}
 
 	// pick up screw
-	t.add(Modules_Planner::Fasten_Alternatives(tool, screw_pickup_pose, screw_tool_tip_frame, false, "Pick up screw"));
+	t.add(Modules_Planner::Fasten(tool, screw_pickup_pose, "b_bot", screw_tool_tip_frame, false, "Pick up screw"));
 
 	// move back
 	{
@@ -1629,8 +1630,8 @@ void Modules_Planner::createSubAssembly(const std::string& object, const geometr
 
 	approach_place_direction_reference_frame = "panel_bearing/bottom_screw_hole_1";
 	approach_place_direction[0] = 1.0;
-	approach_place_direction[1] = 1.0;
-	approach_place_direction[2] = 1.0;
+	approach_place_direction[1] = 0.0;
+	approach_place_direction[2] = 0.0;
 
 	screwing_pose.header.frame_id = "panel_bearing/bottom_screw_hole_2";
 
@@ -1642,7 +1643,7 @@ void Modules_Planner::createSubAssembly(const std::string& object, const geometr
 		t.add(std::move(stage));
 	}
 
-	t.add(Modules_Planner::Fasten_Alternatives(tool, screwing_pose, screw_tool_tip_frame, false, "Fasten screw"));
+	t.add(Modules_Planner::Fasten(tool, screwing_pose, "b_bot", screw_tool_tip_frame, false, "Fasten screw"));
 
 	// move_back
 	{
@@ -1673,7 +1674,7 @@ void Modules_Planner::createSubAssembly(const std::string& object, const geometr
 	}
 
 	// place screw tool
-	t.add(Modules_Planner::Place_Alternatives(tool, screw_tool_place, true, "", false));
+	t.add(Modules_Planner::Place(tool, screw_tool_place, "b_bot", true, "", false));
 
 	// move_back
 	{
