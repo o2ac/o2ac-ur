@@ -76,7 +76,7 @@ class ObjectRecognition(object):
                 poses, overlaps = self.localize(goal.item_id,
                                                 result.bbox, pose2d)
                 if len(poses) > 0:
-                    recognition_result.succeeded = True
+                    recognition_result.succeeded     = True
                     recognition_result.detected_pose = poses[0]
                     recognition_result.confidence    = overlaps[0]
                     self._recognition_server.set_succeeded(recognition_result)

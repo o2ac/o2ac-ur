@@ -67,12 +67,15 @@ class O2ACVision(object):
     def __init__(self):
     	rospy.init_node('o2ac_vision_', anonymous=False)
 
-        # Setup subscriber for RGB image
+        # Setup subscriber for input RGB image
         self.image_sub = rospy.Subscriber('/image', sensor_msgs.msg.Image,
                                           self.image_subscriber_callback)
+
+        # Setup publisher for output result image
         self.image_pub = rospy.Publisher('~result_image',
                                          sensor_msgs.msg.Image, queue_size=1)
 
+        # Determine whether the server works with continuous mode or not.
         self.cont = rospy.get_param('~cont', False)
 
         if self.cont:
@@ -114,7 +117,7 @@ class O2ACVision(object):
     def image_subscriber_callback(self, image):
         # First, obtain the image from the camera and convert it
         bridge = cv_bridge.CvBridge()
-        im_in  = bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
+        im_in  = bridge.imgmsg_to_cv2(image, desired_encoding="passthrough")
         im_vis = im_in.copy()
 
         if self.cont:
@@ -127,7 +130,7 @@ class O2ACVision(object):
 
             self.results_pub.publish(detectedObjects_msg)
 
-            # Publish an image which visualizes the results
+            # Publish images visualizing results
             self.image_pub.publish(bridge.cv2_to_imgmsg(im_vis))
 
         elif self.pose_estimation_server.is_active():
@@ -136,7 +139,7 @@ class O2ACVision(object):
                 = self.get_pose_estimation_results(im_in, im_vis)
             self.pose_estimation_server.set_succeeded(action_result)
 
-            # Publish an image which visualizes the results
+            # Publish images visualizing results
             self.image_pub.publish(bridge.cv2_to_imgmsg(im_vis))
 
         elif self.belt_detection_server.is_active():
@@ -164,15 +167,15 @@ class O2ACVision(object):
             target = ssd_result["class"]
             estimatedPose_msg = o2ac_msgs.msg.EstimatedPose()
             estimatedPose_msg.confidence = ssd_result["confidence"]
-            estimatedPose_msg.class_id = target
-            estimatedPose_msg.bbox = ssd_result["bbox"]
+            estimatedPose_msg.class_id   = target
+            estimatedPose_msg.bbox       = ssd_result["bbox"]
 
             if target in apply_2d_pose_estimation:
                 print("Target id is ", target, " apply the 2d pose estimation")
-                pose_estimation_results, im_vis = self.estimate_pose_in_image(im_in, im_vis, ssd_result)
+                pose_estimation_results, im_vis \
+                    = self.estimate_pose_in_image(im_in, im_vis, ssd_result)
+                estimatedPose_msg.center   = pose_estimation_results[0]
                 estimatedPose_msg.rotation = pose_estimation_results[1]
-                estimatedPose_msg.center.append(pose_estimation_results[0][0])
-                estimatedPose_msg.center.append(pose_estimation_results[0][1])
 
             elif target in apply_3d_pose_estimation:
                 print("Target id is ", target, " apply the 3d pose estimation")
@@ -201,30 +204,6 @@ class O2ACVision(object):
     def detect_object_in_image(self, cv_image, im_vis):
         ssd_results, im_vis = ssd_detection.object_detection(cv_image, im_vis)
         return ssd_results, im_vis
-
-    def grasp_detection_in_image( self, im_in, im_vis ):
-
-        start = time.time()
-
-        # Generation of a hand template
-        im_hand = np.zeros( (60,60), np.float )
-        hand_width = 20 #in pixel
-        im_hand[0:10,20:20+hand_width] = 1
-        im_hand[50:60,20:20+hand_width] = 1
-
-        # Generation of a colision template
-        im_collision = np.zeros( (60,60), np.float )
-        im_collision[10:50,20:20+hand_width] = 1
-
-        param_fge = {"ds_rate": 0.5, "target_lower":[0, 150, 100], "target_upper":[15, 255, 255],
-                    "fg_lower": [0, 0, 100], "fg_upper": [179, 255, 255], "hand_rotation":[0,45,90,135], "threshold": 0.01}
-
-        fge = FastGraspabilityEvaluation( im_in, im_hand, im_collision, param_fge )
-        results = fge.main_proc()
-        im_vis  = fge.visualization(im_vis)
-        cv2.imwrite("reslut_grasp_points.png", im_vis )
-
-        return results, im_vis
 
     def estimate_pose_in_image(self, im_in, im_vis, ssd_result):
 
@@ -262,6 +241,35 @@ class O2ACVision(object):
         im_vis = tm.get_result_image(ssd_result, ori, center, im_vis)
 
         return result, im_vis
+
+    def grasp_detection_in_image( self, im_in, im_vis ):
+
+        start = time.time()
+
+        # Generation of a hand template
+        im_hand = np.zeros( (60,60), np.float )
+        hand_width = 20 #in pixel
+        im_hand[0:10,20:20+hand_width] = 1
+        im_hand[50:60,20:20+hand_width] = 1
+
+        # Generation of a colision template
+        im_collision = np.zeros( (60,60), np.float )
+        im_collision[10:50,20:20+hand_width] = 1
+
+        param_fge = {"ds_rate": 0.5,
+                     "target_lower":[0, 150, 100],
+                     "target_upper":[15, 255, 255],
+                     "fg_lower": [0, 0, 100],
+                     "fg_upper": [179, 255, 255],
+                     "hand_rotation":[0,45,90,135],
+                     "threshold": 0.01}
+
+        fge = FastGraspabilityEvaluation( im_in, im_hand, im_collision, param_fge )
+        results = fge.main_proc()
+        im_vis  = fge.visualization(im_vis)
+        cv2.imwrite("reslut_grasp_points.png", im_vis )
+
+        return results, im_vis
 
 
 if __name__ == '__main__':
