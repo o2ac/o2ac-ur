@@ -393,11 +393,15 @@ class URScriptRelay():
             program = ""
             program += "def move_lin_rel():\n"
             program += "    textmsg(\"Move_l via relative translation.\")\n"
-            program += "    current_pos = get_actual_tcp_pose()\n"
             program += "    offset_pose = p[" + str(xyz[0]) + ", " + str(xyz[1]) + ", " + str(xyz[2]) + "," \
-                                + str(rot[0]) + ", " + str(rot[1]) + ", " + str(rot[2]) + "]\n"
-            program += "    movel(pose_trans(current_pos, offset_pose), " + \
-                            "a = " + str(req.acceleration) + ", v = " + str(req.velocity) + ")\n"
+                                    + str(rot[0]) + ", " + str(rot[1]) + ", " + str(rot[2]) + "]\n"
+            program += "    current_pos = get_actual_tcp_pose()\n"
+            if not req.lin_move_rel_in_base_csys: # Move relative to TCP
+                program += "    movel(pose_trans(current_pos, offset_pose), " + \
+                                "a = " + str(req.acceleration) + ", v = " + str(req.velocity) + ")\n"
+            else: # Move relative to robot base
+                program += "    movel(pose_trans(offset_pose, current_pos), " + \
+                                "a = " + str(req.acceleration) + ", v = " + str(req.velocity) + ")\n"
             program += "    textmsg(\"Done.\")\n"
             program += "end\n"
         elif req.program_id == "spiral_press":
