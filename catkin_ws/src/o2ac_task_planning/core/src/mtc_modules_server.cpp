@@ -264,6 +264,7 @@ class Modules_Planner{
 			arm_group_names = temp_arm_group_names;
 			place_with_correction_planning_server.setSucceeded(place_with_correction_result);
 		}
+
 		void release_planning_server_cb(const o2ac_task_planning_msgs::ReleaseObjectGoalConstPtr& goal){
 			bool success = false;
 			moveit_task_constructor_msgs::Solution sol;
@@ -443,7 +444,7 @@ class Modules_Planner{
 		actionlib::SimpleActionServer<o2ac_task_planning_msgs::PickPlaceWithRegraspAction> wrs_subtask_b_planning_server;
 		actionlib::SimpleActionServer<o2ac_task_planning_msgs::PickObjectAction> pick_planning_server;
 		actionlib::SimpleActionServer<o2ac_task_planning_msgs::PlaceObjectAction> place_planning_server;
-		actionlib::SimpleActionServer<o2ac_task_planning_msgs::PlaceObjectAction> place_with_correction_planning_server;
+		actionlib::SimpleActionServer<o2ac_task_planning_msgs::PlaceObjectWithCorrectionAction> place_with_correction_planning_server;
 		actionlib::SimpleActionServer<o2ac_task_planning_msgs::ReleaseObjectAction> release_planning_server;
 		actionlib::SimpleActionServer<o2ac_task_planning_msgs::PlaceObjectAction> fastening_planning_server;
 		o2ac_task_planning_msgs::PickPlaceWithRegraspResult pick_place_result;
@@ -1639,7 +1640,7 @@ std::unique_ptr<Alternatives> Modules_Planner::Place_With_Correction_Alternative
 	auto parallel = std::make_unique<Alternatives>("Place with correction '" + object + "'");
 
 	for (std::string arm_group_name : arm_group_names){
-		parallel->insert(std::move(Modules_Planner::Place_Object_With_Correction(object, target_pose, arm_group_name, release_object, object_subframe_to_place, this_is_start)));
+		parallel->insert(std::move(Modules_Planner::Place_With_Correction(object, target_pose, arm_group_name, release_object, object_subframe_to_place, this_is_start)));
 	}
 	return parallel;
 }
