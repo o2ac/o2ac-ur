@@ -288,7 +288,7 @@ Localization::localize_in_plane(const goal_cp& goal)
 	feedback.overlap = 1.0;
 	_localize_srv.publishFeedback(feedback);
 
-	ros::Duration(0.1).sleep();
+	ros::Duration(0.1).sleep();	// for the client not to drop feedback
 
 	ROS_INFO_STREAM("(Localization)   found " << i+1 << "-th pose.");
     }

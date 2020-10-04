@@ -1,6 +1,4 @@
 # Request
-string object_id
-string camera_id
 
 ---
 # Result

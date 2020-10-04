@@ -114,7 +114,7 @@ if __name__ == '__main__':
                                    'urdf/generated'))
 
     spawner = ModelSpawnerServer(urdf_dir)
-    rate    = rospy.Rate(1)
+    rate    = rospy.Rate(10)
     while not rospy.is_shutdown():
         spawner.tick()
         rate.sleep()

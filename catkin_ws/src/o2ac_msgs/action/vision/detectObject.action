@@ -2,7 +2,6 @@
 
 # Request (sent from the action client to the action server)
 string item_id     # Name of the item. The CAD model should be retrieved separately (o2ac_parts_description)
-string camera_id   # Which camera to use. "a_bot_cam_outside", "a_bot_cam_inside"...
 
 # Optional parameter:
 # A guess where the object is expected to be. This could be used e.g. with YOLO,

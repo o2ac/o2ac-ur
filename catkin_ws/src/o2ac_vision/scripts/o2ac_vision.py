@@ -66,8 +66,6 @@ class O2ACVision(object):
     # This class advertises the vision actions that we will call during the tasks.
 
     def __init__(self):
-    	rospy.init_node('o2ac_vision_', anonymous=False)
-
         # Setup subscriber for input RGB image
         self.image_sub = rospy.Subscriber('/image', smsg.Image,
                                           self.image_subscriber_callback)
@@ -92,9 +90,8 @@ class O2ACVision(object):
         rospy.loginfo("O2AC_vision has started up!")
 
     def pose_estimation_goal_callback(self):
-        self.object_id = self.pose_estimation_server.accept_new_goal().object_id
-        rospy.loginfo("Received a request to detect object named "
-                      + self.object_id)
+        self.pose_estimation_server.accept_new_goal()
+        rospy.loginfo("Received a request to detect object")
 
     def pose_estimation_preempt_callback(self):
         rospy.loginfo("o2ac_msgs.msg.poseEstimationAction preempted")
@@ -235,10 +232,6 @@ class O2ACVision(object):
 
 
 if __name__ == '__main__':
-    try:
-        c = O2ACVision()
-        rospy.spin()
-        # while not rospy.is_shutdown():
-        #     rospy.sleep(.1)
-    except rospy.ROSInterruptException:
-        pass
+    rospy.init_node('o2ac_vision', anonymous=False)
+    c = O2ACVision()
+    rospy.spin()
