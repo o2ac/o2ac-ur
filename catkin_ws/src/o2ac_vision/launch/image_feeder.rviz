@@ -56,29 +56,83 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
-        assy_part_02:
+        _00_assy_part_02:
           Value: true
-        assy_part_02_back_hole:
+        _00_assy_part_02_back_hole:
           Value: true
-        assy_part_02_bottom_screw_hole_1:
+        _00_assy_part_02_bottom_screw_hole_1:
           Value: true
-        assy_part_02_bottom_screw_hole_2:
+        _00_assy_part_02_bottom_screw_hole_2:
           Value: true
-        assy_part_02_bottom_screw_hole_aligner_1:
+        _00_assy_part_02_bottom_screw_hole_aligner_1:
           Value: true
-        assy_part_02_bottom_screw_hole_aligner_2:
+        _00_assy_part_02_bottom_screw_hole_aligner_2:
           Value: true
-        assy_part_02_motor_screw_hole_1:
+        _00_assy_part_02_motor_screw_hole_1:
           Value: true
-        assy_part_02_motor_screw_hole_2:
+        _00_assy_part_02_motor_screw_hole_2:
           Value: true
-        assy_part_02_motor_screw_hole_3:
+        _00_assy_part_02_motor_screw_hole_3:
           Value: true
-        assy_part_02_motor_screw_hole_4:
+        _00_assy_part_02_motor_screw_hole_4:
           Value: true
-        assy_part_02_motor_screw_hole_5:
+        _00_assy_part_02_motor_screw_hole_5:
           Value: true
-        assy_part_02_motor_screw_hole_6:
+        _00_assy_part_02_motor_screw_hole_6:
+          Value: true
+        _00_assy_part_03:
+          Value: true
+        _00_assy_part_03_bottom_screw_hole_1:
+          Value: true
+        _00_assy_part_03_bottom_screw_hole_2:
+          Value: true
+        _00_assy_part_03_bottom_screw_hole_aligner_1:
+          Value: true
+        _00_assy_part_03_bottom_screw_hole_aligner_2:
+          Value: true
+        _00_assy_part_03_front_hole:
+          Value: true
+        _00_assy_part_03_pulley_ridge_bottom:
+          Value: true
+        _00_assy_part_03_pulley_ridge_middle:
+          Value: true
+        _00_assy_part_03_pulley_ridge_top:
+          Value: true
+        _00_assy_part_05:
+          Value: true
+        _00_assy_part_05_center:
+          Value: true
+        _00_assy_part_06:
+          Value: true
+        _00_assy_part_12:
+          Value: true
+        _00_assy_part_12_center:
+          Value: true
+        _01_assy_part_06:
+          Value: true
+        _02_assy_part_06:
+          Value: true
+        _03_assy_part_06:
+          Value: true
+        _04_assy_part_06:
+          Value: true
+        _05_assy_part_06:
+          Value: true
+        _06_assy_part_06:
+          Value: true
+        _07_assy_part_06:
+          Value: true
+        _08_assy_part_06:
+          Value: true
+        _09_assy_part_06:
+          Value: true
+        _10_assy_part_06:
+          Value: true
+        _11_assy_part_06:
+          Value: true
+        _12_assy_part_06:
+          Value: true
+        _13_assy_part_06:
           Value: true
         base_link:
           Value: true
@@ -92,29 +146,80 @@ Visualization Manager:
       Tree:
         base_link:
           map:
-            assy_part_02:
-              assy_part_02_back_hole:
+            _00_assy_part_02:
+              _00_assy_part_02_back_hole:
                 {}
-              assy_part_02_bottom_screw_hole_1:
+              _00_assy_part_02_bottom_screw_hole_1:
                 {}
-              assy_part_02_bottom_screw_hole_2:
+              _00_assy_part_02_bottom_screw_hole_2:
                 {}
-              assy_part_02_bottom_screw_hole_aligner_1:
+              _00_assy_part_02_bottom_screw_hole_aligner_1:
                 {}
-              assy_part_02_bottom_screw_hole_aligner_2:
+              _00_assy_part_02_bottom_screw_hole_aligner_2:
                 {}
-              assy_part_02_motor_screw_hole_1:
+              _00_assy_part_02_motor_screw_hole_1:
                 {}
-              assy_part_02_motor_screw_hole_2:
+              _00_assy_part_02_motor_screw_hole_2:
                 {}
-              assy_part_02_motor_screw_hole_3:
+              _00_assy_part_02_motor_screw_hole_3:
                 {}
-              assy_part_02_motor_screw_hole_4:
+              _00_assy_part_02_motor_screw_hole_4:
                 {}
-              assy_part_02_motor_screw_hole_5:
+              _00_assy_part_02_motor_screw_hole_5:
                 {}
-              assy_part_02_motor_screw_hole_6:
+              _00_assy_part_02_motor_screw_hole_6:
                 {}
+            _00_assy_part_03:
+              _00_assy_part_03_bottom_screw_hole_1:
+                {}
+              _00_assy_part_03_bottom_screw_hole_2:
+                {}
+              _00_assy_part_03_bottom_screw_hole_aligner_1:
+                {}
+              _00_assy_part_03_bottom_screw_hole_aligner_2:
+                {}
+              _00_assy_part_03_front_hole:
+                {}
+              _00_assy_part_03_pulley_ridge_bottom:
+                {}
+              _00_assy_part_03_pulley_ridge_middle:
+                {}
+              _00_assy_part_03_pulley_ridge_top:
+                {}
+            _00_assy_part_05:
+              _00_assy_part_05_center:
+                {}
+            _00_assy_part_06:
+              {}
+            _00_assy_part_12:
+              _00_assy_part_12_center:
+                {}
+            _01_assy_part_06:
+              {}
+            _02_assy_part_06:
+              {}
+            _03_assy_part_06:
+              {}
+            _04_assy_part_06:
+              {}
+            _05_assy_part_06:
+              {}
+            _06_assy_part_06:
+              {}
+            _07_assy_part_06:
+              {}
+            _08_assy_part_06:
+              {}
+            _09_assy_part_06:
+              {}
+            _10_assy_part_06:
+              {}
+            _11_assy_part_06:
+              {}
+            _12_assy_part_06:
+              {}
+            _13_assy_part_06:
+              {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -170,8 +275,67 @@ Visualization Manager:
     - Alpha: 1
       Class: aist_model_spawner/TransientModel
       Collision Enabled: false
-      Color: 204; 51; 51
+      Color: 51; 100; 150
       Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        _00_assy_part_02:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        _00_assy_part_02_back_hole:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        _00_assy_part_02_bottom_screw_hole_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        _00_assy_part_02_bottom_screw_hole_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        _00_assy_part_02_bottom_screw_hole_aligner_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        _00_assy_part_02_bottom_screw_hole_aligner_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        _00_assy_part_02_motor_screw_hole_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        _00_assy_part_02_motor_screw_hole_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        _00_assy_part_02_motor_screw_hole_3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        _00_assy_part_02_motor_screw_hole_4:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        _00_assy_part_02_motor_screw_hole_5:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        _00_assy_part_02_motor_screw_hole_6:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        map:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
       Model Description Topic: /model_spawner/model_description
       Name: TransientModel
       TF Prefix: ""
@@ -206,25 +370,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.3466762602329254
+      Distance: 0.340759813785553
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.011187255382537842
-        Y: -0.022708609700202942
-        Z: 0.2211897075176239
+        X: -0.00922953151166439
+        Y: 0.006100951693952084
+        Z: 0.21887396275997162
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: -1.5147963762283325
+      Pitch: -1.4897964000701904
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.693541526794434
+      Yaw: 4.6985578536987305
     Saved: ~
 Window Geometry:
   Displays:

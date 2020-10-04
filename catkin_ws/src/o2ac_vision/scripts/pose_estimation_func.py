@@ -467,14 +467,14 @@ def visualize_result( im_temp, im_scene, ltop, orientation ):
     im_res_on_original = np.asarray( im_res_on_original, np.uint8 )
 
     # draw bounding box
-    im_res_on_original = cv2.rectangle( im_res_on_original, ( ltop_pad[1],  ltop_pad[0]), (ltop_pad[1]+bbox_size[1], ltop_pad[0]+bbox_size[0]), (0,255,0), 3 )
+    im_res_on_original = cv2.rectangle( im_res_on_original, ( ltop_pad[1],  ltop_pad[0]), (ltop_pad[1]+bbox_size[1], ltop_pad[0]+bbox_size[0]), (0,255,255), 3 )
     # draw center position
-    im_res_on_original = cv2.circle( im_res_on_original, (bb_center[1], bb_center[0] ), 5, (0,255,0), -1, cv2.LINE_AA )
+    im_res_on_original = cv2.circle( im_res_on_original, (bb_center[1], bb_center[0] ), 5, (0,255,255), -1, cv2.LINE_AA )
     # draw orientation
     line_length = int( bbox_size[0]/2 )
     deg2rad = math.pi/180.0
     pt2 = (int(bb_center[1]+line_length*math.cos(orientation*deg2rad)), int(bb_center[0]+line_length*math.sin(orientation*deg2rad)) )
-    im_res_on_original = cv2.arrowedLine( im_res_on_original, (bb_center[1], bb_center[0] ), pt2, (0,255,0), 2, cv2.LINE_AA )
+    im_res_on_original = cv2.arrowedLine( im_res_on_original, (bb_center[1], bb_center[0] ), pt2, (0,255,255), 2, cv2.LINE_AA )
 
     im_res_on_original = im_res_on_original[res_pad:-res_pad, res_pad:-res_pad]
 

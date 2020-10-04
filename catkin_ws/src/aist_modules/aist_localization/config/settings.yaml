@@ -1,5 +1,6 @@
 in_plane:
   - 05_MBRFA30-2-P6
+  - 06_MBT4-400
   - 08_KZAF1075NA4WA55GA20AA0
   - 09_EDCS10
   - 10_CLBPS10_17_4
@@ -23,6 +24,10 @@ full_settings:
 in_plane_settings:
   05_MBRFA30-2-P6:
     z_offset: 0.005
+  06_MBT4-400:
+    sideways: true
+    x_offset: 0.00
+    z_offset: 0.003
   08_KZAF1075NA4WA55GA20AA0:
     sideways: true
     x_offset: -0.0375

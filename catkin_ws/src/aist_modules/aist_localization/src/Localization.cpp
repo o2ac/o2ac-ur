@@ -220,9 +220,7 @@ Localization::localize_full(const goal_cp& goal)
     auto	queue = _localization->StartAsync();
     for (pho::sdk::LocalizationPose locPose; queue.GetNext(locPose); )
     {
-	const auto object_frame = goal->object_name + '_'
-				+ std::to_string(queue.Size() - 1);
-	const auto	k   = 0.001;
+	const auto	k   = 0.001;	// convert milimeters to meters
 	const auto&	mat = locPose.Transformation;
 	const tf::Transform
 		transform(tf::Matrix3x3(mat[0][0], mat[0][1], mat[0][2],
@@ -251,44 +249,49 @@ Localization::localize_in_plane(const goal_cp& goal)
 			  _file_info->normal.y,
 			  _file_info->normal.z);
     const value_t	d = _file_info->distance;
-    const auto		v = view_vector((goal->x > 0.0 ? goal->x :
+
+    for (size_t i = 0; i < goal->poses2d.size(); ++i)
+    {
+	const auto&	pose2d = goal->poses2d[i];
+	const auto	v = view_vector((pose2d.x > 0.0 ? pose2d.x :
 					 0.5*_file_info->camera_info.width),
-					(goal->y > 0.0 ? goal->y :
+					(pose2d.y > 0.0 ? pose2d.y :
 					 0.5*_file_info->camera_info.height));
-    const auto		x = (-d/n.dot(v)) * v;
-    auto		r = n.cross(vector3_t(std::cos(goal->theta),
-					      std::sin(goal->theta), 0));
-    r *= (value_t(1)/norm(r));
-    const auto		q = r.cross(n);
+	const auto	x = (-d/n.dot(v)) * v;
+	auto		r = n.cross(vector3_t(std::cos(pose2d.theta),
+					      std::sin(pose2d.theta), 0));
+	r *= (value_t(1)/norm(r));
+	const auto	q = r.cross(n);
 
-  // Transformation from gaze point to camera
-    const tf::Transform	transform(tf::Matrix3x3(q(0), r(0), n(0),
-						q(1), r(1), n(1),
-						q(2), r(2), n(2)),
-				  tf::Vector3(x(0), x(1), x(2)));
+      // Transformation from gaze point to camera
+	const tf::Transform	transform(tf::Matrix3x3(q(0), r(0), n(0),
+							q(1), r(1), n(1),
+							q(2), r(2), n(2)),
+					  tf::Vector3(x(0), x(1), x(2)));
 
-    if (goal->sideways)
-	transform *= tf::Transform(tf::Matrix3x3(1.0, 0.0, 0.0,
-						 0.0, 1.0, 0.0,
-						 0.0, 0.0, 1.0),
-				   tf::Vector3(goal->x_offset, 0.0,
-					       goal->z_offset));
-    else
-	transform *= tf::Transform(tf::Matrix3x3(0.0, 1.0, 0.0,
-						 0.0, 0.0, 1.0,
-						 1.0, 0.0, 0.0),
-				   tf::Vector3(goal->x_offset, 0.0,
-					       goal->z_offset));
+	if (goal->sideways)
+	    transform *= tf::Transform(tf::Matrix3x3(1.0, 0.0, 0.0,
+						     0.0, 1.0, 0.0,
+						     0.0, 0.0, 1.0),
+				       tf::Vector3(goal->x_offset, 0.0,
+						   goal->z_offset));
+	else
+	    transform *= tf::Transform(tf::Matrix3x3(0.0, 1.0, 0.0,
+						     0.0, 0.0, 1.0,
+						     1.0, 0.0, 0.0),
+				       tf::Vector3(goal->x_offset, 0.0,
+						   goal->z_offset));
 
-    feedback_t	feedback;
-    feedback.pose.header = _file_info->camera_info.header;
-    tf::poseTFToMsg(transform, feedback.pose.pose);
-    feedback.overlap = 1.0;
-    _localize_srv.publishFeedback(feedback);
+	feedback_t	feedback;
+	feedback.pose.header = _file_info->camera_info.header;
+	tf::poseTFToMsg(transform, feedback.pose.pose);
+	feedback.overlap = 1.0;
+	_localize_srv.publishFeedback(feedback);
 
-    ros::Duration(0.5).sleep();
+	ros::Duration(0.1).sleep();
 
-    ROS_INFO_STREAM("(Localization)   found.");
+	ROS_INFO_STREAM("(Localization)   found " << i+1 << "-th pose.");
+    }
 }
 
 Localization::vector3_t

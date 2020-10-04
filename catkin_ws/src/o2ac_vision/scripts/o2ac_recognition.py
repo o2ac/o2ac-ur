@@ -49,12 +49,6 @@ class ObjectRecognition(object):
                                            omsg.poseEstimationAction)
         self._object_detector.wait_for_server()
 
-        # Setup action client for belt detection
-        self._belt_detector \
-            = actionlib.SimpleActionClient('beltDetection',
-                                           omsg.beltDetectionAction)
-        self._belt_detector.wait_for_server()
-
         # Setup clients for depth filtering and localization
         self._dfilter = DepthFilterClient('depth_filter')
         self._dfilter.window_radius = 2
@@ -68,17 +62,14 @@ class ObjectRecognition(object):
         recognition_result = omsg.detectObjectResult()
         recognition_result.succeeded = False
 
-        for result in detection_results.pose_estimation_result_list:
+        for result in detection_results.results:
             if goal.item_id == self.item_id(result.class_id):
-                pose2d = [result.center[1] - result.bbox[0],
-                          result.center[0] - result.bbox[1],
-                          radians(result.rotation)] if result.center else []
-                poses, overlaps = self.localize(goal.item_id,
-                                                result.bbox, pose2d)
-                if len(poses) > 0:
-                    recognition_result.succeeded     = True
-                    recognition_result.detected_pose = poses[0]
-                    recognition_result.confidence    = overlaps[0]
+                recognition_result.detected_poses, \
+                recognition_result.confidences     \
+                    = self.localize(goal.item_id, result.bbox, result.poses)
+
+                if recognition_result.detected_poses:
+                    recognition_result.succeeded = True
                     self._recognition_server.set_succeeded(recognition_result)
                     return
                 break
@@ -91,12 +82,12 @@ class ObjectRecognition(object):
     def item_id(self, class_id):
         return ObjectRecognition._Models[class_id]
 
-    def localize(self, item_id, bbox, pose2d):
+    def localize(self, item_id, bbox, poses2d):
         self._dfilter.roi = (bbox[0],           bbox[1],
                              bbox[0] + bbox[2], bbox[1] + bbox[3])
         while not self._dfilter.capture():  # Load PLY data to the localizer
             pass
-        self._localizer.send_goal(item_id, self._nposes, pose2d)
+        self._localizer.send_goal(item_id, self._nposes, poses2d)
         return self._localizer.wait_for_result(rospy.Duration(self._timeout))
 
 #########################################################################
