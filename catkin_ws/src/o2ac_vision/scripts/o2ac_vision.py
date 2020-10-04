@@ -35,27 +35,24 @@
 # Author: Felix von Drigalski
 
 import rospy
-import tf_conversions
-import tf
-import actionlib
-from math import pi, radians
-
-import o2ac_routines.helpers
-
-from o2ac_msgs     import msg as omsg
-from sensor_msgs   import msg as smsg
-from geometry_msgs import msg as gmsg
-import cv_bridge       # This offers conversion methods between OpenCV and ROS formats
-                       # See here: http://wiki.ros.org/cv_bridge/Tutorials/ConvertingBetweenROSImagesAndOpenCVImagesPython
-
-                       # Note that a similar package exists for PCL:
-                       # http://wiki.ros.org/pcl_ros
-
-import cv2
-import sys
-import numpy as np
 import time
 import rospkg
+import actionlib
+import numpy as np
+from math import pi, radians
+import cv2
+import cv_bridge  # This offers conversion methods between OpenCV
+                  # and ROS formats
+                  # See here:
+                  #   http://wiki.ros.org/cv_bridge/Tutorials/ConvertingBetweenROSImagesAndOpenCVImagesPython
+                  # Note that a similar package exists for PCL:
+                  #   http://wiki.ros.org/pcl_ros
+
+from sensor_msgs   import msg as smsg
+from geometry_msgs import msg as gmsg
+from o2ac_msgs     import msg as omsg
+
+import o2ac_routines.helpers
 import o2ac_ssd
 from pose_estimation_func import template_matching
 from pose_estimation_func import FastGraspabilityEvaluation
@@ -82,20 +79,23 @@ class O2ACVision(object):
                 = rospy.Publisher('~detection_results',
                                   omsg.EstimatedPosesArray, queue_size=1)
         else:
-            self.pose_estimation_server = actionlib.SimpleActionServer("poseEstimation", omsg.poseEstimationAction, auto_start = False)
-            self.pose_estimation_server.register_goal_callback(self.pose_estimation_goal_callback)
-            self.pose_estimation_server.register_preempt_callback(self.pose_estimation_preempt_callback)
-            self.pose_estimation_server.start()
+            self.axserver \
+                = actionlib.SimpleActionServer("poseEstimation",
+                                               omsg.poseEstimationAction,
+                                               auto_start = False)
+            self.axserver.register_goal_callback(self.goal_callback)
+            self.axserver.register_preempt_callback(self.preempt_callback)
+            self.axserver.start()
 
         rospy.loginfo("O2AC_vision has started up!")
 
-    def pose_estimation_goal_callback(self):
-        self.pose_estimation_server.accept_new_goal()
+    def goal_callback(self):
+        self.axserver.accept_new_goal()
         rospy.loginfo("Received a request to detect object")
 
-    def pose_estimation_preempt_callback(self):
+    def preempt_callback(self):
+        self.axserver.set_preempted()
         rospy.loginfo("o2ac_msgs.msg.poseEstimationAction preempted")
-        self.pose_estimation_server.set_preempted()
 
     def image_subscriber_callback(self, image):
         # First, obtain the image from the camera and convert it
@@ -114,11 +114,11 @@ class O2ACVision(object):
             # Publish images visualizing results
             self.image_pub.publish(bridge.cv2_to_imgmsg(im_vis))
 
-        elif self.pose_estimation_server.is_active():
+        elif self.axserver.is_active():
             action_result = omsg.poseEstimationResult()
             action_result.results, im_vis \
                 = self.get_estimation_results(im_in, im_vis)
-            self.pose_estimation_server.set_succeeded(action_result)
+            self.axserver.set_succeeded(action_result)
 
             # Publish images visualizing results
             self.image_pub.publish(bridge.cv2_to_imgmsg(im_vis))
@@ -143,16 +143,18 @@ class O2ACVision(object):
             estimatedPoses_msg.bbox       = ssd_result["bbox"]
 
             if target in apply_2d_pose_estimation:
-                print("Target id is ", target, " apply the 2d pose estimation")
+                rospy.loginfo("Target id is %d. Apply the 2d pose estimation",
+                              target)
                 pose, im_vis = self.estimate_pose_in_image(im_in, im_vis,
                                                            ssd_result)
                 estimatedPoses_msg.poses = [pose]
 
             elif target in apply_3d_pose_estimation:
-                print("Target id is ", target, " apply the 3d pose estimation")
+                rospy.loginfo("Target id is %d. Apply the 3d pose estimation",
+                              target)
 
             elif target in apply_grasp_detection:
-                print("Target id is ", target, " apply grasp detection")
+                rospy.loginfo("Target id is %d. Apply grasp detection", target)
                 estimatedPoses_msg.poses, im_vis \
                     = self.grasp_detection_in_image(im_in, im_vis, ssd_result)
 
@@ -180,11 +182,11 @@ class O2ACVision(object):
             im_in = cv2.cvtColor(im_in, cv2.COLOR_BGR2GRAY)
 
         # template matching
-        tm = template_matching( im_in, ds_rate, temp_root, temp_info_name )
+        tm = template_matching(im_in, ds_rate, temp_root, temp_info_name)
         center, ori = tm.compute( ssd_result )
 
         elapsed_time = time.time() - start
-        print( "Processing time[msec]: ", 1000*elapsed_time )
+        rospy.loginfo("Processing time[msec]: %d", 1000*elapsed_time)
 
         im_vis = tm.get_result_image(ssd_result, ori, center, im_vis)
 
@@ -217,7 +219,8 @@ class O2ACVision(object):
                      "hand_rotation":[0,45,90,135],
                      "threshold": 0.01}
 
-        fge = FastGraspabilityEvaluation(im_in, im_hand, im_collision, param_fge)
+        fge = FastGraspabilityEvaluation(im_in, im_hand, im_collision,
+                                         param_fge)
         results = fge.main_proc()
         im_vis  = fge.visualization(im_vis)
         cv2.imwrite("reslut_grasp_points.png", im_vis)
