@@ -100,7 +100,7 @@ class O2ACVision(object):
     def image_subscriber_callback(self, image):
         # First, obtain the image from the camera and convert it
         bridge = cv_bridge.CvBridge()
-        im_in  = bridge.imgmsg_to_cv2(image, desired_encoding="passthrough")
+        im_in  = bridge.imgmsg_to_cv2(image, desired_encoding="rgb8")
         im_vis = im_in.copy()
 
         if self.cont:
@@ -108,11 +108,11 @@ class O2ACVision(object):
             estimatedPoses_msg.header = image.header
             estimatedPoses_msg.results, im_vis \
                 = self.get_estimation_results(im_in, im_vis)
-
             self.results_pub.publish(estimatedPoses_msg)
 
             # Publish images visualizing results
-            self.image_pub.publish(bridge.cv2_to_imgmsg(im_vis))
+            self.image_pub.publish(bridge.cv2_to_imgmsg(im_vis,
+                                                        encoding="rgb8"))
 
         elif self.axserver.is_active():
             action_result = omsg.poseEstimationResult()
@@ -121,7 +121,8 @@ class O2ACVision(object):
             self.axserver.set_succeeded(action_result)
 
             # Publish images visualizing results
-            self.image_pub.publish(bridge.cv2_to_imgmsg(im_vis))
+            self.image_pub.publish(bridge.cv2_to_imgmsg(im_vis,
+                                                        encoding="rgb8"))
 
 
 ### =======
