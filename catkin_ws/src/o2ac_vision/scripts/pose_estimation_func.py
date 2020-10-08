@@ -649,11 +649,13 @@ class FastGraspabilityEvaluation():
         im_out = np.asarray( im_out*255, np.uint8 )
 
         return im_out
+        
 
     def visualization( self, im_result=None ):
-        if im_result is None:
-            im_result = self.im_in_org.copy()
-
+        #if im_result is None:
+        #    im_result = self.im_in.copy()
+        im_result = self.im_in.copy()
+        
         # Preparing of 3 channel hand templates
         im_hands_c = list()
         for im in self.im_hands:

@@ -48,9 +48,7 @@ import cv_bridge  # This offers conversion methods between OpenCV
                   # Note that a similar package exists for PCL:
                   #   http://wiki.ros.org/pcl_ros
 
-from sensor_msgs   import msg as smsg
-from geometry_msgs import msg as gmsg
-from o2ac_msgs     import msg as omsg
+#import o2ac_routines.helpers
 
 import o2ac_routines.helpers
 import o2ac_ssd
@@ -63,8 +61,12 @@ class O2ACVision(object):
     # This class advertises the vision actions that we will call during the tasks.
 
     def __init__(self):
-        # Setup subscriber for input RGB image
-        self.image_sub = rospy.Subscriber('/image', smsg.Image,
+    	rospy.init_node('o2ac_vision_', anonymous=False)
+
+        # Setup subscriber for RGB image
+        #self.image_sub = rospy.Subscriber('/image', sensor_msgs.msg.Image,
+        #                                  self.image_subscriber_callback)
+        self.image_sub = rospy.Subscriber('/b_bot_outside_camera_throttled/color/image_raw/compressed', sensor_msgs.msg.CompressedImage,
                                           self.image_subscriber_callback)
 
         # Setup publisher for output result image
@@ -113,8 +115,9 @@ class O2ACVision(object):
     def image_subscriber_callback(self, image):
         # First, obtain the image from the camera and convert it
         bridge = cv_bridge.CvBridge()
-        im_in  = bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
-        im_vis = im_in.copy() #
+        #im_in  = bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
+        im_in  = bridge.compressed_imgmsg_to_cv2(image, desired_encoding="bgr8")
+        im_vis = im_in.copy()
 
         if self.continuous_streaming:
             estimatedPoses_msg = omsg.EstimatedPosesArray()
@@ -173,6 +176,38 @@ class O2ACVision(object):
             estimatedPoses_msgs.append(estimatedPoses_msg)
 
         return estimatedPoses_msgs, im_vis
+
+    def get_grasp_detection_results(self, im_in, im_vis):
+        # Object detection
+        ssd_results, im_vis = self.detect_object_in_image(im_in, im_vis)
+        cv2.imwrite("result_ssd.png", im_vis )
+                
+        # Belt detection in image
+        im_trim = im_in.copy()
+        apply_grasp_detection = [6]
+        x = y = h = w = 0
+        for ssd_result in ssd_results:
+            target = ssd_result["class"]
+            if target in apply_grasp_detection:
+                x, y = ssd_result["bbox"][0], ssd_result["bbox"][1]
+                h, w = ssd_result["bbox"][3], ssd_result["bbox"][2]
+                im_trim = im_in[y:y+h, x:x+w]
+
+        grasp_points, im_vis = self.grasp_detection_in_image(im_trim, im_vis)
+        for cnt in range(len(grasp_points)):
+            grasp_points[cnt] = list(grasp_points[cnt])
+            grasp_points[cnt][0] = grasp_points[cnt][0] + x
+            grasp_points[cnt][1] = grasp_points[cnt][1] + y
+        print("grasp_result")
+        print(grasp_points)
+
+        GraspPoint_msgs = []
+        for grasp_point in grasp_points:
+            GraspPoint_msg = o2ac_msgs.msg.GraspPoint()
+            GraspPoint_msg.grasp_point = grasp_point
+            GraspPoint_msgs.append(GraspPoint_msg)
+
+        return GraspPoint_msgs, im_vis
 
     def detect_object_in_image(self, cv_image, im_vis):
         ssd_results, im_vis = ssd_detection.object_detection(cv_image, im_vis)
