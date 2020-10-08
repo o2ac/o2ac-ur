@@ -55,10 +55,10 @@ class ImageFeeder(object):
             annotation = json.loads(f.read())
 
             image = cv2.imread(self._data_dir + '/Annotations/' +
-                               annotation['img_path'], cv2.IMREAD_UNCHANGED)
+                               annotation['img_path'], cv2.IMREAD_COLOR)
             depth = cv2.imread(self._data_dir + '/Annotations/' +
                                annotation['depth_path'], cv2.IMREAD_UNCHANGED)
-            self._image = CvBridge().cv2_to_imgmsg(image)
+            self._image = CvBridge().cv2_to_imgmsg(image, encoding='bgr8')
             self._depth = CvBridge().cv2_to_imgmsg(depth)
 
         except Exception as e:

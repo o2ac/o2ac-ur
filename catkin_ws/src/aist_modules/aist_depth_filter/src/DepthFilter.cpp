@@ -592,8 +592,8 @@ DepthFilter::scale(image_t& depth) const
 
 DepthFilter::plane_t
 DepthFilter::detect_base_plane(const camera_info_t& camera_info,
-				 const image_t& image,
-				 const image_t& depth, float thresh) const
+			       const image_t& image,
+			       const image_t& depth, float thresh) const
 {
     using	namespace sensor_msgs;
 

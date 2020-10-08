@@ -75,10 +75,12 @@ class O2ACVision(object):
         self.cont = rospy.get_param('~cont', False)
 
         if self.cont:
+            # Setup publisher for object detection results
             self.results_pub \
                 = rospy.Publisher('~detection_results',
                                   omsg.EstimatedPosesArray, queue_size=1)
         else:
+            # Setup action server for pose estimation
             self.axserver \
                 = actionlib.SimpleActionServer("poseEstimation",
                                                omsg.poseEstimationAction,
@@ -100,7 +102,7 @@ class O2ACVision(object):
     def image_subscriber_callback(self, image):
         # First, obtain the image from the camera and convert it
         bridge = cv_bridge.CvBridge()
-        im_in  = bridge.imgmsg_to_cv2(image, desired_encoding="rgb8")
+        im_in  = bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
         im_vis = im_in.copy()
 
         if self.cont:
@@ -111,8 +113,7 @@ class O2ACVision(object):
             self.results_pub.publish(estimatedPoses_msg)
 
             # Publish images visualizing results
-            self.image_pub.publish(bridge.cv2_to_imgmsg(im_vis,
-                                                        encoding="rgb8"))
+            self.image_pub.publish(bridge.cv2_to_imgmsg(im_vis))
 
         elif self.axserver.is_active():
             action_result = omsg.poseEstimationResult()
@@ -121,8 +122,7 @@ class O2ACVision(object):
             self.axserver.set_succeeded(action_result)
 
             # Publish images visualizing results
-            self.image_pub.publish(bridge.cv2_to_imgmsg(im_vis,
-                                                        encoding="rgb8"))
+            self.image_pub.publish(bridge.cv2_to_imgmsg(im_vis))
 
 
 ### =======
