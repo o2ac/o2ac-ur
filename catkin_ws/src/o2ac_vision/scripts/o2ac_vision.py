@@ -223,7 +223,7 @@ class O2ACVision(object):
         im_collision[10:50,20:20+hand_width] = 1
 
         fge = FastGraspabilityEvaluation(im_in, im_hand, im_collision,
-                                         self,param_fge)
+                                         self.param_fge)
         results = fge.main_proc()
         im_vis  = fge.visualization(im_vis)
         cv2.imwrite("reslut_grasp_points.png", im_vis)
