@@ -1794,9 +1794,8 @@ void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, cons
 	// pick-place object
 	t.add(Modules_Planner::Pick_Place_Fallback(object, target_pose, release_object, object_subframe_to_place));
 
-	// Try to position the object correctly
-	{
-		auto stage = std::make_unique<stages::Dummy>("'before adjusting plate position'");
+	{  // Try to position the object correctly by pushing it with the gripper
+		auto stage = std::make_unique<stages::Dummy>("move a_bot right wrs_subtask_motor_plate");
 		t.add(std::move(stage));
 	}
 	{  // Open Hand
@@ -1805,14 +1804,18 @@ void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, cons
 		stage->setGoal("open");
 		t.add(std::move(stage));
 	}
+	{  // Try to position the object correctly by pushing it with the gripper
+		auto stage = std::make_unique<stages::Dummy>("move a_bot back wrs_subtask_motor_plate");
+		t.add(std::move(stage));
+	}
+	{  // Try to position the object correctly by pushing it with the gripper
+		auto stage = std::make_unique<stages::Dummy>("push plate with b_bot");
+		t.add(std::move(stage));
+	}
 	{  // Close Hand
 		auto stage = std::make_unique<stages::MoveTo>("close hand", sampling_planner);
 		stage->setGroup("a_bot_robotiq_85");
 		stage->setGoal("close");
-		t.add(std::move(stage));
-	}
-	{
-		auto stage = std::make_unique<stages::Dummy>("'after adjusting plate position'");
 		t.add(std::move(stage));
 	}
 
@@ -1825,9 +1828,8 @@ void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, cons
 	lift_direction[1] = 0.0;
 	lift_direction[2] = 0.0;
 
-	// move to screw_tool_pickup pose
-	{
-	auto stage = std::make_unique<stages::MoveTo>("pick_tool_start", sampling_planner);
+	{  // move to screw_tool_pickup pose
+	auto stage = std::make_unique<stages::MoveTo>("equip_tool_m4_start", sampling_planner);
 		stage->setGroup("b_bot");
 		stage->setGoal("tool_pick_ready");
 		t.add(std::move(stage));
@@ -1836,15 +1838,13 @@ void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, cons
 	// pick screw tool
 	t.add(Modules_Planner::Pick_and_Lift(tool, "b_bot", false));
 	
-
-	// move back
-	{
-	auto stage = std::make_unique<stages::MoveTo>("pick_tool_end", sampling_planner);
+	{  // move back
+	auto stage = std::make_unique<stages::MoveTo>("equip_tool_m4_end", sampling_planner);
 		stage->setGroup("b_bot");
 		stage->setGoal("tool_pick_ready");
 		t.add(std::move(stage));
 	}
-
+	
 	geometry_msgs::PoseStamped screw_pickup_pose;
 	screw_pickup_pose.header.frame_id = screw_type + "_feeder_outlet_link";
 	screw_pickup_pose.pose.position.x = -0.01;
@@ -1854,9 +1854,8 @@ void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, cons
 
 	std::string screw_tool_tip_frame = tool + "/" + tool + "_tip";
 
-	// move to screw_pickup pose
-	{
-	auto stage = std::make_unique<stages::MoveTo>("pick_screw_start", sampling_planner);
+	{  // move to screw_pickup pose
+	auto stage = std::make_unique<stages::MoveTo>("pick_screw_m4_start", sampling_planner);
 		stage->setGroup("b_bot");
 		stage->setGoal("feeder_pick_ready");
 		t.add(std::move(stage));
@@ -1865,9 +1864,8 @@ void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, cons
 	// pick up screw
 	t.add(Modules_Planner::Fasten(tool, screw_pickup_pose, "b_bot", screw_tool_tip_frame, false, "Pick up screw"));
 
-	// move back
-	{
-	auto stage = std::make_unique<stages::MoveTo>("pick_screw_end", sampling_planner);
+	{  // move back
+	auto stage = std::make_unique<stages::MoveTo>("pick_screw_m4_end", sampling_planner);
 		stage->setGroup("b_bot");
 		stage->setGoal("feeder_pick_ready");
 		t.add(std::move(stage));
@@ -1885,19 +1883,18 @@ void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, cons
 	screwing_pose.pose.position.z = 0;
 	screwing_pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
 
-	// move to screw_pickup pose
-	{
-	auto stage = std::make_unique<stages::MoveTo>("fasten_screw_start", sampling_planner);
+	{  // move to screw_pickup pose
+	auto stage = std::make_unique<stages::MoveTo>("fasten_screw_m4_start", sampling_planner);
 		stage->setGroup("b_bot");
 		stage->setGoal("feeder_pick_ready");
 		t.add(std::move(stage));
 	}
 
+	// Pretend to fasten the screws
 	t.add(Modules_Planner::Fasten(tool, screwing_pose, "b_bot", screw_tool_tip_frame, false, "Fasten screw"));
 
-	// move_back
-	{
-	auto stage = std::make_unique<stages::MoveTo>("fasten_screw_end", sampling_planner);
+	{  // move_back
+	auto stage = std::make_unique<stages::MoveTo>("fasten_screw_m4_end", sampling_planner);
 		stage->setGroup("b_bot");
 		stage->setGoal("feeder_pick_ready");
 		t.add(std::move(stage));
@@ -1921,9 +1918,8 @@ void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, cons
 	approach_place_direction[1] = 0.0;
 	approach_place_direction[2] = -1.0;
 
-	// move to screw_pickup pose
-	{
-	auto stage = std::make_unique<stages::MoveTo>("pick_screw_start", sampling_planner);
+	{  // move to screw_pickup pose
+	auto stage = std::make_unique<stages::MoveTo>("pick_screw_m4_start", sampling_planner);
 		stage->setGroup("b_bot");
 		stage->setGoal("feeder_pick_ready");
 		t.add(std::move(stage));
@@ -1932,9 +1928,8 @@ void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, cons
 	// pick up screw
 	t.add(Modules_Planner::Fasten(tool, screw_pickup_pose, "b_bot", screw_tool_tip_frame, false, "Pick up screw"));
 
-	// move back
-	{
-	auto stage = std::make_unique<stages::MoveTo>("pick_screw_end", sampling_planner);
+	{  // move back
+	auto stage = std::make_unique<stages::MoveTo>("pick_screw_m4_end", sampling_planner);
 		stage->setGroup("b_bot");
 		stage->setGoal("feeder_pick_ready");
 		t.add(std::move(stage));
@@ -1947,19 +1942,18 @@ void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, cons
 
 	screwing_pose.header.frame_id = "panel_bearing/bottom_screw_hole_2";
 
-	// move to screw_pickup pose
-	{
-	auto stage = std::make_unique<stages::MoveTo>("fasten_screw_start", sampling_planner);
+	{  // move to screw_pickup pose
+	auto stage = std::make_unique<stages::MoveTo>("fasten_screw_m4_start", sampling_planner);
 		stage->setGroup("b_bot");
 		stage->setGoal("feeder_pick_ready");
 		t.add(std::move(stage));
 	}
-
+	
+	// Pretend to fasten the screws
 	t.add(Modules_Planner::Fasten(tool, screwing_pose, "b_bot", screw_tool_tip_frame, false, "Fasten screw"));
 
-	// move_back
-	{
-	auto stage = std::make_unique<stages::MoveTo>("fasten_screw_end", sampling_planner);
+	{  // move_back
+	auto stage = std::make_unique<stages::MoveTo>("fasten_screw_m4_end", sampling_planner);
 		stage->setGroup("b_bot");
 		stage->setGoal("feeder_pick_ready");
 		t.add(std::move(stage));
@@ -1977,9 +1971,8 @@ void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, cons
 	approach_place_direction[1] = 0.0;
 	approach_place_direction[2] = 0.0;
 
-	// move to screw_tool_pickup pose
-	{
-	auto stage = std::make_unique<stages::MoveTo>("place_tool_start", sampling_planner);
+	{  // move to screw_tool_pickup pose
+	auto stage = std::make_unique<stages::MoveTo>("unequip_tool_m4_start", sampling_planner);
 		stage->setGroup("b_bot");
 		stage->setGoal("tool_pick_ready");
 		t.add(std::move(stage));
@@ -1988,9 +1981,8 @@ void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, cons
 	// place screw tool
 	t.add(Modules_Planner::Place(tool, screw_tool_place, "b_bot", true, "", false));
 
-	// move_back
-	{
-	auto stage = std::make_unique<stages::MoveTo>("place_tool_end", sampling_planner);
+	{  // move_back
+	auto stage = std::make_unique<stages::MoveTo>("unequip_tool_m4_end", sampling_planner);
 		stage->setGroup("b_bot");
 		stage->setGoal("tool_pick_ready");
 		t.add(std::move(stage));

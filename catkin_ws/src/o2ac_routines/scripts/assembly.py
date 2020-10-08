@@ -242,7 +242,7 @@ if __name__ == '__main__':
     assy = AssemblyClass()
     assy.set_assembly()
     i = 1
-    while i:
+    while True:
       rospy.loginfo("Enter 1 to move the robots home.")
       rospy.loginfo("Enter 11 (12) to equip (unequip) m4 tool (b_bot).")
       rospy.loginfo("Enter 13 (14) to equip (unequip) m3 tool (b_bot).")
@@ -311,10 +311,18 @@ if __name__ == '__main__':
         target_pose = geometry_msgs.msg.PoseStamped()
         target_pose.header.frame_id = 'base/screw_hole_panel2_1'
         target_pose.pose.orientation.w = 1
-        assy.subassembly('panel_bearing', target_pose, object_subframe_to_place = 'panel_bearing/bottom_screw_hole_aligner_1', save_solution_to_file = 'subassembly')
+        assy.plan_wrs_subtask_b('panel_bearing', target_pose, object_subframe_to_place = 'panel_bearing/bottom_screw_hole_aligner_1', save_solution_to_file = 'subassembly')
       if i == '80':
-        mp_res = assy.load_MP_solution('subassembly')
-        assy.execute_MP_solution(mp_res.solution, speed = 0.2)
+        rospy.loginfo("Loading")
+        mp_res = assy.load_MTC_solution('subassembly')
+        rospy.loginfo("Running")
+        assy.execute_MTC_solution(mp_res.solution, speed = 0.2)
+      if i == '800':
+        assy.load_and_execute_program(robot="b_bot", program_name="wrs2020_push_motor_plate.urp", wait=True)
+      if i == '801':
+        assy.move_lin_rel("a_bot", relative_translation=[0, -0.01, 0], use_robot_base_csys=True, max_wait=5.0)
+      if i == '802':
+        assy.move_lin_rel("a_bot", relative_translation=[0,  0.01, 0], use_robot_base_csys=True, max_wait=5.0)
       if i == '81':
         assy.do_change_tool_action('b_bot', equip=True, screw_size=4)
       if i == '82':
