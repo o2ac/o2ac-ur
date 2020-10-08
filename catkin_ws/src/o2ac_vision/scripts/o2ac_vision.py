@@ -74,6 +74,16 @@ class O2ACVision(object):
         # Determine whether the server works with continuous mode or not.
         self.cont = rospy.get_param('~cont', False)
 
+        # Load parameters for detecting graspabilities
+        default_param_fge = {"ds_rate": 0.5,
+                             "target_lower":[0, 150, 100],
+                             "target_upper":[15, 255, 255],
+                             "fg_lower": [0, 0, 100],
+                             "fg_upper": [179, 255, 255],
+                             "hand_rotation":[0,45,90,135],
+                             "threshold": 0.01}
+        self.param_fge = rospy.get_param('~param_fge', default_param_fge)
+
         if self.cont:
             # Setup publisher for object detection results
             self.results_pub \
@@ -212,16 +222,8 @@ class O2ACVision(object):
         im_collision = np.zeros( (60,60), np.float )
         im_collision[10:50,20:20+hand_width] = 1
 
-        param_fge = {"ds_rate": 0.5,
-                     "target_lower":[0, 150, 100],
-                     "target_upper":[15, 255, 255],
-                     "fg_lower": [0, 0, 100],
-                     "fg_upper": [179, 255, 255],
-                     "hand_rotation":[0,45,90,135],
-                     "threshold": 0.01}
-
         fge = FastGraspabilityEvaluation(im_in, im_hand, im_collision,
-                                         param_fge)
+                                         self,param_fge)
         results = fge.main_proc()
         im_vis  = fge.visualization(im_vis)
         cv2.imwrite("reslut_grasp_points.png", im_vis)
