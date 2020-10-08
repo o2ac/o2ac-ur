@@ -84,7 +84,7 @@ if __name__ == '__main__':
       return activate_ros_control_on_ur(robot, recursion_depth=recursion_depth+1)
     
     # Load program
-    rospy.logwarn("Activating ROS control on robot " + robot)
+    rospy.loginfo("Activating ROS control on robot " + robot)
     request = ur_dashboard_msgs.srv.LoadRequest()
     request.filename = "ROS_external_control.urp"
     response = ur_dashboard_clients[robot + "_load_program"].call(request)
@@ -109,7 +109,7 @@ if __name__ == '__main__':
       rospy.logerr("Could not start UR control. Is the UR in Remote Control mode and program installed with correct name?")
       return False
     else:
-      rospy.logwarn("Successfully activated ROS control on robot " + robot)
+      rospy.loginfo("Successfully activated ROS control on robot " + robot)
       return True
   
   activate_ros_control_on_ur("a_bot")

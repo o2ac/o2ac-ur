@@ -143,6 +143,8 @@ class O2ACBase(object):
       "b_bot_load_program":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/load_program', ur_dashboard_msgs.srv.Load),
       "a_bot_play":rospy.ServiceProxy('/a_bot/ur_hardware_interface/dashboard/play', std_srvs.srv.Trigger),
       "b_bot_play":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/play', std_srvs.srv.Trigger),
+      "a_bot_stop":rospy.ServiceProxy('/a_bot/ur_hardware_interface/dashboard/stop', std_srvs.srv.Trigger),
+      "b_bot_stop":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/stop', std_srvs.srv.Trigger),
       "a_bot_quit":rospy.ServiceProxy('/a_bot/ur_hardware_interface/dashboard/quit', std_srvs.srv.Trigger),
       "b_bot_quit":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/quit', std_srvs.srv.Trigger),
       "a_bot_connect":rospy.ServiceProxy('/a_bot/ur_hardware_interface/dashboard/connect', std_srvs.srv.Trigger),
@@ -228,7 +230,7 @@ class O2ACBase(object):
     rospy.loginfo("Response for unlocked protective stop of " + robot + ": " + response.message)
     return response.success
 
-  def activate_ros_control_on_ur(self, robot="b_bot"):
+  def activate_ros_control_on_ur(self, robot="b_bot", recursion_depth=0):
     if not self.use_real_robot:
       return True
     
@@ -240,24 +242,30 @@ class O2ACBase(object):
       rospy.logerr("Robot name '" + robot + "' was not found or the robot is not a UR!")
       return False
 
-    # Load program if it not loaded already
-    rospy.loginfo("Activating ROS control on robot " + robot)
-    response = self.ur_dashboard_clients[robot + "_get_loaded_program"].call(ur_dashboard_msgs.srv.GetLoadedProgramRequest())
-    if response.program_name != "/programs/ROS_external_control.urp":
-      request = ur_dashboard_msgs.srv.LoadRequest()
-      request.filename = "ROS_external_control.urp"
-      response = self.ur_dashboard_clients[robot + "_load_program"].call(request)
-      if not response.success: # Try reconnecting to dashboard
-        if recursion_depth > 2:  # Break out after 3 tries
+    load_success = False
+    try:
+      # Load program if it not loaded already
+      rospy.loginfo("Activating ROS control on robot " + robot)
+      response = self.ur_dashboard_clients[robot + "_get_loaded_program"].call(ur_dashboard_msgs.srv.GetLoadedProgramRequest())
+      if response.program_name != "/programs/ROS_external_control.urp":
+        request = ur_dashboard_msgs.srv.LoadRequest()
+        request.filename = "ROS_external_control.urp"
+        response = self.ur_dashboard_clients[robot + "_load_program"].call(request)
+        if response.success: # Try reconnecting to dashboard
+          load_success = True
+        else:
           rospy.logerr("Could not load the ROS_external_control.urp URCap. Is the UR in Remote Control mode and program installed with correct name?")
-          return False
-        if recursion_depth > 0:  # If connect alone failed, try quit and then connect
-          response = ur_dashboard_clients[robot + "_quit"].call()
-          rospy.sleep(.5)
-        response = ur_dashboard_clients[robot + "_connect"].call()
+    except:
+      rospy.logwarn("Dashboard service did not respond!")
+    
+    if not load_success:
+      rospy.logwarn("Waiting and trying again`")
+      if recursion_depth > 0:  # If connect alone failed, try quit and then connect
+        response = self.ur_dashboard_clients[robot + "_quit"].call()
         rospy.sleep(.5)
-        return activate_ros_control_on_ur(robot, recursion_depth=recursion_depth+1)
-        
+      response = self.ur_dashboard_clients[robot + "_connect"].call()
+      rospy.sleep(.5)
+      return self.activate_ros_control_on_ur(robot, recursion_depth=recursion_depth+1)
     
     # Run the program
     response = self.ur_dashboard_clients[robot + "_play"].call(std_srvs.srv.TriggerRequest())
@@ -269,6 +277,56 @@ class O2ACBase(object):
       rospy.loginfo("Successfully activated ROS control on robot " + robot)
       return True
     
+  def load_and_execute_program(self, robot="b_bot", program_name="", wait=True, recursion_depth=0):
+    if not self.use_real_robot:
+      return True
+
+    if recursion_depth > 4:
+      rospy.logerr("Tried too often. Breaking out.")
+      rospy.logerr("Could not load " + program_name + ". Is the UR in Remote Control mode and program installed with correct name?")
+      return False
+
+    if not program_name:
+      rospy.logerr("No ")
+    
+    load_success = False
+    try:
+      # Try to stop running program
+      self.ur_dashboard_clients[robot + "_stop"].call(std_srvs.srv.TriggerRequest())
+      rospy.sleep(.5)
+
+      # Load program if it not loaded already
+      request = ur_dashboard_msgs.srv.LoadRequest()
+      request.filename = program_name
+      response = self.ur_dashboard_clients[robot + "_load_program"].call(request)
+      if response.success: # Try reconnecting to dashboard
+        load_success = True
+      else:
+        rospy.logerr("Could not load " + program_name + ". Is the UR in Remote Control mode and program installed with correct name?")
+    except:
+      rospy.logwarn("Dashboard service did not respond!")
+    if not load_success:
+      rospy.logwarn("Waiting and trying again`")
+      rospy.sleep(3)
+      if recursion_depth > 0:  # If connect alone failed, try quit and then connect
+        response = self.ur_dashboard_clients[robot + "_quit"].call()
+        rospy.sleep(.5)
+      response = self.ur_dashboard_clients[robot + "_connect"].call()
+      rospy.sleep(.5)
+      return self.load_and_execute_program(robot, program_name=program_name, wait=wait, recursion_depth=recursion_depth+1)
+    
+    # Run the program
+    response = self.ur_dashboard_clients[robot + "_play"].call(std_srvs.srv.TriggerRequest())
+    rospy.sleep(2)
+    if not response.success:
+      rospy.logerr("Could not start " + program_name + ". Is the UR in Remote Control mode and program installed with correct name?")
+      return False
+    else:
+      if wait:
+        wait_for_UR_program("/" + robot, rospy.Duration.from_sec(30.0))
+      rospy.loginfo("Successfully started " + program_name + " on robot " + robot)
+      return True
+  
   def publish_marker(self, pose_stamped, marker_type):
     # Publishes a marker to Rviz for visualization
     if self.disable_markers:
@@ -523,7 +581,7 @@ class O2ACBase(object):
     current_pose = group.get_current_pose().pose
     return plan_success
 
-  def move_lin_rel(self, robot_name, relative_translation = [0,0,0], relative_rotation = [0,0,0], acceleration = 0.5, velocity = .03, use_robot_base_csys=False, wait = True):
+  def move_lin_rel(self, robot_name, relative_translation = [0,0,0], relative_rotation = [0,0,0], acceleration = 0.5, velocity = .03, use_robot_base_csys=False, wait = True, max_wait=30.0):
     '''
     Does a lin_move relative to the current position of the robot. Uses the robot's TCP.
 
@@ -551,7 +609,7 @@ class O2ACBase(object):
     res = self.urscript_client.call(req)
     if wait:
       rospy.sleep(1.0)
-      wait_for_UR_program("/" + robot_name, rospy.Duration.from_sec(30.0))
+      wait_for_UR_program("/" + robot_name, rospy.Duration.from_sec(max_wait))
     return res.success
 
   def move_joints(self, group_name, joint_pose_goal, speed = 1.0, acceleration = 0.0, force_ur_script=False, force_moveit=False):
