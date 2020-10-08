@@ -681,3 +681,120 @@ class FastGraspabilityEvaluation():
             im_result = cv2.circle( im_result, ( self.pos_list[n][1], self.pos_list[n][0] ), 3, (0,255,0), -1, cv2.LINE_AA )
 
         return im_result
+
+class CableTipDetection():
+    """
+    Cable Tip Detection from point cloud.
+    
+    
+    How to use:
+        # First, define ctd object
+        ctd = CableTipDetection()
+        # Set tool pose from sensor origin
+        # first one is tool tip position in sensor coordinate system
+        # second one is tool orientation in sensor coordinate system
+        ctd.set_tool_pose([-0.021, 0.054, -0.12], [0.0,-1.0,0.0])
+        # do main processing
+        # "cable_tip" is a 3D point of cable tip in sensor coordinate system
+        cable_tip = ctd.proc(pcd_n)
+    """
+    
+    
+    def __init__( self ):
+        
+        # tool position
+        self.t_p = np.zeros(3)
+        # tool coordinate system
+        self.t_o = np.array([[0.0,-1.0,0.0],[0.0,1.0,0.0],[0.0,0.0,-1.0]])
+        
+        # transformations
+        self.sensor2tool = np.identity(4)
+        self.tool2sensor = np.identity(4)
+        
+        # filtered point cloud
+        self.pcd_fg = None
+        
+        # set default tool pose
+        self.set_tool_pose( [0.0,0.1, -0.1],[0.0,-1.0,0.0] )
+        
+    def set_tool_pose( self, position, orientation ):
+        """
+            position: tool position from sensor origin
+            orientation: tool tip axis from sensor origin
+        """
+        self.t_p = position
+        
+        
+        # generate tool coordinate system from tool axis
+        v1 = orientation
+        v1n = v1/np.linalg.norm(v1)
+        v_tmp = np.random.random(3)
+
+        v2 = v_tmp - np.dot(v1n,v_tmp)*v1n
+        v2 = v2/np.linalg.norm(v2)
+        v3 = np.cross(v1n,v2)
+        v3 = v3/np.linalg.norm(v3)
+        tool_frame = np.matrix([v1,v2,v3]).T
+        self.t_o = tool_frame
+        
+        transformation = np.identity(4)
+        transformation[:3,3] = self.t_p
+        transformation[:3,:3] = self.t_o
+        transformation = np.matrix(transformation)
+        
+        self.sensor2tool = np.array(transformation.I)
+        self.tool2sensor = np.array(transformation)
+        
+    def filter( self, pcd, threshold, ndim=2, flip=False ):
+        """
+        Filter out point cloud
+        Input:
+            pcd: numpy nx3 matrix
+            threshold: point cloud exeeding threshold is removed.
+            ndim: dimension of filter
+            flip: if True, removed points are returned.
+        """
+        pcd_fg = None
+        if flip:
+            pcd_fg = pcd[threshold<pcd[:,ndim]]
+        else:
+            pcd_fg = pcd[pcd[:,ndim]<threshold]
+
+        return pcd_fg.copy()
+        
+    def proc( self, pcd ):
+        """
+            pcd: nx3 numpy matrix of point cloud
+        """
+        # convert nx3 to nx4
+        ones = np.ones(pcd.shape[0]).reshape(pcd.shape[0],1)
+        pcd_n4 = np.append(pcd, ones, axis=1 )
+        
+        tmp = np.dot(self.sensor2tool,pcd_n4.T)
+        pcd_hand_np = (tmp[:3,:].T).copy()
+        
+        # crop point cloud around tool tip
+        self.pcd_fg = pcd_hand_np
+        self.pcd_fg = self.filter(self.pcd_fg, 0.03, 1 )
+        self.pcd_fg = self.filter(self.pcd_fg, -0.03, 1, flip=True )
+        self.pcd_fg = self.filter(self.pcd_fg, 0.03, 2 )
+        self.pcd_fg = self.filter(self.pcd_fg, -0.03, 2, flip=True )
+        self.pcd_fg = self.filter(self.pcd_fg, 0.1, 0 )
+        self.pcd_fg = self.filter(self.pcd_fg, 0.0, 0, flip=True )
+
+        # get cable tip id
+        tip_idx = np.argmax(self.pcd_fg[:,0])
+        
+        # get tool tip point
+        tip_np = np.array([self.pcd_fg[tip_idx]])
+        # convert point into sensor coordinate system
+        tip_np = np.dot(self.tool2sensor, np.append(tip_np,1).T)
+        
+        return tip_np[:3].copy()
+    
+    def get_pcd_fg(self):
+        """
+            For Debug. get filtered point cloud
+        """
+        
+        return self.pcd_fg
