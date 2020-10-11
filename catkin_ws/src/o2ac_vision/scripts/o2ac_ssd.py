@@ -83,7 +83,8 @@ class ssd_detection():
             while detections[0,i,j,0] >= threshold:
                 score = detections[0,i,j,0]
                 label_name = labels[i-1]
-                pt = (detections[0,i,j,1:]*scale).cpu().numpy()
+                pt = np.clip((detections[0,i,j,1:]*scale).cpu().numpy(),
+                             0, None)
                 coords = (pt[0], pt[1]), pt[2]-pt[0]+1, pt[3]-pt[1]+1
                 j+=1
 

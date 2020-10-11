@@ -222,16 +222,19 @@ class O2ACVision(object):
         im_collision = np.zeros( (60,60), np.float )
         im_collision[10:50,20:20+hand_width] = 1
 
-        fge = FastGraspabilityEvaluation(im_in, im_hand, im_collision,
-                                         self.param_fge)
-        results = fge.main_proc()
-        im_vis  = fge.visualization(im_vis)
-        cv2.imwrite("reslut_grasp_points.png", im_vis)
-
         bbox = ssd_result["bbox"]
+        top_bottom = slice(bbox[1], bbox[1]+bbox[3])
+        left_right = slice(bbox[0], bbox[0]+bbox[2])
 
-        return [ gmsg.Pose2D(x=result[1] - bbox[0],
-                             y=result[0] - bbox[1],
+        fge = FastGraspabilityEvaluation(im_in[top_bottom, left_right],
+                                         im_hand, im_collision, self.param_fge)
+        results = fge.main_proc()
+
+        im_vis[top_bottom, left_right] \
+            = fge.visualization(im_vis[top_bottom, left_right])
+
+        return [ gmsg.Pose2D(x=result[1],
+                             y=result[0],
                              theta=-radians(result[2]))
                  for result in results ], \
                im_vis
