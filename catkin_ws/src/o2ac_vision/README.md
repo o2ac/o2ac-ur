@@ -86,8 +86,10 @@ geometry_msgs/PoseWithCovarianceStamped[] detected_poses_with_covariance
 ---
 # Feedback 
 ```
-The client asks the `object_recognizer` to find objects specified in the `item_id` field of the action goal. Currently, `item_id` should be a mesh file name excluding its suffix defined in `o2ac_parts_description/meshes`, ex. 01-Base, 04_37D-GEARMOTOR-50-70, 08_KZAF1075NA4WA55GA20AA0, etc.
+The client requests the `object_recognizer` to find objects specified in the `item_id` field of the action goal. Currently, `item_id` should be a mesh file name excluding its suffix defined in `o2ac_parts_description/meshes`, ex. 01-Base, 04_37D-GEARMOTOR-50-70, 08_KZAF1075NA4WA55GA20AA0, etc.
 
 The pipeline works in the following manner;
 
-1. Upon the ID of object to be recognized is given through the goal of `o2ac_msgs.detecObjectAction` type, `/object_recognizeer` send a goal of `o2ac_msgs.
+1. When the ID of object to be recognized is given by the goal of `o2ac_msgs.detectObjectAction` type, `/object_recognizer` sends a goal of `o2ac_msgs.poseEstimationAction` type to `/object_detector`.
+2. `/object_detector` first finds all the known objects in a input color image by applying SSD which outputs part ID and a bounding box for each object found.
+3. For small parts, currently with part ID, `/object_detector` applies template matching which determines 2D position and orientation of the parts within its bounding box.
