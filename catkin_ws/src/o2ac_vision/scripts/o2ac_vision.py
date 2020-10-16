@@ -77,7 +77,7 @@ class O2ACVision(object):
         # Load parameters for detecting graspabilities
         default_param_fge = {"ds_rate": 0.5,
                              "target_lower":[0, 150, 100],
-                             "target_upper":[15, 255, 255],
+                             "target_upper":[45, 255, 255],
                              "fg_lower": [0, 0, 100],
                              "fg_upper": [179, 255, 255],
                              "hand_rotation":[0,45,90,135],
@@ -223,8 +223,9 @@ class O2ACVision(object):
         im_collision[10:50,20:20+hand_width] = 1
 
         bbox = ssd_result["bbox"]
-        top_bottom = slice(bbox[1], bbox[1]+bbox[3])
-        left_right = slice(bbox[0], bbox[0]+bbox[2])
+        margin = 30
+        top_bottom = slice(bbox[1] - margin, bbox[1] + bbox[3] + margin)
+        left_right = slice(bbox[0] - margin, bbox[0] + bbox[2] + margin)
 
         fge = FastGraspabilityEvaluation(im_in[top_bottom, left_right],
                                          im_hand, im_collision, self.param_fge)
@@ -233,8 +234,8 @@ class O2ACVision(object):
         im_vis[top_bottom, left_right] \
             = fge.visualization(im_vis[top_bottom, left_right])
 
-        return [ gmsg.Pose2D(x=result[1],
-                             y=result[0],
+        return [ gmsg.Pose2D(x=result[1] - margin,
+                             y=result[0] - margin,
                              theta=-radians(result[2]))
                  for result in results ], \
                im_vis
