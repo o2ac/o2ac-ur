@@ -90,6 +90,6 @@ The client requests the `object_recognizer` to find objects specified in the `it
 
 The pipeline works in the following manner;
 
-1. When the ID of object to be recognized is given by the goal of `o2ac_msgs.detectObjectAction` type, `/object_recognizer` sends a goal of `o2ac_msgs.poseEstimationAction` type to `/object_detector`.
-2. `/object_detector` first finds all the known objects in a input color image by applying SSD which outputs part ID and a bounding box for each object found.
-3. For small parts, currently with part ID, `/object_detector` applies template matching which determines 2D position and orientation of the parts within its bounding box.
+1. When the ID of object to be recognized is given by the goal of `o2ac_msgs.detectObjectAction` type, the `/object_recognizer` sends a goal of `o2ac_msgs.poseEstimationAction` type to the `/object_detector`.
+2. The `/object_detector` searches for the all known objects in a input color image by applying SSD, and then returns part ID and a bounding box for each object found to the `/object_recognizer`.
+3. For small parts, the `/object_detector` also applies template matching which determines 2D position and orientation of the parts within the bounding box.
