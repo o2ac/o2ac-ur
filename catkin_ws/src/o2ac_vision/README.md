@@ -86,10 +86,16 @@ geometry_msgs/PoseWithCovarianceStamped[] detected_poses_with_covariance
 ---
 # Feedback 
 ```
-The client requests the `object_recognizer` to find objects specified in the `item_id` field of the action goal. Currently, `item_id` should be a mesh file name excluding its suffix defined in `o2ac_parts_description/meshes`, ex. 01-Base, 04_37D-GEARMOTOR-50-70, 08_KZAF1075NA4WA55GA20AA0, etc.
+The client requests the `/object_recognizer` to find objects specified in the `item_id` field of the action goal. Currently, `item_id` should be a mesh file name excluding its suffix defined in `o2ac_parts_description/meshes`, ex. 01-Base, 04_37D-GEARMOTOR-50-70, 08_KZAF1075NA4WA55GA20AA0, etc.
 
 The pipeline works in the following manner;
 
-1. When the ID of object to be recognized is given by the goal of `o2ac_msgs.detectObjectAction` type, the `/object_recognizer` sends a goal of `o2ac_msgs.poseEstimationAction` type to the `/object_detector`.
-2. The `/object_detector` searches for the all known objects in a input color image by applying SSD, and then returns part ID and a bounding box for each object found to the `/object_recognizer`.
-3. For small parts, the `/object_detector` also applies template matching which determines 2D position and orientation of the parts within the bounding box.
+1. When the ID of object to be recognized is given in the goal of `o2ac_msgs.detectObjectAction` type, the `/object_recognizer` sends a goal of `o2ac_msgs.poseEstimationAction` type to the `/object_detector`.
+2. The `/object_detector` searches for the all known objects in a input color image by applying SSD, and then returns part ID and a bounding box to the `/object_recognizer` for each object found.
+3. For each of small parts, the `/object_detector` also applies template matching which determines its 2D position and orientation of within the bounding box. They are returned to the `/object_recognizer` together with SSD results.
+4. For the round belt, the `/object_detector` finds grasp points by applying the FGE(Fast Graspability Estimation) detector. The grasp points are represented by its 2D position and orientation of the two-finger gripper's motion axis. Multiple grasp points may be found from a single belt in general. They are returned to the `/object_recognizer` together with SSD results.
+5. After receiving part ID and the bounding box, the `/object_recognizer` commands the `/depth_filter` to create a point cloud within a subregion corresponding to the bounding box. The created point cloud is stored in `~/.ros/scene.ply` in the Stanford PLY format.
+6. For general parts neither small nor belts, the `/localization` node restores the PLY file and performs 3D matching with the meshes stored in `o2ac_parts_description`. If the matching process succeeds, the 3D position and orientation of the part as well as confidence values are returned in the result of `o2ac_msgs.detectObjectAction` type. If multiple candidate poses are found, they are stored with the descending order of confidence values.
+7. For small parts and belts, the `/localization` node converts their 2D positions and orientations to 3D poses under an assumption that the objects lie on a "dominant plane". The "dominant plane" is detected from the entire depth image by the `/depth_filter` with robust plane fitting using RANSAC. The detected plane is published in the message of `aist_depth_filter.FileInfo` type and subscribed by the `/localization` node.
+
+The sample client program `o2ac_vision/scripts/o2ac_recognition_client.py` gives an example showing how to use the recognition pipeline from users' application programs. The sample also provides a means for visualizing 3D localization results using `aist_model_spawner`.
