@@ -68,7 +68,7 @@ The following parameters can be specified not only in the command line at starin
 
 ## Filter client
 
-The package also provides a simple client class `aist_depth_filter.DepthFilterClient` for easing development of applications with python. Please refer to [aist_depth_filter/src/aist_depth_filter/__init__.py](file:///./src/aist_depth_filter/__init__.py).
+The package also provides a simple client class `aist_depth_filter.DepthFilterClient` for easing development of applications with python. Please refer to [aist_depth_filter/src/aist_depth_filter/\_\_init__.py](src/aist_depth_filter/__init__.py).
 
 
 ## Testing
