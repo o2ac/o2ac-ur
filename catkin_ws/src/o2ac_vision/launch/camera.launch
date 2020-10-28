@@ -3,7 +3,7 @@
 
   <!-- Mode of object detector -->
   <arg name="cont"		default="false"/>
-  <arg name="camera_name"	default="a_bot_camera"/>
+  <arg name="camera_name"	default="b_bot_outside_camera"/>
 
   <!-- Localization parameters -->
   <arg name="nposes"		default="2"/>

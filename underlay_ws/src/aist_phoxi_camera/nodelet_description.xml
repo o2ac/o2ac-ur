@@ -1,8 +1,0 @@
-<library path="lib/libaist_phoxi_camera_nodelet">
-  <class name="aist_phoxi_camera/aist_phoxi_camera_nodelet"
-	 type="aist_phoxi_camera::CameraNodelet"
-	 base_class_type="nodelet::Nodelet">
-    <description>
-    </description>
-  </class>
-</library>
