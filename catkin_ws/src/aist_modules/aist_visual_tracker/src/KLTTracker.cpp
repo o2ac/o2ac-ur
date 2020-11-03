@@ -42,21 +42,16 @@ operator <<(std::ostream& out, const KLT_TrackingContextRec& ctx)
 						<< ctx.affine_window_height
 	       << "\naffineConsistencyCheck:\t"	<< ctx.affineConsistencyCheck;
 }
-    
+
 /************************************************************************
 *  class KLTTracker							*
 ************************************************************************/
 KLTTracker::KLTTracker(const ros::NodeHandle& nh)
     :_nh(nh),
      _select_srv(_nh.advertiseService("select", &select_cb, this)),
-     _camera_info_sub(_nh, "/camera_info", 1),
-     _image_sub( _nh, "/image", 1),
-     _depth_sub( _nh, "/depth", 1),
-     _sync(sync_policy_t(10), _camera_info_sub, _image_sub),
-     _sync2(sync_policy2_t(10),
-     	    _camera_info_sub, _image_sub, _depth_sub),
      _it(_nh),
-     _image_pub(_it.advertise("image", 1)),
+     _image_sub(_it.subscribe("/image", 1, &track_cb, this)),
+     _image_pub(_it.advertise("result_image", 1)),
      _ddr(_nh),
      _nfeatures(10),
      _nframes(30),
@@ -143,7 +138,7 @@ KLTTracker::KLTTracker(const ros::NodeHandle& nh)
 					       _1),
 				   "Governs whether to evaluates the consistency of features with affine mapping",
 				   enum_check);
-    
+
   // Setup ROS parameters for the node behavior
   // and register callback for dynamic_reconfigure server
     _nh.param("nfeatures", _nfeatures, _nfeatures);
@@ -186,18 +181,6 @@ KLTTracker::KLTTracker(const ros::NodeHandle& nh)
     bool	verbose;
     _nh.param("verbose", verbose, false);
     KLTSetVerbosity(verbose);
-
-  // Register callback for tracker
-    bool	subscribe_depth;
-    _nh.param("subscribe_depth", subscribe_depth, false);
-    if (subscribe_depth)
-    {
-	_sync2.registerCallback(&KLTTracker::track_with_depth_cb, this);
-    }
-    else
-    {
-	_sync.registerCallback(&KLTTracker::track_cb, this);
-    }
 }
 
 KLTTracker::~KLTTracker()
@@ -209,7 +192,7 @@ KLTTracker::~KLTTracker()
     if (_ctx)
 	KLTFreeTrackingContext(_ctx);
 }
-    
+
 void
 KLTTracker::run()
 {
@@ -222,7 +205,7 @@ KLTTracker::select_cb(std_srvs::Trigger::Request&  req,
 {
   //KLTPrintTrackingContext(_ctx);
     _select = true;
-    
+
     res.success = true;
     res.message = "succeeded.";
 
@@ -241,7 +224,7 @@ KLTTracker::set_window_radius_cb(int context_t::* width,
     _select = true;
   //KLTPrintTrackingContext(_ctx);
 }
-    
+
 template <class T> void
 KLTTracker::set_ctx_cb(T context_t::* field, T value)
 {
@@ -258,7 +241,7 @@ KLTTracker::set_param_cb(T KLTTracker::* field, T value, bool select)
 }
 
 void
-KLTTracker::track_cb(const camera_info_cp& camera_info, const image_cp& image)
+KLTTracker::track_cb(const image_cp& image)
 {
     using namespace	sensor_msgs;
 
@@ -283,7 +266,7 @@ KLTTracker::track_cb(const camera_info_cp& camera_info, const image_cp& image)
 	    image->encoding == image_encodings::TYPE_8UC3)
 	{
 	    using	rgb_t = std::array<uint8_t, 3>;
-	
+
 	    for (size_t v = 0; v < image->height; ++v)
 	    {
 		const auto	p = ptr<rgb_t>(*image, v);
@@ -299,7 +282,7 @@ KLTTracker::track_cb(const camera_info_cp& camera_info, const image_cp& image)
 	else if (image->encoding == image_encodings::YUV422)
 	{
 	    using	yuv422_t = std::array<uint8_t, 2>;	// UYVY format
-	
+
 	    for (size_t v = 0; v < image->height; ++v)
 	    {
 		const auto	p = ptr<yuv422_t>(*image, v);
@@ -313,7 +296,7 @@ KLTTracker::track_cb(const camera_info_cp& camera_info, const image_cp& image)
 			     << image->encoding);
 	    return;
 	}
-	
+
 	track(grey);	// Track features in the converted grey image
     }
 
@@ -328,7 +311,7 @@ KLTTracker::track_cb(const camera_info_cp& camera_info, const image_cp& image)
 	ROS_ERROR_STREAM("(KLTTracker) cv_bridge exception: " << err.what());
 	return;
     }
-    
+
     for (size_t j = 0; j < nfeatures(); ++j)
     {
 	const auto	feature = (*this)[j];
@@ -364,13 +347,6 @@ KLTTracker::track_cb(const camera_info_cp& camera_info, const image_cp& image)
     _image_pub.publish(cv_img->toImageMsg());
 }
 
-void
-KLTTracker::track_with_depth_cb(const camera_info_cp& camera_info,
-				const image_cp& image, const image_cp& depth)
-{
-    track_cb(camera_info, image);
-}
-    
 void
 KLTTracker::track(const image_t& image)
 {
@@ -416,7 +392,7 @@ KLTTracker::track(const image_t& image)
 	selectGoodFeatures(image);
 	_select = false;	// Track selected features in subsequent frames
     }
-    
+
   // Track features.
     trackFeatures(image);
 }
@@ -429,7 +405,7 @@ KLTTracker::operator ()(size_t i, size_t j) const
 	frame += nframes();
     return _featureTable->feature[j][frame-i];
 }
-    
+
 void
 KLTTracker::selectGoodFeatures(const image_t& image)
 {

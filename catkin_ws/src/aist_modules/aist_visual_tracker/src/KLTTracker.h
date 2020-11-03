@@ -24,16 +24,12 @@ class KLTTracker
     using camera_info_cp = sensor_msgs::CameraInfoConstPtr;
     using image_t	 = sensor_msgs::Image;
     using image_cp	 = sensor_msgs::ImageConstPtr;
-    using sync_policy_t	 = message_filters::sync_policies::
-			     ApproximateTime<camera_info_t, image_t>;
-    using sync_policy2_t = message_filters::sync_policies::
-			     ApproximateTime<camera_info_t, image_t, image_t>;
     using context_t	 = KLT_TrackingContextRec;
-    
+
   public:
 		KLTTracker(const ros::NodeHandle& nh)			;
 		~KLTTracker()						;
-    
+
     void	run()							;
 
   private:
@@ -53,14 +49,10 @@ class KLTTracker
 			     bool select)				;
 
   // topic callbacks
-    void	track_cb(const camera_info_cp& camera_info,
-			 const image_cp& image)				;
-    void	track_with_depth_cb(const camera_info_cp& camera_info,
-				    const image_cp& image,
-				    const image_cp& depth)		;
+    void	track_cb(const image_cp& image)				;
 
     void	track(const image_t& image)				;
-    
+
     size_t	nfeatures()	const	{ return _featureTable->nFeatures; }
     size_t	nframes()	const	{ return _featureTable->nFrames; }
     KLT_Feature	operator [](size_t j)				const	;
@@ -69,19 +61,14 @@ class KLTTracker
     void	trackFeatures(const image_t& image)			;
     KLT_FeatureList
 		featureList()		{ return _featureList; }
-	
+
   private:
     ros::NodeHandle					_nh;
 
     const ros::ServiceServer				_select_srv;
 
-    message_filters::Subscriber<camera_info_t>		_camera_info_sub;
-    message_filters::Subscriber<image_t>		_image_sub;
-    message_filters::Subscriber<image_t>		_depth_sub;
-    message_filters::Synchronizer<sync_policy_t>	_sync;
-    message_filters::Synchronizer<sync_policy2_t>	_sync2;
-
     image_transport::ImageTransport			_it;
+    image_transport::Subscriber				_image_sub;
     const image_transport::Publisher			_image_pub;
 
   // Tracker parameters and dynamic_reconfigure server for setting them
@@ -107,5 +94,5 @@ KLTTracker::operator [](size_t j) const
 {
     return _featureTable->feature[j][_frame];
 }
-	 
+
 }	// namespace aist_visual_tracker
