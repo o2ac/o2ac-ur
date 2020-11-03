@@ -1,8 +1,6 @@
 <?xml version="1.0"?>
 <!--
-  This file launches the drivers of the real robots instead of the simulation.
-  The first section starts the robot drivers.
-  The second section starts cameras, grippers, tools etc.
+  This file launches the cameras on the robots. A scene camera is commented out at the end of the file.
 -->
 <launch>
 
@@ -19,8 +17,8 @@
   <!-- <arg name="camera_names" value="$(arg camera1_name)"/> -->
   <arg name="camera0_serial_no"	value=""/>
   <arg name="camera1_serial_no"	value="636201000324"/>
-  <arg name="camera2_serial_no" value="634206004668"/> 
-  <arg name="camera3_serial_no" value="635201000481"/> 
+  <arg name="camera2_serial_no" value="634206004668"/>
+  <arg name="camera3_serial_no" value="635201000481"/>
   <arg name="camera_fps"	default="10"/>
   <arg name="camera_width"	default="640"/>
   <arg name="camera_height"	default="480"/>
@@ -95,22 +93,6 @@
     <arg name="camera_name"	value="$(arg camera3_name)"/>
   </include>
 
-  <!-- This is a scene-mounted camera that can be added for debugging or recording videos. -->
-  <!-- <include file="$(find realsense2_camera)/launch/rs_camera.launch">
-    <arg name="camera" value="scene_camera"/>
-    <arg name="serial_no" value="819312070094"/> 
-    <arg name="enable_pointcloud" value="true"/>
-    <arg name="fisheye_fps"         value="15"/>
-    <arg name="depth_fps"           value="15"/>
-    <arg name="infra_fps"           value="15"/>
-    <arg name="color_fps"           value="15"/>
-    <arg name="color_width"         value="1920"/>
-    <arg name="color_height"        value="1080"/>
-    <arg name="enable_infra1"       value="false"/>
-    <arg name="enable_infra2"       value="false"/>
-    <arg name="enable_depth"       value="true"/>
-  </include> -->
-
   <!-- Launch camera multiplexer -->
   <node name="camera_multiplexer"
   	pkg="aist_camera_multiplexer" type="aist_camera_multiplexer"
@@ -141,5 +123,22 @@
     <remap from="/image3"	to="$(arg camera3_name)/color/image_raw"/>
     <remap from="/depth3"	to="$(arg camera3_name)/aligned_depth_to_color/image_raw"/> -->
   </node>
+
+
+  <!-- This is a scene-mounted camera that can be added for debugging or recording videos. -->
+  <!-- <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <arg name="camera" value="scene_camera"/>
+    <arg name="serial_no" value="819312070094"/> 
+    <arg name="enable_pointcloud" value="true"/>
+    <arg name="fisheye_fps"         value="15"/>
+    <arg name="depth_fps"           value="15"/>
+    <arg name="infra_fps"           value="15"/>
+    <arg name="color_fps"           value="15"/>
+    <arg name="color_width"         value="1920"/>
+    <arg name="color_height"        value="1080"/>
+    <arg name="enable_infra1"       value="false"/>
+    <arg name="enable_infra2"       value="false"/>
+    <arg name="enable_depth"       value="true"/>
+  </include> -->
 
 </launch>
