@@ -3,6 +3,7 @@
 
   <!-- Mode of object detector -->
   <arg name="cont"		default="false"/>
+  <arg name="camera_name"	default="b_bot_outside_camera"/>
 
   <!-- Localization parameters -->
   <arg name="nposes"		default="2"/>
@@ -11,33 +12,6 @@
 					 )/meshes"/>
   <arg name="urdf_dir"		default="$(find o2ac_parts_description
 					 )/urdf/generated"/>
-
-  <!-- Camera parameters -->
-  <arg name="serial_no"		default=""/>
-  <arg name="camera_name"	default="b_bot_outside_camera"/>
-  <arg name="camera_width"	default="640"/>
-  <arg name="camera_height"	default="480"/>
-  <arg name="enable_streaming"	default="true"/>
-  <arg name="manager"		default=""/>
-
-  <!-- Spawn camera -->
-  <include file="$(find realsense2_camera)/launch/rs_camera.launch">
-    <arg name="camera"			value="$(arg camera_name)"/>
-    <arg name="enable_depth"		value="true"/>
-    <arg name="enable_infra1"		value="false"/>
-    <arg name="enable_infra2"		value="false"/>
-    <arg name="enable_pointcloud"	value="false"/>
-    <arg name="align_depth"		value="true"/>
-    <arg name="depth_width"		value="$(arg camera_width)"/>
-    <arg name="depth_height"		value="$(arg camera_height)"/>
-    <arg name="infra_width"		value="$(arg camera_width)"/>
-    <arg name="infra_height"		value="$(arg camera_height)"/>
-    <arg name="color_width"		value="$(arg camera_width)"/>
-    <arg name="color_height"		value="$(arg camera_height)"/>
-    <arg name="enable_streaming"	value="$(arg enable_streaming)"/>
-    <arg name="manager"			value="$(arg manager)"
-	 unless="$(eval manager == '')"/>
-  </include>
 
   <!-- Construct recognition pipeline -->
   <include file="$(find o2ac_vision)/launch/o2ac_recognition.launch">
@@ -50,7 +24,6 @@
     <arg name="image_topic"	  value="$(arg camera_name)/color/image_raw"/>
     <arg name="depth_topic"	  value="$(arg camera_name)/aligned_depth_to_color/image_raw"/>
     <arg name="normal_topic"	  value=""/>
-    <arg name="manager"		  value="$(arg manager)"/>
   </include>
 
   <!-- Spawn visualizer and parameter configurator -->

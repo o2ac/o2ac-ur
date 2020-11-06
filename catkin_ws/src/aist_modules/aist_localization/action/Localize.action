@@ -4,9 +4,8 @@ bool    in_plane     # determine pose within a plane
 
 int32   nposes       # number of candidate poses (effective only for FULL)
 
-float32 x            # x-coord. of object center within a supporting plane
-float32 y            # y-coord. of object center within a supporting plane
-float32 theta        # rotation of object within a supporting plane
+geometry_msgs/Pose2D[] poses2d
+
 bool    sideways     # true if object x-axis is parallel to a supporting plane
 float32 x_offset     # x-offset of object center w.r.t. object base frame
 float32 z_offset     # z-offset of object center w.r.t. object base frame

@@ -24,13 +24,13 @@ class BeltDetectionTest(object):
     def __init__(self):
         rospy.init_node('belt_detection_test_server_py')
 
-        self.belt_detection_test_action_server = actionlib.SimpleActionServer("beltDetectionTest", o2ac_msgs.msg.beltDetectionTestAction,
+        self.belt_detection_test_action_server = actionlib.SimpleActionServer("beltDetection", o2ac_msgs.msg.beltDetectionAction,
             execute_cb = self.belt_detection_test_callback, auto_start = True)
 
         rospy.loginfo("belt_detection_test_server has started up!")
 
     def belt_detection_test_callback(self, goal):
-        action_result = o2ac_msgs.msg.beltDetectionTestResult()
+        action_result = o2ac_msgs.msg.beltDetectionResult()
 
         """Get arguments"""
         test_id = goal.id

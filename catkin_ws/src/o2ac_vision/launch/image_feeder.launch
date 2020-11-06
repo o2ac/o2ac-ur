@@ -1,0 +1,48 @@
+<?xml version="1.0" ?>
+<launch>
+
+  <!-- Mode of object detector -->
+  <arg name="cont"		default="false"/>
+
+  <!-- Localization parameters -->
+  <arg name="nposes"		default="2"/>
+  <arg name="timeout"		default="10"/>
+  <arg name="ply_dir"		default="$(find o2ac_parts_description
+					 )/meshes"/>
+  <arg name="urdf_dir"		default="$(find o2ac_parts_description
+					 )/urdf/generated"/>
+
+  <!-- Feeder parameters -->
+  <arg name="data_dir"		default="$(find wrs_dataset)"/>
+  <arg name="intrinsic"		default="realsense_intrinsic.json"/>
+  <arg name="camera_frame"	default="map"/>
+
+  <!-- Spawn feeder -->
+  <node name="feeder"
+	pkg="o2ac_vision" type="image_feeder.py" output="screen">
+    <param name="data_dir"	value="$(arg data_dir)"/>
+    <param name="intrinsic"	value="$(arg intrinsic)"/>
+    <param name="camera_frame"	value="$(arg camera_frame)"/>
+  </node>
+
+  <node name="static_transform_publisher" pkg="tf"
+	type="static_transform_publisher" args="0 0 0 0 0 0 base_link map 10"/>
+
+  <!-- Construct recognition pipeline -->
+  <include file="$(find o2ac_vision)/launch/o2ac_recognition.launch">
+    <arg name="cont"		  value="$(arg cont)"/>
+    <arg name="nposes"		  value="$(arg nposes)"/>
+    <arg name="timeout"		  value="$(arg timeout)"/>
+    <arg name="ply_dir"		  value="$(arg ply_dir)"/>
+    <arg name="urdf_dir"	  value="$(arg urdf_dir)"/>
+    <arg name="camera_info_topic" value="feeder/camera_info"/>
+    <arg name="image_topic"	  value="feeder/image"/>
+    <arg name="depth_topic"	  value="feeder/depth"/>
+    <arg name="normal_topic"	  value=""/>
+  </include>
+
+  <!-- Spawn visualizer and parameter configurator -->
+  <node name="$(anon rviz)" pkg="rviz" type="rviz" output="screen"
+	args="-d $(find o2ac_vision)/launch/image_feeder.rviz"/>
+
+</launch>

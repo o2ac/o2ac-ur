@@ -63,7 +63,7 @@ class ModelSpawnerServer(object):
         orientation = req.pose.pose.orientation
         xacro_desc  = ModelSpawnerServer._Model.format(
                         name, xacro_name, macro_name,
-                        '', req.pose.header.frame_id,
+                        req.prefix, req.pose.header.frame_id,
                         position.x, position.y, position.z,
                         *tfs.euler_from_quaternion([orientation.x,
                                                     orientation.y,
@@ -74,8 +74,9 @@ class ModelSpawnerServer(object):
             doc = xacro.parse(xacro_desc)  # Create DOM tree.
             xacro.process_doc(doc)         # Expand and process macros.
             desc = doc.toprettyxml(indent='  ', encoding='utf8')
-            self._models[name] = xml.dom.minidom.parseString(desc).childNodes[0]
-            self._publisher.publish(mmsg.ModelDescription.ADD, name, desc)
+            self._models[req.prefix + name] = xml.dom.minidom.parseString(desc).childNodes[0]
+            self._publisher.publish(mmsg.ModelDescription.ADD,
+                                    req.prefix + name, desc)
             return msrv.AddResponse(True)
         except Exception as e:
             rospy.logerr(e)
@@ -83,11 +84,12 @@ class ModelSpawnerServer(object):
 
     def _delete_cb(self, req):
         try:
-            del self._models[req.name]
-            self._publisher.publish(mmsg.ModelDescription.DELETE, req.name, '')
+            del self._models[req.prefix + req.name]
+            self._publisher.publish(mmsg.ModelDescription.DELETE,
+                                    req.prefix + req.name, '')
             return msrv.DeleteResponse(True)
         except KeyError:
-            rospy.logerr('Tried to delete unknown model[' + req.name + '].')
+            rospy.logerr('Tried to delete unknown model[' + req.prefix + req.name + '].')
             return msrv.DeleteResponse(False)
 
     def _delete_all_cb(self, req):
@@ -112,7 +114,7 @@ if __name__ == '__main__':
                                    'urdf/generated'))
 
     spawner = ModelSpawnerServer(urdf_dir)
-    rate    = rospy.Rate(1)
+    rate    = rospy.Rate(10)
     while not rospy.is_shutdown():
         spawner.tick()
         rate.sleep()

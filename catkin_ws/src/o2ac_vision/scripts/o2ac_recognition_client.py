@@ -37,7 +37,7 @@ class ObjectRecognitionClient(object):
 
     def get_result(self):
         result = self._recognize.get_result()
-        return result.succeeded, result.confidence, result.detected_pose
+        return result.succeeded, result.confidences, result.detected_poses
 
 #########################################################################
 #  main                                                                 #
@@ -85,10 +85,11 @@ if __name__ == '__main__':
                 model = _Models[id-1]
                 recognizer.send_goal(model)
                 recognizer.wait_for_result()
-                success, confidence, pose = recognizer.get_result()
+                success, confidences, poses = recognizer.get_result()
                 if success:
-                    print("  Succeeded with confidence={}".format(confidence))
-                    spawner.add(model, pose)
+                    print("  Succeeded with confidence={}".format(confidences))
+                    for i, pose in enumerate(poses):
+                        spawner.add(model, pose, '_{:02d}_'.format(i))
                 else:
                     print("  Failed")
             else:

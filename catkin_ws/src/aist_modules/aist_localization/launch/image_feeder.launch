@@ -2,7 +2,7 @@
 <launch>
 
   <!-- Feeder parameters -->
-  <arg name="data_dir"		default="$(find WRS_Dataset)"/>
+  <arg name="data_dir"		default="$(find wrs_dataset)"/>
   <arg name="intrinsic"		default="realsense_intrinsic.json"/>
   <arg name="camera_frame"	default="map"/>
 
