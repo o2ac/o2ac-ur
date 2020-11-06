@@ -28,7 +28,7 @@ This component estimates accurate pose (x,y,theta) of **small targets** in image
 
 
 ## Dataset
-All data including the pre-trained model of SSD, templates, and image sets can be download from following link.
+All data including the pre-trained model of SSD, templates, and image sets can be downloaded from the following link.
 Please put `dataset.zip` in the directory "src/WRS_Dataset" and unzip it.
 Make sure "Annotations", "Images", "data", "labels.txt", "realsense_intrinsic.json", and "ssd.pytorch" are in "src/WRS_Dataset".
 
@@ -36,12 +36,13 @@ Make sure "Annotations", "Images", "data", "labels.txt", "realsense_intrinsic.js
 
 
 ## Recognition pipeline
-You can construct a pipeline from image acquisition to 3D object recognition as well as localizatioon by using this package, that is `o2ac_vision`, in conjuntion with other vision packages, .i.e. `aist_depth_filter`, `aist_localization` and `aist_model_spawner`(optional).
+You can construct a pipeline from image acquisition to 3D object recognition as well as localizatioon by using this package, that is `o2ac_vision`, in conjunction with other vision packages, .i.e. `aist_depth_filter`, `aist_localization` and `aist_model_spawner`(optional).
 The pipeline is structured as the following figure;
 
 ![Recognition pipeline](docs/recognition_pipeline.png)
 
 where the user's application program is displayed in green color. This is a client node of `o2ac_msgs.detectObjectAction` which is defined as;
+
 ```
 # Goal
 string item_id
@@ -54,14 +55,13 @@ float32[] confidences
 geometry_msgs/PoseStamped[] detected_poses
 # (optional)
 geometry_msgs/PoseWithCovarianceStamped[] detected_poses_with_covariance
----
-# Feedback 
 ```
+
 The client requests the `/object_recognizer` to find objects specified in the `item_id` field of the action goal. Currently, `item_id` should be a mesh file name excluding its suffix defined in `o2ac_parts_description/meshes`, ex. 01-Base, 04_37D-GEARMOTOR-50-70, 08_KZAF1075NA4WA55GA20AA0, etc.
 
 The pipeline works in the following manner;
 
-1. When the ID of object to be recognized is given in the goal of `o2ac_msgs.detectObjectAction` type, the `/object_recognizer` sends a goal of `o2ac_msgs.poseEstimationAction` type to the `/object_detector`.
+1. When the ID of object to be recognized is given in the goal, the `/object_recognizer` sends a goal of `o2ac_msgs.poseEstimationAction` type to the `/object_detector`.
 2. The `/object_detector` searches for the all known objects in a input color image by applying SSD, and then returns part ID and a bounding box to the `/object_recognizer` for each object found.
 3. For each of small parts, the `/object_detector` also applies template matching which determines its 2D position and orientation of within the bounding box. They are returned to the `/object_recognizer` together with SSD results.
 4. For the round belt, the `/object_detector` finds grasp points by applying the FGE(Fast Graspability Estimation) detector. The grasp points are represented by its 2D position and orientation of the two-finger gripper's motion axis. Multiple grasp points may be found from a single belt in general. They are returned to the `/object_recognizer` together with SSD results.
@@ -71,23 +71,29 @@ The pipeline works in the following manner;
 
 The sample client program `o2ac_vision/scripts/o2ac_recognition_client.py` gives an example showing how to use the recognition pipeline from users' application programs. The sample also provides a means for visualizing 3D localization results using `aist_model_spawner`.
 
+
 ## Executing the recognition pipeline
+
 If you would like to launch a realsense camera and construct a pipeline attached to it, please type;
+
 ```
-$ roslaunch o2ac_vision realsense.launch [camera_name:=<camera name>] [nposes:=<number of poses> timeout:=<timeout for localization in seconds>] [cont:=<continuous mode>]
-$ rosrun o2ac_vision o2ac_recognition_client.py
+roslaunch o2ac_vision realsense.launch [camera_name:=<camera name>] [nposes:=<number of poses> timeout:=<timeout for localization in seconds>] [cont:=<continuous mode>]
+rosrun o2ac_vision o2ac_recognition_client.py
 ```
+
+The correct name of the camera should be given in the `camera_name` parameter.  
+If you already launched a realsense camera driver, replace `realsense.launch` in the first line with `camera.launch`. Example:
+
+Example:
+```
+roslaunch o2ac_vision camera.launch camera_name:=b_bot_outside_camera nposes:=2 timeout:=10 cont:=true
+```
+
 The first command establishes connections between nodes shown in the figure above and takes the following parameter options;
- - **camera_name** -- a name given to the launched camera (default: `b_bot_outside_camera`)
- - **nposes** -- the number of candidated poses to be searched for within timeout. Unfortunately, it is not guaranteed that a pose with the highest confidence value will be returned when this value is set to `1` because the order of the candidate poses returned by the localizer is indeterminate. (default: `2`)
+ - **camera_name** -- name given to the launched camera (default: `b_bot_outside_camera`)
+ - **nposes** -- the number of candidate poses to be searched for within timeout. Unfortunately, it is not guaranteed that a pose with the highest confidence value will be returned when this value is set to `1` because the order of the candidate poses returned by the localizer is indeterminate. (default: `2`)
  - **timeout** -- timeout of localization process in seconds. The localization process would be canceled after the timeout has expired even if `nposes` candidates have not been found. (default: `10`)
- - **cont** -- If `true`, the pipeline operates in `continuous mode` which continuously processes incoming image streams and outputs recongnition results of SSD. Please note that no 3D localization is made. (default: `false`)
+ - **cont** -- If `true`, the pipeline operates in `continuous mode` which continuously processes incoming image streams and outputs the SSD recognition results (but not 3D localization). (default: `false`)
 
 The second command launches a sample client program which provides a CUI(command user interface) for commanding the pipeline to find and localize parts specified by their IDs. The `rqt_reconfigure` GUI is also launched which allows you to ajust various parameters used in the localizer. Please refer to the [the manual for Photoneo Localization SDK](https://photoneo.com/files/manuals/LocalizationSDK/LocalizationSDK1.3-UserManual.pdf) for details.
 
-If you have already launched a realsense camera, please type
-```
-$ roslaunch o2ac_vision camera.launch [camera_name:=<camera name>] [nposes:=<number of poses> timeout:=<timeout for localization in seconds>] [cont:=<continuous mode>]
-$ rosrun o2ac_vision o2ac_recognition_client.py
-```
-The correct name of the camera should be given in the `camera_name` parameter.
