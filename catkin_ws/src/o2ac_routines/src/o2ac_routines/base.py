@@ -247,7 +247,7 @@ class O2ACBase(object):
       # Load program if it not loaded already
       rospy.loginfo("Activating ROS control on robot " + robot)
       response = self.ur_dashboard_clients[robot + "_get_loaded_program"].call(ur_dashboard_msgs.srv.GetLoadedProgramRequest())
-      if response.program_name != "/programs/ROS_external_control.urp":
+      if response.program_name != "Loaded program: /programs/ROS_external_control.urp":
         request = ur_dashboard_msgs.srv.LoadRequest()
         request.filename = "ROS_external_control.urp"
         response = self.ur_dashboard_clients[robot + "_load_program"].call(request)
@@ -259,7 +259,7 @@ class O2ACBase(object):
       rospy.logwarn("Dashboard service did not respond!")
     
     if not load_success:
-      rospy.logwarn("Waiting and trying again`")
+      rospy.logwarn("Waiting and trying again.")
       if recursion_depth > 0:  # If connect alone failed, try quit and then connect
         response = self.ur_dashboard_clients[robot + "_quit"].call()
         rospy.sleep(.5)
