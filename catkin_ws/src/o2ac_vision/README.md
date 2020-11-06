@@ -79,7 +79,6 @@ $ rosrun o2ac_vision o2ac_recognition_client.py
 ```
 The first command establishes connections between nodes shown in the figure above and takes the following parameter options;
  - **camera_name** -- a name given to the launched camera (default: `b_bot_outside_camera`)
- - **nposes** -- the number of candidated poses to be searched for within timeout. Unfortunately, it is not guaranteed that a pose with the highest confidence value will be returned when this value is set to `1` because the order of the candidate poses returned by the localizer is indeterminate.
  - **timeout** -- timeout of localization process in seconds. The localization process would be canceled after the timeout has expired even if `nposes` candidates have not been found. (default: `10`)
  - **cont** -- If `true`, the pipeline operates in `continuous mode` which continuously processes incoming image streams and outputs recongnition results of SSD. Please note that no 3D localization is made. (default: `false`)
 
