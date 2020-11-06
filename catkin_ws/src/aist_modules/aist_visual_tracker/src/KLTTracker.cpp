@@ -53,7 +53,7 @@ KLTTracker::KLTTracker(const ros::NodeHandle& nh)
      _image_sub(_it.subscribe("/image", 1, &track_cb, this)),
      _image_pub(_it.advertise("result_image", 1)),
      _ddr(_nh),
-     _nfeatures(10),
+     _nfeatures(30),
      _nframes(30),
      _replace(true),
      _ctx(KLTCreateTrackingContext()),
@@ -64,7 +64,7 @@ KLTTracker::KLTTracker(const ros::NodeHandle& nh)
      _previous_width(0),
      _previous_height(0),
      _marker_size(10),
-     _marker_thickness(4)
+     _marker_thickness(2)
 {
   // Setup ROS parameters for the tracker context only settable at the startup
     _nh.param<int>("min_eigenvalue",
@@ -341,6 +341,10 @@ KLTTracker::track_cb(const image_cp& image)
 	    cv::drawMarker(cv_img->image,
 			   cv::Point(int(feature->x), int(feature->y)), color,
 			   cv::MARKER_CROSS, _marker_size, _marker_thickness);
+	    cv::putText(cv_img->image, std::to_string(j),
+			cv::Point(int(feature->x) + _marker_size,
+				  int(feature->y)),
+			cv::FONT_HERSHEY_SIMPLEX, 0.7, color, 2);
 	}
     }
 
