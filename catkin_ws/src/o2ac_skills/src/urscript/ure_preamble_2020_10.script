@@ -1,5 +1,4 @@
-def linearSearch2():
-  # This script worked for the UR, but not the e-series
+def unnamed():
   set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
   set_tool_output_mode(0)
   set_tool_digital_output_mode(0, 1)
@@ -1657,69 +1656,3 @@ def linearSearch2():
       sync()
   end
   # end: URCap Installation Node
-
-  def calculate_point_to_move_towards(feature, direction, position_distance):
-    local posDir=[direction[0], direction[1], direction[2]]
-    if (norm(posDir) < 1e-6):
-      return get_target_waypoint()
-    end
-    local direction_vector_normalized=normalize(posDir)
-    local displacement_pose=p[direction_vector_normalized[0] * position_distance,direction_vector_normalized[1] * position_distance,direction_vector_normalized[2] * position_distance,0,0,0]
-    local wanted_displacement_in_base_frame=pose_sub(pose_trans(feature, displacement_pose), feature)
-    return pose_add(get_target_waypoint(), wanted_displacement_in_base_frame)
-  end
-
-  # Based on the URe pendant "Direction: Until Tool Contact" program snippets
-  # $ 3 "Direction: Base Z+"
-  def linear_search(direction="Z+", force = 10, speed = 0.004, acceleration = 1.2, max_distance = 0.02, direction_vector=[0, 0, 0], use_base_coords=False):
-    global move_thread_flag_3=0
-    dir_vec = direction_vector
-    if (direction == "X+") or (direction == "x+"):
-        dir_vec = [1.0,0,0]
-    elif (direction == "X-") or (direction == "x-"):
-        dir_vec = [-1.0,0]
-    elif (direction == "Y+") or (direction == "y+"):
-        dir_vec = [0,1.0,0]
-    elif (direction == "Y-") or (direction == "y-"):
-        dir_vec = [0,-1.0]
-    elif (direction == "Z+") or (direction == "z+"):
-        dir_vec = [0,0,1.0]
-    elif (direction == "Z-") or (direction == "z-"):
-        dir_vec = [0,0,-1.0]
-
-    thread move_thread_3():
-        enter_critical
-        move_thread_flag_3 = 1
-        local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], dir_vec, 1000.0)
-        ### To use the tool coordinate system, replace the above line with this one:
-        # local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [1.0,0.0,0.0], 1000.0)
-        movel(towardsPos, a=acceleration, v=speed)
-        move_thread_flag_3 = 2
-        exit_critical
-    end
-    move_thread_flag_3 = 0
-    move_thread_han_3 = run move_thread_3()
-    while (True):
-        local targetTcpDirection=get_target_tcp_speed()
-        local stepsToRetract=tool_contact(direction=targetTcpDirection)
-        if (stepsToRetract > 0):
-        kill move_thread_han_3
-        stopl(3.0)
-        local backTrackMovement=get_actual_joint_positions_history(stepsToRetract)
-        local contactPose=get_forward_kin(backTrackMovement)
-        local posDir=[targetTcpDirection[0],targetTcpDirection[1],targetTcpDirection[2]]
-        local retractTo=contactPose
-        if (norm(posDir) > 1e-6):
-            local normalizedPosDir=normalize(posDir)
-            local additionalRetraction=p[normalizedPosDir[0] * 0.0, normalizedPosDir[1] * 0.0, normalizedPosDir[2] * 0.0, 0, 0, 0]
-            retractTo = pose_sub(contactPose, additionalRetraction)
-        end
-        movel(retractTo, a=3.0, v=0.1)
-        # $ 4 "Until (tool_contact_detection)"
-        break
-        end
-        sync()
-    end
-  end
-  # Insert program with ur_script_relay.py with closing "end"
-
