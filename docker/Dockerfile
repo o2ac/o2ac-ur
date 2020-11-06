@@ -316,15 +316,15 @@ RUN chmod -R +x /root/scripts/*
 
 ################################################################################
 
-# Install PhoXiControl
+# Install PhoXiControl (for the AIST setup)
 RUN /root/scripts/install-phoxi-control.sh
 
 ################################################################################
 
 # Install PhotoneoLocalizationSDK
-#RUN apt-get update && apt-get install -y --no-install-recommends \
-#	libssh2-1
-#RUN /root/scripts/install-photoneo-localization.sh
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	libssh2-1
+RUN /root/scripts/install-photoneo-localization.sh
 
 ################################################################################
 
