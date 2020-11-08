@@ -71,7 +71,7 @@ class TaskboardClass(O2ACCommon):
     self.start_task_timer()
 
     self.item_names = ["Bearing", "Belt", "Idler pulley", 
-                      "M3 set screw", "M3 screw", 
+                      "M2 set screw", "M3 screw", 
                       "M4 screw", "Pulley", "Shaft"]
     
     self.downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, pi))
@@ -153,8 +153,8 @@ class TaskboardClass(O2ACCommon):
     # - Retainer pin + nut last. This is the hardest.
     
     # Set screw has to be first, because b_bot is right on top of it
-    self.confirm_to_proceed("Current item: M3 set screw")
-    self.do_task("M3 set screw")
+    self.confirm_to_proceed("Current item: M2 set screw")
+    self.do_task("M2 set screw")
     self.confirm_to_proceed("Current item: M3 screw")
     self.do_task("M3 screw")
     self.confirm_to_proceed("Current item: M4 screw")
@@ -269,13 +269,14 @@ class TaskboardClass(O2ACCommon):
 
     if task_name == "M2 set screw":
       # Equip and move to the screw hole
-      self.do_change_tool_action("b_bot", equip=True, screw_size = 2)  # Set screw tool
-      self.go_to_named_pose("horizontal_screw_ready", "b_bot")
+      # self.do_change_tool_action("b_bot", equip=True, screw_size = 2)  # Set screw tool
+      # self.go_to_named_pose("horizontal_screw_ready", "b_bot")
       at_hole = geometry_msgs.msg.PoseStamped()
       at_hole.header.frame_id = "taskboard_set_screw_link"
       at_hole.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
-      at_hole.pose.position.y = 0   # MAGIC NUMBER
-      at_hole.pose.position.z = 0.002   # MAGIC NUMBER
+      at_hole.pose.position.x = 0.001   # MAGIC NUMBER
+      at_hole.pose.position.y = 0.001   # MAGIC NUMBER
+      at_hole.pose.position.z = -0.002   # MAGIC NUMBER
       screw_approach = copy.deepcopy(at_hole)
       screw_approach.pose.position.x = -0.005
       self.go_to_pose_goal("b_bot", screw_approach, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True)
@@ -286,17 +287,17 @@ class TaskboardClass(O2ACCommon):
       dist = .002
       self.move_lin_rel("b_bot", relative_translation=[0, -cos(radians(30))*dist, sin(radians(30))*dist], velocity=0.03, wait=False)
       # self.horizontal_spiral_motion("b_bot", .003, spiral_axis="Y", radius_increment = .002)
-      self.set_motor("set_screw_tool", "tighten", duration = 10.0)
-      rospy.sleep(5.0)
-
-      dist = .002
-      self.move_lin_rel("b_bot", relative_translation=[0, -cos(radians(30))*dist, sin(radians(30))*dist], velocity=0.03, wait=False)
-      rospy.sleep(5.0)
+      self.set_motor("set_screw_tool", "tighten", duration = 12.0)
+      rospy.sleep(4.0) # Wait for the screw to be screwed in a little bit
+      d = .004
+      rospy.loginfo("Moving in further by " + str(d) + " m.")
+      self.move_lin_rel("b_bot", relative_translation=[0, -cos(radians(30))*d, sin(radians(30))*d], velocity=0.002, wait=False)
+      
+      # self.do_linear_push("b_bot", force=40, direction_vector=[0, -cos(radians(30)), sin(radians(30))], forward_speed=0.001)
+      rospy.sleep(8.0)
       self.confirm_to_proceed("Go back?")
 
       # Go back
-      # dist = -.01
-      # self.move_lin_rel("b_bot", relative_translation=[0, -cos(radians(30))*dist, sin(radians(30))*dist], velocity=0.05, wait=True)
       self.go_to_pose_goal("b_bot", screw_approach, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True)
 
       self.go_to_named_pose("horizontal_screw_ready", "b_bot", speed=0.5, acceleration=0.5)
@@ -460,6 +461,40 @@ class TaskboardClass(O2ACCommon):
       # self.planning_scene_interface.allow_collisions('taskboard_base', 'taskboard_plate')
       self.planning_scene_interface.allow_collisions('bearing', 'taskboard_plate')
       taskboard.go_to_named_pose("home","a_bot")
+
+    if task_name == "screw_bearing":  # Just an intermediate for debugging.
+      # taskboard.equip_tool('b_bot', 'screw_tool_m4')
+      # taskboard.do_change_tool_action('b_bot', equip=True, screw_size=4)
+      intermediate_pose = [31.0 /180.0*3.14, -137.0 /180.0*3.14, 121.0 /180.0*3.14, -114.0 /180.0*3.14, -45.0 /180.0*3.14, -222.0 /180.0*3.14]
+      for n in range(4):
+        if rospy.is_shutdown():
+          break
+        # taskboard.go_to_named_pose("home","b_bot")
+        self.move_joints("b_bot", intermediate_pose)
+        taskboard.go_to_named_pose("feeder_pick_ready","b_bot")
+        self.pick_screw_from_feeder("b_bot", screw_size=4)
+        # taskboard.go_to_named_pose("home","b_bot")
+        self.move_joints("b_bot", intermediate_pose)
+        taskboard.go_to_named_pose("horizontal_screw_ready","b_bot")
+        screw_pose = geometry_msgs.msg.PoseStamped()
+        screw_pose.header.frame_id = "/taskboard_bearing_target_screw_" + str(n+1) + "_link"
+        screw_pose.pose.position.z = -0.003  ## MAGIC NUMBER
+        screw_pose.pose.orientation.w = 1.0
+        screw_pose_approach = copy.deepcopy(screw_pose)
+        screw_pose_approach.pose.position.x -= 0.05
+        taskboard.go_to_pose_goal("b_bot", screw_pose_approach, end_effector_link = "b_bot_screw_tool_m3_tip_link", move_lin=False)
+        if self.use_real_robot:
+          self.do_screw_action("b_bot", screw_pose, screw_size=4)
+          taskboard.go_to_pose_goal("b_bot", screw_pose_approach, end_effector_link = "b_bot_screw_tool_m3_tip_link", move_lin=False)
+          taskboard.go_to_named_pose("home","b_bot")
+        else:
+          time.sleep(1.0)
+      # taskboard.unequip_tool('b_bot', 'screw_tool_m4')
+      self.move_joints("b_bot", intermediate_pose)
+      # taskboard.go_to_named_pose("tool_pick_ready","b_bot")
+      # taskboard.do_change_tool_action('b_bot', equip=False, screw_size=4)
+
+      
     
     # ==========================================================
 
@@ -492,23 +527,6 @@ class TaskboardClass(O2ACCommon):
     if task_name == "Idler pulley":
       rospy.logerr("Idler pulley is not implemented yet!")
     
-    # ==========================================================
-
-    if task_name == "screw_bearing":
-        taskboard.equip_tool('a_bot', 'screw_tool_m3')
-        taskboard.go_to_named_pose("screw_bearing","a_bot")
-        for n in range(4):
-          screw_pose = geometry_msgs.msg.PoseStamped()
-          screw_pose.header.frame_id = "move_group/bearing/screw_hole_" + str(n+1)
-          screw_pose.pose.position = geometry_msgs.msg.Point(-0.01, 0.0, 0.0)
-          screw_pose_in_world = taskboard.listener.transformPose("workspace_center", screw_pose)
-          screw_pose_in_world.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi, 0))
-          taskboard.go_to_pose_goal("a_bot", screw_pose_in_world, end_effector_link = "a_bot_screw_tool_m3_tip_link", move_lin=False)
-          if self.use_real_robot:
-            self.do_screw_action("a_bot", screw_pose)
-          else:
-            time.sleep(1.0)
-        taskboard.unequip_tool('a_bot', 'screw_tool_m3')
 
 if __name__ == '__main__':
   try:
@@ -564,6 +582,8 @@ if __name__ == '__main__':
         taskboard.do_task("shaft")
       if i == "57":
         taskboard.do_task("bearing")
+      if i == "577":
+        taskboard.do_task("screw_bearing")
       if i == "58":
         taskboard.do_task("idler pulley")
       if i == "999":
