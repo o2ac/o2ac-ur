@@ -131,7 +131,7 @@ void SkillServer::initializeCollisionObjects()
   screw_tool_m4.subframe_poses.resize(1);
   screw_tool_m4.subframe_names.resize(1);
   screw_tool_m4.subframe_poses[0].position.z = -.12;
-  screw_tool_m4.subframe_poses[0].orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 90.0/180.0 *M_PI, -M_PI/2);
+  screw_tool_m4.subframe_poses[0].orientation = tf::createQuaternionMsgFromRollPitchYaw(0, deg2rad(90), -tau/4);
   screw_tool_m4.subframe_names[0] = "screw_tool_m4_tip";
 
 
@@ -175,7 +175,7 @@ void SkillServer::initializeCollisionObjects()
   screw_tool_m3.subframe_poses.resize(1);
   screw_tool_m3.subframe_names.resize(1);
   screw_tool_m3.subframe_poses[0].position.z = -.11;
-  screw_tool_m3.subframe_poses[0].orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 90.0/180.0 *M_PI, -M_PI/2);
+  screw_tool_m3.subframe_poses[0].orientation = tf::createQuaternionMsgFromRollPitchYaw(0, deg2rad(90.0), -tau/4);
   screw_tool_m3.subframe_names[0] = "screw_tool_m3_tip";
 
   //Suction tool
@@ -208,7 +208,7 @@ void SkillServer::initializeCollisionObjects()
   suction_tool.subframe_poses.resize(1);
   suction_tool.subframe_names.resize(1);
   suction_tool.subframe_poses[0].position.z = -.1;
-  suction_tool.subframe_poses[0].orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 90.0/180.0 *M_PI, -M_PI/2);
+  suction_tool.subframe_poses[0].orientation = tf::createQuaternionMsgFromRollPitchYaw(0, deg2rad(90.0), -tau/4);
   suction_tool.subframe_names[0] = "suction_tool_tip";
 
   // ==== Nut tool M6
@@ -240,7 +240,7 @@ void SkillServer::initializeCollisionObjects()
   nut_tool.subframe_poses.resize(1);
   nut_tool.subframe_names.resize(1);
   nut_tool.subframe_poses[0].position.z = -.11;
-  nut_tool.subframe_poses[0].orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 90.0/180.0 *M_PI, -M_PI/2);
+  nut_tool.subframe_poses[0].orientation = tf::createQuaternionMsgFromRollPitchYaw(0, deg2rad(90), -tau/4);
   nut_tool.subframe_names[0] = "nut_tool_tip";
 
   // ==== Set screw tool
@@ -280,7 +280,7 @@ void SkillServer::initializeCollisionObjects()
   set_screw_tool.subframe_names.resize(1);
   set_screw_tool.subframe_poses[0].position.y = -.0015;   // Offset because the bit's tip is inclined. Magic number.
   set_screw_tool.subframe_poses[0].position.z = -.028;
-  set_screw_tool.subframe_poses[0].orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 90.0/180.0 *M_PI, -M_PI/2);
+  set_screw_tool.subframe_poses[0].orientation = tf::createQuaternionMsgFromRollPitchYaw(0, deg2rad(90), -tau/4);
   set_screw_tool.subframe_names[0] = "set_screw_tool_tip";
 }
 
@@ -777,7 +777,7 @@ bool SkillServer::equipUnequipScrewTool(std::string robot_name, std::string scre
     return false;
   }
 
-  ps_approach.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, -M_PI/6, 0);
+  ps_approach.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, -tau/12, 0);
   ps_move_away = ps_approach;
 
   // Define pickup pose
@@ -1225,9 +1225,9 @@ bool SkillServer::suckScrew(geometry_msgs::PoseStamped screw_head_pose, std::str
   geometry_msgs::PoseStamped above_screw_head_pose_ = screw_head_pose;
   // TODO (felixvd): Test that this actually works
   if (robot_name == "a_bot")
-    above_screw_head_pose_.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(M_PI/3, 0, 0);
+    above_screw_head_pose_.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(tau/6, 0, 0);
   else  // robot_name == "b_bot"
-    above_screw_head_pose_.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(-M_PI/3, 0, 0);
+    above_screw_head_pose_.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(-tau/6, 0, 0);
   ROS_INFO_STREAM("Moving close to screw.");
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
   above_screw_head_pose_.pose.position.x -= .01;
@@ -1249,11 +1249,11 @@ bool SkillServer::suckScrew(geometry_msgs::PoseStamped screw_head_pose, std::str
   boost::shared_ptr<std_msgs::Bool const> bool_msg_pointer;
   
   double max_radius = .0025;
-  double theta_incr = M_PI/3;
+  double theta_incr = tau/6;
   double r, radius_increment;
   r=0.0002;
   radius_increment = .001;
-  double radius_inc_set = radius_increment / (2*M_PI / theta_incr);
+  double radius_inc_set = radius_increment / (tau / theta_incr);
   double theta=0;
   double RealRadius=0;
   double y, z;
@@ -1418,8 +1418,8 @@ bool SkillServer::publishPoseMarker(geometry_msgs::PoseStamped marker_pose)
   arrow_x.id = marker_id_count++; arrow_y.id = marker_id_count++; arrow_z.id = marker_id_count++;
   arrow_x.color.r = 1.0; arrow_y.color.g = 1.0; arrow_z.color.b = 1.0;
 
-  rotatePoseByRPY(0, 0, M_PI/2, arrow_y.pose);
-  rotatePoseByRPY(0, -M_PI/2, 0, arrow_z.pose);
+  rotatePoseByRPY(0, 0, tau/4, arrow_y.pose);
+  rotatePoseByRPY(0, -tau/4, 0, arrow_z.pose);
 
   pubMarker_.publish(arrow_x); pubMarker_.publish(arrow_y); pubMarker_.publish(arrow_z);
   return true;
@@ -1505,9 +1505,9 @@ void SkillServer::executePickScrewFromFeeder(const o2ac_msgs::pickScrewFromFeede
   pose_feeder.pose.position.x = 0.005;
   pose_feeder.header.frame_id = "m" + std::to_string(goal->screw_size) + "_feeder_outlet_link";
   if (goal->robot_name == "b_bot")
-    pose_feeder.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(M_PI*(-60.0)/180.0, 0, 0);
+    pose_feeder.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(deg2rad(-60), 0, 0);
   else if (goal->robot_name == "a_bot")
-    pose_feeder.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(M_PI*60.0/180.0, 0, 0);
+    pose_feeder.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(deg2rad(-60), 0, 0);
   else
   {
     ROS_ERROR_STREAM("robot_name is not a_bot or b_bot but instead: " << goal->robot_name);
@@ -1606,14 +1606,14 @@ void SkillServer::executeRegrasp(const o2ac_msgs::regraspGoalConstPtr& goal)
     { 
       c_tilt = 10.0;  // degrees. Tilts during the handover to c (this makes the pose nicer for b_bot)
     } 
-    q.setRPY(M_PI, -c_tilt/180.0*M_PI, 0);   // r p y of the handover position (for the receiver)    
+    q.setRPY(tau/2, deg2rad(-c_tilt), 0);   // r p y of the handover position (for the receiver)    
   }
   else if ((picker_robot_name == "b_bot") || (picker_robot_name == "a_bot"))
   {
     t.setOrigin(tf::Vector3(0.1, 0.0, 0.65)); 
     if (picker_robot_name == "b_bot")
     {
-      q.setRPY(M_PI/2, 0, -M_PI/2);
+      q.setRPY(tau/4, 0, -tau/4);
       ROS_INFO_STREAM("picker_robot: " << picker_robot_name);
     }
     
@@ -1629,12 +1629,12 @@ void SkillServer::executeRegrasp(const o2ac_msgs::regraspGoalConstPtr& goal)
   geometry_msgs::PoseStamped handover_pose_holder, handover_pose_picker;
   handover_pose_holder.header.frame_id = "handover_frame";
   handover_pose_picker.header.frame_id = "handover_frame";
-  handover_pose_picker.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(M_PI, 0, 0);
+  handover_pose_picker.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(tau/2, 0, 0);
   if(holder_robot_name == "a_bot")
   {
-    handover_pose_holder.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, M_PI); // Facing the receiver, rotated
+    handover_pose_holder.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, tau/2); // Facing the receiver, rotated
   }
-  else handover_pose_holder.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(M_PI/2, 0, M_PI); 
+  else handover_pose_holder.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(tau/4, 0, tau/2); 
    
   publishMarker(handover_pose_picker, "pick_pose");
   publishMarker(handover_pose_holder, "place_pose");

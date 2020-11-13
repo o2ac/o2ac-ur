@@ -57,6 +57,9 @@
 #include <actionlib/client/simple_action_client.h>
 #include <robotiq_msgs/CModelCommandAction.h>
 
+// The circle constant tau = 2*pi. One tau is one rotation in radians.
+const double tau = 6.283185307179586476925;
+
 class SkillServer
 {
 public:

@@ -74,8 +74,8 @@ class TaskboardClass(O2ACCommon):
                       "M2 set screw", "M3 screw", 
                       "M4 screw", "Pulley", "Shaft"]
     
-    self.downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, pi))
-    self.downward_orientation_cylinder_axis_along_workspace_x = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, pi/2))
+    self.downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, pi))
+    self.downward_orientation_cylinder_axis_along_workspace_x = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, tau/4))
 
     # self.assy_reader = AssyReader("taskboard")
 
@@ -103,9 +103,9 @@ class TaskboardClass(O2ACCommon):
         counter += 1
         collision_object.header.frame_id = "collision_object_spawn_helper_frame" + str(counter)
         if name == "bearing":
-          q_rotate = tf_conversions.transformations.quaternion_from_euler(0, pi/2, 0)
+          q_rotate = tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0)
         if name == "taskboard_idler_pulley_small" or name == "motor_pulley":
-          q_rotate = tf_conversions.transformations.quaternion_from_euler(0, pi/2, 0)
+          q_rotate = tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0)
         elif name == "drive_shaft":
           q_rotate = tf_conversions.transformations.quaternion_from_euler(0, 0, 0)
           
@@ -179,7 +179,7 @@ class TaskboardClass(O2ACCommon):
 
     screw_approach = geometry_msgs.msg.PoseStamped()
     screw_approach.header.frame_id = "taskboard_set_screw_link"
-    screw_approach.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi/2, 0, 0))
+    screw_approach.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/4, 0, 0))
     screw_approach.pose.position.x -= 0.005    
     self.go_to_pose_goal("b_bot", screw_approach, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True)
 
@@ -218,7 +218,7 @@ class TaskboardClass(O2ACCommon):
     hole_pose = geometry_msgs.msg.PoseStamped()
     hole_pose.header.frame_id = "taskboard_m3_screw_link"
     hole_pose.pose.position.z = -.005  # MAGIC NUMBER
-    hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-pi/6, 0, 0))
+    hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
     taskboard.do_screw_action("a_bot", hole_pose, screw_size = 3)
     self.go_to_named_pose("horizontal_screw_ready", "a_bot")
     self.go_to_named_pose("home", "a_bot")
@@ -231,7 +231,7 @@ class TaskboardClass(O2ACCommon):
     self.go_to_named_pose("horizontal_screw_ready", "b_bot")
     hole_pose = geometry_msgs.msg.PoseStamped()
     hole_pose.header.frame_id = "taskboard_m4_screw_link"
-    hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi/2, 0, 0))
+    hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/4, 0, 0))
     self.do_screw_action("b_bot", hole_pose, screw_size = 4)
 
     self.do_change_tool_action("a_bot", equip=False, screw_size = 3)
@@ -325,7 +325,7 @@ class TaskboardClass(O2ACCommon):
 
       approach_pose.pose.position.y = -.0  # MAGIC NUMBER
       approach_pose.pose.position.z = -.005  # MAGIC NUMBER
-      approach_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-pi/6, 0, 0))
+      approach_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
       self.go_to_pose_goal("a_bot", approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
       self.confirm_to_proceed("Screw in?")
 
@@ -350,7 +350,7 @@ class TaskboardClass(O2ACCommon):
       hole_pose = geometry_msgs.msg.PoseStamped()
       hole_pose.header.frame_id = "taskboard_m4_screw_link"
       hole_pose.pose.position.x += .00
-      hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi/6, 0, 0))
+      hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/12, 0, 0))
       approach_pose = copy.deepcopy(hole_pose)
       approach_pose.pose.position.x -= .03
       
@@ -373,7 +373,7 @@ class TaskboardClass(O2ACCommon):
       pick_pose = geometry_msgs.msg.PoseStamped()
       pick_pose.header.frame_id = "move_group/motor_pulley"
       pick_pose.pose.position = geometry_msgs.msg.Point(-0.02, 0, 0)
-      pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, pi))
+      pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, tau/2))
       tool_name = "motor_pulley"
       robot_name = "b_bot"
       taskboard.simple_pick("b_bot", pick_pose, item_id_to_attach="motor_pulley")
@@ -382,7 +382,7 @@ class TaskboardClass(O2ACCommon):
       insert_pose = geometry_msgs.msg.PoseStamped()
       insert_pose.header.frame_id = "taskboard_small_shaft"
       insert_pose.pose.position = geometry_msgs.msg.Point(0.025, 0, 0)
-      insert_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi/2, pi, pi))
+      insert_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/4, tau/2, tau/2))
       taskboard.simple_place("b_bot", insert_pose, item_id_to_detach="motor_pulley")
       self.disallow_collision_with_hand('b_bot', 'taskboard_base')
       self.disallow_collision_with_hand('b_bot', 'motor_pulley')
@@ -417,7 +417,7 @@ class TaskboardClass(O2ACCommon):
         pick_pose = geometry_msgs.msg.PoseStamped()
         pick_pose.header.frame_id = "move_group/bearing"
         pick_pose.pose.position = geometry_msgs.msg.Point(-0.065, 0, 0)
-        pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-pi/2, 0, 0))
+        pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/4, 0, 0))
         taskboard.simple_pick("b_bot", pick_pose, item_id_to_attach="bearing", approach_height=-0.05, grasp_height=-0.05, sign=-1)
         # Hand over the bearing from b_bot to a_bot
         rospy.loginfo("Handover pose (B)")
@@ -426,13 +426,13 @@ class TaskboardClass(O2ACCommon):
         handover_pose = geometry_msgs.msg.PoseStamped()
         handover_pose.header.frame_id = "b_bot_robotiq_85_tip_link"
         handover_pose.pose.position = geometry_msgs.msg.Point(0.05, 0, 0)
-        handover_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-pi/2, 0, pi))
+        handover_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/4, 0, tau/2))
         taskboard.go_to_pose_goal("a_bot", handover_pose, move_lin=False)
         rospy.loginfo("Handover")
         handover_pose2 = geometry_msgs.msg.PoseStamped()
         handover_pose2.header.frame_id = "b_bot_robotiq_85_tip_link"
         handover_pose2.pose.position = geometry_msgs.msg.Point(-0.01, 0, 0)
-        handover_pose2.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-pi/2, 0, pi))
+        handover_pose2.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/4, 0, tau/2))
         taskboard.go_to_pose_goal("a_bot", handover_pose2, move_lin=False)
         taskboard.groups["b_bot"].detach_object("bearing")
         taskboard.groups["a_bot"].attach_object("bearing")
@@ -445,7 +445,7 @@ class TaskboardClass(O2ACCommon):
         pick_pose = geometry_msgs.msg.PoseStamped()
         pick_pose.header.frame_id = "move_group/bearing"
         pick_pose.pose.position = geometry_msgs.msg.Point(-0.03, 0.0, 0.0)
-        pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi/2, 0, pi))
+        pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/4, 0, tau/2))
         taskboard.simple_pick("a_bot", pick_pose, item_id_to_attach="bearing")
       # insert bearing
       rospy.loginfo("Insert bearing by a_bot")
@@ -454,7 +454,7 @@ class TaskboardClass(O2ACCommon):
       insert_pose = geometry_msgs.msg.PoseStamped()
       insert_pose.header.frame_id = "taskboard_bearing_target_link"
       insert_pose.pose.position = geometry_msgs.msg.Point(0.02, 0.0, 0.0)
-      insert_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi/2, 0, 0))
+      insert_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/4, 0, 0))
       taskboard.simple_place("a_bot", insert_pose, item_id_to_detach="bearing")
       self.disallow_collision_with_hand('b_bot', 'bearing')
       self.disallow_collision_with_hand('b_bot', 'taskboard_bearing_target_link')
@@ -502,7 +502,7 @@ class TaskboardClass(O2ACCommon):
       # pick up shaft
       pick_pose = geometry_msgs.msg.PoseStamped()
       pick_pose.header.frame_id = "move_group/drive_shaft"
-      pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi, pi/2, pi))
+      pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/2, tau/4, tau/2))
       pick_pose.pose.position = geometry_msgs.msg.Point(0.08, 0.0, -0.05)
       self.allow_collision_with_hand('b_bot', 'drive_shaft')
       taskboard.simple_pick("a_bot", pick_pose, item_id_to_attach="drive_shaft", axis="z")
@@ -510,7 +510,7 @@ class TaskboardClass(O2ACCommon):
       insert_pose = geometry_msgs.msg.PoseStamped()
       insert_pose.header.frame_id = "taskboard_assy_part_07_front_hole"
       insert_pose.pose.position = geometry_msgs.msg.Point(-0.04, 0.0, -0.01)
-      insert_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, pi))
+      insert_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, tau/2))
       self.allow_collision_with_hand('b_bot', 'taskboard_assy_part_07')
       self.allow_collision_with_hand('b_bot', 'taskboard_assy_part_07_front_hole')
       taskboard.simple_place("a_bot", insert_pose, approach_height=0.1, place_height=0.1, item_id_to_detach="drive_shaft")

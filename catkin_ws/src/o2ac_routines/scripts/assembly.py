@@ -67,7 +67,7 @@ class AssemblyClass(O2ACCommon):
     self.log_to_debug_monitor(text="Init", category="subtask")
     self.log_to_debug_monitor(text="Init", category="operation")
 
-    self.downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, 0))
+    self.downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
 
   def set_assembly(self, assembly_name="wrs_assembly_1"):
     # Change the assembly
@@ -137,19 +137,19 @@ class AssemblyClass(O2ACCommon):
   def spawn_objects_for_demo(self):
     objects = ['panel_motor', 'panel_bearing', 'motor', 'motor_pulley', 'bearing_housing',
       'drive_shaft', 'end_cap', 'bearing_spacer', 'output_pulley', 'idler_spacer', 'idler_pulley', 'idler_pin']  # , 'base']
-    poses = [[0.02, -0.06, 0.001, 0.0, 0.0, -pi/2],
-      [0.12, 0.02, 0.001, 0.0, 0.0, pi],
-      [-0.09, -0.12, 0.001, pi/2, -pi/2, 0.0],
-      [-0.02, -0.16, 0.005, 0.0, -pi/2, 0.0],
-      [0.0, 0.0, 0.001, 0.0, pi/2, 0.0],
-      [-0.04, 0.0, 0.005, 0.0, 0.0, -pi],
-      [-0.1, -0.06, 0.001, 0.0, -pi/2, 0.0],
-      [-0.07, -0.06, 0.001, 0.0, -pi/2, 0.0],
-      [-0.02, -0.08, 0.005, 0.0, -pi/2, 0.0],
-      [-0.04, -0.03, 0.001, 0.0, -pi/2, 0.0],
-      [-0.05, -0.13, 0.001, 0.0, -pi/2, 0.0],
-      [-0.1, -0.03, 0.005, 0.0, 0.0, 0.0]]  # , [-0.1, 0.16, 0.001, pi/2, 0.0, 0.0]]
-    self.spawn_multiple_objects('wrs_assembly_1', ['base'], [[0.12, 0.2, 0.0, pi/2, 0.0, -pi/2]], 'attached_base_origin_link')
+    poses = [[0.02, -0.06, 0.001, 0.0, 0.0, -tau/4],
+      [0.12, 0.02, 0.001, 0.0, 0.0, tau/2],
+      [-0.09, -0.12, 0.001, tau/4, -tau/4, 0.0],
+      [-0.02, -0.16, 0.005, 0.0, -tau/4, 0.0],
+      [0.0, 0.0, 0.001, 0.0, tau/4, 0.0],
+      [-0.04, 0.0, 0.005, 0.0, 0.0, -tau/2],
+      [-0.1, -0.06, 0.001, 0.0, -tau/4, 0.0],
+      [-0.07, -0.06, 0.001, 0.0, -tau/4, 0.0],
+      [-0.02, -0.08, 0.005, 0.0, -tau/4, 0.0],
+      [-0.04, -0.03, 0.001, 0.0, -tau/4, 0.0],
+      [-0.05, -0.13, 0.001, 0.0, -tau/4, 0.0],
+      [-0.1, -0.03, 0.005, 0.0, 0.0, 0.0]]  # , [-0.1, 0.16, 0.001, tau/4, 0.0, 0.0]]
+    self.spawn_multiple_objects('wrs_assembly_1', ['base'], [[0.12, 0.2, 0.0, tau/4, 0.0, -tau/4]], 'attached_base_origin_link')
     self.spawn_multiple_objects('wrs_assembly_1', objects, poses, 'tray_center')
 
   def pick_screw_tool(self, screw_type):

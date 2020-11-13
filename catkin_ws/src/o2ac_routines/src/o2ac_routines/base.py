@@ -43,6 +43,7 @@ import tf_conversions
 import tf 
 import actionlib
 from math import *
+tau = 2.0*pi
 import yaml
 import pickle
 
@@ -375,7 +376,7 @@ class O2ACBase(object):
     screw_tool_m4.subframe_poses = [Pose()]
     screw_tool_m4.subframe_names = [""]
     screw_tool_m4.subframe_poses[0].position.z = -.12
-    screw_tool_m4.subframe_poses[0].orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 90.0/180.0*pi, -pi/2))
+    screw_tool_m4.subframe_poses[0].orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 90.0/360.0*tau, -tau/4))
     screw_tool_m4.subframe_names[0] = "screw_tool_m4_tip"
 
 

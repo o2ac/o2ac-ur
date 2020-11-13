@@ -58,7 +58,7 @@ class TestClass(O2ACCommon):
   def __init__(self):
     super(TestClass, self).__init__()
     
-    self.a_bot_downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, pi))
+    self.a_bot_downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, tau/2))
     
     self.bridge = CvBridge()
     self._img = Image()
@@ -73,7 +73,7 @@ class TestClass(O2ACCommon):
 
     ps = geometry_msgs.msg.PoseStamped()
     ps.header.frame_id = "tray_center"
-    ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, 0))
+    ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
     ps.pose.position.z = .37
     c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
     rospy.sleep(2)
@@ -102,7 +102,7 @@ class TestClass(O2ACCommon):
 
     ps = geometry_msgs.msg.PoseStamped()
     ps.header.frame_id = "tray_center"
-    ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, 0))
+    ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
     ps.pose.position.z = .22
     if number == 1:
       ps.pose.position.x = x_offset
@@ -150,14 +150,14 @@ if __name__ == '__main__':
       elif r == '2':
         ps = geometry_msgs.msg.PoseStamped()
         ps.header.frame_id = "tray_center"
-        ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, 0))
+        ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
         ps.pose.position.z = .37
         # c.go_to_named_pose("home", "a_bot")
         c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
       elif r == '3':
         ps = geometry_msgs.msg.PoseStamped()
         ps.header.frame_id = "tray_center"
-        ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, 0))
+        ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
         ps.pose.position.z = .22
         # c.go_to_named_pose("home", "a_bot")
         c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)

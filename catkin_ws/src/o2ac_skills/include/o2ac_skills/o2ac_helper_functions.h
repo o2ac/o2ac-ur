@@ -200,6 +200,11 @@ double distOfValueToInterval(double input_value, double allowed_min, double allo
   }
 }
 
+const double deg2rad(double deg)
+{
+  return (deg / 180.0 * M_PI)
+}
+
 // Below are factory functions for common geometry messages.
 
 geometry_msgs::Point makePoint(double x, double y, double z)

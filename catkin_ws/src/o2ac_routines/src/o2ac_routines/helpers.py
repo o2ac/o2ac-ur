@@ -266,8 +266,8 @@ def publish_pose_marker(marker_publisher, marker_pose_stamped):
   arrow_y.color.g = 1.0
   arrow_z.color.b = 1.0
 
-  rotatePoseByRPY(0, 0, M_PI/2, arrow_y.pose)
-  rotatePoseByRPY(0, -M_PI/2, 0, arrow_z.pose)
+  rotatePoseByRPY(0, 0, tau/4, arrow_y.pose)
+  rotatePoseByRPY(0, -tau/4, 0, arrow_z.pose)
 
   marker_publisher.publish(arrow_x)
   marker_publisher.publish(arrow_y)

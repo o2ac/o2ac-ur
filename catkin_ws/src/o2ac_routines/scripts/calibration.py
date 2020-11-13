@@ -60,7 +60,7 @@ class CalibrationClass(O2ACCommon):
   def __init__(self):
     super(CalibrationClass, self).__init__()
     
-    self.a_bot_downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, pi))
+    self.a_bot_downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, tau/2))
     self.bin_names = ["bin3_1", "bin2_4", "bin2_3", "bin2_2", "bin2_1", "bin1_2", "bin1_1", "bin1_4", "bin1_5", "bin1_3" ]
 
     self.bridge = CvBridge()
@@ -128,14 +128,14 @@ class CalibrationClass(O2ACCommon):
     pose0.pose.position.x = -.01
     if context == "b_bot_m4_assembly_plates":
       self.go_to_named_pose("screw_ready", robot_name)
-      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-pi/4, 0, 0) )
+      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/8, 0, 0) )
     if context == "motor_plate" and "screw" in end_effector_link:
       self.go_to_named_pose("screw_ready", robot_name)
-      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-pi/3, 0, 0) )
+      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/6, 0, 0) )
     if robot_name == "a_bot":
-      # pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi, 0, 0) )
-      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi/2, 0, 0) ) # To turn the gripper / tool
-      # pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi*7/6, 0, 0) ) # For checking the screw tool is aligned
+      # pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/2, 0, 0) )
+      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/4, 0, 0) ) # To turn the gripper / tool
+      # pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau*7/12, 0, 0) ) # For checking the screw tool is aligned
 
 
     if context == "motor_plate":
@@ -170,17 +170,17 @@ class CalibrationClass(O2ACCommon):
     poses[1].pose.position.x = .058
     poses[1].pose.position.y = -.0025
     poses[1].pose.position.z = .095 + .01
-    poses[1].pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, 0) )
+    poses[1].pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0) )
 
     poses[2].header.frame_id = "assembled_assy_part_08_front_tip"  # Front of rotary shaft
-    poses[2].pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, -pi) )
+    poses[2].pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, -tau/2) )
     poses[2].pose.position.x = .03
 
     poses[3].header.frame_id = "assembled_assy_part_14_screw_head"
     poses[3].pose.position.x = -.03
 
     poses[4].header.frame_id = "assembled_assy_part_04_tip"
-    poses[4].pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-pi, 0, -pi) )
+    poses[4].pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/2, 0, -tau/2) )
     poses[4].pose.position.x = .03
 
     self.cycle_through_calibration_poses(poses, "b_bot", speed=0.3, go_home=True)
@@ -201,9 +201,9 @@ class CalibrationClass(O2ACCommon):
     pose0.pose.orientation.w = 1.0
     pose0.pose.position.x = -.01
     if robot_name == "a_bot":
-      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-pi*1/6, 0, 0) )
+      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0) )
     elif robot_name == "b_bot":
-      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi*1/6, 0, 0) )
+      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/12, 0, 0) )
 
 
     for i in range(3):
@@ -223,7 +223,7 @@ class CalibrationClass(O2ACCommon):
 
     pose_a = geometry_msgs.msg.PoseStamped()
     pose_a.header.frame_id = "workspace_center"
-    pose_a.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, 0))
+    pose_a.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
     pose_a.pose.position.x = .0
     pose_a.pose.position.y = -.2
     pose_a.pose.position.z = .03
@@ -273,7 +273,7 @@ class CalibrationClass(O2ACCommon):
     pose0 = geometry_msgs.msg.PoseStamped()
     pose0.header.frame_id = "assembled_assy_part_01_screw_hole_panel1_1"
     if robot_name=="b_bot":
-      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi/4, 0, 0))
+      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/8, 0, 0))
       pose0.pose.position.x -= .01
     
     for i in range(4):
@@ -297,7 +297,7 @@ class CalibrationClass(O2ACCommon):
     pose0 = geometry_msgs.msg.PoseStamped()
     if robot_name=="b_bot":
       pose0.header.frame_id = "assembled_assy_part_03_bottom_screw_hole_aligner_1"
-      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-pi/4, 0, 0))
+      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/8, 0, 0))
       pose0.pose.position.x = -.01
     
     self.do_screw_action(robot_name, pose0, screw_size = 4, screw_height = .02)
@@ -312,11 +312,11 @@ class CalibrationClass(O2ACCommon):
     
     pose0 = geometry_msgs.msg.PoseStamped()
     if robot_name == "a_bot":
-      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi/6, 0, 0))
+      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/12, 0, 0))
       pose0.header.frame_id = "m3_feeder_outlet_link"
       ee_link = robot_name + "_screw_tool_m3_tip_link"
     else:
-      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-pi/6, 0, 0))
+      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
       pose0.header.frame_id = "m4_feeder_outlet_link"
       ee_link = robot_name + "_screw_tool_m4_tip_link"
     
@@ -378,7 +378,7 @@ if __name__ == '__main__':
       elif r == '1000':
         ps = geometry_msgs.msg.PoseStamped()
         ps.header.frame_id = "workspace_center"
-        ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, pi))
+        ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, tau/2))
         ps.pose.position.z = .2
         c.go_to_named_pose("home", "b_bot")
         c.move_lin("b_bot", ps, speed=.2, acceleration=.04)
