@@ -13,7 +13,8 @@ install_photoneo()
     cd /tmp
     wget https://photoneo.com/files/installer/$1/$2.tar
     tar xvf $2.tar
-    bash ./$2
+    # bash ./$2
+    expect /root/scripts/install-photoneo-location.exp $2
     rm $2.tar $2
 }
 
@@ -29,6 +30,6 @@ if [ `lsb_release -sc` == "bionic" ]; then
     ln -s libopencv_imgproc.so libopencv_imgproc.so.3.1
 fi
 
-apt-get install -y --no-install-recommends libssh2-1
+# apt-get install -y --no-install-recommends libssh2-1
 
 install_photoneo Localization/1.3.1 PhotoneoLocalizationSDKInstaller-1.3.1+ed614d8-Linux-gcc5.5.0.run

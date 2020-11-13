@@ -34,6 +34,15 @@ function o2ac-repair-git-paths () {
   popd
 }
 
+function o2ac-build-catkin-workspace () {
+  # Store the current directory and execute scripts in the current shell process.
+  pushd .
+  source /root/docker/scripts/repair-git-paths.sh
+  source /root/docker/scripts/fix-permission-issues.sh
+  source /root/docker/scripts/initialize-catkin-workspace.sh
+  popd
+}
+
 function o2ac-initialize-catkin-workspace () {
   # Store the current directory and execute scripts in the current shell process.
   pushd .
@@ -91,11 +100,11 @@ function o2ac-magic-rosdep-command () {
 alias cw='cd /root/catkin_ws'
 alias cs='cd /root/catkin_ws/src'
 alias cb='catkin build'
-alias setup='source /root/catkin_ws/devel/setup.bash'
+alias s='source /root/catkin_ws/devel/setup.bash'
 
 alias ucw='cd /root/underlay_ws'
 alias ucs='cd /root/underlay_ws/src'
-alias usetup='source /root/underlay_ws/devel/setup.bash'
+alias us='source /root/underlay_ws/devel/setup.bash'
 
 ###############################################################################
 

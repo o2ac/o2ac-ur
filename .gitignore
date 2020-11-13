@@ -40,3 +40,9 @@ catkin_ws/src/o2ac_parts_description/urdf/generated/
 *.bin
 *.ipch
 
+
+# Modules we clone into the workspace using rosinstall / wstool
+underlay_ws/src/third_party/geometric_shapes
+underlay_ws/src/third_party/moveit_resources
+underlay_ws/src/third_party/moveit_visual_tools
+underlay_ws/src/rosparam_shortcuts

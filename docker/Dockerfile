@@ -282,6 +282,8 @@ RUN pip install gym
 
 ################################################################################
 
+# Install eigenpy 
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	ros-melodic-eigenpy
 
@@ -297,6 +299,13 @@ RUN pip install --upgrade scipy
 
 # Add industrial_core submodule
 RUN apt-get update && apt-get install -y ros-melodic-industrial-core
+
+################################################################################
+
+# Install wstool to use .rosinstall file in the underlay workspace
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	python-wstool python-catkin-tools clang-format-10 
 
 ################################################################################
 
@@ -323,7 +332,8 @@ RUN /root/scripts/install-phoxi-control.sh
 
 # Install PhotoneoLocalizationSDK
 RUN apt-get update && apt-get install -y --no-install-recommends \
-	libssh2-1
+	libssh2-1 \
+	expect
 RUN /root/scripts/install-photoneo-localization.sh
 
 ################################################################################
