@@ -12,6 +12,11 @@
 
 namespace aist_depth_filter
 {
+struct BGR
+{
+    uint8_t	b, g, r;
+};
+
 /************************************************************************
 *  class assignment_iterator<ITER>					*
 ************************************************************************/
@@ -49,7 +54,17 @@ namespace detail
 			}
       static void	assign(std::array<uint8_t, 3>& rgb, uint8_t grey)
       			{
-      			    rgb[2] = rgb[1] = rgb[0] = grey;
+      			    rgb[0] = rgb[1] = rgb[2] = grey;
+      			}
+      static void	assign(float& grey, const BGR& bgr)
+			{
+			    grey = 0.3f*bgr.r + 0.59f*bgr.g + 0.11f*bgr.b;
+			}
+      static void	assign(std::array<uint8_t, 3>& rgb, const BGR& bgr)
+      			{
+			    rgb[0] = bgr.r;
+			    rgb[1] = bgr.g;
+			    rgb[2] = bgr.b;
       			}
 
     private:
@@ -161,6 +176,11 @@ savePly(const sensor_msgs::CameraInfo& camera_info,
 	    image, make_assignment_iterator(oply.color.begin()));
 	copy_image<std::array<uint8_t, 3> >(
 	    image, make_assignment_iterator(oply.texture.begin()));
+    }
+    else if (image.encoding == image_encodings::BGR8)
+    {
+	copy_image<BGR>(image, make_assignment_iterator(oply.color.begin()));
+	copy_image<BGR>(image, make_assignment_iterator(oply.texture.begin()));
     }
     else
 	throw std::runtime_error("savePly(): unknown image encoding["

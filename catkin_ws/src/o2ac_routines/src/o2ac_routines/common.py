@@ -134,10 +134,10 @@ class O2ACCommon(O2ACBase):
       rospy.loginfo("Exiting fasten() after writing solution")
     return result.success
 
-  def subassembly(self, object_name, object_target_pose, object_subframe_to_place, approach_place_direction_reference_frame = '', approach_place_direction = [], save_solution_to_file=''):
+  def plan_wrs_subtask_b(self, object_name, object_target_pose, object_subframe_to_place, approach_place_direction_reference_frame = '', approach_place_direction = [], save_solution_to_file=''):
     """This function creates a motion=plan for the subassembly task of attaching the 'object' on the base plate
     """
-    result = self.do_plan_subassembly_action(object_name, object_target_pose, object_subframe_to_place, approach_place_direction_reference_frame, approach_place_direction)
+    result = self.do_plan_wrs_subtask_b_action(object_name, object_target_pose, object_subframe_to_place, approach_place_direction_reference_frame, approach_place_direction)
 
     path = self.rospack.get_path('o2ac_routines')
     path += '/MP_solutions/'
@@ -148,7 +148,7 @@ class O2ACCommon(O2ACBase):
       rospy.loginfo("Exiting subassembly() after writing solution")
     return result.success
   
-  def load_MP_solution(self, solution_file):
+  def load_MTC_solution(self, solution_file):
     """Load the result of a motion-plan from a file."""
     if not solution_file == '':
       # Load the solution
@@ -157,37 +157,36 @@ class O2ACCommon(O2ACBase):
         result = pickle.load(f)
     return result
 
-  def execute_MP_solution(self, solution, speed = 1.0):
+  def execute_MTC_solution(self, solution, speed = 1.0):
     """
-    Execute the result of a motion plan.
+    Execute the result of a task plan.
     The type of the input 'solution' is mtc_msgs.msg.Solution
     """
-    # Execute the solution
-    executing_routine = False
+    
+    skip_stage_execution = False   # True while a subroutine like "equip/unequip"
     success = False
-    how_many_times_we_operated_a_bot_gripper = 0
     screw_counter = 0
     if speed > 1.0:
       speed = 1.0
     start_state = self.robots.get_current_state()
-    attached_collision_objects = start_state.attached_collision_objects
+    currently_attached_collision_objects = start_state.attached_collision_objects
     for solution in solution.sub_trajectory:
       stage_name = solution.info.creator_name
       if stage_name == 'Fasten screw (dummy)':
         rospy.sleep(2)
-      # print('STAGE NAME: ' + stage_name + '!!!!!!!!!!!!!!!!!!!!!!!!!!')
-      # raw_input()
-      if stage_name == 'pick_tool_start':
-        executing_routine = True
+
+      # If a "start" block is encountered, skip the trajectories inside and execute the actual action they represent
+      if stage_name == 'equip_tool_m4_start':
+        skip_stage_execution = True
         self.do_change_tool_action("b_bot", equip=True, screw_size=4)
-      if stage_name == 'place_tool_start':
-        executing_routine = True
+      if stage_name == 'unequip_tool_m4_start':
+        skip_stage_execution = True
         self.do_change_tool_action("b_bot", equip=False, screw_size=4)
-      if stage_name == 'pick_screw_start':
-        executing_routine = True
-        self.pick_screw_from_feeder('b_bot', 4, attempts = 2)
-      if stage_name == 'fasten_screw_start':
-        executing_routine = True
+      if stage_name == 'pick_screw_m4_start':
+        skip_stage_execution = True
+        self.pick_screw_from_feeder('b_bot', screw_size=4)
+      if stage_name == 'fasten_screw_m4_start':
+        skip_stage_execution = True
         target_pose = geometry_msgs.msg.PoseStamped()
         if screw_counter == 0:
           target_pose.header.frame_id = 'move_group/base/screw_hole_panel2_1'
@@ -196,22 +195,46 @@ class O2ACCommon(O2ACBase):
           target_pose.header.frame_id = 'move_group/base/screw_hole_panel2_2'
         target_pose.pose.orientation.w = 1
         self.fasten_screw('b_bot', target_pose)
-      if solution.scene_diff.robot_state.joint_state.name and not executing_routine:  # If the robot state is changed (robot moved, object attached/detached)
+      
+      # Resume executing the trajectories
+      if (stage_name == 'equip_tool_m4_end' or stage_name == 'unequip_tool_m4_end' or stage_name == 'pick_screw_m4_end' or 
+         stage_name == 'fasten_screw_m4_end'):
+        skip_stage_execution = False
+        currently_attached_collision_objects = self.robots.get_current_state().attached_collision_objects
+        # The collision objects need to be updated because they might have changed during the trajectory
+        continue
+      
+      # Check for any self-contained stages to be executed
+      if stage_name == 'push plate with b_bot' and not skip_stage_execution:
+        # Execute positioning UR program
+        self.load_and_execute_program(robot="b_bot", program_name="wrs2020_push_motor_plate.urp", wait=True)
+        continue
+      if stage_name == 'move a_bot right wrs_subtask_motor_plate':
+        rospy.logwarn("===================== DEBUG1")
+        self.move_lin_rel("a_bot", relative_translation=[0, -0.02, 0], use_robot_base_csys=True, max_wait=5.0)
+        rospy.logwarn("===================== DEBUG1b")
+      if stage_name == 'move a_bot back wrs_subtask_motor_plate':
+        rospy.logwarn("===================== DEBUG2")
+        self.move_lin_rel("a_bot", relative_translation=[0,  0.02, 0], use_robot_base_csys=True, max_wait=5.0)
+        rospy.logwarn("===================== DEBUG2b")
+
+      # Execute trajectories
+      if solution.scene_diff.robot_state.joint_state.name and not skip_stage_execution:  # If the robot state is changed (robot moved, object attached/detached)
         # Update attached collision objects
-        if not attached_collision_objects == solution.scene_diff.robot_state.attached_collision_objects:
-          for co in attached_collision_objects:
-            print('IN MEMORY CO: ', co.object.id)
-          for co in solution.scene_diff.robot_state.attached_collision_objects:
-            print('IN SOLUTION CO: ', co.object.id)
-          coll_objs_to_detach = [collision_object for collision_object in attached_collision_objects if collision_object not in solution.scene_diff.robot_state.attached_collision_objects]
-          coll_objs_to_attach = [collision_object for collision_object in solution.scene_diff.robot_state.attached_collision_objects if collision_object not in attached_collision_objects]
+        if not currently_attached_collision_objects == solution.scene_diff.robot_state.attached_collision_objects:
+          # for co in currently_attached_collision_objects:
+          #   print('IN MEMORY CO: ', co.object.id)
+          # for co in solution.scene_diff.robot_state.attached_collision_objects:
+          #   print('IN SOLUTION CO: ', co.object.id)
+          coll_objs_to_detach = [collision_object for collision_object in currently_attached_collision_objects if collision_object not in solution.scene_diff.robot_state.attached_collision_objects]
+          coll_objs_to_attach = [collision_object for collision_object in solution.scene_diff.robot_state.attached_collision_objects if collision_object not in currently_attached_collision_objects]
           for attached_object in coll_objs_to_detach:
-            print('Detaching object ' + attached_object.object.id + ' in stage ' + stage_name)
+            # print('Detaching object ' + attached_object.object.id + ' in stage ' + stage_name)
             attached_object_name = attached_object.object.id
             attach_to = attached_object.link_name[:5]
             self.groups[attach_to].detach_object(attached_object_name)
           for attached_object in coll_objs_to_attach:
-            print('Attaching object ' + attached_object.object.id + ' in stage ' + stage_name)
+            # print('Attaching object ' + attached_object.object.id + ' in stage ' + stage_name)
             attached_object_name = attached_object.object.id
             attach_to = attached_object.link_name[:5]
             self.groups[attach_to].attach_object(attached_object_name, attached_object.link_name, touch_links=  # MODIFY attach_tool in base.py to attach_object ++ ROBOT NAME???
@@ -220,91 +243,58 @@ class O2ACCommon(O2ACBase):
               attach_to + "_robotiq_85_left_inner_knuckle_link", 
               attach_to + "_robotiq_85_right_finger_tip_link", 
               attach_to + "_robotiq_85_right_inner_knuckle_link"])
-            attached_collision_objects.append(attached_object)
-          attached_collision_objects = [attached_collision_object for attached_collision_object in attached_collision_objects if attached_collision_object not in coll_objs_to_detach]
+            currently_attached_collision_objects.append(attached_object)
+          currently_attached_collision_objects = [attached_collision_object for attached_collision_object in currently_attached_collision_objects if attached_collision_object not in coll_objs_to_detach]
 
-        # If joint_names is empty, the stage performs no motions and can be skipped
-        if solution.trajectory.joint_trajectory.joint_names: 
-          robot_name = solution.trajectory.joint_trajectory.joint_names[0][:5]
-          arm_group = self.groups[robot_name]
-          if len(solution.trajectory.joint_trajectory.joint_names) == 1:  # If only one joint is in the group, it is the gripper
-            # Gripper motion
-            hand_group = self.groups[robot_name + '_robotiq_85']
-            hand_closed_joint_values = hand_group.get_named_target_values('close')
-            hand_open_joint_values = hand_group.get_named_target_values('open')
-            if 0.01 > abs(hand_open_joint_values[solution.trajectory.joint_trajectory.joint_names[0]] - solution.trajectory.joint_trajectory.points[-1].positions[0]):
-              if how_many_times_we_operated_a_bot_gripper == 2 and robot_name == 'a_bot':
-                l = 0.01
-                # self.move_lin_rel("a_bot", [-0.002, 0, 0])
-                self.move_lin_rel("a_bot", [-0.002, -math.sin(30.0/180.0*math.pi)*l, math.cos(30.0/180.0*math.pi)*l])
-                self.send_gripper_command(robot_name, 0.012)
-                rospy.sleep(1)
-                self.move_lin_rel("a_bot", [0, math.sin(30.0/180.0*math.pi)*l, -math.cos(30.0/180.0*math.pi)*l])
-              elif how_many_times_we_operated_a_bot_gripper == 4 and robot_name == 'a_bot':
-                self.send_gripper_command(robot_name, 'open')
-                self.move_lin_rel("a_bot", [0.002, 0, 0])
-              else:
-                self.send_gripper_command(robot_name, 'open')
-            else:
-              self.send_gripper_command(robot_name, 'close', True)
-            if robot_name == 'a_bot':
-              rospy.sleep(2)
-              how_many_times_we_operated_a_bot_gripper += 1
-            if self.use_real_robot:
-              if how_many_times_we_operated_a_bot_gripper == 3:
-                #  Execute positioning UR program
-                # Load program
-                request = ur_dashboard_msgs.srv.LoadRequest()
-                request.filename = "wrs2020_push_motor_plate.urp"
-                response = self.ur_dashboard_clients["b_bot_load_program"].call(request)
-                if not response.success:
-                  rospy.logerr("Could not load the wrs2020_push_motor_plate.urp URCap. Is the UR robot set up correctly and the program installed with the correct name?")
-                  return False
-                  
-                # Run the program
-                response = self.ur_dashboard_clients["b_bot_play"].call(std_srvs.srv.TriggerRequest())
-                response = self.ur_dashboard_clients["b_bot_program_running"].call(ur_dashboard_msgs.srv.IsProgramRunningRequest())
-                rospy.sleep(2)
-                rospy.loginfo("press enter when done with the UR script")
-                raw_input()
-                # TODO go to named pose with bbot
-          else:
-            rospy.loginfo("========")
+        # Skip stage if joint_names is empty, because the stage performs no motions
+        if not solution.trajectory.joint_trajectory.joint_names: 
+          continue
+
+        # Execute stage
+        robot_name = solution.trajectory.joint_trajectory.joint_names[0][:5]
+        arm_group = self.groups[robot_name]
+        if len(solution.trajectory.joint_trajectory.joint_names) == 1:  # If only one joint is in the group, it is the gripper
+          # Gripper motion
+          hand_group = self.groups[robot_name + '_robotiq_85']
+          hand_closed_joint_values = hand_group.get_named_target_values('close')
+          hand_open_joint_values = hand_group.get_named_target_values('open')
+          if stage_name == 'open hand':
+            self.send_gripper_command(robot_name, 'open')
+          elif stage_name == 'close hand':
+            self.send_gripper_command(robot_name, 'close')
+          elif 0.01 > abs(hand_open_joint_values[solution.trajectory.joint_trajectory.joint_names[0]] - solution.trajectory.joint_trajectory.points[-1].positions[0]):
+            rospy.logwarn("Actuating gripper (backup path)!")
+            self.send_gripper_command(robot_name, 'open')
+          elif 0.01 < abs(hand_open_joint_values[solution.trajectory.joint_trajectory.joint_names[0]] - solution.trajectory.joint_trajectory.points[-1].positions[0]):
+            rospy.logwarn("Actuating gripper (backup path)!")
+            self.send_gripper_command(robot_name, 'close', True)
+          
+        else: # The robots move
+          rospy.loginfo("========")
+          rospy.logwarn("self.groups[robot_name].get_current_joint_values():")
+          print(self.groups[robot_name].get_current_joint_values())
+          rospy.logwarn("solution.trajectory.joint_trajectory.points[0].positions:")
+          print(solution.trajectory.joint_trajectory.points[0].positions)
+          # First check that the trajectory is safe to execute (= robot is at start of trajectory)
+          if not all_close(self.groups[robot_name].get_current_joint_values(), 
+                            solution.trajectory.joint_trajectory.points[0].positions,
+                            0.01):
+            rospy.logerr("Robot " + robot_name + " is not at the start of the next trajectory! Aborting.")
+            rospy.logerr("Stage name: " + stage_name)
             rospy.logwarn("self.groups[robot_name].get_current_joint_values():")
             print(self.groups[robot_name].get_current_joint_values())
             rospy.logwarn("solution.trajectory.joint_trajectory.points[0].positions:")
             print(solution.trajectory.joint_trajectory.points[0].positions)
-            # First check that the trajectory is safe to execute (= robot is at start of trajectory)
-            if not all_close(self.groups[robot_name].get_current_joint_values(), 
-                             solution.trajectory.joint_trajectory.points[0].positions,
-                             0.001):
-              rospy.logerr("Robot " + robot_name + " is not at the start of the next trajectory! Aborting.")
-              rospy.logwarn("self.groups[robot_name].get_current_joint_values():")
-              print(self.groups[robot_name].get_current_joint_values())
-              rospy.logwarn("solution.trajectory.joint_trajectory.points[0].positions:")
-              print(solution.trajectory.joint_trajectory.points[0].positions)
-              return False
+            return False
 
-            # Prepare robot motion
-            self.activate_ros_control_on_ur(robot_name)
-            plan = arm_group.retime_trajectory(self.robots.get_current_state(), solution.trajectory, speed)
-            arm_group.set_max_velocity_scaling_factor(speed)
+          # Prepare robot motion
+          self.activate_ros_control_on_ur(robot_name)
+          plan = arm_group.retime_trajectory(self.robots.get_current_state(), solution.trajectory, speed)
+          arm_group.set_max_velocity_scaling_factor(speed)
 
-            # Execute
-            plan_success = arm_group.execute(plan, wait=True)
-            success = success and plan_success
-      if stage_name == 'pick_tool_end':
-        executing_routine = False
-        attached_collision_objects = self.robots.get_current_state().attached_collision_objects
-      if stage_name == 'place_tool_end':
-        executing_routine = False
-        attached_collision_objects = self.robots.get_current_state().attached_collision_objects
-      if stage_name == 'pick_screw_end':
-        executing_routine = False
-        attached_collision_objects = self.robots.get_current_state().attached_collision_objects
-      if stage_name == 'fasten_screw_end':
-        executing_routine = False
-        attached_collision_objects = self.robots.get_current_state().attached_collision_objects
+          # Execute
+          plan_success = arm_group.execute(plan, wait=True)
+          success = success and plan_success
     return True
 
   def pick_and_move_object_with_robot(self, item_name, item_target_pose, robot_name, speed=0.1):
@@ -523,57 +513,6 @@ class O2ACCommon(O2ACBase):
 
 
   ########
-
-  def pick_screw_from_feeder(self, robot_name, screw_size, attempts = 1):
-    """
-    Picks a screw from one of the feeders. The screw tool already has to be equipped!
-    Use this command to equip the screw tool: do_change_tool_action(self, "b_bot", equip=True, screw_size = 4)
-    """
-    
-    if not screw_size==3 and not screw_size==4:
-      rospy.logerr("Screw size needs to be 3 or 4 but is: " + str(screw_size))
-      return False
-
-    # self.log_to_debug_monitor("Pick screw from feeder", "operation")
-
-    # Turn to the right to face the feeders
-    self.go_to_named_pose("feeder_pick_ready", robot_name, speed=0.2, acceleration=0.2, force_ur_script=False)
-
-    pose_feeder = geometry_msgs.msg.PoseStamped()
-    pose_feeder.header.frame_id = "m" + str(screw_size) + "_feeder_outlet_link"
-    if robot_name == "b_bot":
-      pose_feeder.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(radians(-60), 0, 0))
-    elif robot_name == "a_bot":
-      pose_feeder.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(radians(60), 0, 0))
-    else:
-      rospy.logerr("robot_name is not a_bot or b_bot but instead: " + robot_name)
-      return False
-    pose_feeder.pose.position.x = 0.0
-
-    attempt = 0
-    screw_picked = False
-    while attempt < attempts:
-      self.do_pick_screw_action(robot_name, pose_feeder, screw_size = screw_size, use_complex_planning = True, tool_name = "screw_tool")
-      bool_msg = Bool()
-      try:
-        bool_msg = rospy.wait_for_message("/screw_tool_m" + str(screw_size) + "/screw_suctioned", Bool, 1.0)
-      except:
-        pass
-      screw_picked = bool_msg.data
-      if screw_picked:
-        self.go_to_named_pose("feeder_pick_ready", robot_name, speed=0.2, acceleration=0.2, force_ur_script=False)
-        rospy.loginfo("Successfully picked the screw")
-        return True
-      if not self.use_real_robot:
-        self.go_to_named_pose("feeder_pick_ready", robot_name, speed=0.2, acceleration=0.2, force_ur_script=False)
-        rospy.loginfo("Pretending the screw is picked, because this is simulation.")
-        return True
-      attempt += 1
-
-    if not screw_picked:
-      self.go_to_named_pose("feeder_pick_ready", robot_name, speed=0.2, acceleration=0.2, force_ur_script=False)
-      rospy.loginfo("Failed to pick the screw")
-    return False
 
   def fasten_screw(self, robot_name, screw_hole_pose, screw_height = .02, screw_size = 4):
 

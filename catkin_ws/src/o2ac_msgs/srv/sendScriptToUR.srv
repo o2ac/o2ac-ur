@@ -34,6 +34,7 @@ float64 velocity                # move_l param (default: .05)
 # lin_move_rel
 geometry_msgs/Point relative_translation  # for lin_translation. In EE coordinates (Z+ is forward)
 geometry_msgs/Point relative_rotation     # for lin_move_rel. In UR format (angle-axis)
+bool lin_move_rel_in_base_csys            # If false, TCP is used. If true, robot base.
 
 # Joint pose
 float64[] joint_positions

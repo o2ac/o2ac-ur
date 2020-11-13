@@ -99,7 +99,7 @@ The actions provided by the node, if it is running correctly, are:
  - `/release_planning` (releasing a held object)
  - `/fastening_planning` (move_above - go_down - come_up while holding an object/tool the whole time)
  - `/pick_place_planning` (picking and placing an object potentially including a regrasp)
- - `/sub_assembly_planning` (picking and placing the L panel onto the base plate and fixing it with the screws)
+ - `/wrs_subtask_b_planning` (picking and placing the L panel onto the base plate and fixing it with the screws)
 
  To start planning, make requests from an action client to use the servers. An easy way to test them is with the `actionlib` package.
 

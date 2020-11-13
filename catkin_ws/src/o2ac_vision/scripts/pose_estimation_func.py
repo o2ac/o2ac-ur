@@ -467,14 +467,14 @@ def visualize_result( im_temp, im_scene, ltop, orientation ):
     im_res_on_original = np.asarray( im_res_on_original, np.uint8 )
 
     # draw bounding box
-    im_res_on_original = cv2.rectangle( im_res_on_original, ( ltop_pad[1],  ltop_pad[0]), (ltop_pad[1]+bbox_size[1], ltop_pad[0]+bbox_size[0]), (0,255,0), 3 )
+    im_res_on_original = cv2.rectangle( im_res_on_original, ( ltop_pad[1],  ltop_pad[0]), (ltop_pad[1]+bbox_size[1], ltop_pad[0]+bbox_size[0]), (0,255,255), 3 )
     # draw center position
-    im_res_on_original = cv2.circle( im_res_on_original, (bb_center[1], bb_center[0] ), 5, (0,255,0), -1, cv2.LINE_AA )
+    im_res_on_original = cv2.circle( im_res_on_original, (bb_center[1], bb_center[0] ), 5, (0,255,255), -1, cv2.LINE_AA )
     # draw orientation
     line_length = int( bbox_size[0]/2 )
     deg2rad = math.pi/180.0
     pt2 = (int(bb_center[1]+line_length*math.cos(orientation*deg2rad)), int(bb_center[0]+line_length*math.sin(orientation*deg2rad)) )
-    im_res_on_original = cv2.arrowedLine( im_res_on_original, (bb_center[1], bb_center[0] ), pt2, (0,255,0), 2, cv2.LINE_AA )
+    im_res_on_original = cv2.arrowedLine( im_res_on_original, (bb_center[1], bb_center[0] ), pt2, (0,255,255), 2, cv2.LINE_AA )
 
     im_res_on_original = im_res_on_original[res_pad:-res_pad, res_pad:-res_pad]
 
@@ -491,6 +491,7 @@ class FastGraspabilityEvaluation():
         self.im_in = _im_in.copy()
         self.im_hand = _im_hand.copy()
         self.im_collision = _im_collision.copy()
+        self.im_in_org = _im_in
 
         self.im_belt = None    # belt = 1, other = 0
         self.fg_mask = None  # foreground = 1, background = 0
@@ -504,7 +505,7 @@ class FastGraspabilityEvaluation():
         self.rotation = (0, 45, 90, 135)
 
         #parameter
-        ds_rate = _param["ds_rate"]
+        self.ds_rate = _param["ds_rate"]
         target_lower = np.array( _param["target_lower"] )
         target_upper = np.array( _param["target_upper"] )
         self.threshold = _param["threshold"]
@@ -514,9 +515,9 @@ class FastGraspabilityEvaluation():
         fg_upper = np.array( _param["fg_upper"] )
 
         # Down sampling
-        self.im_in = cv2.resize( self.im_in, None, fx=ds_rate, fy=ds_rate, interpolation=cv2.INTER_NEAREST )
-        self.im_hand = cv2.resize( self.im_hand, None, fx=ds_rate, fy=ds_rate, interpolation=cv2.INTER_NEAREST )
-        self.im_collision = cv2.resize( self.im_collision, None, fx=ds_rate, fy=ds_rate, interpolation=cv2.INTER_NEAREST )
+        self.im_in = cv2.resize( self.im_in, None, fx=self.ds_rate, fy=self.ds_rate, interpolation=cv2.INTER_NEAREST )
+        self.im_hand = cv2.resize( self.im_hand, None, fx=self.ds_rate, fy=self.ds_rate, interpolation=cv2.INTER_NEAREST )
+        self.im_collision = cv2.resize( self.im_collision, None, fx=self.ds_rate, fy=self.ds_rate, interpolation=cv2.INTER_NEAREST )
 
         # Masking out the belt and foreground
         self.im_belt = self.binarizationHSV( self.im_in, target_lower, target_upper )
@@ -615,7 +616,7 @@ class FastGraspabilityEvaluation():
                     ori_id = i
 
             self.score_list.append( min_score )
-            self.pos_list.append( (pos[0], pos[1], ori_id) ) # position and orientation id
+            self.pos_list.append( (int(pos[0]/self.ds_rate), int(pos[1]/self.ds_rate), ori_id) ) # position and orientation id
 
 
         self.score_list = np.asarray( self.score_list )
@@ -651,7 +652,7 @@ class FastGraspabilityEvaluation():
 
     def visualization( self, im_result=None ):
         if im_result is None:
-            im_result = self.im_in.copy()
+            im_result = self.im_in_org.copy()
 
         # Preparing of 3 channel hand templates
         im_hands_c = list()

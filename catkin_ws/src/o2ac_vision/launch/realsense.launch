@@ -14,7 +14,7 @@
 
   <!-- Camera parameters -->
   <arg name="serial_no"		default=""/>
-  <arg name="camera_name"	default="a_bot_camera"/>
+  <arg name="camera_name"	default="b_bot_outside_camera"/>
   <arg name="camera_width"	default="640"/>
   <arg name="camera_height"	default="480"/>
   <arg name="enable_streaming"	default="true"/>
@@ -40,8 +40,8 @@
   </include>
 
   <!-- Construct recognition pipeline -->
-  <include unless="$(arg cont)"
-	   file="$(find o2ac_vision)/launch/o2ac_recognition.launch">
+  <include file="$(find o2ac_vision)/launch/o2ac_recognition.launch">
+    <arg name="cont"		  value="$(arg cont)"/>
     <arg name="nposes"		  value="$(arg nposes)"/>
     <arg name="timeout"		  value="$(arg timeout)"/>
     <arg name="ply_dir"		  value="$(arg ply_dir)"/>
@@ -52,13 +52,6 @@
     <arg name="normal_topic"	  value=""/>
     <arg name="manager"		  value="$(arg manager)"/>
   </include>
-
-  <node if="$(arg cont)"
-	name="object_detector"
-	pkg="o2ac_vision" type="o2ac_vision.py" output="screen">
-    <remap from="/image" to="$(arg camera_name)/color/image_raw"/>
-    <param name="cont" value="true"/>
-  </node>
 
   <!-- Spawn visualizer and parameter configurator -->
   <node name="$(anon rviz)" pkg="rviz" type="rviz" output="screen"

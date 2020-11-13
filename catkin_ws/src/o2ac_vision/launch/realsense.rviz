@@ -4,6 +4,7 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /TransientModel1
         - /DepthCloud1
         - /DepthCloud1/Auto Size1
       Splitter Ratio: 0.32705479860305786
@@ -57,6 +58,10 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
+        _00_assy_part_05:
+          Value: true
+        _00_assy_part_05_center:
+          Value: true
         a_bot_camera_aligned_depth_to_color_frame:
           Value: false
         a_bot_camera_color_frame:
@@ -69,28 +74,6 @@ Visualization Manager:
           Value: false
         a_bot_camera_link:
           Value: false
-        assy_part_05:
-          Value: true
-        assy_part_05_center:
-          Value: true
-        assy_part_10:
-          Value: true
-        assy_part_10_center:
-          Value: true
-        assy_part_13:
-          Value: true
-        assy_part_13_center:
-          Value: true
-        assy_part_13_screw_head:
-          Value: true
-        assy_part_14:
-          Value: true
-        assy_part_14_screw_head:
-          Value: true
-        assy_part_14_screw_inserted:
-          Value: true
-        assy_part_14_screw_tip:
-          Value: true
       Marker Scale: 0.05000000074505806
       Name: TF
       Show Arrows: false
@@ -100,23 +83,8 @@ Visualization Manager:
         a_bot_camera_link:
           a_bot_camera_aligned_depth_to_color_frame:
             a_bot_camera_color_optical_frame:
-              assy_part_05:
-                assy_part_05_center:
-                  {}
-              assy_part_10:
-                assy_part_10_center:
-                  {}
-              assy_part_13:
-                assy_part_13_center:
-                  {}
-                assy_part_13_screw_head:
-                  {}
-              assy_part_14:
-                assy_part_14_screw_head:
-                  {}
-                assy_part_14_screw_inserted:
-                  {}
-                assy_part_14_screw_tip:
+              _00_assy_part_05:
+                _00_assy_part_05_center:
                   {}
           a_bot_camera_color_frame:
             {}
@@ -128,7 +96,7 @@ Visualization Manager:
     - Alpha: 0.800000011920929
       Class: aist_model_spawner/TransientModel
       Collision Enabled: false
-      Color: 164; 0; 0
+      Color: 50; 100; 150
       Enabled: true
       Links:
         All Links Enabled: true
@@ -136,16 +104,16 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        a_bot_camera_color_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        assy_part_05:
+        _00_assy_part_05:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        assy_part_05_center:
+        _00_assy_part_05_center:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        a_bot_camera_color_optical_frame:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -248,10 +216,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: -0.11280028522014618
+      Pitch: -0.07780028879642487
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.1303515434265137
+      Yaw: 2.8253557682037354
     Saved: ~
 Window Geometry:
   Displays:
@@ -271,5 +239,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1560
-  X: 654
+  X: 360
   Y: 27

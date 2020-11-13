@@ -1,0 +1,12 @@
+# This action picks a screw from a feeder.
+# It moves to pick_feeder_ready, then to the feeder, and then picks the screw with vacuum from the rail.
+
+string robot_name                   # "a_bot", "b_bot", "c_bot"
+
+uint8 screw_size                    # M3, M4, M6 (without the M)
+---
+# success
+bool success
+---
+# Feedback
+float32 progress 

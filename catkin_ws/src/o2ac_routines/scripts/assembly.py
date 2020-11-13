@@ -67,7 +67,7 @@ class AssemblyClass(O2ACCommon):
     self.log_to_debug_monitor(text="Init", category="subtask")
     self.log_to_debug_monitor(text="Init", category="operation")
 
-    self.downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, 0))
+    self.downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
 
   def set_assembly(self, assembly_name="wrs_assembly_1"):
     # Change the assembly
@@ -137,19 +137,19 @@ class AssemblyClass(O2ACCommon):
   def spawn_objects_for_demo(self):
     objects = ['panel_motor', 'panel_bearing', 'motor', 'motor_pulley', 'bearing_housing',
       'drive_shaft', 'end_cap', 'bearing_spacer', 'output_pulley', 'idler_spacer', 'idler_pulley', 'idler_pin']  # , 'base']
-    poses = [[0.02, -0.06, 0.001, 0.0, 0.0, -pi/2],
-      [0.12, 0.02, 0.001, 0.0, 0.0, pi],
-      [-0.09, -0.12, 0.001, pi/2, -pi/2, 0.0],
-      [-0.02, -0.16, 0.005, 0.0, -pi/2, 0.0],
-      [0.0, 0.0, 0.001, 0.0, pi/2, 0.0],
-      [-0.04, 0.0, 0.005, 0.0, 0.0, -pi],
-      [-0.1, -0.06, 0.001, 0.0, -pi/2, 0.0],
-      [-0.07, -0.06, 0.001, 0.0, -pi/2, 0.0],
-      [-0.02, -0.08, 0.005, 0.0, -pi/2, 0.0],
-      [-0.04, -0.03, 0.001, 0.0, -pi/2, 0.0],
-      [-0.05, -0.13, 0.001, 0.0, -pi/2, 0.0],
-      [-0.1, -0.03, 0.005, 0.0, 0.0, 0.0]]  # , [-0.1, 0.16, 0.001, pi/2, 0.0, 0.0]]
-    self.spawn_multiple_objects('wrs_assembly_1', ['base'], [[0.12, 0.2, 0.0, pi/2, 0.0, -pi/2]], 'attached_base_origin_link')
+    poses = [[0.02, -0.06, 0.001, 0.0, 0.0, -tau/4],
+      [0.12, 0.02, 0.001, 0.0, 0.0, tau/2],
+      [-0.09, -0.12, 0.001, tau/4, -tau/4, 0.0],
+      [-0.02, -0.16, 0.005, 0.0, -tau/4, 0.0],
+      [0.0, 0.0, 0.001, 0.0, tau/4, 0.0],
+      [-0.04, 0.0, 0.005, 0.0, 0.0, -tau/2],
+      [-0.1, -0.06, 0.001, 0.0, -tau/4, 0.0],
+      [-0.07, -0.06, 0.001, 0.0, -tau/4, 0.0],
+      [-0.02, -0.08, 0.005, 0.0, -tau/4, 0.0],
+      [-0.04, -0.03, 0.001, 0.0, -tau/4, 0.0],
+      [-0.05, -0.13, 0.001, 0.0, -tau/4, 0.0],
+      [-0.1, -0.03, 0.005, 0.0, 0.0, 0.0]]  # , [-0.1, 0.16, 0.001, tau/4, 0.0, 0.0]]
+    self.spawn_multiple_objects('wrs_assembly_1', ['base'], [[0.12, 0.2, 0.0, tau/4, 0.0, -tau/4]], 'attached_base_origin_link')
     self.spawn_multiple_objects('wrs_assembly_1', objects, poses, 'tray_center')
 
   def pick_screw_tool(self, screw_type):
@@ -159,7 +159,7 @@ class AssemblyClass(O2ACCommon):
       success = self.pick('screw_tool_' + screw_type, 'tools', 'screw_tool_m3_pickup_link', [-1.0, 0.0, 0.0], save_solution_to_file = 'pick_screw_tool')
     return success
 
-  def pick_screw(self, screw_type):
+  def suck_screw(self, screw_type):
     rospy.loginfo("======== FASTEN TASK ========")
     success = False
     tool = 'screw_tool_' + screw_type
@@ -242,7 +242,7 @@ if __name__ == '__main__':
     assy = AssemblyClass()
     assy.set_assembly()
     i = 1
-    while i:
+    while True:
       rospy.loginfo("Enter 1 to move the robots home.")
       rospy.loginfo("Enter 11 (12) to equip (unequip) m4 tool (b_bot).")
       rospy.loginfo("Enter 13 (14) to equip (unequip) m3 tool (b_bot).")
@@ -304,17 +304,25 @@ if __name__ == '__main__':
       if i == '72':
         assy.pick_screw_tool('m4')
       if i == '73':
-        assy.pick_screw('m4')
+        assy.suck_screw('m4')
       if i == '74':
         assy.release('panel_bearing', 'home', 'release_panel_bearing')
       if i == '75':
         target_pose = geometry_msgs.msg.PoseStamped()
         target_pose.header.frame_id = 'base/screw_hole_panel2_1'
         target_pose.pose.orientation.w = 1
-        assy.subassembly('panel_bearing', target_pose, object_subframe_to_place = 'panel_bearing/bottom_screw_hole_aligner_1', save_solution_to_file = 'subassembly')
+        assy.plan_wrs_subtask_b('panel_bearing', target_pose, object_subframe_to_place = 'panel_bearing/bottom_screw_hole_aligner_1', save_solution_to_file = 'subassembly')
       if i == '80':
-        mp_res = assy.load_MP_solution('subassembly')
-        assy.execute_MP_solution(mp_res.solution, speed = 0.2)
+        rospy.loginfo("Loading")
+        mp_res = assy.load_MTC_solution('subassembly')
+        rospy.loginfo("Running")
+        assy.execute_MTC_solution(mp_res.solution, speed = 0.2)
+      if i == '800':
+        assy.load_and_execute_program(robot="b_bot", program_name="wrs2020_push_motor_plate.urp", wait=True)
+      if i == '801':
+        assy.move_lin_rel("a_bot", relative_translation=[0, -0.01, 0], use_robot_base_csys=True, max_wait=5.0)
+      if i == '802':
+        assy.move_lin_rel("a_bot", relative_translation=[0,  0.01, 0], use_robot_base_csys=True, max_wait=5.0)
       if i == '81':
         assy.do_change_tool_action('b_bot', equip=True, screw_size=4)
       if i == '82':

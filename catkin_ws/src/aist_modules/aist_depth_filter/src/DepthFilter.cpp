@@ -248,16 +248,16 @@ DepthFilter::capture_cb(std_srvs::Trigger::Request&  req,
 
 	res.success = true;
 	res.message = "succeeded.";
+
+	ROS_INFO_STREAM("(DepthFilter) save as OrderedPly: " << res.message);
     }
     catch (const std::exception& err)
     {
-	ROS_ERROR_STREAM("DepthFilter::capture_cb(): " << err.what());
+	ROS_ERROR_STREAM("(DepthFilter) capture_cb(): " << err.what());
 
 	res.success = false;
 	res.message = "failed.";
     }
-
-    ROS_INFO_STREAM("(DepthFilter) save as OrderedPly: " << res.message);
 
     return true;
 }
@@ -592,8 +592,8 @@ DepthFilter::scale(image_t& depth) const
 
 DepthFilter::plane_t
 DepthFilter::detect_base_plane(const camera_info_t& camera_info,
-				 const image_t& image,
-				 const image_t& depth, float thresh) const
+			       const image_t& image,
+			       const image_t& depth, float thresh) const
 {
     using	namespace sensor_msgs;
 

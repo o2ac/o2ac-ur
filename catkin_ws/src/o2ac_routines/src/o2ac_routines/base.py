@@ -43,6 +43,7 @@ import tf_conversions
 import tf 
 import actionlib
 from math import *
+tau = 2.0*pi
 import yaml
 import pickle
 
@@ -116,7 +117,8 @@ class O2ACBase(object):
     self.gripper_action_clients = {"a_bot":actionlib.SimpleActionClient('/a_bot/gripper_action_controller', robotiq_msgs.msg.CModelCommandAction),
       "b_bot":actionlib.SimpleActionClient('/b_bot/gripper_action_controller', robotiq_msgs.msg.CModelCommandAction)}
     
-    self.pick_screw_client = actionlib.SimpleActionClient('/o2ac_skills/pick_screw', o2ac_msgs.msg.pickScrewAction)
+    self.suck_screw_client = actionlib.SimpleActionClient('/o2ac_skills/suck_screw', o2ac_msgs.msg.suckScrewAction)
+    self.pick_screw_from_feeder_client = actionlib.SimpleActionClient('/o2ac_skills/pick_screw_from_feeder', o2ac_msgs.msg.pickScrewFromFeederAction)
     self.place_client = actionlib.SimpleActionClient('/o2ac_skills/place', o2ac_msgs.msg.placeAction)
     self.regrasp_client = actionlib.SimpleActionClient('/o2ac_skills/regrasp', o2ac_msgs.msg.regraspAction)
     self.screw_client = actionlib.SimpleActionClient('/o2ac_skills/screw', o2ac_msgs.msg.screwAction)
@@ -127,11 +129,10 @@ class O2ACBase(object):
     self.release_planning_client = actionlib.SimpleActionClient('/release_planning', o2ac_task_planning_msgs.msg.ReleaseObjectAction)
     self.pickplace_planning_client = actionlib.SimpleActionClient('/pick_place_planning', o2ac_task_planning_msgs.msg.PickPlaceWithRegraspAction)
     self.fastening_planning_client = actionlib.SimpleActionClient('/fastening_planning', o2ac_task_planning_msgs.msg.PlaceObjectAction)
-    self.sub_assembly_planning_client = actionlib.SimpleActionClient('/sub_assembly_planning', o2ac_task_planning_msgs.msg.PickPlaceWithRegraspAction)
+    self.wrs_subtask_b_planning_client = actionlib.SimpleActionClient('/wrs_subtask_b_planning', o2ac_task_planning_msgs.msg.PickPlaceWithRegraspAction)
     
     self._suction_client = actionlib.SimpleActionClient('/suction_control', o2ac_msgs.msg.SuctionControlAction)
     self._fastening_tool_client = actionlib.SimpleActionClient('/screw_tool_control', o2ac_msgs.msg.FastenerGripperControlAction)
-    self._nut_peg_tool_client = actionlib.SimpleActionClient('/nut_tools_action', o2ac_msgs.msg.ToolsCommandAction)
 
     # Service clients
     self.ur_dashboard_clients = {
@@ -142,15 +143,22 @@ class O2ACBase(object):
       "a_bot_load_program":rospy.ServiceProxy('/a_bot/ur_hardware_interface/dashboard/load_program', ur_dashboard_msgs.srv.Load),
       "b_bot_load_program":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/load_program', ur_dashboard_msgs.srv.Load),
       "a_bot_play":rospy.ServiceProxy('/a_bot/ur_hardware_interface/dashboard/play', std_srvs.srv.Trigger),
-      "b_bot_play":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/play', std_srvs.srv.Trigger)
+      "b_bot_play":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/play', std_srvs.srv.Trigger),
+      "a_bot_stop":rospy.ServiceProxy('/a_bot/ur_hardware_interface/dashboard/stop', std_srvs.srv.Trigger),
+      "b_bot_stop":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/stop', std_srvs.srv.Trigger),
+      "a_bot_quit":rospy.ServiceProxy('/a_bot/ur_hardware_interface/dashboard/quit', std_srvs.srv.Trigger),
+      "b_bot_quit":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/quit', std_srvs.srv.Trigger),
+      "a_bot_connect":rospy.ServiceProxy('/a_bot/ur_hardware_interface/dashboard/connect', std_srvs.srv.Trigger),
+      "b_bot_connect":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/connect', std_srvs.srv.Trigger)
     }
 
-    self.urscript_client = rospy.ServiceProxy('d/o2ac_skills/sendScriptToUR', o2ac_msgs.srv.sendScriptToUR)
+    self.urscript_client = rospy.ServiceProxy('/o2ac_skills/sendScriptToUR', o2ac_msgs.srv.sendScriptToUR)
     self.publishMarker_client = rospy.ServiceProxy('/o2ac_skills/publishMarker', o2ac_msgs.srv.publishMarker)
     self.toggleCollisions_client = rospy.ServiceProxy('/o2ac_skills/toggleCollisions', std_srvs.srv.SetBool)
 
     # Subscribers
-    self.sub_a_bot_status_ = rospy.Subscriber("/a_bot/ur_hardware_interface/robot_program_running", Bool, self.a_bot_ros_control_status_callback)
+    # "robot_program_running" refers only to the ROS external control UR script, not just any program
+    self.sub_a_bot_status_ = rospy.Subscriber("/a_bot/ur_hardware_interface/robot_program_running", Bool, self.a_bot_ros_control_status_callback) 
     self.sub_b_bot_status_ = rospy.Subscriber("/b_bot/ur_hardware_interface/robot_program_running", Bool, self.b_bot_ros_control_status_callback)
     self.sub_run_mode_ = rospy.Subscriber("/run_mode", Bool, self.run_mode_callback)
     self.sub_pause_mode_ = rospy.Subscriber("/pause_mode", Bool, self.pause_mode_callback)
@@ -223,7 +231,7 @@ class O2ACBase(object):
     rospy.loginfo("Response for unlocked protective stop of " + robot + ": " + response.message)
     return response.success
 
-  def activate_ros_control_on_ur(self, robot="b_bot"):
+  def activate_ros_control_on_ur(self, robot="b_bot", recursion_depth=0):
     if not self.use_real_robot:
       return True
     
@@ -235,21 +243,91 @@ class O2ACBase(object):
       rospy.logerr("Robot name '" + robot + "' was not found or the robot is not a UR!")
       return False
 
-    # Load program if it not loaded already
-    response = self.ur_dashboard_clients[robot + "_get_loaded_program"].call(ur_dashboard_msgs.srv.GetLoadedProgramRequest())
-    if response.program_name != "/programs/ROS_external_control.urp":
-      request = ur_dashboard_msgs.srv.LoadRequest()
-      request.filename = "ROS_external_control.urp"
-      response = self.ur_dashboard_clients[robot + "_load_program"].call(request)
-      if not response.success:
-        rospy.logerr("Could not load the ROS_external_control.urp URCap. Is the UR robot set up correctly and the program installed with the correct name?")
-        return False
+    load_success = False
+    try:
+      # Load program if it not loaded already
+      rospy.loginfo("Activating ROS control on robot " + robot)
+      response = self.ur_dashboard_clients[robot + "_get_loaded_program"].call(ur_dashboard_msgs.srv.GetLoadedProgramRequest())
+      if response.program_name != "Loaded program: /programs/ROS_external_control.urp":
+        request = ur_dashboard_msgs.srv.LoadRequest()
+        request.filename = "ROS_external_control.urp"
+        response = self.ur_dashboard_clients[robot + "_load_program"].call(request)
+        if response.success: # Try reconnecting to dashboard
+          load_success = True
+        else:
+          rospy.logerr("Could not load the ROS_external_control.urp URCap. Is the UR in Remote Control mode and program installed with correct name?")
+    except:
+      rospy.logwarn("Dashboard service did not respond!")
+    
+    if not load_success:
+      rospy.logwarn("Waiting and trying again.")
+      if recursion_depth > 0:  # If connect alone failed, try quit and then connect
+        response = self.ur_dashboard_clients[robot + "_quit"].call()
+        rospy.sleep(.5)
+      response = self.ur_dashboard_clients[robot + "_connect"].call()
+      rospy.sleep(.5)
+      return self.activate_ros_control_on_ur(robot, recursion_depth=recursion_depth+1)
     
     # Run the program
     response = self.ur_dashboard_clients[robot + "_play"].call(std_srvs.srv.TriggerRequest())
     rospy.sleep(2)
-    return response.success
+    if not response.success:
+      rospy.logerr("Could not start UR control. Is the UR in Remote Control mode and program installed with correct name?")
+      return False
+    else:
+      rospy.loginfo("Successfully activated ROS control on robot " + robot)
+      return True
     
+  def load_and_execute_program(self, robot="b_bot", program_name="", wait=True, recursion_depth=0):
+    if not self.use_real_robot:
+      return True
+
+    if recursion_depth > 4:
+      rospy.logerr("Tried too often. Breaking out.")
+      rospy.logerr("Could not load " + program_name + ". Is the UR in Remote Control mode and program installed with correct name?")
+      return False
+
+    if not program_name:
+      rospy.logerr("No ")
+    
+    load_success = False
+    try:
+      # Try to stop running program
+      self.ur_dashboard_clients[robot + "_stop"].call(std_srvs.srv.TriggerRequest())
+      rospy.sleep(.5)
+
+      # Load program if it not loaded already
+      request = ur_dashboard_msgs.srv.LoadRequest()
+      request.filename = program_name
+      response = self.ur_dashboard_clients[robot + "_load_program"].call(request)
+      if response.success: # Try reconnecting to dashboard
+        load_success = True
+      else:
+        rospy.logerr("Could not load " + program_name + ". Is the UR in Remote Control mode and program installed with correct name?")
+    except:
+      rospy.logwarn("Dashboard service did not respond!")
+    if not load_success:
+      rospy.logwarn("Waiting and trying again`")
+      rospy.sleep(3)
+      if recursion_depth > 0:  # If connect alone failed, try quit and then connect
+        response = self.ur_dashboard_clients[robot + "_quit"].call()
+        rospy.sleep(.5)
+      response = self.ur_dashboard_clients[robot + "_connect"].call()
+      rospy.sleep(.5)
+      return self.load_and_execute_program(robot, program_name=program_name, wait=wait, recursion_depth=recursion_depth+1)
+    
+    # Run the program
+    response = self.ur_dashboard_clients[robot + "_play"].call(std_srvs.srv.TriggerRequest())
+    rospy.sleep(2)
+    if not response.success:
+      rospy.logerr("Could not start " + program_name + ". Is the UR in Remote Control mode and program installed with correct name?")
+      return False
+    else:
+      if wait:
+        wait_for_UR_program("/" + robot, rospy.Duration.from_sec(30.0))
+      rospy.loginfo("Successfully started " + program_name + " on robot " + robot)
+      return True
+  
   def publish_marker(self, pose_stamped, marker_type):
     # Publishes a marker to Rviz for visualization
     if self.disable_markers:
@@ -298,7 +376,7 @@ class O2ACBase(object):
     screw_tool_m4.subframe_poses = [Pose()]
     screw_tool_m4.subframe_names = [""]
     screw_tool_m4.subframe_poses[0].position.z = -.12
-    screw_tool_m4.subframe_poses[0].orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 90.0/180.0*pi, -pi/2))
+    screw_tool_m4.subframe_poses[0].orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 90.0/360.0*tau, -tau/4))
     screw_tool_m4.subframe_names[0] = "screw_tool_m4_tip"
 
 
@@ -504,13 +582,14 @@ class O2ACBase(object):
     current_pose = group.get_current_pose().pose
     return plan_success
 
-  def move_lin_rel(self, robot_name, relative_translation = [0,0,0], relative_rotation = [0,0,0], acceleration = 0.5, velocity = .03, wait = True):
+  def move_lin_rel(self, robot_name, relative_translation = [0,0,0], relative_rotation = [0,0,0], acceleration = 0.5, velocity = .03, use_robot_base_csys=False, wait = True, max_wait=30.0):
     '''
     Does a lin_move relative to the current position of the robot. Uses the robot's TCP.
 
     robot_name = "b_bot" for example
     relative_translation: translatory movement relative to current tcp position, expressed in robot's own base frame
     relative_rotation: rotatory movement relative to current tcp position, expressed in robot's own base frame
+    use_robot_base_csys: If true, uses the robot_base coordinates for the relative motion (not workspace_center!)
     '''
     # Uses UR coordinates
     if not self.use_real_robot:
@@ -526,11 +605,12 @@ class O2ACBase(object):
     req.relative_rotation.z = relative_rotation[2]
     req.acceleration = acceleration
     req.velocity = velocity
+    req.lin_move_rel_in_base_csys = use_robot_base_csys
     req.program_id = "lin_move_rel"
     res = self.urscript_client.call(req)
     if wait:
       rospy.sleep(1.0)
-      wait_for_UR_program("/" + robot_name, rospy.Duration.from_sec(30.0))
+      wait_for_UR_program("/" + robot_name, rospy.Duration.from_sec(max_wait))
     return res.success
 
   def move_joints(self, group_name, joint_pose_goal, speed = 1.0, acceleration = 0.0, force_ur_script=False, force_moveit=False):
@@ -628,9 +708,9 @@ class O2ACBase(object):
 
   ######
 
-  def do_pick_screw_action(self, robot_name, pose_stamped, screw_size = 0, z_axis_rotation = 0.0, use_complex_planning = False, tool_name = ""):
-    # Call the pick action. It is useful for picking screws with the tool.
-    goal = o2ac_msgs.msg.pickScrewGoal()
+  def do_suck_screw_action(self, robot_name, pose_stamped, screw_size = 0, z_axis_rotation = 0.0, tool_name = ""):
+    # Call the suck screw action. Deprecated.
+    goal = o2ac_msgs.msg.suckScrewGoal()
     goal.robot_name = robot_name
     goal.screw_pose = pose_stamped
     goal.tool_name = tool_name
@@ -639,11 +719,29 @@ class O2ACBase(object):
     rospy.loginfo("Sending pick action goal")
     rospy.logdebug(goal)
 
-    self.pick_screw_client.send_goal(goal)
+    self.suck_screw_client.send_goal(goal)
     rospy.logdebug("Waiting for result")
-    self.pick_screw_client.wait_for_result()
+    self.suck_screw_client.wait_for_result()
     rospy.logdebug("Getting result")
-    return self.pick_screw_client.get_result()
+    return self.suck_screw_client.get_result()
+
+  def pick_screw_from_feeder(self, robot_name, screw_size):
+    """
+    Picks a screw from one of the feeders. The screw tool already has to be equipped!
+    Use this command to equip the screw tool: do_change_tool_action(self, "b_bot", equip=True, screw_size = 4)
+    """
+    goal = o2ac_msgs.msg.pickScrewFromFeederGoal()
+    goal.robot_name = robot_name
+    goal.screw_size = screw_size
+    rospy.loginfo("Sending pickScrewFromFeeder action goal")
+    rospy.logdebug(goal)
+
+    self.pick_screw_from_feeder_client.send_goal(goal)
+    rospy.logdebug("Waiting for result")
+    self.pick_screw_from_feeder_client.wait_for_result()
+    rospy.logdebug("Getting result")
+    return self.pick_screw_from_feeder_client.get_result()
+
 
   def do_place_action(self, robot_name, pose_stamped, tool_name = "", screw_size=0):
     # Call the place action
@@ -830,9 +928,9 @@ class O2ACBase(object):
     self.fastening_planning_client.wait_for_result()
     return self.fastening_planning_client.get_result()
 
-  def do_plan_subassembly_action(self, object_name, object_target_pose, object_subframe_to_place, approach_place_direction_reference_frame = '', approach_place_direction = []):
+  def do_plan_wrs_subtask_b_action(self, object_name, object_target_pose, object_subframe_to_place, approach_place_direction_reference_frame = '', approach_place_direction = []):
     '''
-    Function for calling the action for subassembly (fixing the L plate on the base plate) planning
+    Function for calling the action for subassembly (fixing the motor L plate on the base plate) planning
     The function returns the action result that contains the trajectories for the motion plan
     '''
     goal = moveit_task_constructor_msgs.msg.PickPlaceWithRegraspGoal()
@@ -841,10 +939,10 @@ class O2ACBase(object):
     goal.object_subframe_to_place = object_subframe_to_place
     goal.approach_place_direction_reference_frame = approach_place_direction_reference_frame
     goal.approach_place_direction = approach_place_direction
-    rospy.loginfo("Sending sub-assembly planning goal.")
-    self.sub_assembly_planning_client.send_goal(goal)
-    self.sub_assembly_planning_client.wait_for_result()
-    return self.sub_assembly_planning_client.get_result()
+    rospy.loginfo("Sending wrs subtask B planning goal.")
+    self.wrs_subtask_b_planning_client.send_goal(goal)
+    self.wrs_subtask_b_planning_client.wait_for_result()
+    return self.wrs_subtask_b_planning_client.get_result()
 
   def set_motor(self, motor_name, direction = "tighten", wait=False, speed = 0, duration = 0):
     if not self.use_real_robot:
@@ -872,22 +970,6 @@ class O2ACBase(object):
     if wait:
       self._suction_client.wait_for_result(rospy.Duration(2.0))
     return self._suction_client.get_result()
-
-  def do_nut_fasten_action(self, item_name, wait = True):
-    if not self.use_real_robot:
-      return True
-    goal = o2ac_msgs.msg.ToolsCommandGoal()
-    # goal.stop = stop
-    goal.peg_fasten = (item_name == "peg" or item_name == "m10_nut")
-    goal.setScrew_fasten = (item_name == "set_screw")
-    # goal.big_nut_fasten = (item_name == "m10_nut")
-    # goal.big_nut_fasten = True
-    goal.small_nut_fasten = (item_name == "m6_nut")
-    rospy.loginfo("Sending nut_tool action goal.")
-    self._nut_peg_tool_client.send_goal(goal)
-    if wait:
-      self._nut_peg_tool_client.wait_for_result(rospy.Duration.from_sec(30.0))
-    return self._nut_peg_tool_client.get_result()
 
   def do_insertion(self, robot_name, max_insertion_distance= 0.0, 
                         max_approach_distance = 0.0, max_force = .0,

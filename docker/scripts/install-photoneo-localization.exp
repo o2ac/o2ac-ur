@@ -1,0 +1,15 @@
+#!/usr/bin/expect -f
+
+set timeout -1
+
+set prog_name [lindex $argv 0]
+
+spawn "./$prog_name"
+
+expect "End-user license agreement"
+send "q"
+
+expect "Please type y to accept, n otherwise:"
+send "y\r"
+
+expect eof

@@ -26,10 +26,12 @@ source /opt/ros/melodic/setup.bash
 
 ################################################################################
 
-# Install the dependencies of the underlay workspace
-cd /root/underlay_ws/ && rosdep install --from-paths src --ignore-src -r -y
+# Initialize the underlay workspace with wstool and install dependencies
+cd /root/underlay_ws/      && \
+    wstool update -t src   && \
+    rosdep install --from-paths src --ignore-src -r -y
 
-# Initialize, build and source the underlay Catkin workspace.
+# Initialize, build and source the underlay workspace.
 cd /root/underlay_ws/ && catkin config -init && catkin build
 source /root/underlay_ws/devel/setup.bash
 

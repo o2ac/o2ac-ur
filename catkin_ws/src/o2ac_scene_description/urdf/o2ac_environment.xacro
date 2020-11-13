@@ -28,7 +28,7 @@
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/screw_feeder.xacro" />
   
   <xacro:screw_feeder feedername="m3_feeder" parent="workspace_center">
-    <origin xyz="-.511 -.13 -0.023" rpy="0 0 0" />   
+    <origin xyz="-.511 -.132 -0.023" rpy="0 0 0" />   
   </xacro:screw_feeder> 
   <xacro:screw_feeder feedername="m4_feeder" parent="workspace_center">
     <origin xyz="-.513 -0.002 -0.023" rpy="0 0 0" />   
@@ -59,7 +59,7 @@
 
   <!-- ======== -->
 
-  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/nut_holder.xacro" />
+  <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/components/nut_holder.xacro" />
   <xacro:nut_holder partname="nut_holder" parent="a_bot_base_smfl">
     <origin xyz="0 .6 0.02" rpy="0 0 0" />  
   </xacro:nut_holder> 
@@ -71,8 +71,46 @@
 
   <xacro:nut_holder partname="calibration_cone" parent="workspace_center">
     <origin xyz="${-0.365+0.01} ${0.345+.03} ${0.022-0.0465}" rpy="0 0 0" />  
-  </xacro:nut_holder>  
+  </xacro:nut_holder>   -->
 
+  <!-- ======== -->
+  <!-- TV -->
   
+  <link name="tv">
+    <!-- This tv box origin is at the front bottom, so it can more easily be measured  -->
+    <xacro:property name="tv_length_x" value="0.06"/>
+    <xacro:property name="tv_length_y" value="0.96"/>
+    <xacro:property name="tv_length_z" value="0.56"/>
+  
+    <visual>
+      <origin xyz="${-tv_length_x/2} 0.0 ${tv_length_z/2}" rpy="0 0 0"/>
+      <geometry>
+        <box size="${tv_length_x} ${tv_length_y} ${tv_length_z}"/> 
+      </geometry>
+      <material name="Black">
+        <color rgba="0.1 0.1 0.1 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="${-tv_length_x/2} 0.0 ${tv_length_z/2}" rpy="0 0 0"/>
+      <geometry>
+        <!-- 7.5 cm on each side -->
+        <box size="${tv_length_x + 0.15} ${tv_length_y + 0.15} ${tv_length_z+0.1}"/> 
+      </geometry>
+    </collision>
+    <!-- This is required for Gazebo. -->
+    <inertial>
+      <mass value="1.0" />
+      <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0" />
+    </inertial>
+  </link>
+  <gazebo reference="tv">
+    <material>Gazebo/Black</material>
+  </gazebo>
+  <joint name="tv_joint" type="fixed">
+    <parent link="o2ac_ground" />
+    <child link = "tv" />
+    <origin xyz="-0.4 0.0 1.58" rpy="0 0 0" />
+  </joint>
 
 </robot>

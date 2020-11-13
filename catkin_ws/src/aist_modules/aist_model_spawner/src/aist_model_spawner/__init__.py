@@ -15,11 +15,11 @@ class ModelSpawnerClient(object):
         self._get_list   = rospy.ServiceProxy(server + '/get_list',
                                               msrv.GetList)
 
-    def add(self, name, pose):
-        return self._add(name, pose).success
+    def add(self, name, pose, prefix=''):
+        return self._add(name, prefix, pose).success
 
-    def delete(self, name):
-        return self._delete(name).success
+    def delete(self, name, prefix=''):
+        return self._delete(name, prefix).success
 
     def delete_all(self):
         return self._delete_all().success

@@ -40,7 +40,8 @@
 
 // Actions
 #include <actionlib/server/simple_action_server.h>
-#include "o2ac_msgs/pickScrewAction.h"
+#include "o2ac_msgs/suckScrewAction.h"
+#include "o2ac_msgs/pickScrewFromFeederAction.h"
 #include "o2ac_msgs/placeAction.h"
 #include "o2ac_msgs/regraspAction.h"
 #include "o2ac_msgs/screwAction.h"
@@ -56,6 +57,9 @@
 #include <actionlib/client/simple_action_client.h>
 #include <robotiq_msgs/CModelCommandAction.h>
 
+// The circle constant tau = 2*pi. One tau is one rotation in radians.
+const double tau = 6.283185307179586476925;
+
 class SkillServer
 {
 public:
@@ -65,7 +69,7 @@ public:
   void advertiseActionsAndServices();
 
   //Helpers (convenience functions)
-  bool activateROSControlOnUR(std::string robot_name);
+  bool activateROSControlOnUR(std::string robot_name, int recursion_depth = 0);
   bool moveToJointPose(std::vector<double> joint_positions, std::string robot_name, bool wait = true, double velocity_scaling_factor = 1.0, bool use_UR_script = false, double acceleration = 0.0);
   bool moveToCartPosePTP(geometry_msgs::PoseStamped pose, std::string robot_name, bool wait = true, std::string end_effector_link = "", double velocity_scaling_factor = 0.1);
   bool moveToCartPoseLIN(geometry_msgs::PoseStamped pose, std::string robot_name, bool wait = true, std::string end_effector_link = "", double velocity_scaling_factor = 0.1, double acceleration = 0.0, bool force_UR_script = false, bool force_moveit = false);
@@ -87,14 +91,14 @@ public:
   bool attachDetachTool(std::string screw_tool_id, std::string link_name, std::string attach_or_detach);
   bool placeFromAbove(geometry_msgs::PoseStamped target_tip_link_pose, std::string end_effector_link_name, std::string robot_name, std::string gripper_name = "");
   bool pickFromAbove(geometry_msgs::PoseStamped target_tip_link_pose, std::string end_effector_link_name, std::string robot_name, std::string gripper_name = "");
-  bool pickScrew(geometry_msgs::PoseStamped screw_head_pose, std::string screw_tool_id, std::string robot_name, std::string screw_tool_link, std::string fastening_tool_name);
+  bool suckScrew(geometry_msgs::PoseStamped screw_head_pose, std::string screw_tool_id, std::string robot_name, std::string screw_tool_link, std::string fastening_tool_name);
   bool publishMarker(geometry_msgs::PoseStamped marker_pose, std::string marker_type = "");
   bool publishPoseMarker(geometry_msgs::PoseStamped marker_pose);
 
-  bool openGripper(std::string robot_name, std::string gripper_name = "");
-  bool closeGripper(std::string robot_name, std::string gripper_name = "");
-  bool sendGripperCommand(std::string robot_name, double opening_width, std::string gripper_name = "");
-  bool sendFasteningToolCommand(std::string fastening_tool_name, std::string direction = "tighten", bool wait = false, double duration = 20.0, int speed = 500);
+  bool openGripper(std::string robot_name, std::string gripper_name = "", bool wait = true);
+  bool closeGripper(std::string robot_name, std::string gripper_name = "", bool wait = true);
+  bool sendGripperCommand(std::string robot_name, double opening_width, std::string gripper_name = "", bool wait = true);
+  bool sendFasteningToolCommand(std::string fastening_tool_name, std::string direction = "tighten", bool wait = false, double duration = 20.0, int speed = 0);
   bool setSuctionEjection(std::string fastening_tool_name, bool turn_suction_on = true, bool eject_screw = false);
 
   // Callback declarations
@@ -110,7 +114,8 @@ public:
   void bBotStatusCallback(const std_msgs::BoolConstPtr& msg);
 
   // Actions
-  void executePickScrew(const o2ac_msgs::pickScrewGoalConstPtr& goal);
+  void executeSuckScrew(const o2ac_msgs::suckScrewGoalConstPtr& goal);
+  void executePickScrewFromFeeder(const o2ac_msgs::pickScrewFromFeederGoalConstPtr& goal);
   void executePlace(const o2ac_msgs::placeGoalConstPtr& goal);
   void executeRegrasp(const o2ac_msgs::regraspGoalConstPtr& goal);
   void executeScrew(const o2ac_msgs::screwGoalConstPtr& goal);
@@ -141,7 +146,9 @@ public:
   ros::ServiceClient a_bot_get_loaded_program_, a_bot_program_running_, a_bot_load_program_, a_bot_play_, b_bot_get_loaded_program_, b_bot_program_running_, b_bot_load_program_, b_bot_play_;
   
   // Action servers
-  actionlib::SimpleActionServer<o2ac_msgs::pickScrewAction> pickScrewActionServer_;
+  actionlib::SimpleActionServer<o2ac_msgs::suckScrewAction> suckScrewActionServer_;
+  actionlib::SimpleActionServer<o2ac_msgs::pickScrewFromFeederAction> pickScrewFromFeederActionServer_;
+  
   actionlib::SimpleActionServer<o2ac_msgs::placeAction> placeActionServer_;
   actionlib::SimpleActionServer<o2ac_msgs::regraspAction> regraspActionServer_;
   actionlib::SimpleActionServer<o2ac_msgs::screwAction> screwActionServer_;  

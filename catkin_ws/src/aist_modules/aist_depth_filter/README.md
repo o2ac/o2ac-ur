@@ -3,8 +3,6 @@ aist_depth_filter: ROS node for filtering depth images
 
 This package provides a ROS node applying a series of filters to the input depth images, a python client class for utilizing functions of the node and some launch files.
 
-# aist_depth_filter server
-
 ## Available filters
 
 The node applies the filtering process to the input depth images in the following order;
@@ -29,6 +27,10 @@ Compute surface normals from depth images.This is done by fitting a plane to the
 
 Multiply a constant value specified by the parameter `~scale` to the input depths. This function is intended to be used for transforming the unit of distance or compensating errors in the depth scale of the 3D camera.
 
+## Detecting a dominant plane
+
+The filter server also detects a dominant plane from the entire depth image. It is assumed that the dominant plane corresponds to relatively dark regions in intensity/color images. The algorithm first extracts dark pixels by Otsu's binarization method with an automatic selection of threshold values. Then a plane is fitted to the 3D points corresponding to the extracted dark pixels with RANSAC technique. This function is available only if a positive value is given to the parameter `~thresh_plane`.
+
 ## ROS services
 
 - **~/saveBG** -- Save the original depth image with no filteres applied to `~/.ros/.tif`. This file is used as the backgroud in processing the subsequent input images.
@@ -45,6 +47,7 @@ The following parameters can be specified not only in the command line at starin
 - **~subscribe_normal** -- If true, subscribe images of surface normals
 - **~window_radius** -- Specify radius *r* of the square window for computing surface normals from depths when `~subscribe_normal` is false. If zero, no surface normals are computed.
 - **~scale** -- Scaling factor for depth topic
+- **~thresh_plane** -- Threshold value for RANSAC in dominant plane detection (in meters). If zero, no detections will be made.
 
 ## Subscribed ROS topics
 
@@ -60,8 +63,22 @@ The following parameters can be specified not only in the command line at starin
 - **~/depth** -- Filtered depth images cropped with ROI
 - **~/normal** -- Images with surface normals cropped with ROI
 - **~/colored_normal** -- RGB images encoding surface normals cropped with ROI
-- **~/file_info** -- File path of PLY file saved via the service `~/savePly` and corresponding frame id of the input depth image
+- **~/file_info** -- File path of PLY file saved via the service `~/savePly` and corresponding camera_info of the depth image according to the current ROI. The normal and distance of the dominant plane are also included if detected.
 
 
-# aist_depth_filter client
+## Filter client
 
+The package also provides a simple client class `aist_depth_filter.DepthFilterClient` for easing development of applications with python. Please refer to [aist_depth_filter/src/aist_depth_filter/\_\_init__.py](src/aist_depth_filter/__init__.py).
+
+
+## Testing
+
+The results of filtering image streams from live cameras can be displayed in RViz with the following command
+```bash
+$ roslaunch aist_depth_filter phoxi.launch
+```
+for PhoXi cameras and
+```bash
+$ roslaunch aist_depth_filter realsense.launch
+```
+for RealSense cameras. The filter parameters can be adjusted interactively through `rqt_reconfigure`.

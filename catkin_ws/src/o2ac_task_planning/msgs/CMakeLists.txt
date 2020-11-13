@@ -14,6 +14,7 @@ add_action_files(DIRECTORY action FILES
 	PickPlaceWithRegrasp.action
 	PickObject.action
 	PlaceObject.action
+	PlaceObjectWithCorrection.action
 	ReleaseObject.action
 )
 

@@ -32,12 +32,12 @@
         <color rgba=".5 .5 .5 1"/>
       </material>
     </visual>
-    <collision>
+    <!-- <collision>
       <origin rpy="0 0 0" xyz="-0.15 .0033 0.002"/>
       <geometry>
         <box size=".3 .066 .004"/> 
       </geometry>
-    </collision>
+    </collision> -->
 
     <!-- The vertical plate -->
     <visual>
@@ -49,12 +49,12 @@
         <color rgba=".5 .5 .5 1"/>
       </material>
     </visual>
-    <collision>
+    <!-- <collision>
       <origin rpy="0 0 0" xyz="-0.15 -.011 0.0179"/>
       <geometry>
         <box size=".3 .004 .035"/> 
       </geometry>
-    </collision>
+    </collision> -->
   </link>
 
   <!-- ==== -->
@@ -123,7 +123,7 @@
       <mass value="1.0"/>
       <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
     </inertial>
-    <visual>
+    <!-- <visual>
       <origin rpy="0 0 0" xyz="0 0 ${.052/2}"/>
       <geometry>
         <box size=".026 .059 .052"/>
@@ -131,13 +131,13 @@
       <material name="yellowish">
         <color rgba=".9 .9 .7 1"/>
       </material>
-    </visual>
-    <collision>
+    </visual> -->
+    <!-- <collision>
       <origin rpy="0 0 0" xyz="0 0 ${.052/2}"/>
       <geometry>
         <box size=".026 .059 .052"/>
       </geometry>
-    </collision>
+    </collision> -->
   </link>
   <joint name="nut_tool_m6_to_holder" type="fixed">
     <parent link="screw_tool_holder_long" />
@@ -154,7 +154,7 @@
       <mass value="1.0"/>
       <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
     </inertial>
-    <visual>
+    <!-- <visual>
       <origin rpy="0 0 0" xyz="0 0 ${.052/2}"/>
       <geometry>
         <box size=".026 .059 .052"/>
@@ -162,13 +162,13 @@
       <material name="yellowish">
         <color rgba=".9 .9 .7 1"/>
       </material>
-    </visual>
-    <collision>
+    </visual> -->
+    <!-- <collision>
       <origin rpy="0 0 0" xyz="0 0 ${.052/2}"/>
       <geometry>
         <box size=".026 .059 .052"/>
       </geometry>
-    </collision>
+    </collision> -->
   </link>
   <joint name="set_screw_tool_to_holder" type="fixed">
     <parent link="screw_tool_holder_short" />
@@ -182,7 +182,7 @@
       <mass value="1.0"/>
       <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
     </inertial>
-    <visual>
+    <!-- <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://o2ac_scene_description/meshes/screw_tool_m4_BC5-XL320-AY3.5-EH3R4.stl" scale="0.001 0.001 0.001"/>
@@ -191,24 +191,18 @@
         <color rgba=".9 .9 .9 1"/>
       </material>
     </visual>
-    <!-- <collision>
-      <origin rpy="0 0 0" xyz="0 ${-bit_cushion_to_axis + .02} .0275"/>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 ${-.12/2}"/>
       <geometry>
-        <box size=".026 .04 .055"/>
+        <cylinder length=".12" radius=".01"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 ${-.12/2}"/>
+      <geometry>
+        <cylinder length=".12" radius=".01"/>
       </geometry>
     </collision> -->
-    <collision>
-      <origin rpy="0 0 0" xyz="0 0 ${-.12/2}"/>
-      <geometry>
-        <cylinder length=".12" radius=".01"/>
-      </geometry>
-    </collision>
-    <collision>
-      <origin rpy="0 0 0" xyz="0 0 ${-.12/2}"/>
-      <geometry>
-        <cylinder length=".12" radius=".01"/>
-      </geometry>
-    </collision>
   </link>
   <joint name="screw_tool_m4_to_holder" type="fixed">
     <parent link="screw_tool_holder_long" />
@@ -222,7 +216,7 @@
       <mass value="1.0"/>
       <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
     </inertial>
-    <visual>
+    <!-- <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://o2ac_scene_description/meshes/screw_tool_m3_BC5-XL320-R-AY2.6-EH2.stl" scale="0.001 0.001 0.001"/>
@@ -231,24 +225,18 @@
         <color rgba=".9 .9 .9 1"/>
       </material>
     </visual>
-    <!-- <collision>
-      <origin rpy="0 0 0" xyz="0 ${-bit_cushion_to_axis + .02} .0275"/>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 ${-.1/2}"/>
       <geometry>
-        <box size=".026 .04 .055"/>
+        <cylinder length=".1" radius=".01"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 ${-.1/2}"/>
+      <geometry>
+        <cylinder length=".1" radius=".01"/>
       </geometry>
     </collision> -->
-    <collision>
-      <origin rpy="0 0 0" xyz="0 0 ${-.1/2}"/>
-      <geometry>
-        <cylinder length=".1" radius=".01"/>
-      </geometry>
-    </collision>
-    <collision>
-      <origin rpy="0 0 0" xyz="0 0 ${-.1/2}"/>
-      <geometry>
-        <cylinder length=".1" radius=".01"/>
-      </geometry>
-    </collision>
   </link>
   <joint name="screw_tool_m3_to_holder" type="fixed">
     <parent link="screw_tool_holder_long" />

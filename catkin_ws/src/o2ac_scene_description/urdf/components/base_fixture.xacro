@@ -28,16 +28,16 @@
     </collision>
     <!-- The long stopper bar -->
     <collision>
-      <origin rpy="0 0 0" xyz="${width-.02/2} ${length-.20/2} ${.08+.03/2}"/>
+      <origin rpy="0 0 0" xyz="${width-.02/2} ${length-.22/2} ${.08+.02/2}"/>
       <geometry>
-        <box size="${.02} ${.20} 0.03"/>
+        <box size="${.02} ${.22} ${0.02}"/>
       </geometry>
     </collision>
     <!-- The short stopper bar -->
     <collision>
-      <origin rpy="0 0 0" xyz="${width-.16/2} ${length-.02/2} ${.08+.03/2}"/>
+      <origin rpy="0 0 0" xyz="${width-.18/2} ${length-.02/2} ${.08+.02/2}"/>
       <geometry>
-        <box size="${.16} ${.02} 0.03"/>
+        <box size="${.18} ${.02} ${0.02}"/>
       </geometry>
     </collision>
   </link>
