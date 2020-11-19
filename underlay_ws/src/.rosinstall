@@ -6,7 +6,7 @@
 - git:
     local-name: third_party/geometric_shapes
     uri: https://github.com/ros-planning/geometric_shapes.git
-    version: melodic-devel
+    version: noetic-devel
 - git:
     local-name: third_party/moveit_resources
     uri: https://github.com/ros-planning/moveit_resources.git

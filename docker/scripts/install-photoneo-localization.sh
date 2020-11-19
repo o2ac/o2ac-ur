@@ -14,7 +14,7 @@ install_photoneo()
     wget https://photoneo.com/files/installer/$1/$2.tar
     tar xvf $2.tar
     # bash ./$2
-    expect /root/scripts/install-photoneo-location.exp $2
+    expect /root/scripts/install-photoneo-localization.exp $2
     rm $2.tar $2
 }
 

@@ -40,7 +40,7 @@ spawn_template_filename = os.path.join(rp.get_path("o2ac_parts_description"), "u
 f = open(spawn_template_filename,'r')
 spawn_template = f.read()
 f.close()
-print("Reading")
+print("Reading part files")
 extra_frames = []
 with open(extra_joint_filename, 'r') as f:
   reader = csv.reader(f)
@@ -58,7 +58,7 @@ with open(extra_joint_filename, 'r') as f:
 if not os.path.exists(out_dir):
     os.makedirs(out_dir)
 for part_num, partname in enumerate(partnames):
-    print("Writing partname")
+    # print("Writing partname")
     macrofile = open(os.path.join(out_dir, partname+"_macro.urdf.xacro"),'w+')
     macro_frames_only_file = open(os.path.join(out_dir, partname+"_frames_only_macro.urdf.xacro"),'w+')
 
@@ -109,8 +109,8 @@ for part_num, partname in enumerate(partnames):
         macro_frames_only_filecontent = macro_frames_only_filecontent.replace("<!-- #EXTRAFRAMES -->", extra_frames_urdf)
     macrofile.write(macrofile_content)
     macro_frames_only_file.write(macro_frames_only_filecontent)
-    print("Wrote " + os.path.join(out_dir, partname+"_macro.urdf.xacro"))
-    print("Wrote " + os.path.join(out_dir, partname+"_frames_only_macro.urdf.xacro"))
+    # print("Wrote " + os.path.join(out_dir, partname+"_macro.urdf.xacro"))
+    # print("Wrote " + os.path.join(out_dir, partname+"_frames_only_macro.urdf.xacro"))
     macrofile.close()
     macro_frames_only_file.close()
 
@@ -120,17 +120,19 @@ for part_num, partname in enumerate(partnames):
         non_macrofile_content = non_macro_template.replace("MACRONAME_EXTERNAL", mname_ext)
         non_macrofile_content = non_macrofile_content.replace("PARTNAME", partname)
         non_macrofile.write(non_macrofile_content)
-        print("Wrote " + os.path.join(out_dir, partname+"_macro.urdf.xacro"))
+        # print("Wrote " + os.path.join(out_dir, partname+"_macro.urdf.xacro"))
 
 # Convert xacro files to urdf (necessary for the URDF-to-msg converter)
 import subprocess
 for part_num, partname in enumerate(partnames):
     non_macrofilepath = os.path.join( out_dir, partname+"_non_macro.urdf.xacro")
     out_urdf_filepath = os.path.join( os.path.join(out_dir, "collision_object_urdfs"), partname+"_non_macro.urdf")
-    print("Convert xacro to urdf: " + partname)
+    # print("Convert xacro to urdf: " + partname)
     cmd = 'xacro ' + non_macrofilepath + " -o " + out_urdf_filepath
-    print("cmd: " + cmd)
+    # print("cmd: " + cmd)
     try:
         subprocess.check_call(cmd, shell=True)
     except:
-        print(" ====== There was an error!")
+        print(" ====== There was an error while converting xacro to URDF! partname: " + partname)
+
+print("Finished generating part URDFs in o2ac_parts_description")

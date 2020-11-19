@@ -202,7 +202,7 @@ double distOfValueToInterval(double input_value, double allowed_min, double allo
 
 const double deg2rad(double deg)
 {
-  return (deg / 180.0 * M_PI)
+  return (deg / 180.0 * M_PI);
 }
 
 // Below are factory functions for common geometry messages.
