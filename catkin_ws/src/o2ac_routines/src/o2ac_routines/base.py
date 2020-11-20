@@ -160,6 +160,8 @@ class O2ACBase(object):
     # "robot_program_running" refers only to the ROS external control UR script, not just any program
     self.sub_a_bot_status_ = rospy.Subscriber("/a_bot/ur_hardware_interface/robot_program_running", Bool, self.a_bot_ros_control_status_callback) 
     self.sub_b_bot_status_ = rospy.Subscriber("/b_bot/ur_hardware_interface/robot_program_running", Bool, self.b_bot_ros_control_status_callback)
+    self.sub_a_bot_gripper_status_ = rospy.Subscriber("/a_bot/gripper_status", CModelCommandFeedback, self.a_bot_gripper_status_callback)
+    self.sub_b_bot_gripper_status_ = rospy.Subscriber("/b_bot/gripper_status", CModelCommandFeedback, self.b_bot_gripper_status_callback)
     self.sub_run_mode_ = rospy.Subscriber("/run_mode", Bool, self.run_mode_callback)
     self.sub_pause_mode_ = rospy.Subscriber("/pause_mode", Bool, self.pause_mode_callback)
     self.sub_test_mode_ = rospy.Subscriber("/test_mode", Bool, self.test_mode_callback)
@@ -214,6 +216,10 @@ class O2ACBase(object):
     self.ur_ros_control_running_on_robot["a_bot"] = msg.data
   def b_bot_ros_control_status_callback(self, msg):
     self.ur_ros_control_running_on_robot["b_bot"] = msg.data
+  def a_bot_gripper_status_callback(self, msg):
+    self.a_bot_gripper_opening_width = msg.position
+  def b_bot_gripper_status_callback(self, msg):
+    self.b_bot_gripper_opening_width = msg.position
   
   def is_robot_running_normally(self, robot_name):
     return self.robot_safety_mode[robot_name] == 1
