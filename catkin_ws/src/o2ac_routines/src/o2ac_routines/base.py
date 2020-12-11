@@ -43,7 +43,7 @@ import tf_conversions
 import tf 
 import actionlib
 from math import *
-tau = 2.0*pi
+tau = 2.0*pi  # Part of math from Python 3.6
 import yaml
 import pickle
 
@@ -160,8 +160,8 @@ class O2ACBase(object):
     # "robot_program_running" refers only to the ROS external control UR script, not just any program
     self.sub_a_bot_status_ = rospy.Subscriber("/a_bot/ur_hardware_interface/robot_program_running", Bool, self.a_bot_ros_control_status_callback) 
     self.sub_b_bot_status_ = rospy.Subscriber("/b_bot/ur_hardware_interface/robot_program_running", Bool, self.b_bot_ros_control_status_callback)
-    self.sub_a_bot_gripper_status_ = rospy.Subscriber("/a_bot/gripper_status", CModelCommandFeedback, self.a_bot_gripper_status_callback)
-    self.sub_b_bot_gripper_status_ = rospy.Subscriber("/b_bot/gripper_status", CModelCommandFeedback, self.b_bot_gripper_status_callback)
+    self.sub_a_bot_gripper_status_ = rospy.Subscriber("/a_bot/gripper_status", robotiq_msgs.msg.CModelCommandFeedback, self.a_bot_gripper_status_callback)
+    self.sub_b_bot_gripper_status_ = rospy.Subscriber("/b_bot/gripper_status", robotiq_msgs.msg.CModelCommandFeedback, self.b_bot_gripper_status_callback)
     self.sub_run_mode_ = rospy.Subscriber("/run_mode", Bool, self.run_mode_callback)
     self.sub_pause_mode_ = rospy.Subscriber("/pause_mode", Bool, self.pause_mode_callback)
     self.sub_test_mode_ = rospy.Subscriber("/test_mode", Bool, self.test_mode_callback)

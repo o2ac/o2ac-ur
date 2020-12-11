@@ -41,6 +41,7 @@ import geometry_msgs.msg
 import tf_conversions
 import tf
 from math import pi
+tau = 2.0*pi  # Part of math from Python 3.6
 import math
 
 from o2ac_msgs.srv import *
