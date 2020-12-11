@@ -89,6 +89,7 @@ class O2ACVision(object):
             self.results_pub \
                 = rospy.Publisher('~detection_results',
                                   omsg.EstimatedPosesArray, queue_size=1)
+            rospy.logwarn("Localization action server is not running because SSD results are being streamed! Turn off continuous mode to use localization.")
         else:
             # Setup action server for pose estimation
             self.axserver \
@@ -154,18 +155,18 @@ class O2ACVision(object):
             estimatedPoses_msg.bbox       = ssd_result["bbox"]
 
             if target in apply_2d_pose_estimation:
-                rospy.loginfo("Target id is %d. Apply the 2d pose estimation",
+                rospy.logdebug("Target id is %d. Apply the 2d pose estimation",
                               target)
                 pose, im_vis = self.estimate_pose_in_image(im_in, im_vis,
                                                            ssd_result)
                 estimatedPoses_msg.poses = [pose]
 
             elif target in apply_3d_pose_estimation:
-                rospy.loginfo("Target id is %d. Apply the 3d pose estimation",
+                rospy.logdebug("Target id is %d. Apply the 3d pose estimation",
                               target)
 
             elif target in apply_grasp_detection:
-                rospy.loginfo("Target id is %d. Apply grasp detection", target)
+                rospy.logdebug("Target id is %d. Apply grasp detection", target)
                 estimatedPoses_msg.poses, im_vis \
                     = self.grasp_detection_in_image(im_in, im_vis, ssd_result)
 
@@ -197,7 +198,7 @@ class O2ACVision(object):
         center, ori = tm.compute( ssd_result )
 
         elapsed_time = time.time() - start
-        rospy.loginfo("Processing time[msec]: %d", 1000*elapsed_time)
+        rospy.logdebug("Processing time[msec]: %d", 1000*elapsed_time)
 
         im_vis = tm.get_result_image(ssd_result, ori, center, im_vis)
 

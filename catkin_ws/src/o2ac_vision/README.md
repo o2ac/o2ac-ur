@@ -12,9 +12,16 @@ All vision skills should be action-based, so that calculations are allowed to fa
 
 For this, the Python nodes should advertise a number of actions, which are defined in o2ac_msgs.
 
+## QUICKSTART
 
+At OSX, run:
+```
+roslaunch o2ac_vision o2ac_vision.launch
+```
+
+---
 ## Part recognition
-The part recognition node consists of two components. One is the object detection, the other is pose estimation.
+The part recognition node consists of two components. One is the object detection (Chukyo), the other is pose estimation (AIST).
 
 
 ### Object detection
@@ -34,8 +41,9 @@ Make sure "Annotations", "Images", "data", "labels.txt", "realsense_intrinsic.js
 
 [Download LINK](https://since1954-my.sharepoint.com/:f:/g/personal/z119104_since1954_onmicrosoft_com/EjnbKhpQsTRGnJWvP5ivM9sB3IzRr7gdRk0klG6oxHJyAQ?e=A3sxj1)
 
+---
 
-## Recognition pipeline
+# Recognition pipeline (AIST)
 You can construct a pipeline from image acquisition to 3D object recognition as well as localizatioon by using this package, that is `o2ac_vision`, in conjunction with other vision packages, .i.e. `aist_depth_filter`, `aist_localization` and `aist_model_spawner`(optional).
 The pipeline is structured as the following figure;
 
@@ -74,19 +82,18 @@ The sample client program `o2ac_vision/scripts/o2ac_recognition_client.py` gives
 
 ## Executing the recognition pipeline
 
-If you would like to launch a realsense camera and construct a pipeline attached to it, please type;
+If you would like to start up a realsense camera and test the pipeline, run:
 
 ```
-roslaunch o2ac_vision realsense.launch [camera_name:=<camera name>] [nposes:=<number of poses> timeout:=<timeout for localization in seconds>] [cont:=<continuous mode>]
+roslaunch o2ac_vision pipeline_test.launch [camera_name:=<camera name>] [nposes:=<number of poses> timeout:=<timeout for localization in seconds>] [cont:=<continuous mode>]
 rosrun o2ac_vision o2ac_recognition_client.py
 ```
 
 The correct name of the camera should be given in the `camera_name` parameter.  
-If you already launched a realsense camera driver, replace `realsense.launch` in the first line with `camera.launch`. Example:
+If the camera driver is already running, use `o2ac_vision.launch`. Example:
 
-Example:
 ```
-roslaunch o2ac_vision camera.launch camera_name:=b_bot_outside_camera nposes:=2 timeout:=10 cont:=true
+roslaunch o2ac_vision o2ac_vision.launch camera_name:=b_bot_outside_camera nposes:=2 timeout:=10 cont:=true
 ```
 
 The first command establishes connections between nodes shown in the figure above and takes the following parameter options;
