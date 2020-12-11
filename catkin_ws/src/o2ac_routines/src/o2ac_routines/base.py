@@ -131,8 +131,8 @@ class O2ACBase(object):
     self.fastening_planning_client = actionlib.SimpleActionClient('/fastening_planning', o2ac_task_planning_msgs.msg.PlaceObjectAction)
     self.wrs_subtask_b_planning_client = actionlib.SimpleActionClient('/wrs_subtask_b_planning', o2ac_task_planning_msgs.msg.PickPlaceWithRegraspAction)
     
-    self._suction_client = actionlib.SimpleActionClient('/suction_control', o2ac_msgs.msg.SuctionControlAction)
-    self._fastening_tool_client = actionlib.SimpleActionClient('/screw_tool_control', o2ac_msgs.msg.FastenerGripperControlAction)
+    self.suction_client = actionlib.SimpleActionClient('/suction_control', o2ac_msgs.msg.SuctionControlAction)
+    self.fastening_tool_client = actionlib.SimpleActionClient('/screw_tool_control', o2ac_msgs.msg.FastenerGripperControlAction)
 
     # Service clients
     self.ur_dashboard_clients = {
@@ -283,8 +283,8 @@ class O2ACBase(object):
     else:
       rospy.loginfo("Successfully activated ROS control on robot " + robot)
       return True
-    
-  def load_and_execute_program(self, robot="b_bot", program_name="", wait=True, recursion_depth=0):
+
+  def load_program(self, robot="b_bot", program_name="", recursion_depth=0):
     if not self.use_real_robot:
       return True
 
@@ -320,18 +320,19 @@ class O2ACBase(object):
         rospy.sleep(.5)
       response = self.ur_dashboard_clients[robot + "_connect"].call()
       rospy.sleep(.5)
-      return self.load_and_execute_program(robot, program_name=program_name, wait=wait, recursion_depth=recursion_depth+1)
-    
+      return self.load_program(robot, program_name=program_name, recursion_depth=recursion_depth+1)
+  
+  def execute_loaded_program(self, robot="b_bot"):
     # Run the program
     response = self.ur_dashboard_clients[robot + "_play"].call(std_srvs.srv.TriggerRequest())
     rospy.sleep(2)
     if not response.success:
-      rospy.logerr("Could not start " + program_name + ". Is the UR in Remote Control mode and program installed with correct name?")
+      rospy.logerr("Could not start program. Is the UR in Remote Control mode and program installed with correct name?")
       return False
     else:
       if wait:
         wait_for_UR_program("/" + robot, rospy.Duration.from_sec(30.0))
-      rospy.loginfo("Successfully started " + program_name + " on robot " + robot)
+      rospy.loginfo("Successfully started program on robot " + robot)
       return True
   
   def publish_marker(self, pose_stamped, marker_type):
@@ -959,10 +960,10 @@ class O2ACBase(object):
     goal.speed = speed
     goal.duration = duration
     rospy.loginfo("Sending fastening_tool action goal.")
-    self._fastening_tool_client.send_goal(goal)
+    self.fastening_tool_client.send_goal(goal)
     if wait:
-      self._fastening_tool_client.wait_for_result()
-    return self._fastening_tool_client.get_result()
+      self.fastening_tool_client.wait_for_result()
+    return self.fastening_tool_client.get_result()
 
   def set_suction(self, tool_name, suction_on=False, eject=False, wait=True):
     if not self.use_real_robot:
@@ -972,10 +973,10 @@ class O2ACBase(object):
     goal.turn_suction_on = suction_on
     goal.eject_screw = eject
     rospy.loginfo("Sending suction action goal.")
-    self._suction_client.send_goal(goal)
+    self.suction_client.send_goal(goal)
     if wait:
-      self._suction_client.wait_for_result(rospy.Duration(2.0))
-    return self._suction_client.get_result()
+      self.suction_client.wait_for_result(rospy.Duration(2.0))
+    return self.suction_client.get_result()
 
   def do_insertion(self, robot_name, max_insertion_distance= 0.0, 
                         max_approach_distance = 0.0, max_force = .0,
