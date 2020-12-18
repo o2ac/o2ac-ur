@@ -1,4 +1,4 @@
-extra_frames:
+subframes:
 - pose_xyzrpy:
   - 0.0
   - 0.0
@@ -6,5 +6,5 @@ extra_frames:
   - -pi/2
   - 0.0
   - 0.0
-  subframe_name: center
+  name: center
 grasp_points: []
