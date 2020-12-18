@@ -69,6 +69,8 @@ from math import pi
 from std_msgs.msg import String
 from moveit_commander.conversions import pose_to_list
 
+from o2ac_assembly_handler.assy import AssyHandler
+
 import ur_msgs.msg
 from o2ac_routines.helpers import *
 
@@ -111,6 +113,8 @@ class O2ACBase(object):
     self.apply_planning_scene_diff = rospy.ServiceProxy('/apply_planning_scene', moveit_msgs.srv.ApplyPlanningScene)
     self.apply_planning_scene_diff.wait_for_service(5.0)
 
+    self.assembly_handler = AssyHandler("taskboard")
+
     # Action clients and movegroups
     self.groups = {"a_bot":moveit_commander.MoveGroupCommander("a_bot"), "b_bot":moveit_commander.MoveGroupCommander("b_bot"),
       "a_bot_robotiq_85":moveit_commander.MoveGroupCommander("a_bot_robotiq_85"), "b_bot_robotiq_85":moveit_commander.MoveGroupCommander("b_bot_robotiq_85")}
@@ -123,6 +127,8 @@ class O2ACBase(object):
     self.regrasp_client = actionlib.SimpleActionClient('/o2ac_skills/regrasp', o2ac_msgs.msg.regraspAction)
     self.screw_client = actionlib.SimpleActionClient('/o2ac_skills/screw', o2ac_msgs.msg.screwAction)
     self.change_tool_client = actionlib.SimpleActionClient('/o2ac_skills/change_tool', o2ac_msgs.msg.changeToolAction)
+
+    self.recognition_client = actionlib.SimpleActionClient('/object_recognizer/recognize_object', o2ac_msgs.msg.detectObjectAction)
 
     self.pick_planning_client = actionlib.SimpleActionClient('/pick_planning', o2ac_task_planning_msgs.msg.PickObjectAction)
     self.place_planning_client = actionlib.SimpleActionClient('/place_planning', o2ac_task_planning_msgs.msg.PlaceObjectAction)
@@ -178,8 +184,47 @@ class O2ACBase(object):
 
     self.screw_tools = {}
 
+    self.define_tray_views()
+
     rospy.sleep(.5)
     rospy.loginfo("Finished initializing class")
+
+  def define_tray_views(self):
+    """
+    Define the poses used to position the camera to look into the tray.
+
+    Example usage: self.go_to_pose_goal("b_bot", self.tray_view_high, 
+                                        1end_effector_link="b_bot_outside_camera_color_frame", 
+                                        1speed=.1, acceleration=.04)
+    """
+    high_height = .37
+    low_height = .22
+    x_offset = .04  # At low_height
+    y_offset = .06  # At low_height
+
+    ps = geometry_msgs.msg.PoseStamped()
+    ps.header.frame_id = "tray_center"
+    ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
+    ps.pose.position.z = high_height
+
+    # Centered views (high up and close)
+    self.tray_view_high = copy.deepcopy(ps)    
+    ps.pose.position.z = low_height
+    self.tray_view_low = copy.deepcopy(ps)
+
+    # Close views in corners
+    ps.pose.position.x = x_offset
+    ps.pose.position.y = y_offset
+    self.tray_view_close_front_b = copy.deepcopy(ps)
+    ps.pose.position.x = -x_offset
+    ps.pose.position.y = y_offset
+    self.tray_view_close_back_b = copy.deepcopy(ps)
+    ps.pose.position.x = x_offset
+    ps.pose.position.y = -y_offset
+    self.tray_view_close_front_a = copy.deepcopy(ps)
+    ps.pose.position.x = -x_offset
+    ps.pose.position.y = -y_offset
+    self.tray_view_close_back_a = copy.deepcopy(ps)
     
   ############## ------ Internal functions (and convenience functions)
 
@@ -849,6 +894,40 @@ class O2ACBase(object):
       self.upload_tool_grasps_to_param_server(screw_id)
     spawn_objects(assembly_name, objects, poses, reference_frame)
     
+  def detect_object_in_camera_view(self, item_name):
+    """
+    Returns True if object was detected in current camera view and published to planning scene,
+    False otherwise.
+    """
+
+    # Send goal, wait for result
+    self.recognition_client.send_goal(o2ac_msgs.msg.detectObjectGoal(item_id=item_name))
+    if (not self.recognition_client.wait_for_result(rospy.Duration(15.0))):
+      self.recognition_client.cancel_goal()  # Cancel goal if timeout expired
+      rospy.logerr("Recognition node returned no result.")
+      
+    # Read result and publish to planning scene as collision_object if found
+    success = False
+    try:
+      res = self.recognition_client.get_result()
+      success = res.succeeded
+    except:
+      pass
+    
+    # Publish to planning scene
+    if success:
+      # TODO: Fix the header and the collision object lookup name!
+      # TODO: To fix the collision object lookup name, the assembly_handler names need to be aligned with o2ac_parts_description.
+      rospy.loginfo("Detected " + item_name + " with confidence " + str(res.confidences[0]))
+      co = self.assembly_handler._reader.get_collision_object("bearing")
+      co.mesh_poses[0] = res.detected_poses[0].pose
+      co.header.frame_id = "b_bot_outside_camera_color_optical_frame"
+      print(co)
+      self.planning_scene_interface.apply_collision_object(co)
+      return True
+    else:
+      rospy.loginfo("Did not detect " + item_name)
+      return False
 
   def do_plan_pick_action(self, object_name, grasp_parameter_location = '', lift_direction_reference_frame = '', lift_direction = [], robot_name = ''):
     '''
