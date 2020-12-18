@@ -2,7 +2,7 @@
 <launch>
 
   <!-- Mode of object detector -->
-  <arg name="cont"		default="false"/>
+  <arg name="continuous_streaming"		default="false"/>
 
   <!-- Localization parameters -->
   <arg name="nposes"		default="2"/>
@@ -23,10 +23,10 @@
   <node name="object_detector"
 	pkg="o2ac_vision" type="o2ac_vision.py" output="screen">
     <remap from="/image"	to="$(arg image_topic)"/>
-    <param name="cont"		value="$(arg cont)"/>
+    <param name="continuous_streaming"		value="$(arg continuous_streaming)"/>
   </node>
 
-  <group unless="$(arg cont)">
+  <group unless="$(arg continuous_streaming)">
     <!-- Spawn depth_filter and localizer -->
     <include file="$(find aist_localization)/launch/run.launch">
       <arg name="camera_info_topic"	value="$(arg camera_info_topic)"/>

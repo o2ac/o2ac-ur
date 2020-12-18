@@ -3,7 +3,7 @@
   <!-- Launch file for testing. Starts up a single camera and the recognition nodes. -->
 
   <!-- Mode of object detector -->
-  <arg name="cont"		default="false"/>
+  <arg name="continuous_streaming"		default="false"/>
 
   <!-- Localization parameters -->
   <arg name="nposes"		default="2"/>
@@ -42,7 +42,7 @@
 
   <!-- Construct recognition pipeline -->
   <include file="$(find o2ac_vision)/launch/recognition_pipeline.launch">
-    <arg name="cont"		  value="$(arg cont)"/>
+    <arg name="continuous_streaming"		  value="$(arg continuous_streaming)"/>
     <arg name="nposes"		  value="$(arg nposes)"/>
     <arg name="timeout"		  value="$(arg timeout)"/>
     <arg name="ply_dir"		  value="$(arg ply_dir)"/>

@@ -33,7 +33,7 @@ class RotationEstimation():
         # Parameter for image processing
         self._canny1 = 100 #parameter1 for canny edge detection
         self._canny2 = 200 #parameter2 for canny edge detection
-        self._cont_mode = cv2.RETR_EXTERNAL # contour extraction mode
+        self._continuous_streaming_mode = cv2.RETR_EXTERNAL # contour extraction mode
 
         # Variables
         self._deg2rad = math.pi/180.0
@@ -78,9 +78,9 @@ class RotationEstimation():
         # check version of cv2
         cv2_versoin = cv2.__version__
         if '4' == cv2_versoin[0]:
-            contours, hierarchy = cv2.findContours(edges, self._cont_mode, cv2.CHAIN_APPROX_NONE)
+            contours, hierarchy = cv2.findContours(edges, self._continuous_streaming_mode, cv2.CHAIN_APPROX_NONE)
         else:
-            _, contours, hierarchy = cv2.findContours(edges, self._cont_mode, cv2.CHAIN_APPROX_NONE)
+            _, contours, hierarchy = cv2.findContours(edges, self._continuous_streaming_mode, cv2.CHAIN_APPROX_NONE)
 
 
         return contours

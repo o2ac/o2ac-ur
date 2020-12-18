@@ -3,7 +3,8 @@
   <!-- This file launches all the vision and recognition nodes. Assumes that the cameras are running. -->
 
   <!-- Mode of object detector -->
-  <arg name="cont"		default="true"/>
+  <!-- Continuous streaming is expensive and meant for debugging. -->
+  <arg name="continuous_streaming"		default="false"/>
   <arg name="camera_name"	default="b_bot_outside_camera"/>
 
   <!-- Localization parameters -->
@@ -14,7 +15,7 @@
 
   <!-- Construct recognition pipeline -->
   <include file="$(find o2ac_vision)/launch/recognition_pipeline.launch">
-    <arg name="cont"		  value="$(arg cont)"/>
+    <arg name="continuous_streaming"		  value="$(arg continuous_streaming)"/>
     <arg name="nposes"		  value="$(arg nposes)"/>
     <arg name="timeout"		  value="$(arg timeout)"/>
     <arg name="ply_dir"		  value="$(arg ply_dir)"/>
@@ -27,7 +28,7 @@
 
   <!-- Spawn visualizer and parameter configurator -->
   <node name="$(anon rviz)" pkg="rviz" type="rviz" output="screen"
-	      args="-d $(find o2ac_vision)/launch/realsense.rviz"/>
+	      args="-d $(find o2ac_vision)/launch/pipeline_test.rviz"/>
   <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure"/>
 
     <!-- <node name="ssd_server" pkg="o2ac_vision" type="ssd_server.py" output="screen" />

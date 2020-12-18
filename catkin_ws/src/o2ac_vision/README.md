@@ -85,7 +85,7 @@ The sample client program `o2ac_vision/scripts/o2ac_recognition_client.py` gives
 If you would like to start up a realsense camera and test the pipeline, run:
 
 ```
-roslaunch o2ac_vision pipeline_test.launch [camera_name:=<camera name>] [nposes:=<number of poses> timeout:=<timeout for localization in seconds>] [cont:=<continuous mode>]
+roslaunch o2ac_vision pipeline_test.launch [camera_name:=<camera name>] [nposes:=<number of poses> timeout:=<timeout for localization in seconds>] [continuous_streaming:=<continuous mode>]
 rosrun o2ac_vision o2ac_recognition_client.py
 ```
 
@@ -93,14 +93,14 @@ The correct name of the camera should be given in the `camera_name` parameter.
 If the camera driver is already running, use `o2ac_vision.launch`. Example:
 
 ```
-roslaunch o2ac_vision o2ac_vision.launch camera_name:=b_bot_outside_camera nposes:=2 timeout:=10 cont:=true
+roslaunch o2ac_vision o2ac_vision.launch camera_name:=b_bot_outside_camera nposes:=2 timeout:=10 continuous_streaming:=true
 ```
 
 The first command establishes connections between nodes shown in the figure above and takes the following parameter options;
  - **camera_name** -- name given to the launched camera (default: `b_bot_outside_camera`)
  - **nposes** -- the number of candidate poses to be searched for within timeout. Unfortunately, it is not guaranteed that a pose with the highest confidence value will be returned when this value is set to `1` because the order of the candidate poses returned by the localizer is indeterminate. (default: `2`)
  - **timeout** -- timeout of localization process in seconds. The localization process would be canceled after the timeout has expired even if `nposes` candidates have not been found. (default: `10`)
- - **cont** -- If `true`, the pipeline operates in `continuous mode` which continuously processes incoming image streams and outputs the SSD recognition results (but not 3D localization). (default: `false`)
+ - **continuous_streaming** -- If `true`, the pipeline operates in `continuous mode` which continuously processes incoming image streams and outputs the SSD recognition results (but not 3D localization). (default: `false`)
 
 The second command launches a sample client program which provides a CUI(command user interface) for commanding the pipeline to find and localize parts specified by their IDs. The `rqt_reconfigure` GUI is also launched which allows you to ajust various parameters used in the localizer. Please refer to the [the manual for Photoneo Localization SDK](https://photoneo.com/files/manuals/LocalizationSDK/LocalizationSDK1.3-UserManual.pdf) for details.
 
