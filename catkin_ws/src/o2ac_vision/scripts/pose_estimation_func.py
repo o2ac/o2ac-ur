@@ -503,6 +503,8 @@ class FastGraspabilityEvaluation():
         self.pos_list = list()
         self.score_list = list()
         self.rotation = (0, 45, 90, 135)
+        
+        self.gp_result = list() # grasp points y, x, theta[deg]
 
         #parameter
         self.ds_rate = _param["ds_rate"]
@@ -557,7 +559,7 @@ class FastGraspabilityEvaluation():
         cols, rows = im_temp.shape[1], im_temp.shape[0]
         im_temps = list() # テンプレートのリスト
         temp_area = list() # ハンド差込領域の面積
-        for deg in (0, 45, 90, 135):
+        for deg in rotation:
 
             rot_mat = cv2.getRotationMatrix2D( (cols/2, rows/2),  deg, 1 )
             im_rot = cv2.warpAffine( im_temp, rot_mat, (cols, rows) )
@@ -565,6 +567,23 @@ class FastGraspabilityEvaluation():
             temp_area.append( np.sum(im_rot) )
 
         return im_temps, temp_area
+    
+    def RotationColorTemplate( self, im_temp, rotation ):
+        # convert binary template to color template.
+        # thumb is colored by red
+        temp_c = copy.deepcopy(im_temp)
+        cols, rows = im_temp.shape[1], im_temp.shape[0]
+        
+        temp_c = np.clip( temp_c*100.0, 0, 255 )
+        temp_c = np.asarray( temp_c, np.uint8 )
+        temp_c = cv2.cvtColor( temp_c, cv2.COLOR_GRAY2BGR)
+        temp_c[:int(rows/2),:,0] = temp_c[:int(rows/2),:,2] = 0
+        temp_c[int(rows/2):,:,0] = temp_c[int(rows/2):,:,1] = 0
+            
+        rot_mat = cv2.getRotationMatrix2D( (cols/2, rows/2),  rotation, 1 )
+        im_rot = cv2.warpAffine( temp_c, rot_mat, (cols, rows) )
+
+        return im_rot
 
 
     def main_proc( self ):
@@ -599,6 +618,7 @@ class FastGraspabilityEvaluation():
             for i, (hand, collision) in enumerate( zip( self.im_hands, self.im_collisions) ):
                 # check border
                 if ltop[0] < 0 or ltop[1] < 0 or s_rows <= ltop[0]+rows or s_cols <= ltop[1]+cols:
+                    print("skip")
                     continue
 
                 conv_hand = self.fg_mask[ ltop[0]:ltop[0]+rows, ltop[1]:ltop[1]+cols ] * hand
@@ -623,13 +643,31 @@ class FastGraspabilityEvaluation():
         self.candidate_idx = np.where( self.score_list < self.threshold )[0]
 
         # Make final result
-        gp_result = list()
         for n in self.candidate_idx:
             # y, x, theta[deg]
-            gp_result.append( (self.pos_list[n][0], self.pos_list[n][1], self.rotation[self.pos_list[n][2]]) )
+            rotation_rad = np.deg2rad(self.rotation[self.pos_list[n][2]])
+            rot = np.array([[np.cos(rotation_rad),-np.sin(rotation_rad)],
+                            [np.sin(rotation_rad),np.cos(rotation_rad)]], np.float)
+            grasp_point = np.array( [self.pos_list[n][0], self.pos_list[n][1]], np.float )
+            # thumb_direction_vector
+            thumb_dir = np.array( [1.0,0.0] )
+            thumb_dir_rot = np.dot(rot,thumb_dir)
+            # grasp point to center
+            im_size = np.array(self.im_in.shape[:2])*(1.0/self.ds_rate)/2
+            g2c = im_size - grasp_point
+
+            g2c_len = np.linalg.norm(g2c)
+            g2c /= g2c_len # unit vector
+            
+            ip = np.dot(g2c,thumb_dir_rot)
+            rotation = self.rotation[self.pos_list[n][2]]
+
+            if ip < 0:
+                rotation += 180.0 
+            self.gp_result.append( (int(grasp_point[0]), int(grasp_point[1]), rotation ) )
 
 
-        return gp_result
+        return self.gp_result
 
     def get_hand_and_collision( self ):
 
@@ -649,152 +687,24 @@ class FastGraspabilityEvaluation():
         im_out = np.asarray( im_out*255, np.uint8 )
 
         return im_out
-        
 
     def visualization( self, im_result=None ):
-        #if im_result is None:
-        #    im_result = self.im_in.copy()
-        im_result = self.im_in.copy()
-        
-        # Preparing of 3 channel hand templates
-        im_hands_c = list()
-        for im in self.im_hands:
-            im = np.clip( im*100.0, 0, 255 )
-            im = np.asarray( im, np.uint8 )
-            im = cv2.cvtColor( im, cv2.COLOR_GRAY2BGR)
-            im[:,:,0] = im[:,:,2] = 0
-            im_hands_c.append( im )
-
+        if im_result is None:
+            im_result = self.im_in_org.copy()
 
         # Overlay hand templates
         im_result = np.asarray( im_result, np.int )
-        cols, rows = im_hands_c[0].shape[1], im_hands_c[0].shape[0]
+        cols, rows = self.im_hand.shape[1], self.im_hand.shape[0]
         offset = np.array( (cols/2, rows/2), np.int )
-        for n in self.candidate_idx:
-            pos = np.array( (self.pos_list[n][0], self.pos_list[n][1]) )
+        for n in self.gp_result:
+            pos = np.array( (n[0], n[1]) )
+            im_hand_c = self.RotationColorTemplate(self.im_hand, n[2])
             ltop = pos - offset
-            im_result[ ltop[0]:ltop[0]+rows, ltop[1]:ltop[1]+cols ] += im_hands_c[ self.pos_list[n][2] ]
+            im_result[ ltop[0]:ltop[0]+rows, ltop[1]:ltop[1]+cols ] += im_hand_c
 
         im_result = np.clip( im_result, 0, 255 )
         im_result = np.asarray( im_result, np.uint8 )
-        for n in self.candidate_idx:
-            im_result = cv2.circle( im_result, ( self.pos_list[n][1], self.pos_list[n][0] ), 3, (0,255,0), -1, cv2.LINE_AA )
+        for n in self.gp_result:
+            im_result = cv2.circle( im_result, ( n[1], n[0] ), 3, (0,255,0), -1, cv2.LINE_AA )
 
         return im_result
-
-class CableTipDetection():
-    """
-    Cable Tip Detection from point cloud.
-    
-    
-    How to use:
-        # First, define ctd object
-        ctd = CableTipDetection()
-        # Set tool pose from sensor origin
-        # first one is tool tip position in sensor coordinate system
-        # second one is tool orientation in sensor coordinate system
-        ctd.set_tool_pose([-0.021, 0.054, -0.12], [0.0,-1.0,0.0])
-        # do main processing
-        # "cable_tip" is a 3D point of cable tip in sensor coordinate system
-        cable_tip = ctd.proc(pcd_n)
-    """
-    
-    
-    def __init__( self ):
-        
-        # tool position
-        self.t_p = np.zeros(3)
-        # tool coordinate system
-        self.t_o = np.array([[0.0,-1.0,0.0],[0.0,1.0,0.0],[0.0,0.0,-1.0]])
-        
-        # transformations
-        self.sensor2tool = np.identity(4)
-        self.tool2sensor = np.identity(4)
-        
-        # filtered point cloud
-        self.pcd_fg = None
-        
-        # set default tool pose
-        self.set_tool_pose( [0.0,0.1, -0.1],[0.0,-1.0,0.0] )
-        
-    def set_tool_pose( self, position, orientation ):
-        """
-            position: tool position from sensor origin
-            orientation: tool tip axis from sensor origin
-        """
-        self.t_p = position
-        
-        
-        # generate tool coordinate system from tool axis
-        v1 = orientation
-        v1n = v1/np.linalg.norm(v1)
-        v_tmp = np.random.random(3)
-
-        v2 = v_tmp - np.dot(v1n,v_tmp)*v1n
-        v2 = v2/np.linalg.norm(v2)
-        v3 = np.cross(v1n,v2)
-        v3 = v3/np.linalg.norm(v3)
-        tool_frame = np.matrix([v1,v2,v3]).T
-        self.t_o = tool_frame
-        
-        transformation = np.identity(4)
-        transformation[:3,3] = self.t_p
-        transformation[:3,:3] = self.t_o
-        transformation = np.matrix(transformation)
-        
-        self.sensor2tool = np.array(transformation.I)
-        self.tool2sensor = np.array(transformation)
-        
-    def filter( self, pcd, threshold, ndim=2, flip=False ):
-        """
-        Filter out point cloud
-        Input:
-            pcd: numpy nx3 matrix
-            threshold: point cloud exeeding threshold is removed.
-            ndim: dimension of filter
-            flip: if True, removed points are returned.
-        """
-        pcd_fg = None
-        if flip:
-            pcd_fg = pcd[threshold<pcd[:,ndim]]
-        else:
-            pcd_fg = pcd[pcd[:,ndim]<threshold]
-
-        return pcd_fg.copy()
-        
-    def proc( self, pcd ):
-        """
-            pcd: nx3 numpy matrix of point cloud
-        """
-        # convert nx3 to nx4
-        ones = np.ones(pcd.shape[0]).reshape(pcd.shape[0],1)
-        pcd_n4 = np.append(pcd, ones, axis=1 )
-        
-        tmp = np.dot(self.sensor2tool,pcd_n4.T)
-        pcd_hand_np = (tmp[:3,:].T).copy()
-        
-        # crop point cloud around tool tip
-        self.pcd_fg = pcd_hand_np
-        self.pcd_fg = self.filter(self.pcd_fg, 0.03, 1 )
-        self.pcd_fg = self.filter(self.pcd_fg, -0.03, 1, flip=True )
-        self.pcd_fg = self.filter(self.pcd_fg, 0.03, 2 )
-        self.pcd_fg = self.filter(self.pcd_fg, -0.03, 2, flip=True )
-        self.pcd_fg = self.filter(self.pcd_fg, 0.1, 0 )
-        self.pcd_fg = self.filter(self.pcd_fg, 0.0, 0, flip=True )
-
-        # get cable tip id
-        tip_idx = np.argmax(self.pcd_fg[:,0])
-        
-        # get tool tip point
-        tip_np = np.array([self.pcd_fg[tip_idx]])
-        # convert point into sensor coordinate system
-        tip_np = np.dot(self.tool2sensor, np.append(tip_np,1).T)
-        
-        return tip_np[:3].copy()
-    
-    def get_pcd_fg(self):
-        """
-            For Debug. get filtered point cloud
-        """
-        
-        return self.pcd_fg
