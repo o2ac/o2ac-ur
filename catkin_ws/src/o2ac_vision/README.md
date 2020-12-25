@@ -6,7 +6,7 @@ This package contains nodes that execute and advertise vision actions, e.g.:
 
 - Object detection
 - Part pose estimation
-- Belt pick-pose detection
+- Belt grasp pose detection
 
 All vision skills should be action-based, so that calculations are allowed to fail and time out.
 
@@ -28,6 +28,8 @@ The part recognition node consists of two components. One is the object detectio
 Python scripts of Single Shot MultiBox Detector (SSD) are cloned from [ssd.pytorch](https://github.com/amdegroot/ssd.pytorch).
 This module detects multiple objects in a tray. A list of bounding boxes, classes, and confidences are returned.
 
+model parameter is [here](https://drive.google.com/file/d/13jfmv0CxU0K6LRE2jWkqJcJEVHVlVg2S/view?usp=sharing).
+Please put it in ```wrs_dataset/ssd.pytorch/```.
 
 ### Pose estimation
 This component estimates accurate pose (x,y,theta) of **small targets** in image coordinate system. It feeds the output of the object detection module, a list of bounding box and object class id.
