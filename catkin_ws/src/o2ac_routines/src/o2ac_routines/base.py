@@ -121,7 +121,6 @@ class O2ACBase(object):
     self.gripper_action_clients = {"a_bot":actionlib.SimpleActionClient('/a_bot/gripper_action_controller', robotiq_msgs.msg.CModelCommandAction),
       "b_bot":actionlib.SimpleActionClient('/b_bot/gripper_action_controller', robotiq_msgs.msg.CModelCommandAction)}
     
-    self.suck_screw_client = actionlib.SimpleActionClient('/o2ac_skills/suck_screw', o2ac_msgs.msg.suckScrewAction)
     self.pick_screw_from_feeder_client = actionlib.SimpleActionClient('/o2ac_skills/pick_screw_from_feeder', o2ac_msgs.msg.pickScrewFromFeederAction)
     self.place_client = actionlib.SimpleActionClient('/o2ac_skills/place', o2ac_msgs.msg.placeAction)
     self.regrasp_client = actionlib.SimpleActionClient('/o2ac_skills/regrasp', o2ac_msgs.msg.regraspAction)
@@ -155,7 +154,9 @@ class O2ACBase(object):
       "a_bot_quit":rospy.ServiceProxy('/a_bot/ur_hardware_interface/dashboard/quit', std_srvs.srv.Trigger),
       "b_bot_quit":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/quit', std_srvs.srv.Trigger),
       "a_bot_connect":rospy.ServiceProxy('/a_bot/ur_hardware_interface/dashboard/connect', std_srvs.srv.Trigger),
-      "b_bot_connect":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/connect', std_srvs.srv.Trigger)
+      "b_bot_connect":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/connect', std_srvs.srv.Trigger),
+      "a_bot_close_popup":rospy.ServiceProxy('/a_bot/ur_hardware_interface/dashboard/close_popup', std_srvs.srv.Trigger),
+      "b_bot_close_popup":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/close_popup', std_srvs.srv.Trigger)
     }
 
     self.urscript_client = rospy.ServiceProxy('/o2ac_skills/sendScriptToUR', o2ac_msgs.srv.sendScriptToUR)
@@ -337,9 +338,6 @@ class O2ACBase(object):
       rospy.logerr("Tried too often. Breaking out.")
       rospy.logerr("Could not load " + program_name + ". Is the UR in Remote Control mode and program installed with correct name?")
       return False
-
-    if not program_name:
-      rospy.logerr("No ")
     
     load_success = False
     try:
@@ -353,6 +351,7 @@ class O2ACBase(object):
       response = self.ur_dashboard_clients[robot + "_load_program"].call(request)
       if response.success: # Try reconnecting to dashboard
         load_success = True
+        return True
       else:
         rospy.logerr("Could not load " + program_name + ". Is the UR in Remote Control mode and program installed with correct name?")
     except:
@@ -362,6 +361,7 @@ class O2ACBase(object):
       rospy.sleep(3)
       if recursion_depth > 0:  # If connect alone failed, try quit and then connect
         response = self.ur_dashboard_clients[robot + "_quit"].call()
+        rospy.logerr("Program could not be loaded on UR: " + program_name)
         rospy.sleep(.5)
       response = self.ur_dashboard_clients[robot + "_connect"].call()
       rospy.sleep(.5)
@@ -370,14 +370,21 @@ class O2ACBase(object):
   def execute_loaded_program(self, robot="b_bot"):
     # Run the program
     response = self.ur_dashboard_clients[robot + "_play"].call(std_srvs.srv.TriggerRequest())
-    rospy.sleep(2)
     if not response.success:
       rospy.logerr("Could not start program. Is the UR in Remote Control mode and program installed with correct name?")
       return False
     else:
-      if wait:
-        wait_for_UR_program("/" + robot, rospy.Duration.from_sec(30.0))
       rospy.loginfo("Successfully started program on robot " + robot)
+      return True
+  
+  def close_ur_popup(self, robot="b_bot"):
+    # Close a popup on the teach pendant to continue program execution
+    response = self.ur_dashboard_clients[robot + "_close_popup"].call(std_srvs.srv.TriggerRequest())
+    if not response.success:
+      rospy.logerr("Could not close popup.")
+      return False
+    else:
+      rospy.loginfo("Successfully closed popup on teach pendant of robot " + robot)
       return True
   
   def publish_marker(self, pose_stamped, marker_type):
@@ -760,23 +767,6 @@ class O2ACBase(object):
 
   ######
 
-  def do_suck_screw_action(self, robot_name, pose_stamped, screw_size = 0, z_axis_rotation = 0.0, tool_name = ""):
-    # Call the suck screw action. Deprecated.
-    goal = o2ac_msgs.msg.suckScrewGoal()
-    goal.robot_name = robot_name
-    goal.screw_pose = pose_stamped
-    goal.tool_name = tool_name
-    goal.screw_size = screw_size
-    goal.z_axis_rotation = z_axis_rotation
-    rospy.loginfo("Sending pick action goal")
-    rospy.logdebug(goal)
-
-    self.suck_screw_client.send_goal(goal)
-    rospy.logdebug("Waiting for result")
-    self.suck_screw_client.wait_for_result()
-    rospy.logdebug("Getting result")
-    return self.suck_screw_client.get_result()
-
   def pick_screw_from_feeder(self, robot_name, screw_size):
     """
     Picks a screw from one of the feeders. The screw tool already has to be equipped!
@@ -793,7 +783,6 @@ class O2ACBase(object):
     self.pick_screw_from_feeder_client.wait_for_result()
     rospy.logdebug("Getting result")
     return self.pick_screw_from_feeder_client.get_result()
-
 
   def do_place_action(self, robot_name, pose_stamped, tool_name = "", screw_size=0):
     # Call the place action
