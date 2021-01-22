@@ -207,14 +207,17 @@ class TaskboardClass(O2ACCommon):
     """
     Equip the set screw tool and M3 tool, and move to the position before task start.
     """
+
+    self.go_to_named_pose("home", "a_bot")
+
+    self.do_change_tool_action("a_bot", equip=True, screw_size = 3)
+    self.go_to_named_pose("feeder_pick_ready", "a_bot")
+
     self.go_to_named_pose("home", "b_bot")
-    # self.go_to_named_pose("home", "a_bot")
     
     self.do_change_tool_action("b_bot", equip=True, screw_size = 2)  # Set screw tool
     self.go_to_named_pose("horizontal_screw_ready", "b_bot")
 
-    # self.do_change_tool_action("a_bot", equip=True, screw_size = 3)
-    # self.go_to_named_pose("feeder_pick_ready", "a_bot")
 
     screw_approach = copy.deepcopy(self.at_set_screw_hole)
     screw_approach.pose.position.x = -0.005
