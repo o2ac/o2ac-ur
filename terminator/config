@@ -287,5 +287,6 @@
     background_image = None
     background_type = transparent
     font = Ubuntu Mono 12
+    scrollback_lines = 5000
     foreground_color = "#ffffff"
     use_system_font = False

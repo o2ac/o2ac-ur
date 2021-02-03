@@ -131,7 +131,7 @@ for part_num, partname in enumerate(partnames):
     cmd = 'xacro ' + non_macrofilepath + " -o " + out_urdf_filepath
     # print("cmd: " + cmd)
     try:
-        subprocess.check_call(cmd, shell=True)
+        subprocess.check_call(cmd, shell=True, stdout=open(os.devnull, 'wb'))
     except:
         print(" ====== There was an error while converting xacro to URDF! partname: " + partname)
 
