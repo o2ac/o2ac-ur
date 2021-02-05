@@ -1,0 +1,44 @@
+ Program
+   Robot Program
+     Gripper Open (1)
+     MoveL
+       above
+       Waypoint_3
+     Gripper Close (1)
+     Gripper Open (1)
+     MoveL
+       Waypoint_2
+     Gripper Close (1)
+     Gripper Move14% (1)
+     MoveL
+       Waypoint_3
+       Waypoint_1
+     Gripper Close (1)
+     MoveL
+       above
+     'MoveJ'
+     'MoveJ'
+     'Force'
+     MoveJ
+       Waypoint_4
+       beforehole
+     MoveJ
+       athole
+     Force
+       MoveL
+         rightturn
+         leftturn
+         leftturn
+         rightturn
+     Gripper Open (1)
+     MoveJ
+       'ready_to_push'
+       Waypoint_6
+     'Gripper Move53% (1)'
+     Gripper Close (1)
+     Force
+       MoveL
+         Waypoint_5
+       Wait: 5.0
+     MoveJ
+       Waypoint_6

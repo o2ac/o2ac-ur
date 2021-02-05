@@ -96,6 +96,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ################################################################################
 
+# For copying UR scripts from the robots
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	sshpass \
+	&& rm -rf /var/lib/apt/lists/*
+
+################################################################################
+
 # Install JSK tools for visualization in Rviz
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	ros-melodic-jsk-visualization

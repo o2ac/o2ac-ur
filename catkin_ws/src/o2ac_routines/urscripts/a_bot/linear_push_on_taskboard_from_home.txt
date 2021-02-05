@@ -1,0 +1,8 @@
+ Program
+   Robot Program
+     MoveJ
+       home
+       above_tb
+     Gripper Close (1)
+     Force
+       Wait: 10.0
