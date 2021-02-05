@@ -218,7 +218,7 @@ class BinaryTemplateMatching():
 
         self._t_size = np.asarray( self._temp.shape ) # size of template
         self._s_size = np.asarray( self._scene.shape ) # size of scene
-        self._ltop_c = (self._s_size-self._t_size)/2 # left-top pixel of an initial search position
+        self._ltop_c = ((self._s_size-self._t_size)/2).astype(np.int) # left-top pixel of an initial search position
 
         # Matching, compute score map, _s_map, and offset list
         self._s_map, self._offset_list = self.main_proc()
@@ -234,7 +234,7 @@ class BinaryTemplateMatching():
 
         diff_max = max(diff_size_y, diff_size_x)
         if diff_max > 0:
-            pad_size = diff_max/2+1
+            pad_size = int(diff_max/2)+1
             self._scene = np.pad( self._scene, (pad_size, pad_size), 'minimum')
             self._initial_pad = np.array( (pad_size, pad_size), np.int )
 
@@ -337,7 +337,7 @@ class template_matching():
 
         return im_temp_edge, temp_ori
 
-    def compute( self, result ):
+    def compute( self, result, search=(20,20) ):
         """
         Input:
             result: Output of the object detection(SSD). list of {bbox, class, confidence}
@@ -348,7 +348,7 @@ class template_matching():
 
         class_id = result["class"]
         bbox = result["bbox"]
-        re = RotationEstimation( self.im_c, bbox )
+        re = RotationEstimation( self.im_c, bbox, lseg_len=20, n_bin=120 )
         in_ori = re.get_orientation()
         im_edge = re.get_im_edge()
         im_edge_ds = downsampling_binary( im_edge, _fx=self.ds_rate, _fy=self.ds_rate )
@@ -381,7 +381,7 @@ class template_matching():
         scores = list() # score list of each template
         offsets = list() # offset list of each template
         for temp in im_temp_eds: # Apply template matching
-            btm = BinaryTemplateMatching( temp, im_edge_ds, (20,20) )
+            btm = BinaryTemplateMatching( temp, im_edge_ds, search )
             _, offset, score = btm.get_result()
             scores.append( score )
             offsets.append( offset )
@@ -449,11 +449,11 @@ def visualize_result( im_temp, im_scene, ltop, orientation ):
         im_res_on_original = np.pad( im_scene.copy(), (res_pad,res_pad), "constant")
     else:
         im_res_on_original = np.pad( im_scene.copy(), ((res_pad,res_pad),(res_pad,res_pad),(0,0)), "constant")
-    ltop_pad = ltop + res_pad
+    ltop_pad = (ltop + res_pad).astype(np.int)
 
     bbox_size = np.asarray( im_temp.shape, np.int )
-    bb_center = ltop_pad + bbox_size/2
-
+    bb_center = (ltop_pad + bbox_size/2).astype(np.int)
+    
     # mapping edge pixels of template
     im_temp_edge_rot_vis = cv2.cvtColor(res_im_temp, cv2.COLOR_GRAY2BGR )
     im_temp_edge_rot_vis[:,:,1:3] = 0
@@ -708,3 +708,127 @@ class FastGraspabilityEvaluation():
             im_result = cv2.circle( im_result, ( n[1], n[0] ), 3, (0,255,0), -1, cv2.LINE_AA )
 
         return im_result
+
+#############################################################################
+#
+# Notch part detection
+#
+# sample code:
+#  img = input image (1ch gray scale)
+#  bbox = [350,100,100,400] # ROI(x,y,w,h) of shaft area
+#  temp_root = rospack.get_path("wrs_dataset") + "/data/templates_shaft"
+#  sa = shaft_analysis( imgs, bbox, temp_root )
+#  front, _ = sa.main_proc( 0.5 ) # threshold.
+#
+#  If notch is appeared in image, front is True
+#############################################################################
+class shaft_analysis():
+    # img: input image
+    # bbox: bounding box [x,y,w,h] of shaft region
+    # temp_root: path to templates_shaft
+    def __init__( self, img, bbox, temp_root ):
+        
+        self.info = {"class":8, "bbox":bbox}
+        temp_info_name = "template_info.json"
+        
+        # downsampling rate
+        ds_rate = 1.0/2.0
+        tm = template_matching( img, ds_rate, temp_root, temp_info_name  )
+        im_temp = cv2.imread( temp_root+"/8.png",0)
+        
+
+        # template matching
+        self.center, self.ori = tm.compute(self.info )
+        self.im_tm_result = tm.get_result_image(self.info, self.ori, 
+                                                np.array(self.center, np.int))
+        
+        rows, cols = im_temp.shape
+        rot_mat = cv2.getRotationMatrix2D( (cols/2, rows/2), 360-self.ori,1 )
+        res_im_temp =  cv2.warpAffine( im_temp, rot_mat, (cols, rows) )
+        res_im_temp = np.clip(res_im_temp, 0, 1)
+
+
+        ltop = np.array(self.center - np.array([rows,cols])/2, np.int)
+        im_scene_mask = np.zeros(img.shape)
+        im_scene_mask[ ltop[0]:ltop[0]+rows,  ltop[1]:ltop[1]+cols ] = res_im_temp
+
+        self.im_crop = copy.deepcopy( (img*im_scene_mask)[ ltop[0]:ltop[0]+rows, ltop[1]:ltop[1]+cols ] )
+        self.im_crop = np.array( self.im_crop, np.uint8)
+        rot_mat_rev = cv2.getRotationMatrix2D( (cols/2, rows/2), self.ori,1 )
+        self.im_crop =  cv2.warpAffine( self.im_crop, rot_mat_rev, (cols, rows) )
+        self.invalid_value = 255
+    
+    def difference( self, line ):
+        line = np.array(line, np.float)
+        diff = list()
+        for d in range(len(line)-1):
+            if line[d]==0:
+                diff.append(self.invalid_value)
+            else:
+                diff.append(line[d+1]-line[d])
+
+        diff = np.abs(diff)
+        return diff
+
+    # Counts the values in the list that are below the threshold. 
+    def count_constant( self, diff_list, th=10 ):
+
+        max_constant = 0
+        for i in range( len(diff_list)-1 ):
+            l = 1
+            n_constant = 0
+            while(i+l <len(diff_list)-1):
+                if diff_list[i+l] < th:
+                    n_constant += 1
+                else:
+                    break
+                l+=1
+            if max_constant < n_constant:
+                max_constant = n_constant
+
+        return max_constant
+    
+    def count_valid_elements( self, diff_list ):
+        
+        ve = 0
+        for d in diff_list:
+            if d != self.invalid_value:
+                ve += 1
+        return ve
+    
+    # Input:
+    #  th: Percentage of notch area in level slice of shaft area．(default: 0.5)
+    #  top_range: 　　y axis range to be checked（top area） 
+    #  bottom_range:　y axis range to be checked（bottom area） 
+    # Output:
+    #  front: if notch is appeared, return true.
+    def main_proc(self, th, top_range=[30,90], bottom_range=[270,330] ):
+        
+        nmc_list = list()
+        for i in range(self.im_crop.shape[0]):
+            ft_img = np.array(self.im_crop, np.float)
+            diff = self.difference( self.im_crop[i,:] )
+            nmc = self.count_constant(diff, 10)
+            ve = self.count_valid_elements( diff )
+            nmc_list.append(nmc/(ve+0.0001))
+            
+        top_mean = np.mean(nmc_list[top_range[0]:top_range[1]] )
+        bottom_mean = np.mean(nmc_list[bottom_range[0]:bottom_range[1]] )
+        print(top_mean, bottom_mean)
+        front = False
+        if th<top_mean or th<bottom_mean:
+            front = True
+        
+        return front, nmc_list    
+    
+    
+    def get_frontized_image(self):
+        
+        return copy.deepcopy(self.im_crop)
+    
+    def get_orientation(self):
+        return self.ori
+        
+    def get_tm_result_image(self):
+        
+        return copy.deepcopy(self.im_tm_result)
