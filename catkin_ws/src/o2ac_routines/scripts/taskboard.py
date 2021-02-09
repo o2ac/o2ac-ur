@@ -615,14 +615,22 @@ if __name__ == '__main__':
       rospy.loginfo("Enter 191, 192 to equip/unequip m4 screw tool")
       rospy.loginfo("Enter 3, 4 to screw m3, m4 (starting from horizontal_screw_ready)")
       rospy.loginfo("Enter 51, 52... for subtasks: set screw, M3, M4, belt, motor pulley, shaft, bearing, idler pulley")
-      rospy.loginfo("Enter prep to prep the task")
-      rospy.loginfo("Enter start to start the task")
+      rospy.loginfo("Enter prep to prepare the task (do this before running)")
+      rospy.loginfo("Enter start to run the task (competition mode, no confirmations)")
+      rospy.loginfo("Enter test for a test run of the task (WITH confirmations)")
       rospy.loginfo("Enter x to exit")
       i = raw_input()
       
       if i == "prep":
         taskboard.prep_taskboard_task()
+      if i == "ssprep":
+        taskboard.go_to_setscrew_pos()
       if i == "start":
+        taskboard.competition_mode = True
+        taskboard.full_taskboard_task()
+        taskboard.competition_mode = False
+      if i == "test":
+        taskboard.competition_mode = False
         taskboard.full_taskboard_task()
       if i == "1":
         taskboard.go_to_named_pose("home","a_bot")
