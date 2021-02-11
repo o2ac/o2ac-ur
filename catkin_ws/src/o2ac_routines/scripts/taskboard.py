@@ -570,28 +570,27 @@ class TaskboardClass(O2ACCommon):
     # ==========================================================
 
     if task_name == "shaft":
-      # pick up shaft
-      pick_pose = geometry_msgs.msg.PoseStamped()
-      pick_pose.header.frame_id = "move_group/drive_shaft"
-      pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/2, tau/4, tau/2))
-      pick_pose.pose.position = geometry_msgs.msg.Point(0.08, 0.0, -0.05)
-      self.allow_collision_with_hand('b_bot', 'drive_shaft')
-      taskboard.simple_pick("a_bot", pick_pose, item_id_to_attach="drive_shaft", axis="z")
-      # insert shaft
-      insert_pose = geometry_msgs.msg.PoseStamped()
-      insert_pose.header.frame_id = "taskboard_assy_part_07_front_hole"
-      insert_pose.pose.position = geometry_msgs.msg.Point(-0.04, 0.0, -0.01)
-      insert_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, tau/2))
-      self.allow_collision_with_hand('b_bot', 'taskboard_assy_part_07')
-      self.allow_collision_with_hand('b_bot', 'taskboard_assy_part_07_front_hole')
-      taskboard.simple_place("a_bot", insert_pose, approach_height=0.1, place_height=0.1, item_id_to_detach="drive_shaft")
-      self.disallow_collision_with_hand('b_bot', 'taskboard_assy_part_07')
-      self.disallow_collision_with_hand('b_bot', 'taskboard_assy_part_07_front_hole')
-      self.disallow_collision_with_hand('b_bot', 'drive_shaft')
-      self.planning_scene_interface.allow_collisions('drive_shaft', 'taskboard_assy_part_07')
-      self.planning_scene_interface.allow_collisions('taskboard_assy_part_07', 'taskboard_plate')
-      # Go back to home position
-      taskboard.go_to_named_pose("home","a_bot")
+      self.go_to_named_pose("home","a_bot")
+      self.go_to_named_pose("home","b_bot")
+      success_a = self.load_program(robot="a_bot", program_name="wrs2020/linear_push_on_taskboard_from_home.urp", recursion_depth=3)
+      success_b = self.load_program(robot="b_bot", program_name="wrs2020/shaft_v1.urp", recursion_depth=3)
+      
+      if success_a and success_b:
+        print("Loaded shaft program.")
+        rospy.sleep(1)
+        self.execute_loaded_program(robot="a_bot")
+        self.execute_loaded_program(robot="b_bot")
+        print("Started execution. Waiting for b_bot to finish.")
+      else:
+        print("Problem loading. Not executing shaft procedure.")
+        return False
+      wait_for_UR_program("/b_bot", rospy.Duration.from_sec(60))
+      if self.is_robot_protective_stopped("b_bot"):
+        rospy.logwarn("Robot was protective stopped after shaft insertion - shaft may be stuck!")
+        #TODO: Try to loosen the shaft?
+        self.unlock_protective_stop("b_bot")
+        self.go_to_named_pose("home","b_bot")
+      return True
     
     # ==========================================================
     

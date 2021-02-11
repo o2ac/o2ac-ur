@@ -268,7 +268,16 @@ class O2ACBase(object):
     self.b_bot_gripper_opening_width = msg.position
   
   def is_robot_running_normally(self, robot_name):
-    return self.robot_safety_mode[robot_name] == 1
+    """
+    Returns true if the robot is running (no protective stop, not turned off etc).
+    """
+    return self.robot_safety_mode[robot_name] == 1 or self.robot_safety_mode[robot_name] == 2 # Normal / Reduced
+  
+  def is_robot_protective_stopped(self, robot_name):
+    """
+    Returns true if the robot is in protective stop.
+    """
+    return self.robot_safety_mode[robot_name] == 3
 
   def unlock_protective_stop(self, robot="b_bot"):
     if not self.use_real_robot:
