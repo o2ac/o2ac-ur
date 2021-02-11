@@ -24,7 +24,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
             libcudnn7-dev=7.5.0.56-1+cuda10.1 && \
     rm -rf /var/lib/apt/lists/*
 
-
 ################################################################################
 
 # Install ROS Melodic Morenia.
@@ -44,11 +43,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Initialize 'rosdep'.
 # http://wiki.ros.org/rosdep
 RUN rosdep init
-
-################################################################################
-
-# Install MoveIt, because it seems to not be included in desktop-full?
-RUN apt-get update && apt-get install ros-melodic-moveit -y
 
 ################################################################################
 
@@ -104,9 +98,46 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ################################################################################
 
+# Install MoveIt dependencies because we build it from source.
+# Also install the binaries to pull in the dependencies.
+RUN apt-get update && apt-get install -y --no-install-recommends \ 
+	ros-melodic-moveit-resources \
+	ros-melodic-moveit \
+	&& rm -rf /var/lib/apt/lists/*
+
+################################################################################
+
+# Install wstool to use .rosinstall file in the underlay workspace
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	python-wstool \
+	python-catkin-tools \
+	clang-format-10 \
+	&& rm -rf /var/lib/apt/lists/*
+
+################################################################################
+
+# Install other dependencies of our workspace
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	ros-melodic-effort-controllers \
+	ros-melodic-industrial-robot-status-controller \
+	ros-melodic-socketcan-interface \
+	ros-melodic-industrial-robot-status-interface \
+	ros-melodic-soem \
+	ros-melodic-graph-msgs \
+	ros-melodic-spacenav-node \
+	ros-melodic-joy-teleop \
+	ros-melodic-code-coverage \
+	ros-melodic-panda-moveit-config \
+	socat \
+	libqt5x11extras5-dev \
+	&& rm -rf /var/lib/apt/lists/*	
+
+################################################################################
+
 # Install JSK tools for visualization in Rviz
 RUN apt-get update && apt-get install -y --no-install-recommends \
-	ros-melodic-jsk-visualization
+	ros-melodic-jsk-visualization \
+	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
 
@@ -115,9 +146,54 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Gather dependencies from Ubuntu repositories.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-  libcanberra-gtk3-module \
+  	libcanberra-gtk3-module \
 	libgconf2-dev \
 	&& rm -rf /var/lib/apt/lists/*
+
+################################################################################
+
+# Install URe controller dependencies.
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	ros-melodic-ros-control \
+	ros-melodic-robot-controllers \
+	ros-melodic-velocity-controllers \
+	ros-melodic-joint-trajectory-controller \
+   	ros-melodic-force-torque-sensor-controller \
+	&& rm -rf /var/lib/apt/lists/*
+
+################################################################################
+
+# Add industrial_core submodule
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	ros-melodic-industrial-core \
+	&& rm -rf /var/lib/apt/lists/*
+
+################################################################################
+
+# Install dependencies for dynamixel and serial communication.
+# # ros-melodic-qt-build \
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	ros-melodic-dynamixel-sdk \
+	ros-melodic-dynamixel-workbench \
+    ros-melodic-dynamixel-workbench-msgs \
+	&& rm -rf /var/lib/apt/lists/*
+
+RUN pip install pyserial==3.4
+
+################################################################################
+
+# Install pymodbus for the Robotiq gripper driver
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	python-pymodbus \
+	&& rm -rf /var/lib/apt/lists/*
+
+################################################################################
+
+# Install python can module to use the Xela Robotics sensor.
+RUN pip install python-can==3.1.1
 
 ################################################################################
 
@@ -203,44 +279,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	librealsense2-utils \
 	librealsense2-dev \
 	librealsense2-udev-rules \
-	librealsense2-dbg
-
-################################################################################
-
-# Install dependencies for dynamixel and serial communication.
-# # ros-melodic-qt-build \
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-	ros-melodic-dynamixel-sdk \
-	ros-melodic-dynamixel-workbench \
-    ros-melodic-dynamixel-workbench-msgs
-RUN pip install pyserial==3.4
-
-################################################################################
-
-# Install URe controller dependencies.
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-	ros-melodic-ros-control ros-melodic-robot-controllers \
-	ros-melodic-velocity-controllers ros-melodic-joint-trajectory-controller \
-   	ros-melodic-force-torque-sensor-controller
-
-################################################################################
-
-# Install pymodbus for the Robotiq gripper driver
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-	python-pymodbus
-
-################################################################################
-
-# Install MoveIt! dependencies, because we build it from source
-RUN apt-get update && apt-get install -y ros-melodic-moveit-resources
-
-################################################################################
-
-# Install python can module to use the Xela Robotics sensor.
-RUN pip install python-can==3.1.1
+	librealsense2-dbg \
+	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
 
@@ -268,52 +308,17 @@ RUN pip install gym
 
 ################################################################################
 
-# Install PyCharm
-# https://www.jetbrains.com/pycharm/download/#section=linux
-# FIXME: These instructions fail to find the graphics interface
-
-# RUN wget -O - https://download.jetbrains.com/python/pycharm-community-2019.1.1.tar.gz \
-# 	| tar xzf -
-# RUN ./pycharm-community-2019.1.1/bin/pycharm.sh
-# RUN rm pycharm-2019.1.1.tar.gz
-
-################################################################################
-
-# Install Anaconda
-# https://docs.anaconda.com/anaconda/install/silent-mode/
-
-# FIXME: These instructions might not be linked properly with all installed packages
-
-# RUN wget -O /tmp/Anaconda_installer.sh https://repo.anaconda.com/archive/Anaconda3-2019.03-Linux-x86_64.sh
-# RUN bash /tmp/Anaconda_installer.sh -b -p $HOME/anaconda
-# ENV PATH="$HOME/anaconda/bin:$PATH"
-
-################################################################################
-
 # Install eigenpy 
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-	ros-melodic-eigenpy
+	ros-melodic-eigenpy \
+	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
 
 # Deep Learning
 RUN pip install torch
-# RUN pip install torch \
-# 	tensorboardX
 RUN pip install --upgrade scipy
-
-################################################################################
-
-# Add industrial_core submodule
-RUN apt-get update && apt-get install -y ros-melodic-industrial-core
-
-################################################################################
-
-# Install wstool to use .rosinstall file in the underlay workspace
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-	python-wstool python-catkin-tools clang-format-10 
 
 ################################################################################
 
@@ -323,6 +328,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
+
+# Setup the Bash shell environment (part 1)
 
 # Define the working directory.
 WORKDIR /root/
@@ -336,8 +343,6 @@ RUN chmod -R +x /root/scripts/*
 # Install PhoXiControl (for the AIST setup)
 RUN /root/scripts/install-phoxi-control.sh
 
-################################################################################
-
 # Install PhotoneoLocalizationSDK
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	libssh2-1 \
@@ -346,30 +351,21 @@ RUN /root/scripts/install-photoneo-localization.sh
 
 ################################################################################
 
-# Install other dependencies of our workspace
-
-RUN apt-get update && apt-get install -y ros-melodic-panda-moveit-config \
-	ros-melodic-effort-controllers \
-	ros-melodic-moveit-resources-panda-description \
-	ros-melodic-industrial-robot-status-controller \
-	ros-melodic-moveit-resources-fanuc-description \
-	ros-melodic-moveit-resources-fanuc-moveit-config \
-	ros-melodic-socketcan-interface \
-	ros-melodic-moveit-resources-panda-moveit-config \
-	ros-melodic-industrial-robot-status-interface \
-	ros-melodic-soem \
-	ros-melodic-graph-msgs \
-	ros-melodic-spacenav-node \
-	ros-melodic-joy-teleop
-
-################################################################################
+# Setup the Bash shell environment (part 2)
 
 # Setup the Bash shell environment with '/root/.bashrc'.
-RUN cat /root/scripts/initialize-bash-shell.sh >> /root/.bashrc
+RUN echo "source /root/scripts/initialize-bash-shell.sh" >> /root/.bashrc
+RUN echo "\nsource /root/catkin_ws/devel/setup.bash\n" >> /root/.bashrc
+
+# Force color prompt in terminal.
+RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/' /root/.bashrc
+
+# Traceability.
+ARG DOCKERFILE_COMMIT_SHORT_SHA
+ENV DOCKER_IMAGE_VERSION_O2AC_UR=${DOCKERFILE_COMMIT_SHORT_SHA}
 
 # Overwrite the entry point of the parent image.
 ENTRYPOINT []
-RUN echo "\nsource /root/catkin_ws/devel/setup.bash\n" >> /root/.bashrc
 
 # Enter the container with a Bash shell.
 CMD ["/bin/bash"]
