@@ -1,0 +1,45 @@
+ Program
+   Robot Program
+     Gripper Open (1)
+     MoveJ
+       Waypoint_1
+     MoveL
+       Waypoint_2
+       Gripper Close (1)
+     MoveJ
+       Waypoint_3
+       Waypoint_4
+       wait_w_tool
+       Popup: waiting for a_bot to hold belt
+     MoveJ
+       Waypoint_6
+       Waypoint_7
+     Popup: wait for a_bot to move closer to pulley
+     MoveJ
+       tension_at_ply
+       Waypoint_9
+       Waypoint_10
+     Popup: wait for a_bot to finish placement
+     MoveL
+       pulley_top
+       MoveL
+         pulley_east
+         pulley_seast
+       Waypoint_21
+       Waypoint_18
+       Waypoint_17
+       Waypoint_16
+       Waypoint_15
+       Waypoint_14
+       Waypoint_13
+       Waypoint_12
+     MoveL
+       after_pulley
+       Waypoint_25
+       Waypoint_26
+       Waypoint_27
+       Waypoint_28
+     MoveL
+       Waypoint_22
+     MoveJ
+       wait_w_tool

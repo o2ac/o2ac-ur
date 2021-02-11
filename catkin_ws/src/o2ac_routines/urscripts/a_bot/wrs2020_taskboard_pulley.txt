@@ -1,0 +1,51 @@
+ Program
+   Robot Program
+     MoveJ
+       start
+     Gripper Move45% (1)
+     MoveJ
+       above_pulley
+     MoveL
+       at_pulley_1
+     Gripper Close (1)
+     Gripper Move57% (1)
+     MoveL
+       at_pulley_2
+     Gripper Close (1)
+     Gripper Move57% (1)
+     MoveL
+       at_pulley_1
+     Gripper Close (1)
+     MoveL
+       above_pulley
+       intermediate
+     MoveL
+       near_tb
+       ready_to_push
+     Force
+       Wait: 3.0
+       Loop 5 times
+         'MoveL'
+         Loop 6 times
+           MoveL
+             Direction: Tool
+               Until (distance)
+           'dist≔pose_dist(fully_pushed, Tool_const)'
+           'Popup'
+           Wait: 0.5
+     Popup: done, will open
+     Gripper Move42% (1)
+     MoveL
+       Direction: Tool Z-
+         Until (distance)
+     Gripper Move76% (1)
+     MoveL
+       Direction: Tool Z+
+         Until (tool_contact_detection)
+     MoveL
+       near_tb
+       away
+       start
+     Halt
+     MoveJ
+       fully_pushed

@@ -1,0 +1,19 @@
+ Program
+   Robot Program
+     Set
+     pose0≔get_actual_tcp_pose()
+     Gripper Close (1)
+     MoveJ
+       Waypoint_4
+     MoveJ
+       Waypoint_1
+     MoveL
+       Waypoint_2
+       Wait: 0.5
+       Waypoint_1
+     MoveJ
+       Waypoint_3
+     Gripper Open (1)
+     MoveJ
+       Waypoint_4
+       pose0

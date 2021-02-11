@@ -19,9 +19,12 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
       - NVIDIA_REQUIRE_CUDA=cuda>=9.0
+      - DOCKER_RUNTIME=${DOCKER_RUNTIME}
     build:
       context: ../
       dockerfile: ./docker/Dockerfile
+      args:
+        - DOCKERFILE_COMMIT_SHORT_SHA
     volumes:
       # Map ROS workspace folders.
       - ./scripts/:/root/docker/scripts/
@@ -45,5 +48,5 @@ services:
       - "osx-panda-desk:192.168.1.6"
       - "a_bot:192.168.1.41"
       - "b_bot:192.168.1.42"
-    command: ./scripts/keep-container-running.sh
+    command: ./scripts/initialize-docker-container.sh
     shm_size: 1g # a PhoXi data size about 100MB.

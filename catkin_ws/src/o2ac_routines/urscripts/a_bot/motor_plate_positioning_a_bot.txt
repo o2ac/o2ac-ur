@@ -1,0 +1,19 @@
+ Program
+   Robot Program
+     MoveL
+       Waypoint_1
+     Gripper Move73% (1)
+     MoveL
+       above_before
+       Waypoint_2
+       MoveJ
+         before_obj_push
+     Gripper Close (1)
+     MoveL
+       object_pushed
+       before_obj_push
+     Gripper Move73% (1)
+     MoveJ
+       above_plate
+       at_plate
+     Gripper Close (1)

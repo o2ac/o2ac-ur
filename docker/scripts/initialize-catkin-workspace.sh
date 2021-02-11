@@ -32,7 +32,10 @@ cd /root/underlay_ws/      && \
     rosdep install --from-paths src --ignore-src -r -y
 
 # Initialize, build and source the underlay workspace.
-cd /root/underlay_ws/ && catkin config -init && catkin build
+# Blacklist packages that we do not use but that are part of metapackages we need
+cd /root/underlay_ws/ && catkin config -init
+catkin config --blacklist robotiq_3f_gripper_articulated_gazebo robotiq_3f_gripper_articulated_gazebo_plugins robotiq_3f_gripper_control robotiq_3f_gripper_joint_state_publisher robotiq_3f_gripper_visualization robotiq_3f_rviz
+catkin build
 source /root/underlay_ws/devel/setup.bash
 
 

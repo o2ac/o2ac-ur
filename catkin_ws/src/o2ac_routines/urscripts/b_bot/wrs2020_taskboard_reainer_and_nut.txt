@@ -1,0 +1,32 @@
+ Program
+   Robot Program
+     MoveJ
+       Waypoint_5
+       Waypoint_1
+     MoveL
+       before_shaft
+       at_shaft
+       inside_shaft
+     Popup: turn on motor, then press ok to fiddle bit into pulley
+     MoveL
+       Direction: Base Y+
+         Until (distance)
+       Direction: Base Y-
+         Until (distance)
+       Direction: Base Y+
+         Until (distance)
+       Direction: Base Z-
+         Until (distance)
+       Direction: Base Z+
+         Until (distance)
+       Direction: Base Z-
+         Until (distance)
+       inside_shaft
+     Popup: wait until nut placed, then turn on motor. press ok to retreat
+     MoveL
+       inside_shaft
+       at_shaft
+       before_shaft
+     MoveJ
+       Waypoint_1
+       Waypoint_5
