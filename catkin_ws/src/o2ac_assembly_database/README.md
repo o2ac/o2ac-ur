@@ -4,28 +4,28 @@ This package contains assembly definitions for planning in the MoveIt planning s
 
 ## Usage in code
 
-For an example of how to use the class in Python, see `example_assembly_handler.py` in the `o2ac_examples` package.
+For an example of how to use the class in Python, see `example_assembly_reader.py` in the `o2ac_examples` package.
 
-In order to run the example, first launch our robot scene (```roslaunch o2ac_moveit_config demo.launch``` ) and then run `example_assembly_handler.py`. The example should populate the planning scene with collision objects in the arrangement defined in `assy_1` config. The assembly is placed in the `workspace_center` frame. Adding `tf` visualization to RViz should show the subframes of the parts as well. Be careful to exclude the assembly URDF from the base scene, by commenting the line (29) `<xacro:include filename="$(find o2ac_scene_description)/urdf/2019-12-insertion-test-scene.xacro" />` in `o2ac_scene_description/urdf/base_scene.urdf.xarco`, because the same name of the assemblies may cause unexpected behavior (unless the assembly is not called `assy` it shouldn't cause a problem).
+In order to run the example, first launch our robot scene (```roslaunch o2ac_moveit_config demo.launch``` ) and then run `example_assembly_reader.py`. The example should populate the planning scene with collision objects in the arrangement defined in `assy_1` config. The assembly is placed in the `workspace_center` frame. Adding `tf` visualization to RViz should show the subframes of the parts as well. Be careful to exclude the assembly URDF from the base scene, by commenting the line (29) `<xacro:include filename="$(find o2ac_scene_description)/urdf/2019-12-insertion-test-scene.xacro" />` in `o2ac_scene_description/urdf/base_scene.urdf.xarco`, because the same name of the assemblies may cause unexpected behavior (unless the assembly is not called `assy` it shouldn't cause a problem).
 
 ## Visualizing metadata
 
 To check if objects and their metadata has been defined correctly, all parts of an assembly can be visualized by first launching:
 
 ```
-roslaunch o2ac_assembly_handler rviz.launch 
+roslaunch o2ac_assembly_database rviz.launch 
 ```
 
 to start the RViz visualization. Note that the robot scene is not required! and then:
 
 ```
-roslaunch o2ac_assembly_handler visualize_object_metadata.launch
+roslaunch o2ac_assembly_database visualize_object_metadata.launch
 ```
 
 to visualize the metadata of the objects. `visualize_object_metadata.launch` has several arguments for modifying its functionality. Example:
 
 ```
-roslaunch o2ac_assembly_handler visualize_object_metadata.launch assy_name:="wrs_assembly_1" object_name:="base"
+roslaunch o2ac_assembly_database visualize_object_metadata.launch assy_name:="wrs_assembly_1" object_name:="base"
 ```
 
 If `object_name` is not specified, all objects of the specified assembly will be visualized. Other arguments:
@@ -40,12 +40,12 @@ Examples:
 
 Visualize all objects of `wrs_assembly_1` with only their subframes
 ```
-roslaunch o2ac_assembly_handler visualize_object_metadata.launch only_subframes:=true
+roslaunch o2ac_assembly_database visualize_object_metadata.launch only_subframes:=true
 ```
 
 Visualize `bearing` object of `taskboard` with subframes, grasps, and arrows and the gripper set to grasp `grasp_2`
 ```
-roslaunch o2ac_assembly_handler visualize_object_metadata.launch assy_name:=taskboard object_name:=bearing gripper_at_grasp:=grasp_2
+roslaunch o2ac_assembly_database visualize_object_metadata.launch assy_name:=taskboard object_name:=bearing gripper_at_grasp:=grasp_2
 ```
 
 
@@ -54,11 +54,11 @@ roslaunch o2ac_assembly_handler visualize_object_metadata.launch assy_name:=task
 The structure and names of directories/files is expected to be like this by the package:
 
 ```bash
-o2ac_assembly_handler                    # package directory
+o2ac_assembly_database                    # package directory
 │  
-├── src/o2ac_assembly_handler        # python package for loading/storing assemblies and publishing them to tf
+├── src/o2ac_assembly_database        # python package for loading/storing assemblies and publishing them to tf
 │   │  
-│   ├── assy_reader.py                   # python module for internal use (in assy.py) to read the assembly configurations
+│   ├── parts_reader.py                   # python module for internal use (in assy.py) to read the assembly configurations
 │   ├── assy.py                          # python module that provides the functionality of the package
 │   ├── visualize_metadata.py            # python module for visualizing the object metadata (subframes and grasps)
 │  
@@ -95,19 +95,19 @@ o2ac_assembly_handler                    # package directory
 │   ├── eef.srdf                         # end-effector srdf
 ```
 
-### assy_reader.py
+### parts_reader.py
 
-This script is for internal use. It defines a class `AssyReader`, that is used inside assy.py
+This script is for internal use. It defines a class `PartsReader`, that is used inside assy.py
 
 It is used for reading the configuration files for a selected assembly, returning a python list of [`CollisionObjects`](http://docs.ros.org/api/moveit_msgs/html/msg/CollisionObject.html) created from the parts in the assembly, and to return a `tf` tree describing the assembly.
 
 ### assy.py
 
-This script provides the functionality of the package. It defines a class `AssyHandler` that can be imported in other python modules by:
+This script provides the functionality of the package. It defines a class `AssemblyReader` that can be imported in other python modules by:
 ```python
-from o2ac_assembly_handler.assy import AssyHandler
+from o2ac_assembly_database.assembly_reader import AssemblyReader
 ```
-after building the package. The `AssyHandler` class provides the following functionality:
+after building the package. The `AssemblyReader` class provides the following functionality:
 
 By calling the constructor and the `change_assembly` method, an assembly can be selected by name (the name must match one of the direct subdirectories of `config`). The `tf` tree representation of the assembly can be retrieved by reading the `assembly_tree` property of the object. The list of `CollisionObject` representation of the parts of the assembly can be retrieved reading the `collision_objects` property of the object.
 

@@ -53,8 +53,8 @@ import o2ac_msgs.msg
 import o2ac_msgs
 import o2ac_msgs.srv
 
-# import o2ac_assembly_handler
-from o2ac_assembly_handler.assy_reader import AssyReader
+# import o2ac_assembly_database
+from o2ac_assembly_database.parts_reader import PartsReader
 
 from o2ac_routines.common import O2ACCommon
 from o2ac_routines.helpers import wait_for_UR_program
@@ -79,14 +79,14 @@ class TaskboardClass(O2ACCommon):
     self.downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, pi))
     self.downward_orientation_cylinder_axis_along_workspace_x = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, tau/4))
 
-    # self.assy_reader = AssyReader("taskboard")
-
     self.at_set_screw_hole = geometry_msgs.msg.PoseStamped()
     self.at_set_screw_hole.header.frame_id = "taskboard_set_screw_link"
     self.at_set_screw_hole.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
     self.at_set_screw_hole.pose.position.x = 0.001   # MAGIC NUMBER
     self.at_set_screw_hole.pose.position.y = 0.0005   # MAGIC NUMBER
     self.at_set_screw_hole.pose.position.z = -0.001   # MAGIC NUMBER
+    if not self.assembly_database.db_name == "taskboard":
+      self.assembly_database.change_assembly("taskboard")
 
 
   def multiply_quaternion_msgs(self, q1_msg, q2_msg):
@@ -105,9 +105,10 @@ class TaskboardClass(O2ACCommon):
 
     # We publish each object to its own frame.
     broadcaster = tf.TransformBroadcaster()
+    rospy.sleep(.5)
     counter = 0
     for name in names:
-      collision_object = self.assy_reader.get_collision_object(name)
+      collision_object = self.assembly_database.get_collision_object(name)
       if collision_object:
         counter += 1
         collision_object.header.frame_id = "collision_object_spawn_helper_frame" + str(counter)
@@ -121,7 +122,7 @@ class TaskboardClass(O2ACCommon):
         offset = offsets[name]
         broadcaster.sendTransform((offset[0], offset[1], offset[2]), q_rotate, rospy.Time.now(), 
             "collision_object_spawn_helper_frame" + str(counter), "tray_center")
-        rospy.sleep(2.0) # Wait for the transform to have propagated through the system
+        rospy.sleep(1.0) # Wait for the transform to have propagated through the system
 
         self.planning_scene_interface.add_object(collision_object)
         # print("======== collision object: " + name)
@@ -603,7 +604,6 @@ class TaskboardClass(O2ACCommon):
 if __name__ == '__main__':
   try:
     taskboard = TaskboardClass()
-    # taskboard.spawn_example_objects()
     taskboard.define_tool_collision_objects()
 
     i = 1
@@ -615,6 +615,7 @@ if __name__ == '__main__':
       rospy.loginfo("Enter 191, 192 to equip/unequip m4 screw tool")
       rospy.loginfo("Enter 3, 4 to screw m3, m4 (starting from horizontal_screw_ready)")
       rospy.loginfo("Enter 51, 52... for subtasks: set screw, M3, M4, belt, motor pulley, shaft, bearing, idler pulley")
+      rospy.loginfo("Enter 8 to spawn example parts")
       rospy.loginfo("Enter prep to prepare the task (do this before running)")
       rospy.loginfo("Enter start to run the task (competition mode, no confirmations)")
       rospy.loginfo("Enter test for a test run of the task (WITH confirmations)")
@@ -669,6 +670,8 @@ if __name__ == '__main__':
         taskboard.do_task("screw_bearing")
       if i == "58":
         taskboard.do_task("idler pulley")
+      if i == "8":
+        taskboard.spawn_example_objects()
       if i == "999":
         taskboard.activate_ros_control_on_ur("a_bot")
         taskboard.activate_ros_control_on_ur("b_bot")

@@ -6,7 +6,7 @@
   <arg name="only_subframes" default="false" />
   <arg name="only_grasps" default="false" />
 
-  <node name="visualize_metadata" pkg="o2ac_assembly_handler" type="visualize_metadata.py" output="screen">
+  <node name="visualize_metadata" pkg="o2ac_assembly_database" type="visualize_metadata.py" output="screen">
     <param name="assy_name" value="$(arg assy_name)" />
     <param name="object_name" value="$(arg object_name)" />
     <param name="gripper_at_grasp" value="$(arg gripper_at_grasp)" />

@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>o2ac_assembly_handler</name>
+  <name>o2ac_assembly_database</name>
   <version>0.0.1</version>
-  <description>The o2ac_assembly_handler package</description>
+  <description>The o2ac_assembly_database package</description>
 
   <maintainer email="artur.istvan.karoly@gmail.com">root</maintainer>
   <license>TODO</license>

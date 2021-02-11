@@ -46,7 +46,7 @@ import visualization_msgs.msg
 import geometry_msgs.msg
 import moveit_msgs.msg
 
-from o2ac_assembly_handler.assy import AssyHandler
+from o2ac_assembly_database.assembly_reader import AssemblyReader
 from math import pi
 
 class MetadataVisualizer():
@@ -88,9 +88,9 @@ class MetadataVisualizer():
         return transform
 
     def add_object_marker(self, assembly_name, mesh_file_name, pose, namespace = 'object', marker_array_to_append_to=""):
-        '''Add a marker of an object from o2ac_assembly_handler to a MarkerArray to be displayed in rviz
+        '''Add a marker of an object from o2ac_assembly_database to a MarkerArray to be displayed in rviz
         The assembly name is the name of the assembly (folder) in which the mesh file of the object can be found
-        The mesh_file_name should be the name of a mesh of one objects in the o2ac_assembly_handler package
+        The mesh_file_name should be the name of a mesh of one objects in the o2ac_assembly_database package
         The input 'pose describes the object pose in the 'world' frame
         Namespace is used for namespacing the marker if multiple objects are visualized. Ny default it is the name of the object,
         or simply "object" if there is only one object visualized
@@ -101,7 +101,7 @@ class MetadataVisualizer():
 
         self._transformer.setTransform(self._to_transform_stamped('world', namespace, pose))
 
-        mesh_path = os.path.join('o2ac_assembly_handler', 'config', assembly_name, 'meshes', mesh_file_name)
+        mesh_path = os.path.join('o2ac_assembly_database', 'config', assembly_name, 'meshes', mesh_file_name)
         marker = visualization_msgs.msg.Marker()
         marker.header.frame_id = 'world'
         marker.ns = namespace
@@ -383,19 +383,19 @@ if __name__ == '__main__':
     only_subframes = rospy.get_param('visualize_metadata/only_subframes')
     only_grasps = rospy.get_param('visualize_metadata/only_grasps')
 
-    assy_handler = AssyHandler(assy_name)
+    assembly_reader = AssemblyReader(assy_name)
 
     marker_array = visualization_msgs.msg.MarkerArray()
 
     if object_name:
-        mesh_name = next((part['cad'] for part in assy_handler._reader._parts_list if part['name'] == object_name))
+        mesh_name = next((part['cad'] for part in assembly_reader._reader._parts_list if part['name'] == object_name))
         
-        co = next(collision_object for collision_object in assy_handler.collision_objects if collision_object.id == object_name)
+        co = next(collision_object for collision_object in assembly_reader.collision_objects if collision_object.id == object_name)
 
         viz = MetadataVisualizer()
 
-        grasp_names = next(element['grasp_names'] for element in assy_handler.grasps if element['part_name'] == co.id)
-        grasp_poses = next(element['grasp_poses'] for element in assy_handler.grasps if element['part_name'] == co.id)
+        grasp_names = next(element['grasp_names'] for element in assembly_reader.grasps if element['part_name'] == co.id)
+        grasp_poses = next(element['grasp_poses'] for element in assembly_reader.grasps if element['part_name'] == co.id)
 
         frame_names = copy.copy(co.subframe_names)
         frame_poses = copy.copy(co.subframe_poses)
@@ -424,14 +424,14 @@ if __name__ == '__main__':
         offset = 0.4
         row_counter = 0
         object_pose = geometry_msgs.msg.Pose()
-        for co in assy_handler.collision_objects:
+        for co in assembly_reader.collision_objects:
             row_counter += 1
-            mesh_name = next((part['cad'] for part in assy_handler._reader._parts_list if part['name'] == co.id))
+            mesh_name = next((part['cad'] for part in assembly_reader._reader._parts_list if part['name'] == co.id))
 
             viz = MetadataVisualizer()
 
-            grasp_names = next(element['grasp_names'] for element in assy_handler.grasps if element['part_name'] == co.id)
-            grasp_poses = next(element['grasp_poses'] for element in assy_handler.grasps if element['part_name'] == co.id)
+            grasp_names = next(element['grasp_names'] for element in assembly_reader.grasps if element['part_name'] == co.id)
+            grasp_poses = next(element['grasp_poses'] for element in assembly_reader.grasps if element['part_name'] == co.id)
 
             frame_names = copy.copy(co.subframe_names)
             frame_poses = copy.copy(co.subframe_poses)

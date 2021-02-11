@@ -89,7 +89,7 @@ void SkillServer::advertiseActionsAndServices()
 void SkillServer::initializeCollisionObjects()
 {
   // --- Define the tools as collision objects, so they can be used for planning
-  // TODO: Load these from o2ac_assembly_handler
+  // TODO: Load these from o2ac_assembly_database
   
   //M4 tool
   screw_tool_m4.header.frame_id = "screw_tool_m4_link";

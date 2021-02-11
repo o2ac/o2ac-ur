@@ -43,7 +43,7 @@ import geometry_msgs.msg
 
 from math import pi
 
-from o2ac_assembly_handler.assy import AssyHandler
+from o2ac_assembly_database.assembly_reader import AssemblyReader
 
 
 if __name__ == '__main__':
@@ -63,21 +63,21 @@ if __name__ == '__main__':
     # Create the assembly handler instance (loads and stores the assembly as a tf tree) and
     # publish the assembly frames to tf
     assy_name = 'wrs_assembly_1'
-    assy_handler = AssyHandler(assy_name)
-    assy_handler.publish_target_frames(assy_pose)
+    assembly_reader = AssemblyReader(assy_name)
+    assembly_reader.publish_target_frames(assy_pose)
 
 
     # Create a publisher for the '/collision_object' topic to spawn objects in the planning scene
     pub = rospy.Publisher('/collision_object', moveit_msgs.msg.CollisionObject, queue_size=100)
 
     # Get the frame names of all frames in the assembly
-    assy_frames = assy_handler.assembly_tree.getFrameStrings()
+    assy_frames = assembly_reader.assembly_tree.getFrameStrings()
     assy_frames = map(lambda x: '_'.join([assy_name, x]), assy_frames)
 
     # Loop through the loaded collision objects (stored in the assembly handler instance after constructing it) and
     # if the collision object is in the assembly, spawn it in the planning scene at the correct pose
-    for collision_object in assy_handler.collision_objects:
-        co_frame = assy_handler.lookup_frame(collision_object.id)
+    for collision_object in assembly_reader.collision_objects:
+        co_frame = assembly_reader.lookup_frame(collision_object.id)
         if co_frame in assy_frames:
             rospy.sleep(0.2)
             (trans, rot) = listener.lookupTransform('/world', co_frame, rospy.Time(0))
