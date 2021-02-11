@@ -45,5 +45,5 @@ services:
       - "osx-panda-desk:192.168.1.6"
       - "a_bot:192.168.1.41"
       - "b_bot:192.168.1.42"
-    command: ./scripts/keep-container-running.sh
+    command: ./scripts/initialize-docker-container.sh
     shm_size: 1g # a PhoXi data size about 100MB.
