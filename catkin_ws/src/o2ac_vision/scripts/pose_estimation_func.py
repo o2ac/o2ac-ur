@@ -285,7 +285,7 @@ class BinaryTemplateMatching():
 
         return self._s_map
 
-class template_matching():
+class TemplateMatching():
     def __init__( self, im_c, ds_rate, temp_root, temp_info_name="template_info.json" ):
         """
             im_c: an image of input scene
@@ -717,12 +717,20 @@ class FastGraspabilityEvaluation():
 #  img = input image (1ch gray scale)
 #  bbox = [350,100,100,400] # ROI(x,y,w,h) of shaft area
 #  temp_root = rospack.get_path("wrs_dataset") + "/data/templates_shaft"
-#  sa = shaft_analysis( imgs, bbox, temp_root )
-#  front, _ = sa.main_proc( 0.5 ) # threshold.
+#  sa = ShaftAnalysis( imgs, bbox, temp_root )
+#  front = sa.main_proc( 0.5 ) # threshold.
 #
 #  If notch is appeared in image, front is True
+#
+# for visualization:
+#  ## visualization of template matching
+#  plt.imshow( sa.get_tm_result_image() )
+#  ## visualization of shaft intensity difference for top and bottom region
+#  diff_top, diff_bottom = sa.get_diff_list()
+#  plt.plot(diff_bottom)
+#  plt.plot(diff_top)
 #############################################################################
-class shaft_analysis():
+class ShaftAnalysisDebug():
     # img: input image
     # bbox: bounding box [x,y,w,h] of shaft region
     # temp_root: path to templates_shaft
@@ -733,7 +741,7 @@ class shaft_analysis():
         
         # downsampling rate
         ds_rate = 1.0/2.0
-        tm = template_matching( img, ds_rate, temp_root, temp_info_name  )
+        tm = TemplateMatching( img, ds_rate, temp_root, temp_info_name  )
         im_temp = cv2.imread( temp_root+"/8.png",0)
         
 
@@ -757,7 +765,15 @@ class shaft_analysis():
         rot_mat_rev = cv2.getRotationMatrix2D( (cols/2, rows/2), self.ori,1 )
         self.im_crop =  cv2.warpAffine( self.im_crop, rot_mat_rev, (cols, rows) )
         self.invalid_value = 255
+        
+        # variables for debuging
+        ## a list of intensity difference
+        self.diff_list = list()
+        ## mean intensity difference
+        self.diff_top = None  
+        self.diff_bottom = None
     
+    # make a list consists of line[d+1]-line[d]
     def difference( self, line ):
         line = np.array(line, np.float)
         diff = list()
@@ -808,18 +824,25 @@ class shaft_analysis():
         for i in range(self.im_crop.shape[0]):
             ft_img = np.array(self.im_crop, np.float)
             diff = self.difference( self.im_crop[i,:] )
+            self.diff_list.append(diff)
             nmc = self.count_constant(diff, 10)
             ve = self.count_valid_elements( diff )
             nmc_list.append(nmc/(ve+0.0001))
-            
+        
+        
+        dt = self.diff_list[int((top_range[0]+top_range[1])/2)]
+        db = self.diff_list[int((bottom_range[0]+bottom_range[1])/2)]
+        self.diff_top = dt[dt < 255]
+        self.diff_bottom = db[db < 255]
+        
         top_mean = np.mean(nmc_list[top_range[0]:top_range[1]] )
         bottom_mean = np.mean(nmc_list[bottom_range[0]:bottom_range[1]] )
-        print(top_mean, bottom_mean)
+        #print(top_mean, bottom_mean)
         front = False
         if th<top_mean or th<bottom_mean:
             front = True
         
-        return front, nmc_list    
+        return front    
     
     
     def get_frontized_image(self):
@@ -832,3 +855,7 @@ class shaft_analysis():
     def get_tm_result_image(self):
         
         return copy.deepcopy(self.im_tm_result)
+    
+    def get_diff_list( self ):
+        
+        return self.diff_top, self.diff_bottom
