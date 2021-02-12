@@ -791,7 +791,7 @@ bool SkillServer::equipUnequipScrewTool(std::string robot_name, std::string scre
   if (unequip) 
   {
     ps_tool_holder.pose.position.x -= 0.001; // Don't move all the way into the magnet
-    ps_approach.pose.position.z -= 0.01; // Approach diagonally so nothing gets stuck
+    ps_approach.pose.position.z -= 0.02; // Approach diagonally so nothing gets stuck
   }
 
   ps_high_up = ps_approach;
