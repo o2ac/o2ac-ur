@@ -1,0 +1,23 @@
+ Program
+   Robot Program
+     Gripper Open (1)
+     MoveJ
+       home
+       above_tool
+     MoveL
+       grasp_tool
+       Gripper Close (1)
+     MoveJ
+       before_tool
+       high_approach
+       wait_w_tool
+     MoveL
+       Waypoint_2
+       tophole
+     Force
+       Wait: 1.0
+       MoveP
+         tophole
+         CircleMove
+           ViaPoint_1
+           EndPoint_1

@@ -1,9 +1,4 @@
 def wrs2020_taskboard_bearing_handover():
-  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
-  set_tool_output_mode(0)
-  set_tool_digital_output_mode(0, 1)
-  set_tool_digital_output_mode(1, 1)
-  set_tool_voltage(24)
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -11,18 +6,23 @@ def wrs2020_taskboard_bearing_handover():
   set_analog_outputdomain(0, 0)
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
-  step_count_59fc1041_18d9_45da_8712_ab74821a2be0 = 0
-  thread Step_Counter_Thread_372b20a9_18ae_48da_9271_175f73c68f53():
+  set_gravity([0.0, 0.0, 9.82])
+  set_safety_mode_transition_hardness(1)
+  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
+  set_tool_output_mode(0)
+  set_tool_digital_output_mode(0, 1)
+  set_tool_digital_output_mode(1, 1)
+  set_tool_voltage(24)
+  set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
+  set_payload(1.0, [-0.005, -0.018, 0.077])
+  step_count_cb2b6f9a_04b5_48d5_8ce1_34fe606947d5 = 0.0
+  thread Step_Counter_Thread_61a2e576_002f_428b_b552_b2490501b4a6():
     while (True):
-      step_count_59fc1041_18d9_45da_8712_ab74821a2be0 = step_count_59fc1041_18d9_45da_8712_ab74821a2be0 + 1
+      step_count_cb2b6f9a_04b5_48d5_8ce1_34fe606947d5 = step_count_cb2b6f9a_04b5_48d5_8ce1_34fe606947d5 + 1.0
       sync()
     end
   end
-  run Step_Counter_Thread_372b20a9_18ae_48da_9271_175f73c68f53()
-  set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
-  set_payload(1.0,[-0.005,-0.018,0.077])
-  set_gravity([0.0, 0.0, 9.82])
-  set_safety_mode_transition_hardness(1)
+  run Step_Counter_Thread_61a2e576_002f_428b_b552_b2490501b4a6()
   # begin: URCap Installation Node
   #   Source: External Control, 1.0.2, FZI Research Center for Information Technology
   #   Type: External Control

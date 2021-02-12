@@ -1,4 +1,10 @@
-def wrs2020_taskboard_belt_v4():
+def taskboard_belt_v4():
+  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
+  set_tool_output_mode(0)
+  set_tool_digital_output_mode(0, 1)
+  set_tool_digital_output_mode(1, 1)
+  set_tool_voltage(24)
+  set_safety_mode_transition_hardness(1)
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -7,22 +13,16 @@ def wrs2020_taskboard_belt_v4():
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
   set_gravity([0.0, 0.0, 9.82])
-  set_safety_mode_transition_hardness(1)
-  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
-  set_tool_output_mode(0)
-  set_tool_digital_output_mode(0, 1)
-  set_tool_digital_output_mode(1, 1)
-  set_tool_voltage(24)
-  set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
-  set_payload(1.0, [-0.005, -0.018, 0.077])
-  step_count_cb2b6f9a_04b5_48d5_8ce1_34fe606947d5 = 0.0
-  thread Step_Counter_Thread_61a2e576_002f_428b_b552_b2490501b4a6():
+  step_count_8fe63555_ae8e_4189_b3df_a30fb68c1360 = 0
+  thread Step_Counter_Thread_f5a9b45b_5ff7_421c_82a4_34331bf11157():
     while (True):
-      step_count_cb2b6f9a_04b5_48d5_8ce1_34fe606947d5 = step_count_cb2b6f9a_04b5_48d5_8ce1_34fe606947d5 + 1.0
+      step_count_8fe63555_ae8e_4189_b3df_a30fb68c1360 = step_count_8fe63555_ae8e_4189_b3df_a30fb68c1360 + 1
       sync()
     end
   end
-  run Step_Counter_Thread_61a2e576_002f_428b_b552_b2490501b4a6()
+  run Step_Counter_Thread_f5a9b45b_5ff7_421c_82a4_34331bf11157()
+  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
+  set_payload(0.0)
   # begin: URCap Installation Node
   #   Source: External Control, 1.0.2, FZI Research Center for Information Technology
   #   Type: External Control
@@ -2341,71 +2341,87 @@ def wrs2020_taskboard_belt_v4():
       sync()
   end
   # end: URCap Installation Node
-  global home_p=p[.132399273074, -.179474410090, .460725286257, -.005112846227, -3.141398079733, -.030665261060]
-  global home_q=[1.5699501037597656, -2.09990992168569, 1.4001105467425745, -0.849999265079834, -1.5699175039874476, -5.5615101949513246E-5]
-  global Waypoint_12_p=p[-.118552559625, -.294345966699, .577586888773, 1.317622755639, 2.724063782475, -.271785291199]
-  global Waypoint_12_q=[0.6985559463500977, -2.067237993279928, 1.7381613890277308, -1.3620131772807618, -1.4011877218829554, 0.03713369369506836]
-  global Waypoint_1_p=p[-.147509495617, -.481575759509, .322425465740, -2.253201345316, 2.177005863772, .038022741229]
-  global Waypoint_1_q=[1.0108323097228942, -1.4978364270976599, 1.925796810780665, -1.984156747857572, -1.5896590391741823, -2.1642082724729685]
-  global Waypoint_2_p=p[-.147509495455, -.481575759255, .273211903816, 2.250673275822, -2.179620242347, -.012675891366]
-  global Waypoint_2_q=[1.0081506542937984, -1.4405199368151766, 2.0098395919395915, -2.145264204597119, -1.577259379474027, -2.1642082724729685]
-  global Waypoint_3_p=p[-.147509495441, -.481575759231, .403735132988, 2.249715385074, -2.180603864875, -.012670058595]
-  global Waypoint_3_q=[1.0084551465672809, -1.5650019399103705, 1.7824057961797062, -1.793355110204331, -1.5774101212455598, -2.1642082724729685]
-  global wait_w_belt_p=p[-.185572472200, -.392078428231, .315254321350, -1.444116904845, 1.950210244091, -1.048566485955]
-  global wait_w_belt_q=[0.6462621153102495, -1.6021415675239794, 2.00597852500061, -1.3332292029228858, -0.8100742698188093, -2.4642311115953284]
-  global Waypoint_5_p=p[-.173430138705, -.369038761536, .261711988320, -1.282049871055, 1.804669873009, -1.148312832694]
-  global Waypoint_5_q=[0.6041610998448659, -1.543031542030576, 2.0913990380382423, -1.1965693794766246, -0.7544266897919014, -2.626192975268301]
-  global Waypoint_6_p=p[-.155522665977, -.287239586343, .210263496367, -1.030962352333, 1.620274624922, -1.537880428076]
-  global Waypoint_6_q=[0.38196315373784445, -1.5278064260598931, 2.285249600019835, -0.8807734889509762, -0.7036718053945172, -3.099467199051748]
-  global Waypoint_13_p=p[-.107457817343, -.243361946394, .189808042963, -.908971211033, 1.726148114849, -1.661480112482]
-  global Waypoint_13_q=[0.2428730318311345, -1.6892688538610097, 2.5171205545555235, -0.9268783130163314, -0.6743947385020199, -3.1193024200753143]
-  global Waypoint_7_p=p[-.093501132453, -.273032375066, .162831434863, -.904394802078, 1.729823903776, -1.665838961580]
-  global Waypoint_7_q=[0.3816893582908083, -1.5737960534275324, 2.5241290203261673, -1.071288931829483, -0.5299402163663611, -3.09203131377755]
-  global Waypoint_8_p=p[-.063539392608, -.247671315044, .163129241083, -.744115376137, 1.869602056338, -1.797551479942]
-  global Waypoint_8_q=[0.26372213671491007, -1.766893873610874, 2.6838355775276703, -1.046469085833703, -0.44396732113593274, -3.0778057974838386]
-  global Waypoint_9_p=p[-.059124643215, -.266289646815, .157433905622, -.744115384372, 1.869602115221, -1.797551428082]
-  global Waypoint_9_q=[0.37171693346657175, -1.7029319419855184, 2.666160315753711, -1.131692306720506, -0.33694675660786544, -3.035551845069012]
-  global Waypoint_10_p=p[-.086692372686, -.253478060287, .198506603474, -.772851971191, 1.847668091795, -1.780599960554]
-  global Waypoint_10_q=[0.26868561505652633, -1.8046282517472463, 2.5725259770475937, -0.8904541130374781, -0.47039777114302694, -3.0892327760299634]
-  global Waypoint_11_p=p[-.118552559625, -.294345966699, .577586888773, 1.317622755639, 2.724063782475, -.271785291199]
-  global Waypoint_11_q=[0.6985559463500977, -2.067237993279928, 1.7381613890277308, -1.3620131772807618, -1.4011877218829554, 0.03713369369506836]
+  global home_p=p[.130649315071, -.180735318564, .515944936221, -.011904141620, -3.140282836653, -.031779029209]
+  global home_q=[1.5699191093444824, -2.0999165974059046, 1.3999560515033167, -0.8500288289836426, -1.5699761549579065, 5.9604644775390625E-5]
+  global above_tool_p=p[.459162036872, -.210304370404, .204200915087, 1.746289903912, -1.730646652929, -.729047870182]
+  global above_tool_q=[2.534531999016338, -1.1982101810088324, 1.7961559816585861, -1.4668132023983578, -2.008949988225595, -0.45437501586286544]
+  global grasp_tool_p=p[.459162036954, -.210304370461, .112251855397, 1.746289902786, -1.730646652070, -.729047869434]
+  global grasp_tool_q=[2.534108235275429, -1.052344728769686, 1.8694364197099782, -1.6855003797547994, -2.008547655205186, -0.45329883263686455]
+  global before_tool_p=p[.486310883736, -.210304369973, .144710659707, 1.746289819535, -1.730646622196, -.729047937691]
+  global before_tool_q=[2.5609651290146314, -1.061283124060715, 1.7680068564359046, -1.5659106257780167, -1.9912396076520968, -0.43148126649865937]
+  global high_approach_p=p[.430517655658, -.210304370258, .259483933354, 2.070546354937, -2.063337776139, -.265204512751]
+  global high_approach_q=[2.4485092379921376, -1.4413039536248444, 2.001661001707641, -1.930081263128379, -1.7537079602876116, -0.678380411487205]
+  global wait_w_tool_p=p[.096883885745, -.254303635135, .525338758627, .242383833914, 3.104342837672, -.045618417679]
+  global wait_w_tool_q=[1.419498844840919, -2.178175391321119, 1.892632293985887, -1.311747949011428, -1.5379272788334548, -1.2434497875801753E-14]
+  global Waypoint_6_p=p[.127080337947, -.413333654554, .291809623984, -.723175488874, -2.779773733637, .838510378196]
+  global Waypoint_6_q=[1.6299766580406816, -1.585288369949942, 2.313430339105375, -2.806503864610999, -1.8721815151571342, 0.4915000755485588]
+  global Waypoint_7_p=p[.029417670274, -.413333654383, .291809624122, -1.184835622430, -2.528930886770, .748042842502]
+  global Waypoint_7_q=[1.407834261487483, -1.6305700212439307, 2.3383544969053816, -2.7309724817327026, -1.9389311612142723, 0.6293738357934668]
+  global tension_at_ply_p=p[.054906852614, -.456541595022, .291809624322, -1.868339669979, -1.915418298486, .562339375577]
+  global tension_at_ply_q=[1.520749955347018, -1.5183061574824563, 2.099628487067273, -2.1905975468802374, -2.143144743418741, 1.484944398267221]
+  global pulley_east_p=p[.055997818734, -.418531223747, .290523106530, -1.827798982973, -1.874228477717, .614956800003]
+  global pulley_east_q=[1.5315149502302772, -1.596876408899945, 2.1939603661096894, -2.2034342365248225, -2.2080546777798986, 1.4950298459047149]
+  global pulley_seast_p=p[.033502447685, -.412204130486, .276545719630, -1.919203508428, -1.967074739306, .492521977085]
+  global pulley_seast_q=[1.4446675352809484, -1.6155667449603488, 2.2425715062948286, -2.2712490152332023, -2.0572266120490665, 1.4022795799103447]
+  global Waypoint_21_p=p[.044297946378, -.382864114780, .257805267902, -1.637061163308, -2.092928227512, .685016203549]
+  global Waypoint_21_q=[1.4882931463471663, -1.6204153523625768, 2.383362382646819, -2.555407871641546, -2.1708090425887256, 1.1776730222771095]
+  global Waypoint_18_p=p[.037054514497, -.382125875195, .257636934709, -1.629008393334, -2.102128714548, .687008745596]
+  global Waypoint_18_q=[1.467255745702106, -1.6227415587758927, 2.3926233770089005, -2.5818413879973168, -2.163111892449006, 1.1425808680823595]
+  global Waypoint_17_p=p[.037054514498, -.382125875180, .290532815514, -1.629008393676, -2.102128714705, .687008745374]
+  global Waypoint_17_q=[1.4675995281855276, -1.6950455722693683, 2.3452616120223624, -2.462377188003417, -2.1629394848032764, 1.1422207894570109]
+  global Waypoint_16_p=p[.041621976797, -.399959614237, .300438696554, -1.711792061564, -2.015147011106, .657820931952]
+  global Waypoint_16_q=[1.4886813305151914, -1.666224089712089, 2.266328864772177, -2.3368701794598725, -2.18532268718079, 1.2739721680756642]
+  global Waypoint_15_p=p[.040112510597, -.404528241089, .307021323493, -1.711792123279, -2.015147055968, .657820851582]
+  global Waypoint_15_q=[1.4858036087010946, -1.6661149408305835, 2.246655895829015, -2.3193841457038236, -2.1847879321801074, 1.2703933771952092]
+  global Waypoint_14_p=p[.037054514560, -.412060868196, .313945950407, -1.711792131026, -2.015147061667, .657820842286]
+  global Waypoint_14_q=[1.4797217898026103, -1.6589694724497956, 2.2206408322220064, -2.304815224380686, -2.183683782640305, 1.262978298568004]
+  global Waypoint_13_p=p[.039115141502, -.424305495049, .318143977171, -1.711792113653, -2.015147052014, .657820863975]
+  global Waypoint_13_q=[1.487550508205103, -1.6342057347324772, 2.184029889072157, -2.2874921661614835, -2.184925450889761, 1.272417442117436]
+  global Waypoint_12_p=p[.039115141502, -.456158121982, .318143977168, -1.711792113476, -2.015147052083, .657820864140]
+  global Waypoint_12_q=[1.4935420145612335, -1.5572748585907012, 2.1081848040082747, -2.28424342547202, -2.1857420421014275, 1.2798775569620102]
+  global after_pulley_p=p[.044329768444, -.474814986661, .308597350181, -1.711792093336, -2.015147036377, .657820892175]
+  global after_pulley_q=[1.5079615602164504, -1.4991115243327844, 2.0724882496617383, -2.2963722872081664, -2.1879515679860546, 1.2976280523367598]
+  global Waypoint_25_p=p[.061141714643, -.511385946774, .285958468842, -1.774558024103, -1.944401775122, .634104524862]
+  global Waypoint_25_q=[1.5473958880023313, -1.3810645915728177, 1.979327357093382, -2.241214456719442, -2.2003111255458396, 1.4335244737779682]
+  global Waypoint_26_p=p[.038979145323, -.543772867325, .267744689932, -1.774558073643, -1.944401813137, .634104461563]
+  global Waypoint_26_q=[1.5071541580141348, -1.2916221861834245, 1.9281481321394516, -2.3085026053321682, -2.196707079613738, 1.3845074713454677]
+  global Waypoint_27_p=p[.038979145324, -.562173494251, .259861436065, -1.774558074054, -1.944401813375, .634104461206]
+  global Waypoint_27_q=[1.5091989350923138, -1.2429261919505654, 1.8842824340699806, -2.3117329170195458, -2.1968494735058286, 1.3872163476771124]
+  global Waypoint_28_p=p[.038979145324, -.539174867314, .269332062998, -1.774558074895, -1.944401813751, .634104460483]
+  global Waypoint_28_q=[1.5066182189604747, -1.3033505481144196, 1.9392542079894, -2.308294869665946, -2.1966702237640225, 1.3838054943543323]
+  global Waypoint_22_p=p[.106561184905, -.488523006348, .355134102367, -1.892094241421, -2.225819522264, .414541344644]
+  global Waypoint_22_q=[1.5846891403198242, -1.5280464452556153, 1.9113810698138636, -2.0423594913878382, -1.893811051045553, 1.408033847808838]
   $ 1 "Robot Program"
-  $ 2 "Set"
-  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  $ 3 "MoveJ"
-  $ 4 "home" "breakAfter"
-  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movej(get_inverse_kin(home_p, qnear=home_q), a=2.0943951023931953, v=2.0943951023931953)
-  $ 5 "Waypoint_12" "breakAfter"
-  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movej(get_inverse_kin(Waypoint_12_p, qnear=Waypoint_12_q), a=2.0943951023931953, v=2.0943951023931953)
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
-  $ 6 "Gripper Move48% (1)"
+  $ 2 "Gripper Open (1)"
   if not(gripper_connected[0]):
     popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
   end
   if not(rq_is_gripper_activated("1")):
     popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
   end
-  rq_set_pos_spd_for(123, 255, 255, "1")
-  rq_wait_pos_spe_for_request(123, 255, 255, "1")
+  rq_set_pos_spd_for(0, 255, 255, "1")
+  rq_wait_pos_spe_for_request(0, 255, 255, "1")
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 7 "MoveJ"
-  $ 8 "Waypoint_1" "breakAfter"
+  $ 3 "MoveJ"
+  $ 4 "home" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movej(get_inverse_kin(Waypoint_1_p, qnear=Waypoint_1_q), a=1.7453292519943295, v=2.0943951023931953)
-  $ 9 "MoveL"
-  $ 10 "Waypoint_2" "breakAfter"
+  movej(get_inverse_kin(home_p, qnear=home_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 5 "above_tool" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movel(Waypoint_2_p, a=1.2, v=0.1)
+  movej(get_inverse_kin(above_tool_p, qnear=above_tool_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 6 "MoveL"
+  $ 7 "grasp_tool" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(grasp_tool_p, a=1.2, v=0.25)
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
-  $ 11 "Gripper Close (1)"
+  $ 8 "Gripper Close (1)"
   if not(gripper_connected[0]):
     popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
   end
@@ -2417,69 +2433,116 @@ def wrs2020_taskboard_belt_v4():
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 12 "MoveL"
-  $ 13 "Waypoint_3" "breakAfter"
+  $ 9 "MoveJ"
+  $ 10 "before_tool" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movel(Waypoint_3_p, a=1.2, v=0.05)
+  movej(get_inverse_kin(before_tool_p, qnear=before_tool_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 11 "high_approach" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movej(get_inverse_kin(high_approach_p, qnear=high_approach_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 12 "wait_w_tool" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movej(get_inverse_kin(wait_w_tool_p, qnear=wait_w_tool_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 13 "Popup: start sequence with a_bot (simultaneous start)"
+  popup("start sequence with a_bot (simultaneous start)", "Message", False, False, blocking=True)
   $ 14 "MoveJ"
-  $ 15 "wait_w_belt" "breakAfter"
+  $ 15 "Waypoint_6" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movej(get_inverse_kin(wait_w_belt_p, qnear=wait_w_belt_q), a=1.3962634015954636, v=2.0943951023931953)
-  $ 16 "Popup: start sequence together with b_bot (simultaneous start)"
-  popup("start sequence together with b_bot (simultaneous start)", "Message", False, False, blocking=True)
-  $ 17 "Wait: 2.5"
-  sleep(2.5)
-  $ 18 "MoveL"
-  $ 19 "Waypoint_5" "breakAfter"
+  movej(get_inverse_kin(Waypoint_6_p, qnear=Waypoint_6_q), a=2.0943951023931953, v=2.6179938779914944)
+  $ 16 "Waypoint_7" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movel(Waypoint_5_p, a=1.2, v=0.25)
-  $ 20 "MoveJ"
-  $ 21 "Waypoint_6" "breakAfter"
+  movej(get_inverse_kin(Waypoint_7_p, qnear=Waypoint_7_q), a=2.0943951023931953, v=2.6179938779914944)
+  $ 17 "Wait: 3.0"
+  sleep(3.0)
+  $ 18 "MoveJ"
+  $ 19 "tension_at_ply" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movej(get_inverse_kin(Waypoint_6_p, qnear=Waypoint_6_q), a=1.3962634015954636, v=1.0471975511965976)
-  $ 22 "MoveL"
-  $ 23 "Waypoint_13" "breakAfter"
+  movej(get_inverse_kin(tension_at_ply_p, qnear=tension_at_ply_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 22 "Wait: 0"
+  $ 23 "MoveL"
+  $ 25 "MoveL"
+  $ 26 "pulley_east" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movel(Waypoint_13_p, a=1.2, v=0.25)
-  $ 24 "Waypoint_7" "breakAfter"
+  movel(pulley_east_p, a=1.2, v=0.25, r=0.026)
+  $ 27 "pulley_seast" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movel(Waypoint_7_p, a=1.2, v=0.25)
-  $ 25 "Wait: 1.0"
-  sleep(1.0)
-  $ 26 "MoveL"
-  $ 27 "Waypoint_8" "breakAfter"
+  movel(pulley_seast_p, a=1.2, v=0.25)
+  $ 28 "Waypoint_21" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movel(Waypoint_8_p, a=1.2, v=0.25)
-  $ 28 "MoveL"
-  $ 29 "Waypoint_9" "breakAfter"
+  movel(Waypoint_21_p, a=1.2, v=0.25)
+  $ 29 "Waypoint_18" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movel(Waypoint_9_p, a=1.2, v=0.25)
-  $ 30 "Wait: 5.0"
-  sleep(5.0)
+  movel(Waypoint_18_p, a=1.2, v=0.25, r=0.006)
+  $ 30 "Waypoint_17" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(Waypoint_17_p, a=1.2, v=0.25, r=0.005)
+  $ 31 "Waypoint_16" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(Waypoint_16_p, a=1.2, v=0.25, r=0.005)
+  $ 32 "Waypoint_15" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(Waypoint_15_p, a=1.2, v=0.25, r=0.002)
+  $ 33 "Waypoint_14" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(Waypoint_14_p, a=1.2, v=0.25, r=0.007)
+  $ 34 "Waypoint_13" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(Waypoint_13_p, a=1.2, v=0.25, r=0.005)
+  $ 35 "Waypoint_12" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(Waypoint_12_p, a=1.2, v=0.25)
+  $ 36 "MoveL"
+  $ 37 "after_pulley" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(after_pulley_p, a=1.2, v=0.25)
+  $ 38 "Waypoint_25" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(Waypoint_25_p, a=1.2, v=0.25)
+  $ 39 "Waypoint_26" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(Waypoint_26_p, a=1.2, v=0.25)
+  $ 40 "Waypoint_27" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(Waypoint_27_p, a=1.2, v=0.25)
+  $ 41 "Waypoint_28" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(Waypoint_28_p, a=1.2, v=0.25)
+  $ 42 "MoveL"
+  $ 43 "Waypoint_22" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(Waypoint_22_p, a=1.2, v=0.25)
+  $ 44 "MoveJ"
+  $ 45 "wait_w_tool" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movej(get_inverse_kin(wait_w_tool_p, qnear=wait_w_tool_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 46 "high_approach" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movej(get_inverse_kin(high_approach_p, qnear=high_approach_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 47 "before_tool" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movej(get_inverse_kin(before_tool_p, qnear=before_tool_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 48 "grasp_tool" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movej(get_inverse_kin(grasp_tool_p, qnear=grasp_tool_q), a=1.3962634015954636, v=1.0471975511965976)
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
-  $ 31 "Gripper Move80% (1)"
+  $ 49 "Gripper Open (1)"
   if not(gripper_connected[0]):
     popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
   end
   if not(rq_is_gripper_activated("1")):
     popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
   end
-  rq_set_pos_spd_for(205, 0, 0, "1")
-  rq_wait_pos_spe_for_request(205, 0, 0, "1")
+  rq_set_pos_spd_for(0, 255, 255, "1")
+  rq_wait_pos_spe_for_request(0, 255, 255, "1")
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 32 "MoveL"
-  $ 33 "Waypoint_10" "breakAfter"
+  $ 50 "above_tool" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movel(Waypoint_10_p, a=1.2, v=0.25)
-  $ 34 "MoveJ"
-  $ 35 "Waypoint_11" "breakAfter"
+  movej(get_inverse_kin(above_tool_p, qnear=above_tool_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 51 "home" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movej(get_inverse_kin(Waypoint_11_p, qnear=Waypoint_11_q), a=1.7453292519943295, v=2.0943951023931953)
-  $ 36 "home" "breakAfter"
-  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movej(get_inverse_kin(home_p, qnear=home_q), a=1.7453292519943295, v=2.0943951023931953)
+  movej(get_inverse_kin(home_p, qnear=home_q), a=1.3962634015954636, v=1.0471975511965976)
 end
