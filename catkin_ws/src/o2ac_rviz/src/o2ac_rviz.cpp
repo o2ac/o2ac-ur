@@ -3,7 +3,9 @@
 #include <ros/ros.h>
 #include <atomic>
 
+#include <chrono>
 #include <ur_msgs/IOStates.h>
+#include <sensor_msgs/Image.h>
 #include "o2ac_skills/o2ac_skill_server.h"
 
 namespace o2ac_rviz {
@@ -63,6 +65,10 @@ private:
     void set_button_active(QPushButton *button, const bool active);
     
     void io_state_callback(const ur_msgs::IOStates &states);
+    void b_bot_inside_camera_callback(const sensor_msgs::Image &image);
+    void b_bot_outside_camera_callback(const sensor_msgs::Image &image);
+    void a_bot_inside_camera_callback(const sensor_msgs::Image &image);
+    void a_bot_outside_camera_callback(const sensor_msgs::Image &image);
     void update_status(const ros::TimerEvent&);
 
     // The below 2 functions are taken from "planning_scene_display.h" *(MoveIt)
@@ -94,6 +100,15 @@ private:
     ros::NodeHandle n;
     
     ros::Subscriber sub_io_states;
+    ros::Subscriber sub_a_bot_inside_cam;
+    ros::Subscriber sub_a_bot_outside_cam;
+    ros::Subscriber sub_b_bot_inside_cam;
+    ros::Subscriber sub_b_bot_outside_cam;
+
+    std::chrono::time_point<std::chrono::system_clock>  last_a_bot_inside_cam_message_time, 
+                                                        last_a_bot_outside_cam_message_time,
+                                                        last_b_bot_inside_cam_message_time,
+                                                        last_b_bot_outside_cam_message_time;
     ros::Timer update_status_timer_;
 
     actionlib::SimpleActionClient<o2ac_msgs::changeToolAction> changeToolActionClient_; // Only used for heartbeat
@@ -114,8 +129,12 @@ private:
 O2ACSetupPanel::O2ACSetupPanel(QWidget* parent) : rviz::Panel(parent), changeToolActionClient_("/o2ac_skills/change_tool", true)
 {
     // setup ROS (subscribers, publishers, action clients)
-    // pub_command = n.advertise<RQ3Fout>("Robotiq3FGripperRobotOutput", 1);
     sub_io_states = n.subscribe("/b_bot/ur_hardware_interface/io_states", 1, &O2ACSetupPanel::io_state_callback, this);
+
+    sub_a_bot_inside_cam = n.subscribe("/a_bot_inside_camera/aligned_depth_to_color/image_raw", 1, &O2ACSetupPanel::a_bot_inside_camera_callback, this);
+    sub_a_bot_outside_cam = n.subscribe("/a_bot_outside_camera/aligned_depth_to_color/image_raw", 1, &O2ACSetupPanel::a_bot_outside_camera_callback, this);
+    sub_b_bot_inside_cam = n.subscribe("/b_bot_inside_camera/aligned_depth_to_color/image_raw", 1, &O2ACSetupPanel::b_bot_inside_camera_callback, this);
+    sub_b_bot_outside_cam = n.subscribe("/b_bot_outside_camera/aligned_depth_to_color/image_raw", 1, &O2ACSetupPanel::b_bot_outside_camera_callback, this);
 
     // load ui form and auto-connect slots
     ui.setupUi(this);
@@ -126,9 +145,13 @@ O2ACSetupPanel::O2ACSetupPanel(QWidget* parent) : rviz::Panel(parent), changeToo
     ui.label_tools_online->setStyleSheet(red_label_style);
     ui.label_tools_online_2->setStyleSheet(red_label_style);
 
-    update_status_timer_ = n.createTimer(ros::Duration(0.5), &O2ACSetupPanel::update_status, this);
+    // Initialize camera message times
+    last_a_bot_inside_cam_message_time = std::chrono::system_clock::now();
+    last_a_bot_outside_cam_message_time = std::chrono::system_clock::now();
+    last_b_bot_inside_cam_message_time = std::chrono::system_clock::now();
+    last_b_bot_outside_cam_message_time = std::chrono::system_clock::now();
 
-    //TODO: Add buttons for vacuum
+    update_status_timer_ = n.createTimer(ros::Duration(0.25), &O2ACSetupPanel::update_status, this);
 }
 
 
@@ -165,6 +188,33 @@ void O2ACSetupPanel::update_status(const ros::TimerEvent& event)
         ui.label_robots_online->setStyleSheet(green_label_style);
     else
         ui.label_robots_online->setStyleSheet(red_label_style);
+    
+    // Check that cameras have received an image within the last 0.5 seconds
+    std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
+    // auto time_since_last_msg = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_a_bot_inside_cam_message_time);
+    // if (time_since_last_msg < std::chrono::milliseconds{500})
+    //     ui.label_a_inside_cam_online->setStyleSheet(green_label_style);
+    // else
+    //     ui.label_a_inside_cam_online->setStyleSheet(red_label_style);
+    
+    // time_since_last_msg = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_a_bot_outside_cam_message_time);
+    // if (time_since_last_msg < std::chrono::milliseconds{500})
+    //     ui.label_a_outside_cam_online->setStyleSheet(green_label_style);
+    // else
+    //     ui.label_a_outside_cam_online->setStyleSheet(red_label_style);
+    
+    auto time_since_last_msg = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_b_bot_inside_cam_message_time);
+    // std::cout << "time_since_last_msg is " << time_since_last_msg.count() << std::endl;
+    if (time_since_last_msg < std::chrono::milliseconds{500})
+        ui.label_b_inside_cam_online->setStyleSheet(green_label_style);
+    else
+        ui.label_b_inside_cam_online->setStyleSheet(red_label_style);
+    
+    time_since_last_msg = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_b_bot_outside_cam_message_time);
+    if (time_since_last_msg < std::chrono::milliseconds{500})
+        ui.label_b_outside_cam_online->setStyleSheet(green_label_style);
+    else
+        ui.label_b_outside_cam_online->setStyleSheet(red_label_style);
 }
 
 void O2ACSetupPanel::io_state_callback(const ur_msgs::IOStates &states) {
@@ -217,6 +267,29 @@ void O2ACSetupPanel::io_state_callback(const ur_msgs::IOStates &states) {
             ui.button_vacuum_m4->setStyleSheet(grey_button_style);
     }
 }
+
+void O2ACSetupPanel::a_bot_inside_camera_callback(const sensor_msgs::Image &image)
+{   
+    last_a_bot_inside_cam_message_time = std::chrono::system_clock::now();
+}
+
+void O2ACSetupPanel::a_bot_outside_camera_callback(const sensor_msgs::Image &image)
+{
+    last_a_bot_outside_cam_message_time = std::chrono::system_clock::now();
+}
+
+void O2ACSetupPanel::b_bot_inside_camera_callback(const sensor_msgs::Image &image)
+{
+    last_b_bot_inside_cam_message_time = std::chrono::system_clock::now();
+}
+
+void O2ACSetupPanel::b_bot_outside_camera_callback(const sensor_msgs::Image &image)
+{
+    last_b_bot_outside_cam_message_time = std::chrono::system_clock::now();
+}
+
+
+// ======
 
 void O2ACSetupPanel::on_button_activate_ros_control_clicked()
 {
