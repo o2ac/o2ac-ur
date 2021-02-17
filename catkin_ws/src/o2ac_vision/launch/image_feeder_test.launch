@@ -1,5 +1,6 @@
 <?xml version="1.0" ?>
 <launch>
+  <!-- Launch file for testing the recognition pipeline using only the annotation database (no camera or robot). -->
 
   <!-- Mode of object detector -->
   <arg name="continuous_streaming"		default="false"/>
@@ -29,7 +30,7 @@
 	type="static_transform_publisher" args="0 0 0 0 0 0 base_link map 10"/>
 
   <!-- Construct recognition pipeline -->
-  <include file="$(find o2ac_vision)/launch/o2ac_recognition.launch">
+  <include file="$(find o2ac_vision)/launch/o2ac_recognition_server.launch">
     <arg name="continuous_streaming"		  value="$(arg continuous_streaming)"/>
     <arg name="nposes"		  value="$(arg nposes)"/>
     <arg name="timeout"		  value="$(arg timeout)"/>

@@ -1,5 +1,7 @@
 #! /usr/bin/env python
 
+# This script shows how to call the vision actions.
+
 import rospy
 import argparse
 import actionlib

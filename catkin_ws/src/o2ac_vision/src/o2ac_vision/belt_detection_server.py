@@ -20,9 +20,9 @@ rospack = rospkg.RosPack()
 annotation_root = rospack.get_path("wrs_dataset") + "/Annotations/Far/Image-wise/*.json"
 annotations = glob.glob(annotation_root)
 
-class BeltDetectionTest(object):
+class BeltDetection(object):
     def __init__(self):
-        rospy.init_node('belt_detection_test_server_py')
+        rospy.init_node('belt_detection_server_py')
 
         self.belt_detection_test_action_server = actionlib.SimpleActionServer("beltDetection", o2ac_msgs.msg.beltDetectionAction,
             execute_cb = self.belt_detection_test_callback, auto_start = True)
@@ -58,16 +58,16 @@ class BeltDetectionTest(object):
         image_hand[0:16,20:40] = 1
         image_hand[44:60,20:40] = 1
 
-        # Colision template
-        image_colision = np.zeros( (60,60), np.float )
-        image_colision[16:44,20:40] = 1
+        # Collision template
+        image_collision = np.zeros( (60,60), np.float )
+        image_collision[16:44,20:40] = 1
 
         param_FGE = {"ds_rate": 0.5, "target_lower":[0, 150, 100], "target_upper":[15, 255, 255],
                             "fg_lower": [0, 0, 50], "fg_upper": [179, 255, 255], "hand_rotation":[0,45,90,135], "threshold": 0.01}
 
         start = time.time()
 
-        FGE = FastGraspabilityEvaluation( input_image, image_hand, image_colision, param_FGE )
+        FGE = FastGraspabilityEvaluation( input_image, image_hand, image_collision, param_FGE )
         results = FGE.main_proc()
 
         elapsed_time = time.time() - start
@@ -82,7 +82,7 @@ class BeltDetectionTest(object):
 
 if __name__ == '__main__':
     try:
-        server = BeltDetectionTest()
+        server = BeltDetection()
         while not rospy.is_shutdown():
             rospy.sleep(.1)
     except rospy.ROSInterruptException:

@@ -618,7 +618,7 @@ class FastGraspabilityEvaluation():
             for i, (hand, collision) in enumerate( zip( self.im_hands, self.im_collisions) ):
                 # check border
                 if ltop[0] < 0 or ltop[1] < 0 or s_rows <= ltop[0]+rows or s_cols <= ltop[1]+cols:
-                    print("skip")
+                    # print("skip")
                     continue
 
                 conv_hand = self.fg_mask[ ltop[0]:ltop[0]+rows, ltop[1]:ltop[1]+cols ] * hand

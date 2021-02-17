@@ -54,22 +54,28 @@ import o2ac_msgs.msg
 import geometry_msgs.msg
 
 import o2ac_routines.helpers
-import o2ac_ssd
-from pose_estimation_func import template_matching
-from pose_estimation_func import FastGraspabilityEvaluation
+from o2ac_vision.pose_estimation_func import TemplateMatching
+from o2ac_vision.pose_estimation_func import FastGraspabilityEvaluation
 
-ssd_detection = o2ac_ssd.ssd_detection()
+import o2ac_vision.o2ac_ssd
+ssd_detection = o2ac_vision.o2ac_ssd.ssd_detection()
 
-class O2ACVision(object):
-    # This class advertises the vision actions that we will call during the tasks.
+class O2ACVisionServer(object):
+    """
+    Advertises the vision actions that we will call during the tasks:
+    - 2D Pose estimation
+    - Belt detection
+    - Cable tip detection
+    - Bearing angle detection
+    - Tooltip/hole tracking
+    """
+    # TODO (felixvd): Add the actions besides 2D pose estimation to this class
 
     def __init__(self):
-    	rospy.init_node('o2ac_vision_', anonymous=False)
+    	rospy.init_node('o2ac_vision_server', anonymous=False)
 
         # Setup subscriber for RGB image
-        #self.image_sub = rospy.Subscriber('/image', sensor_msgs.msg.Image,
-        #                                  self.image_subscriber_callback)
-        self.image_sub = rospy.Subscriber('/b_bot_outside_camera_throttled/color/image_raw/compressed', sensor_msgs.msg.CompressedImage,
+        self.image_sub = rospy.Subscriber('/camera_multiplexer/image', sensor_msgs.msg.Image,
                                           self.image_subscriber_callback)
 
         # Setup publisher for output result image
@@ -110,18 +116,20 @@ class O2ACVision(object):
     def goal_callback(self):
         self.axserver.accept_new_goal()
         rospy.loginfo("Received a request to detect object")
+        # TODO: Actually treat the goal.
 
     def preempt_callback(self):
         self.axserver.set_preempted()
         rospy.loginfo("o2ac_msgs.msg.poseEstimationAction preempted")
 
     def image_subscriber_callback(self, image):
-        # First, obtain the image from the camera and convert it
+        # Save the camera image locally
+        # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
         bridge = cv_bridge.CvBridge()
-        #im_in  = bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
         im_in  = bridge.compressed_imgmsg_to_cv2(image, desired_encoding="bgr8")
         im_vis = im_in.copy()
 
+        # Pass image to SSD if continuous display is turned on
         if self.continuous_streaming:
             estimatedPoses_msg = o2ac_msgs.msg.EstimatedPosesArray()
             estimatedPoses_msg.header = image.header
@@ -131,11 +139,11 @@ class O2ACVision(object):
 
             # Publish images visualizing results
             self.image_pub.publish(bridge.cv2_to_imgmsg(im_vis))
-
+        
+        # TODO(felixvd): Confirm that this behaves as intended
         elif self.axserver.is_active():
             action_result = o2ac_msgs.msg.poseEstimationResult()
-            action_result.results, im_vis \
-                = self.get_estimation_results(im_in, im_vis)
+            action_result.results, im_vis = self.get_estimation_results(im_in, im_vis)
             self.axserver.set_succeeded(action_result)
 
             # Publish images visualizing results
@@ -145,14 +153,18 @@ class O2ACVision(object):
 ### =======
 
     def get_estimation_results(self, im_in, im_vis):
+        """
+        Finds an object's bounding box on the tray, then attempts to find its pose.
+        Can also find grasp poses for the belt.
+        """
         # Object detection
         ssd_results, im_vis = self.detect_object_in_image(im_in, im_vis)
 
         # Pose estimation
         estimatedPoses_msgs      = []
-        apply_2d_pose_estimation = [8,9,10,14]
-        apply_3d_pose_estimation = [1,2,3,4,5,7,11,12,13]
-        apply_grasp_detection    = [6]
+        apply_2d_pose_estimation = [8,9,10,14]             # Small items --> Neural Net
+        apply_3d_pose_estimation = [1,2,3,4,5,7,11,12,13]  # Large items --> CAD matching
+        apply_grasp_detection    = [6]                     # Belt --> Fast Grasp Estimation
         for ssd_result in ssd_results:
             target = ssd_result["class"]
             estimatedPoses_msg = o2ac_msgs.msg.EstimatedPoses()
@@ -181,6 +193,11 @@ class O2ACVision(object):
         return estimatedPoses_msgs, im_vis
 
     def get_grasp_detection_results(self, im_in, im_vis):
+        """
+        Detects belt grasp poses in an RGB image.
+        """
+        # TODO (felixvd): This is not used. Why? (Is it outdated?)
+
         # Object detection
         ssd_results, im_vis = self.detect_object_in_image(im_in, im_vis)
         cv2.imwrite("result_ssd.png", im_vis )
@@ -217,7 +234,9 @@ class O2ACVision(object):
         return ssd_results, im_vis
 
     def estimate_pose_in_image(self, im_in, im_vis, ssd_result):
-
+        """
+        2D pose estimation (x, y, theta) 
+        """
         start = time.time()
 
         rospack = rospkg.RosPack()
@@ -232,23 +251,25 @@ class O2ACVision(object):
             im_in = cv2.cvtColor(im_in, cv2.COLOR_BGR2GRAY)
 
         # template matching
-        tm = template_matching(im_in, ds_rate, temp_root, temp_info_name)
-        center, ori = tm.compute( ssd_result )
+        tm = TemplateMatching(im_in, ds_rate, temp_root, temp_info_name)
+        center, orientation = tm.compute( ssd_result )
 
         elapsed_time = time.time() - start
         rospy.logdebug("Processing time[msec]: %d", 1000*elapsed_time)
 
-        im_vis = tm.get_result_image(ssd_result, ori, center, im_vis)
+        im_vis = tm.get_result_image(ssd_result, orientation, center, im_vis)
 
         bbox = ssd_result["bbox"]
 
         return geometry_msgs.msg.Pose2D(x=center[1] - bbox[0],
                                       y=center[0] - bbox[1],
-                                      theta=radians(ori)), \
+                                      theta=radians(orientation)), \
                im_vis
 
     def grasp_detection_in_image(self, im_in, im_vis, ssd_result):
-
+        """
+        Fast Grasp Evaluation, used for detecting belt grasp poses in an RGB image.
+        """
         start = time.time()
 
         # Generation of a hand template
@@ -257,7 +278,7 @@ class O2ACVision(object):
         im_hand[0:10,20:20+hand_width] = 1
         im_hand[50:60,20:20+hand_width] = 1
 
-        # Generation of a colision template
+        # Generation of a collision template
         im_collision = np.zeros( (60,60), np.float )
         im_collision[10:50,20:20+hand_width] = 1
 
@@ -269,6 +290,9 @@ class O2ACVision(object):
         fge = FastGraspabilityEvaluation(im_in[top_bottom, left_right],
                                          im_hand, im_collision, self.param_fge)
         results = fge.main_proc()
+        
+        elapsed_time = time.time() - start
+        rospy.logdebug("Belt detection processing time[msec]: %d", 1000*elapsed_time)
 
         im_vis[top_bottom, left_right] \
             = fge.visualization(im_vis[top_bottom, left_right])
@@ -281,6 +305,6 @@ class O2ACVision(object):
 
 
 if __name__ == '__main__':
-    rospy.init_node('o2ac_vision', anonymous=False)
-    c = O2ACVision()
+    rospy.init_node('o2ac_vision_server', anonymous=False)
+    c = O2ACVisionServer()
     rospy.spin()

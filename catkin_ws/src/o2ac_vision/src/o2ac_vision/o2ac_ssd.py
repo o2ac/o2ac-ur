@@ -12,12 +12,12 @@ import numpy as np
 import cv2
 if torch.cuda.is_available():
     torch.set_default_tensor_type('torch.cuda.FloatTensor')
-#rospack = rospkg.RosPack()
-#sys.path.append(rospack.get_path("wrs_dataset") + '/ssd.pytorch')
 
-from ssd import build_ssd
-from data import WRS2020_Detection, WRS_ROOT, AnnotationTransform
-from data import WRS2020_CLASSES as labels
+import rospkg
+
+from o2ac_vision.ssd import build_ssd
+from o2ac_vision.data import WRS2020_Detection, WRS_ROOT, AnnotationTransform
+from o2ac_vision.data import WRS2020_CLASSES as labels
 
 # ID Mapping.
 # Chukyo label -> O2AC label(ID, Name, State{front:0, back:1})
@@ -54,6 +54,7 @@ annotations = glob.glob(annotation_root)
 class ssd_detection():
 
     def __init__(self):
+        rospack = rospkg.RosPack()
         fname_weight = rospack.get_path("wrs_dataset") + "/ssd.pytorch/WRS.pth"
         self.net = build_ssd('test', 300, 22)    # initialize SSD
         self.net.load_weights( fname_weight )

@@ -7,9 +7,14 @@ from aist_depth_filter  import DepthFilterClient
 from aist_localization  import LocalizationClient
 
 #########################################################################
-#  class ObjectRecognition                                               #
+#  class ObjectRecognitionServer                                        #
 #########################################################################
-class ObjectRecognition(object):
+class ObjectRecognitionServer(object):
+    """
+    Advertises the 3D recognition (CAD matching) actions.
+    Calls the 2D object detection action advertised by o2ac_vision_server.py.
+    """
+
     _Models = ('00-ALL',                        # 0
                '01-BASE',                       # 1
                '02-PANEL',                      # 2
@@ -28,7 +33,7 @@ class ObjectRecognition(object):
               )
 
     def __init__(self):
-        super(ObjectRecognition, self).__init__()
+        super(ObjectRecognitionServer, self).__init__()
 
         self._nposes  = rospy.get_param('~nposes',  2)
         self._timeout = rospy.get_param('~timeout', 10)
@@ -82,7 +87,7 @@ class ObjectRecognition(object):
         self._recognition_server.set_preempted()
 
     def item_id(self, class_id):
-        return ObjectRecognition._Models[class_id]
+        return ObjectRecognitionServer._Models[class_id]
 
     def localize(self, item_id, bbox, poses2d):
         self._dfilter.roi = (bbox[0],           bbox[1],
@@ -96,6 +101,6 @@ class ObjectRecognition(object):
 #  main                                                                 #
 #########################################################################
 if __name__ == '__main__':
-    rospy.init_node('o2ac_recognition')
-    recognizer = ObjectRecognition()
+    rospy.init_node('o2ac_recognition_server')
+    recognizer = ObjectRecognitionServer()
     rospy.spin()

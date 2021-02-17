@@ -1,5 +1,6 @@
 <?xml version="1.0" ?>
 <launch>
+  <!-- Launches the nodes required for the 3D recognition pipeline. -->
 
   <!-- Mode of object detector -->
   <arg name="continuous_streaming"		default="false"/>
@@ -7,10 +8,8 @@
   <!-- Localization parameters -->
   <arg name="nposes"		default="2"/>
   <arg name="timeout"		default="10"/>
-  <arg name="ply_dir"		default="$(find o2ac_parts_description
-					 )/meshes"/>
-  <arg name="urdf_dir"		default="$(find o2ac_parts_description
-					 )/urdf/generated"/>
+  <arg name="ply_dir"		default="$(find o2ac_parts_description)/meshes"/>
+  <arg name="urdf_dir"		default="$(find o2ac_parts_description)/urdf/generated"/>
 
   <!-- Camera parameters -->
   <arg name="camera_info_topic"	default="camera_info"/>
@@ -20,8 +19,7 @@
   <arg name="manager"		default=""/>
 
   <!-- Spawn object_detector -->
-  <node name="object_detector"
-	pkg="o2ac_vision" type="o2ac_vision.py" output="screen">
+  <node name="o2ac_vision_server" pkg="o2ac_vision" type="o2ac_vision_server.py" output="screen">
     <remap from="/image"	to="$(arg image_topic)"/>
     <param name="continuous_streaming"		value="$(arg continuous_streaming)"/>
   </node>
@@ -45,8 +43,7 @@
     </include>
 
     <!-- Spawn object_recognizer -->
-    <node name="object_recognizer"
-	  pkg="o2ac_vision" type="o2ac_recognition.py" output="screen">
+    <node name="object_recognizer" pkg="o2ac_vision" type="o2ac_recognition_server.py" output="screen">
       <param name="nposes"	value="$(arg nposes)"/>
       <param name="timeout"	value="$(arg timeout)"/>
       <rosparam file="$(find aist_localization)/config/settings.yaml"/>

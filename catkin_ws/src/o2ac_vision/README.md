@@ -8,7 +8,7 @@ This package contains nodes that execute and advertise vision actions, e.g.:
 - Part pose estimation
 - Belt grasp pose detection
 
-All vision skills should be action-based, so that calculations are allowed to fail and time out.
+All vision skills are action-based, so that calculations are allowed to fail and time out.
 
 For this, the Python nodes should advertise a number of actions, which are defined in o2ac_msgs.
 
@@ -20,7 +20,7 @@ roslaunch o2ac_vision o2ac_vision.launch
 ```
 
 ---
-## Part recognition
+# Part recognition
 The part recognition node consists of two components. One is the object detection (Chukyo), the other is pose estimation (AIST).
 
 
@@ -28,15 +28,14 @@ The part recognition node consists of two components. One is the object detectio
 Python scripts of Single Shot MultiBox Detector (SSD) are cloned from [ssd.pytorch](https://github.com/amdegroot/ssd.pytorch).
 This module detects multiple objects in a tray. A list of bounding boxes, classes, and confidences are returned.
 
-model parameter is [here](https://drive.google.com/file/d/13jfmv0CxU0K6LRE2jWkqJcJEVHVlVg2S/view?usp=sharing).
-Please put it in ```wrs_dataset/ssd.pytorch/```.
+The model parameters can be downloaded [here](https://drive.google.com/file/d/13jfmv0CxU0K6LRE2jWkqJcJEVHVlVg2S/view?usp=sharing).
+Place them in ```wrs_dataset/ssd.pytorch/```.
 
 ### Pose estimation
-This component estimates accurate pose (x,y,theta) of **small targets** in image coordinate system. It feeds the output of the object detection module, a list of bounding box and object class id.
+This component estimates the 2D pose (x,y,theta) of **small targets** in the image coordinate system. It feeds the output of the object detection module, a list of bounding box and object class id.
 
 
-
-## Dataset
+### Dataset
 All data including the pre-trained model of SSD, templates, and image sets can be downloaded from the following link.
 Please put `dataset.zip` in the directory "src/WRS_Dataset" and unzip it.
 Make sure "Annotations", "Images", "data", "labels.txt", "realsense_intrinsic.json", and "ssd.pytorch" are in "src/WRS_Dataset".
@@ -45,13 +44,13 @@ Make sure "Annotations", "Images", "data", "labels.txt", "realsense_intrinsic.js
 
 ---
 
-# Recognition pipeline (AIST)
-You can construct a pipeline from image acquisition to 3D object recognition as well as localizatioon by using this package, that is `o2ac_vision`, in conjunction with other vision packages, .i.e. `aist_depth_filter`, `aist_localization` and `aist_model_spawner`(optional).
-The pipeline is structured as the following figure;
+## Recognition pipeline (AIST)
+You can construct a pipeline from image acquisition to 3D object recognition as well as localization by using the `o2ac_vision` package, in conjunction with other vision packages, .i.e. `aist_depth_filter`, `aist_localization` and `aist_model_spawner`(optional).
+The pipeline is structured as in the following figure:
 
 ![Recognition pipeline](docs/recognition_pipeline.png)
 
-where the user's application program is displayed in green color. This is a client node of `o2ac_msgs.detectObjectAction` which is defined as;
+where the user's application is shown in green. This is a client node of `o2ac_msgs.detectObjectAction` which is defined as;
 
 ```
 # Goal
@@ -67,7 +66,7 @@ geometry_msgs/PoseStamped[] detected_poses
 geometry_msgs/PoseWithCovarianceStamped[] detected_poses_with_covariance
 ```
 
-The client requests the `/object_recognizer` to find objects specified in the `item_id` field of the action goal. Currently, `item_id` should be a mesh file name excluding its suffix defined in `o2ac_parts_description/meshes`, ex. 01-Base, 04_37D-GEARMOTOR-50-70, 08_KZAF1075NA4WA55GA20AA0, etc.
+The client requests the `/object_recognizer` to find the objects specified in the `item_id` field of the action goal. Currently, `item_id` should be a mesh file name (excluding suffix) defined in `o2ac_parts_description/meshes`, e.g. `01-Base`, `04_37D-GEARMOTOR-50-70`, `08_KZAF1075NA4WA55GA20AA0`, etc.
 
 The pipeline works in the following manner;
 
@@ -79,16 +78,16 @@ The pipeline works in the following manner;
 6. For general parts neither small nor belts, the `/localization` node restores the PLY file and performs 3D matching with the meshes stored in `o2ac_parts_description`. If the matching process succeeds, the 3D position and orientation of the part as well as confidence values are returned in the result of `o2ac_msgs.detectObjectAction` type. If multiple candidate poses are found, they are stored with the descending order of confidence values.
 7. For small parts and belts, the `/localization` node converts their 2D positions and orientations to 3D poses under an assumption that the objects lie on a "dominant plane". The "dominant plane" is detected from the entire depth image by the `/depth_filter` with robust plane fitting using RANSAC. The detected plane is published in the message of `aist_depth_filter.FileInfo` type and subscribed by the `/localization` node.
 
-The sample client program `o2ac_vision/scripts/o2ac_recognition_client.py` gives an example showing how to use the recognition pipeline from users' application programs. The sample also provides a means for visualizing 3D localization results using `aist_model_spawner`.
+The sample client program `o2ac_vision/scripts/o2ac_recognition_client_example.py` gives an example showing how to use the recognition pipeline from users' application programs. The sample also provides a means for visualizing 3D localization results using `aist_model_spawner`.
 
 
 ## Executing the recognition pipeline
 
-If you would like to start up a realsense camera and test the pipeline, run:
+To start up a realsense camera and test the pipeline, run:
 
 ```
 roslaunch o2ac_vision pipeline_test.launch [camera_name:=<camera name>] [nposes:=<number of poses> timeout:=<timeout for localization in seconds>] [continuous_streaming:=<continuous mode>]
-rosrun o2ac_vision o2ac_recognition_client.py
+rosrun o2ac_vision o2ac_recognition_client_example.py
 ```
 
 The correct name of the camera should be given in the `camera_name` parameter.  

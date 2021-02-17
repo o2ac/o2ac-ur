@@ -10,7 +10,7 @@ import json
 import os, glob
 import actionlib
 import o2ac_msgs.msg
-from pose_estimation_func import *
+from o2ac_vision.pose_estimation_func import *
 
 class pose_estimation():
 

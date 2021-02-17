@@ -11,6 +11,10 @@ from aist_model_spawner import ModelSpawnerClient
 #  class ImageFeeder                                                    #
 #########################################################################
 class ImageFeeder(object):
+    """
+    Supplies images from the annotation database to the recognition pipeline.
+    Used for testing the pipeline without using a camera or robot.
+    """
     def __init__(self, data_dir):
         super(ImageFeeder, self).__init__()
 
