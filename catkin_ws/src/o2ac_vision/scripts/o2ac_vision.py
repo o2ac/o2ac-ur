@@ -49,6 +49,9 @@ import cv_bridge  # This offers conversion methods between OpenCV
                   #   http://wiki.ros.org/pcl_ros
 
 #import o2ac_routines.helpers
+import sensor_msgs.msg
+import o2ac_msgs.msg
+import geometry_msgs.msg
 
 import o2ac_routines.helpers
 import o2ac_ssd
@@ -71,7 +74,7 @@ class O2ACVision(object):
 
         # Setup publisher for output result image
         self.image_pub = rospy.Publisher('~result_image',
-                                         smsg.Image, queue_size=1)
+                                         sensor_msgs.msg.Image, queue_size=1)
 
         # Determine whether the server works with continuous mode or not.
         self.continuous_streaming = rospy.get_param('~continuous_streaming', False)
@@ -90,13 +93,13 @@ class O2ACVision(object):
             # Setup publisher for object detection results
             self.results_pub \
                 = rospy.Publisher('~detection_results',
-                                  omsg.EstimatedPosesArray, queue_size=1)
+                                  o2ac_msgs.msg.EstimatedPosesArray, queue_size=1)
             rospy.logwarn("Localization action server is not running because SSD results are being streamed! Turn off continuous mode to use localization.")
         else:
             # Setup action server for pose estimation
             self.axserver \
                 = actionlib.SimpleActionServer("poseEstimation",
-                                               omsg.poseEstimationAction,
+                                               o2ac_msgs.msg.poseEstimationAction,
                                                auto_start = False)
             self.axserver.register_goal_callback(self.goal_callback)
             self.axserver.register_preempt_callback(self.preempt_callback)
@@ -120,7 +123,7 @@ class O2ACVision(object):
         im_vis = im_in.copy()
 
         if self.continuous_streaming:
-            estimatedPoses_msg = omsg.EstimatedPosesArray()
+            estimatedPoses_msg = o2ac_msgs.msg.EstimatedPosesArray()
             estimatedPoses_msg.header = image.header
             estimatedPoses_msg.results, im_vis \
                 = self.get_estimation_results(im_in, im_vis)
@@ -130,7 +133,7 @@ class O2ACVision(object):
             self.image_pub.publish(bridge.cv2_to_imgmsg(im_vis))
 
         elif self.axserver.is_active():
-            action_result = omsg.poseEstimationResult()
+            action_result = o2ac_msgs.msg.poseEstimationResult()
             action_result.results, im_vis \
                 = self.get_estimation_results(im_in, im_vis)
             self.axserver.set_succeeded(action_result)
@@ -152,7 +155,7 @@ class O2ACVision(object):
         apply_grasp_detection    = [6]
         for ssd_result in ssd_results:
             target = ssd_result["class"]
-            estimatedPoses_msg = omsg.EstimatedPoses()
+            estimatedPoses_msg = o2ac_msgs.msg.EstimatedPoses()
             estimatedPoses_msg.confidence = ssd_result["confidence"]
             estimatedPoses_msg.class_id   = target
             estimatedPoses_msg.bbox       = ssd_result["bbox"]
@@ -239,9 +242,9 @@ class O2ACVision(object):
 
         bbox = ssd_result["bbox"]
 
-        return gmsg.Pose2D(x=center[1] - bbox[0],
-                           y=center[0] - bbox[1],
-                           theta=radians(ori)), \
+        return geometry_msgs.msg.Pose2D(x=center[1] - bbox[0],
+                                      y=center[0] - bbox[1],
+                                      theta=radians(ori)), \
                im_vis
 
     def grasp_detection_in_image(self, im_in, im_vis, ssd_result):
@@ -270,9 +273,9 @@ class O2ACVision(object):
         im_vis[top_bottom, left_right] \
             = fge.visualization(im_vis[top_bottom, left_right])
 
-        return [ gmsg.Pose2D(x=result[1] - margin,
-                             y=result[0] - margin,
-                             theta=-radians(result[2]))
+        return [ geometry_msgs.msg.Pose2D(x=result[1] - margin,
+                                          y=result[0] - margin,
+                                          theta=-radians(result[2]))
                  for result in results ], \
                im_vis
 
