@@ -5,7 +5,7 @@
 
   <!-- Publish hand-eye calibration -->
   <node  name="$(anon handeye_publisher)"
-	 pkg="aist_handeye_calibration" type="publish.py" output="screen">
+	 pkg="aist_handeye_calibration" type="publish_calibration.py" output="screen">
      <!-- @Ueshiba: Is this file required to publish the calibrated frame? -->
     <rosparam file="$(find aist_handeye_calibration
 		    )/config/$(arg config)/$(arg camera_name).yaml"/>
