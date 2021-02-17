@@ -23,10 +23,16 @@ xhost +
 
 ################################################################################
 
-# Enter the Docker container with a Bash shell (with or without a custom 'roslaunch' command).
+# Enter the Docker container with a Bash shell (with or without a custom).
 case "$3" in
   ( "" )
-  docker exec -i -t ${CONTAINER} bash
+  case "$2" in
+    ( "" )
+    docker exec -i -t ${CONTAINER} bash
+    ;;
+    ( * )
+    docker exec -i -t ${CONTAINER} bash -i -c "~/scripts/run-command-repeatedly.sh $2"
+  esac
   ;;
   ( *".launch")
   docker exec -i -t ${CONTAINER} bash -i -c "~/scripts/run-roslaunch-repeatedly.sh $2 $3"

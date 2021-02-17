@@ -389,7 +389,7 @@
       order = 0
       profile = default
       title = task
-      command = sh ./RUN-DOCKER-CONTAINER.sh
+      command = sh ./RUN-DOCKER-CONTAINER.sh ${USER} "rosrun\ o2ac_routines\ taskboard.py"
     [[[terminal14]]]
       type = Terminal
       parent = child12
@@ -424,5 +424,5 @@
       order = 1
       profile = default
       title = roscore (NEEDS TO RUN FIRST)
-      command = sh ./RUN-DOCKER-CONTAINER.sh
+      command = sh ./RUN-DOCKER-CONTAINER.sh ${USER} roscore
 [plugins]
