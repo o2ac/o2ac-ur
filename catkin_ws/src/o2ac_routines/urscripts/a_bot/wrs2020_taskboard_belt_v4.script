@@ -1,11 +1,4 @@
 def wrs2020_taskboard_belt_v4():
-  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
-  set_tool_output_mode(0)
-  set_tool_digital_output_mode(0, 1)
-  set_tool_digital_output_mode(1, 1)
-  set_tool_voltage(24)
-  set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
-  set_payload(1.0,[-0.005,-0.018,0.077])
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -14,15 +7,22 @@ def wrs2020_taskboard_belt_v4():
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
   set_gravity([0.0, 0.0, 9.82])
-  step_count_a4047b25_d112_46d7_a7fa_ac807f13326e = 0
-  thread Step_Counter_Thread_e2c1f068_6b78_4a60_a4c5_735aad20bf43():
+  set_safety_mode_transition_hardness(1)
+  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
+  set_tool_output_mode(0)
+  set_tool_digital_output_mode(0, 1)
+  set_tool_digital_output_mode(1, 1)
+  set_tool_voltage(24)
+  set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
+  set_payload(1.0, [-0.005, -0.018, 0.077])
+  step_count_cb2b6f9a_04b5_48d5_8ce1_34fe606947d5 = 0.0
+  thread Step_Counter_Thread_61a2e576_002f_428b_b552_b2490501b4a6():
     while (True):
-      step_count_a4047b25_d112_46d7_a7fa_ac807f13326e = step_count_a4047b25_d112_46d7_a7fa_ac807f13326e + 1
+      step_count_cb2b6f9a_04b5_48d5_8ce1_34fe606947d5 = step_count_cb2b6f9a_04b5_48d5_8ce1_34fe606947d5 + 1.0
       sync()
     end
   end
-  run Step_Counter_Thread_e2c1f068_6b78_4a60_a4c5_735aad20bf43()
-  set_safety_mode_transition_hardness(1)
+  run Step_Counter_Thread_61a2e576_002f_428b_b552_b2490501b4a6()
   # begin: URCap Installation Node
   #   Source: External Control, 1.0.2, FZI Research Center for Information Technology
   #   Type: External Control
@@ -2341,7 +2341,7 @@ def wrs2020_taskboard_belt_v4():
       sync()
   end
   # end: URCap Installation Node
-  global home_p=p[.132399273074, -.179474410090, .460725286257, -.005112846229, -3.141398079741, -.030665261060]
+  global home_p=p[.132399273074, -.179474410090, .460725286257, -.005112846227, -3.141398079733, -.030665261060]
   global home_q=[1.5699501037597656, -2.09990992168569, 1.4001105467425745, -0.849999265079834, -1.5699175039874476, -5.5615101949513246E-5]
   global Waypoint_12_p=p[-.118552559625, -.294345966699, .577586888773, 1.317622755639, 2.724063782475, -.271785291199]
   global Waypoint_12_q=[0.6985559463500977, -2.067237993279928, 1.7381613890277308, -1.3620131772807618, -1.4011877218829554, 0.03713369369506836]

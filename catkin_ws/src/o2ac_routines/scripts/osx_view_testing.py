@@ -112,7 +112,7 @@ if __name__ == '__main__':
       rospy.loginfo("31, 32, 33, 34: Close views")
       rospy.loginfo("4: Do distant view and 4 close views")
       rospy.loginfo("5: Call belt grasp point detection and show result")
-      rospy.loginfo("6: Look at taskboard bearing")
+      rospy.loginfo("61 (62): Look at taskboard bearing with inside cam (with outside camera, for CAD)")
       rospy.loginfo("9: Find bearing from center view")
       rospy.loginfo("x: Exit ")
       rospy.loginfo(" ")
@@ -142,17 +142,23 @@ if __name__ == '__main__':
         c.close_view(3)
       elif r == '34':
         c.close_view(4)
-      if r == '4':
+      elif r == '4':
         c.views()
-      if r == '5':
+      elif r == '5':
         c.call_belt_action_and_show()
-      elif r == '6':
+      elif r == '61':
+        ps = geometry_msgs.msg.PoseStamped()
+        ps.header.frame_id = "taskboard_bearing_target_link"
+        ps.pose.orientation = geometry_msgs.msg.Quaternion(*(0.5, 0.5, 0.5, 0.5))
+        ps.pose.position = geometry_msgs.msg.Point(-0.153, -0.0025, -0.014)
+        c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.1, acceleration=.04)
+      elif r == '62':
         ps = geometry_msgs.msg.PoseStamped()
         ps.header.frame_id = "taskboard_bearing_target_link"
         ps.pose.orientation = geometry_msgs.msg.Quaternion(*(0.62871, 0.545, 0.36517, 0.41756))
         ps.pose.position = geometry_msgs.msg.Point(-0.14509, -0.021323, 0.063084)
         c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_optical_frame", speed=.1, acceleration=.04)
-      if r == '9':
+      elif r == '9':
         c.look_for_item_in_tray("07_SBARB6200ZZ_30", "b_bot")
       elif r == 'x':
         break

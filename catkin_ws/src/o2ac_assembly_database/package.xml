@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>o2ac_assembly_database</name>
+  <version>0.0.1</version>
+  <description>The o2ac_assembly_database package</description>
+
+  <maintainer email="artur.istvan.karoly@gmail.com">root</maintainer>
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>rospy</build_depend>
+  <build_export_depend>rospy</build_export_depend>
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>rospy</exec_depend>
+
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>shape_msgs</exec_depend>
+  <exec_depend>moveit_msgs</exec_depend>
+  <exec_depend>o2ac_parts_description</exec_depend>
+
+  <exec_depend>tf</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+
+
+
+  <export>
+  </export>
+</package>

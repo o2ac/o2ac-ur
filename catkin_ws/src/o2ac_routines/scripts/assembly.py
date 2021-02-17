@@ -49,8 +49,8 @@ import actionlib
 import o2ac_msgs.msg
 import std_msgs.msg
 
-from o2ac_assembly_handler.assy_reader import AssyReader
-from o2ac_assembly_handler.assy import AssyHandler
+from o2ac_assembly_database.parts_reader import PartsReader
+from o2ac_assembly_database.assembly_reader import AssemblyReader
 from o2ac_routines.common import O2ACCommon
 
 class AssemblyClass(O2ACCommon):
@@ -60,19 +60,16 @@ class AssemblyClass(O2ACCommon):
   def __init__(self):
     super(AssemblyClass, self).__init__()
     
-    self.set_assembly()
-    
     # Initialize debug monitor
     self.start_task_timer()
     self.log_to_debug_monitor(text="Init", category="task")
     self.log_to_debug_monitor(text="Init", category="subtask")
     self.log_to_debug_monitor(text="Init", category="operation")
 
-    self.downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
+    if not self.assembly_database.db_name == "wrs_assembly_1":
+      self.assembly_database.change_assembly("wrs_assembly_1")
 
-  def set_assembly(self, assembly_name="wrs_assembly_1"):
-    # Change the assembly
-    return True
+    self.downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
 
   ################ ----- Subroutines  
 

@@ -47,7 +47,7 @@ import std_msgs.msg
 
 from math import pi
 
-from o2ac_assembly_handler.assy import AssyHandler
+from o2ac_assembly_database.assembly_reader import AssemblyReader
 
 if __name__ == '__main__':
 
@@ -67,12 +67,12 @@ if __name__ == '__main__':
     assy_pose.pose.orientation = geometry_msgs.msg.Quaternion(*quaternion)
 
     assy_name = 'assy_1'
-    assy_handler = AssyHandler(assy_name)
-    assy_handler.publish_target_frames(assy_pose)
+    assembly_reader = AssemblyReader(assy_name)
+    assembly_reader.publish_target_frames(assy_pose)
 
     pub = rospy.Publisher('/collision_object', moveit_msgs.msg.CollisionObject, queue_size=100)
 
-    collision_object = assy_handler.collision_objects[0]
+    collision_object = assembly_reader.collision_objects[0]
     collision_object.header.frame_id = 'workspace_center'
     # collision_object.mesh_poses[0].position = geometry_msgs.msg.Point(0.5,0,0.2)
     # quaternion = tf.transformations.quaternion_from_euler(0,pi/2,0)

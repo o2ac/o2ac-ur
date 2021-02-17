@@ -19,7 +19,7 @@ import moveit_task_constructor_msgs.msg
 from math import pi
 import moveit_commander
 from moveit_commander.conversions import pose_to_list
-from o2ac_assembly_handler.assy import AssyHandler
+from o2ac_assembly_database.assembly_reader import AssemblyReader
 
 import ur_msgs.msg
 import ur_dashboard_msgs.msg
@@ -46,15 +46,15 @@ def spawn_objects(assembly_name, object_names, object_poses, object_reference_fr
   '''
   Spawn collision objects in the planning scene
 
-  This function uses the o2ac_assembly_handler module to spawn objects in the scene. The assembly, its objects and their metadata
-  has to be set up inside the o2ac_assembly_handler module.
+  This function uses the o2ac_assembly_database module to spawn objects in the scene. The assembly, its objects and their metadata
+  has to be set up inside the o2ac_assembly_database module.
 
   Given a list of object names from an assembly, this functions spawns the listed objects in the corresponding poses in input 'object_poses'.
   The inputs 'object_names' and 'object_poses' must have the same lengths.
   The object poses are lists of floats in [x,y,z,r,p,y] format and are relative to the object_reference_frame
   '''
   moveit_commander.roscpp_initialize(sys.argv)
-  assy_handler = AssyHandler(assembly_name)
+  assembly_reader = AssemblyReader(assembly_name)
   planning_scene_interface = moveit_commander.PlanningSceneInterface()
   transformer = tf.Transformer(True, rospy.Duration(10.0))
 
@@ -78,7 +78,7 @@ def spawn_objects(assembly_name, object_names, object_poses, object_reference_fr
     collision_object_transform.transform.rotation.w = co_pose.orientation.w
     transformer.setTransform(collision_object_transform)
 
-    collision_object = next(co for co in assy_handler.collision_objects if co.id == object_name)
+    collision_object = next(co for co in assembly_reader.collision_objects if co.id == object_name)
     collision_object.header.frame_id = object_reference_frame
     collision_object.mesh_poses[0] = co_pose
 

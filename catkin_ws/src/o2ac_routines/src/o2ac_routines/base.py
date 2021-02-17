@@ -69,7 +69,7 @@ from math import pi
 from std_msgs.msg import String
 from moveit_commander.conversions import pose_to_list
 
-from o2ac_assembly_handler.assy import AssyHandler
+from o2ac_assembly_database.assembly_reader import AssemblyReader
 
 import ur_msgs.msg
 from o2ac_routines.helpers import *
@@ -113,7 +113,7 @@ class O2ACBase(object):
     self.apply_planning_scene_diff = rospy.ServiceProxy('/apply_planning_scene', moveit_msgs.srv.ApplyPlanningScene)
     self.apply_planning_scene_diff.wait_for_service(5.0)
 
-    self.assembly_handler = AssyHandler("taskboard")
+    self.assembly_database = AssemblyReader()
 
     # Action clients and movegroups
     self.groups = {"a_bot":moveit_commander.MoveGroupCommander("a_bot"), "b_bot":moveit_commander.MoveGroupCommander("b_bot"),
@@ -268,7 +268,16 @@ class O2ACBase(object):
     self.b_bot_gripper_opening_width = msg.position
   
   def is_robot_running_normally(self, robot_name):
-    return self.robot_safety_mode[robot_name] == 1
+    """
+    Returns true if the robot is running (no protective stop, not turned off etc).
+    """
+    return self.robot_safety_mode[robot_name] == 1 or self.robot_safety_mode[robot_name] == 2 # Normal / Reduced
+  
+  def is_robot_protective_stopped(self, robot_name):
+    """
+    Returns true if the robot is in protective stop.
+    """
+    return self.robot_safety_mode[robot_name] == 3
 
   def unlock_protective_stop(self, robot="b_bot"):
     if not self.use_real_robot:
@@ -398,7 +407,7 @@ class O2ACBase(object):
     return True
 
   def define_tool_collision_objects(self):
-    # TODO: Use o2ac_assembly_handler to load these instead
+    # TODO: Use o2ac_assembly_database to load these instead
     screw_tool_m3 = moveit_msgs.msg.CollisionObject()
     screw_tool_m4 = moveit_msgs.msg.CollisionObject()
     
@@ -906,9 +915,9 @@ class O2ACBase(object):
     # Publish to planning scene
     if success:
       # TODO: Fix the header and the collision object lookup name!
-      # TODO: To fix the collision object lookup name, the assembly_handler names need to be aligned with o2ac_parts_description.
+      # TODO: To fix the collision object lookup name, the assembly_reader names need to be aligned with o2ac_parts_description.
       rospy.loginfo("Detected " + item_name + " with confidence " + str(res.confidences[0]))
-      co = self.assembly_handler._reader.get_collision_object("bearing")
+      co = self.assembly_reader._reader.get_collision_object("bearing")
       co.mesh_poses[0] = res.detected_poses[0].pose
       co.header.frame_id = "b_bot_outside_camera_color_optical_frame"
       print(co)

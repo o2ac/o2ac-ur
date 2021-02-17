@@ -34,9 +34,9 @@ Before starting the node make sure that these parameters are available on the pa
 
 The node relies on a stage that looks for and loads the possible grasps from the ROS parameter server instead of the [GenerateGraspPose](https://gitlab.com/o2ac/moveit-task-constructor/-/blob/master/core/src/stages/generate_grasp_pose.cpp) stage in MTC.
 
-The grasps are expected to be in the format, in which [o2ac_assembly_handler](https://gitlab.com/o2ac/o2ac-ur/-/tree/integrate-mtc-in-o2ac-routines/catkin_ws/src/o2ac_assembly_handler) package uploads the grasps to the parameter server ([here](https://gitlab.com/o2ac/o2ac-ur/-/blob/integrate-mtc-in-o2ac-routines/catkin_ws/src/o2ac_assembly_handler/src/o2ac_assembly_handler/assy.py#L61)).
+The grasps are expected to be in the format, in which [o2ac_assembly_database](https://gitlab.com/o2ac/o2ac-ur/-/tree/integrate-mtc-in-o2ac-routines/catkin_ws/src/o2ac_assembly_database) package uploads the grasps to the parameter server ([here](https://gitlab.com/o2ac/o2ac-ur/-/blob/integrate-mtc-in-o2ac-routines/catkin_ws/src/o2ac_assembly_database/src/o2ac_assembly_database/assy.py#L61)).
 
-However, the grasps can be set direstly (the use of o2ac_assembly_handler is not necessary, it is just convenient fo rthe objects that are already part of that package). For new objects (like the tools for example), the grasps can be defined directly as well, like [this](https://gitlab.com/o2ac/o2ac-ur/-/blob/integrate-mtc-in-o2ac-routines/catkin_ws/src/o2ac_routines/src/o2ac_routines/base.py#L696).
+However, the grasps can be set direstly (the use of o2ac_assembly_database is not necessary, it is just convenient fo rthe objects that are already part of that package). For new objects (like the tools for example), the grasps can be defined directly as well, like [this](https://gitlab.com/o2ac/o2ac-ur/-/blob/integrate-mtc-in-o2ac-routines/catkin_ws/src/o2ac_routines/src/o2ac_routines/base.py#L696).
 
 The grasps on the parameter server are expected to be in the following format:
 

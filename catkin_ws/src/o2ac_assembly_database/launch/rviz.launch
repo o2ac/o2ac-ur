@@ -1,0 +1,23 @@
+<launch>
+
+  <include file="$(find o2ac_moveit_config)/launch/move_group.launch">
+    <arg name="allow_trajectory_execution" value="true"/>
+    <arg name="fake_execution" value="true"/>
+    <arg name="info" value="true"/>
+    <arg name="debug" value="false"/>
+    <arg name="pipeline" value="ompl"/>
+  </include>
+
+  <!-- Load Rviz -->
+  <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false"
+	args="-d $(find o2ac_assembly_database)/launch/demo.rviz" output="screen">
+  </node>
+
+  <!-- Load universal robot description format (URDF) -->
+  <param name="robot_description" command="xacro  '$(find o2ac_assembly_database)/urdf/o2ac_end_effector_only.urdf.xacro'"/>
+  <param name="robot_description_semantic" textfile="$(find o2ac_assembly_database)/urdf/o2ac_end_effector_only.srdf" />
+
+  <!--Broadcast static tf to hide errors -->
+  <node pkg="tf" type="static_transform_publisher" name="virtual_joint_broadcaster_0" args="0 0 0 0 0 0 /world /base 100" />
+
+</launch>

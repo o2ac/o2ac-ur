@@ -89,7 +89,7 @@ void SkillServer::advertiseActionsAndServices()
 void SkillServer::initializeCollisionObjects()
 {
   // --- Define the tools as collision objects, so they can be used for planning
-  // TODO: Load these from o2ac_assembly_handler
+  // TODO: Load these from o2ac_assembly_database
   
   //M4 tool
   screw_tool_m4.header.frame_id = "screw_tool_m4_link";
@@ -791,7 +791,7 @@ bool SkillServer::equipUnequipScrewTool(std::string robot_name, std::string scre
   if (unequip) 
   {
     ps_tool_holder.pose.position.x -= 0.001; // Don't move all the way into the magnet
-    ps_approach.pose.position.z -= 0.01; // Approach diagonally so nothing gets stuck
+    ps_approach.pose.position.z -= 0.02; // Approach diagonally so nothing gets stuck
   }
 
   ps_high_up = ps_approach;
