@@ -1,9 +1,38 @@
 <?xml version="1.0"?>
 <launch>
-  <!-- This file launches all the vision and recognition nodes (but not the cameras) -->
+  <!-- This file launches all the vision and recognition nodes. Assumes that the cameras are running. -->
 
-    <node name="ssd_server" pkg="o2ac_vision" type="ssd_server.py" output="screen" />
+  <!-- Mode of object detector -->
+  <!-- Continuous streaming is expensive and meant for debugging. -->
+  <arg name="continuous_streaming"		default="false"/>
+  <arg name="camera_name"	default="b_bot_outside_camera"/>
+
+  <!-- Localization parameters -->
+  <arg name="nposes"		default="2"/>
+  <arg name="timeout"		default="10"/>
+  <arg name="ply_dir"		default="$(find o2ac_parts_description)/meshes"/>
+  <arg name="urdf_dir"		default="$(find o2ac_parts_description)/urdf/generated"/>
+
+  <!-- Construct recognition pipeline -->
+  <include file="$(find o2ac_vision)/launch/recognition_pipeline.launch">
+    <arg name="continuous_streaming"		  value="$(arg continuous_streaming)"/>
+    <arg name="nposes"		  value="$(arg nposes)"/>
+    <arg name="timeout"		  value="$(arg timeout)"/>
+    <arg name="ply_dir"		  value="$(arg ply_dir)"/>
+    <arg name="urdf_dir"	  value="$(arg urdf_dir)"/>
+    <arg name="camera_info_topic" value="$(arg camera_name)/color/camera_info"/>
+    <arg name="image_topic"	  value="$(arg camera_name)/color/image_raw"/>
+    <arg name="depth_topic"	  value="$(arg camera_name)/aligned_depth_to_color/image_raw"/>
+    <arg name="normal_topic"	  value=""/>
+  </include>
+
+  <!-- Spawn visualizer and parameter configurator -->
+  <node name="$(anon rviz)" pkg="rviz" type="rviz" output="screen"
+	      args="-d $(find o2ac_vision)/launch/pipeline_test.rviz"/>
+  <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure"/>
+
+    <!-- <node name="ssd_server" pkg="o2ac_vision" type="ssd_server.py" output="screen" />
     <node name="pose_estimation_server" pkg="o2ac_vision" type="pose_estimation_server.py" output="screen" />
     <node name="belt_detection_server" pkg="o2ac_vision" type="belt_detection_server.py" output="screen" />
-    <node name="server" pkg="o2ac_vision" type="server.py" output="screen" />
+    <node name="server" pkg="o2ac_vision" type="server.py" output="screen" /> -->
 </launch>

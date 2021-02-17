@@ -9,9 +9,9 @@ screw_tool_m4:
 # screw_tool_m6:
 #   ID: 1
 #   Control_Mode: 1
-nut_tool_m6:
-  ID: 4
-  Control_Mode: 1
+# nut_tool_m6:
+#   ID: 4
+#   Control_Mode: 1
 set_screw_tool:
   ID: 10
   Control_Mode: 1

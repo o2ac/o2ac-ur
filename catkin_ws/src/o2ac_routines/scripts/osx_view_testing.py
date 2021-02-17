@@ -42,6 +42,7 @@ import geometry_msgs.msg
 import tf
 import tf_conversions
 from math import pi
+tau = 2.0*pi  # Part of math from Python 3.6
 
 from o2ac_routines.common import O2ACCommon
 
@@ -57,29 +58,13 @@ class TestClass(O2ACCommon):
 
   def __init__(self):
     super(TestClass, self).__init__()
-    
-    self.a_bot_downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, tau/2))
-    
-    self.bridge = CvBridge()
-    self._img = Image()
-    
     rospy.sleep(.5)
 
   def views(self):
-    high_height = .37
-    low_height = .22
-    x_offset = .04  # At low_height
-    y_offset = .06  # At low_height
-
-    ps = geometry_msgs.msg.PoseStamped()
-    ps.header.frame_id = "tray_center"
-    ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
-    ps.pose.position.z = .37
-    c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
+    self.go_to_pose_goal("b_bot", self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
     rospy.sleep(2)
 
-    ps.pose.position.z = .22
-    c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
+    self.go_to_pose_goal("b_bot", self.tray_view_low, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
     rospy.sleep(2)
 
     self.close_view(1)
@@ -95,28 +80,15 @@ class TestClass(O2ACCommon):
     return True
   
   def close_view(self, number):
-    high_height = .37
-    low_height = .22
-    x_offset = .04  # At low_height
-    y_offset = .06  # At low_height
-
-    ps = geometry_msgs.msg.PoseStamped()
-    ps.header.frame_id = "tray_center"
-    ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
-    ps.pose.position.z = .22
     if number == 1:
-      ps.pose.position.x = x_offset
-      ps.pose.position.y = y_offset
+      pose = self.tray_view_close_front_b
     elif number == 2:
-      ps.pose.position.x = -x_offset
-      ps.pose.position.y = y_offset
+      pose = self.tray_view_close_back_b
     elif number == 3:
-      ps.pose.position.x = x_offset
-      ps.pose.position.y = -y_offset
+      pose = self.tray_view_close_front_a
     elif number == 4:
-      ps.pose.position.x = -x_offset
-      ps.pose.position.y = -y_offset
-    c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
+      pose = self.tray_view_close_back_a
+    self.go_to_pose_goal("b_bot", pose, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
     return
   
   def call_belt_action_and_show(self):
@@ -141,6 +113,7 @@ if __name__ == '__main__':
       rospy.loginfo("4: Do distant view and 4 close views")
       rospy.loginfo("5: Call belt grasp point detection and show result")
       rospy.loginfo("6: Look at taskboard bearing")
+      rospy.loginfo("9: Find bearing from center view")
       rospy.loginfo("x: Exit ")
       rospy.loginfo(" ")
       r = raw_input()
@@ -179,6 +152,8 @@ if __name__ == '__main__':
         ps.pose.orientation = geometry_msgs.msg.Quaternion(*(0.62871, 0.545, 0.36517, 0.41756))
         ps.pose.position = geometry_msgs.msg.Point(-0.14509, -0.021323, 0.063084)
         c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_optical_frame", speed=.1, acceleration=.04)
+      if r == '9':
+        c.look_for_item_in_tray("07_SBARB6200ZZ_30", "b_bot")
       elif r == 'x':
         break
       else:

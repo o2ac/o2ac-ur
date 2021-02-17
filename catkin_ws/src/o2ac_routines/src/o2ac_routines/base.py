@@ -43,7 +43,7 @@ import tf_conversions
 import tf 
 import actionlib
 from math import *
-tau = 2.0*pi
+tau = 2.0*pi  # Part of math from Python 3.6
 import yaml
 import pickle
 
@@ -68,6 +68,8 @@ import o2ac_task_planning_msgs.msg
 from math import pi
 from std_msgs.msg import String
 from moveit_commander.conversions import pose_to_list
+
+from o2ac_assembly_handler.assy import AssyHandler
 
 import ur_msgs.msg
 from o2ac_routines.helpers import *
@@ -111,18 +113,21 @@ class O2ACBase(object):
     self.apply_planning_scene_diff = rospy.ServiceProxy('/apply_planning_scene', moveit_msgs.srv.ApplyPlanningScene)
     self.apply_planning_scene_diff.wait_for_service(5.0)
 
+    self.assembly_handler = AssyHandler("taskboard")
+
     # Action clients and movegroups
     self.groups = {"a_bot":moveit_commander.MoveGroupCommander("a_bot"), "b_bot":moveit_commander.MoveGroupCommander("b_bot"),
       "a_bot_robotiq_85":moveit_commander.MoveGroupCommander("a_bot_robotiq_85"), "b_bot_robotiq_85":moveit_commander.MoveGroupCommander("b_bot_robotiq_85")}
     self.gripper_action_clients = {"a_bot":actionlib.SimpleActionClient('/a_bot/gripper_action_controller', robotiq_msgs.msg.CModelCommandAction),
       "b_bot":actionlib.SimpleActionClient('/b_bot/gripper_action_controller', robotiq_msgs.msg.CModelCommandAction)}
     
-    self.suck_screw_client = actionlib.SimpleActionClient('/o2ac_skills/suck_screw', o2ac_msgs.msg.suckScrewAction)
     self.pick_screw_from_feeder_client = actionlib.SimpleActionClient('/o2ac_skills/pick_screw_from_feeder', o2ac_msgs.msg.pickScrewFromFeederAction)
     self.place_client = actionlib.SimpleActionClient('/o2ac_skills/place', o2ac_msgs.msg.placeAction)
     self.regrasp_client = actionlib.SimpleActionClient('/o2ac_skills/regrasp', o2ac_msgs.msg.regraspAction)
     self.screw_client = actionlib.SimpleActionClient('/o2ac_skills/screw', o2ac_msgs.msg.screwAction)
     self.change_tool_client = actionlib.SimpleActionClient('/o2ac_skills/change_tool', o2ac_msgs.msg.changeToolAction)
+
+    self.recognition_client = actionlib.SimpleActionClient('/object_recognizer/recognize_object', o2ac_msgs.msg.detectObjectAction)
 
     self.pick_planning_client = actionlib.SimpleActionClient('/pick_planning', o2ac_task_planning_msgs.msg.PickObjectAction)
     self.place_planning_client = actionlib.SimpleActionClient('/place_planning', o2ac_task_planning_msgs.msg.PlaceObjectAction)
@@ -131,8 +136,8 @@ class O2ACBase(object):
     self.fastening_planning_client = actionlib.SimpleActionClient('/fastening_planning', o2ac_task_planning_msgs.msg.PlaceObjectAction)
     self.wrs_subtask_b_planning_client = actionlib.SimpleActionClient('/wrs_subtask_b_planning', o2ac_task_planning_msgs.msg.PickPlaceWithRegraspAction)
     
-    self._suction_client = actionlib.SimpleActionClient('/suction_control', o2ac_msgs.msg.SuctionControlAction)
-    self._fastening_tool_client = actionlib.SimpleActionClient('/screw_tool_control', o2ac_msgs.msg.FastenerGripperControlAction)
+    self.suction_client = actionlib.SimpleActionClient('/suction_control', o2ac_msgs.msg.SuctionControlAction)
+    self.fastening_tool_client = actionlib.SimpleActionClient('/screw_tool_control', o2ac_msgs.msg.FastenerGripperControlAction)
 
     # Service clients
     self.ur_dashboard_clients = {
@@ -149,7 +154,9 @@ class O2ACBase(object):
       "a_bot_quit":rospy.ServiceProxy('/a_bot/ur_hardware_interface/dashboard/quit', std_srvs.srv.Trigger),
       "b_bot_quit":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/quit', std_srvs.srv.Trigger),
       "a_bot_connect":rospy.ServiceProxy('/a_bot/ur_hardware_interface/dashboard/connect', std_srvs.srv.Trigger),
-      "b_bot_connect":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/connect', std_srvs.srv.Trigger)
+      "b_bot_connect":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/connect', std_srvs.srv.Trigger),
+      "a_bot_close_popup":rospy.ServiceProxy('/a_bot/ur_hardware_interface/dashboard/close_popup', std_srvs.srv.Trigger),
+      "b_bot_close_popup":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/close_popup', std_srvs.srv.Trigger)
     }
 
     self.urscript_client = rospy.ServiceProxy('/o2ac_skills/sendScriptToUR', o2ac_msgs.srv.sendScriptToUR)
@@ -160,6 +167,8 @@ class O2ACBase(object):
     # "robot_program_running" refers only to the ROS external control UR script, not just any program
     self.sub_a_bot_status_ = rospy.Subscriber("/a_bot/ur_hardware_interface/robot_program_running", Bool, self.a_bot_ros_control_status_callback) 
     self.sub_b_bot_status_ = rospy.Subscriber("/b_bot/ur_hardware_interface/robot_program_running", Bool, self.b_bot_ros_control_status_callback)
+    self.sub_a_bot_gripper_status_ = rospy.Subscriber("/a_bot/gripper_status", robotiq_msgs.msg.CModelCommandFeedback, self.a_bot_gripper_status_callback)
+    self.sub_b_bot_gripper_status_ = rospy.Subscriber("/b_bot/gripper_status", robotiq_msgs.msg.CModelCommandFeedback, self.b_bot_gripper_status_callback)
     self.sub_run_mode_ = rospy.Subscriber("/run_mode", Bool, self.run_mode_callback)
     self.sub_pause_mode_ = rospy.Subscriber("/pause_mode", Bool, self.pause_mode_callback)
     self.sub_test_mode_ = rospy.Subscriber("/test_mode", Bool, self.test_mode_callback)
@@ -176,8 +185,47 @@ class O2ACBase(object):
 
     self.screw_tools = {}
 
+    self.define_tray_views()
+
     rospy.sleep(.5)
     rospy.loginfo("Finished initializing class")
+
+  def define_tray_views(self):
+    """
+    Define the poses used to position the camera to look into the tray.
+
+    Example usage: self.go_to_pose_goal("b_bot", self.tray_view_high, 
+                                        1end_effector_link="b_bot_outside_camera_color_frame", 
+                                        1speed=.1, acceleration=.04)
+    """
+    high_height = .37
+    low_height = .22
+    x_offset = .04  # At low_height
+    y_offset = .06  # At low_height
+
+    ps = geometry_msgs.msg.PoseStamped()
+    ps.header.frame_id = "tray_center"
+    ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
+    ps.pose.position.z = high_height
+
+    # Centered views (high up and close)
+    self.tray_view_high = copy.deepcopy(ps)    
+    ps.pose.position.z = low_height
+    self.tray_view_low = copy.deepcopy(ps)
+
+    # Close views in corners
+    ps.pose.position.x = x_offset
+    ps.pose.position.y = y_offset
+    self.tray_view_close_front_b = copy.deepcopy(ps)
+    ps.pose.position.x = -x_offset
+    ps.pose.position.y = y_offset
+    self.tray_view_close_back_b = copy.deepcopy(ps)
+    ps.pose.position.x = x_offset
+    ps.pose.position.y = -y_offset
+    self.tray_view_close_front_a = copy.deepcopy(ps)
+    ps.pose.position.x = -x_offset
+    ps.pose.position.y = -y_offset
+    self.tray_view_close_back_a = copy.deepcopy(ps)
     
   ############## ------ Internal functions (and convenience functions)
 
@@ -214,6 +262,10 @@ class O2ACBase(object):
     self.ur_ros_control_running_on_robot["a_bot"] = msg.data
   def b_bot_ros_control_status_callback(self, msg):
     self.ur_ros_control_running_on_robot["b_bot"] = msg.data
+  def a_bot_gripper_status_callback(self, msg):
+    self.a_bot_gripper_opening_width = msg.position
+  def b_bot_gripper_status_callback(self, msg):
+    self.b_bot_gripper_opening_width = msg.position
   
   def is_robot_running_normally(self, robot_name):
     return self.robot_safety_mode[robot_name] == 1
@@ -277,8 +329,8 @@ class O2ACBase(object):
     else:
       rospy.loginfo("Successfully activated ROS control on robot " + robot)
       return True
-    
-  def load_and_execute_program(self, robot="b_bot", program_name="", wait=True, recursion_depth=0):
+
+  def load_program(self, robot="b_bot", program_name="", recursion_depth=0):
     if not self.use_real_robot:
       return True
 
@@ -286,9 +338,6 @@ class O2ACBase(object):
       rospy.logerr("Tried too often. Breaking out.")
       rospy.logerr("Could not load " + program_name + ". Is the UR in Remote Control mode and program installed with correct name?")
       return False
-
-    if not program_name:
-      rospy.logerr("No ")
     
     load_success = False
     try:
@@ -302,6 +351,7 @@ class O2ACBase(object):
       response = self.ur_dashboard_clients[robot + "_load_program"].call(request)
       if response.success: # Try reconnecting to dashboard
         load_success = True
+        return True
       else:
         rospy.logerr("Could not load " + program_name + ". Is the UR in Remote Control mode and program installed with correct name?")
     except:
@@ -311,21 +361,30 @@ class O2ACBase(object):
       rospy.sleep(3)
       if recursion_depth > 0:  # If connect alone failed, try quit and then connect
         response = self.ur_dashboard_clients[robot + "_quit"].call()
+        rospy.logerr("Program could not be loaded on UR: " + program_name)
         rospy.sleep(.5)
       response = self.ur_dashboard_clients[robot + "_connect"].call()
       rospy.sleep(.5)
-      return self.load_and_execute_program(robot, program_name=program_name, wait=wait, recursion_depth=recursion_depth+1)
-    
+      return self.load_program(robot, program_name=program_name, recursion_depth=recursion_depth+1)
+  
+  def execute_loaded_program(self, robot="b_bot"):
     # Run the program
     response = self.ur_dashboard_clients[robot + "_play"].call(std_srvs.srv.TriggerRequest())
-    rospy.sleep(2)
     if not response.success:
-      rospy.logerr("Could not start " + program_name + ". Is the UR in Remote Control mode and program installed with correct name?")
+      rospy.logerr("Could not start program. Is the UR in Remote Control mode and program installed with correct name?")
       return False
     else:
-      if wait:
-        wait_for_UR_program("/" + robot, rospy.Duration.from_sec(30.0))
-      rospy.loginfo("Successfully started " + program_name + " on robot " + robot)
+      rospy.loginfo("Successfully started program on robot " + robot)
+      return True
+  
+  def close_ur_popup(self, robot="b_bot"):
+    # Close a popup on the teach pendant to continue program execution
+    response = self.ur_dashboard_clients[robot + "_close_popup"].call(std_srvs.srv.TriggerRequest())
+    if not response.success:
+      rospy.logerr("Could not close popup.")
+      return False
+    else:
+      rospy.loginfo("Successfully closed popup on teach pendant of robot " + robot)
       return True
   
   def publish_marker(self, pose_stamped, marker_type):
@@ -708,23 +767,6 @@ class O2ACBase(object):
 
   ######
 
-  def do_suck_screw_action(self, robot_name, pose_stamped, screw_size = 0, z_axis_rotation = 0.0, tool_name = ""):
-    # Call the suck screw action. Deprecated.
-    goal = o2ac_msgs.msg.suckScrewGoal()
-    goal.robot_name = robot_name
-    goal.screw_pose = pose_stamped
-    goal.tool_name = tool_name
-    goal.screw_size = screw_size
-    goal.z_axis_rotation = z_axis_rotation
-    rospy.loginfo("Sending pick action goal")
-    rospy.logdebug(goal)
-
-    self.suck_screw_client.send_goal(goal)
-    rospy.logdebug("Waiting for result")
-    self.suck_screw_client.wait_for_result()
-    rospy.logdebug("Getting result")
-    return self.suck_screw_client.get_result()
-
   def pick_screw_from_feeder(self, robot_name, screw_size):
     """
     Picks a screw from one of the feeders. The screw tool already has to be equipped!
@@ -741,7 +783,6 @@ class O2ACBase(object):
     self.pick_screw_from_feeder_client.wait_for_result()
     rospy.logdebug("Getting result")
     return self.pick_screw_from_feeder_client.get_result()
-
 
   def do_place_action(self, robot_name, pose_stamped, tool_name = "", screw_size=0):
     # Call the place action
@@ -842,6 +883,40 @@ class O2ACBase(object):
       self.upload_tool_grasps_to_param_server(screw_id)
     spawn_objects(assembly_name, objects, poses, reference_frame)
     
+  def detect_object_in_camera_view(self, item_name):
+    """
+    Returns True if object was detected in current camera view and published to planning scene,
+    False otherwise.
+    """
+
+    # Send goal, wait for result
+    self.recognition_client.send_goal(o2ac_msgs.msg.detectObjectGoal(item_id=item_name))
+    if (not self.recognition_client.wait_for_result(rospy.Duration(15.0))):
+      self.recognition_client.cancel_goal()  # Cancel goal if timeout expired
+      rospy.logerr("Recognition node returned no result.")
+      
+    # Read result and publish to planning scene as collision_object if found
+    success = False
+    try:
+      res = self.recognition_client.get_result()
+      success = res.succeeded
+    except:
+      pass
+    
+    # Publish to planning scene
+    if success:
+      # TODO: Fix the header and the collision object lookup name!
+      # TODO: To fix the collision object lookup name, the assembly_handler names need to be aligned with o2ac_parts_description.
+      rospy.loginfo("Detected " + item_name + " with confidence " + str(res.confidences[0]))
+      co = self.assembly_handler._reader.get_collision_object("bearing")
+      co.mesh_poses[0] = res.detected_poses[0].pose
+      co.header.frame_id = "b_bot_outside_camera_color_optical_frame"
+      print(co)
+      self.planning_scene_interface.apply_collision_object(co)
+      return True
+    else:
+      rospy.loginfo("Did not detect " + item_name)
+      return False
 
   def do_plan_pick_action(self, object_name, grasp_parameter_location = '', lift_direction_reference_frame = '', lift_direction = [], robot_name = ''):
     '''
@@ -953,10 +1028,10 @@ class O2ACBase(object):
     goal.speed = speed
     goal.duration = duration
     rospy.loginfo("Sending fastening_tool action goal.")
-    self._fastening_tool_client.send_goal(goal)
+    self.fastening_tool_client.send_goal(goal)
     if wait:
-      self._fastening_tool_client.wait_for_result()
-    return self._fastening_tool_client.get_result()
+      self.fastening_tool_client.wait_for_result()
+    return self.fastening_tool_client.get_result()
 
   def set_suction(self, tool_name, suction_on=False, eject=False, wait=True):
     if not self.use_real_robot:
@@ -966,10 +1041,10 @@ class O2ACBase(object):
     goal.turn_suction_on = suction_on
     goal.eject_screw = eject
     rospy.loginfo("Sending suction action goal.")
-    self._suction_client.send_goal(goal)
+    self.suction_client.send_goal(goal)
     if wait:
-      self._suction_client.wait_for_result(rospy.Duration(2.0))
-    return self._suction_client.get_result()
+      self.suction_client.wait_for_result(rospy.Duration(2.0))
+    return self.suction_client.get_result()
 
   def do_insertion(self, robot_name, max_insertion_distance= 0.0, 
                         max_approach_distance = 0.0, max_force = .0,

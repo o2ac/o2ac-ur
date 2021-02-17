@@ -416,6 +416,9 @@ class AssyReader():
         '''
         
         mating_transforms = self._read_frames_to_mate_csv()
+        if not mating_transforms:
+            rospy.loginfo("No assembly tree defined")
+            return False
         base_id = int(mating_transforms[0].header.frame_id.split('_')[2])
         base_name = next((part['name'] for part in self._parts_list if part['id'] == base_id), None)
         base_object = next((collision_object for collision_object in self.collision_objects if collision_object.id == base_name), None)

@@ -72,7 +72,7 @@ class O2ACVision(object):
                                          smsg.Image, queue_size=1)
 
         # Determine whether the server works with continuous mode or not.
-        self.cont = rospy.get_param('~cont', False)
+        self.continuous_streaming = rospy.get_param('~continuous_streaming', False)
 
         # Load parameters for detecting graspabilities
         default_param_fge = {"ds_rate": 0.5,
@@ -84,11 +84,12 @@ class O2ACVision(object):
                              "threshold": 0.01}
         self.param_fge = rospy.get_param('~param_fge', default_param_fge)
 
-        if self.cont:
+        if self.continuous_streaming:
             # Setup publisher for object detection results
             self.results_pub \
                 = rospy.Publisher('~detection_results',
                                   omsg.EstimatedPosesArray, queue_size=1)
+            rospy.logwarn("Localization action server is not running because SSD results are being streamed! Turn off continuous mode to use localization.")
         else:
             # Setup action server for pose estimation
             self.axserver \
@@ -113,9 +114,9 @@ class O2ACVision(object):
         # First, obtain the image from the camera and convert it
         bridge = cv_bridge.CvBridge()
         im_in  = bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
-        im_vis = im_in.copy()
+        im_vis = im_in.copy() #
 
-        if self.cont:
+        if self.continuous_streaming:
             estimatedPoses_msg = omsg.EstimatedPosesArray()
             estimatedPoses_msg.header = image.header
             estimatedPoses_msg.results, im_vis \
@@ -154,18 +155,18 @@ class O2ACVision(object):
             estimatedPoses_msg.bbox       = ssd_result["bbox"]
 
             if target in apply_2d_pose_estimation:
-                rospy.loginfo("Target id is %d. Apply the 2d pose estimation",
+                rospy.logdebug("Target id is %d. Apply the 2d pose estimation",
                               target)
                 pose, im_vis = self.estimate_pose_in_image(im_in, im_vis,
                                                            ssd_result)
                 estimatedPoses_msg.poses = [pose]
 
             elif target in apply_3d_pose_estimation:
-                rospy.loginfo("Target id is %d. Apply the 3d pose estimation",
+                rospy.logdebug("Target id is %d. Apply the 3d pose estimation",
                               target)
 
             elif target in apply_grasp_detection:
-                rospy.loginfo("Target id is %d. Apply grasp detection", target)
+                rospy.logdebug("Target id is %d. Apply grasp detection", target)
                 estimatedPoses_msg.poses, im_vis \
                     = self.grasp_detection_in_image(im_in, im_vis, ssd_result)
 
@@ -197,7 +198,7 @@ class O2ACVision(object):
         center, ori = tm.compute( ssd_result )
 
         elapsed_time = time.time() - start
-        rospy.loginfo("Processing time[msec]: %d", 1000*elapsed_time)
+        rospy.logdebug("Processing time[msec]: %d", 1000*elapsed_time)
 
         im_vis = tm.get_result_image(ssd_result, ori, center, im_vis)
 

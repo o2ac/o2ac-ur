@@ -3,7 +3,7 @@
   <!-- This launch files runs the pipeline for a camera that has already started up -->
 
   <!-- Mode of object detector -->
-  <arg name="cont"		default="true"/>
+  <arg name="continuous_streaming"		default="true"/>
   <arg name="camera_name"	default="b_bot_outside_camera"/>
 
   <!-- Localization parameters -->
@@ -13,7 +13,7 @@
   <arg name="urdf_dir"		default="$(find o2ac_parts_description)/urdf/generated"/>
 
   <!-- Construct recognition pipeline -->
-  <include unless="$(arg cont)" file="$(find o2ac_vision)/launch/o2ac_recognition.launch">
+  <include unless="$(arg continuous_streaming)" file="$(find o2ac_vision)/launch/o2ac_recognition.launch">
     <arg name="nposes"		  value="$(arg nposes)"/>
     <arg name="timeout"		  value="$(arg timeout)"/>
     <arg name="ply_dir"		  value="$(arg ply_dir)"/>
@@ -24,9 +24,9 @@
     <arg name="normal_topic"	  value=""/>
   </include>
 
-  <node if="$(arg cont)" name="object_detector" pkg="o2ac_vision" type="o2ac_vision.py" output="screen">
+  <node if="$(arg continuous_streaming)" name="object_detector" pkg="o2ac_vision" type="o2ac_vision.py" output="screen">
     <remap from="/image" to="$(arg camera_name)/color/image_raw"/>
-    <param name="cont" value="true"/>
+    <param name="continuous_streaming" value="true"/>
   </node>
 
   <!-- Spawn visualizer and parameter configurator -->

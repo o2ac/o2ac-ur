@@ -304,13 +304,29 @@ class O2ACCommon(O2ACBase):
     success = False
     return success
   
-  def look_for_item_in_tray(self, item_name, robot_name):
+  def look_for_item_in_tray(self, item_name, robot_name="b_bot"):
     """
     This function will look for an item in the tray. After calling this function, the item
-    should be published to the planning scene.
+    is published to the planning scene.
     """
-    # TODO: Call the vision action to implement this
-    success = False
+
+    # Look from top first
+    self.go_to_pose_goal(robot_name, self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
+    success = self.detect_object_in_camera_view(item_name)
+
+    # # TODO: Also move robot if object requires a close-up view (shaft, pin...)
+    # if not success:
+    #   poses = [self.tray_view_close_front_b, self.tray_view_close_back_b, self.tray_view_close_front_a, self.tray_view_close_back_a]
+    #   for pose in poses:
+    #     self.go_to_pose_goal(robot_name, pose, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
+    #     success = self.detect_object_in_camera_view(item_name)
+    #     if success:
+    #       break
+
+    if not success:
+      rospy.logdebug("Failed to find " + item_name)
+    else:
+      rospy.logdebug("Found " + item_name)
     return success
 
   def adjust_tip_position_visually(self, robot_name, use_inside_camera=False, use_outside_camera=False):

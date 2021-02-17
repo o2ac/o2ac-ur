@@ -42,6 +42,7 @@ class ObjectRecognition(object):
         self._recognition_server \
             .register_preempt_callback(self.recognition_preempt_callback)
         self._recognition_server.start()
+        rospy.loginfo("Started recognition server")
 
         # Setup action client for object detection and 2D pose estimation
         self._object_detector \
@@ -53,6 +54,7 @@ class ObjectRecognition(object):
         self._dfilter = DepthFilterClient('depth_filter')
         self._dfilter.window_radius = 2
         self._localizer = LocalizationClient('localization')
+        rospy.loginfo("Recognition node started up")
 
     def recognition_callback(self, goal):
         self._object_detector.send_goal(omsg.poseEstimationGoal())
