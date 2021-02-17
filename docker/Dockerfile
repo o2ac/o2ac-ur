@@ -334,14 +334,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Define the working directory.
 WORKDIR /root/
 
-# Copy the helper scripts to the working directory.
-COPY ./docker/scripts/. /root/scripts/
-RUN chmod -R +x /root/scripts/*
-
 ################################################################################
+
+# Copy the helper script
+COPY ./docker/scripts/install-phoxi-control.sh /root/scripts/install-phoxi-control.sh
+RUN chmod -R +x /root/scripts/install-phoxi-control.sh
 
 # Install PhoXiControl (for the AIST setup)
 RUN /root/scripts/install-phoxi-control.sh
+
+# Copy the helper script
+COPY ./docker/scripts/install-photoneo-localization.sh /root/scripts/install-photoneo-localization.sh
+RUN chmod -R +x /root/scripts/install-photoneo-localization.sh
 
 # Install PhotoneoLocalizationSDK
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -352,6 +356,10 @@ RUN /root/scripts/install-photoneo-localization.sh
 ################################################################################
 
 # Setup the Bash shell environment (part 2)
+
+# Copy the helper scripts to the working directory.
+COPY ./docker/scripts/. /root/scripts/
+RUN chmod -R +x /root/scripts/*
 
 # Setup the Bash shell environment with '/root/.bashrc'.
 RUN echo "source /root/scripts/initialize-bash-shell.sh" >> /root/.bashrc

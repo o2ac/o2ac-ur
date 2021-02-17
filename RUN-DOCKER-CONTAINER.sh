@@ -23,16 +23,21 @@ xhost +
 
 ################################################################################
 
-# Enter the Docker container with a Bash shell (with or without a custom 'roslaunch' command).
-case "$2" in
+# Enter the Docker container with a Bash shell (with or without a custom).
+case "$3" in
   ( "" )
-  docker exec -i -t ${CONTAINER} bash
+  case "$2" in
+    ( "" )
+    docker exec -i -t ${CONTAINER} bash
+    ;;
+    ( * )
+    docker exec -i -t ${CONTAINER} bash -i -c "~/scripts/run-command-repeatedly.sh $2"
+  esac
   ;;
-#   ( "as_julius_default.launch" | \
-#     "darknet_ros_yolov3_default.launch" )
-#   docker exec -i -t ${CONTAINER} bash -i -c "source ~/o2ac-ur/docker/scripts/run-roslaunch-repeatedly.sh $2"
-#   ;;
+  ( *".launch")
+  docker exec -i -t ${CONTAINER} bash -i -c "~/scripts/run-roslaunch-repeatedly.sh $2 $3"
+  ;;
   ( * )
-  echo "Failed to enter the Docker container '${CONTAINER}': '$2' is not a valid argument value."
+  echo "Failed to enter the Docker container '${CONTAINER}': '$3' is not a valid argument value (needs to be a launch file or empty)."
   ;;
 esac
