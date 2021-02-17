@@ -1,20 +1,18 @@
 <?xml version="1.0"?>
-<!--
-  This file launches the cameras on the robots. A scene camera is commented out at the end of the file.
+<!-- 
+  This file launches the cameras, the multiplexer (to turn cameras on/off) and a watcher node 
+  that restarts cameras when their depth stream has failed (firmware bugs).
 -->
 <launch>
 
-  <!-- Cameras -->
+  <!-- WORKAROUND: Keep this block synced between the osx_bringup_camX/cameras files! -->
+  <!-- Synced block start -->
+  <!-- Camera parameters -->
   <arg name="camera0_name"	value="a_bot_inside_camera"/>
   <arg name="camera1_name"	value="a_bot_outside_camera"/>
   <arg name="camera2_name"	value="b_bot_inside_camera"/>
   <arg name="camera3_name"	value="b_bot_outside_camera"/>
-  <!--  -->
-  <!-- <arg name="camera_names" value="$(arg camera0_name), $(arg camera1_name), $(arg camera2_name), $(arg camera3_name)"/> -->
-  <!-- <arg name="camera_names" value="$(arg camera2_name), $(arg camera3_name)"/> -->
-  <arg name="camera_names" value="$(arg camera3_name)"/>
-  <!-- <arg name="camera_names" value="$(arg camera2_name)"/> -->
-  <!-- <arg name="camera_names" value="$(arg camera1_name)"/> -->
+  
   <arg name="camera0_serial_no"	value=""/>
   <arg name="camera1_serial_no"	value="636201000324"/>
   <arg name="camera2_serial_no" value="634206004668"/>
@@ -22,9 +20,16 @@
   <arg name="camera_fps"	default="10"/>
   <arg name="camera_width"	default="640"/>
   <arg name="camera_height"	default="480"/>
-  <!-- <arg name="camera_color_width"	default="1920"/>
-  <arg name="camera_color_height"	default="1080"/> -->
+  <arg name="initial_reset"	default="false"/>
+  <!-- Synced block end -->
   
+  <!-- Select the cameras to go into the multiplexer here -->
+  <!-- <arg name="camera_names" value="$(arg camera0_name), $(arg camera1_name), $(arg camera2_name), $(arg camera3_name)"/> -->
+  <arg name="camera_names" value="$(arg camera2_name), $(arg camera3_name)"/>
+  <!-- <arg name="camera_names" value="$(arg camera3_name)"/> -->
+  <!-- <arg name="camera_names" value="$(arg camera2_name)"/> -->
+  
+
   <!-- <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="camera"		    value="$(arg camera0_name)"/>
     <arg name="serial_no"   value="$(arg camera0_serial_no)"/>
@@ -59,7 +64,7 @@
     <arg name="camera_name"	value="$(arg camera1_name)"/>
   </include> -->
  
-  <!-- <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="camera"		    value="$(arg camera2_name)"/>
     <arg name="serial_no"           value="$(arg camera2_serial_no)"/>
     <arg name="enable_pointcloud"   value="true"/>
@@ -74,7 +79,7 @@
   </include> 
   <include file="$(find o2ac_scene_description)/launch/publish_camera_calibration.launch">
     <arg name="camera_name"	value="$(arg camera2_name)"/>
-  </include> -->
+  </include>
  
   <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="camera"		    value="$(arg camera3_name)"/>
@@ -102,6 +107,15 @@
     </rosparam>
 
     <!-- Use this block if only one camera is used -->
+    <!-- <remap from="/camera_info0"	to="$(arg camera3_name)/color/camera_info"/>
+    <remap from="/image0"	to="$(arg camera3_name)/color/image_raw"/>
+    <remap from="/depth0"	to="$(arg camera3_name)/aligned_depth_to_color/image_raw"/> -->
+
+    <!-- Use both b_bot cameras -->
+    <remap from="/camera_info0"	to="$(arg camera2_name)/color/camera_info"/>
+    <remap from="/image0"	to="$(arg camera2_name)/color/image_raw"/>
+    <remap from="/depth0"	to="$(arg camera2_name)/aligned_depth_to_color/image_raw"/>
+
     <remap from="/camera_info0"	to="$(arg camera3_name)/color/camera_info"/>
     <remap from="/image0"	to="$(arg camera3_name)/color/image_raw"/>
     <remap from="/depth0"	to="$(arg camera3_name)/aligned_depth_to_color/image_raw"/>
@@ -124,6 +138,11 @@
     <remap from="/depth3"	to="$(arg camera3_name)/aligned_depth_to_color/image_raw"/> -->
   </node>
 
+  <node name="camera_watcher" pkg="o2ac_vision" type="o2ac_camera_watcher.py" output="screen">
+    <rosparam param="camera_names" subst_value="true">
+      [$(arg camera_names)]
+    </rosparam>
+  </node>
 
   <!-- This is a scene-mounted camera that can be added for debugging or recording videos. -->
   <!-- <include file="$(find realsense2_camera)/launch/rs_camera.launch">

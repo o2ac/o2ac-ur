@@ -16,7 +16,7 @@
   
   <!-- ======================================== -->
     
-  <include file="$(find o2ac_scene_description)/launch/osx_bringup_cameras.launch"/>
+  <!-- <include file="$(find o2ac_scene_description)/launch/osx_bringup_cameras.launch"/> -->
   
   <!-- ======================================== -->
   
