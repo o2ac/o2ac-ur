@@ -14,5 +14,5 @@ cp ./terminator/config ~/.config/terminator/config
 ################################################################################
 
 # Run Terminator with the project's custom layout.
-terminator -m -l sinicx-v1 &
+terminator -m -l o2ac-autostart &
 sleep 1
