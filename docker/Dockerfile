@@ -344,7 +344,7 @@ RUN chmod -R +x /root/scripts/install-phoxi-control.sh
 RUN /root/scripts/install-phoxi-control.sh
 
 # Copy the helper script
-COPY ./docker/scripts/install-photoneo-localization.sh /root/scripts/install-photoneo-localization.sh
+COPY ./docker/scripts/install-photoneo-localization.* /root/scripts/
 RUN chmod -R +x /root/scripts/install-photoneo-localization.sh
 
 # Install PhotoneoLocalizationSDK
