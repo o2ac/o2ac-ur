@@ -35,11 +35,15 @@
 # Author: Felix von Drigalski
 
 import rospy
+import tf
+import tf_conversions
 import time
+import copy
 import rospkg
 import actionlib
 import numpy as np
-from math import pi, radians
+from math import pi, radians, degrees
+tau = 2.0*pi  # Part of math from Python 3.6
 import cv2
 import cv_bridge  # This offers conversion methods between OpenCV
                   # and ROS formats
@@ -48,15 +52,18 @@ import cv_bridge  # This offers conversion methods between OpenCV
                   # Note that a similar package exists for PCL:
                   #   http://wiki.ros.org/pcl_ros
 
-#import o2ac_routines.helpers
+import o2ac_routines.helpers
 import sensor_msgs.msg
 import o2ac_msgs.msg
 import geometry_msgs.msg
+import visualization_msgs.msg
+import std_msgs.msg
 
-import o2ac_routines.helpers
 from o2ac_vision.pose_estimation_func import TemplateMatching
 from o2ac_vision.pose_estimation_func import FastGraspabilityEvaluation
 from o2ac_vision.pose_estimation_func import ShaftAnalysis
+
+from o2ac_vision.cam_utils import O2ACCameraHelper
 
 import o2ac_vision.o2ac_ssd
 ssd_detection = o2ac_vision.o2ac_ssd.ssd_detection()
@@ -70,18 +77,31 @@ class O2ACVisionServer(object):
     - Bearing angle detection
     - Tooltip/hole tracking
     """
-    # TODO (felixvd): Add the actions besides 2D pose estimation to this class
 
     def __init__(self):
     	rospy.init_node('o2ac_vision_server', anonymous=False)
 
+        camera_name = rospy.get_param('~camera_name', "camera_multiplexer")
+        self.cam_helper = O2ACCameraHelper()
+        # tf_buffer = tf2_ros.Buffer(rospy.Duration(5.0)) #tf buffer length
+        # self.listener = tf2_ros.TransformListener(tf_buffer)
+        self.listener = tf.TransformListener()
+
+        self.cam_info_sub = rospy.Subscriber('/' + camera_name + '/camera_info', sensor_msgs.msg.CameraInfo,
+                                          self.camera_info_callback)
+        self.depth_image_sub = rospy.Subscriber('/' + camera_name + '/depth', sensor_msgs.msg.Image,
+                                          self.depth_image_sub_callback)
+
         # Setup subscriber for RGB image
-        self.image_sub = rospy.Subscriber('/camera_multiplexer/image', sensor_msgs.msg.Image,
+        self.image_sub = rospy.Subscriber('/' + camera_name + '/image', sensor_msgs.msg.Image,
                                           self.image_subscriber_callback)
 
         # Setup publisher for output result image
         self.image_pub = rospy.Publisher('~result_image',
                                          sensor_msgs.msg.Image, queue_size=1)
+        self.marker_pub = rospy.Publisher('~result_markers', visualization_msgs.msg.Marker, queue_size=1)
+        self.marker_array_pub = rospy.Publisher('~result_marker_arrays', visualization_msgs.msg.MarkerArray, queue_size=1)
+        
 
         # Load parameters for detecting graspabilities
         default_param_fge = {"ds_rate": 0.5,
@@ -122,6 +142,12 @@ class O2ACVisionServer(object):
 
         rospy.loginfo("O2AC_vision has started up!")
 
+    def camera_info_callback(self, cam_info_message):
+        self._camera_info = cam_info_message
+
+    def depth_image_sub_callback(self, depth_image_msg):
+        self._depth_image_ros = depth_image_msg
+
     def pose_estimation_goal_callback(self):
         self.pose_estimation_action_server.accept_new_goal()
         rospy.loginfo("Received a request to detect object")
@@ -145,10 +171,15 @@ class O2ACVisionServer(object):
 
         action_result = o2ac_msgs.msg.beltDetectionResult()
         # Get bounding boxes, then belt grasp points
-        ssd_results, im_vis = self.detect_object_in_image(im_in, im_vis) 
+        ssd_results, im_vis = self.detect_object_in_image(im_in, im_vis)
         poses_2d, im_vis = self.belt_grasp_detection_in_image(im_in, im_vis, ssd_result)
-        # TODO: Transform results to 3D PoseStamped (ideally to tray_center frame)
-
+        
+        poses_3d = []
+        for p2d in poses_2d:
+            poses_3d.append(self.convert_pose_2d_to_3d(p2d))
+        
+        action_result.grasp_points = poses_3d
+        self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
         self.belt_detection_action_server.set_succeeded(action_result)
 
     def front_view_angle_detection_callback(self, goal):
@@ -239,6 +270,14 @@ class O2ACVisionServer(object):
                 rospy.logdebug("Target id is %d. Apply grasp detection", target)
                 estimatedPoses_msg.poses, im_vis \
                     = self.belt_grasp_detection_in_image(im_in, im_vis, ssd_result)
+                
+                # Publish result markers
+                poses_3d = []
+                for p2d in estimatedPoses_msg.poses:
+                    poses_3d.append(self.convert_pose_2d_to_3d(p2d))
+                    # print("converted u,v " + str(p2d2.x) + ", "  + str(p2d2.y) + " to " + str(poses_3d[-1].pose.position.x) + ", " + str(poses_3d[-1].pose.position.y))
+                
+                self.publish_belt_grasp_pose_markers(poses_3d)
 
             estimatedPoses_msgs.append(estimatedPoses_msg)
 
@@ -312,9 +351,10 @@ class O2ACVisionServer(object):
 
         im_vis[top_bottom, left_right] = fge.visualization(im_vis[top_bottom, left_right])
 
+        # Subtracting tau/4 (90 degrees) to the rotation result to match the gripper_tip_link orientation
         return [ geometry_msgs.msg.Pose2D(x=result[1] - margin,
                                           y=result[0] - margin,
-                                          theta=-radians(result[2]))
+                                          theta=radians(result[2])-tau/4)
                  for result in results ], \
                im_vis
 
@@ -348,6 +388,170 @@ class O2ACVisionServer(object):
         front, back = sa.main_proc( 0.5 ) # threshold.
         im_vis = sa.get_result_image()
         return front, back, im_vis
+
+### ========
+
+    def convert_pose_2d_to_3d(self, pose_2d):
+        """
+        Convert a 2D pose to a 3D pose in the tray using the current depth image.
+        Returns a PoseStamped in tray_center.
+        """
+        p3d = geometry_msgs.msg.PoseStamped()
+        p3d.header.frame_id = self._camera_info.header.frame_id
+        depth_image = self.bridge.imgmsg_to_cv2(self._depth_image_ros, desired_encoding="passthrough")
+        xyz = self.cam_helper.project_2d_to_3d_from_images(pose_2d.x, pose_2d.y, [depth_image])
+        p3d.pose.position.x = xyz[0]
+        p3d.pose.position.y = xyz[1]
+        p3d.pose.position.z = xyz[2]
+        
+        # Transform position to tray_center
+        try:
+            p3d.header.stamp = rospy.Time(0.0)
+            p3d = self.listener.transformPose("tray_center", p3d)
+        except Exception as e:
+            rospy.logerr('Pose transform failed(): {}'.format(e))
+        
+        p3d.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, pose_2d.theta))
+        return p3d
+
+
+### ========  Visualization
+
+    def publish_belt_grasp_pose_markers(self, grasp_poses_3d):
+        # Clear the namespace first
+        delete_marker_array = visualization_msgs.msg.MarkerArray()
+        del_marker = visualization_msgs.msg.Marker()
+        del_marker.ns = '/belt_grasp_poses'
+        del_marker.action = del_marker.DELETEALL
+        for i in range(1):
+            dm = copy.deepcopy(del_marker)
+            dm.id = i
+            delete_marker_array.markers.append(dm)
+        self.marker_array_pub.publish(delete_marker_array)
+
+        # Then make array of grasp pose markers
+
+        marker_array = visualization_msgs.msg.MarkerArray()
+        show_arrows = False
+        grasp_width = 0.01
+        i = 0
+        for idx, grasp_pose in enumerate(grasp_poses_3d):
+            # print("treating grasp pose: " + str(idx))
+            # print(grasp_pose.pose.position)
+            # Set an auxiliary transform to display the gripper pads (otherwise they are not rotated)
+            base_frame_name = grasp_pose.header.frame_id
+            helper_frame_name = 'belt_grasp_pose_helper_frame_' + str(idx)
+            auxiliary_transform = geometry_msgs.msg.TransformStamped()
+            auxiliary_transform.header.frame_id = base_frame_name
+            auxiliary_transform.child_frame_id = helper_frame_name
+            auxiliary_transform.transform.translation = geometry_msgs.msg.Vector3(grasp_pose.pose.position.x, grasp_pose.pose.position.y, grasp_pose.pose.position.z)
+            auxiliary_transform.transform.rotation = grasp_pose.pose.orientation
+            self.listener.setTransform(auxiliary_transform)
+
+            # Neutral PoseStamped
+            p0 = geometry_msgs.msg.PoseStamped()
+            p0.header.frame_id = helper_frame_name
+            p0.header.stamp = rospy.Time(0.0)
+            p0.pose.position = geometry_msgs.msg.Point(0, 0, 0)
+            p0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0,0,0))
+
+            # Define first marker
+            i += 1
+            center_marker = visualization_msgs.msg.Marker()
+            center_marker.ns = '/belt_grasp_poses'
+            center_marker.id = i
+            center_marker.type = center_marker.SPHERE
+            center_marker.action = center_marker.ADD
+            
+            center_marker.header = copy.deepcopy(grasp_pose.header)
+
+            # Get pose from auxiliary transform
+            p = copy.deepcopy(p0)
+            p = self.listener.transformPose(base_frame_name, p)
+            center_marker.pose = p.pose
+            # print("center_marker after transform: ")
+            # print(center_marker.pose.position)
+
+            center_marker.scale.x = 0.005
+            center_marker.scale.y = 0.005
+            center_marker.scale.z = 0.005
+
+            center_marker.color.a = 0.8
+            center_marker.color.r = 0.2
+            center_marker.color.g = 0.9
+            center_marker.color.b = 0.2
+            marker_array.markers.append(center_marker)
+
+            # Repeat for the next markers
+            i += 1
+            gripper_pad_marker = copy.deepcopy(center_marker)
+            gripper_pad_marker.id = i
+            gripper_pad_marker.type = gripper_pad_marker.CUBE
+
+            p = copy.deepcopy(p0)
+            p.pose.position = geometry_msgs.msg.Point(0, grasp_width, 0)
+            p = self.listener.transformPose(base_frame_name, p)
+            gripper_pad_marker.pose = p.pose
+            
+            gripper_pad_marker.scale.x = 0.03
+            gripper_pad_marker.scale.y = 0.002
+            gripper_pad_marker.scale.z = 0.02
+
+            gripper_pad_marker.color.a = 0.5
+
+            marker_array.markers.append(gripper_pad_marker)
+
+            
+            i += 1
+            gripper_pad_marker2 = copy.deepcopy(gripper_pad_marker)
+            gripper_pad_marker2.id = i
+
+            p = copy.deepcopy(p0)
+            p.pose.position = geometry_msgs.msg.Point(0, -grasp_width, 0)
+            p = self.listener.transformPose(base_frame_name, p)
+            gripper_pad_marker2.pose = p.pose
+
+            gripper_pad_marker2.color.r = 0.9
+            gripper_pad_marker2.color.g = 0.2
+            gripper_pad_marker2.color.b = 0.2
+            marker_array.markers.append(gripper_pad_marker2)
+
+            if show_arrows:
+                arrow_marker = copy.deepcopy(center_marker)
+                arrow_marker.type = visualization_msgs.msg.Marker.ARROW
+                arrow_marker.color = std_msgs.msg.ColorRGBA(0, 0, 0, 0.8)
+                arrow_marker.scale = geometry_msgs.msg.Vector3(.05, .005, .005)
+
+                i += 1
+                arrow_x = copy.deepcopy(arrow_marker)
+                arrow_x.id = i
+                # Pose is already OK, arrow points along x
+
+                i += 1
+                arrow_y = copy.deepcopy(arrow_marker)
+                arrow_y.id = i
+                p = copy.deepcopy(p0)
+                p.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0,0,tau/4))
+                p = self.listener.transformPose(base_frame_name, p)
+                arrow_y.pose = p.pose
+
+                i += 1
+                arrow_z = copy.deepcopy(arrow_marker)
+                arrow_z.id = i
+                p = copy.deepcopy(p0)
+                p.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0,-tau/4,0))
+                p = self.listener.transformPose(base_frame_name, p)
+                arrow_z.pose = p.pose
+                
+                arrow_x.color.r = 1.0
+                arrow_y.color.g = 1.0
+                arrow_z.color.b = 1.0
+
+                marker_array.markers.append(arrow_x)
+                marker_array.markers.append(arrow_y)
+                marker_array.markers.append(arrow_z)
+        print(" i went up to " + str(i))
+        self.marker_array_pub.publish(marker_array)
 
 
 if __name__ == '__main__':

@@ -12,6 +12,7 @@
   <arg name="urdf_dir"		default="$(find o2ac_parts_description)/urdf/generated"/>
 
   <!-- Camera parameters -->
+  <arg name="camera_name"	default="b_bot_outside_camera"/>
   <arg name="camera_info_topic"	default="camera_info"/>
   <arg name="image_topic"	default="texture"/>
   <arg name="depth_topic"	default="depth_map"/>
@@ -22,6 +23,7 @@
   <node name="o2ac_vision_server" pkg="o2ac_vision" type="o2ac_vision_server.py" output="screen">
     <remap from="/image"	to="$(arg image_topic)"/>
     <param name="continuous_streaming"		value="$(arg continuous_streaming)"/>
+    <param name="camera_name"		value="$(arg camera_name)"/>>
   </node>
 
   <group unless="$(arg continuous_streaming)">
