@@ -82,9 +82,6 @@ class O2ACVisionServer(object):
         self.image_pub = rospy.Publisher('~result_image',
                                          sensor_msgs.msg.Image, queue_size=1)
 
-        # Determine whether the server works with continuous mode or not.
-        self.continuous_streaming = rospy.get_param('~continuous_streaming', False)
-
         # Load parameters for detecting graspabilities
         default_param_fge = {"ds_rate": 0.5,
                              "target_lower":[0, 150, 100],
@@ -95,6 +92,10 @@ class O2ACVisionServer(object):
                              "threshold": 0.01}
         self.param_fge = rospy.get_param('~param_fge', default_param_fge)
 
+        self.bridge = cv_bridge.CvBridge()
+
+        # Determine whether the detection server works in continuous mode or not.
+        self.continuous_streaming = rospy.get_param('~continuous_streaming', False)
         if self.continuous_streaming:
             # Setup publisher for object detection results
             self.results_pub \
@@ -102,57 +103,49 @@ class O2ACVisionServer(object):
                                   o2ac_msgs.msg.EstimatedPosesArray, queue_size=1)
             rospy.logwarn("Localization action server is not running because SSD results are being streamed! Turn off continuous mode to use localization.")
         else:
-            # Setup action server for pose estimation
-            self.axserver \
-                = actionlib.SimpleActionServer("poseEstimation",
-                                               o2ac_msgs.msg.poseEstimationAction,
-                                               auto_start = False)
-            self.axserver.register_goal_callback(self.goal_callback)
-            self.axserver.register_preempt_callback(self.preempt_callback)
-            self.axserver.start()
-
+            self.pose_estimation_action_server = actionlib.SimpleActionServer("poseEstimation", o2ac_msgs.msg.poseEstimationAction,
+                execute_cb = self.pose_estimation_goal_callback, auto_start=False)
+            self.pose_estimation_action_server.start()    
+        
         rospy.loginfo("O2AC_vision has started up!")
 
-    def goal_callback(self):
-        self.axserver.accept_new_goal()
+    def pose_estimation_goal_callback(self):
+        self.pose_estimation_action_server.accept_new_goal()
         rospy.loginfo("Received a request to detect object")
-        # TODO: Actually treat the goal.
+        # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
+        im_in  = self.bridge.imgmsg_to_cv2(self.last_rgb_image, desired_encoding="bgr8")
+        im_vis = im_in.copy()
+        
+        action_result = o2ac_msgs.msg.poseEstimationResult()
+        action_result.results, im_vis = self.get_pose_estimation_results(im_in, im_vis)
+        self.pose_estimation_action_server.set_succeeded(action_result)
 
-    def preempt_callback(self):
-        self.axserver.set_preempted()
-        rospy.loginfo("o2ac_msgs.msg.poseEstimationAction preempted")
+        # Publish result visualization
+        self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
 
     def image_subscriber_callback(self, image):
         # Save the camera image locally
         # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
-        bridge = cv_bridge.CvBridge()
-        im_in  = bridge.compressed_imgmsg_to_cv2(image, desired_encoding="bgr8")
-        im_vis = im_in.copy()
-
+        self.last_rgb_image = image
+        
         # Pass image to SSD if continuous display is turned on
         if self.continuous_streaming:
+            # with self.lock:
+            im_in  = self.bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
+            im_vis = im_in.copy()
+
             estimatedPoses_msg = o2ac_msgs.msg.EstimatedPosesArray()
             estimatedPoses_msg.header = image.header
-            estimatedPoses_msg.results, im_vis \
-                = self.get_estimation_results(im_in, im_vis)
+            estimatedPoses_msg.results, im_vis = self.get_pose_estimation_results(im_in, im_vis)
             self.results_pub.publish(estimatedPoses_msg)
 
             # Publish images visualizing results
-            self.image_pub.publish(bridge.cv2_to_imgmsg(im_vis))
-        
-        # TODO(felixvd): Confirm that this behaves as intended
-        elif self.axserver.is_active():
-            action_result = o2ac_msgs.msg.poseEstimationResult()
-            action_result.results, im_vis = self.get_estimation_results(im_in, im_vis)
-            self.axserver.set_succeeded(action_result)
-
-            # Publish images visualizing results
-            self.image_pub.publish(bridge.cv2_to_imgmsg(im_vis))
+            self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
 
 
 ### =======
 
-    def get_estimation_results(self, im_in, im_vis):
+    def get_pose_estimation_results(self, im_in, im_vis):
         """
         Finds an object's bounding box on the tray, then attempts to find its pose.
         Can also find grasp poses for the belt.
