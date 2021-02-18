@@ -1,8 +1,8 @@
 # This action will be called when the camera is looking at the bearing or large pulley
-# from the front to check their orientation.
+# from the front to check the angle difference to its target position.
 
 # Request
-string item_id     # Name of the item.
+string item_id     # Name of the item ("bearing", "pulley" or the part name)
 string camera_id   # Which camera to use. "a_bot_cam_outside", "a_bot_cam_inside"...
 
 ---
@@ -12,6 +12,7 @@ bool succeeded
 float32 detected_angle_offset   # The angle by which the object needs to be turned
                                 # around its axis until it is in the target position.
                                 # (= screws pointing up, or the bearing holes aligned)
+                                # Negative angle offset = counter-clockwise turn is required
 float32 confidence
 
 ---

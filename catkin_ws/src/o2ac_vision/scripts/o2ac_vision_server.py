@@ -110,6 +110,10 @@ class O2ACVisionServer(object):
         self.belt_detection_action_server = actionlib.SimpleActionServer("beltDetection", o2ac_msgs.msg.beltDetectionAction,
             execute_cb = self.belt_detection_callback, auto_start=False)
         self.belt_detection_action_server.start()    
+        
+        self.front_view_angle_detection_action_server = actionlib.SimpleActionServer("frontViewAngleDetection", o2ac_msgs.msg.frontViewAngleDetectionAction,
+            execute_cb = self.front_view_angle_detection_callback, auto_start=False)
+        self.front_view_angle_detection_action_server.start()    
 
         rospy.loginfo("O2AC_vision has started up!")
 
@@ -141,6 +145,21 @@ class O2ACVisionServer(object):
         # TODO: Transform results to 3D PoseStamped (ideally to tray_center frame)
 
         self.belt_detection_action_server.set_succeeded(action_result)
+
+    def front_view_angle_detection_callback(self, goal):
+        self.front_view_angle_detection_action_server.accept_new_goal()
+        rospy.loginfo("Received a request to detect angle of " + goal.item_id)
+        # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
+        im_in  = self.bridge.imgmsg_to_cv2(self.last_rgb_image, desired_encoding="bgr8")
+        im_vis = im_in.copy()
+
+        action_result = o2ac_msgs.msg.frontViewAngleDetectionResult()
+        # Object detection
+        ssd_results, im_vis = self.detect_object_in_image(im_in, im_vis)
+        poses_2d, im_vis = self.belt_grasp_detection_in_image(im_in, im_vis, ssd_result)
+        # TODO: Transform results to 3D PoseStamped (ideally to tray_center frame)
+
+        self.front_view_angle_detection_action_server.set_succeeded(action_result)
 
     def image_subscriber_callback(self, image):
         # Save the camera image locally
@@ -278,6 +297,16 @@ class O2ACVisionServer(object):
                  for result in results ], \
                im_vis
 
+    def detect_angle_from_front_view(self, im_in, im_vis):
+        """
+        Receives a frontal view of the bearing or large pulley, 
+        returns the angle by which the item needs to be rotated to be at the target position.
+        A negative angle means that the object needs to be turned counter-clockwise.
+        """
+
+        # TODO: Return the angle for the bearing
+
+        # TODO: Return the angle for the large pulley
 
 if __name__ == '__main__':
     rospy.init_node('o2ac_vision_server', anonymous=False)
