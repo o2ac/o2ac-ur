@@ -107,6 +107,10 @@ class O2ACVisionServer(object):
                 execute_cb = self.pose_estimation_goal_callback, auto_start=False)
             self.pose_estimation_action_server.start()    
         
+        self.belt_detection_action_server = actionlib.SimpleActionServer("beltDetection", o2ac_msgs.msg.beltDetectionAction,
+            execute_cb = self.belt_detection_callback, auto_start=False)
+        self.belt_detection_action_server.start()    
+
         rospy.loginfo("O2AC_vision has started up!")
 
     def pose_estimation_goal_callback(self):
@@ -122,6 +126,21 @@ class O2ACVisionServer(object):
 
         # Publish result visualization
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
+
+    def belt_detection_callback(self, goal):
+        self.belt_detection_action_server.accept_new_goal()
+        rospy.loginfo("Received a request to detect belt grasp points")
+        # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
+        im_in  = self.bridge.imgmsg_to_cv2(self.last_rgb_image, desired_encoding="bgr8")
+        im_vis = im_in.copy()
+
+        action_result = o2ac_msgs.msg.beltDetectionResult()
+        # Get bounding boxes, then belt grasp points
+        ssd_results, im_vis = self.detect_object_in_image(im_in, im_vis) 
+        poses_2d, im_vis = self.belt_grasp_detection_in_image(im_in, im_vis, ssd_result)
+        # TODO: Transform results to 3D PoseStamped (ideally to tray_center frame)
+
+        self.belt_detection_action_server.set_succeeded(action_result)
 
     def image_subscriber_callback(self, image):
         # Save the camera image locally
@@ -179,48 +198,11 @@ class O2ACVisionServer(object):
             elif target in apply_grasp_detection:
                 rospy.logdebug("Target id is %d. Apply grasp detection", target)
                 estimatedPoses_msg.poses, im_vis \
-                    = self.grasp_detection_in_image(im_in, im_vis, ssd_result)
+                    = self.belt_grasp_detection_in_image(im_in, im_vis, ssd_result)
 
             estimatedPoses_msgs.append(estimatedPoses_msg)
 
         return estimatedPoses_msgs, im_vis
-
-    def get_grasp_detection_results(self, im_in, im_vis):
-        """
-        Detects belt grasp poses in an RGB image.
-        """
-        # TODO (felixvd): This is not used. Why? (Is it outdated?)
-
-        # Object detection
-        ssd_results, im_vis = self.detect_object_in_image(im_in, im_vis)
-        cv2.imwrite("result_ssd.png", im_vis )
-                
-        # Belt detection in image
-        im_trim = im_in.copy()
-        apply_grasp_detection = [6]
-        x = y = h = w = 0
-        for ssd_result in ssd_results:
-            target = ssd_result["class"]
-            if target in apply_grasp_detection:
-                x, y = ssd_result["bbox"][0], ssd_result["bbox"][1]
-                h, w = ssd_result["bbox"][3], ssd_result["bbox"][2]
-                im_trim = im_in[y:y+h, x:x+w]
-
-        grasp_points, im_vis = self.grasp_detection_in_image(im_trim, im_vis)
-        for cnt in range(len(grasp_points)):
-            grasp_points[cnt] = list(grasp_points[cnt])
-            grasp_points[cnt][0] = grasp_points[cnt][0] + x
-            grasp_points[cnt][1] = grasp_points[cnt][1] + y
-        print("grasp_result")
-        print(grasp_points)
-
-        GraspPoint_msgs = []
-        for grasp_point in grasp_points:
-            GraspPoint_msg = o2ac_msgs.msg.GraspPoint()
-            GraspPoint_msg.grasp_point = grasp_point
-            GraspPoint_msgs.append(GraspPoint_msg)
-
-        return GraspPoint_msgs, im_vis
 
     def detect_object_in_image(self, cv_image, im_vis):
         ssd_results, im_vis = ssd_detection.object_detection(cv_image, im_vis)
@@ -259,9 +241,10 @@ class O2ACVisionServer(object):
                                       theta=radians(orientation)), \
                im_vis
 
-    def grasp_detection_in_image(self, im_in, im_vis, ssd_result):
+    def belt_grasp_detection_in_image(self, im_in, im_vis, ssd_result):
         """
         Fast Grasp Evaluation, used for detecting belt grasp poses in an RGB image.
+        The Pose2D objects returned are in (u,v) image coordinates.
         """
         start = time.time()
 
@@ -283,12 +266,11 @@ class O2ACVisionServer(object):
         fge = FastGraspabilityEvaluation(im_in[top_bottom, left_right],
                                          im_hand, im_collision, self.param_fge)
         results = fge.main_proc()
-        
+
         elapsed_time = time.time() - start
         rospy.logdebug("Belt detection processing time[msec]: %d", 1000*elapsed_time)
 
-        im_vis[top_bottom, left_right] \
-            = fge.visualization(im_vis[top_bottom, left_right])
+        im_vis[top_bottom, left_right] = fge.visualization(im_vis[top_bottom, left_right])
 
         return [ geometry_msgs.msg.Pose2D(x=result[1] - margin,
                                           y=result[0] - margin,
