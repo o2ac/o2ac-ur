@@ -25,8 +25,8 @@
   
   <!-- Select the cameras to go into the multiplexer here -->
   <!-- <arg name="camera_names" value="$(arg camera0_name), $(arg camera1_name), $(arg camera2_name), $(arg camera3_name)"/> -->
-  <arg name="camera_names" value="$(arg camera2_name), $(arg camera3_name)"/>
-  <!-- <arg name="camera_names" value="$(arg camera3_name)"/> -->
+  <!-- <arg name="camera_names" value="$(arg camera2_name), $(arg camera3_name)"/> -->
+  <arg name="camera_names" value="$(arg camera3_name)"/>
   <!-- <arg name="camera_names" value="$(arg camera2_name)"/> -->
   
 
@@ -64,7 +64,7 @@
     <arg name="camera_name"	value="$(arg camera1_name)"/>
   </include> -->
  
-  <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+  <!-- <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="camera"		    value="$(arg camera2_name)"/>
     <arg name="serial_no"           value="$(arg camera2_serial_no)"/>
     <arg name="enable_pointcloud"   value="true"/>
@@ -79,7 +79,7 @@
   </include> 
   <include file="$(find o2ac_scene_description)/launch/publish_camera_calibration.launch">
     <arg name="camera_name"	value="$(arg camera2_name)"/>
-  </include>
+  </include> -->
  
   <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="camera"		    value="$(arg camera3_name)"/>
@@ -107,18 +107,18 @@
     </rosparam>
 
     <!-- Use this block if only one camera is used -->
-    <!-- <remap from="/camera_info0"	to="$(arg camera3_name)/color/camera_info"/>
+    <remap from="/camera_info0"	to="$(arg camera3_name)/color/camera_info"/>
     <remap from="/image0"	to="$(arg camera3_name)/color/image_raw"/>
-    <remap from="/depth0"	to="$(arg camera3_name)/aligned_depth_to_color/image_raw"/> -->
+    <remap from="/depth0"	to="$(arg camera3_name)/aligned_depth_to_color/image_raw"/>
 
     <!-- Use both b_bot cameras -->
-    <remap from="/camera_info0"	to="$(arg camera2_name)/color/camera_info"/>
+    <!-- <remap from="/camera_info0"	to="$(arg camera2_name)/color/camera_info"/>
     <remap from="/image0"	to="$(arg camera2_name)/color/image_raw"/>
     <remap from="/depth0"	to="$(arg camera2_name)/aligned_depth_to_color/image_raw"/>
 
     <remap from="/camera_info0"	to="$(arg camera3_name)/color/camera_info"/>
     <remap from="/image0"	to="$(arg camera3_name)/color/image_raw"/>
-    <remap from="/depth0"	to="$(arg camera3_name)/aligned_depth_to_color/image_raw"/>
+    <remap from="/depth0"	to="$(arg camera3_name)/aligned_depth_to_color/image_raw"/> -->
 
     <!-- The indexes correspond to the order in camera_names -->
     <!-- <remap from="/camera_info0"	to="$(arg camera0_name)/color/camera_info"/>
