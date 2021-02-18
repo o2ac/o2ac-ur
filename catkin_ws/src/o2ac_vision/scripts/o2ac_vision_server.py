@@ -56,6 +56,7 @@ import geometry_msgs.msg
 import o2ac_routines.helpers
 from o2ac_vision.pose_estimation_func import TemplateMatching
 from o2ac_vision.pose_estimation_func import FastGraspabilityEvaluation
+from o2ac_vision.pose_estimation_func import ShaftAnalysis
 
 import o2ac_vision.o2ac_ssd
 ssd_detection = o2ac_vision.o2ac_ssd.ssd_detection()
@@ -114,6 +115,10 @@ class O2ACVisionServer(object):
         self.front_view_angle_detection_action_server = actionlib.SimpleActionServer("frontViewAngleDetection", o2ac_msgs.msg.frontViewAngleDetectionAction,
             execute_cb = self.front_view_angle_detection_callback, auto_start=False)
         self.front_view_angle_detection_action_server.start()    
+        
+        self.shaft_notch_detection_action_server = actionlib.SimpleActionServer("shaftNotchDetection", o2ac_msgs.msg.shaftNotchDetectionAction,
+            execute_cb = self.shaft_notch_detection_callback, auto_start=False)
+        self.shaft_notch_detection_action_server.start()    
 
         rospy.loginfo("O2AC_vision has started up!")
 
@@ -160,6 +165,22 @@ class O2ACVisionServer(object):
         # TODO: Transform results to 3D PoseStamped (ideally to tray_center frame)
 
         self.front_view_angle_detection_action_server.set_succeeded(action_result)
+
+    def shaft_notch_detection_callback(self, goal):
+        self.shaft_notch_detection_action_server.accept_new_goal()
+        rospy.loginfo("Received a request to detect shaft notch")
+        # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
+        im_in = self.bridge.imgmsg_to_cv2(self.last_rgb_image, desired_encoding="bgr8")
+
+        action_result = o2ac_msgs.msg.shaftNotchDetectionResult()
+        
+        top, bottom, im_vis = self.shaft_notch_detection(im_in)
+        
+        action_result.shaft_notch_detected_at_top = top
+        action_result.shaft_notch_detected_at_bottom = bottom
+        action_result.no_shaft_notch_detected = (not top and not bottom)
+
+        self.shaft_notch_detection_action_server.set_succeeded(action_result)
 
     def image_subscriber_callback(self, image):
         # Save the camera image locally
@@ -307,6 +328,27 @@ class O2ACVisionServer(object):
         # TODO: Return the angle for the bearing
 
         # TODO: Return the angle for the large pulley
+
+    def shaft_notch_detection(self, im_in):
+        """
+        Detects the notch in the supplied image (looking at the shaft in the V-jig).
+
+        Return values:
+        top:    True if notch is seen at top of image
+        bottom: True if notch is seen at bottom of image
+        im_vis: Result visualization
+        """
+        # Convert to grayscale
+        if im_in.shape[2] == 3: im_gray = cv2.cvtColor(im_in, cv2.COLOR_BGR2GRAY) 
+
+        
+        bbox = [350,100,100,400] # ROI(x,y,w,h) of shaft area
+        temp_root = rospack.get_path("wrs_dataset") + "/data/templates_shaft"
+        sa = ShaftAnalysis( im_gray, bbox, temp_root )
+        front, back = sa.main_proc( 0.5 ) # threshold.
+        im_vis = sa.get_result_image()
+        return front, back, im_vis
+
 
 if __name__ == '__main__':
     rospy.init_node('o2ac_vision_server', anonymous=False)

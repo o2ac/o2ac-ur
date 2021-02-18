@@ -718,9 +718,9 @@ class FastGraspabilityEvaluation():
 #  bbox = [350,100,100,400] # ROI(x,y,w,h) of shaft area
 #  temp_root = rospack.get_path("wrs_dataset") + "/data/templates_shaft"
 #  sa = ShaftAnalysis( imgs, bbox, temp_root )
-#  front = sa.main_proc( 0.5 ) # threshold.
+#  (front, back) = sa.main_proc( 0.5 ) # threshold.
 #
-#  If notch is appeared in image, front is True
+#  If notch is seen in image, front or back are true (front is at the top).
 #
 # for visualization:
 #  ## visualization of template matching
@@ -730,7 +730,7 @@ class FastGraspabilityEvaluation():
 #  plt.plot(diff_bottom)
 #  plt.plot(diff_top)
 #############################################################################
-class ShaftAnalysisDebug():
+class ShaftAnalysis():
     # img: input image
     # bbox: bounding box [x,y,w,h] of shaft region
     # temp_root: path to templates_shaft
@@ -817,8 +817,9 @@ class ShaftAnalysisDebug():
     #  top_range: 　　y axis range to be checked（top area） 
     #  bottom_range:　y axis range to be checked（bottom area） 
     # Output:
-    #  front: if notch is appeared, return true.
-    def main_proc(self, th, top_range=[30,90], bottom_range=[270,330] ):
+    #  notch_seen_at_top: True if notch is detected at front (top).
+    #  notch_seen_at_bottom: True if notch is detected at back (bottom).
+    def main_proc(self, th, top_range=[30,90], bottom_range=[270,330]):
         
         nmc_list = list()
         for i in range(self.im_crop.shape[0]):
@@ -838,11 +839,8 @@ class ShaftAnalysisDebug():
         top_mean = np.mean(nmc_list[top_range[0]:top_range[1]] )
         bottom_mean = np.mean(nmc_list[bottom_range[0]:bottom_range[1]] )
         #print(top_mean, bottom_mean)
-        front = False
-        if th<top_mean or th<bottom_mean:
-            front = True
         
-        return front    
+        return th<top_mean, th<bottom_mean
     
     
     def get_frontized_image(self):
