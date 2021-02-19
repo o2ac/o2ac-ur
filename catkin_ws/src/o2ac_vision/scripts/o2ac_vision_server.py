@@ -352,8 +352,8 @@ class O2ACVisionServer(object):
         im_vis[top_bottom, left_right] = fge.visualization(im_vis[top_bottom, left_right])
 
         # Subtracting tau/4 (90 degrees) to the rotation result to match the gripper_tip_link orientation
-        return [ geometry_msgs.msg.Pose2D(x=result[1] - margin,
-                                          y=result[0] - margin,
+        return [ geometry_msgs.msg.Pose2D(x=result[1] +(bbox[0] - margin),
+                                          y=result[0] +(bbox[1] - margin),
                                           theta=radians(result[2])-tau/4)
                  for result in results ], \
                im_vis
