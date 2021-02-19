@@ -25,7 +25,7 @@
        'Loop 30 times'
        'grid motion'
        var_1≔1
-       Loop ( pose_dist(get_actual_tcp_pose(), insertion_full) > 0.005) and  (var_1 < 6)
+       Loop ( pose_dist(get_actual_tcp_pose(), fully_inserted) > 0.005) and  (var_1 < 6)
          MoveL
            Direction: Tool X+
              Until (distance)
@@ -88,3 +88,6 @@
        push_shaft
      MoveJ
        home
+     Halt
+     MoveJ
+       fully_inserted

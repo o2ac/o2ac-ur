@@ -80,7 +80,7 @@ class TaskboardClass(O2ACCommon):
     self.at_set_screw_hole.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
     self.at_set_screw_hole.pose.position.x = 0.001   # MAGIC NUMBER
     self.at_set_screw_hole.pose.position.y = 0.0005   # MAGIC NUMBER
-    self.at_set_screw_hole.pose.position.z = 0.001   # MAGIC NUMBER
+    self.at_set_screw_hole.pose.position.z = 0.001   # MAGIC NUMBER (points downward)
     if not self.assembly_database.db_name == "taskboard":
       self.assembly_database.change_assembly("taskboard")
 
@@ -181,12 +181,9 @@ class TaskboardClass(O2ACCommon):
     self.do_change_tool_action("b_bot", equip=True, screw_size = 2)  # Set screw tool
     self.go_to_named_pose("horizontal_screw_ready", "b_bot")
 
-
-    screw_approach = copy.deepcopy(self.at_set_screw_hole)
-    screw_approach.pose.position.x = -0.005
-    self.go_to_pose_goal("b_bot", screw_approach, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True)
+    self.move_b_bot_to_setscrew_initial_pos()
   
-  def go_to_setscrew_pos(self):
+  def move_b_bot_to_setscrew_initial_pos(self):
     screw_approach = copy.deepcopy(self.at_set_screw_hole)
     screw_approach.pose.position.x = -0.005
     self.go_to_pose_goal("b_bot", screw_approach, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True)
@@ -246,7 +243,7 @@ class TaskboardClass(O2ACCommon):
     self.go_to_named_pose("home", "b_bot")
     
     # - Retainer pin + nut
-    # self.do_task("idler pulley")
+    self.do_task("idler pulley")
     self.do_change_tool_action("b_bot", equip=False, screw_size = 4)
     
     # - Shaft
@@ -591,11 +588,16 @@ class TaskboardClass(O2ACCommon):
       else:
         print("Problem loading. Not executing shaft procedure.")
         return False
-      wait_for_UR_program("/b_bot", rospy.Duration.from_sec(60))
+      wait_for_UR_program("/b_bot", rospy.Duration.from_sec(80))
       if self.is_robot_protective_stopped("b_bot"):
+        
         rospy.logwarn("Robot was protective stopped after shaft insertion - shaft may be stuck!")
         #TODO: Try to loosen the shaft?
+        rospy.sleep(1)
         self.unlock_protective_stop("b_bot")
+        rospy.sleep(1)
+        self.unlock_protective_stop("b_bot")
+        rospy.sleep(1)
         self.go_to_named_pose("home","b_bot")
       return True
     
@@ -654,14 +656,13 @@ if __name__ == '__main__':
     i = 1
     while i and not rospy.is_shutdown():
       rospy.loginfo("Enter 1 to move robots to home")
-      rospy.loginfo("Enter 11, 12 to equip/unequip nut_tool_m6")
-      rospy.loginfo("Enter 13, 14, 141 to equip/unequip/discard nut_tool_m10")
+      rospy.loginfo("Enter 11, 12 to open/close grippers")
+      rospy.loginfo("Enter 13, 14 to equip/unequip m4 screw tool")
       rospy.loginfo("Enter 15, 16 to equip/unequip belt placement tool")
-      rospy.loginfo("Enter 191, 192 to equip/unequip m4 screw tool")
-      rospy.loginfo("Enter 3, 4 to screw m3, m4 (starting from horizontal_screw_ready)")
       rospy.loginfo("Enter 51, 52... for subtasks: set screw, M3, M4, belt, motor pulley, shaft, bearing, idler pulley")
       rospy.loginfo("Enter 8 to spawn example parts")
       rospy.loginfo("Enter prep to prepare the task (do this before running)")
+      rospy.loginfo("Enter ssup/ssdown to fine-tune the set screw tool position")
       rospy.loginfo("Enter start to run the task (competition mode, no confirmations)")
       rospy.loginfo("Enter test for a test run of the task (WITH confirmations)")
       rospy.loginfo("Enter x to exit")
@@ -669,8 +670,12 @@ if __name__ == '__main__':
       
       if i == "prep":
         taskboard.prep_taskboard_task()
-      if i == "ssprep":
-        taskboard.go_to_setscrew_pos()
+      if i == "ssup":
+        taskboard.at_set_screw_hole.pose.position.z -= 0.001
+        taskboard.move_b_bot_to_setscrew_initial_pos()
+      if i == "ssdown":
+        taskboard.at_set_screw_hole.pose.position.z += 0.001
+        taskboard.move_b_bot_to_setscrew_initial_pos()
       if i == "start":
         taskboard.competition_mode = True
         taskboard.full_taskboard_task()
@@ -682,21 +687,19 @@ if __name__ == '__main__':
         taskboard.go_to_named_pose("home","a_bot")
         taskboard.go_to_named_pose("home","b_bot")
       if i == "11":
-        taskboard.do_change_tool_action("b_bot", equip=True, screw_size = 66)
+        taskboard.open_gripper("a_bot", wait=False)
+        taskboard.open_gripper("b_bot")
       if i == "12":
-        taskboard.do_change_tool_action("b_bot", equip=False, screw_size = 66)
+        taskboard.close_gripper("a_bot", wait=False)
+        taskboard.close_gripper("b_bot")
+      if i == "13":
+        taskboard.do_change_tool_action("b_bot", equip=True, screw_size = 4)
+      if i == "14":
+        taskboard.do_change_tool_action("b_bot", equip=False, screw_size = 4)
       if i == "15":
         taskboard.equip_unequip_belt_tool(equip=True)
       if i == "16":
         taskboard.equip_unequip_belt_tool(equip=False)
-      if i == "191":
-        taskboard.do_change_tool_action("b_bot", equip=True, screw_size = 4)
-      if i == "192":
-        taskboard.do_change_tool_action("b_bot", equip=False, screw_size = 4)
-      if i == "193":
-        taskboard.do_change_tool_action("b_bot", equip=True, screw_size = 3)
-      if i == "194":
-        taskboard.do_change_tool_action("b_bot", equip=False, screw_size = 3)
       if i == "51":
         taskboard.do_task("M2 set screw")
       if i == "52":
