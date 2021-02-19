@@ -64,6 +64,12 @@
      MoveJ
        Waypoint_6
      Gripper Close (1)
+     If rq_current_pos_mm()<10
+       'Gripper fully closed = bearing not inserted!! Stopping.'
+       MoveL
+         Direction: Base X+
+           Until (distance)
+       Halt
      Force
        MoveL
          rightturn

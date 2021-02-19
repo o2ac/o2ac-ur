@@ -1,21 +1,21 @@
 def shaft_v1():
-  step_count_74696692_88ce_45f1_9a79_5e5b9bec3825 = 0
-  thread Step_Counter_Thread_59eec7aa_79c2_4345_bedd_727ddfff4ee8():
+  step_count_0162ae8f_302c_434c_94c7_94cc7ce13d82 = 0
+  thread Step_Counter_Thread_c21d2d02_1496_49db_a4aa_046abb69f95e():
     while (True):
-      step_count_74696692_88ce_45f1_9a79_5e5b9bec3825 = step_count_74696692_88ce_45f1_9a79_5e5b9bec3825 + 1
+      step_count_0162ae8f_302c_434c_94c7_94cc7ce13d82 = step_count_0162ae8f_302c_434c_94c7_94cc7ce13d82 + 1
       sync()
     end
   end
-  run Step_Counter_Thread_59eec7aa_79c2_4345_bedd_727ddfff4ee8()
+  run Step_Counter_Thread_c21d2d02_1496_49db_a4aa_046abb69f95e()
+  set_gravity([0.0, 0.0, 9.82])
+  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
+  set_payload(0.0)
   set_safety_mode_transition_hardness(1)
   set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
   set_tool_output_mode(0)
   set_tool_digital_output_mode(0, 1)
   set_tool_digital_output_mode(1, 1)
   set_tool_voltage(24)
-  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
-  set_payload(0.0)
-  set_gravity([0.0, 0.0, 9.82])
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -2363,6 +2363,8 @@ def shaft_v1():
   global push_shaft_rdy_q=[1.232734211901504, -1.7024759505509692, 1.9606730225198732, -1.8292017503128228, -1.5429574425410486, 1.20863733309876]
   global push_shaft_p=p[-.060352440763, -.445424264409, .219068832250, 2.182053140867, 2.231123904275, .013705885752]
   global push_shaft_q=[1.124962656493496, -1.6908931065690176, 1.9500711998568239, -1.827752644365435, -1.5429739121810044, 1.1008498031901777]
+  global fully_inserted_p=p[-.077922771121, -.438215667382, .237960566719, 2.182053170866, 2.231123932709, .013705859909]
+  global fully_inserted_q=[1.0806486638472963, -1.7126291820276593, 1.9189295454771447, -1.7738718008836436, -1.5431276964208145, 1.0562089137723705]
   $ 1 "Robot Program"
   $ 2 "MoveJ"
   $ 3 "home" "breakAfter"
@@ -2476,7 +2478,7 @@ def shaft_v1():
   # 'grid motion'
   $ 37 "var_1≔1" "noBreak"
   global var_1=1
-  $ 38 "Loop ( pose_dist(get_actual_tcp_pose(), insertion_full) > 0.005) and  (var_1 < 6)" "noBreak"
+  $ 38 "Loop ( pose_dist(get_actual_tcp_pose(), fully_inserted) > 0.005) and  (var_1 < 6)" "noBreak"
   thread Thread_while_38():
     while (True):
       $ 39 "MoveL" "noBreak"
@@ -2989,9 +2991,9 @@ def shaft_v1():
       global var_1=var_1+1
     end
   end
-  if ((  pose_dist ( get_actual_tcp_pose (), insertion_full_p) > 0.005)  and   (var_1 < 6)):
+  if ((  pose_dist ( get_actual_tcp_pose (), fully_inserted_p) > 0.005)  and   (var_1 < 6)):
     global thread_handler_38=run Thread_while_38()
-    while ((  pose_dist ( get_actual_tcp_pose (), insertion_full_p) > 0.005)  and   (var_1 < 6)):
+    while ((  pose_dist ( get_actual_tcp_pose (), fully_inserted_p) > 0.005)  and   (var_1 < 6)):
       sync()
     end
     kill thread_handler_38
@@ -3037,4 +3039,9 @@ def shaft_v1():
   $ 100 "MoveJ"
   $ 101 "home" "breakAfter"
   movej(get_inverse_kin(home_p, qnear=home_q), a=1.3962634015954636, v=3.141592653589793)
+  $ 102 "Halt"
+  halt
+  $ 103 "MoveJ"
+  $ 104 "fully_inserted" "breakAfter"
+  movej(get_inverse_kin(fully_inserted_p, qnear=fully_inserted_q), a=1.3962634015954636, v=1.0471975511965976)
 end
