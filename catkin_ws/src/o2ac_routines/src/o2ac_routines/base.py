@@ -1218,10 +1218,10 @@ class O2ACBase(object):
     res = self.toggleCollisions_client.call(req)
     return res.success
 
-  def close_gripper(self, robot, force=40.0):
-    return self.send_gripper_command(robot, "close", force=force)
-  def open_gripper(self, robot):
-    return self.send_gripper_command(robot, "open")
+  def close_gripper(self, robot, force=40.0, wait=True):
+    return self.send_gripper_command(robot, "close", force=force, wait=wait)
+  def open_gripper(self, robot, wait=True):
+    return self.send_gripper_command(robot, "open", wait=wait)
 
   def send_gripper_command(self, gripper, command, this_action_grasps_an_object = False, force = 40.0, velocity = .1, wait=True):
     """
