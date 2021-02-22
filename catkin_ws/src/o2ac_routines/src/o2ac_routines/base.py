@@ -35,6 +35,7 @@
 # Author: Felix von Drigalski
 
 import sys
+import time
 import threading
 import copy
 import rospy
@@ -156,7 +157,10 @@ class O2ACBase(object):
       "a_bot_connect":rospy.ServiceProxy('/a_bot/ur_hardware_interface/dashboard/connect', std_srvs.srv.Trigger),
       "b_bot_connect":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/connect', std_srvs.srv.Trigger),
       "a_bot_close_popup":rospy.ServiceProxy('/a_bot/ur_hardware_interface/dashboard/close_popup', std_srvs.srv.Trigger),
-      "b_bot_close_popup":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/close_popup', std_srvs.srv.Trigger)
+      "b_bot_close_popup":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/close_popup', std_srvs.srv.Trigger),
+      "a_bot_unlock_protective_stop":rospy.ServiceProxy("/a_bot/ur_hardware_interface/dashboard/unlock_protective_stop", std_srvs.srv.Trigger),
+      "b_bot_unlock_protective_stop":rospy.ServiceProxy("/b_bot/ur_hardware_interface/dashboard/unlock_protective_stop", std_srvs.srv.Trigger)
+      
     }
 
     self.urscript_client = rospy.ServiceProxy('/o2ac_skills/sendScriptToUR', o2ac_msgs.srv.sendScriptToUR)
@@ -284,12 +288,20 @@ class O2ACBase(object):
       return True
     if robot is not "b_bot" and robot is not "a_bot":
       rospy.logerr("Robot name was not found!")
-    service_client = rospy.ServiceProxy("/" + robot + "/ur_hardware_interface/dashboard/unlock_protective_stop", std_srvs.srv.Trigger)
-    # rospy.wait_for_service(service_client, 5.0)
+    
+    service_client = self.ur_dashboard_clients[robot + "_unlock_protective_stop"]
     request = std_srvs.srv.TriggerRequest()
+    start_time = time.time()
     rospy.loginfo("Attempting to unlock protective stop of " + robot)
-    response = service_client.call(request)
-    rospy.loginfo("Response for unlocked protective stop of " + robot + ": " + response.message)
+    while not rospy.is_shutdown():
+      response = service_client.call(request)
+      if time.time() - start_time > 5.0:
+        break
+      if response.success:
+        break
+      rospy.sleep(0.2)
+    if not response.success:
+      rospy.logwarn("Could not unlock protective stop of " + robot + "!")
     return response.success
 
   def activate_ros_control_on_ur(self, robot="b_bot", recursion_depth=0):

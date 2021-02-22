@@ -590,15 +590,12 @@ class TaskboardClass(O2ACCommon):
         return False
       wait_for_UR_program("/b_bot", rospy.Duration.from_sec(80))
       if self.is_robot_protective_stopped("b_bot"):
-        
         rospy.logwarn("Robot was protective stopped after shaft insertion - shaft may be stuck!")
-        #TODO: Try to loosen the shaft?
-        rospy.sleep(1)
+        #TODO: Recovery? Try to loosen the shaft?
         self.unlock_protective_stop("b_bot")
         rospy.sleep(1)
-        self.unlock_protective_stop("b_bot")
-        rospy.sleep(1)
-        self.go_to_named_pose("home","b_bot")
+        if self.is_robot_protective_stopped("b_bot"):
+          return False
       return True
     
     # ==========================================================
