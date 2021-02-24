@@ -358,7 +358,7 @@
       order = 0
       profile = default
       title = moveit/rviz
-      command = sh ./RUN-DOCKER-CONTAINER.sh ${USER} o2ac_moveit_config demo.launch
+      command = sh ./RUN-DOCKER-CONTAINER.sh ${USER} o2ac_moveit_config o2ac_moveit_planning_execution.launch
     [[[terminal6]]]
       type = Terminal
       parent = child5
