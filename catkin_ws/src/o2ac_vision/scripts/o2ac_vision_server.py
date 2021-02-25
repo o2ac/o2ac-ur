@@ -148,9 +148,9 @@ class O2ACVisionServer(object):
     def depth_image_sub_callback(self, depth_image_msg):
         self._depth_image_ros = depth_image_msg
 
-    def pose_estimation_goal_callback(self):
+    def pose_estimation_goal_callback(self, goal):
         self.pose_estimation_action_server.accept_new_goal()
-        rospy.loginfo("Received a request to detect object")
+        rospy.loginfo("Received a request to detect objects via SSD")
         # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
         im_in  = self.bridge.imgmsg_to_cv2(self.last_rgb_image, desired_encoding="bgr8")
         im_vis = im_in.copy()
@@ -239,6 +239,8 @@ class O2ACVisionServer(object):
         """
         Finds an object's bounding box on the tray, then attempts to find its pose.
         Can also find grasp poses for the belt.
+
+        Returns all bounding boxes with confidences, and returns all the 2D poses 
         """
         # Object detection
         ssd_results, im_vis = self.detect_object_in_image(im_in, im_vis)
