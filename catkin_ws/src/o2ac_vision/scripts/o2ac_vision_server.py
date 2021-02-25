@@ -315,8 +315,8 @@ class O2ACVisionServer(object):
 
         bbox = ssd_result["bbox"]
 
-        return geometry_msgs.msg.Pose2D(x=center[1] - bbox[0],
-                                      y=center[0] - bbox[1],
+        return geometry_msgs.msg.Pose2D(x=center[1],
+                                      y=center[0],
                                       theta=radians(orientation)), \
                im_vis
 
