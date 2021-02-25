@@ -137,9 +137,11 @@ class O2ACVisionServer(object):
         self.front_view_angle_detection_action_server.start()    
         
         self.shaft_notch_detection_action_server = actionlib.SimpleActionServer("shaftNotchDetection", o2ac_msgs.msg.shaftNotchDetectionAction,
-            execute_cb = self.shaft_notch_detection_callback, auto_start=False)
+            execute_cb = self.shaft_notch_detection_callback, auto_start=False) 
         self.shaft_notch_detection_action_server.start()    
 
+        self.pose_marker_id_counter = 0
+        self.pose_marker_array = 0
         rospy.loginfo("O2AC_vision has started up!")
 
     def camera_info_callback(self, cam_info_message):
@@ -245,45 +247,62 @@ class O2ACVisionServer(object):
         # Object detection
         ssd_results, im_vis = self.detect_object_in_image(im_in, im_vis)
 
+        self.reset_pose_markers()        
+
         # Pose estimation
-        estimatedPoses_msgs      = []
+        estimated_poses_array    = []                      # Contains all results
         apply_2d_pose_estimation = [8,9,10,14]             # Small items --> Neural Net
         apply_3d_pose_estimation = [1,2,3,4,5,7,11,12,13]  # Large items --> CAD matching
         apply_grasp_detection    = [6]                     # Belt --> Fast Grasp Estimation
         for ssd_result in ssd_results:
             target = ssd_result["class"]
-            estimatedPoses_msg = o2ac_msgs.msg.EstimatedPoses()
-            estimatedPoses_msg.confidence = ssd_result["confidence"]
-            estimatedPoses_msg.class_id   = target
-            estimatedPoses_msg.bbox       = ssd_result["bbox"]
+            estimated_poses_msg = o2ac_msgs.msg.EstimatedPoses() # Stores the result for one item/class id
+            estimated_poses_msg.confidence = ssd_result["confidence"]
+            estimated_poses_msg.class_id   = target
+            estimated_poses_msg.bbox       = ssd_result["bbox"]
 
             if target in apply_2d_pose_estimation:
                 rospy.logdebug("Target id is %d. Apply the 2d pose estimation",
                               target)
                 pose, im_vis = self.estimate_pose_in_image(im_in, im_vis,
                                                            ssd_result)
-                estimatedPoses_msg.poses = [pose]
+                estimated_poses_msg.poses = [pose]
+                # Publish result markers
+                poses_3d = []
+                print("testo")
+                for p2d in estimated_poses_msg.poses:
+                    print("B")
+                    poses_3d.append(self.convert_pose_2d_to_3d(p2d))
+                    # print("converted u,v " + str(p2d2.x) + ", "  + str(p2d2.y) + " to " + str(poses_3d[-1].pose.position.x) + ", " + str(poses_3d[-1].pose.position.y))
+                
+                self.add_markers_to_pose_array(poses_3d)
 
             elif target in apply_3d_pose_estimation:
                 rospy.logdebug("Target id is %d. Apply the 3d pose estimation",
                               target)
+                x = int(np.clip(estimated_poses_msg.bbox[0] + round(estimated_poses_msg.bbox[2]/2), 0, 479))
+                y = int(np.clip(estimated_poses_msg.bbox[1] + round(estimated_poses_msg.bbox[3]/2), 0, 639))
+                # Publish markers at bbox centers
+                p2d = geometry_msgs.msg.Pose2D(x=x, y=y)
+                poses_3d = []
+                poses_3d.append(self.convert_pose_2d_to_3d(p2d))
+                self.add_markers_to_pose_array(poses_3d)
 
             elif target in apply_grasp_detection:
                 rospy.logdebug("Target id is %d. Apply grasp detection", target)
-                estimatedPoses_msg.poses, im_vis \
+                estimated_poses_msg.poses, im_vis \
                     = self.belt_grasp_detection_in_image(im_in, im_vis, ssd_result)
                 
                 # Publish result markers
                 poses_3d = []
-                for p2d in estimatedPoses_msg.poses:
+                for p2d in estimated_poses_msg.poses:
                     poses_3d.append(self.convert_pose_2d_to_3d(p2d))
-                    # print("converted u,v " + str(p2d2.x) + ", "  + str(p2d2.y) + " to " + str(poses_3d[-1].pose.position.x) + ", " + str(poses_3d[-1].pose.position.y))
-                
                 self.publish_belt_grasp_pose_markers(poses_3d)
 
-            estimatedPoses_msgs.append(estimatedPoses_msg)
-
-        return estimatedPoses_msgs, im_vis
+            estimated_poses_array.append(estimated_poses_msg)
+        
+        self.publish_stored_pose_markers()
+        return estimated_poses_array, im_vis
 
     def detect_object_in_image(self, cv_image, im_vis):
         ssd_results, im_vis = ssd_detection.object_detection(cv_image, im_vis)
@@ -421,16 +440,8 @@ class O2ACVisionServer(object):
 
     def publish_belt_grasp_pose_markers(self, grasp_poses_3d):
         # Clear the namespace first
-        delete_marker_array = visualization_msgs.msg.MarkerArray()
-        del_marker = visualization_msgs.msg.Marker()
-        del_marker.ns = '/belt_grasp_poses'
-        del_marker.action = del_marker.DELETEALL
-        for i in range(1):
-            dm = copy.deepcopy(del_marker)
-            dm.id = i
-            delete_marker_array.markers.append(dm)
-        self.marker_array_pub.publish(delete_marker_array)
-
+        self.clear_markers(namespace='/belt_grasp_poses')
+        
         # Then make array of grasp pose markers
 
         marker_array = visualization_msgs.msg.MarkerArray()
@@ -552,9 +563,96 @@ class O2ACVisionServer(object):
                 marker_array.markers.append(arrow_x)
                 marker_array.markers.append(arrow_y)
                 marker_array.markers.append(arrow_z)
-        print(" i went up to " + str(i))
+        # print(" i went up to " + str(i))
         self.marker_array_pub.publish(marker_array)
 
+    def clear_markers(self, namespace="/belt_grasp_poses"):
+        delete_marker_array = visualization_msgs.msg.MarkerArray()
+        del_marker = visualization_msgs.msg.Marker()
+        del_marker.ns = namespace
+        del_marker.action = del_marker.DELETEALL
+        for i in range(1):
+            dm = copy.deepcopy(del_marker)
+            dm.id = i
+            delete_marker_array.markers.append(dm)
+        self.marker_array_pub.publish(delete_marker_array)
+    
+    def reset_pose_markers(self):
+        self.clear_markers(namespace="/objects")
+        self.pose_marker_id_counter = 0
+        self.pose_marker_array = visualization_msgs.msg.MarkerArray()
+    
+    def publish_stored_pose_markers(self):
+        self.marker_array_pub.publish(self.pose_marker_array)
+
+    def add_markers_to_pose_array(self, poses_3d):
+        """
+        Add markers to the pose array.
+        """
+        i = self.pose_marker_id_counter
+        for idx, viz_pose in enumerate(poses_3d):
+            # print("treating pose: " + str(idx))
+            # print(viz_pose.pose.position)
+            # Set an auxiliary transform to display the arrows (otherwise they are not rotated)
+            base_frame_name = viz_pose.header.frame_id
+            helper_frame_name = 'viz_pose_helper_frame_' + str(idx)
+            auxiliary_transform = geometry_msgs.msg.TransformStamped()
+            auxiliary_transform.header.frame_id = base_frame_name
+            auxiliary_transform.child_frame_id = helper_frame_name
+            auxiliary_transform.transform.translation = geometry_msgs.msg.Vector3(viz_pose.pose.position.x, viz_pose.pose.position.y, viz_pose.pose.position.z)
+            auxiliary_transform.transform.rotation = viz_pose.pose.orientation
+            self.listener.setTransform(auxiliary_transform)
+
+            # Neutral PoseStamped
+            p0 = geometry_msgs.msg.PoseStamped()
+            p0.header.frame_id = helper_frame_name
+            p0.header.stamp = rospy.Time(0.0)
+            p0.pose.position = geometry_msgs.msg.Point(0, 0, 0)
+            p0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0,0,0))
+
+            ## Draw arrows
+            arrow_marker = visualization_msgs.msg.Marker()
+            arrow_marker.ns = "/objects"
+            arrow_marker.id = i
+            arrow_marker.type = visualization_msgs.msg.Marker.ARROW
+            arrow_marker.action = arrow_marker.ADD
+            arrow_marker.header = viz_pose.header
+            
+            arrow_marker.color = std_msgs.msg.ColorRGBA(0, 0, 0, 0.8)
+            arrow_marker.scale = geometry_msgs.msg.Vector3(.05, .005, .005)
+
+            i += 1
+            arrow_x = copy.deepcopy(arrow_marker)
+            arrow_x.id = i
+            p = copy.deepcopy(p0)
+            p.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0,0,0))
+            p = self.listener.transformPose(base_frame_name, p)
+            arrow_x.pose = p.pose
+
+            i += 1
+            arrow_y = copy.deepcopy(arrow_marker)
+            arrow_y.id = i
+            p = copy.deepcopy(p0)
+            p.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0,0,tau/4))
+            p = self.listener.transformPose(base_frame_name, p)
+            arrow_y.pose = p.pose
+
+            i += 1
+            arrow_z = copy.deepcopy(arrow_marker)
+            arrow_z.id = i
+            p = copy.deepcopy(p0)
+            p.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0,-tau/4,0))
+            p = self.listener.transformPose(base_frame_name, p)
+            arrow_z.pose = p.pose
+            
+            arrow_x.color.r = 1.0
+            arrow_y.color.g = 1.0
+            arrow_z.color.b = 1.0
+
+            self.pose_marker_array.markers.append(arrow_x)
+            self.pose_marker_array.markers.append(arrow_y)
+            self.pose_marker_array.markers.append(arrow_z)
+        self.pose_marker_id_counter = i
 
 if __name__ == '__main__':
     rospy.init_node('o2ac_vision_server', anonymous=False)
