@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import rospy
 import rospkg
@@ -11,6 +12,8 @@ import os, glob
 import actionlib
 import o2ac_msgs.msg
 from o2ac_vision.pose_estimation_func import *
+
+# This file uses the SSD to estimate the 2D poses of objects in the tray when viewing it from above.
 
 class pose_estimation():
 

@@ -2,7 +2,7 @@
 
 ---
 # Result
-o2ac_msgs/EstimatedPoses[] results
+o2ac_msgs/Estimated2DPoses[] results
 
 ---
 # Feedback

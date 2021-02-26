@@ -129,7 +129,7 @@ class O2ACBase(object):
     self.change_tool_client = actionlib.SimpleActionClient('/o2ac_skills/change_tool', o2ac_msgs.msg.changeToolAction)
 
     self.ssd_client = actionlib.SimpleActionClient('/get_3d_poses_from_ssd', o2ac_msgs.msg.get3DPosesFromSSDAction)
-    self.recognition_client = actionlib.SimpleActionClient('/object_recognizer/recognize_object', o2ac_msgs.msg.detectObjectAction)
+    self.recognition_client = actionlib.SimpleActionClient('/o2ac_vision_server/localize_object', o2ac_msgs.msg.localizeObjectAction)
 
     self.pick_planning_client = actionlib.SimpleActionClient('/pick_planning', o2ac_task_planning_msgs.msg.PickObjectAction)
     self.place_planning_client = actionlib.SimpleActionClient('/place_planning', o2ac_task_planning_msgs.msg.PlaceObjectAction)
@@ -946,7 +946,7 @@ class O2ACBase(object):
     """
 
     # Send goal, wait for result
-    self.recognition_client.send_goal(o2ac_msgs.msg.detectObjectGoal(item_id=item_name))
+    self.recognition_client.send_goal(o2ac_msgs.msg.localizeObjectGoal(item_id=item_name))
     if (not self.recognition_client.wait_for_result(rospy.Duration(15.0))):
       self.recognition_client.cancel_goal()  # Cancel goal if timeout expired
       rospy.logerr("Recognition node returned no result.")

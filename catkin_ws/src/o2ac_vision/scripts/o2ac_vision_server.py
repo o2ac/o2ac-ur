@@ -148,24 +148,24 @@ class O2ACVisionServer(object):
             # Setup publisher for object detection results
             self.results_pub \
                 = rospy.Publisher('~detection_results',
-                                  o2ac_msgs.msg.EstimatedPosesArray, queue_size=1)
+                                  o2ac_msgs.msg.Estimated2DPosesArray, queue_size=1)
             rospy.logwarn("Localization action server is not running because SSD results are being streamed! Turn off continuous mode to use localization.")
         else:
             # Setup the localization 
-            self.pose_estimation_action_server = actionlib.SimpleActionServer("poseEstimation", o2ac_msgs.msg.poseEstimationAction,
-                execute_cb = self.pose_estimation_goal_callback, auto_start=False)
-            self.pose_estimation_action_server.start()    
+            self.get_2d_poses_from_ssd_action_server = actionlib.SimpleActionServer("get_2d_poses_from_ssd", o2ac_msgs.msg.get2DPosesFromSSDAction,
+                execute_cb = self.get_2d_poses_from_ssd_goal_callback, auto_start=False)
+            self.get_2d_poses_from_ssd_action_server.start()    
 
             self.get_3d_poses_from_ssd_action_server = actionlib.SimpleActionServer("get_3d_poses_from_ssd", o2ac_msgs.msg.get3DPosesFromSSDAction,
                 execute_cb = self.get_3d_poses_from_ssd_goal_callback, auto_start=False)
             self.get_3d_poses_from_ssd_action_server.start()
 
-            self.recognition_server = actionlib.SimpleActionServer("~recognize_object", o2ac_msgs.msg.detectObjectAction,
-                execute_cb=self.recognition_callback, auto_start = False)
-            self.recognition_server.register_preempt_callback(self.recognition_preempt_callback)
-            self.recognition_server.start()
+            self.localization_server = actionlib.SimpleActionServer("~localize_object", o2ac_msgs.msg.localizeObjectAction,
+                execute_cb=self.localization_callback, auto_start = False)
+            self.localization_server.register_preempt_callback(self.localization_preempt_callback)
+            self.localization_server.start()
         
-        self.belt_detection_action_server = actionlib.SimpleActionServer("beltDetection", o2ac_msgs.msg.beltDetectionAction,
+        self.belt_detection_action_server = actionlib.SimpleActionServer("belt_detection", o2ac_msgs.msg.beltDetectionAction,
             execute_cb = self.belt_detection_callback, auto_start=False)
         self.belt_detection_action_server.start()    
         
@@ -196,7 +196,7 @@ class O2ACVisionServer(object):
         im_vis = im_in.copy()
         
         action_result = o2ac_msgs.msg.get3DPosesFromSSDResult()
-        poses_2d_with_id, im_vis = self.get_pose_estimation_results(im_in, im_vis)
+        poses_2d_with_id, im_vis = self.get_2d_poses_from_ssd(im_in, im_vis)
 
         
         action_result.poses = []
@@ -210,16 +210,16 @@ class O2ACVisionServer(object):
         # Publish result visualization
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
 
-    def pose_estimation_goal_callback(self, goal):
-        self.pose_estimation_action_server.accept_new_goal()
+    def get_2d_poses_from_ssd_goal_callback(self, goal):
+        self.get_2d_poses_from_ssd_action_server.accept_new_goal()
         rospy.loginfo("Received a request to detect objects via SSD")
         # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
         im_in  = self.bridge.imgmsg_to_cv2(self.last_rgb_image, desired_encoding="bgr8")
         im_vis = im_in.copy()
         
-        action_result = o2ac_msgs.msg.poseEstimationResult()
-        action_result.results, im_vis = self.get_pose_estimation_results(im_in, im_vis)
-        self.pose_estimation_action_server.set_succeeded(action_result)
+        action_result = o2ac_msgs.msg.get2DPosesFromSSDResult()
+        action_result.results, im_vis = self.get_2d_poses_from_ssd(im_in, im_vis)
+        self.get_2d_poses_from_ssd_action_server.set_succeeded(action_result)
 
         # Publish result visualization
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
@@ -275,32 +275,32 @@ class O2ACVisionServer(object):
 
         self.shaft_notch_detection_action_server.set_succeeded(action_result)
 
-    def recognition_callback(self, goal):
+    def localization_callback(self, goal):
         rospy.loginfo("Received a request to detect objects via SSD")
         # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
         im_in  = self.bridge.imgmsg_to_cv2(self.last_rgb_image, desired_encoding="bgr8")
         im_vis = im_in.copy()
-        detection_results, im_vis = self.get_pose_estimation_results(im_in, im_vis)
+        detection_results, im_vis = self.get_2d_poses_from_ssd(im_in, im_vis)
 
-        recognition_result = o2ac_msgs.msg.detectObjectResult()
-        recognition_result.succeeded = False
+        localization_result = o2ac_msgs.msg.localizeObjectResult()
+        localization_result.succeeded = False
 
         for result in detection_results:
             if goal.item_id == self.item_id(result.class_id):
-                recognition_result.detected_poses, \
-                recognition_result.confidences     \
+                localization_result.detected_poses, \
+                localization_result.confidences     \
                     = self.localize(goal.item_id, result.bbox, result.poses)
 
-                if recognition_result.detected_poses:
-                    recognition_result.succeeded = True
-                    self.recognition_server.set_succeeded(recognition_result)
+                if localization_result.detected_poses:
+                    localization_result.succeeded = True
+                    self.localization_server.set_succeeded(localization_result)
                     return
                 break
-        self.recognition_server.set_aborted(recognition_result)
+        self.localization_server.set_aborted(localization_result)
     
-    def recognition_preempt_callback(self):
-        rospy.loginfo("o2ac_msgs.msg.detectObjectAction preempted")
-        self.recognition_server.set_preempted()
+    def localization_preempt_callback(self):
+        rospy.loginfo("o2ac_msgs.msg.localizeObjectAction preempted")
+        self.localization_server.set_preempted()
 
     def image_subscriber_callback(self, image):
         # Save the camera image locally
@@ -313,10 +313,10 @@ class O2ACVisionServer(object):
             im_in  = self.bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
             im_vis = im_in.copy()
 
-            estimatedPoses_msg = o2ac_msgs.msg.EstimatedPosesArray()
-            estimatedPoses_msg.header = image.header
-            estimatedPoses_msg.results, im_vis = self.get_pose_estimation_results(im_in, im_vis)
-            self.results_pub.publish(estimatedPoses_msg)
+            Estimated2DPoses_msg = o2ac_msgs.msg.Estimated2DPosesArray()
+            Estimated2DPoses_msg.header = image.header
+            Estimated2DPoses_msg.results, im_vis = self.get_2d_poses_from_ssd(im_in, im_vis)
+            self.results_pub.publish(Estimated2DPoses_msg)
 
             # Publish images visualizing results
             self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
@@ -336,7 +336,7 @@ class O2ACVisionServer(object):
 
 ### =======
 
-    def get_pose_estimation_results(self, im_in, im_vis):
+    def get_2d_poses_from_ssd(self, im_in, im_vis):
         """
         Finds an object's bounding box on the tray, then attempts to find its pose.
         Can also find grasp poses for the belt.
@@ -355,7 +355,7 @@ class O2ACVisionServer(object):
         apply_grasp_detection    = [6]                     # Belt --> Fast Grasp Estimation
         for ssd_result in ssd_results:
             target = ssd_result["class"]
-            estimated_poses_msg = o2ac_msgs.msg.EstimatedPoses() # Stores the result for one item/class id
+            estimated_poses_msg = o2ac_msgs.msg.Estimated2DPoses() # Stores the result for one item/class id
             estimated_poses_msg.confidence = ssd_result["confidence"]
             estimated_poses_msg.class_id   = target
             estimated_poses_msg.bbox       = ssd_result["bbox"]
