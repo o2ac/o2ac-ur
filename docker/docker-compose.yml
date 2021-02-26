@@ -20,6 +20,7 @@ services:
       - NVIDIA_DRIVER_CAPABILITIES=all
       - NVIDIA_REQUIRE_CUDA=cuda>=9.0
       - DOCKER_RUNTIME=${DOCKER_RUNTIME}
+    image: registry.gitlab.com/o2ac/o2ac-ur:latest
     build:
       context: ../
       dockerfile: ./docker/Dockerfile
