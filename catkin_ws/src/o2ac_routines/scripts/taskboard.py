@@ -222,7 +222,8 @@ class TaskboardClass(O2ACCommon):
 
     hole_pose = geometry_msgs.msg.PoseStamped()
     hole_pose.header.frame_id = "taskboard_m3_screw_link"
-    hole_pose.pose.position.z = -.005  # MAGIC NUMBER
+    hole_pose.pose.position.y = -.002  # MAGIC NUMBER
+    hole_pose.pose.position.z = -.006  # MAGIC NUMBER
     hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
     taskboard.do_screw_action("a_bot", hole_pose, screw_size = 3)
     self.go_to_named_pose("horizontal_screw_ready", "a_bot")
@@ -439,6 +440,8 @@ class TaskboardClass(O2ACCommon):
     if task_name == "bearing":
       self.go_to_named_pose("home","a_bot")
       self.go_to_named_pose("home","b_bot")
+
+      ### Fully hard-coded sequence
       # TODO: This assumes that the bearing is in the correct spot 
       success_a = self.load_program(robot="a_bot", program_name="wrs2020/linear_push_on_taskboard_from_home.urp", recursion_depth=3)
       success_b = self.load_program(robot="b_bot", program_name="wrs2020/bearing_v1.urp", recursion_depth=3)
@@ -453,9 +456,9 @@ class TaskboardClass(O2ACCommon):
         print("Problem loading. Not executing bearing procedure.")
       wait_for_UR_program("/b_bot", rospy.Duration.from_sec(60))
 
-      # TODO: Add a procedure to align the bearing holes with the plunger tool
-
-      return
+      # TODO: Align the bearing holes
+      return 
+      ### More flexible sequence
       # TODO: Rewrite either with MTC or manually, so that B ends up with the bearing
       # Then rewrite like this:
       # 1. Grasp bearing with b_bot
