@@ -177,6 +177,7 @@ class O2ACVisionServer(object):
             execute_cb = self.shaft_notch_detection_callback, auto_start=False) 
         self.shaft_notch_detection_action_server.start()    
 
+        # For visualization
         self.pose_marker_id_counter = 0
         self.pose_marker_array = 0
         rospy.loginfo("O2AC_vision has started up!")
@@ -378,8 +379,8 @@ class O2ACVisionServer(object):
             elif target in apply_3d_pose_estimation:
                 rospy.logdebug("Target id is %d. Apply the 3d pose estimation",
                               target)
-                x = int(np.clip(estimated_poses_msg.bbox[0] + round(estimated_poses_msg.bbox[2]/2), 0, 479))
-                y = int(np.clip(estimated_poses_msg.bbox[1] + round(estimated_poses_msg.bbox[3]/2), 0, 639))
+                x = int(estimated_poses_msg.bbox[0] + round(estimated_poses_msg.bbox[2]/2))
+                y = int(estimated_poses_msg.bbox[1] + round(estimated_poses_msg.bbox[3]/2))
                 # Publish markers at bbox centers
                 p2d = geometry_msgs.msg.Pose2D(x=x, y=y)
                 poses_3d = []
