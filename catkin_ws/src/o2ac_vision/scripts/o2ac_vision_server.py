@@ -59,6 +59,9 @@ import geometry_msgs.msg
 import visualization_msgs.msg
 import std_msgs.msg
 
+from aist_depth_filter  import DepthFilterClient
+from aist_localization  import LocalizationClient
+
 from o2ac_vision.pose_estimation_func import TemplateMatching
 from o2ac_vision.pose_estimation_func import FastGraspabilityEvaluation
 from o2ac_vision.pose_estimation_func import ShaftAnalysis
@@ -87,21 +90,38 @@ class O2ACVisionServer(object):
         # self.listener = tf2_ros.TransformListener(tf_buffer)
         self.listener = tf.TransformListener()
 
-        self.cam_info_sub = rospy.Subscriber('/' + camera_name + '/camera_info', sensor_msgs.msg.CameraInfo,
-                                          self.camera_info_callback)
-        self.depth_image_sub = rospy.Subscriber('/' + camera_name + '/depth', sensor_msgs.msg.Image,
-                                          self.depth_image_sub_callback)
-
-        # Setup subscriber for RGB image
-        self.image_sub = rospy.Subscriber('/' + camera_name + '/image', sensor_msgs.msg.Image,
-                                          self.image_subscriber_callback)
-
         # Setup publisher for output result image
         self.image_pub = rospy.Publisher('~result_image',
                                          sensor_msgs.msg.Image, queue_size=1)
         self.marker_pub = rospy.Publisher('~result_markers', visualization_msgs.msg.Marker, queue_size=1)
         self.marker_array_pub = rospy.Publisher('~result_marker_arrays', visualization_msgs.msg.MarkerArray, queue_size=1)
         
+        # Parameters for the localization server
+        self._models = (
+               '00-ALL',                        # 0
+               '01-BASE',                       # 1
+               '02-PANEL',                      # 2
+               '03-PANEL2',                     # 3
+               '04_37D-GEARMOTOR-50-70',        # 4
+               '05_MBRFA30-2-P6',               # 5
+               '06_MBT4-400',                   # 6
+               '07_SBARB6200ZZ_30',             # 7
+               '08_KZAF1075NA4WA55GA20AA0',     # 8
+               '09_EDCS10',                     # 9
+               '10_CLBPS10_17_4',               # 10
+               '11_MBRAC60-2-10',               # 11
+               '12_CLBUS6-9-9.5',               # 12
+               '13_MBGA30-2',                   # 13
+               '14_BGPSL6-9-L30-F8',            # 14
+              )
+
+        self._nposes  = rospy.get_param('~nposes',  2)  # Number of pose candidates to be returned from localization
+        self._timeout = rospy.get_param('~timeout', 10)
+
+        # Setup clients for depth filtering and localization
+        self._dfilter = DepthFilterClient('depth_filter')
+        self._dfilter.window_radius = 2
+        self._localizer = LocalizationClient('localization')
 
         # Load parameters for detecting graspabilities
         default_param_fge = {"ds_rate": 0.5,
@@ -113,6 +133,13 @@ class O2ACVisionServer(object):
                              "threshold": 0.01}
         self.param_fge = rospy.get_param('~param_fge', default_param_fge)
 
+        # Setup camera image subscribers
+        self.cam_info_sub = rospy.Subscriber('/' + camera_name + '/camera_info', sensor_msgs.msg.CameraInfo,
+                                          self.camera_info_callback)
+        self.depth_image_sub = rospy.Subscriber('/' + camera_name + '/depth', sensor_msgs.msg.Image,
+                                          self.depth_image_sub_callback)
+        self.image_sub = rospy.Subscriber('/' + camera_name + '/image', sensor_msgs.msg.Image,
+                                          self.image_subscriber_callback)
         self.bridge = cv_bridge.CvBridge()
 
         # Determine whether the detection server works in continuous mode or not.
@@ -124,13 +151,19 @@ class O2ACVisionServer(object):
                                   o2ac_msgs.msg.EstimatedPosesArray, queue_size=1)
             rospy.logwarn("Localization action server is not running because SSD results are being streamed! Turn off continuous mode to use localization.")
         else:
+            # Setup the localization 
             self.pose_estimation_action_server = actionlib.SimpleActionServer("poseEstimation", o2ac_msgs.msg.poseEstimationAction,
                 execute_cb = self.pose_estimation_goal_callback, auto_start=False)
             self.pose_estimation_action_server.start()    
 
             self.get_3d_poses_from_ssd_action_server = actionlib.SimpleActionServer("get_3d_poses_from_ssd", o2ac_msgs.msg.get3DPosesFromSSDAction,
                 execute_cb = self.get_3d_poses_from_ssd_goal_callback, auto_start=False)
-            self.get_3d_poses_from_ssd_action_server.start()    
+            self.get_3d_poses_from_ssd_action_server.start()
+
+            self.recognition_server = actionlib.SimpleActionServer("~recognize_object", o2ac_msgs.msg.detectObjectAction,
+                execute_cb=self.recognition_callback, auto_start = False)
+            self.recognition_server.register_preempt_callback(self.recognition_preempt_callback)
+            self.recognition_server.start()
         
         self.belt_detection_action_server = actionlib.SimpleActionServer("beltDetection", o2ac_msgs.msg.beltDetectionAction,
             execute_cb = self.belt_detection_callback, auto_start=False)
@@ -241,6 +274,33 @@ class O2ACVisionServer(object):
 
         self.shaft_notch_detection_action_server.set_succeeded(action_result)
 
+    def recognition_callback(self, goal):
+        rospy.loginfo("Received a request to detect objects via SSD")
+        # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
+        im_in  = self.bridge.imgmsg_to_cv2(self.last_rgb_image, desired_encoding="bgr8")
+        im_vis = im_in.copy()
+        detection_results, im_vis = self.get_pose_estimation_results(im_in, im_vis)
+
+        recognition_result = o2ac_msgs.msg.detectObjectResult()
+        recognition_result.succeeded = False
+
+        for result in detection_results:
+            if goal.item_id == self.item_id(result.class_id):
+                recognition_result.detected_poses, \
+                recognition_result.confidences     \
+                    = self.localize(goal.item_id, result.bbox, result.poses)
+
+                if recognition_result.detected_poses:
+                    recognition_result.succeeded = True
+                    self.recognition_server.set_succeeded(recognition_result)
+                    return
+                break
+        self.recognition_server.set_aborted(recognition_result)
+    
+    def recognition_preempt_callback(self):
+        rospy.loginfo("o2ac_msgs.msg.detectObjectAction preempted")
+        self.recognition_server.set_preempted()
+
     def image_subscriber_callback(self, image):
         # Save the camera image locally
         # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
@@ -260,6 +320,18 @@ class O2ACVisionServer(object):
             # Publish images visualizing results
             self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
 
+### ======= Localization helpers
+
+    def item_id(self, class_id):
+        return self._models[class_id]
+
+    def localize(self, item_id, bbox, poses2d):
+        self._dfilter.roi = (bbox[0],           bbox[1],
+                             bbox[0] + bbox[2], bbox[1] + bbox[3])
+        while not self._dfilter.capture():  # Load PLY data to the localizer
+            pass
+        self._localizer.send_goal(item_id, self._nposes, poses2d)
+        return self._localizer.wait_for_result(rospy.Duration(self._timeout))
 
 ### =======
 

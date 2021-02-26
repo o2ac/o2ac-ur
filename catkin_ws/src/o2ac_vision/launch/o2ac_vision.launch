@@ -21,9 +21,14 @@
     <arg name="timeout"		  value="$(arg timeout)"/>
     <arg name="ply_dir"		  value="$(arg ply_dir)"/>
     <arg name="urdf_dir"	  value="$(arg urdf_dir)"/>
-    <arg name="camera_info_topic" value="$(arg camera_name)/color/camera_info"/>
+    <!-- Topic names for a raw realsense camera -->
+    <!-- <arg name="camera_info_topic" value="$(arg camera_name)/color/camera_info"/>
     <arg name="image_topic"	  value="$(arg camera_name)/color/image_raw"/>
-    <arg name="depth_topic"	  value="$(arg camera_name)/aligned_depth_to_color/image_raw"/>
+    <arg name="depth_topic"	  value="$(arg camera_name)/aligned_depth_to_color/image_raw"/> -->
+    <!-- Topic names of the camera multiplexer -->
+    <arg name="camera_info_topic" value="$(arg camera_name)/camera_info"/>
+    <arg name="image_topic"	  value="$(arg camera_name)/image"/>
+    <arg name="depth_topic"	  value="$(arg camera_name)/depth"/>
     <arg name="normal_topic"	  value=""/>
   </include>
 
