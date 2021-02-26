@@ -527,6 +527,166 @@ class O2ACCommon(O2ACBase):
       self.go_to_pose_goal(robot_name, object_pose, speed=speed_fast, move_lin=False)  
     return True
 
+  def simple_grasp_sanity_check(self, grasp_pose, grasp_width=0.08):
+    """
+    Returns true if the grasp pose is further than 5 cm away from the tray border,
+    and no other detected objects are closer than 5 cm.
+
+    grasp_pose is a PoseStamped.
+    """
+    d = self.distance_from_tray_border(grasp_pose)
+    print("distance was: ")
+    print(d)
+    if d[0] < 0.08 or d[1] < 0.08:
+      return False
+    for obj, pose in self.objects_in_tray.items():
+      if pose_dist(pose.pose, grasp_pose.pose) < 0.05:
+        return False
+    return True
+  
+  def is_grasp_pose_feasible(self, grasp_pose):
+    # TODO: Consider the grasp width and actual collisions using the PlanningScene
+    return self.simple_grasp_sanity_check(grasp_pose)
+    
+  def get_feasible_grasp_points(self, object_id):
+    """
+    Returns a list of PoseStamped grasp points for an object that is currently in the scene.
+    """
+    if object_id not in self.objects_in_tray:
+      rospy.logerr("Grasp points requested for " + str(object_id) + " but it is not seen in tray.")
+      return False
+
+    small_items = [8,9,10,14]
+    large_items = [1,2,3,4,5,7,11,12,13]
+    belt        = [6]
+
+    if object_id in belt:
+      res = self.get_3d_poses_from_ssd()
+      grasp_poses = []
+      for idx, pose in enumerate(res.poses):
+        if res.class_ids[idx] == 6:
+          if self.is_grasp_pose_feasible(pose):
+            grasp_poses.append(pose)
+      return grasp_poses
+
+    if object_id in small_items:
+      # For small items, the object should be the only grasp pose.
+      grasp_pose = self.objects_in_tray[object_id]
+      return [grasp_pose]
+      # TODO: Consider the idler spacer, which can stand upright or lie on the side.
+      
+    if object_id in large_items:
+      if object_id != 7: # This is the bearing
+        # TODO: Allow for parts other than the bearing
+        return False
+      # TODO: Generate alternative grasp poses
+      # TODO: Get grasp poses from database
+      grasp_pose = self.objects_in_tray[object_id]
+      grasp_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
+      grasp_pose.pose.position.z = 0.02
+      return [grasp_pose]  
+
+
+  def distance_from_tray_border(self, object_pose):
+    """
+    Returns the distance from the tray border as an (x, y) tuple.
+    x, y are in the tray coordinate system.
+    Distance is signed (negative is outside the tray).
+    """
+    # Inside tray width and length: 25.5 cm, 37.5 cm
+    l_x_half = .255/2.0
+    l_y_half = .375/2.0
+    # print("object_pose = ")
+    # print(object_pose)
+    object_pose_in_world = self.listener.transformPose("tray_center", object_pose)
+    xdist = l_x_half - abs(object_pose_in_world.pose.position.x)
+    ydist = l_y_half - abs(object_pose_in_world.pose.position.y)
+    return (xdist, ydist)
+  
+  def pose_dist(self, p1, p2):
+    """
+    """
+
+  def center_with_gripper(self, robot_name, object_pose, object_width, use_ur_script=False):
+    """
+    Centers cylindrical object by moving the gripper, by moving the robot to the pose and closing/opening.
+    Rotates once and closes/opens again. Does not move back afterwards.
+    """
+    if use_ur_script:
+      success = self.load_program(robot=robot_name, program_name="wrs2020/center_object.urp", recursion_depth=3)
+      if success:
+        rospy.sleep(1)
+        self.execute_loaded_program(robot=robot_name)
+      else:
+        rospy.logerr("Problem loading. Not executing center_with_gripper.")
+        return False
+      wait_for_UR_program("/"+robot_name, rospy.Duration.from_sec(80))
+      if self.is_robot_protective_stopped(robot_name):
+        self.unlock_protective_stop(robot_name)
+        return False
+    object_pose_in_world = self.listener.transformPose("world", object_pose)
+    object_pose_in_world.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/2, 0))
+    self.go_to_pose_goal(robot_name, object_pose_in_world, speed=speed_slow, acceleration=acc_slow, move_lin=True)
+    self.send_gripper_command(gripper=robot_name, command="close", force = 1.0, velocity = 0.1)
+    self.send_gripper_command(gripper=robot_name, command=object_width+0.02, force = 90.0, velocity = 0.001)
+    object_pose_in_world_rotated = copy.deepcopy(object_pose_in_world)
+    object_pose_in_world_rotated.pose = rotatePoseByRPY(0,0,pi, object_pose_in_world_rotated.pose)
+    self.go_to_pose_goal(robot_name, object_pose_in_world, speed=speed_slow, acceleration=acc_slow, move_lin=True)
+    self.send_gripper_command(gripper=robot_name, command="close", force = 1.0, velocity = 0.1)
+    self.send_gripper_command(gripper=robot_name, command=object_width+0.02, force = 90.0, velocity = 0.001)
+    self.go_to_pose_goal(robot_name, object_pose_in_world, speed=speed_slow, acceleration=acc_slow, move_lin=True)
+    return True
+
+  def centering_pick(self, robot_name, pick_pose, speed_fast=0.1, speed_slow=0.02, object_width=0.08, approach_height=0.05, 
+          item_id_to_attach = "", lift_up_after_pick=True, force_ur_script=False, acc_fast=1.0, acc_slow=.1, gripper_force=40.0):
+    """
+    This function picks an object with the robot directly from above, but centers the object with the gripper first.
+    Should be used only for cylindrical objects.
+    
+    item_id_to_attach is used to attach the item to the robot at the target pick pose. It is ignored if empty.
+    """
+    
+    if speed_fast > 1.0:
+      acceleration=speed_fast
+    else:
+      acceleration=1.0
+
+    object_pose_in_world = self.listener.transformPose("world", pick_pose)
+    object_pose_in_world.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi, 0))
+    object_pose_in_world.pose.position.z += approach_height
+    rospy.logdebug("Going to height " + str(object_pose_in_world.pose.position.z))
+    self.go_to_pose_goal(robot_name, object_pose_in_world, speed=speed_fast, acceleration=acc_fast, move_lin=True)
+    object_pose_in_world.pose.position.z -= approach_height
+
+    self.send_gripper_command(gripper=robot_name, command=object_width+0.03)
+
+    rospy.loginfo("Moving down to object")
+    
+    # Center object
+    self.center_with_gripper(robot_name, object_pose_in_world, object_width)
+
+    # Grasp object
+    self.send_gripper_command(gripper=robot_name, command="close", force = gripper_force)
+
+    if item_id_to_attach:
+      try:
+        self.groups[robot_name].attach_object(item_id_to_attach, robot_name + "_ee_link", touch_links= 
+        [robot_name + "_robotiq_85_tip_link", 
+        robot_name + "_robotiq_85_left_finger_tip_link", 
+        robot_name + "_robotiq_85_left_inner_knuckle_link", 
+        robot_name + "_robotiq_85_right_finger_tip_link", 
+        robot_name + "_robotiq_85_right_inner_knuckle_link"])
+      except:
+        rospy.logerr(item_id_to_attach + " could not be attached! robot_name = " + robot_name)
+
+    if lift_up_after_pick:
+      rospy.sleep(0.5)
+      rospy.loginfo("Going back up")
+
+      object_pose_in_world.pose.position.z += approach_height
+      rospy.loginfo("Going to height " + str(object_pose_in_world.pose.position.z))
+      self.go_to_pose_goal(robot_name, object_pose_in_world, speed=speed_fast, acceleration=acc_fast, move_lin=True)
+    return True
 
   ########
 

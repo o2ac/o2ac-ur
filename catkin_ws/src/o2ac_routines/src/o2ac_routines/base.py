@@ -966,7 +966,7 @@ class O2ACBase(object):
       rospy.loginfo("Detected " + item_name + " with confidence " + str(res.confidences[0]))
       co = self.assembly_reader._reader.get_collision_object("bearing")
       co.mesh_poses[0] = res.detected_poses[0].pose
-      co.header.frame_id = "b_bot_outside_camera_color_optical_frame"
+      co.header.frame_id = "tray_center"
       print(co)
       self.planning_scene_interface.apply_collision_object(co)
       return True

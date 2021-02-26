@@ -92,10 +92,16 @@ class TestClass(O2ACCommon):
     return
   
   def call_belt_action_and_show(self):
-    belt_detector = o2ac_vision.BeltDetectionClient()
-    belt_detector.trigger()
-    grasp_points = belt_detector.get_grasp_points()
+    client = actionlib.SimpleActionClient('beltDetection', o2ac_msgs.msg.beltDetectionAction)
+    client.wait_for_server()
+
+    goal = o2ac_msgs.msg.poseEstimationGoal(object_id="1", camera_id="1")
+    client.send_goal(goal)
+    client.wait_for_result()
+    res = client.get_result()
+
     print '\nbelt detection result'
+    print(res)
     print "grasp points: ", grasp_points
     
     # self.publish_marker(pose, "place_pose")
@@ -144,8 +150,16 @@ if __name__ == '__main__':
         c.close_view(4)
       elif r == '4':
         c.views()
-      elif r == '5':
-        c.call_belt_action_and_show()
+      if r == '5':
+        r = c.get_3d_poses_from_ssd()
+        r2 = c.get_feasible_grasp_points(object_id=6)
+        print(len(r2))
+
+        # c.detect_object_in_camera_view("06_MBT4-400")  # Belt
+        # c.call_belt_action_and_show()
+      # if r == '5':
+        # c.detect_object_in_camera_view("06_MBT4-400")  # Belt
+        # c.call_belt_action_and_show()
       elif r == '61':
         ps = geometry_msgs.msg.PoseStamped()
         ps.header.frame_id = "taskboard_bearing_target_link"
