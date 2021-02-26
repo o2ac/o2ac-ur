@@ -1,0 +1,13 @@
+# Called when the camera looks at the tray. Returns the 3D poses 
+
+# Request
+
+---
+# Result
+int64[] class_ids                   # Part IDs detected by SSD
+# float64[] confidence                # Confidence of SSD results
+geometry_msgs/PoseStamped[] poses   # 3D poses in tray_center frame
+
+
+---
+# Feedback

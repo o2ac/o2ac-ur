@@ -128,6 +128,7 @@ class O2ACBase(object):
     self.screw_client = actionlib.SimpleActionClient('/o2ac_skills/screw', o2ac_msgs.msg.screwAction)
     self.change_tool_client = actionlib.SimpleActionClient('/o2ac_skills/change_tool', o2ac_msgs.msg.changeToolAction)
 
+    self.ssd_client = actionlib.SimpleActionClient('/get_3d_poses_from_ssd', o2ac_msgs.msg.get3DPosesFromSSDAction)
     self.recognition_client = actionlib.SimpleActionClient('/object_recognizer/recognize_object', o2ac_msgs.msg.detectObjectAction)
 
     self.pick_planning_client = actionlib.SimpleActionClient('/pick_planning', o2ac_task_planning_msgs.msg.PickObjectAction)
@@ -190,6 +191,8 @@ class O2ACBase(object):
     self.screw_tools = {}
 
     self.define_tray_views()
+
+    self.objects_in_tray = dict()  # key: object ID. value: False or object pose
 
     rospy.sleep(.5)
     rospy.loginfo("Finished initializing class")
@@ -903,10 +906,42 @@ class O2ACBase(object):
       self.spawn_tool('screw_tool_' + screw_id)
       self.upload_tool_grasps_to_param_server(screw_id)
     spawn_objects(assembly_name, objects, poses, reference_frame)
+  
+  def get_3d_poses_from_ssd(self):
+    """
+    Returns object poses as estimated by the SSD neural network and reprojection.
+    """
+    # Send goal, wait for result
+    self.ssd_client.send_goal(o2ac_msgs.msg.get3DPosesFromSSDGoal())
+    if (not self.ssd_client.wait_for_result(rospy.Duration(2.0))):
+      self.ssd_client.cancel_goal()  # Cancel goal if timeout expired
+      rospy.logerr("Call for SSD result returned no result. Is o2ac_vision running?")
+      return False
+
+    # Read result and return
+    try:
+      res = self.ssd_client.get_result()
+      for idx, pose in zip(res.class_ids, res.poses):
+        self.objects_in_tray[idx] = pose
+      return res
+    except:
+      pass
+    return False
+
+  # def publish_ssd_results_to_scene(self):
+  #   """
+  #   As a first start. Use SSD results to place collision objects in 
+  #   """
+  #   rospy.loginfo("Detected " + item_name + " with confidence " + str(res.confidences[0]))
+  #   co = self.assembly_reader._reader.get_collision_object("bearing")
+  #   co.mesh_poses[0] = res.detected_poses[0].pose
+  #   co.header.frame_id = "tray_center"
+  #   print(co)
+  #   self.planning_scene_interface.apply_collision_object(co)
     
   def detect_object_in_camera_view(self, item_name):
     """
-    Returns True if object was detected in current camera view and published to planning scene,
+    Returns object pose if object was detected in current camera view and published to planning scene,
     False otherwise.
     """
 

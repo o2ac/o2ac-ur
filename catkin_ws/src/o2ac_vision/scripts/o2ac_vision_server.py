@@ -127,6 +127,10 @@ class O2ACVisionServer(object):
             self.pose_estimation_action_server = actionlib.SimpleActionServer("poseEstimation", o2ac_msgs.msg.poseEstimationAction,
                 execute_cb = self.pose_estimation_goal_callback, auto_start=False)
             self.pose_estimation_action_server.start()    
+
+            self.get_3d_poses_from_ssd_action_server = actionlib.SimpleActionServer("get_3d_poses_from_ssd", o2ac_msgs.msg.get3DPosesFromSSDAction,
+                execute_cb = self.get_3d_poses_from_ssd_goal_callback, auto_start=False)
+            self.get_3d_poses_from_ssd_action_server.start()    
         
         self.belt_detection_action_server = actionlib.SimpleActionServer("beltDetection", o2ac_msgs.msg.beltDetectionAction,
             execute_cb = self.belt_detection_callback, auto_start=False)
@@ -149,6 +153,28 @@ class O2ACVisionServer(object):
 
     def depth_image_sub_callback(self, depth_image_msg):
         self._depth_image_ros = depth_image_msg
+
+    def get_3d_poses_from_ssd_goal_callback(self, goal):
+        self.get_3d_poses_from_ssd_action_server.accept_new_goal()
+        rospy.loginfo("Received a request to detect objects via SSD")
+        # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
+        im_in  = self.bridge.imgmsg_to_cv2(self.last_rgb_image, desired_encoding="bgr8")
+        im_vis = im_in.copy()
+        
+        action_result = o2ac_msgs.msg.get3DPosesFromSSDResult()
+        poses_2d_with_id, im_vis = self.get_pose_estimation_results(im_in, im_vis)
+
+        
+        action_result.poses = []
+        action_result.class_ids = []
+        for array in poses_2d_with_id:
+            for pose2d in array.poses:
+                action_result.class_ids.append(array.class_id)
+                action_result.poses.append(self.convert_pose_2d_to_3d(pose2d))
+        
+        self.get_3d_poses_from_ssd_action_server.set_succeeded(action_result)
+        # Publish result visualization
+        self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
 
     def pose_estimation_goal_callback(self, goal):
         self.pose_estimation_action_server.accept_new_goal()
