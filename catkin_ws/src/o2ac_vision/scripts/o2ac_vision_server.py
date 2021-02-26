@@ -386,8 +386,8 @@ class O2ACVisionServer(object):
 
         bbox = ssd_result["bbox"]
         margin = 30
-        top_bottom = slice(bbox[1] - margin, bbox[1] + bbox[3] + margin)
-        left_right = slice(bbox[0] - margin, bbox[0] + bbox[2] + margin)
+        top_bottom = slice(max(bbox[1] - margin, 0), min(bbox[1] + bbox[3] + margin, 480))
+        left_right = slice(max(bbox[0] - margin, 0), min(bbox[0] + bbox[2] + margin, 640))
 
         fge = FastGraspabilityEvaluation(im_in[top_bottom, left_right],
                                          im_hand, im_collision, self.param_fge)
