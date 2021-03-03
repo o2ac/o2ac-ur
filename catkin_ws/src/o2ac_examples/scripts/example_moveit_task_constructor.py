@@ -68,7 +68,7 @@ if __name__ == '__main__':
 
     assy_name = 'assy_1'
     assembly_reader = AssemblyReader(assy_name)
-    assembly_reader.publish_target_frames(assy_pose)
+    assembly_reader.publish_assembly_frames(assy_pose)
 
     pub = rospy.Publisher('/collision_object', moveit_msgs.msg.CollisionObject, queue_size=100)
 
