@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Software License Agreement (BSD License)
 #
@@ -82,7 +82,7 @@ class O2ACVisionServer(object):
     """
 
     def __init__(self):
-    	rospy.init_node('o2ac_vision_server', anonymous=False)
+        rospy.init_node('o2ac_vision_server', anonymous=False)
 
         camera_name = rospy.get_param('~camera_name', "camera_multiplexer")
         self.cam_helper = O2ACCameraHelper()
