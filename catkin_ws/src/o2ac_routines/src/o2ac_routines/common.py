@@ -304,6 +304,9 @@ class O2ACCommon(O2ACBase):
     success = False
     return success
   
+
+  ####### Vision
+
   def look_for_item_in_tray(self, item_name, robot_name="b_bot"):
     """
     This function will look for an item in the tray. After calling this function, the item
@@ -345,77 +348,11 @@ class O2ACCommon(O2ACBase):
     success = False
     return success
 
-
-  def belt_circle_motion(self, speed = 0.02):
-    """
-    This function moves the belt tool around the pulley(s) to insert it into the groove.
-    """
-    rospy.logerr("Not implemented yet")
-    return False
-    self.toggle_collisions(collisions_on=False)
-    if go_fast:
-      self.send_gripper_command("b_bot", "close")
-      speed_fast = 1.5
-      speed_slow = .1
-    else:
-      self.send_gripper_command("b_bot", "close")
-      speed_fast = .2
-      speed_slow = .02
-    
-    turning_around_large_pulley = True
-    if turning_around_large_pulley:
-      r_pulley=0.036
-    else:
-      r_pulley=0.019
-
-    theta_offset = 90  # To adjust the starting angle
-    theta_belt= 0 + theta_offset
-    theta_increase=40
-
-    start_pose = geometry_msgs.msg.PoseStamped()
-    start_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/2, pi))
-    start_pose.header.frame_id = "workspace_center"
-    start_pose = self.listener.transformPose("taskboard_large_pulley", start_pose)    
-    start_pose.pose.position.x = cos(radians(theta_belt))*r_pulley
-    start_pose.pose.position.y = sin(radians(theta_belt))*r_pulley
-    start_pose.pose.position.z = 0
-
-    approach_pose = copy.deepcopy(start_pose)
-    approach_pose.pose.position.z = 0.03
-    self.go_to_pose_goal(robot_name, approach_pose, speed=speed_fast, move_lin=True)
-    self.go_to_pose_goal(robot_name, start_pose, speed=speed_slow, move_lin=True)
-
-    rotation_count = 0
-    while rotation_count < rotations:
-      rotation_count += 1
-      theta_belt= 0 + theta_offset
-      next_pose = geometry_msgs.msg.PoseStamped()
-      next_pose.pose.orientation = start_pose.pose.orientation
-      next_pose.header.frame_id = "taskboard_large_pulley"
-      while theta_belt <= 340+theta_offset and not rospy.is_shutdown():
-          #By default, the Spiral_Search function will maintain contact between both mating parts at all times
-          theta_belt=theta_belt+theta_increase
-          x=cos(radians(theta_belt))*r_pulley
-          y=sin(radians(theta_belt))*r_pulley
-          next_pose.pose.position.x = x
-          next_pose.pose.position.y = y
-          print(theta_belt)
-          #  print(radians(theta_belt))
-          print(cos(radians(theta_belt)))
-          print(cos(radians(theta_belt))*r_pulley)
-          print(next_pose.pose.position)
-          self.go_to_pose_goal(robot_name, next_pose, move_lin=True)
-      
-    self.go_to_pose_goal(robot_name, approach_pose, speed=speed_fast, move_lin=True)
-    
-    self.toggle_collisions(collisions_on=True)
-    # -------------
-    return True
-
   ########
 
-  def simple_pick(self, robot_name, object_pose, grasp_height=0.0, speed_fast=0.1, speed_slow=0.02, gripper_command="close", approach_height=0.05, 
-          item_id_to_attach = "", lift_up_after_pick=True, force_ur_script=False, acc_fast=1.0, acc_slow=.1, gripper_force=40.0,
+  def simple_pick(self, robot_name, object_pose, grasp_height=0.0, speed_fast=0.1, speed_slow=0.02, gripper_command="close", 
+          gripper_force=40.0, grasp_width=0.140,
+          approach_height=0.05, item_id_to_attach = "", lift_up_after_pick=True, force_ur_script=False, acc_fast=1.0, acc_slow=.1, 
           gripper_velocity = .1, axis="x", sign=+1):
     """
     This function (outdated) performs a grasp with the robot, but it is not updated in the planning scene.
@@ -446,7 +383,7 @@ class O2ACCommon(O2ACBase):
     if gripper_command=="do_nothing":
       pass
     else: 
-      self.send_gripper_command(gripper=robot_name, command="open")
+      self.send_gripper_command(gripper=robot_name, command=grasp_width) # Open
 
     rospy.loginfo("Moving down to object")
     if axis =="x":
@@ -463,7 +400,7 @@ class O2ACCommon(O2ACBase):
     if gripper_command=="do_nothing":
       pass
     else: 
-      self.send_gripper_command(gripper=robot_name, command="close", force = gripper_force, velocity = gripper_velocity,)
+      self.send_gripper_command(gripper=robot_name, command="close", force = gripper_force, velocity = gripper_velocity)
 
     if item_id_to_attach:
       try:
@@ -527,7 +464,7 @@ class O2ACCommon(O2ACBase):
       self.go_to_pose_goal(robot_name, object_pose, speed=speed_fast, move_lin=False)  
     return True
 
-  def simple_grasp_sanity_check(self, grasp_pose, grasp_width=0.08):
+  def simple_grasp_sanity_check(self, grasp_pose, grasp_width=0.08, border_dist=0.08):
     """
     Returns true if the grasp pose is further than 5 cm away from the tray border,
     and no other detected objects are closer than 5 cm.
@@ -535,18 +472,24 @@ class O2ACCommon(O2ACBase):
     grasp_pose is a PoseStamped.
     """
     d = self.distance_from_tray_border(grasp_pose)
-    print("distance was: ")
+    print("border distance was: ")
     print(d)
-    if d[0] < 0.08 or d[1] < 0.08:
+    if d[0] < border_dist or d[1] < border_dist:
+      print("too close to border. discarding")
       return False
     for obj, pose in self.objects_in_tray.items():
+      if obj == 6: # Hard-code skipping the belt
+        continue
       if pose_dist(pose.pose, grasp_pose.pose) < 0.05:
+        if pose_dist(pose.pose, grasp_pose.pose) < 1e-6:
+          continue  # It's the item itself or a duplicate
+        print("too close to another item. discarding. distance: " + str(pose_dist(pose.pose, grasp_pose.pose)) + ", id: " + str(obj))
         return False
     return True
   
-  def is_grasp_pose_feasible(self, grasp_pose):
+  def is_grasp_pose_feasible(self, grasp_pose, border_dist=0.08):
     # TODO: Consider the grasp width and actual collisions using the PlanningScene
-    return self.simple_grasp_sanity_check(grasp_pose)
+    return self.simple_grasp_sanity_check(grasp_pose, border_dist)
     
   def get_feasible_grasp_points(self, object_id):
     """
@@ -565,7 +508,7 @@ class O2ACCommon(O2ACBase):
       grasp_poses = []
       for idx, pose in enumerate(res.poses):
         if res.class_ids[idx] == 6:
-          if self.is_grasp_pose_feasible(pose):
+          if self.is_grasp_pose_feasible(pose, border_dist=0.05):
             grasp_poses.append(pose)
       return grasp_poses
 
@@ -576,16 +519,31 @@ class O2ACCommon(O2ACBase):
       # TODO: Consider the idler spacer, which can stand upright or lie on the side.
       
     if object_id in large_items:
-      if object_id != 7: # This is the bearing
-        # TODO: Allow for parts other than the bearing
-        return False
       # TODO: Generate alternative grasp poses
       # TODO: Get grasp poses from database
       grasp_pose = self.objects_in_tray[object_id]
       grasp_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
       grasp_pose.pose.position.z = 0.02
-      return [grasp_pose]  
-
+      if self.is_grasp_pose_feasible(grasp_pose, border_dist=0.05):
+        return [grasp_pose]
+    
+    return False
+  
+  def look_and_get_grasp_point(self, object_id):
+    """
+    Looks at the tray from above and gets grasp points of items.
+    Does very light feasibility check before returning.
+    """
+    # TODO: Merge with detect_object_in_camera_view in base.py
+    self.go_to_pose_goal("b_bot", self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.1)
+    res = self.get_3d_poses_from_ssd()
+    r2 = self.get_feasible_grasp_points(object_id)
+    if r2:
+      goal = r2[0]
+    else:
+      rospy.logerr("Could not find suitable grasp pose! Aborting.")
+      return False
+    return r2[0]
 
   def distance_from_tray_border(self, object_pose):
     """
@@ -603,10 +561,6 @@ class O2ACCommon(O2ACBase):
     ydist = l_y_half - abs(object_pose_in_world.pose.position.y)
     return (xdist, ydist)
   
-  def pose_dist(self, p1, p2):
-    """
-    """
-
   def center_with_gripper(self, robot_name, object_pose, object_width, use_ur_script=False):
     """
     Centers cylindrical object by moving the gripper, by moving the robot to the pose and closing/opening.
@@ -620,7 +574,7 @@ class O2ACCommon(O2ACBase):
       else:
         rospy.logerr("Problem loading. Not executing center_with_gripper.")
         return False
-      wait_for_UR_program("/"+robot_name, rospy.Duration.from_sec(80))
+      wait_for_UR_program("/"+robot_name, rospy.Duration.from_sec(20))
       if self.is_robot_protective_stopped(robot_name):
         self.unlock_protective_stop(robot_name)
         return False

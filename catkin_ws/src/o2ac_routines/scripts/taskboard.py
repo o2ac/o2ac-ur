@@ -407,13 +407,13 @@ class TaskboardClass(O2ACCommon):
     if task_name == "motor pulley":
       self.go_to_named_pose("home","a_bot")
       self.go_to_named_pose("home","b_bot")
-      success_a = self.load_program(robot="a_bot", program_name="wrs2020/linear_push_on_taskboard_from_home.urp", recursion_depth=3)
-      if success_a:
-        print("Loaded pulley program.")
-        self.execute_loaded_program(robot="a_bot")
-      else:
-        print("Problem loading program on a_bot. Not executing pulley procedure.")
-        return False
+      # success_a = self.load_program(robot="a_bot", program_name="wrs2020/linear_push_on_taskboard_from_home.urp", recursion_depth=3)
+      # if success_a:
+      #   print("Loaded pulley program.")
+      #   self.execute_loaded_program(robot="a_bot")
+      # else:
+      #   print("Problem loading program on a_bot. Not executing pulley procedure.")
+      #   return False
       
       goal = self.look_and_get_grasp_point(self.assembly_database.name_to_id("motor_pulley"))
       if not goal:
