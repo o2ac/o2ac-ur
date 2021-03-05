@@ -54,31 +54,37 @@ class O2ACCameraHelper(object):
         for img_ros in depth_images_ros:
             depth_images.append(self.bridge.imgmsg_to_cv2(img_ros, desired_encoding="passthrough"))
         
-        # TODO: Insert fallback with increased tolerance if depth values are empty?
         return self.project_2d_to_3d_from_images(u, v, depth_images, average_with_radius)
         
     def project_2d_to_3d_from_images(self, u, v, depth_images=[], average_with_radius=0):
         """
         Go through depth images (list of images in cv2 format) and return 3D pose of single pixel (u,v).
         average_with_radius uses nearby pixels for averaging the depth value. radius=0 evaluates only the pixel.
+        Does not actually use a radius, but a box around 
         """
         # Average over images and area
         depth_vals = []
-        for img in depth_images:
-            if img[v, u]:  # Skip if pixel empty
-                depth_vals.append(img[v, u])
-            else:
-                rospy.logwarn("Skipping pixel in depth backprojection")
-            if average_with_radius:
-                for i in range(-average_with_radius, average_with_radius):
-                    for j in range(-average_with_radius, average_with_radius):
-                        uc = int(np.clip(estimated_poses_msg.bbox[1] + round(estimated_poses_msg.bbox[3]/2), 0, 479))
-                        vc = int(np.clip(estimated_poses_msg.bbox[1] + round(estimated_poses_msg.bbox[3]/2), 0, 479))
-                        depth_vals.append(img[vc, uc])
+        try:
+            for img in depth_images:
+                if img[v, u]:  # Skip if pixel empty
+                    depth_vals.append(img[v, u])
+                else:
+                    rospy.logwarn("Skipping pixel in depth backprojection")
+                if average_with_radius:
+                    for i in range(-average_with_radius, average_with_radius):
+                        for j in range(-average_with_radius, average_with_radius):
+                            uc = int(np.clip(estimated_poses_msg.bbox[1] + round(estimated_poses_msg.bbox[3]/2), 0, 640))
+                            vc = int(np.clip(estimated_poses_msg.bbox[1] + round(estimated_poses_msg.bbox[3]/2), 0, 480))
+                            depth_vals.append(img[vc, uc])
+        except:
+            pass
         
         if len(depth_vals) == 0:
             depth_vals.append(0)
-            rospy.logerr("Depth is zero!")
+            rospy.logerr("No depth value found in image!")
+            if not average_with_radius:
+                rospy.loginfo("Reattempting backprojection with neighboring pixels")
+                return self.project_2d_to_3d_from_images(u, v, depth_images, average_with_radius=8)
         depth = np.mean(depth_vals)
         
         # Backproject to 3D
