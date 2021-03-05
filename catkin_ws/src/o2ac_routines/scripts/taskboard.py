@@ -173,8 +173,8 @@ class TaskboardClass(O2ACCommon):
 
     self.go_to_named_pose("home", "a_bot")
 
-    self.do_change_tool_action("a_bot", equip=True, screw_size = 3)
-    self.go_to_named_pose("feeder_pick_ready", "a_bot")
+    # self.do_change_tool_action("a_bot", equip=True, screw_size = 3)
+    # self.go_to_named_pose("feeder_pick_ready", "a_bot")
 
     self.go_to_named_pose("home", "b_bot")
     
@@ -199,35 +199,35 @@ class TaskboardClass(O2ACCommon):
     
     # TODO: check set screw success with a_bot, do spiral motion with b_bot otherwise
     
-    #### SCREW M3 WITH A_BOT
-    self.pick_screw_from_feeder("a_bot", screw_size = 3)
-    self.go_to_named_pose("home", "a_bot")
+    # #### SCREW M3 WITH A_BOT
+    # self.pick_screw_from_feeder("a_bot", screw_size = 3)
+    # self.go_to_named_pose("home", "a_bot")
 
     # Move b_bot back, a_bot to screw
     self.do_change_tool_action("b_bot", equip=False, screw_size = 2)
     self.do_change_tool_action("b_bot", equip=True, screw_size = 4)
     self.go_to_named_pose("home", "b_bot")
 
-    self.go_to_named_pose("horizontal_screw_ready", "a_bot")
-    approach_pose = geometry_msgs.msg.PoseStamped()
-    approach_pose.header.frame_id = "taskboard_m3_screw_link"
-    approach_pose.pose.position.x = -.04
-    approach_pose.pose.position.y = -.12
-    approach_pose.pose.position.z = -.05
-    taskboard.go_to_pose_goal("a_bot", approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
+    # self.go_to_named_pose("horizontal_screw_ready", "a_bot")
+    # approach_pose = geometry_msgs.msg.PoseStamped()
+    # approach_pose.header.frame_id = "taskboard_m3_screw_link"
+    # approach_pose.pose.position.x = -.04
+    # approach_pose.pose.position.y = -.12
+    # approach_pose.pose.position.z = -.05
+    # taskboard.go_to_pose_goal("a_bot", approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
 
-    approach_pose.pose.position.y = -.0
-    approach_pose.pose.position.z = -.0
-    taskboard.go_to_pose_goal("a_bot", approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
+    # approach_pose.pose.position.y = -.0
+    # approach_pose.pose.position.z = -.0
+    # taskboard.go_to_pose_goal("a_bot", approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
 
-    hole_pose = geometry_msgs.msg.PoseStamped()
-    hole_pose.header.frame_id = "taskboard_m3_screw_link"
-    hole_pose.pose.position.y = -.002  # MAGIC NUMBER
-    hole_pose.pose.position.z = -.006  # MAGIC NUMBER
-    hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
-    taskboard.do_screw_action("a_bot", hole_pose, screw_size = 3)
-    self.go_to_named_pose("horizontal_screw_ready", "a_bot")
-    self.go_to_named_pose("home", "a_bot")
+    # hole_pose = geometry_msgs.msg.PoseStamped()
+    # hole_pose.header.frame_id = "taskboard_m3_screw_link"
+    # hole_pose.pose.position.y = -.002  # MAGIC NUMBER
+    # hole_pose.pose.position.z = -.006  # MAGIC NUMBER
+    # hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
+    # taskboard.do_screw_action("a_bot", hole_pose, screw_size = 3)
+    # self.go_to_named_pose("horizontal_screw_ready", "a_bot")
+    # self.go_to_named_pose("home", "a_bot")
     
     ###
     
@@ -239,12 +239,12 @@ class TaskboardClass(O2ACCommon):
     hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/12, 0, 0))
     self.do_screw_action("b_bot", hole_pose, screw_size = 4)
 
-    self.do_change_tool_action("a_bot", equip=False, screw_size = 3)
+    # self.do_change_tool_action("a_bot", equip=False, screw_size = 3)
     self.go_to_named_pose("home", "a_bot")
     self.go_to_named_pose("home", "b_bot")
     
     # - Retainer pin + nut
-    self.do_task("idler pulley")
+    # self.do_task("idler pulley")
     self.do_change_tool_action("b_bot", equip=False, screw_size = 4)
     
     # - Shaft
@@ -254,7 +254,7 @@ class TaskboardClass(O2ACCommon):
     self.do_task("motor pulley")
 
     ### - Belt
-    self.do_task("belt")
+    # self.do_task("belt")
 
     # TODO: 
     # Implement bearing regrasp
@@ -478,7 +478,7 @@ class TaskboardClass(O2ACCommon):
       if success_a and success_b:
         print("Loaded bearing program.")
         rospy.sleep(1)
-        self.execute_loaded_program(robot="a_bot")
+        # self.execute_loaded_program(robot="a_bot")
         self.execute_loaded_program(robot="b_bot")
         print("Started execution. Waiting for b_bot to finish.")
       else:
@@ -562,17 +562,17 @@ class TaskboardClass(O2ACCommon):
       self.equip_tool('b_bot', 'screw_tool_m4')
       intermediate_pose = [31.0 /180.0*3.14, -137.0 /180.0*3.14, 121.0 /180.0*3.14, -114.0 /180.0*3.14, -45.0 /180.0*3.14, -222.0 /180.0*3.14]
       
-      success_a = self.load_program(robot="a_bot", program_name="wrs2020/linear_push_on_taskboard_from_home.urp", recursion_depth=3)
+      # success_a = self.load_program(robot="a_bot", program_name="wrs2020/linear_push_on_taskboard_from_home.urp", recursion_depth=3)
       
-      if success_a:
-        print("Loaded push_on_taskboard.")
-        rospy.sleep(1)
-        self.execute_loaded_program(robot="a_bot")
-        print("Started execution. Pushing on taskboard.")
-      else:
-        print("Problem loading. Not executing push on taskboard.")
-        self.unequip_tool('b_bot', 'screw_tool_m4')
-        return
+      # if success_a:
+      #   print("Loaded push_on_taskboard.")
+      #   rospy.sleep(1)
+      #   self.execute_loaded_program(robot="a_bot")
+      #   print("Started execution. Pushing on taskboard.")
+      # else:
+      #   print("Problem loading. Not executing push on taskboard.")
+      #   self.unequip_tool('b_bot', 'screw_tool_m4')
+      #   return
 
       for n in [1,3,2,4]:  # Cross pattern
         if rospy.is_shutdown():
@@ -614,7 +614,7 @@ class TaskboardClass(O2ACCommon):
       if success_a and success_b:
         print("Loaded shaft program.")
         rospy.sleep(1)
-        self.execute_loaded_program(robot="a_bot")
+        # self.execute_loaded_program(robot="a_bot")
         self.execute_loaded_program(robot="b_bot")
         print("Started execution. Waiting for b_bot to finish.")
       else:
