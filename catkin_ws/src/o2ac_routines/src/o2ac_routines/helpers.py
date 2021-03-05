@@ -142,6 +142,72 @@ def wait_for_UR_program(topic_namespace = "", timeout_duration = rospy.Duration.
   rospy.logdebug("UR Program has terminated.")
   return True
 
+# RPY rotations are applied in the frame of the pose.
+def rotatePoseByRPY(roll, pitch, yaw, in_pose):
+  # Catch if in_pose is a PoseStamped instead of a Pose.
+  try:
+    if in_pose.header:
+      in_pose.pose = rotatePoseByRPY(roll, pitch, yaw, in_pose.pose)
+      return in_pose
+  except:
+    pass # header doesn't exist so the object is probably not posestamped
+  
+  q_in = [in_pose.orientation.x, in_pose.orientation.y, in_pose.orientation.z, in_pose.orientation.w]
+  q_rot = quaternion_from_euler([roll, pitch, yaw])
+
+  q_rotated = quaternion_multiply(q_in, q_rot)
+
+  rotated_pose = copy.deepcopy(in_pose)
+  rotated_pose.orientation.x = geometry_msgs.msg.Quaternion(*q_rotated)
+  return rotated_pose
+
+# // Returns the angle between two quaternions
+# double quaternionDistance(geometry_msgs::Quaternion q1, geometry_msgs::Quaternion q2) 
+# { 
+#   tf::Quaternion q1tf, q2tf
+#   tf::quaternionMsgToTF(q1, q1tf)
+#   tf::quaternionMsgToTF(q2, q2tf)
+#   return 2*q1tf.angle(q2tf) 
+# }
+
+# double pointDistance(geometry_msgs::Point p1, geometry_msgs::Point p2)
+# {
+#   tf::Point tp1, tp2
+#   tf::pointMsgToTF(p1, tp1)
+#   tf::pointMsgToTF(p2, tp2)
+#   return tfDistance(tp1, tp2)
+# }
+
+def pose_dist(p1, p2):
+  """
+  Returns Euclidean distance of two geometry_msgs.msg.Pose objects defined in the same frame.
+  """
+  v1 = [p1.position.x, p1.position.y, p1.position.z]
+  v2 = [p2.position.x, p2.position.y, p2.position.z]
+  vd = [v1[0]-v2[0], v1[1]-v2[1], v1[2]-v2[2]]
+  return norm2(vd[0], vd[1], vd[2])
+
+
+def norm2(a, b, c=0.0):
+  return sqrt(a**2 + b**2 + c**2)
+
+def ur_axis_angle_to_quat(axis_angle):
+  # https://en.wikipedia.org/wiki/Axis%E2%80%93angle_representation#Unit_quaternions
+  angle = norm2(*axis_angle)
+  axis_normed = [axis_angle[0]/angle, axis_angle[1]/angle, axis_angle[2]/angle]
+  s = sin(angle/2)
+  return [s*axis_normed[0], s*axis_normed[1], s*axis_normed[2], cos(angle/2)]   #xyzw
+
+def quat_to_ur_axis_angle(quaternion):
+  # https://en.wikipedia.org/wiki/Axis%E2%80%93angle_representation#Unit_quaternions
+  # quaternion must be [xyzw]
+  angle = 2*math.atan2(norm2(quaternion[0], quaternion[1], quaternion[2]), quaternion[3])
+  if abs(angle) > 1e-6:
+    axis_normed = [ quaternion[0]/sin(angle/2), quaternion[1]/sin(angle/2), quaternion[2]/sin(angle/2) ]
+  else:
+    axis_normed = 0.0
+  return [axis_normed[0]*angle, axis_normed[1]*angle, axis_normed[2]*angle]
+
 def all_close(goal, actual, tolerance):
   """
   Convenience method for testing if a list of values are within a tolerance of their counterparts in another list

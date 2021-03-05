@@ -1,21 +1,6 @@
 def bearing_v1():
-  step_count_74696692_88ce_45f1_9a79_5e5b9bec3825 = 0
-  thread Step_Counter_Thread_59eec7aa_79c2_4345_bedd_727ddfff4ee8():
-    while (True):
-      step_count_74696692_88ce_45f1_9a79_5e5b9bec3825 = step_count_74696692_88ce_45f1_9a79_5e5b9bec3825 + 1
-      sync()
-    end
-  end
-  run Step_Counter_Thread_59eec7aa_79c2_4345_bedd_727ddfff4ee8()
-  set_safety_mode_transition_hardness(1)
-  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
-  set_tool_output_mode(0)
-  set_tool_digital_output_mode(0, 1)
-  set_tool_digital_output_mode(1, 1)
-  set_tool_voltage(24)
   set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
   set_payload(0.0)
-  set_gravity([0.0, 0.0, 9.82])
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -23,6 +8,21 @@ def bearing_v1():
   set_analog_outputdomain(0, 0)
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
+  step_count_54680d21_c866_4a53_be7d_92165ea6d859 = 0
+  thread Step_Counter_Thread_fbc434a4_61fa_42c9_bcaf_76bd15f1949b():
+    while (True):
+      step_count_54680d21_c866_4a53_be7d_92165ea6d859 = step_count_54680d21_c866_4a53_be7d_92165ea6d859 + 1
+      sync()
+    end
+  end
+  run Step_Counter_Thread_fbc434a4_61fa_42c9_bcaf_76bd15f1949b()
+  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
+  set_tool_output_mode(0)
+  set_tool_digital_output_mode(0, 1)
+  set_tool_digital_output_mode(1, 1)
+  set_tool_voltage(24)
+  set_safety_mode_transition_hardness(1)
+  set_gravity([0.0, 0.0, 9.82])
   # begin: URCap Installation Node
   #   Source: External Control, 1.0.2, FZI Research Center for Information Technology
   #   Type: External Control
@@ -2799,8 +2799,8 @@ def bearing_v1():
   if not(rq_is_gripper_activated("1")):
     popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
   end
-  rq_set_pos_spd_for(0, 255, 255, "1")
-  rq_wait_pos_spe_for_request(0, 255, 255, "1")
+  rq_set_pos_spd_for(0, 255, 0, "1")
+  rq_wait_pos_spe_for_request(0, 255, 0, "1")
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
@@ -2823,21 +2823,50 @@ def bearing_v1():
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 75 "Force"
+  $ 75 "If rq_current_pos_mm()<10"
+  if ( rq_current_pos_mm ()<10):
+    $ 76 "'Gripper fully closed = bearing not inserted!! Stopping.'"
+    # 'Gripper fully closed = bearing not inserted!! Stopping.'
+    $ 77 "MoveL"
+    $ 78 "Direction: Base X+"
+    global move_thread_flag_78=0
+    thread move_thread_78():
+      enter_critical
+      move_thread_flag_78 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [1.0,0.0,0.0], 0.1)
+      movel(towardsPos, a=0.06, v=0.1)
+      move_thread_flag_78 = 2
+      exit_critical
+    end
+    move_thread_flag_78 = 0
+    move_thread_han_78 = run move_thread_78()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_78 > 1):
+        join move_thread_han_78
+        $ 79 "Until (distance)"
+        break
+      end
+      sync()
+    end
+    $ 80 "Halt"
+    halt
+  end
+  $ 81 "Force"
   sleep(0.02)
   zero_ftsensor()
   force_mode(p[0.0,0.0,0.0,0.0,0.0,0.0], [1, 0, 0, 0, 0, 0], [-10.0, 0.0, 10.0, 0.0, 0.0, 0.0], 2, [0.01, 0.1, 0.1, 0.3490658503988659, 0.3490658503988659, 0.3490658503988659])
-  $ 76 "MoveL" "noBreak"
-  $ 77 "rightturn" "noBreak"
+  $ 82 "MoveL" "noBreak"
+  $ 83 "rightturn" "noBreak"
   set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
   movel(pose_add(get_target_tcp_pose(), pose_sub(rightturn_to_p, rightturn_from_p)), a=0.2, v=0.05)
-  $ 78 "leftturn" "noBreak"
+  $ 84 "leftturn" "noBreak"
   set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
   movel(pose_add(get_target_tcp_pose(), pose_sub(leftturn_to_p, leftturn_from_p)), a=0.2, v=0.05)
-  $ 79 "leftturn" "noBreak"
+  $ 85 "leftturn" "noBreak"
   set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
   movel(pose_add(get_target_tcp_pose(), pose_sub(leftturn_to_p, leftturn_from_p)), a=0.2, v=0.05)
-  $ 80 "rightturn" "noBreak"
+  $ 86 "rightturn" "noBreak"
   set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
   movel(pose_add(get_target_tcp_pose(), pose_sub(rightturn_to_p, rightturn_from_p)), a=0.2, v=0.05)
   end_force_mode()
@@ -2845,26 +2874,26 @@ def bearing_v1():
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
-  $ 81 "Gripper Open (1)"
+  $ 87 "Gripper Open (1)"
   if not(gripper_connected[0]):
     popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
   end
   if not(rq_is_gripper_activated("1")):
     popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
   end
-  rq_set_pos_spd_for(0, 255, 255, "1")
-  rq_wait_pos_spe_for_request(0, 255, 255, "1")
+  rq_set_pos_spd_for(0, 255, 0, "1")
+  rq_wait_pos_spe_for_request(0, 255, 0, "1")
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 82 "MoveJ"
-  $ 83 "Waypoint_7" "breakAfter"
+  $ 88 "MoveJ"
+  $ 89 "Waypoint_7" "breakAfter"
   set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
   movej(get_inverse_kin(Waypoint_7_p, qnear=Waypoint_7_q), a=1.3962634015954636, v=1.0471975511965976)
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
-  $ 84 "Gripper Close (1)"
+  $ 90 "Gripper Close (1)"
   if not(gripper_connected[0]):
     popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
   end
@@ -2876,57 +2905,57 @@ def bearing_v1():
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 85 "Force"
+  $ 91 "Force"
   sleep(0.02)
   zero_ftsensor()
   force_mode(p[0.0,0.0,0.0,0.0,0.0,0.0], [1, 0, 0, 0, 0, 0], [-5.0, 0.0, 10.0, 0.0, 0.0, 0.0], 2, [0.01, 0.1, 0.1, 0.3490658503988659, 0.3490658503988659, 0.3490658503988659])
-  $ 86 "Wait: 5.0" "noBreak"
+  $ 92 "Wait: 5.0" "noBreak"
   sleep(5.0)
-  $ 87 "MoveL" "noBreak"
-  $ 88 "Direction: Tool X+" "noBreak"
-  global move_thread_flag_88=0
-  thread move_thread_88():
+  $ 93 "MoveL" "noBreak"
+  $ 94 "Direction: Tool X+" "noBreak"
+  global move_thread_flag_94=0
+  thread move_thread_94():
     enter_critical
-    move_thread_flag_88 = 1
+    move_thread_flag_94 = 1
     local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [1.0,0.0,0.0], 5.0E-4)
     movel(towardsPos, a=0.005, v=0.005)
-    move_thread_flag_88 = 2
+    move_thread_flag_94 = 2
     exit_critical
   end
-  move_thread_flag_88 = 0
-  move_thread_han_88 = run move_thread_88()
+  move_thread_flag_94 = 0
+  move_thread_han_94 = run move_thread_94()
   while (True):
     sleep(1.0E-10)
-    if (move_thread_flag_88 > 1):
-      join move_thread_han_88
-      $ 89 "Until (distance)" "noBreak"
+    if (move_thread_flag_94 > 1):
+      join move_thread_han_94
+      $ 95 "Until (distance)" "noBreak"
       break
     end
     sync()
   end
-  $ 90 "Loop 12 times" "noBreak"
+  $ 96 "Loop 12 times" "noBreak"
   Loop_2 = 0
   while (Loop_2 < 12):
-    $ 91 "If pose_dist(get_actual_tcp_pose(), push_3_done) > .005" "noBreak"
+    $ 97 "If pose_dist(get_actual_tcp_pose(), push_3_done) > .005" "noBreak"
     if ( pose_dist ( get_actual_tcp_pose (), push_3_done_p) > .005):
-      $ 92 "MoveL" "noBreak"
-      $ 93 "Direction: Tool" "noBreak"
-      global move_thread_flag_93=0
-      thread move_thread_93():
+      $ 98 "MoveL" "noBreak"
+      $ 99 "Direction: Tool" "noBreak"
+      global move_thread_flag_99=0
+      thread move_thread_99():
         enter_critical
-        move_thread_flag_93 = 1
+        move_thread_flag_99 = 1
         local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [sin((Loop_2-1)/6*3.141),0.0,-cos((Loop_2-1)/6*3.141)], 5.0E-4)
         movel(towardsPos, a=0.02, v=0.005)
-        move_thread_flag_93 = 2
+        move_thread_flag_99 = 2
         exit_critical
       end
-      move_thread_flag_93 = 0
-      move_thread_han_93 = run move_thread_93()
+      move_thread_flag_99 = 0
+      move_thread_han_99 = run move_thread_99()
       while (True):
         sleep(1.0E-10)
-        if (move_thread_flag_93 > 1):
-          join move_thread_han_93
-          $ 94 "Until (distance)" "noBreak"
+        if (move_thread_flag_99 > 1):
+          join move_thread_han_99
+          $ 100 "Until (distance)" "noBreak"
           break
         end
         sync()
@@ -2936,25 +2965,25 @@ def bearing_v1():
   end
   end_force_mode()
   stopl(5.0)
-  $ 95 "MoveJ"
-  $ 96 "a_bit_back" "breakAfter"
+  $ 101 "MoveJ"
+  $ 102 "a_bit_back" "breakAfter"
   set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
   movej(get_inverse_kin(a_bit_back_p, qnear=a_bit_back_q), a=1.3962634015954636, v=1.0471975511965976)
-  $ 97 "MoveL"
-  $ 98 "above" "breakAfter"
+  $ 103 "MoveL"
+  $ 104 "above" "breakAfter"
   set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
   movel(above_p, a=1.2, v=0.25)
-  $ 99 "If  False "
+  $ 105 "If  False "
   if (  False  ):
-    $ 100 "MoveJ"
-    $ 101 "push_1_done" "breakAfter"
+    $ 106 "MoveJ"
+    $ 107 "push_1_done" "breakAfter"
     set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
     movej(get_inverse_kin(push_1_done_p, qnear=push_1_done_q), a=1.3962634015954636, v=1.0471975511965976)
-    $ 103 "push_3_done" "breakAfter"
+    $ 109 "push_3_done" "breakAfter"
     set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
     movej(get_inverse_kin(push_3_done_p, qnear=push_3_done_q), a=1.3962634015954636, v=1.0471975511965976)
   end
-  $ 104 "MoveJ"
-  $ 105 "home" "breakAfter"
+  $ 110 "MoveJ"
+  $ 111 "home" "breakAfter"
   movej(get_inverse_kin(home_p, qnear=home_q), a=1.3962634015954636, v=3.141592653589793)
 end

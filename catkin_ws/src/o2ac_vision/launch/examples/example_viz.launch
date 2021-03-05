@@ -24,7 +24,7 @@
     <arg name="normal_topic"	  value=""/>
   </include>
 
-  <node if="$(arg continuous_streaming)" name="object_detector" pkg="o2ac_vision" type="o2ac_vision.py" output="screen">
+  <node if="$(arg continuous_streaming)" name="object_detector" pkg="o2ac_vision" type="o2ac_vision_server.py" output="screen">
     <remap from="/image" to="$(arg camera_name)/color/image_raw"/>
     <param name="continuous_streaming" value="true"/>
   </node>

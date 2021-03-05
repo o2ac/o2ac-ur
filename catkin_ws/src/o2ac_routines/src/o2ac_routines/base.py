@@ -35,6 +35,7 @@
 # Author: Felix von Drigalski
 
 import sys
+import time
 import threading
 import copy
 import rospy
@@ -127,7 +128,8 @@ class O2ACBase(object):
     self.screw_client = actionlib.SimpleActionClient('/o2ac_skills/screw', o2ac_msgs.msg.screwAction)
     self.change_tool_client = actionlib.SimpleActionClient('/o2ac_skills/change_tool', o2ac_msgs.msg.changeToolAction)
 
-    self.recognition_client = actionlib.SimpleActionClient('/object_recognizer/recognize_object', o2ac_msgs.msg.detectObjectAction)
+    self.ssd_client = actionlib.SimpleActionClient('/get_3d_poses_from_ssd', o2ac_msgs.msg.get3DPosesFromSSDAction)
+    self.recognition_client = actionlib.SimpleActionClient('/o2ac_vision_server/localize_object', o2ac_msgs.msg.localizeObjectAction)
 
     self.pick_planning_client = actionlib.SimpleActionClient('/pick_planning', o2ac_task_planning_msgs.msg.PickObjectAction)
     self.place_planning_client = actionlib.SimpleActionClient('/place_planning', o2ac_task_planning_msgs.msg.PlaceObjectAction)
@@ -156,7 +158,10 @@ class O2ACBase(object):
       "a_bot_connect":rospy.ServiceProxy('/a_bot/ur_hardware_interface/dashboard/connect', std_srvs.srv.Trigger),
       "b_bot_connect":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/connect', std_srvs.srv.Trigger),
       "a_bot_close_popup":rospy.ServiceProxy('/a_bot/ur_hardware_interface/dashboard/close_popup', std_srvs.srv.Trigger),
-      "b_bot_close_popup":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/close_popup', std_srvs.srv.Trigger)
+      "b_bot_close_popup":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/close_popup', std_srvs.srv.Trigger),
+      "a_bot_unlock_protective_stop":rospy.ServiceProxy("/a_bot/ur_hardware_interface/dashboard/unlock_protective_stop", std_srvs.srv.Trigger),
+      "b_bot_unlock_protective_stop":rospy.ServiceProxy("/b_bot/ur_hardware_interface/dashboard/unlock_protective_stop", std_srvs.srv.Trigger)
+      
     }
 
     self.urscript_client = rospy.ServiceProxy('/o2ac_skills/sendScriptToUR', o2ac_msgs.srv.sendScriptToUR)
@@ -186,6 +191,8 @@ class O2ACBase(object):
     self.screw_tools = {}
 
     self.define_tray_views()
+
+    self.objects_in_tray = dict()  # key: object ID. value: False or object pose
 
     rospy.sleep(.5)
     rospy.loginfo("Finished initializing class")
@@ -263,9 +270,9 @@ class O2ACBase(object):
   def b_bot_ros_control_status_callback(self, msg):
     self.ur_ros_control_running_on_robot["b_bot"] = msg.data
   def a_bot_gripper_status_callback(self, msg):
-    self.a_bot_gripper_opening_width = msg.position
+    self.a_bot_gripper_opening_width = msg.position  # [m]
   def b_bot_gripper_status_callback(self, msg):
-    self.b_bot_gripper_opening_width = msg.position
+    self.b_bot_gripper_opening_width = msg.position  # [m]
   
   def is_robot_running_normally(self, robot_name):
     """
@@ -284,12 +291,20 @@ class O2ACBase(object):
       return True
     if robot is not "b_bot" and robot is not "a_bot":
       rospy.logerr("Robot name was not found!")
-    service_client = rospy.ServiceProxy("/" + robot + "/ur_hardware_interface/dashboard/unlock_protective_stop", std_srvs.srv.Trigger)
-    # rospy.wait_for_service(service_client, 5.0)
+    
+    service_client = self.ur_dashboard_clients[robot + "_unlock_protective_stop"]
     request = std_srvs.srv.TriggerRequest()
+    start_time = time.time()
     rospy.loginfo("Attempting to unlock protective stop of " + robot)
-    response = service_client.call(request)
-    rospy.loginfo("Response for unlocked protective stop of " + robot + ": " + response.message)
+    while not rospy.is_shutdown():
+      response = service_client.call(request)
+      if time.time() - start_time > 5.0:
+        break
+      if response.success:
+        break
+      rospy.sleep(0.2)
+    if not response.success:
+      rospy.logwarn("Could not unlock protective stop of " + robot + "!")
     return response.success
 
   def activate_ros_control_on_ur(self, robot="b_bot", recursion_depth=0):
@@ -891,15 +906,48 @@ class O2ACBase(object):
       self.spawn_tool('screw_tool_' + screw_id)
       self.upload_tool_grasps_to_param_server(screw_id)
     spawn_objects(assembly_name, objects, poses, reference_frame)
+  
+  def get_3d_poses_from_ssd(self):
+    """
+    Returns object poses as estimated by the SSD neural network and reprojection.
+    Also updates self.objects_in_tray
+    """
+    # Send goal, wait for result
+    self.ssd_client.send_goal(o2ac_msgs.msg.get3DPosesFromSSDGoal())
+    if (not self.ssd_client.wait_for_result(rospy.Duration(2.0))):
+      self.ssd_client.cancel_goal()  # Cancel goal if timeout expired
+      rospy.logerr("Call for SSD result returned no result. Is o2ac_vision running?")
+      return False
+
+    # Read result and return
+    try:
+      res = self.ssd_client.get_result()
+      for idx, pose in zip(res.class_ids, res.poses):
+        self.objects_in_tray[idx] = pose
+      return res
+    except:
+      pass
+    return False
+
+  # def publish_ssd_results_to_scene(self):
+  #   """
+  #   As a first start. Use SSD results to place collision objects in 
+  #   """
+  #   rospy.loginfo("Detected " + item_name + " with confidence " + str(res.confidences[0]))
+  #   co = self.assembly_reader._reader.get_collision_object("bearing")
+  #   co.mesh_poses[0] = res.detected_poses[0].pose
+  #   co.header.frame_id = "tray_center"
+  #   print(co)
+  #   self.planning_scene_interface.apply_collision_object(co)
     
   def detect_object_in_camera_view(self, item_name):
     """
-    Returns True if object was detected in current camera view and published to planning scene,
+    Returns object pose if object was detected in current camera view and published to planning scene,
     False otherwise.
     """
 
     # Send goal, wait for result
-    self.recognition_client.send_goal(o2ac_msgs.msg.detectObjectGoal(item_id=item_name))
+    self.recognition_client.send_goal(o2ac_msgs.msg.localizeObjectGoal(item_id=item_name))
     if (not self.recognition_client.wait_for_result(rospy.Duration(15.0))):
       self.recognition_client.cancel_goal()  # Cancel goal if timeout expired
       rospy.logerr("Recognition node returned no result.")
@@ -919,7 +967,7 @@ class O2ACBase(object):
       rospy.loginfo("Detected " + item_name + " with confidence " + str(res.confidences[0]))
       co = self.assembly_reader._reader.get_collision_object("bearing")
       co.mesh_poses[0] = res.detected_poses[0].pose
-      co.header.frame_id = "b_bot_outside_camera_color_optical_frame"
+      co.header.frame_id = "tray_center"
       print(co)
       self.planning_scene_interface.apply_collision_object(co)
       return True
@@ -1218,10 +1266,10 @@ class O2ACBase(object):
     res = self.toggleCollisions_client.call(req)
     return res.success
 
-  def close_gripper(self, robot, force=40.0):
-    return self.send_gripper_command(robot, "close", force=force)
-  def open_gripper(self, robot):
-    return self.send_gripper_command(robot, "open")
+  def close_gripper(self, robot, force=40.0, wait=True):
+    return self.send_gripper_command(robot, "close", force=force, wait=wait)
+  def open_gripper(self, robot, wait=True):
+    return self.send_gripper_command(robot, "open", wait=wait)
 
   def send_gripper_command(self, gripper, command, this_action_grasps_an_object = False, force = 40.0, velocity = .1, wait=True):
     """
@@ -1241,7 +1289,7 @@ class O2ACBase(object):
       if command == "close":
         goal.position = 0.0
       elif command == "open":
-        goal.position = 0.085
+        goal.position = 0.140
       else:
         goal.position = command     # This sets the opening width directly
         rospy.loginfo(command)

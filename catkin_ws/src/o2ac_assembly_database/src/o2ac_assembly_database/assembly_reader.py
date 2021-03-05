@@ -63,7 +63,7 @@ class AssemblyReader(PartsReader):
         self.collision_objects, self.grasps = self.get_collision_objects_with_metadata()
         self.assembly_tree = self.get_assembly_tree(self.collision_objects)
 
-    def publish_target_frames(self, assembly_pose = None):
+    def publish_assembly_frames(self, assembly_pose = None):
         '''
         Publish assembly target frames for tf
 
@@ -293,7 +293,7 @@ if __name__ == '__main__':
       rospy.loginfo("2: Publish parts to the scene")
       r = raw_input()
       if r == '1':
-        c.publish_target_frames()
+        c.publish_assembly_frames()
       if r == '2':
         print("Not yet implemented")
       if r == 'x':

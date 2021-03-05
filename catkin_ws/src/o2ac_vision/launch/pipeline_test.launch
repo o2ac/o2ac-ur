@@ -8,10 +8,8 @@
   <!-- Localization parameters -->
   <arg name="nposes"		default="2"/>
   <arg name="timeout"		default="10"/>
-  <arg name="ply_dir"		default="$(find o2ac_parts_description
-					 )/meshes"/>
-  <arg name="urdf_dir"		default="$(find o2ac_parts_description
-					 )/urdf/generated"/>
+  <arg name="ply_dir"		default="$(find o2ac_parts_description)/meshes"/>
+  <arg name="urdf_dir"		default="$(find o2ac_parts_description)/urdf/generated"/>
 
   <!-- Camera parameters -->
   <arg name="serial_no"		default="635201000481"/>
@@ -55,8 +53,7 @@
   </include>
 
   <!-- Spawn visualizer and parameter configurator -->
-  <node name="$(anon rviz)" pkg="rviz" type="rviz" output="screen"
-	args="-d $(find o2ac_vision)/launch/pipeline_test.rviz"/>
+  <node name="$(anon rviz)" pkg="rviz" type="rviz" output="screen" args="-d $(find o2ac_vision)/launch/pipeline_test.rviz"/>
   <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure"/>
 
 </launch>

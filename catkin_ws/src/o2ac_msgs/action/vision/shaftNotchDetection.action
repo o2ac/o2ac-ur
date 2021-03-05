@@ -1,0 +1,15 @@
+# This action is called when b_bot placed the shaft in the jig and we are turning it to find the notch.
+# Returns the vision result for the current camera view.
+
+# Request
+# (empty, since we know which camera is used)
+
+---
+# Result
+
+bool shaft_notch_detected_at_top
+bool shaft_notch_detected_at_bottom
+bool no_shaft_notch_detected
+
+---
+# Feedback (values that can be sent to the client while the action is running)

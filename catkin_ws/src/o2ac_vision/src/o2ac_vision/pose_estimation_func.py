@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import cv2
 import numpy as np
@@ -218,7 +219,7 @@ class BinaryTemplateMatching():
 
         self._t_size = np.asarray( self._temp.shape ) # size of template
         self._s_size = np.asarray( self._scene.shape ) # size of scene
-        self._ltop_c = (self._s_size-self._t_size)/2 # left-top pixel of an initial search position
+        self._ltop_c = ((self._s_size-self._t_size)/2).astype(np.int) # left-top pixel of an initial search position
 
         # Matching, compute score map, _s_map, and offset list
         self._s_map, self._offset_list = self.main_proc()
@@ -234,7 +235,7 @@ class BinaryTemplateMatching():
 
         diff_max = max(diff_size_y, diff_size_x)
         if diff_max > 0:
-            pad_size = diff_max/2+1
+            pad_size = int(diff_max/2)+1
             self._scene = np.pad( self._scene, (pad_size, pad_size), 'minimum')
             self._initial_pad = np.array( (pad_size, pad_size), np.int )
 
@@ -285,7 +286,7 @@ class BinaryTemplateMatching():
 
         return self._s_map
 
-class template_matching():
+class TemplateMatching():
     def __init__( self, im_c, ds_rate, temp_root, temp_info_name="template_info.json" ):
         """
             im_c: an image of input scene
@@ -337,7 +338,7 @@ class template_matching():
 
         return im_temp_edge, temp_ori
 
-    def compute( self, result ):
+    def compute( self, result, search=(20,20) ):
         """
         Input:
             result: Output of the object detection(SSD). list of {bbox, class, confidence}
@@ -348,7 +349,7 @@ class template_matching():
 
         class_id = result["class"]
         bbox = result["bbox"]
-        re = RotationEstimation( self.im_c, bbox )
+        re = RotationEstimation( self.im_c, bbox, lseg_len=20, n_bin=120 )
         in_ori = re.get_orientation()
         im_edge = re.get_im_edge()
         im_edge_ds = downsampling_binary( im_edge, _fx=self.ds_rate, _fy=self.ds_rate )
@@ -381,7 +382,7 @@ class template_matching():
         scores = list() # score list of each template
         offsets = list() # offset list of each template
         for temp in im_temp_eds: # Apply template matching
-            btm = BinaryTemplateMatching( temp, im_edge_ds, (20,20) )
+            btm = BinaryTemplateMatching( temp, im_edge_ds, search )
             _, offset, score = btm.get_result()
             scores.append( score )
             offsets.append( offset )
@@ -449,11 +450,11 @@ def visualize_result( im_temp, im_scene, ltop, orientation ):
         im_res_on_original = np.pad( im_scene.copy(), (res_pad,res_pad), "constant")
     else:
         im_res_on_original = np.pad( im_scene.copy(), ((res_pad,res_pad),(res_pad,res_pad),(0,0)), "constant")
-    ltop_pad = ltop + res_pad
+    ltop_pad = (ltop + res_pad).astype(np.int)
 
     bbox_size = np.asarray( im_temp.shape, np.int )
-    bb_center = ltop_pad + bbox_size/2
-
+    bb_center = (ltop_pad + bbox_size/2).astype(np.int)
+    
     # mapping edge pixels of template
     im_temp_edge_rot_vis = cv2.cvtColor(res_im_temp, cv2.COLOR_GRAY2BGR )
     im_temp_edge_rot_vis[:,:,1:3] = 0
@@ -503,6 +504,8 @@ class FastGraspabilityEvaluation():
         self.pos_list = list()
         self.score_list = list()
         self.rotation = (0, 45, 90, 135)
+        
+        self.gp_result = list() # grasp points y, x, theta[deg]
 
         #parameter
         self.ds_rate = _param["ds_rate"]
@@ -557,7 +560,7 @@ class FastGraspabilityEvaluation():
         cols, rows = im_temp.shape[1], im_temp.shape[0]
         im_temps = list() # テンプレートのリスト
         temp_area = list() # ハンド差込領域の面積
-        for deg in (0, 45, 90, 135):
+        for deg in rotation:
 
             rot_mat = cv2.getRotationMatrix2D( (cols/2, rows/2),  deg, 1 )
             im_rot = cv2.warpAffine( im_temp, rot_mat, (cols, rows) )
@@ -565,6 +568,23 @@ class FastGraspabilityEvaluation():
             temp_area.append( np.sum(im_rot) )
 
         return im_temps, temp_area
+    
+    def RotationColorTemplate( self, im_temp, rotation ):
+        # convert binary template to color template.
+        # thumb is colored by red
+        temp_c = copy.deepcopy(im_temp)
+        cols, rows = im_temp.shape[1], im_temp.shape[0]
+        
+        temp_c = np.clip( temp_c*100.0, 0, 255 )
+        temp_c = np.asarray( temp_c, np.uint8 )
+        temp_c = cv2.cvtColor( temp_c, cv2.COLOR_GRAY2BGR)
+        temp_c[:int(rows/2),:,0] = temp_c[:int(rows/2),:,2] = 0
+        temp_c[int(rows/2):,:,0] = temp_c[int(rows/2):,:,1] = 0
+            
+        rot_mat = cv2.getRotationMatrix2D( (cols/2, rows/2),  rotation, 1 )
+        im_rot = cv2.warpAffine( temp_c, rot_mat, (cols, rows) )
+
+        return im_rot
 
 
     def main_proc( self ):
@@ -599,6 +619,7 @@ class FastGraspabilityEvaluation():
             for i, (hand, collision) in enumerate( zip( self.im_hands, self.im_collisions) ):
                 # check border
                 if ltop[0] < 0 or ltop[1] < 0 or s_rows <= ltop[0]+rows or s_cols <= ltop[1]+cols:
+                    # print("skip")
                     continue
 
                 conv_hand = self.fg_mask[ ltop[0]:ltop[0]+rows, ltop[1]:ltop[1]+cols ] * hand
@@ -623,13 +644,31 @@ class FastGraspabilityEvaluation():
         self.candidate_idx = np.where( self.score_list < self.threshold )[0]
 
         # Make final result
-        gp_result = list()
         for n in self.candidate_idx:
             # y, x, theta[deg]
-            gp_result.append( (self.pos_list[n][0], self.pos_list[n][1], self.rotation[self.pos_list[n][2]]) )
+            rotation_rad = np.deg2rad(self.rotation[self.pos_list[n][2]])
+            rot = np.array([[np.cos(rotation_rad),-np.sin(rotation_rad)],
+                            [np.sin(rotation_rad),np.cos(rotation_rad)]], np.float)
+            grasp_point = np.array( [self.pos_list[n][0], self.pos_list[n][1]], np.float )
+            # thumb_direction_vector
+            thumb_dir = np.array( [1.0,0.0] )
+            thumb_dir_rot = np.dot(rot,thumb_dir)
+            # grasp point to center
+            im_size = np.array(self.im_in.shape[:2])*(1.0/self.ds_rate)/2
+            g2c = im_size - grasp_point
+
+            g2c_len = np.linalg.norm(g2c)
+            g2c /= g2c_len # unit vector
+            
+            ip = np.dot(g2c,thumb_dir_rot)
+            rotation = self.rotation[self.pos_list[n][2]]
+
+            if ip < 0:
+                rotation += 180.0 
+            self.gp_result.append( (int(grasp_point[0]), int(grasp_point[1]), rotation ) )
 
 
-        return gp_result
+        return self.gp_result
 
     def get_hand_and_collision( self ):
 
@@ -654,28 +693,168 @@ class FastGraspabilityEvaluation():
         if im_result is None:
             im_result = self.im_in_org.copy()
 
-        # Preparing of 3 channel hand templates
-        im_hands_c = list()
-        for im in self.im_hands:
-            im = np.clip( im*100.0, 0, 255 )
-            im = np.asarray( im, np.uint8 )
-            im = cv2.cvtColor( im, cv2.COLOR_GRAY2BGR)
-            im[:,:,0] = im[:,:,2] = 0
-            im_hands_c.append( im )
-
-
         # Overlay hand templates
         im_result = np.asarray( im_result, np.int )
-        cols, rows = im_hands_c[0].shape[1], im_hands_c[0].shape[0]
+        cols, rows = self.im_hand.shape[1], self.im_hand.shape[0]
         offset = np.array( (cols/2, rows/2), np.int )
-        for n in self.candidate_idx:
-            pos = np.array( (self.pos_list[n][0], self.pos_list[n][1]) )
+        for n in self.gp_result:
+            pos = np.array( (n[0], n[1]) )
+            im_hand_c = self.RotationColorTemplate(self.im_hand, n[2])
             ltop = pos - offset
-            im_result[ ltop[0]:ltop[0]+rows, ltop[1]:ltop[1]+cols ] += im_hands_c[ self.pos_list[n][2] ]
+            im_result[ ltop[0]:ltop[0]+rows, ltop[1]:ltop[1]+cols ] += im_hand_c
 
         im_result = np.clip( im_result, 0, 255 )
         im_result = np.asarray( im_result, np.uint8 )
-        for n in self.candidate_idx:
-            im_result = cv2.circle( im_result, ( self.pos_list[n][1], self.pos_list[n][0] ), 3, (0,255,0), -1, cv2.LINE_AA )
+        for n in self.gp_result:
+            im_result = cv2.circle( im_result, ( n[1], n[0] ), 3, (0,255,0), -1, cv2.LINE_AA )
 
         return im_result
+
+#############################################################################
+#
+# Notch part detection
+#
+# sample code:
+#  img = input image (1ch gray scale)
+#  bbox = [350,100,100,400] # ROI(x,y,w,h) of shaft area
+#  temp_root = rospack.get_path("wrs_dataset") + "/data/templates_shaft"
+#  sa = ShaftAnalysis( imgs, bbox, temp_root )
+#  (front, back) = sa.main_proc( 0.5 ) # threshold.
+#
+#  If notch is seen in image, front or back are true (front is at the top).
+#
+# for visualization:
+#  ## visualization of template matching
+#  plt.imshow( sa.get_tm_result_image() )
+#  ## visualization of shaft intensity difference for top and bottom region
+#  diff_top, diff_bottom = sa.get_diff_list()
+#  plt.plot(diff_bottom)
+#  plt.plot(diff_top)
+#############################################################################
+class ShaftAnalysis():
+    # img: input image
+    # bbox: bounding box [x,y,w,h] of shaft region
+    # temp_root: path to templates_shaft
+    def __init__( self, img, bbox, temp_root ):
+        
+        self.info = {"class":8, "bbox":bbox}
+        temp_info_name = "template_info.json"
+        
+        # downsampling rate
+        ds_rate = 1.0/2.0
+        tm = TemplateMatching( img, ds_rate, temp_root, temp_info_name  )
+        im_temp = cv2.imread( temp_root+"/8.png",0)
+        
+
+        # template matching
+        self.center, self.ori = tm.compute(self.info )
+        self.im_tm_result = tm.get_result_image(self.info, self.ori, 
+                                                np.array(self.center, np.int))
+        
+        rows, cols = im_temp.shape
+        rot_mat = cv2.getRotationMatrix2D( (cols/2, rows/2), 360-self.ori,1 )
+        res_im_temp =  cv2.warpAffine( im_temp, rot_mat, (cols, rows) )
+        res_im_temp = np.clip(res_im_temp, 0, 1)
+
+
+        ltop = np.array(self.center - np.array([rows,cols])/2, np.int)
+        im_scene_mask = np.zeros(img.shape)
+        im_scene_mask[ ltop[0]:ltop[0]+rows,  ltop[1]:ltop[1]+cols ] = res_im_temp
+
+        self.im_crop = copy.deepcopy( (img*im_scene_mask)[ ltop[0]:ltop[0]+rows, ltop[1]:ltop[1]+cols ] )
+        self.im_crop = np.array( self.im_crop, np.uint8)
+        rot_mat_rev = cv2.getRotationMatrix2D( (cols/2, rows/2), self.ori,1 )
+        self.im_crop =  cv2.warpAffine( self.im_crop, rot_mat_rev, (cols, rows) )
+        self.invalid_value = 255
+        
+        # variables for debuging
+        ## a list of intensity difference
+        self.diff_list = list()
+        ## mean intensity difference
+        self.diff_top = None  
+        self.diff_bottom = None
+    
+    # make a list consists of line[d+1]-line[d]
+    def difference( self, line ):
+        line = np.array(line, np.float)
+        diff = list()
+        for d in range(len(line)-1):
+            if line[d]==0:
+                diff.append(self.invalid_value)
+            else:
+                diff.append(line[d+1]-line[d])
+
+        diff = np.abs(diff)
+        return diff
+
+    # Counts the values in the list that are below the threshold. 
+    def count_constant( self, diff_list, th=10 ):
+
+        max_constant = 0
+        for i in range( len(diff_list)-1 ):
+            l = 1
+            n_constant = 0
+            while(i+l <len(diff_list)-1):
+                if diff_list[i+l] < th:
+                    n_constant += 1
+                else:
+                    break
+                l+=1
+            if max_constant < n_constant:
+                max_constant = n_constant
+
+        return max_constant
+    
+    def count_valid_elements( self, diff_list ):
+        
+        ve = 0
+        for d in diff_list:
+            if d != self.invalid_value:
+                ve += 1
+        return ve
+    
+    # Input:
+    #  th: Percentage of notch area in level slice of shaft area．(default: 0.5)
+    #  top_range: 　　y axis range to be checked（top area） 
+    #  bottom_range:　y axis range to be checked（bottom area） 
+    # Output:
+    #  notch_seen_at_top: True if notch is detected at front (top).
+    #  notch_seen_at_bottom: True if notch is detected at back (bottom).
+    def main_proc(self, th, top_range=[30,90], bottom_range=[270,330]):
+        
+        nmc_list = list()
+        for i in range(self.im_crop.shape[0]):
+            ft_img = np.array(self.im_crop, np.float)
+            diff = self.difference( self.im_crop[i,:] )
+            self.diff_list.append(diff)
+            nmc = self.count_constant(diff, 10)
+            ve = self.count_valid_elements( diff )
+            nmc_list.append(nmc/(ve+0.0001))
+        
+        
+        dt = self.diff_list[int((top_range[0]+top_range[1])/2)]
+        db = self.diff_list[int((bottom_range[0]+bottom_range[1])/2)]
+        self.diff_top = dt[dt < 255]
+        self.diff_bottom = db[db < 255]
+        
+        top_mean = np.mean(nmc_list[top_range[0]:top_range[1]] )
+        bottom_mean = np.mean(nmc_list[bottom_range[0]:bottom_range[1]] )
+        #print(top_mean, bottom_mean)
+        
+        return th<top_mean, th<bottom_mean
+    
+    
+    def get_frontized_image(self):
+        
+        return copy.deepcopy(self.im_crop)
+    
+    def get_orientation(self):
+        return self.ori
+        
+    def get_tm_result_image(self):
+        
+        return copy.deepcopy(self.im_tm_result)
+    
+    def get_diff_list( self ):
+        
+        return self.diff_top, self.diff_bottom

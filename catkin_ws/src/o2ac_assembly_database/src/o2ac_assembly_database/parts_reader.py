@@ -80,6 +80,65 @@ class PartsReader(object):
         '''
         collision_object = next((c_obj for c_obj in self.collision_objects if c_obj.id == object_name), None)
         return collision_object
+    
+    #### Converters 
+
+    def id_to_name(self, id_num):
+        """
+        Returns the name of the object with the given id number.
+        Returns an empty string on failure.
+        """
+        for obj in self._parts_list:
+            if obj["id"] == id_num:
+                return obj["name"]
+        rospy.logerr("Could not find object with id " + str(id_num))
+        return ""
+    
+    def name_to_id(self, name):
+        """
+        Returns the id of the object with the given name.
+        Returns False on failure.
+        """
+        for obj in self._parts_list:
+            if obj["name"] == name:
+                return obj["id"]
+        rospy.logerr("Could not find object with name " + str(name))
+        return False
+    
+    def id_to_type(self, id_num):
+        """
+        Returns the type of the object with the given id number.
+        Returns an empty string on failure.
+        """
+        for obj in self._parts_list:
+            if obj["id"] == id_num:
+                return obj["type"]
+        rospy.logerr("Could not find object with id " + str(id_num))
+        return ""
+    
+    def type_to_id(self, type):
+        """
+        Returns the id of the object with the given type.
+        Returns False on failure.
+        """
+        for obj in self._parts_list:
+            if obj["type"] == type:
+                return obj["id"]
+        rospy.logerr("Could not find object with type " + str(type))
+        return False
+    
+    def name_to_type(self, name):
+        """
+        Returns the type of the object with the given name.
+        Returns False on failure.
+        """
+        for obj in self._parts_list:
+            if obj["name"] == name:
+                return obj["type"]
+        rospy.logerr("Could not find object with name " + str(name))
+        return False
+
+    #### 
 
     def _upload_grasps_to_param_server(self, namespace):
         '''Upload grasps to the ROS param server

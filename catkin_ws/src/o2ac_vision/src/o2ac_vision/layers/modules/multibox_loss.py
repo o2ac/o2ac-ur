@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-from data import coco as cfg
+from o2ac_vision.data import coco as cfg
 from ..box_utils import match, log_sum_exp
 
 

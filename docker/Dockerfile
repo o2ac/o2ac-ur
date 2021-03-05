@@ -37,7 +37,8 @@ RUN apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key C1CF6
 
 # Install ROS-desktop-full packages (including ROS, rqt, rviz, and more).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-	ros-melodic-desktop-full python-rosdep \
+	ros-melodic-desktop-full=1.4.1-0bionic.20210120.181615 \
+	python-rosdep=0.20.0-1 \
 	&& rm -rf /var/lib/apt/lists/*
 
 # Initialize 'rosdep'.
@@ -48,22 +49,22 @@ RUN rosdep init
 
 # Install required packages/tools/dependencies for subsequent installations.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-	apt-transport-https \
-	wget \
+	apt-transport-https=1.6.12ubuntu0.2 \
+	wget=1.19.4-1ubuntu2.2 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
 
 # Install common essentials,
 RUN apt-get update && apt-get install -y --no-install-recommends \
-	build-essential \
-	cmake \
-	git \
-	python-dev \
-	python-numpy \
-	python-pip \
-	python-setuptools \
-	python-scipy \
+    build-essential=12.4ubuntu1 \
+    cmake=3.10.2-1ubuntu2.18.04.1 \
+    git=1:2.17.1-1ubuntu0.7 \
+    python-dev=2.7.15~rc1-1 \
+    python-numpy=1:1.13.3-2ubuntu1 \
+    python-pip=9.0.1-2.3~ubuntu1.18.04.4 \
+    python-setuptools=39.0.1-2 \
+    python-scipy=0.19.1-2ubuntu1 \
 	&& rm -rf /var/lib/apt/lists/*
 
 # Pin pip version to make build more deterministic
@@ -73,19 +74,19 @@ RUN pip install --upgrade pip==9.0.1
 
 # Install more common optional packages/tools.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-	inetutils-ping \
-	iproute2 \
-	gdb \
-	mesa-utils \
-	nano \
-	net-tools \
-	openssh-client \
-	python-catkin-tools \
-	python-tk \
-	unzip \
-	vim \
-	less \
-	usbutils \
+    inetutils-ping=2:1.9.4-3 \
+    iproute2=4.15.0-2ubuntu1.2 \
+    gdb=8.1.1-0ubuntu1 \
+    mesa-utils=8.4.0-1 \
+    nano=2.9.3-2 \
+    net-tools=1.60+git20161116.90da8a0-1ubuntu1 \
+    openssh-client=1:7.6p1-4ubuntu0.3 \
+    python-catkin-tools=0.6.1-1 \
+    python-tk=2.7.17-1~18.04 \
+    unzip=6.0-21ubuntu1.1 \
+    vim=2:8.0.1453-1ubuntu1.4 \
+    less=487-0.1 \
+    usbutils=1:007-4build1 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -93,7 +94,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # For copying UR scripts from the robots
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-	sshpass \
+	sshpass=1.06-1 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -101,42 +102,42 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install MoveIt dependencies because we build it from source.
 # Also install the binaries to pull in the dependencies.
 RUN apt-get update && apt-get install -y --no-install-recommends \ 
-	ros-melodic-moveit-resources \
-	ros-melodic-moveit \
+    ros-melodic-moveit-resources=0.7.0-1bionic.20210112.194853 \
+    ros-melodic-moveit=1.0.7-1bionic.20210113.072325 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
 
 # Install wstool to use .rosinstall file in the underlay workspace
 RUN apt-get update && apt-get install -y --no-install-recommends \
-	python-wstool \
-	python-catkin-tools \
-	clang-format-10 \
+    python-wstool=0.1.17-1 \
+    python-catkin-tools=0.6.1-1 \
+    clang-format-10=1:10.0.0-4ubuntu1~18.04.2 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
 
 # Install other dependencies of our workspace
 RUN apt-get update && apt-get install -y --no-install-recommends \
-	ros-melodic-effort-controllers \
-	ros-melodic-industrial-robot-status-controller \
-	ros-melodic-socketcan-interface \
-	ros-melodic-industrial-robot-status-interface \
-	ros-melodic-soem \
-	ros-melodic-graph-msgs \
-	ros-melodic-spacenav-node \
-	ros-melodic-joy-teleop \
-	ros-melodic-code-coverage \
-	ros-melodic-panda-moveit-config \
-	socat \
-	libqt5x11extras5-dev \
+    ros-melodic-effort-controllers=0.17.2-1bionic.20210120.180415 \
+    ros-melodic-industrial-robot-status-controller=0.1.2-1bionic.20210112.183249 \
+    ros-melodic-socketcan-interface=0.8.5-1bionic.20201017.073132 \
+    ros-melodic-industrial-robot-status-interface=0.1.2-1bionic.20201207.162330 \
+    ros-melodic-soem=1.4.1003-1bionic.20201015.050528 \
+    ros-melodic-graph-msgs=0.1.0-1bionic.20210112.180039 \
+    ros-melodic-spacenav-node=1.14.0-1bionic.20210112.175653 \
+    ros-melodic-joy-teleop=0.3.1-1bionic.20210112.181220 \
+    ros-melodic-code-coverage=0.4.3-1bionic.20200803.132715 \
+    ros-melodic-panda-moveit-config=0.7.4-1bionic.20210112.212241 \
+    socat=1.7.3.2-2ubuntu2 \
+    libqt5x11extras5-dev=5.9.5-0ubuntu1 \
 	&& rm -rf /var/lib/apt/lists/*	
 
 ################################################################################
 
 # Install JSK tools for visualization in Rviz
 RUN apt-get update && apt-get install -y --no-install-recommends \
-	ros-melodic-jsk-visualization \
+    ros-melodic-jsk-visualization=2.1.7-2bionic.20210112.211109 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -146,8 +147,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Gather dependencies from Ubuntu repositories.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-  	libcanberra-gtk3-module \
-	libgconf2-dev \
+    libcanberra-gtk3-module=0.30-5ubuntu1 \
+    libgconf2-dev=3.2.6-4ubuntu1 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -155,18 +156,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install URe controller dependencies.
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-	ros-melodic-ros-control \
-	ros-melodic-robot-controllers \
-	ros-melodic-velocity-controllers \
-	ros-melodic-joint-trajectory-controller \
-   	ros-melodic-force-torque-sensor-controller \
+    ros-melodic-ros-control=0.18.3-1bionic.20210112.195128 \
+    ros-melodic-robot-controllers=0.6.0-0bionic.20210112.202244 \
+    ros-melodic-velocity-controllers=0.17.2-1bionic.20210120.180421 \
+    ros-melodic-joint-trajectory-controller=0.17.2-1bionic.20210120.180033 \
+    ros-melodic-force-torque-sensor-controller=0.17.2-1bionic.20210120.180019 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
 
 # Add industrial_core submodule
 RUN apt-get update && apt-get install -y --no-install-recommends \
-	ros-melodic-industrial-core \
+    ros-melodic-industrial-core=0.7.1-1bionic.20210112.203210 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -175,9 +176,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # # ros-melodic-qt-build \
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-	ros-melodic-dynamixel-sdk \
-	ros-melodic-dynamixel-workbench \
-    ros-melodic-dynamixel-workbench-msgs \
+    ros-melodic-dynamixel-sdk=3.7.31-1bionic.20201017.083359 \
+    ros-melodic-dynamixel-workbench=2.2.0-0bionic.20210112.183140 \
+    ros-melodic-dynamixel-workbench-msgs=2.0.1-0bionic.20201017.043046 \
 	&& rm -rf /var/lib/apt/lists/*
 
 RUN pip install pyserial==3.4
@@ -187,7 +188,7 @@ RUN pip install pyserial==3.4
 # Install pymodbus for the Robotiq gripper driver
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-	python-pymodbus \
+    python-pymodbus=1.3.2-1 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -275,11 +276,11 @@ RUN echo 'deb http://realsense-hw-public.s3.amazonaws.com/Debian/apt-repo bionic
 # RUN apt-key adv --keyserver keys.gnupg.net --recv-key C8B3A55A6F3EFCDE
 RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key C8B3A55A6F3EFCDE
 RUN apt-get update && apt-get install -y --no-install-recommends \
-	librealsense2-dkms \
-	librealsense2-utils \
-	librealsense2-dev \
-	librealsense2-udev-rules \
-	librealsense2-dbg \
+    librealsense2-dkms=1.3.16-0ubuntu1 \
+    librealsense2-utils=2.42.0-0~realsense0.4059 \
+    librealsense2-dev=2.42.0-0~realsense0.4059 \
+    librealsense2-udev-rules=2.42.0-0~realsense0.4059 \
+    librealsense2-dbg=2.42.0-0~realsense0.4059 \    
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -311,7 +312,7 @@ RUN pip install gym
 # Install eigenpy 
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-	ros-melodic-eigenpy \
+	ros-melodic-eigenpy=2.5.0-1bionic.20201017.230604 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################

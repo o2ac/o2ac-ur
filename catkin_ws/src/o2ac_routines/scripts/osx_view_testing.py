@@ -92,10 +92,16 @@ class TestClass(O2ACCommon):
     return
   
   def call_belt_action_and_show(self):
-    belt_detector = o2ac_vision.BeltDetectionClient()
-    belt_detector.trigger()
-    grasp_points = belt_detector.get_grasp_points()
+    client = actionlib.SimpleActionClient('beltDetection', o2ac_msgs.msg.beltDetectionAction)
+    client.wait_for_server()
+
+    goal = o2ac_msgs.msg.get2DPosesFromSSDGoal(object_id="1", camera_id="1")
+    client.send_goal(goal)
+    client.wait_for_result()
+    res = client.get_result()
+
     print '\nbelt detection result'
+    print(res)
     print "grasp points: ", grasp_points
     
     # self.publish_marker(pose, "place_pose")
@@ -145,7 +151,29 @@ if __name__ == '__main__':
       elif r == '4':
         c.views()
       elif r == '5':
-        c.call_belt_action_and_show()
+        res = c.get_3d_poses_from_ssd()
+        print("=====")
+        print(res)
+        print("=====")
+        r2 = c.get_feasible_grasp_points(object_id=5)
+        print("=====")
+        print(c.objects_in_tray[5])
+        print("=====")
+        try:
+          print(len(r2))
+          print(str(r2[0]))
+        except:
+          pass
+      elif r == '51':
+        c.go_to_named_pose("home", "b_bot")
+        p = r2[0]
+        p.pose.position.z = 0.0
+        c.simple_pick("a_bot", p, gripper_force=100.0, grasp_width=.05, axis="z")
+      elif r == '52':
+        c.go_to_named_pose("home", "a_bot")
+        p = r2[0]
+        p.pose.position.z = 0.0
+        c.simple_pick("b_bot", p, gripper_force=100.0, grasp_width=.05, axis="z")
       elif r == '61':
         ps = geometry_msgs.msg.PoseStamped()
         ps.header.frame_id = "taskboard_bearing_target_link"

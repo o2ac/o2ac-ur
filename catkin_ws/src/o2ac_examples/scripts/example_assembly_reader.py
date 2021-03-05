@@ -64,7 +64,7 @@ if __name__ == '__main__':
     # publish the assembly frames to tf
     assy_name = 'wrs_assembly_1'
     assembly_reader = AssemblyReader(assy_name)
-    assembly_reader.publish_target_frames(assy_pose)
+    assembly_reader.publish_assembly_frames(assy_pose)
 
 
     # Create a publisher for the '/collision_object' topic to spawn objects in the planning scene

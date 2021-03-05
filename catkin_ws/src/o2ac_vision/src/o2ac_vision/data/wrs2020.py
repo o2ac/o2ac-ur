@@ -17,9 +17,27 @@ import json
 import glob
 
 WRS2020_CLASSES = (  # always index 0
-    'base_plate', 'L-plate_midi', 'L-plate_small',
-    'moter', 'ro', 'ro-tall', 'bering-front', 'bering-back',
-    'circle', 'pin', "bar", "belt", "ring2-front", "ring2-back", "part", "midi-part")
+    "01-BASE",
+    "03-PLATE2",
+    "02-PLATE",
+    "04_37D-GEARMOTOR-50-70",
+    "11_MBRAC60-2-10",
+    "07_SBARB6200ZZ_30",
+    "13_MBGA30-2",
+    "13_MBGA30-2_r",
+    "05_MBRFA30-2-P6",
+    "14_BGPSL6-9-L30-F7",
+    "08_SSFHRT10-75-M4-FC55-G20",
+    "06_MBT4-400",
+    "09_EDCS10",
+    "09_EDCS10_r",
+    "12_CLBUS6-9-9.5",
+    "10_CLBPS10_17_4",
+    "03-PLATE2_r",
+    "02-PLATE_r",
+    "11_MBRAC60-2-10_r",
+    "07_SBARB6200ZZ_30",
+    "12_CLBUS6-9-9.5_r")
 WRS_ROOT = osp.join(HOME, "WRS2020/wrs_dataset")
 
 class AnnotationTransform(object):

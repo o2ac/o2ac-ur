@@ -70,6 +70,42 @@ class CalibrationClass(O2ACCommon):
     # Neutral downward in the taskboard frames
     rospy.sleep(.5)   # Use this instead of waiting, so that simulation can be used
 
+  def offset_pose_in_own_coordinate_system(self, ps, offset):
+    """
+    ps is the PoseStamped to offset. offset is a Point.
+    """
+    rospy.loginfo("Received pose to offset to TCP link:")
+    rospy.loginfo(str(ps.pose.position.x) + ", " + str(ps.pose.position.y)  + ", " + str(ps.pose.position.z))
+    rospy.loginfo(str(ps.pose.orientation.x) + ", " + str(ps.pose.orientation.y)  + ", " + str(ps.pose.orientation.z)  + ", " + str(ps.pose.orientation.w))
+    
+    m = geometry_msgs.msg.TransformStamped()
+    m.header.frame_id = ps.header.frame_id
+    m.child_frame_id = "temp_pose__"
+    m.transform.translation.x = ps.pose.position.x
+    m.transform.translation.y = ps.pose.position.y
+    m.transform.translation.z = ps.pose.position.z
+    m.transform.rotation.x = ps.pose.orientation.x
+    m.transform.rotation.y = ps.pose.orientation.y
+    m.transform.rotation.z = ps.pose.orientation.z
+    m.transform.rotation.w = ps.pose.orientation.w
+    self.listener.setTransform(m)
+
+    ps_with_offset = geometry_msgs.msg.PoseStamped()
+    ps_with_offset.header.frame_id = "temp_pose__"
+    ps_with_offset.pose.position.x = offset.x
+    ps_with_offset.pose.position.y = offset.y
+    ps_with_offset.pose.position.z = offset.z
+    ps_with_offset.pose.orientation.w = 1.0
+
+    ps_new = self.listener.transformPose(ps.header.frame_id, ps_with_offset)
+
+    rospy.loginfo("New pose:")
+    rospy.loginfo(str(ps_new.pose.position.x) + ", " + str(ps_new.pose.position.y)  + ", " + str(ps_new.pose.position.z))
+    rospy.loginfo(str(ps_new.pose.orientation.x) + ", " + str(ps_new.pose.orientation.y)  + ", " + str(ps_new.pose.orientation.z)  + ", " + str(ps_new.pose.orientation.w))
+
+    return ps_new
+
+  # TODO: Implement the above in the function below
   def cycle_through_calibration_poses(self, poses, robot_name, speed=0.3, with_approach=False, move_lin=False, go_home=True, end_effector_link=""):
     home_pose = "home"
     if "screw" in end_effector_link:
@@ -215,6 +251,29 @@ class CalibrationClass(O2ACCommon):
 
     self.cycle_through_calibration_poses(poses, robot_name, speed=0.3, go_home=False, with_approach=True, end_effector_link=end_effector_link, move_lin=True)
     return 
+
+  def tray_calibration(self, robot_name="a_bot", end_effector_link="a_bot_robotiq_85_tip_link"):
+    rospy.loginfo("============ Touching tray sponge. ============")
+    rospy.loginfo("eef link " + end_effector_link + " should be touching the tray sponge in middle, then left, then right.")
+    if robot_name=="a_bot":
+      self.go_to_named_pose("home", "b_bot")
+    elif robot_name=="b_bot":
+      self.go_to_named_pose("home", "a_bot")
+
+    poses = []
+    pose0 = geometry_msgs.msg.PoseStamped()
+    pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0) )
+    pose0.header.frame_id = "tray_center"
+
+    for i in range(3):
+      poses.append(copy.deepcopy(pose0))
+    poses[0].pose.position.y = 0.0
+    poses[1].pose.position.y = -0.1
+    poses[2].pose.position.y = 0.1
+
+    self.cycle_through_calibration_poses(poses, robot_name, speed=0.3, go_home=False, with_approach=True, end_effector_link=end_effector_link, move_lin=True)
+    return 
+
       
   def touch_workspace_center(self):
     rospy.loginfo("============ Touching workspace center. ============")
@@ -352,13 +411,15 @@ if __name__ == '__main__':
       rospy.loginfo("100 (1001): Go home with all robots (using UR script joint move)")
       rospy.loginfo("101 (1011): Go back with all robots (using UR script joint move)")
       rospy.loginfo("111: The robots (Using the assembly base plate)")
+      rospy.loginfo("===== GENERAL")
+      rospy.loginfo("21, 22: Touch tray sponge with a_bot, b_bot")
       rospy.loginfo("===== TASKBOARD TASK")
-      rospy.loginfo("21, 22: Go to screw holes with a_bot m3, b_bot m4")
+      rospy.loginfo("31, 32: Go to screw holes with a_bot m3, b_bot m4")
       rospy.loginfo("===== ASSEMBLY TASK (no parts may be mounted!)")
       rospy.loginfo("501-502: Assembly base plate (a_bot, b_bot)")
       rospy.loginfo("503-505: Assembly base plate (b_bot m4, b_bot m3, a_bot m3)")
       rospy.loginfo("511-512: Motor plate holes (b_bot, b_bot m4)")
-      rospy.loginfo("6: ===== TOOLS   Go to screw_ready with b (a goes to back)")
+      rospy.loginfo("===== TOOLS  6: Go to screw_ready with b (a goes to back)")
       rospy.loginfo("621, 622: Equip/unequip m4 screw tool with b_bot")
       rospy.loginfo("623, 624: Equip/unequip m3 screw tool with b_bot")
       rospy.loginfo("625, 626: Equip/unequip m6 nut tool with a_bot")
@@ -403,8 +464,17 @@ if __name__ == '__main__':
       elif r == '111':
         c.check_robot_calibration(position="assembly_corner_4")
       elif r == '21':
-        c.taskboard_calibration_with_tools(robot_name="a_bot", end_effector_link="a_bot_screw_tool_m3_tip_link")
+        c.tray_calibration(robot_name="a_bot", end_effector_link="a_bot_robotiq_85_tip_link")
       elif r == '22':
+        c.tray_calibration(robot_name="b_bot", end_effector_link="b_bot_robotiq_85_tip_link")
+      elif r == '23':
+        ps = geometry_msgs.msg.PoseStamped()
+        ps.header.frame_id = "workspace_center"
+        ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
+        c.offset_pose_in_own_coordinate_system(ps, geometry_msgs.msg.Point(-.05, 0, 0))
+      elif r == '31':
+        c.taskboard_calibration_with_tools(robot_name="a_bot", end_effector_link="a_bot_screw_tool_m3_tip_link")
+      elif r == '32':
         c.taskboard_calibration_with_tools(robot_name="b_bot", end_effector_link="b_bot_screw_tool_m4_tip_link")
       elif r == '501':
         c.assembly_calibration_base_plate("a_bot")
