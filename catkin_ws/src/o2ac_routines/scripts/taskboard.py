@@ -688,7 +688,7 @@ if __name__ == '__main__':
       rospy.loginfo("Enter 11, 12 to open/close grippers")
       rospy.loginfo("Enter 13, 14 to equip/unequip m4 screw tool")
       rospy.loginfo("Enter 15, 16 to equip/unequip belt placement tool")
-      rospy.loginfo("Enter 51, 52... for subtasks: set screw, M3, M4, belt, motor pulley, shaft, bearing, idler pulley")
+      rospy.loginfo("Subtasks: 51 (set screw), 52 (M3), 53 (M4), 54 (belt), 55 (motor pulley), 56 (shaft), 57 (bearing), 58 (idler pulley)")
       rospy.loginfo("Enter 8 to spawn example parts")
       rospy.loginfo("Enter prep to prepare the task (do this before running)")
       rospy.loginfo("Enter ssup/ssdown to fine-tune the set screw tool position")

@@ -270,9 +270,9 @@ class O2ACBase(object):
   def b_bot_ros_control_status_callback(self, msg):
     self.ur_ros_control_running_on_robot["b_bot"] = msg.data
   def a_bot_gripper_status_callback(self, msg):
-    self.a_bot_gripper_opening_width = msg.position
+    self.a_bot_gripper_opening_width = msg.position  # [m]
   def b_bot_gripper_status_callback(self, msg):
-    self.b_bot_gripper_opening_width = msg.position
+    self.b_bot_gripper_opening_width = msg.position  # [m]
   
   def is_robot_running_normally(self, robot_name):
     """
@@ -910,6 +910,7 @@ class O2ACBase(object):
   def get_3d_poses_from_ssd(self):
     """
     Returns object poses as estimated by the SSD neural network and reprojection.
+    Also updates self.objects_in_tray
     """
     # Send goal, wait for result
     self.ssd_client.send_goal(o2ac_msgs.msg.get3DPosesFromSSDGoal())
@@ -1288,7 +1289,7 @@ class O2ACBase(object):
       if command == "close":
         goal.position = 0.0
       elif command == "open":
-        goal.position = 0.085
+        goal.position = 0.140
       else:
         goal.position = command     # This sets the opening width directly
         rospy.loginfo(command)
