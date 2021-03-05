@@ -2,6 +2,19 @@
 
 This node starts multiple action servers for different tasks, such as `Pick Object`, `Place Object` etc. The action servers do the task planning when a request arrives and they return the best solution if it is found, which contains the trajectories for executing the plan.
 
+## QUICKSTART
+
+In separate terminals:
+
+```bash
+roslaunch o2ac_moveit_config demo.launch
+# Publish the parameters == TODO(karolyartur)
+rosrun o2ac_task_planning_core mtc_modules_server 
+rosrun downward fast-downward-server.py
+```
+
+Launch symbolic planning with `rosrun o2ac_task_planning_pddl_converter fast_downward_client.py`. Launch MTC planning with what? **TODO(karolyartur)**
+
 ## Running mtc_modules_server
 
 ### Requirements
@@ -67,13 +80,19 @@ The naming of the eef frames are expected to follow the pattern:
 
 where `hand_group_name` is the name of one of the planning groups of the grippers (given by the `mtc_modules/hand_group_names` required parameter).
 
-### Moveit
+### MoveIt
 
-For the planning to work, moveit has to be running. Make sure to start moveit before running the node.
+For the planning to work, MoveIt has to be running. Make sure to start MoveIt before running the node:
+
+```bash
+roslaunch o2ac_moveit_config demo.launch
+```
 
 ### Running the node
 
-**Before running the node make sure that the required parameters (initial parameters and grasps) are loaded to the parameter server, Moveit is running and the required collision objects are in the scene.**
+**Before running the node make sure that the required parameters (initial parameters and grasps) are loaded to the parameter server, MoveIt is running and the required collision objects are in the scene.**
+
+**TODO(karolyartur): Point to an explanation on how that's done, avoid vague instructions like "the required X" (people who need to read instructions generally don't know what is required)**
 
 To run the node type:
 
@@ -101,7 +120,7 @@ The actions provided by the node, if it is running correctly, are:
  - `/pick_place_planning` (picking and placing an object potentially including a regrasp)
  - `/wrs_subtask_b_planning` (picking and placing the L panel onto the base plate and fixing it with the screws)
 
- To start planning, make requests from an action client to use the servers. An easy way to test them is with the `actionlib` package.
+To start planning, make requests from an action client to use the servers. An easy way to test them is with the `actionlib` package.
 
 To test the action server for pick planning, type:
 
