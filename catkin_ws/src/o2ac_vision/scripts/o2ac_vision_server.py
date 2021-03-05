@@ -368,9 +368,7 @@ class O2ACVisionServer(object):
                 estimated_poses_msg.poses = [pose]
                 # Publish result markers
                 poses_3d = []
-                print("testo")
                 for p2d in estimated_poses_msg.poses:
-                    print("B")
                     poses_3d.append(self.convert_pose_2d_to_3d(p2d))
                     # print("converted u,v " + str(p2d2.x) + ", "  + str(p2d2.y) + " to " + str(poses_3d[-1].pose.position.x) + ", " + str(poses_3d[-1].pose.position.y))
                 
@@ -383,6 +381,7 @@ class O2ACVisionServer(object):
                 y = int(estimated_poses_msg.bbox[1] + round(estimated_poses_msg.bbox[3]/2))
                 # Publish markers at bbox centers
                 p2d = geometry_msgs.msg.Pose2D(x=x, y=y)
+                estimated_poses_msg.poses = [p2d]
                 poses_3d = []
                 poses_3d.append(self.convert_pose_2d_to_3d(p2d))
                 self.add_markers_to_pose_array(poses_3d)
