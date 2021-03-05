@@ -66,6 +66,27 @@ class AssemblyReader(PartsReader):
         self.collision_objects, self.grasps = self.get_collision_objects_with_metadata()
         self.assembly_tree = self.get_assembly_tree(self.collision_objects)
 
+     def get_frame_mating(self, base_object, child_object):
+        '''
+        This function returns the mating between two parts in the assembly as a geometry_msgs/Transform message
+
+        'base_object' input is a string specifying the name of the object onto which the child object will be placed
+        'child_object' input is a string specifying the name of the object to be placed onto the base object
+
+        If no mating is defined between the two object, or the objects are not part of the loaded assembly the function returns None
+        '''
+        base_object_id = next((part['id'] for part in self._parts_list if part['name'] == base_object), None)
+        child_object_id = next((part['id'] for part in self._parts_list if part['name'] == child_object), None)
+        transform = next((mating_transform for mating_transform in self.mating_transforms if int(mating_transform.header.frame_id.split('_')[1]) == base_object_id and int(mating_transform.child_frame_id.split('_')[1]) == child_object_id), None)
+        frame_mating = geometry_msgs.msg.TransformStamped()
+        if transform is not None:
+            frame_mating.header.frame_id = base_object + '/' + '_'.join(transform.header.frame_id.split('_')[2:])
+            frame_mating.child_frame_id = child_object + '/' + '_'.join(transform.child_frame_id.split('_')[2:])
+            frame_mating.transform = transform.transform
+            return frame_mating
+        else:
+            return None
+
     def publish_assembly_frames(self, assembly_pose = None):
         '''
         Publish assembly target frames for tf
@@ -119,15 +140,15 @@ class AssemblyReader(PartsReader):
         Return the assembly target represented as a tree of tf transforms
         '''
         
-        mating_transforms = self._read_frames_to_mate_csv()
-        if not mating_transforms:
+        self.mating_transforms = self._read_frames_to_mate_csv()
+        if not self.mating_transforms:
             rospy.loginfo("No assembly tree defined")
             return False
-        base_id = int(mating_transforms[0].header.frame_id.split('_')[2])
+        base_id = int(self.mating_transforms[0].header.frame_id.split('_')[2])
         base_name = next((part['name'] for part in self._parts_list if part['id'] == base_id), None)
         base_object = next((collision_object for collision_object in self.collision_objects if collision_object.id == base_name), None)
         assembly_tree = self._collision_object_to_tf_tree(base_object)
-        for mating_transform in mating_transforms:
+        for mating_transform in self.mating_transforms:
             child_id = int(mating_transform.child_frame_id.split('_')[2])
             child_name = next((part['name'] for part in self._parts_list if part['id'] == child_id), None)
             child_object = next((collision_object for collision_object in self.collision_objects if collision_object.id == child_name), None)
