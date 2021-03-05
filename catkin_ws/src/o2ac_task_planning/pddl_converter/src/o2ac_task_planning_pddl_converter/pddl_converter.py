@@ -42,7 +42,7 @@ import o2ac_task_planning_msgs.msg
 import geometry_msgs.msg
 import tf
 import math
-from o2ac_assembly_handler.assy import AssyHandler
+from o2ac_assembly_database.assembly_reader import AssemblyReader
 from fast_downward_client import DownwardClient
 from symbolic_plan_request import SymbolicPlanRequest
 
@@ -67,8 +67,8 @@ class PDDL_Converter():
 
     def __init__(self, assembly_name):
         # Init assembly Handler
-        self.assy_name = assembly_name
-        self.assy_handler = AssyHandler(assembly_name)
+        self.assembly_name = assembly_name
+        self.assembly_handler = AssemblyReader(assembly_name)
 
         # Action clients for pick, place retreat and controlling the task
         self.add_pick_client = actionlib.SimpleActionClient('add_pick', o2ac_task_planning_msgs.msg.AddPickAction)
@@ -119,7 +119,7 @@ class PDDL_Converter():
                         if command == 'place':
                             # Create a goal for the add_place action client
                             base_object_name = line_as_array[3]
-                            frame_mating = self.assy_handler.get_frame_mating(base_object_name, object_name)
+                            frame_mating = self.assembly_handler.get_frame_mating(base_object_name, object_name)
                             goal = o2ac_task_planning_msgs.msg.AddPlaceGoal()
                             goal.object_target_pose = geometry_msgs.msg.PoseStamped()
                             goal.object_target_pose.header.frame_id = frame_mating.header.frame_id
