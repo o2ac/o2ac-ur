@@ -8,11 +8,11 @@
   <arg name="file_dir" default="/$(find o2ac_scene_description)/../../bagfiles/" />
 
  <node pkg="rosbag" type="record" name="rosbag_record_cams"
-       args="record -o /$(find o2ac_scene_description)/../../bagfiles/cameras /joint_states -e '/._bot_(in|out)side_camera/(.*)'" 
+       args="record -o $(arg file_dir)/cameras /joint_states -e '/._bot_(in|out)side_camera/(.*)'" 
        if="$(arg record_cameras_only)" />
 
  <node pkg="rosbag" type="record" name="rosbag_record_robots"
-       args="record -o /$(find o2ac_scene_description)/../../bagfiles/robots /joint_states -e '/._bot/(.*)' -x '/._bot_(in|out)side_camera(.*)'"
+       args="record -o $(arg file_dir)/robots /joint_states -e '/._bot/(.*)' -x '/._bot_(in|out)side_camera(.*)'"
        if="$(arg record_robots_only)" />
 
   <!-- publish RGB and D frames with 5Hz on /camera_throttled -->
@@ -49,7 +49,7 @@
   <group if="$(arg record_all_throttled)">
       <!-- Subscribe to joint states and compressed throttled cam images and point clouds -->
       <node pkg="rosbag" type="record" name="rosbag_record_throttled"
-            args="record -o /$(find o2ac_scene_description)/../../bagfiles/throttled /joint_states -e '/._bot_(in|out)side_camera_throttled/(.*)'"
+            args="record -o $(arg file_dir)/throttled /joint_states -e '/._bot_(in|out)side_camera_throttled/(.*)'"
             if="$(arg record_all_throttled)" />
   </group>
 
