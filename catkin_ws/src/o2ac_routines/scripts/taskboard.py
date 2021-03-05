@@ -260,8 +260,6 @@ class TaskboardClass(O2ACCommon):
     # Implement bearing regrasp
     self.do_task("bearing")
     self.do_task("screw_bearing")
-    
-  
 
   def do_task(self, task_name):
     
@@ -270,26 +268,39 @@ class TaskboardClass(O2ACCommon):
       # self.equip_tool("belt_tool")
       
       self.go_to_named_pose("home","a_bot")
-      self.go_to_named_pose("home","b_bot")
-
-      # TODO: The current program contains the belt pick pose hard-coded!
-      # TODO: Pick belt first, then go to pose with a_bot.
-
-      ### The a_bot "wait_w_belt" pose that we need to move to after picking the belt
-      # name: [a_bot_elbow_joint, a_bot_shoulder_lift_joint, a_bot_shoulder_pan_joint, a_bot_wrist_1_joint,
-      #   a_bot_wrist_2_joint, a_bot_wrist_3_joint]
-      # position: [2.0059760252581995, -1.602117200891012, 0.646294116973877, -1.3332312864116211, -0.8101084868060511, -2.4642069975482386]
-
-      success_a = self.load_program(robot="a_bot", program_name="wrs2020/taskboard_belt_v4.urp", recursion_depth=3)
-      success_b = self.load_program(robot="b_bot", program_name="wrs2020/taskboard_belt_v4.urp", recursion_depth=3)
       
+      self.go_to_pose_goal("b_bot", self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.1)
+      res = self.get_3d_poses_from_ssd()
+      r2 = self.get_feasible_grasp_points(object_id=6)
+      if r2:
+        goal = r2[0]
+        goal.pose.position.z = 0.0
+      else:
+        rospy.logerr("Could not find belt grasp pose! Aborting.")
+        return False
+      
+      # Start the program with b_bot to pick the tool
+      self.go_to_named_pose("home","b_bot")
+      success_b = self.load_program(robot="b_bot", program_name="wrs2020/taskboard_belt_v4.urp", recursion_depth=3)
+      if success_b:
+        print("Running belt pick on b_bot.")
+        self.execute_loaded_program(robot="b_bot")
+      else:
+        return False
+      
+      self.simple_pick("a_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z")
+      a_bot_wait_with_belt_pose = [2.0059760252581995, -1.602117200891012, 0.646294116973877, -1.3332312864116211, -0.8101084868060511, -2.4642069975482386]
+      self.move_joints("a_bot", a_bot_wait_with_belt_pose)
+
+      # TODO: Check for pick success
+      
+      success_a = self.load_program(robot="a_bot", program_name="wrs2020/taskboard_belt_v5.urp", recursion_depth=3)      
       if success_a and success_b:
-        print("Loaded belt program.")
+        print("Loaded belt program on a_bot.")
         rospy.sleep(1)
         self.execute_loaded_program(robot="a_bot")
-        self.execute_loaded_program(robot="b_bot")
-        print("Started execution. Waiting for b_bot to pick tool.")
-        rospy.sleep(12)
+        print("Starting belt threading execution.")
+        rospy.sleep(2)
         self.close_ur_popup(robot="a_bot")
         self.close_ur_popup(robot="b_bot")
       else:
@@ -397,12 +408,30 @@ class TaskboardClass(O2ACCommon):
       self.go_to_named_pose("home","a_bot")
       self.go_to_named_pose("home","b_bot")
       success_a = self.load_program(robot="a_bot", program_name="wrs2020/linear_push_on_taskboard_from_home.urp", recursion_depth=3)
-      success_b = self.load_program(robot="b_bot", program_name="wrs2020/pulley_v1.urp", recursion_depth=3)
+      if success_a:
+        print("Loaded pulley program.")
+        self.execute_loaded_program(robot="a_bot")
+      else:
+        print("Problem loading program on a_bot. Not executing pulley procedure.")
+        return False
       
-      if success_a and success_b:
+      goal = self.look_and_get_grasp_point(self.assembly_database.name_to_id("motor_pulley"))
+      if not goal:
+        rospy.logerr("Could not find motor_pulley in tray. Skipping procedure.")
+        return False
+      goal.pose.position.x -= 0.01 # MAGIC NUMBER
+      goal.pose.position.z = 0.0
+      self.simple_pick("b_bot", goal, gripper_force=50.0, grasp_width=.06, axis="z")
+      if self.b_bot_gripper_opening_width < 0.01:
+        rospy.logerr("Gripper did not grasp the pulley --> Stop")
+
+      self.confirm_to_proceed("Picked the pulley?")
+      b_bot_script_start_pose = [1.7094888, -1.76184906, 2.20651847, -2.03368343, -1.54728252, 0.96213197]
+      self.move_joints("b_bot", b_bot_script_start_pose)
+      success_b = self.load_program(robot="b_bot", program_name="wrs2020/pulley_v3.urp", recursion_depth=3)
+      if success_b:
         print("Loaded pulley program.")
         rospy.sleep(1)
-        self.execute_loaded_program(robot="a_bot")
         self.execute_loaded_program(robot="b_bot")
         print("Started execution. Waiting for b_bot to finish.")
       else:
@@ -411,29 +440,29 @@ class TaskboardClass(O2ACCommon):
       wait_for_UR_program("/b_bot", rospy.Duration.from_sec(40))
       return True
 
-      # pick up pulley
-      self.allow_collision_with_hand('b_bot', 'motor_pulley')
-      pick_pose = geometry_msgs.msg.PoseStamped()
-      pick_pose.header.frame_id = "move_group/motor_pulley"
-      pick_pose.pose.position = geometry_msgs.msg.Point(-0.02, 0, 0)
-      pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, tau/2))
-      tool_name = "motor_pulley"
-      robot_name = "b_bot"
-      self.simple_pick("b_bot", pick_pose, item_id_to_attach="motor_pulley")
-      # insert pulley
-      self.allow_collision_with_hand('b_bot', 'taskboard_base')
-      insert_pose = geometry_msgs.msg.PoseStamped()
-      insert_pose.header.frame_id = "taskboard_small_shaft"
-      insert_pose.pose.position = geometry_msgs.msg.Point(0.025, 0, 0)
-      insert_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/4, tau/2, tau/2))
-      self.simple_place("b_bot", insert_pose, item_id_to_detach="motor_pulley")
-      self.disallow_collision_with_hand('b_bot', 'taskboard_base')
-      self.disallow_collision_with_hand('b_bot', 'motor_pulley')
-      self.planning_scene_interface.allow_collisions('motor_pulley', 'taskboard_small_shaft')
-      self.planning_scene_interface.allow_collisions('motor_pulley', 'taskboard_base')
-      self.planning_scene_interface.allow_collisions('taskboard_base', 'taskboard_plate')
-      # Go back to home position
-      self.go_to_named_pose("home","b_bot")
+      # # pick up pulley
+      # self.allow_collision_with_hand('b_bot', 'motor_pulley')
+      # pick_pose = geometry_msgs.msg.PoseStamped()
+      # pick_pose.header.frame_id = "move_group/motor_pulley"
+      # pick_pose.pose.position = geometry_msgs.msg.Point(-0.02, 0, 0)
+      # pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, tau/2))
+      # tool_name = "motor_pulley"
+      # robot_name = "b_bot"
+      # self.simple_pick("b_bot", pick_pose, item_id_to_attach="motor_pulley")
+      # # insert pulley
+      # self.allow_collision_with_hand('b_bot', 'taskboard_base')
+      # insert_pose = geometry_msgs.msg.PoseStamped()
+      # insert_pose.header.frame_id = "taskboard_small_shaft"
+      # insert_pose.pose.position = geometry_msgs.msg.Point(0.025, 0, 0)
+      # insert_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/4, tau/2, tau/2))
+      # self.simple_place("b_bot", insert_pose, item_id_to_detach="motor_pulley")
+      # self.disallow_collision_with_hand('b_bot', 'taskboard_base')
+      # self.disallow_collision_with_hand('b_bot', 'motor_pulley')
+      # self.planning_scene_interface.allow_collisions('motor_pulley', 'taskboard_small_shaft')
+      # self.planning_scene_interface.allow_collisions('motor_pulley', 'taskboard_base')
+      # self.planning_scene_interface.allow_collisions('taskboard_base', 'taskboard_plate')
+      # # Go back to home position
+      # self.go_to_named_pose("home","b_bot")
     
     # ==========================================================
 
