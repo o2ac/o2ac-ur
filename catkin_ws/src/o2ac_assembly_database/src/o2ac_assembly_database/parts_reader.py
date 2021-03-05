@@ -88,9 +88,9 @@ class PartsReader(object):
         Returns the name of the object with the given id number.
         Returns an empty string on failure.
         """
-        for obj in self.parts_list:
-            if obj.id == id_num:
-                return obj.name
+        for obj in self._parts_list:
+            if obj["id"] == id_num:
+                return obj["name"]
         rospy.logerr("Could not find object with id " + str(id_num))
         return ""
     
@@ -99,9 +99,9 @@ class PartsReader(object):
         Returns the id of the object with the given name.
         Returns False on failure.
         """
-        for obj in self.parts_list:
-            if obj.name == name:
-                return obj.id
+        for obj in self._parts_list:
+            if obj["name"] == name:
+                return obj["id"]
         rospy.logerr("Could not find object with name " + str(name))
         return False
     
@@ -110,9 +110,9 @@ class PartsReader(object):
         Returns the type of the object with the given id number.
         Returns an empty string on failure.
         """
-        for obj in self.parts_list:
-            if obj.id == id_num:
-                return obj.type
+        for obj in self._parts_list:
+            if obj["id"] == id_num:
+                return obj["type"]
         rospy.logerr("Could not find object with id " + str(id_num))
         return ""
     
@@ -121,9 +121,9 @@ class PartsReader(object):
         Returns the id of the object with the given type.
         Returns False on failure.
         """
-        for obj in self.parts_list:
-            if obj.type == type:
-                return obj.id
+        for obj in self._parts_list:
+            if obj["type"] == type:
+                return obj["id"]
         rospy.logerr("Could not find object with type " + str(type))
         return False
     
@@ -132,9 +132,9 @@ class PartsReader(object):
         Returns the type of the object with the given name.
         Returns False on failure.
         """
-        for obj in self.parts_list:
-            if obj.name == name:
-                return obj.type
+        for obj in self._parts_list:
+            if obj["name"] == name:
+                return obj["type"]
         rospy.logerr("Could not find object with name " + str(name))
         return False
 
