@@ -32,6 +32,9 @@
     <arg name="normal_topic"	  value=""/>
   </include>
 
+  <!-- Separate node for Python3 functions -->
+  <node name="o2ac_py3_vision_server" pkg="o2ac_vision" type="o2ac_py3_vision_server.py"/>
+
   <!-- Spawn visualizer and parameter configurator -->
   <node name="$(anon rviz)" pkg="rviz" type="rviz" output="screen"
 	      args="-d $(find o2ac_vision)/launch/pipeline_test.rviz"/>

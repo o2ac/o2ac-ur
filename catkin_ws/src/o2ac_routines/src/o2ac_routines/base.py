@@ -129,6 +129,7 @@ class O2ACBase(object):
     self.change_tool_client = actionlib.SimpleActionClient('/o2ac_skills/change_tool', o2ac_msgs.msg.changeToolAction)
 
     self.ssd_client = actionlib.SimpleActionClient('/get_3d_poses_from_ssd', o2ac_msgs.msg.get3DPosesFromSSDAction)
+    self.detect_angle_client = actionlib.SimpleActionClient('/o2ac_vision_server/detect_angle', o2ac_msgs.msg.detectAngleAction)
     self.recognition_client = actionlib.SimpleActionClient('/o2ac_vision_server/localize_object', o2ac_msgs.msg.localizeObjectAction)
 
     self.pick_planning_client = actionlib.SimpleActionClient('/pick_planning', o2ac_task_planning_msgs.msg.PickObjectAction)
@@ -925,6 +926,29 @@ class O2ACBase(object):
       for idx, pose in zip(res.class_ids, res.poses):
         self.objects_in_tray[idx] = pose
       return res
+    except:
+      pass
+    return False
+  
+  def get_bearing_angle(self, camera="b_bot_inside_camera"):
+    """
+    When looking at the bearing from the front, returns the rotation angle 
+    to align the screw holes.
+    """
+    # Send goal, wait for result
+    goal = o2ac_msgs.msg.detectAngleGoal()
+    goal.item_id = "bearing"
+    goal.camera_id = camera
+    self.detect_angle_client.send_goal(goal)
+    if (not self.detect_angle_client.wait_for_result(rospy.Duration(3.0))):
+      self.detect_angle_client.cancel_goal()  # Cancel goal if timeout expired
+      rospy.logerr("Call to detect angle returned no result. Is o2ac_vision running?")
+      return False
+
+    # Read result and return
+    try:
+      res = self.detect_angle_client.get_result()
+      return res.rotation_angle
     except:
       pass
     return False

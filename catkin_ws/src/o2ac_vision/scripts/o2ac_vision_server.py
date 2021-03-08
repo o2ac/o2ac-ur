@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # Software License Agreement (BSD License)
 #
@@ -169,9 +169,11 @@ class O2ACVisionServer(object):
             execute_cb = self.belt_detection_callback, auto_start=False)
         self.belt_detection_action_server.start()    
         
-        self.front_view_angle_detection_action_server = actionlib.SimpleActionServer("frontViewAngleDetection", o2ac_msgs.msg.frontViewAngleDetectionAction,
-            execute_cb = self.front_view_angle_detection_callback, auto_start=False)
-        self.front_view_angle_detection_action_server.start()    
+        self.angle_detection_action_server = actionlib.SimpleActionServer("~detect_angle", o2ac_msgs.msg.detectAngleAction,
+            execute_cb = self.angle_detection_callback, auto_start=False)
+        self.angle_detection_action_server.start()
+        # Action client to forward the calculation to the Python3 node
+        self._py3_axclient = actionlib.SimpleActionClient('/o2ac_py3_vision_server/internal/detect_angle', o2ac_msgs.msg.detectAngleAction)
         
         self.shaft_notch_detection_action_server = actionlib.SimpleActionServer("shaftNotchDetection", o2ac_msgs.msg.shaftNotchDetectionAction,
             execute_cb = self.shaft_notch_detection_callback, auto_start=False) 
@@ -244,20 +246,24 @@ class O2ACVisionServer(object):
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
         self.belt_detection_action_server.set_succeeded(action_result)
 
-    def front_view_angle_detection_callback(self, goal):
-        self.front_view_angle_detection_action_server.accept_new_goal()
+    def angle_detection_callback(self, goal):
+        self.angle_detection_action_server.accept_new_goal()
         rospy.loginfo("Received a request to detect angle of " + goal.item_id)
         # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
-        im_in  = self.bridge.imgmsg_to_cv2(self.last_rgb_image, desired_encoding="bgr8")
-        im_vis = im_in.copy()
-
-        action_result = o2ac_msgs.msg.frontViewAngleDetectionResult()
-        # Object detection
-        ssd_results, im_vis = self.detect_object_in_image(im_in, im_vis)
-        poses_2d, im_vis = self.belt_grasp_detection_in_image(im_in, im_vis, ssd_result)
-        # TODO: Transform results to 3D PoseStamped (ideally to tray_center frame)
-
-        self.front_view_angle_detection_action_server.set_succeeded(action_result)
+        # im_in  = self.bridge.imgmsg_to_cv2(self.last_rgb_image, desired_encoding="bgr8")
+        # im_vis = im_in.copy()
+        
+        # Pass action goal to Python3 node
+        action_goal = goal
+        action_goal.rgb_image = copy.deepcopy(self.last_rgb_image)
+        self._py3_axclient.send_goal(action_goal)
+        
+        if (not self._py3_axclient.wait_for_result(rospy.Duration(3.0))):
+            rospy.logerr("Angle detection timed out.")
+            self._py3_axclient.cancel_goal()  # Cancel goal if timeout expired
+        
+        action_result = self._py3_axclient.get_result()
+        self.angle_detection_action_server.set_succeeded(action_result)
 
     def shaft_notch_detection_callback(self, goal):
         self.shaft_notch_detection_action_server.accept_new_goal()
