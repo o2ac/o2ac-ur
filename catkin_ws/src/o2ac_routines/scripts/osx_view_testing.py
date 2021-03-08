@@ -178,7 +178,7 @@ if __name__ == '__main__':
         ps = geometry_msgs.msg.PoseStamped()
         ps.header.frame_id = "taskboard_bearing_target_link"
         ps.pose.orientation = geometry_msgs.msg.Quaternion(*(0.5, 0.5, 0.5, 0.5))
-        ps.pose.position = geometry_msgs.msg.Point(-0.153, -0.0025, -0.014)
+        ps.pose.position = geometry_msgs.msg.Point(-0.155, -0.005, -0.0)
         c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.1, acceleration=.04)
       elif r == '62':
         ps = geometry_msgs.msg.PoseStamped()
@@ -186,6 +186,9 @@ if __name__ == '__main__':
         ps.pose.orientation = geometry_msgs.msg.Quaternion(*(0.62871, 0.545, 0.36517, 0.41756))
         ps.pose.position = geometry_msgs.msg.Point(-0.14509, -0.021323, 0.063084)
         c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_optical_frame", speed=.1, acceleration=.04)
+      elif r == '7':
+        angle = c.get_bearing_angle()
+        print(angle)
       elif r == '9':
         c.look_for_item_in_tray("07_SBARB6200ZZ_30", "b_bot")
       elif r == 'x':

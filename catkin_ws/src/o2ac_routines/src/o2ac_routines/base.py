@@ -128,7 +128,7 @@ class O2ACBase(object):
     self.screw_client = actionlib.SimpleActionClient('/o2ac_skills/screw', o2ac_msgs.msg.screwAction)
     self.change_tool_client = actionlib.SimpleActionClient('/o2ac_skills/change_tool', o2ac_msgs.msg.changeToolAction)
 
-    self.ssd_client = actionlib.SimpleActionClient('/get_3d_poses_from_ssd', o2ac_msgs.msg.get3DPosesFromSSDAction)
+    self.ssd_client = actionlib.SimpleActionClient('/o2ac_vision_server/get_3d_poses_from_ssd', o2ac_msgs.msg.get3DPosesFromSSDAction)
     self.detect_angle_client = actionlib.SimpleActionClient('/o2ac_vision_server/detect_angle', o2ac_msgs.msg.detectAngleAction)
     self.recognition_client = actionlib.SimpleActionClient('/o2ac_vision_server/localize_object', o2ac_msgs.msg.localizeObjectAction)
 
@@ -382,7 +382,7 @@ class O2ACBase(object):
     except:
       rospy.logwarn("Dashboard service did not respond!")
     if not load_success:
-      rospy.logwarn("Waiting and trying again`")
+      rospy.logwarn("Waiting and trying again")
       rospy.sleep(3)
       if recursion_depth > 0:  # If connect alone failed, try quit and then connect
         response = self.ur_dashboard_clients[robot + "_quit"].call()
