@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 import open3d as o3
 import numpy as np
 import numpy.linalg as LA
