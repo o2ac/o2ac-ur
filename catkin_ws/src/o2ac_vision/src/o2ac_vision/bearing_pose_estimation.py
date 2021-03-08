@@ -11,41 +11,23 @@ import math
 from o2ac_vision.common_3d_func import centering, rpy2mat, mat2rpy
 
 
-
 #############################################################################
 #
 # Bearing pose estimation
 #
 # Sample code
-#    # Generate instance
-#    #   im_temp: template image
-#    #   im_t: input image (RGB)
-#    #   bbox: bounding box of the bering(tupple [x,y,w,h])
-#    be = BeringPoseEstimator( im_temp, img, bbox )
-#    
-#    # Run pose estimation
-#    #   threshold: distance threhold of registration.
-#    #              If MSE is lower than this value,
-#    #              transformation is returned.
-#    #   ds: downsampling rate for points. This parameter
-#    #       should be larger than that of "threshold"   
+#    be = BearingPoseEstimator( im_temp, img, bbox )
 #    d_rotate, translation = be.main_proc( threshold=3.0, ds=3.0 )
-#    
-#    #   -> d_rotate: rotation angle in degree(CCW)
-#    #   -> translation: tlanslation in pix(y,x)
-#    #  If pose estimation is FAILD, False is returned
-#
-#    # Get visualization
-#    #   You can get a 3ch image 
 #    im_vis = be.get_result_image()
 #
 #############################################################################
-# Full scratch implementation of ICP algorithm
+
 class ICPRegistration:
-    # input source, target
+    """Full scratch implementation of ICP algorithm."""
+    
     def __init__( self, pcd_s, pcd_t ):
-        self.pcd_s = copy.deepcopy(pcd_s)
-        self.pcd_t = copy.deepcopy(pcd_t)
+        self.pcd_s = copy.deepcopy(pcd_s) # source
+        self.pcd_t = copy.deepcopy(pcd_t) # target
         self.n_points = len(self.pcd_s.points)
         
         self.pcds = []
@@ -57,7 +39,7 @@ class ICPRegistration:
         self.q = np.array([1.,0.,0.,0.,0.,0.,0.])
         
         # parameters
-        self.distance_torrelance = 0.01
+        self.distance_tolerance = 0.01
         self.max_iterations = 500
         
         # Final result
@@ -66,8 +48,8 @@ class ICPRegistration:
         self.pcd_tree = o3d.geometry.KDTreeFlann(self.pcd_t)
         self.np_pcd_t = np.asarray(self.pcd_t.points)
     
-    def set_distance_torrelance( self, d ):
-        self.distance_torrelance = d
+    def set_distance_tolerance( self, d ):
+        self.distance_tolerance = d
         
     def set_max_iterations( self, n ):
         self.max_iterations = n
@@ -111,7 +93,7 @@ class ICPRegistration:
         covar /= n_points
         covar -= np.dot( mu_s.reshape(-1,1), mu_y.reshape(1,-1) )
         
-        ## anti-symmetrix matrix
+        ## anti-symmetric matrix
         A = covar - covar.T
         delta = np.array([A[1,2],A[2,0],A[0,1]])
         tr_covar = np.trace(covar)
@@ -133,10 +115,8 @@ class ICPRegistration:
         transform[0:3,0:3] = rot.copy()
         transform[0:3,3] = trans.copy()
         return transform
-    
-        
+     
     def registration( self ):
-        
         for i in range(self.max_iterations):
             np_pcd_y = self.closest_points()
             transform = self.compute_registration_param( np_pcd_y )
@@ -146,7 +126,7 @@ class ICPRegistration:
             self.pcds.append(copy.deepcopy(self.pcd_s))
             if (2<i) and ( 0.999 < self.d[-1]/self.d[-2] ):
                 break
-            if self.d[-1] < self.distance_torrelance:
+            if self.d[-1] < self.distance_tolerance:
                 break
                 
         return self.d[-1], self.final_transformation
@@ -168,9 +148,14 @@ class ICPRegistration:
         return rot
     
     
-class BeringPoseEstimator:
+class BearingPoseEstimator:
     def __init__( self, im_s, img, bbox ):
-        
+        """
+        im_temp: template image (Grayscale)
+        im_t: input image (Grayscale)
+        bbox: bounding box of the bearing (tuple [x,y,w,h])
+        """
+
         # crop target image using a bounding box
         self.im_t = img[ bbox[1]:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2] ].copy()
         
@@ -210,6 +195,21 @@ class BeringPoseEstimator:
 
     
     def main_proc( self, threshold, ds=5.0 ):
+        """
+        Main function running the pose estimation.
+
+        Arguments:
+            threshold: distance threshold of registration.
+                       If MSE is lower than this value,
+                       transformation is returned.
+            ds: downsampling rate for points. This parameter
+                should be larger than "threshold"
+        Returns:
+            rotation:       rotation angle (CCW)
+            translation:    translation in pixels (y,x)
+        If pose estimation fails, (False, False) is returned
+        """
+
         
         # Preprocessing
         ##  downsampling edge pixels
@@ -228,8 +228,6 @@ class BeringPoseEstimator:
             0, np.radians(22.5), np.radians(45.0), np.radians(67.5)
         ]
         for init in init_rotations:
-            
-
             ##  apply initial rotation to the source point cloud
             T = rpy2mat( 0, 0, init )
             pcd_s_ds_ini = copy.deepcopy(pcd_s_ds)
@@ -237,10 +235,9 @@ class BeringPoseEstimator:
             
             # Registration by ICP algorithm
             reg = ICPRegistration( pcd_s_ds_ini, pcd_t_ds )
-            reg.set_distance_torrelance( ds*0.5 )
+            reg.set_distance_tolerance( ds*0.5 )
             self.mse, reg_trans = reg.registration()
             if self.mse < threshold:
-                
                 """
                 # check transformation progress
                 hoge = copy.deepcopy(self.pcd_s)
@@ -265,17 +262,12 @@ class BeringPoseEstimator:
                 # Get registration result
                 #  translation[x,y] and rotation
                 _,_,rotate = mat2rpy(self.trans_final)
-                d_rotate = np.degrees(rotate)
                 translation = self.trans_final[:2,3]
-                return d_rotate, translation
-                
-            
-        
+                return rotate, translation
         return False, False
             
         
     def vis_registration3d( self ):
-        
         pcd_final = copy.deepcopy(self.pcd_s)
         pcd_final.transform(self.trans_final)
         o3d.visualization.draw_geometries( [self.pcd_t, pcd_final], width=640, height=500)
@@ -284,6 +276,9 @@ class BeringPoseEstimator:
         return self.pcds
         
     def get_result_image( self ):
+        """
+        Returns the result visualization as a 3-channel image.
+        """
         
         im_result = cv2.cvtColor(self.im_t, cv2.COLOR_GRAY2BGR )
         pcd_final = copy.deepcopy(self.pcd_s)

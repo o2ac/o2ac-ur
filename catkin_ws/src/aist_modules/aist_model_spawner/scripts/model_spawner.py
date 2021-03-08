@@ -105,7 +105,7 @@ class ModelSpawnerServer(object):
 #  global functions                                                  #
 ######################################################################
 if __name__ == '__main__':
-    rospy.init_node('model_spwner')
+    rospy.init_node('model_spawner')
 
     rospack  = rospkg.RosPack()
     urdf_dir = rospy.get_param('urdf_dir',
