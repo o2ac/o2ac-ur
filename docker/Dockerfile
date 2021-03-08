@@ -328,10 +328,12 @@ RUN pip install --upgrade scipy
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	python3.6-dev=3.6.9-1~18.04ubuntu1.4 \
     python3-pip=9.0.1-2.3~ubuntu1.18.04.4 \
+    python3-opencv=3.2.0+dfsg-4ubuntu0.1 \
 	&& rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install \  
     open3d==0.11.2 \
+    opencv-python==0.11.2 \
     rospkg==1.2.10
 
 ################################################################################
