@@ -8,6 +8,7 @@ import copy
 import os, json
 import open3d as o3d
 import math
+from math import tau  # = 2*pi = one turn. https://tauday.com/tau-manifesto
 from o2ac_vision.common_3d_func import centering, rpy2mat, mat2rpy
 
 
@@ -263,6 +264,12 @@ class BearingPoseEstimator:
                 #  translation[x,y] and rotation
                 _,_,rotate = mat2rpy(self.trans_final)
                 translation = self.trans_final[:2,3]
+
+                # Choose the direction that results in the smaller rotation
+                if rotate > tau/8:  
+                    rotate -= tau/4
+                elif rotate < -tau/8:
+                    rotate += tau/4
                 return rotate, translation
         return False, False
             
@@ -289,10 +296,11 @@ class BearingPoseEstimator:
         for i in range(np_final.shape[0]):
             im_result = cv2.circle( im_result, (np_final[i,1],np_final[i,0]), 2, (0,255,0), -1, cv2.LINE_AA )
         
+        im_result = cv2.rectangle( im_result, (5,12), (170,38), (0,0,0), -1)
         # Draw rotation in image
         _,_,rotate = mat2rpy(self.trans_final)
         d_rotate = np.degrees(rotate)
-        str_rotate = format(d_rotate,'.2f')+"[deg](CCW)"
-        im_result = cv2.putText( im_result, str_rotate, (10,30), 1, 1.0, (255, 255, 255), 2, cv2.LINE_AA )
-        im_result = cv2.putText( im_result, str_rotate, (10,30), 1, 1.0, (255, 0, 0), 1, cv2.LINE_AA )
+        str_rotate = format(d_rotate,'.2f')+"[deg](CW)"
+        im_result = cv2.putText( im_result, str_rotate, (5,30), 1, 1.25, (255, 255, 255), 2, cv2.LINE_AA )
+        im_result = cv2.putText( im_result, str_rotate, (5,30), 1, 1.25, (0, 255, 255), 1, cv2.LINE_AA )
         return im_result
