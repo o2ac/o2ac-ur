@@ -1,4 +1,6 @@
 # This action should be called when the camera looks at the tray or an object.
+# The distance from the tray needs to match the part that is being searched.
+# Small parts require "near" distance. Large ones (CAD-matching) require "far" distance.
 
 # Request (sent from the action client to the action server)
 string item_id     # Name of the item. The CAD model should be retrieved separately (o2ac_parts_description)

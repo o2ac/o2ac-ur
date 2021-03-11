@@ -5,14 +5,18 @@
 string item_id     # Name of the item ("bearing", "pulley" or the part name)
 string camera_id   # Which camera to use. "a_bot_cam_outside", "a_bot_cam_inside"...
 
+
+## Only used internally to pass to the Python3 node
+sensor_msgs/Image rgb_image
+
 ---
 # Result
 
 bool succeeded
-float32 detected_angle_offset   # The angle by which the object needs to be turned
-                                # around its axis until it is in the target position.
-                                # (= screws pointing up, or the bearing holes aligned)
-                                # Negative angle offset = counter-clockwise turn is required
+float32 rotation_angle   # The angle by which the object needs to be turned
+                         # around its axis until it is in the target position.
+                         # (= screws pointing up, or the bearing holes aligned)
+                         # Negative angle = counter-clockwise turn is required
 float32 confidence
 
 ---

@@ -5,7 +5,7 @@ import numpy as np
 import math
 import copy
 import os, json
-
+import math
 
 """
    Downsampling for binary image
