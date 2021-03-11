@@ -41,12 +41,12 @@
 
   <!-- ======================================================= -->
   <!-- Grippers -->
-  <include file="$(find robotiq_control)/launch/urcap_cmodel_action_controller.launch">
+  <!-- <include file="$(find robotiq_control)/launch/urcap_cmodel_action_controller.launch">
     <arg name="namespace" value="a_bot" />
     <arg name="gripper_prefix" value="a_bot_" />
     <arg name="address" value="$(arg robot_ip_a)" />
     <arg name="config" value="cmodel_action_controller_140" />
-  </include>
+  </include> -->
 
   <include file="$(find robotiq_control)/launch/urcap_cmodel_action_controller.launch">
     <arg name="namespace" value="b_bot" />
@@ -57,7 +57,7 @@
   <!-- ======================================================= -->
   
   <!-- Adapted from ur5e_bringup.launch -->
-  <remap from="/a_bot/joint_states" to="/joint_states"/>
+  <!-- <remap from="/a_bot/joint_states" to="/joint_states"/>
   <include file="$(find ur_robot_driver)/launch/ur_common.launch" ns="a_bot">
     <arg name="debug" value="$(arg debug)"/>
     <arg name="use_tool_communication" value="$(arg use_tool_communication_a)"/>
@@ -80,7 +80,7 @@
     <arg name="tool_tx_idle_chars" value="$(arg tool_tx_idle_chars)"/>
     <arg name="tool_device_name" value="$(arg tool_device_name_a)"/>
     <arg name="tool_tcp_port" value="$(arg tool_tcp_port_a)"/>
-  </include>
+  </include> -->
   
   <remap from="/b_bot/joint_states" to="/joint_states"/>
   <include file="$(find ur_robot_driver)/launch/ur_common.launch" ns="b_bot">
