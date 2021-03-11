@@ -11,13 +11,3 @@
        before_tool
        high_approach
        wait_w_tool
-     MoveL
-       Waypoint_2
-       tophole
-     Force
-       Wait: 1.0
-       MoveP
-         tophole
-         CircleMove
-           ViaPoint_1
-           EndPoint_1

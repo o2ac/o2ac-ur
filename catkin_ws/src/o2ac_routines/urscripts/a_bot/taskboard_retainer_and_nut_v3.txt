@@ -1,0 +1,80 @@
+ Program
+   Robot Program
+     MoveJ
+       home
+     MoveJ
+       Waypoint_12
+     Gripper Move45% (1)
+     MoveJ
+       above_idler
+     MoveL
+       at_pulley_1
+     Gripper Close (1)
+     Gripper Move45% (1)
+     MoveL
+       turn_right
+     Gripper Close (1)
+     Gripper Move58% (1)
+     MoveL
+       turn_left
+     MoveL
+       incline
+     Gripper Close (1)
+     MoveL
+       above_angled
+       near_tb
+       in_ridge
+     Popup: wait for screw tool to hold
+     Gripper Move42% (1)
+     MoveL
+       away
+       far_above_aid
+     MoveL
+       above_nut_aid
+       Gripper Move22% (1)
+       at_nut_aid
+       Gripper Close (1)
+       slightly_above
+     MoveL
+       Waypoint_1
+       Waypoint_2
+       before_shaft
+     MoveL
+       at_shaft
+       Popup: turn on motor, then press enter to start spiral motion
+       Force
+         Loop 5 times
+           Direction: Base Y+
+             Until (distance)
+           Direction: Base Z+
+             Until (distance)
+           Direction: Base Y-
+             Until (distance)
+           Direction: Base Y-
+             Until (distance)
+           Direction: Base Z-
+             Until (distance)
+           Direction: Base Y+
+             Until (distance)
+           Direction: Base Y+
+             Until (distance)
+           Direction: Base Z-
+             Until (distance)
+           Direction: Base Y-
+             Until (distance)
+           Direction: Base Y-
+             Until (distance)
+           Direction: Base Z+
+             Until (distance)
+           Direction: Base Y+
+             Until (distance)
+     Popup: ok?
+     MoveJ
+       before_shaft
+       Waypoint_2
+       Waypoint_1
+     MoveL
+       slightly_above
+       at_nut_aid
+       Gripper Move22% (1)
+       above_nut_aid
