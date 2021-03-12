@@ -50,7 +50,20 @@ from symbolic_plan_request import SymbolicPlanRequest
 def parse_args():
     parser = argparse.ArgumentParser(
         description = 'PDDL converter module, bridging PDDL trace and MTC motion planning')
-    parser.add_argument('tracefile')
+    parser.add_argument('pddl_domain_file')
+    parser.add_argument('pddl_problem_file')
+    parser.add_argument(
+        '--translate_output_file', dest='translate_output_file',
+        help='File name for the output of the translate module (the input for the planner). Default is: output.sas',
+        default='output.sas')
+    parser.add_argument(
+        '--search_output_file', dest='search_output_file',
+        help='File name for the output of the planner (the result of the symbolic search). Default is: sas_plan',
+        default='sas_plan')
+    parser.add_argument(
+        '--failed_plans_file', dest='failed_plans_file',
+        help='Name of the file containing the previous plans for the problem that were marked as failed plans based on the motion planning check. Default is empty string meaning no previous plans were checked',
+        default='')
     parser.add_argument(
         '--disable_regrasp', dest='allow_regrasp',
         help='Boolean swith to allow, disable regrasp during picking. Default is: true (allow)',
@@ -59,8 +72,6 @@ def parse_args():
     args = parser.parse_args()
 
     return args
-
-rospy.init_node('pddl_converter')
 
 
 class PDDL_Converter():
@@ -267,7 +278,9 @@ class PDDL_Converter():
                             self.add_retreat_client.send_goal(goal)
                             self.add_retreat_client.wait_for_result()
                             result = self.add_retreat_client.get_result()
-                    else:
+                else:
+                    line_as_array = line.split(' ')
+                    if line_as_array[1] == 'cost':
                         # Finished, call the planning
                         goal = o2ac_task_planning_msgs.msg.ControlTaskGoal()
                         goal.operation = goal.PLAN
@@ -299,27 +312,32 @@ class PDDL_Converter():
 
 
 def main():
+    rospy.init_node('pddl_converter')
     args = parse_args()
     pddl_converter = PDDL_Converter('wrs_assembly_1') #(TODO: karolyartur - Include assembly name in the pddl plan)
 
     # Get path of PDDL trace file
     rospack = rospkg.RosPack()
-    trace_file_for_motion_planning = os.path.join(rospack.get_path('o2ac_task_planning_pddl_converter'),'symbolic',args.tracefile)
-    failed_plans_file_for_motion_planning = os.path.join(rospack.get_path('o2ac_task_planning_pddl_converter'),'symbolic','failed_plans_test')
-    files = ['domain.pddl', 'problem.pddl', 'sas_plan', 'failed_plans']
+    file_names = [args.pddl_domain_file, args.pddl_problem_file, args.translate_output_file, args.search_output_file]
+    if not args.failed_plans_file == '':
+        file_names.append(args.failed_plans_file)
     file_paths=[]
-    for filename in files:
+    for filename in file_names:
         file_paths.append(os.path.join(rospack.get_path('o2ac_task_planning_pddl_converter'),'symbolic', filename))
 
     # Construct the MTC task and do the planning in MTC
-    request = SymbolicPlanRequest(file_paths[0], file_paths[1], search_output_file=file_paths[2], failed_plans_file=file_paths[3])
+    request = SymbolicPlanRequest(*file_paths)
     fast_downward_response = pddl_converter.call_symbolic_planner(request)
     if fast_downward_response:
         if fast_downward_response.exitcode == 0:
             rospy.loginfo('Symbolic planning succeeded')
-            motion_planning_result = pddl_converter.construct_task_and_plan_motion(trace_file_for_motion_planning, args.allow_regrasp)
+            motion_planning_result = pddl_converter.construct_task_and_plan_motion(file_paths[3], args.allow_regrasp)
             if not motion_planning_result.success:
-                pddl_converter.update_failed_plans_file(motion_planning_result.failing_stage_id, trace_file_for_motion_planning, failed_plans_file_for_motion_planning)
+                if not args.failed_plans_file == '':
+                    pddl_converter.update_failed_plans_file(motion_planning_result.failing_stage_id, file_paths[3], file_paths[4])
+                else:
+                    failed_plans_file_path = os.path.join(rospack.get_path('o2ac_task_planning_pddl_converter'),'symbolic', 'failed_plans')
+                    pddl_converter.update_failed_plans_file(motion_planning_result.failing_stage_id, file_paths[3], failed_plans_file_path)
         else:
             rospy.logerr('Symbolic planning failed')
 

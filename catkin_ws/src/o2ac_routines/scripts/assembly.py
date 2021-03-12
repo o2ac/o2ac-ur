@@ -68,6 +68,11 @@ class AssemblyClass(O2ACCommon):
 
     self.downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
 
+  def set_assembly(self, assembly_name="wrs_assembly_1"):
+    self.assembly_database.change_assembly(assembly_name)
+    return True
+
+
   ################ ----- Subroutines  
 
     # toolalign =
@@ -265,6 +270,12 @@ class AssemblyClass(O2ACCommon):
     rospy.logerr("Subtask I not implemented yet")
     return False
 
+  def spawn_objects_for_closed_loop_test(self):
+    objects = ['panel_bearing']
+    poses = [[0.5, 0.3, 1, tau/4, 0, 0]]
+    self.spawn_multiple_objects('wrs_assembly_1', ['base'], [[0.12, 0.2, 0.0, tau/4, 0.0, -tau/4]], 'attached_base_origin_link')
+    self.spawn_multiple_objects('wrs_assembly_1', objects, poses, 'world')
+
   def spawn_objects_for_demo(self):
     objects = ['panel_motor', 'panel_bearing', 'motor', 'motor_pulley', 'bearing_housing',
       'shaft', 'end_cap', 'bearing_spacer', 'output_pulley', 'idler_spacer', 'idler_pulley', 'idler_pin']  # , 'base']
@@ -433,6 +444,8 @@ if __name__ == '__main__':
         assy.go_to_named_pose("feeder_pick_ready", "b_bot")
         assy.pick_screw_from_feeder("b_bot", screw_size=4)
         assy.go_to_named_pose("feeder_pick_ready", "b_bot")
+      if i == '67':
+        assy.spawn_objects_for_closed_loop_test()
       if i == '68':
         assy.spawn_objects_for_demo()
       if i == '69':

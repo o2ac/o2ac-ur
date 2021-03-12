@@ -32,12 +32,36 @@
 #
 # Author: Karoly Istvan Artur
 
+import argparse
+
 import rospy
 import os
 import rospkg
 
 from fast_downward_msgs.srv import CallFastDownward
 from symbolic_plan_request import SymbolicPlanRequest
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description = 'Fast Downward client module, intended to be imported and used as a member of a class, main is for testing')
+    parser.add_argument('pddl_domain_file')
+    parser.add_argument('pddl_problem_file')
+    parser.add_argument(
+        '--translate_output_file', dest='translate_output_file',
+        help='File name for the output of the translate module (the input for the planner). Default is: output.sas',
+        default='output.sas')
+    parser.add_argument(
+        '--search_output_file', dest='search_output_file',
+        help='File name for the output of the planner (the result of the symbolic search). Default is: sas_plan',
+        default='sas_plan')
+    parser.add_argument(
+        '--failed_plans_file', dest='failed_plans_file',
+        help='Name of the file containing the previous plans for the problem that were marked as failed plans based on the motion planning check. Default is empty string meaning no previous plans were checked',
+        default='')
+
+    args = parser.parse_args()
+
+    return args
 
 class DownwardClient():
     '''
@@ -64,12 +88,15 @@ class DownwardClient():
             return None
 
 if __name__ == "__main__":
+    args = parse_args()
     client = DownwardClient()
     rospack = rospkg.RosPack()
-    file_names = ['domain.pddl', 'problem.pddl', 'sas_plan', 'failed_plans']  # PDDL domain file name, PDDL problem file name, output (trace) file name, failed plans file name
+    file_names = [args.pddl_domain_file, args.pddl_problem_file, args.translate_output_file, args.search_output_file]
+    if not args.failed_plans_file == '':
+        file_names.append(args.failed_plans_file)
     file_paths = []
     for filename in file_names:
         file_paths.append(os.path.join(rospack.get_path('o2ac_task_planning_pddl_converter'),'symbolic', filename))  # Files are looked for in the 'symbolic' folder
 
-    request = SymbolicPlanRequest(file_paths[0], file_paths[1], search_output_file = file_paths[2], failed_plans_file = file_paths[3])
+    request = SymbolicPlanRequest(*file_paths)
     client.make_request(request)

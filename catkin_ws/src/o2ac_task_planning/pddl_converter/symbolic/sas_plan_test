@@ -1,4 +1,0 @@
-(pick a_bot panel_bearing b_bot)
-(place a_bot panel_bearing base sub-assembly-panel_bearing)
-(finished sub-assembly-panel_bearing)
-; cost = 3 (unit cost)
