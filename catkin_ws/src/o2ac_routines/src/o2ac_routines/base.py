@@ -137,6 +137,7 @@ class O2ACBase(object):
     self.change_tool_client = actionlib.SimpleActionClient('/o2ac_skills/change_tool', o2ac_msgs.msg.changeToolAction)
 
     self.ssd_client = actionlib.SimpleActionClient('/o2ac_vision_server/get_3d_poses_from_ssd', o2ac_msgs.msg.get3DPosesFromSSDAction)
+    self.detect_shaft_client = actionlib.SimpleActionClient('/o2ac_vision_server/detect_shaft_notch', o2ac_msgs.msg.shaftNotchDetectionAction)
     self.detect_angle_client = actionlib.SimpleActionClient('/o2ac_vision_server/detect_angle', o2ac_msgs.msg.detectAngleAction)
     self.recognition_client = actionlib.SimpleActionClient('/o2ac_vision_server/localize_object', o2ac_msgs.msg.localizeObjectAction)
 
@@ -1030,6 +1031,19 @@ class O2ACBase(object):
     except:
       pass
     return False
+  
+  def call_shaft_notch_detection(self):
+    """
+    Calls the action and returns the result as is
+    """
+    goal = o2ac_msgs.msg.shaftNotchDetectionGoal()
+    self.detect_shaft_client.send_goal(goal)
+    if (not self.detect_shaft_client.wait_for_result(rospy.Duration(3.0))):
+      self.detect_shaft_client.cancel_goal()  # Cancel goal if timeout expired
+      rospy.logerr("Call to shaft detection returned no result. Is o2ac_vision running?")
+      return False
+    res = self.detect_shaft_client.get_result()
+    return res
 
   # def publish_ssd_results_to_scene(self):
   #   """

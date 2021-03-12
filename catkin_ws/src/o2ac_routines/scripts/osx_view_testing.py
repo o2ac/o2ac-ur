@@ -114,6 +114,7 @@ if __name__ == '__main__':
     while not rospy.is_shutdown():
       rospy.loginfo("Enter a number to run tests: ")
       rospy.loginfo("1: Go home with all robots")
+      rospy.loginfo("11: Activate b_bot inside, outside (12) camera")
       rospy.loginfo("2: Move b_bot above tray at 37 cm")
       rospy.loginfo("3: Move b_bot close (22 cm)")
       rospy.loginfo("31, 32, 33, 34: Close views")
@@ -128,6 +129,10 @@ if __name__ == '__main__':
       if r == '1':
         c.go_to_named_pose("home", "a_bot")
         c.go_to_named_pose("home", "b_bot")
+      elif r == '11':
+        c.activate_camera("b_bot_inside_camera")
+      elif r == '12':
+        c.activate_camera("b_bot_outside_camera")
       elif r == '2':
         ps = geometry_msgs.msg.PoseStamped()
         ps.header.frame_id = "tray_center"
@@ -229,7 +234,8 @@ if __name__ == '__main__':
           goal.pose.position.z = 0.001
           # goal.pose.position.x -= 0.01 # MAGIC NUMBER
           c.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z")
-        
+      elif r == "88":
+        c.check_if_shaft_in_v_groove()
       elif r == '9':
         c.look_for_item_in_tray("07_SBARB6200ZZ_30", "b_bot")
       elif r == '91':

@@ -175,7 +175,7 @@ class O2ACVisionServer(object):
         # Action client to forward the calculation to the Python3 node
         self._py3_axclient = actionlib.SimpleActionClient('/o2ac_py3_vision_server/internal/detect_angle', o2ac_msgs.msg.detectAngleAction)
         
-        self.shaft_notch_detection_action_server = actionlib.SimpleActionServer("shaft_notch_detection", o2ac_msgs.msg.shaftNotchDetectionAction,
+        self.shaft_notch_detection_action_server = actionlib.SimpleActionServer("~detect_shaft_notch", o2ac_msgs.msg.shaftNotchDetectionAction,
             execute_cb = self.shaft_notch_detection_callback, auto_start=False)
         self.shaft_notch_detection_action_server.start()
         
@@ -279,6 +279,7 @@ class O2ACVisionServer(object):
         action_result.no_shaft_notch_detected = (not top and not bottom)
 
         self.shaft_notch_detection_action_server.set_succeeded(action_result)
+        self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
 
     def localization_callback(self, goal):
         rospy.loginfo("Received a request to detect objects via SSD")
@@ -507,10 +508,11 @@ class O2ACVisionServer(object):
 
         
         bbox = [350,100,100,400] # ROI(x,y,w,h) of shaft area
+        rospack = rospkg.RosPack()
         temp_root = rospack.get_path("wrs_dataset") + "/data/templates_shaft"
         sa = ShaftAnalysis( im_gray, bbox, temp_root )
         front, back = sa.main_proc( 0.5 ) # threshold.
-        im_vis = sa.get_result_image()
+        im_vis = sa.get_tm_result_image(front, back)
         return front, back, im_vis
 
 ### ========

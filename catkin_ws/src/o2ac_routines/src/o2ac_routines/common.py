@@ -650,6 +650,53 @@ class O2ACCommon(O2ACBase):
       self.go_to_pose_goal(robot_name, object_pose_in_world, speed=speed_fast, acceleration=acc_fast, move_lin=True)
     return True
 
+  def drop_shaft_in_v_groove(self):
+    """
+    Places the shaft in the v groove with b_bot.
+    """
+    ps = geometry_msgs.msg.PoseStamped()
+    ps.header.frame_id = "vgroove_aid_drop_point_link"
+    ps.pose.orientation = geometry_msgs.msg.Quaternion(*(0,0,0,1))
+    ps.pose.position = geometry_msgs.msg.Point(-0.05, 0, 0)
+    self.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_robotiq_85_tip_link", move_lin = False)
+    ps.pose.position = geometry_msgs.msg.Point(0, 0, 0)
+    self.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_robotiq_85_tip_link")
+
+  def check_if_shaft_in_v_groove(self):
+    """
+    Returns True if the shaft is in the v_groove
+    """
+    look_at_shaft_pose = [2.177835941, -1.700065275, 2.536958996, -2.40987076, -1.529889408, 0.59719228]
+    self.activate_camera("b_bot_inside_camera")
+    self.activate_led("b_bot")
+    self.move_joints("b_bot", look_at_shaft_pose)
+
+    res = self.call_shaft_notch_detection()
+    print("=== shaft notch detection returned:")
+    print(res)
+
+  def turn_shaft_until_groove_found(self):
+    look_at_shaft_pose = [2.177835941, -1.700065275, 2.536958996, -2.40987076, -1.529889408, 0.59719228]
+    self.activate_camera("b_bot_inside_camera")
+    self.activate_led("b_bot")
+    self.move_joints("b_bot", look_at_shaft_pose)
+
+    times_turned = 0
+    success = self.load_program(robot="b_bot", program_name="wrs2020/shaft_turning.urp", recursion_depth=3)  
+    if not success:
+      return False
+    while times_turned < 6:
+      rospy.loginfo("Turn shaft once")
+      self.execute_loaded_program(robot="b_bot")
+      wait_for_UR_program("/b_bot", rospy.Duration.from_sec(10))
+      times_turned += 1
+      res = self.call_shaft_notch_detection()
+      if res.shaft_notch_detected_at_top or res.shaft_notch_detected_at_bottom:
+        return res
+    return False
+
+    
+
   ########
 
   def fasten_screw(self, robot_name, screw_hole_pose, screw_height = .02, screw_size = 4):
