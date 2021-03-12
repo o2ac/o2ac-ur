@@ -75,6 +75,7 @@ from moveit_commander.conversions import pose_to_list
 from o2ac_assembly_database.assembly_reader import AssemblyReader
 
 import ur_msgs.msg
+import ur_msgs.srv
 from o2ac_routines.helpers import *
 
 class O2ACBase(object):
@@ -170,6 +171,9 @@ class O2ACBase(object):
       "a_bot_unlock_protective_stop":rospy.ServiceProxy("/a_bot/ur_hardware_interface/dashboard/unlock_protective_stop", std_srvs.srv.Trigger),
       "b_bot_unlock_protective_stop":rospy.ServiceProxy("/b_bot/ur_hardware_interface/dashboard/unlock_protective_stop", std_srvs.srv.Trigger)
     }
+
+    self.a_bot_set_io = rospy.ServiceProxy('a_bot/ur_hardware_interface/set_io', ur_msgs.srv.SetIO)
+    self.b_bot_set_io = rospy.ServiceProxy('b_bot/ur_hardware_interface/set_io', ur_msgs.srv.SetIO)
 
     self.urscript_client = rospy.ServiceProxy('/o2ac_skills/sendScriptToUR', o2ac_msgs.srv.sendScriptToUR)
     self.publishMarker_client = rospy.ServiceProxy('/o2ac_skills/publishMarker', o2ac_msgs.srv.publishMarker)
@@ -287,6 +291,21 @@ class O2ACBase(object):
     else:
       rospy.logwarn("Camera multiplexer not functional! Returning true")
       return True
+  
+  def activate_led(self, LED_name="b_bot", on=True):
+    req = ur_msgs.srv.SetIORequest()
+    if LED_name == "b_bot":
+      req.fun = ur_msgs.srv.SetIORequest.FUN_SET_DIGITAL_OUT
+      req.pin = 4
+      if on:
+        req.state = ur_msgs.srv.SetIORequest.STATE_ON
+      else:
+        req.state = ur_msgs.srv.SetIORequest.STATE_OFF
+      return self.b_bot_set_io.call(req)
+    elif LED_name == "a_bot":
+      return self.a_bot_set_io.call(req)
+    else:
+      rospy.logerr("Invalid LED name")
 
   def is_robot_running_normally(self, robot_name):
     """
