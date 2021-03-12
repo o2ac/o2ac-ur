@@ -1388,7 +1388,7 @@ class O2ACBase(object):
     action_client.send_goal(goal)
     rospy.sleep(.5)
     rospy.loginfo("Sending command " + str(command) + " to gripper: " + gripper)
-    if wait or gripper == "b_bot":  # b_bot uses the UR to close the gripper; it has to wait.
+    if wait:
       action_client.wait_for_result(rospy.Duration(6.0))  # Default wait time: 6 s
     result = action_client.get_result()
     rospy.loginfo(result)
