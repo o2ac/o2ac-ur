@@ -52,8 +52,8 @@ def parse_args():
         default='output.sas')
     parser.add_argument(
         '--search_output_file', dest='search_output_file',
-        help='File name for the output of the planner (the result of the symbolic search). Default is: sas_plan',
-        default='sas_plan')
+        help='File name for the output of the planner (the result of the symbolic search). Default is: result_plan',
+        default='result_plan')
     parser.add_argument(
         '--failed_plans_file', dest='failed_plans_file',
         help='Name of the file containing the previous plans for the problem that were marked as failed plans based on the motion planning check. Default is empty string meaning no previous plans were checked',
@@ -95,8 +95,13 @@ if __name__ == "__main__":
     if not args.failed_plans_file == '':
         file_names.append(args.failed_plans_file)
     file_paths = []
+    i = 0
     for filename in file_names:
-        file_paths.append(os.path.join(rospack.get_path('o2ac_task_planning_pddl_converter'),'symbolic', filename))  # Files are looked for in the 'symbolic' folder
+        if i < 2:
+            file_paths.append(os.path.join(rospack.get_path('o2ac_task_planning_pddl_converter'),'symbolic', filename))  # Input files are looked for in the 'symbolic' folder
+        else:
+            file_paths.append(os.path.join(rospack.get_path('o2ac_task_planning_pddl_converter'),'symbolic', 'generated', filename))  # Generated files are created/looked for in the 'symbolic/generated' folder
+        i += 1
 
     request = SymbolicPlanRequest(*file_paths)
     client.make_request(request)
