@@ -977,7 +977,8 @@ class O2ACBase(object):
     # Read result and return
     try:
       res = self.detect_angle_client.get_result()
-      return res.rotation_angle
+      if res.succeeded:
+        return res.rotation_angle
     except:
       pass
     return False
