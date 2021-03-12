@@ -713,19 +713,37 @@ class TaskboardClass(O2ACCommon):
     if task_name == "shaft":
       self.go_to_named_pose("home","a_bot")
       self.go_to_named_pose("home","b_bot")
-      success_a = self.load_program(robot="a_bot", program_name="wrs2020/linear_push_on_taskboard_from_home.urp", recursion_depth=3)
-      success_b = self.load_program(robot="b_bot", program_name="wrs2020/shaft_v1.urp", recursion_depth=3)
+
+      # # Try to find the shaft
+      # if not "shaft" in self.objects_in_tray:
+      #   if not self.look_in_tray("shaft"):
+      #     rospy.logerr("Could not find shaft in tray")
+      #     return False
+
+      # TODO: Why does this seem to return ID 6?
+      # goal = self.look_and_get_grasp_point(self.assembly_database.name_to_id("shaft"))
+      goal = self.look_and_get_grasp_point(8)
+      if not goal:
+        rospy.logerr("Could not find shaft in tray. Skipping procedure.")
+        print(self.objects_in_tray)
+        return False
+      # goal.pose.position.x -= 0.01 # MAGIC NUMBER
+      goal.pose.position.z = 0.001
+      self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z")
+
+      b_bot_before_hole = [1.196680545, -1.73023905, 1.934368435, -1.774223466, -1.543027226, 1.17229890]
+      self.move_joints("b_bot", b_bot_before_hole)
+      success_b = self.load_program(robot="b_bot", program_name="wrs2020/shaft_v2.urp", recursion_depth=3)
       
-      if success_a and success_b:
+      if success_b:
         print("Loaded shaft program.")
         rospy.sleep(1)
-        self.execute_loaded_program(robot="a_bot")
         self.execute_loaded_program(robot="b_bot")
         print("Started execution. Waiting for b_bot to finish.")
       else:
         print("Problem loading. Not executing shaft procedure.")
         return False
-      wait_for_UR_program("/b_bot", rospy.Duration.from_sec(80))
+      wait_for_UR_program("/b_bot", rospy.Duration.from_sec(50))
       if self.is_robot_protective_stopped("b_bot"):
         rospy.logwarn("Robot was protective stopped after shaft insertion - shaft may be stuck!")
         #TODO: Recovery? Try to loosen the shaft?
