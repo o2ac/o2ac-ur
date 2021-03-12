@@ -342,6 +342,14 @@ class O2ACBase(object):
     except:
       rospy.logerr("Robot name '" + robot + "' was not found or the robot is not a UR!")
       return False
+    
+    if recursion_depth > 10:
+      rospy.logerr("Tried too often. Breaking out.")
+      rospy.logerr("Could not start UR ROS control.")
+      return False
+    
+    if rospy.is_shutdown():
+      return False
 
     load_success = False
     try:
@@ -361,10 +369,14 @@ class O2ACBase(object):
     
     if not load_success:
       rospy.logwarn("Waiting and trying again.")
-      if recursion_depth > 0:  # If connect alone failed, try quit and then connect
-        response = self.ur_dashboard_clients[robot + "_quit"].call()
-        rospy.sleep(.5)
-      response = self.ur_dashboard_clients[robot + "_connect"].call()
+      try:
+        if recursion_depth > 0:  # If connect alone failed, try quit and then connect
+          response = self.ur_dashboard_clients[robot + "_quit"].call()
+          rospy.sleep(.5)
+        response = self.ur_dashboard_clients[robot + "_connect"].call()
+      except:
+        rospy.logwarn("Dashboard service did not respond! (2)")
+        pass
       rospy.sleep(.5)
       return self.activate_ros_control_on_ur(robot, recursion_depth=recursion_depth+1)
     
@@ -409,10 +421,14 @@ class O2ACBase(object):
     if not load_success:
       rospy.logwarn("Waiting and trying again")
       rospy.sleep(3)
-      if recursion_depth > 0:  # If connect alone failed, try quit and then connect
-        response = self.ur_dashboard_clients[robot + "_quit"].call()
-        rospy.logerr("Program could not be loaded on UR: " + program_name)
-        rospy.sleep(.5)
+      try:
+        if recursion_depth > 0:  # If connect alone failed, try quit and then connect
+          response = self.ur_dashboard_clients[robot + "_quit"].call()
+          rospy.logerr("Program could not be loaded on UR: " + program_name)
+          rospy.sleep(.5)
+      except:
+        rospy.logwarn("Dashboard service did not respond! (2)")
+        pass
       response = self.ur_dashboard_clients[robot + "_connect"].call()
       rospy.sleep(.5)
       return self.load_program(robot, program_name=program_name, recursion_depth=recursion_depth+1)
