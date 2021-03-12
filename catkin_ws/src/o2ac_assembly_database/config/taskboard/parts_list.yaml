@@ -21,7 +21,7 @@ parts_list:
     cad: 05_MBRFA30-2-P6.stl
     description: Pulley for Round Belt (4mm) - Setscrew P.D. 30mm
   - id: 6
-    name: drive_shaft
+    name: shaft
     cad: shaft_KZAF1075NA4WA55GA20AA0.stl
     description: Shaft for the bearing
   - id: 7
