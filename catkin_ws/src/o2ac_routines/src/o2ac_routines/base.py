@@ -1436,10 +1436,14 @@ class O2ACBase(object):
     return self.equip_unequip_tool(robot_name, tool_name, "unequip")
 
   def equip_unequip_tool(self, robot_name, tool_name, equip_or_unequip):
-    # TODO(felixvd): Finish this function
+    # TODO(felixvd): Finish this function. It is duplicated in C++.
+
     # Sanity check on the input instruction
     equip = (equip_or_unequip == "equip")
     unequip = (equip_or_unequip == "unequip")
+
+    return self.do_change_tool_action(self, robot_name, equip=equip, screw_size = 4)
+    ###
     lin_speed = 0.01
     # The second comparison is not always necessary, but readability comes first.
     if ((not equip) and (not unequip)):
@@ -1510,7 +1514,7 @@ class O2ACBase(object):
 
     if unequip: 
       ps_in_holder.pose.position.x -= 0.001   # Don't move all the way into the magnet
-      ps_approach.pose.position.z += 0.005 # Approach diagonally so nothing gets stuck
+      ps_approach.pose.position.z -= 0.01 # Approach diagonally so nothing gets stuck
 
     if equip:
       self.open_gripper(robot_name)

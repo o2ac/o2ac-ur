@@ -678,7 +678,8 @@ class TaskboardClass(O2ACCommon):
         print("Started execution. Pushing on taskboard.")
       else:
         print("Problem loading. Not executing push on taskboard.")
-        self.unequip_tool('b_bot', 'screw_tool_m4')
+        # self.unequip_tool('b_bot', 'screw_tool_m4')
+        self.do_change_tool_action("b_bot", equip=False, screw_size = 4)
         return
 
       for n in [1,3,2,4]:  # Cross pattern
