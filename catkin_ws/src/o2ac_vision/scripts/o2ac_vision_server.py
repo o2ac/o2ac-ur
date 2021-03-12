@@ -154,7 +154,7 @@ class O2ACVisionServer(object):
             # Setup the localization 
             self.get_2d_poses_from_ssd_action_server = actionlib.SimpleActionServer("~get_2d_poses_from_ssd", o2ac_msgs.msg.get2DPosesFromSSDAction,
                 execute_cb = self.get_2d_poses_from_ssd_goal_callback, auto_start=False)
-            self.get_2d_poses_from_ssd_action_server.start()    
+            self.get_2d_poses_from_ssd_action_server.start()
 
             self.get_3d_poses_from_ssd_action_server = actionlib.SimpleActionServer("~get_3d_poses_from_ssd", o2ac_msgs.msg.get3DPosesFromSSDAction,
                 execute_cb = self.get_3d_poses_from_ssd_goal_callback, auto_start=False)
@@ -167,7 +167,7 @@ class O2ACVisionServer(object):
         
         self.belt_detection_action_server = actionlib.SimpleActionServer("~belt_detection", o2ac_msgs.msg.beltDetectionAction,
             execute_cb = self.belt_detection_callback, auto_start=False)
-        self.belt_detection_action_server.start()    
+        self.belt_detection_action_server.start()
         
         self.angle_detection_action_server = actionlib.SimpleActionServer("~detect_angle", o2ac_msgs.msg.detectAngleAction,
             execute_cb = self.angle_detection_callback, auto_start=False)

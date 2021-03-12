@@ -41,7 +41,7 @@ import rospy
 import geometry_msgs.msg
 import tf
 import tf_conversions
-from math import pi
+from math import pi, degrees
 tau = 2.0*pi  # Part of math from Python 3.6
 
 from o2ac_routines.common import O2ACCommon
@@ -53,6 +53,7 @@ import actionlib
 import o2ac_msgs.msg
 
 import o2ac_vision
+from o2ac_routines.helpers import wait_for_UR_program
 
 class TestClass(O2ACCommon):
 
@@ -117,8 +118,9 @@ if __name__ == '__main__':
       rospy.loginfo("3: Move b_bot close (22 cm)")
       rospy.loginfo("31, 32, 33, 34: Close views")
       rospy.loginfo("4: Do distant view and 4 close views")
-      rospy.loginfo("5: Call belt grasp point detection and show result")
+      rospy.loginfo("5: Call tray detection and show result")
       rospy.loginfo("61 (62): Look at taskboard bearing with inside cam (with outside camera, for CAD)")
+      rospy.loginfo("7: Do bearing measuring/turning loop")
       rospy.loginfo("9: Find bearing from center view")
       rospy.loginfo("x: Exit ")
       rospy.loginfo(" ")
@@ -151,14 +153,17 @@ if __name__ == '__main__':
       elif r == '4':
         c.views()
       elif r == '5':
+        c.activate_camera("b_bot_outside_camera")
+        rospy.sleep(1)
         res = c.get_3d_poses_from_ssd()
+        obj_id = 7
         print("=====")
         print(res)
         print("=====")
-        r2 = c.get_feasible_grasp_points(object_id=5)
-        print("=====")
-        print(c.objects_in_tray[5])
-        print("=====")
+        r2 = c.get_feasible_grasp_points(obj_id)
+        # print("=====")
+        # print(c.objects_in_tray[obj_id])
+        # print("=====")
         try:
           print(len(r2))
           print(str(r2[0]))
@@ -187,10 +192,50 @@ if __name__ == '__main__':
         ps.pose.position = geometry_msgs.msg.Point(-0.14509, -0.021323, 0.063084)
         c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_optical_frame", speed=.1, acceleration=.04)
       elif r == '7':
+        # Look at tb bearing
+        ps = geometry_msgs.msg.PoseStamped()
+        ps.header.frame_id = "taskboard_bearing_target_link"
+        ps.pose.orientation = geometry_msgs.msg.Quaternion(*(0.5, 0.5, 0.5, 0.5))
+        ps.pose.position = geometry_msgs.msg.Point(-0.155, -0.005, -0.0)
+        c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.1, acceleration=.04)
+        c.open_gripper("b_bot")
+        rospy.sleep(1)
+
+        # Get angle and turn
         angle = c.get_bearing_angle()
-        print(angle)
+        if angle:
+          print("Received angle: ", degrees(angle))
+          b_bot_at_tb_bearing = [1.56031179, -1.25635559, 1.8379710, -2.2435614, -2.6155634, -1.55478078]
+          c.open_gripper("b_bot")
+          c.move_joints("b_bot", b_bot_at_tb_bearing)
+          if abs(degrees(angle)) > 5:
+            if degrees(angle) < 5:
+              success = c.load_program(robot="b_bot", program_name="wrs2020/bearing_turn_left.urp", recursion_depth=3)
+            elif degrees(angle) > 5:
+              success = c.load_program(robot="b_bot", program_name="wrs2020/bearing_turn_right.urp", recursion_depth=3)  
+            if success:
+              c.execute_loaded_program(robot="b_bot")
+              print("executing bearing left turn")
+            wait_for_UR_program("/b_bot", rospy.Duration.from_sec(15))
+            c.activate_ros_control_on_ur("b_bot")
+          else:
+            print("angle < 5 deg, not executing a motion")
+      
+      elif r == "8":
+        goal = c.look_and_get_grasp_point(c.assembly_database.name_to_id("shaft"))
+        if not goal:
+          rospy.logerr("Could not find shaft in tray. Skipping procedure.")
+        else:
+          goal.pose.position.z = 0.001
+          # goal.pose.position.x -= 0.01 # MAGIC NUMBER
+          c.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z")
+        
       elif r == '9':
         c.look_for_item_in_tray("07_SBARB6200ZZ_30", "b_bot")
+      elif r == '91':
+        c.camera_multiplexer.activate_camera("b_bot_inside_camera")
+      elif r == '92':
+        c.camera_multiplexer.activate_camera("b_bot_outside_camera")
       elif r == 'x':
         break
       else:
@@ -199,4 +244,3 @@ if __name__ == '__main__':
 
   except rospy.ROSInterruptException:
     print "Something went wrong."
-

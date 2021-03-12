@@ -169,7 +169,6 @@ class O2ACBase(object):
       "b_bot_close_popup":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/close_popup', std_srvs.srv.Trigger),
       "a_bot_unlock_protective_stop":rospy.ServiceProxy("/a_bot/ur_hardware_interface/dashboard/unlock_protective_stop", std_srvs.srv.Trigger),
       "b_bot_unlock_protective_stop":rospy.ServiceProxy("/b_bot/ur_hardware_interface/dashboard/unlock_protective_stop", std_srvs.srv.Trigger)
-      
     }
 
     self.urscript_client = rospy.ServiceProxy('/o2ac_skills/sendScriptToUR', o2ac_msgs.srv.sendScriptToUR)
@@ -243,7 +242,7 @@ class O2ACBase(object):
     self.tray_view_close_back_a = copy.deepcopy(ps)
     
   ############## ------ Internal functions (and convenience functions)
-
+    
   def confirm_to_proceed(self, next_task_name):
     if self.competition_mode:
       return True
@@ -1023,38 +1022,41 @@ class O2ACBase(object):
   #   co.header.frame_id = "tray_center"
   #   print(co)
   #   self.planning_scene_interface.apply_collision_object(co)
-    
+  
   def detect_object_in_camera_view(self, item_name):
     """
     Returns object pose if object was detected in current camera view and published to planning scene,
     False otherwise.
     """
+    # TODO: merge with "look_and_get_grasp_points"
 
     # Send goal, wait for result
-    self.recognition_client.send_goal(o2ac_msgs.msg.localizeObjectGoal(item_id=item_name))
-    if (not self.recognition_client.wait_for_result(rospy.Duration(15.0))):
-      self.recognition_client.cancel_goal()  # Cancel goal if timeout expired
-      rospy.logerr("Recognition node returned no result.")
+    object_type = self.assembly_database.name_to_type(item_name)
+    if not object_type:
+      rospy.logerr("Could not find the object " + name + " in database, or its type field is empty.")
+      return False
+    self.localization_client.send_goal(o2ac_msgs.msg.localizeObjectGoal(item_id=object_type))
+    if (not self.localization_client.wait_for_result(rospy.Duration(15.0))):
+      self.localization_client.cancel_goal()  # Cancel goal if timeout expired
+      rospy.logerr("Localization node returned no result.")
       
     # Read result and publish to planning scene as collision_object if found
     success = False
     try:
-      res = self.recognition_client.get_result()
+      res = self.localization_client.get_result()
       success = res.succeeded
     except:
       pass
     
     # Publish to planning scene
     if success:
-      # TODO: Fix the header and the collision object lookup name!
-      # TODO: To fix the collision object lookup name, the assembly_reader names need to be aligned with o2ac_parts_description.
       rospy.loginfo("Detected " + item_name + " with confidence " + str(res.confidences[0]))
-      co = self.assembly_reader._reader.get_collision_object("bearing")
+      co = self.assembly_database.get_collision_object(object_name=name)
+      # TODO: Update MoveIt to use the object_pose
       co.mesh_poses[0] = res.detected_poses[0].pose
       co.header.frame_id = "tray_center"
-      print(co)
       self.planning_scene_interface.apply_collision_object(co)
-      return True
+      return res.detected_poses[0]
     else:
       rospy.loginfo("Did not detect " + item_name)
       return False

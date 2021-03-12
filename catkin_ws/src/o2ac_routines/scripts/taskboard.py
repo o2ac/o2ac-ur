@@ -153,20 +153,6 @@ class TaskboardClass(O2ACCommon):
     # if still not graspable either skip to next item or try to reposition
     pass
   
-  def test_task_2020(self):
-    task_completed = { 
-      "M2 set screw": True,
-      "M3 screw": False,
-      "M4 screw": False,
-      "belt": False,
-      "bearing": False,
-      "motor pulley": False,
-      "shaft": False,
-      "idler pulley": False,
-    }
-
-    self.look_for_item_in_tray("bearing")
-
   def prep_taskboard_task(self):
     """
     Equip the set screw tool and M3 tool, and move to the position before task start.
@@ -306,24 +292,39 @@ class TaskboardClass(O2ACCommon):
 
 
     #####
-    self.do_change_tool_action("b_bot", equip=False, screw_size = 4)
+    subtask_completed = { 
+      "M2 set screw": True,
+      "M3 screw": True,
+      "M4 screw": True,
+      "belt": False,
+      "bearing": False,
+      "motor pulley": False,
+      "shaft": False,
+      "idler pulley": True,
+    }
+    
     # # - Retainer pin + nut
     # subtask_completed["idler pulley"] = self.do_task("idler pulley")
     # self.do_change_tool_action("b_bot", equip=False, screw_size = 4)
       
     # - Shaft
-    self.do_task("shaft")
+    subtask_completed["shaft"] = self.do_task("shaft")
     
     # - Motor pulley
-    self.do_task("motor pulley")
+    subtask_completed["motor pulley"] = self.do_task("motor pulley")
 
     ### - Belt
-    self.do_task("belt")
+    subtask_completed["belt"] = self.do_task("belt")
 
     # TODO: 
     # Implement bearing regrasp
-    self.do_task("bearing")
-    self.do_task("screw_bearing")
+    subtask_completed["bearing"] = self.do_task("bearing")
+    if subtask_completed["bearing"]:
+      self.do_task("screw_bearing")
+
+    # order = ["shaft", "motor_pulley", "belt", "bearing"]
+    # task_complete = False
+    # while not task_complete:
 
   def do_task(self, task_name):
     
@@ -335,7 +336,7 @@ class TaskboardClass(O2ACCommon):
       
       self.go_to_pose_goal("b_bot", self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.1)
       res = self.get_3d_poses_from_ssd()
-      r2 = self.get_feasible_grasp_points(object_id=6)
+      r2 = self.get_feasible_grasp_points("belt")
       if r2:
         goal = r2[0]
         goal.pose.position.z = 0.0
@@ -546,6 +547,7 @@ class TaskboardClass(O2ACCommon):
       success_a = self.load_program(robot="a_bot", program_name="wrs2020/linear_push_on_taskboard_from_home.urp", recursion_depth=3)
       success_b = self.load_program(robot="b_bot", program_name="wrs2020/bearing_v1.urp", recursion_depth=3)
       
+      self.activate_camera("b_bot_inside_camera")
       if success_a and success_b:
         print("Loaded bearing program.")
         rospy.sleep(1)

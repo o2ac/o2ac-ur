@@ -491,10 +491,16 @@ class O2ACCommon(O2ACBase):
     # TODO: Consider the grasp width and actual collisions using the PlanningScene
     return self.simple_grasp_sanity_check(grasp_pose, border_dist)
     
-  def get_feasible_grasp_points(self, object_id):
+  def get_feasible_grasp_points(self, object_in_scene):
     """
     Returns a list of PoseStamped grasp points for an object that is currently in the scene.
+    object_in_scene can be the string or the id number of the object.
     """
+    if isinstance(object_in_scene, str):
+      object_id = self.assembly_database.name_to_id(object_in_scene)
+    else:
+      object_id = object_in_scene
+
     if object_id not in self.objects_in_tray:
       rospy.logerr("Grasp points requested for " + str(object_id) + " but it is not seen in tray.")
       return False
