@@ -24,23 +24,34 @@ roslaunch o2ac_vision o2ac_vision.launch
 The part recognition node consists of two components. One is the object detection (Chukyo), the other is pose estimation (AIST).
 
 
-### Object detection
+### Preparation
+Part recognition module needs template pre-trained models and templates.
+Please download them from following links:
+
+- Pre-traind model weights of SSD
+  Rename the downloaded weights to ```WRS.pth``` and place it into ```wrs_dataset/ssd.pytorch```. Please select appropriate weights considering pytorch version.
+  - for pytorch version less than 1.6.0: [download](https://drive.google.com/file/d/1uD31_ptek17DBT_dBTwLWFDgMbUcxd2V/view?usp=sharing)
+  - for newer version: [download](https://drive.google.com/file/d/15UXmlxeY3SwAeF70ZU2nCYCDJSVMnCkK/view?usp=sharing)
+  
+- Template images for small parts detection: [download](https://drive.google.com/file/d/1EVTEMdHeOtzsVI9YkVpjS8h_67EkjK4k/view?usp=sharing)
+  
+  Place ```templates``` into ```wrs_dataset/data/```.
+- Template image for bering angle estimation: [download](https://drive.google.com/drive/folders/1qjwkHFLJ4KVpx1_S5BJLbSMZ4lKvtRPZ?usp=sharing)
+  
+  Place ```bering_template_image.png``` and ```mot_template_image.png``` into ```o2ac_vision/config```.
+
+#### Object detection
 Python scripts of Single Shot MultiBox Detector (SSD) are cloned from [ssd.pytorch](https://github.com/amdegroot/ssd.pytorch).
-This module detects multiple objects in a tray. A list of bounding boxes, classes, and confidences are returned.
+This module detects multiple objects in a tray. 
+A list of dictionary which contain bounding box, class id, state(back or front) and confidence is returned.
 
-The model parameters can be downloaded [here](https://drive.google.com/file/d/13jfmv0CxU0K6LRE2jWkqJcJEVHVlVg2S/view?usp=sharing).
-Place them in ```wrs_dataset/ssd.pytorch/```.
-
-### Pose estimation
+#### Pose estimation for small parts
 This component estimates the 2D pose (x,y,theta) of **small targets** in the image coordinate system. It feeds the output of the object detection module, a list of bounding box and object class id.
 
+#### Bearing and motor pose estimation
+This compornent compute in-plane rotation angle of bering using ICP algorithm.
+Counter clock-wise rotation angle and tlanslation are returned.
 
-### Dataset
-All data including the pre-trained model of SSD, templates, and image sets can be downloaded from the following link.
-Please put `dataset.zip` in the directory "src/WRS_Dataset" and unzip it.
-Make sure "Annotations", "Images", "data", "labels.txt", "realsense_intrinsic.json", and "ssd.pytorch" are in "src/WRS_Dataset".
-
-[Download LINK](https://since1954-my.sharepoint.com/:f:/g/personal/z119104_since1954_onmicrosoft_com/EjnbKhpQsTRGnJWvP5ivM9sB3IzRr7gdRk0klG6oxHJyAQ?e=A3sxj1)
 
 ---
 
