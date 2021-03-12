@@ -38,9 +38,12 @@ import csv
 
 import tf2_ros
 import tf.transformations
+import tf
 import rospy
 
 from math import pi, cos, sin
+
+from math import pi
 
 import geometry_msgs.msg
 
@@ -66,7 +69,7 @@ class AssemblyReader(PartsReader):
         self.collision_objects, self.grasps = self.get_collision_objects_with_metadata()
         self.assembly_tree = self.get_assembly_tree(self.collision_objects)
 
-     def get_frame_mating(self, base_object, child_object):
+    def get_frame_mating(self, base_object, child_object):
         '''
         This function returns the mating between two parts in the assembly as a geometry_msgs/Transform message
 
