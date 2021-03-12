@@ -397,6 +397,13 @@ class TaskboardClass(O2ACCommon):
       # self.do_linear_push("b_bot", force=40, direction_vector=[0, -cos(radians(30)), sin(radians(30))], forward_speed=0.001)
       rospy.sleep(8.0)
       self.confirm_to_proceed("Go back?")
+      if self.is_robot_protective_stopped("b_bot"):
+        rospy.logwarn("Robot was protective stopped after set screw insertion!")
+        #TODO: Recovery? Try to loosen the shaft?
+        self.unlock_protective_stop("b_bot")
+        rospy.sleep(1)
+        if self.is_robot_protective_stopped("b_bot"):
+          return False
 
       # Go back
       self.go_to_pose_goal("b_bot", screw_approach, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True)
