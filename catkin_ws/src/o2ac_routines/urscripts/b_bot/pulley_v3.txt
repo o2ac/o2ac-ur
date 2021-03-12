@@ -1,18 +1,19 @@
  Program
    Robot Program
-     MoveL
-       pass_tray
-       above
-       pick_1
-     Gripper Move15% (1)
-     MoveL
-       turn_left
-     Gripper Close (1)
-     Gripper Move36% (1)
-     MoveL
-       pick_1
-       incline
-     Gripper Close (1)
+     Center grasp
+       MoveL
+         pass_tray
+         above
+         pick_1
+       Gripper Move15% (1)
+       MoveL
+         turn_left
+       Gripper Close (1)
+       Gripper Move36% (1)
+       MoveL
+         pick_1
+         incline
+       Gripper Close (1)
      MoveL
        above_inclined
        Waypoint_4
