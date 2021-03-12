@@ -180,6 +180,7 @@ class TaskboardClass(O2ACCommon):
     Hacky solution to align the bearing holes.
     """
     self.activate_camera("b_bot_inside_camera")
+    self.activate_led("b_bot", on=False)
     adjustment_motions = 0
     times_looked_without_action = 0
     times_it_looked_like_success = 0
@@ -192,18 +193,20 @@ class TaskboardClass(O2ACCommon):
       ps.pose.orientation = geometry_msgs.msg.Quaternion(*(0.5, 0.5, 0.5, 0.5))
       ps.pose.position = geometry_msgs.msg.Point(-0.155, -0.005, -0.0)
       self.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.1, acceleration=.04)
+      self.activate_led("b_bot", on=True)
       self.open_gripper("b_bot")
       rospy.sleep(1)  # Without a wait, the camera image is blurry
 
       # Get angle and turn
       angle = self.get_bearing_angle()
+      self.activate_led("b_bot", on=False)
       if angle:
-        rospy.loginfo("Bearing detected angle: ")
-        rospy.loginfo(str(degrees(angle)))
+        rospy.loginfo("Bearing detected angle: %3f", degrees(angle))
+        # rospy.loginfo(str(degrees(angle)))
         b_bot_at_tb_bearing = [1.56031179, -1.25635559, 1.8379710, -2.2435614, -2.6155634, -1.55478078]
-        self.open_gripper("b_bot")
-        self.move_joints("b_bot", b_bot_at_tb_bearing)
         if abs(degrees(angle)) > 5:
+          self.open_gripper("b_bot")
+          self.move_joints("b_bot", b_bot_at_tb_bearing)
           if degrees(angle) < 5:
             success = self.load_program(robot="b_bot", program_name="wrs2020/bearing_turn_left.urp", recursion_depth=3)
             rospy.loginfo("executing bearing left turn")
@@ -479,13 +482,6 @@ class TaskboardClass(O2ACCommon):
     if task_name == "motor pulley":
       self.go_to_named_pose("home","a_bot")
       self.go_to_named_pose("home","b_bot")
-      # success_a = self.load_program(robot="a_bot", program_name="wrs2020/linear_push_on_taskboard_from_home.urp", recursion_depth=3)
-      # if success_a:
-      #   print("Loaded pulley program.")
-      #   self.execute_loaded_program(robot="a_bot")
-      # else:
-      #   print("Problem loading program on a_bot. Not executing pulley procedure.")
-      #   return False
       
       goal = self.look_and_get_grasp_point(self.assembly_database.name_to_id("motor_pulley"))
       if not goal:
@@ -542,59 +538,37 @@ class TaskboardClass(O2ACCommon):
       self.go_to_named_pose("home","a_bot")
       self.go_to_named_pose("home","b_bot")
 
-      ### Fully hard-coded sequence
-      # TODO: This assumes that the bearing is in the correct spot 
-      success_a = self.load_program(robot="a_bot", program_name="wrs2020/linear_push_on_taskboard_from_home.urp", recursion_depth=3)
-      success_b = self.load_program(robot="b_bot", program_name="wrs2020/bearing_v1.urp", recursion_depth=3)
-      
+      goal = self.look_and_get_grasp_point("bearing")
+      if not goal:
+        rospy.logerr("Could not find bearing in tray. Skipping procedure.")
+        return False
       self.activate_camera("b_bot_inside_camera")
-      if success_a and success_b:
+      goal.pose.position.x -= 0.01 # MAGIC NUMBER
+      goal.pose.position.z = 0.0115
+      rospy.loginfo("Picking bearing at: ")
+      print(goal.pose.position)
+      self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.085, axis="z")
+      if self.b_bot_gripper_opening_width < 0.01:
+        rospy.logerr("Gripper did not grasp the bearing --> Stop")
+      
+      b_bot_pass_to_urscript = [1.709548950, -1.761849065, 2.20654327, -2.033707281, -1.5472462, 0.2133078575]
+      self.move_joints("b_bot", b_bot_pass_to_urscript)
+      success_b = self.load_program(robot="b_bot", program_name="wrs2020/bearing_v3.urp", recursion_depth=3)
+      
+      if success_b:
         print("Loaded bearing program.")
         rospy.sleep(1)
-        self.execute_loaded_program(robot="a_bot")
         self.execute_loaded_program(robot="b_bot")
         print("Started execution. Waiting for b_bot to finish.")
       else:
         print("Problem loading. Not executing bearing procedure.")
+        return False
       wait_for_UR_program("/b_bot", rospy.Duration.from_sec(60))
 
-      self.open_gripper("b_bot")
       self.bearing_holes_aligned = self.align_bearing_holes()
       return self.bearing_holes_aligned
 
-      ###
-      # self.go_to_named_pose("home","a_bot")
-      # self.go_to_named_pose("home","b_bot")
-
-      # goal = self.look_and_get_grasp_point("bearing")
-      # if not goal:
-      #   rospy.logerr("Could not find bearing in tray. Skipping procedure.")
-      #   return False
-      # # goal.pose.position.x -= 0.01 # MAGIC NUMBER
-      # goal.pose.position.z = 0.0115
-      # rospy.loginfo("Picking bearing at: ")
-      # print(goal.pose.position)
-      # self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.085, axis="z")
-      
-      # b_bot_pass_to_urscript = [1.709548950, -1.761849065, 2.20654327, -2.033707281, -1.5472462, 0.2133078575]
-      # self.move_joints("b_bot", b_bot_pass_to_urscript)
-      # success_b = self.load_program(robot="b_bot", program_name="wrs2020/bearing_v2.urp", recursion_depth=3)
-      
-      # if success_b:
-      #   print("Loaded bearing program.")
-      #   rospy.sleep(1)
-      #   self.execute_loaded_program(robot="b_bot")
-      #   print("Started execution. Waiting for b_bot to finish.")
-      # else:
-      #   print("Problem loading. Not executing bearing procedure.")
-      #   return False
-      # wait_for_UR_program("/b_bot", rospy.Duration.from_sec(60))
-
-      # self.bearing_holes_aligned = self.align_bearing_holes()
-      # return self.bearing_holes_aligned
-      ###
-
-      ### More flexible sequence
+      ### Sequence including regrasp
       # TODO: Rewrite either with MTC or manually, so that B ends up with the bearing
       # Then rewrite like this:
       # 1. Grasp bearing with b_bot
