@@ -194,59 +194,62 @@ class TaskboardClass(O2ACCommon):
     """
     ### - Set screw
     
-    # Move into the screw hole with motor on
-    self.do_task("M2 set screw")
+    # # Move into the screw hole with motor on
+    # self.do_task("M2 set screw")
     
-    # TODO: check set screw success with a_bot, do spiral motion with b_bot otherwise
+    # # TODO: check set screw success with a_bot, do spiral motion with b_bot otherwise
     
-    #### SCREW M3 WITH A_BOT
-    self.pick_screw_from_feeder("a_bot", screw_size = 3)
-    self.go_to_named_pose("home", "a_bot")
+    # #### SCREW M3 WITH A_BOT
+    # # self.pick_screw_from_feeder("a_bot", screw_size = 3)
+    # # self.go_to_named_pose("home", "a_bot")
 
-    # Move b_bot back, a_bot to screw
-    self.do_change_tool_action("b_bot", equip=False, screw_size = 2)
-    self.do_change_tool_action("b_bot", equip=True, screw_size = 4)
+    # # Move b_bot back, a_bot to screw
+    # self.do_change_tool_action("b_bot", equip=False, screw_size = 2)
+    # self.do_change_tool_action("b_bot", equip=True, screw_size = 4)
+    # self.go_to_named_pose("home", "b_bot")
+
+    # # self.go_to_named_pose("horizontal_screw_ready", "a_bot")
+    # # approach_pose = geometry_msgs.msg.PoseStamped()
+    # # approach_pose.header.frame_id = "taskboard_m3_screw_link"
+    # # approach_pose.pose.position.x = -.04
+    # # approach_pose.pose.position.y = -.12
+    # # approach_pose.pose.position.z = -.05
+    # # taskboard.go_to_pose_goal("a_bot", approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
+
+    # # approach_pose.pose.position.y = -.0
+    # # approach_pose.pose.position.z = -.0
+    # # taskboard.go_to_pose_goal("a_bot", approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
+
+    # # hole_pose = geometry_msgs.msg.PoseStamped()
+    # # hole_pose.header.frame_id = "taskboard_m3_screw_link"
+    # # hole_pose.pose.position.y = -.002  # MAGIC NUMBER
+    # # hole_pose.pose.position.z = -.006  # MAGIC NUMBER
+    # # hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
+    # # taskboard.do_screw_action("a_bot", hole_pose, screw_size = 3)
+    # # self.go_to_named_pose("horizontal_screw_ready", "a_bot")
+    # # self.go_to_named_pose("home", "a_bot")
+    
+    # ###
+    
+    # #### SCREW M4 WITH B_BOT
+    # self.pick_screw_from_feeder("b_bot", screw_size = 4)
+    # self.go_to_named_pose("horizontal_screw_ready", "b_bot")
+    # hole_pose = geometry_msgs.msg.PoseStamped()
+    # hole_pose.header.frame_id = "taskboard_m4_screw_link"
+    # hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/12, 0, 0))
+    # self.do_screw_action("b_bot", hole_pose, screw_size = 4)
+
+    # # self.do_change_tool_action("a_bot", equip=False, screw_size = 3)
+    # # self.go_to_named_pose("home", "a_bot")
     self.go_to_named_pose("home", "b_bot")
 
-    self.go_to_named_pose("horizontal_screw_ready", "a_bot")
-    approach_pose = geometry_msgs.msg.PoseStamped()
-    approach_pose.header.frame_id = "taskboard_m3_screw_link"
-    approach_pose.pose.position.x = -.04
-    approach_pose.pose.position.y = -.12
-    approach_pose.pose.position.z = -.05
-    taskboard.go_to_pose_goal("a_bot", approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
 
-    approach_pose.pose.position.y = -.0
-    approach_pose.pose.position.z = -.0
-    taskboard.go_to_pose_goal("a_bot", approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
-
-    hole_pose = geometry_msgs.msg.PoseStamped()
-    hole_pose.header.frame_id = "taskboard_m3_screw_link"
-    hole_pose.pose.position.y = -.002  # MAGIC NUMBER
-    hole_pose.pose.position.z = -.006  # MAGIC NUMBER
-    hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
-    taskboard.do_screw_action("a_bot", hole_pose, screw_size = 3)
-    self.go_to_named_pose("horizontal_screw_ready", "a_bot")
-    self.go_to_named_pose("home", "a_bot")
-    
-    ###
-    
-    #### SCREW M4 WITH B_BOT
-    self.pick_screw_from_feeder("b_bot", screw_size = 4)
-    self.go_to_named_pose("horizontal_screw_ready", "b_bot")
-    hole_pose = geometry_msgs.msg.PoseStamped()
-    hole_pose.header.frame_id = "taskboard_m4_screw_link"
-    hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/12, 0, 0))
-    self.do_screw_action("b_bot", hole_pose, screw_size = 4)
-
-    self.do_change_tool_action("a_bot", equip=False, screw_size = 3)
-    self.go_to_named_pose("home", "a_bot")
-    self.go_to_named_pose("home", "b_bot")
-    
-    # - Retainer pin + nut
-    self.do_task("idler pulley")
+    #####
     self.do_change_tool_action("b_bot", equip=False, screw_size = 4)
-    
+    # # - Retainer pin + nut
+    # subtask_completed["idler pulley"] = self.do_task("idler pulley")
+    # self.do_change_tool_action("b_bot", equip=False, screw_size = 4)
+      
     # - Shaft
     self.do_task("shaft")
     
