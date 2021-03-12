@@ -66,6 +66,8 @@ import o2ac_msgs.msg
 import o2ac_msgs.srv
 import o2ac_task_planning_msgs.msg
 
+from aist_camera_multiplexer import RealSenseMultiplexerClient
+
 from math import pi
 from std_msgs.msg import String
 from moveit_commander.conversions import pose_to_list
@@ -115,6 +117,11 @@ class O2ACBase(object):
     self.apply_planning_scene_diff.wait_for_service(5.0)
 
     self.assembly_database = AssemblyReader()
+
+    try:
+      self.camera_multiplexer = RealSenseMultiplexerClient('camera_multiplexer')
+    except:
+      self.camera_multiplexer = []
 
     # Action clients and movegroups
     self.groups = {"b_bot":moveit_commander.MoveGroupCommander("b_bot"),
@@ -275,6 +282,13 @@ class O2ACBase(object):
   def b_bot_gripper_status_callback(self, msg):
     self.b_bot_gripper_opening_width = msg.position  # [m]
   
+  def activate_camera(self, camera_name="b_bot_outside_camera"):
+    if self.camera_multiplexer:
+      self.camera_multiplexer.activate_camera(camera_name)
+    else:
+      rospy.logwarn("Camera multiplexer not functional! Returning true")
+      return True
+
   def is_robot_running_normally(self, robot_name):
     """
     Returns true if the robot is running (no protective stop, not turned off etc).
