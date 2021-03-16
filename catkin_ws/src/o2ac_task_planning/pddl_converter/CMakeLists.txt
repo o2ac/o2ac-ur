@@ -10,6 +10,8 @@ project(o2ac_task_planning_pddl_converter)
 find_package(catkin REQUIRED COMPONENTS
   rospy
   moveit_msgs
+  moveit_commander
+  geometry_msgs
   actionlib
   o2ac_task_planning_msgs
   fast_downward_msgs

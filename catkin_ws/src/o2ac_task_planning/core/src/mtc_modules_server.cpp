@@ -601,6 +601,7 @@ class Modules_Planner{
 				task_->reset();
 				if (goal->operation == goal->CLEAR){
 					task_->clear();
+					container_names.clear();
 					sampling_planner = std::make_shared<solvers::PipelinePlanner>();
 					sampling_planner->setProperty("goal_joint_tolerance", 1e-5);
 					control_task_result.success = true;

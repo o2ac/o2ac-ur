@@ -271,8 +271,8 @@ class AssemblyClass(O2ACCommon):
     return False
 
   def spawn_objects_for_closed_loop_test(self):
-    objects = ['panel_bearing']
-    poses = [[0.5, 0.3, 1, tau/4, 0, 0]]
+    objects = ['panel_bearing', 'panel_motor']
+    poses = [[0.4, -0.35, 0.8, tau/4, 0, tau/4], [0.5, 0.3, 1, tau/4, 0, 0]]
     self.spawn_multiple_objects('wrs_assembly_1', ['base'], [[0.12, 0.2, 0.0, tau/4, 0.0, -tau/4]], 'attached_base_origin_link')
     self.spawn_multiple_objects('wrs_assembly_1', objects, poses, 'world')
 

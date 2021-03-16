@@ -1,0 +1,9 @@
+<launch>
+  <arg name="stamp_args" default="domain.pddl problem.pddl"/>
+  <arg name="spawn_objects" default="false"/>
+
+  <node name="stamp" pkg="o2ac_task_planning_pddl_converter" type="stamp.py" args="$(arg stamp_args)" output="screen">
+    <rosparam file="$(find o2ac_task_planning_pddl_converter)/config/stamp_pick_place_demo_objects.yaml" command="load" if="$(arg spawn_objects)"/>
+  </node>
+
+</launch>

@@ -271,9 +271,12 @@ class PDDL_Converter():
                         self.control_task_client.send_goal(goal)
                         self.control_task_client.wait_for_result()
                         result = self.control_task_client.get_result()
-                        rospy.loginfo(result.task_state)
                         if not result.success:
+                            rospy.loginfo('Motion planning failed')
                             rospy.loginfo('Failing stage ID: ' + str(result.failing_stage_id))
+                        else:
+                            rospy.loginfo('Motion planning successful')
+                            rospy.loginfo('Check the Motion Planning Tasks RViz panel for the visualization')
                         return result
 
     def update_failed_plans_file(self, failing_stage_id, trace_file_path, failed_plans_file_path):

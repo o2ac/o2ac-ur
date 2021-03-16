@@ -1,0 +1,10 @@
+objects_to_spawn:
+  base:
+    pose: [0.12, 0.2, 0.01, pi/2, 0.0, -pi/2]
+    reference_frame: "attached_base_origin_link"
+  panel_bearing:
+    pose: [0.4, -0.35, 0.8, pi/2, 0, pi/2]
+    reference_frame: "world"
+  panel_motor:
+    pose: [0.4, 0.35, 0.8, pi/2, 0, 0]
+    reference_frame: "world"
