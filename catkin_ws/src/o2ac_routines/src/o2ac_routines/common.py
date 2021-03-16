@@ -541,6 +541,7 @@ class O2ACCommon(O2ACBase):
     Does very light feasibility check before returning.
     """
     self.activate_camera("b_bot_outside_camera")
+    self.open_gripper("b_bot", wait=False)
     # TODO: Merge with detect_object_in_camera_view in base.py
     self.go_to_pose_goal("b_bot", self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.1)
     self.get_3d_poses_from_ssd()

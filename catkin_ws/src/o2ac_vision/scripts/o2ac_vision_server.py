@@ -146,9 +146,7 @@ class O2ACVisionServer(object):
         self.continuous_streaming = rospy.get_param('~continuous_streaming', False)
         if self.continuous_streaming:
             # Setup publisher for object detection results
-            self.results_pub \
-                = rospy.Publisher('~detection_results',
-                                  o2ac_msgs.msg.Estimated2DPosesArray, queue_size=1)
+            self.results_pub = rospy.Publisher('~detection_results', o2ac_msgs.msg.Estimated2DPosesArray, queue_size=1)
             rospy.logwarn("Localization action server is not running because SSD results are being streamed! Turn off continuous mode to use localization.")
         else:
             # Setup the localization 

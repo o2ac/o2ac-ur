@@ -845,20 +845,16 @@ if __name__ == '__main__':
         taskboard.do_task("bearing")
       if i == "577":
         taskboard.do_task("screw_bearing")
+      if i == "575":
+        taskboard.align_bearing_holes()
       if i == "58":
         taskboard.do_task("idler pulley")
       if i == "8":
-        taskboard.spawn_example_objects()
-      if i == "999":
-        taskboard.activate_ros_control_on_ur("a_bot")
-        taskboard.activate_ros_control_on_ur("b_bot")
-      
+        taskboard.spawn_example_objects()      
       if i == "9":
-        dist = .005
-        taskboard.move_lin_rel("b_bot", relative_translation=[0, -cos(radians(30))*dist, sin(radians(30))*dist], velocity=0.03, wait=False)
-      if i == "91":
-        dist = -.005
-        taskboard.move_lin_rel("b_bot", relative_translation=[0, -cos(radians(30))*dist, sin(radians(30))*dist], velocity=0.03, wait=False)
+        taskboard.activate_led("b_bot", on=True)
+      if i == "99":
+        taskboard.activate_led("b_bot", on=False)
       if i == "f1":
         pick_pose = geometry_msgs.msg.PoseStamped()
         pick_pose.header.frame_id = "tray_center"
