@@ -126,8 +126,8 @@ class O2ACBase(object):
       self.camera_multiplexer = []
 
     # Action clients and movegroups
-    self.groups = {"b_bot":moveit_commander.MoveGroupCommander("b_bot"),
-     "b_bot_robotiq_85":moveit_commander.MoveGroupCommander("b_bot_robotiq_85")}
+    self.groups = {"a_bot":moveit_commander.MoveGroupCommander("a_bot"), "b_bot":moveit_commander.MoveGroupCommander("b_bot"),
+      "a_bot_robotiq_85":moveit_commander.MoveGroupCommander("a_bot_robotiq_85"), "b_bot_robotiq_85":moveit_commander.MoveGroupCommander("b_bot_robotiq_85")}
     self.gripper_action_clients = {"a_bot":actionlib.SimpleActionClient('/a_bot/gripper_action_controller', robotiq_msgs.msg.CModelCommandAction),
       "b_bot":actionlib.SimpleActionClient('/b_bot/gripper_action_controller', robotiq_msgs.msg.CModelCommandAction)}
     
@@ -313,26 +313,19 @@ class O2ACBase(object):
     """
     Returns true if the robot is running (no protective stop, not turned off etc).
     """
-    if robot_name == "a_bot":
-      return True
     return self.robot_safety_mode[robot_name] == 1 or self.robot_safety_mode[robot_name] == 2 # Normal / Reduced
   
   def is_robot_protective_stopped(self, robot_name):
     """
     Returns true if the robot is in protective stop.
     """
-    if robot_name == "a_bot":
-      return True
     return self.robot_safety_mode[robot_name] == 3
 
   def unlock_protective_stop(self, robot="b_bot"):
-    if robot == "a_bot":
-      return True
     if not self.use_real_robot:
       return True
     if robot is not "b_bot" and robot is not "a_bot":
       rospy.logerr("Robot name was not found!")
-      
     
     service_client = self.ur_dashboard_clients[robot + "_unlock_protective_stop"]
     request = std_srvs.srv.TriggerRequest()
@@ -350,8 +343,6 @@ class O2ACBase(object):
     return response.success
 
   def activate_ros_control_on_ur(self, robot="b_bot", recursion_depth=0):
-    if robot == "a_bot":
-      return True
     if not self.use_real_robot:
       return True
     
@@ -436,8 +427,6 @@ class O2ACBase(object):
           return True
 
   def load_program(self, robot="b_bot", program_name="", recursion_depth=0):
-    if robot == "a_bot":
-      return True
     if not self.use_real_robot:
       return True
 
@@ -479,8 +468,6 @@ class O2ACBase(object):
       return self.load_program(robot, program_name=program_name, recursion_depth=recursion_depth+1)
   
   def execute_loaded_program(self, robot="b_bot"):
-    if robot == "a_bot":
-      return True
     # Run the program
     response = self.ur_dashboard_clients[robot + "_play"].call(std_srvs.srv.TriggerRequest())
     if not response.success:
@@ -491,8 +478,6 @@ class O2ACBase(object):
       return True
   
   def close_ur_popup(self, robot="b_bot"):
-    if robot == "a_bot":
-      return True
     # Close a popup on the teach pendant to continue program execution
     response = self.ur_dashboard_clients[robot + "_close_popup"].call(std_srvs.srv.TriggerRequest())
     if not response.success:
@@ -608,8 +593,6 @@ class O2ACBase(object):
   
   def go_to_pose_goal(self, group_name, pose_goal_stamped, speed = 1.0, acceleration = 0.0, high_precision = False, 
                       end_effector_link = "", move_lin = True):
-    if group_name == "a_bot":
-      return True
     if self.pause_mode_ or self.test_mode_:
       if speed > self.reduced_mode_speed_limit:
         rospy.loginfo("Reducing speed from " + str(speed) + " to " + str(self.reduced_mode_speed_limit) + " because robot is in test or pause mode")
@@ -694,8 +677,6 @@ class O2ACBase(object):
     return ps_new
 
   def move_lin(self, group_name, pose_goal_stamped, speed = 1.0, acceleration = 0.0, end_effector_link = ""):
-    if group_name == "a_bot":
-      return True
     self.publish_marker(pose_goal_stamped, "pose")
     if self.pause_mode_ or self.test_mode_:
       if speed > self.reduced_mode_speed_limit:
@@ -761,8 +742,6 @@ class O2ACBase(object):
     return plan_success
 
   def move_lin_rel(self, robot_name, relative_translation = [0,0,0], relative_rotation = [0,0,0], acceleration = 0.5, velocity = .03, use_robot_base_csys=False, wait = True, max_wait=30.0):
-    if robot_name == "a_bot":
-      return True
     '''
     Does a lin_move relative to the current position of the robot. Uses the robot's TCP.
 
@@ -794,8 +773,6 @@ class O2ACBase(object):
     return res.success
 
   def move_joints(self, group_name, joint_pose_goal, speed = 1.0, acceleration = 0.0, force_ur_script=False, force_moveit=False):
-    if group_name == "a_bot":
-      return True
     if self.pause_mode_ or self.test_mode_:
       if speed > self.reduced_mode_speed_limit:
         rospy.loginfo("Reducing speed from " + str(speed) + " to " + str(self.reduced_mode_speed_limit) + " because robot is in test or pause mode")
@@ -843,8 +820,6 @@ class O2ACBase(object):
     return success
 
   def horizontal_spiral_motion(self, robot_name, max_radius = .01, radius_increment = .001, speed = 0.02, spiral_axis="Z"):
-    if robot_name == "a_bot":
-      return True
     rospy.loginfo("Performing horizontal spiral motion at speed " + str(speed) + " and radius " + str(max_radius))
     if not self.use_real_robot:
       return True
@@ -861,8 +836,6 @@ class O2ACBase(object):
     # =====
 
   def go_to_named_pose(self, pose_name, robot_name, speed = 0.5, acceleration = 0.0, force_ur_script=False):
-    if robot_name == "a_bot":
-      return True
     """
     pose_name should be a named pose in the moveit_config, such as "home", "back" etc.
     """
@@ -895,8 +868,6 @@ class O2ACBase(object):
   ######
 
   def pick_screw_from_feeder(self, robot_name, screw_size):
-    if robot_name == "a_bot":
-      return True
     """
     Picks a screw from one of the feeders. The screw tool already has to be equipped!
     Use this command to equip the screw tool: do_change_tool_action(self, "b_bot", equip=True, screw_size = 4)
