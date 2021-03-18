@@ -504,6 +504,23 @@ class O2ACCommon(O2ACBase):
     if object_id not in self.objects_in_tray:
       rospy.logerr("Grasp points requested for " + str(object_id) + " but it is not seen in tray.")
       return False
+    
+    # TODO(felixvd)
+    # Hack of the day!!! When looking for the bearing, remove the idler pulley from the perception,
+    # because it's a false positive in the same spot.
+    try:
+      if object_id == 7:
+        del self.objects_in_tray[13]
+        rospy.logwarn("HACKY: Deleting 13 from perception")
+    except:
+      pass
+    
+    try:
+      if object_id == 7:
+        del self.objects_in_tray[11]
+        rospy.logwarn("HACKY: Deleting 11 from perception")
+    except:
+      pass
 
     small_items = [8,9,10,14]
     large_items = [1,2,3,4,5,7,11,12,13]
