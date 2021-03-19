@@ -60,14 +60,17 @@ class ssd_detection():
         self.net = build_ssd('test', 300, 22)    # initialize SSD
         self.net.load_weights( fname_weight )
 
-    def object_detection(self, im_in, im_vis=None, threshold = 0.6):
-        """
-            Object detection by SSD
-            Input:
-                im_in... input_image
-                threshold... threshold of detection
-            Return:
-                results... a list of dict(bbox, class_id, score)
+    def object_detection(self, im_in, im_vis=None, threshold = 0.6, overlap_threshold = 0.8):
+        """ Object detection by SSD
+            
+        Args:
+          im_in(ndarray 3ch): input_image
+          im_vis(ndarray 3ch): image for visualization
+          threshold(float): threshold of detection
+          overlap_threshold(float): threshold for removing overlapped boxes(iou)
+                
+        Return:
+          results... a list of dict(bbox, class_id, score)
         """
 
         # Preproc
@@ -104,6 +107,9 @@ class ssd_detection():
                           "name":o2ac_label[i-1][1],
                           "state":o2ac_label[i-1][2]}
                 results.append( result )
+        
+        # remove overlapped boxes considering iou        
+        results, results_removed = remove_overlapped_boxes( results, overlap_threshold )
 
         if im_vis is None:
             return results
@@ -120,9 +126,85 @@ class ssd_detection():
                          (bbox[0], bbox[1]),1, 0.7, (255,255,255), 2, cv2.LINE_AA )
             cv2.putText( im_vis, res["name"],
                          (bbox[0], bbox[1]),1, 0.7, (255,0,0), 1, cv2.LINE_AA )
+            
+        for res in results_removed:
+            bbox = res["bbox"]
+            bb_color = (127,127,127)
+            im_vis = cv2.rectangle( im_vis, (bbox[0],  bbox[1]),
+                                    (bbox[0]+bbox[2], bbox[1]+bbox[3]),
+                                    bb_color, 3 )
+            cv2.putText( im_vis, res["name"],
+                         (bbox[0], bbox[1]),1, 0.7, (255,255,255), 2, cv2.LINE_AA )
+            cv2.putText( im_vis, res["name"],
+                         (bbox[0], bbox[1]),1, 0.7, (0,0,0), 1, cv2.LINE_AA )
 
 
 
         # cv2.imwrite("ssd_result.png", im_vis)
 
         return results, im_vis
+
+    
+def remove_overlapped_boxes( results, threshold=0.8 ):
+    """ remove overlapped bbox considering iou score
+    
+    Note: Box detected in that of "belt" is not removed
+    
+    Args:
+      results(list): ssd_results
+      threshold(float): iou threshold
+    
+    Return:
+      list(cleand_results): ssd_results without overlapped boxes
+      list(removed_results): removed ssd_results 
+    """
+
+    # compute iou for all pair of boxes
+    flag = [True for x in range(len(results))]
+    for j in range(len(results)):
+        bboxA = results[j]["bbox"]
+        confA = results[j]["confidence"]
+        for i in range(len(results)):
+            # class==6 means "belt"
+            if (j==i) or (results[j]["class"]==6) or (results[i]["class"]==6):
+                continue
+
+            bboxB = results[i]["bbox"]
+            confB = results[i]["confidence"]
+            iou = compute_iou( bboxA, bboxB )
+            if (threshold < iou) and (confA < confB):
+                flag[j] = False
+    
+    # remove boxes
+    cleand_results = []
+    removed_results = []
+    for f, r in zip(flag, results):
+        if f is True:
+            cleand_results.append(r)
+        else:
+            removed_results.append(r)
+    
+    return cleand_results, removed_results
+
+
+def compute_iou( bboxA, bboxB ):
+    """ compute iou of two bounding boxes
+    
+    Args:
+      bboxA(list): coordinates of box A (i,j,w,h) 
+      bboxB(list): coordinates of box B (i,j,w,h) 
+    
+    Return:
+      float: iou score
+    """
+
+    ix = max(bboxA[0],bboxB[0])
+    iy = max(bboxA[1],bboxB[1])
+    mx = min(bboxA[0]+bboxA[2],bboxB[0]+bboxB[2])
+    my = min(bboxA[1]+bboxA[3],bboxB[1]+bboxB[3])
+    area_inter = max(mx-ix,0)*max(my-iy,0)
+    area_A = bboxA[2]*bboxA[3]
+    area_B = bboxB[2]*bboxB[3]
+
+    iou = area_inter / (area_A + area_B - area_inter)
+    return iou
