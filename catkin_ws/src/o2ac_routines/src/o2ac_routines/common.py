@@ -48,6 +48,10 @@ class O2ACCommon(O2ACBase):
     super(O2ACCommon, self).__init__()
     self.rospack = rospkg.RosPack()
 
+    self.small_item_ids = [8,9,10,14]
+    self.large_item_ids = [1,2,3,4,5,7,11,12,13]
+    self.belt_id        = [6]
+
   ######## Higher-level routines used in both assembly and taskboard
 
   def pick(self, object_name, grasp_parameter_location = '', lift_direction_reference_frame = '', lift_direction = [], robot_name = '', save_solution_to_file=''):
@@ -472,10 +476,9 @@ class O2ACCommon(O2ACBase):
     grasp_pose is a PoseStamped.
     """
     d = self.distance_from_tray_border(grasp_pose)
-    print("border distance was: ")
-    print(d)
     if d[0] < border_dist or d[1] < border_dist:
-      print("too close to border. discarding")
+      rospy.logdebug("too close to border. discarding grasp pose. border distance was: ")
+      rospy.logdebug(d)
       return False
     for obj, pose in self.objects_in_tray.items():
       if obj == 6: # Hard-code skipping the belt
@@ -483,7 +486,7 @@ class O2ACCommon(O2ACBase):
       if pose_dist(pose.pose, grasp_pose.pose) < 0.05:
         if pose_dist(pose.pose, grasp_pose.pose) < 1e-6:
           continue  # It's the item itself or a duplicate
-        print("too close to another item. discarding. distance: " + str(pose_dist(pose.pose, grasp_pose.pose)) + ", id: " + str(obj))
+        rospy.logdebug("too close to another item. discarding. distance: " + str(pose_dist(pose.pose, grasp_pose.pose)) + ", id: " + str(obj))
         return False
     return True
   
@@ -522,11 +525,7 @@ class O2ACCommon(O2ACBase):
     except:
       pass
 
-    small_items = [8,9,10,14]
-    large_items = [1,2,3,4,5,7,11,12,13]
-    belt        = [6]
-
-    if object_id in belt:
+    if object_id in self.belt_id:
       res = self.get_3d_poses_from_ssd()
       grasp_poses = []
       for idx, pose in enumerate(res.poses):
@@ -535,13 +534,13 @@ class O2ACCommon(O2ACBase):
             grasp_poses.append(pose)
       return grasp_poses
 
-    if object_id in small_items:
+    if object_id in self.small_item_ids:
       # For small items, the object should be the only grasp pose.
       grasp_pose = self.objects_in_tray[object_id]
       return [grasp_pose]
       # TODO: Consider the idler spacer, which can stand upright or lie on the side.
       
-    if object_id in large_items:
+    if object_id in self.large_item_ids:
       # TODO: Generate alternative grasp poses
       # TODO: Get grasp poses from database
       grasp_pose = self.objects_in_tray[object_id]
@@ -558,6 +557,7 @@ class O2ACCommon(O2ACBase):
     Does very light feasibility check before returning.
     """
     self.activate_camera("b_bot_outside_camera")
+    self.activate_led("b_bot")
     self.open_gripper("b_bot", wait=False)
     # TODO: Merge with detect_object_in_camera_view in base.py
     self.go_to_pose_goal("b_bot", self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.1)
