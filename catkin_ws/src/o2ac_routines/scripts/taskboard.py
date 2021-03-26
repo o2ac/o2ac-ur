@@ -80,7 +80,7 @@ class TaskboardClass(O2ACCommon):
     self.at_set_screw_hole.header.frame_id = "taskboard_set_screw_link"
     self.at_set_screw_hole.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
     self.at_set_screw_hole.pose.position.x = 0.001   # MAGIC NUMBER
-    self.at_set_screw_hole.pose.position.y = 0.0005   # MAGIC NUMBER
+    self.at_set_screw_hole.pose.position.y = -0.0005   # MAGIC NUMBER
     self.at_set_screw_hole.pose.position.z = 0.001   # MAGIC NUMBER (points downward)
     if not self.assembly_database.db_name == "taskboard":
       self.assembly_database.change_assembly("taskboard")
@@ -244,53 +244,56 @@ class TaskboardClass(O2ACCommon):
     """
     ### - Set screw
     
-    # # Move into the screw hole with motor on
-    # self.do_task("M2 set screw")
+    # Move into the screw hole with motor on
+    self.activate_camera("b_bot_inside_camera")
+    self.do_task("M2 set screw")
     
-    # # TODO: check set screw success with a_bot, do spiral motion with b_bot otherwise
+    # TODO: check set screw success with a_bot, do spiral motion with b_bot otherwise
     
-    # #### SCREW M3 WITH A_BOT
-    # # self.pick_screw_from_feeder("a_bot", screw_size = 3)
-    # # self.go_to_named_pose("home", "a_bot")
+    #### SCREW M3 WITH A_BOT
+    # self.activate_camera("a_bot_outside_camera")
+    # self.pick_screw_from_feeder("a_bot", screw_size = 3)
+    # self.go_to_named_pose("home", "a_bot")
 
-    # # Move b_bot back, a_bot to screw
-    # self.do_change_tool_action("b_bot", equip=False, screw_size = 2)
-    # self.do_change_tool_action("b_bot", equip=True, screw_size = 4)
-    # self.go_to_named_pose("home", "b_bot")
+    # Move b_bot back, a_bot to screw
+    self.do_change_tool_action("b_bot", equip=False, screw_size = 2)
+    self.do_change_tool_action("b_bot", equip=True, screw_size = 4)
+    self.go_to_named_pose("home", "b_bot")
 
-    # # self.go_to_named_pose("horizontal_screw_ready", "a_bot")
-    # # approach_pose = geometry_msgs.msg.PoseStamped()
-    # # approach_pose.header.frame_id = "taskboard_m3_screw_link"
-    # # approach_pose.pose.position.x = -.04
-    # # approach_pose.pose.position.y = -.12
-    # # approach_pose.pose.position.z = -.05
-    # # taskboard.go_to_pose_goal("a_bot", approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
+    # self.go_to_named_pose("horizontal_screw_ready", "a_bot")
+    # approach_pose = geometry_msgs.msg.PoseStamped()
+    # approach_pose.header.frame_id = "taskboard_m3_screw_link"
+    # approach_pose.pose.position.x = -.04
+    # approach_pose.pose.position.y = -.12
+    # approach_pose.pose.position.z = -.05
+    # taskboard.go_to_pose_goal("a_bot", approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
 
-    # # approach_pose.pose.position.y = -.0
-    # # approach_pose.pose.position.z = -.0
-    # # taskboard.go_to_pose_goal("a_bot", approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
+    # approach_pose.pose.position.y = -.0
+    # approach_pose.pose.position.z = -.0
+    # taskboard.go_to_pose_goal("a_bot", approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
 
-    # # hole_pose = geometry_msgs.msg.PoseStamped()
-    # # hole_pose.header.frame_id = "taskboard_m3_screw_link"
-    # # hole_pose.pose.position.y = -.002  # MAGIC NUMBER
-    # # hole_pose.pose.position.z = -.006  # MAGIC NUMBER
-    # # hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
-    # # taskboard.do_screw_action("a_bot", hole_pose, screw_size = 3)
-    # # self.go_to_named_pose("horizontal_screw_ready", "a_bot")
-    # # self.go_to_named_pose("home", "a_bot")
-    
-    # ###
-    
-    # #### SCREW M4 WITH B_BOT
-    # self.pick_screw_from_feeder("b_bot", screw_size = 4)
-    # self.go_to_named_pose("horizontal_screw_ready", "b_bot")
     # hole_pose = geometry_msgs.msg.PoseStamped()
-    # hole_pose.header.frame_id = "taskboard_m4_screw_link"
-    # hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/12, 0, 0))
-    # self.do_screw_action("b_bot", hole_pose, screw_size = 4)
+    # hole_pose.header.frame_id = "taskboard_m3_screw_link"
+    # hole_pose.pose.position.y = -.002  # MAGIC NUMBER
+    # hole_pose.pose.position.z = -.006  # MAGIC NUMBER
+    # hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
+    # taskboard.do_screw_action("a_bot", hole_pose, screw_size = 3)
+    # self.go_to_named_pose("horizontal_screw_ready", "a_bot")
+    # self.go_to_named_pose("home", "a_bot")
+    
+    ###
+    
+    #### SCREW M4 WITH B_BOT
+    self.activate_camera("b_bot_outside_camera")
+    self.pick_screw_from_feeder("b_bot", screw_size = 4)
+    self.go_to_named_pose("horizontal_screw_ready", "b_bot")
+    hole_pose = geometry_msgs.msg.PoseStamped()
+    hole_pose.header.frame_id = "taskboard_m4_screw_link"
+    hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/12, 0, 0))
+    self.do_screw_action("b_bot", hole_pose, screw_size = 4)
 
-    # # self.do_change_tool_action("a_bot", equip=False, screw_size = 3)
-    # # self.go_to_named_pose("home", "a_bot")
+    # self.do_change_tool_action("a_bot", equip=False, screw_size = 3)
+    # self.go_to_named_pose("home", "a_bot")
     self.go_to_named_pose("home", "b_bot")
 
 
@@ -308,7 +311,7 @@ class TaskboardClass(O2ACCommon):
     
     # # - Retainer pin + nut
     # subtask_completed["idler pulley"] = self.do_task("idler pulley")
-    # self.do_change_tool_action("b_bot", equip=False, screw_size = 4)
+    self.do_change_tool_action("b_bot", equip=False, screw_size = 4)
       
     # - Shaft
     subtask_completed["shaft"] = self.do_task("shaft")
@@ -325,9 +328,15 @@ class TaskboardClass(O2ACCommon):
     if subtask_completed["bearing"]:
       self.do_task("screw_bearing")
 
-    # order = ["shaft", "motor_pulley", "belt", "bearing"]
-    # task_complete = False
-    # while not task_complete:
+    order = ["shaft", "motor_pulley", "belt", "bearing"]
+    task_complete = False
+    while not task_complete:
+      for item in order:
+        if not subtask_completed[item]:
+          subtask_completed[item] = self.do_task(item)
+          if item == "bearing" and subtask_completed[item]: 
+            self.do_task("screw_bearing")
+      
 
   def do_task(self, task_name):
     
@@ -493,7 +502,6 @@ class TaskboardClass(O2ACCommon):
       if self.b_bot_gripper_opening_width < 0.01:
         rospy.logerr("Gripper did not grasp the pulley --> Stop")
 
-      self.confirm_to_proceed("Picked the pulley?")
       b_bot_script_start_pose = [1.7094888, -1.76184906, 2.20651847, -2.03368343, -1.54728252, 0.96213197]
       self.move_joints("b_bot", b_bot_script_start_pose)
       success_b = self.load_program(robot="b_bot", program_name="wrs2020/pulley_v3.urp", recursion_depth=3)
@@ -548,8 +556,9 @@ class TaskboardClass(O2ACCommon):
       rospy.loginfo("Picking bearing at: ")
       print(goal.pose.position)
       self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.085, axis="z")
-      if self.b_bot_gripper_opening_width < 0.01:
+      if self.b_bot_gripper_opening_width < 0.015:
         rospy.logerr("Gripper did not grasp the bearing --> Stop")
+        return False
       
       b_bot_pass_to_urscript = [1.709548950, -1.761849065, 2.20654327, -2.033707281, -1.5472462, 0.2133078575]
       self.move_joints("b_bot", b_bot_pass_to_urscript)
@@ -697,6 +706,7 @@ class TaskboardClass(O2ACCommon):
       #     rospy.logerr("Could not find shaft in tray")
       #     return False
 
+      print(self.assembly_database.name_to_id("shaft"))
       # TODO: Why does this seem to return ID 6?
       # goal = self.look_and_get_grasp_point(self.assembly_database.name_to_id("shaft"))
       goal = self.look_and_get_grasp_point(8)
@@ -855,6 +865,8 @@ if __name__ == '__main__':
         taskboard.activate_led("b_bot", on=True)
       if i == "99":
         taskboard.activate_led("b_bot", on=False)
+      if i == "d1":
+        taskboard.check_for_dead_controller_and_force_start(robot="b_bot")
       if i == "f1":
         pick_pose = geometry_msgs.msg.PoseStamped()
         pick_pose.header.frame_id = "tray_center"
