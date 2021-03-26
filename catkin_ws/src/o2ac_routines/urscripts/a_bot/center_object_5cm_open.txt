@@ -1,0 +1,12 @@
+ Program
+   Robot Program
+     Gripper Close (1)
+     Gripper Move56% (1)
+     MoveJ
+       turn_right
+     Gripper Close (1)
+     Gripper Move56% (1)
+     MoveJ
+       turn_left
+     Gripper Close (1)
+     Gripper Move56% (1)

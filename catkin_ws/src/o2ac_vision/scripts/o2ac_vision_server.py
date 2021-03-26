@@ -119,9 +119,9 @@ class O2ACVisionServer(object):
         self._timeout = rospy.get_param('~timeout', 10)
 
         # Setup clients for depth filtering and localization
-        self._dfilter = DepthFilterClient('depth_filter')
-        self._dfilter.window_radius = 2
-        self._localizer = LocalizationClient('localization')
+        # self._dfilter = DepthFilterClient('depth_filter')
+        # self._dfilter.window_radius = 2
+        # self._localizer = LocalizationClient('localization')
 
         # Load parameters for detecting graspabilities
         default_param_fge = {"ds_rate": 0.5,
@@ -146,15 +146,13 @@ class O2ACVisionServer(object):
         self.continuous_streaming = rospy.get_param('~continuous_streaming', False)
         if self.continuous_streaming:
             # Setup publisher for object detection results
-            self.results_pub \
-                = rospy.Publisher('~detection_results',
-                                  o2ac_msgs.msg.Estimated2DPosesArray, queue_size=1)
+            self.results_pub = rospy.Publisher('~detection_results', o2ac_msgs.msg.Estimated2DPosesArray, queue_size=1)
             rospy.logwarn("Localization action server is not running because SSD results are being streamed! Turn off continuous mode to use localization.")
         else:
             # Setup the localization 
             self.get_2d_poses_from_ssd_action_server = actionlib.SimpleActionServer("~get_2d_poses_from_ssd", o2ac_msgs.msg.get2DPosesFromSSDAction,
                 execute_cb = self.get_2d_poses_from_ssd_goal_callback, auto_start=False)
-            self.get_2d_poses_from_ssd_action_server.start()    
+            self.get_2d_poses_from_ssd_action_server.start()
 
             self.get_3d_poses_from_ssd_action_server = actionlib.SimpleActionServer("~get_3d_poses_from_ssd", o2ac_msgs.msg.get3DPosesFromSSDAction,
                 execute_cb = self.get_3d_poses_from_ssd_goal_callback, auto_start=False)
@@ -167,7 +165,7 @@ class O2ACVisionServer(object):
         
         self.belt_detection_action_server = actionlib.SimpleActionServer("~belt_detection", o2ac_msgs.msg.beltDetectionAction,
             execute_cb = self.belt_detection_callback, auto_start=False)
-        self.belt_detection_action_server.start()    
+        self.belt_detection_action_server.start()
         
         self.angle_detection_action_server = actionlib.SimpleActionServer("~detect_angle", o2ac_msgs.msg.detectAngleAction,
             execute_cb = self.angle_detection_callback, auto_start=False)
@@ -175,7 +173,7 @@ class O2ACVisionServer(object):
         # Action client to forward the calculation to the Python3 node
         self._py3_axclient = actionlib.SimpleActionClient('/o2ac_py3_vision_server/internal/detect_angle', o2ac_msgs.msg.detectAngleAction)
         
-        self.shaft_notch_detection_action_server = actionlib.SimpleActionServer("shaft_notch_detection", o2ac_msgs.msg.shaftNotchDetectionAction,
+        self.shaft_notch_detection_action_server = actionlib.SimpleActionServer("~detect_shaft_notch", o2ac_msgs.msg.shaftNotchDetectionAction,
             execute_cb = self.shaft_notch_detection_callback, auto_start=False)
         self.shaft_notch_detection_action_server.start()
         
@@ -279,6 +277,7 @@ class O2ACVisionServer(object):
         action_result.no_shaft_notch_detected = (not top and not bottom)
 
         self.shaft_notch_detection_action_server.set_succeeded(action_result)
+        self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
 
     def localization_callback(self, goal):
         rospy.loginfo("Received a request to detect objects via SSD")
@@ -366,7 +365,7 @@ class O2ACVisionServer(object):
             estimated_poses_msg.bbox       = ssd_result["bbox"]
 
             if target in apply_2d_pose_estimation:
-                rospy.logdebug("Target id is %d. Apply the 2d pose estimation",
+                rospy.loginfo("Target id is %d. Apply the 2d pose estimation",
                               target)
                 pose, im_vis = self.estimate_pose_in_image(im_in, im_vis,
                                                            ssd_result)
@@ -375,12 +374,12 @@ class O2ACVisionServer(object):
                 poses_3d = []
                 for p2d in estimated_poses_msg.poses:
                     poses_3d.append(self.convert_pose_2d_to_3d(p2d))
-                    # print("converted u,v " + str(p2d2.x) + ", "  + str(p2d2.y) + " to " + str(poses_3d[-1].pose.position.x) + ", " + str(poses_3d[-1].pose.position.y))
+                    rospy.loginfo("Found pose: " + str(poses_3d[-1].pose.position.x) + ", " + str(poses_3d[-1].pose.position.y) + ", " + str(poses_3d[-1].pose.position.z))
                 
                 self.add_markers_to_pose_array(poses_3d)
 
             elif target in apply_3d_pose_estimation:
-                rospy.logdebug("Target id is %d. Apply the 3d pose estimation",
+                rospy.loginfo("Target id is %d. Apply the 3d pose estimation",
                               target)
                 x = int(estimated_poses_msg.bbox[0] + round(estimated_poses_msg.bbox[2]/2))
                 y = int(estimated_poses_msg.bbox[1] + round(estimated_poses_msg.bbox[3]/2))
@@ -389,10 +388,11 @@ class O2ACVisionServer(object):
                 estimated_poses_msg.poses = [p2d]
                 poses_3d = []
                 poses_3d.append(self.convert_pose_2d_to_3d(p2d))
+                rospy.loginfo("Found pose: " + str(poses_3d[-1].pose.position.x) + ", " + str(poses_3d[-1].pose.position.y) + ", " + str(poses_3d[-1].pose.position.z))
                 self.add_markers_to_pose_array(poses_3d)
 
             elif target in apply_grasp_detection:
-                rospy.logdebug("Target id is %d. Apply grasp detection", target)
+                rospy.loginfo("Target id is %d. Apply grasp detection", target)
                 estimated_poses_msg.poses, im_vis \
                     = self.belt_grasp_detection_in_image(im_in, im_vis, ssd_result)
                 
@@ -507,10 +507,11 @@ class O2ACVisionServer(object):
 
         
         bbox = [350,100,100,400] # ROI(x,y,w,h) of shaft area
+        rospack = rospkg.RosPack()
         temp_root = rospack.get_path("wrs_dataset") + "/data/templates_shaft"
         sa = ShaftAnalysis( im_gray, bbox, temp_root )
         front, back = sa.main_proc( 0.5 ) # threshold.
-        im_vis = sa.get_result_image()
+        im_vis = sa.get_tm_result_image(front, back)
         return front, back, im_vis
 
 ### ========

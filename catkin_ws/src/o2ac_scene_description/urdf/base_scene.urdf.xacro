@@ -15,7 +15,7 @@
 
   <!-- common stuff -->
   <xacro:include filename="$(find ur_description)/urdf/common.gazebo.xacro" />
-  <xacro:include filename="$(find o2ac_gazebo)/urdf/o2ac_base_scene.gazebo" />
+  <!-- <xacro:include filename="$(find o2ac_gazebo)/urdf/o2ac_base_scene.gazebo" /> -->
 
   <!-- robots -->
   <xacro:include filename="$(find ur_e_description)/urdf/ur5e.urdf.xacro" />

@@ -731,6 +731,7 @@ class FastGraspabilityEvaluation():
 #  plt.plot(diff_bottom)
 #  plt.plot(diff_top)
 #############################################################################
+
 class ShaftAnalysis():
     # img: input image
     # bbox: bounding box [x,y,w,h] of shaft region
@@ -851,9 +852,29 @@ class ShaftAnalysis():
     def get_orientation(self):
         return self.ori
         
-    def get_tm_result_image(self):
-        
-        return copy.deepcopy(self.im_tm_result)
+    def get_tm_result_image(self, front_found=False, back_found=False):
+        """
+        Draws the areas that were evaluated with the color indicating the result
+        """
+        top_color = (0,0,255)
+        bottom_color = (0,0,255)
+        if front_found:
+            top_color = (0,255,50)
+        if back_found:
+            bottom_color = (0,255,50)
+
+        x_offset = self.info["bbox"][0]
+        width = self.info["bbox"][3]
+        y_offset = self.info["bbox"][1]
+
+        top_range=[30,90]
+        bottom_range=[270,330]
+        dt = self.diff_list[int((top_range[0]+top_range[1])/2)]
+        db = self.diff_list[int((bottom_range[0]+bottom_range[1])/2)]
+        im_res = copy.deepcopy(self.im_tm_result)
+        im_res = cv2.rectangle( im_res, ( 10+x_offset,  top_range[0]+y_offset), (width+x_offset-20, top_range[1]+y_offset), top_color, 3 )
+        im_res = cv2.rectangle( im_res, ( 10+x_offset,  bottom_range[0]+y_offset), (width+x_offset-20, bottom_range[1]+y_offset), bottom_color, 3 )
+        return im_res
     
     def get_diff_list( self ):
         

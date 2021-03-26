@@ -382,7 +382,7 @@
       parent = child8
       order = 1
       profile = default
-      command = sh ./RUN-DOCKER-CONTAINER.sh
+      command = sh ./RUN-DOCKER-CONTAINER.sh ${USER} o2ac_vision show_tv_rviz.launch
     [[[terminal13]]]
       type = Terminal
       parent = child12

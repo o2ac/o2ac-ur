@@ -1,4 +1,17 @@
-def unnamed():
+def bearing_turn_left():
+  step_count_5b021325_0c45_43a0_ada2_46501735b44c = 0
+  thread Step_Counter_Thread_94dbb53c_bc1a_45ef_99b3_8502a4085ea7():
+    while (True):
+      step_count_5b021325_0c45_43a0_ada2_46501735b44c = step_count_5b021325_0c45_43a0_ada2_46501735b44c + 1
+      sync()
+    end
+  end
+  run Step_Counter_Thread_94dbb53c_bc1a_45ef_99b3_8502a4085ea7()
+  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
+  set_tool_output_mode(0)
+  set_tool_digital_output_mode(0, 1)
+  set_tool_digital_output_mode(1, 1)
+  set_tool_voltage(24)
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -6,26 +19,18 @@ def unnamed():
   set_analog_outputdomain(0, 0)
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
-  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
-  set_tool_output_mode(0)
-  set_tool_digital_output_mode(0, 1)
-  set_tool_digital_output_mode(1, 1)
-  set_tool_voltage(24)
-  set_safety_mode_transition_hardness(1)
-  step_count_e71dee34_7084_4387_a744_1786cae73910 = 0
-  thread Step_Counter_Thread_accce90c_bead_4906_8ee8_d64ed754a9c8():
-    while (True):
-      step_count_e71dee34_7084_4387_a744_1786cae73910 = step_count_e71dee34_7084_4387_a744_1786cae73910 + 1
-      sync()
-    end
-  end
-  run Step_Counter_Thread_accce90c_bead_4906_8ee8_d64ed754a9c8()
-  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
   set_payload(0.0)
   set_gravity([0.0, 0.0, 9.82])
+  set_safety_mode_transition_hardness(1)
   # begin: URCap Installation Node
   #   Source: External Control, 1.0.2, FZI Research Center for Information Technology
   #   Type: External Control
+  # end: URCap Installation Node
+  # begin: URCap Installation Node
+  #   Source: rs485, 1.0.0, FZI Research Center for Information Technology
+  #   Type: RS485
+  global rs485=rpc_factory("xmlrpc", "http://127.0.0.1:40404/RPC2")
   # end: URCap Installation Node
   # begin: URCap Installation Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
@@ -2336,39 +2341,32 @@ def unnamed():
       sync()
   end
   # end: URCap Installation Node
-  global above_plate_p=p[.113192950387, -.360458370877, .433532794869, .003701182545, 3.061650572914, -.699037573692]
-  global above_plate_q=[1.5080356997132727, -1.9719159093414582, 2.1604687158893534, -2.206042633200889, -1.5396615818493977, -0.0532321676696661]
-  global at_plate_p=p[.113192950402, -.370400704131, .350290461475, .003701182753, 3.061650570215, -.699037574090]
-  global at_plate_q=[1.5096092526882803, -1.8638550609429831, 2.318663089337079, -2.4723620542790457, -1.5405108621147754, -0.050902994656621736]
-  global Waypoint_1_p=p[.113192950422, -.351716037507, .350290461289, .003701182044, 3.061650564327, -.699037579845]
-  global Waypoint_1_q=[1.5059101771953358, -1.9202927795368279, 2.353707945527831, -2.4508743808013977, -1.538882872250773, -0.05439007465563428]
-  global above_before_p=p[.113225569073, -.399906249717, .379207088010, .004016707166, 3.140967238889, .015370944338]
-  global above_before_q=[1.5214927435399446, -1.7712757053747517, 2.026367902523525, -1.8146113399117185, -1.5676785833357307, -0.046883921862958644]
-  global before_obj_push_p=p[.113225569070, -.399906249794, .356564754662, .004016708501, 3.140967241662, .015370944558]
-  global before_obj_push_q=[1.5214347620572999, -1.7542495354057612, 2.073158324504675, -1.8784282651229525, -1.5676228047133636, -0.04674169142394291]
-  global object_pushed_p=p[.113139294259, -.435229923301, .356222306618, .004016708528, 3.140967241742, .015370944562]
-  global object_pushed_q=[1.5251453146091094, -1.6647070669674733, 1.9986792237698872, -1.8934921769748518, -1.5675443185446216, -0.042846942760213835]
+  global athole_p=p[-.103244267384, -.570103474309, .229070367058, 1.496716108942, -1.617687697401, -.828419463406]
+  global athole_q=[1.5603686762712883, -1.2563808636553517, 1.8379530316305992, -2.2435598196444086, -2.6155941469129536, -1.5548134872582775]
+  global leftturn_small_from_p=p[-.093048079746, -.570049450859, .228933582576, 1.185754338676, -1.667122132083, -.435696419446]
+  global leftturn_small_to_p=p[-.102651658489, -.571796486237, .229175847351, 1.262783720085, -1.650949685161, -.506241262056]
   $ 1 "Robot Program"
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
-  $ 2 "Gripper Move59% (1)"
+  $ 2 "Gripper Open (1)"
   if not(gripper_connected[0]):
     popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
   end
   if not(rq_is_gripper_activated("1")):
     popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
   end
-  rq_set_pos_spd_for(150, 0, 0, "1")
-  rq_wait_pos_spe_for_request(150, 0, 0, "1")
+  rq_set_pos_spd_for(0, 255, 0, "1")
+  rq_wait_pos_spe_for_request(0, 255, 0, "1")
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
   $ 3 "MoveJ"
-  $ 4 "above_plate" "breakAfter"
-  movej(get_inverse_kin(above_plate_p, qnear=above_plate_q), a=1.3962634015954636, v=1.0471975511965976)
-  $ 5 "at_plate" "breakAfter"
-  movej(get_inverse_kin(at_plate_p, qnear=at_plate_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 4 "athole" "breakAfter"
+  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
+  movej(get_inverse_kin(athole_p, qnear=athole_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 5 "'At taskboard bearing'"
+  # 'At taskboard bearing'
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
@@ -2379,89 +2377,38 @@ def unnamed():
   if not(rq_is_gripper_activated("1")):
     popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
   end
-  rq_set_pos_spd_for(255, 0, 0, "1")
-  rq_wait_pos_spe_for_request(255, 0, 0, "1")
+  rq_set_pos_spd_for(255, 255, 255, "1")
+  rq_wait_pos_spe_for_request(255, 255, 255, "1")
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 7 "Popup: start?"
-  popup("start?", "Message", False, False, blocking=True)
-  $ 8 "MoveL"
-  $ 9 "Waypoint_1" "breakAfter"
-  movel(Waypoint_1_p, a=1.2, v=0.25)
+  $ 7 "Force"
+  sleep(0.02)
+  zero_ftsensor()
+  force_mode(p[0.0,0.0,0.0,0.0,0.0,0.0], [1, 0, 0, 0, 0, 0], [-10.0, 0.0, 10.0, 0.0, 0.0, 0.0], 2, [0.01, 0.1, 0.1, 0.3490658503988659, 0.3490658503988659, 0.3490658503988659])
+  $ 8 "MoveL" "noBreak"
+  $ 11 "leftturn_small" "noBreak"
+  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
+  movel(pose_add(get_target_tcp_pose(), pose_sub(leftturn_small_to_p, leftturn_small_from_p)), a=0.2, v=0.05)
+  end_force_mode()
+  stopl(5.0)
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
-  $ 10 "Gripper Move73% (1)"
+  $ 13 "Gripper Open (1)"
   if not(gripper_connected[0]):
     popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
   end
   if not(rq_is_gripper_activated("1")):
     popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
   end
-  rq_set_pos_spd_for(185, 0, 0, "1")
-  rq_wait_pos_spe_for_request(185, 0, 0, "1")
+  rq_set_pos_spd_for(0, 255, 0, "1")
+  rq_wait_pos_spe_for_request(0, 255, 0, "1")
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 11 "MoveL"
-  $ 12 "above_before" "breakAfter"
-  movel(above_before_p, a=1.2, v=0.25)
-  $ 13 "before_obj_push" "breakAfter"
-  movel(before_obj_push_p, a=1.2, v=0.25)
-  # begin: URCap Program Node
-  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
-  #   Type: Gripper
-  $ 14 "Gripper Close (1)"
-  if not(gripper_connected[0]):
-    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
-  end
-  if not(rq_is_gripper_activated("1")):
-    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
-  end
-  rq_set_pos_spd_for(255, 0, 0, "1")
-  rq_wait_pos_spe_for_request(255, 0, 0, "1")
-  rq_go_to("1")
-  rq_wait("1")
-  # end: URCap Program Node
-  $ 15 "MoveL"
-  $ 16 "object_pushed" "breakAfter"
-  movel(object_pushed_p, a=1.2, v=0.008)
-  $ 17 "before_obj_push" "breakAfter"
-  movel(before_obj_push_p, a=1.2, v=0.25)
-  # begin: URCap Program Node
-  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
-  #   Type: Gripper
-  $ 18 "Gripper Move73% (1)"
-  if not(gripper_connected[0]):
-    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
-  end
-  if not(rq_is_gripper_activated("1")):
-    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
-  end
-  rq_set_pos_spd_for(185, 0, 0, "1")
-  rq_wait_pos_spe_for_request(185, 0, 0, "1")
-  rq_go_to("1")
-  rq_wait("1")
-  # end: URCap Program Node
-  $ 19 "MoveJ"
-  $ 20 "above_plate" "breakAfter"
-  movej(get_inverse_kin(above_plate_p, qnear=above_plate_q), a=1.3962634015954636, v=1.0471975511965976)
-  $ 21 "at_plate" "breakAfter"
-  movej(get_inverse_kin(at_plate_p, qnear=at_plate_q), a=1.3962634015954636, v=1.0471975511965976)
-  # begin: URCap Program Node
-  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
-  #   Type: Gripper
-  $ 22 "Gripper Close (1)"
-  if not(gripper_connected[0]):
-    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
-  end
-  if not(rq_is_gripper_activated("1")):
-    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
-  end
-  rq_set_pos_spd_for(255, 0, 0, "1")
-  rq_wait_pos_spe_for_request(255, 0, 0, "1")
-  rq_go_to("1")
-  rq_wait("1")
-  # end: URCap Program Node
+  $ 14 "MoveJ"
+  $ 15 "athole" "breakAfter"
+  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
+  movej(get_inverse_kin(athole_p, qnear=athole_q), a=1.3962634015954636, v=1.0471975511965976)
 end

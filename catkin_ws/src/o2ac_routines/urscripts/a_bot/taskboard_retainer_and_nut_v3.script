@@ -1,20 +1,4 @@
-def wrs2020_taskboard_belt():
-  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
-  set_tool_output_mode(0)
-  set_tool_digital_output_mode(0, 1)
-  set_tool_digital_output_mode(1, 1)
-  set_tool_voltage(24)
-  set_safety_mode_transition_hardness(1)
-  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  set_payload(0.0)
-  step_count_dfe9231d_102e_479e_a06d_3de2224ec785 = 0
-  thread Step_Counter_Thread_e9253ef2_f507_457e_ab99_5c7796e891c8():
-    while (True):
-      step_count_dfe9231d_102e_479e_a06d_3de2224ec785 = step_count_dfe9231d_102e_479e_a06d_3de2224ec785 + 1
-      sync()
-    end
-  end
-  run Step_Counter_Thread_e9253ef2_f507_457e_ab99_5c7796e891c8()
+def taskboard_retainer_and_nut_v3():
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -22,13 +6,34 @@ def wrs2020_taskboard_belt():
   set_analog_outputdomain(0, 0)
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
+  step_count_a687f819_dabb_4db5_a968_5cbcd618e2f1 = 0.0
+  thread Step_Counter_Thread_2486a994_26e4_4aaa_9767_8836a9344d39():
+    while (True):
+      step_count_a687f819_dabb_4db5_a968_5cbcd618e2f1 = step_count_a687f819_dabb_4db5_a968_5cbcd618e2f1 + 1.0
+      sync()
+    end
+  end
+  run Step_Counter_Thread_2486a994_26e4_4aaa_9767_8836a9344d39()
+  set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
+  set_payload(1.0, [-0.005, -0.018, 0.077])
   set_gravity([0.0, 0.0, 9.82])
+  set_safety_mode_transition_hardness(1)
+  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
+  set_tool_output_mode(0)
+  set_tool_digital_output_mode(0, 1)
+  set_tool_digital_output_mode(1, 1)
+  set_tool_voltage(24)
   # begin: URCap Installation Node
-  #   Source: External Control, 1.0.1, FZI Research Center for Information Technology
+  #   Source: External Control, 1.0.2, FZI Research Center for Information Technology
   #   Type: External Control
   # end: URCap Installation Node
   # begin: URCap Installation Node
-  #   Source: Robotiq_Grippers, 1.8.0.1, Robotiq Inc.
+  #   Source: rs485, 1.0.0, FZI Research Center for Information Technology
+  #   Type: RS485
+  global rs485=rpc_factory("xmlrpc", "http://127.0.0.1:40404/RPC2")
+  # end: URCap Installation Node
+  # begin: URCap Installation Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Vacuum
   #################################################
   # Vacuum Grip Check
@@ -189,7 +194,7 @@ def wrs2020_taskboard_belt():
   end
   
   def rq_wait_for_vacuum_object_suction_complete(gripper_socket="1"):
-      remaining_retries = 5
+      remaining_retries = 50
   
        # Wait for suction started
       while (not rq_is_vacuum_obj_in_suction(gripper_socket) and
@@ -311,7 +316,18 @@ def wrs2020_taskboard_belt():
     rq_set_GTO_and_wait(1, gripper_socket)
   
     if wait_for_object_released:
-      rq_wait_for_vacuum_object_not_detected(gripper_socket)
+      while (rq_is_vacuum_obj_detected(gripper_socket)):
+        rq_set_pressure_timeout_minimum_vacuum(pressure, timeout, minimum, gripper_socket)
+  
+        if advanced_mode:
+          rq_set_gripper_mode(1, gripper_socket)
+        else:
+          rq_set_gripper_mode(0, gripper_socket)
+        end
+  
+        rq_set_GTO_and_wait(1, gripper_socket)
+        sleep(0.01)
+      end
     end
   
     if advanced_mode:
@@ -372,7 +388,7 @@ def wrs2020_taskboard_belt():
   vacuumGripTimeoutMessage = "Grip has timed out"
   # end: URCap Installation Node
   # begin: URCap Installation Node
-  #   Source: Robotiq_Grippers, 1.8.0.1, Robotiq Inc.
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
   rq_gripper_socket_ip_address = "127.0.0.1"
   rq_gripper_socket_port = 63352
@@ -2325,59 +2341,220 @@ def wrs2020_taskboard_belt():
       sync()
   end
   # end: URCap Installation Node
-  global Waypoint_12_p=p[-.118552559625, -.294345966699, .577586888773, 1.317622755639, 2.724063782475, -.271785291199]
-  global Waypoint_12_q=[0.6985559463500977, -2.067237993279928, 1.7381613890277308, -1.3620131772807618, -1.4011877218829554, 0.03713369369506836]
-  global Waypoint_1_p=p[-.147509495617, -.481575759509, .322425465740, -2.178221312088, -2.229935010819, -.012682443950]
-  global Waypoint_1_q=[1.0108323097229004, -1.4978364270976563, 1.9257968107806605, -1.9841567478575648, -1.5896590391742151, 0.9883174896240234]
-  global Waypoint_2_p=p[-.147509495455, -.481575759255, .273211903816, -2.189734633827, -2.241416239694, .013331498917]
-  global Waypoint_2_q=[1.0081506542937984, -1.4405199368151766, 2.009839591939591, -2.145264204597119, -1.577259379474027, 0.986132189263912]
-  global Waypoint_3_p=p[-.147509495441, -.481575759231, .403735132988, -2.189734633887, -2.241416239853, .013331498865]
-  global Waypoint_3_q=[1.0084551465672809, -1.5650019399103705, 1.782405796179706, -1.793355110204331, -1.5774101212455598, 0.9852557557154773]
-  global Waypoint_4_p=p[-.137130138713, -.453120762058, .385408059563, 1.755724720259, 1.773359171230, .643701798219]
-  global Waypoint_4_q=[0.869204044342041, -1.5620339673808594, 1.769378964100973, -1.2699335378459473, -0.9844892660724085, 0.7017092704772949]
-  global Waypoint_5_p=p[-.177598149688, -.457238789954, .249512188940, 1.400235659388, 1.307348330139, 1.124917911451]
-  global Waypoint_5_q=[0.773969783082082, -1.214616365315285, 1.7372190745309624, -0.7947357469433012, -0.791470284770786, 0.23744740253882046]
-  global Waypoint_6_p=p[-.120709382515, -.270877932294, .210116101588, 1.440145604850, .891732702504, .780968398313]
-  global Waypoint_6_q=[0.3704376220703125, -1.6136676273741664, 2.3770678679095667, -0.8583553594401856, -0.6996191183673304, 0.030971050262451172]
-  global Waypoint_7_p=p[-.110631896717, -.279411153893, .190845544329, 1.442346371923, .895060470473, .778089737557]
-  global Waypoint_7_q=[0.4131868066916793, -1.5703383000496682, 2.4046182790950734, -0.9406693199105147, -0.6569869716799737, 0.0405769911955538]
-  global Waypoint_8_p=p[-.088786473618, -.253721569352, .176103211113, 1.479019053464, .792798224358, .673516038526]
-  global Waypoint_8_q=[0.3156290135804891, -1.658368093537539, 2.5454380705328212, -0.9919219145172704, -0.6204041146301851, 0.034397121227254246]
-  global Waypoint_9_p=p[-.047186497397, -.253478060291, .169975241205, 1.527228340150, .637628769920, .521492693519]
-  global Waypoint_9_q=[0.3332364024922446, -1.8046058328727952, 2.680251850053054, -1.016425201120299, -0.4061314804125642, 0.07393169286871723]
-  global Waypoint_10_p=p[-.086692372686, -.253478060287, .198506603474, 1.527228331959, .637628768519, .521492693150]
-  global Waypoint_10_q=[0.2686856150565262, -1.8046282517472463, 2.5725259770475937, -0.8904541130374781, -0.47039777114302694, 0.05368437767041456]
-  global Waypoint_11_p=p[-.118552559625, -.294345966699, .577586888773, 1.317622755639, 2.724063782475, -.271785291199]
-  global Waypoint_11_q=[0.6985559463500977, -2.067237993279928, 1.7381613890277308, -1.3620131772807618, -1.4011877218829554, 0.03713369369506836]
+  global home_p=p[.133727000104, -.178734900691, .460339301229, -.001296773796, 3.137980366666, .040836008287]
+  global home_q=[1.5713372230529785, -2.096767564813131, 1.3984912077533167, -0.8450115484050293, -1.566559139882223, -0.0027993361102502945]
+  global Waypoint_12_p=p[-.082102241144, -.275548766687, .387348218782, -.181359006065, -3.111439026240, .286317392593]
+  global Waypoint_12_q=[0.6256766319274902, -2.2166863880553187, 1.719330135975973, -1.197293993617632, -1.4347613493548792, -0.8226044813739222]
+  global above_idler_p=p[-.247495551187, -.411553651884, .147619984340, -3.122728523388, -.123693994856, .025323883184]
+  global above_idler_q=[0.7639725208282471, -1.5942493877806605, 1.9062202612506312, -1.8840939007201136, -1.5937522093402308, 2.255573272705078]
+  global at_pulley_1_p=p[-.247476776794, -.411545767556, .065295685214, -3.122719480917, -.123693076893, .025335998896]
+  global at_pulley_1_q=[0.7639964818954468, -1.5070333045772095, 2.047964874898092, -2.113053937951559, -1.5937641302691858, 2.2555975914001465]
+  global turn_right_from_p=p[-.247463626251, -.411550844659, .065305682922, 2.224354777830, -2.217084403545, -.036125165160]
+  global turn_right_to_p=p[-.247473880744, -.411553753801, .065267500422, -.003529415780, -3.124664704057, -.024447162109]
+  global turn_left_from_p=p[-.247486801492, -.411573050152, .065313917167, -.003437618205, -3.124553733445, -.024357088742]
+  global turn_left_to_p=p[-.247449730161, -.411548080312, .065274026133, 2.224369603888, -2.217203501542, -.036085349892]
+  global incline_from_p=p[-.247458825993, -.411528569123, .065274880020, 2.224317981634, -2.217205828522, -.036104976110]
+  global incline_to_p=p[-.243130071789, -.411966894334, .065309731174, 1.837905513694, -1.845851039132, -.664359944931]
+  global above_angled_p=p[-.239886747371, -.413598383941, .204833215622, 1.837913174420, -1.845877037928, -.664382909754]
+  global above_angled_q=[1.1532691066705252, -1.6979456734134306, 2.1094312210583475, -2.266656705216671, -2.183206305422206, -2.0731511943425414]
+  global near_tb_p=p[.042160518788, -.541658187653, .251880350946, -2.207811605518, 1.525783314900, -1.507499223936]
+  global near_tb_q=[0.8209087337713162, -1.6602217603994731, 2.012113080166492, -1.588307013499623, -0.5778846519021226, -2.865199266315948]
+  global in_ridge_p=p[.081892609986, -.541003814875, .249227110798, -2.207811553722, 1.525783244009, -1.507499341253]
+  global in_ridge_q=[0.8920236254558018, -1.6974948828723715, 2.079921259614441, -1.725837345180162, -0.5581866789076289, -2.7380903255953815]
+  global away_p=p[.039546758324, -.471894371159, .310294200445, -2.214126032971, 1.506678400632, -1.503241459165]
+  global away_q=[0.6909868729311262, -1.8350040343184837, 1.9541256279295685, -1.1661326771831941, -0.6389565148601424, -3.0961807994638733]
+  global far_above_aid_p=p[.185019096797, -.283792636552, .367304292306, 3.042680902329, .026563110970, .084319055785]
+  global far_above_aid_q=[1.7020064753902373, -2.048689914084605, 1.698222608429436, -1.3225164712276074, -1.5256608506079274, -3.0273782669562017]
+  global above_nut_aid_p=p[.172518791669, -.318273425587, .132878161095, 3.133380520256, -.012299475227, -.017877840602]
+  global above_nut_aid_q=[1.7038884162902832, -1.9053694210448207, 2.1946585814105433, -1.865117689172262, -1.5802338759051722, -3.0008745829211634]
+  global at_nut_aid_p=p[.172518791507, -.325105144658, .044859818834, 3.133380522930, -.012299473365, -.017877807544]
+  global at_nut_aid_q=[1.7008358608447125, -1.772984410229805, 2.3523702214478983, -2.1552410013822296, -1.5800526627193454, -3.0029113805654823]
+  global slightly_above_p=p[.172518791602, -.311073425380, .221087290808, 3.133380522262, -.012299470151, -.017877816864]
+  global slightly_above_q=[1.707040324159599, -1.9628154127911497, 2.0013111966267783, -1.6142932479399184, -1.5805562003862246, -2.9984633868590365]
+  global Waypoint_1_p=p[.193097756602, -.290823670746, .241653026938, -2.260048997145, -2.099249290239, .099918099943]
+  global Waypoint_1_q=[1.8478151386659725, -1.9397922630227171, 1.9313458878933474, -1.5409716331482013, -1.6510694345103847, -4.361775396383348]
+  global Waypoint_2_p=p[.193097756557, -.544308337414, .241653026830, -2.260048996528, -2.099249289791, .099918100829]
+  global Waypoint_2_q=[1.727046018538763, -1.3836527682034427, 1.4317224810158242, -1.6075486353081008, -1.6526126446060267, -4.481901420142556]
+  global before_shaft_p=p[.144255423095, -.545789710001, .269109679509, 2.242457403111, 2.189532032693, -.081810814341]
+  global before_shaft_q=[1.6114057883273394, -1.4615649042180259, 1.4628833597593545, -1.610344318256379, -1.6024562556061372, -4.648676870605006]
+  global at_shaft_p=p[.135746494580, -.545789709993, .269109679508, 2.242457402930, 2.189532032587, -.081810816251]
+  global at_shaft_q=[1.5955871243033926, -1.4671944449031074, 1.4692974677142094, -1.6116694991718568, -1.6018216752099281, -4.664498806870964]
+  def calculate_point_to_move_towards(feature, direction, position_distance):
+    local posDir=[direction[0], direction[1], direction[2]]
+    if (norm(posDir) < 1e-6):
+      return get_target_waypoint()
+    end
+    local direction_vector_normalized=normalize(posDir)
+    local displacement_pose=p[direction_vector_normalized[0] * position_distance,direction_vector_normalized[1] * position_distance,direction_vector_normalized[2] * position_distance,0,0,0]
+    local wanted_displacement_in_base_frame=pose_sub(pose_trans(feature, displacement_pose), feature)
+    return pose_add(get_target_waypoint(), wanted_displacement_in_base_frame)
+  end
   $ 1 "Robot Program"
   $ 2 "MoveJ"
-  $ 3 "Waypoint_12" "breakAfter"
-  movej(get_inverse_kin(Waypoint_12_p, qnear=Waypoint_12_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 3 "home" "breakAfter"
+  set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
+  movej(get_inverse_kin(home_p, qnear=home_q), a=2.6179938779914944, v=3.141592653589793)
+  $ 4 "MoveJ"
+  $ 5 "Waypoint_12" "breakAfter"
+  movej(get_inverse_kin(Waypoint_12_p, qnear=Waypoint_12_q), a=2.6179938779914944, v=3.141592653589793)
   # begin: URCap Program Node
-  #   Source: Robotiq_Grippers, 1.8.0.1, Robotiq Inc.
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
-  $ 4 "Gripper Open (1)"
+  $ 6 "Gripper Move45% (1)"
   if not(gripper_connected[0]):
     popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
   end
   if not(rq_is_gripper_activated("1")):
     popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
   end
-  rq_set_pos_spd_for(0, 0, 0, "1")
-  rq_wait_pos_spe_for_request(0, 0, 0, "1")
+  rq_set_pos_spd_for(114, 255, 255, "1")
+  rq_wait_pos_spe_for_request(114, 255, 255, "1")
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 5 "MoveJ"
-  $ 6 "Waypoint_1" "breakAfter"
-  movej(get_inverse_kin(Waypoint_1_p, qnear=Waypoint_1_q), a=1.3962634015954636, v=1.0471975511965976)
-  $ 7 "MoveL"
-  $ 8 "Waypoint_2" "breakAfter"
-  movel(Waypoint_2_p, a=1.2, v=0.05)
+  $ 7 "MoveJ"
+  $ 8 "above_idler" "breakAfter"
+  movej(get_inverse_kin(above_idler_p, qnear=above_idler_q), a=2.6179938779914944, v=3.141592653589793)
+  $ 9 "MoveL"
+  $ 10 "at_pulley_1" "breakAfter"
+  movel(at_pulley_1_p, a=1.2, v=0.5)
   # begin: URCap Program Node
-  #   Source: Robotiq_Grippers, 1.8.0.1, Robotiq Inc.
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
-  $ 9 "Gripper Close (1)"
+  $ 11 "Gripper Close (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(255, 0, 0, "1")
+  rq_wait_pos_spe_for_request(255, 0, 0, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 12 "Gripper Move45% (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(115, 0, 0, "1")
+  rq_wait_pos_spe_for_request(115, 0, 0, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 13 "MoveL"
+  $ 14 "turn_right" "breakAfter"
+  movel(pose_add(get_target_tcp_pose(), pose_sub(turn_right_to_p, turn_right_from_p)), a=1.2, v=0.05)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 15 "Gripper Close (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(255, 0, 0, "1")
+  rq_wait_pos_spe_for_request(255, 0, 0, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 16 "Gripper Move58% (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(147, 0, 0, "1")
+  rq_wait_pos_spe_for_request(147, 0, 0, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 17 "MoveL"
+  $ 18 "turn_left" "breakAfter"
+  movel(pose_add(get_target_tcp_pose(), pose_sub(turn_left_to_p, turn_left_from_p)), a=1.2, v=0.05)
+  $ 19 "MoveL"
+  $ 20 "incline" "breakAfter"
+  movel(pose_add(get_target_tcp_pose(), pose_sub(incline_to_p, incline_from_p)), a=1.2, v=0.05)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 21 "Gripper Close (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(255, 0, 0, "1")
+  rq_wait_pos_spe_for_request(255, 0, 0, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 22 "MoveL"
+  $ 23 "above_angled" "breakAfter"
+  movel(above_angled_p, a=1.2, v=0.25)
+  $ 24 "near_tb" "breakAfter"
+  movel(near_tb_p, a=1.2, v=0.25, r=0.038)
+  $ 25 "in_ridge" "breakAfter"
+  movel(in_ridge_p, a=1.2, v=0.02)
+  $ 26 "Popup: wait for screw tool to hold"
+  popup("wait for screw tool to hold", "Message", False, False, blocking=True)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 27 "Gripper Move42% (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(107, 255, 255, "1")
+  rq_wait_pos_spe_for_request(107, 255, 255, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 28 "MoveL"
+  $ 29 "away" "breakAfter"
+  movel(away_p, a=1.2, v=0.25)
+  $ 30 "far_above_aid" "breakAfter"
+  movel(far_above_aid_p, a=1.2, v=0.25)
+  $ 31 "MoveL"
+  $ 32 "above_nut_aid" "breakAfter"
+  movel(above_nut_aid_p, a=1.2, v=0.25)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 33 "Gripper Move22% (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(56, 255, 255, "1")
+  rq_wait_pos_spe_for_request(56, 255, 255, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 34 "at_nut_aid" "breakAfter"
+  movel(at_nut_aid_p, a=1.2, v=0.25)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 35 "Gripper Close (1)"
   if not(gripper_connected[0]):
     popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
   end
@@ -2389,52 +2566,312 @@ def wrs2020_taskboard_belt():
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 10 "MoveL"
-  $ 11 "Waypoint_3" "breakAfter"
-  movel(Waypoint_3_p, a=1.2, v=0.05)
-  $ 12 "MoveJ"
-  $ 13 "Waypoint_4" "breakAfter"
-  movej(get_inverse_kin(Waypoint_4_p, qnear=Waypoint_4_q), a=1.3962634015954636, v=1.0471975511965976)
-  $ 14 "Popup: wait for b_bot to move hook into belt"
-  popup("wait for b_bot to move hook into belt", "Message", False, False, blocking=True)
-  $ 15 "MoveL"
-  $ 16 "Waypoint_5" "breakAfter"
-  movel(Waypoint_5_p, a=1.2, v=0.25)
-  $ 17 "MoveJ"
-  $ 18 "Waypoint_6" "breakAfter"
-  movej(get_inverse_kin(Waypoint_6_p, qnear=Waypoint_6_q), a=1.3962634015954636, v=1.0471975511965976)
-  $ 19 "MoveL"
-  $ 20 "Waypoint_7" "breakAfter"
-  movel(Waypoint_7_p, a=1.2, v=0.25)
-  $ 21 "Popup: wait for b_bot to tension"
-  popup("wait for b_bot to tension", "Message", False, False, blocking=True)
-  $ 22 "MoveL"
-  $ 23 "Waypoint_8" "breakAfter"
-  movel(Waypoint_8_p, a=1.2, v=0.25)
-  $ 24 "MoveL"
-  $ 25 "Waypoint_9" "breakAfter"
-  movel(Waypoint_9_p, a=1.2, v=0.25)
-  $ 26 "Popup: wait for b_bot to thread belt"
-  popup("wait for b_bot to thread belt", "Message", False, False, blocking=True)
+  $ 36 "slightly_above" "breakAfter"
+  movel(slightly_above_p, a=1.2, v=0.25)
+  $ 37 "MoveL"
+  $ 38 "Waypoint_1" "breakAfter"
+  movel(Waypoint_1_p, a=1.2, v=0.25)
+  $ 39 "Waypoint_2" "breakAfter"
+  movel(Waypoint_2_p, a=1.2, v=0.25, r=0.036)
+  $ 40 "before_shaft" "breakAfter"
+  movel(before_shaft_p, a=1.2, v=0.25)
+  $ 41 "MoveL"
+  $ 42 "at_shaft" "breakAfter"
+  movel(at_shaft_p, a=0.1, v=0.005)
+  $ 43 "Popup: turn on motor, then press enter to start spiral motion"
+  popup("turn on motor, then press enter to start spiral motion", "Message", False, False, blocking=True)
+  $ 44 "Force"
+  sleep(0.02)
+  zero_ftsensor()
+  force_mode(p[0.0,0.0,0.0,0.0,0.0,0.0], [1, 0, 0, 0, 0, 0], [-5.0, 0.0, 10.0, 0.0, 0.0, 0.0], 2, [0.005, 0.1, 0.1, 0.3490658503988659, 0.3490658503988659, 0.3490658503988659])
+  $ 45 "Loop 5 times" "noBreak"
+  Loop_1 = 0
+  while (Loop_1 < 5):
+    $ 46 "Direction: Base Y+" "noBreak"
+    global move_thread_flag_46=0
+    thread move_thread_46():
+      enter_critical
+      move_thread_flag_46 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,1.0,0.0], 0.002)
+      movel(towardsPos, a=0.1, v=0.005)
+      move_thread_flag_46 = 2
+      exit_critical
+    end
+    move_thread_flag_46 = 0
+    move_thread_han_46 = run move_thread_46()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_46 > 1):
+        join move_thread_han_46
+        $ 47 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 48 "Direction: Base Z+" "noBreak"
+    global move_thread_flag_48=0
+    thread move_thread_48():
+      enter_critical
+      move_thread_flag_48 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,0.0,1.0], 0.002)
+      movel(towardsPos, a=0.1, v=0.005)
+      move_thread_flag_48 = 2
+      exit_critical
+    end
+    move_thread_flag_48 = 0
+    move_thread_han_48 = run move_thread_48()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_48 > 1):
+        join move_thread_han_48
+        $ 49 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 50 "Direction: Base Y-" "noBreak"
+    global move_thread_flag_50=0
+    thread move_thread_50():
+      enter_critical
+      move_thread_flag_50 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,-1.0,0.0], 0.002)
+      movel(towardsPos, a=0.1, v=0.005)
+      move_thread_flag_50 = 2
+      exit_critical
+    end
+    move_thread_flag_50 = 0
+    move_thread_han_50 = run move_thread_50()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_50 > 1):
+        join move_thread_han_50
+        $ 51 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 52 "Direction: Base Y-" "noBreak"
+    global move_thread_flag_52=0
+    thread move_thread_52():
+      enter_critical
+      move_thread_flag_52 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,-1.0,0.0], 0.002)
+      movel(towardsPos, a=0.1, v=0.005)
+      move_thread_flag_52 = 2
+      exit_critical
+    end
+    move_thread_flag_52 = 0
+    move_thread_han_52 = run move_thread_52()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_52 > 1):
+        join move_thread_han_52
+        $ 53 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 54 "Direction: Base Z-" "noBreak"
+    global move_thread_flag_54=0
+    thread move_thread_54():
+      enter_critical
+      move_thread_flag_54 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,0.0,-1.0], 0.002)
+      movel(towardsPos, a=0.1, v=0.005)
+      move_thread_flag_54 = 2
+      exit_critical
+    end
+    move_thread_flag_54 = 0
+    move_thread_han_54 = run move_thread_54()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_54 > 1):
+        join move_thread_han_54
+        $ 55 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 56 "Direction: Base Y+" "noBreak"
+    global move_thread_flag_56=0
+    thread move_thread_56():
+      enter_critical
+      move_thread_flag_56 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,1.0,0.0], 0.002)
+      movel(towardsPos, a=0.1, v=0.005)
+      move_thread_flag_56 = 2
+      exit_critical
+    end
+    move_thread_flag_56 = 0
+    move_thread_han_56 = run move_thread_56()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_56 > 1):
+        join move_thread_han_56
+        $ 57 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 58 "Direction: Base Y+" "noBreak"
+    global move_thread_flag_58=0
+    thread move_thread_58():
+      enter_critical
+      move_thread_flag_58 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,1.0,0.0], 0.002)
+      movel(towardsPos, a=0.1, v=0.005)
+      move_thread_flag_58 = 2
+      exit_critical
+    end
+    move_thread_flag_58 = 0
+    move_thread_han_58 = run move_thread_58()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_58 > 1):
+        join move_thread_han_58
+        $ 59 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 60 "Direction: Base Z-" "noBreak"
+    global move_thread_flag_60=0
+    thread move_thread_60():
+      enter_critical
+      move_thread_flag_60 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,0.0,-1.0], 0.002)
+      movel(towardsPos, a=0.1, v=0.005)
+      move_thread_flag_60 = 2
+      exit_critical
+    end
+    move_thread_flag_60 = 0
+    move_thread_han_60 = run move_thread_60()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_60 > 1):
+        join move_thread_han_60
+        $ 61 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 62 "Direction: Base Y-" "noBreak"
+    global move_thread_flag_62=0
+    thread move_thread_62():
+      enter_critical
+      move_thread_flag_62 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,-1.0,0.0], 0.002)
+      movel(towardsPos, a=0.1, v=0.005)
+      move_thread_flag_62 = 2
+      exit_critical
+    end
+    move_thread_flag_62 = 0
+    move_thread_han_62 = run move_thread_62()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_62 > 1):
+        join move_thread_han_62
+        $ 63 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 64 "Direction: Base Y-" "noBreak"
+    global move_thread_flag_64=0
+    thread move_thread_64():
+      enter_critical
+      move_thread_flag_64 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,-1.0,0.0], 0.002)
+      movel(towardsPos, a=0.1, v=0.005)
+      move_thread_flag_64 = 2
+      exit_critical
+    end
+    move_thread_flag_64 = 0
+    move_thread_han_64 = run move_thread_64()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_64 > 1):
+        join move_thread_han_64
+        $ 65 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 66 "Direction: Base Z+" "noBreak"
+    global move_thread_flag_66=0
+    thread move_thread_66():
+      enter_critical
+      move_thread_flag_66 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,0.0,1.0], 0.002)
+      movel(towardsPos, a=0.1, v=0.005)
+      move_thread_flag_66 = 2
+      exit_critical
+    end
+    move_thread_flag_66 = 0
+    move_thread_han_66 = run move_thread_66()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_66 > 1):
+        join move_thread_han_66
+        $ 67 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 68 "Direction: Base Y+" "noBreak"
+    global move_thread_flag_68=0
+    thread move_thread_68():
+      enter_critical
+      move_thread_flag_68 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,1.0,0.0], 0.002)
+      movel(towardsPos, a=0.1, v=0.005)
+      move_thread_flag_68 = 2
+      exit_critical
+    end
+    move_thread_flag_68 = 0
+    move_thread_han_68 = run move_thread_68()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_68 > 1):
+        join move_thread_han_68
+        $ 69 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    Loop_1 = Loop_1 + 1
+  end
+  end_force_mode()
+  stopl(5.0)
+  $ 70 "Popup: ok?"
+  popup("ok?", "Message", False, False, blocking=True)
+  $ 71 "MoveJ"
+  $ 72 "before_shaft" "breakAfter"
+  movej(get_inverse_kin(before_shaft_p, qnear=before_shaft_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 73 "Waypoint_2" "breakAfter"
+  movej(get_inverse_kin(Waypoint_2_p, qnear=Waypoint_2_q), a=2.0943951023931953, v=2.0943951023931953, r=0.05)
+  $ 74 "Waypoint_1" "breakAfter"
+  movej(get_inverse_kin(Waypoint_1_p, qnear=Waypoint_1_q), a=2.0943951023931953, v=2.0943951023931953)
+  $ 75 "MoveL"
+  $ 76 "slightly_above" "breakAfter"
+  movel(slightly_above_p, a=1.2, v=0.25)
+  $ 77 "at_nut_aid" "breakAfter"
+  movel(at_nut_aid_p, a=1.2, v=0.25)
   # begin: URCap Program Node
-  #   Source: Robotiq_Grippers, 1.8.0.1, Robotiq Inc.
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
-  $ 27 "Gripper Move80% (1)"
+  $ 78 "Gripper Move22% (1)"
   if not(gripper_connected[0]):
     popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
   end
   if not(rq_is_gripper_activated("1")):
     popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
   end
-  rq_set_pos_spd_for(205, 0, 0, "1")
-  rq_wait_pos_spe_for_request(205, 0, 0, "1")
+  rq_set_pos_spd_for(56, 255, 255, "1")
+  rq_wait_pos_spe_for_request(56, 255, 255, "1")
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 28 "MoveL"
-  $ 29 "Waypoint_10" "breakAfter"
-  movel(Waypoint_10_p, a=1.2, v=0.25)
-  $ 30 "MoveJ"
-  $ 31 "Waypoint_11" "breakAfter"
-  movej(get_inverse_kin(Waypoint_11_p, qnear=Waypoint_11_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 79 "above_nut_aid" "breakAfter"
+  movel(above_nut_aid_p, a=1.2, v=0.25)
 end

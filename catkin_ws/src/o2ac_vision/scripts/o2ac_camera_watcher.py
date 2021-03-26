@@ -50,9 +50,14 @@ class O2ACWatcher(object):
     
     def __init__(self):
         # Load camera names to determine which cameras will be checked
-        default_camera_names = {"b_bot_inside_camera": True,
-                             "b_bot_outside_camera": True}
+        default_camera_names = {"camera_multiplexer": True}
         self.camera_names = rospy.get_param('~camera_names', default_camera_names)
+
+        if "camera_multiplexer" in self.camera_names:
+            self.b_bot_outside_camera = rospy.Subscriber("/camera_multiplexer/depth", smsg.Image, self.camera_multiplexer_callback)
+            # Keeps track of which camera is active:
+            self.camera_info_sub = rospy.Subscriber("/camera_multiplexer/camera_info", smsg.CameraInfo, self.camera_info_callback)
+            self.current_camera_name = ""
 
         # Setup subscribers for input depth images
         if "a_bot_inside_camera" in self.camera_names:
@@ -85,6 +90,13 @@ class O2ACWatcher(object):
 
     def b_bot_outside_camera_callback(self, image):
         self.last_msg_times["b_bot_outside_camera"] = datetime.datetime.now()
+    
+    def camera_multiplexer_callback(self, image):
+        self.last_msg_times["camera_multiplexer"] = datetime.datetime.now()
+    
+    def camera_info_callback(self, cam_info):
+        # For e.g. "b_bot_inside_camera_color_optical_frame", store "b_bot_inside_camera"
+        self.current_camera_name = cam_info.header.frame_id[:-20]
 
     def check_status_loop(self):
         r = rospy.Rate(1)
@@ -96,23 +108,33 @@ class O2ACWatcher(object):
                 if rospy.is_shutdown():
                     break
                 time_since_last_msg = now - self.last_msg_times[cam]
-                if time_since_last_msg > datetime.timedelta(milliseconds=1000):
-                    rospy.logerr("NO DEPTH IMAGE RECEIVED FROM CAMERA: " + cam)
-                    rospy.logerr("RESETTING CAMERA: " + cam)
+                if time_since_last_msg > datetime.timedelta(milliseconds=2000):
+                    if cam == "camera_multiplexer":
+                        cam_name = self.current_camera_name
+                    else:
+                        cam_name = cam
+                    cam_num = []
+                    
+                    rospy.logerr("NO DEPTH IMAGE RECEIVED FROM CAMERA: " + cam_name)
+                    rospy.logerr("RESETTING CAMERA: " + cam_name)
                     if rospy.is_shutdown():
                         break
                     # print("time since last message: ", str(time_since_last_msg), "cam: ", cam)
-                    if cam == "a_bot_inside_camera":
+
+                    # Retrieve ID used to restart camera node
+                    if cam_name == "a_bot_inside_camera":
                         cam_num = 0
-                    if cam == "a_bot_outside_camera":
+                    if cam_name == "a_bot_outside_camera":
                         cam_num = 1
-                    if cam == "b_bot_inside_camera":
+                    if cam_name == "b_bot_inside_camera":
                         cam_num = 2
-                    if cam == "b_bot_outside_camera":
+                    if cam_name == "b_bot_outside_camera":
                         cam_num = 3
+                    if cam_name == "scene_camera":
+                        cam_num = 4
                         
                     # Restart camera by killing the nodes and spawning a roslaunch process
-                    os.system("rosnode kill /" + cam + "/realsense2_camera /" + cam + "/realsense2_camera_manager")
+                    os.system("rosnode kill /" + cam_name + "/realsense2_camera /" + cam_name + "/realsense2_camera_manager")
                     rospy.sleep(1)
                     command = "roslaunch o2ac_scene_description osx_bringup_cam" + str(cam_num) + ".launch initial_reset:=true"
                     rospy.loginfo("Executing command: " + command)

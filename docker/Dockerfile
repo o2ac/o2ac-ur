@@ -37,7 +37,7 @@ RUN apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key C1CF6
 
 # Install ROS-desktop-full packages (including ROS, rqt, rviz, and more).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-	ros-melodic-desktop-full=1.4.1-0bionic.20210120.181615 \
+	ros-melodic-desktop-full=1.4.1-0bionic.20210219.183904 \
 	python-rosdep=0.20.0-1 \
 	&& rm -rf /var/lib/apt/lists/*
 
@@ -56,10 +56,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ################################################################################
 
 # Install common essentials,
+RUN apt-get update && apt-cache policy git
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential=12.4ubuntu1 \
     cmake=3.10.2-1ubuntu2.18.04.1 \
-    git=1:2.17.1-1ubuntu0.7 \
+    git=1:2.17.1-1ubuntu0.8 \
     python-dev=2.7.15~rc1-1 \
     python-numpy=1:1.13.3-2ubuntu1 \
     python-pip=9.0.1-2.3~ubuntu1.18.04.4 \
@@ -75,7 +76,7 @@ RUN pip install --upgrade pip==9.0.1
 # Install more common optional packages/tools.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     inetutils-ping=2:1.9.4-3 \
-    iproute2=4.15.0-2ubuntu1.2 \
+    iproute2=4.15.0-2ubuntu1.3 \
     gdb=8.1.1-0ubuntu1 \
     mesa-utils=8.4.0-1 \
     nano=2.9.3-2 \
@@ -103,7 +104,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Also install the binaries to pull in the dependencies.
 RUN apt-get update && apt-get install -y --no-install-recommends \ 
     ros-melodic-moveit-resources=0.7.0-1bionic.20210112.194853 \
-    ros-melodic-moveit=1.0.7-1bionic.20210113.072325 \
+    ros-melodic-moveit=1.0.7-1bionic.20210206.043228 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -128,7 +129,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-melodic-spacenav-node=1.14.0-1bionic.20210112.175653 \
     ros-melodic-joy-teleop=0.3.1-1bionic.20210112.181220 \
     ros-melodic-code-coverage=0.4.3-1bionic.20200803.132715 \
-    ros-melodic-panda-moveit-config=0.7.4-1bionic.20210112.212241 \
+    ros-melodic-panda-moveit-config=0.7.4-1bionic.20210206.042952 \
     socat=1.7.3.2-2ubuntu2 \
     libqt5x11extras5-dev=5.9.5-0ubuntu1 \
 	&& rm -rf /var/lib/apt/lists/*	
@@ -137,7 +138,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install JSK tools for visualization in Rviz
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-melodic-jsk-visualization=2.1.7-2bionic.20210112.211109 \
+    ros-melodic-jsk-visualization=2.1.7-2bionic.20210223.083431 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -323,18 +324,22 @@ RUN pip install --upgrade scipy
 
 ################################################################################
 
-# Install Python3 for open3d, and open3d
-# Careful: This might set pip to affect only Python3
+# Install Python3 for open3d, and opencv
+# Careful: This might set pip to use Python3 by default
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	python3.6-dev=3.6.9-1~18.04ubuntu1.4 \
     python3-pip=9.0.1-2.3~ubuntu1.18.04.4 \
+    python3-setuptools=39.0.1-2 \
     python3-opencv=3.2.0+dfsg-4ubuntu0.1 \
 	&& rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install \  
-    open3d==0.11.2 \
-    opencv-python==0.11.2 \
-    rospkg==1.2.10
+# Required for opencv-python.  https://stackoverflow.com/questions/63448467/installing-opencv-fails-because-it-cannot-find-skbuild
+
+RUN pip3 install --upgrade pip==21.0.1
+
+RUN pip3 install open3d==0.12.0
+RUN pip3 install opencv-python==4.5.1.48
+RUN pip3 install rospkg==1.2.10
 
 ################################################################################
 

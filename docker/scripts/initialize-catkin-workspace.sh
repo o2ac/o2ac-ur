@@ -34,7 +34,7 @@ cd /root/underlay_ws/      && \
 # Initialize, build and source the underlay workspace.
 # Blacklist packages that we do not use but that are part of metapackages we need
 cd /root/underlay_ws/ && catkin config -init --blacklist robotiq_3f_gripper_articulated_gazebo robotiq_3f_gripper_articulated_gazebo_plugins robotiq_3f_rviz \
-                          robotiq_3f_gripper_control robotiq_3f_gripper_joint_state_publisher robotiq_3f_gripper_visualization \
+                          robotiq_3f_gripper_control robotiq_3f_gripper_rviz robotiq_3f_gripper_joint_state_publisher robotiq_3f_gripper_visualization \
                           chomp_motion_planner moveit_planners_chomp moveit_chomp_optimizer_adapter \
                           moveit_ros_warehouse moveit_ros_benchmarks moveit_servo moveit_resources_prbt_ikfast_manipulator_plugin \
                           moveit_resources_prbt_moveit_config moveit_resources_prbt_support moveit_resources_prbt_pg70_support \

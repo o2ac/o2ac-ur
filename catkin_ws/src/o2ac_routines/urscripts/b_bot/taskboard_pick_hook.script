@@ -1,10 +1,15 @@
 def taskboard_pick_hook():
-  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
-  set_tool_output_mode(0)
-  set_tool_digital_output_mode(0, 1)
-  set_tool_digital_output_mode(1, 1)
-  set_tool_voltage(24)
-  set_safety_mode_transition_hardness(1)
+  set_gravity([0.0, 0.0, 9.82])
+  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
+  set_payload(0.0)
+  step_count_d2b488f8_3d84_40fb_b568_f385b1d4cea0 = 0
+  thread Step_Counter_Thread_45b03539_0a8a_44a7_8b6a_7229ef515a00():
+    while (True):
+      step_count_d2b488f8_3d84_40fb_b568_f385b1d4cea0 = step_count_d2b488f8_3d84_40fb_b568_f385b1d4cea0 + 1
+      sync()
+    end
+  end
+  run Step_Counter_Thread_45b03539_0a8a_44a7_8b6a_7229ef515a00()
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -12,17 +17,12 @@ def taskboard_pick_hook():
   set_analog_outputdomain(0, 0)
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
-  set_gravity([0.0, 0.0, 9.82])
-  step_count_8fe63555_ae8e_4189_b3df_a30fb68c1360 = 0
-  thread Step_Counter_Thread_f5a9b45b_5ff7_421c_82a4_34331bf11157():
-    while (True):
-      step_count_8fe63555_ae8e_4189_b3df_a30fb68c1360 = step_count_8fe63555_ae8e_4189_b3df_a30fb68c1360 + 1
-      sync()
-    end
-  end
-  run Step_Counter_Thread_f5a9b45b_5ff7_421c_82a4_34331bf11157()
-  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
-  set_payload(0.0)
+  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
+  set_tool_output_mode(0)
+  set_tool_digital_output_mode(0, 1)
+  set_tool_digital_output_mode(1, 1)
+  set_tool_voltage(24)
+  set_safety_mode_transition_hardness(1)
   # begin: URCap Installation Node
   #   Source: External Control, 1.0.2, FZI Research Center for Information Technology
   #   Type: External Control
@@ -2353,14 +2353,6 @@ def taskboard_pick_hook():
   global high_approach_q=[2.4485092379921376, -1.4413039536248444, 2.0016610017076415, -1.930081263128379, -1.7537079602876116, 2.478367537831948]
   global wait_w_tool_p=p[.096883885745, -.254303635135, .525338758627, .242383833914, 3.104342837672, -.045618417679]
   global wait_w_tool_q=[1.419498844840919, -2.178175391321119, 1.892632293985887, -1.311747949011428, -1.5379272788334548, -1.2434497875801753E-14]
-  global Waypoint_2_p=p[.071071894976, -.482637886481, .364831181485, 2.171305351920, -1.016135035839, -.421756229242]
-  global Waypoint_2_q=[1.5544204794203516, -1.529029033396112, 2.081760271076643, -2.6988852870249236, -2.1313034287219565, -2.4508846704478073]
-  global tophole_p=p[.042928636291, -.482637886489, .364831181484, 2.171305357966, -1.016135042607, -.421756225591]
-  global tophole_q=[1.4892843964552474, -1.5375463661704565, 2.098892006194884, -2.7404692759031914, -2.09493459308756, -2.513996833858949]
-  global ViaPoint_1_p=p[.042928636347, -.467739777091, .358316481101, 2.171305356882, -1.016135040975, -.421756219359]
-  global ViaPoint_1_q=[1.4863414981657987, -1.5627732051223138, 2.144920956969809, -2.762691335375605, -2.093360482692276, -2.516803911062503]
-  global EndPoint_1_p=p[.042928636385, -.459730448214, .341705498254, 2.171305354425, -1.016135037967, -.421756208352]
-  global EndPoint_1_q=[1.4845747266326628, -1.5546767234122854, 2.1884861792960697, -2.81509759522166, -2.0925655676366066, -2.5182783459102502]
   $ 1 "Robot Program"
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
@@ -2413,24 +2405,4 @@ def taskboard_pick_hook():
   $ 12 "wait_w_tool" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movej(get_inverse_kin(wait_w_tool_p, qnear=wait_w_tool_q), a=2.6179938779914944, v=2.0943951023931953)
-  $ 13 "MoveL"
-  $ 14 "Waypoint_2" "breakAfter"
-  movel(Waypoint_2_p, a=1.2, v=0.25)
-  $ 15 "tophole" "breakAfter"
-  movel(tophole_p, a=1.2, v=0.25)
-  $ 16 "Force"
-  sleep(0.02)
-  zero_ftsensor()
-  force_mode(p[0.0,0.0,0.0,0.0,0.0,0.0], [1, 0, 0, 0, 0, 0], [5.0, 0.0, 0.0, 0.0, 0.0, 0.0], 2, [0.005, 0.1, 0.1, 0.3490658503988659, 0.3490658503988659, 0.3490658503988659])
-  $ 17 "Wait: 1.0" "noBreak"
-  sleep(1.0)
-  $ 18 "MoveP" "noBreak"
-  $ 19 "tophole" "noBreak"
-  movep(tophole_p, a=1.2, v=0.005, r=0.001)
-  $ 20 "CircleMove" "noBreak"
-  $ 21 "ViaPoint_1" "noBreak"
-  $ 22 "EndPoint_1" "noBreak"
-  movec(ViaPoint_1_p, EndPoint_1_p, a=1.2, v=0.005, r=0.001, mode=1)
-  end_force_mode()
-  stopl(5.0)
 end

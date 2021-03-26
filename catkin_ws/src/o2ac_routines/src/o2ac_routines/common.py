@@ -48,6 +48,10 @@ class O2ACCommon(O2ACBase):
     super(O2ACCommon, self).__init__()
     self.rospack = rospkg.RosPack()
 
+    self.small_item_ids = [8,9,10,14]
+    self.large_item_ids = [1,2,3,4,5,7,11,12,13]
+    self.belt_id        = [6]
+
   ######## Higher-level routines used in both assembly and taskboard
 
   def pick(self, object_name, grasp_parameter_location = '', lift_direction_reference_frame = '', lift_direction = [], robot_name = '', save_solution_to_file=''):
@@ -472,10 +476,9 @@ class O2ACCommon(O2ACBase):
     grasp_pose is a PoseStamped.
     """
     d = self.distance_from_tray_border(grasp_pose)
-    print("border distance was: ")
-    print(d)
     if d[0] < border_dist or d[1] < border_dist:
-      print("too close to border. discarding")
+      rospy.logdebug("too close to border. discarding grasp pose. border distance was: ")
+      rospy.logdebug(d)
       return False
     for obj, pose in self.objects_in_tray.items():
       if obj == 6: # Hard-code skipping the belt
@@ -483,7 +486,7 @@ class O2ACCommon(O2ACBase):
       if pose_dist(pose.pose, grasp_pose.pose) < 0.05:
         if pose_dist(pose.pose, grasp_pose.pose) < 1e-6:
           continue  # It's the item itself or a duplicate
-        print("too close to another item. discarding. distance: " + str(pose_dist(pose.pose, grasp_pose.pose)) + ", id: " + str(obj))
+        rospy.logdebug("too close to another item. discarding. distance: " + str(pose_dist(pose.pose, grasp_pose.pose)) + ", id: " + str(obj))
         return False
     return True
   
@@ -491,19 +494,38 @@ class O2ACCommon(O2ACBase):
     # TODO: Consider the grasp width and actual collisions using the PlanningScene
     return self.simple_grasp_sanity_check(grasp_pose, border_dist)
     
-  def get_feasible_grasp_points(self, object_id):
+  def get_feasible_grasp_points(self, object_in_scene):
     """
     Returns a list of PoseStamped grasp points for an object that is currently in the scene.
+    object_in_scene can be the string or the id number of the object.
     """
+    if isinstance(object_in_scene, str):
+      object_id = self.assembly_database.name_to_id(object_in_scene)
+    else:
+      object_id = object_in_scene
+
     if object_id not in self.objects_in_tray:
       rospy.logerr("Grasp points requested for " + str(object_id) + " but it is not seen in tray.")
       return False
+    
+    # TODO(felixvd)
+    # Hack of the day!!! When looking for the bearing, remove the idler pulley from the perception,
+    # because it's a false positive in the same spot.
+    try:
+      if object_id == 7:
+        del self.objects_in_tray[13]
+        rospy.logwarn("HACKY: Deleting 13 from perception")
+    except:
+      pass
+    
+    try:
+      if object_id == 7:
+        del self.objects_in_tray[11]
+        rospy.logwarn("HACKY: Deleting 11 from perception")
+    except:
+      pass
 
-    small_items = [8,9,10,14]
-    large_items = [1,2,3,4,5,7,11,12,13]
-    belt        = [6]
-
-    if object_id in belt:
+    if object_id in self.belt_id:
       res = self.get_3d_poses_from_ssd()
       grasp_poses = []
       for idx, pose in enumerate(res.poses):
@@ -512,13 +534,13 @@ class O2ACCommon(O2ACBase):
             grasp_poses.append(pose)
       return grasp_poses
 
-    if object_id in small_items:
+    if object_id in self.small_item_ids:
       # For small items, the object should be the only grasp pose.
       grasp_pose = self.objects_in_tray[object_id]
       return [grasp_pose]
       # TODO: Consider the idler spacer, which can stand upright or lie on the side.
       
-    if object_id in large_items:
+    if object_id in self.large_item_ids:
       # TODO: Generate alternative grasp poses
       # TODO: Get grasp poses from database
       grasp_pose = self.objects_in_tray[object_id]
@@ -534,9 +556,13 @@ class O2ACCommon(O2ACBase):
     Looks at the tray from above and gets grasp points of items.
     Does very light feasibility check before returning.
     """
+    self.activate_camera("b_bot_outside_camera")
+    self.activate_led("b_bot")
+    self.open_gripper("b_bot", wait=False)
     # TODO: Merge with detect_object_in_camera_view in base.py
     self.go_to_pose_goal("b_bot", self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.1)
-    res = self.get_3d_poses_from_ssd()
+    self.get_3d_poses_from_ssd()
+    
     r2 = self.get_feasible_grasp_points(object_id)
     if r2:
       goal = r2[0]
@@ -641,6 +667,53 @@ class O2ACCommon(O2ACBase):
       rospy.loginfo("Going to height " + str(object_pose_in_world.pose.position.z))
       self.go_to_pose_goal(robot_name, object_pose_in_world, speed=speed_fast, acceleration=acc_fast, move_lin=True)
     return True
+
+  def drop_shaft_in_v_groove(self):
+    """
+    Places the shaft in the v groove with b_bot.
+    """
+    ps = geometry_msgs.msg.PoseStamped()
+    ps.header.frame_id = "vgroove_aid_drop_point_link"
+    ps.pose.orientation = geometry_msgs.msg.Quaternion(*(0,0,0,1))
+    ps.pose.position = geometry_msgs.msg.Point(-0.05, 0, 0)
+    self.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_robotiq_85_tip_link", move_lin = False)
+    ps.pose.position = geometry_msgs.msg.Point(0, 0, 0)
+    self.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_robotiq_85_tip_link")
+
+  def check_if_shaft_in_v_groove(self):
+    """
+    Returns True if the shaft is in the v_groove
+    """
+    look_at_shaft_pose = [2.177835941, -1.700065275, 2.536958996, -2.40987076, -1.529889408, 0.59719228]
+    self.activate_camera("b_bot_inside_camera")
+    self.activate_led("b_bot")
+    self.move_joints("b_bot", look_at_shaft_pose)
+
+    res = self.call_shaft_notch_detection()
+    print("=== shaft notch detection returned:")
+    print(res)
+
+  def turn_shaft_until_groove_found(self):
+    look_at_shaft_pose = [2.177835941, -1.700065275, 2.536958996, -2.40987076, -1.529889408, 0.59719228]
+    self.activate_camera("b_bot_inside_camera")
+    self.activate_led("b_bot")
+    self.move_joints("b_bot", look_at_shaft_pose)
+
+    times_turned = 0
+    success = self.load_program(robot="b_bot", program_name="wrs2020/shaft_turning.urp", recursion_depth=3)  
+    if not success:
+      return False
+    while times_turned < 6:
+      rospy.loginfo("Turn shaft once")
+      self.execute_loaded_program(robot="b_bot")
+      wait_for_UR_program("/b_bot", rospy.Duration.from_sec(10))
+      times_turned += 1
+      res = self.call_shaft_notch_detection()
+      if res.shaft_notch_detected_at_top or res.shaft_notch_detected_at_bottom:
+        return res
+    return False
+
+    
 
   ########
 

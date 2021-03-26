@@ -20,8 +20,8 @@ parts_list:
     type: 05_MBRFA30-2-P6
     cad: 05_MBRFA30-2-P6.stl
     description: Pulley for Round Belt (4mm) - Setscrew P.D. 30mm
-  - id: 6
-    name: drive_shaft
+  - id: 8
+    name: shaft
     cad: shaft_KZAF1075NA4WA55GA20AA0.stl
     description: Shaft for the bearing
   - id: 7
@@ -29,7 +29,7 @@ parts_list:
     type: 07_SBARB6200ZZ-30
     cad: 07_SBARB6200ZZ_30.stl
     description: Bearings with Housings (Double Bearings)
-  - id: 8
+  - id: 9
     name: endcap
     type: endcap_EDCS10
     cad: endcap_EDCS10.stl

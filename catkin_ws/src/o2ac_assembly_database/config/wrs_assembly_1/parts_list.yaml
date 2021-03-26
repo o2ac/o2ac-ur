@@ -35,7 +35,7 @@ parts_list:
     cad: 07_SBARB6200ZZ_30.stl
     description: Bearings with Housings (Double Bearings)
   - id: 8
-    name: drive_shaft
+    name: shaft
     type: 08_KZAF1075NA4WA55GA20AA0
     cad: 08_KZAF1075NA4WA55GA20AA0.stl
     description: Drive shaft (Straight) D10h6

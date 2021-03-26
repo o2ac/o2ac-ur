@@ -1,13 +1,12 @@
  Program
    Robot Program
      Gripper Open (1)
-     MoveJ
+     MoveL
        home
        above_tool
-     MoveL
        grasp_tool
        Gripper Close (1)
-     MoveJ
+     MoveL
        before_tool
        high_approach
        wait_w_tool

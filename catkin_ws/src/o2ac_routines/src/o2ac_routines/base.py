@@ -57,6 +57,7 @@ import robotiq_msgs.msg
 import ur_dashboard_msgs.msg
 import ur_dashboard_msgs.srv
 import std_srvs.srv
+import controller_manager_msgs.srv
 from std_msgs.msg import Bool
 from shape_msgs.msg import SolidPrimitive
 from geometry_msgs.msg import Pose
@@ -66,6 +67,8 @@ import o2ac_msgs.msg
 import o2ac_msgs.srv
 import o2ac_task_planning_msgs.msg
 
+from aist_camera_multiplexer import RealSenseMultiplexerClient
+
 from math import pi
 from std_msgs.msg import String
 from moveit_commander.conversions import pose_to_list
@@ -73,6 +76,7 @@ from moveit_commander.conversions import pose_to_list
 from o2ac_assembly_database.assembly_reader import AssemblyReader
 
 import ur_msgs.msg
+import ur_msgs.srv
 from o2ac_routines.helpers import *
 
 class O2ACBase(object):
@@ -116,9 +120,14 @@ class O2ACBase(object):
 
     self.assembly_database = AssemblyReader()
 
+    try:
+      self.camera_multiplexer = RealSenseMultiplexerClient('camera_multiplexer')
+    except:
+      self.camera_multiplexer = []
+
     # Action clients and movegroups
-    self.groups = {"a_bot":moveit_commander.MoveGroupCommander("a_bot"), "b_bot":moveit_commander.MoveGroupCommander("b_bot"),
-      "a_bot_robotiq_85":moveit_commander.MoveGroupCommander("a_bot_robotiq_85"), "b_bot_robotiq_85":moveit_commander.MoveGroupCommander("b_bot_robotiq_85")}
+    self.groups = {"b_bot":moveit_commander.MoveGroupCommander("b_bot"),
+     "b_bot_robotiq_85":moveit_commander.MoveGroupCommander("b_bot_robotiq_85")}
     self.gripper_action_clients = {"a_bot":actionlib.SimpleActionClient('/a_bot/gripper_action_controller', robotiq_msgs.msg.CModelCommandAction),
       "b_bot":actionlib.SimpleActionClient('/b_bot/gripper_action_controller', robotiq_msgs.msg.CModelCommandAction)}
     
@@ -129,6 +138,7 @@ class O2ACBase(object):
     self.change_tool_client = actionlib.SimpleActionClient('/o2ac_skills/change_tool', o2ac_msgs.msg.changeToolAction)
 
     self.ssd_client = actionlib.SimpleActionClient('/o2ac_vision_server/get_3d_poses_from_ssd', o2ac_msgs.msg.get3DPosesFromSSDAction)
+    self.detect_shaft_client = actionlib.SimpleActionClient('/o2ac_vision_server/detect_shaft_notch', o2ac_msgs.msg.shaftNotchDetectionAction)
     self.detect_angle_client = actionlib.SimpleActionClient('/o2ac_vision_server/detect_angle', o2ac_msgs.msg.detectAngleAction)
     self.recognition_client = actionlib.SimpleActionClient('/o2ac_vision_server/localize_object', o2ac_msgs.msg.localizeObjectAction)
 
@@ -162,8 +172,10 @@ class O2ACBase(object):
       "b_bot_close_popup":rospy.ServiceProxy('/b_bot/ur_hardware_interface/dashboard/close_popup', std_srvs.srv.Trigger),
       "a_bot_unlock_protective_stop":rospy.ServiceProxy("/a_bot/ur_hardware_interface/dashboard/unlock_protective_stop", std_srvs.srv.Trigger),
       "b_bot_unlock_protective_stop":rospy.ServiceProxy("/b_bot/ur_hardware_interface/dashboard/unlock_protective_stop", std_srvs.srv.Trigger)
-      
     }
+
+    self.a_bot_set_io = rospy.ServiceProxy('a_bot/ur_hardware_interface/set_io', ur_msgs.srv.SetIO)
+    self.b_bot_set_io = rospy.ServiceProxy('b_bot/ur_hardware_interface/set_io', ur_msgs.srv.SetIO)
 
     self.urscript_client = rospy.ServiceProxy('/o2ac_skills/sendScriptToUR', o2ac_msgs.srv.sendScriptToUR)
     self.publishMarker_client = rospy.ServiceProxy('/o2ac_skills/publishMarker', o2ac_msgs.srv.publishMarker)
@@ -236,7 +248,7 @@ class O2ACBase(object):
     self.tray_view_close_back_a = copy.deepcopy(ps)
     
   ############## ------ Internal functions (and convenience functions)
-
+    
   def confirm_to_proceed(self, next_task_name):
     if self.competition_mode:
       return True
@@ -275,23 +287,52 @@ class O2ACBase(object):
   def b_bot_gripper_status_callback(self, msg):
     self.b_bot_gripper_opening_width = msg.position  # [m]
   
+  def activate_camera(self, camera_name="b_bot_outside_camera"):
+    if self.camera_multiplexer:
+      self.camera_multiplexer.activate_camera(camera_name)
+    else:
+      rospy.logwarn("Camera multiplexer not functional! Returning true")
+      return True
+  
+  def activate_led(self, LED_name="b_bot", on=True):
+    req = ur_msgs.srv.SetIORequest()
+    if LED_name == "b_bot":
+      req.fun = ur_msgs.srv.SetIORequest.FUN_SET_DIGITAL_OUT
+      req.pin = 4
+      if on:
+        req.state = ur_msgs.srv.SetIORequest.STATE_ON
+      else:
+        req.state = ur_msgs.srv.SetIORequest.STATE_OFF
+      return self.b_bot_set_io.call(req)
+    elif LED_name == "a_bot":
+      return self.a_bot_set_io.call(req)
+    else:
+      rospy.logerr("Invalid LED name")
+
   def is_robot_running_normally(self, robot_name):
     """
     Returns true if the robot is running (no protective stop, not turned off etc).
     """
+    if robot_name == "a_bot":
+      return True
     return self.robot_safety_mode[robot_name] == 1 or self.robot_safety_mode[robot_name] == 2 # Normal / Reduced
   
   def is_robot_protective_stopped(self, robot_name):
     """
     Returns true if the robot is in protective stop.
     """
+    if robot_name == "a_bot":
+      return True
     return self.robot_safety_mode[robot_name] == 3
 
   def unlock_protective_stop(self, robot="b_bot"):
+    if robot == "a_bot":
+      return True
     if not self.use_real_robot:
       return True
     if robot is not "b_bot" and robot is not "a_bot":
       rospy.logerr("Robot name was not found!")
+      
     
     service_client = self.ur_dashboard_clients[robot + "_unlock_protective_stop"]
     request = std_srvs.srv.TriggerRequest()
@@ -309,6 +350,8 @@ class O2ACBase(object):
     return response.success
 
   def activate_ros_control_on_ur(self, robot="b_bot", recursion_depth=0):
+    if robot == "a_bot":
+      return True
     if not self.use_real_robot:
       return True
     
@@ -318,6 +361,14 @@ class O2ACBase(object):
         return True
     except:
       rospy.logerr("Robot name '" + robot + "' was not found or the robot is not a UR!")
+      return False
+    
+    if recursion_depth > 10:
+      rospy.logerr("Tried too often. Breaking out.")
+      rospy.logerr("Could not start UR ROS control.")
+      return False
+    
+    if rospy.is_shutdown():
       return False
 
     load_success = False
@@ -338,10 +389,14 @@ class O2ACBase(object):
     
     if not load_success:
       rospy.logwarn("Waiting and trying again.")
-      if recursion_depth > 0:  # If connect alone failed, try quit and then connect
-        response = self.ur_dashboard_clients[robot + "_quit"].call()
-        rospy.sleep(.5)
-      response = self.ur_dashboard_clients[robot + "_connect"].call()
+      try:
+        if recursion_depth > 0:  # If connect alone failed, try quit and then connect
+          response = self.ur_dashboard_clients[robot + "_quit"].call()
+          rospy.sleep(.5)
+        response = self.ur_dashboard_clients[robot + "_connect"].call()
+      except:
+        rospy.logwarn("Dashboard service did not respond! (2)")
+        pass
       rospy.sleep(.5)
       return self.activate_ros_control_on_ur(robot, recursion_depth=recursion_depth+1)
     
@@ -352,10 +407,37 @@ class O2ACBase(object):
       rospy.logerr("Could not start UR control. Is the UR in Remote Control mode and program installed with correct name?")
       return False
     else:
+      # Check if controller is running
+      self.check_for_dead_controller_and_force_start("b_bot")
       rospy.loginfo("Successfully activated ROS control on robot " + robot)
       return True
 
+  def check_for_dead_controller_and_force_start(self, robot="b_bot"):
+    service_proxy_list = rospy.ServiceProxy('/b_bot/controller_manager/list_controllers', controller_manager_msgs.srv.ListControllers)
+    service_proxy_switch = rospy.ServiceProxy('/b_bot/controller_manager/switch_controller', controller_manager_msgs.srv.SwitchController)
+    rospy.sleep(2)
+
+    list_req = controller_manager_msgs.srv.ListControllersRequest()
+    switch_req = controller_manager_msgs.srv.SwitchControllerRequest()
+
+    list_res = service_proxy_list.call(list_req)
+    print("======")
+    print(list_res)
+    for c in list_res.controller:
+      if c.name == "scaled_pos_joint_traj_controller":
+        if c.state == "stopped":
+          # Force restart
+          rospy.logerr("Force controller start")
+          switch_req.start_controllers = ['scaled_pos_joint_traj_controller']
+          switch_req.strictness = 1
+          switch_res = service_proxy_switch.call(switch_req)
+          return switch_res.ok
+        else:
+          return True
+
   def load_program(self, robot="b_bot", program_name="", recursion_depth=0):
+    if robot == "a_bot":
+      return True
     if not self.use_real_robot:
       return True
 
@@ -384,15 +466,21 @@ class O2ACBase(object):
     if not load_success:
       rospy.logwarn("Waiting and trying again")
       rospy.sleep(3)
-      if recursion_depth > 0:  # If connect alone failed, try quit and then connect
-        response = self.ur_dashboard_clients[robot + "_quit"].call()
-        rospy.logerr("Program could not be loaded on UR: " + program_name)
-        rospy.sleep(.5)
+      try:
+        if recursion_depth > 0:  # If connect alone failed, try quit and then connect
+          response = self.ur_dashboard_clients[robot + "_quit"].call()
+          rospy.logerr("Program could not be loaded on UR: " + program_name)
+          rospy.sleep(.5)
+      except:
+        rospy.logwarn("Dashboard service did not respond! (2)")
+        pass
       response = self.ur_dashboard_clients[robot + "_connect"].call()
       rospy.sleep(.5)
       return self.load_program(robot, program_name=program_name, recursion_depth=recursion_depth+1)
   
   def execute_loaded_program(self, robot="b_bot"):
+    if robot == "a_bot":
+      return True
     # Run the program
     response = self.ur_dashboard_clients[robot + "_play"].call(std_srvs.srv.TriggerRequest())
     if not response.success:
@@ -403,6 +491,8 @@ class O2ACBase(object):
       return True
   
   def close_ur_popup(self, robot="b_bot"):
+    if robot == "a_bot":
+      return True
     # Close a popup on the teach pendant to continue program execution
     response = self.ur_dashboard_clients[robot + "_close_popup"].call(std_srvs.srv.TriggerRequest())
     if not response.success:
@@ -518,6 +608,8 @@ class O2ACBase(object):
   
   def go_to_pose_goal(self, group_name, pose_goal_stamped, speed = 1.0, acceleration = 0.0, high_precision = False, 
                       end_effector_link = "", move_lin = True):
+    if group_name == "a_bot":
+      return True
     if self.pause_mode_ or self.test_mode_:
       if speed > self.reduced_mode_speed_limit:
         rospy.loginfo("Reducing speed from " + str(speed) + " to " + str(self.reduced_mode_speed_limit) + " because robot is in test or pause mode")
@@ -602,6 +694,8 @@ class O2ACBase(object):
     return ps_new
 
   def move_lin(self, group_name, pose_goal_stamped, speed = 1.0, acceleration = 0.0, end_effector_link = ""):
+    if group_name == "a_bot":
+      return True
     self.publish_marker(pose_goal_stamped, "pose")
     if self.pause_mode_ or self.test_mode_:
       if speed > self.reduced_mode_speed_limit:
@@ -667,6 +761,8 @@ class O2ACBase(object):
     return plan_success
 
   def move_lin_rel(self, robot_name, relative_translation = [0,0,0], relative_rotation = [0,0,0], acceleration = 0.5, velocity = .03, use_robot_base_csys=False, wait = True, max_wait=30.0):
+    if robot_name == "a_bot":
+      return True
     '''
     Does a lin_move relative to the current position of the robot. Uses the robot's TCP.
 
@@ -698,6 +794,8 @@ class O2ACBase(object):
     return res.success
 
   def move_joints(self, group_name, joint_pose_goal, speed = 1.0, acceleration = 0.0, force_ur_script=False, force_moveit=False):
+    if group_name == "a_bot":
+      return True
     if self.pause_mode_ or self.test_mode_:
       if speed > self.reduced_mode_speed_limit:
         rospy.loginfo("Reducing speed from " + str(speed) + " to " + str(self.reduced_mode_speed_limit) + " because robot is in test or pause mode")
@@ -745,6 +843,8 @@ class O2ACBase(object):
     return success
 
   def horizontal_spiral_motion(self, robot_name, max_radius = .01, radius_increment = .001, speed = 0.02, spiral_axis="Z"):
+    if robot_name == "a_bot":
+      return True
     rospy.loginfo("Performing horizontal spiral motion at speed " + str(speed) + " and radius " + str(max_radius))
     if not self.use_real_robot:
       return True
@@ -761,6 +861,8 @@ class O2ACBase(object):
     # =====
 
   def go_to_named_pose(self, pose_name, robot_name, speed = 0.5, acceleration = 0.0, force_ur_script=False):
+    if robot_name == "a_bot":
+      return True
     """
     pose_name should be a named pose in the moveit_config, such as "home", "back" etc.
     """
@@ -793,6 +895,8 @@ class O2ACBase(object):
   ######
 
   def pick_screw_from_feeder(self, robot_name, screw_size):
+    if robot_name == "a_bot":
+      return True
     """
     Picks a screw from one of the feeders. The screw tool already has to be equipped!
     Use this command to equip the screw tool: do_change_tool_action(self, "b_bot", equip=True, screw_size = 4)
@@ -948,10 +1052,24 @@ class O2ACBase(object):
     # Read result and return
     try:
       res = self.detect_angle_client.get_result()
-      return res.rotation_angle
+      if res.succeeded:
+        return res.rotation_angle
     except:
       pass
     return False
+  
+  def call_shaft_notch_detection(self):
+    """
+    Calls the action and returns the result as is
+    """
+    goal = o2ac_msgs.msg.shaftNotchDetectionGoal()
+    self.detect_shaft_client.send_goal(goal)
+    if (not self.detect_shaft_client.wait_for_result(rospy.Duration(3.0))):
+      self.detect_shaft_client.cancel_goal()  # Cancel goal if timeout expired
+      rospy.logerr("Call to shaft detection returned no result. Is o2ac_vision running?")
+      return False
+    res = self.detect_shaft_client.get_result()
+    return res
 
   # def publish_ssd_results_to_scene(self):
   #   """
@@ -963,38 +1081,41 @@ class O2ACBase(object):
   #   co.header.frame_id = "tray_center"
   #   print(co)
   #   self.planning_scene_interface.apply_collision_object(co)
-    
+  
   def detect_object_in_camera_view(self, item_name):
     """
     Returns object pose if object was detected in current camera view and published to planning scene,
     False otherwise.
     """
+    # TODO: merge with "look_and_get_grasp_points"
 
     # Send goal, wait for result
-    self.recognition_client.send_goal(o2ac_msgs.msg.localizeObjectGoal(item_id=item_name))
-    if (not self.recognition_client.wait_for_result(rospy.Duration(15.0))):
-      self.recognition_client.cancel_goal()  # Cancel goal if timeout expired
-      rospy.logerr("Recognition node returned no result.")
+    object_type = self.assembly_database.name_to_type(item_name)
+    if not object_type:
+      rospy.logerr("Could not find the object " + name + " in database, or its type field is empty.")
+      return False
+    self.localization_client.send_goal(o2ac_msgs.msg.localizeObjectGoal(item_id=object_type))
+    if (not self.localization_client.wait_for_result(rospy.Duration(15.0))):
+      self.localization_client.cancel_goal()  # Cancel goal if timeout expired
+      rospy.logerr("Localization node returned no result.")
       
     # Read result and publish to planning scene as collision_object if found
     success = False
     try:
-      res = self.recognition_client.get_result()
+      res = self.localization_client.get_result()
       success = res.succeeded
     except:
       pass
     
     # Publish to planning scene
     if success:
-      # TODO: Fix the header and the collision object lookup name!
-      # TODO: To fix the collision object lookup name, the assembly_reader names need to be aligned with o2ac_parts_description.
       rospy.loginfo("Detected " + item_name + " with confidence " + str(res.confidences[0]))
-      co = self.assembly_reader._reader.get_collision_object("bearing")
+      co = self.assembly_database.get_collision_object(object_name=name)
+      # TODO: Update MoveIt to use the object_pose
       co.mesh_poses[0] = res.detected_poses[0].pose
       co.header.frame_id = "tray_center"
-      print(co)
       self.planning_scene_interface.apply_collision_object(co)
-      return True
+      return res.detected_poses[0]
     else:
       rospy.loginfo("Did not detect " + item_name)
       return False
@@ -1326,7 +1447,7 @@ class O2ACBase(object):
     action_client.send_goal(goal)
     rospy.sleep(.5)
     rospy.loginfo("Sending command " + str(command) + " to gripper: " + gripper)
-    if wait or gripper == "b_bot":  # b_bot uses the UR to close the gripper; it has to wait.
+    if wait:
       action_client.wait_for_result(rospy.Duration(6.0))  # Default wait time: 6 s
     result = action_client.get_result()
     rospy.loginfo(result)
@@ -1374,10 +1495,14 @@ class O2ACBase(object):
     return self.equip_unequip_tool(robot_name, tool_name, "unequip")
 
   def equip_unequip_tool(self, robot_name, tool_name, equip_or_unequip):
-    # TODO(felixvd): Finish this function
+    # TODO(felixvd): Finish this function. It is duplicated in C++.
+
     # Sanity check on the input instruction
     equip = (equip_or_unequip == "equip")
     unequip = (equip_or_unequip == "unequip")
+
+    return self.do_change_tool_action(self, robot_name, equip=equip, screw_size = 4)
+    ###
     lin_speed = 0.01
     # The second comparison is not always necessary, but readability comes first.
     if ((not equip) and (not unequip)):
@@ -1448,7 +1573,7 @@ class O2ACBase(object):
 
     if unequip: 
       ps_in_holder.pose.position.x -= 0.001   # Don't move all the way into the magnet
-      ps_approach.pose.position.z += 0.005 # Approach diagonally so nothing gets stuck
+      ps_approach.pose.position.z -= 0.01 # Approach diagonally so nothing gets stuck
 
     if equip:
       self.open_gripper(robot_name)
