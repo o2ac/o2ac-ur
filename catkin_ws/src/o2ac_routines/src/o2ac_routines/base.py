@@ -57,6 +57,7 @@ import robotiq_msgs.msg
 import ur_dashboard_msgs.msg
 import ur_dashboard_msgs.srv
 import std_srvs.srv
+import controller_manager_msgs.srv
 from std_msgs.msg import Bool
 from shape_msgs.msg import SolidPrimitive
 from geometry_msgs.msg import Pose
@@ -406,8 +407,33 @@ class O2ACBase(object):
       rospy.logerr("Could not start UR control. Is the UR in Remote Control mode and program installed with correct name?")
       return False
     else:
+      # Check if controller is running
+      self.check_for_dead_controller_and_force_start("b_bot")
       rospy.loginfo("Successfully activated ROS control on robot " + robot)
       return True
+
+  def check_for_dead_controller_and_force_start(self, robot="b_bot"):
+    service_proxy_list = rospy.ServiceProxy('/b_bot/controller_manager/list_controllers', controller_manager_msgs.srv.ListControllers)
+    service_proxy_switch = rospy.ServiceProxy('/b_bot/controller_manager/switch_controller', controller_manager_msgs.srv.SwitchController)
+    rospy.sleep(2)
+
+    list_req = controller_manager_msgs.srv.ListControllersRequest()
+    switch_req = controller_manager_msgs.srv.SwitchControllerRequest()
+
+    list_res = service_proxy_list.call(list_req)
+    print("======")
+    print(list_res)
+    for c in list_res.controller:
+      if c.name == "scaled_pos_joint_traj_controller":
+        if c.state == "stopped":
+          # Force restart
+          rospy.logerr("Force controller start")
+          switch_req.start_controllers = ['scaled_pos_joint_traj_controller']
+          switch_req.strictness = 1
+          switch_res = service_proxy_switch.call(switch_req)
+          return switch_res.ok
+        else:
+          return True
 
   def load_program(self, robot="b_bot", program_name="", recursion_depth=0):
     if robot == "a_bot":
