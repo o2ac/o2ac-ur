@@ -250,36 +250,36 @@ class TaskboardClass(O2ACCommon):
     
     # TODO: check set screw success with a_bot, do spiral motion with b_bot otherwise
     
-    #### SCREW M3 WITH A_BOT
-    # self.activate_camera("a_bot_outside_camera")
-    # self.pick_screw_from_feeder("a_bot", screw_size = 3)
-    # self.go_to_named_pose("home", "a_bot")
+    ### SCREW M3 WITH A_BOT
+    self.activate_camera("a_bot_outside_camera")
+    self.pick_screw_from_feeder("a_bot", screw_size = 3)
+    self.go_to_named_pose("home", "a_bot")
 
     # Move b_bot back, a_bot to screw
     self.do_change_tool_action("b_bot", equip=False, screw_size = 2)
     self.do_change_tool_action("b_bot", equip=True, screw_size = 4)
     self.go_to_named_pose("home", "b_bot")
 
-    # self.go_to_named_pose("horizontal_screw_ready", "a_bot")
-    # approach_pose = geometry_msgs.msg.PoseStamped()
-    # approach_pose.header.frame_id = "taskboard_m3_screw_link"
-    # approach_pose.pose.position.x = -.04
-    # approach_pose.pose.position.y = -.12
-    # approach_pose.pose.position.z = -.05
-    # taskboard.go_to_pose_goal("a_bot", approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
+    self.go_to_named_pose("horizontal_screw_ready", "a_bot")
+    approach_pose = geometry_msgs.msg.PoseStamped()
+    approach_pose.header.frame_id = "taskboard_m3_screw_link"
+    approach_pose.pose.position.x = -.04
+    approach_pose.pose.position.y = -.12
+    approach_pose.pose.position.z = -.05
+    taskboard.go_to_pose_goal("a_bot", approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
 
-    # approach_pose.pose.position.y = -.0
-    # approach_pose.pose.position.z = -.0
-    # taskboard.go_to_pose_goal("a_bot", approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
+    approach_pose.pose.position.y = -.0
+    approach_pose.pose.position.z = -.0
+    taskboard.go_to_pose_goal("a_bot", approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
 
-    # hole_pose = geometry_msgs.msg.PoseStamped()
-    # hole_pose.header.frame_id = "taskboard_m3_screw_link"
-    # hole_pose.pose.position.y = -.002  # MAGIC NUMBER
-    # hole_pose.pose.position.z = -.006  # MAGIC NUMBER
-    # hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
-    # taskboard.do_screw_action("a_bot", hole_pose, screw_size = 3)
-    # self.go_to_named_pose("horizontal_screw_ready", "a_bot")
-    # self.go_to_named_pose("home", "a_bot")
+    hole_pose = geometry_msgs.msg.PoseStamped()
+    hole_pose.header.frame_id = "taskboard_m3_screw_link"
+    hole_pose.pose.position.y = -.002  # MAGIC NUMBER
+    hole_pose.pose.position.z = -.006  # MAGIC NUMBER
+    hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
+    taskboard.do_screw_action("a_bot", hole_pose, screw_size = 3)
+    self.go_to_named_pose("horizontal_screw_ready", "a_bot")
+    self.go_to_named_pose("home", "a_bot")
     
     ###
     
@@ -292,12 +292,12 @@ class TaskboardClass(O2ACCommon):
     hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/12, 0, 0))
     self.do_screw_action("b_bot", hole_pose, screw_size = 4)
 
-    # self.do_change_tool_action("a_bot", equip=False, screw_size = 3)
-    # self.go_to_named_pose("home", "a_bot")
+    self.do_change_tool_action("a_bot", equip=False, screw_size = 3)
+    self.go_to_named_pose("home", "a_bot")
     self.go_to_named_pose("home", "b_bot")
 
-
     #####
+
     subtask_completed = { 
       "M2 set screw": True,
       "M3 screw": True,
@@ -700,21 +700,11 @@ class TaskboardClass(O2ACCommon):
       self.go_to_named_pose("home","a_bot")
       self.go_to_named_pose("home","b_bot")
 
-      # # Try to find the shaft
-      # if not "shaft" in self.objects_in_tray:
-      #   if not self.look_in_tray("shaft"):
-      #     rospy.logerr("Could not find shaft in tray")
-      #     return False
-
-      print(self.assembly_database.name_to_id("shaft"))
-      # TODO: Why does this seem to return ID 6?
-      # goal = self.look_and_get_grasp_point(self.assembly_database.name_to_id("shaft"))
-      goal = self.look_and_get_grasp_point(8)
+      goal = self.look_and_get_grasp_point(self.assembly_database.name_to_id("shaft"))
       if not goal:
         rospy.logerr("Could not find shaft in tray. Skipping procedure.")
         print(self.objects_in_tray)
         return False
-      # goal.pose.position.x -= 0.01 # MAGIC NUMBER
       goal.pose.position.z = 0.001
       self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z")
 

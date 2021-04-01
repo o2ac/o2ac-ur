@@ -41,7 +41,7 @@ import rospy
 import geometry_msgs.msg
 import tf
 import tf_conversions
-from math import pi, degrees
+from math import pi, degrees, radians
 tau = 2.0*pi  # Part of math from Python 3.6
 
 from o2ac_routines.common import O2ACCommon
@@ -122,6 +122,7 @@ if __name__ == '__main__':
       rospy.loginfo("5: Call tray detection and show result")
       rospy.loginfo("61 (62): Look at taskboard bearing with inside cam (with outside camera, for CAD)")
       rospy.loginfo("7: Do bearing measuring/turning loop")
+      rospy.loginfo("8: Look for shaft")
       rospy.loginfo("9: Find bearing from center view")
       rospy.loginfo("x: Exit ")
       rospy.loginfo(" ")
@@ -155,13 +156,20 @@ if __name__ == '__main__':
         c.close_view(3)
       elif r == '34':
         c.close_view(4)
-      elif r == '4':
-        c.views()
+      elif r == '331':
+        for ps in c.close_tray_views:
+          c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
+      elif r == '332':
+        for ps in c.close_tray_views_rot_left:
+          c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
+      elif r == '333':
+        for ps in c.close_tray_views_rot_right:
+          c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
       elif r == '5':
         c.activate_camera("b_bot_outside_camera")
         rospy.sleep(1)
         res = c.get_3d_poses_from_ssd()
-        obj_id = 7
+        obj_id = 7 #bearing
         print("=====")
         print(res)
         print("=====")
@@ -227,9 +235,18 @@ if __name__ == '__main__':
             print("angle < 5 deg, not executing a motion")
       
       elif r == "8":
-        goal = c.look_and_get_grasp_point(c.assembly_database.name_to_id("shaft"))
+        goal = c.look_and_get_grasp_point(8)  # shaft
         if not goal:
           rospy.logerr("Could not find shaft in tray. Skipping procedure.")
+        else:
+          goal.pose.position.z = 0.001
+          # goal.pose.position.x -= 0.01 # MAGIC NUMBER
+          c.activate_camera("b_bot_inside_camera")
+          c.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z")
+      elif r == "81":
+        goal = c.look_and_get_grasp_point(5)  # motor pulley
+        if not goal:
+          rospy.logerr("Could not find motor pulley in tray. Skipping procedure.")
         else:
           goal.pose.position.z = 0.001
           # goal.pose.position.x -= 0.01 # MAGIC NUMBER

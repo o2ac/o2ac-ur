@@ -215,13 +215,13 @@ class O2ACBase(object):
     Define the poses used to position the camera to look into the tray.
 
     Example usage: self.go_to_pose_goal("b_bot", self.tray_view_high, 
-                                        1end_effector_link="b_bot_outside_camera_color_frame", 
-                                        1speed=.1, acceleration=.04)
+                                        end_effector_link="b_bot_outside_camera_color_frame", 
+                                        speed=.1, acceleration=.04)
     """
     high_height = .37
     low_height = .22
     x_offset = .04  # At low_height
-    y_offset = .06  # At low_height
+    y_offset = .07  # At low_height
 
     ps = geometry_msgs.msg.PoseStamped()
     ps.header.frame_id = "tray_center"
@@ -229,7 +229,7 @@ class O2ACBase(object):
     ps.pose.position.z = high_height
 
     # Centered views (high up and close)
-    self.tray_view_high = copy.deepcopy(ps)    
+    self.tray_view_high = copy.deepcopy(ps)
     ps.pose.position.z = low_height
     self.tray_view_low = copy.deepcopy(ps)
 
@@ -246,6 +246,11 @@ class O2ACBase(object):
     ps.pose.position.x = -x_offset
     ps.pose.position.y = -y_offset
     self.tray_view_close_back_a = copy.deepcopy(ps)
+
+    self.close_tray_views = [self.tray_view_low, self.tray_view_close_front_b, self.tray_view_close_back_b, self.tray_view_close_front_a, self.tray_view_close_back_a]
+    self.close_tray_views_rot_left = [rotatePoseByRPY(radians(20),0,0, pose) for pose in self.close_tray_views]
+    self.close_tray_views_rot_right = [rotatePoseByRPY(radians(-20),0,0, pose) for pose in self.close_tray_views]
+
     
   ############## ------ Internal functions (and convenience functions)
     
