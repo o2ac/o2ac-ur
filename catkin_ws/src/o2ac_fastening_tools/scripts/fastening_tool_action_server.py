@@ -9,6 +9,7 @@ from std_msgs.msg import String
 from o2ac_fastening_tools.srv import *
 from o2ac_msgs.msg import *
 from util import *
+from collections import deque
 
 import dynamixel_workbench_msgs.msg
 import dynamixel_workbench_msgs.srv
@@ -62,10 +63,10 @@ class FasteningToolController(object):
             rospy.logerr('Unexpected message type: ' + message_type)
 
     def _listener_callback(self, data):
-        '''
+        """
         This function is executed when a message is received by _listener.
-        The data received is the status of the motors connected to the controller. It is stored in the _dynamixel_current_state variable
-        '''
+        It stores the status of the motors connected to the controller.
+        """
         self._dynamixel_current_state = data
 
     def set_torque_enable(self, motor_id, value):
@@ -92,7 +93,7 @@ class FasteningToolController(object):
         return True
 
     def get_present_speed(self, motor_id):
-        #Wait for the current state top be available
+        """Wait for the current state top be available"""
         while '_listener' not in dir(self):
                 rospy.sleep(0.1)
         if self._motor_status_topic_is_list == True:
@@ -108,14 +109,16 @@ class FasteningToolController(object):
             return self._dynamixel_current_state.present_velocity
 
     def execute_control(self, goal):
-        t_duration = 1
+        """
+        Execute the tighten/loosen action.
+        """
         motor_id = self.fastening_tools[goal.fastening_tool_name]
         self._result.control_result = True
         if not goal.speed:
             goal.speed = 1023
-        self._feedback.motor_speed = goal.speed
+        self._feedback.motor_speed = goal.speed     # Initial setting to start the loop
 
-        #  For tighten the maximum speed is at 1023, while for loosen it is 2047, at 1024 the motor is stopped
+        # For tightening the maximum speed is 1023. For loosen it is 2047. At 1024 the motor is stopped.
         if goal.direction == "loosen" :
             goal.speed = 1024 + goal.speed
             if goal.speed > 2047 :
@@ -147,8 +150,10 @@ class FasteningToolController(object):
         # Turn the motor for the specified number of seconds.
         # Rotate the motor until goal.duration is reached is loaded and stops.
         success_flag = True
+        motor_stalled = False
+        speed_readings = deque([goal.speed, goal.speed], maxlen=2)  # Initialize to start the loop
         start_time = rospy.get_rostime()
-        rospy.sleep(1)   # Wait for motor to start up (and avoid reading wrong speed values)
+        rospy.sleep(1)   # Wait for motor to start up (and avoid reading incorrect speed values)
         while not rospy.is_shutdown():
             if self._as.is_preempt_requested():
                 self._as.set_preempted()
@@ -168,22 +173,21 @@ class FasteningToolController(object):
             if self._feedback.motor_speed == 0 and goal.direction == 'tighten':
                 rospy.loginfo("Stopping motor because it has stalled (the screw is tightened)")
                 success_flag = True
+                motor_stalled = True
                 break
             
-            # Read motor speed. To avoid erroneous readouts, it is read twice. This is not an ideal workaround.
-            first_speed = self.get_present_speed(motor_id)
-            rospy.sleep(0.1)
-            second_speed = self.get_present_speed(motor_id)
-            if first_speed == -1 or second_speed == -1:
+            # Read motor speed. 
+            speed_readings.append(self.get_present_speed(motor_id))
+            if -1 in speed_readings:
                 success_flag = False
                 rospy.logwarn("Error in motor readout. Stopping.")
                 break
                 
-            # If both readings are below a threshold, the motor has stalled
-            if first_speed <= 10 and second_speed <= 10:
+            # If both readings are below an arbitrary threshold, we assume the motor has stalled
+            if all(speed <= 10 for speed in speed_readings):
                 self._feedback.motor_speed = 0
             else:
-                self._feedback.motor_speed = max(first_speed, second_speed)
+                self._feedback.motor_speed = max(speed_readings)
 
             rospy.logdebug("first_speed, second_speed = " + str(first_speed) + ", " + str(second_speed))
             self._as.publish_feedback(self._feedback)
@@ -192,10 +196,12 @@ class FasteningToolController(object):
         if motor_stopped and success_flag:
             self.set_torque_enable(motor_id, 0)
             self._result.control_result = True
+            self._result.motor_stalled = motor_stalled
             self._as.set_succeeded(self._result)
         else:
             self.set_torque_enable(motor_id, 0)
             self._result.control_result = False
+            self._result.motor_stalled = motor_stalled
             self._as.set_aborted(self._result)
 
         
