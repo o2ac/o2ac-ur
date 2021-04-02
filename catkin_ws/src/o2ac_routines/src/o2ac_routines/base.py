@@ -126,8 +126,8 @@ class O2ACBase(object):
       self.camera_multiplexer = []
 
     # Action clients and movegroups
-    self.groups = {"b_bot":moveit_commander.MoveGroupCommander("b_bot"),
-     "b_bot_robotiq_85":moveit_commander.MoveGroupCommander("b_bot_robotiq_85")}
+    self.groups = {"a_bot":moveit_commander.MoveGroupCommander("a_bot"), "b_bot":moveit_commander.MoveGroupCommander("b_bot"),
+      "a_bot_robotiq_85":moveit_commander.MoveGroupCommander("a_bot_robotiq_85"), "b_bot_robotiq_85":moveit_commander.MoveGroupCommander("b_bot_robotiq_85")}
     self.gripper_action_clients = {"a_bot":actionlib.SimpleActionClient('/a_bot/gripper_action_controller', robotiq_msgs.msg.CModelCommandAction),
       "b_bot":actionlib.SimpleActionClient('/b_bot/gripper_action_controller', robotiq_msgs.msg.CModelCommandAction)}
     
@@ -150,7 +150,7 @@ class O2ACBase(object):
     self.wrs_subtask_b_planning_client = actionlib.SimpleActionClient('/wrs_subtask_b_planning', o2ac_task_planning_msgs.msg.PickPlaceWithRegraspAction)
     
     self.suction_client = actionlib.SimpleActionClient('/suction_control', o2ac_msgs.msg.SuctionControlAction)
-    self.fastening_tool_client = actionlib.SimpleActionClient('/screw_tool_control', o2ac_msgs.msg.FastenerGripperControlAction)
+    self.fastening_tool_client = actionlib.SimpleActionClient('/screw_tool_control', o2ac_msgs.msg.ScrewToolControlAction)
 
     # Service clients
     self.ur_dashboard_clients = {
@@ -181,6 +181,8 @@ class O2ACBase(object):
     self.publishMarker_client = rospy.ServiceProxy('/o2ac_skills/publishMarker', o2ac_msgs.srv.publishMarker)
     self.toggleCollisions_client = rospy.ServiceProxy('/o2ac_skills/toggleCollisions', std_srvs.srv.SetBool)
 
+    self.robot_safety_mode = dict() 
+    self.screw_is_suctioned = dict()
     # Subscribers
     # "robot_program_running" refers only to the ROS external control UR script, not just any program
     self.sub_a_bot_status_ = rospy.Subscriber("/a_bot/ur_hardware_interface/robot_program_running", Bool, self.a_bot_ros_control_status_callback) 
@@ -193,8 +195,6 @@ class O2ACBase(object):
     self.sub_suction_m4_ = rospy.Subscriber("/screw_tool_m4/screw_suctioned", Bool, self.suction_m4_callback)
     self.sub_suction_m3_ = rospy.Subscriber("/screw_tool_m3/screw_suctioned", Bool, self.suction_m3_callback)
     self.sub_robot_safety_mode_b_bot = rospy.Subscriber("/b_bot/ur_hardware_interface/safety_mode", ur_dashboard_msgs.msg.SafetyMode, self.b_bot_safety_mode_callback)
-    self.robot_safety_mode = dict() 
-    self.screw_is_suctioned = dict()
     
     # self.my_mutex = threading.Lock()
 
@@ -203,49 +203,10 @@ class O2ACBase(object):
 
     self.screw_tools = {}
 
-    self.define_tray_views()
-
     self.objects_in_tray = dict()  # key: object ID. value: False or object pose
 
     rospy.sleep(.5)
     rospy.loginfo("Finished initializing class")
-
-  def define_tray_views(self):
-    """
-    Define the poses used to position the camera to look into the tray.
-
-    Example usage: self.go_to_pose_goal("b_bot", self.tray_view_high, 
-                                        1end_effector_link="b_bot_outside_camera_color_frame", 
-                                        1speed=.1, acceleration=.04)
-    """
-    high_height = .37
-    low_height = .22
-    x_offset = .04  # At low_height
-    y_offset = .06  # At low_height
-
-    ps = geometry_msgs.msg.PoseStamped()
-    ps.header.frame_id = "tray_center"
-    ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
-    ps.pose.position.z = high_height
-
-    # Centered views (high up and close)
-    self.tray_view_high = copy.deepcopy(ps)    
-    ps.pose.position.z = low_height
-    self.tray_view_low = copy.deepcopy(ps)
-
-    # Close views in corners
-    ps.pose.position.x = x_offset
-    ps.pose.position.y = y_offset
-    self.tray_view_close_front_b = copy.deepcopy(ps)
-    ps.pose.position.x = -x_offset
-    ps.pose.position.y = y_offset
-    self.tray_view_close_back_b = copy.deepcopy(ps)
-    ps.pose.position.x = x_offset
-    ps.pose.position.y = -y_offset
-    self.tray_view_close_front_a = copy.deepcopy(ps)
-    ps.pose.position.x = -x_offset
-    ps.pose.position.y = -y_offset
-    self.tray_view_close_back_a = copy.deepcopy(ps)
     
   ############## ------ Internal functions (and convenience functions)
     
@@ -288,11 +249,16 @@ class O2ACBase(object):
     self.b_bot_gripper_opening_width = msg.position  # [m]
   
   def activate_camera(self, camera_name="b_bot_outside_camera"):
-    if self.camera_multiplexer:
-      self.camera_multiplexer.activate_camera(camera_name)
-    else:
-      rospy.logwarn("Camera multiplexer not functional! Returning true")
-      return True
+    try:
+      if self.camera_multiplexer:
+        self.camera_multiplexer.activate_camera(camera_name)
+      else:
+        rospy.logwarn("Camera multiplexer not functional! Returning true")
+        return True
+    except:
+      pass
+    rospy.logwarn("Could not activate camera! Returning false")
+    return False
   
   def activate_led(self, LED_name="b_bot", on=True):
     req = ur_msgs.srv.SetIORequest()
@@ -313,26 +279,19 @@ class O2ACBase(object):
     """
     Returns true if the robot is running (no protective stop, not turned off etc).
     """
-    if robot_name == "a_bot":
-      return True
     return self.robot_safety_mode[robot_name] == 1 or self.robot_safety_mode[robot_name] == 2 # Normal / Reduced
   
   def is_robot_protective_stopped(self, robot_name):
     """
     Returns true if the robot is in protective stop.
     """
-    if robot_name == "a_bot":
-      return True
     return self.robot_safety_mode[robot_name] == 3
 
   def unlock_protective_stop(self, robot="b_bot"):
-    if robot == "a_bot":
-      return True
     if not self.use_real_robot:
       return True
     if robot is not "b_bot" and robot is not "a_bot":
       rospy.logerr("Robot name was not found!")
-      
     
     service_client = self.ur_dashboard_clients[robot + "_unlock_protective_stop"]
     request = std_srvs.srv.TriggerRequest()
@@ -350,8 +309,6 @@ class O2ACBase(object):
     return response.success
 
   def activate_ros_control_on_ur(self, robot="b_bot", recursion_depth=0):
-    if robot == "a_bot":
-      return True
     if not self.use_real_robot:
       return True
     
@@ -421,8 +378,6 @@ class O2ACBase(object):
     switch_req = controller_manager_msgs.srv.SwitchControllerRequest()
 
     list_res = service_proxy_list.call(list_req)
-    print("======")
-    print(list_res)
     for c in list_res.controller:
       if c.name == "scaled_pos_joint_traj_controller":
         if c.state == "stopped":
@@ -431,13 +386,12 @@ class O2ACBase(object):
           switch_req.start_controllers = ['scaled_pos_joint_traj_controller']
           switch_req.strictness = 1
           switch_res = service_proxy_switch.call(switch_req)
+          rospy.sleep(1)
           return switch_res.ok
         else:
           return True
 
   def load_program(self, robot="b_bot", program_name="", recursion_depth=0):
-    if robot == "a_bot":
-      return True
     if not self.use_real_robot:
       return True
 
@@ -479,8 +433,6 @@ class O2ACBase(object):
       return self.load_program(robot, program_name=program_name, recursion_depth=recursion_depth+1)
   
   def execute_loaded_program(self, robot="b_bot"):
-    if robot == "a_bot":
-      return True
     # Run the program
     response = self.ur_dashboard_clients[robot + "_play"].call(std_srvs.srv.TriggerRequest())
     if not response.success:
@@ -491,8 +443,6 @@ class O2ACBase(object):
       return True
   
   def close_ur_popup(self, robot="b_bot"):
-    if robot == "a_bot":
-      return True
     # Close a popup on the teach pendant to continue program execution
     response = self.ur_dashboard_clients[robot + "_close_popup"].call(std_srvs.srv.TriggerRequest())
     if not response.success:
@@ -608,8 +558,8 @@ class O2ACBase(object):
   
   def go_to_pose_goal(self, group_name, pose_goal_stamped, speed = 1.0, acceleration = 0.0, high_precision = False, 
                       end_effector_link = "", move_lin = True):
-    if group_name == "a_bot":
-      return True
+    if rospy.is_shutdown():
+      return False
     if self.pause_mode_ or self.test_mode_:
       if speed > self.reduced_mode_speed_limit:
         rospy.loginfo("Reducing speed from " + str(speed) + " to " + str(self.reduced_mode_speed_limit) + " because robot is in test or pause mode")
@@ -694,8 +644,8 @@ class O2ACBase(object):
     return ps_new
 
   def move_lin(self, group_name, pose_goal_stamped, speed = 1.0, acceleration = 0.0, end_effector_link = ""):
-    if group_name == "a_bot":
-      return True
+    if rospy.is_shutdown():
+      return False
     self.publish_marker(pose_goal_stamped, "pose")
     if self.pause_mode_ or self.test_mode_:
       if speed > self.reduced_mode_speed_limit:
@@ -761,8 +711,6 @@ class O2ACBase(object):
     return plan_success
 
   def move_lin_rel(self, robot_name, relative_translation = [0,0,0], relative_rotation = [0,0,0], acceleration = 0.5, velocity = .03, use_robot_base_csys=False, wait = True, max_wait=30.0):
-    if robot_name == "a_bot":
-      return True
     '''
     Does a lin_move relative to the current position of the robot. Uses the robot's TCP.
 
@@ -771,6 +719,8 @@ class O2ACBase(object):
     relative_rotation: rotatory movement relative to current tcp position, expressed in robot's own base frame
     use_robot_base_csys: If true, uses the robot_base coordinates for the relative motion (not workspace_center!)
     '''
+    if rospy.is_shutdown():
+      return False
     # Uses UR coordinates
     if not self.use_real_robot:
       return True
@@ -794,8 +744,8 @@ class O2ACBase(object):
     return res.success
 
   def move_joints(self, group_name, joint_pose_goal, speed = 1.0, acceleration = 0.0, force_ur_script=False, force_moveit=False):
-    if group_name == "a_bot":
-      return True
+    if rospy.is_shutdown():
+      return False
     if self.pause_mode_ or self.test_mode_:
       if speed > self.reduced_mode_speed_limit:
         rospy.loginfo("Reducing speed from " + str(speed) + " to " + str(self.reduced_mode_speed_limit) + " because robot is in test or pause mode")
@@ -821,6 +771,8 @@ class O2ACBase(object):
     return self.groups[group_name].go(wait=True)
 
   def move_both_robots(self, pose_goal_a_bot, pose_goal_b_bot, speed = 0.05):
+    if rospy.is_shutdown():
+      return False
     if self.pause_mode_ or self.test_mode_:
       if speed > .25:
         rospy.loginfo("Reducing speed from " + str(speed) + " to .25 because robot is in test or pause mode")
@@ -843,8 +795,8 @@ class O2ACBase(object):
     return success
 
   def horizontal_spiral_motion(self, robot_name, max_radius = .01, radius_increment = .001, speed = 0.02, spiral_axis="Z"):
-    if robot_name == "a_bot":
-      return True
+    if rospy.is_shutdown():
+      return False
     rospy.loginfo("Performing horizontal spiral motion at speed " + str(speed) + " and radius " + str(max_radius))
     if not self.use_real_robot:
       return True
@@ -861,11 +813,11 @@ class O2ACBase(object):
     # =====
 
   def go_to_named_pose(self, pose_name, robot_name, speed = 0.5, acceleration = 0.0, force_ur_script=False):
-    if robot_name == "a_bot":
-      return True
     """
     pose_name should be a named pose in the moveit_config, such as "home", "back" etc.
     """
+    if rospy.is_shutdown():
+      return False
     if self.pause_mode_ or self.test_mode_:
       if speed > self.reduced_mode_speed_limit:
         rospy.loginfo("Reducing speed from " + str(speed) + " to " + str(self.reduced_mode_speed_limit) + " because robot is in test or pause mode")
@@ -895,8 +847,6 @@ class O2ACBase(object):
   ######
 
   def pick_screw_from_feeder(self, robot_name, screw_size):
-    if robot_name == "a_bot":
-      return True
     """
     Picks a screw from one of the feeders. The screw tool already has to be equipped!
     Use this command to equip the screw tool: do_change_tool_action(self, "b_bot", equip=True, screw_size = 4)
@@ -1224,7 +1174,7 @@ class O2ACBase(object):
   def set_motor(self, motor_name, direction = "tighten", wait=False, speed = 0, duration = 0):
     if not self.use_real_robot:
       return True
-    goal = o2ac_msgs.msg.FastenerGripperControlGoal()
+    goal = o2ac_msgs.msg.ScrewToolControlGoal()
     goal.fastening_tool_name = motor_name
     goal.direction = direction
     goal.speed = speed

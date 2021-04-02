@@ -69,10 +69,12 @@ class PartsReader(object):
         '''
         Switch between assemblies
         '''
+        rospy.loginfo("Loading new parts database: " + db_name)
         self.db_name = db_name
         self._directory = os.path.join(self._rospack.get_path('o2ac_assembly_database'), 'config', db_name)
         self._parts_list = self._read_parts_list()
         self.collision_objects, self.grasps = self.get_collision_objects_with_metadata()
+        rospy.loginfo("Done loading.")
     
     def get_collision_object(self, object_name):
         '''

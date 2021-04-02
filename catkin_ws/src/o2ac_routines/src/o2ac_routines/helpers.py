@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+import copy
 import rospy
 import geometry_msgs.msg
 import actionlib
@@ -146,19 +147,19 @@ def wait_for_UR_program(topic_namespace = "", timeout_duration = rospy.Duration.
 def rotatePoseByRPY(roll, pitch, yaw, in_pose):
   # Catch if in_pose is a PoseStamped instead of a Pose.
   try:
-    if in_pose.header:
-      in_pose.pose = rotatePoseByRPY(roll, pitch, yaw, in_pose.pose)
-      return in_pose
+    if type(in_pose) == type(geometry_msgs.msg.PoseStamped()):
+      outpose = copy.deepcopy(in_pose)
+      outpose.pose = rotatePoseByRPY(roll, pitch, yaw, in_pose.pose)
+      return outpose
   except:
     pass # header doesn't exist so the object is probably not posestamped
   
   q_in = [in_pose.orientation.x, in_pose.orientation.y, in_pose.orientation.z, in_pose.orientation.w]
-  q_rot = quaternion_from_euler([roll, pitch, yaw])
-
-  q_rotated = quaternion_multiply(q_in, q_rot)
+  q_rot = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
+  q_rotated = tf.transformations.quaternion_multiply(q_in, q_rot)
 
   rotated_pose = copy.deepcopy(in_pose)
-  rotated_pose.orientation.x = geometry_msgs.msg.Quaternion(*q_rotated)
+  rotated_pose.orientation = geometry_msgs.msg.Quaternion(*q_rotated)
   return rotated_pose
 
 # // Returns the angle between two quaternions

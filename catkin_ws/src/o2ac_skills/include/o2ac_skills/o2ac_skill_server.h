@@ -46,7 +46,7 @@
 #include "o2ac_msgs/regraspAction.h"
 #include "o2ac_msgs/screwAction.h"
 #include "o2ac_msgs/changeToolAction.h"
-#include "o2ac_msgs/FastenerGripperControlAction.h"
+#include "o2ac_msgs/ScrewToolControlAction.h"
 #include "o2ac_msgs/SuctionControlAction.h"
 
 // For the URe program activation
@@ -157,7 +157,7 @@ public:
   // Action clients
   // actionlib::SimpleActionClient<control_msgs::GripperCommandAction> a_bot_gripper_client_;
   actionlib::SimpleActionClient<robotiq_msgs::CModelCommandAction> a_bot_gripper_client_, b_bot_gripper_client_;
-  actionlib::SimpleActionClient<o2ac_msgs::FastenerGripperControlAction> fastening_tool_client;
+  actionlib::SimpleActionClient<o2ac_msgs::ScrewToolControlAction> fastening_tool_client;
   actionlib::SimpleActionClient<o2ac_msgs::SuctionControlAction> suction_client;
 
   double PLANNING_TIME = 5.0, LIN_PLANNING_TIME = 15.0;

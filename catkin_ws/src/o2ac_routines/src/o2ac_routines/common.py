@@ -51,6 +51,51 @@ class O2ACCommon(O2ACBase):
     self.small_item_ids = [8,9,10,14]
     self.large_item_ids = [1,2,3,4,5,7,11,12,13]
     self.belt_id        = [6]
+    
+    self.define_tray_views()
+
+  def define_tray_views(self):
+    """
+    Define the poses used to position the camera to look into the tray.
+
+    Example usage: self.go_to_pose_goal("b_bot", self.tray_view_high, 
+                                        end_effector_link="b_bot_outside_camera_color_frame", 
+                                        speed=.1, acceleration=.04)
+    """
+    high_height = .37
+    low_height = .22
+    x_offset = .04  # At low_height
+    y_offset = .07  # At low_height
+
+    ps = geometry_msgs.msg.PoseStamped()
+    ps.header.frame_id = "tray_center"
+    ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
+    ps.pose.position.z = high_height
+
+    # Centered views (high up and close)
+    self.tray_view_high = copy.deepcopy(ps)
+    ps.pose.position.z = low_height
+    self.tray_view_low = copy.deepcopy(ps)
+
+    # Close views in corners
+    ps.pose.position.x = x_offset
+    ps.pose.position.y = y_offset
+    self.tray_view_close_front_b = copy.deepcopy(ps)
+    ps.pose.position.x = -x_offset
+    ps.pose.position.y = y_offset
+    self.tray_view_close_back_b = copy.deepcopy(ps)
+    ps.pose.position.x = x_offset
+    ps.pose.position.y = -y_offset
+    self.tray_view_close_front_a = copy.deepcopy(ps)
+    ps.pose.position.x = -x_offset
+    ps.pose.position.y = -y_offset
+    self.tray_view_close_back_a = copy.deepcopy(ps)
+
+    self.close_tray_views = [self.tray_view_low, self.tray_view_close_front_b, self.tray_view_close_back_b, self.tray_view_close_front_a, self.tray_view_close_back_a]
+    self.close_tray_views_rot_left = [rotatePoseByRPY(radians(20),0,0, pose) for pose in self.close_tray_views]
+    self.close_tray_views_rot_right = [rotatePoseByRPY(radians(-20),0,0, pose) for pose in self.close_tray_views]
+    self.close_tray_views_rot_left_more = [rotatePoseByRPY(radians(50),0,0, pose) for pose in self.close_tray_views]
+    self.close_tray_views_rot_left_90 = [rotatePoseByRPY(radians(90),0,0, pose) for pose in self.close_tray_views]
 
   ######## Higher-level routines used in both assembly and taskboard
 
@@ -468,7 +513,7 @@ class O2ACCommon(O2ACBase):
       self.go_to_pose_goal(robot_name, object_pose, speed=speed_fast, move_lin=False)  
     return True
 
-  def simple_grasp_sanity_check(self, grasp_pose, grasp_width=0.08, border_dist=0.08):
+  def simple_grasp_sanity_check(self, grasp_pose, grasp_width=0.08, border_dist=0.06):
     """
     Returns true if the grasp pose is further than 5 cm away from the tray border,
     and no other detected objects are closer than 5 cm.
@@ -477,16 +522,16 @@ class O2ACCommon(O2ACBase):
     """
     d = self.distance_from_tray_border(grasp_pose)
     if d[0] < border_dist or d[1] < border_dist:
-      rospy.logdebug("too close to border. discarding grasp pose. border distance was: ")
-      rospy.logdebug(d)
+      rospy.loginfo("too close to border. discarding. border distance was: " + str(d))
       return False
     for obj, pose in self.objects_in_tray.items():
       if obj == 6: # Hard-code skipping the belt
+        rospy.logwarn("Skipping the belt during grasp check")
         continue
       if pose_dist(pose.pose, grasp_pose.pose) < 0.05:
         if pose_dist(pose.pose, grasp_pose.pose) < 1e-6:
           continue  # It's the item itself or a duplicate
-        rospy.logdebug("too close to another item. discarding. distance: " + str(pose_dist(pose.pose, grasp_pose.pose)) + ", id: " + str(obj))
+        rospy.loginfo("too close to another item. discarding. distance: " + str(pose_dist(pose.pose, grasp_pose.pose)) + ", id: " + str(obj))
         return False
     return True
   
@@ -556,20 +601,62 @@ class O2ACCommon(O2ACBase):
     Looks at the tray from above and gets grasp points of items.
     Does very light feasibility check before returning.
     """
+    # Make sure object_id is the id number
+    if isinstance(object_id, str):
+      try:
+        object_id_num = self.assembly_database.name_to_id(object_id)
+      except:
+        object_id_num = []
+      if not object_id_num:
+        rospy.logerr("Could not find object id " + object_id + " in database!")
+        return False
+      rospy.logwarn("look_and_get_grasp_point got " + object_id + " but will use id number " + str(object_id_num))
+      return self.look_and_get_grasp_point(object_id_num)
+
     self.activate_camera("b_bot_outside_camera")
     self.activate_led("b_bot")
     self.open_gripper("b_bot", wait=False)
     # TODO: Merge with detect_object_in_camera_view in base.py
-    self.go_to_pose_goal("b_bot", self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.1)
-    self.get_3d_poses_from_ssd()
-    
-    r2 = self.get_feasible_grasp_points(object_id)
-    if r2:
-      goal = r2[0]
-    else:
-      rospy.logerr("Could not find suitable grasp pose! Aborting.")
-      return False
-    return r2[0]
+    # self.go_to_pose_goal("b_bot", self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.1)
+    # self.get_3d_poses_from_ssd()
+    if object_id in self.objects_in_tray:
+      del self.objects_in_tray[object_id]
+
+    if not object_id in self.objects_in_tray:
+      # for close_view_batch in [self.close_tray_views, self.close_tray_views_rot_left, self.close_tray_views_rot_right]:
+      for view in [self.tray_view_high] + self.close_tray_views + self.close_tray_views_rot_left + self.close_tray_views_rot_right + self.close_tray_views_rot_left_more + self.close_tray_views_rot_left_90:
+        self.go_to_pose_goal("b_bot", view, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.1)
+        rospy.sleep(0.3)
+        self.get_3d_poses_from_ssd()
+        if object_id in self.objects_in_tray:
+          rospy.loginfo("Getting grasp points for object_id : " + str(object_id) + " at pose:")
+          rospy.loginfo(self.objects_in_tray[object_id].pose.position)
+          grasp_points = self.get_feasible_grasp_points(object_id)
+          # Get another view from up close (if the view was already close, the object may have been on the edge of the image). 
+          # TODO: Use another function to confirm item position and get best grasp point
+          close_view = self.listener.transformPose("tray_center", self.objects_in_tray[object_id])
+          close_view.pose.position.x += 0.0  # To avoid noise from direct reflections of the structured light
+          close_view.pose.position.z = copy.deepcopy(self.close_tray_views[0].pose.position.z)
+          close_view.pose.orientation = copy.deepcopy(view.pose.orientation)
+          self.go_to_pose_goal("b_bot", close_view, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.1)
+          rospy.sleep(0.5)
+          self.get_3d_poses_from_ssd()
+          grasp_points_close = self.get_feasible_grasp_points(object_id)
+          if grasp_points_close:
+            rospy.loginfo("Got a better grasp point by looking closer. Before: ")
+            rospy.loginfo(grasp_points_close[0].pose.position)
+            rospy.loginfo("After: ")
+            rospy.loginfo(grasp_points[0].pose.position)
+            grasp_point = grasp_points_close
+
+          if grasp_points:
+            return grasp_points[0]
+          else:
+            rospy.logerr("Could not find suitable grasp pose! Aborting.")
+            return False
+          break
+    rospy.logerr("Could not find item id " + str(object_id) + " in tray!")
+    return False
 
   def distance_from_tray_border(self, object_pose):
     """
@@ -713,7 +800,10 @@ class O2ACCommon(O2ACBase):
         return res
     return False
 
-    
+  def look_at_motor(self):
+    b_bot_joint_angles = [1.9093738794326782, -1.1168301564506073, 1.8244155089007776, -0.8763039273074646, -1.244535271321432, 0.048961393535137177]
+    # b_bot_outside_camera_optical_frame in vgroove_aid_lin: xyz: -0.011832; 0.13308; 0.085104 q: 0.83999; 0.0043246; 0.0024908; 0.54257
+
 
   ########
 
