@@ -181,6 +181,8 @@ class O2ACBase(object):
     self.publishMarker_client = rospy.ServiceProxy('/o2ac_skills/publishMarker', o2ac_msgs.srv.publishMarker)
     self.toggleCollisions_client = rospy.ServiceProxy('/o2ac_skills/toggleCollisions', std_srvs.srv.SetBool)
 
+    self.robot_safety_mode = dict() 
+    self.screw_is_suctioned = dict()
     # Subscribers
     # "robot_program_running" refers only to the ROS external control UR script, not just any program
     self.sub_a_bot_status_ = rospy.Subscriber("/a_bot/ur_hardware_interface/robot_program_running", Bool, self.a_bot_ros_control_status_callback) 
@@ -193,8 +195,6 @@ class O2ACBase(object):
     self.sub_suction_m4_ = rospy.Subscriber("/screw_tool_m4/screw_suctioned", Bool, self.suction_m4_callback)
     self.sub_suction_m3_ = rospy.Subscriber("/screw_tool_m3/screw_suctioned", Bool, self.suction_m3_callback)
     self.sub_robot_safety_mode_b_bot = rospy.Subscriber("/b_bot/ur_hardware_interface/safety_mode", ur_dashboard_msgs.msg.SafetyMode, self.b_bot_safety_mode_callback)
-    self.robot_safety_mode = dict() 
-    self.screw_is_suctioned = dict()
     
     # self.my_mutex = threading.Lock()
 
@@ -293,11 +293,16 @@ class O2ACBase(object):
     self.b_bot_gripper_opening_width = msg.position  # [m]
   
   def activate_camera(self, camera_name="b_bot_outside_camera"):
-    if self.camera_multiplexer:
-      self.camera_multiplexer.activate_camera(camera_name)
-    else:
-      rospy.logwarn("Camera multiplexer not functional! Returning true")
-      return True
+    try:
+      if self.camera_multiplexer:
+        self.camera_multiplexer.activate_camera(camera_name)
+      else:
+        rospy.logwarn("Camera multiplexer not functional! Returning true")
+        return True
+    except:
+      pass
+    rospy.logwarn("Could not activate camera! Returning false")
+    return False
   
   def activate_led(self, LED_name="b_bot", on=True):
     req = ur_msgs.srv.SetIORequest()
@@ -427,6 +432,7 @@ class O2ACBase(object):
           switch_req.start_controllers = ['scaled_pos_joint_traj_controller']
           switch_req.strictness = 1
           switch_res = service_proxy_switch.call(switch_req)
+          rospy.sleep(1)
           return switch_res.ok
         else:
           return True
@@ -598,6 +604,8 @@ class O2ACBase(object):
   
   def go_to_pose_goal(self, group_name, pose_goal_stamped, speed = 1.0, acceleration = 0.0, high_precision = False, 
                       end_effector_link = "", move_lin = True):
+    if rospy.is_shutdown():
+      return False
     if self.pause_mode_ or self.test_mode_:
       if speed > self.reduced_mode_speed_limit:
         rospy.loginfo("Reducing speed from " + str(speed) + " to " + str(self.reduced_mode_speed_limit) + " because robot is in test or pause mode")
@@ -682,6 +690,8 @@ class O2ACBase(object):
     return ps_new
 
   def move_lin(self, group_name, pose_goal_stamped, speed = 1.0, acceleration = 0.0, end_effector_link = ""):
+    if rospy.is_shutdown():
+      return False
     self.publish_marker(pose_goal_stamped, "pose")
     if self.pause_mode_ or self.test_mode_:
       if speed > self.reduced_mode_speed_limit:
@@ -755,6 +765,8 @@ class O2ACBase(object):
     relative_rotation: rotatory movement relative to current tcp position, expressed in robot's own base frame
     use_robot_base_csys: If true, uses the robot_base coordinates for the relative motion (not workspace_center!)
     '''
+    if rospy.is_shutdown():
+      return False
     # Uses UR coordinates
     if not self.use_real_robot:
       return True
@@ -778,6 +790,8 @@ class O2ACBase(object):
     return res.success
 
   def move_joints(self, group_name, joint_pose_goal, speed = 1.0, acceleration = 0.0, force_ur_script=False, force_moveit=False):
+    if rospy.is_shutdown():
+      return False
     if self.pause_mode_ or self.test_mode_:
       if speed > self.reduced_mode_speed_limit:
         rospy.loginfo("Reducing speed from " + str(speed) + " to " + str(self.reduced_mode_speed_limit) + " because robot is in test or pause mode")
@@ -803,6 +817,8 @@ class O2ACBase(object):
     return self.groups[group_name].go(wait=True)
 
   def move_both_robots(self, pose_goal_a_bot, pose_goal_b_bot, speed = 0.05):
+    if rospy.is_shutdown():
+      return False
     if self.pause_mode_ or self.test_mode_:
       if speed > .25:
         rospy.loginfo("Reducing speed from " + str(speed) + " to .25 because robot is in test or pause mode")
@@ -825,6 +841,8 @@ class O2ACBase(object):
     return success
 
   def horizontal_spiral_motion(self, robot_name, max_radius = .01, radius_increment = .001, speed = 0.02, spiral_axis="Z"):
+    if rospy.is_shutdown():
+      return False
     rospy.loginfo("Performing horizontal spiral motion at speed " + str(speed) + " and radius " + str(max_radius))
     if not self.use_real_robot:
       return True
@@ -844,6 +862,8 @@ class O2ACBase(object):
     """
     pose_name should be a named pose in the moveit_config, such as "home", "back" etc.
     """
+    if rospy.is_shutdown():
+      return False
     if self.pause_mode_ or self.test_mode_:
       if speed > self.reduced_mode_speed_limit:
         rospy.loginfo("Reducing speed from " + str(speed) + " to " + str(self.reduced_mode_speed_limit) + " because robot is in test or pause mode")

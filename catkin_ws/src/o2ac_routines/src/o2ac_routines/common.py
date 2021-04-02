@@ -556,6 +556,18 @@ class O2ACCommon(O2ACBase):
     Looks at the tray from above and gets grasp points of items.
     Does very light feasibility check before returning.
     """
+    # Make sure object_id is the id number
+    if isinstance(object_id, str):
+      try:
+        object_id_num = self.assembly_database.name_to_id(object_id)
+      except:
+        object_id_num = []
+      if not object_id_num:
+        rospy.logerr("Could not find object id " + object_id + " in database!")
+        return False
+      rospy.logwarn("look_and_get_grasp_point got " + object_id + " but will use id number " + str(object_id_num))
+      return self.look_and_get_grasp_point(object_id_num)
+
     self.activate_camera("b_bot_outside_camera")
     self.activate_led("b_bot")
     self.open_gripper("b_bot", wait=False)

@@ -251,7 +251,7 @@ class TaskboardClass(O2ACCommon):
     # TODO: check set screw success with a_bot, do spiral motion with b_bot otherwise
     
     ### SCREW M3 WITH A_BOT
-    self.activate_camera("a_bot_outside_camera")
+    # self.activate_camera("a_bot_outside_camera")
     self.pick_screw_from_feeder("a_bot", screw_size = 3)
     self.go_to_named_pose("home", "a_bot")
 
@@ -310,7 +310,7 @@ class TaskboardClass(O2ACCommon):
     }
     
     # # - Retainer pin + nut
-    # subtask_completed["idler pulley"] = self.do_task("idler pulley")
+    subtask_completed["idler pulley"] = self.do_task("idler pulley")
     self.do_change_tool_action("b_bot", equip=False, screw_size = 4)
       
     # - Shaft
@@ -328,7 +328,7 @@ class TaskboardClass(O2ACCommon):
     if subtask_completed["bearing"]:
       self.do_task("screw_bearing")
 
-    order = ["shaft", "motor_pulley", "belt", "bearing"]
+    order = ["shaft", "motor pulley", "belt", "bearing"]
     task_complete = False
     while not task_complete:
       for item in order:
@@ -361,25 +361,27 @@ class TaskboardClass(O2ACCommon):
       success_b = self.load_program(robot="b_bot", program_name="wrs2020/taskboard_belt_v4.urp", recursion_depth=3)
       if success_b:
         print("Running belt pick on b_bot.")
-        self.execute_loaded_program(robot="b_bot")
+        if not self.execute_loaded_program(robot="b_bot"):
+          rospy.logerr("Failed to execute belt picking program on b_bot")
       else:
         return False
       
       self.simple_pick("a_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z")
-      a_bot_wait_with_belt_pose = [2.0059760252581995, -1.602117200891012, 0.646294116973877, -1.3332312864116211, -0.8101084868060511, -2.4642069975482386]
+      a_bot_wait_with_belt_pose = [0.646294116973877, -1.602117200891012, 2.0059760252581995, -1.3332312864116211, -0.8101084868060511, -2.4642069975482386]
       self.move_joints("a_bot", a_bot_wait_with_belt_pose)
 
-      # TODO: Check for pick success
+      # TODO: Check for pick success with cameras
       
       success_a = self.load_program(robot="a_bot", program_name="wrs2020/taskboard_belt_v5.urp", recursion_depth=3)      
       if success_a and success_b:
         print("Loaded belt program on a_bot.")
         rospy.sleep(1)
-        self.execute_loaded_program(robot="a_bot")
-        print("Starting belt threading execution.")
-        rospy.sleep(2)
-        self.close_ur_popup(robot="a_bot")
-        self.close_ur_popup(robot="b_bot")
+        success = self.execute_loaded_program(robot="a_bot")
+        if success:
+          print("Starting belt threading execution.")
+          rospy.sleep(2)
+          self.close_ur_popup(robot="a_bot")
+          self.close_ur_popup(robot="b_bot")
       else:
         print("Problem loading. Not executing belt procedure.")
       wait_for_UR_program("/b_bot", rospy.Duration.from_sec(20))

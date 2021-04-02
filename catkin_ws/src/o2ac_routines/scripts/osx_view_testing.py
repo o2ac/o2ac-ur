@@ -54,6 +54,7 @@ import o2ac_msgs.msg
 
 import o2ac_vision
 from o2ac_routines.helpers import wait_for_UR_program
+import o2ac_routines.helpers as helpers
 
 class TestClass(O2ACCommon):
 
