@@ -17,18 +17,23 @@ parts_list:
     description: Idley pulley (not used)
   - id: 5
     name: motor_pulley
-    type: 05_MBRFA30-2-P6
-    cad: 05_MBRFA30-2-P6.stl
+    type: MBGNA30-2
+    cad: MBGNA30-2.stl
     description: Pulley for Round Belt (4mm) - Setscrew P.D. 30mm
+  - id: 6
+    name: belt
+    type: 06_MBT4-400
+    cad: 06_MBT4-400.stl
+    description: Polyurethane round belt (welded joint product) P.D. 4mm L=400mm
+  - id: 7
+    name: bearing
+    type: 07_SBARB6200ZZ-30
+    cad: bearing_SBARB6200ZZ_30.stl
+    description: Bearings with Housings (Double Bearings)
   - id: 8
     name: shaft
     cad: shaft_KZAF1075NA4WA55GA20AA0.stl
     description: Shaft for the bearing
-  - id: 7
-    name: bearing
-    type: 07_SBARB6200ZZ-30
-    cad: 07_SBARB6200ZZ_30.stl
-    description: Bearings with Housings (Double Bearings)
   - id: 9
     name: endcap
     type: endcap_EDCS10
