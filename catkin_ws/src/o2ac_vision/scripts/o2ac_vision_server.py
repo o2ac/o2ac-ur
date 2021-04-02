@@ -373,9 +373,14 @@ class O2ACVisionServer(object):
                 # Publish result markers
                 poses_3d = []
                 for p2d in estimated_poses_msg.poses:
-                    poses_3d.append(self.convert_pose_2d_to_3d(p2d))
-                    rospy.loginfo("Found pose: " + str(poses_3d[-1].pose.position.x) + ", " + str(poses_3d[-1].pose.position.y) + ", " + str(poses_3d[-1].pose.position.z))
-                
+                    p3d = self.convert_pose_2d_to_3d(p2d)
+                    if not p3d:
+                        continue
+                    poses_3d.append(p3d)
+                    rospy.loginfo("Found pose for class " + str(target) + ": " + str(poses_3d[-1].pose.position.x) + ", " + str(poses_3d[-1].pose.position.y) + ", " + str(poses_3d[-1].pose.position.z))
+                if not poses_3d:
+                    rospy.logwarn("Could not find pose for class " + str(target) + "!")
+                    continue
                 self.add_markers_to_pose_array(poses_3d)
 
             elif target in apply_3d_pose_estimation:
@@ -386,9 +391,12 @@ class O2ACVisionServer(object):
                 # Publish markers at bbox centers
                 p2d = geometry_msgs.msg.Pose2D(x=x, y=y)
                 estimated_poses_msg.poses = [p2d]
-                poses_3d = []
-                poses_3d.append(self.convert_pose_2d_to_3d(p2d))
-                rospy.loginfo("Found pose: " + str(poses_3d[-1].pose.position.x) + ", " + str(poses_3d[-1].pose.position.y) + ", " + str(poses_3d[-1].pose.position.z))
+                p3d = self.convert_pose_2d_to_3d(p2d)
+                if not p3d:
+                    rospy.logwarn("Could not find pose for class " + str(target) + "!")
+                    continue
+                poses_3d = [p3d]
+                rospy.loginfo("Found pose for class " + str(target) + ": " + str(poses_3d[-1].pose.position.x) + ", " + str(poses_3d[-1].pose.position.y) + ", " + str(poses_3d[-1].pose.position.z))
                 self.add_markers_to_pose_array(poses_3d)
 
             elif target in apply_grasp_detection:
@@ -525,6 +533,8 @@ class O2ACVisionServer(object):
         p3d.header.frame_id = self._camera_info.header.frame_id
         depth_image = self.bridge.imgmsg_to_cv2(self._depth_image_ros, desired_encoding="passthrough")
         xyz = self.cam_helper.project_2d_to_3d_from_images(pose_2d.x, pose_2d.y, [depth_image])
+        if not xyz:
+            return None
         p3d.pose.position.x = xyz[0]
         p3d.pose.position.y = xyz[1]
         p3d.pose.position.z = xyz[2]

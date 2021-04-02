@@ -85,6 +85,9 @@ class O2ACCameraHelper(object):
             if not average_with_radius:
                 rospy.loginfo("Reattempting backprojection with neighboring pixels")
                 return self.project_2d_to_3d_from_images(u, v, depth_images, average_with_radius=8)
+            else:
+                rospy.logerr("Could not find pixels in depth image to reproject! Returning None")
+                return None
         depth = np.mean(depth_vals)
         
         # Backproject to 3D
