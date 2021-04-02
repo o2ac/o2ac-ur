@@ -1,9 +1,9 @@
 #!/bin/bash
 
-DOCKER_VERSION="5:18.09.3~3-0~ubuntu-$(lsb_release -cs)"
+DOCKER_VERSION="5:20.10.5~3-0~ubuntu-$(lsb_release -cs)"
 DOCKER_COMPOSE_VERSION="1.23.2"
-NVIDIA_DOCKER_VERSION="2.0.3+docker18.09.3-1"
-NVIDIA_RUNTIME_VERSION="2.0.0+docker18.09.3-1"
+NVIDIA_DOCKER_VERSION="2.5.0-1"
+NVIDIA_RUNTIME_VERSION="3.4.2-1"
 
 ################################################################################
 
