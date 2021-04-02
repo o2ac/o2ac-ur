@@ -572,16 +572,46 @@ class O2ACCommon(O2ACBase):
     self.activate_led("b_bot")
     self.open_gripper("b_bot", wait=False)
     # TODO: Merge with detect_object_in_camera_view in base.py
-    self.go_to_pose_goal("b_bot", self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.1)
-    self.get_3d_poses_from_ssd()
-    
-    r2 = self.get_feasible_grasp_points(object_id)
-    if r2:
-      goal = r2[0]
-    else:
-      rospy.logerr("Could not find suitable grasp pose! Aborting.")
-      return False
-    return r2[0]
+    # self.go_to_pose_goal("b_bot", self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.1)
+    # self.get_3d_poses_from_ssd()
+    if object_id in self.objects_in_tray:
+      del self.objects_in_tray[object_id]
+
+    if not object_id in self.objects_in_tray:
+      # for close_view_batch in [self.close_tray_views, self.close_tray_views_rot_left, self.close_tray_views_rot_right]:
+      for view in [self.tray_view_high] + self.close_tray_views + self.close_tray_views_rot_left + self.close_tray_views_rot_right + self.close_tray_views_rot_left_more + self.close_tray_views_rot_left_90:
+        self.go_to_pose_goal("b_bot", view, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.1)
+        rospy.sleep(0.3)
+        self.get_3d_poses_from_ssd()
+        if object_id in self.objects_in_tray:
+          rospy.loginfo("Getting grasp points for object_id : " + str(object_id) + " at pose:")
+          rospy.loginfo(self.objects_in_tray[object_id].pose.position)
+          grasp_points = self.get_feasible_grasp_points(object_id)
+          # Get another view from up close (if the view was already close, the object may have been on the edge of the image). 
+          # TODO: Use another function to confirm item position and get best grasp point
+          close_view = self.listener.transformPose("tray_center", self.objects_in_tray[object_id])
+          close_view.pose.position.x += 0.0  # To avoid noise from direct reflections of the structured light
+          close_view.pose.position.z = copy.deepcopy(self.close_tray_views[0].pose.position.z)
+          close_view.pose.orientation = copy.deepcopy(view.pose.orientation)
+          self.go_to_pose_goal("b_bot", close_view, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.1)
+          rospy.sleep(0.5)
+          self.get_3d_poses_from_ssd()
+          grasp_points_close = self.get_feasible_grasp_points(object_id)
+          if grasp_points_close:
+            rospy.loginfo("Got a better grasp point by looking closer. Before: ")
+            rospy.loginfo(grasp_points_close[0].pose.position)
+            rospy.loginfo("After: ")
+            rospy.loginfo(grasp_points[0].pose.position)
+            grasp_point = grasp_points_close
+
+          if grasp_points:
+            return grasp_points[0]
+          else:
+            rospy.logerr("Could not find suitable grasp pose! Aborting.")
+            return False
+          break
+    rospy.logerr("Could not find item id " + str(object_id) + " in tray!")
+    return False
 
   def distance_from_tray_border(self, object_pose):
     """
