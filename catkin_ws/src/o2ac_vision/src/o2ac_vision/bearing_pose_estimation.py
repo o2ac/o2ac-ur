@@ -360,6 +360,7 @@ class PoseEstimator:
         self.mse = 100000
         self.pcds = None
         self.d = None
+        self.threshold = 10000
         
         
     def get_pcd( self, img ):
@@ -397,6 +398,7 @@ class PoseEstimator:
             If pose estimation fails, (False, False) is returned
         """
 
+        self.threshold = threshold
         
         # Preprocessing
         ##  downsampling edge pixels
@@ -437,7 +439,7 @@ class PoseEstimator:
         self.mse = mses[idx]
         reg_trans = reg_transes[idx]
                   
-        if self.mse < threshold:
+        if self.mse < self.threshold:
             """
             # check transformation progress
             hoge = copy.deepcopy(self.pcd_s)
@@ -487,8 +489,9 @@ class PoseEstimator:
         pcd_final.transform(self.trans_final)
         np_final = np.asarray( pcd_final.points, np.int )
 
-        for i in range(np_final.shape[0]):
-            im_result = cv2.circle( im_result, (np_final[i,1],np_final[i,0]), 2, (0,255,0), -1, cv2.LINE_AA )
+        if self.mse < self.threshold:
+            for i in range(np_final.shape[0]):
+                im_result = cv2.circle( im_result, (np_final[i,1],np_final[i,0]), 2, (0,255,0), -1, cv2.LINE_AA )
         
         # Draw rotation in image
         _,_,rotate = mat2rpy(self.trans_final)
@@ -496,5 +499,8 @@ class PoseEstimator:
         d_rotate = np.degrees(rotate)
         str_rotate = format(d_rotate,'.2f')+"[deg](CCW), MSE:"+format(self.mse,'.2f')
         im_result = cv2.putText( im_result, str_rotate, (10,30), 1, 0.7, (255, 255, 255), 2, cv2.LINE_AA )
-        im_result = cv2.putText( im_result, str_rotate, (10,30), 1, 0.7, (255, 0, 0), 1, cv2.LINE_AA )
+        if self.mse < self.threshold:
+            im_result = cv2.putText( im_result, str_rotate, (10,30), 1, 0.7, (255, 0, 0), 1, cv2.LINE_AA )
+        else:
+            im_result = cv2.putText( im_result, str_rotate, (10,30), 1, 0.7, (0, 0, 255), 1, cv2.LINE_AA )
         return im_result
