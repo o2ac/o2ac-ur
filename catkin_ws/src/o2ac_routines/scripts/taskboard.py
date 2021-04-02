@@ -204,17 +204,17 @@ class TaskboardClass(O2ACCommon):
         rospy.loginfo("Bearing detected angle: %3f", degrees(angle))
         # rospy.loginfo(str(degrees(angle)))
         b_bot_at_tb_bearing = [1.56031179, -1.25635559, 1.8379710, -2.2435614, -2.6155634, -1.55478078]
-        if abs(degrees(angle)) > 5:
+        if abs(degrees(angle)) > 3.5: # One execution = 5 degrees roughly
           self.open_gripper("b_bot")
           self.move_joints("b_bot", b_bot_at_tb_bearing)
-          if degrees(angle) < 5:
+          if degrees(angle) < 3.5:
             success = self.load_program(robot="b_bot", program_name="wrs2020/bearing_turn_left.urp", recursion_depth=3)
             rospy.loginfo("executing bearing left turn")
-          elif degrees(angle) > 5:
+          elif degrees(angle) > 3.5:
             success = self.load_program(robot="b_bot", program_name="wrs2020/bearing_turn_right.urp", recursion_depth=3)  
             rospy.loginfo("executing bearing right turn")
           if success:
-            turns_to_do = math.floor(abs(degrees(angle))/6.0)
+            turns_to_do = max( round((abs(degrees(angle))/6.0)), 1)
             for i in range(int(turns_to_do)):
               self.execute_loaded_program(robot="b_bot")
               wait_for_UR_program("/b_bot", rospy.Duration.from_sec(15))
