@@ -1019,8 +1019,8 @@ bool SkillServer::sendFasteningToolCommand(std::string fastening_tool_name, std:
   if (!use_real_robot_)
     return true;
   // Send a goal to the action
-  o2ac_msgs::FastenerGripperControlGoal goal;
-  o2ac_msgs::FastenerGripperControlResultConstPtr result;
+  o2ac_msgs::ScrewToolControlGoal goal;
+  o2ac_msgs::ScrewToolControlResultConstPtr result;
 
   ROS_INFO_STREAM("Requesting " << fastening_tool_name << " to go " << direction << " with duration " << duration << ", speed " << speed);
 

@@ -6,8 +6,8 @@ from std_msgs.msg import String
 from o2ac_fastening_tools.srv import *
 
 class FasteningToolController(object):
-    _feedback = FastenerGripperControlFeedback()
-    _result = FastenerGripperControlResult()
+    _feedback = ScrewToolControlFeedback()
+    _result = ScrewToolControlResult()
 
     def __init__(self):
         self.dynamixel_command_write = rospy.ServiceProxy('dynamixel_write_command', DynamixelWriteCommand)

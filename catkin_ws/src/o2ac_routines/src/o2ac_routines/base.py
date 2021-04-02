@@ -150,7 +150,7 @@ class O2ACBase(object):
     self.wrs_subtask_b_planning_client = actionlib.SimpleActionClient('/wrs_subtask_b_planning', o2ac_task_planning_msgs.msg.PickPlaceWithRegraspAction)
     
     self.suction_client = actionlib.SimpleActionClient('/suction_control', o2ac_msgs.msg.SuctionControlAction)
-    self.fastening_tool_client = actionlib.SimpleActionClient('/screw_tool_control', o2ac_msgs.msg.FastenerGripperControlAction)
+    self.fastening_tool_client = actionlib.SimpleActionClient('/screw_tool_control', o2ac_msgs.msg.ScrewToolControlAction)
 
     # Service clients
     self.ur_dashboard_clients = {
@@ -1174,7 +1174,7 @@ class O2ACBase(object):
   def set_motor(self, motor_name, direction = "tighten", wait=False, speed = 0, duration = 0):
     if not self.use_real_robot:
       return True
-    goal = o2ac_msgs.msg.FastenerGripperControlGoal()
+    goal = o2ac_msgs.msg.ScrewToolControlGoal()
     goal.fastening_tool_name = motor_name
     goal.direction = direction
     goal.speed = speed

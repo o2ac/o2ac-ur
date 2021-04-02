@@ -15,8 +15,8 @@ import dynamixel_workbench_msgs.msg
 import dynamixel_workbench_msgs.srv
 
 class FasteningToolController(object):
-    _feedback = FastenerGripperControlFeedback()
-    _result = FastenerGripperControlResult()
+    _feedback = ScrewToolControlFeedback()
+    _result = ScrewToolControlResult()
 
     def __init__(self):
         # get data from .yaml
@@ -40,7 +40,7 @@ class FasteningToolController(object):
         self.dynamixel_command_write = rospy.ServiceProxy(self._service_name, dynamixel_workbench_msgs.srv.DynamixelCommand)
 
         self._action_name = 'screw_tool_control'
-        self._as = actionlib.SimpleActionServer(self._action_name, FastenerGripperControlAction, execute_cb=self.execute_control, auto_start = False)
+        self._as = actionlib.SimpleActionServer(self._action_name, ScrewToolControlAction, execute_cb=self.execute_control, auto_start = False)
         self._as.start()
 
     def _test_listener_callback(self, data):
