@@ -304,3 +304,197 @@ class BearingPoseEstimator:
         im_result = cv2.putText( im_result, str_rotate, (5,30), 1, 1.25, (255, 255, 255), 2, cv2.LINE_AA )
         im_result = cv2.putText( im_result, str_rotate, (5,30), 1, 1.25, (0, 255, 255), 1, cv2.LINE_AA )
         return im_result
+
+"""
+################################################################################################
+# Sample code for In-plane pose estimation on RGB image for the motor
+# 
+# make perspective transformation
+## source points (corner points of vgroove)
+src_pts = np.array([[287,94], [470,91], [285,270], [490,265]], dtype=np.float32)
+## destination points (rectified corner points)
+dst_pts = np.array([[287,94], [470,91], [287,270], [470,265]], dtype=np.float32)
+mat = cv2.getPerspectiveTransform(src_pts, dst_pts)
+
+# set bounding box(x,y,w,h)
+bbox = [270,180,240,240]
+
+# read template image (use option "0")
+im_temp = cv2.imread("../../../motor_front.png",0)
+
+# define pose estimation class
+pe = PoseEstimator( im_temp, img, bbox, mat )
+# do registration
+d_rotate, translation = pe.main_proc( threshold=5.0, ds=10.0 )
+print(d_rotate, translation) # => CCW rotation (deg) is returned
+im_vis = pe.get_result_image()
+################################################################################################
+"""
+class PoseEstimator:
+    """ Pose estimation on RGB image
+    """
+    def __init__( self, im_s, img, bbox, mat=None ):
+        """
+        Args:
+           im_s(ndarray): source image(template) 1ch
+           img(ndarray): target image(input scene) 1ch
+           bbox(list): bounding box (x,y,w,h)
+           mat(ndarray,optional): perspective transformation for img
+        """
+        
+        if mat is not None:
+            img = cv2.warpPerspective(img, mat, (img.shape[1], img.shape[0]))
+        # crop target image using a bounding box
+        self.im_t = img[ bbox[1]:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2] ].copy()
+        
+        # generate source point cloud
+        self.im_s = im_s
+        self.pcd_s = self.get_pcd( im_s )
+        
+        # generate target point cloud
+        #self.im_t = cv2.GaussianBlur(self.im_t,(5,5),0)
+        self.pcd_t = self.get_pcd( self.im_t )
+        
+        # data
+        self.trans_final = np.identity(4)
+        self.mse = 100000
+        self.pcds = None
+        self.d = None
+        
+        
+    def get_pcd( self, img ):
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+        cl1 = clahe.apply( img )
+        _canny1 = 100 #parameter1 for canny edge detection
+        _canny2 = 200 #parameter2 for canny edge detection
+        # Edge detection
+        edges = cv2.Canny( cl1, _canny1, _canny2 )
+
+        tmp = np.array( np.where( edges>0 ) )
+        np_edge = tmp.T.copy()
+
+        zeros = np.zeros( (np_edge.shape[0],1) ) 
+        np_edge3 = np.hstack( (np_edge, zeros) )
+
+        pcd_edge = o3d.geometry.PointCloud()
+        pcd_edge.points = o3d.utility.Vector3dVector(np_edge3.astype(np.float))
+
+        return pcd_edge
+
+    
+    def main_proc( self, threshold, ds=5.0 ):
+        """ do pose estimation.
+
+        Args:
+          threshold: distance threshold of registration.
+                     If MSE is lower than this value,
+                     transformation is returned.
+          ds: downsampling rate for points. This parameter
+              should be larger than "threshold"
+        Return:
+            float: rotation angle (CCW)
+            translation:  translation in pixels (y,x)
+            If pose estimation fails, (False, False) is returned
+        """
+
+        
+        # Preprocessing
+        ##  downsampling edge pixels
+        self.pcd_s.paint_uniform_color([0.0,0.0,1.0])
+        pcd_s_ds = self.pcd_s.voxel_down_sample( voxel_size=ds )
+        pcd_t_ds = self.pcd_t.voxel_down_sample( voxel_size=ds )
+        pcd_t_ds, center_t = centering(pcd_t_ds)
+        pcd_s_ds, center_s = centering(pcd_s_ds)
+        ts_c = np.identity(4)
+        ts_c[:3,3] = -center_s
+        tt_c = np.identity(4)
+        tt_c[:3,3] = center_t
+        
+        # initial rotations
+        #init_rotations = np.radians(np.arange(0,360,5))
+        init_rotations = np.radians(np.arange(0,360,10))
+        #init_rotations = [np.radians(150.0)]
+        mses = []
+        reg_transes = []
+        Ts = []
+        for init in init_rotations:
+            
+            ##  apply initial rotation to the source point cloud
+            T = rpy2mat( 0, 0, init )
+            pcd_s_ds_ini = copy.deepcopy(pcd_s_ds)
+            pcd_s_ds_ini.transform(T)
+            
+            # Registration by ICP algorithm
+            reg = ICPRegistration( pcd_s_ds_ini, pcd_t_ds )
+            reg.set_distance_torrelance( ds*0.5 )
+            mse_tmp, reg_trans_tmp = reg.registration()
+            mses.append(mse_tmp)
+            reg_transes.append(reg_trans_tmp)
+            Ts.append(T)
+            
+        mses = np.asarray(mses)
+        idx = np.argmin(mses)
+        self.mse = mses[idx]
+        reg_trans = reg_transes[idx]
+                  
+        if self.mse < threshold:
+            """
+            # check transformation progress
+            hoge = copy.deepcopy(self.pcd_s)
+            mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=100., origin=[0.0,0.0,0.0])
+            o3d.visualization.draw_geometries( [mesh_frame,hoge, self.pcd_t], width=640, height=500)
+            hoge.transform( ts_c )
+            o3d.visualization.draw_geometries( [mesh_frame,hoge, self.pcd_t], width=640, height=500)
+            hoge.transform( T )
+            o3d.visualization.draw_geometries( [mesh_frame,hoge, self.pcd_t], width=640, height=500)
+            hoge.transform( reg_trans )
+            o3d.visualization.draw_geometries( [mesh_frame,hoge, self.pcd_t], width=640, height=500)
+            hoge.transform( tt_c )
+            o3d.visualization.draw_geometries( [mesh_frame,hoge, self.pcd_t], width=640, height=500)
+            """
+
+            TT = np.dot( Ts[idx], ts_c )
+            TT = np.dot( reg_trans,TT )
+            self.trans_final = np.dot( tt_c, TT )
+            self.pcds = reg.pcds
+            self.d = reg.d
+            # Get registration result
+            #  translation[x,y] and rotation
+            _,_,rotate = mat2rpy(self.trans_final)
+            d_rotate = np.degrees(rotate)
+            translation = self.trans_final[:2,3]
+            return d_rotate, translation
+                
+            
+        
+        return False, False
+            
+        
+    def vis_registration3d( self ):
+        
+        pcd_final = copy.deepcopy(self.pcd_s)
+        pcd_final.transform(self.trans_final)
+        o3d.visualization.draw_geometries( [self.pcd_t, pcd_final], width=640, height=500)
+        
+    def get_pcds( self ):
+        return self.pcds
+        
+    def get_result_image( self ):
+        
+        im_result = cv2.cvtColor(self.im_t, cv2.COLOR_GRAY2BGR )
+        pcd_final = copy.deepcopy( self.pcd_s )
+
+        pcd_final.transform(self.trans_final)
+        np_final = np.asarray( pcd_final.points, np.int )
+
+        for i in range(np_final.shape[0]):
+            im_result = cv2.circle( im_result, (np_final[i,1],np_final[i,0]), 2, (0,255,0), -1, cv2.LINE_AA )
+        
+        # Draw rotation in image
+        _,_,rotate = mat2rpy(self.trans_final)
+        print("trans_final", self.trans_final)
+        d_rotate = np.degrees(rotate)
+        str_rotate = format(d_rotate,'.2f')+"[deg](CCW), MSE:"+format(self.mse,'.2f')
+        im_result = cv2.putText( im_result, str_rotate, (10,30), 1, 0.7, (255, 255, 255), 2, cv2.LINE_AA )
+        im_result = cv2.putText( im_result, str_rotate, (10,30), 1, 0.7, (255, 0, 0), 1, cv2.LINE_AA )
+        return im_result
