@@ -203,54 +203,10 @@ class O2ACBase(object):
 
     self.screw_tools = {}
 
-    self.define_tray_views()
-
     self.objects_in_tray = dict()  # key: object ID. value: False or object pose
 
     rospy.sleep(.5)
     rospy.loginfo("Finished initializing class")
-
-  def define_tray_views(self):
-    """
-    Define the poses used to position the camera to look into the tray.
-
-    Example usage: self.go_to_pose_goal("b_bot", self.tray_view_high, 
-                                        end_effector_link="b_bot_outside_camera_color_frame", 
-                                        speed=.1, acceleration=.04)
-    """
-    high_height = .37
-    low_height = .22
-    x_offset = .04  # At low_height
-    y_offset = .07  # At low_height
-
-    ps = geometry_msgs.msg.PoseStamped()
-    ps.header.frame_id = "tray_center"
-    ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
-    ps.pose.position.z = high_height
-
-    # Centered views (high up and close)
-    self.tray_view_high = copy.deepcopy(ps)
-    ps.pose.position.z = low_height
-    self.tray_view_low = copy.deepcopy(ps)
-
-    # Close views in corners
-    ps.pose.position.x = x_offset
-    ps.pose.position.y = y_offset
-    self.tray_view_close_front_b = copy.deepcopy(ps)
-    ps.pose.position.x = -x_offset
-    ps.pose.position.y = y_offset
-    self.tray_view_close_back_b = copy.deepcopy(ps)
-    ps.pose.position.x = x_offset
-    ps.pose.position.y = -y_offset
-    self.tray_view_close_front_a = copy.deepcopy(ps)
-    ps.pose.position.x = -x_offset
-    ps.pose.position.y = -y_offset
-    self.tray_view_close_back_a = copy.deepcopy(ps)
-
-    self.close_tray_views = [self.tray_view_low, self.tray_view_close_front_b, self.tray_view_close_back_b, self.tray_view_close_front_a, self.tray_view_close_back_a]
-    self.close_tray_views_rot_left = [rotatePoseByRPY(radians(20),0,0, pose) for pose in self.close_tray_views]
-    self.close_tray_views_rot_right = [rotatePoseByRPY(radians(-20),0,0, pose) for pose in self.close_tray_views]
-
     
   ############## ------ Internal functions (and convenience functions)
     
@@ -422,8 +378,6 @@ class O2ACBase(object):
     switch_req = controller_manager_msgs.srv.SwitchControllerRequest()
 
     list_res = service_proxy_list.call(list_req)
-    print("======")
-    print(list_res)
     for c in list_res.controller:
       if c.name == "scaled_pos_joint_traj_controller":
         if c.state == "stopped":

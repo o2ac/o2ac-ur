@@ -347,6 +347,9 @@ class TaskboardClass(O2ACCommon):
       self.go_to_named_pose("home","a_bot")
       
       self.go_to_pose_goal("b_bot", self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.1)
+
+      self.activate_camera("b_bot_outside_camera")
+      self.activate_led("b_bot")
       res = self.get_3d_poses_from_ssd()
       r2 = self.get_feasible_grasp_points("belt")
       if r2:
@@ -500,6 +503,8 @@ class TaskboardClass(O2ACCommon):
         return False
       goal.pose.position.x -= 0.01 # MAGIC NUMBER
       goal.pose.position.z = 0.0
+      self.activate_camera("b_bot_inside_camera")
+      self.activate_led("b_bot")
       self.simple_pick("b_bot", goal, gripper_force=50.0, grasp_width=.06, axis="z")
       if self.b_bot_gripper_opening_width < 0.01:
         rospy.logerr("Gripper did not grasp the pulley --> Stop")
@@ -555,8 +560,8 @@ class TaskboardClass(O2ACCommon):
       self.activate_camera("b_bot_inside_camera")
       goal.pose.position.x -= 0.01 # MAGIC NUMBER
       goal.pose.position.z = 0.0115
-      rospy.loginfo("Picking bearing at: ")
-      print(goal.pose.position)
+      # rospy.loginfo("Picking bearing at: ")
+      # print(goal.pose.position)
       self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.085, axis="z")
       if self.b_bot_gripper_opening_width < 0.015:
         rospy.logerr("Gripper did not grasp the bearing --> Stop")
