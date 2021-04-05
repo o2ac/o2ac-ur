@@ -61,11 +61,6 @@ class AssemblyClass(O2ACCommon):
     super(AssemblyClass, self).__init__()
     
     # Initialize debug monitor
-    self.start_task_timer()
-    self.log_to_debug_monitor(text="Init", category="task")
-    self.log_to_debug_monitor(text="Init", category="subtask")
-    self.log_to_debug_monitor(text="Init", category="operation")
-
     if not self.assembly_database.db_name == "wrs_assembly_1":
       self.assembly_database.change_assembly("wrs_assembly_1")
 
