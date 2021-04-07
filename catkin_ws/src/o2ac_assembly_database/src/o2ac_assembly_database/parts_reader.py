@@ -225,7 +225,8 @@ class PartsReader(object):
                 grasp_poses.append(grasp_pose)
 
         else:
-            print('\nObject \'' + object_name + '\' has no metadata defined!\nReturning empty metadata information!\n')
+            rospy.logwarn('Object \'' + object_name + '\' has no metadata defined! \n \
+                           Returning empty metadata information! \n')
         return (subframe_names, subframe_poses, grasp_names, grasp_poses)
 
     def _make_collision_object_from_mesh(self, name, pose, filename, scale=(1, 1, 1)):
@@ -247,7 +248,7 @@ class PartsReader(object):
         try:
             scene = pyassimp.load(filename)
         except:
-            print('Could not load mesh file ' + os.path.basename(os.path.normpath(filename)) + ' for part ' + name)
+            rospy.logerr('Could not load mesh file ' + os.path.basename(os.path.normpath(filename)) + ' for part ' + name)
             return co
         if not scene.meshes or len(scene.meshes) == 0:
             raise Exception("There are no meshes in the file")
