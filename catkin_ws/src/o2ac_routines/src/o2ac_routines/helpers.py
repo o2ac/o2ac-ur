@@ -143,6 +143,20 @@ def wait_for_UR_program(topic_namespace = "", timeout_duration = rospy.Duration.
   rospy.logdebug("UR Program has terminated.")
   return True
 
+def rotateQuaternionByRPY(roll, pitch, yaw, in_quat):
+  """
+  Apply RPY rotation in the frame of the quaternion.
+  
+  Input: geometry_msgs.msg.Quaternion
+  Output: geometry_msgs.msg.Quaternion rotated by roll, pitch, yaw in its frame
+  """
+  q_in = [in_quat.x, in_quat.y, in_quat.z, in_quat.w]
+  q_rot = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
+  q_rotated = tf.transformations.quaternion_multiply(q_in, q_rot)
+
+  return geometry_msgs.msg.Quaternion(*q_rotated)
+
+
 # RPY rotations are applied in the frame of the pose.
 def rotatePoseByRPY(roll, pitch, yaw, in_pose):
   # Catch if in_pose is a PoseStamped instead of a Pose.
@@ -153,13 +167,8 @@ def rotatePoseByRPY(roll, pitch, yaw, in_pose):
       return outpose
   except:
     pass # header doesn't exist so the object is probably not posestamped
-  
-  q_in = [in_pose.orientation.x, in_pose.orientation.y, in_pose.orientation.z, in_pose.orientation.w]
-  q_rot = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
-  q_rotated = tf.transformations.quaternion_multiply(q_in, q_rot)
-
   rotated_pose = copy.deepcopy(in_pose)
-  rotated_pose.orientation = geometry_msgs.msg.Quaternion(*q_rotated)
+  rotated_pose.orientation = rotateQuaternionByRPY(roll, pitch, yaw, rotated_pose.orientation)
   return rotated_pose
 
 # // Returns the angle between two quaternions

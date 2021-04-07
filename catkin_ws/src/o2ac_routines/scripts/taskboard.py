@@ -274,8 +274,8 @@ class TaskboardClass(O2ACCommon):
 
     hole_pose = geometry_msgs.msg.PoseStamped()
     hole_pose.header.frame_id = "taskboard_m3_screw_link"
-    hole_pose.pose.position.y = -.002  # MAGIC NUMBER
-    hole_pose.pose.position.z = -.006  # MAGIC NUMBER
+    hole_pose.pose.position.y = -.0015  # MAGIC NUMBER (this should offset towards a_bot (z-axis of the frame points down))
+    hole_pose.pose.position.z = -.004  # MAGIC NUMBER (this should offset upwards (z-axis of the frame points down))
     hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
     taskboard.do_screw_action("a_bot", hole_pose, screw_size = 3)
     self.go_to_named_pose("horizontal_screw_ready", "a_bot")
