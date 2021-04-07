@@ -79,7 +79,8 @@ def spawn_objects(assembly_name, object_names, object_poses, object_reference_fr
     collision_object_transform.transform.rotation.w = co_pose.orientation.w
     transformer.setTransform(collision_object_transform)
 
-    collision_object = next(co for co in assembly_reader.collision_objects if co.id == object_name)
+    collision_object = next((co for co in assembly_reader.collision_objects if co.id == object_name), None)
+    assert collision_object is not None, "Collision object for '%s' does not exist or names do not match" % object_name
     collision_object.header.frame_id = object_reference_frame
     collision_object.mesh_poses[0] = co_pose
 
