@@ -129,7 +129,7 @@ class AssemblyClass(O2ACCommon):
 
   def spawn_objects_for_demo(self):
     objects = ['panel_motor', 'panel_bearing', 'motor', 'motor_pulley', 'bearing_housing',
-      'drive_shaft', 'end_cap', 'bearing_spacer', 'output_pulley', 'idler_spacer', 'idler_pulley', 'idler_pin']  # , 'base']
+      'shaft', 'end_cap', 'bearing_spacer', 'output_pulley', 'idler_spacer', 'idler_pulley', 'idler_pin']  # , 'base']
     poses = [[0.02, -0.06, 0.001, 0.0, 0.0, -tau/4],
       [0.12, 0.02, 0.001, 0.0, 0.0, tau/2],
       [-0.09, -0.12, 0.001, tau/4, -tau/4, 0.0],

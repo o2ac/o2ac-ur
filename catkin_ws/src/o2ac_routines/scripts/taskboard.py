@@ -92,10 +92,10 @@ class TaskboardClass(O2ACCommon):
     
   def spawn_example_objects(self):
     # This function spawns the objects into the tray as if they had been recognized by the vision node
-    names = ["taskboard_idler_pulley_small", "bearing", "drive_shaft", "motor_pulley"]
+    names = ["taskboard_idler_pulley_small", "bearing", "shaft", "motor_pulley"]
     offsets = {"bearing": [-.04, -.02, .001],
     "taskboard_idler_pulley_small": [.07, .06, .03], 
-    "drive_shaft": [.03, -.06, .005], 
+    "shaft": [.03, -.06, .005], 
     "motor_pulley": [-.01, .12, .005], 
     "endcap": [-.05, -.1, .005]}
 
@@ -112,7 +112,7 @@ class TaskboardClass(O2ACCommon):
           q_rotate = tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0)
         if name == "taskboard_idler_pulley_small" or name == "motor_pulley":
           q_rotate = tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0)
-        elif name == "drive_shaft":
+        elif name == "shaft":
           q_rotate = tf_conversions.transformations.quaternion_from_euler(0, 0, 0)
           
         offset = offsets[name]
