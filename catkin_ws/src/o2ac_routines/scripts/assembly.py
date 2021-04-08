@@ -64,7 +64,7 @@ class AssemblyClass(O2ACCommon):
     
     # Initialize debug monitor
     if not self.assembly_database.db_name == "wrs_assembly_1":
-      self.assembly_database.change_assembly("wrs_assembly_1")
+      self.set_assembly("wrs_assembly_1")
 
     self.downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
 

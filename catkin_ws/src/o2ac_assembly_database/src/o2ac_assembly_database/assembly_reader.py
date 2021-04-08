@@ -66,7 +66,6 @@ class AssemblyReader(PartsReader):
 
     def change_assembly(self, assembly_name="wrs_assembly_1"):
         self.load_db(assembly_name)
-        self.collision_objects, self.grasps = self.get_collision_objects_with_metadata()
         self.assembly_tree = self.get_assembly_tree(self.collision_objects)
 
     def get_frame_mating(self, base_object, child_object):

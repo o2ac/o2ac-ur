@@ -989,7 +989,7 @@ class O2ACBase(object):
     for screw_id in screw_ids:
       self.spawn_tool('screw_tool_' + screw_id)
       self.upload_tool_grasps_to_param_server(screw_id)
-    spawn_objects(assembly_name, objects, poses, reference_frame)
+    spawn_objects(self.assembly_database, objects, poses, reference_frame)
   
   def get_3d_poses_from_ssd(self):
     """
