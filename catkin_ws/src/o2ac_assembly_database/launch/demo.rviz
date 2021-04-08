@@ -51,10 +51,10 @@ Visualization Manager:
         belt: true
         belt/frame_texts: true
         belt/frames: true
-        drive_shaft: true
-        drive_shaft/arrows: true
-        drive_shaft/frame_texts: true
-        drive_shaft/frames: true
+        shaft: true
+        shaft/arrows: true
+        shaft/frame_texts: true
+        shaft/frames: true
         end_cap: true
         end_cap/arrows: true
         end_cap/frame_texts: true

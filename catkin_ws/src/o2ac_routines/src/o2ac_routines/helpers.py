@@ -61,53 +61,14 @@ def spawn_objects(assembly_name, object_names, object_poses, object_reference_fr
 
   for (object_name, object_pose) in zip(object_names, object_poses):
     co_pose = geometry_msgs.msg.Pose()
-    co_pose.position.x = object_pose[0]
-    co_pose.position.y = object_pose[1]
-    co_pose.position.z = object_pose[2]
+    co_pose.position = geometry_msgs.msg.Point(*object_pose[0:3])
     quaternion = tf.transformations.quaternion_from_euler(eval(str(object_pose[3])),eval(str(object_pose[4])),eval(str(object_pose[5])))
     co_pose.orientation = geometry_msgs.msg.Quaternion(*quaternion)
 
-    collision_object_transform = geometry_msgs.msg.TransformStamped()
-    collision_object_transform.header.frame_id = 'WORLD'
-    collision_object_transform.child_frame_id = object_name
-    collision_object_transform.transform.translation.x = co_pose.position.x
-    collision_object_transform.transform.translation.y = co_pose.position.y
-    collision_object_transform.transform.translation.z = co_pose.position.z
-    collision_object_transform.transform.rotation.x = co_pose.orientation.x
-    collision_object_transform.transform.rotation.y = co_pose.orientation.y
-    collision_object_transform.transform.rotation.z = co_pose.orientation.z
-    collision_object_transform.transform.rotation.w = co_pose.orientation.w
-    transformer.setTransform(collision_object_transform)
-
-    collision_object = next(co for co in assembly_reader.collision_objects if co.id == object_name)
+    collision_object = next((co for co in assembly_reader.collision_objects if co.id == object_name), None)
+    assert collision_object is not None, "Collision object for '%s' does not exist or names do not match" % object_name
     collision_object.header.frame_id = object_reference_frame
-    collision_object.mesh_poses[0] = co_pose
-
-    subframe_poses = []
-
-    for (subframe_name, subframe_pose) in zip(collision_object.subframe_names, collision_object.subframe_poses):
-        subframe_transform = geometry_msgs.msg.TransformStamped()
-        subframe_transform.header.frame_id = object_name
-        subframe_transform.child_frame_id = subframe_name
-        subframe_transform.transform.translation.x = subframe_pose.position.x
-        subframe_transform.transform.translation.y = subframe_pose.position.y
-        subframe_transform.transform.translation.z = subframe_pose.position.z
-        subframe_transform.transform.rotation.x = subframe_pose.orientation.x
-        subframe_transform.transform.rotation.y = subframe_pose.orientation.y
-        subframe_transform.transform.rotation.z = subframe_pose.orientation.z
-        subframe_transform.transform.rotation.w = subframe_pose.orientation.w
-
-        transformer.setTransform(subframe_transform)
-
-        (trans,rot) = transformer.lookupTransform('WORLD', subframe_name, rospy.Time(0))
-
-        subframe_pose = geometry_msgs.msg.Pose()
-        subframe_pose.position = geometry_msgs.msg.Point(*trans)
-        subframe_pose.orientation = geometry_msgs.msg.Quaternion(*rot)
-
-        subframe_poses.append(subframe_pose)
-
-    collision_object.subframe_poses = subframe_poses
+    collision_object.pose = co_pose
 
     planning_scene_interface.add_object(collision_object)
 
@@ -143,6 +104,20 @@ def wait_for_UR_program(topic_namespace = "", timeout_duration = rospy.Duration.
   rospy.logdebug("UR Program has terminated.")
   return True
 
+def rotateQuaternionByRPY(roll, pitch, yaw, in_quat):
+  """
+  Apply RPY rotation in the frame of the quaternion.
+  
+  Input: geometry_msgs.msg.Quaternion
+  Output: geometry_msgs.msg.Quaternion rotated by roll, pitch, yaw in its frame
+  """
+  q_in = [in_quat.x, in_quat.y, in_quat.z, in_quat.w]
+  q_rot = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
+  q_rotated = tf.transformations.quaternion_multiply(q_in, q_rot)
+
+  return geometry_msgs.msg.Quaternion(*q_rotated)
+
+
 # RPY rotations are applied in the frame of the pose.
 def rotatePoseByRPY(roll, pitch, yaw, in_pose):
   # Catch if in_pose is a PoseStamped instead of a Pose.
@@ -153,13 +128,8 @@ def rotatePoseByRPY(roll, pitch, yaw, in_pose):
       return outpose
   except:
     pass # header doesn't exist so the object is probably not posestamped
-  
-  q_in = [in_pose.orientation.x, in_pose.orientation.y, in_pose.orientation.z, in_pose.orientation.w]
-  q_rot = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
-  q_rotated = tf.transformations.quaternion_multiply(q_in, q_rot)
-
   rotated_pose = copy.deepcopy(in_pose)
-  rotated_pose.orientation = geometry_msgs.msg.Quaternion(*q_rotated)
+  rotated_pose.orientation = rotateQuaternionByRPY(roll, pitch, yaw, rotated_pose.orientation)
   return rotated_pose
 
 # // Returns the angle between two quaternions

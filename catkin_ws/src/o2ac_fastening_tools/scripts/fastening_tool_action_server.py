@@ -189,7 +189,7 @@ class FasteningToolController(object):
             else:
                 self._feedback.motor_speed = max(speed_readings)
 
-            rospy.logdebug("first_speed, second_speed = " + str(first_speed) + ", " + str(second_speed))
+            # rospy.logdebug("first_speed, second_speed = " + str(first_speed) + ", " + str(second_speed))
             self._as.publish_feedback(self._feedback)
         
         motor_stopped = self.set_moving_speed(motor_id, 1024)

@@ -61,11 +61,6 @@ class AssemblyClass(O2ACCommon):
     super(AssemblyClass, self).__init__()
     
     # Initialize debug monitor
-    self.start_task_timer()
-    self.log_to_debug_monitor(text="Init", category="task")
-    self.log_to_debug_monitor(text="Init", category="subtask")
-    self.log_to_debug_monitor(text="Init", category="operation")
-
     if not self.assembly_database.db_name == "wrs_assembly_1":
       self.assembly_database.change_assembly("wrs_assembly_1")
 
@@ -134,9 +129,9 @@ class AssemblyClass(O2ACCommon):
 
   def spawn_objects_for_demo(self):
     objects = ['panel_motor', 'panel_bearing', 'motor', 'motor_pulley', 'bearing_housing',
-      'drive_shaft', 'end_cap', 'bearing_spacer', 'output_pulley', 'idler_spacer', 'idler_pulley', 'idler_pin']  # , 'base']
-    poses = [[0.02, -0.06, 0.001, 0.0, 0.0, -tau/4],
-      [0.12, 0.02, 0.001, 0.0, 0.0, tau/2],
+      'shaft', 'end_cap', 'bearing_spacer', 'output_pulley', 'idler_spacer', 'idler_pulley', 'idler_pin']  # , 'base']
+    poses = [[0.12, 0.02, 0.001, 0.0, 0.0, tau/2],
+      [0.02, -0.06, 0.001, 0.0, 0.0, -tau/4],
       [-0.09, -0.12, 0.001, tau/4, -tau/4, 0.0],
       [-0.02, -0.16, 0.005, 0.0, -tau/4, 0.0],
       [0.0, 0.0, 0.001, 0.0, tau/4, 0.0],

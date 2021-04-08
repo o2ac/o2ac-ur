@@ -98,6 +98,20 @@
 			"memory_resource": "cpp",
 			"set": "cpp",
 			"string": "cpp"
+		},
+		"python.autoComplete.extraPaths": [
+			"./catkin_ws/src/o2ac_assembly_database/src",
+			"./catkin_ws/src/o2ac_routines/src",
+			"./catkin_ws/src/o2ac_vision/src",
+			"./underlay_ws/src/downward/src",
+			"./underlay_ws/src/moveit/moveit_commander/src/moveit_commander",
+		],
+		"files.exclude": {
+			"**/.catkin_tools": true,
+			"**/*.pyc": true,
+			"**/build": true,
+			"**/devel": true,
+			"**/logs": true
 		}
 	},
 	"extensions": {
