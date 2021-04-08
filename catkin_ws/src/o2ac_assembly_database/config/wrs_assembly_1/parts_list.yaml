@@ -5,15 +5,15 @@ parts_list:
     cad: 01-BASE.stl
     description: Base Panel
   - id: 2
-    name: panel_bearing
+    name: panel_motor
     type: 02-PANEL
     cad: 02-PANEL.stl
-    description: Output shaft fixing plate
+    description: Motor fixing plate
   - id: 3
-    name: panel_motor
+    name: panel_bearing
     type: 03-PANEL2
     cad: 03-PANEL2.stl
-    description: Motor fixing plate
+    description: Output shaft fixing plate
   - id: 4
     name: motor
     type: 04_37D-GEARMOTOR-50-70
@@ -94,11 +94,6 @@ parts_list:
     type: 19_MSSFS3-6 
     cad: 19_MSSFS3-6.stl
     description: 6mm M3 Hex Socket Set Screw  (metric coarse thread)
-  - id: 99
-    name: holder
-    type: 99_holder
-    cad: 99_holder.stl
-    description: Holder
   - id: 100
     name: robotiq_calib_marker
     type: 100-ROBOTIQ_CALIB_MARKER
