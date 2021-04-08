@@ -11,6 +11,8 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from math import pi, cos, sin
 
 # OpenRAVE types <--> Numpy types
+
+
 def from_dict(transform_dict):
     """
   Converts a dictionary with the fields C{rotation} and C{translation}
@@ -161,21 +163,14 @@ def to_pose(T):
   @rtype: geometry_msgs/Pose
   @return: The resulting ROS message
   """
-    pos = Point(*T[:3, 3])
-    quat = Quaternion(*tr.quaternion_from_matrix(T))
+    if len(T) == 7:
+        pos = Point(*T[:3])
+        quat = to_quaternion(T[3:])
+    else:
+        pos = Point(*T[:3, 3])
+        quat = Quaternion(*tr.quaternion_from_matrix(T))
     return Pose(pos, quat)
 
-def to_pose_msg(pose):
-    """
-  Converts a homogeneous transformation (4x4) into a C{geometry_msgs/Pose} ROS message.
-  @type  T: np.array
-  @param T: The homogeneous transformation
-  @rtype: geometry_msgs/Pose
-  @return: The resulting ROS message
-  """
-    pos = Point(*pose[:3])
-    quat = to_quaternion(pose[3:])
-    return Pose(pos, quat)
 
 def to_roi(top_left, bottom_right):
     msg = RegionOfInterest()
@@ -195,8 +190,12 @@ def to_transform(T):
   @rtype: geometry_msgs/Transform
   @return: The resulting ROS message
   """
-    translation = Vector3(*T[:3, 3])
-    rotation = Quaternion(*tr.quaternion_from_matrix(T))
+    if len(T) == 7:
+        translation = Vector3(*T[:3])
+        rotation = to_quaternion(T[3:])
+    else:
+        translation = Vector3(*T[:3, 3])
+        rotation = Quaternion(*tr.quaternion_from_matrix(T))
     return Transform(translation, rotation)
 
 
@@ -273,6 +272,7 @@ def euler_transformation_matrix(euler):
     T = np.array([[1, 0, np.sin(p)], [0, np.cos(r), -np.sin(r) * np.cos(p)],
                   [0, np.sin(r), np.cos(r) * np.cos(p)]])
     return T
+
 
 def to_float(val):
     if isinstance(val, float):

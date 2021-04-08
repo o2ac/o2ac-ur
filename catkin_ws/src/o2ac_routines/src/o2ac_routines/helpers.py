@@ -22,6 +22,8 @@ import moveit_commander
 from moveit_commander.conversions import pose_to_list
 from o2ac_assembly_database.assembly_reader import AssemblyReader
 
+from o2ac_routines import conversions
+
 import ur_msgs.msg
 import ur_dashboard_msgs.msg
 import moveit_msgs.msg
@@ -61,8 +63,8 @@ def spawn_objects(assembly_name, object_names, object_poses, object_reference_fr
 
   for (object_name, object_pose) in zip(object_names, object_poses):
     co_pose = geometry_msgs.msg.Pose()
-    co_pose.position = geometry_msgs.msg.Point(*object_pose[0:3])
-    quaternion = tf.transformations.quaternion_from_euler(eval(str(object_pose[3])),eval(str(object_pose[4])),eval(str(object_pose[5])))
+    co_pose.position = geometry_msgs.msg.Point(*object_pose[:3])
+    quaternion = tf.transformations.quaternion_from_euler(*conversions.to_float(object_pose[3:]))
     co_pose.orientation = geometry_msgs.msg.Quaternion(*quaternion)
 
     collision_object = next((co for co in assembly_reader.collision_objects if co.id == object_name), None)

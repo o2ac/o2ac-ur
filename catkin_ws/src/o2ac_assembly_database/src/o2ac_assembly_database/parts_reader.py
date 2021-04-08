@@ -43,7 +43,7 @@ import geometry_msgs.msg
 import moveit_msgs.msg
 import shape_msgs.msg
 
-from math import pi, cos, sin
+from o2ac_routines import conversions
 
 try:
     from pyassimp import pyassimp
@@ -80,8 +80,11 @@ class PartsReader(object):
         '''
         This returns the collision object (including subframes) for an object_name.
         '''
-        collision_object = next((c_obj for c_obj in self.collision_objects if c_obj.id == object_name), None)
-        return collision_object
+        for c_obj in self.collision_object:
+            if c_obj.id == object_name:
+                return c_obj
+        rospy.logerr("Could not find collision object with id " + str(id_num))
+        return None
     
     #### Converters 
 
@@ -149,8 +152,8 @@ class PartsReader(object):
         '''
         for part in self.grasps:
             for (grasp_name, grasp_pose) in zip(part['grasp_names'], part['grasp_poses']):
-              d = {'position': [grasp_pose.position.x, grasp_pose.position.y, grasp_pose.position.z],
-               'orientation': [grasp_pose.orientation.x, grasp_pose.orientation.y, grasp_pose.orientation.z, grasp_pose.orientation.w]}
+              d = {'position': conversions.from_point(grasp_pose.position).tolist(),
+               'orientation': conversions.from_quaternion(grasp_pose.orientation).tolist()}
               param_name = '/'.join(['', namespace, part['part_name'], grasp_name])
               rospy.set_param(param_name, d)
               
@@ -194,20 +197,16 @@ class PartsReader(object):
                 subframe_transform = geometry_msgs.msg.TransformStamped()
                 subframe_transform.header.frame_id = 'OBJECT'
                 subframe_transform.child_frame_id = subframe['name']
-                subframe_transform.transform.translation.x = float(subframe['pose_xyzrpy'][0])
-                subframe_transform.transform.translation.y = float(subframe['pose_xyzrpy'][1])
-                subframe_transform.transform.translation.z = float(subframe['pose_xyzrpy'][2])
-                quaternion = tf.transformations.quaternion_from_euler(self._tofloat(subframe['pose_xyzrpy'][3]),self._tofloat(subframe['pose_xyzrpy'][4]),self._tofloat(subframe['pose_xyzrpy'][5]))
-                subframe_transform.transform.rotation = geometry_msgs.msg.Quaternion(*quaternion)
+                subframe_transform.transform.translation = conversions.to_vector3(conversions.to_float(subframe['pose_xyzrpy'][:3]) )
+                quaternion = tf.transformations.quaternion_from_euler(*conversions.to_float(subframe['pose_xyzrpy'][3:]))
+                subframe_transform.transform.rotation = conversions.to_quaternion(quaternion)
     
                 transformer.setTransform(subframe_transform)
 
                 # Get the pose of the subframe in the world frame and add the subframe pose to the subframe poses of the collision object
                 (trans,rot) = transformer.lookupTransform('WORLD', subframe['name'], rospy.Time(0))
 
-                subframe_pose = geometry_msgs.msg.Pose()
-                subframe_pose.position = geometry_msgs.msg.Point(*trans)
-                subframe_pose.orientation = geometry_msgs.msg.Quaternion(*rot)
+                subframe_pose = conversions.to_pose(trans+rot)
 
                 subframe_poses.append(subframe_pose)
 
@@ -216,10 +215,8 @@ class PartsReader(object):
 
                 # Create the pose message for the grasp
                 grasp_pose = geometry_msgs.msg.Pose()
-                grasp_pose.position.x = float(grasp['pose_xyzrpy'][0])
-                grasp_pose.position.y = float(grasp['pose_xyzrpy'][1])
-                grasp_pose.position.z = float(grasp['pose_xyzrpy'][2])
-                quaternion = tf.transformations.quaternion_from_euler(self._tofloat(grasp['pose_xyzrpy'][3]),self._tofloat(grasp['pose_xyzrpy'][4]),self._tofloat(grasp['pose_xyzrpy'][5]))
+                grasp_pose.position = conversions.to_vector3(conversions.to_float(grasp['pose_xyzrpy'][:3]) )
+                quaternion = tf.transformations.quaternion_from_euler(*conversions.to_float(grasp['pose_xyzrpy'][3:]))
                 grasp_pose.orientation = geometry_msgs.msg.Quaternion(*quaternion.tolist())
 
                 grasp_poses.append(grasp_pose)
@@ -326,11 +323,3 @@ class PartsReader(object):
             collision_objects.append(collision_object)
 
         return (collision_objects, grasps)
-
-    def _tofloat(self, val):
-        if type(val)==float:
-            return val
-        elif type(val)==str:
-            return(float(eval(val)))
-        else:
-            return(float(val))
