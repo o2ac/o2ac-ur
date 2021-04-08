@@ -7,7 +7,7 @@ generic_hw_control_loop:
   loop_hz: 300
   cycle_time_error_threshold: 0.01
 # Settings for ros_control hardware interface
-ur_hardware_interface:
+hardware_interface:
   joints:
     - a_bot_shoulder_pan_joint
     - a_bot_shoulder_lift_joint
