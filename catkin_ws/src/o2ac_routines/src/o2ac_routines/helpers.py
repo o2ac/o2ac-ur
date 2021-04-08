@@ -61,54 +61,14 @@ def spawn_objects(assembly_name, object_names, object_poses, object_reference_fr
 
   for (object_name, object_pose) in zip(object_names, object_poses):
     co_pose = geometry_msgs.msg.Pose()
-    co_pose.position.x = object_pose[0]
-    co_pose.position.y = object_pose[1]
-    co_pose.position.z = object_pose[2]
+    co_pose.position = geometry_msgs.msg.Point(*object_pose[0:3])
     quaternion = tf.transformations.quaternion_from_euler(eval(str(object_pose[3])),eval(str(object_pose[4])),eval(str(object_pose[5])))
     co_pose.orientation = geometry_msgs.msg.Quaternion(*quaternion)
-
-    collision_object_transform = geometry_msgs.msg.TransformStamped()
-    collision_object_transform.header.frame_id = 'WORLD'
-    collision_object_transform.child_frame_id = object_name
-    collision_object_transform.transform.translation.x = co_pose.position.x
-    collision_object_transform.transform.translation.y = co_pose.position.y
-    collision_object_transform.transform.translation.z = co_pose.position.z
-    collision_object_transform.transform.rotation.x = co_pose.orientation.x
-    collision_object_transform.transform.rotation.y = co_pose.orientation.y
-    collision_object_transform.transform.rotation.z = co_pose.orientation.z
-    collision_object_transform.transform.rotation.w = co_pose.orientation.w
-    transformer.setTransform(collision_object_transform)
 
     collision_object = next((co for co in assembly_reader.collision_objects if co.id == object_name), None)
     assert collision_object is not None, "Collision object for '%s' does not exist or names do not match" % object_name
     collision_object.header.frame_id = object_reference_frame
-    collision_object.mesh_poses[0] = co_pose
-
-    subframe_poses = []
-
-    for (subframe_name, subframe_pose) in zip(collision_object.subframe_names, collision_object.subframe_poses):
-        subframe_transform = geometry_msgs.msg.TransformStamped()
-        subframe_transform.header.frame_id = object_name
-        subframe_transform.child_frame_id = subframe_name
-        subframe_transform.transform.translation.x = subframe_pose.position.x
-        subframe_transform.transform.translation.y = subframe_pose.position.y
-        subframe_transform.transform.translation.z = subframe_pose.position.z
-        subframe_transform.transform.rotation.x = subframe_pose.orientation.x
-        subframe_transform.transform.rotation.y = subframe_pose.orientation.y
-        subframe_transform.transform.rotation.z = subframe_pose.orientation.z
-        subframe_transform.transform.rotation.w = subframe_pose.orientation.w
-
-        transformer.setTransform(subframe_transform)
-
-        (trans,rot) = transformer.lookupTransform('WORLD', subframe_name, rospy.Time(0))
-
-        subframe_pose = geometry_msgs.msg.Pose()
-        subframe_pose.position = geometry_msgs.msg.Point(*trans)
-        subframe_pose.orientation = geometry_msgs.msg.Quaternion(*rot)
-
-        subframe_poses.append(subframe_pose)
-
-    collision_object.subframe_poses = subframe_poses
+    collision_object.pose = co_pose
 
     planning_scene_interface.add_object(collision_object)
 
