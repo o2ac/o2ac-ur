@@ -14,7 +14,7 @@ joint_limits:
     has_velocity_limits: true
     max_velocity: 3.14
     has_acceleration_limits: true
-    max_acceleration: 3.14
+    max_acceleration: 6.28
   a_bot_finger_joint:
     has_velocity_limits: true
     max_velocity: 2
@@ -49,32 +49,32 @@ joint_limits:
     has_velocity_limits: true
     max_velocity: 3.14
     has_acceleration_limits: true
-    max_acceleration: 3.14
+    max_acceleration: 6.28
   a_bot_shoulder_pan_joint:
     has_velocity_limits: true
     max_velocity: 3.14
     has_acceleration_limits: true
-    max_acceleration: 3.14
+    max_acceleration: 6.28
   a_bot_wrist_1_joint:
     has_velocity_limits: true
     max_velocity: 6.28
     has_acceleration_limits: true
-    max_acceleration: 3.14
+    max_acceleration: 6.28
   a_bot_wrist_2_joint:
     has_velocity_limits: true
     max_velocity: 6.28
     has_acceleration_limits: true
-    max_acceleration: 3.14
+    max_acceleration: 6.28
   a_bot_wrist_3_joint:
     has_velocity_limits: true
     max_velocity: 6.28
     has_acceleration_limits: true
-    max_acceleration: 3.14
+    max_acceleration: 6.28
   b_bot_elbow_joint:
     has_velocity_limits: true
     max_velocity: 3.14
     has_acceleration_limits: true
-    max_acceleration: 3.14
+    max_acceleration: 6.28
   b_bot_finger_joint:
     has_velocity_limits: true
     max_velocity: 2
@@ -109,24 +109,24 @@ joint_limits:
     has_velocity_limits: true
     max_velocity: 3.14
     has_acceleration_limits: true
-    max_acceleration: 3.14
+    max_acceleration: 6.28
   b_bot_shoulder_pan_joint:
     has_velocity_limits: true
     max_velocity: 3.14
     has_acceleration_limits: true
-    max_acceleration: 3.14
+    max_acceleration: 6.28
   b_bot_wrist_1_joint:
     has_velocity_limits: true
     max_velocity: 6.28
     has_acceleration_limits: true
-    max_acceleration: 3.14
+    max_acceleration: 6.28
   b_bot_wrist_2_joint:
     has_velocity_limits: true
     max_velocity: 6.28
     has_acceleration_limits: true
-    max_acceleration: 3.14
+    max_acceleration: 6.28
   b_bot_wrist_3_joint:
     has_velocity_limits: true
     max_velocity: 6.28
     has_acceleration_limits: true
-    max_acceleration: 3.14
+    max_acceleration: 6.28
