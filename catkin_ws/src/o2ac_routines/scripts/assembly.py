@@ -69,6 +69,13 @@ class AssemblyClass(O2ACCommon):
 
     self.downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
 
+    # Spawn tools and objects
+    self.define_tool_collision_objects()
+    screw_ids = ['m3', 'm4']
+    for screw_id in screw_ids:
+      self.spawn_tool('screw_tool_' + screw_id)
+      self.upload_tool_grasps_to_param_server(screw_id)
+
   def set_assembly(self, assembly_name="wrs_assembly_1"):
     self.assembly_database.change_assembly(assembly_name)
     return True
@@ -453,6 +460,11 @@ if __name__ == '__main__':
           planning_scene_diff_req = moveit_msgs.srv.ApplyPlanningSceneRequest()
           planning_scene_diff_req.scene = scene_diff
           # self.apply_planning_scene_diff.call(planning_scene_diff_req)   # DEBUG: Update the scene pretending the action has been completed
+      if i == '691':
+        rospy.loginfo("Loading 'pick_panel_bearing'")
+        mp_res = assy.load_MTC_solution('pick_panel_bearing')
+        rospy.loginfo("Running")
+        assy.execute_MTC_solution(mp_res.solution, speed = 0.2)
       if i == '70':
         assy.mtc_place_object_in_tray_center('panel_bearing')
       if i == '71':

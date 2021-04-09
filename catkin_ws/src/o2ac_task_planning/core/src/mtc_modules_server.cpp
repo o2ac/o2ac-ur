@@ -149,12 +149,15 @@ class Modules_Planner{
 		void createReleaseRetreat(const std::string& object, const std::string& pose_to_retreat_to="");
 		void createFasten(const std::string& object, const geometry_msgs::PoseStamped& target_pose, const std::string& object_subframe_to_place="");
 		void createWRSSubtaskMotorPlate(const std::string& object, const geometry_msgs::PoseStamped& target_pose, bool release_object=true, const std::string& object_subframe_to_place="");
+		void resetTask(const std::string& task_name);
 
 		/****************************************************
 		 *                                                  *
 		 *    Callback functions for the action servers     *
 		 *                                                  *
 		 ***************************************************/
+
+		/// "Full" task planning requests
 
 		void pick_planning_server_cb(const o2ac_task_planning_msgs::PickObjectGoalConstPtr& goal){
 			bool success = false;
@@ -216,11 +219,18 @@ class Modules_Planner{
 			if (goal->robot_name != ""){
 				arm_group_names = {goal->robot_name};
 			}
+			else{
+				ROS_ERROR_STREAM("Paramater robot_name is required");
+				place_result.success = false;
+				place_planning_server.setSucceeded(place_result);
+				return;
+			}
 
 			createPlace(goal->object_name, goal->object_target_pose, goal->release_object_after_place, goal->object_subframe_to_place);
 
 			try {
 				success = task_->plan(10);
+
 				if (success && task_->numSolutions() != 0){
 					ROS_INFO_NAMED(LOGNAME, "Planning succeeded");
 					task_->solutions().front()->fillMessage(sol);
@@ -450,6 +460,8 @@ class Modules_Planner{
 			wrs_subtask_b_planning_server.setSucceeded(pick_place_result);
 		}
 
+		/// "Interactive" task construction
+
 		void add_pick_server_cb(const o2ac_task_planning_msgs::AddPickGoalConstPtr& goal){
 			bool this_is_start = false;
 			std::string temp_grasp_parameter_location = grasp_parameter_location;
@@ -468,8 +480,7 @@ class Modules_Planner{
 			}
 
 			if(!task_){
-				task_.reset();
-				task_.reset(new moveit::task_constructor::Task());
+				Modules_Planner::resetTask("Pick Task");
 				this_is_start = true;
 			}
 			task_->reset();
@@ -514,14 +525,15 @@ class Modules_Planner{
 			}
 
 			if(!task_){
-				task_.reset();
-				task_.reset(new moveit::task_constructor::Task());
+				Modules_Planner::resetTask("Place Task");
+				moveit::task_constructor::Task& t = *task_;
 				this_is_start = true;
 			}
 			task_->reset();
 			if (task_->stages()->numChildren() == 0){
 				this_is_start = true;
 			}
+			
 			if (this_is_start){
 				task_->loadRobotModel();
 
@@ -555,8 +567,8 @@ class Modules_Planner{
 			}
 
 			if(!task_){
-				task_.reset();
-				task_.reset(new moveit::task_constructor::Task());
+				Modules_Planner::resetTask("Fasten Task");
+				moveit::task_constructor::Task& t = *task_;
 				this_is_start = true;
 			}
 			task_->reset();
@@ -568,7 +580,6 @@ class Modules_Planner{
 
 				robot_model_ = task_->getRobotModel();
 			}
-			
 			task_->add(Release_and_Retreat(goal->object_name, goal->robot_name, goal->pose_to_retreat_to, goal->include_release, this_is_start));
 
 			std::stringstream ss;
@@ -603,8 +614,8 @@ class Modules_Planner{
 				if (goal->operation == goal->CLEAR){
 					task_->clear();
 					container_names.clear();
-					sampling_planner = std::make_shared<solvers::PipelinePlanner>();
-					sampling_planner->setProperty("goal_joint_tolerance", 1e-5);
+					sampling_planner_ = std::make_shared<solvers::PipelinePlanner>();
+					sampling_planner_->setProperty("goal_joint_tolerance", 1e-5);
 					control_task_result.success = true;
 				} else if (goal->operation == goal->SET_NAME){
 					task_->stages()->setName(goal->task_name);
@@ -687,8 +698,9 @@ class Modules_Planner{
 		moveit::task_constructor::TaskPtr task_;
 
 		// Planners
-		moveit::task_constructor::solvers::CartesianPathPtr cartesian_planner;
-		moveit::task_constructor::solvers::PipelinePlannerPtr sampling_planner;
+		moveit::task_constructor::solvers::JointInterpolationPlanner ptp_planner_;
+		moveit::task_constructor::solvers::CartesianPathPtr cartesian_planner_;
+		moveit::task_constructor::solvers::PipelinePlannerPtr sampling_planner_;
 
 		// Planning Groups
 		std::vector<std::string> arm_group_names;
@@ -783,14 +795,14 @@ void Modules_Planner::init(){
 	rosparam_shortcuts::shutdownIfError(LOGNAME, errors);
 
 	// Init Cartesian planner
-	cartesian_planner = std::make_shared<solvers::CartesianPath>();
-	cartesian_planner->setMaxVelocityScaling(1.0);
-	cartesian_planner->setMaxAccelerationScaling(1.0);
-	cartesian_planner->setStepSize(.01);
+	cartesian_planner_ = std::make_shared<solvers::CartesianPath>();
+	cartesian_planner_->setMaxVelocityScaling(1.0);
+	cartesian_planner_->setMaxAccelerationScaling(1.0);
+	cartesian_planner_->setStepSize(.01);
 
 	// Init sampling planner
-	sampling_planner = std::make_shared<solvers::PipelinePlanner>();
-	sampling_planner->setProperty("goal_joint_tolerance", 1e-5);
+	sampling_planner_ = std::make_shared<solvers::PipelinePlanner>();
+	sampling_planner_->setProperty("goal_joint_tolerance", 1e-5);
 
 
 	// Init hand frames
@@ -822,7 +834,7 @@ std::unique_ptr<SerialContainer> Modules_Planner::Pick_Object(const std::string&
 	 *                                                  *
 	 ***************************************************/
 	{  // Open Hand
-		auto stage = std::make_unique<stages::MoveTo>("open hand", sampling_planner);
+		auto stage = std::make_unique<stages::MoveTo>("open hand", sampling_planner_);
 		stage->setGroup(hand_group_name);
 		stage->setGoal("open");
 		c->insert(std::move(stage));
@@ -835,7 +847,7 @@ std::unique_ptr<SerialContainer> Modules_Planner::Pick_Object(const std::string&
 	 ***************************************************/
 	{  // Move-to pre-grasp
 		auto stage = std::make_unique<stages::Connect>(
-		    "move to pick", stages::Connect::GroupPlannerVector{ { group, sampling_planner } });
+		    "move to pick", stages::Connect::GroupPlannerVector{ { group, sampling_planner_ } });
 		stage->setTimeout(5.0);
 		stage->properties().configureInitFrom(Stage::PARENT);
 		c->insert(std::move(stage));
@@ -847,7 +859,7 @@ std::unique_ptr<SerialContainer> Modules_Planner::Pick_Object(const std::string&
 	 *                                                  *
 	 ***************************************************/
 	{
-		auto stage = std::make_unique<stages::MoveRelative>("approach object", cartesian_planner);
+		auto stage = std::make_unique<stages::MoveRelative>("approach object", cartesian_planner_);
 		stage->properties().set("marker_ns", "approach_object");
 		stage->properties().set("link", hand_frame);
 		stage->properties().set("group", group);
@@ -909,7 +921,7 @@ std::unique_ptr<SerialContainer> Modules_Planner::Pick_Object(const std::string&
 	 *                                                  *
 	 ***************************************************/
 	{
-		auto stage = std::make_unique<stages::MoveTo>("close hand", sampling_planner);
+		auto stage = std::make_unique<stages::MoveTo>("close hand", sampling_planner_);
         stage->properties().set("group", hand_group_name);
 		stage->setGoal("close");
 		c->insert(std::move(stage));
@@ -951,7 +963,7 @@ std::unique_ptr<SerialContainer> Modules_Planner::Lift_Object(const std::string&
 	 *                                                  *
 	 ***************************************************/
 	{
-		auto stage = std::make_unique<stages::MoveRelative>("lift object", cartesian_planner);
+		auto stage = std::make_unique<stages::MoveRelative>("lift object", cartesian_planner_);
 		stage->properties().set("group", group);
 		stage->setMinMaxDistance(0.1, 0.15);
 		//TODO: Make this parameterizable instead of hard-coded for 0.1 and 0.15
@@ -1041,7 +1053,7 @@ std::unique_ptr<SerialContainer> Modules_Planner::Place_Object(const std::string
 	 *                                                    *
 	 *****************************************************/
 	{
-		auto stage = std::make_unique<stages::MoveRelative>("lower object", cartesian_planner);
+		auto stage = std::make_unique<stages::MoveRelative>("lower object", cartesian_planner_);
 		stage->properties().set("marker_ns", "lower_object");
 		stage->properties().set("link", hand_frame);
 		stage->properties().set("group", group);
@@ -1095,7 +1107,7 @@ std::unique_ptr<SerialContainer> Modules_Planner::Place_Object(const std::string
 	 *                                                    *
 	 *****************************************************/
 	{
-		auto stage = std::make_unique<stages::MoveRelative>("lower object", cartesian_planner);
+		auto stage = std::make_unique<stages::MoveRelative>("lower object", cartesian_planner_);
 		stage->properties().set("marker_ns", "lower_object");
 		stage->properties().set("link", hand_frame);
 		stage->properties().set("group", group);
@@ -1151,7 +1163,7 @@ std::unique_ptr<SerialContainer> Modules_Planner::Place_Object_With_Correction(c
 	 *                                                    *
 	 *****************************************************/
 	{
-		auto stage = std::make_unique<stages::MoveRelative>("lower object", cartesian_planner);
+		auto stage = std::make_unique<stages::MoveRelative>("lower object", cartesian_planner_);
 		stage->properties().set("marker_ns", "lower_object");
 		stage->properties().set("link", hand_frame);
 		stage->properties().set("group", group);
@@ -1255,7 +1267,7 @@ std::unique_ptr<SerialContainer> Modules_Planner::Place_Object_With_Correction(c
 	//  *                                                    *
 	//  *****************************************************/
 	// {
-	// 	auto stage = std::make_unique<stages::MoveRelative>("lower object", cartesian_planner);
+	// 	auto stage = std::make_unique<stages::MoveRelative>("lower object", cartesian_planner_);
 	// 	stage->properties().set("marker_ns", "lower_object");
 	// 	stage->properties().set("link", hand_frame);
 	// 	stage->properties().set("group", group);
@@ -1313,7 +1325,7 @@ std::unique_ptr<SerialContainer> Modules_Planner::Release_Object_and_Retreat(con
 		//  *                                                    *
 		//  *****************************************************/
 		{
-			auto stage = std::make_unique<stages::MoveTo>("open hand", sampling_planner);
+			auto stage = std::make_unique<stages::MoveTo>("open hand", sampling_planner_);
 			stage->properties().set("group", hand_group_name);
 			stage->setGoal("open");
 			c->insert(std::move(stage));
@@ -1349,7 +1361,7 @@ std::unique_ptr<SerialContainer> Modules_Planner::Release_Object_and_Retreat(con
 	//  *                                                    *
 	//  *****************************************************/
 	{
-		auto stage = std::make_unique<stages::MoveRelative>("retreat after place", cartesian_planner);
+		auto stage = std::make_unique<stages::MoveRelative>("retreat after place", cartesian_planner_);
 		stage->setMinMaxDistance(.05, .1);
 		//TODO: Make this parameterizable instead of hard-coded for 0.1 and 0.15
 		stage->setIKFrame(hand_frame);
@@ -1373,7 +1385,7 @@ std::unique_ptr<SerialContainer> Modules_Planner::Release_Object_and_Retreat(con
 
 	if(pose_to_retreat_to != "") {
 		{
-			auto stage = std::make_unique<stages::MoveTo>("move to pose '" + pose_to_retreat_to + "'", sampling_planner);
+			auto stage = std::make_unique<stages::MoveTo>("move to pose '" + pose_to_retreat_to + "'", sampling_planner_);
 			stage->properties().set("group", group);
 			stage->setGoal(pose_to_retreat_to);
 			c->insert(std::move(stage));
@@ -1490,7 +1502,7 @@ std::unique_ptr<SerialContainer> Modules_Planner::Place(const std::string& objec
 	 *****************************************************/
 	{
 		auto stage = std::make_unique<stages::Connect>(
-		    "move to place", stages::Connect::GroupPlannerVector{ { group, sampling_planner } });
+		    "move to place", stages::Connect::GroupPlannerVector{ { group, sampling_planner_ } });
 		stage->setTimeout(5.0);
 		c->insert(std::move(stage));
 	}
@@ -1557,7 +1569,7 @@ std::unique_ptr<SerialContainer> Modules_Planner::Place_With_Correction(const st
 	 *****************************************************/
 	{
 		auto stage = std::make_unique<stages::Connect>(
-		    "move to place", stages::Connect::GroupPlannerVector{ { group, sampling_planner } });
+		    "move to place", stages::Connect::GroupPlannerVector{ { group, sampling_planner_ } });
 		stage->setTimeout(5.0);
 		c->insert(std::move(stage));
 	}
@@ -1626,7 +1638,7 @@ std::unique_ptr<SerialContainer> Modules_Planner::Fasten(const std::string& obje
 	 *****************************************************/
 	{
 		auto stage = std::make_unique<stages::Connect>(
-		    "move to place", stages::Connect::GroupPlannerVector{ { group, sampling_planner } });
+		    "move to place", stages::Connect::GroupPlannerVector{ { group, sampling_planner_ } });
 		stage->setTimeout(5.0);
 		c->insert(std::move(stage));
 	}
@@ -1642,7 +1654,7 @@ std::unique_ptr<SerialContainer> Modules_Planner::Fasten(const std::string& obje
 	//  *                                                    *
 	//  *****************************************************/
 	{
-		auto stage = std::make_unique<stages::MoveRelative>("Retreat", cartesian_planner);
+		auto stage = std::make_unique<stages::MoveRelative>("Retreat", cartesian_planner_);
 		stage->setMinMaxDistance(.05, .1);
 		//TODO: Make this parameterizable instead of hard-coded for 0.05 and 0.1
 		stage->setIKFrame(hand_frame);
@@ -1713,7 +1725,7 @@ std::unique_ptr<SerialContainer> Modules_Planner::Fasten(const std::string& obje
 	 *****************************************************/
 	{
 		auto stage = std::make_unique<stages::Connect>(
-		    "move to place", stages::Connect::GroupPlannerVector{ { group, sampling_planner } });
+		    "move to place", stages::Connect::GroupPlannerVector{ { group, sampling_planner_ } });
 		stage->setTimeout(5.0);
 		c->insert(std::move(stage));
 	}
@@ -1729,7 +1741,7 @@ std::unique_ptr<SerialContainer> Modules_Planner::Fasten(const std::string& obje
 	//  *                                                    *
 	//  *****************************************************/
 	{
-		auto stage = std::make_unique<stages::MoveRelative>("Retreat", cartesian_planner);
+		auto stage = std::make_unique<stages::MoveRelative>("Retreat", cartesian_planner_);
 		stage->setMinMaxDistance(.05, .1);
 		//TODO: Make this parameterizable instead of hard-coded for 0.05 and 0.1
 		stage->setIKFrame(hand_frame);
@@ -1764,7 +1776,7 @@ std::unique_ptr<SerialContainer> Modules_Planner::Pick_Place(const std::string& 
 	 *****************************************************/
 	{
 		auto stage = std::make_unique<stages::Connect>(
-		    "move to place", stages::Connect::GroupPlannerVector{ { group, sampling_planner } });
+		    "move to place", stages::Connect::GroupPlannerVector{ { group, sampling_planner_ } });
 		stage->setTimeout(5.0);
 		c->insert(std::move(stage));
 	}
@@ -1799,7 +1811,7 @@ std::unique_ptr<SerialContainer> Modules_Planner::Pick_Place_with_Regrasp(const 
 
 	{
 		auto stage = std::make_unique<stages::Connect>(
-		    "move to handover", stages::Connect::GroupPlannerVector{ { group, sampling_planner } });
+		    "move to handover", stages::Connect::GroupPlannerVector{ { group, sampling_planner_ } });
 		stage->setTimeout(5.0);
 		current_state_stage = stage.get();
 		c->insert(std::move(stage));
@@ -1836,7 +1848,7 @@ std::unique_ptr<SerialContainer> Modules_Planner::Pick_Place_with_Regrasp(const 
 	c->insert(std::move(Modules_Planner::Release_Object_and_Retreat(object)));
 
 	{
-	auto stage = std::make_unique<stages::MoveTo>("move_out_of_the_way", sampling_planner);
+	auto stage = std::make_unique<stages::MoveTo>("move_out_of_the_way", sampling_planner_);
 		stage->setGroup(group);
 		stage->setGoal("tool_pick_ready");
 		c->insert(std::move(stage));
@@ -1865,7 +1877,7 @@ std::unique_ptr<SerialContainer> Modules_Planner::Pick_Place_with_Regrasp(const 
 	 *****************************************************/
 	{
 		auto stage = std::make_unique<stages::Connect>(
-		    "move to place", stages::Connect::GroupPlannerVector{ { group, sampling_planner } });
+		    "move to place", stages::Connect::GroupPlannerVector{ { group, sampling_planner_ } });
 		stage->setTimeout(5.0);
 		c->insert(std::move(stage));
 	}
@@ -1901,7 +1913,6 @@ std::unique_ptr<Alternatives> Modules_Planner::Release_and_Retreat_Alternatives(
 
 std::unique_ptr<Alternatives> Modules_Planner::Place_Alternatives(const std::string& object, const geometry_msgs::PoseStamped& target_pose, bool release_object, const std::string& object_subframe_to_place, bool this_is_start){
 	auto parallel = std::make_unique<Alternatives>("Place '" + object + "'");
-
 	for (std::string arm_group_name : arm_group_names){
 		parallel->insert(std::move(Modules_Planner::Place(object, target_pose, arm_group_name, release_object, object_subframe_to_place, this_is_start)));
 	}
@@ -2007,7 +2018,7 @@ std::unique_ptr<Fallbacks> Modules_Planner::Pick_with_Optional_Regrasp(const std
 
 			{
 				auto stage = std::make_unique<stages::Connect>(
-					"move to handover", stages::Connect::GroupPlannerVector{ { group, sampling_planner } });
+					"move to handover", stages::Connect::GroupPlannerVector{ { group, sampling_planner_ } });
 				stage->setTimeout(5.0);
 				current_state_stage = stage.get();
 				c->insert(std::move(stage));
@@ -2044,7 +2055,7 @@ std::unique_ptr<Fallbacks> Modules_Planner::Pick_with_Optional_Regrasp(const std
 			c->insert(std::move(Modules_Planner::Release_Object_and_Retreat(object)));
 
 			{
-			auto stage = std::make_unique<stages::MoveTo>("move_out_of_the_way", sampling_planner);
+			auto stage = std::make_unique<stages::MoveTo>("move_out_of_the_way", sampling_planner_);
 				stage->setGroup(group);
 				stage->setGoal("tool_pick_ready");
 				c->insert(std::move(stage));
@@ -2074,87 +2085,54 @@ std::unique_ptr<Fallbacks> Modules_Planner::Pick_with_Optional_Regrasp(const std
 	return parallel;
 }
 
+///////////// "Full" task creator functions
+
 void Modules_Planner::createPickPlace(const std::string& object, const geometry_msgs::PoseStamped& target_pose, bool release_object, const std::string& object_subframe_to_place, bool force_robot_order) {
-	task_.reset();
-	task_.reset(new moveit::task_constructor::Task());
+	Modules_Planner::resetTask("Pick-Place Task");
 	moveit::task_constructor::Task& t = *task_;
-	t.stages()->setName("Task");
-	t.loadRobotModel();
 
-	robot_model_ = t.getRobotModel();
-
-	// t.add(Modules_Planner::Pick_Place_Alternatives(object, target_pose, false, object_subframe_to_place));  // In case we want it as an alternative and not fallback
+	// task_.add(Modules_Planner::Pick_Place_Alternatives(object, target_pose, false, object_subframe_to_place));  // In case we want it as an alternative and not fallback
 	t.add(Modules_Planner::Pick_Place_Fallback(object, target_pose, release_object, object_subframe_to_place, force_robot_order));
 }
 
 void Modules_Planner::createPick(const std::string& object) {
-	task_.reset();
-	task_.reset(new moveit::task_constructor::Task());
+	Modules_Planner::resetTask("Pick Task");
 	moveit::task_constructor::Task& t = *task_;
-	t.stages()->setName("Task");
-	t.loadRobotModel();
-
-	robot_model_ = t.getRobotModel();
 
 	t.add(Modules_Planner::Pick_and_Lift_Alternatives(object));
 }
 
 void Modules_Planner::createPlace(const std::string& object, const geometry_msgs::PoseStamped& target_pose, bool release_object, const std::string& object_subframe_to_place) {
-	task_.reset();
-	task_.reset(new moveit::task_constructor::Task());
+	Modules_Planner::resetTask("Place Task");
 	moveit::task_constructor::Task& t = *task_;
-	t.stages()->setName("Task");
-	t.loadRobotModel();
-
-	robot_model_ = t.getRobotModel();
 
 	t.add(Modules_Planner::Place_Alternatives(object, target_pose, release_object, object_subframe_to_place));
 }
 
 void Modules_Planner::createPlaceWithCorrection(const std::string& object, const geometry_msgs::PoseStamped& target_pose, bool release_object, const std::string& object_subframe_to_place) {
-	task_.reset();
-	task_.reset(new moveit::task_constructor::Task());
+	Modules_Planner::resetTask("Place w/ correction Task");
 	moveit::task_constructor::Task& t = *task_;
-	t.stages()->setName("Task");
-	t.loadRobotModel();
-
-	robot_model_ = t.getRobotModel();
 
 	t.add(Modules_Planner::Place_With_Correction_Alternatives(object, target_pose, release_object, object_subframe_to_place));
 }
 
 void Modules_Planner::createReleaseRetreat(const std::string& object, const std::string& pose_to_retreat_to){
-	task_.reset();
-	task_.reset(new moveit::task_constructor::Task());
+	Modules_Planner::resetTask("Release/Retreat Task");
 	moveit::task_constructor::Task& t = *task_;
-	t.stages()->setName("Task");
-	t.loadRobotModel();
-
-	robot_model_ = t.getRobotModel();
 
 	t.add(Modules_Planner::Release_and_Retreat_Alternatives(object, pose_to_retreat_to));
 }
 
 void Modules_Planner::createFasten(const std::string& object, const geometry_msgs::PoseStamped& target_pose, const std::string& object_subframe_to_place) {
-	task_.reset();
-	task_.reset(new moveit::task_constructor::Task());
+	Modules_Planner::resetTask("Fasten Task");
 	moveit::task_constructor::Task& t = *task_;
-	t.stages()->setName("Task");
-	t.loadRobotModel();
-
-	robot_model_ = t.getRobotModel();
 
 	t.add(Modules_Planner::Fasten_Alternatives(object, target_pose, object_subframe_to_place));
 }
 
 void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, const geometry_msgs::PoseStamped& target_pose, bool release_object, const std::string& object_subframe_to_place){
-	task_.reset();
-	task_.reset(new moveit::task_constructor::Task());
+	Modules_Planner::resetTask("WRSSubtaskMotorPlate Task");
 	moveit::task_constructor::Task& t = *task_;
-	t.stages()->setName("Attach motor L-plate to base plate");
-	t.loadRobotModel();
-
-	robot_model_ = t.getRobotModel();
 
 	// pick-place object
 	t.add(Modules_Planner::Pick_Place_Fallback(object, target_pose, release_object, object_subframe_to_place));
@@ -2164,7 +2142,7 @@ void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, cons
 		t.add(std::move(stage));
 	}
 	{  // Open Hand
-		auto stage = std::make_unique<stages::MoveTo>("open hand", sampling_planner);
+		auto stage = std::make_unique<stages::MoveTo>("open hand", sampling_planner_);
 		stage->setGroup("a_bot_robotiq_85");
 		stage->setGoal("open");
 		t.add(std::move(stage));
@@ -2178,7 +2156,7 @@ void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, cons
 		t.add(std::move(stage));
 	}
 	{  // Close Hand
-		auto stage = std::make_unique<stages::MoveTo>("close hand", sampling_planner);
+		auto stage = std::make_unique<stages::MoveTo>("close hand", sampling_planner_);
 		stage->setGroup("a_bot_robotiq_85");
 		stage->setGoal("close");
 		t.add(std::move(stage));
@@ -2194,7 +2172,7 @@ void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, cons
 	lift_direction[2] = 0.0;
 
 	{  // move to screw_tool_pickup pose
-	auto stage = std::make_unique<stages::MoveTo>("equip_tool_m4_start", sampling_planner);
+	auto stage = std::make_unique<stages::MoveTo>("equip_tool_m4_start", sampling_planner_);
 		stage->setGroup("b_bot");
 		stage->setGoal("tool_pick_ready");
 		t.add(std::move(stage));
@@ -2204,7 +2182,7 @@ void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, cons
 	t.add(Modules_Planner::Pick_and_Lift(tool, "b_bot", false));
 	
 	{  // move back
-	auto stage = std::make_unique<stages::MoveTo>("equip_tool_m4_end", sampling_planner);
+	auto stage = std::make_unique<stages::MoveTo>("equip_tool_m4_end", sampling_planner_);
 		stage->setGroup("b_bot");
 		stage->setGoal("tool_pick_ready");
 		t.add(std::move(stage));
@@ -2220,7 +2198,7 @@ void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, cons
 	std::string screw_tool_tip_frame = tool + "/" + tool + "_tip";
 
 	{  // move to screw_pickup pose
-	auto stage = std::make_unique<stages::MoveTo>("pick_screw_m4_start", sampling_planner);
+	auto stage = std::make_unique<stages::MoveTo>("pick_screw_m4_start", sampling_planner_);
 		stage->setGroup("b_bot");
 		stage->setGoal("feeder_pick_ready");
 		t.add(std::move(stage));
@@ -2230,7 +2208,7 @@ void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, cons
 	t.add(Modules_Planner::Fasten(tool, screw_pickup_pose, "b_bot", screw_tool_tip_frame, false, "Pick up screw"));
 
 	{  // move back
-	auto stage = std::make_unique<stages::MoveTo>("pick_screw_m4_end", sampling_planner);
+	auto stage = std::make_unique<stages::MoveTo>("pick_screw_m4_end", sampling_planner_);
 		stage->setGroup("b_bot");
 		stage->setGoal("feeder_pick_ready");
 		t.add(std::move(stage));
@@ -2249,7 +2227,7 @@ void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, cons
 	screwing_pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
 
 	{  // move to screw_pickup pose
-	auto stage = std::make_unique<stages::MoveTo>("fasten_screw_m4_start", sampling_planner);
+	auto stage = std::make_unique<stages::MoveTo>("fasten_screw_m4_start", sampling_planner_);
 		stage->setGroup("b_bot");
 		stage->setGoal("feeder_pick_ready");
 		t.add(std::move(stage));
@@ -2259,7 +2237,7 @@ void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, cons
 	t.add(Modules_Planner::Fasten(tool, screwing_pose, "b_bot", screw_tool_tip_frame, false, "Fasten screw"));
 
 	{  // move_back
-	auto stage = std::make_unique<stages::MoveTo>("fasten_screw_m4_end", sampling_planner);
+	auto stage = std::make_unique<stages::MoveTo>("fasten_screw_m4_end", sampling_planner_);
 		stage->setGroup("b_bot");
 		stage->setGoal("feeder_pick_ready");
 		t.add(std::move(stage));
@@ -2284,7 +2262,7 @@ void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, cons
 	approach_place_direction[2] = -1.0;
 
 	{  // move to screw_pickup pose
-	auto stage = std::make_unique<stages::MoveTo>("pick_screw_m4_start", sampling_planner);
+	auto stage = std::make_unique<stages::MoveTo>("pick_screw_m4_start", sampling_planner_);
 		stage->setGroup("b_bot");
 		stage->setGoal("feeder_pick_ready");
 		t.add(std::move(stage));
@@ -2294,7 +2272,7 @@ void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, cons
 	t.add(Modules_Planner::Fasten(tool, screw_pickup_pose, "b_bot", screw_tool_tip_frame, false, "Pick up screw"));
 
 	{  // move back
-	auto stage = std::make_unique<stages::MoveTo>("pick_screw_m4_end", sampling_planner);
+	auto stage = std::make_unique<stages::MoveTo>("pick_screw_m4_end", sampling_planner_);
 		stage->setGroup("b_bot");
 		stage->setGoal("feeder_pick_ready");
 		t.add(std::move(stage));
@@ -2308,7 +2286,7 @@ void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, cons
 	screwing_pose.header.frame_id = "panel_bearing/bottom_screw_hole_2";
 
 	{  // move to screw_pickup pose
-	auto stage = std::make_unique<stages::MoveTo>("fasten_screw_m4_start", sampling_planner);
+	auto stage = std::make_unique<stages::MoveTo>("fasten_screw_m4_start", sampling_planner_);
 		stage->setGroup("b_bot");
 		stage->setGoal("feeder_pick_ready");
 		t.add(std::move(stage));
@@ -2318,7 +2296,7 @@ void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, cons
 	t.add(Modules_Planner::Fasten(tool, screwing_pose, "b_bot", screw_tool_tip_frame, false, "Fasten screw"));
 
 	{  // move_back
-	auto stage = std::make_unique<stages::MoveTo>("fasten_screw_m4_end", sampling_planner);
+	auto stage = std::make_unique<stages::MoveTo>("fasten_screw_m4_end", sampling_planner_);
 		stage->setGroup("b_bot");
 		stage->setGoal("feeder_pick_ready");
 		t.add(std::move(stage));
@@ -2337,7 +2315,7 @@ void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, cons
 	approach_place_direction[2] = 0.0;
 
 	{  // move to screw_tool_pickup pose
-	auto stage = std::make_unique<stages::MoveTo>("unequip_tool_m4_start", sampling_planner);
+	auto stage = std::make_unique<stages::MoveTo>("unequip_tool_m4_start", sampling_planner_);
 		stage->setGroup("b_bot");
 		stage->setGoal("tool_pick_ready");
 		t.add(std::move(stage));
@@ -2347,11 +2325,26 @@ void Modules_Planner::createWRSSubtaskMotorPlate(const std::string& object, cons
 	t.add(Modules_Planner::Place(tool, screw_tool_place, "b_bot", true, "", false));
 
 	{  // move_back
-	auto stage = std::make_unique<stages::MoveTo>("unequip_tool_m4_end", sampling_planner);
+	auto stage = std::make_unique<stages::MoveTo>("unequip_tool_m4_end", sampling_planner_);
 		stage->setGroup("b_bot");
 		stage->setGoal("tool_pick_ready");
 		t.add(std::move(stage));
 	}
+}
+
+void Modules_Planner::resetTask(const std::string& task_name){
+	task_.reset();
+	task_.reset(new moveit::task_constructor::Task());
+	
+	moveit::task_constructor::Task& t = *task_;
+	
+	t.stages()->setName(task_name);
+	t.loadRobotModel();
+
+	robot_model_ = t.getRobotModel();
+
+	sampling_planner_ = std::make_shared<solvers::PipelinePlanner>();
+	sampling_planner_->setProperty("goal_joint_tolerance", 1e-5);
 }
 
 }

@@ -80,10 +80,10 @@ class PartsReader(object):
         '''
         This returns the collision object (including subframes) for an object_name.
         '''
-        for c_obj in self.collision_object:
+        for c_obj in self.collision_objects:
             if c_obj.id == object_name:
                 return c_obj
-        rospy.logerr("Could not find collision object with id " + str(id_num))
+        rospy.logerr("Could not find collision object with id " + str(object_name))
         return None
     
     #### Converters 

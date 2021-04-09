@@ -483,14 +483,7 @@ class O2ACBase(object):
     return True
 
   def define_tool_collision_objects(self):
-    # TODO(Cambel): Move to an utility class
-    def get_type(co_type):
-      if co_type == "BOX":
-        return SolidPrimitive.BOX
-      elif co_type == "CYLINDER":
-        return SolidPrimitive.CYLINDER
-      else:
-        rospy.logerr("Unsupported Primitive: %s" % co_type)
+    PRIMITIVES = {"BOX": SolidPrimitive.BOX, "CYLINDER": SolidPrimitive.CYLINDER}
 
     path = rospkg.RosPack().get_path("o2ac_assembly_database") + "/config/tool_collisions.yaml"
     with open(path, 'r') as f:
@@ -508,15 +501,19 @@ class O2ACBase(object):
       tool_co.primitive_poses = [Pose() for _ in range(primitive_num)] 
 
       for i, primitive in enumerate(tool["primitives"]):
-        tool_co.primitives[i].type = get_type(primitive['type'])
+        try:
+          tool_co.primitives[i].type = PRIMITIVES[(primitive['type'])]
+        except KeyError as e:
+          rospy.logerr("Invalid Collition Object Primitive type: %s " % primitive['type'])
+          raise
         tool_co.primitives[i].dimensions = primitive['dimensions']
         tool_co.primitive_poses[i] = conversions.to_pose(conversions.to_float(primitive['pose']))
       
       tool_co.operation = tool_co.ADD
 
       # TODO(Cambel): - Fix warning of empty quaternion
-      tool_co.subframe_poses[0] = conversions.to_pose(conversions.to_float(tool["subframe"]["pose"]))]
-      tool_co.subframe_names[0] = tool["subframe"]["name"]]
+      tool_co.subframe_poses = [conversions.to_pose(conversions.to_float(tool["subframe"]["pose"]))]
+      tool_co.subframe_names = [tool["subframe"]["name"]]
 
       self.screw_tools[tool["id"]] = tool_co
 
@@ -1472,18 +1469,28 @@ class O2ACBase(object):
     """
     return self.equip_unequip_realign_tool(robot_name, screw_tool_id, "realign")
 
-  def equip_unequip_tool(self, robot_name, tool_name, equip):
+  def equip_unequip_realign_tool(self, robot_name, tool_name, operation):
     """
-       Equip or Unequip a tool
+    operation can be "equip", "unequip" or "realign".
     """
     # TODO(felixvd): Finish this function. It is duplicated in C++.
-    
-    # return self.do_change_tool_action(self, robot_name, equip=equip, screw_size = 4)
+
+    # Sanity check on the input instruction
+    equip = (operation == "equip")
+    unequip = (operation == "unequip")
+    if equip or unequip:
+      raise NotImplementedError("Equip/unequip needs to be called via the C++ skill server instead")
+    realign = (operation == "realign")
+
     ###
     lin_speed = 0.01
+    # The second comparison is not always necessary, but readability comes first.
+    if ((not equip) and (not unequip) and (not realign)):
+      rospy.logerr("Cannot read the instruction " + operation + ". Returning False.")
+      return False
 
     if ((self.robot_status[robot_name].carrying_object == True)):
-      rospy.logerr("Robot holds an object. Cannot un/equip tool.")
+      rospy.logerr("Robot holds an object. Cannot " + operation + " tool.")
       return False
     if ( (self.robot_status[robot_name].carrying_tool == True) and equip):
       rospy.logerr("Robot already holds a tool. Cannot equip another.")
@@ -1545,8 +1552,8 @@ class O2ACBase(object):
     elif tool_name == "set_screw_tool":
       ps_in_holder.pose.position.x = 0.02
 
-    if not equip: 
-      ps_in_holder.pose.position.x -= 0.001   # Don't move all the way into the magnet
+    if unequip or realign:
+      ps_in_holder.pose.position.x -= 0.001   # Don't move all the way into the magnet to place
       ps_approach.pose.position.z -= 0.01 # Approach diagonally so nothing gets stuck
 
     if equip:
@@ -1601,10 +1608,7 @@ class O2ACBase(object):
     # Plan & execute linear motion away from the tool change position
     rospy.loginfo("Moving back to screw tool approach pose LIN.")
     
-    if equip:
-      lin_speed = 1.0
-    elif not equip:
-      lin_speed = 1.0
+    lin_speed = 0.8
 
     ### This block is probably not needed anymore?
     # if self.use_real_robot:
