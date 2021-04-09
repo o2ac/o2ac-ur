@@ -37,7 +37,10 @@ import os
 import csv
 
 import tf2_ros
+import tf.transformations
 import rospy
+
+from math import pi, cos, sin
 
 import geometry_msgs.msg
 
@@ -58,7 +61,7 @@ class AssemblyReader(PartsReader):
           self.assembly_tree = self.get_assembly_tree(self.collision_objects)
           self._upload_grasps_to_param_server(assembly_name)
 
-    def change_assembly(self, assembly_name):
+    def change_assembly(self, assembly_name="wrs_assembly_1"):
         self.load_db(assembly_name)
         self.collision_objects, self.grasps = self.get_collision_objects_with_metadata()
         self.assembly_tree = self.get_assembly_tree(self.collision_objects)

@@ -56,15 +56,25 @@ class MetadataVisualizer():
     def __init__(self):
 
         # The links defined for the move group in the srdf
-        self._gripper_links = ['robotiq_85_base_link',
-        'robotiq_85_left_inner_knuckle_link',
-        'robotiq_85_left_finger_tip_link',
-        'robotiq_85_left_knuckle_link',
-        'robotiq_85_left_finger_link',
-        'robotiq_85_right_inner_knuckle_link',
-        'robotiq_85_right_finger_tip_link',
-        'robotiq_85_right_knuckle_link',
-        'robotiq_85_right_finger_link']
+        # self._gripper_links = ['robotiq_85_base_link',
+        # 'robotiq_85_left_inner_knuckle_link',
+        # 'robotiq_85_left_finger_tip_link',
+        # 'robotiq_85_left_knuckle_link',
+        # 'robotiq_85_left_finger_link',
+        # 'robotiq_85_right_inner_knuckle_link',
+        # 'robotiq_85_right_finger_tip_link',
+        # 'robotiq_85_right_knuckle_link',
+        # 'robotiq_85_right_finger_link']
+
+        self._gripper_links = ['b_bot_base',
+        'b_bot_left_inner_knuckle',
+        'b_bot_left_outer_knuckle',
+        'b_bot_left_inner_finger',
+        'b_bot_left_inner_finger_pad',
+        'b_bot_right_inner_knuckle',
+        'b_bot_right_outer_knuckle',
+        'b_bot_right_inner_finger',
+        'b_bot_right_inner_finger_pad']
 
         self._robot_commander = moveit_commander.RobotCommander()
         self._gripper_visual = self._robot_commander.get_robot_markers({},self._gripper_links)
@@ -209,10 +219,13 @@ class MetadataVisualizer():
         for (frame_name, global_pose) in zip(frame_names, global_poses):
             marker = visualization_msgs.msg.Marker()
             marker.header.frame_id = 'world'
-            marker.ns = reference_frame + '/' + 'frame_texts'
+            marker.ns = reference_frame + '/' + 'frame_names'
             marker.id = i
             marker.type = marker.TEXT_VIEW_FACING
             marker.action = marker.ADD
+            marker.color.r = 1.0
+            marker.color.g = 1.0
+            marker.color.b = 1.0
             marker.color.a = 0.8
             marker.scale.z = 0.01
             marker.pose = global_pose
@@ -278,7 +291,7 @@ class MetadataVisualizer():
         rospy.sleep(1)
         self._pub.publish(self._gripper_visual)
     
-    def add_arrows(self, grasps, namespace = '', marker_array_to_append_to=""):
+    def add_grasp_viz(self, grasps, namespace = '', marker_array_to_append_to=""):
         '''Add to a MarkerArray markers visualizing the input 'grasps'.
         The arrows point along the 'x' axis of the grasp frames, with an offset of -0.15 from the origin along the 'x' axis.
         Two pad markers are spaced apart on the 'y' axis. Opening width is not considered.
@@ -288,8 +301,9 @@ class MetadataVisualizer():
             marker_array_to_append_to = visualization_msgs.msg.MarkerArray()
         i = 0
         transformer = tf.Transformer(True, rospy.Duration(10.0))
+        grasp_counter = 0
         for grasp in grasps:
-
+            grasp_counter += 1
             g_transform = geometry_msgs.msg.TransformStamped()
             (g_trans,g_rot) = self._transformer.lookupTransform('world', grasp, rospy.Time(0))
             g_transform.header.frame_id = 'world'
@@ -368,6 +382,27 @@ class MetadataVisualizer():
             marker_array_to_append_to.markers.append(gripper_pad_marker_r)
 
             i += 1
+            
+            text_marker = visualization_msgs.msg.Marker()
+            text_marker.header.frame_id = 'world'
+            text_marker.ns = namespace + '/grasp_names'
+            text_marker.id = i
+            text_marker.type = text_marker.TEXT_VIEW_FACING
+            text_marker.action = text_marker.ADD
+            text_marker.pose = arrow_marker.pose
+            # text_marker.pose = gripper_pad_marker_l.pose
+            
+            # text_marker.pose.position = geometry_msgs.msg.Point(0,0,-.1)
+            # text_marker.pose.position = geometry_msgs.msg.Point(*trans)
+            # text_marker.pose.orientation = geometry_msgs.msg.Quaternion(*rot)
+            text_marker.color.r = 1.0
+            text_marker.color.g = 1.0
+            text_marker.color.b = 1.0
+            text_marker.color.a = 0.8
+            text_marker.scale.z = .01
+            text_marker.text = "grasp_" + str(grasp_counter)
+            marker_array_to_append_to.markers.append(text_marker)
+            i += 1
         return(marker_array_to_append_to)
 
 
@@ -377,18 +412,18 @@ if __name__ == '__main__':
     moveit_commander.roscpp_initialize(sys.argv)
     tf_broadcaster = tf2_ros.StaticTransformBroadcaster()
 
-    assy_name = rospy.get_param('visualize_metadata/assy_name')
+    db_name = rospy.get_param('visualize_metadata/db_name')
     object_name = rospy.get_param('visualize_metadata/object_name')
     gripper_at_grasp = rospy.get_param('visualize_metadata/gripper_at_grasp')
     only_subframes = rospy.get_param('visualize_metadata/only_subframes')
     only_grasps = rospy.get_param('visualize_metadata/only_grasps')
 
-    assembly_reader = AssemblyReader(assy_name)
+    assembly_reader = AssemblyReader(db_name)
 
     marker_array = visualization_msgs.msg.MarkerArray()
 
     if object_name:
-        mesh_name = next((part['cad'] for part in assembly_reader._reader._parts_list if part['name'] == object_name))
+        mesh_name = next((part['cad'] for part in assembly_reader._parts_list if part['name'] == object_name))
         
         co = next(collision_object for collision_object in assembly_reader.collision_objects if collision_object.id == object_name)
 
@@ -406,7 +441,7 @@ if __name__ == '__main__':
         object_pose = geometry_msgs.msg.Pose()
         object_pose.orientation.w = 1
 
-        marker_array = viz.add_object_marker(assy_name, mesh_name, object_pose, marker_array_to_append_to = marker_array)
+        marker_array = viz.add_object_marker(db_name, mesh_name, object_pose, marker_array_to_append_to = marker_array)
 
         if only_subframes:
             marker_array = viz.add_frames(co.subframe_names,co.subframe_poses, marker_array_to_append_to = marker_array)
@@ -418,7 +453,7 @@ if __name__ == '__main__':
             marker_array = viz.add_frames(frame_names,frame_poses, marker_array_to_append_to = marker_array)
             if gripper_at_grasp:
                 viz.publish_gripper_marker_array(gripper_at_grasp)
-            marker_array = viz.add_arrows(grasp_names, marker_array_to_append_to = marker_array)
+            marker_array = viz.add_grasp_viz(grasp_names, marker_array_to_append_to = marker_array)
 
     else:
         offset = 0.4
@@ -426,7 +461,7 @@ if __name__ == '__main__':
         object_pose = geometry_msgs.msg.Pose()
         for co in assembly_reader.collision_objects:
             row_counter += 1
-            mesh_name = next((part['cad'] for part in assembly_reader._reader._parts_list if part['name'] == co.id))
+            mesh_name = next((part['cad'] for part in assembly_reader._parts_list if part['name'] == co.id))
 
             viz = MetadataVisualizer()
 
@@ -442,7 +477,7 @@ if __name__ == '__main__':
                 object_pose.position.x = 0
                 object_pose.position.y += offset
 
-            marker_array = viz.add_object_marker(assy_name, mesh_name, copy.deepcopy(object_pose), co.id, marker_array)
+            marker_array = viz.add_object_marker(db_name, mesh_name, copy.deepcopy(object_pose), co.id, marker_array)
 
             if only_subframes:
                 names = []
@@ -467,8 +502,13 @@ if __name__ == '__main__':
                 frame_names = copy.copy(grasp_names)
                 for name in frame_names:
                     name = co.id + '/' + name
-                marker_array = viz.add_arrows(frame_names, co.id, marker_array)
+                marker_array = viz.add_grasp_viz(frame_names, co.id, marker_array)
     
     rospy.sleep(1)
-    viz._pub.publish(marker_array)
-    rospy.sleep(1)
+    rospy.loginfo("Publishing visualization markers.")
+    while not rospy.is_shutdown():
+        viz._pub.publish(marker_array)
+        rospy.sleep(2)
+    rospy.loginfo("Done.")
+    
+    
