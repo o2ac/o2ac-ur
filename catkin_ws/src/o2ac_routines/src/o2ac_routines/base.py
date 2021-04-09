@@ -743,7 +743,7 @@ class O2ACBase(object):
       wait_for_UR_program("/" + robot_name, rospy.Duration.from_sec(max_wait))
     return res.success
 
-  def move_joints(self, group_name, joint_pose_goal, speed = 1.0, acceleration = 0.0, force_ur_script=False, force_moveit=False):
+  def move_joints(self, group_name, joint_pose_goal, speed = 1.0, acceleration = 1.0, force_ur_script=False, force_moveit=False):
     if rospy.is_shutdown():
       return False
     if self.pause_mode_ or self.test_mode_:
@@ -812,7 +812,7 @@ class O2ACBase(object):
     return res.success
     # =====
 
-  def go_to_named_pose(self, pose_name, robot_name, speed = 0.5, acceleration = 0.0, force_ur_script=False):
+  def go_to_named_pose(self, pose_name, robot_name, speed = 0.5, acceleration = 1.0, force_ur_script=False):
     """
     pose_name should be a named pose in the moveit_config, such as "home", "back" etc.
     """
@@ -1451,7 +1451,7 @@ class O2ACBase(object):
     equip = (equip_or_unequip == "equip")
     unequip = (equip_or_unequip == "unequip")
 
-    return self.do_change_tool_action(self, robot_name, equip=equip, screw_size = 4)
+    return self.do_change_tool_action(robot_name, equip=equip, screw_size = 4)
     ###
     lin_speed = 0.01
     # The second comparison is not always necessary, but readability comes first.

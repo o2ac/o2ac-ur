@@ -173,7 +173,7 @@ class TaskboardClass(O2ACCommon):
   def move_b_bot_to_setscrew_initial_pos(self):
     screw_approach = copy.deepcopy(self.at_set_screw_hole)
     screw_approach.pose.position.x = -0.005
-    self.go_to_pose_goal("b_bot", screw_approach, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True)
+    self.go_to_pose_goal("b_bot", screw_approach, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True, speed=0.5)
 
   def align_bearing_holes(self, max_adjustments=15):
     """
@@ -238,7 +238,7 @@ class TaskboardClass(O2ACCommon):
     rospy.logerr("Did not manage to align the bearing holes.")
     return False
 
-  def full_taskboard_task(self):
+  def full_taskboard_task(self, only_do_screws=False):
     """
     Start the taskboard task from the fully prepped position (set screw tool and M3 tool equipped)
     """
@@ -260,45 +260,22 @@ class TaskboardClass(O2ACCommon):
     self.do_change_tool_action("b_bot", equip=True, screw_size = 4)
     self.go_to_named_pose("home", "b_bot")
 
-    self.go_to_named_pose("horizontal_screw_ready", "a_bot")
-    approach_pose = geometry_msgs.msg.PoseStamped()
-    approach_pose.header.frame_id = "taskboard_m3_screw_link"
-    approach_pose.pose.position.x = -.04
-    approach_pose.pose.position.y = -.12
-    approach_pose.pose.position.z = -.05
-    taskboard.go_to_pose_goal("a_bot", approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
-
-    approach_pose.pose.position.y = -.0
-    approach_pose.pose.position.z = -.0
-    taskboard.go_to_pose_goal("a_bot", approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
-
-    hole_pose = geometry_msgs.msg.PoseStamped()
-    hole_pose.header.frame_id = "taskboard_m3_screw_link"
-    hole_pose.pose.position.y = -.0015  # MAGIC NUMBER (this should offset towards a_bot (z-axis of the frame points down))
-    hole_pose.pose.position.z = -.004  # MAGIC NUMBER (this should offset upwards (z-axis of the frame points down))
-    hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
-    taskboard.do_screw_action("a_bot", hole_pose, screw_size = 3)
-    self.go_to_named_pose("horizontal_screw_ready", "a_bot")
-    self.go_to_named_pose("home", "a_bot")
+    self.do_task("M3 screw")
     
     ###
     
     #### SCREW M4 WITH B_BOT
-    self.activate_camera("b_bot_outside_camera")
-    self.pick_screw_from_feeder("b_bot", screw_size = 4)
-    self.go_to_named_pose("horizontal_screw_ready", "b_bot")
-    hole_pose = geometry_msgs.msg.PoseStamped()
-    hole_pose.header.frame_id = "taskboard_m4_screw_link"
-    hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/12, 0, 0))
-    self.do_screw_action("b_bot", hole_pose, screw_size = 4)
+    self.do_task("M4 screw")
 
     self.do_change_tool_action("a_bot", equip=False, screw_size = 3)
     self.go_to_named_pose("home", "a_bot")
     self.go_to_named_pose("home", "b_bot")
 
     #####
+    if only_do_screws:
+      return True
 
-    subtask_completed = { 
+    subtask_completed = {
       "M2 set screw": True,
       "M3 screw": True,
       "M4 screw": True,
@@ -388,6 +365,7 @@ class TaskboardClass(O2ACCommon):
       else:
         print("Problem loading. Not executing belt procedure.")
       wait_for_UR_program("/b_bot", rospy.Duration.from_sec(20))
+      return True
       
 
     # ==========================================================
@@ -434,62 +412,41 @@ class TaskboardClass(O2ACCommon):
     # ==========================================================
 
     if task_name == "M3 screw":
-      # self.go_to_named_pose("home", "a_bot")
-      # self.go_to_named_pose("home", "b_bot")
-      # self.do_change_tool_action("a_bot", equip=True, screw_size = 3)
-      # self.pick_screw_from_feeder("a_bot", screw_size = 3)
-      # self.go_to_named_pose("home", "a_bot")
       self.go_to_named_pose("horizontal_screw_ready", "a_bot")
-
-      # Do an extra motion to avoid the cable
       approach_pose = geometry_msgs.msg.PoseStamped()
       approach_pose.header.frame_id = "taskboard_m3_screw_link"
       approach_pose.pose.position.x = -.04
       approach_pose.pose.position.y = -.12
       approach_pose.pose.position.z = -.05
-      self.go_to_pose_goal("a_bot", approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
+      taskboard.go_to_pose_goal("a_bot", approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
 
-      approach_pose.pose.position.y = -.0  # MAGIC NUMBER
-      approach_pose.pose.position.z = -.005  # MAGIC NUMBER
-      approach_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
-      self.go_to_pose_goal("a_bot", approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
-      self.confirm_to_proceed("Screw in?")
+      approach_pose.pose.position.y = -.0
+      approach_pose.pose.position.z = -.0
+      taskboard.go_to_pose_goal("a_bot", approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
 
-      hole_pose = copy.deepcopy(approach_pose)
-      hole_pose.pose.position.x = 0
-      self.do_screw_action("a_bot", hole_pose, screw_size = 3)
-      self.go_to_pose_goal("a_bot", approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
-      self.confirm_to_proceed("Unequip tool?")
+      hole_pose = geometry_msgs.msg.PoseStamped()
+      hole_pose.header.frame_id = "taskboard_m3_screw_link"
+      hole_pose.pose.position.y = -.0015  # MAGIC NUMBER (this should offset towards a_bot (z-axis of the frame points down))
+      hole_pose.pose.position.z = -.004  # MAGIC NUMBER (this should offset upwards (z-axis of the frame points down))
+      hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
+      taskboard.do_screw_action("a_bot", hole_pose, screw_size = 3)
       self.go_to_named_pose("horizontal_screw_ready", "a_bot")
-      self.go_to_named_pose("home", "a_bot")
-      self.do_change_tool_action("a_bot", equip=False, screw_size = 3)
       self.go_to_named_pose("home", "a_bot")
 
     # ==========================================================
 
     if task_name == "M4 screw":
-      
-      self.go_to_named_pose("home", "b_bot")
-      self.do_change_tool_action("b_bot", equip=True, screw_size = 4)
+      self.activate_camera("b_bot_outside_camera")
       self.pick_screw_from_feeder("b_bot", screw_size = 4)
-      self.go_to_named_pose("horizontal_screw_ready","b_bot")
+      self.go_to_named_pose("horizontal_screw_ready", "b_bot")
       hole_pose = geometry_msgs.msg.PoseStamped()
       hole_pose.header.frame_id = "taskboard_m4_screw_link"
-      hole_pose.pose.position.x += .00
       hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/12, 0, 0))
-      approach_pose = copy.deepcopy(hole_pose)
-      approach_pose.pose.position.x -= .03
-      
-      self.go_to_pose_goal("b_bot", approach_pose, speed=0.5, end_effector_link="b_bot_screw_tool_m4_tip_link", move_lin = True)
-
-      self.confirm_to_proceed("Proceed to screw?")
+      hole_pose.pose.position.y = -.001  # MAGIC NUMBER (this should offset towards a_bot (z-axis of the frame points down))
+      hole_pose.pose.position.z = -.001  # MAGIC NUMBER (this should offset upwards (z-axis of the frame points down))
       self.do_screw_action("b_bot", hole_pose, screw_size = 4)
-      self.go_to_pose_goal("b_bot", approach_pose, speed=0.5, end_effector_link="b_bot_screw_tool_m4_tip_link", move_lin = True)
       self.go_to_named_pose("horizontal_screw_ready", "b_bot")
-      self.confirm_to_proceed("Unequip tool?")
-      
       self.go_to_named_pose("home", "b_bot")
-      self.do_change_tool_action("b_bot", equip=False, screw_size = 4)
 
     # ==========================================================
 
@@ -567,9 +524,10 @@ class TaskboardClass(O2ACCommon):
         rospy.logerr("Gripper did not grasp the bearing --> Stop")
         return False
       
+      # TODO: Determine if bearing is upside down or not, choose correct program
       b_bot_pass_to_urscript = [1.709548950, -1.761849065, 2.20654327, -2.033707281, -1.5472462, 0.2133078575]
       self.move_joints("b_bot", b_bot_pass_to_urscript)
-      success_b = self.load_program(robot="b_bot", program_name="wrs2020/bearing_v3.urp", recursion_depth=3)
+      success_b = self.load_program(robot="b_bot", program_name="wrs2020/bearing_full.urp", recursion_depth=3)
       
       if success_b:
         print("Loaded bearing program.")
@@ -579,7 +537,7 @@ class TaskboardClass(O2ACCommon):
       else:
         print("Problem loading. Not executing bearing procedure.")
         return False
-      wait_for_UR_program("/b_bot", rospy.Duration.from_sec(60))
+      wait_for_UR_program("/b_bot", rospy.Duration.from_sec(70))
 
       self.bearing_holes_aligned = self.align_bearing_holes()
       return self.bearing_holes_aligned
@@ -697,9 +655,12 @@ class TaskboardClass(O2ACCommon):
           time.sleep(1.0)
       self.move_joints("b_bot", intermediate_pose)
       self.go_to_named_pose("tool_pick_ready","b_bot")
-      self.go_to_named_pose("home", "a_bot")
+      success = self.go_to_named_pose("home", "a_bot")
+      while not success and not rospy.is_shutdown():
+        rospy.logerr("a_bot failed to go home, but unequip is dangerous unless it is out of the way. Repeat.")
+        success = self.go_to_named_pose("home", "a_bot")
+        
       self.unequip_tool('b_bot', 'screw_tool_m4')
-      
     
     # ==========================================================
 
@@ -713,11 +674,12 @@ class TaskboardClass(O2ACCommon):
         print(self.objects_in_tray)
         return False
       goal.pose.position.z = 0.001
+      self.activate_camera("b_bot_inside_camera")
       self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z")
 
       b_bot_before_hole = [1.196680545, -1.73023905, 1.934368435, -1.774223466, -1.543027226, 1.17229890]
       self.move_joints("b_bot", b_bot_before_hole)
-      success_b = self.load_program(robot="b_bot", program_name="wrs2020/shaft_v2.urp", recursion_depth=3)
+      success_b = self.load_program(robot="b_bot", program_name="wrs2020/shaft_v3.urp", recursion_depth=3)
       
       if success_b:
         print("Loaded shaft program.")
@@ -793,8 +755,9 @@ if __name__ == '__main__':
     while i and not rospy.is_shutdown():
       rospy.loginfo("Enter 1 to move robots to home")
       rospy.loginfo("Enter 11, 12 to open/close grippers")
-      rospy.loginfo("Enter 13, 14 to equip/unequip m4 screw tool")
-      rospy.loginfo("Enter 15, 16 to equip/unequip belt placement tool")
+      rospy.loginfo("Enter 13, 14 to equip/unequip m3 screw tool")
+      rospy.loginfo("Enter 15, 16 to equip/unequip m4 screw tool")
+      # rospy.loginfo("Enter 17, 18 to equip/unequip belt placement tool")
       rospy.loginfo("Subtasks: 51 (set screw), 52 (M3), 53 (M4), 54 (belt), 55 (motor pulley), 56 (shaft), 57 (bearing), 58 (idler pulley)")
       rospy.loginfo("Enter 8 to spawn example parts")
       rospy.loginfo("Enter prep to prepare the task (do this before running)")
@@ -829,13 +792,17 @@ if __name__ == '__main__':
         taskboard.close_gripper("a_bot", wait=False)
         taskboard.close_gripper("b_bot")
       if i == "13":
-        taskboard.do_change_tool_action("b_bot", equip=True, screw_size = 4)
+        taskboard.do_change_tool_action("a_bot", equip=True, screw_size = 3)
       if i == "14":
-        taskboard.do_change_tool_action("b_bot", equip=False, screw_size = 4)
+        taskboard.do_change_tool_action("a_bot", equip=False, screw_size = 3)
       if i == "15":
-        taskboard.equip_unequip_belt_tool(equip=True)
+        taskboard.do_change_tool_action("b_bot", equip=True, screw_size = 4)
       if i == "16":
-        taskboard.equip_unequip_belt_tool(equip=False)
+        taskboard.do_change_tool_action("b_bot", equip=False, screw_size = 4)
+      # if i == "15":
+      #   taskboard.equip_unequip_belt_tool(equip=True)
+      # if i == "16":
+      #   taskboard.equip_unequip_belt_tool(equip=False)
       if i == "51":
         taskboard.do_task("M2 set screw")
       if i == "52":
