@@ -70,6 +70,7 @@ public:
 
   //Helpers (convenience functions)
   bool activateROSControlOnUR(std::string robot_name, int recursion_depth = 0);
+  bool hardReactivate(std::string robot_name);
   bool moveToJointPose(std::vector<double> joint_positions, std::string robot_name, bool wait = true, double velocity_scaling_factor = 1.0, bool use_UR_script = false, double acceleration = 0.0);
   bool moveToCartPosePTP(geometry_msgs::PoseStamped pose, std::string robot_name, bool wait = true, std::string end_effector_link = "", double velocity_scaling_factor = 0.1);
   bool moveToCartPoseLIN(geometry_msgs::PoseStamped pose, std::string robot_name, bool wait = true, std::string end_effector_link = "", double velocity_scaling_factor = 0.1, double acceleration = 0.0, bool force_UR_script = false, bool force_moveit = false);
@@ -112,6 +113,8 @@ public:
   void testModeCallback(const std_msgs::BoolConstPtr& msg);
   void aBotStatusCallback(const std_msgs::BoolConstPtr& msg);
   void bBotStatusCallback(const std_msgs::BoolConstPtr& msg);
+  void m3SuctionCallback(const std_msgs::BoolConstPtr& msg);
+  void m4SuctionCallback(const std_msgs::BoolConstPtr& msg);
 
   // Actions
   void executeSuckScrew(const o2ac_msgs::suckScrewGoalConstPtr& goal);
@@ -132,7 +135,7 @@ public:
   double acc_fast = 1.5, acc_fastest = 2.0;
   boost::mutex mutex_;
 
-  ros::Subscriber sub_a_bot_status_, sub_b_bot_status_;
+  ros::Subscriber sub_a_bot_status_, sub_b_bot_status_, sub_m3_screw_suction_, sub_m4_screw_suction_;
   ros::Subscriber subRunMode_, subPauseMode_, subTestMode_;
   ros::Publisher pubMarker_;
   int marker_id_count = 0;
@@ -143,7 +146,7 @@ public:
 
   // Service clients
   ros::ServiceClient sendScriptToURClient_;
-  ros::ServiceClient a_bot_get_loaded_program_, a_bot_program_running_, a_bot_load_program_, a_bot_play_, b_bot_get_loaded_program_, b_bot_program_running_, b_bot_load_program_, b_bot_play_;
+  ros::ServiceClient a_bot_get_loaded_program_, a_bot_program_running_, a_bot_load_program_, a_bot_play_, a_bot_stop_, b_bot_get_loaded_program_, b_bot_program_running_, b_bot_load_program_, b_bot_play_, b_bot_stop_;
   
   // Action servers
   actionlib::SimpleActionServer<o2ac_msgs::suckScrewAction> suckScrewActionServer_;
@@ -166,6 +169,7 @@ public:
   tf::TransformListener tflistener_;
   tf::TransformBroadcaster tfbroadcaster_;
   bool holding_object_ = false;
+  std::map<std::string, bool> screw_suctioned_;  // True/False for "screw_tool_m4" and "screw_tool_m3"
   // A status of the robot. This should almost definitely be rosparams or a topic instead.
   std::map<std::string, o2ac_msgs::RobotStatus> robot_statuses_;
   std::string held_object_id_ = "";
