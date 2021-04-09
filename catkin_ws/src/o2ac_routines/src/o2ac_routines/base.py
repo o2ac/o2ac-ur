@@ -274,6 +274,26 @@ class O2ACBase(object):
       return self.a_bot_set_io.call(req)
     else:
       rospy.logerr("Invalid LED name")
+  
+  def unlock_base_plate(self):
+    self.set_base_lock(closed=False)
+  def lock_base_plate(self):
+    self.set_base_lock(closed=True)
+  def set_base_lock(self, closed=True):
+    req_1 = ur_msgs.srv.SetIORequest()
+    req_1.fun = ur_msgs.srv.SetIORequest.FUN_SET_DIGITAL_OUT
+    req_2 = copy.deepcopy(req_1)
+    req_1.state = ur_msgs.srv.SetIORequest.STATE_OFF
+    req_2.state = ur_msgs.srv.SetIORequest.STATE_ON
+    if closed:
+      req_1.pin = 3   # base_retract
+      req_2.pin = 2   # base_extend
+    else:
+      req_1.pin = 2   
+      req_2.pin = 3
+    self.b_bot_set_io.call(req_1)
+    self.b_bot_set_io.call(req_2)
+    return
 
   def is_robot_running_normally(self, robot_name):
     """

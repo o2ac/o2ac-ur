@@ -406,6 +406,16 @@ class CalibrationClass(O2ACCommon):
     
     self.pick_screw_from_feeder(robot_name, screw_size=screw_size)
     return
+  
+  def go_to_tool_pickup_pose(self, robot_name = "b_bot", screw_tool_id = "screw_tool_m4"):
+    c.go_to_named_pose("tool_pick_ready", "b_bot")
+    ps_tool_pickup = geometry_msgs.msg.PoseStamped()
+    ps_tool_pickup.header.frame_id = screw_tool_id + "_pickup_link"
+    ps_tool_pickup.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, -pi/6, 0))
+    ps_tool_pickup.pose.position.x = .017
+    ps_tool_pickup.pose.position.z = -.008
+    c.go_to_pose_goal("b_bot", ps_tool_pickup, speed=.1, acceleration=.02)
+
 
 if __name__ == '__main__':
   try:
@@ -515,6 +525,8 @@ if __name__ == '__main__':
         c.make_space_for_robot("b_bot")
         c.go_to_named_pose("tool_pick_ready", "b_bot")
         c.do_change_tool_action("b_bot", equip=False, screw_size = 4)
+      elif r == '6211': # Go to tool pickup pose
+        c.go_to_tool_pickup_pose("b_bot", "screw_tool_m4")
       elif r == '623':
         c.make_space_for_robot("a_bot")
         c.go_to_named_pose("tool_pick_ready", "a_bot")
