@@ -36,22 +36,23 @@
 #include <moveit/task_constructor/task.h>
 #include <moveit/robot_model/robot_model.h>
 
+#include <moveit/task_constructor/container.h>
+#include <moveit/task_constructor/stages/compute_ik.h>
+#include <moveit/task_constructor/stages/connect.h>
 #include <moveit/task_constructor/stages/current_state.h>
+#include <moveit/task_constructor/stages/modify_planning_scene.h>
+#include <moveit/task_constructor/stages/move_relative.h>
+#include <moveit/task_constructor/stages/move_to.h>
+#include <moveit/task_constructor/stages/predicate_filter.h>
 #include <moveit/task_constructor/solvers/cartesian_path.h>
 #include <moveit/task_constructor/solvers/joint_interpolation.h>
 #include <moveit/task_constructor/solvers/pipeline_planner.h>
-#include <moveit/task_constructor/stages/move_to.h>
-#include <moveit/task_constructor/stages/move_relative.h>
-#include <moveit/task_constructor/stages/connect.h>
-#include <moveit/task_constructor/stages/predicate_filter.h>
-#include <stages/load_grasp_pose.h>
-#include <moveit/task_constructor/stages/compute_ik.h>
-#include <moveit/task_constructor/stages/modify_planning_scene.h>
+
 #include <stages/dummy.h>
 #include <stages/generate_pose.h>
 #include <stages/generate_place_pose.h>
 #include <stages/generate_handover_pose.h>
-#include <moveit/task_constructor/container.h>
+#include <stages/load_grasp_pose.h>
 
 #include <ros/ros.h>
 #include <moveit/planning_scene/planning_scene.h>
