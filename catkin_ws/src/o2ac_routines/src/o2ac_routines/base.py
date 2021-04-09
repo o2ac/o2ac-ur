@@ -1100,6 +1100,26 @@ class O2ACBase(object):
       rospy.loginfo("Did not detect " + item_name)
       return False
 
+  def save_task_plan(func):
+    '''Decorator that optionally save the solution to a plan.'''
+  
+    def wrap(*args, **kwargs):
+        save_solution_to_file = kwargs.pop("save_solution_to_file", None)
+        result = func(*args, **kwargs)
+        
+        if result is None:
+          rospy.logerr("No solution from server")
+          return
+
+        if result.success and save_solution_to_file:
+          path = rospkg.RosPack().get_path('o2ac_routines') + '/MP_solutions/'
+          with open(path + save_solution_to_file,'wb') as f:
+            pickle.dump(result, f)
+          rospy.loginfo("Writing solution to: %s" % save_solution_to_file)
+        return result  
+    return wrap
+
+  @save_task_plan
   def do_plan_pick_action(self, object_name, grasp_parameter_location = '', lift_direction_reference_frame = '', lift_direction = [], robot_name = ''):
     '''
     Function for calling the action for pick planning
@@ -1116,6 +1136,7 @@ class O2ACBase(object):
     self.pick_planning_client.wait_for_result()
     return self.pick_planning_client.get_result()
 
+  @save_task_plan
   def do_plan_place_action(self, object_name, object_target_pose, release_object_after_place = True, object_subframe_to_place = '', approach_place_direction_reference_frame = '', approach_place_direction = []):
     '''
     Function for calling the action for place planning
@@ -1133,6 +1154,7 @@ class O2ACBase(object):
     self.place_planning_client.wait_for_result()
     return self.place_planning_client.get_result()
 
+  @save_task_plan
   def do_plan_release_action(self, object_name, pose_to_retreat_to = ''):
     '''
     Function for calling the action for release planning
@@ -1146,6 +1168,7 @@ class O2ACBase(object):
     self.release_planning_client.wait_for_result()
     return self.release_planning_client.get_result()
 
+  @save_task_plan
   def do_plan_pickplace_action(self, object_name, object_target_pose, grasp_parameter_location = '', release_object_after_place = True, object_subframe_to_place = '',
     lift_direction_reference_frame = '', lift_direction = [], approach_place_direction_reference_frame = '', approach_place_direction = [], robot_names = '', force_robot_order = False):
     '''
@@ -1169,6 +1192,8 @@ class O2ACBase(object):
     self.pickplace_planning_client.wait_for_result()
     return self.pickplace_planning_client.get_result()
 
+
+  @save_task_plan
   def do_plan_fastening_action(self, object_name, object_target_pose, object_subframe_to_place = '', approach_place_direction_reference_frame = '', approach_place_direction = []):
     '''
     Function for calling the action for fastening planning
@@ -1185,6 +1210,7 @@ class O2ACBase(object):
     self.fastening_planning_client.wait_for_result()
     return self.fastening_planning_client.get_result()
 
+  @save_task_plan
   def do_plan_wrs_subtask_b_action(self, object_name, object_target_pose, object_subframe_to_place, approach_place_direction_reference_frame = '', approach_place_direction = []):
     '''
     Function for calling the action for subassembly (fixing the motor L plate on the base plate) planning

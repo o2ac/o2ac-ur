@@ -38,6 +38,7 @@ import sys
 import copy
 import rospy
 import geometry_msgs.msg
+import moveit_msgs
 import tf_conversions
 import tf
 from math import pi
@@ -298,8 +299,7 @@ class AssemblyClass(O2ACCommon):
     rospy.loginfo("======== PICK TASK ========")
     success = False
     if screw_type in ['m3', 'm4']:
-      success = self.pick('screw_tool_' + screw_type, 'tools', 'screw_tool_m3_pickup_link', [-1.0, 0.0, 0.0], save_solution_to_file = 'mtc_pick_screw_tool')
-    return success
+      return self.do_plan_pick_action('screw_tool_' + screw_type, 'tools', 'screw_tool_m3_pickup_link', [-1.0, 0.0, 0.0], save_solution_to_file = 'pick_screw_tool')
 
   def mtc_suck_screw(self, screw_type):
     rospy.loginfo("======== FASTEN TASK ========")
@@ -311,8 +311,7 @@ class AssemblyClass(O2ACCommon):
     screw_pickup_pose.pose.position.x = -0.01
     screw_pickup_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(2*pi/3, 0, 0))
     if screw_type in ['m3', 'm4']:
-      success = self.fasten('screw_tool_' + screw_type, screw_pickup_pose, object_subframe_to_place = screw_tool_tip_frame, save_solution_to_file = 'pick_screw')
-    return success
+      return self.do_plan_fastening_action('screw_tool_' + screw_type, screw_pickup_pose, object_subframe_to_place = screw_tool_tip_frame, save_solution_to_file = 'pick_screw')
 
   def mtc_place_object_in_tray_center(self, object_name):
     rospy.loginfo("======== PLACE TASK ========")
@@ -321,7 +320,7 @@ class AssemblyClass(O2ACCommon):
     target_pose.pose.position.x = -0.04
     target_pose.pose.position.y = 0.08
     target_pose.pose.orientation.w = 1
-    self.place(object_name, target_pose, save_solution_to_file = 'place_' + object_name)
+    self.do_plan_place_action(object_name, target_pose, save_solution_to_file = 'place_' + object_name)
 
   def mtc_pickplace_l_panel(self):
     rospy.loginfo("======== PICKPLACE TASK ========")
@@ -330,15 +329,14 @@ class AssemblyClass(O2ACCommon):
     target_pose.header.frame_id = 'base/screw_hole_panel2_1'
     target_pose.pose.orientation.w = 1
 
-    self.pick_place('panel_bearing', target_pose, object_subframe_to_place = 'panel_bearing/bottom_screw_hole_aligner_1', robot_names = ['b_bot','a_bot'], force_robot_order = True, save_solution_to_file = 'pickplace')
+    self.do_plan_pickplace_action('panel_bearing', target_pose, object_subframe_to_place = 'panel_bearing/bottom_screw_hole_aligner_1', robot_names = ['b_bot','a_bot'], force_robot_order = True, save_solution_to_file = 'pickplace')
 
   def mtc_pick_place_task(self):
     rospy.loginfo("======== PICK-PLACE TASK ========")
     pose = geometry_msgs.msg.PoseStamped()
     pose.header.frame_id = 'move_group/base/screw_hole_panel2_1'
     pose.pose.orientation.w = 1
-    success = self.pick_place('b_bot', 'panel_bearing', pose, 'panel_bearing/bottom_screw_hole_aligner_1')
-    return success
+    return self.do_plan_pickplace_action('b_bot', 'panel_bearing', pose, save_solution_to_file = 'panel_bearing/bottom_screw_hole_aligner_1')
 
   def real_assembly_task(self):
     self.start_task_timer()
@@ -449,7 +447,12 @@ if __name__ == '__main__':
       if i == '68':
         assy.spawn_objects_for_demo()
       if i == '69':
-        assy.pick('panel_bearing', robot_name = '', save_solution_to_file = 'pick_panel_bearing')
+        result = assy.do_plan_pick_action('panel_bearing', robot_name = '', save_solution_to_file = 'pick_panel_bearing')
+        for solution in result.solution.sub_trajectory:
+          scene_diff = solution.scene_diff
+          planning_scene_diff_req = moveit_msgs.srv.ApplyPlanningSceneRequest()
+          planning_scene_diff_req.scene = scene_diff
+          # self.apply_planning_scene_diff.call(planning_scene_diff_req)   # DEBUG: Update the scene pretending the action has been completed
       if i == '70':
         assy.mtc_place_object_in_tray_center('panel_bearing')
       if i == '71':
@@ -459,12 +462,12 @@ if __name__ == '__main__':
       if i == '73':
         assy.mtc_suck_screw('m4')
       if i == '74':
-        assy.release('panel_bearing', 'home', 'release_panel_bearing')
+        assy.do_plan_release_action('panel_bearing', 'home', save_solution_to_file = 'release_panel_bearing')
       if i == '75':
         target_pose = geometry_msgs.msg.PoseStamped()
         target_pose.header.frame_id = 'base/screw_hole_panel2_1'
         target_pose.pose.orientation.w = 1
-        assy.plan_wrs_subtask_b('panel_bearing', target_pose, object_subframe_to_place = 'panel_bearing/bottom_screw_hole_aligner_1', save_solution_to_file = 'subassembly')
+        assy.do_plan_wrs_subtask_b_action('panel_bearing', target_pose, object_subframe_to_place = 'panel_bearing/bottom_screw_hole_aligner_1', save_solution_to_file = 'subassembly')
       if i == '80':
         rospy.loginfo("Loading")
         mp_res = assy.load_MTC_solution('subassembly')
