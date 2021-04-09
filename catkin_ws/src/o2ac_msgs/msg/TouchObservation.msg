@@ -1,0 +1,2 @@
+geometry_msgs/Pose gripper_pose
+uint8 touched_object_id

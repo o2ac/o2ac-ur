@@ -1,0 +1,9 @@
+uint8 observation_type
+TouchObservation touch_observation
+geometry_msgs/PoseWithCovariance distribution
+
+uint8 TOUCH_OBSERVATION = 0
+---
+bool success
+geometry_msgs/PoseWithCovariance distribution
+---

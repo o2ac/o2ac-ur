@@ -1,0 +1,19 @@
+<launch>
+
+    <arg name="CAD_directory"	default="$(find o2ac_pose_distribution_updater)/CAD"/>
+
+    <rosparam>
+      ground_size: [2.0, 2.0, 2.0]
+      ground_position: [0.0, 0.0, -0.994]
+      box_size: [0.4, 0.2, 0.097]
+      box_position: [-0.20, -0.485, 0.0485]
+
+      distance_threshold: 0.002
+      noise_variance: [0.001, 0.001, 0.001, 0.0087, 0.0087, 0.0087]
+      number_of_particles: 10000
+    </rosparam>
+
+    <node name="shaft_pose_distribution_updater" pkg="o2ac_pose_distribution_updater" type="update_distribution_action_server">
+        <param name="stl_file_path"	     value="$(arg CAD_directory)/shaft.stl"/>
+    </node>
+</launch>
