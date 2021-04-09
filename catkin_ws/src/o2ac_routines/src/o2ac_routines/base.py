@@ -982,6 +982,7 @@ class O2ACBase(object):
   def spawn_multiple_objects(self, assembly_name, objects, poses, reference_frame):
     # Init params
     upload_mtc_modules_initial_params()
+    self.assembly_database.change_assembly(assembly_name)
 
     # Spawn tools and objects
     self.define_tool_collision_objects()
@@ -1104,7 +1105,7 @@ class O2ACBase(object):
     Function for calling the action for pick planning
     The function returns the action result that contains the trajectories for the motion plan
     '''
-    goal = moveit_task_constructor_msgs.msg.PickObjectGoal()
+    goal = o2ac_task_planning_msgs.msg.PickObjectGoal()
     goal.object_name = object_name
     goal.grasp_parameter_location = grasp_parameter_location
     goal.lift_direction_reference_frame = lift_direction_reference_frame

@@ -61,12 +61,13 @@ class AssemblyReader(PartsReader):
         super(AssemblyReader, self).__init__(assembly_name)
         self._broadcaster = tf2_ros.StaticTransformBroadcaster()
         if self.db_name: # = If a database is loaded
-          self.assembly_tree = self.get_assembly_tree(self.collision_objects)
-          self._upload_grasps_to_param_server(assembly_name)
+          self.change_assembly(self, assembly_name)
 
-    def change_assembly(self, assembly_name="wrs_assembly_1"):
-        self.load_db(assembly_name)
-        self.assembly_tree = self.get_assembly_tree(self.collision_objects)
+    def change_assembly(self, assembly_name):
+        if self.db_name != assembly_name:
+            self.load_db(assembly_name)
+            self.assembly_tree = self.get_assembly_tree(self.collision_objects)
+            self._upload_grasps_to_param_server(assembly_name)
 
     def get_frame_mating(self, base_object, child_object):
         '''
