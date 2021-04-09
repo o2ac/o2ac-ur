@@ -482,10 +482,12 @@ if __name__ == '__main__':
       if i == '81':
         assy.do_change_tool_action('b_bot', equip=True, screw_size=4)
       if i == '82':
-        assy.pick_screw_from_feeder('b_bot', 4)
+        assy.do_change_tool_action('b_bot', equip=False, screw_size=4)
       if i == '83':
-        assy.do_linear_push('a_bot', force=15, direction="Y-", max_approach_distance=0.05, forward_speed=0.003)
+        assy.pick_screw_from_feeder('b_bot', 4)
       if i == '84':
+        assy.do_linear_push('a_bot', force=15, direction="Y-", max_approach_distance=0.05, forward_speed=0.003)
+      if i == '85':
         target_pose = geometry_msgs.msg.PoseStamped()
         target_pose.header.frame_id = 'move_group/base/screw_hole_panel2_1'
         target_pose.pose.orientation.w = 1

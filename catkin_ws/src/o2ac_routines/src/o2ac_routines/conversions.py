@@ -163,7 +163,10 @@ def to_pose(T):
   @rtype: geometry_msgs/Pose
   @return: The resulting ROS message
   """
-    if len(T) == 7:
+    if len(T) == 6:
+        pos = Point(*T[:3])
+        quat = Quaternion(*tr.quaternion_from_euler(*T[3:]))
+    elif len(T) == 7:
         pos = Point(*T[:3])
         quat = to_quaternion(T[3:])
     else:
