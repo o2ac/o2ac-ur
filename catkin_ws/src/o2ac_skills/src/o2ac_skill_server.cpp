@@ -1535,6 +1535,13 @@ void SkillServer::executeSuckScrew(const o2ac_msgs::suckScrewGoalConstPtr& goal)
 void SkillServer::executePickScrewFromFeeder(const o2ac_msgs::pickScrewFromFeederGoalConstPtr& goal)
 {
   ROS_INFO("pickScrewFromFeederAction was called");
+  if (screw_suctioned_["screw_tool_m"+std::to_string(goal->screw_size)])
+  {
+    ROS_INFO("But a screw was already detected in the tool. Returning true without doing anything.");
+    pick_screw_from_feeder_result_.success = true;
+    pickScrewFromFeederActionServer_.setSucceeded();
+    return;
+  }
 
   geometry_msgs::PoseStamped pose_feeder;
   pose_feeder.pose.position.x = 0.005;
@@ -1556,17 +1563,18 @@ void SkillServer::executePickScrewFromFeeder(const o2ac_msgs::pickScrewFromFeede
   std::string screw_tool_link = goal->robot_name + "_screw_tool_m" + std::to_string(goal->screw_size) + "_tip_link";
   std::string fastening_tool_name = "screw_tool_m" + std::to_string(goal->screw_size);
   bool screw_picked = suckScrew(pose_feeder, screw_tool_id, goal->robot_name, screw_tool_link, fastening_tool_name);
+  pick_screw_from_feeder_result_.success = screw_picked;
   if (!screw_picked)
   {
     ROS_INFO("pickScrewFromFeederAction has failed to pick the screw");
-    pickScrewFromFeederActionServer_.setAborted();
+    pickScrewFromFeederActionServer_.setAborted(pick_screw_from_feeder_result_);
     return;
   }
 
   goToNamedPose("feeder_pick_ready", goal->robot_name, 0.5, 0.5, false);
 
   ROS_INFO("pickScrewFromFeederAction is set as succeeded");
-  pickScrewFromFeederActionServer_.setSucceeded();
+  pickScrewFromFeederActionServer_.setSucceeded(pick_screw_from_feeder_result_);
 }
 
 // placeAction
@@ -1718,6 +1726,7 @@ void SkillServer::executeRegrasp(const o2ac_msgs::regraspGoalConstPtr& goal)
 void SkillServer::executeScrew(const o2ac_msgs::screwGoalConstPtr& goal)
 {
   ROS_INFO("screwAction was called");
+  screw_result_.success = false;
 
   // Set end effector target poses for the movement
   std::string screw_tool_link = goal->robot_name + "_screw_tool_" + "m" + std::to_string(goal->screw_size) + "_tip_link";
@@ -1804,13 +1813,15 @@ void SkillServer::executeScrew(const o2ac_msgs::screwGoalConstPtr& goal)
   if (screw_not_suctioned_anymore)
   {
     setSuctionEjection(screw_tool_id, false, false);    // Turn off both suction and ejection
-    ROS_INFO("screwAction is set as succeeded");
-    screwActionServer_.setSucceeded();
+    ROS_INFO("screwAction succeeded");
+    screw_result_.success = true;
+    screwActionServer_.setSucceeded(screw_result_);
   }
   else
   {
     ROS_INFO("screwAction did not succeed: screw is still suctioned.");
-    screwActionServer_.setAborted();
+    screw_result_.success = false;
+    screwActionServer_.setAborted(screw_result_);
   }
 }
 

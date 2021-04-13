@@ -865,7 +865,7 @@ class O2ACBase(object):
 
   ######
 
-  def pick_screw_from_feeder(self, robot_name, screw_size):
+  def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=False):
     """
     Picks a screw from one of the feeders. The screw tool already has to be equipped!
     Use this command to equip the screw tool: do_change_tool_action(self, "b_bot", equip=True, screw_size = 4)
@@ -880,7 +880,17 @@ class O2ACBase(object):
     rospy.logdebug("Waiting for result")
     self.pick_screw_from_feeder_client.wait_for_result()
     rospy.logdebug("Getting result")
-    return self.pick_screw_from_feeder_client.get_result()
+    res = self.pick_screw_from_feeder_client.get_result()
+    
+    if not res.success:
+      if realign_tool_upon_failure:
+        rospy.loginfo("pickScrewFromFeeder failed. Realigning tool and retrying.")
+        screw_tool_id = "screw_tool_m" + str(screw_size)
+        self.realign_tool(robot_name, screw_tool_id)
+        return self.pick_screw_from_feeder(robot_name, screw_size, align_tool_upon_failure=False)
+      else:
+        return False
+    return True
 
   def do_place_action(self, robot_name, pose_stamped, tool_name = "", screw_size=0):
     # Call the place action

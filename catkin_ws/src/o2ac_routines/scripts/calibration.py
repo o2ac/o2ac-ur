@@ -447,6 +447,7 @@ if __name__ == '__main__':
       rospy.loginfo("681, 682: Pick m4 screw from feeder (a_bot, b_bot)")
       rospy.loginfo("691, 692: Pick m3 screw from feeder (a_bot, b_bot)")
       rospy.loginfo("70: Do screw action with b_bot on rightmost hole")
+      rospy.loginfo("81: Realign M4 tool")
       rospy.loginfo("x: Exit ")
       rospy.loginfo(" ")
       r = raw_input()
@@ -577,6 +578,8 @@ if __name__ == '__main__':
         c.screw_feeder_pick_test(robot_name="b_bot", screw_size=3)
       elif r == '70':
         c.screw_action_test(robot_name="b_bot")
+      elif r == '81':
+        c.realign_tool(robot_name="b_bot", screw_tool_id="screw_tool_m4")
       elif r == 'x':
         break
       else:

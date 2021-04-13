@@ -151,10 +151,12 @@ public:
   // Action servers
   actionlib::SimpleActionServer<o2ac_msgs::suckScrewAction> suckScrewActionServer_;
   actionlib::SimpleActionServer<o2ac_msgs::pickScrewFromFeederAction> pickScrewFromFeederActionServer_;
+  o2ac_msgs::pickScrewFromFeederResult pick_screw_from_feeder_result_;
   
   actionlib::SimpleActionServer<o2ac_msgs::placeAction> placeActionServer_;
   actionlib::SimpleActionServer<o2ac_msgs::regraspAction> regraspActionServer_;
   actionlib::SimpleActionServer<o2ac_msgs::screwAction> screwActionServer_;  
+  o2ac_msgs::screwResult screw_result_;
   actionlib::SimpleActionServer<o2ac_msgs::changeToolAction> changeToolActionServer_;
 
   // Action clients
