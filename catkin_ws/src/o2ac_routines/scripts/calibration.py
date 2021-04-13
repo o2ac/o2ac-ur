@@ -107,7 +107,7 @@ class CalibrationClass(O2ACCommon):
     return ps_new
 
   # TODO: Implement the above in the function below
-  def cycle_through_calibration_poses(self, poses, robot_name, speed=0.3, with_approach=False, move_lin=False, go_home=True, end_effector_link=""):
+  def cycle_through_calibration_poses(self, poses, robot_name, speed=0.1, with_approach=False, move_lin=False, go_home=True, end_effector_link=""):
     home_pose = "home"
     if "screw" in end_effector_link:
       home_pose = "screw_ready"
@@ -190,7 +190,7 @@ class CalibrationClass(O2ACCommon):
       poses[2].header.frame_id = "assembled_assy_part_01_fixation_hole_1"
       poses[3].header.frame_id = "assembled_assy_part_01_fixation_hole_2"
 
-    self.cycle_through_calibration_poses(poses, robot_name, speed=0.3, go_home=False, end_effector_link=end_effector_link, move_lin=True)
+    self.cycle_through_calibration_poses(poses, robot_name, go_home=False, end_effector_link=end_effector_link, move_lin=True)
     return 
 
   def assembly_calibration_assembled_parts(self):
@@ -222,7 +222,7 @@ class CalibrationClass(O2ACCommon):
     poses[4].pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/2, 0, -tau/2) )
     poses[4].pose.position.x = .03
 
-    self.cycle_through_calibration_poses(poses, "b_bot", speed=0.3, go_home=True)
+    self.cycle_through_calibration_poses(poses, "b_bot", go_home=True)
     return 
   
   def taskboard_calibration_with_tools(self, robot_name="b_bot", end_effector_link = ""):
@@ -255,7 +255,7 @@ class CalibrationClass(O2ACCommon):
     poses[1].header.frame_id = "taskboard_m3_screw_link"
     poses[2].header.frame_id = "taskboard_m4_screw_link"
 
-    self.cycle_through_calibration_poses(poses, robot_name, speed=0.3, go_home=False, with_approach=True, end_effector_link=end_effector_link, move_lin=True)
+    self.cycle_through_calibration_poses(poses, robot_name, go_home=False, with_approach=True, end_effector_link=end_effector_link, move_lin=True)
     self.go_to_named_pose("horizontal_screw_ready", robot_name)
     return 
 
@@ -278,7 +278,7 @@ class CalibrationClass(O2ACCommon):
     poses[1].pose.position.y = -0.1
     poses[2].pose.position.y = 0.1
 
-    self.cycle_through_calibration_poses(poses, robot_name, speed=0.3, go_home=False, with_approach=True, end_effector_link=end_effector_link, move_lin=True)
+    self.cycle_through_calibration_poses(poses, robot_name, go_home=False, with_approach=True, end_effector_link=end_effector_link, move_lin=True)
     return 
 
       
@@ -350,7 +350,7 @@ class CalibrationClass(O2ACCommon):
     poses[2].header.frame_id = "assembled_assy_part_01_screw_hole_panel2_1"
     poses[3].header.frame_id = "assembled_assy_part_01_screw_hole_panel2_2"
     end_effector_link=robot_name+ tool_name
-    self.cycle_through_calibration_poses(poses, robot_name, speed=0.3, go_home=False, move_lin=True, end_effector_link=end_effector_link)
+    self.cycle_through_calibration_poses(poses, robot_name, go_home=False, move_lin=True, end_effector_link=end_effector_link)
     return
     
   def screw_action_test(self, robot_name = "b_bot"):
@@ -396,7 +396,7 @@ class CalibrationClass(O2ACCommon):
     poses[1].pose.position.x = 0
     poses[2].pose.position.x = -.02
     
-    self.cycle_through_calibration_poses(poses, robot_name, speed=0.3, go_home=False, move_lin=True, end_effector_link=ee_link)
+    self.cycle_through_calibration_poses(poses, robot_name, go_home=False, move_lin=True, end_effector_link=ee_link)
     self.toggle_collisions(collisions_on=True)
     return
   
@@ -406,6 +406,16 @@ class CalibrationClass(O2ACCommon):
     
     self.pick_screw_from_feeder(robot_name, screw_size=screw_size)
     return
+  
+  def go_to_tool_pickup_pose(self, robot_name = "b_bot", screw_tool_id = "screw_tool_m4"):
+    c.go_to_named_pose("tool_pick_ready", "b_bot")
+    ps_tool_pickup = geometry_msgs.msg.PoseStamped()
+    ps_tool_pickup.header.frame_id = screw_tool_id + "_pickup_link"
+    ps_tool_pickup.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, -pi/6, 0))
+    ps_tool_pickup.pose.position.x = .017
+    ps_tool_pickup.pose.position.z = -.008
+    c.go_to_pose_goal("b_bot", ps_tool_pickup, speed=.1, acceleration=.02)
+
 
 if __name__ == '__main__':
   try:
@@ -437,6 +447,7 @@ if __name__ == '__main__':
       rospy.loginfo("681, 682: Pick m4 screw from feeder (a_bot, b_bot)")
       rospy.loginfo("691, 692: Pick m3 screw from feeder (a_bot, b_bot)")
       rospy.loginfo("70: Do screw action with b_bot on rightmost hole")
+      rospy.loginfo("81: Realign M4 tool")
       rospy.loginfo("x: Exit ")
       rospy.loginfo(" ")
       r = raw_input()
@@ -515,6 +526,8 @@ if __name__ == '__main__':
         c.make_space_for_robot("b_bot")
         c.go_to_named_pose("tool_pick_ready", "b_bot")
         c.do_change_tool_action("b_bot", equip=False, screw_size = 4)
+      elif r == '6211': # Go to tool pickup pose
+        c.go_to_tool_pickup_pose("b_bot", "screw_tool_m4")
       elif r == '623':
         c.make_space_for_robot("a_bot")
         c.go_to_named_pose("tool_pick_ready", "a_bot")
@@ -565,6 +578,8 @@ if __name__ == '__main__':
         c.screw_feeder_pick_test(robot_name="b_bot", screw_size=3)
       elif r == '70':
         c.screw_action_test(robot_name="b_bot")
+      elif r == '81':
+        c.realign_tool(robot_name="b_bot", screw_tool_id="screw_tool_m4")
       elif r == 'x':
         break
       else:

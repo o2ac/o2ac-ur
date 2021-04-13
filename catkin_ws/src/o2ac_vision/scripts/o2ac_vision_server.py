@@ -119,9 +119,9 @@ class O2ACVisionServer(object):
         self._timeout = rospy.get_param('~timeout', 10)
 
         # Setup clients for depth filtering and localization
-        # self._dfilter = DepthFilterClient('depth_filter')
-        # self._dfilter.window_radius = 2
-        # self._localizer = LocalizationClient('localization')
+        self._dfilter = DepthFilterClient('depth_filter')
+        self._dfilter.window_radius = 2
+        self._localizer = LocalizationClient('localization')
 
         # Load parameters for detecting graspabilities
         default_param_fge = {"ds_rate": 0.5,
@@ -280,7 +280,7 @@ class O2ACVisionServer(object):
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
 
     def localization_callback(self, goal):
-        rospy.loginfo("Received a request to detect objects via SSD")
+        rospy.loginfo("Received a request to localize objects via CAD matching")
         # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
         im_in  = self.bridge.imgmsg_to_cv2(self.last_rgb_image, desired_encoding="bgr8")
         im_vis = im_in.copy()

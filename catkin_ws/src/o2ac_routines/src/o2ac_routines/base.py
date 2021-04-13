@@ -107,7 +107,7 @@ class O2ACBase(object):
 
     self.speed_fast = 0.1
     self.speed_fastest = 0.2
-    self.acc_fast = 0.1
+    self.acc_fast = 0.2
     self.acc_fastest = 0.2
 
     self.reduced_mode_speed_limit = .25
@@ -274,6 +274,26 @@ class O2ACBase(object):
       return self.a_bot_set_io.call(req)
     else:
       rospy.logerr("Invalid LED name")
+  
+  def unlock_base_plate(self):
+    self.set_base_lock(closed=False)
+  def lock_base_plate(self):
+    self.set_base_lock(closed=True)
+  def set_base_lock(self, closed=True):
+    req_1 = ur_msgs.srv.SetIORequest()
+    req_1.fun = ur_msgs.srv.SetIORequest.FUN_SET_DIGITAL_OUT
+    req_2 = copy.deepcopy(req_1)
+    req_1.state = ur_msgs.srv.SetIORequest.STATE_OFF
+    req_2.state = ur_msgs.srv.SetIORequest.STATE_ON
+    if closed:
+      req_1.pin = 3   # base_retract
+      req_2.pin = 2   # base_extend
+    else:
+      req_1.pin = 2   
+      req_2.pin = 3
+    self.b_bot_set_io.call(req_1)
+    self.b_bot_set_io.call(req_2)
+    return
 
   def is_robot_running_normally(self, robot_name):
     """
@@ -556,7 +576,7 @@ class O2ACBase(object):
     group = self.groups[group_name]
     return group.get_current_pose().pose
   
-  def go_to_pose_goal(self, group_name, pose_goal_stamped, speed = 1.0, acceleration = 0.0, high_precision = False, 
+  def go_to_pose_goal(self, group_name, pose_goal_stamped, speed = 1.0, acceleration = 0.5, high_precision = False, 
                       end_effector_link = "", move_lin = True):
     if rospy.is_shutdown():
       return False
@@ -643,7 +663,7 @@ class O2ACBase(object):
 
     return ps_new
 
-  def move_lin(self, group_name, pose_goal_stamped, speed = 1.0, acceleration = 0.0, end_effector_link = ""):
+  def move_lin(self, group_name, pose_goal_stamped, speed = 1.0, acceleration = 0.5, end_effector_link = ""):
     if rospy.is_shutdown():
       return False
     self.publish_marker(pose_goal_stamped, "pose")
@@ -743,7 +763,7 @@ class O2ACBase(object):
       wait_for_UR_program("/" + robot_name, rospy.Duration.from_sec(max_wait))
     return res.success
 
-  def move_joints(self, group_name, joint_pose_goal, speed = 1.0, acceleration = 0.0, force_ur_script=False, force_moveit=False):
+  def move_joints(self, group_name, joint_pose_goal, speed = 1.0, acceleration = 0.5, force_ur_script=False, force_moveit=False):
     if rospy.is_shutdown():
       return False
     if self.pause_mode_ or self.test_mode_:
@@ -812,7 +832,7 @@ class O2ACBase(object):
     return res.success
     # =====
 
-  def go_to_named_pose(self, pose_name, robot_name, speed = 0.5, acceleration = 0.0, force_ur_script=False):
+  def go_to_named_pose(self, pose_name, robot_name, speed = 0.5, acceleration = 0.5, force_ur_script=False):
     """
     pose_name should be a named pose in the moveit_config, such as "home", "back" etc.
     """
@@ -831,8 +851,7 @@ class O2ACBase(object):
                       d[robot_name+"_wrist_1_joint"],
                       d[robot_name+"_wrist_2_joint"],
                       d[robot_name+"_wrist_3_joint"]]
-        self.move_joints(robot_name, joint_pose, speed, acceleration, force_ur_script=force_ur_script)
-        return True
+        return self.move_joints(robot_name, joint_pose, speed, acceleration, force_ur_script=force_ur_script)
     if speed > 1.0:
       speed = 1.0
     self.activate_ros_control_on_ur(robot_name)
@@ -846,7 +865,7 @@ class O2ACBase(object):
 
   ######
 
-  def pick_screw_from_feeder(self, robot_name, screw_size):
+  def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=False):
     """
     Picks a screw from one of the feeders. The screw tool already has to be equipped!
     Use this command to equip the screw tool: do_change_tool_action(self, "b_bot", equip=True, screw_size = 4)
@@ -861,7 +880,17 @@ class O2ACBase(object):
     rospy.logdebug("Waiting for result")
     self.pick_screw_from_feeder_client.wait_for_result()
     rospy.logdebug("Getting result")
-    return self.pick_screw_from_feeder_client.get_result()
+    res = self.pick_screw_from_feeder_client.get_result()
+    
+    if not res.success:
+      if realign_tool_upon_failure:
+        rospy.loginfo("pickScrewFromFeeder failed. Realigning tool and retrying.")
+        screw_tool_id = "screw_tool_m" + str(screw_size)
+        self.realign_tool(robot_name, screw_tool_id)
+        return self.pick_screw_from_feeder(robot_name, screw_size, align_tool_upon_failure=False)
+      else:
+        return False
+    return True
 
   def do_place_action(self, robot_name, pose_stamped, tool_name = "", screw_size=0):
     # Call the place action
@@ -901,7 +930,7 @@ class O2ACBase(object):
 
   def do_change_tool_action(self, robot_name, equip=True, 
                         screw_size = 4):
-    # self.equip_unequip_tool(robot_name, screw_tool_id, angle=0.0, equip_or_unequip=equip)
+    # self.equip_unequip_realign_tool(robot_name, screw_tool_id, angle=0.0, equip_or_unequip=equip)
     # return
     ### DEPRECATED
     self.log_to_debug_monitor("Change tool", "operation")
@@ -1363,18 +1392,23 @@ class O2ACBase(object):
 
   def close_gripper(self, robot, force=40.0, wait=True):
     return self.send_gripper_command(robot, "close", force=force, wait=wait)
-  def open_gripper(self, robot, wait=True):
-    return self.send_gripper_command(robot, "open", wait=wait)
+  def open_gripper(self, robot, wait=True, opening_width=None):
+    command = "open"
+    if opening_width:
+      command = opening_width
+    return self.send_gripper_command(robot, command, wait=wait)
 
   def send_gripper_command(self, gripper, command, this_action_grasps_an_object = False, force = 40.0, velocity = .1, wait=True):
     """
+    gripper: a_bot or b_bot
+    command: "open", "close" or opening width
     force: Gripper force in N. From 40 to 100
     velocity: Gripper speed. From 0.013 to 0.1
 
     Use a slow closing speed when using a low gripper force, or the force might be unexpectedly high.
     """
     if not self.use_real_robot:
-      # TODO: Set the gripper width
+      # TODO: Set the gripper width in simulation
       return True
     if gripper == "b_bot" or gripper == "a_bot":
       goal = robotiq_msgs.msg.CModelCommandGoal()
@@ -1399,9 +1433,13 @@ class O2ACBase(object):
     rospy.loginfo("Sending command " + str(command) + " to gripper: " + gripper)
     if wait:
       action_client.wait_for_result(rospy.Duration(6.0))  # Default wait time: 6 s
-    result = action_client.get_result()
-    rospy.loginfo(result)
-    return 
+      result = action_client.get_result()
+      if result:
+        return True
+      else:
+        return False
+    else:
+      return True
 
   def spawn_tool(self, tool_name):
     if tool_name == "screw_tool_m3" or tool_name == "screw_tool_m4": 
@@ -1439,28 +1477,40 @@ class O2ACBase(object):
       rospy.logerr(item_id_to_attach + " could not be detached! robot_name = " + robot_name)
 
   def equip_tool(self, robot_name, tool_name):
-    return self.equip_unequip_tool(robot_name, tool_name, "equip")
+    return self.equip_unequip_realign_tool(robot_name, tool_name, "equip")
   
   def unequip_tool(self, robot_name, tool_name):
-    return self.equip_unequip_tool(robot_name, tool_name, "unequip")
+    return self.equip_unequip_realign_tool(robot_name, tool_name, "unequip")
+  
+  def realign_tool(self, robot_name, screw_tool_id):
+    """
+    Goes to the tool holder and regrasps the tool to fix its orientation.
+    This can be called when an operation fails and the tool has probably rotated in the gripper.
+    """
+    return self.equip_unequip_realign_tool(robot_name, screw_tool_id, "realign")
 
-  def equip_unequip_tool(self, robot_name, tool_name, equip_or_unequip):
+  def equip_unequip_realign_tool(self, robot_name, tool_name, operation):
+    """
+    operation can be "equip", "unequip" or "realign".
+    """
     # TODO(felixvd): Finish this function. It is duplicated in C++.
 
     # Sanity check on the input instruction
-    equip = (equip_or_unequip == "equip")
-    unequip = (equip_or_unequip == "unequip")
+    equip = (operation == "equip")
+    unequip = (operation == "unequip")
+    if equip or unequip:
+      raise NotImplementedError("Equip/unequip needs to be called via the C++ skill server instead")
+    realign = (operation == "realign")
 
-    return self.do_change_tool_action(self, robot_name, equip=equip, screw_size = 4)
     ###
     lin_speed = 0.01
     # The second comparison is not always necessary, but readability comes first.
-    if ((not equip) and (not unequip)):
-      rospy.logerr("Cannot read the instruction " + equip_or_unequip + ". Returning False.")
+    if ((not equip) and (not unequip) and (not realign)):
+      rospy.logerr("Cannot read the instruction " + operation + ". Returning False.")
       return False
 
     if ((self.robot_status[robot_name].carrying_object == True)):
-      rospy.logerr("Robot holds an object. Cannot " + equip_or_unequip + " tool.")
+      rospy.logerr("Robot holds an object. Cannot " + operation + " tool.")
       return False
     if ( (self.robot_status[robot_name].carrying_tool == True) and equip):
       rospy.logerr("Robot already holds a tool. Cannot equip another.")
@@ -1521,8 +1571,8 @@ class O2ACBase(object):
     elif tool_name == "set_screw_tool":
       ps_in_holder.pose.position.x = 0.02
 
-    if unequip: 
-      ps_in_holder.pose.position.x -= 0.001   # Don't move all the way into the magnet
+    if unequip or realign:
+      ps_in_holder.pose.position.x -= 0.001   # Don't move all the way into the magnet to place
       ps_approach.pose.position.z -= 0.01 # Approach diagonally so nothing gets stuck
 
     if equip:
@@ -1542,13 +1592,14 @@ class O2ACBase(object):
       lin_speed = 0.5
     elif unequip:
       lin_speed = 0.08 
+    elif realign:
+      lin_speed = 0.1
 
     self.go_to_pose_goal(robot_name, ps_in_holder, speed=lin_speed, move_lin=True)
   
     # Close gripper, attach the tool object to the gripper in the Planning Scene.
     # Its collision with the parent link is set to allowed in the original planning scene.
     if equip:
-      rospy.loginfo("Closing the gripper.")
       self.close_gripper(robot_name)
       self.attach_tool(robot_name, tool_name)
       self.allow_collisions_with_robot_hand(tool_name, robot_name)
@@ -1561,16 +1612,22 @@ class O2ACBase(object):
       held_screw_tool_ = ""
       self.robot_status[robot_name].carrying_tool = False
       self.robot_status[robot_name].held_tool_id = ""
-
-    rospy.sleep(.5)
+    elif realign: # 
+      self.open_gripper(robot_name)
+      self.close_gripper(robot_name)
+      pull_back_slightly = copy.deepcopy(ps_in_holder)
+      pull_back_slightly.pose.position.x -= 0.003
+      ps_in_holder.pose.position.x += 0.001  # To remove the offset for placing applied earlier
+      lin_speed = 0.02
+      self.go_to_pose_goal(robot_name, pull_back_slightly, speed=lin_speed, move_lin=True)
+      self.open_gripper(robot_name)
+      self.go_to_pose_goal(robot_name, ps_in_holder, speed=lin_speed, move_lin=True)
+      self.close_gripper(robot_name)
     
     # Plan & execute linear motion away from the tool change position
     rospy.loginfo("Moving back to screw tool approach pose LIN.")
     
-    if equip:
-      lin_speed = 1.0
-    elif unequip:
-      lin_speed = 1.0
+    lin_speed = 0.8
 
     ### This block is probably not needed anymore?
     # if self.use_real_robot:

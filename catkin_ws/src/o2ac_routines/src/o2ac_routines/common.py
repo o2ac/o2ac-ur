@@ -697,7 +697,7 @@ class O2ACCommon(O2ACBase):
     self.send_gripper_command(gripper=robot_name, command="close", force = 1.0, velocity = 0.1)
     self.send_gripper_command(gripper=robot_name, command=object_width+0.02, force = 90.0, velocity = 0.001)
     object_pose_in_world_rotated = copy.deepcopy(object_pose_in_world)
-    object_pose_in_world_rotated.pose = rotatePoseByRPY(0,0,pi, object_pose_in_world_rotated.pose)
+    object_pose_in_world_rotated.pose = rotatePoseByRPY(0,0,tau/4, object_pose_in_world_rotated.pose)
     self.go_to_pose_goal(robot_name, object_pose_in_world, speed=speed_slow, acceleration=acc_slow, move_lin=True)
     self.send_gripper_command(gripper=robot_name, command="close", force = 1.0, velocity = 0.1)
     self.send_gripper_command(gripper=robot_name, command=object_width+0.02, force = 90.0, velocity = 0.001)
@@ -807,17 +807,33 @@ class O2ACCommon(O2ACBase):
 
   ########
 
-  def fasten_screw(self, robot_name, screw_hole_pose, screw_height = .02, screw_size = 4):
-
+  def fasten_screw_vertical(self, robot_name, screw_hole_pose, screw_height = .02, screw_size = 4):
+    """
+    This works for the two L-plates when they are facing forward.
+    """
     if not screw_size==3 and not screw_size==4:
       rospy.logerr("Screw size needs to be 3 or 4 but is: " + str(screw_size))
       return False
 
     self.go_to_named_pose("feeder_pick_ready", robot_name)
     
-    self.do_screw_action(robot_name, screw_hole_pose, screw_height, screw_size)
+    res = self.do_screw_action(robot_name, screw_hole_pose, screw_height, screw_size)
     self.go_to_named_pose("feeder_pick_ready", robot_name)
-    return True
+    return res.success
+
+  def fasten_screw_horizontal(self, robot_name, screw_hole_pose, screw_height = .02, screw_size = 4):
+    """
+    This should work for the motor and bearing.
+    """
+    if not screw_size==3 and not screw_size==4:
+      rospy.logerr("Screw size needs to be 3 or 4 but is: " + str(screw_size))
+      return False
+
+    self.go_to_named_pose("horizontal_screw_ready", robot_name)
+    
+    success = self.do_screw_action(robot_name, screw_hole_pose, screw_height, screw_size)
+    self.go_to_named_pose("horizontal_screw_ready", robot_name)
+    return success
 
   def pick_nut(self, robot_name):
     """Pick the nut from the holder. The nut tool has to be equipped.
