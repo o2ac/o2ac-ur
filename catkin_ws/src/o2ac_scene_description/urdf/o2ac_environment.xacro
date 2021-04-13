@@ -31,7 +31,7 @@
     <origin xyz="-.513 -.152 -0.023" rpy="0 0 0" />   
   </xacro:screw_feeder> 
   <xacro:screw_feeder feedername="m4_feeder" parent="workspace_center">
-    <origin xyz="-.511 .005 -0.023" rpy="0 0 0" />   
+    <origin xyz="-.513 .004 -0.023" rpy="0 0 0" />   
   </xacro:screw_feeder> 
 
   <!-- Base fixture -->
