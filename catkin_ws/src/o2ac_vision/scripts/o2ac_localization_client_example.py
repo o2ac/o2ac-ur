@@ -62,7 +62,7 @@ if __name__ == '__main__':
                '14_BGPSL6-9-L30-F8',            # 14
               )
 
-    recognizer = ObjectLocalizationClient('object_localizer')
+    recognizer = ObjectLocalizationClient('o2ac_vision_server')
     spawner    = ModelSpawnerClient()
 
     while not rospy.is_shutdown():

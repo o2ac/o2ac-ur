@@ -25,7 +25,7 @@
   <node name="o2ac_vision_server" pkg="o2ac_vision" type="o2ac_vision_server.py" output="screen">
     <remap from="/image"	to="$(arg image_topic)"/>
     <param name="continuous_streaming"		value="$(arg continuous_streaming)"/>
-    <param name="camera_name"		value="$(arg camera_name)"/>>
+    <param name="camera_name"		value="$(arg camera_name)"/>
     <!-- Localization params -->
     <param name="nposes"	value="$(arg nposes)"/>
     <param name="timeout"	value="$(arg timeout)"/>
