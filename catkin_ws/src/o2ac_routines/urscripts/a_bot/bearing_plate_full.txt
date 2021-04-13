@@ -1,0 +1,39 @@
+ Program
+   Robot Program
+     MoveL
+       Gripper Move65% (1)
+       above_ex_pick
+       pick_plate
+       Gripper Close (1)
+     MoveL
+       start
+       above_drop_1
+       drop_1
+       Gripper Move73% (1)
+       above_drop_1
+       wp1
+       before_grasp
+       at_grasp
+       Gripper Close (1)
+       Direction: Base
+         Until (distance)
+       above_final_wp1
+       place
+       Gripper Move73% (1)
+       align
+       Gripper Close (1)
+       Gripper Move73% (1)
+     Call bearing_plate_positioni_1
+   bearing_plate_positioni_1
+     MoveL
+       before_push
+     Gripper Close (1)
+     MoveL
+       push_end
+       before_push
+     Gripper Move52% (1)
+     MoveL
+       Waypoint_2
+       final_grasp
+     Gripper Close (1)
+     Gripper Move82% (1)

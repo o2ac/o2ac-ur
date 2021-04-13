@@ -1,21 +1,9 @@
 def shaft_turning():
-  step_count_74696692_88ce_45f1_9a79_5e5b9bec3825 = 0
-  thread Step_Counter_Thread_59eec7aa_79c2_4345_bedd_727ddfff4ee8():
-    while (True):
-      step_count_74696692_88ce_45f1_9a79_5e5b9bec3825 = step_count_74696692_88ce_45f1_9a79_5e5b9bec3825 + 1
-      sync()
-    end
-  end
-  run Step_Counter_Thread_59eec7aa_79c2_4345_bedd_727ddfff4ee8()
-  set_safety_mode_transition_hardness(1)
   set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
   set_tool_output_mode(0)
   set_tool_digital_output_mode(0, 1)
   set_tool_digital_output_mode(1, 1)
   set_tool_voltage(24)
-  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
-  set_payload(0.0)
-  set_gravity([0.0, 0.0, 9.82])
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -23,8 +11,20 @@ def shaft_turning():
   set_analog_outputdomain(0, 0)
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
+  set_gravity([0.0, 0.0, 9.82])
+  set_safety_mode_transition_hardness(1)
+  step_count_bd743510_c6db_4053_b1e5_e7d56dfe47b4 = 0.0
+  thread Step_Counter_Thread_dbaf014b_a16c_46c7_9f6c_cbd251d43a22():
+    while (True):
+      step_count_bd743510_c6db_4053_b1e5_e7d56dfe47b4 = step_count_bd743510_c6db_4053_b1e5_e7d56dfe47b4 + 1.0
+      sync()
+    end
+  end
+  run Step_Counter_Thread_dbaf014b_a16c_46c7_9f6c_cbd251d43a22()
+  set_target_payload(1.200000, [0.001000, -0.018000, 0.049000], [0.002086, 0.002086, 0.002086, 0.000000, 0.000000, 0.000000])
+  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
   # begin: URCap Installation Node
-  #   Source: External Control, 1.0.2, FZI Research Center for Information Technology
+  #   Source: External Control, 1.0.5, FZI Research Center for Information Technology
   #   Type: External Control
   # end: URCap Installation Node
   # begin: URCap Installation Node
@@ -2351,67 +2351,66 @@ def shaft_turning():
   global at_right_up_q=[2.434747173928047, -1.4410323601435824, 2.2181687410962674, -1.9724472304767824, -1.8457295258196265, 0.9106928440326816]
   global at_right_p=p[.293492258860, -.172284526154, .029381067403, .008217653895, -2.677872580625, -.028219420597]
   global at_right_q=[2.4362616718934, -1.4261784966928488, 2.2221907969606765, -1.990885717859869, -1.8451496488040195, 0.9122771094709871]
-  while (True):
-    $ 1 "Robot Program"
-    # begin: URCap Program Node
-    #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
-    #   Type: Gripper
-    $ 2 "Gripper Move46% (1)"
-    if not(gripper_connected[0]):
-      popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
-    end
-    if not(rq_is_gripper_activated("1")):
-      popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
-    end
-    rq_set_pos_spd_for(118, 255, 255, "1")
-    rq_wait_pos_spe_for_request(118, 255, 255, "1")
-    rq_go_to("1")
-    rq_wait("1")
-    # end: URCap Program Node
-    $ 3 "MoveL"
-    $ 4 "at_shaft" "breakAfter"
-    movel(at_shaft_p, a=1.2, v=0.25)
-    $ 6 "Wait: 1.0"
-    sleep(1.0)
-    $ 9 "MoveL"
-    $ 10 "at_shaft_left" "breakAfter"
-    movel(at_shaft_left_p, a=1.2, v=0.25)
-    # begin: URCap Program Node
-    #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
-    #   Type: Gripper
-    $ 11 "Gripper Close (1)"
-    if not(gripper_connected[0]):
-      popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
-    end
-    if not(rq_is_gripper_activated("1")):
-      popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
-    end
-    rq_set_pos_spd_for(255, 255, 0, "1")
-    rq_wait_pos_spe_for_request(255, 255, 0, "1")
-    rq_go_to("1")
-    rq_wait("1")
-    # end: URCap Program Node
-    $ 12 "MoveL"
-    $ 13 "at_left_up" "breakAfter"
-    movel(at_left_up_p, a=1.2, v=0.25)
-    $ 14 "at_right_up" "breakAfter"
-    movel(at_right_up_p, a=1.2, v=0.25)
-    $ 15 "at_right" "breakAfter"
-    movel(at_right_p, a=1.2, v=0.25)
-    # begin: URCap Program Node
-    #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
-    #   Type: Gripper
-    $ 16 "Gripper Move46% (1)"
-    if not(gripper_connected[0]):
-      popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
-    end
-    if not(rq_is_gripper_activated("1")):
-      popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
-    end
-    rq_set_pos_spd_for(118, 255, 255, "1")
-    rq_wait_pos_spe_for_request(118, 255, 255, "1")
-    rq_go_to("1")
-    rq_wait("1")
-    # end: URCap Program Node
+  $ 1 "Robot Program"
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 2 "Gripper Move46% (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
   end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(118, 255, 255, "1")
+  rq_wait_pos_spe_for_request(118, 255, 255, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 3 "MoveL"
+  $ 4 "at_shaft" "breakAfter"
+  movel(at_shaft_p, a=1.2, v=0.25)
+  $ 6 "MoveL"
+  $ 7 "at_shaft_left" "breakAfter"
+  movel(at_shaft_left_p, a=1.2, v=0.25)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 8 "Gripper Close (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(255, 255, 0, "1")
+  rq_wait_pos_spe_for_request(255, 255, 0, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 9 "MoveL"
+  $ 10 "at_left_up" "breakAfter"
+  movel(at_left_up_p, a=1.2, v=0.25)
+  $ 11 "at_right_up" "breakAfter"
+  movel(at_right_up_p, a=1.2, v=0.25)
+  $ 12 "at_right" "breakAfter"
+  movel(at_right_p, a=1.2, v=0.25)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 13 "Gripper Move46% (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(118, 255, 255, "1")
+  rq_wait_pos_spe_for_request(118, 255, 255, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 14 "MoveL"
+  $ 15 "at_shaft" "breakAfter"
+  movel(at_shaft_p, a=1.2, v=0.25)
 end

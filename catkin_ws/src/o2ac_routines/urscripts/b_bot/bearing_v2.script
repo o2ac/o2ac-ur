@@ -2373,8 +2373,6 @@ def bearing_v2():
   global leftturn_to_p=p[-.093068946589, -.570046712102, .228952107442, 1.497042783199, -1.617615149512, -.828519898875]
   global Waypoint_6_from_p=p[-.104624192884, -.570099513856, .229070900007, 1.496748297500, -1.617659806479, -.828424735502]
   global Waypoint_6_to_p=p[-.090708254877, -.570103474375, .229070367027, 1.496716121525, -1.617687713773, -.828419452272]
-  global Waypoint_7_p=p[-.066409723366, -.570101759855, .229084958724, 1.496734493700, -1.617649279563, -.828417943844]
-  global Waypoint_7_q=[1.6258825822521228, -1.2524133908214852, 1.7983421216973845, -2.0946579632431135, -2.617958640609227, -1.4244567925452989]
   global a_bit_back_p=p[-.059373795033, -.570101759854, .229084958725, 1.496734487750, -1.617649273733, -.828417949027]
   global a_bit_back_q=[1.63824530079538, -1.2506674016840327, 1.7895504324611764, -2.0661997643160825, -2.617569830219447, -1.399815308413035]
   $ 1 "Robot Program"
@@ -2844,85 +2842,6 @@ def bearing_v2():
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 87 "MoveJ"
-  $ 88 "Waypoint_7" "breakAfter"
-  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
-  movej(get_inverse_kin(Waypoint_7_p, qnear=Waypoint_7_q), a=1.3962634015954636, v=1.0471975511965976)
-  # begin: URCap Program Node
-  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
-  #   Type: Gripper
-  $ 89 "Gripper Close (1)"
-  if not(gripper_connected[0]):
-    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
-  end
-  if not(rq_is_gripper_activated("1")):
-    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
-  end
-  rq_set_pos_spd_for(255, 255, 255, "1")
-  rq_wait_pos_spe_for_request(255, 255, 255, "1")
-  rq_go_to("1")
-  rq_wait("1")
-  # end: URCap Program Node
-  $ 90 "Force"
-  sleep(0.02)
-  zero_ftsensor()
-  force_mode(p[0.0,0.0,0.0,0.0,0.0,0.0], [1, 0, 0, 0, 0, 0], [-5.0, 0.0, 10.0, 0.0, 0.0, 0.0], 2, [0.01, 0.1, 0.1, 0.3490658503988659, 0.3490658503988659, 0.3490658503988659])
-  $ 91 "Wait: 5.0" "noBreak"
-  sleep(5.0)
-  $ 92 "MoveL" "noBreak"
-  $ 93 "Direction: Tool X+" "noBreak"
-  global move_thread_flag_93=0
-  thread move_thread_93():
-    enter_critical
-    move_thread_flag_93 = 1
-    local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [1.0,0.0,0.0], 5.0E-4)
-    movel(towardsPos, a=0.005, v=0.005)
-    move_thread_flag_93 = 2
-    exit_critical
-  end
-  move_thread_flag_93 = 0
-  move_thread_han_93 = run move_thread_93()
-  while (True):
-    sleep(1.0E-10)
-    if (move_thread_flag_93 > 1):
-      join move_thread_han_93
-      $ 94 "Until (distance)" "noBreak"
-      break
-    end
-    sync()
-  end
-  $ 95 "Loop 8 times" "noBreak"
-  Loop_2 = 0
-  while (Loop_2 < 8):
-    $ 96 "If pose_dist(get_actual_tcp_pose(), push_3_done) > .005" "noBreak"
-    if ( pose_dist ( get_actual_tcp_pose (), push_3_done_p) > .005):
-      $ 97 "MoveL" "noBreak"
-      $ 98 "Direction: Tool" "noBreak"
-      global move_thread_flag_98=0
-      thread move_thread_98():
-        enter_critical
-        move_thread_flag_98 = 1
-        local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [sin((Loop_2-1)/6*3.141),0.0,-cos((Loop_2-1)/6*3.141)], 5.0E-4)
-        movel(towardsPos, a=0.02, v=0.005)
-        move_thread_flag_98 = 2
-        exit_critical
-      end
-      move_thread_flag_98 = 0
-      move_thread_han_98 = run move_thread_98()
-      while (True):
-        sleep(1.0E-10)
-        if (move_thread_flag_98 > 1):
-          join move_thread_han_98
-          $ 99 "Until (distance)" "noBreak"
-          break
-        end
-        sync()
-      end
-    end
-    Loop_2 = Loop_2 + 1
-  end
-  end_force_mode()
-  stopl(5.0)
   $ 100 "MoveJ"
   $ 101 "a_bit_back" "breakAfter"
   set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
