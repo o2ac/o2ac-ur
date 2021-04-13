@@ -107,7 +107,7 @@ class CalibrationClass(O2ACCommon):
     return ps_new
 
   # TODO: Implement the above in the function below
-  def cycle_through_calibration_poses(self, poses, robot_name, speed=0.3, with_approach=False, move_lin=False, go_home=True, end_effector_link=""):
+  def cycle_through_calibration_poses(self, poses, robot_name, speed=0.1, with_approach=False, move_lin=False, go_home=True, end_effector_link=""):
     home_pose = "home"
     if "screw" in end_effector_link:
       home_pose = "screw_ready"
@@ -190,7 +190,7 @@ class CalibrationClass(O2ACCommon):
       poses[2].header.frame_id = "assembled_assy_part_01_fixation_hole_1"
       poses[3].header.frame_id = "assembled_assy_part_01_fixation_hole_2"
 
-    self.cycle_through_calibration_poses(poses, robot_name, speed=0.3, go_home=False, end_effector_link=end_effector_link, move_lin=True)
+    self.cycle_through_calibration_poses(poses, robot_name, go_home=False, end_effector_link=end_effector_link, move_lin=True)
     return 
 
   def assembly_calibration_assembled_parts(self):
@@ -222,7 +222,7 @@ class CalibrationClass(O2ACCommon):
     poses[4].pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/2, 0, -tau/2) )
     poses[4].pose.position.x = .03
 
-    self.cycle_through_calibration_poses(poses, "b_bot", speed=0.3, go_home=True)
+    self.cycle_through_calibration_poses(poses, "b_bot", go_home=True)
     return 
   
   def taskboard_calibration_with_tools(self, robot_name="b_bot", end_effector_link = ""):
@@ -255,7 +255,7 @@ class CalibrationClass(O2ACCommon):
     poses[1].header.frame_id = "taskboard_m3_screw_link"
     poses[2].header.frame_id = "taskboard_m4_screw_link"
 
-    self.cycle_through_calibration_poses(poses, robot_name, speed=0.3, go_home=False, with_approach=True, end_effector_link=end_effector_link, move_lin=True)
+    self.cycle_through_calibration_poses(poses, robot_name, go_home=False, with_approach=True, end_effector_link=end_effector_link, move_lin=True)
     self.go_to_named_pose("horizontal_screw_ready", robot_name)
     return 
 
@@ -278,7 +278,7 @@ class CalibrationClass(O2ACCommon):
     poses[1].pose.position.y = -0.1
     poses[2].pose.position.y = 0.1
 
-    self.cycle_through_calibration_poses(poses, robot_name, speed=0.3, go_home=False, with_approach=True, end_effector_link=end_effector_link, move_lin=True)
+    self.cycle_through_calibration_poses(poses, robot_name, go_home=False, with_approach=True, end_effector_link=end_effector_link, move_lin=True)
     return 
 
       
@@ -350,7 +350,7 @@ class CalibrationClass(O2ACCommon):
     poses[2].header.frame_id = "assembled_assy_part_01_screw_hole_panel2_1"
     poses[3].header.frame_id = "assembled_assy_part_01_screw_hole_panel2_2"
     end_effector_link=robot_name+ tool_name
-    self.cycle_through_calibration_poses(poses, robot_name, speed=0.3, go_home=False, move_lin=True, end_effector_link=end_effector_link)
+    self.cycle_through_calibration_poses(poses, robot_name, go_home=False, move_lin=True, end_effector_link=end_effector_link)
     return
     
   def screw_action_test(self, robot_name = "b_bot"):
@@ -396,7 +396,7 @@ class CalibrationClass(O2ACCommon):
     poses[1].pose.position.x = 0
     poses[2].pose.position.x = -.02
     
-    self.cycle_through_calibration_poses(poses, robot_name, speed=0.3, go_home=False, move_lin=True, end_effector_link=ee_link)
+    self.cycle_through_calibration_poses(poses, robot_name, go_home=False, move_lin=True, end_effector_link=ee_link)
     self.toggle_collisions(collisions_on=True)
     return
   

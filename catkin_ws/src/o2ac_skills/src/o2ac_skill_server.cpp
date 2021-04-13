@@ -869,7 +869,7 @@ bool SkillServer::equipUnequipScrewTool(std::string robot_name, std::string scre
 
   if (equip)        lin_speed = 0.5;
   else if (unequip) lin_speed = 0.08;  
-  moved_to_tool_holder = moveToCartPoseLIN(ps_tool_holder, robot_name, true, "", lin_speed, lin_speed*0.7, use_real_robot_, true);
+  moved_to_tool_holder = moveToCartPoseLIN(ps_tool_holder, robot_name, true, "", lin_speed, lin_speed*0.4, use_real_robot_, true);
   
   if (!moved_to_tool_holder)
   {
@@ -913,7 +913,7 @@ bool SkillServer::equipUnequipScrewTool(std::string robot_name, std::string scre
   if (equip)        lin_speed = 1.0;
   else if (unequip) lin_speed = 1.0;
 
-  moveToCartPoseLIN(ps_move_away, robot_name, true, "", lin_speed, lin_speed, use_real_robot_, true);
+  moveToCartPoseLIN(ps_move_away, robot_name, true, "", lin_speed, lin_speed*0.4, use_real_robot_, true);
   
   // Reactivate the collisions, with the updated entry about the tool
   planning_scene_interface_.applyPlanningScene(planning_scene_);

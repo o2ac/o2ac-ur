@@ -107,7 +107,7 @@ class O2ACBase(object):
 
     self.speed_fast = 0.1
     self.speed_fastest = 0.2
-    self.acc_fast = 0.1
+    self.acc_fast = 0.2
     self.acc_fastest = 0.2
 
     self.reduced_mode_speed_limit = .25
@@ -576,7 +576,7 @@ class O2ACBase(object):
     group = self.groups[group_name]
     return group.get_current_pose().pose
   
-  def go_to_pose_goal(self, group_name, pose_goal_stamped, speed = 1.0, acceleration = 0.0, high_precision = False, 
+  def go_to_pose_goal(self, group_name, pose_goal_stamped, speed = 1.0, acceleration = 0.5, high_precision = False, 
                       end_effector_link = "", move_lin = True):
     if rospy.is_shutdown():
       return False
@@ -663,7 +663,7 @@ class O2ACBase(object):
 
     return ps_new
 
-  def move_lin(self, group_name, pose_goal_stamped, speed = 1.0, acceleration = 0.0, end_effector_link = ""):
+  def move_lin(self, group_name, pose_goal_stamped, speed = 1.0, acceleration = 0.5, end_effector_link = ""):
     if rospy.is_shutdown():
       return False
     self.publish_marker(pose_goal_stamped, "pose")
@@ -763,7 +763,7 @@ class O2ACBase(object):
       wait_for_UR_program("/" + robot_name, rospy.Duration.from_sec(max_wait))
     return res.success
 
-  def move_joints(self, group_name, joint_pose_goal, speed = 1.0, acceleration = 1.0, force_ur_script=False, force_moveit=False):
+  def move_joints(self, group_name, joint_pose_goal, speed = 1.0, acceleration = 0.5, force_ur_script=False, force_moveit=False):
     if rospy.is_shutdown():
       return False
     if self.pause_mode_ or self.test_mode_:
@@ -832,7 +832,7 @@ class O2ACBase(object):
     return res.success
     # =====
 
-  def go_to_named_pose(self, pose_name, robot_name, speed = 0.5, acceleration = 1.0, force_ur_script=False):
+  def go_to_named_pose(self, pose_name, robot_name, speed = 0.5, acceleration = 0.5, force_ur_script=False):
     """
     pose_name should be a named pose in the moveit_config, such as "home", "back" etc.
     """
@@ -851,8 +851,7 @@ class O2ACBase(object):
                       d[robot_name+"_wrist_1_joint"],
                       d[robot_name+"_wrist_2_joint"],
                       d[robot_name+"_wrist_3_joint"]]
-        self.move_joints(robot_name, joint_pose, speed, acceleration, force_ur_script=force_ur_script)
-        return True
+        return self.move_joints(robot_name, joint_pose, speed, acceleration, force_ur_script=force_ur_script)
     if speed > 1.0:
       speed = 1.0
     self.activate_ros_control_on_ur(robot_name)
@@ -921,7 +920,7 @@ class O2ACBase(object):
 
   def do_change_tool_action(self, robot_name, equip=True, 
                         screw_size = 4):
-    # self.equip_unequip_tool(robot_name, screw_tool_id, angle=0.0, equip_or_unequip=equip)
+    # self.equip_unequip_realign_tool(robot_name, screw_tool_id, angle=0.0, equip_or_unequip=equip)
     # return
     ### DEPRECATED
     self.log_to_debug_monitor("Change tool", "operation")
@@ -1383,18 +1382,23 @@ class O2ACBase(object):
 
   def close_gripper(self, robot, force=40.0, wait=True):
     return self.send_gripper_command(robot, "close", force=force, wait=wait)
-  def open_gripper(self, robot, wait=True):
-    return self.send_gripper_command(robot, "open", wait=wait)
+  def open_gripper(self, robot, wait=True, opening_width=None):
+    command = "open"
+    if opening_width:
+      command = opening_width
+    return self.send_gripper_command(robot, command, wait=wait)
 
   def send_gripper_command(self, gripper, command, this_action_grasps_an_object = False, force = 40.0, velocity = .1, wait=True):
     """
+    gripper: a_bot or b_bot
+    command: "open", "close" or opening width
     force: Gripper force in N. From 40 to 100
     velocity: Gripper speed. From 0.013 to 0.1
 
     Use a slow closing speed when using a low gripper force, or the force might be unexpectedly high.
     """
     if not self.use_real_robot:
-      # TODO: Set the gripper width
+      # TODO: Set the gripper width in simulation
       return True
     if gripper == "b_bot" or gripper == "a_bot":
       goal = robotiq_msgs.msg.CModelCommandGoal()
