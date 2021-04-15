@@ -21,6 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
   robotiq_msgs
   o2ac_skills
   o2ac_routines
+  o2ac_task_planning_core
 )
 
 ## System dependencies are found with CMake's conventions

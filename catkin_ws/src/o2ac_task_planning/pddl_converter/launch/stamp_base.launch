@@ -1,0 +1,11 @@
+<launch>
+
+  <include file="$(find o2ac_moveit_config)/launch/demo.launch"></include>
+
+  <node name="mtc_modules" pkg="o2ac_task_planning_core" type="mtc_modules_server">
+    <rosparam file="$(find o2ac_task_planning_pddl_converter)/config/mtc_modules_parameters.yaml" command="load" />
+  </node>
+
+  <node name="downward" pkg="downward" type="fast-downward-server.py"></node>
+
+</launch>

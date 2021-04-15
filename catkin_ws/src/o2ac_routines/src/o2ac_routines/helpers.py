@@ -20,7 +20,8 @@ import moveit_task_constructor_msgs.msg
 from math import pi
 import moveit_commander
 from moveit_commander.conversions import pose_to_list
-from o2ac_assembly_database.assembly_reader import AssemblyReader
+
+from o2ac_routines import conversions
 
 import ur_msgs.msg
 import ur_dashboard_msgs.msg
@@ -43,7 +44,7 @@ def upload_mtc_modules_initial_params():
   rospy.set_param('mtc_modules/retreat_direction', [-1.0, 0.0, 0.0])
   rospy.set_param('mtc_modules/support_surfaces', ['tray_center', 'screw_tool_holder_long'])
 
-def spawn_objects(assembly_name, object_names, object_poses, object_reference_frame):
+def spawn_objects(assembly_database, object_names, object_poses, object_reference_frame):
   '''
   Spawn collision objects in the planning scene
 
@@ -55,17 +56,16 @@ def spawn_objects(assembly_name, object_names, object_poses, object_reference_fr
   The object poses are lists of floats in [x,y,z,r,p,y] format and are relative to the object_reference_frame
   '''
   moveit_commander.roscpp_initialize(sys.argv)
-  assembly_reader = AssemblyReader(assembly_name)
   planning_scene_interface = moveit_commander.PlanningSceneInterface()
   transformer = tf.Transformer(True, rospy.Duration(10.0))
 
   for (object_name, object_pose) in zip(object_names, object_poses):
     co_pose = geometry_msgs.msg.Pose()
-    co_pose.position = geometry_msgs.msg.Point(*object_pose[0:3])
-    quaternion = tf.transformations.quaternion_from_euler(eval(str(object_pose[3])),eval(str(object_pose[4])),eval(str(object_pose[5])))
+    co_pose.position = geometry_msgs.msg.Point(*object_pose[:3])
+    quaternion = tf.transformations.quaternion_from_euler(*conversions.to_float(object_pose[3:]))
     co_pose.orientation = geometry_msgs.msg.Quaternion(*quaternion)
 
-    collision_object = next((co for co in assembly_reader.collision_objects if co.id == object_name), None)
+    collision_object = next((co for co in assembly_database.collision_objects if co.id == object_name), None)
     assert collision_object is not None, "Collision object for '%s' does not exist or names do not match" % object_name
     collision_object.header.frame_id = object_reference_frame
     collision_object.pose = co_pose

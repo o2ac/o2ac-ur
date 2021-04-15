@@ -16,6 +16,10 @@ add_action_files(DIRECTORY action FILES
 	PlaceObject.action
 	PlaceObjectWithCorrection.action
 	ReleaseObject.action
+	AddPick.action
+	AddPlace.action
+	AddRetreat.action
+	ControlTask.action
 )
 
 generate_messages(DEPENDENCIES ${MSG_DEPS})

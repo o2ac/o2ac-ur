@@ -34,3 +34,6 @@
 [submodule "underlay_ws/src/third_party/robotiq"]
 	path = underlay_ws/src/third_party/robotiq
 	url = https://github.com/ros-industrial/robotiq.git
+[submodule "underlay_ws/src/downward"]
+	path = underlay_ws/src/downward
+	url = https://gitlab.com/sinicx/robotics/on-going/downward.git

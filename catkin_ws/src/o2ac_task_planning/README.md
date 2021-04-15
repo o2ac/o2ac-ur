@@ -2,6 +2,19 @@
 
 This node starts multiple action servers for different tasks, such as `Pick Object`, `Place Object` etc. The action servers do the task planning when a request arrives and they return the best solution if it is found, which contains the trajectories for executing the plan.
 
+## QUICKSTART
+
+In separate terminals:
+
+```bash
+roslaunch o2ac_moveit_config demo.launch
+# Publish the parameters == TODO(karolyartur)
+rosrun o2ac_task_planning_core mtc_modules_server 
+rosrun downward fast-downward-server.py
+```
+
+Launch symbolic planning with `rosrun o2ac_task_planning_pddl_converter fast_downward_client.py`. Launch MTC planning with what? **TODO(karolyartur)**
+
 ## Running mtc_modules_server
 
 ### Requirements
@@ -36,7 +49,7 @@ The node relies on a stage that looks for and loads the possible grasps from the
 
 The grasps are expected to be in the format, in which [o2ac_assembly_database](https://gitlab.com/o2ac/o2ac-ur/-/tree/integrate-mtc-in-o2ac-routines/catkin_ws/src/o2ac_assembly_database) package uploads the grasps to the parameter server ([here](https://gitlab.com/o2ac/o2ac-ur/-/blob/integrate-mtc-in-o2ac-routines/catkin_ws/src/o2ac_assembly_database/src/o2ac_assembly_database/assy.py#L61)).
 
-However, the grasps can be set direstly (the use of o2ac_assembly_database is not necessary, it is just convenient fo rthe objects that are already part of that package). For new objects (like the tools for example), the grasps can be defined directly as well, like [this](https://gitlab.com/o2ac/o2ac-ur/-/blob/integrate-mtc-in-o2ac-routines/catkin_ws/src/o2ac_routines/src/o2ac_routines/base.py#L696).
+However, the grasps can be set directly (the use of o2ac_assembly_handler is not necessary, it is just convenient fo the objects that are already part of that package). For new objects (like the tools for example), the grasps can be defined directly as well, like [this](https://gitlab.com/o2ac/o2ac-ur/-/blob/integrate-mtc-in-o2ac-routines/catkin_ws/src/o2ac_routines/src/o2ac_routines/base.py#L696).
 
 The grasps on the parameter server are expected to be in the following format:
 
@@ -67,13 +80,19 @@ The naming of the eef frames are expected to follow the pattern:
 
 where `hand_group_name` is the name of one of the planning groups of the grippers (given by the `mtc_modules/hand_group_names` required parameter).
 
-### Moveit
+### MoveIt
 
-For the planning to work, moveit has to be running. Make sure to start moveit before running the node.
+For the planning to work, MoveIt has to be running. Make sure to start MoveIt before running the node:
+
+```bash
+roslaunch o2ac_moveit_config demo.launch
+```
 
 ### Running the node
 
-**Before running the node make sure that the required parameters (initial parameters and grasps) are loaded to the parameter server, Moveit is running and the required collision objects are in the scene.**
+**Before running the node make sure that the required parameters (initial parameters and grasps) are loaded to the parameter server, MoveIt is running and the required collision objects are in the scene.**
+
+**TODO(karolyartur): Point to an explanation on how that's done, avoid vague instructions like "the required X" (people who need to read instructions generally don't know what is required)**
 
 To run the node type:
 
@@ -101,7 +120,7 @@ The actions provided by the node, if it is running correctly, are:
  - `/pick_place_planning` (picking and placing an object potentially including a regrasp)
  - `/wrs_subtask_b_planning` (picking and placing the L panel onto the base plate and fixing it with the screws)
 
- To start planning, make requests from an action client to use the servers. An easy way to test them is with the `actionlib` package.
+To start planning, make requests from an action client to use the servers. An easy way to test them is with the `actionlib` package.
 
 To test the action server for pick planning, type:
 
@@ -166,3 +185,62 @@ roslaunch o2ac_skills o2ac_skill_server.launch
 ```
 
 and type `80` in the terminal of `assembly.py`
+
+## Symbolic planning (how to use PDDL)
+
+We use PDDL ([Planning Domain Definition Language](https://en.wikipedia.org/wiki/Planning_Domain_Definition_Language)) to define symbolic planning problems and domains. Sample definitions are in o2ac_assembly_handler/pddl. Use the osx-assembly-v2.pddl domain with the problem-v3.pddl problem. For how to use the PDDL planner see the [README](catkin_ws/src/o2ac_assembly_handler/pddl/README.md) in o2ac_assembly_handler/pddl.
+
+If a solution was found, the result (sas_plan.1) will appear in o2ac_assembly_handler/pddl. Copy this file to o2ac_task_planning/pddl_converter/plans.
+
+
+After that, launch the o2ac demo scene
+
+```bash
+roslaunch o2ac_moveit_config demo.launch
+```
+
+In a separate terminal run
+
+```bash
+rosrun o2ac_routines assembly.py 
+```
+and type `68`. This spawns the collision objects in the scene and [sets the required parameters](https://gitlab.com/o2ac/o2ac-ur/-/blob/integrate-mtc-in-o2ac-routines/catkin_ws/src/o2ac_routines/src/o2ac_routines/helpers.py#L29).
+
+After this, start the action servers in a new terminal:
+
+```bash
+rosrun o2ac_task_planning_core mtc_modules_server
+```
+
+If the action servers are running, open a new terminal and call:
+
+```bash
+rosrun o2ac_task_planning_pddl_converter pddl_converter.py 
+```
+
+This should read the PDDL `trace` from o2ac_task_planning/pddl_converter/plans and convert it to an MTC task, and start the planning of the task.
+
+The parsing of the PDDL `trace` is performed line-by-line, excluding commented-out lines (starting with ";").
+
+The structure of each line follows the pattern:
+
+```
+(action_name **parameters**)
+```
+
+The parameters are the names of the robots, objects, tools etc., that take part in performing the action, separated by a whitespace.
+
+The definition of the actions provided by the assembly domain can be found in the [osx-assembly-v2.pddl file](catkin_ws/src/o2ac_assembly_handler/pddl/osx-assembly-v2.pddl).
+
+The format of the pick action for example:
+```
+(pick robot object helper_robot),
+```
+where `robot` is the name of the robot holding the object at the end of the pick action,
+
+`object` is the name of the object,
+
+`helper_robot` is the name of the other robot that can pick the object and hand it over to `robot` if a regrasp is needed
+
+
+The planning process and the results of the planning can be inspected in RViz.

@@ -483,88 +483,41 @@ class O2ACBase(object):
     return True
 
   def define_tool_collision_objects(self):
-    # TODO: Use o2ac_assembly_database to load these instead
-    screw_tool_m3 = moveit_msgs.msg.CollisionObject()
-    screw_tool_m4 = moveit_msgs.msg.CollisionObject()
-    
-    #M4 tool
-    screw_tool_m4.header.frame_id = "screw_tool_m4_link"
-    screw_tool_m4.id = "screw_tool_m4"
+    PRIMITIVES = {"BOX": SolidPrimitive.BOX, "CYLINDER": SolidPrimitive.CYLINDER}
 
-    # The bit cushion and motor
-    screw_tool_m4.primitives = [SolidPrimitive() for _ in range(3)] # instead of resize()
-    screw_tool_m4.primitive_poses = [Pose() for _ in range(3)] 
-    
-    screw_tool_m4.primitives[0].type = SolidPrimitive.BOX
-    screw_tool_m4.primitives[0].dimensions = [.026, .04, .055]
-    screw_tool_m4.primitive_poses[0].position.x = 0
-    screw_tool_m4.primitive_poses[0].position.y = -0.009
-    screw_tool_m4.primitive_poses[0].position.z = 0.0275
+    path = rospkg.RosPack().get_path("o2ac_assembly_database") + "/config/tool_collisions.yaml"
+    with open(path, 'r') as f:
+      tools = yaml.load(f)
 
-    # The "shaft" + suction attachment
-    screw_tool_m4.primitives[1].type = SolidPrimitive.BOX
-    screw_tool_m4.primitives[1].dimensions = [.019, .03, .08]
-    screw_tool_m4.primitive_poses[1].position.x = 0
-    screw_tool_m4.primitive_poses[1].position.y = -0.0055  # 21 mm distance from axis
-    screw_tool_m4.primitive_poses[1].position.z = -0.04
+    for tool_key, tool in tools.items():
+      
+      tool_co = moveit_msgs.msg.CollisionObject()
+      tool_co.header.frame_id = tool["frame_id"]
+      tool_co.id = tool["id"]
 
-    # The cylinder representing the tip
-    screw_tool_m4.primitives[2].type = SolidPrimitive.CYLINDER
-    screw_tool_m4.primitives[2].dimensions = [.038, .0035] # Cylinder height, radius
-    screw_tool_m4.primitive_poses[2].position.x = 0
-    screw_tool_m4.primitive_poses[2].position.y = 0  # 21 mm distance from axis
-    screw_tool_m4.primitive_poses[2].position.z = -0.099
-    screw_tool_m4.operation = screw_tool_m4.ADD
+      primitive_num = len(tool['primitives'])
 
-    # The tool tip
-    screw_tool_m4.subframe_poses = [Pose()]
-    screw_tool_m4.subframe_names = [""]
-    screw_tool_m4.subframe_poses[0].position.z = -.12
-    screw_tool_m4.subframe_poses[0].orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 90.0/360.0*tau, -tau/4))
-    screw_tool_m4.subframe_names[0] = "screw_tool_m4_tip"
+      tool_co.primitives = [SolidPrimitive() for _ in range(primitive_num)] # instead of resize()
+      tool_co.primitive_poses = [Pose() for _ in range(primitive_num)] 
 
+      for i, primitive in enumerate(tool["primitives"]):
+        try:
+          tool_co.primitives[i].type = PRIMITIVES[(primitive['type'])]
+        except KeyError as e:
+          rospy.logerr("Invalid Collition Object Primitive type: %s " % primitive['type'])
+          raise
+        tool_co.primitives[i].dimensions = primitive['dimensions']
+        tool_co.primitive_poses[i] = conversions.to_pose(conversions.to_float(primitive['pose']))
+      
+      tool_co.operation = tool_co.ADD
 
-    # M3 tool
-    screw_tool_m3.header.frame_id = "screw_tool_m3_link"
-    screw_tool_m3.id = "screw_tool_m3"
+      # TODO(Cambel): - Fix warning of empty quaternion
+      tool_co.subframe_poses = [conversions.to_pose(conversions.to_float(tool["subframe"]["pose"]))]
+      tool_co.subframe_names = [tool["subframe"]["name"]]
 
-    # The bit cushion and motor
-    screw_tool_m3.primitives = [SolidPrimitive() for _ in range(3)]
-    screw_tool_m3.primitive_poses = [Pose() for _ in range(3)] 
-    screw_tool_m3.primitives[0].type = SolidPrimitive.BOX
-    screw_tool_m3.primitives[0].dimensions = [.026, .04, .055]
-    screw_tool_m3.primitive_poses[0].position.x = 0
-    screw_tool_m3.primitive_poses[0].position.y = -0.009
-    screw_tool_m3.primitive_poses[0].position.z = 0.0275
+      self.screw_tools[tool["id"]] = tool_co
 
-    # The "shaft" + suction attachment
-    screw_tool_m3.primitives[1].type = SolidPrimitive.BOX
-    screw_tool_m3.primitives[1].dimensions = [.019, .03, .08]
-    screw_tool_m3.primitive_poses[1].position.x = 0
-    screw_tool_m3.primitive_poses[1].position.y = -0.0055  # 21 mm distance from axis
-    screw_tool_m3.primitive_poses[1].position.z = -0.04
-
-    # The cylinder representing the tip
-    screw_tool_m3.primitives[2].type = SolidPrimitive.CYLINDER
-    screw_tool_m3.primitives[2].dimensions = [.018, .0035] # Cylinder height, radius
-    screw_tool_m3.primitive_poses[2].position.x = 0
-    screw_tool_m3.primitive_poses[2].position.y = 0  # 21 mm distance from axis
-    screw_tool_m3.primitive_poses[2].position.z = -0.089
-    screw_tool_m3.operation = screw_tool_m3.ADD
-
-    # The tool tip
-    screw_tool_m3.subframe_poses = [Pose()]
-    screw_tool_m3.subframe_names = [""]
-    screw_tool_m3.subframe_poses[0].position.z = -.11
-    screw_tool_m3.subframe_poses[0].orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 90.0/180.0*pi, -pi/2))
-    screw_tool_m3.subframe_names[0] = "screw_tool_m3_tip"
-
-    self.screw_tools["screw_tool_m3"] = screw_tool_m3
-    self.screw_tools["screw_tool_m4"] = screw_tool_m4
-    # TODO(felixvd): Add the set screw and nut tool objects from the C++ file
-
-    # TODO: Write these to a YAML file
-    return True
+    # # TODO(felixvd): Add the set screw and nut tool objects from the C++ file
 
   ############# ------ Robot motion functions
 
@@ -928,20 +881,19 @@ class O2ACBase(object):
     self.insert_client.wait_for_result()
     return self.insert_client.get_result()
 
-  def do_change_tool_action(self, robot_name, equip=True, 
-                        screw_size = 4):
-    # self.equip_unequip_realign_tool(robot_name, screw_tool_id, angle=0.0, equip_or_unequip=equip)
-    # return
+  def do_change_tool_action(self, robot_name, equip=True, screw_size = 4):
+    self.equip_unequip_tool(robot_name, "screw_tool_m4", equip=equip)
+    return
     ### DEPRECATED
-    self.log_to_debug_monitor("Change tool", "operation")
-    goal = o2ac_msgs.msg.changeToolGoal()
-    goal.robot_name = robot_name
-    goal.equip_the_tool = equip
-    goal.screw_size = screw_size
-    rospy.loginfo("Sending changeTool action goal.")    
-    self.change_tool_client.send_goal(goal)
-    self.change_tool_client.wait_for_result()
-    return self.change_tool_client.get_result()
+    # self.log_to_debug_monitor("Change tool", "operation")
+    # goal = o2ac_msgs.msg.changeToolGoal()
+    # goal.robot_name = robot_name
+    # goal.equip_the_tool = equip
+    # goal.screw_size = screw_size
+    # rospy.loginfo("Sending changeTool action goal.")    
+    # self.change_tool_client.send_goal(goal)
+    # self.change_tool_client.wait_for_result()
+    # return self.change_tool_client.get_result()
   
   def do_screw_action(self, robot_name, target_hole, screw_height = 0.02, 
                         screw_size = 4, stay_put_after_screwing=False):
@@ -981,7 +933,9 @@ class O2ACBase(object):
 
   def spawn_multiple_objects(self, assembly_name, objects, poses, reference_frame):
     # Init params
+    # TODO(Cambel): Fix redundant calls to this definitions params and tool object collitions
     upload_mtc_modules_initial_params()
+    self.assembly_database.change_assembly(assembly_name)
 
     # Spawn tools and objects
     self.define_tool_collision_objects()
@@ -989,7 +943,7 @@ class O2ACBase(object):
     for screw_id in screw_ids:
       self.spawn_tool('screw_tool_' + screw_id)
       self.upload_tool_grasps_to_param_server(screw_id)
-    spawn_objects(assembly_name, objects, poses, reference_frame)
+    # spawn_objects(self.assembly_database, objects, poses, reference_frame)
   
   def get_3d_poses_from_ssd(self):
     """
@@ -1099,12 +1053,32 @@ class O2ACBase(object):
       rospy.loginfo("Did not detect " + item_name)
       return False
 
+  def save_task_plan(func):
+    '''Decorator that optionally save the solution to a plan.'''
+  
+    def wrap(*args, **kwargs):
+        save_solution_to_file = kwargs.pop("save_solution_to_file", None)
+        result = func(*args, **kwargs)
+        
+        if result is None:
+          rospy.logerr("No solution from server")
+          return
+
+        if result.success and save_solution_to_file:
+          path = rospkg.RosPack().get_path('o2ac_routines') + '/MP_solutions/'
+          with open(path + save_solution_to_file,'wb') as f:
+            pickle.dump(result, f)
+          rospy.loginfo("Writing solution to: %s" % save_solution_to_file)
+        return result  
+    return wrap
+
+  @save_task_plan
   def do_plan_pick_action(self, object_name, grasp_parameter_location = '', lift_direction_reference_frame = '', lift_direction = [], robot_name = ''):
     '''
     Function for calling the action for pick planning
     The function returns the action result that contains the trajectories for the motion plan
     '''
-    goal = moveit_task_constructor_msgs.msg.PickObjectGoal()
+    goal = o2ac_task_planning_msgs.msg.PickObjectGoal()
     goal.object_name = object_name
     goal.grasp_parameter_location = grasp_parameter_location
     goal.lift_direction_reference_frame = lift_direction_reference_frame
@@ -1115,6 +1089,7 @@ class O2ACBase(object):
     self.pick_planning_client.wait_for_result()
     return self.pick_planning_client.get_result()
 
+  @save_task_plan
   def do_plan_place_action(self, object_name, object_target_pose, release_object_after_place = True, object_subframe_to_place = '', approach_place_direction_reference_frame = '', approach_place_direction = []):
     '''
     Function for calling the action for place planning
@@ -1132,6 +1107,7 @@ class O2ACBase(object):
     self.place_planning_client.wait_for_result()
     return self.place_planning_client.get_result()
 
+  @save_task_plan
   def do_plan_release_action(self, object_name, pose_to_retreat_to = ''):
     '''
     Function for calling the action for release planning
@@ -1145,6 +1121,7 @@ class O2ACBase(object):
     self.release_planning_client.wait_for_result()
     return self.release_planning_client.get_result()
 
+  @save_task_plan
   def do_plan_pickplace_action(self, object_name, object_target_pose, grasp_parameter_location = '', release_object_after_place = True, object_subframe_to_place = '',
     lift_direction_reference_frame = '', lift_direction = [], approach_place_direction_reference_frame = '', approach_place_direction = [], robot_names = '', force_robot_order = False):
     '''
@@ -1168,6 +1145,8 @@ class O2ACBase(object):
     self.pickplace_planning_client.wait_for_result()
     return self.pickplace_planning_client.get_result()
 
+
+  @save_task_plan
   def do_plan_fastening_action(self, object_name, object_target_pose, object_subframe_to_place = '', approach_place_direction_reference_frame = '', approach_place_direction = []):
     '''
     Function for calling the action for fastening planning
@@ -1184,6 +1163,7 @@ class O2ACBase(object):
     self.fastening_planning_client.wait_for_result()
     return self.fastening_planning_client.get_result()
 
+  @save_task_plan
   def do_plan_wrs_subtask_b_action(self, object_name, object_target_pose, object_subframe_to_place, approach_place_direction_reference_frame = '', approach_place_direction = []):
     '''
     Function for calling the action for subassembly (fixing the motor L plate on the base plate) planning
@@ -1515,15 +1495,15 @@ class O2ACBase(object):
     if ( (self.robot_status[robot_name].carrying_tool == True) and equip):
       rospy.logerr("Robot already holds a tool. Cannot equip another.")
       return False
-    if ( (self.robot_status[robot_name].carrying_tool == False) and unequip):
+    if ( (self.robot_status[robot_name].carrying_tool == False) and not equip):
       rospy.logerr("Robot is not holding a tool. Cannot unequip any.")
       return False
     
     rospy.loginfo("Going to before_tool_pickup pose.")
     
-    if tool_name == "screw_tool_m3" or tool_name == "screw_tool_m4" or tool_name == "nut_tool_m6" or tool_name == "set_screw_tool":
+    if tool_name in ["screw_tool_m3", "screw_tool_m4", "nut_tool_m6", "set_screw_tool"]:
       tool_holder_used = "back"
-    elif tool_name == "belt_tool" or tool_name == "plunger_tool":
+    elif tool_name in ["belt_tool", "plunger_tool"]:
       tool_holder_used = "front"
     
     if tool_holder_used == "back":
@@ -1534,6 +1514,7 @@ class O2ACBase(object):
       if not self.go_to_named_pose("tool_pick_ready", robot_name):
         rospy.logerr("Could not plan to before_tool_pickup joint state. Abort!")
         return False
+
     # Set up poses
     ps_approach = geometry_msgs.msg.PoseStamped()
     ps_move_away = geometry_msgs.msg.PoseStamped()
@@ -1590,7 +1571,7 @@ class O2ACBase(object):
     rospy.loginfo("Moving to pose in tool holder LIN.")
     if equip:
       lin_speed = 0.5
-    elif unequip:
+    elif not equip:
       lin_speed = 0.08 
     elif realign:
       lin_speed = 0.1
@@ -1606,7 +1587,7 @@ class O2ACBase(object):
       self.allow_collisions_with_robot_hand('screw_tool_holder', robot_name)  # TODO(felixvd): Is this required?
       self.robot_status[robot_name].carrying_tool = True
       self.robot_status[robot_name].held_tool_id = tool_name
-    elif unequip:
+    elif not equip:
       self.open_gripper(robot_name)
       self.detach_tool(robot_name, tool_name)
       held_screw_tool_ = ""
@@ -1651,7 +1632,7 @@ class O2ACBase(object):
     self.go_to_named_pose("tool_pick_ready", robot_name)
     
     # Delete tool collision object only after collision reinitialization to avoid errors
-    if unequip:
+    if not equip:
       self.despawn_tool(tool_name)
     
     return True

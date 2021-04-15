@@ -1,0 +1,9 @@
+<launch>
+
+  <include file="$(find o2ac_task_planning_pddl_converter)/launch/stamp_base.launch"></include>
+  <include file="$(find o2ac_task_planning_pddl_converter)/launch/stamp.launch">
+    <arg name="stamp_args" value="domain.pddl problem_pick_place_test.pddl --disable_regrasp"/>
+    <arg name="spawn_objects" value="true"/>
+  </include>
+
+</launch>

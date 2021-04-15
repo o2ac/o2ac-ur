@@ -39,6 +39,9 @@
   <build_depend>o2ac_routines</build_depend>
   <run_depend>o2ac_routines</run_depend>
 
+  <build_depend>o2ac_task_planning_core</build_depend>
+  <run_depend>o2ac_task_planning_core</run_depend>
+
   <!-- <run_depend>o2ac_skills</run_depend> -->
 
   <build_depend>message_generation</build_depend>
