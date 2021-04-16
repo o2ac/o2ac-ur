@@ -251,7 +251,7 @@ class TaskboardClass(O2ACCommon):
     
     ### SCREW M3 WITH A_BOT
     # self.activate_camera("a_bot_outside_camera")
-    self.pick_screw_from_feeder("a_bot", screw_size = 3)
+    self.skill_server.pick_screw_from_feeder("a_bot", screw_size = 3)
     self.go_to_named_pose("home", "a_bot")
 
     # Move b_bot back, a_bot to screw
@@ -389,15 +389,15 @@ class TaskboardClass(O2ACCommon):
       # This expects to be exactly above the set screw hole
       self.confirm_to_proceed("Turn on motor and move into screw hole?")
       dist = .002
-      self.move_lin_rel("b_bot", relative_translation=[0, -cos(radians(30))*dist, sin(radians(30))*dist], velocity=0.03, wait=False)
-      # self.horizontal_spiral_motion("b_bot", .003, spiral_axis="Y", radius_increment = .002)
+      self.skill_server.move_lin_rel("b_bot", relative_translation=[0, -cos(radians(30))*dist, sin(radians(30))*dist], velocity=0.03, wait=False)
+      # self.skill_server.horizontal_spiral_motion("b_bot", .003, spiral_axis="Y", radius_increment = .002)
       self.set_motor("set_screw_tool", "tighten", duration = 12.0)
       rospy.sleep(4.0) # Wait for the screw to be screwed in a little bit
       d = .004
       rospy.loginfo("Moving in further by " + str(d) + " m.")
-      self.move_lin_rel("b_bot", relative_translation=[0, -cos(radians(30))*d, sin(radians(30))*d], velocity=0.002, wait=False)
+      self.skill_server.move_lin_rel("b_bot", relative_translation=[0, -cos(radians(30))*d, sin(radians(30))*d], velocity=0.002, wait=False)
       
-      # self.do_linear_push("b_bot", force=40, direction_vector=[0, -cos(radians(30)), sin(radians(30))], forward_speed=0.001)
+      # self.skill_server.do_linear_push("b_bot", force=40, direction_vector=[0, -cos(radians(30)), sin(radians(30))], forward_speed=0.001)
       rospy.sleep(8.0)
       self.confirm_to_proceed("Go back?")
       if self.is_robot_protective_stopped("b_bot"):
@@ -436,7 +436,7 @@ class TaskboardClass(O2ACCommon):
       hole_pose.pose.position.y = -.000  # MAGIC NUMBER (this should offset towards a_bot (z-axis of the frame points down))
       hole_pose.pose.position.z = -.004  # MAGIC NUMBER (this should offset upwards (z-axis of the frame points down))
       hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
-      taskboard.do_screw_action("a_bot", hole_pose, screw_size = 3)
+      taskboard.skill_server.do_screw_action("a_bot", hole_pose, screw_size = 3)
       self.go_to_named_pose("horizontal_screw_ready", "a_bot")
       self.go_to_named_pose("home", "a_bot")
 
@@ -444,14 +444,14 @@ class TaskboardClass(O2ACCommon):
 
     if task_name == "M4 screw":
       self.activate_camera("b_bot_outside_camera")
-      self.pick_screw_from_feeder("b_bot", screw_size = 4)
+      self.skill_server.pick_screw_from_feeder("b_bot", screw_size = 4)
       self.go_to_named_pose("horizontal_screw_ready", "b_bot")
       hole_pose = geometry_msgs.msg.PoseStamped()
       hole_pose.header.frame_id = "taskboard_m4_screw_link"
       hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/12, 0, 0))
       hole_pose.pose.position.y = -.001  # MAGIC NUMBER (this should offset towards a_bot (z-axis of the frame points down))
       hole_pose.pose.position.z = -.001  # MAGIC NUMBER (this should offset upwards (z-axis of the frame points down))
-      self.do_screw_action("b_bot", hole_pose, screw_size = 4)
+      self.skill_server.do_screw_action("b_bot", hole_pose, screw_size = 4)
       self.go_to_named_pose("horizontal_screw_ready", "b_bot")
       self.go_to_named_pose("home", "b_bot")
 
@@ -712,7 +712,7 @@ class TaskboardClass(O2ACCommon):
         # self.go_to_named_pose("home","b_bot")
         self.move_joints("b_bot", intermediate_pose)
         self.go_to_named_pose("feeder_pick_ready","b_bot")
-        self.pick_screw_from_feeder("b_bot", screw_size=4)
+        self.skill_server.pick_screw_from_feeder("b_bot", screw_size=4)
         # self.go_to_named_pose("home","b_bot")
         self.move_joints("b_bot", intermediate_pose)
         self.go_to_named_pose("horizontal_screw_ready","b_bot")
@@ -724,7 +724,7 @@ class TaskboardClass(O2ACCommon):
         screw_pose_approach.pose.position.x -= 0.05
         self.go_to_pose_goal("b_bot", screw_pose_approach, end_effector_link = "b_bot_screw_tool_m3_tip_link", move_lin=False)
         if self.use_real_robot:
-          self.do_screw_action("b_bot", screw_pose, screw_size=4)
+          self.skill_server.do_screw_action("b_bot", screw_pose, screw_size=4)
           self.go_to_pose_goal("b_bot", screw_pose_approach, end_effector_link = "b_bot_screw_tool_m3_tip_link", move_lin=False)
           self.go_to_named_pose("home","b_bot")
         else:

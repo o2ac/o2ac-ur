@@ -106,7 +106,7 @@ class TestClass(O2ACCommon):
     print(res)
     print "grasp points: ", grasp_points
     
-    # self.publish_marker(pose, "place_pose")
+    # self.skill_server.publish_marker(pose, "place_pose")
 
 if __name__ == '__main__':
   try:

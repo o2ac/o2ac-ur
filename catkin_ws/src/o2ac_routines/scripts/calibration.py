@@ -119,7 +119,7 @@ class CalibrationClass(O2ACCommon):
       ps_approach = copy.deepcopy(pose)
       ps_approach.pose.position.x -= .05
       rospy.loginfo("============ Press `Enter` to move " + robot_name + " to " + pose.header.frame_id)
-      self.publish_marker(pose, "place_pose")
+      self.skill_server.publish_marker(pose, "place_pose")
       raw_input()
       if go_home:
         self.go_to_named_pose(home_pose, robot_name)
@@ -367,7 +367,7 @@ class CalibrationClass(O2ACCommon):
       pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/8, 0, 0))
       pose0.pose.position.x = -.01
     
-    self.do_screw_action(robot_name, pose0, screw_size = 4, screw_height = .02)
+    self.skill_server.do_screw_action(robot_name, pose0, screw_size = 4, screw_height = .02)
     self.go_to_named_pose("screw_plate_ready", robot_name)
     return
 
@@ -387,7 +387,7 @@ class CalibrationClass(O2ACCommon):
       pose0.header.frame_id = "m4_feeder_outlet_link"
       ee_link = robot_name + "_screw_tool_m4_tip_link"
     
-    self.toggle_collisions(collisions_on=False)
+    self.skill_server.toggle_collisions(collisions_on=False)
     
     poses = []
     for i in range(3):
@@ -397,7 +397,7 @@ class CalibrationClass(O2ACCommon):
     poses[2].pose.position.x = -.02
     
     self.cycle_through_calibration_poses(poses, robot_name, go_home=False, move_lin=True, end_effector_link=ee_link)
-    self.toggle_collisions(collisions_on=True)
+    self.skill_server.toggle_collisions(collisions_on=True)
     self.go_to_named_pose("feeder_pick_ready", robot_name)
     return
   
@@ -405,7 +405,7 @@ class CalibrationClass(O2ACCommon):
     rospy.loginfo("============ Picking a screw from a feeder ============")
     rospy.loginfo("============ The screw tool has to be carried by the robot! ============")
     
-    self.pick_screw_from_feeder(robot_name, screw_size=screw_size)
+    self.skill_server.pick_screw_from_feeder(robot_name, screw_size=screw_size)
     return
   
   def vertical_plate_screw_position_test(self, panel, robot_name = "b_bot"):

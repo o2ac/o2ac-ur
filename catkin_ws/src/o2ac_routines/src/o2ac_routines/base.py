@@ -78,6 +78,7 @@ from o2ac_assembly_database.assembly_reader import AssemblyReader
 import ur_msgs.msg
 import ur_msgs.srv
 from o2ac_routines.helpers import *
+from o2ac_routines.skill_server_client import SkillServerClient
 
 from o2ac_routines.ur_force_control import URForceController
 from ur_control import utils as utils
@@ -99,7 +100,6 @@ class O2ACBase(object):
     self.use_real_robot = rospy.get_param("use_real_robot", False)
     self.force_ur_script_linear_motion = False
     self.force_moveit_linear_motion = True
-    self.disable_markers = True
 
     self.competition_mode = False   # Setting this to True disables confirmation dialogs etc., thus enabling uninterrupted automatic motion
 
@@ -134,11 +134,7 @@ class O2ACBase(object):
     self.gripper_action_clients = {"a_bot":actionlib.SimpleActionClient('/a_bot/gripper_action_controller', robotiq_msgs.msg.CModelCommandAction),
       "b_bot":actionlib.SimpleActionClient('/b_bot/gripper_action_controller', robotiq_msgs.msg.CModelCommandAction)}
     
-    self.pick_screw_from_feeder_client = actionlib.SimpleActionClient('/o2ac_skills/pick_screw_from_feeder', o2ac_msgs.msg.pickScrewFromFeederAction)
-    self.place_client = actionlib.SimpleActionClient('/o2ac_skills/place', o2ac_msgs.msg.placeAction)
-    self.regrasp_client = actionlib.SimpleActionClient('/o2ac_skills/regrasp', o2ac_msgs.msg.regraspAction)
-    self.screw_client = actionlib.SimpleActionClient('/o2ac_skills/screw', o2ac_msgs.msg.screwAction)
-    self.change_tool_client = actionlib.SimpleActionClient('/o2ac_skills/change_tool', o2ac_msgs.msg.changeToolAction)
+    self.skill_server = SkillServerClient()
 
     self.ssd_client = actionlib.SimpleActionClient('/o2ac_vision_server/get_3d_poses_from_ssd', o2ac_msgs.msg.get3DPosesFromSSDAction)
     self.detect_shaft_client = actionlib.SimpleActionClient('/o2ac_vision_server/detect_shaft_notch', o2ac_msgs.msg.shaftNotchDetectionAction)
@@ -179,10 +175,6 @@ class O2ACBase(object):
 
     self.a_bot_set_io = rospy.ServiceProxy('a_bot/ur_hardware_interface/set_io', ur_msgs.srv.SetIO)
     self.b_bot_set_io = rospy.ServiceProxy('b_bot/ur_hardware_interface/set_io', ur_msgs.srv.SetIO)
-
-    self.urscript_client = rospy.ServiceProxy('/o2ac_skills/sendScriptToUR', o2ac_msgs.srv.sendScriptToUR)
-    self.publishMarker_client = rospy.ServiceProxy('/o2ac_skills/publishMarker', o2ac_msgs.srv.publishMarker)
-    self.toggleCollisions_client = rospy.ServiceProxy('/o2ac_skills/toggleCollisions', std_srvs.srv.SetBool)
 
     self.robot_safety_mode = dict() 
     self.screw_is_suctioned = dict()
@@ -494,16 +486,6 @@ class O2ACBase(object):
       rospy.loginfo("Successfully closed popup on teach pendant of robot " + robot)
       return True
   
-  def publish_marker(self, pose_stamped, marker_type):
-    # Publishes a marker to Rviz for visualization
-    if self.disable_markers:
-      return True
-    req = o2ac_msgs.srv.publishMarkerRequest()
-    req.marker_pose = pose_stamped
-    req.marker_type = marker_type
-    self.publishMarker_client.call(req)
-    return True
-
   def define_tool_collision_objects(self):
     PRIMITIVES = {"BOX": SolidPrimitive.BOX, "CYLINDER": SolidPrimitive.CYLINDER}
 
@@ -561,7 +543,7 @@ class O2ACBase(object):
         speed = self.reduced_mode_speed_limit
     if move_lin:
       return self.move_lin(group_name, pose_goal_stamped, speed, acceleration, end_effector_link)
-    self.publish_marker(pose_goal_stamped, "pose")
+    self.skill_server.publish_marker(pose_goal_stamped, "pose")
     self.activate_ros_control_on_ur(group_name)
     group = self.groups[group_name]
     
@@ -590,54 +572,10 @@ class O2ACBase(object):
     current_pose = group.get_current_pose().pose
     return all_close(pose_goal_stamped.pose, current_pose, 0.01), move_success
 
-  def transformTargetPoseFromTipLinkToURTCP(self, ps, robot_name, end_effector_link):
-    # This transforms a pose from the end_effector_link set in MoveIt to the TCP used in the UR controller. 
-    # It is used when sending commands to the UR controller directly, without MoveIt/ROS controllers.
-    rospy.logdebug("Received pose to transform to TCP link:")
-    rospy.logdebug(str(ps.pose.position.x) + ", " + str(ps.pose.position.y)  + ", " + str(ps.pose.position.z))
-    rospy.logdebug(str(ps.pose.orientation.x) + ", " + str(ps.pose.orientation.y)  + ", " + str(ps.pose.orientation.z)  + ", " + str(ps.pose.orientation.w))
-
-    t = self.listener.lookupTransform(end_effector_link, robot_name + "_tool0", rospy.Time())
-
-    m = geometry_msgs.msg.TransformStamped()
-    m.header.frame_id = ps.header.frame_id
-    m.child_frame_id = "temp_goal_pose__"
-    m.transform.translation.x = ps.pose.position.x
-    m.transform.translation.y = ps.pose.position.y
-    m.transform.translation.z = ps.pose.position.z
-    m.transform.rotation.x = ps.pose.orientation.x
-    m.transform.rotation.y = ps.pose.orientation.y
-    m.transform.rotation.z = ps.pose.orientation.z
-    m.transform.rotation.w = ps.pose.orientation.w
-    self.listener.setTransform(m)
-
-    m.header.frame_id = "temp_goal_pose__"
-    m.child_frame_id = "temp_wrist_pose__"
-    m.transform.translation.x = t[0][0]
-    m.transform.translation.y = t[0][1]
-    m.transform.translation.z = t[0][2]
-    m.transform.rotation.x = t[1][0]
-    m.transform.rotation.y = t[1][1]
-    m.transform.rotation.z = t[1][2]
-    m.transform.rotation.w = t[1][3]
-    self.listener.setTransform(m)
-
-    ps_wrist = geometry_msgs.msg.PoseStamped()
-    ps_wrist.header.frame_id = "temp_wrist_pose__"
-    ps_wrist.pose.orientation.w = 1.0
-
-    ps_new = self.listener.transformPose(ps.header.frame_id, ps_wrist)
-
-    rospy.logdebug("New pose:")
-    rospy.logdebug(str(ps_new.pose.position.x) + ", " + str(ps_new.pose.position.y)  + ", " + str(ps_new.pose.position.z))
-    rospy.logdebug(str(ps_new.pose.orientation.x) + ", " + str(ps_new.pose.orientation.y)  + ", " + str(ps_new.pose.orientation.z)  + ", " + str(ps_new.pose.orientation.w))
-
-    return ps_new
-
   def move_lin(self, group_name, pose_goal_stamped, speed = 1.0, acceleration = 0.5, end_effector_link = ""):
     if rospy.is_shutdown():
       return False
-    self.publish_marker(pose_goal_stamped, "pose")
+    self.skill_server.publish_marker(pose_goal_stamped, "pose")
     if self.pause_mode_ or self.test_mode_:
       if speed > self.reduced_mode_speed_limit:
         rospy.loginfo("Reducing speed from " + str(speed) + " to " + str(self.reduced_mode_speed_limit) + " because robot is in test or pause mode")
@@ -651,16 +589,7 @@ class O2ACBase(object):
 
     if self.force_ur_script_linear_motion and self.use_real_robot and group_name == "b_bot":
       if not self.force_moveit_linear_motion:
-        rospy.logdebug("Real robot is being used. Send linear motion to robot controller directly via URScript.")
-        req = o2ac_msgs.srv.sendScriptToURRequest()
-        req.program_id = "lin_move"
-        req.robot_name = group_name
-        req.target_pose = self.transformTargetPoseFromTipLinkToURTCP(pose_goal_stamped, group_name, end_effector_link)
-        req.velocity = speed
-        req.acceleration = acceleration
-        res = self.urscript_client.call(req)
-        wait_for_UR_program("/" + group_name, rospy.Duration.from_sec(30.0))
-        return res.success
+        return self.skill_server.move_lin(group_name, pose_goal_stamped, end_effector_link, speed, acceleration, self.listener)
 
     if speed > 1.0:
       speed = 1.0
@@ -757,16 +686,7 @@ class O2ACBase(object):
         speed = self.reduced_mode_speed_limit
     if force_ur_script and self.use_real_robot:
       if not force_moveit:
-        rospy.logdebug("Real robot is being used. Send joint command to robot controller directly via URScript.") 
-        req = o2ac_msgs.srv.sendScriptToURRequest()
-        req.program_id = "move_j"
-        req.robot_name = group_name
-        req.joint_positions = joint_pose_goal
-        req.velocity = speed
-        req.acceleration = acceleration
-        res = self.urscript_client.call(req)
-        wait_for_UR_program("/" + group_name, rospy.Duration.from_sec(20.0))
-        return res.success
+        return self.skill_server.move_joints(group_name, joint_pose_goal, speed, acceleration)
     
     if speed > 1.0:
       speed = 1.0
@@ -799,22 +719,6 @@ class O2ACBase(object):
     rospy.loginfo(success)
     return success
 
-  def horizontal_spiral_motion(self, robot_name, max_radius = .01, radius_increment = .001, speed = 0.02, spiral_axis="Z"):
-    if rospy.is_shutdown():
-      return False
-    rospy.loginfo("Performing horizontal spiral motion at speed " + str(speed) + " and radius " + str(max_radius))
-    if not self.use_real_robot:
-      return True
-    req = o2ac_msgs.srv.sendScriptToURRequest()
-    req.program_id = "spiral_motion"
-    req.robot_name = robot_name
-    req.max_radius = max_radius
-    req.radius_increment = radius_increment    
-    req.velocity = speed
-    req.spiral_axis = spiral_axis
-    res = self.urscript_client.call(req)
-    wait_for_UR_program("/" + robot_name, rospy.Duration.from_sec(30.0))
-    return res.success
     # =====
 
   def go_to_named_pose(self, pose_name, robot_name, speed = 0.5, acceleration = 0.5, force_ur_script=False):
@@ -849,24 +753,9 @@ class O2ACBase(object):
     return True
 
   ######
-
   def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=False):
-    """
-    Picks a screw from one of the feeders. The screw tool already has to be equipped!
-    Use this command to equip the screw tool: do_change_tool_action(self, "b_bot", equip=True, screw_size = 4)
-    """
-    goal = o2ac_msgs.msg.pickScrewFromFeederGoal()
-    goal.robot_name = robot_name
-    goal.screw_size = screw_size
-    rospy.loginfo("Sending pickScrewFromFeeder action goal")
-    rospy.logdebug(goal)
+    res = self.skill_server.pick_screw_from_feeder(robot_name, screw_size)
 
-    self.pick_screw_from_feeder_client.send_goal(goal)
-    rospy.logdebug("Waiting for result")
-    self.pick_screw_from_feeder_client.wait_for_result()
-    rospy.logdebug("Getting result")
-    res = self.pick_screw_from_feeder_client.get_result()
-    
     if not res.success:
       if realign_tool_upon_failure:
         rospy.loginfo("pickScrewFromFeeder failed. Realigning tool and retrying.")
@@ -874,24 +763,7 @@ class O2ACBase(object):
         self.realign_tool(robot_name, screw_tool_id)
         return self.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure=False)
       else:
-        return False
-    return True
-
-  def do_place_action(self, robot_name, pose_stamped, tool_name = "", screw_size=0):
-    # Call the place action
-    goal = o2ac_msgs.msg.placeGoal()
-    goal.robot_name = robot_name
-    goal.item_pose = pose_stamped
-    goal.tool_name = tool_name
-    goal.screw_size = screw_size
-    rospy.loginfo("Sending place action goal")
-    rospy.logdebug(goal)
-
-    self.place_client.send_goal(goal)
-    rospy.logdebug("Waiting for result")
-    self.place_client.wait_for_result()
-    rospy.logdebug("Getting result")
-    return self.place_client.get_result()
+          return False
 
   def do_insert_action(self, active_robot_name, passive_robot_name = "", 
                         starting_offset = 0.05, max_insertion_distance=0.01, 
@@ -924,30 +796,7 @@ class O2ACBase(object):
     else:
       self.unequip_tool(robot_name, tool_name)
     return
-    ### DEPRECATED
-    # self.log_to_debug_monitor("Change tool", "operation")
-    # goal = o2ac_msgs.msg.changeToolGoal()
-    # goal.robot_name = robot_name
-    # goal.equip_the_tool = equip
-    # goal.screw_size = screw_size
-    # rospy.loginfo("Sending changeTool action goal.")    
-    # self.change_tool_client.send_goal(goal)
-    # self.change_tool_client.wait_for_result()
-    # return self.change_tool_client.get_result()
   
-  def do_screw_action(self, robot_name, target_hole, screw_height = 0.02, 
-                        screw_size = 4, stay_put_after_screwing=False):
-    goal = o2ac_msgs.msg.screwGoal()
-    goal.target_hole = target_hole
-    goal.screw_height = screw_height
-    goal.screw_size = screw_size
-    goal.robot_name = robot_name
-    goal.stay_put_after_screwing = stay_put_after_screwing
-    rospy.loginfo("Sending screw action goal.")
-    self.screw_client.send_goal(goal)
-    self.screw_client.wait_for_result()
-    return self.screw_client.get_result()
-
   def upload_tool_grasps_to_param_server(self, tool_id):
     transformer = tf.Transformer(True, rospy.Duration(10.0))
 

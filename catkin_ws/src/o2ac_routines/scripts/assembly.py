@@ -249,7 +249,7 @@ class AssemblyClass(O2ACCommon):
     wait_for_UR_program("/a_bot", rospy.Duration.from_sec(40))
 
     self.do_change_tool_action("b_bot", equip=True, screw_size = 4)
-    if not self.pick_screw_from_feeder("b_bot", screw_size = 4, realign_tool_upon_failure=True):
+    if not self.skill_server.pick_screw_from_feeder("b_bot", screw_size = 4, realign_tool_upon_failure=True):
       rospy.logerr("Failed to pick screw from feeder, could not fix the issue. Abort.")
       self.open_gripper("a_bot")
       self.go_to_named_pose("home", "a_bot")
@@ -297,7 +297,7 @@ class AssemblyClass(O2ACCommon):
       rospy.logerr("Failed to move a_bot home!")
       return False
 
-    if not self.pick_screw_from_feeder("b_bot", screw_size = 4, realign_tool_upon_failure=True):
+    if not self.skill_server.pick_screw_from_feeder("b_bot", screw_size = 4, realign_tool_upon_failure=True):
       rospy.logerr("Failed to pick second screw, could not fix the issue. Abort.")
       self.open_gripper("a_bot")
       self.go_to_named_pose("home", "a_bot")
@@ -500,19 +500,19 @@ if __name__ == '__main__':
         assy.close_gripper('a_bot')
       if i == '30':
         assy.go_to_named_pose("feeder_pick_ready", "a_bot")
-        assy.pick_screw_from_feeder("a_bot", screw_size=3)
+        assy.skill_server.pick_screw_from_feeder("a_bot", screw_size=3)
         assy.go_to_named_pose("feeder_pick_ready", "a_bot")
       if i == '31':
         assy.go_to_named_pose("feeder_pick_ready", "b_bot")
-        assy.pick_screw_from_feeder("b_bot", screw_size=3)
+        assy.skill_server.pick_screw_from_feeder("b_bot", screw_size=3)
         assy.go_to_named_pose("feeder_pick_ready", "b_bot")
       if i == '40':
         assy.go_to_named_pose("feeder_pick_ready", "a_bot")
-        assy.pick_screw_from_feeder("a_bot", screw_size=4)
+        assy.skill_server.pick_screw_from_feeder("a_bot", screw_size=4)
         assy.go_to_named_pose("feeder_pick_ready", "a_bot")
       if i == '41':
         assy.go_to_named_pose("feeder_pick_ready", "b_bot")
-        assy.pick_screw_from_feeder("b_bot", screw_size=4)
+        assy.skill_server.pick_screw_from_feeder("b_bot", screw_size=4)
         assy.go_to_named_pose("feeder_pick_ready", "b_bot")
       if i == '67':
         assy.spawn_objects_for_closed_loop_test()
@@ -553,17 +553,17 @@ if __name__ == '__main__':
       if i == '800':
         assy.load_and_execute_program(robot="b_bot", program_name="wrs2020_push_motor_plate.urp", wait=True)
       if i == '801':
-        assy.move_lin_rel("a_bot", relative_translation=[0, -0.01, 0], use_robot_base_csys=True, max_wait=5.0)
+        assy.skill_server.move_lin_rel("a_bot", relative_translation=[0, -0.01, 0], use_robot_base_csys=True, max_wait=5.0)
       if i == '802':
-        assy.move_lin_rel("a_bot", relative_translation=[0,  0.01, 0], use_robot_base_csys=True, max_wait=5.0)
+        assy.skill_server.move_lin_rel("a_bot", relative_translation=[0,  0.01, 0], use_robot_base_csys=True, max_wait=5.0)
       if i == '81':
         assy.do_change_tool_action('b_bot', equip=True, screw_size=4)
       if i == '82':
         assy.do_change_tool_action('b_bot', equip=False, screw_size=4)
       if i == '83':
-        assy.pick_screw_from_feeder('b_bot', 4)
+        assy.skill_server.pick_screw_from_feeder('b_bot', 4)
       if i == '84':
-        assy.do_linear_push('a_bot', force=15, direction="Y-", max_approach_distance=0.05, forward_speed=0.003)
+        assy.skill_server.do_linear_push('a_bot', force=15, direction="Y-", max_approach_distance=0.05, forward_speed=0.003)
       if i == '85':
         target_pose = geometry_msgs.msg.PoseStamped()
         target_pose.header.frame_id = 'move_group/base/screw_hole_panel2_1'
