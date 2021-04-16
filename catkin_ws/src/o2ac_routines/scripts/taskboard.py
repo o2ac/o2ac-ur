@@ -287,34 +287,37 @@ class TaskboardClass(O2ACCommon):
       "shaft": False,
       "idler pulley": True,
     }
+
+    ### - Belt
+    subtask_completed["belt"] = self.do_task("belt")
     
     # # - Retainer pin + nut
-    subtask_completed["idler pulley"] = self.do_task("idler pulley")
-    self.do_change_tool_action("b_bot", equip=False, screw_size = 4)
-      
+    # subtask_completed["idler pulley"] = self.do_task("idler pulley")
+    # self.do_change_tool_action("b_bot", equip=False, screw_size = 4)
+
     # - Shaft
     subtask_completed["shaft"] = self.do_task("shaft")
     
     # - Motor pulley
     subtask_completed["motor pulley"] = self.do_task("motor pulley")
 
-    ### - Belt
-    subtask_completed["belt"] = self.do_task("belt")
-
     # TODO: 
     # Implement bearing regrasp
     subtask_completed["bearing"] = self.do_task("bearing")
     if subtask_completed["bearing"]:
-      self.do_task("screw_bearing")
+      subtask_completed["screw_bearing"] = self.do_task("screw_bearing")
 
+    self.confirm_to_proceed("Continue into loop to retry parts?")
     order = ["shaft", "motor pulley", "belt", "bearing"]
     task_complete = False
-    while not task_complete:
+    while not task_complete and not rospy.is_shutdown():
       for item in order:
         if not subtask_completed[item]:
+          self.confirm_to_proceed("Reattempt " + str(item) + "?")
           subtask_completed[item] = self.do_task(item)
           if item == "bearing" and subtask_completed[item]: 
-            self.do_task("screw_bearing")
+            if not subtask_completed["screw_bearing"]:
+              self.do_task("screw_bearing")
       
 
   def do_task(self, task_name):
@@ -519,25 +522,38 @@ class TaskboardClass(O2ACCommon):
       self.activate_camera("b_bot_inside_camera")
       goal.pose.position.x -= 0.01 # MAGIC NUMBER
       goal.pose.position.z = 0.0115
-      # rospy.loginfo("Picking bearing at: ")
-      # print(goal.pose.position)
-      self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.085, axis="z")
-      if self.b_bot_gripper_opening_width < 0.015:
-        rospy.logerr("Gripper did not grasp the bearing --> Stop")
-        return False
-      
-      # TODO: Determine if bearing is upside down or not, choose correct program
-      b_bot_pass_to_urscript = [1.709548950, -1.761849065, 2.20654327, -2.033707281, -1.5472462, 0.2133078575]
-      self.move_joints("b_bot", b_bot_pass_to_urscript)
-      success_b = self.load_program(robot="b_bot", program_name="wrs2020/bearing_full.urp", recursion_depth=3)
+      self.simple_pick("b_bot", goal, gripper_force=100.0, approach_height=0.05, axis="z")
+
+      if self.b_bot_gripper_opening_width < 0.045:
+        rospy.loginfo("bearing found to be upwards")
+        success_b = self.load_program(robot="b_bot", program_name="wrs2020/bearing_orient_totb.urp", recursion_depth=3)
+      else:
+        rospy.loginfo("bearing found to be upside down")
+        success_b = self.load_program(robot="b_bot", program_name="wrs2020/bearing_orient_down_totb.urp", recursion_depth=3)
+        #'down' means the small area contacts with tray.
       
       if success_b:
-        print("Loaded bearing program.")
-        rospy.sleep(1)
+        print("Loaded bearing orient program.")
         self.execute_loaded_program(robot="b_bot")
         print("Started execution. Waiting for b_bot to finish.")
       else:
-        print("Problem loading. Not executing bearing procedure.")
+        print("Problem loading. Not executing bearing orient procedure.")
+        return False
+      wait_for_UR_program("/b_bot", rospy.Duration.from_sec(70))
+
+      if self.b_bot_gripper_opening_width < 0.01:
+        rospy.logerr("Bearing not found in gripper. Must have been lost. Aborting.")
+        #TODO(felixvd): Look at the regrasping/aligning area next to the tray
+        return False
+
+      #Insert bearing
+      insert = self.load_program(robot="b_bot", program_name="wrs2020/bearing_insert.urp", recursion_depth=3)
+      if insert:
+        print("Loaded bearing insert program.")
+        self.execute_loaded_program(robot="b_bot")
+        print("Started execution. Waiting for b_bot to finish.")
+      else:
+        print("Problem loading. Not executing bearing insert procedure.")
         return False
       wait_for_UR_program("/b_bot", rospy.Duration.from_sec(70))
 
@@ -704,12 +720,51 @@ class TaskboardClass(O2ACCommon):
     # ==========================================================
     
     if task_name == "idler pulley":
-      self.do_change_tool_action("b_bot", equip=True, screw_size = 4)
       self.go_to_named_pose("home","a_bot")
       self.go_to_named_pose("home","b_bot")
-      success_a = self.load_program(robot="a_bot", program_name="wrs2020/taskboard_retainer_and_nut_v2.urp", recursion_depth=3)
-      success_b = self.load_program(robot="b_bot", program_name="wrs2020/taskboard_retainer_and_nut_v2.urp", recursion_depth=3)
       
+      goal = self.look_and_get_grasp_point("taskboard_idler_pulley_small")
+      if not goal:
+        rospy.logerr("Could not find idler pulley in tray. Skipping procedure.")
+        return False
+      self.activate_camera("b_bot_inside_camera")
+      goal.pose.position.x -= 0.01 # MAGIC NUMBER
+      goal.pose.position.z = 0.014
+      rospy.loginfo("Picking idler pulley at: ")
+      self.go_to_named_pose("home","b_bot")
+      pick_pose = copy.deepcopy(goal)
+      pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(0, tau/4, -tau/4))
+
+      approach_pose = copy.deepcopy(pick_pose)
+      approach_pose.pose.position.z += 0.1
+
+      self.open_gripper("a_bot", wait=False)
+      self.open_gripper("a_bot", wait=False, opening_width=0.07)
+      self.go_to_pose_goal("a_bot", approach_pose, speed=0.2, move_lin = True)
+      self.go_to_pose_goal("a_bot", pick_pose, speed=0.1, move_lin = True)
+
+      # # TODO (felixvd): Change this to the special tool without a suction pad
+      # if self.do_change_tool_action("b_bot", equip=True, screw_size = 4):
+      #   self.go_to_named_pose("home","b_bot")
+      # else:
+      #   rospy.logerr("Tool could not be picked! Aborting")
+      #   return False
+
+      ##### Centering using urp
+      centeringgrasp = self.load_program(robot="a_bot", program_name="wrs2020/taskboard_retainer_and_nut_v4_hu.urp", recursion_depth=3)
+      if not centeringgrasp:
+        rospy.logerr("Failed to load centeringgrasp program on a_bot")
+        return False
+      print("Running belt pick on a_bot.")
+      if not self.execute_loaded_program(robot="a_bot"):
+        rospy.logerr("Failed to execute centeringgrasp program on a_bot")
+        return False
+      wait_for_UR_program("/a_bot", rospy.Duration.from_sec(20))
+
+      self.do_change_tool_action("b_bot", equip=True, screw_size = 4)
+      # success_a = self.load_program(robot="a_bot", program_name="wrs2020/tb_retainer_and_nut_v2_hu.urp", recursion_depth=3)
+      success_b = self.load_program(robot="b_bot", program_name="wrs2020/taskboard_retainer_and_nut_v4.urp", recursion_depth=3)
+
       if success_a and success_b:
         print("Loaded idler pulley program.")
         rospy.sleep(1)
@@ -745,9 +800,6 @@ class TaskboardClass(O2ACCommon):
       self.go_to_named_pose("home","b_bot")
       return True
     
-
-
-
 if __name__ == '__main__':
   try:
     taskboard = TaskboardClass()

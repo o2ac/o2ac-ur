@@ -5,6 +5,16 @@ def taskboard_belt_v4():
   set_tool_digital_output_mode(0, 1)
   set_tool_digital_output_mode(1, 1)
   set_tool_voltage(24)
+  step_count_134407f4_3d24_480c_b67d_73fd293802bb = 0.0
+  thread Step_Counter_Thread_98dad575_cad4_4495_a1fd_994e53926c96():
+    while (True):
+      step_count_134407f4_3d24_480c_b67d_73fd293802bb = step_count_134407f4_3d24_480c_b67d_73fd293802bb + 1.0
+      sync()
+    end
+  end
+  run Step_Counter_Thread_98dad575_cad4_4495_a1fd_994e53926c96()
+  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
+  set_gravity([0.0, 0.0, 9.82])
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -12,19 +22,9 @@ def taskboard_belt_v4():
   set_analog_outputdomain(0, 0)
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
-  set_gravity([0.0, 0.0, 9.82])
-  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
-  set_payload(0.0)
-  step_count_36db9c0d_5e85_4d46_94ec_b04248e53bc3 = 0
-  thread Step_Counter_Thread_7f54e878_8158_49ea_8854_73af01854b03():
-    while (True):
-      step_count_36db9c0d_5e85_4d46_94ec_b04248e53bc3 = step_count_36db9c0d_5e85_4d46_94ec_b04248e53bc3 + 1
-      sync()
-    end
-  end
-  run Step_Counter_Thread_7f54e878_8158_49ea_8854_73af01854b03()
+  set_target_payload(1.200000, [0.001000, -0.018000, 0.049000], [0.002086, 0.002086, 0.002086, 0.000000, 0.000000, 0.000000])
   # begin: URCap Installation Node
-  #   Source: External Control, 1.0.2, FZI Research Center for Information Technology
+  #   Source: External Control, 1.0.5, FZI Research Center for Information Technology
   #   Type: External Control
   # end: URCap Installation Node
   # begin: URCap Installation Node
@@ -2351,6 +2351,8 @@ def taskboard_belt_v4():
   global before_tool_q=[2.5609651290146314, -1.061283124060715, 1.7680068564359046, -1.5659106257780167, -1.9912396076520968, -0.43148126649865937]
   global high_approach_p=p[.430517655658, -.210304370258, .259483933354, 2.070546354937, -2.063337776139, -.265204512751]
   global high_approach_q=[2.4485092379921376, -1.4413039536248444, 2.001661001707641, -1.930081263128379, -1.7537079602876116, -0.678380411487205]
+  global wp_on_right_p=p[.247135810805, -.077743034127, .492156207270, -1.089260191054, 2.941141854347, .043723079322]
+  global wp_on_right_q=[2.2992806434631348, -2.218607564965719, 1.9803665320025843, -1.3077529531768342, -1.553016487752096, 0.01404145359992981]
   global wait_w_tool_p=p[.096883885745, -.254303635135, .525338758627, .242383833914, 3.104342837672, -.045618417679]
   global wait_w_tool_q=[1.419498844840919, -2.178175391321119, 1.892632293985887, -1.311747949011428, -1.5379272788334548, -1.2434497875801753E-14]
   global Waypoint_6_p=p[.127080337947, -.413333654554, .291809623984, -.723175488874, -2.779773733637, .838510378196]
@@ -2439,94 +2441,97 @@ def taskboard_belt_v4():
   $ 10 "high_approach" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(high_approach_p, a=0.8, v=0.8, r=0.05)
-  $ 11 "wait_w_tool" "breakAfter"
+  $ 11 "wp_on_right" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(wp_on_right_p, a=0.8, v=0.8, r=0.05)
+  $ 12 "wait_w_tool" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(wait_w_tool_p, a=0.8, v=0.8)
-  $ 12 "Popup: start sequence with a_bot (simultaneous start)"
+  $ 13 "Popup: start sequence with a_bot (simultaneous start)"
   popup("start sequence with a_bot (simultaneous start)", "Message", False, False, blocking=True)
-  $ 13 "MoveJ"
-  $ 14 "Waypoint_6" "breakAfter"
+  $ 14 "MoveJ"
+  $ 15 "Waypoint_6" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movej(get_inverse_kin(Waypoint_6_p, qnear=Waypoint_6_q), a=2.0943951023931953, v=2.6179938779914944)
-  $ 15 "Waypoint_7" "breakAfter"
+  $ 16 "Waypoint_7" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movej(get_inverse_kin(Waypoint_7_p, qnear=Waypoint_7_q), a=2.0943951023931953, v=2.6179938779914944)
-  $ 16 "Wait: 3.0"
+  $ 17 "Wait: 3.0"
   sleep(3.0)
-  $ 17 "MoveJ"
-  $ 18 "tension_at_ply" "breakAfter"
+  $ 18 "MoveJ"
+  $ 19 "tension_at_ply" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movej(get_inverse_kin(tension_at_ply_p, qnear=tension_at_ply_q), a=1.3962634015954636, v=1.0471975511965976)
-  $ 21 "Wait: 0"
-  $ 22 "MoveL"
-  $ 24 "MoveL"
-  $ 25 "pulley_east" "breakAfter"
+  $ 22 "Wait: 0"
+  $ 23 "MoveL"
+  $ 25 "MoveL"
+  $ 26 "pulley_east" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(pulley_east_p, a=1.2, v=0.25, r=0.026)
-  $ 26 "pulley_seast" "breakAfter"
+  $ 27 "pulley_seast" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(pulley_seast_p, a=1.2, v=0.25)
-  $ 27 "Waypoint_21" "breakAfter"
+  $ 28 "Waypoint_21" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(Waypoint_21_p, a=1.2, v=0.25)
-  $ 28 "Waypoint_18" "breakAfter"
+  $ 29 "Waypoint_18" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(Waypoint_18_p, a=1.2, v=0.25, r=0.006)
-  $ 29 "Waypoint_17" "breakAfter"
+  $ 30 "Waypoint_17" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(Waypoint_17_p, a=1.2, v=0.25, r=0.005)
-  $ 30 "Waypoint_16" "breakAfter"
+  $ 31 "Waypoint_16" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(Waypoint_16_p, a=1.2, v=0.25, r=0.005)
-  $ 31 "Waypoint_15" "breakAfter"
+  $ 32 "Waypoint_15" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(Waypoint_15_p, a=1.2, v=0.25, r=0.002)
-  $ 32 "Waypoint_14" "breakAfter"
+  $ 33 "Waypoint_14" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(Waypoint_14_p, a=1.2, v=0.25, r=0.007)
-  $ 33 "Waypoint_13" "breakAfter"
+  $ 34 "Waypoint_13" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(Waypoint_13_p, a=1.2, v=0.25, r=0.005)
-  $ 34 "Waypoint_12" "breakAfter"
+  $ 35 "Waypoint_12" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(Waypoint_12_p, a=1.2, v=0.25)
-  $ 35 "MoveL"
-  $ 36 "after_pulley" "breakAfter"
+  $ 36 "MoveL"
+  $ 37 "after_pulley" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(after_pulley_p, a=1.2, v=0.25)
-  $ 37 "Waypoint_25" "breakAfter"
+  $ 38 "Waypoint_25" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(Waypoint_25_p, a=1.2, v=0.25)
-  $ 38 "Waypoint_26" "breakAfter"
+  $ 39 "Waypoint_26" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(Waypoint_26_p, a=1.2, v=0.25)
-  $ 39 "Waypoint_27" "breakAfter"
+  $ 40 "Waypoint_27" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(Waypoint_27_p, a=1.2, v=0.25)
-  $ 40 "Waypoint_28" "breakAfter"
+  $ 41 "Waypoint_28" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(Waypoint_28_p, a=1.2, v=0.25)
-  $ 41 "MoveL"
-  $ 42 "Waypoint_22" "breakAfter"
+  $ 42 "MoveL"
+  $ 43 "Waypoint_22" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(Waypoint_22_p, a=1.2, v=0.25)
-  $ 43 "MoveJ"
-  $ 44 "wait_w_tool" "breakAfter"
+  $ 44 "MoveJ"
+  $ 45 "wait_w_tool" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movej(get_inverse_kin(wait_w_tool_p, qnear=wait_w_tool_q), a=1.3962634015954636, v=1.0471975511965976)
-  $ 45 "high_approach" "breakAfter"
+  $ 46 "high_approach" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movej(get_inverse_kin(high_approach_p, qnear=high_approach_q), a=1.3962634015954636, v=1.0471975511965976)
-  $ 46 "before_tool" "breakAfter"
+  $ 47 "before_tool" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movej(get_inverse_kin(before_tool_p, qnear=before_tool_q), a=1.3962634015954636, v=1.0471975511965976)
-  $ 47 "grasp_tool" "breakAfter"
+  $ 48 "grasp_tool" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movej(get_inverse_kin(grasp_tool_p, qnear=grasp_tool_q), a=1.3962634015954636, v=1.0471975511965976)
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
-  $ 48 "Gripper Open (1)"
+  $ 49 "Gripper Open (1)"
   if not(gripper_connected[0]):
     popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
   end
@@ -2538,10 +2543,10 @@ def taskboard_belt_v4():
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 49 "above_tool" "breakAfter"
+  $ 50 "above_tool" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movej(get_inverse_kin(above_tool_p, qnear=above_tool_q), a=1.3962634015954636, v=1.0471975511965976)
-  $ 50 "home" "breakAfter"
+  $ 51 "home" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movej(get_inverse_kin(home_p, qnear=home_q), a=1.3962634015954636, v=1.0471975511965976)
 end

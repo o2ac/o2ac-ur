@@ -1,0 +1,31 @@
+ Program
+   Robot Program
+     'MoveJ'
+     currentpose≔get_actual_joint_positions()
+     MoveJ
+       currentpose
+       pass_tray
+     'Center grasp and turn over'
+     'Turn over'
+     Center grasp and pick inclined
+       MoveL
+         'pass_tray'
+         above
+         pick_1
+       Gripper Move15% (1)
+       MoveL
+         turn_left
+         'turn_right'
+       Gripper Close (1)
+       Gripper Move16% (1)
+       MoveL
+         'pick_1'
+         turn_left
+         incline
+       Gripper Close (1)
+     MoveL
+       above
+     MoveJ
+       Waypoint_4
+       beforehole
+       athole

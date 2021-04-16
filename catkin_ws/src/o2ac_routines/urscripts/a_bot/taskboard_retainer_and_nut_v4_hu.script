@@ -1,19 +1,4 @@
-def taskboard_retainer_and_nut_v4():
-  step_count_a6436afc_38f6_463d_a34d_3afb2dc40167 = 0.0
-  thread Step_Counter_Thread_d325e517_933e_4962_a20b_c8bf74f30cb5():
-    while (True):
-      step_count_a6436afc_38f6_463d_a34d_3afb2dc40167 = step_count_a6436afc_38f6_463d_a34d_3afb2dc40167 + 1.0
-      sync()
-    end
-  end
-  run Step_Counter_Thread_d325e517_933e_4962_a20b_c8bf74f30cb5()
-  set_safety_mode_transition_hardness(1)
-  set_gravity([0.0, 0.0, 9.82])
-  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
-  set_tool_output_mode(0)
-  set_tool_digital_output_mode(0, 1)
-  set_tool_digital_output_mode(1, 1)
-  set_tool_voltage(24)
+def taskboard_retainer_and_nut_v4_hu():
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -23,6 +8,21 @@ def taskboard_retainer_and_nut_v4():
   set_input_actions_to_default()
   set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
   set_payload(1.0, [-0.005, -0.018, 0.077])
+  set_gravity([0.0, 0.0, 9.82])
+  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
+  set_tool_output_mode(0)
+  set_tool_digital_output_mode(0, 1)
+  set_tool_digital_output_mode(1, 1)
+  set_tool_voltage(24)
+  set_safety_mode_transition_hardness(1)
+  step_count_60408584_5a74_461a_9048_03663576f4d1 = 0.0
+  thread Step_Counter_Thread_45a3f3e9_4aaf_497a_970f_f491505c32fc():
+    while (True):
+      step_count_60408584_5a74_461a_9048_03663576f4d1 = step_count_60408584_5a74_461a_9048_03663576f4d1 + 1.0
+      sync()
+    end
+  end
+  run Step_Counter_Thread_45a3f3e9_4aaf_497a_970f_f491505c32fc()
   # begin: URCap Installation Node
   #   Source: External Control, 1.0.5, FZI Research Center for Information Technology
   #   Type: External Control
@@ -2349,10 +2349,10 @@ def taskboard_retainer_and_nut_v4():
   global incline_to_p=p[-.240066422408, -.413499926398, .066111609186, 2.466355790625, -.000195404290, -.019394393672]
   global above_angled_p=p[-.239886747371, -.413598383941, .204833215622, 1.837913174420, -1.845877037928, -.664382909754]
   global above_angled_q=[1.1532691066705252, -1.6979456734134306, 2.1094312210583475, -2.266656705216671, -2.183206305422206, -2.0731511943425414]
-  global near_tb_p=p[.042160518788, -.541658187653, .251880350946, -2.207811605518, 1.525783314900, -1.507499223936]
-  global near_tb_q=[0.8209087337713162, -1.6602217603994731, 2.012113080166492, -1.588307013499623, -0.5778846519021226, -2.865199266315948]
-  global in_ridge_p=p[.081892609986, -.541003814875, .249227110798, -2.207811553722, 1.525783244009, -1.507499341253]
-  global in_ridge_q=[0.8920236254558018, -1.6974948828723715, 2.079921259614441, -1.725837345180162, -0.5581866789076289, -2.7380903255953815]
+  global near_tb_p=p[.070932235913, -.541078170101, .251968742189, -2.208585222424, 1.531245169871, -1.506965130924]
+  global near_tb_q=[0.8704627752304077, -1.6935488186278285, 2.062554184590475, -1.6902934513487757, -0.56665546098818, 3.516232967376709]
+  global in_ridge_p=p[.085929640768, -.541087547051, .251993369536, -2.208677310419, 1.531237835787, -1.506997900631]
+  global in_ridge_q=[0.8989509344100952, -1.7061377964415492, 2.0848968664752405, -1.7440792522826136, -0.560223404561178, 3.568209409713745]
   global move_away_from_p=p[.081904144238, -.540986851095, .249219983613, -2.207817671605, 1.525774434916, -1.507470372164]
   global move_away_to_p=p[.039536059327, -.471892445490, .310281798105, -2.214080940749, 1.506739212858, -1.503260250580]
   global far_above_aid_p=p[.185019096797, -.283792636552, .367304292306, 3.042680902329, .026563110970, .084319055785]
@@ -2470,7 +2470,7 @@ def taskboard_retainer_and_nut_v4():
   $ 23 "above_angled" "breakAfter"
   movel(above_angled_p, a=1.2, v=0.25)
   $ 24 "near_tb" "breakAfter"
-  movel(near_tb_p, a=1.2, v=0.25, r=0.038)
+  movel(near_tb_p, a=0.25, v=0.12, r=0.013000000000000001)
   $ 25 "in_ridge" "breakAfter"
   movel(in_ridge_p, a=1.2, v=0.02)
   $ 26 "Popup: wait for screw tool to hold"
