@@ -398,6 +398,7 @@ class CalibrationClass(O2ACCommon):
     
     self.cycle_through_calibration_poses(poses, robot_name, go_home=False, move_lin=True, end_effector_link=ee_link)
     self.toggle_collisions(collisions_on=True)
+    self.go_to_named_pose("feeder_pick_ready", robot_name)
     return
   
   def screw_feeder_pick_test(self, robot_name = "b_bot", screw_size = 4):
@@ -437,8 +438,8 @@ if __name__ == '__main__':
       rospy.loginfo("503-504: Assembly base plate (b_bot m4, a_bot m3)")
       rospy.loginfo("511-512: Motor plate holes (b_bot, b_bot m4)")
       rospy.loginfo("===== TOOLS  6: Go to screw_ready with b (a goes to back)")
-      rospy.loginfo("621, 622: Equip/unequip m4 screw tool with b_bot")
-      rospy.loginfo("623, 624: Equip/unequip m3 screw tool with a_bot")
+      rospy.loginfo("621, 622: Equip/unequip m3 screw tool with a_bot")
+      rospy.loginfo("623, 624: Equip/unequip m4 screw tool with b_bot")
       rospy.loginfo("625, 626: Equip/unequip set screw tool with b_bot")
       rospy.loginfo("63: Go to assembly base plate with m4 screw tool (b_bot)")
       rospy.loginfo("65 (651/652): Go to belt tool pickup position (and equip/unequip it)")
@@ -519,23 +520,23 @@ if __name__ == '__main__':
         c.go_to_named_pose("back", "a_bot")
         c.go_to_named_pose("screw_ready", "b_bot")
       elif r == '621':
-        c.make_space_for_robot("b_bot")
-        c.go_to_named_pose("tool_pick_ready", "b_bot")
-        c.do_change_tool_action("b_bot", equip=True, screw_size = 4)
-      elif r == '622':
-        c.make_space_for_robot("b_bot")
-        c.go_to_named_pose("tool_pick_ready", "b_bot")
-        c.do_change_tool_action("b_bot", equip=False, screw_size = 4)
-      elif r == '6211': # Go to tool pickup pose
-        c.go_to_tool_pickup_pose("b_bot", "screw_tool_m4")
-      elif r == '623':
         c.make_space_for_robot("a_bot")
         c.go_to_named_pose("tool_pick_ready", "a_bot")
         c.do_change_tool_action("a_bot", equip=True, screw_size = 3)
-      elif r == '624':
+      elif r == '622':
         c.make_space_for_robot("a_bot")
         c.go_to_named_pose("tool_pick_ready", "a_bot")
         c.do_change_tool_action("a_bot", equip=False, screw_size = 3)
+      elif r == '623':
+        c.make_space_for_robot("b_bot")
+        c.go_to_named_pose("tool_pick_ready", "b_bot")
+        c.do_change_tool_action("b_bot", equip=True, screw_size = 4)
+      elif r == '624':
+        c.make_space_for_robot("b_bot")
+        c.go_to_named_pose("tool_pick_ready", "b_bot")
+        c.do_change_tool_action("b_bot", equip=False, screw_size = 4)
+      elif r == '6233': # Go to tool pickup pose
+        c.go_to_tool_pickup_pose("b_bot", "screw_tool_m4")
       elif r == '625':
         c.make_space_for_robot("b_bot")
         c.go_to_named_pose("tool_pick_ready", "b_bot")

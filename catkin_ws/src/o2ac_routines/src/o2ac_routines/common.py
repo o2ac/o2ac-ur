@@ -544,7 +544,7 @@ class O2ACCommon(O2ACBase):
           rospy.sleep(0.5)
           self.get_3d_poses_from_ssd()
           grasp_points_close = self.get_feasible_grasp_points(object_id)
-          if grasp_points_close:
+          if grasp_points_close and grasp_points:
             rospy.loginfo("Got a better grasp point by looking closer. Before: ")
             rospy.loginfo(grasp_points_close[0].pose.position)
             rospy.loginfo("After: ")

@@ -238,10 +238,7 @@ class TaskboardClass(O2ACCommon):
     rospy.logerr("Did not manage to align the bearing holes.")
     return False
 
-  def full_taskboard_task(self, only_do_screws=False):
-    """
-    Start the taskboard task from the fully prepped position (set screw tool and M3 tool equipped)
-    """
+  def do_screw_tasks_from_prep_position(self):
     ### - Set screw
     
     # Move into the screw hole with motor on
@@ -270,10 +267,15 @@ class TaskboardClass(O2ACCommon):
     self.do_change_tool_action("a_bot", equip=False, screw_size = 3)
     self.go_to_named_pose("home", "a_bot")
     self.go_to_named_pose("home", "b_bot")
+    self.do_change_tool_action("b_bot", equip=False, screw_size = 4)
 
+  def full_taskboard_task(self, do_screws=True):
+    """
+    Start the taskboard task from the fully prepped position (set screw tool and M3 tool equipped)
+    """
     #####
-    if only_do_screws:
-      return True
+    if do_screws:
+      self.do_screw_tasks_from_prep_position()
 
     subtask_completed = {
       "M2 set screw": True,
@@ -426,7 +428,7 @@ class TaskboardClass(O2ACCommon):
 
       hole_pose = geometry_msgs.msg.PoseStamped()
       hole_pose.header.frame_id = "taskboard_m3_screw_link"
-      hole_pose.pose.position.y = -.0015  # MAGIC NUMBER (this should offset towards a_bot (z-axis of the frame points down))
+      hole_pose.pose.position.y = -.000  # MAGIC NUMBER (this should offset towards a_bot (z-axis of the frame points down))
       hole_pose.pose.position.z = -.004  # MAGIC NUMBER (this should offset upwards (z-axis of the frame points down))
       hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
       taskboard.do_screw_action("a_bot", hole_pose, screw_size = 3)
