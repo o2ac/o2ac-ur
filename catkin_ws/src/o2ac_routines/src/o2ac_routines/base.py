@@ -1654,7 +1654,7 @@ class O2ACBase(object):
         if allow:
           self.planning_scene_interface.allow_collisions(link_name, hand_link)
         else:
-          self.planning_scene_interface.disallow_collisions(link_name, hand_link)
+          self.planning_scene_interface.allow_collisions(link_name, hand_link, allow=False)
       return
 
 ######
