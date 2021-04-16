@@ -202,6 +202,7 @@ class O2ACBase(object):
     self.debugmonitor_publishers = dict() # used in log_to_debug_monitor()
 
     self.screw_tools = {}
+    self.define_tool_collision_objects()
 
     self.objects_in_tray = dict()  # key: object ID. value: False or object pose
 
@@ -343,6 +344,7 @@ class O2ACBase(object):
     if recursion_depth > 10:
       rospy.logerr("Tried too often. Breaking out.")
       rospy.logerr("Could not start UR ROS control.")
+      raise Exception("Could not activate ROS control on robot " + robot + ". Breaking out.")
       return False
     
     if rospy.is_shutdown():
@@ -882,7 +884,15 @@ class O2ACBase(object):
     return self.insert_client.get_result()
 
   def do_change_tool_action(self, robot_name, equip=True, screw_size = 4):
-    self.equip_unequip_tool(robot_name, "screw_tool_m4", equip=equip)
+    if screw_size == 2:
+      tool_name = "set_screw_tool"
+    else:
+      tool_name = "screw_tool_m" + str(screw_size)
+
+    if equip:
+      self.equip_tool(robot_name, tool_name)
+    else:
+      self.unequip_tool(robot_name, tool_name)
     return
     ### DEPRECATED
     # self.log_to_debug_monitor("Change tool", "operation")
@@ -1477,8 +1487,8 @@ class O2ACBase(object):
     # Sanity check on the input instruction
     equip = (operation == "equip")
     unequip = (operation == "unequip")
-    if equip or unequip:
-      raise NotImplementedError("Equip/unequip needs to be called via the C++ skill server instead")
+    # if equip or unequip:
+    #   raise NotImplementedError("Equip/unequip needs to be called via the C++ skill server instead")
     realign = (operation == "realign")
 
     ###
@@ -1494,15 +1504,14 @@ class O2ACBase(object):
     if ( (self.robot_status[robot_name].carrying_tool == True) and equip):
       rospy.logerr("Robot already holds a tool. Cannot equip another.")
       return False
-    if ( (self.robot_status[robot_name].carrying_tool == False) and not equip):
+    if ( (self.robot_status[robot_name].carrying_tool == False) and unequip):
       rospy.logerr("Robot is not holding a tool. Cannot unequip any.")
       return False
     
     rospy.loginfo("Going to before_tool_pickup pose.")
     
-    if tool_name in ["screw_tool_m3", "screw_tool_m4", "nut_tool_m6", "set_screw_tool"]:
-      tool_holder_used = "back"
-    elif tool_name in ["belt_tool", "plunger_tool"]:
+    tool_holder_used = "back"
+    if tool_name in ["belt_tool", "plunger_tool"]:
       tool_holder_used = "front"
     
     if tool_holder_used == "back":
@@ -1528,7 +1537,7 @@ class O2ACBase(object):
     elif tool_name == "nut_tool_m6":
       ps_approach.pose.position.z = -.025
     elif tool_name == "set_screw_tool":
-      ps_approach.pose.position.z = -.025
+      ps_approach.pose.position.z = -.01
     elif tool_name == "belt_tool":
       ps_approach.pose.position.z = -.025
     elif tool_name == "plunger_tool":
@@ -1559,8 +1568,7 @@ class O2ACBase(object):
       self.open_gripper(robot_name)
       rospy.loginfo("Spawning tool.")
       if not self.spawn_tool(tool_name):
-        rospy.logerr("Could not spawn the tool. Abort.")
-        return False
+        rospy.logwarn("Could not spawn the tool. Continuing.")
       held_screw_tool_ = tool_name
 
     rospy.loginfo("Moving to screw tool approach pose LIN.")
@@ -1570,7 +1578,7 @@ class O2ACBase(object):
     rospy.loginfo("Moving to pose in tool holder LIN.")
     if equip:
       lin_speed = 0.5
-    elif not equip:
+    elif unequip:
       lin_speed = 0.08 
     elif realign:
       lin_speed = 0.1
@@ -1586,9 +1594,10 @@ class O2ACBase(object):
       self.allow_collisions_with_robot_hand('screw_tool_holder', robot_name)  # TODO(felixvd): Is this required?
       self.robot_status[robot_name].carrying_tool = True
       self.robot_status[robot_name].held_tool_id = tool_name
-    elif not equip:
+    elif unequip:
       self.open_gripper(robot_name)
       self.detach_tool(robot_name, tool_name)
+      self.allow_collisions_with_robot_hand(tool_name, robot_name, allow=False)
       held_screw_tool_ = ""
       self.robot_status[robot_name].carrying_tool = False
       self.robot_status[robot_name].held_tool_id = ""
@@ -1630,19 +1639,22 @@ class O2ACBase(object):
     # planning_scene_interface_.applyPlanningScene(planning_scene_)
     self.go_to_named_pose("tool_pick_ready", robot_name)
     
-    # Delete tool collision object only after collision reinitialization to avoid errors
-    if not equip:
-      self.despawn_tool(tool_name)
-    
     return True
 
-  def allow_collisions_with_robot_hand(self, link_name, robot_name):
+  def allow_collisions_with_robot_hand(self, link_name, robot_name, allow=True):
       """Allow collisions of a link with the robot hand"""
-      self.planning_scene_interface.allow_collisions(link_name, robot_name + "_robotiq_85_tip_link")
-      self.planning_scene_interface.allow_collisions(link_name, robot_name + "_robotiq_85_left_finger_tip_link")
-      self.planning_scene_interface.allow_collisions(link_name, robot_name + "_robotiq_85_left_inner_knuckle_link")
-      self.planning_scene_interface.allow_collisions(link_name, robot_name + "_robotiq_85_right_finger_tip_link")
-      self.planning_scene_interface.allow_collisions(link_name, robot_name + "_robotiq_85_right_inner_knuckle_link")    
+      hand_links = [
+        robot_name + "_tip_link",
+        robot_name + "_left_inner_finger_pad",
+        robot_name + "_right_inner_finger_pad",
+        robot_name + "_left_inner_finger",
+        robot_name + "_right_inner_finger"
+      ]
+      for hand_link in hand_links:
+        if allow:
+          self.planning_scene_interface.allow_collisions(link_name, hand_link)
+        else:
+          self.planning_scene_interface.disallow_collisions(link_name, hand_link)
       return
 
 ######
