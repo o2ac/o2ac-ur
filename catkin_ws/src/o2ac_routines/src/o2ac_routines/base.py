@@ -116,9 +116,7 @@ class O2ACBase(object):
     # Miscellaneous helpers
     self.robots = moveit_commander.RobotCommander()
     self.planning_scene_interface = moveit_commander.PlanningSceneInterface()
-    self.apply_planning_scene_diff = rospy.ServiceProxy('/apply_planning_scene', moveit_msgs.srv.ApplyPlanningScene)
-    self.apply_planning_scene_diff.wait_for_service(5.0)
-
+    
     self.assembly_database = AssemblyReader()
 
     try:
@@ -211,7 +209,7 @@ class O2ACBase(object):
     rospy.loginfo("Finished initializing class")
     
   ############## ------ Internal functions (and convenience functions)
-    
+  
   def confirm_to_proceed(self, next_task_name):
     if self.competition_mode:
       return True
@@ -224,17 +222,11 @@ class O2ACBase(object):
     return False
 
   def run_mode_callback(self, msg):
-    # self.my_mutex.acquire()
     self.run_mode_ = msg.data
-    # self.my_mutex.release()
   def pause_mode_callback(self, msg):
-    # self.my_mutex.acquire()
     self.pause_mode_ = msg.data
-    # self.my_mutex.release()
   def test_mode_callback(self, msg):
-    # self.my_mutex.acquire()
     self.test_mode_ = msg.data
-    # self.my_mutex.release()
   def suction_m4_callback(self, msg):
     self.screw_is_suctioned["m4"] = msg.data
   def suction_m3_callback(self, msg):
@@ -552,7 +544,7 @@ class O2ACBase(object):
     group = self.groups[group_name]
     return group.get_current_pose().pose
   
-  def go_to_pose_goal(self, group_name, pose_goal_stamped, speed = 1.0, acceleration = 0.5, high_precision = False, 
+  def go_to_pose_goal(self, group_name, pose_goal_stamped, speed = 0.5, acceleration = 0.5, high_precision = False, 
                       end_effector_link = "", move_lin = True):
     if rospy.is_shutdown():
       return False
@@ -1035,17 +1027,6 @@ class O2ACBase(object):
     res = self.detect_shaft_client.get_result()
     return res
 
-  # def publish_ssd_results_to_scene(self):
-  #   """
-  #   As a first start. Use SSD results to place collision objects in 
-  #   """
-  #   rospy.loginfo("Detected " + item_name + " with confidence " + str(res.confidences[0]))
-  #   co = self.assembly_reader._reader.get_collision_object("bearing")
-  #   co.mesh_poses[0] = res.detected_poses[0].pose
-  #   co.header.frame_id = "tray_center"
-  #   print(co)
-  #   self.planning_scene_interface.apply_collision_object(co)
-  
   def detect_object_in_camera_view(self, item_name):
     """
     Returns object pose if object was detected in current camera view and published to planning scene,
@@ -1522,10 +1503,10 @@ class O2ACBase(object):
     if ((self.robot_status[robot_name].carrying_object == True)):
       rospy.logerr("Robot holds an object. Cannot " + operation + " tool.")
       return False
-    if ( (self.robot_status[robot_name].carrying_tool == True) and equip):
+    if ((self.robot_status[robot_name].carrying_tool == True) and equip):
       rospy.logerr("Robot already holds a tool. Cannot equip another.")
       return False
-    if ( (self.robot_status[robot_name].carrying_tool == False) and unequip):
+    if ((self.robot_status[robot_name].carrying_tool == False) and unequip):
       rospy.logerr("Robot is not holding a tool. Cannot unequip any.")
       return False
     
@@ -1641,20 +1622,6 @@ class O2ACBase(object):
     
     lin_speed = 0.8
 
-    ### This block is probably not needed anymore?
-    # if self.use_real_robot:
-    #   rospy.sleep(.3)
-    #   UR_srv.request.velocity = .05
-    #   t_rel.z = -(ps_tool_holder.pose.position.x - ps_approach.pose.position.x)
-    #   UR_srv.request.relative_translation = t_rel
-    #   sendScriptToURClient_.call(UR_srv)
-    #   if (UR_srv.response.success == True):
-    #     rospy.loginfo("Successfully called the URScript client to perform a linear movement backward.")
-    #     waitForURProgram("/" + robot_name + "_controller")
-    #   else:
-    #     ROS_WARN("Could not call the URScript client to perform a linear movement backward.")
-    # else:
-    #   self.go_to_pose_goal(robot_name, ps_move_away, speed=lin_speed, move_lin=True)
     self.go_to_pose_goal(robot_name, ps_move_away, speed=lin_speed, move_lin=True)
 
     
