@@ -450,6 +450,7 @@ if __name__ == '__main__':
       rospy.loginfo("70: Do screw action with b_bot on rightmost hole")
       rospy.loginfo("81: Realign M4 tool")
       rospy.loginfo("x: Exit ")
+      rospy.loginfo("reset: reset the scene")
       rospy.loginfo(" ")
       r = raw_input()
       if r == '1':
@@ -581,6 +582,8 @@ if __name__ == '__main__':
         c.screw_action_test(robot_name="b_bot")
       elif r == '81':
         c.realign_tool(robot_name="b_bot", screw_tool_id="screw_tool_m4")
+      if i == "reset":
+        c.reset_scene_and_robots()
       elif r == 'x':
         break
       else:

@@ -814,6 +814,7 @@ if __name__ == '__main__':
       # rospy.loginfo("Enter 17, 18 to equip/unequip belt placement tool")
       rospy.loginfo("Subtasks: 51 (set screw), 52 (M3), 53 (M4), 54 (belt), 55 (motor pulley), 56 (shaft), 57 (bearing), 58 (idler pulley)")
       rospy.loginfo("Enter 8 to spawn example parts")
+      rospy.loginfo("Enter reset to reset the scene")
       rospy.loginfo("Enter prep to prepare the task (do this before running)")
       rospy.loginfo("Enter ssup/ssdown to fine-tune the set screw tool position")
       rospy.loginfo("Enter start to run the task (competition mode, no confirmations)")
@@ -897,8 +898,8 @@ if __name__ == '__main__':
         ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
         ps.pose.position.z = -0.15
         taskboard.go_to_pose_goal("a_bot", ps, speed=0.1, end_effector_link="bearing/back_hole", move_lin = False)
-      if i == "tt":
-        taskboard.execute_loaded_program(robot="b_bot")
+      if i == "reset":
+        taskboard.reset_scene_and_robots()
       if i == "x":
         break
       i = True

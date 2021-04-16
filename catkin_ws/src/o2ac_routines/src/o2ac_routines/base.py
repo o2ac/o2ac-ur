@@ -103,7 +103,8 @@ class O2ACBase(object):
     self.pause_mode_ = False
     self.test_mode_ = False
     self.ur_ros_control_running_on_robot = {"a_bot": False, "b_bot": False}
-    self.robot_status = { "a_bot":o2ac_msgs.msg.RobotStatus(), "b_bot":o2ac_msgs.msg.RobotStatus() }
+
+    self.robot_status = self.get_robot_status_from_param_server()
 
     self.speed_fast = 0.1
     self.speed_fastest = 0.2
@@ -249,6 +250,26 @@ class O2ACBase(object):
   def b_bot_gripper_status_callback(self, msg):
     self.b_bot_gripper_opening_width = msg.position  # [m]
   
+  def get_robot_status_from_param_server(self):
+    robot_status = dict()
+    for robot in ["a_bot", "b_bot"]:
+      robot_status[robot] = o2ac_msgs.msg.RobotStatus()
+      robot_status[robot].carrying_object = rospy.get_param(robot + "/carrying_object", False)
+      robot_status[robot].carrying_tool = rospy.get_param(robot + "/carrying_tool", False)
+      robot_status[robot].held_tool_id = rospy.get_param(robot + "/held_tool_id", "")
+    return robot_status
+  def publish_robot_status(self):
+    for robot in ["a_bot", "b_bot"]:
+      rospy.set_param(robot + "/carrying_object", self.robot_status[robot].carrying_object)
+      rospy.set_param(robot + "/carrying_tool", self.robot_status[robot].carrying_tool)
+      rospy.set_param(robot + "/held_tool_id", self.robot_status[robot].held_tool_id)
+
+  def reset_scene_and_robots(self):
+    self.robot_status["a_bot"] = o2ac_msgs.msg.RobotStatus()
+    self.robot_status["b_bot"] = o2ac_msgs.msg.RobotStatus()
+    self.planning_scene_interface.remove_attached_object()  # Detach objects
+    self.planning_scene_interface.remove_world_object()  # Clear all objects
+
   def activate_camera(self, camera_name="b_bot_outside_camera"):
     try:
       if self.camera_multiplexer:
@@ -1594,6 +1615,7 @@ class O2ACBase(object):
       self.allow_collisions_with_robot_hand('screw_tool_holder', robot_name)  # TODO(felixvd): Is this required?
       self.robot_status[robot_name].carrying_tool = True
       self.robot_status[robot_name].held_tool_id = tool_name
+      self.publish_robot_status()
     elif unequip:
       self.open_gripper(robot_name)
       self.detach_tool(robot_name, tool_name)
@@ -1601,6 +1623,7 @@ class O2ACBase(object):
       held_screw_tool_ = ""
       self.robot_status[robot_name].carrying_tool = False
       self.robot_status[robot_name].held_tool_id = ""
+      self.publish_robot_status()
     elif realign: # 
       self.open_gripper(robot_name)
       self.close_gripper(robot_name)

@@ -410,6 +410,7 @@ if __name__ == '__main__':
       rospy.loginfo("Enter 90 for base plate (b_bot).") #hu
       rospy.loginfo("Enter 91-94 for subtasks (Large plate, motor plate, idler pin, motor).")
       rospy.loginfo("Enter 95-98 for subtasks (motor pulley, bearing+shaft, clamp pulley, belt).")
+      rospy.loginfo("Enter reset to reset the scene")
       rospy.loginfo("Enter START to start the task.")
       rospy.loginfo("Enter x to exit.")
       i = raw_input()
@@ -535,6 +536,8 @@ if __name__ == '__main__':
           break
         rospy.loginfo("Starting new set")
         assy.real_assembly_task()
+      if i == "reset":
+        assy.reset_scene_and_robots()
       elif i == 'x':
         break
       elif i == "":
