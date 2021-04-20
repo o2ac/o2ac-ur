@@ -861,9 +861,18 @@ class O2ACBase(object):
     When looking at the bearing from the front, returns the rotation angle 
     to align the screw holes.
     """
+    return self.get_angle_from_vision(camera, item_name="bearing")
+  
+  def get_motor_angle(self, camera="b_bot_outside_camera"):
+    """
+    When looking at the motor in the vgroove, this returns the rotation angle.
+    """
+    return self.get_angle_from_vision(camera, item_name="motor")
+
+  def get_angle_from_vision(self, camera="b_bot_inside_camera", item_name="bearing"):
     # Send goal, wait for result
     goal = o2ac_msgs.msg.detectAngleGoal()
-    goal.item_id = "bearing"
+    goal.item_id = item_name
     goal.camera_id = camera
     self.detect_angle_client.send_goal(goal)
     if (not self.detect_angle_client.wait_for_result(rospy.Duration(3.0))):

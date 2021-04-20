@@ -325,8 +325,8 @@ im_temp = cv2.imread("../../../motor_front.png",0)
 # define pose estimation class
 pe = PoseEstimator( im_temp, img, bbox, mat )
 # do registration
-d_rotate, translation = pe.main_proc( threshold=5.0, ds=10.0 )
-print(d_rotate, translation) # => CCW rotation (deg) is returned
+rotation, translation = pe.main_proc( threshold=5.0, ds=10.0 )
+print(rotation, translation) # => CCW rotation (rad) is returned
 im_vis = pe.get_result_image()
 ################################################################################################
 """
@@ -462,13 +462,10 @@ class PoseEstimator:
             self.d = reg.d
             # Get registration result
             #  translation[x,y] and rotation
-            _,_,rotate = mat2rpy(self.trans_final)
-            d_rotate = np.degrees(rotate)
+            _,_,rotation = mat2rpy(self.trans_final)
+            # d_rotate = np.degrees(rotation)
             translation = self.trans_final[:2,3]
-            return d_rotate, translation
-                
-            
-        
+            return rotation, translation
         return False, False
             
         
