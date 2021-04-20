@@ -15,3 +15,6 @@ screw_tool_m4:
 set_screw_tool:
   ID: 10
   Control_Mode: 1
+padless_tool_m4:
+  ID: 7
+  Control_Mode: 1
