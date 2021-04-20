@@ -106,10 +106,10 @@ class O2ACBase(object):
 
     self.robot_status = self.get_robot_status_from_param_server()
 
-    self.speed_fast = 0.1
-    self.speed_fastest = 0.2
+    self.speed_fast = 0.2
+    self.speed_fastest = 0.3
     self.acc_fast = 0.2
-    self.acc_fastest = 0.2
+    self.acc_fastest = 0.3
 
     self.reduced_mode_speed_limit = .25
 
@@ -558,6 +558,10 @@ class O2ACBase(object):
     self.activate_ros_control_on_ur(group_name)
     group = self.groups[group_name]
     
+    if acceleration > speed:
+      rospy.logwarn("Setting acceleration to " + str(speed) + " instead of " + str(acceleration) + " to avoid jerky motion.")
+      acceleration = speed
+
     if not end_effector_link:
       if group_name == "b_bot":
         end_effector_link = "b_bot_robotiq_85_tip_link"
@@ -653,6 +657,9 @@ class O2ACBase(object):
 
     if speed > 1.0:
       speed = 1.0
+    if acceleration > speed:
+      rospy.logwarn("Setting acceleration to " + str(speed) + " instead of " + str(acceleration) + " to avoid jerky motion.")
+      acceleration = speed
     
     self.activate_ros_control_on_ur(group_name)
     group = self.groups[group_name]
@@ -661,18 +668,9 @@ class O2ACBase(object):
     group.set_pose_target(pose_goal_stamped)
     rospy.logdebug("Setting velocity scaling to " + str(speed))
     group.set_max_velocity_scaling_factor(speed)
+    group.set_max_acceleration_scaling_factor(acceleration)
     
-    # FIXME: At the start of the program, get_current_pose() did not return the correct value. Should be a bug report.
     waypoints = []
-    ### The current pose is not added anymore, because it causes a bug in Gazebo, and it is not necessary.
-    # wpose1 = group.get_current_pose().pose
-    # # rospy.loginfo("Wpose1:")
-    # # rospy.loginfo(wpose1)
-    # rospy.sleep(.05)
-    # wpose2 = group.get_current_pose().pose
-    # # rospy.loginfo("Wpose2:")
-    # # rospy.loginfo(wpose2)
-    # waypoints.append(wpose2)
     pose_goal_world = self.listener.transformPose("world", pose_goal_stamped).pose
     waypoints.append(pose_goal_world)
     (plan, fraction) = group.compute_cartesian_path(
