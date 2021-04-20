@@ -1,14 +1,20 @@
 def baseplate_firmattach():
-  set_target_payload(1.200000, [0.001000, -0.018000, 0.049000], [0.002086, 0.002086, 0.002086, 0.000000, 0.000000, 0.000000])
-  set_gravity([0.0, 0.0, 9.82])
-  step_count_b68a1856_0083_4981_852b_cc9063434d40 = 0.0
-  thread Step_Counter_Thread_b9099b85_4368_461a_9d8b_1ab0dc7ecd04():
+  step_count_f9b7faa6_9d39_4291_b5f4_0111946ad241 = 0.0
+  thread Step_Counter_Thread_84526263_d8e4_4536_ac49_be4aefeb85e2():
     while (True):
-      step_count_b68a1856_0083_4981_852b_cc9063434d40 = step_count_b68a1856_0083_4981_852b_cc9063434d40 + 1.0
+      step_count_f9b7faa6_9d39_4291_b5f4_0111946ad241 = step_count_f9b7faa6_9d39_4291_b5f4_0111946ad241 + 1.0
       sync()
     end
   end
-  run Step_Counter_Thread_b9099b85_4368_461a_9d8b_1ab0dc7ecd04()
+  run Step_Counter_Thread_84526263_d8e4_4536_ac49_be4aefeb85e2()
+  set_target_payload(1.200000, [0.001000, -0.018000, 0.049000], [0.002086, 0.002086, 0.002086, 0.000000, 0.000000, 0.000000])
+  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
+  set_tool_output_mode(0)
+  set_tool_digital_output_mode(0, 1)
+  set_tool_digital_output_mode(1, 1)
+  set_tool_voltage(24)
+  set_safety_mode_transition_hardness(1)
+  set_gravity([0.0, 0.0, 9.82])
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -16,13 +22,7 @@ def baseplate_firmattach():
   set_analog_outputdomain(0, 0)
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
-  set_safety_mode_transition_hardness(1)
   set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
-  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
-  set_tool_output_mode(0)
-  set_tool_digital_output_mode(0, 1)
-  set_tool_digital_output_mode(1, 1)
-  set_tool_voltage(24)
   # begin: URCap Installation Node
   #   Source: External Control, 1.0.5, FZI Research Center for Information Technology
   #   Type: External Control
@@ -2341,6 +2341,16 @@ def baseplate_firmattach():
       sync()
   end
   # end: URCap Installation Node
+  def calculate_point_to_move_towards(feature, direction, position_distance):
+    local posDir=[direction[0], direction[1], direction[2]]
+    if (norm(posDir) < 1e-6):
+      return get_target_waypoint()
+    end
+    local direction_vector_normalized=normalize(posDir)
+    local displacement_pose=p[direction_vector_normalized[0] * position_distance,direction_vector_normalized[1] * position_distance,direction_vector_normalized[2] * position_distance,0,0,0]
+    local wanted_displacement_in_base_frame=pose_sub(pose_trans(feature, displacement_pose), feature)
+    return pose_add(get_target_waypoint(), wanted_displacement_in_base_frame)
+  end
   $ 1 "Robot Program"
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
@@ -2402,6 +2412,28 @@ def baseplate_firmattach():
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 13 "Halt"
+  $ 13 "MoveL"
+  $ 14 "Direction: Base Z+"
+  global move_thread_flag_14=0
+  thread move_thread_14():
+    enter_critical
+    move_thread_flag_14 = 1
+    local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,0.0,1.0], 0.15)
+    movel(towardsPos, a=0.5, v=1.0)
+    move_thread_flag_14 = 2
+    exit_critical
+  end
+  move_thread_flag_14 = 0
+  move_thread_han_14 = run move_thread_14()
+  while (True):
+    sleep(1.0E-10)
+    if (move_thread_flag_14 > 1):
+      join move_thread_han_14
+      $ 15 "Until (distance)"
+      break
+    end
+    sync()
+  end
+  $ 16 "Halt"
   halt
 end

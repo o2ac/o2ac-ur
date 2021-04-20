@@ -1,19 +1,6 @@
 def bearing_plate_full():
-  step_count_a6436afc_38f6_463d_a34d_3afb2dc40167 = 0.0
-  thread Step_Counter_Thread_d325e517_933e_4962_a20b_c8bf74f30cb5():
-    while (True):
-      step_count_a6436afc_38f6_463d_a34d_3afb2dc40167 = step_count_a6436afc_38f6_463d_a34d_3afb2dc40167 + 1.0
-      sync()
-    end
-  end
-  run Step_Counter_Thread_d325e517_933e_4962_a20b_c8bf74f30cb5()
-  set_safety_mode_transition_hardness(1)
-  set_gravity([0.0, 0.0, 9.82])
-  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
-  set_tool_output_mode(0)
-  set_tool_digital_output_mode(0, 1)
-  set_tool_digital_output_mode(1, 1)
-  set_tool_voltage(24)
+  set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
+  set_payload(1.0, [-0.005, -0.018, 0.077])
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -21,8 +8,21 @@ def bearing_plate_full():
   set_analog_outputdomain(0, 0)
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
-  set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
-  set_payload(1.0, [-0.005, -0.018, 0.077])
+  set_gravity([0.0, 0.0, 9.82])
+  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
+  set_tool_output_mode(0)
+  set_tool_digital_output_mode(0, 1)
+  set_tool_digital_output_mode(1, 1)
+  set_tool_voltage(24)
+  step_count_2e0efd86_e3c9_4f50_93fe_fac3ac266597 = 0.0
+  thread Step_Counter_Thread_693d86d7_99c9_41b6_b8ce_25ba08c7c7a9():
+    while (True):
+      step_count_2e0efd86_e3c9_4f50_93fe_fac3ac266597 = step_count_2e0efd86_e3c9_4f50_93fe_fac3ac266597 + 1.0
+      sync()
+    end
+  end
+  run Step_Counter_Thread_693d86d7_99c9_41b6_b8ce_25ba08c7c7a9()
+  set_safety_mode_transition_hardness(1)
   # begin: URCap Installation Node
   #   Source: External Control, 1.0.5, FZI Research Center for Information Technology
   #   Type: External Control
@@ -2353,10 +2353,10 @@ def bearing_plate_full():
   global drop_1_q=[1.5055457384735558, -1.8796220240152621, 2.1510455554775527, -1.8385007409953493, -1.57511982495849, -0.09180126297676772]
   global wp1_p=p[-.025270679907, -.373697996037, .164531359648, .437536433506, 2.711349469930, -.118637787012]
   global wp1_q=[0.7809171676635742, -1.9306422672667445, 2.1483896414386194, -1.6183906994261683, -1.2049387137042444, -0.5014446417437952]
-  global before_grasp_p=p[.089202922548, -.535395243527, .275374169155, .002216314743, -2.790357663196, 1.428318890947]
-  global before_grasp_q=[1.4127181768417358, -1.9303184948363246, 2.4031971136676233, -2.9844466648497523, -1.4482339064227503, -0.09729177156557256]
-  global at_grasp_p=p[.020412486399, -.358341493432, .106590896473, .618826266267, 1.476063277231, -.627302917455]
-  global at_grasp_q=[-0.018235508595601857, -1.3711190980723877, 2.639442269002096, -1.2611628335765381, -0.7914932409869593, -1.5794146696673792]
+  global before_grasp_p=p[-.085777792104, -.233439996529, .106112057170, .619596460634, 1.477038284489, -.626451499467]
+  global before_grasp_q=[-0.4305303732501429, -1.260396586065628, 2.440247360860006, -1.175729588871338, -1.2039335409747522, -1.5752890745746058]
+  global at_grasp_p=p[.020032473064, -.346580366855, .106691001111, .619682823990, 1.476996100095, -.626454300663]
+  global at_grasp_q=[-0.07769805589784795, -1.3840084832957764, 2.657109085713522, -1.267977313404419, -0.851044003163473, -1.5771291891681116]
   def calculate_point_to_move_towards(feature, direction, position_distance):
     local posDir=[direction[0], direction[1], direction[2]]
     if (norm(posDir) < 1e-6):
@@ -2382,15 +2382,15 @@ def bearing_plate_full():
   global final_grasp_p=p[.089246924585, -.533927278671, .174318340091, .013731895559, 2.843429537630, -1.308306724711]
   global final_grasp_q=[1.4072757959365845, -1.7425195179381312, 2.5169361273394983, -3.200345655480856, -1.4400237242328089, -0.09420425096620733]
   def bearing_plate_positioni_1():
-    $ 26 "bearing_plate_positioni_1" "noBreak"
-    $ 27 "MoveL"
-    $ 28 "before_push" "breakAfter"
+    $ 29 "bearing_plate_positioni_1" "noBreak"
+    $ 30 "MoveL"
+    $ 31 "before_push" "breakAfter"
     set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
     movel(before_push_p, a=1.2, v=0.25)
     # begin: URCap Program Node
     #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
     #   Type: Gripper
-    $ 29 "Gripper Close (1)"
+    $ 32 "Gripper Close (1)"
     if not(gripper_connected[0]):
       popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
     end
@@ -2402,17 +2402,17 @@ def bearing_plate_full():
     rq_go_to("1")
     rq_wait("1")
     # end: URCap Program Node
-    $ 30 "MoveL"
-    $ 31 "push_end" "breakAfter"
+    $ 33 "MoveL"
+    $ 34 "push_end" "breakAfter"
     set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
     movel(push_end_p, a=0.01, v=0.02)
-    $ 32 "before_push" "breakAfter"
+    $ 35 "before_push" "breakAfter"
     set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
     movel(before_push_p, a=0.5, v=0.25)
     # begin: URCap Program Node
     #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
     #   Type: Gripper
-    $ 33 "Gripper Move52% (1)"
+    $ 36 "Gripper Move52% (1)"
     if not(gripper_connected[0]):
       popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
     end
@@ -2424,17 +2424,17 @@ def bearing_plate_full():
     rq_go_to("1")
     rq_wait("1")
     # end: URCap Program Node
-    $ 34 "MoveL"
-    $ 35 "Waypoint_2" "breakAfter"
+    $ 37 "MoveL"
+    $ 38 "Waypoint_2" "breakAfter"
     set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
     movel(Waypoint_2_p, a=1.2, v=0.25)
-    $ 36 "final_grasp" "breakAfter"
+    $ 39 "final_grasp" "breakAfter"
     set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
     movel(final_grasp_p, a=1.2, v=0.25)
     # begin: URCap Program Node
     #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
     #   Type: Gripper
-    $ 37 "Gripper Close (1)"
+    $ 40 "Gripper Close (1)"
     if not(gripper_connected[0]):
       popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
     end
@@ -2449,7 +2449,7 @@ def bearing_plate_full():
     # begin: URCap Program Node
     #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
     #   Type: Gripper
-    $ 38 "Gripper Move82% (1)"
+    $ 41 "Gripper Move82% (1)"
     if not(gripper_connected[0]):
       popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
     end
@@ -2463,11 +2463,16 @@ def bearing_plate_full():
     # end: URCap Program Node
   end
   $ 1 "Robot Program"
-  $ 2 "MoveL"
+  $ 2 "MoveJ"
+  $ 3 "currentpose≔get_actual_tcp_pose()get_actual_joint_positions()"
+  global currentpose= get_actual_tcp_pose () get_actual_joint_positions ()
+  $ 4 "currentpose" "breakAfter"
+  movej(currentpose, a=1.3962634015954636, v=1.0471975511965976)
+  $ 5 "MoveL"
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
-  $ 3 "Gripper Move65% (1)"
+  $ 6 "Gripper Move65% (1)"
   if not(gripper_connected[0]):
     popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
   end
@@ -2479,14 +2484,14 @@ def bearing_plate_full():
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 4 "above_ex_pick" "breakAfter"
+  $ 7 "above_ex_pick" "breakAfter"
   movel(above_ex_pick_p, a=1.2, v=0.25)
-  $ 5 "pick_plate" "breakAfter"
+  $ 8 "pick_plate" "breakAfter"
   movel(pick_plate_p, a=1.2, v=0.25)
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
-  $ 6 "Gripper Close (1)"
+  $ 9 "Gripper Close (1)"
   if not(gripper_connected[0]):
     popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
   end
@@ -2498,20 +2503,20 @@ def bearing_plate_full():
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 7 "MoveL"
-  $ 8 "start" "breakAfter"
+  $ 10 "MoveL"
+  $ 11 "start" "breakAfter"
   set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
   movel(start_p, a=1.2, v=0.8)
-  $ 9 "above_drop_1" "breakAfter"
+  $ 12 "above_drop_1" "breakAfter"
   set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
   movel(above_drop_1_p, a=1.2, v=0.8)
-  $ 10 "drop_1" "breakAfter"
+  $ 13 "drop_1" "breakAfter"
   set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
   movel(drop_1_p, a=1.2, v=0.8)
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
-  $ 11 "Gripper Move73% (1)"
+  $ 14 "Gripper Move73% (1)"
   if not(gripper_connected[0]):
     popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
   end
@@ -2523,22 +2528,22 @@ def bearing_plate_full():
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 12 "above_drop_1" "breakAfter"
+  $ 15 "above_drop_1" "breakAfter"
   set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
   movel(above_drop_1_p, a=1.2, v=0.8)
-  $ 13 "wp1" "breakAfter"
+  $ 16 "wp1" "breakAfter"
   set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
   movel(wp1_p, a=1.2, v=0.8, r=0.05)
-  $ 14 "before_grasp" "breakAfter"
+  $ 17 "before_grasp" "breakAfter"
   set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
-  movel(before_grasp_p, a=1.2, v=0.8, r=0.02)
-  $ 15 "at_grasp" "breakAfter"
+  movel(before_grasp_p, a=1.2, v=0.25, r=0.02)
+  $ 18 "at_grasp" "breakAfter"
   set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
-  movel(at_grasp_p, a=1.2, v=0.8)
+  movel(at_grasp_p, a=1.2, v=0.25)
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
-  $ 16 "Gripper Close (1)"
+  $ 19 "Gripper Close (1)"
   if not(gripper_connected[0]):
     popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
   end
@@ -2550,66 +2555,33 @@ def bearing_plate_full():
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 17 "Direction: Base"
-  global move_thread_flag_17=0
-  thread move_thread_17():
+  $ 20 "Direction: Base"
+  global move_thread_flag_20=0
+  thread move_thread_20():
     enter_critical
-    move_thread_flag_17 = 1
+    move_thread_flag_20 = 1
     local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [-0.3,0.0,1.0], 0.15)
     movel(towardsPos, a=0.4, v=0.8, r=0.08)
-    move_thread_flag_17 = 2
+    move_thread_flag_20 = 2
     exit_critical
   end
-  move_thread_flag_17 = 0
-  move_thread_han_17 = run move_thread_17()
+  move_thread_flag_20 = 0
+  move_thread_han_20 = run move_thread_20()
   while (True):
     sleep(1.0E-10)
-    if (move_thread_flag_17 > 1):
-      join move_thread_han_17
-      $ 18 "Until (distance)"
+    if (move_thread_flag_20 > 1):
+      join move_thread_han_20
+      $ 21 "Until (distance)"
       break
     end
     sync()
   end
-  $ 19 "above_final_wp1" "breakAfter"
+  $ 22 "above_final_wp1" "breakAfter"
   set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
   movel(above_final_wp1_p, a=0.4, v=0.8, r=0.03)
-  $ 20 "place" "breakAfter"
+  $ 23 "place" "breakAfter"
   set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
   movel(place_p, a=0.4, v=0.8)
-  # begin: URCap Program Node
-  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
-  #   Type: Gripper
-  $ 21 "Gripper Move73% (1)"
-  if not(gripper_connected[0]):
-    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
-  end
-  if not(rq_is_gripper_activated("1")):
-    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
-  end
-  rq_set_pos_spd_for(185, 0, 0, "1")
-  rq_wait_pos_spe_for_request(185, 0, 0, "1")
-  rq_go_to("1")
-  rq_wait("1")
-  # end: URCap Program Node
-  $ 22 "align" "breakAfter"
-  set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
-  movel(align_p, a=1.2, v=0.8)
-  # begin: URCap Program Node
-  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
-  #   Type: Gripper
-  $ 23 "Gripper Close (1)"
-  if not(gripper_connected[0]):
-    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
-  end
-  if not(rq_is_gripper_activated("1")):
-    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
-  end
-  rq_set_pos_spd_for(255, 0, 0, "1")
-  rq_wait_pos_spe_for_request(255, 0, 0, "1")
-  rq_go_to("1")
-  rq_wait("1")
-  # end: URCap Program Node
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
@@ -2625,6 +2597,39 @@ def bearing_plate_full():
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 25 "Call bearing_plate_positioni_1"
+  $ 25 "align" "breakAfter"
+  set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
+  movel(align_p, a=1.2, v=0.8)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 26 "Gripper Close (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(255, 0, 0, "1")
+  rq_wait_pos_spe_for_request(255, 0, 0, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 27 "Gripper Move73% (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(185, 0, 0, "1")
+  rq_wait_pos_spe_for_request(185, 0, 0, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 28 "Call bearing_plate_positioni_1"
   bearing_plate_positioni_1()
 end

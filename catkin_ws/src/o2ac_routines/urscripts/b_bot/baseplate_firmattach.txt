@@ -11,4 +11,7 @@
          Wait: 0.002
      Wait: 0.5
      Gripper Open (1)
+     MoveL
+       Direction: Base Z+
+         Until (distance)
      Halt

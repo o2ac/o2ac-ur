@@ -1,0 +1,9 @@
+ Program
+   Robot Program
+     MoveL
+       above
+     'go to hole'
+     MoveJ
+       Waypoint_4
+       beforehole
+       athole

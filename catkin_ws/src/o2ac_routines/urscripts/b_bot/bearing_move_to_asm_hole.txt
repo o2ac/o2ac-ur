@@ -1,0 +1,11 @@
+ Program
+   Robot Program
+     MoveJ
+       currentpose≔get_actual_joint_positions()
+       currentpose
+     'MoveL'
+     'go to hole'
+     MoveL
+       Waypoint_4
+       beforehole
+       athole

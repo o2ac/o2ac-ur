@@ -1,9 +1,20 @@
 def pulley_v3():
+  set_safety_mode_transition_hardness(1)
   set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
   set_tool_output_mode(0)
   set_tool_digital_output_mode(0, 1)
   set_tool_digital_output_mode(1, 1)
   set_tool_voltage(24)
+  step_count_134407f4_3d24_480c_b67d_73fd293802bb = 0.0
+  thread Step_Counter_Thread_98dad575_cad4_4495_a1fd_994e53926c96():
+    while (True):
+      step_count_134407f4_3d24_480c_b67d_73fd293802bb = step_count_134407f4_3d24_480c_b67d_73fd293802bb + 1.0
+      sync()
+    end
+  end
+  run Step_Counter_Thread_98dad575_cad4_4495_a1fd_994e53926c96()
+  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
+  set_gravity([0.0, 0.0, 9.82])
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -11,18 +22,7 @@ def pulley_v3():
   set_analog_outputdomain(0, 0)
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
-  set_gravity([0.0, 0.0, 9.82])
-  set_safety_mode_transition_hardness(1)
-  step_count_bd743510_c6db_4053_b1e5_e7d56dfe47b4 = 0.0
-  thread Step_Counter_Thread_dbaf014b_a16c_46c7_9f6c_cbd251d43a22():
-    while (True):
-      step_count_bd743510_c6db_4053_b1e5_e7d56dfe47b4 = step_count_bd743510_c6db_4053_b1e5_e7d56dfe47b4 + 1.0
-      sync()
-    end
-  end
-  run Step_Counter_Thread_dbaf014b_a16c_46c7_9f6c_cbd251d43a22()
   set_target_payload(1.200000, [0.001000, -0.018000, 0.049000], [0.002086, 0.002086, 0.002086, 0.000000, 0.000000, 0.000000])
-  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
   # begin: URCap Installation Node
   #   Source: External Control, 1.0.5, FZI Research Center for Information Technology
   #   Type: External Control
@@ -2357,8 +2357,8 @@ def pulley_v3():
   global Waypoint_4_q=[1.6325592994689941, -1.5254185956767579, 1.8748706022845667, -2.124009748498434, -1.8492487112628382, -0.9497311750995081]
   global beforehole_p=p[-.064520899946, -.505593999382, .189247580791, 1.635801469827, -1.672038075070, -.884493178689]
   global beforehole_q=[1.6082604862666336, -1.3380924775824177, 1.9418564166322874, -2.0603307031375246, -2.517162579653605, -1.4521756510505384]
-  global athole_p=p[-.073006307774, -.506963482490, .190528386765, 1.663947338872, -1.707720554292, -.848932782079]
-  global athole_q=[1.577323317527771, -1.3549612325480958, 1.9432027975665491, -2.0930572948851527, -2.47229510942568, -1.5056794325457972]
+  global athole_p=p[-.073030667228, -.505784758286, .190533251836, 1.633851101097, -1.678547714421, -.878673283357]
+  global athole_q=[1.590510606765747, -1.3433536005071183, 1.949578110371725, -2.0884181461729945, -2.514470879231588, -1.4780905882464808]
   def calculate_point_to_move_towards(feature, direction, position_distance):
     local posDir=[direction[0], direction[1], direction[2]]
     if (norm(posDir) < 1e-6):

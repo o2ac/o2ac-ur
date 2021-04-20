@@ -1,5 +1,8 @@
  Program
    Robot Program
+     MoveJ
+       currentpose≔get_actual_tcp_pose()get_actual_joint_positions()
+       currentpose
      MoveL
        Gripper Move65% (1)
        above_ex_pick

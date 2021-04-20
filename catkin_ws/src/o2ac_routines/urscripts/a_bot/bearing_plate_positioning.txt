@@ -1,5 +1,8 @@
  Program
    Robot Program
+     MoveJ
+       currentpose≔get_actual_tcp_pose()get_actual_joint_positions()
+       currentpose
      MoveL
        before_push
      Gripper Close (1)
