@@ -12,7 +12,7 @@
         <origin rpy="0.0 0.0 0.0" xyz="0.01 0 0"/> <!-- This 0.01 offset is the Robotiq/UR coupling -->
     </xacro:robotiq_85_gripper>
 
-    <link name="${prefix}_coupling">
+    <link name="${prefix}coupling">
       <visual>
         <origin rpy="0 ${pi/2} 0" xyz=".005 0 0"/>
         <geometry>
@@ -29,9 +29,9 @@
         </geometry>
       </collision>
     </link>
-    <joint name="${prefix}_coupling_joint" type="fixed">
+    <joint name="${prefix}coupling_joint" type="fixed">
       <parent link="${parent}" />
-      <child link = "${prefix}_coupling" />
+      <child link = "${prefix}coupling" />
       <origin rpy="0 0 0" xyz="0 0 0"/>
     </joint>
 

@@ -208,10 +208,10 @@ class TaskboardClass(O2ACCommon):
           self.open_gripper("b_bot")
           self.move_joints("b_bot", b_bot_at_tb_bearing)
           if degrees(angle) < 3.5:
-            success = self.load_program(robot="b_bot", program_name="wrs2020/bearing_turn_left.urp", recursion_depth=3)
+            success = self.load_program(robot="b_bot", program_name="wrs2020/taskboard_bearing_turn_left.urp", recursion_depth=3)
             rospy.loginfo("executing bearing left turn")
           elif degrees(angle) > 3.5:
-            success = self.load_program(robot="b_bot", program_name="wrs2020/bearing_turn_right.urp", recursion_depth=3)  
+            success = self.load_program(robot="b_bot", program_name="wrs2020/taskboard_bearing_turn_right.urp", recursion_depth=3)  
             rospy.loginfo("executing bearing right turn")
           if success:
             turns_to_do = max( round((abs(degrees(angle))/6.0)), 1)

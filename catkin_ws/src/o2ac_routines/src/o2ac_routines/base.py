@@ -544,7 +544,7 @@ class O2ACBase(object):
     group = self.groups[group_name]
     return group.get_current_pose().pose
   
-  def go_to_pose_goal(self, group_name, pose_goal_stamped, speed = 0.5, acceleration = 0.5, high_precision = False, 
+  def go_to_pose_goal(self, group_name, pose_goal_stamped, speed = 0.5, acceleration = 0.25,
                       end_effector_link = "", move_lin = True):
     if rospy.is_shutdown():
       return False
@@ -570,20 +570,11 @@ class O2ACBase(object):
     group.set_max_velocity_scaling_factor(speed)
     group.set_max_acceleration_scaling_factor(acceleration)
 
-    if high_precision:
-      group.set_goal_tolerance(.000001)
-      group.set_planning_time(10)
-
     move_success = group.go(wait=True)
     group.stop()
     # It is always good to clear your targets after planning with poses.
     # Note: there is no equivalent function for clear_joint_value_targets()
     group.clear_pose_targets()
-    
-    # Reset the precision
-    if high_precision:
-      group.set_goal_tolerance(.0001) 
-      group.set_planning_time(3) 
 
     current_pose = group.get_current_pose().pose
     return all_close(pose_goal_stamped.pose, current_pose, 0.01), move_success
@@ -660,7 +651,6 @@ class O2ACBase(object):
         wait_for_UR_program("/" + group_name, rospy.Duration.from_sec(30.0))
         return res.success
 
-    # 
     if speed > 1.0:
       speed = 1.0
     
@@ -856,7 +846,7 @@ class O2ACBase(object):
         rospy.loginfo("pickScrewFromFeeder failed. Realigning tool and retrying.")
         screw_tool_id = "screw_tool_m" + str(screw_size)
         self.realign_tool(robot_name, screw_tool_id)
-        return self.pick_screw_from_feeder(robot_name, screw_size, align_tool_upon_failure=False)
+        return self.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure=False)
       else:
         return False
     return True
@@ -1495,7 +1485,7 @@ class O2ACBase(object):
     realign = (operation == "realign")
 
     ###
-    lin_speed = 0.01
+    lin_speed = 0.5
     # The second comparison is not always necessary, but readability comes first.
     if ((not equip) and (not unequip) and (not realign)):
       rospy.logerr("Cannot read the instruction " + operation + ". Returning False.")
@@ -1575,18 +1565,19 @@ class O2ACBase(object):
       held_screw_tool_ = tool_name
 
     rospy.loginfo("Moving to screw tool approach pose LIN.")
-    self.go_to_pose_goal(robot_name, ps_approach, move_lin=True)
+    self.go_to_pose_goal(robot_name, ps_approach, speed=lin_speed, acceleration=lin_speed/2, move_lin=True)
   
     # Plan & execute linear motion to the tool change position
     rospy.loginfo("Moving to pose in tool holder LIN.")
     if equip:
       lin_speed = 0.5
     elif unequip:
-      lin_speed = 0.08 
+      lin_speed = 0.5
+      self.planning_scene_interface.allow_collisions("screw_tool_holder_long", tool_name)
     elif realign:
-      lin_speed = 0.1
+      lin_speed = 0.5
 
-    self.go_to_pose_goal(robot_name, ps_in_holder, speed=lin_speed, move_lin=True)
+    self.go_to_pose_goal(robot_name, ps_in_holder, speed=lin_speed, acceleration=lin_speed/2, move_lin=True)
   
     # Close gripper, attach the tool object to the gripper in the Planning Scene.
     # Its collision with the parent link is set to allowed in the original planning scene.
@@ -1623,7 +1614,7 @@ class O2ACBase(object):
     
     lin_speed = 0.8
 
-    self.go_to_pose_goal(robot_name, ps_move_away, speed=lin_speed, move_lin=True)
+    self.go_to_pose_goal(robot_name, ps_move_away, speed=lin_speed, acceleration=lin_speed/2, move_lin=True)
 
     
     # Reactivate the collisions, with the updated entry about the tool
@@ -1645,7 +1636,7 @@ class O2ACBase(object):
         if allow:
           self.planning_scene_interface.allow_collisions(link_name, hand_link)
         else:
-          self.planning_scene_interface.allow_collisions(link_name, hand_link, allow=False)
+          self.planning_scene_interface.disallow_collisions(link_name, hand_link)
       return
 
 ######
