@@ -428,7 +428,7 @@ class PoseEstimator:
             
             # Registration by ICP algorithm
             reg = ICPRegistration( pcd_s_ds_ini, pcd_t_ds )
-            reg.set_distance_torrelance( ds*0.5 )
+            reg.set_distance_tolerance( ds*0.5 )
             mse_tmp, reg_trans_tmp = reg.registration()
             mses.append(mse_tmp)
             reg_transes.append(reg_trans_tmp)

@@ -107,7 +107,7 @@ def wait_for_UR_program(topic_namespace = "", timeout_duration = rospy.Duration.
 
 def rotateQuaternionByRPY(roll, pitch, yaw, in_quat):
   """
-  Apply RPY rotation in the frame of the quaternion.
+  Apply RPY rotation in the rotated frame (the one to which the quaternion has rotated the reference frame).
   
   Input: geometry_msgs.msg.Quaternion
   Output: geometry_msgs.msg.Quaternion rotated by roll, pitch, yaw in its frame
@@ -115,6 +115,19 @@ def rotateQuaternionByRPY(roll, pitch, yaw, in_quat):
   q_in = [in_quat.x, in_quat.y, in_quat.z, in_quat.w]
   q_rot = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
   q_rotated = tf.transformations.quaternion_multiply(q_in, q_rot)
+
+  return geometry_msgs.msg.Quaternion(*q_rotated)
+
+def rotateQuaternionByRPYInUnrotatedFrame(roll, pitch, yaw, in_quat):
+  """
+  Apply RPY rotation in the reference frame of the quaternion.
+  
+  Input: geometry_msgs.msg.Quaternion
+  Output: geometry_msgs.msg.Quaternion rotated by roll, pitch, yaw in its frame
+  """
+  q_in = [in_quat.x, in_quat.y, in_quat.z, in_quat.w]
+  q_rot = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
+  q_rotated = tf.transformations.quaternion_multiply(q_rot, q_in)
 
   return geometry_msgs.msg.Quaternion(*q_rotated)
 
