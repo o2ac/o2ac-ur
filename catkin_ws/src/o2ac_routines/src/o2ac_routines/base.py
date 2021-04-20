@@ -568,6 +568,7 @@ class O2ACBase(object):
     group.set_pose_target(pose_goal_stamped)
     rospy.logdebug("Setting velocity scaling to " + str(speed))
     group.set_max_velocity_scaling_factor(speed)
+    group.set_max_acceleration_scaling_factor(acceleration)
 
     if high_precision:
       group.set_goal_tolerance(.000001)
@@ -689,7 +690,7 @@ class O2ACBase(object):
                                       0.01,        # eef_step
                                       0.0)         # jump_threshold
     rospy.loginfo("Compute cartesian path succeeded with " + str(fraction*100) + "%")
-    plan = group.retime_trajectory(self.robots.get_current_state(), plan, speed)
+    plan = group.retime_trajectory(self.robots.get_current_state(), plan, speed, acceleration)
 
     plan_success = group.execute(plan, wait=True)
     group.stop()
