@@ -3,9 +3,7 @@
      Gripper Move46% (1)
      MoveL
        at_shaft
-     'Popup: ok to turn shaft'
-     Wait: 1.0
-     'MoveJ'
+     'Wait: 1.0'
      MoveL
        at_shaft_left
      Gripper Close (1)
@@ -14,3 +12,5 @@
        at_right_up
        at_right
      Gripper Move46% (1)
+     MoveL
+       at_shaft

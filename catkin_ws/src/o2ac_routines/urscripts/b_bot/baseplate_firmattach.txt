@@ -1,0 +1,17 @@
+ Program
+   Robot Program
+     Gripper Close (1)
+     att_threshold≔5
+     Force
+       'direction_downwards'
+       tcp_force≔get_tcp_force()
+       'Popup'
+       Loop tcp_force[2] < att_threshold
+         tcp_force≔get_tcp_force()
+         Wait: 0.002
+     Wait: 0.5
+     Gripper Open (1)
+     MoveL
+       Direction: Base Z+
+         Until (distance)
+     Halt

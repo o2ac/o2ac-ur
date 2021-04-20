@@ -9,6 +9,7 @@
      MoveL
        before_tool
        high_approach
+       wp_on_right
        wait_w_tool
        Popup: start sequence with a_bot (simultaneous start)
      MoveJ

@@ -1,0 +1,96 @@
+ Program
+   Robot Program
+     Initialize
+       MoveJ
+         home
+       Gripper Open (1)
+     MoveJ
+       grp_obj
+     Wait: 1.0
+     Gripper Close (1)
+     Wait: 1.0
+     MoveJ
+       rise_obj
+       move_closer
+     MoveJ
+       beforehole
+     MoveL
+       'athole'
+       Direction: Tool Y-
+         Until (tool_contact_detection)
+     Force
+       Wait: 3.0
+       'Loop 10 times'
+       'spiral motion'
+       'Loop 30 times'
+       'grid motion'
+       loop_1≔1
+       tcp_p≔get_actual_tcp_pose()
+       Popup
+       Loop ( tcp_p[0] < -0.140) and  (loop_1 < 6)  
+         MoveL
+           Direction: Tool X+
+             Until (distance)
+           tcp_p≔get_actual_tcp_pose()
+           Direction: Tool Z-
+             Until (distance)
+           Direction: Tool X-
+             Until (distance)
+           Direction: Tool X-
+             Until (distance)
+           tcp_p≔get_actual_tcp_pose()
+           Direction: Tool Z+
+             Until (distance)
+           Direction: Tool X+
+             Until (distance)
+           Direction: Tool X+
+             Until (distance)
+           tcp_p≔get_actual_tcp_pose()
+           Direction: Tool Z+
+             Until (distance)
+           Direction: Tool X-
+             Until (distance)
+           Direction: Tool X-
+             Until (distance)
+           tcp_p≔get_actual_tcp_pose()
+           Direction: Tool Z-
+             Until (distance)
+           Direction: Tool X+
+             Until (distance)
+         loop_1≔loop_1+1
+         tcp_p≔get_actual_tcp_pose()
+       Popup
+     Gripper Open (1)
+     MoveJ
+       push_shaft_rdy
+     Gripper Close (1)
+     'MoveL'
+     push shaft and wiggle
+       Force
+         Wait: 1.0
+         'grid motion'
+         loop_1≔1
+         tcp_p≔get_actual_tcp_pose()
+         Loop ( tcp_p[0] < -0.130) and  (loop_1 < 6) 
+           tcp_p≔get_actual_tcp_pose()
+           MoveL
+             Direction: Tool Z-
+               Until (distance)
+             tcp_p≔get_actual_tcp_pose()
+             Direction: Tool Z+
+               Until (distance)
+             tcp_p≔get_actual_tcp_pose()
+             Direction: Tool Z+
+               Until (distance)
+             tcp_p≔get_actual_tcp_pose()
+             Direction: Tool Z-
+               Until (distance)
+           loop_1≔loop_1+1
+           tcp_p≔get_actual_tcp_pose()
+     MoveJ
+       after_insert
+     MoveJ
+       home
+     Halt
+     MoveJ
+       fully_inserted

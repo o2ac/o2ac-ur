@@ -61,7 +61,7 @@ class AssemblyReader(PartsReader):
         super(AssemblyReader, self).__init__(assembly_name)
         self._broadcaster = tf2_ros.StaticTransformBroadcaster()
         if self.db_name: # = If a database is loaded
-          self.change_assembly(self, assembly_name)
+          self.change_assembly(assembly_name)
 
     def change_assembly(self, assembly_name):
         if self.db_name != assembly_name:

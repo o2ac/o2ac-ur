@@ -1,0 +1,11 @@
+ Program
+   Robot Program
+     MoveJ
+       before_shaft
+       Waypoint_2
+       Waypoint_1
+       slightly_above
+     MoveL
+       at_nut_aid
+       Gripper Move22% (1)
+       above_nut_aid

@@ -7,7 +7,7 @@ parts_list:
     name: task_plate
     cad: taskboard_02_plate.stl
     description: L plate
-  - id: 3
+  - id: 13
     name: taskboard_idler_pulley_small
     cad: MBGNA30-2.stl
     description: Small idler pulley with mounted axis

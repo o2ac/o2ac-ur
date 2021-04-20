@@ -503,7 +503,6 @@ class FastGraspabilityEvaluation():
         self.candidate_idx = list()
         self.pos_list = list()
         self.score_list = list()
-        self.rotation = (0, 45, 90, 135)
         
         self.gp_result = list() # grasp points y, x, theta[deg]
 
@@ -534,9 +533,6 @@ class FastGraspabilityEvaluation():
         self.im_obstacles = np.array( self.fg_mask, np.int) - np.array( self.im_belt, np.int )
         self.im_obstacles = np.asarray( np.clip( self.im_obstacles, 0, 1 ), np.uint8 )
 
-        # Generation of rotated hand templates
-        self.im_hands, self.hands_area = self.RotationTemplate( self.im_hand, self.rotation )
-        self.im_collisions, self.collision_area = self.RotationTemplate( self.im_collision, self.rotation )
 
     def binarizationHSV( self, im, lower=[0,0,0], upper=[179,255,255] ):
         """
@@ -555,19 +551,14 @@ class FastGraspabilityEvaluation():
         im_out = cv2.inRange( im_hsv, lower, upper )
         return im_out/255
 
-    def RotationTemplate( self, im_temp, rotation=(0, 45, 90, 135) ):
+    def RotationTemplate( self, im_temp, deg ):
 
         cols, rows = im_temp.shape[1], im_temp.shape[0]
-        im_temps = list() # テンプレートのリスト
-        temp_area = list() # ハンド差込領域の面積
-        for deg in rotation:
 
-            rot_mat = cv2.getRotationMatrix2D( (cols/2, rows/2),  deg, 1 )
-            im_rot = cv2.warpAffine( im_temp, rot_mat, (cols, rows) )
-            im_temps.append( im_rot )
-            temp_area.append( np.sum(im_rot) )
+        rot_mat = cv2.getRotationMatrix2D( (cols/2, rows/2),  360-deg, 1 )
+        im_rot = cv2.warpAffine( im_temp, rot_mat, (cols, rows) )
 
-        return im_temps, temp_area
+        return im_rot, np.sum(im_rot)
     
     def RotationColorTemplate( self, im_temp, rotation ):
         # convert binary template to color template.
@@ -578,22 +569,27 @@ class FastGraspabilityEvaluation():
         temp_c = np.clip( temp_c*100.0, 0, 255 )
         temp_c = np.asarray( temp_c, np.uint8 )
         temp_c = cv2.cvtColor( temp_c, cv2.COLOR_GRAY2BGR)
-        temp_c[:int(rows/2),:,0] = temp_c[:int(rows/2),:,2] = 0
-        temp_c[int(rows/2):,:,0] = temp_c[int(rows/2):,:,1] = 0
+        temp_c[:,:int(cols/2),0] = temp_c[:,:int(cols/2),2] = 0
+        temp_c[:,int(cols/2):,0] = temp_c[:,int(cols/2):,1] = 0
             
-        rot_mat = cv2.getRotationMatrix2D( (cols/2, rows/2),  rotation, 1 )
+        rot_mat = cv2.getRotationMatrix2D( (cols/2, rows/2),  360-rotation, 1 )
         im_rot = cv2.warpAffine( temp_c, rot_mat, (cols, rows) )
 
         return im_rot
 
 
     def main_proc( self ):
+        """ compute grasp points
+        Return:
+            list: grasp point in image coordinate system (y, x, theta(degree,CCW))
+        """
 
         # Generate search point
         ds_rate = 0.1
         ds_reverse = 1.0 / ds_rate
-        im_sp = cv2.resize( self.im_belt, None, fx=ds_rate, fy=ds_rate, interpolation=cv2.INTER_NEAREST )
-        # 探索位置の取り出し
+        im_sp = cv2.resize( self.im_belt, None, fx=ds_rate, fy=ds_rate,
+                            interpolation=cv2.INTER_NEAREST )
+        # 探索位置(y,x)の取り出し
         points = np.where( im_sp == 1 )
         search_points = list()
         for n in range(len(points[0])):
@@ -610,63 +606,34 @@ class FastGraspabilityEvaluation():
         offset = np.array( (cols/2, rows/2), np.int )
         score_list = list()
         pos_list = list()
+        cx, cy = self.im_in.shape[1]/2, self.im_in.shape[0]/2
         for sp in search_points:
-
             ltop = sp - offset # left-top corner of search point
-            min_score = 1.0
-            pos = (0,0)
-            ori_id = 0
-            for i, (hand, collision) in enumerate( zip( self.im_hands, self.im_collisions) ):
-                # check border
-                if ltop[0] < 0 or ltop[1] < 0 or s_rows <= ltop[0]+rows or s_cols <= ltop[1]+cols:
-                    # print("skip")
-                    continue
+            deg = degrees(np.arctan2((sp[0]-cy),(sp[1]-cx)))
 
-                conv_hand = self.fg_mask[ ltop[0]:ltop[0]+rows, ltop[1]:ltop[1]+cols ] * hand
-                score_hand = np.sum(conv_hand) / self.hands_area[i]
+            hand, hand_area = self.RotationTemplate(self.im_hand, deg )
+            collision, _ = self.RotationTemplate(self.im_collision, deg )
+            
+            # check border
+            if ltop[0] < 0 or ltop[1] < 0 or s_rows <= ltop[0]+rows or s_cols <= ltop[1]+cols:
+                # print("skip")
+                continue
 
-                #conv_collision = self.im_belt[ ltop[0]:ltop[0]+rows, ltop[1]:ltop[1]+cols ] * collision
-                #score_collision= np.sum(conv_collision) / self.collision_area[i]
+            conv_hand = self.fg_mask[ ltop[0]:ltop[0]+rows, ltop[1]:ltop[1]+cols ] * hand
+            score_hand = np.sum(conv_hand) / hand_area
 
-                #score = (score_hand + score_collision) / 2.0
-                score = score_hand
-                # Update score on posision "sp"
-                if score < min_score:
-                    pos = (sp[0], sp[1])
-                    min_score = score
-                    ori_id = i
-
-            self.score_list.append( min_score )
-            self.pos_list.append( (int(pos[0]/self.ds_rate), int(pos[1]/self.ds_rate), ori_id) ) # position and orientation id
-
+            self.score_list.append( score_hand )
+            self.pos_list.append( (int(sp[0]/self.ds_rate), int(sp[1]/self.ds_rate), deg) ) # position and orientation 
 
         self.score_list = np.asarray( self.score_list )
+        # Candidate selection
         self.candidate_idx = np.where( self.score_list < self.threshold )[0]
 
         # Make final result
         for n in self.candidate_idx:
-            # y, x, theta[deg]
-            rotation_rad = np.deg2rad(self.rotation[self.pos_list[n][2]])
-            rot = np.array([[np.cos(rotation_rad),-np.sin(rotation_rad)],
-                            [np.sin(rotation_rad),np.cos(rotation_rad)]], np.float)
             grasp_point = np.array( [self.pos_list[n][0], self.pos_list[n][1]], np.float )
-            # thumb_direction_vector
-            thumb_dir = np.array( [1.0,0.0] )
-            thumb_dir_rot = np.dot(rot,thumb_dir)
-            # grasp point to center
-            im_size = np.array(self.im_in.shape[:2])*(1.0/self.ds_rate)/2
-            g2c = im_size - grasp_point
-
-            g2c_len = np.linalg.norm(g2c)
-            g2c /= g2c_len # unit vector
-            
-            ip = np.dot(g2c,thumb_dir_rot)
-            rotation = self.rotation[self.pos_list[n][2]]
-
-            if ip < 0:
-                rotation += 180.0 
+            rotation = self.pos_list[n][2]
             self.gp_result.append( (int(grasp_point[0]), int(grasp_point[1]), rotation ) )
-
 
         return self.gp_result
 
@@ -709,7 +676,7 @@ class FastGraspabilityEvaluation():
             im_result = cv2.circle( im_result, ( n[1], n[0] ), 3, (0,255,0), -1, cv2.LINE_AA )
 
         return im_result
-
+        
 #############################################################################
 #
 # Notch part detection

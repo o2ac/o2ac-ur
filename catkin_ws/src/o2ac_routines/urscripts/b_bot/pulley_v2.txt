@@ -41,16 +41,22 @@
        Waypoint_5
        Waypoint_8
      Gripper Move71% (1)
-     Force
-       Loop 2 times
-         MoveL
-           right1
-           left1
-           left1
-           right1
+     Folder
+       loop_1≔1
+       tcp_p≔get_actual_tcp_pose()
+       Force
+         Loop ( tcp_p[0] > -0.090) and  (loop_1 < 3) 
+           MoveL
+             right1
+             tcp_p≔get_actual_tcp_pose()
+             left1
+             tcp_p≔get_actual_tcp_pose()
+             left1
+             tcp_p≔get_actual_tcp_pose()
+             right1
+             tcp_p≔get_actual_tcp_pose()
+           loop_1≔loop_1+1
      MoveJ
        back
-     MoveL
-       above
      MoveJ
        home

@@ -78,6 +78,7 @@ from o2ac_assembly_database.assembly_reader import AssemblyReader
 import ur_msgs.msg
 import ur_msgs.srv
 from o2ac_routines.helpers import *
+import o2ac_routines.helpers as helpers
 
 class O2ACBase(object):
   """
@@ -103,21 +104,20 @@ class O2ACBase(object):
     self.pause_mode_ = False
     self.test_mode_ = False
     self.ur_ros_control_running_on_robot = {"a_bot": False, "b_bot": False}
-    self.robot_status = { "a_bot":o2ac_msgs.msg.RobotStatus(), "b_bot":o2ac_msgs.msg.RobotStatus() }
 
-    self.speed_fast = 0.1
-    self.speed_fastest = 0.2
+    self.robot_status = self.get_robot_status_from_param_server()
+
+    self.speed_fast = 0.2
+    self.speed_fastest = 0.3
     self.acc_fast = 0.2
-    self.acc_fastest = 0.2
+    self.acc_fastest = 0.3
 
     self.reduced_mode_speed_limit = .25
 
     # Miscellaneous helpers
     self.robots = moveit_commander.RobotCommander()
     self.planning_scene_interface = moveit_commander.PlanningSceneInterface()
-    self.apply_planning_scene_diff = rospy.ServiceProxy('/apply_planning_scene', moveit_msgs.srv.ApplyPlanningScene)
-    self.apply_planning_scene_diff.wait_for_service(5.0)
-
+    
     self.assembly_database = AssemblyReader()
 
     try:
@@ -202,6 +202,7 @@ class O2ACBase(object):
     self.debugmonitor_publishers = dict() # used in log_to_debug_monitor()
 
     self.screw_tools = {}
+    self.define_tool_collision_objects()
 
     self.objects_in_tray = dict()  # key: object ID. value: False or object pose
 
@@ -209,7 +210,7 @@ class O2ACBase(object):
     rospy.loginfo("Finished initializing class")
     
   ############## ------ Internal functions (and convenience functions)
-    
+  
   def confirm_to_proceed(self, next_task_name):
     if self.competition_mode:
       return True
@@ -222,17 +223,11 @@ class O2ACBase(object):
     return False
 
   def run_mode_callback(self, msg):
-    # self.my_mutex.acquire()
     self.run_mode_ = msg.data
-    # self.my_mutex.release()
   def pause_mode_callback(self, msg):
-    # self.my_mutex.acquire()
     self.pause_mode_ = msg.data
-    # self.my_mutex.release()
   def test_mode_callback(self, msg):
-    # self.my_mutex.acquire()
     self.test_mode_ = msg.data
-    # self.my_mutex.release()
   def suction_m4_callback(self, msg):
     self.screw_is_suctioned["m4"] = msg.data
   def suction_m3_callback(self, msg):
@@ -248,6 +243,26 @@ class O2ACBase(object):
   def b_bot_gripper_status_callback(self, msg):
     self.b_bot_gripper_opening_width = msg.position  # [m]
   
+  def get_robot_status_from_param_server(self):
+    robot_status = dict()
+    for robot in ["a_bot", "b_bot"]:
+      robot_status[robot] = o2ac_msgs.msg.RobotStatus()
+      robot_status[robot].carrying_object = rospy.get_param(robot + "/carrying_object", False)
+      robot_status[robot].carrying_tool = rospy.get_param(robot + "/carrying_tool", False)
+      robot_status[robot].held_tool_id = rospy.get_param(robot + "/held_tool_id", "")
+    return robot_status
+  def publish_robot_status(self):
+    for robot in ["a_bot", "b_bot"]:
+      rospy.set_param(robot + "/carrying_object", self.robot_status[robot].carrying_object)
+      rospy.set_param(robot + "/carrying_tool", self.robot_status[robot].carrying_tool)
+      rospy.set_param(robot + "/held_tool_id", self.robot_status[robot].held_tool_id)
+
+  def reset_scene_and_robots(self):
+    self.robot_status["a_bot"] = o2ac_msgs.msg.RobotStatus()
+    self.robot_status["b_bot"] = o2ac_msgs.msg.RobotStatus()
+    self.planning_scene_interface.remove_attached_object()  # Detach objects
+    self.planning_scene_interface.remove_world_object()  # Clear all objects
+
   def activate_camera(self, camera_name="b_bot_outside_camera"):
     try:
       if self.camera_multiplexer:
@@ -343,6 +358,7 @@ class O2ACBase(object):
     if recursion_depth > 10:
       rospy.logerr("Tried too often. Breaking out.")
       rospy.logerr("Could not start UR ROS control.")
+      raise Exception("Could not activate ROS control on robot " + robot + ". Breaking out.")
       return False
     
     if rospy.is_shutdown():
@@ -529,7 +545,7 @@ class O2ACBase(object):
     group = self.groups[group_name]
     return group.get_current_pose().pose
   
-  def go_to_pose_goal(self, group_name, pose_goal_stamped, speed = 1.0, acceleration = 0.5, high_precision = False, 
+  def go_to_pose_goal(self, group_name, pose_goal_stamped, speed = 0.5, acceleration = 0.25,
                       end_effector_link = "", move_lin = True):
     if rospy.is_shutdown():
       return False
@@ -543,6 +559,10 @@ class O2ACBase(object):
     self.activate_ros_control_on_ur(group_name)
     group = self.groups[group_name]
     
+    if acceleration > speed:
+      rospy.logwarn("Setting acceleration to " + str(speed) + " instead of " + str(acceleration) + " to avoid jerky motion.")
+      acceleration = speed
+
     if not end_effector_link:
       if group_name == "b_bot":
         end_effector_link = "b_bot_robotiq_85_tip_link"
@@ -553,21 +573,13 @@ class O2ACBase(object):
     group.set_pose_target(pose_goal_stamped)
     rospy.logdebug("Setting velocity scaling to " + str(speed))
     group.set_max_velocity_scaling_factor(speed)
-
-    if high_precision:
-      group.set_goal_tolerance(.000001)
-      group.set_planning_time(10)
+    group.set_max_acceleration_scaling_factor(acceleration)
 
     move_success = group.go(wait=True)
     group.stop()
     # It is always good to clear your targets after planning with poses.
     # Note: there is no equivalent function for clear_joint_value_targets()
     group.clear_pose_targets()
-    
-    # Reset the precision
-    if high_precision:
-      group.set_goal_tolerance(.0001) 
-      group.set_planning_time(3) 
 
     current_pose = group.get_current_pose().pose
     return all_close(pose_goal_stamped.pose, current_pose, 0.01), move_success
@@ -644,9 +656,11 @@ class O2ACBase(object):
         wait_for_UR_program("/" + group_name, rospy.Duration.from_sec(30.0))
         return res.success
 
-    # 
     if speed > 1.0:
       speed = 1.0
+    if acceleration > speed:
+      rospy.logwarn("Setting acceleration to " + str(speed) + " instead of " + str(acceleration) + " to avoid jerky motion.")
+      acceleration = speed
     
     self.activate_ros_control_on_ur(group_name)
     group = self.groups[group_name]
@@ -655,18 +669,9 @@ class O2ACBase(object):
     group.set_pose_target(pose_goal_stamped)
     rospy.logdebug("Setting velocity scaling to " + str(speed))
     group.set_max_velocity_scaling_factor(speed)
+    group.set_max_acceleration_scaling_factor(acceleration)
     
-    # FIXME: At the start of the program, get_current_pose() did not return the correct value. Should be a bug report.
     waypoints = []
-    ### The current pose is not added anymore, because it causes a bug in Gazebo, and it is not necessary.
-    # wpose1 = group.get_current_pose().pose
-    # # rospy.loginfo("Wpose1:")
-    # # rospy.loginfo(wpose1)
-    # rospy.sleep(.05)
-    # wpose2 = group.get_current_pose().pose
-    # # rospy.loginfo("Wpose2:")
-    # # rospy.loginfo(wpose2)
-    # waypoints.append(wpose2)
     pose_goal_world = self.listener.transformPose("world", pose_goal_stamped).pose
     waypoints.append(pose_goal_world)
     (plan, fraction) = group.compute_cartesian_path(
@@ -674,7 +679,7 @@ class O2ACBase(object):
                                       0.01,        # eef_step
                                       0.0)         # jump_threshold
     rospy.loginfo("Compute cartesian path succeeded with " + str(fraction*100) + "%")
-    plan = group.retime_trajectory(self.robots.get_current_state(), plan, speed)
+    plan = group.retime_trajectory(self.robots.get_current_state(), plan, speed, acceleration)
 
     plan_success = group.execute(plan, wait=True)
     group.stop()
@@ -697,24 +702,45 @@ class O2ACBase(object):
     # Uses UR coordinates
     if not self.use_real_robot:
       return True
-    # Directly calls the UR service
-    req = o2ac_msgs.srv.sendScriptToURRequest()
-    req.robot_name = robot_name
-    req.relative_translation.x = relative_translation[0]
-    req.relative_translation.y = relative_translation[1]
-    req.relative_translation.z = relative_translation[2]
-    req.relative_rotation.x = relative_rotation[0]
-    req.relative_rotation.y = relative_rotation[1]
-    req.relative_rotation.z = relative_rotation[2]
-    req.acceleration = acceleration
-    req.velocity = velocity
-    req.lin_move_rel_in_base_csys = use_robot_base_csys
-    req.program_id = "lin_move_rel"
-    res = self.urscript_client.call(req)
-    if wait:
-      rospy.sleep(1.0)
-      wait_for_UR_program("/" + robot_name, rospy.Duration.from_sec(max_wait))
-    return res.success
+    if self.force_ur_script_linear_motion:
+      # Directly calls the UR service
+      req = o2ac_msgs.srv.sendScriptToURRequest()
+      req.robot_name = robot_name
+      req.relative_translation.x = relative_translation[0]
+      req.relative_translation.y = relative_translation[1]
+      req.relative_translation.z = relative_translation[2]
+      req.relative_rotation.x = relative_rotation[0]
+      req.relative_rotation.y = relative_rotation[1]
+      req.relative_rotation.z = relative_rotation[2]
+      req.acceleration = acceleration
+      req.velocity = velocity
+      req.lin_move_rel_in_base_csys = use_robot_base_csys
+      req.program_id = "lin_move_rel"
+      res = self.urscript_client.call(req)
+      if wait:
+        rospy.sleep(1.0)
+        wait_for_UR_program("/" + robot_name, rospy.Duration.from_sec(max_wait))
+      return res.success
+    
+    group = self.groups[robot_name]
+    new_pose1 = group.get_current_pose()
+    new_pose2 = group.get_current_pose()
+    if helpers.pose_dist(new_pose1, new_pose2) > 0.002:
+      # This is guarding against a weird error that seems to occur with get_current_pose sometimes
+      rospy.logerr("get_current_pose gave two different results!!")
+      print("pose1: ")
+      print(new_pose1.pose)
+      print("pose2: ")
+      print(new_pose2.pose)
+    
+    new_pose.pose.position.x += relative_translation[0]
+    new_pose.pose.position.y += relative_translation[1]
+    new_pose.pose.position.z += relative_translation[2]
+    new_pose.pose.orientation = helpers.rotateQuaternionByRPY(relative_rotation[0], relative_rotation[1], 
+                                                        relative_rotation[2], new_pose.pose.orientation)
+    print("Pose afterwards: ")
+    print(new_pose.pose)
+    return self.move_lin(robot_name, new_pose, speed = velocity, acceleration = acceleration)
 
   def move_joints(self, group_name, joint_pose_goal, speed = 1.0, acceleration = 0.5, force_ur_script=False, force_moveit=False):
     if rospy.is_shutdown():
@@ -840,7 +866,7 @@ class O2ACBase(object):
         rospy.loginfo("pickScrewFromFeeder failed. Realigning tool and retrying.")
         screw_tool_id = "screw_tool_m" + str(screw_size)
         self.realign_tool(robot_name, screw_tool_id)
-        return self.pick_screw_from_feeder(robot_name, screw_size, align_tool_upon_failure=False)
+        return self.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure=False)
       else:
         return False
     return True
@@ -882,7 +908,15 @@ class O2ACBase(object):
     return self.insert_client.get_result()
 
   def do_change_tool_action(self, robot_name, equip=True, screw_size = 4):
-    self.equip_unequip_tool(robot_name, "screw_tool_m4", equip=equip)
+    if screw_size == 2:
+      tool_name = "set_screw_tool"
+    else:
+      tool_name = "screw_tool_m" + str(screw_size)
+
+    if equip:
+      self.equip_tool(robot_name, tool_name)
+    else:
+      self.unequip_tool(robot_name, tool_name)
     return
     ### DEPRECATED
     # self.log_to_debug_monitor("Change tool", "operation")
@@ -1004,17 +1038,6 @@ class O2ACBase(object):
     res = self.detect_shaft_client.get_result()
     return res
 
-  # def publish_ssd_results_to_scene(self):
-  #   """
-  #   As a first start. Use SSD results to place collision objects in 
-  #   """
-  #   rospy.loginfo("Detected " + item_name + " with confidence " + str(res.confidences[0]))
-  #   co = self.assembly_reader._reader.get_collision_object("bearing")
-  #   co.mesh_poses[0] = res.detected_poses[0].pose
-  #   co.header.frame_id = "tray_center"
-  #   print(co)
-  #   self.planning_scene_interface.apply_collision_object(co)
-  
   def detect_object_in_camera_view(self, item_name):
     """
     Returns object pose if object was detected in current camera view and published to planning scene,
@@ -1409,7 +1432,6 @@ class O2ACBase(object):
         pass
 
     action_client.send_goal(goal)
-    rospy.sleep(.5)
     rospy.loginfo("Sending command " + str(command) + " to gripper: " + gripper)
     if wait:
       action_client.wait_for_result(rospy.Duration(6.0))  # Default wait time: 6 s
@@ -1478,12 +1500,12 @@ class O2ACBase(object):
     # Sanity check on the input instruction
     equip = (operation == "equip")
     unequip = (operation == "unequip")
-    if equip or unequip:
-      raise NotImplementedError("Equip/unequip needs to be called via the C++ skill server instead")
+    # if equip or unequip:
+    #   raise NotImplementedError("Equip/unequip needs to be called via the C++ skill server instead")
     realign = (operation == "realign")
 
     ###
-    lin_speed = 0.01
+    lin_speed = 0.5
     # The second comparison is not always necessary, but readability comes first.
     if ((not equip) and (not unequip) and (not realign)):
       rospy.logerr("Cannot read the instruction " + operation + ". Returning False.")
@@ -1492,18 +1514,17 @@ class O2ACBase(object):
     if ((self.robot_status[robot_name].carrying_object == True)):
       rospy.logerr("Robot holds an object. Cannot " + operation + " tool.")
       return False
-    if ( (self.robot_status[robot_name].carrying_tool == True) and equip):
+    if ((self.robot_status[robot_name].carrying_tool == True) and equip):
       rospy.logerr("Robot already holds a tool. Cannot equip another.")
       return False
-    if ( (self.robot_status[robot_name].carrying_tool == False) and not equip):
+    if ((self.robot_status[robot_name].carrying_tool == False) and unequip):
       rospy.logerr("Robot is not holding a tool. Cannot unequip any.")
       return False
     
     rospy.loginfo("Going to before_tool_pickup pose.")
     
-    if tool_name in ["screw_tool_m3", "screw_tool_m4", "nut_tool_m6", "set_screw_tool"]:
-      tool_holder_used = "back"
-    elif tool_name in ["belt_tool", "plunger_tool"]:
+    tool_holder_used = "back"
+    if tool_name in ["belt_tool", "plunger_tool"]:
       tool_holder_used = "front"
     
     if tool_holder_used == "back":
@@ -1529,7 +1550,7 @@ class O2ACBase(object):
     elif tool_name == "nut_tool_m6":
       ps_approach.pose.position.z = -.025
     elif tool_name == "set_screw_tool":
-      ps_approach.pose.position.z = -.025
+      ps_approach.pose.position.z = -.01
     elif tool_name == "belt_tool":
       ps_approach.pose.position.z = -.025
     elif tool_name == "plunger_tool":
@@ -1560,23 +1581,23 @@ class O2ACBase(object):
       self.open_gripper(robot_name)
       rospy.loginfo("Spawning tool.")
       if not self.spawn_tool(tool_name):
-        rospy.logerr("Could not spawn the tool. Abort.")
-        return False
+        rospy.logwarn("Could not spawn the tool. Continuing.")
       held_screw_tool_ = tool_name
 
     rospy.loginfo("Moving to screw tool approach pose LIN.")
-    self.go_to_pose_goal(robot_name, ps_approach, move_lin=True)
+    self.go_to_pose_goal(robot_name, ps_approach, speed=lin_speed, acceleration=lin_speed/2, move_lin=True)
   
     # Plan & execute linear motion to the tool change position
     rospy.loginfo("Moving to pose in tool holder LIN.")
     if equip:
       lin_speed = 0.5
-    elif not equip:
-      lin_speed = 0.08 
+    elif unequip:
+      lin_speed = 0.5
+      self.planning_scene_interface.allow_collisions("screw_tool_holder_long", tool_name)
     elif realign:
-      lin_speed = 0.1
+      lin_speed = 0.5
 
-    self.go_to_pose_goal(robot_name, ps_in_holder, speed=lin_speed, move_lin=True)
+    self.go_to_pose_goal(robot_name, ps_in_holder, speed=lin_speed, acceleration=lin_speed/2, move_lin=True)
   
     # Close gripper, attach the tool object to the gripper in the Planning Scene.
     # Its collision with the parent link is set to allowed in the original planning scene.
@@ -1587,12 +1608,15 @@ class O2ACBase(object):
       self.allow_collisions_with_robot_hand('screw_tool_holder', robot_name)  # TODO(felixvd): Is this required?
       self.robot_status[robot_name].carrying_tool = True
       self.robot_status[robot_name].held_tool_id = tool_name
-    elif not equip:
+      self.publish_robot_status()
+    elif unequip:
       self.open_gripper(robot_name)
       self.detach_tool(robot_name, tool_name)
+      self.allow_collisions_with_robot_hand(tool_name, robot_name, allow=False)
       held_screw_tool_ = ""
       self.robot_status[robot_name].carrying_tool = False
       self.robot_status[robot_name].held_tool_id = ""
+      self.publish_robot_status()
     elif realign: # 
       self.open_gripper(robot_name)
       self.close_gripper(robot_name)
@@ -1610,40 +1634,29 @@ class O2ACBase(object):
     
     lin_speed = 0.8
 
-    ### This block is probably not needed anymore?
-    # if self.use_real_robot:
-    #   rospy.sleep(.3)
-    #   UR_srv.request.velocity = .05
-    #   t_rel.z = -(ps_tool_holder.pose.position.x - ps_approach.pose.position.x)
-    #   UR_srv.request.relative_translation = t_rel
-    #   sendScriptToURClient_.call(UR_srv)
-    #   if (UR_srv.response.success == True):
-    #     rospy.loginfo("Successfully called the URScript client to perform a linear movement backward.")
-    #     waitForURProgram("/" + robot_name + "_controller")
-    #   else:
-    #     ROS_WARN("Could not call the URScript client to perform a linear movement backward.")
-    # else:
-    #   self.go_to_pose_goal(robot_name, ps_move_away, speed=lin_speed, move_lin=True)
-    self.go_to_pose_goal(robot_name, ps_move_away, speed=lin_speed, move_lin=True)
+    self.go_to_pose_goal(robot_name, ps_move_away, speed=lin_speed, acceleration=lin_speed/2, move_lin=True)
 
     
     # Reactivate the collisions, with the updated entry about the tool
     # planning_scene_interface_.applyPlanningScene(planning_scene_)
     self.go_to_named_pose("tool_pick_ready", robot_name)
     
-    # Delete tool collision object only after collision reinitialization to avoid errors
-    if not equip:
-      self.despawn_tool(tool_name)
-    
     return True
 
-  def allow_collisions_with_robot_hand(self, link_name, robot_name):
+  def allow_collisions_with_robot_hand(self, link_name, robot_name, allow=True):
       """Allow collisions of a link with the robot hand"""
-      self.planning_scene_interface.allow_collisions(link_name, robot_name + "_robotiq_85_tip_link")
-      self.planning_scene_interface.allow_collisions(link_name, robot_name + "_robotiq_85_left_finger_tip_link")
-      self.planning_scene_interface.allow_collisions(link_name, robot_name + "_robotiq_85_left_inner_knuckle_link")
-      self.planning_scene_interface.allow_collisions(link_name, robot_name + "_robotiq_85_right_finger_tip_link")
-      self.planning_scene_interface.allow_collisions(link_name, robot_name + "_robotiq_85_right_inner_knuckle_link")    
+      hand_links = [
+        robot_name + "_tip_link",
+        robot_name + "_left_inner_finger_pad",
+        robot_name + "_right_inner_finger_pad",
+        robot_name + "_left_inner_finger",
+        robot_name + "_right_inner_finger"
+      ]
+      for hand_link in hand_links:
+        if allow:
+          self.planning_scene_interface.allow_collisions(link_name, hand_link)
+        else:
+          self.planning_scene_interface.disallow_collisions(link_name, hand_link)
       return
 
 ######

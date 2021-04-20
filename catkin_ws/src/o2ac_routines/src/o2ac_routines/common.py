@@ -342,7 +342,7 @@ class O2ACCommon(O2ACBase):
     if axis =="z":
       object_pose.pose.position.z += grasp_height * sign
     rospy.logdebug("Going to height " + str(object_pose.pose.position.z))
-    self.go_to_pose_goal(robot_name, object_pose, speed=speed_slow, acceleration=acc_slow, high_precision=True, move_lin=True)
+    self.go_to_pose_goal(robot_name, object_pose, speed=speed_slow, acceleration=acc_slow, move_lin=True)
     if axis =="x":
       object_pose.pose.position.x -= grasp_height * sign
     if axis =="z":
@@ -544,7 +544,7 @@ class O2ACCommon(O2ACBase):
           rospy.sleep(0.5)
           self.get_3d_poses_from_ssd()
           grasp_points_close = self.get_feasible_grasp_points(object_id)
-          if grasp_points_close:
+          if grasp_points_close and grasp_points:
             rospy.loginfo("Got a better grasp point by looking closer. Before: ")
             rospy.loginfo(grasp_points_close[0].pose.position)
             rospy.loginfo("After: ")

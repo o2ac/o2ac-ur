@@ -5,6 +5,16 @@ def pulley_v2():
   set_tool_digital_output_mode(0, 1)
   set_tool_digital_output_mode(1, 1)
   set_tool_voltage(24)
+  step_count_4bf22f83_defd_408f_817a_f4deb347e1ab = 0
+  thread Step_Counter_Thread_d1b4956b_7d28_48ec_a587_b1bc3ae1737c():
+    while (True):
+      step_count_4bf22f83_defd_408f_817a_f4deb347e1ab = step_count_4bf22f83_defd_408f_817a_f4deb347e1ab + 1
+      sync()
+    end
+  end
+  run Step_Counter_Thread_d1b4956b_7d28_48ec_a587_b1bc3ae1737c()
+  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
+  set_payload(0.0)
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -13,16 +23,6 @@ def pulley_v2():
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
   set_gravity([0.0, 0.0, 9.82])
-  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
-  set_payload(0.0)
-  step_count_36db9c0d_5e85_4d46_94ec_b04248e53bc3 = 0
-  thread Step_Counter_Thread_7f54e878_8158_49ea_8854_73af01854b03():
-    while (True):
-      step_count_36db9c0d_5e85_4d46_94ec_b04248e53bc3 = step_count_36db9c0d_5e85_4d46_94ec_b04248e53bc3 + 1
-      sync()
-    end
-  end
-  run Step_Counter_Thread_7f54e878_8158_49ea_8854_73af01854b03()
   # begin: URCap Installation Node
   #   Source: External Control, 1.0.2, FZI Research Center for Information Technology
   #   Type: External Control
@@ -2587,33 +2587,52 @@ def pulley_v2():
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 51 "Force"
+  $ 51 "Folder"
+  $ 52 "loop_1≔1"
+  global loop_1=1
+  $ 53 "tcp_p≔get_actual_tcp_pose()"
+  global tcp_p= get_actual_tcp_pose ()
+  $ 54 "Force"
   sleep(0.02)
   zero_ftsensor()
   force_mode(p[0.0,0.0,0.0,0.0,0.0,0.0], [1, 0, 0, 0, 0, 0], [-10.0, 0.0, 0.0, 0.0, 0.0, 0.0], 2, [0.01, 0.1, 0.1, 0.3490658503988659, 0.3490658503988659, 0.3490658503988659])
-  $ 52 "Loop 2 times" "noBreak"
-  Loop_1 = 0
-  while (Loop_1 < 2):
-    $ 53 "MoveL" "noBreak"
-    $ 54 "right1" "noBreak"
-    movel(pose_add(get_target_tcp_pose(), pose_sub(right1_to_p, right1_from_p)), a=0.2, v=0.05)
-    $ 55 "left1" "noBreak"
-    movel(pose_add(get_target_tcp_pose(), pose_sub(left1_to_p, left1_from_p)), a=0.2, v=0.05)
-    $ 56 "left1" "noBreak"
-    movel(pose_add(get_target_tcp_pose(), pose_sub(left1_to_p, left1_from_p)), a=0.2, v=0.05)
-    $ 57 "right1" "noBreak"
-    movel(pose_add(get_target_tcp_pose(), pose_sub(right1_to_p, right1_from_p)), a=0.2, v=0.05)
-    Loop_1 = Loop_1 + 1
+  $ 55 "Loop ( tcp_p[0] > -0.090) and  (loop_1 < 3) " "noBreak"
+  thread Thread_while_55():
+    while (True):
+      $ 56 "MoveL" "noBreak"
+      $ 57 "right1" "noBreak"
+      movel(pose_add(get_target_tcp_pose(), pose_sub(right1_to_p, right1_from_p)), a=0.2, v=0.05)
+      $ 58 "tcp_p≔get_actual_tcp_pose()" "noBreak"
+      global tcp_p= get_actual_tcp_pose ()
+      $ 59 "left1" "noBreak"
+      movel(pose_add(get_target_tcp_pose(), pose_sub(left1_to_p, left1_from_p)), a=0.2, v=0.05)
+      $ 60 "tcp_p≔get_actual_tcp_pose()" "noBreak"
+      global tcp_p= get_actual_tcp_pose ()
+      $ 61 "left1" "noBreak"
+      movel(pose_add(get_target_tcp_pose(), pose_sub(left1_to_p, left1_from_p)), a=0.2, v=0.05)
+      $ 62 "tcp_p≔get_actual_tcp_pose()" "noBreak"
+      global tcp_p= get_actual_tcp_pose ()
+      $ 63 "right1" "noBreak"
+      movel(pose_add(get_target_tcp_pose(), pose_sub(right1_to_p, right1_from_p)), a=0.2, v=0.05)
+      $ 64 "tcp_p≔get_actual_tcp_pose()" "noBreak"
+      global tcp_p= get_actual_tcp_pose ()
+      $ 65 "loop_1≔loop_1+1" "noBreak"
+      global loop_1=loop_1+1
+    end
+  end
+  if (( tcp_p[0] > -0.090)  and   (loop_1 < 3) ):
+    global thread_handler_55=run Thread_while_55()
+    while (( tcp_p[0] > -0.090)  and   (loop_1 < 3) ):
+      sync()
+    end
+    kill thread_handler_55
   end
   end_force_mode()
   stopl(5.0)
-  $ 58 "MoveJ"
-  $ 59 "back" "breakAfter"
+  $ 66 "MoveJ"
+  $ 67 "back" "breakAfter"
   movej(get_inverse_kin(back_p, qnear=back_q), a=1.3962634015954636, v=1.0471975511965976)
-  $ 60 "MoveL"
-  $ 61 "above" "breakAfter"
-  movel(above_p, a=1.2, v=0.25)
-  $ 62 "MoveJ"
-  $ 63 "home" "breakAfter"
+  $ 68 "MoveJ"
+  $ 69 "home" "breakAfter"
   movej(get_inverse_kin(home_p, qnear=home_q), a=1.3962634015954636, v=3.141592653589793)
 end

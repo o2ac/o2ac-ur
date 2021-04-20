@@ -76,19 +76,9 @@
          leftturn
          rightturn
      Gripper Open (1)
-     MoveJ
-       Waypoint_7
-     Gripper Close (1)
-     Force
-       Wait: 5.0
-       MoveL
-         Direction: Tool X+
-           Until (distance)
-       Loop 8 times
-         If pose_dist(get_actual_tcp_pose(), push_3_done) > .005
-           MoveL
-             Direction: Tool
-               Until (distance)
+     'MoveJ'
+     'Gripper Close (1)'
+     'spiral until x coord reached'
      MoveJ
        a_bit_back
      Gripper Open (1)

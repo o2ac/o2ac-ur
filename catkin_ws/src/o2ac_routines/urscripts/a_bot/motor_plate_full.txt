@@ -1,0 +1,40 @@
+ Program
+   Robot Program
+     MoveJ
+       currentpose≔get_actual_tcp_pose()get_actual_joint_positions()
+       currentpose
+     MoveL
+       Gripper Move65% (1)
+       above_ex_pick
+       pick_plate
+       Gripper Close (1)
+     MoveL
+       start
+       above_drop_1
+       drop_1
+       Gripper Move73% (1)
+       above_drop_1
+       wp1
+       before_grasp
+       at_grasp
+       Gripper Close (1)
+       Direction: Base Z+
+         Until (distance)
+       above_final_wp1
+       final_1
+       Gripper Move73% (1)
+       Gripper Close (1)
+       Gripper Move73% (1)
+     Call motor_plate_positioning_1
+   motor_plate_positioning_1
+     MoveL
+       before_push_1
+     Gripper Close (1)
+     MoveL
+       push_end_1
+       before_push_2
+     Gripper Move73% (1)
+     MoveJ
+       above_plate_1
+       at_plate_1
+     Gripper Close (1)

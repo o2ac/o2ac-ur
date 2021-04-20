@@ -52,22 +52,22 @@ controller_list:
       - b_bot_wrist_1_joint
       - b_bot_wrist_2_joint
       - b_bot_wrist_3_joint
-a_bot/gripper_controller:
-  type: GripperCommand
-  joints:
-    a_bot_finger_joint
-  gains:
-    a_bot_finger_joint:
-      p: 100
-      d: 1
-      i: 1
-      i_clamp: 1
 b_bot/gripper_controller:
   type: GripperCommand
   joints:
     b_bot_finger_joint
   gains:
     b_bot_finger_joint:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+a_bot/gripper_controller:
+  type: GripperCommand
+  joints:
+    a_bot_finger_joint
+  gains:
+    a_bot_finger_joint:
       p: 100
       d: 1
       i: 1
