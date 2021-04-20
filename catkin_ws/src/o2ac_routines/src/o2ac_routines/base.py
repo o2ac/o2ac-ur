@@ -78,6 +78,7 @@ from o2ac_assembly_database.assembly_reader import AssemblyReader
 import ur_msgs.msg
 import ur_msgs.srv
 from o2ac_routines.helpers import *
+import o2ac_routines.helpers as helpers
 
 class O2ACBase(object):
   """
@@ -701,24 +702,45 @@ class O2ACBase(object):
     # Uses UR coordinates
     if not self.use_real_robot:
       return True
-    # Directly calls the UR service
-    req = o2ac_msgs.srv.sendScriptToURRequest()
-    req.robot_name = robot_name
-    req.relative_translation.x = relative_translation[0]
-    req.relative_translation.y = relative_translation[1]
-    req.relative_translation.z = relative_translation[2]
-    req.relative_rotation.x = relative_rotation[0]
-    req.relative_rotation.y = relative_rotation[1]
-    req.relative_rotation.z = relative_rotation[2]
-    req.acceleration = acceleration
-    req.velocity = velocity
-    req.lin_move_rel_in_base_csys = use_robot_base_csys
-    req.program_id = "lin_move_rel"
-    res = self.urscript_client.call(req)
-    if wait:
-      rospy.sleep(1.0)
-      wait_for_UR_program("/" + robot_name, rospy.Duration.from_sec(max_wait))
-    return res.success
+    if self.force_ur_script_linear_motion:
+      # Directly calls the UR service
+      req = o2ac_msgs.srv.sendScriptToURRequest()
+      req.robot_name = robot_name
+      req.relative_translation.x = relative_translation[0]
+      req.relative_translation.y = relative_translation[1]
+      req.relative_translation.z = relative_translation[2]
+      req.relative_rotation.x = relative_rotation[0]
+      req.relative_rotation.y = relative_rotation[1]
+      req.relative_rotation.z = relative_rotation[2]
+      req.acceleration = acceleration
+      req.velocity = velocity
+      req.lin_move_rel_in_base_csys = use_robot_base_csys
+      req.program_id = "lin_move_rel"
+      res = self.urscript_client.call(req)
+      if wait:
+        rospy.sleep(1.0)
+        wait_for_UR_program("/" + robot_name, rospy.Duration.from_sec(max_wait))
+      return res.success
+    
+    group = self.groups[robot_name]
+    new_pose1 = group.get_current_pose()
+    new_pose2 = group.get_current_pose()
+    if helpers.pose_dist(new_pose1, new_pose2) > 0.002:
+      # This is guarding against a weird error that seems to occur with get_current_pose sometimes
+      rospy.logerr("get_current_pose gave two different results!!")
+      print("pose1: ")
+      print(new_pose1.pose)
+      print("pose2: ")
+      print(new_pose2.pose)
+    
+    new_pose.pose.position.x += relative_translation[0]
+    new_pose.pose.position.y += relative_translation[1]
+    new_pose.pose.position.z += relative_translation[2]
+    new_pose.pose.orientation = helpers.rotateQuaternionByRPY(relative_rotation[0], relative_rotation[1], 
+                                                        relative_rotation[2], new_pose.pose.orientation)
+    print("Pose afterwards: ")
+    print(new_pose.pose)
+    return self.move_lin(robot_name, new_pose, speed = velocity, acceleration = acceleration)
 
   def move_joints(self, group_name, joint_pose_goal, speed = 1.0, acceleration = 0.5, force_ur_script=False, force_moveit=False):
     if rospy.is_shutdown():
