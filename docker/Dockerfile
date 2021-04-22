@@ -348,6 +348,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	emacs \
 	&& rm -rf /var/lib/apt/lists/*
 
+# Dependency for ur_python_utilities
+RUN pip2 install pyquaternion
+
+# Utilities and improvement for catkin build (especially moveit)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	htop ccache ros-melodic-rqt-multiplot ros-melodic-trac-ik-python python-rosinstall\
+	&& rm -rf /var/lib/apt/lists/*
+RUN echo 'export PATH=/usr/lib/ccache:$PATH' >> $HOME/.bashrc
+
 ################################################################################
 
 # Setup the Bash shell environment (part 1)
