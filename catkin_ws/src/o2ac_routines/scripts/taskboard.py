@@ -598,10 +598,11 @@ class TaskboardClass(O2ACCommon):
                                                            target_force=target_force, selection_matrix=selection_matrix,
                                                            termination_criteria=termination_criteria)
         rospy.logwarn("** FORCE CONTROL COMPLETE 2**")
+        
+        self.open_gripper('b_bot', wait=True)
 
         rospy.logwarn("** CHANGE POSITIONS USING MOVEIT **")
         self.move_joints('b_bot', pre_push_position)
-        self.open_gripper('b_bot', wait=True)
 
       else:
         insert = self.load_program(robot="b_bot", program_name="wrs2020/bearing_insert.urp", recursion_depth=3)
