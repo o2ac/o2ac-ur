@@ -609,7 +609,7 @@ class FastGraspabilityEvaluation():
         cx, cy = self.im_in.shape[1]/2, self.im_in.shape[0]/2
         for sp in search_points:
             ltop = sp - offset # left-top corner of search point
-            deg = degrees(np.arctan2((sp[0]-cy),(sp[1]-cx)))
+            deg = math.degrees(np.arctan2((sp[0]-cy),(sp[1]-cx)))
 
             hand, hand_area = self.RotationTemplate(self.im_hand, deg )
             collision, _ = self.RotationTemplate(self.im_collision, deg )
