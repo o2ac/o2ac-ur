@@ -1,0 +1,2 @@
+geometry_msgs/Pose gripper_pose
+float64 ground_z

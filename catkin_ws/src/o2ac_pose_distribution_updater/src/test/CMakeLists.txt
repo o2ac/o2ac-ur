@@ -16,7 +16,10 @@ link_directories(
 )
 add_definitions(${PCL_DEFINITIONS})
 
-add_executable(test test_estimator_touch.cpp)
-add_executable(gen generate_test_case.cpp)
-target_link_libraries(test fcl ${PCL_LIBRARIES})
-target_link_libraries(gen fcl ${PCL_LIBRARIES})
+#add_executable(test test_estimator_touch.cpp)
+#add_executable(gen generate_test_case.cpp)
+#target_link_libraries(test fcl ${PCL_LIBRARIES})
+#target_link_libraries(gen fcl ${PCL_LIBRARIES})
+
+add_executable(test_place test_for_place_poly.cpp)
+target_link_libraries(test_place fcl ${PCL_LIBRARIES})

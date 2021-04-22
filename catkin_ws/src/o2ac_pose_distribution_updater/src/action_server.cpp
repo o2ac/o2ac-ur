@@ -15,22 +15,30 @@ namespace{
 
   void execute(const o2ac_msgs::updateDistributionGoalConstPtr& goal)
   {
-    if(goal->observation_type == goal->TOUCH_OBSERVATION){
-      auto observation = goal->touch_observation;
-      auto gripper_transform = pose_to_transform(observation.gripper_pose);
-      Particle old_mean = pose_to_particle(goal->distribution.pose), new_mean;
-      CovarianceMatrix old_covariance = array_36_to_matrix_6x6(goal->distribution.covariance), new_covariance;
-      int ret=estimator->touched_step(observation.touched_object_id, gripper_transform, old_mean, old_covariance, new_mean, new_covariance);
-      o2ac_msgs::updateDistributionResult result;
-      if(ret == 0){
-	result.success = true;
-	result.distribution = to_PoseWithCovariance(new_mean, new_covariance);
+    Particle old_mean = pose_to_particle(goal->distribution.pose), new_mean;
+    CovarianceMatrix old_covariance = array_36_to_matrix_6x6(goal->distribution.covariance), new_covariance;
+    o2ac_msgs::updateDistributionResult result;
+    try{
+      if(goal->observation_type == goal->TOUCH_OBSERVATION){
+	auto observation = goal->touch_observation;
+	auto gripper_transform = pose_to_fcl_transform(observation.gripper_pose);
+	estimator->touched_step(observation.touched_object_id, gripper_transform, old_mean, old_covariance, new_mean, new_covariance);
       }
-      else{
-	result.success = false;
+      else if(goal->observation_type == goal->PLACE_OBSERVATION){
+	auto observation = goal->place_observation;
+	auto gripper_transform = pose_to_eigen_transform(observation.gripper_pose);
+	estimator->place_step(gripper_transform, observation.ground_z, old_mean, old_covariance, new_mean, new_covariance);
       }
-      server->setSucceeded(result);
     }
+    catch(std::runtime_error &e){
+      std::cerr << e.what() << std::endl;
+      result.success = false;
+      server->setSucceeded(result);
+      return;
+    }
+    result.success = true;
+    result.distribution = to_PoseWithCovariance(new_mean, new_covariance);
+    server->setSucceeded(result);
   }
 }
 
@@ -78,10 +86,10 @@ int main(int argc, char **argv)
   nd.getParam("number_of_particles", number_of_particles);
 
   estimator = std::shared_ptr<PoseEstimator>(new PoseEstimator(gripped_geometry,
-							       touched_objects,
-							       distance_threshold,
-							       noise_variance,
-							       number_of_particles));
+  							       touched_objects,
+  							       distance_threshold,
+  							       noise_variance,
+  							       number_of_particles));
 
   server=std::shared_ptr<Server>(new Server(nd, "update_distribution", execute, false));
   server->start();

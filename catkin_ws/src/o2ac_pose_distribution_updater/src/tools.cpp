@@ -1,9 +1,9 @@
 #include <pcl/io/vtk_lib_io.h>
 
-int load_BVHModel_from_stl_file(const std::string &file_path, const std::shared_ptr<fcl::BVHModel<fcl::OBBRSS>> &bvhm)
+void load_BVHModel_from_stl_file(const std::string &file_path, const std::shared_ptr<fcl::BVHModel<fcl::OBBRSS>> &bvhm)
 {
   pcl::PolygonMesh::Ptr mesh(new pcl::PolygonMesh());
-  int ret=pcl::io::loadPolygonFileSTL(file_path, *mesh);
+  pcl::io::loadPolygonFileSTL(file_path, *mesh);
   pcl::PointCloud<pcl::PointXYZ>::Ptr pcd(new pcl::PointCloud<pcl::PointXYZ>());
   pcl::fromPCLPointCloud2(mesh->cloud, *pcd);
   std::vector<fcl::Vec3f> points(pcd->size());
@@ -18,11 +18,9 @@ int load_BVHModel_from_stl_file(const std::string &file_path, const std::shared_
     assert(0<= vertices[1] && vertices[1] < points.size());
     assert(0<= vertices[2] && vertices[2] < points.size());
     triangles[j] = fcl::Triangle(vertices[0], vertices[1], vertices[2]);
-    //printf("%d %d %d\n",mesh->polygons[j].vertices[0],mesh->polygons[j].vertices[1],mesh->polygons[j].vertices[2]);
-  }
+ }
   bvhm->beginModel(points.size(), triangles.size());
   bvhm->addSubModel(points, triangles);
   bvhm->endModel();
-  return 0;
 }
 
