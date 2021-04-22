@@ -36,7 +36,7 @@ class URForceController():
             config = yaml.load(f)
 
         position_pd = create_pid(config['position'], default_kd=0.01, default_ki=0.01)
-        force_pd =    create_pid(config['force'],    default_kd=0.01,  default_ki=0.01)
+        force_pd =    create_pid(config['force'],    default_kd=0.04,  default_ki=0.01)
 
         dt = config['dt']
         selection_matrix = config['selection_matrix']
@@ -68,9 +68,11 @@ class URForceController():
 
         self.force_model.set_goals(force=target_force)
         self.force_model.alpha = np.diag(selection_matrix) if selection_matrix is not None else self.force_model.alpha # alpha is the selection_matrix
-
-        self.arm.set_hybrid_control_trajectory(target_positions, self.force_model, max_force_torque=self.max_force_torque, timeout=timeout, stop_on_target_force=stop_on_target_force, termination_criteria=termination_criteria)
+        
+        result = self.arm.set_hybrid_control_trajectory(target_positions, self.force_model, max_force_torque=self.max_force_torque, timeout=timeout, stop_on_target_force=stop_on_target_force, termination_criteria=termination_criteria)
         self.force_model.reset()  # reset pid errors
+        
+        return result
 
     def execute_circular_trajectory(self, plane, radius, radius_direction, 
                                     steps=100, revolutions=5, 
@@ -84,7 +86,7 @@ class URForceController():
         initial_pose = self.arm.end_effector()
         trajectory = traj_utils.compute_trajectory(initial_pose, plane, radius, radius_direction, steps, revolutions, from_center=True, trajectory_type="circular",
                                                     wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0)
-        self.force_control(target_force=target_force, target_positions=trajectory, selection_matrix=selection_matrix, ee_transform=ee_transform, 
+        return self.force_control(target_force=target_force, target_positions=trajectory, selection_matrix=selection_matrix, ee_transform=ee_transform, 
                            timeout=timeout, relative_to_ee=False, termination_criteria=termination_criteria)
 
     def execute_spiral_trajectory(self, plane, max_radius, radius_direction,
@@ -99,7 +101,7 @@ class URForceController():
         initial_pose = self.arm.end_effector()
         trajectory = traj_utils.compute_trajectory(initial_pose, plane, max_radius, radius_direction, steps, revolutions, from_center=True, trajectory_type="spiral",
                                                     wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0)
-        self.force_control(target_force=target_force, target_positions=trajectory, selection_matrix=selection_matrix, ee_transform=ee_transform, 
+        return self.force_control(target_force=target_force, target_positions=trajectory, selection_matrix=selection_matrix, ee_transform=ee_transform, 
                            timeout=timeout, relative_to_ee=False, termination_criteria=termination_criteria)
 
 ## Add boiler plate methods to do cartesian motions w.r.t base, w.r.t TCP

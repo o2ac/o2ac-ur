@@ -61,6 +61,7 @@ from o2ac_assembly_database.parts_reader import PartsReader
 from o2ac_routines.common import O2ACCommon
 from o2ac_routines.helpers import wait_for_UR_program
 from ur_control import transformations as ur_transformations
+from ur_control.constants import TERMINATION_CRITERIA
 class TaskboardClass(O2ACCommon):
   """
   This contains the routines used to run the taskboard task.
@@ -562,32 +563,45 @@ class TaskboardClass(O2ACCommon):
         duration = 30.0
         
         selection_matrix = [0., 0.8, 0.8, 0.8, 0.8, 0.8]
-        target_force = np.array([-8., 0., 0., 0., 0., 0.])
+        target_force = np.array([-5., 0., 0., 0., 0., 0.])
 
         termination_criteria = lambda cpose: cpose[0] > -0.042
 
-        self.b_bot_compliant_arm.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
+        rospy.logwarn("** STARTING FORCE CONTROL **")
+        result = self.b_bot_compliant_arm.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
                                                            wiggle_direction="Z", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=10.0,
                                                            target_force=target_force, selection_matrix=selection_matrix,
                                                            termination_criteria=termination_criteria)
+        rospy.logwarn("** FORCE CONTROL COMPLETE **")
+
+        if result != TERMINATION_CRITERIA:
+          rospy.logerr("** Insertion Failed!! **")
+          return
 
         self.open_gripper('b_bot', wait=True)
+
         # TODO(cambel): implement a boiler plate method to make this motions easier to call/define
-        deltax = np.array([-0.02, 0., 0., 0., 0., 0.])
+        deltax = np.array([-0.014, 0., 0., 0., 0., 0.])
         cpose = self.b_bot_compliant_arm.arm.end_effector()
         cmd = ur_transformations.pose_euler_to_quaternion(cpose, deltax)
-        self.b_bot_compliant_arm.arm.set_target_pose(cmd, wait=True, t=2.)
-        
-        pre_push_position = [1.3467, -1.3844, 1.6364, -1.8374, -1.7094, -1.7512]
+        self.b_bot_compliant_arm.arm.set_target_pose(cmd, wait=True, t=1.)
+        pre_push_position = self.b_bot_compliant_arm.arm.joint_angles()
+
+        self.close_gripper('b_bot', velocity=0.01, wait=True)
+
+        termination_criteria = lambda cpose: cpose[0] > -0.042
+        radius = 0.001
+
+        rospy.logwarn("** STARTING FORCE CONTROL 2**")
+        self.b_bot_compliant_arm.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
+                                                           wiggle_direction="Z", wiggle_angle=np.deg2rad(5.0), wiggle_revolutions=10.0,
+                                                           target_force=target_force, selection_matrix=selection_matrix,
+                                                           termination_criteria=termination_criteria)
+        rospy.logwarn("** FORCE CONTROL COMPLETE 2**")
+
+        rospy.logwarn("** CHANGE POSITIONS USING MOVEIT **")
         self.move_joints('b_bot', pre_push_position)
-
-        self.close_gripper('b_bot', wait=True)
-        selection_matrix = [0., 1., 1., 1., 1., 1.]
-        target_force = np.array([-5., 0., 0., 0., 0., 0.])
-        termination_criteria = lambda cpose: cpose[0] > 0.08
-        duration = 30.0
-
-        self.b_bot_compliant_arm.force_control(target_force=target_force, selection_matrix=selection_matrix)
+        self.open_gripper('b_bot', wait=True)
 
       else:
         insert = self.load_program(robot="b_bot", program_name="wrs2020/bearing_insert.urp", recursion_depth=3)
