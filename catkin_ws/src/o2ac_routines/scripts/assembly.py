@@ -581,6 +581,35 @@ if __name__ == '__main__':
         assy.subtask_a() #
       elif i == '95':
         assy.subtask_c() #
+      elif i == '100': # Test Force control be careful!!
+        b_bot_starting_position = [1.7078, -1.5267, 2.0624, -2.1325, -1.6114, 1.7185]
+        assy.move_joints("b_bot", b_bot_starting_position)
+        
+        timeout = 20.0
+
+        selection_matrix = [1.,1.,0.,1.,1.,1.]
+        target_force =     [0.,0.,0.,0.,0.,0.]
+
+        assy.activate_ros_control_on_ur(robot="b_bot", recursion_depth=1)
+        rospy.logwarn("STARTING Force Control with target_force: %s %s %s" % (str(target_force), "timeout", str(timeout)))
+        assy.b_bot_compliant_arm.force_control(target_force=target_force, selection_matrix=selection_matrix, timeout=timeout, stop_on_target_force=True)
+        rospy.logwarn("FINISHED Force Control")
+      elif i == '101': # Test Force control be careful!!
+        b_bot_starting_position = [1.7078, -1.5267, 2.0624, -2.1325, -1.6114, 1.7185]
+        
+        force = 10.0 #N
+        direction = '+Z'
+
+        assy.simple_linear_push('b_bot', initial_pose=b_bot_starting_position, force=force, direction=direction, timeout=20.0)
+        
+      elif i == '102':
+        b_bot_script_start_pose = [1.7094888, -1.76184906, 2.20651847, -2.03368343, -1.54728252, 0.96213197]
+        assy.move_joints("b_bot", b_bot_script_start_pose)
+        
+        # force = 1.0 #N
+        # direction = '-X'
+
+        # assy.simple_linear_push('b_bot', initial_pose=b_bot_starting_position, force=force, direction=direction, timeout=20.0)
       elif i == 'START' or i == 'start' or i == "9999":
         for i in [1,2]:
           rospy.loginfo("Starting set number " + str(i))

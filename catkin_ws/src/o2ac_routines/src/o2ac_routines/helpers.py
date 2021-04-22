@@ -3,6 +3,7 @@
 import sys
 import copy
 import rospy
+import numpy as np
 import geometry_msgs.msg
 import actionlib
 import tf
@@ -21,7 +22,7 @@ from math import pi
 import moveit_commander
 from moveit_commander.conversions import pose_to_list
 
-from o2ac_routines import conversions
+from ur_control import conversions
 
 import ur_msgs.msg
 import ur_dashboard_msgs.msg
@@ -293,7 +294,7 @@ def publish_pose_marker(marker_publisher, marker_pose_stamped):
   arrow_x = visualization_msgs.msg.Marker()
   arrow_y = visualization_msgs.msg.Marker()
   arrow_z = visualization_msgs.msg.Marker()
-  arrow_x = marker; arrow_y = marker; arrow_z = marker;
+  arrow_x = marker; arrow_y = marker; arrow_z = marker
   helper_fct_marker_id_count += 1
   arrow_x.id = helper_fct_marker_id_count = 0
   helper_fct_marker_id_count += 1
@@ -311,3 +312,16 @@ def publish_pose_marker(marker_publisher, marker_pose_stamped):
   marker_publisher.publish(arrow_y)
   marker_publisher.publish(arrow_z)
   return True
+
+
+def get_target_force(direction, force):
+  VALID_DIRECTIONS = ('+X', '+Y', '+Z', '-X', '-Y', '-Z')
+  DIRECTION_INDEX = {'X':0, 'Y':1, 'Z':2}
+  
+  assert direction in VALID_DIRECTIONS, "Invalid direction: %s" % direction
+
+  res = [0.,0.,0.,0.,0.,0.]
+  sign = 1. if '+' in direction else -1.
+  res[DIRECTION_INDEX.get(direction[1])] = force * sign
+
+  return np.array(res)
