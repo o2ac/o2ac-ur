@@ -97,14 +97,29 @@
 			"map": "cpp",
 			"memory_resource": "cpp",
 			"set": "cpp",
-			"string": "cpp"
+			"string": "cpp",
+			"functional": "cpp",
+			"hash_map": "cpp",
+			"hash_set": "cpp",
+			"complex": "cpp",
+			"forward_list": "cpp",
+			"list": "cpp",
+			"unordered_set": "cpp",
+			"iterator": "cpp",
+			"numeric": "cpp",
+			"random": "cpp",
+			"regex": "cpp",
+			"slist": "cpp",
+			"cfenv": "cpp",
+			"valarray": "cpp"
 		},
 		"python.autoComplete.extraPaths": [
 			"./catkin_ws/src/o2ac_assembly_database/src",
 			"./catkin_ws/src/o2ac_routines/src",
 			"./catkin_ws/src/o2ac_vision/src",
 			"./underlay_ws/src/downward/src",
-			"./underlay_ws/src/moveit/moveit_commander/src/moveit_commander",
+			"./underlay_ws/src/moveit/moveit_commander/src",
+			"./underlay_ws/src/ur_python_utilities/ur_control/src",
 		],
 		"files.exclude": {
 			"**/.catkin_tools": true,
@@ -112,7 +127,8 @@
 			"**/build": true,
 			"**/devel": true,
 			"**/logs": true
-		}
+		},
+		"python.formatting.autopep8Args": ["--max-line-length", "200", "--experimental"]
 	},
 	"extensions": {
 		"recommendations": [
@@ -124,5 +140,6 @@
 			"eamodio.gitlens",
 			"mhutchie.git-graph"			
 		]
-	}
+	},
+	
 }

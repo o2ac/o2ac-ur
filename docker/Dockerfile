@@ -350,6 +350,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ################################################################################
 
+# Dependency for ur_python_utilities
+RUN pip2 install pyquaternion==0.9.9
+
+# Utilities
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	htop=2.1.0-3 \
+    ros-melodic-rqt-multiplot=0.0.10-0bionic.20210112.183107 \
+    ros-melodic-trac-ik-python=1.5.1-1bionic.20210112.195927 \
+    python-rosinstall=0.7.8-1 \
+	&& rm -rf /var/lib/apt/lists/*
+
+################################################################################
+
+# Speed up catkin build with ccache
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ccache=3.4.1-1 \
+    && rm -rf /var/lib/apt/lists/*
+RUN echo 'export PATH=/usr/lib/ccache:$PATH' >> $HOME/.bashrc
+
+################################################################################
+
 # Setup the Bash shell environment (part 1)
 
 # Define the working directory.

@@ -23,8 +23,8 @@
   <!-- Scene items (trays, columns, tools, jigs, feeders...) -->
   <xacro:include filename="$(find o2ac_scene_description)/urdf/o2ac_environment.xacro" />
   <!-- <xacro:include filename="$(find flexwrist_experiment)/urdf/2020-01-experiment-scene.xacro" /> -->
-  <xacro:include filename="$(find o2ac_scene_description)/urdf/taskboard_scene.xacro" />
-  <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/assembly_scene.xacro" /> -->
+  <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/taskboard_scene.xacro" /> -->
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/assembly_scene.xacro" />
   <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/camera_calibration_scene.xacro" /> -->
   
   <!-- Robot bases -->
@@ -98,8 +98,32 @@
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector_2F-140.urdf.xacro" />
   <xacro:o2ac_end_effector prefix="a_bot_" use_soft_wrist="false" use_cameras="true" parent = "a_bot_ee_link" />
 
+  <gazebo reference="a_bot_wrist_3_joint">
+  <provideFeedback>true</provideFeedback>
+  </gazebo>
+  <gazebo>
+    <plugin name="ft_sensor" filename="libgazebo_ros_ft_sensor.so">
+      <updateRate>100.0</updateRate>
+      <topicName>a_bot/wrench</topicName>
+      <gaussianNoise>0.0</gaussianNoise>
+      <jointName>a_bot_wrist_3_joint</jointName>
+    </plugin>
+  </gazebo>
+
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector.urdf.xacro" />
   <xacro:o2ac_end_effector prefix="b_bot_" use_soft_wrist="false" use_cameras="true" parent = "b_bot_ee_link" />
+
+  <gazebo reference="b_bot_wrist_3_joint">
+  <provideFeedback>true</provideFeedback>
+  </gazebo>
+  <gazebo>
+    <plugin name="ft_sensor" filename="libgazebo_ros_ft_sensor.so">
+      <updateRate>100.0</updateRate>
+      <topicName>b_bot/wrench</topicName>
+      <gaussianNoise>0.0</gaussianNoise>
+      <jointName>b_bot_wrist_3_joint</jointName>
+    </plugin>
+  </gazebo>
 
   <!-- The "world" link definition should be removed, but apparently it is necessary for Gazebo -->
   <link name="world" />

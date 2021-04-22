@@ -37,3 +37,6 @@
 [submodule "underlay_ws/src/downward"]
 	path = underlay_ws/src/downward
 	url = https://gitlab.com/sinicx/robotics/on-going/downward.git
+[submodule "underlay_ws/src/ur_python_utilities"]
+	path = underlay_ws/src/ur_python_utilities
+	url = https://gitlab.com/o2ac/third-party/ur_python_utilities.git

@@ -78,7 +78,10 @@ from o2ac_assembly_database.assembly_reader import AssemblyReader
 import ur_msgs.msg
 import ur_msgs.srv
 from o2ac_routines.helpers import *
-import o2ac_routines.helpers as helpers
+
+from o2ac_routines.ur_force_control import URForceController
+from ur_control import utils as utils
+import numpy as np
 
 class O2ACBase(object):
   """
@@ -205,6 +208,9 @@ class O2ACBase(object):
     self.define_tool_collision_objects()
 
     self.objects_in_tray = dict()  # key: object ID. value: False or object pose
+
+    self.a_bot_compliant_arm = URForceController(robot_name='a_bot')
+    self.b_bot_compliant_arm = URForceController(robot_name='b_bot')
 
     rospy.sleep(.5)
     rospy.loginfo("Finished initializing class")
@@ -1393,8 +1399,9 @@ class O2ACBase(object):
     res = self.toggleCollisions_client.call(req)
     return res.success
 
-  def close_gripper(self, robot, force=40.0, wait=True):
-    return self.send_gripper_command(robot, "close", force=force, wait=wait)
+  def close_gripper(self, robot, force=40.0, velocity = .1, wait=True):
+    return self.send_gripper_command(robot, "close", force=force, velocity=velocity, wait=wait)
+
   def open_gripper(self, robot, wait=True, opening_width=None):
     command = "open"
     if opening_width:
@@ -1658,6 +1665,32 @@ class O2ACBase(object):
         else:
           self.planning_scene_interface.disallow_collisions(link_name, hand_link)
       return
+
+  def simple_linear_push(self, robot_name, initial_pose, force, direction, ee_transform=[0,0,0,0,0,0,1], relative_to_ee=False, timeout=10.0):
+    """
+      Apply force control in one direction until contact with `force`
+      robot_name: string, name of the robot
+      initial_pose: list[6], joint angles initial position before linear push
+      force: float, desired force
+      direction: string, direction for linear_push +- X,Y,Z relative to base or end-effector, see next argument
+      ee_transform: list[7], additional transformation of the end-effector (e.g to match tool or special orientation) x,y,z + quaternion
+      relative_to_ee: bool, whether to use the base_link of the robot as frame or the ee_link (+ ee_transform)
+    """
+    # TODO(cambel): this can be avoided if the UR ARM object is a class on itself that also contains the force controller
+    arm = None
+    if robot_name == 'a_bot':
+      arm = self.a_bot_compliant_arm
+    elif robot_name == 'b_bot':
+      arm = self.b_bot_compliant_arm
+    else:
+      raise Exception('Unsupported arm %s' % robot_name)
+
+    self.move_joints(robot_name, initial_pose, speed=1.0)
+
+    target_force = get_target_force(direction, force)
+    selection_matrix = np.array(target_force == 0.0) * 1.0 # define the selection matrix based on the target force
+
+    arm.force_control(target_force=target_force, selection_matrix=selection_matrix, ee_transform=ee_transform, relative_to_ee=relative_to_ee, timeout=timeout, stop_on_target_force=True)
 
 ######
 
