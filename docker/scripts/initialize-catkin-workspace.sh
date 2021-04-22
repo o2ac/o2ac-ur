@@ -38,8 +38,7 @@ cd /root/underlay_ws/ && catkin config -init --blacklist robotiq_3f_gripper_arti
                           chomp_motion_planner moveit_planners_chomp moveit_chomp_optimizer_adapter \
                           moveit_ros_warehouse moveit_ros_benchmarks moveit_servo moveit_resources_prbt_ikfast_manipulator_plugin \
                           moveit_resources_fanuc_moveit_config moveit_resources_panda_moveit_config moveit_resources_pr2_moveit_config \
-                          ur3_e_moveit_config ur10_e_moveit_config \
-                          robotiq_gazebo
+                          ur3_e_moveit_config ur10_e_moveit_config
 catkin build
 source /root/underlay_ws/devel/setup.bash
 
