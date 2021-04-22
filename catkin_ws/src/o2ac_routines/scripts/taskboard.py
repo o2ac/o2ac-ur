@@ -40,6 +40,7 @@ import rospy
 import geometry_msgs.msg
 import tf_conversions
 import tf
+import numpy as np
 import math
 from math import pi, degrees, radians, sin, cos
 tau = 2.0*pi  # Part of math from Python 3.6
@@ -59,7 +60,7 @@ from o2ac_assembly_database.parts_reader import PartsReader
 
 from o2ac_routines.common import O2ACCommon
 from o2ac_routines.helpers import wait_for_UR_program
-
+from ur_control import transformations as ur_transformations
 class TaskboardClass(O2ACCommon):
   """
   This contains the routines used to run the taskboard task.
@@ -547,15 +548,57 @@ class TaskboardClass(O2ACCommon):
         return False
 
       #Insert bearing
-      insert = self.load_program(robot="b_bot", program_name="wrs2020/bearing_insert.urp", recursion_depth=3)
-      if insert:
-        print("Loaded bearing insert program.")
-        self.execute_loaded_program(robot="b_bot")
-        print("Started execution. Waiting for b_bot to finish.")
+      use_ros_force_control = True
+      
+      if use_ros_force_control:
+        self.activate_ros_control_on_ur("b_bot")
+
+        plane = "YZ"
+        radius = 0.002
+        radius_direction = "+Z"
+        revolutions = 5
+
+        steps = 100
+        duration = 30.0
+        
+        selection_matrix = [0., 0.8, 0.8, 0.8, 0.8, 0.8]
+        target_force = np.array([-8., 0., 0., 0., 0., 0.])
+
+        termination_criteria = lambda cpose: cpose[0] > -0.042
+
+        self.b_bot_compliant_arm.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
+                                                           wiggle_direction="Z", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=10.0,
+                                                           target_force=target_force, selection_matrix=selection_matrix,
+                                                           termination_criteria=termination_criteria)
+
+        self.open_gripper('b_bot', wait=True)
+        # TODO(cambel): implement a boiler plate method to make this motions easier to call/define
+        deltax = np.array([-0.02, 0., 0., 0., 0., 0.])
+        cpose = self.b_bot_compliant_arm.arm.end_effector()
+        cmd = ur_transformations.pose_euler_to_quaternion(cpose, deltax)
+        self.b_bot_compliant_arm.arm.set_target_pose(cmd, wait=True, t=2.)
+        
+        pre_push_position = [1.3467, -1.3844, 1.6364, -1.8374, -1.7094, -1.7512]
+        self.move_joints('b_bot', pre_push_position)
+
+        self.close_gripper('b_bot', wait=True)
+        selection_matrix = [0., 1., 1., 1., 1., 1.]
+        target_force = np.array([-5., 0., 0., 0., 0., 0.])
+        termination_criteria = lambda cpose: cpose[0] > 0.08
+        duration = 30.0
+
+        self.b_bot_compliant_arm.force_control(target_force=target_force, selection_matrix=selection_matrix)
+
       else:
-        print("Problem loading. Not executing bearing insert procedure.")
-        return False
-      wait_for_UR_program("/b_bot", rospy.Duration.from_sec(70))
+        insert = self.load_program(robot="b_bot", program_name="wrs2020/bearing_insert.urp", recursion_depth=3)
+        if insert:
+          print("Loaded bearing insert program.")
+          self.execute_loaded_program(robot="b_bot")
+          print("Started execution. Waiting for b_bot to finish.")
+        else:
+          print("Problem loading. Not executing bearing insert procedure.")
+          return False
+        wait_for_UR_program("/b_bot", rospy.Duration.from_sec(70))
 
       self.bearing_holes_aligned = self.align_bearing_holes()
       return self.bearing_holes_aligned

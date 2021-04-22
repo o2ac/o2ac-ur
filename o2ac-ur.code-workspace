@@ -119,7 +119,7 @@
 			"./catkin_ws/src/o2ac_vision/src",
 			"./underlay_ws/src/downward/src",
 			"./underlay_ws/src/moveit/moveit_commander/src",
-			"./underlay_ws/src/ur3/ur_control/src",
+			"./underlay_ws/src/ur_python_utilities/ur_control/src",
 		],
 		"files.exclude": {
 			"**/.catkin_tools": true,

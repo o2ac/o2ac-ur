@@ -36,7 +36,7 @@ class URForceController():
             config = yaml.load(f)
 
         position_pd = create_pid(config['position'], default_kd=0.01, default_ki=0.01)
-        force_pd =    create_pid(config['force'],    default_kd=0.05,  default_ki=0.01)
+        force_pd =    create_pid(config['force'],    default_kd=0.01,  default_ki=0.01)
 
         dt = config['dt']
         selection_matrix = config['selection_matrix']
@@ -73,7 +73,7 @@ class URForceController():
         self.force_model.reset()  # reset pid errors
 
     def execute_circular_trajectory(self, plane, radius, radius_direction, 
-                                    steps=100, revolutions=5, duration=5.0, 
+                                    steps=100, revolutions=5, 
                                     wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0, 
                                     target_force=None, selection_matrix=None, ee_transform=None, timeout=10.,
                                     termination_criteria=None):
@@ -88,7 +88,7 @@ class URForceController():
                            timeout=timeout, relative_to_ee=False, termination_criteria=termination_criteria)
 
     def execute_spiral_trajectory(self, plane, max_radius, radius_direction,
-                                  steps=100, revolutions=5, duration=5.0, 
+                                  steps=100, revolutions=5, 
                                   wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0, 
                                   target_force=None, selection_matrix=None, ee_transform=None, timeout=10.,
                                   termination_criteria=None):
@@ -102,3 +102,4 @@ class URForceController():
         self.force_control(target_force=target_force, target_positions=trajectory, selection_matrix=selection_matrix, ee_transform=ee_transform, 
                            timeout=timeout, relative_to_ee=False, termination_criteria=termination_criteria)
 
+## Add boiler plate methods to do cartesian motions w.r.t base, w.r.t TCP
