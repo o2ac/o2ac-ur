@@ -41,7 +41,7 @@ import geometry_msgs.msg
 import moveit_msgs
 import tf_conversions
 import tf
-from math import pi
+from math import pi, radians, sin, cos
 tau = 2.0*pi  # Part of math from Python 3.6
 import math
 

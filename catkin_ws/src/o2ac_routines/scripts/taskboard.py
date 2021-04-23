@@ -177,69 +177,6 @@ class TaskboardClass(O2ACCommon):
     screw_approach.pose.position.x = -0.005
     self.go_to_pose_goal("b_bot", screw_approach, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True, speed=0.5)
 
-  def align_bearing_holes(self, max_adjustments=15):
-    """
-    Hacky solution to align the bearing holes.
-    """
-    self.activate_camera("b_bot_inside_camera")
-    self.activate_led("b_bot", on=False)
-    adjustment_motions = 0
-    times_looked_without_action = 0
-    times_it_looked_like_success = 0
-    
-    success = False
-    while adjustment_motions < max_adjustments:
-      # Look at tb bearing
-      ps = geometry_msgs.msg.PoseStamped()
-      ps.header.frame_id = "taskboard_bearing_target_link"
-      ps.pose.orientation = geometry_msgs.msg.Quaternion(*(0.5, 0.5, 0.5, 0.5))
-      ps.pose.position = geometry_msgs.msg.Point(-0.155, -0.005, -0.0)
-      self.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.1, acceleration=.04)
-      self.activate_led("b_bot", on=True)
-      self.open_gripper("b_bot")
-      rospy.sleep(1)  # Without a wait, the camera image is blurry
-
-      # Get angle and turn
-      angle = self.get_bearing_angle()
-      self.activate_led("b_bot", on=False)
-      if angle:
-        rospy.loginfo("Bearing detected angle: %3f", degrees(angle))
-        # rospy.loginfo(str(degrees(angle)))
-        b_bot_at_tb_bearing = [1.56031179, -1.25635559, 1.8379710, -2.2435614, -2.6155634, -1.55478078]
-        if abs(degrees(angle)) > 3.5: # One execution = 5 degrees roughly
-          self.open_gripper("b_bot")
-          self.move_joints("b_bot", b_bot_at_tb_bearing)
-          if degrees(angle) < 3.5:
-            success = self.load_program(robot="b_bot", program_name="wrs2020/taskboard_bearing_turn_left.urp", recursion_depth=3)
-            rospy.loginfo("executing bearing left turn")
-          elif degrees(angle) > 3.5:
-            success = self.load_program(robot="b_bot", program_name="wrs2020/taskboard_bearing_turn_right.urp", recursion_depth=3)  
-            rospy.loginfo("executing bearing right turn")
-          if success:
-            turns_to_do = max( round((abs(degrees(angle))/6.0)), 1)
-            for i in range(int(turns_to_do)):
-              self.execute_loaded_program(robot="b_bot")
-              wait_for_UR_program("/b_bot", rospy.Duration.from_sec(15))
-            adjustment_motions += 1
-            times_looked_without_action = 0
-            times_it_looked_like_success = 0
-          self.activate_ros_control_on_ur("b_bot")
-        else:
-          rospy.loginfo("Bearing angle < 5 deg, not executing a motion")
-          times_looked_without_action += 1
-          times_it_looked_like_success += 1
-      else:
-        rospy.logwarn("Bearing angle not found in image.")
-        times_looked_without_action += 1
-      if times_looked_without_action > 3:
-        if times_it_looked_like_success > 2:
-          rospy.loginfo("Bearing angle looked correct " + str(times_it_looked_like_success) + " out of the last " + str(times_looked_without_action) + " times. Judged successful.")
-          return True
-        rospy.logerr("Bearing perception failed too often. Breaking out")
-        return False
-    rospy.logerr("Did not manage to align the bearing holes.")
-    return False
-
   def do_screw_tasks_from_prep_position(self):
     ### - Set screw
     
@@ -615,78 +552,8 @@ class TaskboardClass(O2ACCommon):
           return False
         wait_for_UR_program("/b_bot", rospy.Duration.from_sec(70))
 
-      self.bearing_holes_aligned = self.align_bearing_holes()
+      self.bearing_holes_aligned = self.align_bearing_holes(task="taskboard")
       return self.bearing_holes_aligned
-
-      ### Sequence including regrasp
-      # TODO: Rewrite either with MTC or manually, so that B ends up with the bearing
-      # Then rewrite like this:
-      # 1. Grasp bearing with b_bot
-      # 2. Place and regrasp to center it 
-      # 3. Push on the taskboard with a_bot at this position:
-      # 0.00063529; 0.0099509; 0.048085
-      # -0.0079834; 0.71742; 0.0079052; 0.69655   (90 deg rotation around y)
-      # 4. Insert with b_bot
-
-      # Check if bearing is facing upright
-      bearing_hole_pose = geometry_msgs.msg.PoseStamped()
-      bearing_hole_pose.header.frame_id = "move_group/bearing/front_hole"
-      bearing_hole_pose.pose.orientation.w = 1.0
-      bearing_hole_pose_in_world = self.listener.transformPose("workspace_center", bearing_hole_pose)
-      self.allow_collision_with_hand('b_bot', 'bearing')
-      if (bearing_hole_pose_in_world.pose.position.z < 0.03): # Bearing faces upward
-        rospy.loginfo("Regrasp and Insert")
-        # Pick up the bearing by b_bot
-        rospy.loginfo("Pick up the bearing")
-        pick_pose = geometry_msgs.msg.PoseStamped()
-        pick_pose.header.frame_id = "move_group/bearing"
-        pick_pose.pose.position = geometry_msgs.msg.Point(-0.065, 0, 0)
-        pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/4, 0, 0))
-        self.simple_pick("b_bot", pick_pose, item_id_to_attach="bearing", approach_height=-0.05, grasp_height=-0.05, sign=-1)
-        # Hand over the bearing from b_bot to a_bot
-        rospy.loginfo("Handover pose (B)")
-        self.go_to_named_pose("bearing_handover", "a_bot")
-        rospy.loginfo("Handover pose (A)")
-        handover_pose = geometry_msgs.msg.PoseStamped()
-        handover_pose.header.frame_id = "a_bot_robotiq_85_tip_link"
-        handover_pose.pose.position = geometry_msgs.msg.Point(0.05, 0, 0)
-        handover_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/4, 0, tau/2))
-        self.go_to_pose_goal("a_bot", handover_pose, move_lin=False)
-        rospy.loginfo("Handover")
-        handover_pose2 = geometry_msgs.msg.PoseStamped()
-        handover_pose2.header.frame_id = "b_bot_robotiq_85_tip_link"
-        handover_pose2.pose.position = geometry_msgs.msg.Point(-0.01, 0, 0)
-        handover_pose2.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/4, 0, tau/2))
-        self.go_to_pose_goal("a_bot", handover_pose2, move_lin=False)
-        self.groups["b_bot"].detach_object("bearing")
-        self.groups["a_bot"].attach_object("bearing")
-        # Move hands to avoid collision
-        rospy.loginfo("Retreat")
-        
-        self.go_to_named_pose("home","b_bot")
-        # TODO: Center bearing and pick it with inclination
-
-      else:
-        # pick up bearing
-        pick_pose = geometry_msgs.msg.PoseStamped()
-        pick_pose.header.frame_id = "move_group/bearing"
-        pick_pose.pose.position = geometry_msgs.msg.Point(-0.03, 0.0, 0.0)
-        pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/4, 0, tau/2))
-        self.simple_pick("a_bot", pick_pose, item_id_to_attach="bearing")
-      # insert bearing
-      rospy.loginfo("Insert bearing by a_bot")
-      self.allow_collision_with_hand('b_bot', 'taskboard_plate')
-      self.allow_collision_with_hand('b_bot', 'taskboard_bearing_target_link')
-      insert_pose = geometry_msgs.msg.PoseStamped()
-      insert_pose.header.frame_id = "taskboard_bearing_target_link"
-      insert_pose.pose.position = geometry_msgs.msg.Point(0.02, 0.0, 0.0)
-      insert_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/4, 0, 0))
-      self.simple_place("a_bot", insert_pose, item_id_to_detach="bearing")
-      self.disallow_collision_with_hand('b_bot', 'bearing')
-      self.disallow_collision_with_hand('b_bot', 'taskboard_bearing_target_link')
-      # self.planning_scene_interface.allow_collisions('taskboard_base', 'taskboard_plate')
-      self.planning_scene_interface.allow_collisions('bearing', 'taskboard_plate')
-      self.go_to_named_pose("home","a_bot")
 
     if task_name == "screw_bearing":  # Just an intermediate for debugging.
       self.go_to_named_pose("home", "a_bot")
