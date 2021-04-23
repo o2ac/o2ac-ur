@@ -545,8 +545,8 @@ class URScriptRelay():
         program_msg.data = program
 
         rospy.loginfo("Sending UR robot program " + req.program_id)
-        rospy.loginfo("Program is:")
-        rospy.loginfo(program)
+        rospy.logdebug("Program is:")
+        rospy.logdebug(program)
         self.publishers[req.robot_name].publish(program_msg)
         return True
 

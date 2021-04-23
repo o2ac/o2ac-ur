@@ -21,6 +21,8 @@ Launch symbolic planning with `rosrun o2ac_task_planning_pddl_converter fast_dow
 
 The node requires certain parameters to be set on the ROS parameter server for its initialization. **These are used as default values** for the tasks' parameters (the parameters that most likely do not change for each call to the action servers, such as the name of the robots, directions for lifting, or placing objects, the name of the support surfaces ...)
 
+( `rosrun o2ac_routines assembly.py` )
+
 An example for setting these parameters can be found [here](https://gitlab.com/o2ac/o2ac-ur/-/blob/integrate-mtc-in-o2ac-routines/catkin_ws/src/o2ac_routines/src/o2ac_routines/helpers.py#L29).
 
 Before starting the node make sure that these parameters are available on the parameter server:
@@ -149,7 +151,6 @@ In the `Motion Planning Tasks` panel, under `Task Tree` the hierarchical represe
 
 For a detailed explanation on the meaning of the fields of the action goal see the definition of the [action messages](https://gitlab.com/o2ac/o2ac-ur/-/tree/integrate-mtc-in-o2ac-routines/catkin_ws/src/o2ac_task_planning/msgs/action).
 
-## Example use
 
 For an example use case, first call
 

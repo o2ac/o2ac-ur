@@ -260,11 +260,12 @@ class O2ACBase(object):
     self.robot_status["b_bot"] = o2ac_msgs.msg.RobotStatus()
     self.planning_scene_interface.remove_attached_object()  # Detach objects
     self.planning_scene_interface.remove_world_object()  # Clear all objects
+    self.publish_robot_status()
 
   def activate_camera(self, camera_name="b_bot_outside_camera"):
     try:
       if self.camera_multiplexer:
-        self.camera_multiplexer.activate_camera(camera_name)
+        return self.camera_multiplexer.activate_camera(camera_name)
       else:
         rospy.logwarn("Camera multiplexer not functional! Returning true")
         return True
@@ -759,6 +760,7 @@ class O2ACBase(object):
 
     if not res.success:
       if realign_tool_upon_failure:
+        self.go_to_named_pose("tool_pick_ready", robot_name)
         rospy.loginfo("pickScrewFromFeeder failed. Realigning tool and retrying.")
         screw_tool_id = "screw_tool_m" + str(screw_size)
         self.realign_tool(robot_name, screw_tool_id)
