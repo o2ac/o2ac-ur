@@ -98,7 +98,7 @@ class VisionDemo(O2ACCommonBase):
           pick_pose.pose.orientation = downward_orientation
 
           rospy.logdebug("pick object")
-          self.publish_marker(pick_pose, "pick_pose") # debug
+          self.skill_server.publish_marker(pick_pose, "pick_pose") # debug
           self.pick("b_bot", pick_pose, grasp_height = 0.1, approach_height = 0.1,
                                   speed_fast = 0.2, speed_slow = 0.02, gripper_command="easy_pick_only_inner")
 

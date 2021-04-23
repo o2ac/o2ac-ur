@@ -135,7 +135,7 @@ class O2ACCommon(O2ACBase):
         self.do_change_tool_action("b_bot", equip=False, screw_size=4)
       if stage_name == 'pick_screw_m4_start':
         skip_stage_execution = True
-        self.pick_screw_from_feeder('b_bot', screw_size=4)
+        self.skill_server.pick_screw_from_feeder('b_bot', screw_size=4)
       if stage_name == 'fasten_screw_m4_start':
         skip_stage_execution = True
         target_pose = geometry_msgs.msg.PoseStamped()
@@ -162,11 +162,11 @@ class O2ACCommon(O2ACBase):
         continue
       if stage_name == 'move a_bot right wrs_subtask_motor_plate':
         rospy.logwarn("===================== DEBUG1")
-        self.move_lin_rel("a_bot", relative_translation=[0, -0.02, 0], use_robot_base_csys=True, max_wait=5.0)
+        self.skill_server.move_lin_rel("a_bot", relative_translation=[0, -0.02, 0], use_robot_base_csys=True, max_wait=5.0)
         rospy.logwarn("===================== DEBUG1b")
       if stage_name == 'move a_bot back wrs_subtask_motor_plate':
         rospy.logwarn("===================== DEBUG2")
-        self.move_lin_rel("a_bot", relative_translation=[0,  0.02, 0], use_robot_base_csys=True, max_wait=5.0)
+        self.skill_server.move_lin_rel("a_bot", relative_translation=[0,  0.02, 0], use_robot_base_csys=True, max_wait=5.0)
         rospy.logwarn("===================== DEBUG2b")
 
       # Execute trajectories
@@ -390,7 +390,7 @@ class O2ACCommon(O2ACBase):
     This procedure works by changing the x axis of the target pose's frame. 
     It may produce dangerous motions in other configurations.
     """
-    #self.publish_marker(object_pose, "place_pose")
+    #self.skill_server.publish_marker(object_pose, "place_pose")
     self.log_to_debug_monitor("Place", "operation")
     rospy.loginfo("Going above place target")
     object_pose.pose.position.x -= approach_height
@@ -719,7 +719,7 @@ class O2ACCommon(O2ACBase):
 
     self.go_to_named_pose("feeder_pick_ready", robot_name)
     
-    res = self.do_screw_action(robot_name, screw_hole_pose, screw_height, screw_size)
+    res = self.skill_server.do_screw_action(robot_name, screw_hole_pose, screw_height, screw_size)
     self.go_to_named_pose("feeder_pick_ready", robot_name)
     return res.success
 
@@ -733,7 +733,7 @@ class O2ACCommon(O2ACBase):
 
     self.go_to_named_pose("horizontal_screw_ready", robot_name)
     
-    success = self.do_screw_action(robot_name, screw_hole_pose, screw_height, screw_size)
+    success = self.skill_server.do_screw_action(robot_name, screw_hole_pose, screw_height, screw_size)
     self.go_to_named_pose("horizontal_screw_ready", robot_name)
     return success
 
@@ -754,12 +754,12 @@ class O2ACCommon(O2ACBase):
     self.go_to_pose_goal(robot_name, approach_pose, speed=self.speed_fast, move_lin = True, end_effector_link="a_bot_nut_tool_m6_link")
     # spiral_axis = "Y"
     # push_direction = "Z+"
-    # self.do_linear_push(robot_name, 10, direction=push_direction, wait = True)
+    # self.skill_server.do_linear_push(robot_name, 10, direction=push_direction, wait = True)
     self.set_motor("nut_tool_m6", direction="loosen", duration=10)
-    self.horizontal_spiral_motion(robot_name, max_radius = .006, radius_increment = .02, spiral_axis=spiral_axis)
+    self.skill_server.horizontal_spiral_motion(robot_name, max_radius = .006, radius_increment = .02, spiral_axis=spiral_axis)
     self.go_to_pose_goal(robot_name, nut_pose, speed=.005, move_lin = True, end_effector_link="a_bot_nut_tool_m6_link")
     rospy.sleep(3)
-    # self.do_linear_push(robot_name, 10, direction=push_direction, wait = True)
+    # self.skill_server.do_linear_push(robot_name, 10, direction=push_direction, wait = True)
     self.go_to_pose_goal(robot_name, approach_pose, speed=.03, move_lin = True, end_effector_link=end_effector_link)
 
   def move_camera_to_pose(self, pose_goal, robot_name="b_bot", camera_name="inside_camera"):
