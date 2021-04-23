@@ -358,6 +358,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	htop=2.1.0-3 \
     ros-melodic-rqt-multiplot=0.0.10-0bionic.20210112.183107 \
     ros-melodic-trac-ik-python=1.5.1-1bionic.20210112.195927 \
+    ros-melodic-trac-ik-kinematics-plugin=1.5.1-1bionic.20210112.202245 \
     python-rosinstall=0.7.8-1 \
 	&& rm -rf /var/lib/apt/lists/*
 
