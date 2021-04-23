@@ -59,7 +59,7 @@ import o2ac_msgs.srv
 from o2ac_assembly_database.parts_reader import PartsReader
 
 from o2ac_routines.common import O2ACCommon
-from o2ac_routines.helpers import wait_for_UR_program
+from o2ac_routines.helpers import wait_for_UR_program, get_target_force
 from ur_control import transformations as ur_transformations
 from ur_control.constants import TERMINATION_CRITERIA
 class TaskboardClass(O2ACCommon):
@@ -495,6 +495,7 @@ class TaskboardClass(O2ACCommon):
       if use_ros_force_control:
         self.activate_ros_control_on_ur("b_bot")
 
+        # TODO(cambel): These configuration could be simplify 
         plane = "YZ"
         radius = 0.002
         radius_direction = "+Z"
@@ -503,8 +504,8 @@ class TaskboardClass(O2ACCommon):
         steps = 100
         duration = 30.0
         
+        target_force = get_target_force('-X', 5.0)
         selection_matrix = [0., 0.8, 0.8, 0.8, 0.8, 0.8]
-        target_force = np.array([-5., 0., 0., 0., 0., 0.])
 
         termination_criteria = lambda cpose: cpose[0] > -0.042
 
@@ -521,12 +522,9 @@ class TaskboardClass(O2ACCommon):
 
         self.open_gripper('b_bot', wait=True)
 
-        # TODO(cambel): implement a boiler plate method to make this motions easier to call/define
-        deltax = np.array([-0.014, 0., 0., 0., 0., 0.])
-        cpose = self.b_bot_compliant_arm.arm.end_effector()
-        cmd = ur_transformations.pose_euler_to_quaternion(cpose, deltax)
-        self.b_bot_compliant_arm.arm.set_target_pose(cmd, wait=True, t=1.)
-        pre_push_position = self.b_bot_compliant_arm.arm.joint_angles()
+        self.b_bot_compliant_arm.move_relative(delta=[-0.014, 0., 0., 0., 0., 0.], wait=True, t=1.)
+
+        pre_push_position = self.b_bot_compliant_arm.joint_angles()
 
         self.close_gripper('b_bot', velocity=0.01, wait=True)
 
@@ -545,7 +543,7 @@ class TaskboardClass(O2ACCommon):
         rospy.logwarn("** CHANGE POSITIONS USING MOVEIT **")
         self.move_joints('b_bot', pre_push_position)
 
-      else:
+      else: #urscript
         insert = self.load_program(robot="b_bot", program_name="wrs2020/bearing_insert.urp", recursion_depth=3)
         if insert:
           print("Loaded bearing insert program.")
