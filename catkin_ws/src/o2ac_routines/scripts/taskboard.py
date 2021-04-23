@@ -162,12 +162,12 @@ class TaskboardClass(O2ACCommon):
 
     self.go_to_named_pose("home", "a_bot")
 
-    self.do_change_tool_action("a_bot", equip=True, screw_size = 3)
+    self.equip_tool("a_bot", "screw_tool_m3")
     self.go_to_named_pose("feeder_pick_ready", "a_bot")
 
     self.go_to_named_pose("home", "b_bot")
     
-    self.do_change_tool_action("b_bot", equip=True, screw_size = 2)  # Set screw tool
+    self.equip_tool("b_bot", "set_screw_tool")
     self.go_to_named_pose("horizontal_screw_ready", "b_bot")
 
     self.move_b_bot_to_setscrew_initial_pos()
@@ -192,8 +192,8 @@ class TaskboardClass(O2ACCommon):
     self.go_to_named_pose("home", "a_bot")
 
     # Move b_bot back, a_bot to screw
-    self.do_change_tool_action("b_bot", equip=False, screw_size = 2)
-    self.do_change_tool_action("b_bot", equip=True, screw_size = 4)
+    self.unequip_tool("b_bot", "set_screw_tool")
+    self.equip_tool("b_bot", "screw_tool_m4")
     self.go_to_named_pose("home", "b_bot")
 
     self.subtask_completed["M3 screw"] = self.do_task("M3 screw")
@@ -203,10 +203,10 @@ class TaskboardClass(O2ACCommon):
     #### SCREW M4 WITH B_BOT
     self.subtask_completed["M4 screw"] = self.do_task("M4 screw")
 
-    self.do_change_tool_action("a_bot", equip=False, screw_size = 3)
+    self.unequip_tool("a_bot", "screw_tool_m3")
     self.go_to_named_pose("home", "a_bot")
     self.go_to_named_pose("home", "b_bot")
-    self.do_change_tool_action("b_bot", equip=False, screw_size = 4)
+    self.unequip_tool("b_bot", "screw_tool_m4")
 
   def full_taskboard_task(self, do_screws=True):
     """
@@ -232,7 +232,7 @@ class TaskboardClass(O2ACCommon):
     
     # # - Retainer pin + nut
     # self.subtask_completed["idler pulley"] = self.do_task("idler pulley")
-    # self.do_change_tool_action("b_bot", equip=False, screw_size = 4)
+    # self.unequip_tool("b_bot", "screw_tool_m4")
 
     # - Shaft
     self.subtask_completed["shaft"] = self.do_task("shaft")
@@ -312,7 +312,7 @@ class TaskboardClass(O2ACCommon):
 
     if task_name == "M2 set screw":
       # Equip and move to the screw hole
-      # self.do_change_tool_action("b_bot", equip=True, screw_size = 2)  # Set screw tool
+      # self.equip_tool("b_bot", "set_screw_tool")
       # self.go_to_named_pose("horizontal_screw_ready", "b_bot")
       screw_approach = copy.deepcopy(self.at_set_screw_hole)
       screw_approach.pose.position.x = -0.005
@@ -347,7 +347,7 @@ class TaskboardClass(O2ACCommon):
       self.go_to_named_pose("horizontal_screw_ready", "b_bot", speed=0.5, acceleration=0.5)
       # self.confirm_to_proceed("Unequip tool?")
       # self.go_to_named_pose("home", "b_bot", speed=0.5, acceleration=0.5)
-      # self.do_change_tool_action("b_bot", equip=False, screw_size = 2)  # Set screw tool
+      # self.unequip_tool("b_bot", "set_screw_tool")
     
     # ==========================================================
 
@@ -707,7 +707,7 @@ class TaskboardClass(O2ACCommon):
       self.go_to_pose_goal("a_bot", pick_pose, speed=0.1, move_lin = True)
 
       # # TODO (felixvd): Change this to the special tool without a suction pad
-      # if self.do_change_tool_action("b_bot", equip=True, screw_size = 4):
+      # if self.equip_tool("b_bot", "screw_tool_m4"):
       #   self.go_to_named_pose("home","b_bot")
       # else:
       #   rospy.logerr("Tool could not be picked! Aborting")
@@ -724,7 +724,7 @@ class TaskboardClass(O2ACCommon):
         return False
       wait_for_UR_program("/a_bot", rospy.Duration.from_sec(20))
 
-      self.do_change_tool_action("b_bot", equip=True, screw_size = 4)
+      self.equip_tool("b_bot", "screw_tool_m4")
       # success_a = self.load_program(robot="a_bot", program_name="wrs2020/tb_retainer_and_nut_v2_hu.urp", recursion_depth=3)
       success_b = self.load_program(robot="b_bot", program_name="wrs2020/taskboard_retainer_and_nut_v4.urp", recursion_depth=3)
 
@@ -758,7 +758,7 @@ class TaskboardClass(O2ACCommon):
         # rospy.logwarn("Robot was protective stopped after idler pulley insertion - idler pulley may be stuck!")
         # self.unlock_protective_stop("b_bot")
         self.go_to_named_pose("home","b_bot")
-      self.do_change_tool_action("b_bot", equip=False, screw_size = 4)
+      self.unequip_tool("b_bot", "screw_tool_m4")
       self.go_to_named_pose("home","a_bot")
       self.go_to_named_pose("home","b_bot")
       return True
@@ -810,17 +810,17 @@ if __name__ == '__main__':
         taskboard.open_gripper("a_bot", wait=False)
         taskboard.open_gripper("b_bot", wait=False)
       if i == "13":
-        taskboard.do_change_tool_action("a_bot", equip=True, screw_size = 3)
+        taskboard.equip_tool("a_bot", "screw_tool_m3") 
       if i == "14":
-        taskboard.do_change_tool_action("a_bot", equip=False, screw_size = 3)
+        taskboard.unequip_tool("a_bot", "screw_tool_m3")
       if i == "15":
-        taskboard.do_change_tool_action("b_bot", equip=True, screw_size = 4)
+        taskboard.equip_tool("b_bot", "screw_tool_m4")
       if i == "16":
-        taskboard.do_change_tool_action("b_bot", equip=False, screw_size = 4)
+        taskboard.unequip_tool("b_bot", "screw_tool_m4")
       if i == "17":
-        taskboard.do_change_tool_action("b_bot", equip=True, screw_size = 2)
+        taskboard.equip_tool("b_bot", "set_screw_tool")
       if i == "18":
-        taskboard.do_change_tool_action("b_bot", equip=False, screw_size = 2)
+        taskboard.unequip_tool("b_bot", "set_screw_tool")
       if i == "51":
         taskboard.do_task("M2 set screw")
       if i == "52":
