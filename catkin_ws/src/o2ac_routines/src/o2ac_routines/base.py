@@ -350,6 +350,8 @@ class O2ACBase(object):
     try:
       if self.ur_ros_control_running_on_robot[robot]:
         return True
+      else:
+        rospy.loginfo("robot_program_running not true for " + robot)
     except:
       rospy.logerr("Robot name '" + robot + "' was not found or the robot is not a UR!")
       return False
@@ -372,6 +374,7 @@ class O2ACBase(object):
         request = ur_dashboard_msgs.srv.LoadRequest()
         request.filename = "ROS_external_control.urp"
         response = self.ur_dashboard_clients[robot + "_load_program"].call(request)
+        rospy.sleep(2.0)
         if response.success: # Try reconnecting to dashboard
           load_success = True
         else:
@@ -426,11 +429,16 @@ class O2ACBase(object):
         else:
           return True
 
+  def load_and_execute_program(self, robot="b_bot", program_name="", recursion_depth=0):
+    if not self.load_program(robot, program_name, recursion_depth):
+      return False
+    return self.execute_loaded_program(robot):
+
   def load_program(self, robot="b_bot", program_name="", recursion_depth=0):
     if not self.use_real_robot:
       return True
 
-    if recursion_depth > 4:
+    if recursion_depth > 6:
       rospy.logerr("Tried too often. Breaking out.")
       rospy.logerr("Could not load " + program_name + ". Is the UR in Remote Control mode and program installed with correct name?")
       return False
@@ -451,7 +459,7 @@ class O2ACBase(object):
       else:
         rospy.logerr("Could not load " + program_name + ". Is the UR in Remote Control mode and program installed with correct name?")
     except:
-      rospy.logwarn("Dashboard service did not respond!")
+      rospy.logwarn("Dashboard service did not respond to load_program!")
     if not load_success:
       rospy.logwarn("Waiting and trying again")
       rospy.sleep(3)
@@ -461,7 +469,7 @@ class O2ACBase(object):
           rospy.logerr("Program could not be loaded on UR: " + program_name)
           rospy.sleep(.5)
       except:
-        rospy.logwarn("Dashboard service did not respond! (2)")
+        rospy.logwarn("Dashboard service did not respond to quit! ")
         pass
       response = self.ur_dashboard_clients[robot + "_connect"].call()
       rospy.sleep(.5)

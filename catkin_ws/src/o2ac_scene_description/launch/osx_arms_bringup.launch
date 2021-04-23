@@ -58,6 +58,7 @@
   
   <!-- Adapted from ur5e_bringup.launch -->
   <remap from="/a_bot/joint_states" to="/joint_states"/>
+  <param name="/a_bot/dashboard/receive_timeout" type="double" value="3.0" />
   <include file="$(find ur_robot_driver)/launch/ur_common.launch" ns="a_bot">
     <arg name="debug" value="$(arg debug)"/>
     <arg name="use_tool_communication" value="$(arg use_tool_communication_a)"/>
@@ -83,6 +84,7 @@
   </include>
   
   <remap from="/b_bot/joint_states" to="/joint_states"/>
+  <param name="/b_bot/dashboard/receive_timeout" type="double" value="3.0" />
   <include file="$(find ur_robot_driver)/launch/ur_common.launch" ns="b_bot">
     <arg name="debug" value="$(arg debug)"/>
     <arg name="use_tool_communication" value="$(arg use_tool_communication_b)"/>
