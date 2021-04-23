@@ -41,7 +41,7 @@ import geometry_msgs.msg
 import moveit_msgs
 import tf_conversions
 import tf
-from math import pi
+from math import pi, radians, sin, cos
 tau = 2.0*pi  # Part of math from Python 3.6
 import math
 
@@ -187,10 +187,17 @@ class AssemblyClass(O2ACCommon):
     rospy.logerr("Subtask B not implemented yet")
     return
 
-  def subtask_c(self):
-    rospy.loginfo("======== SUBTASK C (output bearing + shaft) ========")
+  def subtask_c1(self):
+    rospy.loginfo("======== SUBTASK C (bearing) ========")
     rospy.logerr("Subtask C not implemented yet")
-    self.go_to_named_pose("home", "b_bot", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
+    self.go_to_named_pose("home", "b_bot", speed=self.speed_fastest, acceleration=self.acc_fastest)
+
+    return False
+  
+  def subtask_c2(self):
+    rospy.loginfo("======== SUBTASK C (output shaft) ========")
+    rospy.logerr("Subtask C not implemented yet")
+    self.go_to_named_pose("home", "b_bot", speed=self.speed_fastest, acceleration=self.acc_fastest)
     return False
 
   def subtask_d(self):
@@ -434,7 +441,8 @@ class AssemblyClass(O2ACCommon):
 
     rospy.loginfo("==== Finished.")
 
-    # # self.subtask_c() # bearing shaft insertion
+    # # self.subtask_c1() # bearing 
+    # # self.subtask_c2() # shaft
 
     # # To prepare subtask E
     # self.pick_retainer_pin_from_tray_and_place_in_holder(do_centering=False)
@@ -576,11 +584,24 @@ if __name__ == '__main__':
       elif i == '92':
         assy.subtask_f()  # Motor plate
       elif i == '93':
-        assy.subtask_e() # 
+        assy.subtask_c() # bearing
       elif i == '94':
-        assy.subtask_a() #
+        assy.subtask_a() # Motor
       elif i == '95':
-        assy.subtask_c() #
+        assy.subtask_b() # motor pulley
+      elif i == '96':
+        assy.subtask_e() # idler pin
+        # 97: shaft, 98: clamp pulley, 99: belt).")
+      elif i == "899":
+        center_plate_pose = geometry_msgs.msg.PoseStamped()
+        center_plate_pose.header.frame_id = "assembled_assy_part_03_pulley_ridge_bottom"
+        center_plate_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, radians(60), -tau/4))
+        assy.open_gripper("a_bot", opening_width=0.07, wait=False)
+        assy.go_to_pose_goal("a_bot", center_plate_pose, move_lin=False, speed=1.0)
+        assy.close_gripper("a_bot", force = 100)
+        assy.open_gripper("a_bot")
+      elif i == "898":
+        assy.go_to_named_pose("home", "a_bot", force_ur_script=False)
       elif i == '100': # Test Force control be careful!!
         b_bot_starting_position = [1.7078, -1.5267, 2.0624, -2.1325, -1.6114, 1.7185]
         assy.move_joints("b_bot", b_bot_starting_position)

@@ -546,7 +546,7 @@ class O2ACVisionServer(object):
         except Exception as e:
             rospy.logerr('Pose transform failed(): {}'.format(e))
         
-        p3d.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, pose_2d.theta))
+        p3d.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, -pose_2d.theta+tau/4))
         return p3d
 
 

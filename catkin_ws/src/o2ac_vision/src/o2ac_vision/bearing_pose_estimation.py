@@ -325,8 +325,8 @@ im_temp = cv2.imread("../../../motor_front.png",0)
 # define pose estimation class
 pe = PoseEstimator( im_temp, img, bbox, mat )
 # do registration
-d_rotate, translation = pe.main_proc( threshold=5.0, ds=10.0 )
-print(d_rotate, translation) # => CCW rotation (deg) is returned
+rotation, translation = pe.main_proc( threshold=5.0, ds=10.0 )
+print(rotation, translation) # => CCW rotation (rad) is returned
 im_vis = pe.get_result_image()
 ################################################################################################
 """
@@ -428,7 +428,7 @@ class PoseEstimator:
             
             # Registration by ICP algorithm
             reg = ICPRegistration( pcd_s_ds_ini, pcd_t_ds )
-            reg.set_distance_torrelance( ds*0.5 )
+            reg.set_distance_tolerance( ds*0.5 )
             mse_tmp, reg_trans_tmp = reg.registration()
             mses.append(mse_tmp)
             reg_transes.append(reg_trans_tmp)
@@ -462,13 +462,10 @@ class PoseEstimator:
             self.d = reg.d
             # Get registration result
             #  translation[x,y] and rotation
-            _,_,rotate = mat2rpy(self.trans_final)
-            d_rotate = np.degrees(rotate)
+            _,_,rotation = mat2rpy(self.trans_final)
+            # d_rotate = np.degrees(rotation)
             translation = self.trans_final[:2,3]
-            return d_rotate, translation
-                
-            
-        
+            return rotation, translation
         return False, False
             
         

@@ -23,7 +23,7 @@ class SkillServerClient():
             self.urscript_client = rospy.ServiceProxy('/o2ac_skills/sendScriptToUR', o2ac_msgs.srv.sendScriptToUR)
             self.use_real_robot = rospy.get_param("use_real_robot", False)
 
-    def pick_screw_from_feeder(self, robot_name, screw_size):
+    def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=True):
         """
         Picks a screw from one of the feeders. The screw tool already has to be equipped!
         Use this command to equip the screw tool: do_change_tool_action(self, "b_bot", equip=True, screw_size = 4)
@@ -38,8 +38,20 @@ class SkillServerClient():
         rospy.logdebug("Waiting for result")
         self.pick_screw_from_feeder_client.wait_for_result()
         rospy.logdebug("Getting result")
-        return self.pick_screw_from_feeder_client.get_result()    
-
+        res = self.pick_screw_from_feeder_client.get_result()
+    
+        if res.success:
+            return True
+        else:
+            if realign_tool_upon_failure:
+                self.go_to_named_pose("tool_pick_ready", robot_name)
+                rospy.loginfo("pickScrewFromFeeder failed. Realigning tool and retrying.")
+                screw_tool_id = "screw_tool_m" + str(screw_size)
+                self.realign_tool(robot_name, screw_tool_id)
+                return self.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure=False)
+            else:
+                return False
+        
     def do_place_action(self, robot_name, pose_stamped, tool_name = "", screw_size=0):
         # Call the place action
         goal = o2ac_msgs.msg.placeGoal()
@@ -79,7 +91,13 @@ class SkillServerClient():
         rospy.loginfo("Sending screw action goal.")
         self.screw_client.send_goal(goal)
         self.screw_client.wait_for_result()
-        return self.screw_client.get_result()
+        res = self.screw_client.get_result()
+            try:
+                return res.success
+            except:
+                print("failed to return screw result")
+                print(res)
+                return False    
 
     def do_change_tool_action(self, robot_name, equip=True, screw_size = 4):
         ### DEPRECATED

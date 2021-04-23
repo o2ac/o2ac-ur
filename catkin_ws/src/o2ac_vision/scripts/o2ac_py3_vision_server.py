@@ -56,7 +56,8 @@ import visualization_msgs.msg
 import sensor_msgs.msg
 import std_msgs.msg
 
-from o2ac_vision.bearing_pose_estimation import BearingPoseEstimator
+from o2ac_vision.bearing_pose_estimation import BearingPoseEstimator, PoseEstimator
+
 
 class O2ACBearingPoseEstimationServer(object):
     """
@@ -93,10 +94,24 @@ class O2ACBearingPoseEstimationServer(object):
         im_in2 = cv2.cvtColor(im_in, cv2.COLOR_RGB2GRAY)
         im_vis = im_in.copy()
 
-        be = BearingPoseEstimator( self.bearing_template, im_in2, [200, 100, 320, 300] )
-        rotation, translation = be.main_proc( threshold=3.0, ds=3.0 )
-        action_result = o2ac_msgs.msg.detectAngleResult()
+        if goal.item_id == "bearing":
+            estimator = BearingPoseEstimator( self.bearing_template, im_in2, [200, 100, 320, 300] )
+            rotation, translation = estimator.main_proc( threshold=3.0, ds=3.0 )
         
+        if goal.item_id == "motor":
+            src_pts = np.array([[287,94], [470,91], [285,270], [490,265]], dtype=np.float32)
+            ## destination points (rectified corner points)
+            dst_pts = np.array([[287,94], [470,91], [287,270], [470,265]], dtype=np.float32)
+            mat = cv2.getPerspectiveTransform(src_pts, dst_pts)
+
+            bbox = [270,180,240,240]  # Set bounding box(x,y,w,h)
+            template_path = os.path.join(rospkg.RosPack().get_path('o2ac_vision'), 'config', 'motor_template_image.png')
+            im_template = cv2.imread(template_path, 0)  # Read template image (use option "0")
+
+            estimator = PoseEstimator( im_template, im_in2, bbox, mat )  # Define pose estimation class
+            rotation, translation = estimator.main_proc( threshold=5.0, ds=10.0 )  # Do registration
+        
+        action_result = o2ac_msgs.msg.detectAngleResult()
         if rotation:
             action_result.succeeded = True
             action_result.rotation_angle = rotation
@@ -104,7 +119,7 @@ class O2ACBearingPoseEstimationServer(object):
         else:
             action_result.succeeded = False
             self.angle_detection_action_server.set_aborted(action_result)
-        im_vis = be.get_result_image()
+        im_vis = estimator.get_result_image()
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
 
 if __name__ == '__main__':

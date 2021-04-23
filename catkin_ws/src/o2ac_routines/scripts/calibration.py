@@ -460,9 +460,8 @@ if __name__ == '__main__':
     while not rospy.is_shutdown():
       rospy.loginfo("============ Calibration procedures ============ ")
       rospy.loginfo("Enter a number to check calibrations for the following things: ")
-      rospy.loginfo("1000: Move with different acceleration values")
-      rospy.loginfo("100, 101: Go home (back) with all robots")
-      rospy.loginfo("111: The robots (Using the assembly base plate)")
+      rospy.loginfo("1: home (b_bot), 100/101: home/back (both robots)")
+      rospy.loginfo("12: b_bot_outside_camera, 13: b_bot_inside_camera (activate)")
       rospy.loginfo("===== GENERAL")
       rospy.loginfo("21, 22: Touch tray sponge with a_bot, b_bot")
       rospy.loginfo("===== TASKBOARD TASK")
@@ -508,8 +507,10 @@ if __name__ == '__main__':
       elif r == '101':
         c.go_to_named_pose("back", "a_bot")
         c.go_to_named_pose("back", "b_bot")
-      elif r == '111':
-        c.check_robot_calibration(position="assembly_corner_4")
+      elif r == '12':
+        c.activate_camera("b_bot_outside_camera")
+      elif r == '13':
+        c.activate_camera("b_bot_inside_camera")
       elif r == '21':
         c.tray_calibration(robot_name="a_bot", end_effector_link="a_bot_robotiq_85_tip_link")
       elif r == '22':
@@ -548,6 +549,40 @@ if __name__ == '__main__':
       elif r == '522':
         c.move_lin_rel("b_bot", [-0.02, 0, 0])
         c.move_lin_rel("b_bot", [0.02, 0, 0])
+      elif r == '53':  # Bearing rotation
+        ps = geometry_msgs.msg.PoseStamped()
+        
+        ps.header.frame_id = "assembled_assy_part_07_inserted"
+        ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, radians(0), 0))
+        ps.pose.position = geometry_msgs.msg.Point(-0.0, 0.0, 0.0)
+        c.go_to_pose_goal("b_bot", ps, speed=.1, acceleration=.04, end_effector_link = "b_bot_bearing_rotate_helper_link")
+        c.close_gripper("b_bot")
+        ps.pose.orientation = helpers.rotateQuaternionByRPYInUnrotatedFrame(radians(45), 0, 0, ps.pose.orientation)
+        c.go_to_pose_goal("b_bot", ps, speed=.1, acceleration=.04, end_effector_link = "b_bot_bearing_rotate_helper_link")
+        c.open_gripper("b_bot")
+        ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
+        c.go_to_pose_goal("b_bot", ps, speed=.1, acceleration=.04, end_effector_link = "b_bot_bearing_rotate_helper_link")
+        ps.pose.orientation = helpers.rotateQuaternionByRPYInUnrotatedFrame(radians(-45), 0, 0, ps.pose.orientation)
+        c.close_gripper("b_bot")
+        c.go_to_pose_goal("b_bot", ps, speed=.1, acceleration=.04, end_effector_link = "b_bot_bearing_rotate_helper_link")
+        ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
+        c.open_gripper("b_bot")
+        c.go_to_pose_goal("b_bot", ps, speed=.1, acceleration=.04, end_effector_link = "b_bot_bearing_rotate_helper_link")
+      elif r == '531':  # Bearing rotation
+        c.align_bearing_holes(max_adjustments=10, task="assembly")
+      elif r == '54':  # Motor angle
+        c.activate_camera("b_bot_outside_camera")
+        camera_look_pose = geometry_msgs.msg.PoseStamped()
+        camera_look_pose.header.frame_id = "vgroove_aid_link"
+        camera_look_pose.pose.orientation = geometry_msgs.msg.Quaternion(*(0.84, 0.0043246, 0.0024908, 0.54257))
+        camera_look_pose.pose.position = geometry_msgs.msg.Point(-0.0118, 0.133, 0.0851)
+        camera_look_pose.pose.position.z += 0.2
+        c.go_to_pose_goal("b_bot", camera_look_pose, end_effector_link="b_bot_outside_camera_color_optical_frame", speed=.1, acceleration=.04)
+        camera_look_pose.pose.position.z -= 0.2
+        c.go_to_pose_goal("b_bot", camera_look_pose, end_effector_link="b_bot_outside_camera_color_optical_frame", speed=.1, acceleration=.04)
+      elif r == '544':
+        c.activate_camera("b_bot_outside_camera")
+        angle = c.get_motor_angle()
       elif r == '6':
         c.go_to_named_pose("back", "a_bot")
         c.go_to_named_pose("screw_ready", "b_bot")

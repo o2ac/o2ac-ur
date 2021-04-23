@@ -455,23 +455,6 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Grasp points requested for " + str(object_id) + " but it is not seen in tray.")
       return False
     
-    # TODO(felixvd)
-    # Hack of the day!!! When looking for the bearing, remove the idler pulley from the perception,
-    # because it's a false positive in the same spot.
-    try:
-      if object_id == 7:
-        del self.objects_in_tray[13]
-        rospy.logwarn("HACKY: Deleting 13 from perception")
-    except:
-      pass
-    
-    try:
-      if object_id == 7:
-        del self.objects_in_tray[11]
-        rospy.logwarn("HACKY: Deleting 11 from perception")
-    except:
-      pass
-
     if object_id in self.belt_id:
       res = self.get_3d_poses_from_ssd()
       grasp_poses = []
@@ -527,7 +510,7 @@ class O2ACCommon(O2ACBase):
     if not object_id in self.objects_in_tray:
       # for close_view_batch in [self.close_tray_views, self.close_tray_views_rot_left, self.close_tray_views_rot_right]:
       for view in [self.tray_view_high] + self.close_tray_views + self.close_tray_views_rot_left + self.close_tray_views_rot_right + self.close_tray_views_rot_left_more + self.close_tray_views_rot_left_90:
-        self.go_to_pose_goal("b_bot", view, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.1)
+        self.go_to_pose_goal("b_bot", view, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.3)
         rospy.sleep(0.3)
         self.get_3d_poses_from_ssd()
         if object_id in self.objects_in_tray:
@@ -540,7 +523,7 @@ class O2ACCommon(O2ACBase):
           close_view.pose.position.x += 0.0  # To avoid noise from direct reflections of the structured light
           close_view.pose.position.z = copy.deepcopy(self.close_tray_views[0].pose.position.z)
           close_view.pose.orientation = copy.deepcopy(view.pose.orientation)
-          self.go_to_pose_goal("b_bot", close_view, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.1)
+          self.go_to_pose_goal("b_bot", close_view, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.3)
           rospy.sleep(0.5)
           self.get_3d_poses_from_ssd()
           grasp_points_close = self.get_feasible_grasp_points(object_id)
@@ -703,9 +686,91 @@ class O2ACCommon(O2ACBase):
     return False
 
   def look_at_motor(self):
-    b_bot_joint_angles = [1.9093738794326782, -1.1168301564506073, 1.8244155089007776, -0.8763039273074646, -1.244535271321432, 0.048961393535137177]
+    # b_bot_joint_angles = [1.9093738794326782, -1.1168301564506073, 1.8244155089007776, -0.8763039273074646, -1.244535271321432, 0.048961393535137177]
     # b_bot_outside_camera_optical_frame in vgroove_aid_lin: xyz: -0.011832; 0.13308; 0.085104 q: 0.83999; 0.0043246; 0.0024908; 0.54257
+    camera_look_pose = geometry_msgs.msg.PoseStamped()
+    camera_look_pose.header.frame_id = "vgroove_aid_link"
+    camera_look_pose.pose.orientation = geometry_msgs.msg.Quaternion(*(0.84, 0.0043246, 0.0024908, 0.54257))
+    camera_look_pose.pose.position = geometry_msgs.msg.Point(-0.0118, 0.133, 0.0851)
+    camera_look_pose.pose.position.z += 0.2
+    self.go_to_pose_goal("b_bot", camera_look_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.1, acceleration=.04)
+    camera_look_pose.pose.position.z -= 0.2
+    self.go_to_pose_goal("b_bot", camera_look_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.1, acceleration=.04)
+    angle = self.get_motor_angle()
 
+  def align_bearing_holes(self, max_adjustments=10, task="assembly"):
+    """
+    Align the bearing holes.
+    """
+    self.activate_camera("b_bot_inside_camera")
+    self.activate_led("b_bot", on=False)
+    adjustment_motions = 0
+    times_looked_without_action = 0
+    times_perception_failed_in_a_row = 0
+    times_we_added_random_action = 0
+    times_it_looked_like_success = 0
+    
+    grasp_pose = geometry_msgs.msg.PoseStamped()
+    if task == "taskboard":
+      grasp_pose.header.frame_id = "taskboard_bearing_target_link"
+    elif task == "assembly":
+      grasp_pose.header.frame_id = "assembled_assy_part_07_inserted"
+    else:
+      rospy.logerr("Incorrect argument, frame could be determined! Breaking out.")
+      return False
+    grasp_pose.pose.orientation = geometry_msgs.msg.Quaternion(*(0, 0, 0, 1.0))
+
+    camera_look_pose = copy.deepcopy(grasp_pose)
+    camera_look_pose.pose.orientation = geometry_msgs.msg.Quaternion(*(0.5, 0.5, 0.5, 0.5))
+    camera_look_pose.pose.position = geometry_msgs.msg.Point(-0.155, -0.005, -0.0)
+
+    def rotate_bearing_by_angle(angle):
+      self.open_gripper("b_bot")
+      rotated_pose = copy.deepcopy(grasp_pose)
+      rotated_pose.pose.orientation = geometry_msgs.msg.Quaternion(
+                        *tf_conversions.transformations.quaternion_from_euler(angle, 0, 0))
+      self.go_to_pose_goal("b_bot", grasp_pose, speed=.1, acceleration=.04, end_effector_link = "b_bot_bearing_rotate_helper_link")
+      self.close_gripper("b_bot")
+      self.go_to_pose_goal("b_bot", rotated_pose, speed=.1, acceleration=.04, end_effector_link = "b_bot_bearing_rotate_helper_link")
+      self.open_gripper("b_bot")
+
+    success = False
+    while adjustment_motions < max_adjustments:
+      # Look at tb bearing
+      self.open_gripper("b_bot")
+      
+      self.go_to_pose_goal("b_bot", camera_look_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.1, acceleration=.04)
+      self.activate_led("b_bot", on=True)
+      rospy.sleep(1)  # Without a wait, the camera image is blurry
+
+      # Get angle and turn
+      angle = self.get_bearing_angle()
+      if angle:
+        rospy.loginfo("Bearing detected angle: %3f, try to correct", degrees(angle))
+        times_perception_failed_in_a_row = 0
+        if abs(degrees(angle)) > 1.5:
+          rotate_bearing_by_angle(angle)
+          adjustment_motions += 1
+        else:
+          rospy.loginfo("Bearing angle offset " + str(angle) + " is < 5 deg. Good.")
+          times_it_looked_like_success += 1
+      else:
+        rospy.logwarn("Bearing angle not found in image.")
+        times_perception_failed_in_a_row += 1
+      if times_it_looked_like_success > 3:
+        rospy.loginfo("Bearing angle looked correct " + str(times_it_looked_like_success) + " times. Judged successful.")
+        return True
+      if times_perception_failed_in_a_row > 10:
+        # If our perception fails continuously, we try to get out of a local minimum/unlucky lighting situation
+        # by rotating randomly in a direction
+        times_perception_failed_in_a_row = 0
+        times_we_added_random_action += 1
+        if times_we_added_random_action > 4:
+          rospy.logerr("Bearing perception failed too often. Breaking out")
+          return False
+        rotate_bearing_by_angle(radians(5))
+    rospy.logerr("Did not manage to align the bearing holes.")
+    return False
 
   ########
 

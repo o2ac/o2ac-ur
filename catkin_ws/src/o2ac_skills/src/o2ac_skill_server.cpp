@@ -42,10 +42,12 @@ SkillServer::SkillServer() :
   
   // Set up MoveGroups
   a_bot_group_.setPlanningTime(PLANNING_TIME);
+  a_bot_group_.setPlanningPipelineId("ompl");
   a_bot_group_.setPlannerId("RRTConnectkConfigDefault");
   a_bot_group_.setEndEffectorLink("a_bot_robotiq_85_tip_link");
   a_bot_group_.setNumPlanningAttempts(5);
   b_bot_group_.setPlanningTime(PLANNING_TIME);
+  b_bot_group_.setPlanningPipelineId("ompl");
   b_bot_group_.setPlannerId("RRTConnectkConfigDefault");
   b_bot_group_.setEndEffectorLink("b_bot_robotiq_85_tip_link");
   b_bot_group_.setNumPlanningAttempts(5);
@@ -506,6 +508,8 @@ bool SkillServer::moveToCartPosePTP(geometry_msgs::PoseStamped pose, std::string
   }
   else group_pointer->setEndEffectorLink(end_effector_link);
   group_pointer->setPoseTarget(pose);
+  group_pointer->setPlanningPipelineId("ompl");
+  group_pointer->setPlannerId("RRTConnectkConfigDefault");
 
   ROS_INFO_STREAM("Planning motion for robot " << robot_name << " and EE link " << end_effector_link + "_tip_link, to pose:");
   ROS_INFO_STREAM(pose.pose.position.x << ", " << pose.pose.position.y << ", " << pose.pose.position.z);
@@ -536,7 +540,7 @@ bool SkillServer::moveToCartPoseLIN(geometry_msgs::PoseStamped pose, std::string
       velocity_scaling_factor = reduced_speed_limit_;
     }
   }
-  if (use_real_robot_ || force_UR_script)
+  if (force_UR_script)
   {
     if (!force_moveit)
     {
@@ -586,28 +590,27 @@ bool SkillServer::moveToCartPoseLIN(geometry_msgs::PoseStamped pose, std::string
 
   moveit::planning_interface::MoveGroupInterface* group_pointer;
   group_pointer = robotNameToMoveGroup(robot_name);
-
+  
   group_pointer->clearPoseTargets();
   group_pointer->setPoseReferenceFrame("world");
   group_pointer->setStartStateToCurrentState();
-  group_pointer->setEndEffectorLink(end_effector_link);
+  
+  if (end_effector_link == "")  // Define default end effector link explicitly
+  {
+    if (robot_name == "a_bot") group_pointer->setEndEffectorLink("a_bot_robotiq_85_tip_link");
+    else group_pointer->setEndEffectorLink(robot_name + "_robotiq_85_tip_link");
+  }
+  else group_pointer->setEndEffectorLink(end_effector_link);
   
   // Plan cartesian motion
   std::vector<geometry_msgs::Pose> waypoints;
-  geometry_msgs::PoseStamped start_pose, end_pose;
-  if (end_effector_link == "") {
-    if (robot_name == "a_bot") start_pose.header.frame_id = "a_bot_robotiq_85_tip_link";
-    else start_pose.header.frame_id = robot_name + "_robotiq_85_tip_link";
-  }
-  else start_pose.header.frame_id = end_effector_link;
-  start_pose.pose = makePose();
-  start_pose = transform_pose_now(start_pose, "world", tflistener_);
+  geometry_msgs::PoseStamped end_pose;
   end_pose = transform_pose_now(pose, "world", tflistener_);
-  waypoints.push_back(start_pose.pose);
   waypoints.push_back(end_pose.pose);
 
-  group_pointer->setMaxVelocityScalingFactor(velocity_scaling_factor); // This doesn't work for linear paths: https://answers.ros.org/question/288989/moveit-velocity-scaling-for-cartesian-path/
-  b_bot_group_.setPlanningTime(LIN_PLANNING_TIME);
+  group_pointer->setMaxVelocityScalingFactor(velocity_scaling_factor); // This doesn't affect linear paths: https://answers.ros.org/question/288989/moveit-velocity-scaling-for-cartesian-path/
+  group_pointer->setMaxAccelerationScalingFactor(acceleration);
+  group_pointer->setPlanningTime(LIN_PLANNING_TIME);
 
   moveit_msgs::RobotTrajectory trajectory;
   const double jump_threshold = 0.0;
@@ -631,7 +634,7 @@ bool SkillServer::moveToCartPoseLIN(geometry_msgs::PoseStamped pose, std::string
     trajectory_processing::IterativeParabolicTimeParameterization iptp;
     // Fourth: compute computeTimeStamps
     bool success =
-        iptp.computeTimeStamps(rt, velocity_scaling_factor, velocity_scaling_factor);  // The second value is actually acceleration
+        iptp.computeTimeStamps(rt, velocity_scaling_factor, acceleration);
     // Get RobotTrajectory_msg from RobotTrajectory
     rt.getRobotTrajectoryMsg(scaled_trajectory);
 
@@ -649,6 +652,7 @@ bool SkillServer::moveToCartPoseLIN(geometry_msgs::PoseStamped pose, std::string
     if (motion_done) 
     {
       group_pointer->setMaxVelocityScalingFactor(1.0); // Reset the velocity
+      group_pointer->setMaxAccelerationScalingFactor(0.5);
       group_pointer->setPlanningTime(1.0);
       if (cartesian_success > .95) return true;
       else return false;
@@ -658,6 +662,7 @@ bool SkillServer::moveToCartPoseLIN(geometry_msgs::PoseStamped pose, std::string
   {
     ROS_ERROR_STREAM("Cartesian motion plan failed.");
     group_pointer->setMaxVelocityScalingFactor(1.0); // Reset the velocity
+    group_pointer->setMaxAccelerationScalingFactor(0.5);
     group_pointer->setPlanningTime(1.0);
     return false;
   }
@@ -698,6 +703,8 @@ bool SkillServer::goToNamedPose(std::string pose_name, std::string robot_name, d
 
   group_pointer->setStartStateToCurrentState();
   group_pointer->setNamedTarget(pose_name);
+  group_pointer->setPlanningPipelineId("ompl");
+  group_pointer->setPlannerId("RRTConnectkConfigDefault");
 
   moveit::planning_interface::MoveGroupInterface::Plan myplan;
   moveit::planning_interface::MoveItErrorCode 
@@ -1049,11 +1056,11 @@ bool SkillServer::sendFasteningToolCommand(std::string fastening_tool_name, std:
   goal.duration = duration;
   goal.speed = speed;
   fastening_tool_client.sendGoal(goal);
-  ros::Duration(0.5).sleep();
-  bool finished_before_timeout = false;
   if (wait)
   {
-    finished_before_timeout = fastening_tool_client.waitForResult(ros::Duration(10.0));
+    ros::Duration(0.5).sleep();
+    bool finished_before_timeout = false;
+    finished_before_timeout = fastening_tool_client.waitForResult(ros::Duration(std::max(10.0, duration)));
     result = fastening_tool_client.getResult();
     ROS_DEBUG_STREAM("Action " << (finished_before_timeout ? "returned" : "did not return before timeout") <<", with result: " << result->control_result);
     return result->control_result;
@@ -1250,7 +1257,7 @@ bool SkillServer::suckScrew(geometry_msgs::PoseStamped screw_head_pose, std::str
   ROS_INFO_STREAM("Moving close to screw.");
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
   above_screw_head_pose_.pose.position.x -= .01;
-  bool success = moveToCartPoseLIN(above_screw_head_pose_, robot_name, true, screw_tool_link, 0.3, 0.3, use_real_robot_, true);
+  bool success = moveToCartPoseLIN(above_screw_head_pose_, robot_name, true, screw_tool_link, 0.3, 0.2, false, false);
   if (!success)
   {
     ROS_INFO_STREAM("Linear motion plan to target pick pose failed. Returning false.");
@@ -1284,12 +1291,12 @@ bool SkillServer::suckScrew(geometry_msgs::PoseStamped screw_head_pose, std::str
 
     ROS_INFO_STREAM("Moving into screw to pick it up.");
     adjusted_pose.pose.position.x += .02;
-    moveToCartPoseLIN(adjusted_pose, robot_name, true, screw_tool_link, 0.05, 1.0, use_real_robot_, true);
+    moveToCartPoseLIN(adjusted_pose, robot_name, true, screw_tool_link, 0.05, 0.05, false, false);
 
     ROS_INFO_STREAM("Moving back a bit slowly.");
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
     adjusted_pose.pose.position.x -= .02;
-    moveToCartPoseLIN(adjusted_pose, robot_name, true, screw_tool_link, 0.1, 1.0, use_real_robot_, true);
+    moveToCartPoseLIN(adjusted_pose, robot_name, true, screw_tool_link, 0.1, 0.1, false, false);
 
     // Break out of loop if screw suctioned or max search radius exceeded
     screw_picked = screw_suctioned_[screw_tool_id];
@@ -1323,7 +1330,7 @@ bool SkillServer::suckScrew(geometry_msgs::PoseStamped screw_head_pose, std::str
     planning_scene_interface_.disallowCollisions(screw_tool_id, "m4_feeder_link");
   ROS_INFO_STREAM("Moving back up completely.");
   above_screw_head_pose_.pose.position.x -= .05;
-  moveToCartPoseLIN(above_screw_head_pose_, robot_name, true, screw_tool_link, 0.5, 0.5, use_real_robot_, true);
+  moveToCartPoseLIN(above_screw_head_pose_, robot_name, true, screw_tool_link, 0.5, 0.5, false, false);
   
   ROS_INFO_STREAM((screw_picked ? "Finished picking up screw successfully." : "Failed to pick screw."));
   return screw_picked;
@@ -1539,7 +1546,7 @@ void SkillServer::executePickScrewFromFeeder(const o2ac_msgs::pickScrewFromFeede
   {
     ROS_INFO("But a screw was already detected in the tool. Returning true without doing anything.");
     pick_screw_from_feeder_result_.success = true;
-    pickScrewFromFeederActionServer_.setSucceeded();
+    pickScrewFromFeederActionServer_.setSucceeded(pick_screw_from_feeder_result_);
     return;
   }
 
@@ -1553,7 +1560,7 @@ void SkillServer::executePickScrewFromFeeder(const o2ac_msgs::pickScrewFromFeede
   else
   {
     ROS_ERROR_STREAM("robot_name is not a_bot or b_bot but instead: " << goal->robot_name);
-    pickScrewFromFeederActionServer_.setAborted();
+    pickScrewFromFeederActionServer_.setAborted(pick_screw_from_feeder_result_);
     return;
   }
 
@@ -1753,7 +1760,7 @@ void SkillServer::executeScrew(const o2ac_msgs::screwGoalConstPtr& goal)
 
   // Move above the screw hole
   ROS_INFO("Moving above the screw hole.");
-  moveToCartPoseLIN(away_from_hole, goal->robot_name, true, screw_tool_link, 0.2, 0.2, use_real_robot_, true);
+  moveToCartPoseLIN(away_from_hole, goal->robot_name, true, screw_tool_link, 0.2, 0.2, false, false);
 
   // double duration = 20.0;
   // if (goal->screw_size)
@@ -1765,10 +1772,8 @@ void SkillServer::executeScrew(const o2ac_msgs::screwGoalConstPtr& goal)
   planning_scene_interface_.allowCollisions(screw_tool_id);
 
   ROS_INFO("Moving into the screw hole.");
-  bool success = moveToCartPoseLIN(pushed_into_hole, goal->robot_name, true, screw_tool_link, 0.01, 0.01, use_real_robot_, true);
-  // ROS_INFO("DEBUG: Waiting before spiral motion.");
-  // ros::Duration(3.0).sleep();
-
+  bool success = moveToCartPoseLIN(pushed_into_hole, goal->robot_name, true, screw_tool_link, 0.01, 0.01, false, false);
+  
   // Do spiral motion
   if (use_real_robot_)
   {
@@ -1783,24 +1788,29 @@ void SkillServer::executeScrew(const o2ac_msgs::screwGoalConstPtr& goal)
     if (srv.response.success == true)
     {
       ROS_DEBUG("Successfully called the service client to do spiral motion.");
+      ROS_INFO("Wait for spiral motion to end");
+      // TODO: Break out if fastening tool is done.
+      // TODO: Stop using the UR script and calculate a cartesian path instead.
       ros::Duration(1.0).sleep();
-      waitForURProgram("/" + goal->robot_name, ros::Duration(15));
+      bool ended_in_time = waitForURProgram("/" + goal->robot_name, ros::Duration(10));
+      ROS_INFO_STREAM("Spiral motion " << (ended_in_time ? "ended in time " : "DID NOT END IN TIME"));
     }
     else
       ROS_ERROR("Could not call the service client to do spiral motion.");
     // Move back to the center of the spiral
-    moveToCartPoseLIN(pushed_into_hole, goal->robot_name, true, screw_tool_link, 0.01, 0.01, use_real_robot_, true);
+    moveToCartPoseLIN(pushed_into_hole, goal->robot_name, true, screw_tool_link, 0.01, 0.01, false, false);
   }
   
   if (use_real_robot_) {
-    bool finished_before_timeout = fastening_tool_client.waitForResult(ros::Duration(10.0));
+    ROS_INFO("Waiting on fastening tool result");
+    bool finished_before_timeout = fastening_tool_client.waitForResult(ros::Duration(15.0));
     auto result = fastening_tool_client.getResult();
     ROS_INFO_STREAM("Screw tool motor command " << (finished_before_timeout ? "returned" : "did not return before timeout") <<". Result: " << (result->control_result ? "success":"failure"));
   }
 
   if (!goal->stay_put_after_screwing)
     // Move away
-    success = moveToCartPoseLIN(away_from_hole, goal->robot_name, true, screw_tool_link, 0.02, 0.02, use_real_robot_, true);
+    success = moveToCartPoseLIN(away_from_hole, goal->robot_name, true, screw_tool_link, 0.02, 0.02, false, false);
 
   bool screw_not_suctioned_anymore = !screw_suctioned_[screw_tool_id];
   if (!use_real_robot_) screw_not_suctioned_anymore = true;
@@ -1865,3 +1875,5 @@ int main(int argc, char **argv)
   
   return 0;
 }
+
+// TODO: Break out if fastening tool is done.

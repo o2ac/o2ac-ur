@@ -86,5 +86,14 @@
       <origin rpy="0 0 0" xyz="0.068 0 0.0014"/>
     </joint>
     <link name="${prefix}set_screw_tool_tip_link"/>
+
+    <!-- ========= -->
+    <!-- Add helper frames, e.g. for rotating bearing. -->
+    <joint name="${prefix}bearing_rotate_helper_joint" type="fixed">
+      <parent link="${prefix}robotiq_85_tip_link"/>
+      <child link="${prefix}bearing_rotate_helper_link"/>
+      <origin rpy="${radians(180)} ${radians(30)} 0" xyz="-.003 0 -0.011"/>
+    </joint>
+    <link name="${prefix}bearing_rotate_helper_link"/>
   </xacro:macro>
 </robot>

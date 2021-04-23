@@ -108,9 +108,11 @@ class FasteningToolController(object):
         elif self._motor_status_topic_is_list == False:
             return self._dynamixel_current_state.present_velocity
 
-    def execute_control(self, goal):
+    def execute_control(self, goal, double_check_after_tighten=True):
         """
         Execute the tighten/loosen action.
+        If double_check_after_tighten is True, after fastening has finished successfully,
+        the screw is loosened once and then fastened again.
         """
         motor_id = self.fastening_tools[goal.fastening_tool_name]
         self._result.control_result = True
@@ -119,13 +121,13 @@ class FasteningToolController(object):
         self._feedback.motor_speed = goal.speed     # Initial setting to start the loop
 
         # For tightening the maximum speed is 1023. For loosen it is 2047. At 1024 the motor is stopped.
+        target_speed = 1024 + goal.speed
         if goal.direction == "loosen" :
-            goal.speed = 1024 + goal.speed
-            if goal.speed > 2047 :
-                goal.speed = 2047
+            if target_speed > 2047 :
+                target_speed = 2047
         elif goal.direction == "tighten" :
-            if goal.speed > 1023 :
-                goal.speed = 1023
+            if target_speed > 1023 :
+                target_speed = 1023
 
         if (goal.fastening_tool_name in self.fastening_tools) == False :
             rospy.logerr("'%s' does not exist in %s." % (goal.fastening_tool_name, self.conf_gripper_filename))
@@ -133,7 +135,7 @@ class FasteningToolController(object):
             self._as.set_succeeded(self._result)
             return
 
-        if not self.set_moving_speed(motor_id, goal.speed) :
+        if not self.set_moving_speed(motor_id, target_speed) :
             self.set_moving_speed(motor_id, 1024)
             self.set_torque_enable(motor_id, 0)
             self._result.control_result = False
@@ -171,6 +173,12 @@ class FasteningToolController(object):
                 break
             
             if self._feedback.motor_speed == 0 and goal.direction == 'tighten':
+                if double_check_after_tighten:
+                    rospy.loginfo("Motor has stalled. Loosening for 1 second and then trying to tighten again to confirm success.")
+                    self.set_moving_speed(motor_id, 2047)  # Turn into loosening direction
+                    rospy.sleep(1.0)
+                    self.set_moving_speed(motor_id, 1024)  # Stop
+                    return self.execute_control(goal, double_check_after_tighten=False)
                 rospy.loginfo("Stopping motor because it has stalled (the screw is tightened)")
                 success_flag = True
                 motor_stalled = True
@@ -197,12 +205,15 @@ class FasteningToolController(object):
             self.set_torque_enable(motor_id, 0)
             self._result.control_result = True
             self._result.motor_stalled = motor_stalled
+            rospy.loginfo("Screw was fastened successfully.")
             self._as.set_succeeded(self._result)
         else:
             self.set_torque_enable(motor_id, 0)
             self._result.control_result = False
             self._result.motor_stalled = motor_stalled
+            rospy.loginfo("Fastening timed out. Screw not fastened.")
             self._as.set_aborted(self._result)
+        return True
 
         
 if __name__ == '__main__':
