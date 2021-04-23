@@ -1540,7 +1540,7 @@ void SkillServer::executePickScrewFromFeeder(const o2ac_msgs::pickScrewFromFeede
   {
     ROS_INFO("But a screw was already detected in the tool. Returning true without doing anything.");
     pick_screw_from_feeder_result_.success = true;
-    pickScrewFromFeederActionServer_.setSucceeded();
+    pickScrewFromFeederActionServer_.setSucceeded(pick_screw_from_feeder_result_);
     return;
   }
 
@@ -1554,7 +1554,7 @@ void SkillServer::executePickScrewFromFeeder(const o2ac_msgs::pickScrewFromFeede
   else
   {
     ROS_ERROR_STREAM("robot_name is not a_bot or b_bot but instead: " << goal->robot_name);
-    pickScrewFromFeederActionServer_.setAborted();
+    pickScrewFromFeederActionServer_.setAborted(pick_screw_from_feeder_result_);
     return;
   }
 

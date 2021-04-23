@@ -16,6 +16,9 @@
 
   <arg name="rviz_config" default="moveit"/>
 
+
+  <param name="use_real_robot" value="false"  type="bool"/>
+
   <!--
   By default, hide joint_state_publisher's GUI
 

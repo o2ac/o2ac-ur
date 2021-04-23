@@ -455,23 +455,6 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Grasp points requested for " + str(object_id) + " but it is not seen in tray.")
       return False
     
-    # TODO(felixvd)
-    # Hack of the day!!! When looking for the bearing, remove the idler pulley from the perception,
-    # because it's a false positive in the same spot.
-    try:
-      if object_id == 7:
-        del self.objects_in_tray[13]
-        rospy.logwarn("HACKY: Deleting 13 from perception")
-    except:
-      pass
-    
-    try:
-      if object_id == 7:
-        del self.objects_in_tray[11]
-        rospy.logwarn("HACKY: Deleting 11 from perception")
-    except:
-      pass
-
     if object_id in self.belt_id:
       res = self.get_3d_poses_from_ssd()
       grasp_poses = []
@@ -527,7 +510,7 @@ class O2ACCommon(O2ACBase):
     if not object_id in self.objects_in_tray:
       # for close_view_batch in [self.close_tray_views, self.close_tray_views_rot_left, self.close_tray_views_rot_right]:
       for view in [self.tray_view_high] + self.close_tray_views + self.close_tray_views_rot_left + self.close_tray_views_rot_right + self.close_tray_views_rot_left_more + self.close_tray_views_rot_left_90:
-        self.go_to_pose_goal("b_bot", view, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.1)
+        self.go_to_pose_goal("b_bot", view, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.3)
         rospy.sleep(0.3)
         self.get_3d_poses_from_ssd()
         if object_id in self.objects_in_tray:
@@ -540,7 +523,7 @@ class O2ACCommon(O2ACBase):
           close_view.pose.position.x += 0.0  # To avoid noise from direct reflections of the structured light
           close_view.pose.position.z = copy.deepcopy(self.close_tray_views[0].pose.position.z)
           close_view.pose.orientation = copy.deepcopy(view.pose.orientation)
-          self.go_to_pose_goal("b_bot", close_view, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.1)
+          self.go_to_pose_goal("b_bot", close_view, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.3)
           rospy.sleep(0.5)
           self.get_3d_poses_from_ssd()
           grasp_points_close = self.get_feasible_grasp_points(object_id)

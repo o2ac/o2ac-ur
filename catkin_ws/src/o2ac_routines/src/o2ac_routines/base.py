@@ -399,13 +399,13 @@ class O2ACBase(object):
       return False
     else:
       # Check if controller is running
-      self.check_for_dead_controller_and_force_start("b_bot")
+      self.check_for_dead_controller_and_force_start(robot)
       rospy.loginfo("Successfully activated ROS control on robot " + robot)
       return True
 
   def check_for_dead_controller_and_force_start(self, robot="b_bot"):
-    service_proxy_list = rospy.ServiceProxy('/b_bot/controller_manager/list_controllers', controller_manager_msgs.srv.ListControllers)
-    service_proxy_switch = rospy.ServiceProxy('/b_bot/controller_manager/switch_controller', controller_manager_msgs.srv.SwitchController)
+    service_proxy_list = rospy.ServiceProxy("/" + robot + "/controller_manager/list_controllers", controller_manager_msgs.srv.ListControllers)
+    service_proxy_switch = rospy.ServiceProxy("/" + robot + "/controller_manager/switch_controller", controller_manager_msgs.srv.SwitchController)
     rospy.sleep(2)
 
     list_req = controller_manager_msgs.srv.ListControllersRequest()
@@ -416,7 +416,7 @@ class O2ACBase(object):
       if c.name == "scaled_pos_joint_traj_controller":
         if c.state == "stopped":
           # Force restart
-          rospy.logerr("Force controller start")
+          rospy.logerr("Force restart of controller")
           switch_req.start_controllers = ['scaled_pos_joint_traj_controller']
           switch_req.strictness = 1
           switch_res = service_proxy_switch.call(switch_req)
@@ -660,7 +660,7 @@ class O2ACBase(object):
     group = self.groups[robot_name]
     new_pose1 = group.get_current_pose()
     new_pose2 = group.get_current_pose()
-    if helpers.pose_dist(new_pose1, new_pose2) > 0.002:
+    if pose_dist(new_pose1.pose, new_pose2.pose) > 0.002:
       # This is guarding against a weird error that seems to occur with get_current_pose sometimes
       rospy.logerr("get_current_pose gave two different results!!")
       print("pose1: ")
@@ -668,14 +668,14 @@ class O2ACBase(object):
       print("pose2: ")
       print(new_pose2.pose)
     
-    new_pose.pose.position.x += relative_translation[0]
-    new_pose.pose.position.y += relative_translation[1]
-    new_pose.pose.position.z += relative_translation[2]
-    new_pose.pose.orientation = helpers.rotateQuaternionByRPY(relative_rotation[0], relative_rotation[1], 
-                                                        relative_rotation[2], new_pose.pose.orientation)
+    new_pose2.pose.position.x += relative_translation[0]
+    new_pose2.pose.position.y += relative_translation[1]
+    new_pose2.pose.position.z += relative_translation[2]
+    new_pose2.pose.orientation = rotateQuaternionByRPY(relative_rotation[0], relative_rotation[1], 
+                                                        relative_rotation[2], new_pose2.pose.orientation)
     print("Pose afterwards: ")
-    print(new_pose.pose)
-    return self.move_lin(robot_name, new_pose, speed = velocity, acceleration = acceleration)
+    print(new_pose2.pose)
+    return self.move_lin(robot_name, new_pose2, speed = velocity, acceleration = acceleration)
 
   def move_joints(self, group_name, joint_pose_goal, speed = 1.0, acceleration = 0.5, force_ur_script=False, force_moveit=False):
     if rospy.is_shutdown():
@@ -747,10 +747,10 @@ class O2ACBase(object):
     self.groups[robot_name].set_named_target(pose_name)
     rospy.logdebug("Setting velocity scaling to " + str(speed))
     self.groups[robot_name].set_max_velocity_scaling_factor(speed)
-    self.groups[robot_name].go(wait=True)
+    move_success = self.groups[robot_name].go(wait=True)
     # self.groups[robot_name].stop()
     self.groups[robot_name].clear_pose_targets()
-    return True
+    return move_success
 
   ######
   def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=False):
@@ -792,10 +792,10 @@ class O2ACBase(object):
       tool_name = "screw_tool_m" + str(screw_size)
 
     if equip:
-      self.equip_tool(robot_name, tool_name)
+      res = self.equip_tool(robot_name, tool_name)
     else:
-      self.unequip_tool(robot_name, tool_name)
-    return
+      res = self.unequip_tool(robot_name, tool_name)
+    return res
   
   def upload_tool_grasps_to_param_server(self, tool_id):
     transformer = tf.Transformer(True, rospy.Duration(10.0))
@@ -1172,36 +1172,6 @@ class O2ACBase(object):
       wait_for_UR_program("/" + robot_name, rospy.Duration.from_sec(60.0))
     return res.success
 
-  def movelin_around_shifted_tcp(self, robot_name, wait = True, desired_twist = [0,0,0,0,0,0], tcp_position = [0.0,0.0,0.0,0.0,0.0,0.0],
-                        velocity = 0.1, acceleration = 0.02):
-    """
-    Shifts the TCP to tcp_position (in the robot wrist frame) and moves by desired_twist.
-
-    For the UR, this sets the TCP inside the UR controller and uses the movel command. The TCP is reset afterwards.
-    
-    The desired twist is the desired relative motion and should be in the coordinates of the shifted TCP. This method is used to 
-    rotate around the tip of the workpiece during the alignment for adaptive insertion, when the robot touches the hole with the peg to find its position precisely.
-    Using the position calculated from the robot link lengths and reported joint angles would introduce too much of an error.
-    """
-    if not robot_name == "b_bot":
-      rospy.logerr("This is not yet implemented for non-UR robots!")
-      return False
-    if not self.use_real_robot:
-      return True
-    # Directly calls the UR service rather than the action of the skill_server
-    req = o2ac_msgs.srv.sendScriptToURRequest()
-    req.robot_name = robot_name
-    req.program_id = "tcp_movement"
-    req.desired_twist = desired_twist
-    req.tcp_pose = tcp_position
-    req.velocity = velocity
-    req.acceleration = acceleration
-    res = self.urscript_client.call(req)
-    if wait:
-      rospy.sleep(2.0)
-      wait_for_UR_program("/" + robot_name, rospy.Duration.from_sec(30.0))
-    return res.success
-  
   def set_tcp_in_ur(self, robot_name, tcp_pose = [0.0,0.0,0.0,0.0,0.0,0.0]):
     """
     Change the TCP inside the UR controller (use with caution!)
