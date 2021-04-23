@@ -1056,11 +1056,11 @@ bool SkillServer::sendFasteningToolCommand(std::string fastening_tool_name, std:
   goal.duration = duration;
   goal.speed = speed;
   fastening_tool_client.sendGoal(goal);
-  ros::Duration(0.5).sleep();
-  bool finished_before_timeout = false;
   if (wait)
   {
-    finished_before_timeout = fastening_tool_client.waitForResult(ros::Duration(10.0));
+    ros::Duration(0.5).sleep();
+    bool finished_before_timeout = false;
+    finished_before_timeout = fastening_tool_client.waitForResult(ros::Duration(std::max(10.0, duration)));
     result = fastening_tool_client.getResult();
     ROS_DEBUG_STREAM("Action " << (finished_before_timeout ? "returned" : "did not return before timeout") <<", with result: " << result->control_result);
     return result->control_result;
@@ -1788,8 +1788,12 @@ void SkillServer::executeScrew(const o2ac_msgs::screwGoalConstPtr& goal)
     if (srv.response.success == true)
     {
       ROS_DEBUG("Successfully called the service client to do spiral motion.");
+      ROS_INFO("Wait for spiral motion to end");
+      // TODO: Break out if fastening tool is done.
+      // TODO: Stop using the UR script and calculate a cartesian path instead.
       ros::Duration(1.0).sleep();
-      waitForURProgram("/" + goal->robot_name, ros::Duration(15));
+      bool ended_in_time = waitForURProgram("/" + goal->robot_name, ros::Duration(10));
+      ROS_INFO_STREAM("Spiral motion " << (ended_in_time ? "ended in time " : "DID NOT END IN TIME"));
     }
     else
       ROS_ERROR("Could not call the service client to do spiral motion.");
@@ -1798,7 +1802,8 @@ void SkillServer::executeScrew(const o2ac_msgs::screwGoalConstPtr& goal)
   }
   
   if (use_real_robot_) {
-    bool finished_before_timeout = fastening_tool_client.waitForResult(ros::Duration(10.0));
+    ROS_INFO("Waiting on fastening tool result");
+    bool finished_before_timeout = fastening_tool_client.waitForResult(ros::Duration(15.0));
     auto result = fastening_tool_client.getResult();
     ROS_INFO_STREAM("Screw tool motor command " << (finished_before_timeout ? "returned" : "did not return before timeout") <<". Result: " << (result->control_result ? "success":"failure"));
   }
@@ -1870,3 +1875,5 @@ int main(int argc, char **argv)
   
   return 0;
 }
+
+// TODO: Break out if fastening tool is done.
