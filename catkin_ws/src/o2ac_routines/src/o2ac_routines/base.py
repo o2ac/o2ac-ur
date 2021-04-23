@@ -562,6 +562,8 @@ class O2ACBase(object):
     rospy.logdebug("Setting velocity scaling to " + str(speed))
     group.set_max_velocity_scaling_factor(speed)
     group.set_max_acceleration_scaling_factor(acceleration)
+    group.set_planning_pipeline_id("ompl")
+    group.set_planner_id("RRTConnect")
 
     move_success = group.go(wait=True)
     group.stop()
@@ -601,27 +603,21 @@ class O2ACBase(object):
     group = self.groups[group_name]
 
     group.set_end_effector_link(end_effector_link)
-    group.set_pose_target(pose_goal_stamped)
+    pose_goal_world = self.listener.transformPose("world", pose_goal_stamped)
+    group.set_pose_target(pose_goal_world)
     rospy.logdebug("Setting velocity scaling to " + str(speed))
     group.set_max_velocity_scaling_factor(speed)
     group.set_max_acceleration_scaling_factor(acceleration)
     
-    waypoints = []
-    pose_goal_world = self.listener.transformPose("world", pose_goal_stamped).pose
-    waypoints.append(pose_goal_world)
-    (plan, fraction) = group.compute_cartesian_path(
-                                      waypoints,   # waypoints to follow
-                                      0.01,        # eef_step
-                                      0.0)         # jump_threshold
-    rospy.loginfo("Compute cartesian path succeeded with " + str(fraction*100) + "%")
-    plan = group.retime_trajectory(self.robots.get_current_state(), plan, speed, acceleration)
-
-    plan_success = group.execute(plan, wait=True)
+    group.set_planning_pipeline_id("pilz_industrial_motion_planner")
+    group.set_planner_id("LIN")
+    
+    success = group.go(wait=True)  # Bool
     group.stop()
     group.clear_pose_targets()
 
     current_pose = group.get_current_pose().pose
-    return plan_success
+    return success
 
   def move_lin_rel(self, robot_name, relative_translation = [0,0,0], relative_rotation = [0,0,0], acceleration = 0.5, velocity = .03, use_robot_base_csys=False, wait = True, max_wait=30.0):
     '''
@@ -663,18 +659,16 @@ class O2ACBase(object):
     if pose_dist(new_pose1.pose, new_pose2.pose) > 0.002:
       # This is guarding against a weird error that seems to occur with get_current_pose sometimes
       rospy.logerr("get_current_pose gave two different results!!")
-      print("pose1: ")
-      print(new_pose1.pose)
-      print("pose2: ")
-      print(new_pose2.pose)
+      rospy.logwarn("pose1: ")
+      rospy.logwarn(new_pose1.pose)
+      rospy.logwarn("pose2: ")
+      rospy.logwarn(new_pose2.pose)
     
     new_pose2.pose.position.x += relative_translation[0]
     new_pose2.pose.position.y += relative_translation[1]
     new_pose2.pose.position.z += relative_translation[2]
     new_pose2.pose.orientation = rotateQuaternionByRPY(relative_rotation[0], relative_rotation[1], 
                                                         relative_rotation[2], new_pose2.pose.orientation)
-    print("Pose afterwards: ")
-    print(new_pose2.pose)
     return self.move_lin(robot_name, new_pose2, speed = velocity, acceleration = acceleration)
 
   def move_joints(self, group_name, joint_pose_goal, speed = 1.0, acceleration = 0.5, force_ur_script=False, force_moveit=False):
@@ -693,6 +687,8 @@ class O2ACBase(object):
     self.activate_ros_control_on_ur(group_name)
     self.groups[group_name].set_joint_value_target(joint_pose_goal)
     self.groups[group_name].set_max_velocity_scaling_factor(speed)
+    self.groups[group_name].set_planning_pipeline_id("ompl")
+    self.groups[group_name].set_planner_id("RRTConnect")
     return self.groups[group_name].go(wait=True)
 
   def move_both_robots(self, pose_goal_a_bot, pose_goal_b_bot, speed = 0.05):
@@ -708,6 +704,9 @@ class O2ACBase(object):
     group.set_pose_target(pose_goal_b_bot, end_effector_link="b_bot_robotiq_85_tip_link")
     rospy.loginfo("Setting velocity scaling to " + str(speed))
     group.set_max_velocity_scaling_factor(speed)
+    group.set_max_acceleration_scaling_factor(acceleration)
+    group.set_planning_pipeline_id("ompl")
+    group.set_planner_id("RRTConnect")
 
     success = group.go(wait=True)
     group.stop()
@@ -747,6 +746,8 @@ class O2ACBase(object):
     self.groups[robot_name].set_named_target(pose_name)
     rospy.logdebug("Setting velocity scaling to " + str(speed))
     self.groups[robot_name].set_max_velocity_scaling_factor(speed)
+    self.groups[robot_name].set_planning_pipeline_id("ompl")
+    self.groups[robot_name].set_planner_id("RRTConnect")
     move_success = self.groups[robot_name].go(wait=True)
     # self.groups[robot_name].stop()
     self.groups[robot_name].clear_pose_targets()
