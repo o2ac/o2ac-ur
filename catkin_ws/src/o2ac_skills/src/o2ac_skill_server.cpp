@@ -42,10 +42,12 @@ SkillServer::SkillServer() :
   
   // Set up MoveGroups
   a_bot_group_.setPlanningTime(PLANNING_TIME);
+  a_bot_group_.setPlanningPipelineId("ompl");
   a_bot_group_.setPlannerId("RRTConnectkConfigDefault");
   a_bot_group_.setEndEffectorLink("a_bot_robotiq_85_tip_link");
   a_bot_group_.setNumPlanningAttempts(5);
   b_bot_group_.setPlanningTime(PLANNING_TIME);
+  b_bot_group_.setPlanningPipelineId("ompl");
   b_bot_group_.setPlannerId("RRTConnectkConfigDefault");
   b_bot_group_.setEndEffectorLink("b_bot_robotiq_85_tip_link");
   b_bot_group_.setNumPlanningAttempts(5);
@@ -506,6 +508,8 @@ bool SkillServer::moveToCartPosePTP(geometry_msgs::PoseStamped pose, std::string
   }
   else group_pointer->setEndEffectorLink(end_effector_link);
   group_pointer->setPoseTarget(pose);
+  group_pointer->setPlanningPipelineId("ompl");
+  group_pointer->setPlannerId("RRTConnectkConfigDefault");
 
   ROS_INFO_STREAM("Planning motion for robot " << robot_name << " and EE link " << end_effector_link + "_tip_link, to pose:");
   ROS_INFO_STREAM(pose.pose.position.x << ", " << pose.pose.position.y << ", " << pose.pose.position.z);
@@ -699,6 +703,8 @@ bool SkillServer::goToNamedPose(std::string pose_name, std::string robot_name, d
 
   group_pointer->setStartStateToCurrentState();
   group_pointer->setNamedTarget(pose_name);
+  group_pointer->setPlanningPipelineId("ompl");
+  group_pointer->setPlannerId("RRTConnectkConfigDefault");
 
   moveit::planning_interface::MoveGroupInterface::Plan myplan;
   moveit::planning_interface::MoveItErrorCode 
