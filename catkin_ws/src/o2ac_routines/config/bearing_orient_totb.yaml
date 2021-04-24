@@ -1,0 +1,120 @@
+# Define the points in the trajectory
+robot_name: 'b_bot' # for security define the robot here
+waypoints:
+  [
+    {
+      # pose, depends on the type
+      pose: [1.7095, -1.7619, 2.2065, -2.0337, -1.5473, 0.2133],
+      type: 'joint-space', # or 'task-space' or 'relative-tcp' or 'relative-base'
+      # pose: [ 0.18808107 , 0.16920073,  0.89028264,  0.51983115,  0.47172012, -0.51674265,  0.49013543],
+      # type: 'task-space',
+      duration: 3.0, # in seconds
+    },
+    {
+      pose: [1.8371, -2.0332, 2.5464, -2.0864, -1.5405, 0.2834],
+      type: 'joint-space',
+      # pose: [-0.19622, 0.20787, 0.1916, 0.57067, 0.82108, -0.0091, -0.00953],
+      # type: 'task-space',
+      duration: 3.0, # in seconds
+    },
+    {
+      pose: [1.836, -1.8689, 2.6557, -2.36, -1.5406, 1.4835],
+      type: 'joint-space',
+      # pose: [-0.0753, 0.25626, 0.12079, 0.50159, 0.72357, -0.39094, -0.26838],
+      # type: 'task-space',
+      duration: 3.0, # in seconds
+      gripper-action: 'open' # or 'close' or 'open-close' or 'close-open'
+    },
+    {
+      pose: [1.836, -1.8689, 2.6558, -2.36, -1.5405, -0.0888],
+      type: 'joint-space',
+      duration: 3.0, # in seconds
+      gripper-action: 'close-open' 
+    },
+    {
+      pose: [1.836, -1.8689, 2.6559, -2.3601, -1.5406, -1.6611],
+      type: 'joint-space',
+      duration: 3.0, # in seconds
+    },
+    {
+      pose: [1.0819, -1.6024, 2.6337, -1.7489, -0.9852, -2.6904],
+      type: 'joint-space',
+      duration: 3.0, # in seconds
+    },
+    {
+      pose: [1.3692, -2.0179, 2.6315, -1.8867, -1.1386, -2.1988],
+      type: 'joint-space',
+      duration: 3.0, # in seconds
+      gripper-action: 'close' 
+    },
+    {
+      pose:  [2.4378, -1.5117, 2.3493, -1.98, -2.2041, -0.923],
+      type: 'joint-space',
+      duration: 3.0, # in seconds
+    },
+    {
+      pose: [2.4374, -1.4238, 2.3823, -2.1006, -2.2042, -0.9224],
+      type: 'joint-space',
+      duration: 3.0, # in seconds
+      gripper-action: 'open' 
+    },
+    {
+      pose: [1.0235, -1.4368, 2.5938, -1.6761, -0.9735, -2.8292],
+      type: 'joint-space',
+      duration: 3.0, # in seconds
+      gripper-action: 'close' 
+    },
+    {
+      pose: [1.438, -1.9585, 2.4924, -1.819, -1.1233, -1.5588],
+      type: 'joint-space',
+      duration: 3.0, # in seconds
+    },
+    {
+      pose: [1.8371, -2.0331, 2.5464, -2.0863, -1.5404, 0.2834],
+      type: 'joint-space',
+      duration: 3.0, # in seconds
+    },
+    {
+      pose: [1.836, -1.8689, 2.6557, -2.36, -1.5405, 1.4835],
+      type: 'joint-space',
+      duration: 3.0, # in seconds
+      gripper-action: 'open' 
+    },
+    {
+      pose: [1.836, -1.8688, 2.6558, -2.3601, -1.5405, -0.0888],
+      type: 'joint-space',
+      duration: 3.0, # in seconds
+      gripper-action: 'close-open' 
+    },
+    {
+      pose: [1.8361, -1.8689, 2.6559, -2.3601, -1.5406, -1.6611],
+      type: 'joint-space',
+      duration: 3.0, # in seconds
+    },
+    {
+      pose: [1.3683, -1.8889, 2.7011, -2.0853, -1.1386, -2.1986],
+      type: 'joint-space',
+      duration: 3.0, # in seconds
+      gripper-action: 'close' 
+    },
+    {
+      pose: [1.8371, -2.0332, 2.5464, -2.0864, -1.5405, 0.2834],
+      type: 'joint-space',
+      duration: 3.0, # in seconds
+    },
+    {
+      pose: [1.625, -1.4913, 1.7122, -1.8448, -1.8845, -1.6152],
+      type: 'joint-space',
+      duration: 3.0, # in seconds
+    },
+    {
+      pose: [1.6252, -1.2494, 1.7963, -2.0968, -2.6178, -1.426],
+      type: 'joint-space',
+      duration: 3.0, # in seconds
+    },
+    {
+      pose: [1.5786, -1.2561, 1.8283, -2.2029, -2.6169, -1.5189],
+      type: 'joint-space',
+      duration: 3.0, # in seconds
+    },
+  ]

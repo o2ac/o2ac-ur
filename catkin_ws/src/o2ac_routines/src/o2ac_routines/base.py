@@ -1531,6 +1531,63 @@ class O2ACBase(object):
 
     arm.force_control(target_force=target_force, selection_matrix=selection_matrix, ee_transform=ee_transform, relative_to_ee=relative_to_ee, timeout=timeout, stop_on_target_force=True)
 
+  def execute_manual_routine(self, routine_filename):
+    path = rospkg.RosPack().get_path("o2ac_routines") + ("/config/%s.yaml" % routine_filename)
+    with open(path, 'r') as f:
+      routine = yaml.load(f)
+    robot_name = routine["robot_name"]
+    waypoints = routine["waypoints"]
+
+    for i, point in enumerate(waypoints):
+      print("point:", i+1)
+      raw_input()
+      pose = point['pose']
+      pose_type = point['type']
+      gripper_action = point.get('gripper-action')
+      duration = point['duration']
+      self.move_to_waypoint(robot_name, pose, pose_type, gripper_action, duration)
+
+  def go_to_pose_goal(self, robot_name, pose_goal):
+    move_group = self.groups[robot_name]
+
+    goal = moveit_commander.conversions.list_to_pose(pose_goal)
+
+    plan = move_group.plan(goal)
+
+    move_group.execute(plan)
+
+    current_pose = move_group.get_current_pose().pose
+    return all_close(goal, current_pose, 0.01)
+
+  def move_to_waypoint(self, robot_name, pose, pose_type, gripper_action, duration):
+    group = self.groups[robot_name]
+    if pose_type == 'joint-space':
+      self.b_bot_compliant_arm.set_joint_positions(pose, wait=True, t=1.)
+      print(conversions.from_pose_to_list(group.get_current_pose().pose))
+      # self.move_joints(robot_name, pose)
+    elif pose_type == 'task-space':
+      waypoints = []
+
+      wpose = conversions.to_pose(pose)
+      waypoints.append(copy.deepcopy(wpose))
+
+      # We want the Cartesian path to be interpolated at a resolution of 1 cm
+      # which is why we will specify 0.01 as the eef_step in Cartesian
+      # translation.  We will disable the jump threshold by setting it to 0.0 disabling:
+      (plan, fraction) = group.compute_cartesian_path(
+                                        waypoints,   # waypoints to follow
+                                        0.01,        # eef_step
+                                        0.0)
+      group.execute(plan, wait=True)
+      # self.move_lin(robot_name, ps)
+    elif pose_type == 'relative-tcp':
+      self.move_lin_rel(robot_name, relative_translation=pose[:3], relative_rotation=pose[3:])
+    elif pose_type == 'relative-base':
+      self.move_lin_rel(robot_name, relative_translation=pose[:3], relative_rotation=pose[3:], use_robot_base_csys=True)
+    else:
+      raise ValueError("Invalid pose_type: %s" % pose_type)
+    if gripper_action:
+      pass # do gripper action
 ######
 
   def start_task_timer(self):
