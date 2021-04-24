@@ -48,7 +48,7 @@ from math import pi
 import geometry_msgs.msg
 
 from o2ac_assembly_database.parts_reader import PartsReader
-from o2ac_routines import conversions
+from ur_control import conversions
 
 class AssemblyReader(PartsReader):
     '''
