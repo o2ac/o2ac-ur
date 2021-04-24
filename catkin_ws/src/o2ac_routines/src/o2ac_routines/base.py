@@ -1562,24 +1562,11 @@ class O2ACBase(object):
   def move_to_waypoint(self, robot_name, pose, pose_type, gripper_action, duration):
     group = self.groups[robot_name]
     if pose_type == 'joint-space':
-      self.b_bot_compliant_arm.set_joint_positions(pose, wait=True, t=1.)
-      print(conversions.from_pose_to_list(group.get_current_pose().pose))
-      # self.move_joints(robot_name, pose)
+      target_pose = self.b_bot_compliant_arm.end_effector(pose)
+      # arm.set_joint_positions(pose, wait=True, t=1.0)
+      self.b_bot_compliant_arm.move_linear(target_pose, t=duration)
     elif pose_type == 'task-space':
-      waypoints = []
-
-      wpose = conversions.to_pose(pose)
-      waypoints.append(copy.deepcopy(wpose))
-
-      # We want the Cartesian path to be interpolated at a resolution of 1 cm
-      # which is why we will specify 0.01 as the eef_step in Cartesian
-      # translation.  We will disable the jump threshold by setting it to 0.0 disabling:
-      (plan, fraction) = group.compute_cartesian_path(
-                                        waypoints,   # waypoints to follow
-                                        0.01,        # eef_step
-                                        0.0)
-      group.execute(plan, wait=True)
-      # self.move_lin(robot_name, ps)
+      print("not yet")
     elif pose_type == 'relative-tcp':
       self.move_lin_rel(robot_name, relative_translation=pose[:3], relative_rotation=pose[3:])
     elif pose_type == 'relative-base':
