@@ -517,7 +517,7 @@ class TaskboardClass(O2ACCommon):
 
         rospy.logwarn("** STARTING FORCE CONTROL **")
         result = self.b_bot_compliant_arm.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
-                                                           wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=10.0,
+                                                           wiggle_direction=None, wiggle_angle=np.deg2rad(0.0), wiggle_revolutions=10.0,
                                                            target_force=target_force, selection_matrix=selection_matrix,
                                                            termination_criteria=termination_criteria)
         rospy.logwarn("** FORCE CONTROL COMPLETE **")
@@ -528,7 +528,8 @@ class TaskboardClass(O2ACCommon):
 
         self.open_gripper('b_bot', wait=True)
 
-        self.b_bot_compliant_arm.move_relative(delta=[-0.014, 0., 0., 0., 0., 0.], wait=True, t=1.)
+        # self.b_bot_compliant_arm.move_relative(delta=[-0.014, 0., 0., 0., 0., 0.], wait=True, t=1.)
+        self.move_lin_rel("b_bot", relative_translation = [0.014,0,0], acceleration = 0.015, velocity = .03, use_robot_base_csys=True)
 
         pre_push_position = self.b_bot_compliant_arm.joint_angles()
 
@@ -539,7 +540,7 @@ class TaskboardClass(O2ACCommon):
 
         rospy.logwarn("** STARTING FORCE CONTROL 2**")
         self.b_bot_compliant_arm.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
-                                                           wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=10.0,
+                                                           wiggle_direction=None, wiggle_angle=np.deg2rad(0.0), wiggle_revolutions=10.0,
                                                            target_force=target_force, selection_matrix=selection_matrix,
                                                            termination_criteria=termination_criteria)
         rospy.logwarn("** FORCE CONTROL COMPLETE 2**")

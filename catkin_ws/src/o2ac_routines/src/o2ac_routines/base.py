@@ -630,7 +630,8 @@ class O2ACBase(object):
 
   def move_lin_rel(self, robot_name, relative_translation = [0,0,0], relative_rotation = [0,0,0], acceleration = 0.5, velocity = .03, use_robot_base_csys=False, wait = True, max_wait=30.0):
     '''
-    Does a lin_move relative to the current position of the robot. Uses the robot's TCP.
+    Does a lin_move relative to the current position of the robot.
+    Uses the robot's TCP if using UR script, or the frame of the 
 
     robot_name = "b_bot" for example
     relative_translation: translatory movement relative to current tcp position, expressed in robot's own base frame
@@ -663,6 +664,7 @@ class O2ACBase(object):
       return res.success
     
     group = self.groups[robot_name]
+    # TODO: use use_robot_base_csys parameter
     new_pose1 = group.get_current_pose()
     new_pose2 = group.get_current_pose()
     if pose_dist(new_pose1.pose, new_pose2.pose) > 0.002:
