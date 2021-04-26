@@ -467,22 +467,27 @@ class TaskboardClass(O2ACCommon):
       goal.pose.position.z = 0.0115
       self.simple_pick("b_bot", goal, gripper_force=100.0, approach_height=0.05, axis="z")
 
-      if self.b_bot_gripper_opening_width < 0.045:
+      if self.b_bot_gripper_opening_width < 0.01:
+        rospy.logerr("Fail to grasp bearing")
+        return
+      elif self.b_bot_gripper_opening_width < 0.045:
         rospy.loginfo("bearing found to be upwards")
-        success_b = self.load_program(robot="b_bot", program_name="wrs2020/bearing_orient_totb.urp", recursion_depth=3)
+        self.execute_manual_routine("bearing_orient_totb")
+        # success_b = self.load_program(robot="b_bot", program_name="wrs2020/bearing_orient_totb.urp", recursion_depth=3)
       else:
         rospy.loginfo("bearing found to be upside down")
-        success_b = self.load_program(robot="b_bot", program_name="wrs2020/bearing_orient_down_totb.urp", recursion_depth=3)
+        self.execute_manual_routine("bearing_orient_down_totb")
+        # success_b = self.load_program(robot="b_bot", program_name="wrs2020/bearing_orient_down_totb.urp", recursion_depth=3)
         #'down' means the small area contacts with tray.
       
-      if success_b:
-        print("Loaded bearing orient program.")
-        self.execute_loaded_program(robot="b_bot")
-        print("Started execution. Waiting for b_bot to finish.")
-      else:
-        print("Problem loading. Not executing bearing orient procedure.")
-        return False
-      wait_for_UR_program("/b_bot", rospy.Duration.from_sec(70))
+      # if success_b:
+      #   print("Loaded bearing orient program.")
+      #   self.execute_loaded_program(robot="b_bot")
+      #   print("Started execution. Waiting for b_bot to finish.")
+      # else:
+      #   print("Problem loading. Not executing bearing orient procedure.")
+      #   return False
+      # wait_for_UR_program("/b_bot", rospy.Duration.from_sec(70))
 
       if self.b_bot_gripper_opening_width < 0.01:
         rospy.logerr("Bearing not found in gripper. Must have been lost. Aborting.")
@@ -493,7 +498,7 @@ class TaskboardClass(O2ACCommon):
       use_ros_force_control = True
       
       if use_ros_force_control:
-        self.activate_ros_control_on_ur("b_bot")
+        # self.activate_ros_control_on_ur("b_bot")
 
         # TODO(cambel): These configuration could be simplify 
         plane = "YZ"
@@ -507,11 +512,11 @@ class TaskboardClass(O2ACCommon):
         target_force = get_target_force('-X', 5.0)
         selection_matrix = [0., 0.8, 0.8, 0.8, 0.8, 0.8]
 
-        termination_criteria = lambda cpose: cpose[0] > -0.042
+        termination_criteria = lambda cpose: cpose[0] > 0.107
 
         rospy.logwarn("** STARTING FORCE CONTROL **")
         result = self.b_bot_compliant_arm.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
-                                                           wiggle_direction="Z", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=10.0,
+                                                           wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=10.0,
                                                            target_force=target_force, selection_matrix=selection_matrix,
                                                            termination_criteria=termination_criteria)
         rospy.logwarn("** FORCE CONTROL COMPLETE **")
@@ -528,12 +533,12 @@ class TaskboardClass(O2ACCommon):
 
         self.close_gripper('b_bot', velocity=0.01, wait=True)
 
-        termination_criteria = lambda cpose: cpose[0] > -0.042
+        termination_criteria = lambda cpose: cpose[0] > 0.1075
         radius = 0.001
 
         rospy.logwarn("** STARTING FORCE CONTROL 2**")
         self.b_bot_compliant_arm.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
-                                                           wiggle_direction="Z", wiggle_angle=np.deg2rad(5.0), wiggle_revolutions=10.0,
+                                                           wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=10.0,
                                                            target_force=target_force, selection_matrix=selection_matrix,
                                                            termination_criteria=termination_criteria)
         rospy.logwarn("** FORCE CONTROL COMPLETE 2**")
@@ -541,7 +546,8 @@ class TaskboardClass(O2ACCommon):
         self.open_gripper('b_bot', wait=True)
 
         rospy.logwarn("** CHANGE POSITIONS USING MOVEIT **")
-        self.move_joints('b_bot', pre_push_position)
+        post_insertion_pose = [1.6088, -1.1894, 1.7653, -2.0387, -2.7843, -1.4562]
+        self.move_joints('b_bot', post_insertion_pose)
 
       else: #urscript
         insert = self.load_program(robot="b_bot", program_name="wrs2020/bearing_insert.urp", recursion_depth=3)
@@ -590,7 +596,7 @@ class TaskboardClass(O2ACCommon):
         screw_pose_approach.pose.position.x -= 0.05
         self.go_to_pose_goal("b_bot", screw_pose_approach, end_effector_link = "b_bot_screw_tool_m3_tip_link", move_lin=False)
         if self.use_real_robot:
-         screw_success = self.skill_server.do_screw_action("b_bot", screw_pose, screw_size=4)
+          screw_success = self.skill_server.do_screw_action("b_bot", screw_pose, screw_size=4)
           self.go_to_pose_goal("b_bot", screw_pose_approach, end_effector_link = "b_bot_screw_tool_m3_tip_link", move_lin=False)
           self.go_to_named_pose("home","b_bot")
         else:

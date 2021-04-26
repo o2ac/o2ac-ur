@@ -26,9 +26,15 @@ def create_pid(pid, default_ki=0.0, default_kd=0.0):
 
 class URForceController(CompliantController):
     def __init__(self, robot_name, config_file="force_control", tcp_link='robotiq_85_tip_link', **kwargs):
+        # TODO(cambel): fix this ugly workaround by properly defining the tool tip with respect to tool0
+        if tcp_link == 'robotiq_85_tip_link':
+            ee_transform = [0.0, 0.0, 0.173, 0.0, 0.0, 0.0, 1.0]
+            tcp_link = 'tool0'
+
         CompliantController.__init__(self, ft_sensor=True, namespace=robot_name,
                                      joint_names_prefix=robot_name+'_', robot_urdf=robot_name,
-                                     robot_urdf_package='o2ac_scene_description', ee_link=tcp_link, **kwargs)
+                                     robot_urdf_package='o2ac_scene_description', 
+                                     ee_link=tcp_link, ee_transform=ee_transform, **kwargs)
 
         self._init_force_controller(config_file)
 

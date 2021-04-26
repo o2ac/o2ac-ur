@@ -12,7 +12,7 @@ signal.signal(signal.SIGINT, signal_handler)
 
 def main():
     controller = O2ACBase()
-
+    controller.activate_ros_control_on_ur('b_bot')
     controller.execute_manual_routine("bearing_orient_totb")
 
 if __name__ == "__main__":

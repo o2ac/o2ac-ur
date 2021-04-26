@@ -1540,48 +1540,20 @@ class O2ACBase(object):
 
     for i, point in enumerate(waypoints):
       print("point:", i+1)
-      raw_input()
+      # raw_input()
       pose = point['pose']
       pose_type = point['type']
       gripper_action = point.get('gripper-action')
       duration = point['duration']
       self.move_to_waypoint(robot_name, pose, pose_type, gripper_action, duration)
 
-  def go_to_pose_goal(self, robot_name, pose_goal):
-    move_group = self.groups[robot_name]
-
-    goal = moveit_commander.conversions.list_to_pose(pose_goal)
-
-    plan = move_group.plan(goal)
-
-    move_group.execute(plan)
-
-    current_pose = move_group.get_current_pose().pose
-    return all_close(goal, current_pose, 0.01)
-
   def move_to_waypoint(self, robot_name, pose, pose_type, gripper_action, duration):
     group = self.groups[robot_name]
     if pose_type == 'joint-space':
+      self.b_bot_compliant_arm.set_joint_positions(pose, wait=True, t=duration)
+    elif pose_type == 'joint-space-linear':
       target_pose = self.b_bot_compliant_arm.end_effector(pose)
-      # arm.set_joint_positions(pose, wait=True, t=1.0)
       self.b_bot_compliant_arm.move_linear(target_pose, t=duration)
-
-      # waypoints = []
-      # move_group = self.groups[robot_name]
-      # wpose = conversions.to_pose(target_pose)
-      # waypoints.append(copy.deepcopy(wpose))
-
-      # # We want the Cartesian path to be interpolated at a resolution of 1 cm
-      # # which is why we will specify 0.01 as the eef_step in Cartesian
-      # # translation.  We will disable the jump threshold by setting it to 0.0,
-      # # ignoring the check for infeasible jumps in joint space, which is sufficient
-      # # for this tutorial.
-      # (plan, fraction) = move_group.compute_cartesian_path(
-      #                                   waypoints,   # waypoints to follow
-      #                                   0.01,        # eef_step
-      #                                   0.0)         # jump_threshold
-      # move_group.execute(plan, wait=True)
-
     elif pose_type == 'task-space':
       print("not yet")
     elif pose_type == 'relative-tcp':
@@ -1592,9 +1564,15 @@ class O2ACBase(object):
       # self.move_lin_rel(robot_name, relative_translation=pose[:3], relative_rotation=pose[3:], use_robot_base_csys=True)
     else:
       raise ValueError("Invalid pose_type: %s" % pose_type)
-    if gripper_action:
-      pass # do gripper action
 
+    if gripper_action:
+      if gripper_action == 'open':
+        self.open_gripper(robot_name)
+      elif gripper_action == 'close':
+        self.close_gripper(robot_name, force=100., velocity=0.01)
+      elif gripper_action == 'close-open':
+        self.close_gripper(robot_name, velocity=0.01)
+        self.open_gripper(robot_name)
 ######
 
   def start_task_timer(self):
