@@ -432,7 +432,7 @@ class O2ACBase(object):
   def load_and_execute_program(self, robot="b_bot", program_name="", recursion_depth=0):
     if not self.load_program(robot, program_name, recursion_depth):
       return False
-    return self.execute_loaded_program(robot):
+    return self.execute_loaded_program(robot)
 
   def load_program(self, robot="b_bot", program_name="", recursion_depth=0):
     if not self.use_real_robot:
@@ -1565,16 +1565,36 @@ class O2ACBase(object):
       target_pose = self.b_bot_compliant_arm.end_effector(pose)
       # arm.set_joint_positions(pose, wait=True, t=1.0)
       self.b_bot_compliant_arm.move_linear(target_pose, t=duration)
+
+      # waypoints = []
+      # move_group = self.groups[robot_name]
+      # wpose = conversions.to_pose(target_pose)
+      # waypoints.append(copy.deepcopy(wpose))
+
+      # # We want the Cartesian path to be interpolated at a resolution of 1 cm
+      # # which is why we will specify 0.01 as the eef_step in Cartesian
+      # # translation.  We will disable the jump threshold by setting it to 0.0,
+      # # ignoring the check for infeasible jumps in joint space, which is sufficient
+      # # for this tutorial.
+      # (plan, fraction) = move_group.compute_cartesian_path(
+      #                                   waypoints,   # waypoints to follow
+      #                                   0.01,        # eef_step
+      #                                   0.0)         # jump_threshold
+      # move_group.execute(plan, wait=True)
+
     elif pose_type == 'task-space':
       print("not yet")
     elif pose_type == 'relative-tcp':
-      self.move_lin_rel(robot_name, relative_translation=pose[:3], relative_rotation=pose[3:])
+      pass
+      # self.move_lin_rel(robot_name, relative_translation=pose[:3], relative_rotation=pose[3:])
     elif pose_type == 'relative-base':
-      self.move_lin_rel(robot_name, relative_translation=pose[:3], relative_rotation=pose[3:], use_robot_base_csys=True)
+      pass
+      # self.move_lin_rel(robot_name, relative_translation=pose[:3], relative_rotation=pose[3:], use_robot_base_csys=True)
     else:
       raise ValueError("Invalid pose_type: %s" % pose_type)
     if gripper_action:
       pass # do gripper action
+
 ######
 
   def start_task_timer(self):

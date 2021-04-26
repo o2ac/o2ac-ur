@@ -6,22 +6,16 @@ waypoints:
       # pose, depends on the type
       pose: [1.7095, -1.7619, 2.2065, -2.0337, -1.5473, 0.2133],
       type: 'joint-space', # or 'task-space' or 'relative-tcp' or 'relative-base'
-      # pose: [ 0.18808107 , 0.16920073,  0.89028264,  0.51983115,  0.47172012, -0.51674265,  0.49013543],
-      # type: 'task-space',
       duration: 3.0, # in seconds
     },
     {
       pose: [1.8371, -2.0332, 2.5464, -2.0864, -1.5405, 0.2834],
       type: 'joint-space',
-      # pose: [-0.19622, 0.20787, 0.1916, 0.57067, 0.82108, -0.0091, -0.00953],
-      # type: 'task-space',
       duration: 3.0, # in seconds
     },
     {
       pose: [1.836, -1.8689, 2.6557, -2.36, -1.5406, 1.4835],
       type: 'joint-space',
-      # pose: [-0.0753, 0.25626, 0.12079, 0.50159, 0.72357, -0.39094, -0.26838],
-      # type: 'task-space',
       duration: 3.0, # in seconds
       gripper-action: 'open' # or 'close' or 'open-close' or 'close-open'
     },

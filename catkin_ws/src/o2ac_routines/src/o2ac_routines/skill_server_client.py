@@ -92,12 +92,12 @@ class SkillServerClient():
         self.screw_client.send_goal(goal)
         self.screw_client.wait_for_result()
         res = self.screw_client.get_result()
-            try:
-                return res.success
-            except:
-                print("failed to return screw result")
-                print(res)
-                return False    
+        try:
+            return res.success
+        except:
+            print("failed to return screw result")
+            print(res)
+            return False    
 
     def do_change_tool_action(self, robot_name, equip=True, screw_size = 4):
         ### DEPRECATED
