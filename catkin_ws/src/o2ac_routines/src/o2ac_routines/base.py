@@ -1532,7 +1532,7 @@ class O2ACBase(object):
     arm.force_control(target_force=target_force, selection_matrix=selection_matrix, ee_transform=ee_transform, relative_to_ee=relative_to_ee, timeout=timeout, stop_on_target_force=True)
 
   def execute_manual_routine(self, routine_filename):
-    path = rospkg.RosPack().get_path("o2ac_routines") + ("/config/%s.yaml" % routine_filename)
+    path = rospkg.RosPack().get_path("o2ac_routines") + ("/config/sequences/%s.yaml" % routine_filename)
     with open(path, 'r') as f:
       routine = yaml.load(f)
     robot_name = routine["robot_name"]
