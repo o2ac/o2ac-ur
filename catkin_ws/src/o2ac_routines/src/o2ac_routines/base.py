@@ -860,6 +860,8 @@ class O2ACBase(object):
     # Read result and return
     try:
       res = self.ssd_client.get_result()
+      rospy.logwarn("Clearing all object poses in memory")
+      self.objects_in_tray = dict()
       for idx, pose in zip(res.class_ids, res.poses):
         self.objects_in_tray[idx] = pose
       return res
@@ -1531,8 +1533,8 @@ class O2ACBase(object):
 
     arm.force_control(target_force=target_force, selection_matrix=selection_matrix, ee_transform=ee_transform, relative_to_ee=relative_to_ee, timeout=timeout, stop_on_target_force=True)
 
-  def execute_manual_routine(self, routine_filename):
-    path = rospkg.RosPack().get_path("o2ac_routines") + ("/config/sequences/%s.yaml" % routine_filename)
+  def playback_sequence(self, routine_filename):
+    path = rospkg.RosPack().get_path("o2ac_routines") + ("/config/playback_sequences/%s.yaml" % routine_filename)
     with open(path, 'r') as f:
       routine = yaml.load(f)
     robot_name = routine["robot_name"]
@@ -1545,17 +1547,33 @@ class O2ACBase(object):
       pose_type = point['type']
       gripper_action = point.get('gripper-action')
       duration = point['duration']
-      self.move_to_waypoint(robot_name, pose, pose_type, gripper_action, duration)
+      self.move_to_sequence_waypoint(robot_name, pose, pose_type, gripper_action, duration)
 
-  def move_to_waypoint(self, robot_name, pose, pose_type, gripper_action, duration):
+  def move_to_sequence_waypoint(self, robot_name, pose, pose_type, gripper_action, duration):
     group = self.groups[robot_name]
+    if robot_name == 'a_bot':
+      arm = self.a_bot_compliant_arm
+    elif robot_name == 'b_bot':
+      arm = self.b_bot_compliant_arm
+    else:
+      raise Exception('Unsupported arm %s' % robot_name)
+
+
+    p = geometry_msgs.msg.PoseStamped()
+    p.header.frame_id = robot_name + "_base_link"
+
     if pose_type == 'joint-space':
-      self.b_bot_compliant_arm.set_joint_positions(pose, wait=True, t=duration)
-    elif pose_type == 'joint-space-linear':
-      target_pose = self.b_bot_compliant_arm.end_effector(pose)
-      self.b_bot_compliant_arm.move_linear(target_pose, t=duration)
+      arm.set_joint_positions(pose, wait=True, t=duration)
+    elif pose_type == 'joint-space-goal-cartesian-lin-motion':
+      target_pose = arm.end_effector(pose)  # Forward kinematics
+      # arm.move_linear(target_pose, t=duration)
+      p.pose = conversions.to_pose(target_pose)
+      print(pose)
+      print(p)
+      self.move_lin(robot_name, p)
     elif pose_type == 'task-space':
-      print("not yet")
+      p.pose = conversions.to_pose(pose)
+      self.move_lin(robot_name, pose)
     elif pose_type == 'relative-tcp':
       pass
       # self.move_lin_rel(robot_name, relative_translation=pose[:3], relative_rotation=pose[3:])

@@ -5,12 +5,12 @@
        currentpose≔get_actual_joint_positions()
        currentpose
      MoveL
-       home
-       above_tool
-       grasp_tool
+       home_1
+       above_tool_1
+       grasp_tool_1
        Gripper Close (1)
      MoveL
-       before_tool
-       high_approach
-       wp_on_right
-       wait_w_tool
+       before_tool_1
+       high_approach_1
+       wp_on_right_1
+       wait_w_tool_1
