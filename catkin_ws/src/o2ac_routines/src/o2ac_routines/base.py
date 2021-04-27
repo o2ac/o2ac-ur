@@ -82,6 +82,7 @@ from o2ac_routines.skill_server_client import SkillServerClient
 
 from o2ac_routines.ur_force_control import URForceController
 from ur_control import utils as utils
+from ur_control.controllers import GripperController # for simulation!
 import numpy as np
 
 class O2ACBase(object):
@@ -203,6 +204,10 @@ class O2ACBase(object):
 
     self.a_bot_compliant_arm = URForceController(robot_name='a_bot')
     self.b_bot_compliant_arm = URForceController(robot_name='b_bot')
+
+    if not self.use_real_robot:
+      self.grippers = {'a_bot': GripperController(namespace='a_bot', prefix='a_bot_', timeout=2.0),
+                       'b_bot': GripperController(namespace='b_bot', prefix='b_bot_', timeout=2.0),}
 
     rospy.sleep(.5)
     rospy.loginfo("Finished initializing class")
@@ -1243,13 +1248,19 @@ class O2ACBase(object):
     return res.success
 
   def close_gripper(self, robot, force=40.0, velocity = .1, wait=True):
-    return self.send_gripper_command(robot, "close", force=force, velocity=velocity, wait=wait)
+    if self.use_real_robot:
+      return self.send_gripper_command(robot, "close", force=force, velocity=velocity, wait=wait)
+    else:
+      self.grippers[robot].close()
 
   def open_gripper(self, robot, wait=True, opening_width=None):
-    command = "open"
-    if opening_width:
-      command = opening_width
-    return self.send_gripper_command(robot, command, wait=wait)
+    if self.use_real_robot:
+      command = "open"
+      if opening_width:
+        command = opening_width
+      return self.send_gripper_command(robot, command, wait=wait)
+    else:
+      self.grippers[robot].open()
 
   def send_gripper_command(self, gripper, command, this_action_grasps_an_object = False, force = 40.0, velocity = .1, wait=True):
     """
@@ -1568,10 +1579,7 @@ class O2ACBase(object):
       arm.set_joint_positions(pose, wait=True, t=duration)
     elif pose_type == 'joint-space-goal-cartesian-lin-motion':
       target_pose = arm.end_effector(pose)  # Forward kinematics
-      # arm.move_linear(target_pose, t=duration)
       p.pose = conversions.to_pose(target_pose)
-      print(pose)
-      print(p)
       self.move_lin(robot_name, p)
     elif pose_type == 'task-space':
       p.pose = conversions.to_pose(pose)

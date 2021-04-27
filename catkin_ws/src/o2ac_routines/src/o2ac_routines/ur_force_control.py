@@ -4,7 +4,7 @@ import yaml
 
 import numpy as np
 
-from ur_control import utils, spalg, transformations, traj_utils
+from ur_control import utils, spalg, transformations, traj_utils, conversions
 from ur_control.hybrid_controller import ForcePositionController
 from ur_control.compliant_controller import CompliantController
 
@@ -54,22 +54,21 @@ class URForceController(CompliantController):
         self.force_model = ForcePositionController(position_pd=position_pd, force_pd=force_pd, alpha=np.diag(selection_matrix), dt=dt)
 
     def force_control(self, target_force=None, target_positions=None,
-                      selection_matrix=None, ee_transform=None, relative_to_ee=False,
+                      selection_matrix=None, relative_to_ee=False,
                       timeout=10.0, stop_on_target_force=False, reset_pids=True, termination_criteria=None):
         """ 
             Use with caution!! 
             target_force: list[6], target force for each direction x,y,z,ax,ay,az
             target_positions: array[array[7]] or array[7], can define a single target pose or a trajectory of multiple poses.
             selection_matrix: list[6], define which direction is controlled by position(1.0) or force(0.0)
-            ee_transform: list[7], additional transformation of the end-effector (e.g to match tool or special orientation) x,y,z + quaternion
             relative_to_ee: bool, whether to use the base_link of the robot as frame or the ee_link (+ ee_transform)
             timeout: float, duration in seconds of the force control
             reset_pids: bool, should reset pids after using force control, but for continuos control during a trajectory, it is not recommended until the trajectory is completed
         """
 
+        rospy.sleep(1.0) # give it some time to set up before moving
         self.set_wrench_offset(True)  # offset the force sensor
         self.relative_to_ee = relative_to_ee if relative_to_ee is not None else self.relative_to_ee
-        self.ee_transform = ee_transform if ee_transform is not None else self.ee_transform
 
         target_positions = self.end_effector() if target_positions is None else np.array(target_positions)
         target_force = np.array([0., 0., 0., 0., 0., 0.]) if target_force is None else np.array(target_force)
@@ -86,7 +85,7 @@ class URForceController(CompliantController):
     def execute_circular_trajectory(self, plane, radius, radius_direction,
                                     steps=100, revolutions=5,
                                     wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0,
-                                    target_force=None, selection_matrix=None, ee_transform=None, timeout=10.,
+                                    target_force=None, selection_matrix=None, timeout=10.,
                                     termination_criteria=None):
         """
             Execute a circular trajectory on a given plane, with respect to the base of the robot, with a given radius
@@ -95,13 +94,13 @@ class URForceController(CompliantController):
         initial_pose = self.end_effector()
         trajectory = traj_utils.compute_trajectory(initial_pose, plane, radius, radius_direction, steps, revolutions, from_center=True, trajectory_type="circular",
                                                    wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0)
-        return self.force_control(target_force=target_force, target_positions=trajectory, selection_matrix=selection_matrix, ee_transform=ee_transform,
+        return self.force_control(target_force=target_force, target_positions=trajectory, selection_matrix=selection_matrix,
                                   timeout=timeout, relative_to_ee=False, termination_criteria=termination_criteria)
 
     def execute_spiral_trajectory(self, plane, max_radius, radius_direction,
                                   steps=100, revolutions=5,
                                   wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0,
-                                  target_force=None, selection_matrix=None, ee_transform=None, timeout=10.,
+                                  target_force=None, selection_matrix=None, timeout=10.,
                                   termination_criteria=None):
         """
             Execute a spiral trajectory on a given plane, with respect to the base of the robot, with a given max radius
@@ -110,6 +109,6 @@ class URForceController(CompliantController):
         initial_pose = self.end_effector()
         trajectory = traj_utils.compute_trajectory(initial_pose, plane, max_radius, radius_direction, steps, revolutions, from_center=True, trajectory_type="spiral",
                                                    wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0)
-        return self.force_control(target_force=target_force, target_positions=trajectory, selection_matrix=selection_matrix, ee_transform=ee_transform,
+        return self.force_control(target_force=target_force, target_positions=trajectory, selection_matrix=selection_matrix,
                                   timeout=timeout, relative_to_ee=False, termination_criteria=termination_criteria)
 

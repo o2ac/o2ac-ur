@@ -517,7 +517,7 @@ class TaskboardClass(O2ACCommon):
 
         rospy.logwarn("** STARTING FORCE CONTROL **")
         result = self.b_bot_compliant_arm.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
-                                                           wiggle_direction=None, wiggle_angle=np.deg2rad(0.0), wiggle_revolutions=10.0,
+                                                           wiggle_direction="X", wiggle_angle=np.deg2rad(1.0), wiggle_revolutions=10.0,
                                                            target_force=target_force, selection_matrix=selection_matrix,
                                                            termination_criteria=termination_criteria)
         rospy.logwarn("** FORCE CONTROL COMPLETE **")
