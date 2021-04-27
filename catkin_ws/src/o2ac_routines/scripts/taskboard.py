@@ -181,13 +181,13 @@ class TaskboardClass(O2ACCommon):
     ### - Set screw
     
     # Move into the screw hole with motor on
-    self.activate_camera("b_bot_inside_camera")
+    self.vision.activate_camera("b_bot_inside_camera")
     self.do_task("M2 set screw")
     
     # TODO: check set screw success with a_bot, do spiral motion with b_bot otherwise
     
     ### SCREW M3 WITH A_BOT
-    # self.activate_camera("a_bot_outside_camera")
+    # self.vision.activate_camera("a_bot_outside_camera")
     self.skill_server.pick_screw_from_feeder("a_bot", screw_size = 3)
     self.go_to_named_pose("home", "a_bot")
 
@@ -269,7 +269,7 @@ class TaskboardClass(O2ACCommon):
       
       self.go_to_pose_goal("b_bot", self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.1)
 
-      self.activate_camera("b_bot_outside_camera")
+      self.vision.activate_camera("b_bot_outside_camera")
       self.activate_led("b_bot")
       res = self.get_3d_poses_from_ssd()
       r2 = self.get_feasible_grasp_points("belt")
@@ -383,7 +383,7 @@ class TaskboardClass(O2ACCommon):
       if not self.robot_status["b_bot"].carrying_tool and self.robot_status["b_bot"].held_tool_id == "screw_tool_m3":
         self.go_to_named_pose("tool_pick_ready", "b_bot")
         self.equip_tool("b_bot", "screw_tool_m4")
-      self.activate_camera("b_bot_outside_camera")
+      self.vision.activate_camera("b_bot_outside_camera")
       self.skill_server.pick_screw_from_feeder("b_bot", screw_size = 4)
       self.go_to_named_pose("horizontal_screw_ready", "b_bot")
       hole_pose = geometry_msgs.msg.PoseStamped()
@@ -408,7 +408,7 @@ class TaskboardClass(O2ACCommon):
         return False
       goal.pose.position.x -= 0.01 # MAGIC NUMBER
       goal.pose.position.z = 0.0
-      self.activate_camera("b_bot_inside_camera")
+      self.vision.activate_camera("b_bot_inside_camera")
       self.activate_led("b_bot")
       self.simple_pick("b_bot", goal, gripper_force=50.0, grasp_width=.06, axis="z")
       if self.b_bot_gripper_opening_width < 0.01:
@@ -462,7 +462,7 @@ class TaskboardClass(O2ACCommon):
       if not goal:
         rospy.logerr("Could not find bearing in tray. Skipping procedure.")
         return False
-      self.activate_camera("b_bot_inside_camera")
+      self.vision.activate_camera("b_bot_inside_camera")
       goal.pose.position.x -= 0.01 # MAGIC NUMBER
       goal.pose.position.z = 0.0115
       self.simple_pick("b_bot", goal, gripper_force=100.0, approach_height=0.05, axis="z")
@@ -573,7 +573,7 @@ class TaskboardClass(O2ACCommon):
     if task_name == "screw_bearing":  # Just an intermediate for debugging.
       self.go_to_named_pose("home", "a_bot")
       self.equip_tool('b_bot', 'screw_tool_m4')
-      self.activate_camera("b_bot_outside_camera")
+      self.vision.activate_camera("b_bot_outside_camera")
       intermediate_screw_bearing_pose = [31.0 /180.0*3.14, -137.0 /180.0*3.14, 121.0 /180.0*3.14, -114.0 /180.0*3.14, -45.0 /180.0*3.14, -222.0 /180.0*3.14]
 
       def pick_and_fasten_bearing_screw(screw_number, pick_screw=True):
@@ -666,7 +666,7 @@ class TaskboardClass(O2ACCommon):
         print(self.objects_in_tray)
         return False
       goal.pose.position.z = 0.001
-      self.activate_camera("b_bot_inside_camera")
+      self.vision.activate_camera("b_bot_inside_camera")
       self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z")
       
       b_bot_before_hole = [1.196680545, -1.73023905, 1.934368435, -1.774223466, -1.543027226, 1.17229890]
@@ -701,7 +701,7 @@ class TaskboardClass(O2ACCommon):
       if not goal:
         rospy.logerr("Could not find idler pulley in tray. Skipping procedure.")
         return False
-      self.activate_camera("b_bot_inside_camera")
+      self.vision.activate_camera("b_bot_inside_camera")
       goal.pose.position.x -= 0.01 # MAGIC NUMBER
       goal.pose.position.z = 0.014
       rospy.loginfo("Picking idler pulley at: ")

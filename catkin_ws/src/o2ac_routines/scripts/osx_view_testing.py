@@ -130,9 +130,9 @@ if __name__ == '__main__':
         c.go_to_named_pose("home", "a_bot")
         c.go_to_named_pose("home", "b_bot")
       elif r == '11':
-        c.activate_camera("b_bot_inside_camera")
+        c.camera.activate("b_bot_inside_camera")
       elif r == '12':
-        c.activate_camera("b_bot_outside_camera")
+        c.camera.activate("b_bot_outside_camera")
       elif r == '2':
         ps = geometry_msgs.msg.PoseStamped()
         ps.header.frame_id = "tray_center"
@@ -165,7 +165,7 @@ if __name__ == '__main__':
         for ps in c.close_tray_views_rot_right:
           c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
       elif r == '5':
-        c.activate_camera("b_bot_outside_camera")
+        c.camera.activate("b_bot_outside_camera")
         rospy.sleep(1)
         res = c.get_3d_poses_from_ssd()
         obj_id = 7 #bearing
@@ -216,7 +216,7 @@ if __name__ == '__main__':
         else:
           goal.pose.position.z = 0.001
           # goal.pose.position.x -= 0.01 # MAGIC NUMBER
-          c.activate_camera("b_bot_inside_camera")
+          c.camera.activate("b_bot_inside_camera")
           c.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z")
       elif r == "81":
         goal = c.look_and_get_grasp_point(5)  # motor pulley

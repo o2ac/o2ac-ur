@@ -67,8 +67,6 @@ import o2ac_msgs.msg
 import o2ac_msgs.srv
 import o2ac_task_planning_msgs.msg
 
-from aist_camera_multiplexer import RealSenseMultiplexerClient
-
 from math import pi
 from std_msgs.msg import String
 from moveit_commander.conversions import pose_to_list
@@ -79,7 +77,7 @@ import ur_msgs.msg
 import ur_msgs.srv
 from o2ac_routines.helpers import *
 from o2ac_routines.skill_server_client import SkillServerClient
-
+from o2ac_routines.vision_client import VisionClient
 from o2ac_routines.ur_force_control import URForceController
 from ur_control import utils as utils
 from ur_control.controllers import GripperController # for simulation!
@@ -124,11 +122,6 @@ class O2ACBase(object):
     
     self.assembly_database = AssemblyReader()
 
-    try:
-      self.camera_multiplexer = RealSenseMultiplexerClient('camera_multiplexer')
-    except:
-      self.camera_multiplexer = []
-
     # Action clients and movegroups
     self.groups = {"a_bot":moveit_commander.MoveGroupCommander("a_bot"), "b_bot":moveit_commander.MoveGroupCommander("b_bot"),
       "a_bot_robotiq_85":moveit_commander.MoveGroupCommander("a_bot_robotiq_85"), "b_bot_robotiq_85":moveit_commander.MoveGroupCommander("b_bot_robotiq_85")}
@@ -136,11 +129,7 @@ class O2ACBase(object):
       "b_bot":actionlib.SimpleActionClient('/b_bot/gripper_action_controller', robotiq_msgs.msg.CModelCommandAction)}
     
     self.skill_server = SkillServerClient()
-
-    self.ssd_client = actionlib.SimpleActionClient('/o2ac_vision_server/get_3d_poses_from_ssd', o2ac_msgs.msg.get3DPosesFromSSDAction)
-    self.detect_shaft_client = actionlib.SimpleActionClient('/o2ac_vision_server/detect_shaft_notch', o2ac_msgs.msg.shaftNotchDetectionAction)
-    self.detect_angle_client = actionlib.SimpleActionClient('/o2ac_vision_server/detect_angle', o2ac_msgs.msg.detectAngleAction)
-    self.localization_client = actionlib.SimpleActionClient('/o2ac_vision_server/localize_object', o2ac_msgs.msg.localizeObjectAction)
+    self.vision = VisionClient()
 
     self.pick_planning_client = actionlib.SimpleActionClient('/pick_planning', o2ac_task_planning_msgs.msg.PickObjectAction)
     self.place_planning_client = actionlib.SimpleActionClient('/place_planning', o2ac_task_planning_msgs.msg.PlaceObjectAction)
@@ -259,18 +248,6 @@ class O2ACBase(object):
     self.planning_scene_interface.remove_world_object()  # Clear all objects
     self.publish_robot_status()
 
-  def activate_camera(self, camera_name="b_bot_outside_camera"):
-    try:
-      if self.camera_multiplexer:
-        return self.camera_multiplexer.activate_camera(camera_name)
-      else:
-        rospy.logwarn("Camera multiplexer not functional! Returning true")
-        return True
-    except:
-      pass
-    rospy.logwarn("Could not activate camera! Returning false")
-    return False
-  
   def activate_led(self, LED_name="b_bot", on=True):
     req = ur_msgs.srv.SetIORequest()
     if LED_name == "b_bot":
@@ -839,18 +816,11 @@ class O2ACBase(object):
     Returns object poses as estimated by the SSD neural network and reprojection.
     Also updates self.objects_in_tray
     """
-    # Send goal, wait for result
-    self.ssd_client.send_goal(o2ac_msgs.msg.get3DPosesFromSSDGoal())
-    if (not self.ssd_client.wait_for_result(rospy.Duration(2.0))):
-      self.ssd_client.cancel_goal()  # Cancel goal if timeout expired
-      rospy.logerr("Call for SSD result returned no result. Is o2ac_vision running?")
-      return False
-
     # Read result and return
     try:
-      res = self.ssd_client.get_result()
       rospy.logwarn("Clearing all object poses in memory")
       self.objects_in_tray = dict()
+      res = self.vision.read_from_sdd()
       for idx, pose in zip(res.class_ids, res.poses):
         self.objects_in_tray[idx] = pose
       return res
@@ -863,46 +833,13 @@ class O2ACBase(object):
     When looking at the bearing from the front, returns the rotation angle 
     to align the screw holes.
     """
-    return self.get_angle_from_vision(camera, item_name="bearing")
+    return self.vision.get_angle_from_vision(camera, item_name="bearing")
   
   def get_motor_angle(self, camera="b_bot_outside_camera"):
     """
     When looking at the motor in the vgroove, this returns the rotation angle.
     """
-    return self.get_angle_from_vision(camera, item_name="motor")
-
-  def get_angle_from_vision(self, camera="b_bot_inside_camera", item_name="bearing"):
-    # Send goal, wait for result
-    goal = o2ac_msgs.msg.detectAngleGoal()
-    goal.item_id = item_name
-    goal.camera_id = camera
-    self.detect_angle_client.send_goal(goal)
-    if (not self.detect_angle_client.wait_for_result(rospy.Duration(3.0))):
-      self.detect_angle_client.cancel_goal()  # Cancel goal if timeout expired
-      rospy.logerr("Call to detect angle returned no result. Is o2ac_vision running?")
-      return False
-
-    # Read result and return
-    try:
-      res = self.detect_angle_client.get_result()
-      if res.succeeded:
-        return res.rotation_angle
-    except:
-      pass
-    return False
-  
-  def call_shaft_notch_detection(self):
-    """
-    Calls the action and returns the result as is
-    """
-    goal = o2ac_msgs.msg.shaftNotchDetectionGoal()
-    self.detect_shaft_client.send_goal(goal)
-    if (not self.detect_shaft_client.wait_for_result(rospy.Duration(3.0))):
-      self.detect_shaft_client.cancel_goal()  # Cancel goal if timeout expired
-      rospy.logerr("Call to shaft detection returned no result. Is o2ac_vision running?")
-      return False
-    res = self.detect_shaft_client.get_result()
-    return res
+    return self.vision.get_angle_from_vision(camera, item_name="motor")
 
   def detect_object_in_camera_view(self, item_name):
     """

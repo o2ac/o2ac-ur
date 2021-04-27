@@ -586,7 +586,7 @@ class AssemblyClass(O2ACCommon):
     self.go_to_named_pose("home", "b_bot", speed=self.speed_fastest, acceleration=self.acc_fastest)
     self.do_change_tool_action("b_bot", equip=True, screw_size=4)
     self.go_to_named_pose("feeder_pick_ready", "b_bot", speed=self.speed_fastest, acceleration=self.acc_fastest)
-    self.activate_camera("b_bot_outside_camera")
+    self.vision.activate_camera("b_bot_outside_camera")
 
     self.confirm_to_proceed("press enter to proceed to subtask_g")
     self.subtask_g()  # Large plate

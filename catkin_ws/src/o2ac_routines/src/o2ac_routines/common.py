@@ -498,7 +498,7 @@ class O2ACCommon(O2ACBase):
       rospy.logwarn("look_and_get_grasp_point got " + object_id + " but will use id number " + str(object_id_num))
       return self.look_and_get_grasp_point(object_id_num)
 
-    self.activate_camera("b_bot_outside_camera")
+    self.vision.activate_camera("b_bot_outside_camera")
     self.activate_led("b_bot")
     self.open_gripper("b_bot", wait=False)
     # TODO: Merge with detect_object_in_camera_view in base.py
@@ -657,17 +657,17 @@ class O2ACCommon(O2ACBase):
     Returns True if the shaft is in the v_groove
     """
     look_at_shaft_pose = [2.177835941, -1.700065275, 2.536958996, -2.40987076, -1.529889408, 0.59719228]
-    self.activate_camera("b_bot_inside_camera")
+    self.vision.activate_camera("b_bot_inside_camera")
     self.activate_led("b_bot")
     self.move_joints("b_bot", look_at_shaft_pose)
 
-    res = self.call_shaft_notch_detection()
+    res = self.vision.call_shaft_notch_detection()
     print("=== shaft notch detection returned:")
     print(res)
 
   def turn_shaft_until_groove_found(self):
     look_at_shaft_pose = [2.177835941, -1.700065275, 2.536958996, -2.40987076, -1.529889408, 0.59719228]
-    self.activate_camera("b_bot_inside_camera")
+    self.vision.activate_camera("b_bot_inside_camera")
     self.activate_led("b_bot")
     self.move_joints("b_bot", look_at_shaft_pose)
 
@@ -680,7 +680,7 @@ class O2ACCommon(O2ACBase):
       self.execute_loaded_program(robot="b_bot")
       wait_for_UR_program("/b_bot", rospy.Duration.from_sec(10))
       times_turned += 1
-      res = self.call_shaft_notch_detection()
+      res = self.vision.call_shaft_notch_detection()
       if res.shaft_notch_detected_at_top or res.shaft_notch_detected_at_bottom:
         return res
     return False
@@ -702,7 +702,7 @@ class O2ACCommon(O2ACBase):
     """
     Align the bearing holes.
     """
-    self.activate_camera("b_bot_inside_camera")
+    self.vision.activate_camera("b_bot_inside_camera")
     self.activate_led("b_bot", on=False)
     adjustment_motions = 0
     times_looked_without_action = 0
