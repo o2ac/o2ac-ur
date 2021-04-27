@@ -324,7 +324,7 @@ class TaskboardClass(O2ACCommon):
       dist = .002
       self.skill_server.move_lin_rel("b_bot", relative_translation=[0, -cos(radians(30))*dist, sin(radians(30))*dist], velocity=0.03, wait=False)
       # self.skill_server.horizontal_spiral_motion("b_bot", .003, spiral_axis="Y", radius_increment = .002)
-      self.set_motor("set_screw_tool", "tighten", duration = 12.0)
+      self.tools.set_motor("set_screw_tool", "tighten", duration = 12.0)
       rospy.sleep(4.0) # Wait for the screw to be screwed in a little bit
       d = .004
       rospy.loginfo("Moving in further by " + str(d) + " m.")
@@ -620,9 +620,9 @@ class TaskboardClass(O2ACCommon):
           break
         if screw_success:
           screw_status[n] = "done"
-        if not screw_success and self.screw_is_suctioned["m4"]:
+        if not screw_success and self.tools.screw_is_suctioned["m4"]:
           screw_status[n] = "empty"
-        if not screw_success and not self.screw_is_suctioned["m4"]:
+        if not screw_success and not self.tools.screw_is_suctioned["m4"]:
           screw_status[n] = "maybe_stuck_in_hole"
         rospy.loginfo("Screw " + str(n) + " detected as " + screw_status[n])
       
@@ -638,9 +638,9 @@ class TaskboardClass(O2ACCommon):
             (screw_success, breakout) = pick_and_fasten_bearing_screw(n, pick_screw=False)
           if screw_success:
             screw_status[n] = "done"
-          if not screw_success and self.screw_is_suctioned["m4"]:
+          if not screw_success and self.tools.screw_is_suctioned["m4"]:
             screw_status[n] = "empty"
-          if not screw_success and not self.screw_is_suctioned["m4"]:
+          if not screw_success and not self.tools.screw_is_suctioned["m4"]:
             screw_status[n] = "maybe_stuck_in_hole"
           rospy.loginfo("Screw " + str(n) + " detected as " + screw_status[n])
         all_screws_done = all(value == "done" for value in screw_status.values())
@@ -748,14 +748,14 @@ class TaskboardClass(O2ACCommon):
         rospy.sleep(10) # bbot holds
         self.confirm_to_proceed("Can popup be closed? 1")
         self.close_ur_popup(robot="b_bot")
-        self.set_motor("screw_tool_m4", "tighten", duration=20)
+        self.tools.set_motor("screw_tool_m4", "tighten", duration=20)
         rospy.sleep(22) # bbot fiddles
         self.confirm_to_proceed("Can popup be closed? 2")
         self.close_ur_popup(robot="a_bot")
         rospy.sleep(15) #a bot picks nut
         self.confirm_to_proceed("Can popup be closed? 3")
         self.close_ur_popup(robot="a_bot")
-        self.set_motor("screw_tool_m4", "tighten", duration=20)
+        self.tools.set_motor("screw_tool_m4", "tighten", duration=20)
         rospy.sleep(30) # a bot spirals nut
         self.confirm_to_proceed("Can popups be closed? 4")
         self.close_ur_popup(robot="a_bot")

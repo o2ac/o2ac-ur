@@ -149,9 +149,6 @@ class O2ACBase(object):
     self.fastening_planning_client = actionlib.SimpleActionClient('/fastening_planning', o2ac_task_planning_msgs.msg.PlaceObjectAction)
     self.wrs_subtask_b_planning_client = actionlib.SimpleActionClient('/wrs_subtask_b_planning', o2ac_task_planning_msgs.msg.PickPlaceWithRegraspAction)
     
-    self.suction_client = actionlib.SimpleActionClient('/suction_control', o2ac_msgs.msg.SuctionControlAction)
-    self.fastening_tool_client = actionlib.SimpleActionClient('/screw_tool_control', o2ac_msgs.msg.ScrewToolControlAction)
-
     # Service clients
     self.ur_dashboard_clients = {
       "a_bot_get_loaded_program":rospy.ServiceProxy('/a_bot/ur_hardware_interface/dashboard/get_loaded_program', ur_dashboard_msgs.srv.GetLoadedProgram),
@@ -178,7 +175,7 @@ class O2ACBase(object):
     self.b_bot_set_io = rospy.ServiceProxy('b_bot/ur_hardware_interface/set_io', ur_msgs.srv.SetIO)
 
     self.robot_safety_mode = dict() 
-    self.screw_is_suctioned = dict()
+
     # Subscribers
     # "robot_program_running" refers only to the ROS external control UR script, not just any program
     self.sub_a_bot_status_ = rospy.Subscriber("/a_bot/ur_hardware_interface/robot_program_running", Bool, self.a_bot_ros_control_status_callback) 
@@ -188,8 +185,6 @@ class O2ACBase(object):
     self.sub_run_mode_ = rospy.Subscriber("/run_mode", Bool, self.run_mode_callback)
     self.sub_pause_mode_ = rospy.Subscriber("/pause_mode", Bool, self.pause_mode_callback)
     self.sub_test_mode_ = rospy.Subscriber("/test_mode", Bool, self.test_mode_callback)
-    self.sub_suction_m4_ = rospy.Subscriber("/screw_tool_m4/screw_suctioned", Bool, self.suction_m4_callback)
-    self.sub_suction_m3_ = rospy.Subscriber("/screw_tool_m3/screw_suctioned", Bool, self.suction_m3_callback)
     self.sub_robot_safety_mode_b_bot = rospy.Subscriber("/b_bot/ur_hardware_interface/safety_mode", ur_dashboard_msgs.msg.SafetyMode, self.b_bot_safety_mode_callback)
     
     # self.my_mutex = threading.Lock()
@@ -231,10 +226,7 @@ class O2ACBase(object):
     self.pause_mode_ = msg.data
   def test_mode_callback(self, msg):
     self.test_mode_ = msg.data
-  def suction_m4_callback(self, msg):
-    self.screw_is_suctioned["m4"] = msg.data
-  def suction_m3_callback(self, msg):
-    self.screw_is_suctioned["m3"] = msg.data
+
   def b_bot_safety_mode_callback(self, msg):
     self.robot_safety_mode["b_bot"] = msg.mode
   def a_bot_ros_control_status_callback(self, msg):
@@ -1082,33 +1074,6 @@ class O2ACBase(object):
     self.wrs_subtask_b_planning_client.send_goal(goal)
     self.wrs_subtask_b_planning_client.wait_for_result()
     return self.wrs_subtask_b_planning_client.get_result()
-
-  def set_motor(self, motor_name, direction = "tighten", wait=False, speed = 0, duration = 0):
-    if not self.use_real_robot:
-      return True
-    goal = o2ac_msgs.msg.ScrewToolControlGoal()
-    goal.fastening_tool_name = motor_name
-    goal.direction = direction
-    goal.speed = speed
-    goal.duration = duration
-    rospy.loginfo("Sending fastening_tool action goal.")
-    self.fastening_tool_client.send_goal(goal)
-    if wait:
-      self.fastening_tool_client.wait_for_result()
-    return self.fastening_tool_client.get_result()
-
-  def set_suction(self, tool_name, suction_on=False, eject=False, wait=True):
-    if not self.use_real_robot:
-      return True
-    goal = o2ac_msgs.msg.SuctionControlGoal()
-    goal.fastening_tool_name = tool_name
-    goal.turn_suction_on = suction_on
-    goal.eject_screw = eject
-    rospy.loginfo("Sending suction action goal.")
-    self.suction_client.send_goal(goal)
-    if wait:
-      self.suction_client.wait_for_result(rospy.Duration(2.0))
-    return self.suction_client.get_result()
 
   def do_insertion(self, robot_name, max_insertion_distance= 0.0, 
                         max_approach_distance = 0.0, max_force = .0,

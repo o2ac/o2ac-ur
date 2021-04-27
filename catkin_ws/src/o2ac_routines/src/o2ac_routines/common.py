@@ -826,7 +826,7 @@ class O2ACCommon(O2ACBase):
     # spiral_axis = "Y"
     # push_direction = "Z+"
     # self.skill_server.do_linear_push(robot_name, 10, direction=push_direction, wait = True)
-    self.set_motor("nut_tool_m6", direction="loosen", duration=10)
+    self.tools.set_motor("nut_tool_m6", direction="loosen", duration=10)
     self.skill_server.horizontal_spiral_motion(robot_name, max_radius = .006, radius_increment = .02, spiral_axis=spiral_axis)
     self.go_to_pose_goal(robot_name, nut_pose, speed=.005, move_lin = True, end_effector_link="a_bot_nut_tool_m6_link")
     rospy.sleep(3)
