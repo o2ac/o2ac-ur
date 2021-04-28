@@ -522,7 +522,7 @@ class TaskboardClass(O2ACCommon):
         termination_criteria = lambda cpose: cpose[0] > 0.109
 
         rospy.logwarn("** STARTING FORCE CONTROL **")
-        result = self.b_bot_compliant_arm.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
+        result = self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
                                                            wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=10.0,
                                                            target_force=target_force, selection_matrix=selection_matrix,
                                                            termination_criteria=termination_criteria)
@@ -536,7 +536,7 @@ class TaskboardClass(O2ACCommon):
 
         self.move_lin_rel("b_bot", relative_translation = [0.014,0,0], acceleration = 0.015, velocity = .03, use_robot_base_csys=True)
 
-        pre_push_position = self.b_bot_compliant_arm.joint_angles()
+        pre_push_position = self.b_bot.joint_angles()
 
         self.b_bot.gripper.close(velocity=0.01, wait=True)
 
@@ -544,7 +544,7 @@ class TaskboardClass(O2ACCommon):
         radius = 0.001
 
         rospy.logwarn("** STARTING FORCE CONTROL 2**")
-        self.b_bot_compliant_arm.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
+        self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
                                                            wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=10.0,
                                                            target_force=target_force, selection_matrix=selection_matrix,
                                                            termination_criteria=termination_criteria)

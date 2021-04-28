@@ -156,7 +156,7 @@ class AssemblyClass(O2ACCommon):
     self.go_to_pose_goal("b_bot", place_onboard_pose, speed=0.2, move_lin = True)
 
     # FIXME: Direction should be -Z
-    self.b_bot_compliant_arm.linear_push(force=8, direction="+Z", relative_to_ee=False, timeout=15.0)
+    self.b_bot.linear_push(force=8, direction="+Z", relative_to_ee=False, timeout=15.0)
     
     self.b_bot.gripper.open()
     self.move_lin_rel("b_bot", relative_translation=[0, 0, 0.05], use_robot_base_csys=True)
@@ -237,7 +237,7 @@ class AssemblyClass(O2ACCommon):
     termination_criteria = lambda cpose: cpose[0] > 0.085
 
     rospy.logwarn("** STARTING FORCE CONTROL **")
-    result = self.b_bot_compliant_arm.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
+    result = self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
                                                         wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=10.0,
                                                         target_force=target_force, selection_matrix=selection_matrix,
                                                         termination_criteria=termination_criteria)
@@ -254,7 +254,7 @@ class AssemblyClass(O2ACCommon):
     radius = 0.001
 
     rospy.logwarn("** STARTING FORCE CONTROL 2**")
-    result = self.b_bot_compliant_arm.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
+    result = self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
                                                         wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=10.0,
                                                         target_force=target_force, selection_matrix=selection_matrix,
                                                         termination_criteria=termination_criteria)
@@ -778,13 +778,13 @@ if __name__ == '__main__':
 
         assy.activate_ros_control_on_ur(robot="b_bot", recursion_depth=1)
         rospy.logwarn("STARTING Force Control with target_force: %s %s %s" % (str(target_force), "timeout", str(timeout)))
-        assy.b_bot_compliant_arm.force_control(target_force=target_force, selection_matrix=selection_matrix, timeout=timeout, stop_on_target_force=True)
+        assy.b_bot.force_control(target_force=target_force, selection_matrix=selection_matrix, timeout=timeout, stop_on_target_force=True)
         rospy.logwarn("FINISHED Force Control")
       elif i == '101': # Test Force control be careful!!
         force = 10.0 #N
         direction = '-Z'
 
-        assy.b_bot_compliant_arm.linear_push(force=force, direction=direction, timeout=20.0)
+        assy.b_bot.linear_push(force=force, direction=direction, timeout=20.0)
         
       elif i == '102':
         b_bot_script_start_pose = [1.7094888, -1.76184906, 2.20651847, -2.03368343, -1.54728252, 0.96213197]
@@ -793,7 +793,7 @@ if __name__ == '__main__':
         # force = 1.0 #N
         # direction = '-X'
 
-        # assy.b_bot_compliant_arm.linear_push(initial_pose=b_bot_starting_position, force=force, direction=direction, timeout=20.0)
+        # assy.b_bot.linear_push(initial_pose=b_bot_starting_position, force=force, direction=direction, timeout=20.0)
       elif i == 'START' or i == 'start' or i == "9999":
         for i in [1,2]:
           rospy.loginfo("Starting set number " + str(i))

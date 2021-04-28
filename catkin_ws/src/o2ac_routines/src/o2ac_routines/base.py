@@ -78,7 +78,6 @@ from o2ac_routines.skill_server_client import SkillServerClient
 from o2ac_routines.vision_client import VisionClient
 from o2ac_routines.ur_robot import URRobot
 from o2ac_routines.tools import Tools
-from o2ac_routines.ur_force_control import URForceController
 
 class O2ACBase(object):
   """
@@ -125,9 +124,6 @@ class O2ACBase(object):
     
     for robot in ["a_bot", "b_bot"]:
       self.active_robots[robot].get_status_from_param_server()
-    
-    self.a_bot_compliant_arm = URForceController(robot_name='a_bot')
-    self.b_bot_compliant_arm = URForceController(robot_name='b_bot')
 
     self.skill_server = SkillServerClient()
     self.vision = VisionClient()
@@ -801,9 +797,9 @@ class O2ACBase(object):
     robot = self.active_robots[robot_name]
     group = robot.robot_group
     if robot_name == 'a_bot':
-      arm = self.a_bot_compliant_arm
+      arm = self.a_bot
     elif robot_name == 'b_bot':
-      arm = self.b_bot_compliant_arm
+      arm = self.b_bot
     else:
       raise Exception('Unsupported arm %s' % robot_name)
 

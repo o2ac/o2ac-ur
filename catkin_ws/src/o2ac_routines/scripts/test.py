@@ -33,7 +33,7 @@ def main():
     termination_criteria = lambda cpose: cpose[0] > 0.10727
 
     rospy.logwarn("** STARTING FORCE CONTROL **")
-    result = controller.b_bot_compliant_arm.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
+    result = controller.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
                                                         wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=10.0,
                                                         target_force=target_force, selection_matrix=selection_matrix,
                                                         termination_criteria=termination_criteria)
@@ -45,9 +45,9 @@ def main():
 
     controller.b_bot.gripper.open(wait=True)
 
-    controller.b_bot_compliant_arm.move_relative(delta=[-0.014, 0., 0., 0., 0., 0.], wait=True, t=1.)
+    controller.b_bot.move_relative(delta=[-0.014, 0., 0., 0., 0., 0.], wait=True, t=1.)
 
-    pre_push_position = controller.b_bot_compliant_arm.joint_angles()
+    pre_push_position = controller.b_bot.joint_angles()
 
     controller.b_bot.gripper.close(velocity=0.01, wait=True)
 
@@ -55,7 +55,7 @@ def main():
     radius = 0.001
 
     rospy.logwarn("** STARTING FORCE CONTROL 2**")
-    controller.b_bot_compliant_arm.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
+    controller.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
                                                         wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=10.0,
                                                         target_force=target_force, selection_matrix=selection_matrix,
                                                         termination_criteria=termination_criteria)

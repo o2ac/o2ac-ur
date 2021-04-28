@@ -12,6 +12,7 @@ import ur_msgs.srv
 
 from std_msgs.msg import Bool
 
+from o2ac_routines.ur_force_control import URForceController
 from o2ac_routines.robotiq_gripper import RobotiqGripper
 from o2ac_routines import helpers
 
@@ -25,6 +26,8 @@ class URRobot():
         self.use_real_robot = use_real_robot
         self.ns = namespace
         self.listener = tf_listener
+
+        self.force_controller = URForceController(robot_name=namespace)
 
         self.run_mode_ = True     # The modes limit the maximum speed of motions. Used with the safety system @WRS2020
         self.pause_mode_ = False
@@ -406,3 +409,18 @@ class URRobot():
             rospy.logwarn("Setting acceleration to " + str(speed) + " instead of " + str(acceleration) + " to avoid jerky motion.")
             acc = speed/2.0
         return (sp, acc)
+
+    # ------ Force control functions
+
+    def force_control(self, *args, **kwargs):
+        return self.force_controller.force_control(*args, **kwargs)
+
+    def execute_circular_trajectory(self, *args, **kwargs):
+        return self.force_controller.execute_circular_trajectory(*args, **kwargs)
+
+    def execute_spiral_trajectory(self, *args, **kwargs):
+        return self.force_controller.execute_spiral_trajectory(*args, **kwargs)
+
+    def linear_push(self, *args, **kwargs):
+        return self.force_controller(*args, **kwargs)
+    
