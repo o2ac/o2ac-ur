@@ -726,12 +726,15 @@ class O2ACCommon(O2ACBase):
 
     def rotate_bearing_by_angle(angle):
       self.open_gripper("b_bot")
-      rotated_pose = copy.deepcopy(grasp_pose)
-      rotated_pose.pose.orientation = geometry_msgs.msg.Quaternion(
-                        *tf_conversions.transformations.quaternion_from_euler(angle, 0, 0))
-      self.go_to_pose_goal("b_bot", grasp_pose, speed=.1, acceleration=.04, end_effector_link = "b_bot_bearing_rotate_helper_link")
+      start_pose = copy.deepcopy(grasp_pose)
+      start_pose.pose.orientation = geometry_msgs.msg.Quaternion(
+                        *tf_conversions.transformations.quaternion_from_euler(-angle/2.0, 0, 0))
+      end_pose = copy.deepcopy(grasp_pose)
+      end_pose.pose.orientation = geometry_msgs.msg.Quaternion(
+                        *tf_conversions.transformations.quaternion_from_euler(angle/2.0, 0, 0))
+      self.go_to_pose_goal("b_bot", start_pose, speed=.1, acceleration=.04, end_effector_link = "b_bot_bearing_rotate_helper_link")
       self.close_gripper("b_bot")
-      self.go_to_pose_goal("b_bot", rotated_pose, speed=.1, acceleration=.04, end_effector_link = "b_bot_bearing_rotate_helper_link")
+      self.go_to_pose_goal("b_bot", end_pose, speed=.1, acceleration=.04, end_effector_link = "b_bot_bearing_rotate_helper_link")
       self.open_gripper("b_bot")
 
     success = False
@@ -740,7 +743,7 @@ class O2ACCommon(O2ACBase):
       self.open_gripper("b_bot")
       
       self.go_to_pose_goal("b_bot", camera_look_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.1, acceleration=.04)
-      self.activate_led("b_bot", on=True)
+      self.activate_led("b_bot", on=False)
       rospy.sleep(1)  # Without a wait, the camera image is blurry
 
       # Get angle and turn
@@ -749,6 +752,9 @@ class O2ACCommon(O2ACBase):
         rospy.loginfo("Bearing detected angle: %3f, try to correct", degrees(angle))
         times_perception_failed_in_a_row = 0
         if abs(degrees(angle)) > 1.5:
+          if task == "assembly" and abs(degrees(angle)) > 29:
+            rospy.logwarn("Limiting maximum angle from " + str(degrees(angle)) + " because otherwise motion would fail!")
+            angle = radians(29)
           rotate_bearing_by_angle(angle)
           adjustment_motions += 1
         else:
