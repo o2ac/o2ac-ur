@@ -1,3 +1,12 @@
+/*
+Convertion functions associated to geometry_msgs types
+ */
+
+#include <fcl/math/transform.h>
+#include <Eigen/Geometry>
+
+// Note that Particle is Eigen::Matrix<double, 6, 1> and CovarianceMatrix is Eigen::Matrix<double, 6, 6>
+
 fcl::Transform3f pose_to_fcl_transform(const geometry_msgs::Pose &pose)
 {
   return fcl::Transform3f(fcl::Quaternion3f(pose.orientation.w, pose.orientation.x, pose.orientation.y,pose.orientation.z),

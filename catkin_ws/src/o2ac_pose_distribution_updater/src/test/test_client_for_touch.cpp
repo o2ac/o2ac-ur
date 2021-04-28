@@ -1,16 +1,20 @@
+/*
+The implementation of the test client for touch action
+
+This client reads the values representing touch action calls from standard input.
+Each line of input must be of the form "id x y z qx qy qz qw" where "id" is the index of the touched object (0: ground, 1: box) and other 7 values represents the pose of the gripper as cartesian coordinates and quaternion.
+After each action call, client prints the values of mean and covariance matrix of the pose distribution to standard output.
+ */
+
 #include <ros/ros.h>
 #include <actionlib/client/simple_action_client.h>
 #include <geometry_msgs/PoseWithCovariance.h>
-#include "../estimator.cpp"
+#include "../conversions.cpp"
 #include "../ros_converters.cpp"
 #include "o2ac_msgs/updateDistributionAction.h"
 
 int main(int argc, char **argv)
 {
-  char exp_file_path[99];
-  scanf("%s",exp_file_path);
-  FILE *exp_file=fopen(exp_file_path, "r");
-
   Particle mean;
   mean.setZero();
   CovarianceMatrix covariance;
@@ -24,7 +28,7 @@ int main(int argc, char **argv)
   while(1){
     int id;
     double x,y,z,qw,qx,qy,qz;
-    if(fscanf(exp_file, "%d%lf%lf%lf%lf%lf%lf%lf", &id, &x, &y, &z, &qx, &qy, &qz, &qw) == EOF){
+    if(scanf("%d%lf%lf%lf%lf%lf%lf%lf", &id, &x, &y, &z, &qx, &qy, &qz, &qw) == EOF){
       break;
     }
     o2ac_msgs::updateDistributionGoal goal;

@@ -13,6 +13,8 @@ add_compile_options(-std=c++11)
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   std_msgs
+  sensor_msgs
+  cv_bridge
   actionlib
   actionlib_msgs
   roscpp
@@ -21,7 +23,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(Eigen3 REQUIRED)
 find_package(fcl REQUIRED)
-find_package(PCL 1.8 REQUIRED)
+find_package(OpenCV REQUIRED)
 
 ################################################################################
 # Declare ROS messages, services and actions
@@ -41,19 +43,34 @@ catkin_package(
 include_directories(
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
-  ${PCL_INCLUDE_DIRS}  
+  ${OpenCV_INCLUDE_DIRS}
 )
-
-link_directories(
-  ${PCL_LIBRARY_DIRS}
-)
-
-add_definitions(${PCL_DEFINITIONS})
 
 add_executable(update_distribution_action_server src/action_server.cpp)
 add_dependencies(update_distribution_action_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(update_distribution_action_server fcl ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+target_link_libraries(update_distribution_action_server fcl ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
-add_executable(test_client_for_place src/test/test_client_for_place.cpp)
-add_dependencies(test_client_for_place ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(test_client_for_place fcl ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+##################
+## For Only Test #
+##################
+#
+#find_package(PCL REQUIRED
+#include_directories(${PCL_INCLUDE_DIRS})
+#link_directories(${PCL_LIBRARY_DIRS})
+#add_definitions(${PCL_DEFINITIONS})
+#
+#add_executable(test_client_for_look src/test/test_client_for_look.cpp)
+#add_dependencies(test_client_for_look ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+#target_link_libraries(test_client_for_look ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+#
+#add_executable(generator src/test/generate_test_case.cpp)
+#add_dependencies(generator ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+#target_link_libraries(generator ${catkin_LIBRARIES} fcl)
+#
+#add_executable(test_client_for_touch src/test/test_client_for_touch.cpp)
+#add_dependencies(test_client_for_touch ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+#target_link_libraries(test_client_for_touch ${catkin_LIBRARIES})
+#
+#add_executable(test_client_for_place src/test/test_client_for_place.cpp)
+#add_dependencies(test_client_for_place ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+#target_link_libraries(test_client_for_place ${catkin_LIBRARIES} ${PCL_LIBRARIES})

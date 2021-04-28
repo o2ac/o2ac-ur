@@ -1,3 +1,9 @@
+/*
+Definitions of type and conversion functions associated to quaternion
+ */
+
+#include <Eigen/Core>
+
 using Particle = Eigen::Matrix<double, 6, 1>;
 using CovarianceMatrix  = Eigen::Matrix<double, 6, 6>;
 
@@ -15,7 +21,6 @@ template<typename Scalar> void RPY_to_quaternion(const Scalar &roll, const Scala
 }
 
 template<typename Scalar> void quaternion_to_RPY(const Scalar &w, const Scalar &x, const Scalar &y, const Scalar &z, Scalar &roll, Scalar &pitch, Scalar &yaw){
-  //using namespace boost::math::differentiation;
   using namespace std;
   roll = atan2(2.0*(w*x+y*z), w*w-x*x-y*y+z*z);
   pitch = asin(2.0*(w*y-x*z));
