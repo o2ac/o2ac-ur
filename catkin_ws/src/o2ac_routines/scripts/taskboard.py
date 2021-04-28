@@ -471,16 +471,18 @@ class TaskboardClass(O2ACCommon):
         rospy.logerr("Fail to grasp bearing")
         return
       elif self.b_bot_gripper_opening_width < 0.045:
-      # if self.b_bot_gripper_opening_width < 0.045:
         rospy.loginfo("bearing found to be upwards")
-        self.playback_sequence("bearing_orient_totb")
+        self.playback_sequence("bearing_orient")
         # success_b = self.load_program(robot="b_bot", program_name="wrs2020/bearing_orient_totb.urp", recursion_depth=3)
       else:
         rospy.loginfo("bearing found to be upside down")
-        self.playback_sequence("bearing_orient_down_totb")
+        self.playback_sequence("bearing_orient_down")
         # success_b = self.load_program(robot="b_bot", program_name="wrs2020/bearing_orient_down_totb.urp", recursion_depth=3)
         #'down' means the small area contacts with tray.
-      
+
+      if self.b_bot_gripper_opening_width < 0.01:
+        rospy.logerr("Bearing not found in gripper. Must have been lost. Aborting.")
+        #TODO(felixvd): Look at the regrasping/aligning area next to the tray
       # if success_b:
       #   print("Loaded bearing orient program.")
       #   self.execute_loaded_program(robot="b_bot")
