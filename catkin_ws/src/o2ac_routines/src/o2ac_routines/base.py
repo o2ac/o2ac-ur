@@ -118,8 +118,8 @@ class O2ACBase(object):
     self.assembly_database = AssemblyReader()
 
     # Action clients and movegroups
-    self.a_bot = URRobot("a_bot", self.use_real_robot)
-    self.b_bot = URRobot("b_bot", self.use_real_robot)
+    self.a_bot = URRobot("a_bot", self.use_real_robot, self.listener)
+    self.b_bot = URRobot("b_bot", self.use_real_robot, self.listener)
     # For compatibility let's wrap the robots
     self.active_robots = {'a_bot': self.a_bot, 'b_bot': self.b_bot}
     
@@ -268,231 +268,23 @@ class O2ACBase(object):
 
     # # TODO(felixvd): Add the set screw and nut tool objects from the C++ file
 
-  ############# ------ Robot motion functions
+  ############# ------ Robot motion functions (legacy API)
 
   def go_to_pose_goal(self, group_name, pose_goal_stamped, speed = 0.5, acceleration = 0.25,
                       end_effector_link = "", move_lin = True):
-    robot = self.active_robots[group_name]
-    if rospy.is_shutdown():
-      return False
-    if self.pause_mode_ or self.test_mode_:
-      if speed > self.reduced_mode_speed_limit:
-        rospy.loginfo("Reducing speed from " + str(speed) + " to " + str(self.reduced_mode_speed_limit) + " because robot is in test or pause mode")
-        speed = self.reduced_mode_speed_limit
-    if move_lin:
-      return self.move_lin(group_name, pose_goal_stamped, speed, acceleration, end_effector_link)
-    self.skill_server.publish_marker(pose_goal_stamped, "pose")
-    self.activate_ros_control_on_ur(group_name)
-    group = robot.groups[group_name]
-    
-    if acceleration > speed:
-      rospy.logwarn("Setting acceleration to " + str(speed) + " instead of " + str(acceleration) + " to avoid jerky motion.")
-      acceleration = speed
-
-    if not end_effector_link:
-      if group_name == "b_bot":
-        end_effector_link = "b_bot_robotiq_85_tip_link"
-      elif group_name == "a_bot":
-        end_effector_link = "a_bot_robotiq_85_tip_link"
-    group.set_end_effector_link(end_effector_link)
-    
-    group.set_pose_target(pose_goal_stamped)
-    rospy.logdebug("Setting velocity scaling to " + str(speed))
-    group.set_max_velocity_scaling_factor(speed)
-    group.set_max_acceleration_scaling_factor(acceleration)
-    group.set_planning_pipeline_id("ompl")
-    group.set_planner_id("RRTConnect")
-
-    move_success = group.go(wait=True)
-    group.stop()
-    # It is always good to clear your targets after planning with poses.
-    # Note: there is no equivalent function for clear_joint_value_targets()
-    group.clear_pose_targets()
-
-    current_pose = group.get_current_pose().pose
-    return all_close(pose_goal_stamped.pose, current_pose, 0.01), move_success
+    return self.active_robots[group_name].go_to_pose_goal(pose_goal_stamped, speed, acceleration, end_effector_link, move_lin)
 
   def move_lin(self, group_name, pose_goal_stamped, speed = 1.0, acceleration = 0.5, end_effector_link = ""):
-    if rospy.is_shutdown():
-      return False
-    self.skill_server.publish_marker(pose_goal_stamped, "pose")
-    if self.pause_mode_ or self.test_mode_:
-      if speed > self.reduced_mode_speed_limit:
-        rospy.loginfo("Reducing speed from " + str(speed) + " to " + str(self.reduced_mode_speed_limit) + " because robot is in test or pause mode")
-        speed = self.reduced_mode_speed_limit
-
-    if not end_effector_link:
-      if group_name == "b_bot":
-        end_effector_link = "b_bot_robotiq_85_tip_link"
-      elif group_name == "a_bot":
-        end_effector_link = "a_bot_robotiq_85_tip_link"
-
-    if self.force_ur_script_linear_motion and self.use_real_robot and group_name == "b_bot":
-      if not self.force_moveit_linear_motion:
-        return self.skill_server.move_lin(group_name, pose_goal_stamped, end_effector_link, speed, acceleration, self.listener)
-
-    if speed > 1.0:
-      speed = 1.0
-    if acceleration > speed:
-      rospy.logwarn("Setting acceleration to " + str(speed) + " instead of " + str(acceleration) + " to avoid jerky motion.")
-      acceleration = speed
-    
-    self.active_robots[group_name].activate_ros_control_on_ur()
-    group = self.active_robots[group_name].groups[group_name]
-
-    group.set_end_effector_link(end_effector_link)
-    pose_goal_world = self.listener.transformPose("world", pose_goal_stamped)
-    group.set_pose_target(pose_goal_world)
-    rospy.logdebug("Setting velocity scaling to " + str(speed))
-    group.set_max_velocity_scaling_factor(speed)
-    group.set_max_acceleration_scaling_factor(acceleration)
-    
-    group.set_planning_pipeline_id("pilz_industrial_motion_planner")
-    group.set_planner_id("LIN")
-    
-    success = group.go(wait=True)  # Bool
-    group.stop()
-    group.clear_pose_targets()
-
-    current_pose = group.get_current_pose().pose
-    return success
+    return self.active_robots[group_name].move_lin(pose_goal_stamped, speed, acceleration, end_effector_link)
 
   def move_lin_rel(self, robot_name, relative_translation = [0,0,0], relative_rotation = [0,0,0], acceleration = 0.5, velocity = .03, use_robot_base_csys=False, wait = True, max_wait=30.0):
-    '''
-    Does a lin_move relative to the current position of the robot.
-    Uses the robot's TCP if using UR script, or the frame of the 
-
-    robot_name = "b_bot" for example
-    relative_translation: translatory movement relative to current tcp position, expressed in robot's own base frame
-    relative_rotation: rotatory movement relative to current tcp position, expressed in robot's own base frame
-    use_robot_base_csys: If true, uses the robot_base coordinates for the relative motion (not workspace_center!)
-    '''
-    if rospy.is_shutdown():
-      return False
-    # Uses UR coordinates
-    if not self.use_real_robot:
-      return True
-    if self.force_ur_script_linear_motion:
-      # Directly calls the UR service
-      req = o2ac_msgs.srv.sendScriptToURRequest()
-      req.robot_name = robot_name
-      req.relative_translation.x = relative_translation[0]
-      req.relative_translation.y = relative_translation[1]
-      req.relative_translation.z = relative_translation[2]
-      req.relative_rotation.x = relative_rotation[0]
-      req.relative_rotation.y = relative_rotation[1]
-      req.relative_rotation.z = relative_rotation[2]
-      req.acceleration = acceleration
-      req.velocity = velocity
-      req.lin_move_rel_in_base_csys = use_robot_base_csys
-      req.program_id = "lin_move_rel"
-      res = self.urscript_client.call(req)
-      if wait:
-        rospy.sleep(1.0)
-        wait_for_UR_program("/" + robot_name, rospy.Duration.from_sec(max_wait))
-      return res.success
-    
-    group = self.active_robots[robot_name].groups[robot_name]
-    # TODO: use use_robot_base_csys parameter
-    new_pose1 = group.get_current_pose()
-    new_pose2 = group.get_current_pose()
-    if pose_dist(new_pose1.pose, new_pose2.pose) > 0.002:
-      # This is guarding against a weird error that seems to occur with get_current_pose sometimes
-      rospy.logerr("get_current_pose gave two different results!!")
-      rospy.logwarn("pose1: ")
-      rospy.logwarn(new_pose1.pose)
-      rospy.logwarn("pose2: ")
-      rospy.logwarn(new_pose2.pose)
-    
-    new_pose2.pose.position.x += relative_translation[0]
-    new_pose2.pose.position.y += relative_translation[1]
-    new_pose2.pose.position.z += relative_translation[2]
-    new_pose2.pose.orientation = rotateQuaternionByRPY(relative_rotation[0], relative_rotation[1], 
-                                                        relative_rotation[2], new_pose2.pose.orientation)
-    return self.move_lin(robot_name, new_pose2, speed = velocity, acceleration = acceleration)
+    return self.active_robots[robot_name].move_lin_rel(relative_translation, relative_rotation, acceleration, velocity, use_robot_base_csys, wait, max_wait)
 
   def move_joints(self, group_name, joint_pose_goal, speed = 1.0, acceleration = 0.5, force_ur_script=False, force_moveit=False):
-    if rospy.is_shutdown():
-      return False
-    if self.pause_mode_ or self.test_mode_:
-      if speed > self.reduced_mode_speed_limit:
-        rospy.loginfo("Reducing speed from " + str(speed) + " to " + str(self.reduced_mode_speed_limit) + " because robot is in test or pause mode")
-        speed = self.reduced_mode_speed_limit
-    if force_ur_script and self.use_real_robot:
-      if not force_moveit:
-        return self.skill_server.move_joints(group_name, joint_pose_goal, speed, acceleration)
-    
-    if speed > 1.0:
-      speed = 1.0
-    self.active_robots[group_name].activate_ros_control_on_ur()
-    self.active_robots[group_name].groups[group_name].set_joint_value_target(joint_pose_goal)
-    self.active_robots[group_name].groups[group_name].set_max_velocity_scaling_factor(speed)
-    self.active_robots[group_name].groups[group_name].set_planning_pipeline_id("ompl")
-    self.active_robots[group_name].groups[group_name].set_planner_id("RRTConnect")
-    return self.active_robots[group_name].groups[group_name].go(wait=True)
-
-  def move_both_robots(self, pose_goal_a_bot, pose_goal_b_bot, speed = 0.05):
-    if rospy.is_shutdown():
-      return False
-    if self.pause_mode_ or self.test_mode_:
-      if speed > .25:
-        rospy.loginfo("Reducing speed from " + str(speed) + " to .25 because robot is in test or pause mode")
-        speed = .25
-    rospy.logwarn("CAUTION: Moving front bots together, but MoveIt does not do continuous collision checking.")
-    group = self.groups["front_bots"]
-    group.set_pose_target(pose_goal_a_bot, end_effector_link="a_bot_robotiq_85_tip_link")
-    group.set_pose_target(pose_goal_b_bot, end_effector_link="b_bot_robotiq_85_tip_link")
-    rospy.loginfo("Setting velocity scaling to " + str(speed))
-    group.set_max_velocity_scaling_factor(speed)
-    group.set_max_acceleration_scaling_factor(acceleration)
-    group.set_planning_pipeline_id("ompl")
-    group.set_planner_id("RRTConnect")
-
-    success = group.go(wait=True)
-    group.stop()
-    # It is always good to clear your targets after planning with poses.
-    # Note: there is no equivalent function for clear_joint_value_targets()
-    group.clear_pose_targets()
-
-    rospy.loginfo("Received:")
-    rospy.loginfo(success)
-    return success
-
-    # =====
+    return self.active_robots[group_name].move_joints(joint_pose_goal, speed, acceleration)
 
   def go_to_named_pose(self, pose_name, robot_name, speed = 0.5, acceleration = 0.5, force_ur_script=False):
-    """
-    pose_name should be a named pose in the moveit_config, such as "home", "back" etc.
-    """
-    if rospy.is_shutdown():
-      return False
-    if self.pause_mode_ or self.test_mode_:
-      if speed > self.reduced_mode_speed_limit:
-        rospy.loginfo("Reducing speed from " + str(speed) + " to " + str(self.reduced_mode_speed_limit) + " because robot is in test or pause mode")
-        speed = self.reduced_mode_speed_limit
-    if force_ur_script and self.use_real_robot:
-      d = self.groups[robot_name].get_named_target_values(pose_name)
-      if not "panda" in d.keys()[0]:  # This avoids the panda being activated  
-        joint_pose = [d[robot_name+"_shoulder_pan_joint"], 
-                      d[robot_name+"_shoulder_lift_joint"],
-                      d[robot_name+"_elbow_joint"],
-                      d[robot_name+"_wrist_1_joint"],
-                      d[robot_name+"_wrist_2_joint"],
-                      d[robot_name+"_wrist_3_joint"]]
-        return self.move_joints(robot_name, joint_pose, speed, acceleration, force_ur_script=force_ur_script)
-    if speed > 1.0:
-      speed = 1.0
-    robot = self.active_robots[robot_name]
-    robot.activate_ros_control_on_ur()
-    robot.groups[robot_name].set_named_target(pose_name)
-    rospy.logdebug("Setting velocity scaling to " + str(speed))
-    robot.groups[robot_name].set_max_velocity_scaling_factor(speed)
-    robot.groups[robot_name].set_planning_pipeline_id("ompl")
-    robot.groups[robot_name].set_planner_id("RRTConnect")
-    move_success = robot.groups[robot_name].go(wait=True)
-    # self.active_robots[group_name].groups[robot_name].stop()
-    robot.groups[robot_name].clear_pose_targets()
-    return move_success
+    return self.active_robots[robot_name].go_to_named_pose(pose_name, speed, acceleration)
 
   ######
   def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=False):
