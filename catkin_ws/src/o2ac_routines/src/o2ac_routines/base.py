@@ -1520,14 +1520,12 @@ class O2ACBase(object):
           self.planning_scene_interface.disallow_collisions(link_name, hand_link)
       return
 
-  def simple_linear_push(self, robot_name, initial_pose, force, direction, ee_transform=[0,0,0,0,0,0,1], relative_to_ee=False, timeout=10.0):
+  def simple_linear_push(self, robot_name, force, direction, relative_to_ee=False, timeout=10.0):
     """
       Apply force control in one direction until contact with `force`
       robot_name: string, name of the robot
-      initial_pose: list[6], joint angles initial position before linear push
       force: float, desired force
       direction: string, direction for linear_push +- X,Y,Z relative to base or end-effector, see next argument
-      ee_transform: list[7], additional transformation of the end-effector (e.g to match tool or special orientation) x,y,z + quaternion
       relative_to_ee: bool, whether to use the base_link of the robot as frame or the ee_link (+ ee_transform)
     """
     # TODO(cambel): this can be avoided if the UR ARM object is a class on itself that also contains the force controller
@@ -1539,12 +1537,12 @@ class O2ACBase(object):
     else:
       raise Exception('Unsupported arm %s' % robot_name)
 
-    self.move_joints(robot_name, initial_pose, speed=1.0)
-
     target_force = get_target_force(direction, force)
+    print("target_force")
+    print(target_force)
     selection_matrix = np.array(target_force == 0.0) * 1.0 # define the selection matrix based on the target force
 
-    arm.force_control(target_force=target_force, selection_matrix=selection_matrix, ee_transform=ee_transform, relative_to_ee=relative_to_ee, timeout=timeout, stop_on_target_force=True)
+    arm.force_control(target_force=target_force, selection_matrix=selection_matrix, relative_to_ee=relative_to_ee, timeout=timeout, stop_on_target_force=True)
 
   def playback_sequence(self, routine_filename):
     path = rospkg.RosPack().get_path("o2ac_routines") + ("/config/playback_sequences/%s.yaml" % routine_filename)

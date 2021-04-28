@@ -56,6 +56,7 @@ from o2ac_routines.common import O2ACCommon
 from o2ac_routines.helpers import wait_for_UR_program
 import o2ac_routines.helpers as helpers
 
+from ur_control.constants import TERMINATION_CRITERIA
 class AssemblyClass(O2ACCommon):
   """
   This contains the routine used to run the taskboard task.
@@ -153,19 +154,11 @@ class AssemblyClass(O2ACCommon):
     self.go_to_pose_goal("b_bot", approach_onboard_pose, speed=0.2, move_lin = True)
     self.go_to_pose_goal("b_bot", place_onboard_pose, speed=0.2, move_lin = True)
 
-    # Use force control to place base plate
-    firmattach = self.load_program(robot="b_bot", program_name="wrs2020/baseplate_firmattach.urp", recursion_depth=3)
-    if not firmattach:
-      rospy.logerr("Failed to load base plate firmattach program on b_bot")
-      return False
-    print("Running belt pick on b_bot.")
-    if not self.execute_loaded_program(robot="b_bot"):
-      rospy.logerr("Failed to execute base plate firmattach program on b_bot")
-      return False
-    wait_for_UR_program("/b_bot", rospy.Duration.from_sec(20))
+    # FIXME: Direction should be -Z
+    self.simple_linear_push("b_bot", force=5, direction="+Z", relative_to_ee=False, timeout=15.0)
     
     self.open_gripper("b_bot")
-    # self.move_lin_rel("b_bot", relative_translation=[0, 0, -0.01], use_robot_base_csys=True, max_wait=5.0)
+    self.move_lin_rel("b_bot", relative_translation=[0, 0, 0.05], use_robot_base_csys=True)
     self.lock_base_plate()
     return True
 
@@ -611,17 +604,15 @@ if __name__ == '__main__':
         selection_matrix = [1.,1.,0.,1.,1.,1.]
         target_force =     [0.,0.,0.,0.,0.,0.]
 
-        assy.activate_ros_control_on_ur(robot="b_bot", recursion_depth=1)
+        assy.activate_ros_control_on_ur(robot="b_bot")
         rospy.logwarn("STARTING Force Control with target_force: %s %s %s" % (str(target_force), "timeout", str(timeout)))
         assy.b_bot_compliant_arm.force_control(target_force=target_force, selection_matrix=selection_matrix, timeout=timeout, stop_on_target_force=True)
         rospy.logwarn("FINISHED Force Control")
       elif i == '101': # Test Force control be careful!!
-        b_bot_starting_position = [1.7078, -1.5267, 2.0624, -2.1325, -1.6114, 1.7185]
-        
         force = 10.0 #N
-        direction = '+Z'
+        direction = '-Z'
 
-        assy.simple_linear_push('b_bot', initial_pose=b_bot_starting_position, force=force, direction=direction, timeout=20.0)
+        assy.simple_linear_push('b_bot', force=force, direction=direction, timeout=20.0)
         
       elif i == '102':
         b_bot_script_start_pose = [1.7094888, -1.76184906, 2.20651847, -2.03368343, -1.54728252, 0.96213197]
