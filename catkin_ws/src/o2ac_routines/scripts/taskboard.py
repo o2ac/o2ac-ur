@@ -483,6 +483,10 @@ class TaskboardClass(O2ACCommon):
       if self.b_bot_gripper_opening_width < 0.01:
         rospy.logerr("Bearing not found in gripper. Must have been lost. Aborting.")
         #TODO(felixvd): Look at the regrasping/aligning area next to the tray
+        return False
+
+      self.playback_sequence("bearing_move_to_taskboard")
+      
       # if success_b:
       #   print("Loaded bearing orient program.")
       #   self.execute_loaded_program(robot="b_bot")
