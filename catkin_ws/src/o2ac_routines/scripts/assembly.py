@@ -401,11 +401,11 @@ class AssemblyClass(O2ACCommon):
     if panel == "bearing_panel":
       a_bot_start_hardcoded_bearing_plate = [1.014740824, -1.597331663, 1.923653427, -1.910340925, -1.59755593, 1.014281272]
       self.move_joints("a_bot", a_bot_start_hardcoded_bearing_plate)
-      success_a = self.load_program(robot="a_bot", program_name="wrs2020/bearing_plate_full.urp", recursion_depth=3)
+      success_a = self.load_program(robot="a_bot", program_name="wrs2020/bearing_plate_full.urp")
     elif panel == "motor_panel":
       a_bot_start_hardcoded_motor_plate = [1.093529105, -1.416419939, 1.730439011, -1.895824571, -1.598531071, 1.09309482]
       self.move_joints("a_bot", a_bot_start_hardcoded_motor_plate)
-      success_a = self.load_program(robot="a_bot", program_name="wrs2020/motor_plate_full.urp", recursion_depth=3)
+      success_a = self.load_program(robot="a_bot", program_name="wrs2020/motor_plate_full.urp")
     
     if not success_a:
       rospy.logerr("Failed to load plate placing program on a_bot")
@@ -445,15 +445,16 @@ class AssemblyClass(O2ACCommon):
       self.move_lin_rel("a_bot", relative_translation=[0, -0.015, 0])
       self.open_gripper("a_bot", opening_width=0.08, wait=True)
       if panel == "bearing_panel":
-        success_a = self.load_program(robot="a_bot", program_name="wrs2020/bearing_plate_positioning.urp", recursion_depth=3)
+        success_a = self.load_program(robot="a_bot", program_name="wrs2020/bearing_plate_positioning.urp")
       else:
-        success_a = self.load_program(robot="a_bot", program_name="wrs2020/motor_plate_positioning.urp", recursion_depth=3)
+        success_a = self.load_program(robot="a_bot", program_name="wrs2020/motor_plate_positioning.urp")
       if not success_a:
         rospy.logerr("Failed to load plate positioning program on a_bot")
         return False
       if not self.execute_loaded_program(robot="a_bot"):
         rospy.logerr("Failed to execute plate positioning program on a_bot")
         return False
+      wait_for_UR_program("/a_bot", rospy.Duration.from_sec(20))
       
       # Retry fastening
       if not self.fasten_screw_vertical('b_bot', screw_target_pose):
