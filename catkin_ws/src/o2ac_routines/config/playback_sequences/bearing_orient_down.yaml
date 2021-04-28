@@ -21,6 +21,6 @@ waypoints:
   gripper-action: close
   pose: [1.36839, -1.8889, 2.70104, -2.08534, -1.13864, -2.1986]
   type: joint-space-goal-cartesian-lin-motion
-- duration: 1.0
+- duration: 1.5
   pose: [1.3899, -2.097, 2.5718, -1.7734, -1.1517, -2.1679]
   type: joint-space-goal-cartesian-lin-motion

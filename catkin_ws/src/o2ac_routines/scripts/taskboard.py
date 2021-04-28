@@ -519,11 +519,11 @@ class TaskboardClass(O2ACCommon):
         target_force = get_target_force('-X', 5.0)
         selection_matrix = [0., 0.8, 0.8, 0.8, 0.8, 0.8]
 
-        termination_criteria = lambda cpose: cpose[0] > 0.107
+        termination_criteria = lambda cpose: cpose[0] > 0.109
 
         rospy.logwarn("** STARTING FORCE CONTROL **")
         result = self.b_bot_compliant_arm.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
-                                                           wiggle_direction="X", wiggle_angle=np.deg2rad(0.0), wiggle_revolutions=10.0,
+                                                           wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=10.0,
                                                            target_force=target_force, selection_matrix=selection_matrix,
                                                            termination_criteria=termination_criteria)
         rospy.logwarn("** FORCE CONTROL COMPLETE **")
@@ -540,12 +540,12 @@ class TaskboardClass(O2ACCommon):
 
         self.close_gripper('b_bot', velocity=0.01, wait=True)
 
-        termination_criteria = lambda cpose: cpose[0] > 0.1075
+        termination_criteria = lambda cpose: cpose[0] > 0.115
         radius = 0.001
 
         rospy.logwarn("** STARTING FORCE CONTROL 2**")
         self.b_bot_compliant_arm.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
-                                                           wiggle_direction="X", wiggle_angle=np.deg2rad(0.0), wiggle_revolutions=10.0,
+                                                           wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=10.0,
                                                            target_force=target_force, selection_matrix=selection_matrix,
                                                            termination_criteria=termination_criteria)
         rospy.logwarn("** FORCE CONTROL COMPLETE 2**")

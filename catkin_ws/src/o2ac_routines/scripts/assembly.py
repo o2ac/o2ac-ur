@@ -776,7 +776,7 @@ if __name__ == '__main__':
         selection_matrix = [1.,1.,0.,1.,1.,1.]
         target_force =     [0.,0.,0.,0.,0.,0.]
 
-        assy.activate_ros_control_on_ur(robot="b_bot")
+        assy.activate_ros_control_on_ur(robot="b_bot", recursion_depth=1)
         rospy.logwarn("STARTING Force Control with target_force: %s %s %s" % (str(target_force), "timeout", str(timeout)))
         assy.b_bot_compliant_arm.force_control(target_force=target_force, selection_matrix=selection_matrix, timeout=timeout, stop_on_target_force=True)
         rospy.logwarn("FINISHED Force Control")

@@ -208,7 +208,7 @@ if __name__ == '__main__':
           c.assembly_database.load_db("wrs_assembly_1")
         c.look_for_item_in_tray("panel_bearing", "b_bot")
       elif r == '7':
-        c.simple_linear_push("b_bot", force=10, direction="+Z", relative_to_ee=False, timeout=15.0)
+        c.b_bot_compliant_arm.linear_push(force=10, direction="+Z", relative_to_ee=False, timeout=15.0)
       elif r == "8":
         goal = c.look_and_get_grasp_point(8)  # shaft
         if not goal:

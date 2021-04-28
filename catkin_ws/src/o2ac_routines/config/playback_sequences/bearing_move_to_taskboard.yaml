@@ -7,5 +7,5 @@ waypoints:
   pose: [1.62518, -1.2494, 1.79624, -2.09684, -2.61786, -1.42602]
   type: joint-space-goal-cartesian-lin-motion
 - duration: 1.0
-  pose: [1.5804, -1.2664, 1.8317, -2.1974, -2.6158, -1.5197]
+  pose: [1.5791, -1.257, 1.8261, -2.2056, -2.6119, -1.5235]
   type: joint-space-goal-cartesian-lin-motion

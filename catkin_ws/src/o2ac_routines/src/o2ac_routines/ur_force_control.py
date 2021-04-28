@@ -10,6 +10,7 @@ from ur_control.compliant_controller import CompliantController
 
 from o2ac_routines.helpers import get_target_force
 
+
 def create_pid(pid, default_ki=0.0, default_kd=0.0):
     kp = np.array(pid['p'])
     if pid['d'] == 'default':
@@ -33,7 +34,7 @@ class URForceController(CompliantController):
 
         CompliantController.__init__(self, ft_sensor=True, namespace=robot_name,
                                      joint_names_prefix=robot_name+'_', robot_urdf=robot_name,
-                                     robot_urdf_package='o2ac_scene_description', 
+                                     robot_urdf_package='o2ac_scene_description',
                                      ee_link=tcp_link, ee_transform=ee_transform, **kwargs)
 
         self._init_force_controller(config_file)
@@ -66,7 +67,7 @@ class URForceController(CompliantController):
             reset_pids: bool, should reset pids after using force control, but for continuos control during a trajectory, it is not recommended until the trajectory is completed
         """
 
-        rospy.sleep(1.0) # give it some time to set up before moving
+        rospy.sleep(1.0)  # give it some time to set up before moving
         self.set_wrench_offset(True)  # offset the force sensor
         self.relative_to_ee = relative_to_ee if relative_to_ee is not None else self.relative_to_ee
 

@@ -36,7 +36,7 @@ class VisionClient():
         """
         # Send goal, wait for result
         self.ssd_client.send_goal(o2ac_msgs.msg.get3DPosesFromSSDGoal())
-        if (not self.ssd_client.wait_for_result(rospy.Duration(2.0))):
+        if (not self.ssd_client.wait_for_result(rospy.Duration(4.0))):
             self.ssd_client.cancel_goal()  # Cancel goal if timeout expired
             rospy.logerr("Call for SSD result returned no result. Is o2ac_vision running?")
             return False
