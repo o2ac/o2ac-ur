@@ -15,7 +15,7 @@ signal.signal(signal.SIGINT, signal_handler)
 
 def main():
     controller = O2ACBase()
-    # controller.activate_ros_control_on_ur('b_bot')
+    # controller.b_bot.activate_ros_control_on_ur()
     controller.playback_sequence("bearing_orient_totb")
 
     
@@ -43,13 +43,13 @@ def main():
         rospy.logerr("** Insertion Failed!! **")
         return
 
-    controller.open_gripper('b_bot', wait=True)
+    controller.b_bot.gripper.open(wait=True)
 
     controller.b_bot_compliant_arm.move_relative(delta=[-0.014, 0., 0., 0., 0., 0.], wait=True, t=1.)
 
     pre_push_position = controller.b_bot_compliant_arm.joint_angles()
 
-    controller.close_gripper('b_bot', velocity=0.01, wait=True)
+    controller.b_bot.gripper.close(velocity=0.01, wait=True)
 
     termination_criteria = lambda cpose: cpose[0] > 0.10727
     radius = 0.001
@@ -61,7 +61,7 @@ def main():
                                                         termination_criteria=termination_criteria)
     rospy.logwarn("** FORCE CONTROL COMPLETE 2**")
     
-    controller.open_gripper('b_bot', wait=True)
+    controller.b_bot.gripper.open(wait=True)
 
     rospy.logwarn("** CHANGE POSITIONS USING MOVEIT **")
     post_insertion_pose = [1.6088, -1.1894, 1.7653, -2.0387, -2.7843, -1.4562]

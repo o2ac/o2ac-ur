@@ -113,3 +113,16 @@ class URForceController(CompliantController):
         return self.force_control(target_force=target_force, target_positions=trajectory, selection_matrix=selection_matrix,
                                   timeout=timeout, relative_to_ee=False, termination_criteria=termination_criteria)
 
+    def linear_push(self, force, direction, relative_to_ee=False, timeout=10.0):
+        """
+        Apply force control in one direction until contact with `force`
+        robot_name: string, name of the robot
+        force: float, desired force
+        direction: string, direction for linear_push +- X,Y,Z relative to base or end-effector, see next argument
+        relative_to_ee: bool, whether to use the base_link of the robot as frame or the ee_link (+ ee_transform)
+        """
+
+        target_force = get_target_force(direction, force)
+        selection_matrix = np.array(target_force == 0.0) * 1.0  # define the selection matrix based on the target force
+
+        self.force_control(target_force=target_force, selection_matrix=selection_matrix, relative_to_ee=relative_to_ee, timeout=timeout, stop_on_target_force=True)
