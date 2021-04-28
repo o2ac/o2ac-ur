@@ -942,8 +942,14 @@ class O2ACBase(object):
       rospy.loginfo("Detected " + item_name + " with confidence " + str(res.confidences[0]))
       co = self.assembly_database.get_collision_object(object_name=item_name)
       # TODO: Update MoveIt to use the object_pose
-      co.mesh_poses[0] = res.detected_poses[0].pose
-      co.header.frame_id = "tray_center"
+      # p_1 = copy.deepcopy(res.detected_poses[0].pose)
+      # p_2 = copy.deepcopy(res.detected_poses[0].pose)
+      # p_3 = copy.deepcopy(res.detected_poses[0].pose)
+      # p_2 = 
+      print(res.detected_poses[0])
+      co.pose = res.detected_poses[0].pose
+      co.header.frame_id = res.detected_poses[0].header.frame_id
+
       self.planning_scene_interface.apply_collision_object(co)
       return res.detected_poses[0]
     else:
