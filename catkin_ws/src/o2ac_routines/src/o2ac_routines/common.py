@@ -786,7 +786,7 @@ class O2ACCommon(O2ACBase):
     
     res = self.skill_server.do_screw_action(robot_name, screw_hole_pose, screw_height, screw_size)
     self.go_to_named_pose("feeder_pick_ready", robot_name)
-    return res.success
+    return res  # Bool
 
   def fasten_screw_horizontal(self, robot_name, screw_hole_pose, screw_height = .02, screw_size = 4):
     """

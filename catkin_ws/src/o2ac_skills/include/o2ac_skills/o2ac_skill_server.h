@@ -158,10 +158,9 @@ public:
   actionlib::SimpleActionServer<o2ac_msgs::regraspAction> regraspActionServer_;
   actionlib::SimpleActionServer<o2ac_msgs::screwAction> screwActionServer_;  
   o2ac_msgs::screwResult screw_result_;
-  actionlib::SimpleActionServer<o2ac_msgs::changeToolAction> changeToolActionServer_;
+  actionlib::SimpleActionServer<o2ac_msgs::changeToolAction> changeToolActionServer_;  // Superceded by Python
 
   // Action clients
-  // actionlib::SimpleActionClient<control_msgs::GripperCommandAction> a_bot_gripper_client_;
   actionlib::SimpleActionClient<robotiq_msgs::CModelCommandAction> a_bot_gripper_client_, b_bot_gripper_client_;
   actionlib::SimpleActionClient<o2ac_msgs::ScrewToolControlAction> fastening_tool_client;
   actionlib::SimpleActionClient<o2ac_msgs::SuctionControlAction> suction_client;

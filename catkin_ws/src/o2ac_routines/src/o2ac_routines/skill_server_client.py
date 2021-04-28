@@ -9,19 +9,19 @@ import geometry_msgs.msg # urscript_client
 
 class SkillServerClient():
     def __init__(self):
-            self.pick_screw_from_feeder_client = actionlib.SimpleActionClient('/o2ac_skills/pick_screw_from_feeder', o2ac_msgs.msg.pickScrewFromFeederAction)
-            self.place_client = actionlib.SimpleActionClient('/o2ac_skills/place', o2ac_msgs.msg.placeAction)
-            self.regrasp_client = actionlib.SimpleActionClient('/o2ac_skills/regrasp', o2ac_msgs.msg.regraspAction)
-            self.screw_client = actionlib.SimpleActionClient('/o2ac_skills/screw', o2ac_msgs.msg.screwAction)
-            self.change_tool_client = actionlib.SimpleActionClient('/o2ac_skills/change_tool', o2ac_msgs.msg.changeToolAction)
+        self.pick_screw_from_feeder_client = actionlib.SimpleActionClient('/o2ac_skills/pick_screw_from_feeder', o2ac_msgs.msg.pickScrewFromFeederAction)
+        self.place_client = actionlib.SimpleActionClient('/o2ac_skills/place', o2ac_msgs.msg.placeAction)
+        self.regrasp_client = actionlib.SimpleActionClient('/o2ac_skills/regrasp', o2ac_msgs.msg.regraspAction)
+        self.screw_client = actionlib.SimpleActionClient('/o2ac_skills/screw', o2ac_msgs.msg.screwAction)
+        self.change_tool_client = actionlib.SimpleActionClient('/o2ac_skills/change_tool', o2ac_msgs.msg.changeToolAction)
 
-            self.publishMarker_client = rospy.ServiceProxy('/o2ac_skills/publishMarker', o2ac_msgs.srv.publishMarker)
-            self.disable_markers = True
-            
-            self.toggleCollisions_client = rospy.ServiceProxy('/o2ac_skills/toggleCollisions', std_srvs.srv.SetBool)
-            
-            self.urscript_client = rospy.ServiceProxy('/o2ac_skills/sendScriptToUR', o2ac_msgs.srv.sendScriptToUR)
-            self.use_real_robot = rospy.get_param("use_real_robot", False)
+        self.publishMarker_client = rospy.ServiceProxy('/o2ac_skills/publishMarker', o2ac_msgs.srv.publishMarker)
+        self.disable_markers = True
+        
+        self.toggleCollisions_client = rospy.ServiceProxy('/o2ac_skills/toggleCollisions', std_srvs.srv.SetBool)
+        
+        self.urscript_client = rospy.ServiceProxy('/o2ac_skills/sendScriptToUR', o2ac_msgs.srv.sendScriptToUR)
+        self.use_real_robot = rospy.get_param("use_real_robot", False)
 
     def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=True):
         """
@@ -36,7 +36,7 @@ class SkillServerClient():
 
         self.pick_screw_from_feeder_client.send_goal(goal)
         rospy.logdebug("Waiting for result")
-        self.pick_screw_from_feeder_client.wait_for_result()
+        self.pick_screw_from_feeder_client.wait_for_result(rospy.Duration(60.0))
         rospy.logdebug("Getting result")
         res = self.pick_screw_from_feeder_client.get_result()
     
@@ -50,6 +50,7 @@ class SkillServerClient():
                 self.realign_tool(robot_name, screw_tool_id)
                 return self.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure=False)
             else:
+                self.go_to_named_pose("tool_pick_ready", robot_name)
                 return False
         
     def do_place_action(self, robot_name, pose_stamped, tool_name = "", screw_size=0):
@@ -64,7 +65,7 @@ class SkillServerClient():
 
         self.place_client.send_goal(goal)
         rospy.logdebug("Waiting for result")
-        self.place_client.wait_for_result()
+        self.place_client.wait_for_result(rospy.Duration(90.0))
         rospy.logdebug("Getting result")
         return self.place_client.get_result()
 

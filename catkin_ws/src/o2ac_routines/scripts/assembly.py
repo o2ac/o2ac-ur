@@ -44,6 +44,7 @@ import tf
 from math import pi, radians, sin, cos
 tau = 2.0*pi  # Part of math from Python 3.6
 import math
+import numpy as np
 
 from o2ac_msgs.srv import *
 import actionlib
@@ -59,7 +60,7 @@ import o2ac_routines.helpers as helpers
 from ur_control.constants import TERMINATION_CRITERIA
 class AssemblyClass(O2ACCommon):
   """
-  This contains the routine used to run the taskboard task.
+  This contains the routine used to run the assembly task.
   """
   def __init__(self):
     super(AssemblyClass, self).__init__()
@@ -162,18 +163,11 @@ class AssemblyClass(O2ACCommon):
     self.lock_base_plate()
     return True
 
-  def subtask_a(self, start_from_screwing=False):
+  def subtask_a(self):
     # ============= SUBTASK A (picking and inserting and fastening the motor) =======================
     rospy.loginfo("======== SUBTASK A (motor) ========")
     rospy.logerr("Subtask A not implemented yet")
     return False
-
-    # if start_from_screwing:
-    #   self.do_change_tool_action("b_bot", equip=True, screw_size=3)
-    #   self.go_to_named_pose("screw_ready", "b_bot")
-    #   for i in range(1,7):
-    #     self.fasten_motor_screw(screw_hole_number=i)
-    #   self.do_change_tool_action("b_bot", equip=False, screw_size=3)
 
   def subtask_b(self):
     rospy.loginfo("======== SUBTASK B (motor pulley) ========")
@@ -821,6 +815,8 @@ if __name__ == '__main__':
         assy.real_assembly_task()
       if i == "reset":
         assy.reset_scene_and_robots()
+      if i == "activate":
+        assy.activate_ros_control_on_ur()
       elif i == 'x':
         break
       elif i == "":

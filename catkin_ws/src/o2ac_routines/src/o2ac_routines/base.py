@@ -140,7 +140,7 @@ class O2ACBase(object):
     self.ssd_client = actionlib.SimpleActionClient('/o2ac_vision_server/get_3d_poses_from_ssd', o2ac_msgs.msg.get3DPosesFromSSDAction)
     self.detect_shaft_client = actionlib.SimpleActionClient('/o2ac_vision_server/detect_shaft_notch', o2ac_msgs.msg.shaftNotchDetectionAction)
     self.detect_angle_client = actionlib.SimpleActionClient('/o2ac_vision_server/detect_angle', o2ac_msgs.msg.detectAngleAction)
-    self.recognition_client = actionlib.SimpleActionClient('/o2ac_vision_server/localize_object', o2ac_msgs.msg.localizeObjectAction)
+    self.localization_client = actionlib.SimpleActionClient('/o2ac_vision_server/localize_object', o2ac_msgs.msg.localizeObjectAction)
 
     self.pick_planning_client = actionlib.SimpleActionClient('/pick_planning', o2ac_task_planning_msgs.msg.PickObjectAction)
     self.place_planning_client = actionlib.SimpleActionClient('/place_planning', o2ac_task_planning_msgs.msg.PlaceObjectAction)
@@ -467,7 +467,7 @@ class O2ACBase(object):
       rospy.logwarn("Dashboard service did not respond to load_program!")
     if not load_success:
       rospy.logwarn("Waiting and trying again")
-      rospy.sleep(3)
+      rospy.sleep(5)
       try:
         if recursion_depth > 0:  # If connect alone failed, try quit and then connect
           response = self.ur_dashboard_clients[robot + "_quit"].call()
@@ -771,17 +771,7 @@ class O2ACBase(object):
 
   ######
   def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=False):
-    res = self.skill_server.pick_screw_from_feeder(robot_name, screw_size)
-
-    if not res.success:
-      if realign_tool_upon_failure:
-        self.go_to_named_pose("tool_pick_ready", robot_name)
-        rospy.loginfo("pickScrewFromFeeder failed. Realigning tool and retrying.")
-        screw_tool_id = "screw_tool_m" + str(screw_size)
-        self.realign_tool(robot_name, screw_tool_id)
-        return self.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure=False)
-      else:
-          return False
+    return self.skill_server.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure)
 
   def do_insert_action(self, active_robot_name, passive_robot_name = "", 
                         starting_offset = 0.05, max_insertion_distance=0.01, 
@@ -932,7 +922,7 @@ class O2ACBase(object):
     # Send goal, wait for result
     object_type = self.assembly_database.name_to_type(item_name)
     if not object_type:
-      rospy.logerr("Could not find the object " + name + " in database, or its type field is empty.")
+      rospy.logerr("Could not find the object " + item_name + " in database, or its type field is empty.")
       return False
     self.localization_client.send_goal(o2ac_msgs.msg.localizeObjectGoal(item_id=object_type))
     if (not self.localization_client.wait_for_result(rospy.Duration(15.0))):
@@ -950,7 +940,7 @@ class O2ACBase(object):
     # Publish to planning scene
     if success:
       rospy.loginfo("Detected " + item_name + " with confidence " + str(res.confidences[0]))
-      co = self.assembly_database.get_collision_object(object_name=name)
+      co = self.assembly_database.get_collision_object(object_name=item_name)
       # TODO: Update MoveIt to use the object_pose
       co.mesh_poses[0] = res.detected_poses[0].pose
       co.header.frame_id = "tray_center"
@@ -1342,7 +1332,9 @@ class O2ACBase(object):
   def equip_tool(self, robot_name, tool_name):
     return self.equip_unequip_realign_tool(robot_name, tool_name, "equip")
   
-  def unequip_tool(self, robot_name, tool_name):
+  def unequip_tool(self, robot_name, tool_name=""):
+    if tool_name == "":
+      tool_name = self.robot_status[robot_name].held_tool_id
     return self.equip_unequip_realign_tool(robot_name, tool_name, "unequip")
   
   def realign_tool(self, robot_name, screw_tool_id):
@@ -1356,7 +1348,9 @@ class O2ACBase(object):
     """
     operation can be "equip", "unequip" or "realign".
     """
-    # TODO(felixvd): Finish this function. It is duplicated in C++.
+    if tool_name == "":
+      tool_name = self.robot_status[robot_name].held_tool_id
+
 
     # Sanity check on the input instruction
     equip = (operation == "equip")
