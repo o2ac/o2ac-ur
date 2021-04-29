@@ -6,7 +6,7 @@ set -e
 ################################################################################
 
 # Clone the project repository in 'root' folder.
-cd /root/ && git clone $CI_REPOSITORY_URL
+cd /root/o2ac-ur/ && git clone $CI_REPOSITORY_URL
 
 # Checkout the commit pushed to GitLab CI.
 cd /root/$CI_PROJECT_NAME/ && git checkout $CI_COMMIT_SHA

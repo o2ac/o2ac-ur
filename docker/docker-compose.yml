@@ -20,7 +20,7 @@ services:
       - NVIDIA_DRIVER_CAPABILITIES=all
       - NVIDIA_REQUIRE_CUDA=cuda>=9.0
       - DOCKER_RUNTIME=${DOCKER_RUNTIME}
-    image: registry.gitlab.com/o2ac/o2ac-ur:latest
+    image: registry.gitlab.com/o2ac/o2ac-ur/o2ac-dev:latest
     build:
       context: ../
       dockerfile: ./docker/o2ac-dev/Dockerfile
@@ -29,8 +29,6 @@ services:
     volumes:
       # Map ROS workspace folders.
       - ../:/root/o2ac-ur/
-      # Make sources accessible with same path as host.  ## Not sure if this is useful or necessary
-      - ../../o2ac-ur/:/home/${USER}/o2ac-ur/
       # Grant display access to X Server.
       - /tmp/.X11-unix:/tmp/.X11-unix
       # Grant bus access to FlexBE App.
@@ -40,9 +38,7 @@ services:
     network_mode: host
     extra_hosts:
       - "o2ac-ur:127.0.0.1"   # Seems that this might be needed for ROS networking
-      - "olivier:127.0.0.1"     
       - "o2ac-ur:192.168.1.5" # The host PC
-      - "osx-panda-desk:192.168.1.6"
       - "a_bot:192.168.1.41"
       - "b_bot:192.168.1.42"
     command: /root/o2ac-ur/docker/o2ac-dev/scripts/initialize-docker-container.sh

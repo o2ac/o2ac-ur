@@ -63,4 +63,4 @@ class TestSimpleMoves(unittest.TestCase):
 if __name__ == '__main__':
     import rostest
     rospy.init_node('test_robot_motions')
-    rostest.rosrun('ocla_routines', 'test_robot_motions', TestSimpleMoves)
+    rostest.rosrun('o2ac_routines', 'test_robot_motions', TestSimpleMoves)

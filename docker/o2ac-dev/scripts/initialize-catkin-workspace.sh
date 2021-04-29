@@ -2,6 +2,25 @@
 
 ################################################################################
 
+# Display information in CI for version traceability.
+if [[ "${CI}" == "true" ]]; then
+  echo -e "\n"
+  echo -e "######################## DEBUG DATA ########################"
+  echo -e "Current commit: $(cd /root/HSR/ && git rev-parse --short HEAD)"
+  echo -e "DOCKER_RUNTIME: $DOCKER_RUNTIME"
+  echo -e "DOCKER_IMAGE_VERSION: $DOCKER_IMAGE_VERSION"
+  echo -e "NVIDIA_CUDAGL_VERSION: $NVIDIA_CUDAGL_VERSION"
+  echo -e "NVIDIA_CUDNN_VERSION: $NVIDIA_CUDNN_VERSION"
+  echo -e "ROS_DESKTOP_VERSION: $ROS_DESKTOP_VERSION"
+  echo -e "ROS_TMC_VERSION: $ROS_TMC_VERSION"
+  echo -e "ROS_GAZEBO_VERSION: $ROS_GAZEBO_VERSION"
+  echo -e "PYTHON_PIP_VERSION: $PYTHON_PIP_VERSION"
+  echo -e "############################################################"
+  echo -e "\n"
+fi
+
+################################################################################
+
 # Make additional preparations when inside the GitLab CI environement.
 if [ "${CI}" = "true" ]; then
   # Terminate the script after the first failure and return non-zero exit code.
@@ -28,8 +47,13 @@ source /opt/ros/melodic/setup.bash
 
 # Initialize the underlay workspace with wstool and install dependencies
 cd /root/o2ac-ur/underlay_ws/      && \
-    wstool update -t src   && \
-    rosdep install --from-paths src --ignore-src -r -y
+    wstool update -t src
+
+rosdep install --from-paths src --ignore-src -r -y > /dev/null 2>&1 || FAILED=true
+
+if [ $FAILED ]; then
+    echo "rosdep install failed, but we continue anyway (it might be due to python-pymodbus missing on Ubuntu 20.04)"
+fi
 
 # Initialize, build and source the underlay workspace.
 # Blacklist packages that we do not use but that are part of metapackages we need
