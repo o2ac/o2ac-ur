@@ -110,6 +110,7 @@ class TestClass(O2ACCommon):
 
 if __name__ == '__main__':
   try:
+    rospy.init_node('o2ac_routines', anonymous=False)
     c = TestClass()
 
     while not rospy.is_shutdown():

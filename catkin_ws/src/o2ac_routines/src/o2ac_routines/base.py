@@ -86,7 +86,6 @@ class O2ACBase(object):
   and shorthand functions for the most common actions.
   """
   def __init__(self):
-    rospy.init_node('o2ac_routines', anonymous=False)
     moveit_commander.roscpp_initialize(sys.argv)
 
     self.listener = tf.TransformListener()

@@ -776,6 +776,7 @@ class TaskboardClass(O2ACCommon):
     
 if __name__ == '__main__':
   try:
+    rospy.init_node('o2ac_routines', anonymous=False)
     taskboard = TaskboardClass()
     taskboard.define_tool_collision_objects()
 
