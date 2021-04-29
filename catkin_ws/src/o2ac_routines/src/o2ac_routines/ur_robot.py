@@ -27,7 +27,11 @@ class URRobot():
         self.ns = namespace
         self.listener = tf_listener
 
-        self.force_controller = URForceController(robot_name=namespace)
+        # FIXME: This is a workaround to allow loading in simulation at all.
+        if self.use_real_robot:
+            self.force_controller = URForceController(robot_name=namespace)
+        else:
+            rospy.logwarn("Using simulation. No force control available!")
 
         self.run_mode_ = True     # The modes limit the maximum speed of motions. Used with the safety system @WRS2020
         self.pause_mode_ = False
