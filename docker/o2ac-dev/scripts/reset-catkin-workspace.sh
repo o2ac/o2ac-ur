@@ -17,22 +17,22 @@ source /opt/ros/melodic/setup.bash
 
 # Remove the Catkin workspace:
 # Delete expected 'catkin_make' artefacts.
-cd /root/catkin_ws/ && rm -r .catkin_workspace build/ devel/ install/
-cd /root/catkin_ws/src/ && rm CMakeLists.txt
+cd /root/o2ac-ur/catkin_ws/ && rm -r .catkin_workspace build/ devel/ install/
+cd /root/o2ac-ur/catkin_ws/src/ && rm CMakeLists.txt
 # Delete unexpected 'catkin build' artefacts.
-cd /root/catkin_ws/ && catkin clean -y
-cd /root/catkin_ws/ && rm -r CMakeLists.txt .catkin_tools/
+cd /root/o2ac-ur/catkin_ws/ && catkin clean -y
+cd /root/o2ac-ur/catkin_ws/ && rm -r CMakeLists.txt .catkin_tools/
 
 ################################################################################
 
 # Remove the underlay workspace:
 # Delete expected 'catkin_make' artefacts.
-cd /root/underlay_ws/ && rm -r .catkin_workspace build/ devel/ install/
-cd /root/underlay_ws/src/ && rm CMakeLists.txt
+cd /root/o2ac-ur/underlay_ws/ && rm -r .catkin_workspace build/ devel/ install/
+cd /root/o2ac-ur/underlay_ws/src/ && rm CMakeLists.txt
 # Delete unexpected 'catkin build' artefacts.
-cd /root/underlay_ws/ && catkin clean -y
-cd /root/underlay_ws/ && rm -r CMakeLists.txt .catkin_tools/
+cd /root/o2ac-ur/underlay_ws/ && catkin clean -y
+cd /root/o2ac-ur/underlay_ws/ && rm -r CMakeLists.txt .catkin_tools/
 
 ################################################################################
 
-bash /root/scripts/initialize-catkin-workspace.sh
+bash /root/o2ac-ur/docker/o2ac-dev/scripts/initialize-catkin-workspace.sh

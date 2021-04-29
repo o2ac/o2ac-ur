@@ -20,8 +20,8 @@ umask 0002
 ################################################################################
 
 # Add the Catkin workspaces to the 'ROS_PACKAGE_PATH'.
-export ROS_PACKAGE_PATH=${ROS_PACKAGE_PATH}:/root/catkin_ws/src/
-export ROS_PACKAGE_PATH=${ROS_PACKAGE_PATH}:/root/underlay_ws/src/
+export ROS_PACKAGE_PATH=${ROS_PACKAGE_PATH}:/root/o2ac-ur/catkin_ws/src/
+export ROS_PACKAGE_PATH=${ROS_PACKAGE_PATH}:/root/o2ac-ur/underlay_ws/src/
 
 ################################################################################
 
@@ -30,66 +30,66 @@ export ROS_PACKAGE_PATH=${ROS_PACKAGE_PATH}:/root/underlay_ws/src/
 function o2ac-repair-git-paths () {
   # Store the current directory and execute scripts in the current shell process.
   pushd .
-  source /root/docker/scripts/repair-git-paths.sh
+  source /root/o2ac-ur/docker/o2ac-dev/scripts/repair-git-paths.sh
   popd
 }
 
 function o2ac-build-catkin-workspace () {
   # Store the current directory and execute scripts in the current shell process.
   pushd .
-  source /root/docker/scripts/repair-git-paths.sh
-  source /root/docker/scripts/fix-permission-issues.sh
-  source /root/docker/scripts/initialize-catkin-workspace.sh
+  source /root/o2ac-ur/docker/o2ac-dev/scripts/repair-git-paths.sh
+  source /root/o2ac-ur/docker/o2ac-dev/scripts/fix-permission-issues.sh
+  source /root/o2ac-ur/docker/o2ac-dev/scripts/initialize-catkin-workspace.sh
   popd
 }
 
 function o2ac-initialize-catkin-workspace () {
   # Store the current directory and execute scripts in the current shell process.
   pushd .
-  source /root/docker/scripts/repair-git-paths.sh
-  source /root/docker/scripts/fix-permission-issues.sh
-  source /root/docker/scripts/initialize-catkin-workspace.sh
+  source /root/o2ac-ur/docker/o2ac-dev/scripts/repair-git-paths.sh
+  source /root/o2ac-ur/docker/o2ac-dev/scripts/fix-permission-issues.sh
+  source /root/o2ac-ur/docker/o2ac-dev/scripts/initialize-catkin-workspace.sh
   popd
 }
 
 function o2ac-reset-catkin-workspace () {
   # Store the current directory and execute scripts in the current shell process.
   pushd .
-  source /root/docker/scripts/repair-git-paths.sh
-  source /root/docker/scripts/fix-permission-issues.sh
-  source /root/docker/scripts/reset-catkin-workspace.sh
+  source /root/o2ac-ur/docker/o2ac-dev/scripts/repair-git-paths.sh
+  source /root/o2ac-ur/docker/o2ac-dev/scripts/fix-permission-issues.sh
+  source /root/o2ac-ur/docker/o2ac-dev/scripts/reset-catkin-workspace.sh
   popd
 }
 
 function o2ac-fix-permission-issues () {
   # Store the current directory and execute scripts in the current shell process.
   pushd .
-  source /root/docker/scripts/repair-git-paths.sh
-  source /root/docker/scripts/fix-permission-issues.sh
+  source /root/o2ac-ur/docker/o2ac-dev/scripts/repair-git-paths.sh
+  source /root/o2ac-ur/docker/o2ac-dev/scripts/fix-permission-issues.sh
   popd
 }
 
 function o2ac-run-vscode-editor () {
   # Store the current directory and execute scripts in the current shell process.
   pushd .
-  source /root/docker/scripts/repair-git-paths.sh
-  source /root/docker/scripts/run-vscode-editor.sh
+  source /root/o2ac-ur/docker/o2ac-dev/scripts/repair-git-paths.sh
+  source /root/o2ac-ur/docker/o2ac-dev/scripts/run-vscode-editor.sh
   popd
 }
 
 function o2ac-get-fully-started () {
   # Store the current directory and execute scripts in the current shell process.
   pushd .
-  source /root/docker/scripts/repair-git-paths.sh
-  source /root/docker/scripts/fix-permission-issues.sh
-  source /root/docker/scripts/reset-catkin-workspace.sh
-  source /root/docker/scripts/run-vscode-editor.sh
+  source /root/o2ac-ur/docker/o2ac-dev/scripts/repair-git-paths.sh
+  source /root/o2ac-ur/docker/o2ac-dev/scripts/fix-permission-issues.sh
+  source /root/o2ac-ur/docker/o2ac-dev/scripts/reset-catkin-workspace.sh
+  source /root/o2ac-ur/docker/o2ac-dev/scripts/run-vscode-editor.sh
   popd
 }
 
 function o2ac-magic-rosdep-command () {
   pushd .
-  source /root/docker/scripts/magic-rosdep.sh
+  source /root/o2ac-ur/docker/o2ac-dev/scripts/magic-rosdep.sh
   popd
 }
 
@@ -97,14 +97,14 @@ function o2ac-magic-rosdep-command () {
 
 # aliases
 
-alias cw='cd /root/catkin_ws'
-alias cs='cd /root/catkin_ws/src'
+alias cw='cd /root/o2ac-ur/catkin_ws'
+alias cs='cd /root/o2ac-ur/catkin_ws/src'
 alias cb='catkin build'
-alias s='source /root/catkin_ws/devel/setup.bash'
+alias s='source /root/o2ac-ur/catkin_ws/devel/setup.bash'
 
-alias ucw='cd /root/underlay_ws'
-alias ucs='cd /root/underlay_ws/src'
-alias us='source /root/underlay_ws/devel/setup.bash'
+alias ucw='cd /root/o2ac-ur/underlay_ws'
+alias ucs='cd /root/o2ac-ur/underlay_ws/src'
+alias us='source /root/o2ac-ur/underlay_ws/devel/setup.bash'
 
 ###############################################################################
 
@@ -131,4 +131,4 @@ fi
 ################################################################################
 
 # Move to the working directory.
-cd /root/
+cd /root/o2ac-ur/

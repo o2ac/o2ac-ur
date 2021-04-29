@@ -373,40 +373,39 @@ RUN echo 'export PATH=/usr/lib/ccache:$PATH' >> $HOME/.bashrc
 ################################################################################
 
 # Setup the Bash shell environment (part 1)
-
 # Define the working directory.
-WORKDIR /root/
+WORKDIR /root/o2ac-ur/
 
 ################################################################################
 
 # Copy the helper script
-COPY ./docker/scripts/install-phoxi-control.sh /root/scripts/install-phoxi-control.sh
-RUN chmod -R +x /root/scripts/install-phoxi-control.sh
+COPY ./docker/o2ac-dev/scripts/install-phoxi-control.sh /root/o2ac-ur/docker/o2ac-dev/scripts/install-phoxi-control.sh
+RUN chmod -R +x /root/o2ac-ur/docker/o2ac-dev/scripts/install-phoxi-control.sh
 
 # Install PhoXiControl (for the AIST setup)
-RUN /root/scripts/install-phoxi-control.sh
+RUN /root/o2ac-ur/docker/o2ac-dev/scripts/install-phoxi-control.sh
 
 # Copy the helper script
-COPY ./docker/scripts/install-photoneo-localization.* /root/scripts/
-RUN chmod -R +x /root/scripts/install-photoneo-localization.sh
+COPY ./docker/o2ac-dev/scripts/install-photoneo-localization.* /root/o2ac-ur/docker/o2ac-dev/scripts/
+RUN chmod -R +x /root/o2ac-ur/docker/o2ac-dev/scripts/install-photoneo-localization.sh
 
 # Install PhotoneoLocalizationSDK
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	libssh2-1 \
 	expect
-RUN /root/scripts/install-photoneo-localization.sh
+RUN /root/o2ac-ur/docker/o2ac-dev/scripts/install-photoneo-localization.sh
 
 ################################################################################
 
 # Setup the Bash shell environment (part 2)
 
 # Copy the helper scripts to the working directory.
-COPY ./docker/scripts/. /root/scripts/
-RUN chmod -R +x /root/scripts/*
+COPY ./docker/o2ac-dev/scripts/. /root/o2ac-ur/docker/o2ac-dev/scripts/
+RUN chmod -R +x /root/o2ac-ur/docker/o2ac-dev/scripts/*
 
 # Setup the Bash shell environment with '/root/.bashrc'.
-RUN echo "source /root/scripts/initialize-bash-shell.sh" >> /root/.bashrc
-RUN echo "\nsource /root/catkin_ws/devel/setup.bash\n" >> /root/.bashrc
+RUN echo "source /root/o2ac-ur/docker/o2ac-dev/scripts/initialize-bash-shell.sh" >> /root/.bashrc
+RUN echo "\nsource /root/o2ac-ur/catkin_ws/devel/setup.bash\n" >> /root/.bashrc
 
 # Force color prompt in terminal.
 RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/' /root/.bashrc

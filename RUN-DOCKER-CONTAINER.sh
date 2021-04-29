@@ -31,11 +31,11 @@ case "$3" in
     docker exec -i -t ${CONTAINER} bash
     ;;
     ( * )
-    docker exec -i -t ${CONTAINER} bash -i -c "~/scripts/run-command-repeatedly.sh $2"
+    docker exec -i -t ${CONTAINER} bash -i -c "~/o2ac-ur/docker/o2ac-dev/scripts/run-command-repeatedly.sh $2"
   esac
   ;;
   ( *".launch")
-  docker exec -i -t ${CONTAINER} bash -i -c "~/scripts/run-roslaunch-repeatedly.sh $2 $3"
+  docker exec -i -t ${CONTAINER} bash -i -c "~/o2ac-ur/docker/o2ac-dev/scripts/run-roslaunch-repeatedly.sh $2 $3"
   ;;
   ( * )
   echo "Failed to enter the Docker container '${CONTAINER}': '$3' is not a valid argument value (needs to be a launch file or empty)."
