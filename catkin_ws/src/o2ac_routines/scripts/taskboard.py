@@ -280,16 +280,19 @@ class TaskboardClass(O2ACCommon):
         rospy.logerr("Could not find belt grasp pose! Aborting.")
         return False
       
+      self.confirm_to_proceed("Pick tool with b_bot?")
       # Start the program with b_bot to pick the tool
       if not self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_pick_hook.urp", recursion_depth=3):
         return False
-      
-      self.simple_pick("a_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z")
+      rospy.sleep(2)
+
+      self.simple_pick("a_bot", goal, gripper_force=100.0, grasp_width=.08, axis="z")
+      self.a_bot.move_lin_rel(relative_translation=[0,0,.1])
       a_bot_wait_with_belt_pose = [0.646294116973877, -1.602117200891012, 2.0059760252581995, -1.3332312864116211, -0.8101084868060511, -2.4642069975482386]
       self.a_bot.move_joints(a_bot_wait_with_belt_pose)
 
       # TODO: Check for pick success with cameras
-      
+      self.confirm_to_proceed("Execute the belt threading programs?")
       success_a = self.a_bot.load_program(program_name="wrs2020/taskboard_belt_v5.urp", recursion_depth=3)      
       success_b = self.b_bot.load_program(program_name="wrs2020/taskboard_belt_v4.urp", recursion_depth=3)      
       if success_a and success_b:
@@ -636,8 +639,6 @@ class TaskboardClass(O2ACCommon):
       self.vision.activate_camera("b_bot_inside_camera")
       self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z")
       
-      b_bot_before_hole = [1.196680545, -1.73023905, 1.934368435, -1.774223466, -1.543027226, 1.17229890]
-      self.b_bot.move_joints(b_bot_before_hole)
       success_b = self.b_bot.load_program(program_name="wrs2020/shaft_v3.urp", recursion_depth=3)
       
       if success_b:

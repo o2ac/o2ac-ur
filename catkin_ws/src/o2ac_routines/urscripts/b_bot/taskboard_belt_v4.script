@@ -4,6 +4,17 @@ def taskboard_belt_v4():
   set_tool_digital_output_mode(0, 1)
   set_tool_digital_output_mode(1, 1)
   set_tool_voltage(24)
+  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
+  step_count_2f4cd45f_176f_4405_8105_04054c6f7651 = 0.0
+  thread Step_Counter_Thread_92e4b5f3_3e79_435e_be08_2ce61002ed20():
+    while (True):
+      step_count_2f4cd45f_176f_4405_8105_04054c6f7651 = step_count_2f4cd45f_176f_4405_8105_04054c6f7651 + 1.0
+      sync()
+    end
+  end
+  run Step_Counter_Thread_92e4b5f3_3e79_435e_be08_2ce61002ed20()
+  set_target_payload(1.200000, [0.001000, -0.018000, 0.049000], [0.002086, 0.002086, 0.002086, 0.000000, 0.000000, 0.000000])
+  set_safety_mode_transition_hardness(1)
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -12,17 +23,6 @@ def taskboard_belt_v4():
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
   set_gravity([0.0, 0.0, 9.82])
-  set_target_payload(1.200000, [0.001000, -0.018000, 0.049000], [0.002086, 0.002086, 0.002086, 0.000000, 0.000000, 0.000000])
-  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
-  set_safety_mode_transition_hardness(1)
-  step_count_40802b28_741c_45f6_9beb_2ec131199dbb = 0.0
-  thread Step_Counter_Thread_d0f9d8ec_7f09_4b67_8e12_2f0e1d693a76():
-    while (True):
-      step_count_40802b28_741c_45f6_9beb_2ec131199dbb = step_count_40802b28_741c_45f6_9beb_2ec131199dbb + 1.0
-      sync()
-    end
-  end
-  run Step_Counter_Thread_d0f9d8ec_7f09_4b67_8e12_2f0e1d693a76()
   # begin: URCap Installation Node
   #   Source: External Control, 1.0.5, FZI Research Center for Information Technology
   #   Type: External Control
@@ -2341,8 +2341,8 @@ def taskboard_belt_v4():
       sync()
   end
   # end: URCap Installation Node
-  global wait_w_tool_1_p=p[.096883885745, -.254303635135, .525338758627, .242383833914, 3.104342837672, -.045618417679]
-  global wait_w_tool_1_q=[1.419498844840919, -2.178175391321119, 1.892632293985887, -1.311747949011428, -1.5379272788334548, -1.2434497875801753E-14]
+  global wait_w_tool_1_p=p[.101032507256, -.259473149436, .360486432647, .242312716273, 3.104340398085, -.045631365969]
+  global wait_w_tool_1_q=[1.4195195436477661, -2.178169389764303, 1.8925936857806605, -1.3117230397513886, -1.5379188696490687, -2.462068666631012E-5]
   global Waypoint_6_p=p[.127080337947, -.413333654554, .291809623984, -.723175488874, -2.779773733637, .838510378196]
   global Waypoint_6_q=[1.6299766580406816, -1.585288369949942, 2.313430339105375, -2.806503864610999, -1.8721815151571342, 0.4915000755485588]
   global Waypoint_7_p=p[.029417670274, -.413333654383, .291809624122, -1.184835622430, -2.528930886770, .748042842502]

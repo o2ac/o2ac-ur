@@ -4,6 +4,17 @@ def taskboard_pick_hook():
   set_tool_digital_output_mode(0, 1)
   set_tool_digital_output_mode(1, 1)
   set_tool_voltage(24)
+  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
+  step_count_2f4cd45f_176f_4405_8105_04054c6f7651 = 0.0
+  thread Step_Counter_Thread_92e4b5f3_3e79_435e_be08_2ce61002ed20():
+    while (True):
+      step_count_2f4cd45f_176f_4405_8105_04054c6f7651 = step_count_2f4cd45f_176f_4405_8105_04054c6f7651 + 1.0
+      sync()
+    end
+  end
+  run Step_Counter_Thread_92e4b5f3_3e79_435e_be08_2ce61002ed20()
+  set_target_payload(1.200000, [0.001000, -0.018000, 0.049000], [0.002086, 0.002086, 0.002086, 0.000000, 0.000000, 0.000000])
+  set_safety_mode_transition_hardness(1)
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -12,17 +23,6 @@ def taskboard_pick_hook():
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
   set_gravity([0.0, 0.0, 9.82])
-  set_target_payload(1.200000, [0.001000, -0.018000, 0.049000], [0.002086, 0.002086, 0.002086, 0.000000, 0.000000, 0.000000])
-  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
-  set_safety_mode_transition_hardness(1)
-  step_count_40802b28_741c_45f6_9beb_2ec131199dbb = 0.0
-  thread Step_Counter_Thread_d0f9d8ec_7f09_4b67_8e12_2f0e1d693a76():
-    while (True):
-      step_count_40802b28_741c_45f6_9beb_2ec131199dbb = step_count_40802b28_741c_45f6_9beb_2ec131199dbb + 1.0
-      sync()
-    end
-  end
-  run Step_Counter_Thread_d0f9d8ec_7f09_4b67_8e12_2f0e1d693a76()
   # begin: URCap Installation Node
   #   Source: External Control, 1.0.5, FZI Research Center for Information Technology
   #   Type: External Control
@@ -2353,8 +2353,8 @@ def taskboard_pick_hook():
   global high_approach_q=[2.4485092379921376, -1.4413039536248444, 2.001661001707641, -1.930081263128379, -1.7537079602876116, -0.678380411487205]
   global wp_on_right_p=p[.247135810805, -.077743034127, .492156207270, -1.089260191054, 2.941141854347, .043723079322]
   global wp_on_right_q=[2.2992806434631348, -2.218607564965719, 1.9803665320025843, -1.3077529531768342, -1.553016487752096, 0.01404145359992981]
-  global wait_w_tool_p=p[.096883885745, -.254303635135, .525338758627, .242383833914, 3.104342837672, -.045618417679]
-  global wait_w_tool_q=[1.419498844840919, -2.178175391321119, 1.892632293985887, -1.311747949011428, -1.5379272788334548, -1.2434497875801753E-14]
+  global wait_w_tool_p=p[.214233028916, -.107369773555, .525349144099, -.195655229329, -3.131317490601, .003311851406]
+  global wait_w_tool_q=[2.1003170013427734, -2.2545091114439906, 1.9091289679156702, -1.2242970329574128, -1.5726679007159632, 0.6490418314933777]
   $ 1 "Robot Program"
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.

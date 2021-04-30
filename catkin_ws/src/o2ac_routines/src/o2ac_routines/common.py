@@ -503,7 +503,6 @@ class O2ACCommon(O2ACBase):
 
     self.vision.activate_camera("b_bot_outside_camera")
     self.activate_led("b_bot")
-    self.b_bot.gripper.open(wait=False)
     # TODO: Merge with detect_object_in_camera_view in base.py
     # self.b_bot.go_to_pose_goal(self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.1)
     # self.get_3d_poses_from_ssd()
