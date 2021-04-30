@@ -132,7 +132,7 @@ class O2ACVisionServer(object):
                              "fg_lower": [0, 0, 100],
                              "fg_upper": [179, 255, 255],
                              "hand_rotation":[0,45,90,135],
-                             "threshold": 0.01}
+                             "threshold": 0.5}
         self.param_fge = rospy.get_param('~param_fge', default_param_fge)
 
         # Setup camera image subscribers
