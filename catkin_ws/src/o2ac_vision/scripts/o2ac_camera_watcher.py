@@ -126,7 +126,7 @@ class O2ACWatcher(object):
                 time_since_last_nonempty_depth_img = now - self.last_full_depth_image_time
                 time_since_last_msg = now - self.last_msg_times[cam]
                 
-                if time_since_last_msg > datetime.timedelta(milliseconds=2000) or time_since_last_msg > datetime.timedelta(milliseconds=2000):
+                if time_since_last_msg > datetime.timedelta(milliseconds=2000) or time_since_last_nonempty_depth_img > datetime.timedelta(milliseconds=2000):
                     if cam == "camera_multiplexer":
                         cam_name = self.current_camera_name
                     else:
