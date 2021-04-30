@@ -364,46 +364,27 @@ class O2ACBase(object):
     """
     return self.vision.get_angle_from_vision(camera, item_name="motor")
 
-  def detect_object_in_camera_view(self, item_name):
+  def detect_object_in_camera_view(self, item_name, publish_to_scene=True):
     """
     Returns object pose if object was detected in current camera view and published to planning scene,
     False otherwise.
     """
     # TODO: merge with "look_and_get_grasp_points"
-
-    # Send goal, wait for result
     object_type = self.assembly_database.name_to_type(item_name)
     if not object_type:
       rospy.logerr("Could not find the object " + item_name + " in database, or its type field is empty.")
       return False
-    self.localization_client.send_goal(o2ac_msgs.msg.localizeObjectGoal(item_id=object_type))
-    if (not self.localization_client.wait_for_result(rospy.Duration(15.0))):
-      self.localization_client.cancel_goal()  # Cancel goal if timeout expired
-      rospy.logerr("Localization node returned no result.")
-      
-    # Read result and publish to planning scene as collision_object if found
-    success = False
-    try:
-      res = self.localization_client.get_result()
-      success = res.succeeded
-    except:
-      pass
-    
-    # Publish to planning scene
-    if success:
-      rospy.loginfo("Detected " + item_name + " with confidence " + str(res.confidences[0]))
-      co = self.assembly_database.get_collision_object(object_name=item_name)
-      # TODO: Update MoveIt to use the object_pose
-      # p_1 = copy.deepcopy(res.detected_poses[0].pose)
-      # p_2 = copy.deepcopy(res.detected_poses[0].pose)
-      # p_3 = copy.deepcopy(res.detected_poses[0].pose)
-      # p_2 = 
-      print(res.detected_poses[0])
-      co.pose = res.detected_poses[0].pose
-      co.header.frame_id = res.detected_poses[0].header.frame_id
+    object_pose = self.vision.localize_object(object_type)
+    if object_pose:
+      rospy.loginfo("Localized " + item_name + " via CAD matching")
+      if publish_to_scene:
+        co = self.assembly_database.get_collision_object(object_name=item_name)
+        co.header.frame_id = object_pose.header.frame_id
+        co.pose = object_pose.pose
 
-      self.planning_scene_interface.apply_collision_object(co)
-      return res.detected_poses[0]
+        self.planning_scene_interface.apply_collision_object(co)
+        self.planning_scene_interface.allow_collisions("tray_center", co.id)  # tray_center is the tray surface
+      return object_pose
     else:
       rospy.loginfo("Did not detect " + item_name)
       return False

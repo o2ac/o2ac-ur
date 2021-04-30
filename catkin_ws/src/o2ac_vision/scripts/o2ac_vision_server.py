@@ -295,13 +295,16 @@ class O2ACVisionServer(object):
         # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
         im_in  = self.bridge.imgmsg_to_cv2(self.last_rgb_image, desired_encoding="bgr8")
         im_vis = im_in.copy()
+        # Apply SSD first to get the object's bounding box
         detection_results, im_vis = self.get_2d_poses_from_ssd(im_in, im_vis)
 
         localization_result = o2ac_msgs.msg.localizeObjectResult()
         localization_result.succeeded = False
 
         for result in detection_results:
+            # Only pass to CAD matching if object is found in the RGB image
             if goal.item_id == self.item_id(result.class_id):
+                rospy.loginfo("Seen object " + str(goal.item_id) + " in tray. Apply CAD matching.")
                 localization_result.detected_poses, \
                 localization_result.confidences     \
                     = self.localize(goal.item_id, result.bbox, result.poses)
@@ -310,7 +313,10 @@ class O2ACVisionServer(object):
                     localization_result.succeeded = True
                     self.localization_server.set_succeeded(localization_result)
                     return
+                else:
+                    rospy.logerr("Could not not localize object " + str(goal.item_id) + " although it was seen by SSD.")
                 break
+        rospy.logerr("Could not not localize object " + str(goal.item_id) + ". Might not be detected by SSD.")
         self.localization_server.set_aborted(localization_result)
         self.write_to_log(im_in, im_vis, "localization")
     
