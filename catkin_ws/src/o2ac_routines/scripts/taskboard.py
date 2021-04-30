@@ -389,8 +389,8 @@ class TaskboardClass(O2ACCommon):
       hole_pose = geometry_msgs.msg.PoseStamped()
       hole_pose.header.frame_id = "taskboard_m4_screw_link"
       hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/12, 0, 0))
-      hole_pose.pose.position.y = -.001  # MAGIC NUMBER (this should offset towards a_bot (z-axis of the frame points down))
-      hole_pose.pose.position.z = -.001  # MAGIC NUMBER (this should offset upwards (z-axis of the frame points down))
+      hole_pose.pose.position.y = -.002  # MAGIC NUMBER (this should offset towards a_bot (z-axis of the frame points down))
+      hole_pose.pose.position.z = -.002  # MAGIC NUMBER (this should offset upwards (z-axis of the frame points down))
       self.skill_server.do_screw_action("b_bot", hole_pose, screw_size = 4)
       self.b_bot.go_to_named_pose("horizontal_screw_ready")
       self.b_bot.go_to_named_pose("home")
@@ -564,7 +564,7 @@ class TaskboardClass(O2ACCommon):
         self.b_bot.go_to_named_pose("horizontal_screw_ready")
         screw_pose = geometry_msgs.msg.PoseStamped()
         screw_pose.header.frame_id = "/taskboard_bearing_target_screw_" + str(n) + "_link"
-        screw_pose.pose.position.z = -0.003  ## MAGIC NUMBER
+        screw_pose.pose.position.z = -0.00  ## MAGIC NUMBER
         screw_pose.pose.orientation.w = 1.0
         screw_pose_approach = copy.deepcopy(screw_pose)
         screw_pose_approach.pose.position.x -= 0.05
