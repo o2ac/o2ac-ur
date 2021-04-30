@@ -717,7 +717,6 @@ class O2ACBase(object):
       robot.gripper.close()
       self.attach_tool(robot_name, tool_name)
       self.allow_collisions_with_robot_hand(tool_name, robot_name)
-      self.allow_collisions_with_robot_hand('screw_tool_holder', robot_name)  # TODO(felixvd): Is this required?
       robot.robot_status.carrying_tool = True
       robot.robot_status.held_tool_id = tool_name
       self.publish_robot_status()
@@ -729,9 +728,11 @@ class O2ACBase(object):
       robot.robot_status.carrying_tool = False
       robot.robot_status.held_tool_id = ""
       self.publish_robot_status()
-    elif realign: # 
+    elif realign:  # Drop the tool into the holder once
       robot.gripper.open()
       robot.gripper.close()
+    
+    if equip or realign:  # Pull back and let go once to align the tool with the magnet properly 
       pull_back_slightly = copy.deepcopy(ps_in_holder)
       pull_back_slightly.pose.position.x -= 0.003
       ps_in_holder.pose.position.x += 0.001  # To remove the offset for placing applied earlier
