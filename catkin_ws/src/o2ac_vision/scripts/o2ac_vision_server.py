@@ -39,6 +39,8 @@ import tf
 import tf_conversions
 import time
 import copy
+import os
+from datetime import datetime
 import rospkg
 import actionlib
 import numpy as np
@@ -208,6 +210,7 @@ class O2ACVisionServer(object):
         self.get_3d_poses_from_ssd_action_server.set_succeeded(action_result)
         # Publish result visualization
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
+        self.write_to_log(im_in, im_vis, "3d_poses_from_ssd")
 
     def get_2d_poses_from_ssd_goal_callback(self, goal):
         self.get_2d_poses_from_ssd_action_server.accept_new_goal()
@@ -222,6 +225,7 @@ class O2ACVisionServer(object):
 
         # Publish result visualization
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
+        self.write_to_log(im_in, im_vis, "2d_poses_from_ssd")
 
     def belt_detection_callback(self, goal):
         self.belt_detection_action_server.accept_new_goal()
@@ -242,6 +246,7 @@ class O2ACVisionServer(object):
         action_result.grasp_points = poses_3d
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
         self.belt_detection_action_server.set_succeeded(action_result)
+        self.write_to_log(im_in, im_vis, "belt_detection")
 
     def angle_detection_callback(self, goal):
         self.angle_detection_action_server.accept_new_goal()
@@ -278,6 +283,7 @@ class O2ACVisionServer(object):
 
         self.shaft_notch_detection_action_server.set_succeeded(action_result)
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
+        self.write_to_log(im_in, im_vis, "shaft_notch_detection")
 
     def localization_callback(self, goal):
         rospy.loginfo("Received a request to localize objects via CAD matching")
@@ -301,6 +307,7 @@ class O2ACVisionServer(object):
                     return
                 break
         self.localization_server.set_aborted(localization_result)
+        self.write_to_log(im_in, im_vis, "localization")
     
     def localization_preempt_callback(self):
         rospy.loginfo("o2ac_msgs.msg.localizeObjectAction preempted")
@@ -549,6 +556,13 @@ class O2ACVisionServer(object):
         p3d.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, -pose_2d.theta+tau/4))
         return p3d
 
+    def write_to_log(self, img_in, img_out, action_name):
+        now = datetime.now()
+        timeprefix = now.strftime("%Y-%m-%d_%H:%M:%S")
+        rospack = rospkg.RosPack()
+        folder = os.path.join(rospack.get_path("o2ac_vision"), "log")
+        cv2.imwrite(os.path.join(folder, timeprefix + "_" + action_name + "_in.png") , img_in)
+        cv2.imwrite(os.path.join(folder, timeprefix + "_" + action_name + "_out.jpg") , img_out)
 
 ### ========  Visualization
 

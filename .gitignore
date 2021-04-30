@@ -51,3 +51,5 @@ underlay_ws/src/third_party/moveit_visual_tools
 underlay_ws/src/rosparam_shortcuts
 
 underlay_ws/src/third_party/Universal_Robots_Client_Library
+
+catkin_ws/src/o2ac_vision/log/
