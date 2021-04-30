@@ -315,6 +315,12 @@ class O2ACCommon(O2ACBase):
     as an end effector.
     """
     
+    robot = self.active_robots[robot_name]
+    if gripper_command=="do_nothing":
+      pass
+    else: 
+      robot.gripper.send_command(command=grasp_width, wait=False) # Open
+
     if speed_fast > 1.0:
       acceleration=speed_fast
     else:
@@ -330,12 +336,6 @@ class O2ACCommon(O2ACBase):
       object_pose.pose.position.x -= approach_height * sign
     if axis =="z":
       object_pose.pose.position.z -= approach_height * sign
-
-    robot = self.active_robots[robot_name]
-    if gripper_command=="do_nothing":
-      pass
-    else: 
-      robot.gripper.send_command(command=grasp_width) # Open
 
     rospy.loginfo("Moving down to object")
     if axis =="x":
