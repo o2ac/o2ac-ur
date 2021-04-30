@@ -465,25 +465,23 @@ if __name__ == '__main__':
       rospy.loginfo("============ Calibration procedures ============ ")
       rospy.loginfo("Enter a number to check calibrations for the following things: ")
       rospy.loginfo("1: home (b_bot), 100/101: home/back (both robots)")
-      rospy.loginfo("12: b_bot_outside_camera, 13: b_bot_inside_camera (activate)")
+      rospy.loginfo("11: b_bot_outside_camera, 12: b_bot_inside_camera (activate)")
+      rospy.loginfo("13, 14: Equip/unequip m3 screw tool with a_bot")
+      rospy.loginfo("15, 16: Equip/unequip m4 screw tool with b_bot")
+      rospy.loginfo("17, 18: Equip/unequip set screw tool with b_bot")
       rospy.loginfo("===== GENERAL")
-      rospy.loginfo("21, 22: Touch tray sponge with a_bot, b_bot")
+      rospy.loginfo("291, 292: Touch tray sponge with a_bot, b_bot")
+      rospy.loginfo("21, 22: Calibrate screw feeders (a_bot, b_bot)")
+      rospy.loginfo("23, 24: Pick m3/m4 screw from feeder")
       rospy.loginfo("===== TASKBOARD TASK")
       rospy.loginfo("31, 32: Go to screw holes with a_bot m3, b_bot m4")
       rospy.loginfo("===== ASSEMBLY TASK (no parts may be mounted!)")
       rospy.loginfo("501-502: Assembly base plate (a_bot, b_bot)")
       rospy.loginfo("503-504: Assembly base plate (b_bot m4, a_bot m3)")
       rospy.loginfo("511-512: Motor plate holes (b_bot, b_bot m4)")
-      rospy.loginfo("===== TOOLS  6: Go to screw_ready with b (a goes to back)")
-      rospy.loginfo("621, 622: Equip/unequip m3 screw tool with a_bot")
-      rospy.loginfo("623, 624: Equip/unequip m4 screw tool with b_bot")
-      rospy.loginfo("625, 626: Equip/unequip set screw tool with b_bot")
-      rospy.loginfo("63: Go to assembly base plate with m4 screw tool (b_bot)")
-      rospy.loginfo("65 (651/652): Go to belt tool pickup position (and equip/unequip it)")
-      rospy.loginfo("66 (661/662): Go to plunger tool pickup position (and equip/unequip it)")
-      rospy.loginfo("671, 672: Calibrate screw feeders (a_bot, b_bot)")
-      rospy.loginfo("681, 682: Pick m4 screw from feeder (a_bot, b_bot)")
-      rospy.loginfo("691, 692: Pick m3 screw from feeder (a_bot, b_bot)")
+      rospy.loginfo("===== TOOLS ")
+      # rospy.loginfo("65 (651/652): Go to belt tool pickup position (and equip/unequip it)")
+      # rospy.loginfo("66 (661/662): Go to plunger tool pickup position (and equip/unequip it)")
       rospy.loginfo("70: Do screw action with b_bot on rightmost hole")
       rospy.loginfo("81: Realign M4 tool")
       rospy.loginfo("x: Exit ")
@@ -511,19 +509,40 @@ if __name__ == '__main__':
       elif r == '101':
         c.a_bot.go_to_named_pose("back")
         c.b_bot.go_to_named_pose("back")
+      elif r == '11':
+        c.vision.activate_camera("b_bot_outside_camera")
       elif r == '12':
-        c.camera.activate("b_bot_outside_camera")
-      elif r == '13':
-        c.camera.activate("b_bot_inside_camera")
+        c.vision.activate_camera("b_bot_inside_camera")
+      elif r == "13":
+        c.make_space_for_robot("a_bot")
+        c.equip_tool("a_bot", "screw_tool_m3") 
+      elif r == "14":
+        c.make_space_for_robot("a_bot")
+        c.unequip_tool("a_bot", "screw_tool_m3")
+      elif r == "15":
+        c.make_space_for_robot("b_bot")
+        c.equip_tool("b_bot", "screw_tool_m4")
+      elif r == "16":
+        c.make_space_for_robot("b_bot")
+        c.unequip_tool("b_bot", "screw_tool_m4")
+      elif r == "17":
+        c.make_space_for_robot("b_bot")
+        c.equip_tool("b_bot", "set_screw_tool")
+      elif r == "18":
+        c.make_space_for_robot("b_bot")
+        c.unequip_tool("b_bot", "set_screw_tool")
       elif r == '21':
-        c.tray_calibration(robot_name="a_bot", end_effector_link="a_bot_robotiq_85_tip_link")
+        c.screw_feeder_calibration(robot_name="a_bot")
       elif r == '22':
-        c.tray_calibration(robot_name="b_bot", end_effector_link="b_bot_robotiq_85_tip_link")
+        c.screw_feeder_calibration(robot_name="b_bot")
       elif r == '23':
-        ps = geometry_msgs.msg.PoseStamped()
-        ps.header.frame_id = "workspace_center"
-        ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
-        c.offset_pose_in_own_coordinate_system(ps, geometry_msgs.msg.Point(-.05, 0, 0))
+        c.screw_feeder_pick_test(robot_name="a_bot", screw_size=3)
+      elif r == '24':
+        c.screw_feeder_pick_test(robot_name="b_bot", screw_size=4)
+      elif r == '291':
+        c.tray_calibration(robot_name="a_bot", end_effector_link="a_bot_robotiq_85_tip_link")
+      elif r == '292':
+        c.tray_calibration(robot_name="b_bot", end_effector_link="b_bot_robotiq_85_tip_link")
       elif r == '31':
         c.taskboard_calibration_with_tools(robot_name="a_bot", end_effector_link="a_bot_screw_tool_m3_tip_link")
       elif r == '311':
@@ -575,7 +594,7 @@ if __name__ == '__main__':
       elif r == '531':  # Bearing rotation
         c.align_bearing_holes(max_adjustments=10, task="assembly")
       elif r == '54':  # Motor angle
-        c.camera.activate("b_bot_outside_camera")
+        c.vision.activate_camera("b_bot_outside_camera")
         camera_look_pose = geometry_msgs.msg.PoseStamped()
         camera_look_pose.header.frame_id = "vgroove_aid_link"
         camera_look_pose.pose.orientation = geometry_msgs.msg.Quaternion(*(0.84, 0.0043246, 0.0024908, 0.54257))
@@ -585,37 +604,11 @@ if __name__ == '__main__':
         camera_look_pose.pose.position.z -= 0.2
         c.b_bot.go_to_pose_goal(camera_look_pose, end_effector_link="b_bot_outside_camera_color_optical_frame", speed=.1, acceleration=.04)
       elif r == '544':
-        c.camera.activate("b_bot_outside_camera")
+        c.vision.activate_camera("b_bot_outside_camera")
         angle = c.get_motor_angle()
       elif r == '6':
         c.a_bot.go_to_named_pose("back")
         c.b_bot.go_to_named_pose("screw_ready")
-      elif r == '621':
-        c.make_space_for_robot("a_bot")
-        c.a_bot.go_to_named_pose("tool_pick_ready")
-        c.do_change_tool_action("a_bot", equip=True, screw_size = 3)
-      elif r == '622':
-        c.make_space_for_robot("a_bot")
-        c.a_bot.go_to_named_pose("tool_pick_ready")
-        c.do_change_tool_action("a_bot", equip=False, screw_size = 3)
-      elif r == '623':
-        c.make_space_for_robot("b_bot")
-        c.b_bot.go_to_named_pose("tool_pick_ready")
-        c.do_change_tool_action("b_bot", equip=True, screw_size = 4)
-      elif r == '624':
-        c.make_space_for_robot("b_bot")
-        c.b_bot.go_to_named_pose("tool_pick_ready")
-        c.do_change_tool_action("b_bot", equip=False, screw_size = 4)
-      elif r == '6233': # Go to tool pickup pose
-        c.go_to_tool_pickup_pose("b_bot", "screw_tool_m4")
-      elif r == '625':
-        c.make_space_for_robot("b_bot")
-        c.b_bot.go_to_named_pose("tool_pick_ready")
-        c.do_change_tool_action("b_bot", equip=True, screw_size = 1)
-      elif r == '626':
-        c.make_space_for_robot("b_bot")
-        c.b_bot.go_to_named_pose("tool_pick_ready")
-        c.do_change_tool_action("b_bot", equip=False, screw_size = 1)
       elif r == '65':
         c.b_bot.go_to_named_pose("home")
         ps = geometry_msgs.msg.PoseStamped()
@@ -636,18 +629,6 @@ if __name__ == '__main__':
         c.do_change_tool_action("b_bot", equip=True, screw_size = 200)
       elif r == '63':
         c.screw_tool_test_assembly(robot_name="b_bot")
-      elif r == '671':
-        c.screw_feeder_calibration(robot_name="a_bot")
-      elif r == '672':
-        c.screw_feeder_calibration(robot_name="b_bot")
-      elif r == '681':
-        c.screw_feeder_pick_test(robot_name="a_bot", screw_size=4)
-      elif r == '682':
-        c.screw_feeder_pick_test(robot_name="b_bot", screw_size=4)
-      elif r == '691':
-        c.screw_feeder_pick_test(robot_name="a_bot", screw_size=3)
-      elif r == '692':
-        c.screw_feeder_pick_test(robot_name="b_bot", screw_size=3)
       elif r == '70':
         c.screw_action_test(robot_name="b_bot")
       elif r == '81':

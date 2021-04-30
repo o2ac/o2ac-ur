@@ -427,30 +427,6 @@ class TaskboardClass(O2ACCommon):
         return False
       wait_for_UR_program("/b_bot", rospy.Duration.from_sec(40))
       return True
-
-      # # pick up pulley
-      # self.allow_collision_with_hand('b_bot', 'motor_pulley')
-      # pick_pose = geometry_msgs.msg.PoseStamped()
-      # pick_pose.header.frame_id = "move_group/motor_pulley"
-      # pick_pose.pose.position = geometry_msgs.msg.Point(-0.02, 0, 0)
-      # pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, tau/2))
-      # tool_name = "motor_pulley"
-      # robot_name = "b_bot"
-      # self.simple_pick("b_bot", pick_pose, item_id_to_attach="motor_pulley")
-      # # insert pulley
-      # self.allow_collision_with_hand('b_bot', 'taskboard_base')
-      # insert_pose = geometry_msgs.msg.PoseStamped()
-      # insert_pose.header.frame_id = "taskboard_small_shaft"
-      # insert_pose.pose.position = geometry_msgs.msg.Point(0.025, 0, 0)
-      # insert_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/4, tau/2, tau/2))
-      # self.simple_place("b_bot", insert_pose, item_id_to_detach="motor_pulley")
-      # self.disallow_collision_with_hand('b_bot', 'taskboard_base')
-      # self.disallow_collision_with_hand('b_bot', 'motor_pulley')
-      # self.planning_scene_interface.allow_collisions('motor_pulley', 'taskboard_small_shaft')
-      # self.planning_scene_interface.allow_collisions('motor_pulley', 'taskboard_base')
-      # self.planning_scene_interface.allow_collisions('taskboard_base', 'taskboard_plate')
-      # # Go back to home position
-      # self.b_bot.go_to_named_pose("home")
     
     # ==========================================================
 
@@ -487,15 +463,6 @@ class TaskboardClass(O2ACCommon):
 
       self.playback_sequence("bearing_move_to_taskboard")
       
-      # if success_b:
-      #   print("Loaded bearing orient program.")
-      #   self.b_bot.execute_loaded_program()
-      #   print("Started execution. Waiting for b_bot to finish.")
-      # else:
-      #   print("Problem loading. Not executing bearing orient procedure.")
-      #   return False
-      # wait_for_UR_program("/b_bot", rospy.Duration.from_sec(70))
-
       if self.b_bot.gripper.opening_width < 0.01:
         rospy.logerr("Bearing not found in gripper. Must have been lost. Aborting.")
         #TODO(felixvd): Look at the regrasping/aligning area next to the tray
@@ -536,7 +503,7 @@ class TaskboardClass(O2ACCommon):
 
         self.b_bot.move_lin_rel(relative_translation = [0.014,0,0], acceleration = 0.015, velocity = .03, use_robot_base_csys=True)
 
-        pre_push_position = self.b_bot.joint_angles()
+        pre_push_position = self.b_bot.force_controller.joint_angles()
 
         self.b_bot.gripper.close(velocity=0.01, wait=True)
 

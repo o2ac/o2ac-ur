@@ -311,7 +311,7 @@ class URRobot():
         group.clear_pose_targets()
 
         current_pose = group.get_current_pose().pose
-        return all_close(pose_goal_stamped.pose, current_pose, 0.01), move_success
+        return helpers.all_close(pose_goal_stamped.pose, current_pose, 0.01), move_success
 
     def move_lin(self, pose_goal_stamped, speed=1.0, acceleration=0.5, end_effector_link=""):
         if not self.set_up_move_group(speed, acceleration):
@@ -360,7 +360,7 @@ class URRobot():
         new_pose2.pose.position.x += relative_translation[0]
         new_pose2.pose.position.y += relative_translation[1]
         new_pose2.pose.position.z += relative_translation[2]
-        new_pose2.pose.orientation = rotateQuaternionByRPY(relative_rotation[0], relative_rotation[1],
+        new_pose2.pose.orientation = helpers.rotateQuaternionByRPY(relative_rotation[0], relative_rotation[1],
                                                            relative_rotation[2], new_pose2.pose.orientation)
         return self.move_lin(new_pose2, speed=speed, acceleration=acceleration)
 
@@ -408,9 +408,9 @@ class URRobot():
         acc = copy.copy(acceleration)
         if sp > 1.0:
             sp = 1.0
-        if acc > speed/2.0:
+        if acc > sp/2.0:
             rospy.logwarn("Setting acceleration to " + str(speed) + " instead of " + str(acceleration) + " to avoid jerky motion.")
-            acc = speed/2.0
+            acc = sp/2.0
         return (sp, acc)
 
     # ------ Force control functions

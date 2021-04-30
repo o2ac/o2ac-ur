@@ -264,8 +264,21 @@ class O2ACBase(object):
     # # TODO(felixvd): Add the set screw and nut tool objects from the C++ file
 
   ######
-  def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=False):
-    return self.skill_server.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure)
+  def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=True):
+    res = self.skill_server.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure)
+    if res.success:
+      return True
+    else:
+      if realign_tool_upon_failure:
+          self.go_to_named_pose("tool_pick_ready", robot_name)
+          rospy.loginfo("pickScrewFromFeeder failed. Realigning tool and retrying.")
+          screw_tool_id = "screw_tool_m" + str(screw_size)
+          self.realign_tool(robot_name, screw_tool_id)
+          res = self.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure=False)
+          return res.success
+      else:
+          self.go_to_named_pose("tool_pick_ready", robot_name)
+          return False
 
   def do_insert_action(self, active_robot_name, passive_robot_name = "", 
                         starting_offset = 0.05, max_insertion_distance=0.01, 
@@ -791,7 +804,7 @@ class O2ACBase(object):
     if pose_type == 'joint-space':
       arm.set_joint_positions(pose, wait=True, t=duration)
     elif pose_type == 'joint-space-goal-cartesian-lin-motion':
-      target_pose = arm.end_effector(pose)  # Forward kinematics
+      target_pose = arm.force_controller.end_effector(pose)  # Get pose from forward kinematics
       p.pose = conversions.to_pose(target_pose)
       self.active_robots[robot_name].move_lin(p, speed=0.8)
     elif pose_type == 'task-space':
