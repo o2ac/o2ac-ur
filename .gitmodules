@@ -18,7 +18,7 @@
 	url = http://gitlab+deploy-token-440688:eYTsSmM4yjjtN5eXCx2C@gitlab.com/o2ac/third-party/realsense-ros
 [submodule "underlay_ws/src/third_party/ddynamic_reconfigure"]
 	path = underlay_ws/src/third_party/ddynamic_reconfigure
-	url = https://gitlab.com/o2ac/third-party/ddynamic_reconfigure
+	url = http://gitlab+deploy-token-440688:eYTsSmM4yjjtN5eXCx2C@gitlab.com/o2ac/third-party/ddynamic_reconfigure
 [submodule "underlay_ws/src/third_party/robotiq-cri"]
 	path = underlay_ws/src/third_party/robotiq-cri
 	url = http://gitlab+deploy-token-440688:eYTsSmM4yjjtN5eXCx2C@gitlab.com/o2ac/third-party/robotiq-cri
