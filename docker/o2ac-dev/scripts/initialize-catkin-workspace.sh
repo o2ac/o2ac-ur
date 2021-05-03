@@ -47,7 +47,7 @@ source /opt/ros/melodic/setup.bash
 
 # Initialize the underlay workspace with wstool and install dependencies
 cd /root/o2ac-ur/underlay_ws/      && \
-    wstool update -t src
+    wstool update -t src --delete-changed-uris
 
 rosdep install --from-paths src --ignore-src -r -y > /dev/null 2>&1 || FAILED=true
 
