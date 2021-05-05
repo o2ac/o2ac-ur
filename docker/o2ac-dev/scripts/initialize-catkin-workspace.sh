@@ -43,6 +43,10 @@ rosdep update
 # Source the updated ROS environment.
 source /opt/ros/melodic/setup.bash
 
+# FIXME: Setting PhoLocalization env variable manually seems to be required for ci.
+#        Apparently it's not loaded correctly although the installation seems be complete.
+export PHO_LOCALIZATION_PATH=/opt/PhotoneoSDK/Localization
+
 ################################################################################
 
 # Initialize the underlay workspace with wstool and install dependencies
