@@ -160,7 +160,7 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_robotiq_85_tip_link:
+          a_bot_gripper_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -293,7 +293,7 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          b_bot_robotiq_85_tip_link:
+          b_bot_gripper_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -478,7 +478,7 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          c_bot_robotiq_85_tip_link:
+          c_bot_gripper_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -757,7 +757,7 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_robotiq_85_tip_link:
+          a_bot_gripper_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -890,7 +890,7 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          b_bot_robotiq_85_tip_link:
+          b_bot_gripper_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -1075,7 +1075,7 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          c_bot_robotiq_85_tip_link:
+          c_bot_gripper_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -1275,7 +1275,7 @@ Visualization Manager:
           Value: false
         a_bot_gripper_screw_pickup:
           Value: false
-        a_bot_robotiq_85_tip_link:
+        a_bot_gripper_tip_link:
           Value: false
         a_bot_shoulder_link:
           Value: false
@@ -1331,7 +1331,7 @@ Visualization Manager:
           Value: false
         b_bot_robotiq_85_right_knuckle_link:
           Value: false
-        b_bot_robotiq_85_tip_link:
+        b_bot_gripper_tip_link:
           Value: true
         b_bot_screw_tool_m3_tip_link:
           Value: false
@@ -1413,7 +1413,7 @@ Visualization Manager:
           Value: false
         c_bot_robotiq_85_tip_45deg_helper_link:
           Value: false
-        c_bot_robotiq_85_tip_link:
+        c_bot_gripper_tip_link:
           Value: true
         c_bot_screw_tool_m3_tip_link:
           Value: false
@@ -1528,7 +1528,7 @@ Visualization Manager:
                           a_bot_tool0:
                             a_bot_gripper:
                               {}
-                            a_bot_robotiq_85_tip_link:
+                            a_bot_gripper_tip_link:
                               a_bot_gripper_screw_pickup:
                                 {}
             a_bot_base_smfl:
@@ -1562,7 +1562,7 @@ Visualization Manager:
                               b_bot_robotiq_85_right_knuckle_link:
                                 b_bot_robotiq_85_right_finger_link:
                                   {}
-                              b_bot_robotiq_85_tip_link:
+                              b_bot_gripper_tip_link:
                                 b_bot_ar_marker:
                                   {}
                                 b_bot_nut_tool_m6_tip_link:
@@ -1627,7 +1627,7 @@ Visualization Manager:
                               c_bot_robotiq_85_right_knuckle_link:
                                 c_bot_robotiq_85_right_finger_link:
                                   {}
-                              c_bot_robotiq_85_tip_link:
+                              c_bot_gripper_tip_link:
                                 c_bot_ar_marker:
                                   {}
                                 c_bot_robotiq_85_tip_40deg_helper_link:

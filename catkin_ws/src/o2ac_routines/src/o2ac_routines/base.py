@@ -571,7 +571,7 @@ class O2ACBase(object):
   def attach_tool(self, robot_name, toolname):
     try:
       self.active_robots[robot_name].robot_group.attach_object(toolname, robot_name + "_ee_link", touch_links= 
-      [robot_name + "_robotiq_85_tip_link", 
+      [robot_name + "_gripper_tip_link", 
       robot_name + "_robotiq_85_left_finger_tip_link", 
       robot_name + "_robotiq_85_left_inner_knuckle_link", 
       robot_name + "_robotiq_85_right_finger_tip_link", 

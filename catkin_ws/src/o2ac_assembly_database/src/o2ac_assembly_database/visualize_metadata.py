@@ -238,7 +238,7 @@ class MetadataVisualizer():
 
     def publish_gripper_marker_array(self, frame = 'world'):
         '''Publish markers to visualize the gripper.
-        The gripper is shown with 'robotiq_85_tip_link' moved to 'frame'.
+        The gripper is shown with 'gripper_tip_link' moved to 'frame'.
         '''
 
         g_transform = geometry_msgs.msg.TransformStamped()
@@ -252,7 +252,7 @@ class MetadataVisualizer():
 
         transformer.setTransform(g_transform)
 
-        tip_link = self._robot_commander.get_link('robotiq_85_tip_link')
+        tip_link = self._robot_commander.get_link('gripper_tip_link')
         tip_link_translation = tf.transformations.translation_matrix((tip_link.pose().pose.position.x, tip_link.pose().pose.position.y, tip_link.pose().pose.position.z))
         tip_link_rotation = tf.transformations.quaternion_matrix((tip_link.pose().pose.orientation.x, tip_link.pose().pose.orientation.y, tip_link.pose().pose.orientation.z, tip_link.pose().pose.orientation.w))
         gripper_base_in_tip_link = tf.transformations.inverse_matrix(np.matmul(tip_link_translation, tip_link_rotation))

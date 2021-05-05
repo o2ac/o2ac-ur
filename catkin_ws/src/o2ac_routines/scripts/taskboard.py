@@ -133,14 +133,14 @@ class TaskboardClass(O2ACCommon):
   #####
   
   def allow_collision_with_hand(self, robot_name, object_name):
-    self.planning_scene_interface.allow_collisions(object_name, robot_name + "_robotiq_85_tip_link")
+    self.planning_scene_interface.allow_collisions(object_name, robot_name + "_gripper_tip_link")
     self.planning_scene_interface.allow_collisions(object_name, robot_name + "_robotiq_85_left_finger_tip_link")
     self.planning_scene_interface.allow_collisions(object_name, robot_name + "_robotiq_85_left_inner_knuckle_link")
     self.planning_scene_interface.allow_collisions(object_name, robot_name + "_robotiq_85_right_finger_tip_link")
     self.planning_scene_interface.allow_collisions(object_name, robot_name + "_robotiq_85_right_inner_knuckle_link")
 
   def disallow_collision_with_hand(self, robot_name, object_name):
-    self.planning_scene_interface.disallow_collisions(object_name, robot_name + "_robotiq_85_tip_link")
+    self.planning_scene_interface.disallow_collisions(object_name, robot_name + "_gripper_tip_link")
     self.planning_scene_interface.disallow_collisions(object_name, robot_name + "_robotiq_85_left_finger_tip_link")
     self.planning_scene_interface.disallow_collisions(object_name, robot_name + "_robotiq_85_left_inner_knuckle_link")
     self.planning_scene_interface.disallow_collisions(object_name, robot_name + "_robotiq_85_right_finger_tip_link")

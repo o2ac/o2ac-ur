@@ -207,7 +207,7 @@ int main(int argc, char **argv) {
   std::string movegroup_name, ee_link;
   bool already_published_object;
   nh.param<std::string>("move_group", movegroup_name, "a_bot");
-  nh.param<std::string>("ee_link", ee_link, "a_bot_robotiq_85_tip_link");
+  nh.param<std::string>("ee_link", ee_link, "a_bot_gripper_tip_link");
   nh.param<bool>("already_published_object", already_published_object, false);
 
   // Dynamic parameter to choose the rate at which this node should run

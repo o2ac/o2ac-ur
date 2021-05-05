@@ -189,7 +189,7 @@ class O2ACCommon(O2ACBase):
             attached_object_name = attached_object.object.id
             attach_to = attached_object.link_name[:5]
             self.groups[attach_to].attach_object(attached_object_name, attached_object.link_name, touch_links=  # MODIFY attach_tool in base.py to attach_object ++ ROBOT NAME???
-              [attach_to + "_robotiq_85_tip_link", 
+              [attach_to + "_gripper_tip_link", 
               attach_to + "_robotiq_85_left_finger_tip_link", 
               attach_to + "_robotiq_85_left_inner_knuckle_link", 
               attach_to + "_robotiq_85_right_finger_tip_link", 
@@ -357,7 +357,7 @@ class O2ACCommon(O2ACBase):
     if item_id_to_attach:
       try:
         robot.robot_group.attach_object(item_id_to_attach, robot_name + "_ee_link", touch_links= 
-        [robot_name + "_robotiq_85_tip_link", 
+        [robot_name + "_gripper_tip_link", 
         robot_name + "_robotiq_85_left_finger_tip_link", 
         robot_name + "_robotiq_85_left_inner_knuckle_link", 
         robot_name + "_robotiq_85_right_finger_tip_link", 
@@ -626,7 +626,7 @@ class O2ACCommon(O2ACBase):
     if item_id_to_attach:
       try:
         robot.robot_group.attach_object(item_id_to_attach, robot_name + "_ee_link", touch_links= 
-        [robot_name + "_robotiq_85_tip_link", 
+        [robot_name + "_gripper_tip_link", 
         robot_name + "_robotiq_85_left_finger_tip_link", 
         robot_name + "_robotiq_85_left_inner_knuckle_link", 
         robot_name + "_robotiq_85_right_finger_tip_link", 
@@ -651,9 +651,9 @@ class O2ACCommon(O2ACBase):
     ps.header.frame_id = "vgroove_aid_drop_point_link"
     ps.pose.orientation = geometry_msgs.msg.Quaternion(*(0,0,0,1))
     ps.pose.position = geometry_msgs.msg.Point(-0.05, 0, 0)
-    self.b_bot.go_to_pose_goal(ps, end_effector_link="b_bot_robotiq_85_tip_link", move_lin = False)
+    self.b_bot.go_to_pose_goal(ps, end_effector_link="b_bot_gripper_tip_link", move_lin = False)
     ps.pose.position = geometry_msgs.msg.Point(0, 0, 0)
-    self.b_bot.go_to_pose_goal(ps, end_effector_link="b_bot_robotiq_85_tip_link")
+    self.b_bot.go_to_pose_goal(ps, end_effector_link="b_bot_gripper_tip_link")
 
   def check_if_shaft_in_v_groove(self):
     """

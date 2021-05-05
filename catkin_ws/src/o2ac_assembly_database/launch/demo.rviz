@@ -180,7 +180,7 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        robotiq_85_tip_link:
+        gripper_tip_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false

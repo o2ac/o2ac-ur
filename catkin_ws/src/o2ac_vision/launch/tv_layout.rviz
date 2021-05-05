@@ -283,7 +283,7 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_robotiq_85_tip_link:
+          a_bot_gripper_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -528,7 +528,7 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          b_bot_robotiq_85_tip_link:
+          b_bot_gripper_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false

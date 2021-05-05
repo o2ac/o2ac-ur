@@ -294,7 +294,7 @@ class URRobot():
         group = self.robot_group
 
         if not end_effector_link:
-            end_effector_link = self.ns + "_robotiq_85_tip_link"
+            end_effector_link = self.ns + "_gripper_tip_link"
         group.set_end_effector_link(end_effector_link)
 
         group.set_pose_target(pose_goal_stamped)
@@ -318,7 +318,7 @@ class URRobot():
             return False
 
         if not end_effector_link:
-            end_effector_link = self.ns + "_robotiq_85_tip_link"
+            end_effector_link = self.ns + "_gripper_tip_link"
 
         group = self.robot_group
 

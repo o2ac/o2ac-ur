@@ -18,19 +18,19 @@
     </xacro:if>
 
     <!-- Add an additional link to plan with. Oriented like the UR ee_link frame. -->
-    <joint name="${prefix}robotiq_85_tip_link_joint" type="fixed">
+    <joint name="${prefix}gripper_tip_link_joint" type="fixed">
       <parent link="${prefix}robotiq_140_base_link"/>
-      <child link="${prefix}robotiq_85_tip_link"/>
+      <child link="${prefix}gripper_tip_link"/>
       <origin rpy="0.0 0.0 0.0" xyz="${.163+.083} 0.0 0.0"/>
     </joint>
-    <link name="${prefix}robotiq_85_tip_link"/>
+    <link name="${prefix}gripper_tip_link"/>
 
     <!-- ========= -->
     <!-- Add screw tool tip frames. X-axis points along the screw into the hole. -->
     
     <!-- Offset of the gripper tooltips -->
     <joint name="${prefix}tool_intermediate_joint" type="fixed">
-      <parent link="${prefix}robotiq_85_tip_link"/>
+      <parent link="${prefix}gripper_tip_link"/>
       <child link="${prefix}tool_intermediate_link"/>
       <origin rpy="${pi} ${-pi/3} 0" xyz="-.03 0 0"/>
     </joint>

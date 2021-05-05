@@ -26,9 +26,9 @@ def create_pid(pid, default_ki=0.0, default_kd=0.0):
 
 
 class URForceController(CompliantController):
-    def __init__(self, robot_name, config_file="force_control", tcp_link='robotiq_85_tip_link', **kwargs):
+    def __init__(self, robot_name, config_file="force_control", tcp_link='gripper_tip_link', **kwargs):
         # TODO(cambel): fix this ugly workaround by properly defining the tool tip with respect to tool0
-        if tcp_link == 'robotiq_85_tip_link':
+        if tcp_link == 'gripper_tip_link':
             ee_transform = [0.0, 0.0, 0.173, 0.500, -0.500, 0.500, 0.500]
             tcp_link = 'tool0'
 

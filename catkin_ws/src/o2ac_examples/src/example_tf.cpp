@@ -23,7 +23,7 @@ int main (int argc, char **argv) {
   
   // Dynamic parameters. Last arg is the default value. You can assign these from a launch file.
   nh.param<std::string>("move_group", movegroup_name, "a_bot");
-  nh.param<std::string>("ee_link", ee_link, "a_bot_robotiq_85_tip_link");
+  nh.param<std::string>("ee_link", ee_link, "a_bot_gripper_tip_link");
   
   // Dynamic parameter to choose the rate at which this node should run
   double ros_rate;

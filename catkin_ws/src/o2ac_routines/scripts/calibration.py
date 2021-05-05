@@ -245,11 +245,11 @@ class CalibrationClass(O2ACCommon):
     pose0.pose.position.x = -.01
     if robot_name == "a_bot":
       pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0) )
-      if end_effector_link == "a_bot_robotiq_85_tip_link":
+      if end_effector_link == "a_bot_gripper_tip_link":
         pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/4, 0, 0))
     elif robot_name == "b_bot":
       pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/12, 0, 0) )
-      if end_effector_link == "b_bot_robotiq_85_tip_link":
+      if end_effector_link == "b_bot_gripper_tip_link":
         pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/6, 0, 0))
     
     for i in range(3):
@@ -262,7 +262,7 @@ class CalibrationClass(O2ACCommon):
     self.active_robots[robot_name].go_to_named_pose("horizontal_screw_ready")
     return 
 
-  def tray_calibration(self, robot_name="a_bot", end_effector_link="a_bot_robotiq_85_tip_link"):
+  def tray_calibration(self, robot_name="a_bot", end_effector_link="a_bot_gripper_tip_link"):
     rospy.loginfo("============ Touching tray sponge. ============")
     rospy.loginfo("eef link " + end_effector_link + " should be touching the tray sponge in middle, then left, then right.")
     if robot_name=="a_bot":
@@ -540,17 +540,17 @@ if __name__ == '__main__':
       elif r == '24':
         c.screw_feeder_pick_test(robot_name="b_bot", screw_size=4)
       elif r == '291':
-        c.tray_calibration(robot_name="a_bot", end_effector_link="a_bot_robotiq_85_tip_link")
+        c.tray_calibration(robot_name="a_bot", end_effector_link="a_bot_gripper_tip_link")
       elif r == '292':
-        c.tray_calibration(robot_name="b_bot", end_effector_link="b_bot_robotiq_85_tip_link")
+        c.tray_calibration(robot_name="b_bot", end_effector_link="b_bot_gripper_tip_link")
       elif r == '31':
         c.taskboard_calibration_with_tools(robot_name="a_bot", end_effector_link="a_bot_screw_tool_m3_tip_link")
       elif r == '311':
-        c.taskboard_calibration_with_tools(robot_name="a_bot", end_effector_link="a_bot_robotiq_85_tip_link")
+        c.taskboard_calibration_with_tools(robot_name="a_bot", end_effector_link="a_bot_gripper_tip_link")
       elif r == '32':
         c.taskboard_calibration_with_tools(robot_name="b_bot", end_effector_link="b_bot_screw_tool_m4_tip_link")
       elif r == '321':
-        c.taskboard_calibration_with_tools(robot_name="b_bot", end_effector_link="b_bot_robotiq_85_tip_link")
+        c.taskboard_calibration_with_tools(robot_name="b_bot", end_effector_link="b_bot_gripper_tip_link")
       elif r == '501':
         c.assembly_calibration_base_plate("a_bot")
       elif r == '5011':

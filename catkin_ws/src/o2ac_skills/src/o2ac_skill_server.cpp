@@ -44,12 +44,12 @@ SkillServer::SkillServer() :
   a_bot_group_.setPlanningTime(PLANNING_TIME);
   a_bot_group_.setPlanningPipelineId("ompl");
   a_bot_group_.setPlannerId("RRTConnectkConfigDefault");
-  a_bot_group_.setEndEffectorLink("a_bot_robotiq_85_tip_link");
+  a_bot_group_.setEndEffectorLink("a_bot_gripper_tip_link");
   a_bot_group_.setNumPlanningAttempts(5);
   b_bot_group_.setPlanningTime(PLANNING_TIME);
   b_bot_group_.setPlanningPipelineId("ompl");
   b_bot_group_.setPlannerId("RRTConnectkConfigDefault");
-  b_bot_group_.setEndEffectorLink("b_bot_robotiq_85_tip_link");
+  b_bot_group_.setEndEffectorLink("b_bot_gripper_tip_link");
   b_bot_group_.setNumPlanningAttempts(5);
 
   get_planning_scene_client = n_.serviceClient<moveit_msgs::GetPlanningScene>("/get_planning_scene");
@@ -503,8 +503,8 @@ bool SkillServer::moveToCartPosePTP(geometry_msgs::PoseStamped pose, std::string
   group_pointer->setMaxVelocityScalingFactor(velocity_scaling_factor);  // TODO: Check if this works
   if (end_effector_link == "")  // Define default end effector link explicitly
   {
-    if (robot_name == "a_bot") group_pointer->setEndEffectorLink("a_bot_robotiq_85_tip_link");
-    else group_pointer->setEndEffectorLink(robot_name + "_robotiq_85_tip_link");
+    if (robot_name == "a_bot") group_pointer->setEndEffectorLink("a_bot_gripper_tip_link");
+    else group_pointer->setEndEffectorLink(robot_name + "_gripper_tip_link");
   }
   else group_pointer->setEndEffectorLink(end_effector_link);
   group_pointer->setPoseTarget(pose);
@@ -547,11 +547,11 @@ bool SkillServer::moveToCartPoseLIN(geometry_msgs::PoseStamped pose, std::string
       if (end_effector_link == "")
       {
         if (robot_name == "c_bot")
-          end_effector_link = "c_bot_robotiq_85_tip_link";
+          end_effector_link = "c_bot_gripper_tip_link";
         else if (robot_name == "b_bot")
-          end_effector_link = "b_bot_robotiq_85_tip_link";
+          end_effector_link = "b_bot_gripper_tip_link";
         else if (robot_name == "a_bot")
-          end_effector_link = "a_bot_robotiq_85_tip_link";
+          end_effector_link = "a_bot_gripper_tip_link";
       }
       ROS_DEBUG("Real robot is being used. Sending linear motion to robot controller directly via URScript.");
       o2ac_msgs::sendScriptToUR UR_srv;
@@ -597,8 +597,8 @@ bool SkillServer::moveToCartPoseLIN(geometry_msgs::PoseStamped pose, std::string
   
   if (end_effector_link == "")  // Define default end effector link explicitly
   {
-    if (robot_name == "a_bot") group_pointer->setEndEffectorLink("a_bot_robotiq_85_tip_link");
-    else group_pointer->setEndEffectorLink(robot_name + "_robotiq_85_tip_link");
+    if (robot_name == "a_bot") group_pointer->setEndEffectorLink("a_bot_gripper_tip_link");
+    else group_pointer->setEndEffectorLink(robot_name + "_gripper_tip_link");
   }
   else group_pointer->setEndEffectorLink(end_effector_link);
   
@@ -863,7 +863,7 @@ bool SkillServer::equipUnequipScrewTool(std::string robot_name, std::string scre
 
 
   ROS_INFO("Moving to screw tool approach pose LIN.");
-  bool preparation_succeeded = moveToCartPoseLIN(ps_approach, robot_name, true, robot_name + "_robotiq_85_tip_link", 0.5, 0.5, use_real_robot_, true);
+  bool preparation_succeeded = moveToCartPoseLIN(ps_approach, robot_name, true, robot_name + "_gripper_tip_link", 0.5, 0.5, use_real_robot_, true);
   if (!preparation_succeeded)
   {
     ROS_ERROR("Could not go to approach pose. Aborting tool pickup.");
@@ -891,7 +891,7 @@ bool SkillServer::equipUnequipScrewTool(std::string robot_name, std::string scre
     closeGripper(robot_name);
     attachTool(screw_tool_id, robot_name);
     // Allow collisions between gripper and tool so robot does not think it is in collision
-    acm_original.setEntry(screw_tool_id, robot_name + "_robotiq_85_tip_link", true);
+    acm_original.setEntry(screw_tool_id, robot_name + "_gripper_tip_link", true);
     acm_original.setEntry(screw_tool_id, robot_name + "_left_inner_finger", true);
     acm_original.setEntry(screw_tool_id, robot_name + "_left_inner_finger_pad", true);
     acm_original.setEntry(screw_tool_id, robot_name + "_right_inner_finger", true);
@@ -1145,7 +1145,7 @@ bool SkillServer::attachDetachTool(std::string screw_tool_id, std::string robot_
   else if (screw_tool_id == "suction_tool") att_coll_object.object = suction_tool;
   else { ROS_WARN_STREAM("No screw tool specified to " << attach_or_detach); }
 
-  att_coll_object.link_name = robot_name + "_robotiq_85_tip_link";
+  att_coll_object.link_name = robot_name + "_gripper_tip_link";
 
   if (attach_or_detach == "attach") att_coll_object.object.operation = att_coll_object.object.ADD;
   else if (attach_or_detach == "detach") att_coll_object.object.operation = att_coll_object.object.REMOVE;
@@ -1596,8 +1596,8 @@ void SkillServer::executePlace(const o2ac_msgs::placeGoalConstPtr& goal)
   }
   else
   {
-    if (goal->robot_name == "a_bot"){ee_link_name = goal->robot_name + "_robotiq_85_tip_link"; }
-    else {ee_link_name = goal->robot_name + "_robotiq_85_tip_link";}
+    if (goal->robot_name == "a_bot"){ee_link_name = goal->robot_name + "_gripper_tip_link"; }
+    else {ee_link_name = goal->robot_name + "_gripper_tip_link";}
   }
   
   placeFromAbove(goal->item_pose, ee_link_name, goal->robot_name);

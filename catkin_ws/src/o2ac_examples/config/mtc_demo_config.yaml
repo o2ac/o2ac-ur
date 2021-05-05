@@ -5,7 +5,7 @@ planning_attempts: 10
 arm_group_name: "b_bot"
 eef_name: "b_bot_tip"
 hand_group_name: "b_bot_robotiq_85"
-hand_frame: "b_bot_robotiq_85_tip_link"
+hand_frame: "b_bot_gripper_tip_link"
 
 # Poses
 hand_open_pose: "open"
