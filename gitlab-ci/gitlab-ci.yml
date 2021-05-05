@@ -36,7 +36,9 @@ stages:
     # https://gitlab.com/gitlab-org/gitlab-ce/issues/41227
     - 'export SHARED_PATH="$(dirname ${CI_PROJECT_DIR})/shared"'
     - mkdir -p ${SHARED_PATH}/
-    # Copy the content of the project workspace to the shared directory.
+    # Copy the content of the project workspace to the shared directory. 
+    # Cleaning shared directory first to avoid a copy error claiming that the .git file already exists. #FIXME
+    - rm -rf ${SHARED_PATH}/*
     - cp -r ./ ${SHARED_PATH}/
     # Log into the Docker registry of the project.
     - docker login -u ${CI_REGISTRY_USER} -p ${CI_REGISTRY_PASSWORD} ${CI_REGISTRY}
