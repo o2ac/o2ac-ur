@@ -66,7 +66,7 @@ def spawn_objects(assembly_database, object_names, object_poses, object_referenc
     quaternion = tf.transformations.quaternion_from_euler(*conversions.to_float(object_pose[3:]))
     co_pose.orientation = geometry_msgs.msg.Quaternion(*quaternion)
 
-    collision_object = next((co for co in assembly_database.collision_objects if co.id == object_name), None)
+    collision_object = next((co for co in assembly_database._collision_objects if co.id == object_name), None)
     assert collision_object is not None, "Collision object for '%s' does not exist or names do not match" % object_name
     collision_object.header.frame_id = object_reference_frame
     collision_object.pose = co_pose

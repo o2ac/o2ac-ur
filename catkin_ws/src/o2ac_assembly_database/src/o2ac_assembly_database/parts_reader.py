@@ -73,14 +73,14 @@ class PartsReader(object):
         self.db_name = db_name
         self._directory = os.path.join(self._rospack.get_path('o2ac_assembly_database'), 'config', db_name)
         self._parts_list = self._read_parts_list()
-        self.collision_objects, self.grasps = self.get_collision_objects_with_metadata()
+        self._collision_objects, self._grasps = self.get_collision_objects_with_metadata()
         rospy.loginfo("Done loading.")
     
     def get_collision_object(self, object_name):
         '''
         This returns the collision object (including subframes) for an object_name.
         '''
-        for c_obj in self.collision_objects:
+        for c_obj in self._collision_objects:
             if c_obj.id == object_name:
                 return c_obj
         rospy.logerr("Could not find collision object with id " + str(object_name))
@@ -150,7 +150,7 @@ class PartsReader(object):
         Hierarchical params on the param server can be stored as dictionaries
         All of these grasps can be retrieved by requesting the parent parameter from the rosparam server
         '''
-        for part in self.grasps:
+        for part in self._grasps:
             for (grasp_name, grasp_pose) in zip(part['grasp_names'], part['grasp_poses']):
               d = {'position': conversions.from_point(grasp_pose.position).tolist(),
                'orientation': conversions.from_quaternion(grasp_pose.orientation).tolist()}

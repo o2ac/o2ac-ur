@@ -66,7 +66,7 @@ class AssemblyReader(PartsReader):
     def change_assembly(self, assembly_name):
         if self.db_name != assembly_name:
             self.load_db(assembly_name)
-            self.assembly_tree = self.get_assembly_tree(self.collision_objects)
+            self.assembly_tree = self.get_assembly_tree(self._collision_objects)
             self._upload_grasps_to_param_server(assembly_name)
 
     def get_frame_mating(self, base_object, child_object):
@@ -142,12 +142,12 @@ class AssemblyReader(PartsReader):
             return False
         base_id = int(self.mating_transforms[0].header.frame_id.split('_')[2])
         base_name = next((part['name'] for part in self._parts_list if part['id'] == base_id), None)
-        base_object = next((collision_object for collision_object in self.collision_objects if collision_object.id == base_name), None)
+        base_object = next((collision_object for collision_object in self._collision_objects if collision_object.id == base_name), None)
         assembly_tree = self._collision_object_to_tf_tree(base_object)
         for mating_transform in self.mating_transforms:
             child_id = int(mating_transform.child_frame_id.split('_')[2])
             child_name = next((part['name'] for part in self._parts_list if part['id'] == child_id), None)
-            child_object = next((collision_object for collision_object in self.collision_objects if collision_object.id == child_name), None)
+            child_object = next((collision_object for collision_object in self._collision_objects if collision_object.id == child_name), None)
             tree_2 = self._collision_object_to_tf_tree(child_object)
             mating_transform.header.frame_id = mating_transform.header.frame_id.replace('assy_', '')
             mating_transform.child_frame_id = mating_transform.child_frame_id.replace('assy_', '')

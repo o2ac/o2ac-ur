@@ -173,7 +173,7 @@ class URRobot():
             except:
                 rospy.logwarn("Dashboard service did not respond! (2)")
                 pass
-            rospy.sleep(.5)
+            rospy.sleep(3.0)
             return self.activate_ros_control_on_ur(recursion_depth=recursion_depth+1)
 
         # Run the program

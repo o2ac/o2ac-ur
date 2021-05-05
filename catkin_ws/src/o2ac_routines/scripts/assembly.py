@@ -514,7 +514,7 @@ class AssemblyClass(O2ACCommon):
     self.spawn_multiple_objects('wrs_assembly_1', objects, poses, 'world')
 
   def spawn_objects_for_demo(self):
-    objects = ['panel_motor', 'panel_bearing', 'motor', 'motor_pulley', 'bearing_housing',
+    objects = ['panel_motor', 'panel_bearing', 'motor', 'motor_pulley', 'bearing',
       'shaft', 'end_cap', 'bearing_spacer', 'output_pulley', 'idler_spacer', 'idler_pulley', 'idler_pin']  # , 'base']
     poses = [[0.12, 0.02, 0.001, 0.0, 0.0, tau/2],
       [0.02, -0.06, 0.001, 0.0, 0.0, -tau/4],
