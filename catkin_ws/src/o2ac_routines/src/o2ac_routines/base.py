@@ -61,6 +61,7 @@ import std_srvs.srv
 # import controller_manager_msgs.srv
 from shape_msgs.msg import SolidPrimitive
 from geometry_msgs.msg import Pose
+from trajectory_msgs.msg import JointTrajectoryPoint
 
 import o2ac_msgs.msg
 # import o2ac_msgs.srv
@@ -128,6 +129,7 @@ class O2ACBase(object):
     self.vision = VisionClient()
     self.tools = Tools(self.use_real_robot)
 
+    self.pick_place_planning_client = actionlib.SimpleActionClient('plan_pick_place', moveit_task_constructor_msgs.msg.PlanPickPlaceAction)
     self.pick_planning_client = actionlib.SimpleActionClient('/pick_planning', o2ac_task_planning_msgs.msg.PickObjectAction)
     self.place_planning_client = actionlib.SimpleActionClient('/place_planning', o2ac_task_planning_msgs.msg.PlaceObjectAction)
     self.release_planning_client = actionlib.SimpleActionClient('/release_planning', o2ac_task_planning_msgs.msg.ReleaseObjectAction)
@@ -441,6 +443,100 @@ class O2ACBase(object):
           rospy.loginfo("Writing solution to: %s" % save_solution_to_file)
         return result  
     return wrap
+  
+  @save_task_plan
+  def do_plan_pick_place_action(self, object_name, robot_name, grasp_pose, pick_only=True, place_only=False):
+    '''
+    Function for calling the plan_pick_place MTC action
+    The function returns the MTC solution containing the trajectories
+
+    grasp_pose is a geometry_msgs.msg.PoseStamped (usually in the frame "object_name") for the robot's gripper_tip_link frame.
+    '''
+    goal = moveit_task_constructor_msgs.msg.PlanPickPlaceGoal()
+    if pick_only:
+      goal.task_type = moveit_task_constructor_msgs.msg.PlanPickPlaceGoal.PICK_ONLY
+    elif place_only:
+      goal.task_type = moveit_task_constructor_msgs.msg.PlanPickPlaceGoal.PLACE_ONLY
+    else:
+      goal.task_type = moveit_task_constructor_msgs.msg.PlanPickPlaceGoal.PICK_AND_PLACE
+    goal.arm_group_name = robot_name
+    goal.hand_group_name = robot_name + '_robotiq_85'
+    goal.eef_name = robot_name + '_tip'
+    goal.hand_frame = robot_name + '_gripper_tip_link'
+    goal.object_id = object_name
+    goal.support_surfaces = ["tray_center"]
+
+    grasp = moveit_msgs.msg.Grasp()
+
+    grasp.grasp_pose = grasp_pose
+
+    approach_direction = geometry_msgs.msg.Vector3Stamped()
+    approach_direction.header.frame_id = 'world'
+    approach_direction.vector.z = -1
+    grasp.pre_grasp_approach.direction = approach_direction
+    grasp.pre_grasp_approach.min_distance = 0.0
+    grasp.pre_grasp_approach.desired_distance = 0.01
+
+    lift_direction = geometry_msgs.msg.Vector3Stamped()
+    lift_direction.header.frame_id = 'world'
+    lift_direction.vector.z = 1
+    grasp.post_grasp_retreat.direction = lift_direction
+    grasp.post_grasp_retreat.min_distance = 0.0
+    grasp.post_grasp_retreat.desired_distance = 0.01
+
+    # grasp_2 = copy.deepcopy(grasp)
+    # grasp_2.grasp_pose.pose.position.z = 0.1
+    # grasp_2.pre_grasp_approach.min_distance = 0.05
+    # grasp_2.pre_grasp_approach.desired_distance = 0.15
+
+    hand = self.active_robots[robot_name].gripper_group
+    hand_open = hand.get_named_target_values("open")
+    hand_closed = hand.get_named_target_values("close")
+
+    for (joint, value) in hand_open.items():
+        joint_traj_point = JointTrajectoryPoint()
+        joint_traj_point.positions.append(value)
+        grasp.pre_grasp_posture.joint_names.append(joint)
+        grasp.pre_grasp_posture.points.append(joint_traj_point)
+        # grasp_2.pre_grasp_posture.joint_names.append(joint)
+        # grasp_2.pre_grasp_posture.points.append(joint_traj_point)
+
+    for (joint, value) in hand_closed.items():
+        joint_traj_point = JointTrajectoryPoint()
+        joint_traj_point.positions.append(value)
+        grasp.grasp_posture.joint_names.append(joint)
+        grasp.grasp_posture.points.append(joint_traj_point)
+        # grasp_2.grasp_posture.joint_names.append(joint)
+        # grasp_2.grasp_posture.points.append(joint_traj_point)
+
+    goal.grasps.append(grasp)
+    # goal.grasps.append(grasp_2)
+
+    place_pose = geometry_msgs.msg.PoseStamped()
+    place_pose.header.frame_id = 'tray_center'
+    place_pose.pose.orientation.w = 1
+    place_pose.pose.position.z = 0.3
+    goal.place_locations = [moveit_msgs.msg.PlaceLocation()]
+    goal.place_locations[0].place_pose = place_pose
+
+    place_direction = geometry_msgs.msg.Vector3Stamped()
+    place_direction.header.frame_id = 'world'
+    place_direction.vector.z = -1
+    goal.place_locations[0].pre_place_approach.direction = place_direction
+    goal.place_locations[0].pre_place_approach.min_distance = 0.05
+    goal.place_locations[0].pre_place_approach.desired_distance = 0.15
+
+    retreat_direction = geometry_msgs.msg.Vector3Stamped()
+    retreat_direction.header.frame_id = 'world'
+    retreat_direction.vector.z = -1
+    goal.place_locations[0].post_place_retreat.direction = retreat_direction
+    goal.place_locations[0].post_place_retreat.min_distance = 0.05
+    goal.place_locations[0].post_place_retreat.desired_distance = 0.15
+
+    rospy.loginfo("Sending pick planning goal.")
+    self.pick_place_planning_client.send_goal(goal)
+    self.pick_place_planning_client.wait_for_result(rospy.Duration(15.0))
+    return self.pick_place_planning_client.get_result()
 
   @save_task_plan
   def do_plan_pick_action(self, object_name, grasp_parameter_location = '', lift_direction_reference_frame = '', lift_direction = [], robot_name = ''):

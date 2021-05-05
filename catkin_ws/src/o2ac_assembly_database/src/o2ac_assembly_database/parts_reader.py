@@ -86,6 +86,23 @@ class PartsReader(object):
         rospy.logerr("Could not find collision object with id " + str(object_name))
         return None
     
+    def get_grasp_pose(self, object_name, grasp_name):
+        """
+        Returns a geometry_msgs.msg.PoseStamped object in the frame of the object
+
+        grasp_name is generally the format "grasp_0"
+        """
+        grasp_pose_stamped = geometry_msgs.msg.PoseStamped()
+        grasp_pose_stamped.header.frame_id = object_name
+        
+        object_grasps = next((part for part in self._grasps if part["part_name"] == object_name), None)
+        for (_grasp_name, grasp_pose) in zip(object_grasps['grasp_names'], object_grasps['grasp_poses']):
+            if _grasp_name == grasp_name:
+                grasp_pose_stamped.pose = grasp_pose
+                return grasp_pose_stamped
+        rospy.logerr("Did not find grasp_name " + grasp_name + " for object " + object_name)
+        return None
+
     #### Converters 
 
     def id_to_name(self, id_num):

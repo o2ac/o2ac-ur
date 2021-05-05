@@ -50,6 +50,8 @@ from o2ac_msgs.srv import *
 import actionlib
 import o2ac_msgs.msg
 import std_msgs.msg
+import moveit_msgs.msg
+import moveit_task_constructor_msgs.msg
 
 from o2ac_assembly_database.parts_reader import PartsReader
 from o2ac_assembly_database.assembly_reader import AssemblyReader
@@ -680,6 +682,10 @@ if __name__ == '__main__':
         assy.b_bot.go_to_named_pose("feeder_pick_ready")
         assy.skill_server.pick_screw_from_feeder("b_bot", screw_size=4)
         assy.b_bot.go_to_named_pose("feeder_pick_ready")
+      if i == "51":
+        grasp_pose = assy.assembly_database.get_grasp_pose("panel_bearing", "grasp_21")
+        res = assy.do_plan_pick_place_action("panel_bearing", "a_bot", grasp_pose)
+        print(res)
       if i == '67':
         assy.spawn_objects_for_closed_loop_test()
       if i == '68':
