@@ -43,7 +43,7 @@ import geometry_msgs.msg
 import moveit_msgs.msg
 import shape_msgs.msg
 
-from o2ac_routines import conversions
+from ur_control import conversions
 
 try:
     from pyassimp import pyassimp

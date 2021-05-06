@@ -455,6 +455,7 @@ class CalibrationClass(O2ACCommon):
 
 if __name__ == '__main__':
   try:
+    rospy.init_node('o2ac_routines', anonymous=False)
     c = CalibrationClass()
 
     while not rospy.is_shutdown():
@@ -508,9 +509,9 @@ if __name__ == '__main__':
         c.go_to_named_pose("back", "a_bot")
         c.go_to_named_pose("back", "b_bot")
       elif r == '12':
-        c.activate_camera("b_bot_outside_camera")
+        c.camera.activate("b_bot_outside_camera")
       elif r == '13':
-        c.activate_camera("b_bot_inside_camera")
+        c.camera.activate("b_bot_inside_camera")
       elif r == '21':
         c.tray_calibration(robot_name="a_bot", end_effector_link="a_bot_robotiq_85_tip_link")
       elif r == '22':
@@ -556,22 +557,22 @@ if __name__ == '__main__':
         ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, radians(0), 0))
         ps.pose.position = geometry_msgs.msg.Point(-0.0, 0.0, 0.0)
         c.go_to_pose_goal("b_bot", ps, speed=.1, acceleration=.04, end_effector_link = "b_bot_bearing_rotate_helper_link")
-        c.close_gripper("b_bot")
+        c.b_bot.gripper.close()
         ps.pose.orientation = helpers.rotateQuaternionByRPYInUnrotatedFrame(radians(45), 0, 0, ps.pose.orientation)
         c.go_to_pose_goal("b_bot", ps, speed=.1, acceleration=.04, end_effector_link = "b_bot_bearing_rotate_helper_link")
-        c.open_gripper("b_bot")
+        c.b_bot.gripper.open()
         ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
         c.go_to_pose_goal("b_bot", ps, speed=.1, acceleration=.04, end_effector_link = "b_bot_bearing_rotate_helper_link")
         ps.pose.orientation = helpers.rotateQuaternionByRPYInUnrotatedFrame(radians(-45), 0, 0, ps.pose.orientation)
-        c.close_gripper("b_bot")
+        c.b_bot.gripper.close()
         c.go_to_pose_goal("b_bot", ps, speed=.1, acceleration=.04, end_effector_link = "b_bot_bearing_rotate_helper_link")
         ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
-        c.open_gripper("b_bot")
+        c.b_bot.gripper.open()
         c.go_to_pose_goal("b_bot", ps, speed=.1, acceleration=.04, end_effector_link = "b_bot_bearing_rotate_helper_link")
       elif r == '531':  # Bearing rotation
         c.align_bearing_holes(max_adjustments=10, task="assembly")
       elif r == '54':  # Motor angle
-        c.activate_camera("b_bot_outside_camera")
+        c.camera.activate("b_bot_outside_camera")
         camera_look_pose = geometry_msgs.msg.PoseStamped()
         camera_look_pose.header.frame_id = "vgroove_aid_link"
         camera_look_pose.pose.orientation = geometry_msgs.msg.Quaternion(*(0.84, 0.0043246, 0.0024908, 0.54257))
@@ -581,7 +582,7 @@ if __name__ == '__main__':
         camera_look_pose.pose.position.z -= 0.2
         c.go_to_pose_goal("b_bot", camera_look_pose, end_effector_link="b_bot_outside_camera_color_optical_frame", speed=.1, acceleration=.04)
       elif r == '544':
-        c.activate_camera("b_bot_outside_camera")
+        c.camera.activate("b_bot_outside_camera")
         angle = c.get_motor_angle()
       elif r == '6':
         c.go_to_named_pose("back", "a_bot")

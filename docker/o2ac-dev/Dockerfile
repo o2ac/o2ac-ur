@@ -37,8 +37,8 @@ RUN apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key C1CF6
 
 # Install ROS-desktop-full packages (including ROS, rqt, rviz, and more).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-	ros-melodic-desktop-full=1.4.1-0bionic.20210219.183904 \
-	python-rosdep=0.20.0-1 \
+	ros-melodic-desktop-full=1.4.1-0bionic.20210415.004555 \
+	python-rosdep=0.20.1-1 \
 	&& rm -rf /var/lib/apt/lists/*
 
 # Initialize 'rosdep'.
@@ -103,8 +103,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install MoveIt dependencies because we build it from source.
 # Also install the binaries to pull in the dependencies.
 RUN apt-get update && apt-get install -y --no-install-recommends \ 
-    ros-melodic-moveit-resources=0.7.0-1bionic.20210112.194853 \
-    ros-melodic-moveit=1.0.7-1bionic.20210206.043228 \
+    ros-melodic-moveit-resources=0.7.2-1bionic.20210415.000838 \
+    ros-melodic-moveit=1.0.7-1bionic.20210421.070859 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -120,16 +120,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install other dependencies of our workspace
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-melodic-effort-controllers=0.17.2-1bionic.20210120.180415 \
-    ros-melodic-industrial-robot-status-controller=0.1.2-1bionic.20210112.183249 \
+    ros-melodic-effort-controllers=0.17.2-1bionic.20210414.231806 \
+ros-melodic-industrial-robot-status-controller=0.1.2-1bionic.20210414.225610 \
     ros-melodic-socketcan-interface=0.8.5-1bionic.20201017.073132 \
-    ros-melodic-industrial-robot-status-interface=0.1.2-1bionic.20201207.162330 \
+    ros-melodic-industrial-robot-status-interface=0.1.2-1bionic.20210414.215607 \
     ros-melodic-soem=1.4.1003-1bionic.20201015.050528 \
-    ros-melodic-graph-msgs=0.1.0-1bionic.20210112.180039 \
-    ros-melodic-spacenav-node=1.14.0-1bionic.20210112.175653 \
-    ros-melodic-joy-teleop=0.3.1-1bionic.20210112.181220 \
+    ros-melodic-graph-msgs=0.1.0-1bionic.20210414.211445 \
+    ros-melodic-spacenav-node=1.14.0-1bionic.20210414.222500 \
+    ros-melodic-joy-teleop=0.3.1-1bionic.20210414.225130 \
     ros-melodic-code-coverage=0.4.3-1bionic.20200803.132715 \
-    ros-melodic-panda-moveit-config=0.7.4-1bionic.20210206.042952 \
+    ros-melodic-panda-moveit-config=0.7.4-1bionic.20210421.065704 \
     socat=1.7.3.2-2ubuntu2 \
     libqt5x11extras5-dev=5.9.5-0ubuntu1 \
 	&& rm -rf /var/lib/apt/lists/*	
@@ -138,7 +138,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install JSK tools for visualization in Rviz
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-melodic-jsk-visualization=2.1.7-2bionic.20210223.083431 \
+    ros-melodic-jsk-visualization=2.1.7-2bionic.20210415.012321 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -157,18 +157,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install URe controller dependencies.
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-melodic-ros-control=0.18.3-1bionic.20210112.195128 \
-    ros-melodic-robot-controllers=0.6.0-0bionic.20210112.202244 \
-    ros-melodic-velocity-controllers=0.17.2-1bionic.20210120.180421 \
-    ros-melodic-joint-trajectory-controller=0.17.2-1bionic.20210120.180033 \
-    ros-melodic-force-torque-sensor-controller=0.17.2-1bionic.20210120.180019 \
+    ros-melodic-ros-control=0.18.3-1bionic.20210414.225704 \
+    ros-melodic-robot-controllers=0.6.0-0bionic.20210414.233210 \
+    ros-melodic-velocity-controllers=0.17.2-1bionic.20210414.234157 \
+    ros-melodic-joint-trajectory-controller=0.17.2-1bionic.20210414.233758 \
+    ros-melodic-force-torque-sensor-controller=0.17.2-1bionic.20210414.225558 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
 
 # Add industrial_core submodule
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-melodic-industrial-core=0.7.1-1bionic.20210112.203210 \
+    ros-melodic-industrial-core=0.7.1-1bionic.20210415.003611 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -177,9 +177,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # # ros-melodic-qt-build \
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-melodic-dynamixel-sdk=3.7.31-1bionic.20201017.083359 \
-    ros-melodic-dynamixel-workbench=2.2.0-0bionic.20210112.183140 \
-    ros-melodic-dynamixel-workbench-msgs=2.0.1-0bionic.20201017.043046 \
+    ros-melodic-dynamixel-sdk=3.7.51-4bionic.20210421.142136 \
+    ros-melodic-dynamixel-workbench=2.2.0-0bionic.20210421.143057 \
+    ros-melodic-dynamixel-workbench-msgs=2.0.1-0bionic.20210414.212111 \
 	&& rm -rf /var/lib/apt/lists/*
 
 RUN pip install pyserial==3.4
@@ -278,10 +278,10 @@ RUN echo 'deb http://realsense-hw-public.s3.amazonaws.com/Debian/apt-repo bionic
 RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key C8B3A55A6F3EFCDE
 RUN apt-get update && apt-get install -y --no-install-recommends \
     librealsense2-dkms=1.3.16-0ubuntu1 \
-    librealsense2-utils=2.42.0-0~realsense0.4059 \
-    librealsense2-dev=2.42.0-0~realsense0.4059 \
-    librealsense2-udev-rules=2.42.0-0~realsense0.4059 \
-    librealsense2-dbg=2.42.0-0~realsense0.4059 \    
+    librealsense2-utils=2.45.0-0~realsense0.4551 \
+    librealsense2-dev=2.45.0-0~realsense0.4551 \
+    librealsense2-udev-rules=2.45.0-0~realsense0.4551 \
+    librealsense2-dbg=2.45.0-0~realsense0.4551 \    
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -313,7 +313,7 @@ RUN pip install gym
 # Install eigenpy 
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-	ros-melodic-eigenpy=2.5.0-1bionic.20201017.230604 \
+	ros-melodic-eigenpy=2.6.3-1bionic.20210421.060225 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -356,8 +356,9 @@ RUN pip2 install pyquaternion==0.9.9
 # Utilities
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	htop=2.1.0-3 \
-    ros-melodic-rqt-multiplot=0.0.10-0bionic.20210112.183107 \
-    ros-melodic-trac-ik-python=1.5.1-1bionic.20210112.195927 \
+    ros-melodic-rqt-multiplot=0.0.10-0bionic.20210414.220804 \
+    ros-melodic-trac-ik-python=1.5.1-1bionic.20210414.235218 \
+    ros-melodic-trac-ik-kinematics-plugin=1.5.1-1bionic.20210415.001535 \
     python-rosinstall=0.7.8-1 \
 	&& rm -rf /var/lib/apt/lists/*
 
@@ -372,40 +373,39 @@ RUN echo 'export PATH=/usr/lib/ccache:$PATH' >> $HOME/.bashrc
 ################################################################################
 
 # Setup the Bash shell environment (part 1)
-
 # Define the working directory.
-WORKDIR /root/
+WORKDIR /root/o2ac-ur/
 
 ################################################################################
 
 # Copy the helper script
-COPY ./docker/scripts/install-phoxi-control.sh /root/scripts/install-phoxi-control.sh
-RUN chmod -R +x /root/scripts/install-phoxi-control.sh
+COPY ./docker/o2ac-dev/scripts/install-phoxi-control.sh /root/o2ac-ur/docker/o2ac-dev/scripts/install-phoxi-control.sh
+RUN chmod -R +x /root/o2ac-ur/docker/o2ac-dev/scripts/install-phoxi-control.sh
 
 # Install PhoXiControl (for the AIST setup)
-RUN /root/scripts/install-phoxi-control.sh
+RUN /root/o2ac-ur/docker/o2ac-dev/scripts/install-phoxi-control.sh
 
 # Copy the helper script
-COPY ./docker/scripts/install-photoneo-localization.* /root/scripts/
-RUN chmod -R +x /root/scripts/install-photoneo-localization.sh
+COPY ./docker/o2ac-dev/scripts/install-photoneo-localization.* /root/o2ac-ur/docker/o2ac-dev/scripts/
+RUN chmod -R +x /root/o2ac-ur/docker/o2ac-dev/scripts/install-photoneo-localization.sh
 
 # Install PhotoneoLocalizationSDK
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	libssh2-1 \
 	expect
-RUN /root/scripts/install-photoneo-localization.sh
+RUN /root/o2ac-ur/docker/o2ac-dev/scripts/install-photoneo-localization.sh
 
 ################################################################################
 
 # Setup the Bash shell environment (part 2)
 
 # Copy the helper scripts to the working directory.
-COPY ./docker/scripts/. /root/scripts/
-RUN chmod -R +x /root/scripts/*
+COPY ./docker/o2ac-dev/scripts/. /root/o2ac-ur/docker/o2ac-dev/scripts/
+RUN chmod -R +x /root/o2ac-ur/docker/o2ac-dev/scripts/*
 
 # Setup the Bash shell environment with '/root/.bashrc'.
-RUN echo "source /root/scripts/initialize-bash-shell.sh" >> /root/.bashrc
-RUN echo "\nsource /root/catkin_ws/devel/setup.bash\n" >> /root/.bashrc
+RUN echo "source /root/o2ac-ur/docker/o2ac-dev/scripts/initialize-bash-shell.sh" >> /root/.bashrc
+RUN echo "\nsource /root/o2ac-ur/catkin_ws/devel/setup.bash\n" >> /root/.bashrc
 
 # Force color prompt in terminal.
 RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/' /root/.bashrc

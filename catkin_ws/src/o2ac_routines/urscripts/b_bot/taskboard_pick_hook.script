@@ -1,15 +1,9 @@
 def taskboard_pick_hook():
-  set_gravity([0.0, 0.0, 9.82])
-  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
-  set_payload(0.0)
-  step_count_d2b488f8_3d84_40fb_b568_f385b1d4cea0 = 0
-  thread Step_Counter_Thread_45b03539_0a8a_44a7_8b6a_7229ef515a00():
-    while (True):
-      step_count_d2b488f8_3d84_40fb_b568_f385b1d4cea0 = step_count_d2b488f8_3d84_40fb_b568_f385b1d4cea0 + 1
-      sync()
-    end
-  end
-  run Step_Counter_Thread_45b03539_0a8a_44a7_8b6a_7229ef515a00()
+  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
+  set_tool_output_mode(0)
+  set_tool_digital_output_mode(0, 1)
+  set_tool_digital_output_mode(1, 1)
+  set_tool_voltage(24)
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -17,14 +11,20 @@ def taskboard_pick_hook():
   set_analog_outputdomain(0, 0)
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
-  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
-  set_tool_output_mode(0)
-  set_tool_digital_output_mode(0, 1)
-  set_tool_digital_output_mode(1, 1)
-  set_tool_voltage(24)
+  set_gravity([0.0, 0.0, 9.82])
+  set_target_payload(1.200000, [0.001000, -0.018000, 0.049000], [0.002086, 0.002086, 0.002086, 0.000000, 0.000000, 0.000000])
+  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
   set_safety_mode_transition_hardness(1)
+  step_count_40802b28_741c_45f6_9beb_2ec131199dbb = 0.0
+  thread Step_Counter_Thread_d0f9d8ec_7f09_4b67_8e12_2f0e1d693a76():
+    while (True):
+      step_count_40802b28_741c_45f6_9beb_2ec131199dbb = step_count_40802b28_741c_45f6_9beb_2ec131199dbb + 1.0
+      sync()
+    end
+  end
+  run Step_Counter_Thread_d0f9d8ec_7f09_4b67_8e12_2f0e1d693a76()
   # begin: URCap Installation Node
-  #   Source: External Control, 1.0.2, FZI Research Center for Information Technology
+  #   Source: External Control, 1.0.5, FZI Research Center for Information Technology
   #   Type: External Control
   # end: URCap Installation Node
   # begin: URCap Installation Node
@@ -2343,14 +2343,16 @@ def taskboard_pick_hook():
   # end: URCap Installation Node
   global home_p=p[.130649315071, -.180735318564, .515944936221, -.011904141620, -3.140282836653, -.031779029209]
   global home_q=[1.5699191093444824, -2.0999165974059046, 1.3999560515033167, -0.8500288289836426, -1.5699761549579065, 5.9604644775390625E-5]
-  global above_tool_p=p[.459162036872, -.210304370404, .204200915087, -1.754506815844, -1.747114024040, .771560489544]
-  global above_tool_q=[2.5345319990163375, -1.1982101810088324, 1.7961559816585861, -1.4668132023983578, -2.008949988225595, 2.700438363097232]
-  global grasp_tool_p=p[.459162036639, -.210304370242, .112836599093, -1.754506817181, -1.747114025244, .771560472407]
-  global grasp_tool_q=[2.534111151194665, -1.0533944301032632, 1.86913281375221, -1.6841500572130013, -2.0085495265320903, 2.7015075415605447]
-  global before_tool_p=p[.486310883736, -.210304369973, .144710659707, -1.736371794021, -1.760587312488, .763939045902]
-  global before_tool_q=[2.5609651290146314, -1.061283124060715, 1.768006856435905, -1.5659106257780167, -1.9912396076520968, 2.705260340591211]
-  global high_approach_p=p[.430517655658, -.210304370258, .259483933354, -2.096006366621, -2.071692274527, .308618359933]
-  global high_approach_q=[2.4485092379921376, -1.4413039536248444, 2.0016610017076415, -1.930081263128379, -1.7537079602876116, 2.478367537831948]
+  global above_tool_p=p[.459162036872, -.210304370404, .204200915087, 1.746289903912, -1.730646652929, -.729047870182]
+  global above_tool_q=[2.534531999016338, -1.1982101810088324, 1.7961559816585861, -1.4668132023983578, -2.008949988225595, -0.45437501586286544]
+  global grasp_tool_p=p[.459162036954, -.210304370461, .112251855397, 1.746289902786, -1.730646652070, -.729047869434]
+  global grasp_tool_q=[2.534108235275429, -1.052344728769686, 1.8694364197099782, -1.6855003797547994, -2.008547655205186, -0.45329883263686455]
+  global before_tool_p=p[.486310883736, -.210304369973, .144710659707, 1.746289819535, -1.730646622196, -.729047937691]
+  global before_tool_q=[2.5609651290146314, -1.061283124060715, 1.7680068564359046, -1.5659106257780167, -1.9912396076520968, -0.43148126649865937]
+  global high_approach_p=p[.430517655658, -.210304370258, .259483933354, 2.070546354937, -2.063337776139, -.265204512751]
+  global high_approach_q=[2.4485092379921376, -1.4413039536248444, 2.001661001707641, -1.930081263128379, -1.7537079602876116, -0.678380411487205]
+  global wp_on_right_p=p[.247135810805, -.077743034127, .492156207270, -1.089260191054, 2.941141854347, .043723079322]
+  global wp_on_right_q=[2.2992806434631348, -2.218607564965719, 1.9803665320025843, -1.3077529531768342, -1.553016487752096, 0.01404145359992981]
   global wait_w_tool_p=p[.096883885745, -.254303635135, .525338758627, .242383833914, 3.104342837672, -.045618417679]
   global wait_w_tool_q=[1.419498844840919, -2.178175391321119, 1.892632293985887, -1.311747949011428, -1.5379272788334548, -1.2434497875801753E-14]
   $ 1 "Robot Program"
@@ -2367,23 +2369,26 @@ def taskboard_pick_hook():
   rq_set_pos_spd_for(0, 255, 255, "1")
   rq_wait_pos_spe_for_request(0, 255, 255, "1")
   rq_go_to("1")
-  rq_wait("1")
   # end: URCap Program Node
   $ 3 "MoveJ"
-  $ 4 "home" "breakAfter"
-  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movej(get_inverse_kin(home_p, qnear=home_q), a=2.6179938779914944, v=2.0943951023931953)
-  $ 5 "above_tool" "breakAfter"
-  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movej(get_inverse_kin(above_tool_p, qnear=above_tool_q), a=2.6179938779914944, v=2.0943951023931953)
+  $ 4 "currentpose≔get_actual_joint_positions()"
+  global currentpose= get_actual_joint_positions ()
+  $ 5 "currentpose" "breakAfter"
+  movej(currentpose, a=1.3962634015954636, v=1.0471975511965976)
   $ 6 "MoveL"
-  $ 7 "grasp_tool" "breakAfter"
+  $ 7 "home" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movel(grasp_tool_p, a=1.2, v=0.25)
+  movel(home_p, a=0.8, v=0.8)
+  $ 8 "above_tool" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(above_tool_p, a=0.8, v=0.8)
+  $ 9 "grasp_tool" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(grasp_tool_p, a=0.8, v=0.8)
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
-  $ 8 "Gripper Close (1)"
+  $ 10 "Gripper Close (1)"
   if not(gripper_connected[0]):
     popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
   end
@@ -2395,14 +2400,17 @@ def taskboard_pick_hook():
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 9 "MoveJ"
-  $ 10 "before_tool" "breakAfter"
+  $ 11 "MoveL"
+  $ 12 "before_tool" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movej(get_inverse_kin(before_tool_p, qnear=before_tool_q), a=2.6179938779914944, v=2.0943951023931953)
-  $ 11 "high_approach" "breakAfter"
+  movel(before_tool_p, a=0.8, v=0.8)
+  $ 13 "high_approach" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movej(get_inverse_kin(high_approach_p, qnear=high_approach_q), a=2.6179938779914944, v=2.0943951023931953, r=0.05)
-  $ 12 "wait_w_tool" "breakAfter"
+  movel(high_approach_p, a=0.8, v=0.8, r=0.05)
+  $ 14 "wp_on_right" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movej(get_inverse_kin(wait_w_tool_p, qnear=wait_w_tool_q), a=2.6179938779914944, v=2.0943951023931953)
+  movel(wp_on_right_p, a=0.8, v=0.8, r=0.05)
+  $ 15 "wait_w_tool" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(wait_w_tool_p, a=0.8, v=0.8)
 end

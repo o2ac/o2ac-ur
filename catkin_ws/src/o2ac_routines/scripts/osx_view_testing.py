@@ -110,6 +110,7 @@ class TestClass(O2ACCommon):
 
 if __name__ == '__main__':
   try:
+    rospy.init_node('o2ac_routines', anonymous=False)
     c = TestClass()
 
     while not rospy.is_shutdown():
@@ -121,10 +122,8 @@ if __name__ == '__main__':
       rospy.loginfo("31, 32, 33, 34: Close views")
       rospy.loginfo("4: Do distant view and 4 close views")
       rospy.loginfo("5: Call tray detection and show result")
-      rospy.loginfo("61 (62): Look at taskboard bearing with inside cam (with outside camera, for CAD)")
-      rospy.loginfo("7: Do bearing measuring/turning loop")
       rospy.loginfo("8: Look for shaft")
-      rospy.loginfo("9: Find bearing from center view")
+      rospy.loginfo("CAD matching: 61: bearing, 62: base plate, 63: motor plate, 64: bearing plate")
       rospy.loginfo("x: Exit ")
       rospy.loginfo(" ")
       r = raw_input()
@@ -132,9 +131,9 @@ if __name__ == '__main__':
         c.go_to_named_pose("home", "a_bot")
         c.go_to_named_pose("home", "b_bot")
       elif r == '11':
-        c.activate_camera("b_bot_inside_camera")
+        c.camera.activate("b_bot_inside_camera")
       elif r == '12':
-        c.activate_camera("b_bot_outside_camera")
+        c.camera.activate("b_bot_outside_camera")
       elif r == '2':
         ps = geometry_msgs.msg.PoseStamped()
         ps.header.frame_id = "tray_center"
@@ -167,7 +166,7 @@ if __name__ == '__main__':
         for ps in c.close_tray_views_rot_right:
           c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
       elif r == '5':
-        c.activate_camera("b_bot_outside_camera")
+        c.camera.activate("b_bot_outside_camera")
         rospy.sleep(1)
         res = c.get_3d_poses_from_ssd()
         obj_id = 7 #bearing
@@ -194,47 +193,23 @@ if __name__ == '__main__':
         p.pose.position.z = 0.0
         c.simple_pick("b_bot", p, gripper_force=100.0, grasp_width=.05, axis="z")
       elif r == '61':
-        ps = geometry_msgs.msg.PoseStamped()
-        ps.header.frame_id = "taskboard_bearing_target_link"
-        ps.pose.orientation = geometry_msgs.msg.Quaternion(*(0.5, 0.5, 0.5, 0.5))
-        ps.pose.position = geometry_msgs.msg.Point(-0.155, -0.005, -0.0)
-        c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.1, acceleration=.04)
+        if not c.assembly_database.db_name == "wrs_assembly_1":
+          c.assembly_database.load_db("wrs_assembly_1")
+        c.look_for_item_in_tray("bearing", "b_bot")
       elif r == '62':
-        ps = geometry_msgs.msg.PoseStamped()
-        ps.header.frame_id = "taskboard_bearing_target_link"
-        ps.pose.orientation = geometry_msgs.msg.Quaternion(*(0.62871, 0.545, 0.36517, 0.41756))
-        ps.pose.position = geometry_msgs.msg.Point(-0.14509, -0.021323, 0.063084)
-        c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_optical_frame", speed=.1, acceleration=.04)
+        if not c.assembly_database.db_name == "wrs_assembly_1":
+          c.assembly_database.load_db("wrs_assembly_1")
+        c.look_for_item_in_tray("base", "b_bot")
+      elif r == '63':
+        if not c.assembly_database.db_name == "wrs_assembly_1":
+          c.assembly_database.load_db("wrs_assembly_1")
+        c.look_for_item_in_tray("panel_motor", "b_bot")
+      elif r == '64':
+        if not c.assembly_database.db_name == "wrs_assembly_1":
+          c.assembly_database.load_db("wrs_assembly_1")
+        c.look_for_item_in_tray("panel_bearing", "b_bot")
       elif r == '7':
-        # Look at tb bearing
-        ps = geometry_msgs.msg.PoseStamped()
-        ps.header.frame_id = "taskboard_bearing_target_link"
-        ps.pose.orientation = geometry_msgs.msg.Quaternion(*(0.5, 0.5, 0.5, 0.5))
-        ps.pose.position = geometry_msgs.msg.Point(-0.155, -0.005, -0.0)
-        c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.1, acceleration=.04)
-        c.open_gripper("b_bot")
-        rospy.sleep(1)
-
-        # Get angle and turn
-        angle = c.get_bearing_angle()
-        if angle:
-          print("Received angle: ", degrees(angle))
-          b_bot_at_tb_bearing = [1.56031179, -1.25635559, 1.8379710, -2.2435614, -2.6155634, -1.55478078]
-          c.open_gripper("b_bot")
-          c.move_joints("b_bot", b_bot_at_tb_bearing)
-          if abs(degrees(angle)) > 5:
-            if degrees(angle) < 5:
-              success = c.load_program(robot="b_bot", program_name="wrs2020/bearing_turn_left.urp", recursion_depth=3)
-            elif degrees(angle) > 5:
-              success = c.load_program(robot="b_bot", program_name="wrs2020/bearing_turn_right.urp", recursion_depth=3)  
-            if success:
-              c.execute_loaded_program(robot="b_bot")
-              print("executing bearing left turn")
-            wait_for_UR_program("/b_bot", rospy.Duration.from_sec(15))
-            c.activate_ros_control_on_ur("b_bot")
-          else:
-            print("angle < 5 deg, not executing a motion")
-      
+        c.b_bot.linear_push(force=10, direction="+Z", relative_to_ee=False, timeout=15.0)
       elif r == "8":
         goal = c.look_and_get_grasp_point(8)  # shaft
         if not goal:
@@ -242,7 +217,7 @@ if __name__ == '__main__':
         else:
           goal.pose.position.z = 0.001
           # goal.pose.position.x -= 0.01 # MAGIC NUMBER
-          c.activate_camera("b_bot_inside_camera")
+          c.camera.activate("b_bot_inside_camera")
           c.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z")
       elif r == "81":
         goal = c.look_and_get_grasp_point(5)  # motor pulley
@@ -254,12 +229,6 @@ if __name__ == '__main__':
           c.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z")
       elif r == "88":
         c.check_if_shaft_in_v_groove()
-      elif r == '9':
-        c.look_for_item_in_tray("07_SBARB6200ZZ_30", "b_bot")
-      elif r == '91':
-        c.camera_multiplexer.activate_camera("b_bot_inside_camera")
-      elif r == '92':
-        c.camera_multiplexer.activate_camera("b_bot_outside_camera")
       elif r == 'x':
         break
       else:

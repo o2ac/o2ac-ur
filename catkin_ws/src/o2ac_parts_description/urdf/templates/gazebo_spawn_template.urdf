@@ -11,7 +11,7 @@
     <visual>
       <origin rpy="1.5707 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="/root/catkin_ws/src/o2ac_parts_description/meshes/PARTNAME.dae" scale="0.001 0.001 0.001"/>
+        <mesh filename="/root/o2ac-ur/catkin_ws/src/o2ac_parts_description/meshes/PARTNAME.dae" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="white">
         <color rgba="1 1 1 1"/>
@@ -20,7 +20,7 @@
     <collision>
       <origin rpy="1.5707 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="/root/catkin_ws/src/o2ac_parts_description/meshes/PARTNAME.dae" scale="0.001 0.001 0.001"/>
+        <mesh filename="/root/o2ac-ur/catkin_ws/src/o2ac_parts_description/meshes/PARTNAME.dae" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>

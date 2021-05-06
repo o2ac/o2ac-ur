@@ -30,7 +30,7 @@ parts_list:
     cad: 06_MBT4-400.stl
     description: Polyurethane round belt (welded joint product) P.D. 4mm L=400mm
   - id: 7
-    name: bearing_housing
+    name: bearing
     type: 07_SBARB6200ZZ-30
     cad: 07_SBARB6200ZZ_30.stl
     description: Bearings with Housings (Double Bearings)

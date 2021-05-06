@@ -14,8 +14,8 @@
         </geometry>
         <material>
           <script>
-	        <uri>file:///root/catkin_ws/src/o2ac_gazebo/models/marker26_8cm_massless/material/scripts</uri>
-	        <uri>file:///root/catkin_ws/src/o2ac_gazebo/models/marker26_8cm_massless/material/textures</uri>
+	        <uri>file:///root/o2ac-ur/catkin_ws/src/o2ac_gazebo/models/marker26_8cm_massless/material/scripts</uri>
+	        <uri>file:///root/o2ac-ur/catkin_ws/src/o2ac_gazebo/models/marker26_8cm_massless/material/textures</uri>
             <name>Aruco/marker26_8cm</name>
           </script>
         </material>

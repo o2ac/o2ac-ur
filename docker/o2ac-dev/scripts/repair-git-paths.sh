@@ -7,7 +7,7 @@
 # https://marc.info/?l=git&m=145932862024551&w=2
 
 # Replaces full paths in '.git' files with the corresponding relative paths.
-cd /root/
+cd /root/o2ac-ur/
 find . -type f -iname '.git' | \
   while read f ; do
     if grep -qE '^gitdir: /' $f ; then
@@ -16,4 +16,4 @@ find . -type f -iname '.git' | \
       sed -i -e 's@ \([^ ]*\)/\.git@ '${RELATIVE}'/.git@' $f;
     fi;
   done
-cd /root/
+cd /root/o2ac-ur/

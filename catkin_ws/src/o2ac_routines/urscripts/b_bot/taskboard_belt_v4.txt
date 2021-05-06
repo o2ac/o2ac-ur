@@ -1,17 +1,11 @@
  Program
    Robot Program
-     Gripper Open (1)
-     MoveL
-       home
-       above_tool
-       grasp_tool
-       Gripper Close (1)
-     MoveL
-       before_tool
-       high_approach
-       wp_on_right
-       wait_w_tool
-       Popup: start sequence with a_bot (simultaneous start)
+     'Call taskboard_pick_hook'
+     MoveJ
+       currentpose≔get_actual_joint_positions()
+       currentpose
+       wait_w_tool_1
+     Popup: start sequence with a_bot (simultaneous start)
      MoveJ
        Waypoint_6
        Waypoint_7
@@ -42,6 +36,26 @@
        Waypoint_28
      MoveL
        Waypoint_22
+     Call taskboard_place_hook
+   taskboard_pick_hook
+     Gripper Open (1)
+     MoveJ
+       currentpose≔get_actual_joint_positions()
+       currentpose
+     MoveL
+       home_1
+       above_tool_1
+       grasp_tool_1
+       Gripper Close (1)
+     MoveL
+       before_tool_1
+       high_approach_1
+       wp_on_right_1
+       wait_w_tool_1
+   taskboard_place_hook
+     MoveJ
+       currentpose≔get_actual_joint_positions()
+       currentpose
      MoveJ
        wait_w_tool
        high_approach

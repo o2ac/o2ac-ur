@@ -48,7 +48,7 @@ from math import pi
 import geometry_msgs.msg
 
 from o2ac_assembly_database.parts_reader import PartsReader
-from o2ac_routines import conversions
+from ur_control import conversions
 
 class AssemblyReader(PartsReader):
     '''
@@ -60,7 +60,7 @@ class AssemblyReader(PartsReader):
     def __init__(self, assembly_name=""):
         super(AssemblyReader, self).__init__(assembly_name)
         self._broadcaster = tf2_ros.StaticTransformBroadcaster()
-        if self.db_name: # = If a database is loaded
+        if self.db_name:  # = If a database is loaded the attribute is set in the super method
           self.change_assembly(assembly_name)
 
     def change_assembly(self, assembly_name):

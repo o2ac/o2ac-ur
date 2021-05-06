@@ -1,9 +1,9 @@
 [submodule "gitlab-wiki"]
 	path = gitlab-wiki
-	url = https://gitlab.com/o2ac/o2ac-ur.wiki.git
+	url = http://gitlab+deploy-token-440734:89UAML7kad5fkHWHoh1q@gitlab.com/o2ac/o2ac-ur.wiki.git
 [submodule "underlay_ws/src/moveit"]
 	path = underlay_ws/src/moveit
-	url = https://gitlab.com/o2ac/moveit.git
+	url = http://gitlab+deploy-token-440693:vMpkB_8thDeUCDa4oKNr@gitlab.com/o2ac/moveit.git
 [submodule "underlay_ws/src/moveit_msgs"]
 	path = underlay_ws/src/moveit_msgs
 	url = https://github.com/felixvd/moveit_msgs
@@ -12,16 +12,16 @@
 	url = https://github.com/PickNikRobotics/rviz_visual_tools.git
 [submodule "underlay_ws/src/moveit_task_constructor"]
 	path = underlay_ws/src/moveit_task_constructor
-	url = https://gitlab.com/o2ac/moveit-task-constructor.git
+	url = http://gitlab+deploy-token-440692:CsSxsSXceaZ3y9YZzmtf@gitlab.com/o2ac/moveit-task-constructor.git
 [submodule "underlay_ws/src/third_party/realsense-ros"]
 	path = underlay_ws/src/third_party/realsense-ros
-	url = https://gitlab.com/o2ac/third-party/realsense-ros
+	url = http://gitlab+deploy-token-440688:eYTsSmM4yjjtN5eXCx2C@gitlab.com/o2ac/third-party/realsense-ros
 [submodule "underlay_ws/src/third_party/ddynamic_reconfigure"]
 	path = underlay_ws/src/third_party/ddynamic_reconfigure
-	url = https://gitlab.com/o2ac/third-party/ddynamic_reconfigure
+	url = http://gitlab+deploy-token-440688:eYTsSmM4yjjtN5eXCx2C@gitlab.com/o2ac/third-party/ddynamic_reconfigure
 [submodule "underlay_ws/src/third_party/robotiq-cri"]
 	path = underlay_ws/src/third_party/robotiq-cri
-	url = https://gitlab.com/o2ac/third-party/robotiq-cri
+	url = http://gitlab+deploy-token-440688:eYTsSmM4yjjtN5eXCx2C@gitlab.com/o2ac/third-party/robotiq-cri
 [submodule "underlay_ws/src/third_party/aruco_ros"]
 	path = underlay_ws/src/third_party/aruco_ros
 	url = https://github.com/pal-robotics/aruco_ros
@@ -30,13 +30,13 @@
 	url = https://github.com/UniversalRobots/Universal_Robots_ROS_Driver.git
 [submodule "underlay_ws/src/third_party/universal_robot"]
 	path = underlay_ws/src/third_party/universal_robot
-	url = https://gitlab.com/o2ac/third-party/universal_robot
+	url = http://gitlab+deploy-token-440688:eYTsSmM4yjjtN5eXCx2C@gitlab.com/o2ac/third-party/universal_robot
 [submodule "underlay_ws/src/third_party/robotiq"]
 	path = underlay_ws/src/third_party/robotiq
 	url = https://github.com/ros-industrial/robotiq.git
 [submodule "underlay_ws/src/downward"]
 	path = underlay_ws/src/downward
-	url = https://gitlab.com/sinicx/robotics/on-going/downward.git
+	url = http://gitlab+deploy-token-440735:1DPsfhJwB9i_Emh-9KdN@gitlab.com/sinicx/robotics/on-going/downward.git
 [submodule "underlay_ws/src/ur_python_utilities"]
 	path = underlay_ws/src/ur_python_utilities
-	url = https://gitlab.com/o2ac/third-party/ur_python_utilities.git
+	url = http://gitlab+deploy-token-440688:eYTsSmM4yjjtN5eXCx2C@gitlab.com/o2ac/third-party/ur_python_utilities.git

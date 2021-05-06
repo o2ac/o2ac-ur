@@ -1,0 +1,11 @@
+robot_name: b_bot
+waypoints:
+- duration: 3.0
+  pose: [1.6251, -1.49126, 1.71225, -1.84472, -1.88457, -1.61516]
+  type: joint-space-goal-cartesian-lin-motion
+- duration: 1.0
+  pose: [1.62518, -1.2494, 1.79624, -2.09684, -2.61786, -1.42602]
+  type: joint-space-goal-cartesian-lin-motion
+- duration: 1.0
+  pose: [1.5791, -1.257, 1.8261, -2.2056, -2.6119, -1.5235]
+  type: joint-space-goal-cartesian-lin-motion
