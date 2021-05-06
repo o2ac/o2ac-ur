@@ -683,9 +683,11 @@ if __name__ == '__main__':
         assy.skill_server.pick_screw_from_feeder("b_bot", screw_size=4)
         assy.b_bot.go_to_named_pose("feeder_pick_ready")
       if i == "51":
-        grasp_pose = assy.assembly_database.get_grasp_pose("panel_bearing", "grasp_21")
+        grasp_pose = assy.assembly_database.get_grasp_pose("panel_bearing", "default_grasp")
         res = assy.do_plan_pick_place_action("panel_bearing", "a_bot", grasp_pose)
         print(res)
+      if i == "52":
+        assy.execute_MTC_solution(res.solution, speed=0.1)
       if i == '67':
         assy.spawn_objects_for_closed_loop_test()
       if i == '68':

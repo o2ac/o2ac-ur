@@ -114,15 +114,15 @@ class O2ACCommon(O2ACBase):
     The type of the input 'solution' is mtc_msgs.msg.Solution
     """
     
-    skip_stage_execution = False   # True while a subroutine like "equip/unequip"
+    skip_stage_execution = False   # True while a subroutine like "equip/unequip" is active
     success = False
     screw_counter = 0
     if speed > 1.0:
       speed = 1.0
     start_state = self.robots.get_current_state()
     currently_attached_collision_objects = start_state.attached_collision_objects
-    for solution in solution.sub_trajectory:
-      stage_name = solution.info.creator_name
+    for sub_trajectory in solution.sub_trajectory:
+      stage_name = sub_trajectory.info.creator_name
       if stage_name == 'Fasten screw (dummy)':
         rospy.sleep(2)
 
@@ -170,77 +170,85 @@ class O2ACCommon(O2ACBase):
         rospy.logwarn("===================== DEBUG2b")
 
       # Execute trajectories
-      if solution.scene_diff.robot_state.joint_state.name and not skip_stage_execution:  # If the robot state is changed (robot moved, object attached/detached)
+      if sub_trajectory.scene_diff.robot_state.joint_state.name and not skip_stage_execution:  # If the robot state is changed (robot moved, object attached/detached)
         # Update attached collision objects
-        if not currently_attached_collision_objects == solution.scene_diff.robot_state.attached_collision_objects:
+        if not currently_attached_collision_objects == sub_trajectory.scene_diff.robot_state.attached_collision_objects:
           # for co in currently_attached_collision_objects:
           #   print('IN MEMORY CO: ', co.object.id)
-          # for co in solution.scene_diff.robot_state.attached_collision_objects:
+          # for co in sub_trajectory.scene_diff.robot_state.attached_collision_objects:
           #   print('IN SOLUTION CO: ', co.object.id)
-          coll_objs_to_detach = [collision_object for collision_object in currently_attached_collision_objects if collision_object not in solution.scene_diff.robot_state.attached_collision_objects]
-          coll_objs_to_attach = [collision_object for collision_object in solution.scene_diff.robot_state.attached_collision_objects if collision_object not in currently_attached_collision_objects]
+          coll_objs_to_detach = [collision_object for collision_object in currently_attached_collision_objects if collision_object not in sub_trajectory.scene_diff.robot_state.attached_collision_objects]
+          coll_objs_to_attach = [collision_object for collision_object in sub_trajectory.scene_diff.robot_state.attached_collision_objects if collision_object not in currently_attached_collision_objects]
           for attached_object in coll_objs_to_detach:
             # print('Detaching object ' + attached_object.object.id + ' in stage ' + stage_name)
             attached_object_name = attached_object.object.id
-            attach_to = attached_object.link_name[:5]
-            self.groups[attach_to].detach_object(attached_object_name)
+            robot_name_ = attached_object.link_name[:5]
+            self.active_robots[robot_name_].detach_object(attached_object_name)
           for attached_object in coll_objs_to_attach:
             # print('Attaching object ' + attached_object.object.id + ' in stage ' + stage_name)
             attached_object_name = attached_object.object.id
-            attach_to = attached_object.link_name[:5]
-            self.groups[attach_to].attach_object(attached_object_name, attached_object.link_name, touch_links=  # MODIFY attach_tool in base.py to attach_object ++ ROBOT NAME???
-              [attach_to + "_gripper_tip_link", 
-              attach_to + "_robotiq_85_left_finger_tip_link", 
-              attach_to + "_robotiq_85_left_inner_knuckle_link", 
-              attach_to + "_robotiq_85_right_finger_tip_link", 
-              attach_to + "_robotiq_85_right_inner_knuckle_link"])
+            robot_name_ = attached_object.link_name[:5]
+            self.active_robots[robot_name_].robot_group.attach_object(attached_object_name, attached_object.link_name, touch_links=  # MODIFY attach_tool in base.py to attach_object ++ ROBOT NAME???
+              [robot_name_ + "_gripper_tip_link", 
+              robot_name_ + "_left_inner_finger_pad", 
+              robot_name_ + "_left_inner_finger", 
+              robot_name_ + "_left_inner_knuckle",
+              robot_name_ + "_right_inner_finger_pad", 
+              robot_name_ + "_right_inner_finger",
+              robot_name_ + "_right_inner_knuckle"])
             currently_attached_collision_objects.append(attached_object)
           currently_attached_collision_objects = [attached_collision_object for attached_collision_object in currently_attached_collision_objects if attached_collision_object not in coll_objs_to_detach]
 
         # Skip stage if joint_names is empty, because the stage performs no motions
-        if not solution.trajectory.joint_trajectory.joint_names: 
+        if not sub_trajectory.trajectory.joint_trajectory.joint_names: 
           continue
 
         # Execute stage
-        robot_name = solution.trajectory.joint_trajectory.joint_names[0][:5]
+        robot_name = sub_trajectory.trajectory.joint_trajectory.joint_names[0][:5]
         arm_group = self.active_robots[robot_name].robot_group
-        if len(solution.trajectory.joint_trajectory.joint_names) == 1:  # If only one joint is in the group, it is the gripper
+        if len(sub_trajectory.trajectory.joint_trajectory.joint_names) == 1:  # If only one joint is in the group, it is the gripper
           # Gripper motion
-          hand_group = self.groups[robot_name + '_robotiq_85']
-          hand_closed_joint_values = hand_group.get_named_target_values('close')
-          hand_open_joint_values = hand_group.get_named_target_values('open')
-          if stage_name == 'open hand':
-            robot.gripper.send_command('open')
-          elif stage_name == 'close hand':
-            robot.gripper.send_command('close')
-          elif 0.01 > abs(hand_open_joint_values[solution.trajectory.joint_trajectory.joint_names[0]] - solution.trajectory.joint_trajectory.points[-1].positions[0]):
-            rospy.logwarn("Actuating gripper (backup path)!")
-            robot.gripper.send_command('open')
-          elif 0.01 < abs(hand_open_joint_values[solution.trajectory.joint_trajectory.joint_names[0]] - solution.trajectory.joint_trajectory.points[-1].positions[0]):
-            rospy.logwarn("Actuating gripper (backup path)!")
-            robot.gripper.send_command('close', True)
+          hand_group = self.active_robots[robot_name].gripper_group
+          if self.use_real_robot:
+            hand_closed_joint_values = hand_group.get_named_target_values('close')
+            hand_open_joint_values = hand_group.get_named_target_values('open')
+            if stage_name == 'open hand':
+              robot.gripper.send_command('open')
+            elif stage_name == 'close hand':
+              robot.gripper.send_command('close')
+            elif 0.01 > abs(hand_open_joint_values[sub_trajectory.trajectory.joint_trajectory.joint_names[0]] - sub_trajectory.trajectory.joint_trajectory.points[-1].positions[0]):
+              rospy.logwarn("Actuating gripper (backup path)!")
+              robot.gripper.send_command('open')
+            elif 0.01 < abs(hand_open_joint_values[sub_trajectory.trajectory.joint_trajectory.joint_names[0]] - sub_trajectory.trajectory.joint_trajectory.points[-1].positions[0]):
+              rospy.logwarn("Actuating gripper (backup path)!")
+              robot.gripper.send_command('close', True)
+          else:  # Simulation
+            print("Going to run this trajectory")
+            print(sub_trajectory.trajectory)
+            plan = hand_group.retime_trajectory(self.robots.get_current_state(), sub_trajectory.trajectory, 1.0)
+            hand_group.execute(plan)
           
         else: # The robots move
           rospy.loginfo("========")
           rospy.logwarn("self.active_robots[robot_name].robot_group.get_current_joint_values():")
           print(self.active_robots[robot_name].robot_group.get_current_joint_values())
-          rospy.logwarn("solution.trajectory.joint_trajectory.points[0].positions:")
-          print(solution.trajectory.joint_trajectory.points[0].positions)
+          rospy.logwarn("sub_trajectory.trajectory.joint_trajectory.points[0].positions:")
+          print(sub_trajectory.trajectory.joint_trajectory.points[0].positions)
           # First check that the trajectory is safe to execute (= robot is at start of trajectory)
           if not all_close(self.active_robots[robot_name].robot_group.get_current_joint_values(), 
-                            solution.trajectory.joint_trajectory.points[0].positions,
+                            sub_trajectory.trajectory.joint_trajectory.points[0].positions,
                             0.01):
             rospy.logerr("Robot " + robot_name + " is not at the start of the next trajectory! Aborting.")
             rospy.logerr("Stage name: " + stage_name)
             rospy.logwarn("self.active_robots[robot_name].robot_group.get_current_joint_values():")
             print(self.active_robots[robot_name].robot_group.get_current_joint_values())
-            rospy.logwarn("solution.trajectory.joint_trajectory.points[0].positions:")
-            print(solution.trajectory.joint_trajectory.points[0].positions)
+            rospy.logwarn("sub_trajectory.trajectory.joint_trajectory.points[0].positions:")
+            print(sub_trajectory.trajectory.joint_trajectory.points[0].positions)
             return False
 
           # Prepare robot motion
-          self.activate_ros_control_on_ur(robot_name)
-          plan = arm_group.retime_trajectory(self.robots.get_current_state(), solution.trajectory, speed)
+          self.active_robots[robot_name].activate_ros_control_on_ur(robot_name)
+          plan = arm_group.retime_trajectory(self.robots.get_current_state(), sub_trajectory.trajectory, speed)
           arm_group.set_max_velocity_scaling_factor(speed)
 
           # Execute
