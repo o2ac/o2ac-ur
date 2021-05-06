@@ -88,6 +88,14 @@ subframes:
   - 0.0
   name: motor_screw_hole_6
 grasp_points:
+- grasp_name: default_grasp
+  pose_xyzrpy:
+  - 0.032
+  - 0.0025
+  - 0.01
+  - 0.0
+  - 1.5707963267948966
+  - 0.0
 - grasp_name: grasp_1
   pose_xyzrpy:
   - 0.032

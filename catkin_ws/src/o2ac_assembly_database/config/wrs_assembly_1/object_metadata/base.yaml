@@ -71,4 +71,12 @@ subframes:
   - 0.0
   - -pi/2
   name: screw_hole_panel2_2
-grasp_points: []
+grasp_points:
+- grasp_name: default_grasp
+  pose_xyzrpy:
+  - 0.1
+  - 0.008
+  - 0.02
+  - 0.0
+  - 0.0
+  - -1.570796
