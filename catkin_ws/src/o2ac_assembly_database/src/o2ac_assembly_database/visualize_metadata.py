@@ -425,12 +425,12 @@ if __name__ == '__main__':
     if object_name:
         mesh_name = next((part['cad'] for part in assembly_reader._parts_list if part['name'] == object_name))
         
-        co = next(collision_object for collision_object in assembly_reader.collision_objects if collision_object.id == object_name)
+        co = next(collision_object for collision_object in assembly_reader._collision_objects if collision_object.id == object_name)
 
         viz = MetadataVisualizer()
 
-        grasp_names = next(element['grasp_names'] for element in assembly_reader.grasps if element['part_name'] == co.id)
-        grasp_poses = next(element['grasp_poses'] for element in assembly_reader.grasps if element['part_name'] == co.id)
+        grasp_names = next(element['grasp_names'] for element in assembly_reader._grasps if element['part_name'] == co.id)
+        grasp_poses = next(element['grasp_poses'] for element in assembly_reader._grasps if element['part_name'] == co.id)
 
         frame_names = copy.copy(co.subframe_names)
         frame_poses = copy.copy(co.subframe_poses)
@@ -459,14 +459,14 @@ if __name__ == '__main__':
         offset = 0.4
         row_counter = 0
         object_pose = geometry_msgs.msg.Pose()
-        for co in assembly_reader.collision_objects:
+        for co in assembly_reader._collision_objects:
             row_counter += 1
             mesh_name = next((part['cad'] for part in assembly_reader._parts_list if part['name'] == co.id))
 
             viz = MetadataVisualizer()
 
-            grasp_names = next(element['grasp_names'] for element in assembly_reader.grasps if element['part_name'] == co.id)
-            grasp_poses = next(element['grasp_poses'] for element in assembly_reader.grasps if element['part_name'] == co.id)
+            grasp_names = next(element['grasp_names'] for element in assembly_reader._grasps if element['part_name'] == co.id)
+            grasp_poses = next(element['grasp_poses'] for element in assembly_reader._grasps if element['part_name'] == co.id)
 
             frame_names = copy.copy(co.subframe_names)
             frame_poses = copy.copy(co.subframe_poses)
