@@ -288,7 +288,7 @@ class URRobot():
         return self.robot_group.get_current_pose().pose
 
     def go_to_pose_goal(self, pose_goal_stamped, speed=0.5, acceleration=0.25,
-                        end_effector_link="", move_lin=True):
+                        end_effector_link="", move_lin=True, wait=True):
         if move_lin:
             return self.move_lin(pose_goal_stamped, speed, acceleration, end_effector_link)
         if not self.set_up_move_group(speed, acceleration):
@@ -307,7 +307,7 @@ class URRobot():
         group.set_planning_pipeline_id("ompl")
         group.set_planner_id("RRTConnect")
 
-        move_success = group.go(wait=True)
+        move_success = group.go(wait=wait)
         group.stop()
         # It is always good to clear your targets after planning with poses.
         # Note: there is no equivalent function for clear_joint_value_targets()
@@ -316,7 +316,7 @@ class URRobot():
         current_pose = group.get_current_pose().pose
         return helpers.all_close(pose_goal_stamped.pose, current_pose, 0.01), move_success
 
-    def move_lin(self, pose_goal_stamped, speed=1.0, acceleration=0.5, end_effector_link=""):
+    def move_lin(self, pose_goal_stamped, speed=1.0, acceleration=0.5, end_effector_link="", wait=True):
         if not self.set_up_move_group(speed, acceleration):
             return False
 
@@ -332,7 +332,7 @@ class URRobot():
         group.set_planning_pipeline_id("pilz_industrial_motion_planner")
         group.set_planner_id("LIN")
 
-        move_success = group.go(wait=True)  # Bool
+        move_success = group.go(wait=wait)  # Bool
         group.stop()
         group.clear_pose_targets()
         return move_success
@@ -365,18 +365,18 @@ class URRobot():
         new_pose2.pose.position.z += relative_translation[2]
         new_pose2.pose.orientation = helpers.rotateQuaternionByRPY(relative_rotation[0], relative_rotation[1],
                                                            relative_rotation[2], new_pose2.pose.orientation)
-        return self.move_lin(new_pose2, speed=speed, acceleration=acceleration)
+        return self.move_lin(new_pose2, speed=speed, acceleration=acceleration, wait=wait)
 
-    def move_joints(self, joint_pose_goal, speed=1.0, acceleration=0.5):
+    def move_joints(self, joint_pose_goal, speed=1.0, acceleration=0.5, wait=True):
         if not self.set_up_move_group(speed, acceleration):
             return False
         group = self.robot_group
         group.set_joint_value_target(joint_pose_goal)
         group.set_planning_pipeline_id("ompl")
         group.set_planner_id("RRTConnect")
-        return group.go(wait=True)
+        return group.go(wait=wait)
 
-    def go_to_named_pose(self, pose_name, speed=0.5, acceleration=0.5):
+    def go_to_named_pose(self, pose_name, speed=0.5, acceleration=0.5, wait=True):
         """
         pose_name should be a named pose in the moveit_config, such as "home", "back" etc.
         """
@@ -386,7 +386,7 @@ class URRobot():
         group.set_named_target(pose_name)
         group.set_planning_pipeline_id("ompl")
         group.set_planner_id("RRTConnect")
-        move_success = group.go(wait=True)
+        move_success = group.go(wait=wait)
         group.clear_pose_targets()
         return move_success
 
