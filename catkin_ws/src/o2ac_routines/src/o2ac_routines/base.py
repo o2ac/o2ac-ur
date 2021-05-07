@@ -42,35 +42,35 @@ import tf_conversions
 import tf 
 import actionlib
 
-from math import *
-from math import pi
-tau = 2.0*pi  # Part of math from Python 3.6
+# from math import *
+# from math import pi
+# tau = 2.0*pi  # Part of math from Python 3.6
 
 import yaml
 import pickle
 
 import moveit_commander
 import moveit_msgs.msg
-import moveit_msgs.srv
+# import moveit_msgs.srv
 import geometry_msgs.msg
-import std_msgs.msg
-import robotiq_msgs.msg
-import ur_dashboard_msgs.msg
-import ur_dashboard_msgs.srv
+# import std_msgs.msg
+# import robotiq_msgs.msg
+# import ur_dashboard_msgs.msg
+# import ur_dashboard_msgs.srv
 import std_srvs.srv
-import controller_manager_msgs.srv
+# import controller_manager_msgs.srv
 from shape_msgs.msg import SolidPrimitive
 from geometry_msgs.msg import Pose
 
 import o2ac_msgs.msg
-import o2ac_msgs.srv
+# import o2ac_msgs.srv
 import o2ac_task_planning_msgs.msg
 
 from std_msgs.msg import String, Bool
 
 from o2ac_assembly_database.assembly_reader import AssemblyReader
 
-import ur_msgs.msg
+# import ur_msgs.msg
 import ur_msgs.srv
 from o2ac_routines.helpers import *
 
@@ -262,24 +262,6 @@ class O2ACBase(object):
       self.screw_tools[tool["id"]] = tool_co
 
     # # TODO(felixvd): Add the set screw and nut tool objects from the C++ file
-
-  ############# ------ Robot motion functions (legacy API)
-
-  def go_to_pose_goal(self, group_name, pose_goal_stamped, speed = 0.5, acceleration = 0.25,
-                      end_effector_link = "", move_lin = True):
-    return self.active_robots[group_name].go_to_pose_goal(pose_goal_stamped, speed, acceleration, end_effector_link, move_lin)
-
-  def move_lin(self, group_name, pose_goal_stamped, speed = 1.0, acceleration = 0.5, end_effector_link = ""):
-    return self.active_robots[group_name].move_lin(pose_goal_stamped, speed, acceleration, end_effector_link)
-
-  def move_lin_rel(self, robot_name, relative_translation = [0,0,0], relative_rotation = [0,0,0], acceleration = 0.5, velocity = .03, use_robot_base_csys=False, wait = True, max_wait=30.0):
-    return self.active_robots[robot_name].move_lin_rel(relative_translation, relative_rotation, acceleration, velocity, use_robot_base_csys, wait, max_wait)
-
-  def move_joints(self, group_name, joint_pose_goal, speed = 1.0, acceleration = 0.5, force_ur_script=False, force_moveit=False):
-    return self.active_robots[group_name].move_joints(joint_pose_goal, speed, acceleration)
-
-  def go_to_named_pose(self, pose_name, robot_name, speed = 0.5, acceleration = 0.5, force_ur_script=False):
-    return self.active_robots[robot_name].go_to_named_pose(pose_name, speed, acceleration)
 
   ######
   def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=False):
@@ -645,11 +627,11 @@ class O2ACBase(object):
       tool_holder_used = "front"
     
     if tool_holder_used == "back":
-      if not self.go_to_named_pose("tool_pick_ready", robot_name):
+      if not self.active_robots[robot_name].go_to_named_pose("tool_pick_ready"):
         rospy.logerr("Could not plan to before_tool_pickup joint state. Abort!")
         return False
     elif tool_holder_used == "back":
-      if not self.go_to_named_pose("tool_pick_ready", robot_name):
+      if not self.active_robots[robot_name].go_to_named_pose("tool_pick_ready"):
         rospy.logerr("Could not plan to before_tool_pickup joint state. Abort!")
         return False
 
@@ -677,7 +659,7 @@ class O2ACBase(object):
       return False
 
     # Go to named pose, then approach
-    self.go_to_named_pose("tool_pick_ready", robot_name)
+    self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
 
     ps_approach.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, -pi/6, 0))
     ps_move_away = copy.deepcopy(ps_approach)
@@ -702,7 +684,7 @@ class O2ACBase(object):
       held_screw_tool_ = tool_name
 
     rospy.loginfo("Moving to screw tool approach pose LIN.")
-    self.go_to_pose_goal(robot_name, ps_approach, speed=lin_speed, acceleration=lin_speed/2, move_lin=True)
+    self.active_robots[robot_name].go_to_pose_goal(ps_approach, speed=lin_speed, acceleration=lin_speed/2, move_lin=True)
   
     # Plan & execute linear motion to the tool change position
     rospy.loginfo("Moving to pose in tool holder LIN.")
@@ -714,7 +696,7 @@ class O2ACBase(object):
     elif realign:
       lin_speed = 0.5
 
-    self.go_to_pose_goal(robot_name, ps_in_holder, speed=lin_speed, acceleration=lin_speed/2, move_lin=True)
+    self.active_robots[robot_name].go_to_pose_goal(ps_in_holder, speed=lin_speed, acceleration=lin_speed/2, move_lin=True)
   
     # Close gripper, attach the tool object to the gripper in the Planning Scene.
     # Its collision with the parent link is set to allowed in the original planning scene.
@@ -741,9 +723,9 @@ class O2ACBase(object):
       pull_back_slightly.pose.position.x -= 0.003
       ps_in_holder.pose.position.x += 0.001  # To remove the offset for placing applied earlier
       lin_speed = 0.02
-      self.go_to_pose_goal(robot_name, pull_back_slightly, speed=lin_speed, move_lin=True)
+      self.active_robots[robot_name].go_to_pose_goal(pull_back_slightly, speed=lin_speed, move_lin=True)
       robot.gripper.open()
-      self.go_to_pose_goal(robot_name, ps_in_holder, speed=lin_speed, move_lin=True)
+      self.active_robots[robot_name].go_to_pose_goal(ps_in_holder, speed=lin_speed, move_lin=True)
       robot.gripper.close()
     
     # Plan & execute linear motion away from the tool change position
@@ -751,12 +733,12 @@ class O2ACBase(object):
     
     lin_speed = 0.8
 
-    self.go_to_pose_goal(robot_name, ps_move_away, speed=lin_speed, acceleration=lin_speed/2, move_lin=True)
+    self.active_robots[robot_name].go_to_pose_goal(ps_move_away, speed=lin_speed, acceleration=lin_speed/2, move_lin=True)
 
     
     # Reactivate the collisions, with the updated entry about the tool
     # planning_scene_interface_.applyPlanningScene(planning_scene_)
-    self.go_to_named_pose("tool_pick_ready", robot_name)
+    self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
     
     return True
 
@@ -811,16 +793,16 @@ class O2ACBase(object):
     elif pose_type == 'joint-space-goal-cartesian-lin-motion':
       target_pose = arm.end_effector(pose)  # Forward kinematics
       p.pose = conversions.to_pose(target_pose)
-      self.move_lin(robot_name, p, speed=0.8)
+      self.active_robots[robot_name].move_lin(p, speed=0.8)
     elif pose_type == 'task-space':
       p.pose = conversions.to_pose(pose)
-      self.move_lin(robot_name, pose, speed=0.8)
+      self.active_robots[robot_name].move_lin(pose, speed=0.8)
     elif pose_type == 'relative-tcp':
       pass
-      # self.move_lin_rel(robot_name, relative_translation=pose[:3], relative_rotation=pose[3:])
+      # self.active_robots[robot_name].move_lin_rel(relative_translation=pose[:3], relative_rotation=pose[3:])
     elif pose_type == 'relative-base':
       pass
-      # self.move_lin_rel(robot_name, relative_translation=pose[:3], relative_rotation=pose[3:], use_robot_base_csys=True)
+      # self.active_robots[robot_name].move_lin_rel(relative_translation=pose[:3], relative_rotation=pose[3:], use_robot_base_csys=True)
     else:
       raise ValueError("Invalid pose_type: %s" % pose_type)
 

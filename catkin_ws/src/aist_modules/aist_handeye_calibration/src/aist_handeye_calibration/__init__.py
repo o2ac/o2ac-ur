@@ -49,7 +49,7 @@ class HandEyeCalibrationBaseRoutines(O2ACBase):
                                              *map(radians, xyzrpy[3:6]))))
         if verbose:
             print('  move to ' + self.format_pose(target_pose))
-        res = self.go_to_pose_goal(self._robot_name, target_pose,
+        res = self.active_robots[self._robot_name].go_to_pose_goal(target_pose,
                                    end_effector_link=self._effector_frame,
                                    speed=self._speed)
         if verbose:

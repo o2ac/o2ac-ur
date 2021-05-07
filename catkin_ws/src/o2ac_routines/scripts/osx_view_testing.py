@@ -63,10 +63,10 @@ class TestClass(O2ACCommon):
     rospy.sleep(.5)
 
   def views(self):
-    self.go_to_pose_goal("b_bot", self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
+    self.b_bot.go_to_pose_goal(self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
     rospy.sleep(2)
 
-    self.go_to_pose_goal("b_bot", self.tray_view_low, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
+    self.b_bot.go_to_pose_goal(self.tray_view_low, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
     rospy.sleep(2)
 
     self.close_view(1)
@@ -90,7 +90,7 @@ class TestClass(O2ACCommon):
       pose = self.tray_view_close_front_a
     elif number == 4:
       pose = self.tray_view_close_back_a
-    self.go_to_pose_goal("b_bot", pose, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
+    self.b_bot.go_to_pose_goal(pose, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
     return
   
   def call_belt_action_and_show(self):
@@ -140,14 +140,14 @@ if __name__ == '__main__':
         ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
         ps.pose.position.z = .37
         # c.go_to_named_pose("home", "a_bot")
-        c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.5, acceleration=.2)
+        c.b_bot.go_to_pose_goal(ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.5, acceleration=.2)
       elif r == '3':
         ps = geometry_msgs.msg.PoseStamped()
         ps.header.frame_id = "tray_center"
         ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
         ps.pose.position.z = .22
         # c.go_to_named_pose("home", "a_bot")
-        c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.04)
+        c.b_bot.go_to_pose_goal(ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.04)
       elif r == '31':
         c.close_view(1)
       elif r == '32':
@@ -158,13 +158,13 @@ if __name__ == '__main__':
         c.close_view(4)
       elif r == '331':
         for ps in c.close_tray_views:
-          c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
+          c.b_bot.go_to_pose_goal(ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
       elif r == '332':
         for ps in c.close_tray_views_rot_left:
-          c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
+          c.b_bot.go_to_pose_goal(ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
       elif r == '333':
         for ps in c.close_tray_views_rot_right:
-          c.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
+          c.b_bot.go_to_pose_goal(ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
       elif r == '5':
         c.camera.activate("b_bot_outside_camera")
         rospy.sleep(1)
