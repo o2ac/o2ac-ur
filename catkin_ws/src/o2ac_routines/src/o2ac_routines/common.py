@@ -36,9 +36,7 @@
 
 from o2ac_routines.base import *
 
-
-
-
+from ur_control.constants import TERMINATION_CRITERIA
 
 class O2ACCommon(O2ACBase):
   """
@@ -709,7 +707,9 @@ class O2ACCommon(O2ACBase):
     self.b_bot.go_to_pose_goal(camera_look_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.1, acceleration=.04)
     angle = self.get_motor_angle()
 
-  def align_bearing_holes(self, max_adjustments=10, task="assembly"):
+  ######## Bearing
+
+  def align_bearing_holes(self, max_adjustments=10, task=""):
     """
     Align the bearing holes.
     """
@@ -727,7 +727,7 @@ class O2ACCommon(O2ACBase):
     elif task == "assembly":
       grasp_pose.header.frame_id = "assembled_assy_part_07_inserted"
     else:
-      rospy.logerr("Incorrect argument, frame could be determined! Breaking out.")
+      rospy.logerr("Incorrect task argument, frame could be determined! Breaking out of align_bearing_holes.")
       return False
     grasp_pose.pose.orientation = geometry_msgs.msg.Quaternion(*(0, 0, 0, 1.0))
 
@@ -741,6 +741,7 @@ class O2ACCommon(O2ACBase):
       start_pose.pose.orientation = geometry_msgs.msg.Quaternion(
                         *tf_conversions.transformations.quaternion_from_euler(-angle/2.0, 0, 0))
       end_pose = copy.deepcopy(grasp_pose)
+      end_pose.pose.position.z += 0.0005  # Avoid pulling the bearing out little by little
       end_pose.pose.orientation = geometry_msgs.msg.Quaternion(
                         *tf_conversions.transformations.quaternion_from_euler(angle/2.0, 0, 0))
       self.b_bot.go_to_pose_goal(start_pose, speed=.1, acceleration=.04, end_effector_link = "b_bot_bearing_rotate_helper_link")
@@ -751,11 +752,12 @@ class O2ACCommon(O2ACBase):
     success = False
     while adjustment_motions < max_adjustments:
       # Look at tb bearing
-      self.b_bot.gripper.open()
+      if self.b_bot.gripper.opening_width < 0.06:
+        self.b_bot.gripper.open()
       
       self.b_bot.go_to_pose_goal(camera_look_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.1, acceleration=.04)
       self.activate_led("b_bot", on=False)
-      rospy.sleep(1)  # Without a wait, the camera image is blurry
+      rospy.sleep(1)  # If we don't wait, the camera image is blurry
 
       # Get angle and turn
       angle = self.get_bearing_angle()
@@ -788,6 +790,210 @@ class O2ACCommon(O2ACBase):
         rotate_bearing_by_angle(radians(5))
     rospy.logerr("Did not manage to align the bearing holes.")
     return False
+
+  def pick_up_and_insert_bearing(self, task=""):
+    if not task:
+      rospy.logerr("Specify the task!")
+      return False
+    self.go_to_named_pose("home","a_bot")
+    self.go_to_named_pose("home","b_bot")
+
+    goal = self.look_and_get_grasp_point("bearing")
+    if not goal:
+      rospy.logerr("Could not find bearing in tray. Skipping procedure.")
+      return False
+    self.vision.activate_camera("b_bot_inside_camera")
+    goal.pose.position.x -= 0.01 # MAGIC NUMBER
+    goal.pose.position.z = 0.0115
+    self.simple_pick("b_bot", goal, gripper_force=100.0, approach_height=0.05, axis="z")
+
+    if self.b_bot.gripper.opening_width < 0.01:
+      rospy.logerr("Fail to grasp bearing")
+      return
+    elif self.b_bot.gripper.opening_width < 0.045:
+      rospy.loginfo("bearing found to be upwards")
+      self.playback_sequence("bearing_orient")
+      # success_b = self.b_bot.load_program(program_name="wrs2020/bearing_orient_totb.urp")
+    else:
+      rospy.loginfo("bearing found to be upside down")
+      self.playback_sequence("bearing_orient_down")
+      # success_b = self.b_bot.load_program(program_name="wrs2020/bearing_orient_down_totb.urp")
+      #'down' means the small area contacts with tray.
+
+    if self.b_bot.gripper.opening_width < 0.01:
+      rospy.logerr("Bearing not found in gripper. Must have been lost. Aborting.")
+      #TODO(felixvd): Look at the regrasping/aligning area next to the tray
+      return False
+
+    if task == "taskboard" or task == "assembly":
+      self.playback_sequence("bearing_move_to_" + task)
+    else:
+      rospy.logerr("Task could not be read. Breaking out of pick_up_and_insert_bearing")
+      return False
+
+    # Insert bearing
+    if not self.insert_bearing(task=task):
+      rospy.logerr("insert_bearing returned False. Breaking out")
+      return False
+
+    self.bearing_holes_aligned = self.align_bearing_holes(task=task)
+    return self.bearing_holes_aligned
+
+  def insert_bearing(self, task=""):
+    if not task:
+      rospy.logerr("Specify the task!")
+      return False
+
+    if task == "taskboard":
+      bearing_target_link = "taskboard_bearing_target_link"
+    elif task == "assembly":
+      rospy.logerr("look this up")
+      bearing_target_link = "assembled_assy_part_07_inserted"
+
+    plane = "YZ"
+    radius = 0.002
+    radius_direction = "+Z"
+    revolutions = 5
+
+    steps = 100
+    duration = 30.0
+    
+    target_force = get_target_force('-X', 5.0)
+    selection_matrix = [0., 0.8, 0.8, 0.8, 0.8, 0.8]
+
+    target_pose = geometry_msgs.msg.PoseStamped()
+    target_pose.header.frame_id = bearing_target_link
+    target_pose.pose.position = geometry_msgs.msg.Point(-.004, 0, -.005)
+    target_in_robot_base = self.listener.transformPose("b_bot_base_link", target_pose)
+    termination_criteria = lambda cpose: cpose[0] > target_in_robot_base.pose.position.x
+
+    rospy.logwarn("** STARTING FORCE CONTROL **")
+    result = self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
+                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=10.0,
+                                                        target_force=target_force, selection_matrix=selection_matrix,
+                                                        termination_criteria=termination_criteria)
+    rospy.logwarn("** FORCE CONTROL COMPLETE **")
+
+    if result != TERMINATION_CRITERIA:
+      rospy.logerr("** Insertion Failed!! **")
+      return
+
+    self.b_bot.gripper.open(wait=True)
+
+    self.move_lin_rel("b_bot", relative_translation = [0.016,0,0], acceleration = 0.015, velocity = .03, use_robot_base_csys=True)
+
+    pre_push_position = self.b_bot.force_controller.joint_angles()
+
+    self.b_bot.gripper.close(velocity=0.01, wait=True)
+
+    target_pose = geometry_msgs.msg.PoseStamped()
+    target_pose.header.frame_id = "taskboard_bearing_target_link"
+    target_pose.pose.position = geometry_msgs.msg.Point(-.003, 0, -.005)
+    target_in_robot_base = self.listener.transformPose("b_bot_base_link", target_pose)
+    termination_criteria = lambda cpose: cpose[0] > target_in_robot_base.pose.position.x
+    radius = 0.001
+
+    rospy.logwarn("** STARTING FORCE CONTROL 2**")
+    self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
+                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=10.0,
+                                                        target_force=target_force, selection_matrix=selection_matrix,
+                                                        termination_criteria=termination_criteria)
+    rospy.logwarn("** FORCE CONTROL COMPLETE 2**")
+    
+    self.b_bot.gripper.open(wait=True)
+
+    rospy.loginfo("** Second insertion done, moving back via MoveIt **")
+    self.move_lin_rel("b_bot", relative_translation = [0.025,0,0], acceleration = 0.015, velocity = .03, use_robot_base_csys=True)
+    return True
+
+  def fasten_bearing(self, task=""):
+    if not task:
+      rospy.logerr("Specify the task!")
+      return False
+    self.go_to_named_pose("home", "a_bot")
+    self.equip_tool('b_bot', 'screw_tool_m4')
+    self.vision.activate_camera("b_bot_outside_camera")
+    intermediate_screw_bearing_pose = [31.0 /180.0*3.14, -137.0 /180.0*3.14, 121.0 /180.0*3.14, -114.0 /180.0*3.14, -45.0 /180.0*3.14, -222.0 /180.0*3.14]
+    
+    _task = task  # Needs to be defined here so the nested function can access it
+    def pick_and_fasten_bearing_screw(screw_number, pick_screw=True):
+      """Returns tuple (screw_success, break_out_of_loop)"""
+      # Pick screw
+      if pick_screw:
+        self.move_joints("b_bot", intermediate_screw_bearing_pose)
+        self.go_to_named_pose("feeder_pick_ready","b_bot")
+        pick_success = self.pick_screw_from_feeder("b_bot", screw_size=4)
+        if not pick_success:
+          rospy.logerr("Could not pick screw. Why?? Breaking out.")
+          self.allow_collisions_with_robot_hand
+          self.unequip_tool('b_bot', 'screw_tool_m4')
+          return (False, True)
+      
+      # Fasten screw
+      self.move_joints("b_bot", intermediate_screw_bearing_pose)
+      self.go_to_named_pose("horizontal_screw_ready","b_bot")
+      screw_pose = geometry_msgs.msg.PoseStamped()
+      if _task == "taskboard":
+        screw_pose.header.frame_id = "/taskboard_bearing_target_screw_" + str(n) + "_link"
+      elif _task == "assembly":
+        screw_pose.header.frame_id = "/assembled_assy_part_07_screw_hole_" + str(n)
+      else:
+        rospy.logerr("Incorrect task argument, frame could be determined! Breaking out.")
+        return False
+      
+      screw_pose.pose.position.x = 0.01  ## WHY? THIS SHOULD BE DEEP ENOUGH AT 0.0
+      screw_pose.pose.position.z = 0.00  ## MAGIC NUMBER
+      screw_pose.pose.orientation.w = 1.0
+      if task == "assembly":
+        screw_pose.pose.orientation = geometry_msgs.msg.Quaternion(
+                *tf_conversions.transformations.quaternion_from_euler(tau/2, 0, 0))
+      screw_pose_approach = copy.deepcopy(screw_pose)
+      screw_pose_approach.pose.position.x -= 0.05
+      
+      self.go_to_pose_goal("b_bot", screw_pose_approach, end_effector_link = "b_bot_screw_tool_m4_tip_link", move_lin=False)
+      screw_success = self.skill_server.do_screw_action("b_bot", screw_pose, screw_size=4)
+      self.go_to_pose_goal("b_bot", screw_pose_approach, end_effector_link = "b_bot_screw_tool_m4_tip_link", move_lin=False)
+      self.move_joints("b_bot", intermediate_screw_bearing_pose)
+      return (screw_success, False)
+
+    screw_status = dict()
+    for n in [1,3,2,4]:  # Cross pattern
+      screw_status[n] = "empty"
+      if rospy.is_shutdown():
+        break
+      (screw_success, breakout) = pick_and_fasten_bearing_screw(n)
+      if breakout:
+        break
+      if screw_success:
+        screw_status[n] = "done"
+      if not screw_success and self.screw_is_suctioned["m4"]:
+        screw_status[n] = "empty"
+      if not screw_success and not self.screw_is_suctioned["m4"]:
+        screw_status[n] = "maybe_stuck_in_hole"
+      rospy.loginfo("Screw " + str(n) + " detected as " + screw_status[n])
+    
+    # Reattempt 
+    all_screws_done = all(value == "done" for value in screw_status.values())
+    while not all_screws_done and not rospy.is_shutdown():
+      for n in [1,2,3,4]:
+        if rospy.is_shutdown():
+          break
+        if screw_status[n] == "empty":
+          (screw_success, breakout) = pick_and_fasten_bearing_screw(n)
+        elif screw_status[n] == "maybe_stuck_in_hole":
+          (screw_success, breakout) = pick_and_fasten_bearing_screw(n, pick_screw=False)
+        if screw_success:
+          screw_status[n] = "done"
+        if not screw_success and self.screw_is_suctioned["m4"]:
+          screw_status[n] = "empty"
+        if not screw_success and not self.screw_is_suctioned["m4"]:
+          screw_status[n] = "maybe_stuck_in_hole"
+        rospy.loginfo("Screw " + str(n) + " detected as " + screw_status[n])
+      all_screws_done = all(value == "done" for value in screw_status.values())
+
+    self.move_joints("b_bot", intermediate_screw_bearing_pose)
+    self.go_to_named_pose("tool_pick_ready","b_bot")
+    return all_screws_done
 
   ########
 
