@@ -887,21 +887,14 @@ class O2ACBase(object):
   def move_to_sequence_waypoint(self, robot_name, pose, pose_type, gripper_action, duration):
     robot = self.active_robots[robot_name]
     group = robot.robot_group
-    if robot_name == 'a_bot':
-      arm = self.a_bot
-    elif robot_name == 'b_bot':
-      arm = self.b_bot
-    else:
-      raise Exception('Unsupported arm %s' % robot_name)
-
 
     p = geometry_msgs.msg.PoseStamped()
     p.header.frame_id = robot_name + "_base_link"
 
     if pose_type == 'joint-space':
-      arm.set_joint_positions(pose, wait=True, t=duration)
+      robot.move_joints(pose)
     elif pose_type == 'joint-space-goal-cartesian-lin-motion':
-      target_pose = arm.force_controller.end_effector(pose)  # Get pose from forward kinematics
+      target_pose = robot.force_controller.end_effector(pose)  # Get pose from forward kinematics
       p.pose = conversions.to_pose(target_pose)
       self.active_robots[robot_name].move_lin(p, speed=0.8)
     elif pose_type == 'task-space':

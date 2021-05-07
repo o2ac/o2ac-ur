@@ -489,7 +489,11 @@ class TaskboardClass(O2ACCommon):
         target_force = get_target_force('-X', 5.0)
         selection_matrix = [0., 0.8, 0.8, 0.8, 0.8, 0.8]
 
-        termination_criteria = lambda cpose: cpose[0] > 0.109
+        target_pose = geometry_msgs.msg.PoseStamped()
+        target_pose.header.frame_id = "taskboard_bearing_target_link"
+        target_pose.pose.position = geometry_msgs.msg.Point(-.004, 0, -.005)
+        target_in_robot_base = self.listener.transformPose("b_bot_base_link", target_pose)
+        termination_criteria = lambda cpose: cpose[0] > 0.108
 
         rospy.logwarn("** STARTING FORCE CONTROL **")
         result = self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
@@ -510,7 +514,11 @@ class TaskboardClass(O2ACCommon):
 
         self.b_bot.gripper.close(velocity=0.01, wait=True)
 
-        termination_criteria = lambda cpose: cpose[0] > 0.115
+        target_pose = geometry_msgs.msg.PoseStamped()
+        target_pose.header.frame_id = "taskboard_bearing_target_link"
+        target_pose.pose.position = geometry_msgs.msg.Point(-.002, 0, -.005)
+        target_in_robot_base = self.listener.transformPose("b_bot_base_link", target_pose)
+        termination_criteria = lambda cpose: cpose[0] > target_in_robot_base.pose.position.x
         radius = 0.001
 
         rospy.logwarn("** STARTING FORCE CONTROL 2**")
