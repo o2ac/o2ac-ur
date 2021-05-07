@@ -205,7 +205,9 @@ class O2ACVisionServer(object):
         for array in poses_2d_with_id:
             for pose2d in array.poses:
                 action_result.class_ids.append(array.class_id)
-                action_result.poses.append(self.convert_pose_2d_to_3d(pose2d))
+                p3d = self.convert_pose_2d_to_3d(pose2d)
+                if p3d:
+                    action_result.poses.append(p3d)
         
         self.get_3d_poses_from_ssd_action_server.set_succeeded(action_result)
         # Publish result visualization
@@ -241,7 +243,9 @@ class O2ACVisionServer(object):
         
         poses_3d = []
         for p2d in poses_2d:
-            poses_3d.append(self.convert_pose_2d_to_3d(p2d))
+            p3d = self.convert_pose_2d_to_3d(p2d)
+            if p3d:
+                poses_3d.poses.append(p3d)
         
         action_result.grasp_points = poses_3d
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
@@ -414,7 +418,9 @@ class O2ACVisionServer(object):
                 # Publish result markers
                 poses_3d = []
                 for p2d in estimated_poses_msg.poses:
-                    poses_3d.append(self.convert_pose_2d_to_3d(p2d))
+                    p3d = self.convert_pose_2d_to_3d(p2d)
+                    if p3d:
+                        poses_3d.append(p3d)
                 self.publish_belt_grasp_pose_markers(poses_3d)
 
             estimated_poses_array.append(estimated_poses_msg)
