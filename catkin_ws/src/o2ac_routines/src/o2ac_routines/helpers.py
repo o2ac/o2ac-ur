@@ -7,7 +7,7 @@ import numpy as np
 import geometry_msgs.msg
 import actionlib
 import tf
-from math import *
+from math import pi, cos, sin, sqrt
 tau = 2.0*pi  # Part of math from Python 3.6
 
 import visualization_msgs.msg  # For marker visualization
@@ -18,7 +18,6 @@ import o2ac_msgs.srv
 
 import moveit_task_constructor_msgs.msg
 
-from math import pi
 import moveit_commander
 from moveit_commander.conversions import pose_to_list
 

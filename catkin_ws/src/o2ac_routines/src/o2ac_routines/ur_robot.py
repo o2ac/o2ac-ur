@@ -412,7 +412,8 @@ class URRobot():
         if sp > 1.0:
             sp = 1.0
         if acc > sp/2.0:
-            rospy.logwarn("Setting acceleration to " + str(speed) + " instead of " + str(acceleration) + " to avoid jerky motion.")
+        # if acc > (sp/2.0 + .00001):  # This seems to trigger because of rounding errors unless we add this small value
+            rospy.logwarn("Setting acceleration to " + str(sp/2.0) + " instead of " + str(acceleration) + " to avoid jerky motion.")
             acc = sp/2.0
         return (sp, acc)
 

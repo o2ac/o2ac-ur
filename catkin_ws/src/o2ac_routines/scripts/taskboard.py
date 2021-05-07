@@ -226,21 +226,15 @@ class TaskboardClass(O2ACCommon):
       self.do_screw_tasks_from_prep_position()
 
 
-    ### - Belt
     self.subtask_completed["belt"] = self.do_task("belt")
     
-    # # - Retainer pin + nut
     # self.subtask_completed["idler pulley"] = self.do_task("idler pulley")
     # self.unequip_tool("b_bot", "screw_tool_m4")
 
-    # - Shaft
     self.subtask_completed["shaft"] = self.do_task("shaft")
     
-    # - Motor pulley
     self.subtask_completed["motor pulley"] = self.do_task("motor pulley")
 
-    # TODO: 
-    # Implement bearing regrasp
     self.subtask_completed["bearing"] = self.do_task("bearing")
     if self.subtask_completed["bearing"]:
       self.subtask_completed["screw_bearing"] = self.do_task("screw_bearing")
@@ -289,8 +283,10 @@ class TaskboardClass(O2ACCommon):
       self.a_bot.move_lin_rel(relative_translation=[0,0,.1])
       a_bot_wait_with_belt_pose = [0.646294116973877, -1.602117200891012, 2.0059760252581995, -1.3332312864116211, -0.8101084868060511, -2.4642069975482386]
       self.a_bot.move_joints(a_bot_wait_with_belt_pose)
+      
+      # TODO: Check for pick success with camera
+      # b_bot_look_at_belt = [1.95739448, 1.92903739, -1.40047674, -1.98750128, -2.1883457, 1.7778782]
 
-      # TODO: Check for pick success with cameras
       self.confirm_to_proceed("Execute the belt threading programs?")
       success_a = self.a_bot.load_program(program_name="wrs2020/taskboard_belt_v5.urp", recursion_depth=3)      
       success_b = self.b_bot.load_program(program_name="wrs2020/taskboard_belt_v4.urp", recursion_depth=3)      
@@ -372,8 +368,8 @@ class TaskboardClass(O2ACCommon):
 
       hole_pose = geometry_msgs.msg.PoseStamped()
       hole_pose.header.frame_id = "taskboard_m3_screw_link"
-      hole_pose.pose.position.y = -.000  # MAGIC NUMBER (this should offset towards a_bot (z-axis of the frame points down))
-      hole_pose.pose.position.z = -.004  # MAGIC NUMBER (this should offset upwards (z-axis of the frame points down))
+      hole_pose.pose.position.y = -.000  # MAGIC NUMBER (y-axis of the frame points right)
+      hole_pose.pose.position.z = -.004  # MAGIC NUMBER (z-axis of the frame points down)
       hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
       taskboard.skill_server.do_screw_action("a_bot", hole_pose, screw_size = 3)
       self.a_bot.go_to_named_pose("horizontal_screw_ready")
@@ -392,8 +388,8 @@ class TaskboardClass(O2ACCommon):
       hole_pose = geometry_msgs.msg.PoseStamped()
       hole_pose.header.frame_id = "taskboard_m4_screw_link"
       hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/12, 0, 0))
-      hole_pose.pose.position.y = -.002  # MAGIC NUMBER (this should offset towards a_bot (z-axis of the frame points down))
-      hole_pose.pose.position.z = -.002  # MAGIC NUMBER (this should offset upwards (z-axis of the frame points down))
+      hole_pose.pose.position.y = -.002  # MAGIC NUMBER (y-axis of the frame points right)
+      hole_pose.pose.position.z = -.000  # MAGIC NUMBER (z-axis of the frame points down)
       self.skill_server.do_screw_action("b_bot", hole_pose, screw_size = 4)
       self.b_bot.go_to_named_pose("horizontal_screw_ready")
       self.b_bot.go_to_named_pose("home")

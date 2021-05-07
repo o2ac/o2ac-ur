@@ -159,22 +159,14 @@ class O2ACCommon(O2ACBase):
         self.b_bot.load_and_execute_program(program_name="wrs2020_push_motor_plate.urp", wait=True)
         continue
       if stage_name == 'move a_bot right wrs_subtask_motor_plate':
-        rospy.logwarn("===================== DEBUG1")
-        self.skill_server.move_lin_rel("a_bot", relative_translation=[0, -0.02, 0], use_robot_base_csys=True, max_wait=5.0)
-        rospy.logwarn("===================== DEBUG1b")
+        self.move_lin_rel("a_bot", relative_translation=[0, -0.02, 0], use_robot_base_csys=True, max_wait=5.0)
       if stage_name == 'move a_bot back wrs_subtask_motor_plate':
-        rospy.logwarn("===================== DEBUG2")
-        self.skill_server.move_lin_rel("a_bot", relative_translation=[0,  0.02, 0], use_robot_base_csys=True, max_wait=5.0)
-        rospy.logwarn("===================== DEBUG2b")
+        self.move_lin_rel("a_bot", relative_translation=[0,  0.02, 0], use_robot_base_csys=True, max_wait=5.0)
 
       # Execute trajectories
       if sub_trajectory.scene_diff.robot_state.joint_state.name and not skip_stage_execution:  # If the robot state is changed (robot moved, object attached/detached)
         # Update attached collision objects
         if not currently_attached_collision_objects == sub_trajectory.scene_diff.robot_state.attached_collision_objects:
-          # for co in currently_attached_collision_objects:
-          #   print('IN MEMORY CO: ', co.object.id)
-          # for co in sub_trajectory.scene_diff.robot_state.attached_collision_objects:
-          #   print('IN SOLUTION CO: ', co.object.id)
           coll_objs_to_detach = [collision_object for collision_object in currently_attached_collision_objects if collision_object not in sub_trajectory.scene_diff.robot_state.attached_collision_objects]
           coll_objs_to_attach = [collision_object for collision_object in sub_trajectory.scene_diff.robot_state.attached_collision_objects if collision_object not in currently_attached_collision_objects]
           for attached_object in coll_objs_to_detach:
@@ -518,6 +510,8 @@ class O2ACCommon(O2ACBase):
     if not object_id in self.objects_in_tray:
       # for close_view_batch in [self.close_tray_views, self.close_tray_views_rot_left, self.close_tray_views_rot_right]:
       for view in [self.tray_view_high] + self.close_tray_views + self.close_tray_views_rot_left + self.close_tray_views_rot_right + self.close_tray_views_rot_left_more + self.close_tray_views_rot_left_90:
+        if rospy.is_shutdown():
+          break
         self.b_bot.go_to_pose_goal(view, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.3)
         rospy.sleep(0.3)
         self.get_3d_poses_from_ssd()
