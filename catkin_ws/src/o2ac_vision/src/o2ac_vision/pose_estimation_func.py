@@ -676,6 +676,60 @@ class FastGraspabilityEvaluation():
             im_result = cv2.circle( im_result, ( n[1], n[0] ), 3, (0,255,0), -1, cv2.LINE_AA )
 
         return im_result
+
+#############################################################################
+#
+# Verify picking
+# 
+# sample code
+#  class_id = 6 # target label. "6" means the belt.
+#  ssd_detection = o2ac_ssd.ssd_detection()
+#  pc = PickCheck( ssd_detection )
+#  flag = pc.check( im_in, class_id )
+# 
+# If flag is True, grasp was successful.
+#############################################################################
+class PickCheck():
+    """ Verify that the grasp was successful
+
+    Args:
+        ssd_detection: ssd_detection
+      
+    """
+    def __init__( self, ssd_detection ):
+        self.ssd_detection = ssd_detection
+        self.ssd_results = None
+        self.im_vis = None
+
+    def check( self, im_in, class_id, ssd_treshold=0.6 ):
+        """ verify grasp
+
+        Args:
+            im_in(np.array): input image
+            class_id(int): target classs to be verified
+            ssd_threshold(float, optional): threshold of ssd confidence
+        Return:
+            bool: If True, grasp was successful.
+        """
+        flag = False
+        im_vis = im_in.copy()
+        self.ssd_results, self.im_vis = self.ssd_detection.object_detection(im_in, 
+                                                                  im_vis, 
+                                                                  ssd_treshold, 
+                                                                  0.8)
+
+        for res in self.ssd_results:
+            if res["class"] == class_id:
+                flag = True
+        
+        return flag
+
+    def get_ssd_results( self ):
+        return self.ssd_results
+
+    
+    def get_im_result( self ):
+        return self.im_vis
         
 #############################################################################
 #
