@@ -188,7 +188,7 @@ class TaskboardClass(O2ACCommon):
     
     ### SCREW M3 WITH A_BOT
     # self.vision.activate_camera("a_bot_outside_camera")
-    self.skill_server.pick_screw_from_feeder("a_bot", screw_size = 3)
+    self.pick_screw_from_feeder("a_bot", screw_size = 3)
     self.a_bot.go_to_named_pose("home")
 
     # Move b_bot back, a_bot to screw
@@ -387,7 +387,7 @@ class TaskboardClass(O2ACCommon):
         self.b_bot.go_to_named_pose("tool_pick_ready")
         self.equip_tool("b_bot", "screw_tool_m4")
       self.vision.activate_camera("b_bot_outside_camera")
-      self.skill_server.pick_screw_from_feeder("b_bot", screw_size = 4)
+      self.pick_screw_from_feeder("b_bot", screw_size = 4)
       self.b_bot.go_to_named_pose("horizontal_screw_ready")
       hole_pose = geometry_msgs.msg.PoseStamped()
       hole_pose.header.frame_id = "taskboard_m4_screw_link"

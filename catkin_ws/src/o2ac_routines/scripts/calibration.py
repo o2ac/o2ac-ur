@@ -408,7 +408,7 @@ class CalibrationClass(O2ACCommon):
     rospy.loginfo("============ Picking a screw from a feeder ============")
     rospy.loginfo("============ The screw tool has to be carried by the robot! ============")
     
-    self.skill_server.pick_screw_from_feeder(robot_name, screw_size=screw_size)
+    self.pick_screw_from_feeder(robot_name, screw_size=screw_size, realign_tool_upon_failure=False)
     return
   
   def vertical_plate_screw_position_test(self, panel, robot_name = "b_bot"):

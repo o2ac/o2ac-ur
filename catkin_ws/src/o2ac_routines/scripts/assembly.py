@@ -285,7 +285,7 @@ class AssemblyClass(O2ACCommon):
       if pick_screw:
         self.b_bot.move_joints(intermediate_screw_bearing_pose)
         self.b_bot.go_to_named_pose("feeder_pick_ready")
-        pick_success = self.skill_server.pick_screw_from_feeder("b_bot", screw_size=4)
+        pick_success = self.pick_screw_from_feeder("b_bot", screw_size=4)
         if not pick_success:
           rospy.logerr("Could not pick screw. Why?? Breaking out.")
           self.allow_collisions_with_robot_hand
@@ -414,7 +414,7 @@ class AssemblyClass(O2ACCommon):
     wait_for_UR_program("/a_bot", rospy.Duration.from_sec(40))
 
     self.do_change_tool_action("b_bot", equip=True, screw_size = 4)
-    if not self.skill_server.pick_screw_from_feeder("b_bot", screw_size = 4, realign_tool_upon_failure=True):
+    if not self.pick_screw_from_feeder("b_bot", screw_size = 4, realign_tool_upon_failure=True):
       rospy.logerr("Failed to pick screw from feeder, could not fix the issue. Abort.")
       self.a_bot.gripper.open()
       self.a_bot.go_to_named_pose("home")
@@ -463,7 +463,7 @@ class AssemblyClass(O2ACCommon):
       rospy.logerr("Failed to move a_bot home!")
       return False
 
-    if not self.skill_server.pick_screw_from_feeder("b_bot", screw_size = 4, realign_tool_upon_failure=True):
+    if not self.pick_screw_from_feeder("b_bot", screw_size = 4, realign_tool_upon_failure=True):
       rospy.logerr("Failed to pick second screw, could not fix the issue. Abort.")
       self.a_bot.gripper.open()
       self.a_bot.go_to_named_pose("home")
