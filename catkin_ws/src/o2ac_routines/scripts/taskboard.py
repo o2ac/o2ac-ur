@@ -188,17 +188,16 @@ class TaskboardClass(O2ACCommon):
     
     ### SCREW M3 WITH A_BOT
     # self.vision.activate_camera("a_bot_outside_camera")
-    self.pick_screw_from_feeder("a_bot", screw_size = 3)
-    self.a_bot.go_to_named_pose("home")
+    screw_picked = self.pick_screw_from_feeder("a_bot", screw_size = 3)
+    self.a_bot.go_to_named_pose("screw_pick_ready")
 
     # Move b_bot back, a_bot to screw
     self.unequip_tool("b_bot", "set_screw_tool")
     self.equip_tool("b_bot", "screw_tool_m4")
-    self.b_bot.go_to_named_pose("home")
+    self.b_bot.go_to_named_pose("screw_pick_ready")
 
-    self.subtask_completed["M3 screw"] = self.do_task("M3 screw")
-    
-    ###
+    if screw_picked:
+      self.subtask_completed["M3 screw"] = self.do_task("M3 screw")
     
     #### SCREW M4 WITH B_BOT
     self.subtask_completed["M4 screw"] = self.do_task("M4 screw")
@@ -358,6 +357,7 @@ class TaskboardClass(O2ACCommon):
       if not self.a_bot.robot_status.carrying_tool and self.a_bot.robot_status.held_tool_id == "screw_tool_m3":
         self.a_bot.go_to_named_pose("tool_pick_ready")
         self.equip_tool("a_bot", "screw_tool_m3")
+      self.pick_screw_from_feeder("a_bot", screw_size = 3)
       self.a_bot.go_to_named_pose("horizontal_screw_ready")
       approach_pose = geometry_msgs.msg.PoseStamped()
       approach_pose.header.frame_id = "taskboard_m3_screw_link"
