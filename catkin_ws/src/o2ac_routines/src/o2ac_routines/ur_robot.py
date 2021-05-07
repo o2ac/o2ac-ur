@@ -9,6 +9,7 @@ import controller_manager_msgs.msg
 import std_srvs.srv
 import ur_dashboard_msgs.srv
 import ur_msgs.srv
+import moveit_msgs.msg
 
 from std_msgs.msg import Bool
 
@@ -38,6 +39,7 @@ class URRobot():
 
         self.robot_group = moveit_commander.MoveGroupCommander(self.ns)
         self.gripper_group = moveit_commander.MoveGroupCommander(self.ns+"_robotiq_85")
+        self.sequence_move_group = actionlib.SimpleActionClient("/sequence_move_group", moveit_msgs.msg.MoveGroupSequenceAction)
 
         self.ur_dashboard_clients = {
             "get_loaded_program": rospy.ServiceProxy('/%s/ur_hardware_interface/dashboard/get_loaded_program' % self.ns, ur_dashboard_msgs.srv.GetLoadedProgram),
@@ -312,6 +314,51 @@ class URRobot():
 
         current_pose = group.get_current_pose().pose
         return all_close(pose_goal_stamped.pose, current_pose, 0.01), move_success
+
+    def move_lin_trajectory(self, trajectory, speed=1.0, acceleration=0.5, end_effector_link=""):
+        if not self.set_up_move_group(speed, acceleration):
+            return False
+
+        if not end_effector_link:
+            end_effector_link = self.ns + "_robotiq_85_tip_link"
+
+        group = self.robot_group
+
+        group.set_end_effector_link(end_effector_link)
+        waypoints = [(self.listener.transformPose("world", ps).pose, blend_radius) for ps, blend_radius in trajectory]
+        
+        group.set_planning_pipeline_id("pilz_industrial_motion_planner")
+        group.set_planner_id("LIN")
+
+        motion_plan_requests = []
+        
+        # Start from current pose
+        group.set_pose_target(group.get_current_pose(end_effector_link))
+        msi = moveit_msgs.msg.MotionSequenceItem()
+        msi.req = group.construct_motion_plan_request()
+        msi.blend_radius = 0.0
+        motion_plan_requests.append(msi)
+
+        for wp, blend_radius in waypoints:
+            group.clear_pose_targets()
+            group.set_pose_target(wp)
+            msi = moveit_msgs.msg.MotionSequenceItem()
+            msi.req = group.construct_motion_plan_request()
+            msi.blend_radius = blend_radius
+            motion_plan_requests.append(msi)
+
+        # Force last point to be 0.0 to avoid raising an error in the planner
+        motion_plan_requests[-1].blend_radius = 0.0
+
+        # Make MotionSequence
+        goal = moveit_msgs.msg.MoveGroupSequenceGoal()
+        goal.request = moveit_msgs.msg.MotionSequenceRequest()
+        goal.request.items = motion_plan_requests
+
+        self.sequence_move_group.send_goal_and_wait(goal)
+
+        group.clear_pose_targets()
+        return True
 
     def move_lin(self, pose_goal_stamped, speed=1.0, acceleration=0.5, end_effector_link=""):
         if not self.set_up_move_group(speed, acceleration):

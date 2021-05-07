@@ -765,44 +765,84 @@ class O2ACBase(object):
     robot_name = routine["robot_name"]
     waypoints = routine["waypoints"]
 
-    for i, point in enumerate(waypoints):
-      print("point:", i+1)
-      # raw_input()
+    is_trajectory = False
+    trajectory = []
+
+    playback_trajectories = []
+    # Read and organize points into trajectories or single points
+    for point in waypoints:
       pose = point['pose']
       pose_type = point['type']
       gripper_action = point.get('gripper-action')
-      duration = point['duration']
-      self.move_to_sequence_waypoint(robot_name, pose, pose_type, gripper_action, duration)
+      speed_scale_factor = point.get('speed', 0.8)
+      acceleration_scale_factor = point.get('acceleration', 0.4)
+      gripper_action = point.get('gripper-action')
+      blend = point.get('blend', None)
+      
+      if blend is not None and pose_type == 'joint-space-goal-cartesian-lin-motion':
+        if gripper_action:
+          rospy.logerr("Gripper actions not supported for trajectories")
+          return
+        
+        assert isinstance(blend, float), "Blend if defined must be a float"
 
-  def move_to_sequence_waypoint(self, robot_name, pose, pose_type, gripper_action, duration):
+        is_trajectory = True
+        p = geometry_msgs.msg.PoseStamped()
+        p.header.frame_id = robot_name + "_base_link"
+        target_pose = self.active_robots[robot_name].force_controller.end_effector(pose)  # Forward kinematics
+        p.pose = conversions.to_pose(target_pose)
+        trajectory.append([p, blend])
+      
+      elif is_trajectory:
+        playback_trajectories.append(["trajectory", (robot_name, trajectory, speed_scale_factor, acceleration_scale_factor)])
+        
+        trajectory = []
+        is_trajectory = False
+
+        # after trajectory, append current point
+        playback_trajectories.append(["point", (robot_name, pose, pose_type, gripper_action, speed_scale_factor, acceleration_scale_factor)])
+
+      else:
+        playback_trajectories.append(["point", (robot_name, pose, pose_type, gripper_action, speed_scale_factor, acceleration_scale_factor)])
+      
+    if is_trajectory:
+      playback_trajectories.append(["trajectory", (robot_name, trajectory, speed_scale_factor, acceleration_scale_factor)])
+      
+      trajectory = []
+      is_trajectory = False
+
+    for i, point in enumerate(playback_trajectories):
+      print("point:", i+1)
+      # raw_input()
+      if point[0] == "point":
+        self.move_to_sequence_waypoint(*point[1])
+      elif point[0] == "trajectory":
+        robot_name, trajectory, speed_scale_factor, acceleration_scale_factor = point[1]
+        self.active_robots[robot_name].move_lin_trajectory(trajectory, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
+
+  def move_to_sequence_waypoint(self, robot_name, pose, pose_type, gripper_action, speed_scale_factor, acceleration_scale_factor):
     robot = self.active_robots[robot_name]
     group = robot.robot_group
-    if robot_name == 'a_bot':
-      arm = self.a_bot
-    elif robot_name == 'b_bot':
-      arm = self.b_bot
-    else:
-      raise Exception('Unsupported arm %s' % robot_name)
-
 
     p = geometry_msgs.msg.PoseStamped()
     p.header.frame_id = robot_name + "_base_link"
 
     if pose_type == 'joint-space':
-      arm.set_joint_positions(pose, wait=True, t=duration)
+      robot.move_joints(pose, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
     elif pose_type == 'joint-space-goal-cartesian-lin-motion':
-      target_pose = arm.end_effector(pose)  # Forward kinematics
+      # Convert joint-space to task-space
+      target_pose = robot.force_controller.end_effector(pose)  # Forward kinematics
       p.pose = conversions.to_pose(target_pose)
-      self.active_robots[robot_name].move_lin(p, speed=0.8)
+      robot.move_lin(p, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
     elif pose_type == 'task-space':
       p.pose = conversions.to_pose(pose)
-      self.active_robots[robot_name].move_lin(pose, speed=0.8)
+      robot.move_lin(pose, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
     elif pose_type == 'relative-tcp':
       pass
-      # self.active_robots[robot_name].move_lin_rel(relative_translation=pose[:3], relative_rotation=pose[3:])
+      robot.move_lin_rel(relative_translation=pose[:3], relative_rotation=pose[3:], speed=speed_scale_factor, acceleration=acceleration_scale_factor, use_robot_base_csys=False)
     elif pose_type == 'relative-base':
       pass
-      # self.active_robots[robot_name].move_lin_rel(relative_translation=pose[:3], relative_rotation=pose[3:], use_robot_base_csys=True)
+      robot.move_lin_rel(relative_translation=pose[:3], relative_rotation=pose[3:], speed=speed_scale_factor, acceleration=acceleration_scale_factor, use_robot_base_csys=True)
     else:
       raise ValueError("Invalid pose_type: %s" % pose_type)
 
