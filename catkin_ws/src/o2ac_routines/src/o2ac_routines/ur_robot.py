@@ -168,7 +168,7 @@ class URRobot():
             try:
                 if recursion_depth > 0:  # If connect alone failed, try quit and then connect
                     response = self.ur_dashboard_clients["quit"].call()
-                    rospy.sleep(.5)
+                    rospy.sleep(3.0)
                 response = self.ur_dashboard_clients["connect"].call()
             except:
                 rospy.logwarn("Dashboard service did not respond! (2)")
@@ -177,7 +177,10 @@ class URRobot():
             return self.activate_ros_control_on_ur(recursion_depth=recursion_depth+1)
 
         # Run the program
-        response = self.ur_dashboard_clients["play"].call(std_srvs.srv.TriggerRequest())
+        try:
+            response = self.ur_dashboard_clients["play"].call(std_srvs.srv.TriggerRequest())
+        except:
+            pass
         rospy.sleep(2)
         if not response.success:
             rospy.logerr("Could not start UR control. Is the UR in Remote Control mode and program installed with correct name?")
