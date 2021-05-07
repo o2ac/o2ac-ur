@@ -1049,3 +1049,23 @@ class O2ACCommon(O2ACBase):
 
   def jigless_recenter(self, robot_carrying_the_item):
       pass
+
+  def print_objects_in_tray(self):
+    """ Print the position of all objects in the tray coordinate center to the command line.
+        This can be used to spawn an example scene. """
+    # TODO: Get all objects from planning_scene instead of hard-coding
+    objects = ['panel_motor', 'panel_bearing', 'motor', 'motor_pulley', 'bearing',
+      'shaft', 'end_cap', 'bearing_spacer', 'output_pulley', 'idler_spacer', 'idler_pulley', 'idler_pin', 'base']
+    ps = geometry_msgs.msg.PoseStamped()
+    ps.pose.orientation.w = 1.0
+    for object_name in objects:
+      ps.header.frame_id = "/move_group/" + object_name
+      ps_in_tray = self.listener.transformPose("tray_center", ps)
+      print(object_name + ":  (translation, rotation rpy)")
+      xyz = [ps_in_tray.pose.position.x, ps_in_tray.pose.position.y, ps_in_tray.pose.position.z]
+      rpy = tf_conversions.transformations.euler_from_quaternion([ps_in_tray.pose.orientation.x,
+                                                                  ps_in_tray.pose.orientation.y,
+                                                                  ps_in_tray.pose.orientation.z,
+                                                                  ps_in_tray.pose.orientation.w])
+      print("%0f, %0f, %0f, %0f, %0f, %0f" % (xyz[0], xyz[1], xyz[2], rpy[0], rpy[1], rpy[2]))
+      

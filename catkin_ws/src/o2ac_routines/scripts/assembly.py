@@ -346,23 +346,57 @@ class AssemblyClass(O2ACCommon):
     self.spawn_multiple_objects('wrs_assembly_1', ['base'], [[0.12, 0.2, 0.0, tau/4, 0.0, -tau/4]], 'attached_base_origin_link')
     self.spawn_multiple_objects('wrs_assembly_1', objects, poses, 'world')
 
-  def spawn_objects_for_demo(self):
+  def spawn_objects_for_demo(self, base_plate_in_tray=False, layout_number=1):
     objects = ['panel_motor', 'panel_bearing', 'motor', 'motor_pulley', 'bearing',
-      'shaft', 'end_cap', 'bearing_spacer', 'output_pulley', 'idler_spacer', 'idler_pulley', 'idler_pin']  # , 'base']
-    poses = [[0.12, 0.02, 0.001, 0.0, 0.0, tau/2],
-      [0.02, -0.06, 0.001, 0.0, 0.0, -tau/4],
-      [-0.09, -0.12, 0.001, tau/4, -tau/4, 0.0],
-      [-0.02, -0.16, 0.005, 0.0, -tau/4, 0.0],
-      [0.0, 0.0, 0.001, 0.0, tau/4, 0.0],
-      [-0.04, 0.0, 0.005, 0.0, 0.0, -tau/2],
-      [-0.1, -0.06, 0.001, 0.0, -tau/4, 0.0],
-      [-0.07, -0.06, 0.001, 0.0, -tau/4, 0.0],
-      [-0.02, -0.08, 0.005, 0.0, -tau/4, 0.0],
-      [-0.04, -0.03, 0.001, 0.0, -tau/4, 0.0],
-      [-0.05, -0.13, 0.001, 0.0, -tau/4, 0.0],
-      [-0.1, -0.03, 0.005, 0.0, 0.0, 0.0]]  # , [-0.1, 0.16, 0.001, tau/4, 0.0, 0.0]]
-    self.spawn_multiple_objects('wrs_assembly_1', ['base'], [[0.12, 0.2, 0.0, tau/4, 0.0, -tau/4]], 'attached_base_origin_link')
+      'shaft', 'end_cap', 'bearing_spacer', 'output_pulley', 'idler_spacer', 'idler_pulley', 'idler_pin']
+    if layout_number == 1:
+      poses = [[0.12, 0.02, 0.001, 0.0, 0.0, tau/2],
+              [0.02, -0.06, 0.001, 0.0, 0.0, -tau/4],
+              [-0.09, -0.12, 0.001, tau/4, -tau/4, 0.0],
+              [-0.02, -0.16, 0.005, 0.0, -tau/4, 0.0],
+              [0.0, 0.0, 0.001, 0.0, tau/4, 0.0],
+              [-0.04, 0.0, 0.005, 0.0, 0.0, -tau/2],
+              [-0.1, -0.06, 0.001, 0.0, -tau/4, 0.0],
+              [-0.07, -0.06, 0.001, 0.0, -tau/4, 0.0],
+              [-0.02, -0.08, 0.005, 0.0, -tau/4, 0.0],
+              [-0.04, -0.03, 0.001, 0.0, -tau/4, 0.0],
+              [-0.05, -0.13, 0.001, 0.0, -tau/4, 0.0],
+              [-0.1, -0.03, 0.005, 0.0, 0.0, 0.0]]
+    elif layout_number == 2:
+      poses = [[-0.04, 0.01, 0.001, 0.0, 0.0, tau/2],
+              [0.01, -0.08, 0.001, 0.0, 0.0, tau/2],
+              [0.1, -0.13, 0.001, tau/4, -tau/4, 0.0],
+              [0.05, -0.07, 0.011, 0.0, -tau/4, 0.0],
+              [0.06, 0, 0.001, 0.0, tau/4, 0.0],
+              [0.04, 0.03, 0.011, 0.0, 0.0, -tau/2],
+              [0.11, -0.06, 0.001, 0.0, -tau/4, 0.0],
+              [0.08, -0.06, 0.001, 0.0, -tau/4, 0.0],
+              [0, -0.03, 0.011, 0.0, -tau/4, 0.0],
+              [0.1, -0.03, 0.001, 0.0, -tau/4, 0.0],
+              [0.05, -0.13, 0.001, 0.0, -tau/4, 0.0],
+              [0.04, -0.17, 0.011, 0.0, 0.0, 0.0]]
+    elif layout_number == 3:
+      poses = [[0.000, 0.020, 0.001, 0.000, -0.000, 3.140000], 
+              [0.100, -0.040, 0.001, 0.000, -0.000, 1.580000], 
+              [-0.060, 0.060, 0.001, 2.218, -1.568, 0.932410], 
+              [-0.040, 0.160, 0.011, -3.141, -1.570, -3.141592], 
+              [0.080, 0.130, 0.001, 2.756, 1.570, -2.756991], 
+              [-0.090, -0.040, 0.011, 0.000, -0.000, 1.570000], 
+              [-0.060, 0.120, 0.001, -3.141, -1.570, -3.141592], 
+              [-0.040, 0.100, 0.001, -3.141, -1.570, -3.141592], 
+              [0.000, 0.120, 0.011, 2.366, -1.569, 2.366991], 
+              [-0.090, 0.100, 0.001, -3.141, -1.570, -3.141592], 
+              [-0.080, 0.150, 0.001, -3.141, -1.570, -3.141592], 
+              [-0.010, 0.060, 0.011, 0.001, -0.001, -1.571593]]
+
     self.spawn_multiple_objects('wrs_assembly_1', objects, poses, 'tray_center')
+    if not base_plate_in_tray:  # Spawn the base plate on the fixation, for MTC demos
+      self.spawn_multiple_objects('wrs_assembly_1', ['base'], [[0.12, 0.2, 0.0, tau/4, 0.0, -tau/4]], 'attached_base_origin_link')
+    else:
+      if layout_number == 3:
+        self.spawn_multiple_objects('wrs_assembly_1', ['base'], [[-0.1, -0.05, 0.001, tau/4, 0.0, 0.0]], 'tray_center')
+      else:
+        self.spawn_multiple_objects('wrs_assembly_1', ['base'], [[-0.1, 0,17, 0.001, tau/4, 0.0, 0.0]], 'tray_center')
 
   def mtc_pick_screw_tool(self, screw_type):
     rospy.loginfo("======== PICK TASK ========")
@@ -519,6 +553,12 @@ if __name__ == '__main__':
         print(res)
       if i == "52":
         assy.execute_MTC_solution(res.solution, speed=0.1)
+      if i == '55':
+        assy.spawn_objects_for_demo(base_plate_in_tray=True, layout_number=1)
+      if i == '552':
+        assy.spawn_objects_for_demo(base_plate_in_tray=True, layout_number=2)
+      if i == '553':
+        assy.spawn_objects_for_demo(base_plate_in_tray=True, layout_number=3)
       if i == '67':
         assy.spawn_objects_for_closed_loop_test()
       if i == '68':
@@ -634,6 +674,8 @@ if __name__ == '__main__':
         # direction = '-X'
 
         # assy.b_bot.linear_push(initial_pose=b_bot_starting_position, force=force, direction=direction, timeout=20.0)
+      elif i == "print":  # Print collision objects
+        assy.print_objects_in_tray()
       elif i == 'START' or i == 'start' or i == "9999":
         for i in [1,2]:
           rospy.loginfo("Starting set number " + str(i))
