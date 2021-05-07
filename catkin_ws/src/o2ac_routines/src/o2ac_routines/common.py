@@ -135,7 +135,7 @@ class O2ACCommon(O2ACBase):
         self.do_change_tool_action("b_bot", equip=False, screw_size=4)
       if stage_name == 'pick_screw_m4_start':
         skip_stage_execution = True
-        self.skill_server.pick_screw_from_feeder('b_bot', screw_size=4)
+        self.pick_screw_from_feeder('b_bot', screw_size=4)
       if stage_name == 'fasten_screw_m4_start':
         skip_stage_execution = True
         target_pose = geometry_msgs.msg.PoseStamped()
