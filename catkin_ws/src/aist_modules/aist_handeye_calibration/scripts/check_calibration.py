@@ -23,11 +23,11 @@ class CheckCalibrationRoutines(HandEyeCalibrationBaseRoutines):
         #  frame which will change while moving in the case of "eye on hand".
         target_pose = self.transform_pose_to_reference_frame(
                           self.effector_target_pose(marker_pose, (0, 0, 0)))
-        self.go_to_pose_goal(self._robot_name, approach_pose,
+        self.active_robots[self._robot_name].go_to_pose_goal(approach_pose,
                              end_effector_link=self._effector_frame,
                              speed=self._speed)
         rospy.sleep(1)
-        self.go_to_pose_goal(self._robot_name, target_pose,
+        self.active_robots[self._robot_name].go_to_pose_goal(target_pose,
                              end_effector_link=self._effector_frame,
                              speed=self._speed)
 

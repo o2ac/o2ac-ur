@@ -9,7 +9,7 @@ class RobotiqGripper():
     def __init__(self, namespace, use_real_robot):
         self.use_real_robot = use_real_robot
         self.ns = namespace
-        
+
         self.opening_width = 0.0
 
         # Gripper
@@ -17,9 +17,17 @@ class RobotiqGripper():
             self.sub_gripper_status_ = rospy.Subscriber("/%s/gripper_status" % self.ns, robotiq_msgs.msg.CModelCommandFeedback, self._gripper_status_callback)
             self.gripper = actionlib.SimpleActionClient('/%s/gripper_action_controller' % self.ns, robotiq_msgs.msg.CModelCommandAction)
         else:
-            # FIXME
-            rospy.logerr("Disabling gripper in simulation")
-            # self.gripper = GripperController(namespace=self.ns, prefix=self.ns + '_', timeout=2.0)
+            try:
+                self.gripper = GripperController(namespace=self.ns, prefix=self.ns + '_', timeout=2.0)
+            except Exception as e:
+                rospy.logwarn("Fail to instantiate GripperController for simulation, " + str(e))
+                rospy.logwarn("Instantiating dummy gripper")
+                class GripperDummy():
+                    pass
+                self.gripper = GripperDummy()
+                setattr(GripperDummy, "close", lambda *args, **kwargs: None)
+                setattr(GripperDummy, "open", lambda *args, **kwargs: None)
+                setattr(GripperDummy, "command", lambda *args, **kwargs: None)
 
     def _gripper_status_callback(self, msg):
         self.opening_width = msg.position  # [m]

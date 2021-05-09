@@ -58,7 +58,7 @@ class O2ACCommon(O2ACBase):
     """
     Define the poses used to position the camera to look into the tray.
 
-    Example usage: self.go_to_pose_goal("b_bot", self.tray_view_high, 
+    Example usage: self.b_bot.go_to_pose_goal(self.tray_view_high, 
                                         end_effector_link="b_bot_outside_camera_color_frame", 
                                         speed=.1, acceleration=.04)
     """
@@ -265,14 +265,14 @@ class O2ACCommon(O2ACBase):
     """
 
     # Look from top first
-    self.go_to_pose_goal(robot_name, self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
+    self.active_robots[robot_name].go_to_pose_goal(self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
     success = self.detect_object_in_camera_view(item_name)
 
     # # TODO: Also move robot if object requires a close-up view (shaft, pin...)
     # if not success:
     #   poses = [self.tray_view_close_front_b, self.tray_view_close_back_b, self.tray_view_close_front_a, self.tray_view_close_back_a]
     #   for pose in poses:
-    #     self.go_to_pose_goal(robot_name, pose, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
+    #     self.active_robots[robot_name].go_to_pose_goal(pose, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
     #     success = self.detect_object_in_camera_view(item_name)
     #     if success:
     #       break
@@ -325,7 +325,7 @@ class O2ACCommon(O2ACBase):
     if axis =="z":
       object_pose.pose.position.z += approach_height * sign
     rospy.logdebug("Going to height " + str(object_pose.pose.position.z))
-    self.go_to_pose_goal(robot_name, object_pose, speed=speed_fast, acceleration=acc_fast, move_lin=True)
+    self.active_robots[robot_name].go_to_pose_goal(object_pose, speed=speed_fast, acceleration=acc_fast, move_lin=True)
     if axis =="x":
       object_pose.pose.position.x -= approach_height * sign
     if axis =="z":
@@ -343,7 +343,7 @@ class O2ACCommon(O2ACBase):
     if axis =="z":
       object_pose.pose.position.z += grasp_height * sign
     rospy.logdebug("Going to height " + str(object_pose.pose.position.z))
-    self.go_to_pose_goal(robot_name, object_pose, speed=speed_slow, acceleration=acc_slow, move_lin=True)
+    self.active_robots[robot_name].go_to_pose_goal(object_pose, speed=speed_slow, acceleration=acc_slow, move_lin=True)
     if axis =="x":
       object_pose.pose.position.x -= grasp_height * sign
     if axis =="z":
@@ -374,7 +374,7 @@ class O2ACCommon(O2ACBase):
       if axis =="z":
         object_pose.pose.position.z += approach_height * sign
       rospy.loginfo("Going to height " + str(object_pose.pose.position.z))
-      self.go_to_pose_goal(robot_name, object_pose, speed=speed_fast, acceleration=acc_fast, move_lin=True)
+      self.active_robots[robot_name].go_to_pose_goal(object_pose, speed=speed_fast, acceleration=acc_fast, move_lin=True)
       if axis =="x":
         object_pose.pose.position.x -= approach_height * sign
       if axis =="z":
@@ -395,11 +395,11 @@ class O2ACCommon(O2ACBase):
     self.log_to_debug_monitor("Place", "operation")
     rospy.loginfo("Going above place target")
     object_pose.pose.position.x -= approach_height
-    self.go_to_pose_goal(robot_name, object_pose, speed=speed_fast, acceleration=acc_fast, move_lin=False)
+    self.active_robots[robot_name].go_to_pose_goal(object_pose, speed=speed_fast, acceleration=acc_fast, move_lin=False)
    
     rospy.loginfo("Moving to place target")
     object_pose.pose.position.x += place_height
-    self.go_to_pose_goal(robot_name, object_pose, speed=speed_slow, acceleration=acc_slow, move_lin=False)
+    self.active_robots[robot_name].go_to_pose_goal(object_pose, speed=speed_slow, acceleration=acc_slow, move_lin=False)
     object_pose.pose.position.x -= place_height
     
     robot = self.active_robots[robot_name]
@@ -415,7 +415,7 @@ class O2ACCommon(O2ACBase):
 
     if lift_up_after_place:
       rospy.loginfo("Moving back up")
-      self.go_to_pose_goal(robot_name, object_pose, speed=speed_fast, move_lin=False)  
+      self.active_robots[robot_name].go_to_pose_goal(object_pose, speed=speed_fast, move_lin=False)  
     return True
 
   def simple_grasp_sanity_check(self, grasp_pose, grasp_width=0.08, border_dist=0.06):
@@ -505,7 +505,7 @@ class O2ACCommon(O2ACBase):
     self.activate_led("b_bot")
     self.b_bot.gripper.open(wait=False)
     # TODO: Merge with detect_object_in_camera_view in base.py
-    # self.go_to_pose_goal("b_bot", self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.1)
+    # self.b_bot.go_to_pose_goal(self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.1)
     # self.get_3d_poses_from_ssd()
     if object_id in self.objects_in_tray:
       del self.objects_in_tray[object_id]
@@ -513,7 +513,7 @@ class O2ACCommon(O2ACBase):
     if not object_id in self.objects_in_tray:
       # for close_view_batch in [self.close_tray_views, self.close_tray_views_rot_left, self.close_tray_views_rot_right]:
       for view in [self.tray_view_high] + self.close_tray_views + self.close_tray_views_rot_left + self.close_tray_views_rot_right + self.close_tray_views_rot_left_more + self.close_tray_views_rot_left_90:
-        self.go_to_pose_goal("b_bot", view, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.3)
+        self.b_bot.go_to_pose_goal(view, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.3)
         rospy.sleep(0.3)
         self.get_3d_poses_from_ssd()
         if object_id in self.objects_in_tray:
@@ -526,7 +526,7 @@ class O2ACCommon(O2ACBase):
           close_view.pose.position.x += 0.0  # To avoid noise from direct reflections of the structured light
           close_view.pose.position.z = copy.deepcopy(self.close_tray_views[0].pose.position.z)
           close_view.pose.orientation = copy.deepcopy(view.pose.orientation)
-          self.go_to_pose_goal("b_bot", close_view, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.3)
+          self.b_bot.go_to_pose_goal(close_view, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.3)
           rospy.sleep(0.5)
           self.get_3d_poses_from_ssd()
           grasp_points_close = self.get_feasible_grasp_points(object_id)
@@ -582,15 +582,15 @@ class O2ACCommon(O2ACBase):
         return False
     object_pose_in_world = self.listener.transformPose("world", object_pose)
     object_pose_in_world.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/2, 0))
-    self.go_to_pose_goal(robot_name, object_pose_in_world, speed=speed_slow, acceleration=acc_slow, move_lin=True)
+    self.active_robots[robot_name].go_to_pose_goal(object_pose_in_world, speed=speed_slow, acceleration=acc_slow, move_lin=True)
     robot.gripper.send_command(command="close", force = 1.0, velocity = 0.1)
     robot.gripper.send_command(command=object_width+0.02, force = 90.0, velocity = 0.001)
     object_pose_in_world_rotated = copy.deepcopy(object_pose_in_world)
     object_pose_in_world_rotated.pose = rotatePoseByRPY(0,0,tau/4, object_pose_in_world_rotated.pose)
-    self.go_to_pose_goal(robot_name, object_pose_in_world, speed=speed_slow, acceleration=acc_slow, move_lin=True)
+    self.active_robots[robot_name].go_to_pose_goal(object_pose_in_world, speed=speed_slow, acceleration=acc_slow, move_lin=True)
     robot.gripper.send_command(command="close", force = 1.0, velocity = 0.1)
     robot.gripper.send_command(command=object_width+0.02, force = 90.0, velocity = 0.001)
-    self.go_to_pose_goal(robot_name, object_pose_in_world, speed=speed_slow, acceleration=acc_slow, move_lin=True)
+    self.active_robots[robot_name].go_to_pose_goal(object_pose_in_world, speed=speed_slow, acceleration=acc_slow, move_lin=True)
     return True
 
   def centering_pick(self, robot_name, pick_pose, speed_fast=0.1, speed_slow=0.02, object_width=0.08, approach_height=0.05, 
@@ -611,7 +611,7 @@ class O2ACCommon(O2ACBase):
     object_pose_in_world.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi, 0))
     object_pose_in_world.pose.position.z += approach_height
     rospy.logdebug("Going to height " + str(object_pose_in_world.pose.position.z))
-    self.go_to_pose_goal(robot_name, object_pose_in_world, speed=speed_fast, acceleration=acc_fast, move_lin=True)
+    self.active_robots[robot_name].go_to_pose_goal(object_pose_in_world, speed=speed_fast, acceleration=acc_fast, move_lin=True)
     object_pose_in_world.pose.position.z -= approach_height
 
     robot.gripper.send_command(command=object_width+0.03)
@@ -641,7 +641,7 @@ class O2ACCommon(O2ACBase):
 
       object_pose_in_world.pose.position.z += approach_height
       rospy.loginfo("Going to height " + str(object_pose_in_world.pose.position.z))
-      self.go_to_pose_goal(robot_name, object_pose_in_world, speed=speed_fast, acceleration=acc_fast, move_lin=True)
+      self.active_robots[robot_name].go_to_pose_goal(object_pose_in_world, speed=speed_fast, acceleration=acc_fast, move_lin=True)
     return True
 
   def drop_shaft_in_v_groove(self):
@@ -652,9 +652,9 @@ class O2ACCommon(O2ACBase):
     ps.header.frame_id = "vgroove_aid_drop_point_link"
     ps.pose.orientation = geometry_msgs.msg.Quaternion(*(0,0,0,1))
     ps.pose.position = geometry_msgs.msg.Point(-0.05, 0, 0)
-    self.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_robotiq_85_tip_link", move_lin = False)
+    self.b_bot.go_to_pose_goal(ps, end_effector_link="b_bot_robotiq_85_tip_link", move_lin = False)
     ps.pose.position = geometry_msgs.msg.Point(0, 0, 0)
-    self.go_to_pose_goal("b_bot", ps, end_effector_link="b_bot_robotiq_85_tip_link")
+    self.b_bot.go_to_pose_goal(ps, end_effector_link="b_bot_robotiq_85_tip_link")
 
   def check_if_shaft_in_v_groove(self):
     """
@@ -663,7 +663,7 @@ class O2ACCommon(O2ACBase):
     look_at_shaft_pose = [2.177835941, -1.700065275, 2.536958996, -2.40987076, -1.529889408, 0.59719228]
     self.vision.activate_camera("b_bot_inside_camera")
     self.activate_led("b_bot")
-    self.move_joints("b_bot", look_at_shaft_pose)
+    self.b_bot.move_joints(look_at_shaft_pose)
 
     res = self.vision.call_shaft_notch_detection()
     print("=== shaft notch detection returned:")
@@ -673,7 +673,7 @@ class O2ACCommon(O2ACBase):
     look_at_shaft_pose = [2.177835941, -1.700065275, 2.536958996, -2.40987076, -1.529889408, 0.59719228]
     self.vision.activate_camera("b_bot_inside_camera")
     self.activate_led("b_bot")
-    self.move_joints("b_bot", look_at_shaft_pose)
+    self.b_bot.move_joints(look_at_shaft_pose)
 
     times_turned = 0
     success = self.b_bot.load_program(program_name="wrs2020/shaft_turning.urp", recursion_depth=3)  
@@ -697,9 +697,9 @@ class O2ACCommon(O2ACBase):
     camera_look_pose.pose.orientation = geometry_msgs.msg.Quaternion(*(0.84, 0.0043246, 0.0024908, 0.54257))
     camera_look_pose.pose.position = geometry_msgs.msg.Point(-0.0118, 0.133, 0.0851)
     camera_look_pose.pose.position.z += 0.2
-    self.go_to_pose_goal("b_bot", camera_look_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.1, acceleration=.04)
+    self.b_bot.go_to_pose_goal(camera_look_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.1, acceleration=.04)
     camera_look_pose.pose.position.z -= 0.2
-    self.go_to_pose_goal("b_bot", camera_look_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.1, acceleration=.04)
+    self.b_bot.go_to_pose_goal(camera_look_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.1, acceleration=.04)
     angle = self.get_motor_angle()
 
   def align_bearing_holes(self, max_adjustments=10, task="assembly"):
@@ -736,9 +736,9 @@ class O2ACCommon(O2ACBase):
       end_pose = copy.deepcopy(grasp_pose)
       end_pose.pose.orientation = geometry_msgs.msg.Quaternion(
                         *tf_conversions.transformations.quaternion_from_euler(angle/2.0, 0, 0))
-      self.go_to_pose_goal("b_bot", start_pose, speed=.1, acceleration=.04, end_effector_link = "b_bot_bearing_rotate_helper_link")
+      self.b_bot.go_to_pose_goal(start_pose, speed=.1, acceleration=.04, end_effector_link = "b_bot_bearing_rotate_helper_link")
       self.b_bot.gripper.close()
-      self.go_to_pose_goal("b_bot", end_pose, speed=.1, acceleration=.04, end_effector_link = "b_bot_bearing_rotate_helper_link")
+      self.b_bot.go_to_pose_goal(end_pose, speed=.1, acceleration=.04, end_effector_link = "b_bot_bearing_rotate_helper_link")
       self.b_bot.gripper.open()
 
     success = False
@@ -746,7 +746,7 @@ class O2ACCommon(O2ACBase):
       # Look at tb bearing
       self.b_bot.gripper.open()
       
-      self.go_to_pose_goal("b_bot", camera_look_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.1, acceleration=.04)
+      self.b_bot.go_to_pose_goal(camera_look_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.1, acceleration=.04)
       self.activate_led("b_bot", on=False)
       rospy.sleep(1)  # Without a wait, the camera image is blurry
 
@@ -792,10 +792,10 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Screw size needs to be 3 or 4 but is: " + str(screw_size))
       return False
 
-    self.go_to_named_pose("feeder_pick_ready", robot_name)
+    self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
     
     res = self.skill_server.do_screw_action(robot_name, screw_hole_pose, screw_height, screw_size)
-    self.go_to_named_pose("feeder_pick_ready", robot_name)
+    self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
     return res  # Bool
 
   def fasten_screw_horizontal(self, robot_name, screw_hole_pose, screw_height = .02, screw_size = 4):
@@ -806,10 +806,10 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Screw size needs to be 3 or 4 but is: " + str(screw_size))
       return False
 
-    self.go_to_named_pose("horizontal_screw_ready", robot_name)
+    self.active_robots[robot_name].go_to_named_pose("horizontal_screw_ready")
     
     success = self.skill_server.do_screw_action(robot_name, screw_hole_pose, screw_height, screw_size)
-    self.go_to_named_pose("horizontal_screw_ready", robot_name)
+    self.active_robots[robot_name].go_to_named_pose("horizontal_screw_ready")
     return success
 
   def pick_nut(self, robot_name):
@@ -818,27 +818,27 @@ class O2ACCommon(O2ACBase):
     rospy.logerr("Not implemented yet")
     return False
     
-    self.go_to_named_pose("home", "a_bot", speed=3.0, acceleration=3.0, force_ur_script=self.use_real_robot)
-    self.go_to_named_pose("nut_pick_ready", "a_bot", speed=1.0, acceleration=1.0, force_ur_script=self.use_real_robot)
+    self.a_bot.go_to_named_pose("home", speed=3.0, acceleration=3.0, force_ur_script=self.use_real_robot)
+    self.a_bot.go_to_named_pose("nut_pick_ready", speed=1.0, acceleration=1.0, force_ur_script=self.use_real_robot)
 
     nut_pose = geometry_msgs.msg.PoseStamped()
     nut_pose.header.frame_id = "nut_holder_collar_link"
     nut_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi/2, 0, 0))
     approach_pose = copy.deepcopy(nut_pose)
     approach_pose.pose.position.x -= .03
-    self.go_to_pose_goal(robot_name, approach_pose, speed=self.speed_fast, move_lin = True, end_effector_link="a_bot_nut_tool_m6_link")
+    self.active_robots[robot_name].go_to_pose_goal(approach_pose, speed=self.speed_fast, move_lin = True, end_effector_link="a_bot_nut_tool_m6_link")
     # spiral_axis = "Y"
     # push_direction = "Z+"
     # self.skill_server.do_linear_push(robot_name, 10, direction=push_direction, wait = True)
     self.tools.set_motor("nut_tool_m6", direction="loosen", duration=10)
     self.skill_server.horizontal_spiral_motion(robot_name, max_radius = .006, radius_increment = .02, spiral_axis=spiral_axis)
-    self.go_to_pose_goal(robot_name, nut_pose, speed=.005, move_lin = True, end_effector_link="a_bot_nut_tool_m6_link")
+    self.active_robots[robot_name].go_to_pose_goal(nut_pose, speed=.005, move_lin = True, end_effector_link="a_bot_nut_tool_m6_link")
     rospy.sleep(3)
     # self.skill_server.do_linear_push(robot_name, 10, direction=push_direction, wait = True)
-    self.go_to_pose_goal(robot_name, approach_pose, speed=.03, move_lin = True, end_effector_link=end_effector_link)
+    self.active_robots[robot_name].go_to_pose_goal(approach_pose, speed=.03, move_lin = True, end_effector_link=end_effector_link)
 
   def move_camera_to_pose(self, pose_goal, robot_name="b_bot", camera_name="inside_camera"):
-    return self.go_to_pose_goal(robot_name, pose_goal, end_effector_link=robot_name+"_"+camera_name+"_color_optical_frame")
+    return self.active_robots[robot_name].go_to_pose_goal(pose_goal, end_effector_link=robot_name+"_"+camera_name+"_color_optical_frame")
 
   def jigless_recenter(self, robot_carrying_the_item):
       pass

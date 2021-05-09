@@ -109,15 +109,15 @@ class AssemblyClass(O2ACCommon):
     approach_pose.pose.position.z += 0.15
 
     self.b_bot.gripper.open(wait=False)
-    self.go_to_pose_goal("b_bot", approach_pose, speed=0.2, move_lin = True)
-    self.go_to_pose_goal("b_bot", pick_pose, speed=0.2, move_lin = True)
+    self.b_bot.go_to_pose_goal(approach_pose, speed=0.2, move_lin = True)
+    self.b_bot.go_to_pose_goal(pick_pose, speed=0.2, move_lin = True)
     
     self.b_bot.gripper.close(force = 100)
     if self.b_bot.gripper.opening_width < 0.003:
       rospy.logerr("Gripper did not grasp the base plate. Aborting.")
       return False
     
-    self.go_to_pose_goal("b_bot", approach_pose, speed=0.1, acceleration=0.1, move_lin = True)   
+    self.b_bot.go_to_pose_goal(approach_pose, speed=0.1, acceleration=0.1, move_lin = True)   
 
     approach_orient_pose = copy.deepcopy(approach_pose)
     approach_orient_pose.pose.position.x += -0.050
@@ -126,20 +126,20 @@ class AssemblyClass(O2ACCommon):
     orient_pose = copy.deepcopy(approach_orient_pose)
     orient_pose.pose.position.z += -0.173
 
-    self.go_to_pose_goal("b_bot", approach_orient_pose, speed=0.1, acceleration=0.1, move_lin = True)   
-    self.go_to_pose_goal("b_bot", orient_pose, speed=0.1, acceleration=0.1, move_lin = True)   
+    self.b_bot.go_to_pose_goal(approach_orient_pose, speed=0.1, acceleration=0.1, move_lin = True)   
+    self.b_bot.go_to_pose_goal(orient_pose, speed=0.1, acceleration=0.1, move_lin = True)   
     self.b_bot.gripper.open(wait=True)
 
     gripper_rotated = self.b_bot.get_current_pose_stamped()
     gripper_rotated.pose.orientation = helpers.rotateQuaternionByRPY(tau/4, 0, 0, orient_pose.pose.orientation)
 
-    self.go_to_pose_goal("b_bot", gripper_rotated, speed=0.5, move_lin = True)
+    self.b_bot.go_to_pose_goal(gripper_rotated, speed=0.5, move_lin = True)
     self.b_bot.gripper.close(force = 100, wait=True)
     self.b_bot.gripper.open(wait=True)
-    self.go_to_pose_goal("b_bot", orient_pose, speed=0.5, move_lin = True)
+    self.b_bot.go_to_pose_goal(orient_pose, speed=0.5, move_lin = True)
     self.b_bot.gripper.close(force = 100, wait=True)
 
-    self.go_to_pose_goal("b_bot", approach_orient_pose, speed=0.2, move_lin = True)
+    self.b_bot.go_to_pose_goal(approach_orient_pose, speed=0.2, move_lin = True)
     
     # Move plate
     place_onboard_pose = geometry_msgs.msg.PoseStamped()
@@ -152,14 +152,14 @@ class AssemblyClass(O2ACCommon):
     approach_onboard_pose = copy.deepcopy(place_onboard_pose)
     approach_onboard_pose.pose.position.z += 0.1
 
-    self.go_to_pose_goal("b_bot", approach_onboard_pose, speed=0.2, move_lin = True)
-    self.go_to_pose_goal("b_bot", place_onboard_pose, speed=0.2, move_lin = True)
+    self.b_bot.go_to_pose_goal(approach_onboard_pose, speed=0.2, move_lin = True)
+    self.b_bot.go_to_pose_goal(place_onboard_pose, speed=0.2, move_lin = True)
 
     # FIXME: Direction should be -Z
     self.b_bot.linear_push(force=8, direction="+Z", relative_to_ee=False, timeout=15.0)
     
     self.b_bot.gripper.open()
-    self.move_lin_rel("b_bot", relative_translation=[0, 0, 0.05], use_robot_base_csys=True)
+    self.b_bot.move_lin_rel(relative_translation=[0, 0, 0.05], use_robot_base_csys=True)
     self.lock_base_plate()
     return True
 
@@ -182,8 +182,8 @@ class AssemblyClass(O2ACCommon):
     return self.fasten_bearing()
   
   def pick_up_and_insert_bearing(self):
-    self.go_to_named_pose("home","a_bot")
-    self.go_to_named_pose("home","b_bot")
+    self.a_bot.go_to_named_pose("home")
+    self.b_bot.go_to_named_pose("home")
 
     goal = self.look_and_get_grasp_point("bearing")
     if not goal:
@@ -246,7 +246,7 @@ class AssemblyClass(O2ACCommon):
 
     self.b_bot.gripper.open(wait=True)
 
-    self.move_lin_rel("b_bot", relative_translation = [0.014,0,0], acceleration = 0.015, velocity = .03, use_robot_base_csys=True)
+    self.b_bot.move_lin_rel(relative_translation = [0.014,0,0], acceleration = 0.015, velocity = .03, use_robot_base_csys=True)
 
     self.close_gripper('b_bot', velocity=0.01, wait=True)
 
@@ -268,11 +268,11 @@ class AssemblyClass(O2ACCommon):
 
     # rospy.logwarn("** CHANGE POSITIONS USING MOVEIT **")
     # post_insertion_pose = [1.6088, -1.1894, 1.7653, -2.0387, -2.7843, -1.4562]
-    # self.move_joints('b_bot', post_insertion_pose)
+    # self.b_bot.move_joints(post_insertion_pose)
     return True
 
   def fasten_bearing(self, task="assembly"):
-    self.go_to_named_pose("home", "a_bot")
+    self.a_bot.go_to_named_pose("home")
     self.equip_tool('b_bot', 'screw_tool_m4')
     self.vision.activate_camera("b_bot_outside_camera")
     intermediate_screw_bearing_pose = [31.0 /180.0*3.14, -137.0 /180.0*3.14, 121.0 /180.0*3.14, -114.0 /180.0*3.14, -45.0 /180.0*3.14, -222.0 /180.0*3.14]
@@ -281,8 +281,8 @@ class AssemblyClass(O2ACCommon):
       """Returns tuple (screw_success, break_out_of_loop)"""
       # Pick screw
       if pick_screw:
-        self.move_joints("b_bot", intermediate_screw_bearing_pose)
-        self.go_to_named_pose("feeder_pick_ready","b_bot")
+        self.b_bot.move_joints(intermediate_screw_bearing_pose)
+        self.b_bot.go_to_named_pose("feeder_pick_ready")
         pick_success = self.skill_server.pick_screw_from_feeder("b_bot", screw_size=4)
         if not pick_success:
           rospy.logerr("Could not pick screw. Why?? Breaking out.")
@@ -291,8 +291,8 @@ class AssemblyClass(O2ACCommon):
           return (False, True)
       
       # Fasten screw
-      self.move_joints("b_bot", intermediate_screw_bearing_pose)
-      self.go_to_named_pose("horizontal_screw_ready","b_bot")
+      self.b_bot.move_joints(intermediate_screw_bearing_pose)
+      self.b_bot.go_to_named_pose("horizontal_screw_ready")
       screw_pose = geometry_msgs.msg.PoseStamped()
       screw_pose.header.frame_id = "/assembled_assy_part_07_screw_hole_" + str(n)
       screw_pose.pose.position.x = 0.01 ## WHY? NO IDEA
@@ -304,11 +304,11 @@ class AssemblyClass(O2ACCommon):
       screw_pose_approach = copy.deepcopy(screw_pose)
       screw_pose_approach.pose.position.x -= 0.05
       
-      self.go_to_pose_goal("b_bot", screw_pose_approach, end_effector_link = "b_bot_screw_tool_m4_tip_link", move_lin=False)
+      self.b_bot.go_to_pose_goal(screw_pose_approach, end_effector_link = "b_bot_screw_tool_m4_tip_link", move_lin=False)
       screw_success = self.skill_server.do_screw_action("b_bot", screw_pose, screw_size=4)
-      self.go_to_pose_goal("b_bot", screw_pose_approach, end_effector_link = "b_bot_screw_tool_m4_tip_link", move_lin=False)
-      self.move_joints("b_bot", intermediate_screw_bearing_pose)
-      # self.go_to_named_pose("home","b_bot")
+      self.b_bot.go_to_pose_goal(screw_pose_approach, end_effector_link = "b_bot_screw_tool_m4_tip_link", move_lin=False)
+      self.b_bot.move_joints(intermediate_screw_bearing_pose)
+      # self.b_bot.go_to_named_pose("home")
       return (screw_success, False)
 
     screw_status = dict()
@@ -346,14 +346,14 @@ class AssemblyClass(O2ACCommon):
         rospy.loginfo("Screw " + str(n) + " detected as " + screw_status[n])
       all_screws_done = all(value == "done" for value in screw_status.values())
 
-    self.move_joints("b_bot", intermediate_screw_bearing_pose)
-    self.go_to_named_pose("tool_pick_ready","b_bot")
+    self.b_bot.move_joints(intermediate_screw_bearing_pose)
+    self.b_bot.go_to_named_pose("tool_pick_ready")
     self.unequip_tool('b_bot', 'screw_tool_m4')
   
   def subtask_c2(self):
     rospy.loginfo("======== SUBTASK C (output shaft) ========")
     rospy.logerr("Subtask C not implemented yet")
-    self.go_to_named_pose("home", "b_bot", speed=self.speed_fastest, acceleration=self.acc_fastest)
+    self.b_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
     return False
 
   def subtask_d(self):
@@ -366,7 +366,7 @@ class AssemblyClass(O2ACCommon):
     rospy.loginfo("======== SUBTASK E (idler pulley) ========")
     rospy.logerr("Subtask E not implemented yet")
 
-    self.go_to_named_pose("home", "b_bot", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
+    self.b_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
     return True
 
   def subtask_f(self):
@@ -387,18 +387,18 @@ class AssemblyClass(O2ACCommon):
     input parameter panel needs to be "motor_panel" or "bearing_panel"
     """
 
-    if not self.go_to_named_pose("feeder_pick_ready", "b_bot"):
+    if not self.b_bot.go_to_named_pose("feeder_pick_ready"):
       rospy.logerr("b_bot did not move out of the way. Aborting.")
       return False
 
     # TODO: Use vision here instead
     if panel == "bearing_panel":
       a_bot_start_hardcoded_bearing_plate = [1.014740824, -1.597331663, 1.923653427, -1.910340925, -1.59755593, 1.014281272]
-      self.move_joints("a_bot", a_bot_start_hardcoded_bearing_plate)
+      self.a_bot.move_joints(a_bot_start_hardcoded_bearing_plate)
       success_a = self.a_bot.load_program(program_name="wrs2020/bearing_plate_full.urp", recursion_depth=3)
     elif panel == "motor_panel":
       a_bot_start_hardcoded_motor_plate = [1.093529105, -1.416419939, 1.730439011, -1.895824571, -1.598531071, 1.09309482]
-      self.move_joints("a_bot", a_bot_start_hardcoded_motor_plate)
+      self.a_bot.move_joints(a_bot_start_hardcoded_motor_plate)
       success_a = self.a_bot.load_program(program_name="wrs2020/motor_plate_full.urp", recursion_depth=3)
     
     if not success_a:
@@ -415,7 +415,7 @@ class AssemblyClass(O2ACCommon):
     if not self.skill_server.pick_screw_from_feeder("b_bot", screw_size = 4, realign_tool_upon_failure=True):
       rospy.logerr("Failed to pick screw from feeder, could not fix the issue. Abort.")
       self.a_bot.gripper.open()
-      self.go_to_named_pose("home", "a_bot")
+      self.a_bot.go_to_named_pose("home")
       return False
 
     if panel == "bearing_panel":
@@ -431,12 +431,12 @@ class AssemblyClass(O2ACCommon):
       # Fallback for screw 1
       rospy.logerr("Failed to fasten panel screw 1, trying to realign tool and retry.")
       self.realign_tool("b_bot", "screw_tool_m4")
-      self.go_to_named_pose("feeder_pick_ready", "b_bot")
+      self.b_bot.go_to_named_pose("feeder_pick_ready")
       self.pick_screw_from_feeder("b_bot", screw_size = 4)
 
       # Realign plate
       self.a_bot.gripper.close(force = 100)
-      self.move_lin_rel("a_bot", relative_translation=[0, -0.015, 0])
+      self.a_bot.move_lin_rel(relative_translation=[0, -0.015, 0])
       self.a_bot.gripper.open(opening_width=0.08, wait=True)
       if panel == "bearing_panel":
         success_a = self.a_bot.load_program(program_name="wrs2020/bearing_plate_positioning.urp", recursion_depth=3)
@@ -457,14 +457,14 @@ class AssemblyClass(O2ACCommon):
 
     self.a_bot.gripper.close()
     self.a_bot.gripper.open()
-    if not self.go_to_named_pose("home", "a_bot"):
+    if not self.a_bot.go_to_named_pose("home"):
       rospy.logerr("Failed to move a_bot home!")
       return False
 
     if not self.skill_server.pick_screw_from_feeder("b_bot", screw_size = 4, realign_tool_upon_failure=True):
       rospy.logerr("Failed to pick second screw, could not fix the issue. Abort.")
       self.a_bot.gripper.open()
-      self.go_to_named_pose("home", "a_bot")
+      self.a_bot.go_to_named_pose("home")
       return False
 
     screw_target_pose.header.frame_id = part_name + "bottom_screw_hole_2"
@@ -472,7 +472,7 @@ class AssemblyClass(O2ACCommon):
       # Fallback for screw 2: Realign tool, recenter plate, try again
       rospy.logerr("Failed to fasten panel screw 2, trying to realign tool and retrying.")
       self.realign_tool("b_bot", "screw_tool_m4")
-      self.go_to_named_pose("feeder_pick_ready", "b_bot")
+      self.b_bot.go_to_named_pose("feeder_pick_ready")
       self.pick_screw_from_feeder("b_bot", screw_size = 4)
 
       # Recenter plate
@@ -484,10 +484,10 @@ class AssemblyClass(O2ACCommon):
       center_plate_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, radians(60), -tau/4))
       center_plate_pose.pose.position.x = 0.0025
       self.a_bot.gripper.open(opening_width=0.08, wait=False)
-      self.go_to_pose_goal("a_bot", center_plate_pose, move_lin=False)
+      self.a_bot.go_to_pose_goal(center_plate_pose, move_lin=False)
       self.a_bot.gripper.close(force = 100)
       self.a_bot.gripper.open()
-      if not self.go_to_named_pose("home", "a_bot"):
+      if not self.a_bot.go_to_named_pose("home"):
         rospy.logerr("Failed to move a_bot home!")
         return False
       if not self.fasten_screw_vertical('b_bot', screw_target_pose):
@@ -583,9 +583,9 @@ class AssemblyClass(O2ACCommon):
     self.subtask_zero()  # Base plate
     
     ## Equip screw tool for subtasks G, F
-    self.go_to_named_pose("home", "b_bot", speed=self.speed_fastest, acceleration=self.acc_fastest)
+    self.b_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
     self.do_change_tool_action("b_bot", equip=True, screw_size=4)
-    self.go_to_named_pose("feeder_pick_ready", "b_bot", speed=self.speed_fastest, acceleration=self.acc_fastest)
+    self.b_bot.go_to_named_pose("feeder_pick_ready", speed=self.speed_fastest, acceleration=self.acc_fastest)
     self.vision.activate_camera("b_bot_outside_camera")
 
     self.confirm_to_proceed("press enter to proceed to subtask_g")
@@ -593,7 +593,7 @@ class AssemblyClass(O2ACCommon):
     self.confirm_to_proceed("press enter to proceed to subtask_f")
     self.subtask_f() # motor plate
 
-    self.go_to_named_pose("home", "a_bot", speed=self.speed_fastest, acceleration=self.acc_fastest)
+    self.a_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
     self.do_change_tool_action("b_bot", equip=False, screw_size=4)
 
     rospy.loginfo("==== Finished.")
@@ -604,19 +604,19 @@ class AssemblyClass(O2ACCommon):
     # # To prepare subtask E
     # self.pick_retainer_pin_from_tray_and_place_in_holder(do_centering=False)
     # self.confirm_to_proceed("press enter to proceed")
-    # self.go_to_named_pose("home", "b_bot", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
+    # self.b_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
 
     # assy.go_to_named_pose("back", "c_bot", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=assy.use_real_robot)
     # assy.do_change_tool_action("b_bot", equip=False, screw_size=4)
 
     # self.go_to_named_pose("home", "c_bot", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
-    # self.go_to_named_pose("home", "b_bot", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
+    # self.b_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
 
     # self.subtask_e(pick_from_holder=True) #idle pulley
 
     # self.go_to_named_pose("home", "c_bot", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
-    # self.go_to_named_pose("home", "b_bot", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
-    # self.go_to_named_pose("home", "a_bot", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
+    # self.b_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
+    # self.a_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
 
     # self.subtask_a() # motor
     
@@ -646,8 +646,8 @@ if __name__ == '__main__':
       rospy.loginfo("Enter x to exit.")
       i = raw_input()
       if i == '1':
-        assy.go_to_named_pose("home", "a_bot")
-        assy.go_to_named_pose("home", "b_bot")
+        assy.a_bot.go_to_named_pose("home")
+        assy.b_bot.go_to_named_pose("home")
       if i == '11':
         assy.do_change_tool_action("b_bot", equip=True, screw_size=4)
       if i == '12':
@@ -665,21 +665,21 @@ if __name__ == '__main__':
       if i == '28':
         assy.a_bot.gripper.close()
       if i == '30':
-        assy.go_to_named_pose("feeder_pick_ready", "a_bot")
+        assy.a_bot.go_to_named_pose("feeder_pick_ready")
         assy.skill_server.pick_screw_from_feeder("a_bot", screw_size=3)
-        assy.go_to_named_pose("feeder_pick_ready", "a_bot")
+        assy.a_bot.go_to_named_pose("feeder_pick_ready")
       if i == '31':
-        assy.go_to_named_pose("feeder_pick_ready", "b_bot")
+        assy.b_bot.go_to_named_pose("feeder_pick_ready")
         assy.skill_server.pick_screw_from_feeder("b_bot", screw_size=3)
-        assy.go_to_named_pose("feeder_pick_ready", "b_bot")
+        assy.b_bot.go_to_named_pose("feeder_pick_ready")
       if i == '40':
-        assy.go_to_named_pose("feeder_pick_ready", "a_bot")
+        assy.a_bot.go_to_named_pose("feeder_pick_ready")
         assy.skill_server.pick_screw_from_feeder("a_bot", screw_size=4)
-        assy.go_to_named_pose("feeder_pick_ready", "a_bot")
+        assy.a_bot.go_to_named_pose("feeder_pick_ready")
       if i == '41':
-        assy.go_to_named_pose("feeder_pick_ready", "b_bot")
+        assy.b_bot.go_to_named_pose("feeder_pick_ready")
         assy.skill_server.pick_screw_from_feeder("b_bot", screw_size=4)
-        assy.go_to_named_pose("feeder_pick_ready", "b_bot")
+        assy.b_bot.go_to_named_pose("feeder_pick_ready")
       if i == '67':
         assy.spawn_objects_for_closed_loop_test()
       if i == '68':
@@ -767,7 +767,7 @@ if __name__ == '__main__':
         assy.a_bot.gripper.close(force = 100)
         assy.a_bot.gripper.open()
       elif i == "898":
-        assy.go_to_named_pose("home", "a_bot", force_ur_script=False)
+        assy.a_bot.go_to_named_pose("home", force_ur_script=False)
       elif i == '100': # Test Force control be careful!!
         b_bot_starting_position = [1.7078, -1.5267, 2.0624, -2.1325, -1.6114, 1.7185]
         assy.move_joints("b_bot", b_bot_starting_position)

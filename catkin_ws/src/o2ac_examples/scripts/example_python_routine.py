@@ -62,7 +62,7 @@ class ExampleClass(O2ACCommonBase):
     target_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi*3/4, pi/2))
     
     # This uses the go_to_pose_goal function defined in base.py to go to the pose
-    self.go_to_pose_goal(robot, target_pose, 
+    self.active_robots[robot].go_to_pose_goal(target_pose, 
             speed=0.03, acceleration=.1, end_effector_link=robot+"_robotiq_85_tip_link", move_lin=False)
     
     # The end_effector_link defines which part of the robot is moved to the target pose (it can be another part, or a tool!)

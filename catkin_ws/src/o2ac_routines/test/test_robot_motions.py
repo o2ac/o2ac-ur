@@ -51,10 +51,10 @@ class TestSimpleMoves(unittest.TestCase):
 
     def test_simple_motions(self):
         results = []
-        results.append( self.base.go_to_named_pose("home","a_bot") )
-        results.append( self.base.go_to_named_pose("home","b_bot") )
-        results.append( self.base.go_to_named_pose("tool_pick_ready","a_bot") )
-        results.append( self.base.go_to_named_pose("tool_pick_ready","b_bot") )
+        results.append( self.base.active_robots["a_bot"].go_to_named_pose("home") )
+        results.append( self.base.active_robots["b_bot"].go_to_named_pose("home") )
+        results.append( self.base.active_robots["a_bot"].go_to_named_pose("tool_pick_ready") )
+        results.append( self.base.active_robots["b_bot"].go_to_named_pose("tool_pick_ready") )
         all_motions_successful = all(result == True for result in results)
         print("Finished simple motions")
         self.assertTrue(all_motions_successful)

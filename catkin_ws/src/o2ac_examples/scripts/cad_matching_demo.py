@@ -68,7 +68,7 @@ class VisionDemo(O2ACCommonBase):
     rospy.loginfo("speed_fast = " + str(speed_fast))
     rospy.loginfo("speed_slow = " + str(speed_slow))
 
-    self.go_to_pose_goal(robotname, object_pose, speed=speed_fast)
+    self.active_robots[robotname].go_to_pose_goal(object_pose, speed=speed_fast)
 
   def place(self,robotname, object_pose, place_height, speed_fast, speed_slow, gripper_command = "", approach_height = 0.05, lift_up_after_place = True):
     rospy.loginfo("Going above place target")
