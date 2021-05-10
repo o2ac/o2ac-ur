@@ -989,6 +989,69 @@ class O2ACCommon(O2ACBase):
     self.go_to_named_pose("tool_pick_ready","b_bot")
     return all_screws_done
 
+  ########  Motor pulley
+
+  def insert_motor_pulley(self, task=""):
+    if not task:
+      rospy.logerr("Specify the task!")
+      return False
+
+    if task == "taskboard":
+      bearing_target_link = "taskboard_small_shaft"
+    elif task == "assembly":
+      rospy.logerr("look this up")
+      bearing_target_link = "assembled_assy_part_07_inserted"
+
+    plane = "YZ"
+    radius = 0.002
+    radius_direction = "+Z"
+    revolutions = 5
+
+    steps = 100
+    duration = 30.0
+    
+    target_force = get_target_force('-X', 6.0)
+    selection_matrix = [0., 0.8, 0.8, 0.8, 0.8, 0.8]
+
+    target_pose = geometry_msgs.msg.PoseStamped()
+    target_pose.header.frame_id = bearing_target_link
+    target_pose.pose.position = geometry_msgs.msg.Point(0.009, -0.000, -0.009)
+    target_in_robot_base = self.listener.transformPose("b_bot_base_link", target_pose)
+    target_x = target_in_robot_base.pose.position.x
+    termination_criteria = lambda cpose, standby_time: cpose[0] >= target_x or \
+                                                       (standby_time and cpose[0] >= target_x-0.005) # relax constraint
+
+    rospy.logwarn("** STARTING FORCE CONTROL **")
+    result = self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
+                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(6.0), wiggle_revolutions=10.0,
+                                                        target_force=target_force, selection_matrix=selection_matrix,
+                                                        termination_criteria=termination_criteria)
+    rospy.logwarn("** FORCE CONTROL COMPLETE **")
+
+    self.b_bot.gripper.open(wait=True, opening_width=0.07)
+    self.b_bot.gripper.close(wait=True)
+
+    radius = 0.0
+    target_x += 0.01
+    termination_criteria = lambda cpose, standby_time: cpose[0] >= target_x or \
+                                                       (standby_time and cpose[0] >= target_x-0.005) # relax constraint
+
+    rospy.logwarn("** STARTING FORCE CONTROL **")
+    result = self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
+                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(10.0), wiggle_revolutions=10.0,
+                                                        target_force=target_force, selection_matrix=selection_matrix,
+                                                        termination_criteria=termination_criteria)
+
+    if result != TERMINATION_CRITERIA:
+      rospy.logerr("** Insertion Failed!! **")
+      return
+
+    self.b_bot.gripper.open(wait=True)
+
+    self.b_bot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03, use_robot_base_csys=True)
+
+    return True
+
   ########
 
   def fasten_screw_vertical(self, robot_name, screw_hole_pose, screw_height = .02, screw_size = 4):

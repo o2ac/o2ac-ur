@@ -323,7 +323,7 @@ class URRobot():
             return False
 
         if not end_effector_link:
-            end_effector_link = self.ns + "_robotiq_85_tip_link"
+            end_effector_link = self.ns + "_gripper_tip_link"
 
         group = self.robot_group
 
@@ -363,7 +363,7 @@ class URRobot():
         group.clear_pose_targets()
         return True
 
-    def move_lin(self, pose_goal_stamped, speed=1.0, acceleration=0.5, end_effector_link=""):
+    def move_lin(self, pose_goal_stamped, speed=1.0, acceleration=0.5, end_effector_link="", wait=True):
         if not self.set_up_move_group(speed, acceleration):
             return False
 

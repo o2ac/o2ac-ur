@@ -415,16 +415,23 @@ class TaskboardClass(O2ACCommon):
 
       b_bot_script_start_pose = [1.7094888, -1.76184906, 2.20651847, -2.03368343, -1.54728252, 0.96213197]
       self.b_bot.move_joints(b_bot_script_start_pose)
-      success_b = self.b_bot.load_program(program_name="wrs2020/pulley_v3.urp", recursion_depth=3)
-      if success_b:
-        print("Loaded pulley program.")
-        rospy.sleep(1)
-        self.b_bot.execute_loaded_program()
-        print("Started execution. Waiting for b_bot to finish.")
+
+      use_ros = True
+
+      if use_ros:
+        self.playback_sequence(routine_filename="orient_pulley")
+        self.insert_motor_pulley(task = "taskboard")
       else:
-        print("Problem loading. Not executing pulley procedure.")
-        return False
-      wait_for_UR_program("/b_bot", rospy.Duration.from_sec(40))
+        success_b = self.b_bot.load_program(program_name="wrs2020/pulley_v3.urp", recursion_depth=3)
+        if success_b:
+          print("Loaded pulley program.")
+          rospy.sleep(1)
+          self.b_bot.execute_loaded_program()
+          print("Started execution. Waiting for b_bot to finish.")
+        else:
+          print("Problem loading. Not executing pulley procedure.")
+          return False
+        wait_for_UR_program("/b_bot", rospy.Duration.from_sec(40))
       return True
     
     # ==========================================================
