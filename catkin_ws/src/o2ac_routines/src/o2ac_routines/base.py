@@ -925,12 +925,16 @@ class O2ACBase(object):
       print("point:", i+1)
       # raw_input()
       if point[0] == "point":
-        self.move_to_sequence_waypoint(*point[1])
+        res = self.move_to_sequence_waypoint(*point[1])
       elif point[0] == "trajectory":
         robot_name, trajectory, speed_scale_factor, acceleration_scale_factor = point[1]
-        self.active_robots[robot_name].move_lin_trajectory(trajectory, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
+        res = self.active_robots[robot_name].move_lin_trajectory(trajectory, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
+      if not res:
+        rospy.logerr("Fail to complete playback sequence")
+        break
 
   def move_to_sequence_waypoint(self, robot_name, pose, pose_type, gripper_action, speed_scale_factor, acceleration_scale_factor):
+    success = False
     robot = self.active_robots[robot_name]
     group = robot.robot_group
 
@@ -938,21 +942,22 @@ class O2ACBase(object):
     p.header.frame_id = robot_name + "_base_link"
 
     if pose_type == 'joint-space':
-      robot.move_joints(pose, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
+      success = robot.move_joints(pose, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
     elif pose_type == 'joint-space-goal-cartesian-lin-motion':
       # Convert joint-space to task-space
       target_pose = robot.force_controller.end_effector(pose)  # Forward kinematics
       p.pose = conversions.to_pose(target_pose)
-      robot.move_lin(p, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
+      success = robot.move_lin(p, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
     elif pose_type == 'task-space':
       p.pose = conversions.to_pose(pose)
-      robot.move_lin(pose, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
+      # success = robot.move_joints(q, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
+      success = robot.move_lin(p, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
     elif pose_type == 'relative-tcp':
       pass
-      robot.move_lin_rel(relative_translation=pose[:3], relative_rotation=pose[3:], speed=speed_scale_factor, acceleration=acceleration_scale_factor, use_robot_base_csys=False)
+      success = robot.move_lin_rel(relative_translation=pose[:3], relative_rotation=pose[3:], speed=speed_scale_factor, acceleration=acceleration_scale_factor, use_robot_base_csys=False)
     elif pose_type == 'relative-base':
       pass
-      robot.move_lin_rel(relative_translation=pose[:3], relative_rotation=pose[3:], speed=speed_scale_factor, acceleration=acceleration_scale_factor, use_robot_base_csys=True)
+      success = robot.move_lin_rel(relative_translation=pose[:3], relative_rotation=pose[3:], speed=speed_scale_factor, acceleration=acceleration_scale_factor, use_robot_base_csys=True)
     else:
       raise ValueError("Invalid pose_type: %s" % pose_type)
 
@@ -964,6 +969,7 @@ class O2ACBase(object):
       elif gripper_action == 'close-open':
         robot.gripper.close(velocity=0.01)
         robot.gripper.open()
+    return success
 ######
 
   def start_task_timer(self):

@@ -19,6 +19,7 @@ def main():
     controller = O2ACCommon()
     # controller.b_bot.activate_ros_control_on_ur()
     # controller.playback_sequence("bearing_orient_totb")
+    controller.b_bot.go_to_named_pose("home")
 
     controller.b_bot.move_joints([1.59158802, -1.25697692,  1.81759102, -2.17105832, -2.6109851, -1.49198085], acceleration = 0.015, speed=.03)
     controller.insert_bearing(task = "taskboard")
