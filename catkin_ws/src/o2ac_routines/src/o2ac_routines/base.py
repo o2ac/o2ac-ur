@@ -42,36 +42,24 @@ import tf_conversions
 import tf 
 import actionlib
 
-# from math import *
-# from math import pi
-# tau = 2.0*pi  # Part of math from Python 3.6
-
 import yaml
 import pickle
 
 import moveit_commander
 import moveit_msgs.msg
-# import moveit_msgs.srv
 import geometry_msgs.msg
-# import std_msgs.msg
-# import robotiq_msgs.msg
-# import ur_dashboard_msgs.msg
-# import ur_dashboard_msgs.srv
 import std_srvs.srv
-# import controller_manager_msgs.srv
 from shape_msgs.msg import SolidPrimitive
 from geometry_msgs.msg import Pose
 from trajectory_msgs.msg import JointTrajectoryPoint
 
 import o2ac_msgs.msg
-# import o2ac_msgs.srv
 import o2ac_task_planning_msgs.msg
 
 from std_msgs.msg import String, Bool
 
 from o2ac_assembly_database.assembly_reader import AssemblyReader
 
-# import ur_msgs.msg
 import ur_msgs.srv
 from o2ac_routines.helpers import *
 
