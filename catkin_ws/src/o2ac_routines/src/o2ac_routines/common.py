@@ -35,7 +35,7 @@
 # Author: Felix von Drigalski
 
 from o2ac_routines.base import *
-
+from math import radians
 from ur_control.constants import TERMINATION_CRITERIA
 
 class O2ACCommon(O2ACBase):
@@ -859,7 +859,9 @@ class O2ACCommon(O2ACBase):
     target_pose.header.frame_id = bearing_target_link
     target_pose.pose.position = geometry_msgs.msg.Point(-.004, 0, -.005)
     target_in_robot_base = self.listener.transformPose("b_bot_base_link", target_pose)
-    termination_criteria = lambda cpose: cpose[0] > target_in_robot_base.pose.position.x
+    target_x = target_in_robot_base.pose.position.x
+    termination_criteria = lambda cpose, standby_time: cpose[0] >= target_x or \
+                                                       (standby_time >= 2.0 and cpose[0] >= target_x-0.005) # relax constraint
 
     rospy.logwarn("** STARTING FORCE CONTROL **")
     result = self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
@@ -874,17 +876,15 @@ class O2ACCommon(O2ACBase):
 
     self.b_bot.gripper.open(wait=True)
 
-    self.move_lin_rel("b_bot", relative_translation = [0.016,0,0], acceleration = 0.015, velocity = .03, use_robot_base_csys=True)
+    self.b_bot.move_lin_rel(relative_translation = [0.016,0,0], acceleration = 0.015, speed=.03, use_robot_base_csys=True)
 
     pre_push_position = self.b_bot.force_controller.joint_angles()
 
     self.b_bot.gripper.close(velocity=0.01, wait=True)
 
-    target_pose = geometry_msgs.msg.PoseStamped()
-    target_pose.header.frame_id = "taskboard_bearing_target_link"
-    target_pose.pose.position = geometry_msgs.msg.Point(-.003, 0, -.005)
-    target_in_robot_base = self.listener.transformPose("b_bot_base_link", target_pose)
-    termination_criteria = lambda cpose: cpose[0] > target_in_robot_base.pose.position.x
+    target_x += 0.001
+    termination_criteria = lambda cpose, standby_time: cpose[0] >= target_x or \
+                                                       (standby_time >= 2.0 and cpose[0] >= target_x-0.001) # relax constraint
     radius = 0.001
 
     rospy.logwarn("** STARTING FORCE CONTROL 2**")
@@ -897,7 +897,7 @@ class O2ACCommon(O2ACBase):
     self.b_bot.gripper.open(wait=True)
 
     rospy.loginfo("** Second insertion done, moving back via MoveIt **")
-    self.move_lin_rel("b_bot", relative_translation = [0.025,0,0], acceleration = 0.015, velocity = .03, use_robot_base_csys=True)
+    self.b_bot.move_lin_rel(relative_translation = [0.025,0,0], acceleration = 0.015, speed=.03, use_robot_base_csys=True)
     return True
 
   def fasten_bearing(self, task=""):
