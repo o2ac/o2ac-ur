@@ -1,26 +1,28 @@
 robot_name: b_bot
 waypoints:
-- duration: 3.0
+- speed: 0.8
   pose: [1.70955, -1.76188, 2.20655, -2.03371, -1.54722, 0.21328]
   type: joint-space
-- duration: 1.0
+  blend: 0.01
+- speed: 0.8
   pose: [1.83711, -2.03315, 2.54636, -2.08639, -1.54045, 0.28342]
   type: joint-space-goal-cartesian-lin-motion
-- duration: 1.0
+  blend: 0.01
+- speed: 0.8
   gripper-action: open
   pose: [1.83603, -1.86888, 2.6557, -2.35998, -1.54055, 1.48353]
   type: joint-space-goal-cartesian-lin-motion
-- duration: 1.0
+- speed: 0.8
   gripper-action: close-open
   pose: [1.83602, -1.86889, 2.65576, -2.35999, -1.54056, -0.08881]
   type: joint-space-goal-cartesian-lin-motion
-- duration: 1.0
+- speed: 0.8
   pose: [1.83601, -1.86894, 2.65587, -2.36008, -1.5406, -1.66107]
   type: joint-space-goal-cartesian-lin-motion
-- duration: 1.5
+- speed: 0.8
   gripper-action: close
   pose: [1.36839, -1.8889, 2.70104, -2.08534, -1.13864, -2.1986]
   type: joint-space-goal-cartesian-lin-motion
-- duration: 1.5
+- speed: 0.8
   pose: [1.3899, -2.097, 2.5718, -1.7734, -1.1517, -2.1679]
   type: joint-space-goal-cartesian-lin-motion
