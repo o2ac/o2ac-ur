@@ -789,8 +789,8 @@ class O2ACCommon(O2ACBase):
     if not task:
       rospy.logerr("Specify the task!")
       return False
-    self.go_to_named_pose("home","a_bot")
-    self.go_to_named_pose("home","b_bot")
+    self.a_bot.go_to_named_pose("home")
+    self.b_bot.go_to_named_pose("home")
 
     goal = self.look_and_get_grasp_point("bearing")
     if not goal:
@@ -861,7 +861,7 @@ class O2ACCommon(O2ACBase):
     target_in_robot_base = self.listener.transformPose("b_bot_base_link", target_pose)
     target_x = target_in_robot_base.pose.position.x
     termination_criteria = lambda cpose, standby_time: cpose[0] >= target_x or \
-                                                       (standby_time >= 2.0 and cpose[0] >= target_x-0.005) # relax constraint
+                                                       (standby_time and cpose[0] >= target_x-0.005) # relax constraint
 
     rospy.logwarn("** STARTING FORCE CONTROL **")
     result = self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
@@ -884,7 +884,7 @@ class O2ACCommon(O2ACBase):
 
     target_x += 0.001
     termination_criteria = lambda cpose, standby_time: cpose[0] >= target_x or \
-                                                       (standby_time >= 2.0 and cpose[0] >= target_x-0.001) # relax constraint
+                                                       (standby_time and cpose[0] >= target_x-0.005) # relax constraint
     radius = 0.001
 
     rospy.logwarn("** STARTING FORCE CONTROL 2**")
