@@ -470,13 +470,17 @@ class URRobot():
     # ------ Force control functions
 
     def force_control(self, *args, **kwargs):
+        self.activate_ros_control_on_ur()
         return self.force_controller.force_control(*args, **kwargs)
 
     def execute_circular_trajectory(self, *args, **kwargs):
+        self.activate_ros_control_on_ur()
         return self.force_controller.execute_circular_trajectory(*args, **kwargs)
 
     def execute_spiral_trajectory(self, *args, **kwargs):
+        self.activate_ros_control_on_ur()
         return self.force_controller.execute_spiral_trajectory(*args, **kwargs)
 
     def linear_push(self, *args, **kwargs):
+        self.activate_ros_control_on_ur()
         return self.force_controller.linear_push(*args, **kwargs)
