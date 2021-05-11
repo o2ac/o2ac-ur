@@ -179,7 +179,7 @@ class AssemblyClass(O2ACCommon):
   def subtask_c1(self):
     rospy.loginfo("======== SUBTASK C (bearing) ========")
     rospy.logerr("Subtask C not implemented yet")
-    if not self.pick_up_and_insert_bearing():
+    if not self.pick_up_and_insert_bearing(task="assembly"):
       return False
     return self.fasten_bearing()
   
@@ -623,7 +623,7 @@ if __name__ == '__main__':
       elif i == '93':
         assy.subtask_c1() # bearing
       elif i == '931':
-        assy.pick_up_and_insert_bearing()
+        assy.pick_up_and_insert_bearing(task="assembly")
       elif i == '9311':
         assy.align_bearing_holes(task="assembly")
       elif i == '932':

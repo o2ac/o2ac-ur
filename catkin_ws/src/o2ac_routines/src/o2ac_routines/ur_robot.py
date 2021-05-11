@@ -476,4 +476,4 @@ class URRobot():
         return self.force_controller.execute_spiral_trajectory(*args, **kwargs)
 
     def linear_push(self, *args, **kwargs):
-        return self.force_controller(*args, **kwargs)
+        return self.force_controller.linear_push(*args, **kwargs)
