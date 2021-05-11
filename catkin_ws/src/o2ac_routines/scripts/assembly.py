@@ -461,16 +461,22 @@ class AssemblyClass(O2ACCommon):
     self.vision.activate_camera("b_bot_outside_camera")
 
     self.confirm_to_proceed("press enter to proceed to subtask_g")
-    self.subtask_g()  # Large plate
+    success = False
+    while not success and not rospy.is_shutdown():
+      success = self.subtask_g()  # Large plate
     self.confirm_to_proceed("press enter to proceed to subtask_f")
-    self.subtask_f() # motor plate
+    success = False
+    while not success and not rospy.is_shutdown():
+      success = self.subtask_f() # motor plate
 
     self.a_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
     self.do_change_tool_action("b_bot", equip=False, screw_size=4)
 
     rospy.loginfo("==== Finished.")
 
-    self.subtask_c1() # bearing 
+    success = False
+    while not success and not rospy.is_shutdown():
+      success = self.subtask_c1() # bearing 
     # # self.subtask_c2() # shaft
 
     # # To prepare subtask E
