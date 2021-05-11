@@ -880,7 +880,7 @@ class O2ACBase(object):
       if blend is not None and pose_type == 'joint-space-goal-cartesian-lin-motion':
         if gripper_action:
           rospy.logerr("Gripper actions not supported for trajectories")
-          return
+          return False
         
         assert isinstance(blend, float), "Blend if defined must be a float"
 
@@ -919,7 +919,8 @@ class O2ACBase(object):
         res = self.active_robots[robot_name].move_lin_trajectory(trajectory, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
       if not res:
         rospy.logerr("Fail to complete playback sequence")
-        break
+        return False
+    return True
 
   def move_to_sequence_waypoint(self, robot_name, pose, pose_type, gripper_action, speed_scale_factor, acceleration_scale_factor):
     success = False
