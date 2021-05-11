@@ -384,7 +384,7 @@ class URRobot():
         group.clear_pose_targets()
         return move_success
 
-    def move_lin_rel(self, relative_translation=[0, 0, 0], relative_rotation=[0, 0, 0], speed=.03, acceleration=0.5, use_robot_base_csys=False, wait=True, max_wait=30.0):
+    def move_lin_rel(self, relative_translation=[0, 0, 0], relative_rotation=[0, 0, 0], speed=.5, acceleration=0.2, use_robot_base_csys=False, wait=True, max_wait=30.0):
         '''
         Does a lin_move relative to the current position of the robot.
 
@@ -396,11 +396,14 @@ class URRobot():
             return False
 
         group = self.robot_group
-        # TODO: use use_robot_base_csys parameter
+        if use_robot_base_csys:
+            rospy.logerr("use_robot_base_csys is not implemented for move_lin_rel!")
         new_pose1 = group.get_current_pose()
+        
+        # FIXME: # This guards against a weird error that seems to occur with get_current_pose sometimes
+        rospy.sleep(0.05)
         new_pose2 = group.get_current_pose()
         if helpers.pose_dist(new_pose1.pose, new_pose2.pose) > 0.002:
-            # This is guarding against a weird error that seems to occur with get_current_pose sometimes
             rospy.logerr("get_current_pose gave two different results!!")
             rospy.logwarn("pose1: ")
             rospy.logwarn(new_pose1.pose)
@@ -410,7 +413,7 @@ class URRobot():
         new_pose2.pose.position.x += relative_translation[0]
         new_pose2.pose.position.y += relative_translation[1]
         new_pose2.pose.position.z += relative_translation[2]
-        new_pose2.pose.orientation = helpers.rotateQuaternionByRPY(relative_rotation[0], relative_rotation[1],
+        new_pose2.pose.orientation = helpers.rotateQuaternionByRPYInUnrotatedFrame(relative_rotation[0], relative_rotation[1],
                                                            relative_rotation[2], new_pose2.pose.orientation)
         return self.move_lin(new_pose2, speed=speed, acceleration=acceleration, wait=wait)
 
