@@ -104,58 +104,63 @@ class AssemblyClass(O2ACCommon):
 
     pick_pose = geometry_msgs.msg.PoseStamped()
     pick_pose.header.frame_id = "workspace_center"
-    pick_pose.pose.position = geometry_msgs.msg.Point(0.183, 0.13, 0.03)
+    pick_pose.pose.position = geometry_msgs.msg.Point(0.183, 0.14, 0.03)
     pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(tau/4, tau/4, 0))
     
-    approach_pose = copy.deepcopy(pick_pose)
-    approach_pose.pose.position.z += 0.15
+    above_pick_pose = copy.deepcopy(pick_pose)
+    above_pick_pose.pose.position.z += 0.15
 
     self.b_bot.gripper.open(wait=False)
-    self.b_bot.go_to_pose_goal(approach_pose, speed=0.2, move_lin = True)
+    self.b_bot.go_to_pose_goal(above_pick_pose, speed=0.2, move_lin = True)
     self.b_bot.go_to_pose_goal(pick_pose, speed=0.2, move_lin = True)
     
     self.b_bot.gripper.close(force = 100)
     if self.b_bot.gripper.opening_width < 0.003:
       rospy.logerr("Gripper did not grasp the base plate. Aborting.")
       return False
-    
-    self.b_bot.go_to_pose_goal(approach_pose, speed=0.1, acceleration=0.1, move_lin = True)   
+    self.b_bot.go_to_pose_goal(above_pick_pose, speed=0.1, acceleration=0.1, move_lin = True)   
 
-    approach_orient_pose = copy.deepcopy(approach_pose)
-    approach_orient_pose.pose.position.x += -0.050
-    approach_orient_pose.pose.position.y += +0.220 
+    approach_orient_pose = geometry_msgs.msg.PoseStamped()
+    approach_orient_pose.header.frame_id = "workspace_center"
+    approach_orient_pose.pose.position = geometry_msgs.msg.Point(0.133, 0.35, 0.18)
+    approach_orient_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(tau/4, tau/4, 0))
 
     orient_pose = copy.deepcopy(approach_orient_pose)
-    orient_pose.pose.position.z += -0.173
+    orient_pose.pose.position.z = 0.01
 
     self.b_bot.go_to_pose_goal(approach_orient_pose, speed=0.1, acceleration=0.1, move_lin = True)   
     self.b_bot.go_to_pose_goal(orient_pose, speed=0.1, acceleration=0.1, move_lin = True)   
     self.b_bot.gripper.open(wait=True)
 
-    gripper_rotated = self.b_bot.get_current_pose_stamped()
-    gripper_rotated.pose.orientation = helpers.rotateQuaternionByRPY(tau/4, 0, 0, orient_pose.pose.orientation)
+    self.confirm_to_proceed("enter to rotate left")
+    self.b_bot.move_lin_rel(relative_translation=[0,0,0], relative_rotation=[0,0,tau/4], speed=1.0, acceleration=0.5)
 
-    self.b_bot.go_to_pose_goal(gripper_rotated, speed=0.5, move_lin = True)
     self.b_bot.gripper.close(force = 100, wait=True)
     self.b_bot.gripper.open(wait=True)
-    self.b_bot.go_to_pose_goal(orient_pose, speed=0.5, move_lin = True)
+    self.confirm_to_proceed("enter to rotate back")
+    self.b_bot.go_to_pose_goal(orient_pose, speed=1.0, acceleration=0.5)
     self.b_bot.gripper.close(force = 100, wait=True)
 
-    self.b_bot.go_to_pose_goal(approach_orient_pose, speed=0.2, move_lin = True)
+    self.confirm_to_proceed("enter to move up")
+    self.b_bot.go_to_pose_goal(approach_orient_pose, speed=0.2)
     
     # Move plate
     place_onboard_pose = geometry_msgs.msg.PoseStamped()
     place_onboard_pose.header.frame_id = "workspace_center"
-    place_onboard_pose.pose.position = geometry_msgs.msg.Point(-0.174, 0.013, 0.13)
+    place_onboard_pose.pose.position = geometry_msgs.msg.Point(-0.173, 0.011, 0.13)
+    # TODO: Define the terminal subframes
     # place_onboard_pose.header.frame_id = "assy_01_terminal_top"
-    # place_onboard_pose.pose.position = geometry_msgs.msg.Point(-0.02, 0.0, 0.0)
+    # place_onboard_pose.pose.position = geometry_msgs.msg.Point(-0.01, -0.005, 0.0)
     place_onboard_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(0, tau/4, 0))
 
     approach_onboard_pose = copy.deepcopy(place_onboard_pose)
     approach_onboard_pose.pose.position.z += 0.1
 
-    self.b_bot.go_to_pose_goal(approach_onboard_pose, speed=0.2, move_lin = True)
-    self.b_bot.go_to_pose_goal(place_onboard_pose, speed=0.2, move_lin = True)
+    self.confirm_to_proceed("enter to move to fixation and deliver plate")
+    self.b_bot.go_to_pose_goal(approach_onboard_pose, speed=0.3, acceleration=0.1)
+    self.b_bot.go_to_pose_goal(place_onboard_pose, speed=0.2)
+    self.confirm_to_proceed("enter to push down")
+    
 
     # FIXME: Direction should be -Z
     self.b_bot.linear_push(force=8, direction="+Z", relative_to_ee=False, timeout=15.0)
