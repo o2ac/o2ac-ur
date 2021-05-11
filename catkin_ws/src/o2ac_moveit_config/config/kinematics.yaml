@@ -1,10 +1,10 @@
 a_bot:
   kinematics_solver: trac_ik_kinematics_plugin/TRAC_IKKinematicsPlugin
-  kinematics_solver_search_resolution: 0.005
-  kinematics_solver_timeout: 0.005
+  kinematics_solver_search_resolution: 0.01
+  kinematics_solver_timeout: 0.01
   solve_type: "Distance"
 b_bot:
   kinematics_solver: trac_ik_kinematics_plugin/TRAC_IKKinematicsPlugin
-  kinematics_solver_search_resolution: 0.005
-  kinematics_solver_timeout: 0.005
+  kinematics_solver_search_resolution: 0.01
+  kinematics_solver_timeout: 0.01
   solve_type: "Distance"
