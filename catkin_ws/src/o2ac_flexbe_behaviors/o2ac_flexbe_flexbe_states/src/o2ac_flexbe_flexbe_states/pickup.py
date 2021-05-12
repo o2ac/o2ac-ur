@@ -40,7 +40,7 @@ class PickUpActionState(EventState):
             Logger.logwarn('result %s' % str(result))
             userdata.gripper_opening = result.gripper_opening
 
-            if not result:
+            if not result.success:
                 Logger.logwarn('Fail to complete PickUp sequence')
                 self._success = False
                 return 'error'

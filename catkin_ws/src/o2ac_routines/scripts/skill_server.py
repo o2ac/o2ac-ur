@@ -25,8 +25,10 @@ class SkillServer:
         self.insertion_action = actionlib.SimpleActionServer('force_insertion', InsertAction, self.execute_insertion, False)
         self.insertion_action.start()
 
-        self.align_bearing_holes_action = actionlib.SimpleActionServer('playback_sequence', AlignBearingHolesAction, self.execute_playback, False)
+        self.align_bearing_holes_action = actionlib.SimpleActionServer('align_bearing_holes', AlignBearingHolesAction, self.execute_align_bearing_holes, False)
         self.align_bearing_holes_action.start()
+
+        self.controller.assembly_database.change_assembly("taskboard")
 
     def execute_playback(self, goal):
         success = self.controller.playback_sequence(goal.sequence_name)
@@ -38,30 +40,29 @@ class SkillServer:
         self.playback_action.set_succeeded(result=PlayBackSequenceResult(success))
 
     def execute_pickup(self, goal):
-        # pick_pose = self.controller.look_and_get_grasp_point(goal.object_name)
+        pick_pose = self.controller.look_and_get_grasp_point(goal.object_name)
 
-        # if not pick_pose:
-        #     rospy.logerr("Could not find bearing in tray. Skipping procedure.")
-        #     self.pickup_action.set_succeeded(result=PickUpResult(False, 0.0))
-        #     return
+        if not pick_pose:
+            rospy.logerr("Could not find bearing in tray. Skipping procedure.")
+            self.pickup_action.set_succeeded(result=PickUpResult(False, 0.0))
+            return
 
-        # self.controller.vision.activate_camera("b_bot_inside_camera")
-        # pick_pose.pose.position.x -= 0.01  # MAGIC NUMBER
-        # pick_pose.pose.position.z = 0.0115
-        # success = self.controller.simple_pick("b_bot", pick_pose, gripper_force=100.0, approach_height=0.05, axis="z")
-        # gripper_opening = self.controller.b_bot.gripper.opening_width
+        self.controller.vision.activate_camera("b_bot_inside_camera")
+        pick_pose.pose.position.x -= 0.01  # MAGIC NUMBER
+        pick_pose.pose.position.z = 0.0115
+        success = self.controller.simple_pick("b_bot", pick_pose, gripper_force=100.0, approach_height=0.05, axis="z")
+        gripper_opening = self.controller.b_bot.gripper.opening_width
 
-        # if gripper_opening < 0.01:
-        #     rospy.logerr("Fail to grasp %s" % goal.object_name)
-        #     self.pickup_action.set_succeeded(result=PickUpResult(False, gripper_opening))
-        #     return
+        if gripper_opening < 0.01:
+            rospy.logerr("Fail to grasp %s" % goal.object_name)
+            self.pickup_action.set_succeeded(result=PickUpResult(False, gripper_opening))
+            return
 
-        # if success:
-        #     rospy.loginfo("Pickup completed successfully!")
-        # else:
-        #     rospy.logerr("Pickup failed!")
-        success = True
-        gripper_opening = 0.05
+        if success:
+            rospy.loginfo("Pickup completed successfully!")
+        else:
+            rospy.logerr("Pickup failed!")
+
         self.pickup_action.set_succeeded(result=PickUpResult(success, gripper_opening))
 
     def execute_insertion(self, goal):

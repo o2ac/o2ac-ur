@@ -33,9 +33,9 @@ class PlayBackActionState(EventState):
         if self._client.has_result(self._topic):
             result = self._client.get_result(self._topic)
 
-            Logger.logwarn('result %s' % str(result))
+            Logger.logwarn('playback result %s' % str(result))
 
-            if not result:
+            if not result.success:
                 Logger.logwarn('Fail to complete playback sequence')
                 self._success = False
                 return 'error'
