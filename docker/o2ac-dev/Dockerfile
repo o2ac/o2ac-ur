@@ -359,6 +359,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-melodic-rqt-multiplot=0.0.10-0bionic.20210414.220804 \
     ros-melodic-trac-ik-python=1.5.1-1bionic.20210414.235218 \
     ros-melodic-trac-ik-kinematics-plugin=1.5.1-1bionic.20210415.001535 \
+    ros-melodic-flexbe-behavior-engine=1.3.1-1bionic.20210415.001041 \
     python-rosinstall=0.7.8-1 \
 	&& rm -rf /var/lib/apt/lists/*
 
