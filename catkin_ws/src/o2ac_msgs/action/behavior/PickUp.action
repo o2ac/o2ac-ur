@@ -1,0 +1,9 @@
+# Request
+string object_name
+---
+# Result
+bool success
+float32 gripper_opening
+---
+# Feedback
+float32 progress

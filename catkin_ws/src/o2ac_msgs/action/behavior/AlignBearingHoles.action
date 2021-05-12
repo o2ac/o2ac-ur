@@ -1,0 +1,8 @@
+# Request
+string task_name
+---
+# Result
+bool success
+---
+# Feedback
+float32 progress

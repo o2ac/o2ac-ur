@@ -5,4 +5,4 @@ string sequence_name
 bool success
 ---
 # Feedback
-float32 progress 
+float32 progress

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<behavior name="bearing taskboard">
+
+	<executable package_path="o2ac_flexbe_flexbe_behaviors.bearing_taskboard_sm" class="bearingtaskboardSM" />
+	<tagstring></tagstring>
+	<author>Cristian Beltran</author>
+	<date>Tue May 11 2021</date>
+	<description>
+		demo for bearing subtask
+	</description>
+
+
+	<!-- Contained Behaviors -->
+
+	<!-- Available Parameters -->
+
+</behavior>
