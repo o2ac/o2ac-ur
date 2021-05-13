@@ -182,6 +182,7 @@ class O2ACVisionServer(object):
         # For visualization
         self.pose_marker_id_counter = 0
         self.pose_marker_array = 0
+        self._depth_image_ros = None
         rospy.loginfo("O2AC_vision has started up!")
 
     def camera_info_callback(self, cam_info_message):
@@ -544,6 +545,9 @@ class O2ACVisionServer(object):
         """
         p3d = geometry_msgs.msg.PoseStamped()
         p3d.header.frame_id = self._camera_info.header.frame_id
+        if self._depth_image_ros is None:
+            rospy.logerr("No depth image found")
+            return
         depth_image = self.bridge.imgmsg_to_cv2(self._depth_image_ros, desired_encoding="passthrough")
         xyz = self.cam_helper.project_2d_to_3d_from_images(pose_2d.x, pose_2d.y, [depth_image])
         if not xyz:

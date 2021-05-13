@@ -758,7 +758,7 @@ class O2ACCommon(O2ACBase):
       if angle:
         rospy.loginfo("Bearing detected angle: %3f, try to correct", degrees(angle))
         times_perception_failed_in_a_row = 0
-        if abs(degrees(angle)) > 1.5:
+        if abs(degrees(angle)) > 3.0:
           if task == "assembly" and abs(degrees(angle)) > 29:
             rospy.logwarn("Limiting maximum angle from " + str(degrees(angle)) + " because otherwise motion would fail!")
             angle = radians(29)
@@ -852,12 +852,10 @@ class O2ACCommon(O2ACBase):
     steps = 100
     duration = 30.0
     
-    target_force = get_target_force('-X', 5.0)
+    target_force = get_target_force('-X', 8.0)
     selection_matrix = [0., 0.8, 0.8, 0.8, 0.8, 0.8]
 
-    target_pose = geometry_msgs.msg.PoseStamped()
-    target_pose.header.frame_id = bearing_target_link
-    target_pose.pose.position = geometry_msgs.msg.Point(-.005, 0, -.005)
+    target_pose = conversions.to_pose_stamp(bearing_target_link, [-0.0, 0, -.005, 0, 0, 0, 1.])
     target_in_robot_base = self.listener.transformPose("b_bot_base_link", target_pose)
     target_x = target_in_robot_base.pose.position.x
     termination_criteria = lambda cpose, standby_time: cpose[0] >= target_x or \
@@ -868,7 +866,8 @@ class O2ACCommon(O2ACBase):
                                                         wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=10.0,
                                                         target_force=target_force, selection_matrix=selection_matrix,
                                                         termination_criteria=termination_criteria)
-    rospy.logwarn("** FORCE CONTROL COMPLETE with %s **" % round(target_x - self.b_bot.force_controller.end_effector()[0],5))
+    rospy.logwarn("** FORCE CONTROL COMPLETE with distance %s **" % round(target_x - self.b_bot.force_controller.end_effector()[0],5))
+    rospy.logwarn(" position x: %s" % round(self.b_bot.force_controller.end_effector()[0],5))
 
     if result != TERMINATION_CRITERIA:
       rospy.logerr("** Insertion Failed!! **")
@@ -884,7 +883,7 @@ class O2ACCommon(O2ACBase):
 
     target_x += 0.001
     termination_criteria = lambda cpose, standby_time: cpose[0] >= target_x or \
-                                                       (standby_time and cpose[0] >= target_x-0.005) # relax constraint
+                                                       (standby_time and cpose[0] >= target_x-0.006) # relax constraint
     radius = 0.001
 
     rospy.logwarn("** STARTING FORCE CONTROL 2**")
@@ -892,7 +891,8 @@ class O2ACCommon(O2ACBase):
                                                         wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=10.0,
                                                         target_force=target_force, selection_matrix=selection_matrix,
                                                         termination_criteria=termination_criteria)
-    rospy.logwarn("** FORCE CONTROL COMPLETE 2 with %s **" % round(target_x - self.b_bot.force_controller.end_effector()[0],5))
+    rospy.logwarn("** FORCE CONTROL COMPLETE 2 with distance %s **" % round(target_x - self.b_bot.force_controller.end_effector()[0],5))
+    rospy.logwarn(" position x: %s" % round(self.b_bot.force_controller.end_effector()[0],5))
     
     self.b_bot.gripper.open(wait=True)
 
@@ -1023,7 +1023,7 @@ class O2ACCommon(O2ACBase):
 
     rospy.logwarn("** STARTING FORCE CONTROL **")
     result = self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
-                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(6.0), wiggle_revolutions=10.0,
+                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(8.0), wiggle_revolutions=revolutions,
                                                         target_force=target_force, selection_matrix=selection_matrix,
                                                         termination_criteria=termination_criteria)
     rospy.logwarn("** FORCE CONTROL COMPLETE **")
