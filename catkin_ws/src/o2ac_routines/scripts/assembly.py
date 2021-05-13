@@ -292,6 +292,7 @@ class AssemblyClass(O2ACCommon):
       if not self.fasten_screw_vertical('b_bot', screw_target_pose):
         rospy.logerr("Failed to fasten panel screw 2 again. Aborting.")
         return False
+    rospy.loginfo("Successfully fastened screw 1")
 
     self.a_bot.gripper.close()
     self.a_bot.gripper.open()
@@ -509,8 +510,8 @@ if __name__ == '__main__':
     while True:
       rospy.loginfo("Enter 1 to move the robots home.")
       rospy.loginfo("Enter 11 (12) to equip (unequip) m4 tool (b_bot).")
-      rospy.loginfo("Enter 13 (14) to equip (unequip) m3 tool (b_bot).")
-      rospy.loginfo("Enter 25,26(27,28) to open,close gripper for b_bot (a_bot)")
+      rospy.loginfo("Enter 13 (14) to equip (unequip) m3 tool (a_bot).")
+      rospy.loginfo("Enter 21,22 to close,open grippers")
       rospy.loginfo("Enter 30 to pick screw m3 from feeder with a_bot (31 for b_bot).")
       rospy.loginfo("Enter 40 to pick screw m4 from feeder with a_bot (41 for b_bot).")
       rospy.loginfo("Enter 68 to spawn objects for testing mtc_modules tasks")
@@ -526,101 +527,103 @@ if __name__ == '__main__':
       if i == '1':
         assy.a_bot.go_to_named_pose("home")
         assy.b_bot.go_to_named_pose("home")
-      if i == '11':
+      elif i == '1a':
+        assy.a_bot.go_to_named_pose("home")
+      elif i == '1b':
+        assy.b_bot.go_to_named_pose("home")
+      elif i == '11':
         assy.do_change_tool_action("b_bot", equip=True, screw_size=4)
-      if i == '12':
+      elif i == '12':
         assy.do_change_tool_action("b_bot", equip=False, screw_size=4)
-      if i == '13':
-        assy.do_change_tool_action("b_bot", equip=True, screw_size=3)
-      if i == '14':
-        assy.do_change_tool_action("b_bot", equip=False, screw_size=3)
-      if i == '25':
-        assy.b_bot.gripper.open()
-      if i == '26':
+      elif i == '13':
+        assy.do_change_tool_action("a_bot", equip=True, screw_size=3)
+      elif i == '14':
+        assy.do_change_tool_action("a_bot", equip=False, screw_size=3)
+      elif i == '21':
+        assy.a_bot.gripper.close(wait=False)
         assy.b_bot.gripper.close()
-      if i == '27':
-        assy.a_bot.gripper.open()
-      if i == '28':
-        assy.a_bot.gripper.close()
-      if i == '30':
+      elif i == '22':
+        assy.a_bot.gripper.open(wait=False)
+        assy.b_bot.gripper.open()
+      elif i == '30':
         assy.a_bot.go_to_named_pose("feeder_pick_ready")
         assy.skill_server.pick_screw_from_feeder("a_bot", screw_size=3)
         assy.a_bot.go_to_named_pose("feeder_pick_ready")
-      if i == '31':
+      elif i == '31':
         assy.b_bot.go_to_named_pose("feeder_pick_ready")
         assy.skill_server.pick_screw_from_feeder("b_bot", screw_size=3)
         assy.b_bot.go_to_named_pose("feeder_pick_ready")
-      if i == '40':
+      elif i == '40':
         assy.a_bot.go_to_named_pose("feeder_pick_ready")
         assy.skill_server.pick_screw_from_feeder("a_bot", screw_size=4)
         assy.a_bot.go_to_named_pose("feeder_pick_ready")
-      if i == '41':
+      elif i == '41':
         assy.b_bot.go_to_named_pose("feeder_pick_ready")
         assy.skill_server.pick_screw_from_feeder("b_bot", screw_size=4)
         assy.b_bot.go_to_named_pose("feeder_pick_ready")
-      if i == "51":
+      elif i == "51":
         grasp_pose = assy.assembly_database.get_grasp_pose("panel_bearing", "default_grasp")
         res = assy.do_plan_pick_place_action("panel_bearing", "a_bot", grasp_pose)
         print(res)
-      if i == "52":
+      elif i == "52":
         assy.execute_MTC_solution(res.solution, speed=0.1)
-      if i == '55':
+      elif i == '55':
         assy.spawn_objects_for_demo(base_plate_in_tray=True, layout_number=1)
-      if i == '552':
+      elif i == '552':
         assy.spawn_objects_for_demo(base_plate_in_tray=True, layout_number=2)
-      if i == '553':
+      elif i == '553':
         assy.spawn_objects_for_demo(base_plate_in_tray=True, layout_number=3)
-      if i == '67':
+      elif i == '67':
         assy.spawn_objects_for_closed_loop_test()
-      if i == '68':
+      elif i == '68':
         assy.spawn_objects_for_demo()
-      if i == '69':
+      elif i == '69':
         result = assy.do_plan_pick_action('panel_bearing', robot_name = '', save_solution_to_file = 'pick_panel_bearing')
         for solution in result.solution.sub_trajectory:
           scene_diff = solution.scene_diff
           planning_scene_diff_req = moveit_msgs.srv.ApplyPlanningSceneRequest()
           planning_scene_diff_req.scene = scene_diff
           # self.apply_planning_scene_diff.call(planning_scene_diff_req)   # DEBUG: Update the scene pretending the action has been completed
-      if i == '691':
+      elif i == '691':
         rospy.loginfo("Loading 'pick_panel_bearing'")
         mp_res = assy.load_MTC_solution('pick_panel_bearing')
         rospy.loginfo("Running")
         assy.execute_MTC_solution(mp_res.solution, speed = 0.2)
-      if i == '70':
+      elif i == '70':
         assy.mtc_place_object_in_tray_center('panel_bearing')
-      if i == '71':
+      elif i == '71':
         assy.mtc_pickplace_l_panel()
-      if i == '72':
+      elif i == '72':
         assy.mtc_pick_screw_tool('m4')
-      if i == '73':
+      elif i == '73':
         assy.mtc_suck_screw('m4')
-      if i == '74':
+      elif i == '74':
         assy.do_plan_release_action('panel_bearing', 'home', save_solution_to_file = 'release_panel_bearing')
-      if i == '75':
+      elif i == '75':
         target_pose = geometry_msgs.msg.PoseStamped()
         target_pose.header.frame_id = 'base/screw_hole_panel2_1'
         target_pose.pose.orientation.w = 1
         assy.do_plan_wrs_subtask_b_action('panel_bearing', target_pose, object_subframe_to_place = 'panel_bearing/bottom_screw_hole_aligner_1', save_solution_to_file = 'subassembly')
-      if i == '80':
+      elif i == '80':
         rospy.loginfo("Loading")
         mp_res = assy.load_MTC_solution('subassembly')
         rospy.loginfo("Running")
         assy.execute_MTC_solution(mp_res.solution, speed = 0.2)
-      if i == '800':
+      elif i == '800':
         assy.b_bot.load_and_execute_program(program_name="wrs2020_push_motor_plate.urp", wait=True)
-      if i == '801':
+      elif i == '801':
         assy.skill_server.move_lin_rel("a_bot", relative_translation=[0, -0.01, 0], relative_to_robot_base=True, max_wait=5.0)
-      if i == '802':
+      elif i == '802':
         assy.skill_server.move_lin_rel("a_bot", relative_translation=[0,  0.01, 0], relative_to_robot_base=True, max_wait=5.0)
-      if i == '81':
+      elif i == '81':
         assy.do_change_tool_action('b_bot', equip=True, screw_size=4)
-      if i == '82':
+      elif i == '82':
         assy.do_change_tool_action('b_bot', equip=False, screw_size=4)
-      if i == '83':
+      elif i == '83':
         assy.skill_server.pick_screw_from_feeder('b_bot', 4)
-      if i == '84':
+      elif i == '84':
         assy.skill_server.do_linear_push('a_bot', force=15, direction="Y-", max_approach_distance=0.05, forward_speed=0.003)
-      if i == '85':
+      elif i == '85':
         target_pose = geometry_msgs.msg.PoseStamped()
         target_pose.header.frame_id = 'move_group/base/screw_hole_panel2_1'
         target_pose.pose.orientation.w = 1
@@ -709,7 +712,8 @@ if __name__ == '__main__':
       if i == "reset":
         assy.reset_scene_and_robots()
       if i == "activate":
-        assy.activate_ros_control_on_ur()
+        assy.a_bot.activate_ros_control_on_ur()
+        assy.b_bot.activate_ros_control_on_ur()
       elif i == 'x':
         break
       elif i == "":

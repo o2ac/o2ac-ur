@@ -394,14 +394,15 @@ class URRobot():
         group.set_planner_id("LIN")
 
         move_success = False
-        for i in range(5):
-            group.set_pose_target(pose_goal_world)
+        tries = 0
+        while not move_success and tries < 5 and not rospy.is_shutdown():
             move_success = group.go(wait=wait)  # Bool
             if not move_success:
-                rospy.logwarn("(move_lin) Planning failed, retry: %s of 10" % (i+1))
-            else:
-                break
-
+                rospy.sleep(0.2)
+                rospy.logwarn("move_lin attempt failed. Retrying.")
+                tries += 1
+        if not move_success:
+            rospy.logerr("move_lin failed " + str(tries) + " times! Broke out.")
         group.stop()
         group.clear_pose_targets()
         return move_success

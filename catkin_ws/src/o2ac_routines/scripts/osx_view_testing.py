@@ -128,8 +128,8 @@ if __name__ == '__main__':
       rospy.loginfo(" ")
       r = raw_input()
       if r == '1':
-        c.go_to_named_pose("home", "a_bot")
-        c.go_to_named_pose("home", "b_bot")
+        c.a_bot.go_to_named_pose("home")
+        c.b_bot.go_to_named_pose("home")
       elif r == '11':
         c.vision.activate_camera("b_bot_inside_camera")
       elif r == '12':
@@ -146,7 +146,7 @@ if __name__ == '__main__':
         ps.header.frame_id = "tray_center"
         ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
         ps.pose.position.z = .22
-        # c.go_to_named_pose("home", "a_bot")
+        # c.a_bot.go_to_named_pose("home")
         c.b_bot.go_to_pose_goal(ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.04)
       elif r == '31':
         c.close_view(1)
@@ -183,12 +183,12 @@ if __name__ == '__main__':
         except:
           pass
       elif r == '51':
-        c.go_to_named_pose("home", "b_bot")
+        c.b_bot.go_to_named_pose("home")
         p = r2[0]
         p.pose.position.z = 0.0
         c.simple_pick("a_bot", p, gripper_force=100.0, grasp_width=.05, axis="z")
       elif r == '52':
-        c.go_to_named_pose("home", "a_bot")
+        c.a_bot.go_to_named_pose("home")
         p = r2[0]
         p.pose.position.z = 0.0
         c.simple_pick("b_bot", p, gripper_force=100.0, grasp_width=.05, axis="z")
