@@ -857,18 +857,18 @@ class O2ACCommon(O2ACBase):
 
     target_pose = geometry_msgs.msg.PoseStamped()
     target_pose.header.frame_id = bearing_target_link
-    target_pose.pose.position = geometry_msgs.msg.Point(-.004, 0, -.005)
+    target_pose.pose.position = geometry_msgs.msg.Point(-.005, 0, -.005)
     target_in_robot_base = self.listener.transformPose("b_bot_base_link", target_pose)
     target_x = target_in_robot_base.pose.position.x
     termination_criteria = lambda cpose, standby_time: cpose[0] >= target_x or \
-                                                       (standby_time and cpose[0] >= target_x-0.005) # relax constraint
+                                                       (standby_time and cpose[0] >= target_x-0.003) # relax constraint
 
     rospy.logwarn("** STARTING FORCE CONTROL **")
     result = self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
                                                         wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=10.0,
                                                         target_force=target_force, selection_matrix=selection_matrix,
                                                         termination_criteria=termination_criteria)
-    rospy.logwarn("** FORCE CONTROL COMPLETE **")
+    rospy.logwarn("** FORCE CONTROL COMPLETE with %s **" % round(target_x - self.b_bot.force_controller.end_effector()[0],5))
 
     if result != TERMINATION_CRITERIA:
       rospy.logerr("** Insertion Failed!! **")
@@ -892,7 +892,7 @@ class O2ACCommon(O2ACBase):
                                                         wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=10.0,
                                                         target_force=target_force, selection_matrix=selection_matrix,
                                                         termination_criteria=termination_criteria)
-    rospy.logwarn("** FORCE CONTROL COMPLETE 2**")
+    rospy.logwarn("** FORCE CONTROL COMPLETE 2 with %s **" % round(target_x - self.b_bot.force_controller.end_effector()[0],5))
     
     self.b_bot.gripper.open(wait=True)
 
