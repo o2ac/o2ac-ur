@@ -128,7 +128,19 @@
 			"**/devel": true,
 			"**/logs": true
 		},
-		"python.formatting.autopep8Args": ["--max-line-length", "200", "--experimental"]
+		"python.formatting.autopep8Args": [
+			"--max-line-length",
+			"200",
+			"--experimental"
+		],
+		"python.analysis.extraPaths": [
+			"./catkin_ws/src/o2ac_assembly_database/src",
+			"./catkin_ws/src/o2ac_routines/src",
+			"./catkin_ws/src/o2ac_vision/src",
+			"./underlay_ws/src/downward/src",
+			"./underlay_ws/src/moveit/moveit_commander/src",
+			"./underlay_ws/src/ur_python_utilities/ur_control/src"
+		]
 	},
 	"extensions": {
 		"recommendations": [
