@@ -166,7 +166,7 @@ class AssemblyClass(O2ACCommon):
     self.b_bot.linear_push(force=8, direction="+Z", relative_to_ee=False, timeout=15.0)
     
     self.b_bot.gripper.open()
-    self.b_bot.move_lin_rel(relative_translation=[0, 0, 0.05], use_robot_base_csys=True)
+    self.b_bot.move_lin_rel(relative_translation=[0, 0, 0.05], relative_to_robot_base=True)
     self.lock_base_plate()
     return True
 
@@ -609,9 +609,9 @@ if __name__ == '__main__':
       if i == '800':
         assy.b_bot.load_and_execute_program(program_name="wrs2020_push_motor_plate.urp", wait=True)
       if i == '801':
-        assy.skill_server.move_lin_rel("a_bot", relative_translation=[0, -0.01, 0], use_robot_base_csys=True, max_wait=5.0)
+        assy.skill_server.move_lin_rel("a_bot", relative_translation=[0, -0.01, 0], relative_to_robot_base=True, max_wait=5.0)
       if i == '802':
-        assy.skill_server.move_lin_rel("a_bot", relative_translation=[0,  0.01, 0], use_robot_base_csys=True, max_wait=5.0)
+        assy.skill_server.move_lin_rel("a_bot", relative_translation=[0,  0.01, 0], relative_to_robot_base=True, max_wait=5.0)
       if i == '81':
         assy.do_change_tool_action('b_bot', equip=True, screw_size=4)
       if i == '82':

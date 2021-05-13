@@ -159,9 +159,9 @@ class O2ACCommon(O2ACBase):
         self.b_bot.load_and_execute_program(program_name="wrs2020_push_motor_plate.urp", wait=True)
         continue
       if stage_name == 'move a_bot right wrs_subtask_motor_plate':
-        self.move_lin_rel("a_bot", relative_translation=[0, -0.02, 0], use_robot_base_csys=True, max_wait=5.0)
+        self.move_lin_rel("a_bot", relative_translation=[0, -0.02, 0], relative_to_robot_base=True, max_wait=5.0)
       if stage_name == 'move a_bot back wrs_subtask_motor_plate':
-        self.move_lin_rel("a_bot", relative_translation=[0,  0.02, 0], use_robot_base_csys=True, max_wait=5.0)
+        self.move_lin_rel("a_bot", relative_translation=[0,  0.02, 0], relative_to_robot_base=True, max_wait=5.0)
 
       # Execute trajectories
       if sub_trajectory.scene_diff.robot_state.joint_state.name and not skip_stage_execution:  # If the robot state is changed (robot moved, object attached/detached)
@@ -876,7 +876,7 @@ class O2ACCommon(O2ACBase):
 
     self.b_bot.gripper.open(wait=True)
 
-    self.b_bot.move_lin_rel(relative_translation = [0.016,0,0], acceleration = 0.015, speed=.03, use_robot_base_csys=True)
+    self.b_bot.move_lin_rel(relative_translation = [0.016,0,0], acceleration = 0.015, speed=.03, relative_to_robot_base=True)
 
     pre_push_position = self.b_bot.force_controller.joint_angles()
 
@@ -897,7 +897,7 @@ class O2ACCommon(O2ACBase):
     self.b_bot.gripper.open(wait=True)
 
     rospy.loginfo("** Second insertion done, moving back via MoveIt **")
-    self.b_bot.move_lin_rel(relative_translation = [0.025,0,0], acceleration = 0.015, speed=.03, use_robot_base_csys=True)
+    self.b_bot.move_lin_rel(relative_translation = [0.025,0,0], acceleration = 0.015, speed=.03, relative_to_robot_base=True)
     return True
 
   def fasten_bearing(self, task=""):
@@ -1048,7 +1048,7 @@ class O2ACCommon(O2ACBase):
 
     self.b_bot.gripper.open(wait=True)
 
-    self.b_bot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03, use_robot_base_csys=True)
+    self.b_bot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03, relative_to_robot_base=True)
 
     return True
 

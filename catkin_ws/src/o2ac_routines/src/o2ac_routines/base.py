@@ -943,10 +943,10 @@ class O2ACBase(object):
       success = robot.move_lin(p, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
     elif pose_type == 'relative-tcp':
       pass
-      success = robot.move_lin_rel(relative_translation=pose[:3], relative_rotation=pose[3:], speed=speed_scale_factor, acceleration=acceleration_scale_factor, use_robot_base_csys=False)
+      success = robot.move_lin_rel(relative_translation=pose[:3], relative_rotation=pose[3:], speed=speed_scale_factor, acceleration=acceleration_scale_factor, relative_to_robot_base=False)
     elif pose_type == 'relative-base':
       pass
-      success = robot.move_lin_rel(relative_translation=pose[:3], relative_rotation=pose[3:], speed=speed_scale_factor, acceleration=acceleration_scale_factor, use_robot_base_csys=True)
+      success = robot.move_lin_rel(relative_translation=pose[:3], relative_rotation=pose[3:], speed=speed_scale_factor, acceleration=acceleration_scale_factor, relative_to_robot_base=True)
     else:
       raise ValueError("Invalid pose_type: %s" % pose_type)
 

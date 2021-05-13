@@ -1,4 +1,6 @@
 import actionlib
+from actionlib_msgs.msg import GoalStatus
+
 import moveit_commander
 import rospy
 import time
@@ -16,6 +18,8 @@ from std_msgs.msg import Bool
 from o2ac_routines.ur_force_control import URForceController
 from o2ac_routines.robotiq_gripper import RobotiqGripper
 from o2ac_routines import helpers
+
+from ur_control import conversions
 
 
 class URRobot():
@@ -329,12 +333,12 @@ class URRobot():
 
         group.set_end_effector_link(end_effector_link)
         waypoints = [(self.listener.transformPose("world", ps).pose, blend_radius) for ps, blend_radius in trajectory]
-        
+
         group.set_planning_pipeline_id("pilz_industrial_motion_planner")
         group.set_planner_id("LIN")
 
         motion_plan_requests = []
-        
+
         # Start from current pose
         group.set_pose_target(group.get_current_pose(end_effector_link))
         msi = moveit_msgs.msg.MotionSequenceItem()
@@ -358,10 +362,20 @@ class URRobot():
         goal.request = moveit_msgs.msg.MotionSequenceRequest()
         goal.request.items = motion_plan_requests
 
-        self.sequence_move_group.send_goal_and_wait(goal)
+        for i in range(3):
+            result = self.sequence_move_group.send_goal_and_wait(goal)
+            if result == GoalStatus.ABORTED:
+                rospy.logwarn("(move_lin_trajectory) Planning failed, retry: %s of 3" % (i+1))
+            else:
+                break
 
         group.clear_pose_targets()
-        return True
+
+        if result == GoalStatus.SUCCEEDED:
+            return True
+        else:
+            rospy.logerr("Fail move_lin_trajectory with status %s" % result)
+            return False
 
     def move_lin(self, pose_goal_stamped, speed=1.0, acceleration=0.5, end_effector_link="", wait=True):
         if not self.set_up_move_group(speed, acceleration):
@@ -379,43 +393,40 @@ class URRobot():
         group.set_planning_pipeline_id("pilz_industrial_motion_planner")
         group.set_planner_id("LIN")
 
-        move_success = group.go(wait=wait)  # Bool
+        move_success = False
+        for i in range(3):
+            move_success = group.go(wait=wait)  # Bool
+            if not move_success:
+                rospy.logwarn("(move_lin) Planning failed, retry: %s of 3" % (i+1))
+            else:
+                break
+
         group.stop()
         group.clear_pose_targets()
         return move_success
 
-    def move_lin_rel(self, relative_translation=[0, 0, 0], relative_rotation=[0, 0, 0], speed=.5, acceleration=0.2, use_robot_base_csys=False, wait=True, max_wait=30.0):
+    def move_lin_rel(self, relative_translation=[0, 0, 0], relative_rotation=[0, 0, 0], speed=.5, acceleration=0.2, relative_to_robot_base=False, wait=True, max_wait=30.0):
         '''
         Does a lin_move relative to the current position of the robot.
 
-        relative_translation: translatory movement relative to current tcp position, expressed in robot's own base frame
-        relative_rotation: rotatory movement relative to current tcp position, expressed in robot's own base frame
-        use_robot_base_csys: If true, uses the robot_base coordinates for the relative motion (not workspace_center!)
+        relative_translation: translation relative to current tcp position, expressed in robot's own base frame
+        relative_rotation: rotation relative to current tcp position, expressed in robot's own base frame
+        relative_to_robot_base: If true, uses the robot_base coordinates for the relative motion (not workspace_center!)
         '''
         if rospy.is_shutdown():
             return False
 
         group = self.robot_group
-        if use_robot_base_csys:
-            rospy.logerr("use_robot_base_csys is not implemented for move_lin_rel!")
-        new_pose1 = group.get_current_pose()
-        
-        # FIXME: # This guards against a weird error that seems to occur with get_current_pose sometimes
-        rospy.sleep(0.05)
-        new_pose2 = group.get_current_pose()
-        if helpers.pose_dist(new_pose1.pose, new_pose2.pose) > 0.002:
-            rospy.logerr("get_current_pose gave two different results!!")
-            rospy.logwarn("pose1: ")
-            rospy.logwarn(new_pose1.pose)
-            rospy.logwarn("pose2: ")
-            rospy.logwarn(new_pose2.pose)
+        new_pose = group.get_current_pose()
 
-        new_pose2.pose.position.x += relative_translation[0]
-        new_pose2.pose.position.y += relative_translation[1]
-        new_pose2.pose.position.z += relative_translation[2]
-        new_pose2.pose.orientation = helpers.rotateQuaternionByRPYInUnrotatedFrame(relative_rotation[0], relative_rotation[1],
-                                                           relative_rotation[2], new_pose2.pose.orientation)
-        return self.move_lin(new_pose2, speed=speed, acceleration=acceleration, wait=wait)
+        if relative_to_robot_base:
+            new_pose = self.listener.transformPose(self.ns + "_base_link", new_pose)
+
+        new_position = conversions.from_point(new_pose.pose.position) + relative_translation
+        new_pose.pose.position = conversions.to_point(new_position)
+        new_pose.pose.orientation = helpers.rotateQuaternionByRPYInUnrotatedFrame(relative_rotation[0], relative_rotation[1],
+                                                                                  relative_rotation[2], new_pose.pose.orientation)
+        return self.move_lin(new_pose, speed=speed, acceleration=acceleration, wait=wait)
 
     def move_joints(self, joint_pose_goal, speed=1.0, acceleration=0.5, wait=True):
         if not self.set_up_move_group(speed, acceleration):
@@ -462,7 +473,7 @@ class URRobot():
         if sp > 1.0:
             sp = 1.0
         if acc > sp/2.0:
-        # if acc > (sp/2.0 + .00001):  # This seems to trigger because of rounding errors unless we add this small value
+            # if acc > (sp/2.0 + .00001):  # This seems to trigger because of rounding errors unless we add this small value
             rospy.logwarn("Setting acceleration to " + str(sp/2.0) + " instead of " + str(acceleration) + " to avoid jerky motion.")
             acc = sp/2.0
         return (sp, acc)

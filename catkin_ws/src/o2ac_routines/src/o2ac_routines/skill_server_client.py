@@ -117,14 +117,14 @@ class SkillServerClient():
 
 ##### URScript with skill server? #####
 
-    def move_lin_rel(self, robot_name, relative_translation = [0,0,0], relative_rotation = [0,0,0], acceleration = 0.5, velocity = .03, use_robot_base_csys=False, wait = True, max_wait=30.0):
+    def move_lin_rel(self, robot_name, relative_translation = [0,0,0], relative_rotation = [0,0,0], acceleration = 0.5, velocity = .03, relative_to_robot_base=False, wait = True, max_wait=30.0):
         '''
         Does a lin_move relative to the current position of the robot. Uses the robot's TCP.
 
         robot_name = "b_bot" for example
         relative_translation: translatory movement relative to current tcp position, expressed in robot's own base frame
         relative_rotation: rotatory movement relative to current tcp position, expressed in robot's own base frame
-        use_robot_base_csys: If true, uses the robot_base coordinates for the relative motion (not workspace_center!)
+        relative_to_robot_base: If true, uses the robot_base coordinates for the relative motion (not workspace_center!)
         '''
         if rospy.is_shutdown():
             return False
@@ -142,7 +142,7 @@ class SkillServerClient():
         req.relative_rotation.z = relative_rotation[2]
         req.acceleration = acceleration
         req.velocity = velocity
-        req.lin_move_rel_in_base_csys = use_robot_base_csys
+        req.lin_move_rel_in_base_csys = relative_to_robot_base
         req.program_id = "lin_move_rel"
         res = self.urscript_client.call(req)
         if wait:
