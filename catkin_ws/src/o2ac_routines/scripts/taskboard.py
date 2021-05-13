@@ -43,6 +43,8 @@ import tf
 import numpy as np
 import math
 from math import pi, degrees, radians, sin, cos
+
+import ur_control
 tau = 2.0*pi  # Part of math from Python 3.6
 import math
 import traceback
@@ -61,6 +63,7 @@ from o2ac_assembly_database.parts_reader import PartsReader
 from o2ac_routines.common import O2ACCommon
 from o2ac_routines.helpers import wait_for_UR_program, get_target_force
 from ur_control import transformations as ur_transformations
+from ur_control import conversions
 
 class TaskboardClass(O2ACCommon):
   """
@@ -506,8 +509,8 @@ class TaskboardClass(O2ACCommon):
 
       self.a_bot.gripper.open(wait=False)
       self.a_bot.gripper.open(wait=False, opening_width=0.07)
-      self.a_bot.go_to_pose_goal(approach_pose, speed=0.2, move_lin = True)
-      self.a_bot.go_to_pose_goal(pick_pose, speed=0.1, move_lin = True)
+
+      ## wait for screw tool to hold
 
       # # TODO (felixvd): Change this to the special tool without a suction pad
       # if self.equip_tool("b_bot", "screw_tool_m4"):
@@ -517,53 +520,58 @@ class TaskboardClass(O2ACCommon):
       #   return False
 
       ##### Centering using urp
-      centeringgrasp = self.a_bot.load_program(program_name="wrs2020/taskboard_retainer_and_nut_v4_hu.urp", recursion_depth=3)
-      if not centeringgrasp:
-        rospy.logerr("Failed to load centeringgrasp program on a_bot")
-        return False
-      print("Running belt pick on a_bot.")
-      if not self.a_bot.execute_loaded_program():
-        rospy.logerr("Failed to execute centeringgrasp program on a_bot")
-        return False
-      wait_for_UR_program("/a_bot", rospy.Duration.from_sec(20))
-
-      self.equip_tool("b_bot", "screw_tool_m4")
-      # success_a = self.a_bot.load_program(program_name="wrs2020/tb_retainer_and_nut_v2_hu.urp", recursion_depth=3)
-      success_b = self.b_bot.load_program(program_name="wrs2020/taskboard_retainer_and_nut_v4.urp", recursion_depth=3)
-
-      if success_b:
-        print("Loaded idler pulley program.")
-        rospy.sleep(1)
-        self.a_bot.execute_loaded_program()
-        rospy.sleep(20) # abot picks
-        self.b_bot.execute_loaded_program()
-        rospy.sleep(10) # bbot holds
-        self.confirm_to_proceed("Can popup be closed? 1")
-        self.close_ur_popup(robot="b_bot")
-        self.tools.set_motor("screw_tool_m4", "tighten", duration=20)
-        rospy.sleep(22) # bbot fiddles
-        self.confirm_to_proceed("Can popup be closed? 2")
-        self.a_bot.close_ur_popup()
-        rospy.sleep(15) #a bot picks nut
-        self.confirm_to_proceed("Can popup be closed? 3")
-        self.close_ur_popup(robot="a_bot")
-        self.tools.set_motor("screw_tool_m4", "tighten", duration=20)
-        rospy.sleep(30) # a bot spirals nut
-        self.confirm_to_proceed("Can popups be closed? 4")
-        self.a_bot.close_ur_popup()
-        self.b_bot.close_ur_popup()
+      use_ros = True
+      if use_ros:
+        self.pick_and_insert_idle_pulley("taskboard")
+      
       else:
-        print("Problem loading. Not executing idler pulley procedure.")
-        return False
-      wait_for_UR_program("/b_bot", rospy.Duration.from_sec(10))
-      wait_for_UR_program("/a_bot", rospy.Duration.from_sec(10))
-      if self.b_bot.is_protective_stopped():
-        # rospy.logwarn("Robot was protective stopped after idler pulley insertion - idler pulley may be stuck!")
-        # self.b_bot.unlock_protective_stop()
+        centeringgrasp = self.a_bot.load_program(program_name="wrs2020/taskboard_retainer_and_nut_v4_hu.urp", recursion_depth=3)
+        if not centeringgrasp:
+          rospy.logerr("Failed to load centeringgrasp program on a_bot")
+          return False
+        print("Running belt pick on a_bot.")
+        if not self.a_bot.execute_loaded_program():
+          rospy.logerr("Failed to execute centeringgrasp program on a_bot")
+          return False
+        wait_for_UR_program("/a_bot", rospy.Duration.from_sec(20))
+
+        self.equip_tool("b_bot", "screw_tool_m4")
+        # success_a = self.a_bot.load_program(program_name="wrs2020/tb_retainer_and_nut_v2_hu.urp", recursion_depth=3)
+        success_b = self.b_bot.load_program(program_name="wrs2020/taskboard_retainer_and_nut_v4.urp", recursion_depth=3)
+
+        if success_b:
+          print("Loaded idler pulley program.")
+          rospy.sleep(1)
+          self.a_bot.execute_loaded_program()
+          rospy.sleep(20) # abot picks
+          self.b_bot.execute_loaded_program()
+          rospy.sleep(10) # bbot holds
+          self.confirm_to_proceed("Can popup be closed? 1")
+          self.b_bot.close_ur_popup()
+          self.tools.set_motor("screw_tool_m4", "tighten", duration=20)
+          rospy.sleep(22) # bbot fiddles
+          self.confirm_to_proceed("Can popup be closed? 2")
+          self.a_bot.close_ur_popup()
+          rospy.sleep(15) #a bot picks nut
+          self.confirm_to_proceed("Can popup be closed? 3")
+          self.a_bot.close_ur_popup()
+          self.tools.set_motor("screw_tool_m4", "tighten", duration=20)
+          rospy.sleep(30) # a bot spirals nut
+          self.confirm_to_proceed("Can popups be closed? 4")
+          self.a_bot.close_ur_popup()
+          self.b_bot.close_ur_popup()
+        else:
+          print("Problem loading. Not executing idler pulley procedure.")
+          return False
+        wait_for_UR_program("/b_bot", rospy.Duration.from_sec(10))
+        wait_for_UR_program("/a_bot", rospy.Duration.from_sec(10))
+        if self.b_bot.is_protective_stopped():
+          # rospy.logwarn("Robot was protective stopped after idler pulley insertion - idler pulley may be stuck!")
+          # self.b_bot.unlock_protective_stop()
+          self.b_bot.go_to_named_pose("home")
+        self.unequip_tool("b_bot", "screw_tool_m4")
+        self.a_bot.go_to_named_pose("home")
         self.b_bot.go_to_named_pose("home")
-      self.unequip_tool("b_bot", "screw_tool_m4")
-      self.a_bot.go_to_named_pose("home")
-      self.b_bot.go_to_named_pose("home")
       return True
     
 if __name__ == '__main__':

@@ -954,9 +954,9 @@ class O2ACBase(object):
       if gripper_action == 'open':
         robot.gripper.open()
       elif gripper_action == 'close':
-        robot.gripper.close(force=100., velocity=0.01)
+        robot.gripper.close(force=80., velocity=0.03)
       elif gripper_action == 'close-open':
-        robot.gripper.close(velocity=0.01)
+        robot.gripper.close(velocity=0.03)
         robot.gripper.open()
     return success
 ######

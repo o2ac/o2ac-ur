@@ -37,6 +37,7 @@
 from o2ac_routines.base import *
 from math import radians, degrees, sin, cos, pi
 from ur_control.constants import TERMINATION_CRITERIA
+import numpy as np
 
 class O2ACCommon(O2ACBase):
   """
@@ -1051,6 +1052,140 @@ class O2ACCommon(O2ACBase):
     self.b_bot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
 
     return True
+
+  ########  Idler pulley
+
+  def pick_and_insert_idle_pulley(self, task=""):
+    if not task:
+      rospy.logerr("Specify the task!")
+      return False
+
+    if task == "taskboard":
+      idler_puller_target_link = "taskboard_long_hole_middle_link"
+    elif task == "assembly":
+      rospy.logerr("look this up")
+      idler_puller_target_link = "assembly_long_hole_middle_link"
+
+    self.a_bot.go_to_named_pose("home")
+    self.b_bot.go_to_named_pose("home")
+    
+    goal = self.look_and_get_grasp_point("taskboard_idler_pulley_small")
+    if not goal:
+      rospy.logerr("Could not find idler pulley in tray. Skipping procedure.")
+      return False
+
+    self.vision.activate_camera("b_bot_inside_camera")
+    goal.pose.position.x -= 0.01 # MAGIC NUMBER
+    goal.pose.position.z = 0.014
+    rospy.loginfo("Picking idler pulley at: ")
+    self.b_bot.go_to_named_pose("home")
+    pick_pose = copy.deepcopy(goal)
+    pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(0, tau/4, -tau/4))
+
+    approach_pose = copy.deepcopy(pick_pose)
+    approach_pose.pose.position.z += 0.1
+
+    self.a_bot.gripper.open(wait=False)
+    self.a_bot.gripper.open(wait=False, opening_width=0.07)
+    self.a_bot.go_to_pose_goal(approach_pose, speed=0.5, move_lin = True)
+    self.a_bot.go_to_pose_goal(pick_pose, speed=0.5, move_lin = True)
+
+    self.orient_idler_pulley()
+
+    self.insert_idler_pulley(task)
+
+    self.prepare_screw_tool_idler_pulley(idler_puller_target_link)
+
+    self.prepare_nut_tool(idler_puller_target_link)
+    ### TODO Move a_bot in spiral/grid with screw motor ON ###
+
+  def orient_idler_pulley(self):
+    # orient
+    self.a_bot.gripper.close()
+    self.a_bot.gripper.open()
+
+    # rotate gripper 90deg
+    initial_pose_goal = self.a_bot.robot_group.get_current_joint_values()
+    pose_goal = self.a_bot.robot_group.get_current_joint_values()
+    pose_goal[-1] += tau/4.0 
+    self.a_bot.move_joints(pose_goal, speed=0.5, wait=True)
+    
+    # close-open
+    self.a_bot.gripper.close()
+    self.a_bot.gripper.open()
+
+    # rotate gripper -90deg
+    self.a_bot.move_joints(initial_pose_goal, speed=0.5, wait=True)
+    # incline 45deg
+    self.a_bot.move_lin_rel(relative_rotation=[tau/8.0, 0, 0])
+    
+    # close (grasp)
+    self.a_bot.gripper.close()
+
+    if self.a_bot.gripper.opening_width < 0.01:
+      rospy.logerr("Fail to grasp Idler Pulley")
+      return False
+
+    # move above 10cm
+    self.a_bot.move_lin_rel(relative_translation=[0, 0, 0.10])
+
+  def insert_idler_pulley(self, target_link):
+    # near tb
+    rospy.logwarn("Going to near tb (a_bot)")
+    target_pose = conversions.to_pose_stamp(target_link, [-0.07, 0, 0.0, tau/4.0, 0, tau/8.])
+    near_tb_pose = self.listener.transformPose("world", target_pose)
+    self.a_bot.move_lin(near_tb_pose)
+    # in ridge
+    rospy.sleep(1)
+    rospy.logwarn("Going to in ridge (a_bot)")
+    self.a_bot.move_lin_rel(relative_translation=[-0.045, 0, 0], relative_to_robot_base=True)
+
+  def prepare_screw_tool_idler_pulley(self, target_link):
+    self.equip_tool("b_bot", "screw_tool_m4")
+    self.b_bot.go_to_named_pose("screw_ready") #screw_ready_back ??
+    self.playback_sequence("idler_pulley_prepare_screw_tool")
+
+    rospy.logwarn("Going to near tb (b_bot)")
+    target_rotation = np.deg2rad([30.0, 0, 0]).tolist()
+    xyz_pos = [-0.001, 0.003, -0.007]  # MAGIC NUMBERS
+    near_tb_pose = conversions.to_pose_stamp(target_link, xyz_pos + target_rotation)
+    self.b_bot.move_lin(near_tb_pose, end_effector_link="b_bot_screw_tool_m4_tip_link")
+
+    ## do spiral motion ## 
+    self.hold_screw_tool_idler_pulley(target_link)
+
+  def hold_screw_tool_idler_pulley(self, target_link):
+    plane = "YZ"
+    radius = 0.002
+    radius_direction = "+Z"
+    revolutions = 3
+
+    steps = 50
+    duration = 15.0
+    
+    target_force = get_target_force('-X', 0.0)
+    selection_matrix = [0., 0.8, 0.8, 0.8, 0.8, 0.8]
+
+    target_pose = conversions.to_pose_stamp(target_link, [-0.128, -0.011, 0.011, 0,0,0])
+    target_in_robot_base = self.listener.transformPose("b_bot_base_link", target_pose)
+    target_x = target_in_robot_base.pose.position.x
+    termination_criteria = lambda cpose, standby_time: cpose[0] >= target_x or \
+                                                       (standby_time and cpose[0] >= target_x-0.01) # relax constraint
+
+    rospy.logwarn("** STARTING FORCE CONTROL **")
+    result = self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
+                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(2.0), wiggle_revolutions=revolutions,
+                                                        target_force=target_force, selection_matrix=selection_matrix,
+                                                        termination_criteria=termination_criteria)
+    rospy.logwarn("** FORCE CONTROL COMPLETE **")
+
+  def prepare_nut_tool(self, target_link):
+    self.a_bot.gripper.open()
+    self.playback_sequence("idler_pulley_prepare_nut_tool")
+
+    target_rotation = np.deg2rad([0, 0, 0]).tolist()
+    target_pose = conversions.to_pose_stamp(target_link, [0.018, 0.0, 0.0]+target_rotation)
+    self.a_bot.move_lin(target_pose, end_effector_link="a_bot_nut_tool_m4_hole_link")
 
   ########
 
