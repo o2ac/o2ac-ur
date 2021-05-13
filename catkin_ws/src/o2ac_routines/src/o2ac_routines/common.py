@@ -1069,7 +1069,11 @@ class O2ACCommon(O2ACBase):
     self.a_bot.go_to_named_pose("home")
     self.b_bot.go_to_named_pose("home")
     
-    goal = self.look_and_get_grasp_point("taskboard_idler_pulley_small")
+    if self.use_real_robot:
+      goal = self.look_and_get_grasp_point("taskboard_idler_pulley_small")
+    else:
+      goal = conversions.to_pose_stamp("tray_center", [-0.03078, 0.06248, 0.02, 0.0,0.7071,0.0,0.7071])
+    
     if not goal:
       rospy.logerr("Could not find idler pulley in tray. Skipping procedure.")
       return False
@@ -1087,16 +1091,30 @@ class O2ACCommon(O2ACBase):
 
     self.a_bot.gripper.open(wait=False)
     self.a_bot.gripper.open(wait=False, opening_width=0.07)
-    self.a_bot.go_to_pose_goal(approach_pose, speed=0.5, move_lin = True)
-    self.a_bot.go_to_pose_goal(pick_pose, speed=0.5, move_lin = True)
-
-    self.orient_idler_pulley()
-
-    self.insert_idler_pulley(task)
-
-    self.prepare_screw_tool_idler_pulley(idler_puller_target_link)
-
-    self.prepare_nut_tool(idler_puller_target_link)
+    success = self.a_bot.go_to_pose_goal(approach_pose, speed=0.5, move_lin = True)
+    if not success:
+      rospy.logerr("Fail to complete insert_idler_pulley")
+      return False
+    success = self.a_bot.go_to_pose_goal(pick_pose, speed=0.5, move_lin = True)
+    if not success:
+      rospy.logerr("Fail to complete insert_idler_pulley")
+      return False
+    success = self.orient_idler_pulley()
+    if not success:
+      rospy.logerr("Fail to complete insert_idler_pulley")
+      return False
+    success = self.insert_idler_pulley(task)
+    if not success:
+      rospy.logerr("Fail to complete insert_idler_pulley")
+      return False
+    success = self.prepare_screw_tool_idler_pulley(idler_puller_target_link)
+    if not success:
+      rospy.logerr("Fail to complete insert_idler_pulley")
+      return False
+    success = self.prepare_nut_tool(idler_puller_target_link)
+    if not success:
+      rospy.logerr("Fail to complete insert_idler_pulley")
+      return False
     ### TODO Move a_bot in spiral/grid with screw motor ON ###
 
   def orient_idler_pulley(self):
@@ -1122,9 +1140,10 @@ class O2ACCommon(O2ACBase):
     # close (grasp)
     self.a_bot.gripper.close()
 
-    if self.a_bot.gripper.opening_width < 0.01:
-      rospy.logerr("Fail to grasp Idler Pulley")
-      return False
+    if self.use_real_robot:
+      if self.a_bot.gripper.opening_width < 0.01:
+        rospy.logerr("Fail to grasp Idler Pulley")
+        return False
 
     # move above 10cm
     self.a_bot.move_lin_rel(relative_translation=[0, 0, 0.10])
