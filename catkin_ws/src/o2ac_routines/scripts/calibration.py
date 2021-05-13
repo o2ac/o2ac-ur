@@ -121,25 +121,25 @@ class CalibrationClass(O2ACCommon):
       rospy.loginfo("============ Press `Enter` to move " + robot_name + " to " + pose.header.frame_id)
       self.skill_server.publish_marker(pose, "place_pose")
       raw_input()
-      robot = active_robots[robot_name]
+      robot = self.active_robots[robot_name]
       if go_home:
-        self.robot.go_to_named_pose(home_pose)
+        robot.go_to_named_pose(home_pose)
       if with_approach:
-        self.robot.go_to_pose_goal(ps_approach,speed=speed,end_effector_link=end_effector_link, move_lin = move_lin)
+        robot.go_to_pose_goal(ps_approach,speed=speed,end_effector_link=end_effector_link, move_lin = move_lin)
       if rospy.is_shutdown():
         break
       if with_approach:
-        self.robot.go_to_pose_goal(ps_approach,speed=speed,end_effector_link=end_effector_link, move_lin = move_lin)
-        self.robot.go_to_pose_goal(pose,speed=speed,end_effector_link=end_effector_link, move_lin = move_lin)
+        robot.go_to_pose_goal(ps_approach,speed=speed,end_effector_link=end_effector_link, move_lin = move_lin)
+        robot.go_to_pose_goal(pose,speed=speed,end_effector_link=end_effector_link, move_lin = move_lin)
       else:
-        self.robot.go_to_pose_goal(pose,speed=speed,end_effector_link=end_effector_link, move_lin = move_lin)
+        robot.go_to_pose_goal(pose,speed=speed,end_effector_link=end_effector_link, move_lin = move_lin)
       
       rospy.loginfo("============ Press `Enter` to proceed ")
       raw_input()
       if with_approach:
-        self.robot.go_to_pose_goal(ps_approach,speed=speed,end_effector_link=end_effector_link, move_lin = move_lin)
+        robot.go_to_pose_goal(ps_approach,speed=speed,end_effector_link=end_effector_link, move_lin = move_lin)
       if go_home:
-        self.robot.go_to_named_pose(home_pose, force_ur_script=move_lin)
+        robot.go_to_named_pose(home_pose, force_ur_script=move_lin)
     
     if go_home:
       rospy.loginfo("Moving all robots home again.")
@@ -151,7 +151,7 @@ class CalibrationClass(O2ACCommon):
   def assembly_calibration_base_plate(self, robot_name="b_bot", end_effector_link = "", context = ""):
     rospy.loginfo("============ Calibrating base plate for the assembly task. ============")
     rospy.loginfo("eef link " + end_effector_link + " should be 5 mm above each corner of the plate.")
-    robot = active_robots[robot_name]
+    robot = self.active_robots[robot_name]
 
     if robot_name=="a_bot":
       self.b_bot.go_to_named_pose("back")
@@ -159,19 +159,19 @@ class CalibrationClass(O2ACCommon):
       self.a_bot.go_to_named_pose("back")
 
     if end_effector_link=="":
-      self.robot.go_to_named_pose("home")
+      robot.go_to_named_pose("home")
     elif "screw" in end_effector_link or "suction" in end_effector_link:
-      self.robot.go_to_named_pose("screw_ready")
+      robot.go_to_named_pose("screw_ready")
     
     poses = []
     pose0 = geometry_msgs.msg.PoseStamped()
     pose0.pose.orientation.w = 1.0
     pose0.pose.position.x = -.01
     if context == "b_bot_m4_assembly_plates":
-      self.robot.go_to_named_pose("screw_ready")
+      robot.go_to_named_pose("screw_ready")
       pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/8, 0, 0) )
     if context == "motor_plate" and "screw" in end_effector_link:
-      self.robot.go_to_named_pose("screw_ready")
+      robot.go_to_named_pose("screw_ready")
       pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/6, 0, 0) )
     if robot_name == "a_bot":
       pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/4, 0, 0) )
@@ -328,9 +328,9 @@ class CalibrationClass(O2ACCommon):
 
   def make_space_for_robot(self, robot_name):
     if robot_name=="b_bot":
-      self.a_bot.go_to_named_pose("back")
+      self.a_bot.go_to_named_pose("home")
     elif robot_name=="a_bot":
-      self.b_bot.go_to_named_pose("back")
+      self.b_bot.go_to_named_pose("home")
 
   def screw_tool_test_assembly(self, robot_name = "b_bot", tool_name="_screw_tool_m4_tip_link"):
     rospy.loginfo("============ Moving the screw tool m4 to the screw holes on the base plate ============")
@@ -531,6 +531,12 @@ if __name__ == '__main__':
       elif r == "18":
         c.make_space_for_robot("b_bot")
         c.unequip_tool("b_bot", "set_screw_tool")
+      elif r == "191":
+        c.make_space_for_robot("b_bot")
+        c.equip_tool("b_bot", "padless_tool_m4")
+      elif r == "192":
+        c.make_space_for_robot("b_bot")
+        c.unequip_tool("b_bot", "padless_tool_m4")
       elif r == '21':
         c.screw_feeder_calibration(robot_name="a_bot")
       elif r == '22':
