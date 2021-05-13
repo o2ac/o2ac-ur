@@ -63,5 +63,15 @@
       <origin rpy="0 0 0" xyz="0.058 0 0.006"/>
     </joint>
     <link name="${prefix}set_screw_tool_tip_link"/>
+
+    <!-- ========= -->
+    <!-- Nut tool frame. X-axis points into the nut. -->
+    
+    <joint name="${prefix}_nut_tool_m4_joint" type="fixed">
+      <parent link="${prefix}gripper_tip_link"/>
+      <child link="${prefix}nut_tool_m4_hole_link"/>
+      <origin rpy="0.923 1.571 0.923" xyz="${-.018+.020} 0.0 .017"/>
+    </joint>
+    <link name="${prefix}nut_tool_m4_hole_link"/>
   </xacro:macro>
 </robot>
