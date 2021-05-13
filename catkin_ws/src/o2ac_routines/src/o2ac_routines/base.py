@@ -873,7 +873,7 @@ class O2ACBase(object):
       pose_type = point['type']
       gripper_action = point.get('gripper-action')
       speed_scale_factor = point.get('speed', 0.8)
-      acceleration_scale_factor = point.get('acceleration', 0.4)
+      acceleration_scale_factor = point.get('acceleration', speed_scale_factor/2.0)
       gripper_action = point.get('gripper-action')
       blend = point.get('blend', None)
       
