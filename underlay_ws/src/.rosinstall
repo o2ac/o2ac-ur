@@ -19,3 +19,11 @@
     local-name: third_party/rviz_visual_tools
     uri: https://github.com/PickNikRobotics/rviz_visual_tools
     version: master
+- git:
+    local-name: third_party/flexbe_app
+    uri: https://github.com/FlexBE/flexbe_app.git
+    version: master
+- git:
+    local-name: third_party/generic_flexbe_states
+    uri: https://github.com/FlexBE/generic_flexbe_states.git
+    version: master
