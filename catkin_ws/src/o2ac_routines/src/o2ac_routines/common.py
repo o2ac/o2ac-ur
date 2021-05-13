@@ -1048,7 +1048,7 @@ class O2ACCommon(O2ACBase):
 
     self.b_bot.gripper.open(wait=True)
 
-    self.b_bot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03, relative_to_robot_base=True)
+    self.b_bot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
 
     return True
 

@@ -419,8 +419,12 @@ class TaskboardClass(O2ACCommon):
       use_ros = True
 
       if use_ros:
-        self.playback_sequence(routine_filename="orient_pulley")
-        self.insert_motor_pulley(task = "taskboard")
+        result = self.playback_sequence(routine_filename="orient_pulley")
+        if result:
+          self.insert_motor_pulley(task = "taskboard")
+        else:
+          rospy.logerr("Fail to complete the playback sequence")
+          return False
       else:
         success_b = self.b_bot.load_program(program_name="wrs2020/pulley_v3.urp", recursion_depth=3)
         if success_b:
