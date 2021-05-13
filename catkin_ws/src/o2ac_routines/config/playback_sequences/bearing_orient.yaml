@@ -3,11 +3,11 @@ robot_name: 'b_bot' # for security define the robot here
 waypoints:
 - pose: [1.7095, -1.7619, 2.2065, -2.0337, -1.5473, 0.2133] # pose, depends on the type
   type: 'joint-space-goal-cartesian-lin-motion' # or 'task-space' or 'relative-tcp' or 'relative-base'
-  speed: 0.5 # percentage
+  speed: 0.4 # percentage
   blend: 0.01
 - pose: [1.8371, -2.0332, 2.5464, -2.0864, -1.5405, 0.2834]
   type: 'joint-space-goal-cartesian-lin-motion'
-  speed: 0.5 # percentage
+  speed: 0.4 # percentage
   blend: 0.01
 - pose: [1.836, -1.8689, 2.6557, -2.36, -1.5406, 1.4835]
   type: 'joint-space-goal-cartesian-lin-motion'
@@ -34,7 +34,7 @@ waypoints:
   blend: 0.0
 - pose: [2.4374, -1.4238, 2.3823, -2.1006, -2.2042, -0.9224]
   type: 'joint-space-goal-cartesian-lin-motion'
-  speed: 0.7 # percentage
+  speed: 0.4 # percentage
   gripper-action: 'open' 
 - pose: [1.0235, -1.4368, 2.5938, -1.6761, -0.9735, -2.8292]
   type: 'joint-space-goal-cartesian-lin-motion'
@@ -50,7 +50,7 @@ waypoints:
   blend: 0.0
 - pose: [1.836, -1.8689, 2.6557, -2.36, -1.5405, 1.4835]
   type: 'joint-space-goal-cartesian-lin-motion'
-  speed: 0.7 # percentage
+  speed: 0.4 # percentage
   gripper-action: 'open' 
 - pose: [1.836, -1.8688, 2.6558, -2.3601, -1.5405, -0.0888]
   type: 'joint-space-goal-cartesian-lin-motion'
@@ -65,4 +65,4 @@ waypoints:
   gripper-action: 'close' 
 - pose: [1.8371, -2.0332, 2.5464, -2.0864, -1.5405, 0.2834]
   type: 'joint-space-goal-cartesian-lin-motion'
-  speed: 0.4 # percentage
+  speed: 0.3 # percentage
