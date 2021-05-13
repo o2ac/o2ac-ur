@@ -18,12 +18,16 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib
   actionlib_msgs
   roscpp
+  eigen_conversions
   o2ac_msgs
 )
 
 find_package(Eigen3 REQUIRED)
-find_package(fcl REQUIRED)
 find_package(OpenCV REQUIRED)
+
+find_package(PkgConfig)
+
+pkg_check_modules(FCL REQUIRED fcl)
 
 ################################################################################
 # Declare ROS messages, services and actions
@@ -34,6 +38,7 @@ find_package(OpenCV REQUIRED)
 # Declare catkin specific configuration to be passed to dependent projects
 ################################################################################
 catkin_package(
+  INCLUDE_DIRS include
   CATKIN_DEPENDS roscpp actionlib_msgs std_msgs geometry_msgs o2ac_msgs
 )
 
@@ -41,36 +46,37 @@ catkin_package(
 # Build
 ################################################################################
 include_directories(
+  include
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
+  ${FCL_INCLUDE_DIRS}
 )
 
-add_executable(update_distribution_action_server src/action_server.cpp)
-add_dependencies(update_distribution_action_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(update_distribution_action_server fcl ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+add_library(ros_converters src/ros_converters.cpp)
+target_link_libraries(ros_converters ${catkin_LIBRARIES})
+add_library(read_stl src/read_stl.cpp)
+add_library(estimator src/estimator.cpp src/place_action_helpers.cpp)
+target_link_libraries(estimator ${FCL_LIBRARIES} ${OpenCV_LIBRARIES} )
 
-##################
-## For Only Test #
-##################
-#
-#find_package(PCL REQUIRED
-#include_directories(${PCL_INCLUDE_DIRS})
-#link_directories(${PCL_LIBRARY_DIRS})
-#add_definitions(${PCL_DEFINITIONS})
-#
-#add_executable(test_client_for_look src/test/test_client_for_look.cpp)
-#add_dependencies(test_client_for_look ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-#target_link_libraries(test_client_for_look ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
-#
-#add_executable(generator src/test/generate_test_case.cpp)
-#add_dependencies(generator ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-#target_link_libraries(generator ${catkin_LIBRARIES} fcl)
-#
-#add_executable(test_client_for_touch src/test/test_client_for_touch.cpp)
-#add_dependencies(test_client_for_touch ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-#target_link_libraries(test_client_for_touch ${catkin_LIBRARIES})
-#
-#add_executable(test_client_for_place src/test/test_client_for_place.cpp)
-#add_dependencies(test_client_for_place ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-#target_link_libraries(test_client_for_place ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+add_executable(update_distribution_action_server src/action_server.cpp src/ros_converted_estimator.cpp)
+add_dependencies(update_distribution_action_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(update_distribution_action_server estimator ros_converters)
+
+if(CATKIN_ENABLE_TESTING)
+  find_package(rostest REQUIRED)
+  add_rostest_gtest(test_client test/test_client.test src/test/test_client.cpp src/test/touch_test.cpp src/test/look_test.cpp src/test/place_test.cpp)
+  target_link_libraries(test_client ros_converters ${FCL_LIBRARIES} ${OpenCV_LIBRARIES} read_stl)
+endif()
+
+########################
+# Test Case Generators #
+########################
+
+add_executable(touch_test_case_generator src/test/generate_touch_test_case.cpp)
+add_dependencies(touch_test_case_generator ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(touch_test_case_generator estimator read_stl)
+
+add_executable(place_test_case_generator src/test/generate_place_test_case.cpp)
+add_dependencies(place_test_case_generator ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(place_test_case_generator estimator read_stl)

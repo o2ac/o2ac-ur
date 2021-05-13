@@ -1,70 +1,82 @@
-#include <tuple>
-#include <map>
-#include <vector>
-#include <cstring>
+#include "o2ac_pose_distribution_updater/read_stl.hpp"
 
-void read_stl(FILE *in, 
-	      std::vector<std::vector<double> > &points,
-	      std::vector<std::vector<int> > &tris)
-{
-  char s[7];
-  fgets(s, 6, in);
-  if(strcmp(s, "solid") == 0){
+void read_stl(FILE *in, std::vector<Eigen::Vector3d> &points,
+              std::vector<boost::array<int, 3>> &triangles) {
+  char first_word[7];
+  fgets(first_word, 6, in);
+  if (strcmp(first_word, "solid") == 0) {
     // ASCII mode
     char c;
-    while((c=fgetc(in))!='\n');
+    while ((c = fgetc(in)) != '\n')
+      ;
     using tuple = std::tuple<std::string, std::string, std::string>;
-    std::map<tuple,int> index;
-    while(1){
-      char next[10];
-      fscanf(in, "%s", next);
-      if(strcmp(next, "endsolid") == 0)
-	break;
-      while((c=fgetc(in))!='\n');
-      while((c=fgetc(in))!='\n');
-      std::vector<int> tri(3);
-      for(int i=0;i<3;i++){
-	char str_x[99], str_y[99], str_z[99];
-	fscanf(in, "%s%s%s%s",next, str_x, str_y, str_z);
-	tuple t = std::make_tuple(std::string(str_x),std::string(str_y),std::string(str_z));
-	if(index.find(t) == index.end()){
-	  index[t] = points.size();
-	  std::vector<double> vec{atof(str_x), atof(str_y), atof(str_z)};
-	  points.push_back(vec);
-	}
-	tri[i]=index[t];
+    std::map<tuple, int> index;
+    while (1) {
+      char next_word[10];
+      fscanf(in, "%s", next_word);
+      if (strcmp(next_word, "endsolid") == 0)
+        break;
+      while ((c = fgetc(in)) != '\n')
+        ;
+      while ((c = fgetc(in)) != '\n')
+        ;
+      boost::array<int, 3> triangle;
+      for (int i = 0; i < 3; i++) {
+        char string_x[99], string_y[99], string_z[99];
+        fscanf(in, "%s%s%s%s", next_word, string_x, string_y, string_z);
+        tuple t = std::make_tuple(std::string(string_x), std::string(string_y),
+                                  std::string(string_z));
+        if (index.find(t) == index.end()) {
+          index[t] = points.size();
+          Eigen::Vector3d point;
+          point << atof(string_x), atof(string_y), atof(string_z);
+          points.push_back(point);
+        }
+        triangle[i] = index[t];
       }
-      tris.push_back(tri);
-      while((c=fgetc(in))!='\n');
-      while((c=fgetc(in))!='\n');
-      while((c=fgetc(in))!='\n');
+      triangles.push_back(triangle);
+      while ((c = fgetc(in)) != '\n')
+        ;
+      while ((c = fgetc(in)) != '\n')
+        ;
+      while ((c = fgetc(in)) != '\n')
+        ;
     }
-  }
-  else{
+  } else {
     // Binary mode
     fseek(in, 0, SEEK_SET);
     char comment[80];
     fread(comment, 1, 80, in);
-    unsigned int num;
-    fread(&num, 4, 1, in);
-    tris=std::vector<std::vector<int> >(num, std::vector<int>(3));
+    unsigned int number;
+    fread(&number, 4, 1, in);
+    triangles = std::vector<boost::array<int, 3>>(number);
     using tuple = std::tuple<float, float, float>;
-    std::map<tuple,int> index;
-    for(int tri=0;tri<num;tri++){
-      float norm[3], v[3][3];
-      fread(norm, 4, 3, in);
-      for(int i=0;i<3;i++){
-	fread(v[i], 4, 3, in);
-	tuple t = std::make_tuple(v[i][0], v[i][1], v[i][2]);
-	if(index.find(t) == index.end()){
-	  index[t] = points.size();
-	  std::vector<double> vec{v[i][0], v[i][1], v[i][2]};
-	  points.push_back(vec);
-	}
-	tris[tri][i]=index[t];
+    std::map<tuple, int> index;
+    for (int triangle_id = 0; triangle_id < number; triangle_id++) {
+      float normal[3], coordinates[3][3];
+      fread(normal, 4, 3, in);
+      for (int i = 0; i < 3; i++) {
+        fread(coordinates[i], 4, 3, in);
+        tuple t = std::make_tuple(coordinates[i][0], coordinates[i][1],
+                                  coordinates[i][2]);
+        if (index.find(t) == index.end()) {
+          index[t] = points.size();
+          Eigen::Vector3d point;
+          point << coordinates[i][0], coordinates[i][1], coordinates[i][2];
+          points.push_back(point);
+        }
+        triangles[triangle_id][i] = index[t];
       }
       unsigned short int unused;
       fread(&unused, 2, 1, in);
     }
   }
+}
+
+void read_stl_from_file_path(const std::string &file_path,
+                             std::vector<Eigen::Vector3d> &points,
+                             std::vector<boost::array<int, 3>> &triangles) {
+  FILE *in = fopen(file_path.c_str(), "r");
+  read_stl(in, points, triangles);
+  fclose(in);
 }

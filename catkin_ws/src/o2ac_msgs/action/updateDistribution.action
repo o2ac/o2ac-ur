@@ -2,12 +2,14 @@ uint8 observation_type
 TouchObservation touch_observation
 LookObservation look_observation
 PlaceObservation place_observation
-geometry_msgs/PoseWithCovariance distribution
+moveit_msgs/CollisionObject gripped_object
+geometry_msgs/PoseWithCovarianceStamped distribution
 
 uint8 TOUCH_OBSERVATION = 0
 uint8 LOOK_OBSERVATION = 1
 uint8 PLACE_OBSERVATION = 2
 ---
 bool success
-geometry_msgs/PoseWithCovariance distribution
+geometry_msgs/PoseWithCovarianceStamped distribution
+std_msgs/String error_message
 ---
