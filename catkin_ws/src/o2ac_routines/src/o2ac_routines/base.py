@@ -219,12 +219,11 @@ class O2ACBase(object):
   def define_tool_collision_objects(self):
     PRIMITIVES = {"BOX": SolidPrimitive.BOX, "CYLINDER": SolidPrimitive.CYLINDER}
 
-    path = rospkg.RosPack().get_path("o2ac_assembly_database") + "/config/tool_collisions.yaml"
+    path = rospkg.RosPack().get_path("o2ac_assembly_database") + "/config/tool_collision_objects.yaml"
     with open(path, 'r') as f:
       tools = yaml.load(f)
 
     for tool_key, tool in tools.items():
-      
       tool_co = moveit_msgs.msg.CollisionObject()
       tool_co.header.frame_id = tool["frame_id"]
       tool_co.id = tool["id"]
@@ -635,7 +634,7 @@ class O2ACBase(object):
     return self.wrs_subtask_b_planning_client.get_result()
 
   def spawn_tool(self, tool_name):
-    if tool_name == "screw_tool_m3" or tool_name == "screw_tool_m4": 
+    if tool_name in self.screw_tools: 
       rospy.loginfo("Spawn: " + tool_name)
       self.planning_scene_interface.add_object(self.screw_tools[tool_name])
       return True
@@ -644,7 +643,7 @@ class O2ACBase(object):
       return False
 
   def despawn_tool(self, tool_name):
-    if tool_name == "screw_tool_m3" or tool_name == "screw_tool_m4": 
+    if tool_name in self.screw_tools: 
       rospy.loginfo("Despawn: " + tool_name)
       self.planning_scene_interface.remove_world_object(self.screw_tools[tool_name].id)
       return True
@@ -696,8 +695,6 @@ class O2ACBase(object):
     # Sanity check on the input instruction
     equip = (operation == "equip")
     unequip = (operation == "unequip")
-    # if equip or unequip:
-    #   raise NotImplementedError("Equip/unequip needs to be called via the C++ skill server instead")
     realign = (operation == "realign")
 
     ###
@@ -740,7 +737,7 @@ class O2ACBase(object):
     # Define approach pose
     # z = 0 is at the holder surface, and z-axis of pickup_link points downwards!
     rospy.loginfo("tool_name: " + tool_name)
-    if tool_name == "screw_tool_m3" or tool_name == "screw_tool_m4":
+    if tool_name == "screw_tool_m3" or tool_name == "screw_tool_m4" or tool_name == "padless_tool_m4":
       ps_approach.pose.position.x = -.05
       ps_approach.pose.position.z = -.008
     elif tool_name == "nut_tool_m6":
