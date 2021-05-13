@@ -183,10 +183,11 @@ class AssemblyClass(O2ACCommon):
 
   def subtask_c1(self):
     rospy.loginfo("======== SUBTASK C (bearing) ========")
-    rospy.logerr("Subtask C not implemented yet")
-    if not self.pick_up_and_insert_bearing(task="assembly"):
-      return False
-    return self.fasten_bearing()
+    if self.pick_up_and_insert_bearing(task="assembly"):
+      if self.fasten_bearing(task="assembly"):
+        self.unequip_tool('b_bot', 'screw_tool_m4')
+        return True
+    return False
   
   def subtask_c2(self):
     rospy.loginfo("======== SUBTASK C (output shaft) ========")
@@ -640,10 +641,13 @@ if __name__ == '__main__':
         assy.pick_up_and_insert_bearing(task="assembly")
       elif i == '9311':
         assy.align_bearing_holes(task="assembly")
+      elif i == "93move":
+        assy.playback_sequence("bearing_orient")
+        assy.playback_sequence("bearing_move_to_assembly")
       elif i == '932':
-        assy.fasten_bearing()
+        assy.fasten_bearing(task="assembly")
       elif i == '933':
-        assy.insert_bearing()
+        assy.insert_bearing(task="assembly")
       elif i == '94':
         assy.subtask_a() # Motor
       elif i == '95':
