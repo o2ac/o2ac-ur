@@ -362,10 +362,10 @@ class URRobot():
         goal.request = moveit_msgs.msg.MotionSequenceRequest()
         goal.request.items = motion_plan_requests
 
-        for i in range(3):
+        for i in range(5):
             result = self.sequence_move_group.send_goal_and_wait(goal)
             if result == GoalStatus.ABORTED:
-                rospy.logwarn("(move_lin_trajectory) Planning failed, retry: %s of 3" % (i+1))
+                rospy.logwarn("(move_lin_trajectory) Planning failed, retry: %s of 5" % (i+1))
             else:
                 break
 
@@ -394,10 +394,11 @@ class URRobot():
         group.set_planner_id("LIN")
 
         move_success = False
-        for i in range(3):
+        for i in range(5):
+            group.set_pose_target(pose_goal_world)
             move_success = group.go(wait=wait)  # Bool
             if not move_success:
-                rospy.logwarn("(move_lin) Planning failed, retry: %s of 3" % (i+1))
+                rospy.logwarn("(move_lin) Planning failed, retry: %s of 10" % (i+1))
             else:
                 break
 
