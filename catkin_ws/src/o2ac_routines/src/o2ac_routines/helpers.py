@@ -210,7 +210,11 @@ def all_close(goal, actual, tolerance):
     return all_close(goal.pose, actual.pose, tolerance)
 
   elif type(goal) is geometry_msgs.msg.Pose:
-    return all_close(pose_to_list(goal), pose_to_list(actual), tolerance)
+    position_allclose = all_close(conversions.from_point(goal.position).tolist(), conversions.from_point(actual.position).tolist(), tolerance) 
+    quaternion_allclose = all_close(conversions.from_quaternion(goal.orientation), conversions.from_quaternion(actual.orientation), tolerance)
+    if not quaternion_allclose: # check for the second orientation
+      quaternion_allclose = all_close(conversions.from_quaternion(goal.orientation), (-1)*conversions.from_quaternion(actual.orientation), tolerance)
+    return position_allclose and quaternion_allclose
 
   return True
 
@@ -337,3 +341,6 @@ def get_target_force(direction, force):
   res[DIRECTION_INDEX.get(direction[1])] = force * sign
 
   return np.array(res)
+
+def ordered_joint_values_from_dict(joints_dict, joints_name_list):
+  return conversions.to_float([joints_dict.get(q) for q in joints_name_list])

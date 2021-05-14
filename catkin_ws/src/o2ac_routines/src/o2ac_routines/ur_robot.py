@@ -396,7 +396,9 @@ class URRobot():
         move_success = False
         tries = 0
         while not move_success and tries < 5 and not rospy.is_shutdown():
-            move_success = group.go(wait=wait)  # Bool
+            group.go(wait=wait)  # Bool
+            current_pose = group.get_current_pose().pose
+            move_success = helpers.all_close(pose_goal_world.pose, current_pose, 0.01)
             if not move_success:
                 rospy.sleep(0.2)
                 rospy.logwarn("move_lin attempt failed. Retrying.")
@@ -405,9 +407,10 @@ class URRobot():
             rospy.logerr("move_lin failed " + str(tries) + " times! Broke out.")
         group.stop()
         group.clear_pose_targets()
+
         return move_success
 
-    def move_lin_rel(self, relative_translation=[0, 0, 0], relative_rotation=[0, 0, 0], speed=.5, acceleration=0.2, relative_to_robot_base=False, wait=True, max_wait=30.0):
+    def move_lin_rel(self, relative_translation=[0, 0, 0], relative_rotation=[0, 0, 0], speed=.5, acceleration=0.2, relative_to_robot_base=False, relative_to_tcp=False, wait=True, max_wait=30.0):
         '''
         Does a lin_move relative to the current position of the robot.
 
@@ -423,6 +426,9 @@ class URRobot():
 
         if relative_to_robot_base:
             new_pose = self.listener.transformPose(self.ns + "_base_link", new_pose)
+        elif relative_to_tcp:
+            new_pose.header.stamp = rospy.Time.now() - rospy.Time(0.5)  # Workaround for TF lookup into the future error
+            new_pose = self.listener.transformPose(self.ns + "_gripper_tip_link", new_pose)
 
         new_position = conversions.from_point(new_pose.pose.position) + relative_translation
         new_pose.pose.position = conversions.to_point(new_position)
@@ -437,7 +443,9 @@ class URRobot():
         group.set_joint_value_target(joint_pose_goal)
         group.set_planning_pipeline_id("ompl")
         group.set_planner_id("RRTConnect")
-        return group.go(wait=wait)
+        group.go(wait=wait)
+        current_joints = group.get_current_joint_values()
+        return helpers.all_close(joint_pose_goal, current_joints, 0.01)
 
     def go_to_named_pose(self, pose_name, speed=0.5, acceleration=0.5, wait=True):
         """
@@ -449,8 +457,11 @@ class URRobot():
         group.set_named_target(pose_name)
         group.set_planning_pipeline_id("ompl")
         group.set_planner_id("RRTConnect")
-        move_success = group.go(wait=wait)
+        group.go(wait=wait)
         group.clear_pose_targets()
+        goal = helpers.ordered_joint_values_from_dict(group.get_named_target_values(pose_name), group.get_active_joints())
+        current_joint_values = group.get_current_joint_values()
+        move_success = helpers.all_close(goal, current_joint_values, 0.01)
         return move_success
 
     def set_up_move_group(self, speed, acceleration):
