@@ -127,12 +127,8 @@ class O2ACVisionServer(object):
 
         # Load parameters for detecting graspabilities
         default_param_fge = {"ds_rate": 0.5,
-                             "target_lower":[0, 150, 100],
-                             "target_upper":[45, 255, 255],
-                             "fg_lower": [0, 0, 100],
-                             "fg_upper": [179, 255, 255],
-                             "hand_rotation":[0,45,90,135],
-                             "threshold": 0.5}
+                             "n_grasp_point": 50,
+                             "threshold": 0.01}
         self.param_fge = rospy.get_param('~param_fge', default_param_fge)
 
         # Setup camera image subscribers
@@ -489,17 +485,13 @@ class O2ACVisionServer(object):
         im_hand[0:10,20:20+hand_width] = 1
         im_hand[50:60,20:20+hand_width] = 1
 
-        # Generation of a collision template
-        im_collision = np.zeros( (60,60), np.float )
-        im_collision[10:50,20:20+hand_width] = 1
-
         bbox = ssd_result["bbox"]
         margin = 30
         top_bottom = slice(max(bbox[1] - margin, 0), min(bbox[1] + bbox[3] + margin, 480))
         left_right = slice(max(bbox[0] - margin, 0), min(bbox[0] + bbox[2] + margin, 640))
 
         fge = FastGraspabilityEvaluation(im_in[top_bottom, left_right],
-                                         im_hand, im_collision, self.param_fge)
+                                         im_hand, self.param_fge)
         results = fge.main_proc()
 
         elapsed_time = time.time() - start
