@@ -417,6 +417,58 @@ class O2ACCommon(O2ACBase):
       self.active_robots[robot_name].go_to_pose_goal(object_pose, speed=speed_fast, move_lin=False)  
     return True
 
+  def simple_grasp_generation(self, object_pose, grasp_width=0.08, grasp_z_height=0.0):
+    """
+    Returns a list of one grasp for an object.
+    Based only on border distance and distance to other objects.
+    """
+    # This grasp pose opens the gripper along the workspace_center's y-axis
+    grasp_along_y = copy.deepcopy(object_pose)
+    grasp_along_y.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
+    grasp_along_y.pose.position.z = 0.02
+
+    # This one opens the gripper along the workspace_center's x-axis
+    grasp_along_x = copy.deepcopy(grasp_along_y)
+    grasp_along_x.pose = rotatePoseByRPY(pi/4, 0, 0, grasp_along_x.pose)
+    dist_far = 0.05  # Along the gripper's opening direction
+    dist_close = 0.015  # In the direction that the gripper does not open
+    
+    grasp = []
+    
+    (dx, dy) = self.distances_from_tray_border(grasp_along_y)
+    if dy > dist_far and dx > dist_close:
+      grasp_pose = grasp_along_y
+      direction = "y"
+    else:
+      (dx, dy) = self.distances_from_tray_border(grasp_along_x)
+      if dx > dist_far and dy > dist_close:
+        grasp_pose = grasp_along_x
+        direction = "x"
+    
+    if not grasp_pose:
+      rospy.loginfo("too close to border. discarding. border distance was: " + str(d))
+      return False
+    
+    for obj, pose in self.objects_in_tray.items():
+      if obj == 6: # Skip the belt
+        continue
+      dx = abs(pose.pose.position.x - grasp_pose.pose.position.x)
+      dy = abs(pose.pose.position.y - grasp_pose.pose.position.y)
+      if dx < 1e-4 and dy < 1e-4:
+        continue  # It's the item itself or a duplicate
+      item_too_close = False
+      if direction == "y":
+        if dx < 0.015 and dy < 0.04:
+          item_too_close = True
+      elif direction == "x":
+        if dy < 0.015 and dx < 0.04:
+          item_too_close = True
+      if item_too_close:
+        rospy.loginfo("too close to another item. discarding. distance: " + str(pose_dist(pose.pose, grasp_pose.pose)) + ", id: " + str(obj))
+        return False
+    return [grasp_pose]
+  
+
   def simple_grasp_sanity_check(self, grasp_pose, grasp_width=0.08, border_dist=0.06):
     """
     Returns true if the grasp pose is further than 5 cm away from the tray border,
@@ -424,8 +476,8 @@ class O2ACCommon(O2ACBase):
 
     grasp_pose is a PoseStamped.
     """
-    d = self.distance_from_tray_border(grasp_pose)
-    if d[0] < border_dist or d[1] < border_dist:
+    (dx, dy) = self.distance_from_tray_border(grasp_pose)
+    if dx < border_dist and dy < border_dist:
       rospy.loginfo("too close to border. discarding. border distance was: " + str(d))
       return False
     for obj, pose in self.objects_in_tray.items():
@@ -468,18 +520,12 @@ class O2ACCommon(O2ACBase):
 
     if object_id in self.small_item_ids:
       # For small items, the object should be the only grasp pose.
-      grasp_pose = self.objects_in_tray[object_id]
-      return [grasp_pose]
+      return self.simple_grasp_generation(object_pose=self.objects_in_tray[object_id], grasp_z_height=0.0)
       # TODO: Consider the idler spacer, which can stand upright or lie on the side.
       
     if object_id in self.large_item_ids:
-      # TODO: Generate alternative grasp poses
       # TODO: Get grasp poses from database
-      grasp_pose = self.objects_in_tray[object_id]
-      grasp_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
-      grasp_pose.pose.position.z = 0.02
-      if self.is_grasp_pose_feasible(grasp_pose, border_dist=0.05):
-        return [grasp_pose]
+      return self.simple_grasp_generation(object_pose=self.objects_in_tray[object_id], grasp_z_height=0.02)
     
     return False
   
@@ -546,7 +592,7 @@ class O2ACCommon(O2ACBase):
     rospy.logerr("Could not find item id " + str(object_id) + " in tray!")
     return False
 
-  def distance_from_tray_border(self, object_pose):
+  def distances_from_tray_border(self, object_pose):
     """
     Returns the distance from the tray border as an (x, y) tuple.
     x, y are in the tray coordinate system.
