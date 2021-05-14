@@ -430,7 +430,7 @@ class URRobot():
                                                                                   relative_rotation[2], new_pose.pose.orientation)
         return self.move_lin(new_pose, speed=speed, acceleration=acceleration, wait=wait)
 
-    def move_joints(self, joint_pose_goal, speed=1.0, acceleration=0.5, wait=True):
+    def move_joints(self, joint_pose_goal, speed=0.6, acceleration=0.3, wait=True):
         if not self.set_up_move_group(speed, acceleration):
             return False
         group = self.robot_group

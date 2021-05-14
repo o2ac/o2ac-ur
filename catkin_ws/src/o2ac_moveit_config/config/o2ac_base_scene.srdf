@@ -208,14 +208,6 @@
         <joint name="a_bot_wrist_2_joint" value="-0.77" />
         <joint name="a_bot_wrist_3_joint" value="0.85" />
     </group_state>
-    <group_state name="screw_bearing" group="a_bot">
-        <joint name="a_bot_elbow_joint" value="1.92" />
-        <joint name="a_bot_shoulder_lift_joint" value="-1.78" />
-        <joint name="a_bot_shoulder_pan_joint" value="0.87" />
-        <joint name="a_bot_wrist_1_joint" value="-1.72" />
-        <joint name="a_bot_wrist_2_joint" value="-1.55" />
-        <joint name="a_bot_wrist_3_joint" value="-2.272" />
-    </group_state>
     <!--END EFFECTOR: Purpose: Represent information about an end effector.-->
     <end_effector name="a_bot_tip" parent_link="a_bot_ee_link" group="a_bot_robotiq_85" parent_group="a_bot" />
     <end_effector name="b_bot_tip" parent_link="b_bot_ee_link" group="b_bot_robotiq_85" parent_group="b_bot" />

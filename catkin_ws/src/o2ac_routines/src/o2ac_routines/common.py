@@ -264,7 +264,7 @@ class O2ACCommon(O2ACBase):
     """
 
     # Look from top first
-    self.active_robots[robot_name].go_to_pose_goal(self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
+    self.active_robots[robot_name].go_to_pose_goal(self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.15)
     success = self.detect_object_in_camera_view(item_name)
 
     # # TODO: Also move robot if object requires a close-up view (shaft, pin...)
@@ -300,7 +300,7 @@ class O2ACCommon(O2ACBase):
 
   ########
 
-  def simple_pick(self, robot_name, object_pose, grasp_height=0.0, speed_fast=0.1, speed_slow=0.02, gripper_command="close", 
+  def simple_pick(self, robot_name, object_pose, grasp_height=0.0, speed_fast=0.3, speed_slow=0.02, gripper_command="close", 
           gripper_force=40.0, grasp_width=0.140,
           approach_height=0.05, item_id_to_attach = "", lift_up_after_pick=True, force_ur_script=False, acc_fast=1.0, acc_slow=.1, 
           gripper_velocity = .1, axis="x", sign=+1):
@@ -513,7 +513,7 @@ class O2ACCommon(O2ACBase):
       for view in [self.tray_view_high] + self.close_tray_views + self.close_tray_views_rot_left + self.close_tray_views_rot_right + self.close_tray_views_rot_left_more + self.close_tray_views_rot_left_90:
         if rospy.is_shutdown():
           break
-        self.b_bot.go_to_pose_goal(view, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.3)
+        self.b_bot.go_to_pose_goal(view, end_effector_link="b_bot_outside_camera_color_frame", speed=.5, acceleration=.3)
         rospy.sleep(0.3)
         self.get_3d_poses_from_ssd()
         if object_id in self.objects_in_tray:
@@ -750,7 +750,7 @@ class O2ACCommon(O2ACBase):
       if self.b_bot.gripper.opening_width < 0.06:
         self.b_bot.gripper.open()
       
-      self.b_bot.go_to_pose_goal(camera_look_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.1, acceleration=.04)
+      self.b_bot.go_to_pose_goal(camera_look_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.25, acceleration=.1)
       self.activate_led("b_bot", on=False)
       rospy.sleep(1)  # If we don't wait, the camera image is blurry
 
@@ -920,7 +920,6 @@ class O2ACCommon(O2ACBase):
         pick_success = self.pick_screw_from_feeder("b_bot", screw_size=4)
         if not pick_success:
           rospy.logerr("Could not pick screw. Why?? Breaking out.")
-          self.allow_collisions_with_robot_hand
           self.unequip_tool('b_bot', 'screw_tool_m4')
           return (False, True)
       
@@ -1093,15 +1092,15 @@ class O2ACCommon(O2ACBase):
     self.a_bot.gripper.open(wait=False, opening_width=0.07)
     success = self.a_bot.go_to_pose_goal(approach_pose, speed=0.5, move_lin = True)
     if not success:
-      rospy.logerr("Fail to complete insert_idler_pulley")
+      rospy.logerr("Fail to go to approach_pose before insert_idler_pulley (1)")
       return False
     success = self.a_bot.go_to_pose_goal(pick_pose, speed=0.5, move_lin = True)
     if not success:
-      rospy.logerr("Fail to complete insert_idler_pulley")
+      rospy.logerr("Fail to go to pick_pose before insert_idler_pulley (2)")
       return False
     success = self.orient_idler_pulley()
     if not success:
-      rospy.logerr("Fail to complete insert_idler_pulley")
+      rospy.logerr("Fail to complete orient_idler_pulley")
       return False
     success = self.insert_idler_pulley(task)
     if not success:
@@ -1109,11 +1108,11 @@ class O2ACCommon(O2ACBase):
       return False
     success = self.prepare_screw_tool_idler_pulley(idler_puller_target_link)
     if not success:
-      rospy.logerr("Fail to complete insert_idler_pulley")
+      rospy.logerr("Fail to complete prepare_screw_tool_idler_pulley")
       return False
     success = self.prepare_nut_tool(idler_puller_target_link)
     if not success:
-      rospy.logerr("Fail to complete insert_idler_pulley")
+      rospy.logerr("Fail to complete prepare_nut_tool")
       return False
     ### TODO Move a_bot in spiral/grid with screw motor ON ###
 

@@ -192,12 +192,12 @@ class TaskboardClass(O2ACCommon):
     ### SCREW M3 WITH A_BOT
     # self.vision.activate_camera("a_bot_outside_camera")
     screw_picked = self.pick_screw_from_feeder("a_bot", screw_size = 3)
-    self.a_bot.go_to_named_pose("screw_pick_ready")
+    self.a_bot.go_to_named_pose("feeder_pick_ready")
 
     # Move b_bot back, a_bot to screw
     self.unequip_tool("b_bot", "set_screw_tool")
     self.equip_tool("b_bot", "screw_tool_m4")
-    self.b_bot.go_to_named_pose("screw_pick_ready")
+    self.b_bot.go_to_named_pose("feeder_pick_ready")
 
     if screw_picked:
       self.subtask_completed["M3 screw"] = self.do_task("M3 screw")
@@ -290,7 +290,7 @@ class TaskboardClass(O2ACCommon):
       # TODO: Check for pick success with camera
       # b_bot_look_at_belt = [1.95739448, 1.92903739, -1.40047674, -1.98750128, -2.1883457, 1.7778782]
 
-      self.confirm_to_proceed("Execute the belt threading programs?")
+      self.confirm_to_proceed("Load and execute the belt threading programs?")
       success_a = self.a_bot.load_program(program_name="wrs2020/taskboard_belt_v5.urp", recursion_depth=3)      
       success_b = self.b_bot.load_program(program_name="wrs2020/taskboard_belt_v4.urp", recursion_depth=3)      
       if success_a and success_b:

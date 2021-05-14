@@ -153,10 +153,7 @@ class CalibrationClass(O2ACCommon):
     rospy.loginfo("eef link " + end_effector_link + " should be 5 mm above each corner of the plate.")
     robot = self.active_robots[robot_name]
 
-    if robot_name=="a_bot":
-      self.b_bot.go_to_named_pose("back")
-    elif robot_name=="b_bot":
-      self.a_bot.go_to_named_pose("back")
+    self.make_space_for_robot(robot_name)
 
     if end_effector_link=="":
       robot.go_to_named_pose("home")
@@ -231,10 +228,7 @@ class CalibrationClass(O2ACCommon):
   def taskboard_calibration_with_tools(self, robot_name="b_bot", end_effector_link = ""):
     rospy.loginfo("============ Calibrating taskboard screw holes. ============")
     rospy.loginfo("eef link " + end_effector_link + " should be 5 mm above each corner of the plate.")
-    if robot_name=="a_bot":
-      self.b_bot.go_to_named_pose("back")
-    elif robot_name=="b_bot":
-      self.a_bot.go_to_named_pose("back")
+    self.make_space_for_robot(robot_name)
 
     self.active_robots[robot_name].go_to_named_pose("horizontal_screw_ready")
     # self.go_to_named_pose("home", robot_name)
