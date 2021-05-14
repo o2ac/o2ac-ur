@@ -511,42 +511,43 @@ class TaskboardClass(O2ACCommon):
     # ==========================================================
     
     if task_name == "idler pulley":
-      self.a_bot.go_to_named_pose("home")
-      self.b_bot.go_to_named_pose("home")
-      
-      goal = self.look_and_get_grasp_point("taskboard_idler_pulley_small")
-      if not goal:
-        rospy.logerr("Could not find idler pulley in tray. Skipping procedure.")
-        return False
-      self.vision.activate_camera("b_bot_inside_camera")
-      goal.pose.position.x -= 0.01 # MAGIC NUMBER
-      goal.pose.position.z = 0.014
-      rospy.loginfo("Picking idler pulley at: ")
-      self.b_bot.go_to_named_pose("home")
-      pick_pose = copy.deepcopy(goal)
-      pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(0, tau/4, -tau/4))
 
-      approach_pose = copy.deepcopy(pick_pose)
-      approach_pose.pose.position.z += 0.1
-
-      self.a_bot.gripper.open(wait=False)
-      self.a_bot.gripper.open(wait=False, opening_width=0.07)
-
-      ## wait for screw tool to hold
-
-      # # TODO (felixvd): Change this to the special tool without a suction pad
-      # if self.equip_tool("b_bot", "screw_tool_m4"):
-      #   self.b_bot.go_to_named_pose("home")
-      # else:
-      #   rospy.logerr("Tool could not be picked! Aborting")
-      #   return False
-
-      ##### Centering using urp
-      use_ros = False
+      use_ros = True
       if use_ros:
-        self.pick_and_insert_idle_pulley("taskboard")
+        self.pick_and_insert_idler_pulley("taskboard")
       
       else:
+        self.a_bot.go_to_named_pose("home")
+        self.b_bot.go_to_named_pose("home")
+        
+        goal = self.look_and_get_grasp_point("taskboard_idler_pulley_small")
+        if not goal:
+          rospy.logerr("Could not find idler pulley in tray. Skipping procedure.")
+          return False
+        self.vision.activate_camera("b_bot_inside_camera")
+        goal.pose.position.x -= 0.01 # MAGIC NUMBER
+        goal.pose.position.z = 0.014
+        rospy.loginfo("Picking idler pulley at: ")
+        self.b_bot.go_to_named_pose("home")
+        pick_pose = copy.deepcopy(goal)
+        pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(0, tau/4, -tau/4))
+
+        approach_pose = copy.deepcopy(pick_pose)
+        approach_pose.pose.position.z += 0.1
+
+        self.a_bot.gripper.open(wait=False)
+        self.a_bot.gripper.open(wait=False, opening_width=0.07)
+
+        ## wait for screw tool to hold
+
+        # # TODO (felixvd): Change this to the special tool without a suction pad
+        # if self.equip_tool("b_bot", "screw_tool_m4"):
+        #   self.b_bot.go_to_named_pose("home")
+        # else:
+        #   rospy.logerr("Tool could not be picked! Aborting")
+        #   return False
+
+        ##### Centering using urp
         centeringgrasp = self.a_bot.load_program(program_name="wrs2020/taskboard_retainer_and_nut_v4_hu.urp", recursion_depth=3)
         if not centeringgrasp:
           rospy.logerr("Failed to load centeringgrasp program on a_bot")

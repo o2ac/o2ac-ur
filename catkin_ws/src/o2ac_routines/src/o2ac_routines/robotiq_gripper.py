@@ -38,10 +38,10 @@ class RobotiqGripper():
         else:
             self.gripper.close()
 
-    def open(self, wait=True, opening_width=None):
+    def open(self, velocity=.1, wait=True, opening_width=None):
         if self.use_real_robot:
             command = opening_width if opening_width else "open"
-            return self.send_command(command, wait=wait)
+            return self.send_command(command, wait=wait, velocity=velocity)
         else:
             self.gripper.open()
 

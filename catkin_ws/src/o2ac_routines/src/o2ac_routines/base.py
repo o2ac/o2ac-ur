@@ -133,9 +133,6 @@ class O2ACBase(object):
     
     # self.my_mutex = threading.Lock()
 
-    self.resetTimerForDebugMonitor_client = rospy.ServiceProxy('/o2ac_debug_monitor/reset_timer', std_srvs.srv.Trigger)
-    self.debugmonitor_publishers = dict() # used in log_to_debug_monitor()
-
     self.screw_tools = {}
     self.define_tool_collision_objects()
 
@@ -947,14 +944,15 @@ class O2ACBase(object):
     else:
       raise ValueError("Invalid pose_type: %s" % pose_type)
 
-    if gripper_action:
-      if gripper_action == 'open':
-        robot.gripper.open(gripper_opening_width)
-      elif gripper_action == 'close':
-        robot.gripper.close(force=80., velocity=0.03)
-      elif gripper_action == 'close-open':
-        robot.gripper.close(velocity=0.03)
-        robot.gripper.open()
+    if success:
+      if gripper_action:
+        if gripper_action == 'open':
+          robot.gripper.open(opening_width=gripper_opening_width)
+        elif gripper_action == 'close':
+          robot.gripper.close(force=80., velocity=0.03)
+        elif gripper_action == 'close-open':
+          robot.gripper.close(velocity=0.03)
+          robot.gripper.open()
     return success
 ######
 

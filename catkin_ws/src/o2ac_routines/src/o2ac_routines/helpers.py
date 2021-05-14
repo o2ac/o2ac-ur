@@ -130,6 +130,11 @@ def rotateQuaternionByRPYInUnrotatedFrame(roll, pitch, yaw, in_quat):
 
   return geometry_msgs.msg.Quaternion(*q_rotated)
 
+def rotateTranslationByRPY(roll, pitch, yaw, in_point):
+  matrix = tf.transformations.euler_matrix(roll, pitch, yaw)
+  xyz = np.array([in_point.x, in_point.y, in_point.z, 1]).reshape((4,1))
+  xyz_new = np.dot(matrix, xyz)
+  return geometry_msgs.msg.Point(*xyz_new[:3])
 
 # RPY rotations are applied in the frame of the pose.
 def rotatePoseByRPY(roll, pitch, yaw, in_pose):
@@ -141,9 +146,10 @@ def rotatePoseByRPY(roll, pitch, yaw, in_pose):
       return outpose
   except:
     pass # header doesn't exist so the object is probably not posestamped
+  
   rotated_pose = copy.deepcopy(in_pose)
   rotated_pose.orientation = rotateQuaternionByRPY(roll, pitch, yaw, rotated_pose.orientation)
-  return rotated_pose
+  return rotated_pose  
 
 # // Returns the angle between two quaternions
 # double quaternionDistance(geometry_msgs::Quaternion q1, geometry_msgs::Quaternion q2) 
@@ -220,24 +226,29 @@ def all_close(goal, actual, tolerance):
 
 
 # Below are some ugly helper functions that should really be replaced. 
-def publish_marker(marker_pose_stamped, marker_type):
-  publisher = rospy.Publisher("vision_markers", visualization_msgs.msg.Marker, queue_size = 100)
+def publish_marker(marker_pose_stamped, marker_type="", namespace=""):
+  publisher = rospy.Publisher("o2ac_markers", visualization_msgs.msg.Marker, queue_size = 100)
   rospy.sleep(0.5)
-  return publish_marker(publisher, marker_pose_stamped, marker_type)
+  return publish_marker_(publisher, marker_pose_stamped, marker_type, namespace)
 
-def publish_marker(marker_publisher, marker_pose_stamped, marker_type):
+def publish_marker_(marker_publisher, marker_pose_stamped, marker_type="", namespace=""):
   marker = visualization_msgs.msg.Marker()
-  marker.header = marker_pose.header
+  if not marker_type:
+    marker_type = "pose"
+  marker.header = marker_pose_stamped.header
   # marker.header.stamp = rospy.Time.now()
-  marker.pose = marker_pose.pose
+  marker.pose = marker_pose_stamped.pose
 
-  marker.ns = "markers"
-  marker.id = 0
+  marker.ns = namespace
+  if not marker.ns:
+    marker.ns = "markers"
+  helper_fct_marker_id_count = 0
+  marker.id = helper_fct_marker_id_count
   marker.lifetime = rospy.Duration(60.0)
   marker.action = visualization_msgs.msg.Marker.ADD
 
   if (marker_type == "pose"):
-    publish_pose_marker(marker_pose)
+    publish_pose_marker_(marker_publisher, marker_pose_stamped, namespace=namespace, helper_fct_marker_id_count=helper_fct_marker_id_count)
 
     # Add a flat sphere
     marker.type = visualization_msgs.msg.Marker.SPHERE
@@ -247,9 +258,9 @@ def publish_marker(marker_publisher, marker_pose_stamped, marker_type):
     marker.color.g = 1.0
     marker.color.a = 0.8
     marker_publisher.publish(marker)
-    return true
+    return True
   if (marker_type == "place_pose"):
-    publish_pose_marker(marker_pose)
+    publish_pose_marker_(marker_publisher, marker_pose_stamped, namespace=namespace, helper_fct_marker_id_count=helper_fct_marker_id_count)
 
     # Add a flat sphere
     marker.type = visualization_msgs.msg.Marker.SPHERE
@@ -259,9 +270,9 @@ def publish_marker(marker_publisher, marker_pose_stamped, marker_type):
     marker.color.g = 1.0
     marker.color.a = 0.8
     marker_publisher.publish(marker)
-    return true
+    return True
   if (marker_type == "pick_pose"):
-    publish_pose_marker(marker_pose)
+    publish_pose_marker_(marker_publisher, marker_pose_stamped, namespace=namespace, helper_fct_marker_id_count=helper_fct_marker_id_count)
 
     # Add a flat sphere
     marker.type = visualization_msgs.msg.Marker.SPHERE
@@ -283,20 +294,21 @@ def publish_marker(marker_publisher, marker_pose_stamped, marker_type):
     rospy.warn("No supported marker message received.")
   marker_publisher.publish(marker)
   
-  if (helper_fct_marker_id_count > 50):
+  if (helper_fct_marker_id_count > 100):
     helper_fct_marker_id_count = 0
   return True
 
 # This is a helper function for publish_marker. Publishes a TF-like frame. Should probably be replaced by rviz_visual_tools
-def publish_pose_marker(marker_publisher, marker_pose_stamped):
+def publish_pose_marker_(marker_publisher, marker_pose_stamped, namespace="", helper_fct_marker_id_count=0):
   marker = visualization_msgs.msg.Marker()
-  marker.header = marker_pose.header
+  marker.header = marker_pose_stamped.header
   marker.header.stamp = rospy.Time.now()
-  marker.pose = marker_pose.pose
+  marker.pose = marker_pose_stamped.pose
 
-  marker.ns = "markers"
-  helper_fct_marker_id_count = 0
-  marker.id = helper_fct_marker_id_count = 0
+  marker.ns = namespace
+  if not marker.ns:
+    marker.ns = "markers"
+  marker.id = helper_fct_marker_id_count
   marker.lifetime = rospy.Duration()
   marker.action = visualization_msgs.msg.Marker.ADD
 
@@ -307,22 +319,23 @@ def publish_pose_marker(marker_publisher, marker_pose_stamped):
   marker.scale.z = .01
   marker.color.a = .8
 
-  arrow_x = visualization_msgs.msg.Marker()
-  arrow_y = visualization_msgs.msg.Marker()
-  arrow_z = visualization_msgs.msg.Marker()
-  arrow_x = marker; arrow_y = marker; arrow_z = marker
+  arrow_x = copy.deepcopy(marker)
+  arrow_y = copy.deepcopy(marker)
+  arrow_z = copy.deepcopy(marker)
+  
   helper_fct_marker_id_count += 1
-  arrow_x.id = helper_fct_marker_id_count = 0
+  arrow_x.id = copy.deepcopy(helper_fct_marker_id_count)
   helper_fct_marker_id_count += 1
-  arrow_y.id = helper_fct_marker_id_count = 0
+  arrow_y.id = copy.deepcopy(helper_fct_marker_id_count)
   helper_fct_marker_id_count += 1
-  arrow_z.id = helper_fct_marker_id_count = 0
+  arrow_z.id = copy.deepcopy(helper_fct_marker_id_count)
+  
   arrow_x.color.r = 1.0
   arrow_y.color.g = 1.0
   arrow_z.color.b = 1.0
 
-  rotatePoseByRPY(0, 0, tau/4, arrow_y.pose)
-  rotatePoseByRPY(0, -tau/4, 0, arrow_z.pose)
+  arrow_y.pose = rotatePoseByRPY(0, 0, tau/4, arrow_y.pose)
+  arrow_z.pose = rotatePoseByRPY(0, -tau/4, 0, arrow_z.pose)
 
   marker_publisher.publish(arrow_x)
   marker_publisher.publish(arrow_y)

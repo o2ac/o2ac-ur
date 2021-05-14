@@ -31,6 +31,7 @@ class URRobot():
         self.use_real_robot = use_real_robot
         self.ns = namespace
         self.listener = tf_listener
+        self.failed_marker_counter = 0
 
         try:
             self.force_controller = URForceController(robot_name=namespace)
@@ -320,6 +321,10 @@ class URRobot():
         group.clear_pose_targets()
 
         current_pose = group.get_current_pose().pose
+        if not move_success:
+            rospy.logwarn("move_lin command failed. Publishing failed pose.")
+            helpers.publish_marker(pose_goal_stamped, "pose", self.ns + "_go_to_pose_goal_failed_pose_" + str(self.failed_marker_counter))
+            self.failed_marker_counter += 1
         return helpers.all_close(pose_goal_stamped.pose, current_pose, 0.01), move_success
 
     def move_lin_trajectory(self, trajectory, speed=1.0, acceleration=0.5, end_effector_link=""):
@@ -404,7 +409,9 @@ class URRobot():
                 rospy.logwarn("move_lin attempt failed. Retrying.")
                 tries += 1
         if not move_success:
-            rospy.logerr("move_lin failed " + str(tries) + " times! Broke out.")
+            rospy.logerr("move_lin failed " + str(tries) + " times! Broke out, published failed pose.")
+            helpers.publish_marker(pose_goal_stamped, "pose", self.ns + "_move_lin_failed_pose_" + str(self.failed_marker_counter))
+            self.failed_marker_counter += 1
         group.stop()
         group.clear_pose_targets()
 

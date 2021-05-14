@@ -56,7 +56,8 @@ class URForceController(CompliantController):
 
     def force_control(self, target_force=None, target_positions=None,
                       selection_matrix=None, relative_to_ee=False,
-                      timeout=10.0, stop_on_target_force=False, reset_pids=True, termination_criteria=None):
+                      timeout=10.0, stop_on_target_force=False, reset_pids=True, termination_criteria=None,
+                      displacement_epsilon=0.002, check_displacement_time=2.0):
         """ 
             Use with caution!! 
             target_force: list[6], target force for each direction x,y,z,ax,ay,az
@@ -78,7 +79,8 @@ class URForceController(CompliantController):
         self.force_model.alpha = np.diag(selection_matrix) if selection_matrix is not None else self.force_model.alpha  # alpha is the selection_matrix
 
         result = self.set_hybrid_control_trajectory(target_positions, self.force_model, max_force_torque=self.max_force_torque, timeout=timeout,
-                                                    stop_on_target_force=stop_on_target_force, termination_criteria=termination_criteria)
+                                                    stop_on_target_force=stop_on_target_force, termination_criteria=termination_criteria,
+                                                    displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time)
         self.force_model.reset()  # reset pid errors
 
         return result
@@ -87,6 +89,7 @@ class URForceController(CompliantController):
                                     steps=100, revolutions=5,
                                     wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0,
                                     target_force=None, selection_matrix=None, timeout=10.,
+                                    displacement_epsilon=0.002, check_displacement_time=2.0,
                                     termination_criteria=None):
         """
             Execute a circular trajectory on a given plane, with respect to the base of the robot, with a given radius
@@ -96,12 +99,14 @@ class URForceController(CompliantController):
         trajectory = traj_utils.compute_trajectory(initial_pose, plane, radius, radius_direction, steps, revolutions, from_center=True, trajectory_type="circular",
                                                    wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0)
         return self.force_control(target_force=target_force, target_positions=trajectory, selection_matrix=selection_matrix,
-                                  timeout=timeout, relative_to_ee=False, termination_criteria=termination_criteria)
+                                  timeout=timeout, relative_to_ee=False, termination_criteria=termination_criteria,
+                                  displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time)
 
     def execute_spiral_trajectory(self, plane, max_radius, radius_direction,
                                   steps=100, revolutions=5,
                                   wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0,
                                   target_force=None, selection_matrix=None, timeout=10.,
+                                  displacement_epsilon=0.002, check_displacement_time=2.0,
                                   termination_criteria=None):
         """
             Execute a spiral trajectory on a given plane, with respect to the base of the robot, with a given max radius
@@ -111,7 +116,8 @@ class URForceController(CompliantController):
         trajectory = traj_utils.compute_trajectory(initial_pose, plane, max_radius, radius_direction, steps, revolutions, from_center=True, trajectory_type="spiral",
                                                    wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0)
         return self.force_control(target_force=target_force, target_positions=trajectory, selection_matrix=selection_matrix,
-                                  timeout=timeout, relative_to_ee=False, termination_criteria=termination_criteria)
+                                  timeout=timeout, relative_to_ee=False, termination_criteria=termination_criteria,
+                                  displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time)
 
     def linear_push(self, force, direction, relative_to_ee=False, timeout=10.0):
         """

@@ -5,8 +5,7 @@ waypoints:
   type: joint-space-goal-cartesian-lin-motion
   speed: 0.4
   blend: 0.0
-- pose: [1.9658042192459106, -1.804723402062887, 2.1555150190936487, -1.9713098011412562,
-    -2.137388531361715, 1.9565660953521729]
+- pose: [2.0818, -1.9657, 2.3201, -1.8999, -2.1383, -4.1908]
   type: joint-space-goal-cartesian-lin-motion
   speed: 0.4
   blend: 0.005
