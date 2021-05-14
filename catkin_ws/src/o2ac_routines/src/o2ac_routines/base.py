@@ -907,14 +907,14 @@ class O2ACBase(object):
 
     for i, point in enumerate(playback_trajectories):
       print("point:", i+1)
-      # raw_input()
+      self.confirm_to_proceed("playback_sequence")
       if point[0] == "point":
         res = self.move_to_sequence_waypoint(*point[1])
       elif point[0] == "trajectory":
         robot_name, trajectory, speed_scale_factor, acceleration_scale_factor = point[1]
         res = self.active_robots[robot_name].move_lin_trajectory(trajectory, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
       if not res:
-        rospy.logerr("Fail to complete playback sequence")
+        rospy.logerr("Fail to complete playback sequence: %s" % routine_filename)
         return False
     return True
 
@@ -935,14 +935,14 @@ class O2ACBase(object):
       success = robot.move_lin(p, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
     elif pose_type == 'task-space':
       p.pose = conversions.to_pose(pose)
-      # success = robot.move_joints(q, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
       success = robot.move_lin(p, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
+      return True
     elif pose_type == 'relative-tcp':
-      pass
-      success = robot.move_lin_rel(relative_translation=pose[:3], relative_rotation=pose[3:], speed=speed_scale_factor, acceleration=acceleration_scale_factor, relative_to_robot_base=False)
+      success = robot.move_lin_rel(relative_translation=pose[:3], relative_rotation=pose[3:], speed=speed_scale_factor, acceleration=acceleration_scale_factor, relative_to_tcp=True)
     elif pose_type == 'relative-base':
-      pass
       success = robot.move_lin_rel(relative_translation=pose[:3], relative_rotation=pose[3:], speed=speed_scale_factor, acceleration=acceleration_scale_factor, relative_to_robot_base=True)
+    elif pose_type == 'named-pose':
+      success = robot.go_to_named_pose(pose, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
     else:
       raise ValueError("Invalid pose_type: %s" % pose_type)
 
