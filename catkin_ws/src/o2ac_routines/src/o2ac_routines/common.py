@@ -534,6 +534,9 @@ class O2ACCommon(O2ACBase):
     Looks at the tray from above and gets grasp points of items.
     Does very light feasibility check before returning.
     """
+    if not self.use_real_robot: # For simulation
+      return conversions.to_pose_stamp("tray_center", [-0.03078, 0.06248, 0.02, 0.0,0.7071,0.0,0.7071])
+
     # Make sure object_id is the id number
     if isinstance(object_id, str):
       try:
@@ -1114,10 +1117,7 @@ class O2ACCommon(O2ACBase):
     self.a_bot.go_to_named_pose("home")
     self.b_bot.go_to_named_pose("home")
     
-    if self.use_real_robot:
-      goal = self.look_and_get_grasp_point("taskboard_idler_pulley_small")
-    else:
-      goal = conversions.to_pose_stamp("tray_center", [-0.03078, 0.06248, 0.02, 0.0,0.7071,0.0,0.7071])
+    goal = self.look_and_get_grasp_point("taskboard_idler_pulley_small")
     
     if not goal:
       rospy.logerr("Could not find idler pulley in tray. Skipping procedure.")
