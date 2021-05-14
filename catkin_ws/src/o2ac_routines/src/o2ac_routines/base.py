@@ -259,14 +259,13 @@ class O2ACBase(object):
       return True
     else:
       if realign_tool_upon_failure:
-          self.go_to_named_pose("tool_pick_ready", robot_name)
+          self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
           rospy.loginfo("pickScrewFromFeeder failed. Realigning tool and retrying.")
           screw_tool_id = "screw_tool_m" + str(screw_size)
           self.realign_tool(robot_name, screw_tool_id)
-          res = self.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure=False)
-          return res.success
+          return self.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure=False)
       else:
-          self.go_to_named_pose("tool_pick_ready", robot_name)
+          self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
           return False
 
   def do_insert_action(self, active_robot_name, passive_robot_name = "", 

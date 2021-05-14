@@ -905,7 +905,7 @@ class O2ACCommon(O2ACBase):
     if not task:
       rospy.logerr("Specify the task!")
       return False
-    self.go_to_named_pose("home", "a_bot")
+    self.a_bot.go_to_named_pose("home")
     self.equip_tool('b_bot', 'screw_tool_m4')
     self.vision.activate_camera("b_bot_outside_camera")
     intermediate_screw_bearing_pose = [31.0 /180.0*3.14, -137.0 /180.0*3.14, 121.0 /180.0*3.14, -114.0 /180.0*3.14, -45.0 /180.0*3.14, -222.0 /180.0*3.14]
@@ -915,8 +915,8 @@ class O2ACCommon(O2ACBase):
       """Returns tuple (screw_success, break_out_of_loop)"""
       # Pick screw
       if pick_screw:
-        self.move_joints("b_bot", intermediate_screw_bearing_pose)
-        self.go_to_named_pose("feeder_pick_ready","b_bot")
+        self.b_bot.move_joints(intermediate_screw_bearing_pose)
+        self.b_bot.go_to_named_pose("feeder_pick_ready")
         pick_success = self.pick_screw_from_feeder("b_bot", screw_size=4)
         if not pick_success:
           rospy.logerr("Could not pick screw. Why?? Breaking out.")
@@ -924,8 +924,8 @@ class O2ACCommon(O2ACBase):
           return (False, True)
       
       # Fasten screw
-      self.move_joints("b_bot", intermediate_screw_bearing_pose)
-      self.go_to_named_pose("horizontal_screw_ready","b_bot")
+      self.b_bot.move_joints(intermediate_screw_bearing_pose)
+      self.b_bot.go_to_named_pose("horizontal_screw_ready")
       screw_pose = geometry_msgs.msg.PoseStamped()
       if _task == "taskboard":
         screw_pose.header.frame_id = "/taskboard_bearing_target_screw_" + str(n) + "_link"
@@ -944,10 +944,10 @@ class O2ACCommon(O2ACBase):
       screw_pose_approach = copy.deepcopy(screw_pose)
       screw_pose_approach.pose.position.x -= 0.05
       
-      self.go_to_pose_goal("b_bot", screw_pose_approach, end_effector_link = "b_bot_screw_tool_m4_tip_link", move_lin=False)
+      self.b_bot.go_to_pose_goal(screw_pose_approach, end_effector_link = "b_bot_screw_tool_m4_tip_link", move_lin=False)
       screw_success = self.skill_server.do_screw_action("b_bot", screw_pose, screw_size=4)
-      self.go_to_pose_goal("b_bot", screw_pose_approach, end_effector_link = "b_bot_screw_tool_m4_tip_link", move_lin=False)
-      self.move_joints("b_bot", intermediate_screw_bearing_pose)
+      self.b_bot.go_to_pose_goal(screw_pose_approach, end_effector_link = "b_bot_screw_tool_m4_tip_link", move_lin=False)
+      self.b_bot.move_joints(intermediate_screw_bearing_pose)
       return (screw_success, False)
 
     screw_status = dict()
@@ -960,9 +960,9 @@ class O2ACCommon(O2ACBase):
         break
       if screw_success:
         screw_status[n] = "done"
-      if not screw_success and self.screw_is_suctioned["m4"]:
+      if not screw_success and self.tools.screw_is_suctioned["m4"]:
         screw_status[n] = "empty"
-      if not screw_success and not self.screw_is_suctioned["m4"]:
+      if not screw_success and not self.tools.screw_is_suctioned["m4"]:
         screw_status[n] = "maybe_stuck_in_hole"
       rospy.loginfo("Screw " + str(n) + " detected as " + screw_status[n])
     
@@ -978,15 +978,15 @@ class O2ACCommon(O2ACBase):
           (screw_success, breakout) = pick_and_fasten_bearing_screw(n, pick_screw=False)
         if screw_success:
           screw_status[n] = "done"
-        if not screw_success and self.screw_is_suctioned["m4"]:
+        if not screw_success and self.tools.screw_is_suctioned["m4"]:
           screw_status[n] = "empty"
-        if not screw_success and not self.screw_is_suctioned["m4"]:
+        if not screw_success and not self.tools.screw_is_suctioned["m4"]:
           screw_status[n] = "maybe_stuck_in_hole"
         rospy.loginfo("Screw " + str(n) + " detected as " + screw_status[n])
       all_screws_done = all(value == "done" for value in screw_status.values())
 
-    self.move_joints("b_bot", intermediate_screw_bearing_pose)
-    self.go_to_named_pose("tool_pick_ready","b_bot")
+    self.b_bot.move_joints(intermediate_screw_bearing_pose)
+    self.b_bot.go_to_named_pose("tool_pick_ready")
     return all_screws_done
 
   ########  Motor pulley
