@@ -634,6 +634,27 @@ class O2ACCommon(O2ACBase):
     
     robot.go_to_pose_goal(object_pose_in_world, move_lin=True)
     return True
+  
+  def center_with_gripper_2(self, robot_name, grasp_width):
+    robot = self.active_robots[robot_name]
+    robot.gripper.send_command(command="close", force = 1.0, velocity = 0.1)
+    robot.gripper.send_command(command=grasp_width+0.03, force = 90.0, velocity = 0.001)
+
+    # rotate gripper 90deg
+    initial_pose_goal = robot.robot_group.get_current_joint_values()
+    pose_goal = robot.robot_group.get_current_joint_values()
+    pose_goal[-1] += tau/4.0 
+    success = robot.move_joints(pose_goal, speed=0.5, wait=True)
+    if not success:
+      rospy.logerr("Fail to rotate 90deg %s" % success)
+      return False
+    
+    # close-open
+    robot.gripper.send_command(command="close", force = 1.0, velocity = 0.1)
+    robot.gripper.send_command(command=grasp_width+0.03, force = 90.0, velocity = 0.001)
+
+    # rotate gripper -90deg
+    robot.move_joints(initial_pose_goal, speed=0.5, wait=True)
 
   def centering_pick(self, robot_name, object_pose, speed=0.2, acc=0.01, object_width=0.08, approach_height=0.1, 
           item_id_to_attach = "", lift_up_after_pick=False, gripper_force=40.0):
@@ -651,40 +672,21 @@ class O2ACCommon(O2ACBase):
     approach_pose = copy.deepcopy(pick_pose)
     approach_pose.pose.position.z += approach_height
 
-    success = self.a_bot.go_to_pose_goal(approach_pose, speed=speed, acceleration=acc, move_lin=True)
+    success = robot.go_to_pose_goal(approach_pose, speed=speed, acceleration=acc, move_lin=True)
     if not success:
       rospy.logerr("Fail to complete approach pose")
       return False
     
     rospy.loginfo("Moving down to object")
-    robot.gripper.send_command(command=object_width+0.03)
+    robot.gripper.send_command(command=grasp_width+0.03)
     
-    success = self.a_bot.go_to_pose_goal(pick_pose, speed=speed, acceleration=acc, move_lin=True)
+    success = robot.go_to_pose_goal(pick_pose, speed=speed, acceleration=acc, move_lin=True)
     if not success:
       rospy.logerr("Fail to complete pick pose")
       return False
 
-    robot.gripper.send_command(command="close", force = 1.0, velocity = 0.1)
-    robot.gripper.send_command(command=object_width+0.02, force = 90.0, velocity = 0.001)
-
-    # rotate gripper 90deg
-    initial_pose_goal = self.a_bot.robot_group.get_current_joint_values()
-    pose_goal = self.a_bot.robot_group.get_current_joint_values()
-    pose_goal[-1] += tau/4.0 
-    success = self.a_bot.move_joints(pose_goal, speed=0.5, wait=True)
-    if not success:
-      rospy.logerr("Fail to rotate 90deg %s" % success)
-      return False
-    
-    # close-open
-    robot.gripper.send_command(command="close", force = 1.0, velocity = 0.1)
-    robot.gripper.send_command(command=object_width+0.02, force = 90.0, velocity = 0.001)
-
-    # rotate gripper -90deg
-    self.a_bot.move_joints(initial_pose_goal, speed=0.5, wait=True)
-    
     # Center object
-    # self.center_with_gripper(robot_name, object_pose, object_width)
+    self.center_with_gripper_2(robot_name, object_width)
 
     # Grasp object
     robot.gripper.send_command(command="close", force = gripper_force)
@@ -1145,7 +1147,22 @@ class O2ACCommon(O2ACBase):
     rospy.loginfo("Picking idler pulley at: ")
     self.b_bot.go_to_named_pose("home")
 
-    self.centering_pick("a_bot", object_pose, speed=0.5, acc=0.25, lift_up_after_pick=False)
+    at_object_pose = copy.deepcopy(object_pose)
+    at_object_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(0, tau/4, -tau/4))
+    approach_pose = copy.deepcopy(at_object_pose)
+    approach_pose.pose.position.z += .1
+
+    if not self.a_bot.go_to_pose_goal(approach_pose):
+      rospy.logerr("Fail to complete approach pose")
+      return False
+    
+    rospy.loginfo("Moving down to object")
+    self.a_bot.gripper.open(grasp_width=0.08)
+    if not self.a_bot.go_to_pose_goal(at_object_pose):
+      rospy.logerr("Fail to complete pick pose")
+      return False
+
+    self.center_with_gripper_2("a_bot", grasp_width=.05)
     
     success = self.grasp_idler_pulley()
     if not success:
