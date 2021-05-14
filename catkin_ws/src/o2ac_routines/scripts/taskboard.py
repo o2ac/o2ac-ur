@@ -255,7 +255,7 @@ class TaskboardClass(O2ACCommon):
               self.do_task("screw_bearing")
       
 
-  def do_task(self, task_name):
+  def do_task(self, task_name, fake_execution_for_calibration=False):
     
     if task_name == "belt":
       # - Equip the belt tool with b_bot
@@ -353,50 +353,68 @@ class TaskboardClass(O2ACCommon):
     # ==========================================================
 
     if task_name == "M3 screw":
-      if not self.a_bot.robot_status.carrying_tool and self.a_bot.robot_status.held_tool_id == "screw_tool_m3":
-        self.a_bot.go_to_named_pose("tool_pick_ready")
+      if not self.a_bot.robot_status.carrying_tool and not self.a_bot.robot_status.held_tool_id == "screw_tool_m3":
         self.equip_tool("a_bot", "screw_tool_m3")
-      self.pick_screw_from_feeder("a_bot", screw_size = 3)
+      if not fake_execution_for_calibration:
+        self.pick_screw_from_feeder("a_bot", screw_size = 3)
       self.a_bot.go_to_named_pose("horizontal_screw_ready")
       approach_pose = geometry_msgs.msg.PoseStamped()
       approach_pose.header.frame_id = "taskboard_m3_screw_link"
       approach_pose.pose.position.x = -.04
       approach_pose.pose.position.y = -.12
       approach_pose.pose.position.z = -.05
-      taskboard.go_to_pose_goal("a_bot", approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
+      self.a_bot.go_to_pose_goal(approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
 
       approach_pose.pose.position.y = -.0
       approach_pose.pose.position.z = -.0
-      taskboard.go_to_pose_goal("a_bot", approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
+      self.a_bot.go_to_pose_goal(approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
 
       hole_pose = geometry_msgs.msg.PoseStamped()
       hole_pose.header.frame_id = "taskboard_m3_screw_link"
       hole_pose.pose.position.y = -.000  # MAGIC NUMBER (y-axis of the frame points right)
       hole_pose.pose.position.z = -.004  # MAGIC NUMBER (z-axis of the frame points down)
       hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
-      taskboard.skill_server.do_screw_action("a_bot", hole_pose, screw_size = 3)
+      if not fake_execution_for_calibration:
+        self.skill_server.do_screw_action("a_bot", hole_pose, screw_size = 3)
+      else:
+        hole_pose.pose.position.x -= 0.005
+        self.a_bot.go_to_pose_goal(hole_pose, speed=0.05, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
+        self.confirm_to_proceed("Screw tool on hole. Press enter to move back.")
+        self.a_bot.go_to_pose_goal(approach_pose, speed=0.1, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
       self.a_bot.go_to_named_pose("horizontal_screw_ready")
       self.a_bot.go_to_named_pose("home")
-      self.unequip_tool("a_bot", "screw_tool_m3")
+      if not fake_execution_for_calibration:
+        self.unequip_tool("a_bot", "screw_tool_m3")
 
     # ==========================================================
 
     if task_name == "M4 screw":
-      if not self.b_bot.robot_status.carrying_tool and self.b_bot.robot_status.held_tool_id == "screw_tool_m3":
-        self.b_bot.go_to_named_pose("tool_pick_ready")
+      if not self.b_bot.robot_status.carrying_tool and not self.b_bot.robot_status.held_tool_id == "screw_tool_m4":
         self.equip_tool("b_bot", "screw_tool_m4")
       self.vision.activate_camera("b_bot_outside_camera")
-      self.pick_screw_from_feeder("b_bot", screw_size = 4)
+      if not fake_execution_for_calibration:
+        self.pick_screw_from_feeder("b_bot", screw_size = 4)
       self.b_bot.go_to_named_pose("horizontal_screw_ready")
       hole_pose = geometry_msgs.msg.PoseStamped()
       hole_pose.header.frame_id = "taskboard_m4_screw_link"
       hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/12, 0, 0))
-      hole_pose.pose.position.y = -.002  # MAGIC NUMBER (y-axis of the frame points right)
-      hole_pose.pose.position.z = -.000  # MAGIC NUMBER (z-axis of the frame points down)
-      self.skill_server.do_screw_action("b_bot", hole_pose, screw_size = 4)
+      hole_pose.pose.position.y = -.001  # MAGIC NUMBER (y-axis of the frame points right)
+      hole_pose.pose.position.z = -.001  # MAGIC NUMBER (z-axis of the frame points down)
+      if not fake_execution_for_calibration:
+        self.skill_server.do_screw_action("b_bot", hole_pose, screw_size = 4)
+      else:
+        hole_pose.pose.position.x = -.01
+        approach_pose = copy.deepcopy(hole_pose)
+        approach_pose.pose.position.x -= .05
+        self.b_bot.go_to_pose_goal(approach_pose, speed=0.1, end_effector_link="b_bot_screw_tool_m4_tip_link", move_lin = True)
+        self.b_bot.go_to_pose_goal(hole_pose, speed=0.05, end_effector_link="b_bot_screw_tool_m4_tip_link", move_lin = True)
+        self.confirm_to_proceed("Screw tool on hole. Press enter to move back.")
+        self.b_bot.go_to_pose_goal(approach_pose, speed=0.05, end_effector_link="b_bot_screw_tool_m4_tip_link", move_lin = True)
+        self.confirm_to_proceed("Did it go back?")
       self.b_bot.go_to_named_pose("horizontal_screw_ready")
       self.b_bot.go_to_named_pose("home")
-      self.unequip_tool("b_bot", "screw_tool_m4")
+      if not fake_execution_for_calibration:
+        self.unequip_tool("b_bot", "screw_tool_m4")
 
     # ==========================================================
 
@@ -587,6 +605,7 @@ if __name__ == '__main__':
       rospy.loginfo("Enter 13, 14 to equip/unequip m3 screw tool")
       rospy.loginfo("Enter 15, 16 to equip/unequip m4 screw tool")
       # rospy.loginfo("Enter 17, 18 to equip/unequip belt placement tool")
+      rospy.loginfo("Enter 3 to calibrate screw tasks (31: M3, 32: M4)")
       rospy.loginfo("Subtasks: 51 (set screw), 52 (M3), 53 (M4), 54 (belt), 55 (motor pulley), 56 (shaft), 57 (bearing), 58 (idler pulley)")
       rospy.loginfo("Enter 8 to spawn example parts")
       rospy.loginfo("Enter reset to reset the scene")
@@ -633,6 +652,16 @@ if __name__ == '__main__':
         taskboard.equip_tool("b_bot", "set_screw_tool")
       if i == "18":
         taskboard.unequip_tool("b_bot", "set_screw_tool")
+      if i == "3":
+        taskboard.b_bot.go_to_named_pose("home")
+        taskboard.do_task("M3 screw", fake_execution_for_calibration=True)
+        taskboard.a_bot.go_to_named_pose("home")
+        taskboard.do_task("M4 screw", fake_execution_for_calibration=True)
+        taskboard.b_bot.go_to_named_pose("home")
+      if i == "31":
+        taskboard.do_task("M3 screw", fake_execution_for_calibration=True)
+      if i == "32":
+        taskboard.do_task("M4 screw", fake_execution_for_calibration=True)
       if i == "51":
         taskboard.do_task("M2 set screw")
       if i == "52":
