@@ -472,36 +472,40 @@ class TaskboardClass(O2ACCommon):
     # ==========================================================
 
     if task_name == "shaft":
-      self.a_bot.go_to_named_pose("home")
-      self.b_bot.go_to_named_pose("home")
-
-      goal = self.look_and_get_grasp_point(self.assembly_database.name_to_id("shaft"))
-      if not goal:
-        rospy.logerr("Could not find shaft in tray. Skipping procedure.")
-        print(self.objects_in_tray)
-        return False
-      goal.pose.position.z = 0.001
-      self.vision.activate_camera("b_bot_inside_camera")
-      self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z")
-      
-      success_b = self.b_bot.load_program(program_name="wrs2020/shaft_v3.urp", recursion_depth=3)
-      
-      if success_b:
-        print("Loaded shaft program.")
-        rospy.sleep(1)
-        self.b_bot.execute_loaded_program()
-        print("Started execution. Waiting for b_bot to finish.")
+      use_ros = True
+      if use_ros:
+        self.pick_and_insert_shaft("taskboard")
       else:
-        print("Problem loading. Not executing shaft procedure.")
-        return False
-      wait_for_UR_program("/b_bot", rospy.Duration.from_sec(50))
-      if self.b_bot.is_protective_stopped():
-        rospy.logwarn("Robot was protective stopped after shaft insertion - shaft may be stuck!")
-        #TODO: Recovery? Try to loosen the shaft?
-        self.b_bot.unlock_protective_stop()
-        rospy.sleep(1)
-        if self.b_bot.is_protective_stopped():
+        self.a_bot.go_to_named_pose("home")
+        self.b_bot.go_to_named_pose("home")
+
+        goal = self.look_and_get_grasp_point(self.assembly_database.name_to_id("shaft"))
+        if not goal:
+          rospy.logerr("Could not find shaft in tray. Skipping procedure.")
+          print(self.objects_in_tray)
           return False
+        goal.pose.position.z = 0.001
+        self.vision.activate_camera("b_bot_inside_camera")
+        self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z")
+        
+        success_b = self.b_bot.load_program(program_name="wrs2020/shaft_v3.urp", recursion_depth=3)
+        
+        if success_b:
+          print("Loaded shaft program.")
+          rospy.sleep(1)
+          self.b_bot.execute_loaded_program()
+          print("Started execution. Waiting for b_bot to finish.")
+        else:
+          print("Problem loading. Not executing shaft procedure.")
+          return False
+        wait_for_UR_program("/b_bot", rospy.Duration.from_sec(50))
+        if self.b_bot.is_protective_stopped():
+          rospy.logwarn("Robot was protective stopped after shaft insertion - shaft may be stuck!")
+          #TODO: Recovery? Try to loosen the shaft?
+          self.b_bot.unlock_protective_stop()
+          rospy.sleep(1)
+          if self.b_bot.is_protective_stopped():
+            return False
       return True
     
     # ==========================================================

@@ -24,10 +24,15 @@ def main():
     # controller.a_bot.move_lin_rel(relative_translation=[0.0, -0.1, 0.], relative_rotation=[0,0, np.deg2rad(45)], relative_to_robot_base=True)
     # controller.a_bot.move_lin_rel(relative_translation=[0.0, 0, 0.], relative_rotation=[0,np.deg2rad(-90), 0], relative_to_robot_base=True)
     # controller.pick_and_insert_idle_pulley("taskboard")
+    controller.pick_and_insert_shaft("taskboard")
+
+    # controller.b_bot.move_joints([1.6166805028915405, -1.666929384271139, 1.8822982946978968, -1.794750829736227, -1.5447457472430628, 1.592530369758606], acceleration = 0.05, speed=.1)
+    # controller.test("taskboard_assy_part_07_inserted")
     # controller.spiral_search_with_nut_tool()
     # controller.insert_idler_pulley("taskboard_long_hole_middle_link")
+    
     # controller.a_bot.move_joints([0.6765, -1.5287, 2.2274, -0.6668, -0.1085, 1.5388], acceleration = 0.05, speed=.1)
-    controller.playback_sequence("idler_pulley_prepare_nut_tool")
+    # controller.playback_sequence("idler_pulley_prepare_nut_tool")
     # controller.orient_idle_pulley("taskboard")
     # controller.prepare_screw_tool_idler_pulley("taskboard")
     # controller.assembly_database.change_assembly('taskboard')

@@ -1267,8 +1267,7 @@ class O2ACCommon(O2ACBase):
     if not success:
       return False
 
-    target_rotation = np.deg2rad([0, 0, 0]).tolist()
-    target_pose = conversions.to_pose_stamp(target_link, [0.018, 0.0, 0.0]+target_rotation)
+    target_pose = conversions.to_pose_stamp(target_link, [0.018, 0.0, 0.0, 0.0, 0.0, 0.0])
     return self.a_bot.move_lin(target_pose, end_effector_link="a_bot_nut_tool_m4_hole_link")
 
   def spiral_search_with_nut_tool(self):
@@ -1294,6 +1293,110 @@ class O2ACCommon(O2ACBase):
     else:
       rospy.logwarn("** FORCE CONTROL Failed! **")
       return False
+
+  ######## Shaft
+
+  def pick_and_insert_shaft(self, task=""):
+    if not task:
+      rospy.logerr("Specify the task!")
+      return False
+
+    if task == "taskboard":
+      target_link = "taskboard_assy_part_07_inserted"
+    elif task == "assembly":
+      rospy.logerr("look this up")
+      target_link = "assembly_assy_part_07_inserted"
+    
+    self.a_bot.go_to_named_pose("home")
+    self.b_bot.go_to_named_pose("home")
+
+    goal = self.look_and_get_grasp_point("shaft")
+    if not goal:
+      rospy.logerr("Could not find shaft in tray. Skipping procedure.")
+      print(self.objects_in_tray)
+      return False
+    goal.pose.position.z = 0.001
+    self.vision.activate_camera("b_bot_inside_camera")
+    self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z")
+
+    ## go to pre insertion
+    rospy.logwarn("Going to pre insertion (b_bot)")
+    rotation = np.deg2rad([-22.486, -88.707, -158.832]).tolist()
+    # -22.486, -88.707, -158.832
+    target_pose = conversions.to_pose_stamp(target_link, [-0.25, 0.002, 0.00] + rotation)
+    near_tb_pose = self.listener.transformPose("world", target_pose)
+    success = self.b_bot.move_lin(near_tb_pose)
+    if not success:
+      return False
+
+    ## go to hole
+    rospy.logwarn("Going to hole (b_bot)")
+    target_pose = conversions.to_pose_stamp(target_link, [-0.087, 0.002, 0.000] + rotation)
+    near_tb_pose = self.listener.transformPose("world", target_pose)
+    success = self.b_bot.move_lin(near_tb_pose)
+    if not success:
+      return False
+
+    ## insert with force control
+    self.insert_shaft(target_link)
+
+  def insert_shaft(self, target_link):
+    plane = "YZ"
+    radius = 0.002
+    radius_direction = "+Z"
+    revolutions = 5
+
+    steps = 100
+    duration = 30.0
+    
+    target_force = get_target_force('-X', 8.0)
+    selection_matrix = [0., 0.8, 0.8, 0.8, 0.8, 0.8]
+
+    target_pose = conversions.to_pose_stamp(target_link, [-0.06, 0.002, 0.000, 0, 0, 0])
+    target_in_robot_base = self.listener.transformPose("b_bot_base_link", target_pose)
+    target_x = target_in_robot_base.pose.position.x
+    termination_criteria = lambda cpose, standby_time: cpose[0] >= target_x or \
+                                                       (standby_time and cpose[0] >= target_x-0.02) # relax constraint
+
+    rospy.logwarn("** STARTING FORCE CONTROL **")
+    result = self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
+                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=10.0,
+                                                        target_force=target_force, selection_matrix=selection_matrix,
+                                                        termination_criteria=termination_criteria)
+    rospy.logwarn("** FORCE CONTROL COMPLETE with distance %s **" % round(target_x - self.b_bot.force_controller.end_effector()[0],5))
+    rospy.logwarn(" position x: %s" % round(self.b_bot.force_controller.end_effector()[0],5))
+
+    if result != TERMINATION_CRITERIA:
+      rospy.logerr("** Insertion Failed!! **")
+      return
+
+    self.b_bot.gripper.open(wait=True)
+
+    self.b_bot.move_lin_rel(relative_translation = [0.02,0,0], acceleration = 0.015, speed=.03)
+
+    pre_push_position = self.b_bot.force_controller.joint_angles()
+
+    self.b_bot.gripper.close(velocity=0.01, wait=True)
+
+    target_x += 0.04
+    termination_criteria = lambda cpose, standby_time: cpose[0] >= target_x or \
+                                                       (standby_time and cpose[0] >= target_x-0.01) # relax constraint
+    radius = 0.0
+
+    rospy.logwarn("** STARTING FORCE CONTROL 2**")
+    self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
+                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(0.0), wiggle_revolutions=10.0,
+                                                        target_force=target_force, selection_matrix=selection_matrix,
+                                                        termination_criteria=termination_criteria)
+    rospy.logwarn("** FORCE CONTROL COMPLETE 2 with distance %s **" % round(target_x - self.b_bot.force_controller.end_effector()[0],5))
+    rospy.logwarn(" position x: %s" % round(self.b_bot.force_controller.end_effector()[0],5))
+    
+    self.b_bot.gripper.open(wait=True)
+
+    rospy.loginfo("** Second insertion done, moving back via MoveIt **")
+    self.b_bot.move_lin_rel(relative_translation = [0.025,0,0], acceleration = 0.015, speed=.03)
+    return True
+
 
   ########
 
