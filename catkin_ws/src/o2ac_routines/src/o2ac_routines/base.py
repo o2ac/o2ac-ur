@@ -871,6 +871,7 @@ class O2ACBase(object):
       speed_scale_factor = point.get('speed', 0.8)
       acceleration_scale_factor = point.get('acceleration', speed_scale_factor/2.0)
       gripper_action = point.get('gripper-action')
+      gripper_opening_width = point.get('gripper-opening-width', None)
       blend = point.get('blend', None)
       
       if blend is not None and pose_type == 'joint-space-goal-cartesian-lin-motion':
@@ -894,10 +895,10 @@ class O2ACBase(object):
         is_trajectory = False
 
         # after trajectory, append current point
-        playback_trajectories.append(["point", (robot_name, pose, pose_type, gripper_action, speed_scale_factor, acceleration_scale_factor)])
+        playback_trajectories.append(["point", (robot_name, pose, pose_type, gripper_action, gripper_opening_width, speed_scale_factor, acceleration_scale_factor)])
 
       else:
-        playback_trajectories.append(["point", (robot_name, pose, pose_type, gripper_action, speed_scale_factor, acceleration_scale_factor)])
+        playback_trajectories.append(["point", (robot_name, pose, pose_type, gripper_action, gripper_opening_width, speed_scale_factor, acceleration_scale_factor)])
       
     if is_trajectory:
       playback_trajectories.append(["trajectory", (robot_name, trajectory, speed_scale_factor, acceleration_scale_factor)])
@@ -918,7 +919,7 @@ class O2ACBase(object):
         return False
     return True
 
-  def move_to_sequence_waypoint(self, robot_name, pose, pose_type, gripper_action, speed_scale_factor, acceleration_scale_factor):
+  def move_to_sequence_waypoint(self, robot_name, pose, pose_type, gripper_action, gripper_opening_width, speed_scale_factor, acceleration_scale_factor):
     success = False
     robot = self.active_robots[robot_name]
     group = robot.robot_group
@@ -948,7 +949,7 @@ class O2ACBase(object):
 
     if gripper_action:
       if gripper_action == 'open':
-        robot.gripper.open()
+        robot.gripper.open(gripper_opening_width)
       elif gripper_action == 'close':
         robot.gripper.close(force=80., velocity=0.03)
       elif gripper_action == 'close-open':
