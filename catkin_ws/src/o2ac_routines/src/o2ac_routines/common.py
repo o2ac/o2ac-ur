@@ -611,39 +611,32 @@ class O2ACCommon(O2ACBase):
     ydist = l_y_half - abs(object_pose_in_world.pose.position.y)
     return (xdist, ydist)
   
-  def center_with_gripper(self, robot_name, object_pose, object_width, use_ur_script=False):
+  def center_with_gripper(self, robot_name, object_pose, object_width):
     """
     Centers cylindrical object by moving the gripper, by moving the robot to the pose and closing/opening.
     Rotates once and closes/opens again. Does not move back afterwards.
     """
     robot = self.active_robots[robot_name]
-    if use_ur_script:
-      success = robot.load_program(program_name="wrs2020/center_object.urp", recursion_depth=3)
-      if success:
-        rospy.sleep(1)
-        robot.execute_loaded_program()
-      else:
-        rospy.logerr("Problem loading. Not executing center_with_gripper.")
-        return False
-      wait_for_UR_program("/"+robot_name, rospy.Duration.from_sec(20))
-      if robot.is_protective_stopped():
-        robot.unlock_protective_stop()
-        return False
     object_pose_in_world = self.listener.transformPose("world", object_pose)
     object_pose_in_world.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/2, 0))
-    self.active_robots[robot_name].go_to_pose_goal(object_pose_in_world, speed=speed_slow, acceleration=acc_slow, move_lin=True)
+    robot.go_to_pose_goal(object_pose_in_world, move_lin=True)
+
     robot.gripper.send_command(command="close", force = 1.0, velocity = 0.1)
     robot.gripper.send_command(command=object_width+0.02, force = 90.0, velocity = 0.001)
+    
     object_pose_in_world_rotated = copy.deepcopy(object_pose_in_world)
     object_pose_in_world_rotated.pose = rotatePoseByRPY(0,0,tau/4, object_pose_in_world_rotated.pose)
-    self.active_robots[robot_name].go_to_pose_goal(object_pose_in_world, speed=speed_slow, acceleration=acc_slow, move_lin=True)
+    
+    robot.go_to_pose_goal(object_pose_in_world, move_lin=True)
+    
     robot.gripper.send_command(command="close", force = 1.0, velocity = 0.1)
     robot.gripper.send_command(command=object_width+0.02, force = 90.0, velocity = 0.001)
-    self.active_robots[robot_name].go_to_pose_goal(object_pose_in_world, speed=speed_slow, acceleration=acc_slow, move_lin=True)
+    
+    robot.go_to_pose_goal(object_pose_in_world, move_lin=True)
     return True
 
-  def centering_pick(self, robot_name, pick_pose, speed_fast=0.1, speed_slow=0.02, object_width=0.08, approach_height=0.05, 
-          item_id_to_attach = "", lift_up_after_pick=True, force_ur_script=False, acc_fast=1.0, acc_slow=.1, gripper_force=40.0):
+  def centering_pick(self, robot_name, object_pose, speed=0.2, acc=0.01, object_width=0.08, approach_height=0.1, 
+          item_id_to_attach = "", lift_up_after_pick=False, gripper_force=40.0):
     """
     This function picks an object with the robot directly from above, but centers the object with the gripper first.
     Should be used only for cylindrical objects.
@@ -651,24 +644,47 @@ class O2ACCommon(O2ACBase):
     item_id_to_attach is used to attach the item to the robot at the target pick pose. It is ignored if empty.
     """
     robot = self.active_robots[robot_name]
-    if speed_fast > 1.0:
-      acceleration=speed_fast
-    else:
-      acceleration=1.0
 
-    object_pose_in_world = self.listener.transformPose("world", pick_pose)
-    object_pose_in_world.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi, 0))
-    object_pose_in_world.pose.position.z += approach_height
-    rospy.logdebug("Going to height " + str(object_pose_in_world.pose.position.z))
-    self.active_robots[robot_name].go_to_pose_goal(object_pose_in_world, speed=speed_fast, acceleration=acc_fast, move_lin=True)
-    object_pose_in_world.pose.position.z -= approach_height
+    pick_pose = copy.deepcopy(object_pose)
+    pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(0, tau/4, -tau/4))
 
-    robot.gripper.send_command(command=object_width+0.03)
+    approach_pose = copy.deepcopy(pick_pose)
+    approach_pose.pose.position.z += approach_height
 
+    success = self.a_bot.go_to_pose_goal(approach_pose, speed=speed, acceleration=acc, move_lin=True)
+    if not success:
+      rospy.logerr("Fail to complete approach pose")
+      return False
+    
     rospy.loginfo("Moving down to object")
+    robot.gripper.send_command(command=object_width+0.03)
+    
+    success = self.a_bot.go_to_pose_goal(pick_pose, speed=speed, acceleration=acc, move_lin=True)
+    if not success:
+      rospy.logerr("Fail to complete pick pose")
+      return False
+
+    robot.gripper.send_command(command="close", force = 1.0, velocity = 0.1)
+    robot.gripper.send_command(command=object_width+0.02, force = 90.0, velocity = 0.001)
+
+    # rotate gripper 90deg
+    initial_pose_goal = self.a_bot.robot_group.get_current_joint_values()
+    pose_goal = self.a_bot.robot_group.get_current_joint_values()
+    pose_goal[-1] += tau/4.0 
+    success = self.a_bot.move_joints(pose_goal, speed=0.5, wait=True)
+    if not success:
+      rospy.logerr("Fail to rotate 90deg %s" % success)
+      return False
+    
+    # close-open
+    robot.gripper.send_command(command="close", force = 1.0, velocity = 0.1)
+    robot.gripper.send_command(command=object_width+0.02, force = 90.0, velocity = 0.001)
+
+    # rotate gripper -90deg
+    self.a_bot.move_joints(initial_pose_goal, speed=0.5, wait=True)
     
     # Center object
-    self.center_with_gripper(robot_name, object_pose_in_world, object_width)
+    # self.center_with_gripper(robot_name, object_pose, object_width)
 
     # Grasp object
     robot.gripper.send_command(command="close", force = gripper_force)
@@ -688,9 +704,8 @@ class O2ACCommon(O2ACBase):
       rospy.sleep(0.5)
       rospy.loginfo("Going back up")
 
-      object_pose_in_world.pose.position.z += approach_height
-      rospy.loginfo("Going to height " + str(object_pose_in_world.pose.position.z))
-      self.active_robots[robot_name].go_to_pose_goal(object_pose_in_world, speed=speed_fast, acceleration=acc_fast, move_lin=True)
+      rospy.loginfo("Going to height " + str(approach_pose.pose.position.z))
+      robot.go_to_pose_goal(approach_pose, speed=speed, acceleration=acc, move_lin=True)
     return True
 
   def drop_shaft_in_v_groove(self):
@@ -1117,36 +1132,24 @@ class O2ACCommon(O2ACBase):
     self.a_bot.go_to_named_pose("home")
     self.b_bot.go_to_named_pose("home")
     
-    goal = self.look_and_get_grasp_point("taskboard_idler_pulley_small")
+    object_pose = self.look_and_get_grasp_point("taskboard_idler_pulley_small")
     
-    if not goal:
+    if not object_pose:
       rospy.logerr("Could not find idler pulley in tray. Skipping procedure.")
       return False
 
     self.vision.activate_camera("b_bot_inside_camera")
-    goal.pose.position.x -= 0.01 # MAGIC NUMBER
-    goal.pose.position.z = 0.014
+    object_pose.pose.position.x -= 0.01 # MAGIC NUMBER
+    object_pose.pose.position.z = 0.014
+
     rospy.loginfo("Picking idler pulley at: ")
     self.b_bot.go_to_named_pose("home")
-    pick_pose = copy.deepcopy(goal)
-    pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(0, tau/4, -tau/4))
 
-    approach_pose = copy.deepcopy(pick_pose)
-    approach_pose.pose.position.z += 0.1
-
-    self.a_bot.gripper.open(wait=False)
-    self.a_bot.gripper.open(wait=False, opening_width=0.07)
-    success = self.a_bot.go_to_pose_goal(approach_pose, speed=0.5, move_lin = True)
+    self.centering_pick("a_bot", object_pose, speed=0.5, acc=0.25, lift_up_after_pick=False)
+    
+    success = self.grasp_idler_pulley()
     if not success:
-      rospy.logerr("Fail to complete approach pose")
-      return False
-    success = self.a_bot.go_to_pose_goal(pick_pose, speed=0.5, move_lin = True)
-    if not success:
-      rospy.logerr("Fail to complete pick pose")
-      return False
-    success = self.orient_idler_pulley()
-    if not success:
-      rospy.logerr("Fail to complete orient_idler_pulley")
+      rospy.logerr("Fail to complete grasp_idler_pulley")
       return False
     success = self.insert_idler_pulley(idler_puller_target_link)
     if not success:
@@ -1162,26 +1165,7 @@ class O2ACCommon(O2ACBase):
       return False
     ### TODO Move a_bot in spiral/grid with screw motor ON ###
 
-  def orient_idler_pulley(self):
-    # orient
-    self.a_bot.gripper.close()
-    self.a_bot.gripper.open()
-
-    # rotate gripper 90deg
-    initial_pose_goal = self.a_bot.robot_group.get_current_joint_values()
-    pose_goal = self.a_bot.robot_group.get_current_joint_values()
-    pose_goal[-1] += tau/4.0 
-    success = self.a_bot.move_joints(pose_goal, speed=0.5, wait=True)
-    if not success:
-      rospy.logerr("Fail to rotate 90deg %s" % success)
-      return False
-    
-    # close-open
-    self.a_bot.gripper.close()
-    self.a_bot.gripper.open()
-
-    # rotate gripper -90deg
-    self.a_bot.move_joints(initial_pose_goal, speed=0.5, wait=True)
+  def grasp_idler_pulley(self):
     # incline 45deg
     success = self.a_bot.move_lin_rel(relative_rotation=[tau/8.0, 0, 0])
     if not success:
@@ -1201,8 +1185,9 @@ class O2ACCommon(O2ACBase):
 
   def insert_idler_pulley(self, target_link):
     # near tb
+    d = -0.07
     rospy.logwarn("Going to near tb (a_bot)")
-    target_pose = conversions.to_pose_stamp(target_link, [-0.07, 0, 0.0, tau/4.0, 0, tau/8.])
+    target_pose = conversions.to_pose_stamp(target_link, [-0.003+d, 0, 0.0, tau/4.0, 0, tau/8.])
     near_tb_pose = self.listener.transformPose("world", target_pose)
     success = self.a_bot.move_lin(near_tb_pose)
     if not success:
@@ -1210,7 +1195,7 @@ class O2ACCommon(O2ACBase):
     # in ridge
     rospy.sleep(1)
     rospy.logwarn("Going to in ridge (a_bot)")
-    return self.a_bot.move_lin_rel(relative_translation=[-0.045, 0, 0], relative_to_robot_base=True)
+    return self.a_bot.move_lin_rel(relative_translation=[d, 0, 0], relative_to_robot_base=True)
 
   def prepare_screw_tool_idler_pulley(self, target_link):
     self.equip_tool("b_bot", "screw_tool_m4")
