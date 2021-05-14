@@ -1138,17 +1138,17 @@ class O2ACCommon(O2ACBase):
     self.a_bot.gripper.open(wait=False, opening_width=0.07)
     success = self.a_bot.go_to_pose_goal(approach_pose, speed=0.5, move_lin = True)
     if not success:
-      rospy.logerr("Fail to go to approach_pose before insert_idler_pulley (1)")
+      rospy.logerr("Fail to complete approach pose")
       return False
     success = self.a_bot.go_to_pose_goal(pick_pose, speed=0.5, move_lin = True)
     if not success:
-      rospy.logerr("Fail to go to pick_pose before insert_idler_pulley (2)")
+      rospy.logerr("Fail to complete pick pose")
       return False
     success = self.orient_idler_pulley()
     if not success:
       rospy.logerr("Fail to complete orient_idler_pulley")
       return False
-    success = self.insert_idler_pulley(task)
+    success = self.insert_idler_pulley(idler_puller_target_link)
     if not success:
       rospy.logerr("Fail to complete insert_idler_pulley")
       return False
@@ -1171,7 +1171,10 @@ class O2ACCommon(O2ACBase):
     initial_pose_goal = self.a_bot.robot_group.get_current_joint_values()
     pose_goal = self.a_bot.robot_group.get_current_joint_values()
     pose_goal[-1] += tau/4.0 
-    self.a_bot.move_joints(pose_goal, speed=0.5, wait=True)
+    success = self.a_bot.move_joints(pose_goal, speed=0.5, wait=True)
+    if not success:
+      rospy.logerr("Fail to rotate 90deg %s" % success)
+      return False
     
     # close-open
     self.a_bot.gripper.close()
@@ -1180,7 +1183,10 @@ class O2ACCommon(O2ACBase):
     # rotate gripper -90deg
     self.a_bot.move_joints(initial_pose_goal, speed=0.5, wait=True)
     # incline 45deg
-    self.a_bot.move_lin_rel(relative_rotation=[tau/8.0, 0, 0])
+    success = self.a_bot.move_lin_rel(relative_rotation=[tau/8.0, 0, 0])
+    if not success:
+      rospy.logerr("Fail to incline 45deg %s" % success)
+      return False
     
     # close (grasp)
     self.a_bot.gripper.close()
@@ -1191,32 +1197,38 @@ class O2ACCommon(O2ACBase):
         return False
 
     # move above 10cm
-    self.a_bot.move_lin_rel(relative_translation=[0, 0, 0.10])
+    return self.a_bot.move_lin_rel(relative_translation=[0, 0, 0.10])
 
   def insert_idler_pulley(self, target_link):
     # near tb
     rospy.logwarn("Going to near tb (a_bot)")
     target_pose = conversions.to_pose_stamp(target_link, [-0.07, 0, 0.0, tau/4.0, 0, tau/8.])
     near_tb_pose = self.listener.transformPose("world", target_pose)
-    self.a_bot.move_lin(near_tb_pose)
+    success = self.a_bot.move_lin(near_tb_pose)
+    if not success:
+      return False
     # in ridge
     rospy.sleep(1)
     rospy.logwarn("Going to in ridge (a_bot)")
-    self.a_bot.move_lin_rel(relative_translation=[-0.045, 0, 0], relative_to_robot_base=True)
+    return self.a_bot.move_lin_rel(relative_translation=[-0.045, 0, 0], relative_to_robot_base=True)
 
   def prepare_screw_tool_idler_pulley(self, target_link):
     self.equip_tool("b_bot", "screw_tool_m4")
     self.b_bot.go_to_named_pose("screw_ready") #screw_ready_back ??
-    self.playback_sequence("idler_pulley_prepare_screw_tool")
+    success = self.playback_sequence("idler_pulley_prepare_screw_tool")
+    if not success:
+      return False
 
     rospy.logwarn("Going to near tb (b_bot)")
     target_rotation = np.deg2rad([30.0, 0, 0]).tolist()
     xyz_pos = [-0.001, 0.003, -0.007]  # MAGIC NUMBERS
     near_tb_pose = conversions.to_pose_stamp(target_link, xyz_pos + target_rotation)
-    self.b_bot.move_lin(near_tb_pose, end_effector_link="b_bot_screw_tool_m4_tip_link")
+    success = self.b_bot.move_lin(near_tb_pose, end_effector_link="b_bot_screw_tool_m4_tip_link")
+    if not success:
+      return False
 
     ## do spiral motion ## 
-    self.hold_screw_tool_idler_pulley(target_link)
+    return self.hold_screw_tool_idler_pulley(target_link)
 
   def hold_screw_tool_idler_pulley(self, target_link):
     plane = "YZ"
@@ -1242,14 +1254,46 @@ class O2ACCommon(O2ACBase):
                                                         target_force=target_force, selection_matrix=selection_matrix,
                                                         termination_criteria=termination_criteria)
     rospy.logwarn("** FORCE CONTROL COMPLETE **")
+    if result == TERMINATION_CRITERIA:
+      rospy.logwarn("** FORCE CONTROL Succeeded **")
+      return True
+    else:
+      rospy.logwarn("** FORCE CONTROL Failed! **")
+      return False
 
   def prepare_nut_tool(self, target_link):
     self.a_bot.gripper.open()
-    self.playback_sequence("idler_pulley_prepare_nut_tool")
+    success = self.playback_sequence("idler_pulley_prepare_nut_tool")
+    if not success:
+      return False
 
     target_rotation = np.deg2rad([0, 0, 0]).tolist()
     target_pose = conversions.to_pose_stamp(target_link, [0.018, 0.0, 0.0]+target_rotation)
-    self.a_bot.move_lin(target_pose, end_effector_link="a_bot_nut_tool_m4_hole_link")
+    return self.a_bot.move_lin(target_pose, end_effector_link="a_bot_nut_tool_m4_hole_link")
+
+  def spiral_search_with_nut_tool(self):
+    plane = "YZ"
+    radius = 0.003
+    radius_direction = "+Z"
+    revolutions = 3
+
+    steps = 50
+    duration = 15.0
+    
+    target_force = get_target_force('-X', -1.0)
+    selection_matrix = [0., 0.8, 0.8, 0.8, 0.8, 0.8]
+
+    rospy.logwarn("** STARTING FORCE CONTROL **")
+    result = self.a_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
+                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(2.0), wiggle_revolutions=revolutions,
+                                                        target_force=target_force, selection_matrix=selection_matrix)
+    rospy.logwarn("** FORCE CONTROL COMPLETE **")
+    if result == TERMINATION_CRITERIA:
+      rospy.logwarn("** FORCE CONTROL Succeeded **")
+      return True
+    else:
+      rospy.logwarn("** FORCE CONTROL Failed! **")
+      return False
 
   ########
 
