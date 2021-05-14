@@ -250,9 +250,9 @@ class TaskboardClass(O2ACCommon):
         if not self.subtask_completed[item]:
           self.confirm_to_proceed("Reattempt " + str(item) + "?")
           self.subtask_completed[item] = self.do_task(item)
-          if item == "bearing" and self.subtask_completed[item]: 
-            if not self.subtask_completed["screw_bearing"]:
-              self.do_task("screw_bearing")
+          # if item == "bearing" and self.subtask_completed[item]: 
+          #   if not self.subtask_completed["screw_bearing"]:
+          #     self.do_task("screw_bearing")
       
 
   def do_task(self, task_name, fake_execution_for_calibration=False):
@@ -538,7 +538,7 @@ class TaskboardClass(O2ACCommon):
       #   return False
 
       ##### Centering using urp
-      use_ros = True
+      use_ros = False
       if use_ros:
         self.pick_and_insert_idle_pulley("taskboard")
       
