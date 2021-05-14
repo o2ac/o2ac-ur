@@ -36,7 +36,7 @@
        Waypoint_28
      MoveL
        Waypoint_22
-     Call taskboard_place_hook
+     Call taskboard_place_hook_1
    taskboard_pick_hook
      Gripper Open (1)
      MoveJ
@@ -52,12 +52,13 @@
        high_approach_1
        wp_on_right_1
        wait_w_tool_1
-   taskboard_place_hook
+   taskboard_place_hook_1
      MoveJ
        currentpose≔get_actual_joint_positions()
        currentpose
-     MoveJ
+     MoveL
        wait_w_tool
+       Waypoint_right
        high_approach
        before_tool
        grasp_tool
