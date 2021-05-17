@@ -34,7 +34,7 @@ class Tools():
             self.suction_client.wait_for_result(rospy.Duration(2.0))
         return self.suction_client.get_result()
 
-    def set_motor(self, motor_name, direction="tighten", wait=False, speed=0, duration=0):
+    def set_motor(self, motor_name, direction="tighten", wait=False, speed=0, duration=0, skip_final_loosen_and_retighten=False):
         if not self.use_real_robot:
             return True
         goal = o2ac_msgs.msg.ScrewToolControlGoal()
@@ -42,6 +42,7 @@ class Tools():
         goal.direction = direction
         goal.speed = speed
         goal.duration = duration
+        goal.skip_final_loosen_and_retighten = skip_final_loosen_and_retighten
         rospy.loginfo("Sending fastening_tool action goal.")
         self.fastening_tool_client.send_goal(goal)
         if wait:

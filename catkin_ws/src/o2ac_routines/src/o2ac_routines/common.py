@@ -1303,7 +1303,7 @@ class O2ACCommon(O2ACBase):
       pushed_into_screw = conversions.to_pose_stamp(target_link, [0.011, 0.0, d - 0.005, 0.0, 0.0, 0.0])
       self.a_bot.move_lin(pushed_into_screw, end_effector_link="a_bot_nut_tool_m4_hole_link", speed=0.2)
       
-      response = self.tools.set_motor("padless_tool_m4", "tighten", duration=3.0, wait=True)
+      response = self.tools.set_motor("padless_tool_m4", "tighten", duration=3.0, wait=True, skip_final_loosen_and_retighten=True)
       idler_pulley_screwing_succeeded = response.motor_stalled
 
     retreat_pose = conversions.to_pose_stamp(target_link, [0.1, 0.0, 0.0, 0.0, 0.0, 0.0])

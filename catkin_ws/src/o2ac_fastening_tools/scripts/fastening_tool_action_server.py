@@ -121,6 +121,9 @@ class FasteningToolController(object):
             goal.speed = 1023
         self._feedback.motor_speed = goal.speed     # Initial setting to start the loop
 
+        if goal.skip_final_loosen_and_retighten:
+            double_check_after_tighten = False
+
         # For tightening the maximum speed is 1023. For loosen it is 2047. At 1024 the motor is stopped.
         target_speed = 1024 + goal.speed
         if goal.direction == "loosen" :
