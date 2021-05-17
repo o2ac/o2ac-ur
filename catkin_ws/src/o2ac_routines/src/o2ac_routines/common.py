@@ -934,7 +934,7 @@ class O2ACCommon(O2ACBase):
 
     rospy.loginfo("** STARTING FORCE CONTROL **")
     result = self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
-                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=10.0,
+                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(2.0), wiggle_revolutions=5.0,
                                                         target_force=target_force, selection_matrix=selection_matrix,
                                                         termination_criteria=termination_criteria)
     rospy.loginfo("** FORCE CONTROL COMPLETE with distance %s **" % round(target_x - self.b_bot.force_controller.end_effector()[0],5))
@@ -959,7 +959,7 @@ class O2ACCommon(O2ACBase):
 
     rospy.loginfo("** STARTING FORCE CONTROL 2**")
     self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
-                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=10.0,
+                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(2.0), wiggle_revolutions=5.0,
                                                         target_force=target_force, selection_matrix=selection_matrix,
                                                         termination_criteria=termination_criteria)
     rospy.loginfo("** FORCE CONTROL COMPLETE 2 with distance %s **" % round(target_x - self.b_bot.force_controller.end_effector()[0],5))
@@ -1093,7 +1093,7 @@ class O2ACCommon(O2ACBase):
 
     rospy.loginfo("** STARTING FORCE CONTROL **")
     result = self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
-                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(8.0), wiggle_revolutions=revolutions,
+                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=revolutions,
                                                         target_force=target_force, selection_matrix=selection_matrix,
                                                         termination_criteria=termination_criteria)
     rospy.loginfo("** FORCE CONTROL COMPLETE **")
@@ -1108,7 +1108,7 @@ class O2ACCommon(O2ACBase):
 
     rospy.loginfo("** STARTING FORCE CONTROL **")
     result = self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
-                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(10.0), wiggle_revolutions=10.0,
+                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=5.0,
                                                         target_force=target_force, selection_matrix=selection_matrix,
                                                         termination_criteria=termination_criteria)
 
@@ -1192,7 +1192,6 @@ class O2ACCommon(O2ACBase):
     if not self.playback_sequence("idler_pulley_unequip_nut_tool"):
       rospy.logerr("Fail to complete unequip_nut_tool")
 
-    rospy.sleep(1.0)
     if not self.playback_sequence("idler_pulley_release_screw_tool"):
       rospy.logerr("Fail to complete idler_pulley_release_screw_tool")
       return False
@@ -1230,8 +1229,22 @@ class O2ACCommon(O2ACBase):
     success = self.a_bot.move_lin(near_tb_pose, speed=0.4)
     if not success:
       return False
+    
+    rospy.loginfo("Approach ridge (a_bot)")
+    self.a_bot.move_lin_rel(relative_translation=[-d + 0.01, 0, 0], speed=0.1, relative_to_robot_base=True)
+        
     rospy.loginfo("Going to in ridge (a_bot)")
-    return self.a_bot.move_lin_rel(relative_translation=[-d, 0, 0], speed=0.1, relative_to_robot_base=True)
+    for i in range(3):
+      if not self.a_bot.move_lin_rel(relative_translation=[-0.01, 0, 0], speed=0.05, relative_to_robot_base=True):
+        if self.a_bot.is_protective_stopped():
+          self.a_bot.unlock_protective_stop()
+
+          rospy.loginfo("Fail insertion %s, moving 0.0015 to the right (-Y)" % str(i+1))
+          self.a_bot.move_lin_rel(relative_translation=[0.01, -0.0015*(i+1), 0], speed=0.05)
+      else:
+        return True
+    return False
+
 
   def prepare_screw_tool_idler_pulley(self, target_link):
     self.equip_tool("b_bot", "padless_tool_m4")
@@ -1251,7 +1264,8 @@ class O2ACCommon(O2ACBase):
     self.hold_screw_tool_idler_pulley(target_link)
     
     xyz_pos = [0.001, -0.001, -0.004]  # MAGIC NUMBERS # Hard push
-    return self.b_bot.move_lin(near_tb_pose, speed=0.05, acceleration=0.05, end_effector_link="b_bot_screw_tool_m4_tip_link")
+    push_pose = conversions.to_pose_stamp(target_link, xyz_pos + target_rotation)
+    return self.b_bot.move_lin(push_pose, speed=0.05, acceleration=0.05, end_effector_link="b_bot_screw_tool_m4_tip_link")
 
   def hold_screw_tool_idler_pulley(self, target_link):
 
@@ -1317,18 +1331,20 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Could not find shaft in tray. Skipping procedure.")
       return False
     goal.pose.position.z = 0.001
+    goal.pose.position.x -= 0.01
+    print("shaft goal", goal)
     self.vision.activate_camera("b_bot_inside_camera")
     self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z")
 
     rospy.loginfo("Going to approach pose (b_bot)")
     rotation = np.deg2rad([-22.5, -88.5, -157.5]).tolist()  # Arbitrary
     approach_pose = conversions.to_pose_stamp(target_link, [-0.25, 0.002, 0.00] + rotation)
-    if not self.b_bot.move_lin(approach_pose):
+    if not self.b_bot.move_lin(approach_pose, speed=0.4):
       return False
-
+    
     rospy.loginfo("Going to hole (b_bot)")
-    at_hole_pose = conversions.to_pose_stamp(target_link, [-0.087, 0.000, -0.002] + rotation)
-    if not self.b_bot.move_lin(at_hole_pose):
+    at_hole_pose = conversions.to_pose_stamp(target_link, [-0.09, 0.000, -0.002] + rotation)
+    if not self.b_bot.move_lin(at_hole_pose, speed=0.2):
       return False
 
     self.insert_shaft(target_link)
@@ -1338,6 +1354,9 @@ class O2ACCommon(O2ACBase):
     Insert shaft with force control using b_bot. The shaft has to be in front of the hole already.
     """
     # FIXME: Needs tuning
+    self.b_bot.linear_push(2, "-X", timeout=10.0)
+    after_push_x = self.b_bot.force_controller.end_effector()[0]
+    print("Pose after linear push", after_push_x)
 
     # Parameters for insertion
     plane = "YZ"
@@ -1345,33 +1364,28 @@ class O2ACCommon(O2ACBase):
     radius_direction = "+Z"
     revolutions = 5
     steps = 100
-    duration = 30.0
-    target_force = get_target_force('-X', 8.0)
-    selection_matrix = [0., 0.8, 0.8, 0.8, 0.8, 0.8]
+    duration = 15.0
+    target_force = get_target_force('-X', 6.0)
+    selection_matrix = [0., 0.8, 0.8, 0.95, 0.95, 0.95]
 
-    target_pose = conversions.to_pose_stamp(target_link, [-0.025, 0.002, 0.000, 0, 0, 0])
-    target_in_robot_base = self.listener.transformPose("b_bot_base_link", target_pose)
-    target_x = target_in_robot_base.pose.position.x
+    target_x = after_push_x + 0.01
     termination_criteria = lambda cpose, standby_time: cpose[0] >= target_x or \
-                                                       (standby_time and cpose[0] >= target_x-0.0) # relax constraint
+                                                       (standby_time and cpose[0] >= target_x-0.003) # relax constraint
 
     rospy.loginfo("** STARTING FORCE CONTROL **")
     result = self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
-                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=10.0,
+                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(3.0), wiggle_revolutions=5.0,
                                                         target_force=target_force, selection_matrix=selection_matrix,
                                                         termination_criteria=termination_criteria)
     rospy.loginfo("** FORCE CONTROL COMPLETE with distance %s **" % round(target_x - self.b_bot.force_controller.end_effector()[0],5))
     rospy.logwarn(" position x: %s" % round(self.b_bot.force_controller.end_effector()[0],5))
 
-    if result != TERMINATION_CRITERIA:
-      rospy.logerr("** Insertion Failed!! **")
-      return
-
     self.b_bot.gripper.open()
     # Move back to push (without grasping)
-    self.b_bot.move_lin_rel(relative_translation = [0.05,0,0], acceleration = 0.015, speed=.03)
+    self.b_bot.move_lin_rel(relative_translation = [0.065,0,-0.02], acceleration = 0.015, speed=.03)
     self.b_bot.gripper.close()
 
+    target_force = get_target_force('-X', 15.0)
     target_x += 0.0
     termination_criteria = lambda cpose, standby_time: cpose[0] >= target_x or \
                                                        (standby_time and cpose[0] >= target_x-0.01) # relax constraint
@@ -1379,16 +1393,19 @@ class O2ACCommon(O2ACBase):
 
     rospy.loginfo("** STARTING FORCE CONTROL 2**")
     self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
-                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(0.0), wiggle_revolutions=10.0,
                                                         target_force=target_force, selection_matrix=selection_matrix,
                                                         termination_criteria=termination_criteria)
     rospy.loginfo("** FORCE CONTROL COMPLETE 2 with distance %s **" % round(target_x - self.b_bot.force_controller.end_effector()[0],5))
     rospy.logwarn(" position x: %s" % round(self.b_bot.force_controller.end_effector()[0],5))
-    
+
     self.b_bot.gripper.open()
 
     rospy.loginfo("** Second insertion done, moving back via MoveIt **")
     self.b_bot.move_lin_rel(relative_translation = [0.025,0,0], acceleration = 0.015, speed=.03)
+    
+    if result != TERMINATION_CRITERIA:
+      rospy.logerr("** Insertion Failed!! **")
+      return False
     return True
 
   ########

@@ -29,16 +29,17 @@ def main():
     # controller.unequip_tool("b_bot", "padless_tool_m4")
 
     # controller.assembly_database.change_assembly('taskboard')
+    # controller.pick_and_insert_shaft("taskboard")
     # controller.pick_and_insert_idler_pulley("taskboard")
 
-    # controller.playback_sequence("idler_pulley_equip_nut_tool")
-    # approach_pose = conversions.to_pose_stamp("taskboard_long_hole_middle_link", [0.1, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # controller.a_bot.move_lin(approach_pose, end_effector_link="a_bot_nut_tool_m4_hole_link", speed=0.4)
-    # controller.playback_sequence("idler_pulley_unequip_nut_tool")
+    controller.playback_sequence("idler_pulley_equip_nut_tool")
+    approach_pose = conversions.to_pose_stamp("taskboard_long_hole_middle_link", [0.1, 0.0, 0.0, 0.0, 0.0, 0.0])
+    controller.a_bot.move_lin(approach_pose, end_effector_link="a_bot_nut_tool_m4_hole_link", speed=0.4)
+    controller.playback_sequence("idler_pulley_unequip_nut_tool")
     
 
-    controller.playback_sequence("idler_pulley_release_screw_tool")
-    controller.unequip_tool("b_bot", "padless_tool_m4")
+    # controller.playback_sequence("idler_pulley_release_screw_tool")
+    # controller.unequip_tool("b_bot", "padless_tool_m4")
 
     # controller.prepare_screw_tool_idler_pulley("taskboard_long_hole_middle_link")
 

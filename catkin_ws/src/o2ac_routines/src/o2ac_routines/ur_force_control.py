@@ -97,7 +97,7 @@ class URForceController(CompliantController):
         """
         initial_pose = self.end_effector()
         trajectory = traj_utils.compute_trajectory(initial_pose, plane, radius, radius_direction, steps, revolutions, from_center=True, trajectory_type="circular",
-                                                   wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0)
+                                                   wiggle_direction=wiggle_direction, wiggle_angle=wiggle_angle, wiggle_revolutions=wiggle_revolutions)
         return self.force_control(target_force=target_force, target_positions=trajectory, selection_matrix=selection_matrix,
                                   timeout=timeout, relative_to_ee=False, termination_criteria=termination_criteria,
                                   displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time)
@@ -114,7 +114,7 @@ class URForceController(CompliantController):
         """
         initial_pose = self.end_effector()
         trajectory = traj_utils.compute_trajectory(initial_pose, plane, max_radius, radius_direction, steps, revolutions, from_center=True, trajectory_type="spiral",
-                                                   wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0)
+                                                   wiggle_direction=wiggle_direction, wiggle_angle=wiggle_angle, wiggle_revolutions=wiggle_revolutions)
         return self.force_control(target_force=target_force, target_positions=trajectory, selection_matrix=selection_matrix,
                                   timeout=timeout, relative_to_ee=False, termination_criteria=termination_criteria,
                                   displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time)

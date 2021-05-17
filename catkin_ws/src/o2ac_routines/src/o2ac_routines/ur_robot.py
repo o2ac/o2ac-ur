@@ -385,7 +385,7 @@ class URRobot():
             rospy.logerr("Fail move_lin_trajectory with status %s" % result)
             return False
 
-    def move_lin(self, pose_goal_stamped, speed=1.0, acceleration=0.5, end_effector_link="", wait=True):
+    def move_lin(self, pose_goal_stamped, speed=0.5, acceleration=0.5, end_effector_link="", wait=True):
         if not self.set_up_move_group(speed, acceleration):
             return False
 
@@ -397,7 +397,7 @@ class URRobot():
         group.set_end_effector_link(end_effector_link)
         pose_goal_world = self.listener.transformPose("world", pose_goal_stamped)
         group.set_pose_target(pose_goal_world)
-
+        
         group.set_planning_pipeline_id("pilz_industrial_motion_planner")
         group.set_planner_id("LIN")
 

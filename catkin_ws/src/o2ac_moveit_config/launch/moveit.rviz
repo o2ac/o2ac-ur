@@ -5,11 +5,11 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /MotionPlanning1/Scene Robot1
-        - /MotionPlanning1/Scene Robot1/Links1
         - /MotionPlanning1/Planning Request1
         - /TF1/Frames1
         - /TF2/Frames1
         - /DepthCloud1/Auto Size1
+        - /Success Visualization1/Namespaces1
       Splitter Ratio: 0.6773163080215454
     Tree Height: 335
   - Class: rviz/Help
@@ -30,7 +30,7 @@ Panels:
     Name: Motion Planning Tasks
     Tasks View:
       property_splitter:
-        - 186
+        - 133
         - 85
       solution_sorting:
         column: 0
@@ -235,6 +235,10 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
+          a_bot_nut_tool_m4_hole_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           a_bot_nut_tool_m6_tip_link:
             Alpha: 1
             Show Axes: false
@@ -682,15 +686,15 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          nut_tool_m6_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          nut_tool_m6_pickup_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
           o2ac_ground:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          padless_tool_m4_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          padless_tool_m4_pickup_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -1081,6 +1085,10 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
+          a_bot_nut_tool_m4_hole_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           a_bot_nut_tool_m6_tip_link:
             Alpha: 1
             Show Axes: false
@@ -1528,15 +1536,15 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          nut_tool_m6_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          nut_tool_m6_pickup_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
           o2ac_ground:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          padless_tool_m4_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          padless_tool_m4_pickup_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -1858,6 +1866,8 @@ Visualization Manager:
           Value: true
         a_bot_left_outer_knuckle:
           Value: true
+        a_bot_nut_tool_m4_hole_link:
+          Value: true
         a_bot_nut_tool_m6_tip_link:
           Value: true
         a_bot_outside_cam_link:
@@ -2034,6 +2044,8 @@ Visualization Manager:
           Value: true
         back_bar:
           Value: true
+        base:
+          Value: true
         base_fixture_top:
           Value: true
         belt_tool_holder:
@@ -2066,159 +2078,19 @@ Visualization Manager:
           Value: true
         m4_feeder_outlet_link:
           Value: true
-        move_group/base:
+        move_group/padless_tool_m4:
           Value: true
-        move_group/base/corner_1:
-          Value: true
-        move_group/base/corner_2:
-          Value: true
-        move_group/base/corner_3:
-          Value: true
-        move_group/base/corner_4:
-          Value: true
-        move_group/base/screw_hole_panel1_1:
-          Value: true
-        move_group/base/screw_hole_panel1_2:
-          Value: true
-        move_group/base/screw_hole_panel2_1:
-          Value: true
-        move_group/base/screw_hole_panel2_2:
-          Value: true
-        move_group/base/under_outer_hole:
-          Value: true
-        move_group/bearing:
-          Value: true
-        move_group/bearing/back_hole:
-          Value: true
-        move_group/bearing/back_tip:
-          Value: true
-        move_group/bearing/front_hole:
-          Value: true
-        move_group/bearing/inserted:
-          Value: true
-        move_group/bearing/screw_hole_1:
-          Value: true
-        move_group/bearing/screw_hole_2:
-          Value: true
-        move_group/bearing/screw_hole_3:
-          Value: true
-        move_group/bearing/screw_hole_4:
-          Value: true
-        move_group/bearing_spacer:
-          Value: true
-        move_group/bearing_spacer/center:
-          Value: true
-        move_group/end_cap:
-          Value: true
-        move_group/end_cap/inner_surface:
-          Value: true
-        move_group/end_cap/screw_hole:
-          Value: true
-        move_group/idler_pin:
-          Value: true
-        move_group/idler_pin/screw_head:
-          Value: true
-        move_group/idler_pin/screw_inserted:
-          Value: true
-        move_group/idler_pin/screw_tip:
-          Value: true
-        move_group/idler_pulley:
-          Value: true
-        move_group/idler_pulley/center:
-          Value: true
-        move_group/idler_pulley/screw_head:
-          Value: true
-        move_group/idler_spacer:
-          Value: true
-        move_group/idler_spacer/center:
-          Value: true
-        move_group/motor:
-          Value: true
-        move_group/motor/inserted_02:
-          Value: true
-        move_group/motor/inserted_13:
-          Value: true
-        move_group/motor/tip:
-          Value: true
-        move_group/motor_pulley:
-          Value: true
-        move_group/motor_pulley/center:
-          Value: true
-        move_group/output_pulley:
-          Value: true
-        move_group/output_pulley/back_hole:
-          Value: true
-        move_group/output_pulley/back_tip:
-          Value: true
-        move_group/output_pulley/front_hole:
-          Value: true
-        move_group/output_pulley/screw_head_1:
-          Value: true
-        move_group/output_pulley/screw_head_2:
-          Value: true
-        move_group/panel_bearing:
-          Value: true
-        move_group/panel_bearing/bottom_screw_hole_1:
-          Value: true
-        move_group/panel_bearing/bottom_screw_hole_2:
-          Value: true
-        move_group/panel_bearing/bottom_screw_hole_aligner_1:
-          Value: true
-        move_group/panel_bearing/bottom_screw_hole_aligner_2:
-          Value: true
-        move_group/panel_bearing/front_hole:
-          Value: true
-        move_group/panel_bearing/pulley_ridge_bottom:
-          Value: true
-        move_group/panel_bearing/pulley_ridge_middle:
-          Value: true
-        move_group/panel_bearing/pulley_ridge_top:
-          Value: true
-        move_group/panel_motor:
-          Value: true
-        move_group/panel_motor/back_hole:
-          Value: true
-        move_group/panel_motor/bottom_screw_hole_1:
-          Value: true
-        move_group/panel_motor/bottom_screw_hole_2:
-          Value: true
-        move_group/panel_motor/bottom_screw_hole_aligner_1:
-          Value: true
-        move_group/panel_motor/bottom_screw_hole_aligner_2:
-          Value: true
-        move_group/panel_motor/motor_screw_hole_1:
-          Value: true
-        move_group/panel_motor/motor_screw_hole_2:
-          Value: true
-        move_group/panel_motor/motor_screw_hole_3:
-          Value: true
-        move_group/panel_motor/motor_screw_hole_4:
-          Value: true
-        move_group/panel_motor/motor_screw_hole_5:
-          Value: true
-        move_group/panel_motor/motor_screw_hole_6:
+        move_group/padless_tool_m4/padless_tool_m4_tip:
           Value: true
         move_group/screw_tool_m3:
           Value: true
         move_group/screw_tool_m3/screw_tool_m3_tip:
           Value: true
-        move_group/screw_tool_m4:
-          Value: true
-        move_group/screw_tool_m4/screw_tool_m4_tip:
-          Value: true
-        move_group/shaft:
-          Value: true
-        move_group/shaft/back_tip:
-          Value: true
-        move_group/shaft/front_tip:
-          Value: true
-        move_group/shaft/inserted:
-          Value: true
-        nut_tool_m6_link:
-          Value: true
-        nut_tool_m6_pickup_link:
-          Value: true
         o2ac_ground:
+          Value: true
+        padless_tool_m4_link:
+          Value: true
+        padless_tool_m4_pickup_link:
           Value: true
         plunger_tool_holder:
           Value: true
@@ -2300,6 +2172,8 @@ Visualization Manager:
           Value: true
         taskboard_surface:
           Value: true
+        tool0_controller:
+          Value: true
         tray:
           Value: true
         tray_center:
@@ -2335,121 +2209,11 @@ Visualization Manager:
       Show Names: true
       Tree:
         world:
-          move_group/base:
-            move_group/base/corner_1:
-              {}
-            move_group/base/corner_2:
-              {}
-            move_group/base/corner_3:
-              {}
-            move_group/base/corner_4:
-              {}
-            move_group/base/screw_hole_panel1_1:
-              {}
-            move_group/base/screw_hole_panel1_2:
-              {}
-            move_group/base/screw_hole_panel2_1:
-              {}
-            move_group/base/screw_hole_panel2_2:
-              {}
-            move_group/base/under_outer_hole:
-              {}
-          move_group/bearing:
-            move_group/bearing/back_hole:
-              {}
-            move_group/bearing/back_tip:
-              {}
-            move_group/bearing/front_hole:
-              {}
-            move_group/bearing/inserted:
-              {}
-            move_group/bearing/screw_hole_1:
-              {}
-            move_group/bearing/screw_hole_2:
-              {}
-            move_group/bearing/screw_hole_3:
-              {}
-            move_group/bearing/screw_hole_4:
-              {}
-          move_group/bearing_spacer:
-            move_group/bearing_spacer/center:
-              {}
-          move_group/end_cap:
-            move_group/end_cap/inner_surface:
-              {}
-            move_group/end_cap/screw_hole:
-              {}
-          move_group/idler_pin:
-            move_group/idler_pin/screw_head:
-              {}
-            move_group/idler_pin/screw_inserted:
-              {}
-            move_group/idler_pin/screw_tip:
-              {}
-          move_group/idler_pulley:
-            move_group/idler_pulley/center:
-              {}
-            move_group/idler_pulley/screw_head:
-              {}
-          move_group/idler_spacer:
-            move_group/idler_spacer/center:
-              {}
-          move_group/motor:
-            move_group/motor/inserted_02:
-              {}
-            move_group/motor/inserted_13:
-              {}
-            move_group/motor/tip:
-              {}
-          move_group/motor_pulley:
-            move_group/motor_pulley/center:
-              {}
-          move_group/output_pulley:
-            move_group/output_pulley/back_hole:
-              {}
-            move_group/output_pulley/back_tip:
-              {}
-            move_group/output_pulley/front_hole:
-              {}
-            move_group/output_pulley/screw_head_1:
-              {}
-            move_group/output_pulley/screw_head_2:
-              {}
-          move_group/panel_motor:
-            move_group/panel_motor/back_hole:
-              {}
-            move_group/panel_motor/bottom_screw_hole_1:
-              {}
-            move_group/panel_motor/bottom_screw_hole_2:
-              {}
-            move_group/panel_motor/bottom_screw_hole_aligner_1:
-              {}
-            move_group/panel_motor/bottom_screw_hole_aligner_2:
-              {}
-            move_group/panel_motor/motor_screw_hole_1:
-              {}
-            move_group/panel_motor/motor_screw_hole_2:
-              {}
-            move_group/panel_motor/motor_screw_hole_3:
-              {}
-            move_group/panel_motor/motor_screw_hole_4:
-              {}
-            move_group/panel_motor/motor_screw_hole_5:
-              {}
-            move_group/panel_motor/motor_screw_hole_6:
+          move_group/padless_tool_m4:
+            move_group/padless_tool_m4/padless_tool_m4_tip:
               {}
           move_group/screw_tool_m3:
             move_group/screw_tool_m3/screw_tool_m3_tip:
-              {}
-          move_group/screw_tool_m4:
-            move_group/screw_tool_m4/screw_tool_m4_tip:
-              {}
-          move_group/shaft:
-            move_group/shaft/back_tip:
-              {}
-            move_group/shaft/front_tip:
-              {}
-            move_group/shaft/inserted:
               {}
           o2ac_ground:
             a_bot_base_link:
@@ -2468,6 +2232,8 @@ Visualization Manager:
                               a_bot_cam_mount:
                                 {}
                               a_bot_gripper_tip_link:
+                                a_bot_nut_tool_m4_hole_link:
+                                  {}
                                 a_bot_tool_intermediate_link:
                                   a_bot_nut_tool_m6_tip_link:
                                     {}
@@ -2476,23 +2242,6 @@ Visualization Manager:
                                   a_bot_screw_tool_m4_tip_link:
                                     {}
                                   a_bot_set_screw_tool_tip_link:
-                                    {}
-                                move_group/panel_bearing:
-                                  move_group/panel_bearing/bottom_screw_hole_1:
-                                    {}
-                                  move_group/panel_bearing/bottom_screw_hole_2:
-                                    {}
-                                  move_group/panel_bearing/bottom_screw_hole_aligner_1:
-                                    {}
-                                  move_group/panel_bearing/bottom_screw_hole_aligner_2:
-                                    {}
-                                  move_group/panel_bearing/front_hole:
-                                    {}
-                                  move_group/panel_bearing/pulley_ridge_bottom:
-                                    {}
-                                  move_group/panel_bearing/pulley_ridge_middle:
-                                    {}
-                                  move_group/panel_bearing/pulley_ridge_top:
                                     {}
                               a_bot_inside_cam_link:
                                 a_bot_inside_camera_connector_link:
@@ -2583,11 +2332,11 @@ Visualization Manager:
                                 b_bot_inside_camera_connector_link:
                                   b_bot_inside_camera_link:
                                     b_bot_inside_camera_aligned_depth_to_color_frame:
-                                      b_bot_inside_camera_color_optical_frame:
-                                        {}
-                                    b_bot_inside_camera_color_frame:
                                       {}
                                     b_bot_inside_camera_depth_frame:
+                                      b_bot_inside_camera_color_frame:
+                                        b_bot_inside_camera_color_optical_frame:
+                                          {}
                                       b_bot_inside_camera_depth_optical_frame:
                                         {}
                                       b_bot_inside_camera_left_ir_frame:
@@ -2600,11 +2349,11 @@ Visualization Manager:
                                 b_bot_outside_camera_connector_link:
                                   b_bot_outside_camera_link:
                                     b_bot_outside_camera_aligned_depth_to_color_frame:
-                                      b_bot_outside_camera_color_optical_frame:
-                                        {}
-                                    b_bot_outside_camera_color_frame:
                                       {}
                                     b_bot_outside_camera_depth_frame:
+                                      b_bot_outside_camera_color_frame:
+                                        b_bot_outside_camera_color_optical_frame:
+                                          {}
                                       b_bot_outside_camera_depth_optical_frame:
                                         {}
                                       b_bot_outside_camera_left_ir_frame:
@@ -2641,8 +2390,8 @@ Visualization Manager:
               {}
             horizontal_column_for_tools:
               screw_tool_holder_long:
-                nut_tool_m6_link:
-                  nut_tool_m6_pickup_link:
+                padless_tool_m4_link:
+                  padless_tool_m4_pickup_link:
                     {}
                 screw_tool_m3_link:
                   screw_tool_m3_pickup_link:
@@ -2793,7 +2542,7 @@ Visualization Manager:
       Decay Time: 0
       Depth Map Topic: /b_bot_outside_camera/aligned_depth_to_color/image_raw
       Depth Map Transport Hint: raw
-      Enabled: false
+      Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Max Intensity: 4096
@@ -2811,13 +2560,13 @@ Visualization Manager:
       Topic Filter: true
       Use Fixed Frame: true
       Use rainbow: true
-      Value: false
+      Value: true
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /o2ac_vision_server/result_marker_arrays
       Name: Vision Server MarkerArray
       Namespaces:
-        {}
+        /objects: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -2828,6 +2577,29 @@ Visualization Manager:
         {}
       Queue Size: 100
       Value: false
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: o2ac_markers
+      Name: Failure Visualization
+      Namespaces:
+        a_bot_move_lin_failed_pose_4: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: o2ac_success_markers
+      Name: Success Visualization
+      Namespaces:
+        a_bot_go_to_pose_goal_failed_pose_0: true
+        a_bot_go_to_pose_goal_failed_pose_1: true
+        a_bot_go_to_pose_goal_failed_pose_2: true
+        a_bot_go_to_pose_goal_failed_pose_3: true
+        a_bot_go_to_pose_goal_failed_pose_4: true
+        a_bot_go_to_pose_goal_failed_pose_5: true
+        a_bot_go_to_pose_goal_failed_pose_6: true
+        a_bot_go_to_pose_goal_failed_pose_7: true
+      Queue Size: 100
+      Value: true
     - Class: moveit_task_constructor/Motion Planning Tasks
       Enabled: true
       Interrupt Display: false
@@ -2952,6 +2724,10 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
+          a_bot_nut_tool_m4_hole_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           a_bot_nut_tool_m6_tip_link:
             Alpha: 1
             Show Axes: false
@@ -3399,15 +3175,15 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          nut_tool_m6_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          nut_tool_m6_pickup_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
           o2ac_ground:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          padless_tool_m4_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          padless_tool_m4_pickup_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -3681,25 +3457,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.2370250225067139
+      Distance: 1.3863192796707153
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.2355925291776657
-        Y: 0.08958959579467773
-        Z: 0.8731327056884766
+        X: -0.09491793066263199
+        Y: -0.1306629180908203
+        Z: 0.9364693760871887
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.184795543551445
+      Pitch: 0.334795206785202
       Target Frame: world
       Value: Orbit (rviz)
-      Yaw: 0.3968667984008789
+      Yaw: 0.3868708908557892
     Saved: ~
 Window Geometry:
   Active camera:
@@ -3723,7 +3499,7 @@ Window Geometry:
     collapsed: false
   O2ACSetupPanel:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd0000000200000000000001ca000003a2fc020000000bfb000000100044006900730070006c006100790073010000003b000001d0000000c700fffffffb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e00670100000211000001750000016a00fffffffb0000000800480065006c00700000000342000000bb0000006e00fffffffb0000000a005600690065007700730000000161000000ac000000a000fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670100000374000001890000000000000000fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000003f00fffffffb0000003c004d006f00740069006f006e00200050006c0061006e006e0069006e00670020005400610073006b00730020002d00200053006c00690064006500720000000000ffffffff0000000000000000fb0000000a0049006d00610067006501000003c7000000160000000000000000fb000000180041007200750063006f00200072006500730075006c0074010000038c000000510000001600fffffffb000000120020002d00200053006c00690064006500720000000000ffffffff0000003f00ffffff0000000100000104000003a2fc0200000008fb0000002a004d006f00740069006f006e00200050006c0061006e006e0069006e00670020005400610073006b0073010000003b000000fc0000000000000000fb0000002a004d006f00740069006f006e00200050006c0061006e006e0069006e00670020005400610073006b0073010000003b00000148000000e300fffffffb0000001c004f0032004100430053006500740075007000500061006e0065006c0100000189000001770000016500fffffffb0000001a0056006900730069006f006e00200052006500730075006c00740100000306000000760000001600fffffffb0000001a004100630074006900760065002000630061006d00650072006101000003820000005b0000001600fffffffb0000001a004100630074006900760065002000630061006d00650072006101000001a6000001150000000000000000fb0000001a0056006900730069006f006e00200052006500730075006c007401000002c10000011c0000000000000000fb000000180041007200750063006f00200072006500730075006c00740000000311000000cc00000000000000000000045e000003a200000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000200000000000001ca000003a2fc020000000bfb000000100044006900730070006c006100790073010000003b000001d0000000c700fffffffb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e00670100000211000001750000016900fffffffb0000000800480065006c00700000000342000000bb0000006e00fffffffb0000000a005600690065007700730000000161000000ac000000a000fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670100000374000001890000000000000000fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000001600000016fb0000003c004d006f00740069006f006e00200050006c0061006e006e0069006e00670020005400610073006b00730020002d00200053006c00690064006500720000000000ffffffff0000001600fffffffb0000000a0049006d00610067006501000003c7000000160000000000000000fb000000180041007200750063006f00200072006500730075006c0074010000038c000000510000001600fffffffb000000120020002d00200053006c00690064006500720000000000ffffffff00000000000000000000000100000104000003a2fc0200000008fb0000002a004d006f00740069006f006e00200050006c0061006e006e0069006e00670020005400610073006b0073010000003b00000113000000e300fffffffb0000002a004d006f00740069006f006e00200050006c0061006e006e0069006e00670020005400610073006b0073010000003b000001480000000000000000fb0000001c004f0032004100430053006500740075007000500061006e0065006c0100000154000001990000016500fffffffb0000001a0056006900730069006f006e00200052006500730075006c007401000002f3000000810000001600fffffffb0000001a004100630074006900760065002000630061006d006500720061010000037a000000630000001600fffffffb0000001a004100630074006900760065002000630061006d00650072006101000001a6000001150000000000000000fb0000001a0056006900730069006f006e00200052006500730075006c007401000002c10000011c0000000000000000fb000000180041007200750063006f00200072006500730075006c00740000000311000000cc00000000000000000000045e000003a200000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Views:
     collapsed: false
   Vision Result:
