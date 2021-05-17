@@ -474,6 +474,7 @@ class URRobot():
         group.set_named_target(pose_name)
         group.set_planning_pipeline_id("ompl")
         group.set_planner_id("RRTConnect")
+        group.set_goal_joint_tolerance(1e-3)
         group.go(wait=wait)
         group.clear_pose_targets()
         goal = helpers.ordered_joint_values_from_dict(group.get_named_target_values(pose_name), group.get_active_joints())
