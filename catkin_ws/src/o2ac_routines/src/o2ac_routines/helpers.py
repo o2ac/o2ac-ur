@@ -226,8 +226,8 @@ def all_close(goal, actual, tolerance):
 
 
 # Below are some ugly helper functions that should really be replaced. 
-def publish_marker(marker_pose_stamped, marker_type="", namespace=""):
-  publisher = rospy.Publisher("o2ac_markers", visualization_msgs.msg.Marker, queue_size = 100)
+def publish_marker(marker_pose_stamped, marker_type="", namespace="", marker_topic="o2ac_markers"):
+  publisher = rospy.Publisher(marker_topic, visualization_msgs.msg.Marker, queue_size = 100)
   rospy.sleep(0.5)
   return publish_marker_(publisher, marker_pose_stamped, marker_type, namespace)
 
