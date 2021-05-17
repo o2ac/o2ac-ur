@@ -423,7 +423,7 @@ class URRobot():
 
         return move_success
 
-    def move_lin_rel(self, relative_translation=[0, 0, 0], relative_rotation=[0, 0, 0], speed=.5, acceleration=0.2, relative_to_robot_base=False, relative_to_tcp=False, wait=True, max_wait=30.0):
+    def move_lin_rel(self, relative_translation=[0, 0, 0], relative_rotation=[0, 0, 0], speed=.5, acceleration=0.2, relative_to_robot_base=False, relative_to_tcp=False, wait=True, end_effector_link = "", max_wait=30.0):
         '''
         Does a lin_move relative to the current position of the robot.
 
@@ -433,8 +433,12 @@ class URRobot():
         '''
         if rospy.is_shutdown():
             return False
+        
+        if not end_effector_link:
+            end_effector_link = self.ns + "_gripper_tip_link"
 
         group = self.robot_group
+        group.set_end_effector_link(end_effector_link)
         new_pose = group.get_current_pose()
 
         if relative_to_robot_base:
@@ -447,7 +451,7 @@ class URRobot():
         new_pose.pose.position = conversions.to_point(new_position)
         new_pose.pose.orientation = helpers.rotateQuaternionByRPYInUnrotatedFrame(relative_rotation[0], relative_rotation[1],
                                                                                   relative_rotation[2], new_pose.pose.orientation)
-        return self.move_lin(new_pose, speed=speed, acceleration=acceleration, wait=wait)
+        return self.move_lin(new_pose, speed=speed, acceleration=acceleration, end_effector_link=end_effector_link, wait=wait)
 
     def move_joints(self, joint_pose_goal, speed=0.6, acceleration=0.3, wait=True):
         if not self.set_up_move_group(speed, acceleration):
