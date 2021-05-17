@@ -1130,7 +1130,7 @@ class O2ACCommon(O2ACBase):
       return False
 
     if task == "taskboard":
-      idler_puller_target_link = "taskboard_long_hole_middle_link"
+      idler_puller_target_link = "taskboard_long_hole_top_link"
     elif task == "assembly":
       rospy.logerr("look this up")
       idler_puller_target_link = "assembly_long_hole_middle_link"
@@ -1224,7 +1224,8 @@ class O2ACCommon(O2ACBase):
   def insert_idler_pulley(self, target_link):
     rospy.loginfo("Going to near tb (a_bot)")
     d = 0.07
-    target_pose = conversions.to_pose_stamp(target_link, [(-0.003-d), 0.009, -0.005, tau/4.0, 0, tau/8.])
+    # MAGIC NUMBERS (offset from TCP to tip of idler pulley thread)
+    target_pose = conversions.to_pose_stamp(target_link, [(-0.003-d), 0.009, 0.0, tau/4.0, 0, tau/8.])
     near_tb_pose = self.listener.transformPose("world", target_pose)
     success = self.a_bot.move_lin(near_tb_pose, speed=0.4)
     if not success:
@@ -1253,8 +1254,8 @@ class O2ACCommon(O2ACBase):
       return False
 
     rospy.loginfo("Going to near tb (b_bot)") # Push with tool
-    target_rotation = np.deg2rad([29.997, -1.124, 0.041]).tolist()
-    xyz_pos = [-0.01, -0.001, -0.004]  # MAGIC NUMBERS # Light push
+    target_rotation = np.deg2rad([30.0, 0.0, 0.0]).tolist()
+    xyz_pos = [-0.01, -0.001, 0.001]  # MAGIC NUMBERS # Light push
     near_tb_pose = conversions.to_pose_stamp(target_link, xyz_pos + target_rotation)
     success = self.b_bot.move_lin(near_tb_pose, speed=0.05, acceleration=0.05, end_effector_link="b_bot_screw_tool_m4_tip_link")
     if not success:
@@ -1263,7 +1264,7 @@ class O2ACCommon(O2ACBase):
     self.tools.set_motor("padless_tool_m4", "tighten", duration=10.0)
     self.hold_screw_tool_idler_pulley(target_link)
     
-    xyz_pos = [0.001, -0.001, -0.004]  # MAGIC NUMBERS # Hard push
+    xyz_pos = [0.001, -0.001, 0.001]  # MAGIC NUMBERS # Hard push
     push_pose = conversions.to_pose_stamp(target_link, xyz_pos + target_rotation)
     return self.b_bot.move_lin(push_pose, speed=0.05, acceleration=0.05, end_effector_link="b_bot_screw_tool_m4_tip_link")
 
@@ -1290,7 +1291,7 @@ class O2ACCommon(O2ACBase):
 
     success = False
     idler_pulley_screwing_succeeded = False
-    offsets = [0.009, 0.006, 0.003, 0.0, -0.003, -0.006]
+    offsets = [0.0, -0.003, -0.006, 0.009, 0.006, 0.003]
     for offset in offsets:
       if idler_pulley_screwing_succeeded:
         success = True
