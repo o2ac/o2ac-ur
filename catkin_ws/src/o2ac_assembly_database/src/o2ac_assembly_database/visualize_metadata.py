@@ -457,7 +457,7 @@ if __name__ == '__main__':
                 viz.publish_gripper_marker_array(gripper_at_grasp)
             marker_array = viz.add_grasp_viz(grasp_names, marker_array_to_append_to = marker_array)
 
-    else:
+    else:  # Show all objects
         offset = 0.4
         row_counter = 0
         object_pose = geometry_msgs.msg.Pose()
@@ -481,17 +481,11 @@ if __name__ == '__main__':
 
             mesh_pose = copy.deepcopy(object_pose)  # Defined in world
             if not helpers.pose_msg_is_identity(co.mesh_poses[0]):
-                rospy.loginfo("Rotating pose!")
-                print(mesh_pose)
-                print(co.mesh_poses[0])
                 mesh_pose.position.x += co.mesh_poses[0].position.x
                 mesh_pose.position.y += co.mesh_poses[0].position.y
                 mesh_pose.position.z += co.mesh_poses[0].position.z
                 mesh_pose.orientation = helpers.multiply_quaternion_msgs(mesh_pose.orientation, co.mesh_poses[0].orientation)
-                # rpy = co.mesh_poses[0][3:]
-                # mesh_pose.orientation = helpers.rotateQuaternionByRPY(rpy[0], rpy[1], rpy[2], mesh_pose.orientation)
-                print(mesh_pose)
-
+                
             marker_array = viz.add_object_marker(db_name, mesh_name, object_pose, mesh_pose, co.id, marker_array)
 
             if only_subframes:

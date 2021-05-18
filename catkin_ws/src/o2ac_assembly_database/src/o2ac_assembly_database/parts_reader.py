@@ -75,7 +75,7 @@ class PartsReader(object):
         self._directory = os.path.join(self._rospack.get_path('o2ac_assembly_database'), 'config', db_name)
         self._parts_list = self._read_parts_list()
         self._collision_objects, self._grasps = self.get_collision_objects_with_metadata()
-        rospy.loginfo("Done loading.")
+        rospy.loginfo("Done loading parts database " + db_name)
     
     def get_collision_object(self, object_name):
         '''
@@ -83,7 +83,22 @@ class PartsReader(object):
         '''
         for c_obj in self._collision_objects:
             if c_obj.id == object_name:
-                return c_obj
+                # Create copy to avoid modifying the original
+                c_new = moveit_msgs.msg.CollisionObject()
+                c_new.header = copy.deepcopy(c_obj.header)
+                c_new.pose = copy.deepcopy(c_obj.pose)
+                
+                # Shallow copy the other fields to avoid deep copying meshes
+                c_new.operation = c_obj.operation
+                c_new.type = c_obj.type
+                c_new.id = c_obj.id
+                c_new.primitives = c_obj.primitives
+                c_new.primitive_poses = c_obj.primitive_poses
+                c_new.meshes = c_obj.meshes
+                c_new.mesh_poses = c_obj.mesh_poses
+                c_new.planes = c_obj.planes
+                c_new.plane_poses = c_obj.plane_poses
+                return c_new
         rospy.logerr("Could not find collision object with id " + str(object_name))
         return None
     
