@@ -96,6 +96,22 @@ class O2ACCommon(O2ACBase):
     self.close_tray_views_rot_left_more = [rotatePoseByRPY(radians(50),0,0, pose) for pose in self.close_tray_views]
     self.close_tray_views_rot_left_90 = [rotatePoseByRPY(radians(90),0,0, pose) for pose in self.close_tray_views]
 
+  def publish_part_in_assembled_position(self, object_name, test_header_frame=""):
+    """ Move or publish a part as a collision object in its final assembled position.
+        This is used to "finish" assembling a part.
+    """
+    # Remove from scene or detach from robot
+    self.planning_scene_interface.remove_attached_object(object_name)
+    object_id = self.assembly_database.name_to_id(object_name)
+    collision_object = self.assembly_database.get_collision_object(object_name)
+    if test_header_frame:
+      collision_object.header.frame_id = test_header_frame
+    else:
+      collision_object.header.frame_id = "assembled_part_" + str(object_id).zfill(2)  # Fill with leading zeroes
+    self.planning_scene_interface.apply_collision_object(collision_object)
+    return
+    
+
   ######## Higher-level routines used in both assembly and taskboard
 
   def load_MTC_solution(self, solution_file):
