@@ -428,7 +428,7 @@ class O2ACBase(object):
     return wrap
   
   @save_task_plan
-  def do_plan_pick_place_action(self, object_name, robot_name, grasp_pose, pick_only=True, place_only=False):
+  def plan_pick_place(self, robot_name, object_name, grasp_pose, pick_only=True, place_only=False):
     '''
     Function for calling the plan_pick_place MTC action
     The function returns the MTC solution containing the trajectories
@@ -457,20 +457,15 @@ class O2ACBase(object):
     approach_direction.header.frame_id = 'world'
     approach_direction.vector.z = -1
     grasp.pre_grasp_approach.direction = approach_direction
-    grasp.pre_grasp_approach.min_distance = 0.0
-    grasp.pre_grasp_approach.desired_distance = 0.01
+    grasp.pre_grasp_approach.min_distance = 0.05
+    grasp.pre_grasp_approach.desired_distance = 0.1
 
     lift_direction = geometry_msgs.msg.Vector3Stamped()
     lift_direction.header.frame_id = 'world'
     lift_direction.vector.z = 1
     grasp.post_grasp_retreat.direction = lift_direction
-    grasp.post_grasp_retreat.min_distance = 0.0
-    grasp.post_grasp_retreat.desired_distance = 0.01
-
-    # grasp_2 = copy.deepcopy(grasp)
-    # grasp_2.grasp_pose.pose.position.z = 0.1
-    # grasp_2.pre_grasp_approach.min_distance = 0.05
-    # grasp_2.pre_grasp_approach.desired_distance = 0.15
+    grasp.post_grasp_retreat.min_distance = 0.05
+    grasp.post_grasp_retreat.desired_distance = 0.1
 
     hand = self.active_robots[robot_name].gripper_group
     hand_open = hand.get_named_target_values("open")

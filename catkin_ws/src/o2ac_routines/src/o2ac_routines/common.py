@@ -204,27 +204,18 @@ class O2ACCommon(O2ACBase):
             hand_closed_joint_values = hand_group.get_named_target_values('close')
             hand_open_joint_values = hand_group.get_named_target_values('open')
             if stage_name == 'open hand':
-              robot.gripper.send_command('open')
+              self.active_robots[robot_name].gripper.send_command('open')
             elif stage_name == 'close hand':
-              robot.gripper.send_command('close')
+              self.active_robots[robot_name].gripper.send_command('close')
             elif 0.01 > abs(hand_open_joint_values[sub_trajectory.trajectory.joint_trajectory.joint_names[0]] - sub_trajectory.trajectory.joint_trajectory.points[-1].positions[0]):
-              rospy.logwarn("Actuating gripper (backup path)!")
-              robot.gripper.send_command('open')
+              self.active_robots[robot_name].gripper.send_command('open')
             elif 0.01 < abs(hand_open_joint_values[sub_trajectory.trajectory.joint_trajectory.joint_names[0]] - sub_trajectory.trajectory.joint_trajectory.points[-1].positions[0]):
-              rospy.logwarn("Actuating gripper (backup path)!")
-              robot.gripper.send_command('close', True)
+              self.active_robots[robot_name].gripper.send_command('close', True)
           else:  # Simulation
-            print("Going to run this trajectory")
-            print(sub_trajectory.trajectory)
             plan = hand_group.retime_trajectory(self.robots.get_current_state(), sub_trajectory.trajectory, 1.0)
             hand_group.execute(plan)
           
         else: # The robots move
-          rospy.loginfo("========")
-          rospy.logwarn("self.active_robots[robot_name].robot_group.get_current_joint_values():")
-          print(self.active_robots[robot_name].robot_group.get_current_joint_values())
-          rospy.logwarn("sub_trajectory.trajectory.joint_trajectory.points[0].positions:")
-          print(sub_trajectory.trajectory.joint_trajectory.points[0].positions)
           # First check that the trajectory is safe to execute (= robot is at start of trajectory)
           if not all_close(self.active_robots[robot_name].robot_group.get_current_joint_values(), 
                             sub_trajectory.trajectory.joint_trajectory.points[0].positions,
@@ -238,7 +229,7 @@ class O2ACCommon(O2ACBase):
             return False
 
           # Prepare robot motion
-          self.active_robots[robot_name].activate_ros_control_on_ur(robot_name)
+          self.active_robots[robot_name].activate_ros_control_on_ur()
           plan = arm_group.retime_trajectory(self.robots.get_current_state(), sub_trajectory.trajectory, speed)
           arm_group.set_max_velocity_scaling_factor(speed)
 
@@ -468,6 +459,27 @@ class O2ACCommon(O2ACBase):
         return False
     return [grasp_pose]
   
+  def pick(self, robot_name, object_name, grasp_name=""):
+    """ Plan a pick operation and execute it with MTC.
+        grasp_name is the name of a grasp on the parameter server.
+    """
+    if not grasp_name:
+      grasp_name = "default_grasp"
+    grasp_pose = self.assembly_database.get_grasp_pose(object_name, grasp_name)
+    if not grasp_pose:
+      rospy.logerr("Could not load grasp pose for object " + object_name + ". Aborting pick.")
+      return False
+    res = self.plan_pick_place(robot_name, object_name, grasp_pose)
+    success = True
+    try:
+      success = res.success
+    except:
+      success = False
+    if not success:
+      rospy.logerr("Could not plan pick for object " + object_name)
+      return False
+
+    return self.execute_MTC_solution(res.solution, speed=0.1)
 
   def simple_grasp_sanity_check(self, grasp_pose, grasp_width=0.08, border_dist=0.06):
     """
