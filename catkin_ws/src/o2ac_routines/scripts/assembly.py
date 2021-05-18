@@ -82,6 +82,13 @@ class AssemblyClass(O2ACCommon):
 
   def set_assembly(self, assembly_name="wrs_assembly_2020"):
     self.assembly_database.change_assembly(assembly_name)
+    pose = geometry_msgs.msg.PoseStamped()
+    pose.header.frame_id = 'attached_base_origin_link'
+    # quaternion = tf.transformations.quaternion_about_axis(pi/2, (1,0,0))
+    # pose.pose.orientation = geometry_msgs.msg.Quaternion(*quaternion)
+    pose.pose.orientation.w = 1.0
+    # pose.pose.position = 
+    self.assembly_database.publish_assembly_frames(pose, prefix="assembled_")
     return True
 
 
@@ -102,23 +109,15 @@ class AssemblyClass(O2ACCommon):
     rospy.loginfo("======== SUBTASK BASE ========")
     self.unlock_base_plate()
 
-    pick_pose = geometry_msgs.msg.PoseStamped()
-    pick_pose.header.frame_id = "workspace_center"
-    pick_pose.pose.position = geometry_msgs.msg.Point(0.183, 0.14, 0.03)
-    pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(tau/4, tau/4, 0))
-    
-    above_pick_pose = copy.deepcopy(pick_pose)
-    above_pick_pose.pose.position.z += 0.15
-
-    self.b_bot.gripper.open(wait=False)
-    self.b_bot.go_to_pose_goal(above_pick_pose, speed=0.2, move_lin = True)
-    self.b_bot.go_to_pose_goal(pick_pose, speed=0.2, move_lin = True)
-    
-    self.b_bot.gripper.close(force = 100)
-    if self.b_bot.gripper.opening_width < 0.003:
+    success = self.pick("b_bot", "base")
+    if not success or self.b_bot.gripper.opening_width < 0.003:
       rospy.logerr("Gripper did not grasp the base plate. Aborting.")
       return False
-    self.b_bot.go_to_pose_goal(above_pick_pose, speed=0.1, acceleration=0.1, move_lin = True)   
+
+    self.confirm_to_proceed("Has the base plate been picked?")
+    self.planning_scene_interface.allow_collisions("base", "")  # Allow collisions with all other objects
+
+    # Center and reorient plate outside of tray
 
     approach_orient_pose = geometry_msgs.msg.PoseStamped()
     approach_orient_pose.header.frame_id = "workspace_center"
@@ -128,44 +127,49 @@ class AssemblyClass(O2ACCommon):
     orient_pose = copy.deepcopy(approach_orient_pose)
     orient_pose.pose.position.z = 0.01
 
-    self.b_bot.go_to_pose_goal(approach_orient_pose, speed=0.1, acceleration=0.1, move_lin = True)   
-    self.b_bot.go_to_pose_goal(orient_pose, speed=0.1, acceleration=0.1, move_lin = True)   
+    self.b_bot.go_to_pose_goal(approach_orient_pose, speed=0.1, acceleration=0.2, move_lin = True)
+    self.b_bot.go_to_pose_goal(orient_pose, speed=0.1, acceleration=0.1, move_lin = True)
     self.b_bot.gripper.open(wait=True)
 
-    self.confirm_to_proceed("enter to rotate left")
-    self.b_bot.move_lin_rel(relative_translation=[0,0,0], relative_rotation=[0,0,tau/4], speed=1.0, acceleration=0.5)
+    self.b_bot.robot_group.detach_object("base")
+    rospy.loginfo("tic")
+    self.allow_collisions_with_robot_hand("base", "b_bot")
+    rospy.loginfo("toc")
+
+    self.b_bot.move_lin_rel(relative_rotation=[0,0,tau/4], speed=1.0, acceleration=0.5)
 
     self.b_bot.gripper.close(force = 100, wait=True)
     self.b_bot.gripper.open(wait=True)
-    self.confirm_to_proceed("enter to rotate back")
     self.b_bot.go_to_pose_goal(orient_pose, speed=1.0, acceleration=0.5)
     self.b_bot.gripper.close(force = 100, wait=True)
 
-    self.confirm_to_proceed("enter to move up")
+    # TODO: Center the object
+    self.b_bot.robot_group.attach_object("base")
+
     self.b_bot.go_to_pose_goal(approach_orient_pose, speed=0.2)
     
     # Move plate
     place_onboard_pose = geometry_msgs.msg.PoseStamped()
     place_onboard_pose.header.frame_id = "workspace_center"
-    place_onboard_pose.pose.position = geometry_msgs.msg.Point(-0.173, 0.011, 0.13)
+    place_onboard_pose.pose.position = geometry_msgs.msg.Point(-0.175, 0.009, 0.13)
     # TODO: Define the terminal subframes
     # place_onboard_pose.header.frame_id = "assy_01_terminal_top"
     # place_onboard_pose.pose.position = geometry_msgs.msg.Point(-0.01, -0.005, 0.0)
     place_onboard_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(0, tau/4, 0))
 
     approach_onboard_pose = copy.deepcopy(place_onboard_pose)
-    approach_onboard_pose.pose.position.z += 0.1
+    approach_onboard_pose.pose.position.z += 0.08
 
-    self.confirm_to_proceed("enter to move to fixation and deliver plate")
     self.b_bot.go_to_pose_goal(approach_onboard_pose, speed=0.3, acceleration=0.1)
     self.b_bot.go_to_pose_goal(place_onboard_pose, speed=0.2)
-    self.confirm_to_proceed("enter to push down")
-    
 
     # FIXME: Direction should be -Z
     self.b_bot.linear_push(force=8, direction="+Z", relative_to_ee=False, timeout=15.0)
     
-    self.b_bot.gripper.open()
+    self.b_bot.gripper.open(wait=False)
+    
+    self.publish_part_in_assembled_position("base")
+
     self.b_bot.move_lin_rel(relative_translation=[0, 0, 0.05], relative_to_robot_base=True)
     self.lock_base_plate()
     return True
@@ -214,30 +218,29 @@ class AssemblyClass(O2ACCommon):
     # if not goal:
     #     rospy.logerr("Could not find bearing plate in tray. Breaking out.")
     #     return False
-    self.panel_subtask(panel="motor_panel")
+    self.panel_subtask(panel="panel_motor")
     return False
 
   def subtask_g(self):
     rospy.loginfo("======== SUBTASK G (bearing panel (large L-plate)) ========")
-    self.panel_subtask(panel="bearing_panel")
+    self.panel_subtask(panel="panel_bearing")
 
   def panel_subtask(self, panel):
     """
-    input parameter panel needs to be "motor_panel" or "bearing_panel"
+    input parameter panel needs to be "panel_motor" or "panel_bearing"
     """
 
     if not self.b_bot.go_to_named_pose("feeder_pick_ready"):
       rospy.logerr("b_bot did not move out of the way. Aborting.")
       return False
 
-    # TODO: Use vision here instead
-    if panel == "bearing_panel":
-      a_bot_start_hardcoded_bearing_plate = [1.014740824, -1.597331663, 1.923653427, -1.910340925, -1.59755593, 1.014281272]
-      self.a_bot.move_joints(a_bot_start_hardcoded_bearing_plate)
+    if not self.pick("a_bot", panel):
+      rospy.logerr("Did not succeed picking " + panel + "!")
+      return False
+
+    if panel == "panel_bearing":
       success_a = self.a_bot.load_program(program_name="wrs2020/bearing_plate_full.urp", recursion_depth=3)
-    elif panel == "motor_panel":
-      a_bot_start_hardcoded_motor_plate = [1.093529105, -1.416419939, 1.730439011, -1.895824571, -1.598531071, 1.09309482]
-      self.a_bot.move_joints(a_bot_start_hardcoded_motor_plate)
+    elif panel == "panel_motor":
       success_a = self.a_bot.load_program(program_name="wrs2020/motor_plate_full.urp", recursion_depth=3)
     
     if not success_a:
@@ -250,6 +253,8 @@ class AssemblyClass(O2ACCommon):
     rospy.loginfo("Running bearing plate rearrangement on a_bot.")
     wait_for_UR_program("/a_bot", rospy.Duration.from_sec(40))
 
+    self.publish_part_in_assembled_position(panel)
+
     self.do_change_tool_action("b_bot", equip=True, screw_size = 4)
     if not self.pick_screw_from_feeder("b_bot", screw_size = 4, realign_tool_upon_failure=True):
       rospy.logerr("Failed to pick screw from feeder, could not fix the issue. Abort.")
@@ -257,15 +262,18 @@ class AssemblyClass(O2ACCommon):
       self.a_bot.go_to_named_pose("home")
       return False
 
-    if panel == "bearing_panel":
-      part_name = "assembled_assy_part_03_"
-    elif panel == "motor_panel":
-      part_name = "assembled_assy_part_02_"
+    if panel == "panel_bearing":
+      part_name = "assembled_part_03_"
+    elif panel == "panel_motor":
+      part_name = "assembled_part_02_"
 
     screw_target_pose = geometry_msgs.msg.PoseStamped()
     screw_target_pose.header.frame_id = part_name + "bottom_screw_hole_1"
     screw_target_pose.pose.orientation = geometry_msgs.msg.Quaternion(
                 *tf_conversions.transformations.quaternion_from_euler(radians(-20), 0, 0))
+    rospy.loginfo("tic (screw_tool_m4 collisions setting)")
+    self.planning_scene_interface.allow_collisions("screw_tool_m4", panel)  # Allow collisions with all other objects
+    rospy.loginfo("toc (screw_tool_m4 collisions setting)")
     if not self.fasten_screw_vertical('b_bot', screw_target_pose):
       # Fallback for screw 1
       rospy.logerr("Failed to fasten panel screw 1, trying to realign tool and retry.")
@@ -277,7 +285,7 @@ class AssemblyClass(O2ACCommon):
       self.a_bot.gripper.close(force = 100)
       self.a_bot.move_lin_rel(relative_translation=[0, -0.015, 0])
       self.a_bot.gripper.open(opening_width=0.08, wait=True)
-      if panel == "bearing_panel":
+      if panel == "panel_bearing":
         success_a = self.a_bot.load_program(program_name="wrs2020/bearing_plate_positioning.urp", recursion_depth=3)
       else:
         success_a = self.a_bot.load_program(program_name="wrs2020/motor_plate_positioning.urp", recursion_depth=3)
@@ -317,7 +325,7 @@ class AssemblyClass(O2ACCommon):
 
       # Recenter plate
       center_plate_pose = geometry_msgs.msg.PoseStamped()
-      if panel == "bearing_panel":
+      if panel == "panel_bearing":
         center_plate_pose.header.frame_id = part_name + "pulley_ridge_middle"
       else:  # motor panel
         center_plate_pose.header.frame_id = part_name + "motor_screw_hole_5"
@@ -350,8 +358,8 @@ class AssemblyClass(O2ACCommon):
   def spawn_objects_for_closed_loop_test(self):
     objects = ['panel_bearing', 'panel_motor']
     poses = [[0.4, -0.35, 0.8, tau/4, 0, tau/4], [0.5, 0.3, 1, tau/4, 0, 0]]
-    self.spawn_multiple_objects('wrs_assembly_1', ['base'], [[0.12, 0.2, 0.0, tau/4, 0.0, -tau/4]], 'attached_base_origin_link')
-    self.spawn_multiple_objects('wrs_assembly_1', objects, poses, 'world')
+    self.spawn_multiple_objects('wrs_assembly_2020', ['base'], [[0.12, 0.2, 0.0, tau/4, 0.0, -tau/4]], 'attached_base_origin_link')
+    self.spawn_multiple_objects('wrs_assembly_2020', objects, poses, 'world')
 
   def spawn_objects_for_demo(self, base_plate_in_tray=False, layout_number=1):
     objects = ['panel_motor', 'panel_bearing', 'motor', 'motor_pulley', 'bearing',
@@ -396,14 +404,15 @@ class AssemblyClass(O2ACCommon):
               [-0.080, 0.150, 0.001, -3.141, -1.570, -3.141592], 
               [-0.010, 0.060, 0.011, 0.001, -0.001, -1.571593]]
 
-    self.spawn_multiple_objects('wrs_assembly_1', objects, poses, 'tray_center')
+    self.spawn_multiple_objects('wrs_assembly_2020', objects, poses, 'tray_center')
     if not base_plate_in_tray:  # Spawn the base plate on the fixation, for MTC demos
-      self.spawn_multiple_objects('wrs_assembly_1', ['base'], [[0.12, 0.2, 0.0, tau/4, 0.0, -tau/4]], 'attached_base_origin_link')
+      self.spawn_multiple_objects('wrs_assembly_2020', ['base'], [[0.12, 0.2, 0.0, tau/4, 0.0, -tau/4]], 'attached_base_origin_link')
     else:
       if layout_number == 3:
-        self.spawn_multiple_objects('wrs_assembly_1', ['base'], [[-0.1, -0.05, 0.001, tau/4, 0.0, 0.0]], 'tray_center')
-      else:
-        self.spawn_multiple_objects('wrs_assembly_1', ['base'], [[-0.1, 0,17, 0.001, tau/4, 0.0, 0.0]], 'tray_center')
+        self.spawn_multiple_objects('wrs_assembly_2020', ['base'], [[-0.1, -0.05, 0.001, tau/4, 0.0, 0.0]], 'tray_center')
+      else: # layout 2
+        self.spawn_multiple_objects('wrs_assembly_2020', ['base'], [[0.1, 0.05, 0.001, tau/4, 0.0, tau/2]], 'tray_center')
+    return
 
   def mtc_pick_screw_tool(self, screw_type):
     rospy.loginfo("======== PICK TASK ========")
@@ -474,12 +483,12 @@ class AssemblyClass(O2ACCommon):
     self.a_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
     self.do_change_tool_action("b_bot", equip=False, screw_size=4)
 
-    rospy.loginfo("==== Finished.")
-
     success = False
     while not success and not rospy.is_shutdown():
       success = self.subtask_c1() # bearing 
     # # self.subtask_c2() # shaft
+
+    rospy.loginfo("==== Finished.")
 
     # # To prepare subtask E
     # self.pick_retainer_pin_from_tray_and_place_in_holder(do_centering=False)
@@ -513,8 +522,7 @@ if __name__ == '__main__':
       rospy.loginfo("Enter 11 (12) to equip (unequip) m4 tool (b_bot).")
       rospy.loginfo("Enter 13 (14) to equip (unequip) m3 tool (a_bot).")
       rospy.loginfo("Enter 21,22 to close,open grippers")
-      rospy.loginfo("Enter 30 to pick screw m3 from feeder with a_bot (31 for b_bot).")
-      rospy.loginfo("Enter 40 to pick screw m4 from feeder with a_bot (41 for b_bot).")
+      rospy.loginfo("Enter 30, 31 to pick screw m3, m4 from feeder.")
       rospy.loginfo("Enter 68 to spawn objects for testing mtc_modules tasks")
       rospy.loginfo("Enter 69-75 to test mtc_modules tasks, (pick, place, pik-place, pick tool, pick screw, release, fix L plate on base)")
       rospy.loginfo("Enter 80 to execute the planned subassembly (fix L plate on base)")
@@ -551,27 +559,37 @@ if __name__ == '__main__':
         assy.skill_server.pick_screw_from_feeder("a_bot", screw_size=3)
         assy.a_bot.go_to_named_pose("feeder_pick_ready")
       elif i == '31':
-        assy.b_bot.go_to_named_pose("feeder_pick_ready")
-        assy.skill_server.pick_screw_from_feeder("b_bot", screw_size=3)
-        assy.b_bot.go_to_named_pose("feeder_pick_ready")
-      elif i == '40':
         assy.a_bot.go_to_named_pose("feeder_pick_ready")
         assy.skill_server.pick_screw_from_feeder("a_bot", screw_size=4)
         assy.a_bot.go_to_named_pose("feeder_pick_ready")
-      elif i == '41':
-        assy.b_bot.go_to_named_pose("feeder_pick_ready")
-        assy.skill_server.pick_screw_from_feeder("b_bot", screw_size=4)
-        assy.b_bot.go_to_named_pose("feeder_pick_ready")
+      elif i == "41":
+        assy.publish_part_in_assembled_position("base")
+      elif i == "421":
+        assy.publish_part_in_assembled_position("panel_bearing")
+      elif i == "422":
+        assy.publish_part_in_assembled_position("panel_motor")
+      elif i == "43":
+        assy.publish_part_in_assembled_position("bearing")
+      elif i == "44":
+        assy.publish_part_in_assembled_position("motor")
+      elif i == "45":
+        assy.publish_part_in_assembled_position("shaft")
+        assy.publish_part_in_assembled_position("endcap")
+      elif i == "46":
+        assy.publish_part_in_assembled_position("pulley")
       elif i == "51":
         grasp_pose = assy.assembly_database.get_grasp_pose("panel_bearing", "default_grasp")
-        res = assy.do_plan_pick_place_action("panel_bearing", "a_bot", grasp_pose)
-        print(res)
+        res = assy.plan_pick_place("panel_bearing", "a_bot", grasp_pose)
       elif i == "52":
         assy.execute_MTC_solution(res.solution, speed=0.1)
+      elif i == "53":
+        assy.pick(robot_name="a_bot", object_name="panel_bearing")
+      elif i == "54":
+        assy.pick(robot_name="b_bot", object_name="base")
       elif i == '55':
-        assy.spawn_objects_for_demo(base_plate_in_tray=True, layout_number=1)
-      elif i == '552':
         assy.spawn_objects_for_demo(base_plate_in_tray=True, layout_number=2)
+      elif i == '552':
+        assy.spawn_objects_for_demo(base_plate_in_tray=True, layout_number=1)
       elif i == '553':
         assy.spawn_objects_for_demo(base_plate_in_tray=True, layout_number=3)
       elif i == '67':
