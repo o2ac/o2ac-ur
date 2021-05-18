@@ -180,6 +180,17 @@ def rotatePoseByRPY(roll, pitch, yaw, in_pose):
 #   return tfDistance(tp1, tp2)
 # }
 
+def multiply_quaternion_msgs(q1_msg, q2_msg):
+  q1 = [q1_msg.x, q1_msg.y, q1_msg.z, q1_msg.w]
+  q2 = [q2_msg.x, q2_msg.y, q2_msg.z, q2_msg.w]
+  return geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_multiply(q1, q2))
+
+def pose_msg_is_identity(pose):
+  """ Returns true if the pose is close to identity """
+  p_identity = geometry_msgs.msg.Pose()
+  p_identity.orientation.w = 1.0
+  return pose_dist(pose, p_identity) < 1e-4
+
 def pose_dist(p1, p2):
   """
   Returns Euclidean distance of two geometry_msgs.msg.Pose objects defined in the same frame.

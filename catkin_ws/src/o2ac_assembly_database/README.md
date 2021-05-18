@@ -56,9 +56,9 @@ o2ac_assembly_database                   # package directory
 │  
 ├── src/o2ac_assembly_database           # python package for loading/storing assemblies and publishing them to tf
 │   │  
-│   ├── parts_reader.py                  # python module for internal use (in assy.py) to read the assembly configurations
-│   ├── assy.py                          # python module that provides the functionality of the package
-│   ├── visualize_metadata.py            # python module for visualizing the object metadata (subframes and grasps)
+│   ├── parts_reader.py                  # Handles the parts and collision object loading
+│   ├── assembly_reader.py               # Handles the assembly tree structure and publishing to TF
+│   ├── visualize_metadata.py            # For visualizing the object metadata (subframes and grasps)
 │  
 ├── config                               # directory containing config info for the assemblies
 │   │  
@@ -72,11 +72,11 @@ o2ac_assembly_database                   # package directory
 │   │   │  
 │   │   ├── object_metadata              # directory for the extra information associated with the parts
 │   │   │   │  
-│   │   │   ├── 'name_of_part'.yaml      # yaml file description of the subframes and grasps of part named 'name of part' (Example names for parts: 'base', 'panel', 'motor' ...)
+│   │   │   ├── 'partA'.yaml             # yaml file description of the subframes and grasps of part named 'partA'
 │   │   │   │  ...
 │   │   │   ├── 'name_of_other_part'.yaml
 │   │   │  
-│   │   ├── frames_to_mate.csv           # csv file description of the mating of parts to form an assembly
+│   │   ├── frames_to_mate.csv           # csv file describing of the mating of parts to form an assembly
 │   │   ├── parts_list.yaml              # yaml file for the list of parts of the assembly
 │   │...
 │   ├── assembly_n                       # directory for the config info of assembly named 'assembly_n'

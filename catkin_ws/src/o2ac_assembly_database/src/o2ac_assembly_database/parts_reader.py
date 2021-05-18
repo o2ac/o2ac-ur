@@ -34,6 +34,7 @@
 
 import os
 import yaml
+import copy 
 
 import rospy
 import rospkg
@@ -190,9 +191,14 @@ class PartsReader(object):
         subframe_poses = []
         grasp_names = []
         grasp_poses = []
+        mesh_pose = []
         if object_name in objects_with_metadata:
             with open(os.path.join(metadata_directory, object_name + '.yaml'), 'r') as f:
                 data = yaml.load(f)
+            if "mesh_pose" in data:
+                mesh_pose = geometry_msgs.msg.Pose()
+                mesh_pose.position = conversions.to_vector3(conversions.to_float(data['mesh_pose'][0]['pose_xyzrpy'][:3]) )
+                mesh_pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(*conversions.to_float(data['mesh_pose'][0]['pose_xyzrpy'][3:])))
             subframes = data['subframes']
             grasps = data['grasp_points']
 
@@ -241,7 +247,7 @@ class PartsReader(object):
         else:
             rospy.logwarn('Object \'' + object_name + '\' has no metadata defined! \n \
                            Returning empty metadata information! \n')
-        return (subframe_names, subframe_poses, grasp_names, grasp_poses)
+        return (subframe_names, subframe_poses, grasp_names, grasp_poses, mesh_pose)
 
     def _make_collision_object_from_mesh(self, name, pose, filename, scale=(1, 1, 1)):
         '''
@@ -253,6 +259,7 @@ class PartsReader(object):
         co = moveit_msgs.msg.CollisionObject()
         co.operation = moveit_msgs.msg.CollisionObject.ADD
         co.id = name
+        co.pose.orientation.w = 1.0
         co.header = pose.header
         co.mesh_poses = [pose.pose]
 
@@ -319,14 +326,20 @@ class PartsReader(object):
             # Find mesh
             mesh_file = os.path.join(self._directory, 'meshes', part['cad'])
 
-            # Set the pose of the collision object for the origin of the 'world' frame
+            # Set the pose of the collision object
             posestamped = geometry_msgs.msg.PoseStamped()
-            posestamped.header.frame_id = 'world'
+            posestamped.header.frame_id = 'assembly_root'
+            
+            
+            subframe_names, subframe_poses, grasp_names, grasp_poses, mesh_pose = self._read_object_metadata(part['name'])
+            
             collision_object_pose = geometry_msgs.msg.Pose()
-            collision_object_pose.orientation.w = 1
+            if mesh_pose:
+                collision_object_pose = mesh_pose
+            else:  # Neutral pose if no mesh pose has been defined
+                collision_object_pose.orientation.w = 1
+            
             posestamped.pose = collision_object_pose
-
-            subframe_names, subframe_poses, grasp_names, grasp_poses = self._read_object_metadata(part['name'])
 
             collision_object = self._make_collision_object_from_mesh(part['name'], posestamped, mesh_file, scale=(0.001, 0.001, 0.001))
 
