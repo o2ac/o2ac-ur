@@ -59,8 +59,8 @@ class AssemblyReader(PartsReader):
 
     def __init__(self, assembly_name=""):
         super(AssemblyReader, self).__init__(assembly_name)
-        # self._broadcaster = tf2_ros.StaticTransformBroadcaster()
-        self._broadcaster = tf2_ros.TransformBroadcaster()
+        self._broadcaster = tf2_ros.StaticTransformBroadcaster()
+        # self._broadcaster = tf2_ros.TransformBroadcaster()
         if self.db_name:  # = If a database is loaded the attribute is set in the super method
           self.change_assembly(assembly_name)
         self.assembly_frame_pub_timer = []
@@ -133,9 +133,14 @@ class AssemblyReader(PartsReader):
         if self.assembly_frame_pub_timer:
             self.assembly_frame_pub_timer.shutdown()
         rospy.loginfo("Starting to publish frames for assembly " + self.db_name)
-        self.assembly_frame_pub_timer = rospy.Timer(rospy.Duration(3.0), self._pub_frames)
+        self._broadcaster.sendTransform(self.mating_transforms_to_pub)
+        
+        # This line and the function below would be used for non-static transforms
+        # self.assembly_frame_pub_timer = rospy.Timer(rospy.Duration(3.0), self._pub_frames)
         
     def _pub_frames(self, timerevent):
+        for t in self.mating_transforms_to_pub:
+            t.header.stamp = rospy.Time.now()
         self._broadcaster.sendTransform(self.mating_transforms_to_pub)
     
     def deactivate_frame_publishing(self, activate=True):
