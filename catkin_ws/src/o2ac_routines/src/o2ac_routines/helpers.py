@@ -67,10 +67,22 @@ def spawn_objects(assembly_database, object_names, object_poses, object_referenc
 
     collision_object = next((co for co in assembly_database._collision_objects if co.id == object_name), None)
     assert collision_object is not None, "Collision object for '%s' does not exist or names do not match" % object_name
-    collision_object.header.frame_id = object_reference_frame
-    collision_object.pose = co_pose
 
-    planning_scene_interface.add_object(collision_object)
+    # Create copy to avoid modifying the original
+    collision_object_copy = moveit_msgs.msg.CollisionObject()
+    collision_object_copy.header.frame_id = object_reference_frame
+    collision_object_copy.pose = co_pose
+    
+    # Shallow copy the rest
+    collision_object_copy.operation = collision_object.operation
+    collision_object_copy.type = collision_object.type
+    collision_object_copy.id = collision_object.id
+    collision_object_copy.primitives = collision_object.primitives
+    collision_object_copy.primitive_poses = collision_object.primitive_poses
+    collision_object_copy.meshes = collision_object.meshes
+    collision_object_copy.mesh_poses = collision_object.mesh_poses
+    
+    planning_scene_interface.add_object(collision_object_copy)
 
 def is_program_running(topic_namespace, service_client):
   req = ur_dashboard_msgs.srv.IsProgramRunningRequest()
