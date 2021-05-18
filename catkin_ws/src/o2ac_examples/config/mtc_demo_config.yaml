@@ -17,7 +17,7 @@ world_frame: "world"
 surface_link: "tray_center"
 
 # Assembly name
-assembly_name: "wrs_assembly_1"  # Name of the assembly in which the object belongs. This parameter is used to retrieve grasps
+assembly_name: "wrs_assembly_2020"  # Name of the assembly in which the object belongs. This parameter is used to retrieve grasps
 #   from the parameter server, where it serves as a namespace for all the objects belonging to that assembly
 #   (The planner expects the grasps to be loaded to the parameter server under this namespace)
 

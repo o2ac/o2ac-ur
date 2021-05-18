@@ -300,7 +300,7 @@ class PDDL_Converter():
 def main():
     rospy.init_node('pddl_converter')
     args = parse_args()
-    pddl_converter = PDDL_Converter('wrs_assembly_1') #(TODO: karolyartur - Include assembly name in the pddl plan)
+    pddl_converter = PDDL_Converter('wrs_assembly_2020') #(TODO: karolyartur - Include assembly name in the pddl plan)
 
     # Get path of PDDL trace file
     rospack = rospkg.RosPack()

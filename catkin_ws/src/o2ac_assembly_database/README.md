@@ -25,7 +25,7 @@ roslaunch o2ac_assembly_database visualize_object_metadata.launch
 to visualize the metadata of the objects. `visualize_object_metadata.launch` has several arguments for modifying its functionality. Example:
 
 ```
-roslaunch o2ac_assembly_database visualize_object_metadata.launch db_name:="wrs_assembly_1" object_name:="base"
+roslaunch o2ac_assembly_database visualize_object_metadata.launch db_name:="wrs_assembly_2020" object_name:="base"
 ```
 
 If `object_name` is not specified, all objects of the specified assembly will be visualized. Other arguments:
@@ -34,11 +34,11 @@ Other arguments:
  - `only_subframes`: if set to true, only the object(s) and the subframes are visualized (default: false)
  - `only_grasps`: if set to true, only the object(s) and the grasps are visualized (default: false), if `only_subframes` is true this argument has no effect
  - `gripper_at_grasp`: set this to a name of the grasp as displayed in the visualization to visualize the gripper with its tip link at that grasp (default: "") This argument only works when visualizing a single object with `only_subframes` set to false.
- - `db_name`: The name of the assembly to display. `wrs_assembly_1` by default.
+ - `db_name`: The name of the assembly to display. `wrs_assembly_2020` by default.
 
 Examples:
 
-Visualize all objects of `wrs_assembly_1` with only their subframes
+Visualize all objects of `wrs_assembly_2020` with only their subframes
 ```
 roslaunch o2ac_assembly_database visualize_object_metadata.launch only_subframes:=true
 ```

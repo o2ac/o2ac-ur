@@ -35,7 +35,7 @@ def upload_mtc_modules_initial_params():
   '''
   rospy.set_param('mtc_modules/arm_group_names', ['a_bot','b_bot'])
   rospy.set_param('mtc_modules/hand_group_names', ['a_bot_robotiq_85','b_bot_robotiq_85'])
-  rospy.set_param('mtc_modules/grasp_parameter_location', 'wrs_assembly_1')
+  rospy.set_param('mtc_modules/grasp_parameter_location', 'wrs_assembly_2020')
   rospy.set_param('mtc_modules/lift_direction_reference_frame', 'world')
   rospy.set_param('mtc_modules/lift_direction', [0.0, 0.0, 1.0])
   rospy.set_param('mtc_modules/approach_place_direction_reference_frame', 'world')

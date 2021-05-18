@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
     # Create the assembly handler instance (loads and stores the assembly as a tf tree) and
     # publish the assembly frames to tf
-    assy_name = 'wrs_assembly_1'
+    assy_name = 'wrs_assembly_2020'
     assembly_reader = AssemblyReader(assy_name)
     assembly_reader.publish_assembly_frames(assy_pose)
 

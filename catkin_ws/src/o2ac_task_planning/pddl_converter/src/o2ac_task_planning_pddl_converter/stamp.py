@@ -217,7 +217,7 @@ class STAMP():
 if __name__ == "__main__":
     rospy.init_node('stamp')
     args = parse_args()
-    stamp = STAMP('wrs_assembly_1')
+    stamp = STAMP('wrs_assembly_2020')
     no_failed_plan_yet = True
     successful_plan = False
     max_iterations = 20

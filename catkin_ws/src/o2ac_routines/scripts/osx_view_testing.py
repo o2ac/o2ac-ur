@@ -193,20 +193,20 @@ if __name__ == '__main__':
         p.pose.position.z = 0.0
         c.simple_pick("b_bot", p, gripper_force=100.0, grasp_width=.05, axis="z")
       elif r == '61':
-        if not c.assembly_database.db_name == "wrs_assembly_1":
-          c.assembly_database.load_db("wrs_assembly_1")
+        if not c.assembly_database.db_name == "wrs_assembly_2020":
+          c.assembly_database.load_db("wrs_assembly_2020")
         c.look_for_item_in_tray("bearing", "b_bot")
       elif r == '62':
-        if not c.assembly_database.db_name == "wrs_assembly_1":
-          c.assembly_database.load_db("wrs_assembly_1")
+        if not c.assembly_database.db_name == "wrs_assembly_2020":
+          c.assembly_database.load_db("wrs_assembly_2020")
         c.look_for_item_in_tray("base", "b_bot")
       elif r == '63':
-        if not c.assembly_database.db_name == "wrs_assembly_1":
-          c.assembly_database.load_db("wrs_assembly_1")
+        if not c.assembly_database.db_name == "wrs_assembly_2020":
+          c.assembly_database.load_db("wrs_assembly_2020")
         c.look_for_item_in_tray("panel_motor", "b_bot")
       elif r == '64':
-        if not c.assembly_database.db_name == "wrs_assembly_1":
-          c.assembly_database.load_db("wrs_assembly_1")
+        if not c.assembly_database.db_name == "wrs_assembly_2020":
+          c.assembly_database.load_db("wrs_assembly_2020")
         c.look_for_item_in_tray("panel_bearing", "b_bot")
       elif r == '7':
         c.b_bot.linear_push(force=10, direction="+Z", relative_to_ee=False, timeout=15.0)

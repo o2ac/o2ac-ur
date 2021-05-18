@@ -68,8 +68,8 @@ class AssemblyClass(O2ACCommon):
     super(AssemblyClass, self).__init__()
     
     # Initialize debug monitor
-    if not self.assembly_database.db_name == "wrs_assembly_1":
-      self.set_assembly("wrs_assembly_1")
+    if not self.assembly_database.db_name == "wrs_assembly_2020":
+      self.set_assembly("wrs_assembly_2020")
 
     self.downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
 
@@ -80,7 +80,7 @@ class AssemblyClass(O2ACCommon):
       self.spawn_tool('screw_tool_' + screw_id)
       self.upload_tool_grasps_to_param_server(screw_id)
 
-  def set_assembly(self, assembly_name="wrs_assembly_1"):
+  def set_assembly(self, assembly_name="wrs_assembly_2020"):
     self.assembly_database.change_assembly(assembly_name)
     return True
 
