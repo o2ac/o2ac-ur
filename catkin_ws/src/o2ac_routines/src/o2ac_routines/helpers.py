@@ -365,16 +365,18 @@ def publish_pose_marker_(marker_publisher, marker_pose_stamped, namespace="", he
   marker_publisher.publish(arrow_z)
   return True
 
+def get_direction_index(direction):
+  DIRECTION_INDEX = {'X':0, 'Y':1, 'Z':2}
+  return DIRECTION_INDEX.get(direction)
 
 def get_target_force(direction, force):
   VALID_DIRECTIONS = ('+X', '+Y', '+Z', '-X', '-Y', '-Z')
-  DIRECTION_INDEX = {'X':0, 'Y':1, 'Z':2}
   
   assert direction in VALID_DIRECTIONS, "Invalid direction: %s" % direction
 
   res = [0.,0.,0.,0.,0.,0.]
   sign = 1. if '+' in direction else -1.
-  res[DIRECTION_INDEX.get(direction[1])] = force * sign
+  res[get_direction_index(direction[1])] = force * sign
 
   return np.array(res)
 

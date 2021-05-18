@@ -7,8 +7,9 @@ import numpy as np
 from ur_control import utils, spalg, transformations, traj_utils, conversions
 from ur_control.hybrid_controller import ForcePositionController
 from ur_control.compliant_controller import CompliantController
+from ur_control.constants import TERMINATION_CRITERIA, DONE
 
-from o2ac_routines.helpers import get_target_force
+from o2ac_routines.helpers import get_target_force, get_direction_index
 
 
 def create_pid(pid, default_ki=0.0, default_kd=0.0):
@@ -119,7 +120,7 @@ class URForceController(CompliantController):
                                   timeout=timeout, relative_to_ee=False, termination_criteria=termination_criteria,
                                   displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time)
 
-    def linear_push(self, force, direction, relative_to_ee=False, timeout=10.0):
+    def linear_push(self, force, direction, max_translation=None, relative_to_ee=False, timeout=10.0):
         """
         Apply force control in one direction until contact with `force`
         robot_name: string, name of the robot
@@ -131,4 +132,17 @@ class URForceController(CompliantController):
         target_force = get_target_force(direction, force)
         selection_matrix = np.array(target_force == 0.0) * 1.0  # define the selection matrix based on the target force
 
-        self.force_control(target_force=target_force, selection_matrix=selection_matrix, relative_to_ee=relative_to_ee, timeout=timeout, stop_on_target_force=True)
+        initial_pose = self.end_effector()[get_direction_index(direction[1])] 
+        
+        if max_translation is not None:
+            termination_criteria = lambda cpose, standby: abs(initial_pose - cpose[get_direction_index(direction[1])]) >= max_translation
+        else:
+            termination_criteria = None
+
+        result = self.force_control(target_force=target_force, selection_matrix=selection_matrix, relative_to_ee=relative_to_ee, timeout=timeout, stop_on_target_force=True, termination_criteria=termination_criteria)
+
+        if result == TERMINATION_CRITERIA or result == DONE:
+            rospy.loginfo("Completed linear_push: %s" % result)
+            return True
+        rospy.logerr("Fail to complete linear_push %s" % result)
+        return False
