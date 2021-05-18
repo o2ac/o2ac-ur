@@ -818,7 +818,7 @@ class O2ACCommon(O2ACBase):
     if task == "taskboard":
       grasp_pose.header.frame_id = "taskboard_bearing_target_link"
     elif task == "assembly":
-      grasp_pose.header.frame_id = "assembled_assy_part_07_inserted"
+      grasp_pose.header.frame_id = "assembled_part_07_inserted"
     else:
       rospy.logerr("Incorrect task argument, frame could be determined! Breaking out of align_bearing_holes.")
       return False
@@ -941,7 +941,7 @@ class O2ACCommon(O2ACBase):
       bearing_target_link = "taskboard_bearing_target_link"
     elif task == "assembly":
       rospy.logerr("look this up")
-      bearing_target_link = "assembled_assy_part_07_inserted"
+      bearing_target_link = "assembled_part_07_inserted"
 
     plane = "YZ"
     radius = 0.002
@@ -1028,7 +1028,7 @@ class O2ACCommon(O2ACBase):
       if _task == "taskboard":
         screw_pose.header.frame_id = "/taskboard_bearing_target_screw_" + str(n) + "_link"
       elif _task == "assembly":
-        screw_pose.header.frame_id = "/assembled_assy_part_07_screw_hole_" + str(n)
+        screw_pose.header.frame_id = "/assembled_part_07_screw_hole_" + str(n)
       else:
         rospy.logerr("Incorrect task argument, frame could be determined! Breaking out.")
         return False
@@ -1098,7 +1098,7 @@ class O2ACCommon(O2ACBase):
       bearing_target_link = "taskboard_small_shaft"
     elif task == "assembly":
       rospy.logerr("look this up")
-      bearing_target_link = "assembled_assy_part_07_inserted"
+      bearing_target_link = "assembled_part_07_inserted"
 
     plane = "YZ"
     radius = 0.002

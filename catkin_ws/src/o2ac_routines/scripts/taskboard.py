@@ -90,11 +90,6 @@ class TaskboardClass(O2ACCommon):
     if not self.assembly_database.db_name == "taskboard":
       self.assembly_database.change_assembly("taskboard")
 
-  def multiply_quaternion_msgs(self, q1_msg, q2_msg):
-    q1 = [q1_msg.x, q1_msg.y, q1_msg.z, q1_msg.w]
-    q2 = [q2_msg.x, q2_msg.y, q2_msg.z, q2_msg.w]
-    return geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_multiply(q1, q2))
-    
   def spawn_example_objects(self):
     # This function spawns the objects into the tray as if they had been recognized by the vision node
     names = ["taskboard_idler_pulley_small", "bearing", "shaft", "motor_pulley"]
@@ -539,13 +534,6 @@ class TaskboardClass(O2ACCommon):
         self.a_bot.gripper.open(wait=False, opening_width=0.07)
 
         ## wait for screw tool to hold
-
-        # # TODO (felixvd): Change this to the special tool without a suction pad
-        # if self.equip_tool("b_bot", "screw_tool_m4"):
-        #   self.b_bot.go_to_named_pose("home")
-        # else:
-        #   rospy.logerr("Tool could not be picked! Aborting")
-        #   return False
 
         ##### Centering using urp
         centeringgrasp = self.a_bot.load_program(program_name="wrs2020/taskboard_retainer_and_nut_v4_hu.urp", recursion_depth=3)

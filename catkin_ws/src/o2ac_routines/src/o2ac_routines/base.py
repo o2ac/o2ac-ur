@@ -476,20 +476,15 @@ class O2ACBase(object):
         joint_traj_point.positions.append(value)
         grasp.pre_grasp_posture.joint_names.append(joint)
         grasp.pre_grasp_posture.points.append(joint_traj_point)
-        # grasp_2.pre_grasp_posture.joint_names.append(joint)
-        # grasp_2.pre_grasp_posture.points.append(joint_traj_point)
-
+    
     for (joint, value) in hand_closed.items():
         joint_traj_point = JointTrajectoryPoint()
         joint_traj_point.positions.append(value)
         grasp.grasp_posture.joint_names.append(joint)
         grasp.grasp_posture.points.append(joint_traj_point)
-        # grasp_2.grasp_posture.joint_names.append(joint)
-        # grasp_2.grasp_posture.points.append(joint_traj_point)
-
+    
     goal.grasps.append(grasp)
-    # goal.grasps.append(grasp_2)
-
+    
     place_pose = geometry_msgs.msg.PoseStamped()
     place_pose.header.frame_id = 'tray_center'
     place_pose.pose.orientation.w = 1
