@@ -26,6 +26,9 @@ catkin_ws/src/o2ac_routines/MP_solutions/*
 # URDF files that are generated from lists and CAD models
 catkin_ws/src/o2ac_parts_description/urdf/generated/
 
+# PLY files generated from STL
+catkin_ws/src/o2ac_parts_description/meshes/*.ply
+
 # Files generated during STAMP (symbolic plan and failed plans)
 catkin_ws/src/o2ac_task_planning/pddl_converter/symbolic/generated/
 
