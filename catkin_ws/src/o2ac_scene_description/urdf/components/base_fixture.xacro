@@ -150,12 +150,13 @@
     <origin rpy="${pi/2} 0 ${-pi/2}" xyz=".22 .3 0.085"/>
   </joint>
   <link name="attached_base_origin_link"/>
-  <!-- <joint name="attached_base_origin_joint" type="fixed">
+  
+  <joint name="attached_base_origin_back_joint" type="fixed">
     <parent link="base_fixture_top"/>
-    <child link="attached_base_origin_link"/>
+    <child link="attached_base_origin_back_link"/>
     <origin rpy="0.0 0 0" xyz=".1 .1 0.085"/>
   </joint>
-  <link name="attached_base_origin_link"/> -->
+  <link name="attached_base_origin_back_link"/>
 <!--
   <joint name="base_fixture_corner_2_joint" type="fixed">
     <parent link="base_fixture"/>
