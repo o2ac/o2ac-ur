@@ -8,6 +8,7 @@ Panels:
         - /Status1
         - /Camera image1
         - /Results1
+        - /PlanningScene1/Scene Geometry1
         - /DepthCloud1
         - /DepthCloud1/Auto Size1
       Splitter Ratio: 0.5
@@ -87,7 +88,7 @@ Visualization Manager:
       Planning Scene Topic: move_group/monitored_planning_scene
       Robot Description: robot_description
       Scene Geometry:
-        Scene Alpha: 0.8999999761581421
+        Scene Alpha: 1
         Scene Color: 50; 230; 50
         Scene Display Time: 0.009999999776482582
         Show Scene Geometry: true
@@ -135,6 +136,10 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
+          a_bot_gripper_tip_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           a_bot_inside_cam_link:
             Alpha: 1
             Show Axes: false
@@ -205,6 +210,10 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
+          a_bot_nut_tool_m4_hole_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           a_bot_nut_tool_m6_tip_link:
             Alpha: 1
             Show Axes: false
@@ -283,10 +292,6 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_gripper_tip_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
           a_bot_robotiq_arg2f_base_link:
             Alpha: 1
             Show Axes: false
@@ -341,11 +346,6 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          b_bot__coupling:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
           b_bot_base:
             Alpha: 1
             Show Axes: false
@@ -360,12 +360,21 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
+          b_bot_bearing_rotate_helper_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           b_bot_cam_cables_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
           b_bot_cam_mount:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          b_bot_coupling:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -380,6 +389,10 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
+          b_bot_gripper_tip_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           b_bot_inside_cam_link:
             Alpha: 1
             Show Axes: false
@@ -528,10 +541,6 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          b_bot_gripper_tip_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
           b_bot_robotiq_arg2f_base_link:
             Alpha: 1
             Show Axes: false
@@ -652,15 +661,15 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          nut_tool_m6_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          nut_tool_m6_pickup_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
           o2ac_ground:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          padless_tool_m4_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          padless_tool_m4_pickup_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -876,6 +885,15 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
+          vgroove_aid_drop_point_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          vgroove_aid_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
           workplate:
             Alpha: 1
             Show Axes: false
@@ -987,7 +1005,7 @@ Window Geometry:
   Height: 1043
   Hide Left Dock: true
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd000000040000000000000156000003bdfc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073000000003b000003bd000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000026f000003bdfc0200000005fb0000000e0052006500730075006c00740073010000003b000001ce0000001600fffffffb0000001800430061006d00650072006100200069006d006100670065010000020f000001e90000001600fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003b000002b4000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007800000003efc0100000002fb0000000800540069006d00650000000000000007800000024400fffffffb0000000800540069006d006501000000000000045000000000000000000000050b000003bd00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd000000040000000000000156000003bdfc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073000000003b000003bd000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000026f000003bdfc0200000005fb0000000e0052006500730075006c00740073010000003b000001ce0000001600fffffffb0000001800430061006d00650072006100200069006d006100670065010000020f000001e90000001600fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003b000002b4000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007800000003efc0100000002fb0000000800540069006d00650000000000000007800000042700fffffffb0000000800540069006d006501000000000000045000000000000000000000050b000003bd00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Results:
     collapsed: false
   Selection:
