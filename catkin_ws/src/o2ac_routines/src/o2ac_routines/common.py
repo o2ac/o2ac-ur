@@ -1033,14 +1033,14 @@ class O2ACCommon(O2ACBase):
         rospy.logerr("Incorrect task argument, frame could be determined! Breaking out.")
         return False
       
-      screw_pose.pose.position.x = 0.01  ## WHY? THIS SHOULD BE DEEP ENOUGH AT 0.0
+      screw_pose.pose.position.x = 0.00  ## Why does this seem to be loose at 0.0?
       screw_pose.pose.position.z = 0.00  ## MAGIC NUMBER
-      screw_pose.pose.orientation.w = 1.0
+      screw_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0) )
       if task == "assembly":
-        screw_pose.pose.orientation = geometry_msgs.msg.Quaternion(
-                *tf_conversions.transformations.quaternion_from_euler(tau/2, 0, 0))
+        # The target frame is oriented differently in taskboard and assembly.
+        screw_pose.pose = rotatePoseByRPY(tau/2, 0, 0, screw_pose.pose)
       screw_pose_approach = copy.deepcopy(screw_pose)
-      screw_pose_approach.pose.position.x -= 0.05
+      screw_pose_approach.pose.position.x -= 0.07
       
       self.b_bot.go_to_pose_goal(screw_pose_approach, end_effector_link = "b_bot_screw_tool_m4_tip_link", move_lin=False)
       screw_success = self.skill_server.do_screw_action("b_bot", screw_pose, screw_size=4)
