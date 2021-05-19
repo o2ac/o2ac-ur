@@ -216,20 +216,16 @@ class O2ACCommon(O2ACBase):
         if len(sub_trajectory.trajectory.joint_trajectory.joint_names) == 1:  # If only one joint is in the group, it is the gripper
           # Gripper motion
           hand_group = self.active_robots[robot_name].gripper_group
-          if self.use_real_robot:
-            hand_closed_joint_values = hand_group.get_named_target_values('close')
-            hand_open_joint_values = hand_group.get_named_target_values('open')
-            if stage_name == 'open hand':
-              self.active_robots[robot_name].gripper.send_command('open')
-            elif stage_name == 'close hand':
-              self.active_robots[robot_name].gripper.send_command('close')
-            elif 0.01 > abs(hand_open_joint_values[sub_trajectory.trajectory.joint_trajectory.joint_names[0]] - sub_trajectory.trajectory.joint_trajectory.points[-1].positions[0]):
-              self.active_robots[robot_name].gripper.send_command('open')
-            elif 0.01 < abs(hand_open_joint_values[sub_trajectory.trajectory.joint_trajectory.joint_names[0]] - sub_trajectory.trajectory.joint_trajectory.points[-1].positions[0]):
-              self.active_robots[robot_name].gripper.send_command('close', True)
-          else:  # Simulation
-            plan = hand_group.retime_trajectory(self.robots.get_current_state(), sub_trajectory.trajectory, 1.0)
-            hand_group.execute(plan)
+          hand_closed_joint_values = hand_group.get_named_target_values('close')
+          hand_open_joint_values = hand_group.get_named_target_values('open')
+          if stage_name == 'open hand':
+            self.active_robots[robot_name].gripper.send_command('open')
+          elif stage_name == 'close hand':
+            self.active_robots[robot_name].gripper.send_command('close')
+          elif 0.01 > abs(hand_open_joint_values[sub_trajectory.trajectory.joint_trajectory.joint_names[0]] - sub_trajectory.trajectory.joint_trajectory.points[-1].positions[0]):
+            self.active_robots[robot_name].gripper.send_command('open')
+          elif 0.01 < abs(hand_open_joint_values[sub_trajectory.trajectory.joint_trajectory.joint_names[0]] - sub_trajectory.trajectory.joint_trajectory.points[-1].positions[0]):
+            self.active_robots[robot_name].gripper.send_command('close', True)
           
         else: # The robots move
           # First check that the trajectory is safe to execute (= robot is at start of trajectory)

@@ -6,7 +6,7 @@ from ur_control.controllers import GripperController  # Simulation only
 
 
 class RobotiqGripper():
-    def __init__(self, namespace, use_real_robot):
+    def __init__(self, namespace, use_real_robot, gripper_group):
         self.use_real_robot = use_real_robot
         self.ns = namespace
 
@@ -21,12 +21,18 @@ class RobotiqGripper():
                 self.gripper = GripperController(namespace=self.ns, prefix=self.ns + '_', timeout=2.0)
             except Exception as e:
                 rospy.logwarn("Fail to instantiate GripperController for simulation, " + str(e))
-                rospy.logwarn("Instantiating dummy gripper")
+                rospy.logwarn("Instantiating dummy gripper, hoping for moveit Fake controllers")
                 class GripperDummy():
                     pass
                 self.gripper = GripperDummy()
-                setattr(GripperDummy, "close", lambda *args, **kwargs: None)
-                setattr(GripperDummy, "open", lambda *args, **kwargs: None)
+                def close():
+                    gripper_group.set_named_target("close")
+                    gripper_group.go()
+                def open():
+                    gripper_group.set_named_target("open")
+                    gripper_group.go()
+                setattr(GripperDummy, "close", lambda *args, **kwargs: close())
+                setattr(GripperDummy, "open", lambda *args, **kwargs: open())
                 setattr(GripperDummy, "command", lambda *args, **kwargs: None)
 
     def _gripper_status_callback(self, msg):
