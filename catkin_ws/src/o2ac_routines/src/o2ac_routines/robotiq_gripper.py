@@ -31,9 +31,17 @@ class RobotiqGripper():
                 def open():
                     gripper_group.set_named_target("open")
                     gripper_group.go()
+                def command(cmd):
+                    if cmd == "open":
+                        open()
+                    elif cmd == "close":
+                        close()
+                    else:
+                        rospy.loginfo("Not supported") # TODO?
+                        return
                 setattr(GripperDummy, "close", lambda *args, **kwargs: close())
                 setattr(GripperDummy, "open", lambda *args, **kwargs: open())
-                setattr(GripperDummy, "command", lambda *args, **kwargs: None)
+                setattr(GripperDummy, "command", lambda self, cmd: command(cmd))
 
     def _gripper_status_callback(self, msg):
         self.opening_width = msg.position  # [m]
