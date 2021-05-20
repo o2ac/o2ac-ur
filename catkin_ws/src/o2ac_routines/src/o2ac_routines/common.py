@@ -885,7 +885,10 @@ class O2ACCommon(O2ACBase):
         self.b_bot.gripper.open()
       
       self.b_bot.go_to_pose_goal(camera_look_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.25, acceleration=.1)
-      self.activate_led("b_bot", on=False)
+      if np.random.uniform() > 0.4:  # = 60% chance
+        self.activate_led("b_bot", on=False)
+      else:
+        self.activate_led("b_bot", on=True)
       rospy.sleep(1)  # If we don't wait, the camera image is blurry
 
       # Get angle and turn
