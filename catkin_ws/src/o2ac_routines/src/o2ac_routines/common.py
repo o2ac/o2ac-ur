@@ -1308,6 +1308,8 @@ class O2ACCommon(O2ACBase):
 
 
   def prepare_screw_tool_idler_pulley(self, target_link):
+    """ target_link is e.g. long_hole_top_link
+    """
     self.equip_tool("b_bot", "padless_tool_m4")
     self.b_bot.go_to_named_pose("screw_ready")
     if not self.playback_sequence("idler_pulley_push_with_screw_tool"):
@@ -1315,20 +1317,32 @@ class O2ACCommon(O2ACBase):
 
     rospy.loginfo("Going to near tb (b_bot)") # Push with tool
     target_rotation = np.deg2rad([30.0, 0.0, 0.0]).tolist()
-    xyz_pos = [-0.01, -0.001, 0.001]  # MAGIC NUMBERS # Light push
-    near_tb_pose = conversions.to_pose_stamped(target_link, xyz_pos + target_rotation)
+    xyz_light_push = [-0.01, -0.001, 0.001]  # MAGIC NUMBERS
+    near_tb_pose = conversions.to_pose_stamped(target_link, xyz_light_push + target_rotation)
     success = self.b_bot.move_lin(near_tb_pose, speed=0.05, acceleration=0.05, end_effector_link="b_bot_screw_tool_m4_tip_link")
     if not success:
       return False
 
     self.tools.set_motor("padless_tool_m4", "tighten", duration=10.0)
-    self.hold_screw_tool_idler_pulley(target_link)
+    self.insert_screw_tool_tip_into_idler_pulley_head(target_link)
     
-    xyz_pos = [0.001, -0.001, 0.001]  # MAGIC NUMBERS # Hard push
-    push_pose = conversions.to_pose_stamped(target_link, xyz_pos + target_rotation)
-    return self.b_bot.move_lin(push_pose, speed=0.05, acceleration=0.05, end_effector_link="b_bot_screw_tool_m4_tip_link")
+    # xyz_hard_push = [0.001, -0.001, 0.001]  # MAGIC NUMBERS
+    # push_pose = conversions.to_pose_stamped(target_link, xyz_hard_push + target_rotation)
+    # return self.b_bot.move_lin(push_pose, speed=0.05, acceleration=0.05, end_effector_link="b_bot_screw_tool_m4_tip_link")
 
-  def hold_screw_tool_idler_pulley(self, target_link):
+    ## Incline the tool slightly 
+    self.planning_scene_interface.allow_collisions("padless_tool_m4", "taskboard_plate")
+    xyz_hard_push = [0.001, -0.001, 0.001]  # MAGIC NUMBERS (target without inclination)
+    inclination_angle_deg = 4.0
+    inclined_orientation_hard_push = np.deg2rad([30.0, inclination_angle_deg, 0.0]).tolist()
+    s = sin(np.deg2rad(inclination_angle_deg)) * 0.008  # 8 mm is roughly the distance from the taskboard surface to the 
+                                                        # head of the screw, so adding this offset should result in a rotation
+                                                        # around the screw head.
+    xyz_hard_push[2] -= s
+    push_pose = conversions.to_pose_stamped(target_link, xyz_hard_push + inclined_orientation_hard_push)
+    return self.b_bot.move_lin(push_pose, speed=0.02, acceleration=0.02, end_effector_link="b_bot_screw_tool_m4_tip_link")
+
+  def insert_screw_tool_tip_into_idler_pulley_head(self, target_link):
 
     target_force = get_target_force('-X', 0.0)
     selection_matrix = [0., 0.95, 0.95, 1, 1, 1]
