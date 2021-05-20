@@ -412,7 +412,7 @@ class O2ACBase(object):
     return wrap
   
   @save_task_plan
-  def plan_pick_place(self, robot_name, object_name, grasp_pose, pick_only=True, place_only=False):
+  def plan_pick_place(self, robot_name, object_name, grasp_poses, pick_only=True, place_only=False):
     '''
     Function for calling the plan_pick_place MTC action
     The function returns the MTC solution containing the trajectories
@@ -433,41 +433,42 @@ class O2ACBase(object):
     goal.object_id = object_name
     goal.support_surfaces = ["tray_center"]
 
-    grasp = moveit_msgs.msg.Grasp()
+    for grasp_pose in grasp_poses:
+      grasp = moveit_msgs.msg.Grasp()
 
-    grasp.grasp_pose = grasp_pose
+      grasp.grasp_pose = grasp_pose
 
-    approach_direction = geometry_msgs.msg.Vector3Stamped()
-    approach_direction.header.frame_id = 'world'
-    approach_direction.vector.z = -1
-    grasp.pre_grasp_approach.direction = approach_direction
-    grasp.pre_grasp_approach.min_distance = 0.05
-    grasp.pre_grasp_approach.desired_distance = 0.1
+      approach_direction = geometry_msgs.msg.Vector3Stamped()
+      approach_direction.header.frame_id = 'world'
+      approach_direction.vector.z = -1
+      grasp.pre_grasp_approach.direction = approach_direction
+      grasp.pre_grasp_approach.min_distance = 0.05
+      grasp.pre_grasp_approach.desired_distance = 0.1
 
-    lift_direction = geometry_msgs.msg.Vector3Stamped()
-    lift_direction.header.frame_id = 'world'
-    lift_direction.vector.z = 1
-    grasp.post_grasp_retreat.direction = lift_direction
-    grasp.post_grasp_retreat.min_distance = 0.05
-    grasp.post_grasp_retreat.desired_distance = 0.1
+      lift_direction = geometry_msgs.msg.Vector3Stamped()
+      lift_direction.header.frame_id = 'world'
+      lift_direction.vector.z = 1
+      grasp.post_grasp_retreat.direction = lift_direction
+      grasp.post_grasp_retreat.min_distance = 0.05
+      grasp.post_grasp_retreat.desired_distance = 0.1
 
-    hand = self.active_robots[robot_name].gripper_group
-    hand_open = hand.get_named_target_values("open")
-    hand_closed = hand.get_named_target_values("close")
+      hand = self.active_robots[robot_name].gripper_group
+      hand_open = hand.get_named_target_values("open")
+      hand_closed = hand.get_named_target_values("close")
 
-    for (joint, value) in hand_open.items():
-        joint_traj_point = JointTrajectoryPoint()
-        joint_traj_point.positions.append(value)
-        grasp.pre_grasp_posture.joint_names.append(joint)
-        grasp.pre_grasp_posture.points.append(joint_traj_point)
-    
-    for (joint, value) in hand_closed.items():
-        joint_traj_point = JointTrajectoryPoint()
-        joint_traj_point.positions.append(value)
-        grasp.grasp_posture.joint_names.append(joint)
-        grasp.grasp_posture.points.append(joint_traj_point)
-    
-    goal.grasps.append(grasp)
+      for (joint, value) in hand_open.items():
+          joint_traj_point = JointTrajectoryPoint()
+          joint_traj_point.positions.append(value)
+          grasp.pre_grasp_posture.joint_names.append(joint)
+          grasp.pre_grasp_posture.points.append(joint_traj_point)
+      
+      for (joint, value) in hand_closed.items():
+          joint_traj_point = JointTrajectoryPoint()
+          joint_traj_point.positions.append(value)
+          grasp.grasp_posture.joint_names.append(joint)
+          grasp.grasp_posture.points.append(joint_traj_point)
+      
+      goal.grasps.append(grasp)
     
     place_pose = geometry_msgs.msg.PoseStamped()
     place_pose.header.frame_id = 'tray_center'

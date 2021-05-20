@@ -242,7 +242,8 @@ class O2ACCommon(O2ACBase):
 
           # Prepare robot motion
           self.active_robots[robot_name].activate_ros_control_on_ur()
-          plan = arm_group.retime_trajectory(self.robots.get_current_state(), sub_trajectory.trajectory, speed)
+          plan = arm_group.retime_trajectory(self.robots.get_current_state(), sub_trajectory.trajectory, 
+                                             velocity_scaling_factor=speed, acceleration_scaling_factor=speed/2)
           arm_group.set_max_velocity_scaling_factor(speed)
 
           # Execute
@@ -471,6 +472,31 @@ class O2ACCommon(O2ACBase):
         return False
     return [grasp_pose]
   
+  def pick_from_two_poses_topdown(self, robot_name, object_name, object_pose):
+    """ Plan a pick from above and execute it with MTC.
+        This is meant for cylindrical objects like the bearing.
+        Two grasp poses are evaluated. The gripper opens along either x and y and faces down.
+        An object with the name `object_name` has to be placed in the scene
+        
+        object_pose is the PoseStamped of the object center. The orientation is ignored.
+    """
+    grasp_poses = []
+    pose_in_tray = self.listener.transformPose("tray_center", object_pose)
+    
+    orientation_grasp_along_x = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
+    if robot_name == "b_bot":
+      orientation_grasp_along_y = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, -tau/4))
+    else:  # a_bot
+      orientation_grasp_along_y = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, tau/4))
+    
+    grasp_along_x = copy.deepcopy(pose_in_tray)
+    grasp_along_x.pose.orientation = orientation_grasp_along_x
+    grasp_along_y = copy.deepcopy(pose_in_tray)
+    grasp_along_y.pose.orientation = orientation_grasp_along_y
+
+    grasp_poses = [grasp_along_x, grasp_along_y]
+    return self.pick_MTC_helper(robot_name, object_name, grasp_poses)
+  
   def pick(self, robot_name, object_name, grasp_name=""):
     """ Plan a pick operation and execute it with MTC.
         grasp_name is the name of a grasp on the parameter server.
@@ -479,9 +505,15 @@ class O2ACCommon(O2ACBase):
       grasp_name = "default_grasp"
     grasp_pose = self.assembly_database.get_grasp_pose(object_name, grasp_name)
     if not grasp_pose:
-      rospy.logerr("Could not load grasp pose for object " + object_name + ". Aborting pick.")
+      rospy.logerr("Could not load grasp pose " + grasp_name + " for object " + object_name + ". Aborting pick.")
       return False
-    res = self.plan_pick_place(robot_name, object_name, grasp_pose)
+    return self.pick_MTC_helper(robot_name, object_name, [grasp_pose])
+    
+  def pick_MTC_helper(self, robot_name, object_name, grasp_poses):
+    """ Plan a pick operation and execute it with MTC.
+        grasp_poses is a vector of grasp poses.
+    """
+    res = self.plan_pick_place(robot_name, object_name, grasp_poses)
     success = True
     try:
       success = res.success
@@ -639,7 +671,7 @@ class O2ACCommon(O2ACBase):
     ydist = l_y_half - abs(object_pose_in_world.pose.position.y)
     return (xdist, ydist)
   
-  def center_with_gripper(self, robot_name, object_pose, object_width):
+  def move_and_center_with_gripper(self, robot_name, object_pose, object_width):
     """
     Centers cylindrical object by moving the gripper, by moving the robot to the pose and closing/opening.
     Rotates once and closes/opens again. Does not move back afterwards.
@@ -898,7 +930,8 @@ class O2ACCommon(O2ACBase):
     self.vision.activate_camera("b_bot_inside_camera")
     goal.pose.position.x -= 0.01 # MAGIC NUMBER
     goal.pose.position.z = 0.0115
-    self.simple_pick("b_bot", goal, gripper_force=100.0, approach_height=0.05, axis="z")
+    self.pick_from_two_poses_topdown("b_bot", "bearing", goal)
+    
 
     if self.b_bot.gripper.opening_width < 0.01:
       rospy.logerr("Fail to grasp bearing")
