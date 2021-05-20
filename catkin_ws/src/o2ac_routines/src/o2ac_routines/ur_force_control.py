@@ -46,7 +46,7 @@ class URForceController(CompliantController):
             config = yaml.load(f)
 
         position_pd = create_pid(config['position'], default_kd=0.01, default_ki=0.01)
-        force_pd = create_pid(config['force'],    default_kd=0.04,  default_ki=0.01)
+        force_pd = create_pid(config['force'],    default_kd=0.01,  default_ki=0.01)
 
         dt = config['dt']
         selection_matrix = config['selection_matrix']

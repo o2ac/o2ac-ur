@@ -976,16 +976,10 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("look this up")
       bearing_target_link = "assembled_part_07_inserted"
 
-    plane = "YZ"
-    radius = 0.002
-    radius_direction = "+Z"
-    revolutions = 5
-
-    steps = 100
-    duration = 30.0
+    duration = 20.0
     
     target_force = get_target_force('-X', 8.0)
-    selection_matrix = [0., 0.8, 0.8, 0.8, 0.8, 0.8]
+    selection_matrix = [0., 0.9, 0.9, 0.9, 0.9, 0.9]
 
     target_pose = conversions.to_pose_stamp(bearing_target_link, [-0.0, 0, -.005, 0, 0, 0, 1.])
     target_in_robot_base = self.listener.transformPose("b_bot_base_link", target_pose)
@@ -994,8 +988,8 @@ class O2ACCommon(O2ACBase):
                                                        (standby_time and cpose[0] >= target_x-0.003) # relax constraint
 
     rospy.loginfo("** STARTING FORCE CONTROL **")
-    result = self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
-                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(2.0), wiggle_revolutions=5.0,
+    result = self.b_bot.execute_spiral_trajectory(plane="YZ", max_radius=0.002, radius_direction="+Z", steps=100, revolutions=3, timeout=duration,
+                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(5.0), wiggle_revolutions=2.,
                                                         target_force=target_force, selection_matrix=selection_matrix,
                                                         termination_criteria=termination_criteria)
     rospy.loginfo("** FORCE CONTROL COMPLETE with distance %s **" % round(target_x - self.b_bot.force_controller.end_effector()[0],5))
@@ -1016,11 +1010,10 @@ class O2ACCommon(O2ACBase):
     target_x += 0.001
     termination_criteria = lambda cpose, standby_time: cpose[0] >= target_x or \
                                                        (standby_time and cpose[0] >= target_x-0.006) # relax constraint
-    radius = 0.001
 
     rospy.loginfo("** STARTING FORCE CONTROL 2**")
-    self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
-                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(2.0), wiggle_revolutions=5.0,
+    self.b_bot.execute_spiral_trajectory(plane="YZ", max_radius=0.0, radius_direction="+Z", steps=100, revolutions=3, timeout=duration,
+                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(5.0), wiggle_revolutions=2.,
                                                         target_force=target_force, selection_matrix=selection_matrix,
                                                         termination_criteria=termination_criteria)
     rospy.loginfo("** FORCE CONTROL COMPLETE 2 with distance %s **" % round(target_x - self.b_bot.force_controller.end_effector()[0],5))
@@ -1133,16 +1126,10 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("look this up")
       bearing_target_link = "assembled_part_07_inserted"
 
-    plane = "YZ"
-    radius = 0.002
-    radius_direction = "+Z"
-    revolutions = 5
-
-    steps = 100
-    duration = 30.0
+    duration = 20.0
     
     target_force = get_target_force('-X', 6.0)
-    selection_matrix = [0., 0.8, 0.8, 0.8, 0.8, 0.8]
+    selection_matrix = [0., 0.9, 0.9, 0.9, 0.9, 0.9]
 
     target_pose = geometry_msgs.msg.PoseStamped()
     target_pose.header.frame_id = bearing_target_link
@@ -1153,8 +1140,8 @@ class O2ACCommon(O2ACBase):
                                                        (standby_time and cpose[0] >= target_x-0.005) # relax constraint
 
     rospy.loginfo("** STARTING FORCE CONTROL **")
-    result = self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
-                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=revolutions,
+    result = self.b_bot.execute_spiral_trajectory(plane="YZ", max_radius=0.002, radius_direction="+Z", steps=100, revolutions=3, timeout=duration,
+                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(5.0), wiggle_revolutions=2.,
                                                         target_force=target_force, selection_matrix=selection_matrix,
                                                         termination_criteria=termination_criteria)
     rospy.loginfo("** FORCE CONTROL COMPLETE **")
@@ -1162,14 +1149,13 @@ class O2ACCommon(O2ACBase):
     self.b_bot.gripper.open(wait=True, opening_width=0.07)
     self.b_bot.gripper.close(wait=True)
 
-    radius = 0.0
     target_x += 0.01
     termination_criteria = lambda cpose, standby_time: cpose[0] >= target_x or \
                                                        (standby_time and cpose[0] >= target_x-0.005) # relax constraint
 
     rospy.loginfo("** STARTING FORCE CONTROL **")
-    result = self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
-                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=5.0,
+    result = self.b_bot.execute_spiral_trajectory(plane="YZ", max_radius=0.0, radius_direction="+Z", steps=100, revolutions=3, timeout=duration,
+                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(5.0), wiggle_revolutions=2.,
                                                         target_force=target_force, selection_matrix=selection_matrix,
                                                         termination_criteria=termination_criteria)
 
@@ -1337,7 +1323,7 @@ class O2ACCommon(O2ACBase):
     termination_criteria = lambda cpose, standby_time: False # disabled
 
     rospy.loginfo("** STARTING FORCE CONTROL **")
-    self.b_bot.execute_spiral_trajectory(plane="YZ", max_radius=0.003, radius_direction="+Y", 
+    self.b_bot.execute_spiral_trajectory(plane="YZ", max_max_radius=0.003, radius_direction="+Y", 
                                                   steps=50, revolutions=2, timeout=10.0,
                                                   target_force=target_force, selection_matrix=selection_matrix,
                                                   termination_criteria=termination_criteria,
@@ -1416,27 +1402,22 @@ class O2ACCommon(O2ACBase):
     Insert shaft with force control using b_bot. The shaft has to be in front of the hole already.
     """
     # FIXME: Needs tuning
-    self.b_bot.linear_push(2, "-X", timeout=10.0)
+    self.b_bot.linear_push(2, "-X", max_translation=0.02, timeout=10.0)
     after_push_x = self.b_bot.force_controller.end_effector()[0]
     print("Pose after linear push", after_push_x)
 
     # Parameters for insertion
-    plane = "YZ"
-    radius = 0.002
-    radius_direction = "+Z"
-    revolutions = 5
-    steps = 100
     duration = 15.0
     target_force = get_target_force('-X', 6.0)
-    selection_matrix = [0., 0.8, 0.8, 0.95, 0.95, 0.95]
+    selection_matrix = [0., 0.9, 0.9, 0.95, 0.95, 0.95]
 
     target_x = after_push_x + 0.01
     termination_criteria = lambda cpose, standby_time: cpose[0] >= target_x or \
                                                        (standby_time and cpose[0] >= target_x-0.003) # relax constraint
 
     rospy.loginfo("** STARTING FORCE CONTROL **")
-    result = self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
-                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(3.0), wiggle_revolutions=5.0,
+    result = self.b_bot.execute_spiral_trajectory(plane="YZ", max_radius=0.002, radius_direction="+Z", steps=100, revolutions=3, timeout=duration,
+                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(5.0), wiggle_revolutions=2.0,
                                                         target_force=target_force, selection_matrix=selection_matrix,
                                                         termination_criteria=termination_criteria)
     rospy.loginfo("** FORCE CONTROL COMPLETE with distance %s **" % round(target_x - self.b_bot.force_controller.end_effector()[0],5))
@@ -1448,13 +1429,12 @@ class O2ACCommon(O2ACBase):
     self.b_bot.gripper.close()
 
     target_force = get_target_force('-X', 15.0)
-    target_x += 0.0
     termination_criteria = lambda cpose, standby_time: cpose[0] >= target_x or \
                                                        (standby_time and cpose[0] >= target_x-0.01) # relax constraint
     radius = 0.0
 
     rospy.loginfo("** STARTING FORCE CONTROL 2**")
-    self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
+    result = self.b_bot.execute_spiral_trajectory(plane="YZ", max_radius=0.0, radius_direction="+Z", steps=100, revolutions=3, timeout=duration,
                                                         target_force=target_force, selection_matrix=selection_matrix,
                                                         termination_criteria=termination_criteria)
     rospy.loginfo("** FORCE CONTROL COMPLETE 2 with distance %s **" % round(target_x - self.b_bot.force_controller.end_effector()[0],5))
