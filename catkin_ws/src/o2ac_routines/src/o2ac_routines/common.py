@@ -1282,15 +1282,28 @@ class O2ACCommon(O2ACBase):
     self.a_bot.move_lin_rel(relative_translation=[-d + 0.01, 0, 0], speed=0.1, relative_to_robot_base=True)
         
     rospy.loginfo("Going to in ridge (a_bot)")
-    for i in range(3):
-      if not self.a_bot.move_lin_rel(relative_translation=[-0.01, 0, 0], speed=0.05, relative_to_robot_base=True):
-        if self.a_bot.is_protective_stopped():
-          self.a_bot.unlock_protective_stop()
 
-          rospy.loginfo("Fail insertion %s, moving 0.0015 to the right (-Y)" % str(i+1))
-          self.a_bot.move_lin_rel(relative_translation=[0.01, -0.0015*(i+1), 0], speed=0.05)
-      else:
+    target_pose = conversions.to_pose_stamp(target_link, [(-0.003), 0.009, 0.0, tau/4.0, 0, tau/8.])
+    target_pose = self.listener.transformPose("world", target_pose)
+    
+    for i in range(3):
+      self.a_bot.linear_push(2, "+X", max_translation=0.02, timeout=10.0)
+
+      if self.a_bot.force_controller.end_effector()[0] >= target_pose.pose.position.x:
         return True
+      else:
+        # Go back, try again
+        self.a_bot.move_lin_rel(relative_translation=[0.01, -0.002, 0], speed=0.1, relative_to_robot_base=True)
+
+    # No force control alternative
+    # for i in range(3):
+    #   if not self.a_bot.move_lin_rel(relative_translation=[-0.01, 0, 0], speed=0.05, relative_to_robot_base=True):
+    #     if self.a_bot.is_protective_stopped():
+    #       self.a_bot.unlock_protective_stop()
+    #       rospy.loginfo("Fail insertion %s, moving 0.0015 to the right (-Y)" % str(i+1))
+    #       self.a_bot.move_lin_rel(relative_translation=[0.01, -0.0015*(i+1), 0], speed=0.05)
+    #   else:
+    #     return True
     return False
 
 
