@@ -71,7 +71,7 @@ class URRobot():
         self.robot_safety_mode = None
         self.robot_status = dict()
 
-        self.gripper = RobotiqGripper(namespace=self.ns, use_real_robot=use_real_robot)
+        self.gripper = RobotiqGripper(namespace=self.ns, use_real_robot=use_real_robot, gripper_group=self.gripper_group)
 
     def run_mode_callback(self, msg):
         self.run_mode_ = msg.data
