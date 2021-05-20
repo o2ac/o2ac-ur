@@ -592,7 +592,7 @@ class O2ACCommon(O2ACBase):
     """
     if not self.use_real_robot: # For simulation
       rospy.logwarn("Returning position near center (simulation)")
-      return conversions.to_pose_stamp("tray_center", [-0.03078, 0.06248, 0.02, 0.0,0.7071,0.0,0.7071])
+      return conversions.to_pose_stamped("tray_center", [-0.03078, 0.06248, 0.02, 0.0,0.7071,0.0,0.7071])
 
     # Make sure object_id is the id number
     if isinstance(object_id, str):
@@ -981,7 +981,7 @@ class O2ACCommon(O2ACBase):
     target_force = get_target_force('-X', 8.0)
     selection_matrix = [0., 0.9, 0.9, 0.9, 0.9, 0.9]
 
-    target_pose = conversions.to_pose_stamp(bearing_target_link, [-0.0, 0, -.005, 0, 0, 0, 1.])
+    target_pose = conversions.to_pose_stamped(bearing_target_link, [-0.0, 0, -.005, 0, 0, 0, 1.])
     target_in_robot_base = self.listener.transformPose("b_bot_base_link", target_pose)
     target_x = target_in_robot_base.pose.position.x
     termination_criteria = lambda cpose, standby_time: cpose[0] >= target_x or \
@@ -1272,7 +1272,7 @@ class O2ACCommon(O2ACBase):
     rospy.loginfo("Going to near tb (a_bot)")
     d = 0.07
     # MAGIC NUMBERS (offset from TCP to tip of idler pulley thread)
-    target_pose = conversions.to_pose_stamp(target_link, [(-0.003-d), 0.009, 0.0, tau/4.0, 0, tau/8.])
+    target_pose = conversions.to_pose_stamped(target_link, [(-0.003-d), 0.009, 0.0, tau/4.0, 0, tau/8.])
     near_tb_pose = self.listener.transformPose("world", target_pose)
     success = self.a_bot.move_lin(near_tb_pose, speed=0.4)
     if not success:
@@ -1283,7 +1283,7 @@ class O2ACCommon(O2ACBase):
         
     rospy.loginfo("Going to in ridge (a_bot)")
 
-    target_pose = conversions.to_pose_stamp(target_link, [(-0.003), 0.009, 0.0, tau/4.0, 0, tau/8.])
+    target_pose = conversions.to_pose_stamped(target_link, [(-0.003), 0.009, 0.0, tau/4.0, 0, tau/8.])
     target_pose = self.listener.transformPose("world", target_pose)
     
     for i in range(3):
@@ -1316,7 +1316,7 @@ class O2ACCommon(O2ACBase):
     rospy.loginfo("Going to near tb (b_bot)") # Push with tool
     target_rotation = np.deg2rad([30.0, 0.0, 0.0]).tolist()
     xyz_pos = [-0.01, -0.001, 0.001]  # MAGIC NUMBERS # Light push
-    near_tb_pose = conversions.to_pose_stamp(target_link, xyz_pos + target_rotation)
+    near_tb_pose = conversions.to_pose_stamped(target_link, xyz_pos + target_rotation)
     success = self.b_bot.move_lin(near_tb_pose, speed=0.05, acceleration=0.05, end_effector_link="b_bot_screw_tool_m4_tip_link")
     if not success:
       return False
@@ -1325,7 +1325,7 @@ class O2ACCommon(O2ACBase):
     self.hold_screw_tool_idler_pulley(target_link)
     
     xyz_pos = [0.001, -0.001, 0.001]  # MAGIC NUMBERS # Hard push
-    push_pose = conversions.to_pose_stamp(target_link, xyz_pos + target_rotation)
+    push_pose = conversions.to_pose_stamped(target_link, xyz_pos + target_rotation)
     return self.b_bot.move_lin(push_pose, speed=0.05, acceleration=0.05, end_effector_link="b_bot_screw_tool_m4_tip_link")
 
   def hold_screw_tool_idler_pulley(self, target_link):
@@ -1346,7 +1346,7 @@ class O2ACCommon(O2ACBase):
     return True
 
   def fasten_idler_pulley_with_nut_tool(self, target_link):
-    approach_pose = conversions.to_pose_stamp(target_link, [0.1, 0.0, 0.0, 0.0, 0.0, 0.0])
+    approach_pose = conversions.to_pose_stamped(target_link, [0.1, 0.0, 0.0, 0.0, 0.0, 0.0])
     self.a_bot.move_lin(approach_pose, end_effector_link="a_bot_nut_tool_m4_hole_link", speed=0.4)
 
     success = False
@@ -1358,16 +1358,16 @@ class O2ACCommon(O2ACBase):
         break
       # Move nut tool forward so nut touches the screw
       d = offset  # 
-      approach_pose = conversions.to_pose_stamp(target_link, [0.06, 0.0, d - 0.005, 0.0, 0.0, 0.0])
+      approach_pose = conversions.to_pose_stamped(target_link, [0.06, 0.0, d - 0.005, 0.0, 0.0, 0.0])
       self.a_bot.move_lin(approach_pose, end_effector_link="a_bot_nut_tool_m4_hole_link", speed=0.2)
       
-      pushed_into_screw = conversions.to_pose_stamp(target_link, [0.011, 0.0, d - 0.005, 0.0, 0.0, 0.0])
+      pushed_into_screw = conversions.to_pose_stamped(target_link, [0.011, 0.0, d - 0.005, 0.0, 0.0, 0.0])
       self.a_bot.move_lin(pushed_into_screw, end_effector_link="a_bot_nut_tool_m4_hole_link", speed=0.2)
       
       response = self.tools.set_motor("padless_tool_m4", "tighten", duration=3.0, wait=True, skip_final_loosen_and_retighten=True)
       idler_pulley_screwing_succeeded = response.motor_stalled
 
-    retreat_pose = conversions.to_pose_stamp(target_link, [0.1, 0.0, 0.0, 0.0, 0.0, 0.0])
+    retreat_pose = conversions.to_pose_stamped(target_link, [0.1, 0.0, 0.0, 0.0, 0.0, 0.0])
     if not self.a_bot.move_lin(retreat_pose, end_effector_link="a_bot_nut_tool_m4_hole_link", speed=0.2):
       return False
     
@@ -1399,12 +1399,12 @@ class O2ACCommon(O2ACBase):
 
     rospy.loginfo("Going to approach pose (b_bot)")
     rotation = np.deg2rad([-22.5, -88.5, -157.5]).tolist()  # Arbitrary
-    approach_pose = conversions.to_pose_stamp(target_link, [-0.25, 0.002, 0.00] + rotation)
+    approach_pose = conversions.to_pose_stamped(target_link, [-0.25, 0.002, 0.00] + rotation)
     if not self.b_bot.move_lin(approach_pose, speed=0.4):
       return False
     
     rospy.loginfo("Going to hole (b_bot)")
-    at_hole_pose = conversions.to_pose_stamp(target_link, [-0.09, 0.000, -0.002] + rotation)
+    at_hole_pose = conversions.to_pose_stamped(target_link, [-0.09, 0.000, -0.002] + rotation)
     if not self.b_bot.move_lin(at_hole_pose, speed=0.2):
       return False
 
