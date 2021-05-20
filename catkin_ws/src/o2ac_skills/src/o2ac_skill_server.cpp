@@ -458,7 +458,10 @@ bool SkillServer::moveToJointPose(std::vector<double> joint_positions, std::stri
   moveit::planning_interface::MoveGroupInterface::Plan my_plan;
   moveit::planning_interface::MoveItErrorCode success, motion_done;
   group_pointer->setMaxVelocityScalingFactor(velocity_scaling_factor);
+  group_pointer->setMaxAccelerationScalingFactor(acceleration);
   group_pointer->setJointValueTarget(joint_positions);
+  group_pointer->setPlanningPipelineId("ompl");
+  group_pointer->setPlannerId("RRTConnectkConfigDefault");
     
   success = (group_pointer->plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
   if (success)

@@ -383,7 +383,7 @@ class O2ACVisionServer(object):
             estimated_poses_msg.bbox       = ssd_result["bbox"]
 
             if target in apply_2d_pose_estimation:
-                rospy.loginfo("Target id is %d. Apply the 2d pose estimation",
+                rospy.loginfo("Seeing object id %d. Apply 2D pose estimation",
                               target)
                 pose, im_vis = self.estimate_pose_in_image(im_in, im_vis,
                                                            ssd_result)
@@ -395,14 +395,16 @@ class O2ACVisionServer(object):
                     if not p3d:
                         continue
                     poses_3d.append(p3d)
-                    rospy.loginfo("Found pose for class " + str(target) + ": " + str(poses_3d[-1].pose.position.x) + ", " + str(poses_3d[-1].pose.position.y) + ", " + str(poses_3d[-1].pose.position.z))
+                    # rospy.loginfo("Found pose for class " + str(target) + ": " + str(poses_3d[-1].pose.position.x) + ", " + str(poses_3d[-1].pose.position.y) + ", " + str(poses_3d[-1].pose.position.z))
+                    # rospy.loginfo("Found pose for class " + str(target) + ": %2f, %2f, %2f", 
+                    #                poses_3d[-1].pose.position.x, poses_3d[-1].pose.position.y, poses_3d[-1].pose.position.z)
                 if not poses_3d:
                     rospy.logwarn("Could not find pose for class " + str(target) + "!")
                     continue
                 self.add_markers_to_pose_array(poses_3d)
 
             elif target in apply_3d_pose_estimation:
-                rospy.loginfo("Target id is %d. Apply the 3d pose estimation",
+                rospy.loginfo("Seeing object id %d. Apply 3D pose estimation",
                               target)
                 x = int(estimated_poses_msg.bbox[0] + round(estimated_poses_msg.bbox[2]/2))
                 y = int(estimated_poses_msg.bbox[1] + round(estimated_poses_msg.bbox[3]/2))
@@ -414,11 +416,13 @@ class O2ACVisionServer(object):
                     rospy.logwarn("Could not find pose for class " + str(target) + "!")
                     continue
                 poses_3d = [p3d]
-                rospy.loginfo("Found pose for class " + str(target) + ": " + str(poses_3d[-1].pose.position.x) + ", " + str(poses_3d[-1].pose.position.y) + ", " + str(poses_3d[-1].pose.position.z))
+                # rospy.loginfo("Found pose for class " + str(target) + ": " + str(poses_3d[-1].pose.position.x) + ", " + str(poses_3d[-1].pose.position.y) + ", " + str(poses_3d[-1].pose.position.z))
+                # rospy.loginfo("Found pose for class " + str(target) + ": %2f, %2f, %2f", 
+                #                    poses_3d[-1].pose.position.x, poses_3d[-1].pose.position.y, poses_3d[-1].pose.position.z)
                 self.add_markers_to_pose_array(poses_3d)
 
             elif target in apply_grasp_detection:
-                rospy.loginfo("Target id is %d. Apply grasp detection", target)
+                rospy.loginfo("Seeing object id %d (belt). Apply grasp detection", target)
                 estimated_poses_msg.poses, im_vis \
                     = self.belt_grasp_detection_in_image(im_in, im_vis, ssd_result)
                 

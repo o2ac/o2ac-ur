@@ -646,7 +646,7 @@ class O2ACCommon(O2ACBase):
     """
     robot = self.active_robots[robot_name]
     object_pose_in_world = self.listener.transformPose("world", object_pose)
-    object_pose_in_world.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/2, 0))
+    object_pose_in_world.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
     robot.go_to_pose_goal(object_pose_in_world, move_lin=True)
 
     robot.gripper.send_command(command="close", force = 1.0, velocity = 0.1)
@@ -663,7 +663,11 @@ class O2ACCommon(O2ACBase):
     robot.go_to_pose_goal(object_pose_in_world, move_lin=True)
     return True
   
-  def center_with_gripper_2(self, robot_name, grasp_width):
+  def center_with_gripper(self, robot_name, grasp_width):
+    """
+    Centers cylindrical object at the current location, by closing/opening the gripper and rotating the robot's last joint.
+    Moves back to the initial position.
+    """
     robot = self.active_robots[robot_name]
     robot.gripper.send_command(command="close", force = 1.0, velocity = 0.1)
     robot.gripper.send_command(command=grasp_width+0.03, force = 90.0, velocity = 0.001)
@@ -706,7 +710,7 @@ class O2ACCommon(O2ACBase):
       return False
     
     rospy.loginfo("Moving down to object")
-    robot.gripper.send_command(command=grasp_width+0.03)
+    robot.gripper.send_command(command=object_width+0.03)
     
     success = robot.go_to_pose_goal(pick_pose, speed=speed, acceleration=acc, move_lin=True)
     if not success:
@@ -714,7 +718,7 @@ class O2ACCommon(O2ACBase):
       return False
 
     # Center object
-    self.center_with_gripper_2(robot_name, object_width)
+    self.center_with_gripper(robot_name, object_width)
 
     # Grasp object
     robot.gripper.send_command(command="close", force = gripper_force)
@@ -1034,7 +1038,7 @@ class O2ACCommon(O2ACBase):
       screw_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0) )
       if task == "assembly":
         # The target frame is oriented differently in taskboard and assembly.
-        screw_pose.pose = rotatePoseByRPY(tau/2, 0, 0, screw_pose.pose)
+        screw_pose.pose = rotatePoseByRPY(tau/4, 0, 0, screw_pose.pose)
       screw_pose_approach = copy.deepcopy(screw_pose)
       screw_pose_approach.pose.position.x -= 0.07
       
@@ -1192,7 +1196,7 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Fail to complete pick pose")
       return False
 
-    if not self.center_with_gripper_2("a_bot", grasp_width=.05):
+    if not self.center_with_gripper("a_bot", grasp_width=.05):
       rospy.logerr("Fail to complete center_with_gripper")
       return False
     if not self.grasp_idler_pulley():

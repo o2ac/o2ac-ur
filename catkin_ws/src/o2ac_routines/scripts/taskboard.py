@@ -94,10 +94,9 @@ class TaskboardClass(O2ACCommon):
     # This function spawns the objects into the tray as if they had been recognized by the vision node
     names = ["taskboard_idler_pulley_small", "bearing", "shaft", "motor_pulley"]
     offsets = {"bearing": [-.04, -.02, .001],
-    "taskboard_idler_pulley_small": [.07, .06, .03], 
+    "taskboard_idler_pulley_small": [.07, .06, .03],
     "shaft": [.03, -.06, .005], 
-    "motor_pulley": [-.01, .12, .005], 
-    "endcap": [-.05, -.1, .005]}
+    "motor_pulley": [-.01, .12, .005]}
 
     # We publish each object to its own frame.
     broadcaster = tf.TransformBroadcaster()
