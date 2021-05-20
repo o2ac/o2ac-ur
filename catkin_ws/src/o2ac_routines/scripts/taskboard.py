@@ -250,7 +250,8 @@ class TaskboardClass(O2ACCommon):
       
 
   def do_task(self, task_name, fake_execution_for_calibration=False):
-    
+    self.publish_status_text("Target: " + task_name)
+
     if task_name == "belt":
       # - Equip the belt tool with b_bot
       # self.equip_tool("belt_tool")

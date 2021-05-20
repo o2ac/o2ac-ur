@@ -130,6 +130,9 @@ class O2ACBase(object):
     self.sub_run_mode_ = rospy.Subscriber("/run_mode", Bool, self.run_mode_callback)
     self.sub_pause_mode_ = rospy.Subscriber("/pause_mode", Bool, self.pause_mode_callback)
     self.sub_test_mode_ = rospy.Subscriber("/test_mode", Bool, self.test_mode_callback)
+
+    # Publisher for status text
+    self.pub_status_text = rospy.Publisher("/o2ac_text_to_image", String, queue_size=1)
     
     # self.my_mutex = threading.Lock()
 
@@ -934,23 +937,10 @@ class O2ACBase(object):
     except:
       pass
   
-  def log_to_debug_monitor(self, text, category):
-    """Send message to rospy.loginfo and debug monitor.
-
-    The topic name should be included in the parameter server. See test.launch in o2ac_debug_monitor.
+  def publish_status_text(self, text):
+    """ Publish a string to the status topic, which is then converted to an image and displayed in Rviz.
     """
-    rospy.loginfo(category + ": " + text)
-
-    topic_name = "/o2ac_state/{}".format(category)
-    if topic_name not in self.debugmonitor_publishers:
-      pub = rospy.Publisher(topic_name, String, Bool, queue_size=1)
-      rospy.sleep(0.5)
-      self.debugmonitor_publishers[topic_name] = pub
-    else:
-      pub = self.debugmonitor_publishers[topic_name]
-
-    msg = String, Bool()
+    rospy.loginfo("Published status: " + text)
+    msg = String
     msg.data = text
-    pub.publish(msg)
-
-
+    self.pub_status_text.publish(msg)

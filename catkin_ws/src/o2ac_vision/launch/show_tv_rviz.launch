@@ -5,4 +5,6 @@
   <!-- Spawn visualizer and parameter configurator -->
   <node name="$(anon rviz)" pkg="rviz" type="rviz" output="screen" args="-d $(find o2ac_vision)/launch/tv_layout.rviz"/>
 
+  <node name="text_to_image_converter" pkg="o2ac_visualization" type="text_to_image.py" output="screen" args=""/>
+
 </launch>
