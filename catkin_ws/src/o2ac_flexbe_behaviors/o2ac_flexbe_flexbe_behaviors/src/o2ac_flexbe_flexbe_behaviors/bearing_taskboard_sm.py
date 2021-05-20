@@ -68,7 +68,7 @@ class bearingtaskboardSM(Behavior):
 			# x:77 y:45
 			OperatableStateMachine.add('pick up bearing',
 										PickUpActionState(object_name=object_name),
-										transitions={'success': 'check grasp', 'error': 'failed'},
+										transitions={'success': 'is bearing upside down', 'error': 'failed'},
 										autonomy={'success': Autonomy.Off, 'error': Autonomy.Off},
 										remapping={'gripper_opening': 'gripper_opening'})
 
@@ -78,9 +78,9 @@ class bearingtaskboardSM(Behavior):
 										transitions={'success': 'Align holes', 'error': 'failed'},
 										autonomy={'success': Autonomy.Off, 'error': Autonomy.Off})
 
-			# x:318 y:87
-			OperatableStateMachine.add('check grasp',
-										CheckConditionState(predicate=self.check_grasp),
+			# x:294 y:84
+			OperatableStateMachine.add('is bearing upside down',
+										CheckConditionState(predicate=self.grasped_bearing_is_upside_down),
 										transitions={'true': 'orient bearing', 'false': 'orient bearing down'},
 										autonomy={'true': Autonomy.Off, 'false': Autonomy.Off},
 										remapping={'input_value': 'gripper_opening'})
@@ -121,6 +121,6 @@ class bearingtaskboardSM(Behavior):
 
 	# Private functions can be added inside the following tags
 	# [MANUAL_FUNC]
-	def check_grasp(self, grasp_opening):
-		return grasp_opening < 0.045
+	def grasped_bearing_is_upside_down(self, grasp_opening):
+		return grasp_opening > 0.045
 	# [/MANUAL_FUNC]

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<behavior name="taskboard">
+
+	<executable package_path="o2ac_flexbe_flexbe_behaviors.taskboard_sm" class="taskboardSM" />
+	<tagstring></tagstring>
+	<author>Cristian Beltran</author>
+	<date>Thu May 13 2021</date>
+	<description>
+		taskboard overview
+	</description>
+
+
+	<!-- Contained Behaviors -->
+	<contains name="bearing taskboard" />
+
+	<!-- Available Parameters -->
+
+</behavior>
