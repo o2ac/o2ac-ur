@@ -83,7 +83,8 @@ class FasteningToolController(object):
     def set_moving_speed(self, motor_id, value):
         try:
             res = self.dynamixel_command_write('', motor_id, "Moving_Speed", value)
-            print(res, motor_id, "Moving_Speed", value)
+            rospy.loginfo(res)
+            rospy.loginfo(str(motor_id) + "Moving_Speed: " +  str(value))
         except rospy.ServiceException as exc:
             rospy.logwarn('An exception occurred in the Moving_Speed set. Processing retry.')
         else:
@@ -119,6 +120,9 @@ class FasteningToolController(object):
         if not goal.speed:
             goal.speed = 1023
         self._feedback.motor_speed = goal.speed     # Initial setting to start the loop
+
+        if goal.skip_final_loosen_and_retighten:
+            double_check_after_tighten = False
 
         # For tightening the maximum speed is 1023. For loosen it is 2047. At 1024 the motor is stopped.
         target_speed = 1024 + goal.speed
@@ -205,13 +209,19 @@ class FasteningToolController(object):
             self.set_torque_enable(motor_id, 0)
             self._result.control_result = True
             self._result.motor_stalled = motor_stalled
-            rospy.loginfo("Screw was fastened successfully.")
+            if goal.direction == "tighten":
+                rospy.loginfo("Screw was fastened successfully.")
+            else:
+                rospy.loginfo("Motor loosened successfully.")
             self._as.set_succeeded(self._result)
         else:
             self.set_torque_enable(motor_id, 0)
             self._result.control_result = False
             self._result.motor_stalled = motor_stalled
-            rospy.loginfo("Fastening timed out. Screw not fastened.")
+            if goal.direction == "tighten":
+                rospy.loginfo("Fastening timed out. Screw not fastened.")
+            else:
+                rospy.loginfo("Timed out, but this error message should not appear anyway.")
             self._as.set_aborted(self._result)
         return True
 

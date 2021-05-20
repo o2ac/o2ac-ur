@@ -39,6 +39,8 @@ import tf
 import tf_conversions
 import time
 import copy
+import os
+from datetime import datetime
 import rospkg
 import actionlib
 import numpy as np
@@ -130,7 +132,7 @@ class O2ACVisionServer(object):
                              "fg_lower": [0, 0, 100],
                              "fg_upper": [179, 255, 255],
                              "hand_rotation":[0,45,90,135],
-                             "threshold": 0.01}
+                             "threshold": 0.5}
         self.param_fge = rospy.get_param('~param_fge', default_param_fge)
 
         # Setup camera image subscribers
@@ -180,6 +182,7 @@ class O2ACVisionServer(object):
         # For visualization
         self.pose_marker_id_counter = 0
         self.pose_marker_array = 0
+        self._depth_image_ros = None
         rospy.loginfo("O2AC_vision has started up!")
 
     def camera_info_callback(self, cam_info_message):
@@ -203,11 +206,14 @@ class O2ACVisionServer(object):
         for array in poses_2d_with_id:
             for pose2d in array.poses:
                 action_result.class_ids.append(array.class_id)
-                action_result.poses.append(self.convert_pose_2d_to_3d(pose2d))
+                p3d = self.convert_pose_2d_to_3d(pose2d)
+                if p3d:
+                    action_result.poses.append(p3d)
         
         self.get_3d_poses_from_ssd_action_server.set_succeeded(action_result)
         # Publish result visualization
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
+        self.write_to_log(im_in, im_vis, "3d_poses_from_ssd")
 
     def get_2d_poses_from_ssd_goal_callback(self, goal):
         self.get_2d_poses_from_ssd_action_server.accept_new_goal()
@@ -222,6 +228,7 @@ class O2ACVisionServer(object):
 
         # Publish result visualization
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
+        self.write_to_log(im_in, im_vis, "2d_poses_from_ssd")
 
     def belt_detection_callback(self, goal):
         self.belt_detection_action_server.accept_new_goal()
@@ -237,11 +244,14 @@ class O2ACVisionServer(object):
         
         poses_3d = []
         for p2d in poses_2d:
-            poses_3d.append(self.convert_pose_2d_to_3d(p2d))
+            p3d = self.convert_pose_2d_to_3d(p2d)
+            if p3d:
+                poses_3d.poses.append(p3d)
         
         action_result.grasp_points = poses_3d
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
         self.belt_detection_action_server.set_succeeded(action_result)
+        self.write_to_log(im_in, im_vis, "belt_detection")
 
     def angle_detection_callback(self, goal):
         self.angle_detection_action_server.accept_new_goal()
@@ -278,19 +288,23 @@ class O2ACVisionServer(object):
 
         self.shaft_notch_detection_action_server.set_succeeded(action_result)
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
+        self.write_to_log(im_in, im_vis, "shaft_notch_detection")
 
     def localization_callback(self, goal):
         rospy.loginfo("Received a request to localize objects via CAD matching")
         # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
         im_in  = self.bridge.imgmsg_to_cv2(self.last_rgb_image, desired_encoding="bgr8")
         im_vis = im_in.copy()
+        # Apply SSD first to get the object's bounding box
         detection_results, im_vis = self.get_2d_poses_from_ssd(im_in, im_vis)
 
         localization_result = o2ac_msgs.msg.localizeObjectResult()
         localization_result.succeeded = False
 
         for result in detection_results:
+            # Only pass to CAD matching if object is found in the RGB image
             if goal.item_id == self.item_id(result.class_id):
+                rospy.loginfo("Seen object " + str(goal.item_id) + " in tray. Apply CAD matching.")
                 localization_result.detected_poses, \
                 localization_result.confidences     \
                     = self.localize(goal.item_id, result.bbox, result.poses)
@@ -299,8 +313,12 @@ class O2ACVisionServer(object):
                     localization_result.succeeded = True
                     self.localization_server.set_succeeded(localization_result)
                     return
+                else:
+                    rospy.logerr("Could not not localize object " + str(goal.item_id) + " although it was seen by SSD.")
                 break
+        rospy.logerr("Could not not localize object " + str(goal.item_id) + ". Might not be detected by SSD.")
         self.localization_server.set_aborted(localization_result)
+        self.write_to_log(im_in, im_vis, "localization")
     
     def localization_preempt_callback(self):
         rospy.loginfo("o2ac_msgs.msg.localizeObjectAction preempted")
@@ -407,7 +425,9 @@ class O2ACVisionServer(object):
                 # Publish result markers
                 poses_3d = []
                 for p2d in estimated_poses_msg.poses:
-                    poses_3d.append(self.convert_pose_2d_to_3d(p2d))
+                    p3d = self.convert_pose_2d_to_3d(p2d)
+                    if p3d:
+                        poses_3d.append(p3d)
                 self.publish_belt_grasp_pose_markers(poses_3d)
 
             estimated_poses_array.append(estimated_poses_msg)
@@ -531,6 +551,9 @@ class O2ACVisionServer(object):
         """
         p3d = geometry_msgs.msg.PoseStamped()
         p3d.header.frame_id = self._camera_info.header.frame_id
+        if self._depth_image_ros is None:
+            rospy.logerr("No depth image found")
+            return
         depth_image = self.bridge.imgmsg_to_cv2(self._depth_image_ros, desired_encoding="passthrough")
         xyz = self.cam_helper.project_2d_to_3d_from_images(pose_2d.x, pose_2d.y, [depth_image])
         if not xyz:
@@ -549,6 +572,13 @@ class O2ACVisionServer(object):
         p3d.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, -pose_2d.theta+tau/4))
         return p3d
 
+    def write_to_log(self, img_in, img_out, action_name):
+        now = datetime.now()
+        timeprefix = now.strftime("%Y-%m-%d_%H:%M:%S")
+        rospack = rospkg.RosPack()
+        folder = os.path.join(rospack.get_path("o2ac_vision"), "log")
+        cv2.imwrite(os.path.join(folder, timeprefix + "_" + action_name + "_in.png") , img_in)
+        cv2.imwrite(os.path.join(folder, timeprefix + "_" + action_name + "_out.jpg") , img_out)
 
 ### ========  Visualization
 

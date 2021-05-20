@@ -1,6 +1,8 @@
  Program
    Robot Program
-     MoveJ
+     'MoveJ'
+     MoveL
+       'above_tray'
        wait_w_belt
      Popup: start sequence together with b_bot (simultaneous start)
      Wait: 2.5

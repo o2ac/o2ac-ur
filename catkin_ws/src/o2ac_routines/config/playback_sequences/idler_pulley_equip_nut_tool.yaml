@@ -1,0 +1,22 @@
+robot_name: a_bot
+waypoints:
+- pose: [-0.15, 0, 0.0, 0, 0, 0]
+  type: relative-tcp
+  speed: 0.2
+- pose: 'home'
+  type: named-pose
+  speed: 0.2
+  gripper-action: open
+- desc: above_nut_aid
+  pose: [1.7012, -1.9212, 1.788, -1.4422, -1.5809, 3.2784]
+  type: joint-space
+  speed: 0.2
+- desc: at_nut_aid
+  pose: [0.0, 0, -0.25, 0, 0, 0]
+  type: relative-base
+  speed: 0.2
+  gripper-action: close
+- pose: [0.0, 0, 0.25, 0, 0, 0]
+  type: relative-base
+  speed: 0.2
+  # above_nut_aid

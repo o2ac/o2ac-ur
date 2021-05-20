@@ -7,7 +7,7 @@ import numpy as np
 import geometry_msgs.msg
 import actionlib
 import tf
-from math import *
+from math import pi, cos, sin, sqrt, atan2
 tau = 2.0*pi  # Part of math from Python 3.6
 
 import visualization_msgs.msg  # For marker visualization
@@ -18,7 +18,6 @@ import o2ac_msgs.srv
 
 import moveit_task_constructor_msgs.msg
 
-from math import pi
 import moveit_commander
 from moveit_commander.conversions import pose_to_list
 
@@ -36,7 +35,7 @@ def upload_mtc_modules_initial_params():
   '''
   rospy.set_param('mtc_modules/arm_group_names', ['a_bot','b_bot'])
   rospy.set_param('mtc_modules/hand_group_names', ['a_bot_robotiq_85','b_bot_robotiq_85'])
-  rospy.set_param('mtc_modules/grasp_parameter_location', 'wrs_assembly_1')
+  rospy.set_param('mtc_modules/grasp_parameter_location', 'wrs_assembly_2020')
   rospy.set_param('mtc_modules/lift_direction_reference_frame', 'world')
   rospy.set_param('mtc_modules/lift_direction', [0.0, 0.0, 1.0])
   rospy.set_param('mtc_modules/approach_place_direction_reference_frame', 'world')
@@ -66,12 +65,24 @@ def spawn_objects(assembly_database, object_names, object_poses, object_referenc
     quaternion = tf.transformations.quaternion_from_euler(*conversions.to_float(object_pose[3:]))
     co_pose.orientation = geometry_msgs.msg.Quaternion(*quaternion)
 
-    collision_object = next((co for co in assembly_database.collision_objects if co.id == object_name), None)
+    collision_object = next((co for co in assembly_database._collision_objects if co.id == object_name), None)
     assert collision_object is not None, "Collision object for '%s' does not exist or names do not match" % object_name
-    collision_object.header.frame_id = object_reference_frame
-    collision_object.pose = co_pose
 
-    planning_scene_interface.add_object(collision_object)
+    # Create copy to avoid modifying the original
+    collision_object_copy = moveit_msgs.msg.CollisionObject()
+    collision_object_copy.header.frame_id = object_reference_frame
+    collision_object_copy.pose = co_pose
+    
+    # Shallow copy the rest
+    collision_object_copy.operation = collision_object.operation
+    collision_object_copy.type = collision_object.type
+    collision_object_copy.id = collision_object.id
+    collision_object_copy.primitives = collision_object.primitives
+    collision_object_copy.primitive_poses = collision_object.primitive_poses
+    collision_object_copy.meshes = collision_object.meshes
+    collision_object_copy.mesh_poses = collision_object.mesh_poses
+    
+    planning_scene_interface.add_object(collision_object_copy)
 
 def is_program_running(topic_namespace, service_client):
   req = ur_dashboard_msgs.srv.IsProgramRunningRequest()
@@ -131,6 +142,11 @@ def rotateQuaternionByRPYInUnrotatedFrame(roll, pitch, yaw, in_quat):
 
   return geometry_msgs.msg.Quaternion(*q_rotated)
 
+def rotateTranslationByRPY(roll, pitch, yaw, in_point):
+  matrix = tf.transformations.euler_matrix(roll, pitch, yaw)
+  xyz = np.array([in_point.x, in_point.y, in_point.z, 1]).reshape((4,1))
+  xyz_new = np.dot(matrix, xyz)
+  return geometry_msgs.msg.Point(*xyz_new[:3])
 
 # RPY rotations are applied in the frame of the pose.
 def rotatePoseByRPY(roll, pitch, yaw, in_pose):
@@ -142,9 +158,10 @@ def rotatePoseByRPY(roll, pitch, yaw, in_pose):
       return outpose
   except:
     pass # header doesn't exist so the object is probably not posestamped
+  
   rotated_pose = copy.deepcopy(in_pose)
   rotated_pose.orientation = rotateQuaternionByRPY(roll, pitch, yaw, rotated_pose.orientation)
-  return rotated_pose
+  return rotated_pose  
 
 # // Returns the angle between two quaternions
 # double quaternionDistance(geometry_msgs::Quaternion q1, geometry_msgs::Quaternion q2) 
@@ -162,6 +179,17 @@ def rotatePoseByRPY(roll, pitch, yaw, in_pose):
 #   tf::pointMsgToTF(p2, tp2)
 #   return tfDistance(tp1, tp2)
 # }
+
+def multiply_quaternion_msgs(q1_msg, q2_msg):
+  q1 = [q1_msg.x, q1_msg.y, q1_msg.z, q1_msg.w]
+  q2 = [q2_msg.x, q2_msg.y, q2_msg.z, q2_msg.w]
+  return geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_multiply(q1, q2))
+
+def pose_msg_is_identity(pose):
+  """ Returns true if the pose is close to identity """
+  p_identity = geometry_msgs.msg.Pose()
+  p_identity.orientation.w = 1.0
+  return pose_dist(pose, p_identity) < 1e-4
 
 def pose_dist(p1, p2):
   """
@@ -211,30 +239,39 @@ def all_close(goal, actual, tolerance):
     return all_close(goal.pose, actual.pose, tolerance)
 
   elif type(goal) is geometry_msgs.msg.Pose:
-    return all_close(pose_to_list(goal), pose_to_list(actual), tolerance)
+    position_allclose = all_close(conversions.from_point(goal.position).tolist(), conversions.from_point(actual.position).tolist(), tolerance) 
+    quaternion_allclose = all_close(conversions.from_quaternion(goal.orientation), conversions.from_quaternion(actual.orientation), tolerance)
+    if not quaternion_allclose: # check for the second orientation
+      quaternion_allclose = all_close(conversions.from_quaternion(goal.orientation), (-1)*conversions.from_quaternion(actual.orientation), tolerance)
+    return position_allclose and quaternion_allclose
 
   return True
 
 
 # Below are some ugly helper functions that should really be replaced. 
-def publish_marker(marker_pose_stamped, marker_type):
-  publisher = rospy.Publisher("vision_markers", visualization_msgs.msg.Marker, queue_size = 100)
+def publish_marker(marker_pose_stamped, marker_type="", namespace="", marker_topic="o2ac_markers"):
+  publisher = rospy.Publisher(marker_topic, visualization_msgs.msg.Marker, queue_size = 100)
   rospy.sleep(0.5)
-  return publish_marker(publisher, marker_pose_stamped, marker_type)
+  return publish_marker_(publisher, marker_pose_stamped, marker_type, namespace)
 
-def publish_marker(marker_publisher, marker_pose_stamped, marker_type):
+def publish_marker_(marker_publisher, marker_pose_stamped, marker_type="", namespace=""):
   marker = visualization_msgs.msg.Marker()
-  marker.header = marker_pose.header
+  if not marker_type:
+    marker_type = "pose"
+  marker.header = marker_pose_stamped.header
   # marker.header.stamp = rospy.Time.now()
-  marker.pose = marker_pose.pose
+  marker.pose = marker_pose_stamped.pose
 
-  marker.ns = "markers"
-  marker.id = 0
+  marker.ns = namespace
+  if not marker.ns:
+    marker.ns = "markers"
+  helper_fct_marker_id_count = 0
+  marker.id = helper_fct_marker_id_count
   marker.lifetime = rospy.Duration(60.0)
   marker.action = visualization_msgs.msg.Marker.ADD
 
   if (marker_type == "pose"):
-    publish_pose_marker(marker_pose)
+    publish_pose_marker_(marker_publisher, marker_pose_stamped, namespace=namespace, helper_fct_marker_id_count=helper_fct_marker_id_count)
 
     # Add a flat sphere
     marker.type = visualization_msgs.msg.Marker.SPHERE
@@ -244,9 +281,9 @@ def publish_marker(marker_publisher, marker_pose_stamped, marker_type):
     marker.color.g = 1.0
     marker.color.a = 0.8
     marker_publisher.publish(marker)
-    return true
+    return True
   if (marker_type == "place_pose"):
-    publish_pose_marker(marker_pose)
+    publish_pose_marker_(marker_publisher, marker_pose_stamped, namespace=namespace, helper_fct_marker_id_count=helper_fct_marker_id_count)
 
     # Add a flat sphere
     marker.type = visualization_msgs.msg.Marker.SPHERE
@@ -256,9 +293,9 @@ def publish_marker(marker_publisher, marker_pose_stamped, marker_type):
     marker.color.g = 1.0
     marker.color.a = 0.8
     marker_publisher.publish(marker)
-    return true
+    return True
   if (marker_type == "pick_pose"):
-    publish_pose_marker(marker_pose)
+    publish_pose_marker_(marker_publisher, marker_pose_stamped, namespace=namespace, helper_fct_marker_id_count=helper_fct_marker_id_count)
 
     # Add a flat sphere
     marker.type = visualization_msgs.msg.Marker.SPHERE
@@ -280,20 +317,21 @@ def publish_marker(marker_publisher, marker_pose_stamped, marker_type):
     rospy.warn("No supported marker message received.")
   marker_publisher.publish(marker)
   
-  if (helper_fct_marker_id_count > 50):
+  if (helper_fct_marker_id_count > 100):
     helper_fct_marker_id_count = 0
   return True
 
 # This is a helper function for publish_marker. Publishes a TF-like frame. Should probably be replaced by rviz_visual_tools
-def publish_pose_marker(marker_publisher, marker_pose_stamped):
+def publish_pose_marker_(marker_publisher, marker_pose_stamped, namespace="", helper_fct_marker_id_count=0):
   marker = visualization_msgs.msg.Marker()
-  marker.header = marker_pose.header
+  marker.header = marker_pose_stamped.header
   marker.header.stamp = rospy.Time.now()
-  marker.pose = marker_pose.pose
+  marker.pose = marker_pose_stamped.pose
 
-  marker.ns = "markers"
-  helper_fct_marker_id_count = 0
-  marker.id = helper_fct_marker_id_count = 0
+  marker.ns = namespace
+  if not marker.ns:
+    marker.ns = "markers"
+  marker.id = helper_fct_marker_id_count
   marker.lifetime = rospy.Duration()
   marker.action = visualization_msgs.msg.Marker.ADD
 
@@ -304,37 +342,43 @@ def publish_pose_marker(marker_publisher, marker_pose_stamped):
   marker.scale.z = .01
   marker.color.a = .8
 
-  arrow_x = visualization_msgs.msg.Marker()
-  arrow_y = visualization_msgs.msg.Marker()
-  arrow_z = visualization_msgs.msg.Marker()
-  arrow_x = marker; arrow_y = marker; arrow_z = marker
+  arrow_x = copy.deepcopy(marker)
+  arrow_y = copy.deepcopy(marker)
+  arrow_z = copy.deepcopy(marker)
+  
   helper_fct_marker_id_count += 1
-  arrow_x.id = helper_fct_marker_id_count = 0
+  arrow_x.id = copy.deepcopy(helper_fct_marker_id_count)
   helper_fct_marker_id_count += 1
-  arrow_y.id = helper_fct_marker_id_count = 0
+  arrow_y.id = copy.deepcopy(helper_fct_marker_id_count)
   helper_fct_marker_id_count += 1
-  arrow_z.id = helper_fct_marker_id_count = 0
+  arrow_z.id = copy.deepcopy(helper_fct_marker_id_count)
+  
   arrow_x.color.r = 1.0
   arrow_y.color.g = 1.0
   arrow_z.color.b = 1.0
 
-  rotatePoseByRPY(0, 0, tau/4, arrow_y.pose)
-  rotatePoseByRPY(0, -tau/4, 0, arrow_z.pose)
+  arrow_y.pose = rotatePoseByRPY(0, 0, tau/4, arrow_y.pose)
+  arrow_z.pose = rotatePoseByRPY(0, -tau/4, 0, arrow_z.pose)
 
   marker_publisher.publish(arrow_x)
   marker_publisher.publish(arrow_y)
   marker_publisher.publish(arrow_z)
   return True
 
+def get_direction_index(direction):
+  DIRECTION_INDEX = {'X':0, 'Y':1, 'Z':2}
+  return DIRECTION_INDEX.get(direction)
 
 def get_target_force(direction, force):
   VALID_DIRECTIONS = ('+X', '+Y', '+Z', '-X', '-Y', '-Z')
-  DIRECTION_INDEX = {'X':0, 'Y':1, 'Z':2}
   
   assert direction in VALID_DIRECTIONS, "Invalid direction: %s" % direction
 
   res = [0.,0.,0.,0.,0.,0.]
   sign = 1. if '+' in direction else -1.
-  res[DIRECTION_INDEX.get(direction[1])] = force * sign
+  res[get_direction_index(direction[1])] = force * sign
 
   return np.array(res)
+
+def ordered_joint_values_from_dict(joints_dict, joints_name_list):
+  return conversions.to_float([joints_dict.get(q) for q in joints_name_list])

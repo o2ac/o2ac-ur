@@ -746,16 +746,16 @@
     <link
     name="a_bot_outside_camera_color_optical_frame"/>
     <!-- Add an additional link to plan with. Oriented like the UR ee_link frame. -->
-    <joint name="a_bot_robotiq_85_tip_link_joint" type="fixed">
+    <joint name="a_bot_gripper_tip_link_joint" type="fixed">
         <parent link="a_bot_robotiq_140_base_link"/>
-        <child link="a_bot_robotiq_85_tip_link"/>
+        <child link="a_bot_gripper_tip_link"/>
         <origin rpy="0.0 0.0 0.0" xyz="0.246 0.0 0.0"/>
     </joint>
-    <link name="a_bot_robotiq_85_tip_link"/>
+    <link name="a_bot_gripper_tip_link"/>
     <!-- ========= -->
     <!-- Add screw tool tip frames. X-axis points along the screw into the hole. -->
     <!-- Offset of the gripper tooltips -->
-        <joint name="a_bot_tool_intermediate_joint" type="fixed"> <parent link="a_bot_robotiq_85_tip_link"/>
+        <joint name="a_bot_tool_intermediate_joint" type="fixed"> <parent link="a_bot_gripper_tip_link"/>
         <child link="a_bot_tool_intermediate_link"/>
         <origin rpy="3.14159265359 -1.0471975512 0" xyz="-.03 0 0"/>
     </joint>

@@ -34,6 +34,7 @@
 
 import os
 import yaml
+import copy 
 
 import rospy
 import rospkg
@@ -73,19 +74,51 @@ class PartsReader(object):
         self.db_name = db_name
         self._directory = os.path.join(self._rospack.get_path('o2ac_assembly_database'), 'config', db_name)
         self._parts_list = self._read_parts_list()
-        self.collision_objects, self.grasps = self.get_collision_objects_with_metadata()
-        rospy.loginfo("Done loading.")
+        self._collision_objects, self._grasps = self.get_collision_objects_with_metadata()
+        rospy.loginfo("Done loading parts database " + db_name)
     
     def get_collision_object(self, object_name):
         '''
         This returns the collision object (including subframes) for an object_name.
         '''
-        for c_obj in self.collision_objects:
+        for c_obj in self._collision_objects:
             if c_obj.id == object_name:
-                return c_obj
+                # Create copy to avoid modifying the original
+                c_new = moveit_msgs.msg.CollisionObject()
+                c_new.header = copy.deepcopy(c_obj.header)
+                c_new.pose = copy.deepcopy(c_obj.pose)
+                
+                # Shallow copy the other fields to avoid deep copying meshes
+                c_new.operation = c_obj.operation
+                c_new.type = c_obj.type
+                c_new.id = c_obj.id
+                c_new.primitives = c_obj.primitives
+                c_new.primitive_poses = c_obj.primitive_poses
+                c_new.meshes = c_obj.meshes
+                c_new.mesh_poses = c_obj.mesh_poses
+                c_new.planes = c_obj.planes
+                c_new.plane_poses = c_obj.plane_poses
+                return c_new
         rospy.logerr("Could not find collision object with id " + str(object_name))
         return None
     
+    def get_grasp_pose(self, object_name, grasp_name):
+        """
+        Returns a geometry_msgs.msg.PoseStamped object in the frame of the object
+
+        grasp_name is generally the format "grasp_0"
+        """
+        grasp_pose_stamped = geometry_msgs.msg.PoseStamped()
+        grasp_pose_stamped.header.frame_id = object_name
+        
+        object_grasps = next((part for part in self._grasps if part["part_name"] == object_name), None)
+        for (_grasp_name, grasp_pose) in zip(object_grasps['grasp_names'], object_grasps['grasp_poses']):
+            if _grasp_name == grasp_name:
+                grasp_pose_stamped.pose = grasp_pose
+                return grasp_pose_stamped
+        rospy.logerr("Did not find grasp_name " + grasp_name + " for object " + object_name)
+        return None
+
     #### Converters 
 
     def id_to_name(self, id_num):
@@ -150,7 +183,7 @@ class PartsReader(object):
         Hierarchical params on the param server can be stored as dictionaries
         All of these grasps can be retrieved by requesting the parent parameter from the rosparam server
         '''
-        for part in self.grasps:
+        for part in self._grasps:
             for (grasp_name, grasp_pose) in zip(part['grasp_names'], part['grasp_poses']):
               d = {'position': conversions.from_point(grasp_pose.position).tolist(),
                'orientation': conversions.from_quaternion(grasp_pose.orientation).tolist()}
@@ -173,9 +206,14 @@ class PartsReader(object):
         subframe_poses = []
         grasp_names = []
         grasp_poses = []
+        mesh_pose = []
         if object_name in objects_with_metadata:
             with open(os.path.join(metadata_directory, object_name + '.yaml'), 'r') as f:
                 data = yaml.load(f)
+            if "mesh_pose" in data:
+                mesh_pose = geometry_msgs.msg.Pose()
+                mesh_pose.position = conversions.to_vector3(conversions.to_float(data['mesh_pose'][0]['pose_xyzrpy'][:3]) )
+                mesh_pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(*conversions.to_float(data['mesh_pose'][0]['pose_xyzrpy'][3:])))
             subframes = data['subframes']
             grasps = data['grasp_points']
 
@@ -224,7 +262,7 @@ class PartsReader(object):
         else:
             rospy.logwarn('Object \'' + object_name + '\' has no metadata defined! \n \
                            Returning empty metadata information! \n')
-        return (subframe_names, subframe_poses, grasp_names, grasp_poses)
+        return (subframe_names, subframe_poses, grasp_names, grasp_poses, mesh_pose)
 
     def _make_collision_object_from_mesh(self, name, pose, filename, scale=(1, 1, 1)):
         '''
@@ -236,6 +274,7 @@ class PartsReader(object):
         co = moveit_msgs.msg.CollisionObject()
         co.operation = moveit_msgs.msg.CollisionObject.ADD
         co.id = name
+        co.pose.orientation.w = 1.0
         co.header = pose.header
         co.mesh_poses = [pose.pose]
 
@@ -302,14 +341,20 @@ class PartsReader(object):
             # Find mesh
             mesh_file = os.path.join(self._directory, 'meshes', part['cad'])
 
-            # Set the pose of the collision object for the origin of the 'world' frame
+            # Set the pose of the collision object
             posestamped = geometry_msgs.msg.PoseStamped()
-            posestamped.header.frame_id = 'world'
+            posestamped.header.frame_id = 'assembly_root'
+            
+            
+            subframe_names, subframe_poses, grasp_names, grasp_poses, mesh_pose = self._read_object_metadata(part['name'])
+            
             collision_object_pose = geometry_msgs.msg.Pose()
-            collision_object_pose.orientation.w = 1
+            if mesh_pose:
+                collision_object_pose = mesh_pose
+            else:  # Neutral pose if no mesh pose has been defined
+                collision_object_pose.orientation.w = 1
+            
             posestamped.pose = collision_object_pose
-
-            subframe_names, subframe_poses, grasp_names, grasp_poses = self._read_object_metadata(part['name'])
 
             collision_object = self._make_collision_object_from_mesh(part['name'], posestamped, mesh_file, scale=(0.001, 0.001, 0.001))
 

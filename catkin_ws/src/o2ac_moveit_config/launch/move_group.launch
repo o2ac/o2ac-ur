@@ -26,6 +26,7 @@
   
   <arg name="capabilities" value="
                 move_group/TfPublisher
+                move_group/PlanPickPlaceCapability
                 " />
  
   <!-- inhibit these default MoveGroup capabilities (space seperated) -->

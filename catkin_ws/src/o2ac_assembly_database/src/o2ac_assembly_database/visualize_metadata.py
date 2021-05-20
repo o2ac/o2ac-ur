@@ -47,6 +47,7 @@ import geometry_msgs.msg
 import moveit_msgs.msg
 
 from o2ac_assembly_database.assembly_reader import AssemblyReader
+import o2ac_routines.helpers as helpers
 from math import pi
 
 class MetadataVisualizer():
@@ -97,11 +98,12 @@ class MetadataVisualizer():
         transform.transform.rotation = child_pose.orientation
         return transform
 
-    def add_object_marker(self, assembly_name, mesh_file_name, pose, namespace = 'object', marker_array_to_append_to=""):
+    def add_object_marker(self, assembly_name, mesh_file_name, object_pose, mesh_pose, namespace = 'object', marker_array_to_append_to=""):
         '''Add a marker of an object from o2ac_assembly_database to a MarkerArray to be displayed in rviz
         The assembly name is the name of the assembly (folder) in which the mesh file of the object can be found
         The mesh_file_name should be the name of a mesh of one objects in the o2ac_assembly_database package
-        The input 'pose describes the object pose in the 'world' frame
+        The input 'object_pose' describes the object pose in the 'world' frame.
+        'marker_pose' is the mesh marker's position in the object pose frame.
         Namespace is used for namespacing the marker if multiple objects are visualized. Ny default it is the name of the object,
         or simply "object" if there is only one object visualized
         If marker_array_to_append_to is not specified, a new array is returned.
@@ -109,16 +111,16 @@ class MetadataVisualizer():
         if not marker_array_to_append_to:
             marker_array_to_append_to = visualization_msgs.msg.MarkerArray()
 
-        self._transformer.setTransform(self._to_transform_stamped('world', namespace, pose))
+        self._transformer.setTransform(self._to_transform_stamped('world', namespace, object_pose))
 
         mesh_path = os.path.join('o2ac_assembly_database', 'config', assembly_name, 'meshes', mesh_file_name)
         marker = visualization_msgs.msg.Marker()
-        marker.header.frame_id = 'world'
+        marker.header.frame_id = "world"
         marker.ns = namespace
         marker.id = 0
         marker.type = marker.MESH_RESOURCE
         marker.action = marker.ADD
-        marker.pose = pose
+        marker.pose = mesh_pose
         marker.scale.x = 0.001
         marker.scale.y = 0.001
         marker.scale.z = 0.001
@@ -238,7 +240,7 @@ class MetadataVisualizer():
 
     def publish_gripper_marker_array(self, frame = 'world'):
         '''Publish markers to visualize the gripper.
-        The gripper is shown with 'robotiq_85_tip_link' moved to 'frame'.
+        The gripper is shown with 'gripper_tip_link' moved to 'frame'.
         '''
 
         g_transform = geometry_msgs.msg.TransformStamped()
@@ -252,7 +254,7 @@ class MetadataVisualizer():
 
         transformer.setTransform(g_transform)
 
-        tip_link = self._robot_commander.get_link('robotiq_85_tip_link')
+        tip_link = self._robot_commander.get_link('gripper_tip_link')
         tip_link_translation = tf.transformations.translation_matrix((tip_link.pose().pose.position.x, tip_link.pose().pose.position.y, tip_link.pose().pose.position.z))
         tip_link_rotation = tf.transformations.quaternion_matrix((tip_link.pose().pose.orientation.x, tip_link.pose().pose.orientation.y, tip_link.pose().pose.orientation.z, tip_link.pose().pose.orientation.w))
         gripper_base_in_tip_link = tf.transformations.inverse_matrix(np.matmul(tip_link_translation, tip_link_rotation))
@@ -425,12 +427,12 @@ if __name__ == '__main__':
     if object_name:
         mesh_name = next((part['cad'] for part in assembly_reader._parts_list if part['name'] == object_name))
         
-        co = next(collision_object for collision_object in assembly_reader.collision_objects if collision_object.id == object_name)
+        co = next(collision_object for collision_object in assembly_reader._collision_objects if collision_object.id == object_name)
 
         viz = MetadataVisualizer()
 
-        grasp_names = next(element['grasp_names'] for element in assembly_reader.grasps if element['part_name'] == co.id)
-        grasp_poses = next(element['grasp_poses'] for element in assembly_reader.grasps if element['part_name'] == co.id)
+        grasp_names = next(element['grasp_names'] for element in assembly_reader._grasps if element['part_name'] == co.id)
+        grasp_poses = next(element['grasp_poses'] for element in assembly_reader._grasps if element['part_name'] == co.id)
 
         frame_names = copy.copy(co.subframe_names)
         frame_poses = copy.copy(co.subframe_poses)
@@ -441,7 +443,7 @@ if __name__ == '__main__':
         object_pose = geometry_msgs.msg.Pose()
         object_pose.orientation.w = 1
 
-        marker_array = viz.add_object_marker(db_name, mesh_name, object_pose, marker_array_to_append_to = marker_array)
+        marker_array = viz.add_object_marker(db_name, mesh_name, object_pose, object_pose, marker_array_to_append_to = marker_array)
 
         if only_subframes:
             marker_array = viz.add_frames(co.subframe_names,co.subframe_poses, marker_array_to_append_to = marker_array)
@@ -455,18 +457,18 @@ if __name__ == '__main__':
                 viz.publish_gripper_marker_array(gripper_at_grasp)
             marker_array = viz.add_grasp_viz(grasp_names, marker_array_to_append_to = marker_array)
 
-    else:
+    else:  # Show all objects
         offset = 0.4
         row_counter = 0
         object_pose = geometry_msgs.msg.Pose()
-        for co in assembly_reader.collision_objects:
+        for co in assembly_reader._collision_objects:
             row_counter += 1
             mesh_name = next((part['cad'] for part in assembly_reader._parts_list if part['name'] == co.id))
 
             viz = MetadataVisualizer()
 
-            grasp_names = next(element['grasp_names'] for element in assembly_reader.grasps if element['part_name'] == co.id)
-            grasp_poses = next(element['grasp_poses'] for element in assembly_reader.grasps if element['part_name'] == co.id)
+            grasp_names = next(element['grasp_names'] for element in assembly_reader._grasps if element['part_name'] == co.id)
+            grasp_poses = next(element['grasp_poses'] for element in assembly_reader._grasps if element['part_name'] == co.id)
 
             frame_names = copy.copy(co.subframe_names)
             frame_poses = copy.copy(co.subframe_poses)
@@ -477,7 +479,14 @@ if __name__ == '__main__':
                 object_pose.position.x = 0
                 object_pose.position.y += offset
 
-            marker_array = viz.add_object_marker(db_name, mesh_name, copy.deepcopy(object_pose), co.id, marker_array)
+            mesh_pose = copy.deepcopy(object_pose)  # Defined in world
+            if not helpers.pose_msg_is_identity(co.mesh_poses[0]):
+                mesh_pose.position.x += co.mesh_poses[0].position.x
+                mesh_pose.position.y += co.mesh_poses[0].position.y
+                mesh_pose.position.z += co.mesh_poses[0].position.z
+                mesh_pose.orientation = helpers.multiply_quaternion_msgs(mesh_pose.orientation, co.mesh_poses[0].orientation)
+                
+            marker_array = viz.add_object_marker(db_name, mesh_name, object_pose, mesh_pose, co.id, marker_array)
 
             if only_subframes:
                 names = []

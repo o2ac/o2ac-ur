@@ -82,7 +82,8 @@ source /root/o2ac-ur/catkin_ws/devel/setup.bash
 
 ################################################################################
 
-# Generate the URDF files in o2ac_parts_description
+# Generate the URDF and PLY files in o2ac_parts_description
 
 rosrun o2ac_parts_description generate_urdf_from_meshes.py
 rosrun o2ac_parts_description generate_assembled_piece.py
+rosrun o2ac_parts_description convert_stl_to_ply.py

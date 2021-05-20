@@ -1,4 +1,7 @@
 def taskboard_belt_v4():
+  set_gravity([0.0, 0.0, 9.82])
+  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
+  set_target_payload(1.200000, [0.001000, -0.018000, 0.049000], [0.002086, 0.002086, 0.002086, 0.000000, 0.000000, 0.000000])
   set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
   set_tool_output_mode(0)
   set_tool_digital_output_mode(0, 1)
@@ -11,18 +14,15 @@ def taskboard_belt_v4():
   set_analog_outputdomain(0, 0)
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
-  set_gravity([0.0, 0.0, 9.82])
-  set_target_payload(1.200000, [0.001000, -0.018000, 0.049000], [0.002086, 0.002086, 0.002086, 0.000000, 0.000000, 0.000000])
-  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
-  set_safety_mode_transition_hardness(1)
-  step_count_40802b28_741c_45f6_9beb_2ec131199dbb = 0.0
-  thread Step_Counter_Thread_d0f9d8ec_7f09_4b67_8e12_2f0e1d693a76():
+  step_count_10c67c77_4fb5_48ee_a1f4_9da795ee3e7b = 0.0
+  thread Step_Counter_Thread_55bdbf9c_b1c9_471b_81b3_519d2258ac8f():
     while (True):
-      step_count_40802b28_741c_45f6_9beb_2ec131199dbb = step_count_40802b28_741c_45f6_9beb_2ec131199dbb + 1.0
+      step_count_10c67c77_4fb5_48ee_a1f4_9da795ee3e7b = step_count_10c67c77_4fb5_48ee_a1f4_9da795ee3e7b + 1.0
       sync()
     end
   end
-  run Step_Counter_Thread_d0f9d8ec_7f09_4b67_8e12_2f0e1d693a76()
+  run Step_Counter_Thread_55bdbf9c_b1c9_471b_81b3_519d2258ac8f()
+  set_safety_mode_transition_hardness(1)
   # begin: URCap Installation Node
   #   Source: External Control, 1.0.5, FZI Research Center for Information Technology
   #   Type: External Control
@@ -2341,8 +2341,8 @@ def taskboard_belt_v4():
       sync()
   end
   # end: URCap Installation Node
-  global wait_w_tool_1_p=p[.096883885745, -.254303635135, .525338758627, .242383833914, 3.104342837672, -.045618417679]
-  global wait_w_tool_1_q=[1.419498844840919, -2.178175391321119, 1.892632293985887, -1.311747949011428, -1.5379272788334548, -1.2434497875801753E-14]
+  global wait_w_tool_1_p=p[.101032507256, -.259473149436, .360486432647, .242312716273, 3.104340398085, -.045631365969]
+  global wait_w_tool_1_q=[1.4195195436477661, -2.178169389764303, 1.8925936857806605, -1.3117230397513886, -1.5379188696490687, -2.462068666631012E-5]
   global Waypoint_6_p=p[.127080337947, -.413333654554, .291809623984, -.723175488874, -2.779773733637, .838510378196]
   global Waypoint_6_q=[1.6299766580406816, -1.585288369949942, 2.313430339105375, -2.806503864610999, -1.8721815151571342, 0.4915000755485588]
   global Waypoint_7_p=p[.029417670274, -.413333654383, .291809624122, -1.184835622430, -2.528930886770, .748042842502]
@@ -2395,6 +2395,8 @@ def taskboard_belt_v4():
   global wp_on_right_1_q=[2.2992806434631348, -2.218607564965719, 1.9803665320025843, -1.3077529531768342, -1.553016487752096, 0.01404145359992981]
   global wait_w_tool_p=p[.096883885745, -.254303635135, .525338758627, .242383833914, 3.104342837672, -.045618417679]
   global wait_w_tool_q=[1.419498844840919, -2.178175391321119, 1.892632293985887, -1.311747949011428, -1.5379272788334548, -1.2434497875801753E-14]
+  global Waypoint_right_p=p[.247135810805, -.077743034127, .492156207270, -1.089260191054, 2.941141854347, .043723079322]
+  global Waypoint_right_q=[2.2992806434631348, -2.218607564965719, 1.9803665320025843, -1.3077529531768342, -1.553016487752096, 0.01404145359992981]
   global high_approach_p=p[.430517655658, -.210304370258, .259483933354, 2.070546354937, -2.063337776139, -.265204512751]
   global high_approach_q=[2.4485092379921376, -1.4413039536248444, 2.001661001707641, -1.930081263128379, -1.7537079602876116, -0.678380411487205]
   global before_tool_p=p[.486310883736, -.210304369973, .144710659707, 1.746289819535, -1.730646622196, -.729047937691]
@@ -2465,30 +2467,33 @@ def taskboard_belt_v4():
     set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
     movel(wait_w_tool_1_p, a=0.8, v=0.8)
   end
-  def taskboard_place_hook():
-    $ 54 "taskboard_place_hook" "noBreak"
+  def taskboard_place_hook_1():
+    $ 54 "taskboard_place_hook_1" "noBreak"
     $ 55 "MoveJ"
     $ 56 "currentpose≔get_actual_joint_positions()"
     global currentpose= get_actual_joint_positions ()
     $ 57 "currentpose" "breakAfter"
     movej(currentpose, a=1.3962634015954636, v=1.0471975511965976)
-    $ 58 "MoveJ"
+    $ 58 "MoveL"
     $ 59 "wait_w_tool" "breakAfter"
     set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-    movej(get_inverse_kin(wait_w_tool_p, qnear=wait_w_tool_q), a=1.3962634015954636, v=1.0471975511965976)
-    $ 60 "high_approach" "breakAfter"
+    movel(wait_w_tool_p, a=0.8, v=0.8)
+    $ 60 "Waypoint_right" "breakAfter"
     set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-    movej(get_inverse_kin(high_approach_p, qnear=high_approach_q), a=1.3962634015954636, v=1.0471975511965976)
-    $ 61 "before_tool" "breakAfter"
+    movel(Waypoint_right_p, a=0.8, v=0.8, r=0.05)
+    $ 61 "high_approach" "breakAfter"
     set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-    movej(get_inverse_kin(before_tool_p, qnear=before_tool_q), a=1.3962634015954636, v=1.0471975511965976)
-    $ 62 "grasp_tool" "breakAfter"
+    movel(high_approach_p, a=0.8, v=0.8, r=0.05)
+    $ 62 "before_tool" "breakAfter"
     set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-    movej(get_inverse_kin(grasp_tool_p, qnear=grasp_tool_q), a=1.3962634015954636, v=1.0471975511965976)
+    movel(before_tool_p, a=0.8, v=0.8, r=0.005)
+    $ 63 "grasp_tool" "breakAfter"
+    set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+    movel(grasp_tool_p, a=0.8, v=0.8)
     # begin: URCap Program Node
     #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
     #   Type: Gripper
-    $ 63 "Gripper Open (1)"
+    $ 64 "Gripper Open (1)"
     if not(gripper_connected[0]):
       popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
     end
@@ -2500,12 +2505,12 @@ def taskboard_belt_v4():
     rq_go_to("1")
     rq_wait("1")
     # end: URCap Program Node
-    $ 64 "above_tool" "breakAfter"
+    $ 65 "above_tool" "breakAfter"
     set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-    movej(get_inverse_kin(above_tool_p, qnear=above_tool_q), a=1.3962634015954636, v=1.0471975511965976)
-    $ 65 "home" "breakAfter"
+    movel(above_tool_p, a=0.8, v=0.8)
+    $ 66 "home" "breakAfter"
     set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-    movej(get_inverse_kin(home_p, qnear=home_q), a=1.3962634015954636, v=1.0471975511965976)
+    movel(home_p, a=0.8, v=0.8)
   end
   $ 1 "Robot Program"
   $ 3 "MoveJ"
@@ -2583,6 +2588,6 @@ def taskboard_belt_v4():
   $ 37 "Waypoint_22" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(Waypoint_22_p, a=1.2, v=0.25)
-  $ 38 "Call taskboard_place_hook"
-  taskboard_place_hook()
+  $ 38 "Call taskboard_place_hook_1"
+  taskboard_place_hook_1()
 end

@@ -25,7 +25,7 @@ roslaunch o2ac_assembly_database visualize_object_metadata.launch
 to visualize the metadata of the objects. `visualize_object_metadata.launch` has several arguments for modifying its functionality. Example:
 
 ```
-roslaunch o2ac_assembly_database visualize_object_metadata.launch db_name:="wrs_assembly_1" object_name:="base"
+roslaunch o2ac_assembly_database visualize_object_metadata.launch db_name:="wrs_assembly_2020" object_name:="base"
 ```
 
 If `object_name` is not specified, all objects of the specified assembly will be visualized. Other arguments:
@@ -34,11 +34,11 @@ Other arguments:
  - `only_subframes`: if set to true, only the object(s) and the subframes are visualized (default: false)
  - `only_grasps`: if set to true, only the object(s) and the grasps are visualized (default: false), if `only_subframes` is true this argument has no effect
  - `gripper_at_grasp`: set this to a name of the grasp as displayed in the visualization to visualize the gripper with its tip link at that grasp (default: "") This argument only works when visualizing a single object with `only_subframes` set to false.
- - `db_name`: The name of the assembly to display. `wrs_assembly_1` by default.
+ - `db_name`: The name of the assembly to display. `wrs_assembly_2020` by default.
 
 Examples:
 
-Visualize all objects of `wrs_assembly_1` with only their subframes
+Visualize all objects of `wrs_assembly_2020` with only their subframes
 ```
 roslaunch o2ac_assembly_database visualize_object_metadata.launch only_subframes:=true
 ```
@@ -56,9 +56,9 @@ o2ac_assembly_database                   # package directory
 │  
 ├── src/o2ac_assembly_database           # python package for loading/storing assemblies and publishing them to tf
 │   │  
-│   ├── parts_reader.py                  # python module for internal use (in assy.py) to read the assembly configurations
-│   ├── assy.py                          # python module that provides the functionality of the package
-│   ├── visualize_metadata.py            # python module for visualizing the object metadata (subframes and grasps)
+│   ├── parts_reader.py                  # Handles the parts and collision object loading
+│   ├── assembly_reader.py               # Handles the assembly tree structure and publishing to TF
+│   ├── visualize_metadata.py            # For visualizing the object metadata (subframes and grasps)
 │  
 ├── config                               # directory containing config info for the assemblies
 │   │  
@@ -72,11 +72,11 @@ o2ac_assembly_database                   # package directory
 │   │   │  
 │   │   ├── object_metadata              # directory for the extra information associated with the parts
 │   │   │   │  
-│   │   │   ├── 'name_of_part'.yaml      # yaml file description of the subframes and grasps of part named 'name of part' (Example names for parts: 'base', 'panel', 'motor' ...)
+│   │   │   ├── 'partA'.yaml             # yaml file description of the subframes and grasps of part named 'partA'
 │   │   │   │  ...
 │   │   │   ├── 'name_of_other_part'.yaml
 │   │   │  
-│   │   ├── frames_to_mate.csv           # csv file description of the mating of parts to form an assembly
+│   │   ├── frames_to_mate.csv           # csv file describing of the mating of parts to form an assembly
 │   │   ├── parts_list.yaml              # yaml file for the list of parts of the assembly
 │   │...
 │   ├── assembly_n                       # directory for the config info of assembly named 'assembly_n'

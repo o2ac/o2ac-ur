@@ -116,29 +116,33 @@ class O2ACWatcher(object):
                     break
                 
                 # Check if depth image empty
-                last_depth_image_cv = self.bridge.imgmsg_to_cv2(self.last_image, desired_encoding="passthrough")
-                s = cv2.sumElems(last_depth_image_cv)
-                sum_depth_vals = s[0]
-                if sum_depth_vals:
-                    self.last_full_depth_image_time = now
-                
+                if self.last_image.data:
+                    last_depth_image_cv = self.bridge.imgmsg_to_cv2(self.last_image, desired_encoding="passthrough")
+                    s = cv2.sumElems(last_depth_image_cv)
+                    sum_depth_vals = s[0]
+                    if sum_depth_vals:
+                        self.last_full_depth_image_time = now
+                    
                 rospy.sleep(.01)
                 time_since_last_nonempty_depth_img = now - self.last_full_depth_image_time
                 time_since_last_msg = now - self.last_msg_times[cam]
-                
-                if time_since_last_msg > datetime.timedelta(milliseconds=2000) or time_since_last_msg > datetime.timedelta(milliseconds=2000):
+                camera_reset_required = (time_since_last_msg > datetime.timedelta(milliseconds=2000) or time_since_last_nonempty_depth_img > datetime.timedelta(milliseconds=2000))
+                if time_since_last_msg > datetime.timedelta(milliseconds=2000):
+                    rospy.logerr("(NO DEPTH IMAGE RECEIVED)")
+                elif time_since_last_nonempty_depth_img > datetime.timedelta(milliseconds=2000):
+                    rospy.logerr("(DEPTH IMAGE WAS EMPTY, ASSUMING ERROR)")
+                # else:
+                #     camera_reset_required = True
+                #     rospy.logerr("(NO DEPTH IMAGE RECEIVED (self.last_image.data))")
+
+                if camera_reset_required:
                     if cam == "camera_multiplexer":
                         cam_name = self.current_camera_name
                     else:
                         cam_name = cam
                     cam_num = []
                     
-
                     rospy.logerr("RESETTING CAMERA: " + cam_name)
-                    if time_since_last_msg > datetime.timedelta(milliseconds=2000):
-                        rospy.logerr("(NO DEPTH IMAGE RECEIVED)")
-                    else:
-                        rospy.logerr("(DEPTH IMAGE WAS EMPTY, ASSUMING ERROR)")
                     if rospy.is_shutdown():
                         break
                     # print("time since last message: ", str(time_since_last_msg), "cam: ", cam)

@@ -42,35 +42,24 @@ import tf_conversions
 import tf 
 import actionlib
 
-# from math import *
-# from math import pi
-# tau = 2.0*pi  # Part of math from Python 3.6
-
 import yaml
 import pickle
 
 import moveit_commander
 import moveit_msgs.msg
-# import moveit_msgs.srv
 import geometry_msgs.msg
-# import std_msgs.msg
-# import robotiq_msgs.msg
-# import ur_dashboard_msgs.msg
-# import ur_dashboard_msgs.srv
 import std_srvs.srv
-# import controller_manager_msgs.srv
 from shape_msgs.msg import SolidPrimitive
 from geometry_msgs.msg import Pose
+from trajectory_msgs.msg import JointTrajectoryPoint
 
 import o2ac_msgs.msg
-# import o2ac_msgs.srv
 import o2ac_task_planning_msgs.msg
 
 from std_msgs.msg import String, Bool
 
 from o2ac_assembly_database.assembly_reader import AssemblyReader
 
-# import ur_msgs.msg
 import ur_msgs.srv
 from o2ac_routines.helpers import *
 
@@ -128,6 +117,7 @@ class O2ACBase(object):
     self.vision = VisionClient()
     self.tools = Tools(self.use_real_robot)
 
+    self.pick_place_planning_client = actionlib.SimpleActionClient('plan_pick_place', moveit_task_constructor_msgs.msg.PlanPickPlaceAction)
     self.pick_planning_client = actionlib.SimpleActionClient('/pick_planning', o2ac_task_planning_msgs.msg.PickObjectAction)
     self.place_planning_client = actionlib.SimpleActionClient('/place_planning', o2ac_task_planning_msgs.msg.PlaceObjectAction)
     self.release_planning_client = actionlib.SimpleActionClient('/release_planning', o2ac_task_planning_msgs.msg.ReleaseObjectAction)
@@ -142,9 +132,6 @@ class O2ACBase(object):
     self.sub_test_mode_ = rospy.Subscriber("/test_mode", Bool, self.test_mode_callback)
     
     # self.my_mutex = threading.Lock()
-
-    self.resetTimerForDebugMonitor_client = rospy.ServiceProxy('/o2ac_debug_monitor/reset_timer', std_srvs.srv.Trigger)
-    self.debugmonitor_publishers = dict() # used in log_to_debug_monitor()
 
     self.screw_tools = {}
     self.define_tool_collision_objects()
@@ -229,12 +216,11 @@ class O2ACBase(object):
   def define_tool_collision_objects(self):
     PRIMITIVES = {"BOX": SolidPrimitive.BOX, "CYLINDER": SolidPrimitive.CYLINDER}
 
-    path = rospkg.RosPack().get_path("o2ac_assembly_database") + "/config/tool_collisions.yaml"
+    path = rospkg.RosPack().get_path("o2ac_assembly_database") + "/config/tool_collision_objects.yaml"
     with open(path, 'r') as f:
       tools = yaml.load(f)
 
     for tool_key, tool in tools.items():
-      
       tool_co = moveit_msgs.msg.CollisionObject()
       tool_co.header.frame_id = tool["frame_id"]
       tool_co.id = tool["id"]
@@ -264,8 +250,20 @@ class O2ACBase(object):
     # # TODO(felixvd): Add the set screw and nut tool objects from the C++ file
 
   ######
-  def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=False):
-    return self.skill_server.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure)
+  def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=True):
+    res = self.skill_server.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure)
+    if res.success:
+      return True
+    else:
+      if realign_tool_upon_failure:
+          self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
+          rospy.loginfo("pickScrewFromFeeder failed. Realigning tool and retrying.")
+          screw_tool_id = "screw_tool_m" + str(screw_size)
+          self.realign_tool(robot_name, screw_tool_id)
+          return self.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure=False)
+      else:
+          self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
+          return False
 
   def do_insert_action(self, active_robot_name, passive_robot_name = "", 
                         starting_offset = 0.05, max_insertion_distance=0.01, 
@@ -334,7 +332,7 @@ class O2ACBase(object):
     for screw_id in screw_ids:
       self.spawn_tool('screw_tool_' + screw_id)
       self.upload_tool_grasps_to_param_server(screw_id)
-    # spawn_objects(self.assembly_database, objects, poses, reference_frame)
+    spawn_objects(self.assembly_database, objects, poses, reference_frame)
   
   def get_3d_poses_from_ssd(self):
     """
@@ -366,46 +364,27 @@ class O2ACBase(object):
     """
     return self.vision.get_angle_from_vision(camera, item_name="motor")
 
-  def detect_object_in_camera_view(self, item_name):
+  def detect_object_in_camera_view(self, item_name, publish_to_scene=True):
     """
     Returns object pose if object was detected in current camera view and published to planning scene,
     False otherwise.
     """
     # TODO: merge with "look_and_get_grasp_points"
-
-    # Send goal, wait for result
     object_type = self.assembly_database.name_to_type(item_name)
     if not object_type:
       rospy.logerr("Could not find the object " + item_name + " in database, or its type field is empty.")
       return False
-    self.localization_client.send_goal(o2ac_msgs.msg.localizeObjectGoal(item_id=object_type))
-    if (not self.localization_client.wait_for_result(rospy.Duration(15.0))):
-      self.localization_client.cancel_goal()  # Cancel goal if timeout expired
-      rospy.logerr("Localization node returned no result.")
-      
-    # Read result and publish to planning scene as collision_object if found
-    success = False
-    try:
-      res = self.localization_client.get_result()
-      success = res.succeeded
-    except:
-      pass
-    
-    # Publish to planning scene
-    if success:
-      rospy.loginfo("Detected " + item_name + " with confidence " + str(res.confidences[0]))
-      co = self.assembly_database.get_collision_object(object_name=item_name)
-      # TODO: Update MoveIt to use the object_pose
-      # p_1 = copy.deepcopy(res.detected_poses[0].pose)
-      # p_2 = copy.deepcopy(res.detected_poses[0].pose)
-      # p_3 = copy.deepcopy(res.detected_poses[0].pose)
-      # p_2 = 
-      print(res.detected_poses[0])
-      co.pose = res.detected_poses[0].pose
-      co.header.frame_id = res.detected_poses[0].header.frame_id
+    object_pose = self.vision.localize_object(object_type)
+    if object_pose:
+      rospy.loginfo("Localized " + item_name + " via CAD matching")
+      if publish_to_scene:
+        co = self.assembly_database.get_collision_object(object_name=item_name)
+        co.header.frame_id = object_pose.header.frame_id
+        co.pose = object_pose.pose
 
-      self.planning_scene_interface.apply_collision_object(co)
-      return res.detected_poses[0]
+        self.planning_scene_interface.apply_collision_object(co)
+        self.planning_scene_interface.allow_collisions("tray_center", co.id)  # tray_center is the tray surface
+      return object_pose
     else:
       rospy.loginfo("Did not detect " + item_name)
       return False
@@ -428,6 +407,90 @@ class O2ACBase(object):
           rospy.loginfo("Writing solution to: %s" % save_solution_to_file)
         return result  
     return wrap
+  
+  @save_task_plan
+  def plan_pick_place(self, robot_name, object_name, grasp_pose, pick_only=True, place_only=False):
+    '''
+    Function for calling the plan_pick_place MTC action
+    The function returns the MTC solution containing the trajectories
+
+    grasp_pose is a geometry_msgs.msg.PoseStamped (usually in the frame "object_name") for the robot's gripper_tip_link frame.
+    '''
+    goal = moveit_task_constructor_msgs.msg.PlanPickPlaceGoal()
+    if pick_only:
+      goal.task_type = moveit_task_constructor_msgs.msg.PlanPickPlaceGoal.PICK_ONLY
+    elif place_only:
+      goal.task_type = moveit_task_constructor_msgs.msg.PlanPickPlaceGoal.PLACE_ONLY
+    else:
+      goal.task_type = moveit_task_constructor_msgs.msg.PlanPickPlaceGoal.PICK_AND_PLACE
+    goal.arm_group_name = robot_name
+    goal.hand_group_name = robot_name + '_robotiq_85'
+    goal.eef_name = robot_name + '_tip'
+    goal.hand_frame = robot_name + '_gripper_tip_link'
+    goal.object_id = object_name
+    goal.support_surfaces = ["tray_center"]
+
+    grasp = moveit_msgs.msg.Grasp()
+
+    grasp.grasp_pose = grasp_pose
+
+    approach_direction = geometry_msgs.msg.Vector3Stamped()
+    approach_direction.header.frame_id = 'world'
+    approach_direction.vector.z = -1
+    grasp.pre_grasp_approach.direction = approach_direction
+    grasp.pre_grasp_approach.min_distance = 0.05
+    grasp.pre_grasp_approach.desired_distance = 0.1
+
+    lift_direction = geometry_msgs.msg.Vector3Stamped()
+    lift_direction.header.frame_id = 'world'
+    lift_direction.vector.z = 1
+    grasp.post_grasp_retreat.direction = lift_direction
+    grasp.post_grasp_retreat.min_distance = 0.05
+    grasp.post_grasp_retreat.desired_distance = 0.1
+
+    hand = self.active_robots[robot_name].gripper_group
+    hand_open = hand.get_named_target_values("open")
+    hand_closed = hand.get_named_target_values("close")
+
+    for (joint, value) in hand_open.items():
+        joint_traj_point = JointTrajectoryPoint()
+        joint_traj_point.positions.append(value)
+        grasp.pre_grasp_posture.joint_names.append(joint)
+        grasp.pre_grasp_posture.points.append(joint_traj_point)
+    
+    for (joint, value) in hand_closed.items():
+        joint_traj_point = JointTrajectoryPoint()
+        joint_traj_point.positions.append(value)
+        grasp.grasp_posture.joint_names.append(joint)
+        grasp.grasp_posture.points.append(joint_traj_point)
+    
+    goal.grasps.append(grasp)
+    
+    place_pose = geometry_msgs.msg.PoseStamped()
+    place_pose.header.frame_id = 'tray_center'
+    place_pose.pose.orientation.w = 1
+    place_pose.pose.position.z = 0.3
+    goal.place_locations = [moveit_msgs.msg.PlaceLocation()]
+    goal.place_locations[0].place_pose = place_pose
+
+    place_direction = geometry_msgs.msg.Vector3Stamped()
+    place_direction.header.frame_id = 'world'
+    place_direction.vector.z = -1
+    goal.place_locations[0].pre_place_approach.direction = place_direction
+    goal.place_locations[0].pre_place_approach.min_distance = 0.05
+    goal.place_locations[0].pre_place_approach.desired_distance = 0.15
+
+    retreat_direction = geometry_msgs.msg.Vector3Stamped()
+    retreat_direction.header.frame_id = 'world'
+    retreat_direction.vector.z = -1
+    goal.place_locations[0].post_place_retreat.direction = retreat_direction
+    goal.place_locations[0].post_place_retreat.min_distance = 0.05
+    goal.place_locations[0].post_place_retreat.desired_distance = 0.15
+
+    rospy.loginfo("Sending pick planning goal.")
+    self.pick_place_planning_client.send_goal(goal)
+    self.pick_place_planning_client.wait_for_result(rospy.Duration(15.0))
+    return self.pick_place_planning_client.get_result()
 
   @save_task_plan
   def do_plan_pick_action(self, object_name, grasp_parameter_location = '', lift_direction_reference_frame = '', lift_direction = [], robot_name = ''):
@@ -538,7 +601,7 @@ class O2ACBase(object):
     return self.wrs_subtask_b_planning_client.get_result()
 
   def spawn_tool(self, tool_name):
-    if tool_name == "screw_tool_m3" or tool_name == "screw_tool_m4": 
+    if tool_name in self.screw_tools: 
       rospy.loginfo("Spawn: " + tool_name)
       self.planning_scene_interface.add_object(self.screw_tools[tool_name])
       return True
@@ -547,7 +610,7 @@ class O2ACBase(object):
       return False
 
   def despawn_tool(self, tool_name):
-    if tool_name == "screw_tool_m3" or tool_name == "screw_tool_m4": 
+    if tool_name in self.screw_tools: 
       rospy.loginfo("Despawn: " + tool_name)
       self.planning_scene_interface.remove_world_object(self.screw_tools[tool_name].id)
       return True
@@ -558,7 +621,7 @@ class O2ACBase(object):
   def attach_tool(self, robot_name, toolname):
     try:
       self.active_robots[robot_name].robot_group.attach_object(toolname, robot_name + "_ee_link", touch_links= 
-      [robot_name + "_robotiq_85_tip_link", 
+      [robot_name + "_gripper_tip_link", 
       robot_name + "_robotiq_85_left_finger_tip_link", 
       robot_name + "_robotiq_85_left_inner_knuckle_link", 
       robot_name + "_robotiq_85_right_finger_tip_link", 
@@ -599,8 +662,6 @@ class O2ACBase(object):
     # Sanity check on the input instruction
     equip = (operation == "equip")
     unequip = (operation == "unequip")
-    # if equip or unequip:
-    #   raise NotImplementedError("Equip/unequip needs to be called via the C++ skill server instead")
     realign = (operation == "realign")
 
     ###
@@ -643,7 +704,7 @@ class O2ACBase(object):
     # Define approach pose
     # z = 0 is at the holder surface, and z-axis of pickup_link points downwards!
     rospy.loginfo("tool_name: " + tool_name)
-    if tool_name == "screw_tool_m3" or tool_name == "screw_tool_m4":
+    if tool_name == "screw_tool_m3" or tool_name == "screw_tool_m4" or tool_name == "padless_tool_m4":
       ps_approach.pose.position.x = -.05
       ps_approach.pose.position.z = -.008
     elif tool_name == "nut_tool_m6":
@@ -704,7 +765,6 @@ class O2ACBase(object):
       robot.gripper.close()
       self.attach_tool(robot_name, tool_name)
       self.allow_collisions_with_robot_hand(tool_name, robot_name)
-      self.allow_collisions_with_robot_hand('screw_tool_holder', robot_name)  # TODO(felixvd): Is this required?
       robot.robot_status.carrying_tool = True
       robot.robot_status.held_tool_id = tool_name
       self.publish_robot_status()
@@ -716,9 +776,11 @@ class O2ACBase(object):
       robot.robot_status.carrying_tool = False
       robot.robot_status.held_tool_id = ""
       self.publish_robot_status()
-    elif realign: # 
+    elif realign:  # Drop the tool into the holder once
       robot.gripper.open()
       robot.gripper.close()
+    
+    if equip or realign:  # Pull back and let go once to align the tool with the magnet properly 
       pull_back_slightly = copy.deepcopy(ps_in_holder)
       pull_back_slightly.pose.position.x -= 0.003
       ps_in_holder.pose.position.x += 0.001  # To remove the offset for placing applied earlier
@@ -775,14 +837,15 @@ class O2ACBase(object):
       pose_type = point['type']
       gripper_action = point.get('gripper-action')
       speed_scale_factor = point.get('speed', 0.8)
-      acceleration_scale_factor = point.get('acceleration', 0.4)
+      acceleration_scale_factor = point.get('acceleration', speed_scale_factor/2.0)
       gripper_action = point.get('gripper-action')
+      gripper_opening_width = point.get('gripper-opening-width', None)
       blend = point.get('blend', None)
       
       if blend is not None and pose_type == 'joint-space-goal-cartesian-lin-motion':
         if gripper_action:
           rospy.logerr("Gripper actions not supported for trajectories")
-          return
+          return False
         
         assert isinstance(blend, float), "Blend if defined must be a float"
 
@@ -800,10 +863,10 @@ class O2ACBase(object):
         is_trajectory = False
 
         # after trajectory, append current point
-        playback_trajectories.append(["point", (robot_name, pose, pose_type, gripper_action, speed_scale_factor, acceleration_scale_factor)])
+        playback_trajectories.append(["point", (robot_name, pose, pose_type, gripper_action, gripper_opening_width, speed_scale_factor, acceleration_scale_factor)])
 
       else:
-        playback_trajectories.append(["point", (robot_name, pose, pose_type, gripper_action, speed_scale_factor, acceleration_scale_factor)])
+        playback_trajectories.append(["point", (robot_name, pose, pose_type, gripper_action, gripper_opening_width, speed_scale_factor, acceleration_scale_factor)])
       
     if is_trajectory:
       playback_trajectories.append(["trajectory", (robot_name, trajectory, speed_scale_factor, acceleration_scale_factor)])
@@ -813,14 +876,19 @@ class O2ACBase(object):
 
     for i, point in enumerate(playback_trajectories):
       print("point:", i+1)
-      # raw_input()
+      self.confirm_to_proceed("playback_sequence")
       if point[0] == "point":
-        self.move_to_sequence_waypoint(*point[1])
+        res = self.move_to_sequence_waypoint(*point[1])
       elif point[0] == "trajectory":
         robot_name, trajectory, speed_scale_factor, acceleration_scale_factor = point[1]
-        self.active_robots[robot_name].move_lin_trajectory(trajectory, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
+        res = self.active_robots[robot_name].move_lin_trajectory(trajectory, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
+      if not res:
+        rospy.logerr("Fail to complete playback sequence: %s" % routine_filename)
+        return False
+    return True
 
-  def move_to_sequence_waypoint(self, robot_name, pose, pose_type, gripper_action, speed_scale_factor, acceleration_scale_factor):
+  def move_to_sequence_waypoint(self, robot_name, pose, pose_type, gripper_action, gripper_opening_width, speed_scale_factor, acceleration_scale_factor):
+    success = False
     robot = self.active_robots[robot_name]
     group = robot.robot_group
 
@@ -828,32 +896,35 @@ class O2ACBase(object):
     p.header.frame_id = robot_name + "_base_link"
 
     if pose_type == 'joint-space':
-      robot.move_joints(pose, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
+      success = robot.move_joints(pose, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
     elif pose_type == 'joint-space-goal-cartesian-lin-motion':
       # Convert joint-space to task-space
       target_pose = robot.force_controller.end_effector(pose)  # Forward kinematics
       p.pose = conversions.to_pose(target_pose)
-      robot.move_lin(p, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
+      success = robot.move_lin(p, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
     elif pose_type == 'task-space':
       p.pose = conversions.to_pose(pose)
-      robot.move_lin(pose, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
+      success = robot.move_lin(p, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
+      return True
     elif pose_type == 'relative-tcp':
-      pass
-      robot.move_lin_rel(relative_translation=pose[:3], relative_rotation=pose[3:], speed=speed_scale_factor, acceleration=acceleration_scale_factor, use_robot_base_csys=False)
+      success = robot.move_lin_rel(relative_translation=pose[:3], relative_rotation=pose[3:], speed=speed_scale_factor, acceleration=acceleration_scale_factor, relative_to_tcp=True)
     elif pose_type == 'relative-base':
-      pass
-      robot.move_lin_rel(relative_translation=pose[:3], relative_rotation=pose[3:], speed=speed_scale_factor, acceleration=acceleration_scale_factor, use_robot_base_csys=True)
+      success = robot.move_lin_rel(relative_translation=pose[:3], relative_rotation=pose[3:], speed=speed_scale_factor, acceleration=acceleration_scale_factor, relative_to_robot_base=True)
+    elif pose_type == 'named-pose':
+      success = robot.go_to_named_pose(pose, speed=speed_scale_factor, acceleration=acceleration_scale_factor)
     else:
       raise ValueError("Invalid pose_type: %s" % pose_type)
 
-    if gripper_action:
-      if gripper_action == 'open':
-        robot.gripper.open()
-      elif gripper_action == 'close':
-        robot.gripper.close(force=100., velocity=0.01)
-      elif gripper_action == 'close-open':
-        robot.gripper.close(velocity=0.01)
-        robot.gripper.open()
+    if success:
+      if gripper_action:
+        if gripper_action == 'open':
+          robot.gripper.open(opening_width=gripper_opening_width)
+        elif gripper_action == 'close':
+          robot.gripper.close(force=80., velocity=0.03)
+        elif gripper_action == 'close-open':
+          robot.gripper.close(velocity=0.03)
+          robot.gripper.open()
+    return success
 ######
 
   def start_task_timer(self):

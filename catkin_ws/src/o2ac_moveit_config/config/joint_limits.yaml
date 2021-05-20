@@ -16,6 +16,7 @@ joint_limits:
     has_acceleration_limits: true
     max_acceleration: 6.28
   a_bot_finger_joint:
+    min_position: -0.01
     has_velocity_limits: true
     max_velocity: 2
     has_acceleration_limits: true
@@ -76,6 +77,7 @@ joint_limits:
     has_acceleration_limits: true
     max_acceleration: 6.28
   b_bot_finger_joint:
+    min_position: -0.01
     has_velocity_limits: true
     max_velocity: 2
     has_acceleration_limits: true

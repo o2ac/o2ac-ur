@@ -14,8 +14,7 @@ class VisionClient():
         self.ssd_client = actionlib.SimpleActionClient('/o2ac_vision_server/get_3d_poses_from_ssd', o2ac_msgs.msg.get3DPosesFromSSDAction)
         self.detect_shaft_client = actionlib.SimpleActionClient('/o2ac_vision_server/detect_shaft_notch', o2ac_msgs.msg.shaftNotchDetectionAction)
         self.detect_angle_client = actionlib.SimpleActionClient('/o2ac_vision_server/detect_angle', o2ac_msgs.msg.detectAngleAction)
-        # TODO: Not used?
-        self.recognition_client = actionlib.SimpleActionClient('/o2ac_vision_server/localize_object', o2ac_msgs.msg.localizeObjectAction)
+        self.localization_client = actionlib.SimpleActionClient('/o2ac_vision_server/localize_object', o2ac_msgs.msg.localizeObjectAction)
 
     def activate_camera(self, camera_name="b_bot_outside_camera"):
         try:
@@ -80,3 +79,26 @@ class VisionClient():
             return False
         res = self.detect_shaft_client.get_result()
         return res
+    
+    def localize_object(self, object_type):
+        """
+        Returns object pose if object was detected in current camera view,
+        False otherwise.
+
+        item_type is the name of the mesh file in o2ac_parts_description.
+        """
+        self.localization_client.send_goal(o2ac_msgs.msg.localizeObjectGoal(item_id=object_type))
+        if (not self.localization_client.wait_for_result(rospy.Duration(15.0))):
+            self.localization_client.cancel_goal()  # Cancel goal if timeout expired
+            rospy.logerr("Localization returned no result for object type " + object_type)
+            return False
+        
+        success = False
+        try:
+            res = self.localization_client.get_result()
+            if res.succeeded:
+                return res.detected_poses[0]
+        except:
+            pass
+        rospy.logerr("Localization failed to find a pose for object type " + object_type)
+        return False

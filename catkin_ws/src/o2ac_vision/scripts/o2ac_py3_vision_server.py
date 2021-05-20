@@ -37,6 +37,7 @@
 import rospy
 import os
 import copy
+from datetime import datetime
 import rospkg
 import actionlib
 import numpy as np
@@ -121,6 +122,15 @@ class O2ACBearingPoseEstimationServer(object):
             self.angle_detection_action_server.set_aborted(action_result)
         im_vis = estimator.get_result_image()
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
+        self.write_to_log(im_in, im_vis, "angle_detection")
+    
+    def write_to_log(self, img_in, img_out, action_name):
+        now = datetime.now()
+        timeprefix = now.strftime("%Y-%m-%d_%H:%M:%S")
+        rospack = rospkg.RosPack()
+        folder = os.path.join(rospack.get_path("o2ac_vision"), "log")
+        cv2.imwrite(os.path.join(folder, timeprefix + "_" + action_name + "_in.png") , img_in)
+        cv2.imwrite(os.path.join(folder, timeprefix + "_" + action_name + "_out.jpg") , img_out)
 
 if __name__ == '__main__':
     rospy.init_node('o2ac_py3_vision_server', anonymous=False)

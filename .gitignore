@@ -26,6 +26,9 @@ catkin_ws/src/o2ac_routines/MP_solutions/*
 # URDF files that are generated from lists and CAD models
 catkin_ws/src/o2ac_parts_description/urdf/generated/
 
+# PLY files generated from STL
+catkin_ws/src/o2ac_parts_description/meshes/*.ply
+
 # Files generated during STAMP (symbolic plan and failed plans)
 catkin_ws/src/o2ac_task_planning/pddl_converter/symbolic/generated/
 
@@ -48,6 +51,13 @@ catkin_ws/src/o2ac_task_planning/pddl_converter/symbolic/generated/
 underlay_ws/src/third_party/geometric_shapes
 underlay_ws/src/third_party/moveit_resources
 underlay_ws/src/third_party/moveit_visual_tools
+underlay_ws/src/third_party/rviz_visual_tools
 underlay_ws/src/rosparam_shortcuts
-
+underlay_ws/src/third_party/generic_flexbe_states
+underlay_ws/src/third_party/flexbe_app
 underlay_ws/src/third_party/Universal_Robots_Client_Library
+underlay_ws/src/third_party/ur_drivers
+underlay_ws/src/third_party/robotiq
+underlay_ws/src/third_party/aruco_ros
+
+catkin_ws/src/o2ac_vision/log/

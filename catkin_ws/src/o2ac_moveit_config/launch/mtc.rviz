@@ -309,7 +309,7 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_robotiq_85_tip_link:
+          a_bot_gripper_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -866,7 +866,7 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          b_bot_robotiq_85_tip_link:
+          b_bot_gripper_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -1345,7 +1345,7 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_robotiq_85_tip_link:
+          a_bot_gripper_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -1902,7 +1902,7 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          b_bot_robotiq_85_tip_link:
+          b_bot_gripper_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -2272,7 +2272,7 @@ Visualization Manager:
           Value: true
         a_bot_robotiq_140_base_link:
           Value: true
-        a_bot_robotiq_85_tip_link:
+        a_bot_gripper_tip_link:
           Value: true
         a_bot_robotiq_arg2f_base_link:
           Value: true
@@ -2538,7 +2538,7 @@ Visualization Manager:
           Value: true
         b_bot_robotiq_85_base_link:
           Value: true
-        b_bot_robotiq_85_tip_link:
+        b_bot_gripper_tip_link:
           Value: true
         b_bot_robotiq_arg2f_base_link:
           Value: true
@@ -2984,7 +2984,7 @@ Visualization Manager:
                                       a_bot_outside_camera_right_ir_frame:
                                         a_bot_outside_camera_right_ir_optical_frame:
                                           {}
-                              a_bot_robotiq_85_tip_link:
+                              a_bot_gripper_tip_link:
                                 a_bot_tool_intermediate_link:
                                   a_bot_nut_tool_m6_tip_link:
                                     {}
@@ -3067,7 +3067,7 @@ Visualization Manager:
                                       b_bot_outside_camera_right_ir_frame:
                                         b_bot_outside_camera_right_ir_optical_frame:
                                           {}
-                              b_bot_robotiq_85_tip_link:
+                              b_bot_gripper_tip_link:
                                 b_bot_tool_intermediate_link:
                                   b_bot_nut_tool_m6_tip_link:
                                     {}
@@ -3554,7 +3554,7 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_robotiq_85_tip_link:
+          a_bot_gripper_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -4111,7 +4111,7 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          b_bot_robotiq_85_tip_link:
+          b_bot_gripper_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false

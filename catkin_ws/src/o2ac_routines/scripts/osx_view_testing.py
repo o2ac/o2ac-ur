@@ -128,12 +128,12 @@ if __name__ == '__main__':
       rospy.loginfo(" ")
       r = raw_input()
       if r == '1':
-        c.go_to_named_pose("home", "a_bot")
-        c.go_to_named_pose("home", "b_bot")
+        c.a_bot.go_to_named_pose("home")
+        c.b_bot.go_to_named_pose("home")
       elif r == '11':
-        c.camera.activate("b_bot_inside_camera")
+        c.vision.activate_camera("b_bot_inside_camera")
       elif r == '12':
-        c.camera.activate("b_bot_outside_camera")
+        c.vision.activate_camera("b_bot_outside_camera")
       elif r == '2':
         ps = geometry_msgs.msg.PoseStamped()
         ps.header.frame_id = "tray_center"
@@ -146,7 +146,7 @@ if __name__ == '__main__':
         ps.header.frame_id = "tray_center"
         ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
         ps.pose.position.z = .22
-        # c.go_to_named_pose("home", "a_bot")
+        # c.a_bot.go_to_named_pose("home")
         c.b_bot.go_to_pose_goal(ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.04)
       elif r == '31':
         c.close_view(1)
@@ -166,7 +166,7 @@ if __name__ == '__main__':
         for ps in c.close_tray_views_rot_right:
           c.b_bot.go_to_pose_goal(ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
       elif r == '5':
-        c.camera.activate("b_bot_outside_camera")
+        c.vision.activate_camera("b_bot_outside_camera")
         rospy.sleep(1)
         res = c.get_3d_poses_from_ssd()
         obj_id = 7 #bearing
@@ -183,30 +183,30 @@ if __name__ == '__main__':
         except:
           pass
       elif r == '51':
-        c.go_to_named_pose("home", "b_bot")
+        c.b_bot.go_to_named_pose("home")
         p = r2[0]
         p.pose.position.z = 0.0
         c.simple_pick("a_bot", p, gripper_force=100.0, grasp_width=.05, axis="z")
       elif r == '52':
-        c.go_to_named_pose("home", "a_bot")
+        c.a_bot.go_to_named_pose("home")
         p = r2[0]
         p.pose.position.z = 0.0
         c.simple_pick("b_bot", p, gripper_force=100.0, grasp_width=.05, axis="z")
       elif r == '61':
-        if not c.assembly_database.db_name == "wrs_assembly_1":
-          c.assembly_database.load_db("wrs_assembly_1")
+        if not c.assembly_database.db_name == "wrs_assembly_2020":
+          c.assembly_database.load_db("wrs_assembly_2020")
         c.look_for_item_in_tray("bearing", "b_bot")
       elif r == '62':
-        if not c.assembly_database.db_name == "wrs_assembly_1":
-          c.assembly_database.load_db("wrs_assembly_1")
+        if not c.assembly_database.db_name == "wrs_assembly_2020":
+          c.assembly_database.load_db("wrs_assembly_2020")
         c.look_for_item_in_tray("base", "b_bot")
       elif r == '63':
-        if not c.assembly_database.db_name == "wrs_assembly_1":
-          c.assembly_database.load_db("wrs_assembly_1")
+        if not c.assembly_database.db_name == "wrs_assembly_2020":
+          c.assembly_database.load_db("wrs_assembly_2020")
         c.look_for_item_in_tray("panel_motor", "b_bot")
       elif r == '64':
-        if not c.assembly_database.db_name == "wrs_assembly_1":
-          c.assembly_database.load_db("wrs_assembly_1")
+        if not c.assembly_database.db_name == "wrs_assembly_2020":
+          c.assembly_database.load_db("wrs_assembly_2020")
         c.look_for_item_in_tray("panel_bearing", "b_bot")
       elif r == '7':
         c.b_bot.linear_push(force=10, direction="+Z", relative_to_ee=False, timeout=15.0)
@@ -217,7 +217,7 @@ if __name__ == '__main__':
         else:
           goal.pose.position.z = 0.001
           # goal.pose.position.x -= 0.01 # MAGIC NUMBER
-          c.camera.activate("b_bot_inside_camera")
+          c.vision.activate_camera("b_bot_inside_camera")
           c.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z")
       elif r == "81":
         goal = c.look_and_get_grasp_point(5)  # motor pulley

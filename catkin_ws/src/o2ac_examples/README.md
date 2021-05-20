@@ -33,7 +33,7 @@ The examples are mostly in C++ because the MoveIt interface in Python is not com
 One way to do it:  
 
 - Move to the desired pose in Rviz
-- Under Planning Scene/Scene Robot/Links, look up a_bot_robotiq_85_tip_link (or the link you need)
+- Under Planning Scene/Scene Robot/Links, look up a_bot_gripper_tip_link (or the link you need)
 - Enter the orientation into https://quaternions.online , obtain the Euler Angles in ZYX-order
 - Enter them into this command to make it pretty: `tf::createQuaternionMsgFromRollPitchYaw(0, M_PI/4, M_PI);`
 - In Python: `pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi/4, pi))`

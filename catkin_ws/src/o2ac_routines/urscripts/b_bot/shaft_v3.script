@@ -4,6 +4,17 @@ def shaft_v3():
   set_tool_digital_output_mode(0, 1)
   set_tool_digital_output_mode(1, 1)
   set_tool_voltage(24)
+  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
+  step_count_2f4cd45f_176f_4405_8105_04054c6f7651 = 0.0
+  thread Step_Counter_Thread_92e4b5f3_3e79_435e_be08_2ce61002ed20():
+    while (True):
+      step_count_2f4cd45f_176f_4405_8105_04054c6f7651 = step_count_2f4cd45f_176f_4405_8105_04054c6f7651 + 1.0
+      sync()
+    end
+  end
+  run Step_Counter_Thread_92e4b5f3_3e79_435e_be08_2ce61002ed20()
+  set_target_payload(1.200000, [0.001000, -0.018000, 0.049000], [0.002086, 0.002086, 0.002086, 0.000000, 0.000000, 0.000000])
+  set_safety_mode_transition_hardness(1)
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -12,17 +23,6 @@ def shaft_v3():
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
   set_gravity([0.0, 0.0, 9.82])
-  set_safety_mode_transition_hardness(1)
-  step_count_bd743510_c6db_4053_b1e5_e7d56dfe47b4 = 0.0
-  thread Step_Counter_Thread_dbaf014b_a16c_46c7_9f6c_cbd251d43a22():
-    while (True):
-      step_count_bd743510_c6db_4053_b1e5_e7d56dfe47b4 = step_count_bd743510_c6db_4053_b1e5_e7d56dfe47b4 + 1.0
-      sync()
-    end
-  end
-  run Step_Counter_Thread_dbaf014b_a16c_46c7_9f6c_cbd251d43a22()
-  set_target_payload(1.200000, [0.001000, -0.018000, 0.049000], [0.002086, 0.002086, 0.002086, 0.000000, 0.000000, 0.000000])
-  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
   # begin: URCap Installation Node
   #   Source: External Control, 1.0.5, FZI Research Center for Information Technology
   #   Type: External Control
@@ -2341,6 +2341,8 @@ def shaft_v3():
       sync()
   end
   # end: URCap Installation Node
+  global safe_before_p=p[.157374734686, -.438210230483, .237948518247, 2.182017060911, 2.231137728687, .013754786904]
+  global safe_before_q=[1.6166805028915405, -1.666929384271139, 1.8822982946978968, -1.794750829736227, -1.5447457472430628, 1.592530369758606]
   global beforehole_p=p[-.024236479744, -.438215667690, .237960566732, 2.182053177803, 2.231123939627, .013705853517]
   global beforehole_q=[1.1967031746909822, -1.7302560157712925, 1.934322283683965, -1.7742498979641148, -1.5430197431228718, 1.1722668015633457]
   def calculate_point_to_move_towards(feature, direction, position_distance):
@@ -2361,26 +2363,33 @@ def shaft_v3():
   global fully_inserted_q=[1.0806486638472963, -1.7126291820276593, 1.9189295454771447, -1.7738718008836436, -1.5431276964208145, 1.0562089137723705]
   $ 1 "Robot Program"
   $ 2 "MoveJ"
-  $ 3 "beforehole" "breakAfter"
+  $ 3 "currentpose≔get_actual_joint_positions()"
+  global currentpose= get_actual_joint_positions ()
+  $ 4 "currentpose" "breakAfter"
+  movej(currentpose, a=1.3962634015954636, v=1.0471975511965976)
+  $ 5 "MoveJ"
+  $ 6 "safe_before" "breakAfter"
+  movej(get_inverse_kin(safe_before_p, qnear=safe_before_q), a=1.3962634015954636, v=1.0471975511965976, r=0.02)
+  $ 7 "beforehole" "breakAfter"
   movej(get_inverse_kin(beforehole_p, qnear=beforehole_q), a=1.3962634015954636, v=1.0471975511965976)
-  $ 4 "MoveL"
-  $ 6 "Direction: Tool Y-"
-  global move_thread_flag_6=0
-  thread move_thread_6():
+  $ 8 "MoveL"
+  $ 10 "Direction: Tool Y-"
+  global move_thread_flag_10=0
+  thread move_thread_10():
     enter_critical
-    move_thread_flag_6 = 1
+    move_thread_flag_10 = 1
     local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [0.0,-1.0,0.0], 1000.0)
     movel(towardsPos, a=0.5, v=0.02)
-    move_thread_flag_6 = 2
+    move_thread_flag_10 = 2
     exit_critical
   end
-  move_thread_flag_6 = 0
-  move_thread_han_6 = run move_thread_6()
+  move_thread_flag_10 = 0
+  move_thread_han_10 = run move_thread_10()
   while (True):
     local targetTcpDirection=get_target_tcp_speed()
     local stepsToRetract=tool_contact(direction=targetTcpDirection)
     if (stepsToRetract > 0):
-      kill move_thread_han_6
+      kill move_thread_han_10
       stopl(3.0)
       local backTrackMovement=get_actual_joint_positions_history(stepsToRetract)
       local contactPose=get_forward_kin(backTrackMovement)
@@ -2392,122 +2401,80 @@ def shaft_v3():
         retractTo = pose_sub(contactPose, additionalRetraction)
       end
       movel(retractTo, a=3.0, v=0.1)
-      $ 7 "Until (tool_contact_detection)"
+      $ 11 "Until (tool_contact_detection)"
       break
     end
     sync()
   end
-  $ 8 "MoveL"
-  $ 9 "Direction: Base Z+"
-  global move_thread_flag_9=0
-  thread move_thread_9():
+  $ 12 "MoveL"
+  $ 13 "Direction: Base Z+"
+  global move_thread_flag_13=0
+  thread move_thread_13():
     enter_critical
-    move_thread_flag_9 = 1
+    move_thread_flag_13 = 1
     local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,0.0,1.0], 0.003)
     movel(towardsPos, a=1.2, v=0.25)
-    move_thread_flag_9 = 2
+    move_thread_flag_13 = 2
     exit_critical
   end
-  move_thread_flag_9 = 0
-  move_thread_han_9 = run move_thread_9()
+  move_thread_flag_13 = 0
+  move_thread_han_13 = run move_thread_13()
   while (True):
     sleep(1.0E-10)
-    if (move_thread_flag_9 > 1):
-      join move_thread_han_9
-      $ 10 "Until (distance)"
+    if (move_thread_flag_13 > 1):
+      join move_thread_han_13
+      $ 14 "Until (distance)"
       break
     end
     sync()
   end
-  $ 11 "Force"
+  $ 15 "Force"
   sleep(0.02)
   zero_ftsensor()
   force_mode(tool_pose(), [0, 1, 0, 0, 0, 0], [-20.0, -5.0, 0.0, 0.0, 0.0, 0.0], 2, [0.1, 0.01, 0.1, 0.3490658503988659, 0.3490658503988659, 0.3490658503988659])
-  $ 12 "Wait: 3.0" "noBreak"
+  $ 16 "Wait: 3.0" "noBreak"
   sleep(3.0)
-  $ 22 "'spiral motion'" "noBreak"
+  $ 26 "'spiral motion'" "noBreak"
   # 'spiral motion'
-  $ 27 "'grid motion'" "noBreak"
+  $ 31 "'grid motion'" "noBreak"
   # 'grid motion'
-  $ 28 "loop_1≔1" "noBreak"
+  $ 32 "loop_1≔1" "noBreak"
   global loop_1=1
-  $ 29 "tcp_p≔get_actual_tcp_pose()" "noBreak"
+  $ 33 "tcp_p≔get_actual_tcp_pose()" "noBreak"
   global tcp_p= get_actual_tcp_pose ()
-  $ 30 "Loop ( tcp_p[0] > -0.078) and  (loop_1 < 6) " "noBreak"
-  thread Thread_while_30():
+  $ 34 "Loop ( tcp_p[0] > -0.078) and  (loop_1 < 6) " "noBreak"
+  thread Thread_while_34():
     while (True):
-      $ 31 "MoveL" "noBreak"
-      $ 32 "Direction: Tool X+" "noBreak"
-      global move_thread_flag_32=0
-      thread move_thread_32():
+      $ 35 "MoveL" "noBreak"
+      $ 36 "Direction: Tool X+" "noBreak"
+      global move_thread_flag_36=0
+      thread move_thread_36():
         enter_critical
-        move_thread_flag_32 = 1
+        move_thread_flag_36 = 1
         local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [1.0,0.0,0.0], 0.001)
         movel(towardsPos, a=0.005, v=0.003)
-        move_thread_flag_32 = 2
+        move_thread_flag_36 = 2
         exit_critical
       end
-      move_thread_flag_32 = 0
-      move_thread_han_32 = run move_thread_32()
+      move_thread_flag_36 = 0
+      move_thread_han_36 = run move_thread_36()
       while (True):
         sleep(1.0E-10)
-        if (move_thread_flag_32 > 1):
-          join move_thread_han_32
-          $ 33 "Until (distance)" "noBreak"
+        if (move_thread_flag_36 > 1):
+          join move_thread_han_36
+          $ 37 "Until (distance)" "noBreak"
           break
         end
         sync()
       end
-      $ 34 "tcp_p≔get_actual_tcp_pose()" "noBreak"
+      $ 38 "tcp_p≔get_actual_tcp_pose()" "noBreak"
       global tcp_p= get_actual_tcp_pose ()
-      $ 35 "Direction: Tool Z-" "noBreak"
-      global move_thread_flag_35=0
-      thread move_thread_35():
-        enter_critical
-        move_thread_flag_35 = 1
-        local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [0.0,0.0,-1.0], 0.001)
-        movel(towardsPos, a=0.005, v=0.003)
-        move_thread_flag_35 = 2
-        exit_critical
-      end
-      move_thread_flag_35 = 0
-      move_thread_han_35 = run move_thread_35()
-      while (True):
-        sleep(1.0E-10)
-        if (move_thread_flag_35 > 1):
-          join move_thread_han_35
-          $ 36 "Until (distance)" "noBreak"
-          break
-        end
-        sync()
-      end
-      $ 37 "Direction: Tool X-" "noBreak"
-      global move_thread_flag_37=0
-      thread move_thread_37():
-        enter_critical
-        move_thread_flag_37 = 1
-        local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [-1.0,0.0,0.0], 0.001)
-        movel(towardsPos, a=0.005, v=0.003)
-        move_thread_flag_37 = 2
-        exit_critical
-      end
-      move_thread_flag_37 = 0
-      move_thread_han_37 = run move_thread_37()
-      while (True):
-        sleep(1.0E-10)
-        if (move_thread_flag_37 > 1):
-          join move_thread_han_37
-          $ 38 "Until (distance)" "noBreak"
-          break
-        end
-        sync()
-      end
-      $ 39 "Direction: Tool X-" "noBreak"
+      $ 39 "Direction: Tool Z-" "noBreak"
       global move_thread_flag_39=0
       thread move_thread_39():
         enter_critical
         move_thread_flag_39 = 1
-        local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [-1.0,0.0,0.0], 0.001)
+        local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [0.0,0.0,-1.0], 0.001)
         movel(towardsPos, a=0.005, v=0.003)
         move_thread_flag_39 = 2
         exit_critical
@@ -2523,56 +2490,56 @@ def shaft_v3():
         end
         sync()
       end
-      $ 41 "tcp_p≔get_actual_tcp_pose()" "noBreak"
+      $ 41 "Direction: Tool X-" "noBreak"
+      global move_thread_flag_41=0
+      thread move_thread_41():
+        enter_critical
+        move_thread_flag_41 = 1
+        local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [-1.0,0.0,0.0], 0.001)
+        movel(towardsPos, a=0.005, v=0.003)
+        move_thread_flag_41 = 2
+        exit_critical
+      end
+      move_thread_flag_41 = 0
+      move_thread_han_41 = run move_thread_41()
+      while (True):
+        sleep(1.0E-10)
+        if (move_thread_flag_41 > 1):
+          join move_thread_han_41
+          $ 42 "Until (distance)" "noBreak"
+          break
+        end
+        sync()
+      end
+      $ 43 "Direction: Tool X-" "noBreak"
+      global move_thread_flag_43=0
+      thread move_thread_43():
+        enter_critical
+        move_thread_flag_43 = 1
+        local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [-1.0,0.0,0.0], 0.001)
+        movel(towardsPos, a=0.005, v=0.003)
+        move_thread_flag_43 = 2
+        exit_critical
+      end
+      move_thread_flag_43 = 0
+      move_thread_han_43 = run move_thread_43()
+      while (True):
+        sleep(1.0E-10)
+        if (move_thread_flag_43 > 1):
+          join move_thread_han_43
+          $ 44 "Until (distance)" "noBreak"
+          break
+        end
+        sync()
+      end
+      $ 45 "tcp_p≔get_actual_tcp_pose()" "noBreak"
       global tcp_p= get_actual_tcp_pose ()
-      $ 42 "Direction: Tool Z+" "noBreak"
-      global move_thread_flag_42=0
-      thread move_thread_42():
-        enter_critical
-        move_thread_flag_42 = 1
-        local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [0.0,0.0,1.0], 0.001)
-        movel(towardsPos, a=0.005, v=0.003)
-        move_thread_flag_42 = 2
-        exit_critical
-      end
-      move_thread_flag_42 = 0
-      move_thread_han_42 = run move_thread_42()
-      while (True):
-        sleep(1.0E-10)
-        if (move_thread_flag_42 > 1):
-          join move_thread_han_42
-          $ 43 "Until (distance)" "noBreak"
-          break
-        end
-        sync()
-      end
-      $ 44 "Direction: Tool X+" "noBreak"
-      global move_thread_flag_44=0
-      thread move_thread_44():
-        enter_critical
-        move_thread_flag_44 = 1
-        local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [1.0,0.0,0.0], 0.001)
-        movel(towardsPos, a=0.005, v=0.003)
-        move_thread_flag_44 = 2
-        exit_critical
-      end
-      move_thread_flag_44 = 0
-      move_thread_han_44 = run move_thread_44()
-      while (True):
-        sleep(1.0E-10)
-        if (move_thread_flag_44 > 1):
-          join move_thread_han_44
-          $ 45 "Until (distance)" "noBreak"
-          break
-        end
-        sync()
-      end
-      $ 46 "Direction: Tool X+" "noBreak"
+      $ 46 "Direction: Tool Z+" "noBreak"
       global move_thread_flag_46=0
       thread move_thread_46():
         enter_critical
         move_thread_flag_46 = 1
-        local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [1.0,0.0,0.0], 0.001)
+        local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [0.0,0.0,1.0], 0.001)
         movel(towardsPos, a=0.005, v=0.003)
         move_thread_flag_46 = 2
         exit_critical
@@ -2588,56 +2555,56 @@ def shaft_v3():
         end
         sync()
       end
-      $ 48 "tcp_p≔get_actual_tcp_pose()" "noBreak"
+      $ 48 "Direction: Tool X+" "noBreak"
+      global move_thread_flag_48=0
+      thread move_thread_48():
+        enter_critical
+        move_thread_flag_48 = 1
+        local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [1.0,0.0,0.0], 0.001)
+        movel(towardsPos, a=0.005, v=0.003)
+        move_thread_flag_48 = 2
+        exit_critical
+      end
+      move_thread_flag_48 = 0
+      move_thread_han_48 = run move_thread_48()
+      while (True):
+        sleep(1.0E-10)
+        if (move_thread_flag_48 > 1):
+          join move_thread_han_48
+          $ 49 "Until (distance)" "noBreak"
+          break
+        end
+        sync()
+      end
+      $ 50 "Direction: Tool X+" "noBreak"
+      global move_thread_flag_50=0
+      thread move_thread_50():
+        enter_critical
+        move_thread_flag_50 = 1
+        local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [1.0,0.0,0.0], 0.001)
+        movel(towardsPos, a=0.005, v=0.003)
+        move_thread_flag_50 = 2
+        exit_critical
+      end
+      move_thread_flag_50 = 0
+      move_thread_han_50 = run move_thread_50()
+      while (True):
+        sleep(1.0E-10)
+        if (move_thread_flag_50 > 1):
+          join move_thread_han_50
+          $ 51 "Until (distance)" "noBreak"
+          break
+        end
+        sync()
+      end
+      $ 52 "tcp_p≔get_actual_tcp_pose()" "noBreak"
       global tcp_p= get_actual_tcp_pose ()
-      $ 49 "Direction: Tool Z+" "noBreak"
-      global move_thread_flag_49=0
-      thread move_thread_49():
-        enter_critical
-        move_thread_flag_49 = 1
-        local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [0.0,0.0,1.0], 0.001)
-        movel(towardsPos, a=0.005, v=0.003)
-        move_thread_flag_49 = 2
-        exit_critical
-      end
-      move_thread_flag_49 = 0
-      move_thread_han_49 = run move_thread_49()
-      while (True):
-        sleep(1.0E-10)
-        if (move_thread_flag_49 > 1):
-          join move_thread_han_49
-          $ 50 "Until (distance)" "noBreak"
-          break
-        end
-        sync()
-      end
-      $ 51 "Direction: Tool X-" "noBreak"
-      global move_thread_flag_51=0
-      thread move_thread_51():
-        enter_critical
-        move_thread_flag_51 = 1
-        local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [-1.0,0.0,0.0], 0.001)
-        movel(towardsPos, a=0.005, v=0.003)
-        move_thread_flag_51 = 2
-        exit_critical
-      end
-      move_thread_flag_51 = 0
-      move_thread_han_51 = run move_thread_51()
-      while (True):
-        sleep(1.0E-10)
-        if (move_thread_flag_51 > 1):
-          join move_thread_han_51
-          $ 52 "Until (distance)" "noBreak"
-          break
-        end
-        sync()
-      end
-      $ 53 "Direction: Tool X-" "noBreak"
+      $ 53 "Direction: Tool Z+" "noBreak"
       global move_thread_flag_53=0
       thread move_thread_53():
         enter_critical
         move_thread_flag_53 = 1
-        local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [-1.0,0.0,0.0], 0.001)
+        local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [0.0,0.0,1.0], 0.001)
         movel(towardsPos, a=0.005, v=0.003)
         move_thread_flag_53 = 2
         exit_critical
@@ -2653,69 +2620,111 @@ def shaft_v3():
         end
         sync()
       end
-      $ 55 "tcp_p≔get_actual_tcp_pose()" "noBreak"
-      global tcp_p= get_actual_tcp_pose ()
-      $ 56 "Direction: Tool Z-" "noBreak"
-      global move_thread_flag_56=0
-      thread move_thread_56():
+      $ 55 "Direction: Tool X-" "noBreak"
+      global move_thread_flag_55=0
+      thread move_thread_55():
         enter_critical
-        move_thread_flag_56 = 1
+        move_thread_flag_55 = 1
+        local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [-1.0,0.0,0.0], 0.001)
+        movel(towardsPos, a=0.005, v=0.003)
+        move_thread_flag_55 = 2
+        exit_critical
+      end
+      move_thread_flag_55 = 0
+      move_thread_han_55 = run move_thread_55()
+      while (True):
+        sleep(1.0E-10)
+        if (move_thread_flag_55 > 1):
+          join move_thread_han_55
+          $ 56 "Until (distance)" "noBreak"
+          break
+        end
+        sync()
+      end
+      $ 57 "Direction: Tool X-" "noBreak"
+      global move_thread_flag_57=0
+      thread move_thread_57():
+        enter_critical
+        move_thread_flag_57 = 1
+        local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [-1.0,0.0,0.0], 0.001)
+        movel(towardsPos, a=0.005, v=0.003)
+        move_thread_flag_57 = 2
+        exit_critical
+      end
+      move_thread_flag_57 = 0
+      move_thread_han_57 = run move_thread_57()
+      while (True):
+        sleep(1.0E-10)
+        if (move_thread_flag_57 > 1):
+          join move_thread_han_57
+          $ 58 "Until (distance)" "noBreak"
+          break
+        end
+        sync()
+      end
+      $ 59 "tcp_p≔get_actual_tcp_pose()" "noBreak"
+      global tcp_p= get_actual_tcp_pose ()
+      $ 60 "Direction: Tool Z-" "noBreak"
+      global move_thread_flag_60=0
+      thread move_thread_60():
+        enter_critical
+        move_thread_flag_60 = 1
         local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [0.0,0.0,-1.0], 0.001)
         movel(towardsPos, a=0.005, v=0.003)
-        move_thread_flag_56 = 2
+        move_thread_flag_60 = 2
         exit_critical
       end
-      move_thread_flag_56 = 0
-      move_thread_han_56 = run move_thread_56()
+      move_thread_flag_60 = 0
+      move_thread_han_60 = run move_thread_60()
       while (True):
         sleep(1.0E-10)
-        if (move_thread_flag_56 > 1):
-          join move_thread_han_56
-          $ 57 "Until (distance)" "noBreak"
+        if (move_thread_flag_60 > 1):
+          join move_thread_han_60
+          $ 61 "Until (distance)" "noBreak"
           break
         end
         sync()
       end
-      $ 58 "Direction: Tool X+" "noBreak"
-      global move_thread_flag_58=0
-      thread move_thread_58():
+      $ 62 "Direction: Tool X+" "noBreak"
+      global move_thread_flag_62=0
+      thread move_thread_62():
         enter_critical
-        move_thread_flag_58 = 1
+        move_thread_flag_62 = 1
         local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [1.0,0.0,0.0], 0.001)
         movel(towardsPos, a=0.005, v=0.003)
-        move_thread_flag_58 = 2
+        move_thread_flag_62 = 2
         exit_critical
       end
-      move_thread_flag_58 = 0
-      move_thread_han_58 = run move_thread_58()
+      move_thread_flag_62 = 0
+      move_thread_han_62 = run move_thread_62()
       while (True):
         sleep(1.0E-10)
-        if (move_thread_flag_58 > 1):
-          join move_thread_han_58
-          $ 59 "Until (distance)" "noBreak"
+        if (move_thread_flag_62 > 1):
+          join move_thread_han_62
+          $ 63 "Until (distance)" "noBreak"
           break
         end
         sync()
       end
-      $ 60 "loop_1≔loop_1+1" "noBreak"
+      $ 64 "loop_1≔loop_1+1" "noBreak"
       global loop_1=loop_1+1
-      $ 61 "tcp_p≔get_actual_tcp_pose()" "noBreak"
+      $ 65 "tcp_p≔get_actual_tcp_pose()" "noBreak"
       global tcp_p= get_actual_tcp_pose ()
     end
   end
   if (( tcp_p[0] > -0.078)  and   (loop_1 < 6) ):
-    global thread_handler_30=run Thread_while_30()
+    global thread_handler_34=run Thread_while_34()
     while (( tcp_p[0] > -0.078)  and   (loop_1 < 6) ):
       sync()
     end
-    kill thread_handler_30
+    kill thread_handler_34
   end
   end_force_mode()
   stopl(5.0)
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
-  $ 62 "Gripper Open (1)"
+  $ 66 "Gripper Open (1)"
   if not(gripper_connected[0]):
     popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
   end
@@ -2727,13 +2736,13 @@ def shaft_v3():
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 63 "MoveJ"
-  $ 64 "push_shaft_rdy" "breakAfter"
+  $ 67 "MoveJ"
+  $ 68 "push_shaft_rdy" "breakAfter"
   movej(get_inverse_kin(push_shaft_rdy_p, qnear=push_shaft_rdy_q), a=1.3962634015954636, v=1.0471975511965976)
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
-  $ 65 "Gripper Close (1)"
+  $ 69 "Gripper Close (1)"
   if not(gripper_connected[0]):
     popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
   end
@@ -2745,136 +2754,136 @@ def shaft_v3():
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 68 "push shaft"
-  $ 69 "Force"
+  $ 72 "push shaft"
+  $ 73 "Force"
   sleep(0.02)
   zero_ftsensor()
   force_mode(tool_pose(), [0, 1, 0, 0, 0, 0], [-20.0, -10.0, 0.0, 0.0, 0.0, 0.0], 2, [0.1, 0.01, 0.1, 0.3490658503988659, 0.3490658503988659, 0.3490658503988659])
-  $ 70 "Wait: 1.0" "noBreak"
+  $ 74 "Wait: 1.0" "noBreak"
   sleep(1.0)
-  $ 71 "'grid motion'" "noBreak"
+  $ 75 "'grid motion'" "noBreak"
   # 'grid motion'
-  $ 72 "loop_1≔1" "noBreak"
+  $ 76 "loop_1≔1" "noBreak"
   global loop_1=1
-  $ 73 "tcp_p≔get_actual_tcp_pose()" "noBreak"
+  $ 77 "tcp_p≔get_actual_tcp_pose()" "noBreak"
   global tcp_p= get_actual_tcp_pose ()
-  $ 74 "Loop ( tcp_p[0] > -0.078) and  (loop_1 < 6) " "noBreak"
-  thread Thread_while_74():
+  $ 78 "Loop ( tcp_p[0] > -0.078) and  (loop_1 < 6) " "noBreak"
+  thread Thread_while_78():
     while (True):
-      $ 75 "tcp_p≔get_actual_tcp_pose()" "noBreak"
-      global tcp_p= get_actual_tcp_pose ()
-      $ 76 "MoveL" "noBreak"
-      $ 77 "Direction: Tool Z-" "noBreak"
-      global move_thread_flag_77=0
-      thread move_thread_77():
-        enter_critical
-        move_thread_flag_77 = 1
-        local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [0.0,0.0,-1.0], 0.002)
-        movel(towardsPos, a=0.02, v=0.005)
-        move_thread_flag_77 = 2
-        exit_critical
-      end
-      move_thread_flag_77 = 0
-      move_thread_han_77 = run move_thread_77()
-      while (True):
-        sleep(1.0E-10)
-        if (move_thread_flag_77 > 1):
-          join move_thread_han_77
-          $ 78 "Until (distance)" "noBreak"
-          break
-        end
-        sync()
-      end
       $ 79 "tcp_p≔get_actual_tcp_pose()" "noBreak"
       global tcp_p= get_actual_tcp_pose ()
-      $ 80 "Direction: Tool Z+" "noBreak"
-      global move_thread_flag_80=0
-      thread move_thread_80():
+      $ 80 "MoveL" "noBreak"
+      $ 81 "Direction: Tool Z-" "noBreak"
+      global move_thread_flag_81=0
+      thread move_thread_81():
         enter_critical
-        move_thread_flag_80 = 1
-        local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [0.0,0.0,1.0], 0.002)
-        movel(towardsPos, a=0.02, v=0.005)
-        move_thread_flag_80 = 2
-        exit_critical
-      end
-      move_thread_flag_80 = 0
-      move_thread_han_80 = run move_thread_80()
-      while (True):
-        sleep(1.0E-10)
-        if (move_thread_flag_80 > 1):
-          join move_thread_han_80
-          $ 81 "Until (distance)" "noBreak"
-          break
-        end
-        sync()
-      end
-      $ 82 "tcp_p≔get_actual_tcp_pose()" "noBreak"
-      global tcp_p= get_actual_tcp_pose ()
-      $ 83 "Direction: Tool Z+" "noBreak"
-      global move_thread_flag_83=0
-      thread move_thread_83():
-        enter_critical
-        move_thread_flag_83 = 1
-        local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [0.0,0.0,1.0], 0.002)
-        movel(towardsPos, a=0.02, v=0.005)
-        move_thread_flag_83 = 2
-        exit_critical
-      end
-      move_thread_flag_83 = 0
-      move_thread_han_83 = run move_thread_83()
-      while (True):
-        sleep(1.0E-10)
-        if (move_thread_flag_83 > 1):
-          join move_thread_han_83
-          $ 84 "Until (distance)" "noBreak"
-          break
-        end
-        sync()
-      end
-      $ 85 "tcp_p≔get_actual_tcp_pose()" "noBreak"
-      global tcp_p= get_actual_tcp_pose ()
-      $ 86 "Direction: Tool Z-" "noBreak"
-      global move_thread_flag_86=0
-      thread move_thread_86():
-        enter_critical
-        move_thread_flag_86 = 1
+        move_thread_flag_81 = 1
         local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [0.0,0.0,-1.0], 0.002)
         movel(towardsPos, a=0.02, v=0.005)
-        move_thread_flag_86 = 2
+        move_thread_flag_81 = 2
         exit_critical
       end
-      move_thread_flag_86 = 0
-      move_thread_han_86 = run move_thread_86()
+      move_thread_flag_81 = 0
+      move_thread_han_81 = run move_thread_81()
       while (True):
         sleep(1.0E-10)
-        if (move_thread_flag_86 > 1):
-          join move_thread_han_86
-          $ 87 "Until (distance)" "noBreak"
+        if (move_thread_flag_81 > 1):
+          join move_thread_han_81
+          $ 82 "Until (distance)" "noBreak"
           break
         end
         sync()
       end
-      $ 88 "loop_1≔loop_1+1" "noBreak"
-      global loop_1=loop_1+1
+      $ 83 "tcp_p≔get_actual_tcp_pose()" "noBreak"
+      global tcp_p= get_actual_tcp_pose ()
+      $ 84 "Direction: Tool Z+" "noBreak"
+      global move_thread_flag_84=0
+      thread move_thread_84():
+        enter_critical
+        move_thread_flag_84 = 1
+        local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [0.0,0.0,1.0], 0.002)
+        movel(towardsPos, a=0.02, v=0.005)
+        move_thread_flag_84 = 2
+        exit_critical
+      end
+      move_thread_flag_84 = 0
+      move_thread_han_84 = run move_thread_84()
+      while (True):
+        sleep(1.0E-10)
+        if (move_thread_flag_84 > 1):
+          join move_thread_han_84
+          $ 85 "Until (distance)" "noBreak"
+          break
+        end
+        sync()
+      end
+      $ 86 "tcp_p≔get_actual_tcp_pose()" "noBreak"
+      global tcp_p= get_actual_tcp_pose ()
+      $ 87 "Direction: Tool Z+" "noBreak"
+      global move_thread_flag_87=0
+      thread move_thread_87():
+        enter_critical
+        move_thread_flag_87 = 1
+        local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [0.0,0.0,1.0], 0.002)
+        movel(towardsPos, a=0.02, v=0.005)
+        move_thread_flag_87 = 2
+        exit_critical
+      end
+      move_thread_flag_87 = 0
+      move_thread_han_87 = run move_thread_87()
+      while (True):
+        sleep(1.0E-10)
+        if (move_thread_flag_87 > 1):
+          join move_thread_han_87
+          $ 88 "Until (distance)" "noBreak"
+          break
+        end
+        sync()
+      end
       $ 89 "tcp_p≔get_actual_tcp_pose()" "noBreak"
+      global tcp_p= get_actual_tcp_pose ()
+      $ 90 "Direction: Tool Z-" "noBreak"
+      global move_thread_flag_90=0
+      thread move_thread_90():
+        enter_critical
+        move_thread_flag_90 = 1
+        local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [0.0,0.0,-1.0], 0.002)
+        movel(towardsPos, a=0.02, v=0.005)
+        move_thread_flag_90 = 2
+        exit_critical
+      end
+      move_thread_flag_90 = 0
+      move_thread_han_90 = run move_thread_90()
+      while (True):
+        sleep(1.0E-10)
+        if (move_thread_flag_90 > 1):
+          join move_thread_han_90
+          $ 91 "Until (distance)" "noBreak"
+          break
+        end
+        sync()
+      end
+      $ 92 "loop_1≔loop_1+1" "noBreak"
+      global loop_1=loop_1+1
+      $ 93 "tcp_p≔get_actual_tcp_pose()" "noBreak"
       global tcp_p= get_actual_tcp_pose ()
     end
   end
   if (( tcp_p[0] > -0.078)  and   (loop_1 < 6) ):
-    global thread_handler_74=run Thread_while_74()
+    global thread_handler_78=run Thread_while_78()
     while (( tcp_p[0] > -0.078)  and   (loop_1 < 6) ):
       sync()
     end
-    kill thread_handler_74
+    kill thread_handler_78
   end
   end_force_mode()
   stopl(5.0)
-  $ 90 "MoveJ"
-  $ 91 "home" "breakAfter"
+  $ 94 "MoveJ"
+  $ 95 "home" "breakAfter"
   movej(get_inverse_kin(home_p, qnear=home_q), a=1.3962634015954636, v=3.141592653589793)
-  $ 92 "Halt"
+  $ 96 "Halt"
   halt
-  $ 93 "MoveJ"
-  $ 94 "fully_inserted" "breakAfter"
+  $ 97 "MoveJ"
+  $ 98 "fully_inserted" "breakAfter"
   movej(get_inverse_kin(fully_inserted_p, qnear=fully_inserted_q), a=1.3962634015954636, v=1.0471975511965976)
 end

@@ -117,37 +117,6 @@
   <xacro:property name="tool_offset" value="${-.005 + bit_cushion_to_axis}" />  
   <!-- The collision boxes of the tools only include the top part (not what is hanging underneath the holder) -->
 
-  <link name="nut_tool_m6_link">
-    <inertial>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <mass value="1.0"/>
-      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
-    </inertial>
-    <!-- <visual>
-      <origin rpy="0 0 0" xyz="0 0 ${.052/2}"/>
-      <geometry>
-        <box size=".026 .059 .052"/>
-      </geometry>
-      <material name="yellowish">
-        <color rgba=".9 .9 .7 1"/>
-      </material>
-    </visual> -->
-    <!-- <collision>
-      <origin rpy="0 0 0" xyz="0 0 ${.052/2}"/>
-      <geometry>
-        <box size=".026 .059 .052"/>
-      </geometry>
-    </collision> -->
-  </link>
-  <joint name="nut_tool_m6_to_holder" type="fixed">
-    <parent link="screw_tool_holder_long" />
-    <child link="nut_tool_m6_link" />
-    <origin xyz="-0.05 ${-back_plate_offset_long + .059/2 + .0155} 0.004" rpy="0.0 0.0 0.0" />
-    <!-- .0155 is the distance from the center of the box to the axis of the tool -->
-  </joint>
-  
-
-    
   <link name="set_screw_tool_link">
     <inertial>
       <origin rpy="0 0 0" xyz="0 0 0"/>`
@@ -241,9 +210,22 @@
   <joint name="screw_tool_m3_to_holder" type="fixed">
     <parent link="screw_tool_holder_long" />
     <child link="screw_tool_m3_link" />
-    <origin xyz="-0.15 ${tool_offset} 0.004" rpy="0.0 0.0 0.0" />
+    <origin xyz="-0.05 ${tool_offset} 0.004" rpy="0.0 0.0 0.0" />
   </joint>
 
+  <link name="padless_tool_m4_link">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+  </link>
+  <joint name="padless_tool_m4_to_holder" type="fixed">
+    <parent link="screw_tool_holder_long" />
+    <child link="padless_tool_m4_link" />
+    <origin xyz="-0.15 ${tool_offset} 0.004" rpy="0.0 0.0 0.0" />
+  </joint>
+  
   <!-- Extra links to position the gripper more easily -->
 
   <link name="screw_tool_m3_pickup_link"/>
@@ -260,10 +242,10 @@
     <origin xyz="0.0 0.0 0.0" rpy="0.0 ${pi} ${pi/2}" />
   </joint>
 
-  <link name="nut_tool_m6_pickup_link"/>
-  <joint name="nut_tool_m6_pickup_joint" type="fixed">
-    <parent link="nut_tool_m6_link" />
-    <child link="nut_tool_m6_pickup_link" />
+  <link name="padless_tool_m4_pickup_link"/>
+  <joint name="padless_tool_m4_pickup_joint" type="fixed">
+    <parent link="padless_tool_m4_link" />
+    <child link="padless_tool_m4_pickup_link" />
     <origin xyz="0.0 0.0 0.0" rpy="0.0 ${pi} ${pi/2}" />
   </joint>
 

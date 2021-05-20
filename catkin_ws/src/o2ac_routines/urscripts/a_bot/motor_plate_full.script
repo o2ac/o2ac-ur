@@ -1,6 +1,21 @@
 def motor_plate_full():
+  set_safety_mode_transition_hardness(1)
+  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
+  set_tool_output_mode(0)
+  set_tool_digital_output_mode(0, 1)
+  set_tool_digital_output_mode(1, 1)
+  set_tool_voltage(24)
+  step_count_415091f7_7697_4e37_a1ee_67dbf86e08d9 = 0.0
+  thread Step_Counter_Thread_88083941_28f2_408e_a4a7_20ece6222341():
+    while (True):
+      step_count_415091f7_7697_4e37_a1ee_67dbf86e08d9 = step_count_415091f7_7697_4e37_a1ee_67dbf86e08d9 + 1.0
+      sync()
+    end
+  end
+  run Step_Counter_Thread_88083941_28f2_408e_a4a7_20ece6222341()
   set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
   set_payload(1.0, [-0.005, -0.018, 0.077])
+  set_gravity([0.0, 0.0, 9.82])
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -8,21 +23,6 @@ def motor_plate_full():
   set_analog_outputdomain(0, 0)
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
-  set_gravity([0.0, 0.0, 9.82])
-  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
-  set_tool_output_mode(0)
-  set_tool_digital_output_mode(0, 1)
-  set_tool_digital_output_mode(1, 1)
-  set_tool_voltage(24)
-  step_count_2e0efd86_e3c9_4f50_93fe_fac3ac266597 = 0.0
-  thread Step_Counter_Thread_693d86d7_99c9_41b6_b8ce_25ba08c7c7a9():
-    while (True):
-      step_count_2e0efd86_e3c9_4f50_93fe_fac3ac266597 = step_count_2e0efd86_e3c9_4f50_93fe_fac3ac266597 + 1.0
-      sync()
-    end
-  end
-  run Step_Counter_Thread_693d86d7_99c9_41b6_b8ce_25ba08c7c7a9()
-  set_safety_mode_transition_hardness(1)
   # begin: URCap Installation Node
   #   Source: External Control, 1.0.5, FZI Research Center for Information Technology
   #   Type: External Control
@@ -2341,10 +2341,6 @@ def motor_plate_full():
       sync()
   end
   # end: URCap Installation Node
-  global above_ex_pick_p=p[-.138225746640, -.538225993157, .142963802601, -2.204709131977, -2.205328309367, .029500368761]
-  global above_ex_pick_q=[1.0935648679733276, -1.4164558214000245, 1.7304275671588343, -1.8958002529540003, -1.5985310713397425, 1.0931310653686523]
-  global pick_plate_p=p[-.138224907255, -.538241284514, .068354866708, -2.204743826314, -2.205360752045, .029613670223]
-  global pick_plate_q=[1.0935648679733276, -1.3447907728007813, 1.850485626851217, -2.087607046166891, -1.5985067526446741, 1.0931310653686523]
   global start_p=p[-.117863631470, -.415956619936, .160266177369, 2.192339904616, 2.250091068080, .008944368207]
   global start_q=[0.9804118871688843, -1.7254201374449671, 1.9885452429400843, -1.8283287487425746, -1.5697248617755335, 0.9544105529785156]
   global above_drop_1_p=p[.079695182301, -.377264865113, .161422415785, .041643246197, -3.137292526617, -.006302377315]
@@ -2453,41 +2449,6 @@ def motor_plate_full():
   global currentpose= get_actual_tcp_pose () get_actual_joint_positions ()
   $ 4 "currentpose" "breakAfter"
   movej(currentpose, a=1.3962634015954636, v=1.0471975511965976)
-  $ 5 "MoveL"
-  # begin: URCap Program Node
-  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
-  #   Type: Gripper
-  $ 6 "Gripper Move65% (1)"
-  if not(gripper_connected[0]):
-    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
-  end
-  if not(rq_is_gripper_activated("1")):
-    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
-  end
-  rq_set_pos_spd_for(165, 0, 0, "1")
-  rq_wait_pos_spe_for_request(165, 0, 0, "1")
-  rq_go_to("1")
-  rq_wait("1")
-  # end: URCap Program Node
-  $ 7 "above_ex_pick" "breakAfter"
-  movel(above_ex_pick_p, a=1.2, v=0.25)
-  $ 8 "pick_plate" "breakAfter"
-  movel(pick_plate_p, a=1.2, v=0.25)
-  # begin: URCap Program Node
-  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
-  #   Type: Gripper
-  $ 9 "Gripper Close (1)"
-  if not(gripper_connected[0]):
-    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
-  end
-  if not(rq_is_gripper_activated("1")):
-    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
-  end
-  rq_set_pos_spd_for(255, 0, 0, "1")
-  rq_wait_pos_spe_for_request(255, 0, 0, "1")
-  rq_go_to("1")
-  rq_wait("1")
-  # end: URCap Program Node
   $ 10 "MoveL"
   $ 11 "start" "breakAfter"
   set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])

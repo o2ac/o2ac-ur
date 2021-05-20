@@ -63,7 +63,7 @@ class ExampleClass(O2ACCommonBase):
     
     # This uses the go_to_pose_goal function defined in base.py to go to the pose
     self.active_robots[robot].go_to_pose_goal(target_pose, 
-            speed=0.03, acceleration=.1, end_effector_link=robot+"_robotiq_85_tip_link", move_lin=False)
+            speed=0.03, acceleration=.1, end_effector_link=robot+"_gripper_tip_link", move_lin=False)
     
     # The end_effector_link defines which part of the robot is moved to the target pose (it can be another part, or a tool!)
     # move_lin defines if the robot will attempt a linear motion or "free motion" planning

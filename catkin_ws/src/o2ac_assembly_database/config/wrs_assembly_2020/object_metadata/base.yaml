@@ -1,0 +1,132 @@
+subframes:
+- pose_xyzrpy:
+  - 0.01
+  - 0.0
+  - 0.01
+  - -pi/2
+  - 0.0
+  - 0.0
+  name: under_outer_hole
+- pose_xyzrpy:
+  - 0.0
+  - 0.01
+  - 0.0
+  - -pi/2
+  - 0.0
+  - -pi/2
+  name: corner_1
+- pose_xyzrpy:
+  - 0.2
+  - 0.01
+  - 0.0
+  - -pi/2
+  - 0.0
+  - -pi/2
+  name: corner_2
+- pose_xyzrpy:
+  - 0.2
+  - 0.01
+  - 0.12
+  - -pi/2
+  - 0.0
+  - -pi/2
+  name: corner_3
+- pose_xyzrpy:
+  - 0.0
+  - 0.01
+  - 0.12
+  - -pi/2
+  - 0.0
+  - -pi/2
+  name: corner_4
+# Position in the front
+- pose_xyzrpy:
+  - 0.006
+  - 0.01
+  - 0.030
+  - -pi/2
+  - 0.0
+  - -pi/2
+  name: screw_hole_panel1_1
+- pose_xyzrpy:
+  - 0.11
+  - 0.01
+  - 0.030
+  - -pi/2
+  - 0.0
+  - -pi/2
+  name: screw_hole_panel1_2
+- pose_xyzrpy:
+  - 0.136
+  - 0.01
+  - 0.028
+  - -pi/2
+  - 0.0
+  - -pi/2
+  name: screw_hole_panel2_1
+- pose_xyzrpy:
+  - 0.196
+  - 0.01
+  - 0.028
+  - -pi/2
+  - 0.0
+  - -pi/2
+  name: screw_hole_panel2_2
+# Position in the back
+- pose_xyzrpy:
+  - 0.006
+  - 0.01
+  - 0.052
+  - -pi/2
+  - 0.0
+  - -pi/2
+  name: screw_hole_panel1_3
+- pose_xyzrpy:
+  - 0.11
+  - 0.01
+  - 0.052
+  - -pi/2
+  - 0.0
+  - -pi/2
+  name: screw_hole_panel1_4
+- pose_xyzrpy:
+  - 0.136
+  - 0.01
+  - 0.05
+  - -pi/2
+  - 0.0
+  - -pi/2
+  name: screw_hole_panel2_3
+- pose_xyzrpy:
+  - 0.196
+  - 0.01
+  - 0.05
+  - -pi/2
+  - 0.0
+  - -pi/2
+  name: screw_hole_panel2_4
+- pose_xyzrpy:
+  - 0.1
+  - 0.03
+  - 0.099
+  - 0
+  - pi
+  - pi/2
+  name: terminal_top
+grasp_points:
+- grasp_name: default_grasp
+  pose_xyzrpy:
+  - 0.1
+  - 0.008
+  - 0.1
+  - 0.0
+  - pi
+  - pi/2
+mesh_pose:
+- pose_xyzrpy:
+  - 0.2
+  - 0.0
+  - 0.12
+  - 0.0
+  - pi
+  - 0.0

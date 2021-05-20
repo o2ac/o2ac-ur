@@ -173,6 +173,13 @@
   </joint>
   <link name="${boardname}_long_hole_middle_link"/>
 
+  <joint name="${boardname}_long_hole_top_joint" type="fixed">
+    <parent link="${boardname}_long_hole_middle_link"/>
+    <child link="${boardname}_long_hole_top_link"/>
+    <origin rpy="0 0 0" xyz="0 0 -0.015"/>
+  </joint>
+  <link name="${boardname}_long_hole_top_link"/>
+
   <joint name="${boardname}_bearing_target_joint" type="fixed">
     <parent link="${boardname}_plate"/>
     <child link="${boardname}_bearing_target_link"/>

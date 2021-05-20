@@ -1,0 +1,96 @@
+screw_3:
+  id: 'screw_tool_m4'
+  frame_id: 'screw_tool_m4_link'
+  primitives:
+    [
+      { # The bit cushion and motor
+        type: 'BOX',
+        dimensions: [.026, .04, .055],
+        pose: [0.0, -0.009, 0.0275, 0.0, 0.0, 0.0]
+      },
+      { # The "shaft" + suction attachment
+        type: 'BOX',
+        dimensions: [.019, .03, .08],
+        pose: [0.0, -0.0055, -0.04, 0.0, 0.0, 0.0]
+      }, 
+      { # The cylinder representing the tip
+        type: 'CYLINDER',
+        dimensions: [.038, .0035],
+        pose: [0.0, 0.0, -0.099, 0.0, 0.0, 0.0]
+      },
+    ]
+  subframe:
+    name: 'screw_tool_m4_tip'
+    pose: [0.0, 0.0, -.12, 0.0, 0.0, 0.0]
+screw_4:
+  id: 'screw_tool_m3'
+  frame_id: 'screw_tool_m3_link'
+  primitives:
+    [
+      { # The bit cushion and motor
+        type: 'BOX',
+        dimensions: [.026, .04, .055],
+        pose: [0.0, -0.009, 0.0275, 0.0, 0.0, 0.0]
+      },
+      { # The "shaft" + suction attachment
+        type: 'BOX',
+        dimensions: [.019, .03, .08],
+        pose: [0.0, -0.0055, -0.04, 0.0, 0.0, 0.0]
+      }, 
+      { # The cylinder representing the tip
+        type: 'CYLINDER',
+        dimensions: [.018, .0035],
+        pose: [0.0, 0.0, -0.089, 0.0, 0.0, 0.0]
+      },
+    ]
+  subframe:
+    name: 'screw_tool_m3_tip'
+    pose: [0.0, 0.0, -.11, 0.0, 1.5707, -1.5707]
+screw_tool_padless:
+  id: 'padless_tool_m4'
+  frame_id: 'padless_tool_m4_link'
+  primitives:
+    [
+      { # The bit cushion and motor
+        type: 'BOX',
+        dimensions: [.026, .04, .055],
+        pose: [0.0, -0.009, 0.0275, 0.0, 0.0, 0.0]
+      },
+      { # The "shaft" + suction attachment
+        type: 'BOX',
+        dimensions: [.019, .03, .08],
+        pose: [0.0, -0.0055, -0.04, 0.0, 0.0, 0.0]
+      }, 
+      { # The cylinder representing the tip
+        type: 'CYLINDER',
+        dimensions: [.038, .0035],
+        pose: [0.0, 0.0, -0.099, 0.0, 0.0, 0.0]
+      },
+    ]
+  subframe:
+    name: 'padless_tool_m4_tip'
+    pose: [0.0, 0.0, -.12, 0.0, 0.0, 0.0]
+set_screw_tool:
+  id: 'set_screw_tool'
+  frame_id: 'set_screw_tool_link'
+  primitives:
+    [
+      { # The upper box
+        type: 'BOX',
+        dimensions: [0.059, 0.032, 0.052],
+        pose: [0.0, -0.0115, 0.0275, 0.0, 0.0, 0.0]
+      },
+      { # The cylinder holding the screw bit
+        type: 'CYLINDER',
+        dimensions: [.008, .008],
+        pose: [0.0, 0.0, -0.018, 0.0, 0.0, 0.0]
+      }, 
+      { # The screw bit (approximated, should be a cone)
+        type: 'CYLINDER',
+        dimensions: [.002, .0035],
+        pose: [0.0, 0.0, -0.04, 0.0, 0.0, 0.0]
+      },
+    ]
+  subframe:
+    name: 'set_screw_tool_tip'
+    pose: [0.0, -.0015, -.028, 0.0, 1.5707, -1.5707]

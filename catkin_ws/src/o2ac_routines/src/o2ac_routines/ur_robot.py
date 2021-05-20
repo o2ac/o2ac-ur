@@ -1,4 +1,6 @@
 import actionlib
+from actionlib_msgs.msg import GoalStatus
+
 import moveit_commander
 import rospy
 import time
@@ -17,6 +19,8 @@ from o2ac_routines.ur_force_control import URForceController
 from o2ac_routines.robotiq_gripper import RobotiqGripper
 from o2ac_routines import helpers
 
+from ur_control import conversions
+
 
 class URRobot():
     def __init__(self, namespace, use_real_robot, tf_listener):
@@ -27,6 +31,7 @@ class URRobot():
         self.use_real_robot = use_real_robot
         self.ns = namespace
         self.listener = tf_listener
+        self.marker_counter = 0
 
         try:
             self.force_controller = URForceController(robot_name=namespace)
@@ -170,16 +175,19 @@ class URRobot():
             try:
                 if recursion_depth > 0:  # If connect alone failed, try quit and then connect
                     response = self.ur_dashboard_clients["quit"].call()
-                    rospy.sleep(.5)
+                    rospy.sleep(3.0)
                 response = self.ur_dashboard_clients["connect"].call()
             except:
                 rospy.logwarn("Dashboard service did not respond! (2)")
                 pass
-            rospy.sleep(.5)
+            rospy.sleep(3.0)
             return self.activate_ros_control_on_ur(recursion_depth=recursion_depth+1)
 
         # Run the program
-        response = self.ur_dashboard_clients["play"].call(std_srvs.srv.TriggerRequest())
+        try:
+            response = self.ur_dashboard_clients["play"].call(std_srvs.srv.TriggerRequest())
+        except:
+            pass
         rospy.sleep(2)
         if not response.success:
             rospy.logerr("Could not start UR control. Is the UR in Remote Control mode and program installed with correct name?")
@@ -287,7 +295,7 @@ class URRobot():
         return self.robot_group.get_current_pose().pose
 
     def go_to_pose_goal(self, pose_goal_stamped, speed=0.5, acceleration=0.25,
-                        end_effector_link="", move_lin=True):
+                        end_effector_link="", move_lin=True, wait=True):
         if move_lin:
             return self.move_lin(pose_goal_stamped, speed, acceleration, end_effector_link)
         if not self.set_up_move_group(speed, acceleration):
@@ -296,7 +304,7 @@ class URRobot():
         group = self.robot_group
 
         if not end_effector_link:
-            end_effector_link = self.ns + "_robotiq_85_tip_link"
+            end_effector_link = self.ns + "_gripper_tip_link"
         group.set_end_effector_link(end_effector_link)
 
         group.set_pose_target(pose_goal_stamped)
@@ -306,32 +314,39 @@ class URRobot():
         group.set_planning_pipeline_id("ompl")
         group.set_planner_id("RRTConnect")
 
-        move_success = group.go(wait=True)
+        move_success = group.go(wait=wait)
         group.stop()
         # It is always good to clear your targets after planning with poses.
         # Note: there is no equivalent function for clear_joint_value_targets()
         group.clear_pose_targets()
 
         current_pose = group.get_current_pose().pose
-        return all_close(pose_goal_stamped.pose, current_pose, 0.01), move_success
+        if not move_success:
+            rospy.logwarn("move_lin command failed. Publishing failed pose.")
+            helpers.publish_marker(pose_goal_stamped, "pose", self.ns + "_go_to_pose_goal_failed_pose_" + str(self.marker_counter))
+            self.marker_counter += 1
+        else:
+            helpers.publish_marker(pose_goal_stamped, "pose", self.ns + "_go_to_pose_goal_failed_pose_" + str(self.marker_counter), marker_topic="o2ac_success_markers")
+            self.marker_counter += 1
+        return helpers.all_close(pose_goal_stamped.pose, current_pose, 0.01), move_success
 
     def move_lin_trajectory(self, trajectory, speed=1.0, acceleration=0.5, end_effector_link=""):
         if not self.set_up_move_group(speed, acceleration):
             return False
 
         if not end_effector_link:
-            end_effector_link = self.ns + "_robotiq_85_tip_link"
+            end_effector_link = self.ns + "_gripper_tip_link"
 
         group = self.robot_group
 
         group.set_end_effector_link(end_effector_link)
         waypoints = [(self.listener.transformPose("world", ps).pose, blend_radius) for ps, blend_radius in trajectory]
-        
+
         group.set_planning_pipeline_id("pilz_industrial_motion_planner")
         group.set_planner_id("LIN")
 
         motion_plan_requests = []
-        
+
         # Start from current pose
         group.set_pose_target(group.get_current_pose(end_effector_link))
         msi = moveit_msgs.msg.MotionSequenceItem()
@@ -355,72 +370,101 @@ class URRobot():
         goal.request = moveit_msgs.msg.MotionSequenceRequest()
         goal.request.items = motion_plan_requests
 
-        self.sequence_move_group.send_goal_and_wait(goal)
+        for i in range(5):
+            result = self.sequence_move_group.send_goal_and_wait(goal)
+            if result == GoalStatus.ABORTED:
+                rospy.logwarn("(move_lin_trajectory) Planning failed, retry: %s of 5" % (i+1))
+            else:
+                break
 
         group.clear_pose_targets()
-        return True
 
-    def move_lin(self, pose_goal_stamped, speed=1.0, acceleration=0.5, end_effector_link=""):
+        if result == GoalStatus.SUCCEEDED:
+            return True
+        else:
+            rospy.logerr("Fail move_lin_trajectory with status %s" % result)
+            return False
+
+    def move_lin(self, pose_goal_stamped, speed=0.5, acceleration=0.5, end_effector_link="", wait=True):
         if not self.set_up_move_group(speed, acceleration):
             return False
 
         if not end_effector_link:
-            end_effector_link = self.ns + "_robotiq_85_tip_link"
+            end_effector_link = self.ns + "_gripper_tip_link"
 
         group = self.robot_group
 
         group.set_end_effector_link(end_effector_link)
         pose_goal_world = self.listener.transformPose("world", pose_goal_stamped)
         group.set_pose_target(pose_goal_world)
-
+        
         group.set_planning_pipeline_id("pilz_industrial_motion_planner")
         group.set_planner_id("LIN")
 
-        move_success = group.go(wait=True)  # Bool
+        move_success = False
+        tries = 0
+        while not move_success and tries < 5 and not rospy.is_shutdown():
+            group.go(wait=wait)  # Bool
+            current_pose = group.get_current_pose().pose
+            move_success = helpers.all_close(pose_goal_world.pose, current_pose, 0.01)
+            if not move_success:
+                rospy.sleep(0.2)
+                rospy.logwarn("move_lin attempt failed. Retrying.")
+                tries += 1
+        if not move_success:
+            rospy.logerr("move_lin failed " + str(tries) + " times! Broke out, published failed pose.")
+            helpers.publish_marker(pose_goal_stamped, "pose", self.ns + "_move_lin_failed_pose_" + str(self.marker_counter))
+            self.marker_counter += 1
+        else:
+            helpers.publish_marker(pose_goal_stamped, "pose", self.ns + "_go_to_pose_goal_failed_pose_" + str(self.marker_counter), marker_topic="o2ac_success_markers")
+            self.marker_counter += 1
         group.stop()
         group.clear_pose_targets()
+
         return move_success
 
-    def move_lin_rel(self, relative_translation=[0, 0, 0], relative_rotation=[0, 0, 0], speed=.03, acceleration=0.5, use_robot_base_csys=False, wait=True, max_wait=30.0):
+    def move_lin_rel(self, relative_translation=[0, 0, 0], relative_rotation=[0, 0, 0], speed=.5, acceleration=0.2, relative_to_robot_base=False, relative_to_tcp=False, wait=True, end_effector_link = "", max_wait=30.0):
         '''
         Does a lin_move relative to the current position of the robot.
 
-        relative_translation: translatory movement relative to current tcp position, expressed in robot's own base frame
-        relative_rotation: rotatory movement relative to current tcp position, expressed in robot's own base frame
-        use_robot_base_csys: If true, uses the robot_base coordinates for the relative motion (not workspace_center!)
+        relative_translation: translation relative to current tcp position, expressed in robot's own base frame
+        relative_rotation: rotation relative to current tcp position, expressed in robot's own base frame
+        relative_to_robot_base: If true, uses the robot_base coordinates for the relative motion (not workspace_center!)
         '''
         if rospy.is_shutdown():
             return False
+        
+        if not end_effector_link:
+            end_effector_link = self.ns + "_gripper_tip_link"
 
         group = self.robot_group
-        # TODO: use use_robot_base_csys parameter
-        new_pose1 = group.get_current_pose()
-        new_pose2 = group.get_current_pose()
-        if helpers.pose_dist(new_pose1.pose, new_pose2.pose) > 0.002:
-            # This is guarding against a weird error that seems to occur with get_current_pose sometimes
-            rospy.logerr("get_current_pose gave two different results!!")
-            rospy.logwarn("pose1: ")
-            rospy.logwarn(new_pose1.pose)
-            rospy.logwarn("pose2: ")
-            rospy.logwarn(new_pose2.pose)
+        group.set_end_effector_link(end_effector_link)
+        new_pose = group.get_current_pose()
 
-        new_pose2.pose.position.x += relative_translation[0]
-        new_pose2.pose.position.y += relative_translation[1]
-        new_pose2.pose.position.z += relative_translation[2]
-        new_pose2.pose.orientation = rotateQuaternionByRPY(relative_rotation[0], relative_rotation[1],
-                                                           relative_rotation[2], new_pose2.pose.orientation)
-        return self.move_lin(new_pose2, speed=speed, acceleration=acceleration)
+        if relative_to_robot_base:
+            new_pose = self.listener.transformPose(self.ns + "_base_link", new_pose)
+        elif relative_to_tcp:
+            new_pose.header.stamp = rospy.Time.now() - rospy.Time(0.5)  # Workaround for TF lookup into the future error
+            new_pose = self.listener.transformPose(self.ns + "_gripper_tip_link", new_pose)
 
-    def move_joints(self, joint_pose_goal, speed=1.0, acceleration=0.5):
+        new_position = conversions.from_point(new_pose.pose.position) + relative_translation
+        new_pose.pose.position = conversions.to_point(new_position)
+        new_pose.pose.orientation = helpers.rotateQuaternionByRPYInUnrotatedFrame(relative_rotation[0], relative_rotation[1],
+                                                                                  relative_rotation[2], new_pose.pose.orientation)
+        return self.move_lin(new_pose, speed=speed, acceleration=acceleration, end_effector_link=end_effector_link, wait=wait)
+
+    def move_joints(self, joint_pose_goal, speed=0.6, acceleration=0.3, wait=True):
         if not self.set_up_move_group(speed, acceleration):
             return False
         group = self.robot_group
         group.set_joint_value_target(joint_pose_goal)
         group.set_planning_pipeline_id("ompl")
         group.set_planner_id("RRTConnect")
-        return group.go(wait=True)
+        group.go(wait=wait)
+        current_joints = group.get_current_joint_values()
+        return helpers.all_close(joint_pose_goal, current_joints, 0.01)
 
-    def go_to_named_pose(self, pose_name, speed=0.5, acceleration=0.5):
+    def go_to_named_pose(self, pose_name, speed=0.5, acceleration=0.5, wait=True):
         """
         pose_name should be a named pose in the moveit_config, such as "home", "back" etc.
         """
@@ -430,8 +474,12 @@ class URRobot():
         group.set_named_target(pose_name)
         group.set_planning_pipeline_id("ompl")
         group.set_planner_id("RRTConnect")
-        move_success = group.go(wait=True)
+        group.set_goal_joint_tolerance(1e-3)
+        group.go(wait=wait)
         group.clear_pose_targets()
+        goal = helpers.ordered_joint_values_from_dict(group.get_named_target_values(pose_name), group.get_active_joints())
+        current_joint_values = group.get_current_joint_values()
+        move_success = helpers.all_close(goal, current_joint_values, 0.01)
         return move_success
 
     def set_up_move_group(self, speed, acceleration):
@@ -455,21 +503,26 @@ class URRobot():
         acc = copy.copy(acceleration)
         if sp > 1.0:
             sp = 1.0
-        if acc > speed/2.0:
-            rospy.logwarn("Setting acceleration to " + str(speed) + " instead of " + str(acceleration) + " to avoid jerky motion.")
-            acc = speed/2.0
+        if acc > sp/2.0:
+            # if acc > (sp/2.0 + .00001):  # This seems to trigger because of rounding errors unless we add this small value
+            rospy.logwarn("Setting acceleration to " + str(sp/2.0) + " instead of " + str(acceleration) + " to avoid jerky motion.")
+            acc = sp/2.0
         return (sp, acc)
 
     # ------ Force control functions
 
     def force_control(self, *args, **kwargs):
+        self.activate_ros_control_on_ur()
         return self.force_controller.force_control(*args, **kwargs)
 
     def execute_circular_trajectory(self, *args, **kwargs):
+        self.activate_ros_control_on_ur()
         return self.force_controller.execute_circular_trajectory(*args, **kwargs)
 
     def execute_spiral_trajectory(self, *args, **kwargs):
+        self.activate_ros_control_on_ur()
         return self.force_controller.execute_spiral_trajectory(*args, **kwargs)
 
     def linear_push(self, *args, **kwargs):
-        return self.force_controller(*args, **kwargs)
+        self.activate_ros_control_on_ur()
+        return self.force_controller.linear_push(*args, **kwargs)

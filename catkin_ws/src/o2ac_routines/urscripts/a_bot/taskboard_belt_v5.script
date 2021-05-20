@@ -1,4 +1,17 @@
 def taskboard_belt_v5():
+  step_count_9b874c15_689a_4aa0_a123_14544347a17a = 0.0
+  thread Step_Counter_Thread_0797c7b9_96e2_4393_b5e4_b68bb7667c5f():
+    while (True):
+      step_count_9b874c15_689a_4aa0_a123_14544347a17a = step_count_9b874c15_689a_4aa0_a123_14544347a17a + 1.0
+      sync()
+    end
+  end
+  run Step_Counter_Thread_0797c7b9_96e2_4393_b5e4_b68bb7667c5f()
+  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
+  set_tool_output_mode(0)
+  set_tool_digital_output_mode(0, 1)
+  set_tool_digital_output_mode(1, 1)
+  set_tool_voltage(24)
   set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
   set_payload(1.0, [-0.005, -0.018, 0.077])
   set_gravity([0.0, 0.0, 9.82])
@@ -10,21 +23,8 @@ def taskboard_belt_v5():
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
   set_safety_mode_transition_hardness(1)
-  step_count_6d2bfe10_78af_447e_921f_065eda81ebab = 0.0
-  thread Step_Counter_Thread_e72f130d_7318_48ff_8428_fabf618635b5():
-    while (True):
-      step_count_6d2bfe10_78af_447e_921f_065eda81ebab = step_count_6d2bfe10_78af_447e_921f_065eda81ebab + 1.0
-      sync()
-    end
-  end
-  run Step_Counter_Thread_e72f130d_7318_48ff_8428_fabf618635b5()
-  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
-  set_tool_output_mode(0)
-  set_tool_digital_output_mode(0, 1)
-  set_tool_digital_output_mode(1, 1)
-  set_tool_voltage(24)
   # begin: URCap Installation Node
-  #   Source: External Control, 1.0.2, FZI Research Center for Information Technology
+  #   Source: External Control, 1.0.5, FZI Research Center for Information Technology
   #   Type: External Control
   # end: URCap Installation Node
   # begin: URCap Installation Node
@@ -2362,45 +2362,45 @@ def taskboard_belt_v5():
   global home_p=p[.132399273074, -.179474410090, .460725286257, -.005112846227, -3.141398079733, -.030665261060]
   global home_q=[1.5699501037597656, -2.09990992168569, 1.4001105467425745, -0.849999265079834, -1.5699175039874476, -5.5615101949513246E-5]
   $ 1 "Robot Program"
-  $ 2 "MoveJ"
-  $ 3 "wait_w_belt" "breakAfter"
+  $ 5 "MoveL"
+  $ 7 "wait_w_belt" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movej(get_inverse_kin(wait_w_belt_p, qnear=wait_w_belt_q), a=1.3962634015954636, v=2.0943951023931953)
-  $ 4 "Popup: start sequence together with b_bot (simultaneous start)"
+  movel(wait_w_belt_p, a=0.15, v=0.25)
+  $ 8 "Popup: start sequence together with b_bot (simultaneous start)"
   popup("start sequence together with b_bot (simultaneous start)", "Message", False, False, blocking=True)
-  $ 5 "Wait: 2.5"
+  $ 9 "Wait: 2.5"
   sleep(2.5)
-  $ 6 "MoveL"
-  $ 7 "Waypoint_5" "breakAfter"
+  $ 10 "MoveL"
+  $ 11 "Waypoint_5" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(Waypoint_5_p, a=1.2, v=0.25)
-  $ 8 "MoveJ"
-  $ 9 "Waypoint_6" "breakAfter"
+  $ 12 "MoveJ"
+  $ 13 "Waypoint_6" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movej(get_inverse_kin(Waypoint_6_p, qnear=Waypoint_6_q), a=1.3962634015954636, v=1.0471975511965976)
-  $ 10 "MoveL"
-  $ 11 "Waypoint_13" "breakAfter"
+  $ 14 "MoveL"
+  $ 15 "Waypoint_13" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(Waypoint_13_p, a=1.2, v=0.25)
-  $ 12 "Waypoint_7" "breakAfter"
+  $ 16 "Waypoint_7" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(Waypoint_7_p, a=1.2, v=0.25)
-  $ 13 "Wait: 1.0"
+  $ 17 "Wait: 1.0"
   sleep(1.0)
-  $ 14 "MoveL"
-  $ 15 "Waypoint_8" "breakAfter"
+  $ 18 "MoveL"
+  $ 19 "Waypoint_8" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(Waypoint_8_p, a=1.2, v=0.25)
-  $ 16 "MoveL"
-  $ 17 "Waypoint_9" "breakAfter"
+  $ 20 "MoveL"
+  $ 21 "Waypoint_9" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(Waypoint_9_p, a=1.2, v=0.25)
-  $ 18 "Wait: 5.0"
+  $ 22 "Wait: 5.0"
   sleep(5.0)
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
-  $ 19 "Gripper Move80% (1)"
+  $ 23 "Gripper Move80% (1)"
   if not(gripper_connected[0]):
     popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
   end
@@ -2412,15 +2412,15 @@ def taskboard_belt_v5():
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 20 "MoveL"
-  $ 21 "Waypoint_10" "breakAfter"
+  $ 24 "MoveL"
+  $ 25 "Waypoint_10" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(Waypoint_10_p, a=1.2, v=0.25)
-  $ 22 "MoveJ"
-  $ 23 "Waypoint_11" "breakAfter"
+  $ 26 "MoveJ"
+  $ 27 "Waypoint_11" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movej(get_inverse_kin(Waypoint_11_p, qnear=Waypoint_11_q), a=1.7453292519943295, v=2.0943951023931953)
-  $ 24 "home" "breakAfter"
+  $ 28 "home" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movej(get_inverse_kin(home_p, qnear=home_q), a=1.7453292519943295, v=2.0943951023931953)
 end

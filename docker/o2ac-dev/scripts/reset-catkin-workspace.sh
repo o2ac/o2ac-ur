@@ -16,22 +16,20 @@ source /opt/ros/melodic/setup.bash
 ################################################################################
 
 # Remove the Catkin workspace:
-# Delete expected 'catkin_make' artefacts.
-cd /root/o2ac-ur/catkin_ws/ && rm -r .catkin_workspace build/ devel/ install/
-cd /root/o2ac-ur/catkin_ws/src/ && rm CMakeLists.txt
-# Delete unexpected 'catkin build' artefacts.
+# Delete expected 'catkin build' artefacts.
 cd /root/o2ac-ur/catkin_ws/ && catkin clean -y
 cd /root/o2ac-ur/catkin_ws/ && rm -r CMakeLists.txt .catkin_tools/
+# Delete unexpected 'catkin_make' artefacts.
+cd /root/o2ac-ur/catkin_ws/ && rm src/CMakeLists.txt
 
 ################################################################################
 
 # Remove the underlay workspace:
-# Delete expected 'catkin_make' artefacts.
-cd /root/o2ac-ur/underlay_ws/ && rm -r .catkin_workspace build/ devel/ install/
-cd /root/o2ac-ur/underlay_ws/src/ && rm CMakeLists.txt
-# Delete unexpected 'catkin build' artefacts.
+# Delete expected 'catkin build' artefacts.
 cd /root/o2ac-ur/underlay_ws/ && catkin clean -y
 cd /root/o2ac-ur/underlay_ws/ && rm -r CMakeLists.txt .catkin_tools/
+# Delete unexpected 'catkin_make' artefacts.
+cd /root/o2ac-ur/underlay_ws/ && rm src/CMakeLists.txt
 
 ################################################################################
 

@@ -60,13 +60,15 @@ class AssemblyReader(PartsReader):
     def __init__(self, assembly_name=""):
         super(AssemblyReader, self).__init__(assembly_name)
         self._broadcaster = tf2_ros.StaticTransformBroadcaster()
+        # self._broadcaster = tf2_ros.TransformBroadcaster()
         if self.db_name:  # = If a database is loaded the attribute is set in the super method
           self.change_assembly(assembly_name)
-
+        self.assembly_frame_pub_timer = []
+    
     def change_assembly(self, assembly_name):
         if self.db_name != assembly_name:
             self.load_db(assembly_name)
-            self.assembly_tree = self.get_assembly_tree(self.collision_objects)
+            self.assembly_tree = self.get_assembly_tree(self._collision_objects)
             self._upload_grasps_to_param_server(assembly_name)
 
     def get_frame_mating(self, base_object, child_object):
@@ -89,7 +91,7 @@ class AssemblyReader(PartsReader):
         else:
             return None
 
-    def publish_assembly_frames(self, assembly_pose = None):
+    def publish_assembly_frames(self, assembly_pose = None, prefix=""):
         '''
         Publish assembly target frames for tf
 
@@ -99,11 +101,11 @@ class AssemblyReader(PartsReader):
         The input 'assembly_pose' is a geometry_msgs.msg.PoseStamped object that describes the
         desired pose of the assembly. If it is not set, the assembly is placed at the origin of the 'world' frame
         '''
-
+        print("Determining mating frames")
         # Find the base of the assembly tree
         all_frames_dict = yaml.load(self.assembly_tree._buffer.all_frames_as_yaml())
-        assembly_base_frame = next((properties['parent'] for (frame, properties) in all_frames_dict.items() if properties['parent'] not in self.assembly_tree.getFrameStrings()),None)
-
+        # assembly_base_frame = next((properties['parent'] for (frame, properties) in all_frames_dict.items() if properties['parent'] not in self.assembly_tree.getFrameStrings()),None)
+        assembly_base_frame = "assembly_root"
         base_transform = geometry_msgs.msg.TransformStamped()
 
         mating_transforms = []
@@ -111,25 +113,38 @@ class AssemblyReader(PartsReader):
         # Set the base transform for the assembly to place it at the pose given by input 'assembly_pose'
         if assembly_pose == None:
             base_transform.header.frame_id = 'world'
-            base_transform.child_frame_id = '_'.join([self.db_name,assembly_base_frame])
+            # base_transform.child_frame_id = '_'.join([self.db_name,assembly_base_frame])
+            base_transform.child_frame_id = prefix + assembly_base_frame
             base_transform.transform.rotation.w = 1
         else:
             base_transform.header.frame_id = assembly_pose.header.frame_id
-            base_transform.child_frame_id = '_'.join([self.db_name,assembly_base_frame])
+            # base_transform.child_frame_id = '_'.join([self.db_name,assembly_base_frame])
+            base_transform.child_frame_id = prefix + assembly_base_frame
             base_transform.transform.translation = conversions.to_vector3(conversions.from_point(assembly_pose.pose.position))
             base_transform.transform.rotation = assembly_pose.pose.orientation
-        mating_transforms = [base_transform]
-
+        self.mating_transforms_to_pub = [base_transform]
+        
         # Get all transforms in the assembly tree as a list and start publishing it
         for (frame, properties) in all_frames_dict.items():
             (trans,rot) = self.assembly_tree.lookupTransform(properties['parent'],frame,rospy.Time(0))
-            mating_transform = get_transform('_'.join([self.db_name, properties['parent']]), '_'.join([self.db_name, frame]), transform=conversions.to_transform(trans + rot))
-            mating_transforms.append(mating_transform)
-        self._broadcaster.sendTransform(mating_transforms)
-        rospy.sleep(0.2)
-
-    def lookup_frame(self, collision_object_id):
-        return next(('_'.join([self.db_name, 'part', str(part['id']).zfill(2)]) for part in self._parts_list if part['name'] == collision_object_id))
+            mating_transform = get_transform(prefix + properties['parent'], prefix + frame, transform=conversions.to_transform(trans + rot))
+            self.mating_transforms_to_pub.append(mating_transform)
+        
+        if self.assembly_frame_pub_timer:
+            self.assembly_frame_pub_timer.shutdown()
+        rospy.loginfo("Starting to publish frames for assembly " + self.db_name)
+        self._broadcaster.sendTransform(self.mating_transforms_to_pub)
+        
+        # This line and the function below would be used for non-static transforms
+        # self.assembly_frame_pub_timer = rospy.Timer(rospy.Duration(3.0), self._pub_frames)
+        
+    def _pub_frames(self, timerevent):
+        for t in self.mating_transforms_to_pub:
+            t.header.stamp = rospy.Time.now()
+        self._broadcaster.sendTransform(self.mating_transforms_to_pub)
+    
+    def deactivate_frame_publishing(self, activate=True):
+        self.assembly_frame_pub_timer.shutdown()
 
     def get_assembly_tree(self, collision_objects = []):
         '''
@@ -140,17 +155,17 @@ class AssemblyReader(PartsReader):
         if not self.mating_transforms:
             rospy.loginfo("No assembly tree defined")
             return False
-        base_id = int(self.mating_transforms[0].header.frame_id.split('_')[2])
+        base_id = int(self.mating_transforms[0].header.frame_id.split('_')[1])  # The frame name is "part_NN_..."
         base_name = next((part['name'] for part in self._parts_list if part['id'] == base_id), None)
-        base_object = next((collision_object for collision_object in self.collision_objects if collision_object.id == base_name), None)
+        base_object = next((collision_object for collision_object in self._collision_objects if collision_object.id == base_name), None)
         assembly_tree = self._collision_object_to_tf_tree(base_object)
         for mating_transform in self.mating_transforms:
-            child_id = int(mating_transform.child_frame_id.split('_')[2])
+            child_id = int(mating_transform.child_frame_id.split('_')[1])
             child_name = next((part['name'] for part in self._parts_list if part['id'] == child_id), None)
-            child_object = next((collision_object for collision_object in self.collision_objects if collision_object.id == child_name), None)
+            child_object = next((collision_object for collision_object in self._collision_objects if collision_object.id == child_name), None)
             tree_2 = self._collision_object_to_tf_tree(child_object)
-            mating_transform.header.frame_id = mating_transform.header.frame_id.replace('assy_', '')
-            mating_transform.child_frame_id = mating_transform.child_frame_id.replace('assy_', '')
+            mating_transform.header.frame_id = mating_transform.header.frame_id
+            mating_transform.child_frame_id = mating_transform.child_frame_id
             self._add_part_to_assembly_tree(assembly_tree, tree_2, mating_transform)
         
         return assembly_tree
@@ -196,8 +211,8 @@ class AssemblyReader(PartsReader):
         part_id = next((str(part['id']) for part in self._parts_list if collision_object.id == part['name']), '')
         collision_object_frame_id = '_'.join(['part', part_id.zfill(2)])
         transform_pose = geometry_msgs.msg.Transform()
-        transform_pose.translation = conversions.to_vector3(conversions.from_point(collision_object.mesh_poses[0].position))
-        transform_pose.rotation = collision_object.mesh_poses[0].orientation
+        transform_pose.translation = conversions.to_vector3(conversions.from_point(collision_object.pose.position))
+        transform_pose.rotation = collision_object.pose.orientation
         collision_object_transform = get_transform(collision_object.header.frame_id, collision_object_frame_id, transform=transform_pose)
 
         # The transform describing the collision object pose in its reference frame is the same in the relative and absolute description

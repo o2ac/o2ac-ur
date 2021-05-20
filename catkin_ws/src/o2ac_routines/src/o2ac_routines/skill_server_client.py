@@ -38,20 +38,7 @@ class SkillServerClient():
         rospy.logdebug("Waiting for result")
         self.pick_screw_from_feeder_client.wait_for_result(rospy.Duration(60.0))
         rospy.logdebug("Getting result")
-        res = self.pick_screw_from_feeder_client.get_result()
-    
-        if res.success:
-            return True
-        else:
-            if realign_tool_upon_failure:
-                self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
-                rospy.loginfo("pickScrewFromFeeder failed. Realigning tool and retrying.")
-                screw_tool_id = "screw_tool_m" + str(screw_size)
-                self.realign_tool(robot_name, screw_tool_id)
-                return self.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure=False)
-            else:
-                self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
-                return False
+        return self.pick_screw_from_feeder_client.get_result()
         
     def do_place_action(self, robot_name, pose_stamped, tool_name = "", screw_size=0):
         # Call the place action
@@ -130,14 +117,14 @@ class SkillServerClient():
 
 ##### URScript with skill server? #####
 
-    def move_lin_rel(self, robot_name, relative_translation = [0,0,0], relative_rotation = [0,0,0], acceleration = 0.5, velocity = .03, use_robot_base_csys=False, wait = True, max_wait=30.0):
+    def move_lin_rel(self, robot_name, relative_translation = [0,0,0], relative_rotation = [0,0,0], acceleration = 0.5, velocity = .03, relative_to_robot_base=False, wait = True, max_wait=30.0):
         '''
         Does a lin_move relative to the current position of the robot. Uses the robot's TCP.
 
         robot_name = "b_bot" for example
         relative_translation: translatory movement relative to current tcp position, expressed in robot's own base frame
         relative_rotation: rotatory movement relative to current tcp position, expressed in robot's own base frame
-        use_robot_base_csys: If true, uses the robot_base coordinates for the relative motion (not workspace_center!)
+        relative_to_robot_base: If true, uses the robot_base coordinates for the relative motion (not workspace_center!)
         '''
         if rospy.is_shutdown():
             return False
@@ -155,7 +142,7 @@ class SkillServerClient():
         req.relative_rotation.z = relative_rotation[2]
         req.acceleration = acceleration
         req.velocity = velocity
-        req.lin_move_rel_in_base_csys = use_robot_base_csys
+        req.lin_move_rel_in_base_csys = relative_to_robot_base
         req.program_id = "lin_move_rel"
         res = self.urscript_client.call(req)
         if wait:
