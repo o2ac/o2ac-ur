@@ -575,11 +575,15 @@ class O2ACCommon(O2ACBase):
       return grasp_poses
 
     if object_id in self.small_item_ids:
-      # For small items, the object should be the only grasp pose.
+      # For the shaft, use the orientation from the SSD
+      if self.assembly_database.id_to_name(object_id) == "shaft":
+        return [self.objects_in_tray[object_id]]
+      # For other small items, use any pose from above that works
       return self.simple_grasp_generation(object_pose=self.objects_in_tray[object_id], grasp_z_height=0.0)
       # TODO: Consider the idler spacer, which can stand upright or lie on the side.
       
     if object_id in self.large_item_ids:
+      # For large items, use any pose from above that works
       # TODO: Get grasp poses from database
       return self.simple_grasp_generation(object_pose=self.objects_in_tray[object_id], grasp_z_height=0.02)
     
@@ -930,8 +934,13 @@ class O2ACCommon(O2ACBase):
     self.vision.activate_camera("b_bot_inside_camera")
     goal.pose.position.x -= 0.01 # MAGIC NUMBER
     goal.pose.position.z = 0.0115
-    self.pick_from_two_poses_topdown("b_bot", "bearing", goal)
     
+    self.simple_pick("b_bot", goal, gripper_force=100.0, approach_height=0.05, axis="z")
+
+    #TODO add bearing to scene
+    # if not self.pick_from_two_poses_topdown("b_bot", "bearing", goal):
+    #   rospy.logerr("Fail to pick bearing from tray")
+    #   return False
 
     if self.b_bot.gripper.opening_width < 0.01:
       rospy.logerr("Fail to grasp bearing")

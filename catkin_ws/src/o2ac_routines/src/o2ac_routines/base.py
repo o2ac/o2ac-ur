@@ -942,6 +942,4 @@ class O2ACBase(object):
     """ Publish a string to the status topic, which is then converted to an image and displayed in Rviz.
     """
     rospy.loginfo("Published status: " + text)
-    msg = String
-    msg.data = text
-    self.pub_status_text.publish(msg)
+    self.pub_status_text.publish(String(text))
