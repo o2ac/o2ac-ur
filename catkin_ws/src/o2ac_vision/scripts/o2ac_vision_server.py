@@ -67,6 +67,7 @@ from aist_localization  import LocalizationClient
 from o2ac_vision.pose_estimation_func import TemplateMatching
 from o2ac_vision.pose_estimation_func import FastGraspabilityEvaluation
 from o2ac_vision.pose_estimation_func import ShaftAnalysis
+from o2ac_vision.pose_estimation_func import PickCheck
 
 from o2ac_vision.cam_utils import O2ACCameraHelper
 
@@ -174,6 +175,10 @@ class O2ACVisionServer(object):
         self.shaft_notch_detection_action_server = actionlib.SimpleActionServer("~detect_shaft_notch", o2ac_msgs.msg.shaftNotchDetectionAction,
             execute_cb = self.shaft_notch_detection_callback, auto_start=False)
         self.shaft_notch_detection_action_server.start()
+
+        self.pick_success_action_server = actionlib.SimpleActionServer("~check_pick_success", o2ac_msgs.msg.checkPickSuccessAction,
+            execute_cb = self.pick_success_callback, auto_start=False)
+        self.pick_success_action_server.start()
         
         # For visualization
         self.pose_marker_id_counter = 0
@@ -285,6 +290,23 @@ class O2ACVisionServer(object):
         self.shaft_notch_detection_action_server.set_succeeded(action_result)
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
         self.write_to_log(im_in, im_vis, "shaft_notch_detection")
+
+    def pick_success_callback(self, goal):
+        self.pick_success_action_server.accept_new_goal()
+        rospy.loginfo("Received a request to detect pick success for item: " + goal.item_id)
+        # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
+        im_in = self.bridge.imgmsg_to_cv2(self.last_rgb_image, desired_encoding="bgr8")
+
+        action_result = o2ac_msgs.msg.checkPickSuccessResult()
+        
+        pick_successful, im_vis = self.check_pick_success(im_in, goal.item_id)
+
+        action_result.item_is_picked = pick_successful
+        action_result.success = True
+        
+        self.pick_success_action_server.set_succeeded(action_result)
+        self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
+        self.write_to_log(im_in, im_vis, "pick_success")
 
     def localization_callback(self, goal):
         rospy.loginfo("Received a request to localize objects via CAD matching")
@@ -537,6 +559,17 @@ class O2ACVisionServer(object):
         front, back = sa.main_proc( 0.5 ) # threshold.
         im_vis = sa.get_tm_result_image(front, back)
         return front, back, im_vis
+
+    def check_pick_success(self, im_in, item_id):
+        """ item_id is the object name, not the ID.
+        """
+        if item_id == "belt":
+            class_id = 6
+        pc = PickCheck(ssd_detection)
+        pick_successful = pc.check( im_in, class_id )
+        im_vis = pc.get_im_result()
+        return pick_successful, im_vis
+        
 
 ### ========
 

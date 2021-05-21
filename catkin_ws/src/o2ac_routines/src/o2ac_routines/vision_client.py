@@ -14,6 +14,7 @@ class VisionClient():
         self.ssd_client = actionlib.SimpleActionClient('/o2ac_vision_server/get_3d_poses_from_ssd', o2ac_msgs.msg.get3DPosesFromSSDAction)
         self.detect_shaft_client = actionlib.SimpleActionClient('/o2ac_vision_server/detect_shaft_notch', o2ac_msgs.msg.shaftNotchDetectionAction)
         self.detect_angle_client = actionlib.SimpleActionClient('/o2ac_vision_server/detect_angle', o2ac_msgs.msg.detectAngleAction)
+        self.pick_success_client = actionlib.SimpleActionClient('/o2ac_vision_server/check_pick_success', o2ac_msgs.msg.checkPickSuccessAction)
         self.localization_client = actionlib.SimpleActionClient('/o2ac_vision_server/localize_object', o2ac_msgs.msg.localizeObjectAction)
 
     def activate_camera(self, camera_name="b_bot_outside_camera"):
@@ -80,6 +81,21 @@ class VisionClient():
         res = self.detect_shaft_client.get_result()
         return res
     
+    def check_pick_success(self, object_name):
+        """ Returns true if the visual pick success check for the object returns True.
+            This can only be used in specific pre-determined situations and for certain items.
+            See the evaluatePickSuccess.action file.
+        """
+        goal = o2ac_msgs.msg.checkPickSuccessGoal()
+        goal.item_id = object_name
+        self.pick_success_client.send_goal(goal)
+        if (not self.pick_success_client.wait_for_result(rospy.Duration(3.0))):
+            self.pick_success_client.cancel_goal()  # Cancel goal if timeout expired
+            rospy.logerr("Call to pick success returned no result. Is o2ac_vision running?")
+            return False
+        res = self.pick_success_client.get_result()
+        return res.item_is_picked
+
     def localize_object(self, object_type):
         """
         Returns object pose if object was detected in current camera view,

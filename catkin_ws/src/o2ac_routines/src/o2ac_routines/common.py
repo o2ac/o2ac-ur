@@ -525,6 +525,30 @@ class O2ACCommon(O2ACBase):
 
     return self.execute_MTC_solution(res.solution, speed=0.1)
 
+  def thin_out_grasp_poses(self, grasp_poses, radius=0.02):
+    """ Takes a vector of grasp_poses and removes candidates that are too close to one another (distance < radius).
+        Candidates with higher distance from the border are preferred.
+        This is used for the belt grasp pose candidates.
+
+        This procedure may discard more grasp poses than necessary.
+    """
+    new_grasp_poses = []
+    for g1 in grasp_poses:
+      keep_g1 = True
+      for g2 in grasp_poses:
+        if g1 == g2:
+          continue
+        if pose_dist(g1.pose, g2.pose) < radius:
+          dx1, dy1 = self.distances_from_tray_border(g1)
+          dx2, dy2 = self.distances_from_tray_border(g2)
+          if min(dx1, dy1) < min(dx2, dy2):
+            keep_g1 = False
+            break
+      if keep_g1:
+        new_grasp_poses.append(g1)
+    return new_grasp_poses
+
+
   def simple_grasp_sanity_check(self, grasp_pose, grasp_width=0.08, border_dist=0.06):
     """
     Returns true if the grasp pose is further than 5 cm away from the tray border,
@@ -566,12 +590,14 @@ class O2ACCommon(O2ACBase):
       return False
     
     if object_id in self.belt_id:
+      # We get the belt grasp candidates directly from the vision because they are not stored anywhere from a previous view
       res = self.get_3d_poses_from_ssd()
       grasp_poses = []
       for idx, pose in enumerate(res.poses):
         if res.class_ids[idx] == 6:
           if self.is_grasp_pose_feasible(pose, border_dist=0.05):
             grasp_poses.append(pose)
+      grasp_poses = self.thin_out_grasp_poses(grasp_poses)
       return grasp_poses
 
     if object_id in self.small_item_ids:
