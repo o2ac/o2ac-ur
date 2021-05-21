@@ -225,19 +225,19 @@ class TaskboardClass(O2ACCommon):
 
     self.subtask_completed["belt"] = self.do_task("belt")
     
-    # self.subtask_completed["idler pulley"] = self.do_task("idler pulley")
-    # self.unequip_tool("b_bot", "screw_tool_m4")
+    self.subtask_completed["idler pulley"] = self.do_task("idler pulley")
+    self.unequip_tool("b_bot", "screw_tool_m4")
 
-    self.subtask_completed["shaft"] = self.do_task("shaft")
-    
     self.subtask_completed["motor pulley"] = self.do_task("motor pulley")
 
     self.subtask_completed["bearing"] = self.do_task("bearing")
     if self.subtask_completed["bearing"]:
       self.subtask_completed["screw_bearing"] = self.do_task("screw_bearing")
 
+    self.subtask_completed["shaft"] = self.do_task("shaft")
+    
     self.confirm_to_proceed("Continue into loop to retry parts?")
-    order = ["shaft", "motor pulley", "belt", "bearing"]
+    order = ["motor pulley", "belt", "bearing", "shaft", "idler pulley"]
     task_complete = False
     while not task_complete and not rospy.is_shutdown():
       for item in order:
@@ -247,6 +247,7 @@ class TaskboardClass(O2ACCommon):
           # if item == "bearing" and self.subtask_completed[item]: 
           #   if not self.subtask_completed["screw_bearing"]:
           #     self.do_task("screw_bearing")
+    self.publish_status_text("FINISHED")
       
 
   def do_task(self, task_name, fake_execution_for_calibration=False):
@@ -361,7 +362,7 @@ class TaskboardClass(O2ACCommon):
       self.a_bot.go_to_pose_goal(approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
 
       approach_pose.pose.position.y = -.0
-      approach_pose.pose.position.z = -.0
+      approach_pose.pose.position.z = -.004  # MAGIC NUMBER (z-axis of the frame points down)
       self.a_bot.go_to_pose_goal(approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
 
       hole_pose = geometry_msgs.msg.PoseStamped()
@@ -458,9 +459,10 @@ class TaskboardClass(O2ACCommon):
     # ==========================================================
 
     if task_name == "bearing":
-      self.pick_up_and_insert_bearing(task="taskboard")
+      return self.pick_up_and_insert_bearing(task="taskboard")
 
     if task_name == "screw_bearing":
+      self.equip_tool('b_bot', 'screw_tool_m4')
       success = self.fasten_bearing(task="taskboard")
       self.unequip_tool('b_bot', 'screw_tool_m4')
       return success
@@ -597,8 +599,8 @@ if __name__ == '__main__':
       rospy.loginfo("Enter 1 to move robots to home")
       rospy.loginfo("Enter 11, 12 to close/open grippers")
       rospy.loginfo("Enter 13, 14 to equip/unequip m3 screw tool")
-      rospy.loginfo("Enter 15, 16 to equip/unequip m4 screw tool")
-      # rospy.loginfo("Enter 17, 18 to equip/unequip belt placement tool")
+      rospy.loginfo("Enter 15, 16 to equip/unequip m4 screw tool (151,161: padless)")
+      # rospy.loginfo("Enter 17, 18 to equip/unequip set screw tool")
       rospy.loginfo("Enter 3 to calibrate screw tasks (31: M3, 32: M4)")
       rospy.loginfo("Subtasks: 51 (set screw), 52 (M3), 53 (M4), 54 (belt), 55 (motor pulley), 56 (shaft), 57 (bearing), 58 (idler pulley)")
       rospy.loginfo("Enter 8 to spawn example parts")
@@ -622,9 +624,16 @@ if __name__ == '__main__':
         taskboard.competition_mode = True
         taskboard.full_taskboard_task()
         taskboard.competition_mode = False
+      if i == "startnoscrews":
+        taskboard.competition_mode = True
+        taskboard.full_taskboard_task(do_screws=False)
+        taskboard.competition_mode = False
       if i == "test":
         taskboard.competition_mode = False
         taskboard.full_taskboard_task()
+      if i == "testnoscrews":
+        taskboard.competition_mode = False
+        taskboard.full_taskboard_task(do_screws=False)
       if i == "1":
         taskboard.a_bot.go_to_named_pose("home")
         taskboard.b_bot.go_to_named_pose("home")
@@ -642,6 +651,10 @@ if __name__ == '__main__':
         taskboard.equip_tool("b_bot", "screw_tool_m4")
       if i == "16":
         taskboard.unequip_tool("b_bot", "screw_tool_m4")
+      if i == "151":
+        taskboard.equip_tool("b_bot", "padless_tool_m4")
+      if i == "161":
+        taskboard.unequip_tool("b_bot", "padless_tool_m4")
       if i == "17":
         taskboard.equip_tool("b_bot", "set_screw_tool")
       if i == "18":
@@ -652,6 +665,10 @@ if __name__ == '__main__':
         taskboard.a_bot.go_to_named_pose("home")
         taskboard.do_task("M4 screw", fake_execution_for_calibration=True)
         taskboard.b_bot.go_to_named_pose("home")
+      if i == "31":
+        taskboard.do_task("M3 screw", fake_execution_for_calibration=True)
+      if i == "32":
+        taskboard.do_task("M4 screw", fake_execution_for_calibration=True)
       if i == "31":
         taskboard.do_task("M3 screw", fake_execution_for_calibration=True)
       if i == "32":

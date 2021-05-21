@@ -450,7 +450,7 @@ class O2ACCommon(O2ACBase):
         direction = "x"
     
     if not grasp_pose:
-      rospy.loginfo("too close to border. discarding. border distance was: " + str(d))
+      rospy.loginfo("too close to border. discarding. border distances were %0.3f, %0.3f" % (dx, dy))
       return False
     
     for obj, pose in self.objects_in_tray.items():
@@ -532,13 +532,13 @@ class O2ACCommon(O2ACBase):
 
     grasp_pose is a PoseStamped.
     """
-    (dx, dy) = self.distance_from_tray_border(grasp_pose)
+    (dx, dy) = self.distances_from_tray_border(grasp_pose)
     if dx < border_dist and dy < border_dist:
-      rospy.loginfo("too close to border. discarding. border distance was: " + str(d))
+      rospy.loginfo("too close to border. discarding. border distances were %0.3f, %0.3f" % (dx, dy))
       return False
     for obj, pose in self.objects_in_tray.items():
       if obj == 6: # Hard-code skipping the belt
-        rospy.logwarn("Skipping the belt during grasp check")
+        rospy.loginfo("Skipping the belt grasp points during grasp sanity check")
         continue
       if pose_dist(pose.pose, grasp_pose.pose) < 0.05:
         if pose_dist(pose.pose, grasp_pose.pose) < 1e-6:
@@ -1285,8 +1285,7 @@ class O2ACCommon(O2ACBase):
     
     self.a_bot.gripper.close()
 
-    if self.use_real_robot:
-      if self.a_bot.gripper.opening_width < 0.01:
+    if self.a_bot.gripper.opening_width < 0.01 and self.use_real_robot:
         rospy.logerr("Fail to grasp Idler Pulley")
         return False
 
@@ -1445,6 +1444,10 @@ class O2ACCommon(O2ACBase):
     print("shaft goal", goal)
     self.vision.activate_camera("b_bot_inside_camera")
     self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z")
+
+    if self.b_bot.gripper.opening_width < 0.004 and self.use_real_robot:
+        rospy.logerr("Fail to grasp Shaft")
+        return False
 
     rospy.loginfo("Going to approach pose (b_bot)")
     rotation = np.deg2rad([-22.5, -88.5, -157.5]).tolist()  # Arbitrary

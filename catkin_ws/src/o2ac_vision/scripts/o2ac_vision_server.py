@@ -128,7 +128,7 @@ class O2ACVisionServer(object):
         # Load parameters for detecting graspabilities
         default_param_fge = {"ds_rate": 0.5,
                              "n_grasp_point": 50,
-                             "threshold": 0.5}
+                             "threshold": 0.01}
         self.param_fge = rospy.get_param('~param_fge', default_param_fge)
 
         # Setup camera image subscribers
