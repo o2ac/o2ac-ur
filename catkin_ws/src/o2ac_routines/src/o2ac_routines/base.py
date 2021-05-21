@@ -115,7 +115,7 @@ class O2ACBase(object):
 
     self.skill_server = SkillServerClient()
     self.vision = VisionClient()
-    self.tools = Tools(self.use_real_robot)
+    self.tools = Tools()
 
     self.pick_place_planning_client = actionlib.SimpleActionClient('plan_pick_place', moveit_task_constructor_msgs.msg.PlanPickPlaceAction)
     self.pick_planning_client = actionlib.SimpleActionClient('/pick_planning', o2ac_task_planning_msgs.msg.PickObjectAction)
@@ -181,6 +181,7 @@ class O2ACBase(object):
     self.planning_scene_interface.remove_world_object()  # Clear all objects
     self.publish_robot_status()
 
+  @check_for_real_robot
   def activate_led(self, LED_name="b_bot", on=True):
     req = ur_msgs.srv.SetIORequest()
     if LED_name == "b_bot":
@@ -200,6 +201,8 @@ class O2ACBase(object):
     self.set_base_lock(closed=False)
   def lock_base_plate(self):
     self.set_base_lock(closed=True)
+
+  @check_for_real_robot
   def set_base_lock(self, closed=True):
     req_1 = ur_msgs.srv.SetIORequest()
     req_1.fun = ur_msgs.srv.SetIORequest.FUN_SET_DIGITAL_OUT
@@ -568,7 +571,6 @@ class O2ACBase(object):
     self.pickplace_planning_client.send_goal(goal)
     self.pickplace_planning_client.wait_for_result()
     return self.pickplace_planning_client.get_result()
-
 
   @save_task_plan
   def do_plan_fastening_action(self, object_name, object_target_pose, object_subframe_to_place = '', approach_place_direction_reference_frame = '', approach_place_direction = []):

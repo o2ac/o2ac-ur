@@ -3,9 +3,11 @@ import rospy
 from aist_camera_multiplexer import RealSenseMultiplexerClient
 import o2ac_msgs.msg
 
+from o2ac_routines.helpers import check_for_real_robot
+
 class VisionClient():
     def __init__(self):
-
+        self.use_real_robot = rospy.get_param("use_real_robot", False)
         try:
             self.vision_multiplexer = RealSenseMultiplexerClient('camera_multiplexer')
         except:
@@ -17,6 +19,7 @@ class VisionClient():
         self.pick_success_client = actionlib.SimpleActionClient('/o2ac_vision_server/check_pick_success', o2ac_msgs.msg.checkPickSuccessAction)
         self.localization_client = actionlib.SimpleActionClient('/o2ac_vision_server/localize_object', o2ac_msgs.msg.localizeObjectAction)
 
+    @check_for_real_robot
     def activate_camera(self, camera_name="b_bot_outside_camera"):
         try:
             if self.vision_multiplexer:

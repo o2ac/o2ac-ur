@@ -382,3 +382,12 @@ def get_target_force(direction, force):
 
 def ordered_joint_values_from_dict(joints_dict, joints_name_list):
   return conversions.to_float([joints_dict.get(q) for q in joints_name_list])
+
+def check_for_real_robot(func):
+    '''Decorator that validates the real robot is used or no'''
+  
+    def wrap(*args, **kwargs):
+        if args[0].use_real_robot:
+          return func(*args, **kwargs)
+        rospy.logwarn("Ignoring function %s since no real robot is being used" % func.__name__)
+    return wrap

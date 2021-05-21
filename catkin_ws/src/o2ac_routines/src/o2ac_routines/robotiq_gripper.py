@@ -6,8 +6,8 @@ from ur_control.controllers import GripperController  # Simulation only
 
 
 class RobotiqGripper():
-    def __init__(self, namespace, use_real_robot, gripper_group):
-        self.use_real_robot = use_real_robot
+    def __init__(self, namespace, gripper_group):
+        self.use_real_robot = rospy.get_param("use_real_robot", False)
         self.ns = namespace
 
         self.opening_width = 0.0
