@@ -9,7 +9,7 @@ from ur_control.hybrid_controller import ForcePositionController
 from ur_control.compliant_controller import CompliantController
 from ur_control.constants import STOP_ON_TARGET_FORCE, TERMINATION_CRITERIA, DONE
 
-from o2ac_routines.helpers import get_target_force, get_direction_index
+from o2ac_routines.helpers import get_target_force, get_direction_index, get_orthogonal_plane, get_random_valid_direction
 
 
 def create_pid(pid, default_ki=0.0, default_kd=0.0):
@@ -27,11 +27,13 @@ def create_pid(pid, default_ki=0.0, default_kd=0.0):
 
 
 class URForceController(CompliantController):
-    def __init__(self, robot_name, tcp_link='gripper_tip_link', **kwargs):
+    def __init__(self, robot_name, listener, tcp_link='gripper_tip_link', **kwargs):
         # TODO(cambel): fix this ugly workaround by properly defining the tool tip with respect to tool0
         if tcp_link == 'gripper_tip_link':
             ee_transform = [0.0, 0.0, 0.173, 0.500, -0.500, 0.500, 0.500]
             tcp_link = 'tool0'
+
+        self.listener = listener
 
         CompliantController.__init__(self, ft_sensor=True, namespace=robot_name,
                                      joint_names_prefix=robot_name+'_', robot_urdf=robot_name,
@@ -146,8 +148,51 @@ class URForceController(CompliantController):
                                     termination_criteria=termination_criteria,
                                     config_file=config_file)
 
-        if result == TERMINATION_CRITERIA or result == DONE or result == STOP_ON_TARGET_FORCE:
+        if result in (TERMINATION_CRITERIA, DONE, STOP_ON_TARGET_FORCE):
             rospy.loginfo("Completed linear_push: %s" % result)
             return True
         rospy.logerr("Fail to complete linear_push %s" % result)
         return False
+
+
+    def do_insertion(self, target_pose_in_target_frame, insertion_direction, timeout, 
+                           radius=0.0, radius_direction=None, force=1.0, relaxed_target_by=0.0,
+                           wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0,
+                           selection_matrix=None, displacement_epsilon=0.002, check_displacement_time=2.0):
+        """
+            target_pose_in_target_frame: PoseStamp, target in target frame
+            insertion_direction: string, [+/-] "X", "Y", or "Z" in robot's base frame! Note: limited to one direction TODO: convert to target frame? or compute from target frame?
+            relaxed_target_by: float, distance to allow the insertion to succeed if there is no motion in 2 seconds
+            TODO: try to make the insertion direction define-able as an axis with respect to the object-to-be-inserted and the target-frame
+        """
+        axis = get_direction_index(insertion_direction[1])
+        plane = get_orthogonal_plane(insertion_direction[1])
+        radius_direction = get_random_valid_direction(plane) if radius_direction is None else radius_direction
+
+        target_force = get_target_force(insertion_direction, force)
+        if selection_matrix is None:
+            selection_matrix = np.array(target_force == 0.0) * 0.8  # define the selection matrix based on the target force
+
+        def termination_criteria(current_pose, standby):
+            current_pose_robot_base = conversions.to_pose_stamped(self.ns + "_base_link", current_pose)
+            current_pose_in_target_frame = self.listener.transformPose(target_pose_in_target_frame.header.frame_id, current_pose_robot_base)
+            current_pose_of = conversions.from_pose_to_list(current_pose_in_target_frame.pose)
+            target_pose_of = conversions.from_pose_to_list(target_pose_in_target_frame.pose)
+            if target_pose_of[axis] >= 0:
+                return current_pose_of[axis] >= target_pose_of[axis] or \
+                            (standby and current_pose_of[axis] >= target_pose_of[axis] - relaxed_target_by)
+            return current_pose_of[axis] <= target_pose_of[axis] or \
+                        (standby and current_pose_of[axis] >= target_pose_of[axis] + relaxed_target_by)
+
+        result = self.execute_spiral_trajectory(plane, max_radius=radius, radius_direction=radius_direction, steps=100, revolutions=3,
+                                        wiggle_direction=wiggle_direction, wiggle_angle=wiggle_angle, wiggle_revolutions=wiggle_revolutions,
+                                        target_force=target_force, selection_matrix=selection_matrix, timeout=timeout,
+                                        displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time,
+                                        termination_criteria=termination_criteria)
+
+        if result in (TERMINATION_CRITERIA, DONE, STOP_ON_TARGET_FORCE):
+            rospy.loginfo("Completed insertion with state: %s" % result)
+            return True
+        rospy.logerr("Fail to complete insertion with state %s" % result)
+        return False
+

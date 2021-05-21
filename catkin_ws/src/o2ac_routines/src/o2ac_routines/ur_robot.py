@@ -34,7 +34,7 @@ class URRobot():
         self.marker_counter = 0
 
         try:
-            self.force_controller = URForceController(robot_name=namespace)
+            self.force_controller = URForceController(robot_name=namespace, listener=tf_listener)
         except rospy.ROSException as e:
             rospy.logwarn("No force control capabilities since controller could not be instantiated" + str(e))
 

@@ -3,6 +3,7 @@
 import sys
 import copy
 import rospy
+import random
 import numpy as np
 import geometry_msgs.msg
 import actionlib
@@ -370,15 +371,37 @@ def get_direction_index(direction):
   return DIRECTION_INDEX.get(direction)
 
 def get_target_force(direction, force):
-  VALID_DIRECTIONS = ('+X', '+Y', '+Z', '-X', '-Y', '-Z')
-  
-  assert direction in VALID_DIRECTIONS, "Invalid direction: %s" % direction
+  validate_direction(direction)
 
   res = [0.,0.,0.,0.,0.,0.]
   sign = 1. if '+' in direction else -1.
   res[get_direction_index(direction[1])] = force * sign
 
   return np.array(res)
+
+def validate_direction(direction):
+  VALID_DIRECTIONS = ('+X', '+Y', '+Z', '-X', '-Y', '-Z')
+  assert direction in VALID_DIRECTIONS, "Invalid direction: %s" % direction
+
+def get_orthogonal_plane(direction):
+  if direction == "X":
+    return "YZ"
+  elif direction == "Y":
+    return "XZ"
+  elif direction == "Z":
+    return "XY"
+  else:
+    raise ValueError("Invalid direction: %s" % direction)
+
+def get_random_valid_direction(plane):
+  if plane == "XZ":
+      return random.choice(["+X","-X","+Z","-Z"])
+  elif plane == "YZ":
+      return random.choice(["+Y","-Y","+Z","-Z"])
+  elif plane == "XY":
+      return random.choice(["+X","-X","+Y","-Y"])
+  else:
+      raise ValueError("Invalid value for plane: %s" % plane)
 
 def ordered_joint_values_from_dict(joints_dict, joints_name_list):
   return conversions.to_float([joints_dict.get(q) for q in joints_name_list])

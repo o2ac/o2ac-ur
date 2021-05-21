@@ -23,6 +23,12 @@ def main():
     global controller
     controller = O2ACCommon()
 
+    # controller.reset_scene_and_robots()
+
+    # controller.pick_and_insert_motor_pulley("taskboard")
+    controller.insert_motor_pulley("taskboard_small_shaft")
+    # target_force = get_target_force("+X", 2)
+    # print(np.array(target_force == 0.0) )
     # controller.playback_sequence("idler_pulley_release_screw_tool")
 
     # controller.b_bot.go_to_named_pose("screw_ready")
@@ -30,12 +36,11 @@ def main():
 
     # controller.assembly_database.change_assembly('taskboard')
     # controller.pick_and_insert_shaft("taskboard")
-    # controller.pick_and_insert_idler_pulley("taskboard")
 
-    controller.playback_sequence("idler_pulley_equip_nut_tool")
-    approach_pose = conversions.to_pose_stamp("taskboard_long_hole_middle_link", [0.1, 0.0, 0.0, 0.0, 0.0, 0.0])
-    controller.a_bot.move_lin(approach_pose, end_effector_link="a_bot_nut_tool_m4_hole_link", speed=0.4)
-    controller.playback_sequence("idler_pulley_unequip_nut_tool")
+    # controller.playback_sequence("idler_pulley_equip_nut_tool")
+    # approach_pose = conversions.to_pose_stamped("taskboard_long_hole_middle_link", [0.1, 0.0, 0.0, 0.0, 0.0, 0.0])
+    # controller.a_bot.move_lin(approach_pose, end_effector_link="a_bot_nut_tool_m4_hole_link", speed=0.4)
+    # controller.playback_sequence("idler_pulley_unequip_nut_tool")
     
 
     # controller.playback_sequence("idler_pulley_release_screw_tool")
@@ -51,9 +56,9 @@ def main():
     # controller.b_bot.move_lin_rel(relative_translation=[0.0, 0, 0.25], speed=0.2)
     # controller.unequip_tool("b_bot", "padless_tool_m4")
 
-    # approach_pose = conversions.to_pose_stamp("taskboard_long_hole_middle_link", [0.06, 0.0, 0.0, 0.0, 0.0, 0.0])
+    # approach_pose = conversions.to_pose_stamped("taskboard_long_hole_middle_link", [0.06, 0.0, 0.0, 0.0, 0.0, 0.0])
     # controller.a_bot.move_lin(approach_pose, end_effector_link="a_bot_nut_tool_m4_hole_link", speed=0.2)
-    # approach_pose = conversions.to_pose_stamp("taskboard_long_hole_middle_link", [0.012, 0.0, 0.0, 0.0, 0.0, 0.0])
+    # approach_pose = conversions.to_pose_stamped("taskboard_long_hole_middle_link", [0.012, 0.0, 0.0, 0.0, 0.0, 0.0])
     # controller.a_bot.move_lin(approach_pose, end_effector_link="a_bot_nut_tool_m4_hole_link", speed=0.2)
     # controller.b_bot.move_lin_rel(relative_translation=[0, 0, -0.015], speed=0.2)
     # controller.a_bot.move_lin_rel(relative_translation=[0.0, 0, 0.15], relative_to_robot_base=True)
@@ -77,7 +82,7 @@ def main():
     # controller.orient_idle_pulley("taskboard")
     # controller.prepare_screw_tool_idler_pulley("taskboard")
     # print("bearing_pose", controller.look_and_get_grasp_point("bearing"))
-    # fake_vision_pose = conversions.to_pose_stamp("tray_center", [-0.03078, 0.06248, 0.02, 0.0,0.7071,0.0,0.7071])
+    # fake_vision_pose = conversions.to_pose_stamped("tray_center", [-0.03078, 0.06248, 0.02, 0.0,0.7071,0.0,0.7071])
 
     # controller.b_bot.activate_ros_control_on_ur()
     # print(controller.a_bot.go_to_named_pose("home"))
