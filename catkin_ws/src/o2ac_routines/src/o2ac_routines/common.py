@@ -533,12 +533,12 @@ class O2ACCommon(O2ACBase):
     grasp_pose is a PoseStamped.
     """
     (dx, dy) = self.distances_from_tray_border(grasp_pose)
-    if dx < border_dist and dy < border_dist:
+    if dx < border_dist or dy < border_dist:
       rospy.loginfo("too close to border. discarding. border distances were %0.3f, %0.3f" % (dx, dy))
       return False
     for obj, pose in self.objects_in_tray.items():
       if obj == 6: # Hard-code skipping the belt
-        rospy.loginfo("Skipping the belt grasp points during grasp sanity check")
+        # rospy.loginfo("Skipping the belt grasp points during grasp sanity check")
         continue
       if pose_dist(pose.pose, grasp_pose.pose) < 0.05:
         if pose_dist(pose.pose, grasp_pose.pose) < 1e-6:
