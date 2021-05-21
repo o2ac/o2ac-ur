@@ -713,6 +713,8 @@ if __name__ == '__main__':
         taskboard.do_task("bearing")
       if i == "577":
         taskboard.do_task("screw_bearing")
+      if i == "579":
+        taskboard.fasten_bearing("taskboard", only_retighten=True)
       if i == "575":
         taskboard.align_bearing_holes(task="taskboard")
       if i == "58":

@@ -1062,21 +1062,40 @@ class O2ACCommon(O2ACBase):
     rospy.loginfo("** Second insertion done, moving back via MoveIt **")
     self.b_bot.move_lin_rel(relative_translation = [0.025,0,0], acceleration = 0.015, speed=.03)
     return True
-
-  def fasten_bearing(self, task=""):
-    if not task:
-      rospy.logerr("Specify the task!")
+  
+  def fasten_bearing(self, task="", only_retighten=False):
+    if not task in ["taskboard", "assembly"]:
+      rospy.logerr("Invalid task specification: " + task)
       return False
     self.a_bot.go_to_named_pose("home")
     self.equip_tool('b_bot', 'screw_tool_m4')
     self.vision.activate_camera("b_bot_outside_camera")
     intermediate_screw_bearing_pose = [31.0 /180.0*3.14, -137.0 /180.0*3.14, 121.0 /180.0*3.14, -114.0 /180.0*3.14, -45.0 /180.0*3.14, -222.0 /180.0*3.14]
     
+    screw_poses = []
+    for i in [1,2,3,4]:
+      screw_pose = geometry_msgs.msg.PoseStamped()
+      if task == "taskboard":
+        screw_pose.header.frame_id = "/taskboard_bearing_target_screw_" + str(i) + "_link"
+      elif task == "assembly":
+        screw_pose.header.frame_id = "/assembled_part_07_screw_hole_" + str(i)
+      else:
+        rospy.logerr("Invalid task specification: " + task)
+        return False
+      screw_pose.pose.position.z += -.001  # MAGIC NUMBER
+      screw_pose.pose.position.x += .005
+      screw_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/12, 0, 0) )
+      if task == "assembly":  # The target frame is oriented differently in taskboard and assembly.
+        screw_pose.pose = rotatePoseByRPY(tau/4, 0, 0, screw_pose.pose)
+      screw_pose_approach = copy.deepcopy(screw_pose)
+      screw_pose_approach.pose.position.x -= 0.05
+      screw_poses.append(screw_pose)
+
     _task = task  # Needs to be defined here so the nested function can access it
-    def pick_and_fasten_bearing_screw(screw_number, pick_screw=True):
+    def pick_and_fasten_bearing_screw(screw_pose, skip_picking=False):
       """Returns tuple (screw_success, break_out_of_loop)"""
       # Pick screw
-      if pick_screw:
+      if not skip_picking:
         self.b_bot.move_joints(intermediate_screw_bearing_pose)
         self.b_bot.go_to_named_pose("feeder_pick_ready")
         pick_success = self.pick_screw_from_feeder("b_bot", screw_size=4)
@@ -1084,60 +1103,40 @@ class O2ACCommon(O2ACBase):
           rospy.logerr("Could not pick screw. Why?? Breaking out.")
           self.unequip_tool('b_bot', 'screw_tool_m4')
           return (False, True)
+        self.b_bot.move_joints(intermediate_screw_bearing_pose)
+        self.b_bot.go_to_named_pose("horizontal_screw_ready")
       
-      # Fasten screw
-      self.b_bot.move_joints(intermediate_screw_bearing_pose)
-      self.b_bot.go_to_named_pose("horizontal_screw_ready")
-      screw_pose = geometry_msgs.msg.PoseStamped()
-      if _task == "taskboard":
-        screw_pose.header.frame_id = "/taskboard_bearing_target_screw_" + str(n) + "_link"
-      elif _task == "assembly":
-        screw_pose.header.frame_id = "/assembled_part_07_screw_hole_" + str(n)
-      else:
-        rospy.logerr("Incorrect task argument, frame could be determined! Breaking out.")
-        return False
-      
-      screw_pose.pose.position.x = 0.00  ## Why does this seem to be loose at 0.0?
-      screw_pose.pose.position.z = 0.00  ## MAGIC NUMBER
-      screw_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0) )
-      if task == "assembly":
-        # The target frame is oriented differently in taskboard and assembly.
-        screw_pose.pose = rotatePoseByRPY(tau/4, 0, 0, screw_pose.pose)
       screw_pose_approach = copy.deepcopy(screw_pose)
       screw_pose_approach.pose.position.x -= 0.07
       
       self.b_bot.go_to_pose_goal(screw_pose_approach, end_effector_link = "b_bot_screw_tool_m4_tip_link", move_lin=False)
       screw_success = self.skill_server.do_screw_action("b_bot", screw_pose, screw_size=4)
       self.b_bot.go_to_pose_goal(screw_pose_approach, end_effector_link = "b_bot_screw_tool_m4_tip_link", move_lin=False)
-      self.b_bot.move_joints(intermediate_screw_bearing_pose)
       return (screw_success, False)
 
+    # Initialize screw status
     screw_status = dict()
-    for n in [1,3,2,4]:  # Cross pattern
-      screw_status[n] = "empty"
-      if rospy.is_shutdown():
-        break
-      (screw_success, breakout) = pick_and_fasten_bearing_screw(n)
-      if breakout:
-        break
-      if screw_success:
-        screw_status[n] = "done"
-      if not screw_success and self.tools.screw_is_suctioned["m4"]:
-        screw_status[n] = "empty"
-      if not screw_success and not self.tools.screw_is_suctioned["m4"]:
+    for n in [1,2,3,4]:
+      if only_retighten:
         screw_status[n] = "maybe_stuck_in_hole"
-      rospy.loginfo("Screw " + str(n) + " detected as " + screw_status[n])
+      else:
+        screw_status[n] = "empty"
     
-    # Reattempt 
-    all_screws_done = all(value == "done" for value in screw_status.values())
+    self.confirm_to_proceed("intermediate pose")
+    self.b_bot.move_joints(intermediate_screw_bearing_pose)
+    self.confirm_to_proceed("horizontal screw ready")
+    self.b_bot.go_to_named_pose("horizontal_screw_ready")
+    # Go to bearing and fasten all the screws
+    all_screws_done = False
     while not all_screws_done and not rospy.is_shutdown():
-      for n in [1,2,3,4]:
+      for n in [1,3,2,4]:  # Cross pattern
         if rospy.is_shutdown():
           break
         if screw_status[n] == "empty":
-          (screw_success, breakout) = pick_and_fasten_bearing_screw(n)
+          (screw_success, breakout) = pick_and_fasten_bearing_screw(screw_poses[n-1])
         elif screw_status[n] == "maybe_stuck_in_hole":
-          (screw_success, breakout) = pick_and_fasten_bearing_screw(n, pick_screw=False)
+          (screw_success, breakout) = pick_and_fasten_bearing_screw(screw_poses[n-1], skip_picking=True)
+        
         if screw_success:
           screw_status[n] = "done"
         if not screw_success and self.tools.screw_is_suctioned["m4"]:
@@ -1148,7 +1147,6 @@ class O2ACCommon(O2ACBase):
       all_screws_done = all(value == "done" for value in screw_status.values())
 
     self.b_bot.move_joints(intermediate_screw_bearing_pose)
-    self.b_bot.go_to_named_pose("tool_pick_ready")
     return all_screws_done
 
   ########  Motor pulley
