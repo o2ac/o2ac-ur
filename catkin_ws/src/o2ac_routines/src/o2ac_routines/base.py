@@ -815,7 +815,9 @@ class O2ACBase(object):
         robot_name + "_left_inner_finger_pad",
         robot_name + "_right_inner_finger_pad",
         robot_name + "_left_inner_finger",
-        robot_name + "_right_inner_finger"
+        robot_name + "_right_inner_finger",
+        robot_name + "_left_inner_knuckle",
+        robot_name + "_right_inner_knuckle",
       ]
       for hand_link in hand_links:
         if allow:

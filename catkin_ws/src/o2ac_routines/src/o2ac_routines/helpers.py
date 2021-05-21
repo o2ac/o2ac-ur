@@ -265,7 +265,7 @@ def publish_marker_(marker_publisher, marker_pose_stamped, marker_type="", names
   marker.ns = namespace
   if not marker.ns:
     marker.ns = "markers"
-  helper_fct_marker_id_count = 0
+  helper_fct_marker_id_count = np.random.randint(2147483647)  # int32
   marker.id = helper_fct_marker_id_count
   marker.lifetime = rospy.Duration(60.0)
   marker.action = visualization_msgs.msg.Marker.ADD
