@@ -36,6 +36,7 @@ void touch_test(const std::shared_ptr<Client> &client,
   */
 
   // Load object from stl file
+
   std::shared_ptr<moveit_msgs::CollisionObject> gripped_geometry;
   load_CollisionObject_from_file(gripped_geometry, gripped_geometry_file_path);
 

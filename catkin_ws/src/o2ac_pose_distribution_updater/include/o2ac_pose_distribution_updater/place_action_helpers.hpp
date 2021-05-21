@@ -25,6 +25,6 @@ void place_update_distribution(const Particle &old_mean,
                                const Eigen::Vector3d &_ground_touch_vertex_2,
                                const Eigen::Vector3d &_ground_touch_vertex_3,
                                const double &_support_surface,
-                               const Eigen::Isometry3d _gripper_transform,
+                               const Eigen::Isometry3d &_gripper_transform,
                                Particle &new_mean,
                                CovarianceMatrix &new_covariance);

@@ -1,7 +1,5 @@
 <launch>
 
-    <arg name="CAD_directory"	default="$(find o2ac_pose_distribution_updater)/CAD"/>
-
     <rosparam>
       number_of_particles: 1000
       noise_variance: [0.001, 0.001, 0.001, 0.0087, 0.0087, 0.0087]
@@ -19,8 +17,10 @@
       camera_fy: 1386.4278564453125
       camera_cx: 980.115173398438
       camera_cy: 534.3704833984375
+
+      marker_array_topic_name: o2ac_pose_belief_visualization_marker_array
     </rosparam>
 
-    <node name="shaft_pose_distribution_updater" pkg="o2ac_pose_distribution_updater" type="update_distribution_action_server" output="screen">
+    <node name="pose_distribution_updater" pkg="o2ac_pose_distribution_updater" type="update_distribution_action_server" output="screen">
     </node>
 </launch>

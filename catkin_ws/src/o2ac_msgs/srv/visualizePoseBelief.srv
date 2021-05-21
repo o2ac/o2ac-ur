@@ -1,0 +1,5 @@
+#Request
+moveit_msgs/CollisionObject object
+geometry_msgs/PoseWithCovarianceStamped distribution
+---
+#Response

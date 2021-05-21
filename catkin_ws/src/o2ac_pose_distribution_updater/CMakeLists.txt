@@ -20,6 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   eigen_conversions
   o2ac_msgs
+  tf2_ros
 )
 
 find_package(Eigen3 REQUIRED)
@@ -59,24 +60,12 @@ add_library(read_stl src/read_stl.cpp)
 add_library(estimator src/estimator.cpp src/place_action_helpers.cpp)
 target_link_libraries(estimator ${FCL_LIBRARIES} ${OpenCV_LIBRARIES} )
 
-add_executable(update_distribution_action_server src/action_server.cpp src/ros_converted_estimator.cpp)
+add_executable(update_distribution_action_server src/action_server.cpp src/ros_converted_estimator.cpp src/pose_belief_visualizer.cpp)
 add_dependencies(update_distribution_action_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(update_distribution_action_server estimator ros_converters)
 
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
-  add_rostest_gtest(test_client test/test_client.test src/test/test_client.cpp src/test/touch_test.cpp src/test/look_test.cpp src/test/place_test.cpp)
+  add_rostest_gtest(test_client test/unit_test.test src/test/test_client.cpp src/test/touch_test.cpp src/test/look_test.cpp src/test/place_test.cpp)
   target_link_libraries(test_client ros_converters ${FCL_LIBRARIES} ${OpenCV_LIBRARIES} read_stl)
 endif()
-
-########################
-# Test Case Generators #
-########################
-
-add_executable(touch_test_case_generator src/test/generate_touch_test_case.cpp)
-add_dependencies(touch_test_case_generator ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(touch_test_case_generator estimator read_stl)
-
-add_executable(place_test_case_generator src/test/generate_place_test_case.cpp)
-add_dependencies(place_test_case_generator ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(place_test_case_generator estimator read_stl)

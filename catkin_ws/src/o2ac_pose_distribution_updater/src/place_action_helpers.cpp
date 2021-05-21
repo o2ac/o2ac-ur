@@ -5,14 +5,21 @@ Helper functions for the place action
 #include "o2ac_pose_distribution_updater/place_action_helpers.hpp"
 
 int argmin(const std::vector<double> &vec) {
-  return std::distance(vec.begin(), std::min_element(vec.begin(), vec.end()));
+  const double EPS = 1e-6;
+  int min_id = 0;
+  for (int i = 1; i < vec.size(); i++) {
+    if (vec[min_id] - EPS > vec[i]) {
+      min_id = i;
+    }
+  }
+  return min_id;
 }
 
 void find_three_points(const std::vector<Eigen::Vector3d> &current_vertices,
                        const Eigen::Vector3d &current_center_of_gravity,
                        int &ground_touch_vertex_id_1,
                        int &ground_touch_vertex_id_2,
-                       int &ground_touch_vertix_id_3,
+                       int &ground_touch_vertex_id_3,
                        Eigen::Quaterniond &rotation, bool &stability) {
   // Given the coordinates of vertices and center of gravity, find the three
   // points touching the ground after placing The object rotation occured by
@@ -47,7 +54,7 @@ void find_three_points(const std::vector<Eigen::Vector3d> &current_vertices,
   // angle to touch the ground
   std::vector<double> first_angles(number_of_vertices);
   for (int i = 0; i < number_of_vertices; i++) {
-    auto v1v2 =
+    Eigen::Vector3d v1v2 =
         current_vertices[i] - current_vertices[ground_touch_vertex_id_1];
     first_angles[i] = (i == ground_touch_vertex_id_1
                            ? INF
@@ -58,9 +65,10 @@ void find_three_points(const std::vector<Eigen::Vector3d> &current_vertices,
 
   // calculate the coordinates of vertices and the center of gravity after the
   // first rotation
-  auto first_rotation =
-      Eigen::AngleAxisd(first_angles[ground_touch_vertex_id_2], first_axis);
-  auto rotated_center_of_gravity = first_rotation * current_center_of_gravity;
+  Eigen::AngleAxisd first_rotation(first_angles[ground_touch_vertex_id_2],
+                                   first_axis);
+  Eigen::Vector3d rotated_center_of_gravity =
+      first_rotation * current_center_of_gravity;
   std::vector<Eigen::Vector3d> rotated_vertices(number_of_vertices);
   for (int i = 0; i < number_of_vertices; i++) {
     rotated_vertices[i] = first_rotation * current_vertices[i];
@@ -69,9 +77,9 @@ void find_three_points(const std::vector<Eigen::Vector3d> &current_vertices,
   // After the second point touched the ground, the object rotates with an axis,
   // which is the line connecting the first touching point and the second
   // touching point
-  auto second_axis = (rotated_vertices[ground_touch_vertex_id_2] -
-                      rotated_vertices[ground_touch_vertex_id_1])
-                         .normalized();
+  Eigen::Vector3d second_axis = (rotated_vertices[ground_touch_vertex_id_2] -
+                                 rotated_vertices[ground_touch_vertex_id_1])
+                                    .normalized();
   // The direction of rotation is the one such that the center of gravity
   // approached the ground
   double direction =
@@ -88,7 +96,7 @@ void find_three_points(const std::vector<Eigen::Vector3d> &current_vertices,
   // to touch the ground
   std::vector<double> second_angles(number_of_vertices);
   for (int i = 0; i < number_of_vertices; i++) {
-    auto v1v3 =
+    Eigen::Vector3d v1v3 =
         rotated_vertices[i] - rotated_vertices[ground_touch_vertex_id_1];
     second_angles[i] =
         (i == ground_touch_vertex_id_1 || i == ground_touch_vertex_id_2
@@ -96,17 +104,18 @@ void find_three_points(const std::vector<Eigen::Vector3d> &current_vertices,
              : std::atan2(v1v3(2),
                           second_axis(1) * v1v3(0) - second_axis(0) * v1v3(1)));
   }
-  ground_touch_vertix_id_3 = argmin(second_angles);
+  ground_touch_vertex_id_3 = argmin(second_angles);
 
   // calculate the total rotation
-  auto second_rotation =
-      Eigen::AngleAxisd(second_angles[ground_touch_vertix_id_3], second_axis);
+  Eigen::AngleAxisd second_rotation(second_angles[ground_touch_vertex_id_3],
+                                    second_axis);
   rotation = second_rotation * first_rotation;
 
   // stability check
 
   // calculate the coordinates after the second rotation
-  auto final_center_of_gravity = second_rotation * rotated_center_of_gravity;
+  Eigen::Vector3d final_center_of_gravity =
+      second_rotation * rotated_center_of_gravity;
   std::vector<Eigen::Vector3d> final_vertices(number_of_vertices);
   for (int i = 0; i < number_of_vertices; i++) {
     final_vertices[i] = second_rotation * rotated_vertices[i];
@@ -120,7 +129,7 @@ void find_three_points(const std::vector<Eigen::Vector3d> &current_vertices,
   bg::model::multi_point<bg_2d_point> points_on_ground;
 
   for (int i = 0; i < number_of_vertices; i++) {
-    auto vertice = final_vertices[i];
+    Eigen::Vector3d &vertice = final_vertices[i];
     if (vertice(2) <= min_z + EPS) {
       bg::append(points_on_ground, bg_2d_point(vertice(0), vertice(1)));
     }
@@ -170,22 +179,22 @@ public:
 
     // calculate the coordinates when the pose is represented by particle
     // 'current_particle'
-    auto gripper_transform_T =
-        (Eigen::Transform<T, 3, Eigen::Isometry>)gripper_transform;
-    auto current_transform =
+    Eigen::Transform<T, 3, Eigen::Isometry> gripper_transform_T =
+        gripper_transform.cast<T>();
+    Eigen::Transform<T, 3, Eigen::Isometry> current_transform =
         gripper_transform_T *
         Eigen::Translation<T, 3>(current_particle.block(0, 0, 3, 1)) *
         Eigen::AngleAxis<T>(current_particle(5), point::UnitZ()) *
         Eigen::AngleAxis<T>(current_particle(4), point::UnitY()) *
         Eigen::AngleAxis<T>(current_particle(3), point::UnitX());
     point current_center_of_gravity =
-        current_transform * (point)center_of_gravity;
+        current_transform * center_of_gravity.cast<T>();
     point current_ground_touch_vertex_1 =
-        current_transform * (point)ground_touch_vertex_1;
+        current_transform * ground_touch_vertex_1.cast<T>();
     point current_ground_touch_vertex_2 =
-        current_transform * (point)ground_touch_vertex_2;
+        current_transform * ground_touch_vertex_2.cast<T>();
     point current_ground_touch_vertex_3 =
-        current_transform * (point)ground_touch_vertex_3;
+        current_transform * ground_touch_vertex_3.cast<T>();
 
     // calculate the first rotation
     point v1v2 = current_ground_touch_vertex_2 - current_ground_touch_vertex_1;
@@ -195,7 +204,7 @@ public:
             .normalized();
     T first_angle =
         atan2(v1v2(2), first_axis(1) * v1v2(0) - first_axis(0) * v1v2(1));
-    auto first_rotation = Eigen::AngleAxis<T>(first_angle, first_axis);
+    Eigen::AngleAxis<T> first_rotation(first_angle, first_axis);
 
     // calculate the coordinates after first rotation
     point rotated_center_of_gravity =
@@ -212,22 +221,21 @@ public:
     point second_axis =
         (rotated_ground_touch_vertex_2 - rotated_ground_touch_vertex_1)
             .normalized();
-    if (second_axis.cross(point::UnitZ())
-            .dot(rotated_center_of_gravity - rotated_ground_touch_vertex_1) <
-        0) {
+    if ((rotated_center_of_gravity - rotated_ground_touch_vertex_1)
+            .cross(second_axis)(2) < 0.0) {
       second_axis = -second_axis;
     }
     T second_angle =
         atan2(v1v3(2), second_axis(1) * v1v3(0) - second_axis(0) * v1v3(1));
-    auto second_rotation(Eigen::AngleAxis<T>(second_angle, second_axis));
+    Eigen::AngleAxis<T> second_rotation(second_angle, second_axis);
 
     // calculate the coordinates after second rotation
-    auto final_center_of_gravity = second_rotation * rotated_center_of_gravity;
-    auto final_ground_touch_vertex_1 =
+    point final_center_of_gravity = second_rotation * rotated_center_of_gravity;
+    point final_ground_touch_vertex_1 =
         second_rotation * rotated_ground_touch_vertex_1;
-    auto final_ground_touch_vertex_2 =
+    point final_ground_touch_vertex_2 =
         second_rotation * rotated_ground_touch_vertex_2;
-    auto final_ground_touch_vertex_3 =
+    point final_ground_touch_vertex_3 =
         second_rotation * rotated_ground_touch_vertex_3;
     // The translation is occured to hold the physical restraints
     point final_translation =
@@ -241,10 +249,11 @@ public:
               (point::UnitZ()); // The z-coordinate of the vertices touching the
                                 // ground is that of the ground
     // calculate the pose after placing
-    auto result_transform = gripper_transform_T.inverse() *
-                            Eigen::Translation<T, 3>(final_translation) *
-                            second_rotation * first_rotation *
-                            current_transform;
+    Eigen::Transform<T, 3, Eigen::Isometry> result_transform =
+        gripper_transform_T.inverse() *
+        Eigen::Translation<T, 3>(final_translation) * second_rotation *
+        first_rotation * current_transform;
+
     // convert it to Particle
     result_particle->block(0, 0, 3, 1) = result_transform.translation();
     Eigen::Quaternion<T> result_rotation(result_transform.rotation());
@@ -264,7 +273,7 @@ void place_update_distribution(const Particle &old_mean,
                                const Eigen::Vector3d &_ground_touch_vertex_2,
                                const Eigen::Vector3d &_ground_touch_vertex_3,
                                const double &_support_surface,
-                               const Eigen::Isometry3d _gripper_transform,
+                               const Eigen::Isometry3d &_gripper_transform,
                                Particle &new_mean,
                                CovarianceMatrix &new_covariance) {
   center_of_gravity = _center_of_gravity;
@@ -277,7 +286,7 @@ void place_update_distribution(const Particle &old_mean,
   Eigen::AutoDiffJacobian<calculate_particle> calculate_particle_AD;
   // By Eigen AutoDiff, calculate_particle_AD automatically calculates the
   // operation of calculate_particle and its Jacobian
-  CovarianceMatrix Jacobian;
+  CovarianceMatrix Jacobian, numerical_Jacobian;
   calculate_particle_AD(old_mean, &new_mean, &Jacobian);
 
   // The covariance of the function value is calculated by the covariance of the

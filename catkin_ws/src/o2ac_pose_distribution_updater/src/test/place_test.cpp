@@ -12,9 +12,40 @@ Eigen::Isometry3d particle_to_eigen_transform(const Particle &p) {
          Eigen::AngleAxis<double>(p(3), Eigen::Vector3d::UnitX());
 }
 
+void msg_pose_to_msg_transform(const geometry_msgs::Pose &pose,
+                               geometry_msgs::Transform &transform) {
+  transform.translation.x = pose.position.x;
+  transform.translation.y = pose.position.y;
+  transform.translation.z = pose.position.z;
+  transform.rotation = pose.orientation;
+}
+
+void broadcast_gripper_pose(const std::string &frame_id,
+                            const ros::Time &current_time,
+                            const geometry_msgs::Pose &pose) {
+  static tf2_ros::StaticTransformBroadcaster broadcaster;
+  geometry_msgs::TransformStamped transform_stamped;
+  transform_stamped.header.frame_id = "world";
+  transform_stamped.header.stamp = current_time;
+  transform_stamped.child_frame_id = frame_id;
+  msg_pose_to_msg_transform(pose, transform_stamped.transform);
+  broadcaster.sendTransform(transform_stamped);
+}
+
+void send_pose_belief(
+    ros::ServiceClient &visualizer_client,
+    const moveit_msgs::CollisionObject &object,
+    const geometry_msgs::PoseWithCovarianceStamped &distribution) {
+  o2ac_msgs::visualizePoseBelief pose_belief;
+  pose_belief.request.object = object;
+  pose_belief.request.distribution = distribution;
+  visualizer_client.call(pose_belief);
+}
+
 void place_test(const std::shared_ptr<Client> &client,
                 const std::string &test_file_path,
-                const std::string &gripped_geometry_file_path) {
+                const std::string &gripped_geometry_file_path,
+                const bool &visualize, ros::ServiceClient &visualizer_client) {
   /*
     This procedure is given the path of the input file.
     The input file consists of some blocks of the form:
@@ -71,6 +102,23 @@ void place_test(const std::shared_ptr<Client> &client,
     goal.place_observation.support_surface = support_surface;
     goal.distribution.pose = to_PoseWithCovariance(mean, covariance);
     goal.gripped_object = *gripped_geometry;
+
+    if (visualize) {
+      // name the current gripper frame
+      static int gripper_id = 0;
+      std::string gripper_frame_id = "gripper-" + std::to_string(gripper_id++);
+      // store the current time
+      auto current_time = ros::Time::now();
+      // broadcast the gripper pose
+      broadcast_gripper_pose(gripper_frame_id, current_time,
+                             goal.place_observation.gripper_pose.pose);
+      // visualize the pose belief before placing
+      goal.distribution.header.frame_id = gripper_frame_id;
+      goal.distribution.header.stamp = current_time;
+      send_pose_belief(visualizer_client, goal.gripped_object,
+                       goal.distribution);
+    }
+
     // Send a call
     client->sendGoal(goal);
     client->waitForResult();
@@ -94,6 +142,13 @@ void place_test(const std::shared_ptr<Client> &client,
     } else {
       // It is expected that the update is calculated successfully
       ASSERT_TRUE(result->success);
+
+      if (visualize) {
+        // visualize the pose belief after placing
+        send_pose_belief(visualizer_client, goal.gripped_object,
+                         result->distribution);
+      }
+
       // Convert messages to Eigen Matrices
       Particle new_mean = pose_to_particle(result->distribution.pose.pose);
       CovarianceMatrix new_covariance =

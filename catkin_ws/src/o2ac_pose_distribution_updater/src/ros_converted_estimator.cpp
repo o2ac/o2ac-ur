@@ -13,7 +13,7 @@ void ROSConvertedPoseEstimator::touched_step(
   CollisionObject_to_eigen_vectors(gripped_object, vertices, triangles);
 
   // convert from geometry_msgs::Pose to fcl::Transform3f
-  auto gripper_transform = pose_to_fcl_transform(gripper_pose);
+  fcl::Transform3f gripper_transform = pose_to_fcl_transform(gripper_pose);
 
   // convert from PoseWithcovariance to Particle and CovarianceMatrix
   Particle old_mean = pose_to_particle(old_distibution.pose), new_mean;
@@ -78,7 +78,7 @@ void ROSConvertedPoseEstimator::look_step(
   tf::poseMsgToEigen(gripper_pose, gripper_transform);
 
   // convert from sensor_msgs::Image to cv::Mat
-  auto cv_looked_image =
+  cv::Mat cv_looked_image =
       cv_bridge::toCvCopy(looked_image, sensor_msgs::image_encodings::BGR8)
           ->image;
 

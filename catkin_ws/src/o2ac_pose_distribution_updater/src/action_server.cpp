@@ -2,6 +2,8 @@
 The implementation of the action server for updateDistribution action
  */
 
+#include "o2ac_msgs/updateDistributionAction.h"
+#include "o2ac_pose_distribution_updater/pose_belief_visualizer.hpp"
 #include "o2ac_pose_distribution_updater/ros_converted_estimator.hpp"
 #include <actionlib/server/simple_action_server.h>
 #include <ros/ros.h>
@@ -82,6 +84,7 @@ void execute(const o2ac_msgs::updateDistributionGoalConstPtr &goal) {
 } // namespace
 
 void sigint_handler(int sig) {
+  estimator.reset();
   server->shutdown();
   server.reset();
   ros::shutdown();
@@ -90,7 +93,6 @@ void sigint_handler(int sig) {
 int main(int argc, char **argv) {
   ros::init(argc, argv, "update_distribution_action_server");
   ros::NodeHandle nd;
-  ros::NodeHandle pnd("~");
 
   // Read the parameters from rosparam and initialize estimator
 
@@ -167,10 +169,22 @@ int main(int argc, char **argv) {
                                  calibration_image_points, camera_fx, camera_fy,
                                  camera_cx, camera_cy);
 
-  // start the server
+  // start the action server
   server = std::unique_ptr<Server>(
       new Server(nd, "update_distribution", execute, false));
   server->start();
+
+  // start the pose belief visualization server
+  std::string marker_array_topic_name;
+  nd.getParam("marker_array_topic_name", marker_array_topic_name);
+  PoseBeliefVisualizer pose_belief_visualizer(nd, marker_array_topic_name);
+  pose_belief_visualizer.set_scale(1.0, 1.0, 1.0);
+  pose_belief_visualizer.set_mean_color(1.0, 0.0, 0.0, 1.0);
+  pose_belief_visualizer.set_variance_color(0.0, 0.0, 1.0, 1.0);
+  ros::ServiceServer server_to_visualize_pose_belief =
+      nd.advertiseService("visualize_pose_belief",
+                          &PoseBeliefVisualizer::publish_marker_for_pose_belief,
+                          &pose_belief_visualizer);
 
   signal(SIGINT, sigint_handler);
 

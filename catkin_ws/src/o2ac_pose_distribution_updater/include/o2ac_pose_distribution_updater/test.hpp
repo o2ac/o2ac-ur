@@ -1,3 +1,5 @@
+#include "o2ac_msgs/updateDistributionAction.h"
+#include "o2ac_msgs/visualizePoseBelief.h"
 #include "o2ac_pose_distribution_updater/read_stl.hpp"
 #include "o2ac_pose_distribution_updater/ros_converters.hpp"
 #include <actionlib/client/simple_action_client.h>
@@ -6,6 +8,7 @@
 #include <gtest/gtest.h>
 #include <opencv2/opencv.hpp>
 #include <ros/ros.h>
+#include <tf2_ros/static_transform_broadcaster.h>
 
 using Client =
     actionlib::SimpleActionClient<o2ac_msgs::updateDistributionAction>;
@@ -27,4 +30,5 @@ void look_test(const std::shared_ptr<Client> &client,
 
 void place_test(const std::shared_ptr<Client> &client,
                 const std::string &test_file_path,
-                const std::string &gripped_geometry_file_path);
+                const std::string &gripped_geometry_file_path,
+                const bool &visualize, ros::ServiceClient &visualizer_client);

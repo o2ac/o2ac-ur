@@ -82,9 +82,9 @@ Eigen::Vector3d calculate_center_of_gravity(
   center_of_gravity.setZero();
   double total_volume = 0.0;
   for (int j = 0; j < triangles.size(); j++) {
-    auto ver0 = vertices[triangles[j][0]];
-    auto ver1 = vertices[triangles[j][1]];
-    auto ver2 = vertices[triangles[j][2]];
+    auto &ver0 = vertices[triangles[j][0]];
+    auto &ver1 = vertices[triangles[j][1]];
+    auto &ver2 = vertices[triangles[j][2]];
     double tetra_volume = ver0.dot(ver1.cross(ver2));
     center_of_gravity += tetra_volume * (ver0 + ver1 + ver2);
     total_volume += tetra_volume;
@@ -111,8 +111,8 @@ void PoseEstimator::set_touch_parameters(
 
 void PoseEstimator::set_look_parameters(
     const double &look_threshold,
-    const std::vector<std::vector<double>> calibration_object_points,
-    const std::vector<std::vector<double>> calibration_image_points,
+    const std::vector<std::vector<double>> &calibration_object_points,
+    const std::vector<std::vector<double>> &calibration_image_points,
     const double &camera_fx, const double &camera_fy, const double &camera_cx,
     const double &camera_cy) {
   this->look_threshold = look_threshold;
@@ -121,11 +121,11 @@ void PoseEstimator::set_look_parameters(
   std::vector<cv::Point2d> cv_calibration_image_points(
       calibration_image_points.size());
   for (int i = 0; i < calibration_object_points.size(); i++) {
-    auto p = calibration_object_points[i];
+    auto &p = calibration_object_points[i];
     cv_calibration_object_points[i] = cv::Point3d(p[0], p[1], p[2]);
   }
   for (int i = 0; i < calibration_image_points.size(); i++) {
-    auto p = calibration_image_points[i];
+    auto &p = calibration_image_points[i];
     cv_calibration_image_points[i] = cv::Point2d(p[0], p[1]);
   }
   camera_matrix.at<double>(0, 0) = camera_fx;
@@ -242,8 +242,8 @@ void PoseEstimator::place_step(
       calculate_center_of_gravity(vertices, triangles);
   // calculate the coordinates of vertices of the object when the pose is the
   // given mean
-  auto mean_transform = particle_to_eigen_transform(old_mean);
-  auto current_center_of_gravity =
+  Eigen::Isometry3d mean_transform = particle_to_eigen_transform(old_mean);
+  Eigen::Vector3d current_center_of_gravity =
       gripper_transform * mean_transform * center_of_gravity_of_gripped;
   std::vector<Eigen::Vector3d> current_vertices(number_of_vertices);
   for (int i = 0; i < number_of_vertices; i++) {
@@ -290,7 +290,7 @@ cv::Mat PoseEstimator::generate_image(
   int number_of_vertices = vertices.size();
   std::vector<cv::Point3d> object_points(number_of_vertices);
   for (int i = 0; i < number_of_vertices; i++) {
-    auto current_ver = transform * vertices[i];
+    Eigen::Vector3d current_ver = transform * vertices[i];
     object_points[i] = to_cv_point(current_ver);
   }
 
@@ -344,7 +344,7 @@ void PoseEstimator::calculate_look_likelihoods(
   ROI_rectangle[3] = cv::Point(range_of_interest[0], range_of_interest[3]);
   cv::fillConvexPoly(ROI_mask, ROI_rectangle, 4, 1);
   for (int i = 0; i < number_of_particles; i++) {
-    auto estimated_image = generate_image(
+    cv::Mat estimated_image = generate_image(
         vertices, triangles,
         gripper_transform * particle_to_eigen_transform(particles[i]),
         binary_looked_image.size());

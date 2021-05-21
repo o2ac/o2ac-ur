@@ -61,8 +61,8 @@ public:
       const double &distance_threshold);
   void set_look_parameters(
       const double &look_threshold,
-      const std::vector<std::vector<double>> calibration_object_points,
-      const std::vector<std::vector<double>> calibration_image_points,
+      const std::vector<std::vector<double>> &calibration_object_points,
+      const std::vector<std::vector<double>> &calibration_image_points,
       const double &camera_fx, const double &camera_fy, const double &camera_cx,
       const double &camera_cy);
 

@@ -48,16 +48,19 @@ geometry_msgs::Pose to_Pose(const double &x, const double &y, const double &z,
   return pose;
 }
 
+void particle_to_pose(const Particle &particle, geometry_msgs::Pose &pose) {
+  pose.position.x = particle(0);
+  pose.position.y = particle(1);
+  pose.position.z = particle(2);
+  RPY_to_quaternion(particle(3), particle(4), particle(5), pose.orientation.w,
+                    pose.orientation.x, pose.orientation.y, pose.orientation.z);
+}
+
 geometry_msgs::PoseWithCovariance
 to_PoseWithCovariance(const Particle &mean,
                       const CovarianceMatrix &covariance) {
   geometry_msgs::PoseWithCovariance pwc;
-  pwc.pose.position.x = mean(0);
-  pwc.pose.position.y = mean(1);
-  pwc.pose.position.z = mean(2);
-  RPY_to_quaternion(mean(3), mean(4), mean(5), pwc.pose.orientation.w,
-                    pwc.pose.orientation.x, pwc.pose.orientation.y,
-                    pwc.pose.orientation.z);
+  particle_to_pose(mean, pwc.pose);
   for (int i = 0; i < 6; i++) {
     for (int j = 0; j < 6; j++) {
       pwc.covariance[6 * i + j] = covariance(i, j);
@@ -77,7 +80,7 @@ void CollisionObject_to_eigen_vectors(
     auto &mesh = object.meshes[mesh_id];
     Eigen::Isometry3d mesh_transform;
     tf::poseMsgToEigen(object.mesh_poses[mesh_id], mesh_transform);
-    auto transform = object_transform * mesh_transform;
+    Eigen::Isometry3d transform = object_transform * mesh_transform;
     for (auto &vertex : mesh.vertices) {
       Eigen::Vector3d eigen_vertex;
       tf::pointMsgToEigen(vertex, eigen_vertex);

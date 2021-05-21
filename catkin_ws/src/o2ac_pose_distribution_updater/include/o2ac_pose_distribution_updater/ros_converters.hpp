@@ -1,4 +1,3 @@
-#include "o2ac_msgs/updateDistributionAction.h"
 #include <eigen_conversions/eigen_msg.h>
 #include <fcl/math/transform.h>
 #include <geometry_msgs/PoseWithCovariance.h>
@@ -17,6 +16,8 @@ CovarianceMatrix array_36_to_matrix_6x6(const boost::array<double, 36> &array);
 geometry_msgs::Pose to_Pose(const double &x, const double &y, const double &z,
                             const double &qw, const double &qx,
                             const double &qy, const double &qz);
+
+void particle_to_pose(const Particle &particle, geometry_msgs::Pose &pose);
 
 geometry_msgs::PoseWithCovariance
 to_PoseWithCovariance(const Particle &mean, const CovarianceMatrix &covariance);

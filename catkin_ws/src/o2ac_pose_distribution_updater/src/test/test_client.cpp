@@ -11,6 +11,8 @@ std::string test_directory;
 
 std::shared_ptr<Client> client;
 
+ros::ServiceClient visualizer_client;
+
 TEST(TouchTest, GearMotor1) {
   touch_test(client, test_directory + "/touch_input_gearmotor_1.txt",
              test_directory + "/CAD/gearmotor.stl");
@@ -25,17 +27,34 @@ TEST(LookTest, GearMotor) {
 
 TEST(PlaceTest, GearMotor) {
   place_test(client, test_directory + "/place_test_gearmotor.txt",
-             test_directory + "/CAD/gearmotor.stl");
+             test_directory + "/CAD/gearmotor.stl", false, visualizer_client);
 }
 
 TEST(PlaceTest, TestTetrahedron1) {
   place_test(client, test_directory + "/place_test_tetrahedron_1.txt",
-             test_directory + "/CAD/test_tetrahedron_1.stl");
+             test_directory + "/CAD/test_tetrahedron_1.stl", false,
+             visualizer_client);
 }
 
 TEST(PlaceTest, TestTetrahedron2) {
   place_test(client, test_directory + "/place_test_tetrahedron_2.txt",
-             test_directory + "/CAD/test_tetrahedron_2.stl");
+             test_directory + "/CAD/test_tetrahedron_2.stl", false,
+             visualizer_client);
+}
+
+TEST(PlaceTest, Cones1) {
+  place_test(client, test_directory + "/place_test_cones_1.txt",
+             test_directory + "/CAD/cones.stl", true, visualizer_client);
+}
+
+TEST(PlaceTest, Cones2) {
+  place_test(client, test_directory + "/place_test_cones_2.txt",
+             test_directory + "/CAD/cones.stl", true, visualizer_client);
+}
+
+TEST(PlaceTest, Cones3) {
+  place_test(client, test_directory + "/place_test_cones_3.txt",
+             test_directory + "/CAD/cones.stl", true, visualizer_client);
 }
 
 int main(int argc, char **argv) {
@@ -48,5 +67,10 @@ int main(int argc, char **argv) {
   // create the client
   client = std::shared_ptr<Client>(new Client("update_distribution", true));
   client->waitForServer();
+
+  // create the visualizer client
+  visualizer_client =
+      nd.serviceClient<o2ac_msgs::visualizePoseBelief>("visualize_pose_belief");
+
   return RUN_ALL_TESTS();
 }
