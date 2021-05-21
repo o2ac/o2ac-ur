@@ -880,7 +880,7 @@ class O2ACBase(object):
 
     for i, point in enumerate(playback_trajectories):
       print("point:", i+1)
-      self.confirm_to_proceed("playback_sequence")
+      # self.confirm_to_proceed("playback_sequence")
       if point[0] == "point":
         res = self.move_to_sequence_waypoint(*point[1])
       elif point[0] == "trajectory":

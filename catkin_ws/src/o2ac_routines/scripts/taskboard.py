@@ -426,11 +426,9 @@ class TaskboardClass(O2ACCommon):
       self.vision.activate_camera("b_bot_inside_camera")
       self.activate_led("b_bot")
       self.simple_pick("b_bot", goal, gripper_force=50.0, grasp_width=.06, axis="z")
+
       if self.b_bot.gripper.opening_width < 0.01:
         rospy.logerr("Gripper did not grasp the pulley --> Stop")
-
-      b_bot_script_start_pose = [1.7094888, -1.76184906, 2.20651847, -2.03368343, -1.54728252, 0.96213197]
-      self.b_bot.move_joints(b_bot_script_start_pose)
 
       use_ros = True
 
@@ -442,6 +440,9 @@ class TaskboardClass(O2ACCommon):
           rospy.logerr("Fail to complete the playback sequence")
           return False
       else:
+        b_bot_script_start_pose = [1.7094888, -1.76184906, 2.20651847, -2.03368343, -1.54728252, 0.96213197]
+        self.b_bot.move_joints(b_bot_script_start_pose)
+
         success_b = self.b_bot.load_program(program_name="wrs2020/pulley_v3.urp", recursion_depth=3)
         if success_b:
           print("Loaded pulley program.")
