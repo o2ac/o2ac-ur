@@ -178,7 +178,8 @@ class URForceController(CompliantController):
             current_pose_in_target_frame = self.listener.transformPose(target_pose_in_target_frame.header.frame_id, current_pose_robot_base)
             current_pose_of = conversions.from_pose_to_list(current_pose_in_target_frame.pose)
             target_pose_of = conversions.from_pose_to_list(target_pose_in_target_frame.pose)
-            if target_pose_of[axis] >= 0:
+            # print("check cp,tp", current_pose_of[axis], target_pose_of[axis])
+            if insertion_direction[0] == '-':
                 return current_pose_of[axis] >= target_pose_of[axis] or \
                             (standby and current_pose_of[axis] >= target_pose_of[axis] - relaxed_target_by)
             return current_pose_of[axis] <= target_pose_of[axis] or \

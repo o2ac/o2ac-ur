@@ -25,8 +25,11 @@ def main():
 
     # controller.reset_scene_and_robots()
 
+    # controller.pick_and_insert_shaft("taskboard")
+    controller.insert_shaft("taskboard_assy_part_07_inserted")
+
     # controller.pick_and_insert_motor_pulley("taskboard")
-    controller.insert_motor_pulley("taskboard_small_shaft")
+    # controller.insert_motor_pulley("taskboard_small_shaft")
     # target_force = get_target_force("+X", 2)
     # print(np.array(target_force == 0.0) )
     # controller.playback_sequence("idler_pulley_release_screw_tool")
