@@ -32,9 +32,9 @@ waypoints:
   type: 'joint-space-goal-cartesian-lin-motion'
   speed: 0.7 # percentage
   blend: 0.0
-- pose: [2.4374, -1.4238, 2.3823, -2.1006, -2.2042, -0.9224]
+- pose: [2.4374, -1.4154, 2.3849, -2.1116, -2.2042, -0.9224]
   type: 'joint-space-goal-cartesian-lin-motion'
-  speed: 0.4 # percentage
+  speed: 0.2 # percentage
   gripper-action: 'open' 
 - pose: [1.0235, -1.4368, 2.5938, -1.6761, -0.9735, -2.8292]
   type: 'joint-space-goal-cartesian-lin-motion'
