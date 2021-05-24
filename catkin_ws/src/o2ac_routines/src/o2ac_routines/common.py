@@ -862,6 +862,15 @@ class O2ACCommon(O2ACBase):
     self.b_bot.go_to_pose_goal(camera_look_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.1, acceleration=.04)
     angle = self.get_motor_angle()
 
+  def simple_insertion_check(self, opening_width, min_opening_width=0.01, velocity=0.03):
+    """ Simple check: Open close the gripper slowly, check the gripper opening width
+        end state: close!
+    """
+    self.b_bot.gripper.open(wait=True, opening_width=opening_width, velocity=velocity)
+    self.b_bot.gripper.close(wait=True, velocity=velocity)
+    return self.b_bot.gripper.opening_width > min_opening_width
+      
+
   ######## Bearing
 
   def align_bearing_holes(self, max_adjustments=10, task=""):
@@ -1161,7 +1170,7 @@ class O2ACCommon(O2ACBase):
                                                       relaxed_target_by=0.001, wiggle_direction="X", wiggle_angle=np.deg2rad(3.0), wiggle_revolutions=2.,
                                                       selection_matrix=selection_matrix):
 
-      if self.simple_insertion_check() and attempts > 0: # try again the pulley is still there   
+      if self.simple_insertion_check(0.07) and attempts > 0: # try again the pulley is still there   
         self.b_bot.move_lin_rel(relative_translation = [0.01, 0, 0], acceleration = 0.015, speed=.03)
         return self.insert_motor_pulley(target_link, attempts=attempts-1)
       else:
@@ -1180,11 +1189,6 @@ class O2ACCommon(O2ACBase):
 
     return success
 
-  def simple_insertion_check(self, opening_width, min_opening_width=0.01, velocity=0.03):
-      self.b_bot.gripper.open(wait=True, opening_width=opening_width, velocity=velocity)
-      self.b_bot.gripper.close(wait=True, velocity=velocity)
-      return self.b_bot.gripper.opening_width > min_opening_width
-      
   ########  Idler pulley
 
   def pick_and_insert_idler_pulley(self, task=""):
@@ -1437,15 +1441,18 @@ class O2ACCommon(O2ACBase):
     self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z")
 
     if self.b_bot.gripper.opening_width < 0.004 and self.use_real_robot:
-        rospy.logerr("Fail to grasp Shaft")
-        return False
+      rospy.logerr("Fail to grasp Shaft")
+      return False
+
+    if not self.b_bot.move_lin_rel(relative_translation=[0,0,0.2], speed=0.4):
+      return False
 
     rospy.loginfo("Going to approach pose (b_bot)")
-    rotation = np.deg2rad([-22.5, -88.5, -157.5]).tolist()  # Arbitrary
+    rotation = np.deg2rad([-22.5+180, -88.5, -157.5]).tolist()  # Arbitrary
 
     above_pose = conversions.to_pose_stamped(target_link, [0.0, 0.002, -0.10] + rotation)
-    behind_pose = conversions.to_pose_stamped(target_link, [0.15, 0.002, 0.0] + rotation)
-    at_hole_pose = conversions.to_pose_stamped(target_link, [0.09, 0.000, -0.002] + rotation)
+    behind_pose = conversions.to_pose_stamped(target_link, [0.15, 0.002, -0.05] + rotation)
+    pre_insertion_pose = conversions.to_pose_stamped(target_link, [0.09, 0.000, -0.002] + rotation)
 
     rospy.loginfo("Going to above tb (b_bot)")
     if not self.b_bot.move_lin(above_pose, speed=0.4):
@@ -1456,28 +1463,23 @@ class O2ACCommon(O2ACBase):
       return False
 
     rospy.loginfo("Going to hole from behind (b_bot)")
-    if not self.b_bot.move_lin(at_hole_pose, speed=0.2):
+    if not self.b_bot.move_lin(pre_insertion_pose, speed=0.2):
       return False
 
     self.insert_shaft(target_link)
 
-  def insert_shaft(self, target_link):
+  def insert_shaft(self, target_link, attempts=1):
     """
     Insert shaft with force control using b_bot. The shaft has to be in front of the hole already.
     """
-    rotation = np.deg2rad([-22.5, -88.5, -157.5]).tolist()  # Arbitrary
-    at_hole_pose = conversions.to_pose_stamped(target_link, [0.09, 0.000, -0.002] + rotation)
-    self.b_bot.move_lin(at_hole_pose, speed=0.2)
-    
-    self.b_bot.linear_push(5, "+X", max_translation=0.05, timeout=20.0)
-    after_push_x = self.b_bot.force_controller.end_effector()[0]
-    print("Pose after linear push", after_push_x)
+
+    self.b_bot.linear_push(3, "+X", max_translation=0.08, timeout=30.0)
 
     current_pose = self.b_bot.robot_group.get_current_pose()
-    print("current pose (world)", current_pose)
+    # print("current pose (world)", current_pose)
     target_pose_target_frame = self.listener.transformPose(target_link, current_pose)
-    print("target pose", target_pose_target_frame)
-    target_pose_target_frame.pose.position.x = 0.0
+    # print("target pose", target_pose_target_frame)
+    target_pose_target_frame.pose.position.x = 0.04 # Magic number
 
     selection_matrix = [0., 0.3, 0.3, 0.95, 0.95, 0.95]
     success = self.b_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="+X", force=10.0, timeout=15.0, 
@@ -1485,74 +1487,47 @@ class O2ACCommon(O2ACBase):
                                                         radius=0.0025, relaxed_target_by=0.0, selection_matrix=selection_matrix)
     current_pose = self.b_bot.robot_group.get_current_pose()
     target_pose_target_frame = self.listener.transformPose(target_link, current_pose)
-    print("current pose 2 (world)", target_pose_target_frame)
+    # print("current pose 2 (world)", target_pose_target_frame)
      
-    if not success or not self.simple_insertion_check():
+    rotation = np.deg2rad([-22.5+180, -88.5, -157.5]).tolist()  # Arbitrary
+    pre_insertion_pose = conversions.to_pose_stamped(target_link, [0.11, 0.000, 0.01] + rotation)
+
+    if not success or not self.simple_insertion_check(0.02, min_opening_width=0.001):
       # TODO(cambel): implement a fall back
       rospy.logerr("** Insertion Failed!! **")
-      self.b_bot.move_lin_rel(relative_translation = [-0.10,0,0], acceleration = 0.15, speed=.3)
-      return
+      self.b_bot.gripper.open(wait=True)
+      self.b_bot.move_lin(pre_insertion_pose, speed=0.05)
+      return False
 
     # Move back to push (without grasping)
-    self.b_bot.move_lin_rel(relative_translation = [-0.065,0,-0.02], acceleration = 0.015, speed=.03)
-    self.b_bot.gripper.close()
+    self.b_bot.gripper.open(wait=True)
 
-    self.b_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="+X", force=15.0, timeout=15.0, 
-                                                  radius=0.005, relaxed_target_by=0.0, selection_matrix=selection_matrix)
+    if not self.b_bot.move_lin(pre_insertion_pose, speed=0.05):
+      rospy.logerr("** Fail to return to pre insertion pose **")
+      return False
+    self.b_bot.gripper.close(wait=True)
 
-    return
+    target_pose_target_frame.pose.position.x = 0.06 # Magic number
 
-    # Parameters for insertion
-    duration = 15.0
-    target_force = get_target_force('+X', 10.0)
-    selection_matrix = [0., 0.3, 0.3, 0.95, 0.95, 0.95]
-    target_x = after_push_x - 0.01
-    termination_criteria = lambda cpose, standby_time: cpose[0] <= target_x or \
-                                                       (standby_time and cpose[0] <= target_x-0.003) # relax constraint
+    success = self.b_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="+X", force=15.0, timeout=15.0, 
+                                                  radius=0.002, relaxed_target_by=0.0, selection_matrix=selection_matrix)
 
-    rospy.loginfo("** STARTING FORCE CONTROL **")
-    result = self.b_bot.execute_spiral_trajectory(plane="YZ", max_radius=0.0025, radius_direction="+Z", steps=100, revolutions=3, timeout=duration,
-                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(0.0), wiggle_revolutions=2.0,
-                                                        target_force=target_force, selection_matrix=selection_matrix,
-                                                        termination_criteria=termination_criteria)
-    rospy.loginfo("** FORCE CONTROL COMPLETE with distance %s **" % round(target_x - self.b_bot.force_controller.end_effector()[0],5))
-    rospy.logwarn(" position x: %s" % round(self.b_bot.force_controller.end_effector()[0],5))
+    if not self.b_bot.move_lin(pre_insertion_pose, speed=0.05):
+      rospy.logerr("** Fail to return to pre insertion pose **")
+      return False
 
-    self.b_bot.gripper.open()
-
-    if result != TERMINATION_CRITERIA:
-      self.b_bot.gripper.close(wait=True)
-      if self.b_bot.gripper.opening_width > 0.005: 
-        rospy.loginfo("The shaft is in the hole, so let's keep trying to push from behind")
-        self.b_bot.gripper.open(wait=True, opening_width=0.07)
-      else:
-        self.b_bot.gripper.open(wait=True, opening_width=0.07)
-        rospy.logerr("** Insertion Failed!! **")
-        return
-
-    # Move back to push (without grasping)
-    self.b_bot.move_lin_rel(relative_translation = [-0.065,0,-0.02], acceleration = 0.015, speed=.03)
-    self.b_bot.gripper.close()
-
-    target_force = get_target_force('+X', 15.0)
-    termination_criteria = lambda cpose, standby_time: cpose[0] <= target_x or \
-                                                       (standby_time and cpose[0] <= target_x-0.01) # relax constraint
-    radius = 0.0
-
-    rospy.loginfo("** STARTING FORCE CONTROL 2**")
-    result = self.b_bot.execute_spiral_trajectory(plane="YZ", max_radius=0.003, radius_direction="+Z", steps=100, revolutions=3, timeout=duration,
-                                                        target_force=target_force, selection_matrix=selection_matrix,
-                                                        termination_criteria=termination_criteria)
-    rospy.loginfo("** FORCE CONTROL COMPLETE 2 with distance %s **" % round(target_x - self.b_bot.force_controller.end_effector()[0],5))
-    rospy.logwarn(" position x: %s" % round(self.b_bot.force_controller.end_effector()[0],5))
-
-    self.b_bot.gripper.open()
-
-    rospy.loginfo("** Second insertion done, moving back via MoveIt **")
-    self.b_bot.move_lin_rel(relative_translation = [-0.10,0,0], acceleration = 0.15, speed=.3)
-    
-    if result != TERMINATION_CRITERIA:
+    if not success:
       rospy.logerr("** Insertion Failed!! **")
+      if attempts > 0:
+        # Fall back if the shaft is stuck
+        self.b_bot.gripper.open(wait=True)
+
+        rotation = np.deg2rad([-22.5+180, -88.5, -157.5]).tolist()  # Arbitrary
+        re_pick_pose = conversions.to_pose_stamped(target_link, [0.06, 0.000, -0.002] + rotation)
+
+        self.b_bot.gripper.close(wait=True)
+
+        return self.insert_shaft(target_link, attempts-1)
       return False
     return True
 

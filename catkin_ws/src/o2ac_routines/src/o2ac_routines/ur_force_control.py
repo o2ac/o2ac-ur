@@ -183,7 +183,7 @@ class URForceController(CompliantController):
                 return current_pose_of[axis] >= target_pose_of[axis] or \
                             (standby and current_pose_of[axis] >= target_pose_of[axis] - relaxed_target_by)
             return current_pose_of[axis] <= target_pose_of[axis] or \
-                        (standby and current_pose_of[axis] >= target_pose_of[axis] + relaxed_target_by)
+                        (standby and current_pose_of[axis] <= target_pose_of[axis] + relaxed_target_by)
 
         result = self.execute_spiral_trajectory(plane, max_radius=radius, radius_direction=radius_direction, steps=100, revolutions=3,
                                         wiggle_direction=wiggle_direction, wiggle_angle=wiggle_angle, wiggle_revolutions=wiggle_revolutions,
