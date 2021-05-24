@@ -94,10 +94,9 @@ class TaskboardClass(O2ACCommon):
     # This function spawns the objects into the tray as if they had been recognized by the vision node
     names = ["taskboard_idler_pulley_small", "bearing", "shaft", "motor_pulley"]
     offsets = {"bearing": [-.04, -.02, .001],
-    "taskboard_idler_pulley_small": [.07, .06, .03], 
+    "taskboard_idler_pulley_small": [.07, .06, .03],
     "shaft": [.03, -.06, .005], 
-    "motor_pulley": [-.01, .12, .005], 
-    "endcap": [-.05, -.1, .005]}
+    "motor_pulley": [-.01, .12, .005]}
 
     # We publish each object to its own frame.
     broadcaster = tf.TransformBroadcaster()
@@ -226,19 +225,19 @@ class TaskboardClass(O2ACCommon):
 
     self.subtask_completed["belt"] = self.do_task("belt")
     
-    # self.subtask_completed["idler pulley"] = self.do_task("idler pulley")
-    # self.unequip_tool("b_bot", "screw_tool_m4")
+    self.subtask_completed["idler pulley"] = self.do_task("idler pulley")
+    self.unequip_tool("b_bot", "screw_tool_m4")
 
-    self.subtask_completed["shaft"] = self.do_task("shaft")
-    
     self.subtask_completed["motor pulley"] = self.do_task("motor pulley")
 
     self.subtask_completed["bearing"] = self.do_task("bearing")
     if self.subtask_completed["bearing"]:
       self.subtask_completed["screw_bearing"] = self.do_task("screw_bearing")
 
+    self.subtask_completed["shaft"] = self.do_task("shaft")
+    
     self.confirm_to_proceed("Continue into loop to retry parts?")
-    order = ["shaft", "motor pulley", "belt", "bearing"]
+    order = ["motor pulley", "belt", "bearing", "shaft", "idler pulley"]
     task_complete = False
     while not task_complete and not rospy.is_shutdown():
       for item in order:
@@ -248,17 +247,16 @@ class TaskboardClass(O2ACCommon):
           # if item == "bearing" and self.subtask_completed[item]: 
           #   if not self.subtask_completed["screw_bearing"]:
           #     self.do_task("screw_bearing")
+    self.publish_status_text("FINISHED")
       
 
   def do_task(self, task_name, fake_execution_for_calibration=False):
-    
+    self.publish_status_text("Target: " + task_name)
+
     if task_name == "belt":
-      # - Equip the belt tool with b_bot
-      # self.equip_tool("belt_tool")
-      
       self.a_bot.go_to_named_pose("home")
       
-      self.b_bot.go_to_pose_goal(self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.1)
+      self.b_bot.go_to_pose_goal(self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.5, acceleration=.25)
 
       self.vision.activate_camera("b_bot_outside_camera")
       self.activate_led("b_bot")
@@ -268,26 +266,42 @@ class TaskboardClass(O2ACCommon):
         goal = r2[0]
         goal.pose.position.z = 0.0
       else:
-        rospy.logerr("Could not find belt grasp pose! Aborting.")
-        return False
+        # rospy.logerr("Could not find belt grasp pose! Aborting.")
+        # return False
+        ### DEBUGGING
+        goal = geometry_msgs.msg.PoseStamped()
+        goal.header.frame_id = "tray_center"
+        goal.pose.position
+        goal.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
       
       self.confirm_to_proceed("Pick tool with b_bot?")
-      # Start the program with b_bot to pick the tool
+      # Equip the belt tool with b_bot
       if not self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_pick_hook.urp", recursion_depth=3):
         return False
-      rospy.sleep(2)
+      rospy.sleep(2)  # Wait for b_bot to have moved out of the way
 
       self.simple_pick("a_bot", goal, gripper_force=100.0, grasp_width=.08, axis="z")
       self.a_bot.move_lin_rel(relative_translation=[0,0,.1])
       a_bot_wait_with_belt_pose = [0.646294116973877, -1.602117200891012, 2.0059760252581995, -1.3332312864116211, -0.8101084868060511, -2.4642069975482386]
       self.a_bot.move_joints(a_bot_wait_with_belt_pose)
       
-      # TODO: Check for pick success with camera
-      # b_bot_look_at_belt = [1.95739448, 1.92903739, -1.40047674, -1.98750128, -2.1883457, 1.7778782]
+      # Check for pick success
+      b_bot_look_at_belt = [1.95739448, -1.40047674, 1.92903739, -1.98750128, -2.1883457, 1.7778782]
+      self.b_bot.move_joints(b_bot_look_at_belt, speed=0.3)
+      self.vision.activate_camera("b_bot_outside_camera")
+      
+      if not self.vision.check_pick_success("belt"):
+        rospy.logerr("Belt pick has failed. Return tool and abort.")
+        self.a_bot.gripper.open(opening_width=0.03, wait=False)
+        self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp", recursion_depth=3)
+        rospy.sleep(3)
+        self.a_bot.go_to_named_pose("home")
+        wait_for_UR_program("/b_bot", rospy.Duration.from_sec(20))
+        return False
 
       self.confirm_to_proceed("Load and execute the belt threading programs?")
-      success_a = self.a_bot.load_program(program_name="wrs2020/taskboard_belt_v5.urp", recursion_depth=3)      
-      success_b = self.b_bot.load_program(program_name="wrs2020/taskboard_belt_v4.urp", recursion_depth=3)      
+      success_a = self.a_bot.load_program(program_name="wrs2020/taskboard_belt_v5.urp", recursion_depth=3)
+      success_b = self.b_bot.load_program(program_name="wrs2020/taskboard_belt_v5.urp", recursion_depth=3)
       if success_a and success_b:
         print("Loaded belt program on a_bot.")
         rospy.sleep(1)
@@ -300,6 +314,12 @@ class TaskboardClass(O2ACCommon):
           self.b_bot.close_ur_popup()
       else:
         print("Problem loading. Not executing belt procedure.")
+        self.a_bot.gripper.open(opening_width=0.03, wait=False)
+        self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp", recursion_depth=3)
+        rospy.sleep(3)
+        self.a_bot.go_to_named_pose("home")
+        wait_for_UR_program("/b_bot", rospy.Duration.from_sec(20))
+        
       wait_for_UR_program("/b_bot", rospy.Duration.from_sec(20))
       return True
       
@@ -361,7 +381,7 @@ class TaskboardClass(O2ACCommon):
       self.a_bot.go_to_pose_goal(approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
 
       approach_pose.pose.position.y = -.0
-      approach_pose.pose.position.z = -.0
+      approach_pose.pose.position.z = -.004  # MAGIC NUMBER (z-axis of the frame points down)
       self.a_bot.go_to_pose_goal(approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
 
       hole_pose = geometry_msgs.msg.PoseStamped()
@@ -426,11 +446,9 @@ class TaskboardClass(O2ACCommon):
       self.vision.activate_camera("b_bot_inside_camera")
       self.activate_led("b_bot")
       self.simple_pick("b_bot", goal, gripper_force=50.0, grasp_width=.06, axis="z")
+
       if self.b_bot.gripper.opening_width < 0.01:
         rospy.logerr("Gripper did not grasp the pulley --> Stop")
-
-      b_bot_script_start_pose = [1.7094888, -1.76184906, 2.20651847, -2.03368343, -1.54728252, 0.96213197]
-      self.b_bot.move_joints(b_bot_script_start_pose)
 
       use_ros = True
 
@@ -442,6 +460,9 @@ class TaskboardClass(O2ACCommon):
           rospy.logerr("Fail to complete the playback sequence")
           return False
       else:
+        b_bot_script_start_pose = [1.7094888, -1.76184906, 2.20651847, -2.03368343, -1.54728252, 0.96213197]
+        self.b_bot.move_joints(b_bot_script_start_pose)
+
         success_b = self.b_bot.load_program(program_name="wrs2020/pulley_v3.urp", recursion_depth=3)
         if success_b:
           print("Loaded pulley program.")
@@ -457,9 +478,10 @@ class TaskboardClass(O2ACCommon):
     # ==========================================================
 
     if task_name == "bearing":
-      self.pick_up_and_insert_bearing(task="taskboard")
+      return self.pick_up_and_insert_bearing(task="taskboard")
 
     if task_name == "screw_bearing":
+      self.equip_tool('b_bot', 'screw_tool_m4')
       success = self.fasten_bearing(task="taskboard")
       self.unequip_tool('b_bot', 'screw_tool_m4')
       return success
@@ -596,8 +618,8 @@ if __name__ == '__main__':
       rospy.loginfo("Enter 1 to move robots to home")
       rospy.loginfo("Enter 11, 12 to close/open grippers")
       rospy.loginfo("Enter 13, 14 to equip/unequip m3 screw tool")
-      rospy.loginfo("Enter 15, 16 to equip/unequip m4 screw tool")
-      # rospy.loginfo("Enter 17, 18 to equip/unequip belt placement tool")
+      rospy.loginfo("Enter 15, 16 to equip/unequip m4 screw tool (151,161: padless)")
+      # rospy.loginfo("Enter 17, 18 to equip/unequip set screw tool")
       rospy.loginfo("Enter 3 to calibrate screw tasks (31: M3, 32: M4)")
       rospy.loginfo("Subtasks: 51 (set screw), 52 (M3), 53 (M4), 54 (belt), 55 (motor pulley), 56 (shaft), 57 (bearing), 58 (idler pulley)")
       rospy.loginfo("Enter 8 to spawn example parts")
@@ -621,9 +643,16 @@ if __name__ == '__main__':
         taskboard.competition_mode = True
         taskboard.full_taskboard_task()
         taskboard.competition_mode = False
+      if i == "startnoscrews":
+        taskboard.competition_mode = True
+        taskboard.full_taskboard_task(do_screws=False)
+        taskboard.competition_mode = False
       if i == "test":
         taskboard.competition_mode = False
         taskboard.full_taskboard_task()
+      if i == "testnoscrews":
+        taskboard.competition_mode = False
+        taskboard.full_taskboard_task(do_screws=False)
       if i == "1":
         taskboard.a_bot.go_to_named_pose("home")
         taskboard.b_bot.go_to_named_pose("home")
@@ -641,6 +670,10 @@ if __name__ == '__main__':
         taskboard.equip_tool("b_bot", "screw_tool_m4")
       if i == "16":
         taskboard.unequip_tool("b_bot", "screw_tool_m4")
+      if i == "151":
+        taskboard.equip_tool("b_bot", "padless_tool_m4")
+      if i == "161":
+        taskboard.unequip_tool("b_bot", "padless_tool_m4")
       if i == "17":
         taskboard.equip_tool("b_bot", "set_screw_tool")
       if i == "18":
@@ -655,6 +688,10 @@ if __name__ == '__main__':
         taskboard.do_task("M3 screw", fake_execution_for_calibration=True)
       if i == "32":
         taskboard.do_task("M4 screw", fake_execution_for_calibration=True)
+      if i == "31":
+        taskboard.do_task("M3 screw", fake_execution_for_calibration=True)
+      if i == "32":
+        taskboard.do_task("M4 screw", fake_execution_for_calibration=True)
       if i == "51":
         taskboard.do_task("M2 set screw")
       if i == "52":
@@ -663,6 +700,11 @@ if __name__ == '__main__':
         taskboard.do_task("M4 screw")
       if i == "54":
         taskboard.do_task("belt")
+      if i == "544":
+        s = taskboard.do_task("belt")
+        while not s and not rospy.is_shutdown():
+          s = taskboard.do_task("belt")
+          rospy.sleep(1)
       if i == "55":
         taskboard.do_task("motor pulley")
       if i == "56":
@@ -671,6 +713,8 @@ if __name__ == '__main__':
         taskboard.do_task("bearing")
       if i == "577":
         taskboard.do_task("screw_bearing")
+      if i == "579":
+        taskboard.fasten_bearing("taskboard", only_retighten=True)
       if i == "575":
         taskboard.align_bearing_holes(task="taskboard")
       if i == "58":

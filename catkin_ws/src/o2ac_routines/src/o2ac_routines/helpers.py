@@ -230,7 +230,7 @@ def all_close(goal, actual, tolerance):
   @returns: bool
   """
   all_equal = True
-  if type(goal) is list:
+  if type(goal) is list or type(goal) is np.ndarray:
     for index in range(len(goal)):
       if abs(actual[index] - goal[index]) > tolerance:
         return False
@@ -239,9 +239,9 @@ def all_close(goal, actual, tolerance):
     return all_close(goal.pose, actual.pose, tolerance)
 
   elif type(goal) is geometry_msgs.msg.Pose:
-    position_allclose = all_close(conversions.from_point(goal.position).tolist(), conversions.from_point(actual.position).tolist(), tolerance) 
+    position_allclose = all_close(conversions.from_point(goal.position), conversions.from_point(actual.position), tolerance) 
     quaternion_allclose = all_close(conversions.from_quaternion(goal.orientation), conversions.from_quaternion(actual.orientation), tolerance)
-    if not quaternion_allclose: # check for the second orientation
+    if not quaternion_allclose:  # Check for the second orientation
       quaternion_allclose = all_close(conversions.from_quaternion(goal.orientation), (-1)*conversions.from_quaternion(actual.orientation), tolerance)
     return position_allclose and quaternion_allclose
 
@@ -265,7 +265,7 @@ def publish_marker_(marker_publisher, marker_pose_stamped, marker_type="", names
   marker.ns = namespace
   if not marker.ns:
     marker.ns = "markers"
-  helper_fct_marker_id_count = 0
+  helper_fct_marker_id_count = np.random.randint(2147483647)  # int32
   marker.id = helper_fct_marker_id_count
   marker.lifetime = rospy.Duration(60.0)
   marker.action = visualization_msgs.msg.Marker.ADD

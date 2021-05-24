@@ -7,7 +7,7 @@ import numpy as np
 from ur_control import utils, spalg, transformations, traj_utils, conversions
 from ur_control.hybrid_controller import ForcePositionController
 from ur_control.compliant_controller import CompliantController
-from ur_control.constants import TERMINATION_CRITERIA, DONE
+from ur_control.constants import STOP_ON_TARGET_FORCE, TERMINATION_CRITERIA, DONE
 
 from o2ac_routines.helpers import get_target_force, get_direction_index
 
@@ -23,11 +23,11 @@ def create_pid(pid, default_ki=0.0, default_kd=0.0):
     else:
         ki = np.array(pid['i'])
     dynamic = pid['dynamic']
-    return utils.PID(Kp=kp, Ki=ki, Kd=kd, dynamic_pid=dynamic)
+    return utils.PID(Kp=kp, Ki=ki, Kd=kd, dynamic_pid=dynamic, max_gain_multiplier=100.0)
 
 
 class URForceController(CompliantController):
-    def __init__(self, robot_name, config_file="force_control", tcp_link='gripper_tip_link', **kwargs):
+    def __init__(self, robot_name, tcp_link='gripper_tip_link', **kwargs):
         # TODO(cambel): fix this ugly workaround by properly defining the tool tip with respect to tool0
         if tcp_link == 'gripper_tip_link':
             ee_transform = [0.0, 0.0, 0.173, 0.500, -0.500, 0.500, 0.500]
@@ -38,15 +38,13 @@ class URForceController(CompliantController):
                                      robot_urdf_package='o2ac_scene_description',
                                      ee_link=tcp_link, ee_transform=ee_transform, **kwargs)
 
-        self._init_force_controller(config_file)
-
     def _init_force_controller(self, config_file):
         path = rospkg.RosPack().get_path("o2ac_routines") + "/config/" + config_file + ".yaml"
         with open(path, 'r') as f:
             config = yaml.load(f)
 
         position_pd = create_pid(config['position'], default_kd=0.01, default_ki=0.01)
-        force_pd = create_pid(config['force'],    default_kd=0.04,  default_ki=0.01)
+        force_pd = create_pid(config['force'],    default_kd=0.03,  default_ki=0.01)
 
         dt = config['dt']
         selection_matrix = config['selection_matrix']
@@ -58,7 +56,8 @@ class URForceController(CompliantController):
     def force_control(self, target_force=None, target_positions=None,
                       selection_matrix=None, relative_to_ee=False,
                       timeout=10.0, stop_on_target_force=False, reset_pids=True, termination_criteria=None,
-                      displacement_epsilon=0.002, check_displacement_time=2.0):
+                      displacement_epsilon=0.002, check_displacement_time=2.0,
+                      config_file="force_control"):
         """ 
             Use with caution!! 
             target_force: list[6], target force for each direction x,y,z,ax,ay,az
@@ -68,6 +67,7 @@ class URForceController(CompliantController):
             timeout: float, duration in seconds of the force control
             reset_pids: bool, should reset pids after using force control, but for continuos control during a trajectory, it is not recommended until the trajectory is completed
         """
+        self._init_force_controller(config_file)
 
         rospy.sleep(1.0)  # give it some time to set up before moving
         self.set_wrench_offset(True)  # offset the force sensor
@@ -120,7 +120,7 @@ class URForceController(CompliantController):
                                   timeout=timeout, relative_to_ee=False, termination_criteria=termination_criteria,
                                   displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time)
 
-    def linear_push(self, force, direction, max_translation=None, relative_to_ee=False, timeout=10.0):
+    def linear_push(self, force, direction, max_translation=None, relative_to_ee=False, timeout=10.0, slow=False, selection_matrix=None):
         """
         Apply force control in one direction until contact with `force`
         robot_name: string, name of the robot
@@ -128,20 +128,25 @@ class URForceController(CompliantController):
         direction: string, direction for linear_push +- X,Y,Z relative to base or end-effector, see next argument
         relative_to_ee: bool, whether to use the base_link of the robot as frame or the ee_link (+ ee_transform)
         """
-
+        config_file = "force_control" if slow else "force_control_linear_push"
         target_force = get_target_force(direction, force)
-        selection_matrix = np.array(target_force == 0.0) * 1.0  # define the selection matrix based on the target force
 
-        initial_pose = self.end_effector()[get_direction_index(direction[1])] 
-        
+        if selection_matrix is None:
+            selection_matrix = np.array(target_force == 0.0) * 1.0  # define the selection matrix based on the target force
+
+        initial_pose = self.end_effector()[get_direction_index(direction[1])]
+
         if max_translation is not None:
-            termination_criteria = lambda cpose, standby: abs(initial_pose - cpose[get_direction_index(direction[1])]) >= max_translation
+            def termination_criteria(cpose, standby): return abs(initial_pose - cpose[get_direction_index(direction[1])]) >= max_translation
         else:
             termination_criteria = None
 
-        result = self.force_control(target_force=target_force, selection_matrix=selection_matrix, relative_to_ee=relative_to_ee, timeout=timeout, stop_on_target_force=True, termination_criteria=termination_criteria)
+        result = self.force_control(target_force=target_force, selection_matrix=selection_matrix,
+                                    relative_to_ee=relative_to_ee, timeout=timeout, stop_on_target_force=True,
+                                    termination_criteria=termination_criteria,
+                                    config_file=config_file)
 
-        if result == TERMINATION_CRITERIA or result == DONE:
+        if result == TERMINATION_CRITERIA or result == DONE or result == STOP_ON_TARGET_FORCE:
             rospy.loginfo("Completed linear_push: %s" % result)
             return True
         rospy.logerr("Fail to complete linear_push %s" % result)

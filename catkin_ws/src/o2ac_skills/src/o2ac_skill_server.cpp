@@ -458,7 +458,10 @@ bool SkillServer::moveToJointPose(std::vector<double> joint_positions, std::stri
   moveit::planning_interface::MoveGroupInterface::Plan my_plan;
   moveit::planning_interface::MoveItErrorCode success, motion_done;
   group_pointer->setMaxVelocityScalingFactor(velocity_scaling_factor);
+  group_pointer->setMaxAccelerationScalingFactor(acceleration);
   group_pointer->setJointValueTarget(joint_positions);
+  group_pointer->setPlanningPipelineId("ompl");
+  group_pointer->setPlannerId("RRTConnectkConfigDefault");
     
   success = (group_pointer->plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
   if (success)
@@ -893,8 +896,10 @@ bool SkillServer::equipUnequipScrewTool(std::string robot_name, std::string scre
     // Allow collisions between gripper and tool so robot does not think it is in collision
     acm_original.setEntry(screw_tool_id, robot_name + "_gripper_tip_link", true);
     acm_original.setEntry(screw_tool_id, robot_name + "_left_inner_finger", true);
+    acm_original.setEntry(screw_tool_id, robot_name + "_left_inner_knuckle", true);
     acm_original.setEntry(screw_tool_id, robot_name + "_left_inner_finger_pad", true);
     acm_original.setEntry(screw_tool_id, robot_name + "_right_inner_finger", true);
+    acm_original.setEntry(screw_tool_id, robot_name + "_right_inner_knuckle", true);
     acm_original.setEntry(screw_tool_id, robot_name + "_right_inner_finger_pad", true);
     
     acm_no_collisions.setEntry(screw_tool_id, true);      // To allow collisions now

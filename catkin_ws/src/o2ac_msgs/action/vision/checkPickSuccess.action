@@ -1,0 +1,18 @@
+# Returns true if the item requested was successfully picked.
+# This can only be used in specific pre-determined situations and for certain items:
+
+###
+# "belt": b_bot's camera looks at a_bot's gripper, returns True if belt is seen by SSD
+###
+
+# The correct camera needs to be activated for this action to work.
+
+string item_id  # Name of the item, e.g. "belt"
+
+---
+
+bool success
+bool item_is_picked
+
+---
+# Feedback

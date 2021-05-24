@@ -242,7 +242,8 @@ class O2ACCommon(O2ACBase):
 
           # Prepare robot motion
           self.active_robots[robot_name].activate_ros_control_on_ur()
-          plan = arm_group.retime_trajectory(self.robots.get_current_state(), sub_trajectory.trajectory, speed)
+          plan = arm_group.retime_trajectory(self.robots.get_current_state(), sub_trajectory.trajectory, 
+                                             velocity_scaling_factor=speed, acceleration_scaling_factor=speed/2)
           arm_group.set_max_velocity_scaling_factor(speed)
 
           # Execute
@@ -449,7 +450,7 @@ class O2ACCommon(O2ACBase):
         direction = "x"
     
     if not grasp_pose:
-      rospy.loginfo("too close to border. discarding. border distance was: " + str(d))
+      rospy.loginfo("too close to border. discarding. border distances were %0.3f, %0.3f" % (dx, dy))
       return False
     
     for obj, pose in self.objects_in_tray.items():
@@ -471,6 +472,31 @@ class O2ACCommon(O2ACBase):
         return False
     return [grasp_pose]
   
+  def pick_from_two_poses_topdown(self, robot_name, object_name, object_pose):
+    """ Plan a pick from above and execute it with MTC.
+        This is meant for cylindrical objects like the bearing.
+        Two grasp poses are evaluated. The gripper opens along either x and y and faces down.
+        An object with the name `object_name` has to be placed in the scene
+        
+        object_pose is the PoseStamped of the object center. The orientation is ignored.
+    """
+    grasp_poses = []
+    pose_in_tray = self.listener.transformPose("tray_center", object_pose)
+    
+    orientation_grasp_along_x = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
+    if robot_name == "b_bot":
+      orientation_grasp_along_y = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, -tau/4))
+    else:  # a_bot
+      orientation_grasp_along_y = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, tau/4))
+    
+    grasp_along_x = copy.deepcopy(pose_in_tray)
+    grasp_along_x.pose.orientation = orientation_grasp_along_x
+    grasp_along_y = copy.deepcopy(pose_in_tray)
+    grasp_along_y.pose.orientation = orientation_grasp_along_y
+
+    grasp_poses = [grasp_along_x, grasp_along_y]
+    return self.pick_MTC_helper(robot_name, object_name, grasp_poses)
+  
   def pick(self, robot_name, object_name, grasp_name=""):
     """ Plan a pick operation and execute it with MTC.
         grasp_name is the name of a grasp on the parameter server.
@@ -479,9 +505,15 @@ class O2ACCommon(O2ACBase):
       grasp_name = "default_grasp"
     grasp_pose = self.assembly_database.get_grasp_pose(object_name, grasp_name)
     if not grasp_pose:
-      rospy.logerr("Could not load grasp pose for object " + object_name + ". Aborting pick.")
+      rospy.logerr("Could not load grasp pose " + grasp_name + " for object " + object_name + ". Aborting pick.")
       return False
-    res = self.plan_pick_place(robot_name, object_name, grasp_pose)
+    return self.pick_MTC_helper(robot_name, object_name, [grasp_pose])
+    
+  def pick_MTC_helper(self, robot_name, object_name, grasp_poses):
+    """ Plan a pick operation and execute it with MTC.
+        grasp_poses is a vector of grasp poses.
+    """
+    res = self.plan_pick_place(robot_name, object_name, grasp_poses)
     success = True
     try:
       success = res.success
@@ -493,6 +525,30 @@ class O2ACCommon(O2ACBase):
 
     return self.execute_MTC_solution(res.solution, speed=0.1)
 
+  def thin_out_grasp_poses(self, grasp_poses, radius=0.02):
+    """ Takes a vector of grasp_poses and removes candidates that are too close to one another (distance < radius).
+        Candidates with higher distance from the border are preferred.
+        This is used for the belt grasp pose candidates.
+
+        This procedure may discard more grasp poses than necessary.
+    """
+    new_grasp_poses = []
+    for g1 in grasp_poses:
+      keep_g1 = True
+      for g2 in grasp_poses:
+        if g1 == g2:
+          continue
+        if pose_dist(g1.pose, g2.pose) < radius:
+          dx1, dy1 = self.distances_from_tray_border(g1)
+          dx2, dy2 = self.distances_from_tray_border(g2)
+          if min(dx1, dy1) < min(dx2, dy2):
+            keep_g1 = False
+            break
+      if keep_g1:
+        new_grasp_poses.append(g1)
+    return new_grasp_poses
+
+
   def simple_grasp_sanity_check(self, grasp_pose, grasp_width=0.08, border_dist=0.06):
     """
     Returns true if the grasp pose is further than 5 cm away from the tray border,
@@ -500,13 +556,13 @@ class O2ACCommon(O2ACBase):
 
     grasp_pose is a PoseStamped.
     """
-    (dx, dy) = self.distance_from_tray_border(grasp_pose)
-    if dx < border_dist and dy < border_dist:
-      rospy.loginfo("too close to border. discarding. border distance was: " + str(d))
+    (dx, dy) = self.distances_from_tray_border(grasp_pose)
+    if dx < border_dist or dy < border_dist:
+      rospy.loginfo("too close to border. discarding. border distances were %0.3f, %0.3f" % (dx, dy))
       return False
     for obj, pose in self.objects_in_tray.items():
       if obj == 6: # Hard-code skipping the belt
-        rospy.logwarn("Skipping the belt during grasp check")
+        # rospy.loginfo("Skipping the belt grasp points during grasp sanity check")
         continue
       if pose_dist(pose.pose, grasp_pose.pose) < 0.05:
         if pose_dist(pose.pose, grasp_pose.pose) < 1e-6:
@@ -534,20 +590,26 @@ class O2ACCommon(O2ACBase):
       return False
     
     if object_id in self.belt_id:
+      # We get the belt grasp candidates directly from the vision because they are not stored anywhere from a previous view
       res = self.get_3d_poses_from_ssd()
       grasp_poses = []
       for idx, pose in enumerate(res.poses):
         if res.class_ids[idx] == 6:
           if self.is_grasp_pose_feasible(pose, border_dist=0.05):
             grasp_poses.append(pose)
+      grasp_poses = self.thin_out_grasp_poses(grasp_poses)
       return grasp_poses
 
     if object_id in self.small_item_ids:
-      # For small items, the object should be the only grasp pose.
+      # For the shaft, use the orientation from the SSD
+      if self.assembly_database.id_to_name(object_id) == "shaft":
+        return [self.objects_in_tray[object_id]]
+      # For other small items, use any pose from above that works
       return self.simple_grasp_generation(object_pose=self.objects_in_tray[object_id], grasp_z_height=0.0)
       # TODO: Consider the idler spacer, which can stand upright or lie on the side.
       
     if object_id in self.large_item_ids:
+      # For large items, use any pose from above that works
       # TODO: Get grasp poses from database
       return self.simple_grasp_generation(object_pose=self.objects_in_tray[object_id], grasp_z_height=0.02)
     
@@ -560,7 +622,7 @@ class O2ACCommon(O2ACBase):
     """
     if not self.use_real_robot: # For simulation
       rospy.logwarn("Returning position near center (simulation)")
-      return conversions.to_pose_stamp("tray_center", [-0.03078, 0.06248, 0.02, 0.0,0.7071,0.0,0.7071])
+      return conversions.to_pose_stamped("tray_center", [-0.03078, 0.06248, 0.02, 0.0,0.7071,0.0,0.7071])
 
     # Make sure object_id is the id number
     if isinstance(object_id, str):
@@ -639,14 +701,14 @@ class O2ACCommon(O2ACBase):
     ydist = l_y_half - abs(object_pose_in_world.pose.position.y)
     return (xdist, ydist)
   
-  def center_with_gripper(self, robot_name, object_pose, object_width):
+  def move_and_center_with_gripper(self, robot_name, object_pose, object_width):
     """
     Centers cylindrical object by moving the gripper, by moving the robot to the pose and closing/opening.
     Rotates once and closes/opens again. Does not move back afterwards.
     """
     robot = self.active_robots[robot_name]
     object_pose_in_world = self.listener.transformPose("world", object_pose)
-    object_pose_in_world.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/2, 0))
+    object_pose_in_world.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
     robot.go_to_pose_goal(object_pose_in_world, move_lin=True)
 
     robot.gripper.send_command(command="close", force = 1.0, velocity = 0.1)
@@ -663,7 +725,11 @@ class O2ACCommon(O2ACBase):
     robot.go_to_pose_goal(object_pose_in_world, move_lin=True)
     return True
   
-  def center_with_gripper_2(self, robot_name, grasp_width):
+  def center_with_gripper(self, robot_name, grasp_width):
+    """
+    Centers cylindrical object at the current location, by closing/opening the gripper and rotating the robot's last joint.
+    Moves back to the initial position.
+    """
     robot = self.active_robots[robot_name]
     robot.gripper.send_command(command="close", force = 1.0, velocity = 0.1)
     robot.gripper.send_command(command=grasp_width+0.03, force = 90.0, velocity = 0.001)
@@ -678,7 +744,7 @@ class O2ACCommon(O2ACBase):
       return False
     
     # close-open
-    robot.gripper.send_command(command="close", force = 1.0, velocity = 0.1)
+    robot.gripper.send_command(command="close", force = 1.0, velocity = 0.003)
     robot.gripper.send_command(command=grasp_width+0.03, force = 90.0, velocity = 0.001)
 
     # rotate gripper -90deg
@@ -706,7 +772,7 @@ class O2ACCommon(O2ACBase):
       return False
     
     rospy.loginfo("Moving down to object")
-    robot.gripper.send_command(command=grasp_width+0.03)
+    robot.gripper.send_command(command=object_width+0.03)
     
     success = robot.go_to_pose_goal(pick_pose, speed=speed, acceleration=acc, move_lin=True)
     if not success:
@@ -714,7 +780,7 @@ class O2ACCommon(O2ACBase):
       return False
 
     # Center object
-    self.center_with_gripper_2(robot_name, object_width)
+    self.center_with_gripper(robot_name, object_width)
 
     # Grasp object
     robot.gripper.send_command(command="close", force = gripper_force)
@@ -845,7 +911,10 @@ class O2ACCommon(O2ACBase):
         self.b_bot.gripper.open()
       
       self.b_bot.go_to_pose_goal(camera_look_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.25, acceleration=.1)
-      self.activate_led("b_bot", on=False)
+      if np.random.uniform() > 0.4:  # = 60% chance
+        self.activate_led("b_bot", on=False)
+      else:
+        self.activate_led("b_bot", on=True)
       rospy.sleep(1)  # If we don't wait, the camera image is blurry
 
       # Get angle and turn
@@ -894,7 +963,13 @@ class O2ACCommon(O2ACBase):
     self.vision.activate_camera("b_bot_inside_camera")
     goal.pose.position.x -= 0.01 # MAGIC NUMBER
     goal.pose.position.z = 0.0115
+    
     self.simple_pick("b_bot", goal, gripper_force=100.0, approach_height=0.05, axis="z")
+
+    #TODO add bearing to scene
+    # if not self.pick_from_two_poses_topdown("b_bot", "bearing", goal):
+    #   rospy.logerr("Fail to pick bearing from tray")
+    #   return False
 
     if self.b_bot.gripper.opening_width < 0.01:
       rospy.logerr("Fail to grasp bearing")
@@ -939,26 +1014,20 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("look this up")
       bearing_target_link = "assembled_part_07_inserted"
 
-    plane = "YZ"
-    radius = 0.002
-    radius_direction = "+Z"
-    revolutions = 5
-
-    steps = 100
     duration = 30.0
     
-    target_force = get_target_force('-X', 8.0)
-    selection_matrix = [0., 0.8, 0.8, 0.8, 0.8, 0.8]
+    target_force = get_target_force('-X', 10.0)
+    selection_matrix = [0., 0.5, 0.5, .8, .8, .8]
 
-    target_pose = conversions.to_pose_stamp(bearing_target_link, [-0.0, 0, -.005, 0, 0, 0, 1.])
+    target_pose = conversions.to_pose_stamped(bearing_target_link, [-0.0, 0, -.005, 0, 0, 0, 1.])
     target_in_robot_base = self.listener.transformPose("b_bot_base_link", target_pose)
     target_x = target_in_robot_base.pose.position.x
     termination_criteria = lambda cpose, standby_time: cpose[0] >= target_x or \
                                                        (standby_time and cpose[0] >= target_x-0.003) # relax constraint
 
     rospy.loginfo("** STARTING FORCE CONTROL **")
-    result = self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
-                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(2.0), wiggle_revolutions=5.0,
+    result = self.b_bot.execute_spiral_trajectory(plane="YZ", max_radius=0.002, radius_direction="+Z", steps=100, revolutions=3, timeout=duration,
+                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(1.0), wiggle_revolutions=0.,
                                                         target_force=target_force, selection_matrix=selection_matrix,
                                                         termination_criteria=termination_criteria)
     rospy.loginfo("** FORCE CONTROL COMPLETE with distance %s **" % round(target_x - self.b_bot.force_controller.end_effector()[0],5))
@@ -979,11 +1048,10 @@ class O2ACCommon(O2ACBase):
     target_x += 0.001
     termination_criteria = lambda cpose, standby_time: cpose[0] >= target_x or \
                                                        (standby_time and cpose[0] >= target_x-0.006) # relax constraint
-    radius = 0.001
 
     rospy.loginfo("** STARTING FORCE CONTROL 2**")
-    self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
-                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(2.0), wiggle_revolutions=5.0,
+    self.b_bot.execute_spiral_trajectory(plane="YZ", max_radius=0.0, radius_direction="+Z", steps=100, revolutions=3, timeout=duration,
+                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(1.0), wiggle_revolutions=2.,
                                                         target_force=target_force, selection_matrix=selection_matrix,
                                                         termination_criteria=termination_criteria)
     rospy.loginfo("** FORCE CONTROL COMPLETE 2 with distance %s **" % round(target_x - self.b_bot.force_controller.end_effector()[0],5))
@@ -994,21 +1062,40 @@ class O2ACCommon(O2ACBase):
     rospy.loginfo("** Second insertion done, moving back via MoveIt **")
     self.b_bot.move_lin_rel(relative_translation = [0.025,0,0], acceleration = 0.015, speed=.03)
     return True
-
-  def fasten_bearing(self, task=""):
-    if not task:
-      rospy.logerr("Specify the task!")
+  
+  def fasten_bearing(self, task="", only_retighten=False):
+    if not task in ["taskboard", "assembly"]:
+      rospy.logerr("Invalid task specification: " + task)
       return False
     self.a_bot.go_to_named_pose("home")
     self.equip_tool('b_bot', 'screw_tool_m4')
     self.vision.activate_camera("b_bot_outside_camera")
     intermediate_screw_bearing_pose = [31.0 /180.0*3.14, -137.0 /180.0*3.14, 121.0 /180.0*3.14, -114.0 /180.0*3.14, -45.0 /180.0*3.14, -222.0 /180.0*3.14]
     
+    screw_poses = []
+    for i in [1,2,3,4]:
+      screw_pose = geometry_msgs.msg.PoseStamped()
+      if task == "taskboard":
+        screw_pose.header.frame_id = "/taskboard_bearing_target_screw_" + str(i) + "_link"
+      elif task == "assembly":
+        screw_pose.header.frame_id = "/assembled_part_07_screw_hole_" + str(i)
+      else:
+        rospy.logerr("Invalid task specification: " + task)
+        return False
+      screw_pose.pose.position.z += -.001  # MAGIC NUMBER
+      screw_pose.pose.position.x += .005
+      screw_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/12, 0, 0) )
+      if task == "assembly":  # The target frame is oriented differently in taskboard and assembly.
+        screw_pose.pose = rotatePoseByRPY(tau/4, 0, 0, screw_pose.pose)
+      screw_pose_approach = copy.deepcopy(screw_pose)
+      screw_pose_approach.pose.position.x -= 0.05
+      screw_poses.append(screw_pose)
+
     _task = task  # Needs to be defined here so the nested function can access it
-    def pick_and_fasten_bearing_screw(screw_number, pick_screw=True):
+    def pick_and_fasten_bearing_screw(screw_pose, skip_picking=False):
       """Returns tuple (screw_success, break_out_of_loop)"""
       # Pick screw
-      if pick_screw:
+      if not skip_picking:
         self.b_bot.move_joints(intermediate_screw_bearing_pose)
         self.b_bot.go_to_named_pose("feeder_pick_ready")
         pick_success = self.pick_screw_from_feeder("b_bot", screw_size=4)
@@ -1016,60 +1103,40 @@ class O2ACCommon(O2ACBase):
           rospy.logerr("Could not pick screw. Why?? Breaking out.")
           self.unequip_tool('b_bot', 'screw_tool_m4')
           return (False, True)
+        self.b_bot.move_joints(intermediate_screw_bearing_pose)
+        self.b_bot.go_to_named_pose("horizontal_screw_ready")
       
-      # Fasten screw
-      self.b_bot.move_joints(intermediate_screw_bearing_pose)
-      self.b_bot.go_to_named_pose("horizontal_screw_ready")
-      screw_pose = geometry_msgs.msg.PoseStamped()
-      if _task == "taskboard":
-        screw_pose.header.frame_id = "/taskboard_bearing_target_screw_" + str(n) + "_link"
-      elif _task == "assembly":
-        screw_pose.header.frame_id = "/assembled_part_07_screw_hole_" + str(n)
-      else:
-        rospy.logerr("Incorrect task argument, frame could be determined! Breaking out.")
-        return False
-      
-      screw_pose.pose.position.x = 0.00  ## Why does this seem to be loose at 0.0?
-      screw_pose.pose.position.z = 0.00  ## MAGIC NUMBER
-      screw_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0) )
-      if task == "assembly":
-        # The target frame is oriented differently in taskboard and assembly.
-        screw_pose.pose = rotatePoseByRPY(tau/2, 0, 0, screw_pose.pose)
       screw_pose_approach = copy.deepcopy(screw_pose)
       screw_pose_approach.pose.position.x -= 0.07
       
       self.b_bot.go_to_pose_goal(screw_pose_approach, end_effector_link = "b_bot_screw_tool_m4_tip_link", move_lin=False)
       screw_success = self.skill_server.do_screw_action("b_bot", screw_pose, screw_size=4)
       self.b_bot.go_to_pose_goal(screw_pose_approach, end_effector_link = "b_bot_screw_tool_m4_tip_link", move_lin=False)
-      self.b_bot.move_joints(intermediate_screw_bearing_pose)
       return (screw_success, False)
 
+    # Initialize screw status
     screw_status = dict()
-    for n in [1,3,2,4]:  # Cross pattern
-      screw_status[n] = "empty"
-      if rospy.is_shutdown():
-        break
-      (screw_success, breakout) = pick_and_fasten_bearing_screw(n)
-      if breakout:
-        break
-      if screw_success:
-        screw_status[n] = "done"
-      if not screw_success and self.tools.screw_is_suctioned["m4"]:
-        screw_status[n] = "empty"
-      if not screw_success and not self.tools.screw_is_suctioned["m4"]:
+    for n in [1,2,3,4]:
+      if only_retighten:
         screw_status[n] = "maybe_stuck_in_hole"
-      rospy.loginfo("Screw " + str(n) + " detected as " + screw_status[n])
+      else:
+        screw_status[n] = "empty"
     
-    # Reattempt 
-    all_screws_done = all(value == "done" for value in screw_status.values())
+    self.confirm_to_proceed("intermediate pose")
+    self.b_bot.move_joints(intermediate_screw_bearing_pose)
+    self.confirm_to_proceed("horizontal screw ready")
+    self.b_bot.go_to_named_pose("horizontal_screw_ready")
+    # Go to bearing and fasten all the screws
+    all_screws_done = False
     while not all_screws_done and not rospy.is_shutdown():
-      for n in [1,2,3,4]:
+      for n in [1,3,2,4]:  # Cross pattern
         if rospy.is_shutdown():
           break
         if screw_status[n] == "empty":
-          (screw_success, breakout) = pick_and_fasten_bearing_screw(n)
+          (screw_success, breakout) = pick_and_fasten_bearing_screw(screw_poses[n-1])
         elif screw_status[n] == "maybe_stuck_in_hole":
-          (screw_success, breakout) = pick_and_fasten_bearing_screw(n, pick_screw=False)
+          (screw_success, breakout) = pick_and_fasten_bearing_screw(screw_poses[n-1], skip_picking=True)
+        
         if screw_success:
           screw_status[n] = "done"
         if not screw_success and self.tools.screw_is_suctioned["m4"]:
@@ -1080,12 +1147,11 @@ class O2ACCommon(O2ACBase):
       all_screws_done = all(value == "done" for value in screw_status.values())
 
     self.b_bot.move_joints(intermediate_screw_bearing_pose)
-    self.b_bot.go_to_named_pose("tool_pick_ready")
     return all_screws_done
 
   ########  Motor pulley
 
-  def insert_motor_pulley(self, task=""):
+  def insert_motor_pulley(self, task="", attempts=1):
     if not task:
       rospy.logerr("Specify the task!")
       return False
@@ -1096,45 +1162,51 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("look this up")
       bearing_target_link = "assembled_part_07_inserted"
 
-    plane = "YZ"
-    radius = 0.002
-    radius_direction = "+Z"
-    revolutions = 5
-
-    steps = 100
-    duration = 30.0
+    duration = 20.0
     
-    target_force = get_target_force('-X', 6.0)
-    selection_matrix = [0., 0.8, 0.8, 0.8, 0.8, 0.8]
+    target_force = get_target_force('-X', 8.0)
+    selection_matrix = [0., 0.3, 0.3, 0.6, 0.6, 0.95]
 
-    target_pose = geometry_msgs.msg.PoseStamped()
-    target_pose.header.frame_id = bearing_target_link
-    target_pose.pose.position = geometry_msgs.msg.Point(0.009, -0.000, -0.009)
+    target_pose = conversions.to_pose_stamped(bearing_target_link, [0.009, -0.000, -0.009, 0,0,0])
     target_in_robot_base = self.listener.transformPose("b_bot_base_link", target_pose)
-    target_x = target_in_robot_base.pose.position.x
+    target_x = target_in_robot_base.pose.position.x - 0.0045
     termination_criteria = lambda cpose, standby_time: cpose[0] >= target_x or \
-                                                       (standby_time and cpose[0] >= target_x-0.005) # relax constraint
+                                                       (standby_time and cpose[0] >= target_x-0.001) # relax constraint
 
     rospy.loginfo("** STARTING FORCE CONTROL **")
-    result = self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
-                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=revolutions,
+    result = self.b_bot.execute_spiral_trajectory(plane="YZ", max_radius=0.002, radius_direction="+Z", steps=100, revolutions=5, timeout=duration,
+                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(3.0), wiggle_revolutions=2.,
                                                         target_force=target_force, selection_matrix=selection_matrix,
                                                         termination_criteria=termination_criteria)
-    rospy.loginfo("** FORCE CONTROL COMPLETE **")
+    rospy.loginfo("** FORCE CONTROL COMPLETE with distance %s **" % round(target_x - self.b_bot.force_controller.end_effector()[0],5))
+    rospy.logwarn(" position x: %s" % round(self.b_bot.force_controller.end_effector()[0],5))
 
     self.b_bot.gripper.open(wait=True, opening_width=0.07)
-    self.b_bot.gripper.close(wait=True)
 
-    radius = 0.0
+    if result != TERMINATION_CRITERIA:
+      self.b_bot.gripper.close(wait=True)
+      if self.b_bot.gripper.opening_width > 0.01 and attempts > 0: # try again the pulley is still there
+        self.b_bot.move_lin_rel(relative_translation = [0.01,0,0], acceleration = 0.015, speed=.03)
+        return self.insert_motor_pulley(task, attempts=attempts-1)
+      else:
+        self.b_bot.gripper.open(wait=True, opening_width=0.07)
+        rospy.logerr("** Insertion Failed!! **")
+        return
+
+    self.b_bot.gripper.close(wait=True)
+    target_force = get_target_force('-X', 10.0)
+
     target_x += 0.01
     termination_criteria = lambda cpose, standby_time: cpose[0] >= target_x or \
                                                        (standby_time and cpose[0] >= target_x-0.005) # relax constraint
 
     rospy.loginfo("** STARTING FORCE CONTROL **")
-    result = self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
-                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=5.0,
+    result = self.b_bot.execute_spiral_trajectory(plane="YZ", max_radius=0.0, radius_direction="+Z", steps=100, revolutions=3, timeout=duration,
+                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(2.0), wiggle_revolutions=2.,
                                                         target_force=target_force, selection_matrix=selection_matrix,
                                                         termination_criteria=termination_criteria)
+    rospy.loginfo("** FORCE CONTROL COMPLETE with distance %s **" % round(target_x - self.b_bot.force_controller.end_effector()[0],5))
+    rospy.logwarn(" position x: %s" % round(self.b_bot.force_controller.end_effector()[0],5))
 
     if result != TERMINATION_CRITERIA:
       rospy.logerr("** Insertion Failed!! **")
@@ -1192,7 +1264,7 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Fail to complete pick pose")
       return False
 
-    if not self.center_with_gripper_2("a_bot", grasp_width=.05):
+    if not self.center_with_gripper("a_bot", grasp_width=.05):
       rospy.logerr("Fail to complete center_with_gripper")
       return False
     if not self.grasp_idler_pulley():
@@ -1237,8 +1309,7 @@ class O2ACCommon(O2ACBase):
     
     self.a_bot.gripper.close()
 
-    if self.use_real_robot:
-      if self.a_bot.gripper.opening_width < 0.01:
+    if self.a_bot.gripper.opening_width < 0.01 and self.use_real_robot:
         rospy.logerr("Fail to grasp Idler Pulley")
         return False
 
@@ -1249,29 +1320,54 @@ class O2ACCommon(O2ACBase):
     rospy.loginfo("Going to near tb (a_bot)")
     d = 0.07
     # MAGIC NUMBERS (offset from TCP to tip of idler pulley thread)
-    target_pose = conversions.to_pose_stamp(target_link, [(-0.003-d), 0.009, 0.0, tau/4.0, 0, tau/8.])
-    near_tb_pose = self.listener.transformPose("world", target_pose)
-    success = self.a_bot.move_lin(near_tb_pose, speed=0.4)
+    # x = -0.003 was the original target
+    approach_pose = conversions.to_pose_stamped(target_link, [(-0.07),  0.009, 0.0, tau/4.0, 0, tau/8.])
+    near_tb_pose = conversions.to_pose_stamped(target_link,  [(-0.015), 0.009, 0.0, tau/4.0, 0, tau/8.])
+    in_tb_pose = conversions.to_pose_stamped(target_link,    [(-0.006), 0.009, 0.0, tau/4.0, 0, tau/8.])
+    in_tb_pose_world = self.listener.transformPose("world", in_tb_pose)
+    success = self.a_bot.move_lin(approach_pose, speed=0.4)
     if not success:
       return False
     
     rospy.loginfo("Approach ridge (a_bot)")
-    self.a_bot.move_lin_rel(relative_translation=[-d + 0.01, 0, 0], speed=0.1, relative_to_robot_base=True)
+    success = self.a_bot.move_lin(near_tb_pose, speed=0.4)
+    if not success:
+      return False
         
-    rospy.loginfo("Going to in ridge (a_bot)")
-    for i in range(3):
-      if not self.a_bot.move_lin_rel(relative_translation=[-0.01, 0, 0], speed=0.05, relative_to_robot_base=True):
-        if self.a_bot.is_protective_stopped():
-          self.a_bot.unlock_protective_stop()
+    rospy.loginfo("Moving into ridge (a_bot)")
+    insertion_offsets = [0.0]
+    d2 = 0.0007
+    for i in range(6):
+      insertion_offsets.append(d2*(i+1))
+      insertion_offsets.append(-d2*(i+1))
 
-          rospy.loginfo("Fail insertion %s, moving 0.0015 to the right (-Y)" % str(i+1))
-          self.a_bot.move_lin_rel(relative_translation=[0.01, -0.0015*(i+1), 0], speed=0.05)
-      else:
+    for offset in insertion_offsets:
+      selection_matrix = [0.,1.,1.,1,1,1]
+      success = self.a_bot.linear_push(5, "+X", max_translation=0.015, timeout=10.0, slow=True, selection_matrix=selection_matrix)
+
+      if success and self.a_bot.robot_group.get_current_pose().pose.position.x <= in_tb_pose_world.pose.position.x:
         return True
+      else:
+        # Go back, try again
+        self.a_bot.move_lin_rel(relative_translation=[0.01, 0, 0], speed=0.1, relative_to_robot_base=True)
+        near_tb_pose_with_offset = copy.deepcopy(near_tb_pose)
+        near_tb_pose_with_offset.pose.position.y += offset
+        self.a_bot.move_lin(near_tb_pose_with_offset, speed=0.05)
+
+    # No force control alternative
+    # for i in range(3):
+    #   if not self.a_bot.move_lin_rel(relative_translation=[-0.01, 0, 0], speed=0.05, relative_to_robot_base=True):
+    #     if self.a_bot.is_protective_stopped():
+    #       self.a_bot.unlock_protective_stop()
+    #       rospy.loginfo("Fail insertion %s, moving 0.0015 to the right (-Y)" % str(i+1))
+    #       self.a_bot.move_lin_rel(relative_translation=[0.01, -0.0015*(i+1), 0], speed=0.05)
+    #   else:
+    #     return True
     return False
 
-
   def prepare_screw_tool_idler_pulley(self, target_link):
+    """ target_link is e.g. long_hole_top_link
+    """
     self.equip_tool("b_bot", "padless_tool_m4")
     self.b_bot.go_to_named_pose("screw_ready")
     if not self.playback_sequence("idler_pulley_push_with_screw_tool"):
@@ -1279,23 +1375,35 @@ class O2ACCommon(O2ACBase):
 
     rospy.loginfo("Going to near tb (b_bot)") # Push with tool
     target_rotation = np.deg2rad([30.0, 0.0, 0.0]).tolist()
-    xyz_pos = [-0.01, -0.001, 0.001]  # MAGIC NUMBERS # Light push
-    near_tb_pose = conversions.to_pose_stamp(target_link, xyz_pos + target_rotation)
+    xyz_light_push = [-0.01, -0.001, 0.001]  # MAGIC NUMBERS
+    near_tb_pose = conversions.to_pose_stamped(target_link, xyz_light_push + target_rotation)
     success = self.b_bot.move_lin(near_tb_pose, speed=0.05, acceleration=0.05, end_effector_link="b_bot_screw_tool_m4_tip_link")
     if not success:
       return False
 
     self.tools.set_motor("padless_tool_m4", "tighten", duration=10.0)
-    self.hold_screw_tool_idler_pulley(target_link)
+    self.insert_screw_tool_tip_into_idler_pulley_head(target_link)
     
-    xyz_pos = [0.001, -0.001, 0.001]  # MAGIC NUMBERS # Hard push
-    push_pose = conversions.to_pose_stamp(target_link, xyz_pos + target_rotation)
-    return self.b_bot.move_lin(push_pose, speed=0.05, acceleration=0.05, end_effector_link="b_bot_screw_tool_m4_tip_link")
+    # xyz_hard_push = [0.001, -0.001, 0.001]  # MAGIC NUMBERS
+    # push_pose = conversions.to_pose_stamped(target_link, xyz_hard_push + target_rotation)
+    # return self.b_bot.move_lin(push_pose, speed=0.05, acceleration=0.05, end_effector_link="b_bot_screw_tool_m4_tip_link")
 
-  def hold_screw_tool_idler_pulley(self, target_link):
+    ## Incline the tool slightly 
+    self.planning_scene_interface.allow_collisions("padless_tool_m4", "taskboard_plate")
+    xyz_hard_push = [0.001, -0.001, 0.001]  # MAGIC NUMBERS (target without inclination)
+    inclination_angle_deg = 4.0
+    inclined_orientation_hard_push = np.deg2rad([30.0, inclination_angle_deg, 0.0]).tolist()
+    s = sin(np.deg2rad(inclination_angle_deg)) * 0.008  # 8 mm is roughly the distance from the taskboard surface to the 
+                                                        # head of the screw, so adding this offset should result in a rotation
+                                                        # around the screw head.
+    xyz_hard_push[2] -= s
+    push_pose = conversions.to_pose_stamped(target_link, xyz_hard_push + inclined_orientation_hard_push)
+    return self.b_bot.move_lin(push_pose, speed=0.02, acceleration=0.02, end_effector_link="b_bot_screw_tool_m4_tip_link")
+
+  def insert_screw_tool_tip_into_idler_pulley_head(self, target_link):
 
     target_force = get_target_force('-X', 0.0)
-    selection_matrix = [0., 0.95, 0.95, 1, 1, 1]
+    selection_matrix = [0., 0.9, 0.9, 1, 1, 1]
 
     termination_criteria = lambda cpose, standby_time: False # disabled
 
@@ -1310,7 +1418,7 @@ class O2ACCommon(O2ACBase):
     return True
 
   def fasten_idler_pulley_with_nut_tool(self, target_link):
-    approach_pose = conversions.to_pose_stamp(target_link, [0.1, 0.0, 0.0, 0.0, 0.0, 0.0])
+    approach_pose = conversions.to_pose_stamped(target_link, [0.1, 0.0, 0.0, 0.0, 0.0, 0.0])
     self.a_bot.move_lin(approach_pose, end_effector_link="a_bot_nut_tool_m4_hole_link", speed=0.4)
 
     success = False
@@ -1322,16 +1430,16 @@ class O2ACCommon(O2ACBase):
         break
       # Move nut tool forward so nut touches the screw
       d = offset  # 
-      approach_pose = conversions.to_pose_stamp(target_link, [0.06, 0.0, d - 0.005, 0.0, 0.0, 0.0])
+      approach_pose = conversions.to_pose_stamped(target_link, [0.06, 0.0, d - 0.005, 0.0, 0.0, 0.0])
       self.a_bot.move_lin(approach_pose, end_effector_link="a_bot_nut_tool_m4_hole_link", speed=0.2)
       
-      pushed_into_screw = conversions.to_pose_stamp(target_link, [0.011, 0.0, d - 0.005, 0.0, 0.0, 0.0])
+      pushed_into_screw = conversions.to_pose_stamped(target_link, [0.011, 0.0, d - 0.005, 0.0, 0.0, 0.0])
       self.a_bot.move_lin(pushed_into_screw, end_effector_link="a_bot_nut_tool_m4_hole_link", speed=0.2)
       
       response = self.tools.set_motor("padless_tool_m4", "tighten", duration=3.0, wait=True, skip_final_loosen_and_retighten=True)
       idler_pulley_screwing_succeeded = response.motor_stalled
 
-    retreat_pose = conversions.to_pose_stamp(target_link, [0.1, 0.0, 0.0, 0.0, 0.0, 0.0])
+    retreat_pose = conversions.to_pose_stamped(target_link, [0.1, 0.0, 0.0, 0.0, 0.0, 0.0])
     if not self.a_bot.move_lin(retreat_pose, end_effector_link="a_bot_nut_tool_m4_hole_link", speed=0.2):
       return False
     
@@ -1361,14 +1469,18 @@ class O2ACCommon(O2ACBase):
     self.vision.activate_camera("b_bot_inside_camera")
     self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z")
 
+    if self.b_bot.gripper.opening_width < 0.004 and self.use_real_robot:
+        rospy.logerr("Fail to grasp Shaft")
+        return False
+
     rospy.loginfo("Going to approach pose (b_bot)")
     rotation = np.deg2rad([-22.5, -88.5, -157.5]).tolist()  # Arbitrary
-    approach_pose = conversions.to_pose_stamp(target_link, [-0.25, 0.002, 0.00] + rotation)
+    approach_pose = conversions.to_pose_stamped(target_link, [-0.25, 0.002, 0.00] + rotation)
     if not self.b_bot.move_lin(approach_pose, speed=0.4):
       return False
     
     rospy.loginfo("Going to hole (b_bot)")
-    at_hole_pose = conversions.to_pose_stamp(target_link, [-0.09, 0.000, -0.002] + rotation)
+    at_hole_pose = conversions.to_pose_stamped(target_link, [-0.09, 0.000, -0.002] + rotation)
     if not self.b_bot.move_lin(at_hole_pose, speed=0.2):
       return False
 
@@ -1379,45 +1491,50 @@ class O2ACCommon(O2ACBase):
     Insert shaft with force control using b_bot. The shaft has to be in front of the hole already.
     """
     # FIXME: Needs tuning
-    self.b_bot.linear_push(2, "-X", timeout=10.0)
+    self.b_bot.linear_push(5, "-X", max_translation=0.06, timeout=20.0)
     after_push_x = self.b_bot.force_controller.end_effector()[0]
     print("Pose after linear push", after_push_x)
 
     # Parameters for insertion
-    plane = "YZ"
-    radius = 0.002
-    radius_direction = "+Z"
-    revolutions = 5
-    steps = 100
     duration = 15.0
-    target_force = get_target_force('-X', 6.0)
-    selection_matrix = [0., 0.8, 0.8, 0.95, 0.95, 0.95]
+    target_force = get_target_force('-X', 10.0)
+    selection_matrix = [0., 0.3, 0.3, 0.95, 0.95, 0.95]
 
     target_x = after_push_x + 0.01
     termination_criteria = lambda cpose, standby_time: cpose[0] >= target_x or \
                                                        (standby_time and cpose[0] >= target_x-0.003) # relax constraint
 
     rospy.loginfo("** STARTING FORCE CONTROL **")
-    result = self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
-                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(3.0), wiggle_revolutions=5.0,
+    result = self.b_bot.execute_spiral_trajectory(plane="YZ", max_radius=0.0025, radius_direction="+Z", steps=100, revolutions=3, timeout=duration,
+                                                        wiggle_direction="X", wiggle_angle=np.deg2rad(0.0), wiggle_revolutions=2.0,
                                                         target_force=target_force, selection_matrix=selection_matrix,
                                                         termination_criteria=termination_criteria)
     rospy.loginfo("** FORCE CONTROL COMPLETE with distance %s **" % round(target_x - self.b_bot.force_controller.end_effector()[0],5))
     rospy.logwarn(" position x: %s" % round(self.b_bot.force_controller.end_effector()[0],5))
 
     self.b_bot.gripper.open()
+
+    if result != TERMINATION_CRITERIA:
+      self.b_bot.gripper.close(wait=True)
+      if self.b_bot.gripper.opening_width > 0.005: 
+        rospy.loginfo("The shaft is in the hole, so let's keep trying to push from behind")
+        self.b_bot.gripper.open(wait=True, opening_width=0.07)
+      else:
+        self.b_bot.gripper.open(wait=True, opening_width=0.07)
+        rospy.logerr("** Insertion Failed!! **")
+        return
+
     # Move back to push (without grasping)
     self.b_bot.move_lin_rel(relative_translation = [0.065,0,-0.02], acceleration = 0.015, speed=.03)
     self.b_bot.gripper.close()
 
     target_force = get_target_force('-X', 15.0)
-    target_x += 0.0
     termination_criteria = lambda cpose, standby_time: cpose[0] >= target_x or \
                                                        (standby_time and cpose[0] >= target_x-0.01) # relax constraint
     radius = 0.0
 
     rospy.loginfo("** STARTING FORCE CONTROL 2**")
-    self.b_bot.execute_spiral_trajectory(plane, radius, radius_direction, steps, revolutions, timeout=duration,
+    result = self.b_bot.execute_spiral_trajectory(plane="YZ", max_radius=0.003, radius_direction="+Z", steps=100, revolutions=3, timeout=duration,
                                                         target_force=target_force, selection_matrix=selection_matrix,
                                                         termination_criteria=termination_criteria)
     rospy.loginfo("** FORCE CONTROL COMPLETE 2 with distance %s **" % round(target_x - self.b_bot.force_controller.end_effector()[0],5))

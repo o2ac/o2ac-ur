@@ -67,6 +67,7 @@ from aist_localization  import LocalizationClient
 from o2ac_vision.pose_estimation_func import TemplateMatching
 from o2ac_vision.pose_estimation_func import FastGraspabilityEvaluation
 from o2ac_vision.pose_estimation_func import ShaftAnalysis
+from o2ac_vision.pose_estimation_func import PickCheck
 
 from o2ac_vision.cam_utils import O2ACCameraHelper
 
@@ -127,12 +128,8 @@ class O2ACVisionServer(object):
 
         # Load parameters for detecting graspabilities
         default_param_fge = {"ds_rate": 0.5,
-                             "target_lower":[0, 150, 100],
-                             "target_upper":[45, 255, 255],
-                             "fg_lower": [0, 0, 100],
-                             "fg_upper": [179, 255, 255],
-                             "hand_rotation":[0,45,90,135],
-                             "threshold": 0.5}
+                             "n_grasp_point": 50,
+                             "threshold": 0.01}
         self.param_fge = rospy.get_param('~param_fge', default_param_fge)
 
         # Setup camera image subscribers
@@ -178,6 +175,10 @@ class O2ACVisionServer(object):
         self.shaft_notch_detection_action_server = actionlib.SimpleActionServer("~detect_shaft_notch", o2ac_msgs.msg.shaftNotchDetectionAction,
             execute_cb = self.shaft_notch_detection_callback, auto_start=False)
         self.shaft_notch_detection_action_server.start()
+
+        self.pick_success_action_server = actionlib.SimpleActionServer("~check_pick_success", o2ac_msgs.msg.checkPickSuccessAction,
+            execute_cb = self.pick_success_callback, auto_start=False)
+        self.pick_success_action_server.start()
         
         # For visualization
         self.pose_marker_id_counter = 0
@@ -290,6 +291,23 @@ class O2ACVisionServer(object):
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
         self.write_to_log(im_in, im_vis, "shaft_notch_detection")
 
+    def pick_success_callback(self, goal):
+        self.pick_success_action_server.accept_new_goal()
+        rospy.loginfo("Received a request to detect pick success for item: " + goal.item_id)
+        # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
+        im_in = self.bridge.imgmsg_to_cv2(self.last_rgb_image, desired_encoding="bgr8")
+
+        action_result = o2ac_msgs.msg.checkPickSuccessResult()
+        
+        pick_successful, im_vis = self.check_pick_success(im_in, goal.item_id)
+
+        action_result.item_is_picked = pick_successful
+        action_result.success = True
+        
+        self.pick_success_action_server.set_succeeded(action_result)
+        self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
+        self.write_to_log(im_in, im_vis, "pick_success")
+
     def localization_callback(self, goal):
         rospy.loginfo("Received a request to localize objects via CAD matching")
         # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
@@ -383,7 +401,7 @@ class O2ACVisionServer(object):
             estimated_poses_msg.bbox       = ssd_result["bbox"]
 
             if target in apply_2d_pose_estimation:
-                rospy.loginfo("Target id is %d. Apply the 2d pose estimation",
+                rospy.loginfo("Seeing object id %d. Apply 2D pose estimation",
                               target)
                 pose, im_vis = self.estimate_pose_in_image(im_in, im_vis,
                                                            ssd_result)
@@ -395,14 +413,16 @@ class O2ACVisionServer(object):
                     if not p3d:
                         continue
                     poses_3d.append(p3d)
-                    rospy.loginfo("Found pose for class " + str(target) + ": " + str(poses_3d[-1].pose.position.x) + ", " + str(poses_3d[-1].pose.position.y) + ", " + str(poses_3d[-1].pose.position.z))
+                    # rospy.loginfo("Found pose for class " + str(target) + ": " + str(poses_3d[-1].pose.position.x) + ", " + str(poses_3d[-1].pose.position.y) + ", " + str(poses_3d[-1].pose.position.z))
+                    # rospy.loginfo("Found pose for class " + str(target) + ": %2f, %2f, %2f", 
+                    #                poses_3d[-1].pose.position.x, poses_3d[-1].pose.position.y, poses_3d[-1].pose.position.z)
                 if not poses_3d:
                     rospy.logwarn("Could not find pose for class " + str(target) + "!")
                     continue
                 self.add_markers_to_pose_array(poses_3d)
 
             elif target in apply_3d_pose_estimation:
-                rospy.loginfo("Target id is %d. Apply the 3d pose estimation",
+                rospy.loginfo("Seeing object id %d. Apply 3D pose estimation",
                               target)
                 x = int(estimated_poses_msg.bbox[0] + round(estimated_poses_msg.bbox[2]/2))
                 y = int(estimated_poses_msg.bbox[1] + round(estimated_poses_msg.bbox[3]/2))
@@ -414,11 +434,13 @@ class O2ACVisionServer(object):
                     rospy.logwarn("Could not find pose for class " + str(target) + "!")
                     continue
                 poses_3d = [p3d]
-                rospy.loginfo("Found pose for class " + str(target) + ": " + str(poses_3d[-1].pose.position.x) + ", " + str(poses_3d[-1].pose.position.y) + ", " + str(poses_3d[-1].pose.position.z))
+                # rospy.loginfo("Found pose for class " + str(target) + ": " + str(poses_3d[-1].pose.position.x) + ", " + str(poses_3d[-1].pose.position.y) + ", " + str(poses_3d[-1].pose.position.z))
+                # rospy.loginfo("Found pose for class " + str(target) + ": %2f, %2f, %2f", 
+                #                    poses_3d[-1].pose.position.x, poses_3d[-1].pose.position.y, poses_3d[-1].pose.position.z)
                 self.add_markers_to_pose_array(poses_3d)
 
             elif target in apply_grasp_detection:
-                rospy.loginfo("Target id is %d. Apply grasp detection", target)
+                rospy.loginfo("Seeing object id %d (belt). Apply grasp detection", target)
                 estimated_poses_msg.poses, im_vis \
                     = self.belt_grasp_detection_in_image(im_in, im_vis, ssd_result)
                 
@@ -485,17 +507,13 @@ class O2ACVisionServer(object):
         im_hand[0:10,20:20+hand_width] = 1
         im_hand[50:60,20:20+hand_width] = 1
 
-        # Generation of a collision template
-        im_collision = np.zeros( (60,60), np.float )
-        im_collision[10:50,20:20+hand_width] = 1
-
         bbox = ssd_result["bbox"]
         margin = 30
         top_bottom = slice(max(bbox[1] - margin, 0), min(bbox[1] + bbox[3] + margin, 480))
         left_right = slice(max(bbox[0] - margin, 0), min(bbox[0] + bbox[2] + margin, 640))
 
         fge = FastGraspabilityEvaluation(im_in[top_bottom, left_right],
-                                         im_hand, im_collision, self.param_fge)
+                                         im_hand, self.param_fge)
         results = fge.main_proc()
 
         elapsed_time = time.time() - start
@@ -541,6 +559,17 @@ class O2ACVisionServer(object):
         front, back = sa.main_proc( 0.5 ) # threshold.
         im_vis = sa.get_tm_result_image(front, back)
         return front, back, im_vis
+
+    def check_pick_success(self, im_in, item_id):
+        """ item_id is the object name, not the ID.
+        """
+        if item_id == "belt":
+            class_id = 6
+        pc = PickCheck(ssd_detection)
+        pick_successful = pc.check( im_in, class_id )
+        im_vis = pc.get_im_result()
+        return pick_successful, im_vis
+        
 
 ### ========
 

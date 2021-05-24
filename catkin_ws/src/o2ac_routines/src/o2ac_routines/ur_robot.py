@@ -61,6 +61,9 @@ class URRobot():
         self.set_io = rospy.ServiceProxy('/%s/ur_hardware_interface/set_io' % self.ns, ur_msgs.srv.SetIO)
 
         self.sub_status_ = rospy.Subscriber("/%s/ur_hardware_interface/robot_program_running" % self.ns, Bool, self.ros_control_status_callback)
+        self.service_proxy_list = rospy.ServiceProxy("/" + self.ns + "/controller_manager/list_controllers", controller_manager_msgs.srv.ListControllers)
+        self.service_proxy_switch = rospy.ServiceProxy("/" + self.ns + "/controller_manager/switch_controller", controller_manager_msgs.srv.SwitchController)
+        
 
         self.sub_robot_safety_mode = rospy.Subscriber("/%s/ur_hardware_interface/safety_mode" % self.ns, ur_dashboard_msgs.msg.SafetyMode, self.safety_mode_callback)
         self.sub_run_mode_ = rospy.Subscriber("/run_mode", Bool, self.run_mode_callback)
@@ -130,6 +133,16 @@ class URRobot():
         rospy.set_param(self.ns + "/carrying_object", self.robot_status.carrying_object)
         rospy.set_param(self.ns + "/carrying_tool",   self.robot_status.carrying_tool)
         rospy.set_param(self.ns + "/held_tool_id",    self.robot_status.held_tool_id)
+    
+    def wait_for_control_status_to_turn_on(self, waittime):
+        start = rospy.Time.now()
+        elapsed = rospy.Time.now() - start
+        while not self.ur_ros_control_running_on_robot and elapsed < rospy.Duration(waittime) and not rospy.is_shutdown():
+            rospy.sleep(.1)
+            elapsed = rospy.Time.now() - start
+            if self.ur_ros_control_running_on_robot:
+                return True
+        return False
 
     def activate_ros_control_on_ur(self, recursion_depth=0):
         if not self.use_real_robot:
@@ -153,71 +166,94 @@ class URRobot():
         if rospy.is_shutdown():
             return False
 
-        load_success = False
+        program_loaded = False
         try:
             # Load program if it not loaded already
-            rospy.loginfo("Activating ROS control on robot " + self.ns)
             response = self.ur_dashboard_clients["get_loaded_program"].call(ur_dashboard_msgs.srv.GetLoadedProgramRequest())
-            if response.program_name != "Loaded program: /programs/ROS_external_control.urp":
+            # print("response:")
+            # print(response)
+            if response.program_name == "/programs/ROS_external_control.urp":
+                program_loaded = True
+            else:
+                rospy.loginfo("Currently loaded program was:  " + response.program_name)
+                rospy.loginfo("Loading ROS control on robot " + self.ns)
                 request = ur_dashboard_msgs.srv.LoadRequest()
                 request.filename = "ROS_external_control.urp"
                 response = self.ur_dashboard_clients["load_program"].call(request)
-                rospy.sleep(2.0)
                 if response.success:  # Try reconnecting to dashboard
-                    load_success = True
+                    program_loaded = True
                 else:
                     rospy.logerr("Could not load the ROS_external_control.urp URCap. Is the UR in Remote Control mode and program installed with correct name?")
+                for i in range(10):
+                    rospy.sleep(0.2)
+                    # rospy.loginfo("After-load check nr. " + str(i))
+                    response = self.ur_dashboard_clients["get_loaded_program"].call(ur_dashboard_msgs.srv.GetLoadedProgramRequest())
+                    # rospy.loginfo("Received response: " + response.program_name)
+                    if response.program_name == "/programs/ROS_external_control.urp":
+                        break
+            
         except:
             rospy.logwarn("Dashboard service did not respond!")
 
-        if not load_success:
-            rospy.logwarn("Waiting and trying again.")
+        if not program_loaded:
+            rospy.logwarn("Could not load.")
             try:
-                if recursion_depth > 0:  # If connect alone failed, try quit and then connect
+                if recursion_depth > 3:  # If connect alone failed, try quit and then connect
+                    rospy.logwarn("Try to quit before connecting.")
                     response = self.ur_dashboard_clients["quit"].call()
                     rospy.sleep(3.0)
+                rospy.logwarn("Try to connect to dashboard service.")
                 response = self.ur_dashboard_clients["connect"].call()
             except:
                 rospy.logwarn("Dashboard service did not respond! (2)")
                 pass
-            rospy.sleep(3.0)
+            rospy.sleep(1.0)
             return self.activate_ros_control_on_ur(recursion_depth=recursion_depth+1)
 
         # Run the program
+        rospy.loginfo("Running the program (play)")
         try:
             response = self.ur_dashboard_clients["play"].call(std_srvs.srv.TriggerRequest())
         except:
             pass
-        rospy.sleep(2)
-        if not response.success:
-            rospy.logerr("Could not start UR control. Is the UR in Remote Control mode and program installed with correct name?")
-            return False
-        else:
-            # Check if controller is running
-            self.check_for_dead_controller_and_force_start()
+        rospy.loginfo("Entered wait_for_control_status_to_turn_on")
+        self.wait_for_control_status_to_turn_on(2.0)
+        rospy.loginfo("Exited wait_for_control_status_to_turn_on")
+        # if not response.success:
+        #     rospy.logerr("Could not start UR control. Is the UR in Remote Control mode and program installed with correct name?")
+        #     return False
+        # else:
+        #     # Check if controller is running
+        #     self.check_for_dead_controller_and_force_start()
+        #     rospy.loginfo("Successfully activated ROS control on robot " + self.ns)
+        #     return True
+        
+        # FIXME: Apparently this can still fail if the controller is off but the program is already running on the UR
+        if self.check_for_dead_controller_and_force_start():
             rospy.loginfo("Successfully activated ROS control on robot " + self.ns)
             return True
+        else:
+            rospy.logerr("Could not start UR control. Is the UR in Remote Control mode and program installed with correct name?")
+            return False
+        
 
     def check_for_dead_controller_and_force_start(self):
-        service_proxy_list = rospy.ServiceProxy("/" + self.ns + "/controller_manager/list_controllers", controller_manager_msgs.srv.ListControllers)
-        service_proxy_switch = rospy.ServiceProxy("/" + self.ns + "/controller_manager/switch_controller", controller_manager_msgs.srv.SwitchController)
-        rospy.sleep(2)
-
         list_req = controller_manager_msgs.srv.ListControllersRequest()
         switch_req = controller_manager_msgs.srv.SwitchControllerRequest()
-
-        list_res = service_proxy_list.call(list_req)
+        rospy.loginfo("Checking for dead controllers for robot " + self.ns)
+        list_res = self.service_proxy_list.call(list_req)
         for c in list_res.controller:
             if c.name == "scaled_pos_joint_traj_controller":
                 if c.state == "stopped":
                     # Force restart
-                    rospy.logerr("Force restart of controller")
+                    rospy.logwarn("Force restart of controller")
                     switch_req.start_controllers = ['scaled_pos_joint_traj_controller']
                     switch_req.strictness = 1
-                    switch_res = service_proxy_switch.call(switch_req)
+                    switch_res = self.service_proxy_switch.call(switch_req)
                     rospy.sleep(1)
                     return switch_res.ok
                 else:
+                    rospy.loginfo("Controller state is " + c.state + ", returning True.")
                     return True
 
     def load_and_execute_program(self, program_name="", recursion_depth=0):

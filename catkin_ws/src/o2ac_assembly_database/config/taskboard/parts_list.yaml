@@ -17,8 +17,8 @@ parts_list:
     description: Idley pulley (not used)
   - id: 5
     name: motor_pulley
-    type: MBGNA30-2
-    cad: MBGNA30-2.stl
+    type: MBRFA30-2-P6
+    cad: motorpulley_MBRFA30-2-P6.stl
     description: Pulley for Round Belt (4mm) - Setscrew P.D. 30mm
   - id: 6
     name: belt

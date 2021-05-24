@@ -6,6 +6,7 @@ import math
 import copy
 import os, json
 import math
+import random
 
 """
    Downsampling for binary image
@@ -488,17 +489,15 @@ def visualize_result( im_temp, im_scene, ltop, orientation ):
 """
 class FastGraspabilityEvaluation():
 
-    def __init__( self, _im_in, _im_hand,  _im_collision, _param ):
+    def __init__( self, _im_in, _im_hand, _param ):
         self.im_in = _im_in.copy()
         self.im_hand = _im_hand.copy()
-        self.im_collision = _im_collision.copy()
         self.im_in_org = _im_in
 
         self.im_belt = None    # belt = 1, other = 0
         self.fg_mask = None  # foreground = 1, background = 0
 
         self.im_hands = None
-        self.im_collisions = None
 
         self.candidate_idx = list()
         self.pos_list = list()
@@ -508,48 +507,61 @@ class FastGraspabilityEvaluation():
 
         #parameter
         self.ds_rate = _param["ds_rate"]
-        target_lower = np.array( _param["target_lower"] )
-        target_upper = np.array( _param["target_upper"] )
+        self.n_grasp_point = _param["n_grasp_point"]
         self.threshold = _param["threshold"]
-
-        # color range of the foreground
-        fg_lower = np.array( _param["fg_lower"] )
-        fg_upper = np.array( _param["fg_upper"] )
 
         # Down sampling
         self.im_in = cv2.resize( self.im_in, None, fx=self.ds_rate, fy=self.ds_rate, interpolation=cv2.INTER_NEAREST )
         self.im_hand = cv2.resize( self.im_hand, None, fx=self.ds_rate, fy=self.ds_rate, interpolation=cv2.INTER_NEAREST )
-        self.im_collision = cv2.resize( self.im_collision, None, fx=self.ds_rate, fy=self.ds_rate, interpolation=cv2.INTER_NEAREST )
 
         # Masking out the belt and foreground
-        self.im_belt = self.binarizationHSV( self.im_in, target_lower, target_upper )
-        self.fg_mask = self.binarizationHSV( self.im_in, fg_lower, fg_upper )
-
-        # Generate obstacle mask
-        kernel = np.ones((3,3),np.uint8)
-        self.im_belt = cv2.morphologyEx( self.im_belt, cv2.MORPH_OPEN, kernel )
-        self.im_belt = cv2.dilate( self.im_belt, kernel, iterations = 1 )
-
-        self.im_obstacles = np.array( self.fg_mask, np.int) - np.array( self.im_belt, np.int )
-        self.im_obstacles = np.asarray( np.clip( self.im_obstacles, 0, 1 ), np.uint8 )
+        self.im_belt = self.detect_belt( self.im_in )
+        self.fg_mask = self.detect_foreground( self.im_in )
 
 
-    def binarizationHSV( self, im, lower=[0,0,0], upper=[179,255,255] ):
+    def detect_belt( self, im_in ):
+        """ Detect belt mask
+        Input:
+            im_in(numpy array BGR, 8bits): input image
+        Return:
+            binarized image [0 or 1] np.uint8
         """
-            Color extraction using HSV value
-            H(Hue) -> [0,179]
-            S(Saturation) -> [0,255]
-            V(Value) -> [0,255]
-            Input:
-                image: numpy array BGR, np.uint8
-                lower: lower threshold [ h, s, v ]
-                upper: upper threshold [ h, s, v ]
-            Output:
-                im_out: binarized image [0 or 1] np.uint8
+        # detect foreground
+        im_hsv = cv2.cvtColor( im_in, cv2.COLOR_BGR2HSV )
+        im_s = im_hsv[:,:,1] # get s image
+        th, im_b = cv2.threshold(im_s,0,1,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+
+        # detect the belt as circle
+        circles = cv2.HoughCircles( im_s, 
+                            cv2.HOUGH_GRADIENT,
+                            dp=2,  
+                            minDist=10, #検出される円の中心同士の最小距離．
+                            param1=100, #Canny() エッジ検出器に渡される2つの閾値の内，大きい方の閾値
+                            param2=100, #円の中心を検出する際の投票数の閾値
+                            minRadius=10,  #円の半径の最小値
+                            maxRadius=100) #円の半径の最大値
+        
+        im_circle = np.zeros(im_in.shape)
+        cv2.circle(im_circle,(circles[0,0,0],circles[0,0,1]),circles[0,0,2],(1,1,1),5)
+        circle_mask = im_circle[:,:,0]
+        return circle_mask*im_b
+
+    def detect_foreground( self, im_in, factor=1.5 ):
+        """ Detect foreground mask
+        Input:
+            im_in(numpy array BGR, 8bits): input image
+            factor(float): しきい値．最瀕値のfactor倍の画素値までを背景とする．
+                           大きくすると，検出領域が小さくなる
+        Return:
+            binarized image [0 or 1] np.uint8
         """
-        im_hsv = cv2.cvtColor( im, cv2.COLOR_BGR2HSV )
-        im_out = cv2.inRange( im_hsv, lower, upper )
-        return im_out/255
+        im_hsv = cv2.cvtColor( im_in, cv2.COLOR_BGR2HSV )
+        im_v = im_hsv[:,:,2] # get v image
+        hist, bins = np.histogram(im_v, 20 )
+        threshold = bins[np.argmax(hist)] # ヒストグラムの最瀕値の画素値を取得
+        im_th = np.where( im_v< threshold*1.5, 0, 1 ) # 最瀕値の1.5倍の明るさまでを背景とする．
+
+        return im_th
 
     def RotationTemplate( self, im_temp, deg ):
 
@@ -585,34 +597,29 @@ class FastGraspabilityEvaluation():
         """
 
         # Generate search point
-        ds_rate = 0.1
-        ds_reverse = 1.0 / ds_rate
-        im_sp = cv2.resize( self.im_belt, None, fx=ds_rate, fy=ds_rate,
-                            interpolation=cv2.INTER_NEAREST )
-        # 探索位置(y,x)の取り出し
-        points = np.where( im_sp == 1 )
+        points = np.where( self.im_belt == 1 )
+        n_search_point = self.n_grasp_point
         search_points = list()
         for n in range(len(points[0])):
             search_points.append( (points[0][n], points[1][n]) )
 
-        # 型変換とスケールを元解像度に戻す
-        search_points = np.asarray( search_points, np.float )
-        search_points *= ds_reverse
+        if n_search_point < len(search_points): # random sampling
+            search_points = random.sample(search_points, n_search_point )
+        
         search_points = np.asarray( search_points, np.int )
 
         # Hand pattern matching
         cols, rows = self.im_hand.shape[1], self.im_hand.shape[0]
-        s_cols, s_rows = self.im_obstacles.shape[1], self.im_obstacles.shape[0]
+        s_cols, s_rows = self.im_belt.shape[1], self.im_belt.shape[0]
         offset = np.array( (cols/2, rows/2), np.int )
         score_list = list()
         pos_list = list()
         cx, cy = self.im_in.shape[1]/2, self.im_in.shape[0]/2
         for sp in search_points:
             ltop = sp - offset # left-top corner of search point
-            deg = math.degrees(np.arctan2((sp[0]-cy),(sp[1]-cx)))
+            deg = np.degrees(np.arctan2((sp[0]-cy),(sp[1]-cx)))
 
             hand, hand_area = self.RotationTemplate(self.im_hand, deg )
-            collision, _ = self.RotationTemplate(self.im_collision, deg )
             
             # check border
             if ltop[0] < 0 or ltop[1] < 0 or s_rows <= ltop[0]+rows or s_cols <= ltop[1]+cols:
@@ -637,9 +644,6 @@ class FastGraspabilityEvaluation():
 
         return self.gp_result
 
-    def get_hand_and_collision( self ):
-
-        return self.im_hands, self.im_collisions
 
     def get_foreground_mask( self ):
 
@@ -676,6 +680,60 @@ class FastGraspabilityEvaluation():
             im_result = cv2.circle( im_result, ( n[1], n[0] ), 3, (0,255,0), -1, cv2.LINE_AA )
 
         return im_result
+
+#############################################################################
+#
+# Verify picking
+# 
+# sample code
+#  class_id = 6 # target label. "6" means the belt.
+#  ssd_detection = o2ac_ssd.ssd_detection()
+#  pc = PickCheck( ssd_detection )
+#  flag = pc.check( im_in, class_id )
+# 
+# If flag is True, grasp was successful.
+#############################################################################
+class PickCheck():
+    """ Verify that the grasp was successful
+
+    Args:
+        ssd_detection: ssd_detection
+      
+    """
+    def __init__( self, ssd_detection ):
+        self.ssd_detection = ssd_detection
+        self.ssd_results = None
+        self.im_vis = None
+
+    def check( self, im_in, class_id, ssd_treshold=0.6 ):
+        """ verify grasp
+
+        Args:
+            im_in(np.array): input image
+            class_id(int): target classs to be verified
+            ssd_threshold(float, optional): threshold of ssd confidence
+        Return:
+            bool: If True, grasp was successful.
+        """
+        flag = False
+        im_vis = im_in.copy()
+        self.ssd_results, self.im_vis = self.ssd_detection.object_detection(im_in, 
+                                                                  im_vis, 
+                                                                  ssd_treshold, 
+                                                                  0.8)
+
+        for res in self.ssd_results:
+            if res["class"] == class_id:
+                flag = True
+        
+        return flag
+
+    def get_ssd_results( self ):
+        return self.ssd_results
+
+    
+    def get_im_result( self ):
+        return self.im_vis
         
 #############################################################################
 #
