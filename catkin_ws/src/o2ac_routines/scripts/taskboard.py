@@ -434,32 +434,28 @@ class TaskboardClass(O2ACCommon):
     # ==========================================================
 
     if task_name == "motor pulley":
-      self.a_bot.go_to_named_pose("home")
-      self.b_bot.go_to_named_pose("home")
-      
-      goal = self.look_and_get_grasp_point(self.assembly_database.name_to_id("motor_pulley"))
-      if not goal:
-        rospy.logerr("Could not find motor_pulley in tray. Skipping procedure.")
-        return False
-      goal.pose.position.x -= 0.01 # MAGIC NUMBER
-      goal.pose.position.z = 0.0
-      self.vision.activate_camera("b_bot_inside_camera")
-      self.activate_led("b_bot")
-      self.simple_pick("b_bot", goal, gripper_force=50.0, grasp_width=.06, axis="z")
-
-      if self.b_bot.gripper.opening_width < 0.01:
-        rospy.logerr("Gripper did not grasp the pulley --> Stop")
 
       use_ros = True
 
       if use_ros:
-        result = self.playback_sequence(routine_filename="orient_pulley")
-        if result:
-          self.insert_motor_pulley(task = "taskboard")
-        else:
-          rospy.logerr("Fail to complete the playback sequence")
-          return False
+        return self.pick_and_insert_motor_pulley(task = "taskboard")
       else:
+        self.a_bot.go_to_named_pose("home")
+        self.b_bot.go_to_named_pose("home")
+        
+        goal = self.look_and_get_grasp_point(self.assembly_database.name_to_id("motor_pulley"))
+        if not goal:
+          rospy.logerr("Could not find motor_pulley in tray. Skipping procedure.")
+          return False
+        goal.pose.position.x -= 0.01 # MAGIC NUMBER
+        goal.pose.position.z = 0.0
+        self.vision.activate_camera("b_bot_inside_camera")
+        self.activate_led("b_bot")
+        self.simple_pick("b_bot", goal, gripper_force=50.0, grasp_width=.06, axis="z")
+
+        if self.b_bot.gripper.opening_width < 0.01:
+          rospy.logerr("Gripper did not grasp the pulley --> Stop")
+
         b_bot_script_start_pose = [1.7094888, -1.76184906, 2.20651847, -2.03368343, -1.54728252, 0.96213197]
         self.b_bot.move_joints(b_bot_script_start_pose)
 

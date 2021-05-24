@@ -334,7 +334,8 @@ class O2ACCommon(O2ACBase):
     if axis =="z":
       object_pose.pose.position.z += approach_height * sign
     rospy.logdebug("Going to height " + str(object_pose.pose.position.z))
-    self.active_robots[robot_name].go_to_pose_goal(object_pose, speed=speed_fast, acceleration=acc_fast, move_lin=True)
+    if not self.active_robots[robot_name].go_to_pose_goal(object_pose, speed=speed_fast, acceleration=acc_fast, move_lin=True):
+      return False
     if axis =="x":
       object_pose.pose.position.x -= approach_height * sign
     if axis =="z":
@@ -346,7 +347,8 @@ class O2ACCommon(O2ACBase):
     if axis =="z":
       object_pose.pose.position.z += grasp_height * sign
     rospy.logdebug("Going to height " + str(object_pose.pose.position.z))
-    self.active_robots[robot_name].go_to_pose_goal(object_pose, speed=speed_slow, acceleration=acc_slow, move_lin=True)
+    if not self.active_robots[robot_name].go_to_pose_goal(object_pose, speed=speed_slow, acceleration=acc_slow, move_lin=True):
+      return False
     if axis =="x":
       object_pose.pose.position.x -= grasp_height * sign
     if axis =="z":
@@ -377,7 +379,8 @@ class O2ACCommon(O2ACBase):
       if axis =="z":
         object_pose.pose.position.z += approach_height * sign
       rospy.loginfo("Going to height " + str(object_pose.pose.position.z))
-      self.active_robots[robot_name].go_to_pose_goal(object_pose, speed=speed_fast, acceleration=acc_fast, move_lin=True)
+      if not self.active_robots[robot_name].go_to_pose_goal(object_pose, speed=speed_fast, acceleration=acc_fast, move_lin=True):
+        return False
       if axis =="x":
         object_pose.pose.position.x -= approach_height * sign
       if axis =="z":
@@ -973,7 +976,9 @@ class O2ACCommon(O2ACBase):
     goal.pose.position.x -= 0.01 # MAGIC NUMBER
     goal.pose.position.z = 0.0115
     
-    self.simple_pick("b_bot", goal, gripper_force=100.0, approach_height=0.05, axis="z")
+    if not self.simple_pick("b_bot", goal, gripper_force=100.0, approach_height=0.05, axis="z"):
+      rospy.logerr("Fail to simple_pick")
+      return False
 
     #TODO add bearing to scene
     # if not self.pick_from_two_poses_topdown("b_bot", "bearing", goal):
@@ -1023,7 +1028,7 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("look this up")
       bearing_target_link = "assembled_part_07_inserted"
 
-    target_pose_target_frame = conversions.to_pose_stamped(bearing_target_link, [-0.0, 0, -.005, 0, 0, 0, 1.])
+    target_pose_target_frame = conversions.to_pose_stamped(bearing_target_link, [-0.003, 0.000, -0.004, 0, 0, 0, 1.])
     selection_matrix = [0., 0.5, 0.5, .8, .8, .8]
     if not self.b_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="-X", force=10.0, timeout=30.0, 
                                                     radius=0.002, relaxed_target_by=0.003, selection_matrix=selection_matrix):
@@ -1035,13 +1040,13 @@ class O2ACCommon(O2ACBase):
     self.b_bot.move_lin_rel(relative_translation = [0.016,0,0], acceleration = 0.015, speed=.03)
     self.b_bot.gripper.close(velocity=0.01, wait=True)
 
-    target_pose_target_frame = conversions.to_pose_stamped(bearing_target_link, [0.001, 0, -.005, 0, 0, 0, 1.])
     success = self.b_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="-X", force=10.0, timeout=30.0, 
                                                     radius=0.0, wiggle_angle=np.deg2rad(1.0), wiggle_revolutions=2.,
                                                     relaxed_target_by=0.003, selection_matrix=selection_matrix)
     
     # Go back regardless of success
     # TODO(cambel): implement fallback in case of error
+    self.b_bot.gripper.open(wait=True)
     success &= self.b_bot.move_lin_rel(relative_translation = [0.025,0,0], acceleration = 0.015, speed=.03)
     return success
 
@@ -1151,8 +1156,10 @@ class O2ACCommon(O2ACBase):
     goal.pose.position.z = 0.0
     self.vision.activate_camera("b_bot_inside_camera")
     self.activate_led("b_bot")
-    self.simple_pick("b_bot", goal, gripper_force=50.0, grasp_width=.06, axis="z")
-
+    
+    if self.simple_pick("b_bot", goal, gripper_force=50.0, grasp_width=.06, axis="z"):
+      rospy.logerr("Fail to simple_pick")
+      return False
     if self.b_bot.gripper.opening_width < 0.01:
       rospy.logerr("Gripper did not grasp the pulley --> Stop")
 
@@ -1163,30 +1170,30 @@ class O2ACCommon(O2ACBase):
       return False
 
   def insert_motor_pulley(self, target_link, attempts=1):
-    target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.0045, -0.000, -0.009, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
+    target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.02, -0.000, -0.009, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
 
-    selection_matrix = [0., 0.3, 0.3, 0.6, 0.6, 0.95]
-    if not self.b_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="-X", force=8.0, timeout=20.0, 
-                                                      relaxed_target_by=0.001, wiggle_direction="X", wiggle_angle=np.deg2rad(3.0), wiggle_revolutions=2.,
-                                                      selection_matrix=selection_matrix):
+    selection_matrix = [0., 0.3, 0.3, 0.95, 0.8, 0.8]
+    success = self.b_bot.force_controller.do_insertion(target_pose_target_frame, radius=0.001, 
+                                                      insertion_direction="-X", force=15.0, timeout=30.0, 
+                                                      wiggle_direction="X", wiggle_angle=np.deg2rad(10.0), wiggle_revolutions=1.,
+                                                      relaxed_target_by=0.005, selection_matrix=selection_matrix)
 
-      if self.simple_insertion_check(0.07) and attempts > 0: # try again the pulley is still there   
-        self.b_bot.move_lin_rel(relative_translation = [0.01, 0, 0], acceleration = 0.015, speed=.03)
+    grasp_check = self.simple_insertion_check(0.07)
+    if not success and grasp_check and attempts > 0: # try again the pulley is still there   
         return self.insert_motor_pulley(target_link, attempts=attempts-1)
-      else:
+    elif not success and (not grasp_check or not attempts > 0):
         self.b_bot.gripper.open(wait=True, opening_width=0.07)
+        self.b_bot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
         rospy.logerr("** Insertion Failed!! **")
-        return
+        return False
 
-    target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.009, -0.000, -0.009, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
-    success = self.b_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="-X", force=10.0, timeout=20.0, 
-                                                      relaxed_target_by=0.001, wiggle_direction="X", wiggle_angle=np.deg2rad(3.0), wiggle_revolutions=2.,
+    # target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.009, -0.000, -0.009, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
+    success = self.b_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="-X", force=15.0, timeout=15.0, 
+                                                      relaxed_target_by=0.005, wiggle_direction="X", wiggle_angle=np.deg2rad(2.0), wiggle_revolutions=1.,
                                                       selection_matrix=selection_matrix)
 
     self.b_bot.gripper.open(wait=True)
-
     self.b_bot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
-
     return success
 
   ########  Idler pulley
@@ -1438,7 +1445,10 @@ class O2ACCommon(O2ACBase):
     goal.pose.position.x -= 0.01
     print("shaft goal", goal)
     self.vision.activate_camera("b_bot_inside_camera")
-    self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z")
+
+    if not self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z"):
+      rospy.logerr("Fail to simple_pick")
+      return False
 
     if self.b_bot.gripper.opening_width < 0.004 and self.use_real_robot:
       rospy.logerr("Fail to grasp Shaft")
