@@ -25,8 +25,10 @@ def main():
 
     # controller.reset_scene_and_robots()
 
-    # controller.pick_and_insert_shaft("taskboard")
     controller.insert_shaft("taskboard_assy_part_07_inserted")
+
+    # controller.assembly_database.change_assembly('taskboard')
+    # controller.pick_and_insert_shaft("taskboard")
 
     # controller.pick_and_insert_motor_pulley("taskboard")
     # controller.insert_motor_pulley("taskboard_small_shaft")
@@ -37,7 +39,6 @@ def main():
     # controller.b_bot.go_to_named_pose("screw_ready")
     # controller.unequip_tool("b_bot", "padless_tool_m4")
 
-    # controller.assembly_database.change_assembly('taskboard')
     # controller.pick_and_insert_shaft("taskboard")
 
     # controller.playback_sequence("idler_pulley_equip_nut_tool")
