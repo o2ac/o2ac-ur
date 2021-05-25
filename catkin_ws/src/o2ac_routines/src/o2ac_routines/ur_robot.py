@@ -580,8 +580,8 @@ class URRobot():
         except:
             rospy.logerr(object_to_attach + " could not be attached! robot_name = " + self.ns)
 
-    def detach_object(self, object_to_attach):
+    def detach_object(self, object_to_detach):
         try:
-            self.robot_group.detach_object(object_to_attach)
+            self.robot_group.detach_object(object_to_detach)
         except:
-            rospy.logerr(object_to_attach + " could not be detached! robot_name = " + self.ns)
+            rospy.logerr(object_to_detach + " could not be detached! robot_name = " + self.ns)

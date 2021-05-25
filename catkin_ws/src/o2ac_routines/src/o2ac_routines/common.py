@@ -142,6 +142,7 @@ class O2ACCommon(O2ACBase):
         rospy.sleep(2)
 
       # If a "start" block is encountered, skip the trajectories inside and execute the actual action they represent
+      # TODO(cambel): interesting, maybe insertion can go here?
       if stage_name == 'equip_tool_m4_start':
         skip_stage_execution = True
         self.do_change_tool_action("b_bot", equip=True, screw_size=4)
@@ -190,12 +191,12 @@ class O2ACCommon(O2ACBase):
             # print('Detaching object ' + attached_object.object.id + ' in stage ' + stage_name)
             attached_object_name = attached_object.object.id
             robot_name_ = attached_object.link_name[:5]
-            self.active_robots[robot_name_].detach_object(attached_object_name)
+            self.active_robots[robot_name_].gripper.detach_object(attached_object_name)
           for attached_object in coll_objs_to_attach:
             # print('Attaching object ' + attached_object.object.id + ' in stage ' + stage_name)
             attached_object_name = attached_object.object.id
             robot_name_ = attached_object.link_name[:5]
-            self.active_robots[robot_name_].attach_object(attached_object_name, attached_object.link_name)
+            self.active_robots[robot_name_].gripper.attach_object(attached_object_name, attached_object.link_name)
             currently_attached_collision_objects.append(attached_object)
           currently_attached_collision_objects = [attached_collision_object for attached_collision_object in currently_attached_collision_objects if attached_collision_object not in coll_objs_to_detach]
 
@@ -476,6 +477,7 @@ class O2ACCommon(O2ACBase):
         
         object_pose is the PoseStamped of the object center. The orientation is ignored.
     """
+    self.active_robots[robot_name].gripper.open() # Open gripper to avoid silly failure. can we do better?
     grasp_poses = []
     pose_in_tray = self.listener.transformPose("tray_center", object_pose)
     
@@ -966,19 +968,21 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Could not find bearing in tray. Skipping procedure.")
       return False
     self.vision.activate_camera("b_bot_inside_camera")
+    goal.pose.position.z = 0.0
+    self.spawn_object("bearing", goal, goal.header.frame_id)
     goal.pose.position.x -= 0.01 # MAGIC NUMBER
     goal.pose.position.z = 0.0115
     
-    if not self.simple_pick("b_bot", goal, gripper_force=100.0, approach_height=0.05, axis="z"):
-      rospy.logerr("Fail to simple_pick")
-      return False
-
-    #TODO add bearing to scene
-    # if not self.pick_from_two_poses_topdown("b_bot", "bearing", goal):
-    #   rospy.logerr("Fail to pick bearing from tray")
+    # if not self.simple_pick("b_bot", goal, gripper_force=100.0, approach_height=0.05, axis="z"):
+    #   rospy.logerr("Fail to simple_pick")
     #   return False
 
-    if self.b_bot.gripper.opening_width < 0.01:
+    #TODO add bearing to scene
+    if not self.pick_from_two_poses_topdown("b_bot", "bearing", goal):
+      rospy.logerr("Fail to pick bearing from tray")
+      return False
+
+    if self.b_bot.gripper.opening_width < 0.01 and self.use_real_robot:
       rospy.logerr("Fail to grasp bearing")
       return
     elif self.b_bot.gripper.opening_width < 0.045:
@@ -991,7 +995,7 @@ class O2ACCommon(O2ACBase):
       # success_b = self.b_bot.load_program(program_name="wrs2020/bearing_orient_down_totb.urp")
       #'down' means the small area contacts with tray.
 
-    if self.b_bot.gripper.opening_width < 0.01:
+    if self.b_bot.gripper.opening_width < 0.01 and self.use_real_robot:
       rospy.logerr("Bearing not found in gripper. Must have been lost. Aborting.")
       #TODO(felixvd): Look at the regrasping/aligning area next to the tray
       return False

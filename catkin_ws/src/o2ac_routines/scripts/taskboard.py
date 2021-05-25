@@ -474,7 +474,10 @@ class TaskboardClass(O2ACCommon):
     # ==========================================================
 
     if task_name == "bearing":
-      return self.pick_up_and_insert_bearing(task="taskboard")
+      success = self.pick_up_and_insert_bearing(task="taskboard")
+      self.b_bot.detach_object(task_name)
+      self.despawn_object(task_name)
+      self.b_bot.gripper.last_attached_object = None # Forget about this object
 
     if task_name == "screw_bearing":
       self.equip_tool('b_bot', 'screw_tool_m4')

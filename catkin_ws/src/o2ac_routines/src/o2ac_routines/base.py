@@ -165,7 +165,8 @@ class O2ACBase(object):
         
     self.planning_scene_interface.add_object(collision_object)
 
-  # def attach_object(self, robot_name, object_name):
+  def despawn_object(self, object_name):
+    self.planning_scene_interface.remove_world_object(object_name)
 
   def confirm_to_proceed(self, next_task_name):
     if self.competition_mode:
@@ -774,14 +775,14 @@ class O2ACBase(object):
     # Its collision with the parent link is set to allowed in the original planning scene.
     if equip:
       robot.gripper.close()
-      self.active_robots[robot_name].attach_object(tool_name)
+      self.active_robots[robot_name].gripper.attach_object(tool_name)
       self.allow_collisions_with_robot_hand(tool_name, robot_name)
       robot.robot_status.carrying_tool = True
       robot.robot_status.held_tool_id = tool_name
       self.publish_robot_status()
     elif unequip:
       robot.gripper.open()
-      self.active_robots[robot_name].detach_object(tool_name)
+      self.active_robots[robot_name].gripper.detach_object(tool_name)
       self.allow_collisions_with_robot_hand(tool_name, robot_name, allow=False)
       held_screw_tool_ = ""
       robot.robot_status.carrying_tool = False

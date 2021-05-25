@@ -9,8 +9,11 @@ class RobotiqGripper():
     def __init__(self, namespace, gripper_group):
         self.use_real_robot = rospy.get_param("use_real_robot", False)
         self.ns = namespace
+        self.gripper_group = gripper_group
 
         self.opening_width = 0.0
+
+        self.last_attached_object = None
 
         # Gripper
         if self.use_real_robot:
@@ -47,19 +50,27 @@ class RobotiqGripper():
         self.opening_width = msg.position  # [m]
 
     def close(self, force=40.0, velocity=.1, wait=True):
+        res = False
         if self.use_real_robot:
-            return self.send_command("close", force=force, velocity=velocity, wait=wait)
+            res = self.send_command("close", force=force, velocity=velocity, wait=wait)
         else:
-            self.gripper.close()
+            res = self.gripper.close()
+        if self.last_attached_object:
+            self.attach_object(self.last_attached_object)
+        return res
 
     def open(self, velocity=.1, wait=True, opening_width=None):
+        res = False
         if self.use_real_robot:
             command = opening_width if opening_width else "open"
-            return self.send_command(command, wait=wait, velocity=velocity)
+            res = self.send_command(command, wait=wait, velocity=velocity)
         else:
-            self.gripper.open()
+            res = self.gripper.open()
+        if self.last_attached_object:
+            self.detach_object(self.last_attached_object)
+        return res
 
-    def send_command(self, command, this_action_grasps_an_object=False, force=40.0, velocity=.1, wait=True):
+    def send_command(self, command, force=40.0, velocity=.1, wait=True):
         """
         gripper: a_bot or b_bot
         command: "open", "close" or opening width
@@ -68,6 +79,7 @@ class RobotiqGripper():
 
         Use a slow closing speed when using a low gripper force, or the force might be unexpectedly high.
         """
+        res = False
         if self.use_real_robot:
             goal = robotiq_msgs.msg.CModelCommandGoal()
             goal.velocity = velocity
@@ -86,10 +98,40 @@ class RobotiqGripper():
                 self.gripper.wait_for_result(rospy.Duration(6.0))  # Default wait time: 6 s
                 result = self.gripper.get_result()
                 if result:
-                    return True
+                    res = True
                 else:
-                    return False
+                    res = False
             else:
-                return True
+                res = True
         else:
-            self.gripper.command(command)
+            res = self.gripper.command(command)
+        
+        if self.last_attached_object:
+            if command == "close":
+                self.attach_object(self.last_attached_object)
+            elif command == "open":
+                self.detach_object(self.last_attached_object)
+        return res
+
+    def attach_object(self, object_to_attach=None, attach_to_link=None):
+        try:
+            to_link = self.ns + "_ee_link" if attach_to_link is None else attach_to_link
+            self.gripper_group.attach_object(object_to_attach, to_link, 
+            touch_links= [self.ns + "_gripper_tip_link", 
+                            self.ns + "_left_inner_finger_pad", 
+                            self.ns + "_left_inner_finger", 
+                            self.ns + "_left_inner_knuckle",
+                            self.ns + "_right_inner_finger_pad", 
+                            self.ns + "_right_inner_finger",
+                            self.ns + "_right_inner_knuckle"])
+            self.last_attached_object = object_to_attach
+        except Exception as e:
+            rospy.logerr(object_to_attach + " could not be attached! robot_name = " + self.ns)
+            print(e)
+
+    def detach_object(self, object_to_detach):
+        try:
+            self.gripper_group.detach_object(object_to_detach)
+        except Exception as e:
+            rospy.logerr(object_to_detach + " could not be detached! robot_name = " + self.ns)
+            print(e)
