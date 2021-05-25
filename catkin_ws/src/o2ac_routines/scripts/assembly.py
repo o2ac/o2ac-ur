@@ -84,25 +84,12 @@ class AssemblyClass(O2ACCommon):
     self.assembly_database.change_assembly(assembly_name)
     pose = geometry_msgs.msg.PoseStamped()
     pose.header.frame_id = 'attached_base_origin_link'
-    # quaternion = tf.transformations.quaternion_about_axis(pi/2, (1,0,0))
-    # pose.pose.orientation = geometry_msgs.msg.Quaternion(*quaternion)
     pose.pose.orientation.w = 1.0
-    # pose.pose.position = 
     self.assembly_database.publish_assembly_frames(pose, prefix="assembled_")
     return True
 
 
   ################ ----- Subroutines  
-
-    # toolalign =
-    # if not toolalign:
-    #   rospy.logerr("Failed to load tool align program on b_bot")
-    #   return False
-    # print("Running belt pick on b_bot.")
-    # if not self.b_bot.execute_loaded_program():
-    #   rospy.logerr("Failed to execute tool align program on b_bot")
-    #   return False
-    # wait_for_UR_program("/b_bot", rospy.Duration.from_sec(20)) # (using UR script)
 
   def subtask_zero(self):
     # ============= SUBTASK BASE (picking and orienting and placing the baseplate) =======================
@@ -189,6 +176,7 @@ class AssemblyClass(O2ACCommon):
     rospy.loginfo("======== SUBTASK C (bearing) ========")
     if self.pick_up_and_insert_bearing(task="assembly"):
       if self.fasten_bearing(task="assembly"):
+        self.fasten_bearing(task="assembly", only_retighten=True)
         self.unequip_tool('b_bot', 'screw_tool_m4')
         return True
     return False
@@ -458,7 +446,7 @@ class AssemblyClass(O2ACCommon):
     return self.do_plan_pickplace_action('b_bot', 'panel_bearing', pose, save_solution_to_file = 'panel_bearing/bottom_screw_hole_aligner_1')
 
   def real_assembly_task(self):
-    self.start_task_timer()
+    # self.start_task_timer()
 
     # Look into the tray
     self.look_and_get_grasp_point(2)
@@ -512,6 +500,18 @@ class AssemblyClass(O2ACCommon):
     # self.subtask_c() # bearing, clamping pulley set
     return
 
+  def disable_scene_object_collisions(self):
+    """ Disables collisions between all world objects and everything else.
+        Used because our meshes are so heavy that they impact performance too much.
+    """
+    object_names = self.planning_scene_interface.get_known_object_names()
+    rospy.loginfo("Disabling collisions for all scene objects (except tools).")
+    objects_without_tools = []
+    for n in object_names:
+      if not "tool" in n:
+        objects_without_tools.append(n)
+    self.planning_scene_interface.allow_collisions(objects_without_tools)
+
 if __name__ == '__main__':
   try:
     rospy.init_node('o2ac_routines', anonymous=False)
@@ -519,10 +519,11 @@ if __name__ == '__main__':
     assy = AssemblyClass()
     while True:
       rospy.loginfo("Enter 1 to move the robots home.")
-      rospy.loginfo("Enter 11 (12) to equip (unequip) m4 tool (b_bot).")
+      rospy.loginfo("Enter 11,12 to close,open grippers")
       rospy.loginfo("Enter 13 (14) to equip (unequip) m3 tool (a_bot).")
-      rospy.loginfo("Enter 21,22 to close,open grippers")
+      rospy.loginfo("Enter 15 (16) to equip (unequip) m4 tool (b_bot).")
       rospy.loginfo("Enter 30, 31 to pick screw m3, m4 from feeder.")
+      rospy.loginfo("Enter 55, 551, 552 to spawn example parts.")
       rospy.loginfo("Enter 68 to spawn objects for testing mtc_modules tasks")
       rospy.loginfo("Enter 69-75 to test mtc_modules tasks, (pick, place, pik-place, pick tool, pick screw, release, fix L plate on base)")
       rospy.loginfo("Enter 80 to execute the planned subassembly (fix L plate on base)")
@@ -541,27 +542,29 @@ if __name__ == '__main__':
       elif i == '1b':
         assy.b_bot.go_to_named_pose("home")
       elif i == '11':
-        assy.do_change_tool_action("b_bot", equip=True, screw_size=4)
+        assy.a_bot.gripper.close(wait=False)
+        assy.b_bot.gripper.close()
       elif i == '12':
-        assy.do_change_tool_action("b_bot", equip=False, screw_size=4)
+        assy.a_bot.gripper.open(wait=False)
+        assy.b_bot.gripper.open()
       elif i == '13':
         assy.do_change_tool_action("a_bot", equip=True, screw_size=3)
       elif i == '14':
         assy.do_change_tool_action("a_bot", equip=False, screw_size=3)
-      elif i == '21':
-        assy.a_bot.gripper.close(wait=False)
-        assy.b_bot.gripper.close()
-      elif i == '22':
-        assy.a_bot.gripper.open(wait=False)
-        assy.b_bot.gripper.open()
-      elif i == '30':
-        assy.a_bot.go_to_named_pose("feeder_pick_ready")
-        assy.skill_server.pick_screw_from_feeder("a_bot", screw_size=3)
-        assy.a_bot.go_to_named_pose("feeder_pick_ready")
+      elif i == '15':
+        t = rospy.Time.now()
+        assy.do_change_tool_action("b_bot", equip=True, screw_size=4)
+        d = rospy.Time.now() - t
+        print("this took: ", d.secs)
+      elif i == '16':
+        t = rospy.Time.now()
+        assy.do_change_tool_action("b_bot", equip=False, screw_size=4)
+        d = rospy.Time.now() - t
+        print("this took: ", d.secs)
       elif i == '31':
-        assy.a_bot.go_to_named_pose("feeder_pick_ready")
-        assy.skill_server.pick_screw_from_feeder("a_bot", screw_size=4)
-        assy.a_bot.go_to_named_pose("feeder_pick_ready")
+        assy.skill_server.pick_screw_from_feeder("a_bot", screw_size=3)
+      elif i == '32':
+        assy.skill_server.pick_screw_from_feeder("b_bot", screw_size=4)
       elif i == "41":
         assy.publish_part_in_assembled_position("base")
       elif i == "421":
@@ -592,6 +595,12 @@ if __name__ == '__main__':
         assy.spawn_objects_for_demo(base_plate_in_tray=True, layout_number=1)
       elif i == '553':
         assy.spawn_objects_for_demo(base_plate_in_tray=True, layout_number=3)
+      elif i == '559':
+        assy.disable_scene_object_collisions()
+      elif i == '5599':
+        assy.allow_collisions_with_robot_hand("bearing", "b_bot")
+      elif i == '55999':
+        assy.allow_collisions_with_robot_hand("bearing", "b_bot", False)
       elif i == '67':
         assy.spawn_objects_for_closed_loop_test()
       elif i == '68':
@@ -664,6 +673,8 @@ if __name__ == '__main__':
         assy.playback_sequence("bearing_move_to_assembly")
       elif i == '932':
         assy.fasten_bearing(task="assembly")
+      elif i == '9322':
+        assy.fasten_bearing(task="assembly", only_retighten=True)
       elif i == '933':
         assy.insert_bearing(task="assembly")
       elif i == '94':
