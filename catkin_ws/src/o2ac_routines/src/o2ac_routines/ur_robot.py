@@ -161,7 +161,7 @@ class URRobot():
         if recursion_depth > 10:
             rospy.logerr("Tried too often. Breaking out.")
             rospy.logerr("Could not start UR ROS control.")
-            raise Exception("Could not activate ROS control on robot " + self.ns + ". Breaking out.")
+            raise Exception("Could not activate ROS control on robot " + self.ns + ". Breaking out. Is the UR in Remote Control mode and program installed with correct name?")
 
         if rospy.is_shutdown():
             return False
@@ -216,25 +216,26 @@ class URRobot():
             response = self.ur_dashboard_clients["play"].call(std_srvs.srv.TriggerRequest())
         except:
             pass
-        rospy.loginfo("Entered wait_for_control_status_to_turn_on")
+        rospy.loginfo("Enter wait_for_control_status_to_turn_on")
         self.wait_for_control_status_to_turn_on(2.0)
         rospy.loginfo("Exited wait_for_control_status_to_turn_on")
-        # if not response.success:
-        #     rospy.logerr("Could not start UR control. Is the UR in Remote Control mode and program installed with correct name?")
-        #     return False
-        # else:
-        #     # Check if controller is running
-        #     self.check_for_dead_controller_and_force_start()
-        #     rospy.loginfo("Successfully activated ROS control on robot " + self.ns)
-        #     return True
         
-        # FIXME: Apparently this can still fail if the controller is off but the program is already running on the UR
         if self.check_for_dead_controller_and_force_start():
             rospy.loginfo("Successfully activated ROS control on robot " + self.ns)
             return True
         else:
-            rospy.logerr("Could not start UR control. Is the UR in Remote Control mode and program installed with correct name?")
-            return False
+            # Try stopping and restarting the program to restart the controllers
+            try:
+                rospy.logwarn("Trying to restart URCap program on UR to restart controllers on ROS side")
+                response = self.ur_dashboard_clients["stop"].call()
+                rospy.sleep(2.0)
+                response = self.ur_dashboard_clients["play"].call()
+                if self.wait_for_control_status_to_turn_on(2.0):
+                    return True
+            except:
+                rospy.logerr("Failed to quit/restart")
+                pass
+            return self.activate_ros_control_on_ur(recursion_depth=recursion_depth+1)
         
 
     def check_for_dead_controller_and_force_start(self):
