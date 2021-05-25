@@ -1063,9 +1063,9 @@ class O2ACCommon(O2ACBase):
     for i in [1,2,3,4]:
       screw_pose = geometry_msgs.msg.PoseStamped()
       if task == "taskboard":
-        screw_pose.header.frame_id = "/taskboard_bearing_target_screw_" + str(i) + "_link"
+        screw_pose.header.frame_id = "taskboard_bearing_target_screw_" + str(i) + "_link"
       elif task == "assembly":
-        screw_pose.header.frame_id = "/assembled_part_07_screw_hole_" + str(i)
+        screw_pose.header.frame_id = "assembled_part_07_screw_hole_" + str(i)
       else:
         rospy.logerr("Invalid task specification: " + task)
         return False
@@ -1073,7 +1073,7 @@ class O2ACCommon(O2ACBase):
       screw_pose.pose.position.x += .005
       screw_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/12, 0, 0) )
       if task == "assembly":  # The target frame is oriented differently in taskboard and assembly.
-        screw_pose.pose = rotatePoseByRPY(tau/4, 0, 0, screw_pose.pose)
+        screw_pose.pose = rotatePoseByRPY(tau/2, 0, 0, screw_pose.pose)
       screw_pose_approach = copy.deepcopy(screw_pose)
       screw_pose_approach.pose.position.x -= 0.05
       screw_poses.append(screw_pose)

@@ -100,7 +100,7 @@ class O2ACBase(object):
 
     # Miscellaneous helpers
     self.robots = moveit_commander.RobotCommander()
-    self.planning_scene_interface = moveit_commander.PlanningSceneInterface()
+    self.planning_scene_interface = moveit_commander.PlanningSceneInterface(synchronous=True)
     
     self.assembly_database = AssemblyReader()
 
@@ -821,11 +821,10 @@ class O2ACBase(object):
         robot_name + "_left_inner_knuckle",
         robot_name + "_right_inner_knuckle",
       ]
-      for hand_link in hand_links:
-        if allow:
-          self.planning_scene_interface.allow_collisions(link_name, hand_link)
-        else:
-          self.planning_scene_interface.disallow_collisions(link_name, hand_link)
+      if allow:
+        self.planning_scene_interface.allow_collisions(hand_links, link_name)
+      else:
+        self.planning_scene_interface.disallow_collisions(hand_links, link_name)
       return
 
   def playback_sequence(self, routine_filename):
