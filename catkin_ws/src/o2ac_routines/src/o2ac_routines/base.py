@@ -36,6 +36,8 @@
 
 import sys
 import copy
+
+import numpy
 import rospy
 import rospkg
 import tf_conversions
@@ -146,6 +148,25 @@ class O2ACBase(object):
     
   ############## ------ Internal functions (and convenience functions)
 
+  def spawn_object(self, object_name, object_pose, object_reference_frame):
+ 
+    if isinstance(object_pose, geometry_msgs.msg._PoseStamped.PoseStamped):
+      co_pose = object_pose.pose
+    elif isinstance(object_pose, geometry_msgs.msg._Pose.Pose):
+      co_pose = object_pose
+    elif isinstance(object_pose, list) or isinstance(object_pose, numpy.ndarray):
+      co_pose = conversions.to_pose(object_pose)
+    else:
+      raise ValueError("Unsupported pose type: %s" % type(object_pose))
+
+    collision_object = self.assembly_database.get_collision_object(object_name)
+    collision_object.header.frame_id = object_reference_frame
+    collision_object.pose = co_pose
+        
+    self.planning_scene_interface.add_object(collision_object)
+
+  # def attach_object(self, robot_name, object_name):
+
   def confirm_to_proceed(self, next_task_name):
     if self.competition_mode:
       return True
@@ -178,6 +199,7 @@ class O2ACBase(object):
     self.a_bot.robot_status = o2ac_msgs.msg.RobotStatus()
     self.b_bot.robot_status = o2ac_msgs.msg.RobotStatus()
     self.planning_scene_interface.remove_attached_object()  # Detach objects
+    rospy.sleep(0.5) # wait half a secont for the detach to finished so that it can remove the object
     self.planning_scene_interface.remove_world_object()  # Clear all objects
     self.publish_robot_status()
 
