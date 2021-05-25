@@ -107,8 +107,8 @@ class O2ACBase(object):
     self.assembly_database = AssemblyReader()
 
     # Action clients and movegroups
-    self.a_bot = URRobot("a_bot", self.use_real_robot, self.listener)
-    self.b_bot = URRobot("b_bot", self.use_real_robot, self.listener)
+    self.a_bot = URRobot("a_bot", self.listener)
+    self.b_bot = URRobot("b_bot", self.listener)
     # For compatibility let's wrap the robots
     self.active_robots = {'a_bot': self.a_bot, 'b_bot': self.b_bot}
     
@@ -646,23 +646,6 @@ class O2ACBase(object):
       rospy.logerr("Cannot despawn tool: " + tool_name)
       return False
 
-  def attach_tool(self, robot_name, toolname):
-    try:
-      self.active_robots[robot_name].robot_group.attach_object(toolname, robot_name + "_ee_link", touch_links= 
-      [robot_name + "_gripper_tip_link", 
-      robot_name + "_robotiq_85_left_finger_tip_link", 
-      robot_name + "_robotiq_85_left_inner_knuckle_link", 
-      robot_name + "_robotiq_85_right_finger_tip_link", 
-      robot_name + "_robotiq_85_right_inner_knuckle_link"])
-    except:
-      rospy.logerr(item_id_to_attach + " could not be attached! robot_name = " + robot_name)
-
-  def detach_tool(self, robot_name, toolname):
-    try:
-      self.active_robots[robot_name].robot_group.detach_object(toolname)
-    except:
-      rospy.logerr(item_id_to_attach + " could not be detached! robot_name = " + robot_name)
-
   def equip_tool(self, robot_name, tool_name):
     return self.equip_unequip_realign_tool(robot_name, tool_name, "equip")
   
@@ -791,14 +774,14 @@ class O2ACBase(object):
     # Its collision with the parent link is set to allowed in the original planning scene.
     if equip:
       robot.gripper.close()
-      self.attach_tool(robot_name, tool_name)
+      self.active_robots[robot_name].attach_object(tool_name)
       self.allow_collisions_with_robot_hand(tool_name, robot_name)
       robot.robot_status.carrying_tool = True
       robot.robot_status.held_tool_id = tool_name
       self.publish_robot_status()
     elif unequip:
       robot.gripper.open()
-      self.detach_tool(robot_name, tool_name)
+      self.active_robots[robot_name].detach_object(tool_name)
       self.allow_collisions_with_robot_hand(tool_name, robot_name, allow=False)
       held_screw_tool_ = ""
       robot.robot_status.carrying_tool = False

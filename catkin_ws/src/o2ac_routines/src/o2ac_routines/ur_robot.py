@@ -23,12 +23,12 @@ from ur_control import conversions
 
 
 class URRobot():
-    def __init__(self, namespace, use_real_robot, tf_listener):
+    def __init__(self, namespace, tf_listener):
         """
         namespace should be "a_bot" or "b_bot".
         use_real_robot is a boolean
         """
-        self.use_real_robot = use_real_robot
+        self.use_real_robot = rospy.get_param("use_real_robot", False)
         self.ns = namespace
         self.listener = tf_listener
         self.marker_counter = 0
@@ -563,3 +563,25 @@ class URRobot():
     def linear_push(self, *args, **kwargs):
         self.activate_ros_control_on_ur()
         return self.force_controller.linear_push(*args, **kwargs)
+
+    # special functions
+
+    def attach_object(self, object_to_attach, attach_to_link=None):
+        try:
+            to_link = self.ns + "_ee_link" if attach_to_link is None else attach_to_link
+            self.robot_group.attach_object(object_to_attach, to_link, 
+            touch_links= [self.ns + "_gripper_tip_link", 
+                            self.ns + "_left_inner_finger_pad", 
+                            self.ns + "_left_inner_finger", 
+                            self.ns + "_left_inner_knuckle",
+                            self.ns + "_right_inner_finger_pad", 
+                            self.ns + "_right_inner_finger",
+                            self.ns + "_right_inner_knuckle"])
+        except:
+            rospy.logerr(object_to_attach + " could not be attached! robot_name = " + self.ns)
+
+    def detach_object(self, object_to_attach):
+        try:
+            self.robot_group.detach_object(object_to_attach)
+        except:
+            rospy.logerr(object_to_attach + " could not be detached! robot_name = " + self.ns)

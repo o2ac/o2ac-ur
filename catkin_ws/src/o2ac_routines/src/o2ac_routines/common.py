@@ -195,14 +195,7 @@ class O2ACCommon(O2ACBase):
             # print('Attaching object ' + attached_object.object.id + ' in stage ' + stage_name)
             attached_object_name = attached_object.object.id
             robot_name_ = attached_object.link_name[:5]
-            self.active_robots[robot_name_].robot_group.attach_object(attached_object_name, attached_object.link_name, touch_links=  # MODIFY attach_tool in base.py to attach_object ++ ROBOT NAME???
-              [robot_name_ + "_gripper_tip_link", 
-              robot_name_ + "_left_inner_finger_pad", 
-              robot_name_ + "_left_inner_finger", 
-              robot_name_ + "_left_inner_knuckle",
-              robot_name_ + "_right_inner_finger_pad", 
-              robot_name_ + "_right_inner_finger",
-              robot_name_ + "_right_inner_knuckle"])
+            self.active_robots[robot_name_].attach_object(attached_object_name, attached_object.link_name)
             currently_attached_collision_objects.append(attached_object)
           currently_attached_collision_objects = [attached_collision_object for attached_collision_object in currently_attached_collision_objects if attached_collision_object not in coll_objs_to_detach]
 
