@@ -32,6 +32,7 @@ class VisionClient():
         rospy.logwarn("Could not activate camera! Returning false")
         return False
 
+    @check_for_real_robot
     def read_from_sdd(self):
         """
         Returns object poses as estimated by the SSD neural network and reprojection.
@@ -51,6 +52,7 @@ class VisionClient():
             pass
         return False
 
+    @check_for_real_robot
     def get_angle_from_vision(self, camera="b_bot_inside_camera", item_name="bearing"):
         # Send goal, wait for result
         goal = o2ac_msgs.msg.detectAngleGoal()

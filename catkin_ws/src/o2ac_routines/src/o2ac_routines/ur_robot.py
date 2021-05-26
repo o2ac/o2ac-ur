@@ -563,25 +563,3 @@ class URRobot():
     def linear_push(self, *args, **kwargs):
         self.activate_ros_control_on_ur()
         return self.force_controller.linear_push(*args, **kwargs)
-
-    # special functions
-
-    def attach_object(self, object_to_attach, attach_to_link=None):
-        try:
-            to_link = self.ns + "_ee_link" if attach_to_link is None else attach_to_link
-            self.robot_group.attach_object(object_to_attach, to_link, 
-            touch_links= [self.ns + "_gripper_tip_link", 
-                            self.ns + "_left_inner_finger_pad", 
-                            self.ns + "_left_inner_finger", 
-                            self.ns + "_left_inner_knuckle",
-                            self.ns + "_right_inner_finger_pad", 
-                            self.ns + "_right_inner_finger",
-                            self.ns + "_right_inner_knuckle"])
-        except:
-            rospy.logerr(object_to_attach + " could not be attached! robot_name = " + self.ns)
-
-    def detach_object(self, object_to_detach):
-        try:
-            self.robot_group.detach_object(object_to_detach)
-        except:
-            rospy.logerr(object_to_detach + " could not be detached! robot_name = " + self.ns)
