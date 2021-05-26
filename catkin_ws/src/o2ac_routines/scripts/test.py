@@ -23,9 +23,13 @@ def main():
     global controller
     controller = O2ACCommon()
 
-    # controller.reset_scene_and_robots()
+    controller.assembly_database.change_assembly('wrs_assembly_2020')
+    controller.reset_scene_and_robots()
+    
+    controller.panel_subtask2()
 
-    controller.insert_shaft("taskboard_assy_part_07_inserted")
+
+    # controller.insert_shaft("taskboard_assy_part_07_inserted")
 
     # controller.assembly_database.change_assembly('taskboard')
     # controller.pick_and_insert_shaft("taskboard")

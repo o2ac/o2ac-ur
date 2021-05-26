@@ -596,7 +596,7 @@ class O2ACCommon(O2ACBase):
     """
     if not self.use_real_robot: # For simulation
       rospy.logwarn("Returning position near center (simulation)")
-      return conversions.to_pose_stamped("tray_center", [-0.03078, 0.06248, 0.02, 0.0,0.7071,0.0,0.7071])
+      return conversions.to_pose_stamped("tray_center", [-0.04, 0.06, 0.02, 0.0,0.7071,0.0,0.7071])
 
     # Make sure object_id is the id number
     if isinstance(object_id, str):
@@ -1593,4 +1593,34 @@ class O2ACCommon(O2ACBase):
                                                                   ps_in_tray.pose.orientation.z,
                                                                   ps_in_tray.pose.orientation.w])
       print("%0f, %0f, %0f, %0f, %0f, %0f" % (xyz[0], xyz[1], xyz[2], rpy[0], rpy[1], rpy[2]))
-      
+
+#### subtasks assembly 
+
+  def panel_subtask2(self):
+    self.a_bot.go_to_named_pose("home")
+    self.b_bot.go_to_named_pose("home")
+
+    # goal = self.look_and_get_grasp_point("panel_bearing")
+    
+    goal = conversions.to_pose_stamped("tray_center", [0.02, -0.06, 0.001, 0.0, 0.0, -tau/4])
+    self.spawn_object("panel_bearing", goal, goal.header.frame_id)
+    goal = conversions.to_pose_stamped("tray_center", [0.02, -0.1, 0.02, 0.0, tau/4, -tau/4])
+    
+    handover_pose = conversions.to_pose_stamped("tray_center", [0.0, 0.0, 0.15, 0.0, tau/4, 0.0])
+    self.simple_hand_over("b_bot", "a_bot", handover_pose, "panel_bearing", "default_grasp", "grasp_7")
+
+  def simple_hand_over(self, from_robot_name, to_robot_name, handover_pose, object_name, grasp_pose1, grasp_pose2):
+    self.pick(from_robot_name, "panel_bearing", grasp_name=grasp_pose1)
+    self.active_robots[from_robot_name].move_lin(handover_pose, speed=0.5)
+    self.active_robots[from_robot_name].detach_object(object_name)
+
+    grasp2 = self.assembly_database.get_grasp_pose(object_name, grasp_pose2)
+    grasp2.header.frame_id = "move_group/" + grasp2.header.frame_id
+    grasp2.header.stamp = rospy.Time.now() - rospy.Time(0.5)
+
+    grasp2 = self.listener.transformPose("world", grasp2)
+    self.simple_pick(to_robot_name, object_pose=grasp2, grasp_width=0.06, approach_height=-0.05, grasp_height=0.0, axis="y", item_id_to_attach=object_name, lift_up_after_pick=False)
+    
+    self.active_robots[from_robot_name].gripper.open()
+    self.active_robots[from_robot_name].go_to_named_pose("home")
+
