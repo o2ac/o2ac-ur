@@ -302,7 +302,8 @@ class O2ACCommon(O2ACBase):
           gripper_force=40.0, grasp_width=0.140,
           approach_height=0.05, item_id_to_attach = "", 
           lift_up_after_pick=True, acc_fast=1.0, acc_slow=.1, 
-          gripper_velocity = .1, axis="x", sign=+1):
+          gripper_velocity = .1, axis="x", sign=+1,
+          approach_with_move_lin=True):
     """
     This function (outdated) performs a grasp with the robot, but it is not updated in the planning scene.
     It does not use the object in simulation. It can be used for simple tests and prototyping, but should
@@ -320,13 +321,12 @@ class O2ACCommon(O2ACBase):
       robot.gripper.send_command(command=grasp_width, wait=False) # Open
 
     approach_pose = copy.deepcopy(object_pose)
-    rospy.logerr("Direction!!" + str(get_direction_index(axis)))
     op = conversions.from_point(object_pose.pose.position)
     op[get_direction_index(axis)] += approach_height * sign
     approach_pose.pose.position = conversions.to_point(op)
 
     rospy.loginfo("Going to height " + str(op[get_direction_index(axis)]))
-    if not robot.go_to_pose_goal(approach_pose, speed=speed_fast, acceleration=acc_fast, move_lin=False, wait=True):
+    if not robot.go_to_pose_goal(approach_pose, speed=speed_fast, acceleration=acc_fast, move_lin=approach_with_move_lin, wait=True):
       return False
 
     rospy.loginfo("Moving down to object")
