@@ -25,8 +25,9 @@ def main():
 
     controller.assembly_database.change_assembly('wrs_assembly_2020')
     controller.reset_scene_and_robots()
+    controller.orient_shaft()
     
-    controller.panel_subtask2()
+    # controller.panel_subtask2()
 
 
     # controller.insert_shaft("taskboard_assy_part_07_inserted")

@@ -413,4 +413,5 @@ def check_for_real_robot(func):
         if args[0].use_real_robot:
           return func(*args, **kwargs)
         rospy.logwarn("Ignoring function %s since no real robot is being used" % func.__name__)
+        return True
     return wrap
