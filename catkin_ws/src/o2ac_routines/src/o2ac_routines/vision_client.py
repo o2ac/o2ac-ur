@@ -8,10 +8,12 @@ from o2ac_routines.helpers import check_for_real_robot
 class VisionClient():
     def __init__(self):
         self.use_real_robot = rospy.get_param("use_real_robot", False)
-        try:
-            self.vision_multiplexer = RealSenseMultiplexerClient('camera_multiplexer')
-        except:
-            self.vision_multiplexer = []
+        
+        if self.use_real_robot:
+            try:
+                self.vision_multiplexer = RealSenseMultiplexerClient('camera_multiplexer')
+            except:
+                self.vision_multiplexer = []
 
         self.ssd_client = actionlib.SimpleActionClient('/o2ac_vision_server/get_3d_poses_from_ssd', o2ac_msgs.msg.get3DPosesFromSSDAction)
         self.detect_shaft_client = actionlib.SimpleActionClient('/o2ac_vision_server/detect_shaft_notch', o2ac_msgs.msg.shaftNotchDetectionAction)
@@ -73,6 +75,7 @@ class VisionClient():
             pass
         return False
 
+    @check_for_real_robot
     def call_shaft_notch_detection(self):
         """
         Calls the action and returns the result as is
