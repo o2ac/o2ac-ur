@@ -359,7 +359,7 @@ class URRobot():
 
         current_pose = group.get_current_pose().pose
         if not move_success:
-            rospy.logwarn("move_lin command failed. Publishing failed pose.")
+            rospy.logwarn("go_to_pose_goal command failed. Publishing failed pose.")
             helpers.publish_marker(pose_goal_stamped, "pose", self.ns + "_go_to_pose_goal_failed_pose_" + str(self.marker_counter))
             self.marker_counter += 1
         else:

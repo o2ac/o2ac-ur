@@ -300,7 +300,8 @@ class O2ACCommon(O2ACBase):
 
   def simple_pick(self, robot_name, object_pose, grasp_height=0.0, speed_fast=0.3, speed_slow=0.02, gripper_command="close", 
           gripper_force=40.0, grasp_width=0.140,
-          approach_height=0.05, item_id_to_attach = "", lift_up_after_pick=True, force_ur_script=False, acc_fast=1.0, acc_slow=.1, 
+          approach_height=0.05, item_id_to_attach = "", 
+          lift_up_after_pick=True, acc_fast=1.0, acc_slow=.1, 
           gripper_velocity = .1, axis="x", sign=+1):
     """
     This function (outdated) performs a grasp with the robot, but it is not updated in the planning scene.
@@ -318,35 +319,25 @@ class O2ACCommon(O2ACBase):
     else: 
       robot.gripper.send_command(command=grasp_width, wait=False) # Open
 
-    if speed_fast > 1.0:
-      acceleration=speed_fast
-    else:
-      acceleration=1.0
+    approach_pose = copy.deepcopy(object_pose)
+    rospy.logerr("Direction!!" + str(get_direction_index(axis)))
+    op = conversions.from_point(object_pose.pose.position)
+    op[get_direction_index(axis)] += approach_height * sign
+    approach_pose.pose.position = conversions.to_point(op)
 
-    if axis =="x":
-      object_pose.pose.position.x += approach_height * sign
-    if axis =="z":
-      object_pose.pose.position.z += approach_height * sign
-    rospy.logdebug("Going to height " + str(object_pose.pose.position.z))
-    if not self.active_robots[robot_name].go_to_pose_goal(object_pose, speed=speed_fast, acceleration=acc_fast, move_lin=True):
+    rospy.loginfo("Going to height " + str(op[get_direction_index(axis)]))
+    if not robot.go_to_pose_goal(approach_pose, speed=speed_fast, acceleration=acc_fast, move_lin=False, wait=True):
       return False
-    if axis =="x":
-      object_pose.pose.position.x -= approach_height * sign
-    if axis =="z":
-      object_pose.pose.position.z -= approach_height * sign
 
     rospy.loginfo("Moving down to object")
-    if axis =="x":
-      object_pose.pose.position.x += grasp_height * sign
-    if axis =="z":
-      object_pose.pose.position.z += grasp_height * sign
-    rospy.logdebug("Going to height " + str(object_pose.pose.position.z))
-    if not self.active_robots[robot_name].go_to_pose_goal(object_pose, speed=speed_slow, acceleration=acc_slow, move_lin=True):
+    grasp_pose = copy.deepcopy(object_pose)
+    op = conversions.from_point(object_pose.pose.position)
+    op[get_direction_index(axis)] += grasp_height * sign
+    grasp_pose.pose.position = conversions.to_point(op)
+    rospy.loginfo("Going to height " + str(op[get_direction_index(axis)]))
+
+    if not robot.go_to_pose_goal(grasp_pose, speed=speed_slow, acceleration=acc_slow, move_lin=True):
       return False
-    if axis =="x":
-      object_pose.pose.position.x -= grasp_height * sign
-    if axis =="z":
-      object_pose.pose.position.z -= grasp_height * sign
 
     if gripper_command=="do_nothing":
       pass
@@ -354,31 +345,15 @@ class O2ACCommon(O2ACBase):
       robot.gripper.send_command(command="close", force = gripper_force, velocity = gripper_velocity)
 
     if item_id_to_attach:
-      try:
-        robot.robot_group.attach_object(item_id_to_attach, robot_name + "_ee_link", touch_links= 
-        [robot_name + "_gripper_tip_link", 
-        robot_name + "_robotiq_85_left_finger_tip_link", 
-        robot_name + "_robotiq_85_left_inner_knuckle_link", 
-        robot_name + "_robotiq_85_right_finger_tip_link", 
-        robot_name + "_robotiq_85_right_inner_knuckle_link"])
-      except:
-        rospy.logerr(item_id_to_attach + " could not be attached! robot_name = " + robot_name)
+      robot.attach_object(object_to_attach=item_id_to_attach)
 
     if lift_up_after_pick:
       rospy.sleep(1.0)
       rospy.loginfo("Going back up")
 
-      if axis =="x":
-        object_pose.pose.position.x += approach_height * sign
-      if axis =="z":
-        object_pose.pose.position.z += approach_height * sign
-      rospy.loginfo("Going to height " + str(object_pose.pose.position.z))
-      if not self.active_robots[robot_name].go_to_pose_goal(object_pose, speed=speed_fast, acceleration=acc_fast, move_lin=True):
+      rospy.loginfo("Going to height " + str(approach_pose.pose.position.z))
+      if not robot.go_to_pose_goal(approach_pose, speed=speed_fast, acceleration=acc_fast, move_lin=True):
         return False
-      if axis =="x":
-        object_pose.pose.position.x -= approach_height * sign
-      if axis =="z":
-        object_pose.pose.position.z -= approach_height * sign
     return True
 
   def simple_place(self, robot_name, object_pose, place_height=0.05, speed_fast=0.1, speed_slow=0.02, 
@@ -499,6 +474,7 @@ class O2ACCommon(O2ACBase):
     """ Plan a pick operation and execute it with MTC.
         grasp_name is the name of a grasp on the parameter server.
     """
+    self.active_robots[robot_name].gripper.open() # Open gripper to avoid silly failure. can we do better?
     if not grasp_name:
       grasp_name = "default_grasp"
     grasp_pose = self.assembly_database.get_grasp_pose(object_name, grasp_name)

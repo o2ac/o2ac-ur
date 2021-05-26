@@ -368,7 +368,7 @@ def publish_pose_marker_(marker_publisher, marker_pose_stamped, namespace="", he
 
 def get_direction_index(direction):
   DIRECTION_INDEX = {'X':0, 'Y':1, 'Z':2}
-  return DIRECTION_INDEX.get(direction)
+  return DIRECTION_INDEX.get(direction.upper())
 
 def get_target_force(direction, force):
   validate_direction(direction)
