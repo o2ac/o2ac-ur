@@ -10,6 +10,8 @@ import o2ac_routines.helpers as helpers
 import numpy as np
 import sys, signal
 import geometry_msgs.msg
+from math import pi
+tau = 2.0*pi  # Part of math from Python 3.6
 
 def signal_handler(sig, frame):
     print('You pressed Ctrl+C!')
@@ -25,9 +27,13 @@ def main():
 
     controller.assembly_database.change_assembly('wrs_assembly_2020')
     controller.reset_scene_and_robots()
-    # controller.orient_shaft()
+    # # controller.orient_shaft()
+    controller.orient_shaft_end_cap()
 
-    controller.turn_shaft_until_groove_found()
+    # approach_centering = conversions.to_pose_stamped("simple_holder_tip_link", [0.0, 0, 0.01,  0, tau/4., tau/4.])
+    # controller.a_bot.go_to_pose_goal(approach_centering, speed=0.1, move_lin=False)
+
+    # controller.turn_shaft_until_groove_found()
     
     # controller.panel_subtask2()
 

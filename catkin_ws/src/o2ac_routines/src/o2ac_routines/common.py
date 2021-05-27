@@ -760,15 +760,7 @@ class O2ACCommon(O2ACBase):
     robot.gripper.send_command(command="close", force = gripper_force)
 
     if item_id_to_attach:
-      try:
-        robot.robot_group.attach_object(item_id_to_attach, robot_name + "_ee_link", touch_links= 
-        [robot_name + "_gripper_tip_link", 
-        robot_name + "_robotiq_85_left_finger_tip_link", 
-        robot_name + "_robotiq_85_left_inner_knuckle_link", 
-        robot_name + "_robotiq_85_right_finger_tip_link", 
-        robot_name + "_robotiq_85_right_inner_knuckle_link"])
-      except:
-        rospy.logerr(item_id_to_attach + " could not be attached! robot_name = " + robot_name)
+      robot.gripper.attach_object(object_to_attach=item_id_to_attach)
 
     if lift_up_after_pick:
       rospy.sleep(0.5)
@@ -1458,7 +1450,9 @@ class O2ACCommon(O2ACBase):
     if not self.b_bot.move_lin(pre_insertion_pose, speed=0.2):
       return False
 
-    self.insert_shaft(target_link)
+    success = self.insert_shaft(target_link)
+    self.b_bot.gripper.last_attached_object = None # clean attach/detach memory
+    return success
 
   def pick_shaft(self):
     goal = self.look_and_get_grasp_point("shaft")
@@ -1475,7 +1469,6 @@ class O2ACCommon(O2ACBase):
     goal.pose.position.z = 0.001 # Magic Numbers for grasping
     goal.pose.position.x -= 0.01
 
-    print("shaft goal", goal)
     self.vision.activate_camera("b_bot_inside_camera")
 
     if not self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, approach_height=0.1, item_id_to_attach="shaft", axis="z"):
@@ -1697,6 +1690,80 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Fail to go to approach_vgroove")
       return False
     self.b_bot.gripper.last_attached_object = None # clean attach/detach memory
+
+  def orient_shaft_end_cap(self):
+    self.a_bot.go_to_named_pose("home")
+    self.b_bot.go_to_named_pose("home")
+
+    goal = self.look_and_get_grasp_point("end_cap")
+    if not goal:
+      rospy.logerr("Could not find shaft in tray. Skipping procedure.")
+      return False
+    self.b_bot.go_to_named_pose("home")
+    
+    gp = conversions.from_pose_to_list(goal.pose)
+    gp[0] += 0.0 # Magic Numbers for visuals 
+    gp[2] = 0.0001
+    end_cap_pose = conversions.to_pose_stamped("tray_center", gp[:3].tolist() + [0.0, -tau/4., 0.0])
+    self.spawn_object("end_cap", end_cap_pose, end_cap_pose.header.frame_id)
+    
+    goal.pose.position.z = -0.001 # Magic Numbers for grasping
+    goal.pose.position.x -= 0.01
+
+    print("end cap goal", goal)
+    self.vision.activate_camera("b_bot_inside_camera")
+
+    if not self.centering_pick("a_bot", goal, speed=0.5, gripper_force=100.0, object_width=.02, 
+                               approach_height=0.1, item_id_to_attach="end_cap", lift_up_after_pick=True):
+      rospy.logerr("Fail to centering_pick")
+      return False
+
+    approach_centering = conversions.to_pose_stamped("simple_holder_tip_link", [0.0, 0, 0.1,        0, tau/4., tau/4.])
+    close_to_tip       = conversions.to_pose_stamped("simple_holder_tip_link", [0.0, -0.008,  0.01, 0, tau/4., tau/4.])
+    push_down          = conversions.to_pose_stamped("simple_holder_tip_link", [0.0, -0.008, -0.02, 0, tau/4., tau/4.])
+    prepare_second_push= conversions.to_pose_stamped("simple_holder_tip_link", [0.0, -0.03, 0.05,  0, tau/4., tau/4.])
+    # prepare_second_push= conversions.to_pose_stamped("simple_holder_tip_link", [0.0, -0.03, 0.006,  0, tau/4., tau/4.])
+    # close_to_tip_v     = conversions.to_pose_stamped("simple_holder_tip_link", [0.0, -0.03, 0.006, -tau/2., tau/4., tau/4.])
+    # push_vertical      = conversions.to_pose_stamped("simple_holder_tip_link", [0.0,  0.03, 0.006, -tau/2., tau/4., tau/4.])
+    
+    if not self.a_bot.go_to_pose_goal(approach_centering, move_lin=False):
+      rospy.logerr("Fail to go to approach_centering")
+      return False
+    if not self.a_bot.go_to_pose_goal(close_to_tip, speed=0.1):
+      rospy.logerr("Fail to go to close_to_tip")
+      return False
+    if not self.a_bot.go_to_pose_goal(push_down, speed=0.01):
+      rospy.logerr("Fail to go to push_down")
+      return False
+    if not self.a_bot.go_to_pose_goal(prepare_second_push, speed=0.1):
+      rospy.logerr("Fail to go to prepare_second_push")
+      return False
+    # if not self.a_bot.go_to_pose_goal(close_to_tip_v, speed=0.5):
+    #   rospy.logerr("Fail to go to close_to_tip_v")
+    #   return False
+    # if not self.a_bot.go_to_pose_goal(push_vertical, speed=0.01):
+    #   rospy.logerr("Fail to go to push_vertical")
+    #   return False
+
+    centering_pose      = conversions.to_pose_stamped("simple_holder", [0.0,  0.25, 0.007,    tau/2., tau/4., tau/4.])
+    if not self.a_bot.go_to_pose_goal(centering_pose, speed=0.1, move_lin=False):
+      rospy.logerr("Fail to go to centering_pose")
+      return False
+
+    self.a_bot.gripper.open(velocity=0.03, opening_width=0.03)
+    if not self.center_with_gripper("a_bot", 0.01):
+      rospy.logerr("Fail to go to center with gripper")
+      return False
+
+    self.b_bot.gripper.send_command(command="close", force=60)
+
+    # TODO(cambel): insert in shaft
+    pre_mate_with_shaft      = conversions.to_pose_stamped("tray_center", [0.0,  0.0, 0.20,    tau/2., tau/4., tau/4.])
+    if not self.a_bot.go_to_pose_goal(pre_mate_with_shaft, speed=0.1):
+      rospy.logerr("Fail to go to pre_mate_with_shaft")
+      return False
+    return True
+
 
 #### subtasks assembly 
 
