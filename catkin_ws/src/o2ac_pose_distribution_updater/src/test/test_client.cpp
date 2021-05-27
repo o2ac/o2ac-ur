@@ -22,7 +22,7 @@ TEST(LookTest, GearMotor) {
   look_test(client, test_directory + "/look_gripper_tip.csv",
             test_directory + "/look_action_images",
             test_directory + "/CAD/gearmotor.stl",
-            std::vector<int>{1000, 1500, 50, 660}, 2, 1, 2);
+            std::vector<int>{50, 660, 1000, 1500}, 2, 1, 2);
 }
 
 TEST(PlaceTest, GearMotor) {

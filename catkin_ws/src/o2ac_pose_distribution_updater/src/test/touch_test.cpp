@@ -82,8 +82,10 @@ void touch_test(const std::shared_ptr<Client> &client,
       ROS_INFO_STREAM(mean);
       ROS_INFO_STREAM(covariance);
     } else {
-      ASSERT_EQ(std::string("The sum of likelihoods is 0"),
-                result->error_message.data);
+      ASSERT_TRUE(std::string("The sum of likelihoods is 0") ==
+                      result->error_message.data ||
+                  std::string("Only single particle has non-zero likelihood") ==
+                      result->error_message.data);
     }
   }
   fclose(in);

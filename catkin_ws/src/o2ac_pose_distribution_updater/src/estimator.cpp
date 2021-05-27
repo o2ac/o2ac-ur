@@ -5,6 +5,8 @@ each action
 
 #include "o2ac_pose_distribution_updater/estimator.hpp"
 
+const double EPS = 1e-9;
+
 // Conversion functions
 
 // Note that Particle is Eigen::Matrix<double, 6, 1> and CovarianceMatrix is
@@ -17,8 +19,7 @@ fcl::Transform3f particle_to_transform(const Particle &p) {
                           fcl::Vec3f(p(0), p(1), p(2)));
 }
 
-Eigen::Transform<double, 3, Eigen::Isometry>
-particle_to_eigen_transform(const Particle &p) {
+Eigen::Isometry3d particle_to_eigen_transform(const Particle &p) {
   return Eigen::Translation3d(p.block(0, 0, 3, 1)) *
          Eigen::AngleAxis<double>(p(5), Eigen::Vector3d::UnitZ()) *
          Eigen::AngleAxis<double>(p(4), Eigen::Vector3d::UnitY()) *
@@ -31,8 +32,7 @@ Eigen::Vector3d to_eigen_vector(const fcl::Vec3f &v) {
   return ev;
 }
 
-Eigen::Transform<double, 3, Eigen::Isometry>
-to_eigen_transform(const fcl::Transform3f &t) {
+Eigen::Isometry3d to_eigen_transform(const fcl::Transform3f &t) {
   return Eigen::Translation3d(to_eigen_vector(t.getTranslation())) *
          Eigen::Quaterniond(
              t.getQuatRotation().getW(), t.getQuatRotation().getX(),
@@ -182,7 +182,7 @@ void PoseEstimator::calculate_new_distribution(
   double sum_of_likelihoods =
       std::accumulate(likelihoods.begin(), likelihoods.end(), 0.0);
   std::cout << "The sum of likelihoods:" << sum_of_likelihoods << '\n';
-  if (sum_of_likelihoods <= 0.0) {
+  if (sum_of_likelihoods <= EPS) {
     throw std::runtime_error("The sum of likelihoods is 0");
   }
   new_mean.setZero();
@@ -194,6 +194,18 @@ void PoseEstimator::calculate_new_distribution(
                       particles[i].transpose();
   }
   new_covariance -= new_mean * new_mean.transpose();
+
+  // Bessel's correction
+  double sum_of_square_likelihoods = 0.0;
+  for (double &v : likelihoods) {
+    sum_of_square_likelihoods += v * v;
+  }
+  double factor =
+      1 - sum_of_square_likelihoods / (sum_of_likelihoods * sum_of_likelihoods);
+  if (factor <= EPS) {
+    throw std::runtime_error("Only single particle has non-zero likelihood");
+  }
+  new_covariance /= factor;
 }
 
 void make_BVHModel(object_geometry_ptr &bvhmodel,
@@ -232,10 +244,9 @@ void PoseEstimator::touched_step(
 void PoseEstimator::place_step(
     const std::vector<Eigen::Vector3d> &vertices,
     const std::vector<boost::array<int, 3>> &triangles,
-    const Eigen::Transform<double, 3, Eigen::Isometry> &gripper_transform,
-    const double &support_surface, const Particle &old_mean,
-    const CovarianceMatrix &old_covariance, Particle &new_mean,
-    CovarianceMatrix &new_covariance) {
+    const Eigen::Isometry3d &gripper_transform, const double &support_surface,
+    const Particle &old_mean, const CovarianceMatrix &old_covariance,
+    Particle &new_mean, CovarianceMatrix &new_covariance) {
   // load geometry and calculate the center of gravity
   int number_of_vertices = vertices.size();
   Eigen::Vector3d center_of_gravity_of_gripped =
@@ -277,11 +288,11 @@ cv::Point3d to_cv_point(const Eigen::Vector3d &p) {
   return cv::Point3d(p(0), p(1), p(2));
 }
 
-cv::Mat PoseEstimator::generate_image(
-    const std::vector<Eigen::Vector3d> &vertices,
+void PoseEstimator::generate_image(
+    cv::Mat &image, const std::vector<Eigen::Vector3d> &vertices,
     const std::vector<boost::array<int, 3>> &triangles,
-    const Eigen::Transform<double, 3, Eigen::Isometry> &transform,
-    const cv::Size &image_size) {
+    const Eigen::Isometry3d &transform,
+    const boost::array<unsigned int, 4> &ROI) {
   // generated the estimated binary image seen from the camera when the pose
   // of the gripped object in the world is represented by 'transform'
 
@@ -298,9 +309,12 @@ cv::Mat PoseEstimator::generate_image(
   std::vector<cv::Point2d> image_points;
   cv::projectPoints(object_points, camera_r, camera_t, camera_matrix,
                     camera_dist_coeffs, image_points);
+  for (int i = 0; i < number_of_vertices; i++) {
+    image_points[i] -= cv::Point2d(ROI[2], ROI[0]);
+  }
 
   // Fill all triangles of the gripped objects on the image
-  cv::Mat image = cv::Mat::zeros(image_size, CV_8UC1);
+  image = cv::Mat::zeros(ROI[1] - ROI[0], ROI[3] - ROI[2], CV_8UC1);
   for (int j = 0; j < triangles.size(); j++) {
     cv::Point triangle[3];
     for (int k = 0; k < 3; k++) {
@@ -308,21 +322,18 @@ cv::Mat PoseEstimator::generate_image(
     }
     cv::fillConvexPoly(image, &triangle[0], 3, 1);
   }
-  return image;
 }
 
 double PoseEstimator::similarity_of_images(const cv::Mat &estimated_image,
-                                           const cv::Mat &binary_looked_image,
-                                           const cv::Mat &ROI_mask) {
+                                           const cv::Mat &binary_looked_image) {
   // Calculate the similarity of two binary images
   // The similarity is defined as the number pixels on which both images are 1
   // divided by the number of pixels on which at least one image is 1 in the
   // range of interest By definition, the range of similarity is [0.0, 1.0]
 
   cv::Mat union_image, intersection_image;
-  cv::bitwise_or(estimated_image, binary_looked_image, union_image, ROI_mask);
-  cv::bitwise_and(estimated_image, binary_looked_image, intersection_image,
-                  ROI_mask);
+  cv::bitwise_or(estimated_image, binary_looked_image, union_image);
+  cv::bitwise_and(estimated_image, binary_looked_image, intersection_image);
   int union_sum = cv::countNonZero(union_image);
   int intersection_sum = cv::countNonZero(intersection_image);
   return union_sum > 0
@@ -333,23 +344,15 @@ double PoseEstimator::similarity_of_images(const cv::Mat &estimated_image,
 void PoseEstimator::calculate_look_likelihoods(
     const std::vector<Eigen::Vector3d> &vertices,
     const std::vector<boost::array<int, 3>> &triangles,
-    const Eigen::Transform<double, 3, Eigen::Isometry> &gripper_transform,
+    const Eigen::Isometry3d &gripper_transform,
     const cv::Mat &binary_looked_image,
-    const boost::array<unsigned int, 4> &range_of_interest) {
-  cv::Mat ROI_mask = cv::Mat::zeros(binary_looked_image.size(), CV_8UC1);
-  cv::Point ROI_rectangle[4];
-  ROI_rectangle[0] = cv::Point(range_of_interest[0], range_of_interest[2]);
-  ROI_rectangle[1] = cv::Point(range_of_interest[1], range_of_interest[2]);
-  ROI_rectangle[2] = cv::Point(range_of_interest[1], range_of_interest[3]);
-  ROI_rectangle[3] = cv::Point(range_of_interest[0], range_of_interest[3]);
-  cv::fillConvexPoly(ROI_mask, ROI_rectangle, 4, 1);
+    const boost::array<unsigned int, 4> &ROI) {
   for (int i = 0; i < number_of_particles; i++) {
-    cv::Mat estimated_image = generate_image(
-        vertices, triangles,
-        gripper_transform * particle_to_eigen_transform(particles[i]),
-        binary_looked_image.size());
-    likelihoods[i] =
-        similarity_of_images(estimated_image, binary_looked_image, ROI_mask);
+    cv::Mat estimated_image;
+    generate_image(
+        estimated_image, vertices, triangles,
+        gripper_transform * particle_to_eigen_transform(particles[i]), ROI);
+    likelihoods[i] = similarity_of_images(estimated_image, binary_looked_image);
   }
 }
 
@@ -368,15 +371,16 @@ void PoseEstimator::to_binary_image(const cv::Mat &bgr_image,
 void PoseEstimator::look_step(
     const std::vector<Eigen::Vector3d> &vertices,
     const std::vector<boost::array<int, 3>> &triangles,
-    const Eigen::Transform<double, 3, Eigen::Isometry> &gripper_transform,
-    const cv::Mat &looked_image,
-    const boost::array<unsigned int, 4> &range_of_interest,
-    const Particle &old_mean, const CovarianceMatrix &old_covariance,
-    Particle &new_mean, CovarianceMatrix &new_covariance) {
+    const Eigen::Isometry3d &gripper_transform, const cv::Mat &looked_image,
+    const boost::array<unsigned int, 4> &ROI, const Particle &old_mean,
+    const CovarianceMatrix &old_covariance, Particle &new_mean,
+    CovarianceMatrix &new_covariance) {
+  cv::Mat looked_image_ROI =
+      looked_image(cv::Rect(ROI[2], ROI[0], ROI[3] - ROI[2], ROI[1] - ROI[0]));
   cv::Mat binary_looked_image;
-  to_binary_image(looked_image, binary_looked_image);
+  to_binary_image(looked_image_ROI, binary_looked_image);
   generate_particles(old_mean, old_covariance);
   calculate_look_likelihoods(vertices, triangles, gripper_transform,
-                             binary_looked_image, range_of_interest);
+                             binary_looked_image, ROI);
   calculate_new_distribution(new_mean, new_covariance);
 }

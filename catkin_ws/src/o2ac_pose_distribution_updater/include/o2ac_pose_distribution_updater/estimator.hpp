@@ -83,6 +83,7 @@ public:
                     const Particle &old_mean,
                     const CovarianceMatrix &old_covariance, Particle &new_mean,
                     CovarianceMatrix &new_covariance);
+
   void place_step(const std::vector<Eigen::Vector3d> &vertices,
                   const std::vector<boost::array<int, 3>> &triangles,
                   const Eigen::Isometry3d &gripper_transform,
@@ -90,21 +91,21 @@ public:
                   const CovarianceMatrix &old_covariance, Particle &new_mean,
                   CovarianceMatrix &new_covariance);
 
-  cv::Mat generate_image(const std::vector<Eigen::Vector3d> &vertices,
-                         const std::vector<boost::array<int, 3>> &triangles,
-                         const Eigen::Isometry3d &transform,
-                         const cv::Size &image_size);
+  void generate_image(cv::Mat &image,
+                      const std::vector<Eigen::Vector3d> &vertices,
+                      const std::vector<boost::array<int, 3>> &triangles,
+                      const Eigen::Isometry3d &transform,
+                      const boost::array<unsigned int, 4> &ROI);
 
   double similarity_of_images(const cv::Mat &estimated_image,
-                              const cv::Mat &binary_looked_image,
-                              const cv::Mat &ROI_mask);
+                              const cv::Mat &binary_looked_image);
 
-  void calculate_look_likelihoods(
-      const std::vector<Eigen::Vector3d> &vertices,
-      const std::vector<boost::array<int, 3>> &triangles,
-      const Eigen::Isometry3d &gripper_transform,
-      const cv::Mat &binary_looked_image,
-      const boost::array<unsigned int, 4> &range_of_interest);
+  void
+  calculate_look_likelihoods(const std::vector<Eigen::Vector3d> &vertices,
+                             const std::vector<boost::array<int, 3>> &triangles,
+                             const Eigen::Isometry3d &gripper_transform,
+                             const cv::Mat &binary_looked_image,
+                             const boost::array<unsigned int, 4> &ROI);
 
   void to_binary_image(const cv::Mat &bgr_image, cv::Mat &binary_image);
 
@@ -112,7 +113,7 @@ public:
                  const std::vector<boost::array<int, 3>> &triangles,
                  const Eigen::Isometry3d &gripper_transform,
                  const cv::Mat &looked_image,
-                 const boost::array<unsigned int, 4> &range_of_interest,
+                 const boost::array<unsigned int, 4> &ROI,
                  const Particle &old_mean,
                  const CovarianceMatrix &old_covariance, Particle &new_mean,
                  CovarianceMatrix &new_covariance);

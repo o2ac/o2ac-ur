@@ -146,22 +146,121 @@ void find_three_points(const std::vector<Eigen::Vector3d> &current_vertices,
   stability = bg::within(projected_center_of_gravity, hull);
 }
 
-namespace {
+template <typename T>
+const Eigen::Transform<T, 3, Eigen::Isometry> calculate_transform_after_placing(
+    const Eigen::Transform<T, 3, Eigen::Isometry> &old_transform,
+    const Eigen::Vector3d &center_of_gravity,
+    const Eigen::Vector3d &ground_touch_vertex_1,
+    const Eigen::Vector3d &ground_touch_vertex_2,
+    const Eigen::Vector3d &ground_touch_vertex_3, const double &support_surface,
+    const Eigen::Isometry3d &gripper_transform) {
+  // Given the current pose 'old_transform' as Eigen Transform,
+  // return the pose after placing as Eigen Transform
+
+  // To use AutoDiff, template T is used as Scalar type
+  
+  using point = Eigen::Matrix<T, 3, 1>;
+
+  // calculate the current coordinates
+  Eigen::Transform<T, 3, Eigen::Isometry> gripper_transform_T =
+      gripper_transform.cast<T>();
+  Eigen::Transform<T, 3, Eigen::Isometry> current_transform =
+      gripper_transform_T * old_transform;
+  point current_center_of_gravity =
+      current_transform * center_of_gravity.cast<T>();
+  point current_ground_touch_vertex_1 =
+      current_transform * ground_touch_vertex_1.cast<T>();
+  point current_ground_touch_vertex_2 =
+      current_transform * ground_touch_vertex_2.cast<T>();
+  point current_ground_touch_vertex_3 =
+      current_transform * ground_touch_vertex_3.cast<T>();
+
+  // calculate the first rotation
+  point v1v2 = current_ground_touch_vertex_2 - current_ground_touch_vertex_1;
+  point first_axis = (current_ground_touch_vertex_1 - current_center_of_gravity)
+                         .cross(point::UnitZ())
+                         .normalized();
+  T first_angle =
+      atan2(v1v2(2), first_axis(1) * v1v2(0) - first_axis(0) * v1v2(1));
+  Eigen::AngleAxis<T> first_rotation(first_angle, first_axis);
+
+  // calculate the coordinates after first rotation
+  point rotated_center_of_gravity = first_rotation * current_center_of_gravity;
+  point rotated_ground_touch_vertex_1 =
+      first_rotation * current_ground_touch_vertex_1;
+  point rotated_ground_touch_vertex_2 =
+      first_rotation * current_ground_touch_vertex_2;
+  point rotated_ground_touch_vertex_3 =
+      first_rotation * current_ground_touch_vertex_3;
+
+  // calculate the second rotation
+  point v1v3 = rotated_ground_touch_vertex_3 - rotated_ground_touch_vertex_1;
+  point second_axis =
+      (rotated_ground_touch_vertex_2 - rotated_ground_touch_vertex_1)
+          .normalized();
+  if ((rotated_center_of_gravity - rotated_ground_touch_vertex_1)
+          .cross(second_axis)(2) < 0.0) {
+    second_axis = -second_axis;
+  }
+  T second_angle =
+      atan2(v1v3(2), second_axis(1) * v1v3(0) - second_axis(0) * v1v3(1));
+  Eigen::AngleAxis<T> second_rotation(second_angle, second_axis);
+
+  // calculate the coordinates after second rotation
+  point final_center_of_gravity = second_rotation * rotated_center_of_gravity;
+  point final_ground_touch_vertex_1 =
+      second_rotation * rotated_ground_touch_vertex_1;
+  point final_ground_touch_vertex_2 =
+      second_rotation * rotated_ground_touch_vertex_2;
+  point final_ground_touch_vertex_3 =
+      second_rotation * rotated_ground_touch_vertex_3;
+  // The translation is occured to hold the physical restraints
+  point final_translation;
+  final_translation
+      << current_center_of_gravity(0) -
+             final_center_of_gravity(
+                 0), // The x-coordinate of the center of gravity is not changed
+      current_center_of_gravity(1) -
+          final_center_of_gravity(
+              1), // The y-coordinate of the center of gravity is not changed
+      support_surface - final_ground_touch_vertex_1(
+                            2); // The z-coordinate of the vertices touching the
+                                // ground is that of the ground
+  // calculate the pose after placing
+  return gripper_transform_T.inverse() *
+         Eigen::Translation<T, 3>(final_translation) * second_rotation *
+         first_rotation * current_transform;
+}
 
 // Calculate the function from the pose before placing to the pose after placing
 // and its Jacobian. To use AutoDiff in Eigen-unsupported, the function is
 // calculated in the class "calculate_particle".
 
-Eigen::Vector3d center_of_gravity, ground_touch_vertex_1, ground_touch_vertex_2,
-    ground_touch_vertex_3; // the coordinates of center of gravity, first
-                           // touching point, second touching point and third
-                           // touching point
-double support_surface;    // the z-coordinate of the ground
-Eigen::Isometry3d gripper_transform; // The gripper transform
-
 class calculate_particle {
 
 public:
+  Eigen::Vector3d center_of_gravity, ground_touch_vertex_1,
+      ground_touch_vertex_2,
+      ground_touch_vertex_3; // the coordinates of center of gravity, first
+                             // touching point, second touching point and third
+                             // touching point
+  double support_surface;    // the z-coordinate of the ground
+  Eigen::Isometry3d gripper_transform; // The gripper transform
+
+  calculate_particle(const Eigen::Vector3d &center_of_gravity,
+                     const Eigen::Vector3d &ground_touch_vertex_1,
+                     const Eigen::Vector3d &ground_touch_vertex_2,
+                     const Eigen::Vector3d &ground_touch_vertex_3,
+                     const double &support_surface,
+                     const Eigen::Isometry3d &gripper_transform) {
+    this->center_of_gravity = center_of_gravity;
+    this->ground_touch_vertex_1 = ground_touch_vertex_1;
+    this->ground_touch_vertex_2 = ground_touch_vertex_2;
+    this->ground_touch_vertex_3 = ground_touch_vertex_3;
+    this->support_surface = support_surface;
+    this->gripper_transform = gripper_transform;
+  }
+
   // Neede by Eigen AutoDiff
   enum { InputsAtCompileTime = 6, ValuesAtCompileTime = 6 };
 
@@ -175,84 +274,23 @@ public:
   template <typename T>
   void operator()(const Eigen::Matrix<T, 6, 1> &current_particle,
                   Eigen::Matrix<T, 6, 1> *result_particle) const {
+
     using point = Eigen::Matrix<T, 3, 1>;
 
-    // calculate the coordinates when the pose is represented by particle
-    // 'current_particle'
-    Eigen::Transform<T, 3, Eigen::Isometry> gripper_transform_T =
-        gripper_transform.cast<T>();
-    Eigen::Transform<T, 3, Eigen::Isometry> current_transform =
-        gripper_transform_T *
+    // convert current_particle to transform
+    Eigen::Transform<T, 3, Eigen::Isometry> old_transform =
         Eigen::Translation<T, 3>(current_particle.block(0, 0, 3, 1)) *
         Eigen::AngleAxis<T>(current_particle(5), point::UnitZ()) *
         Eigen::AngleAxis<T>(current_particle(4), point::UnitY()) *
         Eigen::AngleAxis<T>(current_particle(3), point::UnitX());
-    point current_center_of_gravity =
-        current_transform * center_of_gravity.cast<T>();
-    point current_ground_touch_vertex_1 =
-        current_transform * ground_touch_vertex_1.cast<T>();
-    point current_ground_touch_vertex_2 =
-        current_transform * ground_touch_vertex_2.cast<T>();
-    point current_ground_touch_vertex_3 =
-        current_transform * ground_touch_vertex_3.cast<T>();
 
-    // calculate the first rotation
-    point v1v2 = current_ground_touch_vertex_2 - current_ground_touch_vertex_1;
-    point first_axis =
-        (current_ground_touch_vertex_1 - current_center_of_gravity)
-            .cross(point::UnitZ())
-            .normalized();
-    T first_angle =
-        atan2(v1v2(2), first_axis(1) * v1v2(0) - first_axis(0) * v1v2(1));
-    Eigen::AngleAxis<T> first_rotation(first_angle, first_axis);
+    // calculate transform after placing
 
-    // calculate the coordinates after first rotation
-    point rotated_center_of_gravity =
-        first_rotation * current_center_of_gravity;
-    point rotated_ground_touch_vertex_1 =
-        first_rotation * current_ground_touch_vertex_1;
-    point rotated_ground_touch_vertex_2 =
-        first_rotation * current_ground_touch_vertex_2;
-    point rotated_ground_touch_vertex_3 =
-        first_rotation * current_ground_touch_vertex_3;
-
-    // calculate the second rotation
-    point v1v3 = rotated_ground_touch_vertex_3 - rotated_ground_touch_vertex_1;
-    point second_axis =
-        (rotated_ground_touch_vertex_2 - rotated_ground_touch_vertex_1)
-            .normalized();
-    if ((rotated_center_of_gravity - rotated_ground_touch_vertex_1)
-            .cross(second_axis)(2) < 0.0) {
-      second_axis = -second_axis;
-    }
-    T second_angle =
-        atan2(v1v3(2), second_axis(1) * v1v3(0) - second_axis(0) * v1v3(1));
-    Eigen::AngleAxis<T> second_rotation(second_angle, second_axis);
-
-    // calculate the coordinates after second rotation
-    point final_center_of_gravity = second_rotation * rotated_center_of_gravity;
-    point final_ground_touch_vertex_1 =
-        second_rotation * rotated_ground_touch_vertex_1;
-    point final_ground_touch_vertex_2 =
-        second_rotation * rotated_ground_touch_vertex_2;
-    point final_ground_touch_vertex_3 =
-        second_rotation * rotated_ground_touch_vertex_3;
-    // The translation is occured to hold the physical restraints
-    point final_translation =
-        (current_center_of_gravity(0) - final_center_of_gravity(0)) *
-            (point::UnitX()) // The x-coordinate of the center of gravity is not
-                             // changed
-        + (current_center_of_gravity(1) - final_center_of_gravity(1)) *
-              (point::UnitY()) // The y-coordinate of the center of gravity is
-                               // not changed
-        + (support_surface - final_ground_touch_vertex_1(2)) *
-              (point::UnitZ()); // The z-coordinate of the vertices touching the
-                                // ground is that of the ground
-    // calculate the pose after placing
     Eigen::Transform<T, 3, Eigen::Isometry> result_transform =
-        gripper_transform_T.inverse() *
-        Eigen::Translation<T, 3>(final_translation) * second_rotation *
-        first_rotation * current_transform;
+        calculate_transform_after_placing(
+            old_transform, center_of_gravity, ground_touch_vertex_1,
+            ground_touch_vertex_2, ground_touch_vertex_3, support_surface,
+            gripper_transform);
 
     // convert it to Particle
     result_particle->block(0, 0, 3, 1) = result_transform.translation();
@@ -264,29 +302,24 @@ public:
     result_particle->block(3, 0, 3, 1) << roll, pitch, yaw;
   }
 };
-} // namespace
 
 void place_update_distribution(const Particle &old_mean,
                                const CovarianceMatrix &old_covariance,
-                               const Eigen::Vector3d &_center_of_gravity,
-                               const Eigen::Vector3d &_ground_touch_vertex_1,
-                               const Eigen::Vector3d &_ground_touch_vertex_2,
-                               const Eigen::Vector3d &_ground_touch_vertex_3,
-                               const double &_support_surface,
-                               const Eigen::Isometry3d &_gripper_transform,
+                               const Eigen::Vector3d &center_of_gravity,
+                               const Eigen::Vector3d &ground_touch_vertex_1,
+                               const Eigen::Vector3d &ground_touch_vertex_2,
+                               const Eigen::Vector3d &ground_touch_vertex_3,
+                               const double &support_surface,
+                               const Eigen::Isometry3d &gripper_transform,
                                Particle &new_mean,
                                CovarianceMatrix &new_covariance) {
-  center_of_gravity = _center_of_gravity;
-  ground_touch_vertex_1 = _ground_touch_vertex_1;
-  ground_touch_vertex_2 = _ground_touch_vertex_2;
-  ground_touch_vertex_3 = _ground_touch_vertex_3;
-  support_surface = _support_surface;
-  gripper_transform = _gripper_transform;
   // Calculate the particle after placing and its Jacobian
-  Eigen::AutoDiffJacobian<calculate_particle> calculate_particle_AD;
+  Eigen::AutoDiffJacobian<calculate_particle> calculate_particle_AD(
+      center_of_gravity, ground_touch_vertex_1, ground_touch_vertex_2,
+      ground_touch_vertex_3, support_surface, gripper_transform);
   // By Eigen AutoDiff, calculate_particle_AD automatically calculates the
   // operation of calculate_particle and its Jacobian
-  CovarianceMatrix Jacobian, numerical_Jacobian;
+  CovarianceMatrix Jacobian;
   calculate_particle_AD(old_mean, &new_mean, &Jacobian);
 
   // The covariance of the function value is calculated by the covariance of the

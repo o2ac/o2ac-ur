@@ -39,7 +39,7 @@ The action to update distribution is defined in `o2ac_msgs/updateDistributionAct
 
 The service to visualize pose beliefs is defined in `o2ac_msgs/visualizePoseBelief.h`.
 
-Sample Code:
+Sample Code of Client:
 ```
 #include "o2ac_msgs/updateDistributionAction.h"
 #include "o2ac_msgs/visualizePoseBelief.h"
@@ -51,8 +51,7 @@ int main(...)
 
 	actionlib::SimpleActionClient<o2ac_msgs::updateDistributionAction> update_client("update_distribution", true);
 	update_client.waitForServer();
-	ros::ServiceClient visualizer_client =
-	nd.serviceClient<o2ac_msgs::visualizePoseBelief>("visualize_pose_belief");
+	ros::ServiceClient visualizer_client = nd.serviceClient<o2ac_msgs::visualizePoseBelief>("visualize_pose_belief");
 	...
 	moveit_msgs::CollisionObject object;
 	geometry_msgs::PoseWithCovariance distribution;
@@ -139,7 +138,7 @@ This section describe messages to send information about the three acts.
 ### `LookObservation.msg`
 - `geometry_msgs/PoseStamped gripper_pose`: the pose of the gripper when the object is looked by the camera
 - `sensor_msgs/Image looked_image`: looked image represented as bgr8 image
-- `std_msgs/uint32[4] ROI`: an array of length 4 representing the range of interests of the image. The range of interests is a rectangle and this array is [left boundary, right boundary, top boundary, bottom boundary].
+- `std_msgs/uint32[4] ROI`: an array of length 4 representing the range of interests of the image. The range of interests is a rectangle and this array is [top boundary, bottom boundary, left boundary, right boundary].
 
 ### `PlaceObservation.msg`
 - `geometry_msgs/PoseStamped gripper_pose`: the pose of the gripper when the object is released
