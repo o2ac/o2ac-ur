@@ -25,7 +25,9 @@ def main():
 
     controller.assembly_database.change_assembly('wrs_assembly_2020')
     controller.reset_scene_and_robots()
-    controller.orient_shaft()
+    # controller.orient_shaft()
+
+    controller.turn_shaft_until_groove_found()
     
     # controller.panel_subtask2()
 

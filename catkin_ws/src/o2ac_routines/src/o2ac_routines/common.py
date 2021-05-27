@@ -805,7 +805,7 @@ class O2ACCommon(O2ACBase):
 
   def turn_shaft_until_groove_found(self):
     # look_at_shaft_pose = [2.177835941, -1.700065275, 2.536958996, -2.40987076, -1.529889408, 0.59719228]
-    look_at_shaft_pose = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.005, 0, 0, tau/2., 0, 0])
+    look_at_shaft_pose = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.008, 0, 0, tau/2., 0, 0])
     self.vision.activate_camera("b_bot_inside_camera")
     self.activate_led("b_bot")
     self.b_bot.go_to_pose_goal(look_at_shaft_pose)
@@ -816,17 +816,17 @@ class O2ACCommon(O2ACBase):
     if use_ros:
       self.b_bot.go_to_pose_goal(look_at_shaft_pose, speed=0.1)
 
-      while times_turned < 6:
+      for _ in range(6):
+        res = self.vision.call_shaft_notch_detection()
+        if not res:
+          return False
+        if res.shaft_notch_detected_at_top or res.shaft_notch_detected_at_bottom:
+          return res
         rospy.loginfo("Turn shaft once")
-        self.b_bot.move_lin_rel(relative_rotation=[0,0,radians(30)], speed=0.1, relative_to_tcp=True)
-        self.b_bot.gripper.close()
+        self.b_bot.move_lin_rel(relative_rotation=[0,0,-tau/12.], speed=0.1, relative_to_tcp=True)
+        self.b_bot.gripper.close(velocity=0.03)
         self.b_bot.go_to_pose_goal(look_at_shaft_pose, speed=0.1)
-        self.b_bot.gripper.open(0.06)
-        times_turned += 1
-        if self.vision.call_shaft_notch_detection(): # ho
-          return True
-        # if res.shaft_notch_detected_at_top or res.shaft_notch_detected_at_bottom:
-        #   return res
+        self.b_bot.gripper.open(opening_width=0.03, velocity=0.03)
     else:
       success = self.b_bot.load_program(program_name="wrs2020/shaft_turning.urp", recursion_depth=3)  
       if not success:
@@ -1005,6 +1005,7 @@ class O2ACCommon(O2ACBase):
       return False
 
     self.bearing_holes_aligned = self.align_bearing_holes(task=task)
+    self.b_bot.gripper.last_attached_object = None # clean attach/detach memory
     return self.bearing_holes_aligned
 
   def insert_bearing(self, task=""):
@@ -1466,18 +1467,18 @@ class O2ACCommon(O2ACBase):
       return False
     
     gp = conversions.from_pose_to_list(goal.pose)
-    gp[0] += 0.035 
+    gp[0] += 0.035 # Magic Numbers for visuals 
     gp[2] = 0.005
     shaft_pose = conversions.to_pose_stamped("tray_center", gp[:3].tolist() + [0.0, 0.0, -tau/2])
     self.spawn_object("shaft", shaft_pose, shaft_pose.header.frame_id)
     
-    goal.pose.position.z = 0.001
+    goal.pose.position.z = 0.001 # Magic Numbers for grasping
     goal.pose.position.x -= 0.01
 
     print("shaft goal", goal)
     self.vision.activate_camera("b_bot_inside_camera")
 
-    if not self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, item_id_to_attach="shaft", axis="z"):
+    if not self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, approach_height=0.1, item_id_to_attach="shaft", axis="z"):
       rospy.logerr("Fail to simple_pick")
       return False
     return True
@@ -1632,8 +1633,10 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Fail to pick Shaft")
       return False
     
-    approach_centering = conversions.to_pose_stamped("workspace_center", [0.13, 0.3,  0.250, tau/2., tau/4., tau/4.])
-    on_centering =       conversions.to_pose_stamped("workspace_center", [0.13, 0.3,  0.0, tau/2., tau/4., tau/4.])
+    shaft_length = 0.075
+    approach_centering = conversions.to_pose_stamped("tray_left_stopper", [0.0, shaft_length,     0.150, tau/2., tau/4., tau/4.])
+    on_centering =       conversions.to_pose_stamped("tray_left_stopper", [0.0, shaft_length,    -0.004, tau/2., tau/4., tau/4.])
+    shaft_center =       conversions.to_pose_stamped("tray_left_stopper", [0.0, shaft_length/2., -0.006, tau/2., tau/4., tau/4.])
 
     if not self.b_bot.go_to_pose_goal(approach_centering):
       rospy.logerr("Fail to go to approaching_centering")
@@ -1644,8 +1647,10 @@ class O2ACCommon(O2ACBase):
 
     self.b_bot.force_controller.linear_push(3, "-Y", max_translation=0.05, timeout=15.0)
     self.b_bot.gripper.open(opening_width=0.03)
-    self.b_bot.move_lin_rel(relative_translation=[0, -0.035, 0], relative_to_robot_base=True)
-    self.b_bot.gripper.close(opening_width=0.03)
+    if not self.b_bot.go_to_pose_goal(shaft_center, speed=0.1):
+      rospy.logerr("Fail to go to relative shaft center")
+      return False
+    self.b_bot.gripper.close()
 
     approach_vgroove = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [-0.100, 0, 0, tau/2., 0, 0])
     on_vgroove =       conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.000, 0, 0, tau/2., 0, 0])
@@ -1654,16 +1659,44 @@ class O2ACCommon(O2ACBase):
     if not self.b_bot.go_to_pose_goal(approach_vgroove, move_lin=False):
       rospy.logerr("Fail to go to approach_vgroove")
       return False
-    if not self.b_bot.go_to_pose_goal(on_vgroove):
+    if not self.b_bot.go_to_pose_goal(on_vgroove, speed=0.1):
       rospy.logerr("Fail to go to on_vgroove")
       return False
-    if not self.b_bot.go_to_pose_goal(inside_vgroove):
+    if not self.b_bot.go_to_pose_goal(inside_vgroove, speed=0.1):
       rospy.logerr("Fail to go to inside_vgroove")
       return False
 
     self.b_bot.gripper.open(opening_width=0.06)
 
-    return self.turn_shaft_until_groove_found()
+    res = self.turn_shaft_until_groove_found()
+    if not res:
+      rospy.logerr("Shaft notch detection fail")
+      return False
+    if res.shaft_notch_detected_at_top:
+      rospy.loginfo("Shaft notch found at top")
+      grasp_from_vgroove =   conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.008, 0, 0, tau/2., 0, 0])
+      if not self.b_bot.go_to_pose_goal(grasp_from_vgroove, speed=0.1):
+        rospy.logerr("Fail to go to grasp_from_vgroove")
+        return False
+    elif res.shaft_notch_detected_at_bottom:
+      rospy.loginfo("Shaft notch found at bottom")
+      reorient_camera   = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [-0.050, 0, 0, 0, 0, 0])
+      if not self.b_bot.go_to_pose_goal(reorient_camera, speed=0.1):
+        rospy.logerr("Fail to go to reorient_camera")
+        return False
+      grasp_from_vgroove = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.008, 0, 0, 0, 0, 0])
+      if not self.b_bot.go_to_pose_goal(grasp_from_vgroove, speed=0.1):
+        rospy.logerr("Fail to go to grasp_from_vgroove")
+        return False
+    else:
+      rospy.logerr("Unexpected result from camera!")
+
+    self.b_bot.gripper.close(force=100)
+
+    if not self.b_bot.go_to_pose_goal(approach_vgroove, speed=0.2):
+      rospy.logerr("Fail to go to approach_vgroove")
+      return False
+    self.b_bot.gripper.last_attached_object = None # clean attach/detach memory
 
 #### subtasks assembly 
 
