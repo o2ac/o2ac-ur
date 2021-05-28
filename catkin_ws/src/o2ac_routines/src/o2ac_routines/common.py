@@ -298,7 +298,7 @@ class O2ACCommon(O2ACBase):
 
   ########
 
-  def simple_pick(self, robot_name, object_pose, grasp_height=0.0, speed_fast=0.3, speed_slow=0.02, gripper_command="close", 
+  def simple_pick(self, robot_name, object_pose, grasp_height=0.0, speed_fast=0.5, speed_slow=0.02, gripper_command="close", 
           gripper_force=40.0, grasp_width=0.140,
           approach_height=0.05, item_id_to_attach = "", 
           lift_up_after_pick=True, acc_fast=1.0, acc_slow=.1, 
@@ -1001,6 +1001,8 @@ class O2ACCommon(O2ACBase):
     return self.bearing_holes_aligned
 
   def insert_bearing(self, task=""):
+    """ Only inserts the bearing, does not align the holes.
+    """
     if not task:
       rospy.logerr("Specify the task!")
       return False
@@ -1094,8 +1096,9 @@ class O2ACCommon(O2ACBase):
     
     self.confirm_to_proceed("intermediate pose")
     self.b_bot.move_joints(intermediate_screw_bearing_pose)
-    self.confirm_to_proceed("horizontal screw ready")
-    self.b_bot.go_to_named_pose("horizontal_screw_ready")
+    if only_retighten:
+      self.confirm_to_proceed("horizontal screw ready")
+      self.b_bot.go_to_named_pose("horizontal_screw_ready")
     # Go to bearing and fasten all the screws
     all_screws_done = False
     while not all_screws_done and not rospy.is_shutdown():
@@ -1140,7 +1143,7 @@ class O2ACCommon(O2ACBase):
     self.vision.activate_camera("b_bot_inside_camera")
     self.activate_led("b_bot")
     
-    if self.simple_pick("b_bot", goal, gripper_force=50.0, grasp_width=.06, axis="z"):
+    if not self.simple_pick("b_bot", goal, gripper_force=50.0, grasp_width=.06, axis="z"):
       rospy.logerr("Fail to simple_pick")
       return False
     if self.b_bot.gripper.opening_width < 0.01:
@@ -1262,7 +1265,7 @@ class O2ACCommon(O2ACBase):
     self.a_bot.gripper.open(velocity=0.013)
 
   def grasp_idler_pulley(self):
-    # incline 45deg
+    # Incline 45 deg
     success = self.a_bot.move_lin_rel(relative_translation=[0, 0.01, 0.002], relative_rotation=[tau/8.0, 0, 0])
     if not success:
       rospy.logerr("Fail to incline a_bot 45 deg %s" % success)
@@ -1435,9 +1438,9 @@ class O2ACCommon(O2ACBase):
     rotation = np.deg2rad([-22.5+180, -88.5, -157.5]).tolist()  # Arbitrary
 
     above_pose = conversions.to_pose_stamped(target_link, [0.0, 0.002, -0.10] + rotation)
-    behind_pose = conversions.to_pose_stamped(target_link, [0.15, 0.002, -0.05] + rotation)
-    pre_insertion_pose = conversions.to_pose_stamped(target_link, [0.09, 0.000, -0.002] + rotation)
-
+    behind_pose = conversions.to_pose_stamped(target_link, [0.09, 0.002, -0.05] + rotation)
+    pre_insertion_pose = conversions.to_pose_stamped(target_link, [0.09, 0.001, 0.0] + rotation)
+    
     rospy.loginfo("Going to above tb (b_bot)")
     if not self.b_bot.move_lin(above_pose, speed=0.4):
       return False
@@ -1501,7 +1504,7 @@ class O2ACCommon(O2ACBase):
     pre_insertion_pose = conversions.to_pose_stamped(target_link, [0.11, 0.000, 0.01] + rotation)
 
     if not success or not self.simple_insertion_check(0.02, min_opening_width=0.001):
-      # TODO(cambel): implement a fall back
+      # TODO(cambel): implement a fallback
       rospy.logerr("** Insertion Failed!! **")
       self.b_bot.gripper.open(wait=True)
       self.b_bot.move_lin(pre_insertion_pose, speed=0.05)

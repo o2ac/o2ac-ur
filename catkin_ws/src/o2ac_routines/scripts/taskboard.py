@@ -195,12 +195,12 @@ class TaskboardClass(O2ACCommon):
 
     if screw_picked:
       self.subtask_completed["M3 screw"] = self.do_task("M3 screw")
+    self.unequip_tool("a_bot", "screw_tool_m3")
+    self.a_bot.go_to_named_pose("home")
     
     #### SCREW M4 WITH B_BOT
     self.subtask_completed["M4 screw"] = self.do_task("M4 screw")
 
-    self.unequip_tool("a_bot", "screw_tool_m3")
-    self.a_bot.go_to_named_pose("home")
     self.b_bot.go_to_named_pose("home")
     self.unequip_tool("b_bot", "screw_tool_m4")
 
@@ -263,16 +263,17 @@ class TaskboardClass(O2ACCommon):
       res = self.get_3d_poses_from_ssd()
       r2 = self.get_feasible_grasp_points("belt")
       if r2:
-        goal = r2[0]
-        goal.pose.position.z = 0.0
+        pick_goal = r2[0]
+        pick_goal.pose.position.z = 0.0
       else:
-        # rospy.logerr("Could not find belt grasp pose! Aborting.")
-        # return False
-        ### DEBUGGING
-        goal = geometry_msgs.msg.PoseStamped()
-        goal.header.frame_id = "tray_center"
-        goal.pose.position
-        goal.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
+        rospy.logerr("Could not find belt grasp pose! Aborting.")
+        return False
+        # ### DEBUGGING
+        # rospy.logwarn("Could not find belt grasp pose! Using center of tray.")
+        # pick_goal = geometry_msgs.msg.PoseStamped()
+        # pick_goal.header.frame_id = "tray_center"
+        # pick_goal.pose.position
+        # pick_goal.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
       
       self.confirm_to_proceed("Pick tool with b_bot?")
       # Equip the belt tool with b_bot
@@ -280,7 +281,7 @@ class TaskboardClass(O2ACCommon):
         return False
       rospy.sleep(2)  # Wait for b_bot to have moved out of the way
 
-      self.simple_pick("a_bot", goal, gripper_force=100.0, grasp_width=.08, axis="z")
+      self.simple_pick("a_bot", pick_goal, gripper_force=100.0, grasp_width=.08, axis="z")
       self.a_bot.move_lin_rel(relative_translation=[0,0,.1])
       a_bot_wait_with_belt_pose = [0.646294116973877, -1.602117200891012, 2.0059760252581995, -1.3332312864116211, -0.8101084868060511, -2.4642069975482386]
       self.a_bot.move_joints(a_bot_wait_with_belt_pose)
@@ -292,9 +293,11 @@ class TaskboardClass(O2ACCommon):
       
       if not self.vision.check_pick_success("belt"):
         rospy.logerr("Belt pick has failed. Return tool and abort.")
-        self.a_bot.gripper.open(opening_width=0.03, wait=False)
         self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp", recursion_depth=3)
-        rospy.sleep(3)
+        rospy.sleep(2)
+        pick_goal.pose.position.z += 0.06
+        self.a_bot.move_lin(pick_goal)
+        self.a_bot.gripper.open(opening_width=0.03, wait=False)
         self.a_bot.go_to_named_pose("home")
         wait_for_UR_program("/b_bot", rospy.Duration.from_sec(20))
         return False
@@ -438,7 +441,11 @@ class TaskboardClass(O2ACCommon):
       use_ros = True
 
       if use_ros:
-        return self.pick_and_insert_motor_pulley(task = "taskboard")
+        success = self.pick_and_insert_motor_pulley(task = "taskboard")
+        self.unlock_base_plate()  # To ensure that nothing moved due to a failed insertion
+        self.lock_base_plate()
+        return success
+
       else:
         self.a_bot.go_to_named_pose("home")
         self.b_bot.go_to_named_pose("home")
@@ -450,7 +457,7 @@ class TaskboardClass(O2ACCommon):
         goal.pose.position.x -= 0.01 # MAGIC NUMBER
         goal.pose.position.z = 0.0
         self.vision.activate_camera("b_bot_inside_camera")
-        self.activate_led("b_bot")
+        self.activate_led("b_bot", on=False)
         self.simple_pick("b_bot", goal, gripper_force=50.0, grasp_width=.06, axis="z")
 
         if self.b_bot.gripper.opening_width < 0.01:
@@ -474,11 +481,8 @@ class TaskboardClass(O2ACCommon):
     # ==========================================================
 
     if task_name == "bearing":
-      success = self.pick_up_and_insert_bearing(task="taskboard")
-      self.b_bot.detach_object(task_name)
-      self.despawn_object(task_name)
-      self.b_bot.gripper.last_attached_object = None # Forget about this object
-
+      return self.pick_up_and_insert_bearing(task="taskboard")
+      
     if task_name == "screw_bearing":
       self.equip_tool('b_bot', 'screw_tool_m4')
       success = self.fasten_bearing(task="taskboard")
@@ -618,8 +622,8 @@ if __name__ == '__main__':
       rospy.loginfo("Enter 11, 12 to close/open grippers")
       rospy.loginfo("Enter 13, 14 to equip/unequip m3 screw tool")
       rospy.loginfo("Enter 15, 16 to equip/unequip m4 screw tool (151,161: padless)")
-      # rospy.loginfo("Enter 17, 18 to equip/unequip set screw tool")
-      rospy.loginfo("Enter 3 to calibrate screw tasks (31: M3, 32: M4)")
+      rospy.loginfo("Enter 21, 22: pick m3, m4 screw")
+      rospy.loginfo("Enter 3 to calibrate TB screw tasks (31: M3, 32: M4)")
       rospy.loginfo("Subtasks: 51 (set screw), 52 (M3), 53 (M4), 54 (belt), 55 (motor pulley), 56 (shaft), 57 (bearing), 58 (idler pulley)")
       rospy.loginfo("Enter 8 to spawn example parts")
       rospy.loginfo("Enter reset to reset the scene")
@@ -683,10 +687,10 @@ if __name__ == '__main__':
         taskboard.a_bot.go_to_named_pose("home")
         taskboard.do_task("M4 screw", fake_execution_for_calibration=True)
         taskboard.b_bot.go_to_named_pose("home")
-      if i == "31":
-        taskboard.do_task("M3 screw", fake_execution_for_calibration=True)
-      if i == "32":
-        taskboard.do_task("M4 screw", fake_execution_for_calibration=True)
+      if i == "21":
+        taskboard.pick_screw_from_feeder("a_bot", screw_size = 3)
+      if i == "22":
+        taskboard.pick_screw_from_feeder("b_bot", screw_size = 4)
       if i == "31":
         taskboard.do_task("M3 screw", fake_execution_for_calibration=True)
       if i == "32":
