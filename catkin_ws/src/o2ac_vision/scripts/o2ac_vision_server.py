@@ -504,8 +504,8 @@ class O2ACVisionServer(object):
         # Generation of a hand template
         im_hand = np.zeros( (60,60), np.float )
         hand_width = 20 #in pixel
-        im_hand[0:10,20:20+hand_width] = 1
-        im_hand[50:60,20:20+hand_width] = 1
+        im_hand[20:20+hand_width,0:10] = 1
+        im_hand[20:20+hand_width,50:60] = 1
 
         bbox = ssd_result["bbox"]
         margin = 30
