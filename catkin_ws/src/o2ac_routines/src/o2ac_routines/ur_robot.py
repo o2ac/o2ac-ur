@@ -407,7 +407,7 @@ class URRobot():
         goal.request = moveit_msgs.msg.MotionSequenceRequest()
         goal.request.items = motion_plan_requests
 
-        for i in range(5):
+        for i in range(10):
             result = self.sequence_move_group.send_goal_and_wait(goal)
             if result == GoalStatus.ABORTED:
                 rospy.logwarn("(move_lin_trajectory) Planning failed, retry: %s of 5" % (i+1))
