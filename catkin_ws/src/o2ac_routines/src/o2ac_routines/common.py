@@ -678,7 +678,69 @@ class O2ACCommon(O2ACBase):
     xdist = l_x_half - abs(object_pose_in_world.pose.position.x)
     ydist = l_y_half - abs(object_pose_in_world.pose.position.y)
     return (xdist, ydist)
-  
+
+  def move_towards_tray_center(self, robot_name, object_pose, object_width=0.08, approach_height=0.10, speed=0.5, acc=0.25, recenter_distance=0.05):
+    
+    robot = self.active_robots[robot_name]
+
+    pick_pose = copy.deepcopy(object_pose)
+    target_pose = copy.deepcopy(object_pose)
+
+    (dx, dy) = self.distances_from_tray_border(object_pose)
+    min_border_dist = 0.02
+    border_dist = object_width + 0.01
+
+    rospy.loginfo("border distances were dx: %0.3f, dy: %0.3f, min_dist: %0.3f" % (dx, dy, border_dist))
+    if abs(dx) < min_border_dist or abs(dy) < min_border_dist:
+      rospy.logerr("too close to a border, abort.")
+      return False
+
+    if abs(dx) <= border_dist and abs(dy) <= border_dist:
+      rospy.logerr("Don't know how to recover from a corner")
+      return False
+
+    z_rotation = tau/4
+    z_rotation_offset = -1 if robot_name == "b_bot" else 1
+    if abs(dx) <= border_dist:
+      z_rotation = tau/2
+      sign = 1 if target_pose.pose.position.x <= 0 else -1
+      print("foo")
+      print(target_pose.pose.position.x)
+      target_pose.pose.position.x += (sign * recenter_distance)
+      print(target_pose.pose.position.x)
+    elif abs(dy) <= border_dist:
+      sign = 1 if target_pose.pose.position.y <= 0 else -1
+      target_pose.pose.position.y += (sign * recenter_distance)
+    else:
+      target_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(0, tau/4, z_rotation*z_rotation_offset))
+      return target_pose # No need to recenter
+
+    target_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(0, tau/4, z_rotation*z_rotation_offset))
+    pick_pose.pose.orientation   = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(0, tau/4, z_rotation*z_rotation_offset))
+
+    approach_pose = copy.deepcopy(pick_pose)
+    approach_pose.pose.position.z += approach_height
+
+    if not robot.go_to_pose_goal(approach_pose, speed=speed, acceleration=acc, move_lin=False):
+      rospy.logerr("Fail to complete approach pose")
+      return False
+    
+    rospy.loginfo("Moving down to object")
+    robot.gripper.send_command(command=object_width+0.03)
+    
+    if not robot.go_to_pose_goal(pick_pose, speed=speed/2.0, acceleration=acc/2.0, move_lin=True):
+      rospy.logerr("Fail to complete pick pose")
+      return False
+
+    robot.gripper.close()
+
+    if not robot.go_to_pose_goal(target_pose, speed=speed/2.0, acceleration=acc/2.0, move_lin=True):
+      rospy.logerr("Fail to complete target_pose")
+      return False
+
+    return target_pose
+
+
   def move_and_center_with_gripper(self, robot_name, object_pose, object_width):
     """
     Centers cylindrical object by moving the gripper, by moving the robot to the pose and closing/opening.
@@ -738,24 +800,27 @@ class O2ACCommon(O2ACBase):
     """
     robot = self.active_robots[robot_name]
 
-    pick_pose = copy.deepcopy(object_pose)
-    pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(0, tau/4, -tau/4))
+    pick_pose = self.move_towards_tray_center(robot_name, object_pose, object_width, approach_height, speed, acc, recenter_distance=object_width+0.03)
 
-    approach_pose = copy.deepcopy(pick_pose)
-    approach_pose.pose.position.z += approach_height
+    if not pick_pose:
+      return False
 
-    success = robot.go_to_pose_goal(approach_pose, speed=speed, acceleration=acc, move_lin=True)
-    if not success:
-      rospy.logerr("Fail to complete approach pose")
-      return False
+    if helpers.pose_dist(pick_pose.pose, object_pose.pose) < 0.001: # No recentering was needed so do the normal stuff
+      approach_pose = copy.deepcopy(pick_pose)
+      approach_pose.pose.position.z += approach_height
+
+      success = robot.go_to_pose_goal(approach_pose, speed=speed, acceleration=acc, move_lin=True)
+      if not success:
+        rospy.logerr("Fail to complete approach pose")
+        return False
     
-    rospy.loginfo("Moving down to object")
-    robot.gripper.send_command(command=object_width+0.03)
+      rospy.loginfo("Moving down to object")
+      robot.gripper.send_command(command=object_width+0.03)
     
-    success = robot.go_to_pose_goal(pick_pose, speed=speed, acceleration=acc, move_lin=True)
-    if not success:
-      rospy.logerr("Fail to complete pick pose")
-      return False
+      success = robot.go_to_pose_goal(pick_pose, speed=speed/2.0, acceleration=acc/2.0, move_lin=True)
+      if not success:
+        rospy.logerr("Fail to complete pick pose")
+        return False
 
     # Center object
     self.center_with_gripper(robot_name, object_width)
@@ -770,8 +835,8 @@ class O2ACCommon(O2ACBase):
       rospy.sleep(0.5)
       rospy.loginfo("Going back up")
 
-      rospy.loginfo("Going to height " + str(approach_pose.pose.position.z))
-      robot.go_to_pose_goal(approach_pose, speed=speed, acceleration=acc, move_lin=True)
+      rospy.loginfo("Going to height " + str(approach_height))
+      robot.move_lin_rel(relative_translation=[0, 0, approach_height], speed=speed, acceleration=acc)
     return True
 
   def drop_shaft_in_v_groove(self):
