@@ -62,6 +62,15 @@
   <xacro:simple_holder partname="simple_holder" parent="workspace_center">
     <origin xyz="0.257 -0.607 -0.0149" rpy="0 0 0" />  
   </xacro:simple_holder> 
+
+  <joint name="right_centering_joint" type="fixed">
+    <parent link="workspace_center"/>
+    <child link="right_centering_link"/>
+    <origin xyz="0.20 0.30 -0.0149" rpy="0 ${pi/2} -${pi/2}" />
+  </joint>
+  <link name="right_centering_link"/>
+
+
   <!-- ======== -->
 
   <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/components/nut_holder.xacro" />
