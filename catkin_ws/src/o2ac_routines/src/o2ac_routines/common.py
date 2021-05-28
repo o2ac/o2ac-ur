@@ -961,9 +961,9 @@ class O2ACCommon(O2ACBase):
       end_pose.pose.position.z += 0.0005  # Avoid pulling the bearing out little by little
       end_pose.pose.orientation = geometry_msgs.msg.Quaternion(
                         *tf_conversions.transformations.quaternion_from_euler(angle/2.0, 0, 0))
-      self.b_bot.go_to_pose_goal(start_pose, speed=.1, acceleration=.04, end_effector_link = "b_bot_bearing_rotate_helper_link")
+      self.b_bot.go_to_pose_goal(start_pose, speed=.2, end_effector_link = "b_bot_bearing_rotate_helper_link")
       self.b_bot.gripper.close()
-      self.b_bot.go_to_pose_goal(end_pose, speed=.1, acceleration=.04, end_effector_link = "b_bot_bearing_rotate_helper_link")
+      self.b_bot.go_to_pose_goal(end_pose, speed=.2, end_effector_link = "b_bot_bearing_rotate_helper_link")
       self.b_bot.gripper.open()
 
     success = False
@@ -972,7 +972,7 @@ class O2ACCommon(O2ACBase):
       if self.b_bot.gripper.opening_width < 0.06:
         self.b_bot.gripper.open()
       
-      self.b_bot.go_to_pose_goal(camera_look_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.25, acceleration=.1)
+      self.b_bot.go_to_pose_goal(camera_look_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.3, acceleration=.15)
       if np.random.uniform() > 0.4:  # = 60% chance
         self.activate_led("b_bot", on=False)
       else:
