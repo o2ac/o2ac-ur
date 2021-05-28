@@ -1222,13 +1222,21 @@ class O2ACCommon(O2ACBase):
     if self.b_bot.gripper.opening_width < 0.01:
       rospy.logerr("Gripper did not grasp the pulley --> Stop")
 
-    if self.playback_sequence(routine_filename="orient_pulley"):
+    if self.playback_sequence(routine_filename="motor_pulley_orient"):
       self.insert_motor_pulley(bearing_target_link)
     else:
       rospy.logerr("Fail to complete the playback sequence")
       return False
 
   def insert_motor_pulley(self, target_link, attempts=1):
+    approach_pose = conversions.to_pose_stamped(target_link, [-0.05, 0.0, 0.0, radians(180), radians(35), 0.0])
+    pre_insertion_pose = conversions.to_pose_stamped(target_link, [-0.01, 0, 0.0, radians(180), radians(35), 0.0])
+    trajectory = [[approach_pose, 0.005], [pre_insertion_pose, 0.0]]
+
+    if not self.b_bot.move_lin_trajectory(trajectory, speed=0.5):
+      rospy.logerr("Fail to complete the approach pose")
+      return False
+
     target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.02, -0.000, -0.009, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
 
     selection_matrix = [0., 0.3, 0.3, 0.95, 1.0, 1.0]
@@ -1827,7 +1835,7 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Could not find shaft in tray. Skipping procedure.")
       return False
     self.b_bot.go_to_named_pose("home")
-    
+
     gp = conversions.from_pose_to_list(goal.pose)
     gp[0] += 0.0 # Magic Numbers for visuals 
     gp[2] = 0.0001
@@ -1840,7 +1848,7 @@ class O2ACCommon(O2ACBase):
     print("end cap goal", goal)
     self.vision.activate_camera("b_bot_inside_camera")
 
-    if not self.centering_pick("a_bot", goal, speed=0.5, gripper_force=100.0, object_width=.02, 
+    if not self.centering_pick("a_bot", goal, speed=1.0, gripper_force=100.0, object_width=.02, 
                                approach_height=0.1, item_id_to_attach="end_cap", lift_up_after_pick=True):
       rospy.logerr("Fail to centering_pick")
       return False
