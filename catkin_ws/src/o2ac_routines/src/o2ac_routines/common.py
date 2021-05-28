@@ -703,7 +703,7 @@ class O2ACCommon(O2ACBase):
     robot.go_to_pose_goal(object_pose_in_world, move_lin=True)
     return True
   
-  def center_with_gripper(self, robot_name, grasp_width):
+  def center_with_gripper(self, robot_name, grasp_width, clockwise=False):
     """
     Centers cylindrical object at the current location, by closing/opening the gripper and rotating the robot's last joint.
     Moves back to the initial position.
@@ -715,7 +715,7 @@ class O2ACCommon(O2ACBase):
     # rotate gripper 90deg
     initial_pose_goal = robot.robot_group.get_current_joint_values()
     pose_goal = robot.robot_group.get_current_joint_values()
-    pose_goal[-1] += tau/4.0 
+    pose_goal[-1] += -tau/4.0 if clockwise else tau/4.0
     success = robot.move_joints(pose_goal, speed=0.5, wait=True)
     if not success:
       rospy.logerr("Fail to rotate 90deg %s" % success)
@@ -1783,45 +1783,42 @@ class O2ACCommon(O2ACBase):
     approach_centering = conversions.to_pose_stamped("simple_holder_tip_link", [0.0, 0, 0.1,        0, tau/4., tau/4.])
     close_to_tip       = conversions.to_pose_stamped("simple_holder_tip_link", [0.0, -0.008,  0.01, 0, tau/4., tau/4.])
     push_down          = conversions.to_pose_stamped("simple_holder_tip_link", [0.0, -0.008, -0.02, 0, tau/4., tau/4.])
-    prepare_second_push= conversions.to_pose_stamped("simple_holder_tip_link", [0.0, -0.03, 0.05,  0, tau/4., tau/4.])
-    # prepare_second_push= conversions.to_pose_stamped("simple_holder_tip_link", [0.0, -0.03, 0.006,  0, tau/4., tau/4.])
-    # close_to_tip_v     = conversions.to_pose_stamped("simple_holder_tip_link", [0.0, -0.03, 0.006, -tau/2., tau/4., tau/4.])
-    # push_vertical      = conversions.to_pose_stamped("simple_holder_tip_link", [0.0,  0.03, 0.006, -tau/2., tau/4., tau/4.])
+    prepare_second_push= conversions.to_pose_stamped("simple_holder_tip_link", [0.0, -0.03,   0.05, 0, tau/4., tau/4.])
+    close_to_edge      = conversions.to_pose_stamped("simple_holder",          [0.08, -0.10, 0.001, tau/4., tau/4., tau/4.])
+    push_edge          = conversions.to_pose_stamped("simple_holder",          [0.02, -0.10, 0.001, tau/4., tau/4., tau/4.])
     
     if not self.a_bot.go_to_pose_goal(approach_centering, move_lin=False):
       rospy.logerr("Fail to go to approach_centering")
       return False
-    if not self.a_bot.go_to_pose_goal(close_to_tip, speed=0.1):
+    if not self.a_bot.go_to_pose_goal(close_to_tip, speed=0.5):
       rospy.logerr("Fail to go to close_to_tip")
       return False
     if not self.a_bot.go_to_pose_goal(push_down, speed=0.01):
       rospy.logerr("Fail to go to push_down")
       return False
-    if not self.a_bot.go_to_pose_goal(prepare_second_push, speed=0.1):
+    if not self.a_bot.go_to_pose_goal(prepare_second_push, speed=0.5):
       rospy.logerr("Fail to go to prepare_second_push")
       return False
-    # if not self.a_bot.go_to_pose_goal(close_to_tip_v, speed=0.5):
-    #   rospy.logerr("Fail to go to close_to_tip_v")
-    #   return False
-    # if not self.a_bot.go_to_pose_goal(push_vertical, speed=0.01):
-    #   rospy.logerr("Fail to go to push_vertical")
-    #   return False
-
-    centering_pose      = conversions.to_pose_stamped("simple_holder", [0.0,  0.25, 0.007,    tau/2., tau/4., tau/4.])
-    if not self.a_bot.go_to_pose_goal(centering_pose, speed=0.1, move_lin=False):
-      rospy.logerr("Fail to go to centering_pose")
+    if not self.a_bot.go_to_pose_goal(close_to_edge, speed=0.5):
+      rospy.logerr("Fail to go to close_to_edge")
+      return False
+    if not self.a_bot.go_to_pose_goal(push_edge, speed=0.01):
+      rospy.logerr("Fail to go to push_edge")
       return False
 
     self.a_bot.gripper.open(velocity=0.03, opening_width=0.03)
-    if not self.center_with_gripper("a_bot", 0.01):
+    if not self.center_with_gripper("a_bot", 0.01, clockwise=True):
       rospy.logerr("Fail to go to center with gripper")
       return False
 
-    self.b_bot.gripper.send_command(command="close", force=60)
+    self.b_bot.gripper.close()
+    
+    if not self.a_bot.move_lin_rel(relative_translation=[0, 0, 0.15]):
+      rospy.logerr("Fail to go to centering_pose")
+      return False
 
-    # TODO(cambel): insert in shaft
     pre_mate_with_shaft      = conversions.to_pose_stamped("tray_center", [0.0,  0.0, 0.20,    tau/2., tau/4., tau/4.])
-    if not self.a_bot.go_to_pose_goal(pre_mate_with_shaft, speed=0.1):
+    if not self.a_bot.go_to_pose_goal(pre_mate_with_shaft, speed=0.1, move_lin=False):
       rospy.logerr("Fail to go to pre_mate_with_shaft")
       return False
     return True
