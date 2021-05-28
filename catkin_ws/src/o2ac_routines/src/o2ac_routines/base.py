@@ -783,6 +783,8 @@ class O2ACBase(object):
     elif unequip:
       robot.gripper.open()
       self.active_robots[robot_name].gripper.detach_object(tool_name)
+      self.planning_scene_interface.remove_attached_object(name=tool_name)
+      self.planning_scene_interface.remove_world_object(name=tool_name)
       self.allow_collisions_with_robot_hand(tool_name, robot_name, allow=False)
       held_screw_tool_ = ""
       robot.robot_status.carrying_tool = False
