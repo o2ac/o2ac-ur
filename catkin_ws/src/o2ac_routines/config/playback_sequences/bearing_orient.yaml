@@ -2,67 +2,67 @@
 robot_name: 'b_bot' # for security define the robot here
 waypoints:
 - pose: [1.7095, -1.7619, 2.2065, -2.0337, -1.5473, 0.2133] # pose, depends on the type
-  type: 'joint-space-goal-cartesian-lin-motion' # or 'task-space' or 'relative-tcp' or 'relative-base'
+  pose_type: 'joint-space-goal-cartesian-lin-motion' # or 'task-space' or 'relative-tcp' or 'relative-base'
   speed: 0.4 # percentage
   blend: 0.01
 - pose: [1.8371, -2.0332, 2.5464, -2.0864, -1.5405, 0.2834]
-  type: 'joint-space-goal-cartesian-lin-motion'
+  pose_type: 'joint-space-goal-cartesian-lin-motion'
   speed: 0.4 # percentage
   blend: 0.01
 - pose: [1.836, -1.8689, 2.6557, -2.36, -1.5406, 1.4835]
-  type: 'joint-space-goal-cartesian-lin-motion'
+  pose_type: 'joint-space-goal-cartesian-lin-motion'
   speed: 0.7 # percentage
-  gripper-action: 'open' # or 'close' or 'open-close' or 'close-open'
+  gripper_action: 'open' # or 'close' or 'open-close' or 'close-open'
 - pose: [1.836, -1.8689, 2.6558, -2.36, -1.5405, -0.0888]
-  type: 'joint-space-goal-cartesian-lin-motion'
+  pose_type: 'joint-space-goal-cartesian-lin-motion'
   speed: 0.7 # percentage
-  gripper-action: 'close-open' 
+  gripper_action: 'close-open' 
 - pose: [1.836, -1.8689, 2.6559, -2.3601, -1.5406, -1.6611]
-  type: 'joint-space-goal-cartesian-lin-motion'
+  pose_type: 'joint-space-goal-cartesian-lin-motion'
   speed: 0.7 # percentage
 - pose: [1.0819, -1.6024, 2.6337, -1.7489, -0.9852, -2.6904]
-  type: 'joint-space-goal-cartesian-lin-motion'
+  pose_type: 'joint-space-goal-cartesian-lin-motion'
   speed: 0.7 # percentage
-  gripper-action: 'close' 
+  gripper_action: 'close' 
 - pose: [1.3692, -2.0179, 2.6315, -1.8867, -1.1386, -2.1988]
-  type: 'joint-space-goal-cartesian-lin-motion'
+  pose_type: 'joint-space-goal-cartesian-lin-motion'
   speed: 0.7 # percentage
   blend: 0.0
 - pose:  [2.4378, -1.5117, 2.3493, -1.98, -2.2041, -0.923]
-  type: 'joint-space-goal-cartesian-lin-motion'
+  pose_type: 'joint-space-goal-cartesian-lin-motion'
   speed: 0.7 # percentage
   blend: 0.0
 - pose: [2.4374, -1.4154, 2.3849, -2.1116, -2.2042, -0.9224]
-  type: 'joint-space-goal-cartesian-lin-motion'
+  pose_type: 'joint-space-goal-cartesian-lin-motion'
   speed: 0.2 # percentage
-  gripper-action: 'open' 
+  gripper_action: 'open' 
 - pose: [1.0235, -1.4368, 2.5938, -1.6761, -0.9735, -2.8292]
-  type: 'joint-space-goal-cartesian-lin-motion'
+  pose_type: 'joint-space-goal-cartesian-lin-motion'
   speed: 0.7 # percentage
-  gripper-action: 'close' 
+  gripper_action: 'close' 
 - pose: [1.438, -1.9585, 2.4924, -1.819, -1.1233, -1.5588]
-  type: 'joint-space-goal-cartesian-lin-motion'
+  pose_type: 'joint-space-goal-cartesian-lin-motion'
   speed: 0.5 # percentage
   blend: 0.0
 - pose: [1.8371, -2.0331, 2.5464, -2.0863, -1.5404, 0.2834]
-  type: 'joint-space-goal-cartesian-lin-motion'
+  pose_type: 'joint-space-goal-cartesian-lin-motion'
   speed: 0.5 # percentage
   blend: 0.0
 - pose: [1.836, -1.8689, 2.6557, -2.36, -1.5405, 1.4835]
-  type: 'joint-space-goal-cartesian-lin-motion'
+  pose_type: 'joint-space-goal-cartesian-lin-motion'
   speed: 0.4 # percentage
-  gripper-action: 'open' 
+  gripper_action: 'open' 
 - pose: [1.836, -1.8688, 2.6558, -2.3601, -1.5405, -0.0888]
-  type: 'joint-space-goal-cartesian-lin-motion'
+  pose_type: 'joint-space-goal-cartesian-lin-motion'
   speed: 0.7 # percentage
-  gripper-action: 'close-open' 
+  gripper_action: 'close-open' 
 - pose: [1.8361, -1.8689, 2.6559, -2.3601, -1.5406, -1.6611]
-  type: 'joint-space-goal-cartesian-lin-motion'
+  pose_type: 'joint-space-goal-cartesian-lin-motion'
   speed: 0.7 # percentage
 - pose: [1.3683, -1.8889, 2.7011, -2.0853, -1.1386, -2.1986]
-  type: 'joint-space-goal-cartesian-lin-motion'
+  pose_type: 'joint-space-goal-cartesian-lin-motion'
   speed: 0.7 # percentage
-  gripper-action: 'close' 
+  gripper_action: 'close' 
 - pose: [1.8371, -2.0332, 2.5464, -2.0864, -1.5405, 0.2834]
-  type: 'joint-space-goal-cartesian-lin-motion'
+  pose_type: 'joint-space-goal-cartesian-lin-motion'
   speed: 0.3 # percentage

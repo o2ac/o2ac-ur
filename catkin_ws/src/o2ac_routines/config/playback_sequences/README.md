@@ -8,7 +8,7 @@
     - *speed*: speed scale factor (percentage)
     - *acceleration*: acceleration scale factor (percentage)
     - *blend*: specified only if you want two or more points to be considered as one trajectory with blended intersections
-    - *gripper-action*: 'open', 'close' or 'close-open'. Defines the action to take with the gripper, can not be part of a blended trajectory. **It is always executed after reaching the defined posed!**
+    - *gripper_action*: 'open', 'close' or 'close-open'. Defines the action to take with the gripper, can not be part of a blended trajectory. **It is always executed after reaching the defined posed!**
 
 ### Types of pose
 joint-space # No IK
