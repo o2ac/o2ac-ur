@@ -1,6 +1,7 @@
 import actionlib
 import rospy
 import robotiq_msgs.msg
+import numpy as np
 
 from ur_control.controllers import GripperController  # Simulation only
 
@@ -25,23 +26,34 @@ class RobotiqGripper():
             except Exception as e:
                 rospy.logwarn("Fail to instantiate GripperController for simulation, " + str(e))
                 rospy.logwarn("Instantiating dummy gripper, hoping for moveit Fake controllers")
+
+                gripper_type = str(rospy.get_param(self.ns + "/gripper_type"))
+
                 class GripperDummy():
                     pass
                 self.gripper = GripperDummy()
+
                 def close():
                     gripper_group.set_named_target("close")
                     gripper_group.go()
+
                 def open():
                     gripper_group.set_named_target("open")
                     gripper_group.go()
+
                 def command(cmd):
-                    if cmd == "open":
-                        open()
-                    elif cmd == "close":
-                        close()
-                    else:
-                        rospy.loginfo("Not supported") # TODO?
-                        return
+                    if gripper_type == "85":
+                        max_gap = 0.085
+                        max_angle = 0.8028
+                    elif gripper_type == "140":
+                        max_gap = 0.140
+                        max_angle = 0.69
+                    distance = np.clip(cmd, 0, max_gap)
+                    cmd_joints = gripper_group.get_current_joint_values()
+                    cmd_joints[0] = (max_gap - distance) * max_angle / max_gap
+                    gripper_group.set_joint_value_target(cmd_joints)
+                    gripper_group.go(wait=True)
+                    return True
                 setattr(GripperDummy, "close", lambda *args, **kwargs: close())
                 setattr(GripperDummy, "open", lambda *args, **kwargs: open())
                 setattr(GripperDummy, "command", lambda self, cmd: command(cmd))
@@ -104,8 +116,13 @@ class RobotiqGripper():
             else:
                 res = True
         else:
-            res = self.gripper.command(command)
-        
+            if command == "close":
+                res = self.gripper.close()
+            elif command == "open":
+                res = self.gripper.open()
+            else:
+                res = self.gripper.command(command)
+
         if self.last_attached_object:
             if command == "close":
                 self.attach_object(self.last_attached_object)
@@ -116,14 +133,14 @@ class RobotiqGripper():
     def attach_object(self, object_to_attach=None, attach_to_link=None):
         try:
             to_link = self.ns + "_ee_link" if attach_to_link is None else attach_to_link
-            self.gripper_group.attach_object(object_to_attach, to_link, 
-            touch_links= [self.ns + "_gripper_tip_link", 
-                            self.ns + "_left_inner_finger_pad", 
-                            self.ns + "_left_inner_finger", 
-                            self.ns + "_left_inner_knuckle",
-                            self.ns + "_right_inner_finger_pad", 
-                            self.ns + "_right_inner_finger",
-                            self.ns + "_right_inner_knuckle"])
+            self.gripper_group.attach_object(object_to_attach, to_link,
+                                             touch_links=[self.ns + "_gripper_tip_link",
+                                                          self.ns + "_left_inner_finger_pad",
+                                                          self.ns + "_left_inner_finger",
+                                                          self.ns + "_left_inner_knuckle",
+                                                          self.ns + "_right_inner_finger_pad",
+                                                          self.ns + "_right_inner_finger",
+                                                          self.ns + "_right_inner_knuckle"])
             self.last_attached_object = object_to_attach
         except Exception as e:
             rospy.logerr(object_to_attach + " could not be attached! robot_name = " + self.ns)

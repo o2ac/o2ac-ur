@@ -18,6 +18,9 @@
 
 
   <param name="use_real_robot" value="false"  type="bool"/>
+  
+  <param name="a_bot/gripper_type" value="140" />
+  <param name="b_bot/gripper_type" value="85"  />
 
   <!--
   By default, hide joint_state_publisher's GUI
