@@ -1259,12 +1259,8 @@ class O2ACCommon(O2ACBase):
     success = self.b_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="-X", force=6.0, timeout=15.0, 
                                                       relaxed_target_by=0.005, wiggle_direction="X", wiggle_angle=np.deg2rad(2.0), wiggle_revolutions=1.,
                                                       selection_matrix=selection_matrix)
-      self.b_bot.gripper.open(wait=True)
-      current_pose_robot_base = self.b_bot.robot_group.get_current_pose()
-      current_pose_in_target_frame = self.listener.transformPose(target_link, current_pose_robot_base)
-      counter += 1
     
-    rospy.loginfo("final distance to target: %s" % str(target_pose_target_frame.pose.position.x - current_pose_in_target_frame.pose.position.x))
+    
     self.b_bot.gripper.open(wait=True)
     self.b_bot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
     return success
