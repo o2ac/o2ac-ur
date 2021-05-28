@@ -11,10 +11,16 @@ When the action server receives a pose belief, which means a pair of the shape o
 it calculates the updated pose with ambiguity of the object.
 
 
-More specifically, the pose of the object is represented by a 6-dimensional vector (x, y, z, roll, pitch, yaw).
+More specifically, we use two methods to represent uncertainties of poses.
+
+- RPY representation: A pose of the object is regarded as a 6-dimensional vector (x, y, z, roll, pitch, yaw).
 The first three values (x, y, z) represents the translation.
 The latter three values (roll, pitch, yaw) represents the rotation.
-The pose with ambiguity is represented by a pair of a 6-dimensional vector, which means the mean of the pose, and a 6x6 matrix, which means the covariance matrix of the distribution of the pose.
+A pose with ambiguity is represented by a pair of a 6-dimensional vector, which means the mean of the pose, and a 6x6 matrix, which means the covariance matrix of the distribution of the pose.
+- Lie representation: We use the approach in http://ncfrn.cim.mcgill.ca/members/pubs/barfoot_tro14.pdf .
+A pose of the object is regarded as an element of the 3-dimensional special Euclidean group $SE(3)$.
+A pose with ambiguity is represented by a pair of the mean of the pose and a 6x6 covariance matrix, which represents a distribution in the 6-dimensional vector space identified with $se(3)$, the Lie algebra of corresponding to $SE(3)$.
+
 
 For the description of acts, see "Message types" section.
 
@@ -153,6 +159,7 @@ This section describe updateDistribution action, an action to send current poses
 - `LookObservation look_observation`: When the type of act is "look", this represents information about the act.
 - `PlaceObservation place_observation`: When the type of act is "place", this represents information about the act.
 - `moveit_msgs/CollisionObject gripped_object`: a CollisionObject representing the gripped object
+- `uint8 distribution_type`: whether method is used to represent uncertainty of the pose. If this value is `RPY_COVARIANCE` (constant, equal to 0), the `covariance` attribute of the following `distribution` is interpreted as covariance matrix in the space of x, y, z, roll, pitch, yaw. If it is `LIE_COVARIANCE` (constant, equal to 1),  the `covariance` attribute is interpreted as covariance matrix in the vector space identified with the Lie algebra $se(3)$.
 - `geometry_msgs/PoseWithCovarianceStamped distribution`: the current distribution of the pose of the object
 
 ### Result
@@ -168,6 +175,7 @@ This section describe visualizePoseBelief service, a service to receive a pose b
 
 ## Request
 - `moveit_msgs/CollisionObject object`: a CollisionObject representing the object
+- `uint8 distribution_type`: whether method is used to represent uncertainty of the pose. Its meaning is the same as the case of `updateDistributionGoal`.
 - `geometry_msgs/PoseWithCovarianceStamped distribution`: the current distribution of the pose of the object
 
 ## Response
@@ -183,8 +191,9 @@ o2ac_pose_distribution_updater           # package direcotory
 ├── CMakeLists.txt
 ├── include                              # directory containing header files
 │   └── o2ac_pose_distribution_updater   # header files for this package
-│       ├── conversions.hpp              # conversion functions, implemented in this header
+│       ├── conversions.hpp              # conversion functions, header only
 │       ├── estimator.hpp                # class calculating distributions
+│       ├── operators_for_Lie_distribution.hpp     # functions for Lie distribution, header only
 │       ├── place_action_helpers.hpp     # functions for calculations associated to place action
 │       ├── pose_belief_visualizer.hpp   # class to visualize pose beliefs
 │       ├── read_stl.hpp                 # function to read stl files

@@ -22,7 +22,8 @@ void load_CollisionObject_from_file(
 
 void touch_test(const std::shared_ptr<Client> &client,
                 const std::string &input_file_path,
-                const std::string &gripped_geometry_file_path) {
+                const std::string &gripped_geometry_file_path,
+                const unsigned char &distribution_type) {
   /*
   This procedure reads the values representing touch action calls from a file
   whose path is given. The first line of the input file must be the form "x y z
@@ -68,6 +69,7 @@ void touch_test(const std::shared_ptr<Client> &client,
     goal.observation_type = goal.TOUCH_OBSERVATION;
     goal.touch_observation.gripper_pose.pose = to_Pose(x, y, z, qw, qx, qy, qz);
     goal.touch_observation.touched_object_id = id;
+    goal.distribution_type = distribution_type;
     goal.distribution.pose = to_PoseWithCovariance(mean, covariance);
     goal.gripped_object = *gripped_geometry;
     // Send a call

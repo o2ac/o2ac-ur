@@ -32,8 +32,8 @@ void execute(const o2ac_msgs::updateDistributionGoalConstPtr &goal) {
 
       estimator->touched_step(
           observation.touched_object_id, goal->gripped_object,
-          observation.gripper_pose.pose, goal->distribution.pose,
-          result.distribution.pose);
+          observation.gripper_pose.pose, goal->distribution_type,
+          goal->distribution.pose, result.distribution.pose);
     }
     // Place Action
     else if (goal->observation_type == goal->PLACE_OBSERVATION) {
@@ -41,7 +41,8 @@ void execute(const o2ac_msgs::updateDistributionGoalConstPtr &goal) {
 
       estimator->place_step(goal->gripped_object, observation.gripper_pose.pose,
                             observation.support_surface,
-                            goal->distribution.pose, result.distribution.pose);
+                            goal->distribution_type, goal->distribution.pose,
+                            result.distribution.pose);
     }
     // Look Action
     else if (goal->observation_type == goal->LOOK_OBSERVATION) {
@@ -49,7 +50,8 @@ void execute(const o2ac_msgs::updateDistributionGoalConstPtr &goal) {
 
       estimator->look_step(goal->gripped_object, observation.gripper_pose.pose,
                            observation.looked_image, observation.ROI,
-                           goal->distribution.pose, result.distribution.pose);
+                           goal->distribution_type, goal->distribution.pose,
+                           result.distribution.pose);
     }
   } catch (std::exception &e) {
     // Update is not calculated successfully by std::exceptiom

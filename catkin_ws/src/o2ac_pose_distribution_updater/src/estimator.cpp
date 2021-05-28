@@ -7,7 +7,7 @@ each action
 
 const double EPS = 1e-9;
 
-// Conversion functions
+// Conversion functions associated with fcl types
 
 // Note that Particle is Eigen::Matrix<double, 6, 1> and CovarianceMatrix is
 // Eigen::Matrix<double, 6, 6>
@@ -19,25 +19,27 @@ fcl::Transform3f particle_to_transform(const Particle &p) {
                           fcl::Vec3f(p(0), p(1), p(2)));
 }
 
-Eigen::Isometry3d particle_to_eigen_transform(const Particle &p) {
-  return Eigen::Translation3d(p.block(0, 0, 3, 1)) *
-         Eigen::AngleAxis<double>(p(5), Eigen::Vector3d::UnitZ()) *
-         Eigen::AngleAxis<double>(p(4), Eigen::Vector3d::UnitY()) *
-         Eigen::AngleAxis<double>(p(3), Eigen::Vector3d::UnitX());
-}
-
-Eigen::Vector3d to_eigen_vector(const fcl::Vec3f &v) {
+Eigen::Vector3d fcl_to_eigen_vector(const fcl::Vec3f &v) {
   Eigen::Vector3d ev;
   ev << v.data[0], v.data[1], v.data[2];
   return ev;
 }
 
-Eigen::Isometry3d to_eigen_transform(const fcl::Transform3f &t) {
-  return Eigen::Translation3d(to_eigen_vector(t.getTranslation())) *
+Eigen::Isometry3d fcl_to_eigen_transform(const fcl::Transform3f &t) {
+  return Eigen::Translation3d(fcl_to_eigen_vector(t.getTranslation())) *
          Eigen::Quaterniond(
              t.getQuatRotation().getW(), t.getQuatRotation().getX(),
              t.getQuatRotation().getY(), t.getQuatRotation().getZ());
 }
+
+fcl::Transform3f eigen_to_fcl_transform(const Eigen::Isometry3d &t) {
+  Eigen::Vector3d v = t.translation();
+  Eigen::Quaterniond q(t.rotation());
+  return fcl::Transform3f(fcl::Quaternion3f(q.w(), q.x(), q.y(), q.z()),
+                          fcl::Vec3f(v(0), v(1), v(2)));
+}
+
+// helper functions
 
 std::random_device seed_generator;
 std::default_random_engine engine(seed_generator());
@@ -73,25 +75,7 @@ double calculate_distance(
   return distance;
 }
 
-Eigen::Vector3d calculate_center_of_gravity(
-    const std::vector<Eigen::Vector3d> &vertices,
-    const std::vector<boost::array<int, 3>> &triangles) {
-  // Calculate the center of gravity
-
-  Eigen::Vector3d center_of_gravity;
-  center_of_gravity.setZero();
-  double total_volume = 0.0;
-  for (int j = 0; j < triangles.size(); j++) {
-    auto &ver0 = vertices[triangles[j][0]];
-    auto &ver1 = vertices[triangles[j][1]];
-    auto &ver2 = vertices[triangles[j][2]];
-    double tetra_volume = ver0.dot(ver1.cross(ver2));
-    center_of_gravity += tetra_volume * (ver0 + ver1 + ver2);
-    total_volume += tetra_volume;
-  }
-  center_of_gravity /= 4.0 * total_volume;
-  return center_of_gravity;
-}
+// class member functions
 
 void PoseEstimator::set_particle_parameters(const int &number_of_particles,
                                             const Particle &noise_variance) {
@@ -99,6 +83,8 @@ void PoseEstimator::set_particle_parameters(const int &number_of_particles,
   this->noise_variance = noise_variance;
 
   particles = std::vector<Particle>(number_of_particles);
+  particle_transforms = std::vector<Eigen::Isometry3d>(number_of_particles);
+  fcl_particle_transforms = std::vector<fcl::Transform3f>(number_of_particles);
   likelihoods = std::vector<double>(number_of_particles);
 }
 
@@ -167,9 +153,9 @@ void PoseEstimator::calculate_touch_likelihoods(
     const object_geometry_ptr &gripped_geometry,
     const fcl::Transform3f &gripper_transform) {
   for (int i = 0; i < number_of_particles; i++) {
-    double distance = calculate_distance(
-        touched_objects[touched_object_id], gripped_geometry,
-        gripper_transform * particle_to_transform(particles[i]));
+    double distance =
+        calculate_distance(touched_objects[touched_object_id], gripped_geometry,
+                           gripper_transform * fcl_particle_transforms[i]);
     likelihoods[i] = (std::abs(distance) < distance_threshold ? 1.0 : 0.0);
   }
 }
@@ -208,6 +194,84 @@ void PoseEstimator::calculate_new_distribution(
   new_covariance /= factor;
 }
 
+const int max_iteration = 10; // upperbound of the number of iterations to find
+                              // the value of 'new_mean' by Newton method
+
+void PoseEstimator::calculate_new_Lie_distribution(
+    const Eigen::Isometry3d &old_mean, Eigen::Isometry3d &new_mean,
+    CovarianceMatrix &new_covariance) {
+  // calculate mean and covariance of particles with the weight likelihoods
+  // divided by its sum
+
+  double sum_of_likelihoods =
+      std::accumulate(likelihoods.begin(), likelihoods.end(), 0.0);
+  std::cout << "The sum of likelihoods:" << sum_of_likelihoods << '\n';
+  if (sum_of_likelihoods <= EPS) {
+    throw std::runtime_error("The sum of likelihoods is 0");
+  }
+  for (double &value : likelihoods) {
+    value /= sum_of_likelihoods;
+  }
+
+  // find a new_mean such that the weighted sum of log(particle_transforms[i] *
+  // new_mean^{-1}) is equals to zero by Newton method.
+  new_mean = old_mean;
+  int iteration;
+  for (iteration = 0; iteration < max_iteration; iteration++) {
+    // sum_of_xi is the vector which must be the zero vector
+    // new_mean is updated by new_mean := exp(hat_operator(-X)) * new_mean for
+    // some vector X sum_of_xi_dash is the Jacobian of sum_of_xi with respect to
+    // X
+    Particle sum_of_xi = Particle::Zero();
+    CovarianceMatrix sum_of_xi_dash = CovarianceMatrix::Zero();
+    for (int i = 0; i < number_of_particles; i++) {
+      Particle xi = check_operator<double>(
+          (particle_transforms[i] * new_mean.inverse()).matrix().log());
+      sum_of_xi += likelihoods[i] * xi;
+      // Note that xi -> log(exp(xi) * exp(hat_operator(X))) when new_mean ->
+      // exp(hat_operator(-X)) * new_mean By BCH formula, Jacobian of
+      // log(exp(xi) * exp(hat_operator(X))) with respect to X is calculated by
+      // Bernoulli_series
+      sum_of_xi_dash += likelihoods[i] * Bernoulli_series(adjoint(xi));
+    }
+    if (sum_of_xi.norm() < EPS) {
+      break;
+    }
+    // update by new_mean := exp(hat_operator(-X)) * new_mean where X is
+    // -sum_of_xi_dash^{-1} * sum_of_xi
+    new_mean = Eigen::Isometry3d(
+                   (Eigen::Matrix<double, 4, 4>)(hat_operator<double>(
+                                                     sum_of_xi_dash.inverse() *
+                                                     sum_of_xi)
+                                                     .exp())) *
+               new_mean;
+  }
+  // if the new_mean cannot be found by 'max_iteration' iterations, it is
+  // regarded as a failure of calculation
+  if (iteration == max_iteration) {
+    throw(std::runtime_error("the updated mean cannot be found"));
+  }
+  // calculate the covariance matrix of xi's
+  new_covariance.setZero();
+  // Note that Cov[X, Y] = E[XY] - E[X]E[Y]
+  for (int i = 0; i < number_of_particles; i++) {
+    Particle xi = check_operator<double>(
+        (particle_transforms[i] * new_mean.inverse()).matrix().log());
+    new_covariance += likelihoods[i] * xi * xi.transpose();
+  }
+
+  // Bessel's correction
+  double sum_of_square_likelihoods = 0.0;
+  for (double &v : likelihoods) {
+    sum_of_square_likelihoods += v * v;
+  }
+  double factor = 1 - sum_of_square_likelihoods;
+  if (factor <= EPS) {
+    throw std::runtime_error("Only single particle has non-zero likelihood");
+  }
+  new_covariance /= factor;
+}
+
 void make_BVHModel(object_geometry_ptr &bvhmodel,
                    const std::vector<Eigen::Vector3d> &vertices,
                    const std::vector<boost::array<int, 3>> &triangles) {
@@ -234,11 +298,36 @@ void PoseEstimator::touched_step(
     const CovarianceMatrix &old_covariance, Particle &new_mean,
     CovarianceMatrix &new_covariance) {
   generate_particles(old_mean, old_covariance);
+  for (int i = 0; i < number_of_particles; i++) {
+    fcl_particle_transforms[i] = particle_to_transform(particles[i]);
+  }
   object_geometry_ptr gripped_geometry;
   make_BVHModel(gripped_geometry, vertices, triangles);
   calculate_touch_likelihoods(touched_object_id, gripped_geometry,
                               gripper_transform);
   calculate_new_distribution(new_mean, new_covariance);
+}
+
+void PoseEstimator::touched_step_with_Lie_distribution(
+    const unsigned char &touched_object_id,
+    const std::vector<Eigen::Vector3d> &vertices,
+    const std::vector<boost::array<int, 3>> &triangles,
+    const fcl::Transform3f &gripper_transform,
+    const Eigen::Isometry3d &old_mean, const CovarianceMatrix &old_covariance,
+    Eigen::Isometry3d &new_mean, CovarianceMatrix &new_covariance) {
+  generate_particles(Particle::Zero(), old_covariance);
+  for (int i = 0; i < number_of_particles; i++) {
+    particle_transforms[i] =
+        Eigen::Isometry3d(
+            (Eigen::Matrix<double, 4, 4>)(hat_operator(particles[i]).exp())) *
+        old_mean;
+    fcl_particle_transforms[i] = eigen_to_fcl_transform(particle_transforms[i]);
+  }
+  object_geometry_ptr gripped_geometry;
+  make_BVHModel(gripped_geometry, vertices, triangles);
+  calculate_touch_likelihoods(touched_object_id, gripped_geometry,
+                              gripper_transform);
+  calculate_new_Lie_distribution(old_mean, new_mean, new_covariance);
 }
 
 void PoseEstimator::place_step(
@@ -247,7 +336,7 @@ void PoseEstimator::place_step(
     const Eigen::Isometry3d &gripper_transform, const double &support_surface,
     const Particle &old_mean, const CovarianceMatrix &old_covariance,
     Particle &new_mean, CovarianceMatrix &new_covariance) {
-  // load geometry and calculate the center of gravity
+  // calculate the center of gravity
   int number_of_vertices = vertices.size();
   Eigen::Vector3d center_of_gravity_of_gripped =
       calculate_center_of_gravity(vertices, triangles);
@@ -278,6 +367,71 @@ void PoseEstimator::place_step(
 
   // Update the distribution
   place_update_distribution(
+      old_mean, old_covariance, center_of_gravity_of_gripped,
+      vertices[ground_touch_vertex_id_1], vertices[ground_touch_vertex_id_2],
+      vertices[ground_touch_vertix_id_3], support_surface, gripper_transform,
+      new_mean, new_covariance);
+}
+
+void PoseEstimator::place_step_with_Lie_distribution(
+    const std::vector<Eigen::Vector3d> &vertices,
+    const std::vector<boost::array<int, 3>> &triangles,
+    const Eigen::Isometry3d &gripper_transform, const double &support_surface,
+    const Eigen::Isometry3d &old_mean, const CovarianceMatrix &old_covariance,
+    Eigen::Isometry3d &new_mean, CovarianceMatrix &new_covariance) {
+  // calculate the center of gravity
+  int number_of_vertices = vertices.size();
+  Eigen::Vector3d center_of_gravity_of_gripped =
+      calculate_center_of_gravity(vertices, triangles);
+  // calculate the coordinates of vertices of the object when the pose is the
+  // given mean
+  Eigen::Vector3d current_center_of_gravity =
+      gripper_transform * old_mean * center_of_gravity_of_gripped;
+  std::vector<Eigen::Vector3d> current_vertices(number_of_vertices);
+  for (int i = 0; i < number_of_vertices; i++) {
+    current_vertices[i] = gripper_transform * old_mean * vertices[i];
+  }
+
+  // calculate the three vertices of the object touching the ground
+  int ground_touch_vertex_id_1, ground_touch_vertex_id_2,
+      ground_touch_vertix_id_3; // The first point touching the ground, and
+                                // the second and the third.
+  Eigen::Quaterniond rotation;
+  bool stability;
+  find_three_points(current_vertices, current_center_of_gravity,
+                    ground_touch_vertex_id_1, ground_touch_vertex_id_2,
+                    ground_touch_vertix_id_3, rotation, stability);
+
+  // If the object is not stable after placing, throw exception
+  if (!stability) {
+    throw std::runtime_error("Unstable after placing");
+  }
+
+  // calculate new mean
+
+  // The translation is occured to hold the physical restraints
+  Eigen::Vector3d final_center_of_gravity =
+      rotation * current_center_of_gravity;
+  Eigen::Vector3d final_ground_touch_vertex_1 =
+      rotation * current_vertices[ground_touch_vertex_id_1];
+  Eigen::Vector3d final_translation;
+  final_translation
+      << current_center_of_gravity(0) -
+             final_center_of_gravity(
+                 0), // The x-coordinate of the center of gravity is not changed
+      current_center_of_gravity(1) -
+          final_center_of_gravity(
+              1), // The y-coordinate of the center of gravity is not changed
+      support_surface - final_ground_touch_vertex_1(
+                            2); // The z-coordinate of the vertices touching the
+                                // ground is that of the ground
+
+  new_mean = gripper_transform.inverse() *
+             Eigen::Translation3d(final_translation) * rotation *
+             gripper_transform * old_mean;
+
+  // Update the covariance
+  place_update_Lie_distribution(
       old_mean, old_covariance, center_of_gravity_of_gripped,
       vertices[ground_touch_vertex_id_1], vertices[ground_touch_vertex_id_2],
       vertices[ground_touch_vertix_id_3], support_surface, gripper_transform,
@@ -349,9 +503,8 @@ void PoseEstimator::calculate_look_likelihoods(
     const boost::array<unsigned int, 4> &ROI) {
   for (int i = 0; i < number_of_particles; i++) {
     cv::Mat estimated_image;
-    generate_image(
-        estimated_image, vertices, triangles,
-        gripper_transform * particle_to_eigen_transform(particles[i]), ROI);
+    generate_image(estimated_image, vertices, triangles,
+                   gripper_transform * particle_transforms[i], ROI);
     likelihoods[i] = similarity_of_images(estimated_image, binary_looked_image);
   }
 }
@@ -380,7 +533,33 @@ void PoseEstimator::look_step(
   cv::Mat binary_looked_image;
   to_binary_image(looked_image_ROI, binary_looked_image);
   generate_particles(old_mean, old_covariance);
+  for (int i = 0; i < number_of_particles; i++) {
+    particle_transforms[i] = particle_to_eigen_transform(particles[i]);
+  }
   calculate_look_likelihoods(vertices, triangles, gripper_transform,
                              binary_looked_image, ROI);
   calculate_new_distribution(new_mean, new_covariance);
+}
+
+void PoseEstimator::look_step_with_Lie_distribution(
+    const std::vector<Eigen::Vector3d> &vertices,
+    const std::vector<boost::array<int, 3>> &triangles,
+    const Eigen::Isometry3d &gripper_transform, const cv::Mat &looked_image,
+    const boost::array<unsigned int, 4> &ROI, const Eigen::Isometry3d &old_mean,
+    const CovarianceMatrix &old_covariance, Eigen::Isometry3d &new_mean,
+    CovarianceMatrix &new_covariance) {
+  cv::Mat looked_image_ROI =
+      looked_image(cv::Rect(ROI[2], ROI[0], ROI[3] - ROI[2], ROI[1] - ROI[0]));
+  cv::Mat binary_looked_image;
+  to_binary_image(looked_image_ROI, binary_looked_image);
+  generate_particles(Particle::Zero(), old_covariance);
+  for (int i = 0; i < number_of_particles; i++) {
+    particle_transforms[i] =
+        Eigen::Isometry3d(
+            (Eigen::Matrix<double, 4, 4>)(hat_operator(particles[i]).exp())) *
+        old_mean;
+  }
+  calculate_look_likelihoods(vertices, triangles, gripper_transform,
+                             binary_looked_image, ROI);
+  calculate_new_Lie_distribution(old_mean, new_mean, new_covariance);
 }

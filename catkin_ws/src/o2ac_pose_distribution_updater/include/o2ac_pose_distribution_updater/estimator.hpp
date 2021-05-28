@@ -17,10 +17,9 @@
 using object_geometry = fcl::BVHModel<fcl::OBBRSS>;
 using object_geometry_ptr = std::shared_ptr<object_geometry>;
 
-// Conversion functions
+// Conversion functions associated with fcl types
 
 fcl::Transform3f particle_to_transform(const Particle &p);
-Eigen::Isometry3d particle_to_eigen_transform(const Particle &p);
 
 Eigen::Vector3d to_eigen_vector(const fcl::Vec3f &v);
 
@@ -38,6 +37,8 @@ private:
   Particle noise_variance;
   // Variables for Gaussian particle filter
   std::vector<Particle> particles;
+  std::vector<Eigen::Isometry3d> particle_transforms;
+  std::vector<fcl::Transform3f> fcl_particle_transforms;
   std::vector<double> likelihoods;
 
   // Parameters for touch action
@@ -76,6 +77,10 @@ public:
   void calculate_new_distribution(Particle &new_mean,
                                   CovarianceMatrix &new_covariance);
 
+  void calculate_new_Lie_distribution(const Eigen::Isometry3d &old_mean,
+                                      Eigen::Isometry3d &new_mean,
+                                      CovarianceMatrix &new_covariance);
+
   void touched_step(const unsigned char &touched_object_id,
                     const std::vector<Eigen::Vector3d> &vertices,
                     const std::vector<boost::array<int, 3>> &triangles,
@@ -84,12 +89,27 @@ public:
                     const CovarianceMatrix &old_covariance, Particle &new_mean,
                     CovarianceMatrix &new_covariance);
 
+  void touched_step_with_Lie_distribution(
+      const unsigned char &touched_object_id,
+      const std::vector<Eigen::Vector3d> &vertices,
+      const std::vector<boost::array<int, 3>> &triangles,
+      const fcl::Transform3f &gripper_transform,
+      const Eigen::Isometry3d &old_mean, const CovarianceMatrix &old_covariance,
+      Eigen::Isometry3d &new_mean, CovarianceMatrix &new_covariance);
+
   void place_step(const std::vector<Eigen::Vector3d> &vertices,
                   const std::vector<boost::array<int, 3>> &triangles,
                   const Eigen::Isometry3d &gripper_transform,
                   const double &support_surface, const Particle &old_mean,
                   const CovarianceMatrix &old_covariance, Particle &new_mean,
                   CovarianceMatrix &new_covariance);
+
+  void place_step_with_Lie_distribution(
+      const std::vector<Eigen::Vector3d> &vertices,
+      const std::vector<boost::array<int, 3>> &triangles,
+      const Eigen::Isometry3d &gripper_transform, const double &support_surface,
+      const Eigen::Isometry3d &old_mean, const CovarianceMatrix &old_covariance,
+      Eigen::Isometry3d &new_mean, CovarianceMatrix &new_covariance);
 
   void generate_image(cv::Mat &image,
                       const std::vector<Eigen::Vector3d> &vertices,
@@ -117,4 +137,12 @@ public:
                  const Particle &old_mean,
                  const CovarianceMatrix &old_covariance, Particle &new_mean,
                  CovarianceMatrix &new_covariance);
+
+  void look_step_with_Lie_distribution(
+      const std::vector<Eigen::Vector3d> &vertices,
+      const std::vector<boost::array<int, 3>> &triangles,
+      const Eigen::Isometry3d &gripper_transform, const cv::Mat &looked_image,
+      const boost::array<unsigned int, 4> &ROI,
+      const Eigen::Isometry3d &old_mean, const CovarianceMatrix &old_covariance,
+      Eigen::Isometry3d &new_mean, CovarianceMatrix &new_covariance);
 };

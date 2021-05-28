@@ -1,4 +1,5 @@
 #include "o2ac_msgs/visualizePoseBelief.h"
+#include "o2ac_pose_distribution_updater/operators_for_Lie_distribution.hpp"
 #include "o2ac_pose_distribution_updater/ros_converters.hpp"
 #include <Eigen/Eigenvalues>
 #include <ros/ros.h>
@@ -21,7 +22,7 @@ private:
   void make_marker_from_particle(
       const std_msgs::Header &header,
       const std::vector<geometry_msgs::Point> &triangle_list,
-      const Particle &particle, const std_msgs::ColorRGBA &color,
+      const geometry_msgs::Pose &pose, const std_msgs::ColorRGBA &color,
       visualization_msgs::Marker &marker);
 
   void inner_publish_marker_for_pose_belief(

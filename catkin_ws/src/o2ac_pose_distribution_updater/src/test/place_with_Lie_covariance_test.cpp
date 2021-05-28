@@ -35,21 +35,17 @@ void broadcast_gripper_pose(const std::string &frame_id,
 void send_pose_belief(
     ros::ServiceClient &visualizer_client,
     const moveit_msgs::CollisionObject &object,
-    const unsigned char &distribution_type,
     const geometry_msgs::PoseWithCovarianceStamped &distribution) {
   o2ac_msgs::visualizePoseBelief pose_belief;
   pose_belief.request.object = object;
-  pose_belief.request.distribution_type = distribution_type;
   pose_belief.request.distribution = distribution;
   visualizer_client.call(pose_belief);
 }
 
-void place_test(const std::shared_ptr<Client> &client,
-                const std::string &test_file_path,
-                const std::string &gripped_geometry_file_path,
-                const unsigned char &distribution_type, const bool &visualize,
-                ros::ServiceClient &visualizer_client,
-                const bool distribution_convert) {
+void place_with_Lie_distibution_test(
+    const std::shared_ptr<Client> &client, const std::string &test_file_path,
+    const std::string &gripped_geometry_file_path, const bool &visualize,
+    ros::ServiceClient &visualizer_client) {
   /*
     This procedure is given the path of the input file.
     The input file consists of some blocks of the form:
@@ -104,19 +100,8 @@ void place_test(const std::shared_ptr<Client> &client,
         to_PoseWithCovariance(gripper_pose_particle, CovarianceMatrix::Zero())
             .pose;
     goal.place_observation.support_surface = support_surface;
-    goal.distribution_type = distribution_type;
     goal.distribution.pose = to_PoseWithCovariance(mean, covariance);
     goal.gripped_object = *gripped_geometry;
-
-    if (distribution_convert) {
-      if (distribution_type == goal.RPY_COVARIANCE) {
-        distribution_RPY_to_Lie(goal.distribution.pose, goal.distribution.pose);
-        goal.distribution_type = goal.LIE_COVARIANCE;
-      } else if (distribution_type == goal.LIE_COVARIANCE) {
-        distribution_Lie_to_RPY(goal.distribution.pose, goal.distribution.pose);
-        goal.distribution_type = goal.RPY_COVARIANCE;
-      }
-    }
 
     if (visualize) {
       // name the current gripper frame
@@ -131,7 +116,7 @@ void place_test(const std::shared_ptr<Client> &client,
       goal.distribution.header.frame_id = gripper_frame_id;
       goal.distribution.header.stamp = current_time;
       send_pose_belief(visualizer_client, goal.gripped_object,
-                       distribution_type, goal.distribution);
+                       goal.distribution);
     }
 
     // Send a call
@@ -158,28 +143,16 @@ void place_test(const std::shared_ptr<Client> &client,
       // It is expected that the update is calculated successfully
       ASSERT_TRUE(result->success);
 
-      auto result_distribution = result->distribution;
-
-      if (distribution_convert) {
-        if (distribution_type == goal.RPY_COVARIANCE) {
-          distribution_Lie_to_RPY(result_distribution.pose,
-                                  result_distribution.pose);
-        } else if (distribution_type == goal.LIE_COVARIANCE) {
-          distribution_RPY_to_Lie(result_distribution.pose,
-                                  result_distribution.pose);
-        }
-      }
-
       if (visualize) {
         // visualize the pose belief after placing
         send_pose_belief(visualizer_client, goal.gripped_object,
-                         distribution_type, result_distribution);
+                         result->distribution);
       }
 
       // Convert messages to Eigen Matrices
-      Particle new_mean = pose_to_particle(result_distribution.pose.pose);
+      Particle new_mean = pose_to_particle(result->distribution.pose.pose);
       CovarianceMatrix new_covariance =
-          array_36_to_matrix_6x6(result_distribution.pose.covariance);
+          array_36_to_matrix_6x6(result->distribution.pose.covariance);
 
       // Read the expected values and check the equality
       const double EPS = 1e-6;

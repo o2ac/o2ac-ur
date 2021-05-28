@@ -4,6 +4,7 @@ void ROSConvertedPoseEstimator::touched_step(
     const unsigned char &touched_object_id,
     const moveit_msgs::CollisionObject &gripped_object,
     const geometry_msgs::Pose &gripper_pose,
+    const unsigned char &distribution_type,
     const geometry_msgs::PoseWithCovariance &old_distibution,
     geometry_msgs::PoseWithCovariance &new_distribution) {
   // convert from moveit_msgs::CollisionObject to std::vector<Eigen::Vector3d>
@@ -15,24 +16,48 @@ void ROSConvertedPoseEstimator::touched_step(
   // convert from geometry_msgs::Pose to fcl::Transform3f
   fcl::Transform3f gripper_transform = pose_to_fcl_transform(gripper_pose);
 
-  // convert from PoseWithcovariance to Particle and CovarianceMatrix
-  Particle old_mean = pose_to_particle(old_distibution.pose), new_mean;
-  CovarianceMatrix old_covariance =
-                       array_36_to_matrix_6x6(old_distibution.covariance),
-                   new_covariance;
+  if (distribution_type == o2ac_msgs::updateDistributionGoal::RPY_COVARIANCE) {
 
-  // execute step
-  PoseEstimator::touched_step(touched_object_id, vertices, triangles,
-                              gripper_transform, old_mean, old_covariance,
-                              new_mean, new_covariance);
+    // convert from PoseWithcovariance to Particle and CovarianceMatrix
+    Particle old_mean = pose_to_particle(old_distibution.pose), new_mean;
+    CovarianceMatrix old_covariance =
+                         array_36_to_matrix_6x6(old_distibution.covariance),
+                     new_covariance;
 
-  // convert from Particle and CovarianceMatrix to PoseWithcovariance
-  new_distribution = to_PoseWithCovariance(new_mean, new_covariance);
+    // execute step
+    PoseEstimator::touched_step(touched_object_id, vertices, triangles,
+                                gripper_transform, old_mean, old_covariance,
+                                new_mean, new_covariance);
+
+    // convert from Particle and CovarianceMatrix to PoseWithcovariance
+    new_distribution = to_PoseWithCovariance(new_mean, new_covariance);
+  }
+
+  else if (distribution_type ==
+           o2ac_msgs::updateDistributionGoal::LIE_COVARIANCE) {
+
+    // convert from PoseWithcovariance to Eigen::Isometry3d and CovarianceMatrix
+    Eigen::Isometry3d old_mean, new_mean;
+    tf::poseMsgToEigen(old_distibution.pose, old_mean);
+    CovarianceMatrix old_covariance =
+                         array_36_to_matrix_6x6(old_distibution.covariance),
+                     new_covariance;
+
+    // execute step
+    PoseEstimator::touched_step_with_Lie_distribution(
+        touched_object_id, vertices, triangles, gripper_transform, old_mean,
+        old_covariance, new_mean, new_covariance);
+
+    // convert from Particle and CovarianceMatrix to PoseWithcovariance
+    tf::poseEigenToMsg(new_mean, new_distribution.pose);
+    new_distribution.covariance = matrix_6x6_to_array_36(new_covariance);
+  }
 }
 
 void ROSConvertedPoseEstimator::place_step(
     const moveit_msgs::CollisionObject &gripped_object,
     const geometry_msgs::Pose &gripper_pose, const double &support_surface,
+    const unsigned char &distribution_type,
     const geometry_msgs::PoseWithCovariance &old_distibution,
     geometry_msgs::PoseWithCovariance &new_distribution) {
   // convert from moveit_msgs::CollisionObject to std::vector<Eigen::Vector3d>
@@ -45,19 +70,42 @@ void ROSConvertedPoseEstimator::place_step(
   Eigen::Isometry3d gripper_transform;
   tf::poseMsgToEigen(gripper_pose, gripper_transform);
 
-  // convert from PoseWithcovariance to Particle and CovarianceMatrix
-  Particle old_mean = pose_to_particle(old_distibution.pose), new_mean;
-  CovarianceMatrix old_covariance =
-                       array_36_to_matrix_6x6(old_distibution.covariance),
-                   new_covariance;
+  if (distribution_type == o2ac_msgs::updateDistributionGoal::RPY_COVARIANCE) {
 
-  // execute step
-  PoseEstimator::place_step(vertices, triangles, gripper_transform,
-                            support_surface, old_mean, old_covariance, new_mean,
-                            new_covariance);
+    // convert from PoseWithcovariance to Particle and CovarianceMatrix
+    Particle old_mean = pose_to_particle(old_distibution.pose), new_mean;
+    CovarianceMatrix old_covariance =
+                         array_36_to_matrix_6x6(old_distibution.covariance),
+                     new_covariance;
 
-  // convert from Particle and CovarianceMatrix to PoseWithcovariance
-  new_distribution = to_PoseWithCovariance(new_mean, new_covariance);
+    // execute step
+    PoseEstimator::place_step(vertices, triangles, gripper_transform,
+                              support_surface, old_mean, old_covariance,
+                              new_mean, new_covariance);
+
+    // convert from Particle and CovarianceMatrix to PoseWithcovariance
+    new_distribution = to_PoseWithCovariance(new_mean, new_covariance);
+  }
+
+  else if (distribution_type ==
+           o2ac_msgs::updateDistributionGoal::LIE_COVARIANCE) {
+
+    // convert from PoseWithcovariance to Eigen::Isometry3d and CovarianceMatrix
+    Eigen::Isometry3d old_mean, new_mean;
+    tf::poseMsgToEigen(old_distibution.pose, old_mean);
+    CovarianceMatrix old_covariance =
+                         array_36_to_matrix_6x6(old_distibution.covariance),
+                     new_covariance;
+
+    // execute step
+    PoseEstimator::place_step_with_Lie_distribution(
+        vertices, triangles, gripper_transform, support_surface, old_mean,
+        old_covariance, new_mean, new_covariance);
+
+    // convert from Particle and CovarianceMatrix to PoseWithcovariance
+    tf::poseEigenToMsg(new_mean, new_distribution.pose);
+    new_distribution.covariance = matrix_6x6_to_array_36(new_covariance);
+  }
 }
 
 void ROSConvertedPoseEstimator::look_step(
@@ -65,6 +113,7 @@ void ROSConvertedPoseEstimator::look_step(
     const geometry_msgs::Pose &gripper_pose,
     const sensor_msgs::Image &looked_image,
     const boost::array<unsigned int, 4> &range_of_interest,
+    const unsigned char &distribution_type,
     const geometry_msgs::PoseWithCovariance &old_distibution,
     geometry_msgs::PoseWithCovariance &new_distribution) {
   // convert from moveit_msgs::CollisionObject to std::vector<Eigen::Vector3d>
@@ -82,17 +131,40 @@ void ROSConvertedPoseEstimator::look_step(
       cv_bridge::toCvCopy(looked_image, sensor_msgs::image_encodings::BGR8)
           ->image;
 
-  // convert from PoseWithcovariance to Particle and CovarianceMatrix
-  Particle old_mean = pose_to_particle(old_distibution.pose), new_mean;
-  CovarianceMatrix old_covariance =
-                       array_36_to_matrix_6x6(old_distibution.covariance),
-                   new_covariance;
+  if (distribution_type == o2ac_msgs::updateDistributionGoal::RPY_COVARIANCE) {
 
-  // execute step
-  PoseEstimator::look_step(vertices, triangles, gripper_transform,
-                           cv_looked_image, range_of_interest, old_mean,
-                           old_covariance, new_mean, new_covariance);
+    // convert from PoseWithcovariance to Particle and CovarianceMatrix
+    Particle old_mean = pose_to_particle(old_distibution.pose), new_mean;
+    CovarianceMatrix old_covariance =
+                         array_36_to_matrix_6x6(old_distibution.covariance),
+                     new_covariance;
 
-  // convert from Particle and CovarianceMatrix to PoseWithcovariance
-  new_distribution = to_PoseWithCovariance(new_mean, new_covariance);
+    // execute step
+    PoseEstimator::look_step(vertices, triangles, gripper_transform,
+                             cv_looked_image, range_of_interest, old_mean,
+                             old_covariance, new_mean, new_covariance);
+
+    // convert from Particle and CovarianceMatrix to PoseWithcovariance
+    new_distribution = to_PoseWithCovariance(new_mean, new_covariance);
+  }
+
+  else if (distribution_type ==
+           o2ac_msgs::updateDistributionGoal::LIE_COVARIANCE) {
+
+    // convert from PoseWithcovariance to Eigen::Isometry3d and CovarianceMatrix
+    Eigen::Isometry3d old_mean, new_mean;
+    tf::poseMsgToEigen(old_distibution.pose, old_mean);
+    CovarianceMatrix old_covariance =
+                         array_36_to_matrix_6x6(old_distibution.covariance),
+                     new_covariance;
+
+    // execute step
+    PoseEstimator::look_step_with_Lie_distribution(
+        vertices, triangles, gripper_transform, cv_looked_image,
+        range_of_interest, old_mean, old_covariance, new_mean, new_covariance);
+
+    // convert from Eigen::Isometry3d and CovarianceMatrix to PoseWithcovariance
+    tf::poseEigenToMsg(new_mean, new_distribution.pose);
+    new_distribution.covariance = matrix_6x6_to_array_36(new_covariance);
+  }
 }

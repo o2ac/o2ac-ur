@@ -4,8 +4,11 @@ Helper functions for the place action
 
 #include "o2ac_pose_distribution_updater/place_action_helpers.hpp"
 
+const double EPS = 1e-6;
+
 int argmin(const std::vector<double> &vec) {
-  const double EPS = 1e-6;
+  // robust argmin
+
   int min_id = 0;
   for (int i = 1; i < vec.size(); i++) {
     if (vec[min_id] - EPS > vec[i]) {
@@ -13,6 +16,26 @@ int argmin(const std::vector<double> &vec) {
     }
   }
   return min_id;
+}
+
+Eigen::Vector3d calculate_center_of_gravity(
+    const std::vector<Eigen::Vector3d> &vertices,
+    const std::vector<boost::array<int, 3>> &triangles) {
+  // Calculate the center of gravity
+
+  Eigen::Vector3d center_of_gravity;
+  center_of_gravity.setZero();
+  double total_volume = 0.0;
+  for (int j = 0; j < triangles.size(); j++) {
+    auto &ver0 = vertices[triangles[j][0]];
+    auto &ver1 = vertices[triangles[j][1]];
+    auto &ver2 = vertices[triangles[j][2]];
+    double tetra_volume = ver0.dot(ver1.cross(ver2));
+    center_of_gravity += tetra_volume * (ver0 + ver1 + ver2);
+    total_volume += tetra_volume;
+  }
+  center_of_gravity /= 4.0 * total_volume;
+  return center_of_gravity;
 }
 
 void find_three_points(const std::vector<Eigen::Vector3d> &current_vertices,
@@ -26,7 +49,7 @@ void find_three_points(const std::vector<Eigen::Vector3d> &current_vertices,
   // placing is stored to 'rotation' Stabliity after placing is checked and
   // stored to 'stability'
 
-  const double INF = 1e9, EPS = 1e-6;
+  const double INF = 1e9;
 
   int number_of_vertices = current_vertices.size();
 
@@ -158,7 +181,7 @@ const Eigen::Transform<T, 3, Eigen::Isometry> calculate_transform_after_placing(
   // return the pose after placing as Eigen Transform
 
   // To use AutoDiff, template T is used as Scalar type
-  
+
   using point = Eigen::Matrix<T, 3, 1>;
 
   // calculate the current coordinates
@@ -275,14 +298,9 @@ public:
   void operator()(const Eigen::Matrix<T, 6, 1> &current_particle,
                   Eigen::Matrix<T, 6, 1> *result_particle) const {
 
-    using point = Eigen::Matrix<T, 3, 1>;
-
     // convert current_particle to transform
     Eigen::Transform<T, 3, Eigen::Isometry> old_transform =
-        Eigen::Translation<T, 3>(current_particle.block(0, 0, 3, 1)) *
-        Eigen::AngleAxis<T>(current_particle(5), point::UnitZ()) *
-        Eigen::AngleAxis<T>(current_particle(4), point::UnitY()) *
-        Eigen::AngleAxis<T>(current_particle(3), point::UnitX());
+        particle_to_eigen_transform(current_particle);
 
     // calculate transform after placing
 
@@ -321,6 +339,104 @@ void place_update_distribution(const Particle &old_mean,
   // operation of calculate_particle and its Jacobian
   CovarianceMatrix Jacobian;
   calculate_particle_AD(old_mean, &new_mean, &Jacobian);
+
+  // The covariance of the function value is calculated by the covariance of the
+  // argument and Jacobian.
+  new_covariance = Jacobian * old_covariance * Jacobian.transpose();
+}
+
+class calculate_perturbation {
+
+public:
+  Eigen::Vector3d center_of_gravity, ground_touch_vertex_1,
+      ground_touch_vertex_2,
+      ground_touch_vertex_3; // the coordinates of center of gravity, first
+                             // touching point, second touching point and third
+                             // touching point
+  double support_surface;    // the z-coordinate of the ground
+  Eigen::Isometry3d gripper_transform, old_mean,
+      new_mean; // The gripper transform, the mean transform before placing, the
+                // mean transform after placing
+
+  calculate_perturbation(const Eigen::Vector3d &center_of_gravity,
+                         const Eigen::Vector3d &ground_touch_vertex_1,
+                         const Eigen::Vector3d &ground_touch_vertex_2,
+                         const Eigen::Vector3d &ground_touch_vertex_3,
+                         const double &support_surface,
+                         const Eigen::Isometry3d &gripper_transform,
+                         const Eigen::Isometry3d &old_mean,
+                         const Eigen::Isometry3d &new_mean) {
+    this->center_of_gravity = center_of_gravity;
+    this->ground_touch_vertex_1 = ground_touch_vertex_1;
+    this->ground_touch_vertex_2 = ground_touch_vertex_2;
+    this->ground_touch_vertex_3 = ground_touch_vertex_3;
+    this->support_surface = support_surface;
+    this->gripper_transform = gripper_transform;
+    this->old_mean = old_mean;
+    this->new_mean = new_mean;
+  }
+
+  // Neede by Eigen AutoDiff
+  enum { InputsAtCompileTime = 6, ValuesAtCompileTime = 6 };
+
+  // Also needed by Eigen AutoDiff
+  typedef Eigen::Matrix<double, 6, 1> InputType;
+  typedef Eigen::Matrix<double, 6, 1> ValueType;
+
+  // The Vector function from the particle representing the pose before placing
+  // to the particle representing the pose after placing. To use AutoDiff, the
+  // type of coordinates is templated by typename "T".
+  template <typename T>
+  void operator()(const Eigen::Matrix<T, 6, 1> &input_perturbation,
+                  Eigen::Matrix<T, 6, 1> *output_perturbation) const {
+
+    // add perturbation to old_mean
+    Eigen::Transform<T, 3, Eigen::Isometry> input_transform =
+        Eigen::Transform<T, 3, Eigen::Isometry>(
+            Eigen::Matrix<T, 4, 4>::Identity() +
+            hat_operator<T>(input_perturbation)) *
+        old_mean.cast<T>(); // the first approximation of
+                            // exp(hat_operator(input_perturbation)) * old_mean
+
+    // calculate transform after placing
+
+    Eigen::Transform<T, 3, Eigen::Isometry> result_transform =
+        calculate_transform_after_placing(
+            input_transform, center_of_gravity, ground_touch_vertex_1,
+            ground_touch_vertex_2, ground_touch_vertex_3, support_surface,
+            gripper_transform);
+
+    // calculate perturbation in result_transform
+    *output_perturbation = check_operator<T>(
+        -Eigen::Matrix<T, 4, 4>::Identity() +
+        (result_transform * new_mean.cast<T>().inverse())
+            .matrix()); // the first approximation of
+                        // check_operator(log(result_transform * new_mean^{-1}))
+  }
+};
+
+void place_update_Lie_distribution(const Eigen::Isometry3d &old_mean,
+                                   const CovarianceMatrix &old_covariance,
+                                   const Eigen::Vector3d &center_of_gravity,
+                                   const Eigen::Vector3d &ground_touch_vertex_1,
+                                   const Eigen::Vector3d &ground_touch_vertex_2,
+                                   const Eigen::Vector3d &ground_touch_vertex_3,
+                                   const double &support_surface,
+                                   const Eigen::Isometry3d &gripper_transform,
+                                   const Eigen::Isometry3d &new_mean,
+                                   CovarianceMatrix &new_covariance) {
+  // Calculate the particle after placing and its Jacobian
+  Eigen::AutoDiffJacobian<calculate_perturbation> calculate_perturbation_AD(
+      center_of_gravity, ground_touch_vertex_1, ground_touch_vertex_2,
+      ground_touch_vertex_3, support_surface, gripper_transform, old_mean,
+      new_mean);
+  // By Eigen AutoDiff, calculate_particle_AD automatically calculates the
+  // operation of calculate_particle and its Jacobian
+  Eigen::Matrix<double, 6, 1> mean_perturbation;
+  CovarianceMatrix Jacobian;
+  calculate_perturbation_AD(Eigen::Matrix<double, 6, 1>::Zero(),
+                            &mean_perturbation, &Jacobian);
+  assert(mean_perturbation.norm() < EPS);
 
   // The covariance of the function value is calculated by the covariance of the
   // argument and Jacobian.

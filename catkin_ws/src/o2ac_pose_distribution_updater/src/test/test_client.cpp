@@ -13,48 +13,109 @@ std::shared_ptr<Client> client;
 
 ros::ServiceClient visualizer_client;
 
-TEST(TouchTest, GearMotor1) {
+TEST(TouchTest, TouchGearMotor1) {
   touch_test(client, test_directory + "/touch_input_gearmotor_1.txt",
-             test_directory + "/CAD/gearmotor.stl");
+             test_directory + "/CAD/gearmotor.stl",
+             o2ac_msgs::updateDistributionGoal::RPY_COVARIANCE);
 }
 
-TEST(LookTest, GearMotor) {
+TEST(TouchTest, TouchGearMotor1Lie) {
+  touch_test(client, test_directory + "/touch_input_gearmotor_1.txt",
+             test_directory + "/CAD/gearmotor.stl",
+             o2ac_msgs::updateDistributionGoal::LIE_COVARIANCE);
+}
+
+TEST(LookTest, LookGearMotor) {
   look_test(client, test_directory + "/look_gripper_tip.csv",
             test_directory + "/look_action_images",
             test_directory + "/CAD/gearmotor.stl",
-            std::vector<int>{50, 660, 1000, 1500}, 2, 1, 2);
+            std::vector<int>{50, 660, 1000, 1500}, 2, 1, 2,
+            o2ac_msgs::updateDistributionGoal::RPY_COVARIANCE);
 }
 
-TEST(PlaceTest, GearMotor) {
+TEST(LookTest, LookGearMotorLie) {
+  look_test(client, test_directory + "/look_gripper_tip.csv",
+            test_directory + "/look_action_images",
+            test_directory + "/CAD/gearmotor.stl",
+            std::vector<int>{50, 660, 1000, 1500}, 2, 1, 2,
+            o2ac_msgs::updateDistributionGoal::LIE_COVARIANCE);
+}
+
+TEST(PlaceTest, PlaceGearMotor) {
   place_test(client, test_directory + "/place_test_gearmotor.txt",
-             test_directory + "/CAD/gearmotor.stl", false, visualizer_client);
+             test_directory + "/CAD/gearmotor.stl",
+             o2ac_msgs::updateDistributionGoal::RPY_COVARIANCE, false,
+             visualizer_client);
 }
 
-TEST(PlaceTest, TestTetrahedron1) {
+TEST(PlaceTest, PlaceTestTetrahedron1) {
   place_test(client, test_directory + "/place_test_tetrahedron_1.txt",
-             test_directory + "/CAD/test_tetrahedron_1.stl", false,
+             test_directory + "/CAD/test_tetrahedron_1.stl",
+             o2ac_msgs::updateDistributionGoal::RPY_COVARIANCE, false,
              visualizer_client);
 }
 
-TEST(PlaceTest, TestTetrahedron2) {
+TEST(PlaceTest, PlaceTestTetrahedron2) {
   place_test(client, test_directory + "/place_test_tetrahedron_2.txt",
-             test_directory + "/CAD/test_tetrahedron_2.stl", false,
+             test_directory + "/CAD/test_tetrahedron_2.stl",
+             o2ac_msgs::updateDistributionGoal::RPY_COVARIANCE, false,
              visualizer_client);
 }
 
-TEST(PlaceTest, Cones1) {
+TEST(PlaceTest, PlaceCones1) {
   place_test(client, test_directory + "/place_test_cones_1.txt",
-             test_directory + "/CAD/cones.stl", true, visualizer_client);
+             test_directory + "/CAD/cones.stl",
+             o2ac_msgs::updateDistributionGoal::RPY_COVARIANCE, true,
+             visualizer_client);
 }
 
-TEST(PlaceTest, Cones2) {
+TEST(PlaceTest, PlaceCones2) {
   place_test(client, test_directory + "/place_test_cones_2.txt",
-             test_directory + "/CAD/cones.stl", true, visualizer_client);
+             test_directory + "/CAD/cones.stl",
+             o2ac_msgs::updateDistributionGoal::RPY_COVARIANCE, true,
+             visualizer_client);
 }
 
-TEST(PlaceTest, Cones3) {
+TEST(PlaceTest, PlaceCones3) {
   place_test(client, test_directory + "/place_test_cones_3.txt",
-             test_directory + "/CAD/cones.stl", true, visualizer_client);
+             test_directory + "/CAD/cones.stl",
+             o2ac_msgs::updateDistributionGoal::RPY_COVARIANCE, true,
+             visualizer_client);
+}
+
+TEST(PlaceTest, PlaceConesLie1) {
+  place_test(client, test_directory + "/place_test_cones_Lie_1.txt",
+             test_directory + "/CAD/cones.stl",
+             o2ac_msgs::updateDistributionGoal::LIE_COVARIANCE, true,
+             visualizer_client);
+}
+
+TEST(PlaceTest, PlaceConesLie2) {
+  place_test(client, test_directory + "/place_test_cones_Lie_2.txt",
+             test_directory + "/CAD/cones.stl",
+             o2ac_msgs::updateDistributionGoal::LIE_COVARIANCE, true,
+             visualizer_client);
+}
+
+TEST(PlaceTest, PlaceConesLie3) {
+  place_test(client, test_directory + "/place_test_cones_Lie_3.txt",
+             test_directory + "/CAD/cones.stl",
+             o2ac_msgs::updateDistributionGoal::LIE_COVARIANCE, true,
+             visualizer_client);
+}
+
+TEST(PlaceTest, PlaceCones1Convert) {
+  place_test(client, test_directory + "/place_test_cones_1.txt",
+             test_directory + "/CAD/cones.stl",
+             o2ac_msgs::updateDistributionGoal::RPY_COVARIANCE, false,
+             visualizer_client, true);
+}
+
+TEST(PlaceTest, PlaceCones1LieConvert) {
+  place_test(client, test_directory + "/place_test_cones_Lie_1.txt",
+             test_directory + "/CAD/cones.stl",
+             o2ac_msgs::updateDistributionGoal::LIE_COVARIANCE, false,
+             visualizer_client, true);
 }
 
 int main(int argc, char **argv) {

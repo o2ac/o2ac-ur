@@ -9,8 +9,8 @@ void look_test(const std::shared_ptr<Client> &client,
                const std::string &image_directory_path,
                const std::string &gripped_geometry_file_path,
                const std::vector<int> &ROI_values, const int &beginning,
-               const int &number_of_images_to_send,
-               const int &number_of_turns) {
+               const int &number_of_images_to_send, const int &number_of_turns,
+               const unsigned char &distribution_type) {
   /*
       This procedure reads the csv file, whose path is given, representing the
      gripper pose for each time and the directory, whose path is also give,
@@ -92,6 +92,7 @@ void look_test(const std::shared_ptr<Client> &client,
       ROS_INFO("Turn: %d, Image:%d", turn, i);
       o2ac_msgs::updateDistributionGoal goal;
       goal.observation_type = goal.LOOK_OBSERVATION;
+      goal.distribution_type = distribution_type;
       goal.distribution.pose = to_PoseWithCovariance(mean, covariance);
       goal.gripped_object = *gripped_geometry;
       goal.look_observation.gripper_pose.pose =

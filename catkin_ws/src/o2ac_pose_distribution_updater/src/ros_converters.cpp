@@ -34,6 +34,17 @@ CovarianceMatrix array_36_to_matrix_6x6(const boost::array<double, 36> &array) {
   return matrix;
 }
 
+boost::array<double, 36>
+matrix_6x6_to_array_36(const CovarianceMatrix &matrix) {
+  boost::array<double, 36> array;
+  for (int i = 0; i < 6; i++) {
+    for (int j = 0; j < 6; j++) {
+      array[6 * i + j] = matrix(i, j);
+    }
+  }
+  return array;
+}
+
 geometry_msgs::Pose to_Pose(const double &x, const double &y, const double &z,
                             const double &qw, const double &qx,
                             const double &qy, const double &qz) {
@@ -61,11 +72,7 @@ to_PoseWithCovariance(const Particle &mean,
                       const CovarianceMatrix &covariance) {
   geometry_msgs::PoseWithCovariance pwc;
   particle_to_pose(mean, pwc.pose);
-  for (int i = 0; i < 6; i++) {
-    for (int j = 0; j < 6; j++) {
-      pwc.covariance[6 * i + j] = covariance(i, j);
-    }
-  }
+  pwc.covariance = matrix_6x6_to_array_36(covariance);
   return pwc;
 }
 

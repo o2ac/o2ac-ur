@@ -4,7 +4,7 @@ Definitions of type and conversion functions associated to quaternion
 #ifndef O2AC_POSE_DISTRIBUTION_UPDATER_CONVERSIONS_HEADER
 #define O2AC_POSE_DISTRIBUTION_UPDATER_CONVERSIONS_HEADER
 
-#include <Eigen/Core>
+#include <Eigen/Geometry>
 
 using Particle = Eigen::Matrix<double, 6, 1>;
 using CovarianceMatrix = Eigen::Matrix<double, 6, 6>;
@@ -33,6 +33,15 @@ void quaternion_to_RPY(const Scalar &w, const Scalar &x, const Scalar &y,
   roll = atan2(2.0 * (w * x + y * z), w * w - x * x - y * y + z * z);
   pitch = asin(2.0 * (w * y - x * z));
   yaw = atan2(2.0 * (w * z + x * y), w * w + x * x - y * y - z * z);
+}
+
+template <typename Scalar>
+Eigen::Transform<Scalar, 3, Eigen::Isometry>
+particle_to_eigen_transform(const Eigen::Matrix<Scalar, 6, 1> &p) {
+  return Eigen::Translation<Scalar, 3>(p.block(0, 0, 3, 1)) *
+         Eigen::AngleAxis<Scalar>(p(5), Eigen::Matrix<Scalar, 3, 1>::UnitZ()) *
+         Eigen::AngleAxis<Scalar>(p(4), Eigen::Matrix<Scalar, 3, 1>::UnitY()) *
+         Eigen::AngleAxis<Scalar>(p(3), Eigen::Matrix<Scalar, 3, 1>::UnitX());
 }
 
 #endif

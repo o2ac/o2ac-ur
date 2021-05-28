@@ -3,11 +3,16 @@ TouchObservation touch_observation
 LookObservation look_observation
 PlaceObservation place_observation
 moveit_msgs/CollisionObject gripped_object
+uint8 distribution_type
 geometry_msgs/PoseWithCovarianceStamped distribution
 
+# Values for observation_type
 uint8 TOUCH_OBSERVATION = 0
 uint8 LOOK_OBSERVATION = 1
 uint8 PLACE_OBSERVATION = 2
+# Values for distribution_type
+uint8 RPY_COVARIANCE = 0
+uint8 LIE_COVARIANCE = 1
 ---
 bool success
 geometry_msgs/PoseWithCovarianceStamped distribution
