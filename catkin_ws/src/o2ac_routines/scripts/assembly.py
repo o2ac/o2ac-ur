@@ -712,7 +712,10 @@ if __name__ == '__main__':
         direction = '-Z'
 
         assy.b_bot.linear_push(force=force, direction=direction, timeout=20.0)
-        
+      elif i == "cb0":
+        assy.check_output_pulley_angle()
+      elif i == "cb1":
+        assy.check_motor_pulley_angle()
       elif i == '102':
         b_bot_script_start_pose = [1.7094888, -1.76184906, 2.20651847, -2.03368343, -1.54728252, 0.96213197]
         assy.move_joints("b_bot", b_bot_script_start_pose)

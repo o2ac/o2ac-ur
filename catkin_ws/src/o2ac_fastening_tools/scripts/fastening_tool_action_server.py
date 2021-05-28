@@ -84,7 +84,7 @@ class FasteningToolController(object):
         try:
             res = self.dynamixel_command_write('', motor_id, "Moving_Speed", value)
             rospy.loginfo(res)
-            rospy.loginfo(str(motor_id) + "Moving_Speed: " +  str(value))
+            rospy.loginfo("Motor " + str(motor_id) + " Moving_Speed: " +  str(value))
         except rospy.ServiceException as exc:
             rospy.logwarn('An exception occurred in the Moving_Speed set. Processing retry.')
         else:

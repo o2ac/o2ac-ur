@@ -1199,10 +1199,10 @@ class O2ACCommon(O2ACBase):
 
   def pick_and_insert_motor_pulley(self, task):
     if task == "taskboard":
-      bearing_target_link = "taskboard_small_shaft"
+      target_link = "taskboard_small_shaft"
     elif task == "assembly":
       rospy.logerr("look this up")
-      bearing_target_link = "assembled_part_07_inserted"
+      target_link = "assembled_part_07_inserted"
     
     self.a_bot.go_to_named_pose("home")
     self.b_bot.go_to_named_pose("home")
@@ -1214,7 +1214,7 @@ class O2ACCommon(O2ACBase):
     goal.pose.position.x -= 0.01 # MAGIC NUMBER
     goal.pose.position.z = 0.0
     self.vision.activate_camera("b_bot_inside_camera")
-    self.activate_led("b_bot")
+    self.activate_led("b_bot", False)
     
     if not self.simple_pick("b_bot", goal, gripper_force=50.0, grasp_width=.06, axis="z"):
       rospy.logerr("Fail to simple_pick")
@@ -1223,15 +1223,16 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Gripper did not grasp the pulley --> Stop")
 
     if self.playback_sequence(routine_filename="motor_pulley_orient"):
-      self.insert_motor_pulley(bearing_target_link)
+      self.insert_motor_pulley(target_link)
     else:
       rospy.logerr("Fail to complete the playback sequence")
       return False
 
   def insert_motor_pulley(self, target_link, attempts=1):
     approach_pose = conversions.to_pose_stamped(target_link, [-0.05, 0.0, 0.0, radians(180), radians(35), 0.0])
-    pre_insertion_pose = conversions.to_pose_stamped(target_link, [-0.01, 0, 0.0, radians(180), radians(35), 0.0])
+    pre_insertion_pose = conversions.to_pose_stamped(target_link, [-0.008, -0.001, -0.003, radians(180), radians(35), 0.0])
     trajectory = [[approach_pose, 0.005], [pre_insertion_pose, 0.0]]
+
 
     if not self.b_bot.move_lin_trajectory(trajectory, speed=0.5):
       rospy.logerr("Fail to complete the approach pose")
@@ -1240,8 +1241,8 @@ class O2ACCommon(O2ACBase):
     target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.02, -0.000, -0.009, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
 
     selection_matrix = [0., 0.3, 0.3, 0.95, 1.0, 1.0]
-    success = self.b_bot.force_controller.do_insertion(target_pose_target_frame, radius=0.001, 
-                                                      insertion_direction="-X", force=10.0, timeout=30.0, 
+    success = self.b_bot.force_controller.do_insertion(target_pose_target_frame, radius=0.0005, 
+                                                      insertion_direction="-X", force=6.0, timeout=30.0, 
                                                       wiggle_direction="X", wiggle_angle=np.deg2rad(10.0), wiggle_revolutions=1.,
                                                       relaxed_target_by=0.005, selection_matrix=selection_matrix)
 
@@ -1254,15 +1255,9 @@ class O2ACCommon(O2ACBase):
         rospy.logerr("** Insertion Failed!! **")
         return False
 
-    target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.009, -0.000, -0.009, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
-    counter = 0
-    current_pose_robot_base = self.b_bot.robot_group.get_current_pose()
-    current_pose_in_target_frame = self.listener.transformPose(target_link, current_pose_robot_base)
-    while current_pose_in_target_frame.pose.position.x < target_pose_target_frame.pose.position.x or counter < 2:
-      rospy.loginfo("distance to target: %s" % str(target_pose_target_frame.pose.position.x - current_pose_in_target_frame.pose.position.x))
-      self.b_bot.gripper.close(wait=True, velocity=0.03)
-      success = self.b_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="-X", force=15.0, timeout=15.0, 
-                                                      relaxed_target_by=0.005, wiggle_direction="X", wiggle_angle=np.deg2rad(5.0), wiggle_revolutions=1.,
+    # target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.009, -0.000, -0.009, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
+    success = self.b_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="-X", force=6.0, timeout=15.0, 
+                                                      relaxed_target_by=0.005, wiggle_direction="X", wiggle_angle=np.deg2rad(2.0), wiggle_revolutions=1.,
                                                       selection_matrix=selection_matrix)
       self.b_bot.gripper.open(wait=True)
       current_pose_robot_base = self.b_bot.robot_group.get_current_pose()

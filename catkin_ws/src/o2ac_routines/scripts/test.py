@@ -25,13 +25,15 @@ def main():
     global controller
     controller = O2ACCommon()
 
-    controller.assembly_database.change_assembly('wrs_assembly_2020')
-    controller.reset_scene_and_robots()
-    # # controller.orient_shaft()
-    controller.orient_shaft_end_cap()
+    # controller.b_bot.move_lin_rel(relative_translation=[-0.03,0,0], relative_to_robot_base=True)
 
-    # approach_centering = conversions.to_pose_stamped("simple_holder_tip_link", [0.0, 0, 0.01,  0, tau/4., tau/4.])
-    # controller.a_bot.go_to_pose_goal(approach_centering, speed=0.1, move_lin=False)
+    # controller.assembly_database.change_assembly('wrs_assembly_2020')
+    # controller.reset_scene_and_robots()
+    # # controller.orient_shaft()
+    # controller.orient_shaft_end_cap()
+
+    # controller.check_motor_pulley_angle()
+    # controller.check_bearing_angle()
 
     # controller.turn_shaft_until_groove_found()
     
@@ -40,8 +42,10 @@ def main():
 
     # controller.insert_shaft("taskboard_assy_part_07_inserted")
 
-    # controller.assembly_database.change_assembly('taskboard')
-    # controller.pick_and_insert_shaft("taskboard")
+    # controller.playback_sequence(routine_filename="motor_pulley_orient")
+    # controller.insert_motor_pulley("taskboard_small_shaft")
+    controller.assembly_database.change_assembly('taskboard')
+    controller.pick_and_insert_motor_pulley("taskboard")
 
     # controller.pick_and_insert_motor_pulley("taskboard")
     # controller.insert_motor_pulley("taskboard_small_shaft")
@@ -63,7 +67,7 @@ def main():
     # controller.playback_sequence("idler_pulley_release_screw_tool")
     # controller.unequip_tool("b_bot", "padless_tool_m4")
 
-    # controller.prepare_screw_tool_idler_pulley("taskboard_long_hole_middle_link")
+    # controller.prepare_screw_tool_idler_pulley("taskboard_long_hole_top_link")
 
     # controller.unequip_tool("b_bot", "padless_tool_m4")
     # controller.b_bot.go_to_named_pose("screw_ready")
