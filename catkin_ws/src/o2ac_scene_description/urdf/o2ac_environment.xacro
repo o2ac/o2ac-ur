@@ -27,10 +27,10 @@
   <!-- Add screw feeders -->
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/screw_feeder.xacro" />
   
-  <xacro:screw_feeder feedername="m3_feeder" parent="workspace_center">
+  <xacro:screw_feeder feedername="m3_feeder" parent="workspace_center" with_collision_geometry="false">
     <origin xyz="-.512 -.1525 -0.023" rpy="0 0 0" />   
   </xacro:screw_feeder> 
-  <xacro:screw_feeder feedername="m4_feeder" parent="workspace_center">
+  <xacro:screw_feeder feedername="m4_feeder" parent="workspace_center" with_collision_geometry="false">
     <origin xyz="-.514 .004 -0.023" rpy="0 0 0" />   
   </xacro:screw_feeder> 
 

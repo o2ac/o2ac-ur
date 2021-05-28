@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="screw_feeder">
 
-  <xacro:macro name="screw_feeder" params="feedername parent *origin">
+  <xacro:macro name="screw_feeder" params="feedername parent with_collision_geometry:=true *origin">
   <!-- This creates a screw feeder (roughly) with the origin in the back right corner. -->
   <!-- This is the feeder: https://www.monotaro.com/g/02001466/ -->
 
@@ -28,12 +28,14 @@
         <color rgba=".2 .2 .2 1"/>
       </material>
     </visual>
-    <collision>
-      <origin rpy="0 0 0" xyz="${(length-.05)/2} ${width/2} ${height/2}"/>
-      <geometry>
-        <box size="${length-.05} ${width} ${height}"/> 
-      </geometry>
-    </collision>
+    <xacro:if value="${with_collision_geometry}">
+      <collision>
+        <origin rpy="0 0 0" xyz="${(length-.05)/2} ${width/2} ${height/2}"/>
+        <geometry>
+          <box size="${length-.05} ${width} ${height}"/> 
+        </geometry>
+      </collision>
+    </xacro:if>
     <!-- Front side -->
     <visual>
       <origin rpy="0 0 0" xyz="${(length-.025)} ${width/2} ${height/4}"/>
@@ -44,12 +46,14 @@
         <color rgba=".2 .2 .2 1"/>
       </material>
     </visual>
-    <collision>
-      <origin rpy="0 0 0" xyz="${(length-.025)} ${width/2} ${height/4}"/>
-      <geometry>
-        <box size="${.05} ${width} ${height/2}"/> 
-      </geometry>
-    </collision>
+    <xacro:if value="${with_collision_geometry}">
+      <collision>
+        <origin rpy="0 0 0" xyz="${(length-.025)} ${width/2} ${height/4}"/>
+        <geometry>
+          <box size="${.05} ${width} ${height/2}"/> 
+        </geometry>
+      </collision>
+    </xacro:if>
 
     <!-- The screw output area -->
     <visual>
@@ -61,12 +65,14 @@
         <color rgba=".6 .6 .6 1"/>
       </material>
     </visual>
-    <collision>
-      <origin rpy="0 0 0" xyz="${(length-.025)} ${width/2} ${height/2}"/>
-      <geometry>
-        <box size="${.05} ${.02} ${.005}"/>
-      </geometry>
-    </collision>
+    <xacro:if value="${with_collision_geometry}">
+      <collision>
+        <origin rpy="0 0 0" xyz="${(length-.025)} ${width/2} ${height/2}"/>
+        <geometry>
+          <box size="${.05} ${.02} ${.005}"/>
+        </geometry>
+      </collision>
+    </xacro:if>
   </link>
 
   <joint name="${feedername}_joint" type="fixed">
