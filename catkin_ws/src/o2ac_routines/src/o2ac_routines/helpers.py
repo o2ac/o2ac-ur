@@ -201,6 +201,20 @@ def pose_dist(p1, p2):
   vd = [v1[0]-v2[0], v1[1]-v2[1], v1[2]-v2[2]]
   return norm2(vd[0], vd[1], vd[2])
 
+def interpolate_between_poses(p1, p2, ratio):
+  """ Returns a point between two poses defined by ratio.
+      Poses need to be defined in the same frame.
+
+  Input: Two geometry_msgs.msg.Pose objects
+         ratio between 0.0 and 1.0
+  Output: Point between the poses. p1 if ratio == 0.0, p2 if ratio == 1.0
+  """
+  p_out = copy.deepcopy(p1)
+  p_out.position.x = p1.position.x + (p2.position.x - p1.position.x) * ratio
+  p_out.position.y = p1.position.y + (p2.position.y - p1.position.y) * ratio
+  p_out.position.z = p1.position.z + (p2.position.z - p1.position.z) * ratio
+  if not all_close(p1.orientation, p2.orientation):
+    rospy.logwarn("Orientation interpolation of two poses is not implemented!! (Use slerp)")
 
 def norm2(a, b, c=0.0):
   return sqrt(a**2 + b**2 + c**2)

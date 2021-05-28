@@ -34,6 +34,7 @@
 #
 # Author: Felix von Drigalski
 
+from o2ac_routines import helpers
 from o2ac_routines.base import *
 from math import radians, degrees, sin, cos, pi
 from ur_control.constants import TERMINATION_CRITERIA
@@ -1201,6 +1202,14 @@ class O2ACCommon(O2ACBase):
     return success
 
   ########  Idler pulley
+    
+  def pull_object_towards_middle(self, robot_name, object_pose, move_distance=0.04, grasp_width=0.08):
+    """ Moves to and returns the new pose of the object.
+    """
+    grasp_poses = self.simple_grasp_generation(object_pose, grasp_z_height=object_pose.pose.position.z)
+    self.simple_pick(robot_name, grasp_poses[0], lift_up_after_pick=False)
+    new_pose = self.move_towards_tray_center(robot_name, move_distance)
+    return new_pose
 
   def pick_and_insert_idler_pulley(self, task=""):
     if not task:
@@ -1217,10 +1226,12 @@ class O2ACCommon(O2ACBase):
     self.b_bot.go_to_named_pose("home")
     
     object_pose = self.look_and_get_grasp_point("taskboard_idler_pulley_small")
-    
+
     if not object_pose:
       rospy.logerr("Could not find idler pulley in tray. Skipping procedure.")
       return False
+    
+    # TODO: If object_pose too close toborder, move it towards middle and update pose
 
     self.vision.activate_camera("b_bot_inside_camera")
     object_pose.pose.position.x -= 0.01 # MAGIC NUMBER
@@ -1572,6 +1583,25 @@ class O2ACCommon(O2ACBase):
     return True
 
   ########
+
+  def move_towards_tray_center(self, robot_name, distance):
+    """ Moves from the current position of the robot towards the tray center at constant height.
+    """
+    p_start = self.active_robots[robot_name].get_current_pose_stamped()
+    p_start = self.listener.transformPose("tray_center", p_start)
+    p_center = geometry_msgs.msg.PoseStamped()
+    p_center.header.frame_id = "tray_center"
+    p_center.pose.position.z = p_start.pose.position.z  # Don't change height
+    p_center.pose.orientation = p_start.pose.orientation
+
+    d = helpers.pose_dist(p_start.pose, p_center.pose)
+    if distance > d:
+      ratio = 1.0
+    else:
+      ratio = distance/d
+    p_new = helpers.interpolate_between_poses(p_start, p_center, ratio)
+    self.active_robots[robot_name].move_lin(p_new, speed=0.2, acceleration=0.1)
+    return p_new
 
   def fasten_screw_vertical(self, robot_name, screw_hole_pose, screw_height = .02, screw_size = 4):
     """
