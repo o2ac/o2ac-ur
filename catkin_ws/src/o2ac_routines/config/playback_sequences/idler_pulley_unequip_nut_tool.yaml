@@ -5,7 +5,7 @@ waypoints:
   type: joint-space
   speed: 0.2
 - desc: at_nut_aid
-  pose: [0.0, 0, -0.25, 0, 0, 0]
+  pose: [0.0, -0.01, -0.25, 0, 0, 0]
   type: relative-base
   speed: 0.2
   gripper-action: open
