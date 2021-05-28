@@ -327,6 +327,7 @@ class O2ACCommon(O2ACBase):
 
     rospy.loginfo("Going to height " + str(op[get_direction_index(axis)]))
     if not robot.go_to_pose_goal(approach_pose, speed=speed_fast, acceleration=acc_fast, move_lin=approach_with_move_lin, wait=True):
+      rospy.logerr("Fail to go to approach_pose")
       return False
 
     rospy.loginfo("Moving down to object")
@@ -337,6 +338,7 @@ class O2ACCommon(O2ACBase):
     rospy.loginfo("Going to height " + str(op[get_direction_index(axis)]))
 
     if not robot.go_to_pose_goal(grasp_pose, speed=speed_slow, acceleration=acc_slow, move_lin=True):
+      rospy.logerr("Fail to go to grasp_pose")
       return False
 
     if gripper_command=="do_nothing":
@@ -353,6 +355,7 @@ class O2ACCommon(O2ACBase):
 
       rospy.loginfo("Going to height " + str(approach_pose.pose.position.z))
       if not robot.go_to_pose_goal(approach_pose, speed=speed_fast, acceleration=acc_fast, move_lin=True):
+        rospy.logerr("Fail to go to lift_up_pose")
         return False
     return True
 
@@ -996,6 +999,10 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("insert_bearing returned False. Breaking out")
       return False
 
+    self.b_bot.gripper.detach_object("bearing")
+    self.despawn_object("bearing")
+    self.b_bot.gripper.last_attached_object = None # Forget about this object
+
     self.bearing_holes_aligned = self.align_bearing_holes(task=task)
     self.b_bot.gripper.last_attached_object = None # clean attach/detach memory
     return self.bearing_holes_aligned
@@ -1026,7 +1033,7 @@ class O2ACCommon(O2ACBase):
     self.b_bot.gripper.close(velocity=0.01, wait=True)
 
     success = self.b_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="-X", force=10.0, timeout=30.0, 
-                                                    radius=0.0, wiggle_angle=np.deg2rad(1.0), wiggle_revolutions=2.,
+                                                    radius=0.0, wiggle_direction="X", wiggle_angle=np.deg2rad(3.0), wiggle_revolutions=1.0,
                                                     relaxed_target_by=0.003, selection_matrix=selection_matrix)
     
     # Go back regardless of success
@@ -1158,9 +1165,9 @@ class O2ACCommon(O2ACBase):
   def insert_motor_pulley(self, target_link, attempts=1):
     target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.02, -0.000, -0.009, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
 
-    selection_matrix = [0., 0.3, 0.3, 0.95, 0.8, 0.8]
+    selection_matrix = [0., 0.3, 0.3, 0.95, 1.0, 1.0]
     success = self.b_bot.force_controller.do_insertion(target_pose_target_frame, radius=0.001, 
-                                                      insertion_direction="-X", force=15.0, timeout=30.0, 
+                                                      insertion_direction="-X", force=10.0, timeout=30.0, 
                                                       wiggle_direction="X", wiggle_angle=np.deg2rad(10.0), wiggle_revolutions=1.,
                                                       relaxed_target_by=0.005, selection_matrix=selection_matrix)
 
@@ -1173,11 +1180,22 @@ class O2ACCommon(O2ACBase):
         rospy.logerr("** Insertion Failed!! **")
         return False
 
-    # target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.009, -0.000, -0.009, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
-    success = self.b_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="-X", force=15.0, timeout=15.0, 
-                                                      relaxed_target_by=0.005, wiggle_direction="X", wiggle_angle=np.deg2rad(2.0), wiggle_revolutions=1.,
+    target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.009, -0.000, -0.009, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
+    counter = 0
+    current_pose_robot_base = self.b_bot.robot_group.get_current_pose()
+    current_pose_in_target_frame = self.listener.transformPose(target_link, current_pose_robot_base)
+    while current_pose_in_target_frame.pose.position.x < target_pose_target_frame.pose.position.x or counter < 2:
+      rospy.loginfo("distance to target: %s" % str(target_pose_target_frame.pose.position.x - current_pose_in_target_frame.pose.position.x))
+      self.b_bot.gripper.close(wait=True, velocity=0.03)
+      success = self.b_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="-X", force=15.0, timeout=15.0, 
+                                                      relaxed_target_by=0.005, wiggle_direction="X", wiggle_angle=np.deg2rad(5.0), wiggle_revolutions=1.,
                                                       selection_matrix=selection_matrix)
-
+      self.b_bot.gripper.open(wait=True)
+      current_pose_robot_base = self.b_bot.robot_group.get_current_pose()
+      current_pose_in_target_frame = self.listener.transformPose(target_link, current_pose_robot_base)
+      counter += 1
+    
+    rospy.loginfo("final distance to target: %s" % str(target_pose_target_frame.pose.position.x - current_pose_in_target_frame.pose.position.x))
     self.b_bot.gripper.open(wait=True)
     self.b_bot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
     return success
@@ -1454,7 +1472,11 @@ class O2ACCommon(O2ACBase):
       return False
 
     success = self.insert_shaft(target_link)
-    self.b_bot.gripper.last_attached_object = None # clean attach/detach memory
+    
+    self.b_bot.gripper.detach_object("shaft")
+    self.despawn_object("shaft")
+    self.b_bot.gripper.last_attached_object = None # Forget about this object
+
     return success
 
   def pick_shaft(self):
@@ -1466,8 +1488,15 @@ class O2ACCommon(O2ACBase):
     gp = conversions.from_pose_to_list(goal.pose)
     gp[0] += 0.035 # Magic Numbers for visuals 
     gp[2] = 0.005
-    shaft_pose = conversions.to_pose_stamped("tray_center", gp[:3].tolist() + [0.0, 0.0, -tau/2])
-    self.spawn_object("shaft", shaft_pose, shaft_pose.header.frame_id)
+    # TODO(cambel): needs the right orientation of the shaft
+    # print(gp)
+    # shaft_pose = conversions.to_pose_stamped("tray_center", gp[:3].tolist() + [0.0, 0.0, -tau/2])
+    # print("shaft_pose")
+    # print(shaft_pose)
+    # if self.use_real_robot:
+    #   shaft_pose = conversions.to_pose_stamped("tray_center", gp)
+      
+    # self.spawn_object("shaft", shaft_pose, shaft_pose.header.frame_id)
     
     goal.pose.position.z = 0.001 # Magic Numbers for grasping
     goal.pose.position.x -= 0.01
@@ -1492,10 +1521,10 @@ class O2ACCommon(O2ACBase):
     # print("target pose", target_pose_target_frame)
     target_pose_target_frame.pose.position.x = 0.04 # Magic number
 
-    selection_matrix = [0., 0.3, 0.3, 0.95, 0.95, 0.95]
-    success = self.b_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="+X", force=10.0, timeout=15.0, 
+    selection_matrix = [0., 0.3, 0.3, 0.95, 1, 1]
+    success = self.b_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="+X", force=1.0, timeout=20.0, 
                                                         wiggle_direction="X", wiggle_angle=np.deg2rad(10.0), wiggle_revolutions=1.0,
-                                                        radius=0.0025, relaxed_target_by=0.0, selection_matrix=selection_matrix)
+                                                        radius=0.001, relaxed_target_by=0.0, selection_matrix=selection_matrix)
     current_pose = self.b_bot.robot_group.get_current_pose()
     target_pose_target_frame = self.listener.transformPose(target_link, current_pose)
     # print("current pose 2 (world)", target_pose_target_frame)
