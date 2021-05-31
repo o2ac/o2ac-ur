@@ -280,6 +280,7 @@ class O2ACBase(object):
     # # TODO(felixvd): Add the set screw and nut tool objects from the C++ file
 
   ######
+  @check_for_real_robot
   def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=True):
     res = self.skill_server.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure)
     if res.success:
@@ -852,7 +853,7 @@ class O2ACBase(object):
       is_trajectory = waypoint.get('is_trajectory', False)
       if is_trajectory:
         pose = waypoint["pose"] 
-        if waypoint["pose_type"] == "joint-space-move-linear":
+        if waypoint["pose_type"] == "joint-space-goal-cartesian-lin-motion":
           p = geometry_msgs.msg.PoseStamped()
           p.header.frame_id = robot_name + "_base_link"
           target_pose = self.active_robots[robot_name].force_controller.end_effector(pose)  # Forward kinematics
