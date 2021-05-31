@@ -1115,7 +1115,6 @@ class O2ACCommon(O2ACBase):
     self.a_bot.go_to_named_pose("home")
     self.equip_tool('b_bot', 'screw_tool_m4')
     self.vision.activate_camera("b_bot_outside_camera")
-    intermediate_screw_bearing_pose = [31.0 /180.0*3.14, -137.0 /180.0*3.14, 121.0 /180.0*3.14, -114.0 /180.0*3.14, -45.0 /180.0*3.14, -222.0 /180.0*3.14]
     
     screw_poses = []
     for i in [1,2,3,4]:
@@ -1141,15 +1140,16 @@ class O2ACCommon(O2ACBase):
       """Returns tuple (screw_success, break_out_of_loop)"""
       # Pick screw
       if not skip_picking:
-        self.b_bot.move_joints(intermediate_screw_bearing_pose)
+        self.b_bot.go_to_named_pose("screw_ready")
         self.b_bot.go_to_named_pose("feeder_pick_ready")
         pick_success = self.pick_screw_from_feeder("b_bot", screw_size=4)
         if not pick_success:
           rospy.logerr("Could not pick screw. Why?? Breaking out.")
           self.unequip_tool('b_bot', 'screw_tool_m4')
           return (False, True)
-        self.b_bot.move_joints(intermediate_screw_bearing_pose)
-        self.b_bot.go_to_named_pose("horizontal_screw_ready")
+        self.b_bot.go_to_named_pose("screw_ready")
+        self.playback_sequence("ready_screw_tool_horizontal")
+        # self.b_bot.go_to_named_pose("horizontal_screw_ready")
       
       screw_pose_approach = copy.deepcopy(screw_pose)
       screw_pose_approach.pose.position.x -= 0.07
@@ -1157,6 +1157,7 @@ class O2ACCommon(O2ACBase):
       self.b_bot.go_to_pose_goal(screw_pose_approach, end_effector_link = "b_bot_screw_tool_m4_tip_link", move_lin=False)
       screw_success = self.skill_server.do_screw_action("b_bot", screw_pose, screw_size=4)
       self.b_bot.go_to_pose_goal(screw_pose_approach, end_effector_link = "b_bot_screw_tool_m4_tip_link", move_lin=False)
+      self.playback_sequence("return_screw_tool_horizontal")
       return (screw_success, False)
 
     # Initialize screw status
@@ -1168,7 +1169,7 @@ class O2ACCommon(O2ACBase):
         screw_status[n] = "empty"
     
     self.confirm_to_proceed("intermediate pose")
-    self.b_bot.move_joints(intermediate_screw_bearing_pose)
+    self.b_bot.go_to_named_pose("screw_ready")
     if only_retighten:
       self.confirm_to_proceed("horizontal screw ready")
       self.b_bot.go_to_named_pose("horizontal_screw_ready")
@@ -1192,7 +1193,7 @@ class O2ACCommon(O2ACBase):
         rospy.loginfo("Screw " + str(n) + " detected as " + screw_status[n])
       all_screws_done = all(value == "done" for value in screw_status.values())
 
-    self.b_bot.move_joints(intermediate_screw_bearing_pose)
+    self.b_bot.go_to_named_pose("screw_ready")
     return all_screws_done
 
   ########  Motor pulley
@@ -1345,8 +1346,8 @@ class O2ACCommon(O2ACBase):
     if not self.playback_sequence("idler_pulley_unequip_nut_tool"):
       rospy.logerr("Fail to complete unequip_nut_tool")
 
-    if not self.playback_sequence("idler_pulley_release_screw_tool"):
-      rospy.logerr("Fail to complete idler_pulley_release_screw_tool")
+    if not self.playback_sequence("return_screw_tool_horizontal"):
+      rospy.logerr("Fail to complete return_screw_tool_horizontal")
       return False
 
     self.unequip_tool("b_bot", "padless_tool_m4")
@@ -1427,7 +1428,8 @@ class O2ACCommon(O2ACBase):
     """
     self.equip_tool("b_bot", "padless_tool_m4")
     self.b_bot.go_to_named_pose("screw_ready")
-    if not self.playback_sequence("idler_pulley_push_with_screw_tool"):
+    if not self.playback_sequence("ready_screw_tool_horizontal"):
+      rospy.logerr("Fail to complete ready_screw_tool_horizontal")
       return False
 
     rospy.loginfo("Going to near tb (b_bot)") # Push with tool
@@ -1624,7 +1626,7 @@ class O2ACCommon(O2ACBase):
 
     target_pose_target_frame.pose.position.x = 0.06 # Magic number
 
-    success = self.b_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="+X", force=15.0, timeout=15.0, 
+    success = self.b_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="+X", force=15.0, timeout=30.0, 
                                                   radius=0.002, relaxed_target_by=0.0, selection_matrix=selection_matrix)
 
     if not self.b_bot.move_lin(pre_insertion_pose, speed=0.05):
@@ -1639,8 +1641,15 @@ class O2ACCommon(O2ACBase):
 
         rotation = np.deg2rad([-22.5+180, -88.5, -157.5]).tolist()  # Arbitrary
         re_pick_pose = conversions.to_pose_stamped(target_link, [0.06, 0.000, -0.002] + rotation)
-
+        if not self.b_bot.move_lin(re_pick_pose, speed=0.05):
+          rospy.logerr("** Fail to return to pre insertion pose **")
+          return False
         self.b_bot.gripper.close(wait=True)
+
+        if self.b_bot.gripper.opening_width < 0.004 and self.use_real_robot:
+          rospy.logerr("Fail to grasp Shaft")
+          self.b_bot.gripper.open(wait=True)
+          return False
 
         return self.insert_shaft(target_link, attempts-1)
       return False

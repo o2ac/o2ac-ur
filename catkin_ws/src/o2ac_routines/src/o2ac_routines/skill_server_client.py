@@ -2,7 +2,7 @@ import actionlib
 import rospy
 
 import o2ac_msgs.msg
-from o2ac_routines.helpers import wait_for_UR_program
+from o2ac_routines.helpers import check_for_real_robot, wait_for_UR_program
 
 import std_srvs.srv # toggleCollisions_client
 import geometry_msgs.msg # urscript_client
@@ -68,6 +68,7 @@ class SkillServerClient():
         self.regrasp_client.wait_for_result(rospy.Duration(90.0))
         return self.regrasp_client.get_result()
 
+    @check_for_real_robot
     def do_screw_action(self, robot_name, target_hole, screw_height = 0.02, 
                             screw_size = 4, stay_put_after_screwing=False):
         goal = o2ac_msgs.msg.screwGoal()
