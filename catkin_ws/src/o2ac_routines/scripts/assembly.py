@@ -44,6 +44,7 @@ import tf
 from math import pi, radians, sin, cos
 tau = 2.0*pi  # Part of math from Python 3.6
 import math
+import time
 import numpy as np
 
 from o2ac_msgs.srv import *
@@ -183,9 +184,9 @@ class AssemblyClass(O2ACCommon):
   
   def subtask_c2(self):
     rospy.loginfo("======== SUBTASK C (output shaft) ========")
-    rospy.logerr("Subtask C not implemented yet")
+    self.a_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
     self.b_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
-    return False
+    return self.pick_and_insert_shaft(task="assembly")    
 
   def subtask_d(self):
     # Fasten large pulley to output shaft
@@ -445,11 +446,11 @@ class AssemblyClass(O2ACCommon):
     pose.pose.orientation.w = 1
     return self.do_plan_pickplace_action('b_bot', 'panel_bearing', pose, save_solution_to_file = 'panel_bearing/bottom_screw_hole_aligner_1')
 
-  def real_assembly_task(self):
+  def full_assembly_task(self):
     # self.start_task_timer()
 
     # Look into the tray
-    self.look_and_get_grasp_point(2)
+    self.look_and_get_grasp_point(object_id=2)  # Base place
     self.confirm_to_proceed("press enter to proceed to pick and set base plate")
     self.subtask_zero()  # Base plate
     
@@ -474,9 +475,13 @@ class AssemblyClass(O2ACCommon):
     success = False
     while not success and not rospy.is_shutdown():
       success = self.subtask_c1() # bearing 
-    # # self.subtask_c2() # shaft
-
+    success = False
+    while not success and not rospy.is_shutdown():
+      success = self.subtask_c2() # shaft
+    
     rospy.loginfo("==== Finished.")
+
+    # self.subtask_a() # motor
 
     # # To prepare subtask E
     # self.pick_retainer_pin_from_tray_and_place_in_holder(do_centering=False)
@@ -494,8 +499,6 @@ class AssemblyClass(O2ACCommon):
     # self.go_to_named_pose("home", "c_bot", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
     # self.b_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
     # self.a_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
-
-    # self.subtask_a() # motor
     
     # self.subtask_c() # bearing, clamping pulley set
     return
@@ -510,7 +513,8 @@ class AssemblyClass(O2ACCommon):
     for n in object_names:
       if not "tool" in n:
         objects_without_tools.append(n)
-    self.planning_scene_interface.allow_collisions(objects_without_tools)
+    print(objects_without_tools)
+    self.planning_scene_interface.allow_collisions(objects_without_tools, "")
 
 if __name__ == '__main__':
   try:
@@ -522,7 +526,7 @@ if __name__ == '__main__':
       rospy.loginfo("Enter 11,12 to close,open grippers")
       rospy.loginfo("Enter 13 (14) to equip (unequip) m3 tool (a_bot).")
       rospy.loginfo("Enter 15 (16) to equip (unequip) m4 tool (b_bot).")
-      rospy.loginfo("Enter 30, 31 to pick screw m3, m4 from feeder.")
+      rospy.loginfo("Enter 31, 32 to pick screw m3, m4 from feeder.")
       rospy.loginfo("Enter 55, 551, 552 to spawn example parts.")
       rospy.loginfo("Enter 68 to spawn objects for testing mtc_modules tasks")
       rospy.loginfo("Enter 69-75 to test mtc_modules tasks, (pick, place, pik-place, pick tool, pick screw, release, fix L plate on base)")
@@ -534,6 +538,7 @@ if __name__ == '__main__':
       rospy.loginfo("Enter START to start the task.")
       rospy.loginfo("Enter x to exit.")
       i = raw_input()
+      tic_start = time.time()
       if i == '1':
         assy.a_bot.go_to_named_pose("home")
         assy.b_bot.go_to_named_pose("home")
@@ -552,15 +557,9 @@ if __name__ == '__main__':
       elif i == '14':
         assy.do_change_tool_action("a_bot", equip=False, screw_size=3)
       elif i == '15':
-        t = rospy.Time.now()
         assy.do_change_tool_action("b_bot", equip=True, screw_size=4)
-        d = rospy.Time.now() - t
-        print("this took: ", d.secs)
       elif i == '16':
-        t = rospy.Time.now()
         assy.do_change_tool_action("b_bot", equip=False, screw_size=4)
-        d = rospy.Time.now() - t
-        print("this took: ", d.secs)
       elif i == '31':
         assy.skill_server.pick_screw_from_feeder("a_bot", screw_size=3)
       elif i == '32':
@@ -597,6 +596,14 @@ if __name__ == '__main__':
         assy.spawn_objects_for_demo(base_plate_in_tray=True, layout_number=3)
       elif i == '559':
         assy.disable_scene_object_collisions()
+      elif i == 'clean_scene':
+        non_base_objects = ['bearing', 'bearing_spacer', 'end_cap', 'idler_pin', 'idler_pulley', 'idler_spacer', 'motor', 'motor_pulley', 'output_pulley', 'panel_bearing', 'panel_motor', 'shaft']
+        for o in non_base_objects:
+          assy.planning_scene_interface.remove_world_object(o)
+      elif i == '550':
+        assy.planning_scene_interface.allow_collisions("base", "")
+      elif i == '551':
+        assy.planning_scene_interface.disallow_collisions("base", "")
       elif i == '5599':
         assy.allow_collisions_with_robot_hand("bearing", "b_bot")
       elif i == '55999':
@@ -730,7 +737,7 @@ if __name__ == '__main__':
         for i in [1,2]:
           rospy.loginfo("Starting set number " + str(i))
           assy.competition_mode = True
-          assy.real_assembly_task()
+          assy.full_assembly_task()
           assy.competition_mode = False
           rospy.loginfo("SET NUMBER " + str(i) + " COMPLETED. PUT THE ROBOT IN PAUSE MODE AND REPLACE THE PARTS")
           raw_input()
@@ -744,7 +751,7 @@ if __name__ == '__main__':
           rospy.loginfo("ABORTING")
           break
         rospy.loginfo("Starting new set")
-        assy.real_assembly_task()
+        assy.full_assembly_task()
       if i == "reset":
         assy.reset_scene_and_robots()
       if i == "activate":
@@ -754,5 +761,6 @@ if __name__ == '__main__':
         break
       elif i == "":
         continue
+      print("This took: %.3f seconds" % (time.time() - tic_start))
   except rospy.ROSInterruptException:
     pass

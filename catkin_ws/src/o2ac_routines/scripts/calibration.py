@@ -570,8 +570,8 @@ if __name__ == '__main__':
       elif r == '52':
         c.vertical_plate_screw_position_test(panel="motor_panel")
       elif r == '522':
-        c.move_lin_rel("b_bot", [-0.02, 0, 0])
-        c.move_lin_rel("b_bot", [0.02, 0, 0])
+        c.a_bot.move_lin_rel([-0.05, 0, 0])
+        c.a_bot.move_lin_rel([0.05, 0, 0])
       elif r == '53':  # Bearing rotation
         ps = geometry_msgs.msg.PoseStamped()
         
@@ -635,6 +635,9 @@ if __name__ == '__main__':
         c.realign_tool(robot_name="b_bot", screw_tool_id="screw_tool_m4")
       elif r == "reset":
         c.reset_scene_and_robots()
+      elif r == "activate":
+        c.a_bot.activate_ros_control_on_ur()
+        c.b_bot.activate_ros_control_on_ur()
       elif r == 'x':
         break
       else:
