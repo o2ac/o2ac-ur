@@ -134,6 +134,7 @@ class URRobot():
         rospy.set_param(self.ns + "/carrying_tool",   self.robot_status.carrying_tool)
         rospy.set_param(self.ns + "/held_tool_id",    self.robot_status.held_tool_id)
     
+    @helpers.check_for_real_robot
     def wait_for_control_status_to_turn_on(self, waittime):
         start = rospy.Time.now()
         elapsed = rospy.Time.now() - start
@@ -144,6 +145,7 @@ class URRobot():
                 return True
         return False
 
+    @helpers.check_for_real_robot
     def activate_ros_control_on_ur(self, recursion_depth=0):
         if not self.use_real_robot:
             return True
@@ -237,7 +239,7 @@ class URRobot():
                 pass
             return self.activate_ros_control_on_ur(recursion_depth=recursion_depth+1)
         
-
+    @helpers.check_for_real_robot
     def check_for_dead_controller_and_force_start(self):
         list_req = controller_manager_msgs.srv.ListControllersRequest()
         switch_req = controller_manager_msgs.srv.SwitchControllerRequest()
@@ -257,11 +259,13 @@ class URRobot():
                     rospy.loginfo("Controller state is " + c.state + ", returning True.")
                     return True
 
+    @helpers.check_for_real_robot
     def load_and_execute_program(self, program_name="", recursion_depth=0):
         if not self.load_program(program_name, recursion_depth):
             return False
         return self.execute_loaded_program()
 
+    @helpers.check_for_real_robot
     def load_program(self, program_name="", recursion_depth=0):
         if not self.use_real_robot:
             return True
@@ -303,6 +307,7 @@ class URRobot():
             rospy.sleep(.5)
             return self.load_program(program_name=program_name, recursion_depth=recursion_depth+1)
 
+    @helpers.check_for_real_robot
     def execute_loaded_program(self):
         # Run the program
         response = self.ur_dashboard_clients["play"].call(std_srvs.srv.TriggerRequest())
@@ -313,6 +318,7 @@ class URRobot():
             rospy.loginfo("Successfully started program on robot " + self.ns)
             return True
 
+    @helpers.check_for_real_robot
     def close_ur_popup(self):
         # Close a popup on the teach pendant to continue program execution
         response = self.ur_dashboard_clients["close_popup"].call(std_srvs.srv.TriggerRequest())
