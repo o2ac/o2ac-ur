@@ -178,7 +178,6 @@ class O2ACBase(object):
       if not rospy.is_shutdown():
         return True
     raise Exception("User caused exit!")
-    return False
 
   def run_mode_callback(self, msg):
     self.run_mode_ = msg.data
