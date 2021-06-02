@@ -1487,7 +1487,8 @@ class O2ACCommon(O2ACBase):
 
   def fasten_idler_pulley_with_nut_tool(self, target_link):
     approach_pose = conversions.to_pose_stamped(target_link, [0.1, 0.0, 0.0, 0.0, 0.0, 0.0])
-    self.a_bot.move_lin(approach_pose, end_effector_link="a_bot_nut_tool_m4_hole_link", speed=0.4)
+    if not self.a_bot.move_lin(approach_pose, end_effector_link="a_bot_nut_tool_m4_hole_link", speed=0.4):
+      return False
 
     success = False
     idler_pulley_screwing_succeeded = False
@@ -1498,11 +1499,13 @@ class O2ACCommon(O2ACBase):
         break
       # Move nut tool forward so nut touches the screw
       d = offset  # 
-      approach_pose = conversions.to_pose_stamped(target_link, [0.06, 0.0, d - 0.005, 0.0, 0.0, 0.0])
-      self.a_bot.move_lin(approach_pose, end_effector_link="a_bot_nut_tool_m4_hole_link", speed=0.2)
+      approach_pose = conversions.to_pose_stamped(target_link, [0.06, 0.0, d + 0.004, 0.0, 0.0, 0.0])
+      if not self.a_bot.move_lin(approach_pose, end_effector_link="a_bot_nut_tool_m4_hole_link", speed=0.2):
+        return False
       
-      pushed_into_screw = conversions.to_pose_stamped(target_link, [0.011, 0.0, d - 0.005, 0.0, 0.0, 0.0])
-      self.a_bot.move_lin(pushed_into_screw, end_effector_link="a_bot_nut_tool_m4_hole_link", speed=0.2)
+      pushed_into_screw = conversions.to_pose_stamped(target_link, [0.011, 0.0, d + 0.004, 0.0, 0.0, 0.0])
+      if not self.a_bot.move_lin(pushed_into_screw, end_effector_link="a_bot_nut_tool_m4_hole_link", speed=0.2):
+        return False
       
       response = self.tools.set_motor("padless_tool_m4", "tighten", duration=3.0, wait=True, skip_final_loosen_and_retighten=True)
       idler_pulley_screwing_succeeded = response.motor_stalled
@@ -1535,26 +1538,18 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Fail to grasp Shaft")
       return False
 
-    if not self.b_bot.move_lin_rel(relative_translation=[0,0,0.2], speed=0.4):
-      return False
-
     rospy.loginfo("Going to approach pose (b_bot)")
     rotation = np.deg2rad([-22.5+180, -88.5, -157.5]).tolist()  # Arbitrary
 
+    post_pick_pose = conversions.to_pose_stamped(target_link, [-0.15, 0.0, -0.10] + rotation)
     above_pose = conversions.to_pose_stamped(target_link, [0.0, 0.002, -0.10] + rotation)
     behind_pose = conversions.to_pose_stamped(target_link, [0.09, 0.002, -0.05] + rotation)
     pre_insertion_pose = conversions.to_pose_stamped(target_link, [0.09, 0.001, 0.0] + rotation)
-    
-    rospy.loginfo("Going to above tb (b_bot)")
-    if not self.b_bot.move_lin(above_pose, speed=0.4):
-      return False
 
-    rospy.loginfo("Going to behind tb hole (b_bot)")
-    if not self.b_bot.move_lin(behind_pose, speed=0.4):
-      return False
-
-    rospy.loginfo("Going to hole from behind (b_bot)")
-    if not self.b_bot.move_lin(pre_insertion_pose, speed=0.2):
+    trajectory = [[post_pick_pose, 0.05], [above_pose, 0.05], [behind_pose, 0.01], [pre_insertion_pose, 0.0]]
+    rospy.loginfo("Going to position shaft to pre-insertion (b_bot)")
+    if not self.b_bot.move_lin_trajectory(trajectory, speed=0.5, acceleration=0.25):
+      rospy.logerr("Fail to position shaft to pre-insertion")
       return False
 
     success = self.insert_shaft(target_link)
@@ -1589,7 +1584,8 @@ class O2ACCommon(O2ACBase):
 
     self.vision.activate_camera("b_bot_inside_camera")
 
-    if not self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, approach_height=0.1, item_id_to_attach="shaft", axis="z"):
+    if not self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, approach_height=0.1, 
+                              item_id_to_attach="shaft", axis="z", lift_up_after_pick=True):
       rospy.logerr("Fail to simple_pick")
       return False
     return True
@@ -1606,6 +1602,7 @@ class O2ACCommon(O2ACBase):
     target_pose_target_frame.pose.position.x = 0.04 # Magic number
 
     selection_matrix = [0., 0.3, 0.3, 0.95, 1, 1]
+    self.b_bot.move_lin_rel(relative_translation = [-0.003,0,0], acceleration = 0.015, speed=.03) # Release shaft for next push
     result = self.b_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="+X", force=5.0, timeout=20.0, 
                                                         wiggle_direction="X", wiggle_angle=np.deg2rad(10.0), wiggle_revolutions=1.0,
                                                         radius=0.001, relaxed_target_by=0.0, selection_matrix=selection_matrix)
@@ -1632,16 +1629,14 @@ class O2ACCommon(O2ACBase):
       return False
     self.b_bot.gripper.close(wait=True)
 
-    target_pose_target_frame.pose.position.x = 0.06 # Magic number
+    target_pose_target_frame.pose.position.x = 0.05 # Magic number
 
-    for _ in range(10):
-      starting_pose = self.b_bot.get_current_pose()
-      result = self.b_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="+X", force=15.0, timeout=5.0, 
-                                                    radius=0.001, relaxed_target_by=0.0, selection_matrix=selection_matrix)
+    for _ in range(6):
+      result = self.b_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="+X", force=15.0, timeout=10.0, 
+                                                    radius=0.002, relaxed_target_by=0.0, selection_matrix=selection_matrix)
       success = result in (TERMINATION_CRITERIA, DONE)
       success &= self.b_bot.move_lin_rel(relative_translation = [-0.003,0,0], acceleration = 0.015, speed=.03) # Release shaft for next push
-      dist = helpers.pose_dist(starting_pose, self.b_bot.get_current_pose())
-      if not success or dist <= 0.005 or result == TERMINATION_CRITERIA:
+      if not success or result == TERMINATION_CRITERIA:
         break
 
     if not self.b_bot.move_lin(pre_insertion_pose, speed=0.05):
