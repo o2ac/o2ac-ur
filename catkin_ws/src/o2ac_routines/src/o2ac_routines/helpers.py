@@ -213,8 +213,9 @@ def interpolate_between_poses(p1, p2, ratio):
   p_out.position.x = p1.position.x + (p2.position.x - p1.position.x) * ratio
   p_out.position.y = p1.position.y + (p2.position.y - p1.position.y) * ratio
   p_out.position.z = p1.position.z + (p2.position.z - p1.position.z) * ratio
-  if not all_close(p1.orientation, p2.orientation):
+  if not all_close(p1.orientation, p2.orientation, 0.001):
     rospy.logwarn("Orientation interpolation of two poses is not implemented!! (Use slerp)")
+  return p_out
 
 def norm2(a, b, c=0.0):
   return sqrt(a**2 + b**2 + c**2)

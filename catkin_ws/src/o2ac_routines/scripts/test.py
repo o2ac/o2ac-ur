@@ -25,6 +25,8 @@ def main():
     global controller
     controller = O2ACCommon()
 
+    controller.pick_and_insert_idler_pulley("taskboard")
+
     # controller.b_bot.move_lin_rel(relative_translation=[-0.03,0,0], relative_to_robot_base=True)
 
     # controller.assembly_database.change_assembly('wrs_assembly_2020')
@@ -44,8 +46,8 @@ def main():
 
     # controller.playback_sequence(routine_filename="motor_pulley_orient")
     # controller.insert_motor_pulley("taskboard_small_shaft")
-    controller.assembly_database.change_assembly('taskboard')
-    controller.pick_and_insert_motor_pulley("taskboard")
+    # controller.assembly_database.change_assembly('taskboard')
+    # controller.pick_and_insert_motor_pulley("taskboard")
 
     # controller.pick_and_insert_motor_pulley("taskboard")
     # controller.insert_motor_pulley("taskboard_small_shaft")
