@@ -96,7 +96,7 @@ class O2ACAssembly(O2ACCommon):
     self.unlock_base_plate()
 
     success = self.pick("b_bot", "base")
-    if not success or self.b_bot.gripper.opening_width < 0.003:
+    if not success or self.b_bot.gripper.opening_width < 0.003 and self.use_real_robot:
       rospy.logerr("Gripper did not grasp the base plate. Aborting.")
       return False
 

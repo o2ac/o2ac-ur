@@ -110,6 +110,10 @@ class O2ACCommon(O2ACBase):
     else:
       collision_object.header.frame_id = "assembled_part_" + str(object_id).zfill(2)  # Fill with leading zeroes
     self.planning_scene_interface.apply_collision_object(collision_object)
+    # Make sure all robots forget any attachments to this particular object
+    for robot in self.active_robots.values():
+      if object_name == robot.gripper.last_attached_object:
+        robot.gripper.last_attached_object = None
     return
     
 

@@ -61,33 +61,35 @@ class RobotiqGripper():
     def _gripper_status_callback(self, msg):
         self.opening_width = msg.position  # [m]
 
-    def close(self, force=40.0, velocity=.1, wait=True):
+    def close(self, force=40.0, velocity=.1, wait=True, attached_last_object=False):
         res = False
         if self.use_real_robot:
             res = self.send_command("close", force=force, velocity=velocity, wait=wait)
         else:
             res = self.gripper.close()
-        if self.last_attached_object:
+        if attached_last_object and self.last_attached_object:
             self.attach_object(self.last_attached_object)
         return res
 
-    def open(self, velocity=.1, wait=True, opening_width=None):
+    def open(self, velocity=.1, wait=True, opening_width=None, detached_last_object=False):
         res = False
         if self.use_real_robot:
             command = opening_width if opening_width else "open"
             res = self.send_command(command, wait=wait, velocity=velocity)
         else:
             res = self.gripper.open()
-        if self.last_attached_object:
+        
+        if detached_last_object and self.last_attached_object:
             self.detach_object(self.last_attached_object)
         return res
 
-    def send_command(self, command, force=40.0, velocity=.1, wait=True):
+    def send_command(self, command, force=40.0, velocity=.1, wait=True, attached_last_object=False):
         """
         gripper: a_bot or b_bot
         command: "open", "close" or opening width
         force: Gripper force in N. From 40 to 100
         velocity: Gripper speed. From 0.013 to 0.1
+        attached_last_object: bool, Attach/detach last attached object if set to True
 
         Use a slow closing speed when using a low gripper force, or the force might be unexpectedly high.
         """
@@ -123,7 +125,7 @@ class RobotiqGripper():
             else:
                 res = self.gripper.command(command)
 
-        if self.last_attached_object:
+        if attached_last_object and self.last_attached_object:
             if command == "close":
                 self.attach_object(self.last_attached_object)
             elif command == "open":
