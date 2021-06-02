@@ -193,7 +193,6 @@ class URForceController(CompliantController):
 
         if result in (TERMINATION_CRITERIA, DONE, STOP_ON_TARGET_FORCE):
             rospy.loginfo("Completed insertion with state: %s" % result)
-            return True
         rospy.logerr("Fail to complete insertion with state %s" % result)
-        return False
+        return result
 
