@@ -614,7 +614,7 @@ class O2ACCommon(O2ACBase):
     """
     if not self.use_real_robot: # For simulation
       rospy.logwarn("Returning position near center (simulation)")
-      return conversions.to_pose_stamped("tray_center", [-0.09, 0.06, 0.02, 0.0,0.7071,0.0,0.7071])
+      return conversions.to_pose_stamped("tray_center", [-0.05, 0.06, 0.02] + np.deg2rad([0,90.,15]).tolist())
 
     # Make sure object_id is the id number
     if isinstance(object_id, str):
@@ -879,6 +879,11 @@ class O2ACCommon(O2ACBase):
     print(res)
 
   def turn_shaft_until_groove_found(self):
+    if not self.use_real_robot:
+      res = o2ac_msgs.msg.shaftNotchDetectionActionResult()
+      res.shaft_notch_detected_at_top = True
+      return res
+
     # look_at_shaft_pose = [2.177835941, -1.700065275, 2.536958996, -2.40987076, -1.529889408, 0.59719228]
     look_at_shaft_pose = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.008, 0, 0, tau/2., 0, 0])
     self.vision.activate_camera("b_bot_inside_camera")
@@ -1550,6 +1555,7 @@ class O2ACCommon(O2ACBase):
     self.a_bot.go_to_named_pose("home")
     self.b_bot.go_to_named_pose("home")
 
+    self.allow_collisions_with_robot_hand("shaft", "b_bot", True)
     if not self.pick_shaft():
       rospy.logerr("Fail to pick Shaft")
       return False
@@ -1577,7 +1583,7 @@ class O2ACCommon(O2ACBase):
     self.b_bot.gripper.detach_object("shaft")
     self.despawn_object("shaft")
     self.b_bot.gripper.last_attached_object = None # Forget about this object
-
+    self.allow_collisions_with_robot_hand("shaft", "b_bot", False)
     return success
 
   def pick_shaft(self):
@@ -1587,25 +1593,22 @@ class O2ACCommon(O2ACBase):
       return False
     
     gp = conversions.from_pose_to_list(goal.pose)
-    gp[0] += 0.035 # Magic Numbers for visuals 
+    gp[:2] += [0.075/2.0, 0.0125] # Magic Numbers for visuals 
     gp[2] = 0.005
-    # TODO(cambel): needs the right orientation of the shaft
-    # print(gp)
-    # shaft_pose = conversions.to_pose_stamped("tray_center", gp[:3].tolist() + [0.0, 0.0, -tau/2])
-    # print("shaft_pose")
-    # print(shaft_pose)
-    # if self.use_real_robot:
-    #   shaft_pose = conversions.to_pose_stamped("tray_center", gp)
+    euler_gp = tf_conversions.transformations.euler_from_quaternion(gp[3:])
+    shaft_pose = conversions.to_pose_stamped("tray_center", gp[:3].tolist() + [0, 0, -tau/2-euler_gp[0]])
       
-    # self.spawn_object("shaft", shaft_pose, shaft_pose.header.frame_id)
+    self.spawn_object("shaft", shaft_pose, shaft_pose.header.frame_id)
     
     goal.pose.position.z = 0.001 # Magic Numbers for grasping
     goal.pose.position.x -= 0.01
 
     self.vision.activate_camera("b_bot_inside_camera")
 
-    if not self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, approach_height=0.1, 
-                              item_id_to_attach="shaft", axis="z", lift_up_after_pick=True):
+    if not self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.03, approach_height=0.1, 
+                              item_id_to_attach="shaft", axis="z", lift_up_after_pick=True,
+                              speed_slow=0.1):
+    # if not self.pick("b_bot", object_name="shaft", grasp_pose=goal):
       rospy.logerr("Fail to simple_pick")
       return False
     return True
@@ -1801,7 +1804,7 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Fail to go to on_centering")
       return False
 
-    self.b_bot.force_controller.linear_push(3, "-Y", max_translation=0.05, timeout=15.0)
+    self.b_bot.linear_push(3, "-Y", max_translation=0.05, timeout=15.0)
     self.b_bot.gripper.open(opening_width=0.03)
     if not self.b_bot.go_to_pose_goal(shaft_center, speed=0.1):
       rospy.logerr("Fail to go to relative shaft center")
