@@ -2,7 +2,7 @@ robot_name: b_bot
 waypoints:
 - speed: 0.4
   pose: [1.70955, -1.76188, 2.20655, -2.03371, -1.54722, 0.21328]
-  pose_type: joint-space
+  pose_type: joint-space-goal-cartesian-lin-motion
   blend: 0.01
   is_trajectory: True
 - speed: 0.4

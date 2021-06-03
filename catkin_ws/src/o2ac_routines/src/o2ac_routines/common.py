@@ -401,7 +401,7 @@ class O2ACCommon(O2ACBase):
       self.active_robots[robot_name].go_to_pose_goal(object_pose, speed=speed_fast, move_lin=False)  
     return True
 
-  def simple_grasp_generation(self, object_pose, grasp_width=0.08, grasp_z_height=0.02, rotation_offset=1):
+  def simple_grasp_generation(self, object_pose, grasp_width=0.06, grasp_z_height=0.02, rotation_offset=1):
     """
     Returns a list of one grasp for an object.
     Based only on border distance and distance to other objects.
@@ -414,7 +414,7 @@ class O2ACCommon(O2ACBase):
     # This one opens the gripper along the workspace_center's x-axis
     grasp_along_x = copy.deepcopy(grasp_along_y)
     grasp_along_x.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, rotation_offset*tau/4))
-    dist_far = grasp_width + 0.02  # Along the gripper's opening direction
+    dist_far = grasp_width + 0.01  # Along the gripper's opening direction
     dist_close = 0.015  # In the direction that the gripper does not open
     
     grasps_candidate = [] # tentative grasps based on distance to tray's border
@@ -1240,8 +1240,6 @@ class O2ACCommon(O2ACBase):
     self.vision.activate_camera("b_bot_inside_camera")
     self.activate_led("b_bot", False)
     
-    goal = self.simple_grasp_generation(goal, grasp_width=0.03, grasp_z_height=0.0)[0]
-      
     if not self.simple_pick("b_bot", goal, gripper_force=50.0, grasp_width=.06, axis="z"):
       rospy.logerr("Fail to simple_pick")
       return False
@@ -1290,7 +1288,7 @@ class O2ACCommon(O2ACBase):
     success = result in (TERMINATION_CRITERIA, DONE)
 
     
-    self.b_bot.gripper.open(wait=True)
+    self.b_bot.gripper.open(opening_width=0.04, wait=True)
     success &= self.b_bot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
     return success
 
@@ -1627,7 +1625,7 @@ class O2ACCommon(O2ACBase):
       return False
     return True
 
-  def insert_shaft(self, target_link, attempts=1, target=0.05):
+  def insert_shaft(self, target_link, attempts=1, target=0.06):
     """
     Insert shaft with force control using b_bot. The shaft has to be in front of the hole already.
     """
