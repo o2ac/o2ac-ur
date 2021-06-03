@@ -30,7 +30,11 @@ class URForceController(CompliantController):
     def __init__(self, robot_name, listener, tcp_link='gripper_tip_link', **kwargs):
         # TODO(cambel): fix this ugly workaround by properly defining the tool tip with respect to tool0
         if tcp_link == 'gripper_tip_link':
-            ee_transform = [0.0, 0.0, 0.173, 0.500, -0.500, 0.500, 0.500]
+            if robot_name == "b_bot":
+                ee_transform = [0.0, 0.0, 0.173, 0.500, -0.500, 0.500, 0.500]
+            if robot_name == "a_bot":
+                ee_transform = [0.0, 0.0, 0.246, 0.500, -0.500, 0.500, 0.500]
+
             tcp_link = 'tool0'
 
         self.listener = listener
