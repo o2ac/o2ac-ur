@@ -1041,10 +1041,6 @@ class O2ACCommon(O2ACBase):
     self.spawn_object("bearing", goal, goal.header.frame_id)
     goal.pose.position.x -= 0.01 # MAGIC NUMBER
     goal.pose.position.z = 0.0115
-    
-    # if not self.simple_pick("b_bot", goal, gripper_force=100.0, approach_height=0.05, axis="z"):
-    #   rospy.logerr("Fail to simple_pick")
-    #   return False
 
     if not self.pick_from_two_poses_topdown("b_bot", "bearing", goal):
       rospy.logerr("Fail to pick bearing from tray")
@@ -1056,11 +1052,9 @@ class O2ACCommon(O2ACBase):
     elif self.b_bot.gripper.opening_width < 0.045:
       rospy.loginfo("bearing found to be upwards")
       self.playback_sequence("bearing_orient")
-      # success_b = self.b_bot.load_program(program_name="wrs2020/bearing_orient_totb.urp")
     else:
       rospy.loginfo("bearing found to be upside down")
       self.playback_sequence("bearing_orient_down")
-      # success_b = self.b_bot.load_program(program_name="wrs2020/bearing_orient_down_totb.urp")
       #'down' means the small area contacts with tray.
 
     if self.b_bot.gripper.opening_width < 0.01 and self.use_real_robot:
@@ -1084,7 +1078,6 @@ class O2ACCommon(O2ACBase):
     self.b_bot.gripper.last_attached_object = None # Forget about this object
 
     self.bearing_holes_aligned = self.align_bearing_holes(task=task)
-    self.b_bot.gripper.last_attached_object = None # clean attach/detach memory
     return self.bearing_holes_aligned
 
   def insert_bearing(self, task=""):
@@ -1337,7 +1330,7 @@ class O2ACCommon(O2ACBase):
 
     border_dist = 0.04
     if abs(dx) <= border_dist or abs(dy) <= border_dist: # if too close to a border, pull object towards middle  
-      at_object_pose = self.pull_object_towards_middle("a_bot", at_object_pose, move_distance=0.5, grasp_width=0.03)
+      at_object_pose = self.pull_object_towards_middle("a_bot", at_object_pose, move_distance=0.05, grasp_width=0.03)
       at_object_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(0, tau/4, -tau/4))
       if not at_object_pose:
         rospy.logerr("Fail to pull object towards middle")
