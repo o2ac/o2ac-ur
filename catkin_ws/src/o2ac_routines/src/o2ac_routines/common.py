@@ -1234,9 +1234,12 @@ class O2ACCommon(O2ACBase):
     self.vision.activate_camera("b_bot_inside_camera")
     self.activate_led("b_bot", False)
     
+    goal = self.simple_grasp_generation(goal, grasp_width=0.03, grasp_z_height=0.0)[0]
+      
     if not self.simple_pick("b_bot", goal, gripper_force=50.0, grasp_width=.06, axis="z"):
       rospy.logerr("Fail to simple_pick")
       return False
+
     if self.b_bot.gripper.opening_width < 0.01:
       rospy.logerr("Gripper did not grasp the pulley --> Stop")
 
