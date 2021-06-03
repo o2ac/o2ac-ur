@@ -286,6 +286,7 @@ class O2ACBase(object):
       return True
     else:
       if realign_tool_upon_failure:
+          self.active_robots[robot_name].move_lin_rel(relative_translation=[0,0,0.05])
           self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
           rospy.loginfo("pickScrewFromFeeder failed. Realigning tool and retrying.")
           screw_tool_id = "screw_tool_m" + str(screw_size)
@@ -751,7 +752,7 @@ class O2ACBase(object):
       ps_approach.pose.position.z -= 0.01 # Approach diagonally so nothing gets stuck
 
     if equip:
-      robot.gripper.open()
+      robot.gripper.open(opening_width=0.08)
       rospy.loginfo("Spawning tool.")
       if not self.spawn_tool(tool_name):
         rospy.logwarn("Could not spawn the tool. Continuing.")
@@ -782,7 +783,7 @@ class O2ACBase(object):
       robot.robot_status.held_tool_id = tool_name
       self.publish_robot_status()
     elif unequip:
-      robot.gripper.open()
+      robot.gripper.open(opening_width=0.08)
       self.active_robots[robot_name].gripper.detach_object(tool_name)
       self.planning_scene_interface.remove_attached_object(name=tool_name)
       self.planning_scene_interface.remove_world_object(name=tool_name)
@@ -792,7 +793,7 @@ class O2ACBase(object):
       robot.robot_status.held_tool_id = ""
       self.publish_robot_status()
     elif realign:  # Drop the tool into the holder once
-      robot.gripper.open()
+      robot.gripper.open(opening_width=0.08)
       robot.gripper.close()
     
     if equip or realign:  # Pull back and let go once to align the tool with the magnet properly 
@@ -801,9 +802,9 @@ class O2ACBase(object):
       ps_in_holder.pose.position.x += 0.001  # To remove the offset for placing applied earlier
       lin_speed = 0.02
       self.active_robots[robot_name].go_to_pose_goal(pull_back_slightly, speed=lin_speed, move_lin=True)
-      robot.gripper.open()
+      robot.gripper.open(opening_width=0.08)
       self.active_robots[robot_name].go_to_pose_goal(ps_in_holder, speed=lin_speed, move_lin=True)
-      robot.gripper.close()
+      robot.gripper.close(force=60)
     
     # Plan & execute linear motion away from the tool change position
     rospy.loginfo("Moving back to screw tool approach pose LIN.")
