@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from o2ac_routines.common import O2ACCommon
+from o2ac_routines.assembly import O2ACAssembly
 import rospy
 from ur_control.constants import TERMINATION_CRITERIA
 from ur_control import conversions
@@ -23,9 +24,22 @@ signal.signal(signal.SIGINT, signal_handler)
 def main():
     rospy.init_node("testscript")
     global controller
-    controller = O2ACCommon()
+    # controller = O2ACCommon()
+    controller = O2ACAssembly()
 
-    controller.pick_and_insert_idler_pulley("taskboard")
+    controller.reset_scene_and_robots()
+    controller.publish_part_in_assembled_position("base")
+    controller.publish_part_in_assembled_position("panel_bearing")
+    controller.publish_part_in_assembled_position("panel_motor")
+    controller.publish_part_in_assembled_position("bearing")
+    controller.subtask_c2()
+
+    # rotation = np.deg2rad([-22.5+180, -88.5, -157.5]).tolist()  # Arbitrary
+    # above_pose = conversions.to_pose_stamped("assembled_part_07_inserted", [0.0, 0.002, -0.10] + rotation)
+    # controller.confirm_to_proceed("boo")
+    # controller.b_bot.go_to_pose_goal(above_pose, speed=0.2, move_lin=False)
+
+    # controller.pick_and_insert_motor_pulley("taskboard")
 
     # controller.b_bot.move_lin_rel(relative_translation=[-0.03,0,0], relative_to_robot_base=True)
 

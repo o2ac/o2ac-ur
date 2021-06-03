@@ -36,7 +36,7 @@
 
 import sys
 import copy
-from moveit_commander import conversions
+from ur_control import conversions
 import rospy
 import geometry_msgs.msg
 import moveit_msgs
@@ -60,7 +60,7 @@ from o2ac_assembly_database.assembly_reader import AssemblyReader
 from o2ac_routines.common import O2ACCommon
 import o2ac_routines.helpers as helpers
 
-from ur_control.constants import TERMINATION_CRITERIA
+from ur_control.constants import DONE, TERMINATION_CRITERIA
 
 class O2ACAssembly(O2ACCommon):
   """
@@ -189,24 +189,96 @@ class O2ACAssembly(O2ACCommon):
     self.allow_collisions_with_robot_hand("shaft", "b_bot", True)
     self.allow_collisions_with_robot_hand("end_cap", "a_bot", True)
 
+    self.publish_status_text("Target: shaft" )
     if not self.orient_shaft():
       return False
     
+    self.publish_status_text("Target: end cap" )
     if not self.orient_shaft_end_cap():
       return False
 
-    pre_insertion_shaft = conversions.to_pose_stamped("tray_center", [0.0, 0, 0.2, 0, 0, -tau/4.])
+    pre_insertion_shaft = conversions.to_pose_stamped("tray_center", [0.0, 0, 0.2, tau/2., 0, -tau/4.])
     if not self.b_bot.go_to_pose_goal(pre_insertion_shaft, speed=0.2):
       rospy.logerr("Fail to go to pre_insertion_shaft")
       return False
 
-    pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [0.0, 0, 0.3]+np.deg2rad([-180, 90, -90]).tolist())
+    pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [-0.003, 0, 0.25]+np.deg2rad([-180, 90, -90]).tolist())
     if not self.a_bot.go_to_pose_goal(pre_insertion_end_cap, speed=0.2, move_lin=False):
       rospy.logerr("Fail to go to pre_insertion_end_cap")
       return False
 
-    self.a_bot.linear_push(3, "-Z", max_translation=0.1, timeout=10.0)
+    self.confirm_to_proceed("insertion of end cap")
+
+    self.a_bot.linear_push(3, "+Z", max_translation=0.1, timeout=10.0)
+    self.a_bot.move_lin_rel(relative_translation=[0,0,0.002]) # release pressure before insertion
+
+    selection_matrix = [0.3, 0.3, 0., 0.95, 1, 1]
+    target_pose_target_frame = conversions.to_pose_stamped("tray_center", [-0.003, -0.000, 0.233]+np.deg2rad([-180, 90, -90]).tolist())
+    result = self.a_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="+Z", force=2.0, timeout=20.0, 
+                                                      radius=0.004, relaxed_target_by=0.003, selection_matrix=selection_matrix,
+                                                      check_displacement_time=3.)
+    success = result in (TERMINATION_CRITERIA, DONE)
+    if not success:
+      return False
+
+    self.a_bot.gripper.send_command(0.06, velocity=0.01)
+    self.a_bot.gripper.detach_object("end_cap")
+    self.despawn_object("end_cap")
     
+    self.confirm_to_proceed("prepare screw")
+
+    if not self.a_bot.go_to_named_pose("screw_ready"):
+      return False
+    if not self.do_change_tool_action("a_bot", equip=True, screw_size = 4):
+      rospy.logerr("Failed equip m4")
+      return False
+
+    self.confirm_to_proceed("pick screw")
+    if not self.pick_screw_from_feeder("a_bot", screw_size = 4, realign_tool_upon_failure=True):
+      rospy.logerr("Failed to pick screw from feeder, could not fix the issue. Abort.")
+      return False
+    if not self.a_bot.go_to_named_pose("screw_ready"):
+      return False
+    
+    self.confirm_to_proceed("go to pre_screwing_end_cap")
+    pre_screwing_end_cap = conversions.to_pose_stamped("tray_center", [-0.001, 0.019, 0.388]+np.deg2rad([180, 30, 90]).tolist())
+    if not self.a_bot.go_to_pose_goal(pre_screwing_end_cap, speed=0.2, move_lin=False):
+      rospy.logerr("Fail to go to pre_screwing_end_cap")
+      return False
+
+    self.confirm_to_proceed("try to screw")
+
+    self.a_bot.move_lin_rel(relative_translation=[0, 0, -0.02], speed=0.01)
+    self.tools.set_motor("screw_tool_m4", "tighten", duration=10.0, wait=True, skip_final_loosen_and_retighten=False)
+    self.a_bot.move_lin_rel(relative_translation=[0, 0, 0.04], speed=0.01)
+    
+    self.confirm_to_proceed("unequip tool")
+    self.tools.set_suction("screw_tool_m4", suction_on=False, wait=False)
+
+    if not self.a_bot.go_to_named_pose("screw_ready"):
+      return False
+    
+    if not self.do_change_tool_action("a_bot", equip=False, screw_size = 4):
+      rospy.logerr("Failed unequip m4")
+      return False
+    
+    if not self.a_bot.go_to_named_pose("home"):
+      return False
+    
+    self.confirm_to_proceed("insert to bearing")
+    
+    if not self.b_bot.go_to_named_pose("home"):
+       return False
+
+    if not self.align_shaft("assembled_part_07_inserted"):
+      return False
+
+    if not self.insert_shaft("assembled_part_07_inserted", target=0.043):
+      return False
+
+    if not self.b_bot.go_to_named_pose("home"):
+       return False
+
     self.allow_collisions_with_robot_hand("end_cap", "a_bot", False)
     self.allow_collisions_with_robot_hand("shaft", "b_bot", False)
 

@@ -231,6 +231,8 @@ if __name__ == '__main__':
         c.subtask_b() # motor pulley
       elif i == '96':
         c.subtask_e() # idler pin
+      elif i == '97':
+        c.subtask_c2() # shaft
         # 97: shaft, 98: clamp pulley, 99: belt).")
       elif i == "899":
         center_plate_pose = geometry_msgs.msg.PoseStamped()
