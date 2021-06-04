@@ -10,9 +10,8 @@ Panels:
         - /TF2/Frames1
         - /DepthCloud1/Auto Size1
         - /Success Visualization1/Namespaces1
-        - /Motion Planning Tasks1
       Splitter Ratio: 0.6773163080215454
-    Tree Height: 267
+    Tree Height: 242
   - Class: rviz/Help
     Name: Help
   - Class: rviz/Views
@@ -29,8 +28,8 @@ Panels:
     Name: Motion Planning Tasks
     Tasks View:
       property_splitter:
-        - 85
-        - 85
+        - 108
+        - 107
       solution_sorting:
         column: 0
         order: 1
@@ -54,17 +53,17 @@ Panels:
     Name: Motion Planning Tasks
     Tasks View:
       property_splitter:
-        - 85
-        - 85
+        - 148
+        - 148
       solution_sorting:
         column: 0
         order: 1
       solutions_splitter:
-        - 171
-        - 85
+        - 48
+        - 48
       solutions_view_columns: ~
       tasks_view_columns:
-        - 82
+        - 26
         - 26
         - 26
         - 35
@@ -1906,6 +1905,64 @@ Visualization Manager:
           Value: true
         set_screw_tool_pickup_link:
           Value: true
+        taskboard_assy_part_07:
+          Value: true
+        taskboard_assy_part_07_back_hole:
+          Value: true
+        taskboard_assy_part_07_back_tip:
+          Value: true
+        taskboard_assy_part_07_front_hole:
+          Value: true
+        taskboard_assy_part_07_inserted:
+          Value: true
+        taskboard_assy_part_07_screw_hole_1:
+          Value: true
+        taskboard_assy_part_07_screw_hole_2:
+          Value: true
+        taskboard_assy_part_07_screw_hole_3:
+          Value: true
+        taskboard_assy_part_07_screw_hole_4:
+          Value: true
+        taskboard_base:
+          Value: true
+        taskboard_base_screw_1_link:
+          Value: true
+        taskboard_base_screw_2_link:
+          Value: true
+        taskboard_base_screw_3_link:
+          Value: true
+        taskboard_base_screw_4_link:
+          Value: true
+        taskboard_bearing_target_link:
+          Value: true
+        taskboard_bearing_target_screw_1_link:
+          Value: true
+        taskboard_bearing_target_screw_2_link:
+          Value: true
+        taskboard_bearing_target_screw_3_link:
+          Value: true
+        taskboard_bearing_target_screw_4_link:
+          Value: true
+        taskboard_large_pulley:
+          Value: true
+        taskboard_long_hole_middle_link:
+          Value: true
+        taskboard_long_hole_top_link:
+          Value: true
+        taskboard_m3_screw_link:
+          Value: true
+        taskboard_m4_screw_link:
+          Value: true
+        taskboard_plate:
+          Value: true
+        taskboard_set_screw_link:
+          Value: true
+        taskboard_small_pulley:
+          Value: true
+        taskboard_small_shaft:
+          Value: true
+        taskboard_surface:
+          Value: true
         tool0_controller:
           Value: true
         tray:
@@ -2144,7 +2201,59 @@ Visualization Manager:
             workspace_center:
               base_fixture_top:
                 attached_base_origin_back_link:
-                  {}
+                  taskboard_base:
+                    taskboard_base_screw_1_link:
+                      {}
+                    taskboard_base_screw_2_link:
+                      {}
+                    taskboard_base_screw_3_link:
+                      {}
+                    taskboard_base_screw_4_link:
+                      {}
+                    taskboard_plate:
+                      taskboard_assy_part_07:
+                        taskboard_assy_part_07_back_hole:
+                          {}
+                        taskboard_assy_part_07_back_tip:
+                          {}
+                        taskboard_assy_part_07_front_hole:
+                          {}
+                        taskboard_assy_part_07_inserted:
+                          {}
+                        taskboard_assy_part_07_screw_hole_1:
+                          {}
+                        taskboard_assy_part_07_screw_hole_2:
+                          {}
+                        taskboard_assy_part_07_screw_hole_3:
+                          {}
+                        taskboard_assy_part_07_screw_hole_4:
+                          {}
+                      taskboard_bearing_target_link:
+                        taskboard_bearing_target_screw_1_link:
+                          {}
+                        taskboard_bearing_target_screw_2_link:
+                          {}
+                        taskboard_bearing_target_screw_3_link:
+                          {}
+                        taskboard_bearing_target_screw_4_link:
+                          {}
+                      taskboard_large_pulley:
+                        {}
+                      taskboard_long_hole_middle_link:
+                        taskboard_long_hole_top_link:
+                          {}
+                      taskboard_m3_screw_link:
+                        {}
+                      taskboard_m4_screw_link:
+                        {}
+                      taskboard_set_screw_link:
+                        {}
+                      taskboard_small_pulley:
+                        {}
+                      taskboard_small_shaft:
+                        {}
+                      taskboard_surface:
+                        {}
                 attached_base_origin_link:
                   {}
                 back_bar:
@@ -3030,10 +3139,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.4197956919670105
+      Pitch: 0.6297958493232727
       Target Frame: world
       Value: Orbit (rviz)
-      Yaw: 0.036861684173345566
+      Yaw: 0.6218619346618652
     Saved: ~
 Window Geometry:
   Active camera:
@@ -3047,8 +3156,6 @@ Window Geometry:
     collapsed: false
   Hide Left Dock: false
   Hide Right Dock: false
-  Motion Planning Stages:
-    collapsed: false
   Motion Planning Tasks:
     collapsed: false
   Motion Planning Tasks - Slider:
@@ -3059,7 +3166,7 @@ Window Geometry:
     collapsed: false
   O2ACSetupPanel:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd0000000200000000000001ca000003a2fc020000000cfb000000100044006900730070006c006100790073010000003b0000018c000000c700fffffffb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e006701000001cd000001740000016900fffffffb0000000800480065006c00700000000342000000bb0000006e00fffffffb0000000a005600690065007700730000000161000000ac000000a000fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670100000374000001890000000000000000fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000001600000016fb0000003c004d006f00740069006f006e00200050006c0061006e006e0069006e00670020005400610073006b00730020002d00200053006c00690064006500720000000000ffffffff0000001600fffffffb0000000a0049006d00610067006501000003c7000000160000000000000000fb000000180041007200750063006f00200072006500730075006c00740100000347000000960000001600fffffffb000000120020002d00200053006c00690064006500720000000000ffffffff0000000000000000fb0000002c004d006f00740069006f006e00200050006c0061006e006e0069006e006700200053007400610067006500730000000345000000980000005b00ffffff0000000100000104000003a2fc0200000008fb0000002a004d006f00740069006f006e00200050006c0061006e006e0069006e00670020005400610073006b0073010000003b000000e3000000e300fffffffb0000002a004d006f00740069006f006e00200050006c0061006e006e0069006e00670020005400610073006b00730000000124000000e3000000e300fffffffb0000001c004f0032004100430053006500740075007000500061006e0065006c0100000124000001650000016500fffffffb0000001a0056006900730069006f006e00200052006500730075006c0074010000028f000000a20000001600fffffffb0000001a004100630074006900760065002000630061006d0065007200610100000337000000a60000001600fffffffb0000001a004100630074006900760065002000630061006d00650072006101000001a6000001150000000000000000fb0000001a0056006900730069006f006e00200052006500730075006c007401000002c10000011c0000000000000000fb000000180041007200750063006f00200072006500730075006c00740000000311000000cc00000000000000000000045e000003a200000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000200000000000001ca000003a2fc020000000cfb000000100044006900730070006c006100790073010000003b00000173000000c700fffffffb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e006701000001b4000001740000017400fffffffb0000000800480065006c00700000000342000000bb0000006e00fffffffb0000000a005600690065007700730000000161000000ac000000a000fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670100000374000001890000000000000000fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000001600000016fb0000003c004d006f00740069006f006e00200050006c0061006e006e0069006e00670020005400610073006b00730020002d00200053006c00690064006500720000000000ffffffff0000001600fffffffb0000000a0049006d00610067006501000003c7000000160000000000000000fb000000180041007200750063006f00200072006500730075006c0074010000032e000000af0000001600fffffffb000000120020002d00200053006c00690064006500720000000000ffffffff0000000000000000fb0000002c004d006f00740069006f006e00200050006c0061006e006e0069006e0067002000530074006100670065007300000003450000009800000000000000000000000100000104000003a2fc0200000008fb0000002a004d006f00740069006f006e00200050006c0061006e006e0069006e00670020005400610073006b0073010000003b00000110000000e300fffffffb0000002a004d006f00740069006f006e00200050006c0061006e006e0069006e00670020005400610073006b00730000000124000000e3000000e300fffffffb0000001c004f0032004100430053006500740075007000500061006e0065006c0100000151000001650000016500fffffffb0000001a0056006900730069006f006e00200052006500730075006c007401000002bc000000940000001600fffffffb0000001a004100630074006900760065002000630061006d0065007200610100000356000000870000001600fffffffb0000001a004100630074006900760065002000630061006d00650072006101000001a6000001150000000000000000fb0000001a0056006900730069006f006e00200052006500730075006c007401000002c10000011c0000000000000000fb000000180041007200750063006f00200072006500730075006c00740000000311000000cc00000000000000000000045e000003a200000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Views:
     collapsed: false
   Vision Result:

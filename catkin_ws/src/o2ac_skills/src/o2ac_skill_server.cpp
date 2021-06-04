@@ -1046,7 +1046,7 @@ bool SkillServer::sendGripperCommand(std::string robot_name, double opening_widt
   return finished_before_timeout;
 }
 
-bool SkillServer::sendFasteningToolCommand(std::string fastening_tool_name, std::string direction, bool wait, double duration, int speed)
+bool SkillServer::sendFasteningToolCommand(std::string fastening_tool_name, std::string direction, bool wait, double duration, int speed, bool skip_final_loosen_and_retighten)
 {
   if (!use_real_robot_)
     return true;
@@ -1060,6 +1060,7 @@ bool SkillServer::sendFasteningToolCommand(std::string fastening_tool_name, std:
   goal.direction = direction;
   goal.duration = duration;
   goal.speed = speed;
+  goal.skip_final_loosen_and_retighten = skip_final_loosen_and_retighten;
   fastening_tool_client.sendGoal(goal);
   if (wait)
   {
@@ -1770,7 +1771,7 @@ void SkillServer::executeScrew(const o2ac_msgs::screwGoalConstPtr& goal)
   // double duration = 20.0;
   // if (goal->screw_size)
   //   duration = 25.0;
-  sendFasteningToolCommand(screw_tool_id, "tighten", false, 20.0);
+  sendFasteningToolCommand(screw_tool_id, "tighten", false, 20.0, goal->loosen_and_retighten_when_done);
   // Disable collision for screw tool 
   updatePlanningScene();
   collision_detection::AllowedCollisionMatrix acm_original(planning_scene_.allowed_collision_matrix);

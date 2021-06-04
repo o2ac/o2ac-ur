@@ -27,10 +27,10 @@
   <!-- Add screw feeders -->
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/screw_feeder.xacro" />
   
-  <xacro:screw_feeder feedername="m3_feeder" parent="workspace_center">
+  <xacro:screw_feeder feedername="m3_feeder" parent="workspace_center" with_collision_geometry="false">
     <origin xyz="-.512 -.1525 -0.023" rpy="0 0 0" />   
   </xacro:screw_feeder> 
-  <xacro:screw_feeder feedername="m4_feeder" parent="workspace_center">
+  <xacro:screw_feeder feedername="m4_feeder" parent="workspace_center" with_collision_geometry="false">
     <origin xyz="-.514 .004 -0.023" rpy="0 0 0" />   
   </xacro:screw_feeder> 
 
@@ -56,6 +56,19 @@
   <xacro:vgroove_aid jigname="vgroove_aid" parent="b_bot_base_link">
     <origin xyz="-0.2927 0.17214 0.0" rpy="0 0 0" />   
   </xacro:vgroove_aid> 
+
+
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/simple_holder.xacro" />
+  <xacro:simple_holder partname="simple_holder" parent="workspace_center">
+    <origin xyz="0.257 -0.607 -0.0149" rpy="0 0 0" />  
+  </xacro:simple_holder> 
+
+  <joint name="right_centering_joint" type="fixed">
+    <parent link="workspace_center"/>
+    <child link="right_centering_link"/>
+    <origin xyz="0.20 0.30 -0.0149" rpy="0 ${pi/2} -${pi/2}" />
+  </joint>
+  <link name="right_centering_link"/>
 
 
   <!-- ======== -->

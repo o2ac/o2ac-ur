@@ -23,18 +23,18 @@ from ur_control import conversions
 
 
 class URRobot():
-    def __init__(self, namespace, use_real_robot, tf_listener):
+    def __init__(self, namespace, tf_listener):
         """
         namespace should be "a_bot" or "b_bot".
         use_real_robot is a boolean
         """
-        self.use_real_robot = use_real_robot
+        self.use_real_robot = rospy.get_param("use_real_robot", False)
         self.ns = namespace
         self.listener = tf_listener
         self.marker_counter = 0
 
         try:
-            self.force_controller = URForceController(robot_name=namespace)
+            self.force_controller = URForceController(robot_name=namespace, listener=tf_listener)
         except rospy.ROSException as e:
             rospy.logwarn("No force control capabilities since controller could not be instantiated" + str(e))
 
@@ -74,7 +74,7 @@ class URRobot():
         self.robot_safety_mode = None
         self.robot_status = dict()
 
-        self.gripper = RobotiqGripper(namespace=self.ns, use_real_robot=use_real_robot, gripper_group=self.gripper_group)
+        self.gripper = RobotiqGripper(namespace=self.ns, gripper_group=self.gripper_group)
 
     def run_mode_callback(self, msg):
         self.run_mode_ = msg.data
@@ -134,6 +134,7 @@ class URRobot():
         rospy.set_param(self.ns + "/carrying_tool",   self.robot_status.carrying_tool)
         rospy.set_param(self.ns + "/held_tool_id",    self.robot_status.held_tool_id)
     
+    @helpers.check_for_real_robot
     def wait_for_control_status_to_turn_on(self, waittime):
         start = rospy.Time.now()
         elapsed = rospy.Time.now() - start
@@ -144,6 +145,7 @@ class URRobot():
                 return True
         return False
 
+    @helpers.check_for_real_robot
     def activate_ros_control_on_ur(self, recursion_depth=0):
         if not self.use_real_robot:
             return True
@@ -161,7 +163,7 @@ class URRobot():
         if recursion_depth > 10:
             rospy.logerr("Tried too often. Breaking out.")
             rospy.logerr("Could not start UR ROS control.")
-            raise Exception("Could not activate ROS control on robot " + self.ns + ". Breaking out.")
+            raise Exception("Could not activate ROS control on robot " + self.ns + ". Breaking out. Is the UR in Remote Control mode and program installed with correct name?")
 
         if rospy.is_shutdown():
             return False
@@ -216,27 +218,28 @@ class URRobot():
             response = self.ur_dashboard_clients["play"].call(std_srvs.srv.TriggerRequest())
         except:
             pass
-        rospy.loginfo("Entered wait_for_control_status_to_turn_on")
+        rospy.loginfo("Enter wait_for_control_status_to_turn_on")
         self.wait_for_control_status_to_turn_on(2.0)
         rospy.loginfo("Exited wait_for_control_status_to_turn_on")
-        # if not response.success:
-        #     rospy.logerr("Could not start UR control. Is the UR in Remote Control mode and program installed with correct name?")
-        #     return False
-        # else:
-        #     # Check if controller is running
-        #     self.check_for_dead_controller_and_force_start()
-        #     rospy.loginfo("Successfully activated ROS control on robot " + self.ns)
-        #     return True
         
-        # FIXME: Apparently this can still fail if the controller is off but the program is already running on the UR
         if self.check_for_dead_controller_and_force_start():
             rospy.loginfo("Successfully activated ROS control on robot " + self.ns)
             return True
         else:
-            rospy.logerr("Could not start UR control. Is the UR in Remote Control mode and program installed with correct name?")
-            return False
+            # Try stopping and restarting the program to restart the controllers
+            try:
+                rospy.logwarn("Trying to restart URCap program on UR to restart controllers on ROS side")
+                response = self.ur_dashboard_clients["stop"].call()
+                rospy.sleep(2.0)
+                response = self.ur_dashboard_clients["play"].call()
+                if self.wait_for_control_status_to_turn_on(2.0):
+                    return True
+            except:
+                rospy.logerr("Failed to quit/restart")
+                pass
+            return self.activate_ros_control_on_ur(recursion_depth=recursion_depth+1)
         
-
+    @helpers.check_for_real_robot
     def check_for_dead_controller_and_force_start(self):
         list_req = controller_manager_msgs.srv.ListControllersRequest()
         switch_req = controller_manager_msgs.srv.SwitchControllerRequest()
@@ -256,11 +259,13 @@ class URRobot():
                     rospy.loginfo("Controller state is " + c.state + ", returning True.")
                     return True
 
+    @helpers.check_for_real_robot
     def load_and_execute_program(self, program_name="", recursion_depth=0):
         if not self.load_program(program_name, recursion_depth):
             return False
         return self.execute_loaded_program()
 
+    @helpers.check_for_real_robot
     def load_program(self, program_name="", recursion_depth=0):
         if not self.use_real_robot:
             return True
@@ -302,6 +307,7 @@ class URRobot():
             rospy.sleep(.5)
             return self.load_program(program_name=program_name, recursion_depth=recursion_depth+1)
 
+    @helpers.check_for_real_robot
     def execute_loaded_program(self):
         # Run the program
         response = self.ur_dashboard_clients["play"].call(std_srvs.srv.TriggerRequest())
@@ -312,6 +318,7 @@ class URRobot():
             rospy.loginfo("Successfully started program on robot " + self.ns)
             return True
 
+    @helpers.check_for_real_robot
     def close_ur_popup(self):
         # Close a popup on the teach pendant to continue program execution
         response = self.ur_dashboard_clients["close_popup"].call(std_srvs.srv.TriggerRequest())
@@ -358,7 +365,7 @@ class URRobot():
 
         current_pose = group.get_current_pose().pose
         if not move_success:
-            rospy.logwarn("move_lin command failed. Publishing failed pose.")
+            rospy.logwarn("go_to_pose_goal command failed. Publishing failed pose.")
             helpers.publish_marker(pose_goal_stamped, "pose", self.ns + "_go_to_pose_goal_failed_pose_" + str(self.marker_counter))
             self.marker_counter += 1
         else:
@@ -406,7 +413,7 @@ class URRobot():
         goal.request = moveit_msgs.msg.MotionSequenceRequest()
         goal.request.items = motion_plan_requests
 
-        for i in range(5):
+        for i in range(10):
             result = self.sequence_move_group.send_goal_and_wait(goal)
             if result == GoalStatus.ABORTED:
                 rospy.logwarn("(move_lin_trajectory) Planning failed, retry: %s of 5" % (i+1))
@@ -541,7 +548,7 @@ class URRobot():
             sp = 1.0
         if acc > sp/2.0:
             # if acc > (sp/2.0 + .00001):  # This seems to trigger because of rounding errors unless we add this small value
-            rospy.logwarn("Setting acceleration to " + str(sp/2.0) + " instead of " + str(acceleration) + " to avoid jerky motion.")
+            rospy.logdebug("Setting acceleration to " + str(sp/2.0) + " instead of " + str(acceleration) + " to avoid jerky motion.")
             acc = sp/2.0
         return (sp, acc)
 

@@ -21,18 +21,9 @@
       </material>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="0 0.02 0.025"/>
-      <!-- <geometry>
-        <box size=".04 .04 .02"/> 
-      </geometry> -->
+      <origin rpy="${pi/2} 0 ${pi/2}" xyz="0 0 0.0"/>
       <geometry>
-        <box size=".04 .005 .05"/> 
-      </geometry>
-    </collision>
-    <collision>
-      <origin rpy="0 0 0" xyz="0 -.02 0.025"/>
-      <geometry>
-        <box size=".04 .005 .05"/> 
+        <mesh filename="${mesh_file}" scale=".001 .001 .001"/>
       </geometry>
     </collision>
   </link>

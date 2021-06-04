@@ -282,6 +282,7 @@ class O2ACVisionServer(object):
         action_result = o2ac_msgs.msg.shaftNotchDetectionResult()
         
         top, bottom, im_vis = self.shaft_notch_detection(im_in)
+        print("top", top, "bottom", bottom)
         
         action_result.shaft_notch_detected_at_top = top
         action_result.shaft_notch_detected_at_bottom = bottom
@@ -443,7 +444,7 @@ class O2ACVisionServer(object):
                 rospy.loginfo("Seeing object id %d (belt). Apply grasp detection", target)
                 estimated_poses_msg.poses, im_vis \
                     = self.belt_grasp_detection_in_image(im_in, im_vis, ssd_result)
-                
+                rospy.loginfo("Saw " + str(len(estimated_poses_msg.poses)) + " belt grasp poses.")
                 # Publish result markers
                 poses_3d = []
                 for p2d in estimated_poses_msg.poses:
@@ -451,6 +452,7 @@ class O2ACVisionServer(object):
                     if p3d:
                         poses_3d.append(p3d)
                 self.publish_belt_grasp_pose_markers(poses_3d)
+                rospy.loginfo("Done with belt grasp detection")
 
             estimated_poses_array.append(estimated_poses_msg)
         
@@ -504,8 +506,8 @@ class O2ACVisionServer(object):
         # Generation of a hand template
         im_hand = np.zeros( (60,60), np.float )
         hand_width = 20 #in pixel
-        im_hand[0:10,20:20+hand_width] = 1
-        im_hand[50:60,20:20+hand_width] = 1
+        im_hand[20:20+hand_width,0:10] = 1
+        im_hand[20:20+hand_width,50:60] = 1
 
         bbox = ssd_result["bbox"]
         margin = 30

@@ -1,0 +1,19 @@
+robot_name: b_bot
+waypoints:
+- pose: [1.8108925819396973, -2.119059225121969, 1.8984859625445765, -1.3372403693250199,
+    -1.780367676411764, 1.1874641180038452]
+  pose_type: joint-space-goal-cartesian-lin-motion
+  speed: 0.4
+  blend: 0.0
+  is_trajectory: True
+- pose: [2.0818, -1.9657, 2.3201, -1.8999, -2.1383, -4.1908]
+  pose_type: joint-space-goal-cartesian-lin-motion
+  speed: 0.4
+  blend: 0.005
+  is_trajectory: True
+- pose: [1.8352279663085938, -1.5309735995582123, 2.044708553944723, -2.43434538463735,
+    -2.2098997274981897, 1.8864234685897827]
+  pose_type: joint-space-goal-cartesian-lin-motion
+  speed: 0.4
+  blend: 0.005
+  is_trajectory: True

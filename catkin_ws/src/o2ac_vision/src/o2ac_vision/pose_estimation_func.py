@@ -740,167 +740,91 @@ class PickCheck():
 # Notch part detection
 #
 # sample code:
-#  img = input image (1ch gray scale)
-#  bbox = [350,100,100,400] # ROI(x,y,w,h) of shaft area
-#  temp_root = rospack.get_path("wrs_dataset") + "/data/templates_shaft"
-#  sa = ShaftAnalysis( imgs, bbox, temp_root )
-#  (front, back) = sa.main_proc( 0.5 ) # threshold.
 #
-#  If notch is seen in image, front or back are true (front is at the top).
+#  bbox = [360, 140, 90, 150] # (x,y,w,h) ... bbox of upper half of shaft.
+#  sa = ShaftAnalysis( im1, im2, bbox )
+#  flag = sa.main_proc()
+# 
+# plt.imshow(sa.get_result_image()) # for visualize
 #
-# for visualization:
-#  ## visualization of template matching
-#  plt.imshow( sa.get_tm_result_image() )
-#  ## visualization of shaft intensity difference for top and bottom region
-#  diff_top, diff_bottom = sa.get_diff_list()
-#  plt.plot(diff_bottom)
-#  plt.plot(diff_top)
+# # im1 and im2 are first and second view.
+# im2 is current image of "after" rotated shaft
+# im1 is previous image of "before" rotated shaft
+# if flag is True, notch has faced front.
 #############################################################################
-
 class ShaftAnalysis():
-    # img: input image
-    # bbox: bounding box [x,y,w,h] of shaft region
-    # temp_root: path to templates_shaft
-    def __init__( self, img, bbox, temp_root ):
-        
-        self.info = {"class":8, "bbox":bbox}
-        temp_info_name = "template_info.json"
-        
-        # downsampling rate
-        ds_rate = 1.0/2.0
-        tm = TemplateMatching( img, ds_rate, temp_root, temp_info_name  )
-        im_temp = cv2.imread( temp_root+"/8.png",0)
-        
-
-        # template matching
-        self.center, self.ori = tm.compute(self.info )
-        self.im_tm_result = tm.get_result_image(self.info, self.ori, 
-                                                np.array(self.center, np.int))
-        
-        rows, cols = im_temp.shape
-        rot_mat = cv2.getRotationMatrix2D( (cols/2, rows/2), 360-self.ori,1 )
-        res_im_temp =  cv2.warpAffine( im_temp, rot_mat, (cols, rows) )
-        res_im_temp = np.clip(res_im_temp, 0, 1)
-
-
-        ltop = np.array(self.center - np.array([rows,cols])/2, np.int)
-        im_scene_mask = np.zeros(img.shape)
-        im_scene_mask[ ltop[0]:ltop[0]+rows,  ltop[1]:ltop[1]+cols ] = res_im_temp
-
-        self.im_crop = copy.deepcopy( (img*im_scene_mask)[ ltop[0]:ltop[0]+rows, ltop[1]:ltop[1]+cols ] )
-        self.im_crop = np.array( self.im_crop, np.uint8)
-        rot_mat_rev = cv2.getRotationMatrix2D( (cols/2, rows/2), self.ori,1 )
-        self.im_crop =  cv2.warpAffine( self.im_crop, rot_mat_rev, (cols, rows) )
-        self.invalid_value = 255
-        
-        # variables for debuging
-        ## a list of intensity difference
-        self.diff_list = list()
-        ## mean intensity difference
-        self.diff_top = None  
-        self.diff_bottom = None
-    
-    # make a list consists of line[d+1]-line[d]
-    def difference( self, line ):
-        line = np.array(line, np.float)
-        diff = list()
-        for d in range(len(line)-1):
-            if line[d]==0:
-                diff.append(self.invalid_value)
-            else:
-                diff.append(line[d+1]-line[d])
-
-        diff = np.abs(diff)
-        return diff
-
-    # Counts the values in the list that are below the threshold. 
-    def count_constant( self, diff_list, th=10 ):
-
-        max_constant = 0
-        for i in range( len(diff_list)-1 ):
-            l = 1
-            n_constant = 0
-            while(i+l <len(diff_list)-1):
-                if diff_list[i+l] < th:
-                    n_constant += 1
-                else:
-                    break
-                l+=1
-            if max_constant < n_constant:
-                max_constant = n_constant
-
-        return max_constant
-    
-    def count_valid_elements( self, diff_list ):
-        
-        ve = 0
-        for d in diff_list:
-            if d != self.invalid_value:
-                ve += 1
-        return ve
-    
-    # Input:
-    #  th: Percentage of notch area in level slice of shaft area．(default: 0.5)
-    #  top_range: 　　y axis range to be checked（top area） 
-    #  bottom_range:　y axis range to be checked（bottom area） 
-    # Output:
-    #  notch_seen_at_top: True if notch is detected at front (top).
-    #  notch_seen_at_bottom: True if notch is detected at back (bottom).
-    def main_proc(self, th, top_range=[30,90], bottom_range=[270,330]):
-        
-        nmc_list = list()
-        for i in range(self.im_crop.shape[0]):
-            ft_img = np.array(self.im_crop, np.float)
-            diff = self.difference( self.im_crop[i,:] )
-            self.diff_list.append(diff)
-            nmc = self.count_constant(diff, 10)
-            ve = self.count_valid_elements( diff )
-            nmc_list.append(nmc/(ve+0.0001))
-        
-        
-        dt = self.diff_list[int((top_range[0]+top_range[1])/2)]
-        db = self.diff_list[int((bottom_range[0]+bottom_range[1])/2)]
-        self.diff_top = dt[dt < 255]
-        self.diff_bottom = db[db < 255]
-        
-        top_mean = np.mean(nmc_list[top_range[0]:top_range[1]] )
-        bottom_mean = np.mean(nmc_list[bottom_range[0]:bottom_range[1]] )
-        #print(top_mean, bottom_mean)
-        
-        return th<top_mean, th<bottom_mean
-    
-    
-    def get_frontized_image(self):
-        
-        return copy.deepcopy(self.im_crop)
-    
-    def get_orientation(self):
-        return self.ori
-        
-    def get_tm_result_image(self, front_found=False, back_found=False):
+    def __init__( self, im_in1, im_in2, bbox ):
         """
-        Draws the areas that were evaluated with the color indicating the result
+        Input:
+          im_in1(np.array): previous image as background(1ch gray scale)
+          im_in2(np.array): current image(1ch gray scale)
+          bbox(tuple): tuple that represents bbox (x,y,w,h)
         """
-        top_color = (0,0,255)
-        bottom_color = (0,0,255)
-        if front_found:
-            top_color = (0,255,50)
-        if back_found:
-            bottom_color = (0,255,50)
+        # parameters
+        self.threshold = 30 # thethold for image subtraction
+        self.threshold_area = 20 # threshold for the number of specular pixel
 
-        x_offset = self.info["bbox"][0]
-        width = self.info["bbox"][3]
-        y_offset = self.info["bbox"][1]
+        # crop ROI
+        self.im_crop1 = im_in1[bbox[1]:bbox[1]+bbox[3],bbox[0]:bbox[0]+bbox[2]]
+        self.im_crop2 = im_in2[bbox[1]:bbox[1]+bbox[3],bbox[0]:bbox[0]+bbox[2]]
 
-        top_range=[30,90]
-        bottom_range=[270,330]
-        dt = self.diff_list[int((top_range[0]+top_range[1])/2)]
-        db = self.diff_list[int((bottom_range[0]+bottom_range[1])/2)]
-        im_res = copy.deepcopy(self.im_tm_result)
-        im_res = cv2.rectangle( im_res, ( 10+x_offset,  top_range[0]+y_offset), (width+x_offset-20, top_range[1]+y_offset), top_color, 3 )
-        im_res = cv2.rectangle( im_res, ( 10+x_offset,  bottom_range[0]+y_offset), (width+x_offset-20, bottom_range[1]+y_offset), bottom_color, 3 )
-        return im_res
+        # variables to be computed
+        self.max_blob_bbox = None # bbox surrounding the edge of notch
+        self.max_blob_area = 0    # total pixel of the edge of notch
+
+    def set_threshold(self, n):
+        """ set threshold for image subtraction
+        Input:
+          n(uchar): threshold value
+        """
+        self.threshold = n
     
-    def get_diff_list( self ):
+    def set_threshold_area(self, n):
+        """ set threshold for specular area
+        Input:
+          n(uchar): threshold value
+        """
+        self.threshold_area = n
+
+    def main_proc(self):
+        # background subtraction
+        diff = np.abs(self.im_crop1.astype(float)-self.im_crop2.astype(float))
+        self.mask = np.where( self.threshold<diff, 1, 0)
+
+        # apply y-axis sobel
+        self.im_sobel = cv2.Sobel(self.im_crop2, cv2.CV_8UC1, dx=0, dy=1, ksize=3 )
+
+        # detect notch candidate
+        notch_prob = self.mask*self.im_sobel
+        self.notch_cand = np.where( self.threshold<notch_prob,1,0).astype(np.uint8)
+        kernel = np.ones((3,3),np.uint8)
+        self.notch_cand = cv2.morphologyEx(self.notch_cand, cv2.MORPH_CLOSE, kernel)
+
+        # blob analysis
+        n_label, labels, stats, centroids = cv2.connectedComponentsWithStats(self.notch_cand)
         
-        return self.diff_top, self.diff_bottom
+        if n_label == 1: # no candidate detected
+            print("no blob")
+            return False
+        stats = stats[1:,:] # remove background
+        max_blob_id = np.argmax( stats[:,4] )
+        self.max_blob_bbox = stats[max_blob_id,0:4] # blob bbox
+        self.max_blob_area = stats[max_blob_id,4] # blob area
+
+        if self.threshold_area < self.max_blob_area:
+            return True
+        else:
+            return False
+
+    def get_result_image( self ):
+        im_vis = cv2.cvtColor(self.im_crop2, cv2.COLOR_GRAY2BGR)
+        im_vis[:,:,0] += 100*self.notch_cand
+        if self.max_blob_bbox is not None:
+            pt1 =  (self.max_blob_bbox[0], self.max_blob_bbox[1])
+            pt2 = self.max_blob_bbox[0:2]+self.max_blob_bbox[2:4]
+            pt2 = (pt2[0],pt2[1])
+            im_vis = cv2.rectangle( im_vis, pt1, pt2,(0,255,0), 1 )
+            text = "area: " + str(self.max_blob_area)
+            im_vis = cv2.putText(im_vis, text, (5,20), 0, 0.5,(255,255,255),2, cv2.LINE_AA)
+            im_vis = cv2.putText(im_vis, text, (5,20), 0, 0.5,(255,0,0),1, cv2.LINE_AA)
+        return im_vis

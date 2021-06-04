@@ -7,6 +7,7 @@ float64 screw_height         # In m, measured from the bottom of the head (M3x5 
 uint8 screw_size             # M3, M4, M6 (without the M)
 string robot_name            # b_bot, c_bot
 bool stay_put_after_screwing # If true, the robot stays at the position where the screw was screwed in (hopefully)
+bool loosen_and_retighten_when_done # If true, when motor is stalled, it loosens for 1 sec and then tightens again. This is to avoid screws stuck at the start of the thread.
 ---
 # Result
 bool success

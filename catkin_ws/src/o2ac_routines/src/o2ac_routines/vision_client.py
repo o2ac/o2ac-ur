@@ -3,13 +3,17 @@ import rospy
 from aist_camera_multiplexer import RealSenseMultiplexerClient
 import o2ac_msgs.msg
 
+from o2ac_routines.helpers import check_for_real_robot
+
 class VisionClient():
     def __init__(self):
-
-        try:
-            self.vision_multiplexer = RealSenseMultiplexerClient('camera_multiplexer')
-        except:
-            self.vision_multiplexer = []
+        self.use_real_robot = rospy.get_param("use_real_robot", False)
+        
+        if self.use_real_robot:
+            try:
+                self.vision_multiplexer = RealSenseMultiplexerClient('camera_multiplexer')
+            except:
+                self.vision_multiplexer = []
 
         self.ssd_client = actionlib.SimpleActionClient('/o2ac_vision_server/get_3d_poses_from_ssd', o2ac_msgs.msg.get3DPosesFromSSDAction)
         self.detect_shaft_client = actionlib.SimpleActionClient('/o2ac_vision_server/detect_shaft_notch', o2ac_msgs.msg.shaftNotchDetectionAction)
@@ -17,6 +21,7 @@ class VisionClient():
         self.pick_success_client = actionlib.SimpleActionClient('/o2ac_vision_server/check_pick_success', o2ac_msgs.msg.checkPickSuccessAction)
         self.localization_client = actionlib.SimpleActionClient('/o2ac_vision_server/localize_object', o2ac_msgs.msg.localizeObjectAction)
 
+    @check_for_real_robot
     def activate_camera(self, camera_name="b_bot_outside_camera"):
         try:
             if self.vision_multiplexer:
@@ -29,6 +34,7 @@ class VisionClient():
         rospy.logwarn("Could not activate camera! Returning false")
         return False
 
+    @check_for_real_robot
     def read_from_sdd(self):
         """
         Returns object poses as estimated by the SSD neural network and reprojection.
@@ -48,6 +54,7 @@ class VisionClient():
             pass
         return False
 
+    @check_for_real_robot
     def get_angle_from_vision(self, camera="b_bot_inside_camera", item_name="bearing"):
         # Send goal, wait for result
         goal = o2ac_msgs.msg.detectAngleGoal()
@@ -68,6 +75,7 @@ class VisionClient():
             pass
         return False
 
+    @check_for_real_robot
     def call_shaft_notch_detection(self):
         """
         Calls the action and returns the result as is
