@@ -100,7 +100,7 @@ public:
   bool openGripper(std::string robot_name, std::string gripper_name = "", bool wait = true);
   bool closeGripper(std::string robot_name, std::string gripper_name = "", bool wait = true);
   bool sendGripperCommand(std::string robot_name, double opening_width, std::string gripper_name = "", bool wait = true);
-  bool sendFasteningToolCommand(std::string fastening_tool_name, std::string direction = "tighten", bool wait = false, double duration = 20.0, int speed = 0);
+  bool sendFasteningToolCommand(std::string fastening_tool_name, std::string direction = "tighten", bool wait = false, double duration = 20.0, int speed = 0, bool skip_final_loosen_and_retighten = false);
   bool setSuctionEjection(std::string fastening_tool_name, bool turn_suction_on = true, bool eject_screw = false);
 
   // Callback declarations

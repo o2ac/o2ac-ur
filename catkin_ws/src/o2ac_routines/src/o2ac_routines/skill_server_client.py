@@ -70,13 +70,14 @@ class SkillServerClient():
 
     @check_for_real_robot
     def do_screw_action(self, robot_name, target_hole, screw_height = 0.02, 
-                            screw_size = 4, stay_put_after_screwing=False):
+                            screw_size = 4, stay_put_after_screwing=False, loosen_and_retighten_when_done=True):
         goal = o2ac_msgs.msg.screwGoal()
         goal.target_hole = target_hole
         goal.screw_height = screw_height
         goal.screw_size = screw_size
         goal.robot_name = robot_name
         goal.stay_put_after_screwing = stay_put_after_screwing
+        goal.loosen_and_retighten_when_done = loosen_and_retighten_when_done
         rospy.loginfo("Sending screw action goal.")
         self.screw_client.send_goal(goal)
         self.screw_client.wait_for_result()

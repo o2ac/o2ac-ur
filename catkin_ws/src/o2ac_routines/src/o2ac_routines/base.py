@@ -282,19 +282,22 @@ class O2ACBase(object):
   @check_for_real_robot
   def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=True):
     res = self.skill_server.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure)
-    if res.success:
-      return True
+    try:
+      if res.success:
+        return True
+    except:
+      pass  # Pick_screw failed
+    
+    if realign_tool_upon_failure:
+        self.active_robots[robot_name].move_lin_rel(relative_translation=[0,0,0.05])
+        self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
+        rospy.loginfo("pickScrewFromFeeder failed. Realigning tool and retrying.")
+        screw_tool_id = "screw_tool_m" + str(screw_size)
+        self.realign_tool(robot_name, screw_tool_id)
+        return self.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure=False)
     else:
-      if realign_tool_upon_failure:
-          self.active_robots[robot_name].move_lin_rel(relative_translation=[0,0,0.05])
-          self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
-          rospy.loginfo("pickScrewFromFeeder failed. Realigning tool and retrying.")
-          screw_tool_id = "screw_tool_m" + str(screw_size)
-          self.realign_tool(robot_name, screw_tool_id)
-          return self.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure=False)
-      else:
-          self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
-          return False
+        self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
+        return False
 
   def do_insert_action(self, active_robot_name, passive_robot_name = "", 
                         starting_offset = 0.05, max_insertion_distance=0.01, 
@@ -752,7 +755,7 @@ class O2ACBase(object):
       ps_approach.pose.position.z -= 0.01 # Approach diagonally so nothing gets stuck
 
     if equip:
-      robot.gripper.open(opening_width=0.08)
+      robot.gripper.open(opening_width=0.08, wait=False)
       rospy.loginfo("Spawning tool.")
       if not self.spawn_tool(tool_name):
         rospy.logwarn("Could not spawn the tool. Continuing.")
