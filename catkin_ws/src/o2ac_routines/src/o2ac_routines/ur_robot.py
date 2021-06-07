@@ -384,14 +384,15 @@ class URRobot():
                 success, plan, planning_time, error = group.plan()
                 if success:
                     group.clear_pose_targets()
+                    group.set_start_state_to_current_state()
                     return plan, planning_time
             else:
                 group.go(wait=wait)  # Bool
                 current_pose = group.get_current_pose().pose
                 if move_lin:
-                    success = helpers.all_close(pose_goal_world.pose, current_pose, 0.01)
+                    return helpers.all_close(pose_goal_world.pose, current_pose, 0.01)
                 else:
-                    success = helpers.all_close(pose_goal_stamped.pose, current_pose, 0.01)
+                    return helpers.all_close(pose_goal_stamped.pose, current_pose, 0.01)
             if not success:
                 rospy.sleep(0.2)
                 rospy.logwarn("go_to_pose_goal(move_lin=%s) attempt failed. Retrying." % str(move_lin))
@@ -556,6 +557,7 @@ class URRobot():
         if plan_only:
             success, plan, planning_time, error = group.plan()
             if success:
+                group.set_start_state_to_current_state()
                 return plan, planning_time
             else:
                 rospy.logerr("Failed planning with error: %s" % error)
@@ -581,6 +583,7 @@ class URRobot():
         if plan_only:
             success, plan, planning_time, error = group.plan()
             if success:
+                group.set_start_state_to_current_state()
                 return plan, planning_time
             else:
                 rospy.logerr("Failed planning with error: %s" % error)

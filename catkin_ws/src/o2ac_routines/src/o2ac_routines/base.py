@@ -773,9 +773,9 @@ class O2ACBase(object):
     elif realign:
       lin_speed = 0.5
 
-    # sequence.append(helpers.to_sequence_item(ps_approach, speed=lin_speed))
-    # sequence.append(helpers.to_sequence_item(ps_in_holder, speed=lin_speed))
-    sequence.append(helpers.to_sequence_trajectory([ps_approach,ps_in_holder], [0.003,0.0]))
+    sequence.append(helpers.to_sequence_item(ps_approach, speed=lin_speed))
+    sequence.append(helpers.to_sequence_item(ps_in_holder, speed=lin_speed))
+    # sequence.append(helpers.to_sequence_trajectory([ps_approach,ps_in_holder], [0.003,0.0]))
 
     if not self.execute_sequence(robot_name, sequence, "approach sequence equip/unequip tool", wait=False):
       rospy.logerr("Fail to complete the approach sequence")
@@ -887,7 +887,7 @@ class O2ACBase(object):
     robot = self.active_robots[robot_name]
     if wait:
       for i, point in enumerate(sequence):
-        rospy.loginfo("Sequence point: %i" % (i+1))
+        rospy.loginfo("Sequence point: %i - %s" % (i+1, point[0]))
         # self.confirm_to_proceed("playback_sequence")
         if point[0] == "waypoint":
           waypoint_params = point[1]
@@ -903,7 +903,7 @@ class O2ACBase(object):
       previous_plan = None
       pending_gripper_action = None
       for i, point in enumerate(sequence):
-        rospy.loginfo("(No wait) Sequence point: %i" % (i+1))
+        rospy.loginfo("Sequence point: %i - %s" % (i+1, point[0]))
         # self.confirm_to_proceed("playback_sequence")
 
         initial_joints = None if not previous_plan else helpers.get_trajectory_joint_goal(previous_plan)
