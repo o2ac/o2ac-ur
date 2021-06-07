@@ -738,7 +738,9 @@ class O2ACBase(object):
       return False
 
     # Go to named pose, then approach
-    self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
+    sequence = []
+    sequence.append(helpers.to_sequence_item("tool_pick_ready"))
+    # self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
 
     ps_approach.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, -pi/6, 0))
     ps_move_away = copy.deepcopy(ps_approach)
@@ -763,7 +765,6 @@ class O2ACBase(object):
       held_screw_tool_ = tool_name
 
     rospy.loginfo("Moving to screw tool approach pose LIN.")
-    self.active_robots[robot_name].go_to_pose_goal(ps_approach, speed=lin_speed, acceleration=lin_speed/2, move_lin=True)
   
     # Plan & execute linear motion to the tool change position
     rospy.loginfo("Moving to pose in tool holder LIN.")
@@ -775,8 +776,14 @@ class O2ACBase(object):
     elif realign:
       lin_speed = 0.5
 
-    self.active_robots[robot_name].go_to_pose_goal(ps_in_holder, speed=lin_speed, acceleration=lin_speed/2, move_lin=True)
-  
+    # sequence.append(helpers.to_sequence_item(ps_approach, speed=lin_speed))
+    # sequence.append(helpers.to_sequence_item(ps_in_holder, speed=lin_speed))
+    sequence.append(helpers.to_sequence_trajectory([ps_approach,ps_in_holder], [0.003,0.0]))
+
+    if not self.execute_sequence(robot_name, sequence, "approach sequence equip/unequip tool", wait=False):
+      rospy.logerr("Fail to complete the approach sequence")
+      return False
+
     # Close gripper, attach the tool object to the gripper in the Planning Scene.
     # Its collision with the parent link is set to allowed in the original planning scene.
     if equip:
@@ -800,29 +807,25 @@ class O2ACBase(object):
       robot.gripper.open(opening_width=0.08)
       robot.gripper.close()
     
+    sequence = []
+
     if equip or realign:  # Pull back and let go once to align the tool with the magnet properly 
       pull_back_slightly = copy.deepcopy(ps_in_holder)
       pull_back_slightly.pose.position.x -= 0.003
       ps_in_holder.pose.position.x += 0.001  # To remove the offset for placing applied earlier
       lin_speed = 0.02
-      self.active_robots[robot_name].go_to_pose_goal(pull_back_slightly, speed=lin_speed, move_lin=True)
-      robot.gripper.open(opening_width=0.08)
-      self.active_robots[robot_name].go_to_pose_goal(ps_in_holder, speed=lin_speed, move_lin=True)
-      robot.gripper.close(force=60)
+      sequence.append(helpers.to_sequence_item(pull_back_slightly, speed=lin_speed, gripper='open', gripper_opening_width=0.08, gripper_velocity=0.1))
+      sequence.append(helpers.to_sequence_item(ps_in_holder, speed=lin_speed, gripper='close', gripper_force=60, gripper_velocity=0.1))
     
     # Plan & execute linear motion away from the tool change position
     rospy.loginfo("Moving back to screw tool approach pose LIN.")
     
     lin_speed = 0.8
 
-    self.active_robots[robot_name].go_to_pose_goal(ps_move_away, speed=lin_speed, acceleration=lin_speed/2, move_lin=True)
-
+    sequence.append(helpers.to_sequence_item(ps_move_away, speed=lin_speed))
+    sequence.append(helpers.to_sequence_item("tool_pick_ready"))
     
-    # Reactivate the collisions, with the updated entry about the tool
-    # planning_scene_interface_.applyPlanningScene(planning_scene_)
-    self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
-    
-    return True
+    return self.execute_sequence(robot_name, sequence, "equip/unequip tool", wait=False)
 
   def allow_collisions_with_robot_hand(self, link_name, robot_name, allow=True):
       """Allow collisions of a link with the robot hand"""
