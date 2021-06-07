@@ -841,7 +841,7 @@ class O2ACBase(object):
         self.planning_scene_interface.disallow_collisions(hand_links, link_name)
       return
 
-  def playback_sequence(self, routine_filename, default_frame="world", wait=True):
+  def playback_sequence(self, routine_filename, default_frame="world", wait=False):
 
     path = rospkg.RosPack().get_path("o2ac_routines") + ("/config/playback_sequences/%s.yaml" % routine_filename)
     with open(path, 'r') as f:
