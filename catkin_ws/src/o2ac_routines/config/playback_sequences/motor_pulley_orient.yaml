@@ -19,16 +19,16 @@ waypoints:
   frame_id: right_centering_link
   speed: 0.2
   desc: dropping 
-  # gripper:
-  #   action: 'open'
-  #   width: 0.06
+  gripper:
+    action: 'open'
+    width: 0.06
 - pose: [-0.01, 0, 0.0, -45, 0, 0] 
   pose_type: task-space-in-frame
   frame_id: right_centering_link
   speed: 0.5
-  # gripper:
-  #   action: 'close-open'
-  #   width: 0.06
+  gripper:
+    action: 'close-open'
+    width: 0.06
   desc: Centering 
 - pose: [-0.01, 0, 0.0, -135, 0, 0] 
   pose_type: task-space-in-frame
@@ -36,8 +36,8 @@ waypoints:
   speed: 0.5
 - pose: [0.0, 0, 0.005, 0, -35, 0] 
   pose_type: relative-tcp
-  # gripper:
-  #   action: 'close'
+  gripper:
+    action: 'close'
 - pose: [-0.05, 0, 0.0, -135, 0, 0] 
   pose_type: task-space-in-frame
   frame_id: right_centering_link
@@ -50,54 +50,3 @@ waypoints:
   is_trajectory: False
   blend: 0.005
   speed: 0.5
-#   - pose: [1.7095142602920532, -1.7618962726988734, 2.2065065542804163, -2.0337330303587855,
-#     -1.5472224394427698, 0.21330875158309937]
-#   pose_type: joint-space-goal-cartesian-lin-motion
-#   speed: 0.4
-#   blend: 0.0
-# - pose: [1.7609, -2.0808, 2.4036, -1.9124, -1.5491, 0.1639]
-#   pose_type: joint-space-goal-cartesian-lin-motion
-#   speed: 0.5
-#   blend: 0.0
-# - pose: [1.864789605140686, -1.8883010349669398, 2.4725635687457483, -2.175955434838766,
-#     -1.5510090033160608, 1.1179262399673462]
-#   pose_type: joint-space-goal-cartesian-lin-motion
-#   speed: 0.5
-# - pose: [1.8636610507965088, -1.6897312603392542, 2.5860729853259485, -2.4881612263121546,
-#     -1.5512121359454554, 1.1185405254364014]
-#   pose_type: joint-space-goal-cartesian-lin-motion
-#   speed: 0.1
-#   gripper_action: 'open'
-# - pose: [1.863648772239685, -1.6896830997862757, 2.586133066807882, -2.4881845913329066,
-#     -1.551286522542135, -0.4538181463824671]
-#   pose_type: joint-space-goal-cartesian-lin-motion
-#   speed: 1.0
-#   gripper_action: 'close-open'
-# - pose: [1.8637109994888306, -1.689672132531637, 2.586108986531393, -2.48813595394277,
-#     -1.5512245337115687, 1.1185402870178223]
-#   pose_type: joint-space-goal-cartesian-lin-motion
-#   speed: 1.0
-# - pose: [2.3342819213867188, -1.4426722687533875, 2.550376001988546, -2.6755668125548304,
-#     -2.1903322378741663, 1.6198090314865112]
-#   pose_type: joint-space-goal-cartesian-lin-motion
-#   speed: 0.4
-#   gripper_action: 'close'
-# - pose: [1.8660832643508911, -2.0238400898375453, 2.2695825735675257, -1.837456842462057,
-#     -1.5510934034930628, 1.1173359155654907]
-#   pose_type: joint-space-goal-cartesian-lin-motion
-#   speed: 0.3
-# - pose: [1.6325852870941162, -1.5254064363292237, 1.8748825232135218, -2.123985906640524,
-#     -1.849236313496725, -0.9497187773333948]
-#   pose_type: joint-space-goal-cartesian-lin-motion
-#   speed: 0.6
-#   blend: 0.0
-# - pose: [1.6083091497421265, -1.3380860847285767, 1.9418709913836878, -2.0603629551329554,
-#     -2.517186705266134, -1.452202622090475]
-#   pose_type: joint-space-goal-cartesian-lin-motion
-#   speed: 0.6
-#   blend: 0.0
-# - pose: [1.5905240774154663, -1.3433756095222016, 1.94959003130068, -2.0884157619872035,
-#     -2.5144861380206507, -1.4780891577350062]
-#   pose_type: joint-space-goal-cartesian-lin-motion
-#   speed: 0.6
-#   blend: 0.0

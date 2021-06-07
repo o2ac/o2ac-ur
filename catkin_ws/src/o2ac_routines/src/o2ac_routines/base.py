@@ -283,22 +283,19 @@ class O2ACBase(object):
   @check_for_real_robot
   def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=True):
     res = self.skill_server.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure)
-    try:
-      if res.success:
-        return True
-    except:
-      pass  # Pick_screw failed
-    
-    if realign_tool_upon_failure:
-        self.active_robots[robot_name].move_lin_rel(relative_translation=[0,0,0.05])
-        self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
-        rospy.loginfo("pickScrewFromFeeder failed. Realigning tool and retrying.")
-        screw_tool_id = "screw_tool_m" + str(screw_size)
-        self.realign_tool(robot_name, screw_tool_id)
-        return self.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure=False)
+    if res.success:
+      return True
     else:
-        self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
-        return False
+      if realign_tool_upon_failure:
+          self.active_robots[robot_name].move_lin_rel(relative_translation=[0,0,0.05])
+          self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
+          rospy.loginfo("pickScrewFromFeeder failed. Realigning tool and retrying.")
+          screw_tool_id = "screw_tool_m" + str(screw_size)
+          self.realign_tool(robot_name, screw_tool_id)
+          return self.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure=False)
+      else:
+          self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
+          return False
 
   def do_insert_action(self, active_robot_name, passive_robot_name = "", 
                         starting_offset = 0.05, max_insertion_distance=0.01, 
@@ -758,7 +755,7 @@ class O2ACBase(object):
       ps_approach.pose.position.z -= 0.01 # Approach diagonally so nothing gets stuck
 
     if equip:
-      robot.gripper.open(opening_width=0.08, wait=False)
+      robot.gripper.open(opening_width=0.08)
       rospy.loginfo("Spawning tool.")
       if not self.spawn_tool(tool_name):
         rospy.logwarn("Could not spawn the tool. Continuing.")
@@ -914,11 +911,11 @@ class O2ACBase(object):
         
         if point[0] == "waypoint":
           waypoint_params = point[1]
-          res = self.plan_sequence_waypoint(robot_name, waypoint_params, initial_joints)
+          res = self.move_to_sequence_waypoint(robot_name, waypoint_params, plan_only=True, initial_joints=initial_joints)
           pending_gripper_action = waypoint_params.get("gripper", None)
         elif point[0] == "trajectory":
           trajectory, speed_scale_factor = point[1]
-          res = robot.plan_linear_trajectory(trajectory, initial_joints, speed=speed_scale_factor)
+          res = robot.move_lin_trajectory(trajectory, speed=speed_scale_factor, plan_only=True, initial_joints=initial_joints)
         else:
           ValueError("Invalid sequence type: %s" % point[0])
 
@@ -939,11 +936,11 @@ class O2ACBase(object):
           rospy.logerr("Fail to execute plan")
 
         if current_gripper_action:
-          rospy.sleep(1.)
+          rospy.sleep(0.5)
           self.execute_gripper_action(robot_name, current_gripper_action)
 
         wait = True if i == len(sequence) -1 else False
-        if not robot.execute_plan(plan, wait=True):
+        if not robot.execute_plan(plan, wait=wait):
           rospy.logerr("plan execution failed")
           return False
         if wait and pending_gripper_action: # For last point in the sequence 
@@ -978,43 +975,7 @@ class O2ACBase(object):
       else:
         raise ValueError("Unsupported gripper action: %s" % gripper_action)
 
-
-    # execute the first point normally but without waiting, then plan the next motions. then 
-
-  def plan_sequence_waypoint(self, robot_name, params, initial_joints=None):
-    robot = self.active_robots[robot_name]
-
-    pose           = params["pose"]
-    pose_type      = params["pose_type"]
-    speed          = params.get("speed", 0.5)
-    acceleration   = params.get("acc", 0.25)
-
-    if pose_type  == 'joint-space':
-      result = robot.plan_goal_joints(pose, initial_joints, speed=speed, acceleration=acceleration)
-
-    elif pose_type == 'joint-space-goal-cartesian-lin-motion':
-      p = robot.get_tcp_pose(pose) # Forward Kinematics
-      result = robot.plan_goal_pose(p, initial_joints, speed=speed, acceleration=acceleration, move_lin=True)
-    elif pose_type == 'task-space-in-frame':
-      frame_id = params.get("frame_id", "world")
-      # Convert orientation to radians!
-      p = conversions.to_pose_stamped(frame_id, np.concatenate([pose[:3],np.deg2rad(pose[3:])]))
-      move_linear = params.get("move_linear", True)
-      result = robot.plan_goal_pose(p, initial_joints, speed=speed, acceleration=acceleration, move_lin=move_linear)
-    elif pose_type == 'relative-tcp':
-      result = robot.plan_relative_goal(initial_joints=initial_joints, relative_translation=pose[:3], relative_rotation=np.deg2rad(pose[3:]), speed=speed, acceleration=acceleration, relative_to_tcp=True)
-    elif pose_type == 'relative-base':
-      result = robot.plan_relative_goal(initial_joints=initial_joints, relative_translation=pose[:3], relative_rotation=np.deg2rad(pose[3:]), speed=speed, acceleration=acceleration, relative_to_robot_base=True)
-    elif pose_type == 'relative-world':
-      result = robot.plan_relative_goal(initial_joints=initial_joints, relative_translation=pose[:3], relative_rotation=np.deg2rad(pose[3:]), speed=speed, acceleration=acceleration)
-    elif pose_type == 'named-pose':
-      result = robot.plan_named_pose(pose, initial_joints=initial_joints, speed=speed, acceleration=acceleration)
-    else:
-      raise ValueError("Invalid pose_type: %s" % pose_type)
-
-    return result
-
-  def move_to_sequence_waypoint(self, robot_name, params):
+  def move_to_sequence_waypoint(self, robot_name, params, plan_only=False, initial_joints=None):
     success = False
     robot = self.active_robots[robot_name]
 
@@ -1025,28 +986,30 @@ class O2ACBase(object):
     gripper_params = params.get("gripper", None)
 
     if pose_type  == 'joint-space':
-      success = robot.move_joints(pose, speed=speed, acceleration=acceleration)
+      success = robot.move_joints(pose, speed=speed, acceleration=acceleration, plan_only=plan_only, initial_joints=initial_joints)
 
     elif pose_type == 'joint-space-goal-cartesian-lin-motion':
       p = robot.get_tcp_pose(pose) # Forward Kinematics
-      success = robot.move_lin(p, speed=speed, acceleration=acceleration)
+      success = robot.move_lin(p, speed=speed, acceleration=acceleration, plan_only=plan_only, initial_joints=initial_joints)
 
     elif pose_type == 'task-space-in-frame':
       frame_id = params.get("frame_id", "world")
       # Convert orientation to radians!
       p = conversions.to_pose_stamped(frame_id, np.concatenate([pose[:3],np.deg2rad(pose[3:])]))
       move_linear = params.get("move_linear", True)
-      success = robot.go_to_pose_goal(p, speed=speed, acceleration=acceleration, move_lin=move_linear)
+      success = robot.go_to_pose_goal(p, speed=speed, acceleration=acceleration, move_lin=move_linear, plan_only=plan_only, initial_joints=initial_joints)
     elif pose_type == 'relative-tcp':
-      success = robot.move_lin_rel(relative_translation=pose[:3], relative_rotation=np.deg2rad(pose[3:]), speed=speed, acceleration=acceleration, relative_to_tcp=True)
+      success = robot.move_lin_rel(relative_translation=pose[:3], relative_rotation=np.deg2rad(pose[3:]), speed=speed, acceleration=acceleration, relative_to_tcp=True, plan_only=plan_only, initial_joints=initial_joints)
+    elif pose_type == 'relative-world':
+      success = robot.move_lin_rel(relative_translation=pose[:3], relative_rotation=np.deg2rad(pose[3:]), speed=speed, acceleration=acceleration, plan_only=plan_only, initial_joints=initial_joints)
     elif pose_type == 'relative-base':
-      success = robot.move_lin_rel(relative_translation=pose[:3], relative_rotation=np.deg2rad(pose[3:]), speed=speed, acceleration=acceleration, relative_to_robot_base=True)
+      success = robot.move_lin_rel(relative_translation=pose[:3], relative_rotation=np.deg2rad(pose[3:]), speed=speed, acceleration=acceleration, relative_to_robot_base=True, plan_only=plan_only, initial_joints=initial_joints)
     elif pose_type == 'named-pose':
-      success = robot.go_to_named_pose(pose, speed=speed, acceleration=acceleration)
+      success = robot.go_to_named_pose(pose, speed=speed, acceleration=acceleration, plan_only=plan_only, initial_joints=initial_joints)
     else:
       raise ValueError("Invalid pose_type: %s" % pose_type)
 
-    if success and gripper_params:
+    if success and gripper_params and not plan_only:
         self.execute_gripper_action(robot_name, gripper_params)
     return success
 ######
