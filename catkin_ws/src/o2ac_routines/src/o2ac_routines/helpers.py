@@ -22,11 +22,13 @@ import moveit_task_constructor_msgs.msg
 import moveit_commander
 from moveit_commander.conversions import pose_to_list
 
-from ur_control import conversions
+from ur_control import conversions, transformations
 
 import ur_msgs.msg
 import ur_dashboard_msgs.msg
 import moveit_msgs.msg
+from moveit_msgs.msg import RobotState
+from sensor_msgs.msg import JointState
 
 helper_fct_marker_id_count = 0
 
@@ -430,3 +432,20 @@ def check_for_real_robot(func):
         rospy.logwarn("Ignoring function %s since no real robot is being used" % func.__name__)
         return True
     return wrap
+
+def get_trajectory_duration(plan):
+  time_from_start = plan.joint_trajectory.points[-1].time_from_start
+  duration = rospy.Time(time_from_start.secs, time_from_start.nsecs)
+  return duration.to_sec()
+
+def get_trajectory_joint_goal(plan):
+  return plan.joint_trajectory.points[-1].positions
+
+def to_robot_state(move_group, joints):
+  joint_state = JointState()
+  joint_state.header.stamp = rospy.Time.now()
+  joint_state.name = move_group.get_active_joints()
+  joint_state.position = joints
+  moveit_robot_state = RobotState()
+  moveit_robot_state.joint_state = joint_state
+  return moveit_robot_state
