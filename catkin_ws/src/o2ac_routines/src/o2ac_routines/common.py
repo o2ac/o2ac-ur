@@ -1152,8 +1152,7 @@ class O2ACCommon(O2ACBase):
       screw_pose.pose.position.z += -.001  # MAGIC NUMBER
       screw_pose.pose.position.x += .005
       screw_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/12, 0, 0) )
-      if task == "assembly":  # The target frame is oriented differently in taskboard and assembly.
-        screw_pose.pose = rotatePoseByRPY(tau/2, 0, 0, screw_pose.pose)
+
       screw_pose_approach = copy.deepcopy(screw_pose)
       screw_pose_approach.pose.position.x -= 0.05
       screw_poses.append(screw_pose)
