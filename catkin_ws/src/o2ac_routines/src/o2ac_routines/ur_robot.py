@@ -598,7 +598,7 @@ class URRobot():
 
     def set_up_move_group(self, speed, acceleration, planner="OMPL"):
         if rospy.is_shutdown():
-            return False
+            raise
         (speed_, accel_) = self.limit_speed_and_acc(speed, acceleration)
         self.activate_ros_control_on_ur()
         group = self.robot_group
