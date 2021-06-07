@@ -19,14 +19,16 @@ waypoints:
   frame_id: right_centering_link
   speed: 0.2
   desc: dropping 
-  gripper_action: 'open'
-  opening_width: 0.06
+  # gripper:
+  #   action: 'open'
+  #   width: 0.06
 - pose: [-0.01, 0, 0.0, -45, 0, 0] 
   pose_type: task-space-in-frame
   frame_id: right_centering_link
   speed: 0.5
-  gripper_action: 'close-open'
-  opening_width: 0.06
+  # gripper:
+  #   action: 'close-open'
+  #   width: 0.06
   desc: Centering 
 - pose: [-0.01, 0, 0.0, -135, 0, 0] 
   pose_type: task-space-in-frame
@@ -34,7 +36,8 @@ waypoints:
   speed: 0.5
 - pose: [0.0, 0, 0.005, 0, -35, 0] 
   pose_type: relative-tcp
-  gripper_action: 'close'
+  # gripper:
+  #   action: 'close'
 - pose: [-0.05, 0, 0.0, -135, 0, 0] 
   pose_type: task-space-in-frame
   frame_id: right_centering_link

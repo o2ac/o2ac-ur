@@ -8,7 +8,7 @@ waypoints:
 - speed: 0.7
   pose: [1.64112401, -1.36996527, 2.2284854, -2.3787070, -2.61825520, -1.3918498]
   pose_type: joint-space-goal-cartesian-lin-motion
-  blend: 0.001
+  blend: 0.00
   is_trajectory: True
 - speed: 0.7
   pose: [1.63172256, -1.36936675, 2.2340605, -2.40121426, -2.6186643, -1.410654]

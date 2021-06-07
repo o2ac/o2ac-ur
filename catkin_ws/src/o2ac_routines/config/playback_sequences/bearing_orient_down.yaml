@@ -11,18 +11,23 @@ waypoints:
   blend: 0.01
   is_trajectory: True
 - speed: 0.4
-  gripper_action: open
+  gripper:
+    action: open
+    opening_width: 0.07
   pose: [1.83603, -1.86888, 2.6557, -2.35998, -1.54055, 1.48353]
   pose_type: joint-space-goal-cartesian-lin-motion
 - speed: 0.7
-  gripper_action: close-open
+  gripper:
+    action: close-open
+    opening_width: 0.07
   pose: [1.83602, -1.86889, 2.65576, -2.35999, -1.54056, -0.08881]
   pose_type: joint-space-goal-cartesian-lin-motion
 - speed: 0.7
   pose: [1.83601, -1.86894, 2.65587, -2.36008, -1.5406, -1.66107]
   pose_type: joint-space-goal-cartesian-lin-motion
 - speed: 0.7
-  gripper_action: close
+  gripper:
+    action: close
   pose: [1.36839, -1.8889, 2.70104, -2.08534, -1.13864, -2.1986]
   pose_type: joint-space-goal-cartesian-lin-motion
 - speed: 0.3
