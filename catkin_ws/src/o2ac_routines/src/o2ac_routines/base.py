@@ -841,8 +841,7 @@ class O2ACBase(object):
         self.planning_scene_interface.disallow_collisions(hand_links, link_name)
       return
 
-  def playback_sequence(self, routine_filename, default_frame="world", wait=False):
-
+  def read_playback_sequence(self, routine_filename, default_frame="world"):
     path = rospkg.RosPack().get_path("o2ac_routines") + ("/config/playback_sequences/%s.yaml" % routine_filename)
     with open(path, 'r') as f:
       routine = yaml.load(f)
@@ -854,14 +853,12 @@ class O2ACBase(object):
 
     playback_trajectories = []
 
-    robot = self.active_robots[robot_name]
-
     for waypoint in waypoints:
       is_trajectory = waypoint.get('is_trajectory', False)
       if is_trajectory:
         pose = waypoint["pose"] 
         if waypoint["pose_type"] == "joint-space-goal-cartesian-lin-motion":
-          p = robot.get_tcp_pose(pose) # Forward Kinematics
+          p = self.active_robots[robot_name].get_tcp_pose(pose) # Forward Kinematics
         elif waypoint["pose_type"] == "task-space-in-frame":
           frame_id = waypoint.get("frame_id", default_frame)
           # Convert orientation to radians!
@@ -883,9 +880,13 @@ class O2ACBase(object):
       
     if trajectory:
       playback_trajectories.append(["trajectory", (trajectory, trajectory_speed)])
-      
+
+    return robot_name, playback_trajectories
+
+  def execute_sequence(self, robot_name, sequence, sequence_name, wait=False):
+    robot = self.active_robots[robot_name]
     if wait:
-      for i, point in enumerate(playback_trajectories):
+      for i, point in enumerate(sequence):
         rospy.loginfo("Sequence point: %i" % (i+1))
         # self.confirm_to_proceed("playback_sequence")
         if point[0] == "waypoint":
@@ -895,14 +896,14 @@ class O2ACBase(object):
           trajectory, speed_scale_factor = point[1]
           res = robot.move_lin_trajectory(trajectory, speed=speed_scale_factor)
         if not res:
-          rospy.logerr("Fail to complete playback sequence: %s" % routine_filename)
+          rospy.logerr("Fail to complete playback sequence: %s" % sequence_name)
           return False
     else:
       previous_point_duration = 0.0
       previous_plan = None
       pending_gripper_action = None
-      for i, point in enumerate(playback_trajectories):
-        rospy.loginfo("Sequence point: %i" % (i+1))
+      for i, point in enumerate(sequence):
+        rospy.loginfo("(No wait) Sequence point: %i" % (i+1))
         # self.confirm_to_proceed("playback_sequence")
 
         initial_joints = None if not previous_plan else helpers.get_trajectory_joint_goal(previous_plan)
@@ -915,9 +916,12 @@ class O2ACBase(object):
         elif point[0] == "trajectory":
           trajectory, speed_scale_factor = point[1]
           res = robot.plan_linear_trajectory(trajectory, initial_joints, speed=speed_scale_factor)
+        else:
+          ValueError("Invalid sequence type: %s" % point[0])
+
 
         if not res:
-          rospy.logerr("Fail to complete playback sequence: %s" % routine_filename)
+          rospy.logerr("Fail to complete playback sequence: %s" % sequence_name)
           return False
         
         plan, planning_time = res
@@ -935,13 +939,23 @@ class O2ACBase(object):
           rospy.sleep(1.)
           self.execute_gripper_action(robot_name, current_gripper_action)
 
-        if not robot.execute_plan(plan, wait=False):
+        wait = True if i == len(sequence) -1 else False
+        if not robot.execute_plan(plan, wait=True):
           rospy.logerr("plan execution failed")
           return False
+        if wait and pending_gripper_action: # For last point in the sequence 
+          self.execute_gripper_action(robot_name, pending_gripper_action) 
+
         previous_plan = plan
         previous_point_duration = helpers.get_trajectory_duration(plan)
 
     return True
+
+  def playback_sequence(self, routine_filename, default_frame="world", wait=False):
+
+    robot_name, playback_trajectories = self.read_playback_sequence(routine_filename, default_frame)
+
+    self.execute_sequence(robot_name, playback_trajectories, routine_filename, wait)
 
   def execute_gripper_action(self, robot_name, gripper_params):
       robot = self.active_robots[robot_name]
