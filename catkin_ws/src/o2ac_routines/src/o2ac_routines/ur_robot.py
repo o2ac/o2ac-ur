@@ -389,10 +389,9 @@ class URRobot():
             else:
                 group.go(wait=wait)  # Bool
                 current_pose = group.get_current_pose().pose
-                if move_lin:
-                    return helpers.all_close(pose_goal_world.pose, current_pose, 0.01)
-                else:
-                    return helpers.all_close(pose_goal_stamped.pose, current_pose, 0.01)
+                goal_pose = pose_goal_world.pose if move_lin else pose_goal_stamped.pose
+                success = helpers.all_close(goal_pose, current_pose, 0.01)
+
             if not success:
                 rospy.sleep(0.2)
                 rospy.logwarn("go_to_pose_goal(move_lin=%s) attempt failed. Retrying." % str(move_lin))
@@ -405,8 +404,9 @@ class URRobot():
         else:
             helpers.publish_marker(pose_goal_stamped, "pose", self.ns + "_go_to_pose_goal_failed_pose_" + str(self.marker_counter), marker_topic="o2ac_success_markers")
             self.marker_counter += 1
+            group.clear_pose_targets()
+            return True
 
-        group.clear_pose_targets()
         return False
 
     def move_lin_trajectory(self, trajectory, speed=1.0, acceleration=0.5, end_effector_link="", plan_only=False, initial_joints=None):
@@ -458,6 +458,8 @@ class URRobot():
         if plan_only:
             # Make MotionSequence
             response = self.plan_sequence_path(goal.request)
+            group.clear_pose_targets()
+
             if response.response.error_code.val != 1:
                 # TODO(cambel): retry just to be sure that the plan is indeed infeasible
                 rospy.logerr("Failed to plan linear trajectory. error code: %s" % response.response.error_code.val)
@@ -539,11 +541,10 @@ class URRobot():
                 t_w2tcp = transformations.concatenate_matrices(t_w2b, t_newpose)
                 new_pose = conversions.to_pose_stamped("world", transformations.pose_quaternion_from_matrix(t_w2tcp))
 
-        if plan_only:
-            return self.go_to_pose_goal(new_pose, speed=speed, acceleration=acceleration, end_effector_link=end_effector_link, plan_only=True, initial_joints=initial_joints)
-        else:
-            return self.move_lin(new_pose, speed=speed, acceleration=acceleration, end_effector_link=end_effector_link, wait=wait)
-
+        return self.go_to_pose_goal(new_pose, speed=speed, acceleration=acceleration,
+                                    end_effector_link=end_effector_link,  wait=wait, 
+                                    move_lin=True, plan_only=plan_only, initial_joints=initial_joints)
+        
     def move_joints(self, joint_pose_goal, speed=0.6, acceleration=0.3, wait=True, plan_only=False, initial_joints=None):
         if not self.set_up_move_group(speed, acceleration, planner="OMPL"):
             return False
@@ -583,6 +584,7 @@ class URRobot():
         if plan_only:
             success, plan, planning_time, error = group.plan()
             if success:
+                group.clear_pose_targets()
                 group.set_start_state_to_current_state()
                 return plan, planning_time
             else:
