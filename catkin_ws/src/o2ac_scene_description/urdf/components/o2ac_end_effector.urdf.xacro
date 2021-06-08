@@ -92,7 +92,7 @@
     <joint name="${prefix}bearing_rotate_helper_joint" type="fixed">
       <parent link="${prefix}gripper_tip_link"/>
       <child link="${prefix}bearing_rotate_helper_link"/>
-      <origin rpy="${radians(180)} ${radians(30)} 0" xyz="-.003 0 -0.011"/>
+      <origin rpy="0 ${radians(30)} 0" xyz="-.003 0 -0.011"/>
     </joint>
     <link name="${prefix}bearing_rotate_helper_link"/>
   </xacro:macro>

@@ -976,8 +976,8 @@ class O2ACCommon(O2ACBase):
     grasp_pose.pose.orientation = geometry_msgs.msg.Quaternion(*(0, 0, 0, 1.0))
 
     camera_look_pose = copy.deepcopy(grasp_pose)
-    camera_look_pose.pose.orientation = geometry_msgs.msg.Quaternion(*(0.5, 0.5, 0.5, 0.5))
-    camera_look_pose.pose.position = geometry_msgs.msg.Point(-0.155, -0.005, -0.0)
+    camera_look_pose.pose.orientation = geometry_msgs.msg.Quaternion(*(-0.5, 0.5, -0.5, 0.5))
+    camera_look_pose.pose.position = geometry_msgs.msg.Point(-0.155, 0.005, 0.0)
 
     def rotate_bearing_by_angle(angle):
       self.b_bot.gripper.open()
