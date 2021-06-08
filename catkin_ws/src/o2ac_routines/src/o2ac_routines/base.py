@@ -105,6 +105,7 @@ class O2ACBase(object):
     # Miscellaneous helpers
     self.robots = moveit_commander.RobotCommander()
     self.planning_scene_interface = moveit_commander.PlanningSceneInterface(synchronous=True)
+    self.execute_trajectory_listener = rospy.Subscriber("/execute_trajectory/status", actionlib.GoalStatusArray, self.trajectory_status_cb)
     
     self.assembly_database = AssemblyReader()
 
@@ -144,6 +145,8 @@ class O2ACBase(object):
     self.define_tool_collision_objects()
 
     self.objects_in_tray = dict()  # key: object ID. value: False or object pose
+
+    self.trajectory_status = None
 
     rospy.sleep(.5)
     rospy.loginfo("Finished initializing class")
@@ -186,6 +189,9 @@ class O2ACBase(object):
     self.pause_mode_ = msg.data
   def test_mode_callback(self, msg):
     self.test_mode_ = msg.data
+  
+  def trajectory_status_cb(self, msg):
+    self.trajectory_status = (msg.status_list[0].status, msg.status_list[0].text)
 
   def get_robot_status_from_param_server(self):
     robot_status = dict()
@@ -777,7 +783,7 @@ class O2ACBase(object):
     sequence.append(helpers.to_sequence_item(ps_in_holder, speed=lin_speed))
     # sequence.append(helpers.to_sequence_trajectory([ps_approach,ps_in_holder], [0.003,0.0]))
 
-    if not self.execute_sequence(robot_name, sequence, "approach sequence equip/unequip tool", wait=False):
+    if not self.execute_sequence(robot_name, sequence, "approach sequence equip/unequip tool", plan_while_moving=True):
       rospy.logerr("Fail to complete the approach sequence")
       return False
 
@@ -822,7 +828,7 @@ class O2ACBase(object):
     sequence.append(helpers.to_sequence_item(ps_move_away, speed=lin_speed))
     sequence.append(helpers.to_sequence_item("tool_pick_ready"))
     
-    return self.execute_sequence(robot_name, sequence, "equip/unequip tool", wait=False)
+    return self.execute_sequence(robot_name, sequence, "equip/unequip tool", plan_while_moving=True)
 
   def allow_collisions_with_robot_hand(self, link_name, robot_name, allow=True):
       """Allow collisions of a link with the robot hand"""
@@ -883,9 +889,9 @@ class O2ACBase(object):
 
     return robot_name, playback_trajectories
 
-  def execute_sequence(self, robot_name, sequence, sequence_name, wait=False):
+  def execute_sequence(self, robot_name, sequence, sequence_name, plan_while_moving=True):
     robot = self.active_robots[robot_name]
-    if wait:
+    if not plan_while_moving:
       for i, point in enumerate(sequence):
         rospy.loginfo("Sequence point: %i - %s" % (i+1, point[0]))
         # self.confirm_to_proceed("playback_sequence")
@@ -903,7 +909,7 @@ class O2ACBase(object):
       previous_plan = None
       pending_gripper_action = None
       for i, point in enumerate(sequence):
-        rospy.loginfo("Sequence point: %i - %s" % (i+1, point[0]))
+        rospy.loginfo("(plan_while_moving) Sequence point: %i - %s" % (i+1, point[0]))
         # self.confirm_to_proceed("playback_sequence")
 
         initial_joints = None if not previous_plan else helpers.get_trajectory_joint_goal(previous_plan)
@@ -930,10 +936,16 @@ class O2ACBase(object):
         if previous_plan:
           waiting_time = (previous_point_duration) - planning_time if (previous_point_duration) - planning_time > 0 else 0.0
           rospy.sleep(waiting_time)
-
+          while self.trajectory_status[0] == 1 or self.trajectory_status[0] == 0:
+            rospy.sleep(0.1)
+          if self.trajectory_status[0] != 3 and self.trajectory_status[0] != 2: # succeeded
+            rospy.logerr("Fail to execute plan with error: %s - %s" % self.trajectory_status)
+            return False
+          
         current_joints = robot.robot_group.get_current_joint_values()
         if not helpers.all_close(initial_joints, current_joints, 0.01):
-          rospy.logerr("Fail to execute plan")
+          rospy.logerr("Fail to execute plan: error code")
+          return False
 
         if current_gripper_action:
           rospy.sleep(0.5)
@@ -951,11 +963,11 @@ class O2ACBase(object):
 
     return True
 
-  def playback_sequence(self, routine_filename, default_frame="world", wait=False):
+  def playback_sequence(self, routine_filename, default_frame="world", plan_while_moving=True):
 
     robot_name, playback_trajectories = self.read_playback_sequence(routine_filename, default_frame)
 
-    self.execute_sequence(robot_name, playback_trajectories, routine_filename, wait)
+    self.execute_sequence(robot_name, playback_trajectories, routine_filename, plan_while_moving)
 
   def execute_gripper_action(self, robot_name, gripper_params):
       robot = self.active_robots[robot_name]
