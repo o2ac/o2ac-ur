@@ -363,6 +363,7 @@ class URRobot():
             return False
 
         group = self.robot_group
+        group.clear_pose_targets()
 
         if not end_effector_link:
             end_effector_link = self.ns + "_gripper_tip_link"
@@ -388,9 +389,7 @@ class URRobot():
                     return plan, planning_time
             else:
                 group.go(wait=wait)  # Bool
-                current_pose = group.get_current_pose().pose
-                goal_pose = pose_goal_world.pose if move_lin else pose_goal_stamped.pose
-                success = helpers.all_close(goal_pose, current_pose, 0.01)
+                success = self.check_goal_pose_reached(pose_goal_stamped)
 
             if not success:
                 rospy.sleep(0.2)
@@ -404,10 +403,9 @@ class URRobot():
         else:
             helpers.publish_marker(pose_goal_stamped, "pose", self.ns + "_go_to_pose_goal_failed_pose_" + str(self.marker_counter), marker_topic="o2ac_success_markers")
             self.marker_counter += 1
-            group.clear_pose_targets()
-            return True
 
-        return False
+        group.clear_pose_targets()
+        return success
 
     def move_lin_trajectory(self, trajectory, speed=1.0, acceleration=0.5, end_effector_link="", plan_only=False, initial_joints=None):
         if not self.set_up_move_group(speed, acceleration, planner="LINEAR"):
@@ -637,6 +635,14 @@ class URRobot():
             rospy.logdebug("Setting acceleration to " + str(sp/2.0) + " instead of " + str(acceleration) + " to avoid jerky motion.")
             acc = sp/2.0
         return (sp, acc)
+
+    def check_goal_pose_reached(self, goal_pose):
+        current_pose = self.robot_group.get_current_pose()
+        if current_pose.header.frame_id != goal_pose.header.frame_id:
+            gp = self.listener.transformPose(current_pose.header.frame_id, goal_pose)
+        else:
+            gp = goal_pose
+        return helpers.all_close(gp.pose, current_pose.pose, 0.01)
 
     # ------ Force control functions
 

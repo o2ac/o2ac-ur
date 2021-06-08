@@ -191,7 +191,10 @@ class O2ACBase(object):
     self.test_mode_ = msg.data
   
   def trajectory_status_cb(self, msg):
-    self.trajectory_status = (msg.status_list[0].status, msg.status_list[0].text)
+    if msg.status_list:
+      self.trajectory_status = (msg.status_list[0].status, msg.status_list[0].text)
+    else:
+      self.trajectory_status = (None, None)
 
   def get_robot_status_from_param_server(self):
     robot_status = dict()
