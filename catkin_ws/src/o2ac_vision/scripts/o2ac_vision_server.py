@@ -132,6 +132,10 @@ class O2ACVisionServer(object):
                              "threshold": 0.01}
         self.param_fge = rospy.get_param('~param_fge', default_param_fge)
 
+        self.rospack = rospkg.RosPack()
+        background_file = self.rospack.get_path("o2ac_vision") + "/config/shaft_background.png"
+        self.shaft_bg_image = cv2.imread(background_file, 0) 
+
         # Setup camera image subscribers
         self.cam_info_sub = rospy.Subscriber('/' + camera_name + '/camera_info', sensor_msgs.msg.CameraInfo,
                                           self.camera_info_callback)
@@ -469,8 +473,7 @@ class O2ACVisionServer(object):
         """
         start = time.time()
 
-        rospack = rospkg.RosPack()
-        temp_root = rospack.get_path("wrs_dataset") + "/data/templates"
+        temp_root = self.rospack.get_path("wrs_dataset") + "/data/templates"
         # Name of template infomation
         temp_info_name = "template_info.json"
         # downsampling rate
@@ -553,13 +556,15 @@ class O2ACVisionServer(object):
         # Convert to grayscale
         if im_in.shape[2] == 3: im_gray = cv2.cvtColor(im_in, cv2.COLOR_BGR2GRAY) 
 
-        
         bbox = [350,100,100,400] # ROI(x,y,w,h) of shaft area
-        rospack = rospkg.RosPack()
-        temp_root = rospack.get_path("wrs_dataset") + "/data/templates_shaft"
-        sa = ShaftAnalysis( im_gray, bbox, temp_root )
-        front, back = sa.main_proc( 0.5 ) # threshold.
-        im_vis = sa.get_tm_result_image(front, back)
+        sa = ShaftAnalysis( self.shaft_bg_image, im_gray, bbox ) 
+        res = sa.main_proc() # threshold.
+        im_vis = sa.get_result_image()
+        # TODO(cambel): How to know where is the notch?
+        if res == 1:
+            return False, False, im_vis 
+        front = (res == 3)
+        back = (res == 2)
         return front, back, im_vis
 
     def check_pick_success(self, im_in, item_id):
@@ -606,8 +611,7 @@ class O2ACVisionServer(object):
     def write_to_log(self, img_in, img_out, action_name):
         now = datetime.now()
         timeprefix = now.strftime("%Y-%m-%d_%H:%M:%S")
-        rospack = rospkg.RosPack()
-        folder = os.path.join(rospack.get_path("o2ac_vision"), "log")
+        folder = os.path.join(self.rospack.get_path("o2ac_vision"), "log")
         cv2.imwrite(os.path.join(folder, timeprefix + "_" + action_name + "_in.png") , img_in)
         cv2.imwrite(os.path.join(folder, timeprefix + "_" + action_name + "_out.jpg") , img_out)
 

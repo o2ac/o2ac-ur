@@ -805,16 +805,16 @@ class ShaftAnalysis():
         
         if n_label == 1: # no candidate detected
             print("no blob")
-            return False
+            return 1
         stats = stats[1:,:] # remove background
         max_blob_id = np.argmax( stats[:,4] )
         self.max_blob_bbox = stats[max_blob_id,0:4] # blob bbox
         self.max_blob_area = stats[max_blob_id,4] # blob area
 
         if self.threshold_area < self.max_blob_area:
-            return True
+            return 2
         else:
-            return False
+            return 3
 
     def get_result_image( self ):
         im_vis = cv2.cvtColor(self.im_crop2, cv2.COLOR_GRAY2BGR)
