@@ -183,7 +183,8 @@ class URForceController(CompliantController):
             current_pose_of = conversions.from_pose_to_list(current_pose_in_target_frame.pose)
             target_pose_of = conversions.from_pose_to_list(target_pose_in_target_frame.pose)
             # print("check cp,tp", current_pose_of[axis], target_pose_of[axis])
-            if insertion_direction[0] == '-':
+            more_than = insertion_direction[0] == '-' if self.ns == "b_bot" else insertion_direction[0] == '+'
+            if more_than:
                 return current_pose_of[axis] >= target_pose_of[axis] or \
                             (standby and current_pose_of[axis] >= target_pose_of[axis] - relaxed_target_by)
             return current_pose_of[axis] <= target_pose_of[axis] or \

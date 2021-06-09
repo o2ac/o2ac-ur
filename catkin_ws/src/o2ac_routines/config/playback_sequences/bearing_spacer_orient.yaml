@@ -1,0 +1,70 @@
+robot_name: a_bot
+waypoints:
+- pose: [-0.15, 0, -0.10, 0, 0, 0] # translation, orientation (degrees)
+  pose_type: task-space-in-frame
+  frame_id: left_centering_link
+  speed: 0.5
+  is_trajectory: True
+  blend: 0.005
+  desc: Above tray edge
+- pose: [-0.05, 0, 0.0, -135, 0, 0] 
+  pose_type: task-space-in-frame
+  frame_id: left_centering_link
+  speed: 0.5
+  is_trajectory: True
+  blend: 0.005
+  desc: Above centering point
+- pose: [-0.005, 0, 0.0, -135, 0, 0] 
+  pose_type: task-space-in-frame
+  frame_id: left_centering_link
+  speed: 0.2
+  desc: dropping 
+  gripper:
+    action: 'open'
+    width: 0.06
+- pose: [-0.005, 0, 0.0, -45, 0, 0] 
+  pose_type: task-space-in-frame
+  frame_id: left_centering_link
+  speed: 1.0
+  gripper:
+    action: 'close-open'
+    width: 0.06
+  desc: Centering 
+- pose: [-0.005, 0, 0.0, -135, 0, 0] 
+  pose_type: task-space-in-frame
+  frame_id: left_centering_link
+  speed: 1.0
+- pose: [-0.004, 0, -0.01, 0, 30, 0] 
+  pose_type: relative-tcp
+  gripper:
+    action: 'close'
+- pose: [-0.05, 0, 0.0, -135, 0, 0] 
+  pose_type: task-space-in-frame
+  frame_id: left_centering_link
+  is_trajectory: False
+  blend: 0.005
+  speed: 0.5
+- pose: [-0.15, 0, -0.10, -135, 0, 0] 
+  pose_type: task-space-in-frame
+  frame_id: left_centering_link
+  is_trajectory: False
+  blend: 0.005
+  speed: 0.5
+- pose: [-0.15, 0, 0.0, 180, -30, 0] 
+  pose_type: task-space-in-frame
+  frame_id: assembled_part_07_inserted
+  is_trajectory: True
+  blend: 0.005
+  speed: 0.5
+- pose: [-0.08, 0, 0.0, 180, -30, 0] 
+  pose_type: task-space-in-frame
+  frame_id: assembled_part_07_inserted
+  is_trajectory: True
+  blend: 0.005
+  speed: 0.5
+- pose: [-0.055, 0.0, 0.006, 180, -30, 0] 
+  pose_type: task-space-in-frame
+  frame_id: assembled_part_07_inserted
+  is_trajectory: True
+  blend: 0.005
+  speed: 0.5

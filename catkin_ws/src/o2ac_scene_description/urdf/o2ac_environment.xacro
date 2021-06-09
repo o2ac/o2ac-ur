@@ -70,6 +70,12 @@
   </joint>
   <link name="right_centering_link"/>
 
+  <joint name="left_centering_joint" type="fixed">
+    <parent link="workspace_center"/>
+    <child link="left_centering_link"/>
+    <origin xyz="0.20 -0.30 -0.0149" rpy="0 ${pi/2} -${pi/2}" />
+  </joint>
+  <link name="left_centering_link"/>
 
   <!-- ======== -->
 

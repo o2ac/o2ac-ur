@@ -949,13 +949,13 @@ class O2ACCommon(O2ACBase):
     self.b_bot.go_to_pose_goal(camera_look_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.1, acceleration=.04)
     angle = self.get_motor_angle()
 
-  def simple_insertion_check(self, opening_width, min_opening_width=0.01, velocity=0.03):
+  def simple_insertion_check(self, robot_name, opening_width, min_opening_width=0.01, velocity=0.03):
     """ Simple check: Open close the gripper slowly, check the gripper opening width
         end state: close!
     """
-    self.b_bot.gripper.open(wait=True, opening_width=opening_width, velocity=velocity)
-    self.b_bot.gripper.close(wait=True, velocity=velocity)
-    return self.b_bot.gripper.opening_width > min_opening_width
+    self.active_robots[robot_name].gripper.open(wait=True, opening_width=opening_width, velocity=velocity)
+    self.active_robots[robot_name].gripper.close(wait=True, velocity=velocity)
+    return self.active_robots[robot_name].gripper.opening_width > min_opening_width
       
 
   ######## Bearing
@@ -1261,10 +1261,10 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Gripper did not grasp the pulley --> Stop")
 
     if self.playback_sequence(routine_filename="motor_pulley_orient"):
-      self.insert_motor_pulley(target_link)
-    else:
       rospy.logerr("Fail to complete the playback sequence")
       return False
+
+    return self.insert_motor_pulley(target_link)
 
   def insert_motor_pulley(self, target_link, attempts=1):
     approach_pose = conversions.to_pose_stamped(target_link, [-0.05, 0.0, 0.0, radians(180), radians(35), 0.0])
@@ -1285,24 +1285,24 @@ class O2ACCommon(O2ACBase):
                                                       relaxed_target_by=0.005, selection_matrix=selection_matrix)
     success = result in (TERMINATION_CRITERIA, DONE)
 
-    grasp_check = self.simple_insertion_check(0.07)
-    if not success and grasp_check and attempts > 0: # try again the pulley is still there   
+    if not success:
+      grasp_check = self.simple_insertion_check("b_bot", 0.07)
+      if grasp_check and attempts > 0: # try again the pulley is still there   
         return self.insert_motor_pulley(target_link, attempts=attempts-1)
-    elif not success and (not grasp_check or not attempts > 0):
+      elif not grasp_check or not attempts > 0:
         self.b_bot.gripper.open(wait=True, opening_width=0.07)
         self.b_bot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
         rospy.logerr("** Insertion Failed!! **")
         return False
 
-    # target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.009, -0.000, -0.009, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
-    result = self.b_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="-X", force=6.0, timeout=15.0, 
-                                                      relaxed_target_by=0.005, wiggle_direction="X", wiggle_angle=np.deg2rad(2.0), wiggle_revolutions=1.,
-                                                      selection_matrix=selection_matrix)
-    success = result in (TERMINATION_CRITERIA, DONE)
+    if result == DONE: # Not the termination criteria so try once more
+      result = self.b_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="-X", force=6.0, timeout=15.0, 
+                                                        relaxed_target_by=0.005, wiggle_direction="X", wiggle_angle=np.deg2rad(2.0), wiggle_revolutions=1.,
+                                                        selection_matrix=selection_matrix)
+      success = result in (TERMINATION_CRITERIA, DONE)
 
-    
-    self.b_bot.gripper.open(opening_width=0.04, wait=True)
-    success &= self.b_bot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
+      self.b_bot.gripper.open(opening_width=0.04, wait=True)
+      success &= self.b_bot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
     return success
 
   ########  Idler pulley
@@ -1662,7 +1662,7 @@ class O2ACCommon(O2ACBase):
     rotation = np.deg2rad([-22.5, -88.5, -157.5]).tolist()  # Arbitrary
     pre_insertion_pose = conversions.to_pose_stamped(target_link, [0.12, 0.000, 0.02] + rotation)
 
-    if not success or not self.simple_insertion_check(0.02, min_opening_width=0.001):
+    if not success or not self.simple_insertion_check("b_bot", 0.02, min_opening_width=0.001):
       # TODO(cambel): implement a fallback
       rospy.logerr("** Insertion Failed!! **")
       self.b_bot.gripper.open(wait=True)
@@ -1698,7 +1698,7 @@ class O2ACCommon(O2ACBase):
         # Fall back if the shaft is stuck
         self.b_bot.gripper.open(wait=True)
 
-        rotation = np.deg2rad([-22.5+180, -88.5, -157.5]).tolist()  # Arbitrary
+        rotation = np.deg2rad([-22.5, -88.5, -157.5]).tolist()  # Arbitrary
         re_pick_pose = conversions.to_pose_stamped(target_link, [0.06, 0.000, -0.002] + rotation)
         if not self.b_bot.move_lin(re_pick_pose, speed=0.05):
           rospy.logerr("** Fail to return to pre insertion pose **")
@@ -2010,4 +2010,23 @@ class O2ACCommon(O2ACBase):
 
     # TODO(cambel): compute angle
 
+  def insert_bearing_spacer(self, target_link, attempts=1):
+    target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.04, 0.0, 0.0, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
 
+    selection_matrix = [0.0, 0.3, 0.3, 0.95, 1.0, 1.0]
+    result = self.a_bot.force_controller.do_insertion(target_pose_target_frame, radius=0.0005, 
+                                                      insertion_direction="+X", force=5.0, timeout=30.0, 
+                                                      relaxed_target_by=0.005, selection_matrix=selection_matrix)
+    success = result == TERMINATION_CRITERIA
+
+    if not success:
+      grasp_check = self.simple_insertion_check("a_bot", 0.06, min_opening_width=0.02)
+      if grasp_check and attempts > 0: # try again the pulley is still there   
+        return self.insert_bearing_spacer(target_link, attempts=attempts-1)
+      elif not grasp_check or not attempts > 0:
+        self.a_bot.gripper.open(wait=True, opening_width=0.08)
+        self.a_bot.move_lin_rel(relative_translation = [0.10,0,0], acceleration = 0.015, speed=.03)
+        rospy.logerr("** Insertion Failed!! **")
+        return False
+
+    return success
