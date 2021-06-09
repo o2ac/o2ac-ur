@@ -938,12 +938,9 @@ class O2ACBase(object):
         # post planning waiting
         if previous_plan:
           waiting_time = (previous_point_duration) - planning_time if (previous_point_duration) - planning_time > 0 else 0.0
-          rospy.sleep(waiting_time)
-          while self.trajectory_status[0] == 1 or self.trajectory_status[0] == 0:
-            rospy.sleep(0.1)
-          if self.trajectory_status[0] != 3 and self.trajectory_status[0] != 2: # succeeded
-            rospy.logerr("Fail to execute plan with error: %s - %s" % self.trajectory_status)
-            return False
+          # TODO(cambel): could use this waiting time to evaluate whether to try to plan a future point too instead of only waiting
+          # rospy.sleep(waiting_time)
+          robot.robot_group.wait_for_motion_result()
           
         current_joints = robot.robot_group.get_current_joint_values()
         if not helpers.all_close(initial_joints, current_joints, 0.01):
