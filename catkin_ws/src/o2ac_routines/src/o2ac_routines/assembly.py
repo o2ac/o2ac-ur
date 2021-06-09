@@ -95,27 +95,48 @@ class O2ACAssembly(O2ACCommon):
     # ============= SUBTASK BASE (picking and orienting and placing the baseplate) =======================
     rospy.loginfo("======== SUBTASK BASE ========")
     self.unlock_base_plate()
+    self.publish_status_text("Target: base plate")
 
-    success = self.pick("b_bot", "base")
+    success = self.pick("b_bot", "base")  # Uses MTC + attached objects
+
+    # # Pick using grasp pose only, ignoring scene object
+    # grasp_pose = self.assembly_database.get_grasp_pose("base", "default_grasp")
+    # if not grasp_pose:
+    #   rospy.logerr("Could not load grasp pose " + "default_grasp" + " for object " + "base" + ". Aborting pick.")
+    #   return False
+    # grasp_pose.header.frame_id = "move_group/base"
+    # try:
+    #   grasp_pose = self.listener.transformPose("tray_center", grasp_pose)
+    # except:
+    #   rospy.logerr("Could not transform from object. Is the object " + "base" + " in the scene?")
+    #   return False
+    
+    # self.planning_scene_interface.allow_collisions("base", "")  # Allow collisions with all other objects
+    # success = self.simple_pick("b_bot", grasp_pose, axis="z", approach_height=0.1)
+    
     if not success or self.b_bot.gripper.opening_width < 0.003 and self.use_real_robot:
       rospy.logerr("Gripper did not grasp the base plate. Aborting.")
       return False
-
-    self.confirm_to_proceed("Has the base plate been picked?")
-    self.planning_scene_interface.allow_collisions("base", "")  # Allow collisions with all other objects
 
     # Center and reorient plate outside of tray
 
     approach_orient_pose = geometry_msgs.msg.PoseStamped()
     approach_orient_pose.header.frame_id = "workspace_center"
-    approach_orient_pose.pose.position = geometry_msgs.msg.Point(0.133, 0.35, 0.18)
+    approach_orient_pose.pose.position = geometry_msgs.msg.Point(0.133, 0.35, 0.15)
     approach_orient_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(tau/4, tau/4, 0))
 
     orient_pose = copy.deepcopy(approach_orient_pose)
     orient_pose.pose.position.z = 0.01
 
-    self.b_bot.go_to_pose_goal(approach_orient_pose, speed=0.1, acceleration=0.2, move_lin = True)
-    self.b_bot.go_to_pose_goal(orient_pose, speed=0.1, acceleration=0.1, move_lin = True)
+    self.b_bot.go_to_pose_goal(approach_orient_pose, speed=0.2, acceleration=0.1, move_lin = True)
+    success = self.b_bot.go_to_pose_goal(orient_pose, speed=0.1, acceleration=0.1, move_lin = True)
+    if not success:
+      rospy.logerr("b_bot did not go to orient_pose. Critical. Try again.")
+      success = self.b_bot.go_to_pose_goal(orient_pose, speed=0.1, acceleration=0.1, move_lin = True)
+      if not success:
+        self.confirm_to_proceed("Failed again. Drop plate?")
+        self.b_bot.gripper.open(wait=True)
+        return False
     self.b_bot.gripper.open(wait=True)
 
     self.b_bot.robot_group.detach_object("base")
@@ -138,7 +159,7 @@ class O2ACAssembly(O2ACCommon):
     # Move plate
     place_onboard_pose = geometry_msgs.msg.PoseStamped()
     place_onboard_pose.header.frame_id = "workspace_center"
-    place_onboard_pose.pose.position = geometry_msgs.msg.Point(-0.175, 0.009, 0.13)
+    place_onboard_pose.pose.position = geometry_msgs.msg.Point(-0.177, 0.008, 0.13)
     # TODO: Define the terminal subframes
     # place_onboard_pose.header.frame_id = "assy_01_terminal_top"
     # place_onboard_pose.pose.position = geometry_msgs.msg.Point(-0.01, -0.005, 0.0)
@@ -158,6 +179,10 @@ class O2ACAssembly(O2ACCommon):
     self.publish_part_in_assembled_position("base")
 
     self.b_bot.move_lin_rel(relative_translation=[0, 0, 0.05], relative_to_robot_base=True)
+    self.lock_base_plate()
+    rospy.sleep(0.3)
+    self.unlock_base_plate()
+    rospy.sleep(0.3)
     self.lock_base_plate()
     return True
 
@@ -304,6 +329,7 @@ class O2ACAssembly(O2ACCommon):
     self.publish_status_text("Target: bearing_spacer" )
 
     bearing_spacer_pose = self.look_and_get_grasp_point("bearing_spacer")
+    bearing_spacer_pose.pose.position.x -= 0.005 # Magic numbers
     bearing_spacer_pose.pose.position.z = -0.001
     self.b_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
 
@@ -362,25 +388,41 @@ class O2ACAssembly(O2ACCommon):
     # if not goal:
     #     rospy.logerr("Could not find bearing plate in tray. Breaking out.")
     #     return False
-    self.panel_subtask(panel="panel_motor")
-    return False
+    return self.panel_subtask(panel="panel_motor")
 
   def subtask_g(self):
     rospy.loginfo("======== SUBTASK G (bearing panel (large L-plate)) ========")
-    self.panel_subtask(panel="panel_bearing")
+    return self.panel_subtask(panel="panel_bearing")
 
   def panel_subtask(self, panel):
     """
     input parameter panel needs to be "panel_motor" or "panel_bearing"
     """
 
+    self.publish_status_text("Target: " + panel)
     if not self.b_bot.go_to_named_pose("feeder_pick_ready"):
       rospy.logerr("b_bot did not move out of the way. Aborting.")
       return False
 
-    if not self.pick("a_bot", panel):
-      rospy.logerr("Did not succeed picking " + panel + "!")
+    # if not self.pick("a_bot", panel):
+    #   rospy.logerr("Did not succeed picking " + panel + "!")
+    #   return False
+
+    # Pick using grasp pose only, ignoring scene object
+    grasp_pose = self.assembly_database.get_grasp_pose(panel, "default_grasp")
+    if not grasp_pose:
+      rospy.logerr("Could not load grasp pose " + "default_grasp" + " for object " + panel + ". Aborting pick.")
       return False
+    grasp_pose.header.frame_id = "move_group/" + panel
+    try:
+      grasp_pose = self.listener.transformPose("tray_center", grasp_pose)
+    except:
+      rospy.logerr("Could not transform from object. Is the object " + panel + " in the scene?")
+      return False
+    
+    self.planning_scene_interface.allow_collisions(panel, "")  # Allow collisions with all other objects
+    success = self.simple_pick("a_bot", grasp_pose, axis="z")
+
 
     if panel == "panel_bearing":
       success_a = self.a_bot.load_program(program_name="wrs2020/bearing_plate_full.urp", recursion_depth=3)
@@ -400,6 +442,7 @@ class O2ACAssembly(O2ACCommon):
     self.publish_part_in_assembled_position(panel)
 
     self.do_change_tool_action("b_bot", equip=True, screw_size = 4)
+    self.vision.activate_camera(camera_name="b_bot_outside_camera")
     if not self.pick_screw_from_feeder("b_bot", screw_size = 4, realign_tool_upon_failure=True):
       rospy.logerr("Failed to pick screw from feeder, could not fix the issue. Abort.")
       self.a_bot.gripper.open()
@@ -485,6 +528,9 @@ class O2ACAssembly(O2ACCommon):
       if not self.fasten_screw_vertical('b_bot', screw_target_pose):
         rospy.logerr("Failed to fasten panel screw 2 again. Aborting.")
         return False
+    self.unlock_base_plate()
+    rospy.sleep(0.5)
+    self.lock_base_plate()
     return True
 
   def subtask_h(self):
@@ -607,7 +653,9 @@ class O2ACAssembly(O2ACCommon):
     # Look into the tray
     self.look_and_get_grasp_point(object_id=2)  # Base place
     self.confirm_to_proceed("press enter to proceed to pick and set base plate")
-    self.subtask_zero()  # Base plate
+    success = False
+    while not success and not rospy.is_shutdown():
+        success = self.subtask_zero()  # Base plate
     
     ## Equip screw tool for subtasks G, F
     self.b_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
@@ -616,23 +664,22 @@ class O2ACAssembly(O2ACCommon):
     self.vision.activate_camera("b_bot_outside_camera")
 
     self.confirm_to_proceed("press enter to proceed to subtask_g")
-    success = False
-    while not success and not rospy.is_shutdown():
-      success = self.subtask_g()  # Large plate
+    bearing_plate_success = False
+    bearing_plate_success = self.subtask_g()  # Large plate
     self.confirm_to_proceed("press enter to proceed to subtask_f")
-    success = False
-    while not success and not rospy.is_shutdown():
-      success = self.subtask_f() # motor plate
+    motor_plate_success = False
+    motor_plate_success = self.subtask_f() # motor plate
 
     self.a_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
     self.do_change_tool_action("b_bot", equip=False, screw_size=4)
 
-    success = False
-    while not success and not rospy.is_shutdown():
-      success = self.subtask_c1() # bearing 
-    success = False
-    while not success and not rospy.is_shutdown():
-      success = self.subtask_c2() # shaft
+    if bearing_plate_success:
+      success = False
+      while not success and not rospy.is_shutdown():
+        success = self.subtask_c1() # bearing 
+      success = False
+      while not success and not rospy.is_shutdown():
+        success = self.subtask_c2() # shaft
     
     rospy.loginfo("==== Finished.")
 
