@@ -197,7 +197,7 @@ class O2ACAssembly(O2ACCommon):
     if not self.orient_shaft_end_cap():
       return False
 
-    pre_insertion_shaft = conversions.to_pose_stamped("tray_center", [0.0, 0, 0.2, tau/2., 0, -tau/4.])
+    pre_insertion_shaft = conversions.to_pose_stamped("tray_center", [0.0, 0, 0.2, 0, 0, -tau/4.])
     if not self.b_bot.go_to_pose_goal(pre_insertion_shaft, speed=0.2):
       rospy.logerr("Fail to go to pre_insertion_shaft")
       return False
@@ -213,6 +213,7 @@ class O2ACAssembly(O2ACCommon):
     self.a_bot.move_lin_rel(relative_translation=[0,0,0.002]) # release pressure before insertion
 
     selection_matrix = [0.3, 0.3, 0., 0.95, 1, 1]
+    # TODO(cambel): define the termination criteria w.r.t the result of the linear push + offset  or with respect to shaft/screw_hole frame
     target_pose_target_frame = conversions.to_pose_stamped("tray_center", [-0.003, -0.000, 0.233]+np.deg2rad([-180, 90, -90]).tolist())
     result = self.a_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="+Z", force=2.0, timeout=20.0, 
                                                       radius=0.004, relaxed_target_by=0.003, selection_matrix=selection_matrix,
@@ -240,17 +241,23 @@ class O2ACAssembly(O2ACCommon):
     if not self.a_bot.go_to_named_pose("screw_ready"):
       return False
     
-    self.confirm_to_proceed("go to pre_screwing_end_cap")
-    pre_screwing_end_cap = conversions.to_pose_stamped("tray_center", [-0.001, 0.019, 0.388]+np.deg2rad([180, 30, 90]).tolist())
-    if not self.a_bot.go_to_pose_goal(pre_screwing_end_cap, speed=0.2, move_lin=False):
-      rospy.logerr("Fail to go to pre_screwing_end_cap")
+    self.confirm_to_proceed("go to above_hole_screw_pose")
+    above_hole_screw_pose = conversions.to_pose_stamped("tray_center", [-0.001, 0.019, 0.388]+np.deg2rad([180, 30, 90]).tolist())
+    if not self.a_bot.go_to_pose_goal(above_hole_screw_pose, speed=0.2, move_lin=False):
+      rospy.logerr("Fail to go to above_hole_screw_pose")
       return False
 
-    self.confirm_to_proceed("try to screw")
+    obj = self.assembly_database.get_collision_object("shaft")
+    obj.header.frame_id = "b_bot_gripper_tip_link"
+    obj.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/4, -tau/4, -tau/4))
+    obj.pose = helpers.rotatePoseByRPY(0, 0, tau/2, obj.pose)
+    obj.pose.position = conversions.to_point([-.006, 0, .0375])
+    self.planning_scene_interface.add_object(obj)
+    self.b_bot.gripper.attach_object(obj.id)
 
-    self.a_bot.move_lin_rel(relative_translation=[0, 0, -0.02], speed=0.01)
-    self.tools.set_motor("screw_tool_m4", "tighten", duration=10.0, wait=True, skip_final_loosen_and_retighten=False)
-    self.a_bot.move_lin_rel(relative_translation=[0, 0, 0.04], speed=0.01)
+    self.confirm_to_proceed("try to screw")
+    hole_screw_pose = conversions.to_pose_stamped("move_group/shaft/screw_hole", [0.0, 0.002, -0.010, 0, 0, 0])
+    self.skill_server.do_screw_action("a_bot", hole_screw_pose, screw_height=0.02, screw_size=4, loosen_and_retighten_when_done=True)
     
     self.confirm_to_proceed("unequip tool")
     self.tools.set_suction("screw_tool_m4", suction_on=False, wait=False)
@@ -266,9 +273,6 @@ class O2ACAssembly(O2ACCommon):
       return False
     
     self.confirm_to_proceed("insert to bearing")
-    
-    if not self.b_bot.go_to_named_pose("home"):
-       return False
 
     if not self.align_shaft("assembled_part_07_inserted"):
       return False

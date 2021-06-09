@@ -204,7 +204,7 @@ class O2ACVisionServer(object):
         im_vis = im_in.copy()
         
         action_result = o2ac_msgs.msg.get3DPosesFromSSDResult()
-        poses_2d_with_id, im_vis = self.get_2d_poses_from_ssd(im_in, im_vis)
+        poses_2d_with_id, im_vis, action_result.upside_down = self.get_2d_poses_from_ssd(im_in, im_vis)
 
         action_result.poses = []
         action_result.class_ids = []
@@ -228,7 +228,8 @@ class O2ACVisionServer(object):
         im_vis = im_in.copy()
         
         action_result = o2ac_msgs.msg.get2DPosesFromSSDResult()
-        action_result.results, im_vis = self.get_2d_poses_from_ssd(im_in, im_vis)
+        action_result.results, im_vis, action_result.upside_down = self.get_2d_poses_from_ssd(im_in, im_vis)
+
         self.get_2d_poses_from_ssd_action_server.set_succeeded(action_result)
 
         # Publish result visualization
@@ -398,6 +399,8 @@ class O2ACVisionServer(object):
         apply_2d_pose_estimation = [8,9,10,14]             # Small items --> Neural Net
         apply_3d_pose_estimation = [1,2,3,4,5,7,11,12,13]  # Large items --> CAD matching
         apply_grasp_detection    = [6]                     # Belt --> Fast Grasp Estimation
+
+        item_flipped_over = []
         for ssd_result in ssd_results:
             target = ssd_result["class"]
             estimated_poses_msg = o2ac_msgs.msg.Estimated2DPoses() # Stores the result for one item/class id
@@ -459,9 +462,10 @@ class O2ACVisionServer(object):
                 rospy.loginfo("Done with belt grasp detection")
 
             estimated_poses_array.append(estimated_poses_msg)
+            item_flipped_over.append(ssd_result["state"])
         
         self.publish_stored_pose_markers()
-        return estimated_poses_array, im_vis
+        return estimated_poses_array, im_vis, item_flipped_over
 
     def detect_object_in_image(self, cv_image, im_vis):
         ssd_results, im_vis = ssd_detection.object_detection(cv_image, im_vis)

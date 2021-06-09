@@ -1071,10 +1071,15 @@ class O2ACCommon(O2ACBase):
       return
     elif self.b_bot.gripper.opening_width < 0.045:
       rospy.loginfo("bearing found to be upwards")
-      self.playback_sequence("bearing_orient")
+      if not self.playback_sequence("bearing_orient"):
+        rospy.logerr("Could not complete orient sequence")
+        return False
     else:
       rospy.loginfo("bearing found to be upside down")
-      self.playback_sequence("bearing_orient_down")
+      if not self.playback_sequence("bearing_orient_down"):
+        rospy.logerr("Could not complete orient sequence")
+        return False
+
       #'down' means the small area contacts with tray.
 
     if self.b_bot.gripper.opening_width < 0.01 and self.use_real_robot:
@@ -1083,7 +1088,9 @@ class O2ACCommon(O2ACBase):
       return False
 
     if task == "taskboard" or task == "assembly":
-      self.playback_sequence("bearing_move_to_" + task)
+      if not self.playback_sequence("bearing_move_to_" + task):
+        rospy.logerr("Could not complete go to pre insertion sequence")
+        return False
     else:
       rospy.logerr("Task could not be read. Breaking out of pick_up_and_insert_bearing")
       return False
@@ -1589,7 +1596,7 @@ class O2ACCommon(O2ACBase):
   
   def align_shaft(self, target_link):
     rospy.loginfo("Going to approach pose (b_bot)")
-    rotation = np.deg2rad([-22.5+180, -88.5, -157.5]).tolist()  # Arbitrary
+    rotation = np.deg2rad([-22.5, -88.5, -157.5]).tolist()  # Arbitrary
 
     post_pick_pose = conversions.to_pose_stamped(target_link, [-0.15, 0.0, -0.10] + rotation)
     above_pose = conversions.to_pose_stamped(target_link, [0.0, 0.002, -0.10] + rotation)
@@ -1652,7 +1659,7 @@ class O2ACCommon(O2ACBase):
     current_pose = self.b_bot.robot_group.get_current_pose()
     target_pose_target_frame = self.listener.transformPose(target_link, current_pose)
      
-    rotation = np.deg2rad([-22.5+180, -88.5, -157.5]).tolist()  # Arbitrary
+    rotation = np.deg2rad([-22.5, -88.5, -157.5]).tolist()  # Arbitrary
     pre_insertion_pose = conversions.to_pose_stamped(target_link, [0.12, 0.000, 0.02] + rotation)
 
     if not success or not self.simple_insertion_check(0.02, min_opening_width=0.001):
@@ -1823,11 +1830,15 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Fail to go to on_centering")
       return False
 
-    self.b_bot.linear_push(3, "-Y", max_translation=0.05, timeout=15.0)
+    self.b_bot.gripper.open(opening_width=0.03)
+    self.b_bot.gripper.close(velocity=0.013, force=40)  # Minimum force and speed
+    # self.b_bot.linear_push(3, "-Y", max_translation=0.05, timeout=15.0)
+    self.b_bot.move_lin_rel(relative_translation=[0, -.05, 0], speed=.05)
     self.b_bot.gripper.open(opening_width=0.03)
     if not self.b_bot.go_to_pose_goal(shaft_center, speed=0.1):
       rospy.logerr("Fail to go to relative shaft center")
       return False
+    self.confirm_to_proceed("Close gripper to regrasp shaft?")
     self.b_bot.gripper.close()
 
     approach_vgroove = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [-0.100, 0, 0, tau/2., 0, 0])
@@ -1838,7 +1849,7 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Fail to go to approach_vgroove")
       return False
 
-    return True
+    return True  # Skip notch detection
 
     if not self.b_bot.go_to_pose_goal(on_vgroove, speed=0.1):
       rospy.logerr("Fail to go to on_vgroove")
@@ -1893,21 +1904,22 @@ class O2ACCommon(O2ACBase):
     gp[0] += 0.0 # Magic Numbers for visuals 
     gp[2] = 0.0001
     end_cap_pose = conversions.to_pose_stamped("tray_center", gp[:3].tolist() + [0.0, -tau/4., 0.0])
-    self.spawn_object("end_cap", end_cap_pose, end_cap_pose.header.frame_id)
+    # self.spawn_object("end_cap", end_cap_pose, end_cap_pose.header.frame_id)
     
     goal.pose.position.z = -0.001 # Magic Numbers for grasping
     goal.pose.position.x -= 0.01
+    goal = self.listener.transformPose("world", goal)  # This is not necessary
 
-    print("end cap goal", goal)
-    self.vision.activate_camera("b_bot_inside_camera")
+    self.vision.activate_camera("b_bot_inside_camera")  # Just for visualization
     
-    if not self.centering_pick("a_bot", goal, speed=0.5, gripper_force=100.0, object_width=.02, 
-                               approach_height=0.1, item_id_to_attach="end_cap", lift_up_after_pick=True, approach_move_lin=False):
+    if not self.centering_pick("a_bot", goal, speed_fast=0.5, gripper_force=100.0, object_width=.02, 
+                               approach_height=0.1, item_id_to_attach="", lift_up_after_pick=True, approach_move_lin=False):
       rospy.logerr("Fail to centering_pick")
       return False
 
     # TODO(cambel): Add visual check for orienting
-    needs_reorientation = False
+    # from vision: True is OK, False needs reorientation 
+    needs_reorientation = not self.object_in_tray_is_upside_down.get(self.assembly_database.name_to_id("end_cap"), False) 
 
     if needs_reorientation:
       approach_centering = conversions.to_pose_stamped("simple_holder_tip_link", [0.0, 0, 0.1,        0, tau/4., tau/4.])

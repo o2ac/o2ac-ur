@@ -384,9 +384,11 @@ class O2ACBase(object):
     try:
       rospy.logwarn("Clearing all object poses in memory")
       self.objects_in_tray = dict()
-      res = self.vision.read_from_sdd()
-      for idx, pose in zip(res.class_ids, res.poses):
+      self.object_in_tray_is_upside_down = dict()
+      res = self.vision.read_from_ssd()
+      for idx, pose, upside_down in zip(res.class_ids, res.poses, res.upside_down):
         self.objects_in_tray[idx] = pose
+        self.object_in_tray_is_upside_down[idx] = upside_down
       return res
     except:
       pass
@@ -764,7 +766,7 @@ class O2ACBase(object):
       ps_approach.pose.position.z -= 0.01 # Approach diagonally so nothing gets stuck
 
     if equip:
-      robot.gripper.open(opening_width=0.08)
+      robot.gripper.open(opening_width=0.06)
       rospy.loginfo("Spawning tool.")
       if not self.spawn_tool(tool_name):
         rospy.logwarn("Could not spawn the tool. Continuing.")
@@ -782,9 +784,9 @@ class O2ACBase(object):
     elif realign:
       lin_speed = 0.5
 
-    sequence.append(helpers.to_sequence_item(ps_approach, speed=lin_speed))
-    sequence.append(helpers.to_sequence_item(ps_in_holder, speed=lin_speed))
-    # sequence.append(helpers.to_sequence_trajectory([ps_approach,ps_in_holder], [0.003,0.0]))
+    # sequence.append(helpers.to_sequence_item(ps_approach, speed=lin_speed))
+    # sequence.append(helpers.to_sequence_item(ps_in_holder, speed=lin_speed))
+    sequence.append(helpers.to_sequence_trajectory([ps_approach,ps_in_holder], [0.003,0.0]))
 
     if not self.execute_sequence(robot_name, sequence, "approach sequence equip/unequip tool", plan_while_moving=True):
       rospy.logerr("Fail to complete the approach sequence")
@@ -800,7 +802,7 @@ class O2ACBase(object):
       robot.robot_status.held_tool_id = tool_name
       self.publish_robot_status()
     elif unequip:
-      robot.gripper.open(opening_width=0.08)
+      robot.gripper.open(opening_width=0.06)
       self.active_robots[robot_name].gripper.detach_object(tool_name)
       self.planning_scene_interface.remove_attached_object(name=tool_name)
       self.planning_scene_interface.remove_world_object(name=tool_name)
@@ -810,7 +812,7 @@ class O2ACBase(object):
       robot.robot_status.held_tool_id = ""
       self.publish_robot_status()
     elif realign:  # Drop the tool into the holder once
-      robot.gripper.open(opening_width=0.08)
+      robot.gripper.open(opening_width=0.06)
       robot.gripper.close()
     
     sequence = []
@@ -820,7 +822,7 @@ class O2ACBase(object):
       pull_back_slightly.pose.position.x -= 0.003
       ps_in_holder.pose.position.x += 0.001  # To remove the offset for placing applied earlier
       lin_speed = 0.02
-      sequence.append(helpers.to_sequence_item(pull_back_slightly, speed=lin_speed, gripper='open', gripper_opening_width=0.08, gripper_velocity=0.1))
+      sequence.append(helpers.to_sequence_item(pull_back_slightly, speed=lin_speed, gripper='open', gripper_opening_width=0.06, gripper_velocity=0.1))
       sequence.append(helpers.to_sequence_item(ps_in_holder, speed=lin_speed, gripper='close', gripper_force=60, gripper_velocity=0.1))
     
     # Plan & execute linear motion away from the tool change position
@@ -967,7 +969,7 @@ class O2ACBase(object):
 
     robot_name, playback_trajectories = self.read_playback_sequence(routine_filename, default_frame)
 
-    self.execute_sequence(robot_name, playback_trajectories, routine_filename, plan_while_moving)
+    return self.execute_sequence(robot_name, playback_trajectories, routine_filename, plan_while_moving)
 
   def execute_gripper_action(self, robot_name, gripper_params):
       robot = self.active_robots[robot_name]

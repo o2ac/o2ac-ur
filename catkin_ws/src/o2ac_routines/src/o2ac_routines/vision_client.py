@@ -35,7 +35,7 @@ class VisionClient():
         return False
 
     @check_for_real_robot
-    def read_from_sdd(self):
+    def read_from_ssd(self):
         """
         Returns object poses as estimated by the SSD neural network and reprojection.
         Also updates self.objects_in_tray
