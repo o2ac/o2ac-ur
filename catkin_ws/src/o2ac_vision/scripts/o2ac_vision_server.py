@@ -204,17 +204,18 @@ class O2ACVisionServer(object):
         im_vis = im_in.copy()
         
         action_result = o2ac_msgs.msg.get3DPosesFromSSDResult()
-        poses_2d_with_id, im_vis, action_result.upside_down = self.get_2d_poses_from_ssd(im_in, im_vis)
+        poses_2d_with_id, im_vis, upside_down_list = self.get_2d_poses_from_ssd(im_in, im_vis)
 
         action_result.poses = []
         action_result.class_ids = []
-        for array in poses_2d_with_id:
+        action_result.upside_down = []
+        for (array, upside_down) in zip(poses_2d_with_id, upside_down_list):
             for pose2d in array.poses:
                 action_result.class_ids.append(array.class_id)
                 p3d = self.convert_pose_2d_to_3d(pose2d)
                 if p3d:
                     action_result.poses.append(p3d)
-        
+                    action_result.upside_down.append(upside_down)
         self.get_3d_poses_from_ssd_action_server.set_succeeded(action_result)
         # Publish result visualization
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
@@ -419,13 +420,14 @@ class O2ACVisionServer(object):
                 for p2d in estimated_poses_msg.poses:
                     p3d = self.convert_pose_2d_to_3d(p2d)
                     if not p3d:
+                        rospy.logwarn("Could not find pose for class " + str(target) + "!")
                         continue
                     poses_3d.append(p3d)
                     # rospy.loginfo("Found pose for class " + str(target) + ": " + str(poses_3d[-1].pose.position.x) + ", " + str(poses_3d[-1].pose.position.y) + ", " + str(poses_3d[-1].pose.position.z))
                     # rospy.loginfo("Found pose for class " + str(target) + ": %2f, %2f, %2f", 
                     #                poses_3d[-1].pose.position.x, poses_3d[-1].pose.position.y, poses_3d[-1].pose.position.z)
                 if not poses_3d:
-                    rospy.logwarn("Could not find pose for class " + str(target) + "!")
+                    rospy.logwarn("Could not find poses for class " + str(target) + "!")
                     continue
                 self.add_markers_to_pose_array(poses_3d)
 
