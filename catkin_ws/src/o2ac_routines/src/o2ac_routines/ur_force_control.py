@@ -1,3 +1,4 @@
+from numpy.matrixlib.defmatrix import asmatrix
 import rospy
 import rospkg
 import yaml
@@ -177,9 +178,13 @@ class URForceController(CompliantController):
         if selection_matrix is None:
             selection_matrix = np.array(target_force == 0.0) * 0.8  # define the selection matrix based on the target force
 
+        translation, rotation = self.listener.lookupTransform(target_pose_in_target_frame.header.frame_id, self.ns + "_base_link", rospy.Time.now())
+        transform2target = self.listener.fromTranslationRotation(translation, rotation)
+
         def termination_criteria(current_pose, standby):
             current_pose_robot_base = conversions.to_pose_stamped(self.ns + "_base_link", current_pose)
-            current_pose_in_target_frame = self.listener.transformPose(target_pose_in_target_frame.header.frame_id, current_pose_robot_base)
+            # current_pose_in_target_frame = self.listener.transformPose(target_pose_in_target_frame.header.frame_id, current_pose_robot_base)
+            current_pose_in_target_frame = conversions.transform_pose(target_pose_in_target_frame.header.frame_id, transform2target, current_pose_robot_base)
             current_pose_of = conversions.from_pose_to_list(current_pose_in_target_frame.pose)
             target_pose_of = conversions.from_pose_to_list(target_pose_in_target_frame.pose)
             # print("check cp,tp", current_pose_of[axis], target_pose_of[axis])
