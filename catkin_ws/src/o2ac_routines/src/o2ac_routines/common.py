@@ -117,10 +117,11 @@ class O2ACCommon(O2ACBase):
     else:
       collision_object.header.frame_id = "assembled_part_" + str(object_id).zfill(2)  # Fill with leading zeroes
     self.planning_scene_interface.apply_collision_object(collision_object)
-    # Make sure all robots forget any attachments to this particular object
+    # Make sure the object is detached from all robots
     for robot in self.active_robots.values():
       if object_name == robot.gripper.last_attached_object:
         robot.gripper.last_attached_object = None
+    
     return
     
 
@@ -811,7 +812,7 @@ class O2ACCommon(O2ACBase):
     # rotate gripper -90deg
     return robot.move_joints(initial_pose_goal, speed=0.5, wait=True)
 
-  def centering_pick(self, robot_name, object_pose, speed=0.2, acc=0.01, object_width=0.08, approach_height=0.1, 
+  def centering_pick(self, robot_name, object_pose, speed_fast=0.5, speed_slow=0.2, object_width=0.08, approach_height=0.1, 
           item_id_to_attach = "", lift_up_after_pick=False, gripper_force=40.0, approach_move_lin=True):
     """
     This function picks an object with the robot directly from above, but centers the object with the gripper first.
@@ -838,7 +839,7 @@ class O2ACCommon(O2ACBase):
       approach_pose = copy.deepcopy(pick_pose)
       approach_pose.pose.position.z += approach_height
 
-      success = robot.go_to_pose_goal(approach_pose, speed=speed, acceleration=acc, move_lin=approach_move_lin)
+      success = robot.go_to_pose_goal(approach_pose, speed=speed_fast, acceleration=speed_fast/2.0, move_lin=approach_move_lin)
       if not success:
         rospy.logerr("Fail to complete approach pose")
         return False
@@ -846,7 +847,7 @@ class O2ACCommon(O2ACBase):
       rospy.loginfo("Moving down to object")
       robot.gripper.send_command(command=object_width+0.03)
     
-      success = robot.go_to_pose_goal(pick_pose, speed=speed/2.0, acceleration=acc/2.0, move_lin=True)
+      success = robot.go_to_pose_goal(pick_pose, speed=speed_slow, acceleration=speed_slow/2.0, move_lin=True)
       if not success:
         rospy.logerr("Fail to complete pick pose")
         return False
@@ -865,7 +866,7 @@ class O2ACCommon(O2ACBase):
       rospy.loginfo("Going back up")
 
       rospy.loginfo("Going to height " + str(approach_height))
-      robot.move_lin_rel(relative_translation=[0, 0, approach_height], speed=speed, acceleration=acc)
+      robot.move_lin_rel(relative_translation=[0, 0, approach_height], speed=speed_fast, acceleration=speed_fast/2.0)
     return True
 
   def drop_shaft_in_v_groove(self):
