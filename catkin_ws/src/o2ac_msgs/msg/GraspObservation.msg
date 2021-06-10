@@ -1,0 +1,1 @@
+geometry_msgs/PoseStamped gripper_pose

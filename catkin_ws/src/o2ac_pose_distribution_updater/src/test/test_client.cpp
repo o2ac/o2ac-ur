@@ -13,6 +13,8 @@ std::shared_ptr<Client> client;
 
 ros::ServiceClient visualizer_client;
 
+ros::Publisher marker_publisher;
+
 TEST(TouchTest, TouchGearMotor1) {
   touch_test(client, test_directory + "/touch_input_gearmotor_1.txt",
              test_directory + "/CAD/gearmotor.stl",
@@ -118,6 +120,27 @@ TEST(PlaceTest, PlaceCones1LieConvert) {
              visualizer_client, true);
 }
 
+TEST(GraspTest, GraspCones) {
+  grasp_test(client, test_directory + "/grasp_test_cones_Lie_1.txt",
+             test_directory + "/CAD/cones.stl",
+             o2ac_msgs::updateDistributionGoal::LIE_COVARIANCE, true,
+             visualizer_client, marker_publisher);
+}
+
+TEST(GraspTest, GraspGearmotor) {
+  grasp_test(client, test_directory + "/grasp_test_gearmotor_Lie_1.txt",
+             test_directory + "/CAD/gearmotor.stl",
+             o2ac_msgs::updateDistributionGoal::LIE_COVARIANCE, true,
+             visualizer_client, marker_publisher);
+}
+
+TEST(GraspTest, GraspShaft) {
+  grasp_test(client, test_directory + "/grasp_test_shaft_Lie_1.txt",
+             test_directory + "/CAD/shaft.stl",
+             o2ac_msgs::updateDistributionGoal::LIE_COVARIANCE, true,
+             visualizer_client, marker_publisher);
+}
+
 int main(int argc, char **argv) {
   testing::InitGoogleTest(&argc, argv);
 
@@ -133,5 +156,13 @@ int main(int argc, char **argv) {
   visualizer_client =
       nd.serviceClient<o2ac_msgs::visualizePoseBelief>("visualize_pose_belief");
 
-  return RUN_ALL_TESTS();
+  // create the visualization marker publisher
+  marker_publisher =
+      nd.advertise<visualization_msgs::MarkerArray>("test_marker", 1);
+
+  ros::Duration(1.0).sleep();
+  RUN_ALL_TESTS();
+  ros::Duration(1.0)
+      .sleep(); // If the program ends too early, td data is not sent
+  return 0;
 }

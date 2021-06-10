@@ -2,6 +2,7 @@ uint8 observation_type
 TouchObservation touch_observation
 LookObservation look_observation
 PlaceObservation place_observation
+GraspObservation grasp_observation
 moveit_msgs/CollisionObject gripped_object
 uint8 distribution_type
 geometry_msgs/PoseWithCovarianceStamped distribution
@@ -10,6 +11,7 @@ geometry_msgs/PoseWithCovarianceStamped distribution
 uint8 TOUCH_OBSERVATION = 0
 uint8 LOOK_OBSERVATION = 1
 uint8 PLACE_OBSERVATION = 2
+uint8 GRASP_OBSERVATION = 3
 # Values for distribution_type
 uint8 RPY_COVARIANCE = 0
 uint8 LIE_COVARIANCE = 1

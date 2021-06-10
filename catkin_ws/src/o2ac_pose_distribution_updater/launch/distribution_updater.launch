@@ -19,6 +19,12 @@
       camera_cy: 534.3704833984375
 
       marker_array_topic_name: o2ac_pose_belief_visualization_marker_array
+      visualization_scale: [1.0, 1.0, 1.0]
+      mean_color: [1.0, 0.0, 0.0, 1.0]
+      variance_color: [0.0, 0.0, 1.0, 0.2]
+
+      gripper_height: 0.256
+      gripper_width: 0.020
     </rosparam>
 
     <node name="pose_distribution_updater" pkg="o2ac_pose_distribution_updater" type="update_distribution_action_server" output="screen">

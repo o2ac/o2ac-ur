@@ -12,10 +12,6 @@ Helper functions for the place action
 #include "o2ac_pose_distribution_updater/operators_for_Lie_distribution.hpp"
 #include <unsupported/Eigen/AutoDiff>
 
-Eigen::Vector3d
-calculate_center_of_gravity(const std::vector<Eigen::Vector3d> &vertices,
-                            const std::vector<boost::array<int, 3>> &triangles);
-
 void find_three_points(const std::vector<Eigen::Vector3d> &current_vertices,
                        const Eigen::Vector3d &current_center_of_gravity,
                        int &ground_touch_vertex_id_1,

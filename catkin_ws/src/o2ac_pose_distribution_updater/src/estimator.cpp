@@ -59,6 +59,26 @@ Particle get_UND_particle() {
   return p;
 }
 
+Eigen::Vector3d calculate_center_of_gravity(
+    const std::vector<Eigen::Vector3d> &vertices,
+    const std::vector<boost::array<int, 3>> &triangles) {
+  // Calculate the center of gravity
+
+  Eigen::Vector3d center_of_gravity;
+  center_of_gravity.setZero();
+  double total_volume = 0.0;
+  for (int j = 0; j < triangles.size(); j++) {
+    auto &ver0 = vertices[triangles[j][0]];
+    auto &ver1 = vertices[triangles[j][1]];
+    auto &ver2 = vertices[triangles[j][2]];
+    double tetra_volume = ver0.dot(ver1.cross(ver2));
+    center_of_gravity += tetra_volume * (ver0 + ver1 + ver2);
+    total_volume += tetra_volume;
+  }
+  center_of_gravity /= 4.0 * total_volume;
+  return center_of_gravity;
+}
+
 double calculate_distance(
     const std::shared_ptr<fcl::CollisionObject> &touched_object,
     const std::shared_ptr<fcl::CollisionGeometry> &gripped_geometry,
@@ -123,6 +143,12 @@ void PoseEstimator::set_look_parameters(
   // 'camera_t', using calibration points
   cv::solvePnP(cv_calibration_object_points, cv_calibration_image_points,
                camera_matrix, camera_dist_coeffs, camera_r, camera_t);
+}
+
+void PoseEstimator::set_grasp_parameters(const double &gripper_height,
+                                         const double &gripper_width) {
+  this->gripper_height = gripper_height;
+  this->gripper_width = gripper_width;
 }
 
 void PoseEstimator::generate_particles(const Particle &old_mean,
@@ -225,6 +251,9 @@ void PoseEstimator::calculate_new_Lie_distribution(
     Particle sum_of_xi = Particle::Zero();
     CovarianceMatrix sum_of_xi_dash = CovarianceMatrix::Zero();
     for (int i = 0; i < number_of_particles; i++) {
+      if (likelihoods[i] < EPS) {
+        continue;
+      }
       Particle xi = check_operator<double>(
           (particle_transforms[i] * new_mean.inverse()).matrix().log());
       sum_of_xi += likelihoods[i] * xi;
@@ -255,6 +284,9 @@ void PoseEstimator::calculate_new_Lie_distribution(
   new_covariance.setZero();
   // Note that Cov[X, Y] = E[XY] - E[X]E[Y]
   for (int i = 0; i < number_of_particles; i++) {
+    if (likelihoods[i] < EPS) {
+      continue;
+    }
     Particle xi = check_operator<double>(
         (particle_transforms[i] * new_mean.inverse()).matrix().log());
     new_covariance += likelihoods[i] * xi * xi.transpose();
@@ -436,6 +468,62 @@ void PoseEstimator::place_step_with_Lie_distribution(
       vertices[ground_touch_vertex_id_1], vertices[ground_touch_vertex_id_2],
       vertices[ground_touch_vertix_id_3], support_surface, gripper_transform,
       new_mean, new_covariance);
+}
+
+void PoseEstimator::grasp_step_with_Lie_distribution(
+    const std::vector<Eigen::Vector3d> &vertices,
+    const std::vector<boost::array<int, 3>> &triangles,
+    const Eigen::Isometry3d &gripper_transform,
+    const Eigen::Isometry3d &old_mean, const CovarianceMatrix &old_covariance,
+    Eigen::Isometry3d &new_mean, CovarianceMatrix &new_covariance,
+    const bool use_linear_approximation) {
+  // calculate the center of gravity
+  Eigen::Vector3d center_of_gravity_of_gripped =
+      calculate_center_of_gravity(vertices, triangles);
+
+  std::vector<Eigen::Vector3d> cut_vertices[3];
+  std::vector<boost::array<int, 3>> cut_triangles[3];
+  Eigen::Matrix3d old_mean_rotation = old_mean.rotation().matrix();
+  Eigen::Vector3d old_mean_translation = old_mean.translation();
+  cutting_object(
+      vertices, triangles,
+      Eigen::Hyperplane<double, 3>(-old_mean_rotation.row(2).transpose(),
+                                   -old_mean_translation(2) + gripper_height),
+      cut_vertices[0], cut_triangles[0]);
+  cutting_object(cut_vertices[0], cut_triangles[0],
+                 Eigen::Hyperplane<double, 3>(
+                     old_mean_rotation.row(1).transpose(),
+                     old_mean_translation(1) + gripper_width / 2.0),
+                 cut_vertices[1], cut_triangles[1]);
+  cutting_object(cut_vertices[1], cut_triangles[1],
+                 Eigen::Hyperplane<double, 3>(
+                     -old_mean_rotation.row(1).transpose(),
+                     -old_mean_translation(1) + gripper_width / 2.0),
+                 cut_vertices[2], cut_triangles[2]);
+  if (use_linear_approximation) {
+    // calculate by auto diff
+    grasp_update_Lie_distribution(old_mean, old_covariance, cut_vertices[2],
+                                  vertices, center_of_gravity_of_gripped,
+                                  gripper_transform, new_mean, new_covariance);
+  } else {
+    generate_particles(Particle::Zero(), old_covariance);
+    for (int i = 0; i < number_of_particles; i++) {
+      Eigen::Isometry3d input_transform =
+          Eigen::Isometry3d(
+              (Eigen::Matrix<double, 4, 4>)(hat_operator(particles[i]).exp())) *
+          old_mean;
+      try {
+        grasp_calculator calculator(cut_vertices[2], vertices,
+                                    gripper_transform, input_transform,
+                                    center_of_gravity_of_gripped, false);
+        particle_transforms[i] = calculator.new_mean;
+        likelihoods[i] = 1.;
+      } catch (...) {
+        likelihoods[i] = 0.0;
+      }
+    }
+    calculate_new_Lie_distribution(old_mean, new_mean, new_covariance);
+  }
 }
 
 cv::Point3d to_cv_point(const Eigen::Vector3d &p) {

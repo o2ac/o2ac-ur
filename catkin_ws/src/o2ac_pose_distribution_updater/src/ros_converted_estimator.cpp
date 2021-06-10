@@ -108,6 +108,62 @@ void ROSConvertedPoseEstimator::place_step(
   }
 }
 
+void ROSConvertedPoseEstimator::grasp_step(
+    const moveit_msgs::CollisionObject &gripped_object,
+    const geometry_msgs::Pose &gripper_pose,
+    const unsigned char &distribution_type,
+    const geometry_msgs::PoseWithCovariance &old_distibution,
+    geometry_msgs::PoseWithCovariance &new_distribution,
+    const bool use_linear_approximation) {
+  // convert from moveit_msgs::CollisionObject to std::vector<Eigen::Vector3d>
+  // and std::vector<boost::array<int, 3>>
+  std::vector<Eigen::Vector3d> vertices;
+  std::vector<boost::array<int, 3>> triangles;
+  CollisionObject_to_eigen_vectors(gripped_object, vertices, triangles);
+
+  // convert from geometry_msgs::Pose to Eigen::Isometry3d
+  Eigen::Isometry3d gripper_transform;
+  tf::poseMsgToEigen(gripper_pose, gripper_transform);
+
+  Eigen::Isometry3d old_mean, new_mean;
+  CovarianceMatrix old_covariance, new_covariance;
+
+  if (distribution_type == o2ac_msgs::updateDistributionGoal::RPY_COVARIANCE) {
+
+    // convert from PoseWithcovariance to Particle and CovarianceMatrix
+    Particle RPY_old_mean = pose_to_particle(old_distibution.pose);
+    CovarianceMatrix RPY_old_covariance =
+        array_36_to_matrix_6x6(old_distibution.covariance);
+
+    eigen_distribution_RPY_to_Lie(RPY_old_mean, RPY_old_covariance, old_mean,
+                                  old_covariance);
+  } else if (distribution_type ==
+             o2ac_msgs::updateDistributionGoal::LIE_COVARIANCE) {
+    // convert from PoseWithcovariance to Eigen::Isometry3d and CovarianceMatrix
+    tf::poseMsgToEigen(old_distibution.pose, old_mean);
+    old_covariance = array_36_to_matrix_6x6(old_distibution.covariance);
+  }
+
+  // execute step
+  PoseEstimator::grasp_step_with_Lie_distribution(
+      vertices, triangles, gripper_transform, old_mean, old_covariance,
+      new_mean, new_covariance, use_linear_approximation);
+
+  if (distribution_type == o2ac_msgs::updateDistributionGoal::RPY_COVARIANCE) {
+    // convert from Particle and CovarianceMatrix to PoseWithcovariance
+    Particle RPY_new_mean;
+    CovarianceMatrix RPY_new_covariance;
+    eigen_distribution_Lie_to_RPY(new_mean, new_covariance, RPY_new_mean,
+                                  RPY_new_covariance);
+    new_distribution = to_PoseWithCovariance(RPY_new_mean, RPY_new_covariance);
+  } else if (distribution_type ==
+             o2ac_msgs::updateDistributionGoal::LIE_COVARIANCE) {
+    // convert from Particle and CovarianceMatrix to PoseWithcovariance
+    tf::poseEigenToMsg(new_mean, new_distribution.pose);
+    new_distribution.covariance = matrix_6x6_to_array_36(new_covariance);
+  }
+}
+
 void ROSConvertedPoseEstimator::look_step(
     const moveit_msgs::CollisionObject &gripped_object,
     const geometry_msgs::Pose &gripper_pose,

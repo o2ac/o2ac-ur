@@ -1,11 +1,12 @@
 # Overview
 This package implements an action server for updateDistribution action.
 
-When an object is gripped and its pose has ambiguity, there exist three acts to clarify its pose, "touch", "look" and "place".
+When an object is gripped and its pose has ambiguity, there exist three acts to clarify its pose, "touch", "look", "place" and "grasp".
 
 - "touch" : To move the gripper and let the object to touch some other object.
 - "look" : To take an image of the object from a camera
 - "place" : To release the object and place it on a support surface
+- "grasp" : To grasp the object by the gripper with two flat fingers
 
 When the action server receives a pose belief, which means a pair of the shape of the object and its current pose with ambiguity, and information about one of these acts,
 it calculates the updated pose with ambiguity of the object.
@@ -126,6 +127,9 @@ The following four parameters are the intrinsic parameters of the camera.
 ### For visualization
 
 - `marker_array_topic_name`: the name of topic to which the marker arrays to visualize pose beliefs are published
+- `visualization_scale`: the scale of the object
+- `mean_color`: the color of the visualized mean pose of the object, represented by RGBA
+- `variance_color`: the color of the visualized pose of the object representing uncertainties, represented by RGBA
 
 # Message types
 
@@ -150,14 +154,18 @@ This section describe messages to send information about the three acts.
 - `geometry_msgs/PoseStamped gripper_pose`: the pose of the gripper when the object is released
 - `float64 support_surface`: the z coordinate of the support surface where the object is placed
 
+### `GraspObservation.msg`
+- `geometry_msgs/PoseStamped gripper_pose`: the pose of the gripper when the object is grasped
+
 ## updateDistribution action
 This section describe updateDistribution action, an action to send current poses and information about acts and receive new poses.
 
 ### Goal
-- `uint8 observation_type`: the type of the act. If this value is `TOUCH_OBSERVATION` (constant, equal to 0), the act is "touch". If it is `LOOK_OBSERVATION` (constant, equal to 1), the act is "look". If it is `PLACE_OBSERVATION` (constant, equal to 2), the act is "place".
+- `uint8 observation_type`: the type of the act. If this value is `TOUCH_OBSERVATION` (constant, equal to 0), the act is "touch". If it is `LOOK_OBSERVATION` (constant, equal to 1), the act is "look". If it is `PLACE_OBSERVATION` (constant, equal to 2), the act is "place". If it is `GRASP_OBSERVATION` (constant, equal to 3), the act is "grasp".
 - `TouchObservation touch_observation`: When the type of act is "touch", this represents information about the act.
 - `LookObservation look_observation`: When the type of act is "look", this represents information about the act.
 - `PlaceObservation place_observation`: When the type of act is "place", this represents information about the act.
+- `GraspObservation place_observation`: When the type of act is "grasp", this represents information about the act.
 - `moveit_msgs/CollisionObject gripped_object`: a CollisionObject representing the gripped object
 - `uint8 distribution_type`: whether method is used to represent uncertainty of the pose. If this value is `RPY_COVARIANCE` (constant, equal to 0), the `covariance` attribute of the following `distribution` is interpreted as covariance matrix in the space of x, y, z, roll, pitch, yaw. If it is `LIE_COVARIANCE` (constant, equal to 1),  the `covariance` attribute is interpreted as covariance matrix in the vector space identified with the Lie algebra $se(3)$.
 - `geometry_msgs/PoseWithCovarianceStamped distribution`: the current distribution of the pose of the object
@@ -194,6 +202,7 @@ o2ac_pose_distribution_updater           # package direcotory
 │       ├── conversions.hpp              # conversion functions, header only
 │       ├── estimator.hpp                # class calculating distributions
 │       ├── operators_for_Lie_distribution.hpp     # functions for Lie distribution, header only
+│       ├── grasp_action_helpers.hpp     # functions for calculations associated to grasp action
 │       ├── place_action_helpers.hpp     # functions for calculations associated to place action
 │       ├── pose_belief_visualizer.hpp   # class to visualize pose beliefs
 │       ├── read_stl.hpp                 # function to read stl files
@@ -207,6 +216,7 @@ o2ac_pose_distribution_updater           # package direcotory
 ├── src                                  # direcotory containing source files
 │   ├── action_server.cpp                # implementation of the action server
 │   ├── estimator.cpp                    # implementation of estimator.hpp
+│   ├── grasp_action_helpers.cpp         # implementation of grasp_action_helpers.hpp
 │   ├── place_action_helpers.cpp         # implementation of place_action_helpers.hpp
 │   ├── pose_belief_visualizer.cpp       # implementation of pose_belief_visualizer.hpp
 │   ├── read_stl.cpp                     # implementation of read_stl.hpp

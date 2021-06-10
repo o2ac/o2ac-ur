@@ -12,6 +12,7 @@
 #include <random>
 #include <stdexcept>
 
+#include "o2ac_pose_distribution_updater/grasp_action_helpers.hpp"
 #include "o2ac_pose_distribution_updater/place_action_helpers.hpp"
 
 using object_geometry = fcl::BVHModel<fcl::OBBRSS>;
@@ -51,6 +52,9 @@ private:
   // Variables for look action
   cv::Mat camera_r, camera_t;
 
+  // Parameters for grasp action
+  double gripper_height, gripper_width;
+
 public:
   PoseEstimator(){};
 
@@ -66,6 +70,9 @@ public:
       const std::vector<std::vector<double>> &calibration_image_points,
       const double &camera_fx, const double &camera_fy, const double &camera_cx,
       const double &camera_cy);
+
+  void set_grasp_parameters(const double &gripper_height,
+                            const double &gripper_width);
 
   void generate_particles(const Particle &old_mean,
                           const CovarianceMatrix &old_covariance);
@@ -110,6 +117,14 @@ public:
       const Eigen::Isometry3d &gripper_transform, const double &support_surface,
       const Eigen::Isometry3d &old_mean, const CovarianceMatrix &old_covariance,
       Eigen::Isometry3d &new_mean, CovarianceMatrix &new_covariance);
+
+  void grasp_step_with_Lie_distribution(
+      const std::vector<Eigen::Vector3d> &vertices,
+      const std::vector<boost::array<int, 3>> &triangles,
+      const Eigen::Isometry3d &gripper_transform,
+      const Eigen::Isometry3d &old_mean, const CovarianceMatrix &old_covariance,
+      Eigen::Isometry3d &new_mean, CovarianceMatrix &new_covariance,
+      const bool use_linear_approximation = true);
 
   void generate_image(cv::Mat &image,
                       const std::vector<Eigen::Vector3d> &vertices,

@@ -1,4 +1,5 @@
 #include "o2ac_msgs/updateDistributionAction.h"
+#include "o2ac_pose_distribution_updater/distribution_conversions.hpp"
 #include "o2ac_pose_distribution_updater/estimator.hpp"
 #include "o2ac_pose_distribution_updater/ros_converters.hpp"
 
@@ -27,4 +28,11 @@ public:
                  const unsigned char &distribution_type,
                  const geometry_msgs::PoseWithCovariance &old_distibution,
                  geometry_msgs::PoseWithCovariance &new_distribution);
+
+  void grasp_step(const moveit_msgs::CollisionObject &gripped_object,
+                  const geometry_msgs::Pose &gripper_pose,
+                  const unsigned char &distribution_type,
+                  const geometry_msgs::PoseWithCovariance &old_distibution,
+                  geometry_msgs::PoseWithCovariance &new_distribution,
+                  const bool use_linear_approximation = true);
 };

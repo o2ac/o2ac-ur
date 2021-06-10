@@ -5,47 +5,13 @@ The implementation of the place test
 #include "o2ac_pose_distribution_updater/test.hpp"
 #include <cstring>
 
-Eigen::Isometry3d particle_to_eigen_transform(const Particle &p) {
-  return Eigen::Translation3d(p.block(0, 0, 3, 1)) *
-         Eigen::AngleAxis<double>(p(5), Eigen::Vector3d::UnitZ()) *
-         Eigen::AngleAxis<double>(p(4), Eigen::Vector3d::UnitY()) *
-         Eigen::AngleAxis<double>(p(3), Eigen::Vector3d::UnitX());
-}
-
-void msg_pose_to_msg_transform(const geometry_msgs::Pose &pose,
-                               geometry_msgs::Transform &transform) {
-  transform.translation.x = pose.position.x;
-  transform.translation.y = pose.position.y;
-  transform.translation.z = pose.position.z;
-  transform.rotation = pose.orientation;
-}
-
-void broadcast_gripper_pose(const std::string &frame_id,
-                            const ros::Time &current_time,
-                            const geometry_msgs::Pose &pose) {
-  static tf2_ros::StaticTransformBroadcaster broadcaster;
-  geometry_msgs::TransformStamped transform_stamped;
-  transform_stamped.header.frame_id = "world";
-  transform_stamped.header.stamp = current_time;
-  transform_stamped.child_frame_id = frame_id;
-  msg_pose_to_msg_transform(pose, transform_stamped.transform);
-  broadcaster.sendTransform(transform_stamped);
-}
-
-void send_pose_belief(
-    ros::ServiceClient &visualizer_client,
-    const moveit_msgs::CollisionObject &object,
-    const geometry_msgs::PoseWithCovarianceStamped &distribution) {
-  o2ac_msgs::visualizePoseBelief pose_belief;
-  pose_belief.request.object = object;
-  pose_belief.request.distribution = distribution;
-  visualizer_client.call(pose_belief);
-}
-
-void place_with_Lie_distibution_test(
-    const std::shared_ptr<Client> &client, const std::string &test_file_path,
-    const std::string &gripped_geometry_file_path, const bool &visualize,
-    ros::ServiceClient &visualizer_client) {
+void grasp_test(const std::shared_ptr<Client> &client,
+                const std::string &test_file_path,
+                const std::string &gripped_geometry_file_path,
+                const unsigned char &distribution_type, const bool &visualize,
+                ros::ServiceClient &visualizer_client,
+                ros::Publisher &marker_publisher,
+                const bool distribution_convert) {
   /*
     This procedure is given the path of the input file.
     The input file consists of some blocks of the form:
@@ -73,13 +39,13 @@ void place_with_Lie_distibution_test(
 
   FILE *in = fopen(test_file_path.c_str(), "r");
   ASSERT_FALSE(in == NULL);
-  while (1) {
+
+  int number_of_cases;
+  fscanf(in, "%d", &number_of_cases);
+  for (int t = 0; t < number_of_cases; t++) {
     // Read the values to send
     Particle gripper_pose_particle, mean;
-    if (fscanf(in, "%lf", &(gripper_pose_particle(0))) == EOF) {
-      break;
-    }
-    for (int i = 1; i < 6; i++) {
+    for (int i = 0; i < 6; i++) {
       fscanf(in, "%lf", &(gripper_pose_particle(i)));
     }
     for (int i = 0; i < 6; i++) {
@@ -91,32 +57,30 @@ void place_with_Lie_distibution_test(
         fscanf(in, "%lf", &(covariance(i, j)));
       }
     }
-    double support_surface;
-    fscanf(in, "%lf", &support_surface);
     // Convert these to updateDistributiongoal
     o2ac_msgs::updateDistributionGoal goal;
-    goal.observation_type = goal.PLACE_OBSERVATION;
-    goal.place_observation.gripper_pose.pose =
-        to_PoseWithCovariance(gripper_pose_particle, CovarianceMatrix::Zero())
-            .pose;
-    goal.place_observation.support_surface = support_surface;
+    goal.observation_type = goal.GRASP_OBSERVATION;
+    particle_to_pose(gripper_pose_particle,
+                     goal.grasp_observation.gripper_pose.pose);
+    goal.distribution_type = distribution_type;
     goal.distribution.pose = to_PoseWithCovariance(mean, covariance);
     goal.gripped_object = *gripped_geometry;
 
     if (visualize) {
       // name the current gripper frame
       static int gripper_id = 0;
-      std::string gripper_frame_id = "gripper-" + std::to_string(gripper_id++);
+      std::string gripper_frame_id =
+          "grasp-gripper-" + std::to_string(gripper_id++);
       // store the current time
       auto current_time = ros::Time::now();
       // broadcast the gripper pose
       broadcast_gripper_pose(gripper_frame_id, current_time,
-                             goal.place_observation.gripper_pose.pose);
-      // visualize the pose belief before placing
+                             goal.grasp_observation.gripper_pose.pose);
+      // visualize the pose belief before grasping
       goal.distribution.header.frame_id = gripper_frame_id;
       goal.distribution.header.stamp = current_time;
       send_pose_belief(visualizer_client, goal.gripped_object,
-                       goal.distribution);
+                       distribution_type, goal.distribution);
     }
 
     // Send a call
@@ -143,16 +107,13 @@ void place_with_Lie_distibution_test(
       // It is expected that the update is calculated successfully
       ASSERT_TRUE(result->success);
 
-      if (visualize) {
-        // visualize the pose belief after placing
-        send_pose_belief(visualizer_client, goal.gripped_object,
-                         result->distribution);
-      }
-
       // Convert messages to Eigen Matrices
       Particle new_mean = pose_to_particle(result->distribution.pose.pose);
       CovarianceMatrix new_covariance =
           array_36_to_matrix_6x6(result->distribution.pose.covariance);
+
+      ROS_INFO_STREAM(new_mean);
+      ROS_INFO_STREAM(new_covariance);
 
       // Read the expected values and check the equality
       const double EPS = 1e-6;
@@ -170,6 +131,75 @@ void place_with_Lie_distibution_test(
                     EPS * std::max(1.0, expected_value));
         }
       }
+    }
+
+    if (visualize) {
+      // visualize the pose belief after placing
+
+      double max_x = 0.0;
+
+      static int result_gripper_id = 0;
+      std::string result_gripper_frame_id =
+          "result-grasp-gripper-" + std::to_string(result_gripper_id++);
+      // store the current time
+      auto current_time = ros::Time::now();
+      // broadcast the gripper pose
+      auto result_gripper_pose = goal.grasp_observation.gripper_pose.pose;
+      result_gripper_pose.position.y += 0.1;
+      broadcast_gripper_pose(result_gripper_frame_id, current_time,
+                             result_gripper_pose);
+      if (result->success) {
+        auto result_distribution = result->distribution;
+
+        result_distribution.header.frame_id = result_gripper_frame_id;
+        result_distribution.header.stamp = current_time;
+        send_pose_belief(visualizer_client, goal.gripped_object,
+                         distribution_type, result_distribution);
+
+        Eigen::Isometry3d new_mean;
+        tf::poseMsgToEigen(result_distribution.pose.pose, new_mean);
+
+        std::vector<Eigen::Vector3d> vertices;
+        std::vector<boost::array<int, 3>> triangles;
+        CollisionObject_to_eigen_vectors(*gripped_geometry, vertices,
+                                         triangles);
+        for (auto &vertex : vertices) {
+          max_x = std::max(max_x, (new_mean * vertex)(0));
+        }
+      }
+
+      visualization_msgs::Marker marker_plus, marker_minus;
+      marker_plus.header.frame_id = result_gripper_frame_id;
+      marker_plus.header.stamp = current_time;
+      marker_plus.ns = "gripper_marker";
+
+      marker_plus.type = visualization_msgs::Marker::CUBE;
+
+      marker_plus.frame_locked = true;
+      marker_plus.action = visualization_msgs::Marker::ADD;
+
+      marker_plus.pose = to_Pose(0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0);
+      marker_plus.scale.x = 0.002;
+      marker_plus.scale.y = marker_plus.scale.z = 0.1;
+      marker_plus.color.r = 0.0;
+      marker_plus.color.g = 1.0;
+      marker_plus.color.b = 0.0;
+      marker_plus.color.a = 0.8;
+
+      marker_minus = marker_plus;
+
+      marker_plus.pose.position.x = max_x + 0.001;
+      marker_minus.pose.position.x = -max_x - 0.001;
+
+      marker_plus.id = 2 * result_gripper_id;
+      marker_minus.id = 2 * result_gripper_id + 1;
+
+      visualization_msgs::MarkerArray marker_array;
+      marker_array.markers.resize(2);
+      marker_array.markers[0] = marker_plus;
+      marker_array.markers[1] = marker_minus;
+
+      marker_publisher.publish(marker_array);
     }
   }
   fclose(in);

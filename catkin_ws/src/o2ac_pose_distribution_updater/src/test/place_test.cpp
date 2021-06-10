@@ -100,9 +100,8 @@ void place_test(const std::shared_ptr<Client> &client,
     // Convert these to updateDistributiongoal
     o2ac_msgs::updateDistributionGoal goal;
     goal.observation_type = goal.PLACE_OBSERVATION;
-    goal.place_observation.gripper_pose.pose =
-        to_PoseWithCovariance(gripper_pose_particle, CovarianceMatrix::Zero())
-            .pose;
+    particle_to_pose(gripper_pose_particle,
+                     goal.place_observation.gripper_pose.pose);
     goal.place_observation.support_surface = support_surface;
     goal.distribution_type = distribution_type;
     goal.distribution.pose = to_PoseWithCovariance(mean, covariance);

@@ -18,26 +18,6 @@ int argmin(const std::vector<double> &vec) {
   return min_id;
 }
 
-Eigen::Vector3d calculate_center_of_gravity(
-    const std::vector<Eigen::Vector3d> &vertices,
-    const std::vector<boost::array<int, 3>> &triangles) {
-  // Calculate the center of gravity
-
-  Eigen::Vector3d center_of_gravity;
-  center_of_gravity.setZero();
-  double total_volume = 0.0;
-  for (int j = 0; j < triangles.size(); j++) {
-    auto &ver0 = vertices[triangles[j][0]];
-    auto &ver1 = vertices[triangles[j][1]];
-    auto &ver2 = vertices[triangles[j][2]];
-    double tetra_volume = ver0.dot(ver1.cross(ver2));
-    center_of_gravity += tetra_volume * (ver0 + ver1 + ver2);
-    total_volume += tetra_volume;
-  }
-  center_of_gravity /= 4.0 * total_volume;
-  return center_of_gravity;
-}
-
 void find_three_points(const std::vector<Eigen::Vector3d> &current_vertices,
                        const Eigen::Vector3d &current_center_of_gravity,
                        int &ground_touch_vertex_id_1,
