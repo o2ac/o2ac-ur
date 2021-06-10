@@ -467,7 +467,7 @@ def to_sequence_gripper(gripper, gripper_opening_width=0.14, gripper_force=40, g
 
 def to_sequence_item(pose, speed=0.5, acc=0.25):
   if isinstance(pose, geometry_msgs.msg.PoseStamped):
-    item           = {"pose": conversions.from_pose_to_list(pose.pose),
+    item           = {"pose": conversions.from_point(pose.pose.position).tolist() + np.rad2deg(transformations.euler_from_quaternion(conversions.from_quaternion(pose.pose.orientation))).tolist(),
                       "pose_type": "task-space-in-frame",
                       "frame_id": pose.header.frame_id,
                      }

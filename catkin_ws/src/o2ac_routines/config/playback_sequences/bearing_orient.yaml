@@ -6,89 +6,96 @@ waypoints:
   speed: 0.4 # percentage
   blend: 0.01
   is_trajectory: True
-- pose: [1.8371, -2.0332, 2.5464, -2.0864, -1.5405, 0.2834]
-  pose_type: 'joint-space-goal-cartesian-lin-motion'
-  speed: 0.4 # percentage
-  blend: 0.01
+- pose: [-0.0779, 0.00085, -0.01788, 1.00039, 0.22931, 1.49388]
+  speed: 0.5
+  pose_type: task-space-in-frame
+  blend: 0.005
   is_trajectory: True
-- pose: [1.836, -1.8689, 2.6557, -2.36, -1.5406, 1.4835]
-  pose_type: 'joint-space-goal-cartesian-lin-motion'
-  speed: 0.7 # percentage
-- pose_type: 'gripper'
-  gripper:
-    action: open
+  frame_id: right_centering_link
+- pose: [-0.01858, 0.00085, -0.01782, 69.69332, 0.17925, 1.51601]
+  speed: 0.5
+  pose_type: 'task-space-in-frame'
+  blend: 0.005
+  is_trajectory: True
+  frame_id: 'right_centering_link'
+- gripper:
+    action: 'open'
     open_width: 0.07
-- pose: [1.836, -1.8689, 2.6558, -2.36, -1.5405, -0.0888]
-  pose_type: 'joint-space-goal-cartesian-lin-motion'
-  speed: 0.7 # percentage
-- pose_type: 'gripper'
-  gripper:
+  pose_type: gripper
+- pose: [-0.01856, 0.00087, -0.01796, -20.34279, 0.23875, 1.49765]
+  speed: 0.5
+  pose_type: 'task-space-in-frame'
+  frame_id: 'right_centering_link'
+- gripper:
     action: 'close-open'
     opening_width: 0.07
-- pose: [1.836, -1.8689, 2.6559, -2.3601, -1.5406, -1.6611]
-  pose_type: 'joint-space-goal-cartesian-lin-motion'
-  speed: 0.7 # percentage
-- pose: [1.0819, -1.6024, 2.6337, -1.7489, -0.9852, -2.6904]
-  pose_type: 'joint-space-goal-cartesian-lin-motion'
-  speed: 0.7 # percentage
-- pose_type: 'gripper'
-  gripper:
-    action: 'close' 
-- pose: [1.3692, -2.0179, 2.6315, -1.8867, -1.1386, -2.1988]
-  pose_type: 'joint-space-goal-cartesian-lin-motion'
-  speed: 0.7 # percentage
-  blend: 0.0
-  is_trajectory: True
-- pose:  [2.4378, -1.5117, 2.3493, -1.98, -2.2041, -0.923]
-  pose_type: 'joint-space-goal-cartesian-lin-motion'
-  speed: 0.7 # percentage
-  blend: 0.0
-  is_trajectory: True
-- pose: [2.4374, -1.4154, 2.3849, -2.1116, -2.2042, -0.9224]
-  pose_type: 'joint-space-goal-cartesian-lin-motion'
-  speed: 0.2 # percentage
-- pose_type: 'gripper'
-  gripper:
+  pose_type: gripper
+- pose: [-0.01854, 0.00085, -0.01794, -110.43179, 0.23444, 1.49248]
+  speed: 0.5
+  pose_type: 'task-space-in-frame'
+  frame_id: 'right_centering_link'
+- pose: [-0.02548, 0.01045, -0.02017, -101.56917, 17.27829, 54.80771]
+  speed: 0.5
+  pose_type: 'task-space-in-frame'
+  frame_id: 'right_centering_link'
+- gripper:
+    action: 'close'
+  pose_type: gripper
+- pose: [-0.09, 0.0, -0.02, -101.56917, 17.27829, 54.80771]
+  speed: 0.5
+  pose_type: 'task-space-in-frame'
+  frame_id: 'right_centering_link'
+- pose: [-0.06, -0.00029, -0.01611, -105.60426, -13.75999, -41.21326]
+  speed: 0.5
+  pose_type: 'task-space-in-frame'
+  frame_id: 'right_centering_link'
+- pose: [-0.015, -0.00037, -0.01607, -105.56853, -13.79905, -41.19384]
+  speed: 0.5
+  pose_type: 'task-space-in-frame'
+  frame_id: 'right_centering_link'
+- gripper:
     action: 'open'
     opening_width: 0.07
-- pose: [1.0235, -1.4368, 2.5938, -1.6761, -0.9735, -2.8292]
-  pose_type: 'joint-space-goal-cartesian-lin-motion'
-  speed: 0.7 # percentage
-  gripper:
+  pose_type: gripper
+- pose: [-0.02539, 0.00786, -0.01917, -98.66236, 18.86117, 64.15455]
+  speed: 0.5
+  pose_type: 'task-space-in-frame'
+  frame_id: 'right_centering_link'
+- gripper:
     action: 'close'
+  pose_type: gripper
 - pose: [1.438, -1.9585, 2.4924, -1.819, -1.1233, -1.5588]
   pose_type: 'joint-space-goal-cartesian-lin-motion'
   speed: 0.5 # percentage
-  blend: 0.0
-  is_trajectory: True
-- pose: [1.8371, -2.0331, 2.5464, -2.0863, -1.5404, 0.2834]
-  pose_type: 'joint-space-goal-cartesian-lin-motion'
-  speed: 0.5 # percentage
-  blend: 0.0
-  is_trajectory: True
-- pose: [1.836, -1.8689, 2.6557, -2.36, -1.5405, 1.4835]
-  pose_type: 'joint-space-goal-cartesian-lin-motion'
-  speed: 0.4 # percentage
-- pose_type: 'gripper'
-  gripper:
-    action: open
+- pose: [-0.01859, 0.00088, -0.01789, 69.74391, 0.23560, 1.49921]
+  speed: 0.5
+  pose_type: 'task-space-in-frame'
+  frame_id: 'right_centering_link'
+- gripper:
+    action: 'open'
     opening_width: 0.07
-- pose: [1.836, -1.8688, 2.6558, -2.3601, -1.5405, -0.0888]
-  pose_type: 'joint-space-goal-cartesian-lin-motion'
-  speed: 0.7 # percentage
-- pose_type: 'gripper'
-  gripper:
+  pose_type: gripper
+- pose: [-0.01855, 0.00089, -0.01794, -20.34432, 0.23974, 1.49890]
+  speed: 0.5
+  pose_type: 'task-space-in-frame'
+  frame_id: 'right_centering_link'
+- gripper:
     action: 'close-open'
     opening_width: 0.07
-- pose: [1.8361, -1.8689, 2.6559, -2.3601, -1.5406, -1.6611]
-  pose_type: 'joint-space-goal-cartesian-lin-motion'
-  speed: 0.7 # percentage
-- pose: [1.3683, -1.8889, 2.7011, -2.0853, -1.1386, -2.1986]
-  pose_type: 'joint-space-goal-cartesian-lin-motion'
-  speed: 0.7 # percentage
-- pose_type: 'gripper'
-  gripper:
+  pose_type: gripper
+- pose: [-0.01855, 0.00088, -0.01798, -110.44058, 0.23378, 1.49264]
+  speed: 0.5
+  pose_type: 'task-space-in-frame'
+  frame_id: 'right_centering_link'
+- pose: [-0.01500, 0.00844, -0.01939, -108.08287, 10.20954, 27.89678]
+  speed: 0.5
+  pose_type: 'task-space-in-frame'
+  frame_id: 'right_centering_link'
+- gripper:
     action: 'close'
+  pose_type: gripper
 - pose: [1.8371, -2.0332, 2.5464, -2.0864, -1.5405, 0.2834]
   pose_type: 'joint-space-goal-cartesian-lin-motion'
   speed: 0.3 # percentage
+- pose: [1.7095, -1.7619, 2.2065, -2.0337, -1.5473, 0.2133] 
+  pose_type: 'joint-space-goal-cartesian-lin-motion'
