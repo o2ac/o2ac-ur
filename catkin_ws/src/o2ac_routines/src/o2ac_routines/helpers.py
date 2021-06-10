@@ -452,7 +452,20 @@ def to_robot_state(move_group, joints):
   moveit_robot_state.joint_state = joint_state
   return moveit_robot_state
 
-def to_sequence_item(pose, speed=0.5, acc=0.25, gripper=None, gripper_opening_width=0.14, gripper_force=40, gripper_velocity=0.03):
+def to_sequence_gripper(gripper, gripper_opening_width=0.14, gripper_force=40, gripper_velocity=0.03):
+  item = {
+    "pose_type": "gripper",
+    "gripper":
+            {
+              "action":gripper,
+              "width": gripper_opening_width,
+              "force": gripper_force,
+              "velocity": gripper_velocity,
+            }
+    }
+  return ["waypoint", item]
+
+def to_sequence_item(pose, speed=0.5, acc=0.25):
   if isinstance(pose, geometry_msgs.msg.PoseStamped):
     item           = {"pose": conversions.from_pose_to_list(pose.pose),
                       "pose_type": "task-space-in-frame",
@@ -467,15 +480,6 @@ def to_sequence_item(pose, speed=0.5, acc=0.25, gripper=None, gripper_opening_wi
                   "pose_type": "joint-space-goal-cartesian-lin-motion",
                   }
   item.update({"speed": speed, "acc": acc})
-  if gripper in ('open', 'close', 'open-close'):
-    item.update({"gripper":
-    {
-      "action":gripper,
-      "width": gripper_opening_width,
-      "force": gripper_force,
-      "velocity": gripper_velocity,
-    }
-    })
 
   return ["waypoint", item]
 

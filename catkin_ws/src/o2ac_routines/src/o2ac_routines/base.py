@@ -822,8 +822,10 @@ class O2ACBase(object):
       pull_back_slightly.pose.position.x -= 0.003
       ps_in_holder.pose.position.x += 0.001  # To remove the offset for placing applied earlier
       lin_speed = 0.02
-      sequence.append(helpers.to_sequence_item(pull_back_slightly, speed=lin_speed, gripper='open', gripper_opening_width=0.06, gripper_velocity=0.1))
-      sequence.append(helpers.to_sequence_item(ps_in_holder, speed=lin_speed, gripper='close', gripper_force=60, gripper_velocity=0.1))
+      sequence.append(helpers.to_sequence_item(pull_back_slightly, speed=lin_speed))
+      sequence.append(helpers.to_sequence_gripper(gripper='open', gripper_opening_width=0.06, gripper_velocity=0.1))
+      sequence.append(helpers.to_sequence_item(ps_in_holder, speed=lin_speed))
+      sequence.append(helpers.to_sequence_gripper(gripper='close', gripper_force=60, gripper_velocity=0.1))
     
     # Plan & execute linear motion away from the tool change position
     rospy.loginfo("Moving back to screw tool approach pose LIN.")
