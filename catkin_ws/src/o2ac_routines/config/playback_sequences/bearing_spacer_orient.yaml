@@ -18,7 +18,10 @@ waypoints:
   pose_type: task-space-in-frame
   frame_id: left_centering_link
   speed: 0.2
+  is_trajectory: True
+  blend: 0.0
   desc: dropping 
+- pose_type: gripper
   gripper:
     action: 'open'
     width: 0.06
@@ -26,6 +29,7 @@ waypoints:
   pose_type: task-space-in-frame
   frame_id: left_centering_link
   speed: 1.0
+- pose_type: gripper
   gripper:
     action: 'close-open'
     width: 0.06
@@ -36,6 +40,7 @@ waypoints:
   speed: 1.0
 - pose: [-0.004, 0, -0.01, 0, 30, 0] 
   pose_type: relative-tcp
+- pose_type: gripper
   gripper:
     action: 'close'
 - pose: [-0.05, 0, 0.0, -135, 0, 0] 

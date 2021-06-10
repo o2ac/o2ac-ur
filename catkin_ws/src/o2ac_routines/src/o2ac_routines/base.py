@@ -867,7 +867,7 @@ class O2ACBase(object):
     for waypoint in waypoints:
       is_trajectory = waypoint.get('is_trajectory', False)
       if is_trajectory:
-        pose = waypoint["pose"] 
+        pose = waypoint.get("pose", None) 
         if waypoint["pose_type"] == "joint-space-goal-cartesian-lin-motion":
           p = self.active_robots[robot_name].get_tcp_pose(pose) # Forward Kinematics
         elif waypoint["pose_type"] == "task-space-in-frame":
@@ -877,7 +877,7 @@ class O2ACBase(object):
         else:
           raise ValueError("Unsupported trajectory for pose type: %s" % waypoint["pose_type"])
         blend = waypoint.get("blend", 0.0)
-        if not trajectory:
+        if not trajectory: # use speed of the first point or default
           trajectory_speed = waypoint.get("speed", 0.5)
         trajectory.append([p, blend])
       else:
@@ -912,26 +912,29 @@ class O2ACBase(object):
     else:
       previous_point_duration = 0.0
       previous_plan = None
-      pending_gripper_action = None
       for i, point in enumerate(sequence):
         rospy.loginfo("(plan_while_moving) Sequence point: %i - %s" % (i+1, point[0]))
         # self.confirm_to_proceed("playback_sequence")
 
         initial_joints = None if not previous_plan else helpers.get_trajectory_joint_goal(previous_plan)
-        current_gripper_action = copy.deepcopy(pending_gripper_action)
-        
+        gripper_action = False
+        current_gripper_action = None
+
         if point[0] == "waypoint":
           waypoint_params = point[1]
-          res = self.move_to_sequence_waypoint(robot_name, waypoint_params, plan_only=True, initial_joints=initial_joints)
-          pending_gripper_action = waypoint_params.get("gripper", None)
+          gripper_action = waypoint_params["pose_type"] == 'gripper'
+          if gripper_action:
+            current_gripper_action = waypoint_params["gripper"]
+            res = None, 0.0
+          else:
+            res = self.move_to_sequence_waypoint(robot_name, waypoint_params, plan_only=True, initial_joints=initial_joints)
         elif point[0] == "trajectory":
           trajectory, speed_scale_factor = point[1]
           res = robot.move_lin_trajectory(trajectory, speed=speed_scale_factor, plan_only=True, initial_joints=initial_joints)
         else:
           ValueError("Invalid sequence type: %s" % point[0])
 
-
-        if not res:
+        if not gripper_action and not res:
           rospy.logerr("Fail to complete playback sequence: %s" % sequence_name)
           return False
         
@@ -950,18 +953,15 @@ class O2ACBase(object):
           return False
 
         if current_gripper_action:
-          rospy.sleep(0.5)
           self.execute_gripper_action(robot_name, current_gripper_action)
-
-        wait = True if i == len(sequence) -1 else False
-        if not robot.execute_plan(plan, wait=wait):
-          rospy.logerr("plan execution failed")
-          return False
-        if wait and pending_gripper_action: # For last point in the sequence 
-          self.execute_gripper_action(robot_name, pending_gripper_action) 
+        elif plan:
+          wait = True if i == len(sequence) -1 else False
+          if not robot.execute_plan(plan, wait=wait):
+            rospy.logerr("plan execution failed")
+            return False
 
         previous_plan = plan
-        previous_point_duration = helpers.get_trajectory_duration(plan)
+        previous_point_duration = helpers.get_trajectory_duration(plan) if plan else 0.0
 
     return True
 
@@ -978,14 +978,14 @@ class O2ACBase(object):
       force = gripper_params.get("force", 80.)
       velocity = gripper_params.get("velocity", 0.03)
       if gripper_action == 'open':
-        robot.gripper.open(opening_width=opening_width, velocity=velocity)
+        return robot.gripper.open(opening_width=opening_width, velocity=velocity)
       elif gripper_action == 'close':
-        robot.gripper.close(force=force, velocity=velocity)
+        return robot.gripper.close(force=force, velocity=velocity)
       elif gripper_action == 'close-open':
         robot.gripper.close(velocity=velocity)
-        robot.gripper.open(opening_width=opening_width, velocity=velocity)
+        return robot.gripper.open(opening_width=opening_width, velocity=velocity)
       elif gripper_action == isinstance(gripper_action, float):
-        robot.gripper.send_command(gripper_action, force=force, velocity=velocity)
+        return robot.gripper.send_command(gripper_action, force=force, velocity=velocity)
       else:
         raise ValueError("Unsupported gripper action: %s" % gripper_action)
 
@@ -993,7 +993,7 @@ class O2ACBase(object):
     success = False
     robot = self.active_robots[robot_name]
 
-    pose           = params["pose"]
+    pose           = params.get("pose", None)
     pose_type      = params["pose_type"]
     speed          = params.get("speed", 0.5)
     acceleration   = params.get("acc", 0.25)
@@ -1020,11 +1020,11 @@ class O2ACBase(object):
       success = robot.move_lin_rel(relative_translation=pose[:3], relative_rotation=np.deg2rad(pose[3:]), speed=speed, acceleration=acceleration, relative_to_robot_base=True, plan_only=plan_only, initial_joints=initial_joints)
     elif pose_type == 'named-pose':
       success = robot.go_to_named_pose(pose, speed=speed, acceleration=acceleration, plan_only=plan_only, initial_joints=initial_joints)
+    elif not plan_only and pose_type == 'gripper':
+      success = self.execute_gripper_action(robot_name, gripper_params)
     else:
       raise ValueError("Invalid pose_type: %s" % pose_type)
 
-    if success and gripper_params and not plan_only:
-        self.execute_gripper_action(robot_name, gripper_params)
     return success
 ######
 

@@ -14,12 +14,14 @@ waypoints:
 - pose: [1.836, -1.8689, 2.6557, -2.36, -1.5406, 1.4835]
   pose_type: 'joint-space-goal-cartesian-lin-motion'
   speed: 0.7 # percentage
+- pose_type: 'gripper'
   gripper:
     action: open
     open_width: 0.07
 - pose: [1.836, -1.8689, 2.6558, -2.36, -1.5405, -0.0888]
   pose_type: 'joint-space-goal-cartesian-lin-motion'
   speed: 0.7 # percentage
+- pose_type: 'gripper'
   gripper:
     action: 'close-open'
     opening_width: 0.07
@@ -29,6 +31,7 @@ waypoints:
 - pose: [1.0819, -1.6024, 2.6337, -1.7489, -0.9852, -2.6904]
   pose_type: 'joint-space-goal-cartesian-lin-motion'
   speed: 0.7 # percentage
+- pose_type: 'gripper'
   gripper:
     action: 'close' 
 - pose: [1.3692, -2.0179, 2.6315, -1.8867, -1.1386, -2.1988]
@@ -44,6 +47,7 @@ waypoints:
 - pose: [2.4374, -1.4154, 2.3849, -2.1116, -2.2042, -0.9224]
   pose_type: 'joint-space-goal-cartesian-lin-motion'
   speed: 0.2 # percentage
+- pose_type: 'gripper'
   gripper:
     action: 'open'
     opening_width: 0.07
@@ -65,12 +69,14 @@ waypoints:
 - pose: [1.836, -1.8689, 2.6557, -2.36, -1.5405, 1.4835]
   pose_type: 'joint-space-goal-cartesian-lin-motion'
   speed: 0.4 # percentage
+- pose_type: 'gripper'
   gripper:
     action: open
     opening_width: 0.07
 - pose: [1.836, -1.8688, 2.6558, -2.3601, -1.5405, -0.0888]
   pose_type: 'joint-space-goal-cartesian-lin-motion'
   speed: 0.7 # percentage
+- pose_type: 'gripper'
   gripper:
     action: 'close-open'
     opening_width: 0.07
@@ -80,6 +86,7 @@ waypoints:
 - pose: [1.3683, -1.8889, 2.7011, -2.0853, -1.1386, -2.1986]
   pose_type: 'joint-space-goal-cartesian-lin-motion'
   speed: 0.7 # percentage
+- pose_type: 'gripper'
   gripper:
     action: 'close'
 - pose: [1.8371, -2.0332, 2.5464, -2.0864, -1.5405, 0.2834]

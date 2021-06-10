@@ -36,10 +36,12 @@ class RobotiqGripper():
                 def close():
                     gripper_group.set_named_target("close")
                     gripper_group.go()
+                    return True
 
                 def open():
                     gripper_group.set_named_target("open")
                     gripper_group.go()
+                    return True
 
                 def command(cmd):
                     if gripper_type == "85":

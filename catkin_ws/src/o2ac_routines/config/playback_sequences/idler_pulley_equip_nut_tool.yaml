@@ -6,6 +6,7 @@ waypoints:
 - pose: 'home'
   pose_type: named-pose
   speed: 0.2
+- pose_type: gripper
   gripper:
     action: open
     velocity: 0.1
@@ -17,6 +18,7 @@ waypoints:
   pose: [0.0, 0, -0.25, 0, 0, 0]
   pose_type: relative-base
   speed: 0.2
+- pose_type: gripper
   gripper:
     action: close
     velocity: 0.05
