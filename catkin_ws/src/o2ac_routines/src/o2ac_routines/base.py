@@ -937,6 +937,8 @@ class O2ACBase(object):
           ValueError("Invalid sequence type: %s" % point[0])
 
         if not gripper_action and not res:
+          print("point plan res", bool(res))
+          print("point gripper action", gripper_action)
           rospy.logerr("Fail to complete playback sequence: %s" % sequence_name)
           return False
         
@@ -947,7 +949,9 @@ class O2ACBase(object):
           waiting_time = (previous_point_duration) - planning_time if (previous_point_duration) - planning_time > 0 else 0.0
           # TODO(cambel): could use this waiting time to evaluate whether to try to plan a future point too instead of only waiting
           # rospy.sleep(waiting_time)
-          robot.robot_group.wait_for_motion_result()
+          if not robot.robot_group.wait_for_motion_result():
+            rospy.logerr("Moveit aborted the motion")
+            return False
           
         current_joints = robot.robot_group.get_current_joint_values()
         if not helpers.all_close(initial_joints, current_joints, 0.01):

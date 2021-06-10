@@ -388,8 +388,8 @@ class URRobot():
                     group.set_start_state_to_current_state()
                     return plan, planning_time
             else:
-                group.go(wait=wait)  # Bool
-                success = self.check_goal_pose_reached(pose_goal_stamped)
+                res = group.go(wait=wait)  # Bool
+                success = res & self.check_goal_pose_reached(pose_goal_stamped)
 
             if not success:
                 rospy.sleep(0.2)
@@ -597,8 +597,7 @@ class URRobot():
         return False
 
     def set_up_move_group(self, speed, acceleration, planner="OMPL"):
-        if rospy.is_shutdown():
-            raise
+        assert not rospy.is_shutdown()
         (speed_, accel_) = self.limit_speed_and_acc(speed, acceleration)
         self.activate_ros_control_on_ur()
         group = self.robot_group
