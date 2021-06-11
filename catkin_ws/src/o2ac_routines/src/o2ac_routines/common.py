@@ -1130,7 +1130,7 @@ class O2ACCommon(O2ACBase):
     self.b_bot.go_to_named_pose("home")
 
     goal = self.look_and_get_grasp_point("bearing", center_on_corner=True)
-    if not goal:
+    if not isinstance(goal, geometry_msgs.msg.PoseStamped):
       rospy.logerr("Could not find bearing in tray. Skipping procedure.")
       return False
     self.vision.activate_camera("b_bot_inside_camera")
@@ -1324,7 +1324,7 @@ class O2ACCommon(O2ACBase):
     self.b_bot.go_to_named_pose("home")
     
     goal = self.look_and_get_grasp_point("motor_pulley", grasp_width=0.03, center_on_corner=True, approach_height=0.02)
-    if not goal:
+    if not isinstance(goal, geometry_msgs.msg.PoseStamped):
       rospy.logerr("Could not find motor_pulley in tray. Skipping procedure.")
       return False
     goal.pose.position.x -= 0.01 # MAGIC NUMBER
@@ -1818,6 +1818,12 @@ class O2ACCommon(O2ACBase):
     p_new.pose.position.z = p_start.pose.position.z # do not go to DOWN!!
     if not self.active_robots[robot_name].move_lin(p_new, speed=0.05, acceleration=0.05):
       return False
+    
+    p = helpers.interpolate_between_poses(p_new.pose, p_start.pose, 0.5)
+    p_new = conversions.to_pose_stamped("tray_center", conversions.from_pose_to_list(p))
+    p_new.pose.position.z = p_start.pose.position.z # do not go to DOWN!!
+    if not self.active_robots[robot_name].move_lin(p_new, speed=0.05, acceleration=0.05):
+      return False
     return p_new
 
   def fasten_screw_vertical(self, robot_name, screw_hole_pose, screw_height = .02, screw_size = 4):
@@ -2048,7 +2054,6 @@ class O2ACCommon(O2ACBase):
     else:
       self.a_bot.go_to_named_pose("home")
     return True
-
 
 #### subtasks assembly 
 
