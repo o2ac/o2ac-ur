@@ -407,7 +407,7 @@ class URRobot():
         group.clear_pose_targets()
         return success
 
-    def move_lin_trajectory(self, trajectory, speed=1.0, acceleration=0.5, end_effector_link="", plan_only=False, initial_joints=None):
+    def move_lin_trajectory(self, trajectory, speed=1.0, acceleration=0.5, end_effector_link="", plan_only=False, initial_joints=None, retries=10):
         if not self.set_up_move_group(speed, acceleration, planner="LINEAR"):
             return False
 
@@ -451,36 +451,32 @@ class URRobot():
         # Make MotionSequence
         goal = moveit_msgs.msg.MoveGroupSequenceGoal()
         goal.request = moveit_msgs.msg.MotionSequenceRequest()
-        goal.request.items = motion_plan_requests
+        goal.request.items = motion_plan_requests       
 
-        if plan_only:
-            # Make MotionSequence
-            response = self.plan_sequence_path(goal.request)
-            group.clear_pose_targets()
+        for i in range(retries):
+            if plan_only:
+                # Make MotionSequence
+                response = self.plan_sequence_path(goal.request)
+                group.clear_pose_targets()
 
-            if response.response.error_code.val != 1:
-                # TODO(cambel): retry just to be sure that the plan is indeed infeasible
-                rospy.logerr("Failed to plan linear trajectory. error code: %s" % response.response.error_code.val)
-                return False
-
-            plan = response.response.planned_trajectories[0] # support only one plan?
-            planning_time = response.response.planning_time
-            return plan, planning_time
-        else:
-            for i in range(10):
-                result = self.sequence_move_group.send_goal_and_wait(goal)
-                if result == GoalStatus.ABORTED:
-                    rospy.logwarn("(move_lin_trajectory) Planning failed, retry: %s of 5" % (i+1))
+                if response.response.error_code.val == 1:
+                    plan = response.response.planned_trajectories[0] # support only one plan?
+                    planning_time = response.response.planning_time
+                    return plan, planning_time
                 else:
-                    break
-
-            group.clear_pose_targets()
-
-            if result == GoalStatus.SUCCEEDED:
-                return True
+                    rospy.logwarn("(move_lin_trajectory) Planning failed, retry: %s of %s" % (i+1, retries))
             else:
-                rospy.logerr("Fail move_lin_trajectory with status %s" % result)
-                return False
+                result = self.sequence_move_group.send_goal_and_wait(goal)
+                if result == GoalStatus.SUCCEEDED:
+                    group.clear_pose_targets()
+                    return True
+                else:
+                    rospy.logwarn("(move_lin_trajectory) failed, retry: %s of %s" % (i+1, retries))
+        if plan_only:
+            rospy.logerr("Failed to plan linear trajectory. error code: %s" % response.response.error_code.val)
+        else:
+            rospy.logerr("Fail move_lin_trajectory with status %s" % result)
+        return False
 
     def move_lin(self, pose_goal_stamped, speed=0.5, acceleration=0.5, end_effector_link="", wait=True, plan_only=False, initial_joints=None):
         return self.go_to_pose_goal(pose_goal_stamped, speed, acceleration, end_effector_link, move_lin=True, wait=wait, plan_only=plan_only, initial_joints=initial_joints)
