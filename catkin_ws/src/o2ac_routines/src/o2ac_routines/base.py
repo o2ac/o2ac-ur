@@ -709,6 +709,9 @@ class O2ACBase(object):
       rospy.logerr("Robot is not holding a tool. Cannot unequip any.")
       return False
     
+    if equip:
+      robot.gripper.open(opening_width=0.06, wait=False)
+
     rospy.loginfo("Going to before_tool_pickup pose.")
     
     tool_holder_used = "back"

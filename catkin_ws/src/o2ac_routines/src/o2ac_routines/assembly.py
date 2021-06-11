@@ -234,7 +234,7 @@ class O2ACAssembly(O2ACCommon):
 
     self.confirm_to_proceed("insertion of end cap")
 
-    self.a_bot.linear_push(3, "+Z", max_translation=0.1, timeout=10.0)
+    self.a_bot.linear_push(force=3, direction="+Z", max_translation=0.1, timeout=10.0)
     self.a_bot.move_lin_rel(relative_translation=[0,0,0.002]) # release pressure before insertion
 
     selection_matrix = [0.3, 0.3, 0., 0.95, 1, 1]

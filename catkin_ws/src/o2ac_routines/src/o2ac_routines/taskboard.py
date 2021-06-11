@@ -179,8 +179,10 @@ class O2ACTaskboard(O2ACCommon):
   
   def move_b_bot_to_setscrew_initial_pos(self):
     screw_approach = copy.deepcopy(self.at_set_screw_hole)
-    screw_approach.pose.position.x = -0.005
+    screw_approach.pose.position.x = -0.03
     self.b_bot.go_to_pose_goal(screw_approach, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True, speed=0.5)
+    screw_approach.pose.position.x = -0.005
+    self.b_bot.go_to_pose_goal(screw_approach, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True, speed=0.1)
 
   def do_screw_tasks_from_prep_position(self):
     ### - Set screw
@@ -276,12 +278,6 @@ class O2ACTaskboard(O2ACCommon):
       else:
         rospy.logerr("Could not find belt grasp pose! Aborting.")
         return False
-        # ### DEBUGGING
-        # rospy.logwarn("Could not find belt grasp pose! Using center of tray.")
-        # pick_goal = geometry_msgs.msg.PoseStamped()
-        # pick_goal.header.frame_id = "tray_center"
-        # pick_goal.pose.position
-        # pick_goal.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
       
       self.confirm_to_proceed("Pick tool with b_bot?")
       # Equip the belt tool with b_bot
@@ -303,6 +299,8 @@ class O2ACTaskboard(O2ACCommon):
         rospy.logerr("Belt pick has failed. Return tool and abort.")
         self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp", recursion_depth=3)
         rospy.sleep(2)
+        pick_goal.pose.position.x = 0  # In tray_center
+        pick_goal.pose.position.y = 0
         pick_goal.pose.position.z += 0.06
         self.a_bot.move_lin(pick_goal)
         self.a_bot.gripper.open(opening_width=0.03, wait=False)

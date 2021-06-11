@@ -653,6 +653,7 @@ class O2ACCommon(O2ACBase):
 
         # Get another view from up close (if the view was already close, the object may have been on the edge of the image). 
         close_view = self.listener.transformPose("tray_center", self.objects_in_tray[object_id])
+        close_view.pose.position.x += 0.025  # Avoid LED glare
         close_view.pose.position.z = copy.deepcopy(self.close_tray_views[0].pose.position.z)
         close_view.pose.orientation = copy.deepcopy(view.pose.orientation)
         
@@ -1416,7 +1417,7 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Could not find idler pulley in tray. Skipping procedure.")
       return False
     
-    self.vision.activate_camera("b_bot_inside_camera")
+    # self.vision.activate_camera("a_bot_inside_camera")
     object_pose.pose.position.x -= 0.01 # MAGIC NUMBER
     object_pose.pose.position.z = 0.014
 
@@ -1463,6 +1464,7 @@ class O2ACCommon(O2ACBase):
     if not self.insert_idler_pulley(idler_puller_target_link):
       rospy.logerr("Fail to complete insert_idler_pulley")
       return False
+    self.vision.activate_camera("b_bot_outside_camera")
     if not self.prepare_screw_tool_idler_pulley(idler_puller_target_link):
       rospy.logerr("Fail to complete prepare_screw_tool_idler_pulley")
       return False
@@ -1576,7 +1578,7 @@ class O2ACCommon(O2ACBase):
     if not success:
       return False
 
-    self.tools.set_motor("padless_tool_m4", "tighten", duration=10.0)
+    self.tools.set_motor("padless_tool_m4", "tighten", duration=12.0)
     self.insert_screw_tool_tip_into_idler_pulley_head(target_link)
     
     # xyz_hard_push = [0.001, -0.001, 0.001]  # MAGIC NUMBERS
@@ -1699,13 +1701,13 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Could not find shaft in tray. Skipping procedure.")
       return False
     
-    gp = conversions.from_pose_to_list(goal.pose)
-    gp[:2] += [0.075/2.0, 0.0] # Magic Numbers for visuals 
-    gp[2] = 0.005
-    euler_gp = tf_conversions.transformations.euler_from_quaternion(gp[3:])
-    shaft_pose = conversions.to_pose_stamped("tray_center", gp[:3].tolist() + [0, 0, -tau/2-euler_gp[0]])
+    # # Spawn object FIXME(cambel)
+    # gp = conversions.from_pose_to_list(goal.pose)
+    # gp[:2] += [0.075/2.0, 0.0] # Magic Numbers for visuals 
+    # gp[2] = 0.005
+    # euler_gp = tf_conversions.transformations.euler_from_quaternion(gp[3:])
+    # shaft_pose = conversions.to_pose_stamped("tray_center", gp[:3].tolist() + [0, 0, -tau/2-euler_gp[0]])
       
-    # FIXME(cambel)
     # self.spawn_object("shaft", shaft_pose, shaft_pose.header.frame_id)
     
     goal.pose.position.z = 0.001 # Magic Numbers for grasping
@@ -1717,7 +1719,7 @@ class O2ACCommon(O2ACBase):
                               item_id_to_attach="shaft", axis="z", lift_up_after_pick=True,
                               speed_slow=0.1):
     # if not self.pick("b_bot", object_name="shaft", grasp_pose=goal):
-      rospy.logerr("Fail to simple_pick")
+      rospy.logerr("Failed to pick shaft")
       return False
     return True
 
