@@ -656,3 +656,7 @@ class URRobot():
     def linear_push(self, *args, **kwargs):
         self.activate_ros_control_on_ur()
         return self.force_controller.linear_push(*args, **kwargs)
+
+    def do_insertion(self, *args, **kwargs):
+        self.activate_ros_control_on_ur()
+        return self.force_controller.do_insertion(*args, **kwargs)

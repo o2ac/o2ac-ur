@@ -1318,7 +1318,7 @@ class O2ACCommon(O2ACBase):
 
     target_pose_target_frame = conversions.to_pose_stamped(bearing_target_link, [-0.003, 0.000, -0.004, 0, 0, 0, 1.])
     selection_matrix = [0., 0.5, 0.5, .8, .8, .8]
-    result = self.b_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="-X", force=10.0, timeout=30.0, 
+    result = self.b_bot.do_insertion(target_pose_target_frame, insertion_direction="-X", force=10.0, timeout=30.0, 
                                                     radius=0.002, relaxed_target_by=0.003, selection_matrix=selection_matrix)
     if result not in (TERMINATION_CRITERIA, DONE):
       # TODO(cambel): implement a fall back
@@ -1329,7 +1329,7 @@ class O2ACCommon(O2ACBase):
     self.b_bot.move_lin_rel(relative_translation = [0.016,0,0], acceleration = 0.015, speed=.03)
     self.b_bot.gripper.close(velocity=0.01, wait=True)
 
-    result = self.b_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="-X", force=10.0, timeout=30.0, 
+    result = self.b_bot.do_insertion(target_pose_target_frame, insertion_direction="-X", force=10.0, timeout=30.0, 
                                                     radius=0.0, wiggle_direction="X", wiggle_angle=np.deg2rad(3.0), wiggle_revolutions=1.0,
                                                     relaxed_target_by=0.003, selection_matrix=selection_matrix)
     
@@ -1478,7 +1478,7 @@ class O2ACCommon(O2ACBase):
     target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.01, -0.000, -0.009, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
 
     selection_matrix = [0., 0.3, 0.3, 0.95, 1.0, 1.0]
-    result = self.b_bot.force_controller.do_insertion(target_pose_target_frame, radius=0.0005, 
+    result = self.b_bot.do_insertion(target_pose_target_frame, radius=0.0005, 
                                                       insertion_direction="-X", force=6.0, timeout=15.0, 
                                                       wiggle_direction="X", wiggle_angle=np.deg2rad(5.0), wiggle_revolutions=1.,
                                                       relaxed_target_by=0.005, selection_matrix=selection_matrix)
@@ -1495,7 +1495,7 @@ class O2ACCommon(O2ACBase):
         return False
 
     if result == DONE: # Not the termination criteria so try once more
-      result = self.b_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="-X", force=6.0, timeout=15.0, 
+      result = self.b_bot.do_insertion(target_pose_target_frame, insertion_direction="-X", force=6.0, timeout=15.0, 
                                                         relaxed_target_by=0.005, wiggle_direction="X", wiggle_angle=np.deg2rad(2.0), wiggle_revolutions=1.,
                                                         selection_matrix=selection_matrix)
       success = result in (TERMINATION_CRITERIA, DONE)
@@ -1857,7 +1857,7 @@ class O2ACCommon(O2ACBase):
 
     selection_matrix = [0., 0.2, 0.2, 0.95, 1, 1]
     self.b_bot.move_lin_rel(relative_translation = [-0.003,0,0], acceleration = 0.015, speed=.03) # Release shaft for next push
-    result = self.b_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="+X", force=5.0, timeout=15.0, 
+    result = self.b_bot.do_insertion(target_pose_target_frame, insertion_direction="+X", force=5.0, timeout=15.0, 
                                                         wiggle_direction="X", wiggle_angle=np.deg2rad(10.0), wiggle_revolutions=1.0,
                                                         radius=0.002, relaxed_target_by=0.0, selection_matrix=selection_matrix)
     success = result in (TERMINATION_CRITERIA, DONE)
@@ -1886,7 +1886,7 @@ class O2ACCommon(O2ACBase):
     target_pose_target_frame.pose.position.x = target # Magic number
 
     for _ in range(6):
-      result = self.b_bot.force_controller.do_insertion(target_pose_target_frame, insertion_direction="+X", force=15.0, timeout=10.0, 
+      result = self.b_bot.do_insertion(target_pose_target_frame, insertion_direction="+X", force=15.0, timeout=10.0, 
                                                     radius=0.002, relaxed_target_by=0.005, selection_matrix=selection_matrix, 
                                                     check_displacement_time=3)
       success = result == TERMINATION_CRITERIA
@@ -2246,14 +2246,14 @@ class O2ACCommon(O2ACBase):
     target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.04, 0.0, 0.0, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
 
     selection_matrix = [0.0, 0.3, 0.3, 0.95, 1.0, 1.0]
-    result = self.a_bot.force_controller.do_insertion(target_pose_target_frame, radius=0.0005, 
-                                                      insertion_direction="+X", force=5.0, timeout=30.0, 
+    result = self.a_bot.do_insertion(target_pose_target_frame, radius=0.0005, 
+                                                      insertion_direction="+X", force=5.0, timeout=15.0, 
                                                       relaxed_target_by=0.005, selection_matrix=selection_matrix)
     success = result == TERMINATION_CRITERIA
 
     if not success:
       grasp_check = self.simple_insertion_check("a_bot", 0.06, min_opening_width=0.02)
-      if grasp_check and attempts > 0: # try again the pulley is still there   
+      if grasp_check and attempts > 0: # try again the spacer is still there   
         return self.insert_bearing_spacer(target_link, attempts=attempts-1)
       elif not grasp_check or not attempts > 0:
         self.a_bot.gripper.open(wait=True, opening_width=0.08)
@@ -2261,4 +2261,38 @@ class O2ACCommon(O2ACBase):
         rospy.logerr("** Insertion Failed!! **")
         return False
 
+    self.a_bot.gripper.open(wait=True, opening_width=0.08)
+    self.a_bot.move_lin_rel(relative_translation = [0.10,0,0], acceleration = 0.015, speed=.03)
+    return success
+
+  def insert_output_pulley(self, target_link, attempts=1):
+    rospy.loginfo("Starting insertion of output pulley")
+    target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.04, 0.0, 0.0, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
+
+    selection_matrix = [0.0, 0.3, 0.3, 0.95, 1.0, 1.0]
+    result = self.a_bot.do_insertion(target_pose_target_frame, radius=0.0005, 
+                                                      insertion_direction="+X", force=5.0, timeout=15.0, 
+                                                      relaxed_target_by=0.005, selection_matrix=selection_matrix)
+    success = result == TERMINATION_CRITERIA
+    rospy.loginfo("insertion finished with status: %s" % result)
+
+    if not success:
+      grasp_check = self.simple_insertion_check("a_bot", 0.09, min_opening_width=0.02)
+      if grasp_check and attempts > 0: # try again the pulley is still there   
+        return self.insert_output_pulley(target_link, attempts=attempts-1)
+      elif not grasp_check or not attempts > 0:
+        self.a_bot.gripper.open(wait=True, opening_width=0.08)
+        self.a_bot.move_lin_rel(relative_translation = [0.10,0,0], acceleration = 0.015, speed=.03)
+        rospy.logerr("** Insertion Failed!! **")
+        return False
+
+    rospy.loginfo("Preparing push")
+    self.a_bot.gripper.open(wait=True, opening_width=0.09)
+    self.a_bot.move_lin_rel(relative_translation=[0.01,0,0])
+    self.a_bot.gripper.send_command(0.06, wait=False)
+    rospy.loginfo("Starting push")
+    success = self.a_bot.force_controller.linear_push(force=3, direction="+X", max_translation=0.05, timeout=15.)
+
+    self.a_bot.gripper.open(wait=True, opening_width=0.09)
+    self.a_bot.move_lin_rel(relative_translation = [0.10,0,0], acceleration = 0.015, speed=.03)
     return success

@@ -1,0 +1,93 @@
+robot_name: a_bot
+waypoints:
+- pose: [-0.15, 0, -0.10, -90, 0, 0] # translation, orientation (degrees)
+  pose_type: task-space-in-frame
+  frame_id: left_centering_link
+  speed: 0.5
+  is_trajectory: True
+  blend: 0.005
+  desc: Above tray edge
+- pose: [-0.05, 0, 0.0, -135, 0, 0] 
+  pose_type: task-space-in-frame
+  frame_id: left_centering_link
+  speed: 0.5
+  is_trajectory: True
+  blend: 0.005
+  desc: Above centering point
+- pose: [-0.015, 0, 0.0, -135, 0, 0] 
+  pose_type: task-space-in-frame
+  frame_id: left_centering_link
+  speed: 0.2
+  desc: dropping 
+- pose_type: gripper
+  gripper:
+    action: 'open'
+    width: 0.08
+- pose: [-0.015, 0, 0.0, -45, 0, 0] 
+  pose_type: task-space-in-frame
+  frame_id: left_centering_link
+  speed: 1.0
+- pose_type: gripper
+  gripper:
+    action: 'close-open'
+    width: 0.09
+  desc: Centering 
+- pose: [-0.005, 0, 0.0, -135, 0, 0] 
+  pose_type: task-space-in-frame
+  frame_id: left_centering_link
+  speed: 1.0
+- pose: [-0.004, 0, -0.01, 0, 30, 0] 
+  pose_type: relative-tcp
+- pose_type: gripper
+  gripper:
+    action: 'close'
+- pose: [-0.05, 0, 0.0, -135, 0, 0] 
+  pose_type: task-space-in-frame
+  frame_id: left_centering_link
+  is_trajectory: False
+  blend: 0.005
+  speed: 0.5
+- pose: [-0.15, 0, -0.10, -135, 0, 0] 
+  pose_type: task-space-in-frame
+  frame_id: left_centering_link
+  is_trajectory: False
+  blend: 0.005
+  speed: 0.5
+- pose: [-0.15, 0, 0.0, 110.257, -11.454, 27.736] 
+  pose_type: task-space-in-frame
+  frame_id: assembled_part_07_inserted
+  is_trajectory: True
+  blend: 0.005
+  speed: 0.5
+- pose: [-0.08, 0, 0.0, 110.257, -11.454, 27.736] 
+  pose_type: task-space-in-frame
+  frame_id: assembled_part_07_inserted
+  is_trajectory: True
+  blend: 0.005
+  speed: 0.5
+- pose: [-0.055, 0.010, 0.002, 110.257, -11.454, 27.736] 
+  pose_type: task-space-in-frame
+  frame_id: assembled_part_07_inserted
+  is_trajectory: True
+  blend: 0.005
+  speed: 0.5
+
+#   - pose: [-0.15, 0, 0.0, 110.257, -11.454, 27.736] 
+#   pose_type: task-space-in-frame
+#   frame_id: assembled_part_07_inserted
+#   is_trajectory: True
+#   blend: 0.005
+#   speed: 0.5
+# - pose: [-0.08, 0, 0.0, 110.257, -11.454, 27.736] 
+#   pose_type: task-space-in-frame
+#   frame_id: assembled_part_07_inserted
+#   is_trajectory: True
+#   blend: 0.005
+#   speed: 0.5
+# - pose: [-0.055, 0.010, 0.002, 110.257, -11.454, 27.736] 
+#   pose_type: task-space-in-frame
+#   frame_id: assembled_part_07_inserted
+#   is_trajectory: True
+#   blend: 0.005
+#   speed: 0.5
+
