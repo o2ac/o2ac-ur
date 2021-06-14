@@ -63,6 +63,7 @@ import o2ac_task_planning_msgs.msg
 from std_msgs.msg import String, Bool
 
 from o2ac_assembly_database.assembly_reader import AssemblyReader
+from ur_control.traj_utils import compute_trajectory
 
 import ur_msgs.srv
 from o2ac_routines.helpers import *
@@ -289,6 +290,167 @@ class O2ACBase(object):
     # # TODO(felixvd): Add the set screw and nut tool objects from the C++ file
 
   ######
+  def pick_screw_from_feeder2(self, robot_name, screw_size, realign_tool_upon_failure=True):
+    if self.tools.screw_is_suctioned.get("m" + str(screw_size), False): 
+      rospy.loginfo("(pick_screw_from_feeder) But a screw was already detected in the tool. Returning true without doing anything.")
+      return True
+
+    assert robot_name in ("a_bot", "b_bot"), "unsupported operation for robot %s" % robot_name
+    offset = 1 if robot_name == "a_bot" else -1
+    pose_feeder = conversions.to_pose_stamped("m" + str(screw_size) + "_feeder_outlet_link", [0.005, 0, 0, np.deg2rad(offset*60), 0, 0])
+    
+    self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready", speed=0.5, acceleration=0.25)
+
+    screw_tool_id = "screw_tool_m" + str(screw_size)
+    screw_tool_link = robot_name + "_screw_tool_m" + str(screw_size) + "_tip_link"
+    fastening_tool_name = "screw_tool_m" + str(screw_size)
+    success = self.suck_screw(robot_name, pose_feeder, screw_tool_id, screw_tool_link, fastening_tool_name)
+
+    self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready", speed=0.5, acceleration=0.25)
+    
+    if success:
+      return True
+    elif realign_tool_upon_failure:
+        self.active_robots[robot_name].move_lin_rel(relative_translation=[0,0,0.05])
+        self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
+        rospy.loginfo("pickScrewFromFeeder failed. Realigning tool and retrying.")
+        screw_tool_id = "screw_tool_m" + str(screw_size)
+        self.realign_tool(robot_name, screw_tool_id)
+        return self.pick_screw_from_feeder2(robot_name, screw_size, realign_tool_upon_failure=False)
+    else:
+        self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
+        return False
+    
+
+  def suck_screw(self, robot_name, screw_head_pose, screw_tool_id, screw_tool_link, fastening_tool_name):
+    """ Strategy: 
+         - Move 1 cm above the screw head pose
+         - Go down real slow for 2 cm while turning the motor in the direction that would loosen the screw
+         - If the suction reports success, return true
+         - If screw is not there, spiral a bit 2mm around
+         - If screw is still not there, move up again slowly
+         - Then, try the same a few more times in nearby locations (square-like)"""
+    rospy.loginfo("Suck screw command")
+
+    if robot_name == "a_bot":
+      rotation = [tau/6, 0, 0]
+    elif robot_name == "b_bot":
+      rotation = [-tau/6, 0, 0]
+    
+    above_screw_head_pose = copy.deepcopy(screw_head_pose)
+    above_screw_head_pose.pose.orientation = conversions.to_quaternion(tf.transformations.quaternion_from_euler(*rotation))
+    above_screw_head_pose.pose.position.x -= 0.01
+
+    if not self.active_robots[robot_name].go_to_pose_goal(above_screw_head_pose, speed=0.3, end_effector_link=screw_tool_link):
+      rospy.logerr("Linear motion plan to target pick pose failed. Returning false.")
+      return False
+
+    if (screw_tool_id == "screw_tool_m3"):
+      self.planning_scene_interface.allow_collisions(screw_tool_id, "m3_feeder_link")
+    elif (screw_tool_id == "screw_tool_m4"):
+      self.planning_scene_interface.allow_collisions(screw_tool_id, "m4_feeder_link")
+
+    adjusted_pose = copy.deepcopy(above_screw_head_pose)
+    search_start_pose = copy.deepcopy(above_screw_head_pose)
+    screw_picked = False
+
+    self.tools.set_suction(screw_tool_id, suction_on=True, eject=False, wait=False)
+
+    offsets = [[0.0015, 0.0015], [0.0015, -0.0015], [-0.0015, 0.0015], [-0.0015, -0.0015]] # only diagonals from start point
+
+    for i, offset in enumerate(offsets): 
+      assert not rospy.is_shutdown(), "Did ros died?"
+
+      self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=5.0, skip_final_loosen_and_retighten=True)
+      # self.send_fastening_tool_command(fastening_tool_name, "loosen", false, 5.0)
+      rospy.loginfo("Moving into screw to pick it up.")
+      adjusted_pose.pose.position.x += .02
+      self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, acceleration=0.025, end_effector_link=screw_tool_link)
+
+      rospy.sleep(0.5)
+      screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
+      if screw_picked:
+        break
+      
+      rospy.loginfo("Spiral motion, trying to find the screw")
+      spiral_trajectory = compute_trajectory(conversions.from_pose_to_list(adjusted_pose.pose), 
+                                    "YZ", 0.002, "+Y", steps=15, revolutions=3, from_center=True,  trajectory_type="spiral")
+      st = []
+      for t in spiral_trajectory:
+          st.append([conversions.to_pose_stamped("m" + str(4) + "_feeder_outlet_link", t), 0.0])
+      self.active_robots[robot_name].move_lin_trajectory(st, speed=0.03, end_effector_link=screw_tool_link)
+
+      rospy.loginfo("Moving back a bit slowly.")
+      adjusted_pose.pose.position.x -= .02
+      self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.1, acceleration=0.05, end_effector_link=screw_tool_link)
+      
+      adjusted_pose = copy.deepcopy(search_start_pose)
+      adjusted_pose.pose.position.y += offset[0]
+      adjusted_pose.pose.position.z += offset[1]
+      
+      rospy.logerr("Retrying pickup with adjusted position. %s of %s" % (i+1, len(offsets)))
+
+    # Old method
+    # max_radius = .0025
+    # theta_incr = tau/6
+    # r = 0.0002
+    # radius_increment = .001
+    # radius_inc_set = radius_increment / (tau / theta_incr)
+    # theta, current_radius, y, z = 0.0, 0.0, 0.0, 0.0
+    # 
+    # while not screw_picked:
+    #   self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=5.0, skip_final_loosen_and_retighten=True)
+    #   # self.send_fastening_tool_command(fastening_tool_name, "loosen", false, 5.0)
+    #   rospy.loginfo("Moving into screw to pick it up.")
+    #   adjusted_pose.pose.position.x += .02
+    #   self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, acceleration=0.025, end_effector_link=screw_tool_link)
+      
+    #   rospy.sleep(0.5)
+
+    #   rospy.loginfo("Moving back a bit slowly.")
+    #   adjusted_pose.pose.position.x -= .02
+    #   self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.1, acceleration=0.05, end_effector_link=screw_tool_link)
+
+    #   screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
+    #   if screw_picked:
+    #     break
+
+    #   if (current_radius > max_radius) or rospy.is_shutdown():
+    #     break
+
+    #   rospy.logerr("Retrying pickup with adjusted position")
+
+    #   theta=theta+theta_incr
+    #   y=cos(theta)*r
+    #   z=sin(theta)*r
+    #   adjusted_pose = copy.deepcopy(search_start_pose)
+    #   adjusted_pose.pose.position.y += y
+    #   adjusted_pose.pose.position.z += z
+    #   r = r + radius_inc_set
+    #   current_radius = sqrt(pow(y,2)+pow(z,2))
+
+    self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=0.1, skip_final_loosen_and_retighten=True)
+
+    if (screw_tool_id == "screw_tool_m3"):
+      self.planning_scene_interface.disallow_collisions(screw_tool_id, "m3_feeder_link")
+    elif (screw_tool_id == "screw_tool_m4"):
+      self.planning_scene_interface.disallow_collisions(screw_tool_id, "m4_feeder_link")
+
+    rospy.loginfo("Moving back up completely.")
+
+    above_screw_head_pose.pose.position.x -= .05
+
+    if not self.active_robots[robot_name].go_to_pose_goal(above_screw_head_pose, speed=0.5, end_effector_link=screw_tool_link):
+      rospy.logerr("Linear motion plan to above_screw_head_pose failed. Returning false.")
+      return False
+
+    if screw_picked:
+      rospy.loginfo("Finished picking up screw successfully.")
+    else:
+      rospy.logerr("Failed to pick screw.")
+    
+    return screw_picked
+
   @check_for_real_robot
   def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=True):
     res = self.skill_server.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure)
