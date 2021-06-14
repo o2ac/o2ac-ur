@@ -19,7 +19,7 @@ waypoints:
   frame_id: 'right_centering_link'
 - gripper:
     action: 'open'
-    open_width: 0.07
+    open_width: 0.04
   pose_type: gripper
 - pose: [-0.01856, 0.00087, -0.01796, -20.34279, 0.23875, 1.49765]
   speed: 0.5
@@ -27,7 +27,7 @@ waypoints:
   frame_id: 'right_centering_link'
 - gripper:
     action: 'close-open'
-    opening_width: 0.07
+    opening_width: 0.04
   pose_type: gripper
 - pose: [-0.01854, 0.00085, -0.01794, -110.43179, 0.23444, 1.49248]
   speed: 0.5

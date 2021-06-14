@@ -199,6 +199,7 @@ class O2ACAssembly(O2ACCommon):
 
   def subtask_c1(self):
     rospy.loginfo("======== SUBTASK C (bearing) ========")
+    self.publish_status_text("Target: Bearing" )
     if self.pick_up_and_insert_bearing(task="assembly"):
       if self.fasten_bearing(task="assembly"):
         self.fasten_bearing(task="assembly", only_retighten=True)

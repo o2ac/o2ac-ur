@@ -469,6 +469,7 @@ class O2ACCommon(O2ACBase):
       if not robot.go_to_pose_goal(approach_pose, speed=speed_fast, acceleration=acc_fast, move_lin=True):
         rospy.logerr("Fail to go to lift_up_pose")
         return False
+      robot.gripper.close() # catch false grasps
     return True
 
   def simple_place(self, robot_name, object_pose, place_height=0.05, speed_fast=0.1, speed_slow=0.02, 
@@ -1262,6 +1263,7 @@ class O2ACCommon(O2ACBase):
     self.despawn_object("bearing")
     self.b_bot.gripper.last_attached_object = None # Forget about this object
 
+    self.b_bot.gripper.close() # catch false grasps
     if self.b_bot.gripper.opening_width < 0.01 and self.use_real_robot:
       rospy.logerr("Fail to grasp bearing")
       return
@@ -1345,8 +1347,15 @@ class O2ACCommon(O2ACBase):
     if not task in ["taskboard", "assembly"]:
       rospy.logerr("Invalid task specification: " + task)
       return False
-    self.a_bot.go_to_named_pose("home")
-    self.equip_tool('b_bot', 'screw_tool_m4')
+    if not self.a_bot.go_to_named_pose("home"):
+      rospy.logerr("Fail to go home (a_bot-fasten_bearing), not aborting yet")
+    if not self.b_bot.go_to_named_pose("home"):
+      rospy.logerr("Fail to go home (b_bot-fasten_bearing), not aborting yet")
+
+    if not self.equip_tool('b_bot', 'screw_tool_m4'):
+      rospy.logerr("Fail to equip tool abort!")
+      return False
+
     self.vision.activate_camera("b_bot_outside_camera")
     
     screw_poses = []
