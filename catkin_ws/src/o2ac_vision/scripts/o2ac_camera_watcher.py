@@ -49,6 +49,15 @@ import sensor_msgs.msg
 import cv2
 import cv_bridge
 
+import sys
+import signal
+
+def signal_handler(sig, frame):
+    print('You pressed Ctrl+C!')
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
+
 class O2ACWatcher(object):
     
     def __init__(self):
@@ -121,15 +130,15 @@ class O2ACWatcher(object):
                     s = cv2.sumElems(last_depth_image_cv)
                     sum_depth_vals = s[0]
                     if sum_depth_vals:
-                        self.last_full_depth_image_time = now
+                        self.last_full_depth_image_time = now  # TODO(felixvd): Why is this variable global, and not per camera?
                     
                 rospy.sleep(.01)
                 time_since_last_nonempty_depth_img = now - self.last_full_depth_image_time
                 time_since_last_msg = now - self.last_msg_times[cam]
-                camera_reset_required = (time_since_last_msg > datetime.timedelta(milliseconds=2000) or time_since_last_nonempty_depth_img > datetime.timedelta(milliseconds=2000))
-                if time_since_last_msg > datetime.timedelta(milliseconds=2000):
+                camera_reset_required = (time_since_last_msg > datetime.timedelta(milliseconds=3000) or time_since_last_nonempty_depth_img > datetime.timedelta(milliseconds=3000))
+                if time_since_last_msg > datetime.timedelta(milliseconds=3000):
                     rospy.logerr("(NO DEPTH IMAGE RECEIVED)")
-                elif time_since_last_nonempty_depth_img > datetime.timedelta(milliseconds=2000):
+                elif time_since_last_nonempty_depth_img > datetime.timedelta(milliseconds=3000):
                     rospy.logerr("(DEPTH IMAGE WAS EMPTY, ASSUMING ERROR)")
                 # else:
                 #     camera_reset_required = True
@@ -164,6 +173,8 @@ class O2ACWatcher(object):
                     rospy.sleep(1)
                     command = "roslaunch o2ac_scene_description osx_bringup_cam" + str(cam_num) + ".launch initial_reset:=true"
                     rospy.loginfo("Executing command: " + command)
+                    if rospy.is_shutdown():
+                        break
                     thread.start_new_thread(os.system, (command,))
                     if rospy.is_shutdown():
                         break
