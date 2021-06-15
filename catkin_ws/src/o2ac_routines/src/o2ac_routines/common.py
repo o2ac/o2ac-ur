@@ -1151,6 +1151,13 @@ class O2ACCommon(O2ACBase):
 
     robot.gripper.open() 
 
+  @check_for_real_robot
+  def simple_gripper_check(self, robot_name, min_opening_width=0.001):
+    self.active_robots[robot_name].gripper.close() # confirm that there is something grasped
+    if robot_name == "a_bot":
+      min_opening_width += 0.02 # a_bot gripper is not very precise...
+    return self.active_robots[robot_name].gripper.opening_width > min_opening_width
+
   ######## Bearing
 
   def align_bearing_holes(self, max_adjustments=10, task=""):
@@ -2255,23 +2262,23 @@ class O2ACCommon(O2ACBase):
     target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.04, 0.0, 0.0, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
 
     selection_matrix = [0.0, 0.3, 0.3, 0.95, 1.0, 1.0]
-    result = self.a_bot.do_insertion(target_pose_target_frame, radius=0.0005, 
+    result = self.b_bot.do_insertion(target_pose_target_frame, radius=0.0005, 
                                                       insertion_direction="+X", force=5.0, timeout=15.0, 
                                                       relaxed_target_by=0.005, selection_matrix=selection_matrix)
     success = result == TERMINATION_CRITERIA
 
     if not success:
-      grasp_check = self.simple_insertion_check("a_bot", 0.06, min_opening_width=0.02)
+      grasp_check = self.simple_insertion_check("b_bot", 0.06, min_opening_width=0.02)
       if grasp_check and attempts > 0: # try again the spacer is still there   
         return self.insert_bearing_spacer(target_link, attempts=attempts-1)
       elif not grasp_check or not attempts > 0:
-        self.a_bot.gripper.open(wait=True, opening_width=0.08)
-        self.a_bot.move_lin_rel(relative_translation = [0.10,0,0], acceleration = 0.015, speed=.03)
+        self.b_bot.gripper.open(wait=True, opening_width=0.08)
+        self.b_bot.move_lin_rel(relative_translation = [0.10,0,0], acceleration = 0.015, speed=.03)
         rospy.logerr("** Insertion Failed!! **")
         return False
 
-    self.a_bot.gripper.open(wait=True, opening_width=0.08)
-    self.a_bot.move_lin_rel(relative_translation = [0.10,0,0], acceleration = 0.015, speed=.03)
+    self.b_bot.gripper.open(wait=True, opening_width=0.08)
+    self.b_bot.move_lin_rel(relative_translation = [0.10,0,0], acceleration = 0.015, speed=.03)
     return success
 
   def insert_output_pulley(self, target_link, attempts=1):
@@ -2279,29 +2286,29 @@ class O2ACCommon(O2ACBase):
     target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.04, 0.0, 0.0, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
 
     selection_matrix = [0.0, 0.3, 0.3, 0.95, 1.0, 1.0]
-    result = self.a_bot.do_insertion(target_pose_target_frame, radius=0.0005, 
+    result = self.b_bot.do_insertion(target_pose_target_frame, radius=0.0005, 
                                                       insertion_direction="+X", force=5.0, timeout=15.0, 
                                                       relaxed_target_by=0.005, selection_matrix=selection_matrix)
     success = result == TERMINATION_CRITERIA
     rospy.loginfo("insertion finished with status: %s" % result)
 
     if not success:
-      grasp_check = self.simple_insertion_check("a_bot", 0.09, min_opening_width=0.02)
+      grasp_check = self.simple_insertion_check("b_bot", 0.09, min_opening_width=0.02)
       if grasp_check and attempts > 0: # try again the pulley is still there   
         return self.insert_output_pulley(target_link, attempts=attempts-1)
       elif not grasp_check or not attempts > 0:
-        self.a_bot.gripper.open(wait=True, opening_width=0.08)
-        self.a_bot.move_lin_rel(relative_translation = [0.10,0,0], acceleration = 0.015, speed=.03)
+        self.b_bot.gripper.open(wait=True, opening_width=0.08)
+        self.b_bot.move_lin_rel(relative_translation = [0.10,0,0], acceleration = 0.015, speed=.03)
         rospy.logerr("** Insertion Failed!! **")
         return False
 
     rospy.loginfo("Preparing push")
-    self.a_bot.gripper.open(wait=True, opening_width=0.09)
-    self.a_bot.move_lin_rel(relative_translation=[0.01,0,0])
-    self.a_bot.gripper.send_command(0.06, wait=False)
+    self.b_bot.gripper.open(wait=True, opening_width=0.09)
+    self.b_bot.move_lin_rel(relative_translation=[0.01,0,0])
+    self.b_bot.gripper.send_command(0.06, wait=False)
     rospy.loginfo("Starting push")
-    success = self.a_bot.force_controller.linear_push(force=3, direction="+X", max_translation=0.05, timeout=15.)
+    success = self.b_bot.force_controller.linear_push(force=3, direction="+X", max_translation=0.05, timeout=15.)
 
-    self.a_bot.gripper.open(wait=True, opening_width=0.09)
-    self.a_bot.move_lin_rel(relative_translation = [0.10,0,0], acceleration = 0.015, speed=.03)
+    self.b_bot.gripper.open(wait=True, opening_width=0.09)
+    self.b_bot.move_lin_rel(relative_translation = [0.10,0,0], acceleration = 0.015, speed=.03)
     return success
