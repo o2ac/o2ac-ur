@@ -391,14 +391,12 @@ class O2ACAssembly(O2ACCommon):
 
     bearing_spacer_pose = self.look_and_get_grasp_point("bearing_spacer")
     bearing_spacer_pose.pose.position.x -= 0.005 # Magic numbers
-    self.b_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
 
-    if not self.simple_pick("a_bot", bearing_spacer_pose, grasp_height=-0.001, gripper_force=50.0, grasp_width=.05, axis="z", gripper_command=0.05):
+    if not self.simple_pick("b_bot", bearing_spacer_pose, grasp_height=-0.001, gripper_force=50.0, grasp_width=.03, axis="z", gripper_command=0.03):
       rospy.logerr("Fail to simple_pick")
       return False
 
-    print("a_bot gripper opening??", self.a_bot.gripper.opening_width)
-    if self.a_bot.gripper.opening_width < 0.02:
+    if not self.simple_gripper_check("b_bot"):
       rospy.logerr("Gripper did not grasp the bearing_spacer --> Stop")
       return False
 
@@ -406,15 +404,18 @@ class O2ACAssembly(O2ACCommon):
       rospy.logerr("Fail to complete the playback sequence bearing_spacer_orient")
       return False
 
-    # # Move b_bot to hold shaft from end cap side
-    self.b_bot.gripper.close()
+    # # Move a_bot to hold shaft from end cap side
+    self.a_bot.gripper.close()
 
-    approach_hold_pose = conversions.to_pose_stamped("assembled_part_07_inserted", [0.15, 0.000, -0.15] + np.deg2rad([-22.5, -88.5, -157.5]).tolist())
-    pre_hold_pose = conversions.to_pose_stamped("assembled_part_07_inserted", [0.15, 0.000, 0.02] + np.deg2rad([-22.5, -88.5, -157.5]).tolist())
-    at_hold_pose = conversions.to_pose_stamped("assembled_part_07_inserted", [0.043, 0.000, 0.02] + np.deg2rad([-22.5, -88.5, -157.5]).tolist())
+    approach_hold_pose = conversions.to_pose_stamped("assembled_part_07_inserted", [0.15, 0.000, -0.15] + np.deg2rad([-90,-90,-90]).tolist())
+    # self.a_bot.go_to_pose_goal(approach_hold_pose)
+    pre_hold_pose = conversions.to_pose_stamped("assembled_part_07_inserted", [0.15, 0.000, 0.02] + np.deg2rad([-90,-90,-90]).tolist())
+    # self.a_bot.go_to_pose_goal(pre_hold_pose)
+    at_hold_pose = conversions.to_pose_stamped("assembled_part_07_inserted", [0.043, 0.000, 0.02] + np.deg2rad([-90,-90,-90]).tolist())
+    # self.a_bot.go_to_pose_goal(at_hold_pose)
 
     trajectory = [[approach_hold_pose, 0.005], [pre_hold_pose, 0.005], [at_hold_pose, 0.0]]
-    if not self.b_bot.move_lin_trajectory(trajectory, speed=0.5):
+    if not self.a_bot.move_lin_trajectory(trajectory, speed=0.5):
       rospy.logerr("Fail to complete the hold pose")
       return False
 
@@ -423,39 +424,24 @@ class O2ACAssembly(O2ACCommon):
     if not self.insert_bearing_spacer("assembled_part_07_inserted"):
       rospy.logerr("Fail to complete insertion of bearing_spacer")
       return False
-    
-    trajectory = [[pre_hold_pose, 0.005], [approach_hold_pose, 0.005]]
-    if not self.b_bot.move_lin_trajectory(trajectory, speed=0.5):
-      rospy.logerr("Fail to complete retreat (b_bot)")
-      return False
-
-    self.b_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
 
     self.publish_status_text("Target: output_pulley" )
 
     output_pulley_pose = self.look_and_get_grasp_point("output_pulley", grasp_width=0.06, check_for_close_items=False)
     output_pulley_pose.pose.position.x -= 0.005 # Magic numbers
     output_pulley_pose.pose.position.z = 0.0 # Magic numbers
-    self.b_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
+    self.a_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
 
-    if not self.simple_pick("a_bot", output_pulley_pose, grasp_height=0.01, gripper_force=50.0, grasp_width=.06, axis="z", gripper_command=0.05):
+    if not self.simple_pick("b_bot", output_pulley_pose, grasp_height=0.01, gripper_force=50.0, grasp_width=.03, axis="z", gripper_command=0.03):
       rospy.logerr("Fail to simple_pick")
       return False
 
-    if self.a_bot.gripper.opening_width < 0.02:
+    if not self.simple_gripper_check("b_bot"):
       rospy.logerr("Gripper did not grasp the output_pulley --> Stop")
       return False
 
     if not self.playback_sequence("output_pulley_orient"):
       rospy.logerr("Fail to complete the playback sequence bearing_spacer_orient")
-      return False
-
-    # Move b_bot to hold shaft from end cap side
-    self.b_bot.gripper.close()
-
-    trajectory = [[approach_hold_pose, 0.005], [pre_hold_pose, 0.005], [at_hold_pose, 0.0]]
-    if not self.b_bot.move_lin_trajectory(trajectory, speed=0.5):
-      rospy.logerr("Fail to complete the hold pose")
       return False
 
     self.confirm_to_proceed("insertion")
@@ -464,16 +450,16 @@ class O2ACAssembly(O2ACCommon):
       rospy.logerr("Fail to complete insertion of bearing_spacer")
       return False
     
-    self.a_bot.gripper.open()
-    self.a_bot.move_lin_rel(relative_translation=[0,-0.2,0.1])
-    self.a_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
+    self.b_bot.gripper.open()
+    self.b_bot.move_lin_rel(relative_translation=[0.1, 0.0, 0.1])
+    self.b_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
 
     trajectory = [[pre_hold_pose, 0.005], [approach_hold_pose, 0.005]]
-    if not self.b_bot.move_lin_trajectory(trajectory, speed=0.5):
-      rospy.logerr("Fail to complete retreat (b_bot)")
+    if not self.a_bot.move_lin_trajectory(trajectory, speed=0.5):
+      rospy.logerr("Fail to complete retreat (a_bot)")
       return False
 
-    return self.b_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
+    return self.a_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
 
   def subtask_f(self):
     rospy.loginfo("======== SUBTASK F (motor panel (small L-plate)) ========")
