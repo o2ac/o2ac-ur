@@ -921,30 +921,30 @@ class O2ACCommon(O2ACBase):
     robot.go_to_pose_goal(object_pose_in_world, move_lin=True)
     return True
   
-  def center_with_gripper(self, robot_name, grasp_width, clockwise=False):
+  def center_with_gripper(self, robot_name, opening_width, gripper_force=40, clockwise=False, move_back_to_initial_position=True):
     """
     Centers cylindrical object at the current location, by closing/opening the gripper and rotating the robot's last joint.
-    Moves back to the initial position.
     """
     robot = self.active_robots[robot_name]
     robot.gripper.send_command(command="close", force = 1.0, velocity = 0.1)
-    robot.gripper.send_command(command=grasp_width+0.03, force = 90.0, velocity = 0.001)
+    robot.gripper.send_command(command=opening_width, force=gripper_force, velocity = 0.001)
 
     # rotate gripper 90deg
-    initial_pose_goal = robot.robot_group.get_current_joint_values()
-    pose_goal = robot.robot_group.get_current_joint_values()
-    pose_goal[-1] += -tau/4.0 if clockwise else tau/4.0
-    success = robot.move_joints(pose_goal, speed=0.5, wait=True)
+    initial_pose = robot.get_current_pose_stamped()
+    offset = -tau/4.0 if clockwise else tau/4.0
+    success = robot.move_lin_rel(relative_rotation=[offset, 0, 0], relative_to_tcp=True)
     if not success:
       rospy.logerr("Fail to rotate 90deg %s" % success)
       return False
     
     # close-open
     robot.gripper.send_command(command="close", force = 1.0, velocity = 0.003)
-    robot.gripper.send_command(command=grasp_width+0.03, force = 90.0, velocity = 0.001)
+    robot.gripper.send_command(command=opening_width, force=gripper_force, velocity = 0.001)
 
     # rotate gripper -90deg
-    return robot.move_joints(initial_pose_goal, speed=0.5, wait=True)
+    if move_back_to_initial_position:
+      success = robot.go_to_pose_goal(initial_pose, move_lin=True)
+    return success
 
   def centering_pick(self, robot_name, object_pose, speed_fast=0.5, speed_slow=0.2, object_width=0.08, approach_height=0.1, 
           item_id_to_attach = "", lift_up_after_pick=False, gripper_force=40.0, approach_move_lin=True):
@@ -987,7 +987,7 @@ class O2ACCommon(O2ACBase):
         return False
 
     # Center object
-    self.center_with_gripper(robot_name, object_width)
+    self.center_with_gripper(robot_name, object_width+0.03)
 
     # Grasp object
     robot.gripper.send_command(command="close", force = gripper_force)
@@ -1590,7 +1590,7 @@ class O2ACCommon(O2ACBase):
       return False
 
     self.a_bot.gripper.open(wait=False, opening_width=0.07)
-    if not self.center_with_gripper("a_bot", grasp_width=.05):
+    if not self.center_with_gripper("a_bot", opening_width=.08):
       rospy.logerr("Fail to complete center_with_gripper")
       return False
     if not self.grasp_idler_pulley():
@@ -2198,7 +2198,7 @@ class O2ACCommon(O2ACBase):
         return False
 
       self.a_bot.gripper.open(velocity=0.03, opening_width=0.03)
-      if not self.center_with_gripper("a_bot", 0.02, clockwise=True):
+      if not self.center_with_gripper("a_bot", opening_width=0.05, clockwise=True):
         rospy.logerr("Fail to go to center with gripper")
         return False
 
