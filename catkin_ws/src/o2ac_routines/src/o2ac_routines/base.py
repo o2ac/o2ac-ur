@@ -952,9 +952,7 @@ class O2ACBase(object):
     elif realign:
       lin_speed = 0.5
 
-    # sequence.append(helpers.to_sequence_item(ps_approach, speed=lin_speed))
-    # sequence.append(helpers.to_sequence_item(ps_in_holder, speed=lin_speed))
-    sequence.append(helpers.to_sequence_trajectory([ps_approach,ps_in_holder], [0.003,0.0]))
+    sequence.append(helpers.to_sequence_trajectory([ps_approach,ps_in_holder], [0.01,0.0]))
 
     if not self.execute_sequence(robot_name, sequence, "approach sequence equip/unequip tool", plan_while_moving=True):
       rospy.logerr("Fail to complete the equip/unequip tool sequence")

@@ -934,7 +934,7 @@ class O2ACCommon(O2ACBase):
     # rotate gripper 90deg
     initial_pose = robot.get_current_pose_stamped()
     offset = -tau/4.0 if clockwise else tau/4.0
-    success = robot.move_lin_rel(relative_rotation=[offset, 0, 0], relative_to_tcp=True)
+    success = robot.move_lin_rel(relative_rotation=[offset, 0, 0], speed=1.5, relative_to_tcp=True)
     if not success:
       rospy.logerr("Fail to rotate 90deg %s" % success)
       return False
@@ -945,7 +945,7 @@ class O2ACCommon(O2ACBase):
 
     # rotate gripper -90deg
     if move_back_to_initial_position:
-      success = robot.go_to_pose_goal(initial_pose, move_lin=True)
+      success = robot.go_to_pose_goal(initial_pose, speed=1.5, move_lin=True)
     return success
 
   def centering_pick(self, robot_name, object_pose, speed_fast=0.5, speed_slow=0.2, object_width=0.08, approach_height=0.1, 
@@ -1556,7 +1556,7 @@ class O2ACCommon(O2ACBase):
     
     # self.vision.activate_camera("a_bot_inside_camera")
     object_pose.pose.position.x -= 0.01 # MAGIC NUMBER
-    object_pose.pose.position.z = 0.014
+    object_pose.pose.position.z = 0.018
 
     rospy.loginfo("Picking idler pulley at: ")
     self.b_bot.go_to_named_pose("home")
