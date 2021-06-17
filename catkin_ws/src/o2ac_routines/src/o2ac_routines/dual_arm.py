@@ -117,8 +117,8 @@ class DualArm(RobotBase):
             slave_accelerations = slave_joint_displacement/pow(duration,2) - last_velocities/duration  if duration > 0 else np.zeros_like(slave_joint_displacement)
             
             point.positions = list(point.positions) + list(ik_solution)
-            point.velocities = list(point.velocities) + slave_velocities
-            point.accelerations = list(point.accelerations) + slave_accelerations
+            point.velocities = list(point.velocities) + slave_velocities.tolist()
+            point.accelerations = list(point.accelerations) + slave_accelerations.tolist()
             last_ik_solution = np.copy(ik_solution)
             last_velocities = np.copy(slave_velocities)
 
