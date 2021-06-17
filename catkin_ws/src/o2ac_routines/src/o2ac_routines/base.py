@@ -459,6 +459,8 @@ class O2ACBase(object):
 
   @check_for_real_robot
   def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=True):
+    return self.pick_screw_from_feeder2(robot_name, screw_size, realign_tool_upon_failure)  # Python-only version 
+
     res = self.skill_server.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure)
     try:
       if res.success:
