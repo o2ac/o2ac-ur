@@ -23,8 +23,8 @@
   <!-- Synced block end -->
  
   <include file="$(find realsense2_camera)/launch/rs_camera.launch">
-    <arg name="camera"		    value="$(arg camera2_name)"/>
-    <arg name="serial_no"           value="$(arg camera2_serial_no)"/>
+    <arg name="camera"		    value="$(arg camera0_name)"/>
+    <arg name="serial_no"           value="$(arg camera0_serial_no)"/>
     <arg name="enable_pointcloud"   value="true"/>
     <arg name="align_depth"         value="true"/>
     <arg name="fisheye_fps"         value="$(arg camera_fps)"/>
@@ -37,7 +37,7 @@
     <arg name="initial_reset"       value="$(arg initial_reset)"/>
   </include>
   <include file="$(find o2ac_scene_description)/launch/publish_camera_calibration.launch">
-    <arg name="camera_name"	value="$(arg camera2_name)"/>
+    <arg name="camera_name"	value="$(arg camera0_name)"/>
   </include>
 
 </launch>

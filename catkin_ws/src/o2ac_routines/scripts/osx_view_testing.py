@@ -116,7 +116,7 @@ if __name__ == '__main__':
     while not rospy.is_shutdown():
       rospy.loginfo("Enter a number to run tests: ")
       rospy.loginfo("1: Go home with all robots")
-      rospy.loginfo("11: Activate b_bot inside, outside (12) camera")
+      rospy.loginfo("11-14: Activate camera (11:a_in, 12:a_out, 13:b_in, 14:b_out)")
       rospy.loginfo("2: Move b_bot above tray at 37 cm")
       rospy.loginfo("3: Move b_bot close (22 cm)")
       rospy.loginfo("31, 32, 33, 34: Close views")
@@ -131,8 +131,12 @@ if __name__ == '__main__':
         c.a_bot.go_to_named_pose("home")
         c.b_bot.go_to_named_pose("home")
       elif r == '11':
-        c.vision.activate_camera("b_bot_inside_camera")
+        c.vision.activate_camera("a_bot_inside_camera")
       elif r == '12':
+        c.vision.activate_camera("a_bot_outside_camera")
+      elif r == '13':
+        c.vision.activate_camera("b_bot_inside_camera")
+      elif r == '14':
         c.vision.activate_camera("b_bot_outside_camera")
       elif r == '2':
         ps = geometry_msgs.msg.PoseStamped()
