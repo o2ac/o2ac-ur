@@ -178,19 +178,22 @@ class URRobot(RobotBase):
         except:
             rospy.logwarn("Dashboard service did not respond!")
 
-        if not program_loaded:
-            rospy.logwarn("Could not load.")
-            try:
-                if recursion_depth > 3:  # If connect alone failed, try quit and then connect
+        # Try to connect to dashboard if first try failed
+        try:
+            if recursion_depth > 2:
+                if recursion_depth > 3:
                     rospy.logwarn("Try to quit before connecting.")
                     response = self.ur_dashboard_clients["quit"].call()
                     rospy.sleep(3.0)
                 rospy.logwarn("Try to connect to dashboard service.")
                 response = self.ur_dashboard_clients["connect"].call()
-            except:
-                rospy.logwarn("Dashboard service did not respond! (2)")
-                pass
-            rospy.sleep(1.0)
+                rospy.sleep(1.0)
+        except:
+            rospy.logwarn("Dashboard service did not respond! (2)")
+            pass
+        
+        if not program_loaded:
+            rospy.logwarn("Could not load.")
             return self.activate_ros_control_on_ur(recursion_depth=recursion_depth+1)
 
         # Run the program
