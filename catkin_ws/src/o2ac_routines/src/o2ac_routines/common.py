@@ -38,6 +38,8 @@ from o2ac_routines import helpers
 from o2ac_routines.base import *
 from math import radians, degrees, sin, cos, pi
 from ur_control.constants import DONE, TERMINATION_CRITERIA
+from trajectory_msgs.msg import JointTrajectoryPoint
+
 import numpy as np
 
 CORNER = "corner"
@@ -2312,3 +2314,41 @@ class O2ACCommon(O2ACBase):
     self.b_bot.gripper.open(wait=True, opening_width=0.09)
     self.b_bot.move_lin_rel(relative_translation = [0.10,0,0], acceleration = 0.015, speed=.03)
     return success
+
+  def carry_tray(self):
+    self.allow_collisions_with_robot_hand("tray", "a_bot", allow=True)
+    self.allow_collisions_with_robot_hand("tray", "b_bot", allow=True)
+    self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=True)
+    self.allow_collisions_with_robot_hand("tray_center", "b_bot", allow=True)
+
+    a_bot_away_tray = conversions.to_pose_stamped("left_centering_link",  [-0.15, 0.20, -0.10, -tau/4, 0, 0])
+    b_bot_away_tray = conversions.to_pose_stamped("right_centering_link", [-0.15, 0.20, 0.10, -tau/4, 0, 0])
+    b_bot_away_down_tray = conversions.to_pose_stamped("right_centering_link", [-0.02, 0.20, 0.10, -tau/4, 0, 0])
+    b_bot_above_tray = conversions.to_pose_stamped("right_centering_link", [-0.15, 0, 0.10, -tau/4, 0, 0])
+    b_bot_at_tray = conversions.to_pose_stamped("right_centering_link", [-0.02, 0, 0.10, -tau/4, 0, 0])    
+
+    self.ab_bot.go_to_goal_poses(a_bot_away_tray, b_bot_away_tray, planner="OMPL")
+
+    self.a_bot.gripper.open(opening_width=0.05)
+    self.b_bot.gripper.open(opening_width=0.05)
+
+    self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_away_down_tray, [0, -0.4, 0, 0, 0, 0, 1])
+
+    self.a_bot.gripper.close(force=80)
+    self.b_bot.gripper.close(force=80)
+
+    self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_away_tray, [0, -0.4, 0, 0, 0, 0, 1])
+    self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_above_tray, [0, -0.4, 0, 0, 0, 0, 1])
+    self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_at_tray, [0, -0.4, 0, 0, 0, 0, 1])
+
+    self.a_bot.gripper.open(opening_width=0.05)
+    self.b_bot.gripper.open(opening_width=0.05)
+    
+    self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_above_tray, [0, -0.4, 0, 0, 0, 0, 1])
+
+    self.ab_bot.go_to_named_pose("home")
+
+    self.allow_collisions_with_robot_hand("tray", "a_bot", allow=False)
+    self.allow_collisions_with_robot_hand("tray", "b_bot", allow=False)
+    self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=False)
+    self.allow_collisions_with_robot_hand("tray_center", "b_bot", allow=False)

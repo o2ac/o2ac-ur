@@ -40,6 +40,7 @@ import copy
 import numpy
 from moveit_commander import robot
 from o2ac_routines import helpers
+from o2ac_routines.dual_arm import DualArm
 import rospy
 import rospkg
 import tf_conversions
@@ -113,6 +114,7 @@ class O2ACBase(object):
     # Action clients and movegroups
     self.a_bot = URRobot("a_bot", self.listener)
     self.b_bot = URRobot("b_bot", self.listener)
+    self.ab_bot = DualArm("ab_bot", self.a_bot, self.b_bot, self.listener)
     # For compatibility let's wrap the robots
     self.active_robots = {'a_bot': self.a_bot, 'b_bot': self.b_bot}
     
@@ -320,7 +322,6 @@ class O2ACBase(object):
     else:
         self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
         return False
-    
 
   def suck_screw(self, robot_name, screw_head_pose, screw_tool_id, screw_tool_link, fastening_tool_name):
     """ Strategy: 

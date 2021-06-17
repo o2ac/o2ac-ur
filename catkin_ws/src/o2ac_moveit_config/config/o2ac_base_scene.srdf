@@ -27,6 +27,22 @@
         <joint name="b_bot_wrist_3_joint" />
         <chain base_link="b_bot_base_link" tip_link="b_bot_gripper_tip_link" />
     </group>
+    <group name="ab_bot">
+        <joint name="a_bot_shoulder_pan_joint" />
+        <joint name="a_bot_shoulder_lift_joint" />
+        <joint name="a_bot_elbow_joint" />
+        <joint name="a_bot_wrist_1_joint" />
+        <joint name="a_bot_wrist_2_joint" />
+        <joint name="a_bot_wrist_3_joint" />
+        <chain base_link="a_bot_base_link" tip_link="a_bot_gripper_tip_link" />
+        <joint name="b_bot_shoulder_pan_joint" />
+        <joint name="b_bot_shoulder_lift_joint" />
+        <joint name="b_bot_elbow_joint" />
+        <joint name="b_bot_wrist_1_joint" />
+        <joint name="b_bot_wrist_2_joint" />
+        <joint name="b_bot_wrist_3_joint" />
+        <chain base_link="b_bot_base_link" tip_link="b_bot_gripper_tip_link" />
+    </group>
     <group name="a_bot_robotiq_85">
         <joint name="a_bot_finger_joint" />
         <joint name="a_bot_left_outer_finger_joint" />
@@ -215,6 +231,20 @@
         <joint name="a_bot_wrist_1_joint" value="-0.75" />
         <joint name="a_bot_wrist_2_joint" value="-0.77" />
         <joint name="a_bot_wrist_3_joint" value="0.85" />
+    </group_state>
+    <group_state name="home" group="ab_bot">
+        <joint name="a_bot_elbow_joint" value="1.4" />
+        <joint name="a_bot_shoulder_lift_joint" value="-2.1" />
+        <joint name="a_bot_shoulder_pan_joint" value="1.57" />
+        <joint name="a_bot_wrist_1_joint" value="-0.85" />
+        <joint name="a_bot_wrist_2_joint" value="-1.57" />
+        <joint name="a_bot_wrist_3_joint" value="0" />
+        <joint name="b_bot_elbow_joint" value="1.4" />
+        <joint name="b_bot_shoulder_lift_joint" value="-2.1" />
+        <joint name="b_bot_shoulder_pan_joint" value="1.57" />
+        <joint name="b_bot_wrist_1_joint" value="-0.85" />
+        <joint name="b_bot_wrist_2_joint" value="-1.57" />
+        <joint name="b_bot_wrist_3_joint" value="0" />
     </group_state>
     <!--END EFFECTOR: Purpose: Represent information about an end effector.-->
     <end_effector name="a_bot_tip" parent_link="a_bot_ee_link" group="a_bot_robotiq_85" parent_group="a_bot" />

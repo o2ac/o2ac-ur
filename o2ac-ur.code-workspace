@@ -140,6 +140,11 @@
 			"./underlay_ws/src/downward/src",
 			"./underlay_ws/src/moveit/moveit_commander/src",
 			"./underlay_ws/src/ur_python_utilities/ur_control/src"
+		],
+		"cSpell.words": [
+			"commander",
+			"moveit",
+			"rospy"
 		]
 	},
 	"extensions": {
