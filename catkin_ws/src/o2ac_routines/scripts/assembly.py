@@ -102,7 +102,9 @@ if __name__ == '__main__':
       elif i == '16':
         c.do_change_tool_action("b_bot", equip=False, screw_size=4)
       elif i == '21':
-        c.carry_tray()
+        c.take_tray_from_agv()
+      elif i == '211':
+        c.take_tray_from_agv(reverse_movement_for_calibration=True)
       elif i == '22':
         c.unload_drive_unit()
       elif i == '31':

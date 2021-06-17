@@ -30,7 +30,7 @@ class DualArm(RobotBase):
 
         success = False
         tries = 10
-        while not success and tries > 0:
+        while not success and tries > 0 and not rospy.is_shutdown():
             tries -= 1
             if plan_only:
                 success, plan, planning_time, error = self.robot_group.plan()
