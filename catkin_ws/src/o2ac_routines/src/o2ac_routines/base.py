@@ -1086,9 +1086,11 @@ class O2ACBase(object):
             current_gripper_action = waypoint_params["gripper"]
             res = None, 0.0
           else:
+            print("move to wp: ", waypoint_params)
             res = self.move_to_sequence_waypoint(robot_name, waypoint_params, plan_only=True, initial_joints=initial_joints)
         elif point[0] == "trajectory":
           trajectory, speed_scale_factor = point[1]
+          print("do traj: ", trajectory)
           res = robot.move_lin_trajectory(trajectory, speed=speed_scale_factor, plan_only=True, initial_joints=initial_joints)
         else:
           ValueError("Invalid sequence type: %s" % point[0])
@@ -1103,13 +1105,15 @@ class O2ACBase(object):
 
         # post planning waiting
         if previous_plan:
-          waiting_time = (previous_point_duration) - planning_time if (previous_point_duration) - planning_time > 0 else 0.0
+          waiting_time = (previous_point_duration) - planning_time + rospy.Duration(0.5) if (previous_point_duration) - planning_time > 0 else 0.0
+          waiting_time = waiting_time + 0.5  # FIXME: Workaround because wait_for_motion_result returns immediately
           # TODO(cambel): could use this waiting time to evaluate whether to try to plan a future point too instead of only waiting
-          # rospy.sleep(waiting_time)
+          rospy.sleep(waiting_time)
           if not robot.robot_group.wait_for_motion_result():
             rospy.logerr("Moveit aborted the motion")
             # return False
-          
+          rospy.loginfo("waited for motion result")
+        
         current_joints = robot.robot_group.get_current_joint_values()
         if not helpers.all_close(initial_joints, current_joints, 0.01):
           rospy.logerr("Fail to execute plan: error code")
@@ -1119,6 +1123,8 @@ class O2ACBase(object):
           self.execute_gripper_action(robot_name, current_gripper_action)
         elif plan:
           wait = True if i == len(sequence) -1 else False
+          rospy.loginfo("executing plan:")
+          rospy.loginfo(plan)
           if not robot.execute_plan(plan, wait=wait):
             rospy.logerr("plan execution failed")
             return False
