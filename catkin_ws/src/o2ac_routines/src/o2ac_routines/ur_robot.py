@@ -380,7 +380,7 @@ class URRobot():
 
         success = False
         tries = 0
-        while not success and tries < 5 and not rospy.is_shutdown():
+        while not success and tries < 10 and not rospy.is_shutdown():
             if plan_only:
                 success, plan, planning_time, error = group.plan()
                 if success:

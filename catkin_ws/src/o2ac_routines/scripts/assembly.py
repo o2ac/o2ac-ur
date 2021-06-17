@@ -131,6 +131,8 @@ if __name__ == '__main__':
         c.pick(robot_name="b_bot", object_name="base")
       elif i == '55':
         c.spawn_objects_for_demo(base_plate_in_tray=True, layout_number=2)
+      elif i == '551':
+        c.spawn_objects_for_demo(layout_number=4)
       elif i == '552':
         c.spawn_objects_for_demo(base_plate_in_tray=True, layout_number=1)
       elif i == '553':

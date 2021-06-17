@@ -120,8 +120,8 @@ if __name__ == '__main__':
       rospy.loginfo("2: Move b_bot above tray at 37 cm")
       rospy.loginfo("3: Move b_bot close (22 cm)")
       rospy.loginfo("31, 32, 33, 34: Close views")
-      rospy.loginfo("4: Do distant view and 4 close views")
-      rospy.loginfo("5: Call tray detection and show result")
+      rospy.loginfo("4: Call shaft notch detection")
+      rospy.loginfo("5: Call SSD detection and show result")
       rospy.loginfo("8: Look for shaft")
       rospy.loginfo("CAD matching: 61: bearing, 62: base plate, 63: motor plate, 64: bearing plate")
       rospy.loginfo("x: Exit ")
@@ -165,6 +165,9 @@ if __name__ == '__main__':
       elif r == '333':
         for ps in c.close_tray_views_rot_right:
           c.b_bot.go_to_pose_goal(ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
+      elif r == '4':
+        c.vision.activate_camera("b_bot_inside_camera")
+        c.vision.call_shaft_notch_detection()
       elif r == '5':
         c.vision.activate_camera("b_bot_outside_camera")
         rospy.sleep(1)

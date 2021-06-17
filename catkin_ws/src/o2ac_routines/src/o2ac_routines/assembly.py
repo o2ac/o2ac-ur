@@ -686,6 +686,13 @@ class O2ACAssembly(O2ACCommon):
               [-0.090, 0.100, 0.001, -3.141, -1.570, -3.141592], 
               [-0.080, 0.150, 0.001, -3.141, -1.570, -3.141592], 
               [-0.010, 0.060, 0.011, 0.001, -0.001, -1.571593]]
+    elif layout_number == 4:
+      objects = ['base', 'panel_motor', 'panel_bearing']
+      poses = [[0.1, 0.05, 0.001, tau/4, 0.0, tau/2],
+               [-0.04, 0.01, 0.001, 0.0, 0.0, tau/2],
+               [0.01, -0.08, 0.001, 0.0, 0.0, tau/2]] 
+      self.spawn_multiple_objects('wrs_assembly_2020', objects, poses, 'tray_center')
+      return
 
     self.spawn_multiple_objects('wrs_assembly_2020', objects, poses, 'tray_center')
     if not base_plate_in_tray:  # Spawn the base plate on the fixation, for MTC demos
