@@ -389,6 +389,11 @@ class O2ACBase(object):
       adjusted_pose.pose.position.y += offset[0]
       adjusted_pose.pose.position.z += offset[1]
       
+      rospy.sleep(0.5)
+      screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
+      if screw_picked:
+        break
+      
       rospy.logerr("Retrying pickup with adjusted position. %s of %s" % (i+1, len(offsets)))
 
     # Old method
