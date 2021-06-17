@@ -1117,7 +1117,7 @@ class O2ACBase(object):
           # rospy.sleep(waiting_time)
           if not robot.robot_group.wait_for_motion_result():
             rospy.logerr("Moveit aborted the motion")
-            return False
+            # return False
           
         current_joints = robot.robot_group.get_current_joint_values()
         if not helpers.all_close(initial_joints, current_joints, 0.01):
