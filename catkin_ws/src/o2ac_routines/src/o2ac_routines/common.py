@@ -2336,21 +2336,20 @@ class O2ACCommon(O2ACBase):
     if not reverse_movement_for_calibration:
       self.ab_bot.go_to_goal_poses(a_bot_above_tray_start, b_bot_above_tray_start, planner="OMPL")
 
-    slave_relation = self.ab_bot.get_relative_pose_of_slave("b_bot", "a_bot")
-    print(np.round(slave_relation, 4))
-    self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_at_tray_start, slave_relation)
+      slave_relation = self.ab_bot.get_relative_pose_of_slave("b_bot", "a_bot")
+      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_at_tray_start, slave_relation)
 
       self.a_bot.gripper.close(force=80)
       self.b_bot.gripper.close(force=80)
 
-    self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_above_tray_start, slave_relation, speed=0.05)
-    self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_above_tray_target, slave_relation, speed=0.05)
-    self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_at_tray_target, slave_relation, speed=0.05)
+      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_above_tray_start, slave_relation, speed=0.05)
+      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_above_tray_target, slave_relation, speed=0.05)
+      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_at_tray_target, slave_relation, speed=0.05)
 
-    self.a_bot.gripper.open(opening_width=0.05, wait=False)
-    self.b_bot.gripper.open(opening_width=0.05)
-    
-    self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_above_tray_target, slave_relation, speed=0.05)
+      self.a_bot.gripper.open(opening_width=0.05, wait=False)
+      self.b_bot.gripper.open(opening_width=0.05)
+      
+      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_above_tray_target, slave_relation, speed=0.05)
 
       self.ab_bot.go_to_named_pose("home")
 

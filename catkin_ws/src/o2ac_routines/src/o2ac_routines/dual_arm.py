@@ -1,11 +1,10 @@
 import copy
+from math import degrees
 
 import numpy as np
 import moveit_commander
 from o2ac_routines.robot_base import RobotBase
 import rospy
-from std_msgs.msg import Bool
-from o2ac_routines import helpers
 
 from ur_control import conversions, transformations
 
@@ -73,19 +72,37 @@ class DualArm(RobotBase):
         master_slave_plan.joint_trajectory.joint_names += slave.robot_group.get_active_joints()
 
         last_ik_solution = None
-        # print("slave initial tcp", slave.get_current_pose())
-        for point in master_slave_plan.joint_trajectory.points:
+        for i, point in enumerate(master_slave_plan.joint_trajectory.points):
             master_tcp = master.get_tcp_pose(point.positions)
             master_tcp = conversions.from_pose_to_list(self.listener.transformPose("world", master_tcp).pose)
             slave_tcp = np.concatenate([master_tcp[:3]+slave_relation[:3], transformations.quaternion_multiply(slave_relation[3:], master_tcp[3:])])
             slave_tcp = conversions.to_pose_stamped("world", slave_tcp)
-            # if last_ik_solution is None:
-            #     print("slave tcp", slave_tcp.pose)
             slave_tcp = self.listener.transformPose(slave.ns + "_base_link", slave_tcp)
-            if last_ik_solution is None:
-                ik_solution = slave.robot_group.get_current_joint_values()
-            else:
-                ik_solution = slave.solve_ik(conversions.from_pose_to_list(slave_tcp.pose), q_guess=last_ik_solution, attempts=20, verbose=True)
+            ok = False
+            tries = 10.0
+            while not ok and tries > 0:
+                tries -= 1
+                if last_ik_solution is None:
+                    ik_solution = slave.robot_group.get_current_joint_values()
+                else:
+                    ik_solution = slave.solve_ik(conversions.from_pose_to_list(slave_tcp.pose), q_guess=last_ik_solution, attempts=20, verbose=True)
+                # Sanity check
+                # Compare the slave largest joint displacement for this IK solution vs the master largest joint displacement
+                # if the displacement is more than 5 deg, check that the displacement is not larger than 2x the master joint displacement
+                if i > 0:
+                    slave_joint_displacement = np.max(np.abs(ik_solution-last_ik_solution))
+                    master_joint_displacement = np.max(np.abs(np.array(master_plan.joint_trajectory.points[i].positions)-master_plan.joint_trajectory.points[i-1].positions))
+                    if slave_joint_displacement > degrees(5):  # arbitrary
+                        ok = slave_joint_displacement < master_joint_displacement * 2.0  # arbitrary
+                    else:
+                        ok = True
+                else:
+                    ok = True
+
+            if not ok:
+                rospy.logerr("Could not find a valid IK solution for the slave-robot")
+                return False
+
             point.positions = list(point.positions) + list(ik_solution)
             point.velocities = list(point.velocities)*2
             point.accelerations = list(point.accelerations)*2
