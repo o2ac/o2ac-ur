@@ -18,6 +18,7 @@ from o2ac_routines import helpers
 from ur_control import conversions
 from ur_pykdl import ur_kinematics
 
+from trac_ik_python.trac_ik import IK
 
 class URRobot(RobotBase):
     def __init__(self, namespace, tf_listener):
@@ -33,6 +34,9 @@ class URRobot(RobotBase):
 
         # forward kinematics helper
         self.kdl = ur_kinematics(namespace, base_link=self.ns+"_base_link", ee_link=self.ns+"_gripper_tip_link", prefix=namespace+"_", rospackage='o2ac_scene_description',)
+        # IK solver
+        self.ik_solver = IK(base_link=self.ns+"_base_link", tip_link=self.ns+"_gripper_tip_link", solve_type="Distance", timeout=0.01)
+
         try:
             self.force_controller = URForceController(robot_name=namespace, listener=tf_listener)
         except rospy.ROSException as e:
@@ -321,6 +325,18 @@ class URRobot(RobotBase):
     def set_up_move_group(self, speed, acceleration, planner="OMPL"):
         self.activate_ros_control_on_ur()
         return RobotBase.set_up_move_group(self, speed, acceleration, planner)
+
+    def solve_ik(self, pose, q_guess=None, attempts=5, verbose=True):
+        q_guess_ = q_guess if q_guess is not None else self.robot_group.get_current_joint_values()
+
+        ik = self.ik_solver.get_ik(q_guess_, *pose)
+        if ik is None:
+            if attempts > 0:
+                return self.solve_ik(pose, q_guess, attempts-1)
+            if verbose:
+                rospy.logwarn("TRACK-IK: solution not found!")
+
+        return ik
 
     # ------ Force control functions
 

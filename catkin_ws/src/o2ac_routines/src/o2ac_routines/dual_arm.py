@@ -1,4 +1,6 @@
 import copy
+
+import numpy as np
 import moveit_commander
 from o2ac_routines.robot_base import RobotBase
 import rospy
@@ -51,9 +53,9 @@ class DualArm(RobotBase):
         """ Return the relative pose """
         master = self.active_robots[master_name]
         slave = self.active_robots[slave_name]
-        p = conversions.to_pose_stamped(slave.ns + "_gripper_tip_link", [0,0,0,0,0,0])
-        slave_relation = self.listener.transformPose(master.ns + "_gripper_tip_link", p)
-        return conversions.from_pose_to_list(slave_relation.pose)
+        master_tcp = conversions.from_pose_to_list(master.get_current_pose())
+        slave_tcp = conversions.from_pose_to_list(slave.get_current_pose())
+        return np.concatenate([slave_tcp[:3]-master_tcp[:3], transformations.diff_quaternion(slave_tcp[3:], master_tcp[3:])])
 
     def master_slave_control(self, master_name, slave_name, target_pose, slave_relation, speed=0.3):
         """
@@ -71,14 +73,22 @@ class DualArm(RobotBase):
         master_slave_plan.joint_trajectory.joint_names += slave.robot_group.get_active_joints()
 
         last_ik_solution = None
+        # print("slave initial tcp", slave.get_current_pose())
         for point in master_slave_plan.joint_trajectory.points:
             master_tcp = master.get_tcp_pose(point.positions)
-            master_tcp = self.listener.transformPose("world", master_tcp)
-            slave_tcp = conversions.transform_pose("world", transformations.pose_to_transform(slave_relation), master_tcp)
+            master_tcp = conversions.from_pose_to_list(self.listener.transformPose("world", master_tcp).pose)
+            slave_tcp = np.concatenate([master_tcp[:3]+slave_relation[:3], transformations.quaternion_multiply(slave_relation[3:], master_tcp[3:])])
+            slave_tcp = conversions.to_pose_stamped("world", slave_tcp)
+            # if last_ik_solution is None:
+            #     print("slave tcp", slave_tcp.pose)
             slave_tcp = self.listener.transformPose(slave.ns + "_base_link", slave_tcp)
-            ik_solution = slave.force_controller._solve_ik(conversions.from_pose_to_list(slave_tcp.pose), q_guess=last_ik_solution, attempts=20, verbose=True)
+            if last_ik_solution is None:
+                ik_solution = slave.robot_group.get_current_joint_values()
+            else:
+                ik_solution = slave.solve_ik(conversions.from_pose_to_list(slave_tcp.pose), q_guess=last_ik_solution, attempts=20, verbose=True)
             point.positions = list(point.positions) + list(ik_solution)
             point.velocities = list(point.velocities)*2
             point.accelerations = list(point.accelerations)*2
+            last_ik_solution = np.copy(ik_solution)
 
         return self.robot_group.execute(master_slave_plan)
