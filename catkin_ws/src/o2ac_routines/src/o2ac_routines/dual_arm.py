@@ -47,7 +47,21 @@ class DualArm(RobotBase):
         self.robot_group.clear_pose_targets()
         return True
 
-    def master_slave_control(self, master_name, slave_name, target_pose, slave_pose_relative_to_master, speed=0.3):
+    def get_relative_pose_of_slave(self, master_name, slave_name):
+        """ Return the relative pose """
+        master = self.active_robots[master_name]
+        slave = self.active_robots[slave_name]
+        p = conversions.to_pose_stamped(slave.ns + "_gripper_tip_link", [0,0,0,0,0,0])
+        slave_relation = self.listener.transformPose(master.ns + "_gripper_tip_link", p)
+        return conversions.from_pose_to_list(slave_relation.pose)
+
+    def master_slave_control(self, master_name, slave_name, target_pose, slave_relation, speed=0.3):
+        """
+        Moves b_bot and forces a_bot to follow.
+        slave_relation is the slave TCP's pose (TODO: which coordinate system?), as a list in the form [xyz,xyzw].
+        Obtain it from get_relative_pose_of_slave before calling this function.
+        """
+
         master = self.active_robots[master_name]
         slave = self.active_robots[slave_name]
 
@@ -60,9 +74,9 @@ class DualArm(RobotBase):
         for point in master_slave_plan.joint_trajectory.points:
             master_tcp = master.get_tcp_pose(point.positions)
             master_tcp = self.listener.transformPose("world", master_tcp)
-            slave_tcp = conversions.transform_pose("world", transformations.pose_to_transform(slave_pose_relative_to_master), master_tcp)
+            slave_tcp = conversions.transform_pose("world", transformations.pose_to_transform(slave_relation), master_tcp)
             slave_tcp = self.listener.transformPose(slave.ns + "_base_link", slave_tcp)
-            ik_solution = slave.force_controller._solve_ik(conversions.from_pose_to_list(slave_tcp.pose), q_guess=last_ik_solution, attempts=5, verbose=False)
+            ik_solution = slave.force_controller._solve_ik(conversions.from_pose_to_list(slave_tcp.pose), q_guess=last_ik_solution, attempts=20, verbose=True)
             point.positions = list(point.positions) + list(ik_solution)
             point.velocities = list(point.velocities)*2
             point.accelerations = list(point.accelerations)*2

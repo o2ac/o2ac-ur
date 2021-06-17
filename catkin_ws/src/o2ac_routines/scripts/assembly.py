@@ -101,6 +101,10 @@ if __name__ == '__main__':
         c.do_change_tool_action("b_bot", equip=True, screw_size=4)
       elif i == '16':
         c.do_change_tool_action("b_bot", equip=False, screw_size=4)
+      elif i == '21':
+        c.carry_tray()
+      elif i == '22':
+        c.unload_drive_unit()
       elif i == '31':
         c.skill_server.pick_screw_from_feeder("a_bot", screw_size=3)
       elif i == '32':
