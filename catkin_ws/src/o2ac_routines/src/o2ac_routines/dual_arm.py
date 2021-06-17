@@ -88,7 +88,12 @@ class DualArm(RobotBase):
                 if last_ik_solution is None:
                     ik_solution = slave.robot_group.get_current_joint_values()
                 else:
-                    ik_solution = slave.solve_ik(conversions.from_pose_to_list(slave_tcp.pose), q_guess=last_ik_solution, attempts=20, verbose=True)
+                    slave.robot_group.set_joint_value_target(slave_tcp)
+                    ik_solution = slave.robot_group.get_joint_value_target()
+                    if np.allclose(ik_solution, np.zeros_like(ik_solution)):
+                        continue # IK not found?
+
+                    # ik_solution = slave.solve_ik(conversions.from_pose_to_list(slave_tcp.pose), q_guess=last_ik_solution, attempts=20, verbose=True)
                 # Sanity check
                 # Compare the slave largest joint displacement for this IK solution vs the master largest joint displacement
                 # if the displacement is more than 5 deg, check that the displacement is not larger than 2x the master joint displacement
