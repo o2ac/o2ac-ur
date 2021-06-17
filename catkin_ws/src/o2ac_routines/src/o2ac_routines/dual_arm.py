@@ -72,6 +72,7 @@ class DualArm(RobotBase):
         master_slave_plan.joint_trajectory.joint_names += slave.robot_group.get_active_joints()
 
         last_ik_solution = None
+        last_velocities = None
         for i, point in enumerate(master_slave_plan.joint_trajectory.points):
             master_tcp = master.get_tcp_pose(point.positions)
             master_tcp = conversions.from_pose_to_list(self.listener.transformPose("world", master_tcp).pose)
@@ -102,10 +103,21 @@ class DualArm(RobotBase):
             if not ok:
                 rospy.logerr("Could not find a valid IK solution for the slave-robot")
                 return False
+            
+            # Compute slave velocities/accelerations
+            previous_time = 0 if i == 0 else master_plan.joint_trajectory.points[i-1].time_from_start.to_sec()
+            duration = point.time_from_start.to_sec()-previous_time
 
+            slave_joint_displacement = np.array(ik_solution)-last_ik_solution if i > 0 else np.zeros_like(ik_solution)
+            # v = x/t
+            slave_velocities = slave_joint_displacement/duration  if duration > 0 else np.zeros_like(slave_joint_displacement)
+            # a = 2*(x/t^2 - v/t). Here is halved, I supposed it is the enforced a = v/2 that we set for the robots
+            slave_accelerations = slave_joint_displacement/pow(duration,2) - last_velocities/duration  if duration > 0 else np.zeros_like(slave_joint_displacement)
+            
             point.positions = list(point.positions) + list(ik_solution)
-            point.velocities = list(point.velocities)*2
-            point.accelerations = list(point.accelerations)*2
+            point.velocities = list(point.velocities) + slave_velocities
+            point.accelerations = list(point.accelerations) + slave_accelerations
             last_ik_solution = np.copy(ik_solution)
+            last_velocities = np.copy(slave_velocities)
 
         return self.robot_group.execute(master_slave_plan)
