@@ -3,6 +3,10 @@ from math import degrees
 
 import numpy as np
 import moveit_commander
+
+import moveit_msgs.msg
+import moveit_msgs.srv
+
 from o2ac_routines.robot_base import RobotBase
 import rospy
 
@@ -17,6 +21,36 @@ class DualArm(RobotBase):
         self.robot1 = robot1
         self.robot2 = robot2
         self.active_robots = {self.robot1.ns: self.robot1, self.robot2.ns: self.robot2}
+
+        rospy.wait_for_service('/check_state_validity')
+        self.moveit_state_validity_srv = rospy.ServiceProxy('/check_state_validity', moveit_msgs.srv.GetStateValidity)
+
+    def check_state_validity(self, robot_state=None, robot_name=None):
+        """
+            Check with the PlanningScene that the robot state for the move_group is valid
+            robot_state: if pass as `list`: assumes that the joint values are in the same order as defined for that group
+                         if not defined, return the validity of the current pose of the robot
+            robot_name: if defined, that robot is used to create the RobotState
+        """
+        if robot_state:
+            if isinstance(robot_state, moveit_msgs.msg.RobotState):
+                robot_state_ = robot_state
+            elif isinstance(robot_state, list):
+                robot_state_ = moveit_msgs.msg.RobotState()
+                robot_state_.joint_state.name = self.active_robots[robot_name].robot_group.get_active_joints() if robot_name else self.robot_group.get_active_joints()
+                robot_state_.joint_state.position = robot_state
+            else:
+                rospy.logerr("Unsupported type of robot_state %s" % type(robot_state))
+                raise
+        else:
+            return self.check_state_validity(robot_state=self.robot_group.get_current_joint_values())
+
+        req = moveit_msgs.srv.GetStateValidityRequest()
+        req.group_name = self.robot_group.get_name()
+        req.robot_state = robot_state_
+
+        response = self.moveit_state_validity_srv.call(req)
+        return response.valid
 
     # Dual Arm manipulation
 
@@ -64,7 +98,7 @@ class DualArm(RobotBase):
         """
         self.robot1.activate_ros_control_on_ur()
         self.robot2.activate_ros_control_on_ur()
-        
+
         master = self.active_robots[master_name]
         slave = self.active_robots[slave_name]
 
@@ -83,17 +117,14 @@ class DualArm(RobotBase):
             slave_tcp = self.listener.transformPose(slave.ns + "_base_link", slave_tcp)
             ok = False
             tries = 10.0
+            ik_solver_timeout = 0.01
             while not ok and tries > 0:
                 tries -= 1
                 if last_ik_solution is None:
                     ik_solution = slave.robot_group.get_current_joint_values()
                 else:
-                    slave.robot_group.set_joint_value_target(slave_tcp)
-                    ik_solution = slave.robot_group.get_joint_value_target()
-                    if np.allclose(ik_solution, np.zeros_like(ik_solution)):
-                        continue # IK not found?
+                    ik_solution = slave.compute_ik(target_pose=slave_tcp, joints_seed=last_ik_solution, timeout=ik_solver_timeout)
 
-                    # ik_solution = slave.solve_ik(conversions.from_pose_to_list(slave_tcp.pose), q_guess=last_ik_solution, attempts=20, verbose=True)
                 # Sanity check
                 # Compare the slave largest joint displacement for this IK solution vs the master largest joint displacement
                 # if the displacement is more than 5 deg, check that the displacement is not larger than 2x the master joint displacement
@@ -106,21 +137,25 @@ class DualArm(RobotBase):
                         ok = True
                 else:
                     ok = True
+                if ok and self.check_state_validity(list(point.positions) + list(ik_solution)):
+                    break
+                # after every failure, give the IK solver a bit more of time to compute a better solution
+                ik_solver_timeout += 0.01
 
             if not ok:
                 rospy.logerr("Could not find a valid IK solution for the slave-robot")
                 return False
-            
+
             # Compute slave velocities/accelerations
             previous_time = 0 if i == 0 else master_plan.joint_trajectory.points[i-1].time_from_start.to_sec()
             duration = point.time_from_start.to_sec()-previous_time
 
             slave_joint_displacement = np.array(ik_solution)-last_ik_solution if i > 0 else np.zeros_like(ik_solution)
             # v = x/t
-            slave_velocities = slave_joint_displacement/duration  if duration > 0 else np.zeros_like(slave_joint_displacement)
+            slave_velocities = slave_joint_displacement/duration if duration > 0 else np.zeros_like(slave_joint_displacement)
             # a = 2*(x/t^2 - v/t). Here is halved, I supposed it is the enforced a = v/2 that we set for the robots
-            slave_accelerations = slave_joint_displacement/pow(duration,2) - last_velocities/duration  if duration > 0 else np.zeros_like(slave_joint_displacement)
-            
+            slave_accelerations = slave_joint_displacement/pow(duration, 2) - last_velocities/duration if duration > 0 else np.zeros_like(slave_joint_displacement)
+
             point.positions = list(point.positions) + list(ik_solution)
             point.velocities = list(point.velocities) + slave_velocities.tolist()
             point.accelerations = list(point.accelerations) + slave_accelerations.tolist()

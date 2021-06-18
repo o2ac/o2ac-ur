@@ -1,13 +1,15 @@
 import actionlib
 from actionlib_msgs.msg import GoalStatus
 
-import moveit_commander
-import rospy
 import copy
+import rospy
+import moveit_commander
+import numpy
 
-from std_msgs.msg import Bool
+import geometry_msgs.msg
 import moveit_msgs.msg
 import moveit_msgs.srv
+from std_msgs.msg import Bool
 
 from o2ac_routines import helpers
 from ur_control import conversions, transformations
@@ -31,6 +33,12 @@ class RobotBase():
         self.sub_pause_mode_ = rospy.Subscriber("/pause_mode", Bool, self.pause_mode_callback)
         self.sub_test_mode_ = rospy.Subscriber("/test_mode", Bool, self.test_mode_callback)
 
+        rospy.wait_for_service('compute_ik')
+        rospy.wait_for_service('compute_fk')
+
+        self.moveit_ik_srv = rospy.ServiceProxy('/compute_ik', moveit_msgs.srv.GetPositionIK)
+        self.moveit_fk_srv = rospy.ServiceProxy('/compute_fk', moveit_msgs.srv.GetPositionFK)
+
     def run_mode_callback(self, msg):
         self.run_mode_ = msg.data
 
@@ -39,6 +47,55 @@ class RobotBase():
 
     def test_mode_callback(self, msg):
         self.test_mode_ = msg.data
+
+    def compute_fk(self, robot_state=None, tcp_link=None):
+        """
+            Compute the Forward kinematics for a move group using the moveit service
+            robot_state: if pass as `list`: assumes that the joint values are in the same order as defined for that group
+        """
+        if robot_state:
+            if isinstance(robot_state, moveit_msgs.msg.RobotState):
+                robot_state_ = robot_state
+            elif isinstance(robot_state, list):
+                robot_state_ = moveit_msgs.msg.RobotState()
+                robot_state_.joint_state.name = self.robot_group.get_active_joints()
+                robot_state_.joint_state.position = list(robot_state)
+            else:
+                rospy.logerr("Unsupported type of robot_state %s" % type(robot_state))
+                raise
+        else:
+            return self.compute_fk(robot_state=self.robot_group.get_current_joint_values())
+        req = moveit_msgs.srv.GetPositionFKRequest()
+        req.fk_link_names = [tcp_link if tcp_link else self.robot_group.get_end_effector_link()]
+        req.robot_state = robot_state_
+        res = self.moveit_fk_srv.call(req)
+        return res.pose_stamped
+
+    def compute_ik(self, target_pose, joints_seed=None, timeout=0.01):
+        """
+            Compute the innverse kinematics for a move group the moveit service
+            return
+            solution: `list`: the joint values are in the same order as defined for that group
+        """
+        if isinstance(target_pose, geometry_msgs.msg.PoseStamped):
+            ik_request = moveit_msgs.msg.PositionIKRequest()
+            ik_request.avoid_collisions = True
+            ik_request.timeout = rospy.Duration(timeout)
+            ik_request.pose_stamped = target_pose
+            ik_request.group_name = self.robot_group.get_name()
+            ik_request.robot_state.joint_state.name = self.robot_group.get_active_joints()
+            ik_request.robot_state.joint_state.position = joints_seed if joints_seed is not None else self.robot_group.get_current_joint_values()
+        else:
+            rospy.logerr("Unsupported type of target_pose %s" % type(target_pose))
+            raise
+
+        req = moveit_msgs.srv.GetPositionIKRequest()
+        req.ik_request = ik_request
+        res = self.moveit_ik_srv.call(req)
+        solution = []
+        for joint_name in self.robot_group.get_active_joints():
+            solution.append(res.solution.joint_state.position[res.solution.joint_state.name.index(joint_name)])
+        return solution
 
     def set_up_move_group(self, speed, acceleration, planner="OMPL"):
         assert not rospy.is_shutdown()
