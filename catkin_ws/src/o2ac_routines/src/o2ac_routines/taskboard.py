@@ -312,7 +312,7 @@ class O2ACTaskboard(O2ACCommon):
 
       self.confirm_to_proceed("Load and execute the belt threading programs?")
       success_a = self.a_bot.load_program(program_name="wrs2020/taskboard_belt_v5.urp", recursion_depth=3)
-      success_b = self.b_bot.load_program(program_name="wrs2020/taskboard_belt_v5.urp", recursion_depth=3)
+      success_b = self.b_bot.load_program(program_name="wrs2020/taskboard_belt_v6.urp", recursion_depth=3)
       if success_a and success_b:
         print("Loaded belt program on a_bot.")
         rospy.sleep(1)
@@ -325,12 +325,19 @@ class O2ACTaskboard(O2ACCommon):
           self.b_bot.close_ur_popup()
       else:
         print("Problem loading. Not executing belt procedure.")
-        self.a_bot.gripper.open(opening_width=0.03, wait=False)
         self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp", recursion_depth=3)
         rospy.sleep(3)
+        self.drop_in_tray("a_bot")
         self.a_bot.go_to_named_pose("home")
         wait_for_UR_program("/b_bot", rospy.Duration.from_sec(20))
-        
+        return False
+      wait_for_UR_program("/b_bot", rospy.Duration.from_sec(20))
+
+      # b_bot is now above the tray, looking at the 
+      # TODO(felixvd): Use vision to check belt threading success
+      
+      self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp", recursion_depth=3)
+      rospy.sleep(2)
       wait_for_UR_program("/b_bot", rospy.Duration.from_sec(20))
       return True
       

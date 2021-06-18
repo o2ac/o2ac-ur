@@ -1716,16 +1716,6 @@ class O2ACCommon(O2ACBase):
         near_tb_pose_with_offset = copy.deepcopy(near_tb_pose)
         near_tb_pose_with_offset.pose.position.y += offset
         self.a_bot.move_lin(near_tb_pose_with_offset, speed=0.05)
-
-    # No force control alternative
-    # for i in range(3):
-    #   if not self.a_bot.move_lin_rel(relative_translation=[-0.01, 0, 0], speed=0.05, relative_to_robot_base=True):
-    #     if self.a_bot.is_protective_stopped():
-    #       self.a_bot.unlock_protective_stop()
-    #       rospy.loginfo("Fail insertion %s, moving 0.0015 to the right (-Y)" % str(i+1))
-    #       self.a_bot.move_lin_rel(relative_translation=[0.01, -0.0015*(i+1), 0], speed=0.05)
-    #   else:
-    #     return True
     return False
 
   def prepare_screw_tool_idler_pulley(self, target_link):
@@ -1748,10 +1738,6 @@ class O2ACCommon(O2ACBase):
     self.tools.set_motor("padless_tool_m4", "tighten", duration=12.0)
     self.insert_screw_tool_tip_into_idler_pulley_head(target_link)
     
-    # xyz_hard_push = [0.001, -0.001, 0.001]  # MAGIC NUMBERS
-    # push_pose = conversions.to_pose_stamped(target_link, xyz_hard_push + target_rotation)
-    # return self.b_bot.move_lin(push_pose, speed=0.05, acceleration=0.05, end_effector_link="b_bot_screw_tool_m4_tip_link")
-
     ## Incline the tool slightly 
     self.planning_scene_interface.allow_collisions("padless_tool_m4", "taskboard_plate")
     xyz_hard_push = [0.001, -0.001, 0.001]  # MAGIC NUMBERS (target without inclination)
@@ -1773,7 +1759,7 @@ class O2ACCommon(O2ACBase):
 
     rospy.loginfo("** STARTING FORCE CONTROL **")
     self.b_bot.execute_spiral_trajectory(plane="YZ", max_radius=0.003, radius_direction="+Y", 
-                                                  steps=50, revolutions=2, timeout=10.0,
+                                                  steps=50, revolutions=2, timeout=6.0,
                                                   target_force=target_force, selection_matrix=selection_matrix,
                                                   termination_criteria=termination_criteria,
                                                   displacement_epsilon=0.0015, check_displacement_time=3.0)
