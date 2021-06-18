@@ -37,7 +37,7 @@ RUN apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key C1CF6
 
 # Install ROS-desktop-full packages (including ROS, rqt, rviz, and more).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-melodic-desktop-full=1.4.1-0bionic.20210505.055738 \
+    ros-melodic-desktop-full=1.4.1-0bionic.20210601.163047 \
 	python-rosdep=0.20.1-1 \
 	&& rm -rf /var/lib/apt/lists/*
 
@@ -63,7 +63,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git=1:2.17.1-1ubuntu0.8 \
     python-dev=2.7.15~rc1-1 \
     python-numpy=1:1.13.3-2ubuntu1 \
-    python-pip=9.0.1-2.3~ubuntu1.18.04.4 \
+    python-pip=9.0.1-2.3~ubuntu1.18.04.5 \
     python-setuptools=39.0.1-2 \
     python-scipy=0.19.1-2ubuntu1 \
 	&& rm -rf /var/lib/apt/lists/*
@@ -103,8 +103,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install MoveIt dependencies because we build it from source.
 # Also install the binaries to pull in the dependencies.
 RUN apt-get update && apt-get install -y --no-install-recommends \ 
-    ros-melodic-moveit-resources=0.7.3-1bionic.20210505.053030 \
-    ros-melodic-moveit=1.0.7-1bionic.20210505.063146 \
+    ros-melodic-moveit-resources=0.7.3-1bionic.20210601.162654 \
+    ros-melodic-moveit=1.0.8-1bionic.20210601.181746 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -120,7 +120,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install other dependencies of our workspace
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-melodic-effort-controllers=0.17.2-1bionic.20210505.035544 \
+    ros-melodic-effort-controllers=0.17.2-1bionic.20210601.160930 \
     ros-melodic-industrial-robot-status-controller=0.1.2-1bionic.20210505.031032 \
     ros-melodic-socketcan-interface=0.8.5-1bionic.20210427.132022 \
     ros-melodic-industrial-robot-status-interface=0.1.2-1bionic.20210505.021106 \
@@ -129,7 +129,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-melodic-spacenav-node=1.14.0-1bionic.20210505.025354 \
     ros-melodic-joy-teleop=0.3.1-1bionic.20210505.030303 \
     ros-melodic-code-coverage=0.4.3-1bionic.20200803.132715 \
-    ros-melodic-panda-moveit-config=0.7.4-1bionic.20210505.061851 \
+    ros-melodic-panda-moveit-config=0.7.4-1bionic.20210601.180341 \
     socat=1.7.3.2-2ubuntu2 \
     libqt5x11extras5-dev=5.9.5-0ubuntu1 \
 	&& rm -rf /var/lib/apt/lists/*	
@@ -138,7 +138,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install JSK tools for visualization in Rviz
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-melodic-jsk-visualization=2.1.7-2bionic.20210505.062605 \
+    ros-melodic-jsk-visualization=2.1.7-2bionic.20210521.215100 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -160,7 +160,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-melodic-ros-control=0.18.3-1bionic.20210505.031003 \
     ros-melodic-robot-controllers=0.6.0-0bionic.20210505.035206 \
     ros-melodic-velocity-controllers=0.17.2-1bionic.20210505.031515 \
-    ros-melodic-joint-trajectory-controller=0.17.2-1bionic.20210505.031433 \
+    ros-melodic-joint-trajectory-controller=0.17.2-1bionic.20210601.161156 \
     ros-melodic-force-torque-sensor-controller=0.17.2-1bionic.20210505.030952 \
 	&& rm -rf /var/lib/apt/lists/*
 
@@ -168,7 +168,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Add industrial_core submodule
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-melodic-industrial-core=0.7.1-1bionic.20210505.052809 \
+    ros-melodic-industrial-core=0.7.1-1bionic.20210601.172212 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -209,7 +209,7 @@ RUN curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > mic
 
 # Update cache and install VS Code as a package.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    code=1.56.2-1620838498 \
+    code=1.57.1-1623937013 \
 	&& rm -rf /var/lib/apt/lists/*
 
 # Set VS Code as the default text editor.
@@ -275,15 +275,15 @@ RUN echo "Host gitlab.com" > /root/.ssh/config \
 
 # librealsense2
 RUN rm -f /etc/apt/sources.list.d/realsense-public.list
-RUN echo 'deb http://realsense-hw-public.s3.amazonaws.com/Debian/apt-repo bionic main' | tee /etc/apt/sources.list.d/realsense-public.list
+RUN echo 'deb http://librealsense.intel.com/Debian/apt-repo bionic main' | tee /etc/apt/sources.list.d/realsense-public.list
 # RUN apt-key adv --keyserver keys.gnupg.net --recv-key C8B3A55A6F3EFCDE
 RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key C8B3A55A6F3EFCDE
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    librealsense2-dkms=1.3.16-0ubuntu1 \
-    librealsense2-utils=2.45.0-0~realsense0.4551 \
-    librealsense2-dev=2.45.0-0~realsense0.4551 \
-    librealsense2-udev-rules=2.45.0-0~realsense0.4551 \
-    librealsense2-dbg=2.45.0-0~realsense0.4551 \    
+    librealsense2-dkms=1.3.18-0ubuntu1 \
+    librealsense2-utils=2.47.0-0~realsense0.4805 \
+    librealsense2-dev=2.47.0-0~realsense0.4805 \
+    librealsense2-udev-rules=2.47.0-0~realsense0.4805 \
+    librealsense2-dbg=2.47.0-0~realsense0.4805 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -315,7 +315,7 @@ RUN pip install gym
 # Install eigenpy 
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-	ros-melodic-eigenpy=2.6.3-1bionic.20210421.060225 \
+    ros-melodic-eigenpy=2.6.4-1bionic.20210527.213718 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -330,7 +330,7 @@ RUN pip install --upgrade scipy
 # Careful: This might set pip to use Python3 by default
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	python3.6-dev=3.6.9-1~18.04ubuntu1.4 \
-    python3-pip=9.0.1-2.3~ubuntu1.18.04.4 \
+    python3-pip=9.0.1-2.3~ubuntu1.18.04.5 \
     python3-setuptools=39.0.1-2 \
     python3-opencv=3.2.0+dfsg-4ubuntu0.1 \
 	&& rm -rf /var/lib/apt/lists/*
@@ -360,7 +360,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	htop=2.1.0-3 \
     ros-melodic-rqt-multiplot=0.0.10-0bionic.20210505.024543 \
     ros-melodic-trac-ik-python=1.5.1-1bionic.20210505.040855 \
-    ros-melodic-trac-ik-kinematics-plugin=1.5.1-1bionic.20210505.050240 \
+    ros-melodic-trac-ik-kinematics-plugin=1.5.1-1bionic.20210601.165301 \
     ros-melodic-flexbe-behavior-engine=1.3.1-1bionic.20210505.053009 \
     python-rosinstall=0.7.8-1 \
 	&& rm -rf /var/lib/apt/lists/*
@@ -369,7 +369,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Utilities to update the Dockerfile versions
 RUN apt-get update && apt-get install -y --no-install-recommends \
-	python3-apt=1.6.5ubuntu0.5 \
+    python3-apt=1.6.5ubuntu0.6 \
 	&& rm -rf /var/lib/apt/lists/* \
     && pip3 install dockerfile_parse
 

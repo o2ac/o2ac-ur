@@ -15,7 +15,7 @@
   <!-- robots -->
   <xacro:include filename="$(find ur_e_description)/urdf/ur5e.urdf.xacro" />
 
-  <xacro:ur5e_robot prefix="b_bot_" joint_limited="true"
+  <xacro:ur5e_robot prefix="a_bot_" joint_limited="true"
     shoulder_pan_lower_limit="${-pi}" shoulder_pan_upper_limit="${pi}"
     shoulder_lift_lower_limit="${-pi}" shoulder_lift_upper_limit="${pi}"
     elbow_joint_lower_limit="0.0" elbow_joint_upper_limit="${pi}"
@@ -25,17 +25,20 @@
     transmission_hw_interface="hardware_interface/PositionJointInterface"
     safety_limits="false" safety_pos_margin="0.15"
     safety_k_position="20"
-    kinematics_file="${load_yaml('$(find o2ac_scene_description)/config/b_bot_calibration.yaml')}"
+    kinematics_file="${load_yaml('$(find o2ac_scene_description)/config/a_bot_calibration.yaml')}"
   />
 
-  <joint name="world_b_bot_joint" type="fixed">
+  <joint name="world_a_bot_joint" type="fixed">
     <parent link="world" />
-    <child link = "b_bot_base_link" />
-    <origin xyz="${b_bot_x} ${b_bot_y} ${bots_z}" rpy="0.0 0.0 ${b_bot_theta}" />
+    <child link = "a_bot_base_link" />
+    <origin xyz="${a_bot_x} ${a_bot_y} ${bots_z}" rpy="0.0 0.0 ${a_bot_theta}" />
   </joint>
 
-  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector.urdf.xacro" />
-  <xacro:o2ac_end_effector prefix="b_bot_" use_soft_wrist="false" use_cameras="true" parent = "b_bot_ee_link" />
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector_2F-140.urdf.xacro" />
+  <xacro:o2ac_end_effector prefix="a_bot_" use_soft_wrist="false" use_cameras="true" parent = "a_bot_ee_link" />
+
+  <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector.urdf.xacro" />
+  <xacro:o2ac_end_effector prefix="a_bot_" use_soft_wrist="false" use_cameras="true" parent = "a_bot_ee_link" /> -->
 
   <!-- The "world" link definition should be removed, but apparently it is necessary for Gazebo -->
   <link name="world" />

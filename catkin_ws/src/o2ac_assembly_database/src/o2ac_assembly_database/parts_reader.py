@@ -98,6 +98,8 @@ class PartsReader(object):
                 c_new.mesh_poses = c_obj.mesh_poses
                 c_new.planes = c_obj.planes
                 c_new.plane_poses = c_obj.plane_poses
+                c_new.subframe_names = c_obj.subframe_names
+                c_new.subframe_poses = c_obj.subframe_poses
                 return c_new
         rospy.logerr("Could not find collision object with id " + str(object_name))
         return None

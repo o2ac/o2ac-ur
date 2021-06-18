@@ -132,6 +132,10 @@ class O2ACVisionServer(object):
                              "threshold": 0.01}
         self.param_fge = rospy.get_param('~param_fge', default_param_fge)
 
+        self.rospack = rospkg.RosPack()
+        background_file = self.rospack.get_path("o2ac_vision") + "/config/shaft_background.png"
+        self.shaft_bg_image = cv2.imread(background_file, 0) 
+
         # Setup camera image subscribers
         self.cam_info_sub = rospy.Subscriber('/' + camera_name + '/camera_info', sensor_msgs.msg.CameraInfo,
                                           self.camera_info_callback)
@@ -200,17 +204,18 @@ class O2ACVisionServer(object):
         im_vis = im_in.copy()
         
         action_result = o2ac_msgs.msg.get3DPosesFromSSDResult()
-        poses_2d_with_id, im_vis = self.get_2d_poses_from_ssd(im_in, im_vis)
+        poses_2d_with_id, im_vis, upside_down_list = self.get_2d_poses_from_ssd(im_in, im_vis)
 
         action_result.poses = []
         action_result.class_ids = []
-        for array in poses_2d_with_id:
+        action_result.upside_down = []
+        for (array, upside_down) in zip(poses_2d_with_id, upside_down_list):
             for pose2d in array.poses:
                 action_result.class_ids.append(array.class_id)
                 p3d = self.convert_pose_2d_to_3d(pose2d)
                 if p3d:
                     action_result.poses.append(p3d)
-        
+                    action_result.upside_down.append(upside_down)
         self.get_3d_poses_from_ssd_action_server.set_succeeded(action_result)
         # Publish result visualization
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
@@ -224,7 +229,8 @@ class O2ACVisionServer(object):
         im_vis = im_in.copy()
         
         action_result = o2ac_msgs.msg.get2DPosesFromSSDResult()
-        action_result.results, im_vis = self.get_2d_poses_from_ssd(im_in, im_vis)
+        action_result.results, im_vis, action_result.upside_down = self.get_2d_poses_from_ssd(im_in, im_vis)
+
         self.get_2d_poses_from_ssd_action_server.set_succeeded(action_result)
 
         # Publish result visualization
@@ -394,6 +400,8 @@ class O2ACVisionServer(object):
         apply_2d_pose_estimation = [8,9,10,14]             # Small items --> Neural Net
         apply_3d_pose_estimation = [1,2,3,4,5,7,11,12,13]  # Large items --> CAD matching
         apply_grasp_detection    = [6]                     # Belt --> Fast Grasp Estimation
+
+        item_flipped_over = []
         for ssd_result in ssd_results:
             target = ssd_result["class"]
             estimated_poses_msg = o2ac_msgs.msg.Estimated2DPoses() # Stores the result for one item/class id
@@ -412,13 +420,14 @@ class O2ACVisionServer(object):
                 for p2d in estimated_poses_msg.poses:
                     p3d = self.convert_pose_2d_to_3d(p2d)
                     if not p3d:
+                        rospy.logwarn("Could not find pose for class " + str(target) + "!")
                         continue
                     poses_3d.append(p3d)
                     # rospy.loginfo("Found pose for class " + str(target) + ": " + str(poses_3d[-1].pose.position.x) + ", " + str(poses_3d[-1].pose.position.y) + ", " + str(poses_3d[-1].pose.position.z))
                     # rospy.loginfo("Found pose for class " + str(target) + ": %2f, %2f, %2f", 
                     #                poses_3d[-1].pose.position.x, poses_3d[-1].pose.position.y, poses_3d[-1].pose.position.z)
                 if not poses_3d:
-                    rospy.logwarn("Could not find pose for class " + str(target) + "!")
+                    rospy.logwarn("Could not find poses for class " + str(target) + "!")
                     continue
                 self.add_markers_to_pose_array(poses_3d)
 
@@ -455,9 +464,10 @@ class O2ACVisionServer(object):
                 rospy.loginfo("Done with belt grasp detection")
 
             estimated_poses_array.append(estimated_poses_msg)
+            item_flipped_over.append(ssd_result["state"])
         
         self.publish_stored_pose_markers()
-        return estimated_poses_array, im_vis
+        return estimated_poses_array, im_vis, item_flipped_over
 
     def detect_object_in_image(self, cv_image, im_vis):
         ssd_results, im_vis = ssd_detection.object_detection(cv_image, im_vis)
@@ -469,8 +479,7 @@ class O2ACVisionServer(object):
         """
         start = time.time()
 
-        rospack = rospkg.RosPack()
-        temp_root = rospack.get_path("wrs_dataset") + "/data/templates"
+        temp_root = self.rospack.get_path("wrs_dataset") + "/data/templates"
         # Name of template infomation
         temp_info_name = "template_info.json"
         # downsampling rate
@@ -553,13 +562,15 @@ class O2ACVisionServer(object):
         # Convert to grayscale
         if im_in.shape[2] == 3: im_gray = cv2.cvtColor(im_in, cv2.COLOR_BGR2GRAY) 
 
-        
         bbox = [350,100,100,400] # ROI(x,y,w,h) of shaft area
-        rospack = rospkg.RosPack()
-        temp_root = rospack.get_path("wrs_dataset") + "/data/templates_shaft"
-        sa = ShaftAnalysis( im_gray, bbox, temp_root )
-        front, back = sa.main_proc( 0.5 ) # threshold.
-        im_vis = sa.get_tm_result_image(front, back)
+        sa = ShaftAnalysis( self.shaft_bg_image, im_gray, bbox ) 
+        res = sa.main_proc() # threshold.
+        im_vis = sa.get_result_image()
+        # TODO(cambel): How to know where is the notch?
+        if res == 1:
+            return False, False, im_vis 
+        front = (res == 3)
+        back = (res == 2)
         return front, back, im_vis
 
     def check_pick_success(self, im_in, item_id):
@@ -606,8 +617,7 @@ class O2ACVisionServer(object):
     def write_to_log(self, img_in, img_out, action_name):
         now = datetime.now()
         timeprefix = now.strftime("%Y-%m-%d_%H:%M:%S")
-        rospack = rospkg.RosPack()
-        folder = os.path.join(rospack.get_path("o2ac_vision"), "log")
+        folder = os.path.join(self.rospack.get_path("o2ac_vision"), "log")
         cv2.imwrite(os.path.join(folder, timeprefix + "_" + action_name + "_in.png") , img_in)
         cv2.imwrite(os.path.join(folder, timeprefix + "_" + action_name + "_out.jpg") , img_out)
 

@@ -4,14 +4,14 @@ waypoints:
   pose: [1.64436542, -1.81773008, 1.7960045, -1.59626307, -1.88644010, -1.596856]
   pose_type: joint-space-goal-cartesian-lin-motion
   blend: 0.01
-  is_trajectory: True
+  is_trajectory: False
 - speed: 0.7
   pose: [1.64112401, -1.36996527, 2.2284854, -2.3787070, -2.61825520, -1.3918498]
   pose_type: joint-space-goal-cartesian-lin-motion
-  blend: 0.001
-  is_trajectory: True
+  blend: 0.00
+  is_trajectory: False
 - speed: 0.7
   pose: [1.63172256, -1.36936675, 2.2340605, -2.40121426, -2.6186643, -1.410654]
   pose_type: joint-space-goal-cartesian-lin-motion
   blend: 0.0
-  is_trajectory: True
+  is_trajectory: False

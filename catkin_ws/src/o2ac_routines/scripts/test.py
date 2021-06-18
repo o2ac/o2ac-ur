@@ -26,13 +26,72 @@ def main():
     global controller
     # controller = O2ACCommon()
     controller = O2ACAssembly()
-
-    controller.reset_scene_and_robots()
+    controller.confirm_to_proceed("")
     controller.publish_part_in_assembled_position("base")
     controller.publish_part_in_assembled_position("panel_bearing")
-    controller.publish_part_in_assembled_position("panel_motor")
-    controller.publish_part_in_assembled_position("bearing")
-    controller.subtask_c2()
+    controller.subtask_e()
+    # b_plan, _ = controller.b_bot.go_to_named_pose("screw_ready", wait=False, plan_only=True)
+    # controller.b_bot.execute_plan(b_plan, wait=False)
+    # rospy.sleep(1)
+    # a_plan, _ = controller.a_bot.go_to_named_pose("screw_ready", wait=False, plan_only=True)
+    # controller.a_bot.execute_plan(a_plan, wait=False)
+    # controller.a_bot.go_to_named_pose("screw_ready")
+
+    # controller.assembly_database.change_assembly('taskboard')
+    # controller.fallback_b_bot_outside_tray_centering()
+    # controller.reset_scene_and_robots()
+
+    # controller.fasten_bearing("taskboard")
+
+    # print(controller.b_bot.robot_group.get_current_joint_values())
+
+    # return
+    # controller.b_bot.move_joints([1.8108925819396973, -2.119059225121969, 1.8984859625445765, -1.3372403693250199,
+    # -1.780367676411764, 1.1874641180038452])
+    # controller.b_bot.move_joints([1.444, -1.61 ,  2.504, -1.964, -1.2  , -2.578])
+    
+
+    # controller.b_bot.go_to_named_pose("home", speed=1.0)
+    # st = rospy.get_time()
+    # print("TIME old", rospy.get_time()-st)
+    
+    # controller.b_bot.go_to_named_pose("home", speed=1.0)
+    # controller.b_bot.gripper.open()
+    # st = rospy.get_time()
+    # controller.playback_sequence(routine_filename="ready_screw_tool_horizontal", wait=False)
+    # print("TIME new", rospy.get_time()-st)
+
+    # controller.b_bot.go_to_named_pose("home", speed=1.0)
+    # controller.b_bot.gripper.open()
+    # st = rospy.get_time()
+    # controller.playback_sequence(routine_filename="ready_screw_tool_horizontal", wait=False)
+    # print("TIME new", rospy.get_time()-st)
+    
+    # controller.b_bot.go_to_named_pose("home", speed=1.0)
+    # # plan, _ = controller.b_bot.plan_relative_goal(relative_translation=[0.05,0.0,0.0], relative_to_tcp=True)
+    # plan, _ = controller.b_bot.plan_relative_goal(relative_rotation=[0,np.deg2rad(-15),0], relative_to_tcp=True)
+    # controller.b_bot.execute_plan(plan, wait=True)
+    
+    # controller.b_bot.go_to_named_pose("home", speed=1.0)
+    # q = controller.b_bot.robot_group.get_current_joint_values()
+    # # plan, _ = controller.b_bot.plan_relative_goal(initial_joints=q, relative_translation=[0.05,0.0,0.0], relative_to_tcp=True)
+    # plan, _ = controller.b_bot.plan_relative_goal(relative_rotation=[0,np.deg2rad(-15),0], relative_to_tcp=True, initial_joints=q)
+    # controller.b_bot.execute_plan(plan, wait=True)
+    
+    # controller.b_bot.go_to_named_pose("home", speed=1.0)
+    # q = controller.b_bot.robot_group.get_current_joint_values()
+    # # plan, _ = controller.b_bot.plan_relative_goal(initial_joints=q, relative_translation=[0.05,0.0,0.0], relative_to_tcp=True)
+    # plan, _ = controller.b_bot.plan_relative_goal(relative_rotation=[np.deg2rad(-15),0,0], relative_to_tcp=True, initial_joints=q)
+    # controller.b_bot.execute_plan(plan, wait=True)
+
+    # controller = O2ACAssembly()
+
+    # controller.reset_scene_and_robots()
+    # controller.publish_part_in_assembled_position("base")
+    # controller.publish_part_in_assembled_position("panel_bearing")
+    # controller.publish_part_in_assembled_position("panel_motor")
+    # controller.publish_part_in_assembled_position("bearing")
+    # controller.subtask_c2()
 
     # rotation = np.deg2rad([-22.5+180, -88.5, -157.5]).tolist()  # Arbitrary
     # above_pose = conversions.to_pose_stamped("assembled_part_07_inserted", [0.0, 0.002, -0.10] + rotation)
@@ -43,9 +102,77 @@ def main():
 
     # controller.b_bot.move_lin_rel(relative_translation=[-0.03,0,0], relative_to_robot_base=True)
 
+    # st = rospy.get_time()
+    # approach_vgroove = conversions.to_pose_stamped("tray_center", [0.0, 0.2, 0.3]+np.deg2rad([-180, 90, 90]).tolist())
+    # controller.b_bot.go_to_pose_goal(approach_vgroove, speed=1.0)
+
+    # approach_vgroove = conversions.to_pose_stamped("tray_center", [0.0, 0.0, 0.3]+np.deg2rad([-180, 90, -90]).tolist())
+    # controller.b_bot.go_to_pose_goal(approach_vgroove, speed=1.0)
+   
+    # approach_vgroove = conversions.to_pose_stamped("tray_center", [0.0, -0.2, 0.3]+np.deg2rad([-180, 90, -90]).tolist())
+    # controller.a_bot.go_to_pose_goal(approach_vgroove, speed=1.0)    
+
+    # rospy.logwarn("TOTAL TIME!! %f" % (st-rospy.get_time()))
+
+    ############# with planning ##########3
+    # st = rospy.get_time()
+    # start_time = rospy.get_time()
+    # approach_vgroove = conversions.to_pose_stamped("tray_center", [0.0, 0.2, 0.3]+np.deg2rad([-180, 90, 90]).tolist())
+    # plan, planning_time = controller.b_bot.plan_goal_pose(approach_vgroove, speed=1.0)
+    # duration = helpers.get_trajectory_duration(plan)
+    # print("b_bot duration", duration)
+    # if not controller.b_bot.execute_plan(plan, wait=False):
+    #   rospy.logerr("Fail to go to approach_vgroove")
+    #   return False
+
+    # rospy.logwarn("TIME!! %f" % (start_time-rospy.get_time()))
+    # rospy.loginfo("waiting for second motion")
+
+    # approach_vgroove = conversions.to_pose_stamped("tray_center", [0.0, 0.0, 0.3]+np.deg2rad([-180, 90, -90]).tolist())
+    # plan, planning_time = controller.b_bot.plan_goal_pose(approach_vgroove, initial_pose=helpers.get_trajectory_joint_goal(plan),speed=1.0)
+    # print("b_bot planning_time", planning_time)
+
+    # waiting_time = duration - planning_time if duration - planning_time > 0 else 0.0
+    # print("b_bot waiting time", waiting_time)
+    # rospy.sleep(waiting_time)
+    
+    # start_time = rospy.get_time()
+    # if not controller.b_bot.execute_plan(plan):
+    #   rospy.logerr("Fail to go to approach_vgroove")
+    #   return False
+    # rospy.logwarn("TIME!! %f" % (start_time-rospy.get_time()))
+
+    # approach_vgroove = conversions.to_pose_stamped("tray_center", [0.0, -0.2, 0.3]+np.deg2rad([-180, 90, -90]).tolist())
+    # plan, planning_time = controller.a_bot.plan_goal_pose(approach_vgroove, speed=1.0)
+    # print("a_bot planning_time", planning_time)
+
+    # waiting_time = duration - planning_time if duration - planning_time > 0 else 0.0
+    # print("a_bot waiting time", waiting_time)
+    # rospy.sleep(waiting_time)
+    
+    # start_time = rospy.get_time()
+    # if not controller.a_bot.execute_plan(plan):
+    #   rospy.logerr("Fail to go to approach_vgroove")
+    #   return False
+    # rospy.logwarn("TIME!! %f" % (start_time-rospy.get_time()))
+
+    # rospy.logwarn("TOTAL TIME!! %f" % (st-rospy.get_time()))
+    ###### traj ##
+    # p1 = conversions.to_pose_stamped("tray_center", [0.0, 0.2, 0.3]+np.deg2rad([-180, 90, 90]).tolist())
+    # p2 = conversions.to_pose_stamped("tray_center", [0.05, 0.1, 0.3]+np.deg2rad([-180, 90, 90]).tolist())
+    # p3 = conversions.to_pose_stamped("tray_center", [0.1, 0.0, 0.3]+np.deg2rad([-180, 90, 90]).tolist())
+    # controller.b_bot.plan_linear_trajectory([[p1, 0.0],[p2, 0.0],[p3, 0.0]])
+    # approach_vgroove = conversions.to_pose_stamped("tray_center", [0.0, 0, 0.3]+np.deg2rad([-180, 90, -90]).tolist())
+    # if not controller.a_bot.go_to_pose_goal(approach_vgroove, speed=0.2, move_lin=False):
+    #   rospy.logerr("Fail to go to approach_vgroove")
+    #   return False
+
+    # controller.a_bot.linear_push(3, "-Z", max_translation=0.1, timeout=10.0)
+
     # controller.assembly_database.change_assembly('wrs_assembly_2020')
     # controller.reset_scene_and_robots()
-    # # controller.orient_shaft()
+    # controller.subtask_c2()
+    # controller.orient_shaft()
     # controller.orient_shaft_end_cap()
 
     # controller.check_motor_pulley_angle()

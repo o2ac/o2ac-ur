@@ -2,6 +2,8 @@
 
 import sys
 import copy
+
+from numpy.lib.function_base import append
 import rospy
 import random
 import numpy as np
@@ -22,11 +24,13 @@ import moveit_task_constructor_msgs.msg
 import moveit_commander
 from moveit_commander.conversions import pose_to_list
 
-from ur_control import conversions
+from ur_control import conversions, transformations
 
 import ur_msgs.msg
 import ur_dashboard_msgs.msg
 import moveit_msgs.msg
+from moveit_msgs.msg import RobotState
+from sensor_msgs.msg import JointState
 
 helper_fct_marker_id_count = 0
 
@@ -430,3 +434,60 @@ def check_for_real_robot(func):
         rospy.logwarn("Ignoring function %s since no real robot is being used" % func.__name__)
         return True
     return wrap
+
+def get_trajectory_duration(plan):
+  time_from_start = plan.joint_trajectory.points[-1].time_from_start
+  duration = rospy.Time(time_from_start.secs, time_from_start.nsecs)
+  return duration.to_sec()
+
+def get_trajectory_joint_goal(plan):
+  return plan.joint_trajectory.points[-1].positions
+
+def to_robot_state(move_group, joints):
+  joint_state = JointState()
+  joint_state.header.stamp = rospy.Time.now()
+  joint_state.name = move_group.get_active_joints()
+  joint_state.position = joints
+  moveit_robot_state = RobotState()
+  moveit_robot_state.joint_state = joint_state
+  return moveit_robot_state
+
+def to_sequence_gripper(gripper, gripper_opening_width=0.14, gripper_force=40, gripper_velocity=0.03):
+  item = {
+    "pose_type": "gripper",
+    "gripper":
+            {
+              "action":gripper,
+              "width": gripper_opening_width,
+              "force": gripper_force,
+              "velocity": gripper_velocity,
+            }
+    }
+  return ["waypoint", item]
+
+def to_sequence_item(pose, speed=0.5, acc=0.25):
+  if isinstance(pose, geometry_msgs.msg.PoseStamped):
+    item           = {"pose": conversions.from_point(pose.pose.position).tolist() + np.rad2deg(transformations.euler_from_quaternion(conversions.from_quaternion(pose.pose.orientation))).tolist(),
+                      "pose_type": "task-space-in-frame",
+                      "frame_id": pose.header.frame_id,
+                     }
+  if isinstance(pose, str):
+    item           = {"pose": pose,
+                      "pose_type": "named-pose",
+                     }
+  if isinstance(pose, list): # Assume joint angles
+    item       = {"pose": pose,
+                  "pose_type": "joint-space-goal-cartesian-lin-motion",
+                  }
+  item.update({"speed": speed, "acc": acc})
+
+  return ["waypoint", item]
+
+def to_sequence_trajectory(trajectory, blend_radiuses, speed=0.5, default_frame="world"):
+  sequence_trajectory = []
+  for t, br in zip(trajectory, blend_radiuses):
+    if isinstance(t, geometry_msgs.msg.PoseStamped):
+      sequence_trajectory.append([t, br])
+    elif isinstance(t, list):
+      sequence_trajectory.append([conversions.to_pose_stamped(default_frame, t), br])
+  return ["trajectory", [sequence_trajectory, speed]]

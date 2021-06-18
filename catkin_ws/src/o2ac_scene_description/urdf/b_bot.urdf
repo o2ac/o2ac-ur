@@ -15,9 +15,6 @@
       <geometry>
         <mesh filename="package://ur_e_description/meshes/ur5e/visual/base.dae"/>
       </geometry>
-      <material name="LightGrey">
-        <color rgba="0.7 0.7 0.7 1.0"/>
-      </material>
     </visual>
     <collision>
       <origin rpy="0 0 3.14159265359" xyz="0 0 0"/>
@@ -45,9 +42,6 @@
       <geometry>
         <mesh filename="package://ur_e_description/meshes/ur5e/visual/shoulder.dae"/>
       </geometry>
-      <material name="LightGrey">
-        <color rgba="0.7 0.7 0.7 1.0"/>
-      </material>
     </visual>
     <collision>
       <origin rpy="0 0 3.14159265359" xyz="0 0 0"/>
@@ -75,9 +69,6 @@
       <geometry>
         <mesh filename="package://ur_e_description/meshes/ur5e/visual/upperarm.dae"/>
       </geometry>
-      <material name="LightGrey">
-        <color rgba="0.7 0.7 0.7 1.0"/>
-      </material>
     </visual>
     <collision>
       <origin rpy="1.57079632679 0 -1.57079632679" xyz="0 0 0.138"/>
@@ -105,9 +96,6 @@
       <geometry>
         <mesh filename="package://ur_e_description/meshes/ur5e/visual/forearm.dae"/>
       </geometry>
-      <material name="LightGrey">
-        <color rgba="0.7 0.7 0.7 1.0"/>
-      </material>
     </visual>
     <collision>
       <origin rpy="1.57079632679 0 -1.57079632679" xyz="0 0 0.007"/>
@@ -135,9 +123,6 @@
       <geometry>
         <mesh filename="package://ur_e_description/meshes/ur5e/visual/wrist1.dae"/>
       </geometry>
-      <material name="LightGrey">
-        <color rgba="0.7 0.7 0.7 1.0"/>
-      </material>
     </visual>
     <collision>
       <origin rpy="1.57079632679 0 0" xyz="0 0 -0.127"/>
@@ -165,9 +150,6 @@
       <geometry>
         <mesh filename="package://ur_e_description/meshes/ur5e/visual/wrist2.dae"/>
       </geometry>
-      <material name="LightGrey">
-        <color rgba="0.7 0.7 0.7 1.0"/>
-      </material>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 -0.0997"/>
@@ -195,9 +177,6 @@
       <geometry>
         <mesh filename="package://ur_e_description/meshes/ur5e/visual/wrist3.dae"/>
       </geometry>
-      <material name="LightGrey">
-        <color rgba="0.7 0.7 0.7 1.0"/>
-      </material>
     </visual>
     <collision>
       <origin rpy="1.57079632679 0 0" xyz="0 0 -0.0989"/>
@@ -269,9 +248,6 @@
       <geometry>
         <mesh filename="package://robotiq_description/meshes/visual/robotiq_arg2f_base_link.stl"/>
       </geometry>
-      <material name="">
-        <color rgba="0.1 0.1 0.1 1"/>
-      </material>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -291,9 +267,6 @@
       <geometry>
         <mesh filename="package://robotiq_2f_85_gripper_visualization/meshes/visual/robotiq_arg2f_85_outer_knuckle.dae" scale="0.001 0.001 0.001"/>
       </geometry>
-      <material name="">
-        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1"/>
-      </material>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -313,9 +286,6 @@
       <geometry>
         <mesh filename="package://robotiq_2f_85_gripper_visualization/meshes/visual/robotiq_arg2f_85_outer_finger.dae" scale="0.001 0.001 0.001"/>
       </geometry>
-      <material name="">
-        <color rgba="0.1 0.1 0.1 1"/>
-      </material>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -335,9 +305,6 @@
       <geometry>
         <mesh filename="package://robotiq_2f_85_gripper_visualization/meshes/visual/robotiq_arg2f_85_inner_finger.dae" scale="0.001 0.001 0.001"/>
       </geometry>
-      <material name="">
-        <color rgba="0.1 0.1 0.1 1"/>
-      </material>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -352,18 +319,12 @@
       <geometry>
         <box size="0.022 0.00635 0.0375"/>
       </geometry>
-      <material name="">
-        <color rgba="0.9 0.9 0.9 1"/>
-      </material>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <box size="0.022 0.00635 0.0375"/>
       </geometry>
-      <material name="">
-        <color rgba="0.9 0.0 0.0 1"/>
-      </material>
     </collision>
   </link>
   <link name="b_bot_left_inner_knuckle">
@@ -377,9 +338,6 @@
       <geometry>
         <mesh filename="package://robotiq_2f_85_gripper_visualization/meshes/visual/robotiq_arg2f_85_inner_knuckle.dae" scale="0.001 0.001 0.001"/>
       </geometry>
-      <material name="">
-        <color rgba="0.1 0.1 0.1 1"/>
-      </material>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -399,9 +357,6 @@
       <geometry>
         <mesh filename="package://robotiq_2f_85_gripper_visualization/meshes/visual/robotiq_arg2f_85_outer_knuckle.dae" scale="0.001 0.001 0.001"/>
       </geometry>
-      <material name="">
-        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1"/>
-      </material>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -421,9 +376,6 @@
       <geometry>
         <mesh filename="package://robotiq_2f_85_gripper_visualization/meshes/visual/robotiq_arg2f_85_outer_finger.dae" scale="0.001 0.001 0.001"/>
       </geometry>
-      <material name="">
-        <color rgba="0.1 0.1 0.1 1"/>
-      </material>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -443,9 +395,6 @@
       <geometry>
         <mesh filename="package://robotiq_2f_85_gripper_visualization/meshes/visual/robotiq_arg2f_85_inner_finger.dae" scale="0.001 0.001 0.001"/>
       </geometry>
-      <material name="">
-        <color rgba="0.1 0.1 0.1 1"/>
-      </material>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -460,18 +409,12 @@
       <geometry>
         <box size="0.022 0.00635 0.0375"/>
       </geometry>
-      <material name="">
-        <color rgba="0.9 0.9 0.9 1"/>
-      </material>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <box size="0.022 0.00635 0.0375"/>
       </geometry>
-      <material name="">
-        <color rgba="0.9 0.0 0.0 1"/>
-      </material>
     </collision>
   </link>
   <link name="b_bot_right_inner_knuckle">
@@ -485,9 +428,6 @@
       <geometry>
         <mesh filename="package://robotiq_2f_85_gripper_visualization/meshes/visual/robotiq_arg2f_85_inner_knuckle.dae" scale="0.001 0.001 0.001"/>
       </geometry>
-      <material name="">
-        <color rgba="0.1 0.1 0.1 1"/>
-      </material>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -575,9 +515,6 @@
       <geometry>
         <cylinder length="0.01" radius="0.0375"/>
       </geometry>
-      <material name="black">
-        <color rgba=".1 .1 .1 1"/>
-      </material>
     </visual>
     <collision>
       <origin rpy="0 1.57079632679 0" xyz=".005 0 0"/>
@@ -602,9 +539,6 @@
       <geometry>
         <mesh filename="package://o2ac_scene_description/meshes/sr305_mount.stl" scale=".001 .001 .001"/>
       </geometry>
-      <material name="white">
-        <color rgba="1 1 1 1"/>
-      </material>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="-.01 0.0 .035"/>
@@ -630,9 +564,6 @@
       <geometry>
         <box size=".03 .03 .055"/>
       </geometry>
-      <material name="black">
-        <color rgba=".2 .2 .2 1"/>
-      </material>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -674,9 +605,6 @@
       <geometry>
         <mesh filename="package://o2ac_scene_description/meshes/sr305_simplified_body.stl" scale=".001 .001 .001"/>
       </geometry>
-      <material name="sr305_aluminum">
-        <color rgba="0.5 0.5 0.5 1"/>
-      </material>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0.006 -0.0 0"/>
@@ -771,9 +699,6 @@
       <geometry>
         <mesh filename="package://o2ac_scene_description/meshes/sr305_simplified_body.stl" scale=".001 .001 .001"/>
       </geometry>
-      <material name="sr305_aluminum">
-        <color rgba="0.5 0.5 0.5 1"/>
-      </material>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0.006 -0.0 0"/>

@@ -117,9 +117,17 @@ grasp_points:
 - grasp_name: default_grasp
   pose_xyzrpy:
   - 0.1
+  - -0.015
+  - 0.06
+  - -pi/2
+  - pi
+  - pi/2
+- grasp_name: terminal_grasp
+  pose_xyzrpy:
+  - 0.1
   - 0.008
   - 0.1
-  - 0.0
+  - pi
   - pi
   - pi/2
 mesh_pose:

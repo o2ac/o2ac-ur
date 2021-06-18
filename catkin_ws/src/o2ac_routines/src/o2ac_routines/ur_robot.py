@@ -1,17 +1,13 @@
-import actionlib
-from actionlib_msgs.msg import GoalStatus
-
 import moveit_commander
+from o2ac_routines.robot_base import RobotBase
 import rospy
 import time
-import copy
 
 import o2ac_msgs.msg
 import controller_manager_msgs.msg
 import std_srvs.srv
 import ur_dashboard_msgs.srv
 import ur_msgs.srv
-import moveit_msgs.msg
 
 from std_msgs.msg import Bool
 
@@ -20,31 +16,33 @@ from o2ac_routines.robotiq_gripper import RobotiqGripper
 from o2ac_routines import helpers
 
 from ur_control import conversions
+from ur_pykdl import ur_kinematics
 
+from trac_ik_python.trac_ik import IK
 
-class URRobot():
+class URRobot(RobotBase):
     def __init__(self, namespace, tf_listener):
         """
         namespace should be "a_bot" or "b_bot".
         use_real_robot is a boolean
         """
+        RobotBase.__init__(self, group_name=namespace, tf_listener=tf_listener)
+
         self.use_real_robot = rospy.get_param("use_real_robot", False)
         self.ns = namespace
-        self.listener = tf_listener
         self.marker_counter = 0
+
+        # forward kinematics helper
+        self.kdl = ur_kinematics(namespace, base_link=self.ns+"_base_link", ee_link=self.ns+"_gripper_tip_link", prefix=namespace+"_", rospackage='o2ac_scene_description',)
+        # IK solver
+        self.ik_solver = IK(base_link=self.ns+"_base_link", tip_link=self.ns+"_gripper_tip_link", solve_type="Distance", timeout=0.01)
 
         try:
             self.force_controller = URForceController(robot_name=namespace, listener=tf_listener)
         except rospy.ROSException as e:
             rospy.logwarn("No force control capabilities since controller could not be instantiated" + str(e))
 
-        self.run_mode_ = True     # The modes limit the maximum speed of motions. Used with the safety system @WRS2020
-        self.pause_mode_ = False
-        self.test_mode_ = False
-
-        self.robot_group = moveit_commander.MoveGroupCommander(self.ns)
         self.gripper_group = moveit_commander.MoveGroupCommander(self.ns+"_robotiq_85")
-        self.sequence_move_group = actionlib.SimpleActionClient("/sequence_move_group", moveit_msgs.msg.MoveGroupSequenceAction)
 
         self.ur_dashboard_clients = {
             "get_loaded_program": rospy.ServiceProxy('/%s/ur_hardware_interface/dashboard/get_loaded_program' % self.ns, ur_dashboard_msgs.srv.GetLoadedProgram),
@@ -63,27 +61,14 @@ class URRobot():
         self.sub_status_ = rospy.Subscriber("/%s/ur_hardware_interface/robot_program_running" % self.ns, Bool, self.ros_control_status_callback)
         self.service_proxy_list = rospy.ServiceProxy("/" + self.ns + "/controller_manager/list_controllers", controller_manager_msgs.srv.ListControllers)
         self.service_proxy_switch = rospy.ServiceProxy("/" + self.ns + "/controller_manager/switch_controller", controller_manager_msgs.srv.SwitchController)
-        
 
         self.sub_robot_safety_mode = rospy.Subscriber("/%s/ur_hardware_interface/safety_mode" % self.ns, ur_dashboard_msgs.msg.SafetyMode, self.safety_mode_callback)
-        self.sub_run_mode_ = rospy.Subscriber("/run_mode", Bool, self.run_mode_callback)
-        self.sub_pause_mode_ = rospy.Subscriber("/pause_mode", Bool, self.pause_mode_callback)
-        self.sub_test_mode_ = rospy.Subscriber("/test_mode", Bool, self.test_mode_callback)
 
         self.ur_ros_control_running_on_robot = False
         self.robot_safety_mode = None
         self.robot_status = dict()
 
         self.gripper = RobotiqGripper(namespace=self.ns, gripper_group=self.gripper_group)
-
-    def run_mode_callback(self, msg):
-        self.run_mode_ = msg.data
-
-    def pause_mode_callback(self, msg):
-        self.pause_mode_ = msg.data
-
-    def test_mode_callback(self, msg):
-        self.test_mode_ = msg.data
 
     def safety_mode_callback(self, msg):
         self.robot_safety_mode = msg.mode
@@ -133,7 +118,7 @@ class URRobot():
         rospy.set_param(self.ns + "/carrying_object", self.robot_status.carrying_object)
         rospy.set_param(self.ns + "/carrying_tool",   self.robot_status.carrying_tool)
         rospy.set_param(self.ns + "/held_tool_id",    self.robot_status.held_tool_id)
-    
+
     @helpers.check_for_real_robot
     def wait_for_control_status_to_turn_on(self, waittime):
         start = rospy.Time.now()
@@ -193,23 +178,26 @@ class URRobot():
                     # rospy.loginfo("Received response: " + response.program_name)
                     if response.program_name == "/programs/ROS_external_control.urp":
                         break
-            
+
         except:
             rospy.logwarn("Dashboard service did not respond!")
 
-        if not program_loaded:
-            rospy.logwarn("Could not load.")
-            try:
-                if recursion_depth > 3:  # If connect alone failed, try quit and then connect
+        # Try to connect to dashboard if first try failed
+        try:
+            if recursion_depth > 2:
+                if recursion_depth > 3:
                     rospy.logwarn("Try to quit before connecting.")
                     response = self.ur_dashboard_clients["quit"].call()
                     rospy.sleep(3.0)
                 rospy.logwarn("Try to connect to dashboard service.")
                 response = self.ur_dashboard_clients["connect"].call()
-            except:
-                rospy.logwarn("Dashboard service did not respond! (2)")
-                pass
-            rospy.sleep(1.0)
+                rospy.sleep(1.0)
+        except:
+            rospy.logwarn("Dashboard service did not respond! (2)")
+            pass
+        
+        if not program_loaded:
+            rospy.logwarn("Could not load.")
             return self.activate_ros_control_on_ur(recursion_depth=recursion_depth+1)
 
         # Run the program
@@ -221,7 +209,7 @@ class URRobot():
         rospy.loginfo("Enter wait_for_control_status_to_turn_on")
         self.wait_for_control_status_to_turn_on(2.0)
         rospy.loginfo("Exited wait_for_control_status_to_turn_on")
-        
+
         if self.check_for_dead_controller_and_force_start():
             rospy.loginfo("Successfully activated ROS control on robot " + self.ns)
             return True
@@ -238,7 +226,7 @@ class URRobot():
                 rospy.logerr("Failed to quit/restart")
                 pass
             return self.activate_ros_control_on_ur(recursion_depth=recursion_depth+1)
-        
+
     @helpers.check_for_real_robot
     def check_for_dead_controller_and_force_start(self):
         list_req = controller_manager_msgs.srv.ListControllersRequest()
@@ -329,228 +317,26 @@ class URRobot():
             rospy.loginfo("Successfully closed popup on teach pendant of robot " + self.ns)
             return True
 
-    # ------ Robot motion functions
-
-    def get_current_pose_stamped(self, group_name=None):
-        return self.robot_group.get_current_pose()
-
-    def get_current_pose(self, group_name=None):
-        return self.robot_group.get_current_pose().pose
-
-    def go_to_pose_goal(self, pose_goal_stamped, speed=0.5, acceleration=0.25,
-                        end_effector_link="", move_lin=True, wait=True):
-        if move_lin:
-            return self.move_lin(pose_goal_stamped, speed, acceleration, end_effector_link)
-        if not self.set_up_move_group(speed, acceleration):
-            return False
-
-        group = self.robot_group
-
-        if not end_effector_link:
-            end_effector_link = self.ns + "_gripper_tip_link"
-        group.set_end_effector_link(end_effector_link)
-
-        group.set_pose_target(pose_goal_stamped)
-        rospy.logdebug("Setting velocity scaling to " + str(speed))
-        group.set_max_velocity_scaling_factor(speed)
-        group.set_max_acceleration_scaling_factor(acceleration)
-        group.set_planning_pipeline_id("ompl")
-        group.set_planner_id("RRTConnect")
-
-        move_success = group.go(wait=wait)
-        group.stop()
-        # It is always good to clear your targets after planning with poses.
-        # Note: there is no equivalent function for clear_joint_value_targets()
-        group.clear_pose_targets()
-
-        current_pose = group.get_current_pose().pose
-        if not move_success:
-            rospy.logwarn("go_to_pose_goal command failed. Publishing failed pose.")
-            helpers.publish_marker(pose_goal_stamped, "pose", self.ns + "_go_to_pose_goal_failed_pose_" + str(self.marker_counter))
-            self.marker_counter += 1
-        else:
-            helpers.publish_marker(pose_goal_stamped, "pose", self.ns + "_go_to_pose_goal_failed_pose_" + str(self.marker_counter), marker_topic="o2ac_success_markers")
-            self.marker_counter += 1
-        return helpers.all_close(pose_goal_stamped.pose, current_pose, 0.01), move_success
-
-    def move_lin_trajectory(self, trajectory, speed=1.0, acceleration=0.5, end_effector_link=""):
-        if not self.set_up_move_group(speed, acceleration):
-            return False
-
-        if not end_effector_link:
-            end_effector_link = self.ns + "_gripper_tip_link"
-
-        group = self.robot_group
-
-        group.set_end_effector_link(end_effector_link)
-        waypoints = [(self.listener.transformPose("world", ps).pose, blend_radius) for ps, blend_radius in trajectory]
-
-        group.set_planning_pipeline_id("pilz_industrial_motion_planner")
-        group.set_planner_id("LIN")
-
-        motion_plan_requests = []
-
-        # Start from current pose
-        group.set_pose_target(group.get_current_pose(end_effector_link))
-        msi = moveit_msgs.msg.MotionSequenceItem()
-        msi.req = group.construct_motion_plan_request()
-        msi.blend_radius = 0.0
-        motion_plan_requests.append(msi)
-
-        for wp, blend_radius in waypoints:
-            group.clear_pose_targets()
-            group.set_pose_target(wp)
-            msi = moveit_msgs.msg.MotionSequenceItem()
-            msi.req = group.construct_motion_plan_request()
-            msi.blend_radius = blend_radius
-            motion_plan_requests.append(msi)
-
-        # Force last point to be 0.0 to avoid raising an error in the planner
-        motion_plan_requests[-1].blend_radius = 0.0
-
-        # Make MotionSequence
-        goal = moveit_msgs.msg.MoveGroupSequenceGoal()
-        goal.request = moveit_msgs.msg.MotionSequenceRequest()
-        goal.request.items = motion_plan_requests
-
-        for i in range(10):
-            result = self.sequence_move_group.send_goal_and_wait(goal)
-            if result == GoalStatus.ABORTED:
-                rospy.logwarn("(move_lin_trajectory) Planning failed, retry: %s of 5" % (i+1))
-            else:
-                break
-
-        group.clear_pose_targets()
-
-        if result == GoalStatus.SUCCEEDED:
-            return True
-        else:
-            rospy.logerr("Fail move_lin_trajectory with status %s" % result)
-            return False
-
-    def move_lin(self, pose_goal_stamped, speed=0.5, acceleration=0.5, end_effector_link="", wait=True):
-        if not self.set_up_move_group(speed, acceleration):
-            return False
-
-        if not end_effector_link:
-            end_effector_link = self.ns + "_gripper_tip_link"
-
-        group = self.robot_group
-
-        group.set_end_effector_link(end_effector_link)
-        pose_goal_world = self.listener.transformPose("world", pose_goal_stamped)
-        group.set_pose_target(pose_goal_world)
-        
-        group.set_planning_pipeline_id("pilz_industrial_motion_planner")
-        group.set_planner_id("LIN")
-
-        move_success = False
-        tries = 0
-        while not move_success and tries < 5 and not rospy.is_shutdown():
-            group.go(wait=wait)  # Bool
-            current_pose = group.get_current_pose().pose
-            move_success = helpers.all_close(pose_goal_world.pose, current_pose, 0.01)
-            if not move_success:
-                rospy.sleep(0.2)
-                rospy.logwarn("move_lin attempt failed. Retrying.")
-                tries += 1
-        if not move_success:
-            rospy.logerr("move_lin failed " + str(tries) + " times! Broke out, published failed pose.")
-            helpers.publish_marker(pose_goal_stamped, "pose", self.ns + "_move_lin_failed_pose_" + str(self.marker_counter))
-            self.marker_counter += 1
-        else:
-            helpers.publish_marker(pose_goal_stamped, "pose", self.ns + "_go_to_pose_goal_failed_pose_" + str(self.marker_counter), marker_topic="o2ac_success_markers")
-            self.marker_counter += 1
-        group.stop()
-        group.clear_pose_targets()
-
-        return move_success
-
-    def move_lin_rel(self, relative_translation=[0, 0, 0], relative_rotation=[0, 0, 0], speed=.5, acceleration=0.2, relative_to_robot_base=False, relative_to_tcp=False, wait=True, end_effector_link = "", max_wait=30.0):
-        '''
-        Does a lin_move relative to the current position of the robot.
-
-        relative_translation: translation relative to current tcp position, expressed in robot's own base frame
-        relative_rotation: rotation relative to current tcp position, expressed in robot's own base frame
-        relative_to_robot_base: If true, uses the robot_base coordinates for the relative motion (not workspace_center!)
-        '''
-        if rospy.is_shutdown():
-            return False
-        
-        if not end_effector_link:
-            end_effector_link = self.ns + "_gripper_tip_link"
-
-        group = self.robot_group
-        group.set_end_effector_link(end_effector_link)
-        new_pose = group.get_current_pose()
-
-        if relative_to_robot_base:
-            new_pose = self.listener.transformPose(self.ns + "_base_link", new_pose)
-        elif relative_to_tcp:
-            new_pose.header.stamp = rospy.Time.now() - rospy.Time(0.5)  # Workaround for TF lookup into the future error
-            new_pose = self.listener.transformPose(self.ns + "_gripper_tip_link", new_pose)
-
-        new_position = conversions.from_point(new_pose.pose.position) + relative_translation
-        new_pose.pose.position = conversions.to_point(new_position)
-        new_pose.pose.orientation = helpers.rotateQuaternionByRPYInUnrotatedFrame(relative_rotation[0], relative_rotation[1],
-                                                                                  relative_rotation[2], new_pose.pose.orientation)
-        return self.move_lin(new_pose, speed=speed, acceleration=acceleration, end_effector_link=end_effector_link, wait=wait)
-
-    def move_joints(self, joint_pose_goal, speed=0.6, acceleration=0.3, wait=True):
-        if not self.set_up_move_group(speed, acceleration):
-            return False
-        group = self.robot_group
-        group.set_joint_value_target(joint_pose_goal)
-        group.set_planning_pipeline_id("ompl")
-        group.set_planner_id("RRTConnect")
-        group.go(wait=wait)
-        current_joints = group.get_current_joint_values()
-        return helpers.all_close(joint_pose_goal, current_joints, 0.01)
-
-    def go_to_named_pose(self, pose_name, speed=0.5, acceleration=0.5, wait=True):
+    def get_tcp_pose(self, joints, end_effector_link=None):
+        """ Get TCP position with respect to robot's base frame
         """
-        pose_name should be a named pose in the moveit_config, such as "home", "back" etc.
-        """
-        if not self.set_up_move_group(speed, acceleration):
-            return False
-        group = self.robot_group
-        group.set_named_target(pose_name)
-        group.set_planning_pipeline_id("ompl")
-        group.set_planner_id("RRTConnect")
-        group.set_goal_joint_tolerance(1e-3)
-        group.go(wait=wait)
-        group.clear_pose_targets()
-        goal = helpers.ordered_joint_values_from_dict(group.get_named_target_values(pose_name), group.get_active_joints())
-        current_joint_values = group.get_current_joint_values()
-        move_success = helpers.all_close(goal, current_joint_values, 0.01)
-        return move_success
+        return conversions.to_pose_stamped(self.ns + "_base_link", self.kdl.forward(joints, end_effector_link))
 
-    def set_up_move_group(self, speed, acceleration):
-        if rospy.is_shutdown():
-            return False
-        (speed_, accel_) = self.limit_speed_and_acc(speed, acceleration)
+    def set_up_move_group(self, speed, acceleration, planner="OMPL"):
         self.activate_ros_control_on_ur()
-        group = self.robot_group
-        rospy.logdebug("Setting velocity scaling to " + str(speed_))
-        rospy.logdebug("Setting acceleration scaling to " + str(accel_))
-        group.set_max_velocity_scaling_factor(speed_)
-        group.set_max_acceleration_scaling_factor(accel_)
-        return True
+        return RobotBase.set_up_move_group(self, speed, acceleration, planner)
 
-    def limit_speed_and_acc(self, speed, acceleration):
-        if self.pause_mode_ or self.test_mode_:
-            if speed > self.reduced_mode_speed_limit:
-                rospy.loginfo("Reducing speed from " + str(speed) + " to " + str(self.reduced_mode_speed_limit) + " because robot is in test or pause mode")
-                speed = self.reduced_mode_speed_limit
-        sp = copy.copy(speed)
-        acc = copy.copy(acceleration)
-        if sp > 1.0:
-            sp = 1.0
-        if acc > sp/2.0:
-            # if acc > (sp/2.0 + .00001):  # This seems to trigger because of rounding errors unless we add this small value
-            rospy.logdebug("Setting acceleration to " + str(sp/2.0) + " instead of " + str(acceleration) + " to avoid jerky motion.")
-            acc = sp/2.0
-        return (sp, acc)
+    def solve_ik(self, pose, q_guess=None, attempts=5, verbose=True):
+        q_guess_ = q_guess if q_guess is not None else self.robot_group.get_current_joint_values()
+
+        ik = self.ik_solver.get_ik(q_guess_, *pose)
+        if ik is None:
+            if attempts > 0:
+                return self.solve_ik(pose, q_guess, attempts-1)
+            if verbose:
+                rospy.logwarn("TRACK-IK: solution not found!")
+
+        return ik
 
     # ------ Force control functions
 
@@ -569,3 +355,7 @@ class URRobot():
     def linear_push(self, *args, **kwargs):
         self.activate_ros_control_on_ur()
         return self.force_controller.linear_push(*args, **kwargs)
+
+    def do_insertion(self, *args, **kwargs):
+        self.activate_ros_control_on_ur()
+        return self.force_controller.do_insertion(*args, **kwargs)

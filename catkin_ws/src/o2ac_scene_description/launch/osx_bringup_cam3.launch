@@ -12,8 +12,8 @@
   <arg name="camera2_name"	value="b_bot_inside_camera"/>
   <arg name="camera3_name"	value="b_bot_outside_camera"/>
   
-  <arg name="camera0_serial_no"	value=""/>
-  <arg name="camera1_serial_no"	value="636201000324"/>
+  <arg name="camera0_serial_no"	value="636201000324"/>
+  <arg name="camera1_serial_no"	value="636201001178"/>
   <arg name="camera2_serial_no" value="634206004668"/>
   <arg name="camera3_serial_no" value="635201000481"/>
   <arg name="camera_fps"	default="10"/>

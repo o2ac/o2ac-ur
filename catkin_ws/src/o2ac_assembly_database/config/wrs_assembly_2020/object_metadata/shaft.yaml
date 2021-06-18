@@ -1,5 +1,13 @@
 subframes:
 - pose_xyzrpy:
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  name: screw_hole
+- pose_xyzrpy:
   - 0.075
   - 0.0
   - 0.0

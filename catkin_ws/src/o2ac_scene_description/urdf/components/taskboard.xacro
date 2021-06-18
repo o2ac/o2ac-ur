@@ -183,7 +183,7 @@
   <joint name="${boardname}_bearing_target_joint" type="fixed">
     <parent link="${boardname}_plate"/>
     <child link="${boardname}_bearing_target_link"/>
-    <origin rpy="0 0 ${pi}" xyz=".025 0.034 0.12"/>
+    <origin rpy="${pi} 0 ${pi}" xyz=".025 0.034 0.12"/>
   </joint>
   <link name="${boardname}_bearing_target_link"/>
 
@@ -191,28 +191,28 @@
   <joint name="${boardname}_bearing_target_screw_1_joint" type="fixed">
     <parent link="${boardname}_bearing_target_link"/>
     <child link="${boardname}_bearing_target_screw_1_link"/>
-    <origin rpy="${pi} 0 0" xyz="-.004 .022 0"/>
+    <origin rpy="0 0 0" xyz="-.004 .022 0"/>
   </joint>
   <link name="${boardname}_bearing_target_screw_1_link"/>
 
   <joint name="${boardname}_bearing_target_screw_2_joint" type="fixed">
     <parent link="${boardname}_bearing_target_link"/>
     <child link="${boardname}_bearing_target_screw_2_link"/>
-    <origin rpy="${pi} 0 0" xyz="-.004 0 .022"/>
+    <origin rpy="0 0 0" xyz="-.004 0 .022"/>
   </joint>
   <link name="${boardname}_bearing_target_screw_2_link"/>
 
   <joint name="${boardname}_bearing_target_screw_3_joint" type="fixed">
     <parent link="${boardname}_bearing_target_link"/>
     <child link="${boardname}_bearing_target_screw_3_link"/>
-    <origin rpy="${pi} 0 0" xyz="-.004 -0.022 0"/>
+    <origin rpy="0 0 0" xyz="-.004 -0.022 0"/>
   </joint>
   <link name="${boardname}_bearing_target_screw_3_link"/>
 
   <joint name="${boardname}_bearing_target_screw_4_joint" type="fixed">
     <parent link="${boardname}_bearing_target_link"/>
     <child link="${boardname}_bearing_target_screw_4_link"/>
-    <origin rpy="${pi} 0 0" xyz="-.004 0 -0.022"/>
+    <origin rpy="0 0 0" xyz="-.004 0 -0.022"/>
   </joint>
   <link name="${boardname}_bearing_target_screw_4_link"/>
 

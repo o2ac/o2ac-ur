@@ -101,6 +101,12 @@ if __name__ == '__main__':
         c.do_change_tool_action("b_bot", equip=True, screw_size=4)
       elif i == '16':
         c.do_change_tool_action("b_bot", equip=False, screw_size=4)
+      elif i == '21':
+        c.take_tray_from_agv()
+      elif i == '211':
+        c.take_tray_from_agv(reverse_movement_for_calibration=True)
+      elif i == '22':
+        c.unload_drive_unit()
       elif i == '31':
         c.skill_server.pick_screw_from_feeder("a_bot", screw_size=3)
       elif i == '32':
@@ -131,6 +137,8 @@ if __name__ == '__main__':
         c.pick(robot_name="b_bot", object_name="base")
       elif i == '55':
         c.spawn_objects_for_demo(base_plate_in_tray=True, layout_number=2)
+      elif i == '551':
+        c.spawn_objects_for_demo(layout_number=4)
       elif i == '552':
         c.spawn_objects_for_demo(base_plate_in_tray=True, layout_number=1)
       elif i == '553':
@@ -138,7 +146,7 @@ if __name__ == '__main__':
       elif i == '559':
         c.disable_scene_object_collisions()
       elif i == 'clean_scene':
-        non_base_objects = ['bearing', 'bearing_spacer', 'end_cap', 'idler_pin', 'idler_pulley', 'idler_spacer', 'motor', 'motor_pulley', 'output_pulley', 'panel_bearing', 'panel_motor', 'shaft']
+        non_base_objects = ['bearing', 'bearing_spacer', 'end_cap', 'idler_pin', 'idler_pulley', 'idler_spacer', 'motor', 'motor_pulley', 'output_pulley', 'shaft']
         for o in non_base_objects:
           c.planning_scene_interface.remove_world_object(o)
       elif i == '550':
@@ -234,6 +242,15 @@ if __name__ == '__main__':
       elif i == '97':
         c.subtask_c2() # shaft
         # 97: shaft, 98: clamp pulley, 99: belt).")
+      elif i == '97spawn':
+        obj = c.assembly_database.get_collision_object("shaft")
+        obj.header.frame_id = "b_bot_gripper_tip_link"
+        obj.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/4, -tau/4, -tau/4))
+        obj.pose = helpers.rotatePoseByRPY(0, 0, tau/2, obj.pose)
+        obj.pose.position.x = -.006
+        obj.pose.position.z = .0375
+        c.planning_scene_interface.add_object(obj)
+        c.b_bot.gripper.attach_object(obj.id)
       elif i == "899":
         center_plate_pose = geometry_msgs.msg.PoseStamped()
         center_plate_pose.header.frame_id = "assembled_assy_part_03_pulley_ridge_bottom"
@@ -276,6 +293,8 @@ if __name__ == '__main__':
         # c.b_bot.linear_push(initial_pose=b_bot_starting_position, force=force, direction=direction, timeout=20.0)
       elif i == "print":  # Print collision objects
         c.print_objects_in_tray()
+      elif i == "endcap":
+        c.orient_shaft_end_cap()
       elif i == 'START' or i == 'start' or i == "9999":
         for i in [1,2]:
           rospy.loginfo("Starting set number " + str(i))
