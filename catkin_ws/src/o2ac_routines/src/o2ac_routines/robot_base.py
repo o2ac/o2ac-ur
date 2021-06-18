@@ -127,8 +127,9 @@ class RobotBase():
             group.set_pose_target(pose_goal_stamped)
 
         success = False
+        start_time = rospy.Time.now()
         tries = 0
-        while not success and tries < 5 and not rospy.is_shutdown():
+        while not success and (rospy.Time.now() - start_time < rospy.Duration(15)) and not rospy.is_shutdown():
             if plan_only:
                 success, plan, planning_time, error = group.plan()
                 if success:
@@ -201,7 +202,10 @@ class RobotBase():
         goal.request = moveit_msgs.msg.MotionSequenceRequest()
         goal.request.items = motion_plan_requests
 
-        for i in range(retries):
+        start_time = rospy.Time.now()
+        tries = 0
+        success = False
+        while not success and (rospy.Time.now() - start_time < rospy.Duration(15)) and not rospy.is_shutdown():
             if plan_only:
                 # Make MotionSequence
                 response = self.plan_sequence_path(goal.request)
@@ -212,14 +216,15 @@ class RobotBase():
                     planning_time = response.response.planning_time
                     return plan, planning_time
                 else:
-                    rospy.logwarn("(move_lin_trajectory) Planning failed, retry: %s of %s" % (i+1, retries))
+                    rospy.logwarn("(move_lin_trajectory) Planning failed, retry: %s" % (tries+1))
             else:
                 result = self.sequence_move_group.send_goal_and_wait(goal)
                 if result == GoalStatus.SUCCEEDED:
                     group.clear_pose_targets()
                     return True
                 else:
-                    rospy.logwarn("(move_lin_trajectory) failed, retry: %s of %s" % (i+1, retries))
+                    rospy.logwarn("(move_lin_trajectory) failed, retry: %s" % (tries+1))
+            tries += 1
         if plan_only:
             rospy.logerr("Failed to plan linear trajectory. error code: %s" % response.response.error_code.val)
         else:
