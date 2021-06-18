@@ -90,7 +90,7 @@ class URForceController(CompliantController):
 
         result = self.set_hybrid_control_trajectory(target_positions, self.force_model, max_force_torque=self.max_force_torque, timeout=timeout,
                                                     stop_on_target_force=stop_on_target_force, termination_criteria=termination_criteria,
-                                                    displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time)
+                                                    displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time, debug=True)
         self.force_model.reset()  # reset pid errors
 
         return result
