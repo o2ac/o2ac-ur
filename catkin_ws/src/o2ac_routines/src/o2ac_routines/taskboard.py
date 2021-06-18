@@ -214,7 +214,7 @@ class O2ACTaskboard(O2ACCommon):
     self.b_bot.go_to_named_pose("home")
     self.unequip_tool("b_bot", "screw_tool_m4")
 
-  def full_taskboard_task(self, do_screws=True):
+  def full_taskboard_task(self, do_screws=True, skip_tray_placing=True):
     """
     Start the taskboard task from the fully prepped position (set screw tool and M3 tool equipped)
     """
@@ -232,6 +232,8 @@ class O2ACTaskboard(O2ACCommon):
     if do_screws:
       self.do_screw_tasks_from_prep_position()
 
+    if not skip_tray_placing:
+      self.take_tray_from_agv()
 
     self.subtask_completed["belt"] = self.do_task("belt")
     

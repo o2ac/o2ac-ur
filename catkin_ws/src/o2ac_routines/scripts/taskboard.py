@@ -85,7 +85,7 @@ if __name__ == '__main__':
         c.move_b_bot_to_setscrew_initial_pos()
       if i == "start":
         c.competition_mode = True
-        c.full_taskboard_task()
+        c.full_taskboard_task(skip_tray_placing=False)
         c.competition_mode = False
       if i == "startnoscrews":
         c.competition_mode = True
@@ -93,7 +93,7 @@ if __name__ == '__main__':
         c.competition_mode = False
       if i == "test":
         c.competition_mode = False
-        c.full_taskboard_task()
+        c.full_taskboard_task(skip_tray_placing=False)
       if i == "testnoscrews":
         c.competition_mode = False
         c.full_taskboard_task(do_screws=False)
