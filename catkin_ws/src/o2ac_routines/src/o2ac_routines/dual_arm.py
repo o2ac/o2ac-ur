@@ -62,7 +62,9 @@ class DualArm(RobotBase):
         slave_relation is the slave TCP's pose (TODO: which coordinate system?), as a list in the form [xyz,xyzw].
         Obtain it from get_relative_pose_of_slave before calling this function.
         """
-
+        self.robot1.activate_ros_control_on_ur()
+        self.robot2.activate_ros_control_on_ur()
+        
         master = self.active_robots[master_name]
         slave = self.active_robots[slave_name]
 
@@ -121,3 +123,8 @@ class DualArm(RobotBase):
             last_velocities = np.copy(slave_velocities)
 
         return self.robot_group.execute(master_slave_plan)
+
+    def set_up_move_group(self, speed, acceleration, planner="OMPL"):
+        self.robot1.activate_ros_control_on_ur()
+        self.robot2.activate_ros_control_on_ur()
+        return RobotBase.set_up_move_group(self, speed, acceleration, planner)
