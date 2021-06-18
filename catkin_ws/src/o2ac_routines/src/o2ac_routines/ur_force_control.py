@@ -64,7 +64,7 @@ class URForceController(CompliantController):
                       selection_matrix=None, relative_to_ee=False,
                       timeout=10.0, stop_on_target_force=False, reset_pids=True, termination_criteria=None,
                       displacement_epsilon=0.002, check_displacement_time=2.0,
-                      config_file="force_control"):
+                      config_file=None):
         """ 
             Use with caution!! 
             target_force: list[6], target force for each direction x,y,z,ax,ay,az
@@ -74,6 +74,8 @@ class URForceController(CompliantController):
             timeout: float, duration in seconds of the force control
             reset_pids: bool, should reset pids after using force control, but for continuos control during a trajectory, it is not recommended until the trajectory is completed
         """
+        if config_file is None:
+            config_file = "force_control"
         self._init_force_controller(config_file)
 
         rospy.sleep(1.0)  # give it some time to set up before moving
@@ -115,7 +117,7 @@ class URForceController(CompliantController):
                                   wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0,
                                   target_force=None, selection_matrix=None, timeout=10.,
                                   displacement_epsilon=0.002, check_displacement_time=2.0,
-                                  termination_criteria=None):
+                                  termination_criteria=None, config_file=None):
         """
             Execute a spiral trajectory on a given plane, with respect to the base of the robot, with a given max radius
             Note: we assume that the robot is in its initial position 
@@ -125,7 +127,7 @@ class URForceController(CompliantController):
                                                    wiggle_direction=wiggle_direction, wiggle_angle=wiggle_angle, wiggle_revolutions=wiggle_revolutions)
         return self.force_control(target_force=target_force, target_positions=trajectory, selection_matrix=selection_matrix,
                                   timeout=timeout, relative_to_ee=False, termination_criteria=termination_criteria,
-                                  displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time)
+                                  displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time, config_file=config_file)
 
     def linear_push(self, force, direction, max_translation=None, relative_to_ee=False, timeout=10.0, slow=False, selection_matrix=None):
         """
@@ -163,7 +165,8 @@ class URForceController(CompliantController):
     def do_insertion(self, target_pose_in_target_frame, insertion_direction, timeout, 
                            radius=0.0, radius_direction=None, force=1.0, relaxed_target_by=0.0,
                            wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0,
-                           selection_matrix=None, displacement_epsilon=0.002, check_displacement_time=2.0):
+                           selection_matrix=None, displacement_epsilon=0.002, check_displacement_time=2.0,
+                           config_file=None):
         """
             target_pose_in_target_frame: PoseStamp, target in target frame
             insertion_direction: string, [+/-] "X", "Y", or "Z" in robot's base frame! Note: limited to one direction TODO: convert to target frame? or compute from target frame?
@@ -199,7 +202,7 @@ class URForceController(CompliantController):
                                         wiggle_direction=wiggle_direction, wiggle_angle=wiggle_angle, wiggle_revolutions=wiggle_revolutions,
                                         target_force=target_force, selection_matrix=selection_matrix, timeout=timeout,
                                         displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time,
-                                        termination_criteria=termination_criteria)
+                                        termination_criteria=termination_criteria, config_file=config_file)
 
         if result in (TERMINATION_CRITERIA, DONE, STOP_ON_TARGET_FORCE):
             rospy.loginfo("Completed insertion with state: %s" % result)

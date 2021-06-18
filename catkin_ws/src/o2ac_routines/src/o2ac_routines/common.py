@@ -1333,9 +1333,15 @@ class O2ACCommon(O2ACBase):
     result = self.b_bot.do_insertion(target_pose_target_frame, insertion_direction="-X", force=10.0, timeout=30.0, 
                                                     radius=0.002, relaxed_target_by=0.003, selection_matrix=selection_matrix)
     if result not in (TERMINATION_CRITERIA, DONE):
-      # TODO(cambel): implement a fall back
-      rospy.logerr("** Insertion Failed!! **")
-      return
+      rospy.logerr("** Insertion Failed!! Try one more time. **")
+      # TODO(felixvd): Release protective stop
+      selection_matrix = [0., 0.5, 0.5, .8, .8, .8]
+      result = self.b_bot.do_insertion(target_pose_target_frame, insertion_direction="-X", force=10.0, timeout=30.0, 
+                                                    radius=0.002, relaxed_target_by=0.003, selection_matrix=selection_matrix,
+                                                    config_file="force_control_slow")
+      if result not in (TERMINATION_CRITERIA, DONE):
+        rospy.logerr("** Insertion Failed!! Try one more time. **")
+        return
 
     self.b_bot.gripper.open(wait=True)
     self.b_bot.move_lin_rel(relative_translation = [0.016,0,0], acceleration = 0.015, speed=.03)
