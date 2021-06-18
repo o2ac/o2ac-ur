@@ -1554,7 +1554,7 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Could not find idler pulley in tray. Skipping procedure.")
       return False
     
-    # self.vision.activate_camera("a_bot_inside_camera")
+    self.vision.activate_camera("a_bot_inside_camera")
     object_pose.pose.position.x -= 0.01 # MAGIC NUMBER
     object_pose.pose.position.z = 0.018
 
@@ -1610,6 +1610,7 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Fail to complete equip_nut_tool")
       return False
 
+    self.vision.activate_camera("a_bot_inside_camera")
     success = self.fasten_idler_pulley_with_nut_tool(idler_puller_target_link)
     if not success:
       rospy.logerr("Fail to complete fasten_idler_pulley_with_nut_tool")
@@ -1669,7 +1670,7 @@ class O2ACCommon(O2ACBase):
         
     rospy.loginfo("Moving into ridge (a_bot)")
     insertion_offsets = [0.0]
-    d2 = 0.0007
+    d2 = 0.0005
     for i in range(6):
       insertion_offsets.append(d2*(i+1))
       insertion_offsets.append(-d2*(i+1))

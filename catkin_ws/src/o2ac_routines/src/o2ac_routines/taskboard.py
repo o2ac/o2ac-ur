@@ -194,7 +194,7 @@ class O2ACTaskboard(O2ACCommon):
     # TODO: check set screw success with a_bot, do spiral motion with b_bot otherwise
     
     ### SCREW M3 WITH A_BOT
-    # self.vision.activate_camera("a_bot_outside_camera")
+    self.vision.activate_camera("a_bot_outside_camera")
     screw_picked = self.pick_screw_from_feeder("a_bot", screw_size = 3)
     self.a_bot.go_to_named_pose("feeder_pick_ready")
 
@@ -238,7 +238,7 @@ class O2ACTaskboard(O2ACCommon):
     self.subtask_completed["belt"] = self.do_task("belt")
     
     self.subtask_completed["idler pulley"] = self.do_task("idler pulley")
-    self.unequip_tool("b_bot", "screw_tool_m4")
+    self.unequip_tool("b_bot")
 
     self.subtask_completed["motor pulley"] = self.do_task("motor pulley")
 
@@ -268,7 +268,7 @@ class O2ACTaskboard(O2ACCommon):
     if task_name == "belt":
       self.a_bot.go_to_named_pose("home")
       
-      self.b_bot.go_to_pose_goal(self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.5, acceleration=.25)
+      self.b_bot.go_to_pose_goal(self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.8)
 
       self.vision.activate_camera("b_bot_outside_camera")
       self.activate_led("b_bot")
@@ -276,7 +276,7 @@ class O2ACTaskboard(O2ACCommon):
       r2 = self.get_feasible_grasp_points("belt")
       if r2:
         pick_goal = r2[0]
-        pick_goal.pose.position.z = 0.0
+        pick_goal.pose.position.z = -0.001
       else:
         rospy.logerr("Could not find belt grasp pose! Aborting.")
         return False
