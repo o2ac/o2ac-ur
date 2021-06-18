@@ -326,6 +326,12 @@ class O2ACCommon(O2ACBase):
     if object_id in self.objects_in_tray:
       del self.objects_in_tray[object_id]
 
+    if self.use_dummy_vision:
+      self.active_robots[robot_name].go_to_pose_goal(self.tray_view_high, end_effector_link=robot_name + "_outside_camera_color_frame", speed=.5, acceleration=.3, wait=True)
+      rospy.logwarn("Using dummy vision! Setting object pose to tray center.")
+      self.objects_in_tray[object_id] = conversions.to_pose_stamped("tray_center", [ 0,0,0, 0, 0, 0])
+      return self.objects_in_tray[object_id]
+
     for view in [self.tray_view_high] + self.close_tray_views + self.close_tray_views_rot_left + self.close_tray_views_rot_right + self.close_tray_views_rot_left_more + self.close_tray_views_rot_left_90:
       assert not rospy.is_shutdown()
       self.active_robots[robot_name].go_to_pose_goal(view, end_effector_link=robot_name + "_outside_camera_color_frame", speed=.5, acceleration=.3, wait=True)

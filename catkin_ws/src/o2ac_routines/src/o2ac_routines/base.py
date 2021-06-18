@@ -89,6 +89,7 @@ class O2ACBase(object):
     self.use_real_robot = rospy.get_param("use_real_robot", False)
     self.force_ur_script_linear_motion = False
     self.force_moveit_linear_motion = True
+    self.use_dummy_vision = False  # If True, avoids using the cameras and returns dummy values
 
     self.competition_mode = False   # Setting this to True disables confirmation dialogs etc., thus enabling uninterrupted automatic motion
 
@@ -539,6 +540,8 @@ class O2ACBase(object):
     When looking at the bearing from the front, returns the rotation angle 
     to align the screw holes.
     """
+    if self.use_dummy_vision:
+      return 0.0001  # 0.0 would be recognized as vision failure
     return self.vision.get_angle_from_vision(camera, item_name="bearing")
   
   def get_motor_angle(self, camera="b_bot_outside_camera"):
