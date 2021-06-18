@@ -289,7 +289,7 @@
       profile = default
       type = Terminal
       command = sh ./RUN-DOCKER-CONTAINER.sh
-  [[o2ac-autostart]]
+  [[o2ac-vision]]
     [[[child0]]]
       type = Window
       parent = ""
@@ -298,7 +298,7 @@
       maximised = True
       fullscreen = False
       size = 1848, 1016
-      title = O2AC-UR
+      title = O2AC-VISION
       last_active_window = True
     [[[child1]]]
       type = HPaned
@@ -357,72 +357,69 @@
       parent = child2
       order = 0
       profile = default
-      title = moveit/rviz
-      command = sh ./RUN-DOCKER-CONTAINER.sh ${USER} o2ac_moveit_config o2ac_moveit_planning_execution.launch
+      command = sh ./VISION-DOCKER-CONTAINER.sh
     [[[terminal6]]]
       type = Terminal
       parent = child5
       order = 0
       profile = default
-      command = sh ./RUN-DOCKER-CONTAINER.sh
+      command = sh ./VISION-DOCKER-CONTAINER.sh
     [[[terminal7]]]
       type = Terminal
       parent = child5
       order = 1
       profile = default
-      command = sh ./RUN-DOCKER-CONTAINER.sh
+      command = sh ./VISION-DOCKER-CONTAINER.sh
     [[[terminal9]]]
       type = Terminal
       parent = child8
       order = 0
       profile = default
-      command = sh ./RUN-DOCKER-CONTAINER.sh
+      command = sh ./VISION-DOCKER-CONTAINER.sh
     [[[terminal10]]]
       type = Terminal
       parent = child8
       order = 1
       profile = default
-      command = sh ./RUN-DOCKER-CONTAINER.sh ${USER} o2ac_vision show_tv_rviz.launch
+      title = TV Rviz
+      command = sh ./VISION-DOCKER-CONTAINER.sh ${USER} o2ac_vision show_tv_rviz.launch
     [[[terminal13]]]
       type = Terminal
       parent = child12
       order = 0
       profile = default
-      title = task
-      command = sh ./RUN-DOCKER-CONTAINER.sh ${USER} "rosrun\ o2ac_routines\ taskboard.py"
+      command = sh ./VISION-DOCKER-CONTAINER.sh
     [[[terminal14]]]
       type = Terminal
       parent = child12
       order = 1
       profile = default
-      title = robots
-      command = sh ./RUN-DOCKER-CONTAINER.sh ${USER} o2ac_scene_description connect_real_robots.launch
+      command = sh ./VISION-DOCKER-CONTAINER.sh
     [[[terminal17]]]
       type = Terminal
       parent = child16
       order = 0
       profile = default
       title = o2ac_vision
-      command = sh ./RUN-DOCKER-CONTAINER.sh ${USER} o2ac_vision o2ac_vision.launch
+      command = sh ./VISION-DOCKER-CONTAINER.sh ${USER} o2ac_vision o2ac_vision.launch
     [[[terminal18]]]
       type = Terminal
       parent = child16
       order = 1
       profile = default
       title = skill_server
-      command = sh ./RUN-DOCKER-CONTAINER.sh ${USER} o2ac_skills o2ac_skill_server.launch
+      command = sh ./VISION-DOCKER-CONTAINER.sh ${USER} o2ac_skills o2ac_skill_server.launch
     [[[terminal20]]]
       type = Terminal
       parent = child19
       order = 0
       profile = default
       title = cameras
-      command = sh ./RUN-DOCKER-CONTAINER.sh ${USER} o2ac_scene_description osx_bringup_cameras.launch
+      command = sh ./VISION-DOCKER-CONTAINER.sh ${USER} o2ac_scene_description osx_bringup_cameras.launch
     [[[terminal21]]]
       type = Terminal
       parent = child19
       order = 1
       profile = default
-      title = roscore (NEEDS TO RUN FIRST)
-      command = sh ./RUN-DOCKER-CONTAINER.sh ${USER} roscore
+      command = sh ./VISION-DOCKER-CONTAINER.sh
 [plugins]

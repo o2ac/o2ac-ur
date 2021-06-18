@@ -3,8 +3,8 @@ version: "2.4"
 ################################################################################
 
 services:
-  o2ac-ur:
-    hostname: o2ac-ur
+  o2ac-vision-pc:
+    hostname: o2ac-vision-pc
     runtime: ${DOCKER_RUNTIME}
     privileged: true
     environment:
@@ -37,7 +37,6 @@ services:
       - /dev/:/dev/
     network_mode: host
     extra_hosts:
-      - "o2ac-ur:127.0.0.1"   # Seems that this might be needed for ROS networking
       - "o2ac-ur:192.168.1.5" # The host PC
       - "o2ac-vision-pc:192.168.1.6" # The PC with the cameras and vision nodes
       - "a_bot:192.168.1.41"
