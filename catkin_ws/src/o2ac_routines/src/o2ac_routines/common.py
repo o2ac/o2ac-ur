@@ -642,6 +642,7 @@ class O2ACCommon(O2ACBase):
     """ Plan a pick operation and execute it with MTC.
         grasp_poses is a vector of grasp poses.
     """
+    self.disable_scene_object_collisions()
     res = self.plan_pick_place(robot_name, object_name, grasp_poses)
     success = True
     try:

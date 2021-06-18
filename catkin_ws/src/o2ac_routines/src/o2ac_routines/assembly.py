@@ -790,17 +790,3 @@ class O2ACAssembly(O2ACCommon):
     
     # self.subtask_c() # bearing, clamping pulley set
     return
-
-  def disable_scene_object_collisions(self):
-    """ Disables collisions between all world objects and everything else.
-        Used because our meshes are so heavy that they impact performance too much.
-    """
-    object_names = self.planning_scene_interface.get_known_object_names()
-    rospy.loginfo("Disabling collisions for all scene objects (except tools).")
-    objects_without_tools = []
-    for n in object_names:
-      if not "tool" in n:
-        objects_without_tools.append(n)
-    print(objects_without_tools)
-    self.planning_scene_interface.allow_collisions(objects_without_tools, "")
-

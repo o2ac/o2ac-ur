@@ -995,6 +995,19 @@ class O2ACBase(object):
         self.planning_scene_interface.disallow_collisions(hand_links, link_name)
       return
 
+  def disable_scene_object_collisions(self):
+    """ Disables collisions between all world objects (except tools) and everything else.
+        Used because our meshes are so heavy that they impact performance too much.
+    """
+    object_names = self.planning_scene_interface.get_known_object_names()
+    rospy.loginfo("Disabling collisions for all scene objects (except tools).")
+    objects_without_tools = []
+    for n in object_names:
+      if not "tool" in n:
+        objects_without_tools.append(n)
+    print(objects_without_tools)
+    self.planning_scene_interface.allow_collisions(objects_without_tools, "")
+
   def read_playback_sequence(self, routine_filename, default_frame="world"):
     path = rospkg.RosPack().get_path("o2ac_routines") + ("/config/playback_sequences/%s.yaml" % routine_filename)
     with open(path, 'r') as f:
