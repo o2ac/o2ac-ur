@@ -722,7 +722,7 @@ class O2ACVisionServer(object):
             rospy.logerr("No depth image found")
             return
         depth_image = self.bridge.imgmsg_to_cv2(self._depth_image_ros, desired_encoding="passthrough")
-        xyz = self.cam_helper.project_2d_to_3d_from_images(pose_2d.x, pose_2d.y, [depth_image])
+        xyz = self.cam_helper.project_2d_to_3d_from_images(self._camera_info, pose_2d.x, pose_2d.y, [depth_image])
         if not xyz:
             return None
         p3d.pose.position.x = xyz[0]
