@@ -337,6 +337,11 @@ class O2ACBase(object):
       rotation = [tau/6, 0, 0]
     elif robot_name == "b_bot":
       rotation = [-tau/6, 0, 0]
+
+    screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
+    if screw_picked:
+      rospy.loginfo("Asked to pick screw, but one was already in the tool. Returning True.")
+      return True
     
     above_screw_head_pose = copy.deepcopy(screw_head_pose)
     above_screw_head_pose.pose.orientation = conversions.to_quaternion(tf.transformations.quaternion_from_euler(*rotation))
@@ -348,8 +353,10 @@ class O2ACBase(object):
 
     if (screw_tool_id == "screw_tool_m3"):
       self.planning_scene_interface.allow_collisions(screw_tool_id, "m3_feeder_link")
+      screw_size = 3
     elif (screw_tool_id == "screw_tool_m4"):
       self.planning_scene_interface.allow_collisions(screw_tool_id, "m4_feeder_link")
+      screw_size = 4
 
     adjusted_pose = copy.deepcopy(above_screw_head_pose)
     search_start_pose = copy.deepcopy(above_screw_head_pose)
@@ -360,9 +367,9 @@ class O2ACBase(object):
     offsets = [[0.0015, 0.0015], [0.0015, -0.0015], [-0.0015, 0.0015], [-0.0015, -0.0015]] # only diagonals from start point
 
     for i, offset in enumerate(offsets): 
-      assert not rospy.is_shutdown(), "Did ros died?"
+      assert not rospy.is_shutdown(), "Did ros die?"
 
-      self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=5.0, skip_final_loosen_and_retighten=True)
+      self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=12.0, skip_final_loosen_and_retighten=True)
       # self.send_fastening_tool_command(fastening_tool_name, "loosen", false, 5.0)
       rospy.loginfo("Moving into screw to pick it up.")
       adjusted_pose.pose.position.x += .02
@@ -378,7 +385,7 @@ class O2ACBase(object):
                                     "YZ", 0.002, "+Y", steps=15, revolutions=3, from_center=True,  trajectory_type="spiral")
       st = []
       for t in spiral_trajectory:
-          st.append([conversions.to_pose_stamped("m" + str(4) + "_feeder_outlet_link", t), 0.0])
+          st.append([conversions.to_pose_stamped("m" + str(screw_size) + "_feeder_outlet_link", t), 0.0])
       self.active_robots[robot_name].move_lin_trajectory(st, speed=0.03, end_effector_link=screw_tool_link)
 
       rospy.loginfo("Moving back a bit slowly.")
@@ -395,45 +402,6 @@ class O2ACBase(object):
         break
       
       rospy.logerr("Retrying pickup with adjusted position. %s of %s" % (i+1, len(offsets)))
-
-    # Old method
-    # max_radius = .0025
-    # theta_incr = tau/6
-    # r = 0.0002
-    # radius_increment = .001
-    # radius_inc_set = radius_increment / (tau / theta_incr)
-    # theta, current_radius, y, z = 0.0, 0.0, 0.0, 0.0
-    # 
-    # while not screw_picked:
-    #   self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=5.0, skip_final_loosen_and_retighten=True)
-    #   # self.send_fastening_tool_command(fastening_tool_name, "loosen", false, 5.0)
-    #   rospy.loginfo("Moving into screw to pick it up.")
-    #   adjusted_pose.pose.position.x += .02
-    #   self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, acceleration=0.025, end_effector_link=screw_tool_link)
-      
-    #   rospy.sleep(0.5)
-
-    #   rospy.loginfo("Moving back a bit slowly.")
-    #   adjusted_pose.pose.position.x -= .02
-    #   self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.1, acceleration=0.05, end_effector_link=screw_tool_link)
-
-    #   screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
-    #   if screw_picked:
-    #     break
-
-    #   if (current_radius > max_radius) or rospy.is_shutdown():
-    #     break
-
-    #   rospy.logerr("Retrying pickup with adjusted position")
-
-    #   theta=theta+theta_incr
-    #   y=cos(theta)*r
-    #   z=sin(theta)*r
-    #   adjusted_pose = copy.deepcopy(search_start_pose)
-    #   adjusted_pose.pose.position.y += y
-    #   adjusted_pose.pose.position.z += z
-    #   r = r + radius_inc_set
-    #   current_radius = sqrt(pow(y,2)+pow(z,2))
 
     self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=0.1, skip_final_loosen_and_retighten=True)
 
@@ -838,7 +806,7 @@ class O2ACBase(object):
   
   def unequip_tool(self, robot_name, tool_name=""):
     if tool_name == "":
-      tool_name = self.robot_status[robot_name].held_tool_id
+      tool_name = self.active_robots[robot_name].robot_status.held_tool_id
     return self.equip_unequip_realign_tool(robot_name, tool_name, "unequip")
   
   def realign_tool(self, robot_name, screw_tool_id):
@@ -854,7 +822,7 @@ class O2ACBase(object):
     """
     robot = self.active_robots[robot_name]
     if tool_name == "":
-      tool_name = self.robot_status[robot_name].held_tool_id
+      tool_name = self.active_robots[robot_name].robot_status.held_tool_id
 
 
     # Sanity check on the input instruction
