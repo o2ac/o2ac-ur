@@ -1129,7 +1129,10 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Fail to simple pick (grab_and_drop)")
     return success
 
-  def fallback_outside_tray_centering(self, robot_name):
+  def pick_from_centering_area_and_drop_in_tray(self, robot_name):
+    """
+    Called if a rearranging procedure has failed. Picks up whatever is in the space and drops it in the tray.
+    """
     robot = self.active_robots[robot_name]
 
     prefix = "right" if robot_name == "b_bot" else "left"
@@ -1137,7 +1140,7 @@ class O2ACCommon(O2ACBase):
     at_object_pose = conversions.to_pose_stamped(prefix + "_centering_link", [-0.005,0,0,0,0,0])
 
     rotation_offset = -1 if robot_name == "b_bot" else 1
-    tray_center_pose = conversions.to_pose_stamped("tray_center", [0,0,0.2,0,tau/4,rotation_offset*tau/4])
+    tray_center_pose = conversions.to_pose_stamped("tray_center", [0,0,0.06,0,tau/4,rotation_offset*tau/4])
     
     robot.gripper.open() 
     
@@ -1154,11 +1157,23 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("fail to go to approach_pose (fallback_b_bot_outside_tray_centering)")
       return False
 
+    return self.drop_in_tray(robot_name)
+  
+  def drop_in_tray(self, robot_name):
+    rotation_offset = -1 if robot_name == "b_bot" else 1
+    above_tray = conversions.to_pose_stamped("tray_center", [0,0,0.15,0,tau/4,rotation_offset*tau/4])
+    tray_center_pose = conversions.to_pose_stamped("tray_center", [0,0,0.06,0,tau/4,rotation_offset*tau/4])
+    
+    if not robot.go_to_pose_goal(above_tray):
+      rospy.logerr("fail to go to above_tray (drop_in_tray)")
+      return False
+
     if not robot.go_to_pose_goal(tray_center_pose):
-      rospy.logerr("fail to go to tray_center_pose (fallback_b_bot_outside_tray_centering)")
+      rospy.logerr("fail to go to tray_center_pose (drop_in_tray)")
       return False
 
     robot.gripper.open() 
+    return True
 
   @check_for_real_robot
   def simple_gripper_check(self, robot_name, min_opening_width=0.001):
@@ -1287,13 +1302,13 @@ class O2ACCommon(O2ACBase):
       rospy.loginfo("bearing found to be upwards")
       if not self.playback_sequence("bearing_orient"):
         rospy.logerr("Could not complete orient sequence")
-        self.fallback_outside_tray_centering("b_bot")
+        self.pick_from_centering_area_and_drop_in_tray("b_bot")
         return False
     else:
       rospy.loginfo("bearing found to be upside down")
       if not self.playback_sequence("bearing_orient_down"):
         rospy.logerr("Could not complete orient down sequence")
-        self.fallback_outside_tray_centering("b_bot")
+        self.pick_from_centering_area_and_drop_in_tray("b_bot")
         return False
 
       #'down' means the small area contacts with tray.
@@ -1491,7 +1506,7 @@ class O2ACCommon(O2ACBase):
 
     if not self.playback_sequence(routine_filename="motor_pulley_orient"):
       rospy.logerr("Fail to complete the playback sequence motor pulley orient")
-      self.fallback_outside_tray_centering("b_bot")
+      self.pick_from_centering_area_and_drop_in_tray("b_bot")
       return False
 
     return self.insert_motor_pulley(target_link)
@@ -1613,6 +1628,7 @@ class O2ACCommon(O2ACBase):
       return False
     if not self.insert_idler_pulley(idler_puller_target_link):
       rospy.logerr("Fail to complete insert_idler_pulley")
+      self.drop_in_tray("a_bot")
       return False
     self.vision.activate_camera("b_bot_outside_camera")
     if not self.prepare_screw_tool_idler_pulley(idler_puller_target_link):
