@@ -8,7 +8,7 @@ PROJECT=$1
 if [ -z "${PROJECT}" ]; then
   PROJECT=${USER}
 fi
-CONTAINER="${PROJECT}_o2ac-vision_1"
+CONTAINER="${PROJECT}_o2ac-vision-pc_1"
 echo "$0: PROJECT=${PROJECT}"
 echo "$0: CONTAINER=${CONTAINER}"
 
