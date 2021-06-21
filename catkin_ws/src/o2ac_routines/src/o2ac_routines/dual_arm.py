@@ -110,7 +110,7 @@ class DualArm(RobotBase):
         last_ik_solution = None
         last_velocities = None
         for i, point in enumerate(master_slave_plan.joint_trajectory.points):
-            master_tcp = master.get_tcp_pose(point.positions)
+            master_tcp = master.compute_fk(point.positions)
             master_tcp = conversions.from_pose_to_list(self.listener.transformPose("world", master_tcp).pose)
             slave_tcp = np.concatenate([master_tcp[:3]+slave_relation[:3], transformations.quaternion_multiply(slave_relation[3:], master_tcp[3:])])
             slave_tcp = conversions.to_pose_stamped("world", slave_tcp)

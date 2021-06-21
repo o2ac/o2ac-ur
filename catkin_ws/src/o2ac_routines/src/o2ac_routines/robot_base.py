@@ -48,7 +48,7 @@ class RobotBase():
     def test_mode_callback(self, msg):
         self.test_mode_ = msg.data
 
-    def compute_fk(self, robot_state=None, tcp_link=None):
+    def compute_fk(self, robot_state=None, tcp_link=None, frame_id=None):
         """
             Compute the Forward kinematics for a move group using the moveit service
             robot_state: if pass as `list`: assumes that the joint values are in the same order as defined for that group
@@ -56,7 +56,7 @@ class RobotBase():
         if robot_state:
             if isinstance(robot_state, moveit_msgs.msg.RobotState):
                 robot_state_ = robot_state
-            elif isinstance(robot_state, list):
+            elif isinstance(robot_state, (list, tuple, numpy.ndarray)):
                 robot_state_ = moveit_msgs.msg.RobotState()
                 robot_state_.joint_state.name = self.robot_group.get_active_joints()
                 robot_state_.joint_state.position = list(robot_state)
@@ -69,7 +69,9 @@ class RobotBase():
         req.fk_link_names = [tcp_link if tcp_link else self.robot_group.get_end_effector_link()]
         req.robot_state = robot_state_
         res = self.moveit_fk_srv.call(req)
-        return res.pose_stamped
+        if frame_id:
+            return self.listener.transformPose(frame_id, res.pose_stamped[0])
+        return res.pose_stamped[0]
 
     def compute_ik(self, target_pose, joints_seed=None, timeout=0.01):
         """
@@ -229,7 +231,7 @@ class RobotBase():
 
         # Start from current pose
         if initial_joints:
-            initial_pose = self.get_tcp_pose(initial_joints, end_effector_link)
+            initial_pose = self.compute_fk(initial_joints, end_effector_link)
             group.set_pose_target(initial_pose)
         else:
             group.set_pose_target(group.get_current_pose(end_effector_link))
@@ -310,12 +312,12 @@ class RobotBase():
         if initial_joints:
             w2b = self.listener.lookupTransform("world", self.ns + "_base_link", rospy.Time.now())  # static transform
             t_w2b = transformations.pose_to_transform(list(w2b[0]) + list(w2b[1]))  # transform robot's base to world frame
-            b2tcp = self.kdl.forward(initial_joints, end_effector_link)  # forward kinematics
-            t_b2tcp = transformations.pose_to_transform(b2tcp)  # transform tcp to robot's base
+            b2tcp = self.compute_fk(initial_joints, tcp_link=end_effector_link, frame_id=self.ns + "_base_link")  # forward kinematics
+            t_b2tcp = conversions.from_pose(b2tcp.pose)  # transform tcp to robot's base
             if relative_to_tcp:
                 new_pose = conversions.to_pose_stamped(end_effector_link, [0, 0, 0, 0, 0, 0.])
             elif relative_to_robot_base:
-                new_pose = self.get_tcp_pose(initial_joints, end_effector_link)
+                new_pose = self.compute_fk(initial_joints, tcp_link=end_effector_link, frame_id=self.ns + "_base_link")
             else:
                 t_w2tcp = transformations.concatenate_matrices(t_w2b, t_b2tcp)
                 new_pose = conversions.to_pose_stamped("world", transformations.pose_quaternion_from_matrix(t_w2tcp))

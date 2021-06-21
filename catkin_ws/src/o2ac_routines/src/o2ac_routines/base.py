@@ -1028,7 +1028,7 @@ class O2ACBase(object):
       if is_trajectory:
         pose = waypoint.get("pose", None) 
         if waypoint["pose_type"] == "joint-space-goal-cartesian-lin-motion":
-          p = self.active_robots[robot_name].get_tcp_pose(pose) # Forward Kinematics
+          p = self.active_robots[robot_name].compute_fk(pose) # Forward Kinematics
         elif waypoint["pose_type"] == "task-space-in-frame":
           frame_id = waypoint.get("frame_id", default_frame)
           # Convert orientation to radians!
@@ -1172,7 +1172,7 @@ class O2ACBase(object):
       success = robot.move_joints(pose, speed=speed, acceleration=acceleration, plan_only=plan_only, initial_joints=initial_joints)
 
     elif pose_type == 'joint-space-goal-cartesian-lin-motion':
-      p = robot.get_tcp_pose(pose) # Forward Kinematics
+      p = robot.compute_fk(pose) # Forward Kinematics
       success = robot.move_lin(p, speed=speed, acceleration=acceleration, plan_only=plan_only, initial_joints=initial_joints)
 
     elif pose_type == 'task-space-in-frame':

@@ -317,11 +317,6 @@ class URRobot(RobotBase):
             rospy.loginfo("Successfully closed popup on teach pendant of robot " + self.ns)
             return True
 
-    def get_tcp_pose(self, joints, end_effector_link=None):
-        """ Get TCP position with respect to robot's base frame
-        """
-        return conversions.to_pose_stamped(self.ns + "_base_link", self.kdl.forward(joints, end_effector_link))
-
     def set_up_move_group(self, speed, acceleration, planner="OMPL"):
         self.activate_ros_control_on_ur()
         return RobotBase.set_up_move_group(self, speed, acceleration, planner)
