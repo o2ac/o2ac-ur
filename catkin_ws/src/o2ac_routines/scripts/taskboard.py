@@ -185,6 +185,7 @@ if __name__ == '__main__':
         c.go_to_pose_goal("a_bot", ps, speed=0.1, end_effector_link="bearing/back_hole", move_lin = False)
       if i == "reset":
         c.reset_scene_and_robots()
+        c.reset_assembly_visualization()
       if i == "x":
         break
       print("This took: %.3f seconds" % (time.time() - tic_start))

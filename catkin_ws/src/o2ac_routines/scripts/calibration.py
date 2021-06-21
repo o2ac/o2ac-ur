@@ -696,6 +696,7 @@ if __name__ == '__main__':
         c.realign_tool(robot_name="b_bot", screw_tool_id="screw_tool_m4")
       if r == "reset":
         c.reset_scene_and_robots()
+        c.reset_assembly_visualization()
       if r == "activate":
         c.a_bot.activate_ros_control_on_ur()
         c.b_bot.activate_ros_control_on_ur()

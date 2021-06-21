@@ -211,6 +211,7 @@ class O2ACBase(object):
       self.active_robots[robot].publish_robot_status()
 
   def reset_scene_and_robots(self):
+    """ Also see reset_assembly_visualization in common.py """
     self.a_bot.robot_status = o2ac_msgs.msg.RobotStatus()
     self.b_bot.robot_status = o2ac_msgs.msg.RobotStatus()
     self.planning_scene_interface.remove_attached_object()  # Detach objects

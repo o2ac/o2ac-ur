@@ -59,7 +59,9 @@ class O2ACCommon(O2ACBase):
     self.small_item_ids = [8,9,10,14]
     self.large_item_ids = [1,2,3,4,5,7,11,12,13]
     self.belt_id        = [6]
-    
+    self.assembly_marker_id_counter = 1  # For tracking visualization markers
+    self.assembly_marker_publisher = rospy.Publisher("o2ac_assembly_markers", visualization_msgs.msg.Marker, queue_size = 100)
+
     self.define_tray_views()
 
   def define_tray_views(self):
@@ -115,8 +117,12 @@ class O2ACCommon(O2ACBase):
     # DEBUGGING: Remove object from the scene
     if True:
       self.planning_scene_interface.remove_world_object(name=object_name)
-      return True
-    # TODO: Publish as visualization marker
+      
+    marker = self.assembly_database.get_visualization_marker(object_name, self.assembly_marker_id_counter)
+    self.assembly_marker_id_counter += 1
+    self.assembly_marker_publisher.publish(marker)
+
+    return True
 
     object_id = self.assembly_database.name_to_id(object_name)
     collision_object = self.assembly_database.get_collision_object(object_name)
@@ -131,7 +137,20 @@ class O2ACCommon(O2ACBase):
         robot.gripper.last_attached_object = None
     
     return
-    
+  
+  def reset_assembly_visualization(self):
+    """ Clears all visualization markers """
+    m = visualization_msgs.msg.Marker()
+    m.action = m.DELETEALL
+    self.assembly_marker_publisher.publish(m)
+
+  def set_assembly(self, assembly_name="wrs_assembly_2020"):
+    self.assembly_database.change_assembly(assembly_name)
+    pose = geometry_msgs.msg.PoseStamped()
+    pose.header.frame_id = 'attached_base_origin_link'
+    pose.pose.orientation.w = 1.0
+    self.assembly_database.publish_assembly_frames(pose, prefix="assembled_")
+    return True
 
   ######## Higher-level routines used in both assembly and taskboard
 

@@ -7,10 +7,8 @@ Panels:
         - /Global Options1
         - /Status1
         - /Camera image1
-        - /Status Text1
         - /Status Text1/Status1
         - /PlanningScene1/Scene Geometry1
-        - /DepthCloud1
         - /DepthCloud1/Auto Size1
       Splitter Ratio: 0.5
     Tree Height: 820
@@ -355,6 +353,30 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
+          agv_tray:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          agv_tray_center:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          agv_traycorner_1_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          agv_traycorner_2_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          agv_traycorner_3_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          agv_traycorner_4_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           attached_base_origin_back_link:
             Alpha: 1
             Show Axes: false
@@ -652,6 +674,10 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
+          left_centering_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           m3_feeder_inlet_link:
             Alpha: 1
             Show Axes: false
@@ -709,6 +735,10 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
+          right_centering_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           screw_tool_holder_long:
             Alpha: 1
             Show Axes: false
@@ -743,125 +773,12 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          taskboard_assy_part_07:
+          simple_holder:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          taskboard_assy_part_07_back_hole:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_back_tip:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_front_hole:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_inserted:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_screw_hole_1:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_screw_hole_2:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_screw_hole_3:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_screw_hole_4:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_base:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          taskboard_base_screw_1_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_base_screw_2_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_base_screw_3_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_base_screw_4_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_bearing_target_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_bearing_target_screw_1_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_bearing_target_screw_2_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_bearing_target_screw_3_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_bearing_target_screw_4_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_large_pulley:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          taskboard_long_hole_middle_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_long_hole_top_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_m3_screw_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_m4_screw_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_plate:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          taskboard_set_screw_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_small_pulley:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          taskboard_small_shaft:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          taskboard_surface:
+          simple_holder_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -871,6 +788,16 @@ Visualization Manager:
             Show Trail: false
             Value: true
           tray_center:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          tray_left_stopper:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          tray_right_stopper:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -969,6 +896,14 @@ Visualization Manager:
       Topic Filter: true
       Use Fixed Frame: true
       Use rainbow: true
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /o2ac_assembly_markers
+      Name: Assembly Visualization
+      Namespaces:
+        {}
+      Queue Size: 100
       Value: true
   Enabled: true
   Global Options:
