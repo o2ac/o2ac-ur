@@ -102,7 +102,12 @@ class DualArm(RobotBase):
         master = self.active_robots[master_name]
         slave = self.active_robots[slave_name]
 
-        master_plan, _ = master.go_to_pose_goal(target_pose, speed=speed, plan_only=True)
+        result = master.go_to_pose_goal(target_pose, speed=speed, plan_only=True)
+        if not result:
+            rospy.logerr("Failed to plan `master` trajectory. Abort.")
+            return False
+
+        master_plan, _ = result
 
         master_slave_plan = copy.deepcopy(master_plan)
         master_slave_plan.joint_trajectory.joint_names += slave.robot_group.get_active_joints()
@@ -117,14 +122,22 @@ class DualArm(RobotBase):
             slave_tcp = self.listener.transformPose(slave.ns + "_base_link", slave_tcp)
             ok = False
             tries = 10.0
-            ik_solver_timeout = 0.01
+            ik_solver_timeout = 0.0
             while not ok and tries > 0:
                 tries -= 1
+                # after every failure, incrementally give more time to the IK solver to compute a better solution
+                ik_solver_timeout += 0.01
                 if last_ik_solution is None:
                     ik_solution = slave.robot_group.get_current_joint_values()
                 else:
                     ik_solution = slave.compute_ik(target_pose=slave_tcp, joints_seed=last_ik_solution, timeout=ik_solver_timeout)
 
+                if not ik_solution:
+                    continue
+
+                if i == 0:
+                    ok = True
+                    break
                 # Sanity check
                 # Compare the slave largest joint displacement for this IK solution vs the master largest joint displacement
                 # if the displacement is more than 5 deg, check that the displacement is not larger than 2x the master joint displacement
@@ -135,12 +148,9 @@ class DualArm(RobotBase):
                         ok = slave_joint_displacement < master_joint_displacement * 2.0  # arbitrary
                     else:
                         ok = True
-                else:
-                    ok = True
+                
                 if ok and self.check_state_validity(list(point.positions) + list(ik_solution)):
                     break
-                # after every failure, give the IK solver a bit more of time to compute a better solution
-                ik_solver_timeout += 0.01
 
             if not ok:
                 rospy.logerr("Could not find a valid IK solution for the slave-robot")

@@ -69,9 +69,13 @@ class RobotBase():
         req.fk_link_names = [tcp_link if tcp_link else self.robot_group.get_end_effector_link()]
         req.robot_state = robot_state_
         res = self.moveit_fk_srv.call(req)
-        if frame_id:
-            return self.listener.transformPose(frame_id, res.pose_stamped[0])
-        return res.pose_stamped[0]
+        if res.error_code.val != moveit_msgs.msg.MoveItErrorCodes.SUCCESS:
+            rospy.logwarn("compute FK failed with code: %s" % res.error_code.val)
+            return False
+        else:
+            if frame_id:
+                return self.listener.transformPose(frame_id, res.pose_stamped[0])
+            return res.pose_stamped[0]
 
     def compute_ik(self, target_pose, joints_seed=None, timeout=0.01):
         """
@@ -94,10 +98,15 @@ class RobotBase():
         req = moveit_msgs.srv.GetPositionIKRequest()
         req.ik_request = ik_request
         res = self.moveit_ik_srv.call(req)
-        solution = []
-        for joint_name in self.robot_group.get_active_joints():
-            solution.append(res.solution.joint_state.position[res.solution.joint_state.name.index(joint_name)])
-        return solution
+        
+        if res.error_code.val != moveit_msgs.msg.MoveItErrorCodes.SUCCESS:
+            rospy.logwarn("compute IK failed with code: %s" % res.error_code.val)
+            return None
+        else:
+            solution = []
+            for joint_name in self.robot_group.get_active_joints():
+                solution.append(res.solution.joint_state.position[res.solution.joint_state.name.index(joint_name)])
+            return solution
 
     def set_up_move_group(self, speed, acceleration, planner="OMPL"):
         assert not rospy.is_shutdown()
