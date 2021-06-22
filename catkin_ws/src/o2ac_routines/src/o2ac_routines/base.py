@@ -117,7 +117,7 @@ class O2ACBase(object):
     self.b_bot = URRobot("b_bot", self.listener)
     self.ab_bot = DualArm("ab_bot", self.a_bot, self.b_bot, self.listener)
     # For compatibility let's wrap the robots
-    self.active_robots = {'a_bot': self.a_bot, 'b_bot': self.b_bot}
+    self.active_robots = {'a_bot': self.a_bot, 'b_bot': self.b_bot, 'ab_bot': self.ab_bot}
     
     for robot in ["a_bot", "b_bot"]:
       self.active_robots[robot].get_status_from_param_server()

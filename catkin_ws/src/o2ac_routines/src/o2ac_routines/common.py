@@ -2347,10 +2347,57 @@ class O2ACCommon(O2ACBase):
     self.b_bot.move_lin_rel(relative_translation = [0.10,0,0], acceleration = 0.015, speed=.03)
     return success
 
-  def take_tray_from_agv(self, reverse=False, reverse_movement_for_calibration=False):
+  def take_tray_from_agv_preplanned(self):
+    self.allow_collisions_with_robot_hand("tray", "a_bot", allow=True)
+    self.allow_collisions_with_robot_hand("tray", "b_bot", allow=True)
+    self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=True)
+    self.allow_collisions_with_robot_hand("tray_center", "b_bot", allow=True)
+
+    # Push the tray from the side
+    self.a_bot.gripper.open(wait=False)
+    self.b_bot.gripper.open(wait=False)
+
+    self.playback_sequence("tray_orient")
+
+    # Grasp and place the tray
+    self.confirm_to_proceed("At above_tray_avg. Move to next?")
+
+    self.ab_bot.execute_saved_plan(filename="ab_bot_at_tray_agv")
+    self.confirm_to_proceed("At at_tray_agv. Move to next?")
+
+    self.a_bot.gripper.close(force=80)
+    self.b_bot.gripper.close(force=80)
+
+    self.ab_bot.execute_saved_plan(filename="ab_bot_above_tray_agv")
+    self.confirm_to_proceed("At above_tray_agv. Move to next?")
+
+    self.ab_bot.execute_saved_plan(filename="ab_bot_above_tray_table")
+    self.confirm_to_proceed("At above_tray_table. Move to next?")
+
+    self.ab_bot.execute_saved_plan(filename="ab_bot_at_tray_table")
+    self.confirm_to_proceed("At at_tray_table. Move to next?")
+      
+    self.a_bot.gripper.open(opening_width=0.05, wait=False)
+    self.b_bot.gripper.open(opening_width=0.05)
+
+    self.ab_bot.execute_saved_plan(filename="ab_bot_return_above_tray_table")
+
+    self.ab_bot.go_to_named_pose("home")
+
+    self.allow_collisions_with_robot_hand("tray", "a_bot", allow=False)
+    self.allow_collisions_with_robot_hand("tray", "b_bot", allow=False)
+    self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=False)
+    self.allow_collisions_with_robot_hand("tray_center", "b_bot", allow=False)
+
+    return True
+
+  def take_tray_from_agv(self, reverse=False, reverse_movement_for_calibration=False, preplanned=False):
     """
     Take the tray from the AGV and place it in the robot workspace.
     """
+    if preplanned:
+      return self.take_tray_from_agv_preplanned()
+
     self.allow_collisions_with_robot_hand("tray", "a_bot", allow=True)
     self.allow_collisions_with_robot_hand("tray", "b_bot", allow=True)
     self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=True)

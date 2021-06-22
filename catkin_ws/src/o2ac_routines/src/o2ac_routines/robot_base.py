@@ -2,6 +2,8 @@ import actionlib
 from actionlib_msgs.msg import GoalStatus
 
 import copy
+import rosbag
+import rospkg
 import rospy
 import moveit_commander
 import numpy
@@ -159,6 +161,19 @@ class RobotBase():
 
     def get_current_pose(self):
         return self.robot_group.get_current_pose().pose
+
+    def save_plan(self, filename, plan):
+        rp = rospkg.RosPack()
+        bagfile = rp.get_path("o2ac_routines") + "/config/saved_plans/" + filename
+        with rosbag.Bag(bagfile, 'w') as bag:
+            bag.write(topic="saved_plan", msg=plan)
+    
+    def execute_saved_plan(self, filename, wait=True):
+        rp = rospkg.RosPack()
+        bagfile = rp.get_path("o2ac_routines") + "/config/saved_plans/" + filename
+        with rosbag.Bag(bagfile, 'r') as bag:
+            for (topic, plan, ts) in bag.read_messages():
+                return self.execute_plan(plan)
 
     # ------ Robot motion functions
 
