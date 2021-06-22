@@ -404,16 +404,16 @@ class O2ACCommon(O2ACBase):
             rospy.logerr("Fail to move_towards_tray_center_from_corner")
             return False
           return self.look_and_get_grasp_point(object_id, robot_name, grasp_width)
-        elif grasps == TOO_CLOSE_TO_OTHER_OBJECTS and grab_and_drop:
-          if not self.grab_and_drop(robot_name, object_pose, grasp_width):
-            rospy.logerr("Fail to grab and drop")
-            return False
-          return self.look_and_get_grasp_point(object_id, robot_name, grasp_width, grab_and_drop=True, center_on_corner=True) # May end in infinite loop?
         elif grasps == TOO_CLOSE_TO_BORDER and center_on_close_border:
           if not self.move_towards_center_from_border(robot_name, object_pose, with_tool=with_tool):
             rospy.logerr("Fail to move_towards_center_from_border")
             return False
           return self.look_and_get_grasp_point(object_id, robot_name, grasp_width)
+        elif grasps == TOO_CLOSE_TO_OTHER_OBJECTS and grab_and_drop:
+          if not self.grab_and_drop(robot_name, object_pose, grasp_width):
+            rospy.logerr("Fail to grab and drop")
+            return False
+          return self.look_and_get_grasp_point(object_id, robot_name, grasp_width, grab_and_drop=True, center_on_corner=True) # May end in infinite loop?
         else:
           return grasps[0]
       rospy.logerror("No feasible grasps! %s" % grasps)
@@ -763,10 +763,8 @@ class O2ACCommon(O2ACBase):
         print("shaft>>> sanity check", res)
         if isinstance(res, list) and len(res) == 2:
           return [object_ps] # pick is possible along x and y so try as usual
-        elif res in (TOO_CLOSE_TO_BORDER, CORNER):
-          return res
         else:
-          return TOO_CLOSE_TO_BORDER
+          return res
 
       # For other small items, use any pose from above that works
       return self.simple_grasp_generation(object_pose=object_ps, grasp_z_height=0.0, grasp_width=grasp_width, rotation_offset=rotation_offset,
