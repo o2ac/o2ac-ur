@@ -374,7 +374,7 @@ class O2ACBase(object):
       self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=12.0, skip_final_loosen_and_retighten=True)
       # self.send_fastening_tool_command(fastening_tool_name, "loosen", false, 5.0)
       rospy.loginfo("Moving into screw to pick it up.")
-      adjusted_pose.pose.position.x += .02
+      adjusted_pose.pose.position.x += .015
       self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, acceleration=0.025, end_effector_link=screw_tool_link)
 
       rospy.sleep(0.5)
@@ -424,13 +424,12 @@ class O2ACBase(object):
       rospy.loginfo("Finished picking up screw successfully.")
     else:
       rospy.logerr("Failed to pick screw.")
+      self.tools.set_suction(screw_tool_id, suction_on=False, eject=False, wait=False)
     
     return screw_picked
 
   @check_for_real_robot
   def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=True):
-    return self.pick_screw_from_feeder2(robot_name, screw_size, realign_tool_upon_failure)  # Python-only version 
-
     res = self.skill_server.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure)
     try:
       if res.success:
