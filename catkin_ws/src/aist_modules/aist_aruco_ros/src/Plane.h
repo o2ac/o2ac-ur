@@ -93,8 +93,8 @@ Plane<T, N>::fit(ITER begin, ITER end)
     }
 
     ROS_DEBUG_STREAM("plane = " << *this << ", err = "
-		     << std::sqrt(std::abs(evalues(N-1))/value_type(npoints))
-		     << ", computed from " << npoints << " points.");
+    		     << std::sqrt(std::abs(evalues(N-1))/value_type(npoints))
+    		     << ", computed from " << npoints << " points.");
 }
 
 template <class T, int N> T

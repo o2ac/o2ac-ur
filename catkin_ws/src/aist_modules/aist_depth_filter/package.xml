@@ -16,6 +16,8 @@
 
   <depend>roscpp</depend>
   <depend>rospy</depend>
+  <depend>actionlib</depend>
+  <depend>actionlib_msgs</depend>
   <depend>ddynamic_reconfigure</depend>
   <depend>sensor_msgs</depend>
   <depend>image_transport</depend>

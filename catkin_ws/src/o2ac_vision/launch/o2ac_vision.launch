@@ -4,23 +4,23 @@
 
   <!-- Mode of object detector -->
   <!-- Continuous streaming is expensive and meant for debugging. -->
-  <arg name="continuous_streaming"		default="false"/>
-  <arg name="camera_name"	default="camera_multiplexer"/>
+  <arg name="continuous_streaming"	default="false"/>
+  <arg name="camera_name"		default="camera_multiplexer"/>
 
   <!-- Localization parameters -->
-  <arg name="nposes"		default="2"/>
-  <arg name="timeout"		default="10"/>
-  <arg name="ply_dir"		default="$(find o2ac_parts_description)/meshes"/>
-  <arg name="urdf_dir"		default="$(find o2ac_parts_description)/urdf/generated"/>
+  <arg name="nposes"	default="2"/>
+  <arg name="timeout"	default="10"/>
+  <arg name="ply_dir"	default="$(find o2ac_parts_description)/meshes"/>
+  <arg name="urdf_dir"	default="$(find o2ac_parts_description)/urdf/generated"/>
 
   <!-- Construct recognition pipeline -->
   <include file="$(find o2ac_vision)/launch/recognition_pipeline.launch">
-    <arg name="continuous_streaming"		  value="$(arg continuous_streaming)"/>
-    <arg name="camera_name"	default="$(arg camera_name)"/>
-    <arg name="nposes"		  value="$(arg nposes)"/>
-    <arg name="timeout"		  value="$(arg timeout)"/>
-    <arg name="ply_dir"		  value="$(arg ply_dir)"/>
-    <arg name="urdf_dir"	  value="$(arg urdf_dir)"/>
+    <arg name="continuous_streaming"	value="$(arg continuous_streaming)"/>
+    <arg name="camera_name"		value="$(arg camera_name)"/>
+    <arg name="nposes"			value="$(arg nposes)"/>
+    <arg name="timeout"			value="$(arg timeout)"/>
+    <arg name="ply_dir"			value="$(arg ply_dir)"/>
+    <arg name="urdf_dir"		value="$(arg urdf_dir)"/>
     <!-- Topic names for a raw realsense camera -->
     <!-- <arg name="camera_info_topic" value="$(arg camera_name)/color/camera_info"/>
     <arg name="image_topic"	  value="$(arg camera_name)/color/image_raw"/>
@@ -33,7 +33,8 @@
   </include>
 
   <!-- Separate node for Python3 functions -->
-  <node name="o2ac_py3_vision_server" pkg="o2ac_vision" type="o2ac_py3_vision_server.py"/>
+  <node name="o2ac_py3_vision_server"
+	pkg="o2ac_vision" type="o2ac_py3_vision_server.py"/>
 
   <!-- Spawn visualizer and parameter configurator -->
   <node name="$(anon rviz)" pkg="rviz" type="rviz" output="screen"

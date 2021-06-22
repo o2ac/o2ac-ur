@@ -1,0 +1,38 @@
+in_plane:
+  - 05_MBRFA30-2-P6
+  - 06_MBT4-400
+  - 08_KZAF1075NA4WA55GA20AA0
+  - 09_EDCS10
+  - 10_CLBPS10_17_4
+  - 12_CLBUS6-9-9.5
+  - 13_MBGA30-2
+  - 14_BGPSL6-9-L30-F8
+  - 15_SLBNR6: 1
+
+full_settings:
+  04_37D-GEARMOTOR-50-70:
+    Matching_Algorithm: Combined
+  05_MBRFA30-2-P6:
+    Matching_Algorithm: Combined
+  07_SBARB6200ZZ_30:
+    Matching_Algorithm: Combined
+  10_CLBPS10_17_4:
+    Scene_Minimal_Cluster_Size: 50
+  12_CLBPS10_17_4:
+    Scene_Minimal_Cluster_Size: 50
+
+in_plane_settings:
+  05_MBRFA30-2-P6:
+    z_offset: 0.005
+  06_MBT4-400:
+    sideways: true
+    x_offset: 0.00
+    z_offset: 0.003
+  08_KZAF1075NA4WA55GA20AA0:
+    sideways: true
+    x_offset: -0.0375
+    z_offset: 0.005
+  14_BGPSL6-9-L30-F8:
+    sideways: true
+    x_offset: -0.016
+    z_offset: 0.003

@@ -22,6 +22,55 @@ namespace aist_aruco_ros
 /************************************************************************
 *  global functions							*
 ************************************************************************/
+// The original aruco_ros::rosCameraInfo2ArucoCamParams() has a bug
+// that the cameraMatrix is not correctly setup when using unrectified
+// images. So, we use our own implementation.
+static aruco::CameraParameters
+rosCameraInfo2ArucoCamParams(const sensor_msgs::CameraInfo& camera_info,
+			     bool useRectifiedImages)
+{
+    cv::Mat	cameraMatrix(3, 4, CV_64FC1);
+    cv::Mat	distorsionCoeff(4, 1, CV_64FC1);
+    cv::Size	size(camera_info.width, camera_info.height);
+    
+    cameraMatrix.setTo(0);
+    distorsionCoeff.setTo(0);
+    
+    if (useRectifiedImages)
+    {
+	cameraMatrix.at<double>(0, 0) = camera_info.P[0];
+	cameraMatrix.at<double>(0, 1) = camera_info.P[1];
+	cameraMatrix.at<double>(0, 2) = camera_info.P[2];
+	cameraMatrix.at<double>(0, 3) = camera_info.P[3];
+	cameraMatrix.at<double>(1, 0) = camera_info.P[4];
+	cameraMatrix.at<double>(1, 1) = camera_info.P[5];
+	cameraMatrix.at<double>(1, 2) = camera_info.P[6];
+	cameraMatrix.at<double>(1, 3) = camera_info.P[7];
+	cameraMatrix.at<double>(2, 0) = camera_info.P[8];
+	cameraMatrix.at<double>(2, 1) = camera_info.P[9];
+	cameraMatrix.at<double>(2, 2) = camera_info.P[10];
+	cameraMatrix.at<double>(2, 3) = camera_info.P[11];
+    }
+    else
+    {
+	cameraMatrix.at<double>(0, 0) = camera_info.K[0];
+	cameraMatrix.at<double>(0, 1) = camera_info.K[1];
+	cameraMatrix.at<double>(0, 2) = camera_info.K[2];
+	cameraMatrix.at<double>(1, 0) = camera_info.K[3];
+	cameraMatrix.at<double>(1, 1) = camera_info.K[4];
+	cameraMatrix.at<double>(1, 2) = camera_info.K[5];
+	cameraMatrix.at<double>(2, 0) = camera_info.K[6];
+	cameraMatrix.at<double>(2, 1) = camera_info.K[7];
+	cameraMatrix.at<double>(2, 2) = camera_info.K[8];
+
+	const auto	n = std::min(int(camera_info.D.size()), 4);
+	for (int i = 0; i < n; ++i)
+	    distorsionCoeff.at<double>(i, 0) = camera_info.D[i];
+    }
+
+    return {cameraMatrix, distorsionCoeff, size};
+}
+    
 template <class T> inline T
 val(const sensor_msgs::Image& image_msg, int u, int v)
 {
@@ -88,95 +137,75 @@ Detector::Detector(const ros::NodeHandle& nh)
     {
 	const auto	half_size = _marker_size/2;
 	marker_info_t	mInfo(_marker_id);
-	mInfo.push_back({-half_size, -half_size, 0});
 	mInfo.push_back({-half_size,  half_size, 0});
 	mInfo.push_back({ half_size,  half_size, 0});
 	mInfo.push_back({ half_size, -half_size, 0});
+	mInfo.push_back({-half_size, -half_size, 0});
 	_marker_map.push_back(mInfo);
 	_marker_map.mInfoType = marker_map_t::METERS;
     }
 
-  // WIP: Setup ddynamic_reconfigure service for min/max sizes.
-    float	min_size, max_size;
-    _marker_detector.getMinMaxSize(min_size, max_size);
-    ROS_INFO_STREAM("Marker size min: " << min_size << "  max: " << max_size);
+  // Set minimum marker size and setup ddynamic_reconfigure service for it.
+    double	minMarkerSize = _marker_detector.getParameters().minSize;
+    _nh.param("min_marker_size", minMarkerSize, minMarkerSize);
 
+    _ddr.registerVariable<double>("min_marker_size", minMarkerSize,
+				  boost::bind(&Detector::set_min_marker_size,
+					      this, _1),
+				  "Minimum marker size", 0.0, 1.0);
+    ROS_INFO_STREAM("Minimum marker size: "
+		    << _marker_detector.getParameters().minSize);
 
-  // Set desired speed and setup ddynamic_reconfigure service for it.
-    int		desiredSpeed;
-    _nh.param("desired_speed",
-	      desiredSpeed, _marker_detector.getDesiredSpeed());
+  // Set detection mode and setup ddynamic_reconfigure service for it.
+    int	detectionMode = _marker_detector.getDetectionMode();
+    _nh.param("detection_mode", detectionMode, detectionMode);
 
-    std::map<std::string, int>	map_desiredSpeed = {{"very_precise",	0},
-						    {"precise",		1},
-						    {"fast",		2},
-						    {"very_fast",	3}};
-    _ddr.registerEnumVariable<int>(
-    	"desired_speed", desiredSpeed,
-    	boost::bind(&mdetector_t::setDesiredSpeed, _marker_detector, _1),
-	"Desired speed", map_desiredSpeed);
-    ROS_INFO_STREAM("Desired speed: " << _marker_detector.getDesiredSpeed());
+    std::map<std::string, int>	map_detectionMode =
+    				{
+				    {"NORMAL",	   aruco::DM_NORMAL},
+				    {"FAST",	   aruco::DM_FAST},
+				    {"VIDEO_FAST", aruco::DM_VIDEO_FAST},
+				};
+    _ddr.registerEnumVariable<int>("detection_mode", detectionMode,
+				   boost::bind(&Detector::set_detection_mode,
+					       this, _1),
+				   "Corner refinement method",
+				   map_detectionMode);
+    ROS_INFO_STREAM("Detection mode: " << _marker_detector.getDetectionMode());
 
-  // Set coner refinement method and setup ddynamic_reconfigure service for it.
-    std::string refinementMethod;
-    _nh.param("refinement_method", refinementMethod, std::string("LINES"));
-    set_refinement_method(refinementMethod);
+  // Set dictionary and setup ddynamic_reconfigure service for it.
+    int	dictType = aruco::Dictionary::ARUCO;
+    _nh.param("dictionary", dictType, dictType);
+    set_dictionary(dictType);
 
-    std::map<std::string, std::string>	map_refinementMethod =
-    					{
-    					    {"NONE",	"NONE"},
-    					    {"HARRIS",	"HARRIS"},
-    					    {"SUBPIX",	"SUBPIX"},
-    					    {"LINES",	"LINES"},
-    					};
-    _ddr.registerEnumVariable<std::string>(
-    	"refinement_method", refinementMethod,
-    	boost::bind(&Detector::set_refinement_method, this, _1),
-    	"Corner refinement method", map_refinementMethod);
-    ROS_INFO_STREAM("Corner refinement method: "
-		    << _marker_detector.getCornerRefinementMethod());
-
-  // Set threshold method and setup ddynamic_reconfigure service for it.
-    std::string thresholdMethod;
-    _nh.param("threshold_method", thresholdMethod, std::string("ADPT_THRES"));
-    set_threshold_method(thresholdMethod);
-
-    std::map<std::string, std::string>	map_thresholdMethod =
-					{
-					    {"FIXED_THRES", "FIXED_THRES"},
-					    {"ADPT_THRES",  "ADPT_THRES"},
-					    {"CANNY",	    "CANNY"},
-					};
-    _ddr.registerEnumVariable<std::string>(
-	"threshold_method", thresholdMethod,
-	boost::bind(&Detector::set_threshold_method, this, _1),
-	"Threshold method", map_thresholdMethod);
-    ROS_INFO_STREAM("Threshold method: "
-		    << _marker_detector.getThresholdMethod());
-
-  // Setup ddynamic_reconfigure service for threshold values.
-    double	param1, param2;
-    _marker_detector.getThresholdParams(param1, param2);
-    _ddr.registerVariable<double>(
-	"param1", param1,
-	boost::bind(&Detector::set_first_param<double>, this,
-		    &mdetector_t::getThresholdParams,
-		    &mdetector_t::setThresholdParams, _1),
-	"Size of the block used for computing threshold at its center", 1, 15);
-    _ddr.registerVariable<double>(
-	"param2", param2,
-	boost::bind(&Detector::set_second_param<double>, this,
-		    &mdetector_t::getThresholdParams,
-		    &mdetector_t::setThresholdParams, _1),
-	"The constant subtracted from the mean or weighted mean", 1, 15);
-    ROS_INFO_STREAM("Thresholding paramaeter values: "
-		    << " param1: " << param1 << " param2: " << param2);
+    std::map<std::string, int>
+	map_dictType =
+	{
+	    {"ARUCO",		 aruco::Dictionary::ARUCO},
+	    {"ARUCO_MIP_25h7",	 aruco::Dictionary::ARUCO_MIP_25h7},
+	    {"ARUCO_MIP_16h3",	 aruco::Dictionary::ARUCO_MIP_16h3},
+	    {"ARTAG",		 aruco::Dictionary::ARTAG},
+	    {"ARTOOLKITPLUS",	 aruco::Dictionary::ARTOOLKITPLUS},
+	    {"ARTOOLKITPLUSBCH", aruco::Dictionary::ARTOOLKITPLUSBCH},
+	    {"TAG16h5",		 aruco::Dictionary::TAG16h5},
+	    {"TAG25h7",		 aruco::Dictionary::TAG25h7},
+	    {"TAG25h9",		 aruco::Dictionary::TAG25h9},
+	    {"TAG36h11",	 aruco::Dictionary::TAG36h11},
+	    {"TAG36h10",	 aruco::Dictionary::TAG36h10},
+	    {"CUSTOM",		 aruco::Dictionary::CUSTOM},
+	};
+    _ddr.registerEnumVariable<int>("dictionary", dictType,
+				   boost::bind(&Detector::set_dictionary,
+					       this, _1),
+				   "Dictionary", map_dictType);
+    ROS_INFO_STREAM("Dictionary: " << dictType);
 
   // Set usage of rigid transformation and setup its dynamic reconfigure service.
     _nh.param("use_similarity", _useSimilarity, _useSimilarity);
     _ddr.registerVariable<bool>(
 	"use_similarity", &_useSimilarity,
-	"Use similarity transformation to determine marker poses.");
+	"Use similarity transformation to determine marker poses.",
+	false, true);
 
   // Set planarity tolerance and setup its ddynamic_recoconfigure service.
     _nh.param("planarity_tolerance", _planarityTolerance, _planarityTolerance);
@@ -199,47 +228,23 @@ Detector::run()
 }
 
 void
-Detector::set_refinement_method(const std::string& method)
+Detector::set_detection_mode(int mode)
 {
-    if (method == "NONE")
-	_marker_detector.setCornerRefinementMethod(mdetector_t::NONE);
-    else if (method == "HARRIS")
-	_marker_detector.setCornerRefinementMethod(mdetector_t::HARRIS);
-    else if (method == "SUBPIX")
-	_marker_detector.setCornerRefinementMethod(mdetector_t::SUBPIX);
-    else
-	_marker_detector.setCornerRefinementMethod(mdetector_t::LINES);
+    _marker_detector.setDetectionMode(mode,
+				      _marker_detector.getParameters().minSize);
 }
 
 void
-Detector::set_threshold_method(const std::string& method)
+Detector::set_min_marker_size(double size)
 {
-    if (method == "FIXED_THRES")
-	_marker_detector.setThresholdMethod(mdetector_t::FIXED_THRES);
-    else if (method == "ADPT_THRES")
-	_marker_detector.setThresholdMethod(mdetector_t::ADPT_THRES);
-    else
-	_marker_detector.setThresholdMethod(mdetector_t::CANNY);
+    _marker_detector.setDetectionMode(_marker_detector.getDetectionMode(),
+				      size);
 }
 
-template <class T> inline void
-Detector::set_first_param(void (mdetector_t::* get)(T&, T&) const,
-			  void (mdetector_t::* set)(T, T),
-			  T param)
+void
+Detector::set_dictionary(int dict_type)
 {
-    T	dummy, param2;
-    (_marker_detector.*get)(dummy, param2);
-    (_marker_detector.*set)(param, param2);
-}
-
-template <class T> inline void
-Detector::set_second_param(void (mdetector_t::* get)(T&, T&) const,
-			   void (mdetector_t::* set)(T, T),
-			   T param)
-{
-    T	param1, dummy;
-    (_marker_detector.*get)(param1, dummy);
-    (_marker_detector.*set)(param1, param);
+    _marker_detector.setDictionary(dict_type);
 }
 
 void
@@ -250,26 +255,20 @@ Detector::detect_marker_cb(const camera_info_p& camera_info_msg,
 	_camera_frame = camera_info_msg->header.frame_id;
     if (_reference_frame.empty())
 	_reference_frame = _camera_frame;
-    
+
     try
     {
-      // Truncate distortion coefficiens because aruco_ros accepts only
-      // first four parameters.
-	auto	msg_tmp = *camera_info_msg;
-	msg_tmp.D.resize(4);
-	std::copy_n(std::begin(camera_info_msg->D), msg_tmp.D.size(),
-		    std::begin(msg_tmp.D));
-	_camParam = aruco_ros::rosCameraInfo2ArucoCamParams(
-			msg_tmp, _useRectifiedImages);
+      // Convert camera_info to aruco camera parameters
+	_camParam = rosCameraInfo2ArucoCamParams(*camera_info_msg,
+						 _useRectifiedImages);
 
       // Handle cartesian offset between stereo pairs.
       // See the sensor_msgs/CamaraInfo documentation for details.
 	_rightToLeft.setIdentity();
-	_rightToLeft.setOrigin(tf::Vector3(-camera_info_msg->P[3]/
-					    camera_info_msg->P[0],
-					   -camera_info_msg->P[7]/
-					    camera_info_msg->P[5],
-					   0.0));
+	_rightToLeft.setOrigin(
+	    tf::Vector3(-camera_info_msg->P[3]/camera_info_msg->P[0],
+			-camera_info_msg->P[7]/camera_info_msg->P[5],
+			0.0));
 
       // Convert sensor_msgs::ImageConstPtr to CvImagePtr.
 	auto	image = cv_bridge::toCvCopy(image_msg,
@@ -296,6 +295,8 @@ Detector::detect_marker_cb(const camera_info_p& camera_info_msg,
 
 		for (size_t j = 0; j < corners.size(); ++j)
 		    pairs.push_back(std::make_pair(markerinfo[j], corners[j]));
+
+		marker.draw(image, cv::Scalar(0, 0, 255), 2);
 	    }
 
 	    publish_transform(pairs.begin(), pairs.end(),
@@ -343,9 +344,8 @@ Detector::detect_marker_cb(const camera_info_p& camera_info_msg,
 	    }
 	}
 
-	if (_marker_size != -1)
-	    for (auto& marker : markers)
-		aruco::CvDrawingUtils::draw3dAxis(image, marker, _camParam);
+	for (auto& marker : markers)
+	    aruco::CvDrawingUtils::draw3dAxis(image, marker, _camParam);
 
 	publish_image(image, image_msg->header);
     }

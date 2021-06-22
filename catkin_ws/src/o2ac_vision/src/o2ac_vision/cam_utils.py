@@ -19,12 +19,13 @@ class O2ACCameraHelper(object):
     """
 
     def __init__(self):
-        self.camera_name = "camera_multiplexer"
-        self.cam_info_sub = rospy.Subscriber('/' + self.camera_name + '/camera_info', sensor_msgs.msg.CameraInfo,
-                                          self.camera_info_callback)
-        self.depth_image_sub = rospy.Subscriber('/' + self.camera_name + '/depth', sensor_msgs.msg.Image,
-                                          self.depth_image_sub_callback)
-        
+        self.cam_info_sub = rospy.Subscriber('/camera_info',
+                                             sensor_msgs.msg.CameraInfo,
+                                             self.camera_info_callback)
+        self.depth_image_sub = rospy.Subscriber('/depth',
+                                                sensor_msgs.msg.Image,
+                                                self.depth_image_sub_callback)
+
         self._camera_info = []
         self._depth_image = []
 
@@ -32,7 +33,7 @@ class O2ACCameraHelper(object):
 
     def camera_info_callback(self, cam_info_message):
         self._camera_info = cam_info_message
-    
+
     def depth_image_sub_callback(self, depth_image_msg):
         self._depth_image = depth_image_msg
 
@@ -42,25 +43,25 @@ class O2ACCameraHelper(object):
         frames_to_average is the number of frames used to take the average of.
         average_with_radius uses nearby pixels for averaging the depth value. radius=0 evaluates only the pixel.
         """
-        
+
         # Get depth images
         depth_images_ros = []
         for i in range(frames_to_average):
             depth_images_ros.append(copy.deepcopy(self._depth_image))
             rospy.sleep(.12)
-        
+
         # Convert images
         depth_images = []
         for img_ros in depth_images_ros:
             depth_images.append(self.bridge.imgmsg_to_cv2(img_ros, desired_encoding="passthrough"))
-        
+
         return self.project_2d_to_3d_from_images(u, v, depth_images, average_with_radius)
-        
+
     def project_2d_to_3d_from_images(self, u, v, depth_images=[], average_with_radius=0):
         """
         Go through depth images (list of images in cv2 format) and return 3D pose of single pixel (u,v).
         average_with_radius uses nearby pixels for averaging the depth value. radius=0 evaluates only the pixel.
-        Does not actually use a radius, but a box around 
+        Does not actually use a radius, but a box around
         """
         # Average over images and area
         depth_vals = []
@@ -78,7 +79,7 @@ class O2ACCameraHelper(object):
                             depth_vals.append(img[vc, uc])
         except:
             pass
-        
+
         if len(depth_vals) == 0:
             depth_vals.append(0)
             rospy.logerr("No depth value found in image!")
@@ -89,7 +90,7 @@ class O2ACCameraHelper(object):
                 rospy.logerr("Could not find pixels in depth image to reproject! Returning None")
                 return None
         depth = np.mean(depth_vals)
-        
+
         # Backproject to 3D
         position = self.project_2d_to_3d([u], [v], [depth])
         return position[0]
@@ -108,4 +109,4 @@ class O2ACCameraHelper(object):
                                     np.array(self._camera_info.D))
         xy = xy.ravel().reshape(npoints, 2)
         return [ (xy[i, 0]*d[i], xy[i, 1]*d[i], d[i])
-                    for i in range(npoints) ]    
+                    for i in range(npoints) ]

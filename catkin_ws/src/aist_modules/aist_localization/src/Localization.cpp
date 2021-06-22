@@ -17,20 +17,22 @@ Localization::Localization(const ros::NodeHandle& nh)
     :_nh(nh),
      _ply_dir(""),
      _localization(new localization_t()),
-     _file_info_sub( _nh.subscribe<file_info_t>(
-			 "/file_info",  1, &Localization::file_info_cb, this)),
-     _file_info(nullptr),
+     _file_info_sub(_nh, "/file_info",  1),
+     _camera_info_sub(_nh, "/camera_info",  1),
+     _sync(sync_policy_t(10), _file_info_sub, _camera_info_sub),
      _localize_srv(_nh, "localize",
 		   boost::bind(&Localization::localize_cb, this, _1), false),
      _ddr(_nh),
      _settings()
 {
-    _localize_srv.registerPreemptCallback(
-	boost::bind(&Localization::preempt_cb, this));
+  // Setup Localize action server.
+    _localize_srv.registerPreemptCallback(boost::bind(&preempt_cb, this));
     _localize_srv.start();
 
     _nh.param("ply_dir", _ply_dir,
 	      ros::package::getPath("o2ac_parts_description") + "/meshes");
+
+    _sync.registerCallback(&Localization::sync_cb, this);
 
   // Setup dynamic reconfigure parameters for localization.
   //   0: Preprocessing and overall search strategy
@@ -134,40 +136,33 @@ Localization::register_variable(const std::string& name,
 }
 
 void
-Localization::file_info_cb(const file_info_cp& file_info)
+Localization::preempt_cb() const
 {
-    try
-    {
-	ROS_DEBUG_STREAM("(Localization) Set frame["
-			 << file_info->camera_info.header.frame_id
-			 << "] and loading scene["
-			 << file_info->file_path << "]...");
+    _localization->StopAsync();
+    _localize_srv.setPreempted();
+    ROS_INFO_STREAM("(Localization)   *preempted*");
+}
 
-	_file_info = file_info;
-	_localization->SetSceneSource(pho::sdk::SceneSource::File(
-					  _file_info->file_path));
-
-	ROS_DEBUG_STREAM("(Localization)   succeeded.");
-    }
-    catch (const std::exception& err)
-    {
-	_file_info = nullptr;
-
-	ROS_ERROR_STREAM("(Localization)   failed: " << err.what());
-    }
+void
+Localization::sync_cb(const file_info_cp& file_info,
+		      const camera_info_cp& camera_info)
+{
+    _file_info   = file_info;
+    _camera_info = camera_info;
 }
 
 void
 Localization::localize_cb(const goal_cp& goal)
 {
+    if (!_file_info || !_file_info->plane_detected)
+    {
+	_localize_srv.setAborted();
+	ROS_ERROR_STREAM("(Localization) Aborted a goal because no plane detected");
+	return;
+    }
+
     try
     {
-	ROS_INFO_STREAM("(Localization) Localizing object["
-			<< goal->object_name << "]...");
-
-	if (!_file_info)
-	    throw std::runtime_error("  Scene is not set.");
-
 	if (goal->in_plane)
 	    localize_in_plane(goal);
 	else
@@ -192,24 +187,26 @@ Localization::localize_cb(const goal_cp& goal)
 }
 
 void
-Localization::preempt_cb() const
-{
-    ROS_INFO_STREAM("(Localization)   *preempted*");
-    _localization->StopAsync();
-}
-
-void
 Localization::localize_full(const goal_cp& goal)
 {
+    ROS_INFO_STREAM("(Localization) Full localization of object["
+		    << goal->object_name << "]...");
+
+  // Set scene source.
+    _localization->SetSceneSource(pho::sdk::SceneSource::File(
+				      _file_info->file_path));
+    ROS_DEBUG_STREAM("(Localization)   scene source succesfully set.");
+
   // Set model.
     _localization->RemoveModel();
     _localization->AddModel(pho::sdk::ModelOfObject::LoadModelFromFile(
-				_ply_dir + '/' + goal->object_name + ".ply"));
+				_ply_dir + '/' +
+				goal->object_name + ".ply"));
 
   // Set settings in dynamic_reconfigure server to the localizer.
     for (const auto& setting : _settings)
 	setting->set_to(*_localization);
-    ROS_DEBUG_STREAM("(Localization)   setting completed succesfully.");
+    ROS_DEBUG_STREAM("(Localization)   settings succesfully set.");
 
   // Set stop criteria.
     _localization->AddStopCriterion(
@@ -229,7 +226,7 @@ Localization::localize_full(const goal_cp& goal)
 			  tf::Vector3(k*mat[0][3], k*mat[1][3], k*mat[2][3]));
 
 	feedback_t	feedback;
-	feedback.pose.header = _file_info->camera_info.header;
+	feedback.pose.header = _file_info->header;
 	tf::poseTFToMsg(transform, feedback.pose.pose);
 	feedback.overlap = locPose.VisibleOverlap;
 	_localize_srv.publishFeedback(feedback);
@@ -242,6 +239,9 @@ Localization::localize_full(const goal_cp& goal)
 void
 Localization::localize_in_plane(const goal_cp& goal)
 {
+    ROS_INFO_STREAM("(Localization) In-plane locaization of object["
+		    << goal->object_name << "]...");
+
     if (!_file_info->plane_detected)
 	throw std::runtime_error("  Dominant plane is not set.");
 
@@ -250,13 +250,13 @@ Localization::localize_in_plane(const goal_cp& goal)
 			  _file_info->normal.z);
     const value_t	d = _file_info->distance;
 
-    for (size_t i = 0; i < goal->poses2d.size(); ++i)
+    size_t		i = 0;
+    for (const auto& pose2d : goal->poses2d)
     {
-	const auto&	pose2d = goal->poses2d[i];
 	const auto	v = view_vector((pose2d.x > 0.0 ? pose2d.x :
-					 0.5*_file_info->camera_info.width),
+					 0.5*_camera_info->width),
 					(pose2d.y > 0.0 ? pose2d.y :
-					 0.5*_file_info->camera_info.height));
+					 0.5*_camera_info->height));
 	const auto	x = (-d/n.dot(v)) * v;
 	auto		r = n.cross(vector3_t(std::cos(pose2d.theta),
 					      std::sin(pose2d.theta), 0));
@@ -273,24 +273,26 @@ Localization::localize_in_plane(const goal_cp& goal)
 	    transform *= tf::Transform(tf::Matrix3x3(1.0, 0.0, 0.0,
 						     0.0, 1.0, 0.0,
 						     0.0, 0.0, 1.0),
-				       tf::Vector3(goal->x_offset, 0.0,
+				       tf::Vector3(goal->x_offset,
+						   0.0,
 						   goal->z_offset));
 	else
 	    transform *= tf::Transform(tf::Matrix3x3(0.0, 1.0, 0.0,
 						     0.0, 0.0, 1.0,
 						     1.0, 0.0, 0.0),
-				       tf::Vector3(goal->x_offset, 0.0,
+				       tf::Vector3(goal->x_offset,
+						   0.0,
 						   goal->z_offset));
 
 	feedback_t	feedback;
-	feedback.pose.header = _file_info->camera_info.header;
+	feedback.pose.header = _file_info->header;
 	tf::poseTFToMsg(transform, feedback.pose.pose);
 	feedback.overlap = 1.0;
 	_localize_srv.publishFeedback(feedback);
 
 	ros::Duration(0.1).sleep();	// for the client not to drop feedback
 
-	ROS_INFO_STREAM("(Localization)   found " << i+1 << "-th pose.");
+	ROS_INFO_STREAM("(Localization)   found " << ++i << "-th pose.");
     }
 }
 
@@ -300,9 +302,9 @@ Localization::view_vector(value_t u, value_t v) const
     using point2_t	= cv::Point_<value_t>;
 
     cv::Mat_<value_t>	K(3, 3);
-    std::copy_n(std::begin(_file_info->camera_info.K), 9, K.begin());
+    std::copy_n(std::begin(_camera_info->K), 9, K.begin());
     cv::Mat_<value_t>	D(1, 4);
-    std::copy_n(std::begin(_file_info->camera_info.D), 4, D.begin());
+    std::copy_n(std::begin(_camera_info->D), 4, D.begin());
     cv::Mat_<point2_t>	uv(1, 1), xy(1, 1);
     uv(0) = {u, v};
     cv::undistortPoints(uv, xy, K, D);

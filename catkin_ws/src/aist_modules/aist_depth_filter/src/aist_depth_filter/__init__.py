@@ -1,6 +1,10 @@
 import rospy
 import dynamic_reconfigure.client
-from std_srvs import srv as ssrv
+import actionlib
+from geometry_msgs      import msg as gmsg
+from aist_depth_filter  import msg as dmsg
+from std_srvs           import srv as ssrv
+from actionlib_msgs.msg import GoalStatus
 
 #########################################################################
 #  class DepthFilterClient                                              #
@@ -8,10 +12,20 @@ from std_srvs import srv as ssrv
 class DepthFilterClient(object):
     def __init__(self, server='depth_filter'):
         super(DepthFilterClient, self).__init__()
-        self._saveBG     = rospy.ServiceProxy(server + '/saveBG',  ssrv.Trigger)
-        self._capture    = rospy.ServiceProxy(server + '/capture', ssrv.Trigger)
-        self._dyn_reconf = dynamic_reconfigure.client.Client(server,
-                                                             timeout=5.0)
+
+        rospy.wait_for_service(server + '/saveBG')
+        rospy.wait_for_service(server + '/capture')
+
+        self._saveBG       = rospy.ServiceProxy(server + '/saveBG',
+                                                ssrv.Trigger)
+        self._capture      = rospy.ServiceProxy(server + '/capture',
+                                                ssrv.Trigger)
+        self._dyn_reconf   = dynamic_reconfigure.client.Client(server,
+                                                               timeout=5.0)
+        self._detect_plane = actionlib.SimpleActionClient(
+                                        server + '/detect_plane',
+                                        dmsg.DetectPlaneAction)
+        self._detect_plane.wait_for_server()
 
     def saveBG(self):
         return self._saveBG().success
@@ -67,3 +81,14 @@ class DepthFilterClient(object):
     @scale.setter
     def scale(self, value):
         self._dyn_reconf.update_configuration({'scale': value})
+
+    def detect_plane_send_goal(self):
+        self._detect_plane.send_goal(dmsg.DetectPlaneGoal())
+
+    def detect_plane_wait_for_result(self, timeout=rospy.Duration()):
+        if (not self._detect_plane.wait_for_result(timeout)):
+            self._detect_plane.cancel_goal()  # Cancel if timeout expired
+            return None
+        elif self._detect_plane.get_state() != GoalStatus.SUCCEEDED:
+            return None
+        return self._detect_plane.get_result().plane

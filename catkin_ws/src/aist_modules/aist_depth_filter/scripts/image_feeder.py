@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, sys, glob, rospy, json, pprint, skimage, cv2
+import os, sys, glob, rospy, json, cv2
 from cv_bridge         import CvBridge
 from sensor_msgs       import msg as smsg
 from aist_depth_filter import DepthFilterClient
@@ -44,7 +44,7 @@ class ImageFeeder(object):
         self._image_pub = rospy.Publisher('~image', smsg.Image, queue_size=1)
         self._depth_pub = rospy.Publisher('~depth', smsg.Image, queue_size=1)
 
-        self._dfilter   = DepthFilterClient('~depth_filter')
+        self._dfilter   = DepthFilterClient('depth_filter')
         self._dfilter.window_radius = 2
 
     def load_and_publish_images(self, annotation_filename):
@@ -77,7 +77,12 @@ class ImageFeeder(object):
             self._cinfo_pub.publish(self._cinfo)
             self._image_pub.publish(imgmsg)
             self._depth_pub.publish(dptmsg)
-            if raw_input('  Hit return key >> ') == 'q':
+            key = raw_input('Hit [p|q|return] >> ')
+            if key == 'p':
+                self._dfilter.detect_plane_send_goal()
+                plane = self._dfilter.detect_plane_wait_for_result()
+                print(plane)
+            elif key == 'q':
                 sys.exit()
 
     def draw_bbox(self, image, id, bbox):
@@ -95,8 +100,8 @@ if __name__ == '__main__':
 
     rospy.init_node('~')
 
-    data_dir = os.path.expanduser(rospy.get_param('data_dir',
-                                                  '~/data/WRS_Dataset'))
+    data_dir = os.path.expanduser(rospy.get_param('~data_dir',
+                                                  '~/data/wrs_dataset'))
     feeder   = ImageFeeder(data_dir)
 
     while not rospy.is_shutdown():

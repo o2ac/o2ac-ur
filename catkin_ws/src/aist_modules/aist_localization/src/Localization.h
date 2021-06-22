@@ -11,9 +11,13 @@
 #include <memory>
 
 #include <ros/ros.h>
+#include <aist_depth_filter/FileInfo.h>
+#include <sensor_msgs/CameraInfo.h>
+#include <message_filters/subscriber.h>
+#include <message_filters/synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
 #include <actionlib/server/simple_action_server.h>
 #include <aist_localization/LocalizeAction.h>
-#include <aist_depth_filter/FileInfo.h>
 #include <ddynamic_reconfigure/ddynamic_reconfigure.h>
 #include <opencv2/core.hpp>
 
@@ -29,14 +33,19 @@ class Localization
   private:
     using localization_t = pho::sdk::PhoLocalization;
 
+    using file_info_t	 = aist_depth_filter::FileInfo;
+    using file_info_cp	 = aist_depth_filter::FileInfoConstPtr;
+    using camera_info_t	 = sensor_msgs::CameraInfo;
+    using camera_info_cp = sensor_msgs::CameraInfoConstPtr;
+
     using action_t	 = aist_localization::LocalizeAction;
     using feedback_t	 = aist_localization::LocalizeFeedback;
     using result_t	 = aist_localization::LocalizeResult;
     using goal_cp	 = aist_localization::LocalizeGoalConstPtr;
     using server_t	 = actionlib::SimpleActionServer<action_t>;
 
-    using file_info_t	 = aist_depth_filter::FileInfo;
-    using file_info_cp	 = aist_depth_filter::FileInfoConstPtr;
+    using sync_policy_t  = message_filters::sync_policies::
+				ApproximateTime<file_info_t, camera_info_t>;
 
     using value_t	 = float;
     using vector3_t	 = cv::Vec<value_t, 3>;
@@ -108,27 +117,30 @@ class Localization
 				  const std::string& description,
 				  std::initializer_list<
 					  std::string> vals)		;
-    void	file_info_cb(const file_info_cp& file_info)		;
-    void	localize_cb(const goal_cp& goal)			;
     void	preempt_cb()					  const	;
-
+    void	sync_cb(const file_info_cp& file_info,
+			const camera_info_cp& camera_info)		;
+    void	localize_cb(const goal_cp& goal)			;
     void	localize_full(const goal_cp& goal)			;
     void	localize_in_plane(const goal_cp& goal)			;
     vector3_t	view_vector(value_t u, value_t v)		  const	;
 
   private:
-    ros::NodeHandle				_nh;
+    ros::NodeHandle					_nh;
 
-    std::string					_ply_dir;
-    std::unique_ptr<localization_t>		_localization;
+    std::string						_ply_dir;
+    std::unique_ptr<localization_t>			_localization;
 
-    ros::Subscriber				_file_info_sub;
-    file_info_cp				_file_info;
+    message_filters::Subscriber<file_info_t>		_file_info_sub;
+    message_filters::Subscriber<camera_info_t>		_camera_info_sub;
+    message_filters::Synchronizer<sync_policy_t>	_sync;
+    file_info_cp					_file_info;
+    camera_info_cp					_camera_info;
 
-    server_t					_localize_srv;
+    server_t						_localize_srv;
 
-    ddynamic_reconfigure::DDynamicReconfigure	_ddr;
-    std::vector<std::unique_ptr<setting_base> >	_settings;
+    ddynamic_reconfigure::DDynamicReconfigure		_ddr;
+    std::vector<std::unique_ptr<setting_base> >		_settings;
 };
 
 }	// namespace aist_localization

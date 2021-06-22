@@ -74,7 +74,8 @@ class ModelSpawnerServer(object):
             doc = xacro.parse(xacro_desc)  # Create DOM tree.
             xacro.process_doc(doc)         # Expand and process macros.
             desc = doc.toprettyxml(indent='  ', encoding='utf8')
-            self._models[req.prefix + name] = xml.dom.minidom.parseString(desc).childNodes[0]
+            self._models[req.prefix + name] \
+                = xml.dom.minidom.parseString(desc).childNodes[0]
             self._publisher.publish(mmsg.ModelDescription.ADD,
                                     req.prefix + name, desc)
             return msrv.AddResponse(True)
