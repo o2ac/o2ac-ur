@@ -889,6 +889,9 @@ class O2ACBase(object):
       rospy.logerr("Robot holds an object. Cannot " + operation + " tool.")
       return False
     if ((robot.robot_status.carrying_tool == True) and equip):
+      if robot.robot_status.held_tool_id == tool_name:
+        rospy.loginfo("Robot already holds the tool. Returning true.")
+        return True
       rospy.logerr("Robot already holds a tool. Cannot equip another.")
       return False
     if ((robot.robot_status.carrying_tool == False) and unequip):
