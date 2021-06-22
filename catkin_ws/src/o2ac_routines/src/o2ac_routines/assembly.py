@@ -669,7 +669,7 @@ class O2ACAssembly(O2ACCommon):
               [-0.010, 0.060, 0.011, 0.001, -0.001, -1.571593]]
     elif layout_number == 4:
       objects = ['base', 'panel_motor', 'panel_bearing']
-      poses = [[0.1, 0.05, 0.001, tau/4, 0.0, tau/2],
+      poses = [[0.1, 0.04, 0.001, tau/4, 0.0, tau/2],
                [-0.04, 0.01, 0.001, 0.0, 0.0, tau/2],
                [0.01, -0.08, 0.001, 0.0, 0.0, tau/2]] 
       self.spawn_multiple_objects('wrs_assembly_2020', objects, poses, 'tray_center')
@@ -680,7 +680,7 @@ class O2ACAssembly(O2ACCommon):
       self.spawn_multiple_objects('wrs_assembly_2020', ['base'], [[0.12, 0.2, 0.0, tau/4, 0.0, -tau/4]], 'attached_base_origin_link')
     else:
       if layout_number == 3:
-        self.spawn_multiple_objects('wrs_assembly_2020', ['base'], [[-0.1, -0.05, 0.001, tau/4, 0.0, 0.0]], 'tray_center')
+        self.spawn_multiple_objects('wrs_assembly_2020', ['base'], [[-0.1, -0.04, 0.001, tau/4, 0.0, 0.0]], 'tray_center')
       else: # layout 2
         self.spawn_multiple_objects('wrs_assembly_2020', ['base'], [[0.1, 0.05, 0.001, tau/4, 0.0, tau/2]], 'tray_center')
     return
