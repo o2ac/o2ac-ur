@@ -257,12 +257,11 @@ class O2ACVisionServer(object):
         action_result.poses = []
         action_result.class_ids = []
         action_result.upside_down = []
-        for (array, upside_down) in zip(poses_2d_with_id, upside_down_list):
+        for (array, upside_down) in zip(poses2d_array, upside_down_list):
             for pose2d in array.poses:
-                action_result.class_ids.append(array.class_id)
                 p3d = self.convert_pose_2d_to_3d(pose2d)
                 if p3d:
-                    action_result.class_ids.append(poses2d.class_id)
+                    action_result.class_ids.append(array.class_id)
                     action_result.poses.append(p3d)
                     action_result.upside_down.append(upside_down)
         self.get_3d_poses_from_ssd_action_server.set_succeeded(action_result)

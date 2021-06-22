@@ -16,10 +16,10 @@
   <!-- Construct recognition pipeline -->
   <include file="$(find o2ac_vision)/launch/recognition_pipeline.launch">
     <arg name="continuous_streaming"	value="$(arg continuous_streaming)"/>
-    <arg name="camera_name"		value="$(arg camera_name)"/>
+    <!-- <arg name="camera_name"		value="$(arg camera_name)"/> -->
     <arg name="nposes"			value="$(arg nposes)"/>
     <arg name="timeout"			value="$(arg timeout)"/>
-    <arg name="ply_dir"			value="$(arg ply_dir)"/>
+    <!-- <arg name="ply_dir"			value="$(arg ply_dir)"/> -->
     <arg name="urdf_dir"		value="$(arg urdf_dir)"/>
     <!-- Topic names for a raw realsense camera -->
     <!-- <arg name="camera_info_topic" value="$(arg camera_name)/color/camera_info"/>

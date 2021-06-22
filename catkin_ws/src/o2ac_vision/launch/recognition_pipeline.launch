@@ -18,7 +18,7 @@
   <arg name="camera_info_topic"	default="/camera_multiplexer/camera_info"/>
   <arg name="image_topic"	default="/camera_multiplexer/image"/>
   <arg name="depth_topic"	default="/camera_multiplexer/depth"/>
-  <arg name="normal_topic"	value=""/>
+  <arg name="normal_topic"	default=""/>
   <arg name="manager"		default=""/>
 
   <!-- Spawn vision server -->
