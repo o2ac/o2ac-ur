@@ -108,9 +108,9 @@ if __name__ == '__main__':
       elif i == '22':
         c.unload_drive_unit()
       elif i == '31':
-        c.skill_server.pick_screw_from_feeder("a_bot", screw_size=3)
+        c.pick_screw_from_feeder("a_bot", screw_size=3)
       elif i == '32':
-        c.skill_server.pick_screw_from_feeder("b_bot", screw_size=4)
+        c.pick_screw_from_feeder("b_bot", screw_size=4)
       elif i == "41":
         c.publish_part_in_assembled_position("base")
       elif i == "421":
@@ -204,7 +204,7 @@ if __name__ == '__main__':
       elif i == '82':
         c.do_change_tool_action('b_bot', equip=False, screw_size=4)
       elif i == '83':
-        c.skill_server.pick_screw_from_feeder('b_bot', 4)
+        c.pick_screw_from_feeder('b_bot', 4)
       elif i == '84':
         c.skill_server.do_linear_push('a_bot', force=15, direction="Y-", max_approach_distance=0.05, forward_speed=0.003)
       elif i == '85':

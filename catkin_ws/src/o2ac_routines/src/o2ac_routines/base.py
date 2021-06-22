@@ -308,7 +308,7 @@ class O2ACBase(object):
     screw_tool_id = "screw_tool_m" + str(screw_size)
     screw_tool_link = robot_name + "_screw_tool_m" + str(screw_size) + "_tip_link"
     fastening_tool_name = "screw_tool_m" + str(screw_size)
-    success = self.suck_screw(robot_name, pose_feeder, screw_tool_id, screw_tool_link, fastening_tool_name)
+    success = self.suck_screw(robot_name, pose_feeder, screw_tool_id, screw_tool_link, fastening_tool_name, spiral_search_ptp=False)
 
     self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready", speed=0.5, acceleration=0.25)
     
@@ -325,7 +325,7 @@ class O2ACBase(object):
         self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
         return False
 
-  def suck_screw(self, robot_name, screw_head_pose, screw_tool_id, screw_tool_link, fastening_tool_name):
+  def suck_screw(self, robot_name, screw_head_pose, screw_tool_id, screw_tool_link, fastening_tool_name, spiral_search_ptp=True):
     """ Strategy: 
          - Move 1 cm above the screw head pose
          - Go down real slow for 2 cm while turning the motor in the direction that would loosen the screw
@@ -366,44 +366,88 @@ class O2ACBase(object):
 
     self.tools.set_suction(screw_tool_id, suction_on=True, eject=False, wait=False)
 
-    offsets = [[0.0015, 0.0015], [0.0015, -0.0015], [-0.0015, 0.0015], [-0.0015, -0.0015]] # only diagonals from start point
+    if spiral_search_ptp:
+      max_radius = .0025
+      theta_incr = tau/6
+      r=0.0002
+      radius_increment = .001
+      radius_inc_set = radius_increment / (tau / theta_incr)
+      theta, RealRadius = 0.0, 0.0
 
-    for i, offset in enumerate(offsets): 
-      assert not rospy.is_shutdown(), "Did ros die?"
+      while not screw_picked:
+        assert not rospy.is_shutdown(), "Did ros die?"
+        
+        self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=5.0, skip_final_loosen_and_retighten=True)
+        rospy.loginfo("Moving into screw to pick it up.")
+        adjusted_pose.pose.position.x += .016
+        success = False
+        while not success:
+          success = self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, end_effector_link=screw_tool_link)
 
-      self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=12.0, skip_final_loosen_and_retighten=True)
-      # self.send_fastening_tool_command(fastening_tool_name, "loosen", false, 5.0)
-      rospy.loginfo("Moving into screw to pick it up.")
-      adjusted_pose.pose.position.x += .015
-      self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, acceleration=0.025, end_effector_link=screw_tool_link)
+        rospy.loginfo("Moving back a bit slowly.")
+        rospy.sleep(0.5)
+        adjusted_pose.pose.position.x -= .016
+        success = False
+        while not success:
+          success = self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, end_effector_link=screw_tool_link)
+          
+        # Break out of loop if screw suctioned or max search radius exceeded
+        screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
+        if screw_picked:
+          rospy.loginfo("Detected successful pick.")
+          break
 
-      rospy.sleep(0.5)
-      screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
-      if screw_picked:
-        break
-      
-      rospy.loginfo("Spiral motion, trying to find the screw")
-      spiral_trajectory = compute_trajectory(conversions.from_pose_to_list(adjusted_pose.pose), 
-                                    "YZ", 0.002, "+Y", steps=15, revolutions=3, from_center=True,  trajectory_type="spiral")
-      st = []
-      for t in spiral_trajectory:
-          st.append([conversions.to_pose_stamped("m" + str(screw_size) + "_feeder_outlet_link", t), 0.0])
-      self.active_robots[robot_name].move_lin_trajectory(st, speed=0.03, end_effector_link=screw_tool_link)
+        if RealRadius > max_radius:
+          break
 
-      rospy.loginfo("Moving back a bit slowly.")
-      adjusted_pose.pose.position.x -= .02
-      self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.1, acceleration=0.05, end_effector_link=screw_tool_link)
-      
-      adjusted_pose = copy.deepcopy(search_start_pose)
-      adjusted_pose.pose.position.y += offset[0]
-      adjusted_pose.pose.position.z += offset[1]
-      
-      rospy.sleep(0.5)
-      screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
-      if screw_picked:
-        break
-      
-      rospy.logerr("Retrying pickup with adjusted position. %s of %s" % (i+1, len(offsets)))
+        # Adjust the position (spiral search)
+        theta = theta + theta_incr
+        y = cos(theta) * r
+        z = sin(theta) * r
+        adjusted_pose = search_start_pose
+        adjusted_pose.pose.position.y += y
+        adjusted_pose.pose.position.z += z
+        r = r + radius_inc_set
+        RealRadius = sqrt(pow(y, 2) + pow(z, 2))
+    else:
+      offsets = [[0.0015, 0.0015], [0.0015, -0.0015], [-0.0015, 0.0015], [-0.0015, -0.0015]] # only diagonals from start point
+
+      for i, offset in enumerate(offsets): 
+        assert not rospy.is_shutdown(), "Did ros die?"
+
+        self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=12.0, skip_final_loosen_and_retighten=True)
+        # self.send_fastening_tool_command(fastening_tool_name, "loosen", false, 5.0)
+        rospy.loginfo("Moving into screw to pick it up.")
+        adjusted_pose.pose.position.x += .02
+        self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, acceleration=0.025, end_effector_link=screw_tool_link)
+
+        rospy.sleep(0.5)
+        screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
+        if screw_picked:
+          break
+        
+        rospy.loginfo("Spiral motion, trying to find the screw")
+        spiral_trajectory = compute_trajectory(conversions.from_pose_to_list(adjusted_pose.pose), 
+                                      "YZ", 0.002, "+Y", steps=15, revolutions=3, from_center=True,  trajectory_type="spiral")
+        st = []
+        for t in spiral_trajectory:
+            st.append([conversions.to_pose_stamped("m" + str(screw_size) + "_feeder_outlet_link", t), 0.0])
+        self.active_robots[robot_name].move_lin_trajectory(st, speed=0.03, end_effector_link=screw_tool_link)
+
+        rospy.loginfo("Moving back a bit slowly.")
+        adjusted_pose.pose.position.x -= .02
+        self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.1, acceleration=0.05, end_effector_link=screw_tool_link)
+        
+        adjusted_pose = copy.deepcopy(search_start_pose)
+        adjusted_pose.pose.position.y += offset[0]
+        adjusted_pose.pose.position.z += offset[1]
+        
+        rospy.sleep(0.5)
+        screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
+        if screw_picked:
+          break
+        
+        rospy.logerr("Retrying pickup with adjusted position. %s of %s" % (i+1, len(offsets)))
 
     self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=0.1, skip_final_loosen_and_retighten=True)
 
@@ -430,6 +474,7 @@ class O2ACBase(object):
 
   @check_for_real_robot
   def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=True):
+    return self.pick_screw_from_feeder2(robot_name, screw_size, realign_tool_upon_failure)  # Python-only version
     res = self.skill_server.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure)
     try:
       if res.success:
