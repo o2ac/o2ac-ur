@@ -756,10 +756,9 @@ class O2ACAssembly(O2ACCommon):
 
     if bearing_plate_success:
       success = False
-      while not success and not rospy.is_shutdown():
-        success = self.subtask_c1() # bearing 
-      success = False
-      while not success and not rospy.is_shutdown():
+      success = self.subtask_c1() # bearing 
+      if success:
+        success = False
         success = self.subtask_c2() # shaft
     
     self.unload_drive_unit()
