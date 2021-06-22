@@ -124,6 +124,7 @@ class O2ACAssembly(O2ACCommon):
     grasp_pose.header.frame_id = "move_group/base"
     grasp_pose = self.listener.transformPose("tray_center", grasp_pose)
 
+    self.allow_collisions_with_robot_hand("base", "a_bot", allow=True)
     if not self.simple_pick("a_bot", grasp_pose, axis="z", approach_height=0.12):
       rospy.logerr("Fail to grasp base plate")
       return False
@@ -147,6 +148,7 @@ class O2ACAssembly(O2ACCommon):
 
     self.a_bot.move_lin_rel(relative_translation=[-0.03, 0, 0.03], relative_to_robot_base=True)
     self.a_bot.go_to_named_pose("home")
+    self.allow_collisions_with_robot_hand("base", "a_bot", allow=False)
     
 
     # success = self.pick("b_bot", "base")  # Uses MTC + attached objects
@@ -252,6 +254,7 @@ class O2ACAssembly(O2ACCommon):
   def subtask_c1(self):
     rospy.loginfo("======== SUBTASK C (bearing) ========")
     self.publish_status_text("Target: Bearing" )
+    self.unequip_tool("b_bot")
     if self.pick_up_and_insert_bearing(task="assembly"):
       if self.fasten_bearing(task="assembly"):
         self.fasten_bearing(task="assembly", only_retighten=True)

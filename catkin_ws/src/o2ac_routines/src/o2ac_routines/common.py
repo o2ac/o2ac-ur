@@ -392,7 +392,7 @@ class O2ACCommon(O2ACBase):
     Looks at the tray from above and gets grasp points of items.
     Does very light feasibility check before returning.
     """
-    object_pose = self.look_and_get_object_pose(object_id)
+    object_pose = self.look_and_get_object_pose(object_id, robot_name)
     rotation_offset = -1 if robot_name == "b_bot" else 1
     if object_pose:
       rospy.loginfo("Object found: checking for feasible grasps")
@@ -897,10 +897,14 @@ class O2ACCommon(O2ACBase):
     corner_pose = copy.deepcopy(object_pose)
     corner_pose.pose.position.x = np.sign(corner_pose.pose.position.x) * 0.105
     corner_pose.pose.position.y = np.sign(corner_pose.pose.position.y) * 0.165
+    corner_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(0, tau/4, -tau/6))
 
     return self.move_towards_tray_center_with_push(robot_name, corner_pose, approach_height)
 
   def move_towards_tray_center_with_push(self, robot_name, start_pose, approach_height):
+    self.allow_collisions_with_robot_hand("tray_center", robot_name, allow=True)
+    self.allow_collisions_with_robot_hand("tray", robot_name, allow=True)
+
     robot = self.active_robots[robot_name]
 
     approach_pose = copy.deepcopy(start_pose)
@@ -923,6 +927,8 @@ class O2ACCommon(O2ACBase):
     if not robot.move_lin_rel(relative_translation=[0, 0, approach_height]):
       rospy.logerr("Fail to move up")
 
+    self.allow_collisions_with_robot_hand("tray_center", robot_name, allow=False)
+    self.allow_collisions_with_robot_hand("tray", robot_name, allow=False)
     return True
 
   def move_and_center_with_gripper(self, robot_name, object_pose, object_width):
@@ -1065,7 +1071,7 @@ class O2ACCommon(O2ACBase):
     self.vision.activate_camera("b_bot_inside_camera")
     self.activate_led("b_bot")
     
-    self.b_bot.go_to_pose_goal(look_at_shaft_end_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=0.02)
+    self.b_bot.go_to_pose_goal(look_at_shaft_end_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=0.15)
     self.confirm_to_proceed("Looking at shaft tip")
 
     res = self.vision.call_shaft_notch_detection()
@@ -1180,8 +1186,8 @@ class O2ACCommon(O2ACBase):
   
   def drop_in_tray(self, robot_name):
     rotation_offset = -1 if robot_name == "b_bot" else 1
-    above_tray = conversions.to_pose_stamped("tray_center", [0,0,0.15,0,tau/4,rotation_offset*tau/4])
-    tray_center_pose = conversions.to_pose_stamped("tray_center", [0,0,0.06,0,tau/4,rotation_offset*tau/4])
+    above_tray       = conversions.to_pose_stamped("tray_center", [0, 0, 0.15, 0, tau/4, rotation_offset*tau/4])
+    tray_center_pose = conversions.to_pose_stamped("tray_center", [0, 0, 0.06, 0, tau/4, rotation_offset*tau/4])
     
     if not robot.go_to_pose_goal(above_tray):
       rospy.logerr("fail to go to above_tray (drop_in_tray)")
@@ -1510,7 +1516,7 @@ class O2ACCommon(O2ACBase):
     self.a_bot.go_to_named_pose("home")
     self.b_bot.go_to_named_pose("home")
     
-    goal = self.look_and_get_grasp_point("motor_pulley", grasp_width=0.03, center_on_corner=True, approach_height=0.02, grab_and_drop=True)
+    goal = self.look_and_get_grasp_point("motor_pulley", grasp_width=0.06, center_on_corner=True, approach_height=0.02, grab_and_drop=True)
     
     if not isinstance(goal, geometry_msgs.msg.PoseStamped):
       rospy.logerr("Could not find motor_pulley in tray. Skipping procedure.")
