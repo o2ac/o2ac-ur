@@ -1399,7 +1399,7 @@ class O2ACCommon(O2ACBase):
     success &= self.b_bot.move_lin_rel(relative_translation = [0.025,0,0], acceleration = 0.015, speed=.03)
     return success
 
-  def fasten_bearing(self, task="", only_retighten=False):
+  def fasten_bearing(self, task="", only_retighten=False, calibration_only=False):
     if not task in ["taskboard", "assembly"]:
       rospy.logerr("Invalid task specification: " + task)
       return False
@@ -1424,8 +1424,11 @@ class O2ACCommon(O2ACBase):
       else:
         rospy.logerr("Invalid task specification: " + task)
         return False
-      screw_pose.pose.position.z += -.001  # MAGIC NUMBER
-      screw_pose.pose.position.x += .005
+      if task == "taskboard":
+        screw_pose.pose.position.z += -.001  # MAGIC NUMBER
+      elif task == "assembly":
+        screw_pose.pose.position.z += .0025  # MAGIC NUMBER
+      screw_pose.pose.position.x += .006  # This needs to be quite far forward, because the thread is at the plate level (behind the frame)
       screw_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/12, 0, 0) )
 
       screw_pose_approach = copy.deepcopy(screw_pose)
