@@ -80,14 +80,6 @@ class O2ACAssembly(O2ACCommon):
       self.spawn_tool('screw_tool_' + screw_id)
       self.upload_tool_grasps_to_param_server(screw_id)
 
-  def set_assembly(self, assembly_name="wrs_assembly_2020"):
-    self.assembly_database.change_assembly(assembly_name)
-    pose = geometry_msgs.msg.PoseStamped()
-    pose.header.frame_id = 'attached_base_origin_link'
-    pose.pose.orientation.w = 1.0
-    self.assembly_database.publish_assembly_frames(pose, prefix="assembled_")
-    return True
-
 
   ################ ----- Subroutines  
 
