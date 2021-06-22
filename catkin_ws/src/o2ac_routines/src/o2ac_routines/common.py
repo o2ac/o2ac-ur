@@ -2137,14 +2137,11 @@ class O2ACCommon(O2ACBase):
 
     approach_vgroove = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [-0.100, 0, 0, tau/2., 0, 0])
     on_vgroove =       conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.000, 0, 0, tau/2., 0, 0])
-    inside_vgroove =   conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.005, 0, 0, tau/2., 0, 0])
+    inside_vgroove =   conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.007, 0, 0, tau/2., 0, 0])
 
     if not self.b_bot.go_to_pose_goal(approach_vgroove, move_lin=False):
       rospy.logerr("Fail to go to approach_vgroove")
       return False
-
-    shaft_notch_detected_at_top = self.check_screw_hole_visible_on_shaft_in_v_groove()
-    return True 
 
     if not self.b_bot.go_to_pose_goal(on_vgroove, speed=0.1):
       rospy.logerr("Fail to go to on_vgroove")
@@ -2153,39 +2150,28 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Fail to go to inside_vgroove")
       return False
 
-
-    
     self.b_bot.gripper.open(opening_width=0.06)
 
-    res = self.turn_shaft_until_groove_found()
-    if not res:
-      rospy.logerr("Shaft notch detection fail")
-      return False
-    if res.shaft_notch_detected_at_top:
-      rospy.loginfo("Shaft notch found at top")
-      grasp_from_vgroove =   conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.008, 0, 0, tau/2., 0, 0])
-      if not self.b_bot.go_to_pose_goal(grasp_from_vgroove, speed=0.1):
-        rospy.logerr("Fail to go to grasp_from_vgroove")
-        return False
-    elif res.shaft_notch_detected_at_bottom:
-      rospy.loginfo("Shaft notch found at bottom")
-      reorient_camera   = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [-0.050, 0, 0, 0, 0, 0])
-      if not self.b_bot.go_to_pose_goal(reorient_camera, speed=0.1):
-        rospy.logerr("Fail to go to reorient_camera")
-        return False
-      grasp_from_vgroove = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.008, 0, 0, 0, 0, 0])
-      if not self.b_bot.go_to_pose_goal(grasp_from_vgroove, speed=0.1):
-        rospy.logerr("Fail to go to grasp_from_vgroove")
-        return False
-    else:
-      rospy.logerr("Unexpected result from camera!")
+    shaft_notch_detected_at_top = self.check_screw_hole_visible_on_shaft_in_v_groove()
+    if shaft_notch_detected_at_top:
+      self.b_bot.go_to_pose_goal(inside_vgroove, speed=0.1)
+      self.b_bot.gripper.close()
+      self.b_bot.go_to_pose_goal(approach_vgroove, speed=0.1)
+    else:  # Turn gripper around
+      approach_turned = copy.deepcopy(approach_vgroove)
+      approach_turned.pose = helpers.rotatePoseByRPY(tau/2, 0, 0, approach_turned.pose)
+      in_groove_turned = copy.deepcopy(approach_turned)
+      in_groove_turned.pose.position.x = inside_vgroove.pose.position.x
 
-    self.b_bot.gripper.close(force=100)
-
-    if not self.b_bot.go_to_pose_goal(approach_vgroove, speed=0.2):
-      rospy.logerr("Fail to go to approach_vgroove")
-      return False
+      self.b_bot.go_to_pose_goal(approach_vgroove, speed=0.1)
+      self.b_bot.go_to_pose_goal(approach_turned, speed=0.1)
+      self.b_bot.go_to_pose_goal(in_groove_turned, speed=0.1)
+      self.b_bot.gripper.close()
+      self.b_bot.go_to_pose_goal(approach_turned, speed=0.1)
+    
+    self.b_bot.go_to_named_pose("home")
     self.b_bot.gripper.last_attached_object = None # clean attach/detach memory
+    return True
 
   def orient_shaft_end_cap(self):
     self.a_bot.go_to_named_pose("home")
@@ -2361,7 +2347,7 @@ class O2ACCommon(O2ACBase):
     self.b_bot.move_lin_rel(relative_translation = [0.10,0,0], acceleration = 0.015, speed=.03)
     return success
 
-  def take_tray_from_agv(self, reverse_movement_for_calibration=False):
+  def take_tray_from_agv(self, reverse=False, reverse_movement_for_calibration=False):
     """
     Take the tray from the AGV and place it in the robot workspace.
     """
@@ -2370,11 +2356,14 @@ class O2ACCommon(O2ACBase):
     self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=True)
     self.allow_collisions_with_robot_hand("tray_center", "b_bot", allow=True)
 
-    a_bot_above_tray_start = conversions.to_pose_stamped("agv_tray_center",  [0.04, -0.192, 0.121, 0, tau/4, 0])
-    b_bot_above_tray_start = conversions.to_pose_stamped("agv_tray_center", [0.04, 0.190, 0.121, 0, tau/4, 0])
-    b_bot_at_tray_start = conversions.to_pose_stamped("agv_tray_center", [0.04, 0.190, 0.016, 0, tau/4, 0])
-    b_bot_above_tray_target = conversions.to_pose_stamped("tray_center", [0, 0.190, 0.121, 0, tau/4, 0])
-    b_bot_at_tray_target = conversions.to_pose_stamped("tray_center", [0, 0.190, 0.017, 0, tau/4, 0])
+    self.publish_status_text("Target: Tray")
+
+    a_bot_above_tray_agv = conversions.to_pose_stamped("agv_tray_center",  [0.04, -0.192, 0.121, 0, tau/4, 0])
+    b_bot_above_tray_agv = conversions.to_pose_stamped("agv_tray_center", [0.04, 0.190, 0.121, 0, tau/4, 0])
+    b_bot_at_tray_agv = conversions.to_pose_stamped("agv_tray_center", [0.04, 0.190, 0.021, 0, tau/4, 0])
+    a_bot_above_tray_table = conversions.to_pose_stamped("tray_center", [0.04, 0.190, 0.121, 0, tau/4, 0])
+    b_bot_above_tray_table = conversions.to_pose_stamped("tray_center", [0, 0.190, 0.121, 0, tau/4, 0])
+    b_bot_at_tray_table = conversions.to_pose_stamped("tray_center", [0, 0.190, 0.022, 0, tau/4, 0])
     
     self.a_bot.gripper.open(opening_width=0.08, wait=False)
     self.b_bot.gripper.open(opening_width=0.08, wait=False)
@@ -2394,9 +2383,7 @@ class O2ACCommon(O2ACBase):
     a_bot_push_tray_front_goal = conversions.to_pose_stamped("agv_tray_center", [-0.11, -0.063, -0.01, 0, tau/4, 0])
     a_bot_push_tray_front_retreat = conversions.to_pose_stamped("agv_tray_center", [-0.17, -0.18, .09, 0, tau/4, 0])
 
-    b_bot_intermediate = conversions.to_pose_stamped("agv_tray_center", [-0.019, 0.24, 0.105, 0, .707, 0, .707])
-
-    if not reverse_movement_for_calibration:
+    if not reverse_movement_for_calibration and not reverse:
       # Push the tray from the side
       self.a_bot.gripper.open(wait=False)
       self.b_bot.gripper.open(wait=False)
@@ -2406,31 +2393,28 @@ class O2ACCommon(O2ACBase):
       self.ab_bot.go_to_goal_poses(a_bot_push_tray_side_retreat, b_bot_push_tray_side_retreat, planner="OMPL", speed=0.5)
 
       # Push from the front
-      self.a_bot.go_to_pose_goal(a_bot_push_tray_front_start_high, speed=0.5)
-      self.a_bot.go_to_pose_goal(a_bot_push_tray_front_start, speed=0.4)
-      self.b_bot.go_to_pose_goal(b_bot_intermediate, speed=0.3, wait=False)
+      self.a_bot.go_to_pose_goal(a_bot_push_tray_front_start_high, speed=0.8)
+      self.a_bot.go_to_pose_goal(a_bot_push_tray_front_start, speed=0.6)
       self.a_bot.go_to_pose_goal(a_bot_push_tray_front_goal, speed=0.08)
-      self.a_bot.go_to_pose_goal(a_bot_push_tray_front_retreat, speed=0.4)
-      # self.ab_bot.go_to_goal_poses(a_bot_push_tray_front_retreat, b_bot_intermediate, planner="OMPL", speed=0.3)
-      
+      self.a_bot.go_to_pose_goal(a_bot_push_tray_front_retreat, speed=0.6)
       
       # Grasp and place the tray
-      self.ab_bot.go_to_goal_poses(a_bot_above_tray_start, b_bot_above_tray_start, planner="OMPL")
-      self.confirm_to_proceed("At above_tray_start. Move to next?")
+      self.ab_bot.go_to_goal_poses(a_bot_above_tray_agv, b_bot_above_tray_agv, planner="OMPL")
+      self.confirm_to_proceed("At above_tray_agv. Move to next?")
 
       slave_relation = self.ab_bot.get_relative_pose_of_slave("b_bot", "a_bot")
-      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_at_tray_start, slave_relation)
-      self.confirm_to_proceed("At at_tray_start. Move to next?")
+      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_at_tray_agv, slave_relation)
+      self.confirm_to_proceed("At at_tray_agv. Move to next?")
 
       self.a_bot.gripper.close(force=80)
       self.b_bot.gripper.close(force=80)
 
-      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_above_tray_start, slave_relation, speed=0.05)
-      self.confirm_to_proceed("At above_tray_start. Move to next?")
-      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_above_tray_target, slave_relation, speed=0.1)
-      self.confirm_to_proceed("At above_tray_target. Move to next?")
-      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_at_tray_target, slave_relation, speed=0.05)
-      self.confirm_to_proceed("At at_tray_target. Move to next?")
+      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_above_tray_agv, slave_relation, speed=0.05)
+      self.confirm_to_proceed("At above_tray_agv. Move to next?")
+      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_above_tray_table, slave_relation, speed=0.1)
+      self.confirm_to_proceed("At above_tray_table. Move to next?")
+      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_at_tray_table, slave_relation, speed=0.05)
+      self.confirm_to_proceed("At at_tray_table. Move to next?")
 
       if self.a_bot.is_protective_stopped() or self.b_bot.is_protective_stopped():
         rospy.logerr("Protective stop!!")
@@ -2439,9 +2423,8 @@ class O2ACCommon(O2ACBase):
       self.b_bot.gripper.open(opening_width=0.05)
 
       # TODO(felixvd): Release potential protective stop, double check that the tray is in the right position in that case
-      
 
-      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_above_tray_target, slave_relation, speed=0.05)
+      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_above_tray_table, slave_relation, speed=0.5)
 
       self.ab_bot.go_to_named_pose("home")
 
@@ -2449,19 +2432,54 @@ class O2ACCommon(O2ACBase):
       self.allow_collisions_with_robot_hand("tray", "b_bot", allow=False)
       self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=False)
       self.allow_collisions_with_robot_hand("tray_center", "b_bot", allow=False)
-    else:
-      self.ab_bot.go_to_goal_poses(a_bot_above_tray_start, b_bot_above_tray_start, planner="OMPL")
+    elif reverse:
+      # Grasp and place the tray
+      self.ab_bot.go_to_goal_poses(a_bot_above_tray_table, b_bot_above_tray_table, planner="OMPL")
+      self.confirm_to_proceed("At above_tray_table. Move to next?")
+
       slave_relation = self.ab_bot.get_relative_pose_of_slave("b_bot", "a_bot")
-      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_above_tray_target, slave_relation)
-      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_at_tray_target, slave_relation, speed=0.05)
+      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_at_tray_table, slave_relation)
+      self.confirm_to_proceed("At at_tray_table. Move to next?")
 
       self.a_bot.gripper.close(force=80)
       self.b_bot.gripper.close(force=80)
 
-      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_above_tray_target, slave_relation, speed=0.05)
-      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_above_tray_start, slave_relation, speed=0.05)
+      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_above_tray_table, slave_relation, speed=0.1)
+      self.confirm_to_proceed("At above_tray_table. Move to next?")
+      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_above_tray_agv, slave_relation, speed=0.05)
+      self.confirm_to_proceed("At above_tray_agv. Move to next?")
+      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_at_tray_agv, slave_relation, speed=0.05)
+      self.confirm_to_proceed("At above_tray_agv. Move to next?")
+
+      if self.a_bot.is_protective_stopped() or self.b_bot.is_protective_stopped():
+        rospy.logerr("Protective stop!!")
+        
+      self.a_bot.gripper.open(wait=False)
+      self.b_bot.gripper.open()
+
+      # TODO(felixvd): Release potential protective stop, double check that the tray is in the right position in that case
+
+      self.ab_bot.go_to_named_pose("home")
+
+      self.allow_collisions_with_robot_hand("tray", "a_bot", allow=False)
+      self.allow_collisions_with_robot_hand("tray", "b_bot", allow=False)
+      self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=False)
+      self.allow_collisions_with_robot_hand("tray_center", "b_bot", allow=False)
+    elif reverse_movement_for_calibration:
+      self.ab_bot.go_to_goal_poses(a_bot_above_tray_agv, b_bot_above_tray_agv, planner="OMPL")
+      slave_relation = self.ab_bot.get_relative_pose_of_slave("b_bot", "a_bot")
+      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_above_tray_table, slave_relation)
+      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_at_tray_table, slave_relation, speed=0.05)
+
+      self.a_bot.gripper.close(force=80)
+      self.b_bot.gripper.close(force=80)
+
+      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_above_tray_table, slave_relation, speed=0.05)
+      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_above_tray_agv, slave_relation, speed=0.05)
       
-      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_at_tray_start, slave_relation, speed=0.05)
+      self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_at_tray_agv, slave_relation, speed=0.05)
+    
+    self.publish_status_text("SUCCESS: Tray")
 
   
   def unload_drive_unit(self):
@@ -2518,3 +2536,4 @@ class O2ACCommon(O2ACBase):
 
     
     
+
