@@ -197,7 +197,7 @@ class RobotBase():
         success = False
         start_time = rospy.Time.now()
         tries = 0
-        while not success and (rospy.Time.now() - start_time < rospy.Duration(15)) and not rospy.is_shutdown():
+        while not success and (rospy.Time.now() - start_time < rospy.Duration(5)) and not rospy.is_shutdown():
             if plan_only:
                 success, plan, planning_time, error = group.plan()
                 if success:
