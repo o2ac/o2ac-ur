@@ -309,7 +309,7 @@ class O2ACBase(object):
     screw_tool_id = "screw_tool_m" + str(screw_size)
     screw_tool_link = robot_name + "_screw_tool_m" + str(screw_size) + "_tip_link"
     fastening_tool_name = "screw_tool_m" + str(screw_size)
-    success = self.suck_screw(robot_name, pose_feeder, screw_tool_id, screw_tool_link, fastening_tool_name, spiral_search_ptp=False)
+    success = self.suck_screw(robot_name, pose_feeder, screw_tool_id, screw_tool_link, fastening_tool_name, do_spiral_search_at_bottom=False)
 
     self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready", speed=0.5, acceleration=0.25)
     
@@ -326,7 +326,7 @@ class O2ACBase(object):
         self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
         return False
 
-  def suck_screw(self, robot_name, screw_head_pose, screw_tool_id, screw_tool_link, fastening_tool_name, spiral_search_ptp=True):
+  def suck_screw(self, robot_name, screw_head_pose, screw_tool_id, screw_tool_link, fastening_tool_name, do_spiral_search_at_bottom=False):
     """ Strategy: 
          - Move 1 cm above the screw head pose
          - Go down real slow for 2 cm while turning the motor in the direction that would loosen the screw
@@ -361,13 +361,19 @@ class O2ACBase(object):
       self.planning_scene_interface.allow_collisions(screw_tool_id, "m4_feeder_link")
       screw_size = 4
 
+    initial_offset_y = rospy.get_param("screw_picking/" + robot_name + "/last_successful_offset_m" + str(screw_size) + "_y", 0.0)
+    initial_offset_z = rospy.get_param("screw_picking/" + robot_name + "/last_successful_offset_m" + str(screw_size) + "_z", 0.0)
+    if initial_offset_y or initial_offset_z:
+      rospy.loginfo("Starting search with offsets: " + str(initial_offset_y) + ", " + str(initial_offset_z))
     adjusted_pose = copy.deepcopy(above_screw_head_pose)
     search_start_pose = copy.deepcopy(above_screw_head_pose)
+    search_start_pose.pose.position.y += initial_offset_y
+    search_start_pose.pose.position.z += initial_offset_z
     screw_picked = False
 
     self.tools.set_suction(screw_tool_id, suction_on=True, eject=False, wait=False)
 
-    if spiral_search_ptp:
+    if not do_spiral_search_at_bottom:
       max_radius = .0025
       theta_incr = tau/6
       r=0.0002
@@ -449,6 +455,16 @@ class O2ACBase(object):
           break
         
         rospy.logerr("Retrying pickup with adjusted position. %s of %s" % (i+1, len(offsets)))
+    
+    # Record the offset at which the screw was successfully picked, so the next try can start at the same location
+    if screw_picked:
+      new_y_offset = adjusted_pose.pose.position.y - above_screw_head_pose.pose.position.y
+      new_z_offset = adjusted_pose.pose.position.z - above_screw_head_pose.pose.position.z
+    else:
+      new_y_offset = 0.0
+      new_z_offset = 0.0
+    rospy.set_param("screw_picking/" + robot_name + "/last_successful_offset_m" + str(screw_size) + "_y", new_y_offset)
+    rospy.set_param("screw_picking/" + robot_name + "/last_successful_offset_m" + str(screw_size) + "_z", new_z_offset)
 
     self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=0.1, skip_final_loosen_and_retighten=True)
 
