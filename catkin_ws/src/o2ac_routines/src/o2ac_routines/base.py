@@ -1130,6 +1130,9 @@ class O2ACBase(object):
         if point[0] == "waypoint":
           waypoint_params = point[1]
           gripper_action = waypoint_params["pose_type"] == 'gripper'
+          desc = waypoint_params.get("desc")
+          if desc:
+            print("desc: ", desc)
           if gripper_action:
             current_gripper_action = waypoint_params["gripper"]
             res = None, 0.0
