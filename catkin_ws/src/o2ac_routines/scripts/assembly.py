@@ -317,6 +317,8 @@ if __name__ == '__main__':
       if i == "reset":
         c.reset_scene_and_robots()
         c.reset_assembly_visualization()
+      if i == "unload":
+        c.unload_drive_unit()
       if i == "activate":
         c.a_bot.activate_ros_control_on_ur()
         c.b_bot.activate_ros_control_on_ur()

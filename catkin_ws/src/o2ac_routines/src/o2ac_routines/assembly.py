@@ -726,7 +726,7 @@ class O2ACAssembly(O2ACCommon):
     return self.do_plan_pickplace_action('b_bot', 'panel_bearing', pose, save_solution_to_file = 'panel_bearing/bottom_screw_hole_aligner_1')
 
   def full_assembly_task(self):
-    # self.start_task_timer()
+    self.take_tray_from_agv()
 
     # Look into the tray
     self.look_and_get_grasp_point(object_id=2)  # Base place
@@ -759,6 +759,7 @@ class O2ACAssembly(O2ACCommon):
       while not success and not rospy.is_shutdown():
         success = self.subtask_c2() # shaft
     
+    self.unload_drive_unit()
     rospy.loginfo("==== Finished.")
 
     # self.subtask_a() # motor

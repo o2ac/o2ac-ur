@@ -2473,6 +2473,9 @@ class O2ACCommon(O2ACBase):
     b_bot_above_tray_target = conversions.to_pose_stamped("tray_center", [0.06, 0.1, 0.2, 0, 0.883, -tau/4])
     b_bot_at_tray_target = conversions.to_pose_stamped("tray_center", [0.06, 0.1, 0.078, 0, 0.883, -tau/4])
 
+    self.publish_status_text("Target: Unload product")
+    self.unlock_base_plate()
+
     # Grasp the drive unit
     self.a_bot.gripper.open(opening_width=0.05, wait=False)
     self.b_bot.gripper.open(opening_width=0.05, wait=False)
@@ -2486,7 +2489,11 @@ class O2ACCommon(O2ACBase):
     slave_relation = self.ab_bot.get_relative_pose_of_slave(master_name="b_bot", slave_name="a_bot")
     print("slave_relation", slave_relation)
 
-    # Move it to the tray
+    # Move product to the tray
+
+    # TODO(felixvd): Adjust placement height if unit incomplete. Avoid protective stops.
+    # if self.drive_unit_completed:
+    #   b_bot_at_tray_target
 
     self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_drive_unit_loosened, slave_relation, speed=0.02)
     self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_drive_unit_up, slave_relation, speed=0.05)
@@ -2497,6 +2504,7 @@ class O2ACCommon(O2ACBase):
     self.b_bot.gripper.open(opening_width=0.07)
 
     self.ab_bot.go_to_named_pose("home")
+    self.publish_status_text("SUCCESS: Unload product")
 
     
 
