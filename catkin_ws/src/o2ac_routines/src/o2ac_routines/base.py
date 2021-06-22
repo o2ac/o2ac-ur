@@ -221,17 +221,18 @@ class O2ACBase(object):
 
   @check_for_real_robot
   def activate_led(self, LED_name="b_bot", on=True):
-    req = ur_msgs.srv.SetIORequest()
+    request = ur_msgs.srv.SetIORequest()
+    request.fun = ur_msgs.srv.SetIORequest.FUN_SET_DIGITAL_OUT
+    request.pin = 4
+    if on:
+      request.state = ur_msgs.srv.SetIORequest.STATE_ON
+    else:
+      request.state = ur_msgs.srv.SetIORequest.STATE_OFF
+
     if LED_name == "b_bot":
-      req.fun = ur_msgs.srv.SetIORequest.FUN_SET_DIGITAL_OUT
-      req.pin = 4
-      if on:
-        req.state = ur_msgs.srv.SetIORequest.STATE_ON
-      else:
-        req.state = ur_msgs.srv.SetIORequest.STATE_OFF
-      return self.b_bot.set_io.call(req)
+      return self.b_bot.set_io.call(request)
     elif LED_name == "a_bot":
-      return self.a_bot.set_io.call(req)
+      return self.a_bot.set_io.call(request)
     else:
       rospy.logerr("Invalid LED name")
   
@@ -294,7 +295,7 @@ class O2ACBase(object):
     # # TODO(felixvd): Add the set screw and nut tool objects from the C++ file
 
   ######
-  def pick_screw_from_feeder2(self, robot_name, screw_size, realign_tool_upon_failure=True):
+  def pick_screw_from_feeder_python(self, robot_name, screw_size, realign_tool_upon_failure=True):
     if self.tools.screw_is_suctioned.get("m" + str(screw_size), False): 
       rospy.loginfo("(pick_screw_from_feeder) But a screw was already detected in the tool. Returning true without doing anything.")
       return True
@@ -320,7 +321,7 @@ class O2ACBase(object):
         rospy.loginfo("pickScrewFromFeeder failed. Realigning tool and retrying.")
         screw_tool_id = "screw_tool_m" + str(screw_size)
         self.realign_tool(robot_name, screw_tool_id)
-        return self.pick_screw_from_feeder2(robot_name, screw_size, realign_tool_upon_failure=False)
+        return self.pick_screw_from_feeder_python(robot_name, screw_size, realign_tool_upon_failure=False)
     else:
         self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
         return False
@@ -474,7 +475,7 @@ class O2ACBase(object):
 
   @check_for_real_robot
   def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=True):
-    return self.pick_screw_from_feeder2(robot_name, screw_size, realign_tool_upon_failure)  # Python-only version
+    return self.pick_screw_from_feeder_python(robot_name, screw_size, realign_tool_upon_failure)  # Python-only version
     res = self.skill_server.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure)
     try:
       if res.success:

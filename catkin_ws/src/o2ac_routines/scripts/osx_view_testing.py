@@ -122,8 +122,8 @@ if __name__ == '__main__':
       rospy.loginfo("31, 32, 33, 34: Close views")
       rospy.loginfo("4: Call shaft notch detection")
       rospy.loginfo("5: Call SSD detection and show result")
+      rospy.loginfo("(CAD matching) 61: base plate, 62: motor plate, 63: bearing plate, 64: motor, 65: bearing ")
       rospy.loginfo("8: Look for shaft")
-      rospy.loginfo("CAD matching: 61: bearing, 62: base plate, 63: motor plate, 64: bearing plate")
       rospy.loginfo("x: Exit ")
       rospy.loginfo(" ")
       r = raw_input()
@@ -202,19 +202,23 @@ if __name__ == '__main__':
       elif r == '61':
         if not c.assembly_database.db_name == "wrs_assembly_2020":
           c.assembly_database.load_db("wrs_assembly_2020")
-        c.look_for_item_in_tray("bearing", "b_bot")
+        c.look_for_item_in_tray("base", "b_bot")
       elif r == '62':
         if not c.assembly_database.db_name == "wrs_assembly_2020":
           c.assembly_database.load_db("wrs_assembly_2020")
-        c.look_for_item_in_tray("base", "b_bot")
+        c.look_for_item_in_tray("panel_motor", "b_bot")
       elif r == '63':
         if not c.assembly_database.db_name == "wrs_assembly_2020":
           c.assembly_database.load_db("wrs_assembly_2020")
-        c.look_for_item_in_tray("panel_motor", "b_bot")
+        c.look_for_item_in_tray("panel_bearing", "b_bot")
       elif r == '64':
         if not c.assembly_database.db_name == "wrs_assembly_2020":
           c.assembly_database.load_db("wrs_assembly_2020")
-        c.look_for_item_in_tray("panel_bearing", "b_bot")
+        c.look_for_item_in_tray("motor", "b_bot")
+      elif r == '65':
+        if not c.assembly_database.db_name == "wrs_assembly_2020":
+          c.assembly_database.load_db("wrs_assembly_2020")
+        c.look_for_item_in_tray("bearing", "b_bot")
       elif r == '7':
         c.b_bot.linear_push(force=10, direction="+Z", relative_to_ee=False, timeout=15.0)
       elif r == "8":

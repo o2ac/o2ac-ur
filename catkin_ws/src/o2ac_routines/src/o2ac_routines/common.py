@@ -1446,7 +1446,7 @@ class O2ACCommon(O2ACBase):
       if not skip_picking:
         self.b_bot.go_to_named_pose("screw_ready")
         self.b_bot.go_to_named_pose("feeder_pick_ready")
-        pick_success = self.pick_screw_from_feeder2("b_bot", screw_size=4)
+        pick_success = self.pick_screw_from_feeder_python("b_bot", screw_size=4)
         if not pick_success:
           rospy.logerr("Could not pick screw. Why?? Breaking out.")
           self.unequip_tool('b_bot', 'screw_tool_m4')

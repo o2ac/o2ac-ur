@@ -168,12 +168,17 @@ class RobotBase():
         with rosbag.Bag(bagfile, 'w') as bag:
             bag.write(topic="saved_plan", msg=plan)
     
-    def execute_saved_plan(self, filename, wait=True):
+    def load_saved_plan(self, filename):
         rp = rospkg.RosPack()
         bagfile = rp.get_path("o2ac_routines") + "/config/saved_plans/" + filename
         with rosbag.Bag(bagfile, 'r') as bag:
             for (topic, plan, ts) in bag.read_messages():
-                return self.execute_plan(plan)
+                return plan
+
+    def execute_saved_plan(self, filename="", plan=[], wait=True):
+        if filename and not plan:
+            plan = self.load_saved_plan(filename)
+        return self.execute_plan(plan)
 
     # ------ Robot motion functions
 

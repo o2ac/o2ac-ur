@@ -105,6 +105,8 @@ if __name__ == '__main__':
         c.take_tray_from_agv()
       elif i == '211':
         c.take_tray_from_agv(reverse_movement_for_calibration=True)
+      elif i == '212':
+        c.take_tray_from_agv_preplanned()
       elif i == '22':
         c.unload_drive_unit()
       elif i == '31':
