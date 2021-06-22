@@ -1447,8 +1447,8 @@ class O2ACCommon(O2ACBase):
           rospy.logerr("Could not pick screw. Why?? Breaking out.")
           self.unequip_tool('b_bot', 'screw_tool_m4')
           return (False, True)
-        self.b_bot.go_to_named_pose("screw_ready")
         self.playback_sequence("ready_screw_tool_horizontal")
+        # self.b_bot.go_to_named_pose("screw_ready")
         # self.b_bot.go_to_named_pose("horizontal_screw_ready")
       
       screw_pose_approach = copy.deepcopy(screw_pose)
@@ -1458,6 +1458,8 @@ class O2ACCommon(O2ACBase):
       screw_success = self.skill_server.do_screw_action("b_bot", screw_pose, screw_size=4)
       self.b_bot.go_to_pose_goal(screw_pose_approach, end_effector_link = "b_bot_screw_tool_m4_tip_link", move_lin=False)
       self.playback_sequence("return_screw_tool_horizontal")
+      # self.b_bot.go_to_named_pose("horizontal_screw_ready")
+      # self.b_bot.go_to_named_pose("screw_ready")
       return (screw_success, False)
 
     # Initialize screw status
