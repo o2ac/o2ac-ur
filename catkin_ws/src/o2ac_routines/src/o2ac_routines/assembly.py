@@ -729,9 +729,10 @@ class O2ACAssembly(O2ACCommon):
     return self.do_plan_pickplace_action('b_bot', 'panel_bearing', pose, save_solution_to_file = 'panel_bearing/bottom_screw_hole_aligner_1')
 
   def full_assembly_task(self):
-    self.take_tray_from_agv()
+    # self.take_tray_from_agv()
 
     # Look into the tray
+    self.publish_status_text("Target: base plate")
     self.look_and_get_grasp_point(object_id=2)  # Base place
     self.confirm_to_proceed("press enter to proceed to pick and set base plate")
     success = False
