@@ -62,7 +62,7 @@ void execute(const o2ac_msgs::updateDistributionGoalConstPtr &goal) {
                             result.distribution.pose);
     }
   } catch (std::exception &e) {
-    // Update is not calculated successfully by std::exceptiom
+    // Update is not calculated successfully by std::exception
     auto error_message = e.what();
     ROS_ERROR_STREAM("Distribution cannot be calculated: " << error_message);
     result.success = false;

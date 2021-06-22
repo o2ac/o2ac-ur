@@ -185,6 +185,7 @@ This section describe visualizePoseBelief service, a service to receive a pose b
 - `moveit_msgs/CollisionObject object`: a CollisionObject representing the object
 - `uint8 distribution_type`: whether method is used to represent uncertainty of the pose. Its meaning is the same as the case of `updateDistributionGoal`.
 - `geometry_msgs/PoseWithCovarianceStamped distribution`: the current distribution of the pose of the object
+- `duration lifetime`: the lifetime of the marker
 
 ## Response
 Nothing

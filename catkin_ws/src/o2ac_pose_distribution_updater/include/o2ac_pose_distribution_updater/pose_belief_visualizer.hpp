@@ -23,7 +23,7 @@ private:
       const std_msgs::Header &header,
       const std::vector<geometry_msgs::Point> &triangle_list,
       const geometry_msgs::Pose &pose, const std_msgs::ColorRGBA &color,
-      visualization_msgs::Marker &marker);
+      const ros::Duration &lifetime, visualization_msgs::Marker &marker);
 
   void inner_publish_marker_for_pose_belief(
       o2ac_msgs::visualizePoseBelief::Request &belief,

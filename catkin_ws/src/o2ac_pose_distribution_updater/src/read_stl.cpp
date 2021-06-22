@@ -1,10 +1,16 @@
 #include "o2ac_pose_distribution_updater/read_stl.hpp"
+#include <sys/stat.h>
 
 void read_stl(FILE *in, std::vector<Eigen::Vector3d> &points,
               std::vector<boost::array<int, 3>> &triangles) {
-  char first_word[7];
-  fgets(first_word, 6, in);
-  if (strcmp(first_word, "solid") == 0) {
+  char comment[80];
+  fread(comment, 1, 80, in);
+  unsigned int number;
+  fread(&number, 4, 1, in);
+  fseek(in, 0L, SEEK_END);
+  unsigned int size = ftell(in);
+  fseek(in, 0, SEEK_SET);
+  if (size != number * 50 + 84) {
     // ASCII mode
     char c;
     while ((c = fgetc(in)) != '\n')
@@ -44,7 +50,6 @@ void read_stl(FILE *in, std::vector<Eigen::Vector3d> &points,
     }
   } else {
     // Binary mode
-    fseek(in, 0, SEEK_SET);
     char comment[80];
     fread(comment, 1, 80, in);
     unsigned int number;

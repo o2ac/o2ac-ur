@@ -34,3 +34,6 @@ void add_mesh_to_CollisionObject(
     const std::vector<Eigen::Vector3d> &vertices,
     const std::vector<boost::array<int, 3>> &triangles,
     const Eigen::Isometry3d &transform);
+
+void msg_pose_to_msg_transform(const geometry_msgs::Pose &pose,
+                               geometry_msgs::Transform &transform);

@@ -30,7 +30,7 @@ void PoseBeliefVisualizer::make_marker_from_particle(
     const std_msgs::Header &header,
     const std::vector<geometry_msgs::Point> &triangle_list,
     const geometry_msgs::Pose &pose, const std_msgs::ColorRGBA &color,
-    visualization_msgs::Marker &marker) {
+    const ros::Duration &lifetime, visualization_msgs::Marker &marker) {
   // Given header, object shape given as triangle list, pose given as
   // geometry_msgs::pose and color, make a marker
 
@@ -44,6 +44,7 @@ void PoseBeliefVisualizer::make_marker_from_particle(
   marker.pose = pose;
   marker.scale = scale;
   marker.color = color;
+  marker.lifetime = lifetime;
 
   marker.frame_locked = true;
   marker.action = visualization_msgs::Marker::ADD;
@@ -151,7 +152,7 @@ void PoseBeliefVisualizer::inner_publish_marker_for_pose_belief(
   for (int i = 0; i < poses_to_publish.size(); i++) {
     make_marker_from_particle(
         belief.distribution.header, triangle_list, poses_to_publish[i].first,
-        poses_to_publish[i].second, marker_array.markers[i]);
+        poses_to_publish[i].second, belief.lifetime, marker_array.markers[i]);
   }
 
   // publish visualization markers

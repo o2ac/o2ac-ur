@@ -12,14 +12,6 @@ Eigen::Isometry3d particle_to_eigen_transform(const Particle &p) {
          Eigen::AngleAxis<double>(p(3), Eigen::Vector3d::UnitX());
 }
 
-void msg_pose_to_msg_transform(const geometry_msgs::Pose &pose,
-                               geometry_msgs::Transform &transform) {
-  transform.translation.x = pose.position.x;
-  transform.translation.y = pose.position.y;
-  transform.translation.z = pose.position.z;
-  transform.rotation = pose.orientation;
-}
-
 void broadcast_gripper_pose(const std::string &frame_id,
                             const ros::Time &current_time,
                             const geometry_msgs::Pose &pose) {
@@ -41,6 +33,7 @@ void send_pose_belief(
   pose_belief.request.object = object;
   pose_belief.request.distribution_type = distribution_type;
   pose_belief.request.distribution = distribution;
+  pose_belief.request.lifetime = ros::Duration();
   visualizer_client.call(pose_belief);
 }
 

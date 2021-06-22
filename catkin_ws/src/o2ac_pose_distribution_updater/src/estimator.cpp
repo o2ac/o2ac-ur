@@ -384,13 +384,13 @@ void PoseEstimator::place_step(
 
   // calculate the three vertices of the object touching the ground
   int ground_touch_vertex_id_1, ground_touch_vertex_id_2,
-      ground_touch_vertix_id_3; // The first point touching the ground, and
+      ground_touch_vertex_id_3; // The first point touching the ground, and
                                 // the second and the third.
   Eigen::Quaterniond rotation;
   bool stability;
   find_three_points(current_vertices, current_center_of_gravity,
                     ground_touch_vertex_id_1, ground_touch_vertex_id_2,
-                    ground_touch_vertix_id_3, rotation, stability);
+                    ground_touch_vertex_id_3, rotation, stability);
 
   // If the object is not stable after placing, throw exception
   if (!stability) {
@@ -401,7 +401,7 @@ void PoseEstimator::place_step(
   place_update_distribution(
       old_mean, old_covariance, center_of_gravity_of_gripped,
       vertices[ground_touch_vertex_id_1], vertices[ground_touch_vertex_id_2],
-      vertices[ground_touch_vertix_id_3], support_surface, gripper_transform,
+      vertices[ground_touch_vertex_id_3], support_surface, gripper_transform,
       new_mean, new_covariance);
 }
 
@@ -426,13 +426,13 @@ void PoseEstimator::place_step_with_Lie_distribution(
 
   // calculate the three vertices of the object touching the ground
   int ground_touch_vertex_id_1, ground_touch_vertex_id_2,
-      ground_touch_vertix_id_3; // The first point touching the ground, and
+      ground_touch_vertex_id_3; // The first point touching the ground, and
                                 // the second and the third.
   Eigen::Quaterniond rotation;
   bool stability;
   find_three_points(current_vertices, current_center_of_gravity,
                     ground_touch_vertex_id_1, ground_touch_vertex_id_2,
-                    ground_touch_vertix_id_3, rotation, stability);
+                    ground_touch_vertex_id_3, rotation, stability);
 
   // If the object is not stable after placing, throw exception
   if (!stability) {
@@ -466,7 +466,7 @@ void PoseEstimator::place_step_with_Lie_distribution(
   place_update_Lie_distribution(
       old_mean, old_covariance, center_of_gravity_of_gripped,
       vertices[ground_touch_vertex_id_1], vertices[ground_touch_vertex_id_2],
-      vertices[ground_touch_vertix_id_3], support_surface, gripper_transform,
+      vertices[ground_touch_vertex_id_3], support_surface, gripper_transform,
       new_mean, new_covariance);
 }
 
@@ -500,6 +500,9 @@ void PoseEstimator::grasp_step_with_Lie_distribution(
                      -old_mean_rotation.row(1).transpose(),
                      -old_mean_translation(1) + gripper_width / 2.0),
                  cut_vertices[2], cut_triangles[2]);
+  if (cut_vertices[2].size() == 0) {
+    throw(std::runtime_error("The object cannot be grasped"));
+  }
   if (use_linear_approximation) {
     // calculate by auto diff
     grasp_update_Lie_distribution(old_mean, old_covariance, cut_vertices[2],

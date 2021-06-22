@@ -3,8 +3,7 @@ Helper functions for the place action
  */
 
 #include "o2ac_pose_distribution_updater/place_action_helpers.hpp"
-
-const double EPS = 1e-6;
+const double EPS = 1e-9, LARGE_EPS = 1e-6;
 
 int argmin(const std::vector<double> &vec) {
   // robust argmin
@@ -59,10 +58,11 @@ void find_three_points(const std::vector<Eigen::Vector3d> &current_vertices,
   for (int i = 0; i < number_of_vertices; i++) {
     Eigen::Vector3d v1v2 =
         current_vertices[i] - current_vertices[ground_touch_vertex_id_1];
-    first_angles[i] = (i == ground_touch_vertex_id_1
-                           ? INF
-                           : std::atan2(v1v2(2), first_axis(1) * v1v2(0) -
-                                                     first_axis(0) * v1v2(1)));
+    first_angles[i] =
+        (i == ground_touch_vertex_id_1
+             ? INF
+             : std::atan2(abs(v1v2(2)),
+                          first_axis(1) * v1v2(0) - first_axis(0) * v1v2(1)));
   }
   ground_touch_vertex_id_2 = argmin(first_angles);
 
@@ -104,7 +104,7 @@ void find_three_points(const std::vector<Eigen::Vector3d> &current_vertices,
     second_angles[i] =
         (i == ground_touch_vertex_id_1 || i == ground_touch_vertex_id_2
              ? INF
-             : std::atan2(v1v3(2),
+             : std::atan2(abs(v1v3(2)),
                           second_axis(1) * v1v3(0) - second_axis(0) * v1v3(1)));
   }
   ground_touch_vertex_id_3 = argmin(second_angles);
@@ -184,7 +184,7 @@ const Eigen::Transform<T, 3, Eigen::Isometry> calculate_transform_after_placing(
                          .cross(point::UnitZ())
                          .normalized();
   T first_angle =
-      atan2(v1v2(2), first_axis(1) * v1v2(0) - first_axis(0) * v1v2(1));
+      atan2(abs(v1v2(2)), first_axis(1) * v1v2(0) - first_axis(0) * v1v2(1));
   Eigen::AngleAxis<T> first_rotation(first_angle, first_axis);
 
   // calculate the coordinates after first rotation
@@ -206,7 +206,7 @@ const Eigen::Transform<T, 3, Eigen::Isometry> calculate_transform_after_placing(
     second_axis = -second_axis;
   }
   T second_angle =
-      atan2(v1v3(2), second_axis(1) * v1v3(0) - second_axis(0) * v1v3(1));
+      atan2(abs(v1v3(2)), second_axis(1) * v1v3(0) - second_axis(0) * v1v3(1));
   Eigen::AngleAxis<T> second_rotation(second_angle, second_axis);
 
   // calculate the coordinates after second rotation
@@ -416,7 +416,7 @@ void place_update_Lie_distribution(const Eigen::Isometry3d &old_mean,
   CovarianceMatrix Jacobian;
   calculate_perturbation_AD(Eigen::Matrix<double, 6, 1>::Zero(),
                             &mean_perturbation, &Jacobian);
-  assert(mean_perturbation.norm() < EPS);
+  assert(mean_perturbation.norm() < LARGE_EPS);
 
   // The covariance of the function value is calculated by the covariance of the
   // argument and Jacobian.

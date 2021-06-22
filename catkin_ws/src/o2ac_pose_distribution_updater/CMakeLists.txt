@@ -69,4 +69,9 @@ if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
   add_rostest_gtest(test_client test/unit_test.test src/test/test_client.cpp src/test/touch_test.cpp src/test/look_test.cpp src/test/place_test.cpp src/test/grasp_test.cpp)
   target_link_libraries(test_client ros_converters ${FCL_LIBRARIES} ${OpenCV_LIBRARIES} read_stl distribution_conversions)
+
+  add_executable(visualize_test src/test/visuzalize_test.cpp)
+  add_dependencies(visualize_test ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+  target_link_libraries(visualize_test ros_converters read_stl)
+
 endif()

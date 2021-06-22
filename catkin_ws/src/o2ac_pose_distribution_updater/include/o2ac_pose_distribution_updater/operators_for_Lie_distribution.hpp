@@ -29,7 +29,8 @@ Eigen::Matrix<T, 6, 1> check_operator(const Eigen::Matrix<T, 4, 4> &m) {
   return v;
 }
 
-// The adjoint action on se(3) regarded as the linear endomorphism of R^6
+// The adjoint action on se(3) by an element of se(3) regarded as the linear
+// endomorphism of R^6
 template <typename T>
 Eigen::Matrix<T, 6, 6> adjoint(const Eigen::Matrix<T, 6, 1> &v) {
   // return a matrix m such that
@@ -39,6 +40,25 @@ Eigen::Matrix<T, 6, 6> adjoint(const Eigen::Matrix<T, 6, 1> &v) {
       SO3_hat_operator<T>(v.block(3, 0, 3, 1));
   m.block(0, 3, 3, 3) = SO3_hat_operator<T>(v.block(0, 0, 3, 1));
   m.block(3, 0, 3, 3).setZero();
+  return m;
+}
+
+// The adjoint action on se(3) by an element of SE(3) regarded as the linear
+// endomorphism of R^6
+template <typename T>
+Eigen::Matrix<T, 6, 6>
+Adjoint(const Eigen::Transform<T, 3, Eigen::Isometry> &t) {
+  // return a matrix m such that
+  // hat_operator(m * u) = t * hat_operator(u) * t^{-1} for all u in R^6
+  Eigen::Matrix<T, 6, 6> m;
+  for (int i = 0; i < 6; i++) {
+    Eigen::Matrix<T, 6, 1> unit_vector;
+    for (int j = 0; j < 6; j++) {
+      unit_vector[j] = (i == j ? 1.0 : 0.0);
+    }
+    m.col(i) = check_operator<T>(t.matrix() * hat_operator<T>(unit_vector) *
+                                 t.inverse().matrix());
+  }
   return m;
 }
 

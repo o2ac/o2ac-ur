@@ -124,3 +124,11 @@ void add_mesh_to_CollisionObject(
   tf::poseEigenToMsg(transform, pose);
   object->mesh_poses.push_back(pose);
 }
+
+void msg_pose_to_msg_transform(const geometry_msgs::Pose &pose,
+                               geometry_msgs::Transform &transform) {
+  transform.translation.x = pose.position.x;
+  transform.translation.y = pose.position.y;
+  transform.translation.z = pose.position.z;
+  transform.rotation = pose.orientation;
+}
