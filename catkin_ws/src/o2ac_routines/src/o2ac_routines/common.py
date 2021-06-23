@@ -519,8 +519,6 @@ class O2ACCommon(O2ACBase):
     This procedure works by changing the x axis of the target pose's frame. 
     It may produce dangerous motions in other configurations.
     """
-    #self.skill_server.publish_marker(object_pose, "place_pose")
-    self.log_to_debug_monitor("Place", "operation")
     rospy.loginfo("Going above place target")
     object_pose.pose.position.x -= approach_height
     self.active_robots[robot_name].go_to_pose_goal(object_pose, speed=speed_fast, acceleration=acc_fast, move_lin=False)
@@ -536,7 +534,7 @@ class O2ACCommon(O2ACBase):
     if gripper_command=="do_nothing":
       pass
     else: 
-      robot.gripper.send_command(gripper=robot_name, command="open")
+      robot.gripper.open()
 
     if item_id_to_detach:
       robot.robot_group.detach_object(item_id_to_detach)

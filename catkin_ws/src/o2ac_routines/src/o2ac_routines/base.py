@@ -74,6 +74,35 @@ from o2ac_routines.vision_client import VisionClient
 from o2ac_routines.ur_robot import URRobot
 from o2ac_routines.tools import Tools
 
+
+class AssemblyStatus(object):
+  """ A helper class containing only boolean entries.
+      May as well be a dictionary, but this makes auto-completion easier.
+
+      This should help when restarting.
+  """
+  def __init__(self):
+    # rospy.get_param("/last_assembly_status", False)
+    self.tray_placed_on_table = True
+
+    self.belt_placed_outside_of_tray = False
+    self.motor_placed_outside_of_tray = False
+
+    self.completed_subtask_zero = False  # Base
+    self.completed_subtask_a = False
+    self.completed_subtask_b = False
+    self.completed_subtask_c1 = False
+    self.completed_subtask_c2 = False
+    self.completed_subtask_d = False
+    self.completed_subtask_e = False  # 
+    self.completed_subtask_f = False  # Motor plate
+    self.completed_subtask_g = False  # Bearing plate
+    self.completed_subtask_h = False  # Belt
+    self.completed_subtask_i1 = False  # Cable 1
+    self.completed_subtask_i2 = False  # Cable 2
+  
+
+
 class O2ACBase(object):
   """
   This class contains the basic helper and convenience functions used in the routines.
@@ -111,6 +140,7 @@ class O2ACBase(object):
     self.execute_trajectory_listener = rospy.Subscriber("/execute_trajectory/status", actionlib.GoalStatusArray, self.trajectory_status_cb)
     
     self.assembly_database = AssemblyReader()
+    self.assembly_status = AssemblyStatus()
 
     # Action clients and movegroups
     self.a_bot = URRobot("a_bot", self.listener)

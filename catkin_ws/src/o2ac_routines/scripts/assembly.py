@@ -244,6 +244,8 @@ if __name__ == '__main__':
       elif i == '97':
         c.subtask_c2() # shaft
         # 97: shaft, 98: clamp pulley, 99: belt).")
+      elif i == '991':
+        c.pick_and_store_belt()
       elif i == '97spawn':
         obj = c.assembly_database.get_collision_object("shaft")
         obj.header.frame_id = "b_bot_gripper_tip_link"

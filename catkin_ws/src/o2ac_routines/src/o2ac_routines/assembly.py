@@ -36,6 +36,7 @@
 
 import sys
 import copy
+from o2ac_routines.base import AssemblyStatus
 from ur_control import conversions
 import rospy
 import geometry_msgs.msg
@@ -79,9 +80,51 @@ class O2ACAssembly(O2ACCommon):
     for screw_id in screw_ids:
       self.spawn_tool('screw_tool_' + screw_id)
       self.upload_tool_grasps_to_param_server(screw_id)
+    
+    self.belt_storage_location = geometry_msgs.msg.PoseStamped()
+    self.belt_storage_location.header.frame_id = "left_centering_link"
+    self.belt_storage_location.pose.position.x = -0.005  # Height
+    self.belt_storage_location.pose.position.y = 0.05
+    self.belt_storage_location.pose.position.z = 0.05
 
+  ################ ----- Subtasks
 
-  ################ ----- Subroutines  
+  def pick_and_store_belt(self):
+    self.b_bot.go_to_named_pose("home")
+    self.a_bot.go_to_pose_goal(self.tray_view_high, end_effector_link="a_bot_outside_camera_color_frame", speed=.8)
+
+    self.vision.activate_camera("a_bot_outside_camera")
+    self.activate_led("a_bot")
+    res = self.get_3d_poses_from_ssd()
+    r2 = self.get_feasible_grasp_points("belt")
+    if r2:
+      pick_goal = r2[0]
+      pick_goal.pose.position.z = -0.001
+      pick_goal.pose.position.x = -0.02  # MAGIC NUMBER
+    else:
+      rospy.logerr("Could not find belt grasp pose! Aborting.")
+      return False
+    
+    # TODO(felixvd): Adjust this check so that the gripper does not open before the vision confirmed the belt pick
+
+    self.vision.activate_camera("a_bot_inside_camera")
+    self.simple_pick("a_bot", pick_goal, gripper_force=100.0, approach_height=0.15, grasp_width=.04, axis="z")
+    
+    self.b_bot.go_to_named_pose("home")
+    self.simple_place("a_bot", self.belt_storage_location)
+    self.a_bot.move_lin_rel(relative_translation=[0,-0.05,.1])
+    
+    success = self.vision.check_pick_success("belt")
+    if success:
+      rospy.loginfo("Belt storage success!")
+    else:
+      rospy.loginfo("Belt storage failed!")
+      # TODO(felixvd): Open gripper over tray in case an object was picked accidentally
+      
+    self.a_bot.go_to_named_pose("home")
+    return success
+
+  ################ ----- Subtasks
 
   def subtask_zero(self):
     # ============= SUBTASK BASE (picking and orienting and placing the baseplate) =======================
@@ -729,15 +772,15 @@ class O2ACAssembly(O2ACCommon):
     return self.do_plan_pickplace_action('b_bot', 'panel_bearing', pose, save_solution_to_file = 'panel_bearing/bottom_screw_hole_aligner_1')
 
   def full_assembly_task(self):
-    # self.take_tray_from_agv()
+    if self.assembly_status.tray_placed_on_table:
+      self.take_tray_from_agv()
 
     # Look into the tray
     self.publish_status_text("Target: base plate")
-    self.look_and_get_grasp_point(object_id=2)  # Base place
+    # self.look_and_get_grasp_point(object_id=2)  # Base place
     self.confirm_to_proceed("press enter to proceed to pick and set base plate")
-    success = False
-    while not success and not rospy.is_shutdown():
-        success = self.subtask_zero()  # Base plate
+    while not self.assembly_status.completed_subtask_zero and not rospy.is_shutdown():
+        self.assembly_status.completed_subtask_zero = self.subtask_zero()  # Base plate
     
     ## Equip screw tool for subtasks G, F
     self.b_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
@@ -746,23 +789,20 @@ class O2ACAssembly(O2ACCommon):
     self.vision.activate_camera("b_bot_outside_camera")
 
     self.confirm_to_proceed("press enter to proceed to subtask_g")
-    bearing_plate_success = False
-    bearing_plate_success = self.subtask_g()  # Large plate
+    self.assembly_status.completed_subtask_g = self.subtask_g()  # Bearing plate
     self.confirm_to_proceed("press enter to proceed to subtask_f")
-    motor_plate_success = False
-    motor_plate_success = self.subtask_f() # motor plate
+    self.assembly_status.completed_subtask_f = self.subtask_f() # Motor plate
 
     self.a_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
     self.do_change_tool_action("b_bot", equip=False, screw_size=4)
 
-    if bearing_plate_success:
-      success = False
-      success = self.subtask_c1() # bearing 
-      if success:
-        success = False
-        success = self.subtask_c2() # shaft
+    if self.assembly_status.completed_subtask_g:  # Bearing
+      self.assembly_status.completed_subtask_c1 = self.subtask_c1() # bearing 
+      if self.assembly_status.completed_subtask_c1:
+        self.assembly_status.completed_subtask_c2 = self.subtask_c2() # shaft
     
     self.unload_drive_unit()
+    self.assembly_status = AssemblyStatus()
     rospy.loginfo("==== Finished.")
 
     # self.subtask_a() # motor
