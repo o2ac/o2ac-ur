@@ -269,13 +269,13 @@ class O2ACAssembly(O2ACCommon):
     
     self.allow_collisions_with_robot_hand("shaft", "b_bot", True)
     self.allow_collisions_with_robot_hand("end_cap", "a_bot", True)
-
-    self.publish_status_text("Target: shaft" )
-    if not self.orient_shaft():
-      return False
     
     self.publish_status_text("Target: end cap" )
     if not self.orient_shaft_end_cap():
+      return False
+
+    self.publish_status_text("Target: shaft" )
+    if not self.orient_shaft():
       return False
 
     pre_insertion_shaft = conversions.to_pose_stamped("tray_center", [0.0, 0, 0.2, 0, 0, -tau/4.])

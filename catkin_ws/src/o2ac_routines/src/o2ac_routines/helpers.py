@@ -465,6 +465,18 @@ def to_sequence_gripper(gripper, gripper_opening_width=0.14, gripper_force=40, g
     }
   return ["waypoint", item]
 
+def to_sequence_item_relative(pose, relative_to_base=False, relative_to_tcp=False, speed=0.5, acc=0.25):
+  if relative_to_tcp:
+    pose_type = 'relative-tcp'
+  elif relative_to_base:
+    pose_type = 'relative-base'
+  else:
+    pose_type = 'relative-world'
+  item  = {"pose": pose,
+           "pose_type": pose_type}
+  item.update({"speed": speed, "acc": acc})
+  return ["waypoint", item]
+
 def to_sequence_item(pose, speed=0.5, acc=0.25):
   if isinstance(pose, geometry_msgs.msg.PoseStamped):
     item           = {"pose": conversions.from_point(pose.pose.position).tolist() + np.rad2deg(transformations.euler_from_quaternion(conversions.from_quaternion(pose.pose.orientation))).tolist(),
@@ -483,8 +495,9 @@ def to_sequence_item(pose, speed=0.5, acc=0.25):
 
   return ["waypoint", item]
 
-def to_sequence_trajectory(trajectory, blend_radiuses, speed=0.5, default_frame="world"):
+def to_sequence_trajectory(trajectory, blend_radiuses=0.0, speed=0.5, default_frame="world"):
   sequence_trajectory = []
+  blend_radiuses = blend_radiuses if isinstance(blend_radiuses, list) else np.zeros_like(trajectory)+blend_radiuses
   for t, br in zip(trajectory, blend_radiuses):
     if isinstance(t, geometry_msgs.msg.PoseStamped):
       sequence_trajectory.append([t, br])

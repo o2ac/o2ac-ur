@@ -1136,6 +1136,7 @@ class O2ACBase(object):
     else:
       previous_point_duration = 0.0
       previous_plan = None
+      rospy.loginfo("(plan_while_moving) Sequence name: %s" % sequence_name)
       for i, point in enumerate(sequence):
         rospy.loginfo("(plan_while_moving) Sequence point: %i - %s" % (i+1, point[0]))
         # self.confirm_to_proceed("playback_sequence")
@@ -1154,18 +1155,14 @@ class O2ACBase(object):
             current_gripper_action = waypoint_params["gripper"]
             res = None, 0.0
           else:
-            # print("move to wp: ", waypoint_params)
             res = self.move_to_sequence_waypoint(robot_name, waypoint_params, plan_only=True, initial_joints=initial_joints)
         elif point[0] == "trajectory":
           trajectory, speed_scale_factor = point[1]
-          # print("do traj: ", trajectory)
           res = robot.move_lin_trajectory(trajectory, speed=speed_scale_factor, plan_only=True, initial_joints=initial_joints)
         else:
           ValueError("Invalid sequence type: %s" % point[0])
 
         if not gripper_action and not res:
-          # print("point plan res", bool(res))
-          # print("point gripper action", gripper_action)
           rospy.logerr("Fail to complete playback sequence: %s" % sequence_name)
           return False
         
