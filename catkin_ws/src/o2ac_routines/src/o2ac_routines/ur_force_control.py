@@ -90,7 +90,7 @@ class URForceController(CompliantController):
 
         result = self.set_hybrid_control_trajectory(target_positions, self.force_model, max_force_torque=self.max_force_torque, timeout=timeout,
                                                     stop_on_target_force=stop_on_target_force, termination_criteria=termination_criteria,
-                                                    displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time, debug=True)
+                                                    displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time, debug=False)
         self.force_model.reset()  # reset pid errors
 
         return result
@@ -163,7 +163,7 @@ class URForceController(CompliantController):
 
 
     def do_insertion(self, target_pose_in_target_frame, insertion_direction, timeout, 
-                           radius=0.0, radius_direction=None, force=1.0, relaxed_target_by=0.0,
+                           radius=0.0, radius_direction=None, revolutions=3, force=1.0, relaxed_target_by=0.0,
                            wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0,
                            selection_matrix=None, displacement_epsilon=0.002, check_displacement_time=2.0,
                            config_file=None):
@@ -191,14 +191,19 @@ class URForceController(CompliantController):
             current_pose_of = conversions.from_pose_to_list(current_pose_in_target_frame.pose)
             target_pose_of = conversions.from_pose_to_list(target_pose_in_target_frame.pose)
             # print("check cp,tp", current_pose_of[axis], target_pose_of[axis])
-            more_than = insertion_direction[0] == '-' if self.ns == "b_bot" else insertion_direction[0] == '+'
+            # TODO(cambel): set everything around a fixed frame (world) to avoid this hack
+            # Investigate why the Z direction works backwards
+            if 'Z' in insertion_direction:
+                more_than = insertion_direction[0] == '+'
+            else:
+                more_than = insertion_direction[0] == '-' if self.ns == "b_bot" else insertion_direction[0] == '+'
             if more_than:
                 return current_pose_of[axis] >= target_pose_of[axis] or \
                             (standby and current_pose_of[axis] >= target_pose_of[axis] - relaxed_target_by)
             return current_pose_of[axis] <= target_pose_of[axis] or \
                         (standby and current_pose_of[axis] <= target_pose_of[axis] + relaxed_target_by)
 
-        result = self.execute_spiral_trajectory(plane, max_radius=radius, radius_direction=radius_direction, steps=100, revolutions=3,
+        result = self.execute_spiral_trajectory(plane, max_radius=radius, radius_direction=radius_direction, steps=100, revolutions=revolutions,
                                         wiggle_direction=wiggle_direction, wiggle_angle=wiggle_angle, wiggle_revolutions=wiggle_revolutions,
                                         target_force=target_force, selection_matrix=selection_matrix, timeout=timeout,
                                         displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time,

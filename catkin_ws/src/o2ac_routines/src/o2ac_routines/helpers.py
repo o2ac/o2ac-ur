@@ -393,7 +393,10 @@ def get_target_force(direction, force):
   validate_direction(direction)
 
   res = [0.,0.,0.,0.,0.,0.]
-  sign = 1. if '+' in direction else -1.
+  if 'Z' in direction: # hack
+    sign = -1. if '+' in direction else 1.
+  else:
+    sign = 1. if '+' in direction else -1.
   res[get_direction_index(direction[1])] = force * sign
 
   return np.array(res)

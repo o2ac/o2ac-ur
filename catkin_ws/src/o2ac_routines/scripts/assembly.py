@@ -243,7 +243,16 @@ if __name__ == '__main__':
         c.subtask_e() # idler pin
       elif i == '97':
         c.subtask_c2() # shaft
+      elif i == '971':
+        c.orient_shaft()
+        c.orient_shaft_end_cap()
+      elif i == '977':
+        c.is_the_placed_end_cap_upside_down()
         # 97: shaft, 98: clamp pulley, 99: belt).")
+      elif i == "9772":
+        ### Test end cap insertion
+        c.insert_end_cap()
+        print("result", result)
       elif i == '991':
         c.pick_and_store_belt()
       elif i == '97spawn':

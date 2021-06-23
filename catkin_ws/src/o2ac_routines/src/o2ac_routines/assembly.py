@@ -334,17 +334,21 @@ class O2ACAssembly(O2ACCommon):
     self.confirm_to_proceed("insertion of end cap")
 
     self.a_bot.linear_push(force=3, direction="+Z", max_translation=0.1, timeout=10.0)
+    target_pose = self.a_bot.get_current_pose_stamped()
+    target_pose.pose.position.z -= 0.002
     self.a_bot.move_lin_rel(relative_translation=[0,0,0.002]) # release pressure before insertion
 
     selection_matrix = [0.3, 0.3, 0., 0.95, 1, 1]
-    # TODO(cambel): define the termination criteria w.r.t the result of the linear push + offset  or with respect to shaft/screw_hole frame
-    target_pose_target_frame = conversions.to_pose_stamped("tray_center", [-0.003, -0.000, 0.233]+np.deg2rad([-180, 90, -90]).tolist())
-    result = self.a_bot.do_insertion(target_pose_target_frame, insertion_direction="+Z", force=2.0, timeout=20.0, 
+
+    # target_pose_target_frame = conversions.to_pose_stamped("tray_center", [-0.003, -0.000, 0.233]+np.deg2rad([-180, 90, -90]).tolist())
+    result = self.a_bot.do_insertion(target_pose, insertion_direction="+Z", force=2.0, timeout=20.0, 
                                                       radius=0.004, relaxed_target_by=0.003, selection_matrix=selection_matrix,
                                                       check_displacement_time=3.)
     success = result in (TERMINATION_CRITERIA, DONE)
     if not success:
       return False
+
+    self.confirm_to_proceed("Did insertion succeed? Press Enter to open gripper")
 
     self.a_bot.gripper.send_command(0.06, velocity=0.01)
     self.a_bot.gripper.detach_object("end_cap")
@@ -661,6 +665,8 @@ class O2ACAssembly(O2ACCommon):
     rospy.loginfo("======== SUBTASK I (cables) ========")
     rospy.logerr("Subtask I not implemented yet")
     return False
+
+  ##############
 
   def spawn_objects_for_closed_loop_test(self):
     objects = ['panel_bearing', 'panel_motor']
