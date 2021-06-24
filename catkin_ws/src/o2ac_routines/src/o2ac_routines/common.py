@@ -877,34 +877,29 @@ class O2ACCommon(O2ACBase):
       self.a_bot.go_to_named_pose("home")
     
     robot_name == "b_bot"
-    
+    robot = self.active_robots[robot_name]
+
     if not self.playback_sequence("plunger_tool_equip"):
       rospy.logerr("Fail to equip tool")
       return False
 
     safe_approach_pose = copy.deepcopy(target_pose)
     if direction == 'x':
-      safe_approach_pose.pose.position.x -= np.sign(safe_approach_pose.pose.position.x) * 0.01
+      safe_approach_pose.pose.position.x -= np.sign(safe_approach_pose.pose.position.x) * 0.015
     if direction == 'y':
-      safe_approach_pose.pose.position.y -= np.sign(safe_approach_pose.pose.position.y) * 0.01
-    safe_approach_pose.pose.position.z = 0.20
-    
-    safe_at_tray_border_pose = copy.deepcopy(target_pose)
-    safe_at_tray_border_pose.pose.position.z = 0.14
-    
-    approach_pose = copy.deepcopy(target_pose)
-    approach_pose.pose.position.z = 0.095
-    
-    seq = []
-    seq.append(helpers.to_sequence_item(safe_approach_pose))
-    seq.append(helpers.to_sequence_item(safe_at_tray_border_pose))
-    seq.append(helpers.to_sequence_item(approach_pose))
-
-    if not self.execute_sequence("b_bot", seq, "move_towards_center_with_tool"):
-      rospy.logerr("Fail to move_towards_center_with_tool")
+      safe_approach_pose.pose.position.y -= np.sign(safe_approach_pose.pose.position.y) * 0.015
+    safe_approach_pose.pose.position.z = 0.06
+    if not robot.go_to_pose_goal(safe_approach_pose, end_effector_link="b_bot_plunger_tip_link"):
+      rospy.logerr("Fail to approach 1")
       return False
 
-    if not self.move_towards_tray_center(robot_name, distance=0.10, go_back_halfway=False, one_direction=direction, speed=0.1, acc=0.25):
+    approach_pose = copy.deepcopy(target_pose)
+    approach_pose.pose.position.z = -0.002
+    if not robot.go_to_pose_goal(approach_pose, speed=0.05, end_effector_link="b_bot_plunger_tip_link"):
+      rospy.logerr("Fail to approach 2")
+      return False
+
+    if not self.move_towards_tray_center(robot_name, distance=0.10, go_back_halfway=False, one_direction=direction, speed=0.2, acc=0.1, end_effector_link="b_bot_plunger_tip_link"):
       rospy.logerr("Fail to move towards center")
       return False      
 
@@ -926,12 +921,12 @@ class O2ACCommon(O2ACBase):
     direction = None
     if dx < dy: # Use the close border
       direction = 'x'
-      border_pose.pose.position.x = 0.122 if np.sign(border_pose.pose.position.x) == 1 else -0.125 # non-symmetric tray_center
-      border_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, -tau/4))
+      border_pose.pose.position.x = 0.12 if np.sign(border_pose.pose.position.x) == 1 else -0.13 # non-symmetric tray_center
+      border_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/4, tau/4+np.sign(border_pose.pose.position.x)*radians(15), -tau/2))
     else:
       direction = 'y'
-      border_pose.pose.position.y = 0.18 if np.sign(border_pose.pose.position.y) == 1 else -0.186 # non-symmetric tray_center
-      border_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
+      border_pose.pose.position.y = 0.186 if np.sign(border_pose.pose.position.y) == 1 else -0.19 # non-symmetric tray_center
+      border_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/4, tau/4-np.sign(border_pose.pose.position.y)*radians(15), tau/4))
 
     return self.move_towards_center_with_tool(robot_name, border_pose, direction=direction)
 
@@ -2073,7 +2068,7 @@ class O2ACCommon(O2ACBase):
 
   ########
 
-  def move_towards_tray_center(self, robot_name, distance, speed=0.05, acc=0.025, go_back_halfway=True, one_direction=None):
+  def move_towards_tray_center(self, robot_name, distance, speed=0.05, acc=0.025, go_back_halfway=True, one_direction=None, end_effector_link=""):
     """ Moves from the current position of the robot towards the tray center at constant height.
         one_direction: 'x' or 'y'
     """
@@ -2096,7 +2091,7 @@ class O2ACCommon(O2ACBase):
       p_new.pose.position.y = p_start.pose.position.y
     if one_direction == 'y':
       p_new.pose.position.x = p_start.pose.position.x
-    if not self.active_robots[robot_name].move_lin(p_new, speed=speed, acceleration=acc):
+    if not self.active_robots[robot_name].move_lin(p_new, speed=speed, acceleration=acc, end_effector_link=end_effector_link):
       return False
     
     if go_back_halfway:
@@ -2107,7 +2102,7 @@ class O2ACCommon(O2ACBase):
         p_new.pose.position.y = p_start.pose.position.y
       if one_direction == 'y':
         p_new.pose.position.x = p_start.pose.position.x
-      if not self.active_robots[robot_name].move_lin(p_new, speed=speed, acceleration=acc):
+      if not self.active_robots[robot_name].move_lin(p_new, speed=speed, acceleration=acc, end_effector_link=end_effector_link):
         return False
 
     self.allow_collisions_with_robot_hand("tray_center", robot_name, allow=False)
