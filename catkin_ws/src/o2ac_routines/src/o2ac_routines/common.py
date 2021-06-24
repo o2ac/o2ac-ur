@@ -1486,9 +1486,7 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Invalid task specification: " + task)
       return False
     if not self.a_bot.go_to_named_pose("home"):
-      rospy.logerr("Fail to go home (a_bot-fasten_bearing), not aborting yet")
-    if not self.b_bot.go_to_named_pose("home"):
-      rospy.logerr("Fail to go home (b_bot-fasten_bearing), not aborting yet")
+      rospy.logwarn("Failed to go home with a_bot")
 
     if not self.equip_tool('b_bot', 'screw_tool_m4'):
       rospy.logerr("Fail to equip tool abort!")
@@ -1519,7 +1517,9 @@ class O2ACCommon(O2ACBase):
 
     _task = task  # Needs to be defined here so the nested function can access it
     def pick_and_fasten_bearing_screw(screw_pose, skip_picking=False):
-      """Returns tuple (screw_success, break_out_of_loop)"""
+      """Returns tuple (screw_status, break_out_of_loop)
+         screw_status is a string saying either "empty", "done" or "maybe_stuck_in_hole"
+      """
       # Pick screw
       if not skip_picking:
         self.b_bot.go_to_named_pose("screw_ready")
@@ -1528,21 +1528,34 @@ class O2ACCommon(O2ACBase):
         if not pick_success:
           rospy.logerr("Could not pick screw. Why?? Breaking out.")
           self.unequip_tool('b_bot', 'screw_tool_m4')
-          return (False, True)
+          return ("empty", True)
         self.playback_sequence("ready_screw_tool_horizontal")
         # self.b_bot.go_to_named_pose("screw_ready")
         # self.b_bot.go_to_named_pose("horizontal_screw_ready")
       
+      if not self.tools.screw_is_suctioned["m4"] and not skip_picking:
+        rospy.logerr("Screw lost on the way to screwing.")
+        return ("empty", False)
+
       screw_pose_approach = copy.deepcopy(screw_pose)
       screw_pose_approach.pose.position.x -= 0.07
       
       self.b_bot.go_to_pose_goal(screw_pose_approach, end_effector_link = "b_bot_screw_tool_m4_tip_link", move_lin=False)
-      screw_success = self.skill_server.do_screw_action("b_bot", screw_pose, screw_size=4)
+      # FIXME(felixvd): This returns true even if the motor has not stalled
+      if self.skill_server.do_screw_action("b_bot", screw_pose, screw_size=4):
+        screw_status = "done"
+      else:
+        if self.tools.screw_is_suctioned["m4"]:
+          screw_status = "empty"
+          rospy.logerr("Failed to fasten bearing screw!")
+        else:
+          screw_status = "maybe_stuck_in_hole"
       self.b_bot.go_to_pose_goal(screw_pose_approach, end_effector_link = "b_bot_screw_tool_m4_tip_link", move_lin=False)
       self.playback_sequence("return_screw_tool_horizontal")
+      
       # self.b_bot.go_to_named_pose("horizontal_screw_ready")
       # self.b_bot.go_to_named_pose("screw_ready")
-      return (screw_success, False)
+      return (screw_status, False)
 
     # Initialize screw status
     screw_status = dict()
@@ -1561,19 +1574,11 @@ class O2ACCommon(O2ACBase):
     all_screws_done = False
     while not all_screws_done and not rospy.is_shutdown():
       for n in [1,3,2,4]:  # Cross pattern
-        if rospy.is_shutdown():
-          break
+        assert not rospy.is_shutdown(), "lost connection to ros?"
         if screw_status[n] == "empty":
-          (screw_success, breakout) = pick_and_fasten_bearing_screw(screw_poses[n-1])
+          (screw_status[n], breakout) = pick_and_fasten_bearing_screw(screw_poses[n-1])
         elif screw_status[n] == "maybe_stuck_in_hole":
-          (screw_success, breakout) = pick_and_fasten_bearing_screw(screw_poses[n-1], skip_picking=True)
-        
-        if screw_success:
-          screw_status[n] = "done"
-        if not screw_success and self.tools.screw_is_suctioned["m4"]:
-          screw_status[n] = "empty"
-        if not screw_success and not self.tools.screw_is_suctioned["m4"]:
-          screw_status[n] = "maybe_stuck_in_hole"
+          (screw_status[n], breakout) = pick_and_fasten_bearing_screw(screw_poses[n-1], skip_picking=True)
         rospy.loginfo("Screw " + str(n) + " detected as " + screw_status[n])
       all_screws_done = all(value == "done" for value in screw_status.values())
 
