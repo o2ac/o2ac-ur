@@ -418,16 +418,7 @@ class O2ACAssembly(O2ACCommon):
 
     self.publish_status_text("Target: bearing_spacer" )
 
-    bearing_spacer_pose = self.look_and_get_grasp_point("bearing_spacer")
-    bearing_spacer_pose.pose.position.x -= 0.005 # Magic numbers
-
-    self.vision.activate_camera("b_bot_inside_camera")
-    if not self.simple_pick("b_bot", bearing_spacer_pose, grasp_height=0.002, gripper_force=50.0, grasp_width=.04, axis="z", gripper_command=0.03):
-      rospy.logerr("Fail to simple_pick")
-      return False
-
-    if not self.simple_gripper_check("b_bot", min_opening_width=0.002):
-      rospy.logerr("Gripper did not grasp the bearing_spacer --> Stop")
+    if not self.pick_bearing_spacer():
       return False
 
     if not self.playback_sequence("bearing_spacer_orient"):
@@ -463,17 +454,7 @@ class O2ACAssembly(O2ACCommon):
 
     self.publish_status_text("Target: output_pulley" )
 
-    output_pulley_pose = self.look_and_get_grasp_point("output_pulley", grasp_width=0.06, check_for_close_items=False)
-    output_pulley_pose.pose.position.x -= 0.005 # Magic numbers
-    output_pulley_pose.pose.position.z = 0.0 # Magic numbers
-
-    self.vision.activate_camera("b_bot_inside_camera")
-    if not self.simple_pick("b_bot", output_pulley_pose, grasp_height=0.013, gripper_force=50.0, grasp_width=.05, axis="z", gripper_command=0.03):
-      rospy.logerr("Fail to simple_pick")
-      return False
-
-    if not self.simple_gripper_check("b_bot"):
-      rospy.logerr("Gripper did not grasp the output_pulley --> Stop")
+    if not self.pick_output_pulley():
       return False
 
     if not self.playback_sequence("output_pulley_orient"):

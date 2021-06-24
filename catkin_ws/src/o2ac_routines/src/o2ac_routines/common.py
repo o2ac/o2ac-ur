@@ -2412,6 +2412,35 @@ class O2ACCommon(O2ACBase):
 
 #### subtasks assembly 
 
+  def pick_bearing_spacer(self):
+    bearing_spacer_pose = self.look_and_get_grasp_point("bearing_spacer")
+    bearing_spacer_pose.pose.position.x -= 0.005 # Magic numbers
+
+    self.vision.activate_camera("b_bot_inside_camera")
+    if not self.simple_pick("b_bot", bearing_spacer_pose, grasp_height=0.001, gripper_force=50.0, grasp_width=.04, axis="z", approach_height=0.07, gripper_command=0.03):
+      rospy.logerr("Fail to simple_pick")
+      return False
+
+    if not self.simple_gripper_check("b_bot", min_opening_width=0.002):
+      rospy.logerr("Gripper did not grasp the bearing_spacer --> Stop")
+      return False
+    return True
+
+  def pick_output_pulley(self):
+    output_pulley_pose = self.look_and_get_grasp_point("output_pulley", grasp_width=0.06, check_for_close_items=False)
+    output_pulley_pose.pose.position.x -= 0.005 # Magic numbers
+    output_pulley_pose.pose.position.z = 0.0 # Magic numbers
+
+    self.vision.activate_camera("b_bot_inside_camera")
+    if not self.simple_pick("b_bot", output_pulley_pose, grasp_height=0.011, gripper_force=50.0, grasp_width=.05, axis="z", approach_height=0.07, gripper_command=0.03):
+      rospy.logerr("Fail to simple_pick")
+      return False
+
+    if not self.simple_gripper_check("b_bot"):
+      rospy.logerr("Gripper did not grasp the output_pulley --> Stop")
+      return False
+    return True
+
   def panel_subtask2(self):
     self.a_bot.go_to_named_pose("home")
     self.b_bot.go_to_named_pose("home")
@@ -2482,11 +2511,11 @@ class O2ACCommon(O2ACBase):
 
   def insert_output_pulley(self, target_link, attempts=1):
     rospy.loginfo("Starting insertion of output pulley")
-    target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.045, 0.0, 0.0, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
+    target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.043, 0.0, 0.0, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
 
     selection_matrix = [0.0, 0.3, 0.3, 0.95, 1.0, 1.0]
-    result = self.b_bot.do_insertion(target_pose_target_frame, radius=0.0005, 
-                                                      insertion_direction="-X", force=5.0, timeout=15.0, 
+    result = self.b_bot.do_insertion(target_pose_target_frame, radius=0.003, 
+                                                      insertion_direction="-X", force=8.0, timeout=15.0, 
                                                       relaxed_target_by=0.005, selection_matrix=selection_matrix)
     success = result == TERMINATION_CRITERIA
     rospy.loginfo("insertion finished with status: %s" % result)
@@ -2506,7 +2535,7 @@ class O2ACCommon(O2ACBase):
     self.b_bot.move_lin_rel(relative_translation=[0.02,0,0])
     self.b_bot.gripper.send_command(0.04, wait=False)
     rospy.loginfo("Starting push")
-    success = self.b_bot.force_controller.linear_push(force=5, direction="-X", max_translation=0.05, timeout=15.)
+    success = self.b_bot.force_controller.linear_push(force=8, direction="-X", max_translation=0.1, timeout=20.)
 
     self.b_bot.gripper.open(wait=True, opening_width=0.09)
     self.b_bot.move_lin_rel(relative_translation = [0.10,0,0], acceleration = 0.015, speed=.03)
@@ -2692,7 +2721,6 @@ class O2ACCommon(O2ACBase):
       self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_at_tray_agv, slave_relation, speed=0.05)
     
     self.publish_status_text("SUCCESS: Tray")
-
   
   def unload_drive_unit(self):
     a_bot_above_drive_unit = conversions.to_pose_stamped("assembled_part_02_back_hole", [0.0025, -0.076, 0.060, 0, 0.891, tau/4])
@@ -2741,11 +2769,3 @@ class O2ACCommon(O2ACBase):
 
     self.ab_bot.go_to_named_pose("home")
     self.publish_status_text("SUCCESS: Unload product")
-
-    
-
-
-
-    
-    
-
