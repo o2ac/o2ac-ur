@@ -1282,8 +1282,11 @@ class O2ACCommon(O2ACBase):
   def simple_gripper_check(self, robot_name, min_opening_width=0.001):
     self.active_robots[robot_name].gripper.close() # confirm that there is something grasped
     if robot_name == "a_bot":
-      min_opening_width += 0.02 # a_bot gripper is not very precise...
-    return self.active_robots[robot_name].gripper.opening_width > min_opening_width
+      min_opening_width += 0.005 # a_bot gripper is not very precise...
+    success = self.active_robots[robot_name].gripper.opening_width > min_opening_width
+    if not success:
+      rospy.logerr("Fail to grasp. opening_width: %s" % self.active_robots[robot_name].gripper.opening_width)
+    return success
 
   ######## Bearing
 
@@ -2464,7 +2467,7 @@ class O2ACCommon(O2ACBase):
 
     selection_matrix = [0.0, 0.3, 0.3, 0.95, 1.0, 1.0]
     result = self.b_bot.do_insertion(target_pose_target_frame, radius=0.0005, 
-                                                      insertion_direction="+X", force=5.0, timeout=15.0, 
+                                                      insertion_direction="-X", force=5.0, timeout=15.0, 
                                                       relaxed_target_by=0.005, selection_matrix=selection_matrix)
     success = result == TERMINATION_CRITERIA
 
@@ -2484,11 +2487,11 @@ class O2ACCommon(O2ACBase):
 
   def insert_output_pulley(self, target_link, attempts=1):
     rospy.loginfo("Starting insertion of output pulley")
-    target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.04, 0.0, 0.0, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
+    target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.045, 0.0, 0.0, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
 
     selection_matrix = [0.0, 0.3, 0.3, 0.95, 1.0, 1.0]
     result = self.b_bot.do_insertion(target_pose_target_frame, radius=0.0005, 
-                                                      insertion_direction="+X", force=5.0, timeout=15.0, 
+                                                      insertion_direction="-X", force=5.0, timeout=15.0, 
                                                       relaxed_target_by=0.005, selection_matrix=selection_matrix)
     success = result == TERMINATION_CRITERIA
     rospy.loginfo("insertion finished with status: %s" % result)
@@ -2505,10 +2508,10 @@ class O2ACCommon(O2ACBase):
 
     rospy.loginfo("Preparing push")
     self.b_bot.gripper.open(wait=True, opening_width=0.09)
-    self.b_bot.move_lin_rel(relative_translation=[0.01,0,0])
-    self.b_bot.gripper.send_command(0.06, wait=False)
+    self.b_bot.move_lin_rel(relative_translation=[0.02,0,0])
+    self.b_bot.gripper.send_command(0.04, wait=False)
     rospy.loginfo("Starting push")
-    success = self.b_bot.force_controller.linear_push(force=3, direction="+X", max_translation=0.05, timeout=15.)
+    success = self.b_bot.force_controller.linear_push(force=5, direction="-X", max_translation=0.05, timeout=15.)
 
     self.b_bot.gripper.open(wait=True, opening_width=0.09)
     self.b_bot.move_lin_rel(relative_translation = [0.10,0,0], acceleration = 0.015, speed=.03)

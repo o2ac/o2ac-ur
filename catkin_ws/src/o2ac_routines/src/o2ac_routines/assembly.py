@@ -269,7 +269,7 @@ class O2ACAssembly(O2ACCommon):
     # self.b_bot.go_to_pose_goal(place_onboard_pose, speed=0.2)
 
     # # FIXME: Direction should be -Z
-    # self.b_bot.linear_push(force=8, direction="+Z", relative_to_ee=False, timeout=15.0)
+    # self.b_bot.linear_push(force=8, direction="-Z", relative_to_ee=False, timeout=15.0)
     
     # self.b_bot.gripper.open(wait=False)
     
@@ -307,8 +307,7 @@ class O2ACAssembly(O2ACCommon):
   
   def subtask_c2(self):
     rospy.loginfo("======== SUBTASK C (output shaft) ========")
-    self.a_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
-    self.b_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
+    self.ab_bot.go_to_named_pose("home")
     
     self.allow_collisions_with_robot_hand("shaft", "b_bot", True)
     self.allow_collisions_with_robot_hand("end_cap", "a_bot", True)
@@ -326,26 +325,9 @@ class O2ACAssembly(O2ACCommon):
       rospy.logerr("Fail to go to pre_insertion_shaft")
       return False
 
-    pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [-0.003, 0, 0.25]+np.deg2rad([-180, 90, -90]).tolist())
-    if not self.a_bot.go_to_pose_goal(pre_insertion_end_cap, speed=0.2, move_lin=False):
-      rospy.logerr("Fail to go to pre_insertion_end_cap")
-      return False
-
     self.confirm_to_proceed("insertion of end cap")
-
-    self.a_bot.linear_push(force=3, direction="+Z", max_translation=0.1, timeout=10.0)
-    target_pose = self.a_bot.get_current_pose_stamped()
-    target_pose.pose.position.z -= 0.002
-    self.a_bot.move_lin_rel(relative_translation=[0,0,0.002]) # release pressure before insertion
-
-    selection_matrix = [0.3, 0.3, 0., 0.95, 1, 1]
-
-    # target_pose_target_frame = conversions.to_pose_stamped("tray_center", [-0.003, -0.000, 0.233]+np.deg2rad([-180, 90, -90]).tolist())
-    result = self.a_bot.do_insertion(target_pose, insertion_direction="+Z", force=2.0, timeout=20.0, 
-                                                      radius=0.004, relaxed_target_by=0.003, selection_matrix=selection_matrix,
-                                                      check_displacement_time=3.)
-    success = result in (TERMINATION_CRITERIA, DONE)
-    if not success:
+    if not self.insert_end_cap():
+      rospy.logerr("failed to insert end cap")
       return False
 
     self.confirm_to_proceed("Did insertion succeed? Press Enter to open gripper")
@@ -356,6 +338,7 @@ class O2ACAssembly(O2ACCommon):
     
     self.confirm_to_proceed("prepare screw")
 
+    self.vision.activate_camera("a_bot_outside_camera")
     if not self.a_bot.go_to_named_pose("screw_ready"):
       return False
     if not self.do_change_tool_action("a_bot", equip=True, screw_size = 4):
@@ -365,6 +348,9 @@ class O2ACAssembly(O2ACCommon):
     self.confirm_to_proceed("pick screw")
     if not self.pick_screw_from_feeder("a_bot", screw_size = 4, realign_tool_upon_failure=True):
       rospy.logerr("Failed to pick screw from feeder, could not fix the issue. Abort.")
+      self.do_change_tool_action("a_bot", equip=False, screw_size = 4)
+      self.b_bot.gripper.open()
+      self.ab_bot.go_to_named_pose("home")
       return False
     if not self.a_bot.go_to_named_pose("screw_ready"):
       return False
@@ -384,6 +370,7 @@ class O2ACAssembly(O2ACCommon):
     self.b_bot.gripper.attach_object(obj.id)
 
     self.confirm_to_proceed("try to screw")
+    self.vision.activate_camera("b_bot_inside_camera")
     hole_screw_pose = conversions.to_pose_stamped("move_group/shaft/screw_hole", [0.0, 0.002, -0.010, 0, 0, 0])
     self.skill_server.do_screw_action("a_bot", hole_screw_pose, screw_height=0.02, screw_size=4, loosen_and_retighten_when_done=True)
     
@@ -402,7 +389,7 @@ class O2ACAssembly(O2ACCommon):
     
     self.confirm_to_proceed("insert to bearing")
 
-    if not self.align_shaft("assembled_part_07_inserted"):
+    if not self.align_shaft("assembled_part_07_inserted", pre_insert_offset=0.065):
       return False
 
     if not self.insert_shaft("assembled_part_07_inserted", target=0.043):
@@ -434,11 +421,12 @@ class O2ACAssembly(O2ACCommon):
     bearing_spacer_pose = self.look_and_get_grasp_point("bearing_spacer")
     bearing_spacer_pose.pose.position.x -= 0.005 # Magic numbers
 
-    if not self.simple_pick("b_bot", bearing_spacer_pose, grasp_height=-0.001, gripper_force=50.0, grasp_width=.03, axis="z", gripper_command=0.03):
+    self.vision.activate_camera("b_bot_inside_camera")
+    if not self.simple_pick("b_bot", bearing_spacer_pose, grasp_height=0.002, gripper_force=50.0, grasp_width=.04, axis="z", gripper_command=0.03):
       rospy.logerr("Fail to simple_pick")
       return False
 
-    if not self.simple_gripper_check("b_bot"):
+    if not self.simple_gripper_check("b_bot", min_opening_width=0.002):
       rospy.logerr("Gripper did not grasp the bearing_spacer --> Stop")
       return False
 
@@ -448,6 +436,8 @@ class O2ACAssembly(O2ACCommon):
 
     # # Move a_bot to hold shaft from end cap side
     self.a_bot.gripper.close()
+
+    self.confirm_to_proceed("prepare a_bot")
 
     approach_hold_pose = conversions.to_pose_stamped("assembled_part_07_inserted", [0.15, 0.000, -0.15] + np.deg2rad([-90,-90,-90]).tolist())
     # self.a_bot.go_to_pose_goal(approach_hold_pose)
@@ -467,14 +457,18 @@ class O2ACAssembly(O2ACCommon):
       rospy.logerr("Fail to complete insertion of bearing_spacer")
       return False
 
+    standby_pose = [1.77763, -1.13511, 0.81185, -1.24681, -1.56753, -1.36329]
+    if not self.a_bot.move_joints(standby_pose):
+      return False
+
     self.publish_status_text("Target: output_pulley" )
 
     output_pulley_pose = self.look_and_get_grasp_point("output_pulley", grasp_width=0.06, check_for_close_items=False)
     output_pulley_pose.pose.position.x -= 0.005 # Magic numbers
     output_pulley_pose.pose.position.z = 0.0 # Magic numbers
-    self.a_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
 
-    if not self.simple_pick("b_bot", output_pulley_pose, grasp_height=0.01, gripper_force=50.0, grasp_width=.03, axis="z", gripper_command=0.03):
+    self.vision.activate_camera("b_bot_inside_camera")
+    if not self.simple_pick("b_bot", output_pulley_pose, grasp_height=0.013, gripper_force=50.0, grasp_width=.05, axis="z", gripper_command=0.03):
       rospy.logerr("Fail to simple_pick")
       return False
 
@@ -487,6 +481,10 @@ class O2ACAssembly(O2ACCommon):
       return False
 
     self.confirm_to_proceed("insertion")
+
+    if not self.a_bot.move_lin_trajectory(trajectory, speed=0.5):
+      rospy.logerr("Fail to complete the hold pose")
+      return False
 
     if not self.insert_output_pulley("assembled_part_07_inserted"):
       rospy.logerr("Fail to complete insertion of bearing_spacer")
