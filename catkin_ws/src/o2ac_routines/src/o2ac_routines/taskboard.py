@@ -266,12 +266,12 @@ class O2ACTaskboard(O2ACCommon):
     self.publish_status_text("Target: " + task_name)
 
     if task_name == "belt":
-      self.a_bot.go_to_named_pose("home")
+      self.ab_bot.go_to_named_pose("home")
       
-      self.b_bot.go_to_pose_goal(self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.8)
+      self.a_bot.go_to_pose_goal(self.tray_view_high, end_effector_link="a_bot_outside_camera_color_frame", speed=.8, move_lin=False)
 
-      self.vision.activate_camera("b_bot_outside_camera")
-      self.activate_led("b_bot")
+      self.vision.activate_camera("a_bot_outside_camera")
+      self.activate_led("a_bot")
       res = self.get_3d_poses_from_ssd()
       r2 = self.get_feasible_grasp_points("belt")
       if r2:
@@ -305,7 +305,7 @@ class O2ACTaskboard(O2ACCommon):
         pick_goal.pose.position.y = 0
         pick_goal.pose.position.z += 0.06
         self.a_bot.move_lin(pick_goal)
-        self.a_bot.gripper.open(opening_width=0.03, wait=False)
+        self.a_bot.gripper.open(opening_width=0.07, wait=False)
         self.a_bot.go_to_named_pose("home")
         wait_for_UR_program("/b_bot", rospy.Duration.from_sec(20))
         return False
