@@ -1039,7 +1039,7 @@ class O2ACCommon(O2ACBase):
     # rotate gripper 90deg
     initial_pose = robot.get_current_pose_stamped()
     offset = -tau/4.0 if clockwise else tau/4.0
-    success = robot.move_lin_rel(relative_rotation=[offset, 0, 0], speed=1.5, relative_to_tcp=True)
+    success = robot.move_lin_rel(relative_rotation=[offset, 0, 0], speed=2.5, relative_to_tcp=True)
     if not success:
       rospy.logerr("Fail to rotate 90deg %s" % success)
       return False
@@ -1050,7 +1050,7 @@ class O2ACCommon(O2ACBase):
 
     # rotate gripper -90deg
     if move_back_to_initial_position:
-      success = robot.go_to_pose_goal(initial_pose, speed=1.5, move_lin=True)
+      success = robot.go_to_pose_goal(initial_pose, speed=2.5, move_lin=True)
     return success
 
   def centering_pick(self, robot_name, object_pose, speed_fast=0.5, speed_slow=0.2, object_width=0.08, approach_height=0.1, 
@@ -1804,12 +1804,12 @@ class O2ACCommon(O2ACBase):
     near_tb_pose = conversions.to_pose_stamped(target_link,  [(-0.015), 0.009, 0.0, tau/4.0, 0, tau/8.])
     in_tb_pose = conversions.to_pose_stamped(target_link,    [(-0.008), 0.009, 0.0, tau/4.0, 0, tau/8.])
     in_tb_pose_world = self.listener.transformPose("world", in_tb_pose)
-    success = self.a_bot.move_lin(approach_pose, speed=0.4)
+    success = self.a_bot.move_lin(approach_pose, speed=0.8)
     if not success:
       return False
     
     rospy.loginfo("Approach ridge (a_bot)")
-    success = self.a_bot.move_lin(near_tb_pose, speed=0.4)
+    success = self.a_bot.move_lin(near_tb_pose, speed=0.8)
     if not success:
       return False
         
@@ -1852,7 +1852,7 @@ class O2ACCommon(O2ACBase):
       return False
 
     self.tools.set_motor("padless_tool_m4", "tighten", duration=12.0)
-    self.insert_screw_tool_tip_into_idler_pulley_head(target_link)
+    self.insert_screw_tool_tip_into_idler_pulley_head()
     
     ## Incline the tool slightly 
     self.planning_scene_interface.allow_collisions("padless_tool_m4", "taskboard_plate")
@@ -1866,7 +1866,7 @@ class O2ACCommon(O2ACBase):
     push_pose = conversions.to_pose_stamped(target_link, xyz_hard_push + inclined_orientation_hard_push)
     return self.b_bot.move_lin(push_pose, speed=0.02, acceleration=0.02, end_effector_link="b_bot_screw_tool_m4_tip_link")
 
-  def insert_screw_tool_tip_into_idler_pulley_head(self, target_link):
+  def insert_screw_tool_tip_into_idler_pulley_head(self):
 
     target_force = get_target_force('-X', 0.0)
     selection_matrix = [0., 0.9, 0.9, 1, 1, 1]

@@ -62,6 +62,11 @@
     <origin xyz="-0.2927 0.17214 0.0" rpy="0 0 0" />   
   </xacro:vgroove_aid> 
 
+  <!-- The second vgroove at the back (for the motor)-->
+  <xacro:vgroove_aid jigname="vgroove_aid_motor" parent="b_bot_base_link">
+    <origin xyz="-0.225 -0.210 0.0" rpy="0 0 0" />   
+  </xacro:vgroove_aid> 
+
 
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/simple_holder.xacro" />
   <xacro:simple_holder partname="simple_holder" parent="workspace_center">
