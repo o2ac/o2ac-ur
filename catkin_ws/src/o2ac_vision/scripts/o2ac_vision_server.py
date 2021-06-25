@@ -402,7 +402,7 @@ class O2ACVisionServer(object):
         # If item_id is specified, keep only results with the id.
         if goal.item_id != '':
             poses2d_array = [ poses2d for poses2d in poses2d_array
-                              if poses2d.class_id == goal.item_id ]
+                              if self.item_id(poses2d.class_id) == goal.item_id ]
 
         self._spawner.delete_all()
 
@@ -704,6 +704,8 @@ class O2ACVisionServer(object):
         return self._localizer.wait_for_result()
 
     def item_id(self, class_id):
+        """ Returns the name (item_id) of the item's id number (class_id) of the SSD.
+        """
         return self._models[class_id - 1]
 
 ### ========
