@@ -7,8 +7,9 @@ aist_depth_filter/PlaneStamped plane
 float32[9] axes      # orientation of object w.r.t. object base frame
 float32[3] offset    # offset of object center w.r.t. object base frame
 
-bool       refine_transform
-bool       transform_2d
+bool refine_transform
+bool transform_2d
+
 ---
 # Result definition
 geometry_msgs/PoseArray poses

@@ -1,6 +1,7 @@
 import rospy
 import dynamic_reconfigure.client
 import actionlib
+import numpy as np
 from geometry_msgs         import msg as gmsg
 from aist_new_localization import msg as lmsg
 from aist_depth_filter     import msg as dmsg
@@ -11,12 +12,13 @@ from actionlib_msgs.msg    import GoalStatus
 #  class LocalizationClient                                             #
 #########################################################################
 class LocalizationClient(object):
-    _DefaultSettings = {'axes':             [1.0, 0.0, 0.0,
-                                             0.0, 1.0, 0.0,
-                                             0.0, 0.0, 1.0],
-                        'offset':           [0.0, 0.0, 0.0],
-                        'refine_transform': False,
-                        'transform_2d':     False}
+    _DefaultParams = {'axes':             [1.0, 0.0, 0.0,
+                                           0.0, 1.0, 0.0,
+                                           0.0, 0.0, 1.0],
+                      'offset':           [0.0, 0.0, 0.0],
+                      'rotation_range':   [0.0, 0.0, 0,0],
+                      'refine_transform': False,
+                      'transform_2d':     False}
 
     def __init__(self, server='/localization'):
         super(LocalizationClient, self).__init__()
@@ -28,7 +30,7 @@ class LocalizationClient(object):
                                                         lmsg.LocalizeAction)
 
         for part, params in self._params.items():
-            for key, value in LocalizationClient._DefaultSettings.items():
+            for key, value in LocalizationClient._DefaultParams.items():
                 if key not in params:
                     self._params[part][key] = value
         print(self._params)
@@ -55,9 +57,18 @@ class LocalizationClient(object):
         offset = params['offset']
         offset[0] += dx
         offset[1] += dy
-        goal   = lmsg.LocalizeGoal()
+
+        goal = lmsg.LocalizeGoal()
+        rotation_range = params['rotation_range']
+        if rotation_range[0] < rotation_range[1] and \
+           rotation_range[2] > 0:
+            goal.poses2d = [ gmsg.Pose2D(0.0, 0.0, 180.0/np.pi*theta)
+                             for theta in np.arange(rotation_range[0],
+                                                    rotation_range[1],
+                                                    rotation_range[2]) ]
+        else:
+            goal.poses2d = poses2d
         goal.object_name      = object_name
-        goal.poses2d          = poses2d
         goal.plane            = plane
         goal.axes             = params['axes']
         goal.offset           = offset

@@ -76,7 +76,8 @@ class Localization
 		refine_transform(const std::string& object_name,
 				 const tf::Transform& transform,
 				 const camera_info_cp& camera_info,
-				 const image_cp& depth)		const	;
+				 const image_cp& depth,
+				 value_t& error)		const	;
 
   private:
     ros::NodeHandle					_nh;

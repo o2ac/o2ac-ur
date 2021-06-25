@@ -170,6 +170,7 @@ Localization::localize_cb(const camera_info_cp& camera_info,
     result_t		result;
     result.poses.header = depth->header;
 
+    value_t	min_error = std::numeric_limits<value_t>::max();
     for (const auto& pose2d : _current_goal->poses2d)
     {
 	const auto	v = view_vector(camera_info,
@@ -194,10 +195,13 @@ Localization::localize_cb(const camera_info_cp& camera_info,
 
 	if (_current_goal->refine_transform)
 	{
+	    value_t	error;
+
 	    try
 	    {
 		transform = refine_transform(_current_goal->object_name,
-					     transform, camera_info, depth);
+					     transform, camera_info, depth,
+					     error);
 	    }
 	    catch (const std::exception& err)
 	    {
@@ -207,11 +211,23 @@ Localization::localize_cb(const camera_info_cp& camera_info,
 				 << err.what() << ']');
 		return;
 	    }
-	}
 
-	geometry_msgs::Pose	pose;
-	tf::poseTFToMsg(transform, pose);
-	result.poses.poses.push_back(pose);
+	    if (error < min_error)
+	    {
+		geometry_msgs::Pose	pose;
+		tf::poseTFToMsg(transform, pose);
+		result.poses.poses.resize(1);
+		result.poses.poses[0] = pose;
+
+		min_error = error;
+	    }
+	}
+	else
+	{
+	    geometry_msgs::Pose	pose;
+	    tf::poseTFToMsg(transform, pose);
+	    result.poses.poses.push_back(pose);
+	}
     }
 
     _localize_srv.setSucceeded(result);
@@ -261,7 +277,7 @@ tf::Transform
 Localization::refine_transform(const std::string& object_name,
 			       const tf::Transform& transform,
 			       const camera_info_cp& camera_info,
-			       const image_cp& depth) const
+			       const image_cp& depth, value_t& error) const
 {
     using namespace sensor_msgs;
     using pcl_point_t	= pcl::PointXYZ;
@@ -322,8 +338,8 @@ Localization::refine_transform(const std::string& object_name,
     _model_cloud_pub.publish(registered_cloud_msg);
 
   // Get transformation from model cloud to data cloud.
-    const auto	error = icp.getFitnessScore();
-    const auto	T     = icp.getFinalTransformation();
+    error = icp.getFitnessScore();
+    const auto	T = icp.getFinalTransformation();
 
     return tf::Transform({T(0, 0), T(0, 1), T(0, 2),
 			  T(1, 0), T(1, 1), T(1, 2),

@@ -401,9 +401,8 @@ class O2ACVisionServer(object):
 
         # If item_id is specified, keep only results with the id.
         if goal.item_id != '':
-            poses2d_array = list(filter(lambda result :
-                                        result.class_id == goal.item_id,
-                                        poses2d_array))
+            poses2d_array = [ poses2d for poses2d in poses2d_array
+                              if poses2d.class_id == goal.item_id ]
 
         self._spawner.delete_all()
 
@@ -428,7 +427,8 @@ class O2ACVisionServer(object):
         if localization_result.detected_poses:
             self.localization_server.set_succeeded(localization_result)
         else:
-            rospy.logerr("Could not not localize object %s. Might not be detected by SSD.", goal.item_id)
+            rospy.logerr("Could not not localize object %s. Might not be detected by SSD.",
+                         goal.item_id)
             self.localization_server.set_aborted(localization_result)
             self.write_to_log(im_in, im_vis, "localization")
 
@@ -458,49 +458,6 @@ class O2ACVisionServer(object):
 
 ### ======= Localization helpers
 
-    def item_id(self, class_id):
-        return self._models[class_id - 1]
-
-    def localize(self, item_id, bbox, poses2d, shape):
-        size   = self.param_localization[item_id]['size']
-        margin = 15
-        x0     = max(bbox[0] - margin, 0)
-        y0     = max(bbox[1] - margin, 0)
-        x1     = min(bbox[0] + bbox[2] + margin, shape[1])
-        y1     = min(bbox[1] + bbox[3] + margin, shape[0])
-
-        self._dfilter.roi = (x0, y0, x1, y1)
-
-        ox = x0
-        oy = y0
-        dx = 0.0
-        dy = 0.0
-        # if len(poses2d) == 1 and poses2d[0].theta == 0:
-        #     if x0 == 0:
-        #         ox = x1
-        #         poses2d[0].x = ox
-        #         dx = -size[0]/2
-        #     elif x1 == shape[1]:
-        #         poses2d[0].x = ox
-        #         dx = size[0]/2
-        #     if y0 == 0:
-        #         oy = y1
-        #         poses2d[0].y = oy
-        #         dy = size[1]/2
-        #     elif y1 == shape[0]:
-        #         poses2d[0].y = oy
-        #         dy = -size[1]/2
-
-        for pose2d in poses2d:
-            pose2d.x -= ox
-            pose2d.y -= oy
-        self._localizer.send_goal_with_target_frame(item_id, 'tray_center',
-                                                    rospy.Time.now(),
-                                                    poses2d, dx, dy)
-        return self._localizer.wait_for_result()
-
-### =======
-
     def get_2d_poses_from_ssd(self, im_in, im_vis):
         """
         Finds an object's bounding box on the tray, then attempts to find its pose.
@@ -521,7 +478,7 @@ class O2ACVisionServer(object):
 
         item_flipped_over = []
         for ssd_result in ssd_results:
-            target = ssd_result["class"]
+            target  = ssd_result["class"]
             poses2d = o2ac_msgs.msg.Estimated2DPoses() # Stores the result for one item/class id
             poses2d.class_id   = target
             poses2d.confidence = ssd_result["confidence"]
@@ -537,17 +494,18 @@ class O2ACVisionServer(object):
                 poses3d = []
                 for p2d in poses2d.poses:
                     p3d = self.convert_pose_2d_to_3d(p2d)
-                    if not p3d:
-                        rospy.logwarn("Could not find pose for class " + str(target) + "!")
-                        continue
-                    poses3d.append(p3d)
+                    if p3d:
+                        poses3d.append(p3d)
+                    else:
+                        rospy.logwarn("Could not find pose for class %d!",
+                                      target)
                     # rospy.loginfo("Found pose for class " + str(target) + ": " + str(poses_3d[-1].pose.position.x) + ", " + str(poses_3d[-1].pose.position.y) + ", " + str(poses_3d[-1].pose.position.z))
                     # rospy.loginfo("Found pose for class " + str(target) + ": %2f, %2f, %2f",
                     #                poses_3d[-1].pose.position.x, poses_3d[-1].pose.position.y, poses_3d[-1].pose.position.z)
-                if not poses3d:
-                    rospy.logwarn("Could not find poses for class " + str(target) + "!")
-                    continue
-                self.add_markers_to_pose_array(poses3d)
+                if poses3d:
+                    self.add_markers_to_pose_array(poses3d)
+                else:
+                    rospy.logwarn("Could not find poses for class %d!", target)
 
             elif target in apply_3d_pose_estimation:
                 rospy.loginfo("Seeing object id %d. Apply 3D pose estimation",
@@ -707,6 +665,46 @@ class O2ACVisionServer(object):
         im_vis = pc.get_im_result()
         return pick_successful, im_vis
 
+    def localize(self, item_id, bbox, poses2d, shape):
+        size   = self.param_localization[item_id]['size']
+        margin = 15
+        x0     = max(bbox[0] - margin, 0)
+        y0     = max(bbox[1] - margin, 0)
+        x1     = min(bbox[0] + bbox[2] + margin, shape[1])
+        y1     = min(bbox[1] + bbox[3] + margin, shape[0])
+
+        self._dfilter.roi = (x0, y0, x1, y1)
+
+        ox = x0
+        oy = y0
+        dx = 0.0
+        dy = 0.0
+        # if len(poses2d) == 1 and poses2d[0].theta == 0:
+        #     if x0 == 0:
+        #         ox = x1
+        #         poses2d[0].x = ox
+        #         dx = -size[0]/2
+        #     elif x1 == shape[1]:
+        #         poses2d[0].x = ox
+        #         dx = size[0]/2
+        #     if y0 == 0:
+        #         oy = y1
+        #         poses2d[0].y = oy
+        #         dy = size[1]/2
+        #     elif y1 == shape[0]:
+        #         poses2d[0].y = oy
+        #         dy = -size[1]/2
+
+        for pose2d in poses2d:
+            pose2d.x -= ox
+            pose2d.y -= oy
+        self._localizer.send_goal_with_target_frame(item_id, 'tray_center',
+                                                    rospy.Time.now(),
+                                                    poses2d, dx, dy)
+        return self._localizer.wait_for_result()
+
+    def item_id(self, class_id):
+        return self._models[class_id - 1]
 
 ### ========
 

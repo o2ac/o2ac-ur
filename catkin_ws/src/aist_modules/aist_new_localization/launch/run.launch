@@ -9,13 +9,13 @@
 					 )/meshes"/>
 
   <!-- Spawn depth_filter -->
-  <!-- <include file="$(find aist_depth_filter)/launch/run.launch">
+  <include file="$(find aist_depth_filter)/launch/run.launch">
     <arg name="camera_info_topic"	value="$(arg camera_info_topic)"/>
     <arg name="image_topic"		value="$(arg image_topic)"/>
     <arg name="depth_topic"		value="$(arg depth_topic)"/>
     <arg name="normal_topic"		value=""/>
     <arg name="manager"			value="$(arg manager)"/>
-  </include> -->
+  </include>
 
   <!-- Spawn localizer as a node unless manager name is specified -->
   <node if="$(eval manager == '')"
