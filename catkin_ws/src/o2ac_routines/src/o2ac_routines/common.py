@@ -302,7 +302,8 @@ class O2ACCommon(O2ACBase):
     """
 
     # Look from top first
-    self.active_robots[robot_name].go_to_pose_goal(self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.3, acceleration=.15)
+    self.active_robots[robot_name].go_to_pose_goal(self.tray_view_high, end_effector_link=robot_name+"_outside_camera_color_frame", speed=.3, acceleration=.15)
+    self.vision.activate_camera(robot_name+"_outside_camera")
     success = self.detect_object_in_camera_view(item_name)
 
     # # TODO: Also move robot if object requires a close-up view (shaft, pin...)
