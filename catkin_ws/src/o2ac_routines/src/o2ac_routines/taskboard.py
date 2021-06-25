@@ -251,7 +251,9 @@ class O2ACTaskboard(O2ACCommon):
     self.confirm_to_proceed("Continue into loop to retry parts?")
     order = ["motor pulley", "belt", "bearing", "shaft", "idler pulley"]
     task_complete = False
-    while not task_complete and not rospy.is_shutdown():
+
+    while not task_complete:
+      assert rospy.is_shutdown(), "did ros master died?"
       for item in order:
         if not self.subtask_completed[item]:
           self.confirm_to_proceed("Reattempt " + str(item) + "?")
@@ -259,6 +261,7 @@ class O2ACTaskboard(O2ACCommon):
           # if item == "bearing" and self.subtask_completed[item]: 
           #   if not self.subtask_completed["screw_bearing"]:
           #     self.do_task("screw_bearing")
+      task_complete = all(self.subtask_completed.values)
     self.publish_status_text("FINISHED")
       
 
