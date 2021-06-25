@@ -328,7 +328,7 @@ class O2ACCommon(O2ACBase):
     """
     if not self.use_real_robot: # For simulation
       rospy.logwarn("Returning position near center (simulation)")
-      return conversions.to_pose_stamped("tray_center", [-0.0, 0.18, 0.02] + np.deg2rad([0,90.,0]).tolist())
+      return conversions.to_pose_stamped("tray_center", [-0.01, 0.05, 0.02] + np.deg2rad([0,90.,0]).tolist())
 
     # Make sure object_id is the id number
     if isinstance(object_id, str):
@@ -1375,8 +1375,13 @@ class O2ACCommon(O2ACBase):
     if not task:
       rospy.logerr("Specify the task!")
       return False
-    self.a_bot.go_to_named_pose("home")
-    self.b_bot.go_to_named_pose("home")
+    if task == "taskboard":
+      bearing_target_link = "taskboard_bearing_target_link"
+    elif task == "assembly":
+      rospy.logerr("look this up")
+      bearing_target_link = "assembled_part_07_inserted"
+
+    self.ab_bot.go_to_named_pose("home")
 
     goal = self.look_and_get_grasp_point("bearing", center_on_corner=True, check_for_close_items=False)
     if not isinstance(goal, geometry_msgs.msg.PoseStamped):
@@ -1402,13 +1407,13 @@ class O2ACCommon(O2ACBase):
       return
     elif self.b_bot.gripper.opening_width < 0.045:
       rospy.loginfo("bearing found to be upwards")
-      if not self.playback_sequence("bearing_orient"):
+      if not self.playback_sequence("bearing_orient", default_frame=bearing_target_link):
         rospy.logerr("Could not complete orient sequence")
         self.pick_from_centering_area_and_drop_in_tray("b_bot")
         return False
     else:
       rospy.loginfo("bearing found to be upside down")
-      if not self.playback_sequence("bearing_orient_down"):
+      if not self.playback_sequence("bearing_orient_down", default_frame=bearing_target_link):
         rospy.logerr("Could not complete orient down sequence")
         self.pick_from_centering_area_and_drop_in_tray("b_bot")
         return False

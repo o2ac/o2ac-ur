@@ -34,6 +34,7 @@
 #
 # Author: Felix von Drigalski
 
+import os
 import sys
 import copy
 
@@ -1107,6 +1108,9 @@ class O2ACBase(object):
     self.planning_scene_interface.allow_collisions(objects_without_tools, "")
 
   def read_playback_sequence(self, routine_filename, default_frame="world"):
+    """
+    default_frame: used for task-space-in-frame waypoints with undefined frame_id or where the value is specified as default, then the default_frame is used.
+    """
     path = rospkg.RosPack().get_path("o2ac_routines") + ("/config/playback_sequences/%s.yaml" % routine_filename)
     with open(path, 'r') as f:
       routine = yaml.load(f)
@@ -1120,13 +1124,17 @@ class O2ACBase(object):
 
     for waypoint in waypoints:
       is_trajectory = waypoint.get('is_trajectory', False)
+      
+      if waypoint.get("frame_id", "default") == "default":
+        waypoint.update({"frame_id": default_frame})
+
       if is_trajectory:
         pose = waypoint.get("pose", None) 
         if waypoint["pose_type"] == "joint-space-goal-cartesian-lin-motion":
           p = self.active_robots[robot_name].compute_fk(pose) # Forward Kinematics
         elif waypoint["pose_type"] == "task-space-in-frame":
-          frame_id = waypoint.get("frame_id", default_frame)
           # Convert orientation to radians!
+          frame_id = waypoint.get("frame_id", "default")
           p = conversions.to_pose_stamped(frame_id, np.concatenate([pose[:3],np.deg2rad(pose[3:])]))
         else:
           raise ValueError("Unsupported trajectory for pose type: %s" % waypoint["pose_type"])
@@ -1148,8 +1156,18 @@ class O2ACBase(object):
 
     return robot_name, playback_trajectories
 
-  def execute_sequence(self, robot_name, sequence, sequence_name, plan_while_moving=True):
+  def execute_sequence(self, robot_name, sequence, sequence_name, plan_while_moving=True, save_on_success=False, use_saved_plans=False):
+    if use_saved_plans:
+      bagfile = helpers.get_plan_full_path(sequence_name)
+      if not os.path.exists(bagfile):
+        rospy.logwarn("Attempted to execute saved sequence, but file not found: %s" % bagfile)
+        rospy.logwarn("Try to execute sequence with online planning")
+      else:
+        rospy.logwarn("Executing saved sequence")
+        return self.execute_saved_sequence(sequence_name)
+
     robot = self.active_robots[robot_name]
+    all_plans = []
     if not plan_while_moving:
       for i, point in enumerate(sequence):
         rospy.loginfo("Sequence point: %i - %s" % (i+1, point[0]))
@@ -1163,7 +1181,14 @@ class O2ACBase(object):
         if not res:
           rospy.logerr("Fail to complete playback sequence: %s" % sequence_name)
           return False
+        cp = robot.get_current_pose_stamped()
+        # ff = self.listener.transformPose("right_centering_link", cp).pose
+        ff = self.listener.transformPose("taskboard_bearing_target_link", cp).pose
+        fg = conversions.from_pose_to_list(ff)
+
+        print(fg[:3], np.rad2deg(transformations.euler_from_quaternion(fg)))
     else:
+      all_plans.append(robot_name)
       previous_point_duration = 0.0
       previous_plan = None
       rospy.loginfo("(plan_while_moving) Sequence name: %s" % sequence_name)
@@ -1198,6 +1223,15 @@ class O2ACBase(object):
         
         plan, planning_time = res
 
+        if save_on_success:
+          if not gripper_action:
+            if i == 0: # Just save the target joint configuration
+              all_plans.append(helpers.get_trajectory_joint_goal(plan))
+            else: # otherwise save the computed plan
+              all_plans.append(plan)
+          else: # or the gripper action
+            all_plans.append(current_gripper_action)
+
         # post planning waiting
         if previous_plan:
           waiting_time = (previous_point_duration) - planning_time if (previous_point_duration) - planning_time > 0 else 0.0
@@ -1227,13 +1261,16 @@ class O2ACBase(object):
         previous_plan = plan
         previous_point_duration = helpers.get_trajectory_duration(plan) if plan else 0.0
 
+    if save_on_success:
+      helpers.save_sequence_plans(name=sequence_name, plans=all_plans)
+
     return True
 
-  def playback_sequence(self, routine_filename, default_frame="world", plan_while_moving=True):
+  def playback_sequence(self, routine_filename, default_frame="world", plan_while_moving=True, save_on_success=True, use_saved_plans=False):
 
     robot_name, playback_trajectories = self.read_playback_sequence(routine_filename, default_frame)
 
-    return self.execute_sequence(robot_name, playback_trajectories, routine_filename, plan_while_moving)
+    return self.execute_sequence(robot_name, playback_trajectories, routine_filename, plan_while_moving, save_on_success=save_on_success, use_saved_plans=use_saved_plans)
 
   def execute_gripper_action(self, robot_name, gripper_params):
       robot = self.active_robots[robot_name]
@@ -1290,6 +1327,28 @@ class O2ACBase(object):
       raise ValueError("Invalid pose_type: %s" % pose_type)
 
     return success
+
+  def execute_saved_sequence(self, name):
+    sequence = helpers.load_sequence_plans(name)
+    robot_name = sequence[0]
+    robot = self.active_robots[robot_name]
+
+    robot.move_joints(sequence[1])
+    for seq in sequence[2:]:
+      success = False
+      print(type(seq))
+      # print(seq)
+      if isinstance(seq, dict):
+        success =  self.execute_gripper_action(robot_name, seq)
+      else:
+        # TODO(cambel): validate that the plan is still valid before execution
+        success = robot.execute_plan(seq, wait=True)
+      
+      if not success:
+        rospy.logerr("Fail to execute saved plan from sequence. Abort")
+        return False
+    
+    return True
 ######
 
   def start_task_timer(self):

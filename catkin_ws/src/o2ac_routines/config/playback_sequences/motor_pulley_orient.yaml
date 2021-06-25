@@ -24,7 +24,7 @@ waypoints:
 - pose_type: gripper
   gripper:
     action: 'open'
-    width: 0.06
+    open_width: 0.06
 - pose: [-0.01, 0, 0.0, -45, 0, 0] 
   pose_type: task-space-in-frame
   frame_id: right_centering_link
@@ -32,7 +32,7 @@ waypoints:
 - pose_type: gripper
   gripper:
     action: 'close-open'
-    width: 0.06
+    open_width: 0.06
   desc: Centering 
 - pose: [-0.01, 0, 0.0, -135, 0, 0] 
   pose_type: task-space-in-frame

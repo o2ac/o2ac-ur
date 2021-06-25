@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 
+import os
 import sys
 import copy
 
 from numpy.lib.function_base import append
+import rospkg
+import rosbag
 import rospy
 import random
+import json
 import numpy as np
 import geometry_msgs.msg
 import actionlib
@@ -31,6 +35,9 @@ import ur_dashboard_msgs.msg
 import moveit_msgs.msg
 from moveit_msgs.msg import RobotState
 from sensor_msgs.msg import JointState
+
+from std_msgs.msg import String, Float64MultiArray
+from rospy_message_converter import message_converter
 
 helper_fct_marker_id_count = 0
 
@@ -507,3 +514,34 @@ def to_sequence_trajectory(trajectory, blend_radiuses=0.0, speed=0.5, default_fr
     elif isinstance(t, list):
       sequence_trajectory.append([conversions.to_pose_stamped(default_frame, t), br])
   return ["trajectory", [sequence_trajectory, speed]]
+
+def get_plan_full_path(name):
+  rp = rospkg.RosPack()
+  return rp.get_path("o2ac_routines") + "/config/saved_plans/" + name
+
+def load_sequence_plans(name):
+  bagfile = get_plan_full_path(name)
+  sequence = []
+  if not os.path.exists(bagfile):
+    raise Exception("Sequence: %s does not exist" % bagfile)
+  with rosbag.Bag(bagfile, 'r') as bag:
+    for (topic, msg, ts) in bag.read_messages():
+      if topic in ("robot_name", "initial_joint_configuration"):
+        sequence.append(msg.data)
+      elif topic == "gripper_action":
+        sequence.append(json.loads(msg.data))
+      else:
+        sequence.append(msg)
+  return sequence
+
+def save_sequence_plans(name, plans):
+  bagfile = get_plan_full_path(name)
+  with rosbag.Bag(bagfile, 'w') as bag:
+    bag.write(topic="robot_name", msg=String(data=plans[0]))
+    bag.write(topic="initial_joint_configuration", msg=Float64MultiArray(data=plans[1]))
+    for plan in plans[2:]:
+      if isinstance(plan, dict):
+        bag.write(topic="gripper_action", msg=String(json.dumps(plan)))
+      else:
+        bag.write(topic="plan", msg=plan)
+

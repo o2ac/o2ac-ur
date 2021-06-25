@@ -2,13 +2,13 @@ robot_name: a_bot
 waypoints:
 - pose: [0.7514510154724121, -2.007094999352926, 2.412354294453756, -2.6471921406187953,
     -1.5546777884112757, 3.088973045349121]
-  pose_type: joint-space-goal-cartesian-lin-motion
+  pose_type: joint-space
   speed: 0.8
 - pose: [0.8704267740249634, -1.6935368976988734, 2.062578026448385, -1.690317293206686,
     -0.56665546098818, 3.516232967376709]
-  pose_type: joint-space-goal-cartesian-lin-motion
-  speed: 0.8
+  pose_type: joint-space
+  speed: 0.6
 - pose: [0.8988069295883179, -1.7061134777464808, 2.0848730246173304, -1.744115491906637,
     -0.560211483632223, 3.5682213306427]
-  pose_type: joint-space-goal-cartesian-lin-motion
+  pose_type: joint-space
   speed: 0.2
