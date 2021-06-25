@@ -32,7 +32,7 @@ class CheckCalibrationRoutines(HandEyeCalibrationBaseRoutines):
                              speed=self._speed)
 
     def run(self):
-        self.go_to_named_pose('home')
+        self.ab_bot.go_to_named_pose('home')
 
         while not rospy.is_shutdown():
             try:
@@ -44,7 +44,7 @@ class CheckCalibrationRoutines(HandEyeCalibrationBaseRoutines):
                 if key == 'i':
                     self.go_to_init_pose()
                 elif key == 'h':
-                    self.go_to_named_pose('home')
+                    self.ab_bot.go_to_named_pose('home')
                 elif key == 'q':
                     break
                 else:
@@ -55,11 +55,12 @@ class CheckCalibrationRoutines(HandEyeCalibrationBaseRoutines):
                 rospy.logerr(ex)
                 break
 
-        self.go_to_named_pose('home')
+        self.ab_bot.go_to_named_pose('home')
 
 ######################################################################
 #  global functions                                                  #
 ######################################################################
 if __name__ == '__main__':
+    rospy.init_node('check_calibration')
     routines = CheckCalibrationRoutines()
     routines.run()

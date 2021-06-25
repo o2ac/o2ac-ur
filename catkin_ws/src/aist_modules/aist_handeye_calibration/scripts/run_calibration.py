@@ -124,5 +124,6 @@ class HandEyeCalibrationRoutines(HandEyeCalibrationBaseRoutines):
 #  global functions                                                  #
 ######################################################################
 if __name__ == '__main__':
+    rospy.init_node('run_calibration', anonymous=False)
     routines = HandEyeCalibrationRoutines()
     routines.run()

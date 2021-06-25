@@ -36,6 +36,7 @@
 
 import sys
 import copy
+from moveit_commander import robot
 import rospy
 
 import geometry_msgs.msg
@@ -81,7 +82,7 @@ class TestClass(O2ACCommon):
     self.close_view(4)
     return True
   
-  def close_view(self, number):
+  def close_view(self, number, robot_name="b_bot"):
     if number == 1:
       pose = self.tray_view_close_front_b
     elif number == 2:
@@ -90,7 +91,7 @@ class TestClass(O2ACCommon):
       pose = self.tray_view_close_front_a
     elif number == 4:
       pose = self.tray_view_close_back_a
-    self.b_bot.go_to_pose_goal(pose, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
+    self.active_robots[robot_name].go_to_pose_goal(pose, end_effector_link=robot_name+"_outside_camera_color_frame", speed=.1, acceleration=.04)
     return
   
   def call_belt_action_and_show(self):
@@ -143,8 +144,13 @@ if __name__ == '__main__':
         ps.header.frame_id = "tray_center"
         ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
         ps.pose.position.z = .37
-        # c.go_to_named_pose("home", "a_bot")
         c.b_bot.go_to_pose_goal(ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.5, acceleration=.2)
+      elif r == '2a':
+        ps = geometry_msgs.msg.PoseStamped()
+        ps.header.frame_id = "tray_center"
+        ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
+        ps.pose.position.z = .37
+        c.a_bot.go_to_pose_goal(ps, end_effector_link="a_bot_outside_camera_color_frame", speed=.5, acceleration=.2)
       elif r == '3':
         ps = geometry_msgs.msg.PoseStamped()
         ps.header.frame_id = "tray_center"
@@ -160,6 +166,14 @@ if __name__ == '__main__':
         c.close_view(3)
       elif r == '34':
         c.close_view(4)
+      elif r == '31a':
+        c.close_view(1, robot_name="a_bot")
+      elif r == '32a':
+        c.close_view(2, robot_name="a_bot")
+      elif r == '33a':
+        c.close_view(3, robot_name="a_bot")
+      elif r == '34a':
+        c.close_view(4, robot_name="a_bot")
       elif r == '331':
         for ps in c.close_tray_views:
           c.b_bot.go_to_pose_goal(ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
