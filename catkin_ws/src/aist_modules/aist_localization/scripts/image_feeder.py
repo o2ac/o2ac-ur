@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, sys, glob, rospy, re, json, pprint, skimage, cv2
+import os, sys, glob, rospy, re, json, pprint, cv2
 from cv_bridge          import CvBridge
 from sensor_msgs        import msg as smsg
 from aist_depth_filter  import DepthFilterClient
