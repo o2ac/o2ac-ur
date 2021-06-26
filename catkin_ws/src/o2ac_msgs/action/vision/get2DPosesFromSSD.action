@@ -3,7 +3,6 @@
 ---
 # Result
 o2ac_msgs/Estimated2DPoses[] results
-bool[] upside_down                      # True if the item is upside down
 
 ---
 # Feedback

@@ -244,8 +244,8 @@ class O2ACVisionServer(object):
         im_vis = im_in.copy()
 
         action_result = o2ac_msgs.msg.get2DPosesFromSSDResult()
-        action_result.results, im_vis, upside_down_list \
-            = self.get_2d_poses_from_ssd(im_in, im_vis)
+        action_result.results, im_vis = self.get_2d_poses_from_ssd(im_in,
+                                                                   im_vis)
         self.get_2d_poses_from_ssd_action_server.set_succeeded(action_result)
 
         # Publish result visualization
@@ -259,20 +259,19 @@ class O2ACVisionServer(object):
                                            desired_encoding="bgr8")
         im_vis = im_in.copy()
 
-        poses2d_array, im_vis, upside_down_list \
-            = self.get_2d_poses_from_ssd(im_in, im_vis)
+        poses2d_array, im_vis = self.get_2d_poses_from_ssd(im_in, im_vis)
 
         action_result = o2ac_msgs.msg.get3DPosesFromSSDResult()
-        action_result.poses = []
-        action_result.class_ids = []
+        action_result.poses       = []
+        action_result.class_ids   = []
         action_result.upside_down = []
-        for (array, upside_down) in zip(poses2d_array, upside_down_list):
-            for pose2d in array.poses:
+        for poses2d in poses2d_array:
+            for pose2d in poses2d.poses:
                 p3d = self.convert_pose_2d_to_3d(pose2d)
                 if p3d:
-                    action_result.class_ids.append(array.class_id)
+                    action_result.class_ids.append(poses2d.class_id)
                     action_result.poses.append(p3d)
-                    action_result.upside_down.append(upside_down)
+                    action_result.upside_down.append(poses2d.upside_down)
         self.get_3d_poses_from_ssd_action_server.set_succeeded(action_result)
 
         # Publish result visualization
@@ -300,8 +299,8 @@ class O2ACVisionServer(object):
         im_vis = im_in.copy()
 
         action_result = o2ac_msgs.msg.get2DPosesFromSSDResult()
-        action_result.results, im_vis, action_result.upside_down \
-            = self.get_2d_poses_from_ssd(im_in, im_vis)
+        action_result.results, im_vis = self.get_2d_poses_from_ssd(im_in,
+                                                                   im_vis)
 
         self.get_2d_poses_from_ssd_action_server.set_succeeded(action_result)
 
@@ -402,8 +401,7 @@ class O2ACVisionServer(object):
                                            desired_encoding="bgr8")
         im_vis = im_in.copy()
         # Apply SSD first to get the object's bounding box
-        poses2d_array, im_vis, upside_down_list \
-            = self.get_2d_poses_from_ssd(im_in, im_vis)
+        poses2d_array, im_vis = self.get_2d_poses_from_ssd(im_in, im_vis)
 
         # Publish result visualization
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
@@ -501,13 +499,13 @@ class O2ACVisionServer(object):
         apply_3d_pose_estimation = [1,2,3,4,5,7,11,12,13]  # Large items --> CAD matching
         apply_grasp_detection    = [6]                     # Belt --> Fast Grasp Estimation
 
-        item_flipped_over = []
         for ssd_result in ssd_results:
             target  = ssd_result["class"]
             poses2d = o2ac_msgs.msg.Estimated2DPoses() # Stores the result for one item/class id
-            poses2d.class_id   = target
-            poses2d.confidence = ssd_result["confidence"]
-            poses2d.bbox       = ssd_result["bbox"]
+            poses2d.class_id    = target
+            poses2d.confidence  = ssd_result["confidence"]
+            poses2d.bbox        = ssd_result["bbox"]
+            poses2d.upside_down = ssd_result["state"]
 
             if target in apply_2d_pose_estimation:
                 rospy.loginfo("Seeing object id %d. Apply 2D pose estimation",
@@ -515,22 +513,6 @@ class O2ACVisionServer(object):
                 pose2d, im_vis = self.estimate_pose_in_image(im_in, im_vis,
                                                              ssd_result)
                 poses2d.poses = [pose2d]
-                # Publish result markers
-                poses3d = []
-                for p2d in poses2d.poses:
-                    p3d = self.convert_pose_2d_to_3d(p2d)
-                    if p3d:
-                        poses3d.append(p3d)
-                    else:
-                        rospy.logwarn("Could not find pose for class %d!",
-                                      target)
-                    # rospy.loginfo("Found pose for class " + str(target) + ": " + str(poses_3d[-1].pose.position.x) + ", " + str(poses_3d[-1].pose.position.y) + ", " + str(poses_3d[-1].pose.position.z))
-                    # rospy.loginfo("Found pose for class " + str(target) + ": %2f, %2f, %2f",
-                    #                poses_3d[-1].pose.position.x, poses_3d[-1].pose.position.y, poses_3d[-1].pose.position.z)
-                if poses3d:
-                    self.add_markers_to_pose_array(poses3d)
-                else:
-                    rospy.logwarn("Could not find poses for class %d!", target)
 
             elif target in apply_3d_pose_estimation:
                 rospy.loginfo("Seeing object id %d. Apply 3D pose estimation",
@@ -547,7 +529,6 @@ class O2ACVisionServer(object):
                                                          ssd_result)
 
             poses2d_array.append(poses2d)
-            item_flipped_over.append(ssd_result["state"])
 
             # Publish result markers
             poses3d = []
@@ -569,7 +550,7 @@ class O2ACVisionServer(object):
             else:
                 rospy.logwarn("Could not find pose for class %d!", target)
 
-        return poses2d_array, im_vis, item_flipped_over
+        return poses2d_array, im_vis
 
     def detect_object_in_image(self, cv_image, im_vis):
         ssd_results, im_vis = ssd_detection.object_detection(cv_image, im_vis)
