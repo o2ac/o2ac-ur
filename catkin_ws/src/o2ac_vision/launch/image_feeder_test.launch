@@ -29,7 +29,7 @@
   </node>
 
   <!-- Construct recognition pipeline -->
-  <include file="$(find o2ac_vision)/launch/recognition_pipeline.launch">
+  <include file="$(dirname)/recognition_pipeline.launch">
     <arg name="continuous_streaming"	value="$(arg continuous_streaming)"/>
     <arg name="use_localization_sdk"	value="$(arg use_localization_sdk)"/>
     <arg name="nposes"			value="$(arg nposes)"/>

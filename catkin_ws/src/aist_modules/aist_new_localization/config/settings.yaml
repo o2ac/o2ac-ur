@@ -66,6 +66,8 @@ localization_parameters:
     refine_transform: true
   12_CLBUS6-9-9.5:
     size: [0.006, 0.006]
+    axes: [0.0, 0.0, -1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0]
+    offset: [0.0, 0.0, 0.0]
     rotation_range: [0.0, 0.0, 0.0]
     refine_transform: false
   13_MBGA30-2:
@@ -79,10 +81,10 @@ localization_parameters:
     axes: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
     offset: [-0.016, 0.0, 0.003]
     rotation_range: [0.0, 0.0, 0.0]
-    refine_transform: false
+    refine_transform: true
   15_SLBNR6:
     size: [0.062, 0.062]
     axes: [0.0, 0.0, -1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0]
     offset: [0.0, 0.0, 0.0025]
     rotation_range: [0.0, 0.0, 0.0]
-    refine_transform: true
+    refine_transform: false

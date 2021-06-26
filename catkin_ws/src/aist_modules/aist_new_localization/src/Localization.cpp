@@ -155,18 +155,18 @@ Localization::localize_cb(const camera_info_cp& camera_info,
     }
 
   // Set local transformation from model frame to gaze point frame.
-    const tf::Transform	gaze_model(tf::Matrix3x3(_current_goal->axes[0],
-						 _current_goal->axes[1],
-						 _current_goal->axes[2],
-						 _current_goal->axes[3],
-						 _current_goal->axes[4],
-						 _current_goal->axes[5],
-						 _current_goal->axes[6],
-						 _current_goal->axes[7],
-						 _current_goal->axes[8]),
-				   tf::Vector3(_current_goal->offset[0],
-					       _current_goal->offset[1],
-					       _current_goal->offset[2]));
+    const tf::Transform	Tgm(tf::Matrix3x3(_current_goal->axes[0],
+					  _current_goal->axes[1],
+					  _current_goal->axes[2],
+					  _current_goal->axes[3],
+					  _current_goal->axes[4],
+					  _current_goal->axes[5],
+					  _current_goal->axes[6],
+					  _current_goal->axes[7],
+					  _current_goal->axes[8]),
+			    tf::Vector3(_current_goal->offset[0],
+					_current_goal->offset[1],
+					_current_goal->offset[2]));
     result_t		result;
     result.poses.header = depth->header;
 
@@ -184,14 +184,11 @@ Localization::localize_cb(const camera_info_cp& camera_info,
 	r *= (value_t(1)/norm(r));
 	const auto	q = r.cross(n);
 
-      // Transformation: camera_frame <== gaze_point_frame
-	const tf::Transform	transform(tf::Matrix3x3(q(0), r(0), n(0),
-							q(1), r(1), n(1),
-							q(2), r(2), n(2)),
-					  tf::Vector3(x(0), x(1), x(2)));
-
       // Transformation: camera_frmae <== gaze_point_frame <== model_frame
-	transform *= gaze_model;
+	auto	Tcm = tf::Transform(tf::Matrix3x3(q(0), r(0), n(0),
+						  q(1), r(1), n(1),
+						  q(2), r(2), n(2)),
+				    tf::Vector3(x(0), x(1), x(2))) * Tgm;
 
 	if (_current_goal->refine_transform)
 	{
@@ -199,9 +196,8 @@ Localization::localize_cb(const camera_info_cp& camera_info,
 
 	    try
 	    {
-		transform = refine_transform(_current_goal->object_name,
-					     transform, camera_info, depth,
-					     error);
+		Tcm = refine_transform(_current_goal->object_name,
+				       Tcm, camera_info, depth, error);
 	    }
 	    catch (const std::exception& err)
 	    {
@@ -215,7 +211,7 @@ Localization::localize_cb(const camera_info_cp& camera_info,
 	    if (error < min_error)
 	    {
 		geometry_msgs::Pose	pose;
-		tf::poseTFToMsg(transform, pose);
+		tf::poseTFToMsg(Tcm, pose);
 		result.poses.poses.resize(1);
 		result.poses.poses[0] = pose;
 
@@ -225,7 +221,7 @@ Localization::localize_cb(const camera_info_cp& camera_info,
 	else
 	{
 	    geometry_msgs::Pose	pose;
-	    tf::poseTFToMsg(transform, pose);
+	    tf::poseTFToMsg(Tcm, pose);
 	    result.poses.poses.push_back(pose);
 	}
     }
@@ -275,7 +271,7 @@ Localization::view_vector(const camera_info_cp& camera_info,
 
 tf::Transform
 Localization::refine_transform(const std::string& object_name,
-			       const tf::Transform& transform,
+			       const tf::Transform& Tcm,
 			       const camera_info_cp& camera_info,
 			       const image_cp& depth, value_t& error) const
 {
@@ -325,9 +321,18 @@ Localization::refine_transform(const std::string& object_name,
     icp.setTransformationEpsilon(_transformation_epsilon);
     icp.setEuclideanFitnessEpsilon(_fitness_epsilon);
 
+  // Setup transformation from PCD cloud to URDF model. This corresponds to
+  // the rotation from STL mesh to assy_part_XX link specified by
+  // rpy="1.5707 0 0"
+  // in o2ac_parts_description/urdf/generated/XX_YYYY_macro.urdf.xacro.
+    const tf::Transform	Tmp({1.0, 0.0,  0.0,
+			     0.0, 0.0, -1.0,
+			     0.0, 1.0,  0.0},
+			    {0.0, 0.0,  0.0});
+
   // Perform ICP to refine model pose
     pcl_cloud_p	registered_cloud(new pcl_cloud_t);
-    icp.align(*registered_cloud, matrix44<value_t>(transform));
+    icp.align(*registered_cloud, matrix44<value_t>(Tcm * Tmp));
 
     if (!icp.hasConverged())
 	throw std::runtime_error("convergence failure in ICP");
@@ -337,14 +342,15 @@ Localization::refine_transform(const std::string& object_name,
     pcl::toROSMsg(*registered_cloud, registered_cloud_msg);
     _model_cloud_pub.publish(registered_cloud_msg);
 
-  // Get transformation from model cloud to data cloud.
+  // Get transformation from model PCD cloud to camera frame.
     error = icp.getFitnessScore();
-    const auto	T = icp.getFinalTransformation();
+    const auto	Tcp = icp.getFinalTransformation();
 
-    return tf::Transform({T(0, 0), T(0, 1), T(0, 2),
-			  T(1, 0), T(1, 1), T(1, 2),
-			  T(2, 0), T(2, 1), T(2, 2)},
-			 {T(0, 3), T(1, 3), T(2, 3)});
+  // Return transformation from URDF model to camera frame.
+    return tf::Transform({Tcp(0, 0), Tcp(0, 1), Tcp(0, 2),
+    			  Tcp(1, 0), Tcp(1, 1), Tcp(1, 2),
+    			  Tcp(2, 0), Tcp(2, 1), Tcp(2, 2)},
+    			 {Tcp(0, 3), Tcp(1, 3), Tcp(2, 3)}) * Tmp.inverse();
 }
 
 }	// namespace aist_new_localization

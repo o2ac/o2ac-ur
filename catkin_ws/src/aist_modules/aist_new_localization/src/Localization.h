@@ -74,7 +74,7 @@ class Localization
 			    value_t u, value_t v)			;
     tf::Transform
 		refine_transform(const std::string& object_name,
-				 const tf::Transform& transform,
+				 const tf::Transform& Tcm,
 				 const camera_info_cp& camera_info,
 				 const image_cp& depth,
 				 value_t& error)		const	;

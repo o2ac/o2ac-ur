@@ -38,9 +38,11 @@
 
   <!-- Spawn depth_filter and localizer -->
   <include file="$(dirname)/run.launch">
-    <arg name="camera_info_topic" value="$(arg camera_name)/color/camera_info"/>
+    <arg name="camera_info_topic" value="$(arg camera_name
+					 )/color/camera_info"/>
     <arg name="image_topic"	  value="$(arg camera_name)/color/image_raw"/>
-    <arg name="depth_topic"	  value="$(arg camera_name)/aligned_depth_to_color/image_raw"/>
+    <arg name="depth_topic"	  value="$(arg camera_name
+					 )/aligned_depth_to_color/image_raw"/>
     <arg name="pcd_dir"		  value="$(arg pcd_dir)"/>
     <arg name="manager"
 	 value="$(eval ''
