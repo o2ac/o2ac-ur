@@ -5,7 +5,7 @@ Panels:
     Property Tree Widget:
       Expanded: ~
       Splitter Ratio: 0.51953125
-    Tree Height: 538
+    Tree Height: 408
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -83,6 +83,30 @@ Visualization Manager:
           Value: true
         assy_part_01_under_outer_hole:
           Value: true
+        assy_part_02:
+          Value: true
+        assy_part_02_back_hole:
+          Value: true
+        assy_part_02_bottom_screw_hole_1:
+          Value: true
+        assy_part_02_bottom_screw_hole_2:
+          Value: true
+        assy_part_02_bottom_screw_hole_aligner_1:
+          Value: true
+        assy_part_02_bottom_screw_hole_aligner_2:
+          Value: true
+        assy_part_02_motor_screw_hole_1:
+          Value: true
+        assy_part_02_motor_screw_hole_2:
+          Value: true
+        assy_part_02_motor_screw_hole_3:
+          Value: true
+        assy_part_02_motor_screw_hole_4:
+          Value: true
+        assy_part_02_motor_screw_hole_5:
+          Value: true
+        assy_part_02_motor_screw_hole_6:
+          Value: true
         assy_part_03:
           Value: true
         assy_part_03_bottom_screw_hole_1:
@@ -101,19 +125,37 @@ Visualization Manager:
           Value: true
         assy_part_03_pulley_ridge_top:
           Value: true
-        assy_part_04:
-          Value: true
-        assy_part_04_inserted_02:
-          Value: true
-        assy_part_04_inserted_13:
-          Value: true
-        assy_part_04_tip:
-          Value: true
         assy_part_05:
           Value: true
         assy_part_05_center:
           Value: true
         assy_part_06:
+          Value: true
+        assy_part_07:
+          Value: true
+        assy_part_07_back_hole:
+          Value: true
+        assy_part_07_back_tip:
+          Value: true
+        assy_part_07_front_hole:
+          Value: true
+        assy_part_07_inserted:
+          Value: true
+        assy_part_07_screw_hole_1:
+          Value: true
+        assy_part_07_screw_hole_2:
+          Value: true
+        assy_part_07_screw_hole_3:
+          Value: true
+        assy_part_07_screw_hole_4:
+          Value: true
+        assy_part_08:
+          Value: true
+        assy_part_08_back_tip:
+          Value: true
+        assy_part_08_front_tip:
+          Value: true
+        assy_part_08_inserted:
           Value: true
         assy_part_09:
           Value: true
@@ -125,9 +167,27 @@ Visualization Manager:
           Value: true
         assy_part_10_center:
           Value: true
+        assy_part_11:
+          Value: true
+        assy_part_11_back_hole:
+          Value: true
+        assy_part_11_back_tip:
+          Value: true
+        assy_part_11_front_hole:
+          Value: true
+        assy_part_11_screw_head_1:
+          Value: true
+        assy_part_11_screw_head_2:
+          Value: true
         assy_part_12:
           Value: true
         assy_part_12_center:
+          Value: true
+        assy_part_13:
+          Value: true
+        assy_part_13_center:
+          Value: true
+        assy_part_13_screw_head:
           Value: true
         assy_part_14:
           Value: true
@@ -173,6 +233,29 @@ Visualization Manager:
               {}
             assy_part_01_under_outer_hole:
               {}
+          assy_part_02:
+            assy_part_02_back_hole:
+              {}
+            assy_part_02_bottom_screw_hole_1:
+              {}
+            assy_part_02_bottom_screw_hole_2:
+              {}
+            assy_part_02_bottom_screw_hole_aligner_1:
+              {}
+            assy_part_02_bottom_screw_hole_aligner_2:
+              {}
+            assy_part_02_motor_screw_hole_1:
+              {}
+            assy_part_02_motor_screw_hole_2:
+              {}
+            assy_part_02_motor_screw_hole_3:
+              {}
+            assy_part_02_motor_screw_hole_4:
+              {}
+            assy_part_02_motor_screw_hole_5:
+              {}
+            assy_part_02_motor_screw_hole_6:
+              {}
           assy_part_03:
             assy_part_03_bottom_screw_hole_1:
               {}
@@ -190,18 +273,35 @@ Visualization Manager:
               {}
             assy_part_03_pulley_ridge_top:
               {}
-          assy_part_04:
-            assy_part_04_inserted_02:
-              {}
-            assy_part_04_inserted_13:
-              {}
-            assy_part_04_tip:
-              {}
           assy_part_05:
             assy_part_05_center:
               {}
           assy_part_06:
             {}
+          assy_part_07:
+            assy_part_07_back_hole:
+              {}
+            assy_part_07_back_tip:
+              {}
+            assy_part_07_front_hole:
+              {}
+            assy_part_07_inserted:
+              {}
+            assy_part_07_screw_hole_1:
+              {}
+            assy_part_07_screw_hole_2:
+              {}
+            assy_part_07_screw_hole_3:
+              {}
+            assy_part_07_screw_hole_4:
+              {}
+          assy_part_08:
+            assy_part_08_back_tip:
+              {}
+            assy_part_08_front_tip:
+              {}
+            assy_part_08_inserted:
+              {}
           assy_part_09:
             assy_part_09_inner_surface:
               {}
@@ -210,8 +310,24 @@ Visualization Manager:
           assy_part_10:
             assy_part_10_center:
               {}
+          assy_part_11:
+            assy_part_11_back_hole:
+              {}
+            assy_part_11_back_tip:
+              {}
+            assy_part_11_front_hole:
+              {}
+            assy_part_11_screw_head_1:
+              {}
+            assy_part_11_screw_head_2:
+              {}
           assy_part_12:
             assy_part_12_center:
+              {}
+          assy_part_13:
+            assy_part_13_center:
+              {}
+            assy_part_13_screw_head:
               {}
           assy_part_14:
             assy_part_14_screw_head:
@@ -233,11 +349,63 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        assy_part_06:
+        assy_part_01:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
+        assy_part_01_corner_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        assy_part_01_corner_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        assy_part_01_corner_3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        assy_part_01_corner_4:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        assy_part_01_fixation_hole_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        assy_part_01_fixation_hole_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        assy_part_01_fixation_hole_3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        assy_part_01_fixation_hole_4:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        assy_part_01_screw_hole_panel1_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        assy_part_01_screw_hole_panel1_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        assy_part_01_screw_hole_panel2_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        assy_part_01_screw_hole_panel2_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        assy_part_01_under_outer_hole:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         map:
           Alpha: 1
           Show Axes: false
@@ -351,9 +519,9 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 9.999999747378752e-5
+      Size (m): 0.0010000000474974513
       Style: Flat Squares
-      Topic: /localization/registered_points
+      Topic: /localization/model_points
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
@@ -404,17 +572,17 @@ Visualization Manager:
       Pitch: -1.5697963237762451
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.661914348602295
+      Yaw: 4.736934185028076
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 1270
+  Height: 1023
   Hide Left Dock: false
   Hide Right Dock: true
   Image:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd00000004000000000000020200000458fc0200000009fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003d00000257000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000a0049006d006100670065010000029a000001fb0000001600ffffff000000010000010f000002c4fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a005600690065007700730000000028000002c4000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004f30000003efc0100000002fb0000000800540069006d00650100000000000004f3000002eb00fffffffb0000000800540069006d00650100000000000004500000000000000000000002eb0000045800000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000004000000000000020200000365fc0200000009fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003b000001d3000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000a0049006d00610067006501000002140000018c0000001600ffffff000000010000010f000002c4fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a005600690065007700730000000028000002c4000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004f30000003efc0100000002fb0000000800540069006d00650100000000000004f30000024400fffffffb0000000800540069006d00650100000000000004500000000000000000000002eb0000036500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -424,5 +592,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1267
-  X: 655
-  Y: 27
+  X: 602
+  Y: 168

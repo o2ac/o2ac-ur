@@ -154,19 +154,14 @@ Localization::localize_cb(const camera_info_cp& camera_info,
 	return;
     }
 
-  // Set local transformation from model frame to gaze point frame.
-    const tf::Transform	Tgm(tf::Matrix3x3(_current_goal->axes[0],
-					  _current_goal->axes[1],
-					  _current_goal->axes[2],
-					  _current_goal->axes[3],
-					  _current_goal->axes[4],
-					  _current_goal->axes[5],
-					  _current_goal->axes[6],
-					  _current_goal->axes[7],
-					  _current_goal->axes[8]),
-			    tf::Vector3(_current_goal->offset[0],
-					_current_goal->offset[1],
-					_current_goal->offset[2]));
+  // Transformation: gaze_point_frame <== URDF_model frame
+    const tf::Transform	Tgm({_current_goal->origin.orientation.x,
+			     _current_goal->origin.orientation.y,
+			     _current_goal->origin.orientation.z,
+			     _current_goal->origin.orientation.w},
+			    {_current_goal->origin.position.x,
+			     _current_goal->origin.position.y,
+			     _current_goal->origin.position.z});
     result_t		result;
     result.poses.header = depth->header;
 
@@ -184,7 +179,7 @@ Localization::localize_cb(const camera_info_cp& camera_info,
 	r *= (value_t(1)/norm(r));
 	const auto	q = r.cross(n);
 
-      // Transformation: camera_frmae <== gaze_point_frame <== model_frame
+      // Transformation: camera_frame <== gaze_point_frame <== model_frame
 	auto	Tcm = tf::Transform(tf::Matrix3x3(q(0), r(0), n(0),
 						  q(1), r(1), n(1),
 						  q(2), r(2), n(2)),

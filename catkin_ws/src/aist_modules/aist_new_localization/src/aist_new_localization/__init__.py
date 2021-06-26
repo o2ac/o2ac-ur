@@ -1,7 +1,8 @@
-import rospy
+import rospy, copy
 import dynamic_reconfigure.client
 import actionlib
 import numpy as np
+from tf                    import transformations as tfs
 from geometry_msgs         import msg as gmsg
 from aist_new_localization import msg as lmsg
 from aist_depth_filter     import msg as dmsg
@@ -12,10 +13,7 @@ from actionlib_msgs.msg    import GoalStatus
 #  class LocalizationClient                                             #
 #########################################################################
 class LocalizationClient(object):
-    _DefaultParams = {'axes':             [1.0, 0.0, 0.0,
-                                           0.0, 1.0, 0.0,
-                                           0.0, 0.0, 1.0],
-                      'offset':           [0.0, 0.0, 0.0],
+    _DefaultParams = {'origin':           [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
                       'rotation_range':   [0.0, 0.0, 0,0],
                       'refine_transform': False,
                       'transform_2d':     False}
@@ -54,24 +52,25 @@ class LocalizationClient(object):
     def send_goal(self, object_name, plane,
                   poses2d=[gmsg.Pose2D(0.0, 0.0, 0.0)], dx=0.0, dy=0.0):
         params = self._params[object_name]
-        offset = params['offset']
-        offset[0] += dx
-        offset[1] += dy
-
+        origin = copy.copy(params['origin'])  # Must be copied
+        origin[0] += dx
+        origin[1] += dy
+        origin[3] = np.radians(origin[3])
+        origin[4] = np.radians(origin[4])
+        origin[5] = np.radians(origin[5])
         goal = lmsg.LocalizeGoal()
         rotation_range = params['rotation_range']
         if rotation_range[0] < rotation_range[1] and \
            rotation_range[2] > 0:
-            goal.poses2d = [ gmsg.Pose2D(0.0, 0.0, 180.0/np.pi*theta)
-                             for theta in np.arange(rotation_range[0],
-                                                    rotation_range[1],
-                                                    rotation_range[2]) ]
+            goal.poses2d = [ gmsg.Pose2D(0.0, 0.0, np.radians(theta))
+                             for theta in np.arange(*rotation_range) ]
         else:
             goal.poses2d = poses2d
-        goal.object_name      = object_name
-        goal.plane            = plane
-        goal.axes             = params['axes']
-        goal.offset           = offset
+        goal.object_name = object_name
+        goal.plane       = plane
+        goal.origin      = gmsg.Pose(gmsg.Point(*origin[0:3]),
+                                     gmsg.Quaternion(*tfs.quaternion_from_euler(
+                                         *origin[3:6])))
         goal.refine_transform = params['refine_transform']
         goal.transform_2d     = params['transform_2d']
         self._localize.send_goal(goal)
