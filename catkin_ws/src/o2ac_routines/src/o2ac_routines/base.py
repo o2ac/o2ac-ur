@@ -1158,6 +1158,7 @@ class O2ACBase(object):
 
   def execute_sequence(self, robot_name, sequence, sequence_name, plan_while_moving=True, save_on_success=False, use_saved_plans=False):
     if use_saved_plans:
+      # TODO(cambel): check that the original plan's file has not been updated. if so, try to do the online planning
       bagfile = helpers.get_plan_full_path(sequence_name)
       if not os.path.exists(bagfile):
         rospy.logwarn("Attempted to execute saved sequence, but file not found: %s" % bagfile)
