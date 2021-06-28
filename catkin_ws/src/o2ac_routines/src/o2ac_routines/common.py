@@ -1425,25 +1425,15 @@ class O2ACCommon(O2ACBase):
       #TODO(felixvd): Look at the regrasping/aligning area next to the tray
       return False
 
-    if task == "taskboard" or task == "assembly":
-      if not self.playback_sequence("bearing_move_to_" + task):
-        rospy.logerr("Could not complete go to pre insertion sequence")
-        return False
-    else:
-      rospy.logerr("Task could not be read. Breaking out of pick_up_and_insert_bearing")
-      return False
-
     # Insert bearing
     if not self.insert_bearing(task=task):
       rospy.logerr("insert_bearing returned False. Breaking out")
-      self.b_bot.go_to_pose_goal(self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", move_lin=False)
-      self.b_bot.gripper.open()
       return False
 
     self.bearing_holes_aligned = self.align_bearing_holes(task=task)
     return self.bearing_holes_aligned
 
-  def insert_bearing(self, task=""):
+  def insert_bearing(self, task="", try_recenter=True, try_reinsertion=True):
     """ Only inserts the bearing, does not align the holes.
     """
     if not task:
@@ -1455,24 +1445,34 @@ class O2ACCommon(O2ACBase):
     elif task == "assembly":
       rospy.logerr("look this up")
       bearing_target_link = "assembled_part_07_inserted"
+    self.confirm_to_proceed("insertion")
 
-    target_pose_target_frame = conversions.to_pose_stamped(bearing_target_link, [-0.003, 0.000, -0.004, 0, 0, 0, 1.])
-    selection_matrix = [0., 0.5, 0.5, .8, .8, .8]
-    result = self.b_bot.do_insertion(target_pose_target_frame, insertion_direction="-X", force=10.0, timeout=30.0, 
+    target_pose_target_frame = conversions.to_pose_stamped(bearing_target_link, [-0.004, 0.000, 0.002, 0, 0, 0, 1.])
+    selection_matrix = [0., 0.3, 0.3, .8, .8, .8]
+    result = self.b_bot.do_insertion(target_pose_target_frame, insertion_direction="-X", force=10.0, timeout=20.0, 
                                                     radius=0.002, relaxed_target_by=0.003, selection_matrix=selection_matrix)
-    if result not in (TERMINATION_CRITERIA, DONE):
-      rospy.logerr("** Insertion Failed!! Try one more time. **")
-      # TODO(felixvd): Release protective stop
-      selection_matrix = [0., 0.5, 0.5, .8, .8, .8]
-      result = self.b_bot.do_insertion(target_pose_target_frame, insertion_direction="-X", force=10.0, timeout=30.0, 
-                                                    radius=0.002, relaxed_target_by=0.003, selection_matrix=selection_matrix,
-                                                    config_file="force_control_slow")
-      if result not in (TERMINATION_CRITERIA, DONE):
-        rospy.logerr("** Insertion Failed!! Try one more time. **")
-        return
+    
+    if result != TERMINATION_CRITERIA:
+      # move back
+      self.b_bot.move_lin_rel(relative_translation = [0.005,0,0], acceleration = 0.015, speed=.03)
+
+      # TODO(cambel): check that the bearing is not slightly inserted
+      #               otherwise we may trigger a safety lock
+      if try_reinsertion:
+        # Try to insert again
+        rospy.logwarn("** Insertion Incomplete, trying again **")
+        self.insert_bearing(task, try_recenter=False, try_reinsertion=False)
+      elif try_recenter:
+        # Try to recenter the bearing
+        rospy.logwarn("** Insertion Incomplete, trying from centering again **")
+        self.playback_sequence("bearing_orient_down")
+        self.insert_bearing(task, try_recenter=False, try_reinsertion=True)
+      else:
+        self.b_bot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
+        self.drop_in_tray("b_bot")
 
     self.b_bot.gripper.open(wait=True)
-    self.b_bot.move_lin_rel(relative_translation = [0.016,0,0], acceleration = 0.015, speed=.03)
+    self.b_bot.move_lin_rel(relative_translation = [0.01,0,0], acceleration = 0.015, speed=.03)
     self.b_bot.gripper.close(velocity=0.01, wait=True)
 
     result = self.b_bot.do_insertion(target_pose_target_frame, insertion_direction="-X", force=10.0, timeout=30.0, 
@@ -1628,45 +1628,32 @@ class O2ACCommon(O2ACBase):
     self.vision.activate_camera("b_bot_inside_camera")
     self.activate_led("b_bot", False)
     
-    if not self.simple_pick("b_bot", goal, gripper_force=50.0, grasp_width=.06, axis="z", grasp_height=0.005):
+    if not self.simple_pick("b_bot", goal, gripper_force=50.0, grasp_width=.06, axis="z", grasp_height=0.002):
       rospy.logerr("Fail to simple_pick")
       return False
     return True
 
   def insert_motor_pulley(self, target_link, attempts=1):
-    approach_pose = conversions.to_pose_stamped(target_link, [-0.05, 0.0, 0.0, radians(180), radians(35), 0.0])
-    pre_insertion_pose = conversions.to_pose_stamped(target_link, [-0.008, -0.001, -0.003, radians(180), radians(35), 0.0])
-    trajectory = [[approach_pose, 0.005], [pre_insertion_pose, 0.0]]
-
-
-    if not self.b_bot.move_lin_trajectory(trajectory, speed=0.5):
-      rospy.logerr("Fail to complete the approach pose")
-      return False
-
     target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.01, -0.000, -0.009, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
 
     selection_matrix = [0., 0.3, 0.3, 0.95, 1.0, 1.0]
+
     result = self.b_bot.do_insertion(target_pose_target_frame, radius=0.0005, 
                                                       insertion_direction="-X", force=6.0, timeout=15.0, 
                                                       wiggle_direction="X", wiggle_angle=np.deg2rad(5.0), wiggle_revolutions=1.,
                                                       relaxed_target_by=0.005, selection_matrix=selection_matrix)
-    success = result in (TERMINATION_CRITERIA, DONE)
+    success = (result == TERMINATION_CRITERIA)
 
     if not success:
-      grasp_check = self.simple_insertion_check("b_bot", 0.07)
-      if grasp_check and attempts > 0: # try again the pulley is still there   
+      if attempts > 0: # try again the pulley is still there   
+        rospy.logwarn("** Insertion Incomplete, trying again **")
         return self.insert_motor_pulley(target_link, attempts=attempts-1)
-      elif not grasp_check or not attempts > 0:
-        self.b_bot.gripper.open(wait=True, opening_width=0.07)
+      else:
+        # TODO(cambel): return to tray to drop pulley
         self.b_bot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
+        self.drop_in_tray("b_bot")
         rospy.logerr("** Insertion Failed!! **")
         return False
-
-    if result == DONE: # Not the termination criteria so try once more
-      result = self.b_bot.do_insertion(target_pose_target_frame, insertion_direction="-X", force=6.0, timeout=15.0, 
-                                                        relaxed_target_by=0.005, wiggle_direction="X", wiggle_angle=np.deg2rad(2.0), wiggle_revolutions=1.,
-                                                        selection_matrix=selection_matrix)
-      success = result in (TERMINATION_CRITERIA, DONE)
 
     self.b_bot.gripper.open(opening_width=0.04, wait=True)
     success &= self.b_bot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)

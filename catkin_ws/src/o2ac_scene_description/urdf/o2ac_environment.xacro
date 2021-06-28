@@ -64,7 +64,7 @@
 
   <!-- The second vgroove at the back (for the motor)-->
   <xacro:vgroove_aid jigname="vgroove_aid_motor" parent="b_bot_base_link">
-    <origin xyz="-0.225 -0.210 0.0" rpy="0 0 0" />   
+    <origin xyz="-0.225 -0.210 0.001" rpy="0 0 0" />   
   </xacro:vgroove_aid> 
 
 

@@ -535,6 +535,8 @@ def load_sequence_plans(name):
 
 def save_sequence_plans(name, plans):
   bagfile = get_plan_full_path(name)
+  if os.path.exists(bagfile):
+    os.remove(bagfile)
   with rosbag.Bag(bagfile, 'w') as bag:
     bag.write(topic="robot_name", msg=String(data=plans[0]))
     bag.write(topic="initial_joint_configuration", msg=Float64MultiArray(data=plans[1]))

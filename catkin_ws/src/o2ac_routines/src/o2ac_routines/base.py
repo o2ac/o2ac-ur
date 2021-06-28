@@ -1266,7 +1266,7 @@ class O2ACBase(object):
 
     return True
 
-  def playback_sequence(self, routine_filename, default_frame="world", plan_while_moving=True, save_on_success=True, use_saved_plans=False):
+  def playback_sequence(self, routine_filename, default_frame="world", plan_while_moving=True, save_on_success=True, use_saved_plans=True):
 
     robot_name, playback_trajectories = self.read_playback_sequence(routine_filename, default_frame)
 
@@ -1336,8 +1336,6 @@ class O2ACBase(object):
     robot.move_joints(sequence[1])
     for seq in sequence[2:]:
       success = False
-      print(type(seq))
-      # print(seq)
       if isinstance(seq, dict):
         success =  self.execute_gripper_action(robot_name, seq)
       else:
