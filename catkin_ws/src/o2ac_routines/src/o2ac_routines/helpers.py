@@ -37,7 +37,6 @@ from moveit_msgs.msg import RobotState
 from sensor_msgs.msg import JointState
 
 from std_msgs.msg import String, Float64MultiArray
-from rospy_message_converter import message_converter
 
 helper_fct_marker_id_count = 0
 
