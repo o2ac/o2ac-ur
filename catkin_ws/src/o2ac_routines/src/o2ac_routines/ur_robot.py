@@ -56,6 +56,8 @@ class URRobot(RobotBase):
             "unlock_protective_stop": rospy.ServiceProxy("/%s/ur_hardware_interface/dashboard/unlock_protective_stop" % self.ns, std_srvs.srv.Trigger),
         }
 
+        self.speed_slider = rospy.ServiceProxy("/%s/ur_hardware_interface/set_speed_slider" % self.ns, ur_msgs.srv.SetSpeedSliderFraction)
+
         self.set_io = rospy.ServiceProxy('/%s/ur_hardware_interface/set_io' % self.ns, ur_msgs.srv.SetIO)
 
         self.sub_status_ = rospy.Subscriber("/%s/ur_hardware_interface/robot_program_running" % self.ns, Bool, self.ros_control_status_callback)
@@ -319,6 +321,7 @@ class URRobot(RobotBase):
 
     def set_up_move_group(self, speed, acceleration, planner="OMPL"):
         self.activate_ros_control_on_ur()
+        self.speed_slider(ur_msgs.srv.SetSpeedSliderFractionRequest(speed_slider_fraction=1.0))
         return RobotBase.set_up_move_group(self, speed, acceleration, planner)
 
     def solve_ik(self, pose, q_guess=None, attempts=5, verbose=True):
