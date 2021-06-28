@@ -419,14 +419,24 @@ class O2ACBase(object):
         rospy.loginfo("Moving into screw to pick it up.")
         adjusted_pose.pose.position.x += .016
         success = False
-        while not success:
+        while not success: # TODO(cambel, felix): infinite loop?
           success = self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, end_effector_link=screw_tool_link)
+
+        # Break out of loop if screw suctioned or max search radius exceeded
+        screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
+        if screw_picked:
+          rospy.loginfo("Detected successful pick.")
+          if not self.active_robots[robot_name].move_lin_rel(relative_translation=[0.005, 0, 0], speed=0.015):
+            rospy.logerr("Fail to move screw through gate sensor")
+          if not self.active_robots[robot_name].move_lin_rel(relative_translation=[0, 0, 0.03], speed=0.2):
+            rospy.logerr("Fail to move up")
+          break
 
         rospy.loginfo("Moving back a bit slowly.")
         rospy.sleep(0.5)
         adjusted_pose.pose.position.x -= .016
         success = False
-        while not success:
+        while not success: # TODO(cambel, felix): infinite loop?
           success = self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, end_effector_link=screw_tool_link)
           
         # Break out of loop if screw suctioned or max search radius exceeded
