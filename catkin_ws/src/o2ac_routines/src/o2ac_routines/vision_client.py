@@ -2,6 +2,7 @@ import actionlib
 import rospy
 from aist_camera_multiplexer import RealSenseMultiplexerClient
 import o2ac_msgs.msg
+import std_srvs.srv
 
 from o2ac_routines.helpers import check_for_real_robot
 
@@ -21,10 +22,26 @@ class VisionClient():
         self.pick_success_client = actionlib.SimpleActionClient('/o2ac_vision_server/check_pick_success', o2ac_msgs.msg.checkPickSuccessAction)
         self.localization_client = actionlib.SimpleActionClient('/o2ac_vision_server/localize_object', o2ac_msgs.msg.localizeObjectAction)
 
+        self.multiplexer_camera_names = rospy.get_param('/camera_multiplexer/camera_names')
+        self.camera_enable_services = {}
+        for cam in self.multiplexer_camera_names:
+                rospy.wait_for_service('/%s/enable' % cam)
+                self.camera_enable_services.update({cam: rospy.ServiceProxy('/%s/enable' % cam, std_srvs.srv.SetBool)})
+
     @check_for_real_robot
     def activate_camera(self, camera_name="b_bot_outside_camera"):
         try:
             if self.vision_multiplexer:
+                #TODO(cambel): move this logic inside the multiplexer
+                for cam in self.multiplexer_camera_names:
+                    try:
+                        # Enable desired camera and Disable other cameras
+                        enable_srv = self.camera_enable_services.get(cam)
+                        rospy.loginfo("Enable => %s for camera %s" % (cam == camera_name, cam))
+                        enable_srv(std_srvs.srv.SetBoolRequest(data=(cam == camera_name)))
+                    except:
+                        pass
+                rospy.sleep(1)
                 return self.vision_multiplexer.activate_camera(camera_name)
             else:
                 rospy.logwarn("Camera multiplexer not functional! Returning true")
