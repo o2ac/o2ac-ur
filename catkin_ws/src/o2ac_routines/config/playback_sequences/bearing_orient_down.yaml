@@ -49,23 +49,3 @@ waypoints:
   pose_type: relative-world
   speed: 0.6
   desc: move up
-- pose: [-0.15, 0, 0.10, -135, 0, 0] 
-  pose_type: task-space-in-frame
-  frame_id: right_centering_link
-  is_trajectory: True
-  blend: 0.005
-  speed: 0.8
-- pose: [-0.038, -0.001, 0.005, 0, -35.0, 0] 
-  pose_type: task-space-in-frame
-  frame_id: default
-  speed: 1.0
-  is_trajectory: True
-  blend: 0.0
-  desc: near tb 
-- pose: [-0.017, 0.000, 0.002, 0, -35.0, 0] 
-  pose_type: task-space-in-frame
-  frame_id: default
-  speed: 1.0
-  is_trajectory: True
-  blend: 0.0
-  desc: pre insertion 

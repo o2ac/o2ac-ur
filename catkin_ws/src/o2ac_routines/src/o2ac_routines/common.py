@@ -1433,6 +1433,16 @@ class O2ACCommon(O2ACBase):
       #TODO(felixvd): Look at the regrasping/aligning area next to the tray
       return False
 
+    at_tray_border_pose = conversions.to_pose_stamped("right_centering_link", [-0.15, 0, 0.10, radians(-100), 0, 0])
+    approach_pose       = conversions.to_pose_stamped(bearing_target_link, [-0.038, -0.001, 0.005, 0, radians(-35.0), 0])
+    if task == "taskboard":
+      preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017, 0.000, 0.002, 0, radians(-35.0), 0])
+    elif task == "assembly":
+      preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017, -0.000, 0.006, 0, radians(-35.0), 0])
+
+    trajectory = helpers.to_sequence_trajectory([at_tray_border_pose, approach_pose, preinsertion_pose], blend_radiuses=0.01, speed=1.0)
+    self.execute_sequence("b_bot", [trajectory], "go to preinsertion", plan_while_moving=False)
+
     # Insert bearing
     if not self.insert_bearing(task=task):
       rospy.logerr("insert_bearing returned False. Breaking out")
@@ -1481,7 +1491,7 @@ class O2ACCommon(O2ACBase):
 
     self.b_bot.gripper.open(wait=True)
     self.b_bot.move_lin_rel(relative_translation = [0.01,0,0], acceleration = 0.015, speed=.03)
-    self.b_bot.gripper.close(velocity=0.01, wait=True)
+    self.b_bot.gripper.close(velocity=0.05, wait=True)
 
     result = self.b_bot.do_insertion(target_pose_target_frame, insertion_direction="-X", force=10.0, timeout=30.0, 
                                                     radius=0.0, wiggle_direction="X", wiggle_angle=np.deg2rad(3.0), wiggle_revolutions=1.0,

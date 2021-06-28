@@ -144,7 +144,7 @@ class O2ACAssembly(O2ACCommon):
 
     centering_pose.header.frame_id = "move_group/base"
     centering_pose = self.listener.transformPose("tray_center", centering_pose)
-    centering_pose.pose.position.z += .005
+    centering_pose.pose.position.z += .006
     
     above_centering_pose = copy.deepcopy(centering_pose)
     above_centering_pose.pose.position.z += .08
@@ -184,7 +184,6 @@ class O2ACAssembly(O2ACCommon):
     self.a_bot.move_joints(above_base_drop, speed=0.5)
     self.a_bot.go_to_pose_goal(base_drop, speed=0.3, move_lin = True)
 
-    self.confirm_to_proceed("Go to recorded insertion pose?")
     base_inserted = conversions.to_pose_stamped("assembled_part_01", [0.108, -0.006, 0.067, 1.568, 0.103, -1.582])  # Taught
     self.a_bot.go_to_pose_goal(base_inserted, speed=0.05, move_lin = True)
     self.a_bot.gripper.open()
@@ -299,6 +298,7 @@ class O2ACAssembly(O2ACCommon):
     self.publish_status_text("Target: Bearing" )
     self.unequip_tool("b_bot")
     if self.pick_up_and_insert_bearing(task="assembly"):
+      self.b_bot.go_to_named_pose("home")
       if self.fasten_bearing(task="assembly"):
         self.fasten_bearing(task="assembly", only_retighten=True)
         self.unequip_tool('b_bot', 'screw_tool_m4')
@@ -521,7 +521,7 @@ class O2ACAssembly(O2ACCommon):
       return False
     
     self.planning_scene_interface.allow_collisions(panel, "")  # Allow collisions with all other objects
-    success = self.simple_pick("a_bot", grasp_pose, axis="z")
+    success = self.simple_pick("a_bot", grasp_pose, axis="z", grasp_width=0.06)
 
 
     if panel == "panel_bearing":
@@ -785,6 +785,8 @@ class O2ACAssembly(O2ACCommon):
       self.assembly_status.completed_subtask_c1 = self.subtask_c1() # bearing 
       if self.assembly_status.completed_subtask_c1:
         self.assembly_status.completed_subtask_c2 = self.subtask_c2() # shaft
+        if self.assembly_status.completed_subtask_c2:
+          self.assembly_status.completed_subtask_e = self.subtask_e() # bearing spacer / output pulley
     
     self.unload_drive_unit()
     self.assembly_status = AssemblyStatus()
