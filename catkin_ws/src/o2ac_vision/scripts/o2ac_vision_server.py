@@ -91,21 +91,6 @@ class O2ACVisionServer(object):
     def __init__(self):
         rospy.init_node('o2ac_vision_server', anonymous=False)
 
-        self.cam_helper = O2ACCameraHelper()
-        # tf_buffer = tf2_ros.Buffer(rospy.Duration(5.0)) #tf buffer length
-        # self.listener = tf2_ros.TransformListener(tf_buffer)
-        self.listener = tf.TransformListener()
-
-        # Setup publisher for output result image
-        self.image_pub = rospy.Publisher('~result_image',
-                                         sensor_msgs.msg.Image, queue_size=1)
-        self.marker_array_pub = rospy.Publisher('~result_marker_arrays',
-                                                visualization_msgs.msg.MarkerArray,
-                                                queue_size=1)
-
-        self._nposes  = rospy.get_param('~nposes',  2)  # Number of pose candidates to be returned from localization
-        self._timeout = rospy.get_param('~timeout', 10)
-
         # Load parameters for detecting graspabilities
         default_param_fge = {"ds_rate": 0.5,
                              "n_grasp_point": 50,
@@ -166,46 +151,42 @@ class O2ACVisionServer(object):
             self.localization_server.register_goal_callback(
                 self.localization_callback)
             self.localization_server.start()
-            self._localization_goal = None
 
-        # Action server for belt detection
-        self.belt_detection_server \
-            = actionlib.SimpleActionServer("~belt_detection",
-                                           o2ac_msgs.msg.beltDetectionAction,
-                                           auto_start=False)
-        self.belt_detection_server.register_goal_callback(
-            self.belt_detection_callback)
-        self.belt_detection_server.start()
-        self._belt_detection_goal = None
+            # Action server for belt detection
+            self.belt_detection_server \
+                = actionlib.SimpleActionServer(
+                    "~belt_detection",
+                    o2ac_msgs.msg.beltDetectionAction,  auto_start=False)
+            self.belt_detection_server.register_goal_callback(
+                self.belt_detection_callback)
+            self.belt_detection_server.start()
 
-        # Action server for angle detection
-        self.angle_detection_server \
-            = actionlib.SimpleActionServer("~detect_angle",
-                                           o2ac_msgs.msg.detectAngleAction,
-                                           auto_start=False)
-        self.angle_detection_server.register_goal_callback(
-            self.angle_detection_callback)
-        self.angle_detection_server.start()
-        self._angle_detection_goal = None
+            # Action server for angle detection
+            self.angle_detection_server \
+                = actionlib.SimpleActionServer(
+                    "~detect_angle",
+                    o2ac_msgs.msg.detectAngleAction, auto_start=False)
+            self.angle_detection_server.register_goal_callback(
+                self.angle_detection_callback)
+            self.angle_detection_server.start()
 
-        # Action server for shaft notch detection
-        self.shaft_notch_detection_server \
-            = actionlib.SimpleActionServer(
-                "~detect_shaft_notch",
-                o2ac_msgs.msg.shaftNotchDetectionAction, auto_start=False)
-        self.shaft_notch_detection_server.register_goal_callback(
-            self.shaft_notch_detection_callback)
-        self.shaft_notch_detection_server.start()
-        self._shaft_notch_detection_goal = None
+            # Action server for shaft notch detection
+            self.shaft_notch_detection_server \
+                = actionlib.SimpleActionServer(
+                    "~detect_shaft_notch",
+                    o2ac_msgs.msg.shaftNotchDetectionAction, auto_start=False)
+            self.shaft_notch_detection_server.register_goal_callback(
+                self.shaft_notch_detection_callback)
+            self.shaft_notch_detection_server.start()
 
-        # Action server for checking pick success
-        self.pick_success_server \
-            = actionlib.SimpleActionServer(
-                "~check_pick_success",
-                o2ac_msgs.msg.checkPickSuccessAction, auto_start=False)
-        self.pick_success_server.register_goal_callback(
-            self.pick_success_callback)
-        self.pick_success_server.start()
+            # Action server for checking pick success
+            self.pick_success_server \
+                = actionlib.SimpleActionServer(
+                    "~check_pick_success",
+                    o2ac_msgs.msg.checkPickSuccessAction, auto_start=False)
+            self.pick_success_server.register_goal_callback(
+                self.pick_success_callback)
+            self.pick_success_server.start()
 
         # Action client to forward the calculation to the Python3 node
         self._py3_axclient \
@@ -233,11 +214,22 @@ class O2ACVisionServer(object):
                                            o2ac_msgs.msg.Estimated2DPosesArray,
                                            queue_size=1)
 
+        # Setup publisher for output result image
+        self.image_pub = rospy.Publisher('~result_image',
+                                         sensor_msgs.msg.Image, queue_size=1)
+
         # For visualization
+        self.cam_helper             = O2ACCameraHelper()
+        self.listener               = tf.TransformListener()
         self.pose_marker_id_counter = 0
         self.pose_marker_array      = 0
         self._camera_info           = None
         self._depth                 = None
+        self.marker_array_pub = rospy.Publisher(
+                                        '~result_marker_arrays',
+                                        visualization_msgs.msg.MarkerArray,
+                                        queue_size=1)
+
         rospy.loginfo("O2AC_vision has started up!")
 
     ### ======= Callbacks of action servers
@@ -290,21 +282,19 @@ class O2ACVisionServer(object):
             self.execute_get_3d_poses_from_ssd(im_in, im_vis)
 
         elif self.localization_server.is_active():
-            self.execute_localization(self._localization_goal,
-                                               im_in, im_vis)
+            self.execute_localization(im_in, im_vis)
 
         elif self.belt_detection_server.is_active():
             self.execute_belt_detection(im_in, im_vis)
 
         elif self.angle_detection_server.is_active():
-            self.execute_angle_detection(self._angle_detection_goal,
-                                                  im_in, im_vis)
+            self.execute_angle_detection(im_in, im_vis)
 
         elif self.shaft_notch_detection_server.is_active():
             self.execute_shaft_notch_detection(im_in)
 
         elif self.pick_success_server.is_active():
-            self.execute_pick_success(self._pick_success_goal, im_in)
+            self.execute_pick_success(im_in)
 
 ### ======= Process active goals of action servers
 
@@ -335,13 +325,14 @@ class O2ACVisionServer(object):
         self.get_3d_poses_from_ssd_server.set_succeeded(action_result)
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
 
-    def execute_localization(self, goal, im_in, im_vis):
+    def execute_localization(self, im_in, im_vis):
         rospy.loginfo("Exectute localization action")
         # Apply SSD first to get the object's bounding box
         poses2d_array, im_vis = self.get_2d_poses_from_ssd(im_in, im_vis)
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
 
         # If item_id is specified, keep only results with the id.
+        goal = self.localization_server.current_goal.get_goal()
         if goal.item_id != '':
             poses2d_array = [poses2d for poses2d in poses2d_array
                              if self.item_id(poses2d.class_id) == goal.item_id]
@@ -397,8 +388,9 @@ class O2ACVisionServer(object):
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
         self.write_to_log(im_in, im_vis, "belt_detection")
 
-    def execute_angle_detection(self, goal, image):
-        rospy.loginfo("Received a request to detect angle of " + goal.item_id)
+    def execute_angle_detection(self, image):
+        goal = angle_detection_server.current_goal.get_goal()
+        rospy.loginfo("Received a request to detect angle of %s", goal.item_id)
 
         # Pass action goal to Python3 node
         action_goal = goal
