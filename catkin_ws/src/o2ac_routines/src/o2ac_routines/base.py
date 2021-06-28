@@ -1192,12 +1192,6 @@ class O2ACBase(object):
         if not res:
           rospy.logerr("Fail to complete playback sequence: %s" % sequence_name)
           return False
-        cp = robot.get_current_pose_stamped()
-        # ff = self.listener.transformPose("right_centering_link", cp).pose
-        ff = self.listener.transformPose("taskboard_bearing_target_link", cp).pose
-        fg = conversions.from_pose_to_list(ff)
-
-        print(fg[:3], np.rad2deg(transformations.euler_from_quaternion(fg)))
     else:
       all_plans.append(robot_name)
       previous_point_duration = 0.0

@@ -1444,7 +1444,7 @@ class O2ACCommon(O2ACBase):
     self.execute_sequence("b_bot", [trajectory], "go to preinsertion", plan_while_moving=False)
 
     # Insert bearing
-    if not self.insert_bearing(task=task):
+    if not self.insert_bearing(task):
       rospy.logerr("insert_bearing returned False. Breaking out")
       return False
 
@@ -1463,7 +1463,6 @@ class O2ACCommon(O2ACBase):
     elif task == "assembly":
       rospy.logerr("look this up")
       bearing_target_link = "assembled_part_07_inserted"
-    self.confirm_to_proceed("insertion")
 
     target_pose_target_frame = conversions.to_pose_stamped(bearing_target_link, [-0.004, 0.000, 0.002, 0, 0, 0, 1.])
     selection_matrix = [0., 0.3, 0.3, .8, .8, .8]
