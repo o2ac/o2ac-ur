@@ -828,3 +828,71 @@ class ShaftAnalysis():
             im_vis = cv2.putText(im_vis, text, (5,20), 0, 0.5,(255,255,255),2, cv2.LINE_AA)
             im_vis = cv2.putText(im_vis, text, (5,20), 0, 0.5,(255,0,0),1, cv2.LINE_AA)
         return im_vis
+
+
+#####################################################################################
+#  sample code:
+#    bbox = [300,180,200,120]   # (x,y,w,h) ... bbox of search area
+#    im_in = cv2.imread( im_name, 0 )      # input image
+#    im_temp = cv2.imread( temp_name, 0 )  # template image
+#    psd = PulleyScrewDetection( im_in, im_temp, bbox )  # main class
+#    score, flag = psd.main_proc()  # If flag is True, screw is observed.
+#####################################################################################
+class PulleyScrewDetection():
+    def __init__( self, im_in, im_temp, bbox=(0,0,640,480) ):
+        """  Pulley screw detection
+        Input:
+            im_in(np.array): input image
+            im_temp(np.array): template image
+            bbox(tuple): bbox consits of (x,y,w,h)
+        """
+        # set default parameters
+        ds_rate = 0.5 
+        self.threshold = 0.8 # score of template matching
+
+        # crop image
+        self.im_in = im_in.copy()
+        self.im_in = self.im_in[bbox[1]:bbox[1]+bbox[3],bbox[0]:bbox[0]+bbox[2]]
+        
+        # read template
+        self.im_temp = im_temp.copy()
+        
+        # resize image
+
+        self.im_in = cv2.resize( self.im_in, None, fx=ds_rate, fy=ds_rate)
+        self.im_temp = cv2.resize( self.im_temp, None, fx=ds_rate, fy=ds_rate)      
+        self.im_vis = self.im_in.copy()
+    
+    def set_threshold( self, th ):
+        """ set threshold of template matching's score
+        Input:
+            th(float): threshold [0.0-1.0]
+        """
+        self.threshold = th
+
+    def get_im_in_bbox(self):
+        """ get image within the bounding box
+        Input:
+        Return:
+            np.array: image in bbox (resized)
+        """
+        return self.im_in
+
+    def main_proc( self ):
+        """
+        Input:
+        Return:
+            float: score if template matching [0.0-1.0]
+            bool: If true, screw is observed in current view point 
+        """
+
+        # do template matching
+        method = cv2.TM_CCOEFF_NORMED 
+        res = cv2.matchTemplate( self.im_in, self.im_temp, method)
+        min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+        
+        flag = True
+        if max_val < self.threshold:
+            flag = False
+
+        return max_val, flag
