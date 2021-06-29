@@ -1,5 +1,4 @@
 import copy
-from math import degrees
 
 import numpy as np
 import moveit_commander
@@ -90,7 +89,7 @@ class DualArm(RobotBase):
         slave_tcp = conversions.from_pose_to_list(slave.get_current_pose())
         return np.concatenate([slave_tcp[:3]-master_tcp[:3], transformations.diff_quaternion(slave_tcp[3:], master_tcp[3:])])
 
-    def master_slave_control(self, master_name, slave_name, target_pose, slave_relation, speed=0.3):
+    def master_slave_control(self, master_name, slave_name, target_pose, slave_relation, speed=0.3, plan_only=False, initial_joints=None):
         """
         Moves b_bot and forces a_bot to follow.
         slave_relation is the slave TCP's pose (TODO: which coordinate system?), as a list in the form [xyz,xyzw].
@@ -100,15 +99,30 @@ class DualArm(RobotBase):
         self.robot2.activate_ros_control_on_ur()
 
         master = self.active_robots[master_name]
-        slave = self.active_robots[slave_name]
-
-        result = master.go_to_pose_goal(target_pose, speed=speed, plan_only=True)
+        slave_initial_joints = initial_joints[6:] if initial_joints is not None else None
+        master_initial_joints = initial_joints[:6] if initial_joints is not None else None
+        result = master.go_to_pose_goal(target_pose, speed=speed, plan_only=True, initial_joints=master_initial_joints)
         if not result:
             rospy.logerr("Failed to plan `master` trajectory. Abort.")
             return False
 
-        master_plan, _ = result
+        master_plan, m_planning_time = result
 
+        result = self.compute_master_slave_plan(master_name, slave_name, slave_relation, slave_initial_joints, master_plan)
+        if not result:
+            return False
+
+        master_slave_plan, ms_planning_time = result
+        
+        if plan_only:
+            return master_slave_plan, (m_planning_time + ms_planning_time)
+        else:
+            return self.execute_plan(master_slave_plan, wait=True)
+
+    def compute_master_slave_plan(self, master_name, slave_name, slave_relation, slave_initial_joints, master_plan):
+        init_time = rospy.Time.now()
+        slave = self.active_robots[slave_name]
+        master = self.active_robots[master_name]
         master_slave_plan = copy.deepcopy(master_plan)
         master_slave_plan.joint_trajectory.joint_names += slave.robot_group.get_active_joints()
 
@@ -120,51 +134,54 @@ class DualArm(RobotBase):
             slave_tcp = np.concatenate([master_tcp[:3]+slave_relation[:3], transformations.quaternion_multiply(slave_relation[3:], master_tcp[3:])])
             slave_tcp = conversions.to_pose_stamped("world", slave_tcp)
             slave_tcp = self.listener.transformPose(slave.ns + "_base_link", slave_tcp)
-            ok = False
+            
             tries = 10.0
-            ik_solver_timeout = 0.0
-            while not ok and tries > 0:
+            ik_solver_timeout = 0.001
+            ik_solution = None
+
+            if last_ik_solution is None:
+                ik_solution = slave.robot_group.get_current_joint_values() if slave_initial_joints is None else slave_initial_joints
+
+            while ik_solution is None and tries > 0:
                 tries -= 1
                 # after every failure, incrementally give more time to the IK solver to compute a better solution
-                ik_solver_timeout += 0.01
-                if last_ik_solution is None:
-                    ik_solution = slave.robot_group.get_current_joint_values()
-                else:
-                    ik_solution = slave.compute_ik(target_pose=slave_tcp, joints_seed=last_ik_solution, timeout=ik_solver_timeout)
+                ik_solver_timeout += ik_solver_timeout
+                ik_solution = slave.compute_ik(target_pose=slave_tcp, joints_seed=last_ik_solution, timeout=ik_solver_timeout)
 
                 if not ik_solution:
                     continue
 
-                if i == 0:
-                    ok = True
-                    break
                 # Sanity check
                 # Compare the slave largest joint displacement for this IK solution vs the master largest joint displacement
                 # if the displacement is more than 5 deg, check that the displacement is not larger than 2x the master joint displacement
                 if i > 0:
                     slave_joint_displacement = np.max(np.abs(ik_solution-last_ik_solution))
                     master_joint_displacement = np.max(np.abs(np.array(master_plan.joint_trajectory.points[i].positions)-master_plan.joint_trajectory.points[i-1].positions))
-                    if slave_joint_displacement > degrees(5):  # arbitrary
-                        ok = slave_joint_displacement < master_joint_displacement * 2.0  # arbitrary
-                    else:
-                        ok = True
+                    if slave_joint_displacement > np.deg2rad(5):  # arbitrary
+                        if slave_joint_displacement > master_joint_displacement * 2.0:  # arbitrary
+                            ik_solution = None # reject solution
+                            continue
                 
-                if ok and self.check_state_validity(list(point.positions) + list(ik_solution)):
+                if ik_solution and self.check_state_validity(list(point.positions) + list(ik_solution)):
                     break
 
-            if not ok:
+            if ik_solution is None:
                 rospy.logerr("Could not find a valid IK solution for the slave-robot")
                 return False
 
             # Compute slave velocities/accelerations
-            previous_time = 0 if i == 0 else master_plan.joint_trajectory.points[i-1].time_from_start.to_sec()
-            duration = point.time_from_start.to_sec()-previous_time
+            if i ==0 or i == (len(master_plan.joint_trajectory.points) - 1):
+                slave_velocities = np.zeros_like(point.velocities)
+                slave_accelerations= np.zeros_like(point.accelerations)
+            else:
+                previous_time = 0 if i == 0 else master_plan.joint_trajectory.points[i-1].time_from_start.to_sec()
+                duration = point.time_from_start.to_sec()-previous_time
 
-            slave_joint_displacement = np.array(ik_solution)-last_ik_solution if i > 0 else np.zeros_like(ik_solution)
-            # v = x/t
-            slave_velocities = slave_joint_displacement/duration if duration > 0 else np.zeros_like(slave_joint_displacement)
-            # a = 2*(x/t^2 - v/t). Here is halved, I supposed it is the enforced a = v/2 that we set for the robots
-            slave_accelerations = slave_joint_displacement/pow(duration, 2) - last_velocities/duration if duration > 0 else np.zeros_like(slave_joint_displacement)
+                slave_joint_displacement = np.array(ik_solution)-last_ik_solution if i > 0 else np.zeros_like(ik_solution)
+                # v = x/t
+                slave_velocities = slave_joint_displacement/duration if duration > 0 else np.zeros_like(slave_joint_displacement)
+                # a = 2*(x/t^2 - v/t). Here is halved, I supposed it is the enforced a = v/2 that we set for the robots
+                slave_accelerations = slave_joint_displacement/pow(duration, 2) - last_velocities/duration if duration > 0 else np.zeros_like(slave_joint_displacement)
 
             point.positions = list(point.positions) + list(ik_solution)
             point.velocities = list(point.velocities) + slave_velocities.tolist()
@@ -172,7 +189,7 @@ class DualArm(RobotBase):
             last_ik_solution = np.copy(ik_solution)
             last_velocities = np.copy(slave_velocities)
 
-        return self.robot_group.execute(master_slave_plan)
+        return master_slave_plan, (rospy.Time.now() - init_time).secs
 
     def set_up_move_group(self, speed, acceleration, planner="OMPL"):
         self.robot1.activate_ros_control_on_ur()

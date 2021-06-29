@@ -183,15 +183,14 @@ class RobotBase():
     # ------ Robot motion functions
 
     def execute_plan(self, plan, wait=True):
-        if self.robot_group.execute(plan, wait=wait):
-            self.robot_group.clear_pose_targets()
-            if wait:
-                current_joints = self.robot_group.get_current_joint_values()
-                goal_joints = plan.joint_trajectory.points[-1].positions
-                return helpers.all_close(goal_joints, current_joints, 0.01)
-            return True
-        return False
-
+        self.robot_group.execute(plan, wait=wait)
+        self.robot_group.clear_pose_targets()
+        if wait:
+            current_joints = self.robot_group.get_current_joint_values()
+            goal_joints = helpers.get_trajectory_joint_goal(plan, self.robot_group.get_active_joints())
+            return helpers.all_close(goal_joints, current_joints, 0.01)
+        return True
+        
     def go_to_pose_goal(self, pose_goal_stamped, speed=0.5, acceleration=0.25,
                         end_effector_link="", move_lin=True, wait=True, plan_only=False, initial_joints=None):
         planner = "LINEAR" if move_lin else "OMPL"
@@ -307,7 +306,9 @@ class RobotBase():
                     rospy.logwarn("(move_lin_trajectory) Planning failed, retry: %s" % (tries+1))
             else:
                 result = self.sequence_move_group.send_goal_and_wait(goal)
-                if result == GoalStatus.SUCCEEDED:
+                
+                # if result == GoalStatus.SUCCEEDED: # Moveit complains but the motion is completed correctly =/
+                if self.check_goal_pose_reached(waypoints[-1][0]):
                     group.clear_pose_targets()
                     return True
                 else:

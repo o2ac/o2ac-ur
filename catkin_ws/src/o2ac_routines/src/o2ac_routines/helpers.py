@@ -449,7 +449,13 @@ def get_trajectory_duration(plan):
   duration = rospy.Time(time_from_start.secs, time_from_start.nsecs)
   return duration.to_sec()
 
-def get_trajectory_joint_goal(plan):
+def get_trajectory_joint_goal(plan, joints_order=None):
+  if joints_order is not None:
+    joint_values = []
+    for joint in joints_order:
+      i = plan.joint_trajectory.joint_names.index(joint)
+      joint_values.append(plan.joint_trajectory.points[-1].positions[i])
+    return joint_values
   return plan.joint_trajectory.points[-1].positions
 
 def to_robot_state(move_group, joints):

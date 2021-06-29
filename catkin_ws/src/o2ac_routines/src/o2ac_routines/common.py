@@ -2571,32 +2571,9 @@ class O2ACCommon(O2ACBase):
     self.a_bot.gripper.open(wait=False)
     self.b_bot.gripper.open(wait=False)
 
-    self.playback_sequence("tray_orient")
+    self.playback_sequence("tray_orient", plan_while_moving=True, save_on_success=True, use_saved_plans=True)
 
-    # Grasp and place the tray
-    self.confirm_to_proceed("At above_tray_avg. Move to next?")
-
-    self.ab_bot.execute_saved_plan(filename="ab_bot_at_tray_agv")
-    self.confirm_to_proceed("At at_tray_agv. Move to next?")
-
-    self.a_bot.gripper.close(force=80)
-    self.b_bot.gripper.close(force=80)
-
-    self.ab_bot.execute_saved_plan(filename="ab_bot_above_tray_agv")
-    self.confirm_to_proceed("At above_tray_agv. Move to next?")
-
-    self.ab_bot.execute_saved_plan(filename="ab_bot_above_tray_table")
-    self.confirm_to_proceed("At above_tray_table. Move to next?")
-
-    self.ab_bot.execute_saved_plan(filename="ab_bot_at_tray_table")
-    self.confirm_to_proceed("At at_tray_table. Move to next?")
-      
-    self.a_bot.gripper.open(opening_width=0.05, wait=False)
-    self.b_bot.gripper.open(opening_width=0.05)
-
-    self.ab_bot.execute_saved_plan(filename="ab_bot_return_above_tray_table")
-
-    self.ab_bot.go_to_named_pose("home")
+    self.playback_sequence("tray_take_from_agv", plan_while_moving=True, save_on_success=True, use_saved_plans=True)
 
     self.allow_collisions_with_robot_hand("tray", "a_bot", allow=False)
     self.allow_collisions_with_robot_hand("tray", "b_bot", allow=False)

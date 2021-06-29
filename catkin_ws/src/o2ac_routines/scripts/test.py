@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from numpy.lib.npyio import save
 from o2ac_routines.common import O2ACCommon
 from o2ac_routines.assembly import O2ACAssembly
 import rospy
@@ -24,10 +25,13 @@ signal.signal(signal.SIGINT, signal_handler)
 def main():
     rospy.init_node("testscript")
     global controller
-    # controller = O2ACCommon()
-    controller = O2ACAssembly()
-    controller.reset_scene_and_robots()
-    controller.fasten_bearing("assembly")
+    controller = O2ACCommon()
+    # controller.take_tray_from_agv(preplanned=False)
+    controller.playback_sequence("tray_take_from_agv", plan_while_moving=True, save_on_success=True)
+    # controller.test_ik()
+    # controller = O2ACAssembly()
+    # controller.reset_scene_and_robots()
+    # controller.fasten_bearing("assembly")
     # controller.tools.set_motor("padless_tool_m4", "tighten", duration=2)
     # controller.take_tray_from_agv()
     # controller.confirm_to_proceed("")
