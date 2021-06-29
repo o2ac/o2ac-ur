@@ -757,7 +757,7 @@ class O2ACAssembly(O2ACCommon):
     return self.do_plan_pickplace_action('b_bot', 'panel_bearing', pose, save_solution_to_file = 'panel_bearing/bottom_screw_hole_aligner_1')
 
   def full_assembly_task(self):
-    if self.assembly_status.tray_placed_on_table:
+    if not self.assembly_status.tray_placed_on_table:
       self.take_tray_from_agv()
 
     # Look into the tray
@@ -768,20 +768,23 @@ class O2ACAssembly(O2ACCommon):
         self.assembly_status.completed_subtask_zero = self.subtask_zero()  # Base plate
     
     ## Equip screw tool for subtasks G, F
-    self.b_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
-    self.do_change_tool_action("b_bot", equip=True, screw_size=4)
-    self.b_bot.go_to_named_pose("feeder_pick_ready", speed=self.speed_fastest, acceleration=self.acc_fastest)
-    self.vision.activate_camera("b_bot_outside_camera")
+    if not self.assembly_status.completed_subtask_f or not self.assembly_status.completed_subtask_g:
+      self.b_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
+      self.do_change_tool_action("b_bot", equip=True, screw_size=4)
+      self.b_bot.go_to_named_pose("feeder_pick_ready", speed=self.speed_fastest, acceleration=self.acc_fastest)
+      self.vision.activate_camera("b_bot_outside_camera")
 
     self.confirm_to_proceed("press enter to proceed to subtask_g")
-    self.assembly_status.completed_subtask_g = self.subtask_g()  # Bearing plate
+    if not self.assembly_status.completed_subtask_g:
+      self.assembly_status.completed_subtask_g = self.subtask_g()  # Bearing plate
     self.confirm_to_proceed("press enter to proceed to subtask_f")
-    self.assembly_status.completed_subtask_f = self.subtask_f() # Motor plate
+    if not self.assembly_status.completed_subtask_f:
+      self.assembly_status.completed_subtask_f = self.subtask_f() # Motor plate
 
     self.a_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
     self.do_change_tool_action("b_bot", equip=False, screw_size=4)
 
-    if self.assembly_status.completed_subtask_g:  # Bearing
+    if self.assembly_status.completed_subtask_g:  # Bearing plate
       self.assembly_status.completed_subtask_c1 = self.subtask_c1() # bearing 
       if self.assembly_status.completed_subtask_c1:
         self.assembly_status.completed_subtask_c2 = self.subtask_c2() # shaft

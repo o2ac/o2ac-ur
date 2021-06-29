@@ -132,9 +132,9 @@ class O2ACCommon(O2ACBase):
       collision_object.header.frame_id = "assembled_part_" + str(object_id).zfill(2)  # Fill with leading zeroes
     self.planning_scene_interface.apply_collision_object(collision_object)
     # Make sure the object is detached from all robots
-    for robot in self.active_robots.values():
-      if object_name == robot.gripper.last_attached_object:
-        robot.gripper.last_attached_object = None
+    # for robot in self.active_robots.values():
+    #   if object_name == robot.gripper.last_attached_object:
+    #     robot.gripper.last_attached_object = None
     
     return
   
@@ -842,6 +842,7 @@ class O2ACCommon(O2ACBase):
     
     robot_name == "b_bot"
     
+    self.allow_collisions_with_robot_hand("plunger_tool_link", "b_bot")
     if not self.playback_sequence("plunger_tool_equip"):
       rospy.logerr("Fail to equip tool")
       return False
@@ -1539,7 +1540,7 @@ class O2ACCommon(O2ACBase):
       screw_poses.append(screw_pose)
 
     _task = task  # Needs to be defined here so the nested function can access it
-    def pick_and_fasten_bearing_screw(screw_pose, skip_picking=False):
+    def pick_and_fasten_bearing_screw(screw_pose, skip_picking=False, skip_moving_back=False):
       """Returns tuple (screw_status, break_out_of_loop)
          screw_status is a string saying either "empty", "done" or "maybe_stuck_in_hole"
       """
@@ -1574,10 +1575,8 @@ class O2ACCommon(O2ACBase):
         else:
           screw_status = "maybe_stuck_in_hole"
       self.b_bot.go_to_pose_goal(screw_pose_approach, end_effector_link = "b_bot_screw_tool_m4_tip_link", move_lin=False)
-      self.playback_sequence("return_screw_tool_horizontal")
-      
-      # self.b_bot.go_to_named_pose("horizontal_screw_ready")
-      # self.b_bot.go_to_named_pose("screw_ready")
+      if not skip_moving_back:
+        self.playback_sequence("return_screw_tool_horizontal")
       return (screw_status, False)
 
     # Initialize screw status
@@ -1601,10 +1600,12 @@ class O2ACCommon(O2ACBase):
         if screw_status[n] == "empty":
           (screw_status[n], breakout) = pick_and_fasten_bearing_screw(screw_poses[n-1])
         elif screw_status[n] == "maybe_stuck_in_hole":
-          (screw_status[n], breakout) = pick_and_fasten_bearing_screw(screw_poses[n-1], skip_picking=True)
+          (screw_status[n], breakout) = pick_and_fasten_bearing_screw(screw_poses[n-1], skip_picking=True, skip_moving_back=True)
         rospy.loginfo("Screw " + str(n) + " detected as " + screw_status[n])
       all_screws_done = all(value == "done" for value in screw_status.values())
 
+    if only_retighten:
+      self.b_bot.go_to_named_pose("horizontal_screw_ready")
     self.b_bot.go_to_named_pose("screw_ready")
     return all_screws_done
 
@@ -2604,7 +2605,7 @@ class O2ACCommon(O2ACBase):
 
     return True
 
-  def take_tray_from_agv(self, reverse=False, reverse_movement_for_calibration=False, preplanned=False):
+  def take_tray_from_agv(self, reverse=False, reverse_movement_for_calibration=False, preplanned=True):
     """
     Take the tray from the AGV and place it in the robot workspace.
     """
