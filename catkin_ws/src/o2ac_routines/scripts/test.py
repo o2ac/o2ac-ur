@@ -27,7 +27,12 @@ def main():
     global controller
     controller = O2ACCommon()
     # controller.take_tray_from_agv(preplanned=False)
-    controller.playback_sequence("tray_take_from_agv", plan_while_moving=True, save_on_success=True)
+    controller.allow_collisions_with_robot_hand("tray", "a_bot", allow=True)
+    controller.allow_collisions_with_robot_hand("tray", "b_bot", allow=True)
+    controller.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=True)
+    controller.allow_collisions_with_robot_hand("tray_center", "b_bot", allow=True)
+    controller.take_tray_from_agv_preplanned()
+    # controller.playback_sequence("tray_take_from_agv", plan_while_moving=True, save_on_success=True, use_saved_plans=True)
     # controller.test_ik()
     # controller = O2ACAssembly()
     # controller.reset_scene_and_robots()

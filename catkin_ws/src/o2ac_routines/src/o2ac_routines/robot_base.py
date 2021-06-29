@@ -278,7 +278,7 @@ class RobotBase():
             msi.req = group.construct_motion_plan_request()
             msi.req.start_state = moveit_msgs.msg.RobotState()
             # FIXME(cambel): blend radius does not seem to work for plan only
-            msi.blend_radius = blend_radius if not plan_only else 0.0
+            msi.blend_radius = blend_radius # if not plan_only else 0.0
             motion_plan_requests.append(msi)
 
         # Force last point to be 0.0 to avoid raising an error in the planner
