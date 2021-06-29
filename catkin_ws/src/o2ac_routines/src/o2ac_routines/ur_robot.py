@@ -140,6 +140,7 @@ class URRobot(RobotBase):
         # Check if URCap is already running on UR
         try:
             if self.ur_ros_control_running_on_robot:
+                self.speed_slider(ur_msgs.srv.SetSpeedSliderFractionRequest(speed_slider_fraction=1.0))
                 return True
             else:
                 rospy.loginfo("robot_program_running not true for " + self.ns)
@@ -214,6 +215,7 @@ class URRobot(RobotBase):
 
         if self.check_for_dead_controller_and_force_start():
             rospy.loginfo("Successfully activated ROS control on robot " + self.ns)
+            self.speed_slider(ur_msgs.srv.SetSpeedSliderFractionRequest(speed_slider_fraction=1.0))
             return True
         else:
             # Try stopping and restarting the program to restart the controllers
@@ -223,6 +225,7 @@ class URRobot(RobotBase):
                 rospy.sleep(2.0)
                 response = self.ur_dashboard_clients["play"].call()
                 if self.wait_for_control_status_to_turn_on(2.0):
+                    self.speed_slider(ur_msgs.srv.SetSpeedSliderFractionRequest(speed_slider_fraction=1.0))
                     return True
             except:
                 rospy.logerr("Failed to quit/restart")
@@ -321,7 +324,6 @@ class URRobot(RobotBase):
 
     def set_up_move_group(self, speed, acceleration, planner="OMPL"):
         self.activate_ros_control_on_ur()
-        self.speed_slider(ur_msgs.srv.SetSpeedSliderFractionRequest(speed_slider_fraction=1.0))
         return RobotBase.set_up_move_group(self, speed, acceleration, planner)
 
     def solve_ik(self, pose, q_guess=None, attempts=5, verbose=True):

@@ -15,6 +15,11 @@ class VisionClient():
                 self.vision_multiplexer = RealSenseMultiplexerClient('camera_multiplexer')
             except:
                 self.vision_multiplexer = []
+            self.multiplexer_camera_names = rospy.get_param('/camera_multiplexer/camera_names')
+            self.camera_enable_services = {}
+            for cam in self.multiplexer_camera_names:
+                    rospy.wait_for_service('/%s/enable' % cam)
+                    self.camera_enable_services.update({cam: rospy.ServiceProxy('/%s/enable' % cam, std_srvs.srv.SetBool)})
 
         self.ssd_client = actionlib.SimpleActionClient('/o2ac_vision_server/get_3d_poses_from_ssd', o2ac_msgs.msg.get3DPosesFromSSDAction)
         self.detect_shaft_client = actionlib.SimpleActionClient('/o2ac_vision_server/detect_shaft_notch', o2ac_msgs.msg.shaftNotchDetectionAction)
@@ -22,11 +27,6 @@ class VisionClient():
         self.pick_success_client = actionlib.SimpleActionClient('/o2ac_vision_server/check_pick_success', o2ac_msgs.msg.checkPickSuccessAction)
         self.localization_client = actionlib.SimpleActionClient('/o2ac_vision_server/localize_object', o2ac_msgs.msg.localizeObjectAction)
 
-        self.multiplexer_camera_names = rospy.get_param('/camera_multiplexer/camera_names')
-        self.camera_enable_services = {}
-        for cam in self.multiplexer_camera_names:
-                rospy.wait_for_service('/%s/enable' % cam)
-                self.camera_enable_services.update({cam: rospy.ServiceProxy('/%s/enable' % cam, std_srvs.srv.SetBool)})
 
     @check_for_real_robot
     def activate_camera(self, camera_name="b_bot_outside_camera"):
