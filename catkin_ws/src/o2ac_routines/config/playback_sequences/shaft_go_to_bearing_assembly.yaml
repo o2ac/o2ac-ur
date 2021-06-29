@@ -1,0 +1,22 @@
+robot_name: b_bot
+waypoints:
+- pose: [-0.15, 0.0, -0.10, -22.5, -88.5, -157.5] # translation, orientation (degrees)
+  pose_type: task-space-in-frame
+  frame_id: assembly_assy_part_07_inserted
+  speed: 1.0
+  desc: post_pick_pose
+- pose: [0.0, 0.002, -0.10, -22.5, -88.5, -157.5] # translation, orientation (degrees)
+  pose_type: task-space-in-frame
+  frame_id: assembly_assy_part_07_inserted
+  speed: 1.0
+  desc: above_pose
+- pose: [0.09, 0.002, -0.05, -22.5, -88.5, -157.5] # translation, orientation (degrees)
+  pose_type: task-space-in-frame
+  frame_id: assembly_assy_part_07_inserted
+  speed: 1.0
+  desc: behind_pose
+- pose: [0.065, 0.001, -0.002, -22.5, -88.5, -157.5] # translation, orientation (degrees)
+  pose_type: task-space-in-frame
+  frame_id: assembly_assy_part_07_inserted
+  speed: 1.0
+  desc: pre_insertion_pose

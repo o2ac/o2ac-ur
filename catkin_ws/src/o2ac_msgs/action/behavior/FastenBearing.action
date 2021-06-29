@@ -1,5 +1,4 @@
 # Request
-string object_name
 string task_name
 string robot_name
 ---

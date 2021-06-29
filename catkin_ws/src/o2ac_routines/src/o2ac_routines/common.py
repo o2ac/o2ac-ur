@@ -1410,25 +1410,41 @@ class O2ACCommon(O2ACBase):
     self.despawn_object("bearing")
     self.b_bot.gripper.last_attached_object = None # Forget about this object
 
+    if not self.orient_bearing(bearing_target_link):
+      return False
+
+    # Insert bearing
+    if not self.insert_bearing(bearing_target_link):
+      rospy.logerr("insert_bearing returned False. Breaking out")
+      return False
+
+    self.bearing_holes_aligned = self.align_bearing_holes(task=task)
+    return self.bearing_holes_aligned
+
+  def orient_bearing(self, task):
+    if task == "taskboard":
+      bearing_target_link = "taskboard_bearing_target_link"
+    elif task == "assembly":
+      rospy.logerr("look this up")
+      bearing_target_link = "assembled_part_07_inserted"
+
     self.b_bot.gripper.close() # catch false grasps
-    if self.b_bot.gripper.opening_width < 0.01 and self.use_real_robot:
+    if self.simple_gripper_check("b_bot", min_opening_width=0.01):
       rospy.logerr("Fail to grasp bearing")
-      return
+      return False
     elif self.b_bot.gripper.opening_width < 0.045:
       rospy.loginfo("bearing found to be upwards")
-      if not self.playback_sequence("bearing_orient", default_frame=bearing_target_link):
+      if not self.playback_sequence("bearing_orient"):
         rospy.logerr("Could not complete orient sequence")
         self.pick_from_centering_area_and_drop_in_tray("b_bot")
         return False
     else:
       rospy.loginfo("bearing found to be upside down")
-      if not self.playback_sequence("bearing_orient_down", default_frame=bearing_target_link):
+      if not self.playback_sequence("bearing_orient_down"):
         rospy.logerr("Could not complete orient down sequence")
         self.pick_from_centering_area_and_drop_in_tray("b_bot")
         return False
-
       #'down' means the small area contacts with tray.
-
     if self.b_bot.gripper.opening_width < 0.01 and self.use_real_robot:
       rospy.logerr("Bearing not found in gripper. Must have been lost. Aborting.")
       #TODO(felixvd): Look at the regrasping/aligning area next to the tray
@@ -1444,28 +1460,12 @@ class O2ACCommon(O2ACBase):
     trajectory = helpers.to_sequence_trajectory([at_tray_border_pose, approach_pose, preinsertion_pose], blend_radiuses=0.01, speed=1.0)
     self.execute_sequence("b_bot", [trajectory], "go to preinsertion", plan_while_moving=False)
 
-    # Insert bearing
-    if not self.insert_bearing(task):
-      rospy.logerr("insert_bearing returned False. Breaking out")
-      return False
+    return True
 
-    self.bearing_holes_aligned = self.align_bearing_holes(task=task)
-    return self.bearing_holes_aligned
-
-  def insert_bearing(self, task="", try_recenter=True, try_reinsertion=True):
+  def insert_bearing(self, target_link, try_recenter=True, try_reinsertion=True):
     """ Only inserts the bearing, does not align the holes.
     """
-    if not task:
-      rospy.logerr("Specify the task!")
-      return False
-
-    if task == "taskboard":
-      bearing_target_link = "taskboard_bearing_target_link"
-    elif task == "assembly":
-      rospy.logerr("look this up")
-      bearing_target_link = "assembled_part_07_inserted"
-
-    target_pose_target_frame = conversions.to_pose_stamped(bearing_target_link, [-0.004, 0.000, 0.002, 0, 0, 0, 1.])
+    target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.004, 0.000, 0.002, 0, 0, 0, 1.])
     selection_matrix = [0., 0.3, 0.3, .8, .8, .8]
     result = self.b_bot.do_insertion(target_pose_target_frame, insertion_direction="-X", force=10.0, timeout=20.0, 
                                                     radius=0.002, relaxed_target_by=0.003, selection_matrix=selection_matrix)
@@ -1479,12 +1479,12 @@ class O2ACCommon(O2ACBase):
       if try_reinsertion:
         # Try to insert again
         rospy.logwarn("** Insertion Incomplete, trying again **")
-        self.insert_bearing(task, try_recenter=False, try_reinsertion=False)
+        self.insert_bearing(target_link, try_recenter=False, try_reinsertion=False)
       elif try_recenter:
         # Try to recenter the bearing
         rospy.logwarn("** Insertion Incomplete, trying from centering again **")
         self.playback_sequence("bearing_orient_down")
-        self.insert_bearing(task, try_recenter=False, try_reinsertion=True)
+        self.insert_bearing(target_link, try_recenter=False, try_reinsertion=True)
       else:
         self.b_bot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
         self.drop_in_tray("b_bot")
@@ -2407,11 +2407,6 @@ class O2ACCommon(O2ACBase):
     return True, is_upside_down
 
   def insert_end_cap(self, attempts=1):
-    pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [-0.002, -0.001, 0.25]+np.deg2rad([-180, 90, -90]).tolist())
-    if not self.a_bot.go_to_pose_goal(pre_insertion_end_cap, speed=0.2, move_lin=False):
-      rospy.logerr("Fail to go to pre_insertion_end_cap")
-      return False
-
     self.a_bot.linear_push(force=2.5, direction="-Z", max_translation=0.05, timeout=10.0)
     target_pose = self.a_bot.get_current_pose_stamped()
     target_pose.pose.position.z -= 0.002
@@ -2429,6 +2424,55 @@ class O2ACCommon(O2ACBase):
       return self.insert_end_cap(attempts=attempts-1)
 
     return success
+
+  def fasten_end_cap(self):
+    self.vision.activate_camera("a_bot_outside_camera")
+    if not self.a_bot.go_to_named_pose("screw_ready"):
+      return False
+    if not self.do_change_tool_action("a_bot", equip=True, screw_size = 4):
+      rospy.logerr("Failed equip m4")
+      return False
+
+    self.confirm_to_proceed("pick screw")
+    if not self.pick_screw_from_feeder("a_bot", screw_size = 4, realign_tool_upon_failure=True):
+      rospy.logerr("Failed to pick screw from feeder, could not fix the issue. Abort.")
+      self.do_change_tool_action("a_bot", equip=False, screw_size = 4)
+      self.b_bot.gripper.open()
+      self.ab_bot.go_to_named_pose("home")
+      return False
+    if not self.a_bot.go_to_named_pose("screw_ready"):
+      return False
+    
+    self.confirm_to_proceed("go to above_hole_screw_pose")
+    above_hole_screw_pose = conversions.to_pose_stamped("tray_center", [-0.001, 0.019, 0.388]+np.deg2rad([180, 30, 90]).tolist())
+    if not self.a_bot.go_to_pose_goal(above_hole_screw_pose, speed=0.2, move_lin=False):
+      rospy.logerr("Fail to go to above_hole_screw_pose")
+      return False
+
+    obj = self.assembly_database.get_collision_object("shaft")
+    obj.header.frame_id = "b_bot_gripper_tip_link"
+    obj.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/4, -tau/4, -tau/4))
+    obj.pose = helpers.rotatePoseByRPY(0, 0, tau/2, obj.pose)
+    obj.pose.position = conversions.to_point([-.006, 0, .0375])
+    self.planning_scene_interface.add_object(obj)
+    self.b_bot.gripper.attach_object(obj.id)
+
+    self.confirm_to_proceed("try to screw")
+    self.vision.activate_camera("b_bot_inside_camera")
+    hole_screw_pose = conversions.to_pose_stamped("move_group/shaft/screw_hole", [0.0, 0.002, -0.010, 0, 0, 0])
+    self.skill_server.do_screw_action("a_bot", hole_screw_pose, screw_height=0.02, screw_size=4, loosen_and_retighten_when_done=True)
+    
+    self.confirm_to_proceed("unequip tool")
+    self.tools.set_suction("screw_tool_m4", suction_on=False, wait=False)
+
+    if not self.a_bot.go_to_named_pose("screw_ready"):
+      return False
+    
+    if not self.do_change_tool_action("a_bot", equip=False, screw_size = 4):
+      rospy.logerr("Failed unequip m4")
+      return False
+    
+    return True
 
 #### subtasks assembly 
 

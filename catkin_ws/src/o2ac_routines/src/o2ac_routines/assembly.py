@@ -325,6 +325,11 @@ class O2ACAssembly(O2ACCommon):
       rospy.logerr("Fail to go to pre_insertion_shaft")
       return False
 
+    pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [-0.002, -0.001, 0.25]+np.deg2rad([-180, 90, -90]).tolist())
+    if not self.a_bot.go_to_pose_goal(pre_insertion_end_cap, speed=0.2, move_lin=False):
+      rospy.logerr("Fail to go to pre_insertion_end_cap")
+      return False
+
     self.confirm_to_proceed("insertion of end cap")
     if not self.insert_end_cap():
       rospy.logerr("failed to insert end cap")
@@ -338,50 +343,7 @@ class O2ACAssembly(O2ACCommon):
     
     self.confirm_to_proceed("prepare screw")
 
-    self.vision.activate_camera("a_bot_outside_camera")
-    if not self.a_bot.go_to_named_pose("screw_ready"):
-      return False
-    if not self.do_change_tool_action("a_bot", equip=True, screw_size = 4):
-      rospy.logerr("Failed equip m4")
-      return False
-
-    self.confirm_to_proceed("pick screw")
-    if not self.pick_screw_from_feeder("a_bot", screw_size = 4, realign_tool_upon_failure=True):
-      rospy.logerr("Failed to pick screw from feeder, could not fix the issue. Abort.")
-      self.do_change_tool_action("a_bot", equip=False, screw_size = 4)
-      self.b_bot.gripper.open()
-      self.ab_bot.go_to_named_pose("home")
-      return False
-    if not self.a_bot.go_to_named_pose("screw_ready"):
-      return False
-    
-    self.confirm_to_proceed("go to above_hole_screw_pose")
-    above_hole_screw_pose = conversions.to_pose_stamped("tray_center", [-0.001, 0.019, 0.388]+np.deg2rad([180, 30, 90]).tolist())
-    if not self.a_bot.go_to_pose_goal(above_hole_screw_pose, speed=0.2, move_lin=False):
-      rospy.logerr("Fail to go to above_hole_screw_pose")
-      return False
-
-    obj = self.assembly_database.get_collision_object("shaft")
-    obj.header.frame_id = "b_bot_gripper_tip_link"
-    obj.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/4, -tau/4, -tau/4))
-    obj.pose = helpers.rotatePoseByRPY(0, 0, tau/2, obj.pose)
-    obj.pose.position = conversions.to_point([-.006, 0, .0375])
-    self.planning_scene_interface.add_object(obj)
-    self.b_bot.gripper.attach_object(obj.id)
-
-    self.confirm_to_proceed("try to screw")
-    self.vision.activate_camera("b_bot_inside_camera")
-    hole_screw_pose = conversions.to_pose_stamped("move_group/shaft/screw_hole", [0.0, 0.002, -0.010, 0, 0, 0])
-    self.skill_server.do_screw_action("a_bot", hole_screw_pose, screw_height=0.02, screw_size=4, loosen_and_retighten_when_done=True)
-    
-    self.confirm_to_proceed("unequip tool")
-    self.tools.set_suction("screw_tool_m4", suction_on=False, wait=False)
-
-    if not self.a_bot.go_to_named_pose("screw_ready"):
-      return False
-    
-    if not self.do_change_tool_action("a_bot", equip=False, screw_size = 4):
-      rospy.logerr("Failed unequip m4")
+    if not self.fasten_end_cap():
       return False
     
     if not self.a_bot.go_to_named_pose("home"):
