@@ -30,16 +30,16 @@ void execute(const o2ac_msgs::updateDistributionGoalConstPtr &goal) {
     if (goal->observation_type == goal->TOUCH_OBSERVATION) {
       auto &observation = goal->touch_observation;
 
-      estimator->touched_step(
-          observation.touched_object_id, goal->gripped_object,
-          observation.gripper_pose.pose, goal->distribution_type,
-          goal->distribution.pose, result.distribution.pose);
+      estimator->touched_step(observation.touched_object_id,
+                              goal->gripped_object, goal->gripper_pose.pose,
+                              goal->distribution_type, goal->distribution.pose,
+                              result.distribution.pose);
     }
     // Place Action
     else if (goal->observation_type == goal->PLACE_OBSERVATION) {
       auto &observation = goal->place_observation;
 
-      estimator->place_step(goal->gripped_object, observation.gripper_pose.pose,
+      estimator->place_step(goal->gripped_object, goal->gripper_pose.pose,
                             observation.support_surface,
                             goal->distribution_type, goal->distribution.pose,
                             result.distribution.pose);
@@ -48,18 +48,22 @@ void execute(const o2ac_msgs::updateDistributionGoalConstPtr &goal) {
     else if (goal->observation_type == goal->LOOK_OBSERVATION) {
       auto &observation = goal->look_observation;
 
-      estimator->look_step(goal->gripped_object, observation.gripper_pose.pose,
+      estimator->look_step(goal->gripped_object, goal->gripper_pose.pose,
                            observation.looked_image, observation.ROI,
                            goal->distribution_type, goal->distribution.pose,
                            result.distribution.pose);
     }
     // Grasp Action
     else if (goal->observation_type == goal->GRASP_OBSERVATION) {
-      auto &observation = goal->grasp_observation;
-
-      estimator->grasp_step(goal->gripped_object, observation.gripper_pose.pose,
+      estimator->grasp_step(goal->gripped_object, goal->gripper_pose.pose,
                             goal->distribution_type, goal->distribution.pose,
                             result.distribution.pose);
+    }
+    // Push Action
+    else if (goal->observation_type == goal->PUSH_OBSERVATION) {
+      estimator->push_step(goal->gripped_object, goal->gripper_pose.pose,
+                           goal->distribution_type, goal->distribution.pose,
+                           result.distribution.pose);
     }
   } catch (std::exception &e) {
     // Update is not calculated successfully by std::exception
@@ -169,9 +173,10 @@ int main(int argc, char **argv) {
   nd.getParam("camera_fy", camera_fy);
   nd.getParam("camera_cx", camera_cx);
   nd.getParam("camera_cy", camera_cy);
-  double gripper_height, gripper_width;
+  double gripper_height, gripper_width, gripper_thickness;
   nd.getParam("gripper_height", gripper_height);
   nd.getParam("gripper_width", gripper_width);
+  nd.getParam("gripper_thickness", gripper_thickness);
 
   // construct 'estimator' and set parameters
   estimator = std::unique_ptr<ROSConvertedPoseEstimator>(
@@ -181,7 +186,8 @@ int main(int argc, char **argv) {
   estimator->set_look_parameters(look_threshold, calibration_object_points,
                                  calibration_image_points, camera_fx, camera_fy,
                                  camera_cx, camera_cy);
-  estimator->set_grasp_parameters(gripper_height, gripper_width);
+  estimator->set_grasp_parameters(gripper_height, gripper_width,
+                                  gripper_thickness);
 
   // start the action server
   server = std::unique_ptr<Server>(

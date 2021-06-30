@@ -67,7 +67,7 @@ void touch_test(const std::shared_ptr<Client> &client,
     // Convert these to updateDistributionGoal
     o2ac_msgs::updateDistributionGoal goal;
     goal.observation_type = goal.TOUCH_OBSERVATION;
-    goal.touch_observation.gripper_pose.pose = to_Pose(x, y, z, qw, qx, qy, qz);
+    goal.gripper_pose.pose = to_Pose(x, y, z, qw, qx, qy, qz);
     goal.touch_observation.touched_object_id = id;
     goal.distribution_type = distribution_type;
     goal.distribution.pose = to_PoseWithCovariance(mean, covariance);

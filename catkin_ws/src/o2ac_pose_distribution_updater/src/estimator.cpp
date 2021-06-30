@@ -146,9 +146,11 @@ void PoseEstimator::set_look_parameters(
 }
 
 void PoseEstimator::set_grasp_parameters(const double &gripper_height,
-                                         const double &gripper_width) {
+                                         const double &gripper_width,
+                                         const double &gripper_thickness) {
   this->gripper_height = gripper_height;
   this->gripper_width = gripper_width;
+  this->gripper_thickness = gripper_thickness;
 }
 
 void PoseEstimator::generate_particles(const Particle &old_mean,
@@ -519,6 +521,67 @@ void PoseEstimator::grasp_step_with_Lie_distribution(
         grasp_calculator calculator(cut_vertices[2], vertices,
                                     gripper_transform, input_transform,
                                     center_of_gravity_of_gripped, false);
+        particle_transforms[i] = calculator.new_mean;
+        likelihoods[i] = 1.;
+      } catch (...) {
+        likelihoods[i] = 0.0;
+      }
+    }
+    calculate_new_Lie_distribution(old_mean, new_mean, new_covariance);
+  }
+}
+
+void PoseEstimator::push_step_with_Lie_distribution(
+    const std::vector<Eigen::Vector3d> &vertices,
+    const std::vector<boost::array<int, 3>> &triangles,
+    const Eigen::Isometry3d &gripper_transform,
+    const Eigen::Isometry3d &old_mean, const CovarianceMatrix &old_covariance,
+    Eigen::Isometry3d &new_mean, CovarianceMatrix &new_covariance,
+    const bool use_linear_approximation) {
+  // calculate the center of gravity
+  Eigen::Vector3d center_of_gravity_of_gripped =
+      calculate_center_of_gravity(vertices, triangles);
+  std::vector<Eigen::Vector3d> cut_vertices[3];
+  std::vector<boost::array<int, 3>> cut_triangles[3];
+  Eigen::Matrix3d old_mean_rotation = old_mean.rotation().matrix();
+  Eigen::Vector3d old_mean_translation = old_mean.translation();
+  cutting_object(
+      vertices, triangles,
+      Eigen::Hyperplane<double, 3>(-old_mean_rotation.row(2).transpose(),
+                                   -old_mean_translation(2) + gripper_height),
+      cut_vertices[0], cut_triangles[0]);
+  cutting_object(cut_vertices[0], cut_triangles[0],
+                 Eigen::Hyperplane<double, 3>(
+                     -old_mean_rotation.row(0).transpose(),
+                     -old_mean_translation(0) + gripper_thickness),
+                 cut_vertices[1], cut_triangles[1]);
+  cutting_object(
+      cut_vertices[1], cut_triangles[1],
+      Eigen::Hyperplane<double, 3>(old_mean_rotation.row(0).transpose(),
+                                   old_mean_translation(0) + gripper_thickness),
+      cut_vertices[2], cut_triangles[2]);
+  double center_x = (old_mean * center_of_gravity_of_gripped)(0);
+  if (cut_vertices[2].size() == 0 || center_x < -gripper_thickness ||
+      center_x > gripper_thickness) {
+    throw(std::runtime_error("The object cannot be pushed, center_x: " +
+                             std::to_string(center_x)));
+  }
+  if (use_linear_approximation) {
+    // calculate by auto diff
+    push_update_Lie_distribution(
+        old_mean, old_covariance, cut_vertices[2], center_of_gravity_of_gripped,
+        gripper_transform, gripper_width, new_mean, new_covariance);
+  } else {
+    generate_particles(Particle::Zero(), old_covariance);
+    for (int i = 0; i < number_of_particles; i++) {
+      Eigen::Isometry3d input_transform =
+          Eigen::Isometry3d(
+              (Eigen::Matrix<double, 4, 4>)(hat_operator(particles[i]).exp())) *
+          old_mean;
+      try {
+        push_calculator calculator(
+            cut_vertices[2], gripper_transform, input_transform,
+            center_of_gravity_of_gripped, gripper_width, false);
         particle_transforms[i] = calculator.new_mean;
         likelihoods[i] = 1.;
       } catch (...) {

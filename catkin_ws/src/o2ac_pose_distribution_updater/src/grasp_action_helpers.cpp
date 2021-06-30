@@ -1,5 +1,5 @@
 #include "o2ac_pose_distribution_updater/grasp_action_helpers.hpp"
-#include <iostream>
+
 namespace {
 const double INF = 1e9, EPS = 1e-9, LARGE_EPS = 1e-7;
 }

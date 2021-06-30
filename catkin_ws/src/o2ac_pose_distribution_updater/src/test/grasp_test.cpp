@@ -75,7 +75,7 @@ void grasp_test(const std::shared_ptr<Client> &client,
       auto current_time = ros::Time::now();
       // broadcast the gripper pose
       broadcast_gripper_pose(gripper_frame_id, current_time,
-                             goal.grasp_observation.gripper_pose.pose);
+                             goal.gripper_pose.pose);
       // visualize the pose belief before grasping
       goal.distribution.header.frame_id = gripper_frame_id;
       goal.distribution.header.stamp = current_time;

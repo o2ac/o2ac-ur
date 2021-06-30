@@ -5,7 +5,6 @@ Helper functions for the grasp action
 #include <Eigen/Geometry>
 
 #include <boost/geometry.hpp>
-#include <boost/geometry/geometries/point_xy.hpp>
 #include <boost/geometry/geometries/polygon.hpp>
 
 #include "o2ac_pose_distribution_updater/conversions.hpp"

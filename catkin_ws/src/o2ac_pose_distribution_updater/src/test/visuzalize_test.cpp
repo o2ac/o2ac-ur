@@ -168,7 +168,7 @@ int main(int argc, char **argv) {
     // PLACE ACTION
     o2ac_msgs::updateDistributionGoal goal;
     goal.observation_type = goal.PLACE_OBSERVATION;
-    goal.place_observation.gripper_pose.pose = gripper_pose;
+    goal.gripper_pose.pose = gripper_pose;
     goal.place_observation.support_surface = 0.0;
     goal.distribution_type = 1;
     goal.distribution = current_distribution;
@@ -194,7 +194,7 @@ int main(int argc, char **argv) {
 
     // GRASP ACTION
     goal.observation_type = goal.GRASP_OBSERVATION;
-    goal.grasp_observation.gripper_pose.pose = gripper_pose;
+    goal.gripper_pose.pose = gripper_pose;
     goal.distribution_type = 1;
     goal.distribution = current_distribution;
     goal.gripped_object = *object;
@@ -226,7 +226,7 @@ int main(int argc, char **argv) {
                      current_distribution);
     // touch the box
     goal.observation_type = goal.TOUCH_OBSERVATION;
-    goal.touch_observation.gripper_pose.pose = moved_gripper_pose;
+    goal.gripper_pose.pose = moved_gripper_pose;
     goal.touch_observation.touched_object_id = 1;
     goal.distribution_type = 1;
     goal.distribution = current_distribution;

@@ -1,2 +1,1 @@
-geometry_msgs/PoseStamped gripper_pose
 float64 support_surface

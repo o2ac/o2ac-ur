@@ -95,7 +95,7 @@ void look_test(const std::shared_ptr<Client> &client,
       goal.distribution_type = distribution_type;
       goal.distribution.pose = to_PoseWithCovariance(mean, covariance);
       goal.gripped_object = *gripped_geometry;
-      goal.look_observation.gripper_pose.pose =
+      goal.gripper_pose.pose =
           to_Pose(x[i], y[i], z[i], qw[i], qx[i], qy[i], qz[i]);
       goal.look_observation.looked_image =
           *(cv_bridge::CvImage(std_msgs::Header(), "bgr8", image[i])

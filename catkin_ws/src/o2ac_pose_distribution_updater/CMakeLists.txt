@@ -25,6 +25,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(CGAL)
 
 find_package(PkgConfig)
 
@@ -57,7 +58,7 @@ include_directories(
 add_library(ros_converters src/ros_converters.cpp)
 target_link_libraries(ros_converters ${catkin_LIBRARIES})
 add_library(read_stl src/read_stl.cpp)
-add_library(estimator src/estimator.cpp src/place_action_helpers.cpp src/grasp_action_helpers.cpp)
+add_library(estimator src/estimator.cpp src/place_action_helpers.cpp src/grasp_action_helpers.cpp src/push_action_helpers.cpp)
 target_link_libraries(estimator ${FCL_LIBRARIES} ${OpenCV_LIBRARIES} )
 add_library(distribution_conversions src/distribution_conversions.cpp)
 
