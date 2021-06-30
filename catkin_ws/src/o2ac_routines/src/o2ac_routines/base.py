@@ -1128,7 +1128,6 @@ class O2ACBase(object):
     waypoints = routine["waypoints"]
 
     trajectory = []
-    trajectory_speed = 0.5
 
     playback_trajectories = []
 
@@ -1139,7 +1138,7 @@ class O2ACBase(object):
         waypoint.update({"frame_id": default_frame})
 
       if is_trajectory:
-        pose = waypoint.get("pose", None) 
+        pose = waypoint.get("pose", None)
         if waypoint["pose_type"] == "joint-space-goal-cartesian-lin-motion":
           p = self.active_robots[robot_name].compute_fk(pose) # Forward Kinematics
         elif waypoint["pose_type"] == "task-space-in-frame":
@@ -1151,20 +1150,18 @@ class O2ACBase(object):
         else:
           raise ValueError("Unsupported trajectory for pose type: %s" % waypoint["pose_type"])
         blend = waypoint.get("blend", 0.0)
-        if not trajectory: # use speed of the first point or default
-          trajectory_speed = waypoint.get("speed", 0.5)
-        trajectory.append([p, blend])
+        trajectory_speed = waypoint.get("speed", 0.5)
+        trajectory.append([p, blend, trajectory_speed])
       else:
         # Save any on-going trajectory
         if trajectory:
-          playback_trajectories.append(["trajectory", (trajectory, trajectory_speed)])
-          trajectory_speed = 0.5
+          playback_trajectories.append(["trajectory", trajectory])
           trajectory = []
 
         playback_trajectories.append(["waypoint", waypoint])
       
     if trajectory:
-      playback_trajectories.append(["trajectory", (trajectory, trajectory_speed)])
+      playback_trajectories.append(["trajectory", trajectory])
 
     return robot_name, playback_trajectories
 
@@ -1189,8 +1186,8 @@ class O2ACBase(object):
           waypoint_params = point[1]
           res = self.move_to_sequence_waypoint(robot_name, waypoint_params)
         elif point[0] == "trajectory":
-          trajectory, speed_scale_factor = point[1]
-          res = robot.move_lin_trajectory(trajectory, speed=speed_scale_factor)
+          trajectory = point[1]
+          res = robot.move_lin_trajectory(trajectory)
         if not res:
           rospy.logerr("Fail to complete playback sequence: %s" % sequence_name)
           return False
@@ -1200,19 +1197,18 @@ class O2ACBase(object):
       previous_plan = None
       rospy.loginfo("(plan_while_moving) Sequence name: %s" % sequence_name)
       for i, point in enumerate(sequence):
+        res = None
         rospy.loginfo("(plan_while_moving) Sequence point: %i - %s" % (i+1, point[0]))
         # self.confirm_to_proceed("playback_sequence")
 
-        initial_joints = None if not previous_plan else helpers.get_trajectory_joint_goal(previous_plan, robot.robot_group.get_active_joints())
+        initial_joints = robot.robot_group.get_current_joint_values() if not previous_plan else helpers.get_trajectory_joint_goal(previous_plan, robot.robot_group.get_active_joints())
         gripper_action = False
         current_gripper_action = None
 
         if point[0] == "waypoint":
+          rospy.loginfo("Sequence point type: %s > %s" % (point[1]["pose_type"], point[1].get("desc", '')))
           waypoint_params = point[1]
           gripper_action = waypoint_params["pose_type"] == 'gripper'
-          desc = waypoint_params.get("desc")
-          if desc:
-            print("desc: ", desc)
           if gripper_action:
             current_gripper_action = waypoint_params["gripper"]
             res = None, 0.0
@@ -1220,17 +1216,17 @@ class O2ACBase(object):
             if waypoint_params["pose_type"] == 'master-slave':
               joint_list = self.active_robots[waypoint_params["master_name"]].robot_group.get_active_joints() + self.active_robots[waypoint_params["slave_name"]].robot_group.get_active_joints()
               initial_joints_ = None if not previous_plan else helpers.get_trajectory_joint_goal(previous_plan, joint_list)
-              res = self.move_to_sequence_waypoint(robot_name, waypoint_params, plan_only=True, initial_joints=initial_joints_)
             else:
-              res = self.move_to_sequence_waypoint(robot_name, waypoint_params, plan_only=True, initial_joints=initial_joints)
+              initial_joints_ = copy.copy(initial_joints)
+            res = self.move_to_sequence_waypoint(robot_name, waypoint_params, plan_only=True, initial_joints=initial_joints_)
         elif point[0] == "trajectory":
-          trajectory, speed_scale_factor = point[1]
+          trajectory = point[1]
           if isinstance(trajectory[0][0], geometry_msgs.msg.PoseStamped):
-            res = robot.move_lin_trajectory(trajectory, speed=speed_scale_factor, plan_only=True, initial_joints=initial_joints)
+            res = robot.move_lin_trajectory(trajectory, plan_only=True, initial_joints=initial_joints)
           elif isinstance(trajectory[0][0], dict):
             joint_list = self.active_robots[trajectory[0][0]["master_name"]].robot_group.get_active_joints() + self.active_robots[trajectory[0][0]["slave_name"]].robot_group.get_active_joints()
             initial_joints_ = None if not previous_plan else helpers.get_trajectory_joint_goal(previous_plan, joint_list)
-            res = self.master_slave_trajectory(robot_name, trajectory, speed_scale_factor, plan_only=True, initial_joints=initial_joints_)
+            res = self.master_slave_trajectory(robot_name, trajectory, plan_only=True, initial_joints=initial_joints_)
         else:
           ValueError("Invalid sequence type: %s" % point[0])
 
@@ -1261,6 +1257,10 @@ class O2ACBase(object):
           rospy.loginfo("waited for motion result")
         
         current_joints = robot.robot_group.get_current_joint_values()
+        # print("==== Joint sanity check ====")
+        # print("current_joints", np.round(current_joints, 4))
+        # print("target_joints", np.round(initial_joints, 4))
+        # print("diff", np.round(np.array(initial_joints)-current_joints, 3))
         if not helpers.all_close(initial_joints, current_joints, 0.01):
           rospy.logerr("Fail to execute plan: target pose not reach")
           return False
@@ -1283,7 +1283,7 @@ class O2ACBase(object):
 
     return True
 
-  def playback_sequence(self, routine_filename, default_frame="world", plan_while_moving=True, save_on_success=True, use_saved_plans=True):
+  def playback_sequence(self, routine_filename, default_frame="world", plan_while_moving=True, save_on_success=True, use_saved_plans=False):
 
     robot_name, playback_trajectories = self.read_playback_sequence(routine_filename, default_frame)
 
@@ -1380,18 +1380,19 @@ class O2ACBase(object):
     
     return True
 
-  def master_slave_trajectory(self, robot_name, trajectory, speed, plan_only=False, initial_joints=None):
+  def master_slave_trajectory(self, robot_name, trajectory, plan_only=False, initial_joints=None):
     master_trajectory = []
-    waypoints = [wp for wp, _ in trajectory]
+    waypoints = [wp for wp, _ , _ in trajectory] # Ignoring blend and speed as the whole waypoints dict is forwarded in the first value
     for waypoint in waypoints:
       pose = waypoint["pose"]
       frame_id = waypoint["frame_id"]
-      master_trajectory.append((conversions.to_pose_stamped(frame_id, np.concatenate([pose[:3],np.deg2rad(pose[3:])])), waypoint["blend"]))
+      ps = conversions.to_pose_stamped(frame_id, np.concatenate([pose[:3],np.deg2rad(pose[3:])]))
+      master_trajectory.append((ps, waypoint("blend", 0), waypoints[0].get("speed", 0.5))) # poseStamped, blend, speed
 
     slave_initial_joints = initial_joints[6:] if initial_joints is not None else None
     master_initial_joints = initial_joints[:6] if initial_joints is not None else None
 
-    master_plan, _ = self.active_robots[waypoints[0]["master_name"]].move_lin_trajectory(master_trajectory, speed=speed, plan_only=True, initial_joints=master_initial_joints)
+    master_plan, _ = self.active_robots[waypoints[0]["master_name"]].move_lin_trajectory(master_trajectory, speed=waypoints[0].get("speed", 0.5), plan_only=True, initial_joints=master_initial_joints)
 
     master_slave_plan, planning_time = self.active_robots[robot_name].compute_master_slave_plan(waypoints[0]["master_name"], 
                                                                                                 waypoints[0]["slave_name"],

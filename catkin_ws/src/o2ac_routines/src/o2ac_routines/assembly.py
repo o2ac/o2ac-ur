@@ -399,7 +399,7 @@ class O2ACAssembly(O2ACCommon):
     at_hold_pose = conversions.to_pose_stamped("assembled_part_07_inserted", [0.043, 0.000, 0.02] + np.deg2rad([-90,-90,-90]).tolist())
     # self.a_bot.go_to_pose_goal(at_hold_pose)
 
-    trajectory = [[approach_hold_pose, 0.005], [pre_hold_pose, 0.005], [at_hold_pose, 0.0]]
+    trajectory = [[approach_hold_pose, 0.005, 0.5], [pre_hold_pose, 0.005, 0.5], [at_hold_pose, 0.0, 0.2]]
     if not self.a_bot.move_lin_trajectory(trajectory, speed=0.5):
       rospy.logerr("Fail to complete the hold pose")
       return False

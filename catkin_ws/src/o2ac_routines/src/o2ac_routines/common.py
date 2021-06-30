@@ -1971,7 +1971,7 @@ class O2ACCommon(O2ACBase):
     behind_pose = conversions.to_pose_stamped(target_link, [0.09, 0.002, -0.05] + rotation)
     pre_insertion_pose = conversions.to_pose_stamped(target_link, [pre_insert_offset, 0.001, -0.002] + rotation)
 
-    trajectory = [[post_pick_pose, 0.05], [above_pose, 0.05], [behind_pose, 0.01], [pre_insertion_pose, 0.0]]
+    trajectory = [[post_pick_pose, 0.05, 0.5], [above_pose, 0.05, 0.5], [behind_pose, 0.01, 0.5], [pre_insertion_pose, 0.0, 0.2]]
     rospy.loginfo("Going to position shaft to pre-insertion (b_bot)")
     if not self.b_bot.move_lin_trajectory(trajectory, speed=0.5, acceleration=0.25):
       rospy.logerr("Fail to position shaft to pre-insertion")

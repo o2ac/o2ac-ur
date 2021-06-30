@@ -253,7 +253,11 @@ class RobotBase():
         group = self.robot_group
 
         group.set_end_effector_link(end_effector_link)
-        waypoints = [(self.listener.transformPose("world", ps), blend_radius) for ps, blend_radius in trajectory]
+        if len(trajectory[0]) == 2: # Speed per point was not defined
+            waypoints = [(self.listener.transformPose("world", ps), blend_radius, speed) for ps, blend_radius in trajectory]
+        elif len(trajectory[0]) == 3:
+            waypoints = [(self.listener.transformPose("world", ps), blend_radius, speed) for ps, blend_radius, speed in trajectory]
+
 
         motion_plan_requests = []
 
@@ -271,9 +275,8 @@ class RobotBase():
         if initial_joints:
             msi.req.start_state = helpers.to_robot_state(self.robot_group, initial_joints)
 
-        for i, (wp, blend_radius) in enumerate(waypoints):
-            if i == len(waypoints)-1: # Reduce jerkiness on trajectories
-                self.set_up_move_group(speed/2.0, acceleration/2.0, planner="LINEAR")
+        for wp, blend_radius, spd in waypoints:
+            self.set_up_move_group(spd, spd/2.0, planner="LINEAR")
             group.clear_pose_targets()
             group.set_pose_target(wp)
             msi = moveit_msgs.msg.MotionSequenceItem()
