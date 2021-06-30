@@ -8,14 +8,14 @@ waypoints:
 - pose: [-0.05, 0, 0.0, -135, 0, 0] 
   pose_type: task-space-in-frame
   frame_id: right_centering_link
-  speed: 1.0
+  speed: 0.8
   is_trajectory: True
   blend: 0.005
   desc: Above centering point
 - pose: [-0.01, 0, 0.0, -135, 0, 0] 
   pose_type: task-space-in-frame
   frame_id: right_centering_link
-  speed: 0.2
+  speed: 0.15
   is_trajectory: True
   blend: 0.0
   desc: dropping 
@@ -27,7 +27,7 @@ waypoints:
 - pose: [-0.01, 0, 0.0, -45, 0, 0] 
   pose_type: task-space-in-frame
   frame_id: right_centering_link
-  speed: 2.0
+  speed: 1.0
 - pose_type: gripper
   gripper:
     action: 'close-open'
@@ -37,16 +37,17 @@ waypoints:
 - pose: [-0.01, 0, 0.0, -135, 0, 0] 
   pose_type: task-space-in-frame
   frame_id: right_centering_link
-  speed: 2.0
+  speed: 1.0
 - pose: [0.0, 0, 0.005, 0, -35, 0] 
   pose_type: relative-tcp
+  speed: 0.8
 - pose_type: gripper
   gripper:
     action: 'close'
     velocity: 0.05
-- pose: [0, 0, 0.03, 0, 0, 0] 
+- pose: [0, 0, 0.06, 0, 0, 0] 
   pose_type: relative-world
-  speed: 0.5
+  speed: 0.2
 - pose: [-0.15, 0, 0.10, -135, 0, 0] 
   pose_type: task-space-in-frame
   frame_id: right_centering_link
@@ -58,10 +59,10 @@ waypoints:
   frame_id: taskboard_small_shaft
   is_trajectory: True
   blend: 0.005
-  speed: 1.0
+  speed: 0.8
 - pose: [-0.007, 0.000, -0.004, 180, 35, 0.0]
   pose_type: task-space-in-frame
   frame_id: taskboard_small_shaft
   is_trajectory: True
   blend: 0.005
-  speed: 1.0
+  speed: 0.1
