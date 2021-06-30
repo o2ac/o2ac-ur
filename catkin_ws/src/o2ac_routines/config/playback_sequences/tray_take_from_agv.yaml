@@ -8,7 +8,7 @@ waypoints:
     action: 'open'
     velocity: 0.1
     opening_width: 0.06
-- pose: [0.04, 0.190, 0.021, 0, 90, 0]
+- pose: [0.04, 0.190, 0.026, 0, 90, 0]
   pose_type: master-slave
   master_name: b_bot
   slave_name: a_bot
@@ -20,7 +20,7 @@ waypoints:
     action: 'close'
     velocity: 0.1
     force: 80
-- pose: [0.04, 0.190, 0.121, 0, 90, 0]
+- pose: [0.04, 0.190, 0.126, 0, 90, 0]
   pose_type: master-slave
   master_name: b_bot
   slave_name: a_bot
@@ -29,7 +29,7 @@ waypoints:
   blend: 0.06
   is_trajectory: True
   speed: 0.3
-- pose: [0, 0.190, 0.121, 0, 90, 0]
+- pose: [0, 0.190, 0.126, 0, 90, 0]
   pose_type: master-slave
   master_name: b_bot
   slave_name: a_bot
@@ -38,7 +38,7 @@ waypoints:
   blend: 0.06
   is_trajectory: True
   speed: 0.3
-- pose: [0, 0.190, 0.022, 0, 90, 0]
+- pose: [0, 0.190, 0.028, 0, 90, 0]
   pose_type: master-slave
   master_name: b_bot
   slave_name: a_bot
@@ -51,7 +51,7 @@ waypoints:
   gripper:
     action: 'open'
     velocity: 0.1
-- pose: [0, 0.190, 0.121, 0, 90, 0]
+- pose: [0, 0.190, 0.126, 0, 90, 0]
   pose_type: master-slave
   master_name: b_bot
   slave_name: a_bot
