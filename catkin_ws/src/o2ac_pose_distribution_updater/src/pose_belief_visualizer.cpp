@@ -26,6 +26,10 @@ void convert_to_triangle_list(
   }
 }
 
+std::random_device seed_generator;
+std::default_random_engine engine(seed_generator());
+std::normal_distribution<> unit_normal_distribution(0.0, 1.0);
+
 void PoseBeliefVisualizer::make_marker_from_particle(
     const std_msgs::Header &header,
     const std::vector<geometry_msgs::Point> &triangle_list,
@@ -65,26 +69,6 @@ void PoseBeliefVisualizer::inner_publish_marker_for_pose_belief(
   CovarianceMatrix covariance =
       array_36_to_matrix_6x6(belief.distribution.pose.covariance);
 
-  // Principal component analysis, i.e., eigendecompose covariance matrix
-  Eigen::SelfAdjointEigenSolver<CovarianceMatrix> eigen_solver(covariance);
-  if (eigen_solver.info() != Eigen::Success) {
-    throw std::runtime_error(
-        "Eigendecomposition covariance matrix is not done successfully");
-  }
-  Eigen::Matrix<double, 6, 1> eigenvalues = eigen_solver.eigenvalues();
-  Eigen::Matrix<double, 6, 6> eigenvectors = eigen_solver.eigenvectors();
-  using eigen_pair = std::pair<double, Eigen::Matrix<double, 6, 1>>;
-
-  // sort eigenvectors in order of decreasing eivenvalues
-  eigen_pair eigen_pairs[6];
-  for (int i = 0; i < 6; i++) {
-    eigen_pairs[i] = std::make_pair(eigenvalues(i), eigenvectors.col(i));
-  }
-  std::sort(eigen_pairs, eigen_pairs + 6,
-            [](const eigen_pair &pair_0, const eigen_pair &pair_1) {
-              return pair_0.first > pair_1.first;
-            });
-
   // Store poses and their colors to visualize
   std::vector<std::pair<geometry_msgs::Pose, std_msgs::ColorRGBA>>
       poses_to_publish;
@@ -95,24 +79,20 @@ void PoseBeliefVisualizer::inner_publish_marker_for_pose_belief(
   poses_to_publish.push_back(
       std::make_pair(belief.distribution.pose.pose, mean_color));
 
+  CovarianceMatrix Cholesky_L(
+      covariance.llt().matrixL()); // old_covariance == Cholesky_L *
+  // Cholesky_L.transpose()
+
   if (belief.distribution_type == belief.RPY_COVARIANCE) {
     // The covariance matrix is interpreted as covariance in 6 axes of particles
 
     Particle mean = pose_to_particle(belief.distribution.pose.pose);
-    for (int i = 0; i < 2; i++) {
-      double sigma = std::sqrt(eigen_pairs[i].first);
-      Particle mean_plus_sigma = mean + sigma * eigen_pairs[i].second;
-      Particle mean_minus_sigma = mean - sigma * eigen_pairs[i].second;
-
-      // convert this two particle to msg poses and store them
-      geometry_msgs::Pose converted_pose_plus;
-      particle_to_pose(mean_plus_sigma, converted_pose_plus);
+    for (int i = 0; i < number_of_particles; i++) {
+      Particle particle = mean + Cholesky_L * get_UND_particle();
+      geometry_msgs::Pose converted_pose;
+      particle_to_pose(particle, converted_pose);
       poses_to_publish.push_back(
-          std::make_pair(converted_pose_plus, variance_color));
-      geometry_msgs::Pose converted_pose_minus;
-      particle_to_pose(mean_minus_sigma, converted_pose_minus);
-      poses_to_publish.push_back(
-          std::make_pair(converted_pose_minus, variance_color));
+          std::make_pair(converted_pose, variance_color));
     }
   }
 
@@ -121,28 +101,18 @@ void PoseBeliefVisualizer::inner_publish_marker_for_pose_belief(
 
     Eigen::Isometry3d mean;
     tf::poseMsgToEigen(belief.distribution.pose.pose, mean);
-    for (int i = 0; i < 2; i++) {
-      double sigma = std::sqrt(eigen_pairs[i].first);
+    for (int i = 0; i < number_of_particles; i++) {
       Eigen::Matrix<double, 6, 1> deviation_vector =
-          sigma * eigen_pairs[i].second;
-      Eigen::Isometry3d mean_plus_sigma =
+          Cholesky_L * get_UND_particle();
+      Eigen::Isometry3d deviation =
           Eigen::Isometry3d(Eigen::Matrix<double, 4, 4>(
               hat_operator<double>(deviation_vector).exp())) *
           mean;
-      Eigen::Isometry3d mean_minus_sigma =
-          Eigen::Isometry3d(Eigen::Matrix<double, 4, 4>(
-              hat_operator<double>(-deviation_vector).exp())) *
-          mean;
-
-      // convert this two transform to msg poses and store them
-      geometry_msgs::Pose converted_pose_plus;
-      tf::poseEigenToMsg(mean_plus_sigma, converted_pose_plus);
+      // convert this transform to msg poses and store them
+      geometry_msgs::Pose converted_pose;
+      tf::poseEigenToMsg(deviation, converted_pose);
       poses_to_publish.push_back(
-          std::make_pair(converted_pose_plus, variance_color));
-      geometry_msgs::Pose converted_pose_minus;
-      tf::poseEigenToMsg(mean_minus_sigma, converted_pose_minus);
-      poses_to_publish.push_back(
-          std::make_pair(converted_pose_minus, variance_color));
+          std::make_pair(converted_pose, variance_color));
     }
   }
 

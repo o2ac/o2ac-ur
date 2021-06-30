@@ -130,6 +130,7 @@ The following four parameters are the intrinsic parameters of the camera.
 - `visualization_scale`: the scale of the object
 - `mean_color`: the color of the visualized mean pose of the object, represented by RGBA
 - `variance_color`: the color of the visualized pose of the object representing uncertainties, represented by RGBA
+- `number_of_particles_to_visualize`: the number of particles to visualize as pose uncertainties
 
 # Message types
 
@@ -142,20 +143,14 @@ These types are defined in the package `o2ac_msgs`.
 This section describe messages to send information about the three acts.
 
 ### `TouchObservation.msg`
-- `geometry_msgs/PoseStamped gripper_pose`: the pose of the gripper when the object touches some other object
 - `uint8 touched_object_id`: the index of touched object. If this value is 0, the touched object is the ground object. If this value is 1, the touched object is the box object. 
 
 ### `LookObservation.msg`
-- `geometry_msgs/PoseStamped gripper_pose`: the pose of the gripper when the object is looked by the camera
 - `sensor_msgs/Image looked_image`: looked image represented as bgr8 image
 - `std_msgs/uint32[4] ROI`: an array of length 4 representing the range of interests of the image. The range of interests is a rectangle and this array is [top boundary, bottom boundary, left boundary, right boundary].
 
 ### `PlaceObservation.msg`
-- `geometry_msgs/PoseStamped gripper_pose`: the pose of the gripper when the object is released
 - `float64 support_surface`: the z coordinate of the support surface where the object is placed
-
-### `GraspObservation.msg`
-- `geometry_msgs/PoseStamped gripper_pose`: the pose of the gripper when the object is grasped
 
 ## updateDistribution action
 This section describe updateDistribution action, an action to send current poses and information about acts and receive new poses.
@@ -165,7 +160,7 @@ This section describe updateDistribution action, an action to send current poses
 - `TouchObservation touch_observation`: When the type of act is "touch", this represents information about the act.
 - `LookObservation look_observation`: When the type of act is "look", this represents information about the act.
 - `PlaceObservation place_observation`: When the type of act is "place", this represents information about the act.
-- `GraspObservation place_observation`: When the type of act is "grasp", this represents information about the act.
+- `geometry_msgs/PoseStamped gripper_pose`: the pose of the gripper when the action is executed
 - `moveit_msgs/CollisionObject gripped_object`: a CollisionObject representing the gripped object
 - `uint8 distribution_type`: whether method is used to represent uncertainty of the pose. If this value is `RPY_COVARIANCE` (constant, equal to 0), the `covariance` attribute of the following `distribution` is interpreted as covariance matrix in the space of x, y, z, roll, pitch, yaw. If it is `LIE_COVARIANCE` (constant, equal to 1),  the `covariance` attribute is interpreted as covariance matrix in the vector space identified with the Lie algebra $se(3)$.
 - `geometry_msgs/PoseWithCovarianceStamped distribution`: the current distribution of the pose of the object
@@ -206,6 +201,8 @@ o2ac_pose_distribution_updater           # package direcotory
 │       ├── grasp_action_helpers.hpp     # functions for calculations associated to grasp action
 │       ├── place_action_helpers.hpp     # functions for calculations associated to place action
 │       ├── pose_belief_visualizer.hpp   # class to visualize pose beliefs
+│       ├── push_action_helpers.hpp      # functions for calculations associated to push action
+│       ├── random_particle.hpp          # function to generate random particles
 │       ├── read_stl.hpp                 # function to read stl files
 │       ├── ros_converted_estimator.hpp  # class calculating distributions, wrapped for ros message input
 │       ├── ros_converters.hpp           # conversion functions associated with ros message
@@ -220,6 +217,8 @@ o2ac_pose_distribution_updater           # package direcotory
 │   ├── grasp_action_helpers.cpp         # implementation of grasp_action_helpers.hpp
 │   ├── place_action_helpers.cpp         # implementation of place_action_helpers.hpp
 │   ├── pose_belief_visualizer.cpp       # implementation of pose_belief_visualizer.hpp
+│   ├── push_action_helpers.cpp          # implementation of push_action_helpers.hpp
+│   ├── random_particle.cpp              # implementation of random_particle.hpp
 │   ├── read_stl.cpp                     # implementation of read_stl.hpp
 │   ├── ros_converted_estimator.cpp      # implementation of ros_converted_estimator.hpp
 │   ├── ros_converters.cpp               # implementation of ros_converters.hpp

@@ -9,12 +9,12 @@
 
 #include <boost/array.hpp>
 #include <iostream>
-#include <random>
 #include <stdexcept>
 
 #include "o2ac_pose_distribution_updater/grasp_action_helpers.hpp"
 #include "o2ac_pose_distribution_updater/place_action_helpers.hpp"
 #include "o2ac_pose_distribution_updater/push_action_helpers.hpp"
+#include "o2ac_pose_distribution_updater/random_particle.hpp"
 
 using object_geometry = fcl::BVHModel<fcl::OBBRSS>;
 using object_geometry_ptr = std::shared_ptr<object_geometry>;

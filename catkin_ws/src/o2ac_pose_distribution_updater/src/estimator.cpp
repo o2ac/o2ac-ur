@@ -39,26 +39,6 @@ fcl::Transform3f eigen_to_fcl_transform(const Eigen::Isometry3d &t) {
                           fcl::Vec3f(v(0), v(1), v(2)));
 }
 
-// helper functions
-
-std::random_device seed_generator;
-std::default_random_engine engine(seed_generator());
-std::normal_distribution<> unit_normal_distribution(0.0, 1.0);
-
-Particle get_UND_particle() {
-  // Random Particle generator
-
-  // All coordinates are independent
-  // The distribution of each coordinate is the normal distribution with mean
-  // 0.0, variance 1.0
-
-  Particle p;
-  for (int i = 0; i < 6; i++) {
-    p(i) = unit_normal_distribution(engine);
-  }
-  return p;
-}
-
 Eigen::Vector3d calculate_center_of_gravity(
     const std::vector<Eigen::Vector3d> &vertices,
     const std::vector<boost::array<int, 3>> &triangles) {
@@ -489,18 +469,18 @@ void PoseEstimator::grasp_step_with_Lie_distribution(
   Eigen::Vector3d old_mean_translation = old_mean.translation();
   cutting_object(
       vertices, triangles,
-      Eigen::Hyperplane<double, 3>(-old_mean_rotation.row(2).transpose(),
-                                   -old_mean_translation(2) + gripper_height),
+      Eigen::Hyperplane<double, 3>(-old_mean_rotation.row(0).transpose(),
+                                   -old_mean_translation(0) + gripper_height),
       cut_vertices[0], cut_triangles[0]);
   cutting_object(cut_vertices[0], cut_triangles[0],
                  Eigen::Hyperplane<double, 3>(
-                     old_mean_rotation.row(1).transpose(),
-                     old_mean_translation(1) + gripper_width / 2.0),
+                     old_mean_rotation.row(2).transpose(),
+                     old_mean_translation(2) + gripper_width / 2.0),
                  cut_vertices[1], cut_triangles[1]);
   cutting_object(cut_vertices[1], cut_triangles[1],
                  Eigen::Hyperplane<double, 3>(
-                     -old_mean_rotation.row(1).transpose(),
-                     -old_mean_translation(1) + gripper_width / 2.0),
+                     -old_mean_rotation.row(2).transpose(),
+                     -old_mean_translation(2) + gripper_width / 2.0),
                  cut_vertices[2], cut_triangles[2]);
   if (cut_vertices[2].size() == 0) {
     throw(std::runtime_error("The object cannot be grasped"));
@@ -547,18 +527,18 @@ void PoseEstimator::push_step_with_Lie_distribution(
   Eigen::Vector3d old_mean_translation = old_mean.translation();
   cutting_object(
       vertices, triangles,
-      Eigen::Hyperplane<double, 3>(-old_mean_rotation.row(2).transpose(),
-                                   -old_mean_translation(2) + gripper_height),
+      Eigen::Hyperplane<double, 3>(-old_mean_rotation.row(0).transpose(),
+                                   -old_mean_translation(0) + gripper_height),
       cut_vertices[0], cut_triangles[0]);
   cutting_object(cut_vertices[0], cut_triangles[0],
                  Eigen::Hyperplane<double, 3>(
-                     -old_mean_rotation.row(0).transpose(),
-                     -old_mean_translation(0) + gripper_thickness),
+                     -old_mean_rotation.row(1).transpose(),
+                     -old_mean_translation(1) + gripper_thickness),
                  cut_vertices[1], cut_triangles[1]);
   cutting_object(
       cut_vertices[1], cut_triangles[1],
-      Eigen::Hyperplane<double, 3>(old_mean_rotation.row(0).transpose(),
-                                   old_mean_translation(0) + gripper_thickness),
+      Eigen::Hyperplane<double, 3>(old_mean_rotation.row(1).transpose(),
+                                   old_mean_translation(1) + gripper_thickness),
       cut_vertices[2], cut_triangles[2]);
   double center_x = (old_mean * center_of_gravity_of_gripped)(0);
   if (cut_vertices[2].size() == 0 || center_x < -gripper_thickness ||

@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
   std::vector<Eigen::Vector3d> vertices;
   std::vector<boost::array<int, 3>> triangles;
   read_stl_from_file_path("/root/o2ac-ur/catkin_ws/src/o2ac_assembly_database/"
-                          "config/taskboard/meshes/taskboard_02_plate.stl",
+                          "config/wrs_assembly_2020/meshes/02-PANEL.stl",
                           vertices, triangles);
   for (auto &vertex : vertices) {
     vertex /= 1000.0; // milimeter -> meter

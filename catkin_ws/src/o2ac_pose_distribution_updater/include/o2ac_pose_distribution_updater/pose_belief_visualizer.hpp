@@ -1,5 +1,6 @@
 #include "o2ac_msgs/visualizePoseBelief.h"
 #include "o2ac_pose_distribution_updater/operators_for_Lie_distribution.hpp"
+#include "o2ac_pose_distribution_updater/random_particle.hpp"
 #include "o2ac_pose_distribution_updater/ros_converters.hpp"
 #include <Eigen/Eigenvalues>
 #include <ros/ros.h>
@@ -18,6 +19,8 @@ private:
   // parameters to visualize
   geometry_msgs::Vector3 scale;
   std_msgs::ColorRGBA mean_color, variance_color;
+
+  int number_of_particles;
 
   void make_marker_from_particle(
       const std_msgs::Header &header,
@@ -61,6 +64,8 @@ public:
     variance_color.b = b;
     variance_color.a = a;
   }
+
+  void set_number_of_particles(const int &n) { number_of_particles = n; }
 
   bool publish_marker_for_pose_belief(
       o2ac_msgs::visualizePoseBelief::Request &belief,

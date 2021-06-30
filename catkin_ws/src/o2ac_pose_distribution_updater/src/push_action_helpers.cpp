@@ -13,7 +13,7 @@ push_calculator::push_calculator(const std::vector<Eigen::Vector3d> &vertices,
 
   // rotate the world coordinates to make the direction of the gripper y-axis
   Eigen::Vector3d gripping_direction =
-      gripper_transform.rotation() * Eigen::Vector3d::UnitY();
+      gripper_transform.rotation() * Eigen::Vector3d::UnitZ();
   if (abs(gripping_direction(2)) > LARGE_EPS) {
     throw(std::runtime_error("Invalid gripper transform"));
   }

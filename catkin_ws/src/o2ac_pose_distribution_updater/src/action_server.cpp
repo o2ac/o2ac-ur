@@ -198,10 +198,13 @@ int main(int argc, char **argv) {
   std::string marker_array_topic_name;
   nd.getParam("marker_array_topic_name", marker_array_topic_name);
   PoseBeliefVisualizer pose_belief_visualizer(nd, marker_array_topic_name);
+  int number_of_particles_to_visualize;
   std::vector<double> visualization_scale, mean_color, variance_color;
   nd.getParam("visualization_scale", visualization_scale);
   nd.getParam("mean_color", mean_color);
   nd.getParam("variance_color", variance_color);
+  nd.getParam("number_of_particles_to_visualize",
+              number_of_particles_to_visualize);
   pose_belief_visualizer.set_scale(
       visualization_scale[0], visualization_scale[1], visualization_scale[2]);
   pose_belief_visualizer.set_mean_color(mean_color[0], mean_color[1],
@@ -209,6 +212,9 @@ int main(int argc, char **argv) {
   pose_belief_visualizer.set_variance_color(
       variance_color[0], variance_color[1], variance_color[2],
       variance_color[3]);
+  pose_belief_visualizer.set_number_of_particles(
+      number_of_particles_to_visualize);
+
   ros::ServiceServer server_to_visualize_pose_belief =
       nd.advertiseService("visualize_pose_belief",
                           &PoseBeliefVisualizer::publish_marker_for_pose_belief,

@@ -106,7 +106,7 @@ grasp_calculator::grasp_calculator(
 
   // rotate the world coordinates to make the direction of the gripper x-axis
   Eigen::Vector3d gripping_direction =
-      gripper_transform.rotation() * Eigen::Vector3d::UnitX();
+      gripper_transform.rotation() * Eigen::Vector3d::UnitY();
   if (abs(gripping_direction(2)) > LARGE_EPS) {
     throw(std::runtime_error("Invalid gripper transform"));
   }
