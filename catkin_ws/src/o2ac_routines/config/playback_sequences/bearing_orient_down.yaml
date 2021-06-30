@@ -5,12 +5,12 @@ waypoints:
   frame_id: right_centering_link
   speed: 1.0
   desc: Above tray edge
-- pose: [-0.05, 0, 0.0, -135, 0, 0] 
+- pose: [-0.07, 0, 0.0, -135, 0, 0] 
   pose_type: task-space-in-frame
   frame_id: right_centering_link
-  speed: 0.7
+  speed: 0.5
   is_trajectory: True
-  blend: 0.005
+  blend: 0.01
   desc: Above centering point
 - pose: [-0.02, 0, 0.0, -135, 0, 0] 
   pose_type: task-space-in-frame
@@ -27,7 +27,7 @@ waypoints:
 - pose: [-0.02, 0, 0.0, -45, 0, 0] 
   pose_type: task-space-in-frame
   frame_id: right_centering_link
-  speed: 2.0
+  speed: 1.0
 - pose_type: gripper
   gripper:
     action: 'close-open'
@@ -37,7 +37,7 @@ waypoints:
 - pose: [-0.02, 0, 0.0, -135, 0, 0] 
   pose_type: task-space-in-frame
   frame_id: right_centering_link
-  speed: 2.0
+  speed: 1.0
 - pose: [0.0, 0, 0.005, 0, -35, 0] 
   pose_type: relative-tcp
   speed: 0.8
@@ -47,5 +47,5 @@ waypoints:
     velocity: 0.05
 - pose: [0.0, 0, 0.05, 0, 0, 0] 
   pose_type: relative-world
-  speed: 0.6
+  speed: 0.3
   desc: move up

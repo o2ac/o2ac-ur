@@ -253,7 +253,7 @@ class RobotBase():
         group = self.robot_group
 
         group.set_end_effector_link(end_effector_link)
-        waypoints = [(self.listener.transformPose("world", ps).pose, blend_radius) for ps, blend_radius in trajectory]
+        waypoints = [(self.listener.transformPose("world", ps), blend_radius) for ps, blend_radius in trajectory]
 
         motion_plan_requests = []
 
@@ -271,14 +271,15 @@ class RobotBase():
         if initial_joints:
             msi.req.start_state = helpers.to_robot_state(self.robot_group, initial_joints)
 
-        for wp, blend_radius in waypoints:
+        for i, (wp, blend_radius) in enumerate(waypoints):
+            if i == len(waypoints)-1: # Reduce jerkiness on trajectories
+                self.set_up_move_group(speed/2.0, acceleration/2.0, planner="LINEAR")
             group.clear_pose_targets()
             group.set_pose_target(wp)
             msi = moveit_msgs.msg.MotionSequenceItem()
             msi.req = group.construct_motion_plan_request()
             msi.req.start_state = moveit_msgs.msg.RobotState()
-            # FIXME(cambel): blend radius does not seem to work for plan only
-            msi.blend_radius = blend_radius # if not plan_only else 0.0
+            msi.blend_radius = blend_radius
             motion_plan_requests.append(msi)
 
         # Force last point to be 0.0 to avoid raising an error in the planner

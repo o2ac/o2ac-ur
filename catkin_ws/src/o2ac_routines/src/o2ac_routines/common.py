@@ -1244,18 +1244,15 @@ class O2ACCommon(O2ACBase):
     robot = self.active_robots[robot_name]
 
     prefix = "right" if robot_name == "b_bot" else "left"
-    approach_pose = conversions.to_pose_stamped(prefix + "_centering_link", [-0.15,0,0,0,0,0])
+    approach_pose = conversions.to_pose_stamped(prefix + "_centering_link", [-0.10,0,0,0,0,0])
     at_object_pose = conversions.to_pose_stamped(prefix + "_centering_link", [-0.005,0,0,0,0,0])
 
-    rotation_offset = -1 if robot_name == "b_bot" else 1
-    tray_center_pose = conversions.to_pose_stamped("tray_center", [0,0,0.06,0,tau/4,rotation_offset*tau/4])
-    
     robot.gripper.open() 
     
     if not robot.go_to_pose_goal(approach_pose):
       rospy.logerr("fail to go to approach_pose (fallback_b_bot_outside_tray_centering)")
       return False
-    if not robot.go_to_pose_goal(at_object_pose):
+    if not robot.go_to_pose_goal(at_object_pose, speed=0.3):
       rospy.logerr("fail to go to at_object_pose (fallback_b_bot_outside_tray_centering)")
       return False
 
@@ -1268,6 +1265,8 @@ class O2ACCommon(O2ACBase):
     return self.drop_in_tray(robot_name)
   
   def drop_in_tray(self, robot_name):
+    robot = self.active_robots[robot_name]
+
     rotation_offset = -1 if robot_name == "b_bot" else 1
     above_tray       = conversions.to_pose_stamped("tray_center", [0, 0, 0.15, 0, tau/4, rotation_offset*tau/4])
     tray_center_pose = conversions.to_pose_stamped("tray_center", [0, 0, 0.06, 0, tau/4, rotation_offset*tau/4])
@@ -1392,6 +1391,21 @@ class O2ACCommon(O2ACBase):
 
     self.ab_bot.go_to_named_pose("home")
 
+    if not self.pick_bearing():
+      return False
+
+    if not self.orient_bearing(bearing_target_link):
+      return False
+
+    # Insert bearing
+    if not self.insert_bearing(bearing_target_link):
+      rospy.logerr("insert_bearing returned False. Breaking out")
+      return False
+
+    self.bearing_holes_aligned = self.align_bearing_holes(task=task)
+    return self.bearing_holes_aligned
+
+  def pick_bearing(self):
     goal = self.look_and_get_grasp_point("bearing", center_on_corner=True, check_for_close_items=False)
     if not isinstance(goal, geometry_msgs.msg.PoseStamped):
       rospy.logerr("Could not find bearing in tray. Skipping procedure.")
@@ -1409,17 +1423,7 @@ class O2ACCommon(O2ACBase):
     self.b_bot.gripper.detach_object("bearing")
     self.despawn_object("bearing")
     self.b_bot.gripper.last_attached_object = None # Forget about this object
-
-    if not self.orient_bearing(bearing_target_link):
-      return False
-
-    # Insert bearing
-    if not self.insert_bearing(bearing_target_link):
-      rospy.logerr("insert_bearing returned False. Breaking out")
-      return False
-
-    self.bearing_holes_aligned = self.align_bearing_holes(task=task)
-    return self.bearing_holes_aligned
+    return True
 
   def orient_bearing(self, task):
     if task == "taskboard":
@@ -1429,7 +1433,7 @@ class O2ACCommon(O2ACBase):
       bearing_target_link = "assembled_part_07_inserted"
 
     self.b_bot.gripper.close() # catch false grasps
-    if self.simple_gripper_check("b_bot", min_opening_width=0.01):
+    if not self.simple_gripper_check("b_bot", min_opening_width=0.01):
       rospy.logerr("Fail to grasp bearing")
       return False
     elif self.b_bot.gripper.opening_width < 0.045:
@@ -1451,13 +1455,13 @@ class O2ACCommon(O2ACBase):
       return False
 
     at_tray_border_pose = conversions.to_pose_stamped("right_centering_link", [-0.15, 0, 0.10, radians(-100), 0, 0])
-    approach_pose       = conversions.to_pose_stamped(bearing_target_link, [-0.038, -0.001, 0.005, 0, radians(-35.0), 0])
+    approach_pose       = conversions.to_pose_stamped(bearing_target_link, [-0.05, -0.001, 0.005, 0, radians(-35.0), 0])
     if task == "taskboard":
       preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017, 0.000, 0.002, 0, radians(-35.0), 0])
     elif task == "assembly":
       preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017, -0.000, 0.006, 0, radians(-35.0), 0])
 
-    trajectory = helpers.to_sequence_trajectory([at_tray_border_pose, approach_pose, preinsertion_pose], blend_radiuses=0.01, speed=1.0)
+    trajectory = helpers.to_sequence_trajectory([at_tray_border_pose, approach_pose, preinsertion_pose], blend_radiuses=[0.01,0.02,0], speed=0.8)
     self.execute_sequence("b_bot", [trajectory], "go to preinsertion", plan_while_moving=False)
 
     return True
