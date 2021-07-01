@@ -428,8 +428,8 @@ class O2ACBase(object):
           rospy.loginfo("Detected successful pick.")
           if not self.active_robots[robot_name].move_lin_rel(relative_translation=[0.005, 0, 0], speed=0.015):
             rospy.logerr("Fail to move screw through gate sensor")
-          if not self.active_robots[robot_name].move_lin_rel(relative_translation=[0, 0, 0.03], speed=0.2):
-            rospy.logerr("Fail to move up")
+          # if not self.active_robots[robot_name].move_lin_rel(relative_translation=[0, 0, 0.03], speed=0.2):
+          #   rospy.logerr("Fail to move up")
           break
 
         rospy.loginfo("Moving back a bit slowly.")
@@ -518,7 +518,7 @@ class O2ACBase(object):
 
     above_screw_head_pose.pose.position.x -= .05
 
-    if not self.active_robots[robot_name].go_to_pose_goal(above_screw_head_pose, speed=0.5, end_effector_link=screw_tool_link):
+    if not self.active_robots[robot_name].go_to_pose_goal(above_screw_head_pose, speed=0.4, end_effector_link=screw_tool_link):
       rospy.logerr("Linear motion plan to above_screw_head_pose failed. Returning false.")
       return False
 

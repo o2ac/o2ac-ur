@@ -612,7 +612,7 @@ class O2ACCommon(O2ACBase):
     else:
       rospy.loginfo("Too close to the X border")
 
-    rospy.loginfo("Border distances were %0.3f, %0.3f, min dist: %0.3f distclose: %0.3f" % (dx, dy, dist_far, dist_close))
+    rospy.loginfo("Border distances were %0.3f, %0.3f, dist_far: %0.3f distclose: %0.3f" % (dx, dy, dist_far, dist_close))
     # First check that this is not a corner
     if not safe_conditions:
       rospy.logerr("Too close to borders. Discarding. border distances were %0.3f, %0.3f, min dist: %0.3f" % (dx, dy, dist_far))
@@ -909,7 +909,7 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Fail to approach 2")
       return False
 
-    if not self.move_towards_tray_center(robot_name, distance=0.10, go_back_halfway=False, one_direction=direction, speed=0.2, acc=0.1, end_effector_link="b_bot_plunger_tip_link"):
+    if not self.move_towards_tray_center(robot_name, distance=0.10, go_back_halfway=False, one_direction=direction, speed=0.1, acc=0.1, end_effector_link="b_bot_plunger_tip_link"):
       rospy.logerr("Fail to move towards center")
       return False      
 
@@ -952,13 +952,15 @@ class O2ACCommon(O2ACBase):
     border_pose = copy.deepcopy(object_pose)
     (dx, dy) = self.distances_from_tray_border(object_pose)
     if dx < dy: # Use the close border
+      direction = 'x'
       border_pose.pose.position.x = np.sign(border_pose.pose.position.x) * 0.11
       border_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, rotation_offset*tau/4))
     else:
+      direction = 'y'
       border_pose.pose.position.y = np.sign(border_pose.pose.position.y) * 0.17
       border_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
 
-    return self.move_towards_tray_center_with_push(robot_name, border_pose, approach_height=0.02)
+    return self.move_towards_tray_center_with_push(robot_name, border_pose, approach_height=0.02, direction=direction)
 
   def move_towards_tray_center_from_corner_with_tool(self, robot_name, object_pose):
     corner_pose = copy.deepcopy(object_pose)
@@ -984,7 +986,7 @@ class O2ACCommon(O2ACBase):
 
     return self.move_towards_tray_center_with_push(robot_name, corner_pose, approach_height)
 
-  def move_towards_tray_center_with_push(self, robot_name, start_pose, approach_height):
+  def move_towards_tray_center_with_push(self, robot_name, start_pose, approach_height, direction=None):
     self.allow_collisions_with_robot_hand("tray_center", robot_name, allow=True)
     self.allow_collisions_with_robot_hand("tray", robot_name, allow=True)
 
@@ -1002,9 +1004,9 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Fail to approach 2")
       return False
 
-    robot.linear_push(force=5, direction="-Z", max_translation=0.06)
+    robot.linear_push(force=8, direction="-Z", max_translation=0.06)
 
-    if not self.move_towards_tray_center(robot_name, distance=0.05):
+    if not self.move_towards_tray_center(robot_name, distance=0.1, one_direction=direction,):
       rospy.logerr("Fail to move towards center")
 
     if not robot.move_lin_rel(relative_translation=[0, 0, approach_height]):
@@ -1394,7 +1396,7 @@ class O2ACCommon(O2ACBase):
     if not self.pick_bearing():
       return False
 
-    if not self.orient_bearing(bearing_target_link):
+    if not self.orient_bearing(task):
       return False
 
     # Insert bearing
@@ -1406,7 +1408,7 @@ class O2ACCommon(O2ACBase):
     return self.bearing_holes_aligned
 
   def pick_bearing(self):
-    goal = self.look_and_get_grasp_point("bearing", center_on_corner=True, check_for_close_items=False)
+    goal = self.look_and_get_grasp_point("bearing", center_on_corner=True, check_for_close_items=False, grasp_width=0.08)
     if not isinstance(goal, geometry_msgs.msg.PoseStamped):
       rospy.logerr("Could not find bearing in tray. Skipping procedure.")
       return False
@@ -1656,7 +1658,10 @@ class O2ACCommon(O2ACBase):
     return True
 
   def insert_motor_pulley(self, target_link, attempts=1):
-    target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.01, -0.000, -0.009, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
+    pre_insertion_pose = conversions.to_pose_stamped(target_link, [-0.006, -0.000, -0.003] + np.deg2rad([180, 35, 0]).tolist()) # Manually defined target pose in object frame
+    self.b_bot.go_to_pose_goal(pre_insertion_pose, speed=0.1)
+    
+    target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.015, -0.000, -0.009, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
 
     selection_matrix = [0., 0.3, 0.3, 0.95, 1.0, 1.0]
 
