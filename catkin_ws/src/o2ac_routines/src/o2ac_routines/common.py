@@ -1461,7 +1461,7 @@ class O2ACCommon(O2ACBase):
     elif task == "assembly":
       preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017, -0.000, 0.006, 0, radians(-35.0), 0])
 
-    trajectory = helpers.to_sequence_trajectory([at_tray_border_pose, approach_pose, preinsertion_pose], blend_radiuses=[0.01,0.02,0], speed=0.8)
+    trajectory = helpers.to_sequence_trajectory([at_tray_border_pose, approach_pose, preinsertion_pose], blend_radiuses=[0.01,0.02,0], speed=0.4)
     self.execute_sequence("b_bot", [trajectory], "go to preinsertion", plan_while_moving=False)
 
     return True

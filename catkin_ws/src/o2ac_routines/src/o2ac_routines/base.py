@@ -1036,8 +1036,7 @@ class O2ACBase(object):
     elif realign:
       lin_speed = 0.5
 
-    sequence.append(helpers.to_sequence_trajectory([ps_approach,ps_in_holder], [0.01,0.0], speed=0.8))
-
+    sequence.append(helpers.to_sequence_trajectory([ps_approach,ps_in_holder], [0.005,0.0], speed=[0.5, 0.2]))
     if not self.execute_sequence(robot_name, sequence, "approach sequence equip/unequip tool", plan_while_moving=True):
       rospy.logerr("Fail to complete the equip/unequip tool sequence")
       return False
@@ -1071,7 +1070,7 @@ class O2ACBase(object):
       pull_back_slightly = copy.deepcopy(ps_in_holder)
       pull_back_slightly.pose.position.x -= 0.003
       ps_in_holder.pose.position.x += 0.001  # To remove the offset for placing applied earlier
-      lin_speed = 0.02
+      lin_speed = 0.2
       sequence.append(helpers.to_sequence_item(pull_back_slightly, speed=lin_speed))
       sequence.append(helpers.to_sequence_gripper(gripper='open', gripper_opening_width=0.06, gripper_velocity=0.1))
       sequence.append(helpers.to_sequence_item(ps_in_holder, speed=lin_speed))
@@ -1080,7 +1079,7 @@ class O2ACBase(object):
     # Plan & execute linear motion away from the tool change position
     rospy.loginfo("Moving back to screw tool approach pose LIN.")
     
-    lin_speed = 0.8
+    lin_speed = 1.0
 
     sequence.append(helpers.to_sequence_item(ps_move_away, speed=lin_speed))
     sequence.append(helpers.to_sequence_item("tool_pick_ready"))
@@ -1227,6 +1226,9 @@ class O2ACBase(object):
             joint_list = self.active_robots[trajectory[0][0]["master_name"]].robot_group.get_active_joints() + self.active_robots[trajectory[0][0]["slave_name"]].robot_group.get_active_joints()
             initial_joints_ = None if not previous_plan else helpers.get_trajectory_joint_goal(previous_plan, joint_list)
             res = self.master_slave_trajectory(robot_name, trajectory, plan_only=True, initial_joints=initial_joints_)
+          else:
+            rospy.logerr("Trajectory: %s" % trajectory)
+            raise ValueError("Invalid trajectory type %s" % type(trajectory[0][0]))
         else:
           ValueError("Invalid sequence type: %s" % point[0])
 
@@ -1283,7 +1285,7 @@ class O2ACBase(object):
 
     return True
 
-  def playback_sequence(self, routine_filename, default_frame="world", plan_while_moving=True, save_on_success=True, use_saved_plans=False):
+  def playback_sequence(self, routine_filename, default_frame="world", plan_while_moving=True, save_on_success=True, use_saved_plans=True):
 
     robot_name, playback_trajectories = self.read_playback_sequence(routine_filename, default_frame)
 

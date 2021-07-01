@@ -513,12 +513,17 @@ def to_sequence_item(pose, speed=0.5, acc=0.25):
 def to_sequence_trajectory(trajectory, blend_radiuses=0.0, speed=0.5, default_frame="world"):
   sequence_trajectory = []
   blend_radiuses = blend_radiuses if isinstance(blend_radiuses, list) else np.zeros_like(trajectory)+blend_radiuses
-  for t, br in zip(trajectory, blend_radiuses):
+  for i, (t, br) in enumerate(zip(trajectory, blend_radiuses)):
+    if isinstance(speed, list):
+      spd = speed[i]
+    else:
+      spd = speed if i != len(trajectory) - 1 else 0.2
+
     if isinstance(t, geometry_msgs.msg.PoseStamped):
-      sequence_trajectory.append([t, br])
+      sequence_trajectory.append([t, br, spd])
     elif isinstance(t, list):
-      sequence_trajectory.append([conversions.to_pose_stamped(default_frame, t), br])
-  return ["trajectory", [sequence_trajectory, speed]]
+      sequence_trajectory.append([conversions.to_pose_stamped(default_frame, t), br, spd])
+  return ["trajectory", sequence_trajectory]
 
 def get_plan_full_path(name):
   rp = rospkg.RosPack()
