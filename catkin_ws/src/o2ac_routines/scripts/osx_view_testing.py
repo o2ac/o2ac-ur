@@ -254,6 +254,11 @@ if __name__ == '__main__':
           c.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z")
       elif r == "88":
         c.check_if_shaft_in_v_groove()
+      elif r == "89":
+        if not c.assembly_database.db_name == "wrs_assembly_2020":
+          c.set_assembly("wrs_assembly_2020")
+          rospy.sleep(1.0)
+        c.check_output_pulley_angle()
       elif r == 'x':
         break
       else:

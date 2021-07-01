@@ -3,6 +3,7 @@ import rospy
 from aist_camera_multiplexer import RealSenseMultiplexerClient
 import o2ac_msgs.msg
 import std_srvs.srv
+import std_msgs.msg
 
 from o2ac_routines.helpers import check_for_real_robot
 
@@ -26,6 +27,8 @@ class VisionClient():
         self.detect_angle_client = actionlib.SimpleActionClient('/o2ac_vision_server/detect_angle', o2ac_msgs.msg.detectAngleAction)
         self.pick_success_client = actionlib.SimpleActionClient('/o2ac_vision_server/check_pick_success', o2ac_msgs.msg.checkPickSuccessAction)
         self.localization_client = actionlib.SimpleActionClient('/o2ac_vision_server/localize_object', o2ac_msgs.msg.localizeObjectAction)
+        self.pulley_screw_detection_stream_client = rospy.ServiceProxy('/o2ac_vision_server/activate_pulley_screw_detection', std_srvs.srv.SetBool)
+        self.pulley_screw_detection_streaming = False
 
 
     @check_for_real_robot
@@ -105,6 +108,18 @@ class VisionClient():
             return False
         res = self.detect_shaft_client.get_result()
         return res
+    
+    def activate_pulley_screw_detection(self, activate=True):
+        # Activate screw detection stream
+        req = std_srvs.srv.SetBoolRequest()
+        req.data = activate
+        self.pulley_screw_detection_stream_client.call(req)
+        self.pulley_screw_detection_streaming = activate
+
+    def check_if_pulley_screws_visible(self):
+        """ The pulley_screw_detection_stream_client needs to be set to True before calling this. """
+        msg = rospy.wait_for_message('/o2ac_vision_server/pulley_screws_in_view', std_msgs.msg.Bool, rospy.Duration(1.0))
+        return msg.data
     
     def check_pick_success(self, object_name):
         """ Returns true if the visual pick success check for the object returns True.

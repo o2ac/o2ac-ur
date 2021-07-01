@@ -2544,12 +2544,19 @@ class O2ACCommon(O2ACBase):
     self.active_robots[from_robot_name].go_to_named_pose("home")
 
   def check_output_pulley_angle(self):
-    # Check bearing orientation
-    approach_centering = conversions.to_pose_stamped("assembled_part_08_inserted", [-0.1, 0, 0.15,  0, np.deg2rad(60), 0])
+    # Look at pulley with b_bot
+    approach_centering = conversions.to_pose_stamped("assembled_part_08_inserted", [-0.1, 0, -0.15,  np.deg2rad(180), np.deg2rad(-60), 0])
     self.b_bot.go_to_pose_goal(approach_centering, speed=0.1, end_effector_link="b_bot_outside_camera_link", move_lin=False)
     self.vision.activate_camera("b_bot_outside_camera")
 
-    # TODO(cambel): compute angle
+    self.vision.activate_pulley_screw_detection()
+
+    while not rospy.is_shutdown():
+      print("screws visible:", self.vision.check_if_pulley_screws_visible())
+      rospy.sleep(0.1)
+
+
+    # TODO: Turn pulley with a_bot, stop when screws visible
 
   def check_motor_pulley_angle(self):
     # Check bearing orientation

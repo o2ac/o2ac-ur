@@ -60,6 +60,7 @@ import o2ac_msgs.msg
 import geometry_msgs.msg
 import visualization_msgs.msg
 import std_msgs.msg
+import std_srvs.srv
 
 from aist_depth_filter     import DepthFilterClient
 from aist_new_localization import LocalizationClient
@@ -69,6 +70,7 @@ from o2ac_vision.pose_estimation_func import TemplateMatching
 from o2ac_vision.pose_estimation_func import FastGraspabilityEvaluation
 from o2ac_vision.pose_estimation_func import ShaftAnalysis
 from o2ac_vision.pose_estimation_func import PickCheck
+from o2ac_vision.pose_estimation_func import PulleyScrewDetection
 
 from o2ac_vision.cam_utils import O2ACCameraHelper
 
@@ -120,6 +122,10 @@ class O2ACVisionServer(object):
         background_file = self.rospack.get_path("o2ac_vision") + "/config/shaft_background.png"
         self.shaft_bg_image = cv2.imread(background_file, 0)
 
+        pulley_template_filepath = self.rospack.get_path("wrs_dataset") + "/data/pulley/pulley_screw_temp.png"
+        self.pulley_screws_template_image = cv2.imread(pulley_template_filepath, 0)
+        self.pulley_screw_detection_stream_active = False
+        self.activate_pulley_screw_detection_service = rospy.Service("~activate_pulley_screw_detection", std_srvs.srv.SetBool, self.set_pulley_screw_detection_callback)
 
         # Setup camera image subscribers
         self.cam_info_sub = rospy.Subscriber('/camera_info',
@@ -136,6 +142,9 @@ class O2ACVisionServer(object):
         # Setup publisher for object detection results
         self.results_pub = rospy.Publisher('~detection_results',
                                            o2ac_msgs.msg.Estimated2DPosesArray,
+                                           queue_size=1)
+        self.pulley_screw_detection_pub = rospy.Publisher('~activate_pulley_screw_detection',
+                                           std_msgs.msg.Bool,
                                            queue_size=1)
 
         # Determine whether the detection server works in continuous mode or not.
@@ -441,6 +450,16 @@ class O2ACVisionServer(object):
         # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
         self.last_rgb_image = image
 
+        if self.pulley_screw_detection_stream_active:
+            im_in  = self.bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
+            im_vis = im_in.copy()
+            msg = std_msgs.msg.Bool()
+            msg.data = self.detect_pulley_screws(im_in, im_vis)
+            self.pulley_screw_detection_pub.publish(msg)
+
+            # Publish images visualizing results
+            self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
+
         # Pass image to SSD if continuous display is turned on
         if self.continuous_streaming:
             # with self.lock:
@@ -455,6 +474,12 @@ class O2ACVisionServer(object):
 
             # Publish images visualizing results
             self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
+
+    def set_pulley_screw_detection_callback(self, msg):
+        self.pulley_screw_detection_stream_active = msg.data
+        res = std_srvs.srv.SetBoolResponse()
+        res.success = True
+        return res
 
 ### ======= Localization helpers
 
@@ -641,8 +666,10 @@ class O2ACVisionServer(object):
         im_vis: Result visualization
         """
         # Convert to grayscale
-        if im_in.shape[2] == 3: im_gray = cv2.cvtColor(im_in, cv2.COLOR_BGR2GRAY)
-
+        if im_in.shape[2] == 3: 
+            im_gray = cv2.cvtColor(im_in, cv2.COLOR_BGR2GRAY)
+        else: 
+            im_gray = im_in
 
         bbox = [350,100,100,400] # ROI(x,y,w,h) of shaft area
         sa = ShaftAnalysis( self.shaft_bg_image, im_gray, bbox )
@@ -707,6 +734,21 @@ class O2ACVisionServer(object):
         """ Returns the name (item_id) of the item's id number (class_id) of the SSD.
         """
         return self._models[class_id - 1]
+
+    def detect_pulley_screws(self, im_in, im_vis):
+        # Convert to grayscale
+        if im_in.shape[2] == 3: 
+            im_gray = cv2.cvtColor(im_in, cv2.COLOR_BGR2GRAY)
+        else:
+            im_gray = im_in
+        bbox = [300,180,200,120]   # (x,y,w,h)      bbox of search area
+        s = PulleyScrewDetection(im_gray, self.pulley_screws_template_image, bbox)
+        score, detected = s.main_proc()
+        print("Screws detected: ", detected)
+        print("Score: ", score)
+        # TODO: Draw green rectangle around bbox if detected, red if not. Display score.
+        return detected
+
 
 ### ========
 
