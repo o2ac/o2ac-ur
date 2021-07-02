@@ -307,7 +307,7 @@ class O2ACTaskboard(O2ACCommon):
       
       self.confirm_to_proceed("Pick tool with b_bot?")
       # Equip the belt tool with b_bot
-      if not self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_pick_hook.urp", recursion_depth=3):
+      if not self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_pick_hook.urp"):
         return False
       rospy.sleep(2)  # Wait for b_bot to have moved out of the way
 
@@ -323,7 +323,7 @@ class O2ACTaskboard(O2ACCommon):
       
       if not self.vision.check_pick_success("belt"):
         rospy.logerr("Belt pick has failed. Return tool and abort.")
-        self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp", recursion_depth=3)
+        self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp")
         rospy.sleep(2)
         pick_goal.pose.position.x = 0  # In tray_center
         pick_goal.pose.position.y = 0
@@ -335,8 +335,8 @@ class O2ACTaskboard(O2ACCommon):
         return False
 
       self.confirm_to_proceed("Load and execute the belt threading programs?")
-      success_a = self.a_bot.load_program(program_name="wrs2020/taskboard_belt_v5.urp", recursion_depth=3)
-      success_b = self.b_bot.load_program(program_name="wrs2020/taskboard_belt_v6.urp", recursion_depth=3)
+      success_a = self.a_bot.load_program(program_name="wrs2020/taskboard_belt_v7.urp")
+      success_b = self.b_bot.load_program(program_name="wrs2020/taskboard_belt_v7.urp")
       if success_a and success_b:
         print("Loaded belt program on a_bot.")
         rospy.sleep(1)
@@ -349,7 +349,7 @@ class O2ACTaskboard(O2ACCommon):
           self.b_bot.close_ur_popup()
       else:
         print("Problem loading. Not executing belt procedure.")
-        self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp", recursion_depth=3)
+        self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp")
         rospy.sleep(3)
         self.drop_in_tray("a_bot")
         self.a_bot.go_to_named_pose("home")
@@ -360,7 +360,7 @@ class O2ACTaskboard(O2ACCommon):
       # b_bot is now above the tray, looking at the 
       # TODO(felixvd): Use vision to check belt threading success
       
-      self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp", recursion_depth=3)
+      self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp")
       rospy.sleep(2)
       wait_for_UR_program("/b_bot", rospy.Duration.from_sec(20))
       return True
@@ -423,6 +423,7 @@ class O2ACTaskboard(O2ACCommon):
 
       approach_pose.pose.position.y = -.0
       approach_pose.pose.position.z = -.004  # MAGIC NUMBER (z-axis of the frame points down)
+      approach_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
       self.a_bot.go_to_pose_goal(approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
 
       hole_pose = geometry_msgs.msg.PoseStamped()

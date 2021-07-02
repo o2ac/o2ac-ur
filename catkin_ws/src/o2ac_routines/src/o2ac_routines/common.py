@@ -295,10 +295,11 @@ class O2ACCommon(O2ACBase):
 
   ####### Vision
 
-  def look_for_item_in_tray(self, item_name, robot_name="b_bot"):
+  def get_large_item_position_from_top(self, item_name, robot_name="b_bot"):
     """
-    This function will look for an item in the tray. After calling this function, the item
-    is published to the planning scene.
+    This function look at the tray from the top only, and publishes the result to the planning scene.
+    
+    Returns False if object was not found.
     """
 
     # Look from top first
@@ -1209,7 +1210,7 @@ class O2ACCommon(O2ACBase):
 
   def look_at_motor(self):
     # b_bot_joint_angles = [1.9093738794326782, -1.1168301564506073, 1.8244155089007776, -0.8763039273074646, -1.244535271321432, 0.048961393535137177]
-    # b_bot_outside_camera_optical_frame in vgroove_aid_lin: xyz: -0.011832; 0.13308; 0.085104 q: 0.83999; 0.0043246; 0.0024908; 0.54257
+    # b_bot_outside_camera_optical_frame in vgroove_aid_link: xyz: -0.011832; 0.13308; 0.085104 q: 0.83999; 0.0043246; 0.0024908; 0.54257
     camera_look_pose = geometry_msgs.msg.PoseStamped()
     camera_look_pose.header.frame_id = "vgroove_aid_link"
     camera_look_pose.pose.orientation = geometry_msgs.msg.Quaternion(*(0.84, 0.0043246, 0.0024908, 0.54257))
@@ -1870,7 +1871,7 @@ class O2ACCommon(O2ACBase):
     ## Incline the tool slightly 
     self.planning_scene_interface.allow_collisions("padless_tool_m4", "taskboard_plate")
     xyz_hard_push = [0.001, -0.001, 0.001]  # MAGIC NUMBERS (target without inclination)
-    inclination_angle_deg = 4.0
+    inclination_angle_deg = 3.0
     inclined_orientation_hard_push = np.deg2rad([30.0, inclination_angle_deg, 0.0]).tolist()
     s = sin(np.deg2rad(inclination_angle_deg)) * 0.008  # 8 mm is roughly the distance from the taskboard surface to the 
                                                         # head of the screw, so adding this offset should result in a rotation

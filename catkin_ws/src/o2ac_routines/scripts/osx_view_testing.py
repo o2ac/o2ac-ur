@@ -125,6 +125,7 @@ if __name__ == '__main__':
       rospy.loginfo("5: Call SSD detection and show result")
       rospy.loginfo("(CAD matching) 61: base plate, 62: motor plate, 63: bearing plate, 64: motor, 65: bearing ")
       rospy.loginfo("8: Look for shaft")
+      rospy.loginfo("89: Look at output pulley, start detecting screws")
       rospy.loginfo("x: Exit ")
       rospy.loginfo(" ")
       r = raw_input()
@@ -215,26 +216,24 @@ if __name__ == '__main__':
         c.simple_pick("b_bot", p, gripper_force=100.0, grasp_width=.05, axis="z")
       elif r == '61':
         if not c.assembly_database.db_name == "wrs_assembly_2020":
-          c.assembly_database.load_db("wrs_assembly_2020")
-        c.look_for_item_in_tray("base", "b_bot")
+          c.set_assembly("wrs_assembly_2020")
+        c.get_large_item_position_from_top("base", "b_bot")
       elif r == '62':
         if not c.assembly_database.db_name == "wrs_assembly_2020":
-          c.assembly_database.load_db("wrs_assembly_2020")
-        c.look_for_item_in_tray("panel_motor", "b_bot")
+          c.set_assembly("wrs_assembly_2020")
+        c.get_large_item_position_from_top("panel_motor", "b_bot")
       elif r == '63':
         if not c.assembly_database.db_name == "wrs_assembly_2020":
-          c.assembly_database.load_db("wrs_assembly_2020")
-        c.look_for_item_in_tray("panel_bearing", "b_bot")
+          c.set_assembly("wrs_assembly_2020")
+        c.get_large_item_position_from_top("panel_bearing", "b_bot")
       elif r == '64':
         if not c.assembly_database.db_name == "wrs_assembly_2020":
-          c.assembly_database.load_db("wrs_assembly_2020")
-        c.look_for_item_in_tray("motor", "b_bot")
+          c.set_assembly("wrs_assembly_2020")
+        c.get_large_item_position_from_top("motor", "b_bot")
       elif r == '65':
         if not c.assembly_database.db_name == "wrs_assembly_2020":
-          c.assembly_database.load_db("wrs_assembly_2020")
-        c.look_for_item_in_tray("bearing", "b_bot")
-      elif r == '7':
-        c.b_bot.linear_push(force=10, direction="-Z", relative_to_ee=False, timeout=15.0)
+          c.set_assembly("wrs_assembly_2020")
+        c.get_large_item_position_from_top("bearing", "b_bot")
       elif r == "8":
         goal = c.look_and_get_grasp_point(8)  # shaft
         if not goal:
@@ -252,6 +251,8 @@ if __name__ == '__main__':
           goal.pose.position.z = 0.001
           # goal.pose.position.x -= 0.01 # MAGIC NUMBER
           c.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z")
+      elif r == "87":
+        c.look_at_motor()
       elif r == "88":
         c.check_if_shaft_in_v_groove()
       elif r == "89":
@@ -259,6 +260,8 @@ if __name__ == '__main__':
           c.set_assembly("wrs_assembly_2020")
           rospy.sleep(1.0)
         c.check_output_pulley_angle()
+      elif r == 'push':
+        c.b_bot.linear_push(force=10, direction="-Z", relative_to_ee=False, timeout=15.0)
       elif r == 'x':
         break
       else:
