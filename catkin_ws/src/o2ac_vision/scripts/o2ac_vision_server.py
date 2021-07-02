@@ -213,6 +213,9 @@ class O2ACVisionServer(object):
         self.results_pub = rospy.Publisher('~detection_results',
                                            o2ac_msgs.msg.Estimated2DPosesArray,
                                            queue_size=1)
+        self.pulley_screw_detection_pub = rospy.Publisher('~activate_pulley_screw_detection',
+                                           std_msgs.msg.Bool,
+                                           queue_size=1)
 
         # Setup publisher for output result image
         self.image_pub = rospy.Publisher('~result_image',
@@ -266,6 +269,14 @@ class O2ACVisionServer(object):
         im_in  = self.bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
         im_vis = im_in.copy()
 
+        if self.pulley_screw_detection_stream_active:
+            msg = std_msgs.msg.Bool()
+            msg.data = self.detect_pulley_screws(im_in, im_vis)
+            self.pulley_screw_detection_pub.publish(msg)
+
+            # Publish images visualizing results
+            self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
+
         # Pass image to SSD if continuous display is turned on
         if self.continuous_streaming:
             poses2d_array = o2ac_msgs.msg.Estimated2DPosesArray()
@@ -295,6 +306,12 @@ class O2ACVisionServer(object):
 
         elif self.pick_success_server.is_active():
             self.execute_pick_success(im_in)
+
+    def set_pulley_screw_detection_callback(self, msg):
+        self.pulley_screw_detection_stream_active = msg.data
+        res = std_srvs.srv.SetBoolResponse()
+        res.success = True
+        return res
 
 ### ======= Process active goals of action servers
 
