@@ -6,7 +6,7 @@ import rosbag
 import rospkg
 import rospy
 import moveit_commander
-import numpy
+import numpy as np
 
 import geometry_msgs.msg
 import moveit_msgs.msg
@@ -58,7 +58,7 @@ class RobotBase():
         if robot_state:
             if isinstance(robot_state, moveit_msgs.msg.RobotState):
                 robot_state_ = robot_state
-            elif isinstance(robot_state, (list, tuple, numpy.ndarray)):
+            elif isinstance(robot_state, (list, tuple, np.ndarray)):
                 robot_state_ = moveit_msgs.msg.RobotState()
                 robot_state_.joint_state.name = self.robot_group.get_active_joints()
                 robot_state_.joint_state.position = list(robot_state)
@@ -156,6 +156,33 @@ class RobotBase():
             gp = goal_pose
         return helpers.all_close(gp.pose, current_pose.pose, 0.01)
 
+    def joint_configuration_changes(self, plan):
+        """ Returns True if the sign of any joint angle changes during the motion,
+            and the joint angle is not near 0 (0.01 rad =~ 0.5 deg tolerance).
+        """
+        start = np.array(plan.joint_trajectory.points[0].positions)
+        end = np.array(plan.joint_trajectory.points[-1].positions)
+        signs = np.sign(start*end)
+        
+        if np.all(signs > 0):
+            return False  # = all OK
+        
+        joint_changes_small = True
+        for i in range(len(signs)):
+            
+            if signs[i] < 0:
+                if abs(start[i] < 0.01) or abs(end[i] < 0.01):
+                    rospy.logdebug("Joint changes sign, but the change is small. Ignoring.")
+                    rospy.logdebug("start[i] = %d6, end[i] = %d6", (start[i], end[i]))
+                    continue
+                rospy.logerr("Joint angle " + str(i) + " would change sign!")
+                print("start[i] = %d6, end[i] = %d6", (start[i], end[i]))
+                joint_changes_small = False
+        if joint_changes_small:
+            return False  # = all OK
+        else:
+            return True  # Joints change
+
     def get_current_pose_stamped(self):
         return self.robot_group.get_current_pose()
 
@@ -192,7 +219,8 @@ class RobotBase():
         return True
         
     def go_to_pose_goal(self, pose_goal_stamped, speed=0.5, acceleration=0.25,
-                        end_effector_link="", move_lin=True, wait=True, plan_only=False, initial_joints=None):
+                        end_effector_link="", move_lin=True, wait=True, plan_only=False, initial_joints=None,
+                        allow_joint_configuration_flip=False):
         planner = "LINEAR" if move_lin else "OMPL"
         if not self.set_up_move_group(speed, acceleration, planner):
             return False
@@ -217,14 +245,20 @@ class RobotBase():
         start_time = rospy.Time.now()
         tries = 0
         while not success and (rospy.Time.now() - start_time < rospy.Duration(5)) and not rospy.is_shutdown():
+            success, plan, planning_time, error = group.plan()
+
+            if success:
+                if self.joint_configuration_changes(plan) and not allow_joint_configuration_flip:
+                    success = False
+                    rospy.logwarn("Joint configuration would have flipped.")
+                    continue
             if plan_only:
-                success, plan, planning_time, error = group.plan()
                 if success:
                     group.clear_pose_targets()
                     group.set_start_state_to_current_state()
                     return plan, planning_time
             else:
-                res = group.go(wait=wait)  # Bool
+                res = group.execute(plan, wait=wait)  # Bool
                 success = res & self.check_goal_pose_reached(pose_goal_stamped)
 
             if not success:
@@ -243,7 +277,8 @@ class RobotBase():
         group.clear_pose_targets()
         return success
 
-    def move_lin_trajectory(self, trajectory, speed=1.0, acceleration=0.5, end_effector_link="", plan_only=False, initial_joints=None, retries=10):
+    def move_lin_trajectory(self, trajectory, speed=1.0, acceleration=0.5, end_effector_link="", plan_only=False, initial_joints=None, retries=10, allow_joint_configuration_flip=False):
+        # TODO: Add allow_joint_configuration_flip
         if not self.set_up_move_group(speed, acceleration, planner="LINEAR"):
             return False
 
@@ -324,12 +359,16 @@ class RobotBase():
             rospy.logerr("Fail move_lin_trajectory with status %s" % result)
         return False
 
-    def move_lin(self, pose_goal_stamped, speed=0.5, acceleration=0.5, end_effector_link="", wait=True, plan_only=False, initial_joints=None):
-        return self.go_to_pose_goal(pose_goal_stamped, speed, acceleration, end_effector_link, move_lin=True, wait=wait, plan_only=plan_only, initial_joints=initial_joints)
+    def move_lin(self, pose_goal_stamped, speed=0.5, acceleration=0.5, end_effector_link="", wait=True, 
+                plan_only=False, initial_joints=None, allow_joint_configuration_flip=False):
+        return self.go_to_pose_goal(pose_goal_stamped, speed, acceleration, end_effector_link, move_lin=True, 
+                                    wait=wait, plan_only=plan_only, initial_joints=initial_joints,
+                                    allow_joint_configuration_flip=allow_joint_configuration_flip)
 
     def move_lin_rel(self, relative_translation=[0, 0, 0], relative_rotation=[0, 0, 0], speed=.5,
                      acceleration=0.2, relative_to_robot_base=False, relative_to_tcp=False,
-                     wait=True, end_effector_link="", plan_only=False, initial_joints=None):
+                     wait=True, end_effector_link="", plan_only=False, initial_joints=None,
+                     allow_joint_configuration_flip=False):
         '''
         Does a lin_move relative to the current position of the robot.
 
@@ -383,7 +422,8 @@ class RobotBase():
 
         return self.go_to_pose_goal(new_pose, speed=speed, acceleration=acceleration,
                                     end_effector_link=end_effector_link,  wait=wait,
-                                    move_lin=True, plan_only=plan_only, initial_joints=initial_joints)
+                                    move_lin=True, plan_only=plan_only, initial_joints=initial_joints,
+                                    allow_joint_configuration_flip=allow_joint_configuration_flip)
 
     def go_to_named_pose(self, pose_name, speed=0.5, acceleration=0.5, wait=True, plan_only=False, initial_joints=None):
         """
