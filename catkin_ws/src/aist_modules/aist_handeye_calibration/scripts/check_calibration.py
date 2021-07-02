@@ -46,7 +46,6 @@ class CheckCalibrationRoutines(HandEyeCalibrationBaseRoutines):
                 elif key == 'h':
                     self.ab_bot.go_to_named_pose('home')
                 elif key == 'q':
-                    self.go_to_named_pose('home')
                     break
                 else:
                     self.move_to_marker()

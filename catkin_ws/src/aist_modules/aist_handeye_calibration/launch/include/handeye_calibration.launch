@@ -33,13 +33,13 @@
   </node>
 
   <!-- Publish dummy or calibrated camera pose -->
-  <node name="$(anon handeye_publisher)"
-	pkg="aist_handeye_calibration" type="publish_calibration.py"
-	output="screen">
-    <param name="dummy" value="$(eval not check)"/>
-    <rosparam file="$(arg calib_file)" if="$(arg check)"/>
-    <rosparam file="$(arg config_file)"/>
-  </node>
+  <!-- <node name="$(anon handeye_publisher)" -->
+  <!-- 	pkg="aist_handeye_calibration" type="publish_calibration.py" -->
+  <!-- 	output="screen"> -->
+  <!--   <param name="dummy" value="$(eval not check)"/> -->
+  <!--   <rosparam file="$(arg calib_file)" if="$(arg check)"/> -->
+  <!--   <rosparam file="$(arg config_file)"/> -->
+  <!-- </node> -->
 
   <!-- Start calibrator -->
   <node unless="$(arg check)"
