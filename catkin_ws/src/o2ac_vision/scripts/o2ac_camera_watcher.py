@@ -138,9 +138,10 @@ class O2ACWatcher(object):
         self.last_image = image
 
     def camera_info_callback(self, cam_info):
-        # For e.g. "b_bot_inside_camera_color_optical_frame", store "b_bot_inside_camera"
-        self.current_camera_name = cam_info.header.frame_id[:-20]
-
+        # Extracts camera name from the header by stripping prefix "calibrated_" and suffix "_color_optical_frame"
+        # Ex.: "calibrated_b_bot_inside_camera_color_optical_frame" --> "b_bot_inside_camera"
+        self.current_camera_name = cam_info.header.frame_id[11:-20]  # str
+        
     def check_status_loop(self):
         r = rospy.Rate(1)
         softreset = True
@@ -181,6 +182,9 @@ class O2ACWatcher(object):
                     # Retrieve ID used to restart camera node
 
                     cam_num = CAMERA_IDS.get(cam_name, -1)
+                    if not cam_num:
+                        rospy.logerr("Could not find " + cam_name)
+                        continue
 
                     if softreset:
                         reset = self.reset_services.get(cam_name, None)
@@ -196,7 +200,7 @@ class O2ACWatcher(object):
                         # Restart camera by killing the nodes and spawning a roslaunch process
                         os.system("rosnode kill /" + cam_name + "/realsense2_camera /" + cam_name + "/realsense2_camera_manager")
                         rospy.sleep(1)
-                        command = "roslaunch o2ac_scene_description osx_bringup_cam" + str(cam_num) + ".launch initial_reset:=true"
+                        command = "roslaunch o2ac_scene_description osx_bringup_cam_" + str(cam_num) + ".launch initial_reset:=true"
                         rospy.loginfo("Executing command: " + command)
                         assert not rospy.is_shutdown(), "Did ros die?"
                         thread.start_new_thread(os.system, (command,))
