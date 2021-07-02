@@ -38,7 +38,7 @@
   <link name="${trayname}_center">
     <xacro:if value="${with_visual}">
       <visual>
-        <origin rpy="0 0 0" xyz="0 0 -0.0001"/>
+        <origin rpy="0 0 0" xyz="0 0 -0.001"/>
         <geometry>
           <box size="${tray_w-0.01} ${tray_l-0.01} 0.001"/>
         </geometry>
@@ -49,7 +49,7 @@
     </xacro:if>
     <xacro:if value="${with_collision_geometry}">
       <collision>
-        <origin rpy="0 0 0" xyz="0 0 -0.001"/>
+        <origin rpy="0 0 0" xyz="0 0 -0.002"/>
         <geometry>
           <box size="${tray_w-0.01} ${tray_l-0.01} 0.001"/> 
         </geometry>

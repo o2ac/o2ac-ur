@@ -43,7 +43,7 @@
   <!-- Tray -->
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/tray.xacro" />
   <xacro:tray trayname="tray" parent="workspace_center">
-    <origin xyz="0.05 -0.2 0.001" rpy="0 0 0" />
+    <origin xyz="0.05 -0.2 0.0001" rpy="0 0 0" />
   </xacro:tray>
 
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/tray.xacro" />
