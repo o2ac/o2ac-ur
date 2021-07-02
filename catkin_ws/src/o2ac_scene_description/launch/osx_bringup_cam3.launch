@@ -25,6 +25,7 @@
   <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="camera"		    value="$(arg camera3_name)"/>
     <arg name="serial_no"           value="$(arg camera3_serial_no)"/>
+    <arg name="tf_prefix"	    value="calibrated_$(arg camera3_name)"/>
     <arg name="enable_pointcloud"   value="true"/>
     <arg name="align_depth"         value="true"/>
     <arg name="fisheye_fps"         value="$(arg camera_fps)"/>

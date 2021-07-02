@@ -32,7 +32,8 @@
 
   <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="camera"		    value="$(arg camera0_name)"/>
-    <arg name="serial_no"   value="$(arg camera0_serial_no)"/>
+    <arg name="serial_no"	    value="$(arg camera0_serial_no)"/>
+    <arg name="tf_prefix"	          value="calibrated_$(arg camera0_name)"/>
     <arg name="enable_pointcloud"   value="true"/>
     <arg name="align_depth"         value="true"/>
     <arg name="fisheye_fps"         value="$(arg camera_fps)"/>
@@ -49,7 +50,8 @@
 
   <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="camera"		    value="$(arg camera1_name)"/>
-    <arg name="serial_no"   value="$(arg camera1_serial_no)"/>
+    <arg name="serial_no"	    value="$(arg camera1_serial_no)"/>
+    <arg name="tf_prefix"	          value="calibrated_$(arg camera1_name)"/>
     <arg name="enable_pointcloud"   value="true"/>
     <arg name="align_depth"         value="true"/>
     <arg name="fisheye_fps"         value="$(arg camera_fps)"/>
@@ -67,6 +69,7 @@
   <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="camera"		    value="$(arg camera2_name)"/>
     <arg name="serial_no"           value="$(arg camera2_serial_no)"/>
+    <arg name="tf_prefix"	          value="calibrated_$(arg camera2_name)"/>
     <arg name="enable_pointcloud"   value="true"/>
     <arg name="align_depth"         value="true"/>
     <arg name="fisheye_fps"         value="$(arg camera_fps)"/>
@@ -84,6 +87,7 @@
   <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="camera"		    value="$(arg camera3_name)"/>
     <arg name="serial_no"           value="$(arg camera3_serial_no)"/>
+    <arg name="tf_prefix"	          value="calibrated_$(arg camera3_name)"/>
     <arg name="enable_pointcloud"   value="true"/>
     <arg name="align_depth"         value="true"/>
     <arg name="fisheye_fps"         value="$(arg camera_fps)"/>
