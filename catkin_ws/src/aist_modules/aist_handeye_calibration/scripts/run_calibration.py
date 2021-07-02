@@ -123,6 +123,7 @@ class HandEyeCalibrationRoutines(HandEyeCalibrationBaseRoutines):
             elif key == 'h':
                 self.go_to_named_pose('home')
             elif key == 'q':
+                self.go_to_named_pose('home')
                 break
             else:
                 routines.calibrate()
