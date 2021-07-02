@@ -114,10 +114,18 @@ class HandEyeCalibrationRoutines(HandEyeCalibrationBaseRoutines):
     def run(self):
         while not rospy.is_shutdown():
             print('\n  RET: do calibration')
+            print('  i  : go to initial position')
+            print('  h  : go to home position')
             print('  q  : go to home position and quit')
-            if raw_input('>> ') == 'q':
+            key = raw_input('>> ')
+            if key == 'i':
+                self.go_to_init_pose()
+            elif key == 'h':
+                self.go_to_named_pose('home')
+            elif key == 'q':
                 break
-            routines.calibrate()
+            else:
+                routines.calibrate()
 
 
 ######################################################################

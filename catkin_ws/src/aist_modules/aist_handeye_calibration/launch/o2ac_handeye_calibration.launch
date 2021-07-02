@@ -6,19 +6,9 @@
   <arg name="check"			default="false"/>
   <arg name="use_dual_quaternion"	default="true"/>
   <arg name="rviz_config"
-       default="$(find aist_handeye_calibration
-		)/launch/include/handeye_calibration.rviz"/>
+       default="$(dirname)/include/handeye_calibration.rviz"/>
 
-  <!-- Launch gazebo if simulation -->
-  <include if="$(arg sim)"
-	   file="$(find o2ac_gazebo)/launch/o2ac_gazebo.launch"/>
-
-  <!-- Launch real robots and cameras if not simulation -->
-  <include unless="$(arg sim)"
-	   file="$(find o2ac_scene_description
-		 )/launch/connect_real_robots.launch"/>
-
-  <!-- Turn on laser only for the camera to be calibrated -->
+  <!-- Launch MoveIt -->
   <include file="$(find o2ac_moveit_config
   		 )/launch/o2ac_moveit_planning_execution.launch">
     <arg name="sim"	value="$(arg sim)"/>
@@ -32,8 +22,7 @@
 	args="$(arg camera_name)"/>
 
   <!-- Launch aruco marker detector and handeye calibrator -->
-  <include file="$(find aist_handeye_calibration
-  		 )/launch/include/handeye_calibration.launch">
+  <include file="$(dirname)/include/handeye_calibration.launch">
     <arg name="config"			value="o2ac"/>
     <arg name="calib_file"		value="$(find o2ac_scene_description
 					       )/config/camera_calibration/$(

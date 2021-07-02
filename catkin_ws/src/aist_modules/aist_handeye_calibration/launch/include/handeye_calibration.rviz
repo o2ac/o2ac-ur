@@ -806,7 +806,7 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          vertical_column_right:
+          vertical_column_left:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -1606,7 +1606,7 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          vertical_column_right:
+          vertical_column_left:
             Alpha: 1
             Show Axes: false
             Show Trail: false
