@@ -1572,6 +1572,9 @@ class O2ACCommon(O2ACBase):
       screw_pose_approach.pose.position.x -= 0.07
       
       self.b_bot.go_to_pose_goal(screw_pose_approach, end_effector_link = "b_bot_screw_tool_m4_tip_link", move_lin=False)
+      if not skip_moving_back:
+        self.playback_sequence("return_screw_tool_horizontal")
+      
       # FIXME(felixvd): This returns true even if the motor has not stalled
       if self.skill_server.do_screw_action("b_bot", screw_pose, screw_size=4):
         screw_status = "done"
@@ -1581,9 +1584,11 @@ class O2ACCommon(O2ACBase):
           rospy.logerr("Failed to fasten bearing screw!")
         else:
           screw_status = "maybe_stuck_in_hole"
-      self.b_bot.go_to_pose_goal(screw_pose_approach, end_effector_link = "b_bot_screw_tool_m4_tip_link", move_lin=False)
-      if not skip_moving_back:
-        self.playback_sequence("return_screw_tool_horizontal")
+      if self.b_bot.is_protective_stopped():
+        rospy.logerr("Critical error: b_bot protective stopped. Something is wrong. Wait to unlock, move back, abort.")
+        self.b_bot.unlock_protective_stop()
+        self.b_bot.go_to_pose_goal(screw_pose_approach, end_effector_link = "b_bot_screw_tool_m4_tip_link", move_lin=True)
+        return (screw_status, True)
       return (screw_status, False)
 
     # Initialize screw status
@@ -1601,7 +1606,8 @@ class O2ACCommon(O2ACBase):
       self.b_bot.go_to_named_pose("horizontal_screw_ready")
     # Go to bearing and fasten all the screws
     all_screws_done = False
-    while not all_screws_done and not rospy.is_shutdown():
+    tries = 0
+    while not all_screws_done and tries < 8 and not rospy.is_shutdown():
       for n in [1,3,2,4]:  # Cross pattern
         assert not rospy.is_shutdown(), "lost connection to ros?"
         if screw_status[n] == "empty":
@@ -1610,6 +1616,7 @@ class O2ACCommon(O2ACBase):
           (screw_status[n], breakout) = pick_and_fasten_bearing_screw(screw_poses[n-1], skip_picking=True, skip_moving_back=True)
         rospy.loginfo("Screw " + str(n) + " detected as " + screw_status[n])
       all_screws_done = all(value == "done" for value in screw_status.values())
+      tries += 1
 
     if only_retighten:
       self.b_bot.go_to_named_pose("horizontal_screw_ready")
