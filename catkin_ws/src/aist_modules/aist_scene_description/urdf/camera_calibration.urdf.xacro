@@ -10,12 +10,12 @@
   <!--   <origin xyz="0.0 0.0 0.0185" rpy="0 0 0"/> -->
   <!-- </xacro:ar_marker_70_5> -->
 
-  <xacro:ar_marker_70_5 prefix="b_bot_"
-  			parent="b_bot_single_suction_gripper_base_link"
-  			marker_id="26"
-			thickness="0.005">
-    <origin xyz="0.063 0.0 0.0215" rpy="0 0 0"/>
-  </xacro:ar_marker_70_5>
+  <!-- <xacro:ar_marker_70_5 prefix="b_bot_" -->
+  <!-- 			parent="b_bot_single_suction_gripper_base_link" -->
+  <!-- 			marker_id="26" -->
+  <!-- 			thickness="0.005"> -->
+  <!--   <origin xyz="0.063 0.0 0.0215" rpy="0 0 0"/> -->
+  <!-- </xacro:ar_marker_70_5> -->
 
   <xacro:ar_marker_70_5 prefix="workspace_"
 			parent="workspace_center"

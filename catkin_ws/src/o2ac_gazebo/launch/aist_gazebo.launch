@@ -42,7 +42,7 @@
 	respawn="false" output="screen"/>
   <node name="b_bot_controller_spawner" pkg="controller_manager"
 	type="controller_manager"
-	args="spawn b_bot/scaled_pos_joint_traj_controller"
+	args="spawn b_bot/scaled_pos_joint_traj_controller b_bot/gripper_controller"
 	respawn="false" output="screen"/>
 
   <!-- Set names of realsense cameras -->

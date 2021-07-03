@@ -21,6 +21,16 @@ a_bot:
     state_publish_rate:  25
     action_monitor_rate: 10
 
+  gripper_controller:
+    type: position_controllers/GripperActionController
+    gripper_type: '85'
+    joint: a_bot_finger_joint
+    action_monitor_rate: 20
+    goal_tolerance: 0.002
+    max_effort: 100
+    stall_velocity_threshold: 0.001
+    stall_timeout: 1.0
+
 b_bot:
   scaled_pos_joint_traj_controller:
     type: position_controllers/JointTrajectoryController
@@ -43,3 +53,13 @@ b_bot:
     stop_trajectory_duration: 0.5
     state_publish_rate:  25
     action_monitor_rate: 10
+
+  gripper_controller:
+    type: position_controllers/GripperActionController
+    gripper_type: '85'
+    joint: b_bot_finger_joint
+    action_monitor_rate: 20
+    goal_tolerance: 0.002
+    max_effort: 100
+    stall_velocity_threshold: 0.001
+    stall_timeout: 1.0
