@@ -1625,7 +1625,7 @@ class O2ACCommon(O2ACBase):
 
   ########  Motor pulley
 
-  def pick_and_insert_motor_pulley(self, task, attempt=2):
+  def pick_and_insert_motor_pulley(self, task):
     if task == "taskboard":
       target_link = "taskboard_small_shaft"
     elif task == "assembly":
@@ -1638,9 +1638,6 @@ class O2ACCommon(O2ACBase):
     if not self.pick_motor_pulley():
       return False
 
-    if self.b_bot.gripper.opening_width < 0.01:
-      rospy.logerr("Gripper did not grasp the pulley --> Stop")
-      return self.pick_and_insert_motor_pulley(task, attempt=attempt-1)
 
     if not self.playback_sequence(routine_filename="motor_pulley_orient"):
       rospy.logerr("Fail to complete the playback sequence motor pulley orient")
@@ -1649,7 +1646,7 @@ class O2ACCommon(O2ACBase):
 
     return self.insert_motor_pulley(target_link)
 
-  def pick_motor_pulley(self):
+  def pick_motor_pulley(self, attempt=2):
     goal = self.look_and_get_grasp_point("motor_pulley", grasp_width=0.06, center_on_corner=True, approach_height=0.02, grab_and_drop=True)
     
     if not isinstance(goal, geometry_msgs.msg.PoseStamped):
@@ -1663,6 +1660,11 @@ class O2ACCommon(O2ACBase):
     if not self.simple_pick("b_bot", goal, gripper_force=50.0, grasp_width=.06, axis="z", grasp_height=0.002):
       rospy.logerr("Fail to simple_pick")
       return False
+
+    if not self.simple_gripper_check("b_bot"):
+      rospy.logerr("Gripper did not grasp the pulley --> Stop")
+      return self.pick_motor_pulley(attempt=attempt-1)
+
     return True
 
   def insert_motor_pulley(self, target_link, attempts=1):

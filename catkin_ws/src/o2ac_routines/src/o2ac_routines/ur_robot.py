@@ -20,6 +20,7 @@ from ur_pykdl import ur_kinematics
 
 from trac_ik_python.trac_ik import IK
 
+
 class URRobot(RobotBase):
     def __init__(self, namespace, tf_listener):
         """
@@ -198,7 +199,7 @@ class URRobot(RobotBase):
         except:
             rospy.logwarn("Dashboard service did not respond! (2)")
             pass
-        
+
         if not program_loaded:
             rospy.logwarn("Could not load.")
             return self.activate_ros_control_on_ur(recursion_depth=recursion_depth+1)

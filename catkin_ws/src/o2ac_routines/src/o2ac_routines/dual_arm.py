@@ -113,7 +113,7 @@ class DualArm(RobotBase):
             return False
 
         master_slave_plan, ms_planning_time = result
-        
+
         if plan_only:
             return master_slave_plan, (m_planning_time + ms_planning_time)
         else:
@@ -134,7 +134,7 @@ class DualArm(RobotBase):
             slave_tcp = np.concatenate([master_tcp[:3]+slave_relation[:3], transformations.quaternion_multiply(slave_relation[3:], master_tcp[3:])])
             slave_tcp = conversions.to_pose_stamped("world", slave_tcp)
             slave_tcp = self.listener.transformPose(slave.ns + "_base_link", slave_tcp)
-            
+
             tries = 10.0
             ik_solver_timeout = 0.001
             ik_solution = None
@@ -155,7 +155,7 @@ class DualArm(RobotBase):
                 # 1. there shouldn't be any configuration flips
                 if self.joint_configuration_changes(last_ik_solution, ik_solution):
                     continue
-                
+
                 # 2. Compare the slave largest joint displacement for this IK solution vs the master largest joint displacement
                 # if the displacement is more than 5 deg, check that the displacement is not larger than 2x the master joint displacement
                 if i > 0:
@@ -163,9 +163,9 @@ class DualArm(RobotBase):
                     master_joint_displacement = np.max(np.abs(np.array(master_plan.joint_trajectory.points[i].positions)-master_plan.joint_trajectory.points[i-1].positions))
                     if slave_joint_displacement > np.deg2rad(5):  # arbitrary
                         if slave_joint_displacement > master_joint_displacement * 2.0:  # arbitrary
-                            ik_solution = None # reject solution
+                            ik_solution = None  # reject solution
                             continue
-                
+
                 if ik_solution and self.check_state_validity(list(point.positions) + list(ik_solution)):
                     break
 
@@ -174,9 +174,9 @@ class DualArm(RobotBase):
                 return False
 
             # Compute slave velocities/accelerations
-            if i ==0 or i == (len(master_plan.joint_trajectory.points) - 1):
+            if i == 0 or i == (len(master_plan.joint_trajectory.points) - 1):
                 slave_velocities = np.zeros_like(point.velocities)
-                slave_accelerations= np.zeros_like(point.accelerations)
+                slave_accelerations = np.zeros_like(point.accelerations)
             else:
                 previous_time = 0 if i == 0 else master_plan.joint_trajectory.points[i-1].time_from_start.to_sec()
                 duration = point.time_from_start.to_sec()-previous_time

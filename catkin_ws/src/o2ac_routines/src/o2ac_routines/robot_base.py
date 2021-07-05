@@ -251,7 +251,7 @@ class RobotBase():
             if success:
                 if self.joint_configuration_changes(plan.joint_trajectory.points[0].positions,
                                                     plan.joint_trajectory.points[-1].positions) \
-                                                             and not allow_joint_configuration_flip:
+                        and not allow_joint_configuration_flip:
                     success = False
                     rospy.logwarn("Joint configuration would have flipped.")
                     continue
@@ -402,7 +402,7 @@ class RobotBase():
             if relative_to_robot_base:
                 new_pose = self.listener.transformPose(self.ns + "_base_link", new_pose)
             elif relative_to_tcp:
-                new_pose.header.stamp = rospy.Time.now()  
+                new_pose.header.stamp = rospy.Time.now()
                 # Workaround for TF lookup into the future error
                 self.listener.waitForTransform(self.ns + "_gripper_tip_link", new_pose.header.frame_id, new_pose.header.stamp, rospy.Duration(1))
                 new_pose = self.listener.transformPose(self.ns + "_gripper_tip_link", new_pose)

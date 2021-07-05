@@ -7,10 +7,11 @@ import std_msgs.msg
 
 from o2ac_routines.helpers import check_for_real_robot
 
+
 class VisionClient():
     def __init__(self):
         self.use_real_robot = rospy.get_param("use_real_robot", False)
-        
+
         if self.use_real_robot:
             try:
                 self.vision_multiplexer = RealSenseMultiplexerClient('camera_multiplexer')
@@ -40,10 +41,10 @@ class VisionClient():
     def activate_camera(self, camera_name="b_bot_outside_camera"):
         try:
             if self.vision_multiplexer:
-                #TODO(cambel): move this logic inside the multiplexer
+                # TODO(cambel): move this logic inside the multiplexer
                 for cam in self.multiplexer_camera_names:
                     camera_state = rospy.get_param("/o2ac_vision_server/%s" % cam, None)
-                    if camera_state is None: # we are not sure of the state of the camera
+                    if camera_state is None:  # we are not sure of the state of the camera
                         try:
                             # Enable desired camera and Disable other cameras
                             self.set_camera_state(cam, cam == camera_state)
@@ -118,7 +119,7 @@ class VisionClient():
             return False
         res = self.detect_shaft_client.get_result()
         return res
-    
+
     def activate_pulley_screw_detection(self, activate=True):
         # Activate screw detection stream
         req = std_srvs.srv.SetBoolRequest()
@@ -130,7 +131,7 @@ class VisionClient():
         """ The pulley_screw_detection_stream_client needs to be set to True before calling this. """
         msg = rospy.wait_for_message('/o2ac_vision_server/pulley_screws_in_view', std_msgs.msg.Bool, rospy.Duration(1.0))
         return msg.data
-    
+
     def check_pick_success(self, object_name):
         """ Returns true if the visual pick success check for the object returns True.
             This can only be used in specific pre-determined situations and for certain items.
@@ -158,7 +159,7 @@ class VisionClient():
             self.localization_client.cancel_goal()  # Cancel goal if timeout expired
             rospy.logerr("Localization returned no result for object type " + object_type)
             return False
-        
+
         success = False
         try:
             res = self.localization_client.get_result()
