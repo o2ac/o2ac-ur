@@ -129,6 +129,28 @@ class URForceController(CompliantController):
                                   timeout=timeout, relative_to_ee=False, termination_criteria=termination_criteria,
                                   displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time, config_file=config_file)
 
+    def execute_spiral_trajectory2(self, initial_pose, plane, max_radius, radius_direction,
+                                    steps=100, revolutions=5,
+                                    wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0,
+                                    target_force=None, selection_matrix=None, timeout=10.,
+                                    displacement_epsilon=0.002, check_displacement_time=2.0,
+                                    termination_criteria=None, config_file=None):
+        dummy_trajectory = traj_utils.compute_trajectory(conversions.from_pose_to_list(initial_pose), 
+                                                   plane, max_radius, radius_direction, steps, revolutions, from_center=True, trajectory_type="spiral",
+                                                   wiggle_direction=wiggle_direction, wiggle_angle=wiggle_angle, wiggle_revolutions=wiggle_revolutions)
+        # convert dummy_trajectory (initial pose frame id) to robot's base frame
+        translation, rotation = self.listener.lookupTransform(self.ns + "_base_link", initial_pose.header.frame_id, rospy.Time.now())
+        transform2target = self.listener.fromTranslationRotation(translation, rotation)
+        trajectory = []
+        for p in dummy_trajectory:
+            ps = conversions.to_pose_stamped(self.ns + "_base_link", p)
+            trajectory.append(conversions.from_pose_to_list(conversions.transform_pose(self.ns + "_base_link", transform2target, ps)))
+
+        return self.force_control(target_force=target_force, target_positions=trajectory, selection_matrix=selection_matrix,
+                                  timeout=timeout, relative_to_ee=False, termination_criteria=termination_criteria,
+                                  displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time, config_file=config_file)
+
+
     def linear_push(self, force, direction, max_translation=None, relative_to_ee=False, timeout=10.0, slow=False, selection_matrix=None):
         """
         Apply force control in one direction until contact with `force`

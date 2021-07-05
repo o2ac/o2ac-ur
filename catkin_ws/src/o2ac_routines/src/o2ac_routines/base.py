@@ -530,6 +530,57 @@ class O2ACBase(object):
     
     return screw_picked
 
+  def screw(self, robot_name, screw_hole_pose, screw_height, screw_size, stay_put_after_screwing=False, duration=20.0, skip_final_loosen_and_retighten=False):
+    screw_tool_link = robot_name + "_screw_tool_" + "m" + str(screw_size) + "_tip_link"
+    screw_tool_id = "screw_tool_m" + str(screw_size)
+    fastening_tool_name = "screw_tool_m" + str(screw_size)
+    rospy.loginfo("screw tool link: %s " % screw_tool_link)
+
+    approach_height = .01
+    insertion_amount = .015
+
+    screw_tip_at_hole = copy.deepcopy(screw_hole_pose)
+    screw_tip_at_hole.pose.position.x -= screw_height
+    away_from_hole = copy.deepcopy(screw_tip_at_hole)
+    away_from_hole.pose.position.x -= approach_height
+    pushed_into_hole = copy.deepcopy(screw_tip_at_hole)
+    pushed_into_hole.pose.position.x += insertion_amount
+
+    self.active_robots[robot_name].go_to_goal_pose(away_from_hole, end_effector_link=screw_tool_link, speed=0.2)
+    
+    self.tools.set_motor(fastening_tool_name, direction="tighten", wait=False, duration=duration, 
+                         skip_final_loosen_and_retighten=skip_final_loosen_and_retighten)
+
+    self.planning_scene_interface.allow_collisions(screw_tool_id)
+
+    self.active_robots[robot_name].go_to_goal_pose(pushed_into_hole, end_effector_link=screw_tool_link, speed=0.02)
+
+    # TODO(cambel): Do spiral motion
+    # sm = [1., 1., 1., 1., 1., 1.]
+    # tc = lambda a, b: False
+    # self.a_bot.force_controller.execute_spiral_trajectory2(self.active_robots[robot_name].get_current_pose_stamped(),
+    #                                                      "YZ", max_radius=0.0015, radius_direction="+Y", steps=50,
+    #                                                       revolutions=2, target_force=0, selection_matrix=sm,
+    #                                                       termination_criteria=tc, timeout=10)
+
+    finished_before_timeout = self.tools.fastening_tool_client.wait_for_result(rospy.Duration(15))
+    result = self.tools.fastening_tool_client.get_result()
+    rospy.loginfo("Screw tool motor command. Finish before timeout: %s" % finished_before_timeout)
+    rospy.loginfo("Success: %s" % result)
+
+    if not stay_put_after_screwing:
+      self.active_robots[robot_name].go_to_goal_pose(away_from_hole, end_effector_link=screw_tool_link, speed=0.02)
+
+    self.planning_scene_interface.disallow_collisions(screw_tool_id)
+
+    screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
+    if screw_picked:
+      rospy.logerr("screw did not succeed: screw is still suctioned.")
+      return False
+        
+    self.tools.set_suction(screw_tool_id, suction_on=False, eject=False, wait=False)
+    return True
+
   @check_for_real_robot
   def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=True):
     return self.pick_screw_from_feeder_python(robot_name, screw_size, realign_tool_upon_failure)  # Python-only version
