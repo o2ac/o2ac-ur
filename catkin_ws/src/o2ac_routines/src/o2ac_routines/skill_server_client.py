@@ -23,6 +23,7 @@ class SkillServerClient():
         self.urscript_client = rospy.ServiceProxy('/o2ac_skills/sendScriptToUR', o2ac_msgs.srv.sendScriptToUR)
         self.use_real_robot = rospy.get_param("use_real_robot", False)
 
+    @check_for_real_robot
     def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=True):
         """
         Picks a screw from one of the feeders. The screw tool already has to be equipped!

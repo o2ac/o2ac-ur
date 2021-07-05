@@ -253,7 +253,6 @@ class O2ACTaskboard(O2ACCommon):
 
     # self.subtask_completed["shaft"] = self.do_task("shaft")
     
-    self.confirm_to_proceed("Continue into loop to retry parts?")
     order = ["motor pulley", "idler pulley", "belt", "shaft", "bearing"]
     task_complete = False
 
@@ -263,6 +262,7 @@ class O2ACTaskboard(O2ACCommon):
       self.execute_step(item)
       
     # Then loop through the remaining items
+    self.confirm_to_proceed("Continue into loop to retry parts?")
     while not task_complete:
       for item in order:
         self.execute_step(item)
@@ -432,7 +432,7 @@ class O2ACTaskboard(O2ACCommon):
       hole_pose.pose.position.z = -.004  # MAGIC NUMBER (z-axis of the frame points down)
       hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
       if not fake_execution_for_calibration:
-        self.skill_server.do_screw_action("a_bot", hole_pose, screw_size = 3, loosen_and_retighten_when_done=False)
+        self.screw("a_bot", hole_pose, screw_size = 3, skip_final_loosen_and_retighten=False)
       else:
         hole_pose.pose.position.x -= 0.005
         self.a_bot.go_to_pose_goal(hole_pose, speed=0.05, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
@@ -458,7 +458,7 @@ class O2ACTaskboard(O2ACCommon):
       hole_pose.pose.position.y = -.001  # MAGIC NUMBER (y-axis of the frame points right)
       hole_pose.pose.position.z = -.001  # MAGIC NUMBER (z-axis of the frame points down)
       if not fake_execution_for_calibration:
-        self.skill_server.do_screw_action("b_bot", hole_pose, screw_size = 4, loosen_and_retighten_when_done=False)
+        self.screw("b_bot", hole_pose, screw_size = 4, skip_final_loosen_and_retighten=False)
       else:
         hole_pose.pose.position.x = -.01
         approach_pose = copy.deepcopy(hole_pose)

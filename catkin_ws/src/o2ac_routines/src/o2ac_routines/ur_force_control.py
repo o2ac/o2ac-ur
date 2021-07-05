@@ -5,7 +5,7 @@ import yaml
 
 import numpy as np
 
-from ur_control import utils, spalg, transformations, traj_utils, conversions
+from ur_control import utils, traj_utils, conversions
 from ur_control.hybrid_controller import ForcePositionController
 from ur_control.compliant_controller import CompliantController
 from ur_control.constants import STOP_ON_TARGET_FORCE, TERMINATION_CRITERIA, DONE
@@ -29,21 +29,13 @@ def create_pid(pid, default_ki=0.0, default_kd=0.0):
 
 class URForceController(CompliantController):
     def __init__(self, robot_name, listener, tcp_link='gripper_tip_link', **kwargs):
-        # TODO(cambel): fix this ugly workaround by properly defining the tool tip with respect to tool0
-        if tcp_link == 'gripper_tip_link':
-            if robot_name == "b_bot":
-                ee_transform = [0.0, 0.0, 0.173, 0.500, -0.500, 0.500, 0.500]
-            if robot_name == "a_bot":
-                ee_transform = [0.0, 0.0, 0.246, 0.500, -0.500, 0.500, 0.500]
-
-            tcp_link = 'tool0'
-
         self.listener = listener
+        self.default_tcp_link = robot_name + '_' + tcp_link
 
         CompliantController.__init__(self, ft_sensor=True, namespace=robot_name,
                                      joint_names_prefix=robot_name+'_', robot_urdf=robot_name,
                                      robot_urdf_package='o2ac_scene_description',
-                                     ee_link=tcp_link, ee_transform=ee_transform, **kwargs)
+                                     ee_link=tcp_link, **kwargs)
 
     def _init_force_controller(self, config_file):
         path = rospkg.RosPack().get_path("o2ac_routines") + "/config/" + config_file + ".yaml"
@@ -62,9 +54,9 @@ class URForceController(CompliantController):
 
     def force_control(self, target_force=None, target_positions=None,
                       selection_matrix=None, relative_to_ee=False,
-                      timeout=10.0, stop_on_target_force=False, reset_pids=True, termination_criteria=None,
+                      timeout=10.0, stop_on_target_force=False, termination_criteria=None,
                       displacement_epsilon=0.002, check_displacement_time=2.0,
-                      config_file=None):
+                      config_file=None, time_compensation=True, end_effector_link=None):
         """ 
             Use with caution!! 
             target_force: list[6], target force for each direction x,y,z,ax,ay,az
@@ -72,8 +64,11 @@ class URForceController(CompliantController):
             selection_matrix: list[6], define which direction is controlled by position(1.0) or force(0.0)
             relative_to_ee: bool, whether to use the base_link of the robot as frame or the ee_link (+ ee_transform)
             timeout: float, duration in seconds of the force control
-            reset_pids: bool, should reset pids after using force control, but for continuos control during a trajectory, it is not recommended until the trajectory is completed
         """
+        if end_effector_link and end_effector_link != self.default_tcp_link:
+            # Init IK and FK solvers with new end effector link
+            self._init_ik_solver(self.base_link, end_effector_link)
+
         if config_file is None:
             config_file = "force_control"
         self._init_force_controller(config_file)
@@ -90,8 +85,13 @@ class URForceController(CompliantController):
 
         result = self.set_hybrid_control_trajectory(target_positions, self.force_model, max_force_torque=self.max_force_torque, timeout=timeout,
                                                     stop_on_target_force=stop_on_target_force, termination_criteria=termination_criteria,
-                                                    displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time, debug=False)
+                                                    displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time, debug=False,
+                                                    time_compensation=time_compensation)
         self.force_model.reset()  # reset pid errors
+
+        if end_effector_link and end_effector_link != self.default_tcp_link:
+            # Init IK and FK solvers with default end effector link
+            self._init_ik_solver(self.base_link, self.default_tcp_link)
 
         return result
 
@@ -129,27 +129,32 @@ class URForceController(CompliantController):
                                   timeout=timeout, relative_to_ee=False, termination_criteria=termination_criteria,
                                   displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time, config_file=config_file)
 
-    def execute_spiral_trajectory2(self, initial_pose, plane, max_radius, radius_direction,
-                                    steps=100, revolutions=5,
-                                    wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0,
-                                    target_force=None, selection_matrix=None, timeout=10.,
-                                    displacement_epsilon=0.002, check_displacement_time=2.0,
-                                    termination_criteria=None, config_file=None):
-        dummy_trajectory = traj_utils.compute_trajectory(conversions.from_pose_to_list(initial_pose), 
-                                                   plane, max_radius, radius_direction, steps, revolutions, from_center=True, trajectory_type="spiral",
-                                                   wiggle_direction=wiggle_direction, wiggle_angle=wiggle_angle, wiggle_revolutions=wiggle_revolutions)
+    def execute_spiral_trajectory2(self, plane, max_radius, radius_direction,
+                                   steps=100, revolutions=5,
+                                   wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0,
+                                   target_force=None, selection_matrix=None, timeout=10.,
+                                   displacement_epsilon=0.002, check_displacement_time=2.0,
+                                   termination_criteria=None, config_file=None,
+                                   end_effector_link=None):
+        eff = self.default_tcp_link if not end_effector_link else end_effector_link
+        dummy_trajectory = traj_utils.compute_trajectory([0, 0, 0, 0, 0, 0, 1.],
+                                                         plane, max_radius, radius_direction, steps, revolutions, from_center=True, trajectory_type="spiral",
+                                                         wiggle_direction=wiggle_direction, wiggle_angle=wiggle_angle, wiggle_revolutions=wiggle_revolutions)
         # convert dummy_trajectory (initial pose frame id) to robot's base frame
-        translation, rotation = self.listener.lookupTransform(self.ns + "_base_link", initial_pose.header.frame_id, rospy.Time.now())
+        now = rospy.Time.now()
+        self.listener.waitForTransform(self.base_link, eff, now, rospy.Duration(1))
+        translation, rotation = self.listener.lookupTransform(self.base_link, eff, now)
         transform2target = self.listener.fromTranslationRotation(translation, rotation)
         trajectory = []
         for p in dummy_trajectory:
-            ps = conversions.to_pose_stamped(self.ns + "_base_link", p)
-            trajectory.append(conversions.from_pose_to_list(conversions.transform_pose(self.ns + "_base_link", transform2target, ps)))
+            ps = conversions.to_pose_stamped(self.base_link, p)
+            trajectory.append(conversions.from_pose_to_list(conversions.transform_pose(self.base_link, transform2target, ps).pose))
 
-        return self.force_control(target_force=target_force, target_positions=trajectory, selection_matrix=selection_matrix,
+        sm = selection_matrix if selection_matrix else [1., 1., 1., 1., 1., 1.]  # no force control by default
+        return self.force_control(target_force=target_force, target_positions=trajectory, selection_matrix=sm,
                                   timeout=timeout, relative_to_ee=False, termination_criteria=termination_criteria,
-                                  displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time, config_file=config_file)
-
+                                  displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time, config_file=config_file,
+                                  time_compensation=False, end_effector_link=end_effector_link)
 
     def linear_push(self, force, direction, max_translation=None, relative_to_ee=False, timeout=10.0, slow=False, selection_matrix=None):
         """
@@ -183,12 +188,11 @@ class URForceController(CompliantController):
         rospy.logerr("Fail to complete linear_push %s" % result)
         return False
 
-
-    def do_insertion(self, target_pose_in_target_frame, insertion_direction, timeout, 
-                           radius=0.0, radius_direction=None, revolutions=3, force=1.0, relaxed_target_by=0.0,
-                           wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0,
-                           selection_matrix=None, displacement_epsilon=0.002, check_displacement_time=2.0,
-                           config_file=None):
+    def do_insertion(self, target_pose_in_target_frame, insertion_direction, timeout,
+                     radius=0.0, radius_direction=None, revolutions=3, force=1.0, relaxed_target_by=0.0,
+                     wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0,
+                     selection_matrix=None, displacement_epsilon=0.002, check_displacement_time=2.0,
+                     config_file=None):
         """
             target_pose_in_target_frame: PoseStamp, target in target frame
             insertion_direction: string, [+/-] "X", "Y", or "Z" in robot's base frame! Note: limited to one direction TODO: convert to target frame? or compute from target frame?
@@ -221,19 +225,18 @@ class URForceController(CompliantController):
                 more_than = insertion_direction[0] == '-' if self.ns == "b_bot" else insertion_direction[0] == '+'
             if more_than:
                 return current_pose_of[axis] >= target_pose_of[axis] or \
-                            (standby and current_pose_of[axis] >= target_pose_of[axis] - relaxed_target_by)
+                    (standby and current_pose_of[axis] >= target_pose_of[axis] - relaxed_target_by)
             return current_pose_of[axis] <= target_pose_of[axis] or \
-                        (standby and current_pose_of[axis] <= target_pose_of[axis] + relaxed_target_by)
+                (standby and current_pose_of[axis] <= target_pose_of[axis] + relaxed_target_by)
 
         result = self.execute_spiral_trajectory(plane, max_radius=radius, radius_direction=radius_direction, steps=100, revolutions=revolutions,
-                                        wiggle_direction=wiggle_direction, wiggle_angle=wiggle_angle, wiggle_revolutions=wiggle_revolutions,
-                                        target_force=target_force, selection_matrix=selection_matrix, timeout=timeout,
-                                        displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time,
-                                        termination_criteria=termination_criteria, config_file=config_file)
+                                                wiggle_direction=wiggle_direction, wiggle_angle=wiggle_angle, wiggle_revolutions=wiggle_revolutions,
+                                                target_force=target_force, selection_matrix=selection_matrix, timeout=timeout,
+                                                displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time,
+                                                termination_criteria=termination_criteria, config_file=config_file)
 
         if result in (TERMINATION_CRITERIA, DONE, STOP_ON_TARGET_FORCE):
             rospy.loginfo("Completed insertion with state: %s" % result)
         else:
             rospy.logerr("Fail to complete insertion with state %s" % result)
         return result
-

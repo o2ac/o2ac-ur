@@ -47,6 +47,7 @@ import rospkg
 import tf_conversions
 import tf 
 import actionlib
+from actionlib_msgs.msg import GoalStatus
 
 import yaml
 import pickle
@@ -404,6 +405,8 @@ class O2ACBase(object):
 
     self.tools.set_suction(screw_tool_id, suction_on=True, eject=False, wait=False)
 
+    approach_height = 0.016
+
     if not do_spiral_search_at_bottom:
       max_radius = .0025
       theta_incr = tau/6
@@ -417,7 +420,7 @@ class O2ACBase(object):
         
         self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=5.0, skip_final_loosen_and_retighten=True)
         rospy.loginfo("Moving into screw to pick it up.")
-        adjusted_pose.pose.position.x += .016
+        adjusted_pose.pose.position.x += approach_height
         success = False
         while not success: # TODO(cambel, felix): infinite loop?
           success = self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, end_effector_link=screw_tool_link)
@@ -426,7 +429,7 @@ class O2ACBase(object):
         screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
         if screw_picked:
           rospy.loginfo("Detected successful pick.")
-          if not self.active_robots[robot_name].move_lin_rel(relative_translation=[0.005, 0, 0], speed=0.015):
+          if not self.active_robots[robot_name].move_lin_rel(relative_translation=[0.01, 0, 0], speed=0.015):
             rospy.logerr("Fail to move screw through gate sensor")
           # if not self.active_robots[robot_name].move_lin_rel(relative_translation=[0, 0, 0.03], speed=0.2):
           #   rospy.logerr("Fail to move up")
@@ -434,7 +437,7 @@ class O2ACBase(object):
 
         rospy.loginfo("Moving back a bit slowly.")
         rospy.sleep(0.5)
-        adjusted_pose.pose.position.x -= .016
+        adjusted_pose.pose.position.x -= approach_height
         success = False
         while not success: # TODO(cambel, felix): infinite loop?
           success = self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, end_effector_link=screw_tool_link)
@@ -458,42 +461,42 @@ class O2ACBase(object):
         r = r + radius_inc_set
         RealRadius = sqrt(pow(y, 2) + pow(z, 2))
     else:
-      offsets = [[0.0015, 0.0015], [0.0015, -0.0015], [-0.0015, 0.0015], [-0.0015, -0.0015]] # only diagonals from start point
+      offsets = [[0., 0.], [0.001, 0.001], [0.001, -0.001], [-0.001, 0.001], [-0.001, -0.001]] # only diagonals from start point
 
       for i, offset in enumerate(offsets): 
         assert not rospy.is_shutdown(), "Did ros die?"
 
+        adjusted_pose = copy.deepcopy(search_start_pose)
+        adjusted_pose.pose.position.y += offset[0]
+        adjusted_pose.pose.position.z += offset[1]
+
         self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=12.0, skip_final_loosen_and_retighten=True)
         # self.send_fastening_tool_command(fastening_tool_name, "loosen", false, 5.0)
         rospy.loginfo("Moving into screw to pick it up.")
-        adjusted_pose.pose.position.x += .02
+        adjusted_pose.pose.position.x += approach_height
         self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, acceleration=0.025, end_effector_link=screw_tool_link)
 
         rospy.sleep(0.5)
         screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
         if screw_picked:
+          if not self.active_robots[robot_name].move_lin_rel(relative_translation=[0.01, 0, 0], speed=0.015):
+            rospy.logerr("Fail to move screw through gate sensor")
           break
         
         rospy.loginfo("Spiral motion, trying to find the screw")
-        spiral_trajectory = compute_trajectory(conversions.from_pose_to_list(adjusted_pose.pose), 
-                                      "YZ", 0.002, "+Y", steps=15, revolutions=3, from_center=True,  trajectory_type="spiral")
-        st = []
-        for t in spiral_trajectory:
-            st.append([conversions.to_pose_stamped("m" + str(screw_size) + "_feeder_outlet_link", t), 0.0])
-        self.active_robots[robot_name].move_lin_trajectory(st, speed=0.03, end_effector_link=screw_tool_link)
+        tc = lambda a, b: self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
+        self.active_robots[robot_name].force_controller.execute_spiral_trajectory2("YZ", max_radius=0.001, radius_direction="+Y", steps=50,
+                                                          revolutions=2, target_force=0, termination_criteria=tc, timeout=5,
+                                                          check_displacement_time=10, end_effector_link=screw_tool_link)
+
+        if screw_picked:
+          if not self.active_robots[robot_name].move_lin_rel(relative_translation=[0.01, 0, 0], speed=0.015):
+            rospy.logerr("Fail to move screw through gate sensor")
+          break
 
         rospy.loginfo("Moving back a bit slowly.")
-        adjusted_pose.pose.position.x -= .02
+        adjusted_pose.pose.position.x -= approach_height
         self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.1, acceleration=0.05, end_effector_link=screw_tool_link)
-        
-        adjusted_pose = copy.deepcopy(search_start_pose)
-        adjusted_pose.pose.position.y += offset[0]
-        adjusted_pose.pose.position.z += offset[1]
-        
-        rospy.sleep(0.5)
-        screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
-        if screw_picked:
-          break
         
         rospy.logerr("Retrying pickup with adjusted position. %s of %s" % (i+1, len(offsets)))
     
@@ -530,7 +533,7 @@ class O2ACBase(object):
     
     return screw_picked
 
-  def screw(self, robot_name, screw_hole_pose, screw_height, screw_size, stay_put_after_screwing=False, duration=20.0, skip_final_loosen_and_retighten=False):
+  def screw(self, robot_name, screw_hole_pose, screw_size, screw_height=0.02, stay_put_after_screwing=False, duration=20.0, skip_final_loosen_and_retighten=False):
     screw_tool_link = robot_name + "_screw_tool_" + "m" + str(screw_size) + "_tip_link"
     screw_tool_id = "screw_tool_m" + str(screw_size)
     fastening_tool_name = "screw_tool_m" + str(screw_size)
@@ -546,30 +549,28 @@ class O2ACBase(object):
     pushed_into_hole = copy.deepcopy(screw_tip_at_hole)
     pushed_into_hole.pose.position.x += insertion_amount
 
-    self.active_robots[robot_name].go_to_goal_pose(away_from_hole, end_effector_link=screw_tool_link, speed=0.2)
+    self.active_robots[robot_name].go_to_pose_goal(away_from_hole, end_effector_link=screw_tool_link, speed=0.2)
     
     self.tools.set_motor(fastening_tool_name, direction="tighten", wait=False, duration=duration, 
                          skip_final_loosen_and_retighten=skip_final_loosen_and_retighten)
 
     self.planning_scene_interface.allow_collisions(screw_tool_id)
 
-    self.active_robots[robot_name].go_to_goal_pose(pushed_into_hole, end_effector_link=screw_tool_link, speed=0.02)
+    self.active_robots[robot_name].go_to_pose_goal(pushed_into_hole, end_effector_link=screw_tool_link, speed=0.02)
 
-    # TODO(cambel): Do spiral motion
-    # sm = [1., 1., 1., 1., 1., 1.]
-    # tc = lambda a, b: False
-    # self.a_bot.force_controller.execute_spiral_trajectory2(self.active_robots[robot_name].get_current_pose_stamped(),
-    #                                                      "YZ", max_radius=0.0015, radius_direction="+Y", steps=50,
-    #                                                       revolutions=2, target_force=0, selection_matrix=sm,
-    #                                                       termination_criteria=tc, timeout=10)
+    # Stop spiral motion if the tool action finished, regardless of success/failure
+    tc = lambda a, b: self.tools.fastening_tool_client.get_state() in (GoalStatus.SUCCEEDED, GoalStatus.PREEMPTED, GoalStatus.ABORTED, GoalStatus.LOST)
+    self.active_robots[robot_name].force_controller.execute_spiral_trajectory2("YZ", max_radius=0.0015, radius_direction="+Y", steps=50,
+                                                          revolutions=5, target_force=0, check_displacement_time=10,
+                                                          termination_criteria=tc, timeout=10, end_effector_link=screw_tool_link)
 
     finished_before_timeout = self.tools.fastening_tool_client.wait_for_result(rospy.Duration(15))
     result = self.tools.fastening_tool_client.get_result()
     rospy.loginfo("Screw tool motor command. Finish before timeout: %s" % finished_before_timeout)
-    rospy.loginfo("Success: %s" % result)
+    rospy.loginfo("Result: %s" % result)
 
     if not stay_put_after_screwing:
-      self.active_robots[robot_name].go_to_goal_pose(away_from_hole, end_effector_link=screw_tool_link, speed=0.02)
+      self.active_robots[robot_name].go_to_pose_goal(away_from_hole, end_effector_link=screw_tool_link, speed=0.02)
 
     self.planning_scene_interface.disallow_collisions(screw_tool_id)
 
@@ -581,7 +582,6 @@ class O2ACBase(object):
     self.tools.set_suction(screw_tool_id, suction_on=False, eject=False, wait=False)
     return True
 
-  @check_for_real_robot
   def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=True):
     return self.pick_screw_from_feeder_python(robot_name, screw_size, realign_tool_upon_failure)  # Python-only version
     res = self.skill_server.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure)

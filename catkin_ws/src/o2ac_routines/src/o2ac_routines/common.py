@@ -2150,7 +2150,8 @@ class O2ACCommon(O2ACBase):
 
     self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
     
-    res = self.skill_server.do_screw_action(robot_name, screw_hole_pose, screw_height, screw_size)
+    # res = self.skill_server.do_screw_action(robot_name, screw_hole_pose, screw_height, screw_size)
+    res = self.screw(robot_name, screw_hole_pose, screw_size, screw_height, stay_put_after_screwing=False, skip_final_loosen_and_retighten=False)
     self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
     return res  # Bool
 
@@ -2164,7 +2165,8 @@ class O2ACCommon(O2ACBase):
 
     self.active_robots[robot_name].go_to_named_pose("horizontal_screw_ready")
     
-    success = self.skill_server.do_screw_action(robot_name, screw_hole_pose, screw_height, screw_size)
+    # success = self.skill_server.do_screw_action(robot_name, screw_hole_pose, screw_height, screw_size)
+    success = self.screw(robot_name, screw_hole_pose, screw_size, screw_height, stay_put_after_screwing=False, skip_final_loosen_and_retighten=False)
     self.active_robots[robot_name].go_to_named_pose("horizontal_screw_ready")
     return success
 
