@@ -19,8 +19,8 @@ class VisionClient():
             self.multiplexer_camera_names = rospy.get_param('/camera_multiplexer/camera_names')
             self.camera_enable_services = {}
             for cam in self.multiplexer_camera_names:
-                    rospy.wait_for_service('/%s/enable' % cam)
-                    self.camera_enable_services.update({cam: rospy.ServiceProxy('/%s/enable' % cam, std_srvs.srv.SetBool)})
+                rospy.wait_for_service('/%s/enable' % cam)
+                self.camera_enable_services.update({cam: rospy.ServiceProxy('/%s/enable' % cam, std_srvs.srv.SetBool)})
 
         self.ssd_client = actionlib.SimpleActionClient('/o2ac_vision_server/get_3d_poses_from_ssd', o2ac_msgs.msg.get3DPosesFromSSDAction)
         self.detect_shaft_client = actionlib.SimpleActionClient('/o2ac_vision_server/detect_shaft_notch', o2ac_msgs.msg.shaftNotchDetectionAction)
@@ -30,6 +30,11 @@ class VisionClient():
         self.pulley_screw_detection_stream_client = rospy.ServiceProxy('/o2ac_vision_server/activate_pulley_screw_detection', std_srvs.srv.SetBool)
         self.pulley_screw_detection_streaming = False
 
+    def set_camera_state(self, camera_name, enable=True):
+        enable_srv = self.camera_enable_services.get(camera_name)
+        rospy.loginfo("Enable => %s for camera %s" % (enable, camera_name))
+        enable_srv(std_srvs.srv.SetBoolRequest(data=(enable)))
+        rospy.set_param("/o2ac_vision_server/%s" % camera_name, enable)
 
     @check_for_real_robot
     def activate_camera(self, camera_name="b_bot_outside_camera"):
@@ -37,13 +42,18 @@ class VisionClient():
             if self.vision_multiplexer:
                 #TODO(cambel): move this logic inside the multiplexer
                 for cam in self.multiplexer_camera_names:
-                    try:
-                        # Enable desired camera and Disable other cameras
-                        enable_srv = self.camera_enable_services.get(cam)
-                        rospy.loginfo("Enable => %s for camera %s" % (cam == camera_name, cam))
-                        enable_srv(std_srvs.srv.SetBoolRequest(data=(cam == camera_name)))
-                    except:
-                        pass
+                    camera_state = rospy.get_param("/o2ac_vision_server/%s" % cam, None)
+                    if camera_state is None: # we are not sure of the state of the camera
+                        try:
+                            # Enable desired camera and Disable other cameras
+                            self.set_camera_state(cam, cam == camera_state)
+                        except:
+                            pass
+                    else:
+                        if camera_state and cam != camera_name:
+                            self.set_camera_state(cam, False)
+                        elif not camera_state and cam == camera_name:
+                            self.set_camera_state(cam, True)
                 rospy.sleep(1)
                 return self.vision_multiplexer.activate_camera(camera_name)
             else:
