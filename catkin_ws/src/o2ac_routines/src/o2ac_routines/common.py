@@ -305,22 +305,19 @@ class O2ACCommon(O2ACBase):
     # Look from top first
     self.active_robots[robot_name].go_to_pose_goal(self.tray_view_high, end_effector_link=robot_name+"_outside_camera_color_frame", speed=.3, acceleration=.15)
     self.vision.activate_camera(robot_name+"_outside_camera")
-    success = self.detect_object_in_camera_view(item_name)
+    object_pose = self.detect_object_in_camera_view(item_name)
 
-    # # TODO: Also move robot if object requires a close-up view (shaft, pin...)
-    # if not success:
-    #   poses = [self.tray_view_close_front_b, self.tray_view_close_back_b, self.tray_view_close_front_a, self.tray_view_close_back_a]
-    #   for pose in poses:
-    #     self.active_robots[robot_name].go_to_pose_goal(pose, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
-    #     success = self.detect_object_in_camera_view(item_name)
-    #     if success:
-    #       break
-
-    if not success:
-      rospy.logdebug("Failed to find " + item_name)
+    if object_pose:
+      rospy.logdebug("Found " + item_name + ". Publishing to planning scene.")
+      print(object_pose)
+      obj = self.assembly_database.get_collision_object(item_name)
+      obj.header.frame_id = object_pose.header.frame_id
+      obj.pose = object_pose.pose
+      self.planning_scene_interface.add_object(obj)
     else:
-      rospy.logdebug("Found " + item_name)
-    return success
+      rospy.logdebug("Failed to find " + item_name)
+      
+    return object_pose
 
   def look_and_get_object_pose(self, object_id, robot_name="b_bot"):
     """

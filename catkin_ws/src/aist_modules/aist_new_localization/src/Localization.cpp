@@ -316,14 +316,10 @@ Localization::refine_transform(const std::string& object_name,
     icp.setTransformationEpsilon(_transformation_epsilon);
     icp.setEuclideanFitnessEpsilon(_fitness_epsilon);
 
-  // Setup transformation from PCD cloud to URDF model. This corresponds to
-  // the rotation from STL mesh to assy_part_XX link specified by
-  // rpy="1.5707 0 0"
-  // in o2ac_parts_description/urdf/generated/XX_YYYY_macro.urdf.xacro.
-    const tf::Transform	Tmp({1.0, 0.0,  0.0,
-			     0.0, 0.0, -1.0,
-			     0.0, 1.0,  0.0},
-			    {0.0, 0.0,  0.0});
+    const tf::Transform	Tmp({1.0, 0.0, 0.0,
+			     0.0, 1.0, 0.0,
+			     0.0, 0.0, 1.0},
+			    {0.0, 0.0, 0.0});
 
   // Perform ICP to refine model pose
     pcl_cloud_p	registered_cloud(new pcl_cloud_t);

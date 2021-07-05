@@ -343,7 +343,7 @@ class O2ACVisionServer(object):
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
 
     def execute_localization(self, im_in, im_vis):
-        rospy.loginfo("Exectute localization action")
+        rospy.loginfo("Execute localization action")
         # Apply SSD first to get the object's bounding box
         poses2d_array, im_vis = self.get_2d_poses_from_ssd(im_in, im_vis)
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))

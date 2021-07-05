@@ -4,6 +4,7 @@ from aist_camera_multiplexer import RealSenseMultiplexerClient
 import o2ac_msgs.msg
 import std_srvs.srv
 import std_msgs.msg
+import geometry_msgs.msg
 
 from o2ac_routines.helpers import check_for_real_robot
 
@@ -163,8 +164,13 @@ class VisionClient():
         success = False
         try:
             res = self.localization_client.get_result()
-            if res.succeeded:
-                return res.detected_poses[0]
+            print(res.detected_poses[0])
+            r = res.detected_poses[0]
+            if r.poses.poses[0]:
+                outpose = geometry_msgs.msg.PoseStamped()
+                outpose.header = r.poses.header
+                outpose.pose = r.poses.poses[0]
+                return outpose
         except:
             pass
         rospy.logerr("Localization failed to find a pose for object type " + object_type)
