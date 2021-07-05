@@ -152,7 +152,11 @@ class DualArm(RobotBase):
                     continue
 
                 # Sanity check
-                # Compare the slave largest joint displacement for this IK solution vs the master largest joint displacement
+                # 1. there shouldn't be any configuration flips
+                if self.joint_configuration_changes(last_ik_solution, ik_solution):
+                    continue
+                
+                # 2. Compare the slave largest joint displacement for this IK solution vs the master largest joint displacement
                 # if the displacement is more than 5 deg, check that the displacement is not larger than 2x the master joint displacement
                 if i > 0:
                     slave_joint_displacement = np.max(np.abs(ik_solution-last_ik_solution))

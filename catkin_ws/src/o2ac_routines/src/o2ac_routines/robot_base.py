@@ -100,7 +100,7 @@ class RobotBase():
         req = moveit_msgs.srv.GetPositionIKRequest()
         req.ik_request = ik_request
         res = self.moveit_ik_srv.call(req)
-        
+
         if res.error_code.val != moveit_msgs.msg.MoveItErrorCodes.SUCCESS:
             rospy.logwarn("compute IK failed with code: %s" % res.error_code.val)
             return None
@@ -159,22 +159,20 @@ class RobotBase():
             gp = goal_pose
         return helpers.all_close(gp.pose, current_pose.pose, 0.01)
 
-    def joint_configuration_changes(self, plan):
+    def joint_configuration_changes(self, start, end, tolerance=0.1):
         """ Returns True if the sign of any joint angle changes during the motion,
             and the joint angle is not near 0 (0.01 rad =~ 0.5 deg tolerance).
         """
-        start = np.array(plan.joint_trajectory.points[0].positions)
-        end = np.array(plan.joint_trajectory.points[-1].positions)
-        signs = np.sign(start*end)
-        
+        signs = np.sign(np.array(start)*np.array(end))
+
         if np.all(signs > 0):
             return False  # = all OK
-        
+
         joint_changes_small = True
         for i in range(len(signs)):
-            
+
             if signs[i] < 0:
-                if abs(start[i] < 0.01) or abs(end[i] < 0.01):
+                if abs(start[i] < tolerance) or abs(end[i] < tolerance):
                     rospy.logdebug("Joint changes sign, but the change is small. Ignoring.")
                     rospy.logdebug("start[i] = %d6, end[i] = %d6", (start[i], end[i]))
                     continue
@@ -197,7 +195,7 @@ class RobotBase():
         bagfile = rp.get_path("o2ac_routines") + "/config/saved_plans/" + filename
         with rosbag.Bag(bagfile, 'w') as bag:
             bag.write(topic="saved_plan", msg=plan)
-    
+
     def load_saved_plan(self, filename):
         rp = rospkg.RosPack()
         bagfile = rp.get_path("o2ac_routines") + "/config/saved_plans/" + filename
@@ -220,7 +218,7 @@ class RobotBase():
             goal_joints = helpers.get_trajectory_joint_goal(plan, self.robot_group.get_active_joints())
             return helpers.all_close(goal_joints, current_joints, 0.01)
         return True
-        
+
     def go_to_pose_goal(self, pose_goal_stamped, speed=0.5, acceleration=0.25,
                         end_effector_link="", move_lin=True, wait=True, plan_only=False, initial_joints=None,
                         allow_joint_configuration_flip=False, move_ptp=False):
@@ -251,7 +249,9 @@ class RobotBase():
             success, plan, planning_time, error = group.plan()
 
             if success:
-                if self.joint_configuration_changes(plan) and not allow_joint_configuration_flip:
+                if self.joint_configuration_changes(plan.joint_trajectory.points[0].positions,
+                                                    plan.joint_trajectory.points[-1].positions) \
+                                                             and not allow_joint_configuration_flip:
                     success = False
                     rospy.logwarn("Joint configuration would have flipped.")
                     continue
@@ -291,11 +291,10 @@ class RobotBase():
         group = self.robot_group
 
         group.set_end_effector_link(end_effector_link)
-        if len(trajectory[0]) == 2: # Speed per point was not defined
+        if len(trajectory[0]) == 2:  # Speed per point was not defined
             waypoints = [(self.listener.transformPose("world", ps), blend_radius, speed) for ps, blend_radius in trajectory]
         elif len(trajectory[0]) == 3:
             waypoints = [(self.listener.transformPose("world", ps), blend_radius, speed) for ps, blend_radius, speed in trajectory]
-
 
         motion_plan_requests = []
 
@@ -348,7 +347,7 @@ class RobotBase():
                     rospy.logwarn("(move_lin_trajectory) Planning failed, retry: %s" % (tries+1))
             else:
                 result = self.sequence_move_group.send_goal_and_wait(goal)
-                
+
                 # if result == GoalStatus.SUCCEEDED: # Moveit complains but the motion is completed correctly =/
                 if self.check_goal_pose_reached(waypoints[-1][0]):
                     group.clear_pose_targets()
@@ -362,9 +361,9 @@ class RobotBase():
             rospy.logerr("Fail move_lin_trajectory with status %s" % result)
         return False
 
-    def move_lin(self, pose_goal_stamped, speed=0.5, acceleration=0.5, end_effector_link="", wait=True, 
-                plan_only=False, initial_joints=None, allow_joint_configuration_flip=False):
-        return self.go_to_pose_goal(pose_goal_stamped, speed, acceleration, end_effector_link, move_lin=True, 
+    def move_lin(self, pose_goal_stamped, speed=0.5, acceleration=0.5, end_effector_link="", wait=True,
+                 plan_only=False, initial_joints=None, allow_joint_configuration_flip=False):
+        return self.go_to_pose_goal(pose_goal_stamped, speed, acceleration, end_effector_link, move_lin=True,
                                     wait=wait, plan_only=plan_only, initial_joints=initial_joints,
                                     allow_joint_configuration_flip=allow_joint_configuration_flip)
 
