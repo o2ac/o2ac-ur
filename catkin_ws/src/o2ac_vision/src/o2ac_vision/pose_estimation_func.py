@@ -896,3 +896,131 @@ class PulleyScrewDetection():
             flag = False
 
         return max_val, flag
+
+"""
+ Chamfer Matching
+ Input:
+   temp: template, 1ch numpy array
+   scene: input scene, 1 ch numpy array
+"""
+class ChamferMatching():
+    def __init__( self, temp, scene ):
+        self.im_temp = temp.copy() # template
+        self.im_in = scene.copy() # scene
+
+        self.temp_size = np.asarray( self.im_temp.shape ) # size of template
+        self.in_size = np.asarray( self.im_in.shape ) # size of scene
+        self.s_map = np.zeros( self.in_size-self.temp_size+1 )
+        
+        # apply edge detector
+        self.im_temp_edge = cv2.Canny( self.im_temp, 50, 100) 
+        self.im_in_edge = cv2.Canny( self.im_in, 50, 100) 
+
+        # apply distance transform
+        in_edge_not = np.logical_not(self.im_in_edge)
+        in_edge_not = np.asarray( in_edge_not, np.uint8 )
+        self.im_in_dt = cv2.distanceTransform( in_edge_not, cv2.DIST_L2, 5 )
+
+        temp_edge_not = np.logical_not(self.im_temp_edge)
+        temp_edge_not = np.asarray( temp_edge_not, np.uint8 )
+        self.im_temp_dt = cv2.distanceTransform( temp_edge_not, cv2.DIST_L2, 5 )
+
+        self.top_left = (0,0) # left top pixel of detected target (x,y)
+
+    def main_proc( self ):
+
+        # match template        
+        for j in range(self.s_map.shape[0]):
+            for i in range(self.s_map.shape[1]):
+                im_in_dt_crop = self.im_in_dt[j:j+self.temp_size[0], i:i+self.temp_size[1]]
+                im_in_edge_crop = self.im_in_edge[j:j+self.temp_size[0], i:i+self.temp_size[1]]
+                score1 = self.edge_similarity( self.im_temp_edge, im_in_dt_crop )
+                score2 = self.edge_similarity( im_in_edge_crop, self.im_temp_dt )
+                self.s_map[j,i] = (score1 + score2)/ 2
+        
+        idx = np.unravel_index( np.argmin(self.s_map), self.s_map.shape )
+        self.top_left = (idx[1], idx[0])
+
+        return self.s_map
+    
+    def edge_similarity(self, im1, im2 ):
+        """ compute per pixel similaity
+        """
+        size = im1.shape[0]*im1.shape[1]
+        score = np.sum( im1 * im2 ) / size
+        return score
+    
+    def get_result( self ):
+        
+        return self.top_left
+
+    def get_result_image( self ):
+
+        bottom_right = (self.top_left[0]+self.temp_size[1], 
+                        self.top_left[1]+self.temp_size[0])
+        im_res = self.im_in.copy()
+        im_res = cv2.rectangle( im_res, self.top_left, bottom_right, 255, 2 )
+        return im_res
+
+
+#####################################################################################
+#  sample code:
+#    bbox = [300,50,200,250]   # (x,y,w,h) ... bbox of search area
+#    im_in = cv2.imread( im_name, 0 )      # input image
+#    im_t1 = cv2.imread( "shaft_w_hole.png", 0 )  # template with hole
+#    im_t2 = cv2.imread( "shaft_wo_hole.png", 0 ) # template without hole
+#    im_temps = [im_t1, im_t2]
+#    shd = ShaftHoleDetection( im_in, im_temps, bbox ) 
+#    flag = shd.main_proc()  # if True hole is observed in im_in
+####################################################################################
+class ShaftHoleDetection():
+    def __init__( self, im_in, im_temps, bbox=(0,0,640,480) ):
+        """  shaft hole detection
+        Input:
+            im_in(np.array): input image
+            im_temp(list): a list of template images. 
+                           first one is w hole, second one is wo hole.
+            bbox(tuple): bbox consits of (x,y,w,h)
+        """
+        # set default parameters
+        ds_rate = 0.5
+
+        # crop image
+        self.im_in = im_in.copy()
+        self.im_in = self.im_in[bbox[1]:bbox[1]+bbox[3],bbox[0]:bbox[0]+bbox[2]]
+        
+        # read template
+        self.im_t_w_hole = im_temps[0].copy()
+        self.im_t_wo_hole = im_temps[1].copy()
+        
+        # resize image
+        self.im_in = cv2.resize( self.im_in, None, fx=ds_rate, fy=ds_rate)
+        self.im_t_w_hole = cv2.resize( self.im_t_w_hole, None, fx=ds_rate, fy=ds_rate)  
+        self.im_t_wo_hole = cv2.resize( self.im_t_wo_hole, None, fx=ds_rate, fy=ds_rate)      
+        self.im_vis = self.im_in.copy()
+    
+        # scores
+        self.score_w_hole = 0.0
+        self.score_wo_hole = 0.0
+
+
+    def main_proc( self ):
+        """ Chamfer Matching based approach
+        Input:
+        Return:
+            float: score if template matching [0.0-1.0]
+            bool: If true, hole is observed in current view point 
+        """
+
+        self.cm_w = ChamferMatching( self.im_t_w_hole, self.im_in )
+        self.cm_wo = ChamferMatching( self.im_t_wo_hole, self.im_in )
+        smap_w = self.cm_w.main_proc()
+        smap_wo = self.cm_wo.main_proc()
+        self.score_w_hole = np.min(smap_w)
+        self.score_wo_hole = np.min(smap_wo)
+
+        visible_hole = False
+        if self.score_w_hole < self.score_wo_hole:
+            visible_hole = True
+
+        return visible_hole
