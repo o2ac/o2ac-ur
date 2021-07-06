@@ -316,14 +316,9 @@ Localization::refine_transform(const std::string& object_name,
     icp.setTransformationEpsilon(_transformation_epsilon);
     icp.setEuclideanFitnessEpsilon(_fitness_epsilon);
 
-    const tf::Transform	Tmp({1.0, 0.0, 0.0,
-			     0.0, 1.0, 0.0,
-			     0.0, 0.0, 1.0},
-			    {0.0, 0.0, 0.0});
-
   // Perform ICP to refine model pose
     pcl_cloud_p	registered_cloud(new pcl_cloud_t);
-    icp.align(*registered_cloud, matrix44<value_t>(Tcm * Tmp));
+    icp.align(*registered_cloud, matrix44<value_t>(Tcm));
 
     if (!icp.hasConverged())
 	throw std::runtime_error("convergence failure in ICP");
@@ -341,7 +336,7 @@ Localization::refine_transform(const std::string& object_name,
     return tf::Transform({Tcp(0, 0), Tcp(0, 1), Tcp(0, 2),
     			  Tcp(1, 0), Tcp(1, 1), Tcp(1, 2),
     			  Tcp(2, 0), Tcp(2, 1), Tcp(2, 2)},
-    			 {Tcp(0, 3), Tcp(1, 3), Tcp(2, 3)}) * Tmp.inverse();
+    			 {Tcp(0, 3), Tcp(1, 3), Tcp(2, 3)});
 }
 
 }	// namespace aist_new_localization
