@@ -1141,7 +1141,7 @@ class O2ACCommon(O2ACBase):
     self.activate_led("b_bot")
     self.b_bot.move_joints(look_at_shaft_pose)
 
-    res = self.vision.call_shaft_notch_detection()
+    res = self.vision.call_shaft_hole_detection()
     print("=== shaft notch detection returned:")
     print(res)
 
@@ -1149,7 +1149,6 @@ class O2ACCommon(O2ACBase):
     """
     Looks at the end of the shaft and returns True if 
     """
-    look_at_shaft_pose = [2.177835941, -1.700065275, 2.536958996, -2.40987076, -1.529889408, 0.59719228]
     look_at_shaft_end_pose = conversions.to_pose_stamped("vgroove_aid_link", [ -0.013, 0.124, 0.130, radians(130.0), 0, 0])
     self.vision.activate_camera("b_bot_inside_camera")
     self.activate_led("b_bot")
@@ -1157,7 +1156,7 @@ class O2ACCommon(O2ACBase):
     self.b_bot.go_to_pose_goal(look_at_shaft_end_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=0.15)
     self.confirm_to_proceed("Looking at shaft tip")
 
-    res = self.vision.call_shaft_notch_detection()
+    res = self.vision.call_shaft_hole_detection()
     print("=== shaft screw_hole detection returned:")
     print(res)
     return res
@@ -1181,7 +1180,7 @@ class O2ACCommon(O2ACBase):
       self.b_bot.go_to_pose_goal(look_at_shaft_pose, speed=0.1)
 
       for _ in range(6):
-        res = self.vision.call_shaft_notch_detection()
+        res = self.vision.call_shaft_hole_detection()
         if not res:
           return False
         if res.shaft_notch_detected_at_top or res.shaft_notch_detected_at_bottom:
@@ -1200,7 +1199,7 @@ class O2ACCommon(O2ACBase):
         self.b_bot.execute_loaded_program()
         wait_for_UR_program("/b_bot", rospy.Duration.from_sec(10))
         times_turned += 1
-        res = self.vision.call_shaft_notch_detection()
+        res = self.vision.call_shaft_hole_detection()
         if res.shaft_notch_detected_at_top or res.shaft_notch_detected_at_bottom:
           return res
     return False
@@ -2246,8 +2245,8 @@ class O2ACCommon(O2ACBase):
 
     self.b_bot.gripper.open(opening_width=0.06)
 
-    shaft_notch_detected_at_top = self.check_screw_hole_visible_on_shaft_in_v_groove()
-    if shaft_notch_detected_at_top:
+    shaft_has_hole_at_top = self.check_screw_hole_visible_on_shaft_in_v_groove()
+    if shaft_has_hole_at_top:
       self.b_bot.go_to_pose_goal(inside_vgroove, speed=0.1)
       self.b_bot.gripper.close()
       self.b_bot.go_to_pose_goal(approach_vgroove, speed=0.1)

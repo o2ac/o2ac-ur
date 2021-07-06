@@ -974,7 +974,7 @@ class ChamferMatching():
 #    flag = shd.main_proc()  # if True hole is observed in im_in
 ####################################################################################
 class ShaftHoleDetection():
-    def __init__( self, im_in, im_temps, bbox=(0,0,640,480) ):
+    def __init__( self, shaft_w_hole_file, shaft_wo_hole_file, bbox=(0,0,640,480) ):
         """  shaft hole detection
         Input:
             im_in(np.array): input image
@@ -983,28 +983,24 @@ class ShaftHoleDetection():
             bbox(tuple): bbox consits of (x,y,w,h)
         """
         # set default parameters
-        ds_rate = 0.5
+        self.ds_rate = 0.5
 
-        # crop image
-        self.im_in = im_in.copy()
-        self.im_in = self.im_in[bbox[1]:bbox[1]+bbox[3],bbox[0]:bbox[0]+bbox[2]]
-        
+        self.bbox = bbox
+
         # read template
-        self.im_t_w_hole = im_temps[0].copy()
-        self.im_t_wo_hole = im_temps[1].copy()
+        self.im_t_w_hole =  cv2.imread(shaft_w_hole_file, 0)
+        self.im_t_wo_hole = cv2.imread(shaft_wo_hole_file, 0)
         
         # resize image
-        self.im_in = cv2.resize( self.im_in, None, fx=ds_rate, fy=ds_rate)
-        self.im_t_w_hole = cv2.resize( self.im_t_w_hole, None, fx=ds_rate, fy=ds_rate)  
-        self.im_t_wo_hole = cv2.resize( self.im_t_wo_hole, None, fx=ds_rate, fy=ds_rate)      
-        self.im_vis = self.im_in.copy()
+        self.im_t_w_hole = cv2.resize( self.im_t_w_hole, None, fx=self.ds_rate, fy=self.ds_rate)  
+        self.im_t_wo_hole = cv2.resize( self.im_t_wo_hole, None, fx=self.ds_rate, fy=self.ds_rate)      
     
         # scores
         self.score_w_hole = 0.0
         self.score_wo_hole = 0.0
 
 
-    def main_proc( self ):
+    def main_proc( self, im_in ):
         """ Chamfer Matching based approach
         Input:
         Return:
@@ -1012,8 +1008,14 @@ class ShaftHoleDetection():
             bool: If true, hole is observed in current view point 
         """
 
-        self.cm_w = ChamferMatching( self.im_t_w_hole, self.im_in )
-        self.cm_wo = ChamferMatching( self.im_t_wo_hole, self.im_in )
+        im_vis = im_in.copy()
+        # crop image
+        im_vis = im_vis[self.bbox[1]:self.bbox[1]+self.bbox[3],self.bbox[0]:self.bbox[0]+self.bbox[2]]
+
+        im_vis = cv2.resize( im_vis, None, fx=self.ds_rate, fy=self.ds_rate)
+
+        self.cm_w = ChamferMatching( self.im_t_w_hole, im_vis )
+        self.cm_wo = ChamferMatching( self.im_t_wo_hole, im_vis )
         smap_w = self.cm_w.main_proc()
         smap_wo = self.cm_wo.main_proc()
         self.score_w_hole = np.min(smap_w)
@@ -1023,4 +1025,4 @@ class ShaftHoleDetection():
         if self.score_w_hole < self.score_wo_hole:
             visible_hole = True
 
-        return visible_hole
+        return visible_hole, im_vis

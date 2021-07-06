@@ -12,6 +12,8 @@
   <arg name="timeout"	default="10"/>
   <arg name="ply_dir"	default="$(find o2ac_parts_description)/meshes"/>
   <arg name="urdf_dir"	default="$(find o2ac_parts_description)/urdf/generated"/>
+  
+  <rosparam param="shaft_hole_detection/bbox">[350, 100, 100, 100]</rosparam>
 
   <!-- Construct recognition pipeline -->
   <include file="$(find o2ac_vision)/launch/recognition_pipeline.launch">

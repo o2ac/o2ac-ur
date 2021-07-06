@@ -67,7 +67,7 @@ from aist_depth_filter     import DepthFilterClient
 from aist_new_localization import LocalizationClient
 from aist_model_spawner    import ModelSpawnerClient
 
-from o2ac_vision.pose_estimation_func import TemplateMatching
+from o2ac_vision.pose_estimation_func import ShaftHoleDetection, TemplateMatching
 from o2ac_vision.pose_estimation_func import FastGraspabilityEvaluation
 from o2ac_vision.pose_estimation_func import ShaftAnalysis
 from o2ac_vision.pose_estimation_func import PickCheck
@@ -107,6 +107,11 @@ class O2ACVisionServer(object):
         self.rospack = rospkg.RosPack()
         background_file = self.rospack.get_path("o2ac_vision") + "/config/shaft_background.png"
         self.shaft_bg_image = cv2.imread(background_file, 0)
+
+        shaft_w_hole_file  = self.rospack.get_path("o2ac_vision") + "/config/shaft_w_hole.png"
+        shaft_wo_hole_file = self.rospack.get_path("o2ac_vision") + "/config/shaft_wo_hole.png"
+        sdh_bbox = rospy.get_param("shaft_hole_detection/bbox", [350,100,100,100])
+        self.shaft_hole_detector = ShaftHoleDetection(shaft_w_hole_file, shaft_wo_hole_file, sdh_bbox)
 
         pulley_template_filepath = self.rospack.get_path("wrs_dataset") + "/data/pulley/pulley_screw_temp.png"
         self.pulley_screws_template_image = cv2.imread(pulley_template_filepath, 0)
@@ -170,14 +175,14 @@ class O2ACVisionServer(object):
                 self.angle_detection_callback)
             self.angle_detection_server.start()
 
-            # Action server for shaft notch detection
-            self.shaft_notch_detection_server \
+            # Action server for shaft hole detection
+            self.shaft_hole_detection_server \
                 = actionlib.SimpleActionServer(
-                    "~detect_shaft_notch",
-                    o2ac_msgs.msg.shaftNotchDetectionAction, auto_start=False)
-            self.shaft_notch_detection_server.register_goal_callback(
-                self.shaft_notch_detection_callback)
-            self.shaft_notch_detection_server.start()
+                    "~detect_shaft_hole",
+                    o2ac_msgs.msg.shaftHoleDetectionAction, auto_start=False)
+            self.shaft_hole_detection_server.register_goal_callback(
+                self.shaft_hole_detection_callback)
+            self.shaft_hole_detection_server.start()
 
             # Action server for checking pick success
             self.pick_success_server \
@@ -254,8 +259,8 @@ class O2ACVisionServer(object):
         self._angle_detection_goal \
             = self.angle_detection_server.accept_new_goal()
 
-    def shaft_notch_detection_callback(self):
-        self.shaft_notch_detection_server.accept_new_goal()
+    def shaft_hole_detection_callback(self):
+        self.shaft_hole_detection_server.accept_new_goal()
 
     def pick_success_callback(self):
         self.pick_success_server.accept_new_goal()
@@ -301,8 +306,8 @@ class O2ACVisionServer(object):
         elif self.angle_detection_server.is_active():
             self.execute_angle_detection(im_in, im_vis)
 
-        elif self.shaft_notch_detection_server.is_active():
-            self.execute_shaft_notch_detection(im_in)
+        elif self.shaft_hole_detection_server.is_active():
+            self.execute_shaft_hole_detection(im_in)
 
         elif self.pick_success_server.is_active():
             self.execute_pick_success(im_in)
@@ -421,20 +426,18 @@ class O2ACVisionServer(object):
         action_result = self._py3_axclient.get_result()
         self.angle_detection_server.set_succeeded(action_result)
 
-    def execute_shaft_notch_detection(self, im_in):
-        rospy.loginfo("Received a request to detect shaft notch")
+    def execute_shaft_hole_detection(self, im_in):
+        rospy.loginfo("Received a request to detect shaft hole")
 
-        top, bottom, im_vis = self.shaft_notch_detection(im_in)
-        print("top", top, "bottom", bottom)
+        has_hole, im_vis = self.shaft_hole_detection(im_in)
+        rospy.loginfo("shaft tip has hole? %s" % has_hole)
 
-        action_result = o2ac_msgs.msg.shaftNotchDetectionResult()
-        action_result.shaft_notch_detected_at_top    = top
-        action_result.shaft_notch_detected_at_bottom = bottom
-        action_result.no_shaft_notch_detected        = (not top and not bottom)
-        self.shaft_notch_detection_server.set_succeeded(action_result)
+        action_result = o2ac_msgs.msg.shaftHoleDetectionResult()
+        action_result.has_hole = has_hole
+        self.shaft_hole_detection_server.set_succeeded(action_result)
 
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
-        self.write_to_log(im_in, im_vis, "shaft_notch_detection")
+        self.write_to_log(im_in, im_vis, "shaft_hole_detection")
 
     def execute_pick_success(self, goal, im_in):
         self.pick_success_server.accept_new_goal()
@@ -611,31 +614,23 @@ class O2ACVisionServer(object):
 
         # TODO: Return the angle for the large pulley
 
-    def shaft_notch_detection(self, im_in):
+    def shaft_hole_detection(self, im_in):
         """
-        Detects the notch in the supplied image (looking at the shaft in the V-jig).
+        Detects the hole in the supplied image (looking at the shaft in the V-jig).
 
         Return values:
-        top:    True if notch is seen at top of image
-        bottom: True if notch is seen at bottom of image
+        has_hole: True if hole is seen
         im_vis: Result visualization
         """
+
         # Convert to grayscale
         if im_in.shape[2] == 3: 
             im_gray = cv2.cvtColor(im_in, cv2.COLOR_BGR2GRAY)
         else: 
             im_gray = im_in
 
-        bbox = [350,100,100,400] # ROI(x,y,w,h) of shaft area
-        sa = ShaftAnalysis( self.shaft_bg_image, im_gray, bbox )
-        res = sa.main_proc() # threshold.
-        im_vis = sa.get_result_image()
-        # TODO(cambel): How to know where is the notch?
-        if res == 1:
-            return False, False, im_vis
-        front = (res == 3)
-        back = (res == 2)
-        return front, back, im_vis
+        has_hole, im_vis = self.shaft_hole_detector.main_proc(im_gray)  # if True hole is observed in im_in
+        return has_hole, im_vis
 
     def check_pick_success(self, im_in, item_id):
         """ item_id is the object name, not the ID.

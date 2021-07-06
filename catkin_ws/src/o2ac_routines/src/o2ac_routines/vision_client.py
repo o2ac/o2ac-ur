@@ -25,7 +25,7 @@ class VisionClient():
                 self.camera_enable_services.update({cam: rospy.ServiceProxy('/%s/enable' % cam, std_srvs.srv.SetBool)})
 
         self.ssd_client = actionlib.SimpleActionClient('/o2ac_vision_server/get_3d_poses_from_ssd', o2ac_msgs.msg.get3DPosesFromSSDAction)
-        self.detect_shaft_client = actionlib.SimpleActionClient('/o2ac_vision_server/detect_shaft_notch', o2ac_msgs.msg.shaftNotchDetectionAction)
+        self.detect_shaft_client = actionlib.SimpleActionClient('/o2ac_vision_server/detect_shaft_hole', o2ac_msgs.msg.shaftHoleDetectionAction)
         self.detect_angle_client = actionlib.SimpleActionClient('/o2ac_vision_server/detect_angle', o2ac_msgs.msg.detectAngleAction)
         self.pick_success_client = actionlib.SimpleActionClient('/o2ac_vision_server/check_pick_success', o2ac_msgs.msg.checkPickSuccessAction)
         self.localization_client = actionlib.SimpleActionClient('/o2ac_vision_server/localize_object', o2ac_msgs.msg.localizeObjectAction)
@@ -108,7 +108,7 @@ class VisionClient():
         return False
 
     @check_for_real_robot
-    def call_shaft_notch_detection(self):
+    def call_shaft_hole_detection(self):
         """
         Calls the action and returns the result as is
         """
