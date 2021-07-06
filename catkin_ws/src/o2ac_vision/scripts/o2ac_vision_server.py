@@ -316,7 +316,7 @@ class O2ACVisionServer(object):
 ### ======= Process active goals of action servers
 
     def execute_get_2d_poses_from_ssd(self, im_in, im_vis):
-        rospy.loginfo("Execiute get_2d_poses_from_ssd action")
+        rospy.loginfo("Execute get_2d_poses_from_ssd action")
 
         action_result = o2ac_msgs.msg.get2DPosesFromSSDResult()
         action_result.results, im_vis = self.get_2d_poses_from_ssd(im_in,
@@ -325,7 +325,7 @@ class O2ACVisionServer(object):
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
 
     def execute_get_3d_poses_from_ssd(self, im_in, im_vis):
-        rospy.loginfo("Execiute get_3d_poses_from_ssd action")
+        rospy.loginfo("Execute get_3d_poses_from_ssd action")
 
         poses2d_array, im_vis = self.get_2d_poses_from_ssd(im_in, im_vis)
         action_result = o2ac_msgs.msg.get3DPosesFromSSDResult()
@@ -343,7 +343,7 @@ class O2ACVisionServer(object):
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
 
     def execute_localization(self, im_in, im_vis):
-        rospy.loginfo("Execute localization action")
+        rospy.loginfo("Executing localization action")
         # Apply SSD first to get the object's bounding box
         poses2d_array, im_vis = self.get_2d_poses_from_ssd(im_in, im_vis)
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
@@ -406,7 +406,7 @@ class O2ACVisionServer(object):
         self.write_to_log(im_in, im_vis, "belt_detection")
 
     def execute_angle_detection(self, image):
-        goal = angle_detection_server.current_goal.get_goal()
+        goal = self.angle_detection_server.current_goal.get_goal()
         rospy.loginfo("Received a request to detect angle of %s", goal.item_id)
 
         # Pass action goal to Python3 node

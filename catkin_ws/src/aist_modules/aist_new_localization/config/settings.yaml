@@ -1,22 +1,22 @@
 localization_parameters:
   01-BASE:
     size: [0.200, 0.120]
-    origin: [-0.100, 0.060, 0.0, 0.0, 0.0, 0.0]
+    origin: [-0.100, 0.060, 0.0, 90.0, 0.0, 0.0]
     rotation_range: [0.0, 360.0, 45.0]
     refine_transform: true
   02-PANEL:
     size: [0.070, 0.060]
-    origin: [-0.035, -0.030, 0.0, -90.0, 0.0, 0.0]
+    origin: [-0.035, -0.030, 0.0, 0.0, 0.0, 0.0]
     rotation_range: [0.0, 360.0, 45.0]
     refine_transform: true
   03-PANEL2:
     size: [0.116, 0.090]
-    origin: [-0.058, -0.045, 0.0, -90.0, 0.0, 0.0]
+    origin: [-0.058, -0.045, 0.0, 0.0, 0.0, 0.0]
     rotation_range: [0.0, 360.0, 45.0]
     refine_transform: true
   04_37D-GEARMOTOR-50-70:
     size: [0.054, 0.037]
-    origin: [-0.0185, 0.0, 0.0185, 0.0, 0.0, 0.0]
+    origin: [-0.0185, 0.0, 0.0185, 90.0, 0.0, 0.0]
     rotation_range: [0.0, 180.0, 15.0]
     refine_transform: true
   05_MBRFA30-2-P6:
