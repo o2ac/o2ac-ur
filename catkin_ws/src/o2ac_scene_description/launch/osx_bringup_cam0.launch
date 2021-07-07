@@ -21,6 +21,8 @@
   <arg name="camera_height"	default="480"/>
   <arg name="initial_reset"	default="false"/>
   <!-- Synced block end -->
+
+  <param name="o2ac_vision_server/a_bot_inside_camera" type="bool" value="true" />
  
   <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="camera"		    value="$(arg camera0_name)"/>

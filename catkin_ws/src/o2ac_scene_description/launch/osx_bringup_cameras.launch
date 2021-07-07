@@ -102,6 +102,11 @@
     <arg name="camera_name"	value="$(arg camera3_name)"/>
   </include>
 
+  <param name="o2ac_vision_server/a_bot_inside_camera" type="bool" value="true" />
+  <param name="o2ac_vision_server/a_bot_outside_camera" type="bool" value="true" />
+  <param name="o2ac_vision_server/b_bot_inside_camera" type="bool" value="true" />
+  <param name="o2ac_vision_server/b_bot_outside_camera" type="bool" value="true" />
+
   <!-- Launch camera multiplexer -->
   <node name="camera_multiplexer"
   	pkg="aist_camera_multiplexer" type="aist_camera_multiplexer"
@@ -148,12 +153,12 @@
   </node>
 
   <node name="camera_watcher" pkg="o2ac_vision" type="o2ac_camera_watcher.py" output="screen">
+  </node>
     <!-- Not setting the camera_names parameter results in camera_multiplexer being tracked -->
 
     <!-- <rosparam param="camera_names" subst_value="true">
       [$(arg camera_names)]
     </rosparam> -->
-  </node>
 
   <!-- This is a scene-mounted camera that can be added for debugging or recording videos. -->
   <!-- <include file="$(find realsense2_camera)/launch/rs_camera.launch">

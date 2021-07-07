@@ -246,6 +246,8 @@ if __name__ == '__main__':
       elif i == '971':
         c.orient_shaft()
         c.orient_shaft_end_cap()
+      elif i == '972':
+        c.check_screw_hole_visible_on_shaft_in_v_groove()
       elif i == '977':
         c.is_the_placed_end_cap_upside_down()
         # 97: shaft, 98: clamp pulley, 99: belt).")

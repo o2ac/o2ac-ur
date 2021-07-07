@@ -182,7 +182,7 @@ class O2ACWatcher(object):
                     # Retrieve ID used to restart camera node
 
                     cam_num = CAMERA_IDS.get(cam_name, -1)
-                    if not cam_num:
+                    if cam_num < 0:
                         rospy.logerr("Could not find " + cam_name)
                         continue
 
@@ -200,7 +200,7 @@ class O2ACWatcher(object):
                         # Restart camera by killing the nodes and spawning a roslaunch process
                         os.system("rosnode kill /" + cam_name + "/realsense2_camera /" + cam_name + "/realsense2_camera_manager")
                         rospy.sleep(1)
-                        command = "roslaunch o2ac_scene_description osx_bringup_cam_" + str(cam_num) + ".launch initial_reset:=true"
+                        command = "roslaunch o2ac_scene_description osx_bringup_cam" + str(cam_num) + ".launch initial_reset:=true"
                         rospy.loginfo("Executing command: " + command)
                         assert not rospy.is_shutdown(), "Did ros die?"
                         thread.start_new_thread(os.system, (command,))

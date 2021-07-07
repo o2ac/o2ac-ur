@@ -35,8 +35,12 @@ class VisionClient():
     def set_camera_state(self, camera_name, enable=True):
         enable_srv = self.camera_enable_services.get(camera_name)
         rospy.loginfo("Enable => %s for camera %s" % (enable, camera_name))
-        enable_srv(std_srvs.srv.SetBoolRequest(data=(enable)))
+        try:
+            enable_srv(std_srvs.srv.SetBoolRequest(data=(enable)))
+        except Exception as e:
+            print("Exception in set_camera_state: ", e)
         rospy.set_param("/o2ac_vision_server/%s" % camera_name, enable)
+        return True
 
     @check_for_real_robot
     def activate_camera(self, camera_name="b_bot_outside_camera"):
@@ -61,7 +65,8 @@ class VisionClient():
             else:
                 rospy.logwarn("Camera multiplexer not functional! Returning true")
                 return True
-        except:
+        except Exception as e:
+            print("Exception in activate_camera: ", e)
             pass
         rospy.logwarn("Could not activate camera! Returning false")
         return False
