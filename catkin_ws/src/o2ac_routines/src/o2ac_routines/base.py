@@ -336,7 +336,9 @@ class O2ACBase(object):
     offset = 1 if robot_name == "a_bot" else -1
     pose_feeder = conversions.to_pose_stamped("m" + str(screw_size) + "_feeder_outlet_link", [0.005, 0, 0, np.deg2rad(offset*60), 0, 0])
     
-    self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready", speed=0.5, acceleration=0.25)
+    if not self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready", speed=0.5, acceleration=0.25):
+      rospy.logerr("Failed to go to feeder_pick_ready with " + robot_name)
+      return False
 
     screw_tool_id = "screw_tool_m" + str(screw_size)
     screw_tool_link = robot_name + "_screw_tool_m" + str(screw_size) + "_tip_link"
@@ -568,6 +570,7 @@ class O2ACBase(object):
     result = self.tools.fastening_tool_client.get_result()
     rospy.loginfo("Screw tool motor command. Finish before timeout: %s" % finished_before_timeout)
     rospy.loginfo("Result: %s" % result)
+    motor_stalled = result.motor_stalled
 
     if not stay_put_after_screwing:
       self.active_robots[robot_name].go_to_pose_goal(away_from_hole, end_effector_link=screw_tool_link, speed=0.02)
@@ -578,6 +581,7 @@ class O2ACBase(object):
     if screw_picked:
       rospy.logerr("screw did not succeed: screw is still suctioned.")
       return False
+    # TODO: If screw lost but motor did not stall, try fastening again
         
     self.tools.set_suction(screw_tool_id, suction_on=False, eject=False, wait=False)
     return True

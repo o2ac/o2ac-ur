@@ -309,6 +309,14 @@ class O2ACCommon(O2ACBase):
 
     if object_pose:
       rospy.logdebug("Found " + item_name + ". Publishing to planning scene.")
+      # TODO: Apply Place action of pose estimation to constrain object to the tray_center plane
+      # Workaround: Just set z to 0 
+      if item_name == "base":
+        object_pose.header.stamp = rospy.Time.now()
+        self.listener.waitForTransform("tray_center", object_pose.header.frame_id, object_pose.header.stamp, rospy.Duration(1))
+        object_pose = self.listener.transformPose("tray_center", object_pose)
+        object_pose.pose.position.z = 0.0
+
       print(object_pose)
       obj = self.assembly_database.get_collision_object(item_name)
       obj.header.frame_id = object_pose.header.frame_id
@@ -453,7 +461,7 @@ class O2ACCommon(O2ACBase):
           approach_height=0.05, item_id_to_attach = "", 
           lift_up_after_pick=True, acc_fast=1.0, acc_slow=.1, 
           gripper_velocity = .1, axis="x", sign=+1,
-          approach_with_move_lin=True):
+          retreat_height = None, approach_with_move_lin=True):
     """
     This function (outdated) performs a grasp with the robot, but it is not updated in the planning scene.
     It does not use the object in simulation. It can be used for simple tests and prototyping, but should
@@ -503,8 +511,14 @@ class O2ACCommon(O2ACBase):
       rospy.sleep(1.0)
       rospy.loginfo("Going back up")
 
-      rospy.loginfo("Going to height " + str(approach_pose.pose.position.z))
-      if not robot.go_to_pose_goal(approach_pose, speed=speed_fast, acceleration=acc_fast, move_lin=True):
+      if retreat_height is None:
+        retreat_height = approach_height
+      retreat_pose = copy.deepcopy(object_pose)
+      op = conversions.from_point(object_pose.pose.position)
+      op[get_direction_index(axis)] += retreat_height * sign
+      retreat_pose.pose.position = conversions.to_point(op)
+      rospy.loginfo("Going to height " + str(retreat_pose.pose.position.z))
+      if not robot.go_to_pose_goal(retreat_pose, speed=speed_fast, acceleration=acc_fast, move_lin=True):
         rospy.logerr("Fail to go to lift_up_pose")
         return False
       robot.gripper.close() # catch false grasps
@@ -1038,12 +1052,18 @@ class O2ACCommon(O2ACBase):
     robot.go_to_pose_goal(object_pose_in_world, move_lin=True)
     return True
   
-  def center_with_gripper(self, robot_name, opening_width, gripper_force=40, clockwise=False, move_back_to_initial_position=True):
+  def center_with_gripper(self, robot_name, opening_width, gripper_force=40, required_width_when_closed=0.0, clockwise=False, move_back_to_initial_position=True):
     """
     Centers cylindrical object at the current location, by closing/opening the gripper and rotating the robot's last joint.
+
+    If required_width_when_closed is set, the function returns False when the gripper closes and detects a smaller width. This
+    assumes that the object is not 
     """
     robot = self.active_robots[robot_name]
     robot.gripper.send_command(command="close", force = 1.0, velocity = 0.1)
+    if required_width_when_closed:
+      if not self.simple_gripper_check(robot_name, min_opening_width=required_width_when_closed):
+        return False
     robot.gripper.send_command(command=opening_width, force=gripper_force, velocity = 0.001)
 
     # rotate gripper 90deg
@@ -1056,6 +1076,12 @@ class O2ACCommon(O2ACBase):
     
     # close-open
     robot.gripper.send_command(command="close", force = 1.0, velocity = 0.003)
+    if required_width_when_closed:
+      if not self.simple_gripper_check(robot_name, min_opening_width=required_width_when_closed):
+        robot.gripper.send_command(command=opening_width, force=gripper_force, velocity = 0.13)
+        if move_back_to_initial_position:
+          robot.go_to_pose_goal(initial_pose, speed=2.5, move_lin=True)
+        return False
     robot.gripper.send_command(command=opening_width, force=gripper_force, velocity = 0.001)
 
     # rotate gripper -90deg
@@ -2138,7 +2164,7 @@ class O2ACCommon(O2ACBase):
     self.allow_collisions_with_robot_hand("tray", robot_name, allow=False)
     return p_new
 
-  def fasten_screw_vertical(self, robot_name, screw_hole_pose, screw_height = .02, screw_size = 4):
+  def fasten_screw_vertical(self, robot_name, screw_hole_pose, allow_collision_with_object="", screw_height = .02, screw_size = 4):
     """
     This works for the two L-plates when they are facing forward.
     """
@@ -2148,9 +2174,11 @@ class O2ACCommon(O2ACBase):
 
     self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
     
-    # res = self.skill_server.do_screw_action(robot_name, screw_hole_pose, screw_height, screw_size)
     res = self.screw(robot_name, screw_hole_pose, screw_size, screw_height, stay_put_after_screwing=False, skip_final_loosen_and_retighten=False)
+    if allow_collision_with_object:
+      self.planning_scene_interface.allow_collisions("screw_tool_m4", allow_collision_with_object)  # Has to be allowed after each screw attempt
     self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
+    self.planning_scene_interface.disallow_collisions("screw_tool_m4", allow_collision_with_object)
     return res  # Bool
 
   def fasten_screw_horizontal(self, robot_name, screw_hole_pose, screw_height = .02, screw_size = 4):

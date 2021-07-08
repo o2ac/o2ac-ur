@@ -169,7 +169,6 @@ class VisionClient():
         success = False
         try:
             res = self.localization_client.get_result()
-            print(res.detected_poses[0])
             r = res.detected_poses[0]
             if r.poses.poses[0]:
                 outpose = geometry_msgs.msg.PoseStamped()

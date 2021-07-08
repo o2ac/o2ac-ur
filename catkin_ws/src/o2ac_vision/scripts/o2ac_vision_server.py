@@ -304,7 +304,7 @@ class O2ACVisionServer(object):
             self.execute_belt_detection(im_in, im_vis)
 
         elif self.angle_detection_server.is_active():
-            self.execute_angle_detection(im_in, im_vis)
+            self.execute_angle_detection(im_in)
 
         elif self.shaft_hole_detection_server.is_active():
             self.execute_shaft_hole_detection(im_in)
