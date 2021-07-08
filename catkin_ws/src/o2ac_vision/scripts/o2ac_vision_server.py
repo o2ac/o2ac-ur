@@ -416,7 +416,7 @@ class O2ACVisionServer(object):
 
         # Pass action goal to Python3 node
         action_goal = goal
-        action_goal.rgb_image = copy.deepcopy(image)
+        action_goal.rgb_image = self.bridge.cv2_to_imgmsg(image)
         self._py3_axclient.send_goal(action_goal)
 
         if (not self._py3_axclient.wait_for_result(rospy.Duration(3.0))):
