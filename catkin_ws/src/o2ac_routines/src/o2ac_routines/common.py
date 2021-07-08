@@ -84,6 +84,7 @@ class O2ACCommon(O2ACBase):
 
     # Centered views (high up and close)
     self.tray_view_high = copy.deepcopy(ps)
+    self.tray_view_high.pose.position.x += 0.015  # Magic number (the camera frames used for planning are uncalibrated)
     ps.pose.position.z = low_height
     self.tray_view_low = copy.deepcopy(ps)
 

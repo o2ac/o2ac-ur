@@ -1,16 +1,36 @@
 <?xml version="1.0"?>
 
-<!-- This file is a safety measure because a_bot is temporarily using a 2F-140 gripper 
-     instead of a 2F-85 gripper. The tip link is set to the . -->
-
-<robot name="robotiq_85_gripper_o2ac" xmlns:xacro="http://www.ros.org/wiki/xacro">
+<robot name="robotiq_140_gripper_o2ac" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
   <xacro:macro name="o2ac_end_effector" params="prefix use_soft_wrist:=false use_cameras:=false parent">
     <xacro:include filename="$(find robotiq_description)/urdf/robotiq_140_gripper.urdf.xacro"/>
     
     <xacro:robotiq_140_gripper prefix="${prefix}" parent="${parent}">
-        <origin rpy="0.0 0.0 0.0" xyz="0 0 0"/>
+        <origin rpy="0.0 0.0 0.0" xyz="0.01 0 0"/> <!-- This 0.01 offset is the Robotiq/UR coupling -->
     </xacro:robotiq_140_gripper>
+
+    <link name="${prefix}coupling">
+      <visual>
+        <origin rpy="0 ${pi/2} 0" xyz=".005 0 0"/>
+        <geometry>
+          <cylinder length="0.01" radius="0.0375"/>
+        </geometry>
+        <material name="black">
+        <color rgba=".1 .1 .1 1"/>
+      </material>
+      </visual>
+      <collision>
+        <origin rpy="0 ${pi/2} 0" xyz=".005 0 0"/>
+        <geometry>
+          <cylinder length="0.01" radius="0.0375"/>
+        </geometry>
+      </collision>
+    </link>
+    <joint name="${prefix}coupling_joint" type="fixed">
+      <parent link="${parent}" />
+      <child link = "${prefix}coupling" />
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+    </joint>
 
     <xacro:if value="${use_cameras}">
       <xacro:include filename="$(find o2ac_scene_description)/urdf/components/wrist_cameras.xacro" />
@@ -21,7 +41,7 @@
     <joint name="${prefix}gripper_tip_link_joint" type="fixed">
       <parent link="${prefix}robotiq_140_base_link"/>
       <child link="${prefix}gripper_tip_link"/>
-      <origin rpy="0.0 0.0 0.0" xyz="${.163+.083} 0.0 0.0"/>
+      <origin rpy="0.0 0.0 0.0" xyz="${.163+.073} 0.0 0.0"/>
     </joint>
     <link name="${prefix}gripper_tip_link"/>
 
