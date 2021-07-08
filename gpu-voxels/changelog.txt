@@ -1,0 +1,565 @@
+Changelog of GPU-Voxels:
+
+V 0.1 (2014-09-29):
+===================
+- Initial Version of GPU Voxels 
+  (Please find a list of features on the Website or the according scientific papers or have a look at the example programs)
+- Open Issue: Compiled only in Debug Mode
+
+V 0.2 (2014-09-12):
+===================
+- Fixed compilation issued in Release Mode
+
+V 0.3 (2015-02-26):
+===================
+- Made changes in the include structure to allow compilation with CUDA 6.5 (no longer trying to compile Boost-SharedMem-Headers with NVCC)
+- Added datatype "PrimitiveArray" to quickly visualize helpers like thousands of spheres or cubes.
+- Added InsertMetaPointCloud option to give each sub-cloud an own voxel type
+- Function to sync a MetaPointCloud back to Host Memory
+- Speed up in clearing VoxelMaps
+- Added an optional offset when intersecting maps. So you can move one map relative to another before intersecting them.
+- Added parameter to Kinect Interface to support the new PCL interface where a Cam ID has to be specified.
+- More documentation in Octree kernels
+- Added more operators for primitive data types
+- Added Binvox as file format to generate Pointclouds
+- Added Example program to demonstrate the insertion of IBEO Sensor Pointclouds
+- Added missing config file for example program that intersects live Kinect data with a robot model (RobotVsEnvironment)
+- Open Issues: Flickering colors in Visualization
+
+V 0.4 (2015-03-09):
+===================
+- Fixed coordinate system in the Viewer
+- Improved Viewer XML Config parser
+- Added possibility to control visibility of SweptVolume subvolumes from a provider program
+- Improved pointcloud file loader (new datatype, scaling)
+- Improved example programs, added viwer configfile for them
+- Added missing pointcloud filess for the examples
+- Moved performance monitor to icl_core
+- Some smaller fixes regarding RAD / DEG
+- Removed compiler warnings
+
+V 0.5 (2015-04-13):
+===================
+- Release 0.5: Critical bugfixes and reduction of warnings.
+- Fixed loadbalancer bug that occurred when inserting only very little data into an octree.
+- Fixed bug in extraction of Octree data.
+- Fixed color gradient along Z-Axis in viewer.
+- Fixed overwrite of Swept-Volume subvolumes via provider in the Viewer.
+- Fixed heaps of compiler warnings (Thanks to Felix Mauch).
+- Renamed MapTypes to more understandable names.
+- Implemented disk-reader and writer for generic Voxelmaps.
+- Simplified file loading of pointclouds.
+- Moved some math functions to more general file.
+- Moved some DH computation code in preparation for URDF support.
+- Reimplemented function to move focus point in Viewer.
+- Removed dead code and dead files.
+
+V 0.51 (2015-04-24):
+====================
+- Synced readme files.
+
+V 0.6 (2015-04-24):
+===================
+- Fixed crahses of octree_provider command line interface resulting from race-conditions.
+- Fixed flickering in Visualizer when drawing more then one Octree. Resulted from same race-conditions as above.
+- Corrected axis order in visualizer console output.
+- Fixed model loading path when not using GPU_VOXELS_MODEL_PATH
+- Changed argument handling in command line interface for loading models from PCD only to more general pointcloud files.
+
+V 0.7 (2015-06-10):
+===================
+- Added URDF parser and interfaces to load ROS robots.
+- Added URDF example program with HoLLiE robot model and URDF file.
+- Unified API for DH-Parameter and URDF robots.
+- Added name lookup to MetaPointClouds.
+- Restructured CMake files to generate more descriptive report about missing libs.
+- Fixed missing thrust include.
+- Fixed color gradient in visualizer.
+- Fixed DH transformations for prismatic links.
+
+V 0.71 (2015-06-10):
+====================
+- Updated this changelog.
+
+V 0.8 (2015-11-09):
+===================
+- Compiles with CUDA 7.5
+- Added Voxellists as new Datatype
+    - Huge speedup compared to Voxelmaps with sparse data.
+    - Added Bit-Shifting-Collisionchecks (Thanks to Felix Mauch)
+    - Added Bit-Margin for Bitvoxel Collisionchecks (Thanks to Felix Mauch)
+- General:
+    - Removed superficial memory allocation from Voxelmap.
+    - Added script to automatize binvox mesh voxelization
+    - Improved PrimitiveArrays update speed when number of primitives stays constant.
+    - Removed heaps of compiler warnings (Thanks to Christian Juelg)
+    - Various Bugfixes, mainly in collision Kernels
+- Renamings / moved code:
+    - HighLevel-API: Added "merge" function.
+    - CudaMath now longer requires an instance. Now it is a namespace.
+    - VoxelType ==> BitVoxelMeaning
+    - Fixed standard CTORs of basic datatypes for CUDA shared memory allocation.
+    - Moved voxels to gpu_voxels namespace
+    - Removed seom missleading typedefs
+    - Moved Voxel definitions to own subfolder.
+    - Removed dead code fragments.
+- Octree:
+    - Adapted to new API.
+    - Removed its own voxellist. Now uses more general Voxellist.
+    - Removed VoxelTypeFlags and replaced them by more general bitvectors.
+    - Simplified Octree selftests and triggered them by Boost-Test.
+    - Dropped CUB lib. Now using CUDAs version from Thrust.
+- Robot representation:
+    - Enhanced robot interface (jointnames and min max angles).
+    - Restructured inheritance of robot implementations.
+    - Fixed install of robot headers.
+- Visualizer:
+    - Updated Visualizer to new API.
+    - Added new function to move cam in plane.
+    - Switched from Octree to more general Cubelist interface,
+      as this can also be used to visualize Voxellists.
+    - Visualizer now cleans Shared-Mem files.
+    - Added Script to generate color gradient config files for visualizer.
+    - Fixed a bug in drawing the grid
+- Example programs and Testcases:
+    - Updated examples to new API.
+    - Added more Boost-Tests.
+    - Reordered model files.
+- icl_core and basic libs:
+    - Added performance monitor docu
+    - Some new cmake magic
+    - Improved ringbuffer
+    - New Doxygen version.
+    - Tinyxml cmake updated.
+    - Added missing Findscripts for OpenNi.
+
+V 0.81 (2015-12-14):
+====================
+- Fixed severe Bug in MetaPointCloud::updatePointCloud() that lead to Segfaults.
+- Implemented new functions for VoxelLists:
+    - Equality check (Mainly for Boost-Tests)
+    - Subtraction (Bool operation)
+    - Collisioncheck that counts the collisions per Voxel-meaning.
+    - ShrinkToFit: Frees preallocated Thrust memory
+- Fixed error handling when reading and writing all data structures.
+- Added more Boost testcases.
+- Fixed URDF robot rendering when for collision meshes.
+- Made some const functions const.
+- Visualizer:
+    - Improved python script to generate color gradients for Visualizer configfiles.
+    - Made Voxellist Voxels clickable
+    - Enhanced reliability of Visualizer (Thanks to Christian Juelg)
+    - Added slicing functionality to Visualizer (Thanks to Christian Juelg)
+- Improved voxelize.sh script to delete intermediate files.
+
+V 0.82 (2016-02-12):
+====================
+- Fixed severe Bug in the locking of Voxellists. Warning: This only concerns VoxelLists.
+- Added collision check between ProbabilisticVoxelMaps and VoxelLists.
+- Added transform functionality to MetaPointClouds and removed it from Robot classes.
+- Fixed Vec3ToMat4() function.
+- Implemented Deep-Copy operator for MetaPointClouds.
+- Implemented Pointcloud-Offsets for geometry entities of URDF models.
+    - Warning: Only translation, NO rotation available here!
+- Added new struct to describe oriented boxes.
+- Added new file for helper functions to generate pointclouds from geometric primitives.
+- Fixed RPY rotation matrices.
+- Added Boost testcase for shifted collision checks.
+- Added script to generate Visualizer configuration with random colors for SweptVolume IDs.
+- Refined the models of the SVH with 0.4 mm resolution.
+
+V 0.9 (2016-08-21):
+====================
+API breaking changes:
+- GpuVoxels is now a singleton and has to be initialized
+- BitVoxelMeaning enum changed! 0 = Free, 1 = Occupied. More SV IDs.
+- Added as() operator to cast general maps into specific maps
+- Map-Offsets may now be negative, so Voxel-pointers changed datatype.
+- Shifted main API from general map type to specific implementations:
+  Many functions can no longer be called on basic map types but only on
+  specific maps. As not all map types offer all interfaces, this allowed
+  us to remove unimplemented function stubs (thanks to Herbert Pietrzyk)
+- RPY rotation order changed to ROS standards:
+  First rotated around roll, then pitch, then yaw
+    
+Major changes:
+- Unified map-locking for all map types to guarantee thread-safety
+- Added new Pointcloud class for single clouds (thanks to Herbert Pietrzyk)
+- Added Octree-API function: insertPointCloudWithFreespaceCalculation
+  to trigger raycasting
+- Added option to interpret unknown cells of an octree as obstacles
+  when checking collisions
+- Added tfHelper class to interact easily with ROS tf
+- New Math functions:
+    - Added host function to invert matrices.
+      Code thankfully copied from Maxim Singer
+    - Function to convert Mat4 to Roll, Pitch, Yaw
+      together with Boost tests
+    - Vector3f now offers: apprx_equal, length, normalize, dot, cross
+    - angleBetween two vectors, orientationMatrixDiff between two matrices
+    - Matrix4f now offers: equality, approximate equality and subtract
+      together with Boost tests
+    
+Minor changes:
+- Added visualizer config file and a python generator for random swept
+  volume colors (this time for real)
+- New Boost testcases for Pointclouds and MetaPointClouds
+- Simplified sensor code for Raycasting in Octree
+- Restructured keyboard shortcuts in visualizer:
+    - Added "command mode" to switch between data types so
+      all Function keys can toggle maps of the selected kind.
+    - Using ALT+digit to set decimal preposition of SweptVol IDs
+- Right-Click available for more datatypes in Visualizer to
+  print voxel information
+- Fixed updates of subclouds in MetaPointClouds
+- Added sanity check in computeLinearLoad
+- Added Getter functions for GVL parameters
+- Added some general HTML pages to Doxygen docu (thanks to Darius Pietsch)
+- Unified probability type in all maps
+- Fixed memory leaks in MetaPointCloud
+- Added Kernel for GPU memory comparison
+- Unified geometric transformation kernels
+- Clarified singed and unsigned voxel indices (thanks to Christian Juelg)
+- GPU Voxels main class now checks for Compute Capability at init
+- Added PointCloud constructor to load file
+    
+Other changes:
+- Added enlarged UR5 model
+- Updated list of contributors
+- Compiles with Ubuntu 16.04
+    - Added CMake macro to remove VTK defines
+    - Required lib glm fix: https://github.com/g-truc/glm/issues/530
+
+V 0.91 (2016-09-14):
+====================
+- Added example which shows how to link against GPU-Voxels.
+- Fixed a bug in the default collider regarding thresholds of probabilistic voxels.
+- Added code to visualize pointclouds as Primitive-Arrays.
+- Enhanced static Doxygen pages.
+
+V 0.92 (2016-09-16):
+====================
+API breaking changes:
+- Restructured CUDA datatypes and their math functions:
+    - Removed CudaMath and put all functions into the datatypes.
+    - Split CUDA datatypes into Vectors and Matrices.
+
+Minor changes:
+- Switched readme file format to Markup
+- Deleted some examples that were not usable.
+- Removed PointCloudOperations as they were unused.
+
+V 0.93 (2016-12-24):
+====================
+API breaking changes:
+- Multiplying a vector<int> with an int scalar now gives a vector<int>
+- Removed offset when colliding VoxelLists as implementation was faulty
+- Unified CTor of VoxelLists and VoxelMaps
+- Unified spelling of insertPointcloud ==> insertPointCloud
+
+Major changes:
+- Added DistanceField calculations (thanks to Christian Jülg)
+    - New DistanceVoxelMap type
+    - Re-implementation of the Parallel Banding Algorithm (Original by Cao Thanh Tung)
+    - Added according example and test cases
+- Added BitMasked collision check and testcase for BitVoxels
+- Implemented a HeighMap loader to populate 3D worlds from Bitmap files
+- Added insertPointCloudIntoMap() to HighLevel-API
+- Added collision functions between BitVectorVoxelList and BitVectorVoxelMap
+- Improved Mutex-Locking (thanks to Christian Jülg)
+    - No more busy waiting
+    - Recursive locking now possible
+- Reworked Boost-Tests to function as Benchmarks (Thanks to Herbert Pietrzyk)
+- Improved BitVector code
+    - Fixed error in Bit-negation
+    - Added according testcase
+- Fixed defaultCollider for BitVoxels (counted eBVM_FREE as collision previously)
+
+Minor changes:
+- Added screendump function for VoxelLists
+- Fix in CMake to export CUDA dependency
+- Restructured optional dependency management
+- Improved the handling of warnings within Kernels (less printf spam)
+- Visualizer config files: Added option to set color for all BitVoxelMeanings at once
+- Consistently using RPY for geometry generation (instead of YPR formerly)
+- Improved BitVoxelLists operations
+    - Thrust performance optimization
+    - Added according testcase
+
+Other changes:
+- Now compiles with CLang (fixed ambigous names)
+- Improved docs
+- Improved tescases for VoxelLists
+- Fix for CUDA 7 on Ubuntu 16.04 (-D_FORCE_INLINES)
+- Added UR10 & Robotique FTS model (10% larger, voxelized at 4mm)
+- Added Pelican UAV model
+- Corrected copy paste errors in CMake IC_BUILDER defines
+- Removed own source version of TinyXML: Now using system lib
+- Updated icmaker build tools
+- Updated QT include dirs in icl_core
+- icl_performance_monitor got some new functions
+
+V 1.0 (2017-04-27):
+====================
+Added mouse GUI for visualizer (GVL4TW edition)
+
+API breaking changes:
+- PrimitiveArrays
+  - Fixed the interface by adding metric AND Voxel commands. Fixes issue 41.
+  - Renamed the enums for the PrimitiveArray types.
+
+Major changes:
+- Changes in CUDA CMake setup
+- addMap() now returns a GpuVoxelsMapSharedPtr. Fixes issue 43.
+  Throws a std::string in case of error (thanks to Herbert Piertrzyk).
+- Generalized collide function of VoxelLists to work with VoxelMaps. Fixes issue 33.
+- Fixed relative paths in URDF loding. Fixes issue 30.
+- Visualizer:
+  - Added a Right-Click-Menu in the visualizer (thanks to Herbert Piertrzyk). Fixes issue 35.
+  - Added a bunch of info text overlays (thanks to Herbert Piertrzyk). Fixes issue 26.
+- Implemented converter to create BitVectorVoxels from DistanceVoxels.
+- Added a scaling function for PointClouds.
+
+Minor changes:
+- Improved API stability for DistanceMap computation (Thanks to Christian Jülg).
+- New boost test cases:
+  - Transformation of PointClouds
+  - Collide functions for VoxelLists with VoxelMaps
+  - Improved tests for DistanceMaps
+- New examples:
+  - PrimitiveArray interfaces
+- Added div operator for Vector3i / float
+- Added mul operator for Vector3f * Vector3f
+- Added abs operator for Vector3f
+- Added setters for rotations and translations for Matrix4f
+- Fixed the SharedMemory transactions between Provider and Visualizer
+- Right click info for Voxels in visualizer now also works on VoxelLists
+
+Other changes:
+- New coarse model of the SCHUNK SVH hand
+- Documentation updates
+- More CMake output, when libs can not be found
+
+V 1.1 (2018-02-05):
+====================
+New Year Release: 
+Lots of fixes and better C++11 compatibility. Partial Cuda 9.1 support.
+
+Known issues:
+- Octrees are broken on Pascal GPUs
+  - confirmed on Titan Xp and GTX 1080 Ti
+- the GLM in Ubuntu 16.04 has to be patched to allow usage of the visualizer.
+  - see https://github.com/g-truc/glm/issues/530
+  - patch for /usr/include/glm/detail/func_common.inl in packages/gpu_voxels/doc/glm_fix_issu530.patch
+- Cuda 9.1
+  - many incompatibilities are fixed, but there are still failing tests in the voxellist and octree test-suites
+
+API breaking changes:
+- GpuVoxels
+  - addMap returns null-initialized shared_ptr if map already exists
+  - lockSelf, lockBoth & Co removed, replaced by exception-safe lock_guard
+  constructs to improve debugging
+- TinyXML
+  - use system version from APT package libtinyxml-dev
+
+Major changes:
+- Changes in CUDA CMake setup
+  - uncomment SET(CMAKE_CXX_STANDARD 11) at the top of CMakeLists.txt to activate C++11 mode
+  - set -maxrregcount=63 to avoid errors on desktop GPUs with 1024 threads per block
+  - always use ICMAKER_CUDA_CPPDEFINES to pass parameters to nvcc
+- Added OMPL planning example gvl_ompl_planning  (Thanks to Andreas Hermann)
+  - requires C++11
+  - incompatible with GPU-Voxels built with PCL 1.7
+- Added model "ur10_coarse" voxelized at 9mm
+- Added CountingVoxelList to offer pointcloud density filtering  (Thanks to Herbert Pietrzyk)
+  - Use remove_underpopulated(minimum_count) to remove outliers
+  - Use subtractFromCountingVoxelList to remove the robot and static objects
+- Added BitVoxelMap collision with ProbVoxelmap
+- ProbVoxelMap
+  - insert() parses BitVoxelMeaning to allow freeing single voxels
+  - SVCollider checks for noneButEmpty instead of isZero
+- Fix CUDA 9 incompatibilities, issue 63
+  - version macro
+  - cub namespace
+  - __ballot vs __ballot_sync
+
+Minor changes:
+- DistanceVoxelTest uses double buffering of DistanceVoxelMap to avoid flickering
+- ProbVoxelMap: Speed up the clearing of ProbVoxelMap by using memset instead of ctor calls for every voxel
+- C++11 fixes
+  - icl_core_logging operator<< stringstream bug
+  - various fixes collected by dybedal in issue 55
+- VoxelList collision
+  - added test cases and examples
+- fixed memory leaks in TemplateVoxelList
+- fixed PCL dependency of examples and helpers, see issue 61
+- fix computeLinearLoad returning grid and block size 0
+- added many checks after kernel launches to improve error discovery
+
+Other changes:
+- Documentation updates
+
+V1.1.1 (2018-02-05):
+====================
+Fix gvl_ompl_planner missing icl_core includes
+
+
+V1.1.2 (2018-02-07):
+====================
+Cuda 9.1 support: all tests pass.
+- Fix Cuda 9.1 linking problem that break voxellist code using Thrust CUB.
+
+Known issues:
+- Octrees are broken on Pascal GPUs
+  - confirmed on Titan Xp and GTX 1080 Ti
+- the GLM in Ubuntu 16.04 has to be patched to allow usage of the visualizer.
+  - see https://github.com/g-truc/glm/issues/530
+  - patch for /usr/include/glm/detail/func_common.inl in packages/gpu_voxels/doc/glm_fix_issu530.patch
+
+Minor changes:
+- added synchronization points after some voxellist Thrust calls
+- removed obsolete explicit Kinect.cpp references in src/examples
+- define GLM_ENABLE_EXPERIMENTAL in Primitive.h to fix issue #55
+
+V1.2.0 (2018-05-01):
+====================
+Self-Collision checks, ProbVoxelMap raycasting, distance extraction, VoxelList bounds checking
+
+Thanks to Andreas Hermann for these additions:
+- Implemented self collision checks. Also added an example and a testcase. Fixes #67 and resolves #68
+- Improvements and fixes for prob voxels. Resolves #69
+- Added example and vis config file
+- Moved conversion from float to Probability to ProbabilisticVoxel
+- Fixed the updates of probabilistic voxels.
+- Added example about constructing a distance map from a probabilistic map
+- Added a raycasting example. Resolves #70
+- Rewrote the insertSensorData() function to resemble the current interfaces.
+- Deleted old sensor / environment map code.
+- Moved cSENSOR_MODEL_FREE and cSENSOR_MODEL_OCCUPIED to the common defines.
+- Removed unnecessary meaning checks in ProbabilisticVoxelMap
+- Added a missing template instance for the sensor model.
+- Corrected all VisConfig files from the examples.
+- Fixes in the visualizer for probability voxels and SWEPT_VOLUME_END
+
+Possibly breaking changes:
+- Added TemplateVoxelList::remove_out_of_bounds functionality.
+- Always check for VoxelList map dimensions when inserting PointClouds into VoxelLists. Old behavior was not to check at all.
+- Added mapToVoxels(linear_id, coords) to VoxelMapOperations. Available for host code too.
+- Removed "linearIndexToCoordinates"
+- Changed Logging in computeLinearLoad: 
+  - Inputting 0 items generates a warning now and lead to one block with one thread. 
+  - More than 64M items create an error message and only cMAX_NR_OF_BLOCKS blocks.
+
+Additional changes:
+- Added DVM::get(Squared)Distances(ToHost) functions: extract distance value for voxels at selected indexes
+- Implemented TemplateVoxelList.merge(CountingVoxelList)
+- Added TemplateVoxelMap::gatherVoxelsByIndex as basis for getDistances
+- Added TemplateVoxelList::copyCoordsToHost
+- Added test countingvoxellist_merge_into_bitvectorvoxellist_minimal
+- Added test distance_extraction
+- Fixed memory management for URDF RobotLink
+
+Known issues:
+- Octrees are broken on Pascal GPUs
+  - confirmed on Titan Xp and GTX 1080 Ti
+- The constant cMAX_NR_OF_BLOCKS is currently limited to 65535, while current CUDA devices support over 2 billion blocks
+  - relevant during computeLinearLoad calls and collision checking
+- the GLM headers provided by Ubuntu 16.04 have to be patched to allow usage of the visualizer.
+  - see https://github.com/g-truc/glm/issues/530
+  - patch for /usr/include/glm/detail/func_common.inl in packages/gpu_voxels/doc/glm_fix_issu530.patch
+
+
+V1.2.1 (2018-08-28):
+====================
+Octree and 18.04 bugfixes, insertCoordinateList and geometry generation with integer coordinates.
+
+Important Bufixes:
+- Octrees issues on Pascal GPUs have been fixed. Fixes #60. Thanks to Florian!
+- Icmaker updated to avoid issues on CMake 3.6.2 and newer. Fixes #58
+- Fix Boost 1.65.1 compatibility issues for Ubuntu 18.04
+- Fix CUBIN compilation in code=sm_** settings. Thanks to @r2b0 and Florian! Fixes #73 and #54
+
+Known Issues:
+- the GLM headers provided by Ubuntu 16.04 have to be patched to allow usage of the visualizer.
+  - see https://github.com/g-truc/glm/issues/530
+  - patch for /usr/include/glm/detail/func_common.inl in packages/gpu_voxels/doc/glm_fix_issu530.patch
+- Cuda 8.0: Code compiled with Cuda 8.0 works fine with older GPU drivers such as 375.66, but there are runtime errors with driver 384.111 and newer
+  - produces runtime error "PTX JIT compilation failed"
+- Eigen 3.3.4 and 3.3.5 issue with CUDA 9.0, 9.1, 9.2: Error: class "Eigen::half" has no member "x".
+  - Can be fixed by using latest unstable version of Eigen
+- The constant cMAX_NR_OF_BLOCKS is currently limited to 65535, while current CUDA devices support over 2 billion blocks
+  - relevant during computeLinearLoad calls and collision checking
+
+Possibly breaking changes:
+- TemplateVoxelList::getDimensions returns (size,1,1) instead of (size,0,0)
+  - Important: TemplateVoxelList::getDimensions does not depend on m_ref_map_dim, unlike TemplateVoxelList::getMetricDimensions!
+
+Additional changes:
+- New example: GeometryGeneration showcases 
+- New function GpuVoxelsMap::insertCoordinateList and geometry generation with integer coordinates 
+  - Example: geometry_generation::createBoxOfPoints(corner_min, corner_max, delta, side_length);
+  - Available for maps, lists and octrees. Can create boxes, spheres and cylinders. Thanks to Herbert for his contribution!
+- GpuVoxels::insertBoxIntoMap now uses the integer coordinate based creation and insertion functionality, avoiding discretization issues
+- Remove warnings regarding logging and visualizer initialization. Fixes #72
+- Fix visualizer warning by always creating the shared memory segment on initialization. Fixes #72
+- Removed unused shader loading code
+- Updated URDF code for compatibility with new ROS releases
+
+V1.2.2 (2018-08-29):
+====================
+Fix missing CUDA include and link directive in gvl_ompl_planner and example_howto_link
+
+
+V1.3.0 (2019-01-07):
+====================
+CUDA 10.0 and Ubuntu 18.04 compatibility. Use C++11 by default. Add
+ROS-connected DistanceROSDemo example. Improve Visualizer Shared Memory error handling.
+
+Major changes:
+- Added DistanceROSDemo to show-case a ROS node subscribing to PCL point-clouds.
+- Implemented additional merge functions
+  - Added TemplateVoxelMap.merge(TemplateVoxelList)
+  - Added functions to merge TemplateVoxelList into BitVoxelList and CountingVoxelList;
+- Added TemplateVoxelMap::clone and TemplateVoxelList::clone, was previously
+only available in DistanceVoxelMap
+- Added functions that implement the morphological operations Closing, Dilation and Erosion
+- Added function getCenterOfMass to TemplateVoxelList and TemplateVoxelMap
+- Added BitVoxelList::copyCoordsToHostBvmBounded: allows the selective copy of voxels with BitVoxelMeanings in a given range
+- Updated icmaker and icl_core to fix issues with new Boost and CMake versions
+
+Possibly breaking changes:
+- C++11 support is active by default. The new "indigo" branch has C++11 deactivated by default, is identical otherwise
+- changed BitVoxelList::findMatchingVoxels signature:
+  - Implicitly set argument list1 to 'this'.
+  - Add option omit_coords: if true, output VoxelLists will only contain voxel IDs and data but the coord_list will be empty (default). If set to false, voxel coordinates will also be copied to the output lists.
+
+Additional changes:
+- gvl_ompl_planner:
+  - fixed collision check threshold value
+  - updated comments and logging output
+- gvl_ompl_planner: added comment regarding LD_LIBRARY_PATH
+- fix MetaPointCloud name unknown for robot links without geometry
+- updated stb_image.h to version 2.19
+- fix ROS&Urdf CMake discovery issue
+- add tests for TemplateVoxelList and TemplateVoxelMap clone
+- add hollie_from_pointcloud2.pcd for example DistanceVoxelTest.cpp
+- fix a CountingVoxelList visualization issue
+
+Known Issues:
+- Eigen 3 issues: can be fixed by cloning a more current unstable Eigen version and placing it in CMAKE_PREFIX_PATH
+  + on Ubuntu 18.04 with CUDA 10.0: "math_functions.hpp not found"
+  + Eigen 3.3.4 and 3.3.5 with CUDA 9.0, 9.1, 9.2: Error: class "Eigen::half" has no member "x"
+  + see http://eigen.tuxfamily.org/index.php?title=Main_Page#Download
+- If the ROS dependency was found, but the GPU-Voxels URDF features are still unabailable, run `source /opt/ros/YOUR_ROS_DISTRO/setup.bash` before running cmake.
+- Cuda 8.0: Code compiled with Cuda 8.0 works fine with older GPU drivers such as 375.66, but there are runtime errors with driver 384.111 and newer ("PTX JIT compilation failed"). 
+  + Easy fix: use Cuda 10 with a current 410 or newer driver version. Cuda 10 is also available for Ubuntu 14.04 and 16.04.
+- The GLM headers provided by Ubuntu 16.04 have to be patched to allow usage of the visualizer.
+  - see https://github.com/g-truc/glm/issues/530
+  - patch for /usr/include/glm/detail/func_common.inl in packages/gpu_voxels/doc/glm_fix_issu530.patch
+- The constant cMAX_NR_OF_BLOCKS is currently limited to 65535, while current CUDA devices support over 2 billion blocks
+  - relevant during computeLinearLoad calls and collision checking
+
+V1.3.1 (2019-01-17):
+====================
+Fix findMatchingVoxels usage of binary_search. Could cause segfaults before.
+
