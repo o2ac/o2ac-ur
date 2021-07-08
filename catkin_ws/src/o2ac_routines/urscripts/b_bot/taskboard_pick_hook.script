@@ -1,20 +1,19 @@
 def taskboard_pick_hook():
+  step_count_5537326a_1f16_4728_a424_74d0cb7e9dc2 = 0.0
+  thread Step_Counter_Thread_648031c9_5687_4318_a426_7c8d1f4d9b8b():
+    while (True):
+      step_count_5537326a_1f16_4728_a424_74d0cb7e9dc2 = step_count_5537326a_1f16_4728_a424_74d0cb7e9dc2 + 1.0
+      sync()
+    end
+  end
+  run Step_Counter_Thread_648031c9_5687_4318_a426_7c8d1f4d9b8b()
   set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
   set_tool_output_mode(0)
   set_tool_digital_output_mode(0, 1)
   set_tool_digital_output_mode(1, 1)
   set_tool_voltage(24)
-  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
-  step_count_2f4cd45f_176f_4405_8105_04054c6f7651 = 0.0
-  thread Step_Counter_Thread_92e4b5f3_3e79_435e_be08_2ce61002ed20():
-    while (True):
-      step_count_2f4cd45f_176f_4405_8105_04054c6f7651 = step_count_2f4cd45f_176f_4405_8105_04054c6f7651 + 1.0
-      sync()
-    end
-  end
-  run Step_Counter_Thread_92e4b5f3_3e79_435e_be08_2ce61002ed20()
-  set_target_payload(1.200000, [0.001000, -0.018000, 0.049000], [0.002086, 0.002086, 0.002086, 0.000000, 0.000000, 0.000000])
   set_safety_mode_transition_hardness(1)
+  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -23,6 +22,7 @@ def taskboard_pick_hook():
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
   set_gravity([0.0, 0.0, 9.82])
+  set_target_payload(1.200000, [0.001000, -0.018000, 0.049000], [0.002086, 0.002086, 0.002086, 0.000000, 0.000000, 0.000000])
   # begin: URCap Installation Node
   #   Source: External Control, 1.0.5, FZI Research Center for Information Technology
   #   Type: External Control
@@ -2343,6 +2343,8 @@ def taskboard_pick_hook():
   # end: URCap Installation Node
   global home_p=p[.130649315071, -.180735318564, .515944936221, -.011904141620, -3.140282836653, -.031779029209]
   global home_q=[1.5699191093444824, -2.0999165974059046, 1.3999560515033167, -0.8500288289836426, -1.5699761549579065, 5.9604644775390625E-5]
+  global Waypoint_right_p=p[.247135810805, -.077743034127, .492156207270, -1.089260191054, 2.941141854347, .043723079322]
+  global Waypoint_right_q=[2.2992806434631348, -2.218607564965719, 1.9803665320025843, -1.3077529531768342, -1.553016487752096, 0.01404145359992981]
   global above_tool_p=p[.459162036872, -.210304370404, .204200915087, 1.746289903912, -1.730646652929, -.729047870182]
   global above_tool_q=[2.534531999016338, -1.1982101810088324, 1.7961559816585861, -1.4668132023983578, -2.008949988225595, -0.45437501586286544]
   global grasp_tool_p=p[.459162036954, -.210304370461, .112251855397, 1.746289902786, -1.730646652070, -.729047869434]
@@ -2379,16 +2381,19 @@ def taskboard_pick_hook():
   $ 7 "home" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(home_p, a=0.8, v=0.8)
-  $ 8 "above_tool" "breakAfter"
+  $ 8 "Waypoint_right" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(Waypoint_right_p, a=0.8, v=0.8, r=0.05)
+  $ 9 "above_tool" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(above_tool_p, a=0.8, v=0.8)
-  $ 9 "grasp_tool" "breakAfter"
+  $ 10 "grasp_tool" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(grasp_tool_p, a=0.8, v=0.8)
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
-  $ 10 "Gripper Close (1)"
+  $ 11 "Gripper Close (1)"
   if not(gripper_connected[0]):
     popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
   end
@@ -2400,17 +2405,17 @@ def taskboard_pick_hook():
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 11 "MoveL"
-  $ 12 "before_tool" "breakAfter"
+  $ 12 "MoveL"
+  $ 13 "before_tool" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(before_tool_p, a=0.8, v=0.8)
-  $ 13 "high_approach" "breakAfter"
+  $ 14 "high_approach" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(high_approach_p, a=0.8, v=0.8, r=0.05)
-  $ 14 "wp_on_right" "breakAfter"
+  $ 15 "wp_on_right" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(wp_on_right_p, a=0.8, v=0.8, r=0.05)
-  $ 15 "wait_w_tool" "breakAfter"
+  $ 16 "wait_w_tool" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(wait_w_tool_p, a=0.8, v=0.8)
 end

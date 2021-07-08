@@ -6,6 +6,7 @@
        currentpose
      MoveL
        home
+       Waypoint_right
        above_tool
        grasp_tool
        Gripper Close (1)

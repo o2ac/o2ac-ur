@@ -4,11 +4,12 @@
        currentpose≔get_actual_joint_positions()
        currentpose
      MoveL
-       wait_w_tool
+       home
        Waypoint_right
        high_approach
        before_tool
        grasp_tool
        Gripper Open (1)
        above_tool
+       Waypoint_right
        home

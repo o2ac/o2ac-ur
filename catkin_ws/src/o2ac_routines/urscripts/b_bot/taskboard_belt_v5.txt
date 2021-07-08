@@ -1,0 +1,67 @@
+ Program
+   Robot Program
+     'Call taskboard_pick_hook'
+     MoveJ
+       currentpose≔get_actual_joint_positions()
+       currentpose
+       looking_at_belt
+     Popup: start sequence with a_bot (simultaneous start)
+     MoveJ
+       Waypoint_6
+       Waypoint_7
+     Wait: 3.0
+     MoveJ
+       tension_at_ply
+       'Waypoint_9'
+       'Waypoint_10'
+     Wait: 0
+     MoveL
+       'pulley_top'
+       MoveL
+         pulley_east
+         pulley_seast
+       Waypoint_21
+       Waypoint_18
+       Waypoint_17
+       Waypoint_16
+       Waypoint_15
+       Waypoint_14
+       Waypoint_13
+       Waypoint_12
+     MoveL
+       after_pulley
+       Waypoint_25
+       Waypoint_26
+       Waypoint_27
+       Waypoint_28
+     MoveL
+       Waypoint_22
+     Call taskboard_place_hook_1
+   taskboard_pick_hook
+     Gripper Open (1)
+     MoveJ
+       currentpose≔get_actual_joint_positions()
+       currentpose
+     MoveL
+       home_1
+       above_tool_1
+       grasp_tool_1
+       Gripper Close (1)
+     MoveL
+       before_tool_1
+       high_approach_1
+       wp_on_right_1
+       wait_w_tool_1
+   taskboard_place_hook_1
+     MoveJ
+       currentpose≔get_actual_joint_positions()
+       currentpose
+     MoveL
+       wait_w_tool
+       Waypoint_right
+       high_approach
+       before_tool
+       grasp_tool
+       Gripper Open (1)
+       above_tool
+       home
