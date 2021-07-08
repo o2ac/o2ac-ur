@@ -55,7 +55,6 @@ import cv_bridge  # This offers conversion methods between OpenCV
                   # Note that a similar package exists for PCL:
                   #   http://wiki.ros.org/pcl_ros
 
-import o2ac_routines.helpers
 import sensor_msgs.msg
 import o2ac_msgs.msg
 import geometry_msgs.msg
@@ -439,10 +438,9 @@ class O2ACVisionServer(object):
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
         self.write_to_log(im_in, im_vis, "shaft_hole_detection")
 
-    def execute_pick_success(self, goal, im_in):
-        self.pick_success_server.accept_new_goal()
-        rospy.loginfo("Received a request to detect pick success for item: %d",
-                      goal.item_id)
+    def execute_pick_success(self, im_in):
+        goal = self.pick_success_server.current_goal.get_goal()
+        rospy.loginfo("Received a request to detect pick success for item: %s" % goal.item_id)
         # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
         action_result = o2ac_msgs.msg.checkPickSuccessResult()
         action_result.item_is_picked, im_vis \
