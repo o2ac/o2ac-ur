@@ -1909,6 +1909,7 @@ class O2ACCommon(O2ACBase):
     if not success:
       return False
 
+    self.vision.activate_camera("a_bot_inside_camera")
     self.tools.set_motor("padless_tool_m4", "tighten", duration=12.0)
     self.insert_screw_tool_tip_into_idler_pulley_head()
     
@@ -1999,7 +2000,7 @@ class O2ACCommon(O2ACBase):
     if not self.centering_shaft():
       return False
 
-    self.b_bot.move_lin_rel(relative_translation=[0, 0, 0.1], speed=.5)
+    self.b_bot.move_lin_rel(relative_translation=[0, 0.01, 0.1], speed=.5)
 
     if not self.align_shaft(target_link, pre_insert_offset=0.065):
       return False
@@ -2019,9 +2020,9 @@ class O2ACCommon(O2ACBase):
     post_pick_pose = conversions.to_pose_stamped(target_link, [-0.15, 0.0, -0.10] + rotation)
     above_pose = conversions.to_pose_stamped(target_link, [0.0, 0.002, -0.10] + rotation)
     behind_pose = conversions.to_pose_stamped(target_link, [0.09, 0.002, -0.05] + rotation)
-    pre_insertion_pose = conversions.to_pose_stamped(target_link, [pre_insert_offset, 0.001, -0.002] + rotation)
+    pre_insertion_pose = conversions.to_pose_stamped(target_link, [pre_insert_offset, 0.001, 0.001] + rotation)
 
-    trajectory = [[post_pick_pose, 0.05, 0.5], [above_pose, 0.05, 0.5], [behind_pose, 0.01, 0.5], [pre_insertion_pose, 0.0, 0.2]]
+    trajectory = [[post_pick_pose, 0.05, 0.8], [above_pose, 0.05, 0.5], [behind_pose, 0.01, 0.5], [pre_insertion_pose, 0.0, 0.2]]
     rospy.loginfo("Going to position shaft to pre-insertion (b_bot)")
     if not self.b_bot.move_lin_trajectory(trajectory, speed=0.5, acceleration=0.25):
       rospy.logerr("Fail to position shaft to pre-insertion")
@@ -2064,6 +2065,7 @@ class O2ACCommon(O2ACBase):
     """
 
     self.b_bot.linear_push(3, "+X", max_translation=0.08, timeout=30.0)
+    after_push_pose = self.b_bot.get_current_pose_stamped()
 
     current_pose = self.b_bot.robot_group.get_current_pose()
     target_pose_target_frame = self.listener.transformPose(target_link, current_pose)
@@ -2080,19 +2082,31 @@ class O2ACCommon(O2ACBase):
     target_pose_target_frame = self.listener.transformPose(target_link, current_pose)
      
     rotation = np.deg2rad([-22.5, -88.5, -157.5]).tolist()  # Arbitrary
-    pre_insertion_pose = conversions.to_pose_stamped(target_link, [0.12, 0.000, 0.02] + rotation)
+    pre_insertion_pose = conversions.to_pose_stamped(target_link, [0.12, 0.001, 0.02] + rotation)
 
     if not success or not self.simple_insertion_check("b_bot", 0.02, min_opening_width=0.001):
       # TODO(cambel): implement a fallback
       rospy.logerr("** Insertion Failed!! **")
-      self.b_bot.gripper.open(wait=True)
-      self.b_bot.move_lin(pre_insertion_pose, speed=0.05)
+
+      cp = self.b_bot.get_current_pose_stamped()
+      if cp.pose.position.x > after_push_pose.pose.position.x + 0.005:
+        # IF there was a bit of an insertion, drop the shaft and move away
+        # TODO(cambel): fall back for the shaft stuck in the bearing
+        self.b_bot.gripper.open(wait=True)
+        self.b_bot.move_lin(pre_insertion_pose, speed=0.05)
+      elif attempts > 1:
+        self.b_bot.move_lin_rel([-0.01,0,0])
+        self.insert_shaft(target_link, attempts=attempts-1, target=target)
+      else:
+        self.b_bot.move_lin_rel([-0.05,0,0])
+        self.b_bot.move_lin_rel([0,0,0.1])
+        self.drop_in_tray("b_bot")
       return False
 
     # Move back to push (without grasping)
     self.b_bot.gripper.open(wait=True)
 
-    if not self.b_bot.move_lin(pre_insertion_pose, speed=0.05):
+    if not self.b_bot.move_lin(pre_insertion_pose, speed=0.3):
       rospy.logerr("** Fail to return to pre insertion pose **")
       return False
     self.b_bot.gripper.close(wait=True)
@@ -2325,17 +2339,21 @@ class O2ACCommon(O2ACBase):
     shaft_length = 0.075
     approach_centering = conversions.to_pose_stamped("tray_left_stopper", [0.0, shaft_length,     0.150, tau/2., tau/4., tau/4.])
     on_centering =       conversions.to_pose_stamped("tray_left_stopper", [0.0, shaft_length,    -0.004, tau/2., tau/4., tau/4.])
-    shaft_center =       conversions.to_pose_stamped("tray_left_stopper", [0.0, shaft_length/2., -0.006, tau/2., tau/4., tau/4.])
+    shaft_center =       conversions.to_pose_stamped("tray_left_stopper", [0.0, shaft_length/2., -0.008, tau/2., tau/4., tau/4.])
 
-    if not self.b_bot.go_to_pose_goal(approach_centering):
-      rospy.logerr("Fail to go to approaching_centering")
-      self.b_bot.go_to_named_pose("home")  # Fallback because sometimes the planning fails for no reason??
-      if not self.b_bot.go_to_pose_goal(approach_centering):
-        rospy.logerr("Fail to go to approaching_centering AGAIN")
-        return False
-    if not self.b_bot.go_to_pose_goal(on_centering):
-      rospy.logerr("Fail to go to on_centering")
+    if not self.b_bot.move_lin_trajectory([(approach_centering, 0.005, 0.6), (on_centering, 0.01, 0.4)]):
       return False
+
+    # TODO(cambel): make this a trajectory
+    # if not self.b_bot.go_to_pose_goal(approach_centering):
+    #   rospy.logerr("Fail to go to approaching_centering")
+    #   self.b_bot.go_to_named_pose("home")  # Fallback because sometimes the planning fails for no reason??
+    #   if not self.b_bot.go_to_pose_goal(approach_centering):
+    #     rospy.logerr("Fail to go to approaching_centering AGAIN")
+    #     return False
+    # if not self.b_bot.go_to_pose_goal(on_centering):
+    #   rospy.logerr("Fail to go to on_centering")
+    #   return False
 
     self.b_bot.gripper.open(opening_width=0.03)
     self.b_bot.gripper.close(velocity=0.013, force=40)  # Minimum force and speed
