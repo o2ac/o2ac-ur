@@ -132,6 +132,7 @@ class O2ACCommon(O2ACBase):
     else:
       collision_object.header.frame_id = "assembled_part_" + str(object_id).zfill(2)  # Fill with leading zeroes
     self.planning_scene_interface.apply_collision_object(collision_object)
+
     # Make sure the object is detached from all robots
     # for robot in self.active_robots.values():
     #   if object_name == robot.gripper.last_attached_object:
@@ -885,15 +886,14 @@ class O2ACCommon(O2ACBase):
 
     seq.append(helpers.to_sequence_item(safe_approach_pose))
     seq.append(helpers.to_sequence_item(at_tray_border_pose))
-    seq.append(helpers.to_sequence_trajectory(spiral_trajectory, 0.001, speed=0.2, default_frame=at_tray_border_pose.header.frame_id))
+    seq.append(helpers.to_sequence_trajectory(spiral_trajectory, 0.0, speed=0.2, default_frame=at_tray_border_pose.header.frame_id))
     seq.append(helpers.to_sequence_item_relative([0,0,0.08,0,0,0]))
 
     if not self.execute_sequence("b_bot", seq, 'declutter_with_tool'):
       rospy.logerr("Fail to declutter")
-      return False
     
     if not self.playback_sequence("plunger_tool_unequip"):
-      rospy.logerr("Fail to equip tool")
+      rospy.logerr("Fail to unequip tool")
       return False
 
     self.b_bot.go_to_named_pose("home")
@@ -1264,9 +1264,15 @@ class O2ACCommon(O2ACBase):
     self.active_robots[robot_name].gripper.close(wait=True, velocity=velocity)
     return self.active_robots[robot_name].gripper.opening_width > min_opening_width
 
-  def grab_and_drop(self, robot_name, object_pose, grasp_width=0.08):
-    grasp_width = grasp_width + 0.02 # extra opening of gripper to try to catch multiple objects, not too much to avoid grasping too many?
-    grasp_pose = self.simple_grasp_generation(object_pose, grasp_z_height=0.002, grasp_width=grasp_width, check_for_close_items=False)[0]
+  def grab_and_drop(self, robot_name, object_pose, options=dict()):
+    grasp_width_ = options.get('grasp_width', 0.08)
+    grasp_width = grasp_width_ + 0.02 # extra opening of gripper to try to catch multiple objects, not too much to avoid grasping too many?
+    options_ = {'grasp_z_height': 0.002, 'grasp_width': grasp_width, 'check_for_close_items': False}
+    if options.get('use_grasp_pose_directly_in_simple_pick', False):
+      grasp_pose = object_pose
+    else:
+      grasp_pose = self.simple_grasp_generation(object_pose, options_)[0]
+    
     robot = self.active_robots[robot_name]
     robot.gripper.open(opening_width=grasp_width)
     success = self.simple_pick(robot_name, grasp_pose, approach_height=0.05, lift_up_after_pick=True, axis="z", approach_with_move_lin=False)
@@ -1980,6 +1986,21 @@ class O2ACCommon(O2ACBase):
   
   ######## Shaft
 
+  def pick_and_center_shaft(self):
+    picked = False
+    attempt_nr = 0
+    while not picked and attempt_nr < 3:
+      picked = self.pick_shaft(attempt_nr=attempt_nr)
+      if not picked:
+        attempt_nr += 1
+        continue
+
+      picked = self.centering_shaft()
+      if not picked:
+        attempt_nr += 1
+        continue
+    return picked
+
   def pick_and_insert_shaft(self, task=""):
     if not task:
       rospy.logerr("Specify the task!")
@@ -1993,16 +2014,10 @@ class O2ACCommon(O2ACBase):
     self.a_bot.go_to_named_pose("home")
     self.b_bot.go_to_named_pose("home")
 
+    
     self.allow_collisions_with_robot_hand("shaft", "b_bot", True)
-    if not self.pick_shaft():
-      rospy.logerr("Fail to pick Shaft")
-      return False
-
-    if self.b_bot.gripper.opening_width < 0.004 and self.use_real_robot:
-      rospy.logerr("Fail to grasp Shaft")
-      return False
-
-    if not self.centering_shaft():
+    
+    if not self.pick_and_center_shaft():
       return False
 
     self.b_bot.move_lin_rel(relative_translation=[0, 0.01, 0.1], speed=.5)
@@ -2034,7 +2049,7 @@ class O2ACCommon(O2ACBase):
       return False
     return True
 
-  def pick_shaft(self):
+  def pick_shaft(self, attempt_nr=0):
     options = {'center_on_corner': True, 'approach_height': 0.02, 'grab_and_drop': True, 'center_on_close_border': True, 'with_tool': True}
     goal = self.look_and_get_grasp_point("shaft", options=options)
     if not isinstance(goal, geometry_msgs.msg.PoseStamped):
@@ -2056,11 +2071,29 @@ class O2ACCommon(O2ACBase):
 
     self.vision.activate_camera("b_bot_inside_camera")
 
-    if not self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.03, approach_height=0.1, 
+    picked_ok = self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.03, approach_height=0.1, 
                               item_id_to_attach="shaft", axis="z", lift_up_after_pick=True,
-                              speed_slow=0.1):
+                              speed_slow=0.1)
+
+    grasp_ok = self.simple_gripper_check("b_bot", min_opening_width=0.004)
+    
+    if not picked_ok or not grasp_ok:
     # if not self.pick("b_bot", object_name="shaft", grasp_pose=goal):
       rospy.logerr("Failed to pick shaft")
+      if attempt_nr < 3:
+        rospy.loginfo("Try again")
+        print("goal.pose.orientation", goal.pose.orientation)
+        goal_rotated = helpers.rotatePoseByRPY(tau/4, 0, 0, goal)
+        print("goal_rotated.pose.orientation", goal_rotated.pose.orientation)
+        options = {"use_grasp_pose_directly_in_simple_pick":True}
+        if attempt_nr == 0:
+          self.grab_and_drop("b_bot", goal_rotated, options=options)
+        if attempt_nr > 0:
+          # TODO: Don't do this randomly. Try each side of the shaft.
+          goal.pose.position.x += np.random.uniform() * 0.006 - .003
+          goal.pose.position.y += np.random.uniform() * 0.006 - .003
+          self.declutter_with_tool("b_bot", goal)
+        return self.pick_shaft(attempt_nr=attempt_nr+1)
       return False
     return True
 
@@ -2341,24 +2374,26 @@ class O2ACCommon(O2ACBase):
     return True
 
   def centering_shaft(self):
+    """ Push grasped shaft into the tray holder, and regrasp it centered.
+    """
     shaft_length = 0.075
     approach_centering = conversions.to_pose_stamped("tray_left_stopper", [0.0, shaft_length,     0.150, tau/2., tau/4., tau/4.])
     on_centering =       conversions.to_pose_stamped("tray_left_stopper", [0.0, shaft_length,    -0.004, tau/2., tau/4., tau/4.])
     shaft_center =       conversions.to_pose_stamped("tray_left_stopper", [0.0, shaft_length/2., -0.008, tau/2., tau/4., tau/4.])
 
-    if not self.b_bot.move_lin_trajectory([(approach_centering, 0.005, 0.6), (on_centering, 0.01, 0.4)]):
-      return False
+    # if not self.b_bot.move_lin_trajectory([(approach_centering, 0.005, 0.6), (on_centering, 0.01, 0.4)]):
+    #   return False
 
     # TODO(cambel): make this a trajectory
-    # if not self.b_bot.go_to_pose_goal(approach_centering):
-    #   rospy.logerr("Fail to go to approaching_centering")
-    #   self.b_bot.go_to_named_pose("home")  # Fallback because sometimes the planning fails for no reason??
-    #   if not self.b_bot.go_to_pose_goal(approach_centering):
-    #     rospy.logerr("Fail to go to approaching_centering AGAIN")
-    #     return False
-    # if not self.b_bot.go_to_pose_goal(on_centering):
-    #   rospy.logerr("Fail to go to on_centering")
-    #   return False
+    if not self.b_bot.go_to_pose_goal(approach_centering):
+      rospy.logerr("Fail to go to approaching_centering")
+      self.b_bot.go_to_named_pose("home")  # Fallback because sometimes the planning fails for no reason??
+      if not self.b_bot.go_to_pose_goal(approach_centering):
+        rospy.logerr("Fail to go to approaching_centering AGAIN")
+        return False
+    if not self.b_bot.go_to_pose_goal(on_centering):
+      rospy.logerr("Fail to go to on_centering")
+      return False
 
     self.b_bot.gripper.open(opening_width=0.03)
     self.b_bot.gripper.close(velocity=0.013, force=40)  # Minimum force and speed
@@ -2368,8 +2403,12 @@ class O2ACCommon(O2ACBase):
     if not self.b_bot.go_to_pose_goal(shaft_center, speed=0.1):
       rospy.logerr("Fail to go to relative shaft center")
       return False
-    self.confirm_to_proceed("Close gripper to regrasp shaft?")
+
     self.b_bot.gripper.close()
+    if not self.b_bot.gripper.opening_width > 0.004:
+      rospy.logerr("No shaft detected in gripper. Going back up and aborting.")
+      self.b_bot.go_to_pose_goal(approach_centering)
+      return False
   
     return True
 
