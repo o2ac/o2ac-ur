@@ -32,31 +32,73 @@ def test_force_control(c):
 def main():
     rospy.init_node("testscript")
     global controller
+    controller = O2ACCommon()
     
-    controller = O2ACAssembly()
-    controller.align_motor_pre_insertion()
-    controller.confirm_to_proceed("")
+    # p, _ = controller.ab_bot.go_to_named_pose("home", plan_only=True)
+    # controller.ab_bot.execute_plan(p, wait=True)
+    controller.ab_bot.go_to_named_pose("home")
 
+    speed = 0.5
 
-    # controller = O2ACCommon()
-    # test_force_control(controller)
+    plan_a_screw_ready, _ = controller.a_bot.go_to_named_pose("screw_ready", plan_only=True, speed=speed)
+    plan_b_screw_ready, _ = controller.b_bot.go_to_named_pose("screw_ready", plan_only=True, speed=speed)
 
+    a_bot_at_tray = conversions.to_pose_stamped("tray_center", [-0.048, 0.146, 0.031, -0.504, 0.506, 0.495, 0.495])
+    plan_a_at_tray, _ = controller.a_bot.go_to_pose_goal(a_bot_at_tray, plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_a_screw_ready), speed=speed)
+    b_bot_at_tray = conversions.to_pose_stamped("tray_center", [0.002, -0.186, 0.166, 0.507, 0.504, -0.496, 0.493])
+    plan_b_at_tray, _ = controller.b_bot.go_to_pose_goal(b_bot_at_tray, plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_b_screw_ready), speed=speed)
 
-    # controller.ab_bot.go_to_named_pose("home")
+    plan_a_tool_pick_ready, _ = controller.a_bot.go_to_named_pose("tool_pick_ready", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_a_at_tray), speed=speed)
+    plan_b_tool_pick_ready, _ = controller.b_bot.go_to_named_pose("tool_pick_ready", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_b_at_tray), speed=speed)
 
-    # controller.a_bot.go_to_named_pose("screw_ready")
-    # controller.a_bot.force_controller.execute_spiral_trajectory2("YZ", max_radius=0.0015, radius_direction="+Y", steps=50,
-    #                                                       revolutions=5, target_force=0, termination_criteria=None, timeout=10,
-    #                                                       check_displacement_time=10, end_effector_link="a_bot_screw_tool_m3_tip_link")
+    plan_a_screw_ready_2, _ = controller.a_bot.go_to_named_pose("screw_ready", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_a_tool_pick_ready), speed=speed)
+    plan_b_screw_ready_2, _ = controller.b_bot.go_to_named_pose("screw_ready", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_b_tool_pick_ready), speed=speed)
 
-    # print(":::::::::::::::")
-    # controller.a_bot.force_controller.execute_spiral_trajectory2("YZ", max_radius=0.0015, radius_direction="+Y", steps=50,
-    #                                                       revolutions=5, target_force=0, termination_criteria=None, timeout=10,
-    #                                                       check_displacement_time=10)
-    # controller.a_bot.go_to_named_pose("horizontal_screw_ready")
-    # controller.a_bot.force_controller.execute_spiral_trajectory2("YZ", max_radius=0.0015, radius_direction="+Y", steps=50,
-    #                                                       revolutions=5, target_force=0, termination_criteria=None, timeout=10,
-    #                                                       check_displacement_time=10)
+    plan_a_home, _ = controller.a_bot.go_to_named_pose("home", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_a_screw_ready_2), speed=speed)
+    plan_b_home, _ = controller.b_bot.go_to_named_pose("home", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_b_screw_ready_2), speed=speed)
+
+    # rospy.sleep(2)
+
+    print("duration plan_a_screw_ready:", helpers.get_trajectory_duration(plan_a_screw_ready))
+    print("duration plan_b_screw_ready:", helpers.get_trajectory_duration(plan_b_screw_ready))
+    print("duration plan_a_at_tray:", helpers.get_trajectory_duration(plan_a_at_tray))
+    print("duration plan_b_at_tray:", helpers.get_trajectory_duration(plan_b_at_tray))
+    print("duration plan_a_tool_pick_ready:", helpers.get_trajectory_duration(plan_a_tool_pick_ready))
+    print("duration plan_b_tool_pick_ready:", helpers.get_trajectory_duration(plan_b_tool_pick_ready))
+    print("duration plan_a_screw_ready_2:", helpers.get_trajectory_duration(plan_a_screw_ready_2))
+    print("duration plan_b_screw_ready_2:", helpers.get_trajectory_duration(plan_b_screw_ready_2))
+    print("duration plan_a_home:", helpers.get_trajectory_duration(plan_a_home))
+    print("duration plan_b_home:", helpers.get_trajectory_duration(plan_b_home))
+    
+    b = False
+
+    controller.a_bot.execute_plan(plan_a_screw_ready, False)
+    if b:
+        rospy.sleep(0.1)
+        controller.b_bot.execute_plan(plan_b_screw_ready, False)
+    rospy.sleep(0.1)
+    controller.a_bot.execute_plan(plan_a_at_tray, False)
+    if b:
+        rospy.sleep(0.1)
+        controller.b_bot.execute_plan(plan_b_at_tray, False)
+    rospy.sleep(0.1)
+    controller.a_bot.execute_plan(plan_a_tool_pick_ready, False)
+    if b:
+        rospy.sleep(0.1)
+        controller.b_bot.execute_plan(plan_b_tool_pick_ready, False)
+    rospy.sleep(0.1)
+    controller.a_bot.execute_plan(plan_a_screw_ready_2, False)
+    if b:
+        rospy.sleep(0.1)
+        controller.b_bot.execute_plan(plan_b_screw_ready_2, False)
+    rospy.sleep(0.1)
+    controller.a_bot.execute_plan(plan_a_home, False)
+    if b:
+        rospy.sleep(0.1)
+        controller.b_bot.execute_plan(plan_b_home, False)
+
+    # =====
+
     # controller.b_bot.go_to_named_pose("screw_ready")
     # controller.playback_sequence("idler_pulley_ready_screw_tool")
     # controller.confirm_to_proceed("")
