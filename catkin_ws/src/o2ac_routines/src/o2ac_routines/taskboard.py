@@ -253,13 +253,13 @@ class O2ACTaskboard(O2ACCommon):
 
     # self.subtask_completed["shaft"] = self.do_task("shaft")
     
-    order = ["motor pulley", "idler pulley", "belt", "shaft", "bearing"]
+    order = ["belt", "motor pulley", "shaft", "idler pulley", "bearing"]
     task_complete = False
 
-    found_items = self.check_objects_in_tray("b_bot", order)
-    rospy.loginfo("Items found so far: %s" % found_items)
-    for item in found_items:
-      self.execute_step(item)
+    # found_items = self.check_objects_in_tray("b_bot", order)
+    # rospy.loginfo("Items found so far: %s" % found_items)
+    # for item in found_items:
+    #   self.execute_step(item)
       
     # Then loop through the remaining items
     self.confirm_to_proceed("Continue into loop to retry parts?")
@@ -287,6 +287,8 @@ class O2ACTaskboard(O2ACCommon):
         rospy.loginfo("============================================")
         rospy.loginfo("==== Task: %s completed with status: %s ====" % (item, self.subtask_completed[item]))
         rospy.loginfo("============================================")      
+      
+      return self.subtask_completed[item]
 
   def do_task(self, task_name, fake_execution_for_calibration=False):
     self.publish_status_text("Target: " + task_name)
@@ -373,6 +375,7 @@ class O2ACTaskboard(O2ACCommon):
       # Equip and move to the screw hole
       # self.equip_tool("b_bot", "set_screw_tool")
       # self.b_bot.go_to_named_pose("horizontal_screw_ready")
+      self.vision.activate_camera("b_bot_inside_camera")
       screw_approach = copy.deepcopy(self.at_set_screw_hole)
       screw_approach.pose.position.x = -0.005
       self.b_bot.go_to_pose_goal(screw_approach, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True)

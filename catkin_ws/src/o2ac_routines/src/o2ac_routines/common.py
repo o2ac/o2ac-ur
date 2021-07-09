@@ -2762,6 +2762,8 @@ class O2ACCommon(O2ACBase):
 
     self.playback_sequence("tray_take_from_agv", plan_while_moving=True, save_on_success=True, use_saved_plans=True)
 
+    self.ab_bot.go_to_named_pose("home")
+
     self.allow_collisions_with_robot_hand("tray", "a_bot", allow=False)
     self.allow_collisions_with_robot_hand("tray", "b_bot", allow=False)
     self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=False)
