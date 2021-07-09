@@ -561,15 +561,10 @@ class O2ACBase(object):
     self.active_robots[robot_name].go_to_pose_goal(pushed_into_hole, end_effector_link=screw_tool_link, speed=0.02)
 
     # Stop spiral motion if the tool action finished, regardless of success/failure
-    # FIXME(cambel): make this work again
-    # tc = lambda a, b: self.tools.fastening_tool_client.get_state() in (GoalStatus.SUCCEEDED, GoalStatus.PREEMPTED, GoalStatus.ABORTED, GoalStatus.LOST)
-    # self.active_robots[robot_name].force_controller.execute_spiral_trajectory2("YZ", max_radius=0.0015, radius_direction="+Y", steps=50,
-    #                                                       revolutions=5, target_force=0, check_displacement_time=10,
-    #                                                       termination_criteria=tc, timeout=10, end_effector_link=screw_tool_link)
-    # spiral_trajectory = compute_trajectory(conversions.from_pose_to_list(at_tray_border_pose.pose), 
-    #                                   "XY", 0.03, "+Y", steps=50, revolutions=3, from_center=True,  trajectory_type="spiral")
-    # spiral_trajectory = [conversions.to_pose_stamped(at_tray_border_pose.header.frame_id, t) for t in spiral_trajectory]
-    # seq.append(helpers.to_sequence_trajectory(spiral_trajectory, 0.001, speed=0.2, default_frame=at_tray_border_pose.header.frame_id))
+    tc = lambda a, b: self.tools.fastening_tool_client.get_state() in (GoalStatus.SUCCEEDED, GoalStatus.PREEMPTED, GoalStatus.ABORTED, GoalStatus.LOST)
+    self.active_robots[robot_name].force_controller.execute_spiral_trajectory2("YZ", max_radius=0.0015, radius_direction="+Y", steps=50,
+                                                          revolutions=5, target_force=0, check_displacement_time=10,
+                                                          termination_criteria=tc, timeout=10, end_effector_link=screw_tool_link)
 
     finished_before_timeout = self.tools.fastening_tool_client.wait_for_result(rospy.Duration(15))
     result = self.tools.fastening_tool_client.get_result()

@@ -22,10 +22,32 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
+def test_force_control(c):
+    selection_matrix = [0., 1., 1., 1., 1., 1.]
+    target_force = np.array([0., 0., 0., 0., 0., 0.])
+
+    c.b_bot.go_to_pose_goal(controller.tray_view_high)
+    c.b_bot.force_controller.force_control(target_force=target_force, selection_matrix=selection_matrix, timeout=30.0)
+
 def main():
     rospy.init_node("testscript")
     global controller
     controller = O2ACCommon()
+    test_force_control(controller)
+
+    # controller.a_bot.go_to_named_pose("screw_ready")
+    # controller.a_bot.force_controller.execute_spiral_trajectory2("YZ", max_radius=0.0015, radius_direction="+Y", steps=50,
+    #                                                       revolutions=5, target_force=0, termination_criteria=None, timeout=10,
+    #                                                       check_displacement_time=10, end_effector_link="a_bot_screw_tool_m3_tip_link")
+
+    # print(":::::::::::::::")
+    # controller.a_bot.force_controller.execute_spiral_trajectory2("YZ", max_radius=0.0015, radius_direction="+Y", steps=50,
+    #                                                       revolutions=5, target_force=0, termination_criteria=None, timeout=10,
+    #                                                       check_displacement_time=10)
+    # controller.a_bot.go_to_named_pose("horizontal_screw_ready")
+    # controller.a_bot.force_controller.execute_spiral_trajectory2("YZ", max_radius=0.0015, radius_direction="+Y", steps=50,
+    #                                                       revolutions=5, target_force=0, termination_criteria=None, timeout=10,
+    #                                                       check_displacement_time=10)
     # controller.b_bot.go_to_named_pose("screw_ready")
     # controller.playback_sequence("idler_pulley_ready_screw_tool")
     # controller.confirm_to_proceed("")
@@ -38,9 +60,9 @@ def main():
     # controller.b_bot.go_to_pose_goal(at_object_pose, speed=0.5)
     # controller.center_with_gripper("b_bot", opening_width=0.085)
     
-    controller.vision.activate_camera("b_bot_inside_camera")
-    look_at_output_pulley = conversions.to_pose_stamped("assembled_part_08_inserted", [-0.212, 0, 0.0, -tau/4, 0, -tau/4])
-    controller.b_bot.go_to_pose_goal(look_at_output_pulley, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=0.05)
+    # controller.vision.activate_camera("b_bot_inside_camera")
+    # look_at_output_pulley = conversions.to_pose_stamped("assembled_part_08_inserted", [-0.212, 0, 0.0, -tau/4, 0, -tau/4])
+    # controller.b_bot.go_to_pose_goal(look_at_output_pulley, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=0.05)
 
     # controller.assembly_database.change_assembly("taskboard")
     # controller.pick_bearing()

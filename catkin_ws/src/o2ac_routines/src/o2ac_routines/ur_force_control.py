@@ -29,21 +29,13 @@ def create_pid(pid, default_ki=0.0, default_kd=0.0):
 
 class URForceController(CompliantController):
     def __init__(self, robot_name, listener, tcp_link='gripper_tip_link', **kwargs):
-        # TODO(cambel): fix this ugly workaround by properly defining the tool tip with respect to tool0
-        if tcp_link == 'gripper_tip_link':
-            if robot_name == "b_bot":
-                ee_transform = [0.0, 0.0, 0.173, 0.500, -0.500, 0.500, 0.500]
-            if robot_name == "a_bot":
-                ee_transform = [0.0, 0.0, 0.246, 0.500, -0.500, 0.500, 0.500]
-
-            tcp_link = 'tool0'
-
         self.listener = listener
+        self.default_tcp_link = robot_name + '_' + tcp_link
 
         CompliantController.__init__(self, ft_sensor=True, namespace=robot_name,
                                      joint_names_prefix=robot_name+'_', robot_urdf=robot_name,
                                      robot_urdf_package='o2ac_scene_description',
-                                     ee_link=tcp_link, ee_transform=ee_transform, **kwargs)
+                                     ee_link=tcp_link, **kwargs)
 
     def _init_force_controller(self, config_file):
         path = rospkg.RosPack().get_path("o2ac_routines") + "/config/" + config_file + ".yaml"
@@ -62,9 +54,9 @@ class URForceController(CompliantController):
 
     def force_control(self, target_force=None, target_positions=None,
                       selection_matrix=None, relative_to_ee=False,
-                      timeout=10.0, stop_on_target_force=False, reset_pids=True, termination_criteria=None,
+                      timeout=10.0, stop_on_target_force=False, termination_criteria=None,
                       displacement_epsilon=0.002, check_displacement_time=2.0,
-                      config_file=None):
+                      config_file=None, time_compensation=True, end_effector_link=None):
         """ 
             Use with caution!! 
             target_force: list[6], target force for each direction x,y,z,ax,ay,az
@@ -72,8 +64,11 @@ class URForceController(CompliantController):
             selection_matrix: list[6], define which direction is controlled by position(1.0) or force(0.0)
             relative_to_ee: bool, whether to use the base_link of the robot as frame or the ee_link (+ ee_transform)
             timeout: float, duration in seconds of the force control
-            reset_pids: bool, should reset pids after using force control, but for continuos control during a trajectory, it is not recommended until the trajectory is completed
         """
+        if end_effector_link and end_effector_link != self.default_tcp_link:
+            # Init IK and FK solvers with new end effector link
+            self._init_ik_solver(self.base_link, end_effector_link)
+
         if config_file is None:
             config_file = "force_control"
         self._init_force_controller(config_file)
@@ -90,8 +85,13 @@ class URForceController(CompliantController):
 
         result = self.set_hybrid_control_trajectory(target_positions, self.force_model, max_force_torque=self.max_force_torque, timeout=timeout,
                                                     stop_on_target_force=stop_on_target_force, termination_criteria=termination_criteria,
-                                                    displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time, debug=False)
+                                                    displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time, debug=False,
+                                                    time_compensation=time_compensation)
         self.force_model.reset()  # reset pid errors
+
+        if end_effector_link and end_effector_link != self.default_tcp_link:
+            # Init IK and FK solvers with default end effector link
+            self._init_ik_solver(self.base_link, self.default_tcp_link)
 
         return result
 
