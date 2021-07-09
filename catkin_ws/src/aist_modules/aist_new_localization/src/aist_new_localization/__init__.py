@@ -15,8 +15,7 @@ from actionlib_msgs.msg    import GoalStatus
 class LocalizationClient(object):
     _DefaultParams = {'origin':           [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
                       'rotation_range':   [0.0, 0.0, 0,0],
-                      'refine_transform': False,
-                      'transform_2d':     False}
+                      'refine_transform': False}
 
     def __init__(self, server='/localization'):
         super(LocalizationClient, self).__init__()
@@ -50,7 +49,8 @@ class LocalizationClient(object):
         return self._dyn_reconf.get_configuration()
 
     def send_goal(self, object_name, plane,
-                  poses2d=[gmsg.Pose2D(0.0, 0.0, 0.0)], dx=0.0, dy=0.0):
+                  poses2d=[gmsg.Pose2D(0.0, 0.0, 0.0)], dx=0.0, dy=0.0,
+                  check_border=0b1111):
         params = self._params[object_name]
         origin = copy.copy(params['origin'])  # Must be copied
         origin[0] += dx
@@ -72,12 +72,12 @@ class LocalizationClient(object):
                                      gmsg.Quaternion(*tfs.quaternion_from_euler(
                                          *origin[3:6])))
         goal.refine_transform = params['refine_transform']
-        goal.transform_2d     = params['transform_2d']
+        goal.check_border     = check_border
         self._localize.send_goal(goal)
 
     def send_goal_with_target_frame(self, object_name, frame_id, stamp,
                                     poses2d=[gmsg.Pose2D(0.0, 0.0, 0.0)],
-                                    dx=0.0, dy=0.0):
+                                    dx=0.0, dy=0.0, check_border=0b1111):
         plane = dmsg.PlaneStamped()
         plane.header.frame_id = frame_id
         plane.header.stamp    = stamp
@@ -85,7 +85,8 @@ class LocalizationClient(object):
         plane.plane.normal.y  = 0
         plane.plane.normal.z  = 1
         plane.plane.distance  = 0
-        return self.send_goal(object_name, plane, poses2d, dx, dy)
+        return self.send_goal(object_name,
+                              plane, poses2d, dx, dy, check_border)
 
     def wait_for_result(self, timeout=0):
         if not self._localize.wait_for_result(rospy.Duration(timeout)):

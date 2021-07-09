@@ -38,7 +38,7 @@ localization_parameters:
     size: [0.075, 0.010]
     origin: [-0.0375, 0.0, 0.005, 0.0, 0.0, 0.0]
     rotation_range: [0.0, 0.0, 0.0]
-    refine_transform: true
+    refine_transform: false
   09_EDCS10:
     size: [0.010, 0.010]
     origin: [0.0, 0.0, 0.0, 0.0, -90.0, 0.0]

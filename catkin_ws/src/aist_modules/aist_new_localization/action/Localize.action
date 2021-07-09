@@ -5,8 +5,7 @@ aist_depth_filter/PlaneStamped plane
 geometry_msgs/Pose2D[]         poses2d
 geometry_msgs/Pose             origin       # URDF origin w.r.t object center
 bool                           refine_transform
-bool                           transform_2d
-
+uint32                         check_border
 ---
 # Result definition
 geometry_msgs/PoseArray poses

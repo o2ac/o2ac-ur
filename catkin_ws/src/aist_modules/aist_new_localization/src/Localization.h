@@ -77,7 +77,12 @@ class Localization
 				 const tf::Transform& Tcm,
 				 const camera_info_cp& camera_info,
 				 const image_cp& depth,
+				 uint32_t check_border,
 				 value_t& error)		const	;
+    template <class ITER>
+    bool	within_view_volume(ITER begin, ITER end,
+				   const camera_info_cp& camera_info,
+				   uint32_t check_border)	const	;
 
   private:
     ros::NodeHandle					_nh;

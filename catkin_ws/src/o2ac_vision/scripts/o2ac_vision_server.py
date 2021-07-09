@@ -320,7 +320,7 @@ class O2ACVisionServer(object):
 ### ======= Process active goals of action servers
 
     def execute_get_2d_poses_from_ssd(self, im_in, im_vis):
-        rospy.loginfo("Execute get_2d_poses_from_ssd action")
+        rospy.loginfo("Executing get_2d_poses_from_ssd action")
 
         action_result = o2ac_msgs.msg.get2DPosesFromSSDResult()
         action_result.results, im_vis = self.get_2d_poses_from_ssd(im_in,
@@ -329,7 +329,7 @@ class O2ACVisionServer(object):
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
 
     def execute_get_3d_poses_from_ssd(self, im_in, im_vis):
-        rospy.loginfo("Execute get_3d_poses_from_ssd action")
+        rospy.loginfo("Executing get_3d_poses_from_ssd action")
 
         poses2d_array, im_vis = self.get_2d_poses_from_ssd(im_in, im_vis)
         action_result = o2ac_msgs.msg.get3DPosesFromSSDResult()
@@ -348,6 +348,7 @@ class O2ACVisionServer(object):
 
     def execute_localization(self, im_in, im_vis):
         rospy.loginfo("Executing localization action")
+
         # Apply SSD first to get the object's bounding box
         poses2d_array, im_vis = self.get_2d_poses_from_ssd(im_in, im_vis)
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
@@ -386,7 +387,7 @@ class O2ACVisionServer(object):
             self.write_to_log(im_in, im_vis, "localization")
 
     def execute_belt_detection(self, im_in, im_vis):
-        rospy.loginfo("Received a request to detect belt grasp points")
+        rospy.loginfo("Executing belt grasp points detection")
 
         # Get bounding boxes, then belt grasp points
         ssd_results, im_vis = self.detect_object_in_image(im_in, im_vis)
@@ -411,7 +412,7 @@ class O2ACVisionServer(object):
 
     def execute_angle_detection(self, image):
         goal = self.angle_detection_server.current_goal.get_goal()
-        rospy.loginfo("Received a request to detect angle of %s", goal.item_id)
+        rospy.loginfo("Executing angle detection for item: %s", goal.item_id)
 
         # Pass action goal to Python3 node
         action_goal = goal
@@ -622,9 +623,9 @@ class O2ACVisionServer(object):
         """
 
         # Convert to grayscale
-        if im_in.shape[2] == 3: 
+        if im_in.shape[2] == 3:
             im_gray = cv2.cvtColor(im_in, cv2.COLOR_BGR2GRAY)
-        else: 
+        else:
             im_gray = im_in
 
         has_hole, im_vis = self.shaft_hole_detector.main_proc(im_gray)  # if True hole is observed in im_in
@@ -642,40 +643,45 @@ class O2ACVisionServer(object):
 
     def localize(self, item_id, bbox, poses2d, shape):
         size   = self._param_localization[item_id]['size']
-        margin = 15
-        x0     = max(bbox[0] - margin, 0)
-        y0     = max(bbox[1] - margin, 0)
-        x1     = min(bbox[0] + bbox[2] + margin, shape[1])
-        y1     = min(bbox[1] + bbox[3] + margin, shape[0])
+        margin = 30
+        u0     = bbox[0] - margin            # (u0, v0): upper-left corner
+        v0     = bbox[1] - margin            # of bbox
+        u1     = bbox[0] + bbox[2] + margin  # (u1, v1): lower-right corner
+        v1     = bbox[1] + bbox[3] + margin  # of bouding box
 
-        self._dfilter.roi = (x0, y0, x1, y1)
+        self._dfilter.roi = (u0, v0, u1, v1)
 
-        ox = x0
-        oy = y0
-        dx = 0.0
-        dy = 0.0
-        # if len(poses2d) == 1 and poses2d[0].theta == 0:
-        #     if x0 == 0:
-        #         ox = x1
-        #         poses2d[0].x = ox
-        #         dx = -size[0]/2
-        #     elif x1 == shape[1]:
-        #         poses2d[0].x = ox
-        #         dx = size[0]/2
-        #     if y0 == 0:
-        #         oy = y1
-        #         poses2d[0].y = oy
-        #         dy = size[1]/2
-        #     elif y1 == shape[0]:
-        #         poses2d[0].y = oy
-        #         dy = -size[1]/2
+        uo = u0    # (uo, vo): origin of 2D coordinate frame describing
+        vo = v0    # object pose within the supporting plane
+        dx = 0.0   # (dx, dy): offset of the object center
+        dy = 0.0   #  within the supporting plane
+        check_border = 0b1111
+        if len(poses2d) == 1 and poses2d[0].theta == 0:
+            if u0 < 0:
+                # uo = u1
+                # dx = -size[0]/2
+                check_border &= 0b0111  # Disable checking left border
+            elif u1 > shape[1]:
+                # dx = size[0]/2
+                check_border &= 0b1101  # Disable checking right border
+            if v0 < 0:
+                # vo = v1
+                # dy = size[1]/2
+                check_border &= 0b1110  # Disable checking upper border
+            elif v1 > shape[0]:
+                # dy = -size[1]/2
+                check_border &= 0b1011  # Disable checking lower border
+
+            poses2d[0].x = uo
+            poses2d[0].y = vo
 
         for pose2d in poses2d:
-            pose2d.x -= ox
-            pose2d.y -= oy
+            pose2d.x -= uo
+            pose2d.y -= vo
         self._localizer.send_goal_with_target_frame(item_id, 'tray_center',
                                                     rospy.Time.now(),
-                                                    poses2d, dx, dy)
+                                                    poses2d, dx, dy,
+                                                    check_border)
         return self._localizer.wait_for_result()
 
     def item_id(self, class_id):
@@ -685,7 +691,7 @@ class O2ACVisionServer(object):
 
     def detect_pulley_screws(self, im_in, im_vis):
         # Convert to grayscale
-        if im_in.shape[2] == 3: 
+        if im_in.shape[2] == 3:
             im_gray = cv2.cvtColor(im_in, cv2.COLOR_BGR2GRAY)
         else:
             im_gray = im_in
