@@ -118,7 +118,7 @@ if __name__ == '__main__':
       rospy.loginfo("Enter a number to run tests: ")
       rospy.loginfo("1: Go home with all robots")
       rospy.loginfo("11-14: Activate camera (11:a_in, 12:a_out, 13:b_in, 14:b_out)")
-      rospy.loginfo("2: Move b_bot above tray at 37 cm")
+      rospy.loginfo("2: Move b_bot above tray at 37 cm (2a: a_bot)")
       rospy.loginfo("3: Move b_bot close (22 cm)")
       rospy.loginfo("31, 32, 33, 34: Close views")
       rospy.loginfo("4: Call shaft notch detection")
@@ -141,17 +141,11 @@ if __name__ == '__main__':
       elif r == '14':
         c.vision.activate_camera("b_bot_outside_camera")
       elif r == '2':
-        ps = geometry_msgs.msg.PoseStamped()
-        ps.header.frame_id = "tray_center"
-        ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
-        ps.pose.position.z = .37
-        c.b_bot.go_to_pose_goal(ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.5, acceleration=.2)
+        c.b_bot.go_to_pose_goal(c.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.5, acceleration=.2)
+        # c.b_bot.go_to_pose_goal(c.tray_view_high, end_effector_link="calibrated_b_bot_outside_camera_color_optical_frame", speed=.5, acceleration=.2)
       elif r == '2a':
-        ps = geometry_msgs.msg.PoseStamped()
-        ps.header.frame_id = "tray_center"
-        ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
-        ps.pose.position.z = .37
-        c.a_bot.go_to_pose_goal(ps, end_effector_link="a_bot_outside_camera_color_frame", speed=.5, acceleration=.2)
+        c.a_bot.go_to_pose_goal(c.tray_view_high, end_effector_link="a_bot_outside_camera_color_frame", speed=.5, acceleration=.2)
+        # c.a_bot.go_to_pose_goal(c.tray_view_high, end_effector_link="calibrated_a_bot_outside_camera_color_optical_frame", speed=.5, acceleration=.2)
       elif r == '3':
         ps = geometry_msgs.msg.PoseStamped()
         ps.header.frame_id = "tray_center"
@@ -185,10 +179,8 @@ if __name__ == '__main__':
         for ps in c.close_tray_views_rot_right:
           c.b_bot.go_to_pose_goal(ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
       elif r == '4':
-        c.vision.activate_camera("b_bot_inside_camera")
-        c.vision.call_shaft_notch_detection()
+        c.vision.call_shaft_hole_detection()
       elif r == '5':
-        c.vision.activate_camera("b_bot_outside_camera")
         rospy.sleep(1)
         res = c.get_3d_poses_from_ssd()
         obj_id = 7 #bearing
@@ -204,6 +196,8 @@ if __name__ == '__main__':
           print(str(r2[0]))
         except:
           pass
+      elif r == '500':
+        c.get_bearing_angle()
       elif r == '51':
         c.b_bot.go_to_named_pose("home")
         p = r2[0]
@@ -262,6 +256,9 @@ if __name__ == '__main__':
         c.check_output_pulley_angle()
       elif r == 'push':
         c.b_bot.linear_push(force=10, direction="-Z", relative_to_ee=False, timeout=15.0)
+      elif r == "reset":
+        c.reset_scene_and_robots()
+        c.reset_assembly_visualization()
       elif r == 'x':
         break
       else:

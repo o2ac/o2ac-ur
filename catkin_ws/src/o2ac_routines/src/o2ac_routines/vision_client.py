@@ -18,7 +18,7 @@ class VisionClient():
                 self.vision_multiplexer = RealSenseMultiplexerClient('camera_multiplexer')
             except:
                 self.vision_multiplexer = []
-            self.multiplexer_camera_names = rospy.get_param('/camera_multiplexer/camera_names')
+            self.multiplexer_camera_names = rospy.get_param('/camera_multiplexer/camera_names', '')
             self.camera_enable_services = {}
             for cam in self.multiplexer_camera_names:
                 rospy.wait_for_service('/%s/enable' % cam)

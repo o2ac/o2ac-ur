@@ -115,15 +115,13 @@ class O2ACCommon(O2ACBase):
     # Remove from scene or detach from robot
     self.planning_scene_interface.remove_attached_object(name=object_name)
 
-    # DEBUGGING: Remove object from the scene
-    if True:
-      self.planning_scene_interface.remove_world_object(name=object_name)
+    # # DEBUGGING: Remove object from the scene
+    # if True:
+    #   self.planning_scene_interface.remove_world_object(name=object_name)
       
-    marker = self.assembly_database.get_visualization_marker(object_name, self.assembly_marker_id_counter)
-    self.assembly_marker_id_counter += 1
-    self.assembly_marker_publisher.publish(marker)
-
-    return True
+    # marker = self.assembly_database.get_visualization_marker(object_name, self.assembly_marker_id_counter)
+    # self.assembly_marker_id_counter += 1
+    # self.assembly_marker_publisher.publish(marker)
 
     object_id = self.assembly_database.name_to_id(object_name)
     collision_object = self.assembly_database.get_collision_object(object_name)

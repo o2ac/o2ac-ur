@@ -256,7 +256,7 @@ class CalibrationClass(O2ACCommon):
     self.active_robots[robot_name].go_to_named_pose("horizontal_screw_ready")
     return 
 
-  def tray_calibration(self, robot_name="a_bot", end_effector_link="a_bot_gripper_tip_link"):
+  def tray_sponge_calibration(self, robot_name="a_bot", end_effector_link="a_bot_gripper_tip_link"):
     rospy.loginfo("============ Touching tray sponge. ============")
     rospy.loginfo("eef link " + end_effector_link + " should be touching the tray sponge in middle, then left, then right.")
     if robot_name=="a_bot":
@@ -278,6 +278,28 @@ class CalibrationClass(O2ACCommon):
     self.cycle_through_calibration_poses(poses, robot_name, go_home=False, with_approach=True, end_effector_link=end_effector_link, move_lin=True)
     return 
 
+  def tray_corners_calibration(self, robot_name="a_bot", end_effector_link="a_bot_gripper_tip_link"):
+    rospy.loginfo("============ Touching tray corners. ============")
+    rospy.loginfo("eef link " + end_effector_link + " should go to the tray corners.")
+    if robot_name=="a_bot":
+      self.b_bot.go_to_named_pose("home")
+    elif robot_name=="b_bot":
+      self.a_bot.go_to_named_pose("home")
+
+    poses = []
+    pose0 = geometry_msgs.msg.PoseStamped()
+    pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0) )
+    pose0.pose.position.z = 0.01
+    
+    for i in range(4):
+      poses.append(copy.deepcopy(pose0))
+    poses[0].header.frame_id = "traycorner_1_link"
+    poses[1].header.frame_id = "traycorner_2_link"
+    poses[2].header.frame_id = "traycorner_3_link"
+    poses[3].header.frame_id = "traycorner_4_link"
+
+    self.cycle_through_calibration_poses(poses, robot_name, go_home=False, with_approach=False, end_effector_link=end_effector_link, move_lin=True)
+    return 
       
   def touch_workspace_center(self):
     rospy.loginfo("============ Touching workspace center. ============")
@@ -519,6 +541,7 @@ if __name__ == '__main__':
       rospy.loginfo("17, 18: Equip/unequip set screw tool with b_bot")
       rospy.loginfo("===== GENERAL")
       rospy.loginfo("291, 292: Touch tray sponge with a_bot, b_bot")
+      rospy.loginfo("293, 294: Touch tray corners with a_bot, b_bot")
       rospy.loginfo("21, 22: Calibrate screw feeders (a_bot, b_bot)")
       rospy.loginfo("23, 24: Pick m3/m4 screw from feeder")
       rospy.loginfo("===== TASKBOARD TASK")
@@ -595,9 +618,13 @@ if __name__ == '__main__':
       if r == '24':
         c.screw_feeder_pick_test(robot_name="b_bot", screw_size=4)
       if r == '291':
-        c.tray_calibration(robot_name="a_bot", end_effector_link="a_bot_gripper_tip_link")
+        c.tray_sponge_calibration(robot_name="a_bot", end_effector_link="a_bot_gripper_tip_link")
       if r == '292':
-        c.tray_calibration(robot_name="b_bot", end_effector_link="b_bot_gripper_tip_link")
+        c.tray_sponge_calibration(robot_name="b_bot", end_effector_link="b_bot_gripper_tip_link")
+      if r == '293':
+        c.tray_corners_calibration(robot_name="a_bot", end_effector_link="a_bot_gripper_tip_link")
+      if r == '294':
+        c.tray_corners_calibration(robot_name="b_bot", end_effector_link="b_bot_gripper_tip_link")
       if r == '31':
         c.taskboard_calibration_with_tools(robot_name="a_bot", end_effector_link="a_bot_screw_tool_m3_tip_link")
       if r == '311':

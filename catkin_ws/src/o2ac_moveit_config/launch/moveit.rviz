@@ -7,10 +7,7 @@ Panels:
         - /MotionPlanning1/Scene Robot1
         - /MotionPlanning1/Planning Request1
         - /TF1/Frames1
-        - /TF2
-        - /TF2/Frames1
         - /DepthCloud1/Auto Size1
-        - /Assembly Visualization1
         - /Assembly Visualization1/Status1
         - /Move Success Visualization1/Namespaces1
       Splitter Ratio: 0.6773163080215454
@@ -41,10 +38,10 @@ Panels:
         - 85
       solutions_view_columns: ~
       tasks_view_columns:
-        - 55
+        - 82
         - 26
         - 26
-        - 48
+        - 35
   - Class: o2ac/O2ACSetupPanel
     Name: O2ACSetupPanel
   - Class: moveit_task_constructor/Motion Planning Tasks
@@ -69,7 +66,7 @@ Panels:
         - 26
         - 26
         - 26
-        - 48
+        - 35
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -591,6 +588,10 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          b_bot_plunger_tip_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           b_bot_right_inner_finger:
             Alpha: 1
             Show Axes: false
@@ -822,6 +823,128 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          taskboard_assy_part_07:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          taskboard_assy_part_07_back_hole:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_back_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_front_hole:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_inserted:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_screw_hole_1:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_screw_hole_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_screw_hole_3:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_screw_hole_4:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_base:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          taskboard_base_screw_1_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_base_screw_2_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_base_screw_3_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_base_screw_4_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_bearing_target_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_bearing_target_screw_1_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_bearing_target_screw_2_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_bearing_target_screw_3_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_bearing_target_screw_4_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_large_pulley:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          taskboard_long_hole_middle_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_long_hole_top_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_m3_screw_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_m4_screw_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_plate:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          taskboard_set_screw_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_small_pulley:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          taskboard_small_shaft:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          taskboard_surface:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           tray:
             Alpha: 1
             Show Axes: false
@@ -878,6 +1001,15 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
           vgroove_aid_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          vgroove_aid_motor_drop_point_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          vgroove_aid_motor_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -1378,6 +1510,10 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          b_bot_plunger_tip_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           b_bot_right_inner_finger:
             Alpha: 1
             Show Axes: false
@@ -1609,6 +1745,128 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          taskboard_assy_part_07:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          taskboard_assy_part_07_back_hole:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_back_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_front_hole:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_inserted:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_screw_hole_1:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_screw_hole_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_screw_hole_3:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_screw_hole_4:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_base:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          taskboard_base_screw_1_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_base_screw_2_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_base_screw_3_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_base_screw_4_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_bearing_target_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_bearing_target_screw_1_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_bearing_target_screw_2_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_bearing_target_screw_3_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_bearing_target_screw_4_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_large_pulley:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          taskboard_long_hole_middle_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_long_hole_top_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_m3_screw_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_m4_screw_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_plate:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          taskboard_set_screw_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_small_pulley:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          taskboard_small_shaft:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          taskboard_surface:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           tray:
             Alpha: 1
             Show Axes: false
@@ -1669,6 +1927,15 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
+          vgroove_aid_motor_drop_point_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          vgroove_aid_motor_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
           workplate:
             Alpha: 1
             Show Axes: false
@@ -1717,6 +1984,120 @@ Visualization Manager:
       Enabled: true
       Frame Timeout: 15
       Frames:
+        00_assy_part_05:
+          Value: true
+        00_assy_part_05_center:
+          Value: true
+        00_assy_part_06:
+          Value: true
+        00_assy_part_07:
+          Value: true
+        00_assy_part_07_back_hole:
+          Value: true
+        00_assy_part_07_back_tip:
+          Value: true
+        00_assy_part_07_front_hole:
+          Value: true
+        00_assy_part_07_inserted:
+          Value: true
+        00_assy_part_07_screw_hole_1:
+          Value: true
+        00_assy_part_07_screw_hole_2:
+          Value: true
+        00_assy_part_07_screw_hole_3:
+          Value: true
+        00_assy_part_07_screw_hole_4:
+          Value: true
+        00_assy_part_13:
+          Value: true
+        00_assy_part_13_center:
+          Value: true
+        00_assy_part_13_screw_head:
+          Value: true
+        01_assy_part_06:
+          Value: true
+        02_assy_part_06:
+          Value: true
+        03_assy_part_06:
+          Value: true
+        04_assy_part_06:
+          Value: true
+        05_assy_part_06:
+          Value: true
+        06_assy_part_06:
+          Value: true
+        07_assy_part_06:
+          Value: true
+        08_assy_part_06:
+          Value: true
+        09_assy_part_06:
+          Value: true
+        10_assy_part_06:
+          Value: true
+        11_assy_part_06:
+          Value: true
+        12_assy_part_06:
+          Value: true
+        13_assy_part_06:
+          Value: true
+        14_assy_part_06:
+          Value: true
+        15_assy_part_06:
+          Value: true
+        16_assy_part_06:
+          Value: true
+        17_assy_part_06:
+          Value: true
+        18_assy_part_06:
+          Value: true
+        19_assy_part_06:
+          Value: true
+        20_assy_part_06:
+          Value: true
+        21_assy_part_06:
+          Value: true
+        22_assy_part_06:
+          Value: true
+        23_assy_part_06:
+          Value: true
+        24_assy_part_06:
+          Value: true
+        25_assy_part_06:
+          Value: true
+        26_assy_part_06:
+          Value: true
+        27_assy_part_06:
+          Value: true
+        28_assy_part_06:
+          Value: true
+        29_assy_part_06:
+          Value: true
+        30_assy_part_06:
+          Value: true
+        31_assy_part_06:
+          Value: true
+        32_assy_part_06:
+          Value: true
+        33_assy_part_06:
+          Value: true
+        34_assy_part_06:
+          Value: true
+        35_assy_part_06:
+          Value: true
+        36_assy_part_06:
+          Value: true
+        37_assy_part_06:
+          Value: true
+        38_assy_part_06:
+          Value: true
+        39_assy_part_06:
+          Value: true
+        40_assy_part_06:
+          Value: true
+        41_assy_part_06:
+          Value: true
+        42_assy_part_06:
+          Value: true
         All Enabled: false
         a_bot_base:
           Value: false
@@ -1842,168 +2223,6 @@ Visualization Manager:
           Value: false
         agv_traycorner_4_link:
           Value: false
-        assembled_assembly_root:
-          Value: false
-        assembled_part_01:
-          Value: false
-        assembled_part_01_corner_1:
-          Value: false
-        assembled_part_01_corner_2:
-          Value: false
-        assembled_part_01_corner_3:
-          Value: false
-        assembled_part_01_corner_4:
-          Value: false
-        assembled_part_01_screw_hole_panel1_1:
-          Value: false
-        assembled_part_01_screw_hole_panel1_2:
-          Value: false
-        assembled_part_01_screw_hole_panel1_3:
-          Value: false
-        assembled_part_01_screw_hole_panel1_4:
-          Value: false
-        assembled_part_01_screw_hole_panel2_1:
-          Value: false
-        assembled_part_01_screw_hole_panel2_2:
-          Value: false
-        assembled_part_01_screw_hole_panel2_3:
-          Value: false
-        assembled_part_01_screw_hole_panel2_4:
-          Value: false
-        assembled_part_01_terminal_top:
-          Value: false
-        assembled_part_01_under_outer_hole:
-          Value: false
-        assembled_part_02:
-          Value: false
-        assembled_part_02_back_hole:
-          Value: false
-        assembled_part_02_bottom_screw_hole_1:
-          Value: false
-        assembled_part_02_bottom_screw_hole_2:
-          Value: false
-        assembled_part_02_bottom_screw_hole_aligner_1:
-          Value: false
-        assembled_part_02_bottom_screw_hole_aligner_2:
-          Value: false
-        assembled_part_02_motor_screw_hole_1:
-          Value: true
-        assembled_part_02_motor_screw_hole_2:
-          Value: true
-        assembled_part_02_motor_screw_hole_3:
-          Value: true
-        assembled_part_02_motor_screw_hole_4:
-          Value: true
-        assembled_part_02_motor_screw_hole_5:
-          Value: true
-        assembled_part_02_motor_screw_hole_6:
-          Value: true
-        assembled_part_03:
-          Value: false
-        assembled_part_03_bottom_screw_hole_1:
-          Value: false
-        assembled_part_03_bottom_screw_hole_2:
-          Value: false
-        assembled_part_03_bottom_screw_hole_aligner_1:
-          Value: false
-        assembled_part_03_bottom_screw_hole_aligner_2:
-          Value: false
-        assembled_part_03_front_hole:
-          Value: false
-        assembled_part_03_pulley_ridge_bottom:
-          Value: false
-        assembled_part_03_pulley_ridge_middle:
-          Value: false
-        assembled_part_03_pulley_ridge_top:
-          Value: false
-        assembled_part_04:
-          Value: false
-        assembled_part_04_inserted_02:
-          Value: false
-        assembled_part_04_inserted_13:
-          Value: false
-        assembled_part_04_tip:
-          Value: false
-        assembled_part_05:
-          Value: false
-        assembled_part_05_center:
-          Value: false
-        assembled_part_07:
-          Value: false
-        assembled_part_07_back_hole:
-          Value: false
-        assembled_part_07_back_tip:
-          Value: false
-        assembled_part_07_front_hole:
-          Value: false
-        assembled_part_07_inserted:
-          Value: false
-        assembled_part_07_screw_hole_1:
-          Value: true
-        assembled_part_07_screw_hole_2:
-          Value: true
-        assembled_part_07_screw_hole_3:
-          Value: true
-        assembled_part_07_screw_hole_4:
-          Value: true
-        assembled_part_08:
-          Value: false
-        assembled_part_08_back_tip:
-          Value: false
-        assembled_part_08_front_tip:
-          Value: false
-        assembled_part_08_inserted:
-          Value: false
-        assembled_part_08_screw_hole:
-          Value: false
-        assembled_part_09:
-          Value: false
-        assembled_part_09_inner_surface:
-          Value: false
-        assembled_part_09_screw_hole:
-          Value: false
-        assembled_part_10:
-          Value: false
-        assembled_part_10_center:
-          Value: false
-        assembled_part_11:
-          Value: false
-        assembled_part_11_back_hole:
-          Value: false
-        assembled_part_11_back_tip:
-          Value: false
-        assembled_part_11_front_hole:
-          Value: false
-        assembled_part_11_screw_head_1:
-          Value: false
-        assembled_part_11_screw_head_2:
-          Value: false
-        assembled_part_12:
-          Value: false
-        assembled_part_12_center:
-          Value: false
-        assembled_part_13:
-          Value: false
-        assembled_part_13_center:
-          Value: false
-        assembled_part_13_screw_head:
-          Value: false
-        assembled_part_14:
-          Value: false
-        assembled_part_14_screw_head:
-          Value: false
-        assembled_part_14_screw_inserted:
-          Value: false
-        assembled_part_14_screw_tip:
-          Value: false
-        assembled_part_15:
-          Value: false
-        assembled_part_15_center:
-          Value: false
-        assembled_part_16:
-          Value: false
-        assembled_part_16_center:
-          Value: false
         attached_base_origin_back_link:
           Value: false
         attached_base_origin_link:
@@ -2088,6 +2307,8 @@ Visualization Manager:
           Value: false
         b_bot_outside_camera_right_ir_optical_frame:
           Value: false
+        b_bot_plunger_tip_link:
+          Value: true
         b_bot_right_inner_finger:
           Value: false
         b_bot_right_inner_finger_pad:
@@ -2164,32 +2385,6 @@ Visualization Manager:
           Value: false
         m4_feeder_outlet_link:
           Value: false
-        move_group/bearing:
-          Value: true
-        move_group/bearing/back_hole:
-          Value: true
-        move_group/bearing/back_tip:
-          Value: true
-        move_group/bearing/front_hole:
-          Value: true
-        move_group/bearing/inserted:
-          Value: true
-        move_group/bearing/screw_hole_1:
-          Value: true
-        move_group/bearing/screw_hole_2:
-          Value: true
-        move_group/bearing/screw_hole_3:
-          Value: true
-        move_group/bearing/screw_hole_4:
-          Value: true
-        move_group/screw_tool_m3:
-          Value: false
-        move_group/screw_tool_m3/screw_tool_m3_tip:
-          Value: false
-        move_group/screw_tool_m4:
-          Value: false
-        move_group/screw_tool_m4/screw_tool_m4_tip:
-          Value: false
         o2ac_ground:
           Value: false
         padless_tool_m4_link:
@@ -2226,12 +2421,70 @@ Visualization Manager:
           Value: false
         simple_holder_tip_link:
           Value: false
+        taskboard_assy_part_07:
+          Value: true
+        taskboard_assy_part_07_back_hole:
+          Value: true
+        taskboard_assy_part_07_back_tip:
+          Value: true
+        taskboard_assy_part_07_front_hole:
+          Value: true
+        taskboard_assy_part_07_inserted:
+          Value: true
+        taskboard_assy_part_07_screw_hole_1:
+          Value: true
+        taskboard_assy_part_07_screw_hole_2:
+          Value: true
+        taskboard_assy_part_07_screw_hole_3:
+          Value: true
+        taskboard_assy_part_07_screw_hole_4:
+          Value: true
+        taskboard_base:
+          Value: true
+        taskboard_base_screw_1_link:
+          Value: true
+        taskboard_base_screw_2_link:
+          Value: true
+        taskboard_base_screw_3_link:
+          Value: true
+        taskboard_base_screw_4_link:
+          Value: true
+        taskboard_bearing_target_link:
+          Value: true
+        taskboard_bearing_target_screw_1_link:
+          Value: true
+        taskboard_bearing_target_screw_2_link:
+          Value: true
+        taskboard_bearing_target_screw_3_link:
+          Value: true
+        taskboard_bearing_target_screw_4_link:
+          Value: true
+        taskboard_large_pulley:
+          Value: true
+        taskboard_long_hole_middle_link:
+          Value: true
+        taskboard_long_hole_top_link:
+          Value: true
+        taskboard_m3_screw_link:
+          Value: true
+        taskboard_m4_screw_link:
+          Value: true
+        taskboard_plate:
+          Value: true
+        taskboard_set_screw_link:
+          Value: true
+        taskboard_small_pulley:
+          Value: true
+        taskboard_small_shaft:
+          Value: true
+        taskboard_surface:
+          Value: true
         tool0_controller:
           Value: false
         tray:
           Value: false
         tray_center:
-          Value: false
+          Value: true
         tray_left_stopper:
           Value: false
         tray_right_stopper:
@@ -2254,10 +2507,14 @@ Visualization Manager:
           Value: false
         vgroove_aid_link:
           Value: false
+        vgroove_aid_motor_drop_point_link:
+          Value: true
+        vgroove_aid_motor_link:
+          Value: true
         workplate:
           Value: false
         workspace_center:
-          Value: false
+          Value: true
         world:
           Value: false
       Marker Scale: 0.05000000074505806
@@ -2267,29 +2524,6 @@ Visualization Manager:
       Show Names: true
       Tree:
         world:
-          move_group/bearing:
-            move_group/bearing/back_hole:
-              {}
-            move_group/bearing/back_tip:
-              {}
-            move_group/bearing/front_hole:
-              {}
-            move_group/bearing/inserted:
-              {}
-            move_group/bearing/screw_hole_1:
-              {}
-            move_group/bearing/screw_hole_2:
-              {}
-            move_group/bearing/screw_hole_3:
-              {}
-            move_group/bearing/screw_hole_4:
-              {}
-          move_group/screw_tool_m3:
-            move_group/screw_tool_m3/screw_tool_m3_tip:
-              {}
-          move_group/screw_tool_m4:
-            move_group/screw_tool_m4/screw_tool_m4_tip:
-              {}
           o2ac_ground:
             a_bot_base_link:
               a_bot_base:
@@ -2402,6 +2636,8 @@ Visualization Manager:
                               b_bot_gripper_tip_link:
                                 b_bot_bearing_rotate_helper_link:
                                   {}
+                                b_bot_plunger_tip_link:
+                                  {}
                                 b_bot_tool_intermediate_link:
                                   b_bot_nut_tool_m6_tip_link:
                                     {}
@@ -2469,6 +2705,9 @@ Visualization Manager:
               vgroove_aid_link:
                 vgroove_aid_drop_point_link:
                   {}
+              vgroove_aid_motor_link:
+                vgroove_aid_motor_drop_point_link:
+                  {}
             b_bot_base_smfl:
               {}
             horizontal_column_for_tools:
@@ -2510,154 +2749,61 @@ Visualization Manager:
                   {}
               base_fixture_top:
                 attached_base_origin_back_link:
-                  {}
+                  taskboard_base:
+                    taskboard_base_screw_1_link:
+                      {}
+                    taskboard_base_screw_2_link:
+                      {}
+                    taskboard_base_screw_3_link:
+                      {}
+                    taskboard_base_screw_4_link:
+                      {}
+                    taskboard_plate:
+                      taskboard_assy_part_07:
+                        taskboard_assy_part_07_back_hole:
+                          {}
+                        taskboard_assy_part_07_back_tip:
+                          {}
+                        taskboard_assy_part_07_front_hole:
+                          {}
+                        taskboard_assy_part_07_inserted:
+                          {}
+                        taskboard_assy_part_07_screw_hole_1:
+                          {}
+                        taskboard_assy_part_07_screw_hole_2:
+                          {}
+                        taskboard_assy_part_07_screw_hole_3:
+                          {}
+                        taskboard_assy_part_07_screw_hole_4:
+                          {}
+                      taskboard_bearing_target_link:
+                        taskboard_bearing_target_screw_1_link:
+                          {}
+                        taskboard_bearing_target_screw_2_link:
+                          {}
+                        taskboard_bearing_target_screw_3_link:
+                          {}
+                        taskboard_bearing_target_screw_4_link:
+                          {}
+                      taskboard_large_pulley:
+                        {}
+                      taskboard_long_hole_middle_link:
+                        taskboard_long_hole_top_link:
+                          {}
+                      taskboard_m3_screw_link:
+                        {}
+                      taskboard_m4_screw_link:
+                        {}
+                      taskboard_set_screw_link:
+                        {}
+                      taskboard_small_pulley:
+                        {}
+                      taskboard_small_shaft:
+                        {}
+                      taskboard_surface:
+                        {}
                 attached_base_origin_link:
-                  assembled_assembly_root:
-                    assembled_part_01:
-                      assembled_part_01_corner_1:
-                        {}
-                      assembled_part_01_corner_2:
-                        {}
-                      assembled_part_01_corner_3:
-                        {}
-                      assembled_part_01_corner_4:
-                        {}
-                      assembled_part_01_screw_hole_panel1_1:
-                        {}
-                      assembled_part_01_screw_hole_panel1_2:
-                        {}
-                      assembled_part_01_screw_hole_panel1_3:
-                        {}
-                      assembled_part_01_screw_hole_panel1_4:
-                        {}
-                      assembled_part_01_screw_hole_panel2_1:
-                        {}
-                      assembled_part_01_screw_hole_panel2_2:
-                        {}
-                      assembled_part_01_screw_hole_panel2_3:
-                        {}
-                      assembled_part_01_screw_hole_panel2_4:
-                        {}
-                      assembled_part_01_terminal_top:
-                        {}
-                      assembled_part_01_under_outer_hole:
-                        {}
-                      assembled_part_02:
-                        assembled_part_02_back_hole:
-                          {}
-                        assembled_part_02_bottom_screw_hole_1:
-                          {}
-                        assembled_part_02_bottom_screw_hole_2:
-                          {}
-                        assembled_part_02_bottom_screw_hole_aligner_1:
-                          {}
-                        assembled_part_02_bottom_screw_hole_aligner_2:
-                          {}
-                        assembled_part_02_motor_screw_hole_1:
-                          {}
-                        assembled_part_02_motor_screw_hole_2:
-                          {}
-                        assembled_part_02_motor_screw_hole_3:
-                          {}
-                        assembled_part_02_motor_screw_hole_4:
-                          {}
-                        assembled_part_02_motor_screw_hole_5:
-                          {}
-                        assembled_part_02_motor_screw_hole_6:
-                          {}
-                        assembled_part_04:
-                          assembled_part_04_inserted_02:
-                            {}
-                          assembled_part_04_inserted_13:
-                            {}
-                          assembled_part_04_tip:
-                            {}
-                          assembled_part_05:
-                            assembled_part_05_center:
-                              {}
-                      assembled_part_03:
-                        assembled_part_03_bottom_screw_hole_1:
-                          {}
-                        assembled_part_03_bottom_screw_hole_2:
-                          {}
-                        assembled_part_03_bottom_screw_hole_aligner_1:
-                          {}
-                        assembled_part_03_bottom_screw_hole_aligner_2:
-                          {}
-                        assembled_part_03_front_hole:
-                          {}
-                        assembled_part_03_pulley_ridge_bottom:
-                          {}
-                        assembled_part_03_pulley_ridge_middle:
-                          {}
-                        assembled_part_03_pulley_ridge_top:
-                          {}
-                        assembled_part_07:
-                          assembled_part_07_back_hole:
-                            {}
-                          assembled_part_07_back_tip:
-                            {}
-                          assembled_part_07_front_hole:
-                            {}
-                          assembled_part_07_inserted:
-                            {}
-                          assembled_part_07_screw_hole_1:
-                            {}
-                          assembled_part_07_screw_hole_2:
-                            {}
-                          assembled_part_07_screw_hole_3:
-                            {}
-                          assembled_part_07_screw_hole_4:
-                            {}
-                          assembled_part_09:
-                            assembled_part_08:
-                              assembled_part_08_back_tip:
-                                {}
-                              assembled_part_08_front_tip:
-                                {}
-                              assembled_part_08_inserted:
-                                {}
-                              assembled_part_08_screw_hole:
-                                {}
-                            assembled_part_09_inner_surface:
-                              {}
-                            assembled_part_09_screw_hole:
-                              {}
-                          assembled_part_10:
-                            assembled_part_10_center:
-                              {}
-                            assembled_part_11:
-                              assembled_part_11_back_hole:
-                                {}
-                              assembled_part_11_back_tip:
-                                {}
-                              assembled_part_11_front_hole:
-                                {}
-                              assembled_part_11_screw_head_1:
-                                {}
-                              assembled_part_11_screw_head_2:
-                                {}
-                        assembled_part_12:
-                          assembled_part_12_center:
-                            {}
-                          assembled_part_13:
-                            assembled_part_13_center:
-                              {}
-                            assembled_part_13_screw_head:
-                              {}
-                            assembled_part_14:
-                              assembled_part_14_screw_head:
-                                {}
-                              assembled_part_14_screw_inserted:
-                                {}
-                              assembled_part_14_screw_tip:
-                                {}
-                        assembled_part_16:
-                          assembled_part_15:
-                            assembled_part_15_center:
-                              {}
-                          assembled_part_16_center:
-                            {}
+                  {}
                 back_bar:
                   {}
                 front_bar:
@@ -2685,7 +2831,117 @@ Visualization Manager:
                   {}
               tray:
                 tray_center:
-                  {}
+                  00_assy_part_05:
+                    00_assy_part_05_center:
+                      {}
+                  00_assy_part_06:
+                    {}
+                  00_assy_part_07:
+                    00_assy_part_07_back_hole:
+                      {}
+                    00_assy_part_07_back_tip:
+                      {}
+                    00_assy_part_07_front_hole:
+                      {}
+                    00_assy_part_07_inserted:
+                      {}
+                    00_assy_part_07_screw_hole_1:
+                      {}
+                    00_assy_part_07_screw_hole_2:
+                      {}
+                    00_assy_part_07_screw_hole_3:
+                      {}
+                    00_assy_part_07_screw_hole_4:
+                      {}
+                  00_assy_part_13:
+                    00_assy_part_13_center:
+                      {}
+                    00_assy_part_13_screw_head:
+                      {}
+                  01_assy_part_06:
+                    {}
+                  02_assy_part_06:
+                    {}
+                  03_assy_part_06:
+                    {}
+                  04_assy_part_06:
+                    {}
+                  05_assy_part_06:
+                    {}
+                  06_assy_part_06:
+                    {}
+                  07_assy_part_06:
+                    {}
+                  08_assy_part_06:
+                    {}
+                  09_assy_part_06:
+                    {}
+                  10_assy_part_06:
+                    {}
+                  11_assy_part_06:
+                    {}
+                  12_assy_part_06:
+                    {}
+                  13_assy_part_06:
+                    {}
+                  14_assy_part_06:
+                    {}
+                  15_assy_part_06:
+                    {}
+                  16_assy_part_06:
+                    {}
+                  17_assy_part_06:
+                    {}
+                  18_assy_part_06:
+                    {}
+                  19_assy_part_06:
+                    {}
+                  20_assy_part_06:
+                    {}
+                  21_assy_part_06:
+                    {}
+                  22_assy_part_06:
+                    {}
+                  23_assy_part_06:
+                    {}
+                  24_assy_part_06:
+                    {}
+                  25_assy_part_06:
+                    {}
+                  26_assy_part_06:
+                    {}
+                  27_assy_part_06:
+                    {}
+                  28_assy_part_06:
+                    {}
+                  29_assy_part_06:
+                    {}
+                  30_assy_part_06:
+                    {}
+                  31_assy_part_06:
+                    {}
+                  32_assy_part_06:
+                    {}
+                  33_assy_part_06:
+                    {}
+                  34_assy_part_06:
+                    {}
+                  35_assy_part_06:
+                    {}
+                  36_assy_part_06:
+                    {}
+                  37_assy_part_06:
+                    {}
+                  38_assy_part_06:
+                    {}
+                  39_assy_part_06:
+                    {}
+                  40_assy_part_06:
+                    {}
+                  41_assy_part_06:
+                    {}
+                  42_assy_part_06:
+                    {}
                 tray_left_stopper:
                   {}
                 tray_right_stopper:
@@ -2767,7 +3023,7 @@ Visualization Manager:
       Marker Topic: /o2ac_assembly_markers
       Name: Assembly Visualization
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -2787,13 +3043,13 @@ Visualization Manager:
       Queue Size: 100
       Value: false
     - Class: rviz/Marker
-      Enabled: false
+      Enabled: true
       Marker Topic: o2ac_markers
       Name: Move Failure Visualization
       Namespaces:
         {}
       Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/Marker
       Enabled: false
       Marker Topic: o2ac_success_markers
@@ -3256,6 +3512,10 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          b_bot_plunger_tip_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           b_bot_right_inner_finger:
             Alpha: 1
             Show Axes: false
@@ -3487,6 +3747,128 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          taskboard_assy_part_07:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          taskboard_assy_part_07_back_hole:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_back_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_front_hole:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_inserted:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_screw_hole_1:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_screw_hole_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_screw_hole_3:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_assy_part_07_screw_hole_4:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_base:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          taskboard_base_screw_1_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_base_screw_2_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_base_screw_3_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_base_screw_4_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_bearing_target_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_bearing_target_screw_1_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_bearing_target_screw_2_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_bearing_target_screw_3_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_bearing_target_screw_4_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_large_pulley:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          taskboard_long_hole_middle_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_long_hole_top_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_m3_screw_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_m4_screw_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_plate:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          taskboard_set_screw_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          taskboard_small_pulley:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          taskboard_small_shaft:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          taskboard_surface:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           tray:
             Alpha: 1
             Show Axes: false
@@ -3547,6 +3929,15 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
+          vgroove_aid_motor_drop_point_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          vgroove_aid_motor_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
           workplate:
             Alpha: 1
             Show Axes: false
@@ -3577,7 +3968,7 @@ Visualization Manager:
       State Display Time: 0.05 s
       Task Solution Topic: /move_group/pick_place_task/solution
       Tasks:
-        task pipeline: 1
+        {}
       Trail Step Size: 1
       Value: true
   Enabled: true
@@ -3596,25 +3987,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.2048771381378174
+      Distance: 0.733350396156311
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.057658202946186066
-        Y: 0.024440012872219086
-        Z: 0.86704421043396
+        X: 0.061761245131492615
+        Y: 0.09246999770402908
+        Z: 0.7288579940795898
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.384795606136322
+      Pitch: 0.5147955417633057
       Target Frame: world
       Value: Orbit (rviz)
-      Yaw: 5.693238258361816
+      Yaw: 5.568236827850342
     Saved: ~
 Window Geometry:
   Active camera:
