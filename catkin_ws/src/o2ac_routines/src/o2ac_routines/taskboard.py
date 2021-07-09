@@ -263,15 +263,17 @@ class O2ACTaskboard(O2ACCommon):
       
     # Then loop through the remaining items
     self.confirm_to_proceed("Continue into loop to retry parts?")
+    unsuccessful_attempts = 0
     while not task_complete:
       for item in order:
-        self.execute_step(item)
-      task_complete = all(self.subtask_completed.values)
+        if not self.execute_step(item):
+          unsuccessful_attempts += 1
+      task_complete = all(self.subtask_completed.values())
 
     self.publish_status_text("FINISHED")
 
   def execute_step(self, item):
-      assert not rospy.is_shutdown(), "did ros master died?"
+      assert not rospy.is_shutdown(), "did ros master die?"
       self.unequip_tool("b_bot") # Just in case
       self.b_bot.gripper.open(wait=False) # Release any possible item that got stuck in the gripper
 

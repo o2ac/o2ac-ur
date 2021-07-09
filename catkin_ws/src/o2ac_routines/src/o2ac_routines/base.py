@@ -345,7 +345,9 @@ class O2ACBase(object):
     fastening_tool_name = "screw_tool_m" + str(screw_size)
     success = self.suck_screw(robot_name, pose_feeder, screw_tool_id, screw_tool_link, fastening_tool_name, do_spiral_search_at_bottom=False)
 
-    self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready", speed=0.5, acceleration=0.25)
+    if not self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready", speed=0.8):
+      rospy.logerr("Failed to go to feeder_pick_ready with " + robot_name)
+      return False
     
     if success:
       return True
@@ -570,7 +572,9 @@ class O2ACBase(object):
     result = self.tools.fastening_tool_client.get_result()
     rospy.loginfo("Screw tool motor command. Finish before timeout: %s" % finished_before_timeout)
     rospy.loginfo("Result: %s" % result)
-    motor_stalled = result.motor_stalled
+    motor_stalled = False
+    if result is not None:
+      motor_stalled = result.motor_stalled
 
     if not stay_put_after_screwing:
       self.active_robots[robot_name].go_to_pose_goal(away_from_hole, end_effector_link=screw_tool_link, speed=0.02)

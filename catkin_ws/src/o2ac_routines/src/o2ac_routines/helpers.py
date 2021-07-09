@@ -240,7 +240,7 @@ def ur_axis_angle_to_quat(axis_angle):
 def quat_to_ur_axis_angle(quaternion):
   # https://en.wikipedia.org/wiki/Axis%E2%80%93angle_representation#Unit_quaternions
   # quaternion must be [xyzw]
-  angle = 2*math.atan2(norm2(quaternion[0], quaternion[1], quaternion[2]), quaternion[3])
+  angle = 2*atan2(norm2(quaternion[0], quaternion[1], quaternion[2]), quaternion[3])
   if abs(angle) > 1e-6:
     axis_normed = [ quaternion[0]/sin(angle/2), quaternion[1]/sin(angle/2), quaternion[2]/sin(angle/2) ]
   else:

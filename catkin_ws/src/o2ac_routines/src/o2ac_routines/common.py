@@ -1587,6 +1587,7 @@ class O2ACCommon(O2ACBase):
       """Returns tuple (screw_status, break_out_of_loop)
          screw_status is a string saying either "empty", "done" or "maybe_stuck_in_hole"
       """
+      break_out_of_loop = False
       # Pick screw
       if not skip_picking:
         self.b_bot.go_to_named_pose("screw_ready")
@@ -1608,8 +1609,6 @@ class O2ACCommon(O2ACBase):
       screw_pose_approach.pose.position.x -= 0.07
       
       self.b_bot.go_to_pose_goal(screw_pose_approach, end_effector_link = "b_bot_screw_tool_m4_tip_link", move_lin=False)
-      if not skip_moving_back:
-        self.playback_sequence("return_screw_tool_horizontal")
       
       # FIXME(felixvd): This returns true even if the motor has not stalled
       if self.skill_server.do_screw_action("b_bot", screw_pose, screw_size=4):
@@ -1624,8 +1623,10 @@ class O2ACCommon(O2ACBase):
         rospy.logerr("Critical error: b_bot protective stopped. Something is wrong. Wait to unlock, move back, abort.")
         self.b_bot.unlock_protective_stop()
         self.b_bot.go_to_pose_goal(screw_pose_approach, end_effector_link = "b_bot_screw_tool_m4_tip_link", move_lin=True)
-        return (screw_status, True)
-      return (screw_status, False)
+        break_out_of_loop = True
+      if not skip_moving_back:
+        self.playback_sequence("return_screw_tool_horizontal")  # Go back above the taskboard
+      return (screw_status, break_out_of_loop)
 
     # Initialize screw status
     screw_status = dict()
@@ -1643,6 +1644,7 @@ class O2ACCommon(O2ACBase):
     # Go to bearing and fasten all the screws
     all_screws_done = False
     tries = 0
+    breakout = False
     while not all_screws_done and tries < 8 and not rospy.is_shutdown():
       for n in [1,3,2,4]:  # Cross pattern
         assert not rospy.is_shutdown(), "lost connection to ros?"
@@ -1650,6 +1652,9 @@ class O2ACCommon(O2ACBase):
           (screw_status[n], breakout) = pick_and_fasten_bearing_screw(screw_poses[n-1])
         elif screw_status[n] == "maybe_stuck_in_hole":
           (screw_status[n], breakout) = pick_and_fasten_bearing_screw(screw_poses[n-1], skip_picking=True, skip_moving_back=True)
+        if breakout:
+          rospy.logerr("Critical error. abort")
+          return False
         rospy.loginfo("Screw " + str(n) + " detected as " + screw_status[n])
       all_screws_done = all(value == "done" for value in screw_status.values())
       tries += 1
