@@ -380,21 +380,19 @@ class O2ACTaskboard(O2ACCommon):
 
       # This expects to be exactly above the set screw hole
       self.confirm_to_proceed("Turn on motor and move into screw hole?")
-      dist = .002
-      self.skill_server.move_lin_rel("b_bot", relative_translation=[0, -cos(radians(30))*dist, sin(radians(30))*dist], velocity=0.03, wait=False)
+      dist = .003
+      self.b_bot.move_lin_rel(relative_translation=[-dist, 0, 0], speed=0.03, wait=False)
       # self.skill_server.horizontal_spiral_motion("b_bot", .003, spiral_axis="Y", radius_increment = .002)
       self.tools.set_motor("set_screw_tool", "tighten", duration = 12.0)
       rospy.sleep(4.0) # Wait for the screw to be screwed in a little bit
-      d = .004
+      d = .003
       rospy.loginfo("Moving in further by " + str(d) + " m.")
-      self.skill_server.move_lin_rel("b_bot", relative_translation=[0, -cos(radians(30))*d, sin(radians(30))*d], velocity=0.002, wait=False)
+      self.b_bot.move_lin_rel(relative_translation=[-d, 0, 0], speed=0.002, wait=False)
       
-      # self.skill_server.do_linear_push("b_bot", force=40, direction_vector=[0, -cos(radians(30)), sin(radians(30))], forward_speed=0.001)
       rospy.sleep(8.0)
       self.confirm_to_proceed("Go back?")
       if self.b_bot.is_protective_stopped():
         rospy.logwarn("Robot was protective stopped after set screw insertion!")
-        #TODO: Recovery? Try to loosen the shaft?
         self.b_bot.unlock_protective_stop()
         rospy.sleep(1)
         if self.b_bot.is_protective_stopped():
