@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
     sensor_msgs
     visualization_msgs
     actionlib_msgs
+    moveit_msgs
 )
 
 # Declare the message files to be built
@@ -33,6 +34,7 @@ generate_messages(
   geometry_msgs
   visualization_msgs
   actionlib_msgs
+  moveit_msgs
 )
 
 
@@ -43,4 +45,5 @@ catkin_package(CATKIN_DEPENDS
   geometry_msgs
   visualization_msgs
   actionlib_msgs
+  moveit_msgs
 )

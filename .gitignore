@@ -46,6 +46,8 @@ catkin_ws/src/o2ac_task_planning/pddl_converter/symbolic/generated/
 *.bin
 *.ipch
 
+#Emacs auto-generated files
+*~
 
 # Modules we clone into the workspace using rosinstall / wstool
 underlay_ws/src/third_party/geometric_shapes

@@ -1,0 +1,23 @@
+uint8 observation_type
+TouchObservation touch_observation
+LookObservation look_observation
+PlaceObservation place_observation
+geometry_msgs/PoseStamped gripper_pose
+moveit_msgs/CollisionObject gripped_object
+uint8 distribution_type
+geometry_msgs/PoseWithCovarianceStamped distribution
+
+# Values for observation_type
+uint8 TOUCH_OBSERVATION = 0
+uint8 LOOK_OBSERVATION = 1
+uint8 PLACE_OBSERVATION = 2
+uint8 GRASP_OBSERVATION = 3
+uint8 PUSH_OBSERVATION = 4
+# Values for distribution_type
+uint8 RPY_COVARIANCE = 0
+uint8 LIE_COVARIANCE = 1
+---
+bool success
+geometry_msgs/PoseWithCovarianceStamped distribution
+std_msgs/String error_message
+---
