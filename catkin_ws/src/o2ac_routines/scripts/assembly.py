@@ -105,12 +105,14 @@ if __name__ == '__main__':
         c.take_tray_from_agv()
       elif i == '211':
         c.take_tray_from_agv(reverse_movement_for_calibration=True)
+      elif i == '212':
+        c.take_tray_from_agv_preplanned()
       elif i == '22':
         c.unload_drive_unit()
       elif i == '31':
-        c.skill_server.pick_screw_from_feeder("a_bot", screw_size=3)
+        c.pick_screw_from_feeder("a_bot", screw_size=3)
       elif i == '32':
-        c.skill_server.pick_screw_from_feeder("b_bot", screw_size=4)
+        c.pick_screw_from_feeder("b_bot", screw_size=4)
       elif i == "41":
         c.publish_part_in_assembled_position("base")
       elif i == "421":
@@ -204,7 +206,7 @@ if __name__ == '__main__':
       elif i == '82':
         c.do_change_tool_action('b_bot', equip=False, screw_size=4)
       elif i == '83':
-        c.skill_server.pick_screw_from_feeder('b_bot', 4)
+        c.pick_screw_from_feeder('b_bot', 4)
       elif i == '84':
         c.skill_server.do_linear_push('a_bot', force=15, direction="Y-", max_approach_distance=0.05, forward_speed=0.003)
       elif i == '85':
@@ -241,7 +243,20 @@ if __name__ == '__main__':
         c.subtask_e() # idler pin
       elif i == '97':
         c.subtask_c2() # shaft
+      elif i == '971':
+        c.orient_shaft()
+        c.orient_shaft_end_cap()
+      elif i == '972':
+        c.check_screw_hole_visible_on_shaft_in_v_groove()
+      elif i == '977':
+        c.is_the_placed_end_cap_upside_down()
         # 97: shaft, 98: clamp pulley, 99: belt).")
+      elif i == "9772":
+        ### Test end cap insertion
+        c.insert_end_cap()
+        print("result", result)
+      elif i == '991':
+        c.pick_and_store_belt()
       elif i == '97spawn':
         obj = c.assembly_database.get_collision_object("shaft")
         obj.header.frame_id = "b_bot_gripper_tip_link"
@@ -316,6 +331,9 @@ if __name__ == '__main__':
         c.full_assembly_task()
       if i == "reset":
         c.reset_scene_and_robots()
+        c.reset_assembly_visualization()
+      if i == "unload":
+        c.unload_drive_unit()
       if i == "activate":
         c.a_bot.activate_ros_control_on_ur()
         c.b_bot.activate_ros_control_on_ur()

@@ -1,39 +1,45 @@
 <?xml version="1.0" ?>
 <launch>
 
+  <arg name="sim"/>
   <arg name="config"/>
-  <arg name="calib_file"/>
-
+  <arg name="calib_dir"/>
   <arg name="camera_name"/>
   <arg name="check"/>
   <arg name="use_dual_quaternion"/>
-  
-  <arg name="camera_info_topic"/>
-  <arg name="image_topic"/>
-  <arg name="depth_topic"/>
 
   <!-- Set name of the configuration file -->
-  <arg name="config_file"
-       value="$(find aist_handeye_calibration
-	      )/config/$(arg config)/$(arg camera_name).yaml"/>
+  <arg name="config_file" value="$(dirname)/../../config/$(arg config
+				 )/$(arg camera_name).yaml"/>
+  <arg name="calib_file"  value="$(arg calib_dir)/$(arg camera_name).yaml"/>
+
+  <!-- Select and turn on laser only for a camera to be calibrated -->
+  <node unless="$(arg sim)"
+	name="select_realsense_camera"
+	pkg="aist_camera_multiplexer" type="select_realsense_camera.py"
+	args="$(arg camera_name)"/>
+  <node if="$(arg sim)"
+	name="select_camera"
+	pkg="aist_camera_multiplexer" type="select_camera.py"
+	args="$(arg camera_name)"/>
 
   <!-- Start ArUco -->
   <node name="aruco_detector"
 	pkg="aist_aruco_ros" type="aist_aruco_detector" output="screen">
-    <remap from="/camera_info"	to="$(arg camera_name)/$(arg camera_info_topic)"/>
-    <remap from="/image"	to="$(arg camera_name)/$(arg image_topic)"/>
-    <remap from="/depth"	to="$(arg camera_name)/$(arg depth_topic)"/>
+    <remap from="/camera_info"	to="camera_multiplexer/camera_info"/>
+    <remap from="/image"	to="camera_multiplexer/image"/>
+    <remap from="/depth"	to="camera_multiplexer/depth"/>
     <rosparam file="$(arg config_file)"/>
   </node>
 
   <!-- Publish dummy or calibrated camera pose -->
-  <node name="$(anon handeye_publisher)"
-	pkg="aist_handeye_calibration" type="publish_calibration.py"
-	output="screen">
-    <param name="dummy" value="$(eval not check)"/>
-    <rosparam file="$(arg calib_file)" if="$(arg check)"/>
-    <rosparam file="$(arg config_file)"/>
-  </node>
+  <!-- <node name="$(anon handeye_publisher)" -->
+  <!-- 	pkg="aist_handeye_calibration" type="publish_calibration.py" -->
+  <!-- 	output="screen"> -->
+  <!--   <param name="dummy" value="$(eval not check)"/> -->
+  <!--   <rosparam file="$(arg calib_file)" if="$(arg check)"/> -->
+  <!--   <rosparam file="$(arg config_file)"/> -->
+  <!-- </node> -->
 
   <!-- Start calibrator -->
   <node unless="$(arg check)"

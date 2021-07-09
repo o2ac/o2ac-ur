@@ -36,6 +36,7 @@
 
 import sys
 import copy
+from moveit_commander import robot
 import rospy
 
 import geometry_msgs.msg
@@ -81,7 +82,7 @@ class TestClass(O2ACCommon):
     self.close_view(4)
     return True
   
-  def close_view(self, number):
+  def close_view(self, number, robot_name="b_bot"):
     if number == 1:
       pose = self.tray_view_close_front_b
     elif number == 2:
@@ -90,7 +91,7 @@ class TestClass(O2ACCommon):
       pose = self.tray_view_close_front_a
     elif number == 4:
       pose = self.tray_view_close_back_a
-    self.b_bot.go_to_pose_goal(pose, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
+    self.active_robots[robot_name].go_to_pose_goal(pose, end_effector_link=robot_name+"_outside_camera_color_frame", speed=.1, acceleration=.04)
     return
   
   def call_belt_action_and_show(self):
@@ -117,13 +118,14 @@ if __name__ == '__main__':
       rospy.loginfo("Enter a number to run tests: ")
       rospy.loginfo("1: Go home with all robots")
       rospy.loginfo("11-14: Activate camera (11:a_in, 12:a_out, 13:b_in, 14:b_out)")
-      rospy.loginfo("2: Move b_bot above tray at 37 cm")
+      rospy.loginfo("2: Move b_bot above tray at 37 cm (2a: a_bot)")
       rospy.loginfo("3: Move b_bot close (22 cm)")
       rospy.loginfo("31, 32, 33, 34: Close views")
       rospy.loginfo("4: Call shaft notch detection")
       rospy.loginfo("5: Call SSD detection and show result")
+      rospy.loginfo("(CAD matching) 61: base plate, 62: motor plate, 63: bearing plate, 64: motor, 65: bearing ")
       rospy.loginfo("8: Look for shaft")
-      rospy.loginfo("CAD matching: 61: bearing, 62: base plate, 63: motor plate, 64: bearing plate")
+      rospy.loginfo("89: Look at output pulley, start detecting screws")
       rospy.loginfo("x: Exit ")
       rospy.loginfo(" ")
       r = raw_input()
@@ -139,12 +141,11 @@ if __name__ == '__main__':
       elif r == '14':
         c.vision.activate_camera("b_bot_outside_camera")
       elif r == '2':
-        ps = geometry_msgs.msg.PoseStamped()
-        ps.header.frame_id = "tray_center"
-        ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
-        ps.pose.position.z = .37
-        # c.go_to_named_pose("home", "a_bot")
-        c.b_bot.go_to_pose_goal(ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.5, acceleration=.2)
+        c.b_bot.go_to_pose_goal(c.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.5, acceleration=.2)
+        # c.b_bot.go_to_pose_goal(c.tray_view_high, end_effector_link="calibrated_b_bot_outside_camera_color_optical_frame", speed=.5, acceleration=.2)
+      elif r == '2a':
+        c.a_bot.go_to_pose_goal(c.tray_view_high, end_effector_link="a_bot_outside_camera_color_frame", speed=.5, acceleration=.2)
+        # c.a_bot.go_to_pose_goal(c.tray_view_high, end_effector_link="calibrated_a_bot_outside_camera_color_optical_frame", speed=.5, acceleration=.2)
       elif r == '3':
         ps = geometry_msgs.msg.PoseStamped()
         ps.header.frame_id = "tray_center"
@@ -160,6 +161,14 @@ if __name__ == '__main__':
         c.close_view(3)
       elif r == '34':
         c.close_view(4)
+      elif r == '31a':
+        c.close_view(1, robot_name="a_bot")
+      elif r == '32a':
+        c.close_view(2, robot_name="a_bot")
+      elif r == '33a':
+        c.close_view(3, robot_name="a_bot")
+      elif r == '34a':
+        c.close_view(4, robot_name="a_bot")
       elif r == '331':
         for ps in c.close_tray_views:
           c.b_bot.go_to_pose_goal(ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
@@ -170,10 +179,8 @@ if __name__ == '__main__':
         for ps in c.close_tray_views_rot_right:
           c.b_bot.go_to_pose_goal(ps, end_effector_link="b_bot_outside_camera_color_frame", speed=.1, acceleration=.04)
       elif r == '4':
-        c.vision.activate_camera("b_bot_inside_camera")
-        c.vision.call_shaft_notch_detection()
+        c.vision.call_shaft_hole_detection()
       elif r == '5':
-        c.vision.activate_camera("b_bot_outside_camera")
         rospy.sleep(1)
         res = c.get_3d_poses_from_ssd()
         obj_id = 7 #bearing
@@ -189,6 +196,8 @@ if __name__ == '__main__':
           print(str(r2[0]))
         except:
           pass
+      elif r == '500':
+        c.get_bearing_angle()
       elif r == '51':
         c.b_bot.go_to_named_pose("home")
         p = r2[0]
@@ -201,22 +210,24 @@ if __name__ == '__main__':
         c.simple_pick("b_bot", p, gripper_force=100.0, grasp_width=.05, axis="z")
       elif r == '61':
         if not c.assembly_database.db_name == "wrs_assembly_2020":
-          c.assembly_database.load_db("wrs_assembly_2020")
-        c.look_for_item_in_tray("bearing", "b_bot")
+          c.set_assembly("wrs_assembly_2020")
+        c.get_large_item_position_from_top("base", "b_bot")
       elif r == '62':
         if not c.assembly_database.db_name == "wrs_assembly_2020":
-          c.assembly_database.load_db("wrs_assembly_2020")
-        c.look_for_item_in_tray("base", "b_bot")
+          c.set_assembly("wrs_assembly_2020")
+        c.get_large_item_position_from_top("panel_motor", "b_bot")
       elif r == '63':
         if not c.assembly_database.db_name == "wrs_assembly_2020":
-          c.assembly_database.load_db("wrs_assembly_2020")
-        c.look_for_item_in_tray("panel_motor", "b_bot")
+          c.set_assembly("wrs_assembly_2020")
+        c.get_large_item_position_from_top("panel_bearing", "b_bot")
       elif r == '64':
         if not c.assembly_database.db_name == "wrs_assembly_2020":
-          c.assembly_database.load_db("wrs_assembly_2020")
-        c.look_for_item_in_tray("panel_bearing", "b_bot")
-      elif r == '7':
-        c.b_bot.linear_push(force=10, direction="+Z", relative_to_ee=False, timeout=15.0)
+          c.set_assembly("wrs_assembly_2020")
+        c.get_large_item_position_from_top("motor", "b_bot")
+      elif r == '65':
+        if not c.assembly_database.db_name == "wrs_assembly_2020":
+          c.set_assembly("wrs_assembly_2020")
+        c.get_large_item_position_from_top("bearing", "b_bot")
       elif r == "8":
         goal = c.look_and_get_grasp_point(8)  # shaft
         if not goal:
@@ -234,8 +245,20 @@ if __name__ == '__main__':
           goal.pose.position.z = 0.001
           # goal.pose.position.x -= 0.01 # MAGIC NUMBER
           c.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z")
+      elif r == "87":
+        c.look_at_motor()
       elif r == "88":
         c.check_if_shaft_in_v_groove()
+      elif r == "89":
+        if not c.assembly_database.db_name == "wrs_assembly_2020":
+          c.set_assembly("wrs_assembly_2020")
+          rospy.sleep(1.0)
+        c.check_output_pulley_angle()
+      elif r == 'push':
+        c.b_bot.linear_push(force=10, direction="-Z", relative_to_ee=False, timeout=15.0)
+      elif r == "reset":
+        c.reset_scene_and_robots()
+        c.reset_assembly_visualization()
       elif r == 'x':
         break
       else:

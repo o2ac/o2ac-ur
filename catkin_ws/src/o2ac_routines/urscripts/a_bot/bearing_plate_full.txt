@@ -3,9 +3,23 @@
      MoveJ
        currentpose≔get_actual_tcp_pose()get_actual_joint_positions()
        currentpose
-     'MoveL'
+     'Hardcoded pick'
+     Rearrange
+       MoveJ
+         start
+       MoveL
+         start
+         above_repos
+         reposition_0
+         'Gripper Move73% (1)'
+         Gripper Move84% (1)
+         push_into_wall
+         Gripper Move73% (1)
+         regrasp1
+         Gripper Close (1)
+         above_repos
+         Gripper Close (1)
      MoveL
-       start
        above_drop_1
        drop_1
        Gripper Move73% (1)
@@ -18,10 +32,10 @@
          Until (distance)
        above_final_wp1
        place
-       Gripper Move73% (1)
-       align
+       Gripper Move74% (1)
+       'align'
        Gripper Close (1)
-       Gripper Move73% (1)
+       Gripper Move74% (1)
      Call bearing_plate_positioni_1
    bearing_plate_positioni_1
      MoveL

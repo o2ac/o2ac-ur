@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from numpy.lib.npyio import save
 from o2ac_routines.common import O2ACCommon
 from o2ac_routines.assembly import O2ACAssembly
 import rospy
@@ -21,15 +22,74 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
+def test_force_control(c):
+    selection_matrix = [0., 1., 1., 1., 1., 1.]
+    target_force = np.array([0., 0., 0., 0., 0., 0.])
+
+    c.b_bot.go_to_pose_goal(controller.tray_view_high)
+    c.b_bot.force_controller.force_control(target_force=target_force, selection_matrix=selection_matrix, timeout=30.0)
+
 def main():
     rospy.init_node("testscript")
     global controller
-    # controller = O2ACCommon()
-    controller = O2ACAssembly()
-    controller.confirm_to_proceed("")
-    controller.publish_part_in_assembled_position("base")
-    controller.publish_part_in_assembled_position("panel_bearing")
-    controller.subtask_e()
+    controller = O2ACCommon()
+    # test_force_control(controller)
+
+    controller.ab_bot.go_to_named_pose("home")
+
+    controller.a_bot.go_to_named_pose("screw_ready")
+    controller.a_bot.force_controller.execute_spiral_trajectory2("YZ", max_radius=0.0015, radius_direction="+Y", steps=50,
+                                                          revolutions=5, target_force=0, termination_criteria=None, timeout=10,
+                                                          check_displacement_time=10, end_effector_link="a_bot_screw_tool_m3_tip_link")
+
+    # print(":::::::::::::::")
+    # controller.a_bot.force_controller.execute_spiral_trajectory2("YZ", max_radius=0.0015, radius_direction="+Y", steps=50,
+    #                                                       revolutions=5, target_force=0, termination_criteria=None, timeout=10,
+    #                                                       check_displacement_time=10)
+    # controller.a_bot.go_to_named_pose("horizontal_screw_ready")
+    # controller.a_bot.force_controller.execute_spiral_trajectory2("YZ", max_radius=0.0015, radius_direction="+Y", steps=50,
+    #                                                       revolutions=5, target_force=0, termination_criteria=None, timeout=10,
+    #                                                       check_displacement_time=10)
+    # controller.b_bot.go_to_named_pose("screw_ready")
+    # controller.playback_sequence("idler_pulley_ready_screw_tool")
+    # controller.confirm_to_proceed("")
+    # controller.playback_sequence("idler_pulley_return_screw_tool")
+    # controller.b_bot.go_to_named_pose("screw_ready")
+
+    # controller.b_bot.gripper.open()
+    # controller.b_bot.go_to_named_pose("home")
+    # at_object_pose = conversions.to_pose_stamped("right_centering_link", [-0.005, 0, 0.0, 0, 0, 0] )
+    # controller.b_bot.go_to_pose_goal(at_object_pose, speed=0.5)
+    # controller.center_with_gripper("b_bot", opening_width=0.085)
+    
+    # controller.vision.activate_camera("b_bot_inside_camera")
+    # look_at_output_pulley = conversions.to_pose_stamped("assembled_part_08_inserted", [-0.212, 0, 0.0, -tau/4, 0, -tau/4])
+    # controller.b_bot.go_to_pose_goal(look_at_output_pulley, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=0.05)
+
+    # controller.assembly_database.change_assembly("taskboard")
+    # controller.pick_bearing()
+    # controller.orient_bearing("taskboard")
+    # controller = O2ACAssembly()
+    # controller.playback_sequence(routine_filename="plunger_tool_equip", plan_while_moving=True, use_saved_plans=False)
+    # controller.playback_sequence(routine_filename="plunger_tool_unequip", plan_while_moving=True, use_saved_plans=False)
+    # controller.playback_sequence(routine_filename="idler_pulley_return_screw_tool", plan_while_moving=True)
+
+    # controller.take_tray_from_agv(preplanned=False)
+    # controller.allow_collisions_with_robot_hand("tray", "a_bot", allow=True)
+    # controller.allow_collisions_with_robot_hand("tray", "b_bot", allow=True)
+    # controller.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=True)
+    # controller.allow_collisions_with_robot_hand("tray_center", "b_bot", allow=True)
+    # controller.take_tray_from_agv_preplanned()
+    # controller.playback_sequence("tray_take_from_agv", plan_while_moving=True, save_on_success=True, use_saved_plans=True)
+    # controller.test_ik()
+    # controller.reset_scene_and_robots()
+    # controller.fasten_bearing("assembly")
+    # controller.tools.set_motor("padless_tool_m4", "tighten", duration=2)
+    # controller.take_tray_from_agv()
+    # controller.confirm_to_proceed("")
+    # controller.publish_part_in_assembled_position("base")
+    # controller.publish_part_in_assembled_position("panel_bearing")
+    # controller.subtask_e()
     # b_plan, _ = controller.b_bot.go_to_named_pose("screw_ready", wait=False, plan_only=True)
     # controller.b_bot.execute_plan(b_plan, wait=False)
     # rospy.sleep(1)
@@ -58,7 +118,8 @@ def main():
     # controller.b_bot.go_to_named_pose("home", speed=1.0)
     # controller.b_bot.gripper.open()
     # st = rospy.get_time()
-    # controller.playback_sequence(routine_filename="ready_screw_tool_horizontal", wait=False)
+    # controller.playback_sequence(routine_filename="idler_pulley_equip_nut_tool")
+    # controller.playback_sequence(routine_filename="return_screw_tool_horizontal")
     # print("TIME new", rospy.get_time()-st)
 
     # controller.b_bot.go_to_named_pose("home", speed=1.0)

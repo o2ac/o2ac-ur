@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 
+import os
 import sys
 import copy
 
 from numpy.lib.function_base import append
+import rospkg
+import rosbag
 import rospy
 import random
+import json
 import numpy as np
 import geometry_msgs.msg
 import actionlib
@@ -31,6 +35,8 @@ import ur_dashboard_msgs.msg
 import moveit_msgs.msg
 from moveit_msgs.msg import RobotState
 from sensor_msgs.msg import JointState
+
+from std_msgs.msg import String, Float64MultiArray
 
 helper_fct_marker_id_count = 0
 
@@ -234,7 +240,7 @@ def ur_axis_angle_to_quat(axis_angle):
 def quat_to_ur_axis_angle(quaternion):
   # https://en.wikipedia.org/wiki/Axis%E2%80%93angle_representation#Unit_quaternions
   # quaternion must be [xyzw]
-  angle = 2*math.atan2(norm2(quaternion[0], quaternion[1], quaternion[2]), quaternion[3])
+  angle = 2*atan2(norm2(quaternion[0], quaternion[1], quaternion[2]), quaternion[3])
   if abs(angle) > 1e-6:
     axis_normed = [ quaternion[0]/sin(angle/2), quaternion[1]/sin(angle/2), quaternion[2]/sin(angle/2) ]
   else:
@@ -385,6 +391,8 @@ def publish_pose_marker_(marker_publisher, marker_pose_stamped, namespace="", he
   marker_publisher.publish(arrow_z)
   return True
 
+# =========
+
 def get_direction_index(direction):
   DIRECTION_INDEX = {'X':0, 'Y':1, 'Z':2}
   return DIRECTION_INDEX.get(direction.upper())
@@ -393,7 +401,10 @@ def get_target_force(direction, force):
   validate_direction(direction)
 
   res = [0.,0.,0.,0.,0.,0.]
-  sign = 1. if '+' in direction else -1.
+  if 'Z' in direction: # hack
+    sign = -1. if '+' in direction else 1.
+  else:
+    sign = 1. if '+' in direction else -1.
   res[get_direction_index(direction[1])] = force * sign
 
   return np.array(res)
@@ -440,7 +451,13 @@ def get_trajectory_duration(plan):
   duration = rospy.Time(time_from_start.secs, time_from_start.nsecs)
   return duration.to_sec()
 
-def get_trajectory_joint_goal(plan):
+def get_trajectory_joint_goal(plan, joints_order=None):
+  if joints_order is not None:
+    joint_values = []
+    for joint in joints_order:
+      i = plan.joint_trajectory.joint_names.index(joint)
+      joint_values.append(plan.joint_trajectory.points[-1].positions[i])
+    return joint_values
   return plan.joint_trajectory.points[-1].positions
 
 def to_robot_state(move_group, joints):
@@ -465,6 +482,18 @@ def to_sequence_gripper(gripper, gripper_opening_width=0.14, gripper_force=40, g
     }
   return ["waypoint", item]
 
+def to_sequence_item_relative(pose, relative_to_base=False, relative_to_tcp=False, speed=0.5, acc=0.25):
+  if relative_to_tcp:
+    pose_type = 'relative-tcp'
+  elif relative_to_base:
+    pose_type = 'relative-base'
+  else:
+    pose_type = 'relative-world'
+  item  = {"pose": pose,
+           "pose_type": pose_type}
+  item.update({"speed": speed, "acc": acc})
+  return ["waypoint", item]
+
 def to_sequence_item(pose, speed=0.5, acc=0.25):
   if isinstance(pose, geometry_msgs.msg.PoseStamped):
     item           = {"pose": conversions.from_point(pose.pose.position).tolist() + np.rad2deg(transformations.euler_from_quaternion(conversions.from_quaternion(pose.pose.orientation))).tolist(),
@@ -483,11 +512,50 @@ def to_sequence_item(pose, speed=0.5, acc=0.25):
 
   return ["waypoint", item]
 
-def to_sequence_trajectory(trajectory, blend_radiuses, speed=0.5, default_frame="world"):
+def to_sequence_trajectory(trajectory, blend_radiuses=0.0, speed=0.5, default_frame="world"):
   sequence_trajectory = []
-  for t, br in zip(trajectory, blend_radiuses):
+  blend_radiuses = blend_radiuses if isinstance(blend_radiuses, list) else np.zeros_like(trajectory)+blend_radiuses
+  for i, (t, br) in enumerate(zip(trajectory, blend_radiuses)):
+    if isinstance(speed, list):
+      spd = speed[i]
+    else:
+      spd = speed if i != len(trajectory) - 1 else 0.2
+
     if isinstance(t, geometry_msgs.msg.PoseStamped):
-      sequence_trajectory.append([t, br])
+      sequence_trajectory.append([t, br, spd])
     elif isinstance(t, list):
-      sequence_trajectory.append([conversions.to_pose_stamped(default_frame, t), br])
-  return ["trajectory", [sequence_trajectory, speed]]
+      sequence_trajectory.append([conversions.to_pose_stamped(default_frame, t), br, spd])
+  return ["trajectory", sequence_trajectory]
+
+def get_plan_full_path(name):
+  rp = rospkg.RosPack()
+  return rp.get_path("o2ac_routines") + "/config/saved_plans/" + name
+
+def load_sequence_plans(name):
+  bagfile = get_plan_full_path(name)
+  sequence = []
+  if not os.path.exists(bagfile):
+    raise Exception("Sequence: %s does not exist" % bagfile)
+  with rosbag.Bag(bagfile, 'r') as bag:
+    for (topic, msg, ts) in bag.read_messages():
+      if topic in ("robot_name", "initial_joint_configuration"):
+        sequence.append(msg.data)
+      elif topic == "gripper_action":
+        sequence.append(json.loads(msg.data))
+      else:
+        sequence.append(msg)
+  return sequence
+
+def save_sequence_plans(name, plans):
+  bagfile = get_plan_full_path(name)
+  if os.path.exists(bagfile):
+    os.remove(bagfile)
+  with rosbag.Bag(bagfile, 'w') as bag:
+    bag.write(topic="robot_name", msg=String(data=plans[0]))
+    bag.write(topic="initial_joint_configuration", msg=Float64MultiArray(data=plans[1]))
+    for plan in plans[2:]:
+      if isinstance(plan, dict):
+        bag.write(topic="gripper_action", msg=String(json.dumps(plan)))
+      else:
+        bag.write(topic="plan", msg=plan)
+

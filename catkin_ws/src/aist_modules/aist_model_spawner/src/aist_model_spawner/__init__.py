@@ -8,6 +8,11 @@ class ModelSpawnerClient(object):
     def __init__(self, server='model_spawner'):
         super(ModelSpawnerClient, self).__init__()
 
+        rospy.wait_for_service(server + '/add')
+        rospy.wait_for_service(server + '/delete')
+        rospy.wait_for_service(server + '/delete_all')
+        rospy.wait_for_service(server + '/get_list')
+
         self._add        = rospy.ServiceProxy(server + '/add',    msrv.Add)
         self._delete     = rospy.ServiceProxy(server + '/delete', msrv.Delete)
         self._delete_all = rospy.ServiceProxy(server + '/delete_all',

@@ -1,0 +1,36 @@
+<?xml version="1.0" ?>
+<launch>
+
+  <!-- <arg name="id" default="InstalledExamples-basic-example"/> -->
+  <!-- <arg name="id"		default="2018-09-016-LC3"/> -->
+  <arg name="id"		default="2020-01-098-LC3"/>
+  <arg name="camera_name"	default="camera"/>
+  <arg name="camera_frame"	default="calibrated_$(arg camera_name)"/>
+  <arg name="trigger_mode"	default="0"/>
+  <arg name="rate"		default="10"/>
+  <arg name="manager"		default=""/>
+  <arg name="vis"		default="true"/>
+
+  <!-- Spawn camera -->
+  <include file="$(find aist_phoxi_camera)/launch/run.launch">
+    <arg name="id"		value="$(arg id)"/>
+    <arg name="camera_name"	value="$(arg camera_name)"/>
+    <arg name="frame"		value="$(arg camera_frame)"/>
+    <arg name="trigger_mode"	value="$(arg trigger_mode)"/>
+    <arg name="rate"		value="$(arg rate)"/>
+    <arg name="manager"		value="$(arg manager)"/>
+  </include>
+
+  <!-- Spawn box_localizer -->
+  <include file="$(dirname)/run.launch">
+    <arg name="camera_info_topic" value="$(arg camera_name)/camera_info"/>
+    <arg name="depth_topic"	  value="$(arg camera_name)/depth_map"/>
+    <arg name="manager"		  value="$(arg manager)"/>
+  </include>
+
+  <!-- Spawn visualizer and parameter configurator -->
+  <!-- <node name="$(anon rviz)" pkg="rviz" type="rviz" output="screen" -->
+  <!-- 	args="-d $(dirname)/phoxi.rviz"/> -->
+  <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure"/>
+
+</launch>

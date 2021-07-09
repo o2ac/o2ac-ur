@@ -1,11 +1,47 @@
 #!/usr/bin/env python
 
-import os, sys, glob, rospy, re, json, pprint, skimage, cv2, threading
-from cv_bridge          import CvBridge
-from sensor_msgs        import msg as smsg
-from aist_depth_filter  import DepthFilterClient
-from aist_localization  import LocalizationClient
-from aist_model_spawner import ModelSpawnerClient
+import os, sys, glob, rospy, re, json, cv2, threading
+import numpy as np
+from cv_bridge         import CvBridge
+from sensor_msgs       import msg as smsg
+from geometry_msgs     import msg as gmsg
+from aist_depth_filter import DepthFilterClient
+from tf                import TransformBroadcaster, transformations as tfs
+
+#########################################################################
+#  gloabal functions                                                    #
+#########################################################################
+def transform_from_plane(plane):
+    def normalize(v):
+        return v / np.linalg.norm(v)
+
+    t = gmsg.TransformStamped()
+    t.header.frame_id = plane.header.frame_id
+    t.child_frame_id  = "tray_center"
+
+    # Compute translation
+    k = np.array([plane.plane.normal.x,
+                  plane.plane.normal.y,
+                  plane.plane.normal.z])
+    x = -plane.plane.distance * k
+    t.transform.translation.x = x[0]
+    t.transform.translation.y = x[1]
+    t.transform.translation.z = x[2]
+
+    # Compute rotation
+    j = normalize(np.cross(k, np.array([1, 0, 0])))
+    i = np.cross(j, k)
+    q = tfs.quaternion_from_matrix(np.array([[i[0], j[0], k[0], 0.0],
+                                             [i[1], j[1], k[1], 0.0],
+                                             [i[2], j[2], k[2], 0.0],
+                                             [ 0.0,  0.0,  0.0, 1.0]]))
+    t.transform.rotation.x = q[0]
+    t.transform.rotation.y = q[1]
+    t.transform.rotation.z = q[2]
+    t.transform.rotation.w = q[3]
+
+    return t
+
 
 #########################################################################
 #  class ImageFeeder                                                    #
@@ -47,9 +83,14 @@ class ImageFeeder(object):
         self._image_pub = rospy.Publisher('~image', smsg.Image, queue_size=1)
         self._depth_pub = rospy.Publisher('~depth', smsg.Image, queue_size=1)
 
+        self._dfilter     = DepthFilterClient('depth_filter')
+        self._broadcaster = TransformBroadcaster()
+        self._transform   = None
+
         self._image = None
         self._depth = None
         self._run   = True
+
         thread = threading.Thread(target=self._stream_image)
         thread.start()
 
@@ -65,6 +106,8 @@ class ImageFeeder(object):
             self._image = CvBridge().cv2_to_imgmsg(image, encoding='bgr8')
             self._depth = CvBridge().cv2_to_imgmsg(depth)
 
+            self._transform = None
+
         except Exception as e:
             rospy.logerr('(Feeder) %s(annotation = %s)',
                          str(e), annotation_filename)
@@ -76,6 +119,9 @@ class ImageFeeder(object):
         rate = rospy.Rate(10)       # 10Hz
         while self._run:
             if self._image and self._depth:
+                if self._transform is None:
+                    self._dfilter.detect_plane_send_goal()
+
                 now = rospy.Time.now()
                 self._cinfo.header.stamp = now
                 self._image.header = self._cinfo.header
@@ -83,7 +129,18 @@ class ImageFeeder(object):
                 self._cinfo_pub.publish(self._cinfo)
                 self._image_pub.publish(self._image)
                 self._depth_pub.publish(self._depth)
+
+                if self._transform is None:
+                    plane = self._dfilter.detect_plane_wait_for_result()
+                    if plane is not None:
+                        self._transform = transform_from_plane(plane)
+
+                if self._transform is not None:
+                    self._transform.header.stamp = now
+                    self._broadcaster.sendTransformMessage(self._transform)
+
             rate.sleep()
+
 
 
 #########################################################################

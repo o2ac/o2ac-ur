@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, sys, glob, rospy, re, json, pprint, skimage, cv2
+import os, sys, glob, rospy, re, json, pprint, cv2
 from cv_bridge          import CvBridge
 from sensor_msgs        import msg as smsg
 from aist_depth_filter  import DepthFilterClient
@@ -65,10 +65,10 @@ class ImageFeeder(object):
         self._image_pub = rospy.Publisher('~image', smsg.Image, queue_size=1)
         self._depth_pub = rospy.Publisher('~depth', smsg.Image, queue_size=1)
 
-        self._dfilter   = DepthFilterClient('~depth_filter')
+        self._dfilter   = DepthFilterClient('depth_filter')
         self._dfilter.window_radius = 2
-        self._localizer = LocalizationClient('~localization')
-        self._spawner   = ModelSpawnerClient()
+        self._localizer = LocalizationClient('localization')
+        self._spawner   = ModelSpawnerClient('model_spawner')
 
     def load_and_localize(self, annotation_filename):
         self._spawner.delete_all()

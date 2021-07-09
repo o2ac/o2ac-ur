@@ -422,6 +422,9 @@ RUN echo "\nsource /root/o2ac-ur/catkin_ws/devel/setup.bash\n" >> /root/.bashrc
 # Force color prompt in terminal.
 RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/' /root/.bashrc
 
+ENV ROS_HOSTNAME=o2ac-ur
+RUN echo "ROS_MASTER_URI=http://o2ac-ur:11311" >> /root/.bashrc
+
 # Traceability.
 ARG DOCKERFILE_COMMIT_SHORT_SHA
 ENV DOCKER_IMAGE_VERSION_O2AC_UR=${DOCKERFILE_COMMIT_SHORT_SHA}

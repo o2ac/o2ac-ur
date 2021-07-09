@@ -72,9 +72,12 @@ DepthFilter::DepthFilter(const ros::NodeHandle& nh)
      _depth_pub( _it.advertise("depth",  1)),
      _normal_pub(_it.advertise("normal", 1)),
      _colored_normal_pub(_it.advertise("colored_normal", 1)),
-     _base_plane_pub(_nh.advertise<cloud_t>("base_plane", 1)),
+     _plane_pub(_nh.advertise<cloud_t>("base_plane", 1)),
      _camera_info_pub(_nh.advertise<camera_info_t>("camera_info", 1)),
      _file_info_pub(_nh.advertise<file_info_t>("file_info", 1)),
+     _detect_plane_srv(_nh, "detect_plane",
+		       boost::bind(&DepthFilter::detect_plane_cb, this, _1),
+		       false),
      _ddr(_nh),
      _camera_info_org(nullptr),
      _camera_info(),
@@ -95,6 +98,11 @@ DepthFilter::DepthFilter(const ros::NodeHandle& nh)
      _window_radius(0),
      _threshPlane(0.001)
 {
+  // Setup DetectPlane action server.
+    _detect_plane_srv.registerPreemptCallback(boost::bind(&preempt_cb, this));
+    _detect_plane_srv.start();
+
+  // Setup parameters
     _nh.param("thresh_bg", _threshBG, _threshBG);
     _ddr.registerVariable<double>("thresh_bg", _threshBG,
 				  boost::bind(
@@ -221,27 +229,27 @@ DepthFilter::capture_cb(std_srvs::Trigger::Request&  req,
 	_depth.data.clear();
 
 	file_info_t	file_info;
-	file_info.camera_info = _camera_info;
-	file_info.file_path   = file_path;
+	file_info.file_path = file_path;
+	file_info.header    = _camera_info.header;
 
 	if (_threshPlane > 0.0)
 	{
-	    const auto	plane = detect_base_plane(*_camera_info_org,
-						  *_image_org, *_depth_org,
-						  _threshPlane);
+	    const auto	plane = detect_plane(*_camera_info_org,
+					     *_image_org, *_depth_org,
+					     _threshPlane);
 	    file_info.plane_detected = true;
-	    file_info.normal.x	     = plane.normal()(0);
-	    file_info.normal.y	     = plane.normal()(1);
-	    file_info.normal.z	     = plane.normal()(2);
-	    file_info.distance	     = plane.distance();
+	    file_info.normal.x = plane.normal()(0);
+	    file_info.normal.y = plane.normal()(1);
+	    file_info.normal.z = plane.normal()(2);
+	    file_info.distance = plane.distance();
 	}
 	else
 	{
 	    file_info.plane_detected = false;
-	    file_info.normal.x	     = 0;
-	    file_info.normal.y	     = 0;
-	    file_info.normal.z	     = -1;
-	    file_info.distance	     = 0;
+	    file_info.normal.x = 0;
+	    file_info.normal.y = 0;
+	    file_info.normal.z = -1;
+	    file_info.distance = 0;
 	}
 
 	_file_info_pub.publish(file_info);
@@ -367,6 +375,45 @@ DepthFilter::filter_without_normal_cb(const camera_info_cp& camera_info,
     catch (const std::exception& err)
     {
 	ROS_ERROR_STREAM("DepthFilter::filter_without_cb(): " << err.what());
+    }
+}
+
+void
+DepthFilter::preempt_cb() const
+{
+    _detect_plane_srv.setPreempted();
+    ROS_INFO_STREAM("(DepthFilter)   *DetectPlaneAction preempted*");
+}
+
+void
+DepthFilter::detect_plane_cb(const goal_cp& goal)
+{
+    try
+    {
+	if (!_camera_info_org || !_image_org || !_depth_org)
+	    throw std::runtime_error("no images receved!");
+
+	if (_threshPlane <= 0.0)
+	    throw std::runtime_error("parameter threshPlane is not positive!");
+
+	const auto	plane = detect_plane(*_camera_info_org,
+					     *_image_org, *_depth_org,
+					     _threshPlane);
+
+	DetectPlaneResult	result;
+	result.plane.header	    = _camera_info_org->header;
+	result.plane.plane.normal.x = plane.normal()(0);
+	result.plane.plane.normal.y = plane.normal()(1);
+	result.plane.plane.normal.z = plane.normal()(2);
+	result.plane.plane.distance = plane.distance();
+
+	_detect_plane_srv.setSucceeded(result);
+    }
+    catch (const std::exception& err)
+    {
+	ROS_ERROR_STREAM("(DepthFilter) detect_plane_cb(): "
+			 << err.what());
+	_detect_plane_srv.setAborted();
     }
 }
 
@@ -591,9 +638,9 @@ DepthFilter::scale(image_t& depth) const
 }
 
 DepthFilter::plane_t
-DepthFilter::detect_base_plane(const camera_info_t& camera_info,
-			       const image_t& image,
-			       const image_t& depth, float thresh) const
+DepthFilter::detect_plane(const camera_info_t& camera_info,
+			  const image_t& image,
+			  const image_t& depth, float thresh) const
 {
     using	namespace sensor_msgs;
 
@@ -629,7 +676,7 @@ DepthFilter::detect_base_plane(const camera_info_t& camera_info,
     const auto	cloud = create_pointcloud(inliers.begin(), inliers.end(),
 					  depth.header.stamp,
 					  depth.header.frame_id);
-    _base_plane_pub.publish(cloud);
+    _plane_pub.publish(cloud);
 
     return plane;
 }

@@ -80,7 +80,7 @@ class RobotiqGripper():
             res = self.send_command(command, wait=wait, velocity=velocity)
         else:
             res = self.gripper.open()
-        
+
         if detached_last_object and self.last_attached_object:
             self.detach_object(self.last_attached_object)
         return res

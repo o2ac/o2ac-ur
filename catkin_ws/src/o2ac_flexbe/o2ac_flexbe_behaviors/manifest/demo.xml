@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<behavior name="demo">
+
+	<executable package_path="o2ac_flexbe_behaviors.demo_sm" class="demoSM" />
+	<tagstring></tagstring>
+	<author>Cristian Beltran</author>
+	<date>Tue May 11 2021</date>
+	<description>
+		Playback sequences
+	</description>
+
+
+	<!-- Contained Behaviors -->
+
+	<!-- Available Parameters -->
+
+</behavior>

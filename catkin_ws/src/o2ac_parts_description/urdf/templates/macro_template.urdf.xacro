@@ -2,7 +2,7 @@
   <xacro:macro name="MACRONAME_EXTERNAL" params="prefix parent spawn_attached *origin">
     <link name="${prefix}MACRONAME_INTERNAL">
       <visual>
-        <origin rpy="1.5707 0 0" xyz="0 0 0"/>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
         <geometry>
           <mesh filename="package://o2ac_parts_description/meshes/PARTNAME.dae" scale="0.001 0.001 0.001"/>
         </geometry>
@@ -11,7 +11,7 @@
         </material>
       </visual>
       <collision>
-        <origin rpy="1.5707 0 0" xyz="0 0 0"/>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
         <geometry>
           <mesh filename="package://o2ac_parts_description/meshes/PARTNAME.vhacd.dae" scale="0.001 0.001 0.001"/>
         </geometry>

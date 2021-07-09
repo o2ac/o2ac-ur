@@ -20,6 +20,7 @@ from ur_pykdl import ur_kinematics
 
 from trac_ik_python.trac_ik import IK
 
+
 class URRobot(RobotBase):
     def __init__(self, namespace, tf_listener):
         """
@@ -33,7 +34,7 @@ class URRobot(RobotBase):
         self.marker_counter = 0
 
         # forward kinematics helper
-        self.kdl = ur_kinematics(namespace, base_link=self.ns+"_base_link", ee_link=self.ns+"_gripper_tip_link", prefix=namespace+"_", rospackage='o2ac_scene_description',)
+        self.kdl = ur_kinematics(base_link=self.ns+"_base_link", ee_link=self.ns+"_gripper_tip_link")
         # IK solver
         self.ik_solver = IK(base_link=self.ns+"_base_link", tip_link=self.ns+"_gripper_tip_link", solve_type="Distance", timeout=0.01)
 
@@ -55,6 +56,8 @@ class URRobot(RobotBase):
             "close_popup":        rospy.ServiceProxy('/%s/ur_hardware_interface/dashboard/close_popup' % self.ns, std_srvs.srv.Trigger),
             "unlock_protective_stop": rospy.ServiceProxy("/%s/ur_hardware_interface/dashboard/unlock_protective_stop" % self.ns, std_srvs.srv.Trigger),
         }
+
+        self.speed_slider = rospy.ServiceProxy("/%s/ur_hardware_interface/set_speed_slider" % self.ns, ur_msgs.srv.SetSpeedSliderFraction)
 
         self.set_io = rospy.ServiceProxy('/%s/ur_hardware_interface/set_io' % self.ns, ur_msgs.srv.SetIO)
 
@@ -138,6 +141,7 @@ class URRobot(RobotBase):
         # Check if URCap is already running on UR
         try:
             if self.ur_ros_control_running_on_robot:
+                self.speed_slider(ur_msgs.srv.SetSpeedSliderFractionRequest(speed_slider_fraction=1.0))
                 return True
             else:
                 rospy.loginfo("robot_program_running not true for " + self.ns)
@@ -195,7 +199,7 @@ class URRobot(RobotBase):
         except:
             rospy.logwarn("Dashboard service did not respond! (2)")
             pass
-        
+
         if not program_loaded:
             rospy.logwarn("Could not load.")
             return self.activate_ros_control_on_ur(recursion_depth=recursion_depth+1)
@@ -212,6 +216,7 @@ class URRobot(RobotBase):
 
         if self.check_for_dead_controller_and_force_start():
             rospy.loginfo("Successfully activated ROS control on robot " + self.ns)
+            self.speed_slider(ur_msgs.srv.SetSpeedSliderFractionRequest(speed_slider_fraction=1.0))
             return True
         else:
             # Try stopping and restarting the program to restart the controllers
@@ -221,6 +226,7 @@ class URRobot(RobotBase):
                 rospy.sleep(2.0)
                 response = self.ur_dashboard_clients["play"].call()
                 if self.wait_for_control_status_to_turn_on(2.0):
+                    self.speed_slider(ur_msgs.srv.SetSpeedSliderFractionRequest(speed_slider_fraction=1.0))
                     return True
             except:
                 rospy.logerr("Failed to quit/restart")
@@ -317,26 +323,9 @@ class URRobot(RobotBase):
             rospy.loginfo("Successfully closed popup on teach pendant of robot " + self.ns)
             return True
 
-    def get_tcp_pose(self, joints, end_effector_link=None):
-        """ Get TCP position with respect to robot's base frame
-        """
-        return conversions.to_pose_stamped(self.ns + "_base_link", self.kdl.forward(joints, end_effector_link))
-
     def set_up_move_group(self, speed, acceleration, planner="OMPL"):
         self.activate_ros_control_on_ur()
         return RobotBase.set_up_move_group(self, speed, acceleration, planner)
-
-    def solve_ik(self, pose, q_guess=None, attempts=5, verbose=True):
-        q_guess_ = q_guess if q_guess is not None else self.robot_group.get_current_joint_values()
-
-        ik = self.ik_solver.get_ik(q_guess_, *pose)
-        if ik is None:
-            if attempts > 0:
-                return self.solve_ik(pose, q_guess, attempts-1)
-            if verbose:
-                rospy.logwarn("TRACK-IK: solution not found!")
-
-        return ik
 
     # ------ Force control functions
 

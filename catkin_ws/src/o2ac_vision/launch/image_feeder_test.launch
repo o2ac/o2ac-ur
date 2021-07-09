@@ -3,12 +3,13 @@
   <!-- Launch file for testing the recognition pipeline using only the annotation database (no camera or robot). -->
 
   <!-- Mode of object detector -->
-  <arg name="continuous_streaming"		default="false"/>
+  <arg name="continuous_streaming"	default="false"/>
+  <arg name="use_localization_sdk"	default="false"/>
 
   <!-- Localization parameters -->
   <arg name="nposes"		default="2"/>
   <arg name="timeout"		default="10"/>
-  <arg name="ply_dir"		default="$(find o2ac_parts_description
+  <arg name="mesh_dir"		default="$(find o2ac_parts_description
 					 )/meshes"/>
   <arg name="urdf_dir"		default="$(find o2ac_parts_description
 					 )/urdf/generated"/>
@@ -19,31 +20,34 @@
   <arg name="camera_frame"	default="map"/>
 
   <!-- Spawn feeder -->
-  <node name="feeder"
+  <arg name="camera_name"	value="feeder"/>
+  <node name="$(arg camera_name)"
 	pkg="o2ac_vision" type="image_feeder.py" output="screen">
     <param name="data_dir"	value="$(arg data_dir)"/>
     <param name="intrinsic"	value="$(arg intrinsic)"/>
     <param name="camera_frame"	value="$(arg camera_frame)"/>
   </node>
 
+  <!-- Construct recognition pipeline -->
+  <include file="$(dirname)/recognition_pipeline.launch">
+    <arg name="continuous_streaming"	value="$(arg continuous_streaming)"/>
+    <arg name="use_localization_sdk"	value="$(arg use_localization_sdk)"/>
+    <arg name="nposes"			value="$(arg nposes)"/>
+    <arg name="timeout"			value="$(arg timeout)"/>
+    <arg name="mesh_dir"		value="$(arg mesh_dir)"/>
+    <arg name="urdf_dir"		value="$(arg urdf_dir)"/>
+
+    <!-- Topic names for feeder -->
+    <arg name="camera_info_topic" value="$(arg camera_name)/camera_info"/>
+    <arg name="image_topic"	  value="$(arg camera_name)/image"/>
+    <arg name="depth_topic"	  value="$(arg camera_name)/depth"/>
+  </include>
+
   <node name="static_transform_publisher" pkg="tf"
 	type="static_transform_publisher" args="0 0 0 0 0 0 base_link map 10"/>
 
-  <!-- Construct recognition pipeline -->
-  <include file="$(find o2ac_vision)/launch/o2ac_recognition_server.launch">
-    <arg name="continuous_streaming"		  value="$(arg continuous_streaming)"/>
-    <arg name="nposes"		  value="$(arg nposes)"/>
-    <arg name="timeout"		  value="$(arg timeout)"/>
-    <arg name="ply_dir"		  value="$(arg ply_dir)"/>
-    <arg name="urdf_dir"	  value="$(arg urdf_dir)"/>
-    <arg name="camera_info_topic" value="feeder/camera_info"/>
-    <arg name="image_topic"	  value="feeder/image"/>
-    <arg name="depth_topic"	  value="feeder/depth"/>
-    <arg name="normal_topic"	  value=""/>
-  </include>
-
   <!-- Spawn visualizer and parameter configurator -->
   <node name="$(anon rviz)" pkg="rviz" type="rviz" output="screen"
-	args="-d $(find o2ac_vision)/launch/image_feeder.rviz"/>
+  	args="-d $(find o2ac_vision)/launch/image_feeder.rviz"/>
 
 </launch>

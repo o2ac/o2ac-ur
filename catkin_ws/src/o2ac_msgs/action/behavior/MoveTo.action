@@ -1,0 +1,13 @@
+# Request
+string robot_name
+float64[] target_pose
+string pose_type
+string frame_id
+string target_named_pose
+string motion_planner
+---
+# Result
+bool success
+---
+# Feedback
+float32 progress

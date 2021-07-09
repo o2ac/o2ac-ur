@@ -23,10 +23,10 @@
   <!-- Scene items (trays, columns, tools, jigs, feeders...) -->
   <xacro:include filename="$(find o2ac_scene_description)/urdf/o2ac_environment.xacro" />
   <!-- <xacro:include filename="$(find flexwrist_experiment)/urdf/2020-01-experiment-scene.xacro" /> -->
-  <xacro:include filename="$(find o2ac_scene_description)/urdf/taskboard_scene.xacro" />
+  <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/taskboard_scene.xacro" /> -->
   <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/assembly_scene.xacro" /> -->
   <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/camera_calibration_scene.xacro" /> -->
-  
+
   <!-- Robot bases -->
   <!-- Putting these at height 0.0 makes them intersect with the ground, so they are elevated. -->
   <!-- There are some instabilities in Gazebo when the box is big, for some reason. -->

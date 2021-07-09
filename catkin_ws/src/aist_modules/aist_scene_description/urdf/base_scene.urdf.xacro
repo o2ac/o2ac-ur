@@ -4,14 +4,12 @@
   <xacro:arg name="scene" default=""/>
 
   <!-- Calibration help: If the robot is not moving far enough to the calibration point, increase these distances -->
-  <xacro:property name="a_bot_x" value="0"/>
-  <xacro:property name="a_bot_y" value="-0.4875"/>
-  <!-- <xacro:property name="a_bot_theta" value="${pi}"/> -->
-  <xacro:property name="b_bot_x" value="0"/>
-  <xacro:property name="b_bot_y" value="0.4875"/>
-  <xacro:property name="b_bot_theta" value="${pi}"/>
-
-  <xacro:property name="bots_z" value="0.77"/>
+  <xacro:property name="a_bot_x"	value="0"/>
+  <xacro:property name="a_bot_y"	value="-0.4875"/>
+  <xacro:property name="b_bot_x"	value="0"/>
+  <xacro:property name="b_bot_y"	value="0.4875"/>
+  <xacro:property name="b_bot_theta"	value="${pi}"/>
+  <xacro:property name="bots_z"		value="0.77"/>
 
   <!-- This is the main file defining our robot arrangement and physical environment. -->
 
@@ -48,7 +46,8 @@
     wrist_1_lower_limit="${-pi}" wrist_1_upper_limit="${pi}"
     wrist_2_lower_limit="${-pi}" wrist_2_upper_limit="${pi}"
     wrist_3_lower_limit="${-pi}" wrist_3_upper_limit="${pi}"
-    kinematics_file="${load_yaml('$(find aist_scene_description)/config/a_bot_calibration.yaml')}"/>
+    kinematics_file="${load_yaml('$(find aist_scene_description
+		     )/config/a_bot_calibration.yaml')}"/>
 
   <xacro:ur5_robot prefix="b_bot_" joint_limited="false"
     shoulder_pan_lower_limit="${-pi}" shoulder_pan_upper_limit="${pi}"
@@ -57,7 +56,8 @@
     wrist_1_lower_limit="${-pi}" wrist_1_upper_limit="${pi}"
     wrist_2_lower_limit="${-pi}" wrist_2_upper_limit="${pi}"
     wrist_3_lower_limit="${-pi}" wrist_3_upper_limit="${pi}"
-    kinematics_file="${load_yaml('$(find aist_scene_description)/config/b_bot_calibration.yaml')}"/>
+    kinematics_file="${load_yaml('$(find aist_scene_description
+		     )/config/b_bot_calibration.yaml')}"/>
 
   <joint name="ground_a_bot_joint" type="fixed">
     <parent link="ground"/>
@@ -80,8 +80,8 @@
   <xacro:include filename="$(find o2ac_scene_description
 			   )/urdf/components/o2ac_end_effector.urdf.xacro" />
   <xacro:o2ac_end_effector prefix="a_bot_" use_soft_wrist="false"
-			   use_cameras="true"
-			   parent = "a_bot_ft300_flange_link" />
+  			   use_cameras="true"
+  			   parent = "a_bot_ft300_flange_link" />
 
   <xacro:ft300 prefix="b_bot_" parent="b_bot_ee_link">
     <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -101,16 +101,16 @@
   <!-- </xacro:o2ac_box> -->
 
   <!-- Add PhoXi 3D scanner -->
-  <xacro:include filename="$(find
-			   aist_phoxi_camera)/urdf/phoxi_m_camera.urdf.xacro"/>
-  <xacro:phoxi_m_camera prefix="a_phoxi_m_" parent="workspace_center">
-    <origin xyz="0.483543436025
-		 -0.0149511700982
-		 0.633792706454"
-	    rpy="${-152.286950706*pi/180}
-		 ${-2.00315281361*pi/180}
-		 ${86.7522427304*pi/180}"/>
-  </xacro:phoxi_m_camera>
+  <!-- <xacro:include filename="$(find -->
+  <!-- 			   aist_phoxi_camera)/urdf/phoxi_m_camera.urdf.xacro"/> -->
+  <!-- <xacro:phoxi_m_camera prefix="a_phoxi_m_" parent="workspace_center"> -->
+  <!--   <origin xyz="0.483543436025 -->
+  <!-- 		 -0.0149511700982 -->
+  <!-- 		 0.633792706454" -->
+  <!-- 	    rpy="${-152.286950706*pi/180} -->
+  <!-- 		 ${-2.00315281361*pi/180} -->
+  <!-- 		 ${86.7522427304*pi/180}"/> -->
+  <!-- </xacro:phoxi_m_camera> -->
 
   <!-- I would like to remove the "world" link definition, but apparently it is necessary for Gazebo -->
   <link name="world"/>
@@ -123,8 +123,8 @@
   <!-- Include indivisual scene file -->
   <xacro:property name="scene_name" value="$(arg scene)"/>
   <xacro:if value="${scene_name != ''}">
-    <xacro:include filename="$(find aist_scene_description)/urdf/$(arg
-			     scene).urdf.xacro"/>
+    <xacro:include filename="$(find aist_scene_description
+			     )/urdf/$(arg scene).urdf.xacro"/>
   </xacro:if>
 
 </robot>

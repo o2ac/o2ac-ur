@@ -1,0 +1,46 @@
+<?xml version="1.0" ?>
+<launch>
+  
+  <arg name="marker_id"			default="26"/>
+  <arg name="marker_map"		default="$(find aist_aruco_ros)/config/markermap-17-26-32-256.yaml"/>
+  <arg name="marker_size"		default="0.070"/>    <!-- in meters -->
+  <arg name="camera_name"		default="a_bot_camera"/>
+  <arg name="camera_width"		default="640"/>
+  <arg name="camera_height"		default="480"/>
+  <arg name="camera_frame"		default=""/>
+  <arg name="marker_frame"		default="marker_frame"/>
+  <arg name="reference_frame"		default=""/>
+  <arg name="corner_refinement"		default="LINES"/>
+  <arg name="planarity_tolerance"	default="0.005"/>
+  <arg name="manager"			default=""/>
+  <arg name="vis"			default="true"/>
+ 
+  <node name="static_transform_publisher"
+	pkg="tf" type="static_transform_publisher"
+        args="0 0 0 0 0 0 base_link $(arg camera_frame) 10"/>
+
+  <include file="$(find o2ac_scene_description
+		 )/launch/osx_bringup_cameras.launch"/>
+
+  <include file="$(find aist_aruco_ros)/launch/run.launch">
+    <arg name="camera_info_topic"	value="camera_multiplexer/camera_info"/>
+    <arg name="image_topic"		value="camera_multiplexer/image"/>
+    <arg name="depth_topic"		value="camera_multiplexer/depth"/>
+    <arg name="marker_id"		value="$(arg marker_id)"/>
+    <arg name="marker_size"		value="$(arg marker_size)"/>
+    <arg name="camera_frame"		value="$(arg camera_frame)"/>
+    <arg name="marker_frame"		value="$(arg marker_frame)"/>
+    <arg name="reference_frame"		value="$(arg reference_frame)"/>
+    <arg name="corner_refinement"	value="$(arg corner_refinement)"/>
+    <arg name="planarity_tolerance"	value="$(arg planarity_tolerance)"/>
+    <arg name="manager"			value="$(arg manager)"/>
+  </include>
+
+  <group if="$(arg vis)">
+    <node name="$(anon rviz)" pkg="rviz" type="rviz" output="screen"
+	  args="-d $(find aist_aruco_ros)/launch/camera_multiplexer.rviz"/>
+
+    <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure"/>
+  </group>
+
+</launch>

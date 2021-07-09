@@ -43,6 +43,7 @@ import tf
 import geometry_msgs.msg
 import moveit_msgs.msg
 import shape_msgs.msg
+import visualization_msgs.msg
 
 from ur_control import conversions
 
@@ -74,7 +75,7 @@ class PartsReader(object):
         self.db_name = db_name
         self._directory = os.path.join(self._rospack.get_path('o2ac_assembly_database'), 'config', db_name)
         self._parts_list = self._read_parts_list()
-        self._collision_objects, self._grasps = self.get_collision_objects_with_metadata()
+        self._collision_objects, self._grasps, self._mesh_filepaths = self.get_collision_objects_with_metadata()
         rospy.loginfo("Done loading parts database " + db_name)
     
     def get_collision_object(self, object_name):
@@ -104,6 +105,30 @@ class PartsReader(object):
         rospy.logerr("Could not find collision object with id " + str(object_name))
         return None
     
+    def get_visualization_marker(self, object_name, marker_id_num=1):
+        """ Returns a visualization marker of the object in its assembled position. Assumes the assembly frames have been published. """
+        for (c_obj, mesh_filepath) in zip(self._collision_objects, self._mesh_filepaths):
+            if c_obj.id == object_name:
+                marker = visualization_msgs.msg.Marker()
+                marker.type = marker.MESH_RESOURCE
+                marker.mesh_resource = "file://" + mesh_filepath
+                marker.id = marker_id_num
+                
+                object_id = self.name_to_id(object_name)
+                marker.header.frame_id = "assembled_part_" + str(object_id).zfill(2)  # Fill with leading zeroes
+                marker.scale = geometry_msgs.msg.Vector3(0.001, 0.001, 0.001)
+                try:
+                    marker.pose = c_obj.mesh_poses[0]
+                except:
+                    marker.pose.orientation.w = 1.0
+                
+                marker.color.a = 1.0
+                marker.color.g = .8
+                marker.color.b = .5
+                return marker
+        rospy.logerr("Could not find object with id " + str(object_name))
+        return None
+
     def get_grasp_pose(self, object_name, grasp_name):
         """
         Returns a geometry_msgs.msg.PoseStamped object in the frame of the object
@@ -266,20 +291,7 @@ class PartsReader(object):
                            Returning empty metadata information! \n')
         return (subframe_names, subframe_poses, grasp_names, grasp_poses, mesh_pose)
 
-    def _make_collision_object_from_mesh(self, name, pose, filename, scale=(1, 1, 1)):
-        '''
-        Reimplementation of '__make_mesh()' function from 'moveit_commander/planning_scene_interface.py'
-
-        This function does not need to create a 'PlanningSceneInterface' object in order to work
-        '''
-        # Set the properties apart from the mesh
-        co = moveit_msgs.msg.CollisionObject()
-        co.operation = moveit_msgs.msg.CollisionObject.ADD
-        co.id = name
-        co.pose.orientation.w = 1.0
-        co.header = pose.header
-        co.mesh_poses = [pose.pose]
-
+    def _read_mesh(self, filename, scale):
         # Try to load the mesh and set it for the collision object
         if pyassimp is False:
             raise Exception("Pyassimp needs patch https://launchpadlibrarian.net/319496602/patchPyassim.txt")
@@ -317,8 +329,24 @@ class PartsReader(object):
             point.y = vertex[1]*scale[1]
             point.z = vertex[2]*scale[2]
             mesh.vertices.append(point)
-        co.meshes = [mesh]
         pyassimp.release(scene)
+        return mesh
+
+    def _make_collision_object_from_mesh(self, name, pose, filename, scale=(1, 1, 1)):
+        '''
+        Reimplementation of '__make_mesh()' function from 'moveit_commander/planning_scene_interface.py'
+
+        This function does not need to create a 'PlanningSceneInterface' object in order to work
+        '''
+        # Set the properties apart from the mesh
+        co = moveit_msgs.msg.CollisionObject()
+        co.operation = moveit_msgs.msg.CollisionObject.ADD
+        co.id = name
+        co.pose.orientation.w = 1.0
+        co.header = pose.header
+        co.mesh_poses = [pose.pose]
+        co.meshes = [self._read_mesh(filename, scale)]
+        
         return co
 
     def get_collision_objects_with_metadata(self):
@@ -338,10 +366,11 @@ class PartsReader(object):
         # List of collision objects to return
         collision_objects = []
         grasps = []
+        mesh_filepaths = []
 
         for part in self._parts_list:
             # Find mesh
-            mesh_file = os.path.join(self._directory, 'meshes', part['cad'])
+            mesh_filepath = os.path.join(self._directory, 'meshes', part['cad'])
 
             # Set the pose of the collision object
             posestamped = geometry_msgs.msg.PoseStamped()
@@ -358,7 +387,7 @@ class PartsReader(object):
             
             posestamped.pose = collision_object_pose
 
-            collision_object = self._make_collision_object_from_mesh(part['name'], posestamped, mesh_file, scale=(0.001, 0.001, 0.001))
+            collision_object = self._make_collision_object_from_mesh(part['name'], posestamped, mesh_filepath, scale=(0.001, 0.001, 0.001))
 
             collision_object.subframe_names = subframe_names
             collision_object.subframe_poses = subframe_poses
@@ -369,4 +398,6 @@ class PartsReader(object):
 
             collision_objects.append(collision_object)
 
-        return (collision_objects, grasps)
+            mesh_filepaths.append(mesh_filepath)
+
+        return (collision_objects, grasps, mesh_filepaths)

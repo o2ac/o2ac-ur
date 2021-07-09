@@ -1,0 +1,44 @@
+<?xml version="1.0" ?>
+<launch>
+
+  <!-- Feeder parameters -->
+  <arg name="data_dir"		default="$(find wrs_dataset)"/>
+  <arg name="intrinsic"		default="realsense_intrinsic.json"/>
+  <arg name="camera_name"	default="feeder"/>
+  <arg name="camera_frame"	default="map"/>
+
+  <!-- Localization parameters -->
+  <arg name="nposes"		default="1"/>
+  <arg name="timeout"		default="30"/>
+  <arg name="urdf_dir"		default="$(find o2ac_parts_description
+					 )/urdf/generated"/>
+
+  <!-- Spawn depth_filter and localizer -->
+  <include file="$(dirname)/run.launch">
+    <arg name="camera_info_topic" value="$(arg camera_name)/camera_info"/>
+    <arg name="image_topic"	  value="$(arg camera_name)/image"/>
+    <arg name="depth_topic"	  value="$(arg camera_name)/depth"/>
+  </include>
+
+  <!-- Spawn feeder -->
+  <node name="$(arg camera_name)"
+  	pkg="aist_new_localization" type="image_feeder.py" output="screen">
+    <param name="data_dir"	value="$(arg data_dir)"/>
+    <param name="intrinsic"	value="$(arg intrinsic)"/>
+    <param name="nposes"	value="$(arg nposes)"/>
+    <param name="timeout"	value="$(arg timeout)"/>
+    <param name="camera_frame"	value="$(arg camera_frame)"/>
+    <rosparam file="$(dirname)/../config/settings.yaml"/>
+  </node>
+
+  <!-- Spawn model_spawner -->
+  <include file="$(find aist_model_spawner)/launch/run.launch">
+    <arg name="urdf_dir"	value="$(arg urdf_dir)"/>
+  </include>
+
+  <!-- Spawn visualizer and parameter configurator -->
+  <node name="$(anon rviz)" pkg="rviz" type="rviz" output="screen"
+  	args="-d $(find aist_localization)/launch/image_feeder.rviz"/>
+  <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure"/>
+
+</launch>

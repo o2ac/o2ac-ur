@@ -33,8 +33,9 @@ class Detector
     using sync_policy_t	= message_filters::sync_policies::
 			      ApproximateTime<camera_info_t, image_t, image_t>;
     using mdetector_t	= aruco::MarkerDetector;
-    using marker_info_t	= aruco::MarkerInfo;
-    using marker_map_t	= aruco::BoardConfiguration;
+    using mparams_t	= mdetector_t::Params;
+    using marker_info_t	= aruco::Marker3DInfo;
+    using marker_map_t	= aruco::MarkerMap;
     using point3_t	= cv::Vec<float, 3>;
 
   public:
@@ -43,16 +44,9 @@ class Detector
     void	run()							;
 
   private:
-    void	set_refinement_method(const std::string& method)	;
-    void	set_threshold_method(const std::string& method)		;
-    template <class T>
-    void	set_first_param(void (mdetector_t::* get)(T&, T&) const,
-				void (mdetector_t::* set)(T, T),
-				T param)				;
-    template <class T>
-    void	set_second_param(void (mdetector_t::* get)(T&, T&) const,
-				 void (mdetector_t::* set)(T, T),
-				 T param)				;
+    void	set_detection_mode(int mode)				;
+    void	set_min_marker_size(double size)			;
+    void	set_dictionary(int dict_type)				;
     void	detect_marker_cb(const camera_info_p& camera_info_msg,
 				 const image_p&	      image_msg,
 				 const image_p&	      depth_msg)	;

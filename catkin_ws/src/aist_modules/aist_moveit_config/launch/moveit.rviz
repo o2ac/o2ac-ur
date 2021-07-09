@@ -4,10 +4,10 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /Image2/Status1
-        - /Image3
+        - /MotionPlanning1/Planning Request1
+        - /TF1/Frames1
       Splitter Ratio: 0.4657738208770752
-    Tree Height: 433
+    Tree Height: 331
   - Class: rviz/Help
     Name: Help
   - Class: rviz/Views
@@ -48,7 +48,6 @@ Visualization Manager:
       MoveIt_Allow_External_Program: false
       MoveIt_Allow_Replanning: false
       MoveIt_Allow_Sensor_Positioning: false
-      MoveIt_Goal_Tolerance: 0
       MoveIt_Planning_Attempts: 10
       MoveIt_Planning_Time: 5
       MoveIt_Use_Cartesian_Path: false
@@ -83,15 +82,25 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
+          a_bot_bearing_rotate_helper_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          a_bot_cam_cables_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
           a_bot_cam_mount:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          a_bot_dual_suction_gripper_pad_link:
+          a_bot_coupling:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           a_bot_ee_link:
             Alpha: 1
             Show Axes: false
@@ -102,49 +111,16 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
+          a_bot_ft300_flange_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           a_bot_ft300_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          a_bot_inside_cam_camera_color_frame:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          a_bot_inside_cam_camera_color_optical_frame:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          a_bot_inside_cam_camera_connector_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          a_bot_inside_cam_camera_depth_frame:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          a_bot_inside_cam_camera_depth_optical_frame:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          a_bot_inside_cam_camera_left_ir_frame:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          a_bot_inside_cam_camera_left_ir_optical_frame:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          a_bot_inside_cam_camera_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          a_bot_inside_cam_camera_right_ir_frame:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          a_bot_inside_cam_camera_right_ir_optical_frame:
+          a_bot_ft300_wrench_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -152,48 +128,73 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_nut_tool_m6_tip_link:
+          a_bot_inside_camera_color_frame:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_outside_cam_camera_color_frame:
+          a_bot_inside_camera_color_optical_frame:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_outside_cam_camera_color_optical_frame:
+          a_bot_inside_camera_connector_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_outside_cam_camera_connector_link:
+          a_bot_inside_camera_depth_frame:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_outside_cam_camera_depth_frame:
+          a_bot_inside_camera_depth_optical_frame:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_outside_cam_camera_depth_optical_frame:
+          a_bot_inside_camera_left_ir_frame:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_outside_cam_camera_left_ir_frame:
+          a_bot_inside_camera_left_ir_optical_frame:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_outside_cam_camera_left_ir_optical_frame:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          a_bot_outside_cam_camera_link:
+          a_bot_inside_camera_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          a_bot_outside_cam_camera_right_ir_frame:
+          a_bot_inside_camera_right_ir_frame:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_outside_cam_camera_right_ir_optical_frame:
+          a_bot_inside_camera_right_ir_optical_frame:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          a_bot_left_inner_finger:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          a_bot_left_inner_finger_pad:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          a_bot_left_inner_knuckle:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          a_bot_left_outer_finger:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          a_bot_left_outer_knuckle:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          a_bot_nut_tool_m6_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -201,64 +202,90 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          a_bot_outside_camera_color_frame:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          a_bot_outside_camera_color_optical_frame:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          a_bot_outside_camera_connector_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          a_bot_outside_camera_depth_frame:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          a_bot_outside_camera_depth_optical_frame:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          a_bot_outside_camera_left_ir_frame:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          a_bot_outside_camera_left_ir_optical_frame:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          a_bot_outside_camera_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          a_bot_outside_camera_right_ir_frame:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          a_bot_outside_camera_right_ir_optical_frame:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          a_bot_right_inner_finger:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          a_bot_right_inner_finger_pad:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          a_bot_right_inner_knuckle:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          a_bot_right_outer_finger:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          a_bot_right_outer_knuckle:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
           a_bot_robotiq_85_base_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
-          a_bot_robotiq_85_left_finger_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          a_bot_robotiq_85_left_finger_tip_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          a_bot_robotiq_85_left_inner_knuckle_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          a_bot_robotiq_85_left_knuckle_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          a_bot_robotiq_85_right_finger_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          a_bot_robotiq_85_right_finger_tip_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          a_bot_robotiq_85_right_inner_knuckle_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          a_bot_robotiq_85_right_knuckle_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
           a_bot_robotiq_85_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          a_bot_robotiq_arg2f_base_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
           a_bot_screw_tool_m3_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
           a_bot_screw_tool_m4_tip_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          a_bot_screw_tool_m6_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -271,11 +298,11 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          a_bot_suction_tool_tip_link:
+          a_bot_tool0:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_tool0:
+          a_bot_tool_intermediate_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -299,19 +326,6 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          a_phoxi_m_camera:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          a_phoxi_m_camera_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          a_phoxi_m_sensor:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
           b_bot_base:
             Alpha: 1
             Show Axes: false
@@ -340,6 +354,10 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
+          b_bot_ft300_wrench_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           b_bot_shoulder_link:
             Alpha: 1
             Show Axes: false
@@ -382,11 +400,6 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          vwall1:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
           workbox:
             Alpha: 1
             Show Axes: false
@@ -420,9 +433,9 @@ Visualization Manager:
         Colliding Link Color: 255; 0; 0
         Goal State Alpha: 1
         Goal State Color: 250; 128; 0
-        Interactive Marker Size: 0.30000001192092896
+        Interactive Marker Size: 0.20000000298023224
         Joint Violation Color: 255; 0; 255
-        Planning Group: b_bot
+        Planning Group: a_bot
         Query Goal State: true
         Query Start State: false
         Show Workspace: false
@@ -454,15 +467,25 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
+          a_bot_bearing_rotate_helper_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          a_bot_cam_cables_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
           a_bot_cam_mount:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          a_bot_dual_suction_gripper_pad_link:
+          a_bot_coupling:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           a_bot_ee_link:
             Alpha: 1
             Show Axes: false
@@ -473,49 +496,16 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
+          a_bot_ft300_flange_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           a_bot_ft300_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          a_bot_inside_cam_camera_color_frame:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          a_bot_inside_cam_camera_color_optical_frame:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          a_bot_inside_cam_camera_connector_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          a_bot_inside_cam_camera_depth_frame:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          a_bot_inside_cam_camera_depth_optical_frame:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          a_bot_inside_cam_camera_left_ir_frame:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          a_bot_inside_cam_camera_left_ir_optical_frame:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          a_bot_inside_cam_camera_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          a_bot_inside_cam_camera_right_ir_frame:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          a_bot_inside_cam_camera_right_ir_optical_frame:
+          a_bot_ft300_wrench_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -523,48 +513,73 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_nut_tool_m6_tip_link:
+          a_bot_inside_camera_color_frame:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_outside_cam_camera_color_frame:
+          a_bot_inside_camera_color_optical_frame:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_outside_cam_camera_color_optical_frame:
+          a_bot_inside_camera_connector_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_outside_cam_camera_connector_link:
+          a_bot_inside_camera_depth_frame:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_outside_cam_camera_depth_frame:
+          a_bot_inside_camera_depth_optical_frame:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_outside_cam_camera_depth_optical_frame:
+          a_bot_inside_camera_left_ir_frame:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_outside_cam_camera_left_ir_frame:
+          a_bot_inside_camera_left_ir_optical_frame:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_outside_cam_camera_left_ir_optical_frame:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          a_bot_outside_cam_camera_link:
+          a_bot_inside_camera_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          a_bot_outside_cam_camera_right_ir_frame:
+          a_bot_inside_camera_right_ir_frame:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_outside_cam_camera_right_ir_optical_frame:
+          a_bot_inside_camera_right_ir_optical_frame:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          a_bot_left_inner_finger:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          a_bot_left_inner_finger_pad:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          a_bot_left_inner_knuckle:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          a_bot_left_outer_finger:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          a_bot_left_outer_knuckle:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          a_bot_nut_tool_m6_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -572,64 +587,90 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          a_bot_outside_camera_color_frame:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          a_bot_outside_camera_color_optical_frame:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          a_bot_outside_camera_connector_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          a_bot_outside_camera_depth_frame:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          a_bot_outside_camera_depth_optical_frame:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          a_bot_outside_camera_left_ir_frame:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          a_bot_outside_camera_left_ir_optical_frame:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          a_bot_outside_camera_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          a_bot_outside_camera_right_ir_frame:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          a_bot_outside_camera_right_ir_optical_frame:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          a_bot_right_inner_finger:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          a_bot_right_inner_finger_pad:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          a_bot_right_inner_knuckle:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          a_bot_right_outer_finger:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          a_bot_right_outer_knuckle:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
           a_bot_robotiq_85_base_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
-          a_bot_robotiq_85_left_finger_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          a_bot_robotiq_85_left_finger_tip_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          a_bot_robotiq_85_left_inner_knuckle_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          a_bot_robotiq_85_left_knuckle_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          a_bot_robotiq_85_right_finger_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          a_bot_robotiq_85_right_finger_tip_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          a_bot_robotiq_85_right_inner_knuckle_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          a_bot_robotiq_85_right_knuckle_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
           a_bot_robotiq_85_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          a_bot_robotiq_arg2f_base_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
           a_bot_screw_tool_m3_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
           a_bot_screw_tool_m4_tip_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          a_bot_screw_tool_m6_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -642,11 +683,11 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          a_bot_suction_tool_tip_link:
+          a_bot_tool0:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          a_bot_tool0:
+          a_bot_tool_intermediate_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -670,19 +711,6 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          a_phoxi_m_camera:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          a_phoxi_m_camera_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          a_phoxi_m_sensor:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
           b_bot_base:
             Alpha: 1
             Show Axes: false
@@ -711,6 +739,10 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
+          b_bot_ft300_wrench_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           b_bot_shoulder_link:
             Alpha: 1
             Show Axes: false
@@ -753,11 +785,6 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          vwall1:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
           workbox:
             Alpha: 1
             Show Axes: false
@@ -785,95 +812,109 @@ Visualization Manager:
           Value: false
         a_bot_base_link:
           Value: false
+        a_bot_bearing_rotate_helper_link:
+          Value: true
+        a_bot_cam_cables_link:
+          Value: false
         a_bot_cam_mount:
           Value: false
-        a_bot_dual_suction_gripper_pad_link:
-          Value: false
+        a_bot_coupling:
+          Value: true
         a_bot_ee_link:
           Value: false
         a_bot_forearm_link:
           Value: false
+        a_bot_ft300_flange_link:
+          Value: false
         a_bot_ft300_link:
-          Value: true
-        a_bot_inside_cam_camera_color_frame:
           Value: false
-        a_bot_inside_cam_camera_color_optical_frame:
-          Value: true
-        a_bot_inside_cam_camera_connector_link:
-          Value: false
-        a_bot_inside_cam_camera_depth_frame:
-          Value: false
-        a_bot_inside_cam_camera_depth_optical_frame:
-          Value: false
-        a_bot_inside_cam_camera_left_ir_frame:
-          Value: false
-        a_bot_inside_cam_camera_left_ir_optical_frame:
-          Value: false
-        a_bot_inside_cam_camera_link:
-          Value: false
-        a_bot_inside_cam_camera_right_ir_frame:
-          Value: false
-        a_bot_inside_cam_camera_right_ir_optical_frame:
+        a_bot_ft300_wrench_link:
           Value: false
         a_bot_inside_cam_link:
           Value: false
-        a_bot_nut_tool_m6_tip_link:
+        a_bot_inside_camera_color_frame:
           Value: false
-        a_bot_outside_cam_camera_color_frame:
-          Value: false
-        a_bot_outside_cam_camera_color_optical_frame:
+        a_bot_inside_camera_color_optical_frame:
           Value: true
-        a_bot_outside_cam_camera_connector_link:
+        a_bot_inside_camera_connector_link:
           Value: false
-        a_bot_outside_cam_camera_depth_frame:
+        a_bot_inside_camera_depth_frame:
           Value: false
-        a_bot_outside_cam_camera_depth_optical_frame:
+        a_bot_inside_camera_depth_optical_frame:
           Value: false
-        a_bot_outside_cam_camera_left_ir_frame:
+        a_bot_inside_camera_left_ir_frame:
           Value: false
-        a_bot_outside_cam_camera_left_ir_optical_frame:
+        a_bot_inside_camera_left_ir_optical_frame:
           Value: false
-        a_bot_outside_cam_camera_link:
+        a_bot_inside_camera_link:
           Value: false
-        a_bot_outside_cam_camera_right_ir_frame:
+        a_bot_inside_camera_right_ir_frame:
           Value: false
-        a_bot_outside_cam_camera_right_ir_optical_frame:
+        a_bot_inside_camera_right_ir_optical_frame:
+          Value: false
+        a_bot_left_inner_finger:
+          Value: false
+        a_bot_left_inner_finger_pad:
+          Value: false
+        a_bot_left_inner_knuckle:
+          Value: true
+        a_bot_left_outer_finger:
+          Value: false
+        a_bot_left_outer_knuckle:
+          Value: false
+        a_bot_nut_tool_m6_tip_link:
           Value: false
         a_bot_outside_cam_link:
           Value: false
+        a_bot_outside_camera_color_frame:
+          Value: false
+        a_bot_outside_camera_color_optical_frame:
+          Value: true
+        a_bot_outside_camera_connector_link:
+          Value: false
+        a_bot_outside_camera_depth_frame:
+          Value: false
+        a_bot_outside_camera_depth_optical_frame:
+          Value: false
+        a_bot_outside_camera_left_ir_frame:
+          Value: false
+        a_bot_outside_camera_left_ir_optical_frame:
+          Value: false
+        a_bot_outside_camera_link:
+          Value: false
+        a_bot_outside_camera_right_ir_frame:
+          Value: false
+        a_bot_outside_camera_right_ir_optical_frame:
+          Value: false
+        a_bot_right_inner_finger:
+          Value: false
+        a_bot_right_inner_finger_pad:
+          Value: false
+        a_bot_right_inner_knuckle:
+          Value: true
+        a_bot_right_outer_finger:
+          Value: false
+        a_bot_right_outer_knuckle:
+          Value: false
         a_bot_robotiq_85_base_link:
-          Value: false
-        a_bot_robotiq_85_left_finger_link:
-          Value: false
-        a_bot_robotiq_85_left_finger_tip_link:
-          Value: false
-        a_bot_robotiq_85_left_inner_knuckle_link:
-          Value: false
-        a_bot_robotiq_85_left_knuckle_link:
-          Value: false
-        a_bot_robotiq_85_right_finger_link:
-          Value: false
-        a_bot_robotiq_85_right_finger_tip_link:
-          Value: false
-        a_bot_robotiq_85_right_inner_knuckle_link:
-          Value: false
-        a_bot_robotiq_85_right_knuckle_link:
           Value: false
         a_bot_robotiq_85_tip_link:
           Value: true
+        a_bot_robotiq_arg2f_base_link:
+          Value: false
         a_bot_screw_tool_m3_tip_link:
           Value: false
         a_bot_screw_tool_m4_tip_link:
-          Value: false
-        a_bot_screw_tool_m6_tip_link:
           Value: false
         a_bot_set_screw_tool_tip_link:
           Value: false
         a_bot_shoulder_link:
           Value: false
-        a_bot_suction_tool_tip_link:
-          Value: false
         a_bot_tool0:
+          Value: false
+        a_bot_tool0_controller:
+          Value: false
+        a_bot_tool_intermediate_link:
           Value: false
         a_bot_upper_arm_link:
           Value: false
@@ -883,12 +924,6 @@ Visualization Manager:
           Value: false
         a_bot_wrist_3_link:
           Value: false
-        a_phoxi_m_camera:
-          Value: false
-        a_phoxi_m_camera_link:
-          Value: false
-        a_phoxi_m_sensor:
-          Value: true
         b_bot_base:
           Value: false
         b_bot_base_link:
@@ -901,6 +936,8 @@ Visualization Manager:
           Value: false
         b_bot_ft300_link:
           Value: false
+        b_bot_ft300_wrench_link:
+          Value: true
         b_bot_shoulder_link:
           Value: false
         b_bot_single_suction_gripper_base_link:
@@ -909,6 +946,8 @@ Visualization Manager:
           Value: true
         b_bot_tool0:
           Value: false
+        b_bot_tool0_controller:
+          Value: true
         b_bot_upper_arm_link:
           Value: false
         b_bot_wrist_1_link:
@@ -918,8 +957,6 @@ Visualization Manager:
         b_bot_wrist_3_link:
           Value: false
         ground:
-          Value: false
-        vwall1:
           Value: false
         workbox:
           Value: false
@@ -937,7 +974,8 @@ Visualization Manager:
           ground:
             a_bot_base_link:
               a_bot_base:
-                {}
+                a_bot_tool0_controller:
+                  {}
               a_bot_shoulder_link:
                 a_bot_upper_arm_link:
                   a_bot_forearm_link:
@@ -946,71 +984,79 @@ Visualization Manager:
                         a_bot_wrist_3_link:
                           a_bot_ee_link:
                             a_bot_ft300_link:
-                              {}
-                            a_bot_robotiq_85_base_link:
-                              a_bot_cam_mount:
-                                {}
-                              a_bot_inside_cam_link:
-                                a_bot_inside_cam_camera_connector_link:
-                                  a_bot_inside_cam_camera_link:
-                                    a_bot_inside_cam_camera_depth_frame:
-                                      a_bot_inside_cam_camera_color_frame:
-                                        a_bot_inside_cam_camera_color_optical_frame:
-                                          {}
-                                      a_bot_inside_cam_camera_depth_optical_frame:
-                                        {}
-                                      a_bot_inside_cam_camera_left_ir_frame:
-                                        a_bot_inside_cam_camera_left_ir_optical_frame:
-                                          {}
-                                      a_bot_inside_cam_camera_right_ir_frame:
-                                        a_bot_inside_cam_camera_right_ir_optical_frame:
-                                          {}
-                              a_bot_outside_cam_link:
-                                a_bot_outside_cam_camera_connector_link:
-                                  a_bot_outside_cam_camera_link:
-                                    a_bot_outside_cam_camera_depth_frame:
-                                      a_bot_outside_cam_camera_color_frame:
-                                        a_bot_outside_cam_camera_color_optical_frame:
-                                          {}
-                                      a_bot_outside_cam_camera_depth_optical_frame:
-                                        {}
-                                      a_bot_outside_cam_camera_left_ir_frame:
-                                        a_bot_outside_cam_camera_left_ir_optical_frame:
-                                          {}
-                                      a_bot_outside_cam_camera_right_ir_frame:
-                                        a_bot_outside_cam_camera_right_ir_optical_frame:
-                                          {}
-                              a_bot_robotiq_85_left_inner_knuckle_link:
-                                a_bot_robotiq_85_left_finger_tip_link:
+                              a_bot_ft300_flange_link:
+                                a_bot_coupling:
                                   {}
-                              a_bot_robotiq_85_left_knuckle_link:
-                                a_bot_robotiq_85_left_finger_link:
+                                a_bot_ft300_wrench_link:
                                   {}
-                              a_bot_robotiq_85_right_inner_knuckle_link:
-                                a_bot_robotiq_85_right_finger_tip_link:
-                                  {}
-                              a_bot_robotiq_85_right_knuckle_link:
-                                a_bot_robotiq_85_right_finger_link:
-                                  {}
-                              a_bot_robotiq_85_tip_link:
-                                a_bot_nut_tool_m6_tip_link:
-                                  {}
-                                a_bot_screw_tool_m3_tip_link:
-                                  {}
-                                a_bot_screw_tool_m4_tip_link:
-                                  {}
-                                a_bot_screw_tool_m6_tip_link:
-                                  {}
-                                a_bot_set_screw_tool_tip_link:
-                                  {}
-                                a_bot_suction_tool_tip_link:
-                                  a_bot_dual_suction_gripper_pad_link:
+                                a_bot_robotiq_85_base_link:
+                                  a_bot_cam_cables_link:
                                     {}
+                                  a_bot_cam_mount:
+                                    {}
+                                  a_bot_inside_cam_link:
+                                    a_bot_inside_camera_connector_link:
+                                      a_bot_inside_camera_link:
+                                        a_bot_inside_camera_depth_frame:
+                                          a_bot_inside_camera_color_frame:
+                                            a_bot_inside_camera_color_optical_frame:
+                                              {}
+                                          a_bot_inside_camera_depth_optical_frame:
+                                            {}
+                                          a_bot_inside_camera_left_ir_frame:
+                                            a_bot_inside_camera_left_ir_optical_frame:
+                                              {}
+                                          a_bot_inside_camera_right_ir_frame:
+                                            a_bot_inside_camera_right_ir_optical_frame:
+                                              {}
+                                  a_bot_outside_cam_link:
+                                    a_bot_outside_camera_connector_link:
+                                      a_bot_outside_camera_link:
+                                        a_bot_outside_camera_depth_frame:
+                                          a_bot_outside_camera_color_frame:
+                                            a_bot_outside_camera_color_optical_frame:
+                                              {}
+                                          a_bot_outside_camera_depth_optical_frame:
+                                            {}
+                                          a_bot_outside_camera_left_ir_frame:
+                                            a_bot_outside_camera_left_ir_optical_frame:
+                                              {}
+                                          a_bot_outside_camera_right_ir_frame:
+                                            a_bot_outside_camera_right_ir_optical_frame:
+                                              {}
+                                  a_bot_robotiq_85_tip_link:
+                                    a_bot_bearing_rotate_helper_link:
+                                      {}
+                                    a_bot_tool_intermediate_link:
+                                      a_bot_nut_tool_m6_tip_link:
+                                        {}
+                                      a_bot_screw_tool_m3_tip_link:
+                                        {}
+                                      a_bot_screw_tool_m4_tip_link:
+                                        {}
+                                      a_bot_set_screw_tool_tip_link:
+                                        {}
+                                  a_bot_robotiq_arg2f_base_link:
+                                    a_bot_left_inner_knuckle:
+                                      {}
+                                    a_bot_left_outer_knuckle:
+                                      a_bot_left_outer_finger:
+                                        a_bot_left_inner_finger:
+                                          a_bot_left_inner_finger_pad:
+                                            {}
+                                    a_bot_right_inner_knuckle:
+                                      {}
+                                    a_bot_right_outer_knuckle:
+                                      a_bot_right_outer_finger:
+                                        a_bot_right_inner_finger:
+                                          a_bot_right_inner_finger_pad:
+                                            {}
                           a_bot_tool0:
                             {}
             b_bot_base_link:
               b_bot_base:
-                {}
+                b_bot_tool0_controller:
+                  {}
               b_bot_shoulder_link:
                 b_bot_upper_arm_link:
                   b_bot_forearm_link:
@@ -1020,25 +1066,22 @@ Visualization Manager:
                           b_bot_ee_link:
                             b_bot_ft300_link:
                               b_bot_ft300_flange_link:
+                                b_bot_ft300_wrench_link:
+                                  {}
                                 b_bot_single_suction_gripper_base_link:
                                   b_bot_single_suction_gripper_pad_link:
                                     {}
                           b_bot_tool0:
                             {}
-            vwall1:
-              {}
             workbox:
               {}
             workspace_center:
-              a_phoxi_m_camera:
-                a_phoxi_m_sensor:
-                  a_phoxi_m_camera_link:
-                    {}
+              {}
       Update Interval: 0
       Value: true
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /a_phoxi_m_camera/texture
+      Image Topic: /camera_multiplexer/depth
       Max Value: 1
       Median window: 5
       Min Value: 0
@@ -1050,19 +1093,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /a_bot_inside_cam_camera/color/image_raw
-      Max Value: 1
-      Median window: 5
-      Min Value: 0
-      Name: Image
-      Normalize Range: true
-      Queue Size: 2
-      Transport Hint: raw
-      Unreliable: false
-      Value: true
-    - Class: rviz/Image
-      Enabled: true
-      Image Topic: /a_bot_outside_cam_camera/color/image_raw
+      Image Topic: /camera_multiplexer/image
       Max Value: 1
       Median window: 5
       Min Value: 0
@@ -1089,30 +1120,30 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 4.08949613571167
+      Distance: 3.495858669281006
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.11356700211763382
-        Y: 0.10592000186443329
-        Z: 2.2351800055275817e-7
+        X: -0.37883198261260986
+        Y: 0.03160440921783447
+        Z: -1.4900592759659048e-8
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.149796485900879
+      Pitch: 0.4147971570491791
       Target Frame: world
       Value: XYOrbit (rviz)
-      Yaw: 6.244946479797363
+      Yaw: 6.159947395324707
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 987
+  Height: 1052
   Help:
     collapsed: false
   Hide Left Dock: false
@@ -1123,9 +1154,9 @@ Window Geometry:
     collapsed: false
   MotionPlanning - Trajectory Slider:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd00000001000000000000029500000381fc0200000009fc0000003d000001c3000001b80100001cfa000000000100000002fb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e00670100000000ffffffff0000029500fffffffb000000100044006900730070006c0061007900730100000000000002a20000015600fffffffb0000000800480065006c00700000000342000000bb0000006e00fffffffb0000000a0056006900650077007300000003b0000000b0000000a400fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670100000374000001890000000000000000fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000004100fffffffb0000000a0049006d0061006700650100000206000000980000001600fffffffb0000000a0049006d00610067006501000002a40000008e0000001600fffffffb0000000a0049006d0061006700650100000338000000860000001600ffffff000002de0000038100000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd000000010000000000000295000003c2fc0200000009fc0000003d000001a50000019a0100001cfa000000010100000002fb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e00670100000000ffffffff000001f300fffffffb000000100044006900730070006c0061007900730100000000000002a20000015600fffffffb0000000800480065006c00700000000342000000bb0000006e00fffffffb0000000a0056006900650077007300000003b0000000b0000000a400fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670100000374000001890000000000000000fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000001600000016fb0000000a0049006d00610067006501000001e8000001090000001600fffffffb0000000a0049006d00610067006501000002f7000001080000001600fffffffb0000000a0049006d0061006700650100000338000000860000000000000000000004e5000003c200000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Views:
     collapsed: false
-  Width: 1401
-  X: 126
-  Y: 51
+  Width: 1920
+  X: 2560
+  Y: 0

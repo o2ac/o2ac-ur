@@ -62,13 +62,13 @@ class ssd_detection():
 
     def object_detection(self, im_in, im_vis=None, threshold = 0.6, overlap_threshold = 0.8):
         """ Object detection by SSD
-            
+
         Args:
           im_in(ndarray 3ch): input_image
           im_vis(ndarray 3ch): image for visualization
           threshold(float): threshold of detection
           overlap_threshold(float): threshold for removing overlapped boxes(iou)
-                
+
         Return:
           results... a list of dict(bbox, class_id, score)
         """
@@ -101,18 +101,18 @@ class ssd_detection():
                 j+=1
 
                 bbox = [ int(coords[0][0]), int(coords[0][1]), int(coords[1]), int(coords[2])]
-                result = {"bbox": bbox, 
-                          "class": o2ac_label[i-1][0], 
-                          "confidence": score, 
+                result = {"bbox": bbox,
+                          "class": o2ac_label[i-1][0],
+                          "confidence": score,
                           "name":o2ac_label[i-1][1],
                           "state":o2ac_label[i-1][2]}
                 results.append( result )
-        
-        # remove overlapped boxes considering iou        
+
+        # remove overlapped boxes considering iou
         results, results_removed = remove_overlapped_boxes( results, overlap_threshold )
 
         if im_vis is None:
-            return results
+            return results, None
 
         for res in results:
             bbox = res["bbox"]
@@ -126,7 +126,7 @@ class ssd_detection():
                          (bbox[0], bbox[1]),1, 0.7, (255,255,255), 2, cv2.LINE_AA )
             cv2.putText( im_vis, res["name"],
                          (bbox[0], bbox[1]),1, 0.7, (255,0,0), 1, cv2.LINE_AA )
-            
+
         for res in results_removed:
             bbox = res["bbox"]
             bb_color = (127,127,127)
@@ -144,19 +144,19 @@ class ssd_detection():
 
         return results, im_vis
 
-    
+
 def remove_overlapped_boxes( results, threshold=0.8 ):
     """ remove overlapped bbox considering iou score
-    
+
     Note: Box detected in that of "belt" is not removed
-    
+
     Args:
       results(list): ssd_results
       threshold(float): iou threshold
-    
+
     Return:
       list(cleand_results): ssd_results without overlapped boxes
-      list(removed_results): removed ssd_results 
+      list(removed_results): removed ssd_results
     """
 
     # compute iou for all pair of boxes
@@ -174,7 +174,7 @@ def remove_overlapped_boxes( results, threshold=0.8 ):
             iou = compute_iou( bboxA, bboxB )
             if (threshold < iou) and (confA < confB):
                 flag[j] = False
-    
+
     # remove boxes
     cleand_results = []
     removed_results = []
@@ -183,17 +183,17 @@ def remove_overlapped_boxes( results, threshold=0.8 ):
             cleand_results.append(r)
         else:
             removed_results.append(r)
-    
+
     return cleand_results, removed_results
 
 
 def compute_iou( bboxA, bboxB ):
     """ compute iou of two bounding boxes
-    
+
     Args:
-      bboxA(list): coordinates of box A (i,j,w,h) 
-      bboxB(list): coordinates of box B (i,j,w,h) 
-    
+      bboxA(list): coordinates of box A (i,j,w,h)
+      bboxB(list): coordinates of box B (i,j,w,h)
+
     Return:
       float: iou score
     """

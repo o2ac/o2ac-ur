@@ -1,0 +1,17 @@
+<?xml version="1.0" ?>
+<launch>
+
+  <arg name="camera_info_topic"	default="camera/camera_info"/>
+  <arg name="depth_topic"	default="camera/depth_map"/>
+  <arg name="image_topic"	default="camera/texture"/>
+  <arg name="manager"		default=""/>
+
+  <!-- Spawn localizer as a node unless manager name is specified -->
+  <node name="projection_tester" pkg="toyota1_box_localizer"
+	type="test_projectPoints" output="screen">
+    <remap from="/camera_info"	to="$(arg camera_info_topic)"/>
+    <remap from="/depth"	to="$(arg depth_topic)"/>
+    <remap from="/image"	to="$(arg image_topic)"/>
+  </node>
+
+</launch>

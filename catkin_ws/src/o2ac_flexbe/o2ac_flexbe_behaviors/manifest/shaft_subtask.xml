@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<behavior name="shaft subtask">
+
+	<executable package_path="o2ac_flexbe_behaviors.shaft_subtask_sm" class="shaftsubtaskSM" />
+	<tagstring>subtask_c2</tagstring>
+	<author>Cristian Beltran</author>
+	<date>Tue Jun 29 2021</date>
+	<description>
+		assembly subtask c2
+Assembly shaft with cap and m4 screw then insert it into the bearing
+	</description>
+
+
+	<!-- Contained Behaviors -->
+
+	<!-- Available Parameters -->
+
+</behavior>

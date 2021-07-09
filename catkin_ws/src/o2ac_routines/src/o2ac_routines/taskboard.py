@@ -136,21 +136,6 @@ class O2ACTaskboard(O2ACCommon):
         rospy.logerr("Could not retrieve collision object:" + name)
 
   #####
-  
-  def allow_collision_with_hand(self, robot_name, object_name):
-    self.planning_scene_interface.allow_collisions(object_name, robot_name + "_gripper_tip_link")
-    self.planning_scene_interface.allow_collisions(object_name, robot_name + "_robotiq_85_left_finger_tip_link")
-    self.planning_scene_interface.allow_collisions(object_name, robot_name + "_robotiq_85_left_inner_knuckle_link")
-    self.planning_scene_interface.allow_collisions(object_name, robot_name + "_robotiq_85_right_finger_tip_link")
-    self.planning_scene_interface.allow_collisions(object_name, robot_name + "_robotiq_85_right_inner_knuckle_link")
-
-  def disallow_collision_with_hand(self, robot_name, object_name):
-    self.planning_scene_interface.disallow_collisions(object_name, robot_name + "_gripper_tip_link")
-    self.planning_scene_interface.disallow_collisions(object_name, robot_name + "_robotiq_85_left_finger_tip_link")
-    self.planning_scene_interface.disallow_collisions(object_name, robot_name + "_robotiq_85_left_inner_knuckle_link")
-    self.planning_scene_interface.disallow_collisions(object_name, robot_name + "_robotiq_85_right_finger_tip_link")
-    self.planning_scene_interface.disallow_collisions(object_name, robot_name + "_robotiq_85_right_inner_knuckle_link")
-
   def look_in_tray(self):
     #TODO (felixvd)
     # Look at tray
@@ -160,6 +145,25 @@ class O2ACTaskboard(O2ACCommon):
     # if still not graspable either skip to next item or try to reposition
     pass
   
+  def check_objects_in_tray(self, robot_name, order):
+    """ Return the easier to find objects from a birdview """
+    self.active_robots[robot_name].go_to_pose_goal(self.tray_view_high, 
+                                                   end_effector_link=robot_name + "_outside_camera_color_frame",
+                                                   speed=.5, acceleration=.3, wait=True, move_lin=False)
+    
+    success = False
+    while not success:
+      rospy.sleep(0.5)
+      success = self.get_3d_poses_from_ssd()
+
+    order_ids = [self.assembly_database.name_to_id(object_id) for object_id in order]
+    object_in_tray = copy.deepcopy(self.objects_in_tray)
+    res = []
+    for item in order_ids:
+      if object_in_tray.get(item, None):
+        res.append(self.assembly_database.id_to_name(item))
+    return res 
+
   def prep_taskboard_task(self):
     """
     Equip the set screw tool and M3 tool, and move to the position before task start.
@@ -225,9 +229,10 @@ class O2ACTaskboard(O2ACCommon):
       "M4 screw": False,
       "belt": False,
       "bearing": False,
+      "screw_bearing": False,
       "motor pulley": False,
       "shaft": False,  
-      "idler pulley": True,  # FIXME
+      "idler pulley": False,
     }
     if do_screws:
       self.do_screw_tasks_from_prep_position()
@@ -235,43 +240,66 @@ class O2ACTaskboard(O2ACCommon):
     if not skip_tray_placing:
       self.take_tray_from_agv()
 
-    self.subtask_completed["belt"] = self.do_task("belt")
+    # self.subtask_completed["belt"] = self.do_task("belt")
     
-    self.subtask_completed["idler pulley"] = self.do_task("idler pulley")
-    self.unequip_tool("b_bot")
+    # self.subtask_completed["idler pulley"] = self.do_task("idler pulley")
+    # self.unequip_tool("b_bot")
 
-    self.subtask_completed["motor pulley"] = self.do_task("motor pulley")
+    # self.subtask_completed["motor pulley"] = self.do_task("motor pulley")
 
-    self.subtask_completed["bearing"] = self.do_task("bearing")
-    if self.subtask_completed["bearing"]:
-      self.subtask_completed["screw_bearing"] = self.do_task("screw_bearing")
+    # self.subtask_completed["bearing"] = self.do_task("bearing")
+    # if self.subtask_completed["bearing"]:
+    #   self.subtask_completed["screw_bearing"] = self.do_task("screw_bearing")
 
-    self.subtask_completed["shaft"] = self.do_task("shaft")
+    # self.subtask_completed["shaft"] = self.do_task("shaft")
     
-    self.confirm_to_proceed("Continue into loop to retry parts?")
-    order = ["motor pulley", "belt", "bearing", "shaft", "idler pulley"]
+    order = ["belt", "motor pulley", "shaft", "idler pulley", "bearing"]
     task_complete = False
-    while not task_complete and not rospy.is_shutdown():
-      for item in order:
-        if not self.subtask_completed[item]:
-          self.confirm_to_proceed("Reattempt " + str(item) + "?")
-          self.subtask_completed[item] = self.do_task(item)
-          # if item == "bearing" and self.subtask_completed[item]: 
-          #   if not self.subtask_completed["screw_bearing"]:
-          #     self.do_task("screw_bearing")
-    self.publish_status_text("FINISHED")
+
+    # found_items = self.check_objects_in_tray("b_bot", order)
+    # rospy.loginfo("Items found so far: %s" % found_items)
+    # for item in found_items:
+    #   self.execute_step(item)
       
+    # Then loop through the remaining items
+    self.confirm_to_proceed("Continue into loop to retry parts?")
+    unsuccessful_attempts = 0
+    while not task_complete:
+      for item in order:
+        if not self.execute_step(item):
+          unsuccessful_attempts += 1
+      task_complete = all(self.subtask_completed.values())
+
+    self.publish_status_text("FINISHED")
+
+  def execute_step(self, item):
+      assert not rospy.is_shutdown(), "did ros master die?"
+      self.unequip_tool("b_bot") # Just in case
+      self.b_bot.gripper.open(wait=False) # Release any possible item that got stuck in the gripper
+
+      if not self.subtask_completed[item]:
+        self.confirm_to_proceed("Reattempt " + str(item) + "?")
+        self.subtask_completed[item] = self.do_task(item)
+        if item == "bearing" and self.subtask_completed[item]: 
+          if not self.subtask_completed["screw_bearing"]:
+            self.do_task("screw_bearing")
+        
+        rospy.loginfo("============================================")
+        rospy.loginfo("==== Task: %s completed with status: %s ====" % (item, self.subtask_completed[item]))
+        rospy.loginfo("============================================")      
+      
+      return self.subtask_completed[item]
 
   def do_task(self, task_name, fake_execution_for_calibration=False):
     self.publish_status_text("Target: " + task_name)
 
     if task_name == "belt":
-      self.a_bot.go_to_named_pose("home")
+      self.ab_bot.go_to_named_pose("home")
       
-      self.b_bot.go_to_pose_goal(self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.8)
+      self.a_bot.go_to_pose_goal(self.tray_view_high, end_effector_link="a_bot_outside_camera_color_frame", speed=.8, move_lin=False)
 
-      self.vision.activate_camera("b_bot_outside_camera")
-      self.activate_led("b_bot")
+      self.vision.activate_camera("a_bot_outside_camera")
+      self.activate_led("a_bot")
       res = self.get_3d_poses_from_ssd()
       r2 = self.get_feasible_grasp_points("belt")
       if r2:
@@ -283,7 +311,7 @@ class O2ACTaskboard(O2ACCommon):
       
       self.confirm_to_proceed("Pick tool with b_bot?")
       # Equip the belt tool with b_bot
-      if not self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_pick_hook.urp", recursion_depth=3):
+      if not self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_pick_hook.urp"):
         return False
       rospy.sleep(2)  # Wait for b_bot to have moved out of the way
 
@@ -299,20 +327,20 @@ class O2ACTaskboard(O2ACCommon):
       
       if not self.vision.check_pick_success("belt"):
         rospy.logerr("Belt pick has failed. Return tool and abort.")
-        self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp", recursion_depth=3)
+        self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp")
         rospy.sleep(2)
         pick_goal.pose.position.x = 0  # In tray_center
         pick_goal.pose.position.y = 0
         pick_goal.pose.position.z += 0.06
         self.a_bot.move_lin(pick_goal)
-        self.a_bot.gripper.open(opening_width=0.03, wait=False)
+        self.a_bot.gripper.open(opening_width=0.07, wait=False)
         self.a_bot.go_to_named_pose("home")
         wait_for_UR_program("/b_bot", rospy.Duration.from_sec(20))
         return False
 
       self.confirm_to_proceed("Load and execute the belt threading programs?")
-      success_a = self.a_bot.load_program(program_name="wrs2020/taskboard_belt_v5.urp", recursion_depth=3)
-      success_b = self.b_bot.load_program(program_name="wrs2020/taskboard_belt_v6.urp", recursion_depth=3)
+      success_a = self.a_bot.load_program(program_name="wrs2020/taskboard_belt_v7.urp")
+      success_b = self.b_bot.load_program(program_name="wrs2020/taskboard_belt_v7.urp")
       if success_a and success_b:
         print("Loaded belt program on a_bot.")
         rospy.sleep(1)
@@ -325,7 +353,7 @@ class O2ACTaskboard(O2ACCommon):
           self.b_bot.close_ur_popup()
       else:
         print("Problem loading. Not executing belt procedure.")
-        self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp", recursion_depth=3)
+        self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp")
         rospy.sleep(3)
         self.drop_in_tray("a_bot")
         self.a_bot.go_to_named_pose("home")
@@ -336,11 +364,10 @@ class O2ACTaskboard(O2ACCommon):
       # b_bot is now above the tray, looking at the 
       # TODO(felixvd): Use vision to check belt threading success
       
-      self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp", recursion_depth=3)
+      self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp")
       rospy.sleep(2)
       wait_for_UR_program("/b_bot", rospy.Duration.from_sec(20))
       return True
-      
 
     # ==========================================================
 
@@ -348,6 +375,7 @@ class O2ACTaskboard(O2ACCommon):
       # Equip and move to the screw hole
       # self.equip_tool("b_bot", "set_screw_tool")
       # self.b_bot.go_to_named_pose("horizontal_screw_ready")
+      self.vision.activate_camera("b_bot_inside_camera")
       screw_approach = copy.deepcopy(self.at_set_screw_hole)
       screw_approach.pose.position.x = -0.005
       self.b_bot.go_to_pose_goal(screw_approach, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True)
@@ -355,21 +383,19 @@ class O2ACTaskboard(O2ACCommon):
 
       # This expects to be exactly above the set screw hole
       self.confirm_to_proceed("Turn on motor and move into screw hole?")
-      dist = .002
-      self.skill_server.move_lin_rel("b_bot", relative_translation=[0, -cos(radians(30))*dist, sin(radians(30))*dist], velocity=0.03, wait=False)
+      dist = .003
+      self.b_bot.move_lin_rel(relative_translation=[-dist, 0, 0], speed=0.03, wait=False)
       # self.skill_server.horizontal_spiral_motion("b_bot", .003, spiral_axis="Y", radius_increment = .002)
       self.tools.set_motor("set_screw_tool", "tighten", duration = 12.0)
       rospy.sleep(4.0) # Wait for the screw to be screwed in a little bit
-      d = .004
+      d = .003
       rospy.loginfo("Moving in further by " + str(d) + " m.")
-      self.skill_server.move_lin_rel("b_bot", relative_translation=[0, -cos(radians(30))*d, sin(radians(30))*d], velocity=0.002, wait=False)
+      self.b_bot.move_lin_rel(relative_translation=[-d, 0, 0], speed=0.002, wait=False)
       
-      # self.skill_server.do_linear_push("b_bot", force=40, direction_vector=[0, -cos(radians(30)), sin(radians(30))], forward_speed=0.001)
       rospy.sleep(8.0)
       self.confirm_to_proceed("Go back?")
       if self.b_bot.is_protective_stopped():
         rospy.logwarn("Robot was protective stopped after set screw insertion!")
-        #TODO: Recovery? Try to loosen the shaft?
         self.b_bot.unlock_protective_stop()
         rospy.sleep(1)
         if self.b_bot.is_protective_stopped():
@@ -400,6 +426,7 @@ class O2ACTaskboard(O2ACCommon):
 
       approach_pose.pose.position.y = -.0
       approach_pose.pose.position.z = -.004  # MAGIC NUMBER (z-axis of the frame points down)
+      approach_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
       self.a_bot.go_to_pose_goal(approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
 
       hole_pose = geometry_msgs.msg.PoseStamped()
@@ -408,7 +435,7 @@ class O2ACTaskboard(O2ACCommon):
       hole_pose.pose.position.z = -.004  # MAGIC NUMBER (z-axis of the frame points down)
       hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
       if not fake_execution_for_calibration:
-        self.skill_server.do_screw_action("a_bot", hole_pose, screw_size = 3, loosen_and_retighten_when_done=False)
+        self.screw("a_bot", hole_pose, screw_size = 3, skip_final_loosen_and_retighten=False)
       else:
         hole_pose.pose.position.x -= 0.005
         self.a_bot.go_to_pose_goal(hole_pose, speed=0.05, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
@@ -434,7 +461,7 @@ class O2ACTaskboard(O2ACCommon):
       hole_pose.pose.position.y = -.001  # MAGIC NUMBER (y-axis of the frame points right)
       hole_pose.pose.position.z = -.001  # MAGIC NUMBER (z-axis of the frame points down)
       if not fake_execution_for_calibration:
-        self.skill_server.do_screw_action("b_bot", hole_pose, screw_size = 4, loosen_and_retighten_when_done=False)
+        self.screw("b_bot", hole_pose, screw_size = 4, skip_final_loosen_and_retighten=False)
       else:
         hole_pose.pose.position.x = -.01
         approach_pose = copy.deepcopy(hole_pose)
@@ -452,47 +479,11 @@ class O2ACTaskboard(O2ACCommon):
     # ==========================================================
 
     if task_name == "motor pulley":
+      success = self.pick_and_insert_motor_pulley(task = "taskboard")
+      self.unlock_base_plate()  # To ensure that nothing moved due to a failed insertion
+      self.lock_base_plate()
+      return success
 
-      use_ros = True
-
-      if use_ros:
-        success = self.pick_and_insert_motor_pulley(task = "taskboard")
-        self.unlock_base_plate()  # To ensure that nothing moved due to a failed insertion
-        self.lock_base_plate()
-        return success
-
-      else:
-        self.a_bot.go_to_named_pose("home")
-        self.b_bot.go_to_named_pose("home")
-        
-        goal = self.look_and_get_grasp_point(self.assembly_database.name_to_id("motor_pulley"))
-        if not goal:
-          rospy.logerr("Could not find motor_pulley in tray. Skipping procedure.")
-          return False
-        goal.pose.position.x -= 0.01 # MAGIC NUMBER
-        goal.pose.position.z = 0.0
-        self.vision.activate_camera("b_bot_inside_camera")
-        self.activate_led("b_bot", on=False)
-        self.simple_pick("b_bot", goal, gripper_force=50.0, grasp_width=.06, axis="z")
-
-        if self.b_bot.gripper.opening_width < 0.01:
-          rospy.logerr("Gripper did not grasp the pulley --> Stop")
-
-        b_bot_script_start_pose = [1.7094888, -1.76184906, 2.20651847, -2.03368343, -1.54728252, 0.96213197]
-        self.b_bot.move_joints(b_bot_script_start_pose)
-
-        success_b = self.b_bot.load_program(program_name="wrs2020/pulley_v3.urp", recursion_depth=3)
-        if success_b:
-          print("Loaded pulley program.")
-          rospy.sleep(1)
-          self.b_bot.execute_loaded_program()
-          print("Started execution. Waiting for b_bot to finish.")
-        else:
-          print("Problem loading. Not executing pulley procedure.")
-          return False
-        wait_for_UR_program("/b_bot", rospy.Duration.from_sec(40))
-      return True
-    
     # ==========================================================
 
     if task_name == "bearing":
@@ -507,120 +498,9 @@ class O2ACTaskboard(O2ACCommon):
     # ==========================================================
 
     if task_name == "shaft":
-      use_ros = True
-      if use_ros:
-        self.pick_and_insert_shaft("taskboard")
-      else:
-        self.a_bot.go_to_named_pose("home")
-        self.b_bot.go_to_named_pose("home")
-
-        goal = self.look_and_get_grasp_point(self.assembly_database.name_to_id("shaft"))
-        if not goal:
-          rospy.logerr("Could not find shaft in tray. Skipping procedure.")
-          print(self.objects_in_tray)
-          return False
-        goal.pose.position.z = 0.001
-        self.vision.activate_camera("b_bot_inside_camera")
-        self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z")
-        
-        success_b = self.b_bot.load_program(program_name="wrs2020/shaft_v3.urp", recursion_depth=3)
-        
-        if success_b:
-          print("Loaded shaft program.")
-          rospy.sleep(1)
-          self.b_bot.execute_loaded_program()
-          print("Started execution. Waiting for b_bot to finish.")
-        else:
-          print("Problem loading. Not executing shaft procedure.")
-          return False
-        wait_for_UR_program("/b_bot", rospy.Duration.from_sec(50))
-        if self.b_bot.is_protective_stopped():
-          rospy.logwarn("Robot was protective stopped after shaft insertion - shaft may be stuck!")
-          #TODO: Recovery? Try to loosen the shaft?
-          self.b_bot.unlock_protective_stop()
-          rospy.sleep(1)
-          if self.b_bot.is_protective_stopped():
-            return False
-      return True
+      return self.pick_and_insert_shaft("taskboard")
     
     # ==========================================================
     
     if task_name == "idler pulley":
-
-      use_ros = True
-      if use_ros:
-        self.pick_and_insert_idler_pulley("taskboard")
-      
-      else:
-        self.a_bot.go_to_named_pose("home")
-        self.b_bot.go_to_named_pose("home")
-        
-        goal = self.look_and_get_grasp_point("taskboard_idler_pulley_small")
-        if not goal:
-          rospy.logerr("Could not find idler pulley in tray. Skipping procedure.")
-          return False
-        self.vision.activate_camera("b_bot_inside_camera")
-        goal.pose.position.x -= 0.01 # MAGIC NUMBER
-        goal.pose.position.z = 0.014
-        rospy.loginfo("Picking idler pulley at: ")
-        self.b_bot.go_to_named_pose("home")
-        pick_pose = copy.deepcopy(goal)
-        pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(0, tau/4, -tau/4))
-
-        approach_pose = copy.deepcopy(pick_pose)
-        approach_pose.pose.position.z += 0.1
-
-        self.a_bot.gripper.open(wait=False)
-        self.a_bot.gripper.open(wait=False, opening_width=0.07)
-
-        ## wait for screw tool to hold
-
-        ##### Centering using urp
-        centeringgrasp = self.a_bot.load_program(program_name="wrs2020/taskboard_retainer_and_nut_v4_hu.urp", recursion_depth=3)
-        if not centeringgrasp:
-          rospy.logerr("Failed to load centeringgrasp program on a_bot")
-          return False
-        print("Running belt pick on a_bot.")
-        if not self.a_bot.execute_loaded_program():
-          rospy.logerr("Failed to execute centeringgrasp program on a_bot")
-          return False
-        wait_for_UR_program("/a_bot", rospy.Duration.from_sec(20))
-
-        self.equip_tool("b_bot", "screw_tool_m4")
-        # success_a = self.a_bot.load_program(program_name="wrs2020/tb_retainer_and_nut_v2_hu.urp", recursion_depth=3)
-        success_b = self.b_bot.load_program(program_name="wrs2020/taskboard_retainer_and_nut_v4.urp", recursion_depth=3)
-
-        if success_b:
-          print("Loaded idler pulley program.")
-          rospy.sleep(1)
-          self.a_bot.execute_loaded_program()
-          rospy.sleep(20) # abot picks
-          self.b_bot.execute_loaded_program()
-          rospy.sleep(10) # bbot holds
-          self.confirm_to_proceed("Can popup be closed? 1")
-          self.b_bot.close_ur_popup()
-          self.tools.set_motor("screw_tool_m4", "tighten", duration=20)
-          rospy.sleep(22) # bbot fiddles
-          self.confirm_to_proceed("Can popup be closed? 2")
-          self.a_bot.close_ur_popup()
-          rospy.sleep(15) #a bot picks nut
-          self.confirm_to_proceed("Can popup be closed? 3")
-          self.a_bot.close_ur_popup()
-          self.tools.set_motor("screw_tool_m4", "tighten", duration=20)
-          rospy.sleep(30) # a bot spirals nut
-          self.confirm_to_proceed("Can popups be closed? 4")
-          self.a_bot.close_ur_popup()
-          self.b_bot.close_ur_popup()
-        else:
-          print("Problem loading. Not executing idler pulley procedure.")
-          return False
-        wait_for_UR_program("/b_bot", rospy.Duration.from_sec(10))
-        wait_for_UR_program("/a_bot", rospy.Duration.from_sec(10))
-        if self.b_bot.is_protective_stopped():
-          # rospy.logwarn("Robot was protective stopped after idler pulley insertion - idler pulley may be stuck!")
-          # self.b_bot.unlock_protective_stop()
-          self.b_bot.go_to_named_pose("home")
-        self.unequip_tool("b_bot", "screw_tool_m4")
-        self.a_bot.go_to_named_pose("home")
-        self.b_bot.go_to_named_pose("home")
-      return True
+      return self.pick_and_insert_idler_pulley("taskboard")

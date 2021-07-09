@@ -10,6 +10,7 @@ project(o2ac_assembly_database)
 find_package(catkin REQUIRED COMPONENTS
   rospy
   moveit_msgs
+  visualization_msgs
   tf
   tf2_ros
 )

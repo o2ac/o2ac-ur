@@ -27,12 +27,10 @@ class HandEyeCalibrationBaseRoutines(O2ACBase):
 
     # Robot stuffs
     def get_current_pose_stamped(self):
-        return super(HandEyeCalibrationBaseRoutines,
-                     self).get_current_pose_stamped(self._robot_name)
+        return self.active_robots[self._robot_name].get_current_pose_stamped()
 
     def go_to_named_pose(self, named_pose):
-        return super(HandEyeCalibrationBaseRoutines,
-                     self).go_to_named_pose(named_pose, self._robot_name)
+        return self.active_robots[self._robot_name].go_to_named_pose(named_pose)
 
     def go_to_init_pose(self, verbose=False):
         if self._initpose:
@@ -49,9 +47,9 @@ class HandEyeCalibrationBaseRoutines(O2ACBase):
                                              *map(radians, xyzrpy[3:6]))))
         if verbose:
             print('  move to ' + self.format_pose(target_pose))
-        res = self.active_robots[self._robot_name].go_to_pose_goal(target_pose,
-                                   end_effector_link=self._effector_frame,
-                                   speed=self._speed)
+        res = self.active_robots[self._robot_name].go_to_pose_goal(
+                target_pose, end_effector_link=self._effector_frame,
+                speed=self._speed)
         if verbose:
             print('  reached '
                   + self.format_pose(self.get_current_pose_stamped()))

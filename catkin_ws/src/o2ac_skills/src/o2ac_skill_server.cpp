@@ -1339,6 +1339,8 @@ bool SkillServer::suckScrew(geometry_msgs::PoseStamped screw_head_pose, std::str
   moveToCartPoseLIN(above_screw_head_pose_, robot_name, true, screw_tool_link, 0.5, 0.5, false, false);
   
   ROS_INFO_STREAM((screw_picked ? "Finished picking up screw successfully." : "Failed to pick screw."));
+  if (!screw_picked)
+    setSuctionEjection(screw_tool_id, false);
   return screw_picked;
 }
 

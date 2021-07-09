@@ -17,6 +17,8 @@ find_package(
     sensor_msgs
     image_transport
     message_generation
+    actionlib_msgs
+    actionlib
     rospy
 )
 
@@ -34,9 +36,16 @@ include_directories(
   src
 )
 
-add_message_files(FILES FileInfo.msg)
+add_message_files(FILES FileInfo.msg Plane.msg PlaneStamped.msg)
+add_action_files(FILES DetectPlane.action)
 
-generate_messages(DEPENDENCIES sensor_msgs geometry_msgs)
+generate_messages(
+  DEPENDENCIES
+    actionlib_msgs
+    actionlib
+    sensor_msgs
+    geometry_msgs
+)
 
 catkin_package(
   CATKIN_DEPENDS

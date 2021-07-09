@@ -1,0 +1,41 @@
+ Program
+   Robot Program
+     MoveJ
+       currentpose≔get_actual_tcp_pose()get_actual_joint_positions()
+       currentpose
+     Gripper Move56% (1)
+     MoveJ
+       above_pick
+       at_object
+     center_object
+       Gripper Close (1)
+       Gripper Move56% (1)
+       MoveJ
+         turn_right
+       Gripper Close (1)
+       Gripper Move56% (1)
+       MoveJ
+         turn_left
+       Gripper Close (1)
+     MoveL
+       up
+       above_peg
+       down_in_peg
+       away
+       above_edge
+       at_edge
+       on_surface
+     Gripper Move56% (1)
+     center_object
+       Gripper Close (1)
+       Gripper Move56% (1)
+       MoveJ
+         turn_right
+       Gripper Close (1)
+       Gripper Move56% (1)
+       MoveJ
+         turn_left
+       Gripper Close (1)
+     MoveL
+       Direction: Base Z+
+         Until (distance)

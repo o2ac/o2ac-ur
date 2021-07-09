@@ -5,6 +5,7 @@ from std_msgs.msg import Bool
 
 from o2ac_routines.helpers import check_for_real_robot
 
+
 class Tools():
     def __init__(self):
         self.use_real_robot = rospy.get_param("use_real_robot", False)
@@ -15,7 +16,6 @@ class Tools():
         self.sub_suction_m3_ = rospy.Subscriber("/screw_tool_m3/screw_suctioned", Bool, self.suction_m3_callback)
 
         self.screw_is_suctioned = dict()
-
 
     def suction_m4_callback(self, msg):
         self.screw_is_suctioned["m4"] = msg.data

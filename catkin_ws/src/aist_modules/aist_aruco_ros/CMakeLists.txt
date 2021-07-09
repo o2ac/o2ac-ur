@@ -30,16 +30,6 @@ include_directories(
   ${OpenCV_INCLUDE_DIRS}
 )
 
-add_message_files(
-  FILES
-    Corners.msg
-)
-
-generate_messages(
-  DEPENDENCIES
-    geometry_msgs
-)
-
 catkin_package(
   CATKIN_DEPENDS
     roscpp

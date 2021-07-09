@@ -93,6 +93,14 @@ function o2ac-magic-rosdep-command () {
   popd
 }
 
+function dispurdf () {
+  roslaunch urdf_tutorial display.launch model:=$1
+}
+
+function axclient () {
+  rosrun actionlib axclient.py $1
+}
+
 ###############################################################################
 
 # aliases
@@ -100,11 +108,17 @@ function o2ac-magic-rosdep-command () {
 alias cw='cd /root/o2ac-ur/catkin_ws'
 alias cs='cd /root/o2ac-ur/catkin_ws/src'
 alias cb='catkin build'
+alias cc='catkin clean'
 alias s='source /root/o2ac-ur/catkin_ws/devel/setup.bash'
 
 alias ucw='cd /root/o2ac-ur/underlay_ws'
 alias ucs='cd /root/o2ac-ur/underlay_ws/src'
 alias us='source /root/o2ac-ur/underlay_ws/devel/setup.bash'
+
+alias rd='rosdep install -i --from-paths'
+alias rqt_plot='rosrun rqt_plot rqt_plot'
+alias rqt_reconfigure='rosrun rqt_reconfigure rqt_reconfigure'
+alias rqt_tf_tree='rosrun rqt_tf_tree rqt_tf_tree'
 
 ###############################################################################
 

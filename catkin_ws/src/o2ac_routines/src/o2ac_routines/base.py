@@ -34,6 +34,7 @@
 #
 # Author: Felix von Drigalski
 
+import os
 import sys
 import copy
 
@@ -46,6 +47,7 @@ import rospkg
 import tf_conversions
 import tf 
 import actionlib
+from actionlib_msgs.msg import GoalStatus
 
 import yaml
 import pickle
@@ -73,6 +75,35 @@ from o2ac_routines.skill_server_client import SkillServerClient
 from o2ac_routines.vision_client import VisionClient
 from o2ac_routines.ur_robot import URRobot
 from o2ac_routines.tools import Tools
+
+
+class AssemblyStatus(object):
+  """ A helper class containing only boolean entries.
+      May as well be a dictionary, but this makes auto-completion easier.
+
+      This should help when restarting.
+  """
+  def __init__(self):
+    # rospy.get_param("/last_assembly_status", False)
+    self.tray_placed_on_table = True
+
+    self.belt_placed_outside_of_tray = False
+    self.motor_placed_outside_of_tray = False
+
+    self.completed_subtask_zero = False  # Base
+    self.completed_subtask_a = False
+    self.completed_subtask_b = False
+    self.completed_subtask_c1 = False
+    self.completed_subtask_c2 = False
+    self.completed_subtask_d = False
+    self.completed_subtask_e = False  # 
+    self.completed_subtask_f = False  # Motor plate
+    self.completed_subtask_g = False  # Bearing plate
+    self.completed_subtask_h = False  # Belt
+    self.completed_subtask_i1 = False  # Cable 1
+    self.completed_subtask_i2 = False  # Cable 2
+  
+
 
 class O2ACBase(object):
   """
@@ -111,13 +142,14 @@ class O2ACBase(object):
     self.execute_trajectory_listener = rospy.Subscriber("/execute_trajectory/status", actionlib.GoalStatusArray, self.trajectory_status_cb)
     
     self.assembly_database = AssemblyReader()
+    self.assembly_status = AssemblyStatus()
 
     # Action clients and movegroups
     self.a_bot = URRobot("a_bot", self.listener)
     self.b_bot = URRobot("b_bot", self.listener)
     self.ab_bot = DualArm("ab_bot", self.a_bot, self.b_bot, self.listener)
     # For compatibility let's wrap the robots
-    self.active_robots = {'a_bot': self.a_bot, 'b_bot': self.b_bot}
+    self.active_robots = {'a_bot': self.a_bot, 'b_bot': self.b_bot, 'ab_bot': self.ab_bot}
     
     for robot in ["a_bot", "b_bot"]:
       self.active_robots[robot].get_status_from_param_server()
@@ -211,6 +243,7 @@ class O2ACBase(object):
       self.active_robots[robot].publish_robot_status()
 
   def reset_scene_and_robots(self):
+    """ Also see reset_assembly_visualization in common.py """
     self.a_bot.robot_status = o2ac_msgs.msg.RobotStatus()
     self.b_bot.robot_status = o2ac_msgs.msg.RobotStatus()
     self.planning_scene_interface.remove_attached_object()  # Detach objects
@@ -220,17 +253,18 @@ class O2ACBase(object):
 
   @check_for_real_robot
   def activate_led(self, LED_name="b_bot", on=True):
-    req = ur_msgs.srv.SetIORequest()
+    request = ur_msgs.srv.SetIORequest()
+    request.fun = ur_msgs.srv.SetIORequest.FUN_SET_DIGITAL_OUT
+    request.pin = 4
+    if on:
+      request.state = ur_msgs.srv.SetIORequest.STATE_ON
+    else:
+      request.state = ur_msgs.srv.SetIORequest.STATE_OFF
+
     if LED_name == "b_bot":
-      req.fun = ur_msgs.srv.SetIORequest.FUN_SET_DIGITAL_OUT
-      req.pin = 4
-      if on:
-        req.state = ur_msgs.srv.SetIORequest.STATE_ON
-      else:
-        req.state = ur_msgs.srv.SetIORequest.STATE_OFF
-      return self.b_bot.set_io.call(req)
+      return self.b_bot.set_io.call(request)
     elif LED_name == "a_bot":
-      return self.a_bot.set_io.call(req)
+      return self.a_bot.set_io.call(request)
     else:
       rospy.logerr("Invalid LED name")
   
@@ -293,7 +327,7 @@ class O2ACBase(object):
     # # TODO(felixvd): Add the set screw and nut tool objects from the C++ file
 
   ######
-  def pick_screw_from_feeder2(self, robot_name, screw_size, realign_tool_upon_failure=True):
+  def pick_screw_from_feeder_python(self, robot_name, screw_size, realign_tool_upon_failure=True):
     if self.tools.screw_is_suctioned.get("m" + str(screw_size), False): 
       rospy.loginfo("(pick_screw_from_feeder) But a screw was already detected in the tool. Returning true without doing anything.")
       return True
@@ -302,14 +336,18 @@ class O2ACBase(object):
     offset = 1 if robot_name == "a_bot" else -1
     pose_feeder = conversions.to_pose_stamped("m" + str(screw_size) + "_feeder_outlet_link", [0.005, 0, 0, np.deg2rad(offset*60), 0, 0])
     
-    self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready", speed=0.5, acceleration=0.25)
+    if not self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready", speed=0.5, acceleration=0.25):
+      rospy.logerr("Failed to go to feeder_pick_ready with " + robot_name)
+      return False
 
     screw_tool_id = "screw_tool_m" + str(screw_size)
     screw_tool_link = robot_name + "_screw_tool_m" + str(screw_size) + "_tip_link"
     fastening_tool_name = "screw_tool_m" + str(screw_size)
-    success = self.suck_screw(robot_name, pose_feeder, screw_tool_id, screw_tool_link, fastening_tool_name)
+    success = self.suck_screw(robot_name, pose_feeder, screw_tool_id, screw_tool_link, fastening_tool_name, do_spiral_search_at_bottom=False)
 
-    self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready", speed=0.5, acceleration=0.25)
+    if not self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready", speed=0.8):
+      rospy.logerr("Failed to go to feeder_pick_ready with " + robot_name)
+      return False
     
     if success:
       return True
@@ -319,12 +357,12 @@ class O2ACBase(object):
         rospy.loginfo("pickScrewFromFeeder failed. Realigning tool and retrying.")
         screw_tool_id = "screw_tool_m" + str(screw_size)
         self.realign_tool(robot_name, screw_tool_id)
-        return self.pick_screw_from_feeder2(robot_name, screw_size, realign_tool_upon_failure=False)
+        return self.pick_screw_from_feeder_python(robot_name, screw_size, realign_tool_upon_failure=False)
     else:
         self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
         return False
 
-  def suck_screw(self, robot_name, screw_head_pose, screw_tool_id, screw_tool_link, fastening_tool_name):
+  def suck_screw(self, robot_name, screw_head_pose, screw_tool_id, screw_tool_link, fastening_tool_name, do_spiral_search_at_bottom=False):
     """ Strategy: 
          - Move 1 cm above the screw head pose
          - Go down real slow for 2 cm while turning the motor in the direction that would loosen the screw
@@ -359,50 +397,122 @@ class O2ACBase(object):
       self.planning_scene_interface.allow_collisions(screw_tool_id, "m4_feeder_link")
       screw_size = 4
 
+    initial_offset_y = rospy.get_param("screw_picking/" + robot_name + "/last_successful_offset_m" + str(screw_size) + "_y", 0.0)
+    initial_offset_z = rospy.get_param("screw_picking/" + robot_name + "/last_successful_offset_m" + str(screw_size) + "_z", 0.0)
+    if initial_offset_y or initial_offset_z:
+      rospy.loginfo("Starting search with offsets: " + str(initial_offset_y) + ", " + str(initial_offset_z))
     adjusted_pose = copy.deepcopy(above_screw_head_pose)
     search_start_pose = copy.deepcopy(above_screw_head_pose)
+    search_start_pose.pose.position.y += initial_offset_y
+    search_start_pose.pose.position.z += initial_offset_z
     screw_picked = False
 
     self.tools.set_suction(screw_tool_id, suction_on=True, eject=False, wait=False)
 
-    offsets = [[0.0015, 0.0015], [0.0015, -0.0015], [-0.0015, 0.0015], [-0.0015, -0.0015]] # only diagonals from start point
+    approach_height = 0.016
 
-    for i, offset in enumerate(offsets): 
-      assert not rospy.is_shutdown(), "Did ros die?"
+    if not do_spiral_search_at_bottom:
+      max_radius = .0025
+      theta_incr = tau/6
+      r=0.0002
+      radius_increment = .001
+      radius_inc_set = radius_increment / (tau / theta_incr)
+      theta, RealRadius = 0.0, 0.0
 
-      self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=12.0, skip_final_loosen_and_retighten=True)
-      # self.send_fastening_tool_command(fastening_tool_name, "loosen", false, 5.0)
-      rospy.loginfo("Moving into screw to pick it up.")
-      adjusted_pose.pose.position.x += .02
-      self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, acceleration=0.025, end_effector_link=screw_tool_link)
+      while not screw_picked:
+        assert not rospy.is_shutdown(), "Did ros die?"
+        
+        self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=5.0, skip_final_loosen_and_retighten=True)
+        rospy.loginfo("Moving into screw to pick it up.")
+        adjusted_pose.pose.position.x += approach_height
+        success = False
+        while not success: # TODO(cambel, felix): infinite loop?
+          success = self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, end_effector_link=screw_tool_link)
 
-      rospy.sleep(0.5)
-      screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
-      if screw_picked:
-        break
-      
-      rospy.loginfo("Spiral motion, trying to find the screw")
-      spiral_trajectory = compute_trajectory(conversions.from_pose_to_list(adjusted_pose.pose), 
-                                    "YZ", 0.002, "+Y", steps=15, revolutions=3, from_center=True,  trajectory_type="spiral")
-      st = []
-      for t in spiral_trajectory:
-          st.append([conversions.to_pose_stamped("m" + str(screw_size) + "_feeder_outlet_link", t), 0.0])
-      self.active_robots[robot_name].move_lin_trajectory(st, speed=0.03, end_effector_link=screw_tool_link)
+        # Break out of loop if screw suctioned or max search radius exceeded
+        screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
+        if screw_picked:
+          rospy.loginfo("Detected successful pick.")
+          if not self.active_robots[robot_name].move_lin_rel(relative_translation=[0.01, 0, 0], speed=0.015):
+            rospy.logerr("Fail to move screw through gate sensor")
+          # if not self.active_robots[robot_name].move_lin_rel(relative_translation=[0, 0, 0.03], speed=0.2):
+          #   rospy.logerr("Fail to move up")
+          break
 
-      rospy.loginfo("Moving back a bit slowly.")
-      adjusted_pose.pose.position.x -= .02
-      self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.1, acceleration=0.05, end_effector_link=screw_tool_link)
-      
-      adjusted_pose = copy.deepcopy(search_start_pose)
-      adjusted_pose.pose.position.y += offset[0]
-      adjusted_pose.pose.position.z += offset[1]
-      
-      rospy.sleep(0.5)
-      screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
-      if screw_picked:
-        break
-      
-      rospy.logerr("Retrying pickup with adjusted position. %s of %s" % (i+1, len(offsets)))
+        rospy.loginfo("Moving back a bit slowly.")
+        rospy.sleep(0.5)
+        adjusted_pose.pose.position.x -= approach_height
+        success = False
+        while not success: # TODO(cambel, felix): infinite loop?
+          success = self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, end_effector_link=screw_tool_link)
+          
+        # Break out of loop if screw suctioned or max search radius exceeded
+        screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
+        if screw_picked:
+          rospy.loginfo("Detected successful pick.")
+          break
+
+        if RealRadius > max_radius:
+          break
+
+        # Adjust the position (spiral search)
+        theta = theta + theta_incr
+        y = cos(theta) * r
+        z = sin(theta) * r
+        adjusted_pose = search_start_pose
+        adjusted_pose.pose.position.y += y
+        adjusted_pose.pose.position.z += z
+        r = r + radius_inc_set
+        RealRadius = sqrt(pow(y, 2) + pow(z, 2))
+    else:
+      offsets = [[0., 0.], [0.001, 0.001], [0.001, -0.001], [-0.001, 0.001], [-0.001, -0.001]] # only diagonals from start point
+
+      for i, offset in enumerate(offsets): 
+        assert not rospy.is_shutdown(), "Did ros die?"
+
+        adjusted_pose = copy.deepcopy(search_start_pose)
+        adjusted_pose.pose.position.y += offset[0]
+        adjusted_pose.pose.position.z += offset[1]
+
+        self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=12.0, skip_final_loosen_and_retighten=True)
+        # self.send_fastening_tool_command(fastening_tool_name, "loosen", false, 5.0)
+        rospy.loginfo("Moving into screw to pick it up.")
+        adjusted_pose.pose.position.x += approach_height
+        self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, acceleration=0.025, end_effector_link=screw_tool_link)
+
+        rospy.sleep(0.5)
+        screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
+        if screw_picked:
+          if not self.active_robots[robot_name].move_lin_rel(relative_translation=[0.01, 0, 0], speed=0.015):
+            rospy.logerr("Fail to move screw through gate sensor")
+          break
+        
+        rospy.loginfo("Spiral motion, trying to find the screw")
+        tc = lambda a, b: self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
+        self.active_robots[robot_name].force_controller.execute_spiral_trajectory2("YZ", max_radius=0.001, radius_direction="+Y", steps=50,
+                                                          revolutions=2, target_force=0, termination_criteria=tc, timeout=5,
+                                                          check_displacement_time=10, end_effector_link=screw_tool_link)
+
+        if screw_picked:
+          if not self.active_robots[robot_name].move_lin_rel(relative_translation=[0.01, 0, 0], speed=0.015):
+            rospy.logerr("Fail to move screw through gate sensor")
+          break
+
+        rospy.loginfo("Moving back a bit slowly.")
+        adjusted_pose.pose.position.x -= approach_height
+        self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.1, acceleration=0.05, end_effector_link=screw_tool_link)
+        
+        rospy.logerr("Retrying pickup with adjusted position. %s of %s" % (i+1, len(offsets)))
+    
+    # Record the offset at which the screw was successfully picked, so the next try can start at the same location
+    if screw_picked:
+      new_y_offset = adjusted_pose.pose.position.y - above_screw_head_pose.pose.position.y
+      new_z_offset = adjusted_pose.pose.position.z - above_screw_head_pose.pose.position.z
+    else:
+      new_y_offset = 0.0
+      new_z_offset = 0.0
+    rospy.set_param("screw_picking/" + robot_name + "/last_successful_offset_m" + str(screw_size) + "_y", new_y_offset)
+    rospy.set_param("screw_picking/" + robot_name + "/last_successful_offset_m" + str(screw_size) + "_z", new_z_offset)
 
     self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=0.1, skip_final_loosen_and_retighten=True)
 
@@ -415,7 +525,7 @@ class O2ACBase(object):
 
     above_screw_head_pose.pose.position.x -= .05
 
-    if not self.active_robots[robot_name].go_to_pose_goal(above_screw_head_pose, speed=0.5, end_effector_link=screw_tool_link):
+    if not self.active_robots[robot_name].go_to_pose_goal(above_screw_head_pose, speed=0.4, end_effector_link=screw_tool_link):
       rospy.logerr("Linear motion plan to above_screw_head_pose failed. Returning false.")
       return False
 
@@ -423,13 +533,65 @@ class O2ACBase(object):
       rospy.loginfo("Finished picking up screw successfully.")
     else:
       rospy.logerr("Failed to pick screw.")
+      self.tools.set_suction(screw_tool_id, suction_on=False, eject=False, wait=False)
     
     return screw_picked
 
-  @check_for_real_robot
-  def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=True):
-    return self.pick_screw_from_feeder2(robot_name, screw_size, realign_tool_upon_failure)  # Python-only version 
+  def screw(self, robot_name, screw_hole_pose, screw_size, screw_height=0.02, stay_put_after_screwing=False, duration=20.0, skip_final_loosen_and_retighten=False):
+    screw_tool_link = robot_name + "_screw_tool_" + "m" + str(screw_size) + "_tip_link"
+    screw_tool_id = "screw_tool_m" + str(screw_size)
+    fastening_tool_name = "screw_tool_m" + str(screw_size)
+    rospy.loginfo("screw tool link: %s " % screw_tool_link)
 
+    approach_height = .01
+    insertion_amount = .015
+
+    screw_tip_at_hole = copy.deepcopy(screw_hole_pose)
+    screw_tip_at_hole.pose.position.x -= screw_height
+    away_from_hole = copy.deepcopy(screw_tip_at_hole)
+    away_from_hole.pose.position.x -= approach_height
+    pushed_into_hole = copy.deepcopy(screw_tip_at_hole)
+    pushed_into_hole.pose.position.x += insertion_amount
+
+    self.active_robots[robot_name].go_to_pose_goal(away_from_hole, end_effector_link=screw_tool_link, speed=0.2)
+    
+    self.tools.set_motor(fastening_tool_name, direction="tighten", wait=False, duration=duration, 
+                         skip_final_loosen_and_retighten=skip_final_loosen_and_retighten)
+
+    self.planning_scene_interface.allow_collisions(screw_tool_id)
+
+    self.active_robots[robot_name].go_to_pose_goal(pushed_into_hole, end_effector_link=screw_tool_link, speed=0.02)
+
+    # Stop spiral motion if the tool action finished, regardless of success/failure
+    tc = lambda a, b: self.tools.fastening_tool_client.get_state() in (GoalStatus.SUCCEEDED, GoalStatus.PREEMPTED, GoalStatus.ABORTED, GoalStatus.LOST)
+    self.active_robots[robot_name].force_controller.execute_spiral_trajectory2("YZ", max_radius=0.0015, radius_direction="+Y", steps=50,
+                                                          revolutions=5, target_force=0, check_displacement_time=10,
+                                                          termination_criteria=tc, timeout=10, end_effector_link=screw_tool_link)
+
+    finished_before_timeout = self.tools.fastening_tool_client.wait_for_result(rospy.Duration(15))
+    result = self.tools.fastening_tool_client.get_result()
+    rospy.loginfo("Screw tool motor command. Finish before timeout: %s" % finished_before_timeout)
+    rospy.loginfo("Result: %s" % result)
+    motor_stalled = False
+    if result is not None:
+      motor_stalled = result.motor_stalled
+
+    if not stay_put_after_screwing:
+      self.active_robots[robot_name].go_to_pose_goal(away_from_hole, end_effector_link=screw_tool_link, speed=0.02)
+
+    self.planning_scene_interface.disallow_collisions(screw_tool_id)
+
+    screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
+    if screw_picked:
+      rospy.logerr("screw did not succeed: screw is still suctioned.")
+      return False
+    # TODO: If screw lost but motor did not stall, try fastening again
+        
+    self.tools.set_suction(screw_tool_id, suction_on=False, eject=False, wait=False)
+    return True
+
+  def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=True):
+    return self.pick_screw_from_feeder_python(robot_name, screw_size, realign_tool_upon_failure)  # Python-only version
     res = self.skill_server.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure)
     try:
       if res.success:
@@ -844,6 +1006,9 @@ class O2ACBase(object):
       rospy.logerr("Robot holds an object. Cannot " + operation + " tool.")
       return False
     if ((robot.robot_status.carrying_tool == True) and equip):
+      if robot.robot_status.held_tool_id == tool_name:
+        rospy.loginfo("Robot already holds the tool. Returning true.")
+        return True
       rospy.logerr("Robot already holds a tool. Cannot equip another.")
       return False
     if ((robot.robot_status.carrying_tool == False) and unequip):
@@ -930,8 +1095,7 @@ class O2ACBase(object):
     elif realign:
       lin_speed = 0.5
 
-    sequence.append(helpers.to_sequence_trajectory([ps_approach,ps_in_holder], [0.01,0.0]))
-
+    sequence.append(helpers.to_sequence_trajectory([ps_approach,ps_in_holder], [0.005,0.0], speed=[0.5, 0.2]))
     if not self.execute_sequence(robot_name, sequence, "approach sequence equip/unequip tool", plan_while_moving=True):
       rospy.logerr("Fail to complete the equip/unequip tool sequence")
       return False
@@ -965,7 +1129,7 @@ class O2ACBase(object):
       pull_back_slightly = copy.deepcopy(ps_in_holder)
       pull_back_slightly.pose.position.x -= 0.003
       ps_in_holder.pose.position.x += 0.001  # To remove the offset for placing applied earlier
-      lin_speed = 0.02
+      lin_speed = 0.2
       sequence.append(helpers.to_sequence_item(pull_back_slightly, speed=lin_speed))
       sequence.append(helpers.to_sequence_gripper(gripper='open', gripper_opening_width=0.06, gripper_velocity=0.1))
       sequence.append(helpers.to_sequence_item(ps_in_holder, speed=lin_speed))
@@ -974,7 +1138,7 @@ class O2ACBase(object):
     # Plan & execute linear motion away from the tool change position
     rospy.loginfo("Moving back to screw tool approach pose LIN.")
     
-    lin_speed = 0.8
+    lin_speed = 1.0
 
     sequence.append(helpers.to_sequence_item(ps_move_away, speed=lin_speed))
     sequence.append(helpers.to_sequence_item("tool_pick_ready"))
@@ -1012,6 +1176,9 @@ class O2ACBase(object):
     self.planning_scene_interface.allow_collisions(objects_without_tools, "")
 
   def read_playback_sequence(self, routine_filename, default_frame="world"):
+    """
+    default_frame: used for task-space-in-frame waypoints with undefined frame_id or where the value is specified as default, then the default_frame is used.
+    """
     path = rospkg.RosPack().get_path("o2ac_routines") + ("/config/playback_sequences/%s.yaml" % routine_filename)
     with open(path, 'r') as f:
       routine = yaml.load(f)
@@ -1019,42 +1186,56 @@ class O2ACBase(object):
     waypoints = routine["waypoints"]
 
     trajectory = []
-    trajectory_speed = 0.5
 
     playback_trajectories = []
 
     for waypoint in waypoints:
       is_trajectory = waypoint.get('is_trajectory', False)
+      
+      if waypoint.get("frame_id", "default") == "default":
+        waypoint.update({"frame_id": default_frame})
+
       if is_trajectory:
-        pose = waypoint.get("pose", None) 
+        pose = waypoint.get("pose", None)
         if waypoint["pose_type"] == "joint-space-goal-cartesian-lin-motion":
-          p = self.active_robots[robot_name].get_tcp_pose(pose) # Forward Kinematics
+          p = self.active_robots[robot_name].compute_fk(pose) # Forward Kinematics
         elif waypoint["pose_type"] == "task-space-in-frame":
-          frame_id = waypoint.get("frame_id", default_frame)
           # Convert orientation to radians!
+          frame_id = waypoint.get("frame_id", "default")
           p = conversions.to_pose_stamped(frame_id, np.concatenate([pose[:3],np.deg2rad(pose[3:])]))
+        elif waypoint["pose_type"] == "master-slave":
+          p = waypoint # forward all the info to construct the master-slave trajectory
         else:
           raise ValueError("Unsupported trajectory for pose type: %s" % waypoint["pose_type"])
         blend = waypoint.get("blend", 0.0)
-        if not trajectory: # use speed of the first point or default
-          trajectory_speed = waypoint.get("speed", 0.5)
-        trajectory.append([p, blend])
+        trajectory_speed = waypoint.get("speed", 0.5)
+        trajectory.append([p, blend, trajectory_speed])
       else:
         # Save any on-going trajectory
         if trajectory:
-          playback_trajectories.append(["trajectory", (trajectory, trajectory_speed)])
-          trajectory_speed = 0.5
+          playback_trajectories.append(["trajectory", trajectory])
           trajectory = []
 
         playback_trajectories.append(["waypoint", waypoint])
       
     if trajectory:
-      playback_trajectories.append(["trajectory", (trajectory, trajectory_speed)])
+      playback_trajectories.append(["trajectory", trajectory])
 
     return robot_name, playback_trajectories
 
-  def execute_sequence(self, robot_name, sequence, sequence_name, plan_while_moving=True):
+  def execute_sequence(self, robot_name, sequence, sequence_name, plan_while_moving=True, save_on_success=False, use_saved_plans=False):
+    if use_saved_plans:
+      # TODO(cambel): check that the original plan's file has not been updated. if so, try to do the online planning
+      bagfile = helpers.get_plan_full_path(sequence_name)
+      if not os.path.exists(bagfile):
+        rospy.logwarn("Attempted to execute saved sequence, but file not found: %s" % bagfile)
+        rospy.logwarn("Try to execute sequence with online planning")
+      else:
+        rospy.logwarn("Executing saved sequence")
+        return self.execute_saved_sequence(sequence_name)
+
     robot = self.active_robots[robot_name]
+    all_plans = []
     if not plan_while_moving:
       for i, point in enumerate(sequence):
         rospy.loginfo("Sequence point: %i - %s" % (i+1, point[0]))
@@ -1063,62 +1244,94 @@ class O2ACBase(object):
           waypoint_params = point[1]
           res = self.move_to_sequence_waypoint(robot_name, waypoint_params)
         elif point[0] == "trajectory":
-          trajectory, speed_scale_factor = point[1]
-          res = robot.move_lin_trajectory(trajectory, speed=speed_scale_factor)
+          trajectory = point[1]
+          res = robot.move_lin_trajectory(trajectory)
         if not res:
           rospy.logerr("Fail to complete playback sequence: %s" % sequence_name)
           return False
     else:
+      all_plans.append(robot_name)
       previous_point_duration = 0.0
       previous_plan = None
+      rospy.loginfo("(plan_while_moving) Sequence name: %s" % sequence_name)
       for i, point in enumerate(sequence):
+        res = None
         rospy.loginfo("(plan_while_moving) Sequence point: %i - %s" % (i+1, point[0]))
         # self.confirm_to_proceed("playback_sequence")
 
-        initial_joints = None if not previous_plan else helpers.get_trajectory_joint_goal(previous_plan)
+        initial_joints = robot.robot_group.get_current_joint_values() if not previous_plan else helpers.get_trajectory_joint_goal(previous_plan, robot.robot_group.get_active_joints())
         gripper_action = False
         current_gripper_action = None
 
         if point[0] == "waypoint":
+          rospy.loginfo("Sequence point type: %s > %s" % (point[1]["pose_type"], point[1].get("desc", '')))
           waypoint_params = point[1]
           gripper_action = waypoint_params["pose_type"] == 'gripper'
           if gripper_action:
             current_gripper_action = waypoint_params["gripper"]
             res = None, 0.0
           else:
-            res = self.move_to_sequence_waypoint(robot_name, waypoint_params, plan_only=True, initial_joints=initial_joints)
+            if waypoint_params["pose_type"] == 'master-slave':
+              joint_list = self.active_robots[waypoint_params["master_name"]].robot_group.get_active_joints() + self.active_robots[waypoint_params["slave_name"]].robot_group.get_active_joints()
+              initial_joints_ = None if not previous_plan else helpers.get_trajectory_joint_goal(previous_plan, joint_list)
+            else:
+              initial_joints_ = copy.copy(initial_joints)
+            res = self.move_to_sequence_waypoint(robot_name, waypoint_params, plan_only=True, initial_joints=initial_joints_)
         elif point[0] == "trajectory":
-          trajectory, speed_scale_factor = point[1]
-          res = robot.move_lin_trajectory(trajectory, speed=speed_scale_factor, plan_only=True, initial_joints=initial_joints)
+          trajectory = point[1]
+          if isinstance(trajectory[0][0], geometry_msgs.msg.PoseStamped):
+            res = robot.move_lin_trajectory(trajectory, plan_only=True, initial_joints=initial_joints)
+          elif isinstance(trajectory[0][0], dict):
+            joint_list = self.active_robots[trajectory[0][0]["master_name"]].robot_group.get_active_joints() + self.active_robots[trajectory[0][0]["slave_name"]].robot_group.get_active_joints()
+            initial_joints_ = None if not previous_plan else helpers.get_trajectory_joint_goal(previous_plan, joint_list)
+            res = self.master_slave_trajectory(robot_name, trajectory, plan_only=True, initial_joints=initial_joints_)
+          else:
+            rospy.logerr("Trajectory: %s" % trajectory)
+            raise ValueError("Invalid trajectory type %s" % type(trajectory[0][0]))
         else:
           ValueError("Invalid sequence type: %s" % point[0])
 
         if not gripper_action and not res:
-          print("point plan res", bool(res))
-          print("point gripper action", gripper_action)
           rospy.logerr("Fail to complete playback sequence: %s" % sequence_name)
           return False
         
         plan, planning_time = res
 
+        if save_on_success:
+          if not gripper_action:
+            if i == 0: # Just save the target joint configuration
+              all_plans.append(helpers.get_trajectory_joint_goal(plan))
+            else: # otherwise save the computed plan
+              all_plans.append(plan)
+          else: # or the gripper action
+            all_plans.append(current_gripper_action)
+
         # post planning waiting
         if previous_plan:
           waiting_time = (previous_point_duration) - planning_time if (previous_point_duration) - planning_time > 0 else 0.0
+          waiting_time = waiting_time
           # TODO(cambel): could use this waiting time to evaluate whether to try to plan a future point too instead of only waiting
-          # rospy.sleep(waiting_time)
+          rospy.sleep(waiting_time)
           if not robot.robot_group.wait_for_motion_result():
             rospy.logerr("Moveit aborted the motion")
             # return False
-          
+          rospy.loginfo("waited for motion result")
+        
         current_joints = robot.robot_group.get_current_joint_values()
+        # print("==== Joint sanity check ====")
+        # print("current_joints", np.round(current_joints, 4))
+        # print("target_joints", np.round(initial_joints, 4))
+        # print("diff", np.round(np.array(initial_joints)-current_joints, 3))
         if not helpers.all_close(initial_joints, current_joints, 0.01):
-          rospy.logerr("Fail to execute plan: error code")
+          rospy.logerr("Fail to execute plan: target pose not reach")
           return False
 
         if current_gripper_action:
           self.execute_gripper_action(robot_name, current_gripper_action)
         elif plan:
           wait = True if i == len(sequence) -1 else False
+          # rospy.loginfo("executing plan:")
+          # rospy.loginfo(plan)
           if not robot.execute_plan(plan, wait=wait):
             rospy.logerr("plan execution failed")
             return False
@@ -1126,31 +1339,48 @@ class O2ACBase(object):
         previous_plan = plan
         previous_point_duration = helpers.get_trajectory_duration(plan) if plan else 0.0
 
+    if plan_while_moving and save_on_success:
+      helpers.save_sequence_plans(name=sequence_name, plans=all_plans)
+
     return True
 
-  def playback_sequence(self, routine_filename, default_frame="world", plan_while_moving=True):
+  def playback_sequence(self, routine_filename, default_frame="world", plan_while_moving=True, save_on_success=True, use_saved_plans=True):
 
     robot_name, playback_trajectories = self.read_playback_sequence(routine_filename, default_frame)
 
-    return self.execute_sequence(robot_name, playback_trajectories, routine_filename, plan_while_moving)
+    return self.execute_sequence(robot_name, playback_trajectories, routine_filename, plan_while_moving, save_on_success=save_on_success, use_saved_plans=use_saved_plans)
 
   def execute_gripper_action(self, robot_name, gripper_params):
-      robot = self.active_robots[robot_name]
       gripper_action = gripper_params.get("action", None)
       opening_width = gripper_params.get("width", 0.140)
       force = gripper_params.get("force", 80.)
       velocity = gripper_params.get("velocity", 0.03)
-      if gripper_action == 'open':
-        return robot.gripper.open(opening_width=opening_width, velocity=velocity)
-      elif gripper_action == 'close':
-        return robot.gripper.close(force=force, velocity=velocity)
-      elif gripper_action == 'close-open':
-        robot.gripper.close(velocity=velocity)
-        return robot.gripper.open(opening_width=opening_width, velocity=velocity)
-      elif gripper_action == isinstance(gripper_action, float):
-        return robot.gripper.send_command(gripper_action, force=force, velocity=velocity)
+      if robot_name == "ab_bot":
+        if gripper_action == 'open':
+          success = self.a_bot.gripper.open(opening_width=opening_width, velocity=velocity)
+          success &= self.b_bot.gripper.open(opening_width=opening_width, velocity=velocity)
+        elif gripper_action == 'close':
+          success = self.a_bot.gripper.close(force=force, velocity=velocity)
+          success &= self.b_bot.gripper.close(force=force, velocity=velocity)
+        elif gripper_action == isinstance(gripper_action, float):
+          success = self.a_bot.gripper.send_command(gripper_action, force=force, velocity=velocity)
+          success &= self.b_bot.gripper.send_command(gripper_action, force=force, velocity=velocity)
+        else:
+          raise ValueError("Unsupported gripper action: %s" % gripper_action)
+        return success
       else:
-        raise ValueError("Unsupported gripper action: %s" % gripper_action)
+        robot = self.active_robots[robot_name]
+        if gripper_action == 'open':
+          return robot.gripper.open(opening_width=opening_width, velocity=velocity)
+        elif gripper_action == 'close':
+          return robot.gripper.close(force=force, velocity=velocity)
+        elif gripper_action == 'close-open':
+          robot.gripper.close(velocity=velocity)
+          return robot.gripper.open(opening_width=opening_width, velocity=velocity)
+        elif gripper_action == isinstance(gripper_action, float):
+          return robot.gripper.send_command(gripper_action, force=force, velocity=velocity)
+        else:
+          raise ValueError("Unsupported gripper action: %s" % gripper_action)
 
   def move_to_sequence_waypoint(self, robot_name, params, plan_only=False, initial_joints=None):
     success = False
@@ -1164,11 +1394,9 @@ class O2ACBase(object):
 
     if pose_type  == 'joint-space':
       success = robot.move_joints(pose, speed=speed, acceleration=acceleration, plan_only=plan_only, initial_joints=initial_joints)
-
     elif pose_type == 'joint-space-goal-cartesian-lin-motion':
-      p = robot.get_tcp_pose(pose) # Forward Kinematics
+      p = robot.compute_fk(pose) # Forward Kinematics
       success = robot.move_lin(p, speed=speed, acceleration=acceleration, plan_only=plan_only, initial_joints=initial_joints)
-
     elif pose_type == 'task-space-in-frame':
       frame_id = params.get("frame_id", "world")
       # Convert orientation to radians!
@@ -1183,12 +1411,61 @@ class O2ACBase(object):
       success = robot.move_lin_rel(relative_translation=pose[:3], relative_rotation=np.deg2rad(pose[3:]), speed=speed, acceleration=acceleration, relative_to_robot_base=True, plan_only=plan_only, initial_joints=initial_joints)
     elif pose_type == 'named-pose':
       success = robot.go_to_named_pose(pose, speed=speed, acceleration=acceleration, plan_only=plan_only, initial_joints=initial_joints)
+    elif pose_type == 'master-slave':
+      ps = conversions.to_pose_stamped(params["frame_id"], np.concatenate([pose[:3],np.deg2rad(pose[3:])]))
+      success = robot.master_slave_control(params['master_name'], params['slave_name'], ps, params['slave_relation'], speed=speed, plan_only=plan_only, initial_joints=initial_joints)
     elif not plan_only and pose_type == 'gripper':
       success = self.execute_gripper_action(robot_name, gripper_params)
     else:
       raise ValueError("Invalid pose_type: %s" % pose_type)
 
     return success
+
+  def execute_saved_sequence(self, name):
+    sequence = helpers.load_sequence_plans(name)
+    robot_name = sequence[0]
+    robot = self.active_robots[robot_name]
+
+    robot.move_joints(sequence[1])
+    for seq in sequence[2:]:
+      success = False
+      if isinstance(seq, dict):
+        success =  self.execute_gripper_action(robot_name, seq)
+      else:
+        # TODO(cambel): validate that the plan is still valid before execution
+        success = robot.execute_plan(seq, wait=True)
+      
+      if not success:
+        rospy.logerr("Fail to execute saved plan from sequence. Abort")
+        return False
+    
+    return True
+
+  def master_slave_trajectory(self, robot_name, trajectory, plan_only=False, initial_joints=None):
+    master_trajectory = []
+    waypoints = [wp for wp, _ , _ in trajectory] # Ignoring blend and speed as the whole waypoints dict is forwarded in the first value
+    for waypoint in waypoints:
+      pose = waypoint["pose"]
+      frame_id = waypoint["frame_id"]
+      ps = conversions.to_pose_stamped(frame_id, np.concatenate([pose[:3],np.deg2rad(pose[3:])]))
+      master_trajectory.append((ps, waypoint("blend", 0), waypoints[0].get("speed", 0.5))) # poseStamped, blend, speed
+
+    slave_initial_joints = initial_joints[6:] if initial_joints is not None else None
+    master_initial_joints = initial_joints[:6] if initial_joints is not None else None
+
+    master_plan, _ = self.active_robots[waypoints[0]["master_name"]].move_lin_trajectory(master_trajectory, speed=waypoints[0].get("speed", 0.5), plan_only=True, initial_joints=master_initial_joints)
+
+    master_slave_plan, planning_time = self.active_robots[robot_name].compute_master_slave_plan(waypoints[0]["master_name"], 
+                                                                                                waypoints[0]["slave_name"],
+                                                                                                waypoints[0]["slave_relation"],
+                                                                                                slave_initial_joints,
+                                                                                                master_plan)
+
+    if plan_only:
+      return master_slave_plan, planning_time
+    else:
+      return self.active_robots[robot_name].execute_plan(master_slave_plan)
+
 ######
 
   def start_task_timer(self):

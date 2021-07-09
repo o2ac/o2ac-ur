@@ -13,9 +13,7 @@ geometry_msgs/PoseWithCovarianceStamped expected_pose
 ---
 # Result (returned from the server to the client)
 
-bool succeeded
-float32[] confidences
-geometry_msgs/PoseStamped[] detected_poses
+o2ac_msgs/Estimated3DPoses[] detected_poses
 
 # Optional
 geometry_msgs/PoseWithCovarianceStamped[] detected_poses_with_covariance

@@ -43,7 +43,7 @@
   <!-- Tray -->
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/tray.xacro" />
   <xacro:tray trayname="tray" parent="workspace_center">
-    <origin xyz="0.05 -0.2 0.001" rpy="0 0 0" />
+    <origin xyz="0.05 -0.2 0.0001" rpy="0 0 0" />
   </xacro:tray>
 
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/tray.xacro" />
@@ -60,6 +60,11 @@
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/vgroove_aid.xacro" />
   <xacro:vgroove_aid jigname="vgroove_aid" parent="b_bot_base_link">
     <origin xyz="-0.2927 0.17214 0.0" rpy="0 0 0" />   
+  </xacro:vgroove_aid> 
+
+  <!-- The second vgroove at the back (for the motor)-->
+  <xacro:vgroove_aid jigname="vgroove_aid_motor" parent="b_bot_base_link">
+    <origin xyz="-0.225 -0.210 0.001" rpy="0 0 0" />   
   </xacro:vgroove_aid> 
 
 

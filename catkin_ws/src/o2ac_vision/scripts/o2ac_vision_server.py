@@ -37,6 +37,7 @@
 import rospy
 import tf
 import tf_conversions
+import message_filters
 import time
 import copy
 import os
@@ -54,20 +55,22 @@ import cv_bridge  # This offers conversion methods between OpenCV
                   # Note that a similar package exists for PCL:
                   #   http://wiki.ros.org/pcl_ros
 
-import o2ac_routines.helpers
 import sensor_msgs.msg
 import o2ac_msgs.msg
 import geometry_msgs.msg
 import visualization_msgs.msg
 import std_msgs.msg
+import std_srvs.srv
 
-from aist_depth_filter  import DepthFilterClient
-from aist_localization  import LocalizationClient
+from aist_depth_filter     import DepthFilterClient
+from aist_new_localization import LocalizationClient
+from aist_model_spawner    import ModelSpawnerClient
 
-from o2ac_vision.pose_estimation_func import TemplateMatching
+from o2ac_vision.pose_estimation_func import ShaftHoleDetection, TemplateMatching
 from o2ac_vision.pose_estimation_func import FastGraspabilityEvaluation
 from o2ac_vision.pose_estimation_func import ShaftAnalysis
 from o2ac_vision.pose_estimation_func import PickCheck
+from o2ac_vision.pose_estimation_func import PulleyScrewDetection
 
 from o2ac_vision.cam_utils import O2ACCameraHelper
 
@@ -87,395 +90,451 @@ class O2ACVisionServer(object):
     def __init__(self):
         rospy.init_node('o2ac_vision_server', anonymous=False)
 
-        camera_name = rospy.get_param('~camera_name', "camera_multiplexer")
-        self.cam_helper = O2ACCameraHelper()
-        # tf_buffer = tf2_ros.Buffer(rospy.Duration(5.0)) #tf buffer length
-        # self.listener = tf2_ros.TransformListener(tf_buffer)
-        self.listener = tf.TransformListener()
-
-        # Setup publisher for output result image
-        self.image_pub = rospy.Publisher('~result_image',
-                                         sensor_msgs.msg.Image, queue_size=1)
-        self.marker_pub = rospy.Publisher('~result_markers', visualization_msgs.msg.Marker, queue_size=1)
-        self.marker_array_pub = rospy.Publisher('~result_marker_arrays', visualization_msgs.msg.MarkerArray, queue_size=1)
-        
-        # Parameters for the localization server
-        self._models = (
-               '00-ALL',                        # 0
-               '01-BASE',                       # 1
-               '02-PANEL',                      # 2
-               '03-PANEL2',                     # 3
-               '04_37D-GEARMOTOR-50-70',        # 4
-               '05_MBRFA30-2-P6',               # 5
-               '06_MBT4-400',                   # 6
-               '07_SBARB6200ZZ_30',             # 7
-               '08_KZAF1075NA4WA55GA20AA0',     # 8
-               '09_EDCS10',                     # 9
-               '10_CLBPS10_17_4',               # 10
-               '11_MBRAC60-2-10',               # 11
-               '12_CLBUS6-9-9.5',               # 12
-               '13_MBGA30-2',                   # 13
-               '14_BGPSL6-9-L30-F8',            # 14
-              )
-
-        self._nposes  = rospy.get_param('~nposes',  2)  # Number of pose candidates to be returned from localization
-        self._timeout = rospy.get_param('~timeout', 10)
-
-        # Setup clients for depth filtering and localization
-        self._dfilter = DepthFilterClient('depth_filter')
-        self._dfilter.window_radius = 2
-        self._localizer = LocalizationClient('localization')
-
         # Load parameters for detecting graspabilities
         default_param_fge = {"ds_rate": 0.5,
                              "n_grasp_point": 50,
                              "threshold": 0.01}
-        self.param_fge = rospy.get_param('~param_fge', default_param_fge)
+        self._param_fge = rospy.get_param('~param_fge', default_param_fge)
+
+
+        # Load parameters for localization
+        self._param_localization = rospy.get_param('~localization_parameters')
+        self._models = tuple(part_id
+                             for part_id
+                             in sorted(list(self._param_localization.keys())))
 
         self.rospack = rospkg.RosPack()
         background_file = self.rospack.get_path("o2ac_vision") + "/config/shaft_background.png"
-        self.shaft_bg_image = cv2.imread(background_file, 0) 
+        self.shaft_bg_image = cv2.imread(background_file, 0)
 
-        # Setup camera image subscribers
-        self.cam_info_sub = rospy.Subscriber('/' + camera_name + '/camera_info', sensor_msgs.msg.CameraInfo,
-                                          self.camera_info_callback)
-        self.depth_image_sub = rospy.Subscriber('/' + camera_name + '/depth', sensor_msgs.msg.Image,
-                                          self.depth_image_sub_callback)
-        self.image_sub = rospy.Subscriber('/' + camera_name + '/image', sensor_msgs.msg.Image,
-                                          self.image_subscriber_callback)
-        self.bridge = cv_bridge.CvBridge()
+        shaft_w_hole_file  = self.rospack.get_path("o2ac_vision") + "/config/shaft_w_hole.png"
+        shaft_wo_hole_file = self.rospack.get_path("o2ac_vision") + "/config/shaft_wo_hole.png"
+        sdh_bbox = rospy.get_param("shaft_hole_detection/bbox", [350,100,100,100])
+        self.shaft_hole_detector = ShaftHoleDetection(shaft_w_hole_file, shaft_wo_hole_file, sdh_bbox)
+
+        pulley_template_filepath = self.rospack.get_path("wrs_dataset") + "/data/pulley/pulley_screw_temp.png"
+        self.pulley_screws_template_image = cv2.imread(pulley_template_filepath, 0)
+        self.pulley_screw_detection_stream_active = False
+        self.activate_pulley_screw_detection_service = rospy.Service("~activate_pulley_screw_detection", std_srvs.srv.SetBool, self.set_pulley_screw_detection_callback)
 
         # Determine whether the detection server works in continuous mode or not.
-        self.continuous_streaming = rospy.get_param('~continuous_streaming', False)
+        self.continuous_streaming = rospy.get_param('~continuous_streaming',
+                                                    False)
+
         if self.continuous_streaming:
-            # Setup publisher for object detection results
-            self.results_pub = rospy.Publisher('~detection_results', o2ac_msgs.msg.Estimated2DPosesArray, queue_size=1)
             rospy.logwarn("Localization action server is not running because SSD results are being streamed! Turn off continuous mode to use localization.")
         else:
-            # Setup the localization 
-            self.get_2d_poses_from_ssd_action_server = actionlib.SimpleActionServer("~get_2d_poses_from_ssd", o2ac_msgs.msg.get2DPosesFromSSDAction,
-                execute_cb = self.get_2d_poses_from_ssd_goal_callback, auto_start=False)
-            self.get_2d_poses_from_ssd_action_server.start()
+            # Clients for depth filtering and localization
+            self._dfilter   = DepthFilterClient('depth_filter')
+            self._localizer = LocalizationClient('localization')
+            self._spawner   = ModelSpawnerClient('model_spawner')
 
-            self.get_3d_poses_from_ssd_action_server = actionlib.SimpleActionServer("~get_3d_poses_from_ssd", o2ac_msgs.msg.get3DPosesFromSSDAction,
-                execute_cb = self.get_3d_poses_from_ssd_goal_callback, auto_start=False)
-            self.get_3d_poses_from_ssd_action_server.start()
+            # Action server for 2D localization by SSD
+            self.get_2d_poses_from_ssd_server \
+                = actionlib.SimpleActionServer(
+                    "~get_2d_poses_from_ssd",
+                    o2ac_msgs.msg.get2DPosesFromSSDAction, auto_start=False)
+            self.get_2d_poses_from_ssd_server.register_goal_callback(
+                self.get_2d_poses_from_ssd_goal_callback)
+            self.get_2d_poses_from_ssd_server.start()
 
-            self.localization_server = actionlib.SimpleActionServer("~localize_object", o2ac_msgs.msg.localizeObjectAction,
-                execute_cb=self.localization_callback, auto_start = False)
-            self.localization_server.register_preempt_callback(self.localization_preempt_callback)
+            # Action server for 3D localization by SSD
+            self.get_3d_poses_from_ssd_server \
+                = actionlib.SimpleActionServer(
+                    "~get_3d_poses_from_ssd",
+                    o2ac_msgs.msg.get3DPosesFromSSDAction, auto_start=False)
+            self.get_3d_poses_from_ssd_server.register_goal_callback(
+                self.get_3d_poses_from_ssd_goal_callback)
+            self.get_3d_poses_from_ssd_server.start()
+
+            # Action server for 3D localization by CAD matching
+            self.localization_server \
+                = actionlib.SimpleActionServer(
+                    "~localize_object",
+                    o2ac_msgs.msg.localizeObjectAction, auto_start=False)
+            self.localization_server.register_goal_callback(
+                self.localization_callback)
             self.localization_server.start()
-        
-        self.belt_detection_action_server = actionlib.SimpleActionServer("~belt_detection", o2ac_msgs.msg.beltDetectionAction,
-            execute_cb = self.belt_detection_callback, auto_start=False)
-        self.belt_detection_action_server.start()
-        
-        self.angle_detection_action_server = actionlib.SimpleActionServer("~detect_angle", o2ac_msgs.msg.detectAngleAction,
-            execute_cb = self.angle_detection_callback, auto_start=False)
-        self.angle_detection_action_server.start()
-        # Action client to forward the calculation to the Python3 node
-        self._py3_axclient = actionlib.SimpleActionClient('/o2ac_py3_vision_server/internal/detect_angle', o2ac_msgs.msg.detectAngleAction)
-        
-        self.shaft_notch_detection_action_server = actionlib.SimpleActionServer("~detect_shaft_notch", o2ac_msgs.msg.shaftNotchDetectionAction,
-            execute_cb = self.shaft_notch_detection_callback, auto_start=False)
-        self.shaft_notch_detection_action_server.start()
 
-        self.pick_success_action_server = actionlib.SimpleActionServer("~check_pick_success", o2ac_msgs.msg.checkPickSuccessAction,
-            execute_cb = self.pick_success_callback, auto_start=False)
-        self.pick_success_action_server.start()
-        
+            # Action server for belt detection
+            self.belt_detection_server \
+                = actionlib.SimpleActionServer(
+                    "~belt_detection",
+                    o2ac_msgs.msg.beltDetectionAction,  auto_start=False)
+            self.belt_detection_server.register_goal_callback(
+                self.belt_detection_callback)
+            self.belt_detection_server.start()
+
+            # Action server for angle detection
+            self.angle_detection_server \
+                = actionlib.SimpleActionServer(
+                    "~detect_angle",
+                    o2ac_msgs.msg.detectAngleAction, auto_start=False)
+            self.angle_detection_server.register_goal_callback(
+                self.angle_detection_callback)
+            self.angle_detection_server.start()
+
+            # Action server for shaft hole detection
+            self.shaft_hole_detection_server \
+                = actionlib.SimpleActionServer(
+                    "~detect_shaft_hole",
+                    o2ac_msgs.msg.shaftHoleDetectionAction, auto_start=False)
+            self.shaft_hole_detection_server.register_goal_callback(
+                self.shaft_hole_detection_callback)
+            self.shaft_hole_detection_server.start()
+
+            # Action server for checking pick success
+            self.pick_success_server \
+                = actionlib.SimpleActionServer(
+                    "~check_pick_success",
+                    o2ac_msgs.msg.checkPickSuccessAction, auto_start=False)
+            self.pick_success_server.register_goal_callback(
+                self.pick_success_callback)
+            self.pick_success_server.start()
+
+        # Action client to forward the calculation to the Python3 node
+        self._py3_axclient \
+            = actionlib.SimpleActionClient(
+                '/o2ac_py3_vision_server/internal/detect_angle',
+                o2ac_msgs.msg.detectAngleAction)
+
+        # Setup subscribers of camera topics and synchronizer.
+        self.camera_info_sub \
+            = message_filters.Subscriber('/camera_info',
+                                         sensor_msgs.msg.CameraInfo)
+        self.image_sub \
+            = message_filters.Subscriber('/image', sensor_msgs.msg.Image)
+        self.depth_sub \
+            = message_filters.Subscriber('/depth', sensor_msgs.msg.Image)
+        sync = message_filters.ApproximateTimeSynchronizer(
+                [self.camera_info_sub, self.image_sub, self.depth_sub],
+                10, 0.01)
+        sync.registerCallback(self.synced_images_callback)
+
+        self.bridge = cv_bridge.CvBridge()
+
+        # Setup publisher for object detection results
+        self.results_pub = rospy.Publisher('~detection_results',
+                                           o2ac_msgs.msg.Estimated2DPosesArray,
+                                           queue_size=1)
+        self.pulley_screw_detection_pub = rospy.Publisher('~activate_pulley_screw_detection',
+                                           std_msgs.msg.Bool,
+                                           queue_size=1)
+
+        # Setup publisher for output result image
+        self.image_pub = rospy.Publisher('~result_image',
+                                         sensor_msgs.msg.Image, queue_size=1)
+
         # For visualization
+        self.cam_helper             = O2ACCameraHelper()
+        self.listener               = tf.TransformListener()
         self.pose_marker_id_counter = 0
-        self.pose_marker_array = 0
-        self._depth_image_ros = None
+        self.pose_marker_array      = 0
+        self._camera_info           = None
+        self._depth                 = None
+        self.marker_array_pub = rospy.Publisher(
+                                        '~result_marker_arrays',
+                                        visualization_msgs.msg.MarkerArray,
+                                        queue_size=1)
+
         rospy.loginfo("O2AC_vision has started up!")
 
-    def camera_info_callback(self, cam_info_message):
-        self._camera_info = cam_info_message
+    ### ======= Callbacks of action servers
 
-    def depth_image_sub_callback(self, depth_image_msg):
-        self._depth_image_ros = depth_image_msg
+    def get_2d_poses_from_ssd_goal_callback(self):
+        print("get_2d_poses_from_ssd called")
+        self.get_2d_poses_from_ssd_server.accept_new_goal()
 
-    def get_3d_poses_from_ssd_goal_callback(self, goal):
-        self.get_3d_poses_from_ssd_action_server.accept_new_goal()
-        rospy.loginfo("Received a request to detect objects via SSD")
-        # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
-        im_in  = self.bridge.imgmsg_to_cv2(self.last_rgb_image, desired_encoding="bgr8")
-        im_vis = im_in.copy()
-        
-        action_result = o2ac_msgs.msg.get3DPosesFromSSDResult()
-        poses_2d_with_id, im_vis, upside_down_list = self.get_2d_poses_from_ssd(im_in, im_vis)
+    def get_3d_poses_from_ssd_goal_callback(self):
+        self.get_3d_poses_from_ssd_server.accept_new_goal()
 
-        action_result.poses = []
-        action_result.class_ids = []
-        action_result.upside_down = []
-        for (array, upside_down) in zip(poses_2d_with_id, upside_down_list):
-            for pose2d in array.poses:
-                action_result.class_ids.append(array.class_id)
-                p3d = self.convert_pose_2d_to_3d(pose2d)
-                if p3d:
-                    action_result.poses.append(p3d)
-                    action_result.upside_down.append(upside_down)
-        self.get_3d_poses_from_ssd_action_server.set_succeeded(action_result)
-        # Publish result visualization
-        self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
-        self.write_to_log(im_in, im_vis, "3d_poses_from_ssd")
+    def localization_callback(self):
+        self._localization_goal = self.localization_server.accept_new_goal()
 
-    def get_2d_poses_from_ssd_goal_callback(self, goal):
-        self.get_2d_poses_from_ssd_action_server.accept_new_goal()
-        rospy.loginfo("Received a request to detect objects via SSD")
-        # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
-        im_in  = self.bridge.imgmsg_to_cv2(self.last_rgb_image, desired_encoding="bgr8")
-        im_vis = im_in.copy()
-        
-        action_result = o2ac_msgs.msg.get2DPosesFromSSDResult()
-        action_result.results, im_vis, action_result.upside_down = self.get_2d_poses_from_ssd(im_in, im_vis)
+    def belt_detection_callback(self):
+        self.belt_detection_server.accept_new_goal()
 
-        self.get_2d_poses_from_ssd_action_server.set_succeeded(action_result)
+    def angle_detection_callback(self):
+        self._angle_detection_goal \
+            = self.angle_detection_server.accept_new_goal()
 
-        # Publish result visualization
-        self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
-        self.write_to_log(im_in, im_vis, "2d_poses_from_ssd")
+    def shaft_hole_detection_callback(self):
+        self.shaft_hole_detection_server.accept_new_goal()
 
-    def belt_detection_callback(self, goal):
-        self.belt_detection_action_server.accept_new_goal()
-        rospy.loginfo("Received a request to detect belt grasp points")
-        # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
-        im_in  = self.bridge.imgmsg_to_cv2(self.last_rgb_image, desired_encoding="bgr8")
+    def pick_success_callback(self):
+        self.pick_success_server.accept_new_goal()
+
+### ======= Callbacks of subscribed topics
+
+    def synced_images_callback(self, camera_info, image, depth):
+        self._camera_info = camera_info
+        self._depth       = depth
+
+        im_in  = self.bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
         im_vis = im_in.copy()
 
-        action_result = o2ac_msgs.msg.beltDetectionResult()
-        # Get bounding boxes, then belt grasp points
-        ssd_results, im_vis = self.detect_object_in_image(im_in, im_vis)
-        poses_2d, im_vis = self.belt_grasp_detection_in_image(im_in, im_vis, ssd_result)
-        
-        poses_3d = []
-        for p2d in poses_2d:
-            p3d = self.convert_pose_2d_to_3d(p2d)
-            if p3d:
-                poses_3d.poses.append(p3d)
-        
-        action_result.grasp_points = poses_3d
-        self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
-        self.belt_detection_action_server.set_succeeded(action_result)
-        self.write_to_log(im_in, im_vis, "belt_detection")
-
-    def angle_detection_callback(self, goal):
-        self.angle_detection_action_server.accept_new_goal()
-        rospy.loginfo("Received a request to detect angle of " + goal.item_id)
-        # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
-        # im_in  = self.bridge.imgmsg_to_cv2(self.last_rgb_image, desired_encoding="bgr8")
-        # im_vis = im_in.copy()
-        
-        # Pass action goal to Python3 node
-        action_goal = goal
-        action_goal.rgb_image = copy.deepcopy(self.last_rgb_image)
-        self._py3_axclient.send_goal(action_goal)
-        
-        if (not self._py3_axclient.wait_for_result(rospy.Duration(3.0))):
-            rospy.logerr("Angle detection timed out.")
-            self._py3_axclient.cancel_goal()  # Cancel goal if timeout expired
-        
-        action_result = self._py3_axclient.get_result()
-        self.angle_detection_action_server.set_succeeded(action_result)
-
-    def shaft_notch_detection_callback(self, goal):
-        self.shaft_notch_detection_action_server.accept_new_goal()
-        rospy.loginfo("Received a request to detect shaft notch")
-        # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
-        im_in = self.bridge.imgmsg_to_cv2(self.last_rgb_image, desired_encoding="bgr8")
-
-        action_result = o2ac_msgs.msg.shaftNotchDetectionResult()
-        
-        top, bottom, im_vis = self.shaft_notch_detection(im_in)
-        print("top", top, "bottom", bottom)
-        
-        action_result.shaft_notch_detected_at_top = top
-        action_result.shaft_notch_detected_at_bottom = bottom
-        action_result.no_shaft_notch_detected = (not top and not bottom)
-
-        self.shaft_notch_detection_action_server.set_succeeded(action_result)
-        self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
-        self.write_to_log(im_in, im_vis, "shaft_notch_detection")
-
-    def pick_success_callback(self, goal):
-        self.pick_success_action_server.accept_new_goal()
-        rospy.loginfo("Received a request to detect pick success for item: " + goal.item_id)
-        # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
-        im_in = self.bridge.imgmsg_to_cv2(self.last_rgb_image, desired_encoding="bgr8")
-
-        action_result = o2ac_msgs.msg.checkPickSuccessResult()
-        
-        pick_successful, im_vis = self.check_pick_success(im_in, goal.item_id)
-
-        action_result.item_is_picked = pick_successful
-        action_result.success = True
-        
-        self.pick_success_action_server.set_succeeded(action_result)
-        self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
-        self.write_to_log(im_in, im_vis, "pick_success")
-
-    def localization_callback(self, goal):
-        rospy.loginfo("Received a request to localize objects via CAD matching")
-        # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
-        im_in  = self.bridge.imgmsg_to_cv2(self.last_rgb_image, desired_encoding="bgr8")
-        im_vis = im_in.copy()
-        # Apply SSD first to get the object's bounding box
-        detection_results, im_vis = self.get_2d_poses_from_ssd(im_in, im_vis)
-
-        localization_result = o2ac_msgs.msg.localizeObjectResult()
-        localization_result.succeeded = False
-
-        for result in detection_results:
-            # Only pass to CAD matching if object is found in the RGB image
-            if goal.item_id == self.item_id(result.class_id):
-                rospy.loginfo("Seen object " + str(goal.item_id) + " in tray. Apply CAD matching.")
-                localization_result.detected_poses, \
-                localization_result.confidences     \
-                    = self.localize(goal.item_id, result.bbox, result.poses)
-
-                if localization_result.detected_poses:
-                    localization_result.succeeded = True
-                    self.localization_server.set_succeeded(localization_result)
-                    return
-                else:
-                    rospy.logerr("Could not not localize object " + str(goal.item_id) + " although it was seen by SSD.")
-                break
-        rospy.logerr("Could not not localize object " + str(goal.item_id) + ". Might not be detected by SSD.")
-        self.localization_server.set_aborted(localization_result)
-        self.write_to_log(im_in, im_vis, "localization")
-    
-    def localization_preempt_callback(self):
-        rospy.loginfo("o2ac_msgs.msg.localizeObjectAction preempted")
-        self.localization_server.set_preempted()
-
-    def image_subscriber_callback(self, image):
-        # Save the camera image locally
-        # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
-        self.last_rgb_image = image
-        
-        # Pass image to SSD if continuous display is turned on
-        if self.continuous_streaming:
-            # with self.lock:
-            im_in  = self.bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
-            im_vis = im_in.copy()
-
-            Estimated2DPoses_msg = o2ac_msgs.msg.Estimated2DPosesArray()
-            Estimated2DPoses_msg.header = image.header
-            Estimated2DPoses_msg.results, im_vis = self.get_2d_poses_from_ssd(im_in, im_vis)
-            self.results_pub.publish(Estimated2DPoses_msg)
+        if self.pulley_screw_detection_stream_active:
+            msg = std_msgs.msg.Bool()
+            msg.data = self.detect_pulley_screws(im_in, im_vis)
+            self.pulley_screw_detection_pub.publish(msg)
 
             # Publish images visualizing results
             self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
 
+        # Pass image to SSD if continuous display is turned on
+        if self.continuous_streaming:
+            poses2d_array = o2ac_msgs.msg.Estimated2DPosesArray()
+            poses2d_array.header = image.header
+            poses2d_array.results, im_vis = self.get_2d_poses_from_ssd(im_in,
+                                                                       im_vis)
+            self.results_pub.publish(poses2d_array)
+            self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
+
+        elif self.get_2d_poses_from_ssd_server.is_active():
+            self.execute_get_2d_poses_from_ssd(im_in, im_vis)
+
+        elif self.get_3d_poses_from_ssd_server.is_active():
+            self.execute_get_3d_poses_from_ssd(im_in, im_vis)
+
+        elif self.localization_server.is_active():
+            self.execute_localization(im_in, im_vis)
+
+        elif self.belt_detection_server.is_active():
+            self.execute_belt_detection(im_in, im_vis)
+
+        elif self.angle_detection_server.is_active():
+            self.execute_angle_detection(im_in)
+
+        elif self.shaft_hole_detection_server.is_active():
+            self.execute_shaft_hole_detection(im_in)
+
+        elif self.pick_success_server.is_active():
+            self.execute_pick_success(im_in)
+
+    def set_pulley_screw_detection_callback(self, msg):
+        self.pulley_screw_detection_stream_active = msg.data
+        res = std_srvs.srv.SetBoolResponse()
+        res.success = True
+        return res
+
+### ======= Process active goals of action servers
+
+    def execute_get_2d_poses_from_ssd(self, im_in, im_vis):
+        rospy.loginfo("Execute get_2d_poses_from_ssd action")
+
+        action_result = o2ac_msgs.msg.get2DPosesFromSSDResult()
+        action_result.results, im_vis = self.get_2d_poses_from_ssd(im_in,
+                                                                   im_vis)
+        self.get_2d_poses_from_ssd_server.set_succeeded(action_result)
+        self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
+
+    def execute_get_3d_poses_from_ssd(self, im_in, im_vis):
+        rospy.loginfo("Execute get_3d_poses_from_ssd action")
+
+        poses2d_array, im_vis = self.get_2d_poses_from_ssd(im_in, im_vis)
+        action_result = o2ac_msgs.msg.get3DPosesFromSSDResult()
+        action_result.poses       = []
+        action_result.class_ids   = []
+        action_result.upside_down = []
+        for poses2d in poses2d_array:
+            for pose2d in poses2d.poses:
+                p3d = self.convert_pose_2d_to_3d(pose2d)
+                if p3d:
+                    action_result.class_ids.append(poses2d.class_id)
+                    action_result.poses.append(p3d)
+                    action_result.upside_down.append(poses2d.upside_down)
+        self.get_3d_poses_from_ssd_server.set_succeeded(action_result)
+        self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
+
+    def execute_localization(self, im_in, im_vis):
+        rospy.loginfo("Executing localization action")
+        # Apply SSD first to get the object's bounding box
+        poses2d_array, im_vis = self.get_2d_poses_from_ssd(im_in, im_vis)
+        self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
+
+        # If item_id is specified, keep only results with the id.
+        goal = self.localization_server.current_goal.get_goal()
+        if goal.item_id != '':
+            poses2d_array = [poses2d for poses2d in poses2d_array
+                             if self.item_id(poses2d.class_id) == goal.item_id]
+
+        self._spawner.delete_all()
+
+        # Execute localization for each item with 2D poses detected by SSD.
+        action_result = o2ac_msgs.msg.localizeObjectResult()
+        for poses2d in poses2d_array:
+            poses3d = o2ac_msgs.msg.Estimated3DPoses()
+            poses3d.class_id = poses2d.class_id
+            poses3d.poses    = self.localize(self.item_id(poses2d.class_id),
+                                             poses2d.bbox, poses2d.poses,
+                                             im_in.shape)
+            if poses3d.poses:
+                action_result.detected_poses.append(poses3d)
+                # Spawn URDF models
+                for n, pose in enumerate(poses3d.poses.poses):
+                    self._spawner.add(self.item_id(poses3d.class_id),
+                                      geometry_msgs.msg.PoseStamped(
+                                          poses3d.poses.header, pose),
+                                      '{:02d}_'.format(n))
+
+        if action_result.detected_poses:
+            self.localization_server.set_succeeded(action_result)
+        else:
+            rospy.logerr("Could not not localize object %s. Might not be detected by SSD.",
+                         goal.item_id)
+            self.localization_server.set_aborted(action_result)
+            self.write_to_log(im_in, im_vis, "localization")
+
+    def execute_belt_detection(self, im_in, im_vis):
+        rospy.loginfo("Received a request to detect belt grasp points")
+
+        # Get bounding boxes, then belt grasp points
+        ssd_results, im_vis = self.detect_object_in_image(im_in, im_vis)
+
+        # Remain only results with class id of the belt.
+        poses2d = []
+        for ssd_result in ssd_results:
+            if ssd_result['class'] == 6:
+                p2d, im_vis = self.belt_grasp_detection_in_image(im_in, im_vis,
+                                                                 ssd_result)
+                poses2d += p2d
+
+        action_result = o2ac_msgs.msg.beltDetectionResult()
+        for pose2d in poses2d:
+            pose3d = self.convert_pose_2d_to_3d(pose2d)
+            if pose3d:
+                action_result.grasp_points.append(pose3d)
+        self.belt_detection_server.set_succeeded(action_result)
+
+        self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
+        self.write_to_log(im_in, im_vis, "belt_detection")
+
+    def execute_angle_detection(self, image):
+        goal = self.angle_detection_server.current_goal.get_goal()
+        rospy.loginfo("Received a request to detect angle of %s", goal.item_id)
+
+        # Pass action goal to Python3 node
+        action_goal = goal
+        action_goal.rgb_image = self.bridge.cv2_to_imgmsg(image)
+        self._py3_axclient.send_goal(action_goal)
+
+        if (not self._py3_axclient.wait_for_result(rospy.Duration(3.0))):
+            rospy.logerr("Angle detection timed out.")
+            self._py3_axclient.cancel_goal()  # Cancel goal if timeout expired
+
+        action_result = self._py3_axclient.get_result()
+        self.angle_detection_server.set_succeeded(action_result)
+
+    def execute_shaft_hole_detection(self, im_in):
+        rospy.loginfo("Received a request to detect shaft hole")
+
+        has_hole, im_vis = self.shaft_hole_detection(im_in)
+        rospy.loginfo("shaft tip has hole? %s" % has_hole)
+
+        action_result = o2ac_msgs.msg.shaftHoleDetectionResult()
+        action_result.has_hole = has_hole
+        self.shaft_hole_detection_server.set_succeeded(action_result)
+
+        self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
+        self.write_to_log(im_in, im_vis, "shaft_hole_detection")
+
+    def execute_pick_success(self, im_in):
+        goal = self.pick_success_server.current_goal.get_goal()
+        rospy.loginfo("Received a request to detect pick success for item: %s" % goal.item_id)
+        # TODO (felixvd): Use Threading.Lock() to prevent race conditions here
+        action_result = o2ac_msgs.msg.checkPickSuccessResult()
+        action_result.item_is_picked, im_vis \
+            = self.check_pick_success(im_in, goal.item_id)
+        action_result.success = True
+        self.pick_success_server.set_succeeded(action_result)
+
+        self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
+        self.write_to_log(im_in, im_vis, "pick_success")
+
 ### ======= Localization helpers
-
-    def item_id(self, class_id):
-        return self._models[class_id]
-
-    def localize(self, item_id, bbox, poses2d):
-        self._dfilter.roi = (bbox[0],           bbox[1],
-                             bbox[0] + bbox[2], bbox[1] + bbox[3])
-        while not self._dfilter.capture():  # Load PLY data to the localizer
-            pass
-        self._localizer.send_goal(item_id, self._nposes, poses2d)
-        return self._localizer.wait_for_result(rospy.Duration(self._timeout))
-
-### =======
 
     def get_2d_poses_from_ssd(self, im_in, im_vis):
         """
         Finds an object's bounding box on the tray, then attempts to find its pose.
         Can also find grasp poses for the belt.
 
-        Returns all bounding boxes with confidences, and returns all the 2D poses 
+        Returns all bounding boxes with confidences, and returns all the 2D poses
         """
         # Object detection
         ssd_results, im_vis = self.detect_object_in_image(im_in, im_vis)
 
-        self.reset_pose_markers()        
+        self.reset_pose_markers()
 
         # Pose estimation
-        estimated_poses_array    = []                      # Contains all results
+        poses2d_array            = []                      # Contains all results
         apply_2d_pose_estimation = [8,9,10,14]             # Small items --> Neural Net
         apply_3d_pose_estimation = [1,2,3,4,5,7,11,12,13]  # Large items --> CAD matching
         apply_grasp_detection    = [6]                     # Belt --> Fast Grasp Estimation
 
-        item_flipped_over = []
         for ssd_result in ssd_results:
-            target = ssd_result["class"]
-            estimated_poses_msg = o2ac_msgs.msg.Estimated2DPoses() # Stores the result for one item/class id
-            estimated_poses_msg.confidence = ssd_result["confidence"]
-            estimated_poses_msg.class_id   = target
-            estimated_poses_msg.bbox       = ssd_result["bbox"]
+            target  = ssd_result["class"]
+            poses2d = o2ac_msgs.msg.Estimated2DPoses() # Stores the result for one item/class id
+            poses2d.class_id    = target
+            poses2d.confidence  = ssd_result["confidence"]
+            poses2d.bbox        = ssd_result["bbox"]
+            poses2d.upside_down = ssd_result["state"]
 
             if target in apply_2d_pose_estimation:
                 rospy.loginfo("Seeing object id %d. Apply 2D pose estimation",
                               target)
-                pose, im_vis = self.estimate_pose_in_image(im_in, im_vis,
-                                                           ssd_result)
-                estimated_poses_msg.poses = [pose]
-                # Publish result markers
-                poses_3d = []
-                for p2d in estimated_poses_msg.poses:
-                    p3d = self.convert_pose_2d_to_3d(p2d)
-                    if not p3d:
-                        rospy.logwarn("Could not find pose for class " + str(target) + "!")
-                        continue
-                    poses_3d.append(p3d)
-                    # rospy.loginfo("Found pose for class " + str(target) + ": " + str(poses_3d[-1].pose.position.x) + ", " + str(poses_3d[-1].pose.position.y) + ", " + str(poses_3d[-1].pose.position.z))
-                    # rospy.loginfo("Found pose for class " + str(target) + ": %2f, %2f, %2f", 
-                    #                poses_3d[-1].pose.position.x, poses_3d[-1].pose.position.y, poses_3d[-1].pose.position.z)
-                if not poses_3d:
-                    rospy.logwarn("Could not find poses for class " + str(target) + "!")
-                    continue
-                self.add_markers_to_pose_array(poses_3d)
+                pose2d, im_vis = self.estimate_2d_pose_in_image(im_in, im_vis,
+                                                                ssd_result)
+                poses2d.poses = [pose2d]
 
             elif target in apply_3d_pose_estimation:
                 rospy.loginfo("Seeing object id %d. Apply 3D pose estimation",
                               target)
-                x = int(estimated_poses_msg.bbox[0] + round(estimated_poses_msg.bbox[2]/2))
-                y = int(estimated_poses_msg.bbox[1] + round(estimated_poses_msg.bbox[3]/2))
-                # Publish markers at bbox centers
-                p2d = geometry_msgs.msg.Pose2D(x=x, y=y)
-                estimated_poses_msg.poses = [p2d]
-                p3d = self.convert_pose_2d_to_3d(p2d)
-                if not p3d:
-                    rospy.logwarn("Could not find pose for class " + str(target) + "!")
-                    continue
-                poses_3d = [p3d]
-                # rospy.loginfo("Found pose for class " + str(target) + ": " + str(poses_3d[-1].pose.position.x) + ", " + str(poses_3d[-1].pose.position.y) + ", " + str(poses_3d[-1].pose.position.z))
-                # rospy.loginfo("Found pose for class " + str(target) + ": %2f, %2f, %2f", 
-                #                    poses_3d[-1].pose.position.x, poses_3d[-1].pose.position.y, poses_3d[-1].pose.position.z)
-                self.add_markers_to_pose_array(poses_3d)
+                pose2d = geometry_msgs.msg.Pose2D(
+                            int(poses2d.bbox[0] + round(poses2d.bbox[2]/2)),
+                            int(poses2d.bbox[1] + round(poses2d.bbox[3]/2)),
+                            0)
+                poses2d.poses = [pose2d]
 
             elif target in apply_grasp_detection:
-                rospy.loginfo("Seeing object id %d (belt). Apply grasp detection", target)
-                estimated_poses_msg.poses, im_vis \
-                    = self.belt_grasp_detection_in_image(im_in, im_vis, ssd_result)
-                rospy.loginfo("Saw " + str(len(estimated_poses_msg.poses)) + " belt grasp poses.")
-                # Publish result markers
-                poses_3d = []
-                for p2d in estimated_poses_msg.poses:
-                    p3d = self.convert_pose_2d_to_3d(p2d)
-                    if p3d:
-                        poses_3d.append(p3d)
-                self.publish_belt_grasp_pose_markers(poses_3d)
-                rospy.loginfo("Done with belt grasp detection")
+                rospy.loginfo("Seeing object id %d (belt). Apply grasp detection",
+                              target)
+                poses2d.poses, im_vis \
+                    = self.belt_grasp_detection_in_image(im_in, im_vis,
+                                                         ssd_result)
+            else:
+                continue
 
-            estimated_poses_array.append(estimated_poses_msg)
-            item_flipped_over.append(ssd_result["state"])
-        
-        self.publish_stored_pose_markers()
-        return estimated_poses_array, im_vis, item_flipped_over
+            poses2d_array.append(poses2d)
 
-    def detect_object_in_image(self, cv_image, im_vis):
-        ssd_results, im_vis = ssd_detection.object_detection(cv_image, im_vis)
+            # Publish result markers
+            poses3d = []
+            for pose2d in poses2d.poses:
+                pose3d = self.convert_pose_2d_to_3d(pose2d)
+                if pose3d:
+                    poses3d.append(pose3d)
+                    rospy.loginfo("Found pose for class %d: (%f, %f, %f)",
+                                  target,
+                                  pose3d.pose.position.x,
+                                  pose3d.pose.position.y,
+                                  pose3d.pose.position.z)
+            if poses3d:
+                if target in apply_grasp_detection:
+                    self.publish_belt_grasp_pose_markers(poses3d)
+                else:
+                    self.add_markers_to_pose_array(poses3d)
+                    self.publish_stored_pose_markers()
+            else:
+                rospy.logwarn("Could not find pose for class %d!", target)
+
+        return poses2d_array, im_vis
+
+    def detect_object_in_image(self, im_in, im_vis):
+        ssd_results, im_vis = ssd_detection.object_detection(im_in, im_vis)
         return ssd_results, im_vis
 
-    def estimate_pose_in_image(self, im_in, im_vis, ssd_result):
+    def estimate_2d_pose_in_image(self, im_in, im_vis, ssd_result):
         """
-        2D pose estimation (x, y, theta) 
+        2D pose estimation (x, y, theta)
         """
         start = time.time()
 
@@ -491,7 +550,7 @@ class O2ACVisionServer(object):
 
         # template matching
         tm = TemplateMatching(im_in, ds_rate, temp_root, temp_info_name)
-        center, orientation = tm.compute( ssd_result )
+        center, orientation = tm.compute(ssd_result)
 
         elapsed_time = time.time() - start
         rospy.logdebug("Processing time[msec]: %d", 1000*elapsed_time)
@@ -500,9 +559,8 @@ class O2ACVisionServer(object):
 
         bbox = ssd_result["bbox"]
 
-        return geometry_msgs.msg.Pose2D(x=center[1],
-                                      y=center[0],
-                                      theta=radians(orientation)), \
+        return geometry_msgs.msg.Pose2D(center[1], center[0],
+                                        radians(orientation)), \
                im_vis
 
     def belt_grasp_detection_in_image(self, im_in, im_vis, ssd_result):
@@ -520,28 +578,32 @@ class O2ACVisionServer(object):
 
         bbox = ssd_result["bbox"]
         margin = 30
-        top_bottom = slice(max(bbox[1] - margin, 0), min(bbox[1] + bbox[3] + margin, 480))
-        left_right = slice(max(bbox[0] - margin, 0), min(bbox[0] + bbox[2] + margin, 640))
+        top_bottom = slice(max(bbox[1] - margin, 0),
+                           min(bbox[1] + bbox[3] + margin, 480))
+        left_right = slice(max(bbox[0] - margin, 0),
+                           min(bbox[0] + bbox[2] + margin, 640))
 
         fge = FastGraspabilityEvaluation(im_in[top_bottom, left_right],
-                                         im_hand, self.param_fge)
+                                         im_hand, self._param_fge)
         results = fge.main_proc()
 
         elapsed_time = time.time() - start
-        rospy.logdebug("Belt detection processing time[msec]: %d", 1000*elapsed_time)
+        rospy.logdebug("Belt detection processing time[msec]: %d",
+                       1000*elapsed_time)
 
-        im_vis[top_bottom, left_right] = fge.visualization(im_vis[top_bottom, left_right])
+        im_vis[top_bottom, left_right] = fge.visualization(im_vis[top_bottom,
+                                                                  left_right])
 
         # Subtracting tau/4 (90 degrees) to the rotation result to match the gripper_tip_link orientation
-        return [ geometry_msgs.msg.Pose2D(x=result[1] +(bbox[0] - margin),
-                                          y=result[0] +(bbox[1] - margin),
-                                          theta=radians(result[2])-tau/4)
+        return [ geometry_msgs.msg.Pose2D(result[1] + (bbox[0] - margin),
+                                          result[0] + (bbox[1] - margin),
+                                          radians(result[2])-tau/4)
                  for result in results ], \
                im_vis
 
     def detect_angle_from_front_view(self, im_in, im_vis):
         """
-        Receives a frontal view of the bearing or large pulley, 
+        Receives a frontal view of the bearing or large pulley,
         returns the angle by which the item needs to be rotated to be at the target position.
         A negative angle means that the object needs to be turned counter-clockwise.
         """
@@ -550,28 +612,23 @@ class O2ACVisionServer(object):
 
         # TODO: Return the angle for the large pulley
 
-    def shaft_notch_detection(self, im_in):
+    def shaft_hole_detection(self, im_in):
         """
-        Detects the notch in the supplied image (looking at the shaft in the V-jig).
+        Detects the hole in the supplied image (looking at the shaft in the V-jig).
 
         Return values:
-        top:    True if notch is seen at top of image
-        bottom: True if notch is seen at bottom of image
+        has_hole: True if hole is seen
         im_vis: Result visualization
         """
-        # Convert to grayscale
-        if im_in.shape[2] == 3: im_gray = cv2.cvtColor(im_in, cv2.COLOR_BGR2GRAY) 
 
-        bbox = [350,100,100,400] # ROI(x,y,w,h) of shaft area
-        sa = ShaftAnalysis( self.shaft_bg_image, im_gray, bbox ) 
-        res = sa.main_proc() # threshold.
-        im_vis = sa.get_result_image()
-        # TODO(cambel): How to know where is the notch?
-        if res == 1:
-            return False, False, im_vis 
-        front = (res == 3)
-        back = (res == 2)
-        return front, back, im_vis
+        # Convert to grayscale
+        if im_in.shape[2] == 3: 
+            im_gray = cv2.cvtColor(im_in, cv2.COLOR_BGR2GRAY)
+        else: 
+            im_gray = im_in
+
+        has_hole, im_vis = self.shaft_hole_detector.main_proc(im_gray)  # if True hole is observed in im_in
+        return has_hole, im_vis
 
     def check_pick_success(self, im_in, item_id):
         """ item_id is the object name, not the ID.
@@ -582,36 +639,96 @@ class O2ACVisionServer(object):
         pick_successful = pc.check( im_in, class_id )
         im_vis = pc.get_im_result()
         return pick_successful, im_vis
-        
+
+    def localize(self, item_id, bbox, poses2d, shape):
+        size   = self._param_localization[item_id]['size']
+        margin = 15
+        x0     = max(bbox[0] - margin, 0)
+        y0     = max(bbox[1] - margin, 0)
+        x1     = min(bbox[0] + bbox[2] + margin, shape[1])
+        y1     = min(bbox[1] + bbox[3] + margin, shape[0])
+
+        self._dfilter.roi = (x0, y0, x1, y1)
+
+        ox = x0
+        oy = y0
+        dx = 0.0
+        dy = 0.0
+        # if len(poses2d) == 1 and poses2d[0].theta == 0:
+        #     if x0 == 0:
+        #         ox = x1
+        #         poses2d[0].x = ox
+        #         dx = -size[0]/2
+        #     elif x1 == shape[1]:
+        #         poses2d[0].x = ox
+        #         dx = size[0]/2
+        #     if y0 == 0:
+        #         oy = y1
+        #         poses2d[0].y = oy
+        #         dy = size[1]/2
+        #     elif y1 == shape[0]:
+        #         poses2d[0].y = oy
+        #         dy = -size[1]/2
+
+        for pose2d in poses2d:
+            pose2d.x -= ox
+            pose2d.y -= oy
+        self._localizer.send_goal_with_target_frame(item_id, 'tray_center',
+                                                    rospy.Time.now(),
+                                                    poses2d, dx, dy)
+        return self._localizer.wait_for_result()
+
+    def item_id(self, class_id):
+        """ Returns the name (item_id) of the item's id number (class_id) of the SSD.
+        """
+        return self._models[class_id - 1]
+
+    def detect_pulley_screws(self, im_in, im_vis):
+        # Convert to grayscale
+        if im_in.shape[2] == 3: 
+            im_gray = cv2.cvtColor(im_in, cv2.COLOR_BGR2GRAY)
+        else:
+            im_gray = im_in
+        bbox = [300,180,200,120]   # (x,y,w,h)      bbox of search area
+        s = PulleyScrewDetection(im_gray, self.pulley_screws_template_image, bbox)
+        score, detected = s.main_proc()
+        print("Screws detected: ", detected)
+        print("Score: ", score)
+        # TODO: Draw green rectangle around bbox if detected, red if not. Display score.
+        return detected
+
 
 ### ========
 
-    def convert_pose_2d_to_3d(self, pose_2d):
+    def convert_pose_2d_to_3d(self, pose2d):
         """
         Convert a 2D pose to a 3D pose in the tray using the current depth image.
         Returns a PoseStamped in tray_center.
         """
         p3d = geometry_msgs.msg.PoseStamped()
         p3d.header.frame_id = self._camera_info.header.frame_id
-        if self._depth_image_ros is None:
+        if self._depth is None:
             rospy.logerr("No depth image found")
             return
-        depth_image = self.bridge.imgmsg_to_cv2(self._depth_image_ros, desired_encoding="passthrough")
-        xyz = self.cam_helper.project_2d_to_3d_from_images(pose_2d.x, pose_2d.y, [depth_image])
+        depth = self.bridge.imgmsg_to_cv2(self._depth,
+                                          desired_encoding="passthrough")
+        xyz = self.cam_helper.project_2d_to_3d_from_images(self._camera_info,
+                                                           pose2d.x, pose2d.y,
+                                                           [depth])
         if not xyz:
             return None
         p3d.pose.position.x = xyz[0]
         p3d.pose.position.y = xyz[1]
         p3d.pose.position.z = xyz[2]
-        
+
         # Transform position to tray_center
         try:
             p3d.header.stamp = rospy.Time(0.0)
             p3d = self.listener.transformPose("tray_center", p3d)
         except Exception as e:
             rospy.logerr('Pose transform failed(): {}'.format(e))
-        
-        p3d.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, -pose_2d.theta+tau/4))
+
+        p3d.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, -pose2d.theta+tau/4))
         return p3d
 
     def write_to_log(self, img_in, img_out, action_name):
@@ -626,7 +743,7 @@ class O2ACVisionServer(object):
     def publish_belt_grasp_pose_markers(self, grasp_poses_3d):
         # Clear the namespace first
         self.clear_markers(namespace='/belt_grasp_poses')
-        
+
         # Then make array of grasp pose markers
 
         marker_array = visualization_msgs.msg.MarkerArray()
@@ -660,7 +777,7 @@ class O2ACVisionServer(object):
             center_marker.id = i
             center_marker.type = center_marker.SPHERE
             center_marker.action = center_marker.ADD
-            
+
             center_marker.header = copy.deepcopy(grasp_pose.header)
 
             # Get pose from auxiliary transform
@@ -690,7 +807,7 @@ class O2ACVisionServer(object):
             p.pose.position = geometry_msgs.msg.Point(0, grasp_width, 0)
             p = self.listener.transformPose(base_frame_name, p)
             gripper_pad_marker.pose = p.pose
-            
+
             gripper_pad_marker.scale.x = 0.03
             gripper_pad_marker.scale.y = 0.002
             gripper_pad_marker.scale.z = 0.02
@@ -699,7 +816,7 @@ class O2ACVisionServer(object):
 
             marker_array.markers.append(gripper_pad_marker)
 
-            
+
             i += 1
             gripper_pad_marker2 = copy.deepcopy(gripper_pad_marker)
             gripper_pad_marker2.id = i
@@ -740,7 +857,7 @@ class O2ACVisionServer(object):
                 p.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0,-tau/4,0))
                 p = self.listener.transformPose(base_frame_name, p)
                 arrow_z.pose = p.pose
-                
+
                 arrow_x.color.r = 1.0
                 arrow_y.color.g = 1.0
                 arrow_z.color.b = 1.0
@@ -761,12 +878,12 @@ class O2ACVisionServer(object):
             dm.id = i
             delete_marker_array.markers.append(dm)
         self.marker_array_pub.publish(delete_marker_array)
-    
+
     def reset_pose_markers(self):
         self.clear_markers(namespace="/objects")
         self.pose_marker_id_counter = 0
         self.pose_marker_array = visualization_msgs.msg.MarkerArray()
-    
+
     def publish_stored_pose_markers(self):
         self.marker_array_pub.publish(self.pose_marker_array)
 
@@ -802,7 +919,7 @@ class O2ACVisionServer(object):
             arrow_marker.type = visualization_msgs.msg.Marker.ARROW
             arrow_marker.action = arrow_marker.ADD
             arrow_marker.header = viz_pose.header
-            
+
             arrow_marker.color = std_msgs.msg.ColorRGBA(0, 0, 0, 0.8)
             arrow_marker.scale = geometry_msgs.msg.Vector3(.05, .005, .005)
 
@@ -829,7 +946,7 @@ class O2ACVisionServer(object):
             p.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0,-tau/4,0))
             p = self.listener.transformPose(base_frame_name, p)
             arrow_z.pose = p.pose
-            
+
             arrow_x.color.r = 1.0
             arrow_y.color.g = 1.0
             arrow_z.color.b = 1.0

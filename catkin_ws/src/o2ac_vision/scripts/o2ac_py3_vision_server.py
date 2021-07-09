@@ -88,8 +88,7 @@ class O2ACBearingPoseEstimationServer(object):
         rospy.loginfo("o2ac_py3_vision_server started up")
 
     def angle_detection_callback(self, goal):
-        self.angle_detection_action_server.accept_new_goal()
-        rospy.loginfo("Received a request to detect bearing angle")
+        rospy.loginfo("Received a request to detect bearing angle (py3)")
         # im_in  = self.bridge.imgmsg_to_cv2(goal.rgb_image, desired_encoding="bgr8")  # Requires Python2 --> use numpy directly
         im_in = np.frombuffer(goal.rgb_image.data, dtype=np.uint8).reshape(goal.rgb_image.height, goal.rgb_image.width, -1)
         im_in2 = cv2.cvtColor(im_in, cv2.COLOR_RGB2GRAY)

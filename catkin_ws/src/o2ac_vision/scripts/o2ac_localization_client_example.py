@@ -24,8 +24,8 @@ class ObjectLocalizationClient(object):
         super(ObjectLocalizationClient, self).__init__()
 
         self._localize = actionlib.SimpleActionClient(server +
-                                                       '/localize_object',
-                                                       omsg.localizeObjectAction)
+                                                      '/localize_object',
+                                                      omsg.localizeObjectAction)
         self._localize.wait_for_server()
 
     def send_goal(self, model):

@@ -23,6 +23,7 @@
 	name="localization" pkg="aist_localization" type="aist_localization"
   	output="screen">
     <remap from="/file_info"	to="depth_filter/file_info"/>
+    <remap from="/camera_info"	to="depth_filter/camera_info"/>
     <param name="ply_dir"	value="$(arg ply_dir)"/>
   </node>
 
@@ -31,6 +32,7 @@
 	name="localization" pkg="nodelet" type="nodelet" output="screen"
   	args="load aist_localization/aist_localization_nodelet $(arg manager)">
     <remap from="/file_info"	to="depth_filter/file_info"/>
+    <remap from="/camera_info"	to="depth_filter/camera_info"/>
     <param name="ply_dir"	value="$(arg ply_dir)"/>
   </node>
 

@@ -1,0 +1,18 @@
+<?xml version="1.0" ?>
+<launch>
+
+  <arg name="camera_name"	default="camera"/>
+
+  <!-- Launch BoxLocalizer -->
+  <include file="$(find toyota1_box_localizer)/launch/run.launch">
+    <arg name="camera_info_topic" value="$(arg camera_name)/camera_info"/>
+    <arg name="depth_topic"	  value="$(arg camera_name)/depth_map"/>
+    <arg name="image_topic"	  value="$(arg camera_name)/texture"/>
+  </include>
+
+  <node name="test_box_localizer" pkg="toyota1_box_localizer" type="test.py"
+	output="screen">
+    <rosparam file="$(find toyota1_routines)/config/showcase.yaml"/>
+  </node>
+
+</launch>
