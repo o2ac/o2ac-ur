@@ -1,5 +1,13 @@
 subframes:
 - pose_xyzrpy:
+  - 0.016
+  - 0.0
+  - 0.0
+  - -pi/2
+  - -pi/2
+  - 0.0
+  name: center
+- pose_xyzrpy:
   - 0.019
   - -0.006
   - 0.042

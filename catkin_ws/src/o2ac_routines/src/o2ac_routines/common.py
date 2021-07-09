@@ -295,15 +295,16 @@ class O2ACCommon(O2ACBase):
 
   ####### Vision
 
-  def get_large_item_position_from_top(self, item_name, robot_name="b_bot"):
+  def get_large_item_position_from_top(self, item_name, robot_name="b_bot", skip_moving=False):
     """
     This function look at the tray from the top only, and publishes the result to the planning scene.
     
-    Returns False if object was not found.
+    Returns False if object was not found, the pose if it was.
     """
 
     # Look from top first
-    self.active_robots[robot_name].go_to_pose_goal(self.tray_view_high, end_effector_link=robot_name+"_outside_camera_color_frame", speed=.3, acceleration=.15)
+    if not skip_moving:
+      self.active_robots[robot_name].go_to_pose_goal(self.tray_view_high, end_effector_link=robot_name+"_outside_camera_color_frame", speed=.3, acceleration=.15)
     self.vision.activate_camera(robot_name+"_outside_camera")
     object_pose = self.detect_object_in_camera_view(item_name)
 
@@ -1242,17 +1243,18 @@ class O2ACCommon(O2ACBase):
     return False
 
   def look_at_motor(self):
-    # b_bot_joint_angles = [1.9093738794326782, -1.1168301564506073, 1.8244155089007776, -0.8763039273074646, -1.244535271321432, 0.048961393535137177]
+    b_bot_joint_angles = [2.7163028, -2.2637821, 2.3049944, -1.5010153, -1.3295276, 1.130900]
     # b_bot_outside_camera_optical_frame in vgroove_aid_link: xyz: -0.011832; 0.13308; 0.085104 q: 0.83999; 0.0043246; 0.0024908; 0.54257
     camera_look_pose = geometry_msgs.msg.PoseStamped()
-    camera_look_pose.header.frame_id = "vgroove_aid_link"
+    camera_look_pose.header.frame_id = "vgroove_aid_motor_link"
     camera_look_pose.pose.orientation = geometry_msgs.msg.Quaternion(*(0.84, 0.0043246, 0.0024908, 0.54257))
     camera_look_pose.pose.position = geometry_msgs.msg.Point(-0.0118, 0.133, 0.0851)
-    camera_look_pose.pose.position.z += 0.2
+    # camera_look_pose.pose.position.z += 0.2
+    # self.b_bot.go_to_pose_goal(camera_look_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.1, acceleration=.04)
+    # camera_look_pose.pose.position.z -= 0.2
+    self.b_bot.move_joints(b_bot_joint_angles)
     self.b_bot.go_to_pose_goal(camera_look_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.1, acceleration=.04)
-    camera_look_pose.pose.position.z -= 0.2
-    self.b_bot.go_to_pose_goal(camera_look_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.1, acceleration=.04)
-    angle = self.get_motor_angle()
+    return self.get_motor_angle()
 
   def simple_insertion_check(self, robot_name, opening_width, min_opening_width=0.01, velocity=0.03):
     """ Simple check: Open close the gripper slowly, check the gripper opening width
@@ -2186,13 +2188,117 @@ class O2ACCommon(O2ACBase):
 
   ######## Motor
 
-  def pick_and_orient_motor(self):
+  def pick_and_center_motor(self):
+    picked = False
+    attempt_nr = 0
+    while not picked and attempt_nr < 10:
+      picked = self.attempt_motor_tray_pick()
+      if not picked:
+        attempt_nr += 1
+        continue
+
+      picked = self.confirm_motor_and_place_in_aid()
+      if not picked:
+        attempt_nr += 1
+        continue
+    return picked
+
+  def attempt_motor_tray_pick(self, robot_name="b_bot"):
+    """ Do one pick attempt, ignoring the motor's orientation.
+    """
+    self.active_robots[robot_name].go_to_pose_goal(self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.5, acceleration=.2)
+    res = self.get_3d_poses_from_ssd()
+    obj_id = self.assembly_database.name_to_id("motor")
+    try:
+      r2 = self.get_feasible_grasp_points(obj_id)
+      p = r2[0]
+      if len(r2) > 1 and np.random.uniform() > 0.5:  # Randomly choose between vertical and horizontal orientation
+        pr = r2[1]
+        # p = helpers.rotatePoseByRPY(tau/4, 0, 0, p)
+      p.pose.position.z = 0.015
+      self.simple_pick(robot_name, p, gripper_force=100.0, grasp_width=.085, axis="z")
+      if self.active_robots[robot_name].gripper.opening_width < 0.031:
+        rospy.logerr("Motor not successfully grasped")
+        return False
+    except:
+      rospy.logerr("Did not see the motor in the tray")
+      return (False, None)
+
+  def confirm_motor_and_place_in_aid(self):
+    """ Assumes that the motor is grasped in a random orientation. 
+        Places it in the separate area, determines the orientation, centers it, and places it in the vgroove.
+    """
+    # Place motor in centering area
+    p_through = conversions.to_pose_stamped("right_centering_link", [-0.15, 0, 0.10, -90, 0, 0])
+    p_drop    = conversions.to_pose_stamped("right_centering_link", [-0.03, 0, 0.0, -135, 0, 0])
+    
+    self.b_bot.go_to_pose_goal(p_through, speed=.5, wait=True)
+    self.b_bot.go_to_pose_goal(p_drop, speed=.5, wait=True)
+    self.b_bot.gripper.open()
+    
+    p_view = conversions.to_pose_stamped("right_centering_link", [-self.tray_view_high.pose.position.z, 0, 0, 0, 0, 0])
+    p_view = self.listener.transformPose("tray_center", p_view)
+    p_view.pose.orientation = self.tray_view_high.pose.orientation
+    self.vision.activate_camera("b_bot_outside_camera")
+    self.b_bot.go_to_pose_goal(p_view, end_effector_link="b_bot_outside_camera_color_frame", speed=.5, wait=True)
+
+    # Look at the motor from above, confirm that SSD sees it
+    rospy.sleep(1.0)
+    res = self.get_3d_poses_from_ssd()
+    motor_placed = True
+    try:
+      motor_id = self.assembly_database.name_to_id("motor")
+      if not motor_id in res.class_ids:
+        motor_placed = False
+    except:
+      motor_placed = False
+    if not motor_placed:
+      rospy.logerr("Motor not detected by SSD! Return item and abort")
+      p_pick = conversions.to_pose_stamped("right_centering_link", [0, 0, 0, 0, 0, 0])
+      p_pick = self.listener.transformPose("tray_center", p_pick)
+      p_pick.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
+      self.simple_pick("b_bot", object_pose=p_pick)
+      self.drop_in_tray("b_bot")
+      return False
+    
+    # Use CAD matching to determine orientation
+    pose = self.get_large_item_position_from_top("b_bot", skip_moving=True)
+    if not pose:
+      rospy.logerr("Could not find motor via CAD matching!")
+      return False
+
+    # TODO: Call Place action on CAD result to constrain motor to surface
+    # TODO: Get angle of motor axis from collision object's position
+    
+    p_motor = conversions.to_pose_stamped("/move_group/motor/center", [0, 0, 0, 0, 0, 0])  # x-axis points along axis towards the front (shaft)
+    
+
+
+    # Pick motor in defined orientation and move up
+
+    # Touch environment to center motor
+
+    # Place motor in vgroove_aid_motor_link
     pass
 
-  def pick_motor(self):
-    pass
-
-  def orient_motor(self):
+  def orient_motor(self, upside_down=False):
+    """ Assumes that the motor is in the vgroove_aid_motor_link. Rearranges the motor so that the shaft is at the top or bottom.
+    """
+    attempts = 0
+    times_seen_at_correct_angle = 0
+    if not upside_down:
+      target_angle = 0
+    else:
+      target_angle = tau/2
+    
+    while not rospy.is_shutdown():
+      self.b_bot.gripper.open()
+      angle = self.look_at_motor()
+      if not angle:
+        continue
+      self.rotate_motor_in_aid(angle-target_angle)
+      
+  def rotate_motor_in_aid(self, angle):
     pass
 
   def insert_motor(self):

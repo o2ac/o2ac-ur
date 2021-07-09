@@ -316,7 +316,10 @@ class O2ACAssembly(O2ACCommon):
   def subtask_a(self):
     # ============= SUBTASK A (picking and inserting and fastening the motor) =======================
     rospy.loginfo("======== SUBTASK A (motor) ========")
-    rospy.logerr("Subtask A not implemented yet")
+    self.pick_and_center_motor()
+    self.orient_motor()
+    self.insert_motor()
+    # TODO: Fasten two motor screws with support from b_bot, open b_bot gripper, finish fastening with a_bot
     return False
 
   def subtask_b(self):
