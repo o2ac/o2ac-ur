@@ -642,46 +642,59 @@ class O2ACVisionServer(object):
         return pick_successful, im_vis
 
     def localize(self, item_id, bbox, poses2d, shape):
-        size   = self._param_localization[item_id]['size']
+        # (u0, v0)/(u1, v1): upper-left/lower-right corner of bbox
         margin = 30
-        u0     = bbox[0] - margin            # (u0, v0): upper-left corner
-        v0     = bbox[1] - margin            # of bbox
-        u1     = bbox[0] + bbox[2] + margin  # (u1, v1): lower-right corner
-        v1     = bbox[1] + bbox[3] + margin  # of bouding box
+        u0     = bbox[0] - margin
+        v0     = bbox[1] - margin
+        u1     = bbox[0] + bbox[2] + margin
+        v1     = bbox[1] + bbox[3] + margin
 
         self._dfilter.roi = (u0, v0, u1, v1)
 
-        uo = u0    # (uo, vo): origin of 2D coordinate frame describing
-        vo = v0    # object pose within the supporting plane
-        dx = 0.0   # (dx, dy): offset of the object center
-        dy = 0.0   #  within the supporting plane
+        aspect_ratio = self._param_localization[item_id]['aspect_ratio']
         check_border = 0b1111
         if len(poses2d) == 1 and poses2d[0].theta == 0:
-            if u0 < 0:
-                # uo = u1
-                # dx = -size[0]/2
-                check_border &= 0b0111  # Disable checking left border
-            elif u1 > shape[1]:
-                # dx = size[0]/2
-                check_border &= 0b1101  # Disable checking right border
-            if v0 < 0:
-                # vo = v1
-                # dy = size[1]/2
-                check_border &= 0b1110  # Disable checking upper border
-            elif v1 > shape[0]:
-                # dy = -size[1]/2
-                check_border &= 0b1011  # Disable checking lower border
+            # One of the bbox should be within the image.
+            if (u0 < 0 or u1 > shape[1]) and (v0 < 0 or v1 > shape[0]):
+                return None
 
-            poses2d[0].x = uo
-            poses2d[0].y = vo
+            # Define gaze point as bbox center
+            poses2d[0].x = 0.5*(u0 + u1)
+            poses2d[0].y = 0.5*(v0 + v1)
+
+            if v0 < 0:
+                if v1 - v0 < u1 - u0:
+                    poses2d[0].y = v1 - 0.5*(u1 - u0)*aspect_ratio
+                else:
+                    poses2d[0].y = v1 - 0.5*(u1 - u0)/aspect_ratio
+                check_border &= 0b1110
+            elif v1 > shape[0]:
+                if v1 - v0 < u1 - u0:
+                    poses2d[0].y = v0 + 0.5*(u1 - u0)*aspect_ratio
+                else:
+                    poses2d[0].y = v0 + 0.5*(u1 - u0)/aspect_ratio
+                check_border &= 0b1011
+
+            if u0 < 0:
+                if u1 - u0 < v1 - v0:
+                    poses2d[0].x = u1 - 0.5*(v1 - v0)*aspect_ratio
+                else:
+                    poses2d[0].x = u1 - 0.5*(v1 - v0)/aspect_ratio
+                check_border &= 0b0111
+            elif u1 > shape[1]:
+                if u1 - u0 < v1 - v0:
+                    poses2d[0].x = u0 + 0.5*(v1 - v0)*aspect_ratio
+                else:
+                    poses2d[0].x = u0 + 0.5*(v1 - v0)/aspect_ratio
+                check_border &= 0b1101
 
         for pose2d in poses2d:
-            pose2d.x -= uo
-            pose2d.y -= vo
+            pose2d.x -= u0
+            pose2d.y -= v0
+
         self._localizer.send_goal_with_target_frame(item_id, 'tray_center',
                                                     rospy.Time.now(),
-                                                    poses2d, dx, dy,
-                                                    check_border)
+                                                    poses2d, check_border)
         return self._localizer.wait_for_result()
 
     def item_id(self, class_id):

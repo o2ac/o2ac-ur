@@ -174,11 +174,7 @@ Localization::localize_cb(const camera_info_cp& camera_info,
     value_t	min_error = std::numeric_limits<value_t>::max();
     for (const auto& pose2d : _current_goal->poses2d)
     {
-	const auto	v = view_vector(camera_info,
-					(pose2d.x > 0.0 ? pose2d.x :
-					 0.5*camera_info->width),
-					(pose2d.y > 0.0 ? pose2d.y :
-					 0.5*camera_info->height));
+	const auto	v = view_vector(camera_info, pose2d.x, pose2d.y);
 	const auto	x = (-d/n.dot(v)) * v;
 	auto		r = n.cross(vector3_t(std::cos(pose2d.theta),
 					      std::sin(pose2d.theta), 0));
@@ -186,10 +182,10 @@ Localization::localize_cb(const camera_info_cp& camera_info,
 	const auto	q = r.cross(n);
 
       // Transformation: camera_frame <== gaze_point_frame <== model_frame
-	auto	Tcm = tf::Transform(tf::Matrix3x3(q(0), r(0), n(0),
-						  q(1), r(1), n(1),
-						  q(2), r(2), n(2)),
-				    tf::Vector3(x(0), x(1), x(2))) * Tgm;
+	auto		Tcm = tf::Transform({q(0), r(0), n(0),
+					     q(1), r(1), n(1),
+					     q(2), r(2), n(2)},
+					    {x(0), x(1), x(2)}) * Tgm;
 
 	if (_current_goal->refine_transform)
 	{
@@ -366,6 +362,7 @@ Localization::within_view_volume(ITER begin, ITER end,
     const auto	v3 = view_vector(camera_info, 0, camera_info->height);
     std::array<vector3_t, 4>	normals = {v0.cross(v1), v1.cross(v2),
 					   v2.cross(v3), v3.cross(v0)};
+
     uint32_t	mask = 0x1;
     for (const auto& normal : normals)
     {
@@ -374,9 +371,9 @@ Localization::within_view_volume(ITER begin, ITER end,
 		if (normal.dot(pclpointToCV(*point)) < 0)
 		{
 		    ROS_WARN_STREAM("(Localization) Collision against "
-				    << (mask == 1 ? "upper" :
-					mask == 2 ? "right" :
-					mask == 4 ? "lower" : "left")
+				    << (mask == 0x1 ? "upper" :
+					mask == 0x2 ? "right" :
+					mask == 0x4 ? "lower" : "left")
 				    << " border of bounding box");
 		    return false;
 		}

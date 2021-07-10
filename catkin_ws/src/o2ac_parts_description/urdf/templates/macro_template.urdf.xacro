@@ -18,14 +18,21 @@
       </collision>
     </link>
 
+    <link name="${prefix}MACRONAME_INTERNAL_origin"/>
+    <joint name="${prefix}MACRONAME_INTERNAL_origin_joint" type="fixed">
+      <parent link="${prefix}MACRONAME_INTERNAL"/>
+      <child link="${prefix}MACRONAME_INTERNAL_origin"/>
+      <origin rpy="${-pi/2} 0 0" xyz="0 0 0"/>
+    </joint>
+
     <xacro:if value="${spawn_attached}">
       <joint name="${prefix}MACRONAME_INTERNAL_joint" type="fixed">
         <parent link="${parent}"/>
         <child link="${prefix}MACRONAME_INTERNAL"/>
-        <xacro:insert_block name="origin"/>
+	<xacro:insert_block name="origin"/>
       </joint>
     </xacro:if>
-  
+
   <!-- Extra frames for assembly and motion planning, if any -->
 <!-- #EXTRAFRAMES -->
   </xacro:macro>
