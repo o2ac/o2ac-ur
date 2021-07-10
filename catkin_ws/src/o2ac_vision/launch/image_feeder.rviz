@@ -79,29 +79,11 @@ Visualization Manager:
           Value: true
         00_assy_part_02_motor_screw_hole_6:
           Value: true
-        00_assy_part_03:
-          Value: true
-        00_assy_part_03_bottom_screw_hole_1:
-          Value: true
-        00_assy_part_03_bottom_screw_hole_2:
-          Value: true
-        00_assy_part_03_bottom_screw_hole_aligner_1:
-          Value: true
-        00_assy_part_03_bottom_screw_hole_aligner_2:
-          Value: true
-        00_assy_part_03_front_hole:
-          Value: true
-        00_assy_part_03_pulley_ridge_bottom:
-          Value: true
-        00_assy_part_03_pulley_ridge_middle:
-          Value: true
-        00_assy_part_03_pulley_ridge_top:
-          Value: true
-        00_assy_part_05:
-          Value: true
-        00_assy_part_05_center:
+        00_assy_part_02_origin:
           Value: true
         00_assy_part_06:
+          Value: true
+        00_assy_part_06_origin:
           Value: true
         00_assy_part_07:
           Value: true
@@ -112,6 +94,8 @@ Visualization Manager:
         00_assy_part_07_front_hole:
           Value: true
         00_assy_part_07_inserted:
+          Value: true
+        00_assy_part_07_origin:
           Value: true
         00_assy_part_07_screw_hole_1:
           Value: true
@@ -125,7 +109,11 @@ Visualization Manager:
           Value: true
         00_assy_part_12_center:
           Value: true
+        00_assy_part_12_origin:
+          Value: true
         00_assy_part_14:
+          Value: true
+        00_assy_part_14_origin:
           Value: true
         00_assy_part_14_screw_head:
           Value: true
@@ -135,15 +123,27 @@ Visualization Manager:
           Value: true
         01_assy_part_06:
           Value: true
+        01_assy_part_06_origin:
+          Value: true
         02_assy_part_06:
+          Value: true
+        02_assy_part_06_origin:
           Value: true
         03_assy_part_06:
           Value: true
+        03_assy_part_06_origin:
+          Value: true
         04_assy_part_06:
+          Value: true
+        04_assy_part_06_origin:
           Value: true
         05_assy_part_06:
           Value: true
+        05_assy_part_06_origin:
+          Value: true
         06_assy_part_06:
+          Value: true
+        06_assy_part_06_origin:
           Value: true
         All Enabled: false
         base_link:
@@ -161,89 +161,80 @@ Visualization Manager:
         base_link:
           map:
             00_assy_part_02:
-              00_assy_part_02_back_hole:
-                {}
-              00_assy_part_02_bottom_screw_hole_1:
-                {}
-              00_assy_part_02_bottom_screw_hole_2:
-                {}
-              00_assy_part_02_bottom_screw_hole_aligner_1:
-                {}
-              00_assy_part_02_bottom_screw_hole_aligner_2:
-                {}
-              00_assy_part_02_motor_screw_hole_1:
-                {}
-              00_assy_part_02_motor_screw_hole_2:
-                {}
-              00_assy_part_02_motor_screw_hole_3:
-                {}
-              00_assy_part_02_motor_screw_hole_4:
-                {}
-              00_assy_part_02_motor_screw_hole_5:
-                {}
-              00_assy_part_02_motor_screw_hole_6:
-                {}
-            00_assy_part_03:
-              00_assy_part_03_bottom_screw_hole_1:
-                {}
-              00_assy_part_03_bottom_screw_hole_2:
-                {}
-              00_assy_part_03_bottom_screw_hole_aligner_1:
-                {}
-              00_assy_part_03_bottom_screw_hole_aligner_2:
-                {}
-              00_assy_part_03_front_hole:
-                {}
-              00_assy_part_03_pulley_ridge_bottom:
-                {}
-              00_assy_part_03_pulley_ridge_middle:
-                {}
-              00_assy_part_03_pulley_ridge_top:
-                {}
-            00_assy_part_05:
-              00_assy_part_05_center:
-                {}
+              00_assy_part_02_origin:
+                00_assy_part_02_back_hole:
+                  {}
+                00_assy_part_02_bottom_screw_hole_1:
+                  {}
+                00_assy_part_02_bottom_screw_hole_2:
+                  {}
+                00_assy_part_02_bottom_screw_hole_aligner_1:
+                  {}
+                00_assy_part_02_bottom_screw_hole_aligner_2:
+                  {}
+                00_assy_part_02_motor_screw_hole_1:
+                  {}
+                00_assy_part_02_motor_screw_hole_2:
+                  {}
+                00_assy_part_02_motor_screw_hole_3:
+                  {}
+                00_assy_part_02_motor_screw_hole_4:
+                  {}
+                00_assy_part_02_motor_screw_hole_5:
+                  {}
+                00_assy_part_02_motor_screw_hole_6:
+                  {}
             00_assy_part_06:
-              {}
+              00_assy_part_06_origin:
+                {}
             00_assy_part_07:
-              00_assy_part_07_back_hole:
-                {}
-              00_assy_part_07_back_tip:
-                {}
-              00_assy_part_07_front_hole:
-                {}
-              00_assy_part_07_inserted:
-                {}
-              00_assy_part_07_screw_hole_1:
-                {}
-              00_assy_part_07_screw_hole_2:
-                {}
-              00_assy_part_07_screw_hole_3:
-                {}
-              00_assy_part_07_screw_hole_4:
-                {}
+              00_assy_part_07_origin:
+                00_assy_part_07_back_hole:
+                  {}
+                00_assy_part_07_back_tip:
+                  {}
+                00_assy_part_07_front_hole:
+                  {}
+                00_assy_part_07_inserted:
+                  {}
+                00_assy_part_07_screw_hole_1:
+                  {}
+                00_assy_part_07_screw_hole_2:
+                  {}
+                00_assy_part_07_screw_hole_3:
+                  {}
+                00_assy_part_07_screw_hole_4:
+                  {}
             00_assy_part_12:
-              00_assy_part_12_center:
-                {}
+              00_assy_part_12_origin:
+                00_assy_part_12_center:
+                  {}
             00_assy_part_14:
-              00_assy_part_14_screw_head:
-                {}
-              00_assy_part_14_screw_inserted:
-                {}
-              00_assy_part_14_screw_tip:
-                {}
+              00_assy_part_14_origin:
+                00_assy_part_14_screw_head:
+                  {}
+                00_assy_part_14_screw_inserted:
+                  {}
+                00_assy_part_14_screw_tip:
+                  {}
             01_assy_part_06:
-              {}
+              01_assy_part_06_origin:
+                {}
             02_assy_part_06:
-              {}
+              02_assy_part_06_origin:
+                {}
             03_assy_part_06:
-              {}
+              03_assy_part_06_origin:
+                {}
             04_assy_part_06:
-              {}
+              04_assy_part_06_origin:
+                {}
             05_assy_part_06:
-              {}
+              05_assy_part_06_origin:
+                {}
             06_assy_part_06:
-              {}
+              06_assy_part_06_origin:
+                {}
             tray_center:
               {}
       Update Interval: 0
@@ -313,6 +304,10 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+        00_assy_part_12_origin:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         All Links Enabled: true
         Expand Joint Details: false
         Expand Link Details: false
@@ -346,7 +341,7 @@ Visualization Manager:
       Max Intensity: 4096
       Min Color: 0; 0; 0
       Min Intensity: 0
-      Name: PointCloud2
+      Name: DataCloud
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
@@ -376,7 +371,7 @@ Visualization Manager:
       Max Intensity: 4096
       Min Color: 0; 0; 0
       Min Intensity: 0
-      Name: PointCloud2
+      Name: ModelCloud
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
@@ -406,7 +401,7 @@ Visualization Manager:
       Max Intensity: 4096
       Min Color: 0; 0; 0
       Min Intensity: 0
-      Name: PointCloud2
+      Name: BasePlane
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
@@ -470,10 +465,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: -1.399796485900879
+      Pitch: -1.4997963905334473
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.843556880950928
+      Yaw: 4.753554821014404
     Saved: ~
 Window Geometry:
   Displays:
@@ -494,4 +489,4 @@ Window Geometry:
     collapsed: true
   Width: 1559
   X: 278
-  Y: 40
+  Y: 27

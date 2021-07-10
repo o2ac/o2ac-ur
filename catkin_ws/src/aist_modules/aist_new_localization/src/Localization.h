@@ -54,6 +54,11 @@ class Localization
     using sync_policy_t	 = message_filters::sync_policies::
 				ApproximateTime<camera_info_t, image_t>;
 
+    static constexpr uint32_t	CHECK_UPPER_BORDER	= 0x1;
+    static constexpr uint32_t	CHECK_RIGHT_BORDER	= 0x2;
+    static constexpr uint32_t	CHECK_LOWER_BORDER	= 0x4;
+    static constexpr uint32_t	CHECK_LEFT_BORDER	= 0x8;
+
   public:
 		Localization(const ros::NodeHandle& nh)			;
 

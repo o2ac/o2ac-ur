@@ -649,52 +649,56 @@ class O2ACVisionServer(object):
         u1     = bbox[0] + bbox[2] + margin
         v1     = bbox[1] + bbox[3] + margin
 
+        # Setup ROI for depth filter.
         self._dfilter.roi = (u0, v0, u1, v1)
 
-        aspect_ratio = self._param_localization[item_id]['aspect_ratio']
-        check_border = 0b1111
         if len(poses2d) == 1 and poses2d[0].theta == 0:
-            # One of the bbox should be within the image.
+            # If the bounding box includes a image corner, give up
+            # localization because we cannot estimate its center.
             if (u0 < 0 or u1 > shape[1]) and (v0 < 0 or v1 > shape[0]):
+                rospy.logwarn('Cannot localize[%s] because the bounding box includes a corner of image.', item_id)
                 return None
 
-            # Define gaze point as bbox center
+            # Estimate the object center as the bouinding box center.
             poses2d[0].x = 0.5*(u0 + u1)
             poses2d[0].y = 0.5*(v0 + v1)
 
+            aspect_ratio = self._param_localization[item_id]['aspect_ratio']
+
+            # Correct object center if the bounding box intersects with
+            # the image border.
             if v0 < 0:
                 if v1 - v0 < u1 - u0:
                     poses2d[0].y = v1 - 0.5*(u1 - u0)*aspect_ratio
                 else:
                     poses2d[0].y = v1 - 0.5*(u1 - u0)/aspect_ratio
-                check_border &= 0b1110
             elif v1 > shape[0]:
                 if v1 - v0 < u1 - u0:
                     poses2d[0].y = v0 + 0.5*(u1 - u0)*aspect_ratio
                 else:
                     poses2d[0].y = v0 + 0.5*(u1 - u0)/aspect_ratio
-                check_border &= 0b1011
 
             if u0 < 0:
                 if u1 - u0 < v1 - v0:
                     poses2d[0].x = u1 - 0.5*(v1 - v0)*aspect_ratio
                 else:
                     poses2d[0].x = u1 - 0.5*(v1 - v0)/aspect_ratio
-                check_border &= 0b0111
             elif u1 > shape[1]:
                 if u1 - u0 < v1 - v0:
                     poses2d[0].x = u0 + 0.5*(v1 - v0)*aspect_ratio
                 else:
                     poses2d[0].x = u0 + 0.5*(v1 - v0)/aspect_ratio
-                check_border &= 0b1101
 
+        if u0 < 0:
+            u0 = 0
+        if v0 < 0:
+            v0 = 0
         for pose2d in poses2d:
             pose2d.x -= u0
             pose2d.y -= v0
 
         self._localizer.send_goal_with_target_frame(item_id, 'tray_center',
-                                                    rospy.Time.now(),
-                                                    poses2d, check_border)
+                                                    rospy.Time.now(), poses2d)
         return self._localizer.wait_for_result()
 
     def item_id(self, class_id):

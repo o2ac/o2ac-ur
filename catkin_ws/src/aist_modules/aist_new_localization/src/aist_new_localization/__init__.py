@@ -48,7 +48,7 @@ class LocalizationClient(object):
     def get_settings(self):
         return self._dyn_reconf.get_configuration()
 
-    def send_goal(self, object_name, plane, poses2d, check_border=0b1111):
+    def send_goal(self, object_name, plane, poses2d):
         params = self._params[object_name]
         origin = copy.copy(params['origin'])  # Must be copied
         origin[3] = np.radians(origin[3])
@@ -69,11 +69,10 @@ class LocalizationClient(object):
                                      gmsg.Quaternion(*tfs.quaternion_from_euler(
                                          *origin[3:6])))
         goal.refine_transform = params['refine_transform']
-        goal.check_border     = check_border
         self._localize.send_goal(goal)
 
     def send_goal_with_target_frame(self, object_name, frame_id, stamp,
-                                    poses2d, check_border=0b1111):
+                                    poses2d):
         plane = dmsg.PlaneStamped()
         plane.header.frame_id = frame_id
         plane.header.stamp    = stamp
@@ -81,7 +80,7 @@ class LocalizationClient(object):
         plane.plane.normal.y  = 0
         plane.plane.normal.z  = 1
         plane.plane.distance  = 0
-        return self.send_goal(object_name, plane, poses2d, check_border)
+        return self.send_goal(object_name, plane, poses2d)
 
     def wait_for_result(self, timeout=0):
         if not self._localize.wait_for_result(rospy.Duration(timeout)):

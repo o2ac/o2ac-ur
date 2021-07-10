@@ -189,13 +189,24 @@ Localization::localize_cb(const camera_info_cp& camera_info,
 
 	if (_current_goal->refine_transform)
 	{
+	  // Check border
+	    uint32_t	check_border = 0x0;
+	    if (pose2d.x >= std::floor(0.5*depth->width))
+		check_border |= CHECK_LEFT_BORDER;
+	    if (pose2d.x <= std::ceil(0.5*depth->width))
+		check_border |= CHECK_RIGHT_BORDER;
+	    if (pose2d.y >= std::floor(0.5*depth->height))
+		check_border |= CHECK_UPPER_BORDER;
+	    if (pose2d.y <= std::ceil(0.5*depth->height))
+		check_border |= CHECK_LOWER_BORDER;
+
 	    value_t	error;
 
 	    try
 	    {
 		Tcm = refine_transform(_current_goal->object_name,
 				       Tcm, camera_info, depth,
-				       _current_goal->check_border, error);
+				       check_border, error);
 	    }
 	    catch (const std::exception& err)
 	    {
@@ -371,9 +382,10 @@ Localization::within_view_volume(ITER begin, ITER end,
 		if (normal.dot(pclpointToCV(*point)) < 0)
 		{
 		    ROS_WARN_STREAM("(Localization) Collision against "
-				    << (mask == 0x1 ? "upper" :
-					mask == 0x2 ? "right" :
-					mask == 0x4 ? "lower" : "left")
+				    << (mask == CHECK_UPPER_BORDER ? "upper" :
+					mask == CHECK_RIGHT_BORDER ? "right" :
+					mask == CHECK_LOWER_BORDER ? "lower" :
+								     "left")
 				    << " border of bounding box");
 		    return false;
 		}
