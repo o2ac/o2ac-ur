@@ -220,9 +220,6 @@ Calibrator::save_calibration(std_srvs::Trigger::Request&,
 	YAML::Emitter	emitter;
 	emitter << YAML::BeginMap;
 
-	emitter << YAML::Key   << "eye_on_hand"
-		<< YAML::Value << _eye_on_hand;
-
 	emitter << YAML::Key   << "parent"
 		<< YAML::Value << effector_frame();
 	emitter << YAML::Key   << "child"

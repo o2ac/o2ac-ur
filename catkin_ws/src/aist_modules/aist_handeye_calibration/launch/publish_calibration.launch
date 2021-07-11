@@ -12,10 +12,8 @@
   <node  name="$(anon handeye_publisher)"
 	 pkg="aist_handeye_calibration" type="publish_calibration.py"
 	 output="screen">
-    <rosparam file="$(find aist_handeye_calibration
-		    )/config/$(arg config)/$(arg camera_name).yaml"/>
     <rosparam file="$(arg scene_description
-		    )/config/$(arg camera_name)_calibration.yaml"/>
+		    )/config/camera_calibration/$(arg camera_name).yaml"/>
   </node>
 
 </launch>
