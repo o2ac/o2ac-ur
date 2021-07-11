@@ -1,0 +1,52 @@
+<?xml version="1.0" ?>
+<launch>
+
+  <arg name="camera_name"	default="a_bot_inside_camera"/>
+  <arg name="serial_no"		default="639204000513"/>
+
+  <arg name="publish_tf"	default="true"/>
+  <arg name="camera_width"	default="640"/>
+  <arg name="camera_height"	default="480"/>
+  <arg name="fps"		default="30"/>
+  <arg name="enable_streaming"	default="true"/>
+  <arg name="manager"		default=""/>
+
+  <arg name="external_manager"	value="$(eval manager != '')"/>
+
+  <!-- Launch nodelet manger -->
+  <node if="$(eval external_manager and camera_no == 0)"
+	name="$(arg manager)" pkg="nodelet" type="nodelet"
+	args="manager" output="screen" respawn="false"/>
+
+  <!-- Launch realsense cameras -->
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <arg name="serial_no"		value="$(arg serial_no)"/>
+    <arg name="camera"			value="$(arg camera_name)"/>
+    <arg name="tf_prefix"		value="calibrated_$(arg camera_name)"/>
+    <arg name="publish_tf"		value="$(arg publish_tf)"/>
+    <arg name="enable_depth"		value="true"/>
+    <arg name="enable_infra1"		value="true"/>
+    <arg name="enable_infra2"		value="false"/>
+    <arg name="enable_pointcloud"	value="false"/>
+    <arg name="align_depth"		value="true"/>
+    <arg name="depth_width"		value="$(arg camera_width)"/>
+    <arg name="depth_height"		value="$(arg camera_height)"/>
+    <arg name="depth_fps"		value="$(arg fps)"/>
+    <arg name="infra_width"		value="$(arg camera_width)"/>
+    <arg name="infra_height"		value="$(arg camera_height)"/>
+    <arg name="infra_fps"		value="$(arg fps)"/>
+    <arg name="color_width"		value="$(arg camera_width)"/>
+    <arg name="color_height"		value="$(arg camera_height)"/>
+    <arg name="color_fps"		value="$(arg fps)"/>
+    <arg name="enable_streaming"	value="$(arg enable_streaming)"/>
+    <arg name="external_manager"	value="$(arg external_manager)"/>
+    <arg name="manager"			value="$(arg manager)"
+	 if="$(arg external_manager)"/>
+  </include>
+
+  <node name="$(anon rviz)" pkg="rviz" type="rviz"
+  	args="-d $(dirname)/test.rviz"
+  	respawn="false" output="screen"/>
+  <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure"/>
+
+</launch>

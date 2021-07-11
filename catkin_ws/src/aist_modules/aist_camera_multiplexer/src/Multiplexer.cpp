@@ -11,24 +11,32 @@ namespace aist_camera_multiplexer
 *  class Multiplexer::Subscribers					*
 ************************************************************************/
 Multiplexer::Subscribers::Subscribers(Multiplexer* multiplexer,
-				      int camera_number)
-    :_camera_info_sub(multiplexer->_nh.subscribe<camera_info_t>(
-			  "/camera_info" + std::to_string(camera_number), 1,
+				      const std::string& camera_name)
+    :_camera_name(camera_name),
+     _camera_info_sub(multiplexer->_nh.subscribe<camera_info_t>(
+			  _camera_name + "/camera_info", 1,
 			  boost::bind(&Multiplexer::camera_info_cb,
-				      multiplexer, _1, camera_number))),
+				      multiplexer, _1,
+				      multiplexer->ncameras()))),
      _image_sub( multiplexer->_nh.subscribe<image_t>(
-		     "/image" + std::to_string(camera_number), 1,
+		     _camera_name + "/image", 1,
 		     boost::bind(&Multiplexer::image_cb,
-				 multiplexer, _1, camera_number))),
+				 multiplexer, _1, multiplexer->ncameras()))),
      _depth_sub( multiplexer->_nh.subscribe<image_t>(
-		     "/depth" + std::to_string(camera_number), 1,
+		     _camera_name + "/depth", 1,
 		     boost::bind(&Multiplexer::depth_cb,
-				 multiplexer, _1, camera_number))),
+				 multiplexer, _1, multiplexer->ncameras()))),
      _normal_sub(multiplexer->_nh.subscribe<image_t>(
-		     "/normal" + std::to_string(camera_number), 1,
+		     _camera_name + "/normal", 1,
 		     boost::bind(&Multiplexer::normal_cb,
-				 multiplexer, _1, camera_number)))
+				 multiplexer, _1, multiplexer->ncameras())))
 {
+}
+
+const std::string&
+Multiplexer::Subscribers::camera_name() const
+{
+    return _camera_name;
 }
 
 /************************************************************************
@@ -52,18 +60,17 @@ Multiplexer::Multiplexer(const ros::NodeHandle& nh)
 	return;
     }
 
-    std::map<std::string, int>	enum_cameras;
-    for (int camera_number = 0; camera_number < camera_names.size();
-	 ++camera_number)
+    std::map<std::string, std::string>	enum_cameras;
+    for (const auto& camera_name : camera_names)
     {
-	_subscribers.emplace_back(new Subscribers(this, camera_number));
-	enum_cameras[camera_names[camera_number]] = camera_number;
+	enum_cameras[camera_name] = camera_name;
+	_subscribers.emplace_back(new Subscribers(this, camera_name));
     }
 
-    _ddr.registerEnumVariable<int>("active_camera", 0,
-				   boost::bind(&Multiplexer::activate_camera,
-					       this, _1),
-				   "Currently active camera", enum_cameras);
+    _ddr.registerEnumVariable<std::string>(
+	"active_camera", camera_names[0],
+	boost::bind(&Multiplexer::activate_camera, this, _1),
+	"Currently active camera", enum_cameras);
     _ddr.publishServicesTopics();
 }
 
@@ -73,21 +80,25 @@ Multiplexer::run()
     ros::spin();
 }
 
-void
-Multiplexer::activate_camera(int camera_number)
+int
+Multiplexer::ncameras() const
 {
-    if (0 <= camera_number && camera_number < _subscribers.size())
-    {
-	_camera_number = camera_number;
+    return _subscribers.size();
+}
 
-	ROS_INFO_STREAM("(Multiplexer) activate camera number["
-			<< _camera_number << ']');
-    }
-    else
-    {
-	ROS_ERROR_STREAM("(Multiplexer) requested camera number["
-			 << camera_number << "] is out of range");
-    }
+void
+Multiplexer::activate_camera(const std::string& camera_name)
+{
+    for (size_t i = 0; i < _subscribers.size(); ++i)
+	if (_subscribers[i]->camera_name() == camera_name)
+	{
+	    _camera_number = i;
+	    ROS_INFO_STREAM("(Multiplexer) activate camera["
+			    << camera_name << ']');
+	}
+
+    ROS_ERROR_STREAM("(Multiplexer) requested camera name["
+		     << camera_name << "] is not found");
 }
 
 void

@@ -26,13 +26,17 @@ class Multiplexer
     class Subscribers
     {
       public:
-	Subscribers(Multiplexer* multiplexer, int camera_number)	;
+	Subscribers(Multiplexer* multiplexer,
+		    const std::string& camera_name			);
+
+	const std::string&	camera_name()			const	;
 
       private:
-	ros::Subscriber	_camera_info_sub;
-	ros::Subscriber	_image_sub;
-	ros::Subscriber	_depth_sub;
-	ros::Subscriber	_normal_sub;
+	const std::string	_camera_name;
+	ros::Subscriber		_camera_info_sub;
+	ros::Subscriber		_image_sub;
+	ros::Subscriber		_depth_sub;
+	ros::Subscriber		_normal_sub;
     };
 
     using subscribers_cp = std::shared_ptr<const Subscribers>;
@@ -43,7 +47,8 @@ class Multiplexer
     void	run()							;
 
   private:
-    void	activate_camera(int camera_number)			;
+    int		ncameras()					const	;
+    void	activate_camera(const std::string& camera_name)		;
     void	camera_info_cb(const camera_info_cp& camera_info,
 			       int camera_number)		const	;
     void	image_cb(const image_cp& image,
@@ -51,7 +56,7 @@ class Multiplexer
     void	depth_cb(const image_cp& depth,
 			 int camera_number)			const	;
     void	normal_cb(const image_cp& normal,
-			 int camera_number)			const	;
+			  int camera_number)			const	;
 
   private:
     ros::NodeHandle				_nh;

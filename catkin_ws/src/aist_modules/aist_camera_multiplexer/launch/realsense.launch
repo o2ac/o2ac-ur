@@ -1,32 +1,35 @@
 <?xml version="1.0" ?>
 <launch>
 
-  <arg name="camera_name"	default="a_bot_inside_camera"/>
+  <arg name="multiplexer_name"	default="camera_multiplexer"/>
+  <arg name="camera_names"	default="a_bot_inside_camera"/>
+  <arg name="serial_nos"	default="639204000513, "/>
+
+  <arg name="publish_tf"	default="true"/>
+  <arg name="camera_width"	default="640"/>
+  <arg name="camera_height"	default="480"/>
+  <arg name="fps"		default="30"/>
+  <arg name="enable_streaming"	default="true"/>
   <arg name="manager"		default=""/>
 
-  <include file="$(find aist_depth_filter)/launch/realsense.launch">
-    <arg name="camera_name"	value="$(arg camera_name)"/>
-    <arg name="manager"		value="$(arg manager)"/>
-    <arg name="vis"		value="false"/>
+  <arg name="external_manager"	value="$(eval manager != '')"/>
+
+  <!-- Launch realsense cameras -->
+  <include file="$(dirname)/include/spawn_realsense_cameras.launch">
+    <arg name="multiplexer_name"	value="$(arg multiplexer_name)"/>
+    <arg name="camera_names"		value="$(arg camera_names)"/>
+    <arg name="serial_nos"		value="$(arg serial_nos)"/>
+    <arg name="publish_tf"		value="$(arg publish_tf)"/>
+    <arg name="camera_width"		value="$(arg camera_width)"/>
+    <arg name="camera_height"		value="$(arg camera_height)"/>
+    <arg name="fps"			value="$(arg fps)"/>
+    <arg name="enable_streaming"	value="$(arg enable_streaming)"/>
+    <arg name="manager"			value="$(arg manager)"/>
+    <arg name="external_manager"	value="$(arg external_manager)"/>
   </include>
 
-  <node name="camera_multiplexer"
-  	pkg="aist_camera_multiplexer" type="aist_camera_multiplexer"
-  	output="screen">
-    <rosparam param="camera_names" subst_value="true">
-      [$(arg camera_name)]
-    </rosparam>
-
-    <remap from="/camera_info0"	to="$(arg camera_name
-				    )/depth_filter/camera_info"/>
-    <remap from="/image0"	to="$(arg camera_name)/depth_filter/image"/>
-    <remap from="/depth0"	to="$(arg camera_name)/depth_filter/depth"/>
-    <remap from="/normal0"	to="$(arg camera_name)/depth_filter/normal"/>
-  </node>
-
   <node name="$(anon rviz)" pkg="rviz" type="rviz"
-  	args="-d $(find aist_camera_multiplexer)/launch/test.rviz"
-  	respawn="false" output="screen"/>
+  	args="-d $(dirname)/test.rviz" respawn="false" output="screen"/>
   <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure"/>
 
 </launch>
