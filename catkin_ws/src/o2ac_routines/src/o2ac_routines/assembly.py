@@ -223,89 +223,8 @@ class O2ACAssembly(O2ACCommon):
     self.a_bot.go_to_named_pose("home")
     self.allow_collisions_with_robot_hand("base", "a_bot", allow=False)
     
-
-    # success = self.pick("b_bot", "base")  # Uses MTC + attached objects
-
-    # # # Pick using grasp pose only, ignoring scene object
-    # # grasp_pose = self.assembly_database.get_grasp_pose("base", "default_grasp")
-    # # if not grasp_pose:
-    # #   rospy.logerr("Could not load grasp pose " + "default_grasp" + " for object " + "base" + ". Aborting pick.")
-    # #   return False
-    # # grasp_pose.header.frame_id = "move_group/base"
-    # # try:
-    # #   grasp_pose = self.listener.transformPose("tray_center", grasp_pose)
-    # # except:
-    # #   rospy.logerr("Could not transform from object. Is the object " + "base" + " in the scene?")
-    # #   return False
-    
-    # # self.planning_scene_interface.allow_collisions("base", "")  # Allow collisions with all other objects
-    # # success = self.simple_pick("b_bot", grasp_pose, axis="z", approach_height=0.1)
-    
-    # if not success or self.b_bot.gripper.opening_width < 0.003 and self.use_real_robot:
-    #   rospy.logerr("Gripper did not grasp the base plate. Aborting.")
-    #   return False
-
-    # # Center and reorient plate outside of tray
-
-    # approach_orient_pose = geometry_msgs.msg.PoseStamped()
-    # approach_orient_pose.header.frame_id = "workspace_center"
-    # approach_orient_pose.pose.position = geometry_msgs.msg.Point(0.133, 0.35, 0.15)
-    # approach_orient_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(tau/4, tau/4, 0))
-
-    # orient_pose = copy.deepcopy(approach_orient_pose)
-    # orient_pose.pose.position.z = 0.01
-
-    # self.b_bot.go_to_pose_goal(approach_orient_pose, speed=0.2, acceleration=0.1, move_lin = True)
-    # success = self.b_bot.go_to_pose_goal(orient_pose, speed=0.1, acceleration=0.1, move_lin = True)
-    # if not success:
-    #   rospy.logerr("b_bot did not go to orient_pose. Critical. Try again.")
-    #   success = self.b_bot.go_to_pose_goal(orient_pose, speed=0.1, acceleration=0.1, move_lin = True)
-    #   if not success:
-    #     self.confirm_to_proceed("Failed again. Drop plate?")
-    #     self.b_bot.gripper.open(wait=True)
-    #     return False
-    # self.b_bot.gripper.open(wait=True)
-
-    # self.b_bot.robot_group.detach_object("base")
-    # rospy.loginfo("tic")
-    # self.allow_collisions_with_robot_hand("base", "b_bot")
-    # rospy.loginfo("toc")
-
-    # self.b_bot.move_lin_rel(relative_rotation=[0,0,tau/4], speed=1.0, acceleration=0.5)
-
-    # self.b_bot.gripper.close(force = 100, wait=True)
-    # self.b_bot.gripper.open(wait=True)
-    # self.b_bot.go_to_pose_goal(orient_pose, speed=1.0, acceleration=0.5)
-    # self.b_bot.gripper.close(force = 100, wait=True)
-
-    # # TODO: Center the object
-    # self.b_bot.robot_group.attach_object("base")
-
-    # self.b_bot.go_to_pose_goal(approach_orient_pose, speed=0.2)
-    
-    # # Move plate
-    # place_onboard_pose = geometry_msgs.msg.PoseStamped()
-    # place_onboard_pose.header.frame_id = "workspace_center"
-    # place_onboard_pose.pose.position = geometry_msgs.msg.Point(-0.177, 0.008, 0.13)
-    # # TODO: Define the terminal subframes
-    # # place_onboard_pose.header.frame_id = "assy_01_terminal_top"
-    # # place_onboard_pose.pose.position = geometry_msgs.msg.Point(-0.01, -0.005, 0.0)
-    # place_onboard_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(0, tau/4, 0))
-
-    # approach_onboard_pose = copy.deepcopy(place_onboard_pose)
-    # approach_onboard_pose.pose.position.z += 0.08
-
-    # self.b_bot.go_to_pose_goal(approach_onboard_pose, speed=0.3, acceleration=0.1)
-    # self.b_bot.go_to_pose_goal(place_onboard_pose, speed=0.2)
-
-    # # FIXME: Direction should be -Z
-    # self.b_bot.linear_push(force=8, direction="-Z", relative_to_ee=False, timeout=15.0)
-    
-    # self.b_bot.gripper.open(wait=False)
-    
     self.publish_part_in_assembled_position("base")
 
-    # self.b_bot.move_lin_rel(relative_translation=[0, 0, 0.05], relative_to_robot_base=True)
     self.lock_base_plate()
     rospy.sleep(0.3)
     self.unlock_base_plate()
