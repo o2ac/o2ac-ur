@@ -2588,6 +2588,80 @@ class O2ACCommon(O2ACBase):
   def insert_motor(self):
     pass
 
+  def center_motor(self):
+    """ Push grasped shaft into the tray holder, and regrasp it centered.
+    """
+    motor_length = 0.075
+    approach_centering = conversions.to_pose_stamped("tray_left_stopper", [0.0, motor_length,     0.150, tau/2., tau/4., tau/4.])
+    on_centering =       conversions.to_pose_stamped("tray_left_stopper", [0.0, motor_length,    -0.004, tau/2., tau/4., tau/4.])
+    motor_center =       conversions.to_pose_stamped("tray_left_stopper", [0.0, motor_length/2., -0.008, tau/2., tau/4., tau/4.])
+
+    # if not self.b_bot.move_lin_trajectory([(approach_centering, 0.005, 0.6), (on_centering, 0.01, 0.4)]):
+    #   return False
+
+    # TODO(cambel): make this a trajectory
+    if not self.b_bot.go_to_pose_goal(approach_centering):
+      rospy.logerr("Fail to go to approaching_centering")
+      self.b_bot.go_to_named_pose("home")  # Fallback because sometimes the planning fails for no reason??
+      if not self.b_bot.go_to_pose_goal(approach_centering):
+        rospy.logerr("Fail to go to approaching_centering AGAIN")
+        return False
+    if not self.b_bot.go_to_pose_goal(on_centering):
+      rospy.logerr("Fail to go to on_centering")
+      return False
+
+    self.b_bot.linear_push(3, "-Y", max_translation=0.05, timeout=15.0)
+    self.b_bot.gripper.open(opening_width=0.03)
+    if not self.b_bot.go_to_pose_goal(motor_center, speed=0.1):
+      rospy.logerr("Fail to go to relative shaft center")
+      return False
+
+    self.b_bot.gripper.close()
+    if not self.b_bot.gripper.opening_width > 0.004:
+      rospy.logerr("No shaft detected in gripper. Going back up and aborting.")
+      self.b_bot.go_to_pose_goal(approach_centering)
+      return False
+  
+    return True
+
+  def orient_motor_in_aid_edge(self):
+    # pick motor
+    side_vgroove =   conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ -0.015, 0, -0.05, tau/2., 0, 0])
+    self.b_bot.go_to_pose_goal(side_vgroove)
+    self.b_bot.gripper.open()
+    self.b_bot.gripper.close()
+
+    # grab and drop in edge
+    drop_vgroove =   conversions.to_pose_stamped("vgroove_aid_drop_point_link", [  0.005, 0, 0.057, tau/2., 0, 0])
+    self.b_bot.go_to_pose_goal(drop_vgroove)
+    num_tries = 4
+    for _ in range(num_tries):
+      self.b_bot.gripper.open()
+      self.b_bot.move_lin_rel(relative_translation=[0, 0, -0.015], speed=0.02)
+      self.b_bot.gripper.close()
+      self.b_bot.go_to_pose_goal(drop_vgroove)
+
+    # center with vgroove aid
+    
+    # Place in vgroove aid
+    above_vgroove =   conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.0, 0, -0.1, tau/2., -radians(10), 0])
+    inside_vgroove =   conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.0, 0, 0, tau/2., 0, radians(30)])
+    self.b_bot.go_to_pose_goal(above_vgroove, speed=0.2)
+    self.b_bot.go_to_pose_goal(inside_vgroove, speed=0.2)
+
+  def align_motor_pre_insertion(self):
+    above_vgroove  =   conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ -0.10, 0, 0, tau/2., 0, 0])
+    inside_vgroove =   conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.0, 0, 0, tau/2., 0, radians(30)])
+    self.b_bot.go_to_pose_goal(inside_vgroove, speed=0.1)
+    self.b_bot.gripper.close(force=60, velocity=0.05)
+    self.b_bot.go_to_pose_goal(above_vgroove, speed=0.4)
+
+    midway        =   conversions.to_pose_stamped("assembled_part_02_back_hole", [ -0.10, 0, 0.1, -tau/4, radians(60), -tau/4])
+    pre_insertion =   conversions.to_pose_stamped("assembled_part_02_back_hole", [ -0.05, 0, 0.0, -tau/4, radians(60), -tau/4])
+    self.b_bot.go_to_pose_goal(midway, speed=0.4)
+    self.b_bot.go_to_pose_goal(pre_insertion, speed=0.4)
+    self.confirm_to_proceed("Finetune preinsertion pose")
+
   ########
 
   def move_towards_tray_center(self, robot_name, distance, speed=0.05, acc=0.025, go_back_halfway=True, one_direction=None, end_effector_link=""):

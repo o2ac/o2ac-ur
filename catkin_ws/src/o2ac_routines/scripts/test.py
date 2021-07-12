@@ -32,15 +32,22 @@ def test_force_control(c):
 def main():
     rospy.init_node("testscript")
     global controller
-    controller = O2ACCommon()
+    
+    controller = O2ACAssembly()
+    controller.align_motor_pre_insertion()
+    controller.confirm_to_proceed("")
+
+
+    # controller = O2ACCommon()
     # test_force_control(controller)
 
-    controller.ab_bot.go_to_named_pose("home")
 
-    controller.a_bot.go_to_named_pose("screw_ready")
-    controller.a_bot.force_controller.execute_spiral_trajectory2("YZ", max_radius=0.0015, radius_direction="+Y", steps=50,
-                                                          revolutions=5, target_force=0, termination_criteria=None, timeout=10,
-                                                          check_displacement_time=10, end_effector_link="a_bot_screw_tool_m3_tip_link")
+    # controller.ab_bot.go_to_named_pose("home")
+
+    # controller.a_bot.go_to_named_pose("screw_ready")
+    # controller.a_bot.force_controller.execute_spiral_trajectory2("YZ", max_radius=0.0015, radius_direction="+Y", steps=50,
+    #                                                       revolutions=5, target_force=0, termination_criteria=None, timeout=10,
+    #                                                       check_displacement_time=10, end_effector_link="a_bot_screw_tool_m3_tip_link")
 
     # print(":::::::::::::::")
     # controller.a_bot.force_controller.execute_spiral_trajectory2("YZ", max_radius=0.0015, radius_direction="+Y", steps=50,
