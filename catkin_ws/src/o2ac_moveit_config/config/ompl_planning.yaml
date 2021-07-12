@@ -236,3 +236,32 @@ b_bot_robotiq_85:
     - LazyPRMstar
     - SPARS
     - SPARStwo
+ab_bot:
+  default_planner_config: None
+  planner_configs:
+    - AnytimePathShortening
+    - SBL
+    - EST
+    - LBKPIECE
+    - BKPIECE
+    - KPIECE
+    - RRT
+    - RRTConnect
+    - RRTstar
+    - TRRT
+    - PRM
+    - PRMstar
+    - FMT
+    - BFMT
+    - PDST
+    - STRIDE
+    - BiTRRT
+    - LBTRRT
+    - BiEST
+    - ProjEST
+    - LazyPRM
+    - LazyPRMstar
+    - SPARS
+    - SPARStwo
+  projection_evaluator: joints(a_bot_shoulder_pan_joint,a_bot_shoulder_lift_joint, b_bot_shoulder_pan_joint,b_bot_shoulder_lift_joint)
+  longest_valid_segment_fraction: 0.005
