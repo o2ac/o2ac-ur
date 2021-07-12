@@ -2186,249 +2186,6 @@ class O2ACCommon(O2ACBase):
       return False
     return True
 
-  ######## Motor
-
-  def pick_and_center_motor(self):
-    picked = False
-    attempt_nr = 0
-    while not picked and attempt_nr < 10:
-      picked = self.attempt_motor_tray_pick()
-      if not picked:
-        attempt_nr += 1
-        continue
-
-      picked = self.confirm_motor_and_place_in_aid()
-      if not picked:
-        attempt_nr += 1
-        continue
-    return picked
-
-  def attempt_motor_tray_pick(self, robot_name="b_bot"):
-    """ Do one pick attempt, ignoring the motor's orientation.
-    """
-    self.active_robots[robot_name].go_to_pose_goal(self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.5, acceleration=.2)
-    res = self.get_3d_poses_from_ssd()
-    obj_id = self.assembly_database.name_to_id("motor")
-    try:
-      r2 = self.get_feasible_grasp_points(obj_id)
-      p = r2[0]
-      if len(r2) > 1 and np.random.uniform() > 0.5:  # Randomly choose between vertical and horizontal orientation
-        pr = r2[1]
-        # p = helpers.rotatePoseByRPY(tau/4, 0, 0, p)
-      p.pose.position.z = 0.015
-      self.simple_pick(robot_name, p, gripper_force=100.0, grasp_width=.085, axis="z")
-      if self.active_robots[robot_name].gripper.opening_width < 0.031:
-        rospy.logerr("Motor not successfully grasped")
-        return False
-    except:
-      rospy.logerr("Did not see the motor in the tray")
-      return (False, None)
-
-  def confirm_motor_and_place_in_aid(self):
-    """ Assumes that the motor is grasped in a random orientation. 
-        Places it in the separate area, determines the orientation, centers it, and places it in the vgroove.
-    """
-    # Place motor in centering area
-    p_through = conversions.to_pose_stamped("right_centering_link", [-0.15, 0, 0.10, -90, 0, 0])
-    p_drop    = conversions.to_pose_stamped("right_centering_link", [-0.03, 0, 0.0, -135, 0, 0])
-    
-    self.b_bot.go_to_pose_goal(p_through, speed=.5, wait=True)
-    self.b_bot.go_to_pose_goal(p_drop, speed=.5, wait=True)
-    self.b_bot.gripper.open()
-    
-    p_view = conversions.to_pose_stamped("right_centering_link", [-self.tray_view_high.pose.position.z, 0, 0, 0, 0, 0])
-    p_view = self.listener.transformPose("tray_center", p_view)
-    p_view.pose.orientation = self.tray_view_high.pose.orientation
-    self.vision.activate_camera("b_bot_outside_camera")
-    self.b_bot.go_to_pose_goal(p_view, end_effector_link="b_bot_outside_camera_color_frame", speed=.5, wait=True)
-
-    # Look at the motor from above, confirm that SSD sees it
-    rospy.sleep(1.0)
-    res = self.get_3d_poses_from_ssd()
-    motor_placed = True
-    try:
-      motor_id = self.assembly_database.name_to_id("motor")
-      if not motor_id in res.class_ids:
-        motor_placed = False
-    except:
-      motor_placed = False
-    if not motor_placed:
-      rospy.logerr("Motor not detected by SSD! Return item and abort")
-      p_pick = conversions.to_pose_stamped("right_centering_link", [0, 0, 0, 0, 0, 0])
-      p_pick = self.listener.transformPose("tray_center", p_pick)
-      p_pick.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
-      self.simple_pick("b_bot", object_pose=p_pick)
-      self.drop_in_tray("b_bot")
-      return False
-    
-    # Use CAD matching to determine orientation
-    pose = self.get_large_item_position_from_top("b_bot", skip_moving=True)
-    if not pose:
-      rospy.logerr("Could not find motor via CAD matching!")
-      return False
-
-    # TODO: Call Place action on CAD result to constrain motor to surface
-    # TODO: Get angle of motor axis from collision object's position
-    
-    p_motor = conversions.to_pose_stamped("/move_group/motor/center", [0, 0, 0, 0, 0, 0])  # x-axis points along axis towards the front (shaft)
-    
-
-
-    # Pick motor in defined orientation and move up
-
-    # Touch environment to center motor
-
-    # Place motor in vgroove_aid_motor_link
-    pass
-
-  def orient_motor(self, upside_down=False):
-    """ Assumes that the motor is in the vgroove_aid_motor_link. Rearranges the motor so that the shaft is at the top or bottom.
-    """
-    attempts = 0
-    times_seen_at_correct_angle = 0
-    if not upside_down:
-      target_angle = 0
-    else:
-      target_angle = tau/2
-    
-    while not rospy.is_shutdown():
-      self.b_bot.gripper.open()
-      angle = self.look_at_motor()
-      if not angle:
-        continue
-      self.rotate_motor_in_aid(angle-target_angle)
-      
-  def rotate_motor_in_aid(self, angle):
-    pass
-
-  def insert_motor(self):
-    pass
-
-  ########
-
-  def move_towards_tray_center(self, robot_name, distance, speed=0.05, acc=0.025, go_back_halfway=True, one_direction=None, end_effector_link=""):
-    """ Moves from the current position of the robot towards the tray center at constant height.
-        one_direction: 'x' or 'y'
-    """
-    self.allow_collisions_with_robot_hand("tray_center", robot_name, allow=True)
-    self.allow_collisions_with_robot_hand("tray", robot_name, allow=True)
-
-    p_start = self.active_robots[robot_name].get_current_pose_stamped()
-    p_start = self.listener.transformPose("tray_center", p_start)
-    p_center = conversions.to_pose_stamped("tray_center", [0,0,0] + conversions.from_quaternion(p_start.pose.orientation).tolist())
-
-    d = helpers.pose_dist(p_start.pose, p_center.pose)
-    if distance > d:
-      ratio = 1.0
-    else:
-      ratio = distance/d
-    p = helpers.interpolate_between_poses(p_start.pose, p_center.pose, ratio)
-    p_new = conversions.to_pose_stamped("tray_center", conversions.from_pose_to_list(p))
-    p_new.pose.position.z = p_start.pose.position.z # do not go down
-    if one_direction == 'x':
-      p_new.pose.position.y = p_start.pose.position.y
-    if one_direction == 'y':
-      p_new.pose.position.x = p_start.pose.position.x
-    if not self.active_robots[robot_name].move_lin(p_new, speed=speed, acceleration=acc, end_effector_link=end_effector_link):
-      return False
-    
-    if go_back_halfway:
-      p = helpers.interpolate_between_poses(p_new.pose, p_start.pose, 0.5)
-      p_new = conversions.to_pose_stamped("tray_center", conversions.from_pose_to_list(p))
-      p_new.pose.position.z = p_start.pose.position.z # do not go down
-      if one_direction == 'x':
-        p_new.pose.position.y = p_start.pose.position.y
-      if one_direction == 'y':
-        p_new.pose.position.x = p_start.pose.position.x
-      if not self.active_robots[robot_name].move_lin(p_new, speed=speed, acceleration=acc, end_effector_link=end_effector_link):
-        return False
-
-    self.allow_collisions_with_robot_hand("tray_center", robot_name, allow=False)
-    self.allow_collisions_with_robot_hand("tray", robot_name, allow=False)
-    return p_new
-
-  def fasten_screw_vertical(self, robot_name, screw_hole_pose, allow_collision_with_object="", screw_height = .02, screw_size = 4):
-    """
-    This works for the two L-plates when they are facing forward.
-    """
-    if not screw_size==3 and not screw_size==4:
-      rospy.logerr("Screw size needs to be 3 or 4 but is: " + str(screw_size))
-      return False
-
-    self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
-    
-    res = self.screw(robot_name, screw_hole_pose, screw_size, screw_height, stay_put_after_screwing=False, skip_final_loosen_and_retighten=False)
-    if allow_collision_with_object:
-      self.planning_scene_interface.allow_collisions("screw_tool_m4", allow_collision_with_object)  # Has to be allowed after each screw attempt
-    self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
-    self.planning_scene_interface.disallow_collisions("screw_tool_m4", allow_collision_with_object)
-    return res  # Bool
-
-  def fasten_screw_horizontal(self, robot_name, screw_hole_pose, screw_height = .02, screw_size = 4):
-    """
-    This should work for the motor and bearing.
-    """
-    if not screw_size==3 and not screw_size==4:
-      rospy.logerr("Screw size needs to be 3 or 4 but is: " + str(screw_size))
-      return False
-
-    self.active_robots[robot_name].go_to_named_pose("horizontal_screw_ready")
-    
-    # success = self.skill_server.do_screw_action(robot_name, screw_hole_pose, screw_height, screw_size)
-    success = self.screw(robot_name, screw_hole_pose, screw_size, screw_height, stay_put_after_screwing=False, skip_final_loosen_and_retighten=False)
-    self.active_robots[robot_name].go_to_named_pose("horizontal_screw_ready")
-    return success
-
-  def pick_nut(self, robot_name):
-    """Pick the nut from the holder. The nut tool has to be equipped.
-    Use this command to equip: do_change_tool_action(self, "a_bot", equip=True, screw_size = 66)"""
-    rospy.logerr("Not implemented yet")
-    return False
-    
-    self.a_bot.go_to_named_pose("home", speed=3.0, acceleration=3.0, force_ur_script=self.use_real_robot)
-    self.a_bot.go_to_named_pose("nut_pick_ready", speed=1.0, acceleration=1.0, force_ur_script=self.use_real_robot)
-
-    nut_pose = geometry_msgs.msg.PoseStamped()
-    nut_pose.header.frame_id = "nut_holder_collar_link"
-    nut_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi/2, 0, 0))
-    approach_pose = copy.deepcopy(nut_pose)
-    approach_pose.pose.position.x -= .03
-    self.active_robots[robot_name].go_to_pose_goal(approach_pose, speed=self.speed_fast, move_lin = True, end_effector_link="a_bot_nut_tool_m6_link")
-    # spiral_axis = "Y"
-    # push_direction = "Z+"
-    # self.skill_server.do_linear_push(robot_name, 10, direction=push_direction, wait = True)
-    self.tools.set_motor("nut_tool_m6", direction="loosen", duration=10)
-    self.skill_server.horizontal_spiral_motion(robot_name, max_radius = .006, radius_increment = .02, spiral_axis=spiral_axis)
-    self.active_robots[robot_name].go_to_pose_goal(nut_pose, speed=.005, move_lin = True, end_effector_link="a_bot_nut_tool_m6_link")
-    rospy.sleep(3)
-    # self.skill_server.do_linear_push(robot_name, 10, direction=push_direction, wait = True)
-    self.active_robots[robot_name].go_to_pose_goal(approach_pose, speed=.03, move_lin = True, end_effector_link=end_effector_link)
-
-  def move_camera_to_pose(self, pose_goal, robot_name="b_bot", camera_name="inside_camera"):
-    return self.active_robots[robot_name].go_to_pose_goal(pose_goal, end_effector_link=robot_name+"_"+camera_name+"_color_optical_frame")
-
-  def jigless_recenter(self, robot_carrying_the_item):
-      pass
-
-  def print_objects_in_tray(self):
-    """ Print the position of all objects in the tray coordinate center to the command line.
-        This can be used to spawn an example scene. """
-    # TODO: Get all objects from planning_scene instead of hard-coding
-    objects = ['panel_motor', 'panel_bearing', 'motor', 'motor_pulley', 'bearing',
-      'shaft', 'end_cap', 'bearing_spacer', 'output_pulley', 'idler_spacer', 'idler_pulley', 'idler_pin', 'base']
-    ps = geometry_msgs.msg.PoseStamped()
-    ps.pose.orientation.w = 1.0
-    for object_name in objects:
-      ps.header.frame_id = "/move_group/" + object_name
-      ps_in_tray = self.listener.transformPose("tray_center", ps)
-      print(object_name + ":  (translation, rotation rpy)")
-      xyz = [ps_in_tray.pose.position.x, ps_in_tray.pose.position.y, ps_in_tray.pose.position.z]
-      rpy = tf_conversions.transformations.euler_from_quaternion([ps_in_tray.pose.orientation.x,
-                                                                  ps_in_tray.pose.orientation.y,
-                                                                  ps_in_tray.pose.orientation.z,
-                                                                  ps_in_tray.pose.orientation.w])
-      print("%0f, %0f, %0f, %0f, %0f, %0f" % (xyz[0], xyz[1], xyz[2], rpy[0], rpy[1], rpy[2]))
-
 #### shaft orientation
   def orient_shaft(self):
     self.b_bot.go_to_named_pose("home")
@@ -2712,6 +2469,249 @@ class O2ACCommon(O2ACBase):
       return False
     
     return True
+
+  ######## Motor
+
+  def pick_and_center_motor(self):
+    picked = False
+    attempt_nr = 0
+    while not picked and attempt_nr < 10:
+      picked = self.attempt_motor_tray_pick()
+      if not picked:
+        attempt_nr += 1
+        continue
+
+      picked = self.confirm_motor_and_place_in_aid()
+      if not picked:
+        attempt_nr += 1
+        continue
+    return picked
+
+  def attempt_motor_tray_pick(self, robot_name="b_bot"):
+    """ Do one pick attempt, ignoring the motor's orientation.
+    """
+    self.active_robots[robot_name].go_to_pose_goal(self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.5, acceleration=.2)
+    res = self.get_3d_poses_from_ssd()
+    obj_id = self.assembly_database.name_to_id("motor")
+    try:
+      r2 = self.get_feasible_grasp_points(obj_id)
+      p = r2[0]
+      if len(r2) > 1 and np.random.uniform() > 0.5:  # Randomly choose between vertical and horizontal orientation
+        pr = r2[1]
+        # p = helpers.rotatePoseByRPY(tau/4, 0, 0, p)
+      p.pose.position.z = 0.015
+      self.simple_pick(robot_name, p, gripper_force=100.0, grasp_width=.085, axis="z")
+      if self.active_robots[robot_name].gripper.opening_width < 0.031:
+        rospy.logerr("Motor not successfully grasped")
+        return False
+    except:
+      rospy.logerr("Did not see the motor in the tray")
+      return (False, None)
+
+  def confirm_motor_and_place_in_aid(self):
+    """ Assumes that the motor is grasped in a random orientation. 
+        Places it in the separate area, determines the orientation, centers it, and places it in the vgroove.
+    """
+    # Place motor in centering area
+    p_through = conversions.to_pose_stamped("right_centering_link", [-0.15, 0, 0.10, -90, 0, 0])
+    p_drop    = conversions.to_pose_stamped("right_centering_link", [-0.03, 0, 0.0, -135, 0, 0])
+    
+    self.b_bot.go_to_pose_goal(p_through, speed=.5, wait=True)
+    self.b_bot.go_to_pose_goal(p_drop, speed=.5, wait=True)
+    self.b_bot.gripper.open()
+    
+    p_view = conversions.to_pose_stamped("right_centering_link", [-self.tray_view_high.pose.position.z, 0, 0, 0, 0, 0])
+    p_view = self.listener.transformPose("tray_center", p_view)
+    p_view.pose.orientation = self.tray_view_high.pose.orientation
+    self.vision.activate_camera("b_bot_outside_camera")
+    self.b_bot.go_to_pose_goal(p_view, end_effector_link="b_bot_outside_camera_color_frame", speed=.5, wait=True)
+
+    # Look at the motor from above, confirm that SSD sees it
+    rospy.sleep(1.0)
+    res = self.get_3d_poses_from_ssd()
+    motor_placed = True
+    try:
+      motor_id = self.assembly_database.name_to_id("motor")
+      if not motor_id in res.class_ids:
+        motor_placed = False
+    except:
+      motor_placed = False
+    if not motor_placed:
+      rospy.logerr("Motor not detected by SSD! Return item and abort")
+      p_pick = conversions.to_pose_stamped("right_centering_link", [0, 0, 0, 0, 0, 0])
+      p_pick = self.listener.transformPose("tray_center", p_pick)
+      p_pick.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
+      self.simple_pick("b_bot", object_pose=p_pick)
+      self.drop_in_tray("b_bot")
+      return False
+    
+    # Use CAD matching to determine orientation
+    pose = self.get_large_item_position_from_top("b_bot", skip_moving=True)
+    if not pose:
+      rospy.logerr("Could not find motor via CAD matching!")
+      return False
+
+    # TODO: Call Place action on CAD result to constrain motor to surface
+    # TODO: Get angle of motor axis from collision object's position
+    
+    p_motor = conversions.to_pose_stamped("/move_group/motor/center", [0, 0, 0, 0, 0, 0])  # x-axis points along axis towards the front (shaft)
+    
+
+
+    # Pick motor in defined orientation and move up
+
+    # Touch environment to center motor
+
+    # Place motor in vgroove_aid_motor_link
+    pass
+
+  def orient_motor(self, upside_down=False):
+    """ Assumes that the motor is in the vgroove_aid_motor_link. Rearranges the motor so that the shaft is at the top or bottom.
+    """
+    attempts = 0
+    times_seen_at_correct_angle = 0
+    if not upside_down:
+      target_angle = 0
+    else:
+      target_angle = tau/2
+    
+    while not rospy.is_shutdown():
+      self.b_bot.gripper.open()
+      angle = self.look_at_motor()
+      if not angle:
+        continue
+      self.rotate_motor_in_aid(angle-target_angle)
+      
+  def rotate_motor_in_aid(self, angle):
+    pass
+
+  def insert_motor(self):
+    pass
+
+  ########
+
+  def move_towards_tray_center(self, robot_name, distance, speed=0.05, acc=0.025, go_back_halfway=True, one_direction=None, end_effector_link=""):
+    """ Moves from the current position of the robot towards the tray center at constant height.
+        one_direction: 'x' or 'y'
+    """
+    self.allow_collisions_with_robot_hand("tray_center", robot_name, allow=True)
+    self.allow_collisions_with_robot_hand("tray", robot_name, allow=True)
+
+    p_start = self.active_robots[robot_name].get_current_pose_stamped()
+    p_start = self.listener.transformPose("tray_center", p_start)
+    p_center = conversions.to_pose_stamped("tray_center", [0,0,0] + conversions.from_quaternion(p_start.pose.orientation).tolist())
+
+    d = helpers.pose_dist(p_start.pose, p_center.pose)
+    if distance > d:
+      ratio = 1.0
+    else:
+      ratio = distance/d
+    p = helpers.interpolate_between_poses(p_start.pose, p_center.pose, ratio)
+    p_new = conversions.to_pose_stamped("tray_center", conversions.from_pose_to_list(p))
+    p_new.pose.position.z = p_start.pose.position.z # do not go down
+    if one_direction == 'x':
+      p_new.pose.position.y = p_start.pose.position.y
+    if one_direction == 'y':
+      p_new.pose.position.x = p_start.pose.position.x
+    if not self.active_robots[robot_name].move_lin(p_new, speed=speed, acceleration=acc, end_effector_link=end_effector_link):
+      return False
+    
+    if go_back_halfway:
+      p = helpers.interpolate_between_poses(p_new.pose, p_start.pose, 0.5)
+      p_new = conversions.to_pose_stamped("tray_center", conversions.from_pose_to_list(p))
+      p_new.pose.position.z = p_start.pose.position.z # do not go down
+      if one_direction == 'x':
+        p_new.pose.position.y = p_start.pose.position.y
+      if one_direction == 'y':
+        p_new.pose.position.x = p_start.pose.position.x
+      if not self.active_robots[robot_name].move_lin(p_new, speed=speed, acceleration=acc, end_effector_link=end_effector_link):
+        return False
+
+    self.allow_collisions_with_robot_hand("tray_center", robot_name, allow=False)
+    self.allow_collisions_with_robot_hand("tray", robot_name, allow=False)
+    return p_new
+
+  def fasten_screw_vertical(self, robot_name, screw_hole_pose, allow_collision_with_object="", screw_height = .02, screw_size = 4):
+    """
+    This works for the two L-plates when they are facing forward.
+    """
+    if not screw_size==3 and not screw_size==4:
+      rospy.logerr("Screw size needs to be 3 or 4 but is: " + str(screw_size))
+      return False
+
+    self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
+    
+    res = self.screw(robot_name, screw_hole_pose, screw_size, screw_height, stay_put_after_screwing=False, skip_final_loosen_and_retighten=False)
+    if allow_collision_with_object:
+      self.planning_scene_interface.allow_collisions("screw_tool_m4", allow_collision_with_object)  # Has to be allowed after each screw attempt
+    self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
+    self.planning_scene_interface.disallow_collisions("screw_tool_m4", allow_collision_with_object)
+    return res  # Bool
+
+  def fasten_screw_horizontal(self, robot_name, screw_hole_pose, screw_height = .02, screw_size = 4):
+    """
+    This should work for the motor and bearing.
+    """
+    if not screw_size==3 and not screw_size==4:
+      rospy.logerr("Screw size needs to be 3 or 4 but is: " + str(screw_size))
+      return False
+
+    self.active_robots[robot_name].go_to_named_pose("horizontal_screw_ready")
+    
+    # success = self.skill_server.do_screw_action(robot_name, screw_hole_pose, screw_height, screw_size)
+    success = self.screw(robot_name, screw_hole_pose, screw_size, screw_height, stay_put_after_screwing=False, skip_final_loosen_and_retighten=False)
+    self.active_robots[robot_name].go_to_named_pose("horizontal_screw_ready")
+    return success
+
+  def pick_nut(self, robot_name):
+    """Pick the nut from the holder. The nut tool has to be equipped.
+    Use this command to equip: do_change_tool_action(self, "a_bot", equip=True, screw_size = 66)"""
+    rospy.logerr("Not implemented yet")
+    return False
+    
+    self.a_bot.go_to_named_pose("home", speed=3.0, acceleration=3.0, force_ur_script=self.use_real_robot)
+    self.a_bot.go_to_named_pose("nut_pick_ready", speed=1.0, acceleration=1.0, force_ur_script=self.use_real_robot)
+
+    nut_pose = geometry_msgs.msg.PoseStamped()
+    nut_pose.header.frame_id = "nut_holder_collar_link"
+    nut_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pi/2, 0, 0))
+    approach_pose = copy.deepcopy(nut_pose)
+    approach_pose.pose.position.x -= .03
+    self.active_robots[robot_name].go_to_pose_goal(approach_pose, speed=self.speed_fast, move_lin = True, end_effector_link="a_bot_nut_tool_m6_link")
+    # spiral_axis = "Y"
+    # push_direction = "Z+"
+    # self.skill_server.do_linear_push(robot_name, 10, direction=push_direction, wait = True)
+    self.tools.set_motor("nut_tool_m6", direction="loosen", duration=10)
+    self.skill_server.horizontal_spiral_motion(robot_name, max_radius = .006, radius_increment = .02, spiral_axis=spiral_axis)
+    self.active_robots[robot_name].go_to_pose_goal(nut_pose, speed=.005, move_lin = True, end_effector_link="a_bot_nut_tool_m6_link")
+    rospy.sleep(3)
+    # self.skill_server.do_linear_push(robot_name, 10, direction=push_direction, wait = True)
+    self.active_robots[robot_name].go_to_pose_goal(approach_pose, speed=.03, move_lin = True, end_effector_link=end_effector_link)
+
+  def move_camera_to_pose(self, pose_goal, robot_name="b_bot", camera_name="inside_camera"):
+    return self.active_robots[robot_name].go_to_pose_goal(pose_goal, end_effector_link=robot_name+"_"+camera_name+"_color_optical_frame")
+
+  def jigless_recenter(self, robot_carrying_the_item):
+      pass
+
+  def print_objects_in_tray(self):
+    """ Print the position of all objects in the tray coordinate center to the command line.
+        This can be used to spawn an example scene. """
+    # TODO: Get all objects from planning_scene instead of hard-coding
+    objects = ['panel_motor', 'panel_bearing', 'motor', 'motor_pulley', 'bearing',
+      'shaft', 'end_cap', 'bearing_spacer', 'output_pulley', 'idler_spacer', 'idler_pulley', 'idler_pin', 'base']
+    ps = geometry_msgs.msg.PoseStamped()
+    ps.pose.orientation.w = 1.0
+    for object_name in objects:
+      ps.header.frame_id = "/move_group/" + object_name
+      ps_in_tray = self.listener.transformPose("tray_center", ps)
+      print(object_name + ":  (translation, rotation rpy)")
+      xyz = [ps_in_tray.pose.position.x, ps_in_tray.pose.position.y, ps_in_tray.pose.position.z]
+      rpy = tf_conversions.transformations.euler_from_quaternion([ps_in_tray.pose.orientation.x,
+                                                                  ps_in_tray.pose.orientation.y,
+                                                                  ps_in_tray.pose.orientation.z,
+                                                                  ps_in_tray.pose.orientation.w])
+      print("%0f, %0f, %0f, %0f, %0f, %0f" % (xyz[0], xyz[1], xyz[2], rpy[0], rpy[1], rpy[2]))
 
 #### subtasks assembly 
 
