@@ -2,24 +2,26 @@
 <launch>
 
   <arg name="multiplexer_name"	default="camera_multiplexer"/>
-  <arg name="camera_names"	default="a_bot_inside_camera"/>
-  <arg name="serial_nos"	default="639204000513, "/>
+  <arg name="camera_names"	default="a_bot_inside_camera,
+					 a_bot_outside_camera,
+					 b_bot_inside_camera,
+					 b_bot_outside_camera"/>
+  <arg name="serial_nos"	default="636201000324,
+					 636201001178,
+					 634206004668,
+					 635201000481"/>
 
   <arg name="publish_tf"	default="true"/>
   <arg name="camera_width"	default="640"/>
   <arg name="camera_height"	default="480"/>
-  <arg name="fps"		default="30"/>
+  <arg name="fps"		default="10"/>
   <arg name="enable_streaming"	default="true"/>
-  <arg name="manager"		default=""/>
-  <arg name="external_manager"	default="$(eval manager != '')"/>
-
+  <arg name="manager"		default="camera_manager"/>
   <arg name="camera_no"		default="0"/>
 
-  <!-- Launch nodelet manger -->
-  <node if="$(eval external_manager and camera_no == 0)"
-	name="$(arg manager)" pkg="nodelet" type="nodelet"
-	args="manager" output="screen" respawn="false"/>
+  <arg name="external_manager"	value="$(eval manager != '')"/>
 
+  <!-- Launch nodelet manger -->
   <group if="$(eval camera_no != len(camera_names.split(',')))">
     <!-- Get camera name and its serial number -->
     <arg name="camera_name"
@@ -49,8 +51,13 @@
       <arg name="color_fps"		value="$(arg fps)"/>
       <arg name="enable_streaming"	value="$(arg enable_streaming)"/>
       <arg name="external_manager"	value="$(arg external_manager)"/>
-      <arg name="manager"		value="$(arg manager)"
+      <arg name="manager"		value="/$(arg manager)"
 	   if="$(arg external_manager)"/>
+    </include>
+
+    <!-- Publish transformation from the camera center to the end-effector -->
+    <include file="$(dirname)/publish_camera_calibration.launch">
+      <arg name="camera_name"	value="$(arg camera_name)"/>
     </include>
 
     <!-- Connect camera outputs to the multiplexer -->
@@ -62,7 +69,7 @@
     	   to="$(arg camera_name)/aligned_depth_to_color/image_raw"/>
 
     <!-- Recursively call myself for launching remaining cameras -->
-    <include file="$(dirname)/spawn_realsense_cameras.launch">
+    <include file="$(dirname)/osx_bringup_cameras_nodelet.launch">
       <arg name="multiplexer_name"	value="$(arg multiplexer_name)"/>
       <arg name="camera_names"		value="$(arg camera_names)"/>
       <arg name="serial_nos"		value="$(arg serial_nos)"/>
@@ -72,13 +79,13 @@
       <arg name="fps"			value="$(arg fps)"/>
       <arg name="enable_streaming"	value="$(arg enable_streaming)"/>
       <arg name="manager"		value="$(arg manager)"/>
-      <arg name="external_manager"	value="$(arg external_manager)"/>
       <arg name="camera_no"		value="$(eval camera_no + 1)"/>
     </include>
   </group>
 
   <!-- Launch the multiplexer after all cameras have been launched -->
   <group unless="$(eval camera_no != len(camera_names.split(',')))">
+
     <node unless="$(arg external_manager)"
 	  name="$(arg multiplexer_name)"
 	  pkg="aist_camera_multiplexer" type="aist_camera_multiplexer"
@@ -87,14 +94,18 @@
 		subst_value="true">[$(arg camera_names)]</rosparam>
     </node>
 
-    <node if="$(arg external_manager)"
-	  name="$(arg multiplexer_name)"
-	  pkg="nodelet" type="nodelet" output="screen"
-  	  args="load aist_camera_multiplexer/aist_camera_multiplexer_nodelet
-		$(arg manager)">
-      <rosparam param="camera_names"
-		subst_value="true">[$(arg camera_names)]</rosparam>
-    </node>
+    <group if="$(arg external_manager)">
+      <node name="$(arg multiplexer_name)"
+	    pkg="nodelet" type="nodelet" output="screen"
+  	    args="load aist_camera_multiplexer/aist_camera_multiplexer_nodelet
+		  $(arg manager)">
+	<rosparam param="camera_names"
+		  subst_value="true">[$(arg camera_names)]</rosparam>
+      </node>
+      <node name="$(arg manager)" pkg="nodelet" type="nodelet"
+	    args="manager" output="screen" respawn="false"/>
+    </group>
+
   </group>
 
 </launch>

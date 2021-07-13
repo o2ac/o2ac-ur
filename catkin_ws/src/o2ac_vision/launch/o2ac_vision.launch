@@ -7,6 +7,11 @@
   <arg name="continuous_streaming"	default="false"/>
   <arg name="camera_name"		default="camera_multiplexer"/>
   <arg name="vis"			default="true"/>
+  <arg name="use_nodelet"		default="true"/>
+  <arg if="$(arg use_nodelet)"
+       name="manager"			value="camera_manager"/>
+  <arg unless="$(arg use_nodelet)"
+       name="manager"			value=""/>
 
   <!-- Localization parameters -->
   <arg name="nposes"	default="2"/>
@@ -18,6 +23,7 @@
 
   <!-- Construct recognition pipeline -->
   <include file="$(dirname)/recognition_pipeline.launch">
+    <arg name="manager"			value="$(arg manager)"/>
     <arg name="continuous_streaming"	value="$(arg continuous_streaming)"/>
     <arg name="nposes"			value="$(arg nposes)"/>
     <arg name="timeout"			value="$(arg timeout)"/>

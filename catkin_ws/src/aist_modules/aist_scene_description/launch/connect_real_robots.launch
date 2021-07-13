@@ -6,19 +6,24 @@
 -->
 <launch>
 
+  <arg name="use_nodelet"	default="true"/>
+
   <!-- This parameter enables/disables the usage of direct UR script commands in ur_routines/ur_skills. \
        It cannot be used in simulation. -->
   <param name="use_real_robot" type="bool" value="true" />
 
   <!-- ======================================== -->
 
-  <include file="$(find aist_scene_description
-		 )/launch/aist_arms_bringup.launch"/>
+  <include file="$(dirname)/aist_arms_bringup.launch"/>
 
   <!-- ======================================== -->
 
-  <include file="$(find aist_scene_description
-		 )/launch/aist_bringup_cameras.launch"/>
+  <include file="$(dirname)/aist_bringup_cameras.launch">
+    <arg if="$(arg use_nodelet)"
+	 name="manager"		value="camera_manager"/>
+    <arg unless="$(arg use_nodelet)"
+	 name="manager"		value=""/>
+  </include>
 
   <!-- Launch fastening tools -->
   <node name="suction_controller" pkg="o2ac_fastening_tools"

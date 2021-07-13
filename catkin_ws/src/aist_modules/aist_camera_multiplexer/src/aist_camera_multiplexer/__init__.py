@@ -16,10 +16,12 @@ class CameraMultiplexerClient(object):
         return self._camera_names
 
     def active_camera(self):
-        return self._dyn_reconf.get_configuration()['active_camera']
+        conf = self._dyn_reconf.get_configuration()
+        return self._camera_names[conf['active_camera']]
 
     def activate_camera(self, camera_name):
-        self._dyn_reconf.update_configuration({'active_camera': camera_name})
+        self._dyn_reconf.update_configuration(
+            {'active_camera': self._camera_names.index(camera_name)})
         rospy.sleep(0.2)
 
 ######################################################################

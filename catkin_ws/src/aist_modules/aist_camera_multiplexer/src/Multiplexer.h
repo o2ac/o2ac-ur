@@ -48,7 +48,7 @@ class Multiplexer
 
   private:
     int		ncameras()					const	;
-    void	activate_camera(const std::string& camera_name)		;
+    void	activate_camera(int camera_number)			;
     void	camera_info_cb(const camera_info_cp& camera_info,
 			       int camera_number)		const	;
     void	image_cb(const image_cp& image,

@@ -5,9 +5,10 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /MotionPlanning1/Planning Request1
-        - /TF1/Frames1
-      Splitter Ratio: 0.4657738208770752
-    Tree Height: 331
+        - /TF1/Status1
+        - /DepthCloud1/Auto Size1
+      Splitter Ratio: 0.5068285465240479
+    Tree Height: 337
   - Class: rviz/Help
     Name: Help
   - Class: rviz/Views
@@ -121,6 +122,10 @@ Visualization Manager:
             Show Trail: false
             Value: true
           a_bot_ft300_wrench_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          a_bot_gripper_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -243,6 +248,10 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          a_bot_plunger_tip_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           a_bot_right_inner_finger:
             Alpha: 1
             Show Axes: false
@@ -269,10 +278,6 @@ Visualization Manager:
             Show Trail: false
             Value: true
           a_bot_robotiq_85_base_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          a_bot_robotiq_85_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -509,6 +514,10 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          a_bot_gripper_tip_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           a_bot_inside_cam_link:
             Alpha: 1
             Show Axes: false
@@ -628,6 +637,10 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          a_bot_plunger_tip_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           a_bot_right_inner_finger:
             Alpha: 1
             Show Axes: false
@@ -654,10 +667,6 @@ Visualization Manager:
             Show Trail: false
             Value: true
           a_bot_robotiq_85_base_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          a_bot_robotiq_85_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -830,6 +839,8 @@ Visualization Manager:
           Value: false
         a_bot_ft300_wrench_link:
           Value: false
+        a_bot_gripper_tip_link:
+          Value: true
         a_bot_inside_cam_link:
           Value: false
         a_bot_inside_camera_color_frame:
@@ -856,8 +867,6 @@ Visualization Manager:
           Value: false
         a_bot_left_inner_finger_pad:
           Value: false
-        a_bot_left_inner_knuckle:
-          Value: true
         a_bot_left_outer_finger:
           Value: false
         a_bot_left_outer_knuckle:
@@ -869,6 +878,8 @@ Visualization Manager:
         a_bot_outside_camera_color_frame:
           Value: false
         a_bot_outside_camera_color_optical_frame:
+          Value: true
+        a_bot_outside_camera_color_optical_frame_calibrated:
           Value: true
         a_bot_outside_camera_connector_link:
           Value: false
@@ -886,20 +897,18 @@ Visualization Manager:
           Value: false
         a_bot_outside_camera_right_ir_optical_frame:
           Value: false
+        a_bot_plunger_tip_link:
+          Value: true
         a_bot_right_inner_finger:
           Value: false
         a_bot_right_inner_finger_pad:
           Value: false
-        a_bot_right_inner_knuckle:
-          Value: true
         a_bot_right_outer_finger:
           Value: false
         a_bot_right_outer_knuckle:
           Value: false
         a_bot_robotiq_85_base_link:
           Value: false
-        a_bot_robotiq_85_tip_link:
-          Value: true
         a_bot_robotiq_arg2f_base_link:
           Value: false
         a_bot_screw_tool_m3_tip_link:
@@ -956,6 +965,22 @@ Visualization Manager:
           Value: false
         b_bot_wrist_3_link:
           Value: false
+        calibrated_a_bot_inside_camera_aligned_depth_to_color_frame:
+          Value: true
+        calibrated_a_bot_inside_camera_color_frame:
+          Value: true
+        calibrated_a_bot_inside_camera_color_optical_frame:
+          Value: true
+        calibrated_a_bot_inside_camera_depth_frame:
+          Value: true
+        calibrated_a_bot_inside_camera_depth_optical_frame:
+          Value: true
+        calibrated_a_bot_inside_camera_infra1_frame:
+          Value: true
+        calibrated_a_bot_inside_camera_infra1_optical_frame:
+          Value: true
+        calibrated_a_bot_inside_camera_link:
+          Value: true
         ground:
           Value: false
         workbox:
@@ -994,6 +1019,20 @@ Visualization Manager:
                                     {}
                                   a_bot_cam_mount:
                                     {}
+                                  a_bot_gripper_tip_link:
+                                    a_bot_bearing_rotate_helper_link:
+                                      {}
+                                    a_bot_plunger_tip_link:
+                                      {}
+                                    a_bot_tool_intermediate_link:
+                                      a_bot_nut_tool_m6_tip_link:
+                                        {}
+                                      a_bot_screw_tool_m3_tip_link:
+                                        {}
+                                      a_bot_screw_tool_m4_tip_link:
+                                        {}
+                                      a_bot_set_screw_tool_tip_link:
+                                        {}
                                   a_bot_inside_cam_link:
                                     a_bot_inside_camera_connector_link:
                                       a_bot_inside_camera_link:
@@ -1024,33 +1063,12 @@ Visualization Manager:
                                           a_bot_outside_camera_right_ir_frame:
                                             a_bot_outside_camera_right_ir_optical_frame:
                                               {}
-                                  a_bot_robotiq_85_tip_link:
-                                    a_bot_bearing_rotate_helper_link:
-                                      {}
-                                    a_bot_tool_intermediate_link:
-                                      a_bot_nut_tool_m6_tip_link:
-                                        {}
-                                      a_bot_screw_tool_m3_tip_link:
-                                        {}
-                                      a_bot_screw_tool_m4_tip_link:
-                                        {}
-                                      a_bot_set_screw_tool_tip_link:
-                                        {}
                                   a_bot_robotiq_arg2f_base_link:
-                                    a_bot_left_inner_knuckle:
-                                      {}
-                                    a_bot_left_outer_knuckle:
-                                      a_bot_left_outer_finger:
-                                        a_bot_left_inner_finger:
-                                          a_bot_left_inner_finger_pad:
-                                            {}
-                                    a_bot_right_inner_knuckle:
-                                      {}
-                                    a_bot_right_outer_knuckle:
-                                      a_bot_right_outer_finger:
-                                        a_bot_right_inner_finger:
-                                          a_bot_right_inner_finger_pad:
-                                            {}
+                                    {}
+                            a_bot_outside_camera_color_optical_frame_calibrated:
+                              {}
+                            calibrated_a_bot_inside_camera_color_optical_frame:
+                              {}
                           a_bot_tool0:
                             {}
             b_bot_base_link:
@@ -1085,7 +1103,7 @@ Visualization Manager:
       Max Value: 1
       Median window: 5
       Min Value: 0
-      Name: Image
+      Name: DepthImage
       Normalize Range: true
       Queue Size: 2
       Transport Hint: raw
@@ -1097,11 +1115,49 @@ Visualization Manager:
       Max Value: 1
       Median window: 5
       Min Value: 0
-      Name: Image
+      Name: ColorImage
       Normalize Range: true
       Queue Size: 2
       Transport Hint: raw
       Unreliable: false
+      Value: true
+    - Alpha: 1
+      Auto Size:
+        Auto Size Factor: 1
+        Value: true
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/DepthCloud
+      Color: 255; 255; 255
+      Color Image Topic: /camera_multiplexer/image
+      Color Transformer: RGB8
+      Color Transport Hint: raw
+      Decay Time: 0
+      Depth Map Topic: /camera_multiplexer/depth
+      Depth Map Transport Hint: raw
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 4096
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: DepthCloud
+      Occlusion Compensation:
+        Occlusion Time-Out: 30
+        Value: false
+      Position Transformer: XYZ
+      Queue Size: 5
+      Selectable: true
+      Size (Pixels): 3
+      Style: Flat Squares
+      Topic Filter: true
+      Use Fixed Frame: true
+      Use rainbow: true
       Value: true
   Enabled: true
   Global Options:
@@ -1135,12 +1191,16 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.4147971570491791
+      Pitch: 0.46979713439941406
       Target Frame: world
       Value: XYOrbit (rviz)
-      Yaw: 6.159947395324707
+      Yaw: 0.14176465570926666
     Saved: ~
 Window Geometry:
+  ColorImage:
+    collapsed: false
+  DepthImage:
+    collapsed: false
   Displays:
     collapsed: false
   Height: 1052
@@ -1148,13 +1208,11 @@ Window Geometry:
     collapsed: false
   Hide Left Dock: false
   Hide Right Dock: false
-  Image:
-    collapsed: false
   MotionPlanning:
     collapsed: false
   MotionPlanning - Trajectory Slider:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd000000010000000000000295000003c2fc0200000009fc0000003d000001a50000019a0100001cfa000000010100000002fb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e00670100000000ffffffff000001f300fffffffb000000100044006900730070006c0061007900730100000000000002a20000015600fffffffb0000000800480065006c00700000000342000000bb0000006e00fffffffb0000000a0056006900650077007300000003b0000000b0000000a400fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670100000374000001890000000000000000fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000001600000016fb0000000a0049006d00610067006501000001e8000001090000001600fffffffb0000000a0049006d00610067006501000002f7000001080000001600fffffffb0000000a0049006d0061006700650100000338000000860000000000000000000004e5000003c200000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd000000010000000000000295000003c6fc0200000009fc0000003b000001a7000001840100001afa000000010100000002fb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e00670100000000ffffffff000001ca00fffffffb000000100044006900730070006c0061007900730100000000000002a20000015600fffffffb0000000800480065006c00700000000342000000bb0000006e00fffffffb0000000a0056006900650077007300000003b0000000b0000000a000fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670100000374000001890000000000000000fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000001600000016fb000000140043006f006c006f00720049006d00610067006501000001e80000010a0000001600fffffffb00000014004400650070007400680049006d00610067006501000002f8000001090000001600fffffffb0000000a0049006d0061006700650100000338000000860000000000000000000004e5000003c600000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Views:
     collapsed: false
   Width: 1920

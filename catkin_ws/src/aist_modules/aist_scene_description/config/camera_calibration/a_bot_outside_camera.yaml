@@ -1,0 +1,4 @@
+eye_on_hand: true
+parent: a_bot_ee_link
+child: a_bot_outside_camera_color_optical_frame_calibrated
+transform: {x: 0.07661605495241813, y: 0.01089815009910938, z: 0.08235812922855729, qx: -0.4473694554761083, qy: 0.4301582342595819, qz: -0.5446084380502934, qw: 0.5641153366201882}

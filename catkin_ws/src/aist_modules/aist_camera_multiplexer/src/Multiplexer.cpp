@@ -1,7 +1,7 @@
 /*!
  *  \file	Multiplexer.cpp
  *  \author	Toshio UESHIBA
- *  \brief	ROS node for applying filters to depth images
+ *  \brief	ROS node for selecting one camera from multiple cameras
  */
 #include "Multiplexer.h"
 
@@ -60,17 +60,17 @@ Multiplexer::Multiplexer(const ros::NodeHandle& nh)
 	return;
     }
 
-    std::map<std::string, std::string>	enum_cameras;
+    std::map<std::string, int>	enum_cameras;
     for (const auto& camera_name : camera_names)
     {
-	enum_cameras[camera_name] = camera_name;
+	enum_cameras[camera_name] = ncameras();
 	_subscribers.emplace_back(new Subscribers(this, camera_name));
     }
 
-    _ddr.registerEnumVariable<std::string>(
-	"active_camera", camera_names[0],
-	boost::bind(&Multiplexer::activate_camera, this, _1),
-	"Currently active camera", enum_cameras);
+    _ddr.registerEnumVariable<int>("active_camera", 0,
+				   boost::bind(&Multiplexer::activate_camera,
+					       this, _1),
+				   "Currently active camera", enum_cameras);
     _ddr.publishServicesTopics();
 }
 
@@ -87,18 +87,20 @@ Multiplexer::ncameras() const
 }
 
 void
-Multiplexer::activate_camera(const std::string& camera_name)
+Multiplexer::activate_camera(int camera_number)
 {
-    for (size_t i = 0; i < _subscribers.size(); ++i)
-	if (_subscribers[i]->camera_name() == camera_name)
-	{
-	    _camera_number = i;
-	    ROS_INFO_STREAM("(Multiplexer) activate camera["
-			    << camera_name << ']');
-	}
+    if (0 <= camera_number && camera_number < ncameras())
+    {
+	_camera_number = camera_number;
 
-    ROS_ERROR_STREAM("(Multiplexer) requested camera name["
-		     << camera_name << "] is not found");
+	ROS_INFO_STREAM("(Multiplexer) activate camera["
+			<< _subscribers[camera_number]->camera_name() << ']');
+    }
+    else
+    {
+	ROS_ERROR_STREAM("(Multiplexer) requested camera number["
+			 << camera_number << "] is out of range");
+    }
 }
 
 void

@@ -15,7 +15,6 @@ hardware_interface:
     - a_bot_wrist_1_joint
     - a_bot_wrist_2_joint
     - a_bot_wrist_3_joint
-    - a_bot_finger_joint
     - b_bot_shoulder_pan_joint
     - b_bot_shoulder_lift_joint
     - b_bot_elbow_joint
