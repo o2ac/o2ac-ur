@@ -255,16 +255,14 @@ class RobotBase():
                     success = False
                     rospy.logwarn("Joint configuration would have flipped.")
                     continue
-            if plan_only:
-                if success:
+            if success:
+                if plan_only:
                     group.clear_pose_targets()
                     group.set_start_state_to_current_state()
                     return plan, planning_time
+                else:
+                    self.execute_plan(plan, wait=wait)
             else:
-                res = group.execute(plan, wait=wait)  # Bool
-                success = res & self.check_goal_pose_reached(pose_goal_stamped)
-
-            if not success:
                 rospy.sleep(0.2)
                 rospy.logwarn("go_to_pose_goal(move_lin=%s) attempt failed. Retrying." % str(move_lin))
                 tries += 1
@@ -334,26 +332,18 @@ class RobotBase():
         tries = 0
         success = False
         while not success and (rospy.Time.now() - start_time < rospy.Duration(15)) and not rospy.is_shutdown():
-            if plan_only:
-                # Make MotionSequence
-                response = self.plan_sequence_path(goal.request)
-                group.clear_pose_targets()
+            
+            # Make MotionSequence
+            response = self.plan_sequence_path(goal.request)
+            group.clear_pose_targets()
 
-                if response.response.error_code.val == 1:
-                    plan = response.response.planned_trajectories[0]  # support only one plan?
-                    planning_time = response.response.planning_time
+            if response.response.error_code.val == 1:
+                plan = response.response.planned_trajectories[0]  # support only one plan?
+                planning_time = response.response.planning_time
+                if plan_only:
                     return plan, planning_time
                 else:
-                    rospy.logwarn("(move_lin_trajectory) Planning failed, retry: %s" % (tries+1))
-            else:
-                result = self.sequence_move_group.send_goal_and_wait(goal)
-
-                # if result == GoalStatus.SUCCEEDED: # Moveit complains but the motion is completed correctly =/
-                if self.check_goal_pose_reached(waypoints[-1][0]):
-                    group.clear_pose_targets()
-                    return True
-                else:
-                    rospy.logwarn("(move_lin_trajectory) failed, retry: %s" % (tries+1))
+                    return self.execute_plan(plan, wait=True)
             tries += 1
         if plan_only:
             rospy.logerr("Failed to plan linear trajectory. error code: %s" % response.response.error_code.val)
@@ -442,22 +432,17 @@ class RobotBase():
 
         group.set_named_target(pose_name)
 
-        if plan_only:
-            success, plan, planning_time, error = group.plan()
-            if success:
-                group.clear_pose_targets()
-                group.set_start_state_to_current_state()
+        success, plan, planning_time, error = group.plan()
+        if success:
+            group.clear_pose_targets()
+            group.set_start_state_to_current_state()
+            if plan_only:
                 return plan, planning_time
             else:
-                rospy.logerr("Failed planning with error: %s" % error)
+                return self.execute_plan(plan, wait=wait)
         else:
-            group.go(wait=wait)
-            group.clear_pose_targets()
-            goal = helpers.ordered_joint_values_from_dict(group.get_named_target_values(pose_name), group.get_active_joints())
-            current_joint_values = group.get_current_joint_values()
-            move_success = helpers.all_close(goal, current_joint_values, 0.01)
-            return move_success
-        return False
+            rospy.logerr("Failed planning with error: %s" % error)
+            return False
 
     def move_joints(self, joint_pose_goal, speed=0.6, acceleration=0.3, wait=True, plan_only=False, initial_joints=None):
         if not self.set_up_move_group(speed, acceleration, planner="OMPL"):
@@ -469,15 +454,13 @@ class RobotBase():
 
         group.set_joint_value_target(joint_pose_goal)
 
-        if plan_only:
-            success, plan, planning_time, error = group.plan()
-            if success:
-                group.set_start_state_to_current_state()
+        success, plan, planning_time, error = group.plan()
+        if success:
+            group.set_start_state_to_current_state()
+            if plan_only:
                 return plan, planning_time
             else:
-                rospy.logerr("Failed planning with error: %s" % error)
+                return self.execute_plan(plan, wait=wait)
         else:
-            group.go(wait=wait)
-            current_joints = group.get_current_joint_values()
-            return helpers.all_close(joint_pose_goal, current_joints, 0.01)
-        return False
+            rospy.logerr("Failed planning with error: %s" % error)
+            return False
