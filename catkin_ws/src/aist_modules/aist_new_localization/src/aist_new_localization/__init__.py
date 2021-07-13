@@ -15,7 +15,8 @@ from actionlib_msgs.msg    import GoalStatus
 class LocalizationClient(object):
     _DefaultParams = {'origin':           [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
                       'rotation_range':   [0.0, 0.0, 0,0],
-                      'refine_transform': False}
+                      'refine_transform': False,
+                      'check_borders':    False}
 
     def __init__(self, server='/localization'):
         super(LocalizationClient, self).__init__()
@@ -69,6 +70,7 @@ class LocalizationClient(object):
                                      gmsg.Quaternion(*tfs.quaternion_from_euler(
                                          *origin[3:6])))
         goal.refine_transform = params['refine_transform']
+        goal.check_borders    = params['check_borders']
         self._localize.send_goal(goal)
 
     def send_goal_with_target_frame(self, object_name, frame_id, stamp,

@@ -2,6 +2,16 @@
 <launch>
   <!-- Launch file for testing the recognition pipeline using only the annotation database (no camera or robot). -->
 
+  <arg name="use_nodelet"		default="true"/>
+
+  <arg  if="$(arg use_nodelet)"
+	name="manager"			value="camera_manager"/>
+  <node if="$(arg use_nodelet)"
+	name="$(arg manager)" pkg="nodelet" type="nodelet"
+	args="manager" output="screen" respawn="false"/>
+  <arg unless="$(arg use_nodelet)"
+       name="manager"			value=""/>
+
   <!-- Mode of object detector -->
   <arg name="continuous_streaming"	default="false"/>
   <arg name="use_localization_sdk"	default="false"/>
@@ -30,6 +40,7 @@
 
   <!-- Construct recognition pipeline -->
   <include file="$(dirname)/recognition_pipeline.launch">
+    <arg name="manager"			value="$(arg manager)"/>
     <arg name="continuous_streaming"	value="$(arg continuous_streaming)"/>
     <arg name="use_localization_sdk"	value="$(arg use_localization_sdk)"/>
     <arg name="nposes"			value="$(arg nposes)"/>

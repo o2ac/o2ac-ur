@@ -21,10 +21,7 @@
   <!-- <include file="$(find o2ac_scene_description)/launch/osx_bringup_cameras.launch"/> -->
 
   <include file="$(dirname)/osx_bringup_cameras_nodelet.launch">
-    <arg if="$(arg use_nodelet)"
-	 name="manager"		value="camera_manager"/>
-    <arg unless="$(arg use_nodelet)"
-	 name="manager"		value=""/>
+    <arg name="use_nodelet"	value="$(arg use_nodelet)"/>
   </include>
 
   <!-- ======================================== -->

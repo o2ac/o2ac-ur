@@ -190,15 +190,18 @@ Localization::localize_cb(const camera_info_cp& camera_info,
 	if (_current_goal->refine_transform)
 	{
 	  // Check border
-	    uint32_t	check_border = 0x0;
-	    if (pose2d.x >= std::floor(0.5*depth->width))
-		check_border |= CHECK_LEFT_BORDER;
-	    if (pose2d.x <= std::ceil(0.5*depth->width))
-		check_border |= CHECK_RIGHT_BORDER;
-	    if (pose2d.y >= std::floor(0.5*depth->height))
-		check_border |= CHECK_UPPER_BORDER;
-	    if (pose2d.y <= std::ceil(0.5*depth->height))
-		check_border |= CHECK_LOWER_BORDER;
+	    uint32_t	check_borders = 0x0;
+	    if (_current_goal->check_borders)
+	    {
+		if (pose2d.x >= std::floor(0.5*depth->width))
+		    check_borders |= CHECK_LEFT_BORDER;
+		if (pose2d.x <= std::ceil(0.5*depth->width))
+		    check_borders |= CHECK_RIGHT_BORDER;
+		if (pose2d.y >= std::floor(0.5*depth->height))
+		    check_borders |= CHECK_UPPER_BORDER;
+		if (pose2d.y <= std::ceil(0.5*depth->height))
+		    check_borders |= CHECK_LOWER_BORDER;
+	    }
 
 	    value_t	error;
 
@@ -206,7 +209,7 @@ Localization::localize_cb(const camera_info_cp& camera_info,
 	    {
 		Tcm = refine_transform(_current_goal->object_name,
 				       Tcm, camera_info, depth,
-				       check_border, error);
+				       check_borders, error);
 	    }
 	    catch (const std::exception& err)
 	    {
@@ -282,7 +285,7 @@ tf::Transform
 Localization::refine_transform(const std::string& object_name,
 			       const tf::Transform& Tcm,
 			       const camera_info_cp& camera_info,
-			       const image_cp& depth, uint32_t check_border,
+			       const image_cp& depth, uint32_t check_borders,
 			       value_t& error) const
 {
     using namespace sensor_msgs;
@@ -345,7 +348,7 @@ Localization::refine_transform(const std::string& object_name,
 
   // Check if registered model cloud is involved within the view volume.
     if (within_view_volume(registered_cloud->begin(), registered_cloud->end(),
-			   camera_info, check_border))
+			   camera_info, check_borders))
     {
       // Get transformation from model PCD cloud to camera frame.
 	error = icp.getFitnessScore();
@@ -364,7 +367,7 @@ Localization::refine_transform(const std::string& object_name,
 template <class ITER> bool
 Localization::within_view_volume(ITER begin, ITER end,
 				 const camera_info_cp& camera_info,
-				 uint32_t check_border) const
+				 uint32_t check_borders) const
 {
     const auto	v0 = view_vector(camera_info, 0, 0);
     const auto	v1 = view_vector(camera_info, camera_info->width, 0);
@@ -377,7 +380,7 @@ Localization::within_view_volume(ITER begin, ITER end,
     uint32_t	mask = 0x1;
     for (const auto& normal : normals)
     {
-	if (check_border & mask)
+	if (check_borders & mask)
 	    for (auto point = begin; point != end; ++point)
 		if (normal.dot(pclpointToCV(*point)) < 0)
 		{

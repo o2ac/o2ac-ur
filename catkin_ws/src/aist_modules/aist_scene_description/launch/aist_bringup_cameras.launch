@@ -12,10 +12,13 @@
   <arg name="camera_height"	default="480"/>
   <arg name="fps"		default="10"/>
   <arg name="enable_streaming"	default="true"/>
-  <arg name="manager"		default=""/>
+  <arg name="use_nodelet"	default="true"/>
   <arg name="camera_no"		default="0"/>
 
-  <arg name="external_manager"	value="$(eval manager != '')"/>
+  <arg if="$(arg use_nodelet)"
+       name="manager"		value="camera_manager"/>
+  <arg unless="$(arg use_nodelet)"
+       name="manager"		value=""/>
 
   <!-- Launch nodelet manger -->
   <group if="$(eval camera_no != len(camera_names.split(',')))">
@@ -46,9 +49,9 @@
       <arg name="color_height"		value="$(arg camera_height)"/>
       <arg name="color_fps"		value="$(arg fps)"/>
       <arg name="enable_streaming"	value="$(arg enable_streaming)"/>
-      <arg name="external_manager"	value="$(arg external_manager)"/>
+      <arg name="external_manager"	value="$(arg use_nodelet)"/>
       <arg name="manager"		value="/$(arg manager)"
-	   if="$(arg external_manager)"/>
+	   if="$(arg use_nodelet)"/>
     </include>
 
     <!-- Publish transformation from the camera center to the end-effector -->
@@ -84,7 +87,7 @@
   <!-- Launch the multiplexer after all cameras have been launched -->
   <group unless="$(eval camera_no != len(camera_names.split(',')))">
 
-    <node unless="$(arg external_manager)"
+    <node unless="$(arg use_nodelet)"
 	  name="$(arg multiplexer_name)"
 	  pkg="aist_camera_multiplexer" type="aist_camera_multiplexer"
 	  output="screen">
@@ -92,7 +95,7 @@
 		subst_value="true">[$(arg camera_names)]</rosparam>
     </node>
 
-    <group if="$(arg external_manager)">
+    <group if="$(arg use_nodelet)">
       <node name="$(arg multiplexer_name)"
 	    pkg="nodelet" type="nodelet" output="screen"
   	    args="load aist_camera_multiplexer/aist_camera_multiplexer_nodelet

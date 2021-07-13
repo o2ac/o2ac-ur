@@ -19,10 +19,7 @@
   <!-- ======================================== -->
 
   <include file="$(dirname)/aist_bringup_cameras.launch">
-    <arg if="$(arg use_nodelet)"
-	 name="manager"		value="camera_manager"/>
-    <arg unless="$(arg use_nodelet)"
-	 name="manager"		value=""/>
+    <arg name="use_nodelet"	value="$(arg use_nodelet)"/>
   </include>
 
   <!-- Launch fastening tools -->
