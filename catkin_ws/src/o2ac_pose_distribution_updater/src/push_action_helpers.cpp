@@ -54,10 +54,10 @@ push_calculator::push_calculator(const std::vector<Eigen::Vector3d> &vertices,
   // find the left-most and right-most vertices of the hull
 
   int hull_size = hull.size();
-  int left_vertex_id = 0, next_left_vertex_id;
+  int first_left_vertex_id = 0;
   for (int i = 1; i < hull_size; i++) {
-    if (hull[i].x() < hull[left_vertex_id].x() - EPS) {
-      left_vertex_id = i;
+    if (hull[i].x() < hull[first_left_vertex_id].x() - EPS) {
+      first_left_vertex_id = i;
     }
   }
 
@@ -65,13 +65,15 @@ push_calculator::push_calculator(const std::vector<Eigen::Vector3d> &vertices,
 
   // calculate the direction
 
-  double first_rotation_value = projected_center.y() - hull[left_vertex_id].y();
+  double first_rotation_value =
+      projected_center.y() - hull[first_left_vertex_id].y();
   first_direction = (first_rotation_value > 0.0 ? 1 : -1);
 
   // find the rotation angle
   // after rotation, at least one edge of the hull must be on the gripper
   // (parallel to y-axis) and the hull must be stable find such edge
   Eigen::Rotation2Dd rotation;
+  int left_vertex_id = first_left_vertex_id, next_left_vertex_id;
   while (1) {
     next_left_vertex_id =
         (left_vertex_id - first_direction + hull_size) % hull_size;
@@ -92,6 +94,9 @@ push_calculator::push_calculator(const std::vector<Eigen::Vector3d> &vertices,
       break;
     }
     left_vertex_id = next_left_vertex_id;
+    if (left_vertex_id == first_left_vertex_id) {
+      throw(std::runtime_error("center of gravity is out of the convex hull"));
+    }
   }
   if (balance_check && std::abs(first_rotation_value) < EPS &&
       rotation.angle() > EPS) {
