@@ -38,14 +38,14 @@ def main():
     # controller.ab_bot.execute_plan(p, wait=True)
     controller.ab_bot.go_to_named_pose("home")
 
-    speed = 0.5
+    speed = 1.0
 
     plan_a_screw_ready, _ = controller.a_bot.go_to_named_pose("screw_ready", plan_only=True, speed=speed)
     plan_b_screw_ready, _ = controller.b_bot.go_to_named_pose("screw_ready", plan_only=True, speed=speed)
 
-    a_bot_at_tray = conversions.to_pose_stamped("tray_center", [-0.048, 0.146, 0.031, -0.504, 0.506, 0.495, 0.495])
+    a_bot_at_tray = conversions.to_pose_stamped("tray_center", [-0.048, 0.11, 0.031, -0.504, 0.506, 0.495, 0.495]) 
     plan_a_at_tray, _ = controller.a_bot.go_to_pose_goal(a_bot_at_tray, plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_a_screw_ready), speed=speed)
-    b_bot_at_tray = conversions.to_pose_stamped("tray_center", [0.002, -0.186, 0.166, 0.507, 0.504, -0.496, 0.493])
+    b_bot_at_tray = conversions.to_pose_stamped("tray_center", [0.002, -0.12, 0.166, 0.507, 0.504, -0.496, 0.493])
     plan_b_at_tray, _ = controller.b_bot.go_to_pose_goal(b_bot_at_tray, plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_b_screw_ready), speed=speed)
 
     plan_a_tool_pick_ready, _ = controller.a_bot.go_to_named_pose("tool_pick_ready", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_a_at_tray), speed=speed)
@@ -56,6 +56,12 @@ def main():
 
     plan_a_home, _ = controller.a_bot.go_to_named_pose("home", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_a_screw_ready_2), speed=speed)
     plan_b_home, _ = controller.b_bot.go_to_named_pose("home", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_b_screw_ready_2), speed=speed)
+
+    plan_a_back, _ = controller.a_bot.go_to_named_pose("back", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_a_home), speed=speed)
+    plan_b_back, _ = controller.b_bot.go_to_named_pose("back", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_b_home), speed=speed)
+
+    plan_a_home2, _ = controller.a_bot.go_to_named_pose("home", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_a_back), speed=speed)
+    plan_b_home2, _ = controller.b_bot.go_to_named_pose("home", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_b_back), speed=speed)
 
     # rospy.sleep(2)
 
@@ -70,12 +76,13 @@ def main():
     print("duration plan_a_home:", helpers.get_trajectory_duration(plan_a_home))
     print("duration plan_b_home:", helpers.get_trajectory_duration(plan_b_home))
     
-    b = False
+    b = True
 
     controller.a_bot.execute_plan(plan_a_screw_ready, False)
     if b:
         rospy.sleep(0.1)
         controller.b_bot.execute_plan(plan_b_screw_ready, False)
+    print("Result??",controller.a_bot.robot_group.wait_for_motion_result())
     rospy.sleep(0.1)
     controller.a_bot.execute_plan(plan_a_at_tray, False)
     if b:
@@ -96,6 +103,16 @@ def main():
     if b:
         rospy.sleep(0.1)
         controller.b_bot.execute_plan(plan_b_home, False)
+    rospy.sleep(0.1)
+    controller.a_bot.execute_plan(plan_a_back, False)
+    if b:
+        rospy.sleep(0.1)
+        controller.b_bot.execute_plan(plan_b_back, False)
+    rospy.sleep(0.1)
+    controller.a_bot.execute_plan(plan_a_home2, False)
+    if b:
+        rospy.sleep(0.1)
+        controller.b_bot.execute_plan(plan_b_home2, False)
 
     # =====
 
