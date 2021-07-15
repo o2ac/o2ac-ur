@@ -431,7 +431,7 @@ class O2ACBase(object):
 
         # Break out of loop if screw suctioned or max search radius exceeded
         screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
-        if screw_picked:
+        if screw_picked or (not self.use_real_robot):
           rospy.loginfo("Detected successful pick.")
           if not self.active_robots[robot_name].move_lin_rel(relative_translation=[0.01, 0, 0], speed=0.015):
             rospy.logerr("Fail to move screw through gate sensor")
@@ -568,6 +568,9 @@ class O2ACBase(object):
                                                           revolutions=5, target_force=0, check_displacement_time=10,
                                                           termination_criteria=tc, timeout=10, end_effector_link=screw_tool_link)
 
+    if not self.use_real_robot:
+      return True
+    
     finished_before_timeout = self.tools.fastening_tool_client.wait_for_result(rospy.Duration(15))
     result = self.tools.fastening_tool_client.get_result()
     rospy.loginfo("Screw tool motor command. Finish before timeout: %s" % finished_before_timeout)

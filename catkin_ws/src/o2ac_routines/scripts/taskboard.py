@@ -34,21 +34,21 @@
 #
 # Author: Felix von Drigalski
 
-import sys
-import copy
+
 import rospy
 import geometry_msgs.msg
 import tf_conversions
-import tf
-import numpy as np
-import math
-from math import pi, degrees, radians, sin, cos
+from math import pi
 
-import ur_control
 tau = 2.0*pi  # Part of math from Python 3.6
-import math
-import traceback
 import time
+
+import sys, signal
+def signal_handler(sig, frame):
+    print('You pressed Ctrl+C!')
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
 
 from o2ac_routines.taskboard import O2ACTaskboard
     
@@ -186,6 +186,10 @@ if __name__ == '__main__':
       if i == "reset":
         c.reset_scene_and_robots()
         c.reset_assembly_visualization()
+      if i == "simul":
+        c.competition_mode = True
+        c.do_screw_tasks_simultaneous()
+        c.competition_mode = False
       if i == "x":
         break
       print("This took: %.3f seconds" % (time.time() - tic_start))

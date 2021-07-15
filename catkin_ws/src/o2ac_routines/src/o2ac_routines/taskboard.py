@@ -34,44 +34,17 @@
 #
 # Author: Felix von Drigalski
 
-import sys
 import copy
 import rospy
 import geometry_msgs.msg
-import moveit_msgs
 import tf_conversions
 import tf
-from math import pi, radians, sin, cos, pi
+from math import pi
 tau = 2.0*pi  # Part of math from Python 3.6
-import math
-import time
-import numpy as np
 
-from o2ac_msgs.srv import *
-import actionlib
-import o2ac_msgs.msg
-import std_msgs.msg
-import moveit_msgs.msg
-import moveit_task_constructor_msgs.msg
-
-
-from o2ac_msgs.srv import *
-import actionlib
-import o2ac_msgs.msg
-
-import o2ac_msgs
-import o2ac_msgs.srv
-
-from o2ac_assembly_database.parts_reader import PartsReader
-from o2ac_assembly_database.assembly_reader import AssemblyReader
 from o2ac_routines.common import O2ACCommon
-import o2ac_routines.helpers as helpers
-from o2ac_routines.helpers import wait_for_UR_program, get_target_force
-
-from ur_control import transformations as ur_transformations
-from ur_control import conversions
-from ur_control.constants import TERMINATION_CRITERIA
-
+from o2ac_routines.helpers import wait_for_UR_program
+from o2ac_routines.thread_with_trace import ThreadTrace
 
 class O2ACTaskboard(O2ACCommon):
   """
@@ -272,6 +245,91 @@ class O2ACTaskboard(O2ACCommon):
 
     self.publish_status_text("FINISHED")
 
+  def do_screw_tasks_simultaneous(self):
+    """
+    Start from prep poses, finish before carrying tray.
+    """
+    ### - Set screw
+    self.publish_status_text("M3 set screw")
+    
+    # Move into the screw hole with motor on
+
+    self.vision.activate_camera("b_bot_inside_camera")
+    b_thread = ThreadTrace(target=self.do_task, args=(["M2 set screw"]))
+    b_thread.daemon = True
+    a_thread = ThreadTrace(target=self.pick_screw_from_feeder, args=(["a_bot"]), kwargs={"screw_size": 3})
+    a_thread.daemon = True
+    a_thread.start()
+    b_thread.start()
+
+    a_thread.join(20.0)
+    if a_thread.is_alive():
+      rospy.logerr("a_bot not done yet, waiting a bit more")
+      a_thread.join(20.0)
+      a_thread.kill()
+      b_thread.kill()
+      return False
+    rospy.loginfo("a_bot DONE")
+    
+    b_thread.join(20.0)
+    if b_thread.is_alive():
+      rospy.logerr("b_bot not done yet, abort")
+      b_thread.kill()
+      return False
+    rospy.loginfo("b_bot DONE")
+    # TODO: Get the result from a thread: https://stackoverflow.com/questions/5324718/python-returning-data-from-a-threaded-def    
+    
+    def prep_b_bot():
+      self.unequip_tool("b_bot", "set_screw_tool")
+      self.equip_tool("b_bot", "screw_tool_m4")
+      self.b_bot.go_to_named_pose("feeder_pick_ready")
+      self.pick_screw_from_feeder("b_bot", screw_size=4)
+
+    def a_bot_task():
+      self.do_task("M3 screw")
+
+    b_thread = ThreadTrace(target=prep_b_bot)
+    b_thread.daemon = True
+    a_thread = ThreadTrace(target=a_bot_task)
+    a_thread.daemon = True
+
+    b_thread.start()
+    a_thread.start()
+
+    a_thread.join(60.0)
+    if a_thread.is_alive():
+      rospy.logerr("a_bot not done yet, abort")
+      a_thread.kill()
+      b_thread.kill()
+      return False
+    rospy.loginfo("a_bot DONE")
+    b_thread.join(60.0)
+    if b_thread.is_alive():
+      rospy.logerr("a_bot not done yet, abort")
+      b_thread.kill()
+    rospy.loginfo("b_bot DONE")
+
+    self.do_task("M4 screw")
+
+    # self.a_bot.go_to_named_pose("feeder_pick_ready")
+
+    # Move b_bot back, a_bot to screw
+    # self.unequip_tool("b_bot", "set_screw_tool")
+    # self.equip_tool("b_bot", "screw_tool_m4")
+    # self.b_bot.go_to_named_pose("feeder_pick_ready")
+
+    # if screw_picked:
+    #   self.subtask_completed["M3 screw"] = self.do_task("M3 screw")
+    # self.unequip_tool("a_bot", "screw_tool_m3")
+    # self.a_bot.go_to_named_pose("home")
+    
+    # #### SCREW M4 WITH B_BOT
+    # self.subtask_completed["M4 screw"] = self.do_task("M4 screw")
+
+    # self.b_bot.go_to_named_pose("home")
+    # self.unequip_tool("b_bot", "screw_tool_m4")
+
+
   def execute_step(self, item):
       assert not rospy.is_shutdown(), "did ros master die?"
       self.unequip_tool("b_bot") # Just in case
@@ -387,12 +445,14 @@ class O2ACTaskboard(O2ACCommon):
       self.b_bot.move_lin_rel(relative_translation=[-dist, 0, 0], speed=0.03, wait=False)
       # self.skill_server.horizontal_spiral_motion("b_bot", .003, spiral_axis="Y", radius_increment = .002)
       self.tools.set_motor("set_screw_tool", "tighten", duration = 12.0)
-      rospy.sleep(4.0) # Wait for the screw to be screwed in a little bit
+      if self.use_real_robot:
+        rospy.sleep(4.0) # Wait for the screw to be screwed in a little bit
       d = .003
       rospy.loginfo("Moving in further by " + str(d) + " m.")
       self.b_bot.move_lin_rel(relative_translation=[-d, 0, 0], speed=0.002, wait=False)
       
-      rospy.sleep(8.0)
+      if self.use_real_robot:
+        rospy.sleep(8.0)
       self.confirm_to_proceed("Go back?")
       if self.b_bot.is_protective_stopped():
         rospy.logwarn("Robot was protective stopped after set screw insertion!")
@@ -414,20 +474,35 @@ class O2ACTaskboard(O2ACCommon):
     if task_name == "M3 screw":
       if not self.a_bot.robot_status.carrying_tool and not self.a_bot.robot_status.held_tool_id == "screw_tool_m3":
         self.equip_tool("a_bot", "screw_tool_m3")
-      if not fake_execution_for_calibration:
-        self.pick_screw_from_feeder("a_bot", screw_size = 3)
-      self.a_bot.go_to_named_pose("horizontal_screw_ready")
+      if not fake_execution_for_calibration and self.use_real_robot:
+        if not self.pick_screw_from_feeder("a_bot", screw_size = 3):
+          rospy.logerr("Fail pick screw from feeder m3")
+          return False
+      
+      if not self.a_bot.move_lin_rel(relative_translation=[0.0,-0.10,0.0]):
+        rospy.logerr("Fail to move lin rel")
+        return False
+
+      if not self.a_bot.go_to_named_pose("horizontal_screw_ready"):
+        rospy.logerr("Fail to go to pose horizontal_screw_ready")
+        return False
+
+      self.allow_collisions_with_robot_hand("screw_tool_m4", "b_bot", False)
       approach_pose = geometry_msgs.msg.PoseStamped()
       approach_pose.header.frame_id = "taskboard_m3_screw_link"
       approach_pose.pose.position.x = -.04
       approach_pose.pose.position.y = -.12
       approach_pose.pose.position.z = -.05
-      self.a_bot.go_to_pose_goal(approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
+      if not self.a_bot.go_to_pose_goal(approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True):
+        rospy.logerr("Fail to go to pose approach")
+        return False
 
       approach_pose.pose.position.y = -.0
       approach_pose.pose.position.z = -.004  # MAGIC NUMBER (z-axis of the frame points down)
       approach_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
-      self.a_bot.go_to_pose_goal(approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
+      if not self.a_bot.go_to_pose_goal(approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True):
+        rospy.logerr("Fail to go to pose approach2")
+        return False
 
       hole_pose = geometry_msgs.msg.PoseStamped()
       hole_pose.header.frame_id = "taskboard_m3_screw_link"
@@ -435,16 +510,24 @@ class O2ACTaskboard(O2ACCommon):
       hole_pose.pose.position.z = -.004  # MAGIC NUMBER (z-axis of the frame points down)
       hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
       if not fake_execution_for_calibration:
-        self.screw("a_bot", hole_pose, screw_size = 3, skip_final_loosen_and_retighten=False)
+        if not self.screw("a_bot", hole_pose, screw_size = 3, skip_final_loosen_and_retighten=False):
+          rospy.logerr("Fail to screw m3")
+          return False
       else:
         hole_pose.pose.position.x -= 0.005
-        self.a_bot.go_to_pose_goal(hole_pose, speed=0.05, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
+        if not self.a_bot.go_to_pose_goal(hole_pose, speed=0.05, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True):
+          return False
         self.confirm_to_proceed("Screw tool on hole. Press enter to move back.")
-        self.a_bot.go_to_pose_goal(approach_pose, speed=0.1, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True)
-      self.a_bot.go_to_named_pose("horizontal_screw_ready")
-      self.a_bot.go_to_named_pose("home")
+        if not self.a_bot.go_to_pose_goal(approach_pose, speed=0.1, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True):
+          return False
+      if not self.a_bot.go_to_named_pose("horizontal_screw_ready"):
+        rospy.logerr("Fail to go to horizontal_screw_ready")
+        return False
       if not fake_execution_for_calibration:
         self.unequip_tool("a_bot", "screw_tool_m3")
+        if not self.a_bot.go_to_named_pose("home"):
+          rospy.logerr("Fail to go to home")
+          return False
 
     # ==========================================================
 
@@ -452,27 +535,44 @@ class O2ACTaskboard(O2ACCommon):
       if not self.b_bot.robot_status.carrying_tool and not self.b_bot.robot_status.held_tool_id == "screw_tool_m4":
         self.equip_tool("b_bot", "screw_tool_m4")
       self.vision.activate_camera("b_bot_outside_camera")
-      if not fake_execution_for_calibration:
-        self.pick_screw_from_feeder("b_bot", screw_size = 4)
-      self.b_bot.go_to_named_pose("horizontal_screw_ready")
+      if not fake_execution_for_calibration and self.use_real_robot:
+        if not self.pick_screw_from_feeder("b_bot", screw_size = 4):
+          rospy.logerr("Fail pick screw from feeder m4")
+          return False
+      if not self.b_bot.go_to_named_pose("horizontal_screw_ready"):
+        rospy.logerr("Fail to go to horizontal_screw_ready")
+        return False
+      self.allow_collisions_with_robot_hand("screw_tool_m4", "a_bot", False)
       hole_pose = geometry_msgs.msg.PoseStamped()
       hole_pose.header.frame_id = "taskboard_m4_screw_link"
       hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/12, 0, 0))
       hole_pose.pose.position.y = -.001  # MAGIC NUMBER (y-axis of the frame points right)
       hole_pose.pose.position.z = -.001  # MAGIC NUMBER (z-axis of the frame points down)
       if not fake_execution_for_calibration:
-        self.screw("b_bot", hole_pose, screw_size = 4, skip_final_loosen_and_retighten=False)
+        if not self.screw("b_bot", hole_pose, screw_size = 4, skip_final_loosen_and_retighten=False):
+          rospy.logerr("Failed to screw m4")
+          return False
       else:
         hole_pose.pose.position.x = -.01
         approach_pose = copy.deepcopy(hole_pose)
         approach_pose.pose.position.x -= .05
-        self.b_bot.go_to_pose_goal(approach_pose, speed=0.1, end_effector_link="b_bot_screw_tool_m4_tip_link", move_lin = True)
-        self.b_bot.go_to_pose_goal(hole_pose, speed=0.05, end_effector_link="b_bot_screw_tool_m4_tip_link", move_lin = True)
+        if not self.b_bot.go_to_pose_goal(approach_pose, speed=0.1, end_effector_link="b_bot_screw_tool_m4_tip_link", move_lin = True):
+          rospy.logerr("Fail to go to pose approach_pose")
+          return False
+        if not self.b_bot.go_to_pose_goal(hole_pose, speed=0.05, end_effector_link="b_bot_screw_tool_m4_tip_link", move_lin = True):
+          rospy.logerr("Fail to go to pose hole_pose")
+          return False
         self.confirm_to_proceed("Screw tool on hole. Press enter to move back.")
-        self.b_bot.go_to_pose_goal(approach_pose, speed=0.05, end_effector_link="b_bot_screw_tool_m4_tip_link", move_lin = True)
+        if not self.b_bot.go_to_pose_goal(approach_pose, speed=0.05, end_effector_link="b_bot_screw_tool_m4_tip_link", move_lin = True):
+          rospy.logerr("Fail to go to pose approach_pose")
+          return False
         self.confirm_to_proceed("Did it go back?")
-      self.b_bot.go_to_named_pose("horizontal_screw_ready")
-      self.b_bot.go_to_named_pose("home")
+      if not self.b_bot.go_to_named_pose("horizontal_screw_ready"):
+        rospy.logerr("Fail to go to horizontal_screw_ready")
+        return False
+      if not self.b_bot.go_to_named_pose("home"):
+        rospy.logerr("Fail to go to home")
+        return False
       if not fake_execution_for_calibration:
         self.unequip_tool("b_bot", "screw_tool_m4")
 
