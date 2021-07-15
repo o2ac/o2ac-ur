@@ -77,6 +77,8 @@ if __name__ == '__main__':
       tic_start = time.time()
       if i == "prep":
         c.prep_taskboard_task()
+      if i == "prepsimul":
+        c.prep_taskboard_task_simultaneous()
       if i == "ssup":
         c.at_set_screw_hole.pose.position.z -= 0.001
         c.move_b_bot_to_setscrew_initial_pos()
@@ -90,6 +92,10 @@ if __name__ == '__main__':
       if i == "startnoscrews":
         c.competition_mode = True
         c.full_taskboard_task(do_screws=False)
+        c.competition_mode = False
+      if i == "simul":
+        c.competition_mode = True
+        c.do_screw_tasks_simultaneous()
         c.competition_mode = False
       if i == "test":
         c.competition_mode = False
@@ -186,10 +192,6 @@ if __name__ == '__main__':
       if i == "reset":
         c.reset_scene_and_robots()
         c.reset_assembly_visualization()
-      if i == "simul":
-        c.competition_mode = True
-        c.do_screw_tasks_simultaneous()
-        c.competition_mode = False
       if i == "x":
         break
       print("This took: %.3f seconds" % (time.time() - tic_start))

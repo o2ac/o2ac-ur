@@ -154,6 +154,19 @@ class O2ACTaskboard(O2ACCommon):
 
     self.move_b_bot_to_setscrew_initial_pos()
   
+  def prep_taskboard_task_simultaneous(self):
+    def do_with_a():
+      self.a_bot.go_to_named_pose("home")
+      self.equip_tool("a_bot", "screw_tool_m3")
+      self.a_bot.go_to_named_pose("feeder_pick_ready")
+    def do_with_b():
+      self.b_bot.go_to_named_pose("home")
+      self.equip_tool("b_bot", "set_screw_tool")
+      self.b_bot.go_to_named_pose("horizontal_screw_ready")
+      self.move_b_bot_to_setscrew_initial_pos()
+    self.do_tasks_simultaneous(do_with_a, do_with_b, timeout=40.0)
+
+
   def move_b_bot_to_setscrew_initial_pos(self):
     screw_approach = copy.deepcopy(self.at_set_screw_hole)
     screw_approach.pose.position.x = -0.03
@@ -245,6 +258,37 @@ class O2ACTaskboard(O2ACCommon):
 
     self.publish_status_text("FINISHED")
 
+  def do_tasks_simultaneous(self, function_a_bot, function_b_bot, timeout=30.0):
+    a_thread = ThreadTrace(target=function_a_bot)
+    a_thread.daemon = True
+    b_thread = ThreadTrace(target=function_b_bot)
+    b_thread.daemon = True
+    a_thread.start()
+    b_thread.start()
+
+    start_time = rospy.Time.now()
+    a_thread.join(timeout)
+    if a_thread.is_alive():
+      rospy.logerr("a_bot not done yet, breaking out")
+      a_thread.kill()
+      b_thread.kill()
+      return False
+    rospy.loginfo("a_bot DONE")
+    
+    time_left_until_timeout = (rospy.Time.now() - start_time).secs
+    if time_left_until_timeout < 0.0:
+      rospy.logerr("Timed out!")
+      b_thread.kill()
+      return False
+
+    b_thread.join(time_left_until_timeout)
+    if b_thread.is_alive():
+      rospy.logerr("b_bot not done yet, abort")
+      b_thread.kill()
+      return False
+    rospy.loginfo("b_bot DONE")
+    return True
+
   def do_screw_tasks_simultaneous(self):
     """
     Start from prep poses, finish before carrying tray.
@@ -255,28 +299,33 @@ class O2ACTaskboard(O2ACCommon):
     # Move into the screw hole with motor on
 
     self.vision.activate_camera("b_bot_inside_camera")
-    b_thread = ThreadTrace(target=self.do_task, args=(["M2 set screw"]))
-    b_thread.daemon = True
-    a_thread = ThreadTrace(target=self.pick_screw_from_feeder, args=(["a_bot"]), kwargs={"screw_size": 3})
-    a_thread.daemon = True
-    a_thread.start()
-    b_thread.start()
+    def do_with_a():
+      self.do_task("M2 set screw")
+    def do_with_b():
+      self.pick_screw_from_feeder("a_bot", screw_size=3)
+    self.do_tasks_simultaneous(do_with_a, do_with_b, timeout=30.0)
+    # b_thread = ThreadTrace(target=self.do_task, args=(["M2 set screw"]))
+    # b_thread.daemon = True
+    # a_thread = ThreadTrace(target=self.pick_screw_from_feeder, args=(["a_bot"]), kwargs={"screw_size": 3})
+    # a_thread.daemon = True
+    # a_thread.start()
+    # b_thread.start()
 
-    a_thread.join(20.0)
-    if a_thread.is_alive():
-      rospy.logerr("a_bot not done yet, waiting a bit more")
-      a_thread.join(20.0)
-      a_thread.kill()
-      b_thread.kill()
-      return False
-    rospy.loginfo("a_bot DONE")
+    # a_thread.join(20.0)
+    # if a_thread.is_alive():
+    #   rospy.logerr("a_bot not done yet, waiting a bit more")
+    #   a_thread.join(20.0)
+    #   a_thread.kill()
+    #   b_thread.kill()
+    #   return False
+    # rospy.loginfo("a_bot DONE")
     
-    b_thread.join(20.0)
-    if b_thread.is_alive():
-      rospy.logerr("b_bot not done yet, abort")
-      b_thread.kill()
-      return False
-    rospy.loginfo("b_bot DONE")
+    # b_thread.join(20.0)
+    # if b_thread.is_alive():
+    #   rospy.logerr("b_bot not done yet, abort")
+    #   b_thread.kill()
+    #   return False
+    # rospy.loginfo("b_bot DONE")
     # TODO: Get the result from a thread: https://stackoverflow.com/questions/5324718/python-returning-data-from-a-threaded-def    
     
     def prep_b_bot():
@@ -286,28 +335,30 @@ class O2ACTaskboard(O2ACCommon):
       self.pick_screw_from_feeder("b_bot", screw_size=4)
 
     def a_bot_task():
-      self.do_task("M3 screw")
+      self.do_task("M3 screw")  # TODO: Do not include unequip in this
 
-    b_thread = ThreadTrace(target=prep_b_bot)
-    b_thread.daemon = True
-    a_thread = ThreadTrace(target=a_bot_task)
-    a_thread.daemon = True
+    self.do_tasks_simultaneous(a_bot_task, prep_b_bot, timeout=60.0)
 
-    b_thread.start()
-    a_thread.start()
+    # b_thread = ThreadTrace(target=prep_b_bot)
+    # b_thread.daemon = True
+    # a_thread = ThreadTrace(target=a_bot_task)
+    # a_thread.daemon = True
 
-    a_thread.join(60.0)
-    if a_thread.is_alive():
-      rospy.logerr("a_bot not done yet, abort")
-      a_thread.kill()
-      b_thread.kill()
-      return False
-    rospy.loginfo("a_bot DONE")
-    b_thread.join(60.0)
-    if b_thread.is_alive():
-      rospy.logerr("a_bot not done yet, abort")
-      b_thread.kill()
-    rospy.loginfo("b_bot DONE")
+    # b_thread.start()
+    # a_thread.start()
+
+    # a_thread.join(60.0)
+    # if a_thread.is_alive():
+    #   rospy.logerr("a_bot not done yet, abort")
+    #   a_thread.kill()
+    #   b_thread.kill()
+    #   return False
+    # rospy.loginfo("a_bot DONE")
+    # b_thread.join(60.0)
+    # if b_thread.is_alive():
+    #   rospy.logerr("a_bot not done yet, abort")
+    #   b_thread.kill()
+    # rospy.loginfo("b_bot DONE")
 
     self.do_task("M4 screw")
 
@@ -479,8 +530,8 @@ class O2ACTaskboard(O2ACCommon):
           rospy.logerr("Fail pick screw from feeder m3")
           return False
       
-      if not self.a_bot.move_lin_rel(relative_translation=[0.0,-0.10,0.0]):
-        rospy.logerr("Fail to move lin rel")
+      if not self.a_bot.go_to_named_pose("home"):
+        rospy.logerr("Fail to go to home")
         return False
 
       if not self.a_bot.go_to_named_pose("horizontal_screw_ready"):
