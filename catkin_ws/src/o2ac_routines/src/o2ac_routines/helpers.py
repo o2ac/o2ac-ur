@@ -461,12 +461,13 @@ def get_trajectory_joint_goal(plan, joints_order=None):
   return plan.joint_trajectory.points[-1].positions
 
 def to_robot_state(move_group, joints):
-  joint_state = JointState()
-  joint_state.header.stamp = rospy.Time.now()
-  joint_state.name = move_group.get_active_joints()
-  joint_state.position = joints
-  moveit_robot_state = RobotState()
-  moveit_robot_state.joint_state = joint_state
+  moveit_robot_state = move_group.get_current_state()
+  moveit_robot_state.joint_state.header.stamp = rospy.Time.now()
+  active_joints = move_group.get_active_joints()
+  temp_joint_values = list(moveit_robot_state.joint_state.position)
+  for i in range(len(active_joints)):
+    temp_joint_values[moveit_robot_state.joint_state.name.index(active_joints[i])] = joints[i]
+  moveit_robot_state.joint_state.position = temp_joint_values
   return moveit_robot_state
 
 def to_sequence_gripper(gripper, gripper_opening_width=0.14, gripper_force=40, gripper_velocity=0.03):

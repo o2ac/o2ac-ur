@@ -25,7 +25,6 @@ class RobotBase():
         self.listener = tf_listener
 
         self.sequence_move_group = actionlib.SimpleActionClient("/sequence_move_group", moveit_msgs.msg.MoveGroupSequenceAction)
-        self.plan_sequence_path = rospy.ServiceProxy('plan_sequence_path', moveit_msgs.srv.GetMotionSequence)
 
         self.run_mode_ = True     # The modes limit the maximum speed of motions. Used with the safety system @WRS2020
         self.pause_mode_ = False
@@ -305,10 +304,13 @@ class RobotBase():
         msi = moveit_msgs.msg.MotionSequenceItem()
         msi.req = group.construct_motion_plan_request()
         msi.blend_radius = 0.0
-        motion_plan_requests.append(msi)
 
         if initial_joints:
             msi.req.start_state = helpers.to_robot_state(self.robot_group, initial_joints)
+        else:
+            msi.req.start_state = helpers.to_robot_state(self.robot_group, self.robot_group.get_current_joint_values())
+        
+        motion_plan_requests.append(msi)
 
         for wp, blend_radius, spd in waypoints:
             self.set_up_move_group(spd, spd/2.0, planner="LINEAR")
@@ -327,14 +329,17 @@ class RobotBase():
         goal = moveit_msgs.msg.MoveGroupSequenceGoal()
         goal.request = moveit_msgs.msg.MotionSequenceRequest()
         goal.request.items = motion_plan_requests
+        # Plan only always for compatibility with simultaneous motions
+        goal.planning_options.plan_only = True
 
         start_time = rospy.Time.now()
         tries = 0
         success = False
         while not success and (rospy.Time.now() - start_time < rospy.Duration(15)) and not rospy.is_shutdown():
+
+            self.sequence_move_group.send_goal_and_wait(goal)
+            response = self.sequence_move_group.get_result()
             
-            # Make MotionSequence
-            response = self.plan_sequence_path(goal.request)
             group.clear_pose_targets()
 
             if response.response.error_code.val == 1:
@@ -345,10 +350,7 @@ class RobotBase():
                 else:
                     return self.execute_plan(plan, wait=True)
             tries += 1
-        if plan_only:
-            rospy.logerr("Failed to plan linear trajectory. error code: %s" % response.response.error_code.val)
-        else:
-            rospy.logerr("Fail move_lin_trajectory with status %s" % result)
+        rospy.logerr("Failed to plan linear trajectory. error code: %s" % response.response.error_code.val)
         return False
 
     def move_lin(self, pose_goal_stamped, speed=0.5, acceleration=0.5, end_effector_link="", wait=True,
