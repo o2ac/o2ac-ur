@@ -2,6 +2,7 @@
 
 import rospy, tf
 from geometry_msgs import msg as gmsg
+from std_srvs      import srv as ssrv
 
 #########################################################################
 #  local functions                                                      #
@@ -17,8 +18,11 @@ class CalibrationPublisher(object):
     def __init__(self):
         super(CalibrationPublisher, self).__init__()
 
-        self._broadcaster = tf.TransformBroadcaster()
-        self._transform   = self._load_transform()
+        self._broadcaster       = tf.TransformBroadcaster()
+        self._get_transform_srv = rospy.Service("~get_transform",
+                                                ssrv.Trigger,
+                                                self._get_tranform_cb)
+        self._transform         = self._get_transform()
 
     def run(self):
         rate = rospy.Rate(50)
@@ -26,7 +30,11 @@ class CalibrationPublisher(object):
             self._publish_transform()
             rate.sleep()
 
-    def _load_transform(self):
+    def _get_transform_cb(self, req):
+        self._get_transform()
+        return ssrv.TriggerResponse(True, "transform loaded.")
+
+    def _get_transform(self):
         if rospy.get_param("~dummy", False):
             child  = rospy.get_param("~camera_frame")
             if rospy.get_param("~eye_on_hand", False):
