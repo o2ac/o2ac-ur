@@ -12,6 +12,7 @@ find_package(catkin REQUIRED
     ddynamic_reconfigure
     sensor_msgs
     image_transport
+    message_generation
     rospy
 )
 
@@ -23,6 +24,13 @@ catkin_python_setup()
 include_directories(
   ${catkin_INCLUDE_DIRS}
 )
+
+add_service_files(
+  FILES
+    ActivateCamera.srv
+)
+
+generate_messages()
 
 catkin_package(
   CATKIN_DEPENDS

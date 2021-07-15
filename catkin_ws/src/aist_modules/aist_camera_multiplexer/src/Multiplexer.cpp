@@ -103,6 +103,21 @@ Multiplexer::activate_camera(int camera_number)
     }
 }
 
+bool
+Multiplexer::activate_camera_cb(ActivateCamera::Request&  req,
+				ActivateCamera::Response& res)
+{
+    for (int i = 0; i < ncameras(); ++i)
+	if (_subscribers[i]->camera_name() == req.camera_name)
+	{
+	    activate_camera(i);
+	    res.success = true;
+	    return true;
+	}
+    res.success = false;
+    return true;
+}
+
 void
 Multiplexer::camera_info_cb(const camera_info_cp& camera_info,
 			    int camera_number) const

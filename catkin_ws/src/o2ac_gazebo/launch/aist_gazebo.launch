@@ -50,21 +50,27 @@
   <arg name="camera1_name"	value="a_bot_outside_camera"/>
 
   <!-- Launch camera multiplexer -->
-  <node name="camera_multiplexer"
+  <arg name="multiplexer_name"	value="camera_multiplexer"/>
+  <node name="$(arg multiplexer_name)"
   	pkg="aist_camera_multiplexer" type="aist_camera_multiplexer"
   	output="screen">
-    <rosparam param="camera_names" subst_value="true">
-      [$(arg camera0_name), $(arg camera1_name)]
-    </rosparam>
+    <rosparam param="camera_names"
+	      subst_value="true">[$(arg camera0_name),
+                                  $(arg camera1_name)]</rosparam>
 
-    <remap from="/camera_info0"	to="$(arg camera0_name)/color/camera_info"/>
-    <remap from="/image0"	to="$(arg camera0_name)/color/image_raw"/>
-    <remap from="/depth0"	to="$(arg camera0_name
-				    )/aligned_depth_to_color/image_raw"/>
+    <remap from="$(arg multiplexer_name)/$(arg camera0_name)/camera_info"
+	   to="$(arg camera0_name)/color/camera_info"/>
+    <remap from="$(arg multiplexer_name)/$(arg camera0_name)/image"
+	   to="$(arg camera0_name)/color/image_raw"/>
+    <remap from="$(arg multiplexer_name)/$(arg camera0_name)/depth"
+	   to="$(arg camera0_name)/aligned_depth_to_color/image_raw"/>
 
-    <remap from="/camera_info1"	to="$(arg camera1_name)/color/camera_info"/>
-    <remap from="/image1"	to="$(arg camera1_name)/color/image_raw"/>
-    <remap from="/depth1"	to="$(arg camera1_name
-				    )/aligned_depth_to_color/image_raw"/>
+    <remap from="$(arg multiplexer_name)/$(arg camera1_name)/camera_info"
+	   to="$(arg camera1_name)/color/camera_info"/>
+    <remap from="$(arg multiplexer_name)/$(arg camera1_name)/image"
+	   to="$(arg camera1_name)/color/image_raw"/>
+    <remap from="$(arg multiplexer_name)/$(arg camera1_name)/depth"
+	   to="$(arg camera1_name)/aligned_depth_to_color/image_raw"/>
   </node>
+
 </launch>

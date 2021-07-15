@@ -1,24 +1,12 @@
 <?xml version="1.0" ?>
 <launch>
 
-  <arg name="sim"			default="false"/>
   <arg name="camera_name"		default="a_bot_inside_camera"/>
   <arg name="check"			default="false"/>
   <arg name="use_dual_quaternion"	default="true"/>
-  <arg name="rviz_config"
-       default="$(dirname)/include/handeye_calibration.rviz"/>
-
-  <!-- Launch MoveIt -->
-  <include file="$(find aist_moveit_config
-  		 )/launch/aist_moveit_planning_execution.launch">
-    <arg name="sim"	value="$(arg sim)"/>
-    <arg name="config"	value="$(arg rviz_config)"/>
-    <arg name="scene"	value="camera_calibration"/>
-  </include>
 
   <!-- Launch aruco marker detector and handeye calibrator -->
   <include file="$(dirname)/include/handeye_calibration.launch">
-    <arg name="sim"			value="$(arg sim)"/>
     <arg name="config"			value="aist"/>
     <arg name="calib_dir"		value="$(find aist_scene_description
 					       )/config/camera_calibration"/>

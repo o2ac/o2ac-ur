@@ -1,23 +1,12 @@
 <?xml version="1.0" ?>
 <launch>
 
-  <arg name="sim"			default="false"/>
   <arg name="camera_name"		default="a_bot_inside_camera"/>
   <arg name="check"			default="false"/>
   <arg name="use_dual_quaternion"	default="true"/>
-  <arg name="rviz_config"
-       default="$(dirname)/include/handeye_calibration.rviz"/>
-
-  <!-- Launch MoveIt -->
-  <include file="$(find o2ac_moveit_config
-  		 )/launch/o2ac_moveit_planning_execution.launch">
-    <arg name="sim"	value="$(arg sim)"/>
-    <arg name="config"	value="$(arg rviz_config)"/>
-  </include>
 
   <!-- Launch aruco marker detector and handeye calibrator -->
   <include file="$(dirname)/include/handeye_calibration.launch">
-    <arg name="sim"			value="$(arg sim)"/>
     <arg name="config"			value="o2ac"/>
     <arg name="calib_dir"		value="$(find o2ac_scene_description
 					       )/config/camera_calibration"/>

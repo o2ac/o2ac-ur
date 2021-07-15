@@ -9,6 +9,7 @@
 #include <ros/ros.h>
 #include <image_transport/image_transport.h>
 #include <ddynamic_reconfigure/ddynamic_reconfigure.h>
+#include <aist_camera_multiplexer/ActivateCamera.h>
 
 namespace aist_camera_multiplexer
 {
@@ -49,6 +50,8 @@ class Multiplexer
   private:
     int		ncameras()					const	;
     void	activate_camera(int camera_number)			;
+    bool	activate_camera_cb(ActivateCamera::Request&  req,
+				   ActivateCamera::Response& res)	;
     void	camera_info_cb(const camera_info_cp& camera_info,
 			       int camera_number)		const	;
     void	image_cb(const image_cp& image,
