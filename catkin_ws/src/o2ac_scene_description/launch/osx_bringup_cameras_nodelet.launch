@@ -20,9 +20,9 @@
   <arg name="camera_no"		default="0"/>
 
   <arg if="$(arg use_nodelet)"
-       name="manager"		value="camera_manager"/>
+       name="manager"		default="camera_manager"/>
   <arg unless="$(arg use_nodelet)"
-       name="manager"		value=""/>
+       name="manager"		default=""/>
 
   <!-- Launch nodelet manger -->
   <group if="$(eval camera_no != len(camera_names.split(',')))">

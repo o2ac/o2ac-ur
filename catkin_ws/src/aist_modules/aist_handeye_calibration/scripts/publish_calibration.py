@@ -21,7 +21,7 @@ class CalibrationPublisher(object):
         self._broadcaster       = tf.TransformBroadcaster()
         self._get_transform_srv = rospy.Service("~get_transform",
                                                 ssrv.Trigger,
-                                                self._get_tranform_cb)
+                                                self._get_transform_cb)
         self._transform         = self._get_transform()
 
     def run(self):
