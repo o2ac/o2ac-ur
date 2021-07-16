@@ -1,15 +1,29 @@
 <?xml version="1.0" ?>
 <launch>
 
+  <arg name="bag_file"		default=""/>
+  <arg name="data_dir"		default="$(env HOME
+					 )/o2ac-ur/catkin_ws/src/data"/>
   <arg name="camera_name"	default="b_bot_outside_camera"/>
 
-  <include file="$(find aist_visual_tracker)/launch/run.launch"
-	   ns="$(arg camera_name)">
-    <arg name="camera_info_topic" value="color/camera_info"/>
-    <arg name="image_topic"	  value="color/image_raw"/>
-    <arg name="depth_topic"	  value="aligned_depth_to_color/image_raw"/>
+  <node name="rosbag_play" pkg="rosbag" type="play" output="screen"
+	args="-l $(arg data_dir)/$(arg bag_file)"/>
+
+  <include file="$(dirname)/run.launch">
+    <arg name="camera_info_topic"
+	 value="$(arg camera_name)_throttled/color/camera_info"/>
+    <arg name="image_topic"
+	 value="$(arg camera_name)_throttled/color/image_raw"/>
+    <arg name="depth_topic"
+	 value="$(arg camera_name
+		)_throttled/aligned_depth_to_color/image_raw"/>
   </include>
-  
+
+  <include file="$(find aist_handeye_calibration
+		 )/launch/publish_calibration.launch">
+    <arg name="camera_name"	value="$(arg camera_name)"/>
+  </include>
+
   <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->
   <include file="$(find o2ac_moveit_config)/launch/planning_context.launch">
     <arg name="load_robot_description" value="true"/>
