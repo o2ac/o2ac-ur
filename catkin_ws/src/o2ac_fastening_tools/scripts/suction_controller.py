@@ -95,7 +95,7 @@ class SuctionController(object):
                     break
 
         if success_flag:
-            rospy.loginfo("Success. Digital_out_port(%d) changed %r." % (port, b_state))
+            rospy.logdebug("Success. Digital_out_port(%d) changed %r." % (port, b_state))
         else:
             rospy.logerr("Error. Digital_out_port(%d) can't be changed." % (port))
 
