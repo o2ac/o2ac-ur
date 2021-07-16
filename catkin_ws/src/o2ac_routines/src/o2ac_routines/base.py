@@ -1021,21 +1021,6 @@ class O2ACBase(object):
     if equip:
       robot.gripper.open(opening_width=0.06, wait=False)
 
-    rospy.loginfo("Going to before_tool_pickup pose.")
-    
-    tool_holder_used = "back"
-    if tool_name in ["belt_tool", "plunger_tool"]:
-      tool_holder_used = "front"
-    
-    if tool_holder_used == "back":
-      if not self.active_robots[robot_name].go_to_named_pose("tool_pick_ready"):
-        rospy.logerr("Could not plan to before_tool_pickup joint state. Abort!")
-        return False
-    elif tool_holder_used == "back":
-      if not self.active_robots[robot_name].go_to_named_pose("tool_pick_ready"):
-        rospy.logerr("Could not plan to before_tool_pickup joint state. Abort!")
-        return False
-
     # Set up poses
     ps_approach = geometry_msgs.msg.PoseStamped()
     ps_move_away = geometry_msgs.msg.PoseStamped()
@@ -1059,6 +1044,7 @@ class O2ACBase(object):
       rospy.logerr(tool_name, " is not implemented!")
       return False
 
+    rospy.loginfo("Going to before_tool_pickup pose.")
     # Go to named pose, then approach
     sequence = []
     sequence.append(helpers.to_sequence_item("tool_pick_ready"))
@@ -1146,7 +1132,12 @@ class O2ACBase(object):
     sequence.append(helpers.to_sequence_item(ps_move_away, speed=lin_speed))
     sequence.append(helpers.to_sequence_item("tool_pick_ready"))
     
-    return self.execute_sequence(robot_name, sequence, "equip/unequip tool", plan_while_moving=True)
+    success = self.execute_sequence(robot_name, sequence, "equip/unequip tool", plan_while_moving=True)
+    if not success:
+      rospy.logerr("Failed to equip/unequip tool: %s" % tool_name)
+      return False
+
+    return True
 
   def allow_collisions_with_robot_hand(self, link_name, robot_name, allow=True):
       """Allow collisions of a link with the robot hand"""
@@ -1254,51 +1245,35 @@ class O2ACBase(object):
           return False
     else:
       all_plans.append(robot_name)
-      previous_point_duration = 0.0
+      active_plan = None
+      active_plan_start_time = rospy.Time(0)
+      active_plan_duration = 0.0
       previous_plan = None
+      backlog = []
       rospy.loginfo("(plan_while_moving) Sequence name: %s" % sequence_name)
+      previous_plan_type = ""
       for i, point in enumerate(sequence):
-        res = None
+        gripper_action = None
+
         rospy.loginfo("(plan_while_moving) Sequence point: %i - %s" % (i+1, point[0]))
         # self.confirm_to_proceed("playback_sequence")
 
-        initial_joints = robot.robot_group.get_current_joint_values() if not previous_plan else helpers.get_trajectory_joint_goal(previous_plan, robot.robot_group.get_active_joints())
-        gripper_action = False
-        current_gripper_action = None
+        res = self.plan_waypoint(robot_name, point, previous_plan) # res = plan, planning_time 
 
-        if point[0] == "waypoint":
-          rospy.loginfo("Sequence point type: %s > %s" % (point[1]["pose_type"], point[1].get("desc", '')))
-          waypoint_params = point[1]
-          gripper_action = waypoint_params["pose_type"] == 'gripper'
-          if gripper_action:
-            current_gripper_action = waypoint_params["gripper"]
-            res = None, 0.0
-          else:
-            if waypoint_params["pose_type"] == 'master-slave':
-              joint_list = self.active_robots[waypoint_params["master_name"]].robot_group.get_active_joints() + self.active_robots[waypoint_params["slave_name"]].robot_group.get_active_joints()
-              initial_joints_ = None if not previous_plan else helpers.get_trajectory_joint_goal(previous_plan, joint_list)
-            else:
-              initial_joints_ = copy.copy(initial_joints)
-            res = self.move_to_sequence_waypoint(robot_name, waypoint_params, plan_only=True, initial_joints=initial_joints_)
-        elif point[0] == "trajectory":
-          trajectory = point[1]
-          if isinstance(trajectory[0][0], geometry_msgs.msg.PoseStamped):
-            res = robot.move_lin_trajectory(trajectory, plan_only=True, initial_joints=initial_joints)
-          elif isinstance(trajectory[0][0], dict):
-            joint_list = self.active_robots[trajectory[0][0]["master_name"]].robot_group.get_active_joints() + self.active_robots[trajectory[0][0]["slave_name"]].robot_group.get_active_joints()
-            initial_joints_ = None if not previous_plan else helpers.get_trajectory_joint_goal(previous_plan, joint_list)
-            res = self.master_slave_trajectory(robot_name, trajectory, plan_only=True, initial_joints=initial_joints_)
-          else:
-            rospy.logerr("Trajectory: %s" % trajectory)
-            raise ValueError("Invalid trajectory type %s" % type(trajectory[0][0]))
-        else:
-          ValueError("Invalid sequence type: %s" % point[0])
-
-        if not gripper_action and not res:
+        if not res:
           rospy.logerr("Fail to complete playback sequence: %s" % sequence_name)
           return False
         
-        plan, planning_time = res
+        if isinstance(res[0], dict):
+          gripper_action = copy.copy(res[0])
+          res = None, 0.0
+        
+        plan, _ = res
+
+        if point[0] == "waypoint":
+          previous_plan_type = point[1]["pose_type"]
+        else:
+          previous_plan_type = ["trajectory"]
 
         if save_on_success:
           if not gripper_action:
@@ -1307,45 +1282,102 @@ class O2ACBase(object):
             else: # otherwise save the computed plan
               all_plans.append(plan)
           else: # or the gripper action
-            all_plans.append(current_gripper_action)
+            all_plans.append(gripper_action)
 
-        # post planning waiting
-        if previous_plan:
-          waiting_time = (previous_point_duration) - planning_time if (previous_point_duration) - planning_time > 0 else 0.0
-          waiting_time = waiting_time
-          # TODO(cambel): could use this waiting time to evaluate whether to try to plan a future point too instead of only waiting
-          rospy.sleep(waiting_time)
-          if not robot.robot_group.wait_for_motion_result():
-            rospy.logerr("Moveit aborted the motion")
-            # return False
-          rospy.loginfo("waited for motion result")
+        if gripper_action:
+          backlog.append((gripper_action, (i+1), previous_plan_type))
+          continue
+
+        backlog.append((plan, (i+1), previous_plan_type))
+        previous_plan = plan
         
-        current_joints = robot.robot_group.get_current_joint_values()
-        # print("==== Joint sanity check ====")
-        # print("current_joints", np.round(current_joints, 4))
-        # print("target_joints", np.round(initial_joints, 4))
-        # print("diff", np.round(np.array(initial_joints)-current_joints, 3))
-        if not helpers.all_close(initial_joints, current_joints, 0.01):
-          rospy.logerr("Fail to execute plan: target pose not reach")
-          return False
-
-        if current_gripper_action:
-          self.execute_gripper_action(robot_name, current_gripper_action)
-        elif plan:
-          wait = True if i == len(sequence) -1 else False
-          # rospy.loginfo("executing plan:")
-          # rospy.loginfo(plan)
-          if not robot.execute_plan(plan, wait=wait):
-            rospy.logerr("plan execution failed")
+        if active_plan:
+          execution_time = (rospy.Time.now() - active_plan_start_time).secs
+          remaining_time = execution_time - active_plan_duration
+          if remaining_time < 0.1: # No much time for another plan, wait for execution to complete
+            if not robot.robot_group.wait_for_motion_result():
+              rospy.logerr("Moveit aborted the motion")
+            rospy.loginfo("waited for motion result")
+          else:
+            # Try planning another point
+            continue
+          
+          current_joints = robot.robot_group.get_current_joint_values()
+          active_plan_goal = helpers.get_trajectory_joint_goal(active_plan, robot.robot_group.get_active_joints())
+          if not helpers.all_close(active_plan_goal, current_joints, 0.01):
+            rospy.logerr("Fail to execute plan: target pose not reach")
             return False
 
-        previous_plan = plan
-        previous_point_duration = helpers.get_trajectory_duration(plan) if plan else 0.0
+        # execute next plan 
+        next_plan, index, plan_type = backlog.pop(0)
+        print("Executing plan: index,", index, "type", plan_type)
+        if isinstance(next_plan, dict): # gripper action
+          self.execute_gripper_action(robot_name, next_plan)
+          continue
+
+        elif isinstance(next_plan, moveit_msgs.msg.RobotTrajectory):
+          wait = True if i == len(sequence) -1 else False
+          if not robot.execute_plan(next_plan, wait=wait):
+            rospy.logerr("plan execution failed")
+            return False
+          active_plan = next_plan
+          active_plan_start_time = rospy.Time.now()
+          active_plan_duration = helpers.get_trajectory_duration(next_plan)
+
+        else:
+          raise ValueError("Invalid action")
+
+      # Finished preplanning the whole sequence: Execute remaining waypoints
+      while backlog:
+        current_joints = robot.robot_group.get_current_joint_values()
+        active_plan_goal = helpers.get_trajectory_joint_goal(active_plan, robot.robot_group.get_active_joints())
+        if not helpers.all_close(active_plan_goal, current_joints, 0.01):
+          rospy.logerr("Fail to execute plan: target pose not reach")
+          return False
+        next_plan, index, plan_type = backlog.pop(0)
+        print("Executing plan (backlog loop): index,", index, "type", plan_type)
+        if isinstance(next_plan, dict): # gripper action
+          self.execute_gripper_action(robot_name, next_plan)
+
+        elif isinstance(next_plan, (moveit_msgs.msg.RobotTrajectory)):
+          active_plan = next_plan
+          if not robot.execute_plan(next_plan, wait=True):
+            rospy.logerr("plan execution failed")
+            return False
 
     if plan_while_moving and save_on_success:
       helpers.save_sequence_plans(name=sequence_name, plans=all_plans)
 
     return True
+
+  def plan_waypoint(self, robot_name, point, previous_plan):
+    initial_joints = self.active_robots[robot_name].robot_group.get_current_joint_values() if not previous_plan else helpers.get_trajectory_joint_goal(previous_plan, self.active_robots[robot_name].robot_group.get_active_joints())
+    if point[0] == "waypoint":
+      rospy.loginfo("Sequence point type: %s > %s" % (point[1]["pose_type"], point[1].get("desc", '')))
+      waypoint_params = point[1]
+      gripper_action = waypoint_params["pose_type"] == 'gripper'
+      if gripper_action:
+        return waypoint_params["gripper"], 0.0
+      else:
+        if waypoint_params["pose_type"] == 'master-slave':
+          joint_list = self.active_robots[waypoint_params["master_name"]].robot_group.get_active_joints() + self.active_robots[waypoint_params["slave_name"]].robot_group.get_active_joints()
+          initial_joints_ = None if not previous_plan else helpers.get_trajectory_joint_goal(previous_plan, joint_list)
+        else:
+          initial_joints_ = initial_joints
+        return self.move_to_sequence_waypoint(robot_name, waypoint_params, plan_only=True, initial_joints=initial_joints_)
+    elif point[0] == "trajectory":
+      trajectory = point[1]
+      if isinstance(trajectory[0][0], geometry_msgs.msg.PoseStamped):
+        return self.active_robots[robot_name].move_lin_trajectory(trajectory, plan_only=True, initial_joints=initial_joints)
+      elif isinstance(trajectory[0][0], dict):
+        joint_list = self.active_robots[trajectory[0][0]["master_name"]].robot_group.get_active_joints() + self.active_robots[trajectory[0][0]["slave_name"]].robot_group.get_active_joints()
+        initial_joints_ = None if not previous_plan else helpers.get_trajectory_joint_goal(previous_plan, joint_list)
+        return self.master_slave_trajectory(robot_name, trajectory, plan_only=True, initial_joints=initial_joints_)
+      else:
+        rospy.logerr("Trajectory: %s" % trajectory)
+        raise ValueError("Invalid trajectory type %s" % type(trajectory[0][0]))
+    else:
+      raise ValueError("Invalid sequence type: %s" % point[0])
 
   def playback_sequence(self, routine_filename, default_frame="world", plan_while_moving=True, save_on_success=True, use_saved_plans=True):
 
