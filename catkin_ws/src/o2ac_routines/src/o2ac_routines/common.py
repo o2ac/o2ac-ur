@@ -1554,18 +1554,17 @@ class O2ACCommon(O2ACBase):
     success &= self.b_bot.move_lin_rel(relative_translation = [0.025,0,0], acceleration = 0.015, speed=.03)
     return success
 
-  def fasten_bearing(self, task="", only_retighten=False, calibration_only=False):
+  def fasten_bearing(self, task="", only_retighten=False, robot_name="b_bot"):
     if not task in ["taskboard", "assembly"]:
       rospy.logerr("Invalid task specification: " + task)
       return False
-    if not self.a_bot.go_to_named_pose("home"):
-      rospy.logwarn("Failed to go home with a_bot")
-
-    if not self.equip_tool('b_bot', 'screw_tool_m4'):
+    
+    if not self.equip_tool(robot_name, 'screw_tool_m4'):
       rospy.logerr("Fail to equip tool abort!")
       return False
 
-    self.vision.activate_camera("b_bot_outside_camera")
+    speed = 0.7
+    self.vision.activate_camera(robot_name + "_outside_camera")
     
     screw_poses = []
     for i in [1,2,3,4]:
@@ -1582,56 +1581,58 @@ class O2ACCommon(O2ACBase):
       elif task == "assembly":
         screw_pose.pose.position.z += .0025  # MAGIC NUMBER
       screw_pose.pose.position.x += .006  # This needs to be quite far forward, because the thread is at the plate level (behind the frame)
-      screw_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/12, 0, 0) )
+      offset = -1 if robot_name == "a_bot" else 1
+      screw_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(offset*tau/12, 0, 0) )
 
       screw_pose_approach = copy.deepcopy(screw_pose)
       screw_pose_approach.pose.position.x -= 0.05
       screw_poses.append(screw_pose)
 
-    _task = task  # Needs to be defined here so the nested function can access it
-    def pick_and_fasten_bearing_screw(screw_pose, skip_picking=False, skip_moving_back=False):
+    def pick_and_fasten_bearing_screw(robot_name, screw_pose, skip_picking=False, skip_moving_back=False, speed=0.7):
       """Returns tuple (screw_status, break_out_of_loop)
          screw_status is a string saying either "empty", "done" or "maybe_stuck_in_hole"
       """
       break_out_of_loop = False
       # Pick screw
       if not skip_picking:
-        self.b_bot.go_to_named_pose("screw_ready")
-        self.b_bot.go_to_named_pose("feeder_pick_ready")
-        pick_success = self.pick_screw_from_feeder_python("b_bot", screw_size=4)
+        self.active_robots[robot_name].go_to_named_pose("screw_ready", speed=speed)
+        self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready", speed=speed)
+        pick_success = self.pick_screw_from_feeder_python(robot_name, screw_size=4)
         if not pick_success:
           rospy.logerr("Could not pick screw. Why?? Breaking out.")
           self.unequip_tool('b_bot', 'screw_tool_m4')
           return ("empty", True)
-        self.playback_sequence("ready_screw_tool_horizontal")
-        # self.b_bot.go_to_named_pose("screw_ready")
-        # self.b_bot.go_to_named_pose("horizontal_screw_ready")
+        # self.playback_sequence("ready_screw_tool_horizontal")
+        self.active_robots[robot_name].go_to_named_pose("screw_ready", speed=speed)
+        self.active_robots[robot_name].go_to_named_pose("horizontal_screw_ready", speed=speed)
       
-      if not self.tools.screw_is_suctioned["m4"] and not skip_picking:
+      if self.use_real_robot and not self.tools.screw_is_suctioned["m4"] and not skip_picking:
         rospy.logerr("Screw lost on the way to screwing.")
         return ("empty", False)
 
       screw_pose_approach = copy.deepcopy(screw_pose)
       screw_pose_approach.pose.position.x -= 0.07
       
-      self.b_bot.go_to_pose_goal(screw_pose_approach, end_effector_link = "b_bot_screw_tool_m4_tip_link", move_lin=False)
+      self.active_robots[robot_name].go_to_pose_goal(screw_pose_approach, end_effector_link = robot_name + "_screw_tool_m4_tip_link", move_lin=False)
       
       # FIXME(felixvd): This returns true even if the motor has not stalled
-      if self.skill_server.do_screw_action("b_bot", screw_pose, screw_size=4):
+      if self.skill_server.do_screw_action(robot_name, screw_pose, screw_size=4):
         screw_status = "done"
       else:
-        if self.tools.screw_is_suctioned["m4"]:
+        if self.use_real_robot and self.tools.screw_is_suctioned["m4"]:
           screw_status = "empty"
           rospy.logerr("Failed to fasten bearing screw!")
         else:
           screw_status = "maybe_stuck_in_hole"
-      if self.b_bot.is_protective_stopped():
-        rospy.logerr("Critical error: b_bot protective stopped. Something is wrong. Wait to unlock, move back, abort.")
-        self.b_bot.unlock_protective_stop()
-        self.b_bot.go_to_pose_goal(screw_pose_approach, end_effector_link = "b_bot_screw_tool_m4_tip_link", move_lin=True)
+      if self.active_robots[robot_name].is_protective_stopped():
+        rospy.logerr("Critical error: %s  protective stopped. Something is wrong. Wait to unlock, move back, abort." % robot_name)
+        self.active_robots[robot_name].unlock_protective_stop()
+        self.active_robots[robot_name].go_to_pose_goal(screw_pose_approach, end_effector_link = robot_name + "_screw_tool_m4_tip_link", move_lin=True)
         break_out_of_loop = True
       if not skip_moving_back:
-        self.playback_sequence("return_screw_tool_horizontal")  # Go back above the taskboard
+        # self.playback_sequence("return_screw_tool_horizontal")  # Go back above the taskboard
+        self.active_robots[robot_name].go_to_named_pose("horizontal_screw_ready", speed=speed)
+        self.active_robots[robot_name].go_to_named_pose("screw_ready", speed=speed)
       return (screw_status, break_out_of_loop)
 
     # Initialize screw status
@@ -1643,10 +1644,10 @@ class O2ACCommon(O2ACBase):
         screw_status[n] = "empty"
     
     self.confirm_to_proceed("intermediate pose")
-    self.b_bot.go_to_named_pose("screw_ready")
+    self.active_robots[robot_name].go_to_named_pose("screw_ready", speed=speed)
     if only_retighten:
       self.confirm_to_proceed("horizontal screw ready")
-      self.b_bot.go_to_named_pose("horizontal_screw_ready")
+      self.active_robots[robot_name].go_to_named_pose("horizontal_screw_ready", speed=speed)
     # Go to bearing and fasten all the screws
     all_screws_done = False
     tries = 0
@@ -1655,9 +1656,9 @@ class O2ACCommon(O2ACBase):
       for n in [1,3,2,4]:  # Cross pattern
         assert not rospy.is_shutdown(), "lost connection to ros?"
         if screw_status[n] == "empty":
-          (screw_status[n], breakout) = pick_and_fasten_bearing_screw(screw_poses[n-1])
+          (screw_status[n], breakout) = pick_and_fasten_bearing_screw(robot_name, screw_poses[n-1])
         elif screw_status[n] == "maybe_stuck_in_hole":
-          (screw_status[n], breakout) = pick_and_fasten_bearing_screw(screw_poses[n-1], skip_picking=True, skip_moving_back=True)
+          (screw_status[n], breakout) = pick_and_fasten_bearing_screw(robot_name, screw_poses[n-1], skip_picking=True, skip_moving_back=True)
         if breakout:
           rospy.logerr("Critical error. abort")
           return False
@@ -1666,8 +1667,8 @@ class O2ACCommon(O2ACBase):
       tries += 1
 
     if only_retighten:
-      self.b_bot.go_to_named_pose("horizontal_screw_ready")
-    self.b_bot.go_to_named_pose("screw_ready")
+      self.active_robots[robot_name].go_to_named_pose("horizontal_screw_ready", speed=speed)
+    self.active_robots[robot_name].go_to_named_pose("screw_ready", speed=speed)
     return all_screws_done
 
   ########  Motor pulley
