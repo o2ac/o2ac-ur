@@ -70,6 +70,18 @@ class O2ACTaskboard(O2ACCommon):
     self.at_set_screw_hole.pose.position.z = 0.001   # MAGIC NUMBER (points downward)
     if not self.assembly_database.db_name == "taskboard":
       self.assembly_database.change_assembly("taskboard")
+    
+    self.subtask_completed = {
+      "M2 set screw": True,
+      "M3 screw": False,
+      "M4 screw": False,
+      "belt": False,
+      "bearing": False,
+      "screw_bearing": False,
+      "motor pulley": False,
+      "shaft": False,  
+      "idler pulley": False,
+    }
 
   def spawn_example_objects(self):
     # This function spawns the objects into the tray as if they had been recognized by the vision node
@@ -164,7 +176,7 @@ class O2ACTaskboard(O2ACCommon):
       self.equip_tool("b_bot", "set_screw_tool")
       self.b_bot.go_to_named_pose("horizontal_screw_ready")
       self.move_b_bot_to_setscrew_initial_pos()
-    self.do_tasks_simultaneous(do_with_a, do_with_b, timeout=40.0)
+    self.do_tasks_simultaneous(do_with_a, do_with_b, timeout=50.0)
 
 
   def move_b_bot_to_setscrew_initial_pos(self):
@@ -210,7 +222,7 @@ class O2ACTaskboard(O2ACCommon):
     """
     #####
     self.subtask_completed = {
-      "M2 set screw": True,  # FIXME
+      "M2 set screw": True,
       "M3 screw": False,
       "M4 screw": False,
       "belt": False,
@@ -221,7 +233,8 @@ class O2ACTaskboard(O2ACCommon):
       "idler pulley": False,
     }
     if do_screws:
-      self.do_screw_tasks_from_prep_position()
+      # self.do_screw_tasks_from_prep_position()
+      self.do_screw_tasks_simultaneous()
 
     if not skip_tray_placing:
       self.take_tray_from_agv()
@@ -275,7 +288,8 @@ class O2ACTaskboard(O2ACCommon):
       return False
     rospy.loginfo("a_bot DONE")
     
-    time_left_until_timeout = (rospy.Time.now() - start_time).secs
+    time_passed = (rospy.Time.now() - start_time).secs
+    time_left_until_timeout = timeout - time_passed
     if time_left_until_timeout < 0.0:
       rospy.logerr("Timed out!")
       b_thread.kill()
@@ -284,6 +298,7 @@ class O2ACTaskboard(O2ACCommon):
     b_thread.join(time_left_until_timeout)
     if b_thread.is_alive():
       rospy.logerr("b_bot not done yet, abort")
+      rospy.logerr("Started at " + str(start_time) + " and timeout was " + str(timeout))
       b_thread.kill()
       return False
     rospy.loginfo("b_bot DONE")
@@ -296,89 +311,32 @@ class O2ACTaskboard(O2ACCommon):
     ### - Set screw
     self.publish_status_text("M3 set screw")
     
-    # Move into the screw hole with motor on
-
     self.vision.activate_camera("b_bot_inside_camera")
     def do_with_a():
-      self.do_task("M2 set screw")
-    def do_with_b():
       self.pick_screw_from_feeder("a_bot", screw_size=3)
-    self.do_tasks_simultaneous(do_with_a, do_with_b, timeout=30.0)
-    # b_thread = ThreadTrace(target=self.do_task, args=(["M2 set screw"]))
-    # b_thread.daemon = True
-    # a_thread = ThreadTrace(target=self.pick_screw_from_feeder, args=(["a_bot"]), kwargs={"screw_size": 3})
-    # a_thread.daemon = True
-    # a_thread.start()
-    # b_thread.start()
-
-    # a_thread.join(20.0)
-    # if a_thread.is_alive():
-    #   rospy.logerr("a_bot not done yet, waiting a bit more")
-    #   a_thread.join(20.0)
-    #   a_thread.kill()
-    #   b_thread.kill()
-    #   return False
-    # rospy.loginfo("a_bot DONE")
-    
-    # b_thread.join(20.0)
-    # if b_thread.is_alive():
-    #   rospy.logerr("b_bot not done yet, abort")
-    #   b_thread.kill()
-    #   return False
-    # rospy.loginfo("b_bot DONE")
-    # TODO: Get the result from a thread: https://stackoverflow.com/questions/5324718/python-returning-data-from-a-threaded-def    
+    def do_with_b():
+      self.do_task("M2 set screw")
+    self.do_tasks_simultaneous(do_with_a, do_with_b, timeout=120.0)
+    # TODO: Consider failure cases
     
     def prep_b_bot():
       self.unequip_tool("b_bot", "set_screw_tool")
       self.equip_tool("b_bot", "screw_tool_m4")
       self.b_bot.go_to_named_pose("feeder_pick_ready")
       self.pick_screw_from_feeder("b_bot", screw_size=4)
-
+      self.b_bot.go_to_named_pose("home")
     def a_bot_task():
-      self.do_task("M3 screw")  # TODO: Do not include unequip in this
+      self.do_task("M3 screw")
+    self.do_tasks_simultaneous(a_bot_task, prep_b_bot, timeout=120.0)
 
-    self.do_tasks_simultaneous(a_bot_task, prep_b_bot, timeout=60.0)
+    def a_3():
+      self.unequip_tool("a_bot", "screw_tool_m3")
+      self.a_bot.go_to_named_pose("home")
+    def b_3():
+      self.do_task("M4 screw")
+      self.b_bot.go_to_named_pose("home")
+    self.do_tasks_simultaneous(a_3, b_3, timeout=120.0)
 
-    # b_thread = ThreadTrace(target=prep_b_bot)
-    # b_thread.daemon = True
-    # a_thread = ThreadTrace(target=a_bot_task)
-    # a_thread.daemon = True
-
-    # b_thread.start()
-    # a_thread.start()
-
-    # a_thread.join(60.0)
-    # if a_thread.is_alive():
-    #   rospy.logerr("a_bot not done yet, abort")
-    #   a_thread.kill()
-    #   b_thread.kill()
-    #   return False
-    # rospy.loginfo("a_bot DONE")
-    # b_thread.join(60.0)
-    # if b_thread.is_alive():
-    #   rospy.logerr("a_bot not done yet, abort")
-    #   b_thread.kill()
-    # rospy.loginfo("b_bot DONE")
-
-    self.do_task("M4 screw")
-
-    # self.a_bot.go_to_named_pose("feeder_pick_ready")
-
-    # Move b_bot back, a_bot to screw
-    # self.unequip_tool("b_bot", "set_screw_tool")
-    # self.equip_tool("b_bot", "screw_tool_m4")
-    # self.b_bot.go_to_named_pose("feeder_pick_ready")
-
-    # if screw_picked:
-    #   self.subtask_completed["M3 screw"] = self.do_task("M3 screw")
-    # self.unequip_tool("a_bot", "screw_tool_m3")
-    # self.a_bot.go_to_named_pose("home")
-    
-    # #### SCREW M4 WITH B_BOT
-    # self.subtask_completed["M4 screw"] = self.do_task("M4 screw")
-
-    # self.b_bot.go_to_named_pose("home")
-    # self.unequip_tool("b_bot", "screw_tool_m4")
 
 
   def execute_step(self, item):
@@ -542,17 +500,11 @@ class O2ACTaskboard(O2ACCommon):
       approach_pose = geometry_msgs.msg.PoseStamped()
       approach_pose.header.frame_id = "taskboard_m3_screw_link"
       approach_pose.pose.position.x = -.04
-      approach_pose.pose.position.y = -.12
-      approach_pose.pose.position.z = -.05
-      if not self.a_bot.go_to_pose_goal(approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True):
-        rospy.logerr("Fail to go to pose approach")
-        return False
-
       approach_pose.pose.position.y = -.0
       approach_pose.pose.position.z = -.004  # MAGIC NUMBER (z-axis of the frame points down)
       approach_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
       if not self.a_bot.go_to_pose_goal(approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True):
-        rospy.logerr("Fail to go to pose approach2")
+        rospy.logerr("Fail to go to approach pose")
         return False
 
       hole_pose = geometry_msgs.msg.PoseStamped()
@@ -575,7 +527,6 @@ class O2ACTaskboard(O2ACCommon):
         rospy.logerr("Fail to go to horizontal_screw_ready")
         return False
       if not fake_execution_for_calibration:
-        self.unequip_tool("a_bot", "screw_tool_m3")
         if not self.a_bot.go_to_named_pose("home"):
           rospy.logerr("Fail to go to home")
           return False
@@ -590,6 +541,7 @@ class O2ACTaskboard(O2ACCommon):
         if not self.pick_screw_from_feeder("b_bot", screw_size = 4):
           rospy.logerr("Fail pick screw from feeder m4")
           return False
+      self.b_bot.go_to_named_pose("home")
       if not self.b_bot.go_to_named_pose("horizontal_screw_ready"):
         rospy.logerr("Fail to go to horizontal_screw_ready")
         return False
