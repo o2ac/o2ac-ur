@@ -81,7 +81,7 @@
       <arg name="camera_height"		value="$(arg camera_height)"/>
       <arg name="fps"			value="$(arg fps)"/>
       <arg name="enable_streaming"	value="$(arg enable_streaming)"/>
-      <arg name="manager"		value="$(arg manager)"/>
+      <arg name="use_nodelet"		value="$(arg use_nodelet)"/>
       <arg name="camera_no"		value="$(eval camera_no + 1)"/>
     </include>
   </group>
