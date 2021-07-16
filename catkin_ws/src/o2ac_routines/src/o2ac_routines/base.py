@@ -1217,7 +1217,7 @@ class O2ACBase(object):
 
     return robot_name, playback_trajectories
 
-  def execute_sequence(self, robot_name, sequence, sequence_name, plan_while_moving=True, save_on_success=False, use_saved_plans=False):
+  def execute_sequence(self, robot_name, sequence, sequence_name, end_effector_link="", plan_while_moving=True, save_on_success=False, use_saved_plans=False):
     if use_saved_plans:
       # TODO(cambel): check that the original plan's file has not been updated. if so, try to do the online planning
       bagfile = helpers.get_plan_full_path(sequence_name)
@@ -1244,13 +1244,13 @@ class O2ACBase(object):
           rospy.logerr("Fail to complete playback sequence: %s" % sequence_name)
           return False
     else:
+      rospy.loginfo("(plan_while_moving) Sequence name: %s" % sequence_name)
       all_plans.append(robot_name)
       active_plan = None
       active_plan_start_time = rospy.Time(0)
       active_plan_duration = 0.0
       previous_plan = None
       backlog = []
-      rospy.loginfo("(plan_while_moving) Sequence name: %s" % sequence_name)
       previous_plan_type = ""
       for i, point in enumerate(sequence):
         gripper_action = None
@@ -1258,7 +1258,7 @@ class O2ACBase(object):
         rospy.loginfo("(plan_while_moving) Sequence point: %i - %s" % (i+1, point[0]))
         # self.confirm_to_proceed("playback_sequence")
 
-        res = self.plan_waypoint(robot_name, point, previous_plan) # res = plan, planning_time 
+        res = self.plan_waypoint(robot_name, point, previous_plan, end_effector_link=end_effector_link) # res = plan, planning_time 
 
         if not res:
           rospy.logerr("Fail to complete playback sequence: %s" % sequence_name)
@@ -1270,10 +1270,12 @@ class O2ACBase(object):
         
         plan, _ = res
 
+        # begin - For logging only
         if point[0] == "waypoint":
           previous_plan_type = point[1]["pose_type"]
         else:
           previous_plan_type = ["trajectory"]
+        # end
 
         if save_on_success:
           if not gripper_action:
@@ -1302,55 +1304,64 @@ class O2ACBase(object):
             # Try planning another point
             continue
           
-          current_joints = robot.robot_group.get_current_joint_values()
-          active_plan_goal = helpers.get_trajectory_joint_goal(active_plan, robot.robot_group.get_active_joints())
-          if not helpers.all_close(active_plan_goal, current_joints, 0.01):
+          if not self.check_plan_goal_reached(robot_name, active_plan):
             rospy.logerr("Fail to execute plan: target pose not reach")
             return False
 
         # execute next plan 
         next_plan, index, plan_type = backlog.pop(0)
         print("Executing plan: index,", index, "type", plan_type)
-        if isinstance(next_plan, dict): # gripper action
-          self.execute_gripper_action(robot_name, next_plan)
-          continue
+        wait = True if i == len(sequence) -1 else False
+        self.execute_waypoint_plan(robot_name, next_plan, wait=wait)
 
+        if isinstance(next_plan, dict): # gripper action
+          continue
         elif isinstance(next_plan, moveit_msgs.msg.RobotTrajectory):
-          wait = True if i == len(sequence) -1 else False
-          if not robot.execute_plan(next_plan, wait=wait):
-            rospy.logerr("plan execution failed")
-            return False
           active_plan = next_plan
           active_plan_start_time = rospy.Time.now()
           active_plan_duration = helpers.get_trajectory_duration(next_plan)
 
-        else:
-          raise ValueError("Invalid action")
-
       # Finished preplanning the whole sequence: Execute remaining waypoints
       while backlog:
-        current_joints = robot.robot_group.get_current_joint_values()
-        active_plan_goal = helpers.get_trajectory_joint_goal(active_plan, robot.robot_group.get_active_joints())
-        if not helpers.all_close(active_plan_goal, current_joints, 0.01):
+        if not self.check_plan_goal_reached(robot_name, active_plan):
           rospy.logerr("Fail to execute plan: target pose not reach")
           return False
+
         next_plan, index, plan_type = backlog.pop(0)
         print("Executing plan (backlog loop): index,", index, "type", plan_type)
-        if isinstance(next_plan, dict): # gripper action
-          self.execute_gripper_action(robot_name, next_plan)
-
-        elif isinstance(next_plan, (moveit_msgs.msg.RobotTrajectory)):
+        self.execute_waypoint_plan(robot_name, next_plan, True)
+        if isinstance(next_plan, (moveit_msgs.msg.RobotTrajectory)):
           active_plan = next_plan
-          if not robot.execute_plan(next_plan, wait=True):
-            rospy.logerr("plan execution failed")
-            return False
 
     if plan_while_moving and save_on_success:
       helpers.save_sequence_plans(name=sequence_name, plans=all_plans)
 
     return True
 
-  def plan_waypoint(self, robot_name, point, previous_plan):
+  def check_plan_goal_reached(self, robot_name, plan):
+    current_joints = self.active_robots[robot_name].robot_group.get_current_joint_values()
+    plan_goal = helpers.get_trajectory_joint_goal(plan, self.active_robots[robot_name].robot_group.get_active_joints())
+    return helpers.all_close(plan_goal, current_joints, 0.01)
+
+  def execute_waypoint_plan(self, robot_name, plan, wait):
+    if isinstance(plan, dict): # gripper action
+      if not self.execute_gripper_action(robot_name, plan):
+        return False
+    elif isinstance(plan, moveit_msgs.msg.RobotTrajectory):
+      if not self.active_robots[robot_name].execute_plan(plan, wait=wait):
+        rospy.logerr("plan execution failed")
+        return False
+    return True
+
+  def plan_waypoint(self, robot_name, point, previous_plan, end_effector_link=""):
+    """
+      Plan a point defined in a dict
+      a point can be of type `waypoint` or `trajectory`
+      a `waypoint` can be a robot motion (joints, cartesian, linear, relative...) or a gripper action
+      a `trajectory` can be for a single robot or for a master-slave relationship
+      previous_plan: defines the initial state for the new `point`
+      end_effector_link: defines the end effector for the plan. FIXME: so far, it is only used for move_lin_trajectory 
+    """
     initial_joints = self.active_robots[robot_name].robot_group.get_current_joint_values() if not previous_plan else helpers.get_trajectory_joint_goal(previous_plan, self.active_robots[robot_name].robot_group.get_active_joints())
     if point[0] == "waypoint":
       rospy.loginfo("Sequence point type: %s > %s" % (point[1]["pose_type"], point[1].get("desc", '')))
@@ -1368,7 +1379,7 @@ class O2ACBase(object):
     elif point[0] == "trajectory":
       trajectory = point[1]
       if isinstance(trajectory[0][0], geometry_msgs.msg.PoseStamped):
-        return self.active_robots[robot_name].move_lin_trajectory(trajectory, plan_only=True, initial_joints=initial_joints)
+        return self.active_robots[robot_name].move_lin_trajectory(trajectory, plan_only=True, initial_joints=initial_joints, end_effector_link=end_effector_link)
       elif isinstance(trajectory[0][0], dict):
         joint_list = self.active_robots[trajectory[0][0]["master_name"]].robot_group.get_active_joints() + self.active_robots[trajectory[0][0]["slave_name"]].robot_group.get_active_joints()
         initial_joints_ = None if not previous_plan else helpers.get_trajectory_joint_goal(previous_plan, joint_list)
@@ -1383,7 +1394,7 @@ class O2ACBase(object):
 
     robot_name, playback_trajectories = self.read_playback_sequence(routine_filename, default_frame)
 
-    return self.execute_sequence(robot_name, playback_trajectories, routine_filename, plan_while_moving, save_on_success=save_on_success, use_saved_plans=use_saved_plans)
+    return self.execute_sequence(robot_name, playback_trajectories, routine_filename, plan_while_moving=plan_while_moving, save_on_success=save_on_success, use_saved_plans=use_saved_plans)
 
   def execute_gripper_action(self, robot_name, gripper_params):
       gripper_action = gripper_params.get("action", None)
