@@ -2,20 +2,30 @@
 
 namespace {
 std::random_device seed_generator;
-std::default_random_engine engine(seed_generator());
+std::default_random_engine engine(0);
 std::normal_distribution<> unit_normal_distribution(0.0, 1.0);
 } // namespace
 
-Particle get_UND_particle() {
-  // Random Particle generator
+template <int D> Eigen::Matrix<double, D, 1> get_UND_Vector() {
+  // Random Vector generator
 
   // All coordinates are independent
   // The distribution of each coordinate is the normal distribution with mean
   // 0.0, variance 1.0
 
-  Particle p;
-  for (int i = 0; i < 6; i++) {
+  Eigen::Matrix<double, D, 1> p;
+  for (int i = 0; i < D; i++) {
     p(i) = unit_normal_distribution(engine);
   }
   return p;
+}
+
+Particle get_UND_particle() {
+  // Random Particle generator
+  return get_UND_Vector<6>();
+}
+
+Eigen::Vector3d get_UND_Vector3d() {
+  // Random Particle generator
+  return get_UND_Vector<3>();
 }

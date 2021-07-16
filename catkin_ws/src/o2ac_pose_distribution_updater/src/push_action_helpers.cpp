@@ -98,6 +98,10 @@ push_calculator::push_calculator(const std::vector<Eigen::Vector3d> &vertices,
       throw(std::runtime_error("center of gravity is out of the convex hull"));
     }
   }
+  if (hull[next_left_vertex_id](0) >
+      rotated_gripper_transform.translation()(0) + gripper_width / 2.0) {
+    throw std::runtime_error("gripper does not reach the object");
+  }
   if (balance_check && std::abs(first_rotation_value) < EPS &&
       rotation.angle() > EPS) {
     throw(std::runtime_error("Balanced at the first rotation"));
@@ -125,9 +129,6 @@ push_calculator::push_calculator(const std::vector<Eigen::Vector3d> &vertices,
   Eigen::Vector3d total_translation;
   double x_shift = rotated_gripper_transform.translation()(0) +
                    gripper_width / 2.0 - (rotation * hull[left_vertex_id])(0);
-  if (x_shift < 0.0) {
-    throw std::runtime_error("gripper does not reach the object");
-  }
   total_translation << x_shift,
       // the the x-coordinates of gripper should be gripper_width
       projected_center(1) -

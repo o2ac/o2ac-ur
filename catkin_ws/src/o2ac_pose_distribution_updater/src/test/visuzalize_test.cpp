@@ -2,28 +2,12 @@
 The implementation of the touch test
 */
 
-#include "o2ac_msgs/updateDistributionAction.h"
-#include "o2ac_msgs/visualizePoseBelief.h"
 #include "o2ac_pose_distribution_updater/distribution_conversions.hpp"
 #include "o2ac_pose_distribution_updater/read_stl.hpp"
-#include "o2ac_pose_distribution_updater/ros_converters.hpp"
+#include "o2ac_pose_distribution_updater/test_tools.hpp"
 #include <actionlib/client/simple_action_client.h>
 #include <random>
-#include <ros/ros.h>
-#include <tf2_ros/static_transform_broadcaster.h>
 #include <visualization_msgs/Marker.h>
-
-void broadcast_gripper_pose(const std::string &frame_id,
-                            const ros::Time &current_time,
-                            const geometry_msgs::Pose &pose) {
-  static tf2_ros::StaticTransformBroadcaster broadcaster;
-  geometry_msgs::TransformStamped transform_stamped;
-  transform_stamped.header.frame_id = "world";
-  transform_stamped.header.stamp = current_time;
-  transform_stamped.child_frame_id = frame_id;
-  msg_pose_to_msg_transform(pose, transform_stamped.transform);
-  broadcaster.sendTransform(transform_stamped);
-}
 
 void print_distribution(geometry_msgs::PoseWithCovariance &distribution) {
   puts("Covariance:");
@@ -33,19 +17,6 @@ void print_distribution(geometry_msgs::PoseWithCovariance &distribution) {
     }
     putchar('\n');
   }
-}
-
-void send_pose_belief(
-    ros::ServiceClient &visualizer_client,
-    const moveit_msgs::CollisionObject &object,
-    const unsigned char &distribution_type, const double &lifetime,
-    const geometry_msgs::PoseWithCovarianceStamped &distribution) {
-  o2ac_msgs::visualizePoseBelief pose_belief;
-  pose_belief.request.object = object;
-  pose_belief.request.distribution_type = distribution_type;
-  pose_belief.request.distribution = distribution;
-  pose_belief.request.lifetime = ros::Duration(lifetime);
-  visualizer_client.call(pose_belief);
 }
 
 int main(int argc, char **argv) {

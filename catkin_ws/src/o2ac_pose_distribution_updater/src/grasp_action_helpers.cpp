@@ -196,14 +196,14 @@ grasp_calculator::grasp_calculator(
                    -first_direction *
                        right_edge(1)); // the angle such that the right edge is
                                        // parallel to y-axis after rotation
-    if (left_angle <= right_angle + EPS) {
+    if (left_angle <= right_angle) {
       Eigen::Rotation2Dd rotation(first_direction * left_angle);
       double left_y = first_direction * (rotation * hull[left_vertex_id])(1);
       double next_left_y =
           first_direction * (rotation * hull[next_left_vertex_id])(1);
       double right_y = first_direction * (rotation * hull[right_vertex_id])(1);
       if (left_y - LARGE_EPS <= right_y && right_y <= next_left_y + LARGE_EPS &&
-          left_y + LARGE_EPS < next_left_y) {
+          left_y + EPS < next_left_y) {
         // the hull is stable after rotation
         rotation_angle = left_angle;
         next_vertex_id = next_left_vertex_id;
@@ -218,7 +218,7 @@ grasp_calculator::grasp_calculator(
       double next_right_y =
           first_direction * (rotation * hull[next_right_vertex_id])(1);
       if (next_right_y - LARGE_EPS <= left_y && left_y <= right_y + LARGE_EPS &&
-          next_right_y + LARGE_EPS < right_y) {
+          next_right_y + EPS < right_y) {
         // the hull is stable after rotation
         rotation_angle = right_angle;
         next_vertex_id = next_right_vertex_id;
@@ -534,7 +534,7 @@ grasp_calculator::calculate_transform_after_grasping(
 }
 
 // the class to use Autodiff
-class calculate_perturbation_after_grasping : grasp_calculator {
+class calculate_perturbation_after_grasping : public grasp_calculator {
 
 public:
   using grasp_calculator::grasp_calculator;
@@ -573,9 +573,6 @@ public:
             .matrix()); // the first approximation of
                         // check_operator(log(result_transform * new_mean^{-1}))
   }
-
-  // the function to return new_mean
-  Eigen::Isometry3d get_new_mean() { return new_mean; }
 };
 
 void grasp_update_Lie_distribution(
@@ -599,7 +596,7 @@ void grasp_update_Lie_distribution(
   assert(mean_perturbation.norm() < LARGE_EPS);
 
   // new_mean is calculated in the class calculate_perturbation_AD
-  new_mean = calculate_perturbation_AD.get_new_mean();
+  new_mean = calculate_perturbation_AD.new_mean;
 
   // The covariance of the function value is calculated by the covariance of the
   // argument and Jacobian.

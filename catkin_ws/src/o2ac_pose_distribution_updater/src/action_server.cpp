@@ -173,6 +173,8 @@ int main(int argc, char **argv) {
   nd.getParam("camera_fy", camera_fy);
   nd.getParam("camera_cx", camera_cx);
   nd.getParam("camera_cy", camera_cy);
+  bool use_linear_approximation;
+  nd.getParam("use_linear_approximation", use_linear_approximation);
   double gripper_height, gripper_width, gripper_thickness;
   nd.getParam("gripper_height", gripper_height);
   nd.getParam("gripper_width", gripper_width);
@@ -186,6 +188,7 @@ int main(int argc, char **argv) {
   estimator->set_look_parameters(look_threshold, calibration_object_points,
                                  calibration_image_points, camera_fx, camera_fy,
                                  camera_cx, camera_cy);
+  estimator->set_use_linear_approximation(use_linear_approximation);
   estimator->set_grasp_parameters(gripper_height, gripper_width,
                                   gripper_thickness);
 

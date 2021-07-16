@@ -32,8 +32,12 @@ double calculate_distance(
     const std::shared_ptr<fcl::CollisionGeometry> &gripped_geometry,
     const fcl::Transform3f &gripped_transform);
 
+Eigen::Vector3d
+calculate_center_of_gravity(const std::vector<Eigen::Vector3d> &vertices,
+                            const std::vector<boost::array<int, 3>> &triangles);
+
 class PoseEstimator {
-private:
+protected:
   // Parameters for Gaussian particle filter
   int number_of_particles;
   Particle noise_variance;
@@ -53,7 +57,10 @@ private:
   // Variables for look action
   cv::Mat camera_r, camera_t;
 
-  // Parameters for grasp action
+  // Parameters to place, grasp and push actions
+  bool use_linear_approximation;
+
+  // Parameters for grasp and push action
   double gripper_height, gripper_width, gripper_thickness;
 
 public:
@@ -71,6 +78,10 @@ public:
       const std::vector<std::vector<double>> &calibration_image_points,
       const double &camera_fx, const double &camera_fy, const double &camera_cx,
       const double &camera_cy);
+
+  void set_use_linear_approximation(const bool &use_linear_approximation) {
+    this->use_linear_approximation = use_linear_approximation;
+  }
 
   void set_grasp_parameters(const double &gripper_height,
                             const double &gripper_width,
@@ -118,7 +129,8 @@ public:
       const std::vector<boost::array<int, 3>> &triangles,
       const Eigen::Isometry3d &gripper_transform, const double &support_surface,
       const Eigen::Isometry3d &old_mean, const CovarianceMatrix &old_covariance,
-      Eigen::Isometry3d &new_mean, CovarianceMatrix &new_covariance);
+      Eigen::Isometry3d &new_mean, CovarianceMatrix &new_covariance,
+      const bool validity_check = false);
 
   void grasp_step_with_Lie_distribution(
       const std::vector<Eigen::Vector3d> &vertices,
@@ -126,7 +138,7 @@ public:
       const Eigen::Isometry3d &gripper_transform,
       const Eigen::Isometry3d &old_mean, const CovarianceMatrix &old_covariance,
       Eigen::Isometry3d &new_mean, CovarianceMatrix &new_covariance,
-      const bool use_linear_approximation = true);
+      const bool validity_check = false);
 
   void push_step_with_Lie_distribution(
       const std::vector<Eigen::Vector3d> &vertices,
@@ -134,7 +146,7 @@ public:
       const Eigen::Isometry3d &gripper_transform,
       const Eigen::Isometry3d &old_mean, const CovarianceMatrix &old_covariance,
       Eigen::Isometry3d &new_mean, CovarianceMatrix &new_covariance,
-      const bool use_linear_approximation = true);
+      const bool validity_check = false);
 
   void generate_image(cv::Mat &image,
                       const std::vector<Eigen::Vector3d> &vertices,

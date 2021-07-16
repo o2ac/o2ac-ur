@@ -133,15 +133,32 @@ void PoseEstimator::set_grasp_parameters(const double &gripper_height,
   this->gripper_thickness = gripper_thickness;
 }
 
+CovarianceMatrix safe_XXT(const CovarianceMatrix &A) {
+  // return matrix X for symmetric matrix A such that X * X^T == A if A is
+  // positive definite
+
+  Eigen::SelfAdjointEigenSolver<CovarianceMatrix> solver(A);
+  if (solver.info() != Eigen::Success) {
+    throw std::runtime_error("Eigendecomposition of covariance matrix failed");
+  }
+  CovarianceMatrix X = solver.eigenvectors();
+  Particle eigenvalues = solver.eigenvalues();
+  for (int i = 0; i < 6; i++) {
+    if (eigenvalues(i) < -EPS) {
+      throw std::runtime_error("Covariance matrix has a negative eigenvalue");
+    }
+    X.col(i) *= sqrt(std::max(eigenvalues(i), 0.0));
+  }
+  return X;
+}
+
 void PoseEstimator::generate_particles(const Particle &old_mean,
                                        const CovarianceMatrix &old_covariance) {
   // generate particles which distribution is the normal distribution with
   // mean 'old_mean' and covariance 'old_covariance'.
   // noises are also added
 
-  CovarianceMatrix Cholesky_L(
-      old_covariance.llt().matrixL()); // old_covariance == Cholesky_L *
-                                       // Cholesky_L.transpose()
+  CovarianceMatrix X = safe_XXT(old_covariance); // old_covariance == X * X^T
 
   for (int i = 0; i < number_of_particles; i++) {
     // The return values of get_UND_particle() follows multivariate normal
@@ -150,7 +167,7 @@ void PoseEstimator::generate_particles(const Particle &old_mean,
     // covariance C, Ax + b follows multivariate normal distribution with mean
     // Am + b and covariance A * C * A^T So the following value follows the
     // wanted normal distribution
-    particles[i] = old_mean + Cholesky_L * get_UND_particle();
+    particles[i] = old_mean + X * get_UND_particle();
     // Add noise
     particles[i] += noise_variance.cwiseProduct(get_UND_particle());
   }
@@ -392,64 +409,42 @@ void PoseEstimator::place_step_with_Lie_distribution(
     const std::vector<boost::array<int, 3>> &triangles,
     const Eigen::Isometry3d &gripper_transform, const double &support_surface,
     const Eigen::Isometry3d &old_mean, const CovarianceMatrix &old_covariance,
-    Eigen::Isometry3d &new_mean, CovarianceMatrix &new_covariance) {
+    Eigen::Isometry3d &new_mean, CovarianceMatrix &new_covariance,
+    const bool validity_check) {
   // calculate the center of gravity
-  int number_of_vertices = vertices.size();
   Eigen::Vector3d center_of_gravity_of_gripped =
       calculate_center_of_gravity(vertices, triangles);
   // calculate the coordinates of vertices of the object when the pose is the
   // given mean
-  Eigen::Vector3d current_center_of_gravity =
-      gripper_transform * old_mean * center_of_gravity_of_gripped;
-  std::vector<Eigen::Vector3d> current_vertices(number_of_vertices);
-  for (int i = 0; i < number_of_vertices; i++) {
-    current_vertices[i] = gripper_transform * old_mean * vertices[i];
+  if (use_linear_approximation) {
+    // Update the covariance
+    place_update_Lie_distribution(
+        old_mean, old_covariance, center_of_gravity_of_gripped, vertices,
+        support_surface, gripper_transform, new_mean, new_covariance);
+  } else {
+    generate_particles(Particle::Zero(), old_covariance);
+    for (int i = 0; i < number_of_particles; i++) {
+      Eigen::Isometry3d input_transform =
+          Eigen::Isometry3d(
+              (Eigen::Matrix<double, 4, 4>)(hat_operator(particles[i]).exp())) *
+          old_mean;
+      try {
+        place_calculator calculator(input_transform,
+                                    center_of_gravity_of_gripped, vertices,
+                                    support_surface, gripper_transform, false);
+
+        particle_transforms[i] = calculator.new_mean;
+
+        likelihoods[i] = 1.;
+      } catch (std::runtime_error &e) {
+        if (validity_check) {
+          throw e;
+        }
+        likelihoods[i] = 0.0;
+      }
+    }
+    calculate_new_Lie_distribution(old_mean, new_mean, new_covariance);
   }
-
-  // calculate the three vertices of the object touching the ground
-  int ground_touch_vertex_id_1, ground_touch_vertex_id_2,
-      ground_touch_vertex_id_3; // The first point touching the ground, and
-                                // the second and the third.
-  Eigen::Quaterniond rotation;
-  bool stability;
-  find_three_points(current_vertices, current_center_of_gravity,
-                    ground_touch_vertex_id_1, ground_touch_vertex_id_2,
-                    ground_touch_vertex_id_3, rotation, stability);
-
-  // If the object is not stable after placing, throw exception
-  if (!stability) {
-    throw std::runtime_error("Unstable after placing");
-  }
-
-  // calculate new mean
-
-  // The translation is occured to hold the physical restraints
-  Eigen::Vector3d final_center_of_gravity =
-      rotation * current_center_of_gravity;
-  Eigen::Vector3d final_ground_touch_vertex_1 =
-      rotation * current_vertices[ground_touch_vertex_id_1];
-  Eigen::Vector3d final_translation;
-  final_translation
-      << current_center_of_gravity(0) -
-             final_center_of_gravity(
-                 0), // The x-coordinate of the center of gravity is not changed
-      current_center_of_gravity(1) -
-          final_center_of_gravity(
-              1), // The y-coordinate of the center of gravity is not changed
-      support_surface - final_ground_touch_vertex_1(
-                            2); // The z-coordinate of the vertices touching the
-                                // ground is that of the ground
-
-  new_mean = gripper_transform.inverse() *
-             Eigen::Translation3d(final_translation) * rotation *
-             gripper_transform * old_mean;
-
-  // Update the covariance
-  place_update_Lie_distribution(
-      old_mean, old_covariance, center_of_gravity_of_gripped,
-      vertices[ground_touch_vertex_id_1], vertices[ground_touch_vertex_id_2],
-      vertices[ground_touch_vertex_id_3], support_surface, gripper_transform,
-      new_mean, new_covariance);
 }
 
 void PoseEstimator::grasp_step_with_Lie_distribution(
@@ -458,7 +453,7 @@ void PoseEstimator::grasp_step_with_Lie_distribution(
     const Eigen::Isometry3d &gripper_transform,
     const Eigen::Isometry3d &old_mean, const CovarianceMatrix &old_covariance,
     Eigen::Isometry3d &new_mean, CovarianceMatrix &new_covariance,
-    const bool use_linear_approximation) {
+    const bool validity_check) {
   // calculate the center of gravity
   Eigen::Vector3d center_of_gravity_of_gripped =
       calculate_center_of_gravity(vertices, triangles);
@@ -503,7 +498,10 @@ void PoseEstimator::grasp_step_with_Lie_distribution(
                                     center_of_gravity_of_gripped, false);
         particle_transforms[i] = calculator.new_mean;
         likelihoods[i] = 1.;
-      } catch (...) {
+      } catch (std::runtime_error &e) {
+        if (validity_check) {
+          throw e;
+        }
         likelihoods[i] = 0.0;
       }
     }
@@ -517,7 +515,7 @@ void PoseEstimator::push_step_with_Lie_distribution(
     const Eigen::Isometry3d &gripper_transform,
     const Eigen::Isometry3d &old_mean, const CovarianceMatrix &old_covariance,
     Eigen::Isometry3d &new_mean, CovarianceMatrix &new_covariance,
-    const bool use_linear_approximation) {
+    const bool validity_check) {
   // calculate the center of gravity
   Eigen::Vector3d center_of_gravity_of_gripped =
       calculate_center_of_gravity(vertices, triangles);
@@ -540,11 +538,11 @@ void PoseEstimator::push_step_with_Lie_distribution(
       Eigen::Hyperplane<double, 3>(old_mean_rotation.row(1).transpose(),
                                    old_mean_translation(1) + gripper_thickness),
       cut_vertices[2], cut_triangles[2]);
-  double center_x = (old_mean * center_of_gravity_of_gripped)(0);
-  if (cut_vertices[2].size() == 0 || center_x < -gripper_thickness ||
-      center_x > gripper_thickness) {
+  double center_y = (old_mean * center_of_gravity_of_gripped)(1);
+  if (cut_vertices[2].size() == 0 || center_y < -gripper_thickness ||
+      center_y > gripper_thickness) {
     throw(std::runtime_error("The object cannot be pushed, center_x: " +
-                             std::to_string(center_x)));
+                             std::to_string(center_y)));
   }
   if (use_linear_approximation) {
     // calculate by auto diff
@@ -564,7 +562,10 @@ void PoseEstimator::push_step_with_Lie_distribution(
             center_of_gravity_of_gripped, gripper_width, false);
         particle_transforms[i] = calculator.new_mean;
         likelihoods[i] = 1.;
-      } catch (...) {
+      } catch (std::runtime_error &e) {
+        if (validity_check) {
+          throw e;
+        }
         likelihoods[i] = 0.0;
       }
     }

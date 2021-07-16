@@ -1,8 +1,8 @@
 <launch>
 
     <rosparam>
-      number_of_particles: 1000
-      noise_variance: [0.001, 0.001, 0.001, 0.0087, 0.0087, 0.0087]
+      number_of_particles: 100
+      noise_variance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
       ground_size: [2.0, 2.0, 2.0]
       ground_position: [0.0, 0.0, -0.994]
       box_size: [0.4, 0.2, 0.097]
@@ -24,7 +24,9 @@
       variance_color: [0.0, 0.0, 1.0, 0.04]
       number_of_particles_to_visualize: 50
 
-      gripper_height: 0.256
+      use_linear_approximation: false
+
+      gripper_height: 0.0
       gripper_width: 0.020
       gripper_thickness: 0.006
     </rosparam>
