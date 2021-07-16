@@ -1026,3 +1026,159 @@ class ShaftHoleDetection():
             visible_hole = True
 
         return visible_hole, im_vis
+
+#############################################################
+# MotorOrientation class: sample code
+# 
+# # Object detection
+# ssd_results, im_vis = ssd_detection.object_detection(im_in, im_vis, 0.3, 0.8)
+# 
+# # Orientation analysis
+# mo = MotorOrientation()
+# orientation_flag = mo.main_proc(im_in, ssd_results)
+# 
+# orientation_flag (cable direction)
+# # 0:right, 1:left, 2:top, 3:bottom
+# # False: motor was not detected
+#
+# if orientation_flag is not False:
+#    print(orientation_flag)
+#    plt.imshow(mo.get_im_vis(im_vis))
+# else:
+#    print("no motor")
+#############################################################
+class MotorOrientation:
+    def __init__( self ):
+        """ Calculation of motor's orientation code
+        """
+        # Orientation code
+        # 0:right, 1:left, 2:top, 3:bottom
+        self.cable_orientation = 0
+    
+    def main_proc( self, im_in, ssd_results ):
+        """ Detect motor orientation code
+        Input:
+            im_in(np.array): input image. 3ch
+            ssd_results(list): list of ssd_result
+        """
+        # get motor bbox
+        class_list = [d.get('class') for d in ssd_results]
+        if  (4 in class_list) is False:
+            return False
+        motor_idx = class_list.index(4) # motor id is 4.
+        bbox = ssd_results[motor_idx]['bbox']
+        bbox = self.bbox_expansion( bbox, 1.2 )
+        self.bb_x,self.bb_y,self.bb_w,self.bb_h = bbox[0], bbox[1], bbox[2], bbox[3]
+
+        # check bbox shape
+        horizontal = True
+        if self.bb_w < self.bb_h:
+            horizontal = False
+        im_w, im_h = im_in.shape[1], im_in.shape[0]
+
+        x1s = y1s = 0 # left top of RoI1
+        x2s = y2s = 0 # left top of RoI2
+        roi_size = 0
+        if horizontal:
+            roi_size = self.bb_h
+            x1s = self.bb_x - roi_size
+            y1s = self.bb_y
+
+            x2s = self.bb_x + self.bb_w
+            y2s = self.bb_y
+        else:
+            roi_size = self.bb_w
+            x1s = self.bb_x
+            y1s = self.bb_y - roi_size
+
+            x2s = self.bb_x
+            y2s = self.bb_y + self.bb_h
+
+        x1e = x1s + roi_size
+        y1e = y1s + roi_size
+        x2e = x2s + roi_size
+        y2e = y2s + roi_size
+
+        # clip
+        x1s = np.clip(x1s,0,im_w-1)
+        y1s = np.clip(y1s,0,im_h-1)
+        x1e = np.clip(x1e,0,im_w-1)
+        y1e = np.clip(y1e,0,im_h-1)
+        x2s = np.clip(x2s,0,im_w-1)
+        y2s = np.clip(y2s,0,im_h-1)
+        x2e = np.clip(x2e,0,im_w-1)
+        y2e = np.clip(y2e,0,im_h-1)
+
+        # Crop RoI
+        self.im_roi1 = im_in[y1s:y1e,x1s:x1e].copy()
+        self.im_roi2 = im_in[y2s:y2e,x2s:x2e].copy()
+
+        # Get red mask
+        im_r1 = self.get_red_mask(self.im_roi1)
+        im_r2 = self.get_red_mask(self.im_roi2)
+        n_red1 = np.sum(im_r1)
+        n_red2 = np.sum(im_r2)
+
+        # Orientation check
+        # 0:right, 1:left, 2:top, 3:bottom
+        self.cable_orientation = 0
+        if horizontal:
+            if n_red1 > n_red2:
+                self.cable_orientation = 1
+            else:
+                self.cable_orientation = 0
+        else:
+            if n_red1 > n_red2:
+                self.cable_orientation = 2
+            else:
+                self.cable_orientation = 3
+        return self.cable_orientation
+
+    def bbox_expansion( self, bbox, scale ):
+        
+        w2 = bbox[2]*(scale-1)/2
+        h2 = bbox[3]*(scale-1)/2
+        new_bbox = [
+            int(bbox[0]-w2),
+            int(bbox[1]-h2),
+            int(bbox[2]*scale),
+            int(bbox[3]*scale)
+        ]
+        return new_bbox
+
+
+    def split_hsv( self, im_in ):
+        im_hsv = cv2.cvtColor( im_in, cv2.COLOR_BGR2HSV )
+        im_h = im_hsv[:,:,0].copy()
+        im_s = im_hsv[:,:,1].copy()
+        im_v = im_hsv[:,:,2].copy()
+        return im_h, im_s, im_v
+
+    # Hue value is distributed btween 0 to 179
+    def get_red_mask( self, im_in ):
+        # split image into h,s,v planes
+        im_h,im_s,im_v = self.split_hsv(im_in)
+
+        # saturation mask
+        im_mask = np.where(im_s<50,0,1)
+
+        # red mask
+        im_red1 = np.where( im_h<30 ,1,0)
+        im_red2 = np.where( 150<im_h ,1,0)
+        im_red = np.logical_or(im_red1, im_red2)
+        im_red = np.logical_and( im_mask, im_red )
+        return im_red # 1 means red pixel
+
+    def get_im_vis( self, im_in ):
+        center = (self.bb_x+int(self.bb_w/2),
+                  self.bb_y+int(self.bb_h/2))
+        off = (50,0)
+        if self.cable_orientation == 1:
+            off = (-50,0)
+        elif self.cable_orientation == 2:
+            off = (0,-50)
+        elif self.cable_orientation == 3:
+            off = (0,50)
+        im_vis = cv2.arrowedLine(im_in, center, (center[0]+off[0], center[1]+off[1]), 
+                                (0,255,0), 3, cv2.LINE_AA, tipLength=0.3)
+        return im_vis
