@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from math import pi
+tau = 2*pi
 import numpy as np
 import rospy
 import actionlib
@@ -12,10 +14,13 @@ from o2ac_msgs.msg import FastenAction, FastenResult
 from o2ac_msgs.msg import OrientAction, OrientResult
 from o2ac_msgs.msg import MoveToAction, MoveToResult
 from o2ac_routines.common import O2ACCommon
+from o2ac_routines.assembly import O2ACAssembly
 
 from ur_control import conversions
 
-import sys, signal
+import sys
+import signal
+
 
 def signal_handler(sig, frame):
     print('You pressed Ctrl+C!')
@@ -24,10 +29,13 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
+
 class SkillServer:
     def __init__(self):
-        self.controller = O2ACCommon()
+        # self.controller = O2ACCommon()
+        self.controller = O2ACAssembly()
         self.controller.reset_scene_and_robots()
+        self.controller.competition_mode = True
 
         ns = 'o2ac_flexbe/'
 
@@ -52,7 +60,7 @@ class SkillServer:
         self.move_to_action = actionlib.SimpleActionServer(ns + 'move_to', MoveToAction, self.execute_move_to, False)
         self.move_to_action.start()
 
-        self.controller.assembly_database.change_assembly("taskboard")
+        # self.controller.assembly_database.change_assembly("taskboard")
 
     def execute_playback(self, goal):
         success = self.controller.playback_sequence(goal.sequence_name)
@@ -64,14 +72,14 @@ class SkillServer:
         self.playback_action.set_succeeded(result=PlayBackSequenceResult(success))
 
     def execute_pick(self, goal):
-        # TODO(cambel): given an object name, find the magic numbers for gripper.opening_width, 
+        # TODO(cambel): given an object name, find the magic numbers for gripper.opening_width,
         # offset from ssd to pick_pose, parameters for picking (check close to border, etc) and others if needed
 
         # who decides which robot to use? for now let's assume that it is manual
         robot_name = goal.robot_name
         pick_pose = self.controller.look_and_get_grasp_point(goal.object_name)
 
-        if not pick_pose: # TODO(cambel): receive number of attempts
+        if not pick_pose:  # TODO(cambel): receive number of attempts
             rospy.logerr("Could not find bearing in tray. Skipping procedure.")
             self.pick_action.set_succeeded(result=PickResult(False, 0.0))
             return
@@ -79,25 +87,25 @@ class SkillServer:
         self.controller.vision.activate_camera(robot_name + "_inside_camera")
         pick_pose.pose.position.x -= 0.01  # MAGIC NUMBER
         pick_pose.pose.position.z = 0.0115
-        success = self.controller.simple_pick(robot_name, pick_pose, gripper_force=100.0, approach_height=0.05, axis="z")
-        gripper_opening = self.controller.active_robots[robot_name].gripper.opening_width
+        success = self.controller.simple_pick(robot_name, pick_pose, gripper_force=100.0, approach_height=0.05, axis="z", approach_with_move_lin=False)
 
-        if self.controller.simple_gripper_check(robot_name, min_opening_width=0.005):
+        if not self.controller.simple_gripper_check(robot_name, min_opening_width=0.005):
             rospy.logerr("Fail to grasp -> %s" % goal.object_name)
+            self.pick_action.set_aborted(result=PickResult(False))
             return
 
         if success:
             rospy.loginfo("Pickup completed successfully!")
+            self.pick_action.set_succeeded(result=PickResult(success))
         else:
             rospy.logerr("Pickup failed!")
-
-        self.pick_action.set_succeeded(result=PickResult(success, gripper_opening))
+            self.pick_action.set_aborted(result=PickResult(success))
 
     def execute_insertion(self, goal):
         if goal.task_name == "taskboard":
             target_link = "taskboard_assy_part_07_inserted"
         elif goal.task_name == "assembly":
-            target_link = "assembly_assy_part_07_inserted"
+            target_link = "assembled_part_07_inserted"
 
         success = False
         if goal.object_name == "bearing":
@@ -105,9 +113,21 @@ class SkillServer:
         elif goal.object_name == "motor_pulley":
             success = self.controller.insert_motor_pulley(target_link=target_link)
         elif goal.object_name == "shaft":
-            success = self.controller.insert_shaft(target_link=target_link)
+            success = self.controller.align_shaft(target_link=target_link, pre_insert_offset=0.06)
+            if success:
+                success = self.controller.insert_shaft(target_link=target_link)
         elif goal.object_name == "end_cap":
+            pre_insertion_shaft = conversions.to_pose_stamped("tray_center", [0.0, 0, 0.2, 0, 0, -tau/4.])
+            success = self.controller.b_bot.go_to_pose_goal(pre_insertion_shaft, speed=0.2)
+            if not success:
+                rospy.logerr("Fail to go to pre_insertion_shaft")
+            if success:
+                pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [-0.002, -0.001, 0.25]+np.deg2rad([-180, 90, -90]).tolist())
+                if not self.controller.a_bot.go_to_pose_goal(pre_insertion_end_cap, speed=0.2, move_lin=False):
+                    rospy.logerr("Fail to go to pre_insertion_end_cap")
+                    success = False
             success = self.controller.insert_end_cap()
+            self.controller.a_bot.go_to_named_pose("home")
         else:
             rospy.logerr("No insertion supported for object: %s" % goal.object_name)
             self.insertion_action.set_succeeded(result=InsertResult(success))
@@ -133,7 +153,7 @@ class SkillServer:
     def execute_fasten(self, goal):
         if goal.object_name == "bearing":
             success = self.controller.fasten_bearing(task=goal.task_name)
-        if goal.object_name == "end_cap":
+        elif goal.object_name == "end_cap":
             success = self.controller.fasten_end_cap()
         else:
             rospy.logerr("Unsupported object_name:%s for fasten skill" % goal.object_name)
@@ -150,18 +170,20 @@ class SkillServer:
     def execute_orient(self, goal):
         if goal.object_name == "bearing":
             success = self.controller.orient_bearing()
-        if goal.object_name == "shaft":
+        elif goal.object_name == "shaft":
             success = self.controller.orient_shaft()
+        elif goal.object_name == "end_cap":
+            success = self.controller.orient_shaft_end_cap()
         else:
-            rospy.logerr("Unsupported object_name:%s for fasten skill" % goal.object_name)
+            rospy.logerr("Unsupported object_name: %s for orient skill" % goal.object_name)
             self.orient_action.set_aborted(result=OrientResult(False))
 
         if success:
             rospy.loginfo("Orient completed successfully!")
+            self.orient_action.set_succeeded(result=OrientResult(True))
         else:
             rospy.logerr("Orient failed!")
-
-        self.orient_action.set_succeeded(result=OrientResult(success))
+            self.orient_action.set_aborted(result=OrientResult(False))
 
     def execute_move_to(self, goal):
         robot = self.controller.active_robots[goal.robot_name]
@@ -175,6 +197,7 @@ class SkillServer:
             robot.go_to_pose_goal(pose_stamped, move_lin=move_lin)
         else:
             raise ValueError("Invalid goal %s" % goal)
+
 
 if __name__ == '__main__':
     rospy.init_node('skill_server_py')

@@ -2230,12 +2230,7 @@ class O2ACCommon(O2ACBase):
     return True
 
 #### shaft orientation
-  def orient_shaft(self):
-    self.b_bot.go_to_named_pose("home")
-    if not self.pick_shaft():
-      rospy.logerr("Fail to pick Shaft")
-      return False
-    
+  def orient_shaft(self):    
     if not self.centering_shaft():
       return False
 
@@ -2309,7 +2304,7 @@ class O2ACCommon(O2ACBase):
       return False
 
     self.b_bot.gripper.close()
-    if not self.b_bot.gripper.opening_width > 0.004:
+    if not self.simple_gripper_check("b_bot", 0.004):
       rospy.logerr("No shaft detected in gripper. Going back up and aborting.")
       self.b_bot.go_to_pose_goal(approach_centering)
       return False
@@ -2317,12 +2312,23 @@ class O2ACCommon(O2ACBase):
     return True
 
   def orient_shaft_end_cap(self):
-    self.a_bot.go_to_named_pose("home")
-    self.b_bot.go_to_named_pose("home")
 
-    success, ready_to_put_on_shaft = self.pick_end_cap()
-    if not success:
+    if not self.playback_sequence("end_cap_orient"):
+      rospy.logerr("Fail to end_cap_orient")
       return False
+
+    # Look at the end cap to determine the orientation
+    ready_to_put_on_shaft = self.is_the_placed_end_cap_upside_down(dy=0.04, dz=-0.02)
+
+    # Pick it up again
+    at_object_pose = conversions.to_pose_stamped("left_centering_link", [-0.005, 0, 0.0, -tau/2, 0, 0] )
+    self.a_bot.go_to_pose_goal(at_object_pose, speed=0.5)
+
+    self.center_with_gripper("a_bot", opening_width=0.05)
+
+    self.a_bot.gripper.close()
+    above_pose = conversions.to_pose_stamped("left_centering_link", [-0.1, 0, 0.0, -tau/2, 0, 0] )
+    self.a_bot.go_to_pose_goal(above_pose, speed=0.5)
 
     if not ready_to_put_on_shaft:  # Do reorientation procedure
       approach_centering = conversions.to_pose_stamped("simple_holder_tip_link", [0.0, 0, 0.1,        0, tau/4., tau/4.])
@@ -2365,6 +2371,7 @@ class O2ACCommon(O2ACBase):
       self.a_bot.go_to_named_pose("home")
     return True
 
+  @check_for_real_robot
   def is_the_placed_end_cap_upside_down(self, dy=0.0, dz=0.0, led_on=False):
     """ Look at the end cap placed next a few times, return.
 
@@ -2411,7 +2418,7 @@ class O2ACCommon(O2ACBase):
     goal = self.look_and_get_grasp_point("end_cap", robot_name="a_bot", options=options)
     if not isinstance(goal, geometry_msgs.msg.PoseStamped):
       rospy.logerr("Could not find shaft in tray. Skipping procedure.")
-      return False, False
+      return False
 
     goal.pose.position.z = -0.001 # Magic Numbers for grasping
     goal.pose.position.x -= 0.01
@@ -2421,29 +2428,12 @@ class O2ACCommon(O2ACBase):
     if not self.simple_pick("a_bot", goal, axis="z", speed_fast=0.5, gripper_force=100.0, grasp_width=.04, 
                                approach_height=0.1, item_id_to_attach="", lift_up_after_pick=True, approach_with_move_lin=False):
       rospy.logerr("Fail to simple_pick")
-      return False, False
+      return False
 
     if not self.simple_gripper_check("a_bot", min_opening_width=0.001):
-      return False, False
+      return False
 
-    if not self.playback_sequence("end_cap_orient"):
-      rospy.logerr("Fail to end_cap_orient")
-      return False, False
-
-    # Look at the end cap to determine the orientation
-    is_upside_down = self.is_the_placed_end_cap_upside_down(dy=0.04, dz=-0.02)
-
-    # Pick it up again
-    at_object_pose = conversions.to_pose_stamped("left_centering_link", [-0.005, 0, 0.0, -tau/2, 0, 0] )
-    self.a_bot.go_to_pose_goal(at_object_pose, speed=0.5)
-
-    self.center_with_gripper("a_bot", opening_width=0.05)
-
-    self.a_bot.gripper.close()
-    above_pose = conversions.to_pose_stamped("left_centering_link", [-0.1, 0, 0.0, -tau/2, 0, 0] )
-    self.a_bot.go_to_pose_goal(above_pose, speed=0.5)
-
-    return True, is_upside_down
+    return True
 
   def insert_end_cap(self, attempts=1):
     self.a_bot.linear_push(force=2.5, direction="-Z", max_translation=0.05, timeout=10.0)

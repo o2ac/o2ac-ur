@@ -1299,6 +1299,7 @@ class O2ACBase(object):
 
       # Finished preplanning the whole sequence: Execute remaining waypoints
       while backlog:
+        robot.robot_group.wait_for_motion_result()
         if not self.check_plan_goal_reached(robot_name, active_plan):
           rospy.logerr("Fail to execute plan: target pose not reach")
           return False
@@ -1453,9 +1454,11 @@ class O2ACBase(object):
       success = False
       if isinstance(seq, dict):
         success =  self.execute_gripper_action(robot_name, seq)
+        print("gripper result", success)
       else:
         # TODO(cambel): validate that the plan is still valid before execution
         success = robot.execute_plan(seq, wait=True)
+        print("motion result", success)
       
       if not success:
         rospy.logerr("Fail to execute saved plan from sequence. Abort")
