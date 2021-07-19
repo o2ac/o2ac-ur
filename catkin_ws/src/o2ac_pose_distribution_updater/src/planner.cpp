@@ -1,7 +1,7 @@
 #include "o2ac_pose_distribution_updater/planner.hpp"
 
 namespace {
-double EPS = 1e-9;
+double LARGE_EPS = 1e-8, EPS = 1e-9;
 double pi = acos(-1);
 } // namespace
 
@@ -36,9 +36,8 @@ void Planner::apply_action(const Eigen::Isometry3d &old_mean,
 
 void Planner::calculate_action_candidates(
     const Eigen::Isometry3d &current_gripper_pose,
-    const Eigen::Isometry3d &current_mean,
-    const CovarianceMatrix &current_covariance, const bool &gripping,
-    std::vector<UpdateAction> &candidates) {
+    const Eigen::Isometry3d &current_mean, const CovarianceMatrix &covariance,
+    const bool &gripping, std::vector<UpdateAction> &candidates) {
   if (gripping) {
     for (auto &plane : place_candidates) {
       UpdateAction action;
@@ -53,7 +52,7 @@ void Planner::calculate_action_candidates(
       double angle = atan2(normal.block(0, 0, 2, 1).norm(), -normal[2]);
       Eigen::Isometry3d rotated_gripper_pose =
           Eigen::AngleAxisd(angle, axis) * current_gripper_pose;
-      double sigma_z = 0.0; // TO DO
+      double sigma_z = 3.0 * sqrt(covariance(2, 2));
       action.gripper_pose =
           Eigen::Translation3d((sigma_z - (rotated_gripper_pose * current_mean *
                                            (-plane.offset() * plane.normal()))
@@ -65,10 +64,14 @@ void Planner::calculate_action_candidates(
     }
   } else {
     for (auto &grasp_point : *grasp_points) {
-      UpdateAction action;
-      action.type = grasp_action_type;
-      action.gripper_pose = current_mean * grasp_point;
-      candidates.push_back(action);
+      Eigen::Isometry3d gripper_pose = current_mean * grasp_point;
+      if (abs((gripper_pose.rotation() * Eigen::Vector3d::UnitY())(2)) <=
+          LARGE_EPS) {
+        UpdateAction action;
+        action.type = grasp_action_type;
+        action.gripper_pose = gripper_pose;
+        candidates.push_back(action);
+      }
     }
     namespace bg = boost::geometry;
     bg::model::multi_point<Eigen::Vector2d> projected_points;
@@ -93,7 +96,11 @@ void Planner::calculate_action_candidates(
       Eigen::Vector2d edge_normal;
       edge_normal << edge[1], -edge[0];
       Eigen::Vector3d translation;
-      double sigma_y = 1.0; // TODO
+      double sigma_y =
+          4.0 * sqrt(pow(edge_normal(0), 2) * covariance(0, 0) +
+                     2.0 * edge_normal(0) * edge_normal(1) * covariance(0, 1) +
+                     pow(edge_normal(1), 2) * covariance(1, 1) +
+                     pow((hull[i + 1] - hull[i]).norm(), 2) * covariance(5, 5));
       translation << (edge_normal.dot(hull[i]) - sigma_y +
                       gripper_width / 2.0) *
                              edge_normal +
