@@ -26,10 +26,6 @@ void convert_to_triangle_list(
   }
 }
 
-std::random_device seed_generator;
-std::default_random_engine engine(seed_generator());
-std::normal_distribution<> unit_normal_distribution(0.0, 1.0);
-
 void PoseBeliefVisualizer::make_marker_from_particle(
     const std_msgs::Header &header,
     const std::vector<geometry_msgs::Point> &triangle_list,

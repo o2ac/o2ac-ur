@@ -1,4 +1,6 @@
 #include "o2ac_pose_distribution_updater/grasp_action_helpers.hpp"
+#include "o2ac_pose_distribution_updater/convex_hull.hpp"
+#include <iostream>
 
 namespace {
 const double INF = 1e9, EPS = 1e-9, LARGE_EPS = 1e-7;
@@ -141,26 +143,43 @@ grasp_calculator::grasp_calculator(
   // calculate the convex hull of the vertices projected along the z-axis
 
   namespace bg = boost::geometry;
-  bg::model::multi_point<Eigen::Vector2d> projected_points;
+  std::vector<Eigen::Vector2d> projected_points(current_vertices.size()), hull;
 
-  for (auto &vertex : current_vertices) {
-    bg::append(projected_points, (Eigen::Vector2d)vertex.block(0, 0, 2, 1));
+  for (int i = 0; i < current_vertices.size(); i++) {
+    projected_points[i] = current_vertices[i].head<2>();
   }
 
-  static const bool clock_wise = false;
-  bg::model::ring<Eigen::Vector2d, clock_wise> hull;
-  bg::convex_hull(projected_points, hull);
-  hull.resize(hull.size() - 1);
+  convex_hull_for_Eigen_Vector2d(projected_points, hull);
 
+  for (int j = 0; j < hull.size(); j++) {
+    int k = (j + 1) % hull.size();
+    for (int l = 0; l < projected_points.size(); l++) {
+      Eigen::Vector2d a = hull[k] - hull[j], b = projected_points[l] - hull[j];
+      if (!(a(0) * b(1) - a(1) * b(0) > -EPS)) {
+        Eigen::IOFormat full_format(Eigen::FullPrecision);
+
+        std::cout << projected_points.size() << std::endl;
+        for (int x = 0; x < projected_points.size(); x++)
+          std::cout << projected_points[x].transpose().format(full_format)
+                    << std::endl;
+        std::cout << hull.size() << std::endl;
+        for (int x = 0; x < hull.size(); x++)
+          std::cout << hull[x].transpose().format(full_format) << std::endl;
+        std::cout << j << ' ' << k << ' ' << l << std::endl;
+        std::cout << a(0) * b(1) - a(1) * b(0) << std::endl;
+      }
+      assert(a(0) * b(1) - a(1) * b(0) > -EPS);
+    }
+  }
   // find the left-most and right-most vertices of the hull
 
   int hull_size = hull.size();
   int left_vertex_id = 0, right_vertex_id = 0;
   for (int i = 1; i < hull_size; i++) {
-    if (hull[i].x() < hull[left_vertex_id].x() - EPS) {
+    if (hull[i].x() < hull[left_vertex_id].x()) {
       left_vertex_id = i;
     }
-    if (hull[i].x() > hull[right_vertex_id].x() + EPS) {
+    if (hull[i].x() > hull[right_vertex_id].x()) {
       right_vertex_id = i;
     }
   }
@@ -267,6 +286,37 @@ grasp_calculator::grasp_calculator(
 
   // check conditions
   for (int i = 0; i < rotated_vertices.size(); i++) {
+    if (double_vertex_side == -1 &&
+            rotated_vertices[gripper_touch_vertex_id_1](0) - LARGE_EPS >
+                rotated_vertices[i](0) ||
+        double_vertex_side == 1 &&
+            rotated_vertices[gripper_touch_vertex_id_3](0) - LARGE_EPS >
+                rotated_vertices[i](0)) {
+      std::cout << gripper_transform.matrix() << std::endl;
+      std::cout << old_mean.matrix() << std::endl;
+      std::cout << left_vertex_id << std::endl;
+      std::cout << next_vertex_id << std::endl;
+      std::cout << right_vertex_id << std::endl;
+      std::cout << gripper_touch_vertex_id_1 << std::endl;
+      std::cout << gripper_touch_vertex_id_2 << std::endl;
+      std::cout << gripper_touch_vertex_id_3 << std::endl;
+      std::cout << i << std::endl;
+      std::cout << current_vertices[gripper_touch_vertex_id_1].transpose()
+                << std::endl;
+      std::cout << current_vertices[gripper_touch_vertex_id_2].transpose()
+                << std::endl;
+      std::cout << current_vertices[i].transpose() << std::endl;
+      std::cout << hull[left_vertex_id].transpose() << std::endl;
+      std::cout << hull[right_vertex_id].transpose() << std::endl;
+      std::cout << hull[next_vertex_id].transpose() << std::endl;
+      std::cout << rotation_angle << std::endl;
+      std::cout << first_direction << std::endl;
+      std::cout << rotated_vertices[gripper_touch_vertex_id_1].transpose()
+                << std::endl;
+      std::cout << rotated_vertices[gripper_touch_vertex_id_2].transpose()
+                << std::endl;
+      std::cout << rotated_vertices[i].transpose() << std::endl;
+    }
     if (double_vertex_side == -1) {
       assert(rotated_vertices[gripper_touch_vertex_id_1](0) - LARGE_EPS <=
              rotated_vertices[i](0));
@@ -418,7 +468,7 @@ grasp_calculator::grasp_calculator(
     }
   }
   // calculate the convex hulls of the points on left and right grippers
-  bg::model::ring<Eigen::Vector2d, clock_wise> left_hull, right_hull;
+  bg::model::ring<Eigen::Vector2d, false> left_hull, right_hull;
   bg::convex_hull(points_on_left_gripper, left_hull);
   bg::convex_hull(points_on_right_gripper, right_hull);
   // if the two convex hulls are disjoint, the object is unstable

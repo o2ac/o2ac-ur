@@ -4,6 +4,7 @@ each action
  */
 
 #include "o2ac_pose_distribution_updater/estimator.hpp"
+#include <numeric>
 
 const double EPS = 1e-9;
 
@@ -192,7 +193,7 @@ void PoseEstimator::calculate_new_distribution(
 
   double sum_of_likelihoods =
       std::accumulate(likelihoods.begin(), likelihoods.end(), 0.0);
-  std::cout << "The sum of likelihoods:" << sum_of_likelihoods << '\n';
+  std::cerr << "The sum of likelihoods:" << sum_of_likelihoods << '\n';
   if (sum_of_likelihoods <= EPS) {
     throw std::runtime_error("The sum of likelihoods is 0");
   }
@@ -230,7 +231,7 @@ void PoseEstimator::calculate_new_Lie_distribution(
 
   double sum_of_likelihoods =
       std::accumulate(likelihoods.begin(), likelihoods.end(), 0.0);
-  std::cout << "The sum of likelihoods:" << sum_of_likelihoods << '\n';
+  std::cerr << "The sum of likelihoods:" << sum_of_likelihoods << '\n';
   if (sum_of_likelihoods <= EPS) {
     throw std::runtime_error("The sum of likelihoods is 0");
   }

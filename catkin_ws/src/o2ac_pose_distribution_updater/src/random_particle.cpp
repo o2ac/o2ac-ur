@@ -1,4 +1,5 @@
 #include "o2ac_pose_distribution_updater/random_particle.hpp"
+#include <random>
 
 namespace {
 std::random_device seed_generator;

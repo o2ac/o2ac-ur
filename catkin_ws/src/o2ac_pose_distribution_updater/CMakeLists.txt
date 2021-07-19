@@ -25,11 +25,13 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
-find_package(CGAL)
+find_package(CGAL REQUIRED)
+find_package(yaml-cpp REQUIRED)
 
-find_package(PkgConfig)
+find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(FCL REQUIRED fcl)
+pkg_check_modules(LIBMATHEVAL REQUIRED libmatheval)
 
 ################################################################################
 # Declare ROS messages, services and actions
@@ -53,14 +55,20 @@ include_directories(
   ${EIGEN3_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
   ${FCL_INCLUDE_DIRS}
+  ${LIBMATHEVAL_INCLUDE_DIRS}
+  ${YAML_CPP_INCLUDE_DIRS}
 )
 
 add_library(ros_converters src/ros_converters.cpp)
 target_link_libraries(ros_converters ${catkin_LIBRARIES})
 add_library(read_stl src/read_stl.cpp)
-add_library(estimator src/estimator.cpp src/place_action_helpers.cpp src/grasp_action_helpers.cpp src/push_action_helpers.cpp src/random_particle.cpp)
-target_link_libraries(estimator ${FCL_LIBRARIES} ${OpenCV_LIBRARIES} )
+add_library(estimator src/estimator.cpp src/place_action_helpers.cpp src/grasp_action_helpers.cpp src/push_action_helpers.cpp src/random_particle.cpp src/convex_hull.cpp)
+target_link_libraries(estimator ${FCL_LIBRARIES} ${OpenCV_LIBRARIES} CGAL::CGAL)
 add_library(distribution_conversions src/distribution_conversions.cpp)
+add_library(planner src/planner.cpp src/planner_helpers.cpp)
+target_link_libraries(planner estimator)
+add_library(test_tools src/test/test_tools.cpp)
+target_link_libraries(test_tools ros_converters read_stl)
 
 add_executable(update_distribution_action_server src/action_server.cpp src/ros_converted_estimator.cpp src/pose_belief_visualizer.cpp)
 add_dependencies(update_distribution_action_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -73,6 +81,13 @@ if(CATKIN_ENABLE_TESTING)
 
   add_executable(visualize_test src/test/visuzalize_test.cpp)
   add_dependencies(visualize_test ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-  target_link_libraries(visualize_test ros_converters read_stl)
+  target_link_libraries(visualize_test test_tools)
 
+  add_executable(planner_test src/test/planner_test.cpp)
+  add_dependencies(planner_test ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+  target_link_libraries(planner_test ${YAML_CPP_LIBRARIES} ${LIBMATHEVAL_LIBRARIES} planner read_stl)
+
+  add_executable(execute_plan src/test/execute_plan.cpp)
+  add_dependencies(execute_plan ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+  target_link_libraries(execute_plan planner test_tools)
 endif()
