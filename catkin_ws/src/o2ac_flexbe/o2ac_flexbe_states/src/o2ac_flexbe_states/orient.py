@@ -3,13 +3,14 @@ from flexbe_core import EventState, Logger
 from flexbe_core.proxy import ProxyActionClient
 
 # example import of required action
-from o2ac_msgs.msg import OrientAction, OrientGoal
+from o2ac_msgs.msg import OrientAction, OrientGoal, OrientResult
 
 
 class OrientActionState(EventState):
     '''
     Actionlib for aligning the bearing holes
 
+    -- robot_name       string  Name of robot performing the operation
     -- task_name        string  Name of the task
     -- object_name      string  Name of the object to be oriented
 
@@ -18,11 +19,12 @@ class OrientActionState(EventState):
 
     '''
 
-    def __init__(self, task_name, object_name):
+    def __init__(self, robot_name, task_name, object_name):
         super(OrientActionState, self).__init__(outcomes=['success', 'error'])
 
         self._topic = 'o2ac_flexbe/orient'
         self._client = ProxyActionClient({self._topic: OrientAction})  # pass required clients as dict (topic: type)
+        self._robot_name = robot_name
         self._task_name = task_name
         self._object_name = object_name
 
@@ -35,9 +37,10 @@ class OrientActionState(EventState):
         if self._client.has_result(self._topic):
             result = self._client.get_result(self._topic)
 
-            Logger.logwarn('result %s' % str(result))
+            Logger.logwarn('result type: %s' % type(result))
+            Logger.logwarn('result: %s' % str(result))
 
-            if not result:
+            if not result.success:
                 Logger.logwarn('Fail to complete Orient')
                 self._success = False
                 return 'error'
@@ -48,6 +51,7 @@ class OrientActionState(EventState):
 
     def on_enter(self, userdata):
         goal = OrientGoal()
+        goal.robot_name = self._robot_name
         goal.task_name = self._task_name
         goal.object_name = self._object_name
 

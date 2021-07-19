@@ -69,13 +69,13 @@ Assembly shaft with cap and m4 screw then insert it into the bearing
 		with _sm_pick_and_orient_shaft_0:
 			# x:61 y:40
 			OperatableStateMachine.add('Pick shaft',
-										PickActionState(object_name=shaft),
+										PickActionState(robot_name=b_bot, object_name=shaft),
 										transitions={'success': 'Orient shaft', 'error': 'failed'},
 										autonomy={'success': Autonomy.Off, 'error': Autonomy.Off})
 
 			# x:246 y:40
 			OperatableStateMachine.add('Orient shaft',
-										OrientActionState(task_name=task, object_name=shaft),
+										OrientActionState(robot_name=b_bot, task_name=task, object_name=shaft),
 										transitions={'success': 'finished', 'error': 'failed'},
 										autonomy={'success': Autonomy.Off, 'error': Autonomy.Off})
 
@@ -86,13 +86,13 @@ Assembly shaft with cap and m4 screw then insert it into the bearing
 		with _sm_pick_and_orient_end_cap_1:
 			# x:93 y:43
 			OperatableStateMachine.add('Pick end cap',
-										PickActionState(object_name=end_cap),
+										PickActionState(robot_name=a_bot, object_name=end_cap),
 										transitions={'success': 'Orient end cap', 'error': 'failed'},
 										autonomy={'success': Autonomy.Off, 'error': Autonomy.Off})
 
 			# x:240 y:42
 			OperatableStateMachine.add('Orient end cap',
-										OrientActionState(task_name=task, object_name=end_cap),
+										OrientActionState(robot_name=a_bot, task_name=task, object_name=end_cap),
 										transitions={'success': 'finished', 'error': 'failed'},
 										autonomy={'success': Autonomy.Off, 'error': Autonomy.Off})
 
@@ -109,7 +109,7 @@ Assembly shaft with cap and m4 screw then insert it into the bearing
 
 			# x:365 y:124
 			OperatableStateMachine.add('Insert shaft',
-										InsertActionState(object_name=shaft, task_name=task),
+										InsertActionState(robot_name=b_bot, task_name=task, object_name=shaft),
 										transitions={'success': 'finished', 'error': 'failed'},
 										autonomy={'success': Autonomy.Off, 'error': Autonomy.Off})
 
@@ -126,7 +126,7 @@ Assembly shaft with cap and m4 screw then insert it into the bearing
 
 			# x:339 y:195
 			OperatableStateMachine.add('Insert end cap',
-										InsertActionState(object_name=end_cap, task_name=task),
+										InsertActionState(robot_name=a_bot, task_name=task, object_name=end_cap),
 										transitions={'success': 'Fasten end cap', 'error': 'failed'},
 										autonomy={'success': Autonomy.Off, 'error': Autonomy.Off})
 

@@ -37,7 +37,7 @@ class FastenActionState(EventState):
 
             Logger.logwarn('result %s' % str(result))
 
-            if not result:
+            if not result.success:
                 Logger.logwarn('Fail to complete Fasten')
                 self._success = False
                 return 'error'

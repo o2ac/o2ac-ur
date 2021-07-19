@@ -11,6 +11,7 @@ class PickActionState(EventState):
     Actionlib for picking up an object from the tray. 
     This looks for an object with the vision system and then attempt to pick it up.
 
+    -- robot_name         string  Name of robot performing the operation
     -- object_name        string  Name of the object to be pick
 
     #> gripper_opening    float   Gripper opening after pick attempt
@@ -20,11 +21,12 @@ class PickActionState(EventState):
 
     '''
 
-    def __init__(self, object_name):
+    def __init__(self, robot_name, object_name):
         super(PickActionState, self).__init__(outcomes=['success', 'error'])
 
         self._topic = 'o2ac_flexbe/pick_object'
         self._client = ProxyActionClient({self._topic: PickAction})  # pass required clients as dict (topic: type)
+        self._robot_name = robot_name
         self._object_name = object_name
 
         self._success = False
@@ -49,6 +51,7 @@ class PickActionState(EventState):
 
     def on_enter(self, userdata):
         goal = PickGoal()
+        goal.robot_name = self._robot_name
         goal.object_name = self._object_name
 
         self._success = True
