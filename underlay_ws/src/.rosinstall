@@ -20,8 +20,8 @@
     version: master
 - git:
     local-name: third_party/flexbe_app
-    uri: https://github.com/FlexBE/flexbe_app.git
-    version: master
+    uri: https://github.com/cambel/flexbe_app.git
+    version: pddl-flexbe
 - git:
     local-name: third_party/generic_flexbe_states
     uri: https://github.com/FlexBE/generic_flexbe_states.git
