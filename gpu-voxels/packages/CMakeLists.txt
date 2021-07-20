@@ -1,2 +1,0 @@
-ADD_SUBDIRECTORY(icl_core)
-ADD_SUBDIRECTORY(gpu_voxels)
