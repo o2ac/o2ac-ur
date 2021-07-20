@@ -93,6 +93,10 @@ if __name__ == '__main__':
         c.competition_mode = True
         c.full_taskboard_task(do_screws=False)
         c.competition_mode = False
+      if i == "startsimul":
+        c.competition_mode = True
+        c.full_taskboard_task_simultaneous(do_screws=False)
+        c.competition_mode = False
       if i == "screwsonly":
         c.competition_mode = True
         c.do_screw_tasks_from_prep_position()
@@ -110,8 +114,7 @@ if __name__ == '__main__':
       if i == "carry":
         c.take_tray_from_agv()
       if i == "1":
-        c.a_bot.go_to_named_pose("home")
-        c.b_bot.go_to_named_pose("home")
+        c.ab_bot.go_to_named_pose("home")
       if i == "11":
         c.a_bot.gripper.close(wait=False)
         c.b_bot.gripper.close(wait=False)

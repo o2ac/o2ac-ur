@@ -144,7 +144,8 @@
 		"cSpell.words": [
 			"commander",
 			"moveit",
-			"rospy"
+			"rospy",
+			"tolist"
 		]
 	},
 	"extensions": {

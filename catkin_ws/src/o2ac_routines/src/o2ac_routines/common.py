@@ -37,6 +37,7 @@
 from o2ac_routines import helpers
 from o2ac_routines.base import *
 from math import radians, degrees, sin, cos, pi
+from o2ac_routines.thread_with_trace import ThreadTrace
 from ur_control.constants import DONE, TERMINATION_CRITERIA
 from trajectory_msgs.msg import JointTrajectoryPoint
 
@@ -527,7 +528,7 @@ class O2ACCommon(O2ACBase):
         return False
       robot.gripper.close() # catch false grasps
     
-    if robot.gripper.opening_width < minimum_grasp_width:
+    if not self.simple_gripper_check(robot_name, minimum_grasp_width):
       rospy.logerr("Gripper opening width after pick less than minimum (" + str(minimum_grasp_width) + "): " + str(robot.gripper.opening_width) + ". Return False.")
       return
     return True
@@ -1298,7 +1299,7 @@ class O2ACCommon(O2ACBase):
     """
     self.active_robots[robot_name].gripper.open(wait=True, opening_width=opening_width, velocity=velocity)
     self.active_robots[robot_name].gripper.close(wait=True, velocity=velocity)
-    return self.active_robots[robot_name].gripper.opening_width > min_opening_width
+    return self.simple_gripper_check(robot_name, min_opening_width=min_opening_width)
 
   def grab_and_drop(self, robot_name, object_pose, options=dict()):
     grasp_width_ = options.get('grasp_width', 0.08)
@@ -1381,7 +1382,6 @@ class O2ACCommon(O2ACBase):
     self.vision.activate_camera("b_bot_inside_camera")
     self.activate_led("b_bot", on=False)
     adjustment_motions = 0
-    times_looked_without_action = 0
     times_perception_failed_in_a_row = 0
     times_we_added_random_action = 0
     times_it_looked_like_success = 0
@@ -1414,7 +1414,6 @@ class O2ACCommon(O2ACBase):
       self.b_bot.go_to_pose_goal(end_pose, speed=.2, end_effector_link = "b_bot_bearing_rotate_helper_link")
       self.b_bot.gripper.open()
 
-    success = False
     while adjustment_motions < max_adjustments:
       # Look at tb bearing
       if self.b_bot.gripper.opening_width < 0.06:
@@ -1482,8 +1481,7 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("insert_bearing returned False. Breaking out")
       return False
 
-    self.bearing_holes_aligned = self.align_bearing_holes(task=task)
-    return self.bearing_holes_aligned
+    return True
 
   def pick_bearing(self, robot_name="b_bot"):
     options = {'center_on_corner': True, 'check_for_close_items': False, 'grasp_width': 0.08, 'go_back_halfway': False}
@@ -1493,16 +1491,17 @@ class O2ACCommon(O2ACBase):
       return False
     self.vision.activate_camera(robot_name + "_inside_camera")
     goal.pose.position.z = 0.0
-    self.spawn_object("bearing", goal, goal.header.frame_id)
+    # self.spawn_object("bearing", goal, goal.header.frame_id)
     goal.pose.position.x -= 0.01 # MAGIC NUMBER
     goal.pose.position.z = 0.0115
 
-    if not self.pick_from_two_poses_topdown(robot_name, "bearing", goal, grasp_width=0.07):
+    # if not self.pick_from_two_poses_topdown(robot_name, "bearing", goal, grasp_width=0.07):
+    if not self.simple_pick(robot_name, goal, gripper_force=50.0, grasp_width=.07, axis="z", grasp_height=0.002):
       rospy.logerr("Fail to pick bearing from tray")
       return False
 
     self.active_robots[robot_name].gripper.detach_object("bearing")
-    self.despawn_object("bearing")
+    # self.despawn_object("bearing")
     self.active_robots[robot_name].gripper.last_attached_object = None # Forget about this object
     return True
 
@@ -1537,11 +1536,13 @@ class O2ACCommon(O2ACBase):
 
     prefix = "right" if robot_name == "b_bot" else "left"
     at_tray_border_pose = conversions.to_pose_stamped(prefix + "_centering_link", [-0.15, 0, 0.10, radians(-100), 0, 0])
-    approach_pose       = conversions.to_pose_stamped(bearing_target_link, [-0.05, -0.001, 0.005, 0, radians(-35.0), 0])
+
+    rotation = [0, radians(35.0), 0] if robot_name == "b_bot" else [tau/4, 0, radians(35.0)]
+    approach_pose       = conversions.to_pose_stamped(bearing_target_link, [-0.050, -0.001, 0.005] + rotation)
     if task == "taskboard":
-      preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017, 0.000, 0.002, 0, radians(-35.0), 0])
+      preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017,  0.000, 0.002 ]+ rotation)
     elif task == "assembly":
-      preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017, -0.000, 0.006, 0, radians(-35.0), 0])
+      preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017, -0.000, 0.006] + rotation)
 
     trajectory = helpers.to_sequence_trajectory([at_tray_border_pose, approach_pose, preinsertion_pose], blend_radiuses=[0.01,0.02,0], speed=0.4)
     self.execute_sequence(robot_name, [trajectory], "go to preinsertion", plan_while_moving=False)
@@ -1567,12 +1568,12 @@ class O2ACCommon(O2ACBase):
       if try_reinsertion:
         # Try to insert again
         rospy.logwarn("** Insertion Incomplete, trying again **")
-        self.insert_bearing(target_link, try_recenter=False, try_reinsertion=False)
+        self.insert_bearing(target_link, try_recenter=False, try_reinsertion=False, robot_name=robot_name)
       elif try_recenter:
         # Try to recenter the bearing
         rospy.logwarn("** Insertion Incomplete, trying from centering again **")
         self.playback_sequence("bearing_orient_down_" + robot_name)
-        self.insert_bearing(target_link, try_recenter=False, try_reinsertion=True)
+        self.insert_bearing(target_link, try_recenter=False, try_reinsertion=True, robot_name=robot_name)
       else:
         robot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
         self.drop_in_tray(robot_name)
@@ -1719,12 +1720,8 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("look this up")
       target_link = "assembled_part_07_inserted"
     
-    self.a_bot.go_to_named_pose("home")
-    self.b_bot.go_to_named_pose("home")
-    
     if not self.pick_motor_pulley():
       return False
-
 
     if not self.playback_sequence(routine_filename="motor_pulley_orient"):
       rospy.logerr("Fail to complete the playback sequence motor pulley orient")
@@ -1796,7 +1793,7 @@ class O2ACCommon(O2ACBase):
     new_pose = self.move_towards_tray_center(robot_name, move_distance)
     return new_pose
 
-  def pick_and_insert_idler_pulley(self, task=""):
+  def pick_and_insert_idler_pulley(self, task="", simultaneous=False):
     if not task:
       rospy.logerr("Specify the task!")
       return False
@@ -1807,8 +1804,7 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("look this up")
       idler_puller_target_link = "assembly_long_hole_middle_link"
 
-    self.a_bot.go_to_named_pose("home")
-    self.b_bot.go_to_named_pose("home")
+    self.ab_bot.go_to_named_pose("home")
     
     options = {'check_for_close_items': False, 'center_on_corner': True, 'center_on_close_border': True, 'min_dist_to_border': 0.04, 'allow_pick_near_border': False}
     object_pose = self.look_and_get_grasp_point("taskboard_idler_pulley_small", robot_name="a_bot", options=options)
@@ -1838,26 +1834,45 @@ class O2ACCommon(O2ACBase):
 
     rospy.loginfo("Moving down to object")
     
-    self.a_bot.gripper.open(opening_width=0.08)
-    if not self.a_bot.go_to_pose_goal(at_object_pose):
-      rospy.logerr("Fail to complete pick pose")
-      return False
+    def a_bot_task():
+      self.a_bot.gripper.open(opening_width=0.08)
+      if not self.a_bot.go_to_pose_goal(at_object_pose):
+        rospy.logerr("Fail to complete pick pose")
+        return False
 
-    self.a_bot.gripper.open(wait=False, opening_width=0.07)
-    if not self.center_with_gripper("a_bot", opening_width=.08):
-      rospy.logerr("Fail to complete center_with_gripper")
-      return False
-    if not self.grasp_idler_pulley():
-      rospy.logerr("Fail to complete grasp_idler_pulley")
-      return False
-    if not self.insert_idler_pulley(idler_puller_target_link):
-      rospy.logerr("Fail to complete insert_idler_pulley")
-      self.drop_in_tray("a_bot")
-      return False
-    self.vision.activate_camera("b_bot_outside_camera")
-    if not self.prepare_screw_tool_idler_pulley(idler_puller_target_link):
-      rospy.logerr("Fail to complete prepare_screw_tool_idler_pulley")
-      return False
+      self.a_bot.gripper.open(wait=False, opening_width=0.07)
+      if not self.center_with_gripper("a_bot", opening_width=.08):
+        rospy.logerr("Fail to complete center_with_gripper")
+        return False
+      if not self.grasp_idler_pulley():
+        rospy.logerr("Fail to complete grasp_idler_pulley")
+        return False
+      if not self.insert_idler_pulley(idler_puller_target_link):
+        rospy.logerr("Fail to complete insert_idler_pulley")
+        self.drop_in_tray("a_bot")
+        return False
+      return True
+    def b_bot_task():
+      self.vision.activate_camera("b_bot_outside_camera")
+      if not self.equip_tool("b_bot", "padless_tool_m4"):
+        rospy.logerr("Fail to equip padless_tool_m4")
+        return False
+      if not self.b_bot.go_to_named_pose("screw_ready"):
+        return False
+      return True
+
+    if simultaneous:
+      if not self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=120):
+        return False
+    else: # sequential 
+      if not a_bot_task():
+        return False
+      if not b_bot_task():
+        return False
+      if not self.prepare_screw_tool_idler_pulley(idler_puller_target_link):
+        rospy.logerr("Fail to do prepare_screw_tool_idler_pulley")
+        return False
+    
     self.a_bot.gripper.open(opening_width=0.05)
     self.a_bot.move_lin_rel(relative_translation=[-0.15, 0, 0.0], relative_to_tcp=True, speed=1.0)
     if not self.playback_sequence("idler_pulley_equip_nut_tool"):
@@ -1869,15 +1884,25 @@ class O2ACCommon(O2ACBase):
     if not success:
       rospy.logerr("Fail to complete fasten_idler_pulley_with_nut_tool")
 
-    if not self.playback_sequence("idler_pulley_unequip_nut_tool"):
-      rospy.logerr("Fail to complete unequip_nut_tool")
+    def a_bot_task2():
+      return self.playback_sequence("idler_pulley_unequip_nut_tool")
 
-    if not self.playback_sequence("idler_pulley_return_screw_tool"):
-      rospy.logerr("Fail to complete idler_pulley_return_screw_tool")
-      return False
+    def b_bot_task2():
+      if not self.playback_sequence("idler_pulley_return_screw_tool"):
+        rospy.logerr("Fail to complete idler_pulley_return_screw_tool")
+        return False
+      return self.unequip_tool("b_bot", "padless_tool_m4")
 
-    self.unequip_tool("b_bot", "padless_tool_m4")
-    return success
+    if simultaneous:
+      if not self.do_tasks_simultaneous(a_bot_task2, b_bot_task2, timeout=60):
+        return False
+    else:
+      if not a_bot_task2():
+        return False
+      if not b_bot_task2():
+        return False
+
+    return True
     
   def center_idler_pulley(self):
     # Center first time
@@ -2050,10 +2075,6 @@ class O2ACCommon(O2ACBase):
       target_link = "taskboard_assy_part_07_inserted"
     elif task == "assembly":
       target_link = "assembly_assy_part_07_inserted"
-    
-    self.a_bot.go_to_named_pose("home")
-    self.b_bot.go_to_named_pose("home")
-
     
     self.allow_collisions_with_robot_hand("shaft", "b_bot", True)
     
@@ -3246,3 +3267,36 @@ class O2ACCommon(O2ACBase):
 
     self.ab_bot.go_to_named_pose("home")
     self.publish_status_text("SUCCESS: Unload product")
+
+  def do_tasks_simultaneous(self, function_a_bot, function_b_bot, timeout=30.0):
+    a_thread = ThreadTrace(target=function_a_bot)
+    a_thread.daemon = True
+    b_thread = ThreadTrace(target=function_b_bot)
+    b_thread.daemon = True
+    a_thread.start()
+    b_thread.start()
+
+    start_time = rospy.Time.now()
+    a_thread.join(timeout)
+    if a_thread.is_alive():
+      rospy.logerr("a_bot not done yet, breaking out")
+      a_thread.kill()
+      b_thread.kill()
+      return False
+    rospy.loginfo("a_bot DONE")
+    
+    time_passed = (rospy.Time.now() - start_time).secs
+    time_left_until_timeout = timeout - time_passed
+    if time_left_until_timeout < 0.0:
+      rospy.logerr("simultaneous task timed out!")
+      b_thread.kill()
+      return False
+
+    b_thread.join(time_left_until_timeout)
+    if b_thread.is_alive():
+      rospy.logerr("b_bot not done yet, abort")
+      rospy.logerr("Started at " + str(start_time) + " and timeout was " + str(timeout))
+      b_thread.kill()
+      return False
+    rospy.loginfo("b_bot DONE")
+    return True

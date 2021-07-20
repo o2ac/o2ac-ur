@@ -331,7 +331,7 @@ class O2ACBase(object):
     fastening_tool_name = "screw_tool_m" + str(screw_size)
     
     if not self.active_robots[robot_name].robot_status.held_tool_id == fastening_tool_name:
-      if not self.equip_tool("robot_name", fastening_tool_name):
+      if not self.equip_tool(robot_name, fastening_tool_name):
         rospy.logerr("Robot is not carrying the correct tool (" + fastening_tool_name + ") and it failed to be equipped. Abort.")
         return False
 
@@ -525,7 +525,7 @@ class O2ACBase(object):
       rospy.logerr("Linear motion plan to above_screw_head_pose failed. Returning false.")
       return False
 
-    if screw_picked:
+    if screw_picked or (not self.use_real_robot):
       rospy.loginfo("Finished picking up screw successfully.")
     else:
       rospy.logerr("Failed to pick screw.")
@@ -701,7 +701,7 @@ class O2ACBase(object):
     When looking at the bearing from the front, returns the rotation angle 
     to align the screw holes.
     """
-    if self.use_dummy_vision:
+    if self.use_dummy_vision or not self.use_real_robot:
       return 0.0001  # 0.0 would be recognized as vision failure
     return self.vision.get_angle_from_vision(camera, item_name="bearing")
   
@@ -968,7 +968,6 @@ class O2ACBase(object):
     robot = self.active_robots[robot_name]
     if tool_name == "":
       tool_name = self.active_robots[robot_name].robot_status.held_tool_id
-
 
     # Sanity check on the input instruction
     equip = (operation == "equip")
@@ -1454,11 +1453,9 @@ class O2ACBase(object):
       success = False
       if isinstance(seq, dict):
         success =  self.execute_gripper_action(robot_name, seq)
-        print("gripper result", success)
       else:
         # TODO(cambel): validate that the plan is still valid before execution
         success = robot.execute_plan(seq, wait=True)
-        print("motion result", success)
       
       if not success:
         rospy.logerr("Fail to execute saved plan from sequence. Abort")

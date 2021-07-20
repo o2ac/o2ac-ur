@@ -6,6 +6,7 @@ import time
 import o2ac_msgs.msg
 import controller_manager_msgs.msg
 import std_srvs.srv
+from ur_control.constants import TERMINATION_CRITERIA
 import ur_dashboard_msgs.srv
 import ur_msgs.srv
 
@@ -341,10 +342,13 @@ class URRobot(RobotBase):
         self.activate_ros_control_on_ur()
         return self.force_controller.execute_spiral_trajectory(*args, **kwargs)
 
+    @helpers.check_for_real_robot
     def linear_push(self, *args, **kwargs):
         self.activate_ros_control_on_ur()
         return self.force_controller.linear_push(*args, **kwargs)
 
     def do_insertion(self, *args, **kwargs):
+        if not self.use_real_robot:
+            return TERMINATION_CRITERIA
         self.activate_ros_control_on_ur()
         return self.force_controller.do_insertion(*args, **kwargs)

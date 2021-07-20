@@ -234,7 +234,11 @@ class O2ACTaskboard(O2ACCommon):
     }
     if do_screws:
       # self.do_screw_tasks_from_prep_position()
-      self.do_screw_tasks_simultaneous()
+      success = self.do_screw_tasks_simultaneous()
+      if success:
+        self.subtask_completed["M3 screw"] = True
+        self.subtask_completed["M4 screw"] = True
+
 
     if not skip_tray_placing:
       self.take_tray_from_agv()
@@ -271,43 +275,87 @@ class O2ACTaskboard(O2ACCommon):
 
     self.publish_status_text("FINISHED")
 
-  def do_tasks_simultaneous(self, function_a_bot, function_b_bot, timeout=30.0):
-    a_thread = ThreadTrace(target=function_a_bot)
-    a_thread.daemon = True
-    b_thread = ThreadTrace(target=function_b_bot)
-    b_thread.daemon = True
-    a_thread.start()
-    b_thread.start()
+  def full_taskboard_task_simultaneous(self, do_screws=True, skip_tray_placing=True):
+    """
+    Start the taskboard task from the fully prepped position (set screw tool and M3 tool equipped)
+    """
+    #####
+    self.subtask_completed = {
+      "M2 set screw": True,
+      "M3 screw": False,
+      "M4 screw": False,
+      "belt": False,
+      "bearing": False,
+      "screw_bearing": False,
+      "motor pulley": False,
+      "shaft": False,  
+      "idler pulley": False,
+    }
+    if do_screws:
+      # self.do_screw_tasks_from_prep_position()
+      success = self.do_screw_tasks_simultaneous()
+      if success:
+        self.subtask_completed["M3 screw"] = True
+        self.subtask_completed["M4 screw"] = True
 
-    start_time = rospy.Time.now()
-    a_thread.join(timeout)
-    if a_thread.is_alive():
-      rospy.logerr("a_bot not done yet, breaking out")
-      a_thread.kill()
-      b_thread.kill()
-      return False
-    rospy.loginfo("a_bot DONE")
+    if not skip_tray_placing:
+      self.take_tray_from_agv()
+
+    self.execute_step("belt")
+
+    self.pick_bearing("a_bot")
+    def a_bot_task(): # orient/insert bearing
+      if not self.orient_bearing("taskboard", robot_name="a_bot"):
+        rospy.logerr("orient_bearing returned False. Breaking out")
+        return False
+      if not self.insert_bearing("taskboard_bearing_target_link", robot_name="a_bot"):
+        rospy.logerr("insert_bearing returned False. Breaking out")
+        return False
+      self.subtask_completed["bearing"] = True
+    def b_bot_task(): # pick/orient/insert shaft
+      self.subtask_completed["motor pulley"] = self.do_task("motor pulley")
+      self.b_bot.go_to_named_pose("home")
+    self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=180.0)
     
-    time_passed = (rospy.Time.now() - start_time).secs
-    time_left_until_timeout = timeout - time_passed
-    if time_left_until_timeout < 0.0:
-      rospy.logerr("Timed out!")
-      b_thread.kill()
-      return False
+    self.ab_bot.go_to_named_pose("home")
 
-    b_thread.join(time_left_until_timeout)
-    if b_thread.is_alive():
-      rospy.logerr("b_bot not done yet, abort")
-      rospy.logerr("Started at " + str(start_time) + " and timeout was " + str(timeout))
-      b_thread.kill()
-      return False
-    rospy.loginfo("b_bot DONE")
-    return True
+    def a_bot_task2(): # prepare a_bot with screw tool m4 / pick screw from feeder
+      self.equip_tool("a_bot", 'screw_tool_m4')
+      self.pick_screw_from_feeder_python("a_bot", screw_size=4)
+    def b_bot_task2(): # align bearing holes
+      self.align_bearing_holes(task="taskboard")
+    self.do_tasks_simultaneous(a_bot_task2, b_bot_task2, timeout=120.0)
+
+    def a_bot_task3(): # fasten bearing
+      self.fasten_bearing(task="taskboard", robot_name="a_bot")
+      self.subtask_completed["screw_bearing"] = True
+    def b_bot_task3(): # pick/orient/insert motor pulley
+      self.subtask_completed["shaft"] = self.do_task("shaft")
+      self.b_bot.go_to_named_pose("home")
+    self.do_tasks_simultaneous(a_bot_task3, b_bot_task3, timeout=300.0)
+
+    self.ab_bot.go_to_named_pose("home")
+
+    self.subtask_completed["idler pulley"] = self.pick_and_insert_idler_pulley("taskboard", simultaneous=True)
+      
+    order = ["belt", "motor pulley", "shaft", "idler pulley", "bearing"]
+    task_complete = False
+    # Then loop through the remaining items
+    self.confirm_to_proceed("Continue into loop to retry parts?")
+    unsuccessful_attempts = 0
+    while not task_complete:
+      for item in order:
+        if not self.execute_step(item):
+          unsuccessful_attempts += 1
+      task_complete = all(self.subtask_completed.values())
+
+    self.publish_status_text("FINISHED")
 
   def do_screw_tasks_simultaneous(self):
     """
     Start from prep poses, finish before carrying tray.
     """
+    success = True
     ### - Set screw
     self.publish_status_text("M3 set screw")
     
@@ -316,18 +364,20 @@ class O2ACTaskboard(O2ACCommon):
       self.pick_screw_from_feeder("a_bot", screw_size=3)
     def do_with_b():
       self.do_task("M2 set screw")
-    self.do_tasks_simultaneous(do_with_a, do_with_b, timeout=120.0)
+    success = self.do_tasks_simultaneous(do_with_a, do_with_b, timeout=120.0)
     # TODO: Consider failure cases
     
-    def prep_b_bot():
-      self.unequip_tool("b_bot", "set_screw_tool")
-      self.equip_tool("b_bot", "screw_tool_m4")
-      self.b_bot.go_to_named_pose("feeder_pick_ready")
-      self.pick_screw_from_feeder("b_bot", screw_size=4)
-      self.b_bot.go_to_named_pose("home")
-    def a_bot_task():
-      self.do_task("M3 screw")
-    self.do_tasks_simultaneous(a_bot_task, prep_b_bot, timeout=120.0)
+    if success:
+      def prep_b_bot():
+        self.unequip_tool("b_bot", "set_screw_tool")
+        self.equip_tool("b_bot", "screw_tool_m4")
+        self.b_bot.go_to_named_pose("feeder_pick_ready")
+        self.pick_screw_from_feeder("b_bot", screw_size=4)
+        self.b_bot.go_to_named_pose("home")
+      def a_bot_task():
+        self.do_task("M3 screw")
+      if not self.do_tasks_simultaneous(a_bot_task, prep_b_bot, timeout=120.0):
+        success = False
 
     def a_3():
       self.unequip_tool("a_bot", "screw_tool_m3")
@@ -335,9 +385,16 @@ class O2ACTaskboard(O2ACCommon):
     def b_3():
       self.do_task("M4 screw")
       self.b_bot.go_to_named_pose("home")
-    self.do_tasks_simultaneous(a_3, b_3, timeout=120.0)
 
+    if success:
+      if not self.do_tasks_simultaneous(a_3, b_3, timeout=120.0):
+        return False
+    else:
+      # Try to unequip tools in case of failure, sequentially just in case.
+      a_3()
+      b_3()
 
+    return success
 
   def execute_step(self, item):
       assert not rospy.is_shutdown(), "did ros master die?"
@@ -590,7 +647,9 @@ class O2ACTaskboard(O2ACCommon):
     # ==========================================================
 
     if task_name == "bearing":
-      return self.pick_up_and_insert_bearing(task="taskboard")
+      success = self.pick_up_and_insert_bearing(task="taskboard")
+      if success:
+        return self.align_bearing_holes(task="taskboard")
       
     if task_name == "screw_bearing":
       self.equip_tool('b_bot', 'screw_tool_m4')
