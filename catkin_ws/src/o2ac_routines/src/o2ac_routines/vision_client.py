@@ -18,11 +18,6 @@ class VisionClient():
                 self.vision_multiplexer = RealSenseMultiplexerClient('camera_multiplexer')
             except:
                 self.vision_multiplexer = []
-            self.multiplexer_camera_names = rospy.get_param('/camera_multiplexer/camera_names', '')
-            self.camera_enable_services = {}
-            for cam in self.multiplexer_camera_names:
-                rospy.wait_for_service('/%s/enable' % cam)
-                self.camera_enable_services.update({cam: rospy.ServiceProxy('/%s/enable' % cam, std_srvs.srv.SetBool)})
 
         self.ssd_client = actionlib.SimpleActionClient('/o2ac_vision_server/get_3d_poses_from_ssd', o2ac_msgs.msg.get3DPosesFromSSDAction)
         self.detect_shaft_client = actionlib.SimpleActionClient('/o2ac_vision_server/detect_shaft_hole', o2ac_msgs.msg.shaftHoleDetectionAction)
@@ -32,35 +27,10 @@ class VisionClient():
         self.pulley_screw_detection_stream_client = rospy.ServiceProxy('/o2ac_vision_server/activate_pulley_screw_detection', std_srvs.srv.SetBool)
         self.pulley_screw_detection_streaming = False
 
-    def set_camera_state(self, camera_name, enable=True):
-        enable_srv = self.camera_enable_services.get(camera_name)
-        rospy.loginfo("Enable => %s for camera %s" % (enable, camera_name))
-        try:
-            enable_srv(std_srvs.srv.SetBoolRequest(data=(enable)))
-        except Exception as e:
-            print("Exception in set_camera_state: ", e)
-        rospy.set_param("/o2ac_vision_server/%s" % camera_name, enable)
-        return True
-
     @check_for_real_robot
     def activate_camera(self, camera_name="b_bot_outside_camera"):
         try:
             if self.vision_multiplexer:
-                # TODO(cambel): move this logic inside the multiplexer
-                for cam in self.multiplexer_camera_names:
-                    camera_state = rospy.get_param("/o2ac_vision_server/%s" % cam, None)
-                    if camera_state is None:  # we are not sure of the state of the camera
-                        try:
-                            # Enable desired camera and Disable other cameras
-                            self.set_camera_state(cam, cam == camera_state)
-                        except:
-                            pass
-                    else:
-                        if camera_state and cam != camera_name:
-                            self.set_camera_state(cam, False)
-                        elif not camera_state and cam == camera_name:
-                            self.set_camera_state(cam, True)
-                rospy.sleep(1)
                 return self.vision_multiplexer.activate_camera(camera_name)
             else:
                 rospy.logwarn("Camera multiplexer not functional! Returning true")
@@ -110,7 +80,7 @@ class VisionClient():
         except:
             pass
         return False
-    
+
     @check_for_real_robot
     def get_motor_angle_from_top_view(self, camera="b_bot_outside_camera"):
         # Send goal, wait for result
@@ -186,7 +156,6 @@ class VisionClient():
             rospy.logerr("Localization returned no result for object type " + object_type)
             return False
 
-        success = False
         try:
             res = self.localization_client.get_result()
             r = res.detected_poses[0]
