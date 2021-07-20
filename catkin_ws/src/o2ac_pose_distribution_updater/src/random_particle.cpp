@@ -3,7 +3,7 @@
 
 namespace {
 std::random_device seed_generator;
-std::default_random_engine engine(0);
+std::default_random_engine engine(seed_generator());
 std::normal_distribution<> unit_normal_distribution(0.0, 1.0);
 } // namespace
 

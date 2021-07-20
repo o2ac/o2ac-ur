@@ -1,4 +1,5 @@
 #include "o2ac_pose_distribution_updater/planner.hpp"
+#include "o2ac_pose_distribution_updater/convex_hull.hpp"
 
 namespace {
 double LARGE_EPS = 1e-8, EPS = 1e-9;
@@ -73,17 +74,15 @@ void Planner::calculate_action_candidates(
         candidates.push_back(action);
       }
     }
-    namespace bg = boost::geometry;
-    bg::model::multi_point<Eigen::Vector2d> projected_points;
+    std::vector<Eigen::Vector2d> projected_points, hull;
+    std::transform(gripped_geometry->vertices.begin(),
+                   gripped_geometry->vertices.end(),
+                   std::back_inserter(projected_points),
+                   [&current_mean](const Eigen::Vector3d &vertex) {
+                     return (Eigen::Vector2d)(current_mean * vertex).head<2>();
+                   });
 
-    for (auto &vertex : gripped_geometry->vertices) {
-      bg::append(projected_points,
-                 (Eigen::Vector2d)(current_mean * vertex).head<2>());
-    }
-
-    static const bool clock_wise = false;
-    bg::model::ring<Eigen::Vector2d, clock_wise> hull;
-    bg::convex_hull(projected_points, hull);
+    convex_hull_for_Eigen_Vector2d(projected_points, hull);
 
     Eigen::Vector3d current_center = current_mean * center_of_gravity;
     Eigen::Vector2d projected_center = current_center.head<2>();
@@ -210,14 +209,6 @@ std::vector<UpdateAction> Planner::calculate_plan(
     std::cerr << nodes[goal_node_id].previous_action.type << std::endl;
     std::cerr << nodes[goal_node_id].previous_action.gripper_pose.matrix()
               << std::endl;
-    /*int previous_node_id = nodes[goal_node_id].previous_node_id;
-    Eigen::Isometry3d new_mean;
-    CovarianceMatrix new_covariance;
-    apply_action(nodes[previous_node_id].mean,
-                 nodes[previous_node_id].covariance,
-                 nodes[goal_node_id].previous_action, new_mean, new_covariance);
-    std::cout << new_mean.matrix() << std::endl;
-    std::cout << new_covariance << std::endl;*/
     actions.push_back(nodes[goal_node_id].previous_action);
     goal_node_id = nodes[goal_node_id].previous_node_id;
   }

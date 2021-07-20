@@ -3,6 +3,7 @@ Helper functions for the place action
  */
 
 #include "o2ac_pose_distribution_updater/place_action_helpers.hpp"
+#include "o2ac_pose_distribution_updater/convex_hull.hpp"
 const double EPS = 1e-9, LARGE_EPS = 1e-6;
 
 int argmin(const std::vector<double> &vec) {
@@ -128,24 +129,21 @@ void find_three_points(const std::vector<Eigen::Vector3d> &current_vertices,
   // calculate the convex hull of the vertices touching the ground
   double min_z = final_vertices[ground_touch_vertex_id_1](2);
 
-  namespace bg = boost::geometry;
-  bg::model::multi_point<Eigen::Vector2d> points_on_ground;
+  std::vector<Eigen::Vector2d> points_on_ground;
 
   for (auto &vertex : final_vertices) {
     if (vertex(2) <= min_z + EPS) {
-      bg::append(points_on_ground, (Eigen::Vector2d)vertex.head<2>());
+      points_on_ground.push_back((Eigen::Vector2d)vertex.head<2>());
     }
   }
-
-  bg::model::polygon<Eigen::Vector2d> hull;
-  bg::convex_hull(points_on_ground, hull);
 
   // If the center of geometry projected to ground is in the convex hull, the
   // object is stable
   Eigen::Vector2d projected_center_of_gravity =
       final_center_of_gravity.head<2>();
 
-  stability = bg::within(projected_center_of_gravity, hull);
+  stability =
+      check_inside_convex_hull(projected_center_of_gravity, points_on_ground);
 }
 
 template <typename T>

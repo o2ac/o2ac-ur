@@ -7,8 +7,6 @@
 #include "o2ac_pose_distribution_updater/operators_for_Lie_distribution.hpp"
 #include <Eigen/Geometry>
 #include <boost/array.hpp>
-#include <boost/geometry.hpp>
-#include <boost/geometry/geometries/polygon.hpp>
 #include <vector>
 
 CovarianceMatrix transform_covariance(const Eigen::Isometry3d &transform,

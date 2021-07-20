@@ -1,4 +1,5 @@
 #include "o2ac_pose_distribution_updater/push_action_helpers.hpp"
+#include "o2ac_pose_distribution_updater/convex_hull.hpp"
 
 namespace {
 const double INF = 1e9, EPS = 1e-9, LARGE_EPS = 1e-7;
@@ -39,24 +40,22 @@ push_calculator::push_calculator(const std::vector<Eigen::Vector3d> &vertices,
   Eigen::Vector2d projected_center =
       (current_transform * center_of_gravity).block(0, 0, 2, 1);
 
-  namespace bg = boost::geometry;
-  bg::model::multi_point<Eigen::Vector2d> projected_points;
+  std::vector<Eigen::Vector2d> projected_points, hull;
 
-  for (auto &vertex : current_vertices) {
-    bg::append(projected_points, (Eigen::Vector2d)vertex.block(0, 0, 2, 1));
-  }
+  std::transform(current_vertices.begin(), current_vertices.end(),
+                 std::back_inserter(projected_points),
+                 [](const Eigen::Vector3d &vertex) {
+                   return (Eigen::Vector2d)vertex.block(0, 0, 2, 1);
+                 });
 
-  static const bool clock_wise = false;
-  bg::model::ring<Eigen::Vector2d, clock_wise> hull;
-  bg::convex_hull(projected_points, hull);
-  hull.resize(hull.size() - 1);
+  convex_hull_for_Eigen_Vector2d(projected_points, hull);
 
   // find the left-most and right-most vertices of the hull
 
   int hull_size = hull.size();
   int first_left_vertex_id = 0;
   for (int i = 1; i < hull_size; i++) {
-    if (hull[i].x() < hull[first_left_vertex_id].x() - EPS) {
+    if (hull[i](0) < hull[first_left_vertex_id](0)) {
       first_left_vertex_id = i;
     }
   }

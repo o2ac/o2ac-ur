@@ -1,4 +1,5 @@
 #include "o2ac_pose_distribution_updater/planner_helpers.hpp"
+#include "o2ac_pose_distribution_updater/convex_hull.hpp"
 #include "o2ac_pose_distribution_updater/random_particle.hpp"
 
 namespace {
@@ -95,18 +96,14 @@ void calculate_place_candidates(
     Eigen::AngleAxisd rotation(angle, axis);
     Eigen::Vector2d projected_center = (rotation * center_of_gravity).head<2>();
 
-    namespace bg = boost::geometry;
-    bg::model::multi_point<Eigen::Vector2d> projected_points;
-    for (auto &vertex : facet) {
-      bg::append(projected_points,
-                 (Eigen::Vector2d)(rotation * vertex).head<2>());
-    }
+    std::vector<Eigen::Vector2d> projected_points;
+    std::transform(facet.begin(), facet.end(),
+                   std::back_inserter(projected_points),
+                   [&rotation](const Eigen::Vector3d &vertex) {
+                     return (Eigen::Vector2d)(rotation * vertex).head<2>();
+                   });
 
-    static const bool clock_wise = false;
-    bg::model::ring<Eigen::Vector2d, clock_wise> hull;
-    bg::convex_hull(projected_points, hull);
-
-    if (bg::within(projected_center, hull)) {
+    if (check_inside_convex_hull(projected_center, projected_points)) {
       candidates.push_back(Eigen::Hyperplane<double, 3>(normal, facet[0]));
     }
   }
