@@ -322,8 +322,6 @@ int main(int argc, char **argv) {
 
     std::cout << mean.matrix() << std::endl;
     std::cout << covariance << std::endl;
-
-    ros::Duration(1.0).sleep();
   }
   return 0;
 }
