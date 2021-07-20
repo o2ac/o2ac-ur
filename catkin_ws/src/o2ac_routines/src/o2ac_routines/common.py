@@ -1485,57 +1485,58 @@ class O2ACCommon(O2ACBase):
     self.bearing_holes_aligned = self.align_bearing_holes(task=task)
     return self.bearing_holes_aligned
 
-  def pick_bearing(self):
+  def pick_bearing(self, robot_name="b_bot"):
     options = {'center_on_corner': True, 'check_for_close_items': False, 'grasp_width': 0.08, 'go_back_halfway': False}
-    goal = self.look_and_get_grasp_point("bearing", options=options)
+    goal = self.look_and_get_grasp_point("bearing", robot_name, options=options)
     if not isinstance(goal, geometry_msgs.msg.PoseStamped):
       rospy.logerr("Could not find bearing in tray. Skipping procedure.")
       return False
-    self.vision.activate_camera("b_bot_inside_camera")
+    self.vision.activate_camera(robot_name + "_inside_camera")
     goal.pose.position.z = 0.0
     self.spawn_object("bearing", goal, goal.header.frame_id)
     goal.pose.position.x -= 0.01 # MAGIC NUMBER
     goal.pose.position.z = 0.0115
 
-    if not self.pick_from_two_poses_topdown("b_bot", "bearing", goal, grasp_width=0.07):
+    if not self.pick_from_two_poses_topdown(robot_name, "bearing", goal, grasp_width=0.07):
       rospy.logerr("Fail to pick bearing from tray")
       return False
 
-    self.b_bot.gripper.detach_object("bearing")
+    self.active_robots[robot_name].gripper.detach_object("bearing")
     self.despawn_object("bearing")
-    self.b_bot.gripper.last_attached_object = None # Forget about this object
+    self.active_robots[robot_name].gripper.last_attached_object = None # Forget about this object
     return True
 
-  def orient_bearing(self, task):
+  def orient_bearing(self, task, robot_name="b_bot"):
     if task == "taskboard":
       bearing_target_link = "taskboard_bearing_target_link"
     elif task == "assembly":
       rospy.logerr("look this up")
       bearing_target_link = "assembled_part_07_inserted"
 
-    self.b_bot.gripper.close() # catch false grasps
-    if not self.simple_gripper_check("b_bot", min_opening_width=0.01):
+    self.active_robots[robot_name].gripper.close() # catch false grasps
+    if not self.simple_gripper_check(robot_name, min_opening_width=0.01):
       rospy.logerr("Fail to grasp bearing")
       return False
-    elif self.b_bot.gripper.opening_width < 0.045:
+    elif self.active_robots[robot_name].gripper.opening_width < 0.045:
       rospy.loginfo("bearing found to be upwards")
-      if not self.playback_sequence("bearing_orient"):
+      if not self.playback_sequence("bearing_orient_" + robot_name):
         rospy.logerr("Could not complete orient sequence")
-        self.pick_from_centering_area_and_drop_in_tray("b_bot")
+        self.pick_from_centering_area_and_drop_in_tray(robot_name)
         return False
     else:
       rospy.loginfo("bearing found to be upside down")
-      if not self.playback_sequence("bearing_orient_down"):
+      if not self.playback_sequence("bearing_orient_down_" + robot_name):
         rospy.logerr("Could not complete orient down sequence")
-        self.pick_from_centering_area_and_drop_in_tray("b_bot")
+        self.pick_from_centering_area_and_drop_in_tray(robot_name)
         return False
       #'down' means the small area contacts with tray.
-    if self.b_bot.gripper.opening_width < 0.01 and self.use_real_robot:
+    if self.active_robots[robot_name].gripper.opening_width < 0.01 and self.use_real_robot:
       rospy.logerr("Bearing not found in gripper. Must have been lost. Aborting.")
       #TODO(felixvd): Look at the regrasping/aligning area next to the tray
       return False
 
-    at_tray_border_pose = conversions.to_pose_stamped("right_centering_link", [-0.15, 0, 0.10, radians(-100), 0, 0])
+    prefix = "right" if robot_name == "b_bot" else "left"
+    at_tray_border_pose = conversions.to_pose_stamped(prefix + "_centering_link", [-0.15, 0, 0.10, radians(-100), 0, 0])
     approach_pose       = conversions.to_pose_stamped(bearing_target_link, [-0.05, -0.001, 0.005, 0, radians(-35.0), 0])
     if task == "taskboard":
       preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017, 0.000, 0.002, 0, radians(-35.0), 0])
@@ -1543,21 +1544,23 @@ class O2ACCommon(O2ACBase):
       preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017, -0.000, 0.006, 0, radians(-35.0), 0])
 
     trajectory = helpers.to_sequence_trajectory([at_tray_border_pose, approach_pose, preinsertion_pose], blend_radiuses=[0.01,0.02,0], speed=0.4)
-    self.execute_sequence("b_bot", [trajectory], "go to preinsertion", plan_while_moving=False)
+    self.execute_sequence(robot_name, [trajectory], "go to preinsertion", plan_while_moving=False)
 
     return True
 
-  def insert_bearing(self, target_link, try_recenter=True, try_reinsertion=True):
+  def insert_bearing(self, target_link, try_recenter=True, try_reinsertion=True, robot_name="b_bot"):
     """ Only inserts the bearing, does not align the holes.
     """
+    robot = self.active_robots[robot_name]
+    insertion_direction = "-X" if robot_name == "b_bot" else "+X"
     target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.004, 0.000, 0.002, 0, 0, 0, 1.])
     selection_matrix = [0., 0.3, 0.3, .8, .8, .8]
-    result = self.b_bot.do_insertion(target_pose_target_frame, insertion_direction="-X", force=10.0, timeout=20.0, 
-                                                    radius=0.002, relaxed_target_by=0.003, selection_matrix=selection_matrix)
+    result = robot.do_insertion(target_pose_target_frame, insertion_direction=insertion_direction, force=10.0, timeout=20.0, 
+                                radius=0.002, relaxed_target_by=0.003, selection_matrix=selection_matrix)
     
     if result != TERMINATION_CRITERIA:
       # move back
-      self.b_bot.move_lin_rel(relative_translation = [0.005,0,0], acceleration = 0.015, speed=.03)
+      robot.move_lin_rel(relative_translation = [0.005,0,0], acceleration = 0.015, speed=.03)
 
       # TODO(cambel): check that the bearing is not slightly inserted
       #               otherwise we may trigger a safety lock
@@ -1568,26 +1571,26 @@ class O2ACCommon(O2ACBase):
       elif try_recenter:
         # Try to recenter the bearing
         rospy.logwarn("** Insertion Incomplete, trying from centering again **")
-        self.playback_sequence("bearing_orient_down")
+        self.playback_sequence("bearing_orient_down_" + robot_name)
         self.insert_bearing(target_link, try_recenter=False, try_reinsertion=True)
       else:
-        self.b_bot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
-        self.drop_in_tray("b_bot")
+        robot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
+        self.drop_in_tray(robot_name)
 
-    self.b_bot.gripper.open(wait=True)
-    self.b_bot.move_lin_rel(relative_translation = [0.01,0,0], acceleration = 0.015, speed=.03)
-    self.b_bot.gripper.close(velocity=0.05, wait=True)
+    robot.gripper.open(wait=True)
+    robot.move_lin_rel(relative_translation = [0.01,0,0], acceleration = 0.015, speed=.03)
+    robot.gripper.close(velocity=0.05, wait=True)
 
-    result = self.b_bot.do_insertion(target_pose_target_frame, insertion_direction="-X", force=10.0, timeout=30.0, 
-                                                    radius=0.0, wiggle_direction="X", wiggle_angle=np.deg2rad(3.0), wiggle_revolutions=1.0,
-                                                    relaxed_target_by=0.003, selection_matrix=selection_matrix)
+    result = robot.do_insertion(target_pose_target_frame, insertion_direction=insertion_direction, force=10.0, timeout=30.0, 
+                                radius=0.0, wiggle_direction="X", wiggle_angle=np.deg2rad(3.0), wiggle_revolutions=1.0,
+                                relaxed_target_by=0.003, selection_matrix=selection_matrix)
     
     success = result in (TERMINATION_CRITERIA, DONE)
 
     # Go back regardless of success
     # TODO(cambel): implement fallback in case of error
-    self.b_bot.gripper.open(wait=True)
-    success &= self.b_bot.move_lin_rel(relative_translation = [0.025,0,0], acceleration = 0.015, speed=.03)
+    robot.gripper.open(wait=True)
+    success &= robot.move_lin_rel(relative_translation = [0.025,0,0], acceleration = 0.015, speed=.03)
     return success
 
   def fasten_bearing(self, task="", only_retighten=False, robot_name="b_bot"):
