@@ -96,7 +96,6 @@ class VisionClient():
         # Send goal, wait for result
         goal = o2ac_msgs.msg.detectAngleGoal()
         goal.item_id = item_name
-        goal.camera_id = camera
         self.detect_angle_client.send_goal(goal)
         if (not self.detect_angle_client.wait_for_result(rospy.Duration(3.0))):
             self.detect_angle_client.cancel_goal()  # Cancel goal if timeout expired

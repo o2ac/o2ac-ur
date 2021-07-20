@@ -247,7 +247,7 @@ class O2ACBase(object):
     self.a_bot.robot_status = o2ac_msgs.msg.RobotStatus()
     self.b_bot.robot_status = o2ac_msgs.msg.RobotStatus()
     self.planning_scene_interface.remove_attached_object()  # Detach objects
-    rospy.sleep(0.5) # wait half a secont for the detach to finished so that it can remove the object
+    rospy.sleep(0.5) # Wait half a second for the detach to finish so that we can remove the object
     self.planning_scene_interface.remove_world_object()  # Clear all objects
     self.publish_robot_status()
 
@@ -336,13 +336,19 @@ class O2ACBase(object):
     offset = 1 if robot_name == "a_bot" else -1
     pose_feeder = conversions.to_pose_stamped("m" + str(screw_size) + "_feeder_outlet_link", [0.005, 0, 0, np.deg2rad(offset*60), 0, 0])
     
+    screw_tool_id = "screw_tool_m" + str(screw_size)
+    screw_tool_link = robot_name + "_screw_tool_m" + str(screw_size) + "_tip_link"
+    fastening_tool_name = "screw_tool_m" + str(screw_size)
+    
+    if not self.active_robots[robot_name].robot_status.held_tool_id == fastening_tool_name:
+      if not self.equip_tool("robot_name", fastening_tool_name):
+        rospy.logerr("Robot is not carrying the correct tool (" + fastening_tool_name + ") and it failed to be equipped. Abort.")
+        return False
+
     if not self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready", speed=0.5, acceleration=0.25):
       rospy.logerr("Failed to go to feeder_pick_ready with " + robot_name)
       return False
 
-    screw_tool_id = "screw_tool_m" + str(screw_size)
-    screw_tool_link = robot_name + "_screw_tool_m" + str(screw_size) + "_tip_link"
-    fastening_tool_name = "screw_tool_m" + str(screw_size)
     success = self.suck_screw(robot_name, pose_feeder, screw_tool_id, screw_tool_link, fastening_tool_name, do_spiral_search_at_bottom=False)
 
     if not self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready", speed=0.8):
@@ -1104,7 +1110,6 @@ class O2ACBase(object):
       self.planning_scene_interface.remove_attached_object(name=tool_name)
       self.planning_scene_interface.remove_world_object(name=tool_name)
       self.allow_collisions_with_robot_hand(tool_name, robot_name, allow=False)
-      held_screw_tool_ = ""
       robot.robot_status.carrying_tool = False
       robot.robot_status.held_tool_id = ""
       self.publish_robot_status()
