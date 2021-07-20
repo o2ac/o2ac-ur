@@ -134,7 +134,10 @@ def rotateQuaternionByRPY(roll, pitch, yaw, in_quat):
   Input: geometry_msgs.msg.Quaternion
   Output: geometry_msgs.msg.Quaternion rotated by roll, pitch, yaw in its frame
   """
-  q_in = [in_quat.x, in_quat.y, in_quat.z, in_quat.w]
+  if type(in_quat) == type(geometry_msgs.msg.Quaternion()):
+    q_in = [in_quat.x, in_quat.y, in_quat.z, in_quat.w]
+  else:
+    q_in = in_quat
   q_rot = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
   q_rotated = tf.transformations.quaternion_multiply(q_in, q_rot)
 
@@ -159,6 +162,24 @@ def rotateTranslationByRPY(roll, pitch, yaw, in_point):
   xyz_new = np.dot(matrix, xyz)
   return geometry_msgs.msg.Point(*xyz_new[:3])
 
+def rotateTranslationByQuat(quat, in_point):
+  try:
+    if type(quat) == type(geometry_msgs.msg.Quaternion()):
+      q = [quat.x, quat.y, quat.z, quat.w]
+    else:
+      q = quat
+    if type(in_point) == type(geometry_msgs.msg.Point()):
+      p = [in_point.x, in_point.y, in_point.z]
+    else:
+      p = in_point
+  except:
+    pass # header doesn't exist so the object is probably not posestamped
+  
+  matrix = tf.transformations.quaternion_matrix(q)
+  xyz = np.array([p[0], p[1], p[2], 1]).reshape((4,1))
+  xyz_new = np.dot(matrix, xyz)
+  return geometry_msgs.msg.Point(*xyz_new[:3])
+
 # RPY rotations are applied in the frame of the pose.
 def rotatePoseByRPY(roll, pitch, yaw, in_pose):
   # Catch if in_pose is a PoseStamped instead of a Pose.
@@ -172,16 +193,92 @@ def rotatePoseByRPY(roll, pitch, yaw, in_pose):
   
   rotated_pose = copy.deepcopy(in_pose)
   rotated_pose.orientation = rotateQuaternionByRPY(roll, pitch, yaw, rotated_pose.orientation)
-  return rotated_pose  
+  return rotated_pose
 
-# // Returns the angle between two quaternions
-# double quaternionDistance(geometry_msgs::Quaternion q1, geometry_msgs::Quaternion q2) 
-# { 
+# Taken from the transformations library: https://github.com/cgohlke/transformations/blob/master/transformations/transformations.py#L1772
+def vector_norm(data, axis=None, out=None):
+    data = np.array(data, dtype=np.float64, copy=True)
+    if out is None:
+        if data.ndim == 1:
+            return sqrt(np.dot(data, data))
+        data *= data
+        out = np.atleast_1d(np.sum(data, axis=axis))
+        np.sqrt(out, out)
+        return out
+    data *= data
+    np.sum(data, axis=axis, out=out)
+    np.sqrt(out, out)
+    return None
+
+# Taken from the transformations library: https://github.com/cgohlke/transformations/blob/master/transformations/transformations.py#L1818
+def angle_between_vectors(v0, v1, directed=True, axis=0):
+    """Return angle between vectors.
+    If directed is False, the input vectors are interpreted as undirected axes,
+    i.e. the maximum angle is pi/2.
+    >>> a = angle_between_vectors([1, -2, 3], [-1, 2, -3])
+    >>> np.allclose(a, math.pi)
+    True
+    >>> a = angle_between_vectors([1, -2, 3], [-1, 2, -3], directed=False)
+    >>> np.allclose(a, 0)
+    True
+    >>> v0 = [[2, 0, 0, 2], [0, 2, 0, 2], [0, 0, 2, 2]]
+    >>> v1 = [[3], [0], [0]]
+    >>> a = angle_between_vectors(v0, v1)
+    >>> np.allclose(a, [0, 1.5708, 1.5708, 0.95532])
+    True
+    >>> v0 = [[2, 0, 0], [2, 0, 0], [0, 2, 0], [2, 0, 0]]
+    >>> v1 = [[0, 3, 0], [0, 0, 3], [0, 0, 3], [3, 3, 3]]
+    >>> a = angle_between_vectors(v0, v1, axis=1)
+    >>> np.allclose(a, [1.5708, 1.5708, 1.5708, 0.95532])
+    True
+    """
+    v0 = np.array(v0, dtype=np.float64, copy=False)
+    v1 = np.array(v1, dtype=np.float64, copy=False)
+    dot = np.sum(v0 * v1, axis=axis)
+    dot /= vector_norm(v0, axis=axis) * vector_norm(v1, axis=axis)
+    dot = np.clip(dot, -1.0, 1.0)
+    return np.arccos(dot if directed else np.fabs(dot))
+
+def getOrientedFlatGraspPoseFromXAxis(pre_grasp_pose):
+  """ Used to obtain the grasp pose for e.g. the motor, where only the direction of the x-axis matters.
+      
+      Input: PoseStamped or Pose of motor_center in stationary frame (e.g. tray_center)
+      Output: PoseStamped or Pose, z-axis aligned with frame, x-axis in XY-plane
+  """
+  try:
+    if type(pre_grasp_pose) == type(geometry_msgs.msg.PoseStamped()):
+      outpose = copy.deepcopy(pre_grasp_pose)
+      outpose.pose = getOrientedFlatGraspPoseFromXAxis(pre_grasp_pose.pose)
+      return outpose
+  except Exception as e:
+    rospy.logerr("Error!")
+    rospy.logerr(e)
+    pass
+
+  # Take (1,0,0) in motor/center, rotate to tray center
+  p_x_object = geometry_msgs.msg.Point(1.0, 0, 0)
+  p_x_object = rotateTranslationByQuat(pre_grasp_pose.orientation, p_x_object)
+
+  # Project to XY-plane
+  p_xy_in_header_frame = copy.deepcopy(p_x_object)
+  p_xy_in_header_frame.z = 0.0
+
+  # Get angle between projected object axis and tray_center x-axis
+  theta = angle_between_vectors([p_xy_in_header_frame.x, p_xy_in_header_frame.y, p_xy_in_header_frame.z], [1.0, 0, 0])
+  outpose = copy.deepcopy(pre_grasp_pose)
+  outpose.orientation = tf.transformations.quaternion_from_euler(0, 0, theta)
+  
+  outpose = rotatePoseByRPY(0, tau/4, 0, outpose)
+
+  return outpose
+
+# # Returns the angle between two quaternions
+# def quaternionDistance(q1, q2):
+#   # q1, q2 are lists
 #   tf::Quaternion q1tf, q2tf
 #   tf::quaternionMsgToTF(q1, q1tf)
 #   tf::quaternionMsgToTF(q2, q2tf)
-#   return 2*q1tf.angle(q2tf) 
-# }
+#   return 2*q1tf.angle(q2tf)
 
 # double pointDistance(geometry_msgs::Point p1, geometry_msgs::Point p2)
 # {

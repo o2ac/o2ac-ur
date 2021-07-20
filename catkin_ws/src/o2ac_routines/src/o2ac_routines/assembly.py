@@ -252,6 +252,7 @@ class O2ACAssembly(O2ACCommon):
   def subtask_a(self):
     # ============= SUBTASK A (picking and inserting and fastening the motor) =======================
     rospy.loginfo("======== SUBTASK A (motor) ========")
+    self.publish_status_text("Target: Motor")
     self.pick_and_center_motor()
     self.orient_motor()
     self.insert_motor()

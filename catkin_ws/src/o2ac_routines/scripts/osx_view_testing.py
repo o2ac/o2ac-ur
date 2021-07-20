@@ -124,6 +124,7 @@ if __name__ == '__main__':
       rospy.loginfo("2: Move b_bot above tray at 37 cm (2a: a_bot)")
       rospy.loginfo("3: Move b_bot close (22 cm)")
       rospy.loginfo("31, 32, 33, 34: Close views")
+      rospy.loginfo("37: b_bot above centering area view")
       rospy.loginfo("4: Call shaft notch detection")
       rospy.loginfo("5: Call SSD detection and show result")
       rospy.loginfo("(CAD matching) 61: base plate, 62: motor plate, 63: bearing plate, 64: motor, 65: bearing ")
@@ -289,6 +290,8 @@ if __name__ == '__main__':
           goal.pose.position.z = 0.001
           # goal.pose.position.x -= 0.01 # MAGIC NUMBER
           c.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.05, axis="z")
+      elif r == "86":
+        c.look_at_motor_from_top()
       elif r == "87":
         c.look_at_motor()
       elif r == "871":

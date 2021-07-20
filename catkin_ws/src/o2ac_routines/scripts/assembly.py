@@ -237,6 +237,12 @@ if __name__ == '__main__':
         c.insert_bearing(task="assembly")
       elif i == '94':
         c.subtask_a() # Motor
+      elif i == "942":
+        c.confirm_motor_and_place_in_aid()
+      elif i == "9421":
+        c.center_motor()
+      elif i == "9422":
+        c.orient_motor_in_aid_edge()
       elif i == '95':
         c.subtask_b() # motor pulley
       elif i == '96':

@@ -264,7 +264,7 @@ class URRobot(RobotBase):
         if not self.use_real_robot:
             return True
 
-        if recursion_depth > 6:
+        if recursion_depth > 10:
             rospy.logerr("Tried too often. Breaking out.")
             rospy.logerr("Could not load " + program_name + ". Is the UR in Remote Control mode and program installed with correct name?")
             return False

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 import cv2
 import numpy as np
 import math
@@ -1039,11 +1040,11 @@ class ShaftHoleDetection():
 # 
 # orientation_flag (cable direction)
 # # 0:right, 1:left, 2:top, 3:bottom
-# # False: motor was not detected
+# # None: motor was not detected
 #
 # if orientation_flag is not False:
 #    print(orientation_flag)
-#    plt.imshow(mo.get_im_vis(im_vis))
+#    plt.imshow(mo.draw_im_vis(im_vis))
 # else:
 #    print("no motor")
 #############################################################
@@ -1063,8 +1064,8 @@ class MotorOrientation:
         """
         # get motor bbox
         class_list = [d.get('class') for d in ssd_results]
-        if  (4 in class_list) is False:
-            return False
+        if (4 in class_list) is False:
+            return None
         motor_idx = class_list.index(4) # motor id is 4.
         bbox = ssd_results[motor_idx]['bbox']
         bbox = self.bbox_expansion( bbox, 1.2 )
@@ -1169,7 +1170,7 @@ class MotorOrientation:
         im_red = np.logical_and( im_mask, im_red )
         return im_red # 1 means red pixel
 
-    def get_im_vis( self, im_in ):
+    def draw_im_vis( self, im_vis ):
         center = (self.bb_x+int(self.bb_w/2),
                   self.bb_y+int(self.bb_h/2))
         off = (50,0)
@@ -1179,6 +1180,6 @@ class MotorOrientation:
             off = (0,-50)
         elif self.cable_orientation == 3:
             off = (0,50)
-        im_vis = cv2.arrowedLine(im_in, center, (center[0]+off[0], center[1]+off[1]), 
+        im_vis = cv2.arrowedLine(im_vis, center, (center[0]+off[0], center[1]+off[1]), 
                                 (0,255,0), 3, cv2.LINE_AA, tipLength=0.3)
         return im_vis

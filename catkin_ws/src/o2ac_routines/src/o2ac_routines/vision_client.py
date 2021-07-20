@@ -110,6 +110,27 @@ class VisionClient():
         except:
             pass
         return False
+    
+    @check_for_real_robot
+    def get_motor_angle_from_top_view(self, camera="b_bot_outside_camera"):
+        # Send goal, wait for result
+        goal = o2ac_msgs.msg.detectAngleGoal()
+        goal.item_id = "motor"  # Unused
+        goal.get_motor_from_top = True
+        self.detect_angle_client.send_goal(goal)
+        if (not self.detect_angle_client.wait_for_result(rospy.Duration(3.0))):
+            self.detect_angle_client.cancel_goal()  # Cancel goal if timeout expired
+            rospy.logerr("Call to detect angle returned no result. Is o2ac_vision running?")
+            return None
+
+        # Read result and return
+        try:
+            res = self.detect_angle_client.get_result()
+            if res.succeeded:
+                return res.motor_rotation_flag
+        except:
+            pass
+        return None
 
     @check_for_real_robot
     def call_shaft_hole_detection(self):

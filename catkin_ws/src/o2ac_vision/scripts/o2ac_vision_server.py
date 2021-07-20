@@ -66,7 +66,7 @@ from aist_depth_filter     import DepthFilterClient
 from aist_new_localization import LocalizationClient
 from aist_model_spawner    import ModelSpawnerClient
 
-from o2ac_vision.pose_estimation_func import ShaftHoleDetection, TemplateMatching
+from o2ac_vision.pose_estimation_func import MotorOrientation, ShaftHoleDetection, TemplateMatching
 from o2ac_vision.pose_estimation_func import FastGraspabilityEvaluation
 from o2ac_vision.pose_estimation_func import ShaftAnalysis
 from o2ac_vision.pose_estimation_func import PickCheck
@@ -303,7 +303,7 @@ class O2ACVisionServer(object):
             self.execute_belt_detection(im_in, im_vis)
 
         elif self.angle_detection_server.is_active():
-            self.execute_angle_detection(im_in)
+            self.execute_angle_detection(im_in, im_vis)
 
         elif self.shaft_hole_detection_server.is_active():
             self.execute_shaft_hole_detection(im_in)
@@ -410,20 +410,25 @@ class O2ACVisionServer(object):
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
         self.write_to_log(im_in, im_vis, "belt_detection")
 
-    def execute_angle_detection(self, image):
+    def execute_angle_detection(self, im_in, im_vis):
         goal = self.angle_detection_server.current_goal.get_goal()
         rospy.loginfo("Executing angle detection for item: %s", goal.item_id)
 
-        # Pass action goal to Python3 node
-        action_goal = goal
-        action_goal.rgb_image = self.bridge.cv2_to_imgmsg(image)
-        self._py3_axclient.send_goal(action_goal)
+        if goal.get_motor_from_top:
+            action_result = o2ac_msgs.msg.detectAngleResult()
+            action_result.succeeded, action_result.motor_rotation_flag, im_vis = self.motor_angle_detection_from_top(im_in, im_vis)
+            self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
+            self.write_to_log(im_in, im_vis, "motor_orientation_detection")
+        else:  # Pass action goal to Python3 node
+            action_goal = goal
+            action_goal.rgb_image = self.bridge.cv2_to_imgmsg(im_in)
+            self._py3_axclient.send_goal(action_goal)
 
-        if (not self._py3_axclient.wait_for_result(rospy.Duration(3.0))):
-            rospy.logerr("Angle detection timed out.")
-            self._py3_axclient.cancel_goal()  # Cancel goal if timeout expired
+            if (not self._py3_axclient.wait_for_result(rospy.Duration(3.0))):
+                rospy.logerr("Angle detection timed out.")
+                self._py3_axclient.cancel_goal()  # Cancel goal if timeout expired
 
-        action_result = self._py3_axclient.get_result()
+            action_result = self._py3_axclient.get_result()
         self.angle_detection_server.set_succeeded(action_result)
 
     def execute_shaft_hole_detection(self, im_in):
@@ -720,6 +725,22 @@ class O2ACVisionServer(object):
         # TODO: Draw green rectangle around bbox if detected, red if not. Display score.
         return detected
 
+    def motor_angle_detection_from_top(self, im_in, im_vis):
+        """
+        When looking at the motor from the top, detects the cables and returns their position.
+        
+        Return values:
+        motor_seen: bool (False if no motor in view)
+        motor_rotation_flag: int (0:right, 1:left, 2:top, 3:bottom  (documented in pose_estimation_func))
+        im_vis: Result visualization
+        """        
+        ssd_results, im_vis = self.detect_object_in_image(im_in, im_vis)
+
+        m = MotorOrientation()
+        motor_rotation_flag = m.main_proc(im_in, ssd_results)  # if True hole is observed in im_in
+        im_vis = m.draw_im_vis(im_vis)
+        motor_seen = motor_rotation_flag is not None
+        return motor_seen, motor_rotation_flag, im_vis
 
 ### ========
 
