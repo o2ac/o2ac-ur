@@ -41,6 +41,7 @@ import copy
 import numpy
 from moveit_commander import robot
 from o2ac_routines import helpers
+from o2ac_routines.helpers import save_task_plan
 from o2ac_routines.dual_arm import DualArm
 import rospy
 import rospkg
@@ -139,7 +140,6 @@ class O2ACBase(object):
     # Miscellaneous helpers
     self.robots = moveit_commander.RobotCommander()
     self.planning_scene_interface = moveit_commander.PlanningSceneInterface(synchronous=True)
-    self.execute_trajectory_listener = rospy.Subscriber("/execute_trajectory/status", actionlib.GoalStatusArray, self.trajectory_status_cb)
     
     self.assembly_database = AssemblyReader()
     self.assembly_status = AssemblyStatus()
@@ -175,14 +175,10 @@ class O2ACBase(object):
     # Publisher for status text
     self.pub_status_text = rospy.Publisher("/o2ac_text_to_image", String, queue_size=1)
     
-    # self.my_mutex = threading.Lock()
-
     self.screw_tools = {}
     self.define_tool_collision_objects()
 
     self.objects_in_tray = dict()  # key: object ID. value: False or object pose
-
-    self.trajectory_status = None
 
     rospy.sleep(.5)
     rospy.loginfo("Finished initializing class")
@@ -225,12 +221,6 @@ class O2ACBase(object):
     self.pause_mode_ = msg.data
   def test_mode_callback(self, msg):
     self.test_mode_ = msg.data
-  
-  def trajectory_status_cb(self, msg):
-    if msg.status_list:
-      self.trajectory_status = (msg.status_list[0].status, msg.status_list[0].text)
-    else:
-      self.trajectory_status = (None, None)
 
   def get_robot_status_from_param_server(self):
     robot_status = dict()
@@ -746,25 +736,6 @@ class O2ACBase(object):
       rospy.loginfo("Did not detect " + item_name)
       return False
 
-  def save_task_plan(func):
-    '''Decorator that optionally save the solution to a plan.'''
-  
-    def wrap(*args, **kwargs):
-        save_solution_to_file = kwargs.pop("save_solution_to_file", None)
-        result = func(*args, **kwargs)
-        
-        if result is None:
-          rospy.logerr("No solution from server")
-          return
-
-        if result.success and save_solution_to_file:
-          path = rospkg.RosPack().get_path('o2ac_routines') + '/MP_solutions/'
-          with open(path + save_solution_to_file,'wb') as f:
-            pickle.dump(result, f)
-          rospy.loginfo("Writing solution to: %s" % save_solution_to_file)
-        return result  
-    return wrap
-  
   @save_task_plan
   def plan_pick_place(self, robot_name, object_name, grasp_poses, pick_only=True, place_only=False):
     '''

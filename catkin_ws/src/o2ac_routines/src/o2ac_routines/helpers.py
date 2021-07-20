@@ -40,6 +40,26 @@ from std_msgs.msg import String, Float64MultiArray
 
 helper_fct_marker_id_count = 0
 
+def save_task_plan(func):
+  '''Decorator that optionally save the solution to a plan.'''
+
+  def wrap(*args, **kwargs):
+      save_solution_to_file = kwargs.pop("save_solution_to_file", None)
+      result = func(*args, **kwargs)
+      
+      if result is None:
+        rospy.logerr("No solution from server")
+        return
+
+      if result.success and save_solution_to_file:
+        path = rospkg.RosPack().get_path('o2ac_routines') + '/MP_solutions/'
+        with open(path + save_solution_to_file,'wb') as f:
+          pickle.dump(result, f)
+        rospy.loginfo("Writing solution to: %s" % save_solution_to_file)
+      return result  
+  return wrap
+
+
 def upload_mtc_modules_initial_params():
   '''
   Set parameters that are needed for the initialization of the mtc_modules node
