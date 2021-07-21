@@ -20,10 +20,10 @@
   <arg name="camera_no"		default="0"/>
 
   <arg if="$(arg use_nodelet)"
-       name="manager"		default="camera_manager"/>
+       name="manager"		value="camera_manager"/>
   <arg unless="$(arg use_nodelet)"
-       name="manager"		default=""/>
-
+       name="manager"		value=""/>
+      
   <!-- Launch nodelet manger -->
   <group if="$(eval camera_no != len(camera_names.split(',')))">
     <!-- Get camera name and its serial number -->
@@ -81,13 +81,16 @@
       <arg name="camera_height"		value="$(arg camera_height)"/>
       <arg name="fps"			value="$(arg fps)"/>
       <arg name="enable_streaming"	value="$(arg enable_streaming)"/>
-      <arg name="manager"		value="$(arg manager)"/>
+      <arg name="use_nodelet"		value="$(arg use_nodelet)"/>
       <arg name="camera_no"		value="$(eval camera_no + 1)"/>
     </include>
   </group>
 
   <!-- Launch the multiplexer after all cameras have been launched -->
   <group unless="$(eval camera_no != len(camera_names.split(',')))">
+
+    <!-- <node name="camera_watcher" pkg="o2ac_vision" type="o2ac_camera_watcher.py" output="screen">
+    </node> -->
 
     <node unless="$(arg use_nodelet)"
 	  name="$(arg multiplexer_name)"
