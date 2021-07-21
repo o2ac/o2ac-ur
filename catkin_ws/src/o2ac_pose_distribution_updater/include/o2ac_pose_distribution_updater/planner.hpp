@@ -2,7 +2,13 @@
 #include "o2ac_pose_distribution_updater/planner_helpers.hpp"
 #include <queue>
 
-enum action_type { place_action_type, grasp_action_type, push_action_type };
+enum action_type {
+  touch_action_type,
+  look_action_type,
+  place_action_type,
+  grasp_action_type,
+  push_action_type
+};
 
 struct UpdateAction {
   Eigen::Isometry3d gripper_pose;
@@ -21,9 +27,10 @@ private:
   Eigen::Vector3d center_of_gravity;
   std::vector<Eigen::Hyperplane<double, 3>> place_candidates;
 
+  unsigned int image_height, image_width;
+
   double action_cost, translation_cost, rotation_cost;
 
-public:
   void apply_action(const Eigen::Isometry3d &old_mean,
                     const CovarianceMatrix &old_covariance,
                     const UpdateAction &action, Eigen::Isometry3d &new_mean,
@@ -40,6 +47,12 @@ public:
                         const Eigen::Isometry3d &next_gripper_pose);
 
 public:
+  void set_image_size(const unsigned int &image_height,
+                      const unsigned int &image_width) {
+    this->image_height;
+    this->image_width;
+  }
+
   void set_cost_coefficients(const double &action_cost,
                              const double &translation_cost,
                              const double &rotation_cost) {

@@ -699,11 +699,15 @@ void PoseEstimator::look_step_with_Lie_distribution(
     const Eigen::Isometry3d &gripper_transform, const cv::Mat &looked_image,
     const boost::array<unsigned int, 4> &ROI, const Eigen::Isometry3d &old_mean,
     const CovarianceMatrix &old_covariance, Eigen::Isometry3d &new_mean,
-    CovarianceMatrix &new_covariance) {
-  cv::Mat looked_image_ROI =
-      looked_image(cv::Rect(ROI[2], ROI[0], ROI[3] - ROI[2], ROI[1] - ROI[0]));
+    CovarianceMatrix &new_covariance, const bool already_binary) {
   cv::Mat binary_looked_image;
-  to_binary_image(looked_image_ROI, binary_looked_image);
+  if (!already_binary) {
+    cv::Mat looked_image_ROI = looked_image(
+        cv::Rect(ROI[2], ROI[0], ROI[3] - ROI[2], ROI[1] - ROI[0]));
+    to_binary_image(looked_image_ROI, binary_looked_image);
+  } else {
+    binary_looked_image = looked_image;
+  }
   generate_particles(Particle::Zero(), old_covariance);
   for (int i = 0; i < number_of_particles; i++) {
     particle_transforms[i] =

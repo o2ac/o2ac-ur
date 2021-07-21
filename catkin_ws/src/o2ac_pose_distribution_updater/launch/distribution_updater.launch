@@ -29,6 +29,9 @@
       gripper_height: 0.0
       gripper_width: 0.020
       gripper_thickness: 0.006
+
+      use_planning_scene_monitor: false
+      visualize_each_step: true
     </rosparam>
 
     <node name="pose_distribution_updater" pkg="o2ac_pose_distribution_updater" type="update_distribution_action_server" output="screen">

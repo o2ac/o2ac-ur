@@ -57,6 +57,7 @@ int main(int argc, char **argv) {
   noise_variance.setZero();
   planner.set_particle_parameters(10, noise_variance);
   planner.set_use_linear_approximation(false);
+  planner.set_image_size(1080, 1920);
 
   // set initial pose belief
   Eigen::Isometry3d initial_mean(

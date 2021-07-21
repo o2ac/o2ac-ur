@@ -23,9 +23,11 @@ using object_geometry_ptr = std::shared_ptr<object_geometry>;
 
 fcl::Transform3f particle_to_transform(const Particle &p);
 
-Eigen::Vector3d to_eigen_vector(const fcl::Vec3f &v);
+Eigen::Vector3d fcl_to_eigen_vector(const fcl::Vec3f &v);
 
-Eigen::Isometry3d to_eigen_transform(const fcl::Transform3f &t);
+Eigen::Isometry3d fcl_to_eigen_transform(const fcl::Transform3f &t);
+
+fcl::Transform3f eigen_to_fcl_transform(const Eigen::Isometry3d &t);
 
 double calculate_distance(
     const std::shared_ptr<fcl::CollisionObject> &touched_object,
@@ -181,5 +183,6 @@ public:
       const Eigen::Isometry3d &gripper_transform, const cv::Mat &looked_image,
       const boost::array<unsigned int, 4> &ROI,
       const Eigen::Isometry3d &old_mean, const CovarianceMatrix &old_covariance,
-      Eigen::Isometry3d &new_mean, CovarianceMatrix &new_covariance);
+      Eigen::Isometry3d &new_mean, CovarianceMatrix &new_covariance,
+      const bool already_binary = false);
 };

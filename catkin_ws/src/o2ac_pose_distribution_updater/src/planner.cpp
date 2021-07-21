@@ -32,7 +32,29 @@ void Planner::apply_action(const Eigen::Isometry3d &old_mean,
         new_mean, new_covariance, true);
     new_mean = action.gripper_pose * new_mean;
     new_covariance = transform_covariance(action.gripper_pose, new_covariance);
+  } else if (action.type == touch_action_type) {
+    touched_step_with_Lie_distribution(
+        0, gripped_geometry->vertices, gripped_geometry->triangles,
+        eigen_to_fcl_transform(action.gripper_pose), old_mean, old_covariance,
+        new_mean, new_covariance);
+  } else if (action.type == look_action_type) {
+    cv::Mat mean_image;
+    boost::array<unsigned int, 4> ROI{0, image_height, 0, image_width};
+    generate_image(mean_image, gripped_geometry->vertices,
+                   gripped_geometry->triangles, old_mean, ROI);
+    look_step_with_Lie_distribution(
+        gripped_geometry->vertices, gripped_geometry->triangles,
+        action.gripper_pose, mean_image, ROI, old_mean, old_covariance,
+        new_mean, new_covariance, true);
   }
+}
+
+Eigen::AngleAxisd rotation_to_minus_Z(const Eigen::Vector3d vector) {
+  Eigen::Vector3d axis =
+      vector[2] != 0.0 ? vector.cross(-Eigen::Vector3d::UnitZ()).normalized()
+                       : Eigen::Vector3d::UnitX();
+  double angle = atan2(vector.head<2>().norm(), -vector[2]);
+  return Eigen::AngleAxisd(angle, axis);
 }
 
 void Planner::calculate_action_candidates(
@@ -40,19 +62,16 @@ void Planner::calculate_action_candidates(
     const Eigen::Isometry3d &current_mean, const CovarianceMatrix &covariance,
     const bool &gripping, std::vector<UpdateAction> &candidates) {
   if (gripping) {
+    // add place action candidates
     for (auto &plane : place_candidates) {
       UpdateAction action;
       action.type = place_action_type;
 
       Eigen::Vector3d normal = current_gripper_pose.rotation() *
                                current_mean.rotation() * plane.normal();
-      Eigen::Vector3d axis =
-          normal[2] != 0.0
-              ? normal.cross(-Eigen::Vector3d::UnitZ()).normalized()
-              : Eigen::Vector3d::UnitX();
-      double angle = atan2(normal.block(0, 0, 2, 1).norm(), -normal[2]);
+
       Eigen::Isometry3d rotated_gripper_pose =
-          Eigen::AngleAxisd(angle, axis) * current_gripper_pose;
+          rotation_to_minus_Z(normal) * current_gripper_pose;
       double sigma_z = 3.0 * sqrt(covariance(2, 2));
       action.gripper_pose =
           Eigen::Translation3d((sigma_z - (rotated_gripper_pose * current_mean *
@@ -63,6 +82,14 @@ void Planner::calculate_action_candidates(
 
       candidates.push_back(action);
     }
+    // add touch action candidates
+    /*for(auto& vertex : convex_hull_vertices){
+      UpdateAction action;
+      action.type = place_action_type;
+
+      Eigen::Vector3d direction = current_gripper_pose.rotation() *
+      current_mean.rotation() * (vertex - center_of_gravity);
+      }*/
   } else {
     for (auto &grasp_point : *grasp_points) {
       Eigen::Isometry3d gripper_pose = current_mean * grasp_point;
