@@ -529,7 +529,8 @@ class O2ACCommon(O2ACBase):
         return False
       robot.gripper.close() # catch false grasps
     
-    if not self.simple_gripper_check(robot_name, minimum_grasp_width):
+    # if not self.simple_gripper_check(robot_name, minimum_grasp_width):
+    if minimum_grasp_width > robot.gripper.opening_width:
       rospy.logerr("Gripper opening width after pick less than minimum (" + str(minimum_grasp_width) + "): " + str(robot.gripper.opening_width) + ". Return False.")
       return
     return True
