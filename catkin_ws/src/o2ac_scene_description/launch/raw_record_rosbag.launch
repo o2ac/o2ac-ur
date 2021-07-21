@@ -45,6 +45,16 @@
     <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_12" args="messages /a_bot_inside_camera/depth/color/points $(arg throttled_rate) /a_bot_inside_camera_throttled/depth/color/points">
     </node>
   </group>
+
+  <!-- Camera info topics -->
+  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_13" args="messages /b_bot_outside_camera/color/camera_info $(arg throttled_rate) /b_bot_outside_camera_throttled/color/camera_info">
+  </node>
+  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_14" args="messages /a_bot_outside_camera/color/camera_info $(arg throttled_rate) /a_bot_outside_camera_throttled/color/camera_info">
+  </node>
+  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_15" args="messages /b_bot_inside_camera/color/camera_info $(arg throttled_rate) /b_bot_inside_camera_throttled/color/camera_info">
+  </node>
+  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_16" args="messages /a_bot_inside_camera/color/camera_info $(arg throttled_rate) /a_bot_inside_camera_throttled/color/camera_info">
+  </node>
   
   <group if="$(arg record_all_throttled)">
       <!-- Subscribe to joint states and compressed throttled cam images and point clouds -->
