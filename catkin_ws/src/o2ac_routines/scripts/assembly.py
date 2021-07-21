@@ -340,6 +340,8 @@ if __name__ == '__main__':
         c.reset_assembly_visualization()
       if i == "unload":
         c.unload_drive_unit()
+      if i == 'carry':
+        c.take_tray_from_agv()
       if i == "activate":
         c.a_bot.activate_ros_control_on_ur()
         c.b_bot.activate_ros_control_on_ur()

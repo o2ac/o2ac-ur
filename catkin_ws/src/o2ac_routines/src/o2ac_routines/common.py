@@ -37,6 +37,7 @@
 from o2ac_routines import helpers
 from o2ac_routines.base import *
 from math import radians, degrees, sin, cos, pi
+tau = 2*pi
 from o2ac_routines.thread_with_trace import ThreadTrace
 from ur_control.constants import DONE, TERMINATION_CRITERIA
 from trajectory_msgs.msg import JointTrajectoryPoint
@@ -131,6 +132,14 @@ class O2ACCommon(O2ACBase):
     else:
       collision_object.header.frame_id = "assembled_part_" + str(object_id).zfill(2)  # Fill with leading zeroes
     self.planning_scene_interface.apply_collision_object(collision_object)
+
+    # Remove collisions with scene to avoid unnecessary calculations
+    self.planning_scene_interface.allow_collisions(object_name, "")
+    # Do check collisions with moving parts (robot hands, tools) (cameras should be included, but ohwell)
+    self.allow_collisions_with_robot_hand(object_name, "a_bot", allow=False)
+    self.allow_collisions_with_robot_hand(object_name, "b_bot", allow=False)
+    self.planning_scene_interface.disallow_collisions(object_name, "screw_tool_m3")
+    self.planning_scene_interface.disallow_collisions(object_name, "screw_tool_m4")
 
     # Make sure the object is detached from all robots
     # for robot in self.active_robots.values():
@@ -898,6 +907,11 @@ class O2ACCommon(O2ACBase):
     at_tray_border_pose = copy.deepcopy(safe_approach_pose)
     at_tray_border_pose.pose.position.z = 0.1
 
+    # Move the pose inwards to avoid hitting the tray border
+    if self.too_close_to_border(at_tray_border_pose, border_dist=0.04):
+      at_tray_border_pose.pose.position.x -= 0.03 * np.sign(at_tray_border_pose.pose.position.x)
+      at_tray_border_pose.pose.position.y -= 0.03 * np.sign(at_tray_border_pose.pose.position.y)
+    
     spiral_trajectory = compute_trajectory(conversions.from_pose_to_list(at_tray_border_pose.pose), 
                                       "XY", 0.03, "+Y", steps=50, revolutions=3, from_center=True,  trajectory_type="spiral")
     spiral_trajectory = [conversions.to_pose_stamped(at_tray_border_pose.header.frame_id, t) for t in spiral_trajectory]
@@ -2854,11 +2868,14 @@ class O2ACCommon(O2ACBase):
 
     self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
     
+    if allow_collision_with_object:
+      self.planning_scene_interface.allow_collisions("screw_tool_m4", allow_collision_with_object)  # Has to be allowed after each screw attempt
     res = self.screw(robot_name, screw_hole_pose, screw_size, screw_height, stay_put_after_screwing=False, skip_final_loosen_and_retighten=False)
     if allow_collision_with_object:
       self.planning_scene_interface.allow_collisions("screw_tool_m4", allow_collision_with_object)  # Has to be allowed after each screw attempt
     self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
-    self.planning_scene_interface.disallow_collisions("screw_tool_m4", allow_collision_with_object)
+    if allow_collision_with_object:
+      self.planning_scene_interface.allow_collisions("screw_tool_m4", allow_collision_with_object) 
     return res  # Bool
 
   def fasten_screw_horizontal(self, robot_name, screw_hole_pose, screw_height = .02, screw_size = 4):
