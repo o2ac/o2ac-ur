@@ -86,7 +86,7 @@ class AssemblyStatus(object):
   """
   def __init__(self):
     # rospy.get_param("/last_assembly_status", False)
-    self.tray_placed_on_table = True
+    self.tray_placed_on_table = False
 
     self.belt_placed_outside_of_tray = False
     self.motor_placed_outside_of_tray = False
@@ -418,6 +418,7 @@ class O2ACBase(object):
       while not screw_picked:
         assert not rospy.is_shutdown(), "Did ros die?"
         
+        # TODO(felixvd): Cancel the previous goal before sending this, or the start/stop commands from different actions overlap!
         self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=5.0, skip_final_loosen_and_retighten=True)
         rospy.loginfo("Moving into screw to pick it up.")
         adjusted_pose.pose.position.x += approach_height
@@ -1271,25 +1272,25 @@ class O2ACBase(object):
         if active_plan:
           execution_time = (rospy.Time.now() - active_plan_start_time).secs
           remaining_time = execution_time - active_plan_duration
-          if remaining_time < 0.1: # No much time for another plan, wait for execution to complete
+          if remaining_time < 0.1: # Not enough time for queue up another plan; wait for execution to complete
             if not robot.robot_group.wait_for_motion_result():
-              rospy.logerr("Moveit aborted the motion")
-            rospy.loginfo("waited for motion result")
+              rospy.logerr("MoveIt aborted the motion")
+            rospy.loginfo("Waited for motion result")
           else:
             # Try planning another point
             continue
           
           if not self.check_plan_goal_reached(robot_name, active_plan):
-            rospy.logerr("Fail to execute plan: target pose not reach")
+            rospy.logerr("Failed to execute sequence plan: target pose not reached")
             return False
 
         # execute next plan 
         next_plan, index, plan_type = backlog.pop(0)
-        print("Executing plan: index,", index, "type", plan_type)
+        print("Executing sequence plan: index,", index, "type", plan_type)
         wait = True if i == len(sequence) -1 else False
         self.execute_waypoint_plan(robot_name, next_plan, wait=wait)
 
-        if isinstance(next_plan, dict): # gripper action
+        if isinstance(next_plan, dict):  # Gripper action
           continue
         elif isinstance(next_plan, moveit_msgs.msg.RobotTrajectory):
           active_plan = next_plan

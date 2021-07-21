@@ -154,6 +154,7 @@ class O2ACAssembly(O2ACCommon):
     if not skip_initial_perception:
       self.b_bot.go_to_named_pose("home")
       self.activate_led("a_bot")
+      rospy.loginfo("Looking for base plate")
       base_pose = self.get_large_item_position_from_top("base", "a_bot")
       if not base_pose:
         rospy.logerr("Cannot find base plate in tray. Return False.")
@@ -181,7 +182,6 @@ class O2ACAssembly(O2ACCommon):
     if not self.a_bot.go_to_pose_goal(centering_pose, speed=0.5, move_lin=True):
       return False
 
-    # TODO(felixvd): Check if too close to the border, do the alternative method
     self.allow_collisions_with_robot_hand("tray", "a_bot")
     if not self.center_with_gripper("a_bot", opening_width=0.07, gripper_force=80, required_width_when_closed=0.008, move_back_to_initial_position=False):
       if not skip_initial_perception:  
@@ -191,10 +191,10 @@ class O2ACAssembly(O2ACCommon):
         rospy.sleep(0.5)
         return self.subtask_zero(skip_initial_perception=True)
       else:  # If retry has also failed
-        rospy.logerr("Centering unsuccessful. Breaking out.")
+        rospy.logerr("Plate was not perceived by gripper. Breaking out.")
         return False
-    
-    # Move plate into the middle a bit to avoid collisions with tray wall or other parts
+
+    # Move plate into the middle a bit to avoid collisions with tray wall or other parts during centering
     self.a_bot.gripper.close()
     self.a_bot.gripper.attach_object("base")
     self.planning_scene_interface.allow_collisions("base", "")

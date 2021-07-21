@@ -474,6 +474,7 @@ class O2ACCommon(O2ACBase):
     The attachment will be visible in the MoveIt planning scene. The object and its subframes can be used
     as an end effector.
     """
+    rospy.loginfo("Entered simple_pick")
     
     robot = self.active_robots[robot_name]
     if gripper_command=="do_nothing":

@@ -225,42 +225,59 @@ def main():
     rospy.init_node("testscript")
     global controller
     
-    # a = threading.Thread(target=a_bot_thread, args=(controller,))
-    # a.daemon = True
-    # b = threading.Thread(target=b_bot_thread, args=(controller,))
-    # b.daemon = True
+    controller = O2ACAssembly()
+    # controller.b_bot.go_to_named_pose("home")
+
+    controller.allow_collisions_with_robot_hand("tray", "a_bot")
+    controller.allow_collisions_with_robot_hand("tray_center", "a_bot")
+    
+    # controller.playback_sequence("bearing_orient_down_b_bot")
+
+    robot_name = "b_bot"
+    task = "assembly"
+    bearing_target_link = "assembled_part_07_inserted"
+    prefix = "right" if robot_name == "b_bot" else "left"
+    at_tray_border_pose = conversions.to_pose_stamped(prefix + "_centering_link", [-0.15, 0, 0.10, np.radians(-100), 0, 0])
+    print(at_tray_border_pose)
+
+    rotation = [0, np.radians(-35.0), 0] if robot_name == "b_bot" else [tau/4, 0, np.radians(-35.0)]
+    approach_pose       = conversions.to_pose_stamped(bearing_target_link, [-0.050, -0.001, 0.005] + rotation)
+    if task == "taskboard":
+      preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017,  0.000, 0.002 ]+ rotation)
+    elif task == "assembly":
+      preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017, -0.000, 0.006] + rotation)
+
+    trajectory = helpers.to_sequence_trajectory([at_tray_border_pose, approach_pose, preinsertion_pose], blend_radiuses=[0.01,0.02,0], speed=0.4)
+    if not controller.execute_sequence(robot_name, [trajectory], "go to preinsertion", plan_while_moving=False):
+      rospy.logerr("Could not go to preinsertion")
+
+    # controller.b_bot.gripper.open()
+    # controller.align_motor_pre_insertion()
+    # controller.confirm_to_proceed("finetune")
+    # controller.insert_motor("assembled_part_02_back_hole")
+    
+    
+    # # tool_pull_pose = conversions.to_pose_stamped("move_group/panel_motor", [0.03, 0.038, 0.0, 0, 0, 0])
+    # tool_pull_pose = conversions.to_pose_stamped("move_group/panel_bearing/front_hole", [0.0, 0.0, 0.0, 0, 0, 0])
+    # controller.move_towards_center_with_tool("b_bot", target_pose=tool_pull_pose, distance=0.05, start_with_spiral=True)
+    
+
+    # # controller = O2ACCommon()
+    # # test_force_control(controller)
 
     # a.start()
-    # rospy.sleep(10)
+    # # rospy.sleep(10)
     # b.start()
 
-    # a.join()
-    # b.join()
+    # a.join(30)
+    # b.join(30)
+
+    # if a.is_alive():
+    #     a.kill()
+    #     b.kill()
     
-    # one_thread_simultaneous_motion()
-    controller = O2ACCommon()
-    controller.reset_scene_and_robots()
-    controller.ab_bot.go_to_named_pose("home")
-    controller.equip_tool("a_bot", "screw_tool_m3")
-    controller.equip_tool("b_bot", "screw_tool_m4")
-    a = ThreadTrace(target=controller.unequip_tool, args=(["a_bot", "screw_tool_m3"]))
-    a.daemon = True
-    b = ThreadTrace(target=controller.unequip_tool, args=(["b_bot", "screw_tool_m4"]))
-    b.daemon = True
-
-    a.start()
-    # rospy.sleep(10)
-    b.start()
-
-    a.join(30)
-    b.join(30)
-
-    if a.is_alive():
-        a.kill()
-        b.kill()
-    
-    if b.is_alive():
-        b.kill()
+    # if b.is_alive():
+    #     b.kill()
 
     # controller = O2ACTaskboard()
     # controller.reset_scene_and_robots()
