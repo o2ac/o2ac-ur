@@ -1368,7 +1368,11 @@ class O2ACBase(object):
       raise ValueError("Invalid sequence type: %s" % point[0])
 
   def playback_sequence(self, routine_filename, default_frame="world", plan_while_moving=True, save_on_success=True, use_saved_plans=True):
-
+    # TODO(felixvd): Remove this after the bearing procedure is fixed.
+    if routine_filename == "bearing_orient_b_bot":
+      rospy.logwarn("FIXME: Allow collision between b_bot_cam_cables_link and tray")
+      self.planning_scene_interface.allow_collisions("b_bot_cam_cables_link", "tray")
+      rospy.sleep(1.0)
     robot_name, playback_trajectories = self.read_playback_sequence(routine_filename, default_frame)
 
     return self.execute_sequence(robot_name, playback_trajectories, routine_filename, plan_while_moving=plan_while_moving, save_on_success=save_on_success, use_saved_plans=use_saved_plans)

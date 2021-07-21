@@ -269,11 +269,12 @@ class O2ACAssembly(O2ACCommon):
     self.publish_status_text("Target: Bearing" )
     self.unequip_tool("b_bot")
     if self.pick_up_and_insert_bearing(task="assembly"):
-      self.b_bot.go_to_named_pose("home")
-      if self.fasten_bearing(task="assembly"):
-        self.fasten_bearing(task="assembly", only_retighten=True)
-        self.unequip_tool('b_bot', 'screw_tool_m4')
-        return True
+      if self.align_bearing_holes(task="assembly"):
+        self.b_bot.go_to_named_pose("home")
+        if self.fasten_bearing(task="assembly"):
+          self.fasten_bearing(task="assembly", only_retighten=True)
+          self.unequip_tool('b_bot', 'screw_tool_m4')
+          return True
     return False
   
   def subtask_c2(self):

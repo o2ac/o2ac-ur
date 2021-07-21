@@ -1538,7 +1538,7 @@ class O2ACCommon(O2ACBase):
     prefix = "right" if robot_name == "b_bot" else "left"
     at_tray_border_pose = conversions.to_pose_stamped(prefix + "_centering_link", [-0.15, 0, 0.10, radians(-100), 0, 0])
 
-    rotation = [0, radians(35.0), 0] if robot_name == "b_bot" else [tau/4, 0, radians(35.0)]
+    rotation = [0, radians(-35.0), 0] if robot_name == "b_bot" else [tau/4, 0, radians(-35.0)]
     approach_pose       = conversions.to_pose_stamped(bearing_target_link, [-0.050, -0.001, 0.005] + rotation)
     if task == "taskboard":
       preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017,  0.000, 0.002 ]+ rotation)
@@ -1546,7 +1546,10 @@ class O2ACCommon(O2ACBase):
       preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017, -0.000, 0.006] + rotation)
 
     trajectory = helpers.to_sequence_trajectory([at_tray_border_pose, approach_pose, preinsertion_pose], blend_radiuses=[0.01,0.02,0], speed=0.4)
-    self.execute_sequence(robot_name, [trajectory], "go to preinsertion", plan_while_moving=False)
+    if not self.execute_sequence(robot_name, [trajectory], "go to preinsertion", plan_while_moving=False):
+      rospy.logerr("Could not go to preinsertion")
+      self.pick_from_centering_area_and_drop_in_tray(robot_name)
+      return False
 
     return True
 
