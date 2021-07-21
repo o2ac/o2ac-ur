@@ -30,7 +30,7 @@
       gripper_width: 0.020
       gripper_thickness: 0.006
 
-      use_planning_scene_monitor: false
+      use_planning_scene_monitor: true
       visualize_each_step: true
     </rosparam>
 

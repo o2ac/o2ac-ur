@@ -119,8 +119,8 @@ int main(int argc, char **argv) {
 
     assert(result->success);
 
-    // send_pose_belief(visualizer_client, *object, 1, lifetime,
-    //                 result->distribution);
+    send_pose_belief(visualizer_client, *object, 1, lifetime,
+                     result->distribution);
 
     static int marker_id = 0;
     double text_size = 0.10;

@@ -34,7 +34,7 @@ void send_pose_belief(
   pose_belief.request.distribution_type = distribution_type;
   pose_belief.request.distribution = distribution;
   pose_belief.request.lifetime = ros::Duration();
-  // visualizer_client.call(pose_belief);
+  visualizer_client.call(pose_belief);
 }
 
 void place_test(const std::shared_ptr<Client> &client,
@@ -143,11 +143,11 @@ void place_test(const std::shared_ptr<Client> &client,
       char *p = strchr(expected_error_message, '\n');
       if (p)
         *p = 0;
-      // ASSERT_EQ(std::string(expected_error_message),
-      //        result->error_message.data);
+      ASSERT_EQ(std::string(expected_error_message),
+                result->error_message.data);
     } else {
       // It is expected that the update is calculated successfully
-      // ASSERT_TRUE(result->success);
+      ASSERT_TRUE(result->success);
 
       auto result_distribution = result->distribution;
 
@@ -177,15 +177,15 @@ void place_test(const std::shared_ptr<Client> &client,
       for (int i = 0; i < 6; i++) {
         double expected_value;
         fscanf(in, "%lf", &expected_value);
-        // ASSERT_LT(std::abs(new_mean(i) - expected_value),
-        //          EPS * std::max(1.0, expected_value));
+        ASSERT_LT(std::abs(new_mean(i) - expected_value),
+                  EPS * std::max(1.0, expected_value));
       }
       for (int i = 0; i < 6; i++) {
         for (int j = 0; j < 6; j++) {
           double expected_value;
           fscanf(in, "%lf", &expected_value);
-          // ASSERT_LT(std::abs(new_covariance(i, j) - expected_value),
-          //          EPS * std::max(1.0, expected_value));
+          ASSERT_LT(std::abs(new_covariance(i, j) - expected_value),
+                    EPS * std::max(1.0, expected_value));
         }
       }
     }
