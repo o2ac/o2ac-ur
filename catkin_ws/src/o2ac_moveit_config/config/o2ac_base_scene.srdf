@@ -157,12 +157,12 @@
         <joint name="b_bot_wrist_3_joint" value="-3.1415" />
     </group_state>
     <group_state name="horizontal_screw_ready" group="b_bot">
-        <joint name="b_bot_elbow_joint" value="1.6849" />
-        <joint name="b_bot_shoulder_lift_joint" value="-1.5258" />
-        <joint name="b_bot_shoulder_pan_joint" value="1.7818" />
-        <joint name="b_bot_wrist_1_joint" value="-1.5867" />
-        <joint name="b_bot_wrist_2_joint" value="-2.0464" />
-        <joint name="b_bot_wrist_3_joint" value="1.8501" />
+        <joint name="b_bot_elbow_joint" value="2.4134" />
+        <joint name="b_bot_shoulder_lift_joint" value="-1.8761" />
+        <joint name="b_bot_shoulder_pan_joint" value="1.7874" />
+        <joint name="b_bot_wrist_1_joint" value="-3.3027" />
+        <joint name="b_bot_wrist_2_joint" value="-2.1214" />
+        <joint name="b_bot_wrist_3_joint" value="-4.5313" />
     </group_state>
     <group_state name="disentangle_tool_cable" group="b_bot">
         <joint name="b_bot_elbow_joint" value="2.13772" />

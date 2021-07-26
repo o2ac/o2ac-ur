@@ -2,14 +2,10 @@
 
 import rospy
 import actionlib
-import actionlib_tutorials.msg
-import os.path
-import yaml
-from std_msgs.msg import String
 from o2ac_fastening_tools.srv import *
 from o2ac_msgs.msg import *
 from o2ac_routines.thread_with_trace import ThreadTrace
-from util import *
+from util import read_object_yaml_config
 from collections import deque
 import threading
 
@@ -179,12 +175,13 @@ class FasteningToolController(object):
         success_flag = True
         motor_stalled = False
         speed_readings = deque([goal.speed, goal.speed], maxlen=2)  # Initialize to start the loop
-        start_time = rospy.get_rostime()
+        start_time = rospy.get_time()
+        rate = rospy.Rate(20)
         rospy.sleep(1)   # Wait for motor to start up (and avoid reading incorrect speed values)
         while not rospy.is_shutdown():
             
-            if (rospy.get_rostime().secs - start_time.secs) > goal.duration:
-                rospy.loginfo("Stopping motor due to timeout")
+            if (rospy.get_time() - start_time) > goal.duration:
+                rospy.loginfo("Stopping motor due to timeout. Duration: %s, Time elapsed: %s" % (goal.duration, rospy.get_time() - start_time))
                 if goal.direction == "loosen":
                     success_flag = True
                     self.set_moving_speed(motor_id, 1024)
@@ -213,13 +210,14 @@ class FasteningToolController(object):
                 break
                 
             # If both readings are below an arbitrary threshold, we assume the motor has stalled
-            if all(speed <= 10 for speed in speed_readings):
+            # rospy.loginfo_throttle(0.25, "last speed_readings: %s" % speed_readings)
+            if all(speed <= 25 for speed in speed_readings):
                 feedback.motor_speed = 0
             else:
                 feedback.motor_speed = max(speed_readings)
 
-            # rospy.logdebug("first_speed, second_speed = " + str(first_speed) + ", " + str(second_speed))
             goal_handle.publish_feedback(feedback)
+            rate.sleep()
         
         motor_stopped = self.set_moving_speed(motor_id, 1024)
         if motor_stopped and success_flag:
