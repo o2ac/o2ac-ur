@@ -2840,14 +2840,13 @@ class O2ACCommon(O2ACBase):
       self.pick_and_fasten_screw(robot_name, screw_pose, screw_size=3, approach_distance=0.07, intermediate_pose=intermediate_pose, speed=speed)
     def b_bot_task():
       pass
-      # screw_tool_link = robot_name + "_screw_tool_m3_tip_link"
-      # tc = lambda a, b: False #self.tools.fastening_tool_client.get_state() != GoalStatus.ACTIVE
-      # selection_matrix = [1., 1., 1., 0.5, 1., 1.]
-      # self.active_robots[support_robot].execute_spiral_trajectory("YZ", max_radius=0, radius_direction="+Y", steps=50,
-      #                                                     revolutions=2, target_force=0, check_displacement_time=10,
-      #                                                     wiggle_direction="Z", wiggle_angle=5.0, wiggle_revolutions=1.0,
-      #                                                     termination_criteria=tc, timeout=20, selection_matrix=selection_matrix)
-    self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=30.0)
+      tc = lambda a, b: self.tools.fastening_tool_client.get_state() != GoalStatus.ACTIVE
+      selection_matrix = [1., 1., 1., 0.8, 1., 1.]
+      self.active_robots[support_robot].execute_spiral_trajectory("XY", max_radius=0, radius_direction="+Y", steps=50,
+                                                          revolutions=1, target_force=0, check_displacement_time=10,
+                                                          wiggle_direction="Z", wiggle_angle=radians(10.0), wiggle_revolutions=1.0,
+                                                          termination_criteria=tc, timeout=20, selection_matrix=selection_matrix)
+    self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=60.0)
     return True
   ########
 

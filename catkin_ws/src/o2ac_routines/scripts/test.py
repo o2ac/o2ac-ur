@@ -14,7 +14,7 @@ import o2ac_routines.helpers as helpers
 import numpy as np
 import sys, signal
 import geometry_msgs.msg
-from math import pi
+from math import pi, radians
 tau = 2.0*pi  # Part of math from Python 3.6
 
 def signal_handler(sig, frame):
@@ -224,8 +224,8 @@ def main():
     rospy.init_node("testscript")
     global controller
     
-    # controller = O2ACAssembly()
-    controller = O2ACCommon()
+    controller = O2ACAssembly()
+    # controller = O2ACCommon()
     ###### insert motor ######
     # controller.reset_scene_and_robots()
     # controller.publish_part_in_assembled_position("base")
@@ -247,13 +247,12 @@ def main():
     # controller.insert_motor("assembled_part_02_back_hole")
 
     controller.confirm_to_proceed("move")
-    start = rospy.get_time()
-    controller.b_bot.execute_spiral_trajectory("YZ", max_radius=0.0, radius_direction="+Y", steps=50,
+    selection_matrix = [1., 1., 1., 0.8, 1., 1.]
+    controller.b_bot.execute_spiral_trajectory("XY", max_radius=0.0, radius_direction="+Y", steps=50,
                                                 revolutions=1, target_force=0, check_displacement_time=10,
-                                                wiggle_direction="X", wiggle_angle=5.0, wiggle_revolutions=1.0,
-                                                termination_criteria=None, timeout=20, selection_matrix=None)
-    print("duration", rospy.get_time() - start)
-
+                                                wiggle_direction="Z", wiggle_angle=radians(15.0), wiggle_revolutions=2.0,
+                                                termination_criteria=None, timeout=10, selection_matrix=selection_matrix)
+    
     ### fasten motor ####
     # controller.confirm_to_proceed("fasten?")
     # controller.do_change_tool_action("a_bot", equip=True, screw_size=3)
