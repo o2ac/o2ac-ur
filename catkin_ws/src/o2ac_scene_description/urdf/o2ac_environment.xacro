@@ -59,7 +59,7 @@
   
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/vgroove_aid.xacro" />
   <xacro:vgroove_aid jigname="vgroove_aid" parent="b_bot_base_link">
-    <origin xyz="-0.2927 0.17214 0.0" rpy="0 0 ${pi/2}" />   
+    <origin xyz="-0.2957 0.169 0.0" rpy="0 0 ${pi/2}" />   
   </xacro:vgroove_aid> 
 
   <!-- The second vgroove at the back (for the motor)-->
