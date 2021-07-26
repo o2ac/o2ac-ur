@@ -553,7 +553,7 @@ class O2ACBase(object):
     if screw_picked and not stay_put_after_screwing:
       rospy.logerr("screw did not succeed: screw is still suctioned.")
       if attempts > 0:
-        return self.screw(self, robot_name=robot_name, screw_hole_pose=screw_hole_pose, screw_size=screw_size, screw_height=screw_height,
+        return self.screw(robot_name=robot_name, screw_hole_pose=screw_hole_pose, screw_size=screw_size, screw_height=screw_height,
               stay_put_after_screwing=stay_put_after_screwing, duration=duration, skip_final_loosen_and_retighten=skip_final_loosen_and_retighten,
               spiral_radius=spiral_radius, attempts=attempts-1)
       return False
@@ -1069,7 +1069,7 @@ class O2ACBase(object):
       sequence.append(helpers.to_sequence_item(pull_back_slightly, speed=lin_speed))
       sequence.append(helpers.to_sequence_gripper(gripper='open', gripper_opening_width=0.06, gripper_velocity=0.1))
       sequence.append(helpers.to_sequence_item(ps_in_holder, speed=lin_speed))
-      sequence.append(helpers.to_sequence_gripper(gripper='close', gripper_force=80, gripper_velocity=0.1))
+      sequence.append(helpers.to_sequence_gripper(gripper='close', gripper_force=100, gripper_velocity=0.1))
     
     # Plan & execute linear motion away from the tool change position
     rospy.loginfo("Moving back to screw tool approach pose LIN.")

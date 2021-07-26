@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import threading
-from numpy.lib.npyio import save
 from o2ac_routines.common import O2ACCommon
 from o2ac_routines.assembly import O2ACAssembly
 from o2ac_routines.taskboard import O2ACTaskboard
@@ -227,10 +226,47 @@ def main():
     
     # controller = O2ACAssembly()
     controller = O2ACCommon()
+    ###### insert motor ######
+    # controller.reset_scene_and_robots()
+    # controller.publish_part_in_assembled_position("base")
+    # controller.publish_part_in_assembled_position("panel_bearing")
+    # controller.publish_part_in_assembled_position("panel_motor")
+    # controller.b_bot.move_lin_rel(relative_translation=[0,0,0.1])
+    # controller.ab_bot.go_to_named_pose("home")
+    # controller.do_change_tool_action("a_bot", equip=True, screw_size=3)
     # controller.a_bot.go_to_named_pose("screw_ready")
-    controller.reset_scene_and_robots()
+
+    # above_vgroove  =   conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ -0.2, 0, 0, tau/2., 0, 0])
+    # if not controller.b_bot.go_to_pose_goal(above_vgroove, speed=0.4, move_lin=False):
+    #   rospy.logerr("fail to go above vgroove")
+    #   return False
+    # controller.b_bot.gripper.send_command(0.05)
+    # if not controller.align_motor_pre_insertion():
+    #     return False
+    # controller.confirm_to_proceed("finetune")
+    # controller.insert_motor("assembled_part_02_back_hole")
+
+    controller.confirm_to_proceed("move")
+    start = rospy.get_time()
+    controller.b_bot.execute_spiral_trajectory("YZ", max_radius=0.0, radius_direction="+Y", steps=50,
+                                                revolutions=1, target_force=0, check_displacement_time=10,
+                                                wiggle_direction="X", wiggle_angle=5.0, wiggle_revolutions=1.0,
+                                                termination_criteria=None, timeout=20, selection_matrix=None)
+    print("duration", rospy.get_time() - start)
+
+    ### fasten motor ####
+    # controller.confirm_to_proceed("fasten?")
+    # controller.do_change_tool_action("a_bot", equip=True, screw_size=3)
+    # controller.fasten_motor()
+
+
+    ###################################
+
+    # controller = O2ACCommon()
+    # controller.a_bot.go_to_named_pose("screw_ready")
+    # controller.reset_scene_and_robots()
     # controller.b_bot.go_to_named_pose("home")
-    controller.take_tray_from_agv_preplanned(save_on_success=True, use_saved_plans=False)
+    # controller.take_tray_from_agv_preplanned(save_on_success=True, use_saved_plans=False)
     # controller.fasten_bearing("assembly", only_retighten=True)
     # controller.b_bot.go_to_named_pose("home")
 
@@ -257,10 +293,6 @@ def main():
     # if not controller.execute_sequence(robot_name, [trajectory], "go to preinsertion", plan_while_moving=False):
     #   rospy.logerr("Could not go to preinsertion")
 
-    # controller.b_bot.gripper.open()
-    # controller.align_motor_pre_insertion()
-    # controller.confirm_to_proceed("finetune")
-    # controller.insert_motor("assembled_part_02_back_hole")
     
     
     # # tool_pull_pose = conversions.to_pose_stamped("move_group/panel_motor", [0.03, 0.038, 0.0, 0, 0, 0])

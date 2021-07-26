@@ -275,7 +275,13 @@ class O2ACAssembly(O2ACCommon):
     self.publish_status_text("Target: Motor")
     self.pick_and_center_motor()
     self.orient_motor()
+
+    self.do_change_tool_action("a_bot", equip=True, screw_size=3)
+    self.a_bot.go_to_named_pose("screw_ready")
+
+    self.align_motor_pre_insertion()
     self.insert_motor()
+    self.fasten_motor()
     # TODO: Fasten two motor screws with support from b_bot, open b_bot gripper, finish fastening with a_bot
     return False
 

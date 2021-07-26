@@ -190,7 +190,6 @@ class URForceController(CompliantController):
 
         def termination_criteria(current_pose, standby):
             current_pose_robot_base = conversions.to_pose_stamped(self.ns + "_base_link", current_pose)
-            # current_pose_in_target_frame = self.listener.transformPose(target_pose_in_target_frame.header.frame_id, current_pose_robot_base)
             current_pose_in_target_frame = conversions.transform_pose(target_pose_in_target_frame.header.frame_id, transform2target, current_pose_robot_base)
             current_pose_of = conversions.from_pose_to_list(current_pose_in_target_frame.pose)
             target_pose_of = conversions.from_pose_to_list(target_pose_in_target_frame.pose)
@@ -200,7 +199,7 @@ class URForceController(CompliantController):
             if 'Z' in insertion_direction:
                 more_than = insertion_direction[0] == '+'
             else:
-                more_than = insertion_direction[0] == '-' if self.ns == "b_bot" else insertion_direction[0] == '+'
+                more_than = insertion_direction[0] == '+'
             if more_than:
                 return current_pose_of[axis] >= target_pose_of[axis] or \
                     (standby and current_pose_of[axis] >= target_pose_of[axis] - relaxed_target_by)

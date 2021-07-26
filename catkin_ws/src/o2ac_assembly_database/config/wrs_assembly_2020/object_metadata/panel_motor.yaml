@@ -43,7 +43,7 @@ subframes:
   - 0.04275
   - 0.04642
   - 0.0
-  - -pi/2
+  - pi/2
   - -pi/2
   - 0.0
   name: motor_screw_hole_1
@@ -51,7 +51,7 @@ subframes:
   - 0.0505
   - 0.033
   - 0.0
-  - -pi/2
+  - pi/2
   - -pi/2
   - 0.0
   name: motor_screw_hole_2
@@ -59,7 +59,7 @@ subframes:
   - 0.04275
   - 0.01958
   - 0.0
-  - -pi/2
+  - pi/2
   - -pi/2
   - 0.0
   name: motor_screw_hole_3
@@ -67,7 +67,7 @@ subframes:
   - 0.02725
   - 0.01958
   - 0.0
-  - -pi/2
+  - pi/2
   - -pi/2
   - 0.0
   name: motor_screw_hole_4
@@ -75,7 +75,7 @@ subframes:
   - 0.0195
   - 0.033
   - 0.0
-  - -pi/2
+  - pi/2
   - -pi/2
   - 0.0
   name: motor_screw_hole_5
@@ -83,7 +83,7 @@ subframes:
   - 0.02725
   - 0.04642
   - 0.0
-  - -pi/2
+  - pi/2
   - -pi/2
   - 0.0
   name: motor_screw_hole_6
