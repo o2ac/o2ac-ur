@@ -1069,7 +1069,7 @@ class O2ACBase(object):
       sequence.append(helpers.to_sequence_item(pull_back_slightly, speed=lin_speed))
       sequence.append(helpers.to_sequence_gripper(gripper='open', gripper_opening_width=0.06, gripper_velocity=0.1))
       sequence.append(helpers.to_sequence_item(ps_in_holder, speed=lin_speed))
-      sequence.append(helpers.to_sequence_gripper(gripper='close', gripper_force=60, gripper_velocity=0.1))
+      sequence.append(helpers.to_sequence_gripper(gripper='close', gripper_force=80, gripper_velocity=0.1))
     
     # Plan & execute linear motion away from the tool change position
     rospy.loginfo("Moving back to screw tool approach pose LIN.")

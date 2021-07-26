@@ -85,12 +85,12 @@
         <joint name="a_bot_wrist_3_joint" value="2.82202" />
     </group_state>
     <group_state name="screw_ready" group="a_bot">
-        <joint name="a_bot_elbow_joint" value="2.05044" />
-        <joint name="a_bot_shoulder_lift_joint" value="-2.12091" />
-        <joint name="a_bot_shoulder_pan_joint" value="1.14109" />
-        <joint name="a_bot_wrist_1_joint" value="-2.16934" />
-        <joint name="a_bot_wrist_2_joint" value="-0.8542" />
-        <joint name="a_bot_wrist_3_joint" value="2.44546" />
+        <joint name="a_bot_elbow_joint" value="2.0972" />
+        <joint name="a_bot_shoulder_lift_joint" value="-2.4952" />
+        <joint name="a_bot_shoulder_pan_joint" value="0.8912" />
+        <joint name="a_bot_wrist_1_joint" value="-1.6305" />
+        <joint name="a_bot_wrist_2_joint" value="-0.719" />
+        <joint name="a_bot_wrist_3_joint" value="2.146" />
     </group_state>
     <group_state name="screw_ready_back" group="a_bot">
         <joint name="a_bot_elbow_joint" value="1.5722" />
@@ -101,12 +101,12 @@
         <joint name="a_bot_wrist_3_joint" value="-3.1413" />
     </group_state>
     <group_state name="horizontal_screw_ready" group="a_bot">
-        <joint name="a_bot_elbow_joint" value="1.4015" />
-        <joint name="a_bot_shoulder_lift_joint" value="-1.6187" />
-        <joint name="a_bot_shoulder_pan_joint" value="0.8568" />
-        <joint name="a_bot_wrist_1_joint" value="-1.0083" />
-        <joint name="a_bot_wrist_2_joint" value="-1.1634" />
-        <joint name="a_bot_wrist_3_joint" value="-2.3498" />
+        <joint name="a_bot_elbow_joint" value="1.7833" />
+        <joint name="a_bot_shoulder_lift_joint" value="-2.2774" />
+        <joint name="a_bot_shoulder_pan_joint" value="0.5242" />
+        <joint name="a_bot_wrist_1_joint" value="-1.2035" />
+        <joint name="a_bot_wrist_2_joint" value="-0.9542" />
+        <joint name="a_bot_wrist_3_joint" value="3.4589" />
     </group_state>
     <group_state name="horizontal_screw_ready_backside" group="a_bot">
         <joint name="a_bot_elbow_joint" value="1.4194" />

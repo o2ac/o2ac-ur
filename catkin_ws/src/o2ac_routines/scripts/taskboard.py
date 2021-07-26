@@ -61,7 +61,7 @@ if __name__ == '__main__':
     while i and not rospy.is_shutdown():
       rospy.loginfo("Enter 1 to move robots to home")
       rospy.loginfo("Enter 11, 12 to close/open grippers")
-      rospy.loginfo("Enter 13, 14 to equip/unequip m3 screw tool")
+      rospy.loginfo("Enter 13, 14 to equip/unequip m3 screw tool (133,144: m4)")
       rospy.loginfo("Enter 15, 16 to equip/unequip m4 screw tool (151,161: padless)")
       rospy.loginfo("Enter 21, 22: pick m3, m4 screw")
       rospy.loginfo("Enter 3 to calibrate TB screw tasks (31: M3, 32: M4)")
@@ -125,6 +125,10 @@ if __name__ == '__main__':
         c.equip_tool("a_bot", "screw_tool_m3") 
       if i == "14":
         c.unequip_tool("a_bot", "screw_tool_m3")
+      if i == "133":
+        c.equip_tool("a_bot", "screw_tool_m4")
+      if i == "144":
+        c.unequip_tool("a_bot", "screw_tool_m4")
       if i == "15":
         c.equip_tool("b_bot", "screw_tool_m4")
       if i == "16":

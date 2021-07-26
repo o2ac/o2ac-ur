@@ -8,7 +8,7 @@ from o2ac_routines.taskboard import O2ACTaskboard
 from o2ac_routines.thread_with_trace import ThreadTrace
 import rospy
 from ur_control.constants import TERMINATION_CRITERIA
-from ur_control import conversions
+from ur_control import controllers, conversions
 import tf
 from o2ac_routines.helpers import get_target_force
 import o2ac_routines.helpers as helpers
@@ -225,31 +225,37 @@ def main():
     rospy.init_node("testscript")
     global controller
     
-    controller = O2ACAssembly()
+    # controller = O2ACAssembly()
+    controller = O2ACCommon()
+    # controller.a_bot.go_to_named_pose("screw_ready")
+    controller.reset_scene_and_robots()
+    # controller.b_bot.go_to_named_pose("home")
+    controller.fasten_bearing("taskboard", robot_name="a_bot")
+    # controller.fasten_bearing("assembly", only_retighten=True)
     # controller.b_bot.go_to_named_pose("home")
 
-    controller.allow_collisions_with_robot_hand("tray", "a_bot")
-    controller.allow_collisions_with_robot_hand("tray_center", "a_bot")
+    # controller.allow_collisions_with_robot_hand("tray", "a_bot")
+    # controller.allow_collisions_with_robot_hand("tray_center", "a_bot")
     
     # controller.playback_sequence("bearing_orient_down_b_bot")
 
-    robot_name = "b_bot"
-    task = "assembly"
-    bearing_target_link = "assembled_part_07_inserted"
-    prefix = "right" if robot_name == "b_bot" else "left"
-    at_tray_border_pose = conversions.to_pose_stamped(prefix + "_centering_link", [-0.15, 0, 0.10, np.radians(-100), 0, 0])
-    print(at_tray_border_pose)
+    # robot_name = "b_bot"
+    # task = "assembly"
+    # bearing_target_link = "assembled_part_07_inserted"
+    # prefix = "right" if robot_name == "b_bot" else "left"
+    # at_tray_border_pose = conversions.to_pose_stamped(prefix + "_centering_link", [-0.15, 0, 0.10, np.radians(-100), 0, 0])
+    # print(at_tray_border_pose)
 
-    rotation = [0, np.radians(-35.0), 0] if robot_name == "b_bot" else [tau/4, 0, np.radians(-35.0)]
-    approach_pose       = conversions.to_pose_stamped(bearing_target_link, [-0.050, -0.001, 0.005] + rotation)
-    if task == "taskboard":
-      preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017,  0.000, 0.002 ]+ rotation)
-    elif task == "assembly":
-      preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017, -0.000, 0.006] + rotation)
+    # rotation = [0, np.radians(-35.0), 0] if robot_name == "b_bot" else [tau/4, 0, np.radians(-35.0)]
+    # approach_pose       = conversions.to_pose_stamped(bearing_target_link, [-0.050, -0.001, 0.005] + rotation)
+    # if task == "taskboard":
+    #   preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017,  0.000, 0.002 ]+ rotation)
+    # elif task == "assembly":
+    #   preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017, -0.000, 0.006] + rotation)
 
-    trajectory = helpers.to_sequence_trajectory([at_tray_border_pose, approach_pose, preinsertion_pose], blend_radiuses=[0.01,0.02,0], speed=0.4)
-    if not controller.execute_sequence(robot_name, [trajectory], "go to preinsertion", plan_while_moving=False):
-      rospy.logerr("Could not go to preinsertion")
+    # trajectory = helpers.to_sequence_trajectory([at_tray_border_pose, approach_pose, preinsertion_pose], blend_radiuses=[0.01,0.02,0], speed=0.4)
+    # if not controller.execute_sequence(robot_name, [trajectory], "go to preinsertion", plan_while_moving=False):
+    #   rospy.logerr("Could not go to preinsertion")
 
     # controller.b_bot.gripper.open()
     # controller.align_motor_pre_insertion()
