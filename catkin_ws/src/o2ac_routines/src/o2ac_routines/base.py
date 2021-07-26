@@ -358,7 +358,7 @@ class O2ACBase(object):
         self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
         return False
 
-  def suck_screw(self, robot_name, screw_head_pose, screw_tool_id, screw_tool_link, fastening_tool_name, do_spiral_search_at_bottom=False):
+  def suck_screw(self, robot_name, screw_head_pose, screw_tool_id, screw_tool_link, fastening_tool_name, do_spiral_search_at_bottom=True):
     """ Strategy: 
          - Move 1 cm above the screw head pose
          - Go down real slow for 2 cm while turning the motor in the direction that would loosen the screw
@@ -405,106 +405,67 @@ class O2ACBase(object):
 
     self.tools.set_suction(screw_tool_id, suction_on=True, eject=False, wait=False)
 
-    approach_height = 0.016
+    approach_height = 0.018
 
-    if not do_spiral_search_at_bottom:
-      max_radius = .0025
-      theta_incr = tau/6
-      r=0.0002
-      radius_increment = .001
-      radius_inc_set = radius_increment / (tau / theta_incr)
-      theta, RealRadius = 0.0, 0.0
+    max_radius = .0025
+    theta_incr = tau/6
+    r=0.0002
+    radius_increment = .001
+    radius_inc_set = radius_increment / (tau / theta_incr)
+    theta, RealRadius = 0.0, 0.0
 
-      self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=60.0, skip_final_loosen_and_retighten=True)
-      while not screw_picked:
-        assert not rospy.is_shutdown(), "Did ros die?"
-        
-        # TODO(felixvd): Cancel the previous goal before sending this, or the start/stop commands from different actions overlap!
-        rospy.loginfo("Moving into screw to pick it up.")
-        adjusted_pose.pose.position.x += approach_height
-        success = False
-        while not success: # TODO(cambel, felix): infinite loop?
-          success = self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, end_effector_link=screw_tool_link)
+    self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=60.0, skip_final_loosen_and_retighten=True)
+    while not screw_picked:
+      assert not rospy.is_shutdown(), "Did ros die?"
+      
+      # TODO(felixvd): Cancel the previous goal before sending this, or the start/stop commands from different actions overlap!
+      rospy.loginfo("Moving into screw to pick it up.")
+      adjusted_pose.pose.position.x += approach_height
+      success = False
+      while not success: # TODO(cambel, felix): infinite loop?
+        success = self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, end_effector_link=screw_tool_link)
 
-        # Break out of loop if screw suctioned or max search radius exceeded
-        screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
-        if screw_picked or (not self.use_real_robot):
-          rospy.loginfo("Detected successful pick.")
-          if not self.active_robots[robot_name].move_lin_rel(relative_translation=[0.01, 0, 0], speed=0.015):
-            rospy.logerr("Fail to move screw through gate sensor")
-          # if not self.active_robots[robot_name].move_lin_rel(relative_translation=[0, 0, 0.03], speed=0.2):
-          #   rospy.logerr("Fail to move up")
-          break
+      # Break out of loop if screw suctioned or max search radius exceeded
+      screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
+      if screw_picked or (not self.use_real_robot):
+        rospy.loginfo("Detected successful pick.")
+        if not self.active_robots[robot_name].move_lin_rel(relative_translation=[0.01, 0, 0], speed=0.015):
+          rospy.logerr("Fail to move screw through gate sensor")
+        # if not self.active_robots[robot_name].move_lin_rel(relative_translation=[0, 0, 0.03], speed=0.2):
+        #   rospy.logerr("Fail to move up")
+        break
 
+      if not do_spiral_search_at_bottom:
         tc = lambda a, b: self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
-        self.active_robots[robot_name].execute_spiral_trajectory("YZ", max_radius=0.001, radius_direction="+Y", steps=25,
-                                                          revolutions=2, target_force=0, check_displacement_time=10,
+        self.active_robots[robot_name].execute_spiral_trajectory("YZ", max_radius=0.0015, radius_direction="+Y", steps=25,
+                                                          revolutions=1, target_force=0, check_displacement_time=10,
                                                           termination_criteria=tc, timeout=2, end_effector_link=screw_tool_link)
 
-        rospy.loginfo("Moving back a bit slowly.")
-        rospy.sleep(0.5)
-        adjusted_pose.pose.position.x -= approach_height
-        success = False
-        while not success: # TODO(cambel, felix): infinite loop?
-          success = self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, end_effector_link=screw_tool_link)
-          
-        # Break out of loop if screw suctioned or max search radius exceeded
-        screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
-        if screw_picked:
-          rospy.loginfo("Detected successful pick.")
-          break
-
-        if RealRadius > max_radius:
-          break
-
-        # Adjust the position (spiral search)
-        theta = theta + theta_incr
-        y = cos(theta) * r
-        z = sin(theta) * r
-        adjusted_pose = search_start_pose
-        adjusted_pose.pose.position.y += y
-        adjusted_pose.pose.position.z += z
-        r = r + radius_inc_set
-        RealRadius = sqrt(pow(y, 2) + pow(z, 2))
-    else:
-      offsets = [[0., 0.], [0.001, 0.001], [0.001, -0.001], [-0.001, 0.001], [-0.001, -0.001]] # only diagonals from start point
-
-      for i, offset in enumerate(offsets): 
-        assert not rospy.is_shutdown(), "Did ros die?"
-
-        adjusted_pose = copy.deepcopy(search_start_pose)
-        adjusted_pose.pose.position.y += offset[0]
-        adjusted_pose.pose.position.z += offset[1]
-
-        self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=12.0, skip_final_loosen_and_retighten=True)
-        # self.send_fastening_tool_command(fastening_tool_name, "loosen", false, 5.0)
-        rospy.loginfo("Moving into screw to pick it up.")
-        adjusted_pose.pose.position.x += approach_height
-        self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, acceleration=0.025, end_effector_link=screw_tool_link)
-
-        rospy.sleep(0.5)
-        screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
-        if screw_picked:
-          if not self.active_robots[robot_name].move_lin_rel(relative_translation=[0.01, 0, 0], speed=0.015):
-            rospy.logerr("Fail to move screw through gate sensor")
-          break
+      rospy.loginfo("Moving back a bit slowly.")
+      rospy.sleep(0.5)
+      adjusted_pose.pose.position.x -= approach_height
+      success = False
+      while not success: # TODO(cambel, felix): infinite loop?
+        success = self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, end_effector_link=screw_tool_link)
         
-        rospy.loginfo("Spiral motion, trying to find the screw")
-        tc = lambda a, b: self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
-        self.active_robots[robot_name].execute_spiral_trajectory("YZ", max_radius=0.001, radius_direction="+Y", steps=50,
-                                                          revolutions=2, target_force=0, termination_criteria=tc, timeout=5,
-                                                          check_displacement_time=10, end_effector_link=screw_tool_link)
+      # Break out of loop if screw suctioned or max search radius exceeded
+      screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
+      if screw_picked:
+        rospy.loginfo("Detected successful pick.")
+        break
 
-        if screw_picked:
-          if not self.active_robots[robot_name].move_lin_rel(relative_translation=[0.01, 0, 0], speed=0.015):
-            rospy.logerr("Fail to move screw through gate sensor")
-          break
+      if RealRadius > max_radius:
+        break
 
-        rospy.loginfo("Moving back a bit slowly.")
-        adjusted_pose.pose.position.x -= approach_height
-        self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.1, acceleration=0.05, end_effector_link=screw_tool_link)
-        
-        rospy.logerr("Retrying pickup with adjusted position. %s of %s" % (i+1, len(offsets)))
+      # Adjust the position (spiral search)
+      theta = theta + theta_incr
+      y = cos(theta) * r
+      z = sin(theta) * r
+      adjusted_pose = search_start_pose
+      adjusted_pose.pose.position.y += y
+      adjusted_pose.pose.position.z += z
+      r = r + radius_inc_set
+      RealRadius = sqrt(pow(y, 2) + pow(z, 2))
     
     # Record the offset at which the screw was successfully picked, so the next try can start at the same location
     if screw_picked:
@@ -527,9 +488,9 @@ class O2ACBase(object):
 
     above_screw_head_pose.pose.position.x -= .05
 
-    if not self.active_robots[robot_name].go_to_pose_goal(above_screw_head_pose, speed=0.4, end_effector_link=screw_tool_link):
-      rospy.logerr("Linear motion plan to above_screw_head_pose failed. Returning false.")
-      return False
+    if not self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready", speed=0.6):
+      rospy.logerr("Go to feeder_pick_ready failed. abort.")
+      screw_picked = False
 
     if screw_picked or (not self.use_real_robot):
       rospy.loginfo("Finished picking up screw successfully.")
