@@ -95,56 +95,34 @@ class URForceController(CompliantController):
 
         return result
 
-    def execute_circular_trajectory(self, plane, radius, radius_direction,
-                                    steps=100, revolutions=5,
-                                    wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0,
-                                    target_force=None, selection_matrix=None, timeout=10.,
-                                    displacement_epsilon=0.002, check_displacement_time=2.0,
-                                    termination_criteria=None):
+    def execute_circular_trajectory(self, *args, **kwargs):
         """
             Execute a circular trajectory on a given plane, with respect to the base of the robot, with a given radius
             Note: we assume that the robot is in its initial position 
         """
-        initial_pose = self.end_effector()
-        trajectory = traj_utils.compute_trajectory(initial_pose, plane, radius, radius_direction, steps, revolutions, from_center=True, trajectory_type="circular",
-                                                   wiggle_direction=wiggle_direction, wiggle_angle=wiggle_angle, wiggle_revolutions=wiggle_revolutions)
-        return self.force_control(target_force=target_force, target_positions=trajectory, selection_matrix=selection_matrix,
-                                  timeout=timeout, relative_to_ee=False, termination_criteria=termination_criteria,
-                                  displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time)
+        kwargs.update({"trajectory_type": "circular"})
+        return self.execute_trajectory(*args, **kwargs)
 
-    def execute_spiral_trajectory(self, plane, max_radius, radius_direction,
-                                  steps=100, revolutions=5,
-                                  wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0,
-                                  target_force=None, selection_matrix=None, timeout=10.,
-                                  displacement_epsilon=0.002, check_displacement_time=2.0,
-                                  termination_criteria=None, config_file=None):
-        """
-            Execute a spiral trajectory on a given plane, with respect to the base of the robot, with a given max radius
-            Note: we assume that the robot is in its initial position 
-        """
-        initial_pose = self.end_effector()
-        trajectory = traj_utils.compute_trajectory(initial_pose, plane, max_radius, radius_direction, steps, revolutions, from_center=True, trajectory_type="spiral",
-                                                   wiggle_direction=wiggle_direction, wiggle_angle=wiggle_angle, wiggle_revolutions=wiggle_revolutions)
-        return self.force_control(target_force=target_force, target_positions=trajectory, selection_matrix=selection_matrix,
-                                  timeout=timeout, relative_to_ee=False, termination_criteria=termination_criteria,
-                                  displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time, config_file=config_file)
+    def execute_spiral_trajectory(self, *args, **kwargs):
+        kwargs.update({"trajectory_type": "spiral"})
+        return self.execute_trajectory(*args, **kwargs)
 
-    def execute_spiral_trajectory2(self, plane, max_radius, radius_direction,
-                                   steps=100, revolutions=5,
-                                   wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0,
-                                   target_force=None, selection_matrix=None, timeout=10.,
-                                   displacement_epsilon=0.002, check_displacement_time=2.0,
-                                   termination_criteria=None, config_file=None,
-                                   end_effector_link=None):
+    def execute_trajectory(self, plane, max_radius, radius_direction,
+                            steps=100, revolutions=5,
+                            wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0,
+                            target_force=None, selection_matrix=None, timeout=10.,
+                            displacement_epsilon=0.002, check_displacement_time=2.0,
+                            termination_criteria=None, config_file=None,
+                            end_effector_link=None, trajectory_type="spiral"):
+        from_center = True if trajectory_type == "spiral" else False
         eff = self.default_tcp_link if not end_effector_link else end_effector_link
         dummy_trajectory = traj_utils.compute_trajectory([0, 0, 0, 0, 0, 0, 1.],
-                                                         plane, max_radius, radius_direction, steps, revolutions, from_center=True, trajectory_type="spiral",
+                                                         plane, max_radius, radius_direction, steps, revolutions, from_center=from_center, trajectory_type=trajectory_type,
                                                          wiggle_direction=wiggle_direction, wiggle_angle=wiggle_angle, wiggle_revolutions=wiggle_revolutions)
         # convert dummy_trajectory (initial pose frame id) to robot's base frame
         now = rospy.Time.now()
         self.listener.waitForTransform(self.base_link, eff, now, rospy.Duration(1))
-        translation, rotation = self.listener.lookupTransform(self.base_link, eff, now)
-        transform2target = self.listener.fromTranslationRotation(translation, rotation)
+        transform2target = self.listener.fromTranslationRotation(*self.listener.lookupTransform(self.base_link, eff, now))
         trajectory = []
         for p in dummy_trajectory:
             ps = conversions.to_pose_stamped(self.base_link, p)
