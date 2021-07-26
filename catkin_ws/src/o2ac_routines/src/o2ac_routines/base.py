@@ -1446,7 +1446,7 @@ class O2ACBase(object):
       pose = waypoint["pose"]
       frame_id = waypoint["frame_id"]
       ps = conversions.to_pose_stamped(frame_id, np.concatenate([pose[:3],np.deg2rad(pose[3:])]))
-      master_trajectory.append((ps, waypoint("blend", 0), waypoints[0].get("speed", 0.5))) # poseStamped, blend, speed
+      master_trajectory.append((ps, waypoint.get("blend", 0), waypoints[0].get("speed", 0.5))) # poseStamped, blend, speed
 
     slave_initial_joints = initial_joints[6:] if initial_joints is not None else None
     master_initial_joints = initial_joints[:6] if initial_joints is not None else None

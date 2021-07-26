@@ -3074,7 +3074,7 @@ class O2ACCommon(O2ACBase):
     self.b_bot.move_lin_rel(relative_translation = [0.10,0,0], acceleration = 0.015, speed=.03)
     return success
 
-  def take_tray_from_agv_preplanned(self):
+  def take_tray_from_agv_preplanned(self, save_on_success=True, use_saved_plans=True):
     self.allow_collisions_with_robot_hand("tray", "a_bot", allow=True)
     self.allow_collisions_with_robot_hand("tray", "b_bot", allow=True)
     self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=True)
@@ -3084,9 +3084,11 @@ class O2ACCommon(O2ACBase):
     self.a_bot.gripper.open(wait=False)
     self.b_bot.gripper.open(wait=False)
 
-    self.playback_sequence("tray_orient", plan_while_moving=True, save_on_success=True, use_saved_plans=True)
+    if not self.playback_sequence("tray_orient", plan_while_moving=True, save_on_success=save_on_success, use_saved_plans=use_saved_plans):
+      return False
 
-    self.playback_sequence("tray_take_from_agv", plan_while_moving=True, save_on_success=True, use_saved_plans=True)
+    if not self.playback_sequence("tray_take_from_agv", plan_while_moving=True, save_on_success=save_on_success, use_saved_plans=use_saved_plans):
+      return False
 
     self.ab_bot.go_to_named_pose("home")
 

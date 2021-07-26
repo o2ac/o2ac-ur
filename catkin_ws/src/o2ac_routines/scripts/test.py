@@ -230,7 +230,7 @@ def main():
     # controller.a_bot.go_to_named_pose("screw_ready")
     controller.reset_scene_and_robots()
     # controller.b_bot.go_to_named_pose("home")
-    controller.fasten_bearing("taskboard", robot_name="a_bot")
+    controller.take_tray_from_agv_preplanned(save_on_success=True, use_saved_plans=False)
     # controller.fasten_bearing("assembly", only_retighten=True)
     # controller.b_bot.go_to_named_pose("home")
 
