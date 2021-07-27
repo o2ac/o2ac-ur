@@ -334,6 +334,9 @@ class O2ACCommon(O2ACBase):
       obj.header.frame_id = object_pose.header.frame_id
       obj.pose = object_pose.pose
       self.planning_scene_interface.add_object(obj)
+
+      rospy.sleep(1)
+      ob = self.constrain_into_tray(item_name).pose
     else:
       rospy.logdebug("Failed to find " + item_name)
       return False
@@ -465,6 +468,71 @@ class O2ACCommon(O2ACBase):
     # TODO: Use in-hand pose estimation particle filter
     success = False
     return success
+
+  def constrain_into_tray(self, item_name=""):
+    """ For an L-plate or base_plate, make sure the object does not exceed the tray border.
+    """
+    if item_name not in ["base", "panel_motor", "panel_bearing"]:
+      rospy.logerr("Unknown item_name received in constrain_into_tray: " + item_name)
+      return False
+    if item_name == "base":
+      dims = [0, 0.12, 0, 0.2]  # Object dimensions: [min_x, max_x, min_y, max_y]
+    if item_name == "panel_motor":
+      dims = [0, 0.06, 0, 0.06]
+    if item_name == "panel_bearing":
+      dims = [0, 0.116, 0, 0.09]
+
+    # Check each corner point. If outside tray border, move the object.
+    object_pose = conversions.to_pose_stamped("move_group/"+item_name, [0,0,0, 0,0,0])
+    object_pose_in_tray = self.get_transformed_collision_object_pose(item_name, object_pose, "tray_center")
+    
+    if item_name == "base":
+      axes = [0, 2]  # x, z
+    if item_name == "panel_motor" or item_name == "panel_bearing":
+      axes = [0, 1]  # x, y
+    corner_points = [ [dims[0], dims[2]], [dims[0], dims[3]], [dims[1], dims[2]], [dims[1], dims[3]] ]
+    for point in corner_points:
+      object_corner_list = conversions.from_pose_to_list(object_pose.pose)
+      object_corner_list[axes[0]] += point[0]
+      object_corner_list[axes[1]] += point[1]
+      object_corner_pose = conversions.to_pose_stamped(object_pose.header.frame_id, object_corner_list)
+
+      dx, dy = self.distances_from_tray_border(object_corner_pose)
+      if dx < 0 or dy < 0:
+        if dx < 0:
+          object_pose_in_tray.pose.position.x -= np.sign(object_pose_in_tray.pose.position.x) * abs(dx)
+        if dy < 0:
+          object_pose_in_tray.pose.position.y -= np.sign(object_pose_in_tray.pose.position.y) * abs(dy)
+        try:
+          self.listener.waitForTransform("move_group/"+item_name, object_pose.header.frame_id, object_pose.header.stamp, rospy.Duration(1))
+          object_pose = self.listener.transformPose("move_group/"+item_name, object_pose_in_tray)
+          rospy.loginfo("Moved ""dx:", dx, "dy:", dy)
+        except Exception as e:
+          print(e)
+          pass
+      
+    # Update collision object position
+    obj = self.assembly_database.get_collision_object(item_name)
+    obj.header.frame_id = object_pose_in_tray.header.frame_id
+    obj.pose = object_pose_in_tray.pose
+    self.planning_scene_interface.add_object(obj)
+
+    return object_pose_in_tray
+
+  def get_transformed_grasp_pose(self, object_name, grasp_name, target_frame="tray_center"):
+    """ Get an object's grasp pose in the target_frame"""
+    grasp_pose = self.assembly_database.get_grasp_pose(object_name, grasp_name)
+    return self.get_transformed_collision_object_pose(object_name, grasp_pose, target_frame)
+  
+  def get_transformed_collision_object_pose(self, object_name, object_pose, target_frame="tray_center"):
+    """ Get the pose of a MoveIt CollisionObject in the target_frame"""
+    try:
+      object_pose.header.frame_id = "move_group/" + object_name
+      self.listener.waitForTransform(target_frame, object_pose.header.frame_id, object_pose.header.stamp, rospy.Duration(1))
+    except Exception as e:
+      rospy.logwarn(e)
+      return False
+    return self.listener.transformPose(target_frame, object_pose)
 
   ########
 
@@ -875,11 +943,9 @@ class O2ACCommon(O2ACBase):
     # Inside tray width and length: 25.5 cm, 37.5 cm
     l_x_half = .255/2.0
     l_y_half = .375/2.0
-    # print("object_pose = ")
-    # print(object_pose)
-    object_pose_in_world = self.listener.transformPose("tray_center", object_pose)
-    xdist = l_x_half - abs(object_pose_in_world.pose.position.x)
-    ydist = l_y_half - abs(object_pose_in_world.pose.position.y)
+    object_pose_in_tray = self.listener.transformPose("tray_center", object_pose)
+    xdist = l_x_half - abs(object_pose_in_tray.pose.position.x)
+    ydist = l_y_half - abs(object_pose_in_tray.pose.position.y)
     return (xdist, ydist)
 
   def declutter_with_tool(self, robot_name, starting_pose):
