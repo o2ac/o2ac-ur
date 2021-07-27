@@ -188,23 +188,28 @@ class URForceController(CompliantController):
         translation, rotation = self.listener.lookupTransform(target_pose_in_target_frame.header.frame_id, self.ns + "_base_link", rospy.Time.now())
         transform2target = self.listener.fromTranslationRotation(translation, rotation)
 
+        start_pose_robot_base = conversions.to_pose_stamped(self.ns + "_base_link", self.end_effector())
+        start_pose_in_target_frame = conversions.transform_pose(target_pose_in_target_frame.header.frame_id, transform2target, start_pose_robot_base)
+        start_pose_of = conversions.from_pose_to_list(start_pose_in_target_frame.pose)
+        target_pose_of = conversions.from_pose_to_list(target_pose_in_target_frame.pose)
+        start_dist = abs(start_pose_of[axis] - target_pose_of[axis])
+            
         def termination_criteria(current_pose, standby):
             current_pose_robot_base = conversions.to_pose_stamped(self.ns + "_base_link", current_pose)
             current_pose_in_target_frame = conversions.transform_pose(target_pose_in_target_frame.header.frame_id, transform2target, current_pose_robot_base)
             current_pose_of = conversions.from_pose_to_list(current_pose_in_target_frame.pose)
-            target_pose_of = conversions.from_pose_to_list(target_pose_in_target_frame.pose)
             # print("check cp,tp", current_pose_of[axis], target_pose_of[axis])
             # TODO(cambel): set everything around a fixed frame (world) to avoid this hack
-            # Investigate why the Z direction works backwards
-            if 'Z' in insertion_direction:
-                more_than = insertion_direction[0] == '+'
-            else:
-                more_than = insertion_direction[0] == '+'
-            if more_than:
-                return current_pose_of[axis] >= target_pose_of[axis] or \
-                    (standby and current_pose_of[axis] >= target_pose_of[axis] - relaxed_target_by)
-            return current_pose_of[axis] <= target_pose_of[axis] or \
-                (standby and current_pose_of[axis] <= target_pose_of[axis] + relaxed_target_by)
+            # more_than = start_pose[axis] - target_pose[axis]
+            # if more_than:
+            #     return current_pose_of[axis] >= target_pose_of[axis] or \
+            #         (standby and current_pose_of[axis] >= target_pose_of[axis] - relaxed_target_by)
+            # return current_pose_of[axis] <= target_pose_of[axis] or \
+            #     (standby and current_pose_of[axis] <= target_pose_of[axis] + relaxed_target_by)
+            at_target = abs(current_pose_of[axis] - target_pose_of[axis]) < 1e-5
+            overshot_target = start_dist < abs(current_pose_of[axis] - start_pose_of[axis])
+            within_acceptable_range_when_standstill = standby and abs(current_pose_of[axis] - target_pose_of[axis]) < 1e-5 + relaxed_target_by
+            return at_target or overshot_target or within_acceptable_range_when_standstill
 
         result = self.execute_spiral_trajectory(plane, max_radius=radius, radius_direction=radius_direction, steps=100, revolutions=revolutions,
                                                 wiggle_direction=wiggle_direction, wiggle_angle=wiggle_angle, wiggle_revolutions=wiggle_revolutions,
