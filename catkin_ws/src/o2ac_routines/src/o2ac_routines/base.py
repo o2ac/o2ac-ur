@@ -335,17 +335,9 @@ class O2ACBase(object):
         rospy.logerr("Robot is not carrying the correct tool (" + fastening_tool_name + ") and it failed to be equipped. Abort.")
         return False
 
-    if not self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready", speed=0.5, acceleration=0.25):
-      rospy.logerr("Failed to go to feeder_pick_ready with " + robot_name)
-      return False
-
-    success = self.suck_screw(robot_name, pose_feeder, screw_tool_id, screw_tool_link, fastening_tool_name, do_spiral_search_at_bottom=False)
-
-    if not self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready", speed=0.8):
-      rospy.logerr("Failed to go to feeder_pick_ready with " + robot_name)
-      return False
+    screw_picked = self.suck_screw(robot_name, pose_feeder, screw_tool_id, screw_tool_link, fastening_tool_name, do_spiral_search_at_bottom=False)
     
-    if success:
+    if screw_picked:
       return True
     elif realign_tool_upon_failure:
         self.active_robots[robot_name].move_lin_rel(relative_translation=[0,0,0.05])
@@ -382,10 +374,6 @@ class O2ACBase(object):
     above_screw_head_pose.pose.orientation = conversions.to_quaternion(tf.transformations.quaternion_from_euler(*rotation))
     above_screw_head_pose.pose.position.x -= 0.01
 
-    if not self.active_robots[robot_name].go_to_pose_goal(above_screw_head_pose, speed=0.3, end_effector_link=screw_tool_link, move_ptp=True):
-      rospy.logerr("Linear motion plan to target pick pose failed. Returning false.")
-      return False
-
     if (screw_tool_id == "screw_tool_m3"):
       self.planning_scene_interface.allow_collisions(screw_tool_id, "m3_feeder_link")
       screw_size = 3
@@ -413,8 +401,9 @@ class O2ACBase(object):
     radius_increment = .001
     radius_inc_set = radius_increment / (tau / theta_incr)
     theta, RealRadius = 0.0, 0.0
-
-    self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=60.0, skip_final_loosen_and_retighten=True)
+    
+    first_approach = True
+    self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=30.0, skip_final_loosen_and_retighten=True)
     while not screw_picked:
       assert not rospy.is_shutdown(), "Did ros die?"
       
@@ -422,8 +411,17 @@ class O2ACBase(object):
       rospy.loginfo("Moving into screw to pick it up.")
       adjusted_pose.pose.position.x += approach_height
       success = False
-      while not success: # TODO(cambel, felix): infinite loop?
-        success = self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, end_effector_link=screw_tool_link)
+      while not success and not rospy.is_shutdown(): # TODO(cambel, felix): infinite loop?
+        if not first_approach:
+          success = self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, end_effector_link=screw_tool_link)
+        else:  # Include initial motion from feeder_pick_ready
+          waypoints = []
+          waypoints.append(["feeder_pick_ready", 0.0, 1.0])  # pose, blend_radius, speed
+          j1 = self.active_robots[robot_name].compute_ik(above_screw_head_pose, timeout=0.02, end_effector_link=screw_tool_link)
+          j2 = self.active_robots[robot_name].compute_ik(adjusted_pose, timeout=0.02, end_effector_link=screw_tool_link)
+          waypoints.append([j1, 0.0, 0.8])  # pose, blend_radius, speed
+          waypoints.append([j2, 0.0, 0.05])
+          success = self.active_robots[robot_name].move_joints_trajectory(waypoints)
 
       # Break out of loop if screw suctioned or max search radius exceeded
       screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False) or (not self.use_real_robot)
@@ -475,18 +473,18 @@ class O2ACBase(object):
 
     self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=0.1, skip_final_loosen_and_retighten=True)
 
-    rospy.loginfo("Moving back up completely.")
+    # Move away from feeder
     waypoints = []
     through_gate = None
-    if screw_picked: # go through sensor's gate
+    if screw_picked:
+      rospy.loginfo("Moving back through sensor gate.")
       rel_pose = self.active_robots[robot_name].move_lin_rel([0.02,0,0.0], pose_only=True)
       through_gate = self.active_robots[robot_name].compute_ik(rel_pose, timeout=0.02)
-      waypoints.append(through_gate)
+      waypoints.append((through_gate,0,0.1))
     rel_pose = self.active_robots[robot_name].move_lin_rel([0.0,0,0.05], pose_only=True, initial_joints=through_gate)
-    waypoints.append(self.active_robots[robot_name].compute_ik(rel_pose, timeout=0.02))
-    waypoints.append("feeder_pick_ready")
-    speeds = [0.015,0.2,0.6] if screw_picked or not self.use_real_robot else [0.2,0.6]
-    if not self.execute_sequence(robot_name, [helpers.to_sequence_joint_trajectory(waypoints, 0.0, speeds)], "move back from screw feeder"):
+    waypoints.append((self.active_robots[robot_name].compute_ik(rel_pose, timeout=0.02), 0, 0.6))
+    waypoints.append(("feeder_pick_ready",0,0.6))
+    if not self.active_robots[robot_name].move_joints_trajectory(waypoints):
       rospy.logerr("Go to feeder_pick_ready failed. abort.")
       screw_picked = False
 

@@ -78,9 +78,9 @@ class RobotBase():
                 return self.listener.transformPose(frame_id, res.pose_stamped[0])
             return res.pose_stamped[0]
 
-    def compute_ik(self, target_pose, joints_seed=None, timeout=0.01):
+    def compute_ik(self, target_pose, joints_seed=None, timeout=0.01, end_effector_link=""):
         """
-            Compute the innverse kinematics for a move group the moveit service
+            Compute the inverse kinematics for a move group the moveit service
             return
             solution: `list`: the joint values are in the same order as defined for that group
         """
@@ -90,6 +90,7 @@ class RobotBase():
             ik_request.timeout = rospy.Duration(timeout)
             ik_request.pose_stamped = target_pose
             ik_request.group_name = self.robot_group.get_name()
+            ik_request.ik_link_name = end_effector_link
             ik_request.robot_state.joint_state.name = self.robot_group.get_active_joints()
             ik_request.robot_state.joint_state.position = joints_seed if joints_seed is not None else self.robot_group.get_current_joint_values()
         else:
