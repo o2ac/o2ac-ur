@@ -79,7 +79,7 @@ from o2ac_routines.tools import Tools
 
 
 class AssemblyStatus(object):
-  """ A helper class containing only boolean entries.
+  """ A helper class containing booleans describing the state of the assembly.
       May as well be a dictionary, but this makes auto-completion easier.
 
       This should help when restarting.
@@ -90,14 +90,15 @@ class AssemblyStatus(object):
 
     self.belt_placed_outside_of_tray = False
     self.motor_placed_outside_of_tray = False
+    self.bearing_placed_outside_of_tray = False
 
     self.completed_subtask_zero = False  # Base
-    self.completed_subtask_a = False
-    self.completed_subtask_b = False
-    self.completed_subtask_c1 = False
-    self.completed_subtask_c2 = False
-    self.completed_subtask_d = False
-    self.completed_subtask_e = False  # 
+    self.completed_subtask_a = False  # Motor
+    self.completed_subtask_b = False  # Motor pulley
+    self.completed_subtask_c1 = False  # Bearing
+    self.completed_subtask_c2 = False  # Shaft
+    self.completed_subtask_d = False  # Fasten output pulley
+    self.completed_subtask_e = False  # Output pulley
     self.completed_subtask_f = False  # Motor plate
     self.completed_subtask_g = False  # Bearing plate
     self.completed_subtask_h = False  # Belt
@@ -143,6 +144,7 @@ class O2ACBase(object):
     
     self.assembly_database = AssemblyReader()
     self.assembly_status = AssemblyStatus()
+    # TODO: Get current AssemblyStatus from param server
 
     # Action clients and movegroups
     self.a_bot = URRobot("a_bot", self.listener)

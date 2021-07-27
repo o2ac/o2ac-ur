@@ -328,6 +328,11 @@ class O2ACCommon(O2ACBase):
         object_pose.header.stamp = rospy.Time.now()
         self.listener.waitForTransform("tray_center", object_pose.header.frame_id, object_pose.header.stamp, rospy.Duration(1))
         object_pose = self.listener.transformPose("tray_center", object_pose)
+        #### fake the orientation of the plate (assumes that it is always flat on the tray) ###
+        orientation_euler = list(transformations.euler_from_quaternion(conversions.from_pose_to_list(object_pose.pose)[3:]))
+        orientation_euler[0] = np.sign(orientation_euler[0]) * tau/4
+        orientation_euler[1] = 0
+        object_pose.pose.orientation = conversions.to_quaternion(transformations.quaternion_from_euler(*orientation_euler))
         object_pose.pose.position.z = 0.0
 
       obj = self.assembly_database.get_collision_object(item_name)
@@ -1199,7 +1204,7 @@ class O2ACCommon(O2ACBase):
     # rotate gripper 90deg
     initial_pose = robot.get_current_pose_stamped()
     offset = -tau/4.0 if clockwise else tau/4.0
-    success = robot.move_lin_rel(relative_rotation=[offset, 0, 0], speed=2.5, relative_to_tcp=True)
+    success = robot.move_lin_rel(relative_rotation=[offset, 0, 0], speed=1.0, relative_to_tcp=True)
     if not success:
       rospy.logerr("Fail to rotate 90deg %s" % success)
       return False
@@ -1210,13 +1215,13 @@ class O2ACCommon(O2ACBase):
       if not self.simple_gripper_check(robot_name, min_opening_width=required_width_when_closed):
         robot.gripper.send_command(command=opening_width, force=gripper_force, velocity = 0.13)
         if move_back_to_initial_position:
-          robot.go_to_pose_goal(initial_pose, speed=2.5, move_lin=True)
+          robot.go_to_pose_goal(initial_pose, speed=1.0, move_lin=True)
         return False
     robot.gripper.send_command(command=opening_width, force=gripper_force, velocity = 0.001)
 
     # rotate gripper -90deg
     if move_back_to_initial_position:
-      success = robot.go_to_pose_goal(initial_pose, speed=2.5, move_lin=True)
+      success = robot.go_to_pose_goal(initial_pose, speed=1.0, move_lin=True)
     return success
 
   def centering_pick(self, robot_name, object_pose, speed_fast=0.5, speed_slow=0.2, object_width=0.08, approach_height=0.1, 
@@ -1799,8 +1804,8 @@ class O2ACCommon(O2ACBase):
       all_screws_done = all(value == "done" for value in screw_status.values())
       tries += 1
 
-    self.robot.go_to_named_pose("horizontal_screw_ready", speed=speed)
-    self.robot.go_to_named_pose("screw_ready", speed=speed)
+    robot.go_to_named_pose("horizontal_screw_ready", speed=speed)
+    robot.go_to_named_pose("screw_ready", speed=speed)
     
     if not self.unequip_tool(robot_name, 'screw_tool_m4'):
       rospy.logerr("Fail to unequip tool abort!")
@@ -2644,6 +2649,7 @@ class O2ACCommon(O2ACBase):
   def attempt_motor_tray_pick(self, robot_name="b_bot"):
     """ Do one pick attempt, ignoring the motor's orientation.
     """
+    self.vision.activate_camera("b_bot_outside_camera")
     self.active_robots[robot_name].go_to_pose_goal(self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.5, acceleration=.2)
     res = self.get_3d_poses_from_ssd()
     obj_id = self.assembly_database.name_to_id("motor")
@@ -2929,7 +2935,7 @@ class O2ACCommon(O2ACBase):
 
     d = helpers.pose_dist(p_start.pose, p_center.pose)
     if distance > d:
-      ratio = 1.0
+      ratio = distance/d
     else:
       ratio = distance/d
     p = helpers.interpolate_between_poses(p_start.pose, p_center.pose, ratio)
