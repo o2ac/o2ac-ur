@@ -1187,6 +1187,9 @@ class O2ACBase(object):
         elif point[0] == "trajectory":
           trajectory = point[1]
           res = robot.move_lin_trajectory(trajectory)
+        elif point[0] == "joint_trajectory":
+          trajectory = point[1]
+          res = robot.move_joints_trajectory(trajectory)
         if not res:
           rospy.logerr("Fail to complete playback sequence: %s" % sequence_name)
           return False
@@ -1221,7 +1224,7 @@ class O2ACBase(object):
         if point[0] == "waypoint":
           previous_plan_type = point[1]["pose_type"]
         else:
-          previous_plan_type = ["trajectory"]
+          previous_plan_type = point[0]
         # end
 
         if save_on_success:
@@ -1335,6 +1338,9 @@ class O2ACBase(object):
       else:
         rospy.logerr("Trajectory: %s" % trajectory)
         raise ValueError("Invalid trajectory type %s" % type(trajectory[0][0]))
+    elif point[0] == "joint_trajectory":
+      # TODO(cambel): support master-slave trajectories
+      return self.active_robots[robot_name].move_joints_trajectory(point[1], plan_only=True, initial_joints=initial_joints)
     else:
       raise ValueError("Invalid sequence type: %s" % point[0])
 

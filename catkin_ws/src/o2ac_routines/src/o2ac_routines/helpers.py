@@ -645,6 +645,14 @@ def to_sequence_trajectory(trajectory, blend_radiuses=0.0, speed=0.5, default_fr
       sequence_trajectory.append([conversions.to_pose_stamped(default_frame, t), br, spd])
   return ["trajectory", sequence_trajectory]
 
+def to_sequence_joint_trajectory(trajectory, blend_radiuses=0.0, speed=0.5):
+  sequence_trajectory = []
+  blend_radiuses = blend_radiuses if isinstance(blend_radiuses, list) else np.zeros_like(trajectory)+blend_radiuses
+  speeds = speed if isinstance(speed, list) else np.zeros_like(trajectory)+speed
+  for i, (t, br, spd) in enumerate(zip(trajectory, blend_radiuses, speeds)):
+    sequence_trajectory.append([t, br, spd])
+  return ["joint_trajectory", sequence_trajectory]
+
 def get_plan_full_path(name):
   rp = rospkg.RosPack()
   return rp.get_path("o2ac_routines") + "/config/saved_plans/" + name

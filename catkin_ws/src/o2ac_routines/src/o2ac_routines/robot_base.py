@@ -277,7 +277,7 @@ class RobotBase():
         group.clear_pose_targets()
         return success
 
-    def move_lin_trajectory(self, trajectory, speed=1.0, acceleration=0.5, end_effector_link="", plan_only=False, initial_joints=None, retries=10, allow_joint_configuration_flip=False):
+    def move_lin_trajectory(self, trajectory, speed=1.0, acceleration=0.5, end_effector_link="", plan_only=False, initial_joints=None, allow_joint_configuration_flip=False):
         # TODO: Add allow_joint_configuration_flip
         if not self.set_up_move_group(speed, acceleration, planner="LINEAR"):
             return False
@@ -362,7 +362,7 @@ class RobotBase():
     def move_lin_rel(self, relative_translation=[0, 0, 0], relative_rotation=[0, 0, 0], speed=.5,
                      acceleration=0.2, relative_to_robot_base=False, relative_to_tcp=False,
                      wait=True, end_effector_link="", plan_only=False, initial_joints=None,
-                     allow_joint_configuration_flip=False):
+                     allow_joint_configuration_flip=False, pose_only=False):
         '''
         Does a lin_move relative to the current position of the robot.
 
@@ -416,10 +416,13 @@ class RobotBase():
                 t_w2tcp = transformations.concatenate_matrices(t_w2b, t_newpose)
                 new_pose = conversions.to_pose_stamped("world", transformations.pose_quaternion_from_matrix(t_w2tcp))
 
-        return self.go_to_pose_goal(new_pose, speed=speed, acceleration=acceleration,
-                                    end_effector_link=end_effector_link,  wait=wait,
-                                    move_lin=True, plan_only=plan_only, initial_joints=initial_joints,
-                                    allow_joint_configuration_flip=allow_joint_configuration_flip)
+        if pose_only:
+            return new_pose
+        else:
+            return self.go_to_pose_goal(new_pose, speed=speed, acceleration=acceleration,
+                                        end_effector_link=end_effector_link,  wait=wait,
+                                        move_lin=True, plan_only=plan_only, initial_joints=initial_joints,
+                                        allow_joint_configuration_flip=allow_joint_configuration_flip)
 
     def go_to_named_pose(self, pose_name, speed=0.5, acceleration=0.5, wait=True, plan_only=False, initial_joints=None):
         """
@@ -466,3 +469,68 @@ class RobotBase():
         else:
             rospy.logerr("Failed planning with error: %s" % error)
             return False
+
+    def move_joints_trajectory(self, trajectory, speed=1.0, acceleration=0.5, plan_only=False, initial_joints=None):
+        if not self.set_up_move_group(speed, acceleration, planner="PTP"):
+            return False
+
+        group = self.robot_group
+
+        waypoints = []
+        for point, blend_radius, speed in trajectory:
+            if isinstance(point, str):
+                joint_values = helpers.ordered_joint_values_from_dict(group.get_named_target_values(point), group.get_active_joints())
+            else:
+                joint_values = point
+            waypoints.append((joint_values, blend_radius, speed))
+
+        group.set_joint_value_target(initial_joints if initial_joints else group.get_current_joint_values())
+        # Start from current pose
+        msi = moveit_msgs.msg.MotionSequenceItem()
+        msi.req = group.construct_motion_plan_request()
+        msi.blend_radius = 0.0
+        msi.req.start_state = helpers.to_robot_state(group, initial_joints if initial_joints else group.get_current_joint_values())
+        
+        motion_plan_requests = []
+        motion_plan_requests.append(msi)
+
+        for wp, blend_radius, spd in waypoints:
+            self.set_up_move_group(spd, spd/2.0, planner="PTP")
+            group.clear_pose_targets()
+            group.set_joint_value_target(wp)
+            msi = moveit_msgs.msg.MotionSequenceItem()
+            msi.req = group.construct_motion_plan_request()
+            msi.req.start_state = moveit_msgs.msg.RobotState()
+            msi.blend_radius = blend_radius
+            motion_plan_requests.append(msi)
+
+        # Force last point to be 0.0 to avoid raising an error in the planner
+        motion_plan_requests[-1].blend_radius = 0.0
+
+        # Make MotionSequence
+        goal = moveit_msgs.msg.MoveGroupSequenceGoal()
+        goal.request = moveit_msgs.msg.MotionSequenceRequest()
+        goal.request.items = motion_plan_requests
+        # Plan only always for compatibility with simultaneous motions
+        goal.planning_options.plan_only = True
+
+        start_time = rospy.Time.now()
+        tries = 0
+        success = False
+        while not success and (rospy.Time.now() - start_time < rospy.Duration(15)) and not rospy.is_shutdown():
+
+            self.sequence_move_group.send_goal_and_wait(goal)
+            response = self.sequence_move_group.get_result()
+            
+            group.clear_pose_targets()
+
+            if response.response.error_code.val == 1:
+                plan = response.response.planned_trajectories[0]  # support only one plan?
+                planning_time = response.response.planning_time
+                if plan_only:
+                    return plan, planning_time
+                else:
+                    return self.execute_plan(plan, wait=True)
+            tries += 1
+        rospy.logerr("Failed to plan linear trajectory. error code: %s" % response.response.error_code.val)
+        return False
