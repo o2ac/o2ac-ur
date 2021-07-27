@@ -76,10 +76,12 @@ class O2ACAssembly(O2ACCommon):
 
     # Spawn tools and objects
     self.define_tool_collision_objects()
-    screw_ids = ['m3', 'm4']
-    for screw_id in screw_ids:
-      self.spawn_tool('screw_tool_' + screw_id)
-      self.upload_tool_grasps_to_param_server(screw_id)
+
+    ### Only used for MTC planning
+    # screw_ids = ['m3', 'm4']
+    # for screw_id in screw_ids:
+    #   self.spawn_tool('screw_tool_' + screw_id)
+    #   self.upload_tool_grasps_to_param_server(screw_id)
     
     self.belt_storage_location = geometry_msgs.msg.PoseStamped()
     self.belt_storage_location.header.frame_id = "left_centering_link"
