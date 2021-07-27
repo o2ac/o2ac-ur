@@ -37,7 +37,7 @@
 import sys
 import copy
 from o2ac_routines.base import AssemblyStatus
-from ur_control import conversions
+from ur_control import conversions, transformations
 import rospy
 import geometry_msgs.msg
 import moveit_msgs
@@ -151,6 +151,9 @@ class O2ACAssembly(O2ACCommon):
     self.unlock_base_plate()
     self.publish_status_text("Target: base plate")
 
+    object_name = "base"
+    target_frame = "tray_center"
+
     if not skip_initial_perception:
       self.b_bot.go_to_named_pose("home")
       self.activate_led("a_bot")
@@ -161,17 +164,18 @@ class O2ACAssembly(O2ACCommon):
         self.a_bot.go_to_named_pose("home")
         return False
 
-    centering_pose = self.assembly_database.get_grasp_pose("base", "terminal_grasp")
-    grasp_pose = self.assembly_database.get_grasp_pose("base", "default_grasp")
+    rospy.sleep(0.3)
+    centering_pose = self.get_transformed_grasp_pose(object_name, "terminal_grasp", target_frame)
+    grasp_pose     = self.get_transformed_grasp_pose(object_name, "default_grasp", target_frame)
+    
     if not centering_pose or not grasp_pose:
       rospy.logerr("Could not load grasp poses for object " + "base" + ". Aborting pick.")
       return False
-    
-    centering_pose.header.frame_id = "move_group/base"
-    rospy.sleep(0.3)
-    self.listener.waitForTransform("move_group/base", "tray_center", centering_pose.header.stamp, rospy.Duration(1))
-    centering_pose = self.listener.transformPose("tray_center", centering_pose)
     centering_pose.pose.position.z += .006
+
+    p = helpers.interpolate_between_poses(centering_pose.pose, grasp_pose.pose, 0.1)
+    centering_pose_closer_to_part_center = conversions.to_pose_stamped(target_frame, conversions.from_pose_to_list(p))
+    centering_pose_closer_to_part_center.pose.position.z = centering_pose.pose.position.z # do not offset anything
     
     above_centering_pose = copy.deepcopy(centering_pose)
     above_centering_pose.pose.position.z += .08
@@ -182,7 +186,7 @@ class O2ACAssembly(O2ACCommon):
     self.planning_scene_interface.allow_collisions("base", "tray_center")
     if not self.a_bot.go_to_pose_goal(above_centering_pose, speed=0.5, move_lin=False):
       return False
-    if not self.a_bot.go_to_pose_goal(centering_pose, speed=0.5, move_lin=True):
+    if not self.a_bot.go_to_pose_goal(centering_pose_closer_to_part_center, speed=0.5, move_lin=True):
       return False
 
     self.allow_collisions_with_robot_hand("tray", "a_bot")
@@ -198,6 +202,7 @@ class O2ACAssembly(O2ACCommon):
         return self.subtask_zero(skip_initial_perception=True)
       else:  # If retry has also failed
         rospy.logerr("Plate was not perceived by gripper. Breaking out.")
+        self.a_bot.gripper.open(wait=False)
         return False
 
     # Move plate into the middle a bit to avoid collisions with tray wall or other parts during centering
@@ -205,28 +210,32 @@ class O2ACAssembly(O2ACCommon):
     self.a_bot.gripper.attach_object("base")
     self.planning_scene_interface.allow_collisions("base", "")
 
-    d = 0.03
-    dx, dy = self.distances_from_tray_border(centering_pose)
-    if dx < 0.01 or dy < 0.01:
-      d = 0.05
-    self.move_towards_tray_center("a_bot", distance=d, go_back_halfway=True, one_direction='x')
+    dx, dy = self.distances_from_tray_border(grasp_pose)
+    print("distance from border dx:", dx, "dy:", dy)
+    direction = 'x' if dy > dx else 'y'
+    self.move_towards_tray_center("a_bot", distance=0.05, go_back_halfway=True, one_direction=direction, go_back_ratio=0.4)
     # move_towards_tray_center disables collisions with the tray, so we have to reallow them here
     self.allow_collisions_with_robot_hand("tray", "a_bot")
     self.allow_collisions_with_robot_hand("tray_center", "a_bot")
     self.a_bot.gripper.detach_object("base")
     self.a_bot.gripper.open(opening_width=0.07)
 
-    self.center_with_gripper("a_bot", opening_width=0.07, gripper_force=80, required_width_when_closed=0.008, move_back_to_initial_position=False)
+    centering_pose = self.get_transformed_grasp_pose(object_name, "terminal_grasp", target_frame)
+    centering_pose.pose.position.z += .006
+
+    if not self.a_bot.go_to_pose_goal(centering_pose, speed=0.5, move_lin=True):
+      return False
+
+    self.center_with_gripper("a_bot", opening_width=0.06, gripper_force=80, required_width_when_closed=0.008, move_back_to_initial_position=False)
 
     above_centering_pose.pose = helpers.rotatePoseByRPY(tau/4, 0, 0, above_centering_pose.pose)
     if not self.a_bot.go_to_pose_goal(above_centering_pose, speed=0.5):
       return False
     
-    grasp_pose.header.frame_id = "move_group/base"
-    grasp_pose = self.listener.transformPose("tray_center", grasp_pose)
+    grasp_pose = self.get_transformed_grasp_pose(object_name, "default_grasp", target_frame)
 
     self.allow_collisions_with_robot_hand("base", "a_bot", allow=True)
-    if not self.simple_pick("a_bot", grasp_pose, axis="z", approach_height=0.05, retreat_height=0.15, grasp_width=0.125, gripper_force=100.0):
+    if not self.simple_pick("a_bot", grasp_pose, axis="z", approach_height=0.05, retreat_height=0.15, grasp_width=0.125, gripper_force=100.0, push_with_gripper=True):
       rospy.logerr("Fail to grasp base plate")
       self.a_bot.gripper.open()
       self.a_bot.move_lin_rel(relative_translation=[0, 0, 0.1])
@@ -249,24 +258,30 @@ class O2ACAssembly(O2ACCommon):
     
     # There is a risk of overextending the wrist joint if we don't use the joint pose
     above_base_drop = [1.57783019, -1.430060581, 1.67834741, -1.82884373, -1.56911117, 0.00590014457]
-    self.a_bot.move_joints(above_base_drop, speed=0.5)
-    self.a_bot.go_to_pose_goal(base_drop, speed=0.3, move_lin = True)
-
     base_inserted = conversions.to_pose_stamped("assembled_part_01", [0.108, -0.006, 0.067, 1.568, 0.103, -1.582])  # Taught
-    self.a_bot.go_to_pose_goal(base_inserted, speed=0.05, move_lin = True)
+    seq = []
+    seq.append(helpers.to_sequence_item(above_base_drop, 0.5, linear=False))
+    seq.append(helpers.to_sequence_item(base_drop, 0.3))
+    seq.append(helpers.to_sequence_item(base_inserted, 0.05))
+    if not self.execute_sequence("a_bot", seq, "place base plate"):
+      return False
+    # self.a_bot.move_joints(above_base_drop, speed=0.5)
+    # self.a_bot.go_to_pose_goal(base_drop, speed=0.3, move_lin = True)
+    # self.a_bot.go_to_pose_goal(base_inserted, speed=0.05, move_lin = True)
     self.a_bot.gripper.open()
 
-    self.a_bot.move_lin_rel(relative_translation=[-0.03, 0, 0.03], relative_to_robot_base=True)
-    self.a_bot.go_to_named_pose("home")
-    self.allow_collisions_with_robot_hand("base", "a_bot", allow=False)
-    
-    self.publish_part_in_assembled_position("base")
-
-    self.lock_base_plate()
-    rospy.sleep(0.3)
-    self.unlock_base_plate()
-    rospy.sleep(0.3)
-    self.lock_base_plate()
+    def set_base_plate():
+      self.lock_base_plate()
+      rospy.sleep(0.3)
+      self.unlock_base_plate()
+      rospy.sleep(0.3)
+      self.lock_base_plate()
+    def a_bot_return():
+      self.a_bot.move_lin_rel(relative_translation=[-0.03, 0, 0.03], relative_to_robot_base=True)
+      self.a_bot.go_to_named_pose("home")
+      self.allow_collisions_with_robot_hand("base", "a_bot", allow=False)
+      self.publish_part_in_assembled_position("base")
+    self.do_tasks_simultaneous(a_bot_return, set_base_plate)
     return True
 
   def subtask_a(self):

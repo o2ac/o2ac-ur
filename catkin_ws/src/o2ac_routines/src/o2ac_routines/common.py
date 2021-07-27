@@ -2850,7 +2850,7 @@ class O2ACCommon(O2ACBase):
     return True
   ########
 
-  def move_towards_tray_center(self, robot_name, distance, speed=0.05, acc=0.025, go_back_halfway=True, one_direction=None, end_effector_link=""):
+  def move_towards_tray_center(self, robot_name, distance, speed=0.05, acc=0.025, go_back_halfway=True, one_direction=None, end_effector_link="", go_back_ratio=0.5):
     """ Moves from the current position of the robot towards the tray center at constant height.
         one_direction: 'x' or 'y'
     """
@@ -2877,7 +2877,7 @@ class O2ACCommon(O2ACBase):
       return False
     
     if go_back_halfway:
-      p = helpers.interpolate_between_poses(p_new.pose, p_start.pose, 0.5)
+      p = helpers.interpolate_between_poses(p_new.pose, p_start.pose, go_back_ratio)
       p_new = conversions.to_pose_stamped("tray_center", conversions.from_pose_to_list(p))
       p_new.pose.position.z = p_start.pose.position.z # do not go down
       if one_direction == 'x':
