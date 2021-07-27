@@ -483,10 +483,12 @@ class O2ACAssembly(O2ACCommon):
       attempts += 1
     return success
 
-  def panel_subtask(self, panel, attempt_nr=0, allow_fallbacks=True):
+  def panel_subtask(self, panel, attempt_nr=0, allow_fallbacks=True, simultaneous_execution=True):
     """
     input parameter panel needs to be "panel_motor" or "panel_bearing"
     """
+    if simultaneous_execution:
+      return self.panel_subtask_simultaneous(panel, attempt_nr=attempt_nr, allow_fallbacks=allow_fallbacks)
 
     self.publish_status_text("Target: " + panel)
     if not self.b_bot.go_to_named_pose("feeder_pick_ready"):
@@ -682,6 +684,221 @@ class O2ACAssembly(O2ACCommon):
     self.allow_collisions_with_robot_hand(panel, "a_bot", allow=False)
     return True
 
+  def panel_subtask_simultaneous(self, panel, attempt_nr=0, allow_fallbacks=True):
+    """
+    input parameter panel needs to be "panel_motor" or "panel_bearing"
+    """
+    self.publish_status_text("Target: " + panel)
+
+    def b_bot_task(): # Pick tool & screw, then wait
+      self.equip_tool(robot_name="b_bot", tool_name="screw_tool_m4")
+      if not self.b_bot.go_to_named_pose("feeder_pick_ready"):
+        rospy.logerr("b_bot did not move out of the way. Aborting.")
+        return False
+
+    grasp_pose = self.assembly_database.get_grasp_pose(panel, "default_grasp")
+    if not grasp_pose:
+      rospy.logerr("Could not load grasp pose " + "default_grasp" + " for object " + panel + ". Aborting pick.")
+      return False
+    grasp_pose.header.frame_id = "move_group/" + panel
+    picked = False
+    def a_bot_task(): # Pick and orient panel
+      global picked
+      self.activate_led("a_bot")
+      plate_pose = self.get_large_item_position_from_top(panel, "a_bot")
+      if not plate_pose:
+        rospy.logerr("Cannot find " + panel + " in tray. Return False.")
+        return False
+
+      # Pick using the grasp pose only, ignoring scene object
+      try:
+        self.listener.waitForTransform("move_group/" + panel, "tray_center", grasp_pose.header.stamp, rospy.Duration(1))
+        grasp_pose_tray = self.listener.transformPose("tray_center", grasp_pose)
+      except:
+        rospy.logerr("Could not transform from object. Is the object " + panel + " in the scene?")
+        return False
+      
+      self.planning_scene_interface.allow_collisions(panel, "")
+      self.planning_scene_interface.allow_collisions(panel, "tray")
+      self.planning_scene_interface.allow_collisions(panel, "tray_center")
+      self.allow_collisions_with_robot_hand(panel, "a_bot")
+      rospy.sleep(1.0)  # TODO(felixvd): Necessary after enabling collisions? Likely.
+      if not self.too_close_to_border(grasp_pose_tray, border_dist=0.025):
+        picked = self.simple_pick("a_bot", grasp_pose_tray, axis="z", grasp_width=0.06, minimum_grasp_width=0.0001)
+      else:
+        picked = False
+      return picked
+    
+    self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=180.0)
+    
+    try:
+      self.listener.waitForTransform("move_group/" + panel, "tray_center", grasp_pose.header.stamp, rospy.Duration(1))
+      grasp_pose_tray = self.listener.transformPose("tray_center", grasp_pose)
+    except:
+      rospy.logerr("Could not transform from object. Is the object " + panel + " in the scene?")
+      return False
+    if allow_fallbacks:
+      # Fallback: Try moving the plate
+      if not picked:
+        self.a_bot.go_to_named_pose("home", wait=False)
+        self.unequip_tool("b_bot")
+        if panel == "panel_motor":
+          tool_pull_pose = conversions.to_pose_stamped("move_group/panel_motor", [0.03, 0.038, 0.0, 0, 0, 0])
+        elif panel == "panel_bearing":
+          tool_pull_pose = conversions.to_pose_stamped("move_group/panel_bearing/front_hole", [0.0, 0.0, 0.0, 0, 0, 0])
+        
+        # print("tool_pull_pose", tool_pull_pose.pose.position)
+        tool_pull_pose = self.listener.transformPose("tray_center", tool_pull_pose)
+        # print("tool_pull_pose tfed", tool_pull_pose.pose.position)
+
+        # If close to border, pull towards the middle
+        if self.too_close_to_border(grasp_pose_tray, border_dist=0.04):
+          # Add 1 cm distance to pull pose
+          self.move_towards_center_with_tool("b_bot", target_pose=tool_pull_pose, distance=0.05, start_with_spiral=True)
+          self.planning_scene_interface.allow_collisions(panel, "")  # Collisions are reactivated in move_towards_center_with_tool
+          self.planning_scene_interface.allow_collisions(panel, "tray")
+          self.planning_scene_interface.allow_collisions(panel, "tray_center")
+          self.allow_collisions_with_robot_hand(panel, "a_bot")
+        else:  # If not close to border, try to hit a hole and make space around the plate
+          self.declutter_with_tool("b_bot", tool_pull_pose) 
+          
+        self.b_bot.go_to_named_pose("feeder_pick_ready", wait=False)
+        return self.panel_subtask(panel, attempt_nr=attempt_nr, allow_fallbacks=False)
+
+      # Fallback 2: Try to pick all 4 possible orientations
+      if attempt_nr > 0:
+        for i in range(4):
+          rospy.logwarn("Fallback: Rotating plate (" + str() + " out of 3 times)")
+          self.rotate_plate_collision_object_in_tray(panel)
+          rospy.sleep(.5)
+          grasp_pose_tray = self.listener.transformPose("tray_center", grasp_pose)
+          if self.is_grasp_pose_feasible(grasp_pose_tray, border_dist=0.025):
+            picked = self.simple_pick("a_bot", grasp_pose_tray, axis="z", grasp_width=0.06, minimum_grasp_width=0.0001)
+          if picked:
+            break
+    
+    if not picked:
+      rospy.logerr("Did not pick panel. Abort.")
+      return False
+
+    self.confirm_to_proceed("Go on to placing program?")
+
+    # TODO: Check that the plate is seen by SSD when placed outside the tray
+    
+    def a_bot_task2():
+      if panel == "panel_bearing":
+        success_a = self.a_bot.load_program(program_name="wrs2020/bearing_plate_full.urp", recursion_depth=3)
+      elif panel == "panel_motor":
+        success_a = self.a_bot.load_program(program_name="wrs2020/motor_plate_full.urp", recursion_depth=3)
+      
+      if not success_a:
+        rospy.logerr("Failed to load plate placing program on a_bot")
+        return False
+      
+      if not self.a_bot.execute_loaded_program():
+        rospy.logerr("Failed to execute plate placing program on a_bot")
+        return False
+      rospy.loginfo("Running bearing plate rearrangement on a_bot.")
+      helpers.wait_for_UR_program("/a_bot", rospy.Duration.from_sec(40))
+
+      self.publish_part_in_assembled_position(panel)
+      self.allow_collisions_with_robot_hand(panel, "a_bot")
+    
+    def b_bot_task2():
+      self.equip_tool(robot_name="b_bot", tool_name="screw_tool_m4")
+      self.vision.activate_camera(camera_name="b_bot_outside_camera")
+      self.pick_screw_from_feeder("b_bot", screw_size = 4, realign_tool_upon_failure=True)
+    
+    self.do_tasks_simultaneous(a_bot_task2, b_bot_task2, timeout=90.0)
+
+    if not self.tools.screw_is_suctioned.get("m4", False): 
+      rospy.logerr("Failed to pick screw from feeder, could not fix the issue. Abort.")
+      self.a_bot.gripper.open()
+      self.a_bot.go_to_named_pose("home")
+
+    if panel == "panel_bearing":
+      part_name = "assembled_part_03_"
+    elif panel == "panel_motor":
+      part_name = "assembled_part_02_"
+
+    screw_target_pose = geometry_msgs.msg.PoseStamped()
+    screw_target_pose.header.frame_id = part_name + "bottom_screw_hole_1"
+    screw_target_pose.pose.orientation = geometry_msgs.msg.Quaternion(
+                *tf_conversions.transformations.quaternion_from_euler(radians(-20), 0, 0))
+    if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel):
+      # Fallback for screw 1
+      rospy.logerr("Failed to fasten panel screw 1, trying to realign tool and retry.")
+      self.realign_tool("b_bot", "screw_tool_m4")
+      self.b_bot.go_to_named_pose("feeder_pick_ready")
+      self.pick_screw_from_feeder("b_bot", screw_size = 4)
+
+      # Realign plate
+      self.a_bot.gripper.close(force = 100)
+      self.a_bot.move_lin_rel(relative_translation=[0, -0.015, 0])
+      self.a_bot.gripper.open(opening_width=0.08, wait=True)
+      if panel == "panel_bearing":
+        success_a = self.a_bot.load_program(program_name="wrs2020/bearing_plate_positioning.urp", recursion_depth=3)
+      else:
+        success_a = self.a_bot.load_program(program_name="wrs2020/motor_plate_positioning.urp", recursion_depth=3)
+      if not success_a:
+        rospy.logerr("Failed to load plate positioning program on a_bot")
+        return False
+      if not self.a_bot.execute_loaded_program():
+        rospy.logerr("Failed to execute plate positioning program on a_bot")
+        return False
+      helpers.wait_for_UR_program("/a_bot", rospy.Duration.from_sec(20))
+      
+      # Retry fastening
+      if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel):
+        rospy.logerr("Failed to fasten panel screw 2 again. Aborting.")
+        return False
+    rospy.loginfo("Successfully fastened screw 1")
+
+    def a_bot_task3():
+      self.a_bot.gripper.close()
+      self.a_bot.gripper.open()
+      if not self.a_bot.go_to_named_pose("home", wait=False):
+        rospy.logerr("Failed to move a_bot home!")
+        return False
+    def b_bot_task3():
+      self.pick_screw_from_feeder("b_bot", screw_size = 4, realign_tool_upon_failure=True)
+    self.do_tasks_simultaneous(a_bot_task3, b_bot_task3, timeout=180.0)
+    if not self.tools.screw_is_suctioned.get("m4", False): 
+      rospy.logerr("Failed to pick second screw from feeder, could not fix the issue. Abort.")
+
+    screw_target_pose.header.frame_id = part_name + "bottom_screw_hole_2"
+    if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel):
+      # Fallback for screw 2: Realign tool, recenter plate, try again
+      rospy.logerr("Failed to fasten panel screw 2, trying to realign tool and retrying.")
+      self.realign_tool("b_bot", "screw_tool_m4")
+      self.b_bot.go_to_named_pose("feeder_pick_ready")
+      self.pick_screw_from_feeder("b_bot", screw_size = 4)
+
+      # Recenter plate
+      center_plate_pose = geometry_msgs.msg.PoseStamped()
+      if panel == "panel_bearing":
+        center_plate_pose.header.frame_id = part_name + "pulley_ridge_middle"
+      else:  # motor panel
+        center_plate_pose.header.frame_id = part_name + "motor_screw_hole_5"
+      center_plate_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, radians(60), -tau/4))
+      center_plate_pose.pose.position.x = 0.0025
+      self.a_bot.gripper.open(opening_width=0.08, wait=False)
+      self.a_bot.go_to_pose_goal(center_plate_pose, move_lin=False)
+      self.a_bot.gripper.close(force = 100)
+      self.a_bot.gripper.open()
+      if not self.a_bot.go_to_named_pose("home"):
+        rospy.logerr("Failed to move a_bot home!")
+        return False
+      if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel):
+        rospy.logerr("Failed to fasten panel screw 2 again. Aborting.")
+        return False
+    self.unlock_base_plate()
+    rospy.sleep(0.5)
+    self.lock_base_plate()
+    self.allow_collisions_with_robot_hand(panel, "a_bot", allow=False)
+    return True
+
+
   def subtask_h(self):
     # Attach belt
     rospy.loginfo("======== SUBTASK H (belt) ========")
@@ -805,23 +1022,19 @@ class O2ACAssembly(O2ACCommon):
     pose.pose.orientation.w = 1
     return self.do_plan_pickplace_action('b_bot', 'panel_bearing', pose, save_solution_to_file = 'panel_bearing/bottom_screw_hole_aligner_1')
 
-  def full_assembly_task(self):
+  def full_assembly_task(self, simultaneous_execution=True):
+    if simultaneous_execution:
+      return self.full_assembly_task_simultaneous()
     if not self.assembly_status.tray_placed_on_table:
       self.take_tray_from_agv()
 
     # Look into the tray
     self.publish_status_text("Target: base plate")
-    # self.look_and_get_grasp_point(object_id=2)  # Base place
     self.confirm_to_proceed("press enter to proceed to pick and set base plate")
     while not self.assembly_status.completed_subtask_zero and not rospy.is_shutdown():
         self.assembly_status.completed_subtask_zero = self.subtask_zero()  # Base plate
-    
-    ## Equip screw tool for subtasks G, F
-    if not self.assembly_status.completed_subtask_f or not self.assembly_status.completed_subtask_g:
-      self.b_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
-      self.do_change_tool_action("b_bot", equip=True, screw_size=4)
-      self.b_bot.go_to_named_pose("feeder_pick_ready", speed=self.speed_fastest, acceleration=self.acc_fastest)
-      self.vision.activate_camera("b_bot_outside_camera")
+  
+    self.vision.activate_camera("b_bot_outside_camera")
 
     self.confirm_to_proceed("press enter to proceed to subtask_g")
     if not self.assembly_status.completed_subtask_g:
@@ -866,3 +1079,42 @@ class O2ACAssembly(O2ACCommon):
     
     # self.subtask_c() # bearing, clamping pulley set
     return
+
+  def full_assembly_task_simultaneous(self):
+    if not self.assembly_status.tray_placed_on_table:
+      self.take_tray_from_agv()
+
+
+    def b_bot_task():
+      self.pick_and_store_motor()
+      self.b_bot.go_to_named_pose("home")
+    def a_bot_task():
+      
+      # Look into the tray
+      self.publish_status_text("Target: base plate")
+      while not self.assembly_status.completed_subtask_zero and not rospy.is_shutdown():
+          self.assembly_status.completed_subtask_zero = self.subtask_zero()  # Base plate
+  
+    self.vision.activate_camera("b_bot_outside_camera")
+
+    self.confirm_to_proceed("press enter to proceed to subtask_g")
+    if not self.assembly_status.completed_subtask_g:
+      self.assembly_status.completed_subtask_g = self.subtask_g()  # Bearing plate
+    self.confirm_to_proceed("press enter to proceed to subtask_f")
+    if not self.assembly_status.completed_subtask_f:
+      self.assembly_status.completed_subtask_f = self.subtask_f() # Motor plate
+
+    self.a_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
+    self.do_change_tool_action("b_bot", equip=False, screw_size=4)
+
+    if self.assembly_status.completed_subtask_g:  # Bearing plate
+      self.assembly_status.completed_subtask_c1 = self.subtask_c1() # bearing 
+      if self.assembly_status.completed_subtask_c1:
+        self.assembly_status.completed_subtask_c2 = self.subtask_c2() # shaft
+      #   if self.assembly_status.completed_subtask_c2:
+      #     self.assembly_status.completed_subtask_e = self.subtask_e() # bearing spacer / output pulley
+    
+    self.ab_bot.go_to_named_pose("home")
+    self.unload_drive_unit()
+    self.assembly_status = AssemblyStatus()
+    rospy.loginfo("==== Finished.")
