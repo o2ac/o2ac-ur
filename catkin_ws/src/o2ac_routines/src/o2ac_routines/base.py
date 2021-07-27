@@ -421,7 +421,14 @@ class O2ACBase(object):
           j2 = self.active_robots[robot_name].compute_ik(adjusted_pose, timeout=0.02, end_effector_link=screw_tool_link)
           waypoints.append([j1, 0.0, 0.8])  # pose, blend_radius, speed
           waypoints.append([j2, 0.0, 0.05])
-          success = self.active_robots[robot_name].move_joints_trajectory(waypoints)
+          success = self.active_robots[robot_name].move_joints_trajectory(waypoints, timeout=1.0)
+          if not success:
+            seq = []
+            seq.append(helpers.to_sequence_item("feeder_pick_ready", speed=1.0))
+            seq.append(helpers.to_sequence_trajectory([above_screw_head_pose,adjusted_pose], blend_radiuses=[0.001,0], speed=[0.4,0.05]))
+            success = self.execute_sequence(robot_name, seq, "move into screw pick", end_effector_link=screw_tool_link)
+          if success:
+            first_approach = False
 
       # Break out of loop if screw suctioned or max search radius exceeded
       screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False) or (not self.use_real_robot)

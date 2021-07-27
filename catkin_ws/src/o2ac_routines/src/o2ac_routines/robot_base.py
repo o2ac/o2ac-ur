@@ -471,7 +471,7 @@ class RobotBase():
             rospy.logerr("Failed planning with error: %s" % error)
             return False
 
-    def move_joints_trajectory(self, trajectory, speed=1.0, acceleration=0.5, plan_only=False, initial_joints=None):
+    def move_joints_trajectory(self, trajectory, speed=1.0, acceleration=0.5, plan_only=False, initial_joints=None, timeout=5.0):
         if not self.set_up_move_group(speed, acceleration, planner="PTP"):
             return False
 
@@ -516,9 +516,8 @@ class RobotBase():
         goal.planning_options.plan_only = True
 
         start_time = rospy.Time.now()
-        tries = 0
         success = False
-        while not success and (rospy.Time.now() - start_time < rospy.Duration(15)) and not rospy.is_shutdown():
+        while not success and (rospy.Time.now() - start_time < rospy.Duration(timeout)) and not rospy.is_shutdown():
 
             self.sequence_move_group.send_goal_and_wait(goal)
             response = self.sequence_move_group.get_result()
@@ -532,6 +531,5 @@ class RobotBase():
                     return plan, planning_time
                 else:
                     return self.execute_plan(plan, wait=True)
-            tries += 1
-        rospy.logerr("Failed to plan linear trajectory. error code: %s" % response.response.error_code.val)
+        rospy.logerr("Failed to plan joint trajectory. error code: %s" % response.response.error_code.val)
         return False
