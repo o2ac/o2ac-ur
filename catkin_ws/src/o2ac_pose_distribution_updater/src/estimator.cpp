@@ -5,6 +5,8 @@ each action
 
 #include "o2ac_pose_distribution_updater/estimator.hpp"
 #include <numeric>
+#include <opencv2/core/eigen.hpp>
+#include <yaml-cpp/yaml.h>
 
 const double EPS = 1e-9;
 
@@ -78,6 +80,90 @@ double calculate_distance(
 
 // class member functions
 
+void PoseEstimator::load_config_file(const std::string &file_path) {
+  YAML::Node config = YAML::LoadFile(file_path);
+
+  // Read the parameters from rosparam and initialize estimator
+
+  // Read the sizes of objects and create fcl::CollisionObject classes
+  std::vector<double> ground_size(3), ground_position(3);
+  for (int i = 0; i < 3; i++) {
+    ground_size[i] = config["ground_size"][i].as<double>();
+    ground_position[i] = config["ground_position"][i].as<double>();
+  }
+  std::shared_ptr<fcl::Box> ground_geometry(
+      new fcl::Box(ground_size[0], ground_size[1], ground_size[2]));
+  fcl::Vec3f ground_translation(ground_position[0], ground_position[1],
+                                ground_position[2]);
+  std::shared_ptr<fcl::CollisionObject> ground_object(new fcl::CollisionObject(
+      ground_geometry,
+      fcl::Transform3f(fcl::Quaternion3f(), ground_translation)));
+
+  std::vector<double> box_size(3), box_position(3);
+  for (int i = 0; i < 3; i++) {
+    box_size[i] = config["box_size"][i].as<double>();
+    box_position[i] = config["box_position"][i].as<double>();
+  }
+  std::shared_ptr<fcl::Box> box_geometry(
+      new fcl::Box(box_size[0], box_size[1], box_size[2]));
+  fcl::Vec3f box_translation(box_position[0], box_position[1], box_position[2]);
+  std::shared_ptr<fcl::CollisionObject> box_object(new fcl::CollisionObject(
+      box_geometry, fcl::Transform3f(fcl::Quaternion3f(), box_translation)));
+
+  std::vector<std::shared_ptr<fcl::CollisionObject>> touched_objects;
+  touched_objects.push_back(ground_object);
+  touched_objects.push_back(box_object);
+
+  // Read other parameters
+
+  Particle noise_variance;
+  for (int i = 0; i < 6; i++) {
+    noise_variance(i) = config["noise_variance"][i].as<double>();
+  }
+
+  std::vector<std::vector<double>> calibration_object_points,
+      calibration_image_points;
+  YAML::Node object_points_node = config["calibration_object_points"];
+  YAML::Node image_points_node = config["calibration_image_points"];
+  for (auto it = object_points_node.begin(); it != object_points_node.end();
+       it++) {
+    std::vector<double> point(3);
+    for (int i = 0; i < 3; i++) {
+      point[i] = (*it)[i].as<double>();
+    }
+    calibration_object_points.push_back(point);
+  }
+  for (auto it = image_points_node.begin(); it != image_points_node.end();
+       it++) {
+    std::vector<double> point(3);
+    for (int i = 0; i < 2; i++) {
+      point[i] = (*it)[i].as<double>();
+    }
+    calibration_image_points.push_back(point);
+  }
+
+  set_particle_parameters(config["number_of_particles"].as<int>(),
+                          noise_variance);
+  set_touch_parameters(touched_objects,
+                       config["distance_threshold"].as<double>());
+  set_look_parameters(
+      config["look_threshold"].as<int>(), calibration_object_points,
+      calibration_image_points, config["camera_fx"].as<double>(),
+      config["camera_fy"].as<double>(), config["camera_cx"].as<double>(),
+      config["camera_cy"].as<double>());
+  set_use_linear_approximation(config["use_linear_approximation"].as<bool>());
+  set_grasp_parameters(config["gripper_height"].as<double>(),
+                       config["gripper_width"].as<double>(),
+                       config["gripper_thickness"].as<double>());
+  Eigen::Vector3d looked_point;
+  for (int i = 0; i < 3; i++) {
+    looked_point(i) = config["looked_point"][i].as<double>();
+  }
+  set_look_image_parameter(config["image_height"].as<unsigned int>(),
+                           config["image_width"].as<unsigned int>(),
+                           looked_point);
+}
+
 void PoseEstimator::set_particle_parameters(const int &number_of_particles,
                                             const Particle &noise_variance) {
   this->number_of_particles = number_of_particles;
@@ -124,6 +210,18 @@ void PoseEstimator::set_look_parameters(
   // 'camera_t', using calibration points
   cv::solvePnP(cv_calibration_object_points, cv_calibration_image_points,
                camera_matrix, camera_dist_coeffs, camera_r, camera_t);
+}
+
+Eigen::Isometry3d PoseEstimator::get_camera_pose() {
+  cv::Mat rotation_matrix;
+  cv::Rodrigues(camera_r, rotation_matrix);
+  Eigen::Matrix3d rotation;
+  Eigen::Vector3d translation;
+  cv::cv2eigen(rotation_matrix, rotation);
+  cv::cv2eigen(camera_t, translation);
+  Eigen::Isometry3d transform(rotation);
+  transform.translation() = translation;
+  return transform.inverse();
 }
 
 void PoseEstimator::set_grasp_parameters(const double &gripper_height,

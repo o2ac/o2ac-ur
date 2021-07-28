@@ -39,7 +39,7 @@ calculate_center_of_gravity(const std::vector<Eigen::Vector3d> &vertices,
                             const std::vector<boost::array<int, 3>> &triangles);
 
 class PoseEstimator {
-protected:
+public:
   // Parameters for Gaussian particle filter
   int number_of_particles;
   Particle noise_variance;
@@ -56,6 +56,9 @@ protected:
   // Parameters for look action
   unsigned char look_threshold;
   cv::Mat camera_matrix = cv::Mat::eye(3, 3, CV_64FC1), camera_dist_coeffs;
+  unsigned int image_height, image_width;
+  Eigen::Vector3d looked_point;
+
   // Variables for look action
   cv::Mat camera_r, camera_t;
 
@@ -85,9 +88,21 @@ public:
     this->use_linear_approximation = use_linear_approximation;
   }
 
+  Eigen::Isometry3d get_camera_pose();
+
   void set_grasp_parameters(const double &gripper_height,
                             const double &gripper_width,
                             const double &gripper_thickness);
+
+  void set_look_image_parameter(const unsigned int &image_height,
+                                const unsigned int &image_width,
+                                const Eigen::Vector3d &looked_point) {
+    this->image_height = image_height;
+    this->image_width = image_width;
+    this->looked_point = looked_point;
+  }
+
+  void load_config_file(const std::string &file_path);
 
   void generate_particles(const Particle &old_mean,
                           const CovarianceMatrix &old_covariance);

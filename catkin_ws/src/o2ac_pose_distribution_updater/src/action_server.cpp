@@ -142,89 +142,13 @@ int main(int argc, char **argv) {
   ros::init(argc, argv, "update_distribution_action_server");
   ros::NodeHandle nd;
 
-  // Read the parameters from rosparam and initialize estimator
-
-  // Read the sizes of objects and create fcl::CollisionObject classes
-  std::vector<double> ground_size, ground_position;
-  nd.getParam("ground_size", ground_size);
-  nd.getParam("ground_position", ground_position);
-  std::shared_ptr<fcl::Box> ground_geometry(
-      new fcl::Box(ground_size[0], ground_size[1], ground_size[2]));
-  fcl::Vec3f ground_translation(ground_position[0], ground_position[1],
-                                ground_position[2]);
-  std::shared_ptr<fcl::CollisionObject> ground_object(new fcl::CollisionObject(
-      ground_geometry,
-      fcl::Transform3f(fcl::Quaternion3f(), ground_translation)));
-
-  std::vector<double> box_size, box_position;
-  nd.getParam("box_size", box_size);
-  nd.getParam("box_position", box_position);
-  std::shared_ptr<fcl::Box> box_geometry(
-      new fcl::Box(box_size[0], box_size[1], box_size[2]));
-  fcl::Vec3f box_translation(box_position[0], box_position[1], box_position[2]);
-  std::shared_ptr<fcl::CollisionObject> box_object(new fcl::CollisionObject(
-      box_geometry, fcl::Transform3f(fcl::Quaternion3f(), box_translation)));
-
-  std::vector<std::shared_ptr<fcl::CollisionObject>> touched_objects;
-  touched_objects.push_back(ground_object);
-  touched_objects.push_back(box_object);
-
-  // Read other parameters
-  double distance_threshold;
-  nd.getParam("distance_threshold", distance_threshold);
-
-  std::vector<double> noise_variance_vector;
-  nd.getParam("noise_variance", noise_variance_vector);
-  Particle noise_variance(noise_variance_vector.data());
-
-  int number_of_particles;
-  nd.getParam("number_of_particles", number_of_particles);
-
-  double look_threshold;
-  nd.getParam("look_threshold", look_threshold);
-
-  // calibration points are represented by the concatenated list of xyz
-  // coordinates of all points
-  std::vector<double> calibration_object_coordinates,
-      calibration_image_coordinates;
-  nd.getParam("calibration_object_points", calibration_object_coordinates);
-  nd.getParam("calibration_image_points", calibration_image_coordinates);
-  int number_of_calibration_points = calibration_object_coordinates.size() / 3;
-  std::vector<std::vector<double>> calibration_object_points(
-      number_of_calibration_points),
-      calibration_image_points(number_of_calibration_points);
-  for (int i = 0; i < number_of_calibration_points; i++) {
-    calibration_object_points[i] =
-        std::vector<double>{calibration_object_coordinates[3 * i],
-                            calibration_object_coordinates[3 * i + 1],
-                            calibration_object_coordinates[3 * i + 2]};
-    calibration_image_points[i] =
-        std::vector<double>{calibration_image_coordinates[2 * i],
-                            calibration_image_coordinates[2 * i + 1]};
-  }
-  double camera_fx, camera_fy, camera_cx, camera_cy;
-  nd.getParam("camera_fx", camera_fx);
-  nd.getParam("camera_fy", camera_fy);
-  nd.getParam("camera_cx", camera_cx);
-  nd.getParam("camera_cy", camera_cy);
-  bool use_linear_approximation;
-  nd.getParam("use_linear_approximation", use_linear_approximation);
-  double gripper_height, gripper_width, gripper_thickness;
-  nd.getParam("gripper_height", gripper_height);
-  nd.getParam("gripper_width", gripper_width);
-  nd.getParam("gripper_thickness", gripper_thickness);
-
   // construct 'estimator' and set parameters
   estimator = std::unique_ptr<ROSConvertedPoseEstimator>(
       new ROSConvertedPoseEstimator());
-  estimator->set_particle_parameters(number_of_particles, noise_variance);
-  estimator->set_touch_parameters(touched_objects, distance_threshold);
-  estimator->set_look_parameters(look_threshold, calibration_object_points,
-                                 calibration_image_points, camera_fx, camera_fy,
-                                 camera_cx, camera_cy);
-  estimator->set_use_linear_approximation(use_linear_approximation);
-  estimator->set_grasp_parameters(gripper_height, gripper_width,
-                                  gripper_thickness);
+
+  std::string config_file_path;
+  nd.getParam("config_file", config_file_path);
+  estimator->load_config_file(config_file_path);
 
   bool use_planning_scene_monitor;
   nd.getParam("use_planning_scene_monitor", use_planning_scene_monitor);

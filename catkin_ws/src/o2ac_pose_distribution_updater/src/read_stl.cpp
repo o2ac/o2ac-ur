@@ -85,3 +85,20 @@ void read_stl_from_file_path(const std::string &file_path,
   read_stl(in, points, triangles);
   fclose(in);
 }
+
+void print_pose(const Eigen::Isometry3d &pose, FILE *out) {
+  Eigen::Vector3d translation = pose.translation();
+  Eigen::Quaterniond rotation(pose.rotation());
+  fprintf(out, "%.15lf %.15lf %.15lf %.15lf %.15lf %.15lf %.15lf\n",
+          translation.x(), translation.y(), translation.z(), rotation.w(),
+          rotation.x(), rotation.y(), rotation.z());
+}
+
+void scan_pose(Eigen::Isometry3d &pose, FILE *in) {
+  double tx, ty, tz, qw, qx, qy, qz;
+  fscanf(in, "%lf%lf%lf%lf%lf%lf%lf", &tx, &ty, &tz, &qw, &qx, &qy, &qz);
+  Eigen::Vector3d translation;
+  translation << tx, ty, tz;
+  Eigen::Quaterniond rotation(qw, qx, qy, qz);
+  pose = Eigen::Translation3d(translation) * rotation;
+}

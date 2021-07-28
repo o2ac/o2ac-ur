@@ -15,4 +15,5 @@ CovarianceMatrix transform_covariance(const Eigen::Isometry3d &transform,
 void calculate_place_candidates(
     const std::vector<Eigen::Vector3d> &vertices,
     const Eigen::Vector3d &center_of_gravity,
-    std::vector<Eigen::Hyperplane<double, 3>> &candidates);
+    std::vector<Eigen::Hyperplane<double, 3>> &candidates,
+    std::vector<Eigen::Vector3d> &convex_hull_vertices);

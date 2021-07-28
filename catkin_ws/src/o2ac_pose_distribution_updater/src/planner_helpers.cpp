@@ -38,7 +38,8 @@ void facet_cgal_to_eigen(const CGAL::Polyhedron_3<CGAL_kernel>::Facet &facet,
 void calculate_place_candidates(
     const std::vector<Eigen::Vector3d> &vertices,
     const Eigen::Vector3d &center_of_gravity,
-    std::vector<Eigen::Hyperplane<double, 3>> &candidates) {
+    std::vector<Eigen::Hyperplane<double, 3>> &candidates,
+    std::vector<Eigen::Vector3d> &convex_hull_vertices) {
 
   // compute convex hull by CGAL
   std::vector<CGAL_kernel::Point_3> vertices_cgal;
@@ -47,7 +48,15 @@ void calculate_place_candidates(
   CGAL::Polyhedron_3<CGAL_kernel> convex_hull;
   CGAL::convex_hull_3(vertices_cgal.begin(), vertices_cgal.end(), convex_hull);
 
+  convex_hull_vertices.clear();
+  for (auto it = convex_hull.vertices_begin(); it != convex_hull.vertices_end();
+       it++) {
+    convex_hull_vertices.push_back(vector_3_cgal_to_eigen(it->point()));
+  }
+
   // check all facets
+
+  candidates.clear();
 
   // To grouping facets with the same normal vector, sort facets by its inner
   // products with a random vector

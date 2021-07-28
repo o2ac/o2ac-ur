@@ -5,7 +5,8 @@
 #include <yaml-cpp/yaml.h>
 
 void load_grasp_points(const std::string &yaml_file_path,
-                       std::vector<Eigen::Isometry3d> &grasp_points) {
+                       std::vector<Eigen::Isometry3d> &grasp_points,
+                       std::map<std::string, int> &name_to_id) {
   char *variable_names[] = {(char *)"pi"};
   double variable_values[] = {acos(-1)};
 
@@ -13,6 +14,9 @@ void load_grasp_points(const std::string &yaml_file_path,
   const YAML::Node &grasp_points_data = config["grasp_points"];
   grasp_points.resize(grasp_points_data.size());
   for (int i = 0; i < grasp_points.size(); i++) {
+    std::string grasp_name =
+        grasp_points_data[i]["grasp_name"].as<std::string>();
+    name_to_id[grasp_name] = i;
     const YAML::Node &grasp_point_pose = grasp_points_data[i]["pose_xyzrpy"];
     Particle particle;
     for (int j = 0; j < 6; j++) {
@@ -25,54 +29,55 @@ void load_grasp_points(const std::string &yaml_file_path,
   }
 }
 
-void print_pose(const Eigen::Isometry3d &pose) {
-  Eigen::Vector3d translation = pose.translation();
-  Eigen::Quaterniond rotation(pose.rotation());
-  printf("%.15lf %.15lf %.15lf %.15lf %.15lf %.15lf %.15lf\n", translation.x(),
-         translation.y(), translation.z(), rotation.w(), rotation.x(),
-         rotation.y(), rotation.z());
-}
-
 int main(int argc, char **argv) {
-  std::string stl_file_path(
-      "/root/o2ac-ur/catkin_ws/src/o2ac_assembly_database/config/"
-      "wrs_assembly_2020/meshes/03-PANEL2.stl");
+  FILE *config_file =
+      fopen("/root/o2ac-ur/catkin_ws/src/o2ac_pose_distribution_updater/test/"
+            "planning_test_config.txt",
+            "r");
+  char stl_file_path[1000], metadata_file_path[1000];
+  fscanf(config_file, "%999s%999s", stl_file_path, metadata_file_path);
 
   std::shared_ptr<mesh_object> gripped_geometry(new mesh_object);
-  read_stl_from_file_path(stl_file_path, gripped_geometry->vertices,
+  read_stl_from_file_path(std::string(stl_file_path),
+                          gripped_geometry->vertices,
                           gripped_geometry->triangles);
   for (auto &vertex : gripped_geometry->vertices) {
     vertex /= 1000.0; // milimeter -> meter
   }
   std::shared_ptr<std::vector<Eigen::Isometry3d>> grasp_points(
       new std::vector<Eigen::Isometry3d>);
-  load_grasp_points("/root/o2ac-ur/catkin_ws/src/o2ac_assembly_database/"
-                    "config/wrs_assembly_2020/object_metadata/panel_motor.yaml",
-                    *grasp_points);
+  std::map<std::string, int> name_to_id;
+  load_grasp_points(std::string(metadata_file_path), *grasp_points, name_to_id);
   // create planner and set parameters
   Planner planner;
-  planner.set_grasp_parameters(0.0, 0.020, 0.006);
-  planner.set_cost_coefficients(1.0, 0.0, 0.0);
-  Particle noise_variance;
-  noise_variance.setZero();
-  planner.set_particle_parameters(10, noise_variance);
-  planner.set_use_linear_approximation(false);
-  planner.set_image_size(1080, 1920);
+  planner.load_config_file(
+      "/root/o2ac-ur/catkin_ws/src/o2ac_pose_distribution_updater/launch/"
+      "estimator_config.yaml");
+  double touch_cost, look_cost, place_cost, grasp_cost, push_cost,
+      translation_cost, rotation_cost;
+  fscanf(config_file, "%lf%lf%lf%lf%lf%lf%lf", &touch_cost, &look_cost,
+         &place_cost, &grasp_cost, &push_cost, &translation_cost,
+         &rotation_cost);
+  planner.set_cost_coefficients(boost::array<double, 5>{touch_cost, look_cost,
+                                                        place_cost, grasp_cost,
+                                                        push_cost},
+                                translation_cost, rotation_cost);
 
   // set initial pose belief
-  Eigen::Isometry3d initial_mean(
-      Eigen::AngleAxisd(0.5, Eigen::Vector3d::UnitZ()) *
-      Eigen::AngleAxisd(asin(1.0), Eigen::Vector3d::UnitX()));
+  Eigen::Isometry3d initial_mean;
+  scan_pose(initial_mean, config_file);
   // set covariance randomly
   std::random_device seed_generator;
-  std::default_random_engine engine(seed_generator());
+  std::default_random_engine engine(0);
   std::uniform_real_distribution<double> uniform_distribution(-1.0, 1.0);
   CovarianceMatrix deviation, initial_covariance;
-  double position_deviation = 0.01, angle_deviation = 0.1;
+  double deviation_scale[6];
+  for (int i = 0; i < 6; i++) {
+    fscanf(config_file, "%lf", deviation_scale + i);
+  }
   for (int i = 0; i < 6; i++) {
     for (int j = 0; j < 6; j++) {
-      deviation(i, j) = (j < 3 ? position_deviation : angle_deviation) *
-                        uniform_distribution(engine);
+      deviation(i, j) = deviation_scale[j] * uniform_distribution(engine);
     }
   }
   initial_covariance = deviation.transpose() * deviation;
@@ -80,12 +85,36 @@ int main(int argc, char **argv) {
   // make action plan
   CovarianceMatrix objective_coefficients;
   objective_coefficients.setIdentity();
-  auto actions = planner.calculate_plan(
-      gripped_geometry, grasp_points, Eigen::Isometry3d::Identity(), false,
-      initial_mean, initial_covariance, objective_coefficients, 1e-6);
+  double objective_value;
+  int is_goal_pose;
+  fscanf(config_file, "%lf%d", &objective_value, &is_goal_pose);
+
+  std::vector<UpdateAction> actions;
+  if (is_goal_pose) {
+    char goal_grasp_name[1000];
+    double translation_threshold, rotation_threshold;
+    fscanf(config_file, "%999s%lf%lf", goal_grasp_name, &translation_threshold,
+           &rotation_threshold);
+    Eigen::Isometry3d goal_pose =
+        (*grasp_points)[name_to_id[std::string(goal_grasp_name)]].inverse();
+    std::cerr << goal_pose.matrix() << std::endl;
+    actions = planner.calculate_plan(
+        gripped_geometry, grasp_points, Eigen::Isometry3d::Identity(), false,
+        initial_mean, initial_covariance, objective_coefficients,
+        objective_value, true,
+        check_near_to_goal_pose(goal_pose, translation_threshold,
+                                rotation_threshold));
+  } else {
+    actions = planner.calculate_plan(gripped_geometry, grasp_points,
+                                     Eigen::Isometry3d::Identity(), false,
+                                     initial_mean, initial_covariance,
+                                     objective_coefficients, objective_value);
+  }
+
+  fclose(config_file);
 
   // print action plan
-  printf("%s\n", stl_file_path.c_str());
+  printf("%s\n", stl_file_path);
   print_pose(initial_mean);
   std::cout << initial_covariance << std::endl;
 

@@ -26,10 +26,10 @@ private:
   std::shared_ptr<std::vector<Eigen::Isometry3d>> grasp_points;
   Eigen::Vector3d center_of_gravity;
   std::vector<Eigen::Hyperplane<double, 3>> place_candidates;
+  std::vector<Eigen::Vector3d> convex_hull_vertices;
 
-  unsigned int image_height, image_width;
-
-  double action_cost, translation_cost, rotation_cost;
+  boost::array<double, 5> action_cost;
+  double translation_cost, rotation_cost;
 
   void apply_action(const Eigen::Isometry3d &old_mean,
                     const CovarianceMatrix &old_covariance,
@@ -43,17 +43,12 @@ private:
                               const bool &gripping,
                               std::vector<UpdateAction> &candidates);
 
-  double calculate_cost(const Eigen::Isometry3d &current_gripper_pose,
+  double calculate_cost(const action_type &type,
+                        const Eigen::Isometry3d &current_gripper_pose,
                         const Eigen::Isometry3d &next_gripper_pose);
 
 public:
-  void set_image_size(const unsigned int &image_height,
-                      const unsigned int &image_width) {
-    this->image_height;
-    this->image_width;
-  }
-
-  void set_cost_coefficients(const double &action_cost,
+  void set_cost_coefficients(const boost::array<double, 5> &action_cost,
                              const double &translation_cost,
                              const double &rotation_cost) {
     this->action_cost = action_cost;
@@ -67,5 +62,12 @@ public:
       const bool &current_gripping, const Eigen::Isometry3d &current_mean,
       const CovarianceMatrix &current_covariance,
       const CovarianceMatrix &objective_coefficients,
-      const double &objective_value);
+      const double &objective_value, const bool goal_gripping = false,
+      const std::function<bool(const Eigen::Isometry3d &)> check_goal_pose =
+          [](const Eigen::Isometry3d &pose) { return true; });
 };
+
+std::function<bool(const Eigen::Isometry3d)>
+check_near_to_goal_pose(const Eigen::Isometry3d &goal_pose,
+                        const double &translation_threshold,
+                        const double &rotation_threshold);

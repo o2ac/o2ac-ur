@@ -2,7 +2,7 @@
 #include "o2ac_pose_distribution_updater/convex_hull.hpp"
 
 namespace {
-double LARGE_EPS = 1e-8, EPS = 1e-9;
+double LARGE_EPS = 1e-8, EPS = 1e-9, INF = 1e9;
 double pi = acos(-1);
 } // namespace
 
@@ -41,7 +41,8 @@ void Planner::apply_action(const Eigen::Isometry3d &old_mean,
     cv::Mat mean_image;
     boost::array<unsigned int, 4> ROI{0, image_height, 0, image_width};
     generate_image(mean_image, gripped_geometry->vertices,
-                   gripped_geometry->triangles, old_mean, ROI);
+                   gripped_geometry->triangles, action.gripper_pose * old_mean,
+                   ROI);
     look_step_with_Lie_distribution(
         gripped_geometry->vertices, gripped_geometry->triangles,
         action.gripper_pose, mean_image, ROI, old_mean, old_covariance,
@@ -72,6 +73,10 @@ void Planner::calculate_action_candidates(
 
       Eigen::Isometry3d rotated_gripper_pose =
           rotation_to_minus_Z(normal) * current_gripper_pose;
+      if (abs((rotated_gripper_pose.rotation() * Eigen::Vector3d::UnitY())(2)) >
+          LARGE_EPS) {
+        continue;
+      }
       double sigma_z = 3.0 * sqrt(covariance(2, 2));
       action.gripper_pose =
           Eigen::Translation3d((sigma_z - (rotated_gripper_pose * current_mean *
@@ -83,13 +88,43 @@ void Planner::calculate_action_candidates(
       candidates.push_back(action);
     }
     // add touch action candidates
-    /*for(auto& vertex : convex_hull_vertices){
+    int number_of_touch_actions = 5;
+    auto random_array = std::move(
+        get_random_array(number_of_touch_actions, convex_hull_vertices.size()));
+    for (int t = 0; t < number_of_touch_actions; t++) {
+      auto &vertex = convex_hull_vertices[random_array[t]];
       UpdateAction action;
-      action.type = place_action_type;
+      action.type = touch_action_type;
 
       Eigen::Vector3d direction = current_gripper_pose.rotation() *
-      current_mean.rotation() * (vertex - center_of_gravity);
-      }*/
+                                  current_mean.rotation() *
+                                  (vertex - center_of_gravity);
+
+      Eigen::Isometry3d rotated_gripper_pose =
+          rotation_to_minus_Z(direction) * current_gripper_pose;
+      action.gripper_pose =
+          Eigen::Translation3d(
+              (-(rotated_gripper_pose * current_mean * vertex).z()) *
+              Eigen::Vector3d::UnitZ()) *
+          rotated_gripper_pose;
+
+      candidates.push_back(action);
+    }
+    // add look action candidates
+    for (int t = 0; t < 4; t++) {
+      UpdateAction action;
+      action.type = look_action_type;
+      Eigen::Isometry3d rotated_gripper_pose =
+          current_gripper_pose *
+          Eigen::AngleAxisd(pi / 2.0 * t, Eigen::Vector3d::UnitX());
+      action.gripper_pose =
+          Eigen::Translation3d(looked_point - rotated_gripper_pose *
+                                                  current_mean *
+                                                  center_of_gravity) *
+          rotated_gripper_pose;
+
+      candidates.push_back(action);
+    }
   } else {
     for (auto &grasp_point : *grasp_points) {
       Eigen::Isometry3d gripper_pose = current_mean * grasp_point;
@@ -145,11 +180,25 @@ void Planner::calculate_action_candidates(
   }
 }
 
-double Planner::calculate_cost(const Eigen::Isometry3d &current_gripper_pose,
+double Planner::calculate_cost(const action_type &type,
+                               const Eigen::Isometry3d &current_gripper_pose,
                                const Eigen::Isometry3d &next_gripper_pose) {
   Eigen::Isometry3d move = next_gripper_pose * current_gripper_pose.inverse();
-  return action_cost + translation_cost * move.translation().norm() +
+  return action_cost[static_cast<int>(type)] +
+         translation_cost * move.translation().norm() +
          rotation_cost * Eigen::AngleAxisd(move.rotation()).angle();
+}
+
+std::function<bool(const Eigen::Isometry3d)>
+check_near_to_goal_pose(const Eigen::Isometry3d &goal_pose,
+                        const double &translation_threshold,
+                        const double &rotation_threshold) {
+  return [goal_pose, translation_threshold,
+          rotation_threshold](const Eigen::Isometry3d &pose) -> bool {
+    Eigen::Isometry3d move = pose * goal_pose.inverse();
+    return move.translation().norm() < translation_threshold &&
+           Eigen::AngleAxisd(move.rotation()).angle() < rotation_threshold;
+  };
 }
 
 std::vector<UpdateAction> Planner::calculate_plan(
@@ -159,14 +208,16 @@ std::vector<UpdateAction> Planner::calculate_plan(
     const Eigen::Isometry3d &current_mean,
     const CovarianceMatrix &current_covariance,
     const CovarianceMatrix &objective_coefficients,
-    const double &objective_value) {
+    const double &objective_value, const bool goal_gripping,
+    const std::function<bool(const Eigen::Isometry3d &)> check_goal_pose) {
   this->gripped_geometry = gripped_geometry;
   this->grasp_points = grasp_points;
   center_of_gravity = calculate_center_of_gravity(gripped_geometry->vertices,
                                                   gripped_geometry->triangles);
   calculate_place_candidates(gripped_geometry->vertices, center_of_gravity,
-                             place_candidates);
-
+                             place_candidates, convex_hull_vertices);
+  Eigen::Isometry3d camera_pose = get_camera_pose();
+  looked_point = camera_pose * (-0.10 * Eigen::Vector3d::UnitZ());
   struct node {
     Eigen::Isometry3d mean, gripper_pose;
     CovarianceMatrix covariance;
@@ -189,17 +240,23 @@ std::vector<UpdateAction> Planner::calculate_plan(
 
   open_nodes.push(std::make_pair(0.0, 0));
   int goal_node_id = -1;
+  double optimal_score = INF;
   while (!open_nodes.empty()) {
     int id = -open_nodes.top().second;
+    open_nodes.pop();
+
+    double score =
+        objective_coefficients.cwiseProduct(nodes[id].covariance).sum();
     fprintf(stderr, "%d %d %d %lf %lf\n", id, nodes[id].previous_node_id,
             id > 0 ? nodes[id].previous_action.type : -1, nodes[id].cost,
-            objective_coefficients.cwiseProduct(nodes[id].covariance).sum());
-    if (objective_coefficients.cwiseProduct(nodes[id].covariance).sum() <
-        objective_value) {
+            score);
+    if (score < objective_value &&
+        (!goal_gripping ||
+         nodes[id].gripping && check_goal_pose(nodes[id].mean))) {
       goal_node_id = id;
       break;
     }
-    open_nodes.pop();
+    optimal_score = score;
 
     std::vector<UpdateAction> candidates;
     calculate_action_candidates(nodes[id].gripper_pose, nodes[id].mean,
@@ -211,15 +268,16 @@ std::vector<UpdateAction> Planner::calculate_plan(
         apply_action(nodes[id].mean, nodes[id].covariance, candidate,
                      new_node.mean, new_node.covariance);
       } catch (std::runtime_error &e) {
-        std::cerr << candidate.type << std::endl;
         std::cerr << e.what() << std::endl;
         continue;
       }
       new_node.gripper_pose = candidate.gripper_pose;
-      new_node.gripping = (candidate.type == grasp_action_type ? true : false);
+      new_node.gripping = (candidate.type != place_action_type &&
+                           candidate.type != push_action_type);
       new_node.previous_node_id = id;
       new_node.previous_action = candidate;
-      new_node.cost = nodes[id].cost + calculate_cost(nodes[id].gripper_pose,
+      new_node.cost = nodes[id].cost + calculate_cost(candidate.type,
+                                                      nodes[id].gripper_pose,
                                                       candidate.gripper_pose);
       int new_id = nodes.size();
       nodes.push_back(new_node);
