@@ -1,6 +1,6 @@
 <launch>
 
-  <arg name="db_name" default="wrs_assembly_2020" />
+  <arg name="db_name" default="wrs_assembly_2021" />
   <arg name="object_name" default="" />
   <arg name="gripper_at_grasp" default="" />
   <arg name="only_subframes" default="false" />

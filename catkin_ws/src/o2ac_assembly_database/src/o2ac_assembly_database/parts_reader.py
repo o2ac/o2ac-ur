@@ -298,8 +298,8 @@ class PartsReader(object):
         try:
             scene = pyassimp.load(filename)
         except:
-            rospy.logerr('Could not load mesh file ' + os.path.basename(os.path.normpath(filename)) + ' for part ' + name)
-            return co
+            rospy.logerr('Could not load mesh file ' + os.path.basename(os.path.normpath(filename)))
+            return None
         if not scene.meshes or len(scene.meshes) == 0:
             raise Exception("There are no meshes in the file")
         if len(scene.meshes[0].faces) == 0:
