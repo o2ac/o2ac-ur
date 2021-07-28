@@ -38,7 +38,7 @@ RUN apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key C1CF6
 # Install ROS-desktop-full packages (including ROS, rqt, rviz, and more).
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-melodic-desktop-full=1.4.1-0bionic.20210601.163047 \
-	python-rosdep=0.20.1-1 \
+    python-rosdep=0.21.0-1 \
 	&& rm -rf /var/lib/apt/lists/*
 
 # Initialize 'rosdep'.
@@ -49,7 +49,7 @@ RUN rosdep init
 
 # Install required packages/tools/dependencies for subsequent installations.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    apt-transport-https=1.6.13 \
+    apt-transport-https=1.6.14 \
 	wget=1.19.4-1ubuntu2.2 \
 	&& rm -rf /var/lib/apt/lists/*
 
@@ -59,7 +59,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN apt-get update && apt-cache policy git
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential=12.4ubuntu1 \
-    cmake=3.10.2-1ubuntu2.18.04.1 \
+    cmake=3.10.2-1ubuntu2.18.04.2 \
     git=1:2.17.1-1ubuntu0.8 \
     python-dev=2.7.15~rc1-1 \
     python-numpy=1:1.13.3-2ubuntu1 \
@@ -209,7 +209,7 @@ RUN curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > mic
 
 # Update cache and install VS Code as a package.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    code=1.57.1-1623937013 \
+    code=1.58.2-1626302803 \
 	&& rm -rf /var/lib/apt/lists/*
 
 # Set VS Code as the default text editor.
@@ -280,10 +280,10 @@ RUN echo 'deb http://librealsense.intel.com/Debian/apt-repo bionic main' | tee /
 RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key C8B3A55A6F3EFCDE
 RUN apt-get update && apt-get install -y --no-install-recommends \
     librealsense2-dkms=1.3.18-0ubuntu1 \
-    librealsense2-utils=2.47.0-0~realsense0.4805 \
-    librealsense2-dev=2.47.0-0~realsense0.4805 \
-    librealsense2-udev-rules=2.47.0-0~realsense0.4805 \
-    librealsense2-dbg=2.47.0-0~realsense0.4805 \
+    librealsense2-utils=2.48.0-0~realsense0.4975 \
+    librealsense2-dev=2.48.0-0~realsense0.4975 \
+    librealsense2-udev-rules=2.48.0-0~realsense0.4975 \
+    librealsense2-dbg=2.48.0-0~realsense0.4975 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -313,7 +313,6 @@ RUN pip install gym
 ################################################################################
 
 # Install eigenpy 
-
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-melodic-eigenpy=2.6.4-1bionic.20210527.213718 \
 	&& rm -rf /var/lib/apt/lists/*
@@ -383,33 +382,10 @@ RUN echo 'export PATH=/usr/lib/ccache:$PATH' >> $HOME/.bashrc
 
 ################################################################################
 
-# Setup the Bash shell environment (part 1)
+# Setup the Bash shell environment
+
 # Define the working directory.
 WORKDIR /root/o2ac-ur/
-
-################################################################################
-
-# Copy the helper script
-COPY ./docker/o2ac-dev/scripts/install-phoxi-control.sh /root/o2ac-ur/docker/o2ac-dev/scripts/install-phoxi-control.sh
-RUN chmod -R +x /root/o2ac-ur/docker/o2ac-dev/scripts/install-phoxi-control.sh
-
-# Install PhoXiControl (for the AIST setup)
-RUN /root/o2ac-ur/docker/o2ac-dev/scripts/install-phoxi-control.sh
-
-# Copy the helper script
-COPY ./docker/o2ac-dev/scripts/install-photoneo-localization.* /root/o2ac-ur/docker/o2ac-dev/scripts/
-RUN chmod -R +x /root/o2ac-ur/docker/o2ac-dev/scripts/install-photoneo-localization.sh
-
-# Install PhotoneoLocalizationSDK
-RUN apt-get update && apt-get install -y --no-install-recommends \
-	libssh2-1=1.8.0-1 \
-	expect=5.45.4-1 \
-    && rm -rf /var/lib/apt/lists/*
-RUN /root/o2ac-ur/docker/o2ac-dev/scripts/install-photoneo-localization.sh
-
-################################################################################
-
-# Setup the Bash shell environment (part 2)
 
 # Copy the helper scripts to the working directory.
 COPY ./docker/o2ac-dev/scripts/. /root/o2ac-ur/docker/o2ac-dev/scripts/
