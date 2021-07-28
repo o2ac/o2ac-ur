@@ -181,29 +181,6 @@ int main(int argc, char **argv) {
       marker_array.markers.push_back(marker);
 
       if (action.type == place_action_type) {
-
-        for (int i = 0; i < 4; i++) {
-
-          marker.id = marker_id++;
-
-          marker.type = visualization_msgs::Marker::ARROW;
-
-          marker.action = visualization_msgs::Marker::ADD;
-
-          marker.scale.x = 0.20;
-          marker.scale.y = 0.02;
-          marker.scale.z = 0.02;
-          marker.pose =
-              to_Pose(pose.position.x + (i / 2) * 0.20 - 0.10,
-                      pose.position.y + (i % 2) * 0.20 - 0.10, marker.scale.x,
-                      1. / sqrt(2.), 0.0, 1. / sqrt(2.), 0.0);
-          marker.color.r = 0.5;
-          marker.color.g = 0.5;
-          marker.color.b = 0.0;
-          marker.color.a = 0.8;
-          marker.lifetime = ros::Duration(lifetime);
-          marker_array.markers.push_back(marker);
-        }
         marker.id = marker_id++;
         marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
 
