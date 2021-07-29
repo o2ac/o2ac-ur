@@ -42,6 +42,7 @@ class URRobot(RobotBase):
         try:
             self.force_controller = URForceController(robot_name=namespace, listener=tf_listener)
         except rospy.ROSException as e:
+            self.force_controller = None
             rospy.logwarn("No force control capabilities since controller could not be instantiated" + str(e))
 
         self.gripper_group = moveit_commander.MoveGroupCommander(self.ns+"_robotiq_85")
@@ -331,24 +332,31 @@ class URRobot(RobotBase):
     # ------ Force control functions
 
     def force_control(self, *args, **kwargs):
-        self.activate_ros_control_on_ur()
-        return self.force_controller.force_control(*args, **kwargs)
+        if self.force_controller:
+            self.activate_ros_control_on_ur()
+            return self.force_controller.force_control(*args, **kwargs)
+        return TERMINATION_CRITERIA
 
     def execute_circular_trajectory(self, *args, **kwargs):
-        self.activate_ros_control_on_ur()
-        return self.force_controller.execute_circular_trajectory(*args, **kwargs)
+        if self.force_controller:
+            self.activate_ros_control_on_ur()
+            return self.force_controller.execute_circular_trajectory(*args, **kwargs)
+        return True
 
     def execute_spiral_trajectory(self, *args, **kwargs):
-        self.activate_ros_control_on_ur()
-        return self.force_controller.execute_spiral_trajectory(*args, **kwargs)
+        if self.force_controller:
+            self.activate_ros_control_on_ur()
+            return self.force_controller.execute_spiral_trajectory(*args, **kwargs)
+        return True
 
-    @helpers.check_for_real_robot
     def linear_push(self, *args, **kwargs):
-        self.activate_ros_control_on_ur()
-        return self.force_controller.linear_push(*args, **kwargs)
+        if self.force_controller:
+            self.activate_ros_control_on_ur()
+            return self.force_controller.linear_push(*args, **kwargs)
+        return True
 
     def do_insertion(self, *args, **kwargs):
-        if not self.use_real_robot:
-            return TERMINATION_CRITERIA
-        self.activate_ros_control_on_ur()
-        return self.force_controller.do_insertion(*args, **kwargs)
+        if self.force_controller:
+            self.activate_ros_control_on_ur()
+            return self.force_controller.do_insertion(*args, **kwargs)
+        return TERMINATION_CRITERIA
