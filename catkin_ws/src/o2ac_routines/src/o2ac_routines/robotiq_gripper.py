@@ -34,14 +34,10 @@ class RobotiqGripper():
                 self.gripper = GripperDummy()
 
                 def close():
-                    gripper_group.set_named_target("close")
-                    gripper_group.go()
-                    return True
+                    return command(0.0)
 
                 def open():
-                    gripper_group.set_named_target("open")
-                    gripper_group.go()
-                    return True
+                    return command(1.0)
 
                 def command(cmd):
                     if gripper_type == "85":
@@ -54,8 +50,11 @@ class RobotiqGripper():
                     cmd_joints = gripper_group.get_current_joint_values()
                     cmd_joints[0] = (max_gap - distance) * max_angle / max_gap
                     gripper_group.set_joint_value_target(cmd_joints)
-                    gripper_group.go(wait=True)
-                    return True
+                    success, plan, planning_time, error = gripper_group.plan()
+                    if success:
+                        gripper_group.execute(plan, wait=True)
+                        return True
+                    return False
                 setattr(GripperDummy, "close", lambda *args, **kwargs: close())
                 setattr(GripperDummy, "open", lambda *args, **kwargs: open())
                 setattr(GripperDummy, "command", lambda self, cmd: command(cmd))
