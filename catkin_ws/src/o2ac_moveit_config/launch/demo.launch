@@ -1,6 +1,6 @@
 <launch>
 
-  <arg name="execution_type" default="last point" />
+  <arg name="execution_type" default="interpolate" />
 
   <!-- specify the planning pipeline -->
   <arg name="pipeline" default="ompl" />
