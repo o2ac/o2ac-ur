@@ -78,7 +78,7 @@ class RobotBase():
                 return self.listener.transformPose(frame_id, res.pose_stamped[0])
             return res.pose_stamped[0]
 
-    def compute_ik(self, target_pose, joints_seed=None, timeout=0.01, end_effector_link=""):
+    def compute_ik(self, target_pose, joints_seed=None, timeout=0.01, end_effector_link="", retry=False):
         """
             Compute the inverse kinematics for a move group the moveit service
             return
@@ -101,14 +101,20 @@ class RobotBase():
         req.ik_request = ik_request
         res = self.moveit_ik_srv.call(req)
 
+        if retry:
+            start_time = rospy.get_time()
+            while res.error_code.val != moveit_msgs.msg.MoveItErrorCodes.SUCCESS \
+                  and not rospy.is_shutdown() and (rospy.get_time() - start_time < 10):
+                res = self.moveit_ik_srv.call(req)
+        
         if res.error_code.val != moveit_msgs.msg.MoveItErrorCodes.SUCCESS:
             rospy.logwarn("compute IK failed with code: %s" % res.error_code.val)
             return None
-        else:
-            solution = []
-            for joint_name in self.robot_group.get_active_joints():
-                solution.append(res.solution.joint_state.position[res.solution.joint_state.name.index(joint_name)])
-            return solution
+
+        solution = []
+        for joint_name in self.robot_group.get_active_joints():
+            solution.append(res.solution.joint_state.position[res.solution.joint_state.name.index(joint_name)])
+        return solution
 
     def set_up_move_group(self, speed, acceleration, planner="OMPL"):
         assert not rospy.is_shutdown()
@@ -278,7 +284,8 @@ class RobotBase():
         group.clear_pose_targets()
         return success
 
-    def move_lin_trajectory(self, trajectory, speed=1.0, acceleration=0.5, end_effector_link="", plan_only=False, initial_joints=None, allow_joint_configuration_flip=False):
+    def move_lin_trajectory(self, trajectory, speed=1.0, acceleration=0.5, end_effector_link="",
+                            plan_only=False, initial_joints=None, allow_joint_configuration_flip=False, timeout=10):
         # TODO: Add allow_joint_configuration_flip
         if not self.set_up_move_group(speed, acceleration, planner="LINEAR"):
             return False
@@ -334,9 +341,8 @@ class RobotBase():
         goal.planning_options.plan_only = True
 
         start_time = rospy.Time.now()
-        tries = 0
         success = False
-        while not success and (rospy.Time.now() - start_time < rospy.Duration(15)) and not rospy.is_shutdown():
+        while not success and (rospy.Time.now() - start_time < rospy.Duration(timeout)) and not rospy.is_shutdown():
 
             self.sequence_move_group.send_goal_and_wait(goal)
             response = self.sequence_move_group.get_result()
@@ -350,7 +356,8 @@ class RobotBase():
                     return plan, planning_time
                 else:
                     return self.execute_plan(plan, wait=True)
-            tries += 1
+            else:
+                rospy.sleep(0.2)
         rospy.logerr("Failed to plan linear trajectory. error code: %s" % response.response.error_code.val)
         return False
 

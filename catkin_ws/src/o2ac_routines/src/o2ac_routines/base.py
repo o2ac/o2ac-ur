@@ -488,10 +488,10 @@ class O2ACBase(object):
     if screw_picked:
       rospy.loginfo("Moving back through sensor gate.")
       rel_pose = self.active_robots[robot_name].move_lin_rel([0.02,0,0.0], pose_only=True)
-      through_gate = self.active_robots[robot_name].compute_ik(rel_pose, timeout=0.02)
+      through_gate = self.active_robots[robot_name].compute_ik(rel_pose, timeout=0.02, retry=True)
       waypoints.append((through_gate,0,0.1))
     rel_pose = self.active_robots[robot_name].move_lin_rel([0.0,0,0.05], pose_only=True, initial_joints=through_gate)
-    waypoints.append((self.active_robots[robot_name].compute_ik(rel_pose, timeout=0.02), 0, 0.6))
+    waypoints.append((self.active_robots[robot_name].compute_ik(rel_pose, timeout=0.02, retry=True), 0, 0.6))
     waypoints.append(("feeder_pick_ready",0,0.6))
     if not self.active_robots[robot_name].move_joints_trajectory(waypoints):
       rospy.logerr("Go to feeder_pick_ready failed. abort.")
