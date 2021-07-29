@@ -32,35 +32,64 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-# Author: Felix von Drigalski
+# Author: Felix von Drigalski, Cristian Beltran
 
-import sys
+import rostest
 import rospy
 import unittest
 
-from o2ac_routines.helpers import *
+from o2ac_routines import helpers
 from o2ac_routines.common import O2ACCommon
+
 
 class TestSimpleMoves(unittest.TestCase):
 
     def setUp(self):
         """
-        Sets up the test. Afterwards, all functions starting with test_ are executed.
+        Sets up the test once. Afterwards, all functions starting with test_ are executed.
         """
         self.base = O2ACCommon()
 
-    def test_simple_motions(self):
+    def test_a_simple_motions(self):
         results = []
-        results.append( self.base.active_robots["a_bot"].go_to_named_pose("home") )
-        results.append( self.base.active_robots["b_bot"].go_to_named_pose("home") )
-        results.append( self.base.active_robots["a_bot"].go_to_named_pose("tool_pick_ready") )
-        results.append( self.base.active_robots["b_bot"].go_to_named_pose("tool_pick_ready") )
+        results.append(self.base.a_bot.go_to_named_pose("home"))
+        results.append(self.base.b_bot.go_to_named_pose("home"))
+        results.append(self.base.a_bot.go_to_named_pose("tool_pick_ready"))
+        results.append(self.base.b_bot.go_to_named_pose("tool_pick_ready"))
+        results.append(self.base.ab_bot.go_to_named_pose("home"))
         all_motions_successful = all(result == True for result in results)
-        print("Finished simple motions")
         self.assertTrue(all_motions_successful)
+
+        joint_values = helpers.ordered_joint_values_from_dict(self.base.b_bot.robot_group.get_named_target_values("screw_ready"), self.base.b_bot.robot_group.get_active_joints())
+        self.assertTrue(self.base.b_bot.move_joints(joint_values, speed=1.0))
+        self.assertTrue(self.base.a_bot.go_to_pose_goal(self.base.tray_view_high, speed=1.0))
+        self.assertTrue(self.base.b_bot.move_lin_rel(relative_translation=[0, 0, 0.1], speed=1.0))
+
+        print("Finished simple motions")
+
+    def test_b_tool_motions(self):
+        self.assertTrue(self.base.do_change_tool_action("a_bot", equip=True, screw_size=3), "Fail to equip M3 tool with a_bot")
+        self.assertTrue(self.base.do_change_tool_action("b_bot", equip=True, screw_size=4), "Fail to equip M4 tool with b_bot")
+        self.assertTrue(self.base.do_change_tool_action("a_bot", equip=False, screw_size=3), "Fail to unequip M3 tool with a_bot")
+        self.assertTrue(self.base.do_change_tool_action("b_bot", equip=False, screw_size=4), "Fail to unequip M4 tool with b_bot")
+        print("Finished tool motions")
+
+    def test_c_master_slave(self):
+        self.base.ab_bot.go_to_named_pose("home")
+        self.assertTrue(self.base.take_tray_from_agv_preplanned(use_saved_plans=False), "failed to do master-slave sequence")
+
+    def test_d_simultaneous_motions(self):
+        def a_bot_task():
+            self.base.do_change_tool_action("a_bot", equip=True, screw_size=3)
+            self.base.do_change_tool_action("a_bot", equip=False, screw_size=3)
+
+        def b_bot_task():
+            self.base.do_change_tool_action("b_bot", equip=True, screw_size=4)
+            self.base.do_change_tool_action("b_bot", equip=False, screw_size=4)
+        self.assertTrue(self.base.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=120))
+        print("Finished simultaneous motions")
 
 
 if __name__ == '__main__':
-    import rostest
     rospy.init_node('test_robot_motions')
     rostest.rosrun('o2ac_routines', 'test_robot_motions', TestSimpleMoves)

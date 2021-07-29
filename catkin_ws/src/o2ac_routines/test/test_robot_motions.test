@@ -3,5 +3,5 @@
 		<arg name="use_rviz" value="false"/>
 	</include>
 
-	<test test-name="simple_motions" pkg="o2ac_routines" type="test_robot_motions.py"/>
+	<test test-name="simple_motions" pkg="o2ac_routines" type="test_robot_motions.py" time-limit="500.0"/>
 </launch>
