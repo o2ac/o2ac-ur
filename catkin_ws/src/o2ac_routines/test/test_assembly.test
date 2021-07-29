@@ -1,11 +1,15 @@
 <launch>
-	<include file="$(find o2ac_moveit_config)/launch/demo.launch">
+   <arg name="node_start_delay" default="2.0" />  
+
+  <!-- Load universal robot description format (URDF) -->
+    <param name="robot_description" 
+         command="xacro  '$(find o2ac_scene_description)/urdf/base_scene.urdf.xacro'"/>
+
+	<include file="$(find o2ac_moveit_config)/launch/demo.launch"  launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' " >
 		<arg name="use_rviz" value="false"/>
+		<arg name="load_robot_description" value="false" />
 	</include>
 
-	<!-- For screw fastening -->
-	<!-- <param name="use_fake_vision" value="true"/> -->
-	<node name="o2ac_skill_server" pkg="o2ac_skills" type="o2ac_skill_server" respawn="false" output="screen"/>
-
-	<test test-name="simple_motions" pkg="o2ac_routines" type="test_assembly.py"/>
+	<test test-name="assembly" pkg="o2ac_routines" type="test_assembly.py"
+	      time-limit="500.0"  launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' " />
 </launch>
