@@ -1,4 +1,6 @@
 <launch>
+  <!-- Unused but kept for compatibility with fake controllers -->
+  <arg name="execution_type" default="" />
 
   <!-- loads moveit_controller_manager on the parameter server which is taken as argument 
     if no argument is passed, moveit_simple_controller_manager will be set -->

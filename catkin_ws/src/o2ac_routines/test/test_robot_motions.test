@@ -1,6 +1,7 @@
 <launch>
 	<include file="$(find o2ac_moveit_config)/launch/demo.launch">
 		<arg name="use_rviz" value="false"/>
+		<arg name="execution_type" value="last point" />
 	</include>
 
 	<test test-name="simple_motions" pkg="o2ac_routines" type="test_robot_motions.py" time-limit="500.0"/>
