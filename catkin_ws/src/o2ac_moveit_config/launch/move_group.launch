@@ -1,4 +1,5 @@
 <launch>
+  <arg name="taskboard" default="false"/>
 
   <!-- GDB Debug Option -->
   <arg name="debug" default="false" />
@@ -41,6 +42,7 @@
   <!-- load URDF, SRDF and joint_limits configuration -->
   <include file="$(find o2ac_moveit_config)/launch/planning_context.launch">
     <arg name="load_robot_description" value="$(arg load_robot_description)" />
+    <arg name="taskboard" value="$(arg taskboard)" />
   </include>
 
   <!-- Planning Pipelines -->
