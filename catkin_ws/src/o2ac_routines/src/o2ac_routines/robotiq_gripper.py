@@ -62,17 +62,17 @@ class RobotiqGripper():
     def _gripper_status_callback(self, msg):
         self.opening_width = msg.position  # [m]
 
-    def close(self, force=40.0, velocity=.1, wait=True, attached_last_object=False):
+    def close(self, force=40.0, velocity=.1, wait=True):
         res = False
         if self.use_real_robot:
             res = self.send_command("close", force=force, velocity=velocity, wait=wait)
         else:
             res = self.gripper.close()
-        if attached_last_object and self.last_attached_object:
+        if self.last_attached_object:
             self.attach_object(self.last_attached_object)
         return res
 
-    def open(self, velocity=.1, wait=True, opening_width=None, detached_last_object=False):
+    def open(self, velocity=.1, wait=True, opening_width=None):
         res = False
         if self.use_real_robot:
             command = opening_width if opening_width else "open"
@@ -80,11 +80,11 @@ class RobotiqGripper():
         else:
             res = self.gripper.open()
 
-        if detached_last_object and self.last_attached_object:
+        if self.last_attached_object:
             self.detach_object(self.last_attached_object)
         return res
 
-    def send_command(self, command, force=40.0, velocity=.1, wait=True, attached_last_object=False):
+    def send_command(self, command, force=40.0, velocity=.1, wait=True):
         """
         gripper: a_bot or b_bot
         command: "open", "close" or opening width
@@ -126,7 +126,7 @@ class RobotiqGripper():
             else:
                 res = self.gripper.command(command)
 
-        if attached_last_object and self.last_attached_object:
+        if self.last_attached_object:
             if command == "close":
                 self.attach_object(self.last_attached_object)
             elif command == "open":
@@ -155,3 +155,6 @@ class RobotiqGripper():
         except Exception as e:
             rospy.logerr(object_to_detach + " could not be detached! robot_name = " + self.ns)
             print(e)
+
+    def forget_attached_item(self):
+        self.last_attached_object = None

@@ -2201,6 +2201,7 @@ class O2ACCommon(O2ACBase):
     success = self.insert_shaft(target_link)
     
     self.b_bot.gripper.open(wait=False)
+    self.b_bot.gripper.forget_attached_item()
     self.despawn_object("shaft")
     self.b_bot.go_to_named_pose("home")
     return success
@@ -2230,13 +2231,13 @@ class O2ACCommon(O2ACBase):
       return False
     
     # # Spawn object FIXME(cambel)
-    # gp = conversions.from_pose_to_list(goal.pose)
-    # gp[:2] += [0.075/2.0, 0.0] # Magic Numbers for visuals 
-    # gp[2] = 0.005
-    # euler_gp = tf_conversions.transformations.euler_from_quaternion(gp[3:])
-    # shaft_pose = conversions.to_pose_stamped("tray_center", gp[:3].tolist() + [0, 0, -tau/2-euler_gp[0]])
-      
-    # self.spawn_object("shaft", shaft_pose, shaft_pose.header.frame_id)
+    gp = conversions.from_pose_to_list(goal.pose)
+    gp[:2] += [0.075/2.0, 0.0] # Magic Numbers for visuals 
+    gp[2] = 0.005
+    euler_gp = tf_conversions.transformations.euler_from_quaternion(gp[3:])
+    shaft_pose = conversions.to_pose_stamped("tray_center", gp[:3].tolist() + [0, 0, -tau/2-euler_gp[0]])
+    self.spawn_object("shaft", shaft_pose, shaft_pose.header.frame_id)
+    self.planning_scene_interface.allow_collisions("shaft", "")
     
     goal.pose.position.z = 0.001 # Magic Numbers for grasping
     goal.pose.position.x -= 0.01
