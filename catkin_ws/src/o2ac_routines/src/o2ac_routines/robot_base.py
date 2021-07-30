@@ -139,6 +139,9 @@ class RobotBase():
         elif planner == "PTP":
             group.set_planning_pipeline_id("pilz_industrial_motion_planner")
             group.set_planner_id("PTP")
+        elif planner == "CIRC":
+            group.set_planning_pipeline_id("pilz_industrial_motion_planner")
+            group.set_planner_id("CIRC")
         else:
             raise ValueError("Unsupported planner: %s" % planner)
 
@@ -212,7 +215,7 @@ class RobotBase():
     def execute_saved_plan(self, filename="", plan=[], wait=True):
         if filename and not plan:
             plan = self.load_saved_plan(filename)
-        return self.execute_plan(plan)
+        return self.execute_plan(plan, wait)
 
     # ------ Robot motion functions
 
@@ -540,3 +543,55 @@ class RobotBase():
                     return self.execute_plan(plan, wait=True)
         rospy.logerr("Failed to plan joint trajectory. error code: %s" % response.response.error_code.val)
         return False
+
+    def move_circ(self, pose_goal_stamped, constraint_point, constraint_type="center", speed=0.5, acceleration=0.25, wait=True, end_effector_link="",
+                    plan_only=False, initial_joints=None, timeout=5.0):
+        if not self.set_up_move_group(speed, acceleration, "CIRC"):
+            return False
+
+        group = self.robot_group
+        group.clear_pose_targets()
+
+        if not end_effector_link:
+            end_effector_link = self.ns + "_gripper_tip_link"
+        group.set_end_effector_link(end_effector_link)
+
+        if initial_joints:
+            group.set_start_state(helpers.to_robot_state(group, initial_joints))
+
+        pose_goal_world = self.listener.transformPose("world", pose_goal_stamped)
+        group.set_pose_target(pose_goal_world)
+
+        constraint = moveit_msgs.msg.Constraints()
+        if constraint_type not in ("center", "interim"):
+            rospy.logerr("Invalid parameter: %s" % constraint_type)
+            return False
+        constraint.name = constraint_type
+        pc = moveit_msgs.msg.PositionConstraint()
+        if constraint_type == "center":
+            constraint_pose = conversions.from_pose_to_list(self.get_current_pose())[:3] - constraint_point
+            constraint_pose = conversions.to_pose(constraint_pose.tolist()+[0,0,0])
+        else:
+            constraint_pose = conversions.to_pose(constraint_point+[0,0,0]) # Pose
+        pc.constraint_region.primitive_poses = [constraint_pose]
+        constraint.position_constraints = [pc] 
+        group.set_path_constraints(constraint)
+
+        success = False
+        start_time = rospy.Time.now()
+        while not success and (rospy.Time.now() - start_time < rospy.Duration(timeout)) and not rospy.is_shutdown():
+            success, plan, planning_time, error = group.plan()
+
+            if success:
+                if plan_only:
+                    group.clear_pose_targets()
+                    group.set_start_state_to_current_state()
+                    return plan, planning_time
+                else:
+                    self.execute_plan(plan, wait=wait)
+            else:
+                rospy.sleep(0.2)
+                rospy.logwarn("go_to_pose_goal attempt failed. Retrying.")
+
+        group.clear_pose_targets()
+        return success

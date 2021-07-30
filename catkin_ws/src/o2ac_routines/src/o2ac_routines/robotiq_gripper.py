@@ -24,7 +24,7 @@ class RobotiqGripper():
             try:
                 self.gripper = GripperController(namespace=self.ns, prefix=self.ns + '_', timeout=2.0)
             except Exception as e:
-                rospy.logwarn("Fail to instantiate GripperController for simulation, " + str(e))
+                rospy.logwarn("Fail to instantiate GripperController for simulation: " + str(e))
                 rospy.logwarn("Instantiating dummy gripper, hoping for moveit Fake controllers")
 
                 gripper_type = str(rospy.get_param(self.ns + "/gripper_type"))

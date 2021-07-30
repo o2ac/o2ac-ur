@@ -35,9 +35,9 @@ import ur_dashboard_msgs.msg
 import moveit_msgs.msg
 from moveit_msgs.msg import RobotState
 from sensor_msgs.msg import JointState
-
+from shape_msgs.msg import SolidPrimitive
 from std_msgs.msg import String, Float64MultiArray
-
+import trajectory_msgs.msg
 helper_fct_marker_id_count = 0
 
 def save_task_plan(func):
@@ -686,3 +686,48 @@ def save_sequence_plans(name, plans):
       else:
         bag.write(topic="plan", msg=plan)
 
+def create_tray_collision_object(id, pose, frame_id):
+  tray_co = moveit_msgs.msg.CollisionObject()
+  tray_co.header.frame_id = frame_id
+  tray_co.id = id
+  tray_co.primitives = [SolidPrimitive()]
+  tray_co.primitive_poses = [pose] 
+  tray_co.primitives[0].type = SolidPrimitive.BOX
+  tray_co.primitives[0].dimensions = [.255, .375, 0.05]
+  tray_co.operation = tray_co.ADD
+  return tray_co
+
+def combine_plans(a_bot_plan, b_bot_plan):
+  assert a_bot_plan.joint_trajectory.header.frame_id == b_bot_plan.joint_trajectory.header.frame_id
+  plan = moveit_msgs.msg.RobotTrajectory()
+  plan.joint_trajectory.header = a_bot_plan.joint_trajectory.header
+  plan.joint_trajectory.joint_names = a_bot_plan.joint_trajectory.joint_names + b_bot_plan.joint_trajectory.joint_names
+  a_num_points = len(a_bot_plan.joint_trajectory.points)
+  b_num_points = len(b_bot_plan.joint_trajectory.points)
+  print("a_bot # points:", a_num_points)
+  print("b_bot # points:", b_num_points)
+  if a_num_points == b_num_points or a_num_points < b_num_points:
+    for i in range(a_num_points):
+      plan.joint_trajectory.points.append(concat_joint_trajectory_point(a_bot_plan.joint_trajectory.points[i], b_bot_plan.joint_trajectory.points[i]))
+
+  if a_num_points < b_num_points:
+    diff = a_num_points - b_num_points
+    for i in range(diff, 0):
+      plan.joint_trajectory.points.append(concat_joint_trajectory_point(a_bot_plan.joint_trajectory.points[-1], b_bot_plan.joint_trajectory.points[i]))
+
+  if a_num_points > b_num_points:
+    for i in range(b_num_points):
+      plan.joint_trajectory.points.append(concat_joint_trajectory_point(a_bot_plan.joint_trajectory.points[i], b_bot_plan.joint_trajectory.points[i]))
+    diff = b_num_points - a_num_points
+    for i in range(diff, 0):
+      plan.joint_trajectory.points.append(concat_joint_trajectory_point(a_bot_plan.joint_trajectory.points[i], b_bot_plan.joint_trajectory.points[-1]))
+  return plan
+
+def concat_joint_trajectory_point(point1, point2):
+  point = trajectory_msgs.msg.JointTrajectoryPoint()
+  point.positions = point1.positions + point2.positions
+  point.velocities = point1.velocities + point2.velocities
+  point.accelerations = point1.accelerations + point2.accelerations
+  point.effort = point1.effort + point2.effort
+  point.time_from_start = point1.time_from_start
+  return point

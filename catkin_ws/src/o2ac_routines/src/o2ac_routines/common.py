@@ -3380,7 +3380,102 @@ class O2ACCommon(O2ACBase):
       self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_at_tray_agv, slave_relation, speed=0.05)
     
     self.publish_status_text("SUCCESS: Tray")
-  
+
+  def take_tray_from_agv_stack(self, preplanned=True):
+
+    self.planning_scene_interface.add_object(helpers.create_tray_collision_object("tray1", conversions.to_pose([0.05,0.14,0.075,0,0,tau/4]), "agv_tray_center"))
+    self.planning_scene_interface.add_object(helpers.create_tray_collision_object("tray2", conversions.to_pose([0.05,0.14,0.02,0,0,tau/4]), "agv_tray_center"))
+    self.planning_scene_interface.allow_collisions("tray1", "")
+    self.planning_scene_interface.allow_collisions("tray2", "")
+    self.allow_collisions_with_robot_hand("tray", "a_bot", allow=True)
+    self.allow_collisions_with_robot_hand("tray", "b_bot", allow=True)
+    self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=True)
+    self.allow_collisions_with_robot_hand("tray_center", "b_bot", allow=True)
+
+    # Push the tray from the side
+    self.a_bot.gripper.open(wait=False)
+    self.b_bot.gripper.open(wait=False)
+
+    # Gripper needs to be open for these poses
+    a_bot_push_tray_side_start_high = conversions.to_pose_stamped("agv_tray_center", [ 0.06, -0.1, 0.090, tau/4, tau/4, 0])
+    b_bot_push_tray_side_start_high = conversions.to_pose_stamped("agv_tray_center", [ 0.054, 0.38, 0.100, -.5, .5, .5, .5])
+    a_bot_push_tray_side_start      = conversions.to_pose_stamped("agv_tray_center", [ 0.06, -0.1, -0.019, tau/4, tau/4, 0])
+    b_bot_push_tray_side_start      = conversions.to_pose_stamped("agv_tray_center", [ 0.054, 0.38, -0.004, -.5, .5, .5, .5])
+    a_bot_push_tray_side_goal       = conversions.to_pose_stamped("agv_tray_center", [ 0.06, 0.0015, -0.019, tau/4, tau/4, 0])
+    b_bot_push_tray_side_goal       = conversions.to_pose_stamped("agv_tray_center", [ 0.054, 0.2785, -0.004, -.5, .5, .5, .5]) #.277
+    a_bot_push_tray_side_retreat    = conversions.to_pose_stamped("agv_tray_center", [-0.01, -0.1, 0.09, tau/4, tau/4, 0])
+    b_bot_push_tray_side_retreat    = conversions.to_pose_stamped("agv_tray_center", [-0.004, 0.48, 0.14, -.5, .5, .5, .5])
+
+    a_bot_push_tray_front_start_high = conversions.to_pose_stamped("agv_tray_center", [-0.25, 0.14, .09, 0, tau/4, 0])
+    a_bot_push_tray_front_start      = conversions.to_pose_stamped("agv_tray_center", [-0.25, 0.14, -0.01, 0, tau/4, 0])
+    a_bot_push_tray_front_goal       = conversions.to_pose_stamped("agv_tray_center", [-0.11, 0.14, -0.01, 0, tau/4, 0])
+    a_bot_push_tray_front_retreat    = conversions.to_pose_stamped("agv_tray_center", [-0.17, 0.0, .14, 0, tau/4, 0])
+
+    # Push the tray from the side
+    self.a_bot.gripper.open(wait=False)
+    self.b_bot.gripper.open(wait=False)
+    self.ab_bot.go_to_goal_poses(a_bot_push_tray_side_start_high, b_bot_push_tray_side_start_high, planner="OMPL", speed=0.3)
+    self.ab_bot.go_to_goal_poses(a_bot_push_tray_side_start, b_bot_push_tray_side_start, planner="OMPL", speed=0.5)
+    self.ab_bot.go_to_goal_poses(a_bot_push_tray_side_goal, b_bot_push_tray_side_goal, planner="OMPL", speed=0.1)
+    self.ab_bot.go_to_goal_poses(a_bot_push_tray_side_retreat, b_bot_push_tray_side_retreat, planner="OMPL", speed=0.5)
+
+    # # Push from the front
+    self.a_bot.go_to_pose_goal(a_bot_push_tray_front_start_high, speed=0.8)
+    self.a_bot.go_to_pose_goal(a_bot_push_tray_front_start, speed=0.6)
+    self.a_bot.go_to_pose_goal(a_bot_push_tray_front_goal, speed=0.08)
+    self.a_bot.go_to_pose_goal(a_bot_push_tray_front_retreat, speed=0.6)
+
+    # grippers distance .382 
+
+    a_bot_above_tray_agv = conversions.to_pose_stamped("agv_tray_center",  [0.253-0.375, 0.149, 0.14, tau/4, tau/4, 0])
+    b_bot_above_tray_agv = conversions.to_pose_stamped("agv_tray_center", [0.253, 0.149, 0.14, tau/4, tau/4, 0])
+    a_bot_at_tray_agv    = conversions.to_pose_stamped("agv_tray_center", [0.253-0.375, 0.149, 0.07, tau/4, tau/4, 0])
+    b_bot_at_tray_agv    = conversions.to_pose_stamped("agv_tray_center", [0.253, 0.149, 0.07, tau/4, tau/4, 0])
+    a_bot_above_tray_table = conversions.to_pose_stamped("tray_center", [0.04, 0.190, 0.14, 0, tau/4, 0])
+    b_bot_above_tray_table = conversions.to_pose_stamped("tray_center", [0, 0.190, 0.14, 0, tau/4, 0])
+    b_bot_at_tray_table    = conversions.to_pose_stamped("tray_center", [0, 0.190, 0.022, 0, tau/4, 0])
+    
+    a_bot_pre_rotate_tray  = conversions.to_pose_stamped("agv_tray_center", [0.253, 0.149, 0.07, tau/4, tau/4, 0])
+    a_bot_post_rotate_tray = conversions.to_pose_stamped("agv_tray_center", [0.253-0.375+(0.375/2.), 0.149-(0.375/2.), 0.07, 0, tau/4, 0])
+    b_bot_pre_rotate_tray  = conversions.to_pose_stamped("agv_tray_center", [0.253, 0.149, 0.07, -.5, -.5, .5, -.5])
+    b_bot_post_rotate_tray = conversions.to_pose_stamped("agv_tray_center", [0.253-(0.375/2.), 0.149+(0.375/2.), 0.07, 0, 0.707, 0, 0.707])
+
+    # Grasp and place the tray
+    self.ab_bot.go_to_goal_poses(a_bot_above_tray_agv, b_bot_above_tray_agv, planner="OMPL")
+    self.ab_bot.go_to_goal_poses(a_bot_at_tray_agv, b_bot_at_tray_agv, planner="OMPL")
+
+    # slave_relation = self.ab_bot.get_relative_pose_of_slave("b_bot", "a_bot")
+    # self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_at_tray_agv, slave_relation)
+      
+    # self.ab_bot.go_to_pose_goal(a_bot_pre_rotate_tray, b_bot_pre_rotate_tray, speed=0.8)
+    # self.b_bot.go_to_pose_goal(b_bot_pre_rotate_tray, speed=0.8)
+    self.a_bot.gripper.close()
+    self.b_bot.gripper.close()
+    pb, _ = self.b_bot.move_circ(b_bot_post_rotate_tray, [0.375/2., 0, 0], timeout=0.5, plan_only=True)
+    pa, _ = self.a_bot.move_circ(a_bot_post_rotate_tray, [-0.375/2., 0, 0], timeout=0.5, plan_only=True)
+    plan = helpers.combine_plans(pa,pb)
+    self.ab_bot.execute_plan(plan) 
+
+    # a_bot - Translation: [-0.150, 0.144, 0.017]
+    # b_bot- Translation: [0.253, 0.149, 0.044]
+    # - Rotation: in Quaternion [-0.500, 0.500, 0.500, 0.500]
+
+
+    # if not self.playback_sequence("tray_stack_orient", plan_while_moving=True, save_on_success=preplanned, use_saved_plans=preplanned):
+    #   return False
+
+    # if not self.playback_sequence("tray_take_from_agv_stack", plan_while_moving=True, save_on_success=preplanned, use_saved_plans=preplanned):
+    #   return False
+
+    # self.ab_bot.go_to_named_pose("home")
+
+    self.allow_collisions_with_robot_hand("tray", "a_bot", allow=False)
+    self.allow_collisions_with_robot_hand("tray", "b_bot", allow=False)
+    self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=False)
+    self.allow_collisions_with_robot_hand("tray_center", "b_bot", allow=False)
+
+    return True
+
   def unload_drive_unit(self):
     a_bot_above_drive_unit = conversions.to_pose_stamped("assembled_part_02_back_hole", [0.0025, -0.076, 0.060, 0, 0.891, tau/4])
     b_bot_above_drive_unit = conversions.to_pose_stamped("assembled_part_03_front_hole", [0.0025, -0.067, 0.078, 0, 0.883, tau/4])
