@@ -16,11 +16,6 @@ from o2ac_routines.ur_force_control import URForceController
 from o2ac_routines.robotiq_gripper import RobotiqGripper
 from o2ac_routines import helpers
 
-from ur_control import conversions
-from ur_pykdl import ur_kinematics
-
-from trac_ik_python.trac_ik import IK
-
 
 class URRobot(RobotBase):
     def __init__(self, namespace, tf_listener):
@@ -33,11 +28,6 @@ class URRobot(RobotBase):
         self.use_real_robot = rospy.get_param("use_real_robot", False)
         self.ns = namespace
         self.marker_counter = 0
-
-        # forward kinematics helper
-        self.kdl = ur_kinematics(base_link=self.ns+"_base_link", ee_link=self.ns+"_gripper_tip_link")
-        # IK solver
-        self.ik_solver = IK(base_link=self.ns+"_base_link", tip_link=self.ns+"_gripper_tip_link", solve_type="Distance", timeout=0.01)
 
         try:
             self.force_controller = URForceController(robot_name=namespace, listener=tf_listener)
