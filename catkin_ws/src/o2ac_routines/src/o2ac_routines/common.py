@@ -121,7 +121,7 @@ class O2ACCommon(O2ACBase):
     # if True:
     #   self.planning_scene_interface.remove_world_object(name=object_name)
       
-    # marker = self.assembly_database.get_visualization_marker(object_name, self.assembly_marker_id_counter)
+    # marker = self.assembly_database.get_assembled_visualization_marker(object_name, self.assembly_marker_id_counter)
     # self.assembly_marker_id_counter += 1
     # self.assembly_marker_publisher.publish(marker)
 
@@ -1618,14 +1618,15 @@ class O2ACCommon(O2ACBase):
     goal.pose.position.x -= 0.01 # MAGIC NUMBER
     goal.pose.position.z = 0.0115
 
+    bearing_pose = copy.deepcopy(goal)
+    bearing_pose.pose.position.z -= 0.01
+    self.spawn_object("bearing", bearing_pose)
+    self.planning_scene_interface.allow_collisions("bearing", "")
+
     # if not self.pick_from_two_poses_topdown(robot_name, "bearing", goal, grasp_width=0.07):
-    if not self.simple_pick(robot_name, goal, gripper_force=50.0, grasp_width=.07, axis="z", grasp_height=0.002):
+    if not self.simple_pick(robot_name, goal, gripper_force=50.0, grasp_width=.07, axis="z", grasp_height=0.002, item_id_to_attach="bearing"):
       rospy.logerr("Fail to pick bearing from tray")
       return False
-
-    self.active_robots[robot_name].gripper.detach_object("bearing")
-    # self.despawn_object("bearing")
-    self.active_robots[robot_name].gripper.last_attached_object = None # Forget about this object
     return True
 
   def orient_bearing(self, task, robot_name="b_bot"):
@@ -1835,16 +1836,20 @@ class O2ACCommon(O2ACBase):
   def pick_motor_pulley(self, attempt=2):
     options = {'grasp_width': 0.06, 'center_on_corner': True, 'approach_height': 0.02, 'grab_and_drop': True}
     goal = self.look_and_get_grasp_point("motor_pulley", options=options)
-    
     if not isinstance(goal, geometry_msgs.msg.PoseStamped):
       rospy.logerr("Could not find motor_pulley in tray. Skipping procedure.")
       return False
     goal.pose.position.x -= 0.01 # MAGIC NUMBER
     goal.pose.position.z = 0.0
+
+    motor_pulley_pose = copy.deepcopy(goal)
+    motor_pulley_pose.pose.position.z = 0.005
+    self.spawn_object("motor_pulley", motor_pulley_pose)
+    self.planning_scene_interface.allow_collisions("motor_pulley", "")
     self.vision.activate_camera("b_bot_inside_camera")
     self.activate_led("b_bot", False)
     
-    if not self.simple_pick("b_bot", goal, gripper_force=50.0, grasp_width=.06, axis="z", grasp_height=0.002):
+    if not self.simple_pick("b_bot", goal, gripper_force=50.0, grasp_width=.06, axis="z", grasp_height=0.002, item_id_to_attach="motor_pulley"):
       rospy.logerr("Fail to simple_pick")
       return False
 
@@ -1918,6 +1923,12 @@ class O2ACCommon(O2ACBase):
     self.vision.activate_camera("a_bot_inside_camera")
     object_pose.pose.position.x -= 0.01 # MAGIC NUMBER
     object_pose.pose.position.z = 0.018
+  
+    idler_pulley_pose = copy.deepcopy(object_pose)
+    idler_pulley_pose.pose.position.z = 0.025
+    self.spawn_object("taskboard_idler_pulley_small", idler_pulley_pose)
+    self.planning_scene_interface.allow_collisions("taskboard_idler_pulley_small", "")
+    
 
     rospy.loginfo("Picking idler pulley at: ")
     self.b_bot.go_to_named_pose("home")
@@ -1984,6 +1995,7 @@ class O2ACCommon(O2ACBase):
       return False
     
     self.a_bot.gripper.open(opening_width=0.05)
+    self.a_bot.gripper.forget_attached_item()
     self.a_bot.move_lin_rel(relative_translation=[-0.15, 0, 0.0], relative_to_tcp=True, speed=1.0)
     if not self.playback_sequence("idler_pulley_equip_nut_tool"):
       rospy.logerr("Fail to complete equip_nut_tool")
@@ -2030,6 +2042,7 @@ class O2ACCommon(O2ACBase):
       self.a_bot.gripper.open()
       return self.grasp_idler_pulley(attempt=attempt-1)
     
+    self.a_bot.gripper.attach_object("taskboard_idler_pulley_small")
     self.a_bot.gripper.close()
 
     if self.a_bot.gripper.opening_width < 0.01 and self.use_real_robot:
@@ -2236,7 +2249,9 @@ class O2ACCommon(O2ACBase):
     gp[2] = 0.005
     euler_gp = tf_conversions.transformations.euler_from_quaternion(gp[3:])
     shaft_pose = conversions.to_pose_stamped("tray_center", gp[:3].tolist() + [0, 0, -tau/2-euler_gp[0]])
-    self.spawn_object("shaft", shaft_pose, shaft_pose.header.frame_id)
+    # mk = self.assembly_database.get_visualization_marker("shaft", pose=shaft_pose.pose, frame_id=shaft_pose.header.frame_id)
+    # self.assembly_marker_publisher.publish(mk)
+    self.spawn_object("shaft", shaft_pose)
     self.planning_scene_interface.allow_collisions("shaft", "")
     
     goal.pose.position.z = 0.001 # Magic Numbers for grasping

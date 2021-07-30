@@ -316,6 +316,7 @@ class O2ACTaskboard(O2ACCommon):
         return False
       if not self.insert_bearing("taskboard_bearing_target_link", robot_name="a_bot"):
         return False
+      self.a_bot.gripper.forget_attached_item()
       self.subtask_completed["bearing"] = True
       self.a_success = True
     def b_bot_task(): # pick/orient/insert shaft
@@ -350,10 +351,11 @@ class O2ACTaskboard(O2ACCommon):
       self.do_tasks_simultaneous(a_bot_task3, b_bot_task3, timeout=300.0)
     print("task 3:", self.a_success, self.b_success)
 
+    self.despawn_object("bearing")
     self.ab_bot.go_to_named_pose("home")
 
     if self.a_success and self.b_success:
-      self.subtask_completed["idler pulley"] = self.pick_and_insert_idler_pulley("taskboard", simultaneous=True)
+      self.subtask_completed["idler pulley"] = self.do_task("idler pulley", simultaneous=True)
       
     order = ["belt", "motor pulley", "shaft", "idler pulley", "bearing"]
     task_complete = False
@@ -433,7 +435,7 @@ class O2ACTaskboard(O2ACCommon):
       
       return self.subtask_completed[item]
 
-  def do_task(self, task_name, fake_execution_for_calibration=False):
+  def do_task(self, task_name, fake_execution_for_calibration=False, simultaneous=False):
     self.publish_status_text("Target: " + task_name)
 
     if task_name == "belt":
@@ -665,14 +667,20 @@ class O2ACTaskboard(O2ACCommon):
       success = self.pick_and_insert_motor_pulley(task = "taskboard")
       self.unlock_base_plate()  # To ensure that nothing moved due to a failed insertion
       self.lock_base_plate()
+      self.b_bot.gripper.forget_attached_item()
+      self.despawn_object("motor_pulley")
       return success
 
     # ==========================================================
 
     if task_name == "bearing":
       success = self.pick_up_and_insert_bearing(task="taskboard")
+      self.a_bot.gripper.forget_attached_item()
+      self.b_bot.gripper.forget_attached_item()
       if success:
-        return self.align_bearing_holes(task="taskboard")
+        success = self.align_bearing_holes(task="taskboard")
+      self.despawn_object("bearing")
+      return success
       
     if task_name == "screw_bearing":
       self.equip_tool('b_bot', 'screw_tool_m4')
@@ -683,9 +691,15 @@ class O2ACTaskboard(O2ACCommon):
     # ==========================================================
 
     if task_name == "shaft":
-      return self.pick_and_insert_shaft("taskboard")
+      success = self.pick_and_insert_shaft("taskboard")
+      self.b_bot.gripper.forget_attached_item()
+      self.despawn_object("taskboard_idler_pulley_small")
+      return success
     
     # ==========================================================
     
     if task_name == "idler pulley":
-      return self.pick_and_insert_idler_pulley("taskboard")
+      success = self.pick_and_insert_idler_pulley("taskboard", simultaneous=simultaneous)
+      self.despawn_object("taskboard_idler_pulley_small")
+      self.a_bot.gripper.forget_attached_item()
+      return success

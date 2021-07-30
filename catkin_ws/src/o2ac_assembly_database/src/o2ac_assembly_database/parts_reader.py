@@ -105,7 +105,31 @@ class PartsReader(object):
         rospy.logerr("Could not find collision object with id " + str(object_name))
         return None
     
-    def get_visualization_marker(self, object_name, marker_id_num=1):
+    def get_visualization_marker(self, object_name, pose, frame_id, color=None, lifetime=0, frame_locked=True):
+        """ Returns a visualization marker of the object on a given pose. """
+        for (c_obj, mesh_filepath) in zip(self._collision_objects, self._mesh_filepaths):
+            if c_obj.id == object_name:
+                marker = visualization_msgs.msg.Marker()
+                marker.id = self.name_to_id(object_name)
+                marker.header.frame_id = frame_id
+                marker.pose = pose
+                marker.frame_locked = frame_locked
+                marker.lifetime = rospy.Duration(lifetime)
+                marker.type = marker.MESH_RESOURCE
+                marker.mesh_resource = "file://" + mesh_filepath
+                marker.scale = geometry_msgs.msg.Vector3(0.001, 0.001, 0.001)
+                if color:
+                    marker.color = color
+                else:    
+                    marker.color.a = 1.0
+                    marker.color.g = .8
+                    marker.color.b = .5
+                marker.action = marker.ADD
+                return marker
+        rospy.logerr("Could not find object with id " + str(object_name))
+        return None
+
+    def get_assembled_visualization_marker(self, object_name, marker_id_num=1):
         """ Returns a visualization marker of the object in its assembled position. Assumes the assembly frames have been published. """
         for (c_obj, mesh_filepath) in zip(self._collision_objects, self._mesh_filepaths):
             if c_obj.id == object_name:

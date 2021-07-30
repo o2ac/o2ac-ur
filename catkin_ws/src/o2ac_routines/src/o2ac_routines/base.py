@@ -187,19 +187,25 @@ class O2ACBase(object):
     
   ############## ------ Internal functions (and convenience functions)
 
-  def spawn_object(self, object_name, object_pose, object_reference_frame):
+  def spawn_object(self, object_name, object_pose, object_reference_frame=""):
  
+    collision_object = self.assembly_database.get_collision_object(object_name)
     if isinstance(object_pose, geometry_msgs.msg._PoseStamped.PoseStamped):
       co_pose = object_pose.pose
+      collision_object.header.frame_id = object_pose.header.frame_id
     elif isinstance(object_pose, geometry_msgs.msg._Pose.Pose):
       co_pose = object_pose
     elif isinstance(object_pose, list) or isinstance(object_pose, numpy.ndarray):
       co_pose = conversions.to_pose(object_pose)
     else:
       raise ValueError("Unsupported pose type: %s" % type(object_pose))
+    
+    if not isinstance(object_pose, geometry_msgs.msg._PoseStamped.PoseStamped):
+      if not object_reference_frame:
+        raise ValueError("object_reference_frame is required when providing a pose type Pose or List")
+      else:
+        collision_object.header.frame_id = object_reference_frame
 
-    collision_object = self.assembly_database.get_collision_object(object_name)
-    collision_object.header.frame_id = object_reference_frame
     collision_object.pose = co_pose
         
     self.planning_scene_interface.add_object(collision_object)

@@ -311,14 +311,17 @@ class O2ACAssembly(O2ACCommon):
     rospy.loginfo("======== SUBTASK C (bearing) ========")
     self.publish_status_text("Target: Bearing" )
     self.unequip_tool("b_bot")
+    success = False
     if self.pick_up_and_insert_bearing(task="assembly"):
+      self.b_bot.gripper.forget_attached_item()
       if self.align_bearing_holes(task="assembly"):
         self.b_bot.go_to_named_pose("home")
         if self.fasten_bearing(task="assembly"):
           self.fasten_bearing(task="assembly", only_retighten=True)
           self.unequip_tool('b_bot', 'screw_tool_m4')
-          return True
-    return False
+          success = True
+    self.despawn_object("bearing")
+    return success
   
   def subtask_c2(self):
     rospy.loginfo("======== SUBTASK C (output shaft) ========")
