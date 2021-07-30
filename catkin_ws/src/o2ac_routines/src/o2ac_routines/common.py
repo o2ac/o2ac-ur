@@ -1668,7 +1668,7 @@ class O2ACCommon(O2ACBase):
       preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017, -0.000, 0.006] + rotation)
 
     trajectory = [(at_tray_border_pose, 0.01, 0.4), (approach_pose, 0.02, 0.4), (preinsertion_pose, 0, 0.2)]
-    if not self.a_bot.move_lin_trajectory(trajectory=trajectory, timeout=15):
+    if not self.active_robots[robot_name].move_lin_trajectory(trajectory=trajectory, timeout=15):
       rospy.logerr("Could not go to preinsertion")
       self.pick_from_centering_area_and_drop_in_tray(robot_name)
       return False
