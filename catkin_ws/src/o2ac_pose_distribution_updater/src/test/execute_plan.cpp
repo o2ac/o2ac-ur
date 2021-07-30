@@ -43,6 +43,8 @@ int main(int argc, char **argv) {
       scanf("%lf", &initial_covariance(i, j));
     }
   }
+  double support_surface;
+  scanf("%lf", &support_surface);
 
   PoseEstimator estimator;
   estimator.load_config_file(
@@ -115,7 +117,7 @@ int main(int argc, char **argv) {
                 .toImageMsg());
       goal.look_observation.ROI = ROI;
     } else if (action.type == place_action_type) {
-      goal.place_observation.support_surface = 0.0;
+      goal.place_observation.support_surface = support_surface;
     }
     goal.distribution_type = 1;
     if (action.type != grasp_action_type && action.type != push_action_type) {
@@ -168,8 +170,10 @@ int main(int argc, char **argv) {
 
       marker.action = visualization_msgs::Marker::ADD;
 
-      marker.pose =
-          to_Pose(pose.position.x, pose.position.y, -0.01, 1.0, 0.0, 0.0, 0.0);
+      marker.pose = to_Pose(
+          pose.position.x, pose.position.y,
+          action.type == place_action_type ? support_surface - 0.01 : -0.01,
+          1.0, 0.0, 0.0, 0.0);
       marker.scale.x = 0.5;
       marker.scale.y = 0.5;
       marker.scale.z = 0.02;

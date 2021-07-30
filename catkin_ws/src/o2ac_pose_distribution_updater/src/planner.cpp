@@ -79,9 +79,10 @@ void Planner::calculate_action_candidates(
       }
       double sigma_z = 3.0 * sqrt(covariance(2, 2));
       action.gripper_pose =
-          Eigen::Translation3d((sigma_z - (rotated_gripper_pose * current_mean *
-                                           (-plane.offset() * plane.normal()))
-                                              .z()) *
+          Eigen::Translation3d((support_surface + sigma_z -
+                                (rotated_gripper_pose * current_mean *
+                                 (-plane.offset() * plane.normal()))
+                                    .z()) *
                                Eigen::Vector3d::UnitZ()) *
           rotated_gripper_pose;
 
@@ -166,7 +167,7 @@ void Planner::calculate_action_candidates(
                       gripper_width / 2.0) *
                              edge_normal +
                          edge.dot(projected_center) * edge,
-          0.0;
+          support_surface;
       double angle = -atan2(-edge(0), -edge(1));
 
       UpdateAction action;
@@ -205,13 +206,15 @@ std::vector<UpdateAction> Planner::calculate_plan(
     const std::shared_ptr<mesh_object> &gripped_geometry,
     const std::shared_ptr<std::vector<Eigen::Isometry3d>> &grasp_points,
     const Eigen::Isometry3d &current_gripper_pose, const bool &current_gripping,
-    const Eigen::Isometry3d &current_mean,
+    const double &support_surface, const Eigen::Isometry3d &current_mean,
     const CovarianceMatrix &current_covariance,
     const CovarianceMatrix &objective_coefficients,
     const double &objective_value, const bool goal_gripping,
     const std::function<bool(const Eigen::Isometry3d &)> check_goal_pose) {
+
   this->gripped_geometry = gripped_geometry;
   this->grasp_points = grasp_points;
+  this->support_surface = support_surface;
   center_of_gravity = calculate_center_of_gravity(gripped_geometry->vertices,
                                                   gripped_geometry->triangles);
   calculate_place_candidates(gripped_geometry->vertices, center_of_gravity,

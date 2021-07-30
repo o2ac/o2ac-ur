@@ -66,6 +66,8 @@ int main(int argc, char **argv) {
   // set initial pose belief
   Eigen::Isometry3d initial_mean;
   scan_pose(initial_mean, config_file);
+  double support_surface;
+  fscanf(config_file, "%lf", &support_surface);
   // set covariance randomly
   std::random_device seed_generator;
   std::default_random_engine engine(0);
@@ -100,15 +102,15 @@ int main(int argc, char **argv) {
     std::cerr << goal_pose.matrix() << std::endl;
     actions = planner.calculate_plan(
         gripped_geometry, grasp_points, Eigen::Isometry3d::Identity(), false,
-        initial_mean, initial_covariance, objective_coefficients,
-        objective_value, true,
+        support_surface, initial_mean, initial_covariance,
+        objective_coefficients, objective_value, true,
         check_near_to_goal_pose(goal_pose, translation_threshold,
                                 rotation_threshold));
   } else {
-    actions = planner.calculate_plan(gripped_geometry, grasp_points,
-                                     Eigen::Isometry3d::Identity(), false,
-                                     initial_mean, initial_covariance,
-                                     objective_coefficients, objective_value);
+    actions = planner.calculate_plan(
+        gripped_geometry, grasp_points, Eigen::Isometry3d::Identity(), false,
+        support_surface, initial_mean, initial_covariance,
+        objective_coefficients, objective_value);
   }
 
   fclose(config_file);
@@ -117,6 +119,7 @@ int main(int argc, char **argv) {
   printf("%s\n", stl_file_path);
   print_pose(initial_mean);
   std::cout << initial_covariance << std::endl;
+  printf("%lf\n", support_surface);
 
   printf("%d\n", (int)actions.size());
   for (auto &action : actions) {

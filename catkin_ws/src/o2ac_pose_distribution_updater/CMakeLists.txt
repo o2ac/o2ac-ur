@@ -20,6 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   eigen_conversions
   o2ac_msgs
+  o2ac_skills
   tf2_ros
   moveit_ros_planning
   moveit_ros_planning_interface
@@ -92,4 +93,8 @@ if(CATKIN_ENABLE_TESTING)
   add_executable(execute_plan src/test/execute_plan.cpp)
   add_dependencies(execute_plan ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
   target_link_libraries(execute_plan planner test_tools read_stl)
+
+  add_executable(simulation src/test/simulation_in_demo.cpp)
+  add_dependencies(simulation ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+  target_link_libraries(simulation planner test_tools read_stl)
 endif()

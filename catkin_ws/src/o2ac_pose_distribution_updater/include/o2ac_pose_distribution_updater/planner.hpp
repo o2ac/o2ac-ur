@@ -24,6 +24,7 @@ class Planner : public PoseEstimator {
 private:
   std::shared_ptr<mesh_object> gripped_geometry;
   std::shared_ptr<std::vector<Eigen::Isometry3d>> grasp_points;
+  double support_surface;
   Eigen::Vector3d center_of_gravity;
   std::vector<Eigen::Hyperplane<double, 3>> place_candidates;
   std::vector<Eigen::Vector3d> convex_hull_vertices;
@@ -59,7 +60,8 @@ public:
       const std::shared_ptr<mesh_object> &gripped_geometry,
       const std::shared_ptr<std::vector<Eigen::Isometry3d>> &grasp_points,
       const Eigen::Isometry3d &current_gripper_pose,
-      const bool &current_gripping, const Eigen::Isometry3d &current_mean,
+      const bool &current_gripping, const double &support_surface,
+      const Eigen::Isometry3d &current_mean,
       const CovarianceMatrix &current_covariance,
       const CovarianceMatrix &objective_coefficients,
       const double &objective_value, const bool goal_gripping = false,
