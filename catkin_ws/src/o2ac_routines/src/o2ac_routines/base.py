@@ -1113,6 +1113,8 @@ class O2ACBase(object):
         robot_name + "_right_inner_finger",
         robot_name + "_left_inner_knuckle",
         robot_name + "_right_inner_knuckle",
+        robot_name + "_left_outer_finger",
+        robot_name + "_right_outer_finger",
       ]
       if allow:
         self.planning_scene_interface.allow_collisions(hand_links, link_name)

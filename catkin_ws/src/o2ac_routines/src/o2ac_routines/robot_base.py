@@ -78,7 +78,7 @@ class RobotBase():
                 return self.listener.transformPose(frame_id, res.pose_stamped[0])
             return res.pose_stamped[0]
 
-    def compute_ik(self, target_pose, joints_seed=None, timeout=0.01, end_effector_link="", retry=False):
+    def compute_ik(self, target_pose, joints_seed=None, timeout=0.01, end_effector_link="", retry=False, allow_collisions=False):
         """
             Compute the inverse kinematics for a move group the moveit service
             return
@@ -86,7 +86,7 @@ class RobotBase():
         """
         if isinstance(target_pose, geometry_msgs.msg.PoseStamped):
             ik_request = moveit_msgs.msg.PositionIKRequest()
-            ik_request.avoid_collisions = True
+            ik_request.avoid_collisions = not allow_collisions
             ik_request.timeout = rospy.Duration(timeout)
             ik_request.pose_stamped = target_pose
             ik_request.group_name = self.robot_group.get_name()

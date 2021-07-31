@@ -146,7 +146,7 @@ class DualArm(RobotBase):
                 tries -= 1
                 # after every failure, incrementally give more time to the IK solver to compute a better solution
                 ik_solver_timeout += ik_solver_timeout
-                ik_solution = slave.compute_ik(target_pose=slave_tcp, joints_seed=last_ik_solution, timeout=ik_solver_timeout)
+                ik_solution = slave.compute_ik(target_pose=slave_tcp, joints_seed=last_ik_solution, timeout=ik_solver_timeout, allow_collisions=True)
 
                 if not ik_solution:
                     continue
@@ -161,7 +161,7 @@ class DualArm(RobotBase):
                 if i > 0:
                     slave_joint_displacement = np.max(np.abs(ik_solution-last_ik_solution))
                     master_joint_displacement = np.max(np.abs(np.array(master_plan.joint_trajectory.points[i].positions)-master_plan.joint_trajectory.points[i-1].positions))
-                    if slave_joint_displacement > np.deg2rad(5):  # arbitrary
+                    if slave_joint_displacement > np.deg2rad(10):  # arbitrary
                         if slave_joint_displacement > master_joint_displacement * 2.0:  # arbitrary
                             ik_solution = None  # reject solution
                             continue
