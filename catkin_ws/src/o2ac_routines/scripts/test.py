@@ -224,10 +224,17 @@ def main():
     rospy.init_node("testscript")
     global controller
     
-    controller = O2ACAssembly()
-    # controller = O2ACCommon()
+    # controller = O2ACAssembly()
+    controller = O2ACCommon()
+    # q = [0.19453047870641985, -1.414852203750135, 1.7189982978203278, -1.8730085962497756, -1.567615792398194, 1.7666671594586172, 2.453019687833446, -1.3449819279957274, 1.8068236138946376, -2.0324751409170405, -1.5648680786549045, -2.2588772450321226]
+    # controller.ab_bot.move_joints(q, speed=1.0)
+    # q = [0.19502419962975553, -1.302128082437928, 1.886556773525712, -2.1543437146483777, -1.568541929253542, 1.766640025829011, 2.4522167306633054, -1.2014465832104217, 1.9290941675252034, -2.298411409316249, -1.5642835257198011, -2.2577476650719626]
+    # controller.ab_bot.move_joints(q, speed=1.0)
+    controller.reset_scene_and_robots()
+    # controller.confirm_to_proceed("")
+    # controller.ab_bot.go_to_named_pose("home")
+    controller.take_tray_from_agv_stack_calibration_short_side()
     ###### insert motor ######
-    # controller.reset_scene_and_robots()
     # controller.publish_part_in_assembled_position("base")
     # controller.publish_part_in_assembled_position("panel_bearing")
     # controller.publish_part_in_assembled_position("panel_motor")
@@ -246,12 +253,12 @@ def main():
     # controller.confirm_to_proceed("finetune")
     # controller.insert_motor("assembled_part_02_back_hole")
 
-    controller.confirm_to_proceed("move")
-    selection_matrix = [1., 1., 1., 0.8, 1., 1.]
-    controller.b_bot.execute_spiral_trajectory("XY", max_radius=0.0, radius_direction="+Y", steps=50,
-                                                revolutions=1, target_force=0, check_displacement_time=10,
-                                                wiggle_direction="Z", wiggle_angle=radians(15.0), wiggle_revolutions=2.0,
-                                                termination_criteria=None, timeout=10, selection_matrix=selection_matrix)
+    # controller.confirm_to_proceed("move")
+    # selection_matrix = [1., 1., 1., 0.8, 1., 1.]
+    # controller.b_bot.execute_spiral_trajectory("XY", max_radius=0.0, radius_direction="+Y", steps=50,
+    #                                             revolutions=1, target_force=0, check_displacement_time=10,
+    #                                             wiggle_direction="Z", wiggle_angle=radians(15.0), wiggle_revolutions=2.0,
+    #                                             termination_criteria=None, timeout=10, selection_matrix=selection_matrix)
     
     ### fasten motor ####
     # controller.confirm_to_proceed("fasten?")

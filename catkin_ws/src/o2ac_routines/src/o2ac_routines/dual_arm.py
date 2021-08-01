@@ -5,6 +5,7 @@ import moveit_commander
 
 import moveit_msgs.msg
 import moveit_msgs.srv
+from o2ac_routines import helpers
 
 from o2ac_routines.robot_base import RobotBase
 import rospy
@@ -128,10 +129,15 @@ class DualArm(RobotBase):
 
         last_ik_solution = None
         last_velocities = None
+        master_initial_pose = master.compute_fk(master_plan.joint_trajectory.points[0].positions)
+        master_initial_pose = conversions.from_pose_to_list(self.listener.transformPose("world", master_initial_pose).pose)
         for i, point in enumerate(master_slave_plan.joint_trajectory.points):
             master_tcp = master.compute_fk(point.positions)
             master_tcp = conversions.from_pose_to_list(self.listener.transformPose("world", master_tcp).pose)
-            slave_tcp = np.concatenate([master_tcp[:3]+slave_relation[:3], transformations.quaternion_multiply(slave_relation[3:], master_tcp[3:])])
+            master_tcp_rotation = transformations.diff_quaternion(master_initial_pose[3:], master_tcp[3:])
+            slave_rotation = transformations.quaternion_multiply(slave_relation[3:], master_tcp[3:])
+            slave_translation = master_tcp[:3]+transformations.vector_to_pyquaternion(master_tcp_rotation).rotate(slave_relation[:3])
+            slave_tcp = np.concatenate([slave_translation, slave_rotation])
             slave_tcp = conversions.to_pose_stamped("world", slave_tcp)
             slave_tcp = self.listener.transformPose(slave.ns + "_base_link", slave_tcp)
 
@@ -170,8 +176,11 @@ class DualArm(RobotBase):
                     break
 
             if ik_solution is None:
-                rospy.logerr("Could not find a valid IK solution for the slave-robot")
+                rospy.logerr("Could not find a valid IK solution for the slave-robot at point: %s" % (i+1))
+                helpers.publish_marker(slave_tcp, "pose", "slave_move_failed_IK_pose")
                 return False
+            # else:
+            #     helpers.publish_marker(slave_tcp, "pose", "slave_move", "o2ac_success_markers")
 
             # Compute slave velocities/accelerations
             if i == 0 or i == (len(master_plan.joint_trajectory.points) - 1):

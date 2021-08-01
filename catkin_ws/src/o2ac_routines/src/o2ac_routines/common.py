@@ -3382,20 +3382,11 @@ class O2ACCommon(O2ACBase):
     
     self.publish_status_text("SUCCESS: Tray")
 
-  def take_tray_from_agv_stack_calibration_short_side(self):
+  def tray_stack_orient(self):
     tray_x = 0.05
     tray_y = 0.14
     tray1_z = 0.075
     tray2_z = 0.02
-    self.planning_scene_interface.add_object(helpers.create_tray_collision_object("tray1", conversions.to_pose([tray_x, tray_y, tray1_z,0,0,tau/4]), "agv_tray_center"))
-    self.planning_scene_interface.add_object(helpers.create_tray_collision_object("tray2", conversions.to_pose([tray_x, tray_y, tray2_z,0,0,tau/4]), "agv_tray_center"))
-    self.planning_scene_interface.allow_collisions("tray1", "")
-    self.planning_scene_interface.allow_collisions("tray2", "")
-    self.allow_collisions_with_robot_hand("tray", "a_bot", allow=True)
-    self.allow_collisions_with_robot_hand("tray", "b_bot", allow=True)
-    self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=True)
-    self.allow_collisions_with_robot_hand("tray_center", "b_bot", allow=True)
-
     # Push the tray from the side
     self.a_bot.gripper.open(wait=False)
     self.b_bot.gripper.open(wait=False)
@@ -3429,31 +3420,42 @@ class O2ACCommon(O2ACBase):
     self.ab_bot.go_to_goal_poses(a_bot_push_tray_side_goal, b_bot_push_tray_side_goal, planner="OMPL", speed=0.1)
     self.ab_bot.go_to_goal_poses(a_bot_push_tray_side_retreat, b_bot_push_tray_side_retreat, planner="OMPL", speed=0.5)
 
-    # # Push from the front
+    # Push from the front
     self.a_bot.go_to_pose_goal(a_bot_push_tray_front_start_high, speed=0.8)
     self.a_bot.go_to_pose_goal(a_bot_push_tray_front_start, speed=0.6)
     self.a_bot.go_to_pose_goal(a_bot_push_tray_front_goal, speed=0.08)
     self.a_bot.go_to_pose_goal(a_bot_push_tray_front_retreat, speed=0.6)
 
-    a_bot_above_tray_agv = conversions.to_pose_stamped("agv_tray_center",  [0.253-0.375, 0.149, 0.14, tau/4, tau/4, 0])
-    b_bot_above_tray_agv = conversions.to_pose_stamped("agv_tray_center", [0.253, 0.149, 0.14, tau/4, tau/4, 0])
-    a_bot_at_tray_agv    = conversions.to_pose_stamped("agv_tray_center", [0.253-0.375, 0.149, 0.07, tau/4, tau/4, 0])
-    b_bot_at_tray_agv    = conversions.to_pose_stamped("agv_tray_center", [0.253, 0.149, 0.07, tau/4, tau/4, 0])
-    b_bot_y = tray_y+0.225/2.
-    a_bot_y = tray_y-0.225/2.
-    a_bot_above_tray_agv = conversions.to_pose_stamped("agv_tray_center", [tray_x, a_bot_y, 0.14, 0, tau/4, 0])
-    b_bot_above_tray_agv = conversions.to_pose_stamped("agv_tray_center", [tray_x, b_bot_y, 0.14, 0, tau/4, 0])
-    a_bot_at_tray_agv    = conversions.to_pose_stamped("agv_tray_center", [tray_x, a_bot_y, 0.07, 0, tau/4, 0])
-    b_bot_at_tray_agv    = conversions.to_pose_stamped("agv_tray_center", [tray_x, b_bot_y, 0.07, 0, tau/4, 0])
+  def take_tray_from_agv_stack_calibration_short_side(self, tray_height=0.075):
+    tray_x = 0.05
+    tray_y = 0.14
+    tray1_z = 0.075
+    tray2_z = 0.02
+    self.planning_scene_interface.add_object(helpers.create_tray_collision_object("tray1", conversions.to_pose([tray_x, tray_y, tray1_z,0,0,tau/4]), "agv_tray_center"))
+    self.planning_scene_interface.add_object(helpers.create_tray_collision_object("tray2", conversions.to_pose([tray_x, tray_y, tray2_z,0,0,tau/4]), "agv_tray_center"))
+    self.planning_scene_interface.allow_collisions("tray1", "")
+    self.planning_scene_interface.allow_collisions("tray2", "")
+    self.allow_collisions_with_robot_hand("tray", "a_bot", allow=True)
+    self.allow_collisions_with_robot_hand("tray", "b_bot", allow=True)
+    self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=True)
+    self.allow_collisions_with_robot_hand("tray_center", "b_bot", allow=True)
+
+    offset = 0.05
+    short_side = 0.225/2.
+    a_bot_x = tray_x - offset
+    b_bot_x = tray_x + offset
+    a_bot_y = tray_y - short_side
+    b_bot_y = tray_y + short_side
+    a_bot_above_tray_agv = conversions.to_pose_stamped("agv_tray_center", [a_bot_x, a_bot_y, tray_height+0.10, 0, tau/4, 0])
+    b_bot_above_tray_agv = conversions.to_pose_stamped("agv_tray_center", [b_bot_x, b_bot_y, tray_height+0.10, 0, tau/4, 0])
+    b_bot_at_tray_agv    = conversions.to_pose_stamped("agv_tray_center", [b_bot_x, b_bot_y, tray_height+0.02, 0, tau/4, 0])
     
-    b_bot_y = tray_y+0.225/2.
-    a_bot_y = tray_y-0.225/2.
-    a_bot_pre_rotate_tray  = conversions.to_pose_stamped("tray_center", [0, -(0.225/2.), 0.07, 0, tau/4, 0])
-    a_bot_post_rotate_tray = conversions.to_pose_stamped("tray_center", [(0.225/2.), 0, 0.07, -tau/4, tau/4, 0])
-    b_bot_pre_rotate_tray  = conversions.to_pose_stamped("tray_center", [0, (0.225/2.), 0.07, 0, tau/4, 0])
-    b_bot_post_rotate_tray = conversions.to_pose_stamped("tray_center", [-(0.225/2.), 0, 0.07, -tau/4, tau/4, 0])
-    b_bot_at_tray_table    = conversions.to_pose_stamped("tray_center", [-(0.225/2.), 0, 0.02, -tau/4, tau/4, 0])
-    b_bot_above_table    = conversions.to_pose_stamped("tray_center", [-(0.225/2.), 0, 0.15, -tau/4, tau/4, 0])
+    a_bot_x +=  short_side + offset
+    b_bot_x += -short_side - offset
+    a_bot_y += -short_side + offset
+    b_bot_y +=  short_side - offset
+    a_bot_at_tray_table    = conversions.to_pose_stamped("tray_center", [short_side, -offset, 0.02, -tau/4, tau/4, 0])
+    a_bot_above_table      = conversions.to_pose_stamped("tray_center", [short_side, -offset, 0.15, -tau/4, tau/4, 0])
 
     # Go to tray
     self.ab_bot.go_to_goal_poses(a_bot_above_tray_agv, b_bot_above_tray_agv, planner="OMPL")
@@ -3465,32 +3467,29 @@ class O2ACCommon(O2ACBase):
     self.a_bot.gripper.close()
     self.b_bot.gripper.close()
 
-
     # move to tray center
     self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_above_tray_agv, slave_relation)
-    slave_relation = self.ab_bot.get_relative_pose_of_slave("b_bot", "a_bot")
-    self.allow_collisions_with_robot_hand("b_bot_cam_cables_link", "a_bot")
-    self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_pre_rotate_tray, slave_relation)
-    self.allow_collisions_with_robot_hand("b_bot_cam_cables_link", "a_bot", False)
 
     # rotate and place
-    self.allow_collisions_with_robot_hand("b_bot_cam_cables_link", "a_bot")
-    pb, _ = self.b_bot.move_circ(b_bot_post_rotate_tray, [0,  0.225/2., 0], timeout=0.5, plan_only=True)
-    pa, _ = self.a_bot.move_circ(a_bot_post_rotate_tray, [0, -0.225/2., 0], timeout=0.5, plan_only=True)
-    self.allow_collisions_with_robot_hand("b_bot_cam_cables_link", "a_bot", False)
-    plan = helpers.combine_plans(pa,pb)
-    self.ab_bot.execute_plan(plan) 
-    slave_relation = self.ab_bot.get_relative_pose_of_slave("b_bot", "a_bot")
-    self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_at_tray_table, slave_relation)
+    # self.allow_collisions_with_robot_hand("b_bot_cam_cables_link", "a_bot")
+    # pb, _ = self.b_bot.move_circ(b_bot_post_rotate_tray, [0,  0.225/2., 0], timeout=0.5, plan_only=True)
+    # pa, _ = self.a_bot.move_circ(a_bot_post_rotate_tray, [0, -0.225/2., 0], timeout=0.5, plan_only=True)
+    # self.allow_collisions_with_robot_hand("b_bot_cam_cables_link", "a_bot", False)
+    # plan = helpers.combine_plans(pa,pb)
+    # self.ab_bot.execute_plan(plan) 
+    slave_relation = self.ab_bot.get_relative_pose_of_slave("a_bot", "b_bot")
+    self.ab_bot.master_slave_control("a_bot", "b_bot", a_bot_above_table, slave_relation)
+    slave_relation = self.ab_bot.get_relative_pose_of_slave("a_bot", "b_bot")
+    self.ab_bot.master_slave_control("a_bot", "b_bot", a_bot_at_tray_table, slave_relation)
     
     self.b_bot.gripper.detach_object("tray1")
     self.b_bot.gripper.forget_attached_item()
     self.b_bot.gripper.open(wait=False)
     self.a_bot.gripper.open()
 
-    self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_above_table, slave_relation)
-    self.a_bot.go_to_named_pose("home")
+    self.ab_bot.master_slave_control("a_bot", "b_bot", a_bot_above_table, slave_relation)
     self.b_bot.go_to_named_pose("home")
+    self.a_bot.go_to_named_pose("home")
     self.despawn_object("tray1")
 
     self.allow_collisions_with_robot_hand("tray", "a_bot", allow=False)
@@ -3513,62 +3512,22 @@ class O2ACCommon(O2ACBase):
     self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=True)
     self.allow_collisions_with_robot_hand("tray_center", "b_bot", allow=True)
 
-    # Push the tray from the side
-    self.a_bot.gripper.open(wait=False)
-    self.b_bot.gripper.open(wait=False)
-
-    # Gripper needs to be open for these poses
-    a_bot_x = tray_x + 0.01
-    b_bot_x = tray_x + 0.004
-    a_bot_y = tray_y - 0.24
-    b_bot_y = tray_y + 0.24
-    a_bot_z = tray1_z + 0.07
-    b_bot_z = tray1_z + 0.08
-    a_bot_push_tray_side_start_high = conversions.to_pose_stamped("agv_tray_center", [ a_bot_x, a_bot_y, a_bot_z, tau/4, tau/4, 0])
-    b_bot_push_tray_side_start_high = conversions.to_pose_stamped("agv_tray_center", [ b_bot_x, b_bot_y, b_bot_z, -.5, .5, .5, .5])
-    a_bot_push_tray_side_start      = conversions.to_pose_stamped("agv_tray_center", [ a_bot_x, a_bot_y, -0.019, tau/4, tau/4, 0])
-    b_bot_push_tray_side_start      = conversions.to_pose_stamped("agv_tray_center", [ b_bot_x, b_bot_y, -0.004, -.5, .5, .5, .5])
-    a_bot_push_tray_side_goal       = conversions.to_pose_stamped("agv_tray_center", [ a_bot_x, tray_y-0.1385, -0.019, tau/4, tau/4, 0])
-    b_bot_push_tray_side_goal       = conversions.to_pose_stamped("agv_tray_center", [ b_bot_x, tray_y+0.1385, -0.004, -.5, .5, .5, .5]) #.277
-    a_bot_push_tray_side_retreat    = conversions.to_pose_stamped("agv_tray_center", [-0.01, -0.1, 0.09, tau/4, tau/4, 0])
-    b_bot_push_tray_side_retreat    = conversions.to_pose_stamped("agv_tray_center", [-0.004, 0.48, 0.14, -.5, .5, .5, .5])
-
-    a_bot_push_tray_front_start_high = conversions.to_pose_stamped("agv_tray_center", [tray_x-0.30, tray_y, a_bot_z, 0, tau/4, 0])
-    a_bot_push_tray_front_start      = conversions.to_pose_stamped("agv_tray_center", [tray_x-0.30, tray_y, -0.01, 0, tau/4, 0])
-    a_bot_push_tray_front_goal       = conversions.to_pose_stamped("agv_tray_center", [tray_x-0.15, tray_y, -0.01, 0, tau/4, 0])
-    a_bot_push_tray_front_retreat    = conversions.to_pose_stamped("agv_tray_center", [tray_x-0.30, 0.0, a_bot_z, 0, tau/4, 0])
-
-    # Push the tray from the side
-    self.a_bot.gripper.open(wait=False)
-    self.b_bot.gripper.open(wait=False)
-    self.ab_bot.go_to_goal_poses(a_bot_push_tray_side_start_high, b_bot_push_tray_side_start_high, planner="OMPL", speed=0.3)
-    self.ab_bot.go_to_goal_poses(a_bot_push_tray_side_start, b_bot_push_tray_side_start, planner="OMPL", speed=0.5)
-    self.ab_bot.go_to_goal_poses(a_bot_push_tray_side_goal, b_bot_push_tray_side_goal, planner="OMPL", speed=0.1)
-    self.ab_bot.go_to_goal_poses(a_bot_push_tray_side_retreat, b_bot_push_tray_side_retreat, planner="OMPL", speed=0.5)
-
-    # # # Push from the front
-    self.a_bot.go_to_pose_goal(a_bot_push_tray_front_start_high, speed=0.8)
-    self.a_bot.go_to_pose_goal(a_bot_push_tray_front_start, speed=0.6)
-    self.a_bot.go_to_pose_goal(a_bot_push_tray_front_goal, speed=0.08)
-    self.a_bot.go_to_pose_goal(a_bot_push_tray_front_retreat, speed=0.6)
-
-    offset = 0.05
-    a_bot_x = tray_x - 0.375/2.
-    b_bot_x = tray_x + 0.375/2.
+    offset = 0.01
+    long_side = 0.375/2.
+    a_bot_x = tray_x - long_side
+    b_bot_x = tray_x + long_side
     a_bot_y = tray_y - offset
     b_bot_y = tray_y + offset
     a_bot_above_tray_agv = conversions.to_pose_stamped("agv_tray_center", [a_bot_x, a_bot_y, 0.14, tau/4, tau/4, 0])
     b_bot_above_tray_agv = conversions.to_pose_stamped("agv_tray_center", [b_bot_x, b_bot_y, 0.14, tau/4, tau/4, 0])
     b_bot_at_tray_agv    = conversions.to_pose_stamped("agv_tray_center", [b_bot_x, b_bot_y, 0.07, tau/4, tau/4, 0])
     
-    a_bot_x +=  0.375/2. + offset
-    b_bot_x += -0.375/2. - offset
-    a_bot_y += -0.375/2. + offset
-    b_bot_y +=  0.375/2. - offset
-    a_bot_post_rotate_tray = conversions.to_pose_stamped("agv_tray_center", [a_bot_x, a_bot_y, 0.14, 0, tau/4, 0])
-    b_bot_post_rotate_tray = conversions.to_pose_stamped("agv_tray_center", [b_bot_x, b_bot_y, 0.14, 0, tau/4, 0])
-    b_bot_at_tray_table    = conversions.to_pose_stamped("tray_center",     [-offset, 0.375/2., 0.02, 0, tau/4, 0])
-    b_bot_above_table      = conversions.to_pose_stamped("tray_center",     [-offset, 0.375/2., 0.15, 0, tau/4, 0])
+    a_bot_x +=  long_side + offset
+    b_bot_x += -long_side - offset
+    a_bot_y += -long_side + offset
+    b_bot_y +=  long_side - offset
+    a_bot_at_tray_table    = conversions.to_pose_stamped("tray_center", [offset, -long_side, 0.02, 0, tau/4, 0])
+    a_bot_above_table      = conversions.to_pose_stamped("tray_center", [offset, -long_side, 0.15, 0, tau/4, 0])
 
     # Go to tray
     self.ab_bot.go_to_goal_poses(a_bot_above_tray_agv, b_bot_above_tray_agv, planner="OMPL")
@@ -3584,20 +3543,23 @@ class O2ACCommon(O2ACBase):
     self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_above_tray_agv, slave_relation)
 
     # rotate and place
-    pb, _ = self.b_bot.move_circ(b_bot_post_rotate_tray, [ 0.375/2., offset, 0], timeout=0.5, plan_only=True)
-    pa, _ = self.a_bot.move_circ(a_bot_post_rotate_tray, [-0.375/2., -offset, 0], timeout=0.5, plan_only=True)
-    plan = helpers.combine_plans(pa,pb)
-    self.ab_bot.execute_plan(plan) 
-    slave_relation = self.ab_bot.get_relative_pose_of_slave("b_bot", "a_bot")
-    self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_above_table, slave_relation)
-    self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_at_tray_table, slave_relation)
+    # a_bot_post_rotate_tray = conversions.to_pose_stamped("agv_tray_center", [a_bot_x, a_bot_y, 0.14, 0, tau/4, 0])
+    # b_bot_post_rotate_tray = conversions.to_pose_stamped("agv_tray_center", [b_bot_x, b_bot_y, 0.14, 0, tau/4, 0])
+    # pb, _ = self.b_bot.move_circ(b_bot_post_rotate_tray, [ 0.375/2., offset, 0], timeout=0.5, plan_only=True)
+    # pa, _ = self.a_bot.move_circ(a_bot_post_rotate_tray, [-0.375/2., -offset, 0], timeout=0.5, plan_only=True)
+    # plan = helpers.combine_plans(pa,pb)
+    # self.ab_bot.execute_plan(plan) 
+    slave_relation = self.ab_bot.get_relative_pose_of_slave("a_bot", "b_bot")
+    self.ab_bot.master_slave_control("a_bot", "b_bot", a_bot_above_table, slave_relation)
+    slave_relation = self.ab_bot.get_relative_pose_of_slave("a_bot", "b_bot")
+    self.ab_bot.master_slave_control("a_bot", "b_bot", a_bot_at_tray_table, slave_relation)
     
     self.b_bot.gripper.detach_object("tray1")
     self.b_bot.gripper.forget_attached_item()
     self.b_bot.gripper.open(wait=False)
     self.a_bot.gripper.open()
 
-    self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_above_table, slave_relation)
+    self.ab_bot.master_slave_control("a_bot", "b_bot", a_bot_above_table, slave_relation)
     self.a_bot.go_to_named_pose("home", speed=1.0)
     self.b_bot.go_to_named_pose("home", speed=1.0)
     self.despawn_object("tray1")
