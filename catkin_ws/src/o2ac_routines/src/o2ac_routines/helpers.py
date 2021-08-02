@@ -695,6 +695,8 @@ def create_tray_collision_object(id, pose, frame_id):
   tray_co.primitives[0].type = SolidPrimitive.BOX
   tray_co.primitives[0].dimensions = [.255, .375, 0.05]
   tray_co.operation = tray_co.ADD
+  tray_co.subframe_names = ["center"]
+  tray_co.subframe_poses = [pose]
   return tray_co
 
 def combine_plans(a_bot_plan, b_bot_plan):
