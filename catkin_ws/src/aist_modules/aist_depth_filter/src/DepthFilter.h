@@ -9,6 +9,7 @@
 #include <ros/ros.h>
 #include <std_srvs/Trigger.h>
 #include <image_transport/image_transport.h>
+#include <image_transport/subscriber_filter.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <aist_depth_filter/FileInfo.h>
 #include <message_filters/subscriber.h>
@@ -101,14 +102,15 @@ class DepthFilter
     const ros::ServiceServer				_saveBG_srv;
     const ros::ServiceServer				_capture_srv;
 
+    image_transport::ImageTransport			_it;
+
     message_filters::Subscriber<camera_info_t>		_camera_info_sub;
-    message_filters::Subscriber<image_t>		_image_sub;
-    message_filters::Subscriber<image_t>		_depth_sub;
-    message_filters::Subscriber<image_t>		_normal_sub;
+    image_transport::SubscriberFilter			_image_sub;
+    image_transport::SubscriberFilter			_depth_sub;
+    image_transport::SubscriberFilter			_normal_sub;
     message_filters::Synchronizer<sync_policy_t>	_sync;
     message_filters::Synchronizer<sync_policy2_t>	_sync2;
 
-    image_transport::ImageTransport			_it;
     const image_transport::Publisher			_image_pub;
     const image_transport::Publisher			_depth_pub;
     const image_transport::Publisher			_normal_pub;
