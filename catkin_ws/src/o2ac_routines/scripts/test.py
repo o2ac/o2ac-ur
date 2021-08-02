@@ -231,9 +231,15 @@ def main():
     # q = [0.19502419962975553, -1.302128082437928, 1.886556773525712, -2.1543437146483777, -1.568541929253542, 1.766640025829011, 2.4522167306633054, -1.2014465832104217, 1.9290941675252034, -2.298411409316249, -1.5642835257198011, -2.2577476650719626]
     # controller.ab_bot.move_joints(q, speed=1.0)
     controller.reset_scene_and_robots()
-    # controller.confirm_to_proceed("")
+    controller.confirm_to_proceed("")
+    # controller.spawn_tray_stack(stack_center=[0.05, 0.14], tray_heights=[0.075,0.02], orientation_parallel=False)
+    controller.spawn_tray_stack(stack_center=[0.0, 0.0], tray_heights=[0.075,0.02], orientation_parallel=True)
+    controller.pick_tray_from_agv_stack_calibration_long_side("tray1")
+    controller.return_tray_to_agv_stack_calibration_long_side("tray1")
+    # controller.pick_tray_from_agv_stack_calibration_long_side("tray1")
+    # controller.pick_tray_from_agv_stack_calibration_short_side("tray1")
     # controller.ab_bot.go_to_named_pose("home")
-    controller.take_tray_from_agv_stack_calibration_short_side()
+    # controller.pick_tray_from_agv_stack_calibration_short_side()
     ###### insert motor ######
     # controller.publish_part_in_assembled_position("base")
     # controller.publish_part_in_assembled_position("panel_bearing")

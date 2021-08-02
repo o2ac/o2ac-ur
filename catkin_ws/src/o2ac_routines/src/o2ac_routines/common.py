@@ -3437,11 +3437,12 @@ class O2ACCommon(O2ACBase):
     self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=False)
     self.allow_collisions_with_robot_hand("tray_center", "b_bot", allow=False)
 
-  def spawn_tray_stack(self, stack_center=[0.05, 0.14], tray_heights=[0.075,0.02], orientation=[0, 0, tau/4]):
-    self.trays = {"tray%s"%(i+1): stack_center+[tray_height] for i, tray_height in enumerate(tray_heights)}
-    self.trays_return = {"tray%s"%(i+1): stack_center+[tray_height] for i, tray_height in enumerate(tray_heights[::-1])}
+  def spawn_tray_stack(self, stack_center=[0.05, 0.14], tray_heights=[0.075,0.02], orientation_parallel=True):
+    orientation = [0, 0, 0] if orientation_parallel else [0, 0, tau/4] # tray's long side parallel to the table
+    self.trays = {"tray%s"%(i+1): (stack_center+[tray_height], orientation_parallel) for i, tray_height in enumerate(tray_heights)}
+    self.trays_return = {"tray%s"%(i+1): (stack_center+[tray_height], orientation_parallel) for i, tray_height in enumerate(tray_heights[::-1])}
     for name, pose in self.trays.items():
-      pose = conversions.to_pose(pose+orientation)
+      pose = conversions.to_pose(pose[0]+orientation)
       self.planning_scene_interface.add_object(helpers.create_tray_collision_object(name, pose, "agv_tray_center"))
       self.planning_scene_interface.allow_collisions(name, "")
 
@@ -3511,6 +3512,9 @@ class O2ACCommon(O2ACBase):
     self.listener.waitForTransform("agv_tray_center", "move_group/"+tray_name+"/center", rospy.Time(0), rospy.Duration(5))
     tray_pose = self.listener.transformPose("agv_tray_center", conversions.to_pose_stamped("move_group/"+tray_name+"/center",[0,0,0,0,0,0]))
     tray_point = conversions.from_point(tray_pose.pose.position)
+    tray_parallel = self.trays[tray_name][1]
+    pick_orientation  = [tau/4, tau/4, 0] if not tray_parallel else [ 0, tau/4, 0]
+    place_orientation = [    0, tau/4, 0]
     self.allow_collisions_with_robot_hand("tray", "a_bot", allow=True)
     self.allow_collisions_with_robot_hand("tray", "b_bot", allow=True)
     self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=True)
@@ -3518,22 +3522,21 @@ class O2ACCommon(O2ACBase):
 
     offset = 0.01 # w.r.t to the tray's center, to avoid grasping the center with both robots
     long_side = 0.375/2.
-    a_bot_x = tray_point[0] - long_side
-    b_bot_x = tray_point[0] + long_side
-    a_bot_y = tray_point[1] - offset
-    b_bot_y = tray_point[1] + offset
+    a_bot_point = [tray_point[0] - long_side, tray_point[1] - offset]
+    b_bot_point = [tray_point[0] + long_side, tray_point[1] + offset]
+    if tray_parallel:
+      a_bot_point.reverse()
+      b_bot_point.reverse()
     a_bot_z_high = tray_point[2] + 0.10
     a_bot_z_low  = tray_point[2] + 0.01
-    a_bot_above_tray_agv = conversions.to_pose_stamped("agv_tray_center", [a_bot_x, a_bot_y, a_bot_z_high, tau/4, tau/4, 0])
-    b_bot_above_tray_agv = conversions.to_pose_stamped("agv_tray_center", [b_bot_x, b_bot_y, a_bot_z_high, tau/4, tau/4, 0])
-    a_bot_at_tray_agv    = conversions.to_pose_stamped("agv_tray_center", [a_bot_x, a_bot_y, a_bot_z_low,  tau/4, tau/4, 0])
+    a_bot_above_tray_agv = conversions.to_pose_stamped("agv_tray_center", [a_bot_point[0], a_bot_point[1], a_bot_z_high] + pick_orientation)
+    b_bot_above_tray_agv = conversions.to_pose_stamped("agv_tray_center", [b_bot_point[0], b_bot_point[1], a_bot_z_high] + pick_orientation)
+    a_bot_at_tray_agv    = conversions.to_pose_stamped("agv_tray_center", [a_bot_point[0], a_bot_point[1], a_bot_z_low]  + pick_orientation)
     
-    a_bot_x +=  long_side + offset
-    b_bot_x += -long_side - offset
-    a_bot_y += -long_side + offset
-    b_bot_y +=  long_side - offset
-    a_bot_at_tray_table    = conversions.to_pose_stamped("tray_center", [offset, -long_side, 0.02, 0, tau/4, 0])
-    a_bot_above_table      = conversions.to_pose_stamped("tray_center", [offset, -long_side, 0.15, 0, tau/4, 0])
+    a_bot_point = [-offset, -long_side] if tray_parallel else [offset, -long_side]
+
+    a_bot_at_tray_table    = conversions.to_pose_stamped("tray_center", [a_bot_point[0], a_bot_point[1], 0.02] + place_orientation)
+    a_bot_above_table      = conversions.to_pose_stamped("tray_center", [a_bot_point[0], a_bot_point[1], 0.15] + place_orientation)
 
     # Go to tray
     self.ab_bot.go_to_goal_poses(a_bot_above_tray_agv, b_bot_above_tray_agv, planner="OMPL")
@@ -3571,7 +3574,8 @@ class O2ACCommon(O2ACBase):
     return True
 
   def return_tray_to_agv_stack_calibration_long_side(self, tray_name):
-    tray_point = self.trays_return[tray_name]
+    tray_point = self.trays_return[tray_name][0]
+    tray_parallel = self.trays[tray_name][1]
     pose = conversions.to_pose_stamped("tray_center", [0, 0, 0.01, 0, 0, 0])
     self.planning_scene_interface.add_box(tray_name, pose, [.255, .375, 0.05])
     self.planning_scene_interface.allow_collisions(tray_name, "")
@@ -3583,15 +3587,14 @@ class O2ACCommon(O2ACBase):
 
     offset = 0.0 # w.r.t to the tray's center, to avoid grasping the center with both robots
     long_side = 0.375/2.
-    a_bot_x = - offset
-    b_bot_x = + offset
-    a_bot_y = - long_side
-    b_bot_y = + long_side
+    short_side = 0.255
+    a_bot_point = [-offset, -long_side]
+    b_bot_point = [+offset, +long_side]
     a_bot_z_high = 0.10
     a_bot_z_low  = 0.01
-    a_bot_above_tray_table = conversions.to_pose_stamped("tray_center", [a_bot_x, a_bot_y, a_bot_z_high, 0, tau/4, 0])
-    b_bot_above_tray_table = conversions.to_pose_stamped("tray_center", [b_bot_x, b_bot_y, a_bot_z_high, 0, tau/4, 0])
-    a_bot_at_tray_table    = conversions.to_pose_stamped("tray_center", [a_bot_x, a_bot_y, a_bot_z_low,  0, tau/4, 0])
+    a_bot_above_tray_table = conversions.to_pose_stamped("tray_center", [a_bot_point[0], a_bot_point[1], a_bot_z_high, 0, tau/4, 0])
+    b_bot_above_tray_table = conversions.to_pose_stamped("tray_center", [b_bot_point[0], b_bot_point[1], a_bot_z_high, 0, tau/4, 0])
+    a_bot_at_tray_table    = conversions.to_pose_stamped("tray_center", [a_bot_point[0], a_bot_point[1], a_bot_z_low,  0, tau/4, 0])
     
     # Go to tray
     self.ab_bot.go_to_goal_poses(a_bot_above_tray_table, b_bot_above_tray_table, planner="OMPL")
@@ -3604,14 +3607,14 @@ class O2ACCommon(O2ACBase):
     self.b_bot.gripper.close()
     self.ab_bot.master_slave_control("a_bot", "b_bot", a_bot_above_tray_table, slave_relation)
 
-    a_bot_x = tray_point[0] + long_side
-    b_bot_x = tray_point[0] - long_side
-    a_bot_y =-tray_point[1] - offset # Symmetric opposite side of the agv
-    b_bot_y =-tray_point[1] + offset
+    a_bot_point = [tray_point[0] + long_side, -tray_point[1] - offset]
+    if tray_parallel:
+      a_bot_point = [tray_point[0] + (short_side + 0.02) - offset, (tray_point[1] - long_side)]
+    orientation = [0, tau/4, 0] if tray_parallel else [-tau/4, tau/4, 0]
     a_bot_z_high = tray_point[2] + 0.05
     a_bot_z_low  = tray_point[2] + 0.01
-    a_bot_above_tray_agv = conversions.to_pose_stamped("agv_tray_center", [a_bot_x, a_bot_y, a_bot_z_high, -tau/4, tau/4, 0])
-    a_bot_at_tray_agv    = conversions.to_pose_stamped("agv_tray_center", [a_bot_x, a_bot_y, a_bot_z_low,  -tau/4, tau/4, 0])
+    a_bot_above_tray_agv = conversions.to_pose_stamped("agv_tray_center", [a_bot_point[0], a_bot_point[1], a_bot_z_high] + orientation)
+    a_bot_at_tray_agv    = conversions.to_pose_stamped("agv_tray_center", [a_bot_point[0], a_bot_point[1], a_bot_z_low]  + orientation)
 
     # move to agv tray center
     self.ab_bot.master_slave_control("a_bot", "b_bot", a_bot_above_tray_agv, slave_relation)
