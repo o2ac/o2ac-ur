@@ -3382,13 +3382,16 @@ class O2ACCommon(O2ACBase):
     
     self.publish_status_text("SUCCESS: Tray")
 
-  def orient_tray_stack(self):
+  def orient_tray_stack(self, orientation_parallel=True):
     self.allow_collisions_with_robot_hand("tray", "a_bot", allow=True)
     self.allow_collisions_with_robot_hand("tray", "b_bot", allow=True)
     self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=True)
     self.allow_collisions_with_robot_hand("tray_center", "b_bot", allow=True)
+    short_side = 0.255/2.
+    long_side = 0.375/2.
 
-    self.spawn_tray_stack()
+    self.spawn_tray_stack(stack_center=[0,0], tray_heights=[0.075,0.02], orientation_parallel=orientation_parallel)
+    # self.spawn_tray_stack()
     self.listener.waitForTransform("agv_tray_center", "move_group/tray1/center", rospy.Time(0), rospy.Duration(5))
     tray_pose = self.listener.transformPose("agv_tray_center", conversions.to_pose_stamped("move_group/tray1/center",[0,0,0,0,0,0]))
     tray_point = conversions.from_point(tray_pose.pose.position)
@@ -3398,25 +3401,27 @@ class O2ACCommon(O2ACBase):
     self.b_bot.gripper.open(wait=False)
 
     # Gripper needs to be open for these poses
-    a_bot_x = tray_x + 0.01
-    b_bot_x = tray_x + 0.004
-    a_bot_y = tray_y - 0.24
-    b_bot_y = tray_y + 0.24
-    a_bot_z = tray1_z + 0.07
-    b_bot_z = tray1_z + 0.08
-    a_bot_push_tray_side_start_high = conversions.to_pose_stamped("agv_tray_center", [ a_bot_x, a_bot_y, a_bot_z, tau/4, tau/4, 0])
-    b_bot_push_tray_side_start_high = conversions.to_pose_stamped("agv_tray_center", [ b_bot_x, b_bot_y, b_bot_z, -.5, .5, .5, .5])
-    a_bot_push_tray_side_start      = conversions.to_pose_stamped("agv_tray_center", [ a_bot_x, a_bot_y, -0.019, tau/4, tau/4, 0])
-    b_bot_push_tray_side_start      = conversions.to_pose_stamped("agv_tray_center", [ b_bot_x, b_bot_y, -0.004, -.5, .5, .5, .5])
-    a_bot_push_tray_side_goal       = conversions.to_pose_stamped("agv_tray_center", [ a_bot_x, tray_y-0.1385, -0.019, tau/4, tau/4, 0])
-    b_bot_push_tray_side_goal       = conversions.to_pose_stamped("agv_tray_center", [ b_bot_x, tray_y+0.1385, -0.004, -.5, .5, .5, .5]) #.277
-    a_bot_push_tray_side_retreat    = conversions.to_pose_stamped("agv_tray_center", [-0.01, -0.1, 0.09, tau/4, tau/4, 0])
-    b_bot_push_tray_side_retreat    = conversions.to_pose_stamped("agv_tray_center", [-0.004, 0.48, 0.14, -.5, .5, .5, .5])
+    offset = long_side + 0.1 if orientation_parallel else short_side + 0.1
+    a_bot_point = [tray_x + 0.01, tray_y - offset, tray1_z + 0.07]
+    b_bot_point = [tray_x + 0.004, tray_y + offset, tray1_z + 0.08]
+    a_bot_goal = tray_y-long_side if orientation_parallel else tray_y-short_side
+    b_bot_goal = tray_y+long_side if orientation_parallel else tray_y+short_side
+    frame = "agv_tray_center"
+    a_bot_push_tray_side_start_high = conversions.to_pose_stamped(frame, [a_bot_point[0], a_bot_point[1], a_bot_point[2], tau/4, tau/4, 0])
+    b_bot_push_tray_side_start_high = conversions.to_pose_stamped(frame, [b_bot_point[0], b_bot_point[1], b_bot_point[2], -tau/4, tau/4, 0])
+    a_bot_push_tray_side_start      = conversions.to_pose_stamped(frame, [a_bot_point[0], a_bot_point[1], -0.019, tau/4, tau/4, 0])
+    b_bot_push_tray_side_start      = conversions.to_pose_stamped(frame, [b_bot_point[0], b_bot_point[1], -0.004, -tau/4, tau/4, 0])
+    a_bot_push_tray_side_goal       = conversions.to_pose_stamped(frame, [a_bot_point[0], a_bot_goal, -0.019, tau/4, tau/4, 0])
+    b_bot_push_tray_side_goal       = conversions.to_pose_stamped(frame, [b_bot_point[0], b_bot_goal, -0.004, -tau/4, tau/4, 0]) #.277
+    a_bot_push_tray_side_retreat    = a_bot_push_tray_side_start_high
+    b_bot_push_tray_side_retreat    = conversions.to_pose_stamped(frame, [-0.004, 0.48, 0.14, tau/4, tau/4, 0])
 
-    a_bot_push_tray_front_start_high = conversions.to_pose_stamped("agv_tray_center", [tray_x-0.30, tray_y, a_bot_z, 0, tau/4, 0])
-    a_bot_push_tray_front_start      = conversions.to_pose_stamped("agv_tray_center", [tray_x-0.30, tray_y, -0.01, 0, tau/4, 0])
-    a_bot_push_tray_front_goal       = conversions.to_pose_stamped("agv_tray_center", [tray_x-0.15, tray_y, -0.01, 0, tau/4, 0])
-    a_bot_push_tray_front_retreat    = conversions.to_pose_stamped("agv_tray_center", [tray_x-0.30, 0.0, a_bot_z, 0, tau/4, 0])
+    a_bot_start = [tray_x - short_side - 0.1, tray_y] if orientation_parallel else [tray_x - long_side - 0.1, tray_y]
+    a_bot_goal  = [tray_x - short_side, tray_y] if orientation_parallel else [tray_x - long_side, tray_y]
+    a_bot_push_tray_front_start_high = conversions.to_pose_stamped(frame, [a_bot_start[0], a_bot_start[1], a_bot_point[2], tau/2, tau/4, 0])
+    a_bot_push_tray_front_start      = conversions.to_pose_stamped(frame, [a_bot_start[0], a_bot_start[1], -0.01, tau/2, tau/4, 0])
+    a_bot_push_tray_front_goal       = conversions.to_pose_stamped(frame, [a_bot_goal[0] , a_bot_goal[1], -0.01, tau/2, tau/4, 0])
+    a_bot_push_tray_front_retreat    = conversions.to_pose_stamped(frame, [a_bot_start[0], 0.0, a_bot_point[2], tau/2, tau/4, 0])
 
     # Push the tray from the side
     self.a_bot.gripper.open(wait=False)
@@ -3437,7 +3442,7 @@ class O2ACCommon(O2ACBase):
     self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=False)
     self.allow_collisions_with_robot_hand("tray_center", "b_bot", allow=False)
 
-  def spawn_tray_stack(self, stack_center=[0.05, 0.14], tray_heights=[0.075,0.02], orientation_parallel=True):
+  def spawn_tray_stack(self, stack_center=[0.05, 0.14], tray_heights=[0.075,0.02], orientation_parallel=False):
     orientation = [0, 0, 0] if orientation_parallel else [0, 0, tau/4] # tray's long side parallel to the table
     self.trays = {"tray%s"%(i+1): (stack_center+[tray_height], orientation_parallel) for i, tray_height in enumerate(tray_heights)}
     self.trays_return = {"tray%s"%(i+1): (stack_center+[tray_height], orientation_parallel) for i, tray_height in enumerate(tray_heights[::-1])}
@@ -3456,7 +3461,7 @@ class O2ACCommon(O2ACBase):
     self.allow_collisions_with_robot_hand("tray_center", "b_bot", allow=True)
 
     offset = 0.05
-    short_side = 0.225/2.
+    short_side = 0.255/2.
     a_bot_x = tray_point[0] - offset
     b_bot_x = tray_point[0] + offset
     a_bot_y = tray_point[1] - short_side
