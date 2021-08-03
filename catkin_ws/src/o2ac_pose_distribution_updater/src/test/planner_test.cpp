@@ -58,10 +58,36 @@ int main(int argc, char **argv) {
   fscanf(config_file, "%lf%lf%lf%lf%lf%lf%lf", &touch_cost, &look_cost,
          &place_cost, &grasp_cost, &push_cost, &translation_cost,
          &rotation_cost);
-  planner.set_cost_coefficients(boost::array<double, 5>{touch_cost, look_cost,
-                                                        place_cost, grasp_cost,
-                                                        push_cost},
-                                translation_cost, rotation_cost);
+  boost::array<double, 5> action_cost{touch_cost, look_cost, place_cost,
+                                      grasp_cost, push_cost};
+
+  CostFunction cost_function =
+      [&action_cost, &translation_cost,
+       &rotation_cost](const action_type &type,
+                       const Eigen::Isometry3d &current_gripper_pose,
+                       const Eigen::Isometry3d &target_gripper_pose) -> double {
+    return action_cost[static_cast<int>(type)] +
+           translation_cost * (target_gripper_pose.translation() -
+                               current_gripper_pose.translation())
+                                  .norm() +
+           rotation_cost *
+               Eigen::AngleAxisd(target_gripper_pose.rotation() *
+                                 current_gripper_pose.rotation().inverse())
+                   .angle();
+  };
+
+  const double EPS = 1e-6;
+  ValidityChecker validity_checker =
+      [EPS](const action_type &type,
+            const Eigen::Isometry3d &current_gripper_pose,
+            const Eigen::Isometry3d &target_gripper_pose) -> bool {
+    return (target_gripper_pose.rotation() * Eigen::Vector3d::UnitX())(2) <=
+           EPS;
+  };
+
+  planner.set_cost_function(std::make_shared<CostFunction>(cost_function));
+  planner.set_validity_checker(
+      std::make_shared<ValidityChecker>(validity_checker));
 
   // set initial pose belief
   Eigen::Isometry3d initial_mean;

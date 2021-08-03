@@ -14,8 +14,8 @@ void Planner::apply_action(const Eigen::Isometry3d &old_mean,
   if (action.type == place_action_type) {
     place_step_with_Lie_distribution(
         gripped_geometry->vertices, gripped_geometry->triangles,
-        action.gripper_pose, 0.0, old_mean, old_covariance, new_mean,
-        new_covariance, true);
+        action.gripper_pose, support_surface, old_mean, old_covariance,
+        new_mean, new_covariance, true);
     new_mean = action.gripper_pose * new_mean;
     new_covariance = transform_covariance(action.gripper_pose, new_covariance);
   } else if (action.type == grasp_action_type) {
@@ -50,10 +50,11 @@ void Planner::apply_action(const Eigen::Isometry3d &old_mean,
   }
 }
 
-Eigen::AngleAxisd rotation_to_minus_Z(const Eigen::Vector3d vector) {
+Eigen::AngleAxisd rotation_to_minus_Z(const Eigen::Vector3d &vector) {
   Eigen::Vector3d axis =
-      vector[2] != 0.0 ? vector.cross(-Eigen::Vector3d::UnitZ()).normalized()
-                       : Eigen::Vector3d::UnitX();
+      vector(0) != 0.0 || vector(1) != 0.0
+          ? vector.cross(-Eigen::Vector3d::UnitZ()).normalized()
+          : Eigen::Vector3d::UnitX();
   double angle = atan2(vector.head<2>().norm(), -vector[2]);
   return Eigen::AngleAxisd(angle, axis);
 }
@@ -86,7 +87,10 @@ void Planner::calculate_action_candidates(
                                Eigen::Vector3d::UnitZ()) *
           rotated_gripper_pose;
 
-      candidates.push_back(action);
+      if ((*validity_checker)(place_action_type, current_gripper_pose,
+                              action.gripper_pose)) {
+        candidates.push_back(action);
+      }
     }
     // add touch action candidates
     int number_of_touch_actions = 5;
@@ -109,7 +113,10 @@ void Planner::calculate_action_candidates(
               Eigen::Vector3d::UnitZ()) *
           rotated_gripper_pose;
 
-      candidates.push_back(action);
+      if ((*validity_checker)(touch_action_type, current_gripper_pose,
+                              action.gripper_pose)) {
+        candidates.push_back(action);
+      }
     }
     // add look action candidates
     for (int t = 0; t < 4; t++) {
@@ -124,7 +131,10 @@ void Planner::calculate_action_candidates(
                                                   center_of_gravity) *
           rotated_gripper_pose;
 
-      candidates.push_back(action);
+      if ((*validity_checker)(look_action_type, current_gripper_pose,
+                              action.gripper_pose)) {
+        candidates.push_back(action);
+      }
     }
   } else {
     for (auto &grasp_point : *grasp_points) {
@@ -134,7 +144,10 @@ void Planner::calculate_action_candidates(
         UpdateAction action;
         action.type = grasp_action_type;
         action.gripper_pose = gripper_pose;
-        candidates.push_back(action);
+        if ((*validity_checker)(grasp_action_type, current_gripper_pose,
+                                action.gripper_pose)) {
+          candidates.push_back(action);
+        }
       }
     }
     std::vector<Eigen::Vector2d> projected_points, hull;
@@ -176,18 +189,12 @@ void Planner::calculate_action_candidates(
           Eigen::Translation3d(translation) *
           Eigen::AngleAxisd(angle, Eigen::Vector3d::UnitZ()) *
           Eigen::AngleAxisd(pi / 2.0, Eigen::Vector3d::UnitY());
-      candidates.push_back(action);
+      if ((*validity_checker)(push_action_type, current_gripper_pose,
+                              action.gripper_pose)) {
+        candidates.push_back(action);
+      }
     }
   }
-}
-
-double Planner::calculate_cost(const action_type &type,
-                               const Eigen::Isometry3d &current_gripper_pose,
-                               const Eigen::Isometry3d &next_gripper_pose) {
-  Eigen::Isometry3d move = next_gripper_pose * current_gripper_pose.inverse();
-  return action_cost[static_cast<int>(type)] +
-         translation_cost * move.translation().norm() +
-         rotation_cost * Eigen::AngleAxisd(move.rotation()).angle();
 }
 
 std::function<bool(const Eigen::Isometry3d)>
@@ -279,9 +286,9 @@ std::vector<UpdateAction> Planner::calculate_plan(
                            candidate.type != push_action_type);
       new_node.previous_node_id = id;
       new_node.previous_action = candidate;
-      new_node.cost = nodes[id].cost + calculate_cost(candidate.type,
-                                                      nodes[id].gripper_pose,
-                                                      candidate.gripper_pose);
+      new_node.cost = nodes[id].cost + (*cost_function)(candidate.type,
+                                                        nodes[id].gripper_pose,
+                                                        candidate.gripper_pose);
       int new_id = nodes.size();
       nodes.push_back(new_node);
       open_nodes.push(std::make_pair(-new_node.cost, -new_id));

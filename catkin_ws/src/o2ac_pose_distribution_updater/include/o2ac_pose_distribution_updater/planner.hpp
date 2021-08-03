@@ -20,6 +20,11 @@ struct mesh_object {
   std::vector<boost::array<int, 3>> triangles;
 };
 
+using ValidityChecker = std::function<bool(
+    const action_type &, const Eigen::Isometry3d &, const Eigen::Isometry3d &)>;
+using CostFunction = std::function<double(
+    const action_type &, const Eigen::Isometry3d &, const Eigen::Isometry3d &)>;
+
 class Planner : public PoseEstimator {
 private:
   std::shared_ptr<mesh_object> gripped_geometry;
@@ -29,8 +34,19 @@ private:
   std::vector<Eigen::Hyperplane<double, 3>> place_candidates;
   std::vector<Eigen::Vector3d> convex_hull_vertices;
 
-  boost::array<double, 5> action_cost;
-  double translation_cost, rotation_cost;
+  std::shared_ptr<ValidityChecker> validity_checker =
+      std::make_shared<ValidityChecker>(
+          [](const action_type &type,
+             const Eigen::Isometry3d &current_gripper_pose,
+             const Eigen::Isometry3d &target_gripper_pose) -> bool {
+            return true;
+          });
+
+  std::shared_ptr<CostFunction> cost_function = std::make_shared<CostFunction>(
+      [](const action_type &type, const Eigen::Isometry3d &current_gripper_pose,
+         const Eigen::Isometry3d &target_gripper_pose) -> double {
+        return 1.0;
+      });
 
   void apply_action(const Eigen::Isometry3d &old_mean,
                     const CovarianceMatrix &old_covariance,
@@ -44,18 +60,16 @@ private:
                               const bool &gripping,
                               std::vector<UpdateAction> &candidates);
 
-  double calculate_cost(const action_type &type,
-                        const Eigen::Isometry3d &current_gripper_pose,
-                        const Eigen::Isometry3d &next_gripper_pose);
-
 public:
-  void set_cost_coefficients(const boost::array<double, 5> &action_cost,
-                             const double &translation_cost,
-                             const double &rotation_cost) {
-    this->action_cost = action_cost;
-    this->translation_cost = translation_cost;
-    this->rotation_cost = rotation_cost;
+  void set_cost_function(const std::shared_ptr<CostFunction> &cost_function) {
+    this->cost_function = cost_function;
   }
+
+  void set_validity_checker(
+      const std::shared_ptr<ValidityChecker> &validity_checker) {
+    this->validity_checker = validity_checker;
+  }
+
   std::vector<UpdateAction> calculate_plan(
       const std::shared_ptr<mesh_object> &gripped_geometry,
       const std::shared_ptr<std::vector<Eigen::Isometry3d>> &grasp_points,
