@@ -13,6 +13,7 @@ from o2ac_msgs.msg import AlignBearingHolesAction, AlignBearingHolesResult
 from o2ac_msgs.msg import FastenAction, FastenResult
 from o2ac_msgs.msg import OrientAction, OrientResult
 from o2ac_msgs.msg import MoveToAction, MoveToResult
+from o2ac_msgs.msg import HandoverAction, HandoverResult
 from o2ac_routines.common import O2ACCommon
 from o2ac_routines.assembly import O2ACAssembly
 
@@ -57,6 +58,9 @@ class SkillServer:
         self.orient_action = actionlib.SimpleActionServer(ns + 'orient', OrientAction, self.execute_orient, False)
         self.orient_action.start()
 
+        self.handover_action = actionlib.SimpleActionServer(ns + 'handover', HandoverAction, self.execute_handover, False)
+        self.handover_action.start()
+
         self.move_to_action = actionlib.SimpleActionServer(ns + 'move_to', MoveToAction, self.execute_move_to, False)
         self.move_to_action.start()
 
@@ -72,25 +76,44 @@ class SkillServer:
         self.playback_action.set_succeeded(result=PlayBackSequenceResult(success))
 
     def execute_pick(self, goal):
+        rospy.loginfo("Received a goal for picking")
         # TODO(cambel): given an object name, find the magic numbers for gripper.opening_width,
         # offset from ssd to pick_pose, parameters for picking (check close to border, etc) and others if needed
 
-        # who decides which robot to use? for now let's assume that it is manual
         robot_name = goal.robot_name
-        pick_pose = self.controller.look_and_get_grasp_point(goal.object_name)
+        object_name = goal.object_name
 
-        if not pick_pose:  # TODO(cambel): receive number of attempts
-            rospy.logerr("Could not find bearing in tray. Skipping procedure.")
-            self.pick_action.set_succeeded(result=PickResult(False, 0.0))
-            return
+        self.controller.activate_led(robot_name)
+        if object_name in ("base", "panel_bearing", "panel_motor"):
+            if self.controller.use_real_robot:
+                pick_pose = self.controller.get_large_item_position_from_top(object_name, robot_name)
+            else:
+                pick_pose = conversions.to_pose_stamped("tray_center", [0.02, -0.03, 0.001, 0.0, 0.0, tau/4])
+                self.controller.spawn_object(object_name, pick_pose, pick_pose.header.frame_id)
+            rospy.sleep(0.2)
+            pick_pose = self.controller.assembly_database.get_grasp_pose(object_name, "default_grasp")
+            pick_pose.header.frame_id = "move_group/" + pick_pose.header.frame_id
+            pick_pose.header.stamp = rospy.Time(0)
+            pick_pose = self.controller.listener.transformPose("world", pick_pose)
+            self.controller.allow_collisions_with_robot_hand(object_name, robot_name, allow=True)
+            success = self.controller.simple_pick(robot_name, object_pose=pick_pose, grasp_width=0.06, approach_height=0.05, grasp_height=0.005, 
+                     axis="z", item_id_to_attach=object_name, lift_up_after_pick=True, approach_with_move_lin=False,
+                     speed_fast=1.0)
+        else:
+            pick_pose = self.controller.look_and_get_grasp_point(object_name)
 
-        self.controller.vision.activate_camera(robot_name + "_inside_camera")
-        pick_pose.pose.position.x -= 0.01  # MAGIC NUMBER
-        pick_pose.pose.position.z = 0.0115
-        success = self.controller.simple_pick(robot_name, pick_pose, gripper_force=100.0, approach_height=0.05, axis="z", approach_with_move_lin=False)
+            if not pick_pose:  # TODO(cambel): receive number of attempts
+                rospy.logerr("Could not find bearing in tray. Skipping procedure.")
+                self.pick_action.set_succeeded(result=PickResult(False, 0.0))
+                return
+
+            self.controller.vision.activate_camera(robot_name + "_inside_camera")
+            pick_pose.pose.position.x -= 0.01  # MAGIC NUMBER
+            pick_pose.pose.position.z = 0.0115
+            success = self.controller.simple_pick(robot_name, pick_pose, gripper_force=100.0, approach_height=0.05, axis="z", approach_with_move_lin=False)
 
         if not self.controller.simple_gripper_check(robot_name, min_opening_width=0.005):
-            rospy.logerr("Fail to grasp -> %s" % goal.object_name)
+            rospy.logerr("Fail to grasp -> %s" % object_name)
             self.pick_action.set_aborted(result=PickResult(False))
             return
 
@@ -155,6 +178,10 @@ class SkillServer:
             success = self.controller.fasten_bearing(task=goal.task_name)
         elif goal.object_name == "end_cap":
             success = self.controller.fasten_end_cap()
+        elif goal.object_name == "panel_bearing":
+            success = self.controller.fasten_panel(goal.object_name)
+        elif goal.object_name == "panel_motor":
+            success = self.controller.fasten_panel(goal.object_name)
         else:
             rospy.logerr("Unsupported object_name:%s for fasten skill" % goal.object_name)
             self.fasten_action.set_aborted(result=FastenResult(False))
@@ -174,6 +201,10 @@ class SkillServer:
             success = self.controller.orient_shaft()
         elif goal.object_name == "end_cap":
             success = self.controller.orient_shaft_end_cap()
+        elif goal.object_name == "panel_bearing":
+            success = self.controller.orient_panel(goal.object_name)
+        elif goal.object_name == "panel_motor":
+            success = self.controller.orient_panel(goal.object_name)
         else:
             rospy.logerr("Unsupported object_name: %s for orient skill" % goal.object_name)
             self.orient_action.set_aborted(result=OrientResult(False))
@@ -184,6 +215,18 @@ class SkillServer:
         else:
             rospy.logerr("Orient failed!")
             self.orient_action.set_aborted(result=OrientResult(False))
+
+    def execute_handover(self, goal):
+        success = False
+        handover_pose = conversions.to_pose_stamped("tray_center", [0.0, 0.15, 0.25, 0.0, tau/4, 0.0])
+        handover_grasp = "grasp_7" if goal.object_name == "panel_bearing" else "grasp_9"
+        success = self.controller.simple_handover(goal.from_robot_name, goal.to_robot_name, handover_pose, goal.object_name, handover_grasp)
+        if success:
+            rospy.loginfo("Handover completed successfully!")
+        else:
+            rospy.logerr("Handover failed!")
+
+        self.handover_action.set_succeeded(result=HandoverResult(success))
 
     def execute_move_to(self, goal):
         robot = self.controller.active_robots[goal.robot_name]

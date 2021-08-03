@@ -1,6 +1,4 @@
-pick a_bot end_cap
-orient a_bot assembly end_cap
-pick b_bot shaft
-orient b_bot assembly shaft
-insert a_bot assembly end_cap
-insert a_bot assembly shaft
+pick b_bot panel_bearing
+handover b_bot a_bot panel_bearing
+orient a_bot assembly panel_bearing
+fasten b_bot panel_bearing

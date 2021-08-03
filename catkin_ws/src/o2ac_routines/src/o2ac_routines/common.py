@@ -305,7 +305,7 @@ class O2ACCommon(O2ACBase):
   
 
   ####### Vision
-
+  @check_for_real_robot
   def get_large_item_position_from_top(self, item_name, robot_name="b_bot", skip_moving=False):
     """
     This function look at the tray from the top only, and publishes the result to the planning scene.
@@ -589,7 +589,7 @@ class O2ACCommon(O2ACBase):
     if gripper_command=="do_nothing":
       pass
     else: 
-      robot.gripper.send_command(command="close", force = gripper_force, velocity = gripper_velocity)
+      robot.gripper.close(force=gripper_force, velocity=gripper_velocity)
 
     if item_id_to_attach:
       self.allow_collisions_with_robot_hand(item_id_to_attach, robot_name)
@@ -3117,67 +3117,189 @@ class O2ACCommon(O2ACBase):
     self.a_bot.go_to_named_pose("home")
     self.b_bot.go_to_named_pose("home")
 
-    # goal = self.look_and_get_grasp_point("panel_bearing")
-    
-    goal = conversions.to_pose_stamped("tray_center", [0.02, -0.03, 0.001, 0.0, 0.0, tau/4])
-    self.spawn_object(panel_name, goal, goal.header.frame_id)
+    if self.use_real_robot:
+      self.activate_led("b_bot")
+      goal = self.get_large_item_position_from_top(panel_name, "b_bot")
+    else:
+      goal = conversions.to_pose_stamped("tray_center", [0.02, -0.03, 0.001, 0.0, 0.0, tau/4])
+      self.spawn_object(panel_name, goal, goal.header.frame_id)
     goal = conversions.to_pose_stamped("tray_center", [0.02, -0.1, 0.02, 0.0, tau/4, -tau/4])
     rospy.sleep(0.2)
     
-    handover_pose = conversions.to_pose_stamped("tray_center", [0.0, 0.0, 0.25, 0.0, tau/4, 0.0])
-    handover_grasp = "grasp_7" if panel_name == "panel_bearing" else "grasp_9"
-    self.simple_hand_over("b_bot", "a_bot", handover_pose, panel_name, "default_grasp", handover_grasp)
-
-  def simple_hand_over(self, from_robot_name, to_robot_name, handover_pose, object_name, grasp_pose1, grasp_pose2, speed=1.0):
-    grasp1 = self.assembly_database.get_grasp_pose(object_name, grasp_pose1)
+    grasp1 = self.assembly_database.get_grasp_pose(panel_name, "default_grasp")
     grasp1.header.frame_id = "move_group/" + grasp1.header.frame_id
     grasp1.header.stamp = rospy.Time(0)
     grasp1 = self.listener.transformPose("world", grasp1)
-    self.simple_pick(from_robot_name, object_pose=grasp1, grasp_width=0.06, approach_height=0.05, grasp_height=0.005, 
-                     axis="z", item_id_to_attach=object_name, lift_up_after_pick=True, approach_with_move_lin=False,
-                     speed_fast=1.0)
     # self.pick(from_robot_name, "panel_bearing", grasp_name=grasp_pose1, speed=1.0)
+    self.allow_collisions_with_robot_hand(panel_name, "b_bot", allow=True)
+    success = self.simple_pick("b_bot", object_pose=grasp1, grasp_width=0.06, approach_height=0.05, grasp_height=0.005, 
+                     axis="z", item_id_to_attach=panel_name, lift_up_after_pick=True, approach_with_move_lin=False,
+                     speed_fast=1.0)
+
+    if not success:
+      rospy.logerr("Fail to grasp")
+      return False
+
+    handover_pose = conversions.to_pose_stamped("tray_center", [0.0, 0.15, 0.25, 0.0, tau/4, 0.0])
+    handover_grasp = "grasp_7" if panel_name == "panel_bearing" else "grasp_9"
+    self.simple_handover("b_bot", "a_bot", handover_pose, panel_name, handover_grasp)
+    self.orient_panel(panel_name, "a_bot")
+
+  def orient_panel(self, panel_name, robot_name="a_bot", speed=0.5):
+    object_frame = "assembled_part_01_screw_hole_panel1_1" if panel_name == "panel_bearing" else "assembled_part_01_screw_hole_panel2_1"
+    object_length = 0.11 if panel_name == "panel_bearing" else 0.06
+    
+    above_plate_pose = conversions.to_pose_stamped(object_frame, [-0.15, 0.012, (object_length/2 + 0.06), 0, 0, 0])
+    place_pose       = conversions.to_pose_stamped(object_frame, [-0.06, 0.012, (object_length/2 + 0.06), 0, 0, 0])
+    pre_push_pose    = conversions.to_pose_stamped(object_frame, [-0.02, 0.012, (object_length * 2),      0, 0, 0])
+    push_pose        = conversions.to_pose_stamped(object_frame, [-0.02, 0.012, (object_length + 0.015),  0, 0, 0]) # TODO: FINETUNE
+
+    self.active_robots[robot_name].move_joints([1.465, -1.933, 1.733, -1.349, -1.5707, -3.1415], speed=1.0)
+    self.active_robots[robot_name].go_to_pose_goal(above_plate_pose, speed=speed, move_lin=False)
+    self.active_robots[robot_name].go_to_pose_goal(place_pose, speed=speed)
+    self.active_robots[robot_name].gripper.open(0.03)
+    self.active_robots[robot_name].gripper.forget_attached_item()
+    self.active_robots[robot_name].go_to_pose_goal(pre_push_pose, speed=speed)
+    self.active_robots[robot_name].gripper.close()
+    if not self.active_robots[robot_name].go_to_pose_goal(push_pose, speed=0.1):
+      rospy.logerr("fail to push: %s" % panel_name)
+      return False
+
+    self.publish_part_in_assembled_position(panel_name)
+    return True
+    # at_hole    = conversions.to_pose_stamped("assembled_part_01_screw_hole_panel1_1", [-0.06, 0.0125, 0.052, -tau/2, 0, 0])
+    # self.active_robots[robot_name].go_to_pose_goal(at_hole, speed=0.2)
+
+  def simple_handover(self, from_robot_name, to_robot_name, handover_pose, object_name, grasp_pose, speed=1.0, simultaneous=False):
+    self.a_bot_success = False
+    self.b_bot_success = False
     def b_task():
-      self.active_robots[from_robot_name].go_to_pose_goal(handover_pose, speed=speed)
+      self.b_bot_success = self.active_robots[from_robot_name].go_to_pose_goal(handover_pose, speed=speed)
       self.active_robots[from_robot_name].gripper.detach_object(object_name)
       self.active_robots[from_robot_name].gripper.forget_attached_item()
+      return True
     def a_task():
       self.active_robots[to_robot_name].gripper.send_command(0.05, wait=False)
-      pre_hand_over_pose = conversions.to_pose_stamped("tray_center", [0.0, -0.15, 0.25, tau/4, 0 , tau/4])
-      self.active_robots[to_robot_name].go_to_pose_goal(pre_hand_over_pose, speed=speed, move_lin=False)
+      pre_hand_over_pose = conversions.to_pose_stamped("tray_center", [0.0, 0.0, 0.25, -tau/4, 0, tau/4])
+      self.a_bot_success = self.active_robots[to_robot_name].go_to_pose_goal(pre_hand_over_pose, speed=0.5, move_lin=False)
+      return True
+    if simultaneous:
+      self.do_tasks_simultaneous(a_task, b_task, timeout=30)
+      if not (self.a_bot_success and self.b_bot_success):
+        rospy.logerr("Fail to execute simultaneous motions in handover")
+        return False
+    else:
+      if not b_task():
+        return False
+      if not a_task():
+        return False
 
-    self.do_tasks_simultaneous(a_task, b_task, timeout=30)
-
-    grasp2 = self.assembly_database.get_grasp_pose(object_name, grasp_pose2)
+    grasp2 = self.assembly_database.get_grasp_pose(object_name, grasp_pose)
     grasp2.header.frame_id = "move_group/" + grasp2.header.frame_id
     grasp2.header.stamp = rospy.Time(0)
     grasp2 = self.listener.transformPose("world", grasp2)
-    self.simple_pick(to_robot_name, object_pose=grasp2, grasp_width=0.06, approach_height=-0.05, grasp_height=0.0, 
+    self.allow_collisions_with_robot_hand(object_name, to_robot_name, allow=True)
+    if not self.simple_pick(to_robot_name, object_pose=grasp2, grasp_width=0.06, approach_height=-0.05, grasp_height=0.0, 
                      axis="y", item_id_to_attach=object_name, lift_up_after_pick=False, approach_with_move_lin=False,
-                     speed_fast=1.0, speed_slow=0.2)
+                     speed_fast=1.0, speed_slow=0.2):
+      rospy.logerr("Fail to execute handover's grasp")
+      return False
 
     self.active_robots[from_robot_name].gripper.open(0.03)
-    self.active_robots[from_robot_name].go_to_named_pose("home")
-    object_frame = "assembled_part_01_screw_hole_panel1_1" if object_name == "panel_bearing" else "assembled_part_01_screw_hole_panel2_1"
-    object_length = 0.11 if object_name == "panel_bearing" else 0.06
-    above_plate_pose = conversions.to_pose_stamped(object_frame, [-0.15, 0.012, (object_length/2 + 0.06), -tau/2, 0, 0])
-    place_pose       = conversions.to_pose_stamped(object_frame, [-0.06, 0.012, (object_length/2 + 0.06), -tau/2, 0, 0])
-    pre_push_pose    = conversions.to_pose_stamped(object_frame, [-0.02, 0.012, (object_length * 2), -tau/2, 0, 0])
-    push_pose        = conversions.to_pose_stamped(object_frame, [-0.02, 0.012, (object_length + 0.015), -tau/2, 0, 0]) # TODO: FINETUNE
-    self.active_robots[to_robot_name].go_to_pose_goal(above_plate_pose, speed=speed, move_lin=False)
-    self.active_robots[to_robot_name].go_to_pose_goal(place_pose, speed=speed)
-    self.active_robots[to_robot_name].gripper.open(0.03)
-    self.active_robots[to_robot_name].gripper.detach_object(object_name)
-    self.active_robots[to_robot_name].gripper.forget_attached_item()
-    self.active_robots[to_robot_name].go_to_pose_goal(pre_push_pose, speed=speed)
-    self.active_robots[to_robot_name].gripper.close()
-    self.active_robots[to_robot_name].go_to_pose_goal(push_pose, speed=0.1)
-    self.publish_part_in_assembled_position(object_name)
-    # at_hole    = conversions.to_pose_stamped("assembled_part_01_screw_hole_panel1_1", [-0.06, 0.0125, 0.052, -tau/2, 0, 0])
-    # self.active_robots[to_robot_name].go_to_pose_goal(at_hole, speed=0.2)
+    self.allow_collisions_with_robot_hand(object_name, from_robot_name, allow=False)
+    return self.active_robots[from_robot_name].go_to_named_pose("home")
 
-    # assembled_part_01_screw_hole_panel2_1 motor
-    # assembled_part_01_screw_hole_panel1_1 bearing
+  def fasten_panel(self, panel_name):
+    if panel_name == "panel_bearing":
+      part_name = "assembled_part_03_"
+    elif panel_name == "panel_motor":
+      part_name = "assembled_part_02_"
+
+    self.a_bot.gripper.send_command(0.03, wait=False)
+    hold_pose = conversions.to_pose_stamped(part_name + "bottom_screw_hole_1", [-0.034, 0.012, 0.069, 0, radians(40), 0])
+    self.a_bot.go_to_pose_goal(hold_pose, speed=0.5)
+    self.a_bot.gripper.send_command(0.005, wait=False)
+
+    self.do_change_tool_action("b_bot", equip=True, screw_size = 4)
+    self.vision.activate_camera(camera_name="b_bot_outside_camera")
+    if not self.pick_screw_from_feeder("b_bot", screw_size = 4, realign_tool_upon_failure=True):
+      rospy.logerr("Failed to pick screw from feeder, could not fix the issue. Abort.")
+      self.a_bot.gripper.open()
+      self.a_bot.go_to_named_pose("home")
+      return False
+
+    screw_target_pose = geometry_msgs.msg.PoseStamped()
+    screw_target_pose.header.frame_id = part_name + "bottom_screw_hole_1"
+    screw_target_pose.pose.orientation = geometry_msgs.msg.Quaternion(
+                *tf_conversions.transformations.quaternion_from_euler(radians(-20), 0, 0))
+    if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel_name):
+      # Fallback for screw 1
+      rospy.logerr("Failed to fasten panel screw 1, trying to realign tool and retry.")
+      self.realign_tool("b_bot", "screw_tool_m4")
+      self.b_bot.go_to_named_pose("feeder_pick_ready")
+      self.pick_screw_from_feeder("b_bot", screw_size = 4)
+
+      # Realign plate
+      self.a_bot.gripper.close(force = 100)
+      self.a_bot.move_lin_rel(relative_translation=[0, -0.015, 0])
+      self.a_bot.gripper.open(opening_width=0.08, wait=True)
+      if self.use_real_robot:
+        if panel_name == "panel_bearing":
+          success_a = self.a_bot.load_program(program_name="wrs2020/bearing_plate_positioning.urp", recursion_depth=3)
+        else:
+          success_a = self.a_bot.load_program(program_name="wrs2020/motor_plate_positioning.urp", recursion_depth=3)
+        if not success_a:
+          rospy.logerr("Failed to load plate positioning program on a_bot")
+          return False
+        if not self.a_bot.execute_loaded_program():
+          rospy.logerr("Failed to execute plate positioning program on a_bot")
+          return False
+        helpers.wait_for_UR_program("/a_bot", rospy.Duration.from_sec(20))
+      
+      # Retry fastening
+      if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel_name):
+        rospy.logerr("Failed to fasten panel screw 2 again. Aborting.")
+        return False
+    rospy.loginfo("Successfully fastened screw 1")
+
+    self.a_bot.gripper.close()
+    self.a_bot.gripper.open()
+    if not self.a_bot.go_to_named_pose("home"):
+      rospy.logerr("Failed to move a_bot home!")
+      return False
+
+    if not self.pick_screw_from_feeder("b_bot", screw_size = 4, realign_tool_upon_failure=True):
+      rospy.logerr("Failed to pick second screw, could not fix the issue. Abort.")
+      self.a_bot.gripper.open()
+      self.a_bot.go_to_named_pose("home")
+      return False
+
+    screw_target_pose.header.frame_id = part_name + "bottom_screw_hole_2"
+    if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel_name):
+      # Fallback for screw 2: Realign tool, recenter plate, try again
+      rospy.logerr("Failed to fasten panel screw 2, trying to realign tool and retrying.")
+      self.realign_tool("b_bot", "screw_tool_m4")
+      self.b_bot.go_to_named_pose("feeder_pick_ready")
+      self.pick_screw_from_feeder("b_bot", screw_size = 4)
+
+      # Recenter plate
+      center_plate_pose = geometry_msgs.msg.PoseStamped()
+      if panel_name == "panel_bearing":
+        center_plate_pose.header.frame_id = part_name + "pulley_ridge_middle"
+      else:  # motor panel
+        center_plate_pose.header.frame_id = part_name + "motor_screw_hole_5"
+      center_plate_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, radians(60), -tau/4))
+      center_plate_pose.pose.position.x = 0.0025
+      self.a_bot.gripper.open(opening_width=0.08, wait=False)
+      self.a_bot.go_to_pose_goal(center_plate_pose, move_lin=False)
+      self.a_bot.gripper.close(force = 100)
+      self.a_bot.gripper.open()
+      if not self.a_bot.go_to_named_pose("home"):
+        rospy.logerr("Failed to move a_bot home!")
+        return False
+      if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel_name):
+        rospy.logerr("Failed to fasten panel screw 2 again. Aborting.")
+        return False
 
   def check_output_pulley_angle(self):
     # Look at pulley with b_bot

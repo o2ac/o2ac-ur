@@ -224,17 +224,24 @@ def main():
     rospy.init_node("testscript")
     global controller
     
+    # print(controller.a_bot.robot_group.get_current_joint_values())
+    # pre_hand_over_pose = conversions.to_pose_stamped("tray_center", [0.0, 0.0, 0.25, -tau/4, 0, tau/4])
+    # controller.a_bot.go_to_pose_goal(pre_hand_over_pose, 0.5, move_lin=False)
     # controller = O2ACAssembly()
+    # controller.ab_bot.go_to_named_pose("home")
+    # controller.reset_scene_and_robots()
     # controller.publish_part_in_assembled_position("base")
     # controller.panel_subtask2()
+    # controller.fasten_panel("panel_bearing")
     controller = O2ACCommon()
-    # controller.ab_bot.go_to_named_pose("home")
-    # controller.competition_mode = True
     controller.reset_scene_and_robots()
+    controller.ab_bot.go_to_named_pose("home")
+    # controller.competition_mode = True
+    # controller.reset_scene_and_robots()
     # controller.orient_tray_stack(True)
-    controller.spawn_tray_stack(stack_center=[-0.03, 0.0], tray_heights=[0.05, 0.0], orientation_parallel=True)
+    # controller.spawn_tray_stack(stack_center=[-0.03, 0.0], tray_heights=[0.05, 0.0], orientation_parallel=True)
     # controller.pick_tray_from_agv_stack_calibration_long_side("tray1")
-    controller.return_tray_to_agv_stack_calibration_long_side("tray1")
+    # controller.return_tray_to_agv_stack_calibration_long_side("tray1")
     # controller.pick_tray_from_agv_stack_calibration_long_side("tray2")
     # controller.return_tray_to_agv_stack_calibration_long_side("tray2")
     # q = [0.19453047870641985, -1.414852203750135, 1.7189982978203278, -1.8730085962497756, -1.567615792398194, 1.7666671594586172, 2.453019687833446, -1.3449819279957274, 1.8068236138946376, -2.0324751409170405, -1.5648680786549045, -2.2588772450321226]

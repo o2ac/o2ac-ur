@@ -1,0 +1,6 @@
+pick a_bot end_cap
+orient a_bot assembly end_cap
+pick b_bot shaft
+orient b_bot assembly shaft
+insert a_bot assembly end_cap
+insert a_bot assembly shaft

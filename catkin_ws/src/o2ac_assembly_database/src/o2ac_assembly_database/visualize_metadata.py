@@ -378,6 +378,10 @@ class MetadataVisualizer():
             i += 1
 
             gripper_pad_marker_r = copy.deepcopy(gripper_pad_marker_l)
+            gripper_pad_marker_l.color.a = 1.0
+            gripper_pad_marker_l.color.r = 0.4
+            gripper_pad_marker_l.color.g = 0.4
+            gripper_pad_marker_l.color.b = 0.9
             gripper_pad_marker_r.id = i
             gripper_pad_marker_l.pose.position = geometry_msgs.msg.Point(*trans_pad_r)
             gripper_pad_marker_l.pose.orientation = geometry_msgs.msg.Quaternion(*rot_pad_r)
@@ -402,7 +406,7 @@ class MetadataVisualizer():
             text_marker.color.b = 1.0
             text_marker.color.a = 0.8
             text_marker.scale.z = .01
-            text_marker.text = "grasp_" + str(grasp_counter)
+            text_marker.text = grasp
             marker_array_to_append_to.markers.append(text_marker)
             i += 1
         return(marker_array_to_append_to)

@@ -1,4 +1,5 @@
 import actionlib
+from o2ac_routines import helpers
 import rospy
 import robotiq_msgs.msg
 import numpy as np
@@ -53,7 +54,13 @@ class RobotiqGripper():
                     success, plan, planning_time, error = gripper_group.plan()
                     if success:
                         gripper_group.execute(plan, wait=True)
-                        return True
+                        current_joints = gripper_group.get_current_joint_values()
+                        goal_joints = helpers.get_trajectory_joint_goal(plan, gripper_group.get_active_joints())
+                        success = helpers.all_close(goal_joints, current_joints, 0.01)
+                        if not success:
+                            rospy.logerr("Rviz move_group gripper to execute")
+                        return success
+                    rospy.logerr("Rviz move_group gripper failed: %s " % error)
                     return False
                 setattr(GripperDummy, "close", lambda *args, **kwargs: close())
                 setattr(GripperDummy, "open", lambda *args, **kwargs: open())
