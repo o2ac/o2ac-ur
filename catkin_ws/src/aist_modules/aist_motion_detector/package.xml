@@ -9,17 +9,19 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
-  <depend>pluginlib</depend>
-  <depend>nodelet</depend>
   <build_depend>message_generation</build_depend>
   <exec_depend>message_runtime</exec_depend>
 
   <depend>roscpp</depend>
   <depend>rospy</depend>
+  <depend>actionlib</depend>
+  <depend>actionlib_msgs</depend>
   <depend>ddynamic_reconfigure</depend>
   <depend>sensor_msgs</depend>
   <depend>cv_bridge</depend>
   <depend>image_transport</depend>
+  <depend>pluginlib</depend>
+  <depend>nodelet</depend>
 
   <export>
     <nodelet plugin="${prefix}/nodelet_description.xml"/>

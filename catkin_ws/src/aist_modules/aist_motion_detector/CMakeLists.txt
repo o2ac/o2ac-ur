@@ -10,11 +10,13 @@ add_compile_options(-pthread)
 find_package(
   catkin REQUIRED
   COMPONENTS
-    ddynamic_reconfigure
     sensor_msgs
     image_transport
     cv_bridge
     message_generation
+    actionlib_msgs
+    actionlib
+    ddynamic_reconfigure
     rospy
 )
 
@@ -31,9 +33,17 @@ include_directories(
   src
 )
 
-#add_message_files(FILES FileInfo.msg)
+#add_action_files(
+#  FILES Localize.action
+#)
 
-#generate_messages(DEPENDENCIES sensor_msgs geometry_msgs)
+#generate_messages(
+#  DEPENDENCIES
+#    actionlib_msgs
+#    actionlib
+#    geometry_msgs
+#    std_msgs
+#)
 
 catkin_package(
   CATKIN_DEPENDS
