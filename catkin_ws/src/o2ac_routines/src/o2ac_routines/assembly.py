@@ -1029,7 +1029,8 @@ class O2ACAssembly(O2ACCommon):
     if simultaneous_execution:
       return self.full_assembly_task_simultaneous()
     if not self.assembly_status.tray_placed_on_table:
-      self.take_tray_from_agv()
+      self.orient_tray_stack()
+      self.pick_tray_from_agv_stack_calibration_long_side(tray_name="tray1")
 
     # Look into the tray
     self.publish_status_text("Target: base plate")
@@ -1058,6 +1059,7 @@ class O2ACAssembly(O2ACCommon):
     
     self.ab_bot.go_to_named_pose("home")
     self.unload_drive_unit()
+    self.return_tray_to_agv_stack_calibration_long_side("tray1")
     self.assembly_status = AssemblyStatus()
     rospy.loginfo("==== Finished.")
 
@@ -1085,14 +1087,14 @@ class O2ACAssembly(O2ACCommon):
 
   def full_assembly_task_simultaneous(self):
     if not self.assembly_status.tray_placed_on_table:
-      self.take_tray_from_agv()
-
+      self.orient_tray_stack()
+      self.pick_tray_from_agv_stack_calibration_long_side("tray1")
+      # TODO(cambel): add a loop for the second tray
 
     def b_bot_task():
       self.pick_and_store_motor()
       self.b_bot.go_to_named_pose("home")
-    def a_bot_task():
-      
+    def a_bot_task():      
       # Look into the tray
       self.publish_status_text("Target: base plate")
       while not self.assembly_status.completed_subtask_zero and not rospy.is_shutdown():
@@ -1119,5 +1121,6 @@ class O2ACAssembly(O2ACCommon):
     
     self.ab_bot.go_to_named_pose("home")
     self.unload_drive_unit()
+    self.return_tray_to_agv_stack_calibration_long_side("tray1")
     self.assembly_status = AssemblyStatus()
     rospy.loginfo("==== Finished.")
