@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
   fscanf(config_file, "%lf", &support_surface);
   // set covariance randomly
   std::random_device seed_generator;
-  std::default_random_engine engine(0);
+  std::default_random_engine engine(seed_generator());
   std::uniform_real_distribution<double> uniform_distribution(-1.0, 1.0);
   CovarianceMatrix deviation, initial_covariance;
   double deviation_scale[6];
@@ -112,7 +112,13 @@ int main(int argc, char **argv) {
 
   // make action plan
   CovarianceMatrix objective_coefficients;
-  objective_coefficients.setIdentity();
+  for (int i = 0; i < 6; i++) {
+    for (int j = 0; j < 6; j++) {
+      double value;
+      fscanf(config_file, "%lf", &value);
+      objective_coefficients(i, j) = value;
+    }
+  }
   double objective_value;
   int is_goal_pose;
   fscanf(config_file, "%lf%d", &objective_value, &is_goal_pose);

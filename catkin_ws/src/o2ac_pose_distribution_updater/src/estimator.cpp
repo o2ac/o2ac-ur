@@ -650,7 +650,7 @@ void PoseEstimator::push_step_with_Lie_distribution(
     double center_y = (object_pose * center_of_gravity_of_gripped)(1);
     if (cut_vertices.size() == 0 || center_y < -gripper_thickness ||
         center_y > gripper_thickness) {
-      throw(std::runtime_error("The object cannot be pushed, center_x: " +
+      throw(std::runtime_error("The object cannot be pushed, center_y: " +
                                std::to_string(center_y)));
     }
   };

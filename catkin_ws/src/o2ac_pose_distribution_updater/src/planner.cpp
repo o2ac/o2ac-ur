@@ -162,7 +162,11 @@ void Planner::calculate_action_candidates(
 
     Eigen::Vector3d current_center = current_mean * center_of_gravity;
     Eigen::Vector2d projected_center = current_center.head<2>();
-    for (int i = 0; i < hull.size() - 1; i++) {
+    int number_of_push_actions = 5;
+    auto random_array =
+        std::move(get_random_array(number_of_push_actions, hull.size()));
+    for (int t = 0; t < number_of_push_actions; t++) {
+      int i = random_array[t];
       Eigen::Vector2d edge = (hull[i + 1] - hull[i]).normalized();
       if (edge.dot(projected_center - hull[i]) < -EPS ||
           edge.dot(projected_center - hull[i + 1]) > EPS) {
@@ -255,8 +259,10 @@ std::vector<UpdateAction> Planner::calculate_plan(
     int id = -open_nodes.top().second;
     open_nodes.pop();
 
-    double score =
-        objective_coefficients.cwiseProduct(nodes[id].covariance).sum();
+    double score = objective_coefficients
+                       .cwiseProduct(transform_covariance(
+                           nodes[id].mean.inverse(), nodes[id].covariance))
+                       .sum();
     fprintf(stderr, "%d %d %d %lf %lf\n", id, nodes[id].previous_node_id,
             id > 0 ? nodes[id].previous_action.type : -1, nodes[id].cost,
             score);
@@ -267,6 +273,10 @@ std::vector<UpdateAction> Planner::calculate_plan(
       break;
     }
     optimal_score = score;
+    std::cerr << nodes[id].covariance << std::endl;
+    std::cerr << transform_covariance(nodes[id].mean.inverse(),
+                                      nodes[id].covariance)
+              << std::endl;
 
     std::vector<UpdateAction> candidates;
     calculate_action_candidates(nodes[id].gripper_pose, nodes[id].mean,
