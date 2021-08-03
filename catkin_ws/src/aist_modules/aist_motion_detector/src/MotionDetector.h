@@ -10,6 +10,7 @@
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
+#include <actionlib/server/simple_action_server.h>
 #include <ddynamic_reconfigure/ddynamic_reconfigure.h>
 
 namespace aist_motion_detector
@@ -67,7 +68,6 @@ class MotionDetector
     message_filters::Synchronizer<sync_policy_t>	_sync;
 
     const image_transport::CameraPublisher		_camera_pub;
-    const image_transport::Publisher			_normal_pub;
     const image_transport::Publisher			_image_pub;
 
   // Tracker parameters and dynamic_reconfigure server for setting them

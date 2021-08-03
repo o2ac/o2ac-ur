@@ -26,7 +26,6 @@ MotionDetector::MotionDetector(const ros::NodeHandle& nh)
      _depth_sub(_it, "/depth", 1),
      _sync(sync_policy_t(10), _camera_info_sub, _image_sub, _depth_sub),
      _camera_pub(_it.advertiseCamera("depth", 1)),
-     _normal_pub(_it.advertise("normal", 1)),
      _image_pub(_it.advertise("image", 1)),
      _ddr(_nh)
 {
