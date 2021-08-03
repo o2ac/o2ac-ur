@@ -54,7 +54,7 @@ class DualArm(RobotBase):
 
     # Dual Arm manipulation
 
-    def go_to_goal_poses(self, robot1_pose, robot2_pose, plan_only=False, speed=0.5, acceleration=0.25, planner="OMPL", robot1_ee_link=None, robot2_ee_link=None):
+    def go_to_goal_poses(self, robot1_pose, robot2_pose, plan_only=False, speed=0.5, acceleration=0.25, planner="OMPL", robot1_ee_link=None, robot2_ee_link=None, initial_joints=None):
         self.set_up_move_group(speed, acceleration, planner)
 
         ee_link1 = self.robot1.ns + "_gripper_tip_link" if robot1_ee_link is None else robot1_ee_link
@@ -62,6 +62,9 @@ class DualArm(RobotBase):
 
         self.robot_group.set_pose_target(robot1_pose, end_effector_link=ee_link1)
         self.robot_group.set_pose_target(robot2_pose, end_effector_link=ee_link2)
+
+        if initial_joints:
+            self.robot_group.set_start_state(helpers.to_robot_state(self.robot_group, initial_joints))
 
         success = False
         tries = 10

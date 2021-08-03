@@ -654,6 +654,28 @@ def to_sequence_joint_trajectory(trajectory, blend_radiuses=0.0, speed=0.5):
     sequence_trajectory.append([t, br, spd])
   return ["joint_trajectory", sequence_trajectory]
 
+def to_sequence_item_dual_arm(pose1, pose2, speed, planner="OMPL"):
+  item = {"pose": conversions.from_pose_to_list(pose1.pose),
+          "pose2": conversions.from_pose_to_list(pose2.pose),
+          "pose_type": "task-space-in-frame",
+          "frame_id": pose1.header.frame_id,
+          "planner": planner,
+         }
+  item.update({"speed":speed})
+  return ["waypoint", item]
+
+def to_sequence_item_master_slave(master, slave, pose, slave_relative_pose, speed):
+  item = {
+      "pose": conversions.from_pose_to_list(pose.pose),
+      "pose_type": "master-slave",
+      "master_name": master,
+      "slave_name": slave,
+      "slave_relation": slave_relative_pose,
+      "frame_id": pose.header.frame_id,
+      "speed": speed,
+  }
+  return ["waypoint", item]
+
 def get_plan_full_path(name):
   rp = rospkg.RosPack()
   return rp.get_path("o2ac_routines") + "/config/saved_plans/" + name

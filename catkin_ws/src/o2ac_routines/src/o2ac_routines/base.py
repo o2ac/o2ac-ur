@@ -1423,9 +1423,15 @@ class O2ACBase(object):
     elif pose_type == 'task-space-in-frame':
       frame_id = params.get("frame_id", "world")
       # Convert orientation to radians!
-      p = conversions.to_pose_stamped(frame_id, np.concatenate([pose[:3],np.deg2rad(pose[3:])]))
-      move_linear = params.get("move_linear", True)
-      success = robot.go_to_pose_goal(p, speed=speed, acceleration=acceleration, move_lin=move_linear, plan_only=plan_only, initial_joints=initial_joints)
+      if robot_name == "ab_bot":
+        a_bot_pose = conversions.to_pose_stamped(frame_id, pose)
+        b_bot_pose = conversions.to_pose_stamped(frame_id, params["pose2"])
+        planner = params.get("planner", "LINEAR")
+        success = self.ab_bot.go_to_goal_poses(a_bot_pose, b_bot_pose, plan_only=plan_only, initial_joints=initial_joints, planner=planner)
+      else:
+        p = conversions.to_pose_stamped(frame_id, np.concatenate([pose[:3],np.deg2rad(pose[3:])]))
+        move_linear = params.get("move_linear", True)
+        success = robot.go_to_pose_goal(p, speed=speed, acceleration=acceleration, move_lin=move_linear, plan_only=plan_only, initial_joints=initial_joints)
     elif pose_type == 'relative-tcp':
       success = robot.move_lin_rel(relative_translation=pose[:3], relative_rotation=np.deg2rad(pose[3:]), speed=speed, acceleration=acceleration, relative_to_tcp=True, plan_only=plan_only, initial_joints=initial_joints)
     elif pose_type == 'relative-world':
