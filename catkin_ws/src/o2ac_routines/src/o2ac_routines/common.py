@@ -797,7 +797,7 @@ class O2ACCommon(O2ACBase):
     grasp_poses = [grasp_along_x, grasp_along_y]
     return self.pick_MTC_helper(robot_name, object_name, grasp_poses)
   
-  def pick(self, robot_name, object_name, grasp_name=""):
+  def pick(self, robot_name, object_name, grasp_name="", speed=0.1):
     """ Plan a pick operation and execute it with MTC.
         grasp_name is the name of a grasp on the parameter server.
     """
@@ -810,7 +810,7 @@ class O2ACCommon(O2ACBase):
       return False
     return self.pick_MTC_helper(robot_name, object_name, [grasp_pose])
     
-  def pick_MTC_helper(self, robot_name, object_name, grasp_poses):
+  def pick_MTC_helper(self, robot_name, object_name, grasp_poses, speed=0.1):
     """ Plan a pick operation and execute it with MTC.
         grasp_poses is a vector of grasp poses.
     """
@@ -3113,34 +3113,71 @@ class O2ACCommon(O2ACBase):
       return False
     return True
 
-  def panel_subtask2(self):
+  def panel_subtask2(self, panel_name="panel_bearing"):
     self.a_bot.go_to_named_pose("home")
     self.b_bot.go_to_named_pose("home")
 
     # goal = self.look_and_get_grasp_point("panel_bearing")
     
-    goal = conversions.to_pose_stamped("tray_center", [0.02, -0.06, 0.001, 0.0, 0.0, -tau/4])
-    self.spawn_object("panel_bearing", goal, goal.header.frame_id)
+    goal = conversions.to_pose_stamped("tray_center", [0.02, -0.03, 0.001, 0.0, 0.0, tau/4])
+    self.spawn_object(panel_name, goal, goal.header.frame_id)
     goal = conversions.to_pose_stamped("tray_center", [0.02, -0.1, 0.02, 0.0, tau/4, -tau/4])
+    rospy.sleep(0.2)
     
-    handover_pose = conversions.to_pose_stamped("tray_center", [0.0, 0.0, 0.15, 0.0, tau/4, 0.0])
-    self.simple_hand_over("b_bot", "a_bot", handover_pose, "panel_bearing", "default_grasp", "grasp_7")
+    handover_pose = conversions.to_pose_stamped("tray_center", [0.0, 0.0, 0.25, 0.0, tau/4, 0.0])
+    handover_grasp = "grasp_7" if panel_name == "panel_bearing" else "grasp_9"
+    self.simple_hand_over("b_bot", "a_bot", handover_pose, panel_name, "default_grasp", handover_grasp)
 
-  def simple_hand_over(self, from_robot_name, to_robot_name, handover_pose, object_name, grasp_pose1, grasp_pose2):
-    self.pick(from_robot_name, "panel_bearing", grasp_name=grasp_pose1)
-    self.active_robots[from_robot_name].move_lin(handover_pose, speed=0.5)
-    self.active_robots[from_robot_name].detach_object(object_name)
+  def simple_hand_over(self, from_robot_name, to_robot_name, handover_pose, object_name, grasp_pose1, grasp_pose2, speed=1.0):
+    grasp1 = self.assembly_database.get_grasp_pose(object_name, grasp_pose1)
+    grasp1.header.frame_id = "move_group/" + grasp1.header.frame_id
+    grasp1.header.stamp = rospy.Time(0)
+    grasp1 = self.listener.transformPose("world", grasp1)
+    self.simple_pick(from_robot_name, object_pose=grasp1, grasp_width=0.06, approach_height=0.05, grasp_height=0.005, 
+                     axis="z", item_id_to_attach=object_name, lift_up_after_pick=True, approach_with_move_lin=False,
+                     speed_fast=1.0)
+    # self.pick(from_robot_name, "panel_bearing", grasp_name=grasp_pose1, speed=1.0)
+    def b_task():
+      self.active_robots[from_robot_name].go_to_pose_goal(handover_pose, speed=speed)
+      self.active_robots[from_robot_name].gripper.detach_object(object_name)
+      self.active_robots[from_robot_name].gripper.forget_attached_item()
+    def a_task():
+      self.active_robots[to_robot_name].gripper.send_command(0.05, wait=False)
+      pre_hand_over_pose = conversions.to_pose_stamped("tray_center", [0.0, -0.15, 0.25, tau/4, 0 , tau/4])
+      self.active_robots[to_robot_name].go_to_pose_goal(pre_hand_over_pose, speed=speed, move_lin=False)
+
+    self.do_tasks_simultaneous(a_task, b_task, timeout=30)
 
     grasp2 = self.assembly_database.get_grasp_pose(object_name, grasp_pose2)
     grasp2.header.frame_id = "move_group/" + grasp2.header.frame_id
-    grasp2.header.stamp = rospy.Time.now() - rospy.Time(0.5)
-
+    grasp2.header.stamp = rospy.Time(0)
     grasp2 = self.listener.transformPose("world", grasp2)
     self.simple_pick(to_robot_name, object_pose=grasp2, grasp_width=0.06, approach_height=-0.05, grasp_height=0.0, 
-                     axis="y", item_id_to_attach=object_name, lift_up_after_pick=False, approach_with_move_lin=False)
-    
-    self.active_robots[from_robot_name].gripper.open()
+                     axis="y", item_id_to_attach=object_name, lift_up_after_pick=False, approach_with_move_lin=False,
+                     speed_fast=1.0, speed_slow=0.2)
+
+    self.active_robots[from_robot_name].gripper.open(0.03)
     self.active_robots[from_robot_name].go_to_named_pose("home")
+    object_frame = "assembled_part_01_screw_hole_panel1_1" if object_name == "panel_bearing" else "assembled_part_01_screw_hole_panel2_1"
+    object_length = 0.11 if object_name == "panel_bearing" else 0.06
+    above_plate_pose = conversions.to_pose_stamped(object_frame, [-0.15, 0.012, (object_length/2 + 0.06), -tau/2, 0, 0])
+    place_pose       = conversions.to_pose_stamped(object_frame, [-0.06, 0.012, (object_length/2 + 0.06), -tau/2, 0, 0])
+    pre_push_pose    = conversions.to_pose_stamped(object_frame, [-0.02, 0.012, (object_length * 2), -tau/2, 0, 0])
+    push_pose        = conversions.to_pose_stamped(object_frame, [-0.02, 0.012, (object_length + 0.015), -tau/2, 0, 0]) # TODO: FINETUNE
+    self.active_robots[to_robot_name].go_to_pose_goal(above_plate_pose, speed=speed, move_lin=False)
+    self.active_robots[to_robot_name].go_to_pose_goal(place_pose, speed=speed)
+    self.active_robots[to_robot_name].gripper.open(0.03)
+    self.active_robots[to_robot_name].gripper.detach_object(object_name)
+    self.active_robots[to_robot_name].gripper.forget_attached_item()
+    self.active_robots[to_robot_name].go_to_pose_goal(pre_push_pose, speed=speed)
+    self.active_robots[to_robot_name].gripper.close()
+    self.active_robots[to_robot_name].go_to_pose_goal(push_pose, speed=0.1)
+    self.publish_part_in_assembled_position(object_name)
+    # at_hole    = conversions.to_pose_stamped("assembled_part_01_screw_hole_panel1_1", [-0.06, 0.0125, 0.052, -tau/2, 0, 0])
+    # self.active_robots[to_robot_name].go_to_pose_goal(at_hole, speed=0.2)
+
+    # assembled_part_01_screw_hole_panel2_1 motor
+    # assembled_part_01_screw_hole_panel1_1 bearing
 
   def check_output_pulley_angle(self):
     # Look at pulley with b_bot

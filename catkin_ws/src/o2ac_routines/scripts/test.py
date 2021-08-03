@@ -224,15 +224,17 @@ def main():
     rospy.init_node("testscript")
     global controller
     
-    # controller = O2ACAssembly()
-    controller = O2ACCommon()
+    controller = O2ACAssembly()
+    # controller = O2ACCommon()
     # q = [0.19453047870641985, -1.414852203750135, 1.7189982978203278, -1.8730085962497756, -1.567615792398194, 1.7666671594586172, 2.453019687833446, -1.3449819279957274, 1.8068236138946376, -2.0324751409170405, -1.5648680786549045, -2.2588772450321226]
     # controller.ab_bot.move_joints(q, speed=1.0)
     # q = [0.19502419962975553, -1.302128082437928, 1.886556773525712, -2.1543437146483777, -1.568541929253542, 1.766640025829011, 2.4522167306633054, -1.2014465832104217, 1.9290941675252034, -2.298411409316249, -1.5642835257198011, -2.2577476650719626]
     # controller.ab_bot.move_joints(q, speed=1.0)
     controller.reset_scene_and_robots()
+    controller.publish_part_in_assembled_position("base")
+    controller.panel_subtask2()
     controller.confirm_to_proceed("")
-    controller.orient_tray_stack(True)
+    # controller.orient_tray_stack(True)
     # controller.spawn_tray_stack(stack_center=[0.05, 0.14], tray_heights=[0.075,0.02], orientation_parallel=False)
     # controller.spawn_tray_stack(stack_center=[0.0, 0.0], tray_heights=[0.075,0.02], orientation_parallel=True)
     # controller.pick_tray_from_agv_stack_calibration_long_side("tray1")
