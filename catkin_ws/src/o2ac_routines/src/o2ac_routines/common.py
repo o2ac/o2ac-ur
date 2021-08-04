@@ -306,7 +306,7 @@ class O2ACCommon(O2ACBase):
 
   ####### Vision
   @check_for_real_robot
-  def get_large_item_position_from_top(self, item_name, robot_name="b_bot", skip_moving=False):
+  def get_large_item_position_from_top(self, item_name, robot_name="b_bot", skip_moving=False, retry=True):
     """
     This function look at the tray from the top only, and publishes the result to the planning scene.
     
@@ -325,16 +325,18 @@ class O2ACCommon(O2ACBase):
       rospy.logdebug("Found " + item_name + ". Publishing to planning scene.")
       # TODO: Apply Place action of pose estimation to constrain object to the tray_center plane
       # Workaround: Just set z to 0 
+      object_pose.header.stamp = rospy.Time.now()
+      self.listener.waitForTransform("tray_center", object_pose.header.frame_id, object_pose.header.stamp, rospy.Duration(1))
+      object_pose = self.listener.transformPose("tray_center", object_pose)
+      #### fake the orientation of the plate (assumes that it is always flat on the tray) ###
+      orientation_euler = list(transformations.euler_from_quaternion(conversions.from_pose_to_list(object_pose.pose)[3:]))
       if item_name == "base":
-        object_pose.header.stamp = rospy.Time.now()
-        self.listener.waitForTransform("tray_center", object_pose.header.frame_id, object_pose.header.stamp, rospy.Duration(1))
-        object_pose = self.listener.transformPose("tray_center", object_pose)
-        #### fake the orientation of the plate (assumes that it is always flat on the tray) ###
-        orientation_euler = list(transformations.euler_from_quaternion(conversions.from_pose_to_list(object_pose.pose)[3:]))
         orientation_euler[0] = np.sign(orientation_euler[0]) * tau/4
-        orientation_euler[1] = 0
-        object_pose.pose.orientation = conversions.to_quaternion(transformations.quaternion_from_euler(*orientation_euler))
-        object_pose.pose.position.z = 0.0
+      else:
+        orientation_euler[0] = 0
+      orientation_euler[1] = 0
+      object_pose.pose.orientation = conversions.to_quaternion(transformations.quaternion_from_euler(*orientation_euler))
+      object_pose.pose.position.z = 0.0
 
       obj = self.assembly_database.get_collision_object(item_name)
       obj.header.frame_id = object_pose.header.frame_id
@@ -344,8 +346,12 @@ class O2ACCommon(O2ACBase):
       rospy.sleep(1)
       ob = self.constrain_into_tray(item_name).pose
     else:
-      rospy.logdebug("Failed to find " + item_name)
-      return False
+      if retry:
+        rospy.logerr("Failed to find " + item_name)
+        self.activate_led(robot_name, False)
+        return self.get_large_item_position_from_top(item_name, robot_name, skip_moving=True, retry=False)
+      else:
+        return False
       
     return object_pose
 
