@@ -1084,9 +1084,9 @@ class O2ACBase(object):
       ps_in_holder.pose.position.x += 0.001  # To remove the offset for placing applied earlier
       lin_speed = 0.2
       sequence.append(helpers.to_sequence_item(pull_back_slightly, speed=lin_speed))
-      sequence.append(helpers.to_sequence_gripper(gripper='open', gripper_opening_width=0.06, gripper_velocity=0.1))
+      sequence.append(helpers.to_sequence_gripper(action='open', gripper_opening_width=0.06, gripper_velocity=0.1))
       sequence.append(helpers.to_sequence_item(ps_in_holder, speed=lin_speed))
-      sequence.append(helpers.to_sequence_gripper(gripper='close', gripper_force=100, gripper_velocity=0.1))
+      sequence.append(helpers.to_sequence_gripper(action='close', gripper_force=100, gripper_velocity=0.1))
     
     # Plan & execute linear motion away from the tool change position
     rospy.loginfo("Moving back to screw tool approach pose LIN.")
@@ -1385,11 +1385,11 @@ class O2ACBase(object):
         elif gripper_action == 'close':
           success = self.a_bot.gripper.close(force=force, velocity=velocity)
           success &= self.b_bot.gripper.close(force=force, velocity=velocity)
-        elif gripper_action == isinstance(gripper_action, float):
+        elif isinstance(gripper_action, float):
           success = self.a_bot.gripper.send_command(gripper_action, force=force, velocity=velocity)
           success &= self.b_bot.gripper.send_command(gripper_action, force=force, velocity=velocity)
         else:
-          raise ValueError("Unsupported gripper action: %s" % gripper_action)
+          raise ValueError("Unsupported gripper action: %s of type %s" % (gripper_action, type(gripper_action)))
         return success
       else:
         robot = self.active_robots[robot_name]
@@ -1400,10 +1400,10 @@ class O2ACBase(object):
         elif gripper_action == 'close-open':
           robot.gripper.close(velocity=velocity)
           return robot.gripper.open(opening_width=opening_width, velocity=velocity)
-        elif gripper_action == isinstance(gripper_action, float):
+        elif isinstance(gripper_action, float):
           return robot.gripper.send_command(gripper_action, force=force, velocity=velocity)
         else:
-          raise ValueError("Unsupported gripper action: %s" % gripper_action)
+          raise ValueError("Unsupported gripper action: %s of type %s" % (gripper_action, type(gripper_action)))
 
   def move_to_sequence_waypoint(self, robot_name, params, plan_only=False, initial_joints=None):
     success = False
