@@ -8,6 +8,7 @@
 #include <cstdint>
 
 #include <image_transport/image_transport.h>
+#include <image_transport/subscriber_filter.h>
 #include <sensor_msgs/image_encodings.h>
 #include <tf/transform_broadcaster.h>
 #include <tf/transform_listener.h>
@@ -81,9 +82,10 @@ class Detector
     std::string						_reference_frame;
 
   // input camera_info/image stuff
+    image_transport::ImageTransport			_it;
     message_filters::Subscriber<camera_info_t>		_camera_info_sub;
-    message_filters::Subscriber<image_t>		_image_sub;
-    message_filters::Subscriber<image_t>		_depth_sub;
+    image_transport::SubscriberFilter			_image_sub;
+    image_transport::SubscriberFilter			_depth_sub;
     message_filters::Synchronizer<sync_policy_t>	_sync;
 
   // camera_info stuff
@@ -92,7 +94,6 @@ class Detector
     tf::StampedTransform				_rightToLeft;
 
   // output stuff
-    image_transport::ImageTransport			_it;
     const image_transport::Publisher			_image_pub;
     const image_transport::Publisher			_debug_pub;
     const ros::Publisher				_pose_pub;
