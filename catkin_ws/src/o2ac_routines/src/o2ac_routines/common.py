@@ -343,8 +343,8 @@ class O2ACCommon(O2ACBase):
       obj.pose = object_pose.pose
       self.planning_scene_interface.add_object(obj)
 
-      rospy.sleep(1)
-      ob = self.constrain_into_tray(item_name).pose
+      rospy.sleep(0.2)
+      self.constrain_into_tray(item_name)
     else:
       if retry:
         rospy.logerr("Failed to find " + item_name)
@@ -505,37 +505,37 @@ class O2ACCommon(O2ACBase):
     object_pose_in_tray = self.get_transformed_collision_object_pose(item_name, object_pose, "tray_center")
     
     if item_name == "base":
-      axes = [0, 2]  # x, z
+      axes = [2, 0]  # x, z
     if item_name == "panel_motor" or item_name == "panel_bearing":
       axes = [0, 1]  # x, y
     corner_points = [ [dims[0], dims[2]], [dims[0], dims[3]], [dims[1], dims[2]], [dims[1], dims[3]] ]
-    for point in corner_points:
+    for i, point in enumerate(corner_points):
       object_corner_list = conversions.from_pose_to_list(object_pose.pose)
       object_corner_list[axes[0]] += point[0]
       object_corner_list[axes[1]] += point[1]
       object_corner_pose = conversions.to_pose_stamped(object_pose.header.frame_id, object_corner_list)
 
       dx, dy = self.distances_from_tray_border(object_corner_pose)
+      print("corner:",i, "dx, dy", dx, dy)
       if dx < 0 or dy < 0:
         if dx < 0:
           object_pose_in_tray.pose.position.x -= np.sign(object_pose_in_tray.pose.position.x) * abs(dx)
+          rospy.loginfo("Moved dx: %s" % dx)
         if dy < 0:
+          rospy.loginfo("Moved dy: %s" % dy)
           object_pose_in_tray.pose.position.y -= np.sign(object_pose_in_tray.pose.position.y) * abs(dy)
         try:
           self.listener.waitForTransform("move_group/"+item_name, object_pose.header.frame_id, object_pose.header.stamp, rospy.Duration(1))
           object_pose = self.listener.transformPose("move_group/"+item_name, object_pose_in_tray)
-          rospy.loginfo("Moved ""dx:", dx, "dy:", dy)
         except Exception as e:
           print(e)
           pass
-      
+
     # Update collision object position
     obj = self.assembly_database.get_collision_object(item_name)
     obj.header.frame_id = object_pose_in_tray.header.frame_id
     obj.pose = object_pose_in_tray.pose
     self.planning_scene_interface.add_object(obj)
-
-    return object_pose_in_tray
 
   def get_transformed_grasp_pose(self, object_name, grasp_name, target_frame="tray_center"):
     """ Get an object's grasp pose in the target_frame"""
