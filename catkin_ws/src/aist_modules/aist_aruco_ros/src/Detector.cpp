@@ -11,6 +11,7 @@
 #include <cv_bridge/cv_bridge.h>
 
 #include <aruco_ros/aruco_ros_utils.h>
+#include <opencv2/calib3d.hpp>
 
 #include "Detector.h"
 #include "Plane.h"
@@ -32,10 +33,10 @@ rosCameraInfo2ArucoCamParams(const sensor_msgs::CameraInfo& camera_info,
     cv::Mat	cameraMatrix(3, 4, CV_64FC1);
     cv::Mat	distorsionCoeff(4, 1, CV_64FC1);
     cv::Size	size(camera_info.width, camera_info.height);
-    
+
     cameraMatrix.setTo(0);
     distorsionCoeff.setTo(0);
-    
+
     if (useRectifiedImages)
     {
 	cameraMatrix.at<double>(0, 0) = camera_info.P[0];
@@ -70,7 +71,7 @@ rosCameraInfo2ArucoCamParams(const sensor_msgs::CameraInfo& camera_info,
 
     return {cameraMatrix, distorsionCoeff, size};
 }
-    
+
 template <class T> inline T
 val(const sensor_msgs::Image& image_msg, int u, int v)
 {
@@ -95,14 +96,14 @@ Detector::Detector(const ros::NodeHandle& nh)
      _marker_frame("marker_frame"),
      _camera_frame(""),
      _reference_frame(""),
+     _it(_nh),
      _camera_info_sub(_nh, "/camera_info", 1),
-     _image_sub(_nh, "/image", 1),
-     _depth_sub(_nh, "/depth", 1),
+     _image_sub(_it, "/image", 1),
+     _depth_sub(_it, "/depth", 1),
      _sync(sync_policy_t(10), _camera_info_sub, _image_sub, _depth_sub),
      _camParam(),
      _useRectifiedImages(false),
      _rightToLeft(),
-     _it(_nh),
      _image_pub(_it.advertise("result", 1)),
      _debug_pub(_it.advertise("debug",  1)),
      _pose_pub(_nh.advertise<geometry_msgs::PoseStamped>("pose", 100)),
