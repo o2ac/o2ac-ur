@@ -224,18 +224,31 @@ def main():
     rospy.init_node("testscript")
     global controller
     
+
+    # controller = O2ACCommon()
     # print(controller.a_bot.robot_group.get_current_joint_values())
     # pre_hand_over_pose = conversions.to_pose_stamped("tray_center", [0.0, 0.0, 0.25, -tau/4, 0, tau/4])
     # controller.a_bot.go_to_pose_goal(pre_hand_over_pose, 0.5, move_lin=False)
-    # controller = O2ACAssembly()
-    # controller.ab_bot.go_to_named_pose("home")
-    # controller.reset_scene_and_robots()
-    # controller.publish_part_in_assembled_position("base")
-    # controller.panel_subtask2()
-    # controller.fasten_panel("panel_bearing")
-    controller = O2ACCommon()
-    controller.reset_scene_and_robots()
+    controller = O2ACAssembly()
+    # controller.update_collision_item_pose("panel_bearing", conversions.to_pose_stamped("left_centering_link", [0.000, 0.070, -0.080, -0.500, 0.500, -0.500, -0.500]))
     controller.ab_bot.go_to_named_pose("home")
+    controller.reset_scene_and_robots()
+    controller.publish_part_in_assembled_position("base")
+    controller.place_panel("a_bot", "panel_bearing")
+    controller.fasten_panel("panel_bearing")
+    controller.confirm_to_proceed("")
+    # controller.pick_panel("panel_motor")
+    # controller.panels_assembly()
+    # controller.subtask_zero()
+    # gp = controller.panel_subtask2("panel_bearing")
+    # controller.place_panel("a_bot", "panel_motor", grasp_pose=None)
+    # TODO:
+    # 1. add the incline hold pose for fastening
+    # 2. create the simultaneous task for picking,centering the panels, then piiiickinggg the baaaaase plate and then fastening
+    # controller.fasten_panel("panel_bearing")
+    # controller = O2ACCommon()
+    # controller.reset_scene_and_robots()
+    # controller.ab_bot.go_to_named_pose("home")
     # controller.competition_mode = True
     # controller.reset_scene_and_robots()
     # controller.orient_tray_stack(True)

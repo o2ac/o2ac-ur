@@ -138,6 +138,8 @@ class RobotiqGripper():
                 self.attach_object(self.last_attached_object)
             elif command == "open":
                 self.detach_object(self.last_attached_object)
+            else:
+                self.detach_object(self.last_attached_object)
         return res
 
     def attach_object(self, object_to_attach=None, attach_to_link=None):
