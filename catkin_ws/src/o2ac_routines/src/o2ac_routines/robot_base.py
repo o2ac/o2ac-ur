@@ -270,7 +270,7 @@ class RobotBase():
                     group.set_start_state_to_current_state()
                     return plan, planning_time
                 else:
-                    self.execute_plan(plan, wait=wait)
+                    success = self.execute_plan(plan, wait=wait)
             else:
                 rospy.sleep(0.2)
                 rospy.logwarn("go_to_pose_goal(move_lin=%s) attempt failed. Retrying." % str(move_lin))

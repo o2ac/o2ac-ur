@@ -16,7 +16,7 @@ subframes:
   - -pi/2
   name: bottom_screw_hole_aligner_1
 - pose_xyzrpy:
-  - 0.064
+  - 0.054
   - 0.0
   - 0.015
   - -pi/2
@@ -32,7 +32,7 @@ subframes:
   - -pi/2
   name: bottom_screw_hole_1
 - pose_xyzrpy:
-  - 0.064
+  - 0.054
   - 0.005
   - 0.015
   - -pi/2

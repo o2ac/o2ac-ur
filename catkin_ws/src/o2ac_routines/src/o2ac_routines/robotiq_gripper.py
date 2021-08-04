@@ -69,7 +69,7 @@ class RobotiqGripper():
     def _gripper_status_callback(self, msg):
         self.opening_width = msg.position  # [m]
 
-    def close(self, force=40.0, velocity=.1, wait=True):
+    def close(self, force=40.0, velocity=1.0, wait=True):
         res = False
         if self.use_real_robot:
             res = self.send_command("close", force=force, velocity=velocity, wait=wait)
@@ -79,7 +79,7 @@ class RobotiqGripper():
             self.attach_object(self.last_attached_object)
         return res
 
-    def open(self, velocity=.1, wait=True, opening_width=None):
+    def open(self, velocity=1.0, wait=True, opening_width=None):
         res = False
         if self.use_real_robot:
             command = opening_width if opening_width else "open"
@@ -91,7 +91,7 @@ class RobotiqGripper():
             self.detach_object(self.last_attached_object)
         return res
 
-    def send_command(self, command, force=40.0, velocity=.1, wait=True):
+    def send_command(self, command, force=40.0, velocity=1.0, wait=True):
         """
         gripper: a_bot or b_bot
         command: "open", "close" or opening width

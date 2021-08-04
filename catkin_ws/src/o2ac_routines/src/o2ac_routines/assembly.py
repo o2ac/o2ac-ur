@@ -90,24 +90,6 @@ class O2ACAssembly(O2ACCommon):
     self.belt_storage_location.pose.position.y = 0.05
     self.belt_storage_location.pose.position.z = 0.05
 
-  def rotate_plate_collision_object_in_tray(self, plate_name):
-    """ Rotates the collision object in the scene.
-        Used as a fallback for failing vision.
-
-        plate_name can be "base", "panel_motor", "panel_bearing". The angle is tau/2 for base, tau/4 for the panels.
-    """
-    if plate_name == "base":
-      new_pose = conversions.to_pose_stamped("move_group/base", [0.2, 0.0, 0.12, 0, tau/2, 0])
-    elif plate_name == "panel_motor":
-      new_pose = conversions.to_pose_stamped("move_group/panel_motor", [0.06, 0.0, 0.0, 0, 0, tau/4])
-    elif plate_name == "panel_bearing":
-      new_pose = conversions.to_pose_stamped("move_group/panel_bearing", [0.101, 0.0, 0.0, 0, 0, tau/4]) # The sides are 0.09 and 0.112, but we accept the noise.
-    new_pose = self.listener.transformPose("tray_center", new_pose)
-    obj = self.assembly_database.get_collision_object(plate_name)
-    obj.header.frame_id = new_pose.header.frame_id
-    obj.pose = new_pose.pose
-    self.planning_scene_interface.add_object(obj)
-
   ################ ----- Subtasks
 
   def pick_and_store_belt(self):
@@ -154,7 +136,7 @@ class O2ACAssembly(O2ACCommon):
     self.unlock_base_plate()
     self.publish_status_text("Target: base plate")
 
-    self.pick_base_panel(skip_initial_perception=False, use_b_bot_camera=use_b_bot_camera)
+    self.pick_base_panel(skip_initial_perception=skip_initial_perception, use_b_bot_camera=use_b_bot_camera)
 
     self.confirm_to_proceed("Did the base plate move up?")
 
@@ -538,9 +520,8 @@ class O2ACAssembly(O2ACCommon):
       rospy.logerr("Could not load grasp pose " + "default_grasp" + " for object " + panel + ". Aborting pick.")
       return False
     grasp_pose.header.frame_id = "move_group/" + panel
-    picked = False
+    self.picked = False
     def a_bot_task(): # Pick and orient panel
-      global picked
       self.activate_led("a_bot")
       plate_pose = self.get_large_item_position_from_top(panel, "a_bot")
       if not plate_pose:
@@ -561,10 +542,9 @@ class O2ACAssembly(O2ACCommon):
       self.allow_collisions_with_robot_hand(panel, "a_bot")
       rospy.sleep(1.0)  # TODO(felixvd): Necessary after enabling collisions? Likely.
       if not self.too_close_to_border(grasp_pose_tray, border_dist=0.025):
-        picked = self.simple_pick("a_bot", grasp_pose_tray, axis="z", grasp_width=0.06, minimum_grasp_width=0.0001)
+        self.picked = self.simple_pick("a_bot", grasp_pose_tray, axis="z", grasp_width=0.06, minimum_grasp_width=0.0001)
       else:
-        picked = False
-      return picked
+        self.picked = False
     
     self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=180.0)
     
@@ -576,7 +556,7 @@ class O2ACAssembly(O2ACCommon):
       return False
     if allow_fallbacks:
       # Fallback: Try moving the plate
-      if not picked:
+      if not self.picked:
         self.a_bot.go_to_named_pose("home", wait=False)
         self.unequip_tool("b_bot")
         if panel == "panel_motor":
@@ -610,11 +590,11 @@ class O2ACAssembly(O2ACCommon):
           rospy.sleep(.5)
           grasp_pose_tray = self.listener.transformPose("tray_center", grasp_pose)
           if self.is_grasp_pose_feasible(grasp_pose_tray, border_dist=0.025):
-            picked = self.simple_pick("a_bot", grasp_pose_tray, axis="z", grasp_width=0.06, minimum_grasp_width=0.0001)
-          if picked:
+            self.picked = self.simple_pick("a_bot", grasp_pose_tray, axis="z", grasp_width=0.06, minimum_grasp_width=0.0001)
+          if self.picked:
             break
     
-    if not picked:
+    if not self.picked:
       rospy.logerr("Did not pick panel. Abort.")
       return False
 
@@ -735,26 +715,87 @@ class O2ACAssembly(O2ACCommon):
     self.allow_collisions_with_robot_hand(panel, "a_bot", allow=False)
     return True
 
-  def panels_assembly(self):
+  def panels_assembly(self, simultaneous=True):
+    self.publish_status_text("Target: panel bearing")
     if not self.pick_panel("panel_bearing"):
       return False
-    panel_bearing_pose = self.center_panel("panel_bearing", store=True)
-    if not self.pick_panel("panel_motor"):
-      return False
-    panel_motor_pose = self.center_panel("panel_motor", store=True)
+    self.panel_bearing_pose = None
+    self.b_bot_success = False
+    def a_bot_task():
+      self.panel_bearing_pose = self.center_panel("panel_bearing", store=True)
+    def b_bot_task():
+      rospy.sleep(3.0)
+      self.publish_status_text("Target: panel motor")
+      self.b_bot_success = self.pick_panel("panel_motor", simultaneous=False)
     
-    if not self.subtask_zero():
+    if simultaneous:
+      self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=60)
+    else:
+      a_bot_task()
+      b_bot_task()
+    if not self.b_bot_success:
+      rospy.logerr("Fail to do panels_assembly1: simultaneous=%s" % simultaneous)
+      return False
+    self.panel_motor_pose = None
+    self.base_pose = False
+    def a_bot_task():
+      self.panel_motor_pose = self.center_panel("panel_motor", store=True)
+    def b_bot_task():
+      rospy.sleep(3.0)
+      self.activate_led("b_bot")
+      rospy.loginfo("Looking for base plate with b_bot")
+      self.base_pose = self.get_large_item_position_from_top("base", "b_bot")
+      self.b_bot.go_to_named_pose("home")
+    
+    if simultaneous:
+      self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=60)
+    else:
+      a_bot_task()
+      b_bot_task()
+
+    if not self.panel_motor_pose or not self.base_pose:
+      rospy.logerr("Fail to do panels_assembly2: simultaneous=%s" % simultaneous)
       return False
 
-    if not self.place_panel("a_bot", "panel_bearing", pick_again=True, grasp_pose=panel_bearing_pose):
+    self.skip_perception = isinstance(self.base_pose, geometry_msgs.msg.PoseStamped)
+    self.a_bot_success = False
+    self.b_bot_success = False
+    def a_bot_task():
+      self.publish_status_text("Target: base plate")
+      self.a_bot_success = self.subtask_zero(skip_initial_perception=self.skip_perception)
+    def b_bot_task():
+      start_time = rospy.get_time()
+      while not self.b_bot_success and rospy.get_time()-start_time < 15:
+        self.b_bot_success = self.do_change_tool_action("b_bot", equip=True, screw_size = 4)
+      if self.b_bot_success:
+        self.b_bot_success = False
+        self.b_bot_success = self.pick_screw_from_feeder("b_bot", screw_size = 4, realign_tool_upon_failure=False)
+        self.b_bot.go_to_named_pose("feeder_pick_ready")
+
+    if simultaneous:
+      self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=60)
+    else:
+      a_bot_task()
+      b_bot_task()
+    if not self.b_bot_success or not self.a_bot_success:
+      rospy.logerr("Fail to do panels_assembly3: simultaneous=%s" % simultaneous)
       return False
+
+    if not self.place_panel("a_bot", "panel_bearing", pick_again=True, grasp_pose=self.panel_bearing_pose):
+      return False
+    self.publish_status_text("Target: fasten panel bearing")
     if not self.fasten_panel("panel_bearing"):
       return False
-
-    if not self.place_panel("a_bot", "panel_motor", pick_again=True, grasp_pose=panel_motor_pose):
+    if not self.place_panel("a_bot", "panel_motor", pick_again=True, grasp_pose=self.panel_motor_pose):
       return False
+    self.publish_status_text("Target: fasten panel motor")
     if not self.fasten_panel("panel_motor"):
       return False
+
+    del self.panel_bearing_pose
+    del self.panel_motor_pose
+    del self.skip_perception
+    return True
 
   def subtask_h(self):
     # Attach belt
@@ -879,42 +920,36 @@ class O2ACAssembly(O2ACCommon):
     pose.pose.orientation.w = 1
     return self.do_plan_pickplace_action('b_bot', 'panel_bearing', pose, save_solution_to_file = 'panel_bearing/bottom_screw_hole_aligner_1')
 
-  def full_assembly_task(self, simultaneous_execution=True):
+  def single_assembly_task(self, tray_name=None, simultaneous_execution=False):
     if simultaneous_execution:
       return self.full_assembly_task_simultaneous()
-    if not self.assembly_status.tray_placed_on_table:
-      self.orient_tray_stack()
-      self.pick_tray_from_agv_stack_calibration_long_side(tray_name="tray1")
+    if tray_name:
+      if not self.pick_tray_from_agv_stack_calibration_long_side(tray_name=tray_name):
+        rospy.logerr("Fail to pick and place tray. Abort!")
+        return False
 
     # Look into the tray
-    self.publish_status_text("Target: base plate")
-    self.confirm_to_proceed("press enter to proceed to pick and set base plate")
-    while not self.assembly_status.completed_subtask_zero and not rospy.is_shutdown():
-        self.assembly_status.completed_subtask_zero = self.subtask_zero()  # Base plate
-  
-    self.vision.activate_camera("b_bot_outside_camera")
-
-    self.confirm_to_proceed("press enter to proceed to subtask_g")
-    if not self.assembly_status.completed_subtask_g:
-      self.assembly_status.completed_subtask_g = self.subtask_g()  # Bearing plate
-    self.confirm_to_proceed("press enter to proceed to subtask_f")
-    if not self.assembly_status.completed_subtask_f:
-      self.assembly_status.completed_subtask_f = self.subtask_f() # Motor plate
+    success = self.panels_assembly()
 
     self.a_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
     self.do_change_tool_action("b_bot", equip=False, screw_size=4)
 
-    if self.assembly_status.completed_subtask_g:  # Bearing plate
+    if success:
       self.assembly_status.completed_subtask_c1 = self.subtask_c1() # bearing 
       # if self.assembly_status.completed_subtask_c1:
       #   self.assembly_status.completed_subtask_c2 = self.subtask_c2() # shaft
       #   if self.assembly_status.completed_subtask_c2:
       #     self.assembly_status.completed_subtask_e = self.subtask_e() # bearing spacer / output pulley
     
+    self.do_change_tool_action("a_bot", equip=False, screw_size=3)
     self.ab_bot.go_to_named_pose("home")
-    self.unload_drive_unit()
-    self.return_tray_to_agv_stack_calibration_long_side("tray1")
-    self.assembly_status = AssemblyStatus()
+    if not self.unload_drive_unit():
+      rospy.logerr("Fail to unload drive unit. Abort!")
+      return
+    if tray_name:
+      if not self.return_tray_to_agv_stack_calibration_long_side(tray_name):
+        rospy.logerr("Fail to return tray. Abort!")
+        return
     rospy.loginfo("==== Finished.")
 
     # self.subtask_a() # motor
@@ -937,6 +972,17 @@ class O2ACAssembly(O2ACCommon):
     # self.a_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
     
     # self.subtask_c() # bearing, clamping pulley set
+
+  def full_assembly_task(self, simultaneous_execution=False):
+    self.ab_bot.go_to_named_pose("home")
+    self.reset_scene_and_robots()
+    trays = ["tray1", "tray2"]
+    self.orient_tray_stack()
+    for tray in trays:
+      self.assembly_status = AssemblyStatus()
+      self.single_assembly_task(tray, simultaneous_execution)
+      self.set_assembly("wrs_assembly_2020")
+    rospy.loginfo("==== Finished both tasks ====")
     return
 
   def full_assembly_task_simultaneous(self):
@@ -945,6 +991,8 @@ class O2ACAssembly(O2ACCommon):
       self.pick_tray_from_agv_stack_calibration_long_side("tray1")
       # TODO(cambel): add a loop for the second tray
 
+    self.a_bot_success = False
+    self.b_bot_success = False
     def b_bot_task():
       self.pick_and_store_motor()
       self.b_bot.go_to_named_pose("home")
@@ -953,6 +1001,8 @@ class O2ACAssembly(O2ACCommon):
       self.publish_status_text("Target: base plate")
       while not self.assembly_status.completed_subtask_zero and not rospy.is_shutdown():
           self.assembly_status.completed_subtask_zero = self.subtask_zero()  # Base plate
+    
+    self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=60)
   
     self.vision.activate_camera("b_bot_outside_camera")
 

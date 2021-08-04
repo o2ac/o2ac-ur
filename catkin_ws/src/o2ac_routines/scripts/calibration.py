@@ -34,6 +34,7 @@
 #
 # Author: Felix von Drigalski
 
+from os import name
 import sys
 import copy
 import rospy
@@ -119,7 +120,7 @@ class CalibrationClass(O2ACCommon):
       ps_approach = copy.deepcopy(pose)
       ps_approach.pose.position.x -= .05
       rospy.loginfo("============ Press `Enter` to move " + robot_name + " to " + pose.header.frame_id)
-      self.skill_server.publish_marker(pose, "place_pose")
+      helpers.publish_marker(pose, namespace="place_pose")
       raw_input()
       robot = self.active_robots[robot_name]
       if go_home:
@@ -428,6 +429,7 @@ class CalibrationClass(O2ACCommon):
     return
   
   def vertical_plate_screw_position_test(self, panel, robot_name = "b_bot"):
+    self.set_assembly("wrs_assembly_2021")
     """panel should be motor_plate or bearing_plate"""
     rospy.loginfo("============ Move tool to screw position of plates ============")
     
@@ -442,14 +444,13 @@ class CalibrationClass(O2ACCommon):
       pose0.header.frame_id = "bottom_screw_hole_2"
       ee_link = robot_name + "_screw_tool_m4_tip_link"
     if panel == "bearing_panel":
-      part_name = "assembled_assy_part_03_"
+      part_name = "assembled_part_03_"
     elif panel == "motor_panel":
-      part_name = "assembled_assy_part_02_"
+      part_name = "assembled_part_02_"
     
     pose0.header.frame_id = part_name + "bottom_screw_hole_1"
-    pose0.pose.position.x = -.01
     
-    self.toggle_collisions(collisions_on=False)
+    # self.toggle_collisions(collisions_on=False)
     
     poses = []
     for i in range(2):
@@ -457,7 +458,7 @@ class CalibrationClass(O2ACCommon):
     poses[1].header.frame_id = part_name + "bottom_screw_hole_2"
     
     self.cycle_through_calibration_poses(poses, robot_name, go_home=False, move_lin=True, end_effector_link=ee_link)
-    self.toggle_collisions(collisions_on=True)
+    # self.toggle_collisions(collisions_on=True)
     self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
     return
   

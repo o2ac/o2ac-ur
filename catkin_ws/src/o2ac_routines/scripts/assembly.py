@@ -57,6 +57,13 @@ import o2ac_routines.helpers as helpers
 
 from ur_control.constants import TERMINATION_CRITERIA
 
+import sys, signal
+def signal_handler(sig, frame):
+    print('You pressed Ctrl+C!')
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
+
 if __name__ == '__main__':
   try:
     rospy.init_node('o2ac_routines', anonymous=False)
@@ -218,6 +225,8 @@ if __name__ == '__main__':
         c.subtask_zero() # Base plate
       elif i == '91':
         c.subtask_g()  # Large plate
+      elif i == '911':
+        c.get_large_item_position_from_top("panel_bearing", "a_bot")  # Large plate
       elif i == '92':
         c.subtask_f()  # Motor plate
       elif i == '93':
@@ -317,16 +326,14 @@ if __name__ == '__main__':
       elif i == "endcap":
         c.orient_shaft_end_cap()
       elif i == 'START' or i == 'start' or i == "9999":
-        for i in [1,2]:
-          rospy.loginfo("Starting set number " + str(i))
-          c.competition_mode = True
-          c.full_assembly_task()
-          c.competition_mode = False
-          rospy.loginfo("SET NUMBER " + str(i) + " COMPLETED. PUT THE ROBOT IN PAUSE MODE AND REPLACE THE PARTS")
-          raw_input()
-          if rospy.is_shutdown():
-            rospy.loginfo("ABORTING")
-            break
+        c.competition_mode = True
+        c.full_assembly_task()
+        c.competition_mode = False
+        rospy.loginfo("SET NUMBER " + str(i) + " COMPLETED. PUT THE ROBOT IN PAUSE MODE AND REPLACE THE PARTS")
+        raw_input()
+        if rospy.is_shutdown():
+          rospy.loginfo("ABORTING")
+          break
       elif i == "new":
         rospy.loginfo("SET NUMBER " + str(i) + " COMPLETED. PUT THE ROBOT IN PAUSE MODE AND REPLACE THE PARTS")
         raw_input()
@@ -335,13 +342,16 @@ if __name__ == '__main__':
           break
         rospy.loginfo("Starting new set")
         c.full_assembly_task()
+      elif i == "single":
+        c.single_assembly_task()
       if i == "reset":
         c.reset_scene_and_robots()
         c.reset_assembly_visualization()
       if i == "unload":
         c.unload_drive_unit()
+        c.return_tray_to_agv_stack_calibration_long_side("tray1")
       if i == 'carry':
-        c.take_tray_from_agv()
+        c.pick_tray_from_agv_stack_calibration_long_side("tray1")
       if i == "activate":
         c.a_bot.activate_ros_control_on_ur()
         c.b_bot.activate_ros_control_on_ur()

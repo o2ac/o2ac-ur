@@ -89,7 +89,7 @@ subframes:
   - -pi/2
   name: screw_hole_panel1_2
 - pose_xyzrpy:
-  - 0.136
+  - 0.133
   - 0.01
   - 0.028
   - -pi/2
@@ -122,7 +122,7 @@ subframes:
   - -pi/2
   name: screw_hole_panel1_4
 - pose_xyzrpy:
-  - 0.136
+  - 0.133
   - 0.0
   - 0.028
   - -pi/2
