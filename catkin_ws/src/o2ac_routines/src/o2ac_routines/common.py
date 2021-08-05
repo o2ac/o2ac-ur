@@ -1685,51 +1685,59 @@ class O2ACCommon(O2ACBase):
       return False
     return True
 
-  def orient_bearing(self, task, robot_name="b_bot"):
+  def orient_bearing(self, task, robot_name="b_bot", part1=True, part2=True):
     if task == "taskboard":
       bearing_target_link = "taskboard_bearing_target_link"
     elif task == "assembly":
       rospy.logerr("look this up")
       bearing_target_link = "assembled_part_07_inserted"
 
-    self.active_robots[robot_name].gripper.close() # catch false grasps
-    if not self.simple_gripper_check(robot_name, min_opening_width=0.01):
-      rospy.logerr("Fail to grasp bearing")
-      return False
-    elif self.active_robots[robot_name].gripper.opening_width < 0.045:
-      rospy.loginfo("bearing found to be upwards")
-      if not self.playback_sequence("bearing_orient_" + robot_name):
-        rospy.logerr("Could not complete orient sequence")
+    if part1:
+      self.active_robots[robot_name].gripper.close() # catch false grasps
+      if not self.simple_gripper_check(robot_name, min_opening_width=0.01):
+        rospy.logerr("Fail to grasp bearing")
+        return False
+      elif self.active_robots[robot_name].gripper.opening_width < 0.045:
+        rospy.loginfo("bearing found to be upwards")
+        if not self.playback_sequence("bearing_orient_" + robot_name):
+          rospy.logerr("Could not complete orient sequence")
+          self.pick_from_centering_area_and_drop_in_tray(robot_name)
+          return False
+      else:
+        rospy.loginfo("bearing found to be upside down")
+        if not self.playback_sequence("bearing_orient_down_" + robot_name):
+          rospy.logerr("Could not complete orient down sequence")
+          self.pick_from_centering_area_and_drop_in_tray(robot_name)
+          return False
+        #'down' means the small area contacts with tray.
+      if self.active_robots[robot_name].gripper.opening_width < 0.01 and self.use_real_robot:
+        rospy.logerr("Bearing not found in gripper. Must have been lost. Aborting.")
+        #TODO(felixvd): Look at the regrasping/aligning area next to the tray
+        return False
+
+    if part2:
+      prefix = "right" if robot_name == "b_bot" else "left"
+      at_tray_border_pose = conversions.to_pose_stamped(prefix + "_centering_link", [-0.15, 0, 0.10, radians(-100), 0, 0])
+
+      rotation = [0, radians(-35.0), 0] if robot_name == "b_bot" else [tau/4, 0, radians(35.0)]
+      approach_pose       = conversions.to_pose_stamped(bearing_target_link, [-0.050, -0.001, 0.005] + rotation)
+      if task == "taskboard":
+        if robot_name == "b_bot":
+          preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017,  0.000, 0.002 ]+ rotation)
+        elif robot_name == "a_bot":
+          preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.013, 0.014, -0.003 ]+ rotation)
+        else:
+          raise ValueError("Unknown robot")
+      elif task == "assembly":
+        preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017, -0.000, 0.006] + rotation)
+
+      trajectory = [(at_tray_border_pose, 0.01, 0.4), (approach_pose, 0.02, 0.4), (preinsertion_pose, 0, 0.2)]
+      if not self.active_robots[robot_name].move_lin_trajectory(trajectory=trajectory, timeout=15):
+        rospy.logerr("Could not go to preinsertion")
         self.pick_from_centering_area_and_drop_in_tray(robot_name)
         return False
-    else:
-      rospy.loginfo("bearing found to be upside down")
-      if not self.playback_sequence("bearing_orient_down_" + robot_name):
-        rospy.logerr("Could not complete orient down sequence")
-        self.pick_from_centering_area_and_drop_in_tray(robot_name)
-        return False
-      #'down' means the small area contacts with tray.
-    if self.active_robots[robot_name].gripper.opening_width < 0.01 and self.use_real_robot:
-      rospy.logerr("Bearing not found in gripper. Must have been lost. Aborting.")
-      #TODO(felixvd): Look at the regrasping/aligning area next to the tray
-      return False
 
-    prefix = "right" if robot_name == "b_bot" else "left"
-    at_tray_border_pose = conversions.to_pose_stamped(prefix + "_centering_link", [-0.15, 0, 0.10, radians(-100), 0, 0])
-
-    rotation = [0, radians(-35.0), 0] if robot_name == "b_bot" else [tau/4, 0, radians(35.0)]
-    approach_pose       = conversions.to_pose_stamped(bearing_target_link, [-0.050, -0.001, 0.005] + rotation)
-    if task == "taskboard":
-      preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017,  0.000, 0.002 ]+ rotation)
-    elif task == "assembly":
-      preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017, -0.000, 0.006] + rotation)
-
-    trajectory = [(at_tray_border_pose, 0.01, 0.4), (approach_pose, 0.02, 0.4), (preinsertion_pose, 0, 0.2)]
-    if not self.active_robots[robot_name].move_lin_trajectory(trajectory=trajectory, timeout=15):
-      rospy.logerr("Could not go to preinsertion")
-      self.pick_from_centering_area_and_drop_in_tray(robot_name)
-      return False
-
+      self.despawn_object("bearing")
     return True
 
   def insert_bearing(self, target_link, try_recenter=True, try_reinsertion=True, robot_name="b_bot"):
@@ -1737,7 +1745,10 @@ class O2ACCommon(O2ACBase):
     """
     robot = self.active_robots[robot_name]
     insertion_direction = "-X" if robot_name == "b_bot" else "+X"
-    target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.004, 0.000, 0.002, 0, 0, 0, 1.])
+    if robot_name == "b_bot":
+      target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.004, 0.000, 0.002, 0, 0, 0, 1.])
+    else:
+      target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.004, 0.014, -0.003, 0, 0, 0, 1.])
     selection_matrix = [0., 0.3, 0.3, .8, .8, .8]
     result = robot.do_insertion(target_pose_target_frame, insertion_direction=insertion_direction, force=10.0, timeout=20.0, 
                                 radius=0.002, relaxed_target_by=0.003, selection_matrix=selection_matrix)
@@ -1761,7 +1772,7 @@ class O2ACCommon(O2ACBase):
         robot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
         self.drop_in_tray(robot_name)
 
-    robot.gripper.open(wait=True)
+    robot.gripper.open(opening_width=0.08, wait=True)
     robot.move_lin_rel(relative_translation = [0.01,0,0], acceleration = 0.015, speed=.03)
     robot.gripper.close(velocity=0.05, wait=True)
 
@@ -1882,12 +1893,19 @@ class O2ACCommon(O2ACBase):
     if not self.pick_motor_pulley():
       return False
 
+    if not self.orient_motor_pulley(target_link):
+      return False
+
+    return self.insert_motor_pulley(target_link)
+
+  def orient_motor_pulley(self, target_link):
     if not self.playback_sequence(routine_filename="motor_pulley_orient"):
       rospy.logerr("Fail to complete the playback sequence motor pulley orient")
       self.pick_from_centering_area_and_drop_in_tray("b_bot")
       return False
-
-    return self.insert_motor_pulley(target_link)
+    pre_insertion_pose = conversions.to_pose_stamped(target_link, [-0.006, -0.000, -0.003] + np.deg2rad([180, 35, 0]).tolist()) # Manually defined target pose in object frame
+    self.b_bot.go_to_pose_goal(pre_insertion_pose, speed=0.1)
+    return True
 
   def pick_motor_pulley(self, attempt=2):
     options = {'grasp_width': 0.06, 'center_on_corner': True, 'approach_height': 0.02, 'grab_and_drop': True}
@@ -1916,20 +1934,21 @@ class O2ACCommon(O2ACBase):
     return True
 
   def insert_motor_pulley(self, target_link, attempts=1):
-    pre_insertion_pose = conversions.to_pose_stamped(target_link, [-0.006, -0.000, -0.003] + np.deg2rad([180, 35, 0]).tolist()) # Manually defined target pose in object frame
-    self.b_bot.go_to_pose_goal(pre_insertion_pose, speed=0.1)
-    
     target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.015, -0.000, -0.009, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
 
     selection_matrix = [0., 0.3, 0.3, 0.95, 1.0, 1.0]
 
     result = self.b_bot.do_insertion(target_pose_target_frame, radius=0.0005, 
-                                                      insertion_direction="-X", force=6.0, timeout=15.0, 
-                                                      wiggle_direction="X", wiggle_angle=np.deg2rad(5.0), wiggle_revolutions=1.,
+                                                      insertion_direction="-X", force=8.0, timeout=15.0, 
+                                                      wiggle_direction="X", wiggle_angle=np.deg2rad(2.0), wiggle_revolutions=1.,
                                                       relaxed_target_by=0.005, selection_matrix=selection_matrix)
     success = (result == TERMINATION_CRITERIA)
 
     if not success:
+      current_pose = self.listener.transformPose(target_link, self.b_bot.get_current_pose_stamped())
+      if current_pose.pose.position.x > 0.004:
+        return self.insert_motor_pulley(target_link, attempts=attempts-1)
+
       if attempts > 0: # try again the pulley is still there   
         rospy.logwarn("** Insertion Incomplete, trying again **")
         return self.insert_motor_pulley(target_link, attempts=attempts-1)

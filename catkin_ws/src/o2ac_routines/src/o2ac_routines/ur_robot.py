@@ -247,6 +247,7 @@ class URRobot(RobotBase):
 
     @helpers.check_for_real_robot
     def load_and_execute_program(self, program_name="", recursion_depth=0):
+        self.activate_ros_control_on_ur()
         if not self.load_program(program_name, recursion_depth):
             return False
         return self.execute_loaded_program()
@@ -296,13 +297,17 @@ class URRobot(RobotBase):
     @helpers.check_for_real_robot
     def execute_loaded_program(self):
         # Run the program
-        response = self.ur_dashboard_clients["play"].call(std_srvs.srv.TriggerRequest())
-        if not response.success:
-            rospy.logerr("Could not start program. Is the UR in Remote Control mode and program installed with correct name?")
+        try:
+            response = self.ur_dashboard_clients["play"].call(std_srvs.srv.TriggerRequest())
+            if not response.success:
+                rospy.logerr("Could not start program. Is the UR in Remote Control mode and program installed with correct name?")
+                return False
+            else:
+                rospy.loginfo("Successfully started program on robot " + self.ns)
+                return True
+        except Exception as e:
+            rospy.logerr(str(e))
             return False
-        else:
-            rospy.loginfo("Successfully started program on robot " + self.ns)
-            return True
 
     @helpers.check_for_real_robot
     def close_ur_popup(self):

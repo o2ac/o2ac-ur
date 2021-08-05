@@ -93,9 +93,9 @@ if __name__ == '__main__':
         c.competition_mode = True
         c.full_taskboard_task(do_screws=False)
         c.competition_mode = False
-      if i == "startsimul":
+      if i == "startsimul": # full simultaneous
         c.competition_mode = True
-        c.full_taskboard_task_simultaneous(do_screws=False)
+        c.full_taskboard_task_simultaneous(do_screws=True, skip_tray_placing=False)
         c.competition_mode = False
       if i == "screwsonly":
         c.competition_mode = True
@@ -104,6 +104,10 @@ if __name__ == '__main__':
       if i == "simul":
         c.competition_mode = True
         c.do_screw_tasks_simultaneous()
+        c.competition_mode = False
+      if i == "simul2":
+        c.competition_mode = True
+        c.full_taskboard_task_simultaneous(do_screws=False, skip_tray_placing=True)
         c.competition_mode = False
       if i == "test":
         c.competition_mode = False

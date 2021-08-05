@@ -1377,7 +1377,7 @@ class O2ACBase(object):
 
   def execute_gripper_action(self, robot_name, gripper_params):
       gripper_action = gripper_params.get("action", None)
-      opening_width = gripper_params.get("width", 0.140)
+      opening_width = gripper_params.get("open_width", 0.140)
       force = gripper_params.get("force", 80.)
       velocity = gripper_params.get("velocity", 0.03)
       if robot_name == "ab_bot":

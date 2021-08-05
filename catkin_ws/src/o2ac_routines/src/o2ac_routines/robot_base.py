@@ -246,15 +246,14 @@ class RobotBase():
             group.set_start_state(helpers.to_robot_state(group, initial_joints))
 
         if move_lin:  # is this necessary??
-            pose_goal_world = self.listener.transformPose("world", pose_goal_stamped)
-            group.set_pose_target(pose_goal_world)
+            pose_goal_ = self.listener.transformPose("world", pose_goal_stamped)
         else:
-            group.set_pose_target(pose_goal_stamped)
-
+            pose_goal_ = pose_goal_stamped
         success = False
         start_time = rospy.Time.now()
         tries = 0
         while not success and (rospy.Time.now() - start_time < rospy.Duration(timeout)) and not rospy.is_shutdown():
+            group.set_pose_target(pose_goal_)
             success, plan, planning_time, error = group.plan()
 
             if success:

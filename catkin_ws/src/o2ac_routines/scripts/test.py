@@ -223,11 +223,20 @@ def b_bot_m4(controller):
 def main():
     rospy.init_node("testscript")
     global controller
+    controller = O2ACTaskboard()
+    controller.reset_scene_and_robots()
+    # controller.a_bot.move_lin_rel(relative_translation = [0.01,0,0], acceleration = 0.015, speed=.03)
+    controller.ab_bot.go_to_named_pose("home")
+    # controller.playback_sequence("bearing_orient_a_bot", plan_while_moving=False, use_saved_plans=False)
+    controller.pick_bearing("a_bot")
+    controller.orient_bearing("taskboard", robot_name="a_bot", part1=True, part2=False)
+    controller.orient_bearing("taskboard", robot_name="a_bot", part1=False, part2=True)
+    controller.insert_bearing("taskboard_bearing_target_link", robot_name="a_bot")
     # controller = O2ACCommon()
     # print("a_bot.gripper.opening_width", controller.a_bot.gripper.opening_width)
     
     # controller.do_change_tool_action("b_bot", equip=False, screw_size = 4)
-    controller = O2ACAssembly()
+    # controller = O2ACAssembly()
     
     # cp = controller.listener.transformPose("tray_center", controller.a_bot.get_current_pose_stamped())
     # print("a bot pose", cp.pose.position)
@@ -239,11 +248,11 @@ def main():
     # controller.update_collision_item_pose("base", current_base_pose)
 
     # controller.reset_scene_and_robots()
-    controller.ab_bot.go_to_named_pose("home")
-    controller.place_panel("a_bot", "panel_bearing", fake_position=True)
-    controller.despawn_object("panel_bearing")
-    controller.fasten_panel("panel_bearing")
-    controller.do_change_tool_action("b_bot", equip=False, screw_size = 4)
+    # controller.ab_bot.go_to_named_pose("home")
+    # controller.place_panel("a_bot", "panel_bearing", fake_position=True)
+    # controller.despawn_object("panel_bearing")
+    # controller.fasten_panel("panel_bearing")
+    # controller.do_change_tool_action("b_bot", equip=False, screw_size = 4)
     # controller.panels_assembly()
     # controller.subtask_zero(use_b_bot_camera=True)
     # controller.a_bot.gripper.open()
