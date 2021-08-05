@@ -2296,16 +2296,18 @@ class O2ACCommon(O2ACBase):
     self.b_bot.go_to_named_pose("home")
     return success
   
-  def align_shaft(self, target_link, pre_insert_offset=0.09):
+  def align_shaft(self, target_link, pre_insert_offset=0.09, from_behind=True):
     rospy.loginfo("Going to approach pose (b_bot)")
-    rotation = np.deg2rad([-22.5, -88.5, -157.5]).tolist()  # Arbitrary
-
-    post_pick_pose = conversions.to_pose_stamped(target_link, [-0.15, 0.0, -0.10] + rotation)
-    above_pose     = conversions.to_pose_stamped(target_link, [0.0, 0.002, -0.10] + rotation)
-    behind_pose    = conversions.to_pose_stamped(target_link, [0.09, 0.002, -0.05] + rotation)
-    pre_insertion_pose = conversions.to_pose_stamped(target_link, [pre_insert_offset, 0.001, 0.001] + rotation)
-
-    trajectory = [[post_pick_pose, 0.05, 0.8], [above_pose, 0.05, 0.5], [behind_pose, 0.01, 0.5], [pre_insertion_pose, 0.0, 0.2]]
+    if from_behind:
+      post_pick_pose = conversions.to_pose_stamped(target_link, [-0.15, 0.0, -0.10, -tau/4, -radians(50), -tau/4])
+      above_pose     = conversions.to_pose_stamped(target_link, [0.0, 0.002, -0.10, -tau/4, -radians(50), -tau/4])
+      behind_pose    = conversions.to_pose_stamped(target_link, [0.09, 0.002, -0.05, -tau/4, -radians(50), -tau/4])
+      pre_insertion_pose = conversions.to_pose_stamped(target_link, [pre_insert_offset, 0.001, 0.001, -tau/4, -radians(50), -tau/4])
+      trajectory = [[post_pick_pose, 0.05, 0.8], [above_pose, 0.05, 0.5], [behind_pose, 0.01, 0.5], [pre_insertion_pose, 0.0, 0.2]]
+    else:
+      behind_pose    = conversions.to_pose_stamped(target_link, [-0.09, 0.002, 0.0, -tau/4, -radians(50), -tau/4])
+      pre_insertion_pose = conversions.to_pose_stamped(target_link, [pre_insert_offset, 0.001, 0.001, -tau/4, -radians(50), -tau/4])
+      trajectory = [[behind_pose, 0.0, 0.5], [pre_insertion_pose, 0.0, 0.2]]
     rospy.loginfo("Going to position shaft to pre-insertion (b_bot)")
     if not self.b_bot.move_lin_trajectory(trajectory, speed=0.5, acceleration=0.25):
       rospy.logerr("Fail to position shaft to pre-insertion")
@@ -2368,21 +2370,22 @@ class O2ACCommon(O2ACBase):
       return False
     return True
 
-  def insert_shaft(self, target_link, attempts=1, target=0.06):
+  def insert_shaft(self, target_link, attempts=1, target=0.06, from_behind=True):
     """
     Insert shaft with force control using b_bot. The shaft has to be in front of the hole already.
     """
-
-    self.b_bot.linear_push(3, "+X", max_translation=0.08, timeout=30.0)
+    direction = "+X" if from_behind else "-X"
+    self.b_bot.linear_push(3, direction, max_translation=0.08, timeout=30.0)
     after_push_pose = self.b_bot.get_current_pose_stamped()
 
     current_pose = self.b_bot.robot_group.get_current_pose()
     target_pose_target_frame = self.listener.transformPose(target_link, current_pose)
-    target_pose_target_frame.pose.position.x = 0.04 # Magic number
+    target_pose_target_frame.pose.position.x = 0.04 if from_behind else -0.01 # Magic number
 
     selection_matrix = [0., 0.2, 0.2, 0.95, 1, 1]
-    self.b_bot.move_lin_rel(relative_translation = [-0.003,0,0], acceleration = 0.015, speed=.03) # Release shaft for next push
-    result = self.b_bot.do_insertion(target_pose_target_frame, insertion_direction="+X", force=5.0, timeout=15.0, 
+    offset = -0.003 if from_behind else 0.003
+    self.b_bot.move_lin_rel(relative_translation = [offset,0,0], acceleration = 0.1, speed=.03) # Release shaft for next push
+    result = self.b_bot.do_insertion(target_pose_target_frame, insertion_direction=direction, force=5.0, timeout=15.0, 
                                                         wiggle_direction="X", wiggle_angle=np.deg2rad(10.0), wiggle_revolutions=1.0,
                                                         radius=0.002, relaxed_target_by=0.0, selection_matrix=selection_matrix)
     success = result in (TERMINATION_CRITERIA, DONE)
@@ -2390,8 +2393,10 @@ class O2ACCommon(O2ACBase):
     current_pose = self.b_bot.robot_group.get_current_pose()
     target_pose_target_frame = self.listener.transformPose(target_link, current_pose)
      
-    rotation = np.deg2rad([-22.5, -88.5, -157.5]).tolist()  # Arbitrary
-    pre_insertion_pose = conversions.to_pose_stamped(target_link, [0.12, 0.001, 0.02] + rotation)
+    if from_behind:
+      pre_insertion_pose = conversions.to_pose_stamped(target_link, [0.12, 0.001, 0.02, -tau/4, -radians(50), -tau/4])
+    else:
+      pre_insertion_pose = conversions.to_pose_stamped(target_link, [-0.08, 0.001, 0.02, -tau/4, -radians(50), -tau/4])
 
     if not success or not self.simple_insertion_check("b_bot", 0.02, min_opening_width=0.001):
       # TODO(cambel): implement a fallback
@@ -2404,10 +2409,12 @@ class O2ACCommon(O2ACBase):
         self.b_bot.gripper.open(wait=True)
         self.b_bot.move_lin(pre_insertion_pose, speed=0.05)
       elif attempts > 1:
-        self.b_bot.move_lin_rel([-0.01,0,0])
-        self.insert_shaft(target_link, attempts=attempts-1, target=target)
+        offset = -0.01 if from_behind else 0.01
+        self.b_bot.move_lin_rel([offset,0,0])
+        self.insert_shaft(target_link, attempts=attempts-1, target=target, from_behind=from_behind)
       else:
-        self.b_bot.move_lin_rel([-0.05,0,0])
+        offset = -0.05 if from_behind else 0.05
+        self.b_bot.move_lin_rel([offset,0,0])
         self.b_bot.move_lin_rel([0,0,0.1])
         self.drop_in_tray("b_bot")
       return False
@@ -2423,15 +2430,16 @@ class O2ACCommon(O2ACBase):
     target_pose_target_frame.pose.position.x = target # Magic number
 
     for _ in range(6):
-      result = self.b_bot.do_insertion(target_pose_target_frame, insertion_direction="+X", force=15.0, timeout=10.0, 
+      result = self.b_bot.do_insertion(target_pose_target_frame, insertion_direction=direction, force=15.0, timeout=10.0, 
                                                     radius=0.002, relaxed_target_by=0.005, selection_matrix=selection_matrix, 
                                                     check_displacement_time=3)
       success = result == TERMINATION_CRITERIA
-      success &= self.b_bot.move_lin_rel(relative_translation = [-0.003,0,0], acceleration = 0.015, speed=.03) # Release shaft for next push
+      offset = -0.003 if from_behind else 0.003
+      success &= self.b_bot.move_lin_rel(relative_translation = [offset,0,0], acceleration = 0.1, speed=.03) # Release shaft for next push
       if success:
         break
 
-    if not self.b_bot.move_lin(pre_insertion_pose, speed=0.05):
+    if not self.b_bot.move_lin(pre_insertion_pose, speed=0.2):
       rospy.logerr("** Fail to return to pre insertion pose **")
       return False
 
@@ -2441,8 +2449,10 @@ class O2ACCommon(O2ACBase):
         # Fall back if the shaft is stuck
         self.b_bot.gripper.open(wait=True)
 
-        rotation = np.deg2rad([-22.5, -88.5, -157.5]).tolist()  # Arbitrary
-        re_pick_pose = conversions.to_pose_stamped(target_link, [0.06, 0.000, -0.002] + rotation)
+        if from_behind:
+          re_pick_pose = conversions.to_pose_stamped(target_link, [0.06, 0.000, -0.002, -tau/4, -radians(50), -tau/4])
+        else:
+          re_pick_pose = conversions.to_pose_stamped(target_link, [-0.06, 0.000, -0.002, -tau/4, -radians(50), -tau/4])
         if not self.b_bot.move_lin(re_pick_pose, speed=0.05):
           rospy.logerr("** Fail to return to pre insertion pose **")
           return False
@@ -2453,7 +2463,7 @@ class O2ACCommon(O2ACBase):
           self.b_bot.gripper.open(wait=True)
           return False
 
-        return self.insert_shaft(target_link, attempts-1)
+        return self.insert_shaft(target_link, attempts-1, target=target, from_behind=from_behind)
       return False
     return True
 
