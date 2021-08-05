@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
 
   bool gripper_is_open = true;
 
-  const double pushing_length = 0.05;
+  const double pushing_length = 0.05, retreat_height = 0.05;
   // const double distance_ee_and_tip = 0.246;
   // Eigen::Isometry3d
   // ee_link_to_tip_link(Eigen::Translation3d(Eigen::Vector3d(std::vector<double>{-distance_ee_and_tip,
@@ -195,22 +195,23 @@ int main(int argc, char **argv) {
       gripper_is_open = true;
     }
 
-    /*oup.setPoseTarget(action.gripper_pose * ee_link_to_tip_link);
-
-    while(ros::ok()){
-      ROS_INFO("Planning move");
-      success_plan = group.plan(myplan);
-      if (success_plan == moveit_msgs::MoveItErrorCodes::FAILURE)
-        continue;
-      ROS_INFO("Executing move");
-      motion_done = group.execute(myplan);
-      if (motion_done == moveit_msgs::MoveItErrorCodes::FAILURE)
-        continue;
-      break;
-      }*/
-    if (!skill_server.moveToCartPoseLIN(gripper_pose, robot_name)) {
-      ROS_ERROR("Moving failed");
-      break;
+    if (action.type == place_action_type) {
+      geometry_msgs::PoseStamped high_pose = gripper_pose;
+      high_pose.pose.position.z += retreat_height;
+      if (!skill_server.moveToCartPoseLIN(high_pose, robot_name)) {
+        ROS_ERROR("Moving failed");
+        break;
+      }
+      if (!skill_server.moveToCartPoseLIN(gripper_pose, robot_name, true, "",
+                                          0.01, 0.01)) {
+        ROS_ERROR("Moving failed");
+        break;
+      }
+    } else {
+      if (!skill_server.moveToCartPoseLIN(gripper_pose, robot_name)) {
+        ROS_ERROR("Moving failed");
+        break;
+      }
     }
 
     if (action.type == place_action_type) {
@@ -230,6 +231,15 @@ int main(int argc, char **argv) {
         break;
       }
       gripper_is_open = false;
+    }
+
+    if (action.type == grasp_action_type) {
+      geometry_msgs::PoseStamped high_pose = gripper_pose;
+      high_pose.pose.position.z += retreat_height;
+      if (!skill_server.moveToCartPoseLIN(high_pose, robot_name)) {
+        ROS_ERROR("Moving failed");
+        break;
+      }
     }
 
     o2ac_msgs::updateDistributionGoal goal;

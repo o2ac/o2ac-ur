@@ -87,7 +87,8 @@ void Planner::calculate_action_candidates(
           LARGE_EPS) {
         continue;
       }
-      double sigma_z = 3.0 * sqrt(covariance(2, 2));
+      // double sigma_z = 3.0 * sqrt(covariance(2, 2));
+      double sigma_z = 0.0;
       action.gripper_pose =
           Eigen::Translation3d((support_surface + sigma_z -
                                 (rotated_gripper_pose * current_mean *
