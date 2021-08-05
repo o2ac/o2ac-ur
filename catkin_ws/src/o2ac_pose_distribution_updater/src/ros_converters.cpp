@@ -80,18 +80,15 @@ void CollisionObject_to_eigen_vectors(
     const moveit_msgs::CollisionObject &object,
     std::vector<Eigen::Vector3d> &vertices,
     std::vector<boost::array<int, 3>> &triangles) {
-  Eigen::Isometry3d object_transform;
-  tf::poseMsgToEigen(object.pose, object_transform);
   for (int mesh_id = 0; mesh_id < object.meshes.size(); mesh_id++) {
     int current_size = vertices.size();
     auto &mesh = object.meshes[mesh_id];
     Eigen::Isometry3d mesh_transform;
     tf::poseMsgToEigen(object.mesh_poses[mesh_id], mesh_transform);
-    Eigen::Isometry3d transform = object_transform * mesh_transform;
     for (auto &vertex : mesh.vertices) {
       Eigen::Vector3d eigen_vertex;
       tf::pointMsgToEigen(vertex, eigen_vertex);
-      vertices.push_back(transform * eigen_vertex);
+      vertices.push_back(mesh_transform * eigen_vertex);
     }
     for (auto &triangle : mesh.triangles) {
       boost::array<int, 3> vertex_indices;

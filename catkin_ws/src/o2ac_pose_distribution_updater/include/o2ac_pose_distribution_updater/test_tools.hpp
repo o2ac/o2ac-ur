@@ -12,7 +12,8 @@ void send_pose_belief(
     ros::ServiceClient &visualizer_client,
     const moveit_msgs::CollisionObject &object,
     const unsigned char &distribution_type, const double &lifetime,
-    const geometry_msgs::PoseWithCovarianceStamped &distribution);
+    const geometry_msgs::PoseWithCovarianceStamped &distribution,
+    const bool frame_locked = true);
 
 void load_CollisionObject_from_file(
     std::shared_ptr<moveit_msgs::CollisionObject> &object,

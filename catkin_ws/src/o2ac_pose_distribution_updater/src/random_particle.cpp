@@ -32,10 +32,20 @@ Eigen::Vector3d get_UND_Vector3d() {
 }
 
 std::vector<int> get_random_array(int length, int range) {
-  std::uniform_int_distribution<> random_int_generator(0, range);
-  std::vector<int> random_array(length);
-  for (int i = 0; i < length; i++) {
-    random_array[i] = random_int_generator(engine);
+  std::vector<int> return_array;
+  if (length >= range) {
+    return_array.resize(range);
+    std::iota(return_array.begin(), return_array.end(), 0);
+  } else {
+    return_array.resize(length);
+    std::uniform_int_distribution<> random_int_generator(0, range - length);
+    for (int i = 0; i < length; i++) {
+      return_array[i] = random_int_generator(engine);
+    }
+    std::sort(return_array.begin(), return_array.end());
+    for (int i = 1; i < length; i++) {
+      return_array[i] += i;
+    }
   }
-  return random_array;
+  return return_array;
 }

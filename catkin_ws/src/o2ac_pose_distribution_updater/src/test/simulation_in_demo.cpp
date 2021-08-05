@@ -20,10 +20,10 @@ int main(int argc, char **argv) {
   ros::AsyncSpinner spinner(1);
   spinner.start();
 
-  if (ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME,
+  /*if (ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME,
                                      ros::console::levels::Debug)) {
     ros::console::notifyLoggerLevelsChanged();
-  }
+    }*/
 
   // open file
   FILE *in = fopen("/root/o2ac-ur/catkin_ws/src/o2ac_pose_distribution_updater/"
@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
   ros::ServiceClient visualizer_client =
       nd.serviceClient<o2ac_msgs::visualizePoseBelief>("visualize_pose_belief");
 
-  ROS_INFO("Reading initial values and actions from stdin");
+  ROS_INFO("Reading initial values and actions from config file");
   Eigen::Isometry3d initial_mean;
   CovarianceMatrix initial_covariance;
   scan_pose(initial_mean, in);
@@ -64,6 +64,16 @@ int main(int argc, char **argv) {
   }
   double support_surface;
   fscanf(in, "%lf", &support_surface);
+
+  /*tf::poseEigenToMsg(initial_mean, object->pose);
+  object->header.frame_id = "world";
+  object->header.stamp = ros::Time::now();
+  object->id = "gripped_object";
+  object->operation = object->ADD;
+
+  moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
+
+  planning_scene_interface.applyCollisionObject(*object);*/
 
   PoseEstimator estimator;
   estimator.load_config_file(
@@ -93,6 +103,7 @@ int main(int argc, char **argv) {
   current_pose.pose.covariance = matrix_6x6_to_array_36(covariance);
   current_pose.header.frame_id = "world";
   current_pose.header.stamp = ros::Time::now();
+  object->id = "gripped_object";
   send_pose_belief(visualizer_client, *object, 1, lifetime, current_pose);
 
   // std::string movegroup_name;//, ee_link;
@@ -111,7 +122,7 @@ int main(int argc, char **argv) {
 
   // Create MoveGroup
   // moveit::planning_interface::MoveGroupInterface group(movegroup_name);
-  // moveit::planning_interface::MoveGroupInterface::Plan myplan;
+  moveit::planning_interface::MoveGroupInterface::Plan myplan;
   moveit::planning_interface::MoveGroupInterface gripper_group(robot_name +
                                                                "_robotiq_85");
 
@@ -167,13 +178,17 @@ int main(int argc, char **argv) {
         break;
       }
       if (gripper_is_open) {
-        if (!skill_server.closeGripper(robot_name)) {
+        // if (!skill_server.closeGripper(robot_name)) {
+        gripper_group.setNamedTarget("close");
+        if (gripper_group.move() == moveit_msgs::MoveItErrorCodes::FAILURE) {
           ROS_ERROR("Closing before push failed");
           break;
         }
       }
     } else if (action.type == grasp_action_type && !gripper_is_open) {
-      if (!skill_server.openGripper(robot_name)) {
+      // if (!skill_server.openGripper(robot_name)) {
+      gripper_group.setNamedTarget("open");
+      if (gripper_group.move() == moveit_msgs::MoveItErrorCodes::FAILURE) {
         ROS_ERROR("Opening before grasp failed");
         break;
       }
@@ -195,11 +210,13 @@ int main(int argc, char **argv) {
       }*/
     if (!skill_server.moveToCartPoseLIN(gripper_pose, robot_name)) {
       ROS_ERROR("Moving failed");
-      // break;
+      break;
     }
 
     if (action.type == place_action_type) {
-      if (!skill_server.openGripper(robot_name)) {
+      // if (!skill_server.openGripper(robot_name)) {
+      gripper_group.setNamedTarget("open");
+      if (gripper_group.move() == moveit_msgs::MoveItErrorCodes::FAILURE) {
         ROS_ERROR("Opening to place failed");
         break;
       }
@@ -207,7 +224,8 @@ int main(int argc, char **argv) {
     }
     if (action.type == grasp_action_type) {
       gripper_group.setNamedTarget("close");
-      if (!skill_server.closeGripper(robot_name)) {
+      // if (!skill_server.closeGripper(robot_name)) {
+      if (gripper_group.move() == moveit_msgs::MoveItErrorCodes::FAILURE) {
         ROS_ERROR("Closing to grasp failed");
         break;
       }
@@ -271,8 +289,10 @@ int main(int argc, char **argv) {
       }
     }
 
+    bool gripping =
+        (action.type != place_action_type && action.type != push_action_type);
     send_pose_belief(visualizer_client, *object, 1, lifetime,
-                     result->distribution);
+                     result->distribution, gripping);
 
     tf::poseMsgToEigen(result->distribution.pose.pose, mean);
     covariance = array_36_to_matrix_6x6(result->distribution.pose.covariance);

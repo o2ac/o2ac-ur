@@ -72,8 +72,17 @@ void Planner::calculate_action_candidates(
       Eigen::Vector3d normal = current_gripper_pose.rotation() *
                                current_mean.rotation() * plane.normal();
 
-      Eigen::Isometry3d rotated_gripper_pose =
-          rotation_to_minus_Z(normal) * current_gripper_pose;
+      Eigen::Quaterniond gripper_rotation(rotation_to_minus_Z(normal) *
+                                          current_gripper_pose.rotation());
+      Eigen::Vector3d gripper_X = gripper_rotation * Eigen::Vector3d::UnitX();
+      if (gripper_X(0) != 0.0 || gripper_X(1) != 0.0) {
+        double angle = atan2(gripper_X(1), -gripper_X(0));
+        gripper_rotation = Eigen::AngleAxisd(angle, Eigen::Vector3d::UnitZ()) *
+                           gripper_rotation;
+      }
+      Eigen::Isometry3d rotated_gripper_pose(gripper_rotation);
+      rotated_gripper_pose.translation() = current_gripper_pose.translation();
+
       if (abs((rotated_gripper_pose.rotation() * Eigen::Vector3d::UnitY())(2)) >
           LARGE_EPS) {
         continue;
@@ -96,7 +105,7 @@ void Planner::calculate_action_candidates(
     int number_of_touch_actions = 5;
     auto random_array = std::move(
         get_random_array(number_of_touch_actions, convex_hull_vertices.size()));
-    for (int t = 0; t < number_of_touch_actions; t++) {
+    for (int t = 0; t < random_array.size(); t++) {
       auto &vertex = convex_hull_vertices[random_array[t]];
       UpdateAction action;
       action.type = touch_action_type;
@@ -162,10 +171,10 @@ void Planner::calculate_action_candidates(
 
     Eigen::Vector3d current_center = current_mean * center_of_gravity;
     Eigen::Vector2d projected_center = current_center.head<2>();
-    int number_of_push_actions = 5;
+    int number_of_push_actions = 10;
     auto random_array =
         std::move(get_random_array(number_of_push_actions, hull.size()));
-    for (int t = 0; t < number_of_push_actions; t++) {
+    for (int t = 0; t < random_array.size(); t++) {
       int i = random_array[t];
       Eigen::Vector2d edge = (hull[i + 1] - hull[i]).normalized();
       if (edge.dot(projected_center - hull[i]) < -EPS ||
@@ -273,10 +282,6 @@ std::vector<UpdateAction> Planner::calculate_plan(
       break;
     }
     optimal_score = score;
-    std::cerr << nodes[id].covariance << std::endl;
-    std::cerr << transform_covariance(nodes[id].mean.inverse(),
-                                      nodes[id].covariance)
-              << std::endl;
 
     std::vector<UpdateAction> candidates;
     calculate_action_candidates(nodes[id].gripper_pose, nodes[id].mean,

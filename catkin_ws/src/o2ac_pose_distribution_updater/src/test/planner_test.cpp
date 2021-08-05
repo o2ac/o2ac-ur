@@ -4,6 +4,10 @@
 #include <random>
 #include <yaml-cpp/yaml.h>
 
+#include <eigen_conversions/eigen_msg.h>
+#include <moveit/move_group_interface/move_group_interface.h>
+#include <ros/ros.h>
+
 void load_grasp_points(const std::string &yaml_file_path,
                        std::vector<Eigen::Isometry3d> &grasp_points,
                        std::map<std::string, int> &name_to_id) {
@@ -30,6 +34,10 @@ void load_grasp_points(const std::string &yaml_file_path,
 }
 
 int main(int argc, char **argv) {
+
+  ros::init(argc, argv, "test_client");
+  ros::NodeHandle nd;
+
   FILE *config_file =
       fopen("/root/o2ac-ur/catkin_ws/src/o2ac_pose_distribution_updater/test/"
             "planning_test_config.txt",
@@ -76,13 +84,32 @@ int main(int argc, char **argv) {
                    .angle();
   };
 
-  const double EPS = 1e-6;
+  moveit::planning_interface::MoveGroupInterface robot_group("a_bot");
+
   ValidityChecker validity_checker =
-      [EPS](const action_type &type,
-            const Eigen::Isometry3d &current_gripper_pose,
-            const Eigen::Isometry3d &target_gripper_pose) -> bool {
-    return (target_gripper_pose.rotation() * Eigen::Vector3d::UnitX())(2) <=
-           EPS;
+      [&robot_group](const action_type &type,
+                     const Eigen::Isometry3d &current_gripper_pose,
+                     const Eigen::Isometry3d &target_gripper_pose) -> bool {
+    if (type == touch_action_type || type == look_action_type) {
+      return false;
+    }
+    robot_group.clearPoseTargets();
+    robot_group.setPoseReferenceFrame("world");
+    robot_group.setStartStateToCurrentState();
+    robot_group.setEndEffectorLink("a_bot_gripper_tip_link");
+    robot_group.setMaxVelocityScalingFactor(0.1);
+    robot_group.setMaxAccelerationScalingFactor(0.5);
+    robot_group.setPlanningTime(15.0);
+
+    std::vector<geometry_msgs::Pose> waypoints(1);
+    tf::poseEigenToMsg(target_gripper_pose, waypoints[0]);
+    moveit_msgs::RobotTrajectory trajectory;
+    const double jump_threshold = 0.0;
+    const double eef_step = 0.01;
+    double cartesian_success = robot_group.computeCartesianPath(
+        waypoints, eef_step, jump_threshold, trajectory);
+
+    return cartesian_success > 0.95;
   };
 
   planner.set_cost_function(std::make_shared<CostFunction>(cost_function));

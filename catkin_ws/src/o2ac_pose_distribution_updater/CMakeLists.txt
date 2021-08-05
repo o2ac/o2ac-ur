@@ -88,7 +88,7 @@ if(CATKIN_ENABLE_TESTING)
 
   add_executable(planner_test src/test/planner_test.cpp)
   add_dependencies(planner_test ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-  target_link_libraries(planner_test ${LIBMATHEVAL_LIBRARIES} planner read_stl)
+  target_link_libraries(planner_test ${LIBMATHEVAL_LIBRARIES} planner ${catkin_LIBRARIES} read_stl)
 
   add_executable(execute_plan src/test/execute_plan.cpp)
   add_dependencies(execute_plan ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
