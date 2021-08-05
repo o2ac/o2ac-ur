@@ -34,6 +34,7 @@
 #
 # Author: Felix von Drigalski
 
+from math import radians
 import os
 import sys
 import copy
@@ -371,7 +372,7 @@ class O2ACBase(object):
     rospy.loginfo("Suck screw command")
 
     if robot_name == "a_bot":
-      rotation = [tau/6, 0, 0]
+      rotation = [radians(80), 0, 0] if screw_tool_id == "screw_tool_m4" else [-tau/6, 0, 0]
     elif robot_name == "b_bot":
       rotation = [-tau/6, 0, 0]
 
@@ -990,14 +991,13 @@ class O2ACBase(object):
 
     # Set up poses
     ps_approach = geometry_msgs.msg.PoseStamped()
-    ps_move_away = geometry_msgs.msg.PoseStamped()
     ps_approach.header.frame_id = tool_name + "_pickup_link"
 
     # Define approach pose
     # z = 0 is at the holder surface, and z-axis of pickup_link points downwards!
     rospy.loginfo("tool_name: " + tool_name)
     if tool_name == "screw_tool_m3" or tool_name == "screw_tool_m4" or tool_name == "padless_tool_m4":
-      ps_approach.pose.position.x = -.05
+      ps_approach.pose.position.x = -.04
       ps_approach.pose.position.z = -.008
     elif tool_name == "nut_tool_m6":
       ps_approach.pose.position.z = -.025
