@@ -305,8 +305,10 @@ class O2ACTaskboard(O2ACCommon):
     if not skip_tray_placing:
       self.take_tray_from_agv()
 
-    self.execute_step("belt")
+    self.subtask_completed["belt"] = self.do_task("belt")
+    self.subtask_completed["idler pulley"] = self.do_task("idler pulley", simultaneous=True)
 
+    self.publish_status_text("Target: pick bearing")
     self.pick_bearing("a_bot")
     self.a_success = False
     self.b_success = False
@@ -339,21 +341,16 @@ class O2ACTaskboard(O2ACCommon):
     if self.a_success and self.b_success:
       print(">>>> fastening bearing")
       def a_bot_task3(): # fasten bearing
-        self.a_success = self.fasten_bearing(task="taskboard", robot_name="a_bot")
-        self.subtask_completed["screw_bearing"] = True
-        self.a_success &= self.subtask_completed["screw_bearing"]
+        self.subtask_completed["screw_bearing"] = self.fasten_bearing(task="taskboard", robot_name="a_bot", simultaneous=True)
       def b_bot_task3(): # pick/orient/insert motor pulley
-        self.b_success = self.subtask_completed["shaft"] = self.do_task("shaft")
-        self.b_success &= self.b_bot.go_to_named_pose("home")
+        self.subtask_completed["shaft"] = self.do_task("shaft")
+        self.b_bot.go_to_named_pose("home")
       self.do_tasks_simultaneous(a_bot_task3, b_bot_task3, timeout=300.0)
-    print("task 3:", self.a_success, self.b_success)
+    print("task 3:", self.subtask_completed["screw_bearing"], self.subtask_completed["shaft"])
 
     self.despawn_object("bearing")
     self.ab_bot.go_to_named_pose("home")
 
-    if self.a_success and self.b_success:
-      self.subtask_completed["idler pulley"] = self.do_task("idler pulley", simultaneous=True)
-      
     order = ["belt", "motor pulley", "shaft", "idler pulley", "bearing"]
     task_complete = False
     # Then loop through the remaining items

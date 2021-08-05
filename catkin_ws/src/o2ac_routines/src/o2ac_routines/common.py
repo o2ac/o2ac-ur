@@ -1788,7 +1788,7 @@ class O2ACCommon(O2ACBase):
     success &= robot.move_lin_rel(relative_translation = [0.025,0,0], acceleration = 0.015, speed=.03)
     return success
 
-  def fasten_bearing(self, task="", only_retighten=False, robot_name="b_bot"):
+  def fasten_bearing(self, task="", only_retighten=False, robot_name="b_bot", simultaneous=False):
     if not task in ["taskboard", "assembly"]:
       rospy.logerr("Invalid task specification: " + task)
       return False
@@ -1871,6 +1871,8 @@ class O2ACCommon(O2ACBase):
         rospy.loginfo("Screw " + str(n) + " detected as " + screw_status[n])
 
       all_screws_done = all(value == "done" for value in screw_status.values())
+      if not all_screws_done and simultaneous:
+        rospy.sleep(2) # extra time for b_bot to get out of the way
       tries += 1
 
     robot.go_to_named_pose("horizontal_screw_ready", speed=speed)
