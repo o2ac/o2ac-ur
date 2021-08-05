@@ -223,18 +223,20 @@ def b_bot_m4(controller):
 def main():
     rospy.init_node("testscript")
     global controller
+    controller = O2ACCommon()
+    # print("a_bot.gripper.opening_width", controller.a_bot.gripper.opening_width)
     
     # controller.do_change_tool_action("b_bot", equip=False, screw_size = 4)
     controller = O2ACAssembly()
     controller.reset_scene_and_robots()
-    controller.despawn_object("panel_motor")
+    # controller.despawn_object("panel_motor")
     # controller.a_bot.gripper.open()
-    # controller.a_bot.go_to_named_pose("home")
-    # controller.pick_panel("panel_motor")
-    # controller.center_panel("panel_motor")
+    controller.ab_bot.go_to_named_pose("home")
+    # controller.pick_panel("panel_bearing")
+    # controller.center_panel("panel_bearing")
     # controller.confirm_to_proceed("1??")
     # controller.ab_bot.go_to_named_pose("home")
-    # controller.panels_assembly()
+    controller.subtask_zero(use_b_bot_camera=True)
     # controller.pick_panel("panel_motor")
     # pose = controller.center_panel("panel_bearing")
     # controller.place_panel("a_bot", "panel_bearing", grasp_pose=pose)
@@ -242,7 +244,7 @@ def main():
     # controller.b_bot.go_to_named_pose("feeder_pick_ready")
     # controller.place_panel("a_bot", "panel_motor", fake_position=True)
     # controller.confirm_to_proceed("2??")
-    controller.fasten_panel("panel_motor")
+    # controller.fasten_panel("panel_motor")
     
     # controller.ab_bot.go_to_named_pose("home")
     # controller.reset_scene_and_robots()
@@ -251,6 +253,8 @@ def main():
     # controller.pick_base_panel(skip_initial_perception=True)
 
     # controller = O2ACCommon()
+    # handover_pose = conversions.to_pose_stamped("tray_center", [0.0, 0.1, 0.2, -tau/4, tau/8, -tau/4])
+    # controller.b_bot.go_to_pose_goal(handover_pose)
     # controller.a_bot.gripper.open()
     # controller.a_bot.gripper.close()
     # controller.confirm_to_proceed("")

@@ -8,6 +8,14 @@ subframes:
   - 0.0
   name: back_hole
 - pose_xyzrpy:
+  - 0.03
+  - 0.03
+  - 0.0
+  - -pi/2
+  - -pi/2
+  - 0.0
+  name: center
+- pose_xyzrpy:
   - 0.006
   - 0.0
   - 0.015

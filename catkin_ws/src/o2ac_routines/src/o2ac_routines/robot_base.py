@@ -230,7 +230,7 @@ class RobotBase():
 
     def go_to_pose_goal(self, pose_goal_stamped, speed=0.5, acceleration=0.25,
                         end_effector_link="", move_lin=True, wait=True, plan_only=False, initial_joints=None,
-                        allow_joint_configuration_flip=False, move_ptp=False, timeout=5):
+                        allow_joint_configuration_flip=False, move_ptp=False, timeout=5, retry_non_linear=False):
         planner = "LINEAR" if move_lin else ("PTP" if move_ptp else "OMPL")
         if not self.set_up_move_group(speed, acceleration, planner):
             return False
@@ -285,6 +285,9 @@ class RobotBase():
             self.marker_counter += 1
 
         group.clear_pose_targets()
+        if not success and move_lin and retry_non_linear:
+            self.go_to_pose_goal(pose_goal_stamped, speed/2, acceleration, end_effector_link, move_lin=False, plan_only=plan_only, initial_joints=initial_joints,
+                                allow_joint_configuration_flip=allow_joint_configuration_flip, move_ptp=False, timeout=timeout, retry_non_linear=False)
         return success
 
     def move_lin_trajectory(self, trajectory, speed=1.0, acceleration=0.5, end_effector_link="",

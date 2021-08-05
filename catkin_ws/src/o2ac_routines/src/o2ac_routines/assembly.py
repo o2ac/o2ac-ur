@@ -135,10 +135,8 @@ class O2ACAssembly(O2ACCommon):
     
     self.unlock_base_plate()
     self.publish_status_text("Target: base plate")
-
-    self.pick_base_panel(skip_initial_perception=skip_initial_perception, use_b_bot_camera=use_b_bot_camera)
-
-    self.confirm_to_proceed("Did the base plate move up?")
+    grasp_name = "big_holes_grasp" if self.assembly_database.db_name == "wrs_assembly_2021" else "default_grasp"
+    self.pick_base_panel(grasp_name=grasp_name, skip_initial_perception=skip_initial_perception, use_b_bot_camera=use_b_bot_camera)
 
     self.allow_collisions_with_robot_hand("tray", "a_bot", allow=False)
     self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=False)
@@ -154,6 +152,9 @@ class O2ACAssembly(O2ACCommon):
     base_drop = conversions.to_pose_stamped("assembled_part_01", [0.111, 0.007, 0.07, tau/4., 0, -tau/4.])
     
     # There is a risk of overextending the wrist joint if we don't use the joint pose
+    self.confirm_to_proceed("Finetune pose above drop")
+    print("joint pose above drop", self.a_bot.robot_group.get_current_joint_values())
+    self.confirm_to_proceed("finetune inserted pose")
     above_base_drop = [1.57783019, -1.430060581, 1.67834741, -1.82884373, -1.56911117, 0.00590014457]
     base_inserted = conversions.to_pose_stamped("assembled_part_01", [0.108, -0.006, 0.067, 1.568, 0.103, -1.582])  # Taught
     seq = []
@@ -724,7 +725,7 @@ class O2ACAssembly(O2ACCommon):
     def a_bot_task():
       self.panel_bearing_pose = self.center_panel("panel_bearing", store=True)
     def b_bot_task():
-      rospy.sleep(3.0)
+      rospy.sleep(2.0)
       self.publish_status_text("Target: panel motor")
       self.b_bot_success = self.pick_panel("panel_motor", simultaneous=False)
     
@@ -741,7 +742,7 @@ class O2ACAssembly(O2ACCommon):
     def a_bot_task():
       self.panel_motor_pose = self.center_panel("panel_motor", store=True)
     def b_bot_task():
-      rospy.sleep(3.0)
+      rospy.sleep(2.0)
       self.activate_led("b_bot")
       rospy.loginfo("Looking for base plate with b_bot")
       self.base_pose = self.get_large_item_position_from_top("base", "b_bot")
@@ -779,6 +780,8 @@ class O2ACAssembly(O2ACCommon):
       b_bot_task()
     if not self.b_bot_success or not self.a_bot_success:
       rospy.logerr("Fail to do panels_assembly3: simultaneous=%s" % simultaneous)
+      self.b_bot_success = self.do_change_tool_action("b_bot", equip=False, screw_size = 4)
+      self.ab_bot.go_to_named_pose("home")
       return False
 
     if not self.place_panel("a_bot", "panel_bearing", pick_again=True, grasp_pose=self.panel_bearing_pose):
@@ -786,9 +789,25 @@ class O2ACAssembly(O2ACCommon):
     self.publish_status_text("Target: fasten panel bearing")
     if not self.fasten_panel("panel_bearing"):
       return False
-    if not self.place_panel("a_bot", "panel_motor", pick_again=True, grasp_pose=self.panel_motor_pose):
-      return False
+
+    self.a_bot_success = False
+    self.b_bot_success = False
+    def a_bot_task():
+      self.a_bot_success = self.place_panel("a_bot", "panel_motor", pick_again=True, grasp_pose=self.panel_motor_pose)
+    def b_bot_task():
+      self.b_bot_success = self.pick_screw_from_feeder("b_bot", screw_size = 4, realign_tool_upon_failure=False)
+    
     self.publish_status_text("Target: fasten panel motor")
+    if simultaneous:
+      self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=60)
+    else:
+      a_bot_task()
+      b_bot_task()
+
+    if not self.b_bot_success or not self.a_bot_success:
+      rospy.logerr("Fail to do panels_assembly4: simultaneous=%s" % simultaneous)
+      return False
+  
     if not self.fasten_panel("panel_motor"):
       return False
 

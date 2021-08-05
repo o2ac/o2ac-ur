@@ -40,6 +40,14 @@ subframes:
   - 0.0
   name: front_hole
 - pose_xyzrpy:
+  - 0.058
+  - 0.045
+  - 0.0
+  - -pi/2
+  - -pi/2
+  - 0.0
+  name: center
+- pose_xyzrpy:
   - 0.095
   - 0.05
   - 0.0

@@ -724,7 +724,7 @@ class O2ACBase(object):
         self.planning_scene_interface.allow_collisions("tray_center", co.id)  # tray_center is the tray surface
       return object_pose
     else:
-      rospy.loginfo("Did not detect " + item_name)
+      rospy.logerr("Did not detect " + item_name)
       return False
 
   @save_task_plan

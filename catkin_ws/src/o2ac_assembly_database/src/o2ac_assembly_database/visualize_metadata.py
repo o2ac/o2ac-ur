@@ -417,7 +417,6 @@ if __name__ == '__main__':
     rospy.init_node('visualize_metadata', anonymous=False)
     moveit_commander.roscpp_initialize(sys.argv)
     tf_broadcaster = tf2_ros.StaticTransformBroadcaster()
-
     db_name = rospy.get_param('visualize_metadata/db_name')
     object_name = rospy.get_param('visualize_metadata/object_name')
     gripper_at_grasp = rospy.get_param('visualize_metadata/gripper_at_grasp')

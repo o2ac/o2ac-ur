@@ -310,7 +310,7 @@ class O2ACCommon(O2ACBase):
 
   ####### Vision
   @check_for_real_robot
-  def get_large_item_position_from_top(self, item_name, robot_name="b_bot", skip_moving=False, retry=True):
+  def get_large_item_position_from_top(self, item_name, robot_name="b_bot", skip_moving=False):
     """
     This function look at the tray from the top only, and publishes the result to the planning scene.
     
@@ -320,10 +320,16 @@ class O2ACCommon(O2ACBase):
     # Look from top first
     self.vision.activate_camera(robot_name+"_outside_camera")
     if not skip_moving:
-      if not self.active_robots[robot_name].go_to_pose_goal(self.tray_view_high, end_effector_link=robot_name+"_outside_camera_color_frame"):
-        rospy.logerr("Failed to move to camera view pose in get_large_item_position_from_top.")
-        return False
-    object_pose = self.detect_object_in_camera_view(item_name)
+      view_poses = [self.tray_view_high] + self.close_tray_views
+      for pose in view_poses:
+        if not self.active_robots[robot_name].go_to_pose_goal(pose, end_effector_link=robot_name+"_outside_camera_color_frame", move_lin=True, retry_non_linear=True):
+          rospy.logerr("Failed to move to camera view pose in get_large_item_position_from_top.")
+          return False
+        object_pose = self.detect_object_in_camera_view(item_name)
+        if object_pose:
+          break
+    else:
+      object_pose = self.detect_object_in_camera_view(item_name)
 
     if object_pose:
       rospy.logdebug("Found " + item_name + ". Publishing to planning scene.")
@@ -349,15 +355,9 @@ class O2ACCommon(O2ACBase):
 
       rospy.sleep(0.2)
       self.constrain_into_tray(item_name)
-    else:
-      if retry:
-        rospy.logerr("Failed to find " + item_name)
-        self.activate_led(robot_name, False)
-        return self.get_large_item_position_from_top(item_name, robot_name, skip_moving=True, retry=False)
-      else:
-        return False
-      
-    return object_pose
+      return object_pose
+    
+    return False
 
   def update_collision_item_pose(self, item_name, pose_stamped):
       obj = self.assembly_database.get_collision_object(item_name)
@@ -541,6 +541,36 @@ class O2ACCommon(O2ACBase):
     obj.pose = object_pose_in_tray.pose
     self.planning_scene_interface.add_object(obj)
 
+  def constrain_grasp_into_tray(self, robot_name, grasp_pose, grasp_width=0.06):
+    """
+      Check that the grasp pose + the gripper opening + the gripper finger width is within the tray.
+      If the distance between the original grasp pose and the tray is less than the gripper finger with, return original pose, success=False
+      Otherwise return the grasp pose updated where the gripper finger is barely inside the tray.
+    """
+    gripper_finger_width = 0.02 if robot_name == "b_bot" else 0.015
+    dx, dy = self.distances_from_tray_border(grasp_pose)
+    if dx < gripper_finger_width or dy < gripper_finger_width:
+      rospy.logwarn("Grasp pose too close to border, cannot correct.")
+      return grasp_pose, False
+
+    print("grasp pose \n", grasp_pose.pose.position)
+    grasp_pose_with_gripper_offset = self.listener.transformPose("tray_center", grasp_pose)
+    corrected_grasp_pose = self.listener.transformPose("tray_center", grasp_pose)
+    grasp_pose_with_gripper_offset.pose.position.x += np.sign(grasp_pose.pose.position.x) * (grasp_width/2 + gripper_finger_width)
+    grasp_pose_with_gripper_offset.pose.position.y += np.sign(grasp_pose.pose.position.y) * (grasp_width/2 + gripper_finger_width)
+    print("grasp pose with gripper opening \n", grasp_pose_with_gripper_offset.pose.position)
+    dx, dy = self.distances_from_tray_border(grasp_pose_with_gripper_offset)
+    
+    print("distance with gripper correction \n", dx, dy)
+    if dx < 0:
+      corrected_grasp_pose.pose.position.x += np.sign(grasp_pose.pose.position.x) * dx
+    if dy < 0:
+      corrected_grasp_pose.pose.position.y += np.sign(grasp_pose.pose.position.y) * dy
+    print("grasp pose corrected in tray_center \n", corrected_grasp_pose.pose.position)
+    result_pose = self.listener.transformPose(grasp_pose.header.frame_id, corrected_grasp_pose)
+    print("grasp pose corrected in original frame \n", result_pose.pose.position)
+    return result_pose, True
+
   def get_transformed_grasp_pose(self, object_name, grasp_name, target_frame="tray_center"):
     """ Get an object's grasp pose in the target_frame"""
     grasp_pose = self.assembly_database.get_grasp_pose(object_name, grasp_name)
@@ -587,7 +617,7 @@ class O2ACCommon(O2ACBase):
     approach_pose.pose.position = conversions.to_point(op)
 
     rospy.logdebug("Going to height " + str(op[get_direction_index(axis)]))
-    if not robot.go_to_pose_goal(approach_pose, speed=speed_fast, acceleration=acc_fast, move_lin=approach_with_move_lin, wait=True):
+    if not robot.go_to_pose_goal(approach_pose, speed=speed_fast, acceleration=acc_fast, move_lin=approach_with_move_lin, wait=True, retry_non_linear=True):
       rospy.logerr("Fail to go to approach_pose")
       return False
 
@@ -607,7 +637,12 @@ class O2ACCommon(O2ACBase):
     else: 
       robot.gripper.close(force=gripper_force, velocity=gripper_velocity)
 
-    if item_id_to_attach:
+    success = True
+    if minimum_grasp_width > robot.gripper.opening_width and self.use_real_robot:
+      rospy.logerr("Gripper opening width after pick less than minimum (" + str(minimum_grasp_width) + "): " + str(robot.gripper.opening_width) + ". Return False.")
+      success = False
+
+    if item_id_to_attach and success:
       self.allow_collisions_with_robot_hand(item_id_to_attach, robot_name)
       robot.gripper.attach_object(object_to_attach=item_id_to_attach)
 
@@ -628,11 +663,7 @@ class O2ACCommon(O2ACBase):
         return False
       robot.gripper.close() # catch false grasps
     
-    # if not self.simple_gripper_check(robot_name, minimum_grasp_width):
-    if minimum_grasp_width > robot.gripper.opening_width and self.use_real_robot:
-      rospy.logerr("Gripper opening width after pick less than minimum (" + str(minimum_grasp_width) + "): " + str(robot.gripper.opening_width) + ". Return False.")
-      return
-    return True
+    return success
 
   def simple_place(self, robot_name, object_pose, place_height=0.05, speed_fast=0.1, speed_slow=0.02, 
       gripper_command="open", approach_height=0.05, item_id_to_detach = "", lift_up_after_place = True, acc_fast=1.0, acc_slow=.1):
@@ -1171,7 +1202,7 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Fail to approach 2")
       return False
 
-    robot.linear_push(force=5, direction="-Z", max_translation=0.06)
+    robot.linear_push(force=8, direction="-Z", max_translation=0.06)
 
     if not self.move_towards_tray_center(robot_name, distance=distance, one_direction=direction, go_back_halfway=go_back_halfway):
       rospy.logerr("Fail to move towards center")
@@ -3135,7 +3166,8 @@ class O2ACCommon(O2ACBase):
       return False
     return True
 
-  def pick_panel(self, panel_name="panel_bearing", simultaneous=True, retry=True, rotate_on_failure=False):
+  def pick_panel(self, panel_name="panel_bearing", simultaneous=True, rotate_on_failure=True, rotation_retry_counter=0):
+    grasp_width = 0.05
     if self.use_real_robot:
       self.activate_led("b_bot")
       goal = self.get_large_item_position_from_top(panel_name, "b_bot")
@@ -3144,75 +3176,83 @@ class O2ACCommon(O2ACBase):
       goal = conversions.to_pose_stamped("tray_center", [0.02, -0.03, 0.001, 0.0, 0.0, tau/4])
       self.spawn_object(panel_name, goal, goal.header.frame_id)
       rospy.sleep(0.5)
+
+    if not goal:
+      rospy.logerr("Abort pick of %s, plate not detected" % panel_name)
+      return False
     
     grasp_pose = self.get_transformed_grasp_pose(panel_name, "default_grasp")
-    if self.too_close_to_border(grasp_pose, border_dist=0.04, verbose=True):
-      self.pick_panel_fallback("b_bot", panel_name, grasp_pose)
-      return self.pick_panel(panel_name, simultaneous, retry=False, rotate_on_failure=True)
+    grasp_pose, success = self.constrain_grasp_into_tray("b_bot", grasp_pose, grasp_width=grasp_width)
+    
+    if not success and self.too_close_to_border(grasp_pose, border_dist=grasp_width, verbose=True):
+      self.pick_panel_fallback("b_bot", panel_name, grasp_pose, too_close_too_border=True)
+      return self.pick_panel(panel_name, simultaneous, rotate_on_failure=True)
       
     self.allow_collisions_with_robot_hand(panel_name, "b_bot", allow=True)
     self.allow_collisions_with_robot_hand("tray", "b_bot", allow=True)
-    success = self.simple_pick("b_bot", object_pose=grasp_pose, grasp_width=0.04, approach_height=0.05, grasp_height=0.005, 
+    success = self.simple_pick("b_bot", object_pose=grasp_pose, grasp_width=grasp_width, approach_height=0.05, grasp_height=0.005, 
                      axis="z", item_id_to_attach=panel_name, lift_up_after_pick=True, approach_with_move_lin=False,
                      speed_fast=1.0, minimum_grasp_width=0.001)
     self.allow_collisions_with_robot_hand("tray", "b_bot", allow=True)
 
-
     if not success:
-      if retry:
-        self.pick_panel_fallback("b_bot", panel_name, grasp_pose)
-        return self.pick_panel(panel_name, simultaneous, retry=False, rotate_on_failure=True)
-      elif rotate_on_failure:
+      if rotate_on_failure:
         # Fallback: Try to pick all 4 possible orientations
-        for i in range(4):
-          rospy.logwarn("Fallback: Rotating plate (" + str() + " out of 3 times)")
+        while rotation_retry_counter < 3:
+          rospy.logwarn("Fallback: Rotating plate (" + str(rotation_retry_counter) + " out of 3 times)")
           self.rotate_plate_collision_object_in_tray(panel_name)
           rospy.sleep(.5)
-          grasp_pose_tray = self.listener.transformPose("tray_center", grasp_pose)
-          picked = False
-          if self.is_grasp_pose_feasible(grasp_pose_tray, border_dist=0.025):
-            picked = self.simple_pick("b_bot", grasp_pose_tray, axis="z", grasp_width=0.04, minimum_grasp_width=0.001)
-          if picked:
+          grasp_pose = self.get_transformed_grasp_pose(panel_name, "default_grasp")
+          grasp_pose, success = self.constrain_grasp_into_tray("b_bot", grasp_pose, grasp_width=grasp_width)
+          if not success and self.too_close_to_border(grasp_pose, border_dist=grasp_width, verbose=True):
+            self.pick_panel_fallback("b_bot", panel_name, grasp_pose, too_close_too_border=True)
+            return self.pick_panel(panel_name, simultaneous, rotate_on_failure=True, rotation_retry_counter=0) # potential infinite loop...
+          if self.simple_pick("b_bot", object_pose=grasp_pose, grasp_width=grasp_width, approach_height=0.05, grasp_height=0.005, 
+                              axis="z", item_id_to_attach=panel_name, lift_up_after_pick=True, approach_with_move_lin=False,
+                              speed_fast=1.0, minimum_grasp_width=0.001):
             break
+          rotation_retry_counter += 1
       else:
         rospy.logerr("Fail to grasp with b_bot")
         return False
 
-    handover_pose = conversions.to_pose_stamped("tray_center", [0.0, 0.15, 0.3, 0.0, tau/4, 0.0])
+    handover_pose = conversions.to_pose_stamped("tray_center", [0.0, 0.1, 0.2, -tau/4, tau/8, -tau/4])
     handover_grasp = "grasp_7" if panel_name == "panel_bearing" else "grasp_9"
     if not self.simple_handover("b_bot", "a_bot", handover_pose, panel_name, handover_grasp, simultaneous=False):
       rospy.logerr("Fail to handover")
-
+      return False
     return True
 
-  def pick_panel_fallback(self, robot_name, panel, grasp_pose):
+  def pick_panel_fallback(self, robot_name, panel, grasp_pose, too_close_too_border=False, too_close_to_other_object=False, center_with_tool=False):
     if panel == "panel_motor":
-      tool_pull_pose = conversions.to_pose_stamped("move_group/panel_motor", [0.03, 0.038, 0.0, 0, 0, 0])
+      tool_pull_pose = conversions.to_pose_stamped("move_group/panel_motor/center", [0., 0, 0, 0, 0, 0])
     elif panel == "panel_bearing":
-      tool_pull_pose = conversions.to_pose_stamped("move_group/panel_bearing/front_hole", [0.0, 0.0, 0.0, 0, 0, 0])
+      tool_pull_pose = conversions.to_pose_stamped("move_group/panel_bearing/center", [0., 0, 0, 0, 0, 0])
     
-    print("tool_pull_pose", tool_pull_pose.pose.position)
+    # print("tool_pull_pose", tool_pull_pose.pose.position)
     tool_pull_pose = self.listener.transformPose("tray_center", tool_pull_pose)
-    print("tool_pull_pose tfed", tool_pull_pose.pose.position)
+    tool_pull_pose.pose.orientation = conversions.to_quaternion(transformations.quaternion_from_euler(0.0, tau/4, 0))
+    # print("tool_pull_pose tfed", tool_pull_pose.pose.position)
 
     # If close to border, pull towards the middle
-    if self.too_close_to_border(grasp_pose, border_dist=0.03):
-      print("tool_pull_pose after", tool_pull_pose.pose.position)
+    if too_close_too_border:
+      # print("tool_pull_pose after", tool_pull_pose.pose.position)
       dx, dy = self.distances_from_tray_border(grasp_pose)
-      if dx < dy: # Use the close border
+      if dx < 0.03 and dy < 0.03:
+        direction = None # move towards center diagonally
+      elif dx < dy: # Use the close border
         direction = 'x'
       else:
         direction = 'y'
-      # self.move_towards_center_with_tool(robot_name, target_pose=tool_pull_pose, distance=0.06, start_with_spiral=True, direction=direction)
-      tool_pull_pose.pose.orientation = conversions.to_quaternion(transformations.quaternion_from_euler(0.0, tau/4, 0))
       self.move_towards_tray_center_with_push(robot_name, tool_pull_pose, approach_height=0.01, direction=direction, go_back_halfway=False, distance=0.06)
       self.planning_scene_interface.allow_collisions(panel, "")  # Collisions are reactivated in move_towards_center_with_tool
       self.planning_scene_interface.allow_collisions(panel, "tray")
       self.planning_scene_interface.allow_collisions(panel, "tray_center")
       self.allow_collisions_with_robot_hand(panel, robot_name)
-    else:  # If not close to border, try to hit a hole and make space around the plate
-      tool_pull_pose.pose.orientation = conversions.to_quaternion(transformations.quaternion_from_euler(0.0, tau/4, 0))
+    elif too_close_to_other_object:  # If not close to border, try to hit a hole and make space around the plate
       self.declutter_with_tool(robot_name, tool_pull_pose) 
+    elif center_with_tool:
+      self.move_towards_center_with_tool(robot_name, target_pose=tool_pull_pose, distance=0.06, start_with_spiral=True)
 
   def place_panel(self, robot_name, panel_name, pick_again=True, grasp_pose=None, invert_gripper=True, fake_position=False):
     """ Place panel in assembly pose """
@@ -3258,7 +3298,7 @@ class O2ACCommon(O2ACBase):
     self.confirm_to_proceed("finetune")
     return True
 
-  def center_panel(self, panel_name, robot_name="a_bot", speed=0.5, store=True):
+  def center_panel(self, panel_name, robot_name="a_bot", speed=1.0, store=True):
     self.planning_scene_interface.allow_collisions("a_bot_base_smfl", panel_name)
     centering_frame = "left_centering_link"
     # object dimensions
@@ -3359,7 +3399,7 @@ class O2ACCommon(O2ACBase):
     self.a_bot_success = False
     self.b_bot_success = False
     def b_task():
-      self.b_bot_success = self.active_robots[from_robot_name].go_to_pose_goal(handover_pose, speed=speed)
+      self.b_bot_success = self.active_robots[from_robot_name].go_to_pose_goal(handover_pose, speed=speed, retry_non_linear=True)
       self.active_robots[from_robot_name].gripper.detach_object(object_name)
       self.active_robots[from_robot_name].gripper.forget_attached_item()
       return True
@@ -3379,16 +3419,20 @@ class O2ACCommon(O2ACBase):
         return False
 
     handover_grasp_pose = self.get_transformed_grasp_pose(object_name, grasp_pose)
+    handover_grasp_pose = self.listener.transformPose("move_group/"+object_name, handover_grasp_pose)
     self.allow_collisions_with_robot_hand(object_name, to_robot_name, allow=True)
-    if not self.simple_pick(to_robot_name, object_pose=handover_grasp_pose, grasp_width=0.06, approach_height=-0.05, grasp_height=0.0, 
+    if not self.simple_pick(to_robot_name, object_pose=handover_grasp_pose, grasp_width=0.06, approach_height=0.05, grasp_height=0.0, 
                      axis="y", item_id_to_attach=object_name, lift_up_after_pick=False, approach_with_move_lin=False,
                      speed_fast=1.0, speed_slow=0.2):
       rospy.logerr("Fail to execute handover's grasp")
       return False
 
     self.active_robots[from_robot_name].gripper.open(opening_width=0.03, velocity=1.0)
+    success = self.active_robots[from_robot_name].move_lin_rel(relative_translation=[-0.15, 0, 0], relative_to_tcp=True)
+    if not success:
+      rospy.logerr("Fail to move lin back b_bot")
     self.allow_collisions_with_robot_hand(object_name, from_robot_name, allow=False)
-    return self.active_robots[from_robot_name].go_to_named_pose("home")
+    return success
 
   def fasten_panel(self, panel_name, simultaneous=False):
     if panel_name == "panel_bearing":
@@ -4116,7 +4160,7 @@ class O2ACCommon(O2ACBase):
     rospy.loginfo("b_bot DONE")
     return True
 
-  def pick_base_panel(self, skip_initial_perception=False, use_b_bot_camera=False, retry_with_rotated_orientation=True):
+  def pick_base_panel(self, grasp_name='default_grasp', skip_initial_perception=False, use_b_bot_camera=False, retry_with_rotated_orientation=True, retry_counter=0):
     
     if self.use_real_robot:
       if not skip_initial_perception:
@@ -4140,12 +4184,14 @@ class O2ACCommon(O2ACBase):
       goal = conversions.to_pose_stamped("tray_center", [-0.05, -0.05, 0.001, tau/4, 0, tau/4])
       self.spawn_object("base", goal, goal.header.frame_id)
       rospy.sleep(0.5)
-
+    
+    
     rospy.sleep(0.3)
+    self.allow_collisions_with_robot_hand("base", "a_bot", allow=True)
     object_name = "base"
     target_frame = "tray_center"
     centering_pose = self.get_transformed_grasp_pose(object_name, "terminal_grasp", target_frame)
-    grasp_pose     = self.get_transformed_grasp_pose(object_name, "default_grasp", target_frame)
+    grasp_pose     = self.get_transformed_grasp_pose(object_name, grasp_name, target_frame)
     
     if not centering_pose or not grasp_pose:
       rospy.logerr("Could not load grasp poses for object " + "base" + ". Aborting pick.")
@@ -4178,7 +4224,7 @@ class O2ACCommon(O2ACBase):
         rospy.logwarn("Centering unsuccessful. Assuming vision failed. Retry with other orientation.")
         self.rotate_plate_collision_object_in_tray("base")
         rospy.sleep(0.5)
-        return self.pick_base_panel(skip_initial_perception=True, use_b_bot_camera=False, retry_with_rotated_orientation=False)
+        return self.pick_base_panel(skip_initial_perception=True, use_b_bot_camera=False, retry_with_rotated_orientation=False, retry_counter=retry_counter)
       else:  # If retry has also failed
         rospy.logerr("Plate was not perceived by gripper. Breaking out.")
         self.a_bot.gripper.open(wait=False)
@@ -4192,7 +4238,7 @@ class O2ACCommon(O2ACBase):
     dx, dy = self.distances_from_tray_border(grasp_pose)
     print("distance from border dx:", dx, "dy:", dy)
     direction = 'x' if dy > dx else 'y'
-    self.move_towards_tray_center("a_bot", distance=0.05, go_back_halfway=True, one_direction=direction, go_back_ratio=0.4)
+    self.move_towards_tray_center("a_bot", distance=0.03, go_back_halfway=True, one_direction=direction, go_back_ratio=0.4)
     # move_towards_tray_center disables collisions with the tray, so we have to reallow them here
     self.allow_collisions_with_robot_hand("tray", "a_bot")
     self.allow_collisions_with_robot_hand("tray_center", "a_bot")
@@ -4200,7 +4246,8 @@ class O2ACCommon(O2ACBase):
     self.a_bot.gripper.open(opening_width=0.07)
 
     centering_pose = self.get_transformed_grasp_pose(object_name, "terminal_grasp", target_frame)
-    centering_pose.pose.position.z += .006
+    centering_pose.pose.position.z += .007
+    centering_pose, _ = self.constrain_grasp_into_tray("a_bot", centering_pose, grasp_width=0.06)
 
     if not self.a_bot.go_to_pose_goal(centering_pose, speed=0.5, move_lin=True):
       return False
@@ -4211,16 +4258,29 @@ class O2ACCommon(O2ACBase):
     if not self.a_bot.go_to_pose_goal(above_centering_pose, speed=0.5):
       return False
     
-    grasp_pose = self.get_transformed_grasp_pose(object_name, "default_grasp", target_frame)
+    grasp_pose = self.get_transformed_grasp_pose(object_name, grasp_name, target_frame)
 
-    self.allow_collisions_with_robot_hand("base", "a_bot", allow=True)
-    if not self.simple_pick("a_bot", grasp_pose, axis="z", approach_height=0.05, retreat_height=0.15, grasp_width=0.125, gripper_force=100.0):
+    grasp_width = 0.0425 if grasp_name == "big_holes_grasp" else 0.125
+    minimum_grasp_width = 0.01 if grasp_name == "big_holes_grasp" else 0.03
+    grasp_height = 0.015 if grasp_name == "big_holes_grasp" else 0.0
+    self.allow_collisions_with_robot_hand("workplate", "a_bot", allow=True)
+    success = self.simple_pick("a_bot", grasp_pose, axis="z", approach_height=0.05, retreat_height=0.15, grasp_height=grasp_height,
+                               grasp_width=grasp_width, gripper_force=100.0, minimum_grasp_width=minimum_grasp_width)
+    if not success:
       rospy.logerr("Fail to grasp base plate")
       self.a_bot.gripper.open()
       self.a_bot.move_lin_rel(relative_translation=[0, 0, 0.1])
       self.allow_collisions_with_robot_hand("tray", "a_bot", allow=False)
       self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=False)
+      self.allow_collisions_with_robot_hand("workplate", "a_bot", allow=False)
+
+    success &= self.simple_gripper_check("a_bot", min_opening_width=minimum_grasp_width)
+    if not success and retry_counter < 3:
+      self.despawn_object("base")
+      return self.pick_base_panel(skip_initial_perception=False, use_b_bot_camera=False, retry_with_rotated_orientation=True, retry_counter=retry_counter+1)
+    elif not success:
       return False
+    return True
 
   def rotate_plate_collision_object_in_tray(self, plate_name):
     """ Rotates the collision object in the scene.
