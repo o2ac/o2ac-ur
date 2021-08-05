@@ -230,7 +230,7 @@ class RobotBase():
 
     def go_to_pose_goal(self, pose_goal_stamped, speed=0.5, acceleration=0.25,
                         end_effector_link="", move_lin=True, wait=True, plan_only=False, initial_joints=None,
-                        allow_joint_configuration_flip=False, move_ptp=False, timeout=5, retry_non_linear=False):
+                        allow_joint_configuration_flip=False, move_ptp=False, timeout=5, retry_non_linear=True):
         planner = "LINEAR" if move_lin else ("PTP" if move_ptp else "OMPL")
         if not self.set_up_move_group(speed, acceleration, planner):
             return False

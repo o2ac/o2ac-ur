@@ -34,6 +34,7 @@
 #
 # Author: Felix von Drigalski
 
+from os import wait
 import sys
 import copy
 
@@ -72,8 +73,8 @@ class O2ACAssembly(O2ACCommon):
     super(O2ACAssembly, self).__init__()
     
     # Load the initial database
-    if not self.assembly_database.db_name == "wrs_assembly_2021":
-      self.set_assembly("wrs_assembly_2021")
+    if not self.assembly_database.db_name == "wrs_assembly_2020":
+      self.set_assembly("wrs_assembly_2020")
 
     # Spawn tools and objects
     self.define_tool_collision_objects()
@@ -136,36 +137,45 @@ class O2ACAssembly(O2ACCommon):
     self.unlock_base_plate()
     self.publish_status_text("Target: base plate")
     grasp_name = "big_holes_grasp" if self.assembly_database.db_name == "wrs_assembly_2021" else "default_grasp"
-    self.pick_base_panel(grasp_name=grasp_name, skip_initial_perception=skip_initial_perception, use_b_bot_camera=use_b_bot_camera)
+    grasp_name = self.pick_base_panel(grasp_name=grasp_name, skip_initial_perception=skip_initial_perception, use_b_bot_camera=use_b_bot_camera)
+    if not grasp_name:
+      rospy.logerr("Fail to grasp base")
+      return False
 
     self.allow_collisions_with_robot_hand("tray", "a_bot", allow=False)
     self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=False)
-
-    if not self.simple_gripper_check("a_bot", min_opening_width=0.05):
-      rospy.logerr("Gripper did not grasp the base plate. Aborting.")
-      self.a_bot.gripper.open()
-      return False
     
     if not self.use_real_robot:
       self.allow_collisions_with_robot_hand("base_fixture_top", "a_bot", allow=True)
-    ## Move to fixation
-    base_drop = conversions.to_pose_stamped("assembled_part_01", [0.111, 0.007, 0.07, tau/4., 0, -tau/4.])
     
+    # self.confirm_to_proceed("finetune above pose")
+    # print("q:", self.a_bot.robot_group.get_current_joint_values())
+    # self.confirm_to_proceed("finetune in pose")
+
     # There is a risk of overextending the wrist joint if we don't use the joint pose
-    self.confirm_to_proceed("Finetune pose above drop")
-    print("joint pose above drop", self.a_bot.robot_group.get_current_joint_values())
-    self.confirm_to_proceed("finetune inserted pose")
-    above_base_drop = [1.57783019, -1.430060581, 1.67834741, -1.82884373, -1.56911117, 0.00590014457]
-    base_inserted = conversions.to_pose_stamped("assembled_part_01", [0.108, -0.006, 0.067, 1.568, 0.103, -1.582])  # Taught
+    if grasp_name == "big_holes_grasp":
+      # above_base_drop = conversions.to_pose_stamped("assembled_part_01", [0.109, 0.069, 0.084, 0.004, -0.005, -0.708, 0.707])
+      above_base_drop = [1.609, -1.446, 1.595, -1.7201, -1.5673, -1.5186]
+      base_inserted = conversions.to_pose_stamped("assembled_part_01", [0.108, 0.008, 0.083, 0.004, -0.005, -0.708, 0.707])  # Taught
+    elif grasp_name == "default_grasp": 
+      ## Move to fixation
+      above_base_drop = [1.57783019, -1.430060581, 1.67834741, -1.82884373, -1.56911117, 0.00590014457]
+      base_drop = conversions.to_pose_stamped("assembled_part_01", [0.111, 0.007, 0.07, tau/4., 0, -tau/4.])
+      base_inserted = conversions.to_pose_stamped("assembled_part_01", [0.108, -0.006, 0.067, 1.568, 0.103, -1.582])  # Taught
+    else:
+      return False
+
     seq = []
     seq.append(helpers.to_sequence_item(above_base_drop, 0.5, linear=False))
-    seq.append(helpers.to_sequence_item(base_drop, 0.3))
-    seq.append(helpers.to_sequence_item(base_inserted, 0.05))
+    if grasp_name == "default_grasp": 
+      seq.append(helpers.to_sequence_item(base_drop, 0.3))
+    seq.append(helpers.to_sequence_item(base_inserted, 0.2))
     if not self.execute_sequence("a_bot", seq, "place base plate"):
       return False
     # self.a_bot.move_joints(above_base_drop, speed=0.5)
     # self.a_bot.go_to_pose_goal(base_drop, speed=0.3, move_lin = True)
     # self.a_bot.go_to_pose_goal(base_inserted, speed=0.05, move_lin = True)
+    self.a_bot.gripper.open(opening_width=0.05, wait=False)
     self.a_bot.gripper.open()
     self.a_bot.gripper.forget_attached_item()
 
@@ -806,10 +816,14 @@ class O2ACAssembly(O2ACCommon):
 
     if not self.b_bot_success or not self.a_bot_success:
       rospy.logerr("Fail to do panels_assembly4: simultaneous=%s" % simultaneous)
+      self.do_change_tool_action("b_bot", equip=False, screw_size = 4)
       return False
   
     if not self.fasten_panel("panel_motor"):
+      self.do_change_tool_action("b_bot", equip=False, screw_size = 4)
       return False
+
+    self.do_change_tool_action("b_bot", equip=False, screw_size = 4)
 
     del self.panel_bearing_pose
     del self.panel_motor_pose

@@ -223,28 +223,39 @@ def b_bot_m4(controller):
 def main():
     rospy.init_node("testscript")
     global controller
-    controller = O2ACCommon()
+    # controller = O2ACCommon()
     # print("a_bot.gripper.opening_width", controller.a_bot.gripper.opening_width)
     
     # controller.do_change_tool_action("b_bot", equip=False, screw_size = 4)
     controller = O2ACAssembly()
-    controller.reset_scene_and_robots()
-    # controller.despawn_object("panel_motor")
-    # controller.a_bot.gripper.open()
+    
+    # cp = controller.listener.transformPose("tray_center", controller.a_bot.get_current_pose_stamped())
+    # print("a bot pose", cp.pose.position)
+    # grasp_pose = controller.get_transformed_grasp_pose("base", "terminal_grasp", target_frame="tray_center")
+    # print("grasp pose", grasp_pose.pose.position)
+    # current_base_pose = controller.get_transformed_collision_object_pose("base", target_frame="tray_center")
+    # current_base_pose.pose.position.x += cp.pose.position.x - grasp_pose.pose.position.x
+    # current_base_pose.pose.position.y += cp.pose.position.y - grasp_pose.pose.position.y
+    # controller.update_collision_item_pose("base", current_base_pose)
+
+    # controller.reset_scene_and_robots()
     controller.ab_bot.go_to_named_pose("home")
+    controller.place_panel("a_bot", "panel_bearing", fake_position=True)
+    controller.despawn_object("panel_bearing")
+    controller.fasten_panel("panel_bearing")
+    controller.do_change_tool_action("b_bot", equip=False, screw_size = 4)
+    # controller.panels_assembly()
+    # controller.subtask_zero(use_b_bot_camera=True)
+    # controller.a_bot.gripper.open()
     # controller.pick_panel("panel_bearing")
     # controller.center_panel("panel_bearing")
     # controller.confirm_to_proceed("1??")
     # controller.ab_bot.go_to_named_pose("home")
-    controller.subtask_zero(use_b_bot_camera=True)
     # controller.pick_panel("panel_motor")
     # pose = controller.center_panel("panel_bearing")
     # controller.place_panel("a_bot", "panel_bearing", grasp_pose=pose)
-    # controller.do_change_tool_action("b_bot", equip=True, screw_size = 4)
     # controller.b_bot.go_to_named_pose("feeder_pick_ready")
-    # controller.place_panel("a_bot", "panel_motor", fake_position=True)
     # controller.confirm_to_proceed("2??")
-    # controller.fasten_panel("panel_motor")
     
     # controller.ab_bot.go_to_named_pose("home")
     # controller.reset_scene_and_robots()
