@@ -12,6 +12,8 @@
 #include <message_filters/sync_policies/approximate_time.h>
 #include <actionlib/server/simple_action_server.h>
 #include <ddynamic_reconfigure/ddynamic_reconfigure.h>
+#include <opencv2/core.hpp>
+#include <opencv2/bgsegm.hpp>
 
 namespace aist_motion_detector
 {
@@ -29,6 +31,7 @@ class MotionDetector
     using sync_policy_t	 = message_filters::sync_policies::
 				ApproximateTime<camera_info_t,
 						image_t, image_t>;
+    using bgsub_p	 = cv::Ptr<cv::BackgroundSubtractor>;
 
   public:
 		MotionDetector(const ros::NodeHandle& nh)		;
@@ -70,8 +73,11 @@ class MotionDetector
     const image_transport::CameraPublisher		_camera_pub;
     const image_transport::Publisher			_image_pub;
 
-  // Tracker parameters and dynamic_reconfigure server for setting them
+  // Motion detector parameters and dynamic_reconfigure server for setting them
     ddynamic_reconfigure::DDynamicReconfigure		_ddr;
+
+  // Motion detector stuffs
+    bgsub_p						_bgsub;
 };
 
 }	// namespace aist_motion_detector
