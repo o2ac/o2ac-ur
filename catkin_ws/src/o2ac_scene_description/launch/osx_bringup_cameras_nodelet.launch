@@ -2,15 +2,8 @@
 <launch>
 
   <arg name="multiplexer_name"	default="camera_multiplexer"/>
-  <arg name="camera_names"	default="a_bot_inside_camera,
-					 a_bot_outside_camera,
-					 b_bot_inside_camera,
-					 b_bot_outside_camera"/>
-  <arg name="serial_nos"	default="636201000324,
-					 636201001178,
-					 634206004668,
-					 635201000481"/>
-
+  <arg name="camera_names"	default="a_bot_inside_camera,a_bot_outside_camera,b_bot_inside_camera,b_bot_outside_camera"/>
+  <arg name="serial_nos"	default="636201000324,636201001178,634206004668,635201000481"/>
   <arg name="publish_tf"	default="true"/>
   <arg name="camera_width"	default="640"/>
   <arg name="camera_height"	default="480"/>
@@ -22,7 +15,7 @@
   <arg if="$(arg use_nodelet)"
        name="manager"		default="camera_manager"/>
   <arg unless="$(arg use_nodelet)"
-       name="manager"		default=""/>
+       name="manager"		value=""/>
 
   <include file="$(find aist_camera_multiplexer)/launch/realsense.launch">
     <arg name="multiplexer_name"	value="$(arg multiplexer_name)"/>
@@ -35,5 +28,13 @@
     <arg name="enable_streaming"	value="$(arg enable_streaming)"/>
     <arg name="manager"		value="$(arg manager)"/>
   </include>
+
+  <param name="o2ac_vision_server/a_bot_inside_camera" type="bool" value="true" />
+  <param name="o2ac_vision_server/a_bot_outside_camera" type="bool" value="true" />
+  <param name="o2ac_vision_server/b_bot_inside_camera" type="bool" value="true" />
+  <param name="o2ac_vision_server/b_bot_outside_camera" type="bool" value="true" />
+
+  <node unless="$(arg use_nodelet)"
+  name="camera_watcher" pkg="o2ac_vision" type="o2ac_camera_watcher.py" output="screen"/>
 
 </launch>
