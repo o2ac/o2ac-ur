@@ -7,6 +7,7 @@
 #include <opencv2/imgproc.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include "MotionDetector.h"
+#include <cv_bridge/cv_bridge.h>
 
 namespace aist_motion_detector
 {
@@ -19,7 +20,7 @@ namespace aist_motion_detector
 ************************************************************************/
 MotionDetector::MotionDetector(const ros::NodeHandle& nh)
     :_nh(nh),
-     _select_srv(_nh.advertiseService("select", &select_cb, this)),
+   //_select_srv(_nh.advertiseService("select", &select_cb, this)),
      _it(_nh),
      _camera_info_sub(_nh, "/camera_info", 1),
      _image_sub(_it, "/image", 1),
@@ -27,7 +28,8 @@ MotionDetector::MotionDetector(const ros::NodeHandle& nh)
      _sync(sync_policy_t(10), _camera_info_sub, _image_sub, _depth_sub),
      _camera_pub(_it.advertiseCamera("depth", 1)),
      _image_pub(_it.advertise("image", 1)),
-     _ddr(_nh)
+     _ddr(_nh),
+     _bgsub(cv::createBackgroundSubtractorMOG2())
 {
   // Setup callback for synced camera_info and depth.
     _sync.registerCallback(&image_cb, this);
@@ -47,6 +49,28 @@ void
 MotionDetector::image_cb(const camera_info_cp& camera_info,
 			 const image_cp& image, const image_cp& depth)
 {
+    using namespace	sensor_msgs;
+
+  // Convert input image to CvImage.
+    cv_bridge::CvImageConstPtr	cv_img;
+    try
+    {
+	cv_img = cv_bridge::toCvShare(image, image_encodings::RGB8);
+    }
+    catch (const cv_bridge::Exception& err)
+    {
+	ROS_ERROR_STREAM("(MotionDetector) cv_bridge exception: "
+			 << err.what());
+	return;
+    }
+
+  // Update the background model.
+    cv_bridge::CvImage	cv_mask;
+    _bgsub->apply(cv_img->image, cv_mask.image);
+
+    cv_mask.encoding = "mono8";
+    cv_mask.header = image->header;
+    _image_pub.publish(cv_mask.toImageMsg());
 }
 
 void
