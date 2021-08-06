@@ -1173,3 +1173,96 @@ class MotorOrientation():
         im_vis = cv2.putText(im_vis, text, (20,20), 0, 0.5,(255,255,255),2, cv2.LINE_AA)
         im_vis = cv2.putText(im_vis, text, (20,20), 0, 0.5,(255,0,0),1, cv2.LINE_AA)
         return im_vis
+
+
+#####################################################
+# Sample code
+#
+# # generate hole mask
+# hole_positions = np.array([[274,164],
+#                           [320,164],
+#                           [342,204],
+#                           [320,243],
+#                           [274,243],
+#                           [250,204] ])
+#
+# shc = ScrewHoleCheck( hole_positions )
+# idx = shc.main_proc( imgs )
+#
+# Note:
+#  you can check hole posisions by call
+#    img_vis = shc.get_visualization()
+#####################################################
+class ScrewHoleCheck():
+    def __init__( self, hole_positions, radius=5 ):
+        """ ScrewHoleCheck
+        Args:
+          hole_positions(np.araay): hole positions in image coordinate (nx2)
+                                    [[x,y],[x,y],...,[x,y]]
+          radius(int): radius of hole in pixel
+        """
+        self.hp = hole_positions
+        self.radius = radius # hole radius in pixel
+
+        self.min_idx = 0 # image index
+
+    def create_hole_mask( self, size ):
+        """ create binary hole mask
+        """
+        im_mask = np.zeros( size )
+        for p in self.hp:
+            im_mask = cv2.circle( im_mask, (p[0],p[1]), self.radius, 1, -1 )
+
+        return im_mask
+
+    def main_proc( self, imgs ):
+        """
+        Args:
+          imgs(list): a list of images whlie rotating parts
+        """
+        # Convert RGB2Gray
+        self.imgs = list()
+        for im in imgs:
+            if im.ndim == 3:
+                im = cv2.cvtColor( im, cv2.COLOR_RGB2GRAY )
+            self.imgs.append( im )
+
+        # Create hole mask
+        self.im_hole_mask = self.create_hole_mask( self.imgs[0].shape )
+
+
+        # Check intensity value of holes
+        self.pixel_values = list()
+        for i, img in enumerate(self.imgs):
+            iv = np.sum(img*self.im_hole_mask)    
+            self.pixel_values.append( iv )
+
+        # detect image index of min intensity values
+        self.pixel_values = np.asarray(self.pixel_values)
+        self.min_idx = np.argmin(self.pixel_values)
+
+        return self.min_idx
+    
+    def get_visualization( self ):
+        
+        im_vis = cv2.cvtColor( self.imgs[self.min_idx], cv2.cv2.COLOR_GRAY2BGR )
+        im_vis = im_vis.astype(np.float)
+        im_vis[:,:,1] += + self.im_hole_mask*100
+        im_vis = im_vis.astype(np.uint8)
+
+        # visualize hole positions
+        for i, p in enumerate(self.hp):
+            # close to hole
+            text = "id:" + str(i) 
+            cv2.putText( im_vis, text,
+                         (p[0]+10, p[1]), 1, 1.0, (255,255,255), 2, cv2.LINE_AA )
+            cv2.putText( im_vis, text,
+                         (p[0]+10, p[1]), 1, 1.0, (255,0,0), 1, cv2.LINE_AA )
+            # left top in image
+            text = "id:" + str(i) + "(" + str(p[0]) + "," + str(p[1]) + ")"
+            cv2.putText( im_vis, text,
+                         (10, 25+25*i), 1, 1.0, (255,255,255), 2, cv2.LINE_AA )
+            cv2.putText( im_vis, text,
+                         (10, 25+25*i), 1, 1.0, (255,0,0), 1, cv2.LINE_AA )
+
+        return im_vis
