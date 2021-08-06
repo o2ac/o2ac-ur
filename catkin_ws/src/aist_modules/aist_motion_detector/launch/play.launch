@@ -6,6 +6,8 @@
 					 )/o2ac-ur/catkin_ws/src/data"/>
   <arg name="camera_name"	default="b_bot_outside_camera"/>
 
+  <param name="use_sim_time"	value="true"/>
+
   <node name="rosbag_play" pkg="rosbag" type="play" output="screen"
 	args="-l $(arg data_dir)/$(arg bag_file)"/>
 
