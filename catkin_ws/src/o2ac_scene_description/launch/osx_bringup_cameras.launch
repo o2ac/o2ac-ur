@@ -99,8 +99,10 @@
     <arg name="color_fps"           value="$(arg camera_fps)"/>
     <arg name="color_width"         value="$(arg camera_width)"/>
     <arg name="color_height"        value="$(arg camera_height)"/>
-    <arg name="enable_infra1"       value="false"/><arg name="camera_names"	default="a_bot_inside_camera"/>
-  <arg name="serial_nos"	default="'636201000324'"/>
+    <arg name="enable_infra1"       value="false"/>
+    <arg name="enable_infra2"       value="false"/>
+  </include>
+  <include file="$(dirname)/publish_camera_calibration.launch">
     <arg name="camera_name"	value="$(arg camera3_name)"/>
   </include>
 
