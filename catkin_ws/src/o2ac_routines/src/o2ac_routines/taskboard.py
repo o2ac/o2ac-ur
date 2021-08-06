@@ -63,7 +63,8 @@ class O2ACTaskboard(O2ACCommon):
     
     self.downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, pi))
     self.downward_orientation_cylinder_axis_along_workspace_x = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, tau/4))
-    self.at_set_screw_hole = conversions.to_pose_stamped("taskboard_set_screw_link", [-0.005, -0.001, 0.001, 0, 0, 0])  # MAGIC NUMBER (points downward)
+    # self.at_set_screw_hole = conversions.to_pose_stamped("taskboard_set_screw_link", [-0.005, -0.001, 0.001, 0, 0, 0])  # MAGIC NUMBER (points downward) MIZUMI tool tip
+    self.at_set_screw_hole = conversions.to_pose_stamped("taskboard_set_screw_link", [-0.018, -0.001, 0.001, 0, 0, 0])  # MAGIC NUMBER (points downward)  PROXXON tool tip
     if not self.assembly_database.db_name == "taskboard":
       self.assembly_database.change_assembly("taskboard")
     
