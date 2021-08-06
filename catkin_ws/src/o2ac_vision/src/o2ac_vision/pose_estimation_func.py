@@ -1192,8 +1192,10 @@ class MotorOrientation():
 # Note:
 #  you can check hole posisions by call
 #    img_vis = shc.get_visualization()
+#  also you can get result image of specific image id
+#    img_vis = shc.get_visualization_idx( id )
 #####################################################
-class ScrewHoleCheck():
+class ScrewHoleCheck_():
     def __init__( self, hole_positions, radius=5 ):
         """ ScrewHoleCheck
         Args:
@@ -1244,10 +1246,20 @@ class ScrewHoleCheck():
         return self.min_idx
     
     def get_visualization( self ):
+        """ get result image
+        """
+
+        im_vis = self.get_visualization_idx( self.min_idx )
+        return im_vis
+
+    def get_visualization_idx( self, idx ):
+        """ get result image for specific id
+        """
         
-        im_vis = cv2.cvtColor( self.imgs[self.min_idx], cv2.cv2.COLOR_GRAY2BGR )
+        im_vis = cv2.cvtColor( self.imgs[idx], cv2.cv2.COLOR_GRAY2BGR )
         im_vis = im_vis.astype(np.float)
         im_vis[:,:,1] += + self.im_hole_mask*100
+        im_vis = np.clip(im_vis,0,255)
         im_vis = im_vis.astype(np.uint8)
 
         # visualize hole positions
@@ -1261,8 +1273,22 @@ class ScrewHoleCheck():
             # left top in image
             text = "id:" + str(i) + "(" + str(p[0]) + "," + str(p[1]) + ")"
             cv2.putText( im_vis, text,
-                         (10, 25+25*i), 1, 1.0, (255,255,255), 2, cv2.LINE_AA )
+                         (10, 60+25*i), 1, 1.0, (255,255,255), 2, cv2.LINE_AA )
             cv2.putText( im_vis, text,
-                         (10, 25+25*i), 1, 1.0, (255,0,0), 1, cv2.LINE_AA )
+                         (10, 60+25*i), 1, 1.0, (255,0,0), 1, cv2.LINE_AA )
+
+        if idx == self.min_idx:
+            text = "image id:"+ str(idx) + "...OK"
+            cv2.putText( im_vis, text,
+                         (10, 30), 1, 1.5, (255,255,255), 2, cv2.LINE_AA )
+            cv2.putText( im_vis, text,
+                         (10, 30), 1, 1.5, (0,150,0), 1, cv2.LINE_AA )
+        else:
+            text = "image id:"+ str(idx) + "...X"
+            cv2.putText( im_vis, text,
+                         (10, 30), 1, 1.5, (255,255,255), 2, cv2.LINE_AA )
+            cv2.putText( im_vis, text,
+                         (10, 30), 1, 1.5, (0,0,255), 1, cv2.LINE_AA )
+
 
         return im_vis
