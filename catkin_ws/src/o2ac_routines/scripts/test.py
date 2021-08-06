@@ -223,8 +223,10 @@ def b_bot_m4(controller):
 def main():
     rospy.init_node("testscript")
     global controller
-    controller = O2ACTaskboard()
-    controller.prepare_screw_tool_idler_pulley("taskboard_long_hole_top_link", simultaneous=True)
+    # controller = O2ACTaskboard()
+    # controller.orient_motor_pulley("taskboard_small_shaft")
+    # controller.insert_motor_pulley("taskboard_small_shaft")
+    # controller.prepare_screw_tool_idler_pulley("taskboard_long_hole_top_link", simultaneous=True)
     # controller.reset_scene_and_robots()
     # controller.b_bot.go_to_named_pose("home")
     # controller.centering_shaft()
@@ -243,7 +245,22 @@ def main():
     # controller.orient_bearing("taskboard", robot_name="a_bot", part1=True, part2=False)
     # controller.orient_bearing("taskboard", robot_name="a_bot", part1=False, part2=True)
     # controller.insert_bearing("taskboard_bearing_target_link", robot_name="a_bot")
-    # controller = O2ACCommon()
+    controller = O2ACCommon()
+    def a_task():
+        controller.a_bot.go_to_named_pose("home")
+        seq = []
+        seq.append(helpers.to_sequence_item_relative([0.01,0,0,0,0,0]))
+        seq.append(helpers.to_sequence_item_relative([-0.01,0,0,0,0,0]))
+        for _ in range(20):
+            controller.execute_sequence("a_bot", seq, "a")
+    def b_task():
+        controller.b_bot.go_to_named_pose("home")
+        seq = []
+        seq.append(helpers.to_sequence_item_relative([0.01,0,0,0,0,0]))
+        seq.append(helpers.to_sequence_item_relative([-0.01,0,0,0,0,0]))
+        for _ in range(20):
+            controller.execute_sequence("b_bot", seq, "b")
+    controller.do_tasks_simultaneous(a_task, b_task, timeout=60)
     # print("a_bot.gripper.opening_width", controller.a_bot.gripper.opening_width)
     
     # controller.do_change_tool_action("b_bot", equip=False, screw_size = 4)
