@@ -372,7 +372,7 @@ class O2ACBase(object):
     rospy.loginfo("Suck screw command")
 
     if robot_name == "a_bot":
-      rotation = [radians(80), 0, 0] if screw_tool_id == "screw_tool_m4" else [-tau/6, 0, 0]
+      rotation = [radians(80), 0, 0] if screw_tool_id == "screw_tool_m4" else [tau/6, 0, 0]
     elif robot_name == "b_bot":
       rotation = [-tau/6, 0, 0]
 
@@ -415,7 +415,7 @@ class O2ACBase(object):
     
     first_approach = True
     while not screw_picked:
-      self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=15.0, skip_final_loosen_and_retighten=True)
+      self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=20.0, skip_final_loosen_and_retighten=True)
       assert not rospy.is_shutdown(), "Did ros die?"
       
       # TODO(felixvd): Cancel the previous goal before sending this, or the start/stop commands from different actions overlap!
@@ -449,9 +449,9 @@ class O2ACBase(object):
 
       if not do_spiral_search_at_bottom:
         tc = lambda a, b: self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
-        self.active_robots[robot_name].execute_spiral_trajectory("YZ", max_radius=0.0015, radius_direction="+Y", steps=25,
+        self.active_robots[robot_name].execute_spiral_trajectory("YZ", max_radius=0.002, radius_direction="+Y", steps=25,
                                                           revolutions=1, target_force=0, check_displacement_time=10,
-                                                          termination_criteria=tc, timeout=2, end_effector_link=screw_tool_link)
+                                                          termination_criteria=tc, timeout=1, end_effector_link=screw_tool_link)
 
       rospy.loginfo("Moving back a bit slowly.")
       rospy.sleep(0.5)
@@ -550,7 +550,7 @@ class O2ACBase(object):
     # Stop spiral motion if the tool action finished, regardless of success/failure
     tc = lambda a, b: self.tools.fastening_tool_client.get_state() != GoalStatus.ACTIVE
     self.active_robots[robot_name].execute_spiral_trajectory("YZ", max_radius=spiral_radius, radius_direction="+Y", steps=50,
-                                                          revolutions=2, target_force=0, check_displacement_time=10,
+                                                          revolutions=3, target_force=0, check_displacement_time=10,
                                                           termination_criteria=tc, timeout=10, end_effector_link=screw_tool_link)
 
     if not self.use_real_robot:
@@ -1086,7 +1086,7 @@ class O2ACBase(object):
       ps_in_holder.pose.position.x += 0.001  # To remove the offset for placing applied earlier
       lin_speed = 0.2
       sequence.append(helpers.to_sequence_item(pull_back_slightly, speed=lin_speed))
-      sequence.append(helpers.to_sequence_gripper(action='open', gripper_opening_width=0.06, gripper_velocity=0.1))
+      sequence.append(helpers.to_sequence_gripper(action='open', gripper_opening_width=0.06, gripper_velocity=1.0))
       sequence.append(helpers.to_sequence_item(ps_in_holder, speed=lin_speed))
       sequence.append(helpers.to_sequence_gripper(action='close', gripper_force=100, gripper_velocity=0.1))
     

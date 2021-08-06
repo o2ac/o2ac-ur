@@ -2060,8 +2060,20 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Fail to complete center_with_gripper")
       return False
     if not self.grasp_idler_pulley():
-      rospy.logerr("Fail to complete grasp_idler_pulley")
-      return False
+      rospy.logerr("Fail to complete grasp_idler_pulley, retry")
+      self.a_bot.gripper.close()
+      if not self.move_towards_tray_center("a_bot", 0.05, go_back_halfway=False):
+        return False
+      self.a_bot.gripper.open()
+      current_pose = self.listener.transformPose("tray_center", self.a_bot.get_current_pose_stamped())
+      current_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(0, tau/4, -tau/4))
+      self.a_bot.go_to_pose_goal(current_pose)
+      if not self.center_with_gripper("a_bot", opening_width=.08):
+        rospy.logerr("Fail to complete center_with_gripper")
+        return False
+      if not self.grasp_idler_pulley():
+        rospy.logerr("Fail to complete grasp_idler_pulley x2")
+        return False
 
     self.allow_collisions_with_robot_hand("taskboard_plate", "a_bot")
     self.a_success = False
@@ -2069,6 +2081,7 @@ class O2ACCommon(O2ACBase):
     def a_bot_task():
       if not self.insert_idler_pulley(idler_puller_target_link):
         rospy.logerr("Fail to complete insert_idler_pulley")
+        self.a_bot.move_lin_rel(relative_translation=[0.1,0,0])
         self.drop_in_tray("a_bot")
         return False
       self.a_success = True
@@ -2144,16 +2157,10 @@ class O2ACCommon(O2ACBase):
     self.a_bot.gripper.close(force=40.0, velocity=0.013)
     self.a_bot.gripper.open(velocity=0.013)
 
-  def grasp_idler_pulley(self, attempt=1):
+  def grasp_idler_pulley(self):
     # Incline 45 deg
-    success = self.a_bot.move_lin_rel(relative_translation=[0, 0.01, 0.002], relative_rotation=[tau/8.0, 0, 0])
-    if not success:
-      rospy.logerr("Fail to incline a_bot 45 deg %s" % success)
-      self.a_bot.gripper.close()
-      if not self.move_towards_tray_center("a_bot", 0.05, go_back_halfway=False):
-        return False
-      self.a_bot.gripper.open()
-      return self.grasp_idler_pulley(attempt=attempt-1)
+    if not self.a_bot.move_lin_rel(relative_translation=[0, 0.01, 0.002], relative_rotation=[tau/8.0, 0, 0]):
+      return False
     
     self.a_bot.gripper.attach_object("taskboard_idler_pulley_small")
     self.a_bot.gripper.close()
