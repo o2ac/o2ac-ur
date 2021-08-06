@@ -17,17 +17,7 @@
   <node name="rosbag_play" pkg="rosbag" type="play" output="screen"
 	args="--clock -l $(arg data_dir)/$(arg bag_file)"/>
 
-  <!-- <include file="$(find aist_depth_filter)/launch/run.launch"> -->
-  <!--   <arg name="camera_info_topic" -->
-  <!-- 	 value="$(arg camera_name)_throttled/color/camera_info"/> -->
-  <!--   <arg name="image_topic" -->
-  <!-- 	 value="$(arg camera_name)_throttled/color/image_raw"/> -->
-  <!--   <arg name="depth_topic" -->
-  <!-- 	 value="$(arg camera_name -->
-  <!-- 		)_throttled/aligned_depth_to_color/image_raw"/> -->
-  <!-- </include> -->
-
-  <include file="$(dirname)/run.launch">
+  <include file="$(find aist_depth_filter)/launch/run.launch">
     <arg name="camera_info_topic"
 	 value="$(arg camera_name)_throttled/color/camera_info"/>
     <arg name="image_topic"
@@ -35,8 +25,13 @@
     <arg name="depth_topic"
 	 value="$(arg camera_name
 		)_throttled/aligned_depth_to_color/image_raw"/>
-    <!-- <arg name="camera_info_topic"	value="depth_filter/camera_info"/> -->
-    <!-- <arg name="image_topic"		value="depth_filter/image"/> -->
+    <arg name="normal_topic"		value=""/>
+  </include>
+
+  <include file="$(dirname)/run.launch">
+    <arg name="camera_info_topic"	value="depth_filter/camera_info"/>
+    <arg name="image_topic"		value="depth_filter/image"/>
+    <arg name="depth_topic"		value="depth_filter/depth"/>
   </include>
 
   <node name="$(anon rviz)" pkg="rviz" type="rviz" output="screen"
