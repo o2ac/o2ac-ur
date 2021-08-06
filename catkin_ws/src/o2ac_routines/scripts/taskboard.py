@@ -63,7 +63,7 @@ if __name__ == '__main__':
       rospy.loginfo("Enter 11, 12 to close/open grippers")
       rospy.loginfo("Enter 13, 14 to equip/unequip m3 screw tool (133,144: m4)")
       rospy.loginfo("Enter 15, 16 to equip/unequip m4 screw tool (151,161: padless)")
-      rospy.loginfo("Enter 21, 22: pick m3, m4 screw")
+      rospy.loginfo("Enter 21, 22, 23: pick m3, m4 screw, (a_bot M4)")
       rospy.loginfo("Enter 3 to calibrate TB screw tasks (31: M3, 32: M4)")
       rospy.loginfo("Subtasks: 51 (set screw), 52 (M3), 53 (M4), 54 (belt), 55 (motor pulley), 56 (shaft), 57 (bearing), 58 (idler pulley)")
       rospy.loginfo("Enter 8 to spawn example parts")
@@ -155,6 +155,8 @@ if __name__ == '__main__':
         c.pick_screw_from_feeder("a_bot", screw_size = 3)
       if i == "22":
         c.pick_screw_from_feeder("b_bot", screw_size = 4)
+      if i == "23":
+        c.pick_screw_from_feeder("a_bot", screw_size = 4)
       if i == "31":
         c.do_task("M3 screw", fake_execution_for_calibration=True)
       if i == "32":
@@ -186,6 +188,8 @@ if __name__ == '__main__':
         c.align_bearing_holes(task="c")
       if i == "58":
         c.do_task("idler pulley")
+      if i == "58s":
+        c.do_task("idler pulley", simultaneous=True)
       if i == "8":
         c.spawn_example_objects()      
       if i == "9":

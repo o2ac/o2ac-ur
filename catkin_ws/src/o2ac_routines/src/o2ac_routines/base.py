@@ -414,8 +414,8 @@ class O2ACBase(object):
     theta, RealRadius = 0.0, 0.0
     
     first_approach = True
-    self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=30.0, skip_final_loosen_and_retighten=True)
     while not screw_picked:
+      self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=15.0, skip_final_loosen_and_retighten=True)
       assert not rospy.is_shutdown(), "Did ros die?"
       
       # TODO(felixvd): Cancel the previous goal before sending this, or the start/stop commands from different actions overlap!

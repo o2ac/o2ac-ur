@@ -39,7 +39,9 @@ import rospy
 import geometry_msgs.msg
 import tf_conversions
 import tf
-from math import pi
+from math import pi, radians
+
+from ur_control import conversions
 tau = 2.0*pi  # Part of math from Python 3.6
 
 from o2ac_routines.common import O2ACCommon
@@ -61,13 +63,7 @@ class O2ACTaskboard(O2ACCommon):
     
     self.downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, pi))
     self.downward_orientation_cylinder_axis_along_workspace_x = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, tau/4))
-
-    self.at_set_screw_hole = geometry_msgs.msg.PoseStamped()
-    self.at_set_screw_hole.header.frame_id = "taskboard_set_screw_link"
-    self.at_set_screw_hole.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
-    self.at_set_screw_hole.pose.position.x = 0.001   # MAGIC NUMBER
-    self.at_set_screw_hole.pose.position.y = -0.0005   # MAGIC NUMBER
-    self.at_set_screw_hole.pose.position.z = 0.001   # MAGIC NUMBER (points downward)
+    self.at_set_screw_hole = conversions.to_pose_stamped("taskboard_set_screw_link", [-0.005, -0.001, 0.001, 0, 0, 0])  # MAGIC NUMBER (points downward)
     if not self.assembly_database.db_name == "taskboard":
       self.assembly_database.change_assembly("taskboard")
     
@@ -555,13 +551,17 @@ class O2ACTaskboard(O2ACCommon):
       rospy.loginfo("=== set screw: at at_set_screw_hole ===")
       # This expects to be exactly above the set screw hole
       self.confirm_to_proceed("Turn on motor and move into screw hole?")
-      dist = .003
-      self.b_bot.move_lin_rel(relative_translation=[-dist, 0, 0], speed=0.03, wait=False)
+      self.tools.set_motor("set_screw_tool", "tighten", duration = 15.0, skip_final_loosen_and_retighten=True)
+      dist = .002
+      self.b_bot.move_lin_rel(relative_translation=[-dist, 0, 0], speed=0.03, wait=True)
       rospy.loginfo("=== set screw: move in ===")
+      # Stop spiral motion if the tool action finished, regardless of success/failure
+      self.b_bot.execute_spiral_trajectory("YZ", max_radius=0.001, radius_direction="+Y", steps=50,
+                                          revolutions=2, target_force=0, check_displacement_time=10,
+                                          termination_criteria=None, timeout=6, end_effector_link="b_bot_set_screw_tool_tip_link")
       # self.skill_server.horizontal_spiral_motion("b_bot", .003, spiral_axis="Y", radius_increment = .002)
-      self.tools.set_motor("set_screw_tool", "tighten", duration = 12.0)
       if self.use_real_robot:
-        rospy.sleep(4.0) # Wait for the screw to be screwed in a little bit
+        rospy.sleep(2.0) # Wait for the screw to be screwed in a little bit
       d = .003
       rospy.loginfo("=== set screw: move in 2 by " + str(d) + " m. ===")
       self.b_bot.move_lin_rel(relative_translation=[-d, 0, 0], speed=0.002, wait=False)
@@ -576,8 +576,9 @@ class O2ACTaskboard(O2ACCommon):
         if self.b_bot.is_protective_stopped():
           return False
 
+      self.b_bot.move_lin_rel(relative_translation=[0.05, 0, 0], speed=0.2)
       # Go back
-      self.b_bot.go_to_pose_goal(screw_approach, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True)
+      # self.b_bot.go_to_pose_goal(screw_approach, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True)
 
       self.b_bot.go_to_named_pose("horizontal_screw_ready", speed=0.5, acceleration=0.5)
       # self.confirm_to_proceed("Unequip tool?")

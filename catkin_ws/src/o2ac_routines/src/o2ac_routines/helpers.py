@@ -593,7 +593,7 @@ def to_sequence_gripper(action, gripper_opening_width=0.14, gripper_force=40, gr
     "gripper":
             {
               "action": action,
-              "width": gripper_opening_width,
+              "open_width": gripper_opening_width,
               "force": gripper_force,
               "velocity": gripper_velocity,
             }
