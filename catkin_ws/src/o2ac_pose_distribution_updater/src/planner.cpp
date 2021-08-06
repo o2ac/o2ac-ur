@@ -172,14 +172,14 @@ void Planner::calculate_action_candidates(
 
     Eigen::Vector3d current_center = current_mean * center_of_gravity;
     Eigen::Vector2d projected_center = current_center.head<2>();
-    int number_of_push_actions = 10;
+    int number_of_push_actions = 30;
     auto random_array =
         std::move(get_random_array(number_of_push_actions, hull.size()));
     for (int t = 0; t < random_array.size(); t++) {
-      int i = random_array[t];
-      Eigen::Vector2d edge = (hull[i + 1] - hull[i]).normalized();
+      int i = random_array[t], j = (i + 1) % hull.size();
+      Eigen::Vector2d edge = (hull[j] - hull[i]).normalized();
       if (edge.dot(projected_center - hull[i]) < -EPS ||
-          edge.dot(projected_center - hull[i + 1]) > EPS) {
+          edge.dot(projected_center - hull[j]) > EPS) {
         continue;
       }
       Eigen::Vector2d edge_normal;
@@ -189,7 +189,7 @@ void Planner::calculate_action_candidates(
           4.0 * sqrt(pow(edge_normal(0), 2) * covariance(0, 0) +
                      2.0 * edge_normal(0) * edge_normal(1) * covariance(0, 1) +
                      pow(edge_normal(1), 2) * covariance(1, 1) +
-                     pow((hull[i + 1] - hull[i]).norm(), 2) * covariance(5, 5));
+                     pow((hull[j] - hull[i]).norm(), 2) * covariance(5, 5));
       translation << (edge_normal.dot(hull[i]) - sigma_y +
                       gripper_width / 2.0) *
                              edge_normal +

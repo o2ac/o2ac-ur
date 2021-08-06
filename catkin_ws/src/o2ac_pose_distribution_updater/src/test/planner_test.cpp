@@ -35,7 +35,7 @@ void load_grasp_points(const std::string &yaml_file_path,
 
 int main(int argc, char **argv) {
 
-  ros::init(argc, argv, "test_client");
+  ros::init(argc, argv, "planner_test");
   ros::NodeHandle nd;
 
   FILE *config_file =
@@ -63,9 +63,10 @@ int main(int argc, char **argv) {
       "estimator_config.yaml");
   double touch_cost, look_cost, place_cost, grasp_cost, push_cost,
       translation_cost, rotation_cost;
-  fscanf(config_file, "%lf%lf%lf%lf%lf%lf%lf", &touch_cost, &look_cost,
+  int use_moveit;
+  fscanf(config_file, "%lf%lf%lf%lf%lf%lf%lf%d", &touch_cost, &look_cost,
          &place_cost, &grasp_cost, &push_cost, &translation_cost,
-         &rotation_cost);
+         &rotation_cost, &use_moveit);
   boost::array<double, 5> action_cost{touch_cost, look_cost, place_cost,
                                       grasp_cost, push_cost};
 
@@ -85,8 +86,7 @@ int main(int argc, char **argv) {
   };
 
   moveit::planning_interface::MoveGroupInterface robot_group("a_bot");
-
-  ValidityChecker validity_checker =
+  ValidityChecker moveit_validity_checker =
       [&robot_group](const action_type &type,
                      const Eigen::Isometry3d &current_gripper_pose,
                      const Eigen::Isometry3d &target_gripper_pose) -> bool {
@@ -111,14 +111,39 @@ int main(int argc, char **argv) {
 
     return cartesian_success > 0.95;
   };
+  boost::array<bool, 5> able_action;
+  if (!use_moveit) {
+    for (int i = 0; i < 5; i++) {
+      int able;
+      fscanf(config_file, "%d", &able);
+      able_action[i] = (able > 0);
+    }
+  }
+  ValidityChecker type_validity_checker =
+      [&able_action](const action_type &type,
+                     const Eigen::Isometry3d &current_gripper_pose,
+                     const Eigen::Isometry3d &target_gripper_pose) -> bool {
+    return able_action[static_cast<int>(type)];
+  };
 
   planner.set_cost_function(std::make_shared<CostFunction>(cost_function));
-  planner.set_validity_checker(
-      std::make_shared<ValidityChecker>(validity_checker));
+  planner.set_validity_checker(std::make_shared<ValidityChecker>(
+      use_moveit ? moveit_validity_checker : type_validity_checker));
 
-  // set initial pose belief
-  Eigen::Isometry3d initial_mean;
-  scan_pose(initial_mean, config_file);
+  int initially_gripping;
+  fscanf(config_file, "%d", &initially_gripping);
+  Eigen::Isometry3d initial_mean, initial_gripper_pose;
+  if (initially_gripping) {
+    char initial_grasp_name[999];
+    fscanf(config_file, "%999s", initial_grasp_name);
+    initial_mean =
+        (*grasp_points)[name_to_id[std::string(initial_grasp_name)]].inverse();
+    scan_pose(initial_gripper_pose, config_file);
+  } else {
+    // set initial pose belief
+    scan_pose(initial_mean, config_file);
+    initial_gripper_pose = Eigen::Isometry3d::Identity();
+  }
   double support_surface;
   fscanf(config_file, "%lf", &support_surface);
   // set covariance randomly
@@ -160,15 +185,15 @@ int main(int argc, char **argv) {
         (*grasp_points)[name_to_id[std::string(goal_grasp_name)]].inverse();
     std::cerr << goal_pose.matrix() << std::endl;
     actions = planner.calculate_plan(
-        gripped_geometry, grasp_points, Eigen::Isometry3d::Identity(), false,
-        support_surface, initial_mean, initial_covariance,
+        gripped_geometry, grasp_points, initial_gripper_pose,
+        initially_gripping, support_surface, initial_mean, initial_covariance,
         objective_coefficients, objective_value, true,
         check_near_to_goal_pose(goal_pose, translation_threshold,
                                 rotation_threshold));
   } else {
     actions = planner.calculate_plan(
-        gripped_geometry, grasp_points, Eigen::Isometry3d::Identity(), false,
-        support_surface, initial_mean, initial_covariance,
+        gripped_geometry, grasp_points, initial_gripper_pose,
+        initially_gripping, support_surface, initial_mean, initial_covariance,
         objective_coefficients, objective_value);
   }
 
@@ -185,5 +210,6 @@ int main(int argc, char **argv) {
     printf("%d\n", action.type);
     print_pose(action.gripper_pose);
   }
+  printf("%d\n", initially_gripping);
   return 0;
 }

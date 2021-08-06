@@ -90,6 +90,8 @@ int main(int argc, char **argv) {
     actions[t].type = (action_type)type;
     scan_pose(actions[t].gripper_pose, in);
   }
+  int initially_gripping;
+  fscanf(in, "%d", &initially_gripping);
   fclose(in);
 
   Eigen::Isometry3d mean = initial_mean;
@@ -98,10 +100,11 @@ int main(int argc, char **argv) {
   geometry_msgs::PoseWithCovarianceStamped current_pose;
 
   double lifetime = 0.0;
+  std::string robot_name = "a_bot", tip_link = "a_bot_gripper_tip_link";
 
   tf::poseEigenToMsg(mean, current_pose.pose.pose);
   current_pose.pose.covariance = matrix_6x6_to_array_36(covariance);
-  current_pose.header.frame_id = "world";
+  current_pose.header.frame_id = (initially_gripping ? tip_link : "world");
   current_pose.header.stamp = ros::Time::now();
   object->id = "gripped_object";
   send_pose_belief(visualizer_client, *object, 1, lifetime, current_pose);
@@ -111,8 +114,6 @@ int main(int argc, char **argv) {
   // from a launch file.
   // nh.param<std::string>("move_group", movegroup_name, "a_bot");
   // nh.param<std::string>("ee_link", ee_link, "a_bot_ee_link");
-  std::string robot_name = "a_bot", tip_link = "a_bot_gripper_tip_link";
-
   // Dynamic parameter to choose the rate at which this node should run
   double ros_rate;
   nh.param("ros_rate", ros_rate, 0.2); // 0.2 Hz = 5 seconds
@@ -134,9 +135,24 @@ int main(int argc, char **argv) {
       success_plan = moveit_msgs::MoveItErrorCodes::FAILURE,
       motion_done = moveit_msgs::MoveItErrorCodes::FAILURE;
 
-  ros::Duration(10.0).sleep(); // 2 seconds
+  ros::Duration(2.0).sleep(); // 2 seconds
 
-  bool gripper_is_open = true;
+  bool gripper_is_open = !initially_gripping;
+
+  if (gripper_is_open) {
+    gripper_group.setNamedTarget("open");
+    if (gripper_group.move() == moveit_msgs::MoveItErrorCodes::FAILURE) {
+      ROS_ERROR("Initial opening before push failed");
+      return 0;
+    }
+  } else {
+    gripper_group.setNamedTarget("close");
+    if (gripper_group.move() == moveit_msgs::MoveItErrorCodes::FAILURE) {
+      ROS_ERROR("Initial closing failed");
+      return 0;
+    }
+  }
+  loop_rate_->sleep();
 
   const double pushing_length = 0.05, retreat_height = 0.05;
   // const double distance_ee_and_tip = 0.246;
@@ -184,46 +200,26 @@ int main(int argc, char **argv) {
           ROS_ERROR("Closing before push failed");
           break;
         }
-      }
-    } else if (action.type == grasp_action_type && !gripper_is_open) {
-      // if (!skill_server.openGripper(robot_name)) {
-      gripper_group.setNamedTarget("open");
-      if (gripper_group.move() == moveit_msgs::MoveItErrorCodes::FAILURE) {
-        ROS_ERROR("Opening before grasp failed");
-        break;
-      }
-      gripper_is_open = true;
-    }
-
-    if (action.type == place_action_type) {
-      geometry_msgs::PoseStamped high_pose = gripper_pose;
-      high_pose.pose.position.z += retreat_height;
-      if (!skill_server.moveToCartPoseLIN(high_pose, robot_name)) {
-        ROS_ERROR("Moving failed");
-        break;
+        gripper_is_open = false;
       }
       if (!skill_server.moveToCartPoseLIN(gripper_pose, robot_name, true, "",
                                           0.01, 0.01)) {
-        ROS_ERROR("Moving failed");
+        ROS_ERROR("Pushing object failed");
         break;
       }
-    } else {
+    } else if (action.type == grasp_action_type) {
+      if (!gripper_is_open) {
+        // if (!skill_server.openGripper(robot_name)) {
+        gripper_group.setNamedTarget("open");
+        if (gripper_group.move() == moveit_msgs::MoveItErrorCodes::FAILURE) {
+          ROS_ERROR("Opening before grasp failed");
+          break;
+        }
+      }
       if (!skill_server.moveToCartPoseLIN(gripper_pose, robot_name)) {
-        ROS_ERROR("Moving failed");
+        ROS_ERROR("Moving to grasp failed");
         break;
       }
-    }
-
-    if (action.type == place_action_type) {
-      // if (!skill_server.openGripper(robot_name)) {
-      gripper_group.setNamedTarget("open");
-      if (gripper_group.move() == moveit_msgs::MoveItErrorCodes::FAILURE) {
-        ROS_ERROR("Opening to place failed");
-        break;
-      }
-      gripper_is_open = true;
-    }
-    if (action.type == grasp_action_type) {
       gripper_group.setNamedTarget("close");
       // if (!skill_server.closeGripper(robot_name)) {
       if (gripper_group.move() == moveit_msgs::MoveItErrorCodes::FAILURE) {
@@ -231,15 +227,30 @@ int main(int argc, char **argv) {
         break;
       }
       gripper_is_open = false;
-    }
-
-    if (action.type == grasp_action_type) {
       geometry_msgs::PoseStamped high_pose = gripper_pose;
       high_pose.pose.position.z += retreat_height;
       if (!skill_server.moveToCartPoseLIN(high_pose, robot_name)) {
-        ROS_ERROR("Moving failed");
+        ROS_ERROR("Moving after grasp failed");
         break;
       }
+    } else if (action.type == place_action_type) {
+      geometry_msgs::PoseStamped high_pose = gripper_pose;
+      high_pose.pose.position.z += retreat_height;
+      if (!skill_server.moveToCartPoseLIN(high_pose, robot_name)) {
+        ROS_ERROR("Moving to place failed");
+        break;
+      }
+      if (!skill_server.moveToCartPoseLIN(gripper_pose, robot_name, true, "",
+                                          0.01, 0.01)) {
+        ROS_ERROR("Placing down failed");
+        break;
+      }
+      gripper_group.setNamedTarget("open");
+      if (gripper_group.move() == moveit_msgs::MoveItErrorCodes::FAILURE) {
+        ROS_ERROR("Opening to place failed");
+        break;
+      }
+      gripper_is_open = true;
     }
 
     o2ac_msgs::updateDistributionGoal goal;
