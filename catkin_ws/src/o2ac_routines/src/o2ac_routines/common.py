@@ -1967,7 +1967,7 @@ class O2ACCommon(O2ACBase):
 
     result = self.b_bot.do_insertion(target_pose_target_frame, radius=0.0005, 
                                                       insertion_direction="-X", force=8.0, timeout=15.0, 
-                                                      wiggle_direction="Z", wiggle_angle=np.deg2rad(2.0), wiggle_revolutions=1.,
+                                                      wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=1.,
                                                       relaxed_target_by=0.005, selection_matrix=selection_matrix)
     success = (result == TERMINATION_CRITERIA)
 
