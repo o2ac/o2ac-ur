@@ -1,0 +1,12 @@
+# Goal
+geometry_msgs/PointStamped target
+int32 width
+int32 height
+---
+# Result
+---
+# Feedback
+int32 top
+int32 bottom
+int32 left
+int32 right
