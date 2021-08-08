@@ -94,13 +94,16 @@
   <!-- Launch the multiplexer after all cameras have been launched -->
   <group unless="$(eval camera_no != len(camera_names.split(',')))">
 
-    <node unless="$(arg use_nodelet)"
-	  name="$(arg multiplexer_name)"
-	  pkg="aist_camera_multiplexer" type="aist_camera_multiplexer"
-	  output="screen">
-      <rosparam param="camera_names"
-		subst_value="true">[$(arg camera_names)]</rosparam>
-    </node>
+    <group unless="$(arg use_nodelet)">
+      <node name="$(arg multiplexer_name)"
+	    pkg="aist_camera_multiplexer" type="aist_camera_multiplexer"
+	    output="screen">
+	<rosparam param="camera_names"
+		  subst_value="true">[$(arg camera_names)]</rosparam>
+      </node>
+      <node name="camera_watcher"
+	    pkg="o2ac_vision" type="o2ac_camera_watcher.py" output="screen"/>
+    </group>
 
     <group if="$(arg use_nodelet)">
       <node name="$(arg multiplexer_name)"
