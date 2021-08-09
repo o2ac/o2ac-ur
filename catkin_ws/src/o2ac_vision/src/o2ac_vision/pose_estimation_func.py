@@ -1292,3 +1292,96 @@ class ScrewHoleCheck_():
 
 
         return im_vis
+
+#####################################################
+# Sample code
+#
+# radius = 46
+# scd = ScrewHoleDetector( img, radius )
+# hole_centers = scd.main_proc()
+#
+# plt.imshow( scd.get_visualization() )
+#####################################################
+class ScrewHoleDetector():
+    def __init__( self, im_in, c_radius, 
+                        hole_min_radius=3, 
+                        hole_max_radius=10 ):
+        """ Screw holes detector
+            This class assumes that screw holes arranged in a circle
+            Args:
+                im_in(np.array): input image (3ch)
+                c_radius(int): circle radius (not a hole radius ) in pixel
+                hole_min_radius(int): hole min radius to be detected
+                hole_max_radius(int): hole max radius to be detected
+
+        """
+        if im_in.ndim == 3:
+            im_in = cv2.cvtColor( im_in, cv2.COLOR_RGB2GRAY )
+        self.im_in = im_in.copy()
+
+        self.c_radius = c_radius
+        self.hole_min_radius = hole_min_radius
+        self.hole_max_radius = hole_max_radius
+
+        
+        self.cand_circles = cv2.HoughCircles( self.im_in, 
+                            cv2.HOUGH_GRADIENT,
+                            dp=2,  
+                            minDist=2*self.hole_max_radius, #検出される円の中心同士の最小距離．
+                            param1=200, #Canny() エッジ検出器に渡される2つの閾値の内，大きい方の閾値
+                            param2=20, #円の中心を検出する際の投票数の閾値
+                            minRadius=self.hole_min_radius,  #円の半径の最小値
+                            maxRadius=self.hole_max_radius #円の半径の最大値
+                            )
+
+        self.im_score = np.zeros( self.im_in.shape )
+        self.cand_centers = np.asarray( self.cand_circles[0,:,:2] )
+        self.valid_centers = None # final result. circle positions(x,y)
+
+    def main_proc(self):
+        """
+        Args:
+        Return:
+          n screw hole position in pixels (n,2). 
+          position is (x,y) 
+        """
+        # circle image shape of (n_circles, imy, imx, n_circles)
+        im_circles = np.zeros( (self.cand_centers.shape[0], 
+                                self.im_in.shape[0], 
+                                self.im_in.shape[1]) )
+
+        for i, c in enumerate(self.cand_centers):
+            cv2.circle( im_circles[i], (c[0], c[1]), self.c_radius, 1, 2 )
+
+        for im in im_circles:
+            self.im_score += im
+
+        
+        # get maximum coordinate
+        loc = np.unravel_index(self.im_score.argmax(), self.im_score.shape)
+
+        valid_circles = list()
+        for i in range(self.cand_centers.shape[0]):
+            if im_circles[i,loc[0], loc[1]] == 1:
+                valid_circles.append( self.cand_centers[i] )
+        self.valid_circles = np.asarray( valid_circles )
+
+        return self.valid_circles.astype(np.int)
+
+    def get_visualization( self ):
+
+
+        im_vis = cv2.cvtColor( self.im_in, cv2.COLOR_GRAY2BGR )
+        # draw_candidate circles
+        circles = np.uint16(np.around(self.cand_circles))
+        for i in circles[0,:]:
+            # draw the outer circle
+            cv2.circle(im_vis,(i[0],i[1]),i[2],(255,0,0),1)
+            # draw the center of the circle
+            cv2.circle(im_vis,(i[0],i[1]),2,(255,0,0),2)
+
+        # draw valid circles
+        for c in self.valid_circles:
+            cv2.circle(im_vis,(c[0],c[1]),5,(0,255,0),2)
+
+        return im_vis
