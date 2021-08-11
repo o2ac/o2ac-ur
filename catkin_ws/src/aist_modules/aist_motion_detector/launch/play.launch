@@ -4,70 +4,10 @@
   <arg name="bag_file"		default="2021-7-16-cable-view-raw-b.bag"/>
   <arg name="data_dir"		default="$(env HOME
 					 )/o2ac-ur/catkin_ws/src/data"/>
-  <arg name="camera_name"	default="b_bot_outside_camera"/>
-
-  <param name="use_sim_time"	value="true"/>
-
+  <arg name="rate"		default="0.5"/>
+  
+  <!-- Play rosbag file -->
   <node name="rosbag_play" pkg="rosbag" type="play" output="screen"
-	args="-l $(arg data_dir)/$(arg bag_file)"/>
-
-  <include file="$(find aist_depth_filter)/launch/run.launch">
-    <arg name="camera_info_topic"
-	 value="$(arg camera_name)_throttled/color/camera_info"/>
-    <arg name="image_topic"
-	 value="$(arg camera_name)_throttled/color/image_raw"/>
-    <arg name="depth_topic"
-	 value="$(arg camera_name
-		)_throttled/aligned_depth_to_color/image_raw"/>
-    <arg name="normal_topic"		value=""/>
-  </include>
-
-  <include file="$(dirname)/run.launch">
-    <arg name="camera_info_topic"	value="depth_filter/camera_info"/>
-    <arg name="image_topic"		value="depth_filter/image"/>
-    <arg name="depth_topic"		value="depth_filter/depth"/>
-  </include>
-
-  <include file="$(find aist_handeye_calibration
-		 )/launch/publish_calibration.launch">
-    <arg name="camera_name"	value="$(arg camera_name)"/>
-  </include>
-
-  <!-- Load the URDF, SRDF and other .yaml configuration files on the param
-       server -->
-  <include file="$(find o2ac_scene_description
-		 )/launch/base_scene_upload.launch"/>
-
-  <!-- Load parameters for all controllers from YAML file -->
-  <!-- <rosparam file="$(dirname)/../config/controllers.yaml"/> -->
-  <!-- <node name="controller_spawner" -->
-  <!--       pkg="controller_manager" type="spawner" respawn="false" output="screen" -->
-  <!-- 	args="joint_state_controller"/> -->
-
-  <!-- <include file="$(find o2ac_moveit_config)/launch/planning_context.launch"> -->
-  <!--   <arg name="load_robot_description" value="true"/> -->
-  <!-- </include> -->
-
-  <node name="joint_state_publisher"
-  	pkg="joint_state_publisher" type="joiint_state_publisher"
-  	respawn="true" output="screen" />
-
-  <!-- Given the published joint states, publish tf for the robot links -->
-  <node name="robot_state_publisher"
-  	pkg="robot_state_publisher" type="robot_state_publisher"
-  	respawn="true" output="screen" />
-
-  <!-- Run the main MoveIt executable without trajectory execution (we do not have controllers configured by default) -->
-  <!-- <include file="$(find o2ac_moveit_config)/launch/move_group.launch"> -->
-  <!--   <arg name="allow_trajectory_execution"	value="true"/> -->
-  <!--   <arg name="fake_execution"			value="true"/> -->
-  <!--   <arg name="info"				value="true"/> -->
-  <!--   <arg name="pipeline"			value="ompl"/> -->
-  <!-- </include> -->
-
-  <!-- Run Rviz and load the default config to see the state of the move_group node -->
-  <node name="$(anon rviz)" pkg="rviz" type="rviz" output="screen"
-	args="-d $(dirname)/play.rviz"/>
-  <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure"/>
+	args="-r $(arg rate) --clock $(arg data_dir)/$(arg bag_file)"/>
 
 </launch>

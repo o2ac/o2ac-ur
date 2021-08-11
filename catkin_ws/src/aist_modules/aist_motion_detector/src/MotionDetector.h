@@ -10,10 +10,12 @@
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
+#include <tf/transform_listener.h>
 #include <actionlib/server/simple_action_server.h>
 #include <ddynamic_reconfigure/ddynamic_reconfigure.h>
 #include <opencv2/core.hpp>
 #include <opencv2/bgsegm.hpp>
+#include <aist_motion_detector/DetectMotionAction.h>
 
 namespace aist_motion_detector
 {
@@ -33,6 +35,7 @@ class MotionDetector
 						image_t, image_t>;
     using bgsub_p	 = cv::Ptr<cv::BackgroundSubtractor>;
 
+    
   public:
 		MotionDetector(const ros::NodeHandle& nh)		;
 		~MotionDetector()					;
@@ -40,9 +43,13 @@ class MotionDetector
     void	run()							;
 
   private:
-  // Service callbacks
-    bool	select_cb(std_srvs::Trigger::Request&  req,
-			  std_srvs::Trigger::Response& res)		;
+  // action callbacks
+    void	goal_cb()						;
+    void	preempt_cb()						;
+
+  // topic callbacks
+    void	image_cb(const camera_info_cp& camera_info,
+			 const image_cp& image, const image_cp& depth)	;
 
   // ddynamic_reconfigure callbacks
     void	set_sequential_mode_cb(bool enable)			;
@@ -50,34 +57,36 @@ class MotionDetector
     void	set_param_cb(T MotionDetector::* field, T value,
 			     bool select)				;
 
-  // topic callbacks
-    void	image_cb(const camera_info_cp& camera_info,
-			 const image_cp& image, const image_cp& depth)	;
-
-  // action callbacks
-    void	goal_cb()						;
-    void	preempt_cb()						;
-
+  // utility functions
+    cv::Point2f	project_point(const geometry_msgs::PointStamped& point,
+			      const camera_info_cp& camera_info) const	;
+    cv::Mat	create_roi(const cv::Mat& image, const cv::Point& point,
+			   cv::Point& top_left)			const	;
+    
   private:
     ros::NodeHandle					_nh;
 
-    const ros::ServiceServer				_select_srv;
-
     image_transport::ImageTransport			_it;
-
     image_transport::SubscriberFilter			_image_sub;
     image_transport::SubscriberFilter			_depth_sub;
     message_filters::Subscriber<camera_info_t>		_camera_info_sub;
     message_filters::Synchronizer<sync_policy_t>	_sync;
-
     const image_transport::CameraPublisher		_camera_pub;
     const image_transport::Publisher			_image_pub;
+
+    const tf::TransformListener				_listener;
+
+    actionlib::SimpleActionServer<DetectMotionAction>	_detect_motion_srv;
+    DetectMotionGoalConstPtr				_current_goal;
 
   // Motion detector parameters and dynamic_reconfigure server for setting them
     ddynamic_reconfigure::DDynamicReconfigure		_ddr;
 
   // Motion detector stuffs
     bgsub_p						_bgsub;
+    int							_search_width;
+    int							_search_height;
+    int							_search_offset;
 };
 
 }	// namespace aist_motion_detector

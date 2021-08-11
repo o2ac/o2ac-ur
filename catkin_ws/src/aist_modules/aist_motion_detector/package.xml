@@ -14,12 +14,14 @@
 
   <depend>roscpp</depend>
   <depend>rospy</depend>
+  <depend>image_transport</depend>
+  <depend>tf</depend>
+  <depend>ddynamic_reconfigure</depend>
   <depend>actionlib</depend>
   <depend>actionlib_msgs</depend>
-  <depend>ddynamic_reconfigure</depend>
   <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
   <depend>cv_bridge</depend>
-  <depend>image_transport</depend>
   <depend>pluginlib</depend>
   <depend>nodelet</depend>
 
