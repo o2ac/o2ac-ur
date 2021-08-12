@@ -1031,6 +1031,8 @@ class O2ACBase(object):
       ps_in_holder.pose.position.x = 0.01
     elif tool_name == "set_screw_tool":
       ps_in_holder.pose.position.x = 0.02
+    if robot_name == "a_bot":
+      ps_in_holder.pose.position.x += 0.01  # Grasp deeper with a_bot to compensate for lack of strength in 2F-140 gripper
 
     if unequip or realign:
       ps_in_holder.pose.position.x -= 0.001   # Don't move all the way into the magnet to place
