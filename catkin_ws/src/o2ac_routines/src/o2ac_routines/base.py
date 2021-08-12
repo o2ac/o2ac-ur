@@ -87,7 +87,10 @@ class AssemblyStatus(object):
   """
   def __init__(self):
     # rospy.get_param("/last_assembly_status", False)
-    self.tray_placed_on_table = False
+    self.tray_placed_on_table = True
+
+    self.bearing_panel_placed_outside_of_tray = False
+    self.motor_panel_placed_outside_of_tray = False
 
     self.belt_placed_outside_of_tray = False
     self.motor_placed_outside_of_tray = False
@@ -251,6 +254,7 @@ class O2ACBase(object):
     rospy.sleep(0.5) # Wait half a second for the detach to finish so that we can remove the object
     self.planning_scene_interface.remove_world_object()  # Clear all objects
     self.publish_robot_status()
+    self.reset_assembly_visualization()
 
   @check_for_real_robot
   def activate_led(self, LED_name="b_bot", on=True):

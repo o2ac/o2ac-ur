@@ -221,12 +221,14 @@ if __name__ == '__main__':
         target_pose.header.frame_id = 'move_group/base/screw_hole_panel2_1'
         target_pose.pose.orientation.w = 1
         c.fasten_screw('b_bot', target_pose)
+      elif i == '9012': # Both L-plates and base plate
+        c.panels_tasks_combined()
       elif i == '90':
         c.subtask_zero() # Base plate
       elif i == '91':
-        c.subtask_g()  # Large plate
-      elif i == '911':
-        c.get_large_item_position_from_top("panel_bearing", "a_bot")  # Large plate
+        c.subtask_g()  # Bearing plate
+      elif i == '91look':
+        c.get_large_item_position_from_top("panel_bearing", "a_bot")
       elif i == '92':
         c.subtask_f()  # Motor plate
       elif i == '93':
@@ -313,14 +315,6 @@ if __name__ == '__main__':
         c.check_output_pulley_angle()
       elif i == "cb1":
         c.check_motor_pulley_angle()
-      elif i == '102':
-        b_bot_script_start_pose = [1.7094888, -1.76184906, 2.20651847, -2.03368343, -1.54728252, 0.96213197]
-        c.move_joints("b_bot", b_bot_script_start_pose)
-        
-        # force = 1.0 #N
-        # direction = '-X'
-
-        # c.b_bot.linear_push(initial_pose=b_bot_starting_position, force=force, direction=direction, timeout=20.0)
       elif i == "print":  # Print collision objects
         c.print_objects_in_tray()
       elif i == "endcap":
@@ -342,8 +336,24 @@ if __name__ == '__main__':
           break
         rospy.loginfo("Starting new set")
         c.full_assembly_task()
-      elif i == "single":
-        c.single_assembly_task()
+      elif i == "single2020":
+        c.assembly_status.tray_placed_on_table = True
+        c.set_assembly("wrs_assembly_2020")
+        c.assemble_drive_unit()
+      elif i == "single2021":
+        c.assembly_status.tray_placed_on_table = True
+        c.set_assembly("wrs_assembly_2021")
+        c.assemble_drive_unit()
+      elif i == "load2020":
+        c.assembly_status.tray_placed_on_table = True
+        c.set_assembly("wrs_assembly_2020")
+      elif i == "load2021":
+        c.assembly_status.tray_placed_on_table = True
+        c.set_assembly("wrs_assembly_2021")
+      elif i == "placemotorpanel":
+        c.place_panel("a_bot", "panel_motor", fake_position=True)
+      elif i == "placebearingpanel":
+        c.place_panel("a_bot", "panel_bearing", fake_position=True)
       if i == "reset":
         c.reset_scene_and_robots()
         c.reset_assembly_visualization()
@@ -351,6 +361,9 @@ if __name__ == '__main__':
         c.unload_drive_unit()
         c.return_tray_to_agv_stack_calibration_long_side("tray1")
       if i == 'carry':
+        c.pick_tray_from_agv_stack_calibration_long_side("tray1")
+      if i == 'carryhigh':
+        c.center_tray_stack()
         c.pick_tray_from_agv_stack_calibration_long_side("tray1")
       if i == "activate":
         c.a_bot.activate_ros_control_on_ur()
