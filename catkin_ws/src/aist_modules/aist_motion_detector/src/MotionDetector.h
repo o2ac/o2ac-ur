@@ -58,10 +58,8 @@ class MotionDetector
 			     bool select)				;
 
   // utility functions
-    cv::Point2f	project_point(const geometry_msgs::PointStamped& point,
-			      const camera_info_cp& camera_info) const	;
-    cv::Mat	create_roi(const cv::Mat& image, const cv::Point& point,
-			   cv::Point& top_left)			const	;
+    void	set_roi(cv::Mat& image, const std::string& target_frame,
+			const camera_info_cp& camera_info)	 const	;
     
   private:
     ros::NodeHandle					_nh;
@@ -84,9 +82,8 @@ class MotionDetector
 
   // Motion detector stuffs
     bgsub_p						_bgsub;
-    int							_search_width;
-    int							_search_height;
-    int							_search_offset;
+    double						_search_width;
+    double						_search_height;
 };
 
 }	// namespace aist_motion_detector

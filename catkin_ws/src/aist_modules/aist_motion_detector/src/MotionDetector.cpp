@@ -37,9 +37,8 @@ MotionDetector::MotionDetector(const ros::NodeHandle& nh)
      _current_goal(nullptr),
      _ddr(_nh),
      _bgsub(cv::createBackgroundSubtractorMOG2()),
-     _search_width(_nh.param("search_width", 150)),
-     _search_height(_nh.param("search_height", 150)),
-     _search_offset(_nh.param("search_offset", 50))
+     _search_width(_nh.param("search_width", 0.040)),
+     _search_height(_nh.param("search_height", 0.030))
 {
   // Setup DetectMotion action server.
     _detect_motion_srv.registerGoalCallback(boost::bind(&goal_cb, this));
@@ -50,12 +49,12 @@ MotionDetector::MotionDetector(const ros::NodeHandle& nh)
     _sync.registerCallback(&image_cb, this);
 
   // Setup parameters and ddynamic_reconfigure server.
-    _ddr.registerVariable<int>("search_width", &_search_width,
-			       "Width of search area in pixels", 10, 250);
-    _ddr.registerVariable<int>("search_height", &_search_height,
-			       "Height of search area in pixels", 10, 250);
-    _ddr.registerVariable<int>("search_offset", &_search_offset,
-			       "Height of search area in pixels", 0, 150);
+    _ddr.registerVariable<double>("search_width", &_search_width,
+				  "Width of search area in meters",
+				  0.005, 0.08);
+    _ddr.registerVariable<double>("search_height", &_search_height,
+				  "Height of search area in meters",
+				  0.005, 0.08);
     _ddr.publishServicesTopics();
 }
 
@@ -74,7 +73,7 @@ MotionDetector::goal_cb()
 {
     _current_goal = _detect_motion_srv.acceptNewGoal();
     ROS_INFO_STREAM("(MotionDetector) Given a goal["
-		    << _current_goal->target.header.frame_id << ']');
+		    << _current_goal->target_frame << ']');
 }
 
 void
@@ -100,14 +99,20 @@ MotionDetector::image_cb(const camera_info_cp& camera_info,
     }
 
   // Project target position onto the image.
-    cv::Point			p;
-    cv_bridge::CvImageConstPtr	cv_img;
     try
     {
-	const auto pt2 = project_point(_current_goal->target, camera_info);
-	p.x = int(pt2.x + 0.5f);
-	p.y = int(pt2.y + 0.5f);
-	cv_img = cv_bridge::toCvShare(image, image_encodings::RGB8);
+	const auto cv_img = cv_bridge::toCvShare(image, image_encodings::RGB8);
+	
+      // Update the background model.
+	cv_bridge::CvImage	cv_mask;
+	_bgsub->apply(cv_img->image, cv_mask.image);
+
+	set_roi(cv_mask.image, _current_goal->target_frame, camera_info);
+
+      // Publishe masked ROI.
+	cv_mask.encoding = "mono8";
+	cv_mask.header   = image->header;
+	_image_pub.publish(cv_mask.toImageMsg());
     }
     catch (const tf::TransformException& err)
     {
@@ -121,71 +126,51 @@ MotionDetector::image_cb(const camera_info_cp& camera_info,
 			 << err.what());
 	return;
     }
-
-  // Update the background model.
-    cv::Mat	mask;
-    _bgsub->apply(cv_img->image, mask);
-
-    cv::Point	top_left;
-    p.y += _search_offset;
-    const auto	roi = create_roi(mask, p, top_left);
-    
-    cv_bridge::CvImage	cv_mask;
-    cv::cvtColor(mask, cv_mask.image, cv::COLOR_GRAY2RGB);
-    cv::drawMarker(cv_mask.image, p, cv::Scalar(255, 0, 0));
-    const cv::Point	corners[]
-			    = {{top_left.x,	       top_left.y},
-			       {top_left.x+roi.cols-1, top_left.y},
-			       {top_left.x+roi.cols-1, top_left.y+roi.rows-1},
-			       {top_left.x,	       top_left.y+roi.rows-1}};
-    const cv::Point*	contour[] = {corners};
-    const int		npoints = 4;
-    cv::polylines(cv_mask.image, contour, &npoints, 1, true,
-		  cv::Scalar(255, 0, 0), 4);
-    cv_mask.encoding = "rgb8";
-    cv_mask.header = image->header;
-    _image_pub.publish(cv_mask.toImageMsg());
 }
 
-cv::Point2f
-MotionDetector::project_point(const geometry_msgs::PointStamped& point,
-			      const camera_info_cp& camera_info) const
+void
+MotionDetector::set_roi(cv::Mat& image, const std::string& target_frame,
+			const camera_info_cp& camera_info) const
 {
-  // Transform the given point to camera frame.
-    _listener.waitForTransform(camera_info->header.frame_id,
-			       point.header.frame_id,
+    using point2_t = cv::Point2f;
+    using point3_t = cv::Point3f;
+    using point_t  = cv::Point;
+
+  // Get transform from the target frame to camera frame.
+    _listener.waitForTransform(camera_info->header.frame_id, target_frame,
 			       camera_info->header.stamp, ros::Duration(1.0));
-    tf::Stamped<tf::Point>	p;
-    pointStampedMsgToTF(point, p);
-    p.stamp_ = camera_info->header.stamp;
-    _listener.transformPoint(camera_info->header.frame_id, p, p);
+    tf::StampedTransform	Tct;
+    _listener.lookupTransform(camera_info->header.frame_id, target_frame,
+			      camera_info->header.stamp, Tct);
 
-  // Convert the transformed point to OpenCV format.
-    cv::Mat_<cv::Point3f>	pt3(1, 1);
-    pt3(0) = pointTFToCV(p);
-
-  // Project inner boundary vertices onto image.
-    cv::Mat_<float>		K(3, 3);
+  // Transfrom mask corners to camera frame.
+    const tf::Point	corners[] = {{0.0,	      0.0, -_search_width/2},
+				     {0.0,	      0.0,  _search_width/2},
+				     {_search_height, 0.0,  _search_width/2},
+				     {_search_height, 0.0, -_search_width/2}};
+    cv::Mat_<point3_t>	pt3s(1, 4);
+    for (size_t i = 0; i < 4; ++i)
+	pt3s(i) = pointTFToCV(Tct * corners[i]);
+    
+  // Project mask corners onto the image.
+    cv::Mat_<float>	K(3, 3);
     std::copy_n(std::begin(camera_info->K), 9, K.begin());
-    cv::Mat_<float>		D(1, 4);
+    cv::Mat_<float>	D(1, 4);
     std::copy_n(std::begin(camera_info->D), 4, D.begin());
     const auto		zero = cv::Mat_<float>::zeros(1, 3);
-    cv::Mat_<cv::Point2f>	pt2(1, 1);
-    cv::projectPoints(pt3, zero, zero, K, D, pt2);
+    cv::Mat_<point2_t>	pt2s(1, 4);
+    cv::projectPoints(pt3s, zero, zero, K, D, pt2s);
 
-    return pt2(0);
+  // Mask 
+    const point_t	outer[]	  = {{0,	    0},
+				     {image.cols-1, 0},
+				     {image.cols-1, image.rows-1},
+				     {0,	    image.rows-1}};
+    const point_t	inner[]	  = {pt2s(0, 0), pt2s(0, 1),
+				     pt2s(0, 2), pt2s(0, 3)};
+    const point_t*	borders[] = {outer, inner};
+    const int		npoints[] = {4, 4};
+    cv::fillPoly(image, borders, npoints, 2, cv::Scalar(0), cv::LINE_8);
 }
-
-cv::Mat
-MotionDetector::create_roi(const cv::Mat& image,
-			   const cv::Point& center, cv::Point& top_left) const
-{
-    top_left.x = std::max(center.x - _search_width/2,  0);
-    top_left.y = std::max(center.y - _search_height/2, 0);
-    return image(cv::Rect(top_left.x, top_left.y,
-			  std::min(_search_width,  image.cols - top_left.x),
-			  std::min(_search_height, image.rows - top_left.y)));
-}
-    
     
 }	// namespace aist_motion_detector
