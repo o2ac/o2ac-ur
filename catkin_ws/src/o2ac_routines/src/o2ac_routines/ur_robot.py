@@ -18,7 +18,7 @@ from o2ac_routines import helpers
 
 
 class URRobot(RobotBase):
-    def __init__(self, namespace, tf_listener):
+    def __init__(self, namespace, tf_listener, markers_scene):
         """
         namespace should be "a_bot" or "b_bot".
         use_real_robot is a boolean
@@ -63,7 +63,7 @@ class URRobot(RobotBase):
         self.robot_safety_mode = None
         self.robot_status = dict()
 
-        self.gripper = RobotiqGripper(namespace=self.ns, gripper_group=self.gripper_group)
+        self.gripper = RobotiqGripper(namespace=self.ns, gripper_group=self.gripper_group, markers_scene=markers_scene)
 
     def safety_mode_callback(self, msg):
         self.robot_safety_mode = msg.mode

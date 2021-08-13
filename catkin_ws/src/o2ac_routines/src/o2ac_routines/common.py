@@ -1700,6 +1700,7 @@ class O2ACCommon(O2ACBase):
 
     bearing_pose = copy.deepcopy(goal)
     bearing_pose.pose.position.z -= 0.01
+    self.markers_scene.spawn_item("bearing", bearing_pose)
     # self.spawn_object("bearing", bearing_pose)
     self.planning_scene_interface.allow_collisions("bearing", "")
 
@@ -1944,6 +1945,7 @@ class O2ACCommon(O2ACBase):
 
     motor_pulley_pose = copy.deepcopy(goal)
     motor_pulley_pose.pose.position.z = 0.005
+    self.markers_scene.spawn_item("motor_pulley", motor_pulley_pose)
     # self.spawn_object("motor_pulley", motor_pulley_pose)
     self.planning_scene_interface.allow_collisions("motor_pulley", "")
     self.vision.activate_camera("b_bot_inside_camera")
@@ -2028,6 +2030,7 @@ class O2ACCommon(O2ACBase):
   
     idler_pulley_pose = copy.deepcopy(object_pose)
     idler_pulley_pose.pose.position.z = 0.025
+    self.markers_scene.spawn_item("taskboard_idler_pulley_small", idler_pulley_pose)
     # self.spawn_object("taskboard_idler_pulley_small", idler_pulley_pose)
     self.planning_scene_interface.allow_collisions("taskboard_idler_pulley_small", "")
     
@@ -2380,10 +2383,9 @@ class O2ACCommon(O2ACBase):
     gp[2] = 0.005
     euler_gp = tf_conversions.transformations.euler_from_quaternion(gp[3:])
     shaft_pose = conversions.to_pose_stamped("tray_center", gp[:3].tolist() + [0, 0, -tau/2-euler_gp[0]])
-    # mk = self.assembly_database.get_visualization_marker("shaft", pose=shaft_pose.pose, frame_id=shaft_pose.header.frame_id)
-    # self.assembly_marker_publisher.publish(mk)
+    self.markers_scene.spawn_item("shaft", shaft_pose)
     # self.spawn_object("shaft", shaft_pose)
-    self.planning_scene_interface.allow_collisions("shaft", "")
+    # self.planning_scene_interface.allow_collisions("shaft", "")
     
     goal.pose.position.z = 0.001 # Magic Numbers for grasping
     goal.pose.position.x -= 0.01

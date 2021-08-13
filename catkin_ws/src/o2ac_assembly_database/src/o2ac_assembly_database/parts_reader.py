@@ -60,14 +60,14 @@ class PartsReader(object):
     The grasp data for each object can be published to the parameter server.
     '''
 
-    def __init__(self, db_name=""):
+    def __init__(self, db_name="", load_meshes=True):
         self._rospack = rospkg.RosPack()
         self.db_name = db_name
         if self.db_name:
-            self.load_db(db_name)
+            self.load_db(db_name, load_meshes=load_meshes)
         
 
-    def load_db(self, db_name):
+    def load_db(self, db_name, load_meshes=True):
         '''
         Switch between assemblies
         '''
@@ -76,13 +76,14 @@ class PartsReader(object):
         self._directory = os.path.join(self._rospack.get_path('o2ac_assembly_database'), 'config', db_name)
         self._parts_list = self._read_parts_list()
         self._collision_objects, self._grasps, self._mesh_filepaths = self.get_collision_objects_with_metadata()
+        self.load_meshes = load_meshes 
         rospy.loginfo("Done loading parts database " + db_name)
     
     def get_collision_object(self, object_name):
         '''
         This returns the collision object (including subframes) for an object_name.
         '''
-        for c_obj in self._collision_objects:
+        for i, c_obj in enumerate(self._collision_objects):
             if c_obj.id == object_name:
                 # Create copy to avoid modifying the original
                 c_new = moveit_msgs.msg.CollisionObject()
@@ -95,6 +96,8 @@ class PartsReader(object):
                 c_new.id = c_obj.id
                 c_new.primitives = c_obj.primitives
                 c_new.primitive_poses = c_obj.primitive_poses
+                if self.load_meshes and not c_obj.meshes: # lazy loading of meshes
+                    c_obj.meshes = [self._read_mesh(self._mesh_filepaths[i], (0.001, 0.001, 0.001))]
                 c_new.meshes = c_obj.meshes
                 c_new.mesh_poses = c_obj.mesh_poses
                 c_new.planes = c_obj.planes
@@ -105,7 +108,7 @@ class PartsReader(object):
         rospy.logerr("Could not find collision object with id " + str(object_name))
         return None
     
-    def get_visualization_marker(self, object_name, pose, frame_id, color=None, lifetime=0, frame_locked=True):
+    def get_visualization_marker(self, object_name, pose, frame_id, color=None, lifetime=0, frame_locked=False):
         """ Returns a visualization marker of the object on a given pose. """
         for (c_obj, mesh_filepath) in zip(self._collision_objects, self._mesh_filepaths):
             if c_obj.id == object_name:
@@ -363,13 +366,23 @@ class PartsReader(object):
         This function does not need to create a 'PlanningSceneInterface' object in order to work
         '''
         # Set the properties apart from the mesh
+        co = self._make_collision_object_without_mesh(name, pose)
+        co.meshes = [self._read_mesh(filename, scale)]
+        return co
+
+    def _make_collision_object_without_mesh(self, name, pose):
+        '''
+        Reimplementation of '__make_mesh()' function from 'moveit_commander/planning_scene_interface.py'
+
+        This function does not need to create a 'PlanningSceneInterface' object in order to work
+        '''
+        # Set the properties apart from the mesh
         co = moveit_msgs.msg.CollisionObject()
         co.operation = moveit_msgs.msg.CollisionObject.ADD
         co.id = name
         co.pose.orientation.w = 1.0
         co.header = pose.header
         co.mesh_poses = [pose.pose]
-        co.meshes = [self._read_mesh(filename, scale)]
         
         return co
 
@@ -411,7 +424,8 @@ class PartsReader(object):
             
             posestamped.pose = collision_object_pose
 
-            collision_object = self._make_collision_object_from_mesh(part['name'], posestamped, mesh_filepath, scale=(0.001, 0.001, 0.001))
+            collision_object = self._make_collision_object_without_mesh(part['name'], posestamped)
+            # collision_object = self._make_collision_object_from_mesh(part['name'], posestamped, mesh_filepath, scale=(0.001, 0.001, 0.001))
 
             collision_object.subframe_names = subframe_names
             collision_object.subframe_poses = subframe_poses

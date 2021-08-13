@@ -44,6 +44,7 @@ from moveit_commander import robot
 from o2ac_routines import helpers
 from o2ac_routines.helpers import save_task_plan
 from o2ac_routines.dual_arm import DualArm
+from o2ac_routines.markers_scene import MarkersScene
 import rospy
 import rospkg
 import tf_conversions
@@ -148,11 +149,12 @@ class O2ACBase(object):
     
     self.assembly_database = AssemblyReader()
     self.assembly_status = AssemblyStatus()
+    self.markers_scene = MarkersScene(self.listener)
     # TODO: Get current AssemblyStatus from param server
 
     # Action clients and movegroups
-    self.a_bot = URRobot("a_bot", self.listener)
-    self.b_bot = URRobot("b_bot", self.listener)
+    self.a_bot = URRobot("a_bot", self.listener, self.markers_scene)
+    self.b_bot = URRobot("b_bot", self.listener, self.markers_scene)
     self.ab_bot = DualArm("ab_bot", self.a_bot, self.b_bot, self.listener)
     # For compatibility let's wrap the robots
     self.active_robots = {'a_bot': self.a_bot, 'b_bot': self.b_bot, 'ab_bot': self.ab_bot}
@@ -255,6 +257,7 @@ class O2ACBase(object):
     self.planning_scene_interface.remove_world_object()  # Clear all objects
     self.publish_robot_status()
     self.reset_assembly_visualization()
+    self.markers_scene.delete_all()
 
   @check_for_real_robot
   def activate_led(self, LED_name="b_bot", on=True):

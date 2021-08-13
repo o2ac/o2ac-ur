@@ -1,21 +1,24 @@
 import actionlib
+from o2ac_assembly_database.parts_reader import PartsReader
 from o2ac_routines import helpers
 import rospy
 import robotiq_msgs.msg
 import numpy as np
-
+import visualization_msgs.msg
 from ur_control.controllers import GripperController  # Simulation only
 
 
 class RobotiqGripper():
-    def __init__(self, namespace, gripper_group):
+    def __init__(self, namespace, gripper_group, markers_scene):
         self.use_real_robot = rospy.get_param("use_real_robot", False)
         self.ns = namespace
         self.gripper_group = gripper_group
 
+        self.markers_scene = markers_scene
+
         self.opening_width = 0.0
 
-        self.last_attached_object = None
+        self.last_attached_object = None 
 
         # Gripper
         if self.use_real_robot:
@@ -143,16 +146,20 @@ class RobotiqGripper():
         return res
 
     def attach_object(self, object_to_attach=None, attach_to_link=None):
+        if not self.last_attached_object and not object_to_attach:
+            return
         try:
             to_link = self.ns + "_ee_link" if attach_to_link is None else attach_to_link
-            self.gripper_group.attach_object(object_to_attach, to_link,
-                                             touch_links=[self.ns + "_gripper_tip_link",
-                                                          self.ns + "_left_inner_finger_pad",
-                                                          self.ns + "_left_inner_finger",
-                                                          self.ns + "_left_inner_knuckle",
-                                                          self.ns + "_right_inner_finger_pad",
-                                                          self.ns + "_right_inner_finger",
-                                                          self.ns + "_right_inner_knuckle"])
+
+            # self.gripper_group.attach_object(object_to_attach, to_link,
+            #                                  touch_links=[self.ns + "_gripper_tip_link",
+            #                                               self.ns + "_left_inner_finger_pad",
+            #                                               self.ns + "_left_inner_finger",
+            #                                               self.ns + "_left_inner_knuckle",
+            #                                               self.ns + "_right_inner_finger_pad",
+            #                                               self.ns + "_right_inner_finger",
+            #                                               self.ns + "_right_inner_knuckle"])
+            self.markers_scene.attach_item(object_to_attach, to_link)
             self.last_attached_object = object_to_attach
         except Exception as e:
             rospy.logerr(object_to_attach + " could not be attached! robot_name = " + self.ns)
@@ -160,7 +167,8 @@ class RobotiqGripper():
 
     def detach_object(self, object_to_detach):
         try:
-            self.gripper_group.detach_object(object_to_detach)
+            self.markers_scene.detach_item(object_to_detach)
+            # self.gripper_group.detach_object(object_to_detach)
         except Exception as e:
             rospy.logerr(object_to_detach + " could not be detached! robot_name = " + self.ns)
             print(e)
