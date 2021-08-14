@@ -1069,16 +1069,14 @@ class O2ACBase(object):
     # Its collision with the parent link is set to allowed in the original planning scene.
     if equip:
       robot.gripper.close()
-      # self.active_robots[robot_name].gripper.attach_object(tool_name)
-      self.attach_collision_object(robot_name, tool_name)
+      self.active_robots[robot_name].gripper.attach_object(tool_name, with_collisions=True)
       self.allow_collisions_with_robot_hand(tool_name, robot_name)
       robot.robot_status.carrying_tool = True
       robot.robot_status.held_tool_id = tool_name
       self.publish_robot_status()
     elif unequip:
       robot.gripper.open(opening_width=0.06)
-      # self.active_robots[robot_name].gripper.detach_object(tool_name)
-      self.detach_collision_object(robot_name, tool_name)
+      self.active_robots[robot_name].gripper.detach_object(tool_name)
       self.planning_scene_interface.remove_attached_object(name=tool_name)
       self.planning_scene_interface.remove_world_object(name=tool_name)
       self.allow_collisions_with_robot_hand(tool_name, robot_name, allow=False)
@@ -1115,28 +1113,6 @@ class O2ACBase(object):
       return False
 
     return True
-
-  def attach_collision_object(self, robot_name, object_to_attach=None, attach_to_link=None):
-      try:
-          to_link = robot_name + "_ee_link" if attach_to_link is None else attach_to_link
-          self.active_robots[robot_name].gripper_group.attach_object(object_to_attach, to_link,
-                                           touch_links=[robot_name + "_gripper_tip_link",
-                                                        robot_name + "_left_inner_finger_pad",
-                                                        robot_name + "_left_inner_finger",
-                                                        robot_name + "_left_inner_knuckle",
-                                                        robot_name + "_right_inner_finger_pad",
-                                                        robot_name + "_right_inner_finger",
-                                                        robot_name + "_right_inner_knuckle"])
-      except Exception as e:
-          rospy.logerr(object_to_attach + " could not be attached! robot_name = " + robot_name)
-          print(e)
-
-  def detach_collision_object(self, robot_name, object_to_detach):
-      try:
-          self.active_robots[robot_name].gripper_group.detach_object(object_to_detach)
-      except Exception as e:
-          rospy.logerr(object_to_detach + " could not be detached! robot_name = " + robot_name)
-          print(e)
 
   def allow_collisions_with_robot_hand(self, link_name, robot_name, allow=True):
       """Allow collisions of a link with the robot hand"""

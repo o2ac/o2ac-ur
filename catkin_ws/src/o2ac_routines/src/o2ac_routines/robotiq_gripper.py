@@ -18,7 +18,7 @@ class RobotiqGripper():
 
         self.opening_width = 0.0
 
-        self.last_attached_object = None 
+        self.last_attached_object = (None, False) # object name (string), with_collisions (bool)
 
         # Gripper
         if self.use_real_robot:
@@ -78,8 +78,8 @@ class RobotiqGripper():
             res = self.send_command("close", force=force, velocity=velocity, wait=wait)
         else:
             res = self.gripper.close()
-        if self.last_attached_object:
-            self.attach_object(self.last_attached_object)
+        if self.last_attached_object[0]:
+            self.attach_object(object_to_attach=self.last_attached_object[0], with_collisions=self.last_attached_object[1])
         return res
 
     def open(self, velocity=1.0, wait=True, opening_width=None):
@@ -90,8 +90,8 @@ class RobotiqGripper():
         else:
             res = self.gripper.open()
 
-        if self.last_attached_object:
-            self.detach_object(self.last_attached_object)
+        if self.last_attached_object[0]:
+            self.detach_object(object_to_detach=self.last_attached_object[0])
         return res
 
     def send_command(self, command, force=40.0, velocity=1.0, wait=True):
@@ -136,42 +136,45 @@ class RobotiqGripper():
             else:
                 res = self.gripper.command(command)
 
-        if self.last_attached_object:
+        if self.last_attached_object[0]:
             if command == "close":
-                self.attach_object(self.last_attached_object)
+                self.attach_object(object_to_attach=self.last_attached_object[0], with_collisions=self.last_attached_object[1])
             elif command == "open":
-                self.detach_object(self.last_attached_object)
+                self.detach_object(object_to_detach=self.last_attached_object[0])
             else:
-                self.detach_object(self.last_attached_object)
+                self.detach_object(object_to_detach=self.last_attached_object[0])
         return res
 
-    def attach_object(self, object_to_attach=None, attach_to_link=None):
-        if not self.last_attached_object and not object_to_attach:
+    def attach_object(self, object_to_attach=None, attach_to_link=None, with_collisions=False):
+        if not self.last_attached_object[0] and not object_to_attach:
             return
         try:
             to_link = self.ns + "_ee_link" if attach_to_link is None else attach_to_link
-
-            # self.gripper_group.attach_object(object_to_attach, to_link,
-            #                                  touch_links=[self.ns + "_gripper_tip_link",
-            #                                               self.ns + "_left_inner_finger_pad",
-            #                                               self.ns + "_left_inner_finger",
-            #                                               self.ns + "_left_inner_knuckle",
-            #                                               self.ns + "_right_inner_finger_pad",
-            #                                               self.ns + "_right_inner_finger",
-            #                                               self.ns + "_right_inner_knuckle"])
-            self.markers_scene.attach_item(object_to_attach, to_link)
-            self.last_attached_object = object_to_attach
+            if with_collisions:
+                self.gripper_group.attach_object(object_to_attach, to_link,
+                                                touch_links=[self.ns + "_gripper_tip_link",
+                                                            self.ns + "_left_inner_finger_pad",
+                                                            self.ns + "_left_inner_finger",
+                                                            self.ns + "_left_inner_knuckle",
+                                                            self.ns + "_right_inner_finger_pad",
+                                                            self.ns + "_right_inner_finger",
+                                                            self.ns + "_right_inner_knuckle"])
+            else:
+                self.markers_scene.attach_item(object_to_attach, to_link)
+            self.last_attached_object = (object_to_attach, with_collisions)
         except Exception as e:
             rospy.logerr(object_to_attach + " could not be attached! robot_name = " + self.ns)
             print(e)
 
     def detach_object(self, object_to_detach):
         try:
-            self.markers_scene.detach_item(object_to_detach)
-            # self.gripper_group.detach_object(object_to_detach)
+            if self.last_attached_object[1]:
+                self.gripper_group.detach_object(object_to_detach)
+            else:
+                self.markers_scene.detach_item(object_to_detach)
         except Exception as e:
             rospy.logerr(object_to_detach + " could not be detached! robot_name = " + self.ns)
             print(e)
 
     def forget_attached_item(self):
-        self.last_attached_object = None
+        self.last_attached_object = (None, False)
