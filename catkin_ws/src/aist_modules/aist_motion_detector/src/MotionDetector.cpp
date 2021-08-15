@@ -92,7 +92,7 @@ MotionDetector::preempt_cb()
     if (_nframes > 0)
     {
 	detect_cable_tip();
-	_image_pub.publish(_accum.toImageMsg());
+	_image_pub.publish(_mask.toImageMsg());
 	
 	DetectMotionResult	result;
 	_detect_motion_srv.setPreempted(result);
@@ -115,7 +115,7 @@ MotionDetector::image_cb(const camera_info_cp& camera_info,
 	cv::Mat	mask;
 	_bgsub->apply(cv_bridge::toCvShare(image)->image, mask);
 	accumulate_mask(mask, _current_goal->target_frame, camera_info);
-	_image_pub.publish(_accum.toImageMsg());
+	_image_pub.publish(_mask.toImageMsg());
     }
     catch (const tf::TransformException& err)
     {
@@ -164,8 +164,8 @@ MotionDetector::accumulate_mask(const cv::Mat& image,
 	!withinImage(p(2), image) || !withinImage(p(3), image))
 	return;
 
-    _accum.encoding = "mono16";
-    _accum.header   = camera_info->header;
+    _mask.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
+    _mask.header   = camera_info->header;
     
     if (_nframes == 0)
     {
@@ -175,7 +175,7 @@ MotionDetector::accumulate_mask(const cv::Mat& image,
 	_bottom_right.x = int(std::max({p(0).x, p(1).x, p(2).x, p(3).x}));
 	_bottom_right.y	= int(std::max({p(0).y, p(1).y, p(2).y, p(3).y}));
 	_corners	= p;
-	image(cv::Rect(_top_left, _bottom_right)).convertTo(_accum.image,
+	image(cv::Rect(_top_left, _bottom_right)).convertTo(_mask.image,
 							    CV_16UC1);
     }
     else
@@ -187,7 +187,7 @@ MotionDetector::accumulate_mask(const cv::Mat& image,
 	cv::Mat	warped_and_converted_image;
 	warped_image(cv::Rect(_top_left, _bottom_right))
 	    .convertTo(warped_and_converted_image, CV_16UC1);
-	_accum.image += warped_and_converted_image;
+	_mask.image += warped_and_converted_image;
     }
 
     ++_nframes;
@@ -196,17 +196,42 @@ MotionDetector::accumulate_mask(const cv::Mat& image,
 void
 MotionDetector::detect_cable_tip()
 {
-    const point_t  outer[]   = {{0,		      0},
-				{_accum.image.cols-1, 0},
-				{_accum.image.cols-1, _accum.image.rows-1},
-				{0,		      _accum.image.rows-1}};
+  // Fill the outside of ROI with zero.
+    const point_t  outer[]   = {{0,		     0},
+				{_mask.image.cols-1, 0},
+				{_mask.image.cols-1, _mask.image.rows-1},
+				{0,		     _mask.image.rows-1}};
     const point_t  inner[]   = {point_t(_corners(0)) - _top_left,
 				point_t(_corners(1)) - _top_left,
 				point_t(_corners(2)) - _top_left,
 				point_t(_corners(3)) - _top_left};
     const point_t* borders[] = {outer, inner};
     const int	   npoints[] = {4, 4};
-    cv::fillPoly(_accum.image, borders, npoints, 2, cv::Scalar(0), cv::LINE_8);
+    cv::fillPoly(_mask.image, borders, npoints, 2, cv::Scalar(0), cv::LINE_8);
+
+  // Binarize the accumultated mask image.
+    _mask.image /= _nframes;
+    cv::Mat	mask;
+    _mask.image.convertTo(mask, CV_8UC1);
+    cv::threshold(mask, _mask.image, 0, 255,
+		  cv::THRESH_BINARY | cv::THRESH_OTSU);
+    _mask.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
+
+  // Label
+    cv::Mat	labels, stats, centroids;
+    const auto	nlabels = cv::connectedComponentsWithStats(mask, labels,
+							   stats, centroids);
+    for (int i = 0; i < nlabels; ++i)
+    {
+	using namespace cv::ConnectedComponentsType;
+	
+	const auto	stat = stats.ptr<int>(i);
+	const point_t	top_left(stat[CC_STAT_LEFT],
+				 stat[CC_STAT_TOP]);
+	const auto	width  = stat[CC_STAT_WIDTH];
+	const auto	height = stat[CC_STAT_HEIGHT];
+	const auto	area   = stat[CC_STAT_AREA];
+    }
 }
     
 }	// namespace aist_motion_detector
