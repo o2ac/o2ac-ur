@@ -13,6 +13,7 @@
 #include <tf/transform_listener.h>
 #include <actionlib/server/simple_action_server.h>
 #include <ddynamic_reconfigure/ddynamic_reconfigure.h>
+#include <cv_bridge/cv_bridge.h>
 #include <opencv2/core.hpp>
 #include <opencv2/bgsegm.hpp>
 #include <aist_motion_detector/DetectMotionAction.h>
@@ -34,7 +35,9 @@ class MotionDetector
 				ApproximateTime<camera_info_t,
 						image_t, image_t>;
     using bgsub_p	 = cv::Ptr<cv::BackgroundSubtractor>;
-
+    using point3_t	 = cv::Point3f;
+    using point2_t	 = cv::Point2f;
+    using point_t	 = cv::Point;
     
   public:
 		MotionDetector(const ros::NodeHandle& nh)		;
@@ -58,8 +61,11 @@ class MotionDetector
 			     bool select)				;
 
   // utility functions
-    void	set_roi(cv::Mat& image, const std::string& target_frame,
-			const camera_info_cp& camera_info)	 const	;
+    void	accumulate_mask(const cv::Mat& image,
+				const std::string& target_frame,
+				const camera_info_cp& camera_info)	;
+    void	find_cable_tip(const cv::Mat& mask, const cv::Mat& depth,
+			       const camera_info_cp& camera_info) const	;
     
   private:
     ros::NodeHandle					_nh;
@@ -82,8 +88,15 @@ class MotionDetector
 
   // Motion detector stuffs
     bgsub_p						_bgsub;
+    double						_search_top;
+    double						_search_bottom;
     double						_search_width;
-    double						_search_height;
+
+    int							_nframes;
+    point_t						_top_left;
+    point_t						_bottom_right;
+    cv::Mat_<point2_t>					_corners;
+    cv_bridge::CvImage					_accum;
 };
 
 }	// namespace aist_motion_detector

@@ -5,7 +5,6 @@
  */
 #include "MotionDetector.h"
 #include <sensor_msgs/image_encodings.h>
-#include <cv_bridge/cv_bridge.h>
 #include <opencv2/calib3d.hpp>
 #include <opencv2/imgproc.hpp>
 
@@ -14,12 +13,18 @@ namespace aist_motion_detector
 /************************************************************************
 *  static functions							*
 ************************************************************************/
-inline cv::Point3f
+static inline cv::Point3f
 pointTFToCV(const tf::Point& p)
 {
     return {p.x(), p.y(), p.z()};
 }
 
+static inline bool
+withinImage(const cv::Point& p, const cv::Mat& image)
+{
+    return (0 <= p.x && p.x < image.cols && 0 <= p.y && p.y < image.rows);
+}
+    
 /************************************************************************
 *  class MotionDetector							*
 ************************************************************************/
@@ -37,8 +42,9 @@ MotionDetector::MotionDetector(const ros::NodeHandle& nh)
      _current_goal(nullptr),
      _ddr(_nh),
      _bgsub(cv::createBackgroundSubtractorMOG2()),
-     _search_width(_nh.param("search_width", 0.040)),
-     _search_height(_nh.param("search_height", 0.030))
+     _search_top(_nh.param("search_top", 0.003)),
+     _search_bottom(_nh.param("search_bottom", 0.030)),
+     _search_width(_nh.param("search_width", 0.050))
 {
   // Setup DetectMotion action server.
     _detect_motion_srv.registerGoalCallback(boost::bind(&goal_cb, this));
@@ -49,12 +55,15 @@ MotionDetector::MotionDetector(const ros::NodeHandle& nh)
     _sync.registerCallback(&image_cb, this);
 
   // Setup parameters and ddynamic_reconfigure server.
+    _ddr.registerVariable<double>("search_top", &_search_top,
+				  "Top of search area in meters",
+				  -0.005, 0.005);
+    _ddr.registerVariable<double>("search_bottom", &_search_bottom,
+				  "Bottom of search area in meters",
+				  0.005, 0.050);
     _ddr.registerVariable<double>("search_width", &_search_width,
 				  "Width of search area in meters",
-				  0.005, 0.08);
-    _ddr.registerVariable<double>("search_height", &_search_height,
-				  "Height of search area in meters",
-				  0.005, 0.08);
+				  0.005, 0.080);
     _ddr.publishServicesTopics();
 }
 
@@ -72,6 +81,7 @@ void
 MotionDetector::goal_cb()
 {
     _current_goal = _detect_motion_srv.acceptNewGoal();
+    _nframes	  = 0;
     ROS_INFO_STREAM("(MotionDetector) Given a goal["
 		    << _current_goal->target_frame << ']');
 }
@@ -79,7 +89,27 @@ MotionDetector::goal_cb()
 void
 MotionDetector::preempt_cb()
 {
-    _detect_motion_srv.setPreempted();
+    if (_nframes > 0)
+    {
+	const point_t	outer[] = {{0,			 0},
+				   {_accum.image.cols-1, 0},
+				   {_accum.image.cols-1, _accum.image.rows-1},
+				   {0,			 _accum.image.rows-1}};
+	const point_t	inner[]	= {point_t(_corners(0)) - _top_left,
+				   point_t(_corners(1)) - _top_left,
+				   point_t(_corners(2)) - _top_left,
+				   point_t(_corners(3)) - _top_left};
+	const point_t*	borders[] = {outer, inner};
+	const int	npoints[] = {4, 4};
+	cv::fillPoly(_accum.image,
+		     borders, npoints, 2, cv::Scalar(0), cv::LINE_8);
+	_image_pub.publish(_accum.toImageMsg());
+	
+	DetectMotionResult	result;
+	_detect_motion_srv.setPreempted(result);
+    }
+    else
+	_detect_motion_srv.setPreempted();
     ROS_INFO_STREAM("(MotionDetector) Cancelled a goal");
 }
 
@@ -89,30 +119,16 @@ MotionDetector::image_cb(const camera_info_cp& camera_info,
 {
     using namespace	sensor_msgs;
 
-    using point2_t = cv::Point2f;
-    using point3_t = cv::Point3f;
-    using point_t  = cv::Point;
-
     if (!_detect_motion_srv.isActive())
-    {
     	return;
-    }
 
   // Project target position onto the image.
     try
     {
-	const auto cv_img = cv_bridge::toCvShare(image, image_encodings::RGB8);
-	
-      // Update the background model.
-	cv_bridge::CvImage	cv_mask;
-	_bgsub->apply(cv_img->image, cv_mask.image);
-
-	set_roi(cv_mask.image, _current_goal->target_frame, camera_info);
-
-      // Publishe masked ROI.
-	cv_mask.encoding = "mono8";
-	cv_mask.header   = image->header;
-	_image_pub.publish(cv_mask.toImageMsg());
+	cv::Mat	mask;
+	_bgsub->apply(cv_bridge::toCvShare(image)->image, mask);
+	accumulate_mask(mask, _current_goal->target_frame, camera_info);
+	_image_pub.publish(_accum.toImageMsg());
     }
     catch (const tf::TransformException& err)
     {
@@ -129,13 +145,10 @@ MotionDetector::image_cb(const camera_info_cp& camera_info,
 }
 
 void
-MotionDetector::set_roi(cv::Mat& image, const std::string& target_frame,
-			const camera_info_cp& camera_info) const
+MotionDetector::accumulate_mask(const cv::Mat& image,
+				const std::string& target_frame,
+				const camera_info_cp& camera_info)
 {
-    using point2_t = cv::Point2f;
-    using point3_t = cv::Point3f;
-    using point_t  = cv::Point;
-
   // Get transform from the target frame to camera frame.
     _listener.waitForTransform(camera_info->header.frame_id, target_frame,
 			       camera_info->header.stamp, ros::Duration(1.0));
@@ -143,34 +156,56 @@ MotionDetector::set_roi(cv::Mat& image, const std::string& target_frame,
     _listener.lookupTransform(camera_info->header.frame_id, target_frame,
 			      camera_info->header.stamp, Tct);
 
-  // Transfrom mask corners to camera frame.
-    const tf::Point	corners[] = {{0.0,	      0.0, -_search_width/2},
-				     {0.0,	      0.0,  _search_width/2},
-				     {_search_height, 0.0,  _search_width/2},
-				     {_search_height, 0.0, -_search_width/2}};
+  // Transfrom ROI corners to camera frame.
+    const tf::Point	corners[] = {{_search_top,    0.0, -_search_width/2},
+				     {_search_top,    0.0,  _search_width/2},
+				     {_search_bottom, 0.0,  _search_width/2},
+				     {_search_bottom, 0.0, -_search_width/2}};
     cv::Mat_<point3_t>	pt3s(1, 4);
     for (size_t i = 0; i < 4; ++i)
 	pt3s(i) = pointTFToCV(Tct * corners[i]);
     
-  // Project mask corners onto the image.
+  // Project ROI corners onto the image.
     cv::Mat_<float>	K(3, 3);
     std::copy_n(std::begin(camera_info->K), 9, K.begin());
     cv::Mat_<float>	D(1, 4);
     std::copy_n(std::begin(camera_info->D), 4, D.begin());
     const auto		zero = cv::Mat_<float>::zeros(1, 3);
-    cv::Mat_<point2_t>	pt2s(1, 4);
-    cv::projectPoints(pt3s, zero, zero, K, D, pt2s);
+    cv::Mat_<point2_t>	p(1, 4);
+    cv::projectPoints(pt3s, zero, zero, K, D, p);
 
-  // Mask 
-    const point_t	outer[]	  = {{0,	    0},
-				     {image.cols-1, 0},
-				     {image.cols-1, image.rows-1},
-				     {0,	    image.rows-1}};
-    const point_t	inner[]	  = {pt2s(0, 0), pt2s(0, 1),
-				     pt2s(0, 2), pt2s(0, 3)};
-    const point_t*	borders[] = {outer, inner};
-    const int		npoints[] = {4, 4};
-    cv::fillPoly(image, borders, npoints, 2, cv::Scalar(0), cv::LINE_8);
+  // Confirm that all the projected corners are included within the image.
+    if (!withinImage(p(0), image) || !withinImage(p(1), image) ||
+	!withinImage(p(2), image) || !withinImage(p(3), image))
+	return;
+
+    _accum.encoding = "mono16";
+    _accum.header   = camera_info->header;
+    
+    if (_nframes == 0)
+    {
+      // Crop the given image.
+	_top_left.x	= int(std::min({p(0).x, p(1).x, p(2).x, p(3).x}));
+	_top_left.y	= int(std::min({p(0).y, p(1).y, p(2).y, p(3).y}));
+	_bottom_right.x = int(std::max({p(0).x, p(1).x, p(2).x, p(3).x}));
+	_bottom_right.y	= int(std::max({p(0).y, p(1).y, p(2).y, p(3).y}));
+	_corners	= p;
+	image(cv::Rect(_top_left, _bottom_right)).convertTo(_accum.image,
+							    CV_16UC1);
+    }
+    else
+    {
+	cv::Mat	warped_image;
+	cv::warpPerspective(image, warped_image,
+			    cv::findHomography(_corners, p),
+			    image.size(), cv::WARP_INVERSE_MAP);
+	cv::Mat	warped_and_converted_image;
+	warped_image(cv::Rect(_top_left, _bottom_right))
+	    .convertTo(warped_and_converted_image, CV_16UC1);
+	_accum.image += warped_and_converted_image;
+    }
+
+    ++_nframes;
 }
     
 }	// namespace aist_motion_detector
