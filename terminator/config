@@ -498,13 +498,14 @@
       order = 0
       profile = default
       uuid = 9f5fc32e-cbd5-4ffd-b4b6-6080ed02ca26
+      command = sh ./RUN-DOCKER-CONTAINER.sh
     [[[terminal5]]]
       type = Terminal
       parent = child3
       order = 1
       profile = default
-      title = skill_server
       uuid = 746a3b43-2ecb-4e49-89e3-90cf399c8ad5
+      command = sh ./RUN-DOCKER-CONTAINER.sh
     [[[child6]]]
       type = VPaned
       parent = child2
@@ -517,12 +518,14 @@
       order = 0
       profile = default
       uuid = 67c44de9-a4a3-491c-b28e-9ee3e3cb5994
+      command = sh ./RUN-DOCKER-CONTAINER.sh
     [[[terminal8]]]
       type = Terminal
       parent = child6
       order = 1
       profile = default
       uuid = 7813ff76-fdaf-4590-92ba-78b6696ee52a
+      command = sh ./RUN-DOCKER-CONTAINER.sh
     [[[child9]]]
       type = HPaned
       parent = child1
@@ -536,6 +539,7 @@
       profile = default
       title = task
       uuid = 0ce4bbb6-4803-47f5-b773-4ebdcbce35b0
+      command = sh ./RUN-DOCKER-CONTAINER.sh ${USER} "rosrun\ o2ac_routines\ taskboard.py"
     [[[child11]]]
       type = VPaned
       parent = child9
@@ -549,6 +553,7 @@
       profile = default
       title = moveit/rviz
       uuid = 6871bc70-992b-4b9f-bb38-601d7f9e565f
+      command = sh ./RUN-DOCKER-CONTAINER.sh ${USER} o2ac_moveit_config o2ac_moveit_planning_execution.launch
     [[[terminal13]]]
       type = Terminal
       parent = child11
@@ -556,4 +561,5 @@
       profile = default
       title = bring-up robots
       uuid = e5626f93-c26f-4228-948c-70163803ba30
+      command = sh ./RUN-DOCKER-CONTAINER.sh ${USER} o2ac_scene_description connect_real_robots.launch
 [plugins]
