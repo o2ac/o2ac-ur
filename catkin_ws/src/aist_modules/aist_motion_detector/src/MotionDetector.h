@@ -64,8 +64,7 @@ class MotionDetector
     void	accumulate_mask(const cv::Mat& image,
 				const std::string& target_frame,
 				const camera_info_cp& camera_info)	;
-    void	find_cable_tip(const cv::Mat& mask, const cv::Mat& depth,
-			       const camera_info_cp& camera_info) const	;
+    void	detect_cable_tip()					;
     
   private:
     ros::NodeHandle					_nh;

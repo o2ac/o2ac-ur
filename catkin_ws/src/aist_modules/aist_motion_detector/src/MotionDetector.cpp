@@ -91,18 +91,7 @@ MotionDetector::preempt_cb()
 {
     if (_nframes > 0)
     {
-	const point_t	outer[] = {{0,			 0},
-				   {_accum.image.cols-1, 0},
-				   {_accum.image.cols-1, _accum.image.rows-1},
-				   {0,			 _accum.image.rows-1}};
-	const point_t	inner[]	= {point_t(_corners(0)) - _top_left,
-				   point_t(_corners(1)) - _top_left,
-				   point_t(_corners(2)) - _top_left,
-				   point_t(_corners(3)) - _top_left};
-	const point_t*	borders[] = {outer, inner};
-	const int	npoints[] = {4, 4};
-	cv::fillPoly(_accum.image,
-		     borders, npoints, 2, cv::Scalar(0), cv::LINE_8);
+	detect_cable_tip();
 	_image_pub.publish(_accum.toImageMsg());
 	
 	DetectMotionResult	result;
@@ -117,8 +106,6 @@ void
 MotionDetector::image_cb(const camera_info_cp& camera_info,
 			 const image_cp& image, const image_cp& depth)
 {
-    using namespace	sensor_msgs;
-
     if (!_detect_motion_srv.isActive())
     	return;
 
@@ -134,13 +121,11 @@ MotionDetector::image_cb(const camera_info_cp& camera_info,
     {
 	ROS_ERROR_STREAM("(MotionDetector) TransformException: "
 			 << err.what());
-	return;
     }
     catch (const cv_bridge::Exception& err)
     {
 	ROS_ERROR_STREAM("(MotionDetector) cv_bridge exception: "
 			 << err.what());
-	return;
     }
 }
 
@@ -206,6 +191,22 @@ MotionDetector::accumulate_mask(const cv::Mat& image,
     }
 
     ++_nframes;
+}
+
+void
+MotionDetector::detect_cable_tip()
+{
+    const point_t  outer[]   = {{0,		      0},
+				{_accum.image.cols-1, 0},
+				{_accum.image.cols-1, _accum.image.rows-1},
+				{0,		      _accum.image.rows-1}};
+    const point_t  inner[]   = {point_t(_corners(0)) - _top_left,
+				point_t(_corners(1)) - _top_left,
+				point_t(_corners(2)) - _top_left,
+				point_t(_corners(3)) - _top_left};
+    const point_t* borders[] = {outer, inner};
+    const int	   npoints[] = {4, 4};
+    cv::fillPoly(_accum.image, borders, npoints, 2, cv::Scalar(0), cv::LINE_8);
 }
     
 }	// namespace aist_motion_detector
