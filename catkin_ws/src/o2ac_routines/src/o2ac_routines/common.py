@@ -3910,7 +3910,7 @@ class O2ACCommon(O2ACBase):
     a_bot_push_tray_side_goal       = conversions.to_pose_stamped(frame, [a_bot_point[0], a_bot_goal, -0.010, tau/4, tau/4, 0])
     b_bot_push_tray_side_goal       = conversions.to_pose_stamped(frame, [b_bot_point[0], b_bot_goal,  0.005, -tau/4, tau/4, 0]) #.277
     a_bot_push_tray_side_retreat    = a_bot_push_tray_side_start_high
-    b_bot_push_tray_side_retreat    = conversions.to_pose_stamped(frame, [-0.004, 0.48, 0.14, -tau/4, tau/4, 0])
+    b_bot_push_tray_side_retreat    = b_bot_push_tray_side_start_high if orientation_parallel else conversions.to_pose_stamped(frame, [-0.004, 0.48, 0.14, -tau/4, tau/4, 0])
 
     a_bot_start = [tray_x - short_side - 0.10, tray_y] if orientation_parallel else [tray_x - long_side - 0.1, tray_y]
     a_bot_goal  = [tray_x - short_side - 0.02, tray_y] if orientation_parallel else [tray_x - long_side, tray_y]
@@ -3918,15 +3918,29 @@ class O2ACCommon(O2ACBase):
     a_bot_push_tray_front_start      = conversions.to_pose_stamped(frame, [a_bot_start[0], a_bot_start[1], -0.01, tau/2, tau/4, 0])
     a_bot_push_tray_front_goal       = conversions.to_pose_stamped(frame, [a_bot_goal[0] , a_bot_goal[1] , -0.01, tau/2, tau/4, 0])
     a_bot_push_tray_front_retreat    = conversions.to_pose_stamped(frame, [a_bot_start[0], 0.0, a_bot_point[2], tau/2, tau/4, 0])
+    
+    b_bot_goal  = [tray_x + short_side + 0.02, tray_y] if orientation_parallel else [tray_x + long_side, tray_y]
+    b_bot_start = [tray_x + short_side + 0.10, tray_y] if orientation_parallel else [tray_x + long_side + 0.1, tray_y]
+    b_bot_push_tray_front_start_high = conversions.to_pose_stamped(frame, [b_bot_start[0], b_bot_start[1], b_bot_point[2], 0, tau/4, 0])
+    b_bot_push_tray_front_start      = conversions.to_pose_stamped(frame, [b_bot_start[0], b_bot_start[1], -0.01, 0, tau/4, 0])
+    b_bot_push_tray_front_goal       = conversions.to_pose_stamped(frame, [b_bot_goal[0] , b_bot_goal[1] , -0.01, 0, tau/4, 0])
+    b_bot_push_tray_front_retreat    = conversions.to_pose_stamped(frame, [b_bot_start[0], 0.0, b_bot_point[2], 0, tau/4, 0])
 
     # Push the tray from the side
     self.a_bot.gripper.open(wait=False)
     self.b_bot.gripper.open(wait=False)
     seq = []
+    # push side
     seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_side_start_high, b_bot_push_tray_side_start_high, planner="OMPL", speed=0.3))
     seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_side_start, b_bot_push_tray_side_start, planner="OMPL", speed=0.5))
     seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_side_goal, b_bot_push_tray_side_goal, planner="OMPL", speed=0.1))
     seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_side_retreat, b_bot_push_tray_side_retreat, planner="OMPL", speed=0.5))
+
+    # push front
+    seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_front_start_high, b_bot_push_tray_front_start_high, planner="OMPL", speed=0.8))
+    seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_front_start, b_bot_push_tray_front_start, planner="OMPL", speed=0.6))
+    seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_front_goal, b_bot_push_tray_front_goal, planner="OMPL", speed=0.1))
+    seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_front_retreat, b_bot_push_tray_front_retreat, planner="OMPL", speed=0.5))
     self.execute_sequence("ab_bot", seq, "tray_orient_part1", plan_while_moving=True, save_on_success=True, use_saved_plans=use_saved_trajectory)
     # self.ab_bot.go_to_goal_poses(a_bot_push_tray_side_start_high, b_bot_push_tray_side_start_high, planner="OMPL", speed=0.3)
     # self.ab_bot.go_to_goal_poses(a_bot_push_tray_side_start, b_bot_push_tray_side_start, planner="OMPL", speed=0.5)
@@ -3935,12 +3949,12 @@ class O2ACCommon(O2ACBase):
 
     # Push from the front
     # TODO: Push from the back with b_bot
-    seq = []
-    seq.append(helpers.to_sequence_item(a_bot_push_tray_front_start_high, speed=0.8))
-    seq.append(helpers.to_sequence_item(a_bot_push_tray_front_start, speed=0.6))
-    seq.append(helpers.to_sequence_item(a_bot_push_tray_front_goal, speed=0.08))
-    seq.append(helpers.to_sequence_item(a_bot_push_tray_front_retreat, speed=0.6))
-    self.execute_sequence("a_bot", seq, "tray_orient_part2", plan_while_moving=True, save_on_success=True, use_saved_plans=use_saved_trajectory)
+    # seq = []
+    # seq.append(helpers.to_sequence_item(a_bot_push_tray_front_start_high, speed=0.8))
+    # seq.append(helpers.to_sequence_item(a_bot_push_tray_front_start, speed=0.6))
+    # seq.append(helpers.to_sequence_item(a_bot_push_tray_front_goal, speed=0.08))
+    # seq.append(helpers.to_sequence_item(a_bot_push_tray_front_retreat, speed=0.6))
+    # self.execute_sequence("a_bot", seq, "tray_orient_part2", plan_while_moving=True, save_on_success=True, use_saved_plans=use_saved_trajectory)
     # self.a_bot.go_to_pose_goal(a_bot_push_tray_front_start_high, speed=0.8)
     # self.a_bot.go_to_pose_goal(a_bot_push_tray_front_start, speed=0.6)
     # self.a_bot.go_to_pose_goal(a_bot_push_tray_front_goal, speed=0.08)
