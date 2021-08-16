@@ -1061,33 +1061,38 @@ class O2ACBase(object):
       lin_speed = 0.5
 
     sequence.append(helpers.to_sequence_trajectory([ps_approach,ps_in_holder], [0.005,0.0], speed=[0.5, 0.2]))
-    if not self.execute_sequence(robot_name, sequence, "approach sequence equip/unequip tool", plan_while_moving=True):
-      rospy.logerr("Fail to complete the equip/unequip tool sequence")
-      return False
+    # if not self.execute_sequence(robot_name, sequence, "approach sequence equip/unequip tool", plan_while_moving=True):
+    #   rospy.logerr("Fail to complete the equip/unequip tool sequence")
+    #   return False
 
     # Close gripper, attach the tool object to the gripper in the Planning Scene.
     # Its collision with the parent link is set to allowed in the original planning scene.
     if equip:
-      robot.gripper.close()
-      self.active_robots[robot_name].gripper.attach_object(tool_name, with_collisions=True)
-      self.allow_collisions_with_robot_hand(tool_name, robot_name)
-      robot.robot_status.carrying_tool = True
-      robot.robot_status.held_tool_id = tool_name
-      self.publish_robot_status()
+      def pre_cb():
+        self.active_robots[robot_name].gripper.attach_object(tool_name, with_collisions=True)
+        self.allow_collisions_with_robot_hand(tool_name, robot_name)
+      def post_cb():
+        robot.robot_status.carrying_tool = True
+        robot.robot_status.held_tool_id = tool_name
+        self.publish_robot_status()
+      sequence.append(helpers.to_sequence_gripper(action='close', gripper_velocity=1.0, pre_callback=pre_cb, post_callback=post_cb))
+      # robot.gripper.close()
     elif unequip:
-      robot.gripper.open(opening_width=0.06)
-      self.active_robots[robot_name].gripper.detach_object(tool_name)
-      self.planning_scene_interface.remove_attached_object(name=tool_name)
-      self.planning_scene_interface.remove_world_object(name=tool_name)
-      self.allow_collisions_with_robot_hand(tool_name, robot_name, allow=False)
-      robot.robot_status.carrying_tool = False
-      robot.robot_status.held_tool_id = ""
-      self.publish_robot_status()
+      # robot.gripper.open(opening_width=0.06)
+      def post_cb():
+        self.active_robots[robot_name].gripper.detach_object(tool_name)
+        self.planning_scene_interface.remove_attached_object(name=tool_name)
+        self.planning_scene_interface.remove_world_object(name=tool_name)
+        self.allow_collisions_with_robot_hand(tool_name, robot_name, allow=False)
+        robot.robot_status.carrying_tool = False
+        robot.robot_status.held_tool_id = ""
+        self.publish_robot_status()
+      sequence.append(helpers.to_sequence_gripper(action='open', gripper_opening_width=0.06, gripper_velocity=1.0, post_callback=post_cb))
     elif realign:  # Drop the tool into the holder once
       robot.gripper.open(opening_width=0.06)
       robot.gripper.close()
     
-    sequence = []
+    # sequence = []
 
     if equip or realign:  # Pull back and let go once to align the tool with the magnet properly 
       pull_back_slightly = copy.deepcopy(ps_in_holder)
@@ -1385,36 +1390,47 @@ class O2ACBase(object):
     return self.execute_sequence(robot_name, playback_trajectories, routine_filename, plan_while_moving=plan_while_moving, save_on_success=save_on_success, use_saved_plans=use_saved_plans)
 
   def execute_gripper_action(self, robot_name, gripper_params):
-      gripper_action = gripper_params.get("action", None)
-      opening_width = gripper_params.get("open_width", 0.140)
-      force = gripper_params.get("force", 80.)
-      velocity = gripper_params.get("velocity", 0.03)
-      if robot_name == "ab_bot":
-        if gripper_action == 'open':
-          success = self.a_bot.gripper.open(opening_width=opening_width, velocity=velocity)
-          success &= self.b_bot.gripper.open(opening_width=opening_width, velocity=velocity)
-        elif gripper_action == 'close':
-          success = self.a_bot.gripper.close(force=force, velocity=velocity)
-          success &= self.b_bot.gripper.close(force=force, velocity=velocity)
-        elif isinstance(gripper_action, float):
-          success = self.a_bot.gripper.send_command(gripper_action, force=force, velocity=velocity)
-          success &= self.b_bot.gripper.send_command(gripper_action, force=force, velocity=velocity)
-        else:
-          raise ValueError("Unsupported gripper action: %s of type %s" % (gripper_action, type(gripper_action)))
-        return success
+    gripper_action = gripper_params.get("action", None)
+    opening_width = gripper_params.get("open_width", 0.140)
+    force = gripper_params.get("force", 80.)
+    velocity = gripper_params.get("velocity", 0.03)
+
+    pre_operation_callback = gripper_params.get("pre_callback", None)
+    post_operation_callback = gripper_params.get("post_callback", None)
+
+    if pre_operation_callback:
+      pre_operation_callback()
+
+    success = False
+    if robot_name == "ab_bot":
+      if gripper_action == 'open':
+        success = self.a_bot.gripper.open(opening_width=opening_width, velocity=velocity)
+        success &= self.b_bot.gripper.open(opening_width=opening_width, velocity=velocity)
+      elif gripper_action == 'close':
+        success = self.a_bot.gripper.close(force=force, velocity=velocity)
+        success &= self.b_bot.gripper.close(force=force, velocity=velocity)
+      elif isinstance(gripper_action, float):
+        success = self.a_bot.gripper.send_command(gripper_action, force=force, velocity=velocity)
+        success &= self.b_bot.gripper.send_command(gripper_action, force=force, velocity=velocity)
       else:
-        robot = self.active_robots[robot_name]
-        if gripper_action == 'open':
-          return robot.gripper.open(opening_width=opening_width, velocity=velocity)
-        elif gripper_action == 'close':
-          return robot.gripper.close(force=force, velocity=velocity)
-        elif gripper_action == 'close-open':
-          robot.gripper.close(velocity=velocity)
-          return robot.gripper.open(opening_width=opening_width, velocity=velocity)
-        elif isinstance(gripper_action, float):
-          return robot.gripper.send_command(gripper_action, force=force, velocity=velocity)
-        else:
-          raise ValueError("Unsupported gripper action: %s of type %s" % (gripper_action, type(gripper_action)))
+        raise ValueError("Unsupported gripper action: %s of type %s" % (gripper_action, type(gripper_action)))
+    else:
+      robot = self.active_robots[robot_name]
+      if gripper_action == 'open':
+        success = robot.gripper.open(opening_width=opening_width, velocity=velocity)
+      elif gripper_action == 'close':
+        success = robot.gripper.close(force=force, velocity=velocity)
+      elif gripper_action == 'close-open':
+        robot.gripper.close(velocity=velocity)
+        success = robot.gripper.open(opening_width=opening_width, velocity=velocity)
+      elif isinstance(gripper_action, float):
+        success = robot.gripper.send_command(gripper_action, force=force, velocity=velocity)
+      else:
+        raise ValueError("Unsupported gripper action: %s of type %s" % (gripper_action, type(gripper_action)))
+
+    if success and post_operation_callback:
+      post_operation_callback()
+    return success
 
   def move_to_sequence_waypoint(self, robot_name, params, plan_only=False, initial_joints=None):
     success = False
