@@ -267,6 +267,7 @@ class O2ACVisionServer(object):
 ### ======= Callbacks of subscribed topics
 
     def synced_images_callback(self, camera_info, image, depth):
+        rospy.loginfo_throttle(5, "synced_images heartbeat")
         self._camera_info = camera_info
         self._depth       = depth
 
