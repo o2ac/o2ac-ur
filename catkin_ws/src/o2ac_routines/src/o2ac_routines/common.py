@@ -603,7 +603,7 @@ class O2ACCommon(O2ACBase):
           approach_height=0.05, item_id_to_attach = "", 
           lift_up_after_pick=True, acc_fast=1.0, acc_slow=.1, 
           gripper_velocity = .1, axis="x", sign=+1,
-          retreat_height = None, approach_with_move_lin=True):
+          retreat_height = None, approach_with_move_lin=True, attach_with_collisions=False):
     """
     This function (outdated) performs a grasp with the robot, but it is not updated in the planning scene.
     It does not use the object in simulation. It can be used for simple tests and prototyping, but should
@@ -612,6 +612,8 @@ class O2ACCommon(O2ACBase):
     item_id_to_attach is used to attach the item to the robot at the target pick pose. It is ignored if empty.
     The attachment will be visible in the MoveIt planning scene. The object and its subframes can be used
     as an end effector.
+
+    attach_with_collisions use the CollisionObject otherwise try to attach the visualization Marker
     """
     rospy.loginfo("Entered simple_pick")
     
@@ -654,7 +656,7 @@ class O2ACCommon(O2ACBase):
 
     if item_id_to_attach and success:
       self.allow_collisions_with_robot_hand(item_id_to_attach, robot_name)
-      robot.gripper.attach_object(object_to_attach=item_id_to_attach)
+      robot.gripper.attach_object(object_to_attach=item_id_to_attach, with_collisions=attach_with_collisions)
 
     if lift_up_after_pick:
       rospy.sleep(1.0)
@@ -3313,7 +3315,7 @@ class O2ACCommon(O2ACBase):
     self.allow_collisions_with_robot_hand("tray", "b_bot", allow=True)
     success = self.simple_pick("b_bot", object_pose=grasp_pose, grasp_width=grasp_width, approach_height=0.05, grasp_height=0.005, 
                      axis="z", item_id_to_attach=panel_name, lift_up_after_pick=True, approach_with_move_lin=False,
-                     speed_fast=1.0, minimum_grasp_width=0.001)
+                     speed_fast=1.0, minimum_grasp_width=0.001, attach_with_collisions=True)
     self.allow_collisions_with_robot_hand("tray", "b_bot", allow=True)
 
     if not success:
@@ -3330,7 +3332,7 @@ class O2ACCommon(O2ACBase):
             return self.pick_panel_with_handover(panel_name, simultaneous, rotate_on_failure=True, rotation_retry_counter=0) # potential infinite loop...
           if self.simple_pick("b_bot", object_pose=grasp_pose, grasp_width=grasp_width, approach_height=0.05, grasp_height=0.005, 
                               axis="z", item_id_to_attach=panel_name, lift_up_after_pick=True, approach_with_move_lin=False,
-                              speed_fast=1.0, minimum_grasp_width=0.001):
+                              speed_fast=1.0, minimum_grasp_width=0.001, attach_with_collisions=True):
             break
           rotation_retry_counter += 1
       else:
@@ -3394,7 +3396,7 @@ class O2ACCommon(O2ACBase):
       grasp_pose = self.listener.transformPose("world", grasp_pose)
       success = self.simple_pick(robot_name, object_pose=grasp_pose, grasp_width=0.04, approach_height=0.1, grasp_height=0.0, 
                       axis="z", item_id_to_attach=panel_name, lift_up_after_pick=False, approach_with_move_lin=False,
-                      speed_fast=1.0)
+                      speed_fast=1.0, attach_with_collisions=True)
       self.active_robots[robot_name].move_lin_rel(relative_translation=[0,-0.01,0.15])
       if not success:
         rospy.logerr("Fail to pick from stored pose")
@@ -3557,7 +3559,7 @@ class O2ACCommon(O2ACBase):
     self.allow_collisions_with_robot_hand(object_name, to_robot_name, allow=True)
     if not self.simple_pick(to_robot_name, object_pose=handover_grasp_pose, grasp_width=0.06, approach_height=0.05, grasp_height=0.0, 
                      axis="y", item_id_to_attach=object_name, lift_up_after_pick=False, approach_with_move_lin=False,
-                     speed_fast=1.0, speed_slow=0.2):
+                     speed_fast=1.0, speed_slow=0.2, attach_with_collisions=True):
       rospy.logerr("Fail to execute handover's grasp")
       return False
 
@@ -3961,7 +3963,7 @@ class O2ACCommon(O2ACBase):
     a_bot_push_tray_front_goal       = conversions.to_pose_stamped(frame, [a_bot_goal[0] , a_bot_goal[1] , -0.01, tau/2, tau/4, 0])
     a_bot_push_tray_front_retreat    = conversions.to_pose_stamped(frame, [a_bot_start[0], 0.0, a_bot_point[2], tau/2, tau/4, 0])
     
-    b_bot_goal  = [tray_x + short_side + 0.02, tray_y] if orientation_parallel else [tray_x + long_side, tray_y]
+    b_bot_goal  = [tray_x + short_side + 0.025, tray_y] if orientation_parallel else [tray_x + long_side, tray_y]
     b_bot_start = [tray_x + short_side + 0.10, tray_y] if orientation_parallel else [tray_x + long_side + 0.1, tray_y]
     b_bot_push_tray_front_start_high = conversions.to_pose_stamped(frame, [b_bot_start[0], b_bot_start[1], b_bot_point[2], 0, tau/4, 0])
     b_bot_push_tray_front_start      = conversions.to_pose_stamped(frame, [b_bot_start[0], b_bot_start[1], -0.01, 0, tau/4, 0])
