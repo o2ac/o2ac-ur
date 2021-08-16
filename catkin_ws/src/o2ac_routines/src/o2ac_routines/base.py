@@ -1096,7 +1096,7 @@ class O2ACBase(object):
 
     if equip or realign:  # Pull back and let go once to align the tool with the magnet properly 
       pull_back_slightly = copy.deepcopy(ps_in_holder)
-      pull_back_slightly.pose.position.x -= 0.003
+      pull_back_slightly.pose.position.x -= 0.002
       ps_in_holder.pose.position.x += 0.001  # To remove the offset for placing applied earlier
       lin_speed = 0.2
       sequence.append(helpers.to_sequence_item(pull_back_slightly, speed=lin_speed))
