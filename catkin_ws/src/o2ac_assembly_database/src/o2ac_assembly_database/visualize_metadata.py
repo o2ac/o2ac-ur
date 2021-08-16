@@ -124,7 +124,7 @@ class MetadataVisualizer():
         marker.scale.x = 0.001
         marker.scale.y = 0.001
         marker.scale.z = 0.001
-        marker.color.a = 0.8
+        marker.color.a = 1.0
         marker.color.g = 1.0
         marker.mesh_resource = 'package://' + mesh_path
 
