@@ -4,6 +4,7 @@
  *  \brief	ROS node for tracking corners in 2D images
  */
 #include "MotionDetector.h"
+#include "Plane.h"
 #include <sensor_msgs/image_encodings.h>
 #include <opencv2/calib3d.hpp>
 #include <opencv2/imgproc.hpp>
@@ -24,7 +25,28 @@ withinImage(const cv::Point& p, const cv::Mat& image)
 {
     return (0 <= p.x && p.x < image.cols && 0 <= p.y && p.y < image.rows);
 }
-    
+
+template <class T> T
+distance(const cv::Mat& image, int label, const TU::Plane<T, 2>& line)
+{
+    auto	dmin = std::numeric_limits<T>::max();
+
+    for (int v = 0; v < image.rows; ++v)
+    {
+	auto	p = image.ptr<int>(v, 0);
+
+	for (int u = 0; u < image.cols; ++u, ++p)
+	    if (*p == label)
+	    {
+		const auto	d = line.distance({u, v});
+		if (d < dmin)
+		    dmin = d;
+	    }
+    }
+
+    return dmin;
+}
+
 /************************************************************************
 *  class MotionDetector							*
 ************************************************************************/
@@ -93,7 +115,7 @@ MotionDetector::preempt_cb()
     {
 	detect_cable_tip();
 	_image_pub.publish(_mask.toImageMsg());
-	
+
 	DetectMotionResult	result;
 	_detect_motion_srv.setPreempted(result);
     }
@@ -149,7 +171,7 @@ MotionDetector::accumulate_mask(const cv::Mat& image,
     cv::Mat_<point3_t>	pt3s(1, 4);
     for (size_t i = 0; i < 4; ++i)
 	pt3s(i) = pointTFToCV(Tct * corners[i]);
-    
+
   // Project ROI corners onto the image.
     cv::Mat_<float>	K(3, 3);
     std::copy_n(std::begin(camera_info->K), 9, K.begin());
@@ -166,7 +188,7 @@ MotionDetector::accumulate_mask(const cv::Mat& image,
 
     _mask.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
     _mask.header   = camera_info->header;
-    
+
     if (_nframes == 0)
     {
       // Crop the given image.
@@ -197,16 +219,16 @@ void
 MotionDetector::detect_cable_tip()
 {
   // Fill the outside of ROI with zero.
-    const point_t  outer[]   = {{0,		     0},
-				{_mask.image.cols-1, 0},
-				{_mask.image.cols-1, _mask.image.rows-1},
-				{0,		     _mask.image.rows-1}};
-    const point_t  inner[]   = {point_t(_corners(0)) - _top_left,
-				point_t(_corners(1)) - _top_left,
-				point_t(_corners(2)) - _top_left,
-				point_t(_corners(3)) - _top_left};
-    const point_t* borders[] = {outer, inner};
-    const int	   npoints[] = {4, 4};
+    const point_t	outer[]   = {{0,		  0},
+				     {_mask.image.cols-1, 0},
+				     {_mask.image.cols-1, _mask.image.rows-1},
+				     {0,		  _mask.image.rows-1}};
+    const point_t	inner[]   = {point_t(_corners(0)) - _top_left,
+				     point_t(_corners(1)) - _top_left,
+				     point_t(_corners(2)) - _top_left,
+				     point_t(_corners(3)) - _top_left};
+    const point_t*	borders[] = {outer, inner};
+    const int		npoints[] = {4, 4};
     cv::fillPoly(_mask.image, borders, npoints, 2, cv::Scalar(0), cv::LINE_8);
 
   // Binarize the accumultated mask image.
@@ -217,21 +239,45 @@ MotionDetector::detect_cable_tip()
 		  cv::THRESH_BINARY | cv::THRESH_OTSU);
     _mask.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
 
-  // Label
+  // Create a line of finger-tip border.
+    const cv::Vec<float, 2>	ends[] = {_corners(0) - point2_t(_top_left),
+					  _corners(1) - point2_t(_top_left)};
+    const TU::Plane<float, 2>	line(ends, ends + 2);
+
+  // Assign labels to the binarized mask image.
     cv::Mat	labels, stats, centroids;
     const auto	nlabels = cv::connectedComponentsWithStats(mask, labels,
 							   stats, centroids);
-    for (int i = 0; i < nlabels; ++i)
+
+  // Find a region nearest to the finger-tip border.
+    int		amax = 0;
+    auto	lmin = 0;
+    for (int label = 1; label < nlabels; ++label)
     {
-	using namespace cv::ConnectedComponentsType;
-	
-	const auto	stat = stats.ptr<int>(i);
-	const point_t	top_left(stat[CC_STAT_LEFT],
-				 stat[CC_STAT_TOP]);
-	const auto	width  = stat[CC_STAT_WIDTH];
-	const auto	height = stat[CC_STAT_HEIGHT];
-	const auto	area   = stat[CC_STAT_AREA];
+	using cc_t = cv::ConnectedComponentsTypes;
+
+	const auto	d = distance(labels, label, line);
+	std::cerr << "  label = " << label << ", distance = " << d << std::endl;
+
+	if (d < 1)
+	{
+	    area =
+	    dmin = d;
+	    lmin = label;
+	}
+    }
+
+    std::cerr << "lmin = " << lmin << ", dmin = " << dmin << std::endl;
+
+    for (int v = 0; v < labels.rows; ++v)
+    {
+	auto	p = labels.ptr<int>(v, 0);
+	auto	q = _mask.image.ptr<uint8_t>(v, 0);
+
+	for (int u = 0; u < labels.cols; ++u, ++p, ++q)
+	    if (*p != lmin)
+		*q = 0;
     }
 }
-    
+
 }	// namespace aist_motion_detector
