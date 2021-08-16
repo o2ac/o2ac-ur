@@ -350,6 +350,16 @@ if __name__ == '__main__':
       elif i == "load2021":
         c.assembly_status.tray_placed_on_table = True
         c.set_assembly("wrs_assembly_2021")
+      elif i == "pickplacebearingpanel":
+        if not c.pick_panel_with_handover("panel_bearing", simultaneous=False):
+          break
+        c.center_panel("panel_bearing", store=True)
+        c.place_panel("a_bot", "panel_bearing", pick_again=True, fake_position=True)
+      elif i == "pickplacemotorpanel":
+        if not c.pick_panel_with_handover("panel_motor", simultaneous=False):
+          break
+        c.center_panel("panel_motor", store=True)
+        c.place_panel("a_bot", "panel_motor", pick_again=True, fake_position=True)
       elif i == "placemotorpanel":
         c.place_panel("a_bot", "panel_motor", fake_position=True)
       elif i == "placebearingpanel":
