@@ -8,6 +8,7 @@
 #include <sensor_msgs/image_encodings.h>
 #include <opencv2/calib3d.hpp>
 #include <opencv2/imgproc.hpp>
+#include <opencv2/bgsegm.hpp>
 
 namespace aist_motion_detector
 {
@@ -66,7 +67,12 @@ MotionDetector::MotionDetector(const ros::NodeHandle& nh)
      _bgsub(cv::createBackgroundSubtractorMOG2()),
      _search_top(_nh.param("search_top", 0.003)),
      _search_bottom(_nh.param("search_bottom", 0.030)),
-     _search_width(_nh.param("search_width", 0.050))
+     _search_width(_nh.param("search_width", 0.050)),
+     _nframes(0),
+     _top_left(0, 0),
+     _bottom_right(0, 0),
+     _corners(),
+     _mask()
 {
   // Setup DetectMotion action server.
     _detect_motion_srv.registerGoalCallback(boost::bind(&goal_cb, this));
@@ -118,6 +124,8 @@ MotionDetector::preempt_cb()
 
 	DetectMotionResult	result;
 	_detect_motion_srv.setPreempted(result);
+
+	_nframes = 0;
     }
     else
 	_detect_motion_srv.setPreempted();
@@ -131,13 +139,18 @@ MotionDetector::image_cb(const camera_info_cp& camera_info,
     if (!_detect_motion_srv.isActive())
     	return;
 
-  // Project target position onto the image.
     try
     {
-	cv::Mat	mask;
-	_bgsub->apply(cv_bridge::toCvShare(image)->image, mask);
-	accumulate_mask(mask, _current_goal->target_frame, camera_info);
-	_image_pub.publish(_mask.toImageMsg());
+      // Perform background subtraction
+	cv_bridge::CvImage	mask;
+	_bgsub->apply(cv_bridge::toCvShare(image)->image, mask.image);
+
+      // Accumulate updated foreground.
+	accumulate_mask(mask.image, _current_goal->target_frame, camera_info);
+
+	mask.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
+	mask.header   = camera_info->header;
+	_image_pub.publish(mask.toImageMsg());
     }
     catch (const tf::TransformException& err)
     {
@@ -152,7 +165,7 @@ MotionDetector::image_cb(const camera_info_cp& camera_info,
 }
 
 void
-MotionDetector::accumulate_mask(const cv::Mat& image,
+MotionDetector::accumulate_mask(const cv::Mat& mask,
 				const std::string& target_frame,
 				const camera_info_cp& camera_info)
 {
@@ -182,8 +195,8 @@ MotionDetector::accumulate_mask(const cv::Mat& image,
     cv::projectPoints(pt3s, zero, zero, K, D, p);
 
   // Confirm that all the projected corners are included within the image.
-    if (!withinImage(p(0), image) || !withinImage(p(1), image) ||
-	!withinImage(p(2), image) || !withinImage(p(3), image))
+    if (!withinImage(p(0), mask) || !withinImage(p(1), mask) ||
+	!withinImage(p(2), mask) || !withinImage(p(3), mask))
 	return;
 
     _mask.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
@@ -197,19 +210,18 @@ MotionDetector::accumulate_mask(const cv::Mat& image,
 	_bottom_right.x = int(std::max({p(0).x, p(1).x, p(2).x, p(3).x}));
 	_bottom_right.y	= int(std::max({p(0).y, p(1).y, p(2).y, p(3).y}));
 	_corners	= p;
-	image(cv::Rect(_top_left, _bottom_right)).convertTo(_mask.image,
-							    CV_16UC1);
+	mask(cv::Rect(_top_left, _bottom_right)).convertTo(_mask.image,
+							   CV_16UC1);
     }
     else
     {
-	cv::Mat	warped_image;
-	cv::warpPerspective(image, warped_image,
-			    cv::findHomography(_corners, p),
-			    image.size(), cv::WARP_INVERSE_MAP);
-	cv::Mat	warped_and_converted_image;
-	warped_image(cv::Rect(_top_left, _bottom_right))
-	    .convertTo(warped_and_converted_image, CV_16UC1);
-	_mask.image += warped_and_converted_image;
+	cv::Mat	warped_mask;
+	cv::warpPerspective(mask, warped_mask, cv::findHomography(_corners, p),
+			    mask.size(), cv::WARP_INVERSE_MAP);
+	cv::Mat	warped_and_converted_mask;
+	warped_mask(cv::Rect(_top_left, _bottom_right))
+	    .convertTo(warped_and_converted_mask, CV_16UC1);
+	_mask.image += warped_and_converted_mask;
     }
 
     ++_nframes;
@@ -251,23 +263,28 @@ MotionDetector::detect_cable_tip()
 
   // Find a region nearest to the finger-tip border.
     int		amax = 0;
-    auto	lmin = 0;
+    auto	lmax = 0;
     for (int label = 1; label < nlabels; ++label)
     {
-	using cc_t = cv::ConnectedComponentsTypes;
-
 	const auto	d = distance(labels, label, line);
 	std::cerr << "  label = " << label << ", distance = " << d << std::endl;
 
 	if (d < 1)
 	{
-	    area =
-	    dmin = d;
-	    lmin = label;
+	    using cc_t = cv::ConnectedComponentsTypes;
+	
+	    const auto	stat = stats.ptr<int>(label);
+	    const auto	area = stat[cc_t::CC_STAT_AREA];
+
+	    if (area > amax)
+	    {
+		amax = area;
+		lmax = label;
+	    }
 	}
     }
 
-    std::cerr << "lmin = " << lmin << ", dmin = " << dmin << std::endl;
+    std::cerr << "lmax = " << lmax << ", amax = " << amax << std::endl;
 
     for (int v = 0; v < labels.rows; ++v)
     {
@@ -275,8 +292,7 @@ MotionDetector::detect_cable_tip()
 	auto	q = _mask.image.ptr<uint8_t>(v, 0);
 
 	for (int u = 0; u < labels.cols; ++u, ++p, ++q)
-	    if (*p != lmin)
-		*q = 0;
+	    *q = (*p == lmax ? 255 : 0);
     }
 }
 
