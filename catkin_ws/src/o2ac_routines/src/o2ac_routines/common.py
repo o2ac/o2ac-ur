@@ -1271,8 +1271,7 @@ class O2ACCommon(O2ACBase):
     """
     Centers cylindrical object at the current location, by closing/opening the gripper and rotating the robot's last joint.
 
-    If required_width_when_closed is set, the function returns False when the gripper closes and detects a smaller width. This
-    assumes that the object is not 
+    If required_width_when_closed is set, the function returns False when the gripper closes and detects a smaller width.
     """
     robot = self.active_robots[robot_name]
     robot.gripper.send_command(command="close", force = 1.0, velocity = 0.1)
@@ -1284,7 +1283,7 @@ class O2ACCommon(O2ACBase):
     # rotate gripper 90deg
     initial_pose = robot.get_current_pose_stamped()
     offset = -tau/4.0 if clockwise else tau/4.0
-    success = robot.move_lin_rel(relative_rotation=[offset, 0, 0], speed=1.0, relative_to_tcp=True)
+    success = robot.move_lin_rel(relative_rotation=[offset, 0, 0], speed=3.0, relative_to_tcp=True)
     if not success:
       rospy.logerr("Fail to rotate 90deg %s" % success)
       return False
@@ -1301,7 +1300,7 @@ class O2ACCommon(O2ACBase):
 
     # rotate gripper -90deg
     if move_back_to_initial_position:
-      success = robot.go_to_pose_goal(initial_pose, speed=1.0, move_lin=True)
+      success = robot.go_to_pose_goal(initial_pose, speed=3.0, move_lin=True)
     return success
 
   def centering_pick(self, robot_name, object_pose, speed_fast=0.5, speed_slow=0.2, object_width=0.08, approach_height=0.1, 
@@ -1711,13 +1710,18 @@ class O2ACCommon(O2ACBase):
     return True
 
   def orient_bearing(self, task, robot_name="b_bot", part1=True, part2=True):
+    """ Reorients the bearing in the area next to the tray so that the lip can be grasped and
+        the bearing inserted. Two possible end states, according to input parameters.
+        
+        part1 ends after reorienting and regrasping the bearing.
+        part2 ends with the bearing in front of the hole, ready to be inserted with insert_bearing.
+    """
     if task == "taskboard":
       bearing_target_link = "taskboard_bearing_target_link"
     elif task == "assembly":
-      rospy.logerr("look this up")
       bearing_target_link = "assembled_part_07_inserted"
 
-    if part1:
+    if part1:  # Reorient and grasp the bearing
       self.active_robots[robot_name].gripper.close() # catch false grasps
       if not self.simple_gripper_check(robot_name, min_opening_width=0.01):
         rospy.logerr("Fail to grasp bearing")
@@ -1734,13 +1738,13 @@ class O2ACCommon(O2ACBase):
           rospy.logerr("Could not complete orient down sequence")
           self.pick_from_centering_area_and_drop_in_tray(robot_name)
           return False
-        #'down' means the small area contacts with tray.
+        #'down' means that the small area contacts with tray.
       if self.active_robots[robot_name].gripper.opening_width < 0.01 and self.use_real_robot:
         rospy.logerr("Bearing not found in gripper. Must have been lost. Aborting.")
         #TODO(felixvd): Look at the regrasping/aligning area next to the tray
         return False
 
-    if part2:
+    if part2:  # Move in front of insertion target
       prefix = "right" if robot_name == "b_bot" else "left"
       at_tray_border_pose = conversions.to_pose_stamped(prefix + "_centering_link", [-0.15, 0, 0.10, radians(-100), 0, 0])
 
@@ -1796,6 +1800,7 @@ class O2ACCommon(O2ACBase):
       else:
         robot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
         self.drop_in_tray(robot_name)
+        return False
 
     robot.gripper.open(opening_width=0.08, wait=True)
     robot.move_lin_rel(relative_translation = [0.01,0,0], acceleration = 0.015, speed=.03)
@@ -1879,8 +1884,15 @@ class O2ACCommon(O2ACBase):
 
         if screw_status[n] == "empty":
           success = self.pick_and_fasten_screw(robot_name, screw_poses[n-1], screw_size=4)
-          screw_status[n] = "done" if success else "maybe_stuck_in_hole"
-        elif screw_status[n] == "maybe_stuck_in_hole":
+          if success:
+            screw_status[n] = "done" 
+          else:
+            if self.tools.screw_is_suctioned["m4"]:
+              screw_status[n] == "empty"
+            else:
+              screw_status[n] == "maybe_stuck_in_hole"
+            
+        elif screw_status[n] == "maybe_stuck_in_hole":  # Retighten
           screw_pose_approach = copy.deepcopy(screw_poses[n-1])
           screw_pose_approach.pose.position.x -= 0.07
           robot.go_to_pose_goal(screw_pose_approach, end_effector_link = robot_name + "_screw_tool_m4_tip_link", move_lin=False)
@@ -2003,7 +2015,7 @@ class O2ACCommon(O2ACBase):
     new_pose = self.move_towards_tray_center(robot_name, move_distance)
     return new_pose
 
-  def pick_and_insert_idler_pulley(self, task="", simultaneous=False):
+  def pick_and_insert_idler_pulley(self, task="", simultaneous=False, pull_and_retry_pick_if_failed=True):
     if not task:
       rospy.logerr("Specify the task!")
       return False
@@ -2029,7 +2041,7 @@ class O2ACCommon(O2ACBase):
     object_pose.pose.position.z = 0.018
   
     idler_pulley_pose = copy.deepcopy(object_pose)
-    idler_pulley_pose.pose.position.z = 0.025
+    idler_pulley_pose.pose.position.z = 0.023
     self.markers_scene.spawn_item("taskboard_idler_pulley_small", idler_pulley_pose)
     # self.spawn_object("taskboard_idler_pulley_small", idler_pulley_pose)
     self.planning_scene_interface.allow_collisions("taskboard_idler_pulley_small", "")
@@ -2054,7 +2066,13 @@ class O2ACCommon(O2ACBase):
     
     self.a_bot.gripper.open(opening_width=0.08)
     if not self.a_bot.go_to_pose_goal(at_object_pose):
-      rospy.logerr("Fail to complete pick pose")
+      if pull_and_retry_pick_if_failed:
+        rospy.logwarn("Failed to pick. Try to move into the middle.")
+        # TODO: Rotate pose by 90 deg
+        
+        # TODO: Pull idler pulley into the middle
+        return self.pick_and_insert_idler_pulley(task=task, simultaneous=simultaneous, pull_and_retry_pick_if_failed=False)
+      rospy.logerr("Fail to complete pick pose. Break out.")
       return False
 
     self.a_bot.gripper.open(wait=False, opening_width=0.07)
@@ -2161,7 +2179,7 @@ class O2ACCommon(O2ACBase):
 
   def grasp_idler_pulley(self):
     # Incline 45 deg
-    if not self.a_bot.move_lin_rel(relative_translation=[0, 0.01, 0.002], relative_rotation=[tau/8.0, 0, 0]):
+    if not self.a_bot.move_lin_rel(relative_translation=[0, 0.01, 0.0], relative_rotation=[tau/8.0, 0, 0]):
       return False
     
     self.a_bot.gripper.attach_object("taskboard_idler_pulley_small")
@@ -2798,6 +2816,29 @@ class O2ACCommon(O2ACBase):
     return True
 
   ######## Motor
+
+  def pick_and_store_motor(self):
+    """ Half-blindly picks the motor and places it away from the tray.
+    """
+    picked = False
+    attempt_nr = 0
+    while not picked and attempt_nr < 10:
+      picked = self.attempt_motor_tray_pick()
+      if not picked:
+        attempt_nr += 1
+        continue
+      
+      # Place motor in storage area
+      p_through = conversions.to_pose_stamped("right_storage_area_link", [-0.15, 0, 0.10, -90, 0, 0])
+      p_drop    = conversions.to_pose_stamped("right_storage_area_link", [-0.03, 0, 0.0, -135, 0, 0])
+      self.b_bot.go_to_pose_goal(p_through, speed=.5, wait=True)
+      self.b_bot.go_to_pose_goal(p_drop, speed=.5, wait=True)
+      self.b_bot.gripper.open()
+
+      if not picked:
+        attempt_nr += 1
+        continue
+    return picked
 
   def pick_and_center_motor(self):
     picked = False
@@ -3548,7 +3589,8 @@ class O2ACCommon(O2ACBase):
       return False
     self.a_bot.gripper.close(velocity=0.01, force=60, wait=False)
     
-    # self.a_bot.gripper.send_command(0.005, velocity=0.01, wait=False)
+    # Open gripper slightly
+    self.a_bot.gripper.send_command(0.005, velocity=0.01, wait=False)
     # self.publish_part_in_assembled_position(panel_name)
     
     self.confirm_to_proceed("Plate in the correct position?")

@@ -334,7 +334,7 @@ def main():
     # controller.ab_bot.go_to_named_pose("home")
     # controller.competition_mode = True
     # controller.reset_scene_and_robots()
-    # controller.orient_tray_stack(True)
+    # controller.center_tray_stack(True)
     # controller.spawn_tray_stack(stack_center=[-0.03, 0.0], tray_heights=[0.05, 0.0], orientation_parallel=True)
     # controller.pick_tray_from_agv_stack_calibration_long_side("tray1")
     # controller.return_tray_to_agv_stack_calibration_long_side("tray1")
