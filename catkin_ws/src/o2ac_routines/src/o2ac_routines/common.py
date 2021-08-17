@@ -317,7 +317,7 @@ class O2ACCommon(O2ACBase):
 
     # Look from top first
     self.vision.activate_camera(robot_name+"_outside_camera")
-    if not skip_moving:
+    if not skip_moving and self.use_real_robot:
       view_poses = [self.tray_view_high] + self.close_tray_views
       for pose in view_poses:
         if not self.active_robots[robot_name].go_to_pose_goal(pose, end_effector_link=robot_name+"_outside_camera_color_frame", move_lin=True, retry_non_linear=True):

@@ -820,6 +820,10 @@ class O2ACBase(object):
     Returns object pose if object was detected in current camera view and published to planning scene,
     False otherwise.
     """
+    if not self.use_real_robot:
+      rospy.logwarn("Returning position near center (simulation)")
+      return conversions.to_pose_stamped("tray_center", [-0.01, 0.05, 0.02] + np.deg2rad([0,90.,0]).tolist())
+
     # TODO: merge with "look_and_get_grasp_points"
     object_type = self.assembly_database.name_to_type(item_name)
     if not object_type:

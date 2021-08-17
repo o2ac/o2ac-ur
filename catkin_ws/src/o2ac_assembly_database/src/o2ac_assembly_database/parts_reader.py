@@ -101,6 +101,7 @@ class PartsReader(object):
                 elif self.load_meshes and not c_obj.meshes: # lazy loading of meshes
                     print("loading meshes:", object_name)
                     c_obj.meshes = [self._read_mesh(self._mesh_filepaths[i], (0.001, 0.001, 0.001))]
+                    c_new.meshes = c_obj.meshes
                     c_new.mesh_poses = c_obj.mesh_poses
                 else:
                     print("Already loaded meshes", object_name)
