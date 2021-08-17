@@ -361,6 +361,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-melodic-trac-ik-python=1.5.1-1bionic.20210505.040855 \
     ros-melodic-trac-ik-kinematics-plugin=1.5.1-1bionic.20210601.165301 \
     ros-melodic-flexbe-behavior-engine=1.3.1-1bionic.20210505.053009 \
+    ros-melodic-jsk-rviz-plugins \
     python-rosinstall=0.7.8-1 \
 	&& rm -rf /var/lib/apt/lists/*
 
