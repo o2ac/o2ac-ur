@@ -1680,7 +1680,7 @@ class O2ACCommon(O2ACBase):
       return False
 
     # Insert bearing
-    if not self.insert_bearing(bearing_target_link):
+    if not self.insert_bearing(bearing_target_link, task=task):
       rospy.logerr("insert_bearing returned False. Breaking out")
       return False
 
@@ -1719,6 +1719,9 @@ class O2ACCommon(O2ACBase):
     if task == "taskboard":
       bearing_target_link = "taskboard_bearing_target_link"
     elif task == "assembly":
+      bearing_target_link = "assembled_part_07_inserted"
+    else:
+      rospy.logerr("No task specified! Assuming assembly")
       bearing_target_link = "assembled_part_07_inserted"
 
     if part1:  # Reorient and grasp the bearing
@@ -1769,7 +1772,7 @@ class O2ACCommon(O2ACBase):
       self.despawn_object("bearing")
     return True
 
-  def insert_bearing(self, target_link, try_recenter=True, try_reinsertion=True, robot_name="b_bot"):
+  def insert_bearing(self, target_link, try_recenter=True, try_reinsertion=True, robot_name="b_bot", task="assembly"):
     """ Only inserts the bearing, does not align the holes.
     """
     robot = self.active_robots[robot_name]
@@ -1791,20 +1794,21 @@ class O2ACCommon(O2ACBase):
       if try_reinsertion:
         # Try to insert again
         rospy.logwarn("** Insertion Incomplete, trying again **")
-        self.insert_bearing(target_link, try_recenter=False, try_reinsertion=False, robot_name=robot_name)
+        self.insert_bearing(target_link, try_recenter=True, try_reinsertion=False, robot_name=robot_name)
       elif try_recenter:
         # Try to recenter the bearing
         rospy.logwarn("** Insertion Incomplete, trying from centering again **")
-        self.playback_sequence("bearing_orient_down_" + robot_name)
-        self.insert_bearing(target_link, try_recenter=False, try_reinsertion=True, robot_name=robot_name)
+        self.orient_bearing(task, robot_name=robot_name, part1=True, part2=True)
+        self.insert_bearing(target_link, try_recenter=False, try_reinsertion=False, robot_name=robot_name)
       else:
+        rospy.logerr("** Insertion Incomplete, dropping bearing into tray **")
         robot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
         self.drop_in_tray(robot_name)
         return False
 
     robot.gripper.open(opening_width=0.08, wait=True)
     robot.move_lin_rel(relative_translation = [0.01,0,0], acceleration = 0.015, speed=.03)
-    robot.gripper.close(velocity=0.05, wait=True)
+    robot.gripper.close(force=30, velocity=0.01, wait=True)
 
     result = robot.do_insertion(target_pose_target_frame, insertion_direction=insertion_direction, force=10.0, timeout=30.0, 
                                 radius=0.0, wiggle_direction="X", wiggle_angle=np.deg2rad(3.0), wiggle_revolutions=1.0,
