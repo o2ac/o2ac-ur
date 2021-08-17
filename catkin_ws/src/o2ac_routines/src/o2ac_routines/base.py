@@ -1392,7 +1392,7 @@ class O2ACBase(object):
           execution_time = (rospy.Time.now() - active_plan_start_time).secs
           remaining_time = execution_time - active_plan_duration
           if remaining_time < 0.1: # Not enough time for queue up another plan; wait for execution to complete
-            if not robot.robot_group.wait_for_motion_result():
+            if not robot.robot_group.wait_for_motion_result(45.0): # wait for motion max of 45 seconds
               rospy.logerr("MoveIt aborted the motion")
             rospy.loginfo("Waited for motion result")
           else:
@@ -1416,6 +1416,7 @@ class O2ACBase(object):
           active_plan_start_time = rospy.Time.now()
           active_plan_duration = helpers.get_trajectory_duration(next_plan)
 
+      robot.robot_group.wait_for_motion_result(45.0) # wait for motion max of 45 seconds
       # Finished preplanning the whole sequence: Execute remaining waypoints
       while backlog:
         robot.robot_group.wait_for_motion_result()
