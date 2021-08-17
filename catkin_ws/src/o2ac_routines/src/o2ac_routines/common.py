@@ -307,9 +307,7 @@ class O2ACCommon(O2ACBase):
     success = False
     return success
   
-
   ####### Vision
-  @check_for_real_robot
   def get_large_item_position_from_top(self, item_name, robot_name="b_bot", skip_moving=False):
     """
     This function look at the tray from the top only, and publishes the result to the planning scene.

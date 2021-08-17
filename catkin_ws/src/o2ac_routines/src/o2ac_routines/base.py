@@ -187,6 +187,8 @@ class O2ACBase(object):
     self.define_tool_collision_objects()
 
     self.objects_in_tray = dict()  # key: object ID. value: False or object pose
+    if not self.use_real_robot:
+      self.define_objects_in_tray_arrangement()  # For simulated vision
 
     rospy.sleep(.5)
     rospy.loginfo("Finished initializing class")
@@ -662,6 +664,108 @@ class O2ACBase(object):
     rospy.set_param('tools/screw_tool_' + tool_id + '/grasp_1/position', trans)
     rospy.set_param('tools/screw_tool_' + tool_id + '/grasp_1/orientation', rot)
 
+  
+  ####### Parts spawning
+
+  def spawn_objects_for_closed_loop_test(self):
+    objects = ['panel_bearing', 'panel_motor']
+    poses = [[0.4, -0.35, 0.8, tau/4, 0, tau/4], [0.5, 0.3, 1, tau/4, 0, 0]]
+    self.spawn_multiple_objects('wrs_assembly_2020', ['base'], [[0.12, 0.2, 0.0, tau/4, 0.0, -tau/4]], 'attached_base_origin_link')
+    self.spawn_multiple_objects('wrs_assembly_2020', objects, poses, 'world')
+
+  def object_pose_from_fake_perception(self, object_name, xyz_noise=[0.003, 0.003, 0.002], rpy_noise=[radians(5), radians(5), radians(10)]):
+    """ Obtains the object pose at a pre-defined position with some noise. 
+        Simulates vision.
+    """
+    # Get object pose and add noise
+    try:
+      object_pose = conversions.to_pose_stamped("tray_center", self.fake_tray_object_positions[object_name])
+      object_pose.pose.position.x += np.random.uniform(low=xyz_noise[0], high=xyz_noise[0])
+      object_pose.pose.position.y += np.random.uniform(low=xyz_noise[1], high=xyz_noise[1])
+      object_pose.pose.position.z += np.random.uniform(low=xyz_noise[2], high=xyz_noise[2])
+      object_pose.pose.orientation = helpers.rotateQuaternionByRPY(np.random.uniform(low=rpy_noise[0], high=rpy_noise[0]),
+                                                                   np.random.uniform(low=rpy_noise[1], high=rpy_noise[1]),
+                                                                   np.random.uniform(low=rpy_noise[2], high=rpy_noise[2]),
+                                                                   object_pose.pose.orientation)
+    except Exception as e:
+      print(e)
+      return False
+    return object_pose
+
+  def define_objects_in_tray_arrangement(self, layout_number=1):
+    """ Define the positions of all objects in the tray (for simulation).
+    """
+    self.fake_tray_object_positions = dict()
+    objects = ['panel_motor', 'panel_bearing', 'motor', 'motor_pulley', 'bearing',
+      'shaft', 'end_cap', 'bearing_spacer', 'output_pulley', 'idler_spacer', 'idler_pulley', 'idler_pin']
+    if layout_number == 1:
+      poses = [[0.12, 0.02, 0.001, 0.0, 0.0, tau/2],
+              [0.02, -0.06, 0.001, 0.0, 0.0, -tau/4],
+              [-0.09, -0.12, 0.001, tau/4, -tau/4, 0.0],
+              [-0.02, -0.16, 0.005, 0.0, -tau/4, 0.0],
+              [0.0, 0.0, 0.001, 0.0, tau/4, 0.0],
+              [-0.04, 0.0, 0.005, 0.0, 0.0, -tau/2],
+              [-0.1, -0.06, 0.001, 0.0, -tau/4, 0.0],
+              [-0.07, -0.06, 0.001, 0.0, -tau/4, 0.0],
+              [-0.02, -0.08, 0.005, 0.0, -tau/4, 0.0],
+              [-0.04, -0.03, 0.001, 0.0, -tau/4, 0.0],
+              [-0.05, -0.13, 0.001, 0.0, -tau/4, 0.0],
+              [-0.1, -0.03, 0.005, 0.0, 0.0, 0.0]]
+    elif layout_number == 2:
+      poses = [[-0.04, 0.01, 0.001, 0.0, 0.0, tau/2],
+              [0.01, -0.08, 0.001, 0.0, 0.0, tau/2],
+              [0.1, -0.13, 0.001, tau/4, -tau/4, 0.0],
+              [0.05, -0.07, 0.011, 0.0, -tau/4, 0.0],
+              [0.06, 0, 0.001, 0.0, tau/4, 0.0],
+              [0.04, 0.03, 0.011, 0.0, 0.0, -tau/2],
+              [0.11, -0.06, 0.001, 0.0, -tau/4, 0.0],
+              [0.08, -0.06, 0.001, 0.0, -tau/4, 0.0],
+              [0, -0.03, 0.011, 0.0, -tau/4, 0.0],
+              [0.1, -0.03, 0.001, 0.0, -tau/4, 0.0],
+              [0.05, -0.13, 0.001, 0.0, -tau/4, 0.0],
+              [0.04, -0.17, 0.011, 0.0, 0.0, 0.0]]
+    elif layout_number == 3:
+      poses = [[0.000, 0.020, 0.001, 0.000, -0.000, 3.140000], 
+              [0.100, -0.040, 0.001, 0.000, -0.000, 1.580000], 
+              [-0.060, 0.060, 0.001, 2.218, -1.568, 0.932410], 
+              [-0.040, 0.160, 0.011, -3.141, -1.570, -3.141592], 
+              [0.080, 0.130, 0.001, 2.756, 1.570, -2.756991], 
+              [-0.090, -0.040, 0.011, 0.000, -0.000, 1.570000], 
+              [-0.060, 0.120, 0.001, -3.141, -1.570, -3.141592], 
+              [-0.040, 0.100, 0.001, -3.141, -1.570, -3.141592], 
+              [0.000, 0.120, 0.011, 2.366, -1.569, 2.366991], 
+              [-0.090, 0.100, 0.001, -3.141, -1.570, -3.141592], 
+              [-0.080, 0.150, 0.001, -3.141, -1.570, -3.141592], 
+              [-0.010, 0.060, 0.011, 0.001, -0.001, -1.571593]]
+    for object_name, pose in zip(objects, poses):
+      self.fake_tray_object_positions[object_name] = pose
+
+  def spawn_objects_for_demo(self, base_plate_in_tray=False, layout_number=1):
+    if layout_number == 4:
+      objects = ['base', 'panel_motor', 'panel_bearing']
+      poses = [[0.1, 0.04, 0.001, tau/4, 0.0, tau/2],
+               [-0.04, 0.01, 0.001, 0.0, 0.0, tau/2],
+               [0.01, -0.08, 0.001, 0.0, 0.0, tau/2]] 
+      self.spawn_multiple_objects('wrs_assembly_2020', objects, poses, 'tray_center')
+      return
+    
+    self.define_objects_in_tray_arrangement(layout_number=layout_number)
+    objects = []
+    poses = []
+    for object_name, pose in self.fake_tray_object_positions.items():
+      objects.append(object_name)
+      poses.append(pose)
+
+    self.spawn_multiple_objects('wrs_assembly_2020', objects, poses, 'tray_center')
+    if not base_plate_in_tray:  # Spawn the base plate on the fixation, for MTC demos
+      self.spawn_multiple_objects('wrs_assembly_2020', ['base'], [[0.12, 0.2, 0.0, tau/4, 0.0, -tau/4]], 'attached_base_origin_link')
+    else:
+      if layout_number == 3:
+        self.spawn_multiple_objects('wrs_assembly_2020', ['base'], [[-0.1, -0.04, 0.001, tau/4, 0.0, 0.0]], 'tray_center')
+      else: # layout 2
+        self.spawn_multiple_objects('wrs_assembly_2020', ['base'], [[0.1, 0.05, 0.001, tau/4, 0.0, tau/2]], 'tray_center')
+    return
+
   def spawn_multiple_objects(self, assembly_name, objects, poses, reference_frame):
     # Init params
     # TODO(Cambel): Fix redundant calls to this definitions params and tool object collitions
@@ -720,7 +824,12 @@ class O2ACBase(object):
     if not object_type:
       rospy.logerr("Could not find the object " + item_name + " in database, or its type field is empty.")
       return False
-    object_pose = self.vision.localize_object(object_type)
+    
+    if self.use_real_robot:
+      object_pose = self.vision.localize_object(object_type)
+    else:  # In simulation, return pose with noise
+      return self.object_pose_from_fake_perception(item_name)
+    
     if object_pose:
       rospy.loginfo("Localized " + item_name + " via CAD matching")
       if publish_to_scene:
