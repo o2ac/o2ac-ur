@@ -1,1 +1,0 @@
-uint8 touched_object_id # 0: ground_object, 1:box_object
