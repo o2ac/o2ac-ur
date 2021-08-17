@@ -260,6 +260,7 @@ class O2ACBase(object):
     self.publish_robot_status()
     self.reset_assembly_visualization()
     self.markers_scene.delete_all()
+    self.publish_status_text("")
 
   @check_for_real_robot
   def activate_led(self, LED_name="b_bot", on=True):
@@ -1316,7 +1317,7 @@ class O2ACBase(object):
         rospy.logwarn("Attempted to execute saved sequence, but file not found: %s" % bagfile)
         rospy.logwarn("Try to execute sequence with online planning")
       else:
-        rospy.logwarn("Executing saved sequence")
+        rospy.logwarn("Executing saved sequence: " + bagfile)
         return self.execute_saved_sequence(sequence_name)
 
     robot = self.active_robots[robot_name]

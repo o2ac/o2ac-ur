@@ -75,9 +75,9 @@ if __name__ == '__main__':
       rospy.loginfo("Enter 13 (14) to equip (unequip) m3 tool (a_bot).")
       rospy.loginfo("Enter 15 (16) to equip (unequip) m4 tool (b_bot).")
       rospy.loginfo("Enter 31, 32 to pick screw m3, m4 from feeder.")
-      rospy.loginfo("Enter 55, 551, 552 to spawn example parts.")
+      rospy.loginfo("Enter 55, 551, 552 to spawn parts in example layout.")
       rospy.loginfo("Enter 68 to spawn objects for testing mtc_modules tasks")
-      rospy.loginfo("Enter 69-75 to test mtc_modules tasks, (pick, place, pik-place, pick tool, pick screw, release, fix L plate on base)")
+      rospy.loginfo("Enter 69-75 to test mtc_modules tasks, (pick, place, pick-place, pick tool, pick screw, release, fix L plate on base)")
       rospy.loginfo("Enter 80 to execute the planned subassembly (fix L plate on base)")
       rospy.loginfo("Enter 90 for base plate (b_bot).")
       rospy.loginfo("Enter 90-94 for subtasks (90: Base plate, 91: large plate, 92: motor plate, 93: bearing, 94: motor).")
@@ -371,6 +371,11 @@ if __name__ == '__main__':
         c.reset_assembly_visualization()
       if i == "unload":
         c.unload_drive_unit()
+      if i == "centertrays":
+        c.center_tray_stack()
+      if i == "return":
+        c.return_tray_to_agv_stack_calibration_long_side("tray2")
+      if i == "return_long":
         c.return_tray_to_agv_stack_calibration_long_side("tray1")
       if i == 'carry':
         c.pick_tray_from_agv_stack_calibration_long_side("tray1")

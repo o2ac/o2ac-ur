@@ -4329,10 +4329,8 @@ class O2ACCommon(O2ACBase):
       if not skip_initial_perception:
         if use_b_bot_camera:
           robot_name = "b_bot"
-          self.a_bot.go_to_named_pose("home")
         else:
           robot_name = "a_bot"
-          self.b_bot.go_to_named_pose("home")
 
         self.activate_led(robot_name)
         rospy.loginfo("Looking for base plate")
