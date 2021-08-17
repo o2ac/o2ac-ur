@@ -267,12 +267,11 @@ MotionDetector::detect_cable_tip()
     for (int label = 1; label < nlabels; ++label)
     {
 	const auto	d = distance(labels, label, line);
-	std::cerr << "  label = " << label << ", distance = " << d << std::endl;
 
-	if (d < 1)
+	if (d < 2)
 	{
 	    using cc_t = cv::ConnectedComponentsTypes;
-	
+
 	    const auto	stat = stats.ptr<int>(label);
 	    const auto	area = stat[cc_t::CC_STAT_AREA];
 
@@ -284,16 +283,26 @@ MotionDetector::detect_cable_tip()
 	}
     }
 
-    std::cerr << "lmax = " << lmax << ", amax = " << amax << std::endl;
-
+  // Fit a line to the points in the region.
+    std::vector<cv::Vec<float, 2> >	points;
     for (int v = 0; v < labels.rows; ++v)
     {
 	auto	p = labels.ptr<int>(v, 0);
 	auto	q = _mask.image.ptr<uint8_t>(v, 0);
 
 	for (int u = 0; u < labels.cols; ++u, ++p, ++q)
-	    *q = (*p == lmax ? 255 : 0);
+	    if (*p == lmax)
+	    {
+		points.push_back({u, v});
+		*q = 255;
+	    }
+	    else
+		*q = 0;
     }
+    line.fit(points.begin(), points.end());
+
+
+
 }
 
 }	// namespace aist_motion_detector
