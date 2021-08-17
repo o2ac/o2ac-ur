@@ -38,6 +38,10 @@ class Plane
 			{
 			    return (-_d/_n.dot(view_vector)) * view_vector;
 			}
+    vector_type		projection(const vector_type& point) const
+			{
+			    return point - (_n.dot(point) + _d) * _n;
+			}
 
     friend std::ostream&
 			operator <<(std::ostream& out, const Plane& plane)

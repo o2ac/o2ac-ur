@@ -48,6 +48,34 @@ distance(const cv::Mat& image, int label, const TU::Plane<T, 2>& line)
     return dmin;
 }
 
+static int
+findLargestRegion(const cv::Mat& labels, const cv::Mat& stats, int nlabels,
+		  const TU::Plane<float, 2>& finger_tip)
+{
+    int		amax = 0;
+    auto	lmax = 0;
+    for (int label = 1; label < nlabels; ++label)
+    {
+	const auto	d = distance(labels, label, finger_tip);
+
+	if (d < 2)
+	{
+	    using cc_t = cv::ConnectedComponentsTypes;
+
+	    const auto	stat = stats.ptr<int>(label);
+	    const auto	area = stat[cc_t::CC_STAT_AREA];
+
+	    if (area > amax)
+	    {
+		amax = area;
+		lmax = label;
+	    }
+	}
+    }
+
+    return lmax;
+}
+    
 /************************************************************************
 *  class MotionDetector							*
 ************************************************************************/
@@ -254,35 +282,16 @@ MotionDetector::detect_cable_tip()
   // Create a line of finger-tip border.
     const cv::Vec<float, 2>	ends[] = {_corners(0) - point2_t(_top_left),
 					  _corners(1) - point2_t(_top_left)};
-    const TU::Plane<float, 2>	line(ends, ends + 2);
+    const TU::Plane<float, 2>	finger_tip(ends, ends + 2);
 
   // Assign labels to the binarized mask image.
     cv::Mat	labels, stats, centroids;
     const auto	nlabels = cv::connectedComponentsWithStats(mask, labels,
 							   stats, centroids);
 
-  // Find a region nearest to the finger-tip border.
-    int		amax = 0;
-    auto	lmax = 0;
-    for (int label = 1; label < nlabels; ++label)
-    {
-	const auto	d = distance(labels, label, line);
-
-	if (d < 2)
-	{
-	    using cc_t = cv::ConnectedComponentsTypes;
-
-	    const auto	stat = stats.ptr<int>(label);
-	    const auto	area = stat[cc_t::CC_STAT_AREA];
-
-	    if (area > amax)
-	    {
-		amax = area;
-		lmax = label;
-	    }
-	}
-    }
-
+  // Find a largest region close to the finger-tip border.
+    const auto	lmax = findLargestRegion(labels, stats, nlabels, finger_tip);
+    
   // Fit a line to the points in the region.
     std::vector<cv::Vec<float, 2> >	points;
     for (int v = 0; v < labels.rows; ++v)
@@ -299,10 +308,13 @@ MotionDetector::detect_cable_tip()
 	    else
 		*q = 0;
     }
-    line.fit(points.begin(), points.end());
+    TU::Plane<float, 2>	cable(points.begin(), points.end());
 
+    for (const auto& point : points)
+    {
+	const auto	p = cable.projection(point);
 
-
+    }
 }
 
 }	// namespace aist_motion_detector
