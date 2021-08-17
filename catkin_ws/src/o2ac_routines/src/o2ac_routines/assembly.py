@@ -967,13 +967,21 @@ class O2ACAssembly(O2ACCommon):
     self.ab_bot.go_to_named_pose("home")
     self.reset_scene_and_robots()
     orders = []
-    # orders.append({"tray_name":"tray1", "assembly_name":"wrs_assembly_2021"})  # Top tray
-    orders.append({"tray_name":"tray2", "assembly_name":"wrs_assembly_2020"})  # Bottom tray
-    def load_first_assembly():
-      self.set_assembly(order["assembly_name"])
-    self.do_tasks_simultaneous(load_first_assembly, self.center_tray_stack, timeout=90)
+    orders.append({"tray_name":"tray1", "assembly_name":"wrs_assembly_2021", "status":AssemblyStatus()})  # Top tray
+    orders.append({"tray_name":"tray2", "assembly_name":"wrs_assembly_2020", "status":AssemblyStatus()})  # Bottom tray
+
+    ### Use this line to adjust the start state in case of a reset
+    # orders[0]["status"].tray_placed_on_table = True
+
+    if not orders[0]["status"].tray_placed_on_table:
+      def load_first_assembly():
+        self.set_assembly(orders[0]["assembly_name"])
+      self.do_tasks_simultaneous(load_first_assembly, self.center_tray_stack, timeout=90)
+    else:
+      self.set_assembly(orders[0]["assembly_name"])
+      
     for order in orders:
-      self.assembly_status = AssemblyStatus()
+      self.assembly_status = order["status"]
       self.set_assembly(order["assembly_name"])
       self.assemble_drive_unit(order["tray_name"], simultaneous_execution)
     rospy.loginfo("==== Finished both tasks ====")
