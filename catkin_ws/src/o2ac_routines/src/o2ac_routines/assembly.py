@@ -745,7 +745,7 @@ class O2ACAssembly(O2ACCommon):
       self.b_bot_success = self.pick_panel_with_handover("panel_motor", simultaneous=False)
     
     if simultaneous:
-      self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=60)
+      self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=120)
     else:
       a_bot_task()
       b_bot_task()
@@ -798,13 +798,14 @@ class O2ACAssembly(O2ACCommon):
         self.b_bot.go_to_named_pose("feeder_pick_ready")
 
     if simultaneous:
-      self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=60)
+      self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=150)
     else:
       a_bot_task()
       b_bot_task()
     if not self.b_bot_success or not self.a_bot_success:
       rospy.logerr("Fail to do panels_assembly3: simultaneous=%s" % simultaneous)
-      self.b_bot_success = self.do_change_tool_action("b_bot", equip=False, screw_size = 4)
+      if not self.do_change_tool_action("b_bot", equip=False, screw_size = 4):
+        raise  # Something is very wrong if this fails
       self.ab_bot.go_to_named_pose("home")
       self.return_l_plates()
       return False
@@ -827,7 +828,7 @@ class O2ACAssembly(O2ACCommon):
     
     self.publish_status_text("Target: fasten panel motor")
     if simultaneous:
-      self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=60)
+      self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=120)
     else:
       a_bot_task()
       b_bot_task()

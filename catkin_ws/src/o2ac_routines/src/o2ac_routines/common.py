@@ -4383,7 +4383,7 @@ class O2ACCommon(O2ACBase):
         # Assume the plate was perceived rotated by 180 degrees and retry
         rospy.logwarn("Centering unsuccessful. Assuming vision failed. Retry with other orientation.")
         self.rotate_plate_collision_object_in_tray("base")
-        rospy.sleep(0.5)
+        rospy.sleep(1.5)
         return self.pick_base_panel(grasp_name=grasp_name, skip_initial_perception=True, use_b_bot_camera=False, retry_with_rotated_orientation=False, retry_counter=retry_counter)
       else:  # If retry has also failed
         rospy.logerr("Plate was not perceived by gripper. Breaking out.")
@@ -4393,7 +4393,7 @@ class O2ACCommon(O2ACBase):
 
     # Move plate into the middle a bit to avoid collisions with tray wall or other parts during centering
     self.a_bot.gripper.close()
-    self.a_bot.gripper.attach_object("base")
+    self.a_bot.gripper.attach_object("base", with_collisions=True)
     self.planning_scene_interface.allow_collisions("base", "")
 
     dx, dy = self.distances_from_tray_border(grasp_pose)

@@ -355,6 +355,8 @@ if __name__ == '__main__':
           break
         c.center_panel("panel_bearing", store=True)
         c.place_panel("a_bot", "panel_bearing", pick_again=True, fake_position=True)
+      elif i == "pickmotorpanel":
+        c.pick_panel_with_handover("panel_motor", simultaneous=False)
       elif i == "pickplacemotorpanel":
         if not c.pick_panel_with_handover("panel_motor", simultaneous=False):
           break
