@@ -3958,19 +3958,20 @@ class O2ACCommon(O2ACBase):
     a_bot_push_tray_side_retreat    = a_bot_push_tray_side_start_high
     b_bot_push_tray_side_retreat    = b_bot_push_tray_side_start_high if orientation_parallel else conversions.to_pose_stamped(frame, [-0.004, 0.48, 0.14, -tau/4, tau/4, 0])
 
+    # 
     a_bot_start = [tray_x - short_side - 0.10, tray_y] if orientation_parallel else [tray_x - long_side - 0.1, tray_y]
-    a_bot_goal  = [tray_x - short_side - 0.02, tray_y] if orientation_parallel else [tray_x - long_side, tray_y]
+    a_bot_goal  = [tray_x - short_side - 0.025, tray_y] if orientation_parallel else [tray_x - long_side, tray_y]
     a_bot_push_tray_front_start_high = conversions.to_pose_stamped(frame, [a_bot_start[0], a_bot_start[1], a_bot_point[2], tau/2, tau/4, 0])
     a_bot_push_tray_front_start      = conversions.to_pose_stamped(frame, [a_bot_start[0], a_bot_start[1], -0.01, tau/2, tau/4, 0])
     a_bot_push_tray_front_goal       = conversions.to_pose_stamped(frame, [a_bot_goal[0] , a_bot_goal[1] , -0.01, tau/2, tau/4, 0])
     a_bot_push_tray_front_retreat    = conversions.to_pose_stamped(frame, [a_bot_start[0], 0.0, a_bot_point[2], tau/2, tau/4, 0])
     
-    b_bot_goal  = [tray_x + short_side + 0.025, tray_y] if orientation_parallel else [tray_x + long_side, tray_y]
-    b_bot_start = [tray_x + short_side + 0.10, tray_y] if orientation_parallel else [tray_x + long_side + 0.1, tray_y]
+    b_bot_goal  = [tray_x + short_side + 0.03, tray_y + 0.05] if orientation_parallel else [tray_x + long_side, tray_y]
+    b_bot_start = [tray_x + short_side + 0.13, tray_y + 0.05] if orientation_parallel else [tray_x + long_side + 0.1, tray_y]
     b_bot_push_tray_front_start_high = conversions.to_pose_stamped(frame, [b_bot_start[0], b_bot_start[1], b_bot_point[2], 0, tau/4, 0])
     b_bot_push_tray_front_start      = conversions.to_pose_stamped(frame, [b_bot_start[0], b_bot_start[1], -0.01, 0, tau/4, 0])
     b_bot_push_tray_front_goal       = conversions.to_pose_stamped(frame, [b_bot_goal[0] , b_bot_goal[1] , -0.01, 0, tau/4, 0])
-    b_bot_push_tray_front_retreat    = conversions.to_pose_stamped(frame, [b_bot_start[0], 0.0, b_bot_point[2], 0, tau/4, 0])
+    b_bot_push_tray_front_retreat    = conversions.to_pose_stamped(frame, [b_bot_start[0], b_bot_goal[1], b_bot_point[2], 0, tau/4, 0])
 
     # Push the tray from the side
     self.a_bot.gripper.open(wait=False)
@@ -4236,9 +4237,9 @@ class O2ACCommon(O2ACBase):
     return True
 
   def unload_drive_unit(self):
-    a_bot_above_drive_unit = conversions.to_pose_stamped("assembled_part_02_back_hole", [0.0025, -0.076, 0.060, 0, 0.891, tau/4])
+    a_bot_above_drive_unit = conversions.to_pose_stamped("assembled_part_02_back_hole", [0.0025, -0.068, 0.060, 0, 0.891, tau/4])
     b_bot_above_drive_unit = conversions.to_pose_stamped("assembled_part_03_front_hole", [0.0025, -0.067, 0.078, 0, 0.883, tau/4])
-    a_bot_at_drive_unit = conversions.to_pose_stamped("assembled_part_02_back_hole", [0.0025, -0.026, 0.010, 0, 0.891, tau/4])
+    a_bot_at_drive_unit = conversions.to_pose_stamped("assembled_part_02_back_hole", [0.0025, -0.018, 0.008, 0, 0.891, tau/4])
     b_bot_at_drive_unit = conversions.to_pose_stamped("assembled_part_03_front_hole", [0.0025, -0.017, 0.028, 0, 0.883, tau/4])
     
     b_bot_drive_unit_loosened = self.listener.transformPose("tray_center", b_bot_at_drive_unit)
