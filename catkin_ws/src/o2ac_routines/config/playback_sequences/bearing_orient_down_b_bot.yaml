@@ -22,7 +22,7 @@ waypoints:
 - pose_type: gripper
   gripper:
     action: 'open'
-    open_width: 0.07
+    open_width: 0.085
     velocity: 0.1
 - pose: [-0.02, 0, 0.0, -45, 0, 0] 
   pose_type: task-space-in-frame
@@ -31,7 +31,7 @@ waypoints:
 - pose_type: gripper
   gripper:
     action: 'close-open'
-    open_width: 0.07
+    open_width: 0.085
     velocity: 0.05
   desc: Centering 
 - pose: [-0.02, 0, 0.0, -135, 0, 0] 
