@@ -231,7 +231,6 @@ def main():
     # controller.b_bot.go_to_named_pose("home")
     # controller.centering_shaft()
     # controller.align_shaft("taskboard_assy_part_07_inserted")
-    # pre_insertion_pose = conversions.to_pose_stamped("taskboard_assy_part_07_inserted", [0.12, -0.011, 0.010, -tau/4, -radians(50), -tau/4])
     # controller.b_bot.go_to_pose_goal(pre_insertion_pose, move_lin=False)
     
     # controller.equip_tool("b_bot", "set_screw_tool")
@@ -245,26 +244,42 @@ def main():
     # controller.orient_bearing("taskboard", robot_name="a_bot", part1=True, part2=False)
     # controller.orient_bearing("taskboard", robot_name="a_bot", part1=False, part2=True)
     # controller.insert_bearing("taskboard_bearing_target_link", robot_name="a_bot")
-    controller = O2ACCommon()
-    def a_task():
-        controller.a_bot.go_to_named_pose("home")
-        seq = []
-        seq.append(helpers.to_sequence_item_relative([0.01,0,0,0,0,0]))
-        seq.append(helpers.to_sequence_item_relative([-0.01,0,0,0,0,0]))
-        for _ in range(20):
-            controller.execute_sequence("a_bot", seq, "a")
-    def b_task():
-        controller.b_bot.go_to_named_pose("home")
-        seq = []
-        seq.append(helpers.to_sequence_item_relative([0.01,0,0,0,0,0]))
-        seq.append(helpers.to_sequence_item_relative([-0.01,0,0,0,0,0]))
-        for _ in range(20):
-            controller.execute_sequence("b_bot", seq, "b")
-    controller.do_tasks_simultaneous(a_task, b_task, timeout=60)
-    # print("a_bot.gripper.opening_width", controller.a_bot.gripper.opening_width)
+    # controller = O2ACCommon()
+    # pose = conversions.to_pose_stamped("left_centering_link", [-0.02, 0, 0.02, radians(-30), 0, 0])
+    # controller.a_bot.go_to_pose_goal(pose)
+    # controller.a_bot.move_lin_rel(relative_translation=[0,0,0.015], relative_rotation=[0, radians(35), 0], relative_to_tcp=True)
+
     
     # controller.do_change_tool_action("b_bot", equip=False, screw_size = 4)
-    # controller = O2ACAssembly()
+    controller = O2ACAssembly()
+    controller.reset_scene_and_robots()
+    controller.publish_part_in_assembled_position("panel_bearing")
+    controller.publish_part_in_assembled_position("panel_motor")
+    controller.publish_part_in_assembled_position("base")
+    # controller.confirm_motor_and_place_in_aid()
+    # controller.center_panel_on_base_plate("panel_motor")
+    # controller.align_motor_pre_insertion()
+    # controller.insert_motor("assembled_part_02_back_hole")
+    # controller.confirm_to_proceed("fastem??")
+    controller.fasten_motor()
+
+    # pose = conversions.to_pose_stamped("assembled_part_02_back_hole", [-0.022, -0.004, -0.014, -0.098, 0.702, -0.086, 0.700])
+    # controller.b_bot.go_to_pose_goal(pose)
+    # tc = None
+    # selection_matrix = [1., 1., 1., 0.7, 1., 1.]
+    # controller.b_bot.execute_spiral_trajectory("XY", max_radius=0, radius_direction="+Y", steps=50,
+    #                                      revolutions=1, target_force=0, check_displacement_time=10,
+    #                                      wiggle_direction="Z", wiggle_angle=radians(10.0), wiggle_revolutions=1.0,
+    #                                      termination_criteria=tc, timeout=20, selection_matrix=selection_matrix)
+    # controller.place_panel("a_bot", "panel_motor", pick_again=True, fake_position=True)
+    # controller.fasten_panel("panel_motor", True)
+    # controller.center_panel_on_base_plate("panel_bearing")
+    # push_pose     = conversions.to_pose_stamped("assembled_part_03_bottom_corner_2", [-0.01, 0.0, 0.015, 0, 0, 0])
+    # controller.a_bot.go_to_pose_goal(push_pose)
+
+    # controller.set_assembly("wrs_assembly_2021")
+    # controller.get_large_item_position_from_top("panel_motor")
+    # controller.get_large_item_position_from_top("panel_bearing")
     
     # cp = controller.listener.transformPose("tray_center", controller.a_bot.get_current_pose_stamped())
     # print("a bot pose", cp.pose.position)
@@ -327,14 +342,14 @@ def main():
     # controller.place_panel("a_bot", "panel_motor", grasp_pose=None)
     # TODO:
     # 1. add the incline hold pose for fastening
-    # 2. create the simultaneous task for picking,centering the panels, then piiiickinggg the baaaaase plate and then fastening
+    # 2. create the simultaneous task for picking,centering the panels, then picking the base plate and then fastening
     # controller.fasten_panel("panel_bearing")
     # controller = O2ACCommon()
     # controller.reset_scene_and_robots()
     # controller.ab_bot.go_to_named_pose("home")
     # controller.competition_mode = True
     # controller.reset_scene_and_robots()
-    # controller.center_tray_stack(True)
+    # controller.center_tray_stack(True, False)
     # controller.spawn_tray_stack(stack_center=[-0.03, 0.0], tray_heights=[0.05, 0.0], orientation_parallel=True)
     # controller.pick_tray_from_agv_stack_calibration_long_side("tray1")
     # controller.return_tray_to_agv_stack_calibration_long_side("tray1")

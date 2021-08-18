@@ -200,7 +200,6 @@ class O2ACAssembly(O2ACCommon):
     rospy.loginfo("======== SUBTASK A (motor) ========")
     self.publish_status_text("Target: Motor")
     self.pick_and_center_motor()
-    self.orient_motor()
 
     self.do_change_tool_action("a_bot", equip=True, screw_size=3)
     self.a_bot.go_to_named_pose("screw_ready")
