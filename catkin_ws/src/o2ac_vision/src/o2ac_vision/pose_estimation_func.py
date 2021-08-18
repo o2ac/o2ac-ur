@@ -698,12 +698,13 @@ class PickCheck():
     """ Verify that the grasp was successful
 
     Args:
-        ssd_detection: ssd_detection
+        ssd_detection(list): result of ssd_detection
       
     """
     def __init__( self, ssd_detection ):
         self.ssd_detection = ssd_detection
         self.ssd_results = None
+        self.target = None 
         self.im_vis = None
 
     def check( self, im_in, class_id, ssd_treshold=0.6 ):
@@ -717,23 +718,47 @@ class PickCheck():
             bool: If True, grasp was successful.
         """
         flag = False
-        im_vis = im_in.copy()
-        self.ssd_results, self.im_vis = self.ssd_detection.object_detection(im_in, 
-                                                                  im_vis, 
+        im_tmp = im_in.copy()
+        self.im_vis = im_in.copy()
+        self.ssd_results, _ = self.ssd_detection.object_detection(im_in, 
+                                                                  im_tmp, 
                                                                   ssd_treshold, 
                                                                   0.8)
 
         for res in self.ssd_results:
             if res["class"] == class_id:
                 flag = True
+                self.target = res
         
         return flag
 
     def get_ssd_results( self ):
         return self.ssd_results
+    
+    def draw_result( self ):
+        
+        if self.target is not None:
+        
+            bbox = self.target["bbox"]
+            bb_color = (0,255,0)
+            im_vis = cv2.rectangle( self.im_vis, (bbox[0],  bbox[1]),
+                                    (bbox[0]+bbox[2], bbox[1]+bbox[3]),
+                                    bb_color, 3 )
+            text = self.target["name"] + " is picked!"
+            cv2.putText( self.im_vis, text,
+                         (20, 30),1, 1.5, (255,255,255), 2, cv2.LINE_AA )
+            cv2.putText( self.im_vis, text,
+                         (20, 30),1, 1.5, (0,255,0), 1, cv2.LINE_AA )
+        else:
+            text = "Picking is failed!"
+            cv2.putText( self.im_vis, text,
+                         (20, 30),1, 1.5, (255,255,255), 2, cv2.LINE_AA )
+            cv2.putText( self.im_vis, text,
+                         (20, 30),1, 1.5, (0,0,255), 1, cv2.LINE_AA )
 
     
     def get_im_result( self ):
+        self.draw_result()
         return self.im_vis
         
 #############################################################################
@@ -1036,25 +1061,23 @@ class ShaftHoleDetection():
 # 
 # # Orientation analysis
 # mo = MotorOrientation()
-# orientation_flag = mo.main_proc(im_in, ssd_results)
+# orientation = mo.main_proc(im_in, ssd_results)
 # 
-# orientation_flag (cable direction)
-# # 0:right, 1:left, 2:top, 3:bottom
-# # None: motor was not detected
+# orientation is cable direction in degree
+# # False: motor was not detected
 #
-# if orientation_flag is not False:
-#    print(orientation_flag)
-#    plt.imshow(mo.draw_im_vis(im_vis))
+# if orientation is not False:
+#    print(orientation)
+#    plt.imshow(mo.get_im_vis(im_vis))
 # else:
 #    print("no motor")
 #############################################################
-class MotorOrientation:
+class MotorOrientation():
     def __init__( self ):
         """ Calculation of motor's orientation code
         """
-        # Orientation code
-        # 0:right, 1:left, 2:top, 3:bottom
-        self.cable_orientation = 0
+        self.cable_orientation = 0.0
+        self.im_roi = list()
     
     def main_proc( self, im_in, ssd_results ):
         """ Detect motor orientation code
@@ -1064,89 +1087,52 @@ class MotorOrientation:
         """
         # get motor bbox
         class_list = [d.get('class') for d in ssd_results]
-        if (4 in class_list) is False:
-            return None
+        if  (4 in class_list) is False:
+            return False
         motor_idx = class_list.index(4) # motor id is 4.
         bbox = ssd_results[motor_idx]['bbox']
-        bbox = self.bbox_expansion( bbox, 1.2 )
         self.bb_x,self.bb_y,self.bb_w,self.bb_h = bbox[0], bbox[1], bbox[2], bbox[3]
 
-        # check bbox shape
-        horizontal = True
-        if self.bb_w < self.bb_h:
-            horizontal = False
-        im_w, im_h = im_in.shape[1], im_in.shape[0]
-
-        x1s = y1s = 0 # left top of RoI1
-        x2s = y2s = 0 # left top of RoI2
-        roi_size = 0
-        if horizontal:
-            roi_size = self.bb_h
-            x1s = self.bb_x - roi_size
-            y1s = self.bb_y
-
-            x2s = self.bb_x + self.bb_w
-            y2s = self.bb_y
-        else:
-            roi_size = self.bb_w
-            x1s = self.bb_x
-            y1s = self.bb_y - roi_size
-
-            x2s = self.bb_x
-            y2s = self.bb_y + self.bb_h
-
-        x1e = x1s + roi_size
-        y1e = y1s + roi_size
-        x2e = x2s + roi_size
-        y2e = y2s + roi_size
-
+        im_w = im_in.shape[1]
+        im_h = im_in.shape[0]
+        # x and y coordinate of roi surrounding bbox.
+        rx = np.array([
+            self.bb_x - self.bb_h,
+            self.bb_x,
+            self.bb_x + self.bb_w,
+            self.bb_x + self.bb_w + self.bb_h
+        ])
+        ry = np.array([
+            self.bb_y - self.bb_h,
+            self.bb_y,
+            self.bb_y + self.bb_h,
+            self.bb_y + (2*self.bb_h)
+        ])
         # clip
-        x1s = np.clip(x1s,0,im_w-1)
-        y1s = np.clip(y1s,0,im_h-1)
-        x1e = np.clip(x1e,0,im_w-1)
-        y1e = np.clip(y1e,0,im_h-1)
-        x2s = np.clip(x2s,0,im_w-1)
-        y2s = np.clip(y2s,0,im_h-1)
-        x2e = np.clip(x2e,0,im_w-1)
-        y2e = np.clip(y2e,0,im_h-1)
+        rx = np.clip(rx,0,im_w-1)
+        ry = np.clip(ry,0,im_h-1)
+        
 
         # Crop RoI
-        self.im_roi1 = im_in[y1s:y1e,x1s:x1e].copy()
-        self.im_roi2 = im_in[y2s:y2e,x2s:x2e].copy()
+        self.im_roi.append( im_in[ry[1]:ry[2],rx[2]:rx[3]].copy() ) # 0
+        self.im_roi.append( im_in[ry[2]:ry[3],rx[2]:rx[3]].copy() ) # 1
+        self.im_roi.append( im_in[ry[2]:ry[3],rx[1]:rx[2]].copy() ) # 2
+        self.im_roi.append( im_in[ry[2]:ry[3],rx[0]:rx[1]].copy() ) # 3
+        self.im_roi.append( im_in[ry[1]:ry[2],rx[0]:rx[1]].copy() ) # 4
+        self.im_roi.append( im_in[ry[0]:ry[1],rx[0]:rx[1]].copy() ) # 5
+        self.im_roi.append( im_in[ry[0]:ry[1],rx[1]:rx[2]].copy() ) # 6
+        self.im_roi.append( im_in[ry[0]:ry[1],rx[2]:rx[3]].copy() ) # 7
 
-        # Get red mask
-        im_r1 = self.get_red_mask(self.im_roi1)
-        im_r2 = self.get_red_mask(self.im_roi2)
-        n_red1 = np.sum(im_r1)
-        n_red2 = np.sum(im_r2)
+        n_red = list()
+        for roi in self.im_roi:
+            # Get red mask
+            im_r = self.get_red_mask( roi )
+            n_red.append( np.sum( im_r ) )
 
-        # Orientation check
-        # 0:right, 1:left, 2:top, 3:bottom
-        self.cable_orientation = 0
-        if horizontal:
-            if n_red1 > n_red2:
-                self.cable_orientation = 1
-            else:
-                self.cable_orientation = 0
-        else:
-            if n_red1 > n_red2:
-                self.cable_orientation = 2
-            else:
-                self.cable_orientation = 3
+        orientation_code = np.argmax(n_red)
+        self.cable_orientation = orientation_code * 45.0
+
         return self.cable_orientation
-
-    def bbox_expansion( self, bbox, scale ):
-        
-        w2 = bbox[2]*(scale-1)/2
-        h2 = bbox[3]*(scale-1)/2
-        new_bbox = [
-            int(bbox[0]-w2),
-            int(bbox[1]-h2),
-            int(bbox[2]*scale),
-            int(bbox[3]*scale)
-        ]
-        return new_bbox
-
 
     def split_hsv( self, im_in ):
         im_hsv = cv2.cvtColor( im_in, cv2.COLOR_BGR2HSV )
@@ -1161,7 +1147,7 @@ class MotorOrientation:
         im_h,im_s,im_v = self.split_hsv(im_in)
 
         # saturation mask
-        im_mask = np.where(im_s<50,0,1)
+        im_mask = np.where(im_s<100,0,1)
 
         # red mask
         im_red1 = np.where( im_h<30 ,1,0)
@@ -1170,16 +1156,20 @@ class MotorOrientation:
         im_red = np.logical_and( im_mask, im_red )
         return im_red # 1 means red pixel
 
-    def draw_im_vis( self, im_vis ):
+    def get_im_vis( self, im_in ):
         center = (self.bb_x+int(self.bb_w/2),
                   self.bb_y+int(self.bb_h/2))
-        off = (50,0)
-        if self.cable_orientation == 1:
-            off = (-50,0)
-        elif self.cable_orientation == 2:
-            off = (0,-50)
-        elif self.cable_orientation == 3:
-            off = (0,50)
-        im_vis = cv2.arrowedLine(im_vis, center, (center[0]+off[0], center[1]+off[1]), 
+        off = np.array([[50],[0]] )
+        radian = np.radians( self.cable_orientation )
+        rot = np.array( [ [np.cos(radian), -np.sin(radian)],
+                          [np.sin(radian), np.cos(radian)]
+                       ])
+        rot_off = np.dot( rot, off ).astype(np.int)
+        im_vis = cv2.arrowedLine(im_in, center, 
+                                (center[0]+rot_off[0], center[1]+rot_off[1]), 
                                 (0,255,0), 3, cv2.LINE_AA, tipLength=0.3)
+        
+        text = "Orientation: " + str(self.cable_orientation)
+        im_vis = cv2.putText(im_vis, text, (20,20), 0, 0.5,(255,255,255),2, cv2.LINE_AA)
+        im_vis = cv2.putText(im_vis, text, (20,20), 0, 0.5,(255,0,0),1, cv2.LINE_AA)
         return im_vis
