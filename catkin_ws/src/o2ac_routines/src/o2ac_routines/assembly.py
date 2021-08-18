@@ -226,8 +226,7 @@ class O2ACAssembly(O2ACCommon):
       self.b_bot.gripper.forget_attached_item()
       if self.align_bearing_holes(task="assembly"):
         self.b_bot.go_to_named_pose("home")
-        if self.fasten_bearing(task="assembly"):
-          self.fasten_bearing(task="assembly", only_retighten=True)
+        if self.fasten_bearing(task="assembly", with_extra_retighten=True):
           self.unequip_tool('b_bot', 'screw_tool_m4')
           success = True
     self.despawn_object("bearing")

@@ -1844,7 +1844,7 @@ class O2ACCommon(O2ACBase):
     success &= robot.move_lin_rel(relative_translation = [0.025,0,0], acceleration = 0.015, speed=.03)
     return success
 
-  def fasten_bearing(self, task="", only_retighten=False, robot_name="b_bot", simultaneous=False):
+  def fasten_bearing(self, task="", only_retighten=False, robot_name="b_bot", simultaneous=False, with_extra_retighten=False, skip_intermediate_pose=False):
     if not task in ["taskboard", "assembly"]:
       rospy.logerr("Invalid task specification: " + task)
       return False
@@ -1870,6 +1870,7 @@ class O2ACCommon(O2ACBase):
         screw_pose.pose.position.z += -.001  # MAGIC NUMBER
       elif task == "assembly":
         screw_pose.pose.position.z += .0025  # MAGIC NUMBER
+        screw_pose.pose.position.y -= .0025  # MAGIC NUMBER
       screw_pose.pose.position.x += .006  # This needs to be quite far forward, because the thread is at the plate level (behind the frame)
       offset = -1 if robot_name == "a_bot" else 1
       screw_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(offset*tau/12, 0, 0) )
@@ -1883,9 +1884,10 @@ class O2ACCommon(O2ACBase):
       else:
         screw_status[n] = "empty"
     
-    self.confirm_to_proceed("intermediate pose")
     robot = self.active_robots[robot_name]
-    robot.go_to_named_pose("screw_ready", speed=speed)
+    if not skip_intermediate_pose:
+      self.confirm_to_proceed("intermediate pose")
+      robot.go_to_named_pose("screw_ready", speed=speed)
     
     # Go to bearing and fasten all the screws
     all_screws_done = False
@@ -1901,7 +1903,7 @@ class O2ACCommon(O2ACBase):
           robot.go_to_named_pose("horizontal_screw_ready", speed=speed)
           robot.go_to_named_pose("screw_ready", speed=speed)
         
-        if first_screw and screw_status[n] == "maybe_stuck_in_hole": # get ready for screwing
+        if not skip_intermediate_pose and first_screw and screw_status[n] == "maybe_stuck_in_hole": # get ready for screwing
           robot.go_to_named_pose("screw_ready", speed=speed)
           robot.go_to_named_pose("horizontal_screw_ready", speed=speed)
 
@@ -1938,8 +1940,11 @@ class O2ACCommon(O2ACBase):
         rospy.sleep(2) # extra time for b_bot to get out of the way
       tries += 1
 
-    robot.go_to_named_pose("horizontal_screw_ready", speed=speed)
-    robot.go_to_named_pose("screw_ready", speed=speed)
+    if with_extra_retighten:
+      return self.fasten_bearing(task, only_retighten=True, robot_name=robot_name, simultaneous=simultaneous, with_extra_retighten=False, skip_intermediate_pose=True)
+    else:
+      robot.go_to_named_pose("horizontal_screw_ready", speed=speed)
+      robot.go_to_named_pose("screw_ready", speed=speed)
     
     if not self.unequip_tool(robot_name, 'screw_tool_m4'):
       rospy.logerr("Fail to unequip tool abort!")
