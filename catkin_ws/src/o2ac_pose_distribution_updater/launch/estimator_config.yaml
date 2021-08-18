@@ -1,4 +1,4 @@
-number_of_particles: 10
+number_of_particles: 100
 noise_variance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 ground_size: [2.0, 2.0, 2.0]
 ground_position: [0.0, 0.0, -0.994]

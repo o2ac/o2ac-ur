@@ -98,6 +98,40 @@ void CollisionObject_to_eigen_vectors(
       triangles.push_back(vertex_indices);
     }
   }
+  for (int primitive_id = 0; primitive_id < object.primitives.size();
+       primitive_id++) {
+    auto &primitive = object.primitives[primitive_id];
+    int type = primitive.type;
+    if (type == primitive.BOX) {
+      int current_size = vertices.size();
+      Eigen::Isometry3d primitive_transform;
+      tf::poseMsgToEigen(object.primitive_poses[primitive_id],
+                         primitive_transform);
+      double X = primitive.dimensions[0], Y = primitive.dimensions[1],
+             Z = primitive.dimensions[2];
+      for (int i = 0; i < 8; i++) {
+        Eigen::Vector3d vertex;
+        vertex << ((i & 1) ? X / 2.0 : -X / 2.0),
+            ((i & 2) ? Y / 2.0 : -Y / 2.0), ((i & 4) ? Z / 2.0 : -Z / 2.0);
+        vertices.push_back(primitive_transform * vertex);
+      }
+      for (int d0 = 0; d0 < 3; d0++) {
+        int d1 = (d0 + 1) % 3, d2 = (d0 + 2) % 3;
+        for (int f = 0; f < 2; f++) {
+          for (int t = 0; t < 2; t++) {
+            int v0 = (f ? (1 << d0) : 0) + (t ? (1 << d1) + (1 << d2) : 0);
+            int v1 = (f ? (1 << d0) : 0) + (1 << d1);
+            int v2 = (f ? (1 << d0) : 0) + (1 << d2);
+            if (!(f ^ t)) {
+              std::swap(v1, v2);
+            }
+            triangles.push_back(boost::array<int, 3>{
+                current_size + v0, current_size + v1, current_size + v2});
+          }
+        }
+      }
+    }
+  }
 }
 
 void add_mesh_to_CollisionObject(
