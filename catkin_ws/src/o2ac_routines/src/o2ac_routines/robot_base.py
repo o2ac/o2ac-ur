@@ -285,7 +285,7 @@ class RobotBase():
 
         group.clear_pose_targets()
         if not success and move_lin and retry_non_linear:
-            self.go_to_pose_goal(pose_goal_stamped, speed/2, acceleration, end_effector_link, move_lin=False, plan_only=plan_only, initial_joints=initial_joints,
+            return self.go_to_pose_goal(pose_goal_stamped, speed/2, acceleration, end_effector_link, move_lin=False, plan_only=plan_only, initial_joints=initial_joints,
                                 allow_joint_configuration_flip=allow_joint_configuration_flip, move_ptp=False, timeout=timeout, retry_non_linear=False)
         return success
 
@@ -409,7 +409,10 @@ class RobotBase():
             elif relative_to_tcp:
                 new_pose.header.stamp = rospy.Time.now()
                 # Workaround for TF lookup into the future error
-                self.listener.waitForTransform(self.ns + "_gripper_tip_link", new_pose.header.frame_id, new_pose.header.stamp, rospy.Duration(1))
+                try:
+                    self.listener.waitForTransform(self.ns + "_gripper_tip_link", new_pose.header.frame_id, new_pose.header.stamp, rospy.Duration(1))
+                except:
+                    pass
                 new_pose = self.listener.transformPose(self.ns + "_gripper_tip_link", new_pose)
 
         new_position = conversions.from_point(new_pose.pose.position) + relative_translation

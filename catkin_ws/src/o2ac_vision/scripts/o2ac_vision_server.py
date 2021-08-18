@@ -417,7 +417,7 @@ class O2ACVisionServer(object):
 
         if goal.get_motor_from_top:
             action_result = o2ac_msgs.msg.detectAngleResult()
-            action_result.succeeded, action_result.motor_rotation_flag, im_vis = self.motor_angle_detection_from_top(im_in, im_vis)
+            action_result.succeeded, action_result.rotation_angle, im_vis = self.motor_angle_detection_from_top(im_in, im_vis)
             self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
             self.write_to_log(im_in, im_vis, "motor_orientation_detection")
         else:  # Pass action goal to Python3 node
@@ -738,10 +738,14 @@ class O2ACVisionServer(object):
         ssd_results, im_vis = self.detect_object_in_image(im_in, im_vis)
 
         m = MotorOrientation()
-        motor_rotation_flag = m.main_proc(im_in, ssd_results)  # if True hole is observed in im_in
+        angle_orientation = m.main_proc(im_in, ssd_results)  # if True hole is observed in im_in
         im_vis = m.draw_im_vis(im_vis)
-        motor_seen = motor_rotation_flag is not None
-        return motor_seen, motor_rotation_flag, im_vis
+        motor_seen = angle_orientation is not False
+        if motor_seen:
+            return motor_seen, radians(angle_orientation), im_vis
+        else:
+            return False, 0.0, im_vis
+        
 
 ### ========
 

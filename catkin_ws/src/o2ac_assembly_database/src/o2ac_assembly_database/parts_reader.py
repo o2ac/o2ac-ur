@@ -60,14 +60,14 @@ class PartsReader(object):
     The grasp data for each object can be published to the parameter server.
     '''
 
-    def __init__(self, db_name=""):
+    def __init__(self, db_name="", load_meshes=True):
         self._rospack = rospkg.RosPack()
         self.db_name = db_name
         if self.db_name:
-            self.load_db(db_name)
+            self.load_db(db_name, load_meshes=load_meshes)
         
 
-    def load_db(self, db_name):
+    def load_db(self, db_name, load_meshes=True):
         '''
         Switch between assemblies
         '''
@@ -75,14 +75,15 @@ class PartsReader(object):
         self.db_name = db_name
         self._directory = os.path.join(self._rospack.get_path('o2ac_assembly_database'), 'config', db_name)
         self._parts_list = self._read_parts_list()
-        self._collision_objects, self._grasps, self._mesh_filepaths = self.get_collision_objects_with_metadata()
+        self._collision_objects, self._grasps, self._mesh_filepaths, self._primitive_collision_objects = self.get_collision_objects_with_metadata()
+        self.load_meshes = load_meshes 
         rospy.loginfo("Done loading parts database " + db_name)
     
     def get_collision_object(self, object_name):
         '''
         This returns the collision object (including subframes) for an object_name.
         '''
-        for c_obj in self._collision_objects:
+        for i, c_obj in enumerate(self._collision_objects):
             if c_obj.id == object_name:
                 # Create copy to avoid modifying the original
                 c_new = moveit_msgs.msg.CollisionObject()
@@ -93,10 +94,20 @@ class PartsReader(object):
                 c_new.operation = c_obj.operation
                 c_new.type = c_obj.type
                 c_new.id = c_obj.id
-                c_new.primitives = c_obj.primitives
-                c_new.primitive_poses = c_obj.primitive_poses
-                c_new.meshes = c_obj.meshes
-                c_new.mesh_poses = c_obj.mesh_poses
+                if self._primitive_collision_objects[i]:
+                    print("using primitives:", object_name)
+                    c_new.primitives = self._primitive_collision_objects[i][0]
+                    c_new.primitive_poses = self._primitive_collision_objects[i][1]
+                elif self.load_meshes and not c_obj.meshes: # lazy loading of meshes
+                    print("loading meshes:", object_name)
+                    c_obj.meshes = [self._read_mesh(self._mesh_filepaths[i], (0.001, 0.001, 0.001))]
+                    c_new.meshes = c_obj.meshes
+                    c_new.mesh_poses = c_obj.mesh_poses
+                else:
+                    print("Already loaded meshes", object_name)
+                    c_new.meshes = c_obj.meshes
+                    c_new.mesh_poses = c_obj.mesh_poses
+
                 c_new.planes = c_obj.planes
                 c_new.plane_poses = c_obj.plane_poses
                 c_new.subframe_names = c_obj.subframe_names
@@ -105,7 +116,7 @@ class PartsReader(object):
         rospy.logerr("Could not find collision object with id " + str(object_name))
         return None
     
-    def get_visualization_marker(self, object_name, pose, frame_id, color=None, lifetime=0, frame_locked=True):
+    def get_visualization_marker(self, object_name, pose, frame_id, color=None, lifetime=0, frame_locked=False):
         """ Returns a visualization marker of the object on a given pose. """
         for (c_obj, mesh_filepath) in zip(self._collision_objects, self._mesh_filepaths):
             if c_obj.id == object_name:
@@ -258,6 +269,7 @@ class PartsReader(object):
         grasp_names = []
         grasp_poses = []
         mesh_pose = []
+        primitive_collision_objects = None
         if object_name in objects_with_metadata:
             with open(os.path.join(metadata_directory, object_name + '.yaml'), 'r') as f:
                 data = yaml.load(f)
@@ -266,6 +278,9 @@ class PartsReader(object):
                 mesh_pose.position = conversions.to_vector3(conversions.to_float(data['mesh_pose'][0]['pose_xyzrpy'][:3]) )
                 mesh_pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(*conversions.to_float(data['mesh_pose'][0]['pose_xyzrpy'][3:])))
             subframes = data['subframes']
+            simplified_collision_objects = data.get('collision_objects', None)
+            primitive_collision_objects = self._get_collision_object(simplified_collision_objects)
+
             grasps = data['grasp_points']
 
             # Create the transformation between the world and the collision object        
@@ -313,7 +328,7 @@ class PartsReader(object):
         else:
             rospy.logwarn('Object \'' + object_name + '\' has no metadata defined! \n \
                            Returning empty metadata information! \n')
-        return (subframe_names, subframe_poses, grasp_names, grasp_poses, mesh_pose)
+        return (subframe_names, subframe_poses, grasp_names, grasp_poses, mesh_pose, primitive_collision_objects)
 
     def _read_mesh(self, filename, scale):
         # Try to load the mesh and set it for the collision object
@@ -356,7 +371,39 @@ class PartsReader(object):
         pyassimp.release(scene)
         return mesh
 
+    def _get_collision_object(self, collision_objects):
+        if not collision_objects:
+            return None
+
+        PRIMITIVES = {"BOX": shape_msgs.msg.SolidPrimitive.BOX, "CYLINDER": shape_msgs.msg.SolidPrimitive.CYLINDER}
+        primitives = []
+        primitive_poses = [] 
+
+        for co in collision_objects:
+            primitive = shape_msgs.msg.SolidPrimitive()
+            try:
+                primitive.type = PRIMITIVES[co['type']]
+            except KeyError as e:
+                rospy.logerr("Invalid Collision Object Primitive type: %s " % co['type'])
+                raise
+            primitive.dimensions = co['dimensions']
+            primitives.append(primitive)
+            primitive_poses.append(conversions.to_pose(conversions.to_float(co['pose'])))
+        
+        return (primitives, primitive_poses)
+        
     def _make_collision_object_from_mesh(self, name, pose, filename, scale=(1, 1, 1)):
+        '''
+        Reimplementation of '__make_mesh()' function from 'moveit_commander/planning_scene_interface.py'
+
+        This function does not need to create a 'PlanningSceneInterface' object in order to work
+        '''
+        # Set the properties apart from the mesh
+        co = self._make_collision_object_without_mesh(name, pose)
+        co.meshes = [self._read_mesh(filename, scale)]
+        return co
+
+    def _make_collision_object_without_mesh(self, name, pose):
         '''
         Reimplementation of '__make_mesh()' function from 'moveit_commander/planning_scene_interface.py'
 
@@ -369,7 +416,6 @@ class PartsReader(object):
         co.pose.orientation.w = 1.0
         co.header = pose.header
         co.mesh_poses = [pose.pose]
-        co.meshes = [self._read_mesh(filename, scale)]
         
         return co
 
@@ -391,6 +437,7 @@ class PartsReader(object):
         collision_objects = []
         grasps = []
         mesh_filepaths = []
+        primitive_collision_objects = []
 
         for part in self._parts_list:
             # Find mesh
@@ -401,7 +448,7 @@ class PartsReader(object):
             posestamped.header.frame_id = 'assembly_root'
             
             
-            subframe_names, subframe_poses, grasp_names, grasp_poses, mesh_pose = self._read_object_metadata(part['name'])
+            subframe_names, subframe_poses, grasp_names, grasp_poses, mesh_pose, primitive_collision_object = self._read_object_metadata(part['name'])
             
             collision_object_pose = geometry_msgs.msg.Pose()
             if mesh_pose:
@@ -411,7 +458,8 @@ class PartsReader(object):
             
             posestamped.pose = collision_object_pose
 
-            collision_object = self._make_collision_object_from_mesh(part['name'], posestamped, mesh_filepath, scale=(0.001, 0.001, 0.001))
+            collision_object = self._make_collision_object_without_mesh(part['name'], posestamped)
+            # collision_object = self._make_collision_object_from_mesh(part['name'], posestamped, mesh_filepath, scale=(0.001, 0.001, 0.001))
 
             collision_object.subframe_names = subframe_names
             collision_object.subframe_poses = subframe_poses
@@ -424,4 +472,6 @@ class PartsReader(object):
 
             mesh_filepaths.append(mesh_filepath)
 
-        return (collision_objects, grasps, mesh_filepaths)
+            primitive_collision_objects.append(primitive_collision_object)
+
+        return (collision_objects, grasps, mesh_filepaths, primitive_collision_objects)

@@ -3,6 +3,7 @@
        name="o2ac_environment" >
 
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_box.xacro" />
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_box_2.xacro" />
   <!-- This file defines the frames surrounding the robots, used to fix the tools, multi-jig etc. -->
   <xacro:property name="vert_column_x_back" value="${-.325-.15-.04}"/>
   
@@ -20,6 +21,26 @@
   <xacro:o2ac_box boxname="horizontal_column_for_tools" box_w=".04" box_l=".4" box_h=".04" parent="o2ac_ground">
     <origin xyz="${vert_column_x_back} -.2 1.058" rpy="0 0 0" />   
   </xacro:o2ac_box> 
+
+  <!-- Invisible walls to avoid OMPL creating crazy plans (sanity limits) -->
+  <xacro:o2ac_box_2 boxname="agv_table" box_w=".6" box_l=".5" box_h=".05" invisible="true" parent="workspace_center">
+    <origin xyz=".65 0 -.04" rpy="0 0 0" />
+  </xacro:o2ac_box_2>
+
+  <xacro:o2ac_box_2 boxname="back_limit_a" box_w=".05" box_l=".5" box_h=".5" invisible="true" parent="workspace_center">
+    <origin xyz="${vert_column_x_back} -.5 .3" rpy="0 0 0" />
+  </xacro:o2ac_box_2>
+
+  <xacro:o2ac_box_2 boxname="back_limit_b" box_w=".05" box_l=".5" box_h=".5" invisible="true" parent="workspace_center">
+    <origin xyz="${vert_column_x_back} .5 .3" rpy="0 0 0" />
+  </xacro:o2ac_box_2>
+
+  <xacro:o2ac_box_2 boxname="side_limit_a" box_w="1.0" box_l=".05" box_h="1.0" invisible="true" parent="workspace_center">
+    <origin xyz=".0 1.1 .5" rpy="0 0 0" />
+  </xacro:o2ac_box_2>
+  <xacro:o2ac_box_2 boxname="side_limit_b" box_w="1.0" box_l=".05" box_h="1.0" invisible="true" parent="workspace_center">
+    <origin xyz=".0 -1.1 .5" rpy="0 0 0" />
+  </xacro:o2ac_box_2>
 
   <!-- Screw holder & screw tool visual -->
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/tools.xacro" />

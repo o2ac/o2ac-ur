@@ -2,14 +2,14 @@
 
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
   
-  <xacro:macro name="o2ac_box" params="boxname box_w box_l box_h parent invisible:=false *origin">
-    <!-- This creates a box with the origin in the bottom corner. -->
+  <xacro:macro name="o2ac_box_2" params="boxname box_w box_l box_h parent invisible:=false *origin">
+    <!-- A simple macro for a box that can have its visual geometry hidden. -->
     
     <link name="${boxname}">
       <!-- w is in x, l is in y, h is in z -->
       <xacro:if value="${not invisible}">
         <visual>
-          <origin xyz="${box_w/2} ${box_l/2} ${box_h/2}" rpy="0 0 0"/>
+          <origin xyz="0 0 0" rpy="0 0 0"/>
           <geometry>
             <box size="${box_w} ${box_l} ${box_h}"/> 
           </geometry>
@@ -19,7 +19,7 @@
         </visual>
       </xacro:if>
       <collision>
-        <origin xyz="${box_w/2} ${box_l/2} ${box_h/2}" rpy="0 0 0"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
           <box size="${box_w} ${box_l} ${box_h}"/> 
         </geometry>

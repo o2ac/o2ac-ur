@@ -63,7 +63,8 @@ class O2ACTaskboard(O2ACCommon):
     
     self.downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, pi))
     self.downward_orientation_cylinder_axis_along_workspace_x = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, tau/4))
-    self.at_set_screw_hole = conversions.to_pose_stamped("taskboard_set_screw_link", [-0.005, -0.001, 0.001, 0, 0, 0])  # MAGIC NUMBER (points downward)
+    self.at_set_screw_hole = conversions.to_pose_stamped("taskboard_set_screw_link", [-0.005, -0.001, 0.001, 0, 0, 0])  # MAGIC NUMBER (points downward) MIZUMI tool tip
+    # self.at_set_screw_hole = conversions.to_pose_stamped("taskboard_set_screw_link", [-0.018, -0.001, 0.001, 0, 0, 0])  # MAGIC NUMBER (points downward)  PROXXON tool tip
     if not self.assembly_database.db_name == "taskboard":
       self.assembly_database.change_assembly("taskboard")
     
@@ -213,7 +214,8 @@ class O2ACTaskboard(O2ACCommon):
 
   def full_taskboard_task(self, do_screws=True, skip_tray_placing=True):
     """
-    Start the taskboard task from the fully prepped position (set screw tool and M3 tool equipped)
+    (THIS IS NOT THE MAIN FUNCTION ANYMORE. See full_taskboard_task_simultaneous instead.)
+    Starts the taskboard task from the fully prepped position (set screw tool and M3 tool equipped).
     """
     #####
     self.subtask_completed = {
@@ -237,28 +239,10 @@ class O2ACTaskboard(O2ACCommon):
     if not skip_tray_placing:
       self.take_tray_from_agv()
 
-    # self.subtask_completed["belt"] = self.do_task("belt")
-    
-    # self.subtask_completed["idler pulley"] = self.do_task("idler pulley")
-    # self.unequip_tool("b_bot")
-
-    # self.subtask_completed["motor pulley"] = self.do_task("motor pulley")
-
-    # self.subtask_completed["bearing"] = self.do_task("bearing")
-    # if self.subtask_completed["bearing"]:
-    #   self.subtask_completed["screw_bearing"] = self.do_task("screw_bearing")
-
-    # self.subtask_completed["shaft"] = self.do_task("shaft")
-    
     order = ["belt", "motor pulley", "shaft", "idler pulley", "bearing"]
     task_complete = False
 
-    # found_items = self.check_objects_in_tray("b_bot", order)
-    # rospy.loginfo("Items found so far: %s" % found_items)
-    # for item in found_items:
-    #   self.execute_step(item)
-      
-    # Then loop through the remaining items
+    # Loop through the remaining items
     self.confirm_to_proceed("Continue into loop to retry parts?")
     unsuccessful_attempts = 0
     while not task_complete:
@@ -271,7 +255,8 @@ class O2ACTaskboard(O2ACCommon):
 
   def full_taskboard_task_simultaneous(self, do_screws=True, skip_tray_placing=True):
     """
-    Start the taskboard task from the fully prepped position (set screw tool and M3 tool equipped)
+    Start the taskboard task from the fully prepped position (set screw tool and M3 tool equipped).
+    Includes simultaneous executions.
     """
     #####
     self.subtask_completed = {
@@ -301,17 +286,23 @@ class O2ACTaskboard(O2ACCommon):
     if not skip_tray_placing:
       self.take_tray_from_agv()
 
+    # Do belt and idler pulley first
     self.subtask_completed["belt"] = self.do_task("belt")
     self.subtask_completed["idler pulley"] = self.do_task("idler pulley", simultaneous=True)
 
+    # Pick bearing, do motor_pulley
     self.publish_status_text("Target: pick bearing")
-    self.pick_bearing("a_bot")
+    def a_bot_task():
+      self.pick_bearing("a_bot")
+    def b_bot_task():
+      self.b_bot.go_to_named_pose("home")
+    self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=180.0)
     self.a_success = False
     self.b_success = False
     def a_bot_task(): # orient/insert bearing
       self.a_success = self.orient_bearing("taskboard", robot_name="a_bot", part1=True, part2=False)
       self.a_bot.gripper.forget_attached_item()
-    def b_bot_task(): # pick/orient/insert shaft
+    def b_bot_task(): # pick/orient/insert motor pulley
       self.subtask_completed["motor pulley"] = self.do_task("motor pulley")
       self.b_success = self.subtask_completed["motor pulley"]
       self.b_bot.go_to_named_pose("home")
@@ -320,12 +311,13 @@ class O2ACTaskboard(O2ACCommon):
     self.orient_bearing("taskboard", robot_name="a_bot", part1=False, part2=True)
     self.subtask_completed["bearing"] = self.insert_bearing("taskboard_bearing_target_link", robot_name="a_bot")
     
-    self.ab_bot.go_to_named_pose("home")
     print("task 1:", self.a_success, self.b_success)
 
+    # Align bearing, pick screw with a_bot
     if self.a_success and self.b_success:
-      print(">>> Prepare for fastening bearing")
+      rospy.loginfo(">>> Prepare for fastening bearing")
       def a_bot_task2(): # prepare a_bot with screw tool m4 / pick screw from feeder
+        self.a_success = self.a_bot.go_to_named_pose("home")
         self.a_success = self.equip_tool("a_bot", 'screw_tool_m4')
         self.a_success &= self.pick_screw_from_feeder_python("a_bot", screw_size=4)
       def b_bot_task2(): # align bearing holes
@@ -334,12 +326,14 @@ class O2ACTaskboard(O2ACCommon):
       self.do_tasks_simultaneous(a_bot_task2, b_bot_task2, timeout=120.0)
     print("task 2:", self.a_success, self.b_success)
 
+    # Fasten bearing, insert shaft
     if self.a_success and self.b_success:
       print(">>>> fastening bearing")
       def a_bot_task3(): # fasten bearing
         self.subtask_completed["screw_bearing"] = self.fasten_bearing(task="taskboard", robot_name="a_bot", simultaneous=True)
       def b_bot_task3(): # pick/orient/insert motor pulley
         self.subtask_completed["shaft"] = self.do_task("shaft")
+        self.vision.activate_camera("a_bot_outside_camera")
         self.b_bot.go_to_named_pose("home")
       self.do_tasks_simultaneous(a_bot_task3, b_bot_task3, timeout=300.0)
     print("task 3:", self.subtask_completed["screw_bearing"], self.subtask_completed["shaft"])
@@ -349,7 +343,7 @@ class O2ACTaskboard(O2ACCommon):
 
     order = ["belt", "motor pulley", "shaft", "idler pulley", "bearing"]
     task_complete = False
-    # Then loop through the remaining items
+    # Loop through the remaining items
     self.confirm_to_proceed("Continue into loop to retry parts?")
     unsuccessful_attempts = 0
     while not task_complete:
@@ -376,7 +370,7 @@ class O2ACTaskboard(O2ACCommon):
       self.a_bot_success = self.pick_screw_from_feeder("a_bot", screw_size=3)
     def do_with_b():
       self.b_bot_success = self.do_task("M2 set screw")
-    self.do_tasks_simultaneous(do_with_a, do_with_b, timeout=60.0)
+    self.do_tasks_simultaneous(do_with_a, do_with_b, timeout=120.0)
     # TODO: Consider failure cases
     
     if not self.b_bot_success:
@@ -394,7 +388,7 @@ class O2ACTaskboard(O2ACCommon):
       self.b_bot_success &= self.equip_tool("b_bot", "screw_tool_m4")
       self.b_bot_success &= self.b_bot.go_to_named_pose("feeder_pick_ready")
       self.b_bot_success &= self.pick_screw_from_feeder("b_bot", screw_size=4)
-      self.b_bot_success &= self.b_bot.go_to_named_pose("home")
+      self.b_bot_success &= self.b_bot.go_to_named_pose("feeder_pick_ready")
     def a_bot_task():
       self.a_bot_success = self.do_task("M3 screw")
 
@@ -464,7 +458,7 @@ class O2ACTaskboard(O2ACCommon):
       r2 = self.get_feasible_grasp_points("belt")
       if r2:
         pick_goal = r2[0]
-        pick_goal.pose.position.z = -0.001
+        pick_goal.pose.position.z = 0.000
       else:
         rospy.logerr("Could not find belt grasp pose! Aborting.")
         return False
@@ -484,13 +478,16 @@ class O2ACTaskboard(O2ACCommon):
       self.allow_collisions_with_robot_hand("tray", "a_bot", False)
       self.allow_collisions_with_robot_hand("tray_center", "a_bot", False)
       
-      a_bot_wait_with_belt_pose = [0.646294116973877, -1.602117200891012, 2.0059760252581995, -1.3332312864116211, -0.8101084868060511, -2.4642069975482386]
-      self.a_bot.move_joints(a_bot_wait_with_belt_pose)
+      # Move to ready pose, check if belt was picked
+      def a_bot_task():
+        a_bot_wait_with_belt_pose = [0.646294116973877, -1.602117200891012, 2.0059760252581995, -1.3332312864116211, -0.8101084868060511, -2.4642069975482386]
+        self.a_bot.move_joints(a_bot_wait_with_belt_pose)
+      def b_bot_task():
+        b_bot_look_at_belt = [1.95739448, -1.40047674, 1.92903739, -1.98750128, -2.1883457, 1.7778782]
+        self.b_bot.move_joints(b_bot_look_at_belt, speed=0.3)
+        self.vision.activate_camera("b_bot_outside_camera")
+      self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=180.0)
       
-      # Check for pick success
-      b_bot_look_at_belt = [1.95739448, -1.40047674, 1.92903739, -1.98750128, -2.1883457, 1.7778782]
-      self.b_bot.move_joints(b_bot_look_at_belt, speed=0.3)
-      self.vision.activate_camera("b_bot_outside_camera")
       
       if not self.vision.check_pick_success("belt"):
         rospy.logerr("Belt pick has failed. Return tool and abort.")
@@ -567,7 +564,7 @@ class O2ACTaskboard(O2ACCommon):
       self.b_bot.move_lin_rel(relative_translation=[-d, 0, 0], speed=0.002, wait=False)
       
       if self.use_real_robot:
-        rospy.sleep(8.0)
+        rospy.sleep(2.0)
       self.confirm_to_proceed("Go back?")
       if self.b_bot.is_protective_stopped():
         rospy.logwarn("Robot was protective stopped after set screw insertion!")
@@ -595,10 +592,6 @@ class O2ACTaskboard(O2ACCommon):
           rospy.logerr("Fail pick screw from feeder m3")
           return False
       
-      if not self.a_bot.go_to_named_pose("home"):
-        rospy.logerr("Fail to go to home")
-        return False
-
       if not self.a_bot.go_to_named_pose("horizontal_screw_ready"):
         rospy.logerr("Fail to go to pose horizontal_screw_ready")
         return False
@@ -607,8 +600,8 @@ class O2ACTaskboard(O2ACCommon):
       approach_pose = geometry_msgs.msg.PoseStamped()
       approach_pose.header.frame_id = "taskboard_m3_screw_link"
       approach_pose.pose.position.x = -.04
-      approach_pose.pose.position.y = -.0
-      approach_pose.pose.position.z = -.004  # MAGIC NUMBER (z-axis of the frame points down)
+      approach_pose.pose.position.y = -.002    # MAGIC NUMBER (y-axis of the frame points right)
+      approach_pose.pose.position.z = -.006  # MAGIC NUMBER (z-axis of the frame points down)
       approach_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
       if not self.a_bot.go_to_pose_goal(approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True):
         rospy.logerr("Fail to go to approach pose")
@@ -616,12 +609,15 @@ class O2ACTaskboard(O2ACCommon):
 
       hole_pose = geometry_msgs.msg.PoseStamped()
       hole_pose.header.frame_id = "taskboard_m3_screw_link"
-      hole_pose.pose.position.y = -.000  # MAGIC NUMBER (y-axis of the frame points right)
-      hole_pose.pose.position.z = -.004  # MAGIC NUMBER (z-axis of the frame points down)
+      hole_pose.pose.position.y = -.002  # MAGIC NUMBER (y-axis of the frame points right)
+      hole_pose.pose.position.z = -.006  # MAGIC NUMBER (z-axis of the frame points down)
       hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
       if not fake_execution_for_calibration:
-        if not self.screw("a_bot", hole_pose, screw_size = 3, skip_final_loosen_and_retighten=False, spiral_radius=0.0025, duration=30):
+        if not self.screw("a_bot", hole_pose, screw_size = 3, skip_final_loosen_and_retighten=False, spiral_radius=0.004, duration=40):
           rospy.logerr("Fail to screw m3")
+          self.a_bot.move_lin_rel([0.05,0,0], speed=0.2)
+          self.a_bot.go_to_named_pose("horizontal_screw_ready")
+          self.unequip_tool("a_bot", "screw_tool_m3")
           return False
       else:
         hole_pose.pose.position.x -= 0.005
@@ -633,10 +629,6 @@ class O2ACTaskboard(O2ACCommon):
       if not self.a_bot.go_to_named_pose("horizontal_screw_ready"):
         rospy.logerr("Fail to go to horizontal_screw_ready")
         return False
-      if not fake_execution_for_calibration:
-        if not self.a_bot.go_to_named_pose("home"):
-          rospy.logerr("Fail to go to home")
-          return False
 
     # ==========================================================
 
@@ -648,7 +640,6 @@ class O2ACTaskboard(O2ACCommon):
         if not self.pick_screw_from_feeder("b_bot", screw_size = 4):
           rospy.logerr("Fail pick screw from feeder m4")
           return False
-      self.b_bot.go_to_named_pose("home")
       if not self.b_bot.go_to_named_pose("horizontal_screw_ready"):
         rospy.logerr("Fail to go to horizontal_screw_ready")
         return False
@@ -659,8 +650,11 @@ class O2ACTaskboard(O2ACCommon):
       hole_pose.pose.position.y = -.001  # MAGIC NUMBER (y-axis of the frame points right)
       hole_pose.pose.position.z = -.001  # MAGIC NUMBER (z-axis of the frame points down)
       if not fake_execution_for_calibration:
-        if not self.screw("b_bot", hole_pose, screw_size = 4, skip_final_loosen_and_retighten=False, spiral_radius=0.0025, duration=30):
+        if not self.screw("b_bot", hole_pose, screw_size = 4, skip_final_loosen_and_retighten=False, spiral_radius=0.003, duration=40):
           rospy.logerr("Failed to screw m4")
+          self.b_bot.move_lin_rel([0.05,0,0], speed=0.2)
+          self.b_bot.go_to_named_pose("home")
+          self.unequip_tool("4_bot", "screw_tool_m4")
           return False
       else:
         hole_pose.pose.position.x = -.01
@@ -679,9 +673,6 @@ class O2ACTaskboard(O2ACCommon):
         self.confirm_to_proceed("Did it go back?")
       if not self.b_bot.go_to_named_pose("horizontal_screw_ready"):
         rospy.logerr("Fail to go to horizontal_screw_ready")
-        return False
-      if not self.b_bot.go_to_named_pose("home"):
-        rospy.logerr("Fail to go to home")
         return False
       if not fake_execution_for_calibration:
         self.unequip_tool("b_bot", "screw_tool_m4")

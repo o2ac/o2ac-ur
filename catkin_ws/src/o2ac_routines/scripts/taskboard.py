@@ -76,39 +76,44 @@ if __name__ == '__main__':
       i = raw_input()
       tic_start = time.time()
       if i == "prep":
-        c.prep_taskboard_task()
-      if i == "prepsimul":
         c.prep_taskboard_task_simultaneous()
+      if i == "simpleprep":
+        c.prep_taskboard_task()
       if i == "ssup":
         c.at_set_screw_hole.pose.position.z -= 0.001
         c.move_b_bot_to_setscrew_initial_pos()
       if i == "ssdown":
         c.at_set_screw_hole.pose.position.z += 0.001
         c.move_b_bot_to_setscrew_initial_pos()
+      
+      # Simultaneous tasks
       if i == "start":
-        c.competition_mode = True
-        c.full_taskboard_task(skip_tray_placing=False)
-        c.competition_mode = False
-      if i == "startnoscrews":
-        c.competition_mode = True
-        c.full_taskboard_task(do_screws=False)
-        c.competition_mode = False
-      if i == "startsimul": # full simultaneous
         c.competition_mode = True
         c.full_taskboard_task_simultaneous(do_screws=True, skip_tray_placing=False)
         c.competition_mode = False
       if i == "screwsonly":
         c.competition_mode = True
-        c.do_screw_tasks_from_prep_position()
-        c.competition_mode = False
-      if i == "simul":
-        c.competition_mode = True
         c.do_screw_tasks_simultaneous()
         c.competition_mode = False
-      if i == "simul2":
+      if i == "startnoscrews":
         c.competition_mode = True
         c.full_taskboard_task_simultaneous(do_screws=False, skip_tray_placing=True)
         c.competition_mode = False
+      
+      # Non-simultaneous versions
+      if i == "simplestart":
+        c.competition_mode = True
+        c.full_taskboard_task(skip_tray_placing=False)
+        c.competition_mode = False
+      if i == "simplenoscrews":
+        c.competition_mode = True
+        c.full_taskboard_task(do_screws=False)
+        c.competition_mode = False
+      if i == "simplescrewsonly":
+        c.competition_mode = True
+        c.do_screw_tasks_from_prep_position()
+        c.competition_mode = False
+      
       if i == "test":
         c.competition_mode = False
         c.full_taskboard_task(skip_tray_placing=False)
@@ -182,6 +187,8 @@ if __name__ == '__main__':
         c.do_task("bearing")
       if i == "577":
         c.do_task("screw_bearing")
+      if i == "577a":
+        c.fasten_bearing(task="taskboard", robot_name="a_bot", simultaneous=True)
       if i == "579":
         c.fasten_bearing("c", only_retighten=True)
       if i == "575":

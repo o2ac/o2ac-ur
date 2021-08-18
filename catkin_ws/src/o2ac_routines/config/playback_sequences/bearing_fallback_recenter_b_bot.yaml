@@ -12,7 +12,7 @@ waypoints:
   is_trajectory: True
   blend: 0.01
   desc: Above centering point
-- pose: [-0.02, 0, 0.0, -135, 0, 0] 
+- pose: [-0.020, 0.005, -0.001, -98.218, 5.714, 34.589] 
   pose_type: task-space-in-frame
   frame_id: right_centering_link
   speed: 0.2

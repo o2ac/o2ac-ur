@@ -386,7 +386,7 @@
       profile = default
       title = task
       uuid = 0ce4bbb6-4803-47f5-b773-4ebdcbce35b0
-      command = sh ./RUN-DOCKER-CONTAINER.sh ${USER} "rosrun\ o2ac_routines\ taskboard.py"
+      command = 'sh ./RUN-DOCKER-CONTAINER.sh ${USER} "rosrun\ o2ac_routines\ taskboard.py"'
     [[[terminal14]]]
       type = Terminal
       parent = child12
@@ -475,4 +475,104 @@
       profile = default
       uuid = 94508b42-7424-4433-bc56-6f4eb316d61d
       command = sh ./VISION-DOCKER-CONTAINER.sh ${USER} roscore
+  [[o2ac-rt-pc]]
+    [[[child0]]]
+      type = Window
+      parent = ""
+      order = 0
+      position = 72:27
+      maximised = True
+      fullscreen = False
+      size = 1848, 1016
+      title = O2AC-UR
+      last_active_term = 0ce4bbb6-4803-47f5-b773-4ebdcbce35b0
+      last_active_window = True
+    [[[child1]]]
+      type = HPaned
+      parent = child0
+      order = 0
+      position = 410
+      ratio = 0.2224633749321758
+    [[[child2]]]
+      type = HPaned
+      parent = child1
+      order = 0
+      position = 211
+      ratio = 0.5209876543209877
+    [[[child3]]]
+      type = VPaned
+      parent = child2
+      order = 0
+      position = 510
+      ratio = 0.5044510385756676
+    [[[terminal4]]]
+      type = Terminal
+      parent = child3
+      order = 0
+      profile = default
+      uuid = 9f5fc32e-cbd5-4ffd-b4b6-6080ed02ca26
+      command = sh ./RUN-DOCKER-CONTAINER.sh
+    [[[terminal5]]]
+      type = Terminal
+      parent = child3
+      order = 1
+      profile = default
+      uuid = 746a3b43-2ecb-4e49-89e3-90cf399c8ad5
+      command = sh ./RUN-DOCKER-CONTAINER.sh
+    [[[child6]]]
+      type = VPaned
+      parent = child2
+      order = 1
+      position = 510
+      ratio = 0.5044510385756676
+    [[[terminal7]]]
+      type = Terminal
+      parent = child6
+      order = 0
+      profile = default
+      uuid = 67c44de9-a4a3-491c-b28e-9ee3e3cb5994
+      command = sh ./RUN-DOCKER-CONTAINER.sh
+    [[[terminal8]]]
+      type = Terminal
+      parent = child6
+      order = 1
+      profile = default
+      uuid = 7813ff76-fdaf-4590-92ba-78b6696ee52a
+      command = sh ./RUN-DOCKER-CONTAINER.sh
+    [[[child9]]]
+      type = HPaned
+      parent = child1
+      order = 1
+      position = 720
+      ratio = 0.5027932960893855
+    [[[terminal10]]]
+      type = Terminal
+      parent = child9
+      order = 0
+      profile = default
+      title = task
+      uuid = 0ce4bbb6-4803-47f5-b773-4ebdcbce35b0
+      command = sh ./RUN-DOCKER-CONTAINER.sh ${USER} "rosrun\ o2ac_routines\ taskboard.py"
+    [[[child11]]]
+      type = VPaned
+      parent = child9
+      order = 1
+      position = 506
+      ratio = 0.5004945598417408
+    [[[terminal12]]]
+      type = Terminal
+      parent = child11
+      order = 0
+      profile = default
+      title = moveit/rviz
+      uuid = 6871bc70-992b-4b9f-bb38-601d7f9e565f
+      command = sh ./RUN-DOCKER-CONTAINER.sh ${USER} o2ac_moveit_config o2ac_moveit_planning_execution.launch
+    [[[terminal13]]]
+      type = Terminal
+      parent = child11
+      order = 1
+      profile = default
+      title = bring-up robots
+      uuid = e5626f93-c26f-4228-948c-70163803ba30
+      command = sh ./RUN-DOCKER-CONTAINER.sh ${USER} o2ac_scene_description connect_real_robots.launch
 [plugins]
