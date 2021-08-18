@@ -1772,6 +1772,17 @@ class O2ACCommon(O2ACBase):
       self.despawn_object("bearing")
     return True
 
+  def fallback_recenter_bearing(self, task="", robot_name="b_bot"): 
+    """ Return the inclined bearing to the centering area, recenter, and orient """
+    self.active_robots[robot_name].move_lin_rel(relative_translation=[-0.02, 0, 0], relative_to_tcp=True, speed=0.1) # Slowly go back to reduce risk of emergency stop
+    
+    if not self.playback_sequence("bearing_fallback_recenter_" + robot_name):
+      rospy.logerr("Could not complete bearing fallback recenter sequence")
+      self.pick_from_centering_area_and_drop_in_tray(robot_name)
+      return False
+
+    return self.orient_bearing(task, robot_name, part1=False, part2=True)
+
   def insert_bearing(self, target_link, try_recenter=True, try_reinsertion=True, robot_name="b_bot", task="assembly"):
     """ Only inserts the bearing, does not align the holes.
     """
@@ -1794,12 +1805,12 @@ class O2ACCommon(O2ACBase):
       if try_reinsertion:
         # Try to insert again
         rospy.logwarn("** Insertion Incomplete, trying again **")
-        self.insert_bearing(target_link, try_recenter=True, try_reinsertion=False, robot_name=robot_name)
+        return self.insert_bearing(target_link, try_recenter=True, try_reinsertion=False, robot_name=robot_name)
       elif try_recenter:
         # Try to recenter the bearing
         rospy.logwarn("** Insertion Incomplete, trying from centering again **")
-        self.orient_bearing(task, robot_name=robot_name, part1=True, part2=True)
-        self.insert_bearing(target_link, try_recenter=False, try_reinsertion=False, robot_name=robot_name)
+        self.fallback_recenter_bearing(task, robot_name=robot_name)
+        return self.insert_bearing(target_link, try_recenter=False, try_reinsertion=False, robot_name=robot_name)
       else:
         rospy.logerr("** Insertion Incomplete, dropping bearing into tray **")
         robot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
@@ -1807,7 +1818,7 @@ class O2ACCommon(O2ACBase):
         return False
 
     robot.gripper.open(opening_width=0.08, wait=True)
-    robot.move_lin_rel(relative_translation = [0.01,0,0], acceleration = 0.015, speed=.03)
+    robot.move_lin_rel(relative_translation = [0.012,0,0], acceleration = 0.015, speed=.03)
     robot.gripper.close(force=30, velocity=0.01, wait=True)
 
     result = robot.do_insertion(target_pose_target_frame, insertion_direction=insertion_direction, force=10.0, timeout=30.0, 
