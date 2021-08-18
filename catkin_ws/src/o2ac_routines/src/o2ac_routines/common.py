@@ -614,22 +614,26 @@ class O2ACCommon(O2ACBase):
     attach_with_collisions use the CollisionObject otherwise try to attach the visualization Marker
     """
     rospy.loginfo("Entered simple_pick")
-    
+    seq = []
+
     robot = self.active_robots[robot_name]
     if gripper_command=="do_nothing":
       pass
     else: 
-      robot.gripper.send_command(command=grasp_width, wait=False) # Open
+      seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=grasp_width))
+      # robot.gripper.send_command(command=grasp_width, wait=False) # Open
 
     approach_pose = copy.deepcopy(object_pose)
     op = conversions.from_point(object_pose.pose.position)
     op[get_direction_index(axis)] += approach_height * sign
     approach_pose.pose.position = conversions.to_point(op)
 
+    seq.append(helpers.to_sequence_item(approach_pose, speed=speed_fast, acc=0.25, linear=approach_with_move_lin))
+
     rospy.logdebug("Going to height " + str(op[get_direction_index(axis)]))
-    if not robot.go_to_pose_goal(approach_pose, speed=speed_fast, acceleration=acc_fast, move_lin=approach_with_move_lin, wait=True, retry_non_linear=True):
-      rospy.logerr("Fail to go to approach_pose")
-      return False
+    # if not robot.go_to_pose_goal(approach_pose, speed=speed_fast, acceleration=acc_fast, move_lin=approach_with_move_lin, wait=True, retry_non_linear=True):
+    #   rospy.logerr("Fail to go to approach_pose")
+    #   return False
 
     rospy.logdebug("Moving down to object")
     grasp_pose = copy.deepcopy(object_pose)
@@ -638,14 +642,21 @@ class O2ACCommon(O2ACBase):
     grasp_pose.pose.position = conversions.to_point(op)
     rospy.logdebug("Going to height " + str(op[get_direction_index(axis)]))
 
-    if not robot.go_to_pose_goal(grasp_pose, speed=speed_slow, acceleration=acc_slow, move_lin=True):
-      rospy.logerr("Fail to go to grasp_pose")
-      return False
+    seq.append(helpers.to_sequence_item(grasp_pose, speed=speed_fast, acc=0.25))
+    # if not robot.go_to_pose_goal(grasp_pose, speed=speed_slow, acceleration=acc_slow, move_lin=True):
+    #   rospy.logerr("Fail to go to grasp_pose")
+    #   return False
 
     if gripper_command=="do_nothing":
       pass
     else: 
-      robot.gripper.close(force=gripper_force, velocity=gripper_velocity)
+      seq.append(helpers.to_sequence_gripper("close", gripper_velocity=gripper_velocity, gripper_force=gripper_force))
+      # robot.gripper.close(force=gripper_force, velocity=gripper_velocity)
+
+    # break seq here
+    if not self.execute_sequence(robot_name, seq, "simple_pick"):
+      rospy.logerr("Fail to simple pick with sequence")
+      return False
 
     success = True
     if minimum_grasp_width > robot.gripper.opening_width and self.use_real_robot:
