@@ -2981,34 +2981,13 @@ class O2ACCommon(O2ACBase):
     p_motor_in_centering_link.pose.position.x = -0.006  # Grasp height
 
     # Check that motor direction matches the cables seen in RGB image
-    # flag values are 0:right, 1:left, 2:top, 3:bottom  (documented in pose_estimation_func)
-    ## theta = 0  --> top     --> flag = 2
-    ## theta = 90 --> right   --> flag = 0
-    ## theta = 180 --> bottom --> flag = 3
-    ## theta = 270 --> left   --> flag = 1
-    motor_rotation_flag = self.vision.get_motor_angle_from_top_view(camera="b_bot_outside_camera")
+    theta = self.vision.get_motor_angle_from_top_view(camera="b_bot_outside_camera")
     q = p_motor_in_tray_center.pose.orientation
     rpy = tf.transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])
-    print("rpy ", rpy)
-    print("motor_rotation_flag ", motor_rotation_flag)
     theta = rpy[0]
     print("degrees(theta) ", degrees(theta))
     if theta < 0:
       theta += tau
-
-    if theta >= 0.0 and theta < tau/4:
-      if motor_rotation_flag is not 2 and motor_rotation_flag is not 0:
-        rospy.loginfo("")
-        p_motor_in_centering_link = helpers.rotatePoseByRPY(-tau/2, 0, 0, p_motor_in_centering_link)
-    elif theta >= tau/4 and theta < tau/2:
-      if motor_rotation_flag is not 0 and motor_rotation_flag is not 3:
-        p_motor_in_centering_link = helpers.rotatePoseByRPY(-tau/2, 0, 0, p_motor_in_centering_link)
-    elif theta >= tau/2 and theta < tau*3/4:
-      if motor_rotation_flag is not 3 and motor_rotation_flag is not 1:
-        p_motor_in_centering_link = helpers.rotatePoseByRPY(-tau/2, 0, 0, p_motor_in_centering_link)
-    elif theta >= tau*3/4 and theta < tau:
-      if motor_rotation_flag is not 1 and motor_rotation_flag is not 2:
-        p_motor_in_centering_link = helpers.rotatePoseByRPY(-tau/2, 0, 0, p_motor_in_centering_link)
 
     # Pick motor in defined orientation and move up
     self.planning_scene_interface.remove_world_object("motor")

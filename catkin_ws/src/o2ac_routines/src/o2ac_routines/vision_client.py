@@ -97,7 +97,7 @@ class VisionClient():
         try:
             res = self.detect_angle_client.get_result()
             if res.succeeded:
-                return res.motor_rotation_flag
+                return res.rotation_angle
         except:
             pass
         return None

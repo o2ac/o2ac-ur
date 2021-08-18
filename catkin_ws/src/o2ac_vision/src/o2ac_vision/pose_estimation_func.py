@@ -1132,7 +1132,7 @@ class MotorOrientation():
         orientation_code = np.argmax(n_red)
         self.cable_orientation = orientation_code * 45.0
 
-        return self.cable_orientation
+        return self.cable_orientation  # In degrees
 
     def split_hsv( self, im_in ):
         im_hsv = cv2.cvtColor( im_in, cv2.COLOR_BGR2HSV )
@@ -1141,7 +1141,7 @@ class MotorOrientation():
         im_v = im_hsv[:,:,2].copy()
         return im_h, im_s, im_v
 
-    # Hue value is distributed btween 0 to 179
+    # Hue value is distributed between 0 to 179
     def get_red_mask( self, im_in ):
         # split image into h,s,v planes
         im_h,im_s,im_v = self.split_hsv(im_in)
