@@ -165,6 +165,16 @@ class O2ACCommon(O2ACBase):
     pose.header.frame_id = 'attached_base_origin_link'
     pose.pose.orientation.w = 1.0
     self.assembly_database.publish_assembly_frames(pose, prefix="assembled_")
+    # TODO(cambel): load the objects dimensions from somewhere
+    self.dimensions_dataset = {}
+    if self.assembly_database.db_name == "wrs_assembly_2021":
+      self.dimensions_dataset.update({"panel_bearing": [0.09, 0.116, 0.012]})
+      self.dimensions_dataset.update({"panel_motor"  : [0.06, 0.06, 0.012]})
+    elif self.assembly_database.db_name == "wrs_assembly_2020":
+      self.dimensions_dataset.update({"panel_bearing": [0.09, 0.116, 0.012]})
+      self.dimensions_dataset.update({"panel_motor"  : [0.06, 0.07, 0.012]})
+    else:
+      raise ValueError("Unknown data")
     return True
 
   ######## Higher-level routines used in both assembly and taskboard
@@ -334,7 +344,10 @@ class O2ACCommon(O2ACBase):
       # TODO: Apply Place action of pose estimation to constrain object to the tray_center plane
       # Workaround: Just set z to 0 
       object_pose.header.stamp = rospy.Time.now()
-      self.listener.waitForTransform("tray_center", object_pose.header.frame_id, object_pose.header.stamp, rospy.Duration(1))
+      try:
+        self.listener.waitForTransform("tray_center", object_pose.header.frame_id, object_pose.header.stamp, rospy.Duration(1))
+      except:
+        pass
       object_pose = self.listener.transformPose("tray_center", object_pose)
       #### fake the orientation of the plate (assumes that it is always flat on the tray) ###
       orientation_euler = list(transformations.euler_from_quaternion(conversions.from_pose_to_list(object_pose.pose)[3:]))
@@ -620,7 +633,7 @@ class O2ACCommon(O2ACBase):
     if gripper_command=="do_nothing":
       pass
     else: 
-      seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=grasp_width))
+      seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=grasp_width, wait=False))
       # robot.gripper.send_command(command=grasp_width, wait=False) # Open
 
     approach_pose = copy.deepcopy(object_pose)
@@ -1095,7 +1108,10 @@ class O2ACCommon(O2ACBase):
       self.a_bot.go_to_named_pose("home")
     
     # Put pose into tray_center and assign orientation
-    self.listener.waitForTransform("tray_center", target_pose.header.frame_id, target_pose.header.stamp, rospy.Duration(1.0))
+    try:
+      self.listener.waitForTransform("tray_center", target_pose.header.frame_id, target_pose.header.stamp, rospy.Duration(1.0))
+    except:
+      pass
     target_pose_tray = self.listener.transformPose("tray_center", target_pose)
     target_pose_tray.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
     
@@ -1870,7 +1886,7 @@ class O2ACCommon(O2ACBase):
         screw_pose.pose.position.z += -.001  # MAGIC NUMBER
       elif task == "assembly":
         screw_pose.pose.position.z += .0025  # MAGIC NUMBER
-        screw_pose.pose.position.y -= .0025  # MAGIC NUMBER
+        screw_pose.pose.position.y -= .0022  # MAGIC NUMBER
       screw_pose.pose.position.x += .006  # This needs to be quite far forward, because the thread is at the plate level (behind the frame)
       offset = -1 if robot_name == "a_bot" else 1
       screw_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(offset*tau/12, 0, 0) )
@@ -3413,7 +3429,7 @@ class O2ACCommon(O2ACBase):
       goal = conversions.to_pose_stamped("left_centering_link", aligned_pose + [-0.500, 0.500, -0.500, -0.500])
       self.spawn_object(panel_name, goal, goal.header.frame_id)
       # object dimensions
-      obj_dims = [0.09, 0.116, 0.012] if panel_name == "panel_bearing" else [0.06, 0.06, 0.012]
+      obj_dims = self.dimensions_dataset[panel_name]
       # x,y,z pose w.r.t centering link
       y_pos = 0.065 if panel_name == "panel_bearing" else -0.065
       grasp_pose = conversions.to_pose_stamped("left_centering_link", [-0.02, y_pos, -0.08+obj_dims[1]/2, tau/2, 0, 0])
@@ -3432,12 +3448,11 @@ class O2ACCommon(O2ACBase):
         return False
 
     object_frame = "assembled_part_01_screw_hole_panel1_1" if panel_name == "panel_bearing" else "assembled_part_01_screw_hole_panel2_1"
+
     if self.assembly_database.db_name == "wrs_assembly_2021":
-                # FIXME: 0.08/2-0.012 works in production, but 0.07/2-0.012 with fake_position.
       offsets = [0.01, 0.116/2-0.007] if panel_name == "panel_bearing" else [0.011, 0.06/2-0.008]  # MAGIC NUMBERS
     elif self.assembly_database.db_name == "wrs_assembly_2020":
-      offsets = [0.01, 0.116/2-0.007] if panel_name == "panel_bearing" else [0.011, 0.07/2-0.012]  # MAGIC NUMBERS
-                                                                            # FIXME: 0.08/2-0.012 works in production, but 0.07/2-0.012 with fake_position.
+      offsets = [0.01, 0.116/2-0.0065] if panel_name == "panel_bearing" else [0.011, 0.07/2-0.006]  # MAGIC NUMBERS
     else:
       raise ValueError("Unknown data")
     above_plate_pose = conversions.to_pose_stamped(object_frame, [-0.100, offsets[0], offsets[1], 0, 0, 0])
@@ -3447,7 +3462,7 @@ class O2ACCommon(O2ACBase):
     self.active_robots[robot_name].go_to_pose_goal(above_plate_pose, speed=1.0, move_lin=False)
     self.active_robots[robot_name].go_to_pose_goal(place_pose, speed=0.2)
     self.planning_scene_interface.disallow_collisions("base_fixture_top", panel_name)
-    self.active_robots[robot_name].gripper.open(opening_width=0.03, velocity=0.05)
+    self.active_robots[robot_name].gripper.open(opening_width=0.03, velocity=0.03)
     self.active_robots[robot_name].gripper.forget_attached_item()
     if panel_name == "panel_bearing":
       self.assembly_status.bearing_panel_placed_outside_of_tray = False
@@ -3467,17 +3482,12 @@ class O2ACCommon(O2ACBase):
     self.planning_scene_interface.allow_collisions("a_bot_base_smfl", panel_name)
     centering_frame = "left_centering_link"
     # object dimensions
-    if self.assembly_database.db_name == "wrs_assembly_2021":
-      obj_dims = [0.09, 0.116, 0.012] if panel_name == "panel_bearing" else [0.06, 0.06, 0.012]
-    elif self.assembly_database.db_name == "wrs_assembly_2020":
-      obj_dims = [0.09, 0.116, 0.012] if panel_name == "panel_bearing" else [0.06, 0.07, 0.012]
-    else:
-      raise ValueError("Unknown data")
-    
+    obj_dims = self.dimensions_dataset[panel_name]
+        
     # Magic numbers
     gripper_at_stopper = -0.065
     # x,y,z pose w.r.t centering link
-    x_pos = -0.06 if panel_name == "panel_bearing" else -0.04
+    x_pos = -0.065 if panel_name == "panel_bearing" else -0.045
     y_pos = 0.065 if panel_name == "panel_bearing" else -0.065
     z_pos = gripper_at_stopper + obj_dims[1]
 
@@ -3491,17 +3501,18 @@ class O2ACCommon(O2ACBase):
     seq.append(helpers.to_sequence_item(above_centering_joint_pose, speed=speed, linear=False))
     seq.append(helpers.to_sequence_item(above_centering_pose, speed=speed))
     seq.append(helpers.to_sequence_item(at_centering_pose, speed=speed))
-    if not self.execute_sequence("a_bot", seq, "center_panel_part1"):
-      rospy.logerr("fail to center panel: %s" % panel_name)
-      return False
-    self.active_robots[robot_name].gripper.open(opening_width=0.01, wait=False)
-    seq = []
+    # if not self.execute_sequence("a_bot", seq, "center_panel_part1"):
+    #   rospy.logerr("fail to center panel: %s" % panel_name)
+    #   return False
+    # self.active_robots[robot_name].gripper.open(opening_width=0.01, wait=False)
+    seq.append(helpers.to_sequence_gripper(0.01, gripper_velocity=1.0, wait=False))
+    # seq = []
     seq.append(helpers.to_sequence_item(pre_push_pose, speed=speed))
     seq.append(helpers.to_sequence_gripper(0.005, gripper_force=0, gripper_velocity=1.0))
     seq.append(helpers.to_sequence_item(push_pose, speed=0.5))
-    if not self.execute_sequence("a_bot", seq, "center_panel_part2"):
-      rospy.logerr("fail to center panel: %s" % panel_name)
-      return False
+    # if not self.execute_sequence("a_bot", seq, "center_panel_part2"):
+    #   rospy.logerr("fail to center panel: %s" % panel_name)
+    #   return False
     
     # self.active_robots[robot_name].move_joints(above_centering_joint_pose, speed=speed)
     # self.active_robots[robot_name].go_to_pose_goal(above_centering_pose, speed=speed)
@@ -3512,21 +3523,34 @@ class O2ACCommon(O2ACBase):
     # if not self.active_robots[robot_name].go_to_pose_goal(push_pose, speed=0.5):
     #   rospy.logerr("fail to push: %s" % panel_name)
     #   return False
-    self.active_robots[robot_name].gripper.forget_attached_item()
-    
-    aligned_pose = [0.0, 0.067, -0.080] if panel_name == "panel_bearing" else [0.0, -0.063, -0.080]
-    self.update_collision_item_pose(panel_name, conversions.to_pose_stamped(centering_frame, aligned_pose + [-0.500, 0.500, -0.500, -0.500]))
 
+    def pre_callback():
+      self.active_robots[robot_name].gripper.forget_attached_item()
+      aligned_pose = [0.0, 0.067, -0.080] if panel_name == "panel_bearing" else [0.0, -0.063, -0.080]
+      self.update_collision_item_pose(panel_name, conversions.to_pose_stamped(centering_frame, aligned_pose + [-0.500, 0.500, -0.500, -0.500]))
+
+    seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=0.03, gripper_velocity=1.0, pre_callback=pre_callback))
+  
     at_panel_center = conversions.to_pose_stamped(centering_frame, [-0.02, y_pos, -0.08+obj_dims[1]/2, tau/2, 0, 0])
-    self.active_robots[robot_name].gripper.open(opening_width=0.03)
+
+    # self.active_robots[robot_name].gripper.open(opening_width=0.03)
     if store:
-      self.active_robots[robot_name].move_lin_rel(relative_translation=[0,-0.1,0.15])
-      return at_panel_center
+      seq.append(helpers.to_sequence_item_relative(pose=[0,-0.1,0.15,0,0,0]))
+      # self.active_robots[robot_name].move_lin_rel(relative_translation=[0,-0.1,0.15])
     else:
-      self.active_robots[robot_name].go_to_pose_goal(at_panel_center, speed=0.2)
-      self.active_robots[robot_name].gripper.close()
-      self.active_robots[robot_name].move_lin_rel(relative_translation=[0,0,0.15])
-    return True
+      seq.append(helpers.to_sequence_item(at_panel_center, speed=0.2))
+      # self.active_robots[robot_name].go_to_pose_goal(at_panel_center, speed=0.2)
+      seq.append(helpers.to_sequence_gripper("close", gripper_velocity=1.0))
+      # self.active_robots[robot_name].gripper.close()
+      seq.append(helpers.to_sequence_item_relative(pose=[0,-0.1,0.15,0,0,0]))
+      # self.active_robots[robot_name].move_lin_rel(relative_translation=[0,0,0.15])
+    
+    if not self.execute_sequence("a_bot", seq, "center_panel_full"):
+      rospy.logerr("fail to center panel: %s" % panel_name)
+      return False
+
+    # If store, return pose
+    return at_panel_center if store else True
 
   def orient_panel2(self, panel_name, robot_name="a_bot", speed=0.5):
     object_frame = "assembled_part_01_screw_hole_panel1_1" if panel_name == "panel_bearing" else "assembled_part_01_screw_hole_panel2_1"
@@ -3599,6 +3623,45 @@ class O2ACCommon(O2ACBase):
     self.allow_collisions_with_robot_hand(object_name, from_robot_name, allow=False)
     return success
 
+  def center_panel_on_base_plate(self, panel_name):
+    if panel_name == "panel_motor":
+      self.allow_collisions_with_robot_hand("panel_motor", robot_name="a_bot")
+    self.allow_collisions_with_robot_hand("panel_bearing", robot_name="a_bot")
+
+    obj_dims = self.dimensions_dataset[panel_name]
+    self.a_bot.gripper.open(opening_width=0.04, wait=False)
+    pre_push_pose_frame_id = "assembled_part_03_center" if panel_name == "panel_bearing" else "assembled_part_02_center" 
+    height_offset = -obj_dims[0]/2 + 0.01 # 1cm above panel bottom w.r.t to panel center
+    pre_push_pose = conversions.to_pose_stamped(pre_push_pose_frame_id, [0.004, 0.002, height_offset, -0.500, 0.500, 0.500, 0.500])
+    # Pose w.r.t to bearing panel in case it is different 
+    push_pose_frame_id = "assembled_part_03_bottom_corner_1" if panel_name == "panel_bearing" else "assembled_part_03_bottom_corner_2" 
+    push_pose     = conversions.to_pose_stamped(push_pose_frame_id, [-0.01, -0.0025, 0.015, 0, 0, 0])
+
+    if self.assembly_database.db_name == "wrs_assembly_2021":
+      offsets = [0.01, 0.116/2-0.007] if panel_name == "panel_bearing" else [0.011, 0.06/2-0.008]  # MAGIC NUMBERS
+    elif self.assembly_database.db_name == "wrs_assembly_2020":
+      offsets = [0.01, 0.116/2-0.007] if panel_name == "panel_bearing" else [0.011, 0.07/2-0.006]  # MAGIC NUMBERS
+    else:
+      raise ValueError("Unknown data")
+    place_pose_frame_id = "assembled_part_01_screw_hole_panel1_1" if panel_name == "panel_bearing" else "assembled_part_01_screw_hole_panel2_1" 
+    place_pose    = conversions.to_pose_stamped(place_pose_frame_id, [-0.01, offsets[0], offsets[1], 0, 0, 0])
+    hold_pose_frame_id = "assembled_part_03_bottom_screw_hole_1" if panel_name == "panel_bearing" else "assembled_part_02_bottom_screw_hole_1" 
+    hold_pose = conversions.to_pose_stamped(hold_pose_frame_id, [-0.034, offsets[0], offsets[1], 0, radians(40), 0])
+    seq = []
+    seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=0.04, wait=False))
+    seq.append(helpers.to_sequence_item(pre_push_pose, speed=0.5, linear=True))
+    seq.append(helpers.to_sequence_gripper(0.005, gripper_force=0, gripper_velocity=1.0))
+    seq.append(helpers.to_sequence_item(push_pose, speed=0.3, linear=True))
+    seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=0.02, wait=True))
+    seq.append(helpers.to_sequence_item_relative(pose=[0, -obj_dims[1]/2+0.015, 0, 0, 0, 0]))
+    seq.append(helpers.to_sequence_gripper("close", gripper_velocity=1.0))
+    seq.append(helpers.to_sequence_item(place_pose, speed=0.5, linear=True))
+    seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=0.02, gripper_velocity=0.03, wait=True))
+    seq.append(helpers.to_sequence_item(hold_pose, speed=0.5, linear=True))
+    seq.append(helpers.to_sequence_gripper("close", gripper_force=60, gripper_velocity=0.01, wait=True))
+    
+    return self.execute_sequence("a_bot", seq, "center_panel_on_base_plate")
+
   def fasten_panel(self, panel_name, simultaneous=False):
     if panel_name == "panel_bearing":
       part_name = "assembled_part_03_"
@@ -3643,12 +3706,7 @@ class O2ACCommon(O2ACBase):
       self.b_bot.go_to_named_pose("feeder_pick_ready")
       self.pick_screw_from_feeder("b_bot", screw_size = 4)
 
-      # Realign plate
-      self.a_bot.gripper.open(opening_width=0.04, wait=True)
-      self.a_bot.move_lin_rel(relative_translation=[0.01, 0, 0], relative_to_tcp=True, speed=0.1)
-      self.a_bot.gripper.close(force = 100, velocity=0.01)
-      # TODO(cambel): Re pick and center plate again
-      # self.a_bot.gripper.open(opening_width=0.08, wait=True)
+      self.center_panel_on_base_plate(panel_name)
       
       # Retry fastening
       if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel_name):
@@ -3961,7 +4019,10 @@ class O2ACCommon(O2ACBase):
 
     self.spawn_tray_stack(stack_center=[-0.03,0], tray_heights=[0.05,0.0], orientation_parallel=orientation_parallel)
     # self.spawn_tray_stack()
-    self.listener.waitForTransform("agv_tray_center", "move_group/tray1/center", rospy.Time(0), rospy.Duration(5))
+    try:
+      self.listener.waitForTransform("agv_tray_center", "move_group/tray1/center", rospy.Time(0), rospy.Duration(5))
+    except:
+      pass
     tray_pose = self.listener.transformPose("agv_tray_center", conversions.to_pose_stamped("move_group/tray1/center",[0,0,0,0,0,0]))
     tray_point = conversions.from_point(tray_pose.pose.position)
     tray_x, tray_y, tray1_z = tray_point
@@ -4049,7 +4110,10 @@ class O2ACCommon(O2ACBase):
       self.planning_scene_interface.allow_collisions(name, "")
 
   def pick_tray_from_agv_stack_calibration_short_side(self, tray_name):
-    self.listener.waitForTransform("agv_tray_center", "move_group/"+tray_name+"/center", rospy.Time(0), rospy.Duration(5))
+    try:
+      self.listener.waitForTransform("agv_tray_center", "move_group/"+tray_name+"/center", rospy.Time(0), rospy.Duration(5))
+    except:
+      pass
     tray_pose = self.listener.transformPose("agv_tray_center", conversions.to_pose_stamped("move_group/"+tray_name+"/center",[0,0,0,0,0,0]))
     tray_point = conversions.from_point(tray_pose.pose.position)
     self.allow_collisions_with_robot_hand("tray", "a_bot", allow=True)
@@ -4112,7 +4176,10 @@ class O2ACCommon(O2ACBase):
 
   def pick_tray_from_agv_stack_calibration_long_side(self, tray_name, use_saved_trajectory=True):
     rospy.sleep(0.3)
-    self.listener.waitForTransform("agv_tray_center", "move_group/"+tray_name+"/center", rospy.Time(0), rospy.Duration(5))
+    try:
+      self.listener.waitForTransform("agv_tray_center", "move_group/"+tray_name+"/center", rospy.Time(0), rospy.Duration(5))
+    except:
+      pass
     tray_pose = self.listener.transformPose("agv_tray_center", conversions.to_pose_stamped("move_group/"+tray_name+"/center",[0,0,0,0,0,0]))
     tray_point = conversions.from_point(tray_pose.pose.position)
     tray_parallel = self.trays[tray_name][1]

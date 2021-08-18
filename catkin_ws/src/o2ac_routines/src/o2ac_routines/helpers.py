@@ -587,7 +587,7 @@ def to_robot_state(move_group, joints):
   moveit_robot_state.joint_state.position = temp_joint_values
   return moveit_robot_state
 
-def to_sequence_gripper(action, gripper_opening_width=0.14, gripper_force=40, gripper_velocity=0.03, pre_callback=None, post_callback=None):
+def to_sequence_gripper(action, gripper_opening_width=0.14, gripper_force=40, gripper_velocity=0.03, pre_callback=None, post_callback=None, wait=True):
   item = {
     "pose_type": "gripper",
     "gripper":
@@ -597,7 +597,8 @@ def to_sequence_gripper(action, gripper_opening_width=0.14, gripper_force=40, gr
               "force": gripper_force,
               "velocity": gripper_velocity,
               "pre_callback": pre_callback,
-              "post_callback": post_callback
+              "post_callback": post_callback,
+              "wait": wait,
             }
     }
   return ["waypoint", item]
@@ -619,6 +620,7 @@ def to_sequence_item(pose, speed=0.5, acc=0.25, linear=True):
     item           = {"pose": conversions.from_point(pose.pose.position).tolist() + np.rad2deg(transformations.euler_from_quaternion(conversions.from_quaternion(pose.pose.orientation))).tolist(),
                       "pose_type": "task-space-in-frame",
                       "frame_id": pose.header.frame_id,
+                      "move_linear": linear,
                      }
   if isinstance(pose, str):
     item           = {"pose": pose,

@@ -121,8 +121,12 @@ class URForceController(CompliantController):
                                                          wiggle_direction=wiggle_direction, wiggle_angle=wiggle_angle, wiggle_revolutions=wiggle_revolutions)
         # convert dummy_trajectory (initial pose frame id) to robot's base frame
         now = rospy.Time.now()
-        self.listener.waitForTransform(self.base_link, eff, now, rospy.Duration(1))
-        transform2target = self.listener.fromTranslationRotation(*self.listener.lookupTransform(self.base_link, eff, now))
+        try:
+            self.listener.waitForTransform(self.base_link, eff, now, rospy.Duration(1))
+            transform2target = self.listener.fromTranslationRotation(*self.listener.lookupTransform(self.base_link, eff, now))
+        except:
+            return False
+
         trajectory = []
         for p in dummy_trajectory:
             ps = conversions.to_pose_stamped(self.base_link, p)

@@ -459,7 +459,7 @@ class O2ACBase(object):
 
       if not do_spiral_search_at_bottom:
         tc = lambda a, b: self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
-        self.active_robots[robot_name].execute_spiral_trajectory("YZ", max_radius=0.002, radius_direction="+Y", steps=25,
+        self.active_robots[robot_name].execute_spiral_trajectory("YZ", max_radius=0.0025, radius_direction="+Y", steps=25,
                                                           revolutions=1, target_force=0, check_displacement_time=10,
                                                           termination_criteria=tc, timeout=1, end_effector_link=screw_tool_link)
 
@@ -548,7 +548,7 @@ class O2ACBase(object):
     pushed_into_hole = copy.deepcopy(screw_tip_at_hole)
     pushed_into_hole.pose.position.x += insertion_amount
 
-    self.active_robots[robot_name].go_to_pose_goal(away_from_hole, end_effector_link=screw_tool_link, speed=0.2)
+    self.active_robots[robot_name].go_to_pose_goal(away_from_hole, end_effector_link=screw_tool_link, speed=0.5)
     
     self.tools.set_motor(fastening_tool_name, direction="tighten", wait=False, duration=duration, 
                          skip_final_loosen_and_retighten=skip_final_loosen_and_retighten)
@@ -1107,9 +1107,6 @@ class O2ACBase(object):
       rospy.logerr("Robot is not holding a tool. Cannot unequip any.")
       return False
     
-    if equip:
-      robot.gripper.open(opening_width=0.06, wait=False)
-
     # Set up poses
     ps_approach = geometry_msgs.msg.PoseStamped()
     ps_approach.header.frame_id = tool_name + "_pickup_link"
@@ -1135,6 +1132,15 @@ class O2ACBase(object):
     rospy.loginfo("Going to before_tool_pickup pose.")
     # Go to named pose, then approach
     sequence = []
+    if equip:
+      # robot.gripper.open(opening_width=0.06)
+      def pre_cb():
+        rospy.loginfo("Spawning tool.")
+        if not self.spawn_tool(tool_name):
+          rospy.logwarn("Could not spawn the tool. Continuing.")
+        self.allow_collisions_with_robot_hand(tool_name, robot_name)
+      sequence.append(helpers.to_sequence_gripper('open', gripper_opening_width=0.06, pre_callback=pre_cb, wait=False))
+
     sequence.append(helpers.to_sequence_item("tool_pick_ready"))
     # self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
 
@@ -1155,12 +1161,6 @@ class O2ACBase(object):
       ps_in_holder.pose.position.x -= 0.001   # Don't move all the way into the magnet to place
       ps_approach.pose.position.z -= 0.01 # Approach diagonally so nothing gets stuck
 
-    if equip:
-      robot.gripper.open(opening_width=0.06)
-      rospy.loginfo("Spawning tool.")
-      if not self.spawn_tool(tool_name):
-        rospy.logwarn("Could not spawn the tool. Continuing.")
-      held_screw_tool_ = tool_name
 
     rospy.loginfo("Moving to screw tool approach pose LIN.")
   
@@ -1184,6 +1184,7 @@ class O2ACBase(object):
     if equip:
       def pre_cb():
         self.active_robots[robot_name].gripper.attach_object(tool_name, with_collisions=True)
+        self.active_robots[robot_name].gripper.forget_attached_item()
         self.allow_collisions_with_robot_hand(tool_name, robot_name)
       def post_cb():
         robot.robot_status.carrying_tool = True
@@ -1203,9 +1204,9 @@ class O2ACBase(object):
         self.publish_robot_status()
       sequence.append(helpers.to_sequence_gripper(action='open', gripper_opening_width=0.06, gripper_velocity=1.0, post_callback=post_cb))
     elif realign:  # Drop the tool into the holder once
-      robot.gripper.open(opening_width=0.06)
-      robot.gripper.close()
-    
+      sequence.append(helpers.to_sequence_gripper(action='open', gripper_opening_width=0.06, gripper_velocity=1.0))
+      sequence.append(helpers.to_sequence_gripper(action='close', gripper_velocity=1.0))
+
     # sequence = []
 
     if equip or realign:  # Pull back and let go once to align the tool with the magnet properly 
@@ -1509,6 +1510,7 @@ class O2ACBase(object):
     opening_width = gripper_params.get("open_width", 0.140)
     force = gripper_params.get("force", 80.)
     velocity = gripper_params.get("velocity", 0.03)
+    wait = gripper_params.get("wait", True)
 
     pre_operation_callback = gripper_params.get("pre_callback", None)
     post_operation_callback = gripper_params.get("post_callback", None)
@@ -1519,27 +1521,27 @@ class O2ACBase(object):
     success = False
     if robot_name == "ab_bot":
       if gripper_action == 'open':
-        success = self.a_bot.gripper.open(opening_width=opening_width, velocity=velocity)
-        success &= self.b_bot.gripper.open(opening_width=opening_width, velocity=velocity)
+        success = self.a_bot.gripper.open(opening_width=opening_width, velocity=velocity, wait=wait)
+        success &= self.b_bot.gripper.open(opening_width=opening_width, velocity=velocity, wait=wait)
       elif gripper_action == 'close':
-        success = self.a_bot.gripper.close(force=force, velocity=velocity)
-        success &= self.b_bot.gripper.close(force=force, velocity=velocity)
+        success = self.a_bot.gripper.close(force=force, velocity=velocity, wait=wait)
+        success &= self.b_bot.gripper.close(force=force, velocity=velocity, wait=wait)
       elif isinstance(gripper_action, float):
-        success = self.a_bot.gripper.send_command(gripper_action, force=force, velocity=velocity)
-        success &= self.b_bot.gripper.send_command(gripper_action, force=force, velocity=velocity)
+        success = self.a_bot.gripper.send_command(gripper_action, force=force, velocity=velocity, wait=wait)
+        success &= self.b_bot.gripper.send_command(gripper_action, force=force, velocity=velocity, wait=wait)
       else:
         raise ValueError("Unsupported gripper action: %s of type %s" % (gripper_action, type(gripper_action)))
     else:
       robot = self.active_robots[robot_name]
       if gripper_action == 'open':
-        success = robot.gripper.open(opening_width=opening_width, velocity=velocity)
+        success = robot.gripper.open(opening_width=opening_width, velocity=velocity, wait=wait)
       elif gripper_action == 'close':
-        success = robot.gripper.close(force=force, velocity=velocity)
+        success = robot.gripper.close(force=force, velocity=velocity, wait=wait)
       elif gripper_action == 'close-open':
-        robot.gripper.close(velocity=velocity)
-        success = robot.gripper.open(opening_width=opening_width, velocity=velocity)
+        robot.gripper.close(velocity=velocity, wait=wait)
+        success = robot.gripper.open(opening_width=opening_width, velocity=velocity, wait=wait)
       elif isinstance(gripper_action, float):
-        success = robot.gripper.send_command(gripper_action, force=force, velocity=velocity)
+        success = robot.gripper.send_command(gripper_action, force=force, velocity=velocity, wait=wait)
       else:
         raise ValueError("Unsupported gripper action: %s of type %s" % (gripper_action, type(gripper_action)))
 
@@ -1556,12 +1558,13 @@ class O2ACBase(object):
     speed          = params.get("speed", 0.5)
     acceleration   = params.get("acc", 0.25)
     gripper_params = params.get("gripper", None)
+    move_lin       = params.get("move_lin", True)
 
     if pose_type  == 'joint-space':
       success = robot.move_joints(pose, speed=speed, acceleration=acceleration, plan_only=plan_only, initial_joints=initial_joints)
     elif pose_type == 'joint-space-goal-cartesian-lin-motion':
       p = robot.compute_fk(pose) # Forward Kinematics
-      success = robot.move_lin(p, speed=speed, acceleration=acceleration, plan_only=plan_only, initial_joints=initial_joints)
+      success = robot.go_to_pose_goal(p, speed=speed, acceleration=acceleration, plan_only=plan_only, initial_joints=initial_joints)
     elif pose_type == 'task-space-in-frame':
       frame_id = params.get("frame_id", "world")
       # Convert orientation to radians!
