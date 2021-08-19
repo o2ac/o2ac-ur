@@ -269,14 +269,21 @@ class URRobot(RobotBase):
             rospy.sleep(.5)
 
             # Load program if it not loaded already
-            request = ur_dashboard_msgs.srv.LoadRequest()
-            request.filename = program_name
-            response = self.ur_dashboard_clients["load_program"].call(request)
-            if response.success:  # Try reconnecting to dashboard
-                load_success = True
+            response = self.ur_dashboard_clients["get_loaded_program"].call(ur_dashboard_msgs.srv.GetLoadedProgramRequest())
+            # print("response:")
+            # print(response)
+            if response.program_name == '/programs/' + program_name:
                 return True
             else:
-                rospy.logerr("Could not load " + program_name + ". Is the UR in Remote Control mode and program installed with correct name?")
+                rospy.loginfo("Loaded program is different %s. Attempting to load new program %s" % (response.program_name, program_name))
+                request = ur_dashboard_msgs.srv.LoadRequest()
+                request.filename = program_name
+                response = self.ur_dashboard_clients["load_program"].call(request)
+                if response.success:  # Try reconnecting to dashboard
+                    load_success = True
+                    return True
+                else:
+                    rospy.logerr("Could not load " + program_name + ". Is the UR in Remote Control mode and program installed with correct name?")
         except:
             rospy.logwarn("Dashboard service did not respond to load_program!")
         if not load_success:
