@@ -96,6 +96,7 @@ class MotionDetector
     point_t						_bottom_right;
     cv::Mat_<point2_t>					_corners;
     cv_bridge::CvImage					_mask;
+    tf::Transform					_Tct;
 };
 
 }	// namespace aist_motion_detector

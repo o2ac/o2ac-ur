@@ -210,9 +210,8 @@ MotionDetector::accumulate_mask(const cv::Mat& mask,
   // Get transform from the target frame to camera frame.
     _listener.waitForTransform(camera_info->header.frame_id, target_frame,
 			       camera_info->header.stamp, ros::Duration(1.0));
-    tf::StampedTransform	Tct;
     _listener.lookupTransform(camera_info->header.frame_id, target_frame,
-			      camera_info->header.stamp, Tct);
+			      camera_info->header.stamp, _Tct);
 
   // Transfrom ROI corners to camera frame.
     const tf::Point	corners[] = {{_search_top,    0.0, -_search_width/2},
@@ -221,7 +220,7 @@ MotionDetector::accumulate_mask(const cv::Mat& mask,
 				     {_search_bottom, 0.0, -_search_width/2}};
     cv::Mat_<point3_t>	pt3s(1, 4);
     for (size_t i = 0; i < 4; ++i)
-	pt3s(i) = pointTFToCV(Tct * corners[i]);
+	pt3s(i) = pointTFToCV(_Tct * corners[i]);
 
   // Project ROI corners onto the image.
     cv::Mat_<float>	K(3, 3);
@@ -266,7 +265,7 @@ MotionDetector::accumulate_mask(const cv::Mat& mask,
 }
 
 void
-MotionDetector::find_cabletip()
+MotionDetector::find_cabletip(const tf::Transform& Tct)
 {
   // Fill the outside of ROI with zero.
     const point_t	outer[]   = {{0,		  0},
@@ -292,7 +291,7 @@ MotionDetector::find_cabletip()
   // Create a line of finger-tip border.
     const cv::Vec<float, 2>	ends[] = {_corners(0) - point2_t(_top_left),
 					  _corners(1) - point2_t(_top_left)};
-    const TU::Plane<float, 2>	finger_tip(ends, ends + 2);
+    const TU::Plane<float, 2>	fingertip(ends, ends + 2);
 
   // Assign labels to the binarized mask image.
     cv::Mat	labels, stats, centroids;
@@ -300,7 +299,7 @@ MotionDetector::find_cabletip()
 							   stats, centroids);
 
   // Find a largest region close to the finger-tip border.
-    const auto	lmax = findLargestRegion(labels, stats, nlabels, finger_tip);
+    const auto	lmax = findLargestRegion(labels, stats, nlabels, fingertip);
     
   // Fit a line to the points in the region.
     std::vector<cv::Vec<float, 2> >	cable_points;
@@ -321,7 +320,7 @@ MotionDetector::find_cabletip()
     TU::Plane<float, 2>	cable(cable_points.begin(), cable_points.end());
 
   // Compute cross point between finger-tip border and cable.
-    const auto	root = crossPoint(finger_tip, cable);
+    const auto	root = crossPoint(fingertip, cable);
 
   // Find a point in the region farest from the cross point.
     float	dmax = 0;
@@ -340,8 +339,9 @@ MotionDetector::find_cabletip()
     cv::drawMarker(_mask.image, point_t(root), cv::Scalar(128));
     cv::drawMarker(_mask.image, cabletip, cv::Scalar(128));
     
-  // Compute pose of cabletip in 3D space.
-		   
+  // Plane including fingertip described w.r.t. camera frame.
+    auto	ry = _Tct.getBasis().getColumn(1);
+    auto	d  = 
 }
 
 }	// namespace aist_motion_detector
