@@ -33,7 +33,7 @@
 
   <!-- Launch axclient -->
   <node name="axclient"	pkg="actionlib" type="axclient.py"
-	args="/motion_detector/detect_motion"/>
+	args="/motion_detector/find_cabletip"/>
   
   <!-- Launch viewers -->
   <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure"/>
