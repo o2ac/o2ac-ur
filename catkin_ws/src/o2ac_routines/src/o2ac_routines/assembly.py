@@ -195,21 +195,47 @@ class O2ACAssembly(O2ACCommon):
       self.allow_collisions_with_robot_hand("base_fixture_top", "a_bot", allow=False)
     return True
 
-  def subtask_a(self):
+  def subtask_a(self, simultaneous=True):
     # ============= SUBTASK A (picking and inserting and fastening the motor) =======================
     rospy.loginfo("======== SUBTASK A (motor) ========")
     self.publish_status_text("Target: Motor")
-    self.pick_and_center_motor()
+    
+    self.a_success = False
+    self.b_success = False
+    def b_task():
+      self.b_success = self.pick_and_center_motor()
+    def a_task():
+      self.a_success = self.do_change_tool_action("a_bot", equip=True, screw_size=3)
+      self.a_success &= self.a_bot.go_to_named_pose("screw_ready")
 
-    self.do_change_tool_action("a_bot", equip=True, screw_size=3)
-    self.a_bot.go_to_named_pose("screw_ready")
+    if simultaneous:
+      self.do_tasks_simultaneous(a_task, b_task, timeout=120)
+    else:
+      b_task()
+      a_task()
 
-    self.align_motor_pre_insertion()
-    self.insert_motor()
-    self.align_motor_holes()
-    self.fasten_motor()
-    # TODO: Fasten two motor screws with support from b_bot, open b_bot gripper, finish fastening with a_bot
-    return False
+    if not self.a_success or not self.b_success:
+      rospy.logerr("Fail to do subtask a, part 1 (a_bot:%s)(b_bot:%s)" % (self.a_success, self.b_success))
+      self.do_change_tool_action("a_bot", equip=False, screw_size=3)
+      self.a_bot.go_to_named_pose("home")
+      self.b_bot.gripper.open()
+      self.b_bot.go_to_named_pose("home")
+      return False
+
+    if not self.align_motor_pre_insertion():
+      rospy.logerr("Fail to do subtask a, part 2")
+      return False
+    if not self.insert_motor("assembled_part_02_back_hole"):
+      rospy.logerr("Fail to do subtask a, part 3")
+      return False
+    # TODO
+    # if not self.align_motor_holes():
+    #   return False
+    if not self.fasten_motor():
+      rospy.logerr("Fail to do subtask a, part 4")
+      return self.fasten_motor_fallback()
+
+    return True
 
   def subtask_b(self):
     rospy.loginfo("======== SUBTASK B (motor pulley) ========")

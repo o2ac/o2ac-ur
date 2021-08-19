@@ -634,7 +634,7 @@ class O2ACCommon(O2ACBase):
     if gripper_command=="do_nothing":
       pass
     else: 
-      seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=grasp_width, wait=False))
+      seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=grasp_width, gripper_velocity=0.1, wait=False))
       # robot.gripper.send_command(command=grasp_width, wait=False) # Open
 
     approach_pose = copy.deepcopy(object_pose)
@@ -1570,7 +1570,7 @@ class O2ACCommon(O2ACBase):
 
   ######## Bearing
 
-  def pick_and_fasten_screw(self, robot_name, screw_pose, screw_size, approach_distance=0.07, intermediate_pose=None, speed=0.7):
+  def pick_and_fasten_screw(self, robot_name, screw_pose, screw_size, approach_distance=0.07, intermediate_pose=None, speed=0.7, attempts=1):
     """Returns bool, screw success"""
     # Pick screw
     self.active_robots[robot_name].go_to_named_pose("screw_ready", speed=speed)
@@ -1603,7 +1603,7 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Fail to go to approach screw hole pose")
       return False
     
-    return self.screw(robot_name, screw_pose, screw_size=screw_size, screw_height=0.02, skip_final_loosen_and_retighten=False, spiral_radius=0.003)
+    return self.screw(robot_name, screw_pose, screw_size=screw_size, screw_height=0.02, skip_final_loosen_and_retighten=False, spiral_radius=0.003, attempts=attempts)
 
   @check_for_real_robot
   def align_bearing_holes(self, max_adjustments=10, task=""):
@@ -1891,7 +1891,8 @@ class O2ACCommon(O2ACBase):
                                 simultaneous=simultaneous, with_extra_retighten=with_extra_retighten)
 
   def fasten_set_of_screws(self, screw_poses, screw_size, robot_name, only_retighten=False, skip_intermediate_pose=False, 
-                           simultaneous=False, with_extra_retighten=False, intermediate_pose=None, unequip_when_done=True):
+                           simultaneous=False, with_extra_retighten=False, intermediate_pose=None, unequip_when_done=True,
+                           skip_return=False, attempts=1):
     if not self.equip_tool(robot_name, 'screw_tool_m%s' % screw_size):
       rospy.logerr("Fail to equip tool abort!")
       return False
@@ -1920,26 +1921,30 @@ class O2ACCommon(O2ACBase):
         assert not rospy.is_shutdown(), "lost connection to ros?"
         if screw_status[n] == "done":
           continue
-
+        
+        seq = []
         if not first_screw and screw_status[n] == "empty": # go back
           if intermediate_pose:
-            robot.go_to_pose_goal(intermediate_pose, speed=speed, end_effector_link = robot_name+"_screw_tool_m%s_tip_link"%screw_size)
-          robot.go_to_named_pose("horizontal_screw_ready", speed=speed)
-          robot.go_to_named_pose("screw_ready", speed=speed)
+            seq.append(helpers.to_sequence_item(intermediate_pose, speed=speed))
+          seq.append(helpers.to_sequence_item("horizontal_screw_ready", speed=speed))
+          seq.append(helpers.to_sequence_item("screw_ready", speed=speed))
         
         if not skip_intermediate_pose and first_screw and screw_status[n] == "maybe_stuck_in_hole": # get ready for screwing
-          robot.go_to_named_pose("screw_ready", speed=speed)
-          robot.go_to_named_pose("horizontal_screw_ready", speed=speed)
+          seq.append(helpers.to_sequence_item("horizontal_screw_ready", speed=speed))
+          seq.append(helpers.to_sequence_item("screw_ready", speed=speed))
+
+        if seq:
+          self.execute_sequence(robot_name, seq, "fasten_screws_return_seq", end_effector_link = robot_name + "_screw_tool_m%s_tip_link" % screw_size)
 
         if first_screw:
           first_screw = False
 
         if screw_status[n] == "empty":
-          success = self.pick_and_fasten_screw(robot_name, screw_poses[n], screw_size=screw_size, intermediate_pose=intermediate_pose)
+          success = self.pick_and_fasten_screw(robot_name, screw_poses[n], screw_size=screw_size, intermediate_pose=intermediate_pose, attempts=attempts)
           if success:
             screw_status[n] = "done" 
           else:
-            if self.tools.screw_is_suctioned["m4"]:
+            if self.tools.screw_is_suctioned["m%s"%screw_size]:
               screw_status[n] == "empty"
             else:
               screw_status[n] == "maybe_stuck_in_hole"
@@ -1969,11 +1974,13 @@ class O2ACCommon(O2ACBase):
                                        simultaneous=simultaneous, with_extra_retighten=False, 
                                        skip_intermediate_pose=True, intermediate_pose=intermediate_pose, 
                                        unequip_when_done=unequip_when_done)
-    else:
+    elif not skip_return:
+      seq = []
       if intermediate_pose:
-            robot.go_to_pose_goal(intermediate_pose, speed=speed, end_effector_link = robot_name+"_screw_tool_m%s_tip_link"%screw_size)
-      robot.go_to_named_pose("horizontal_screw_ready", speed=speed)
-      robot.go_to_named_pose("screw_ready", speed=speed)
+        seq.append(helpers.to_sequence_item(intermediate_pose, speed=speed))
+      seq.append(helpers.to_sequence_item("horizontal_screw_ready", speed=speed))
+      seq.append(helpers.to_sequence_item("screw_ready", speed=speed))
+      self.execute_sequence(robot_name, seq, "fasten_screws_return_seq", end_effector_link = robot_name + "_screw_tool_m%s_tip_link" % screw_size)
     
     if unequip_when_done:
       if not self.unequip_tool(robot_name, 'screw_tool_m%s' % screw_size):
@@ -2911,12 +2918,13 @@ class O2ACCommon(O2ACBase):
         continue
       
       # Place motor in centering area
-      p_through = conversions.to_pose_stamped("right_centering_link", [-0.15, 0, 0.10, -90, 0, 0])
-      p_drop    = conversions.to_pose_stamped("right_centering_link", [-0.03, 0, 0.0, -135, 0, 0])
-      self.b_bot.go_to_pose_goal(p_through, speed=.5, wait=True)
-      self.b_bot.go_to_pose_goal(p_drop, speed=.5, wait=True)
-      self.b_bot.gripper.open()
-
+      p_through = conversions.to_pose_stamped("right_centering_link", [-0.15, 0, 0.1, radians(-90), 0, 0])
+      p_drop    = conversions.to_pose_stamped("right_centering_link", [-0.03, -0.05, -0.05, radians(-90), 0, 0])
+      seq = []
+      seq.append(helpers.to_sequence_item(p_through, speed=0.8))
+      seq.append(helpers.to_sequence_item(p_drop, speed=0.8))
+      seq.append(helpers.to_sequence_gripper('open', gripper_velocity=1.0))
+      self.execute_sequence("b_bot", seq, "center_motor")
       picked = self.confirm_motor_and_place_in_aid()
       if not picked:
         attempt_nr += 1
@@ -2952,7 +2960,7 @@ class O2ACCommon(O2ACBase):
     """ Assumes that the motor is grasped in a random orientation. 
         Places it in the separate area, determines the orientation, centers it, and places it in the vgroove.
     """
-    p_view = conversions.to_pose_stamped("right_centering_link", [-self.tray_view_high.pose.position.z, 0, 0, 0, 0, 0])
+    p_view = conversions.to_pose_stamped("right_centering_link", [-self.tray_view_high.pose.position.z, -0.05, -0.05, 0, 0, 0])
     p_view = self.listener.transformPose("tray_center", p_view)
     p_view.pose.orientation = self.tray_view_high.pose.orientation
     self.vision.activate_camera("b_bot_outside_camera")
@@ -2970,12 +2978,17 @@ class O2ACCommon(O2ACBase):
       motor_placed = False
     if not motor_placed:
       rospy.logerr("Motor not detected by SSD! Return item and abort")
-      p_pick = conversions.to_pose_stamped("right_centering_link", [-.002, 0, 0, 0, 0, 0])
+      p_pick = conversions.to_pose_stamped("right_centering_link", [-.002, -0.05, -0.05, 0, 0, 0])
       p_pick = self.listener.transformPose("tray_center", p_pick)
       p_pick.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
       self.simple_pick("b_bot", object_pose=p_pick, gripper_force=100, axis="z", retreat_height=.1)
       self.drop_in_tray("b_bot")
       return False
+
+    p_view = conversions.to_pose_stamped("right_centering_link", [-0.30, -0.05, -0.05, 0, 0, 0])
+    p_view = self.listener.transformPose("tray_center", p_view)
+    p_view.pose.orientation = self.tray_view_high.pose.orientation
+    self.b_bot.go_to_pose_goal(p_view, end_effector_link="b_bot_outside_camera_color_frame", speed=.5, wait=True)
     
     # Use CAD matching to determine orientation
     pose = self.get_large_item_position_from_top("motor", skip_moving=True)
@@ -2996,30 +3009,35 @@ class O2ACCommon(O2ACBase):
     p_motor_in_centering_link.pose.position.x = -0.006  # Grasp height
 
     # Check that motor direction matches the cables seen in RGB image
-    theta = self.vision.get_motor_angle_from_top_view(camera="b_bot_outside_camera")
-    q = p_motor_in_tray_center.pose.orientation
+    rgb_theta = self.vision.get_motor_angle_from_top_view(camera="b_bot_outside_camera")
+    q = p_motor_in_centering_link.pose.orientation
     rpy = tf.transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])
-    theta = rpy[0]
-    print("degrees(theta) ", degrees(theta))
-    if theta < 0:
-      theta += tau
+    rgb_theta = rgb_theta % tau # wrap angle to range [0, TAU]
+    cad_theta = rpy[0] % tau # wrap angle to range [0, TAU]
+    print("rgb_theta ", rgb_theta, "cad_theta", cad_theta)
+    
+    # FIXME: cable orientation not working, relying only on CAD matching
+    # If arrow and motor do not point in the same direction
+    # if rgb_theta and abs(rgb_theta - cad_theta) > tau/4:
+    #   p_motor_in_centering_link = helpers.rotatePoseByRPY(-tau/2, 0, 0, p_motor_in_centering_link)
 
     # Pick motor in defined orientation and move up
-    # self.planning_scene_interface.remove_world_object("motor")
-    self.simple_pick("b_bot", object_pose=p_motor_in_centering_link, grasp_width=.06, axis="x", sign=-1, approach_height=0.07)
+    self.simple_pick("b_bot", object_pose=p_motor_in_centering_link, grasp_width=.08, axis="x", sign=-1, approach_height=0.07)
+    self.planning_scene_interface.remove_world_object("motor")
     
-    self.confirm_to_proceed("motor picked?")
-    # self.reset_scene_and_robots()
-    # self.planning_scene_interface.remove_attached_object("motor")
-    # rospy.sleep(0.5)
+    # For safety of the cameras, urscript is blind of them
+    pre_orient_pose    = conversions.to_pose_stamped("right_centering_link", [-0.05, 0.0, 0.0, radians(-90), 0, 0])
+    self.b_bot.go_to_pose_goal(pre_orient_pose, speed=1.0)
 
-    # ALTERNATIVE A:
-    if not self.b_bot.load_and_execute_program(program_name="wrs2020/motor_orient.urp"):
-        return False
-    # ALTERNATIVE B:
-    # self.center_motor()
-    # self.orient_motor_in_aid_edge()
-    pass
+    self.confirm_to_proceed("motor picked?")
+
+    return self.orient_motor_in_aid_edge()
+
+  def orient_motor_in_aid_edge_urscript(self):
+    if not self.b_bot.load_and_execute_program(program_name="wrs2020/motor_orient_2.urp"):
+      rospy.logerr("Fail to orient with URScript")
+      return False
+    return helpers.wait_for_UR_program("/b_bot", rospy.Duration.from_sec(60))
 
   def flip_motor_in_aid(self, angle):
     """ Turn motor in aid by 180 degrees. 
@@ -3027,10 +3045,10 @@ class O2ACCommon(O2ACBase):
     pass
 
   def insert_motor(self, target_link, attempts=1):
-    target_pose = conversions.to_pose_stamped(target_link, [-0.021, -0.004, -0.014, -tau/4, radians(60), -tau/4])
+    target_pose = conversions.to_pose_stamped(target_link, [-0.019, -0.004, -0.014, -tau/4, radians(60), -tau/4])
     selection_matrix = [0., 0.2, 0.2, 1, 1, 1]
     self.b_bot.linear_push(2, "+X", max_translation=0.03, timeout=10.0)
-    result = self.b_bot.do_insertion(target_pose, insertion_direction="+X", force=6.0, timeout=20.0, 
+    result = self.b_bot.do_insertion(target_pose, insertion_direction="+X", force=8.0, timeout=20.0, 
                                       wiggle_direction="X", wiggle_angle=np.deg2rad(3.0), wiggle_revolutions=1.0,
                                       radius=0.003, relaxed_target_by=0.002, selection_matrix=selection_matrix)
     success = result == TERMINATION_CRITERIA
@@ -3039,7 +3057,7 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("** Insertion Failed!! **")
       if attempts > 0:
         rospy.loginfo("** Insertion try **")
-        inclination = radians(20)
+        inclination = radians(28)
         self.b_bot.move_lin_rel(relative_translation=[0.03,0,0], speed=0.1)
         pre_insertion =   conversions.to_pose_stamped(target_link, [-0.042, -0.003, -0.014, -tau/4, tau/4-inclination, -tau/4])
         if not self.b_bot.go_to_pose_goal(pre_insertion, speed=0.4):
@@ -3048,7 +3066,7 @@ class O2ACCommon(O2ACBase):
         self.insert_motor(target_link, attempts-1)
       return False
 
-    self.b_bot.linear_push(5, "+Z", max_translation=0.02, timeout=10.0)
+    self.b_bot.linear_push(4, "+Z", max_translation=0.02, timeout=10.0)
     return True
 
   def center_motor(self):
@@ -3083,11 +3101,16 @@ class O2ACCommon(O2ACBase):
   
     return True
 
-  def orient_motor_in_aid_edge(self):
+  def orient_motor_in_aid_edge(self, use_urscript=True):
     """ Starting with the motor picked (after center_motor), drop motor in vgroove aid's edge a number of times,
         to align the shaft near the top.
     """
-
+    # ALTERNATIVE A:
+    if use_urscript:
+      return self.orient_motor_in_aid_edge_urscript()
+    # ALTERNATIVE B:
+    self.center_motor()
+    
     above_first_drop = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ -0.042, 0, 0.041, tau/2, 0, 0])
     at_first_drop    = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.018,  0, 0.045, tau/2, 0, 0])
     repick           = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.03,   0, 0.041, tau/2, 0, 0])
@@ -3127,17 +3150,22 @@ class O2ACCommon(O2ACBase):
         Grasp carefully the motor
         Put in in front of the motor plate hole ready for insertion
     """
-    inclination = radians(20)
-    inside_vgroove =   conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.0, 0.002, -0.005, tau/2., radians(3.0), inclination])
-    above_vgroove  =   conversions.to_pose_stamped("vgroove_aid_drop_point_link", [-0.2, 0, 0, tau/2., radians(3.0), inclination])
-    midway        =   conversions.to_pose_stamped("assembled_part_02_back_hole", [-0.100, 0, 0.1, -tau/4, tau/4-inclination, -tau/4])
-    pre_insertion =   conversions.to_pose_stamped("assembled_part_02_back_hole", [-0.042, -0.0035, -0.014, -tau/4, tau/4-inclination, -tau/4])
+    if not self.simple_gripper_check("b_bot", min_opening_width=0.01):
+      self.b_bot.gripper.open()
+      return False
+
+    self.b_bot.gripper.open()
+    inclination = radians(28)
+    inside_vgroove = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.0, 0.005, -0.005, tau/2., radians(3.0), inclination])
+    above_vgroove  = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [-0.2, 0, 0,          tau/2., radians(3.0), inclination])
+    midway         = conversions.to_pose_stamped("assembled_part_02_back_hole", [-0.100, 0, 0.1,          -tau/4, tau/4-inclination, -tau/4])
+    pre_insertion  = conversions.to_pose_stamped("assembled_part_02_back_hole", [-0.042, -0.0055, -0.0135, -tau/4, tau/4-inclination, -tau/4])
     seq = []
     seq.append(helpers.to_sequence_item(inside_vgroove, speed=0.2))
     seq.append(helpers.to_sequence_gripper('close', gripper_velocity=0.01, gripper_force=60))
-    seq.append(helpers.to_sequence_item(above_vgroove, speed=0.6))
-    seq.append(helpers.to_sequence_item(midway, speed=0.6))
-    seq.append(helpers.to_sequence_item(pre_insertion, speed=0.6))
+    seq.append(helpers.to_sequence_item(above_vgroove, speed=0.4))
+    seq.append(helpers.to_sequence_item(midway, speed=0.6, linear=False))
+    seq.append(helpers.to_sequence_item(pre_insertion, speed=0.4))
     return self.execute_sequence("b_bot", seq, "align motor pre insertion")
   
   def align_motor_holes(self):
@@ -3165,34 +3193,48 @@ class O2ACCommon(O2ACBase):
     assert robot_name != support_robot, "Same robot cannot fill both roles"
     offset = -1 if robot_name == "a_bot" else 1
     screw_poses = []
-    for i in [1,3]:
-      screw_pose = conversions.to_pose_stamped("assembled_part_02_motor_screw_hole_%s"%i, [0.004, -0.001, -0.003, offset*tau/12, 0, 0])
+    for i in [1,3,6,4,2,5]: # interlock order
+      screw_pose = conversions.to_pose_stamped("assembled_part_02_motor_screw_hole_%s"%i, [0.004, -0.001, -0.0045, offset*tau/12, 0, 0])
       screw_poses.append(screw_pose)
 
-    intermediate_pose = conversions.to_pose_stamped("assembled_part_02_back_hole", [0.05, -0.125, 0.006, radians(150), 0, tau/2])
-    
-    if not self.fasten_set_of_screws(screw_poses, screw_size=3, robot_name=robot_name, only_retighten=False,
-                                     skip_intermediate_pose=False, simultaneous=simultaneous, with_extra_retighten=True,
-                                     intermediate_pose=intermediate_pose, unequip_when_done=False):
-      rospy.logerr("Fail to fasten first two screws of motor")
+    # To avoid b_bot camera with the tool cable
+    intermediate_pose = conversions.to_pose_stamped("assembled_part_02_back_hole", [0.05, -0.15, 0.006, radians(150), 0, tau/2])
+
+    # Attempt first screw only
+    success = self.pick_and_fasten_screw(robot_name, screw_poses[0], screw_size=3, intermediate_pose=intermediate_pose, attempts=0)
+    seq = []
+    seq.append(helpers.to_sequence_item(intermediate_pose, speed=0.6))
+    seq.append(helpers.to_sequence_item("horizontal_screw_ready", speed=0.6))
+    seq.append(helpers.to_sequence_item("screw_ready", speed=0.6))
+    self.execute_sequence(robot_name, seq, "fasten_motor_screw_return", end_effector_link = robot_name+"_screw_tool_m3_tip_link")
+
+    if not success:
+      # Fallback: Return False here for b_bot to retry the motor insertion
       return False
-
-    self.active_robots[robot_name].go_to_pose_goal(intermediate_pose, speed=0.5, end_effector_link = robot_name+"_screw_tool_m3_tip_link")
-    self.active_robots[robot_name].go_to_named_pose("horizontal_screw_ready", speed=0.5)
-    self.active_robots[robot_name].go_to_named_pose("screw_ready", speed=0.5)
-
-    self.active_robots[support_robot].gripper.open()
-    self.active_robots[support_robot].go_to_named_pose("home")
     
-    screw_poses = []
-    for i in [2,4,5,6]:
-      screw_pose = conversions.to_pose_stamped("assembled_part_02_motor_screw_hole_%s"%i, [0.004, -0.001, -0.003, offset*tau/12, 0, 0])
-      screw_poses.append(screw_pose)
+    if not self.fasten_set_of_screws([screw_poses[1]], screw_size=3, robot_name=robot_name, only_retighten=False,
+                                     skip_intermediate_pose=False, simultaneous=simultaneous, skip_return=True,
+                                     intermediate_pose=intermediate_pose, unequip_when_done=False, attempts=0):
+      rospy.logerr("Fail to fasten second screw of motor")
+      self.execute_sequence(robot_name, seq, "fasten_motor_screw_return", end_effector_link = robot_name+"_screw_tool_m3_tip_link")
+      return False
+    
+    # Retighten first two screws
+    self.fasten_set_of_screws(screw_poses[:2], screw_size=3, robot_name=robot_name, only_retighten=True,
+                              skip_intermediate_pose=True, simultaneous=simultaneous, skip_return=False,
+                              intermediate_pose=intermediate_pose, unequip_when_done=False, attempts=0)
 
-    if not self.fasten_set_of_screws(screw_poses, screw_size=3, robot_name=robot_name, only_retighten=False,
-                                     skip_intermediate_pose=False, simultaneous=simultaneous, with_extra_retighten=True,
-                                     intermediate_pose=intermediate_pose):
-      rospy.logerr("Fail to fasten first two screws of motor")
+    # Let's release b_bot from holding the motor
+    seq = []
+    seq.append(helpers.to_sequence_gripper('open', gripper_velocity=1.0))
+    seq.append(helpers.to_sequence_item_relative([-0.02,0.1,0.1,0,0,0]))
+    seq.append(helpers.to_sequence_item("home", speed=0.6))
+    self.execute_sequence(robot_name, seq, "fasten_motor_b_bot_return")
+
+    # Finish remaining screws
+    if not self.fasten_set_of_screws(screw_poses[2:], screw_size=3, robot_name=robot_name, only_retighten=False,
+                                     skip_intermediate_pose=False, simultaneous=simultaneous, with_extra_retighten=True):
+      rospy.logerr("Fail to fasten remaining screws of motor")
       return False
 
     # for screw_pose in screw_poses:
@@ -3209,6 +3251,39 @@ class O2ACCommon(O2ACBase):
       #                                                     wiggle_direction="Z", wiggle_angle=radians(10.0), wiggle_revolutions=1.0,
       #                                                     termination_criteria=tc, timeout=20, selection_matrix=selection_matrix)
     # self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=60.0)
+
+  def fasten_motor_fallback(self):
+    """"
+      Reverse insertion with B_BOT
+      Re align motor, and try insertion again
+      Then fasten again
+    """
+    seq = []
+    seq.append(helpers.to_sequence_item_relative([-0.04,0,0,0,0,0], speed=0.01)) # go back very slowly / reverse insertion
+    seq.append(helpers.to_sequence_item_relative([ 0.0,0,0.1,0,0,0], speed=0.01))
+    above_centering = conversions.to_pose_stamped("right_centering_link", [-0.1, 0, 0, -tau/4., 0, 0])
+    at_centering    = conversions.to_pose_stamped("right_centering_link", [-0.02, 0, 0, -tau/4., 0, 0])
+    re_picking      = conversions.to_pose_stamped("right_centering_link", [-0.005, 0, 0, -tau/4., 0, 0])
+    # go to centering area
+    seq.append(helpers.to_sequence_item(above_centering, speed=0.8))
+    seq.append(helpers.to_sequence_item(at_centering, speed=0.8))
+    # drop motor
+    seq.append(helpers.to_sequence_gripper('open', gripper_velocity=1.0, wait=False))
+    self.execute_sequence("b_bot", seq, "fasten_motor_fallback")
+    # pick it again, necessary for urscript
+    self.simple_pick("b_bot", object_pose=re_picking, grasp_width=.08, axis="x", sign=-1, approach_height=0.07, lift_up_after_pick=False)
+    # re orient
+    if not self.orient_motor_in_aid_edge():
+      rospy.logerr("Fail fallback. abort")
+      return False
+    if not self.align_motor_pre_insertion():
+      rospy.logerr("Fail fallback, part 2")
+      return False
+    if not self.insert_motor("assembled_part_02_back_hole"):
+      rospy.logerr("Fail fallback, part 3")
+      return False
+    
+    return self.fasten_motor(simultaneous=False)
   ########
 
   def move_towards_tray_center(self, robot_name, distance, speed=0.05, acc=0.025, go_back_halfway=True, one_direction=None, end_effector_link="", go_back_ratio=0.5):

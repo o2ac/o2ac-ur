@@ -398,9 +398,11 @@ class O2ACBase(object):
     if (screw_tool_id == "screw_tool_m3"):
       self.planning_scene_interface.allow_collisions(screw_tool_id, "m3_feeder_link")
       screw_size = 3
+      wait_for_suction_time = 0.8 
     elif (screw_tool_id == "screw_tool_m4"):
       self.planning_scene_interface.allow_collisions(screw_tool_id, "m4_feeder_link")
       screw_size = 4
+      wait_for_suction_time = 0.5 
 
     initial_offset_y = rospy.get_param("screw_picking/" + robot_name + "/last_successful_offset_m" + str(screw_size) + "_y", 0.0)
     initial_offset_z = rospy.get_param("screw_picking/" + robot_name + "/last_successful_offset_m" + str(screw_size) + "_z", 0.0)
@@ -452,6 +454,7 @@ class O2ACBase(object):
             first_approach = False
 
       # Break out of loop if screw suctioned or max search radius exceeded
+      rospy.sleep(wait_for_suction_time)
       screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False) or (not self.use_real_robot)
       if screw_picked:
         rospy.loginfo("Detected successful pick.")
@@ -464,7 +467,7 @@ class O2ACBase(object):
                                                           termination_criteria=tc, timeout=1, end_effector_link=screw_tool_link)
 
       rospy.loginfo("Moving back a bit slowly.")
-      rospy.sleep(0.5)
+      rospy.sleep(wait_for_suction_time)
       adjusted_pose.pose.position.x -= approach_height
       success = False
       while not success: # TODO(cambel, felix): infinite loop?
