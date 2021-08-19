@@ -232,8 +232,13 @@ class O2ACAssembly(O2ACCommon):
     # if not self.align_motor_holes():
     #   return False
     if not self.fasten_motor():
-      rospy.logerr("Fail to do subtask a, part 4")
-      return self.fasten_motor_fallback()
+      rospy.logerr("Fail to do subtask a, part 4. Attempt Fallback once")
+      if not self.fasten_motor_fallback():
+        rospy.logerr("Fail to do fallback")
+        self.do_change_tool_action("a_bot", equip=False, screw_size=3)
+        self.a_bot.go_to_named_pose("home")
+        self.b_bot.gripper.open()
+        self.b_bot.go_to_named_pose("home")
 
     return True
 
