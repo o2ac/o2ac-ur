@@ -49,10 +49,10 @@
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/screw_feeder.xacro" />
   
   <xacro:screw_feeder feedername="m3_feeder" parent="workspace_center" with_collision_geometry="false">
-    <origin xyz="-.511 -.154 0.028" rpy="0 0 0" />   
+    <origin xyz="-.512 -.155 0.015" rpy="0 0 0" />   
   </xacro:screw_feeder> 
   <xacro:screw_feeder feedername="m4_feeder" parent="workspace_center" with_collision_geometry="false">
-    <origin xyz="-.514 .0035 0.03" rpy="0 0 0" />   
+    <origin xyz="-.512 .0037 0.018" rpy="0 0 0" />   
   </xacro:screw_feeder> 
 
   <!-- Base fixture -->

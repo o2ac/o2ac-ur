@@ -35,6 +35,7 @@
 # Author: Felix von Drigalski
 
 import copy
+from o2ac_routines import helpers
 import rospy
 import geometry_msgs.msg
 import tf_conversions
@@ -63,7 +64,7 @@ class O2ACTaskboard(O2ACCommon):
     
     self.downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, pi))
     self.downward_orientation_cylinder_axis_along_workspace_x = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, tau/4))
-    self.at_set_screw_hole = conversions.to_pose_stamped("taskboard_set_screw_link", [-0.005, -0.001, 0.001, 0, 0, 0])  # MAGIC NUMBER (points downward) MIZUMI tool tip
+    self.at_set_screw_hole = conversions.to_pose_stamped("taskboard_set_screw_link", [0.004, -0.001, -0.001, 0, 0, 0])  # MAGIC NUMBER (points downward) MIZUMI tool tip
     # self.at_set_screw_hole = conversions.to_pose_stamped("taskboard_set_screw_link", [-0.018, -0.001, 0.001, 0, 0, 0])  # MAGIC NUMBER (points downward)  PROXXON tool tip
     if not self.assembly_database.db_name == "taskboard":
       self.assembly_database.change_assembly("taskboard")
@@ -176,11 +177,17 @@ class O2ACTaskboard(O2ACCommon):
     return self.do_tasks_simultaneous(do_with_a, do_with_b, timeout=50.0)
 
   def move_b_bot_to_setscrew_initial_pos(self):
+    seq = []
+    seq.append(helpers.to_sequence_item("horizontal_screw_ready", speed=1.0))
+    self.b_bot.go_to_named_pose("horizontal_screw_ready")
     screw_approach = copy.deepcopy(self.at_set_screw_hole)
     screw_approach.pose.position.x = -0.03
-    self.b_bot.go_to_pose_goal(screw_approach, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True, speed=0.5)
-    screw_approach.pose.position.x = -0.005
-    self.b_bot.go_to_pose_goal(screw_approach, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True, speed=0.1)
+    seq.append(helpers.to_sequence_item(screw_approach, speed=0.5, end_effector_link="b_bot_set_screw_tool_tip_link"))
+    # self.b_bot.go_to_pose_goal(screw_approach, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True, speed=0.5)
+    screw_approach.pose.position.x = -0.01
+    seq.append(helpers.to_sequence_item(screw_approach, speed=0.1, end_effector_link="b_bot_set_screw_tool_tip_link", linear=True))
+    # self.b_bot.go_to_pose_goal(screw_approach, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True, speed=0.1)
+    self.execute_sequence("b_bot", seq, "prep_set_screw_tool")
 
   def do_screw_tasks_from_prep_position(self):
     ### - Set screw
@@ -542,24 +549,26 @@ class O2ACTaskboard(O2ACCommon):
       rospy.loginfo("=== set screw: start ===")
       self.vision.activate_camera("b_bot_inside_camera")
       screw_approach = copy.deepcopy(self.at_set_screw_hole)
-      screw_approach.pose.position.x = -0.005
+      screw_approach.pose.position.x = -0.01
       self.b_bot.go_to_pose_goal(screw_approach, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True)
       self.b_bot.go_to_pose_goal(self.at_set_screw_hole, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True, speed=0.02)
       rospy.loginfo("=== set screw: at at_set_screw_hole ===")
       # This expects to be exactly above the set screw hole
       self.confirm_to_proceed("Turn on motor and move into screw hole?")
       self.tools.set_motor("set_screw_tool", "tighten", duration = 15.0, skip_final_loosen_and_retighten=True)
+
+      self.b_bot.execute_spiral_trajectory("YZ", max_radius=0.0015, radius_direction="+Y", steps=50,
+                                          revolutions=2, target_force=0, check_displacement_time=10,
+                                          termination_criteria=None, timeout=6, end_effector_link="b_bot_set_screw_tool_tip_link")
+
       dist = .002
       self.b_bot.move_lin_rel(relative_translation=[-dist, 0, 0], speed=0.03, wait=True)
       rospy.loginfo("=== set screw: move in ===")
       # Stop spiral motion if the tool action finished, regardless of success/failure
-      self.b_bot.execute_spiral_trajectory("YZ", max_radius=0.001, radius_direction="+Y", steps=50,
-                                          revolutions=2, target_force=0, check_displacement_time=10,
-                                          termination_criteria=None, timeout=6, end_effector_link="b_bot_set_screw_tool_tip_link")
-      # self.skill_server.horizontal_spiral_motion("b_bot", .003, spiral_axis="Y", radius_increment = .002)
+
       if self.use_real_robot:
         rospy.sleep(2.0) # Wait for the screw to be screwed in a little bit
-      d = .003
+      d = .002
       rospy.loginfo("=== set screw: move in 2 by " + str(d) + " m. ===")
       self.b_bot.move_lin_rel(relative_translation=[-d, 0, 0], speed=0.002, wait=False)
       
@@ -573,10 +582,8 @@ class O2ACTaskboard(O2ACCommon):
         if self.b_bot.is_protective_stopped():
           return False
 
-      self.b_bot.move_lin_rel(relative_translation=[0.05, 0, 0], speed=0.2)
-      # Go back
-      # self.b_bot.go_to_pose_goal(screw_approach, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True)
-
+      self.b_bot.move_lin_rel(relative_translation=[0.01, 0, 0], speed=0.03)
+      self.b_bot.move_lin_rel(relative_translation=[0.05, 0, 0], speed=0.1)
       self.b_bot.go_to_named_pose("horizontal_screw_ready", speed=0.5, acceleration=0.5)
       # self.confirm_to_proceed("Unequip tool?")
       # self.b_bot.go_to_named_pose("home", speed=0.5, acceleration=0.5)
@@ -599,9 +606,10 @@ class O2ACTaskboard(O2ACCommon):
       self.allow_collisions_with_robot_hand("screw_tool_m4", "b_bot", False)
       approach_pose = geometry_msgs.msg.PoseStamped()
       approach_pose.header.frame_id = "taskboard_m3_screw_link"
+      # Offset measured with the tool on the real hole: [0.004, 0.000, -0.004]
       approach_pose.pose.position.x = -.04
-      approach_pose.pose.position.y = -.002    # MAGIC NUMBER (y-axis of the frame points right)
-      approach_pose.pose.position.z = -.006  # MAGIC NUMBER (z-axis of the frame points down)
+      approach_pose.pose.position.y = -.001    # MAGIC NUMBER (y-axis of the frame points right)
+      approach_pose.pose.position.z = -.005  # MAGIC NUMBER (z-axis of the frame points down)
       approach_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
       if not self.a_bot.go_to_pose_goal(approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True):
         rospy.logerr("Fail to go to approach pose")
@@ -609,11 +617,12 @@ class O2ACTaskboard(O2ACCommon):
 
       hole_pose = geometry_msgs.msg.PoseStamped()
       hole_pose.header.frame_id = "taskboard_m3_screw_link"
-      hole_pose.pose.position.y = -.002  # MAGIC NUMBER (y-axis of the frame points right)
-      hole_pose.pose.position.z = -.006  # MAGIC NUMBER (z-axis of the frame points down)
+      hole_pose.pose.position.x = .004  # MAGIC NUMBER (y-axis of the frame points right)
+      hole_pose.pose.position.y = -.001  # MAGIC NUMBER (y-axis of the frame points right)
+      hole_pose.pose.position.z = -.005  # MAGIC NUMBER (z-axis of the frame points down)
       hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
       if not fake_execution_for_calibration:
-        if not self.screw("a_bot", hole_pose, screw_size = 3, skip_final_loosen_and_retighten=False, spiral_radius=0.004, duration=40):
+        if not self.screw("a_bot", hole_pose, screw_size = 3, skip_final_loosen_and_retighten=False, spiral_radius=0.002, duration=40):
           rospy.logerr("Fail to screw m3")
           self.a_bot.move_lin_rel([0.05,0,0], speed=0.2)
           self.a_bot.go_to_named_pose("horizontal_screw_ready")
@@ -647,6 +656,7 @@ class O2ACTaskboard(O2ACCommon):
       hole_pose = geometry_msgs.msg.PoseStamped()
       hole_pose.header.frame_id = "taskboard_m4_screw_link"
       hole_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/12, 0, 0))
+      # Offset measured with the tool on the real hole: [-0.001, -0.004, 0.006]
       hole_pose.pose.position.y = -.001  # MAGIC NUMBER (y-axis of the frame points right)
       hole_pose.pose.position.z = -.001  # MAGIC NUMBER (z-axis of the frame points down)
       if not fake_execution_for_calibration:

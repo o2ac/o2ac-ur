@@ -356,7 +356,7 @@ class O2ACBase(object):
         rospy.logerr("Robot is not carrying the correct tool (" + fastening_tool_name + ") and it failed to be equipped. Abort.")
         return False
 
-    screw_picked = self.suck_screw(robot_name, pose_feeder, screw_tool_id, screw_tool_link, fastening_tool_name, do_spiral_search_at_bottom=False)
+    screw_picked = self.suck_screw(robot_name, pose_feeder, screw_tool_id, screw_tool_link, fastening_tool_name, do_spiral_search_at_bottom=True)
     
     if screw_picked:
       return True
@@ -391,14 +391,16 @@ class O2ACBase(object):
       rospy.loginfo("Asked to pick screw, but one was already in the tool. Returning True.")
       return True
     
+    screw_head_pose.pose.orientation = conversions.to_quaternion(tf.transformations.quaternion_from_euler(*rotation))
+    
+    # Approach pose
     above_screw_head_pose = copy.deepcopy(screw_head_pose)
-    above_screw_head_pose.pose.orientation = conversions.to_quaternion(tf.transformations.quaternion_from_euler(*rotation))
     above_screw_head_pose.pose.position.x -= 0.01
 
     if (screw_tool_id == "screw_tool_m3"):
       self.planning_scene_interface.allow_collisions(screw_tool_id, "m3_feeder_link")
       screw_size = 3
-      wait_for_suction_time = 0.8 
+      wait_for_suction_time = 0.5
     elif (screw_tool_id == "screw_tool_m4"):
       self.planning_scene_interface.allow_collisions(screw_tool_id, "m4_feeder_link")
       screw_size = 4
@@ -408,6 +410,8 @@ class O2ACBase(object):
     initial_offset_z = rospy.get_param("screw_picking/" + robot_name + "/last_successful_offset_m" + str(screw_size) + "_z", 0.0)
     if initial_offset_y or initial_offset_z:
       rospy.loginfo("Starting search with offsets: " + str(initial_offset_y) + ", " + str(initial_offset_z))
+    
+    # at screw while pushing into it
     adjusted_pose = copy.deepcopy(above_screw_head_pose)
     search_start_pose = copy.deepcopy(above_screw_head_pose)
     search_start_pose.pose.position.y += initial_offset_y
@@ -416,11 +420,11 @@ class O2ACBase(object):
 
     self.tools.set_suction(screw_tool_id, suction_on=True, eject=False, wait=False)
 
-    approach_height = 0.02
+    descend_distance = 0.015
 
     max_radius = .0025
     theta_incr = tau/6
-    r=0.0003
+    r=0.0002
     radius_increment = .001
     radius_inc_set = radius_increment / (tau / theta_incr)
     theta, RealRadius = 0.0, 0.0
@@ -433,19 +437,16 @@ class O2ACBase(object):
       
       # TODO(felixvd): Cancel the previous goal before sending this, or the start/stop commands from different actions overlap!
       rospy.loginfo("Moving into screw to pick it up.")
-      adjusted_pose.pose.position.x += approach_height
+      adjusted_pose.pose.position.x += descend_distance
       success = False
       while not success and not rospy.is_shutdown(): # TODO(cambel, felix): infinite loop?
         if not first_approach:
           success = self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, end_effector_link=screw_tool_link)
         else:  # Include initial motion from feeder_pick_ready
-          waypoints = []
-          waypoints.append(["feeder_pick_ready", 0.0, 1.0])  # pose, blend_radius, speed
-          j1 = self.active_robots[robot_name].compute_ik(above_screw_head_pose, timeout=0.02, end_effector_link=screw_tool_link)
-          j2 = self.active_robots[robot_name].compute_ik(adjusted_pose, timeout=0.02, end_effector_link=screw_tool_link)
-          waypoints.append([j1, 0.0, 0.8])  # pose, blend_radius, speed
-          waypoints.append([j2, 0.0, 0.05])
-          success = self.active_robots[robot_name].move_joints_trajectory(waypoints, timeout=1.0)
+          seq = []
+          seq.append(helpers.to_sequence_item(above_screw_head_pose, speed=1.0, end_effector_link=screw_tool_link))
+          seq.append(helpers.to_sequence_item(adjusted_pose, speed=0.1, linear=True, end_effector_link=screw_tool_link))
+          success = self.execute_sequence(robot_name, seq, "move into screw pick", end_effector_link=screw_tool_link)
           if not success:
             seq = []
             seq.append(helpers.to_sequence_item("feeder_pick_ready", speed=1.0))
@@ -454,27 +455,36 @@ class O2ACBase(object):
           if success:
             first_approach = False
 
-      # Break out of loop if screw suctioned or max search radius exceeded
+      self.confirm_to_proceed("????")
+
+      # Break out of loop if screw suctioned
       rospy.sleep(wait_for_suction_time)
       screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False) or (not self.use_real_robot)
       if screw_picked:
         rospy.loginfo("Detected successful pick.")
         break
 
-      if not do_spiral_search_at_bottom:
+      if do_spiral_search_at_bottom:
         tc = lambda a, b: self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
         self.active_robots[robot_name].execute_spiral_trajectory("YZ", max_radius=0.0025, radius_direction="+Y", steps=25,
-                                                          revolutions=1, target_force=0, check_displacement_time=10,
+                                                          revolutions=2, target_force=0, check_displacement_time=10,
                                                           termination_criteria=tc, timeout=1, end_effector_link=screw_tool_link)
 
+        # Break out of loop if screw suctioned
+        rospy.sleep(wait_for_suction_time)
+        screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
+        if screw_picked:
+          rospy.loginfo("Detected successful pick.")
+          break
+
       rospy.loginfo("Moving back a bit slowly.")
-      rospy.sleep(wait_for_suction_time)
-      adjusted_pose.pose.position.x -= approach_height
+      adjusted_pose.pose.position.x -= descend_distance
       success = False
       while not success: # TODO(cambel, felix): infinite loop?
         success = self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, end_effector_link=screw_tool_link)
         
       # Break out of loop if screw suctioned or max search radius exceeded
+      rospy.sleep(wait_for_suction_time)
       screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
       if screw_picked:
         rospy.loginfo("Detected successful pick.")
@@ -487,7 +497,7 @@ class O2ACBase(object):
       theta = theta + theta_incr
       y = cos(theta) * r
       z = sin(theta) * r
-      adjusted_pose = search_start_pose
+      adjusted_pose = copy.deepcopy(search_start_pose)
       adjusted_pose.pose.position.y += y
       adjusted_pose.pose.position.z += z
       r = r + radius_inc_set
@@ -546,7 +556,7 @@ class O2ACBase(object):
     rospy.loginfo("screw tool link: %s " % screw_tool_link)
 
     approach_height = .01
-    insertion_amount = .015
+    insertion_amount = .02
 
     screw_tip_at_hole = copy.deepcopy(screw_hole_pose)
     screw_tip_at_hole.pose.position.x -= screw_height
