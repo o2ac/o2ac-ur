@@ -75,6 +75,16 @@ findLargestRegion(const cv::Mat& labels, const cv::Mat& stats, int nlabels,
 
     return lmax;
 }
+
+template <class T> static cv::Vec<T, 2>
+crossPoint(const TU::Plane<T, 2>& l1, const TU::Plane<T, 2>& l2)
+{
+    const cv::Vec<T, 3>	h1(l1.normal()(0), l1.normal()(1), l1.distance());
+    const cv::Vec<T, 3>	h2(l2.normal()(0), l2.normal()(1), l2.distance());
+    const auto		p = h1.cross(h2);
+
+    return {p[0]/p[2], p[1]/p[2]};
+}
     
 /************************************************************************
 *  class MotionDetector							*
@@ -293,7 +303,7 @@ MotionDetector::detect_cable_tip()
     const auto	lmax = findLargestRegion(labels, stats, nlabels, finger_tip);
     
   // Fit a line to the points in the region.
-    std::vector<cv::Vec<float, 2> >	points;
+    std::vector<cv::Vec<float, 2> >	cable_points;
     for (int v = 0; v < labels.rows; ++v)
     {
 	auto	p = labels.ptr<int>(v, 0);
@@ -302,19 +312,36 @@ MotionDetector::detect_cable_tip()
 	for (int u = 0; u < labels.cols; ++u, ++p, ++q)
 	    if (*p == lmax)
 	    {
-		points.push_back({u, v});
+		cable_points.push_back({u, v});
 		*q = 255;
 	    }
 	    else
 		*q = 0;
     }
-    TU::Plane<float, 2>	cable(points.begin(), points.end());
+    TU::Plane<float, 2>	cable(cable_points.begin(), cable_points.end());
 
-    for (const auto& point : points)
+  // Compute cross point between finger-tip border and cable.
+    const auto	root = crossPoint(finger_tip, cable);
+
+  // Find a point in the region farest from the cross point.
+    float	dmax = 0;
+    point_t	cable_tip;
+    for (const auto& cable_point : cable_points)
     {
-	const auto	p = cable.projection(point);
-
+	const auto	p = cable.projection(cable_point);
+	const auto	d = cv::norm(p, root);
+	if (d > dmax)
+	{
+	    dmax = d;
+	    cable_tip = {p(0), p(1)};
+	}
     }
+
+    cv::drawMarker(_mask.image, point_t(root), cv::Scalar(128));
+    cv::drawMarker(_mask.image, cable_tip, cv::Scalar(128));
+    
+  // Compute pose of cable_tip in 3D space.
+		   
 }
 
 }	// namespace aist_motion_detector
