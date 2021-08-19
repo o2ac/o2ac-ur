@@ -39,7 +39,7 @@ include_directories(
 )
 
 add_action_files(
-  FILES DetectMotion.action
+  FILES FindCabletip.action
 )
 
 generate_messages(

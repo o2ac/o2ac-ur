@@ -16,7 +16,7 @@
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/core.hpp>
 #include <opencv2/bgsegm.hpp>
-#include <aist_motion_detector/DetectMotionAction.h>
+#include <aist_motion_detector/FindCabletipAction.h>
 
 namespace aist_motion_detector
 {
@@ -64,7 +64,7 @@ class MotionDetector
     void	accumulate_mask(const cv::Mat& image,
 				const std::string& target_frame,
 				const camera_info_cp& camera_info)	;
-    void	detect_cable_tip()					;
+    void	find_cabletip()						;
     
   private:
     ros::NodeHandle					_nh;
@@ -79,8 +79,8 @@ class MotionDetector
 
     const tf::TransformListener				_listener;
 
-    actionlib::SimpleActionServer<DetectMotionAction>	_detect_motion_srv;
-    DetectMotionGoalConstPtr				_current_goal;
+    actionlib::SimpleActionServer<FindCabletipAction>	_find_cabletip_srv;
+    FindCabletipGoalConstPtr				_current_goal;
 
   // Motion detector parameters and dynamic_reconfigure server for setting them
     ddynamic_reconfigure::DDynamicReconfigure		_ddr;

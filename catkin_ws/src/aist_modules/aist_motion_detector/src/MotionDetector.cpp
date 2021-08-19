@@ -99,7 +99,7 @@ MotionDetector::MotionDetector(const ros::NodeHandle& nh)
      _camera_pub(_it.advertiseCamera("depth", 1)),
      _image_pub(_it.advertise("image", 1)),
      _listener(),
-     _detect_motion_srv(_nh, "detect_motion", false),
+     _find_cabletip_srv(_nh, "find_cabletip", false),
      _current_goal(nullptr),
      _ddr(_nh),
      _bgsub(cv::createBackgroundSubtractorMOG2()),
@@ -112,10 +112,10 @@ MotionDetector::MotionDetector(const ros::NodeHandle& nh)
      _corners(),
      _mask()
 {
-  // Setup DetectMotion action server.
-    _detect_motion_srv.registerGoalCallback(boost::bind(&goal_cb, this));
-    _detect_motion_srv.registerPreemptCallback(boost::bind(&preempt_cb, this));
-    _detect_motion_srv.start();
+  // Setup FindCabletip action server.
+    _find_cabletip_srv.registerGoalCallback(boost::bind(&goal_cb, this));
+    _find_cabletip_srv.registerPreemptCallback(boost::bind(&preempt_cb, this));
+    _find_cabletip_srv.start();
 
   // Setup callback for synced camera_info and depth.
     _sync.registerCallback(&image_cb, this);
@@ -146,7 +146,7 @@ MotionDetector::run()
 void
 MotionDetector::goal_cb()
 {
-    _current_goal = _detect_motion_srv.acceptNewGoal();
+    _current_goal = _find_cabletip_srv.acceptNewGoal();
     _nframes	  = 0;
     ROS_INFO_STREAM("(MotionDetector) Given a goal["
 		    << _current_goal->target_frame << ']');
@@ -157,16 +157,16 @@ MotionDetector::preempt_cb()
 {
     if (_nframes > 0)
     {
-	detect_cable_tip();
+	detect_cabletip();
 	_image_pub.publish(_mask.toImageMsg());
 
-	DetectMotionResult	result;
-	_detect_motion_srv.setPreempted(result);
+	FindCabletipResult	result;
+	_find_cabletip_srv.setPreempted(result);
 
 	_nframes = 0;
     }
     else
-	_detect_motion_srv.setPreempted();
+	_find_cabletip_srv.setPreempted();
     ROS_INFO_STREAM("(MotionDetector) Cancelled a goal");
 }
 
@@ -174,7 +174,7 @@ void
 MotionDetector::image_cb(const camera_info_cp& camera_info,
 			 const image_cp& image, const image_cp& depth)
 {
-    if (!_detect_motion_srv.isActive())
+    if (!_find_cabletip_srv.isActive())
     	return;
 
     try
@@ -266,7 +266,7 @@ MotionDetector::accumulate_mask(const cv::Mat& mask,
 }
 
 void
-MotionDetector::detect_cable_tip()
+MotionDetector::find_cabletip()
 {
   // Fill the outside of ROI with zero.
     const point_t	outer[]   = {{0,		  0},
@@ -325,7 +325,7 @@ MotionDetector::detect_cable_tip()
 
   // Find a point in the region farest from the cross point.
     float	dmax = 0;
-    point_t	cable_tip;
+    point_t	cabletip;
     for (const auto& cable_point : cable_points)
     {
 	const auto	p = cable.projection(cable_point);
@@ -333,14 +333,14 @@ MotionDetector::detect_cable_tip()
 	if (d > dmax)
 	{
 	    dmax = d;
-	    cable_tip = {p(0), p(1)};
+	    cabletip = {p(0), p(1)};
 	}
     }
 
     cv::drawMarker(_mask.image, point_t(root), cv::Scalar(128));
-    cv::drawMarker(_mask.image, cable_tip, cv::Scalar(128));
+    cv::drawMarker(_mask.image, cabletip, cv::Scalar(128));
     
-  // Compute pose of cable_tip in 3D space.
+  // Compute pose of cabletip in 3D space.
 		   
 }
 
