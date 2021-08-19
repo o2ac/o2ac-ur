@@ -1556,18 +1556,18 @@ class O2ACBase(object):
     success = False
     robot = self.active_robots[robot_name]
 
-    pose           = params.get("pose", None)
-    pose_type      = params["pose_type"]
-    speed          = params.get("speed", 0.5)
-    acceleration   = params.get("acc", 0.25)
-    gripper_params = params.get("gripper", None)
-    move_lin       = params.get("move_lin", True)
+    pose              = params.get("pose", None)
+    pose_type         = params["pose_type"]
+    speed             = params.get("speed", 0.5)
+    acceleration      = params.get("acc", 0.25)
+    gripper_params    = params.get("gripper", None)
+    end_effector_link = params.get("end_effector_link", None)
 
     if pose_type  == 'joint-space':
       success = robot.move_joints(pose, speed=speed, acceleration=acceleration, plan_only=plan_only, initial_joints=initial_joints)
     elif pose_type == 'joint-space-goal-cartesian-lin-motion':
       p = robot.compute_fk(pose) # Forward Kinematics
-      success = robot.go_to_pose_goal(p, speed=speed, acceleration=acceleration, plan_only=plan_only, initial_joints=initial_joints)
+      success = robot.go_to_pose_goal(p, speed=speed, acceleration=acceleration, plan_only=plan_only, initial_joints=initial_joints, end_effector_link=end_effector_link)
     elif pose_type == 'task-space-in-frame':
       frame_id = params.get("frame_id", "world")
       # Convert orientation to radians!
@@ -1579,9 +1579,9 @@ class O2ACBase(object):
       else:
         p = conversions.to_pose_stamped(frame_id, np.concatenate([pose[:3],np.deg2rad(pose[3:])]))
         move_linear = params.get("move_linear", True)
-        success = robot.go_to_pose_goal(p, speed=speed, acceleration=acceleration, move_lin=move_linear, plan_only=plan_only, initial_joints=initial_joints)
+        success = robot.go_to_pose_goal(p, speed=speed, acceleration=acceleration, move_lin=move_linear, plan_only=plan_only, initial_joints=initial_joints, end_effector_link=end_effector_link)
     elif pose_type == 'relative-tcp':
-      success = robot.move_lin_rel(relative_translation=pose[:3], relative_rotation=np.deg2rad(pose[3:]), speed=speed, acceleration=acceleration, relative_to_tcp=True, plan_only=plan_only, initial_joints=initial_joints)
+      success = robot.move_lin_rel(relative_translation=pose[:3], relative_rotation=np.deg2rad(pose[3:]), speed=speed, acceleration=acceleration, relative_to_tcp=True, plan_only=plan_only, initial_joints=initial_joints, end_effector_link=end_effector_link)
     elif pose_type == 'relative-world':
       success = robot.move_lin_rel(relative_translation=pose[:3], relative_rotation=np.deg2rad(pose[3:]), speed=speed, acceleration=acceleration, plan_only=plan_only, initial_joints=initial_joints)
     elif pose_type == 'relative-base':

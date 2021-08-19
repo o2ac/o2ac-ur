@@ -1925,7 +1925,7 @@ class O2ACCommon(O2ACBase):
         seq = []
         if not first_screw and screw_status[n] == "empty": # go back
           if intermediate_pose:
-            seq.append(helpers.to_sequence_item(intermediate_pose, speed=speed))
+            seq.append(helpers.to_sequence_item(intermediate_pose, speed=speed, end_effector_link = robot_name+"_screw_tool_m3_tip_link"))
           seq.append(helpers.to_sequence_item("horizontal_screw_ready", speed=speed))
           seq.append(helpers.to_sequence_item("screw_ready", speed=speed))
         
@@ -1934,7 +1934,7 @@ class O2ACCommon(O2ACBase):
           seq.append(helpers.to_sequence_item("screw_ready", speed=speed))
 
         if seq:
-          self.execute_sequence(robot_name, seq, "fasten_screws_return_seq", end_effector_link = robot_name + "_screw_tool_m%s_tip_link" % screw_size)
+          self.execute_sequence(robot_name, seq, "fasten_screws_return_seq")
 
         if first_screw:
           first_screw = False
@@ -1977,10 +1977,10 @@ class O2ACCommon(O2ACBase):
     elif not skip_return:
       seq = []
       if intermediate_pose:
-        seq.append(helpers.to_sequence_item(intermediate_pose, speed=speed))
+        seq.append(helpers.to_sequence_item(intermediate_pose, speed=speed, end_effector_link = robot_name+"_screw_tool_m3_tip_link"))
       seq.append(helpers.to_sequence_item("horizontal_screw_ready", speed=speed))
       seq.append(helpers.to_sequence_item("screw_ready", speed=speed))
-      self.execute_sequence(robot_name, seq, "fasten_screws_return_seq", end_effector_link = robot_name + "_screw_tool_m%s_tip_link" % screw_size)
+      self.execute_sequence(robot_name, seq, "fasten_screws_return_seq")
     
     if unequip_when_done:
       if not self.unequip_tool(robot_name, 'screw_tool_m%s' % screw_size):
@@ -3203,10 +3203,10 @@ class O2ACCommon(O2ACBase):
     # Attempt first screw only
     success = self.pick_and_fasten_screw(robot_name, screw_poses[0], screw_size=3, intermediate_pose=intermediate_pose, attempts=0)
     seq = []
-    seq.append(helpers.to_sequence_item(intermediate_pose, speed=0.6))
+    seq.append(helpers.to_sequence_item(intermediate_pose, speed=0.6, linear=True, end_effector_link = robot_name+"_screw_tool_m3_tip_link"))
     seq.append(helpers.to_sequence_item("horizontal_screw_ready", speed=0.6))
     seq.append(helpers.to_sequence_item("screw_ready", speed=0.6))
-    self.execute_sequence(robot_name, seq, "fasten_motor_screw_return", end_effector_link = robot_name+"_screw_tool_m3_tip_link")
+    self.execute_sequence(robot_name, seq, "fasten_motor_screw_return")
 
     if not success:
       # Fallback: Return False here for b_bot to retry the motor insertion
@@ -3216,7 +3216,7 @@ class O2ACCommon(O2ACBase):
                                      skip_intermediate_pose=False, simultaneous=simultaneous, skip_return=True,
                                      intermediate_pose=intermediate_pose, unequip_when_done=False, attempts=0):
       rospy.logerr("Fail to fasten second screw of motor")
-      self.execute_sequence(robot_name, seq, "fasten_motor_screw_return", end_effector_link = robot_name+"_screw_tool_m3_tip_link")
+      self.execute_sequence(robot_name, seq, "fasten_motor_screw_return")
       return False
     
     # Retighten first two screws
@@ -3229,7 +3229,7 @@ class O2ACCommon(O2ACBase):
     seq.append(helpers.to_sequence_gripper('open', gripper_velocity=1.0))
     seq.append(helpers.to_sequence_item_relative([-0.02,0.1,0.1,0,0,0]))
     seq.append(helpers.to_sequence_item("home", speed=0.6))
-    self.execute_sequence(robot_name, seq, "fasten_motor_b_bot_return")
+    self.execute_sequence(support_robot, seq, "fasten_motor_b_bot_return")
 
     # Finish remaining screws
     if not self.fasten_set_of_screws(screw_poses[2:], screw_size=3, robot_name=robot_name, only_retighten=False,

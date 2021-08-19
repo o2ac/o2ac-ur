@@ -615,12 +615,13 @@ def to_sequence_item_relative(pose, relative_to_base=False, relative_to_tcp=Fals
   item.update({"speed": speed, "acc": acc})
   return ["waypoint", item]
 
-def to_sequence_item(pose, speed=0.5, acc=0.25, linear=True):
+def to_sequence_item(pose, speed=0.5, acc=0.25, linear=True, end_effector_link=None):
   if isinstance(pose, geometry_msgs.msg.PoseStamped):
     item           = {"pose": conversions.from_point(pose.pose.position).tolist() + np.rad2deg(transformations.euler_from_quaternion(conversions.from_quaternion(pose.pose.orientation))).tolist(),
                       "pose_type": "task-space-in-frame",
                       "frame_id": pose.header.frame_id,
                       "move_linear": linear,
+                      "end_effector_link": end_effector_link,
                      }
   if isinstance(pose, str):
     item           = {"pose": pose,
