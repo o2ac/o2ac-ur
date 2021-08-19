@@ -229,8 +229,8 @@ class RobotBase():
         return True
 
     def go_to_pose_goal(self, pose_goal_stamped, speed=0.5, acceleration=0.25,
-                        end_effector_link="", move_lin=True, wait=True, plan_only=False, initial_joints=None,
-                        allow_joint_configuration_flip=False, move_ptp=False, timeout=5, retry_non_linear=True):
+                        end_effector_link="", move_lin=False, wait=True, plan_only=False, initial_joints=None,
+                        allow_joint_configuration_flip=False, move_ptp=True, timeout=5, retry_non_linear=True):
         planner = "LINEAR" if move_lin else ("PTP" if move_ptp else "OMPL")
         if not self.set_up_move_group(speed, acceleration, planner):
             return False
@@ -271,9 +271,12 @@ class RobotBase():
                 else:
                     success = self.execute_plan(plan, wait=wait)
             else:
-                rospy.sleep(0.2)
-                rospy.logwarn("go_to_pose_goal(move_lin=%s) attempt failed. Retrying." % str(move_lin))
-                tries += 1
+                if move_ptp: # Just one try is enough for PTP, give up and try OMPL
+                    self.set_up_move_group(speed, acceleration, "OMPL")
+                else:
+                    rospy.sleep(0.2)
+                    rospy.logwarn("go_to_pose_goal(move_lin=%s) attempt failed. Retrying." % str(move_lin))
+                    tries += 1
 
         if not success:
             rospy.logerr("go_to_pose_goal failed " + str(tries) + " times! Broke out, published failed pose.")
