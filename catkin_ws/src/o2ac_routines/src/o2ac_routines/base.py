@@ -345,7 +345,7 @@ class O2ACBase(object):
 
     assert robot_name in ("a_bot", "b_bot"), "unsupported operation for robot %s" % robot_name
     offset = 1 if robot_name == "a_bot" else -1
-    pose_feeder = conversions.to_pose_stamped("m" + str(screw_size) + "_feeder_outlet_link", [0.005, 0, 0, np.deg2rad(offset*60), 0, 0])
+    pose_feeder = conversions.to_pose_stamped("m" + str(screw_size) + "_feeder_outlet_link", [0, 0, 0, np.deg2rad(offset*60), 0, 0])
     
     screw_tool_id = "screw_tool_m" + str(screw_size)
     screw_tool_link = robot_name + "_screw_tool_m" + str(screw_size) + "_tip_link"
@@ -382,7 +382,7 @@ class O2ACBase(object):
     rospy.loginfo("Suck screw command")
 
     if robot_name == "a_bot":
-      rotation = [radians(80), 0, 0] if screw_tool_id == "screw_tool_m4" else [tau/6, 0, 0]
+      rotation = [radians(80), 0, 0] if screw_tool_id == "screw_tool_m4" else [radians(80), 0, 0]
     elif robot_name == "b_bot":
       rotation = [-tau/6, 0, 0]
 
@@ -416,14 +416,15 @@ class O2ACBase(object):
 
     self.tools.set_suction(screw_tool_id, suction_on=True, eject=False, wait=False)
 
-    approach_height = 0.018
+    approach_height = 0.02
 
     max_radius = .0025
     theta_incr = tau/6
-    r=0.0002
+    r=0.0003
     radius_increment = .001
     radius_inc_set = radius_increment / (tau / theta_incr)
     theta, RealRadius = 0.0, 0.0
+    counter = 0
     
     first_approach = True
     while not screw_picked:
@@ -491,6 +492,9 @@ class O2ACBase(object):
       adjusted_pose.pose.position.z += z
       r = r + radius_inc_set
       RealRadius = sqrt(pow(y, 2) + pow(z, 2))
+      counter += 1
+      if counter > 5:
+        break
     
     # Record the offset at which the screw was successfully picked, so the next try can start at the same location
     if screw_picked:

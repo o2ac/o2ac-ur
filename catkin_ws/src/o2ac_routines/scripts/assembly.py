@@ -104,10 +104,18 @@ if __name__ == '__main__':
         c.do_change_tool_action("a_bot", equip=True, screw_size=3)
       elif i == '14':
         c.do_change_tool_action("a_bot", equip=False, screw_size=3)
+      elif i == '131':
+        c.do_change_tool_action("a_bot", equip=True, screw_size=4)
+      elif i == '141':
+        c.do_change_tool_action("a_bot", equip=False, screw_size=4)
       elif i == '15':
         c.do_change_tool_action("b_bot", equip=True, screw_size=4)
       elif i == '16':
         c.do_change_tool_action("b_bot", equip=False, screw_size=4)
+      elif i == '151':
+        c.do_change_tool_action("b_bot", equip=True, screw_size=3)
+      elif i == '161':
+        c.do_change_tool_action("b_bot", equip=False, screw_size=3)
       elif i == '21':
         c.take_tray_from_agv()
       elif i == '211':
@@ -120,6 +128,8 @@ if __name__ == '__main__':
         c.pick_screw_from_feeder("a_bot", screw_size=3)
       elif i == '32':
         c.pick_screw_from_feeder("b_bot", screw_size=4)
+      elif i == '321':
+        c.pick_screw_from_feeder("b_bot", screw_size=3)
       elif i == "41":
         c.publish_part_in_assembled_position("base")
       elif i == "421":

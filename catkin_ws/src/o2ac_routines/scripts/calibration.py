@@ -397,7 +397,7 @@ class CalibrationClass(O2ACCommon):
     
     pose0 = geometry_msgs.msg.PoseStamped()
     if robot_name == "a_bot":
-      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/12, 0, 0))
+      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(radians(80), 0, 0))
       pose0.header.frame_id = "m3_feeder_outlet_link"
       ee_link = robot_name + "_screw_tool_m3_tip_link"
     else:
@@ -405,17 +405,17 @@ class CalibrationClass(O2ACCommon):
       pose0.header.frame_id = "m4_feeder_outlet_link"
       ee_link = robot_name + "_screw_tool_m4_tip_link"
     
-    self.skill_server.toggle_collisions(collisions_on=False)
+    # self.planning_scene_interface.allow_collisions(collisions_on=False)
     
     poses = []
     for i in range(3):
       poses.append(copy.deepcopy(pose0))
-    poses[0].pose.position.x = -.02
+    poses[0].pose.position.x = -.01
     poses[1].pose.position.x = 0
-    poses[2].pose.position.x = -.02
+    poses[2].pose.position.x = -.01
     
     self.cycle_through_calibration_poses(poses, robot_name, go_home=False, move_lin=True, end_effector_link=ee_link)
-    self.skill_server.toggle_collisions(collisions_on=True)
+    # self.skill_server.toggle_collisions(collisions_on=True)
     self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
     return
   
