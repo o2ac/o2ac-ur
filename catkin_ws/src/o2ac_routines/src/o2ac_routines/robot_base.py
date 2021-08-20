@@ -441,13 +441,14 @@ class RobotBase():
             return self.go_to_pose_goal(new_pose, speed=speed, acceleration=acceleration,
                                         end_effector_link=end_effector_link,  wait=wait,
                                         move_lin=True, plan_only=plan_only, initial_joints=initial_joints,
-                                        allow_joint_configuration_flip=allow_joint_configuration_flip)
+                                        allow_joint_configuration_flip=allow_joint_configuration_flip,
+                                        retry_non_linear=False)
 
-    def go_to_named_pose(self, pose_name, speed=0.5, acceleration=0.5, wait=True, plan_only=False, initial_joints=None):
+    def go_to_named_pose(self, pose_name, speed=0.5, acceleration=0.5, wait=True, plan_only=False, initial_joints=None, move_ptp=True):
         """
         pose_name should be a named pose in the moveit_config, such as "home", "back" etc.
         """
-        if not self.set_up_move_group(speed, acceleration, planner="OMPL"):
+        if not self.set_up_move_group(speed, acceleration, planner=("PTP" if move_ptp else "OMPL")):
             return False
         group = self.robot_group
 
@@ -465,6 +466,11 @@ class RobotBase():
             else:
                 return self.execute_plan(plan, wait=wait)
         else:
+            if move_ptp:
+                rospy.logerr("NamedPose: Failed planning with PTP, retry with OMPL")
+                # Try again with OMPL
+                return self.go_to_named_pose(pose_name=pose_name, speed=speed, acceleration=acceleration, 
+                                      wait=wait, plan_only=plan_only, initial_joints=initial_joints, move_ptp=False)
             rospy.logerr("Failed planning with error: %s" % error)
             return False
 

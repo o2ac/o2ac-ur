@@ -450,7 +450,6 @@ class O2ACCommon(O2ACBase):
     Does very light feasibility check before returning.
     """
     center_on_corner       = options.get("center_on_corner", False)
-    grasp_width            = options.get("grasp_width", 0.06)
     center_on_close_border = options.get("center_on_close_border", False)
     grab_and_drop          = options.get("grab_and_drop", False)
     declutter_with_tool    = options.get("declutter_with_tool", False)
@@ -1915,7 +1914,7 @@ class O2ACCommon(O2ACBase):
     # Go to bearing and fasten all the screws
     all_screws_done = False
     first_screw = True
-    while not all_screws_done and tries < 8:
+    while not all_screws_done and tries > 0:
       for n in range(len(screw_poses)):
         assert not rospy.is_shutdown(), "lost connection to ros?"
         if screw_status[n] == "done":
@@ -1966,7 +1965,7 @@ class O2ACCommon(O2ACBase):
       all_screws_done = all(value == "done" for value in screw_status.values())
       if not all_screws_done and simultaneous:
         rospy.sleep(3) # extra time for b_bot to get out of the way
-      tries += 1
+      tries -= 1
 
     if with_extra_retighten:
       return self.fasten_set_of_screws(screw_poses, screw_size=screw_size, robot_name=robot_name, only_retighten=True,

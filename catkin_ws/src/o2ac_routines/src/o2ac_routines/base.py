@@ -220,8 +220,10 @@ class O2ACBase(object):
 
   def despawn_object(self, object_name):
     self.planning_scene_interface.remove_attached_object(name=object_name)
+    self.markers_scene.detach_item(object_name)
     rospy.sleep(0.5) # Wait half a second for the detach to finish so that we can remove the object
     self.planning_scene_interface.remove_world_object(object_name)
+    self.markers_scene.despawn_item(object_name)
 
   def confirm_to_proceed(self, next_task_name):
     if self.competition_mode:

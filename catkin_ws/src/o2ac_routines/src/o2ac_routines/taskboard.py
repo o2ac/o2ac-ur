@@ -339,7 +339,10 @@ class O2ACTaskboard(O2ACCommon):
     if self.a_success and self.b_success:
       print(">>>> fastening bearing")
       def a_bot_task3(): # fasten bearing
+        rospy.sleep(10) # wait for b_bot to find->pick shaft
         self.subtask_completed["screw_bearing"] = self.fasten_bearing(task="taskboard", robot_name="a_bot", simultaneous=True)
+        if not self.subtask_completed["screw_bearing"]:
+          rospy.logerr("Failed to do simultaneous fastening")
       def b_bot_task3(): # pick/orient/insert motor pulley
         self.subtask_completed["shaft"] = self.do_task("shaft")
         self.vision.activate_camera("a_bot_outside_camera")
@@ -682,6 +685,7 @@ class O2ACTaskboard(O2ACCommon):
       if not self.a_bot.go_to_named_pose("horizontal_screw_ready"):
         rospy.logerr("Fail to go to horizontal_screw_ready")
         return False
+      return True
 
     # ==========================================================
 
