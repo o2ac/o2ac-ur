@@ -1964,8 +1964,12 @@ class O2ACCommon(O2ACBase):
 
       all_screws_done = all(value == "done" for value in screw_status.values())
       if not all_screws_done and simultaneous:
-        rospy.sleep(3) # extra time for b_bot to get out of the way
+        rospy.logwarn("Fail to do all screws in simultaneous, waiting for other robot for 5s before remaining attempts: %s" % tries)
+        rospy.sleep(5) # extra time for b_bot to get out of the way
       tries -= 1
+
+    if not all_screws_done and simultaneous:
+        rospy.logwarn("NOT done, but aborting")
 
     if with_extra_retighten:
       return self.fasten_set_of_screws(screw_poses, screw_size=screw_size, robot_name=robot_name, only_retighten=True,
@@ -2130,7 +2134,7 @@ class O2ACCommon(O2ACBase):
 
     rospy.loginfo("Moving down to object")
     
-    self.a_bot.gripper.open(opening_width=0.08)
+    self.a_bot.gripper.open(opening_width=0.07)
     if not self.a_bot.go_to_pose_goal(at_object_pose):
       if pull_and_retry_pick_if_failed:
         rospy.logwarn("Failed to pick. Try to move into the middle.")
@@ -2249,7 +2253,7 @@ class O2ACCommon(O2ACBase):
       return False
     
     self.a_bot.gripper.attach_object("taskboard_idler_pulley_small")
-    self.a_bot.gripper.close()
+    self.a_bot.gripper.close(velocity=0.1)
 
     if self.a_bot.gripper.opening_width < 0.01 and self.use_real_robot:
         rospy.logerr("Fail to grasp Idler Pulley")

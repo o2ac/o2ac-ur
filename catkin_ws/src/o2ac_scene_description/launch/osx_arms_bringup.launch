@@ -110,10 +110,9 @@
   </include>
   <!--  -->
 
-  <!-- TODO: Use this to aggregate the joint state messages from both robots -->
+  <!-- Can be used to aggregate joint state messages from both robots (to reduce update frequency)-->
   <!-- <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" respawn="false">
-    <param name="source_list" value="['/b_bot/joint_states']"/>  
-  </node> -->
-  <!-- <param name="source_list" value="['/b_bot/joint_states','/a_bot/joint_states']"/> -->
+    <rosparam param="source_list">['/b_bot/joint_states','/a_bot/joint_states']</rosparam>
+  </node>  -->
 
 </launch>
