@@ -43,6 +43,8 @@ tau = 2*pi
 from o2ac_routines.thread_with_trace import ThreadTrace
 from ur_control.constants import DONE, TERMINATION_CRITERIA
 from trajectory_msgs.msg import JointTrajectoryPoint
+from ur_gazebo.gazebo_spawner import GazeboModels
+from ur_gazebo.model import Model
 
 import numpy as np
 
@@ -69,6 +71,8 @@ class O2ACCommon(O2ACBase):
     self.define_tray_views()
 
     self.update_distribution_client = actionlib.SimpleActionClient("update_distribution", o2ac_msgs.msg.updateDistributionAction)
+
+    self.gazebo_scene = GazeboModels('o2ac_gazebo')
 
   def define_tray_views(self):
     """
@@ -331,7 +335,7 @@ class O2ACCommon(O2ACBase):
 
     # Look from top first
     self.vision.activate_camera(robot_name+"_outside_camera")
-    if not skip_moving and self.use_real_robot:
+    if not skip_moving:
       view_poses = [self.tray_view_high] + self.close_tray_views
       for pose in view_poses:
         if not self.active_robots[robot_name].go_to_pose_goal(pose, end_effector_link=robot_name+"_outside_camera_color_frame", move_lin=True, retry_non_linear=True):
@@ -344,7 +348,7 @@ class O2ACCommon(O2ACBase):
       object_pose = self.detect_object_in_camera_view(item_name)
 
     if object_pose:
-      rospy.logdebug("Found " + item_name + ". Publishing to planning scene.")
+      rospy.loginfo("Found " + item_name + ". Publishing to planning scene.")
       # TODO: Apply Place action of pose estimation to constrain object to the tray_center plane
       # Workaround: Just set z to 0 
       object_pose.header.stamp = rospy.Time.now()
@@ -368,6 +372,16 @@ class O2ACCommon(O2ACBase):
         obj.header.frame_id = object_pose.header.frame_id
         obj.pose = object_pose.pose
         self.planning_scene_interface.add_object(obj)
+        if True:
+          # Spawn the part in gazebo
+          print("??? gazebo")
+          name = "panel_bearing"
+          # objpose = [[-0.294+.1, -.18+.1, 0.85], [0, 0, 0., 0.]] 
+          op = conversions.from_pose_to_list(object_pose.pose)
+          objpose = [op[:3], op[3:]] 
+          models = [Model(name, objpose[0], orientation=objpose[1], reference_frame=object_pose.header.frame_id)]
+          self.gazebo_scene.load_models(models,)
+          pass
 
         rospy.sleep(0.5)
         self.constrain_into_tray(item_name)
@@ -3486,23 +3500,22 @@ class O2ACCommon(O2ACBase):
 
   def pick_panel_with_handover(self, panel_name="panel_bearing", simultaneous=True, rotate_on_failure=True, rotation_retry_counter=0, pose_with_uncertainty=None):
     grasp_width = 0.05
-    if self.use_real_robot:
-      self.activate_led("b_bot")
-      goal = self.get_large_item_position_from_top(panel_name, "b_bot")
-      rospy.sleep(0.2)
-    else:
-      goal = conversions.to_pose_stamped("tray_center", [0.02, -0.03, 0.001, 0.0, 0.0, tau/4])
-      if pose_with_uncertainty !=None:
-        pose_with_uncertainty.header=goal.header
-        pose_with_uncertainty.pose.pose = goal.pose
-        pose_with_uncertainty.pose.covariance=[0.0001, 0.00, 0.00, 0.00, 0.00, 0.00,
-                                               0.00, 0.0001, 0.00, 0.00, 0.00, 0.00,
-                                               0.00, 0.00, 0.0000, 0.00, 0.00, 0.00,
-                                               0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
-                                               0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
-                                               0.00, 0.00, 0.00, 0.00, 0.00, 0.01]
-      self.spawn_object(panel_name, goal, goal.header.frame_id, pose_with_uncertainty = pose_with_uncertainty)
-      rospy.sleep(0.5)
+    self.activate_led("b_bot")
+    goal = self.get_large_item_position_from_top(panel_name, "b_bot")
+    rospy.sleep(0.2)
+    
+    # goal = conversions.to_pose_stamped("tray_center", [0.02, -0.03, 0.001, 0.0, 0.0, tau/4])
+    if pose_with_uncertainty !=None:
+      pose_with_uncertainty.header=goal.header
+      pose_with_uncertainty.pose.pose = goal.pose
+      pose_with_uncertainty.pose.covariance=[0.0001, 0.00, 0.00, 0.00, 0.00, 0.00,
+                                              0.00, 0.0001, 0.00, 0.00, 0.00, 0.00,
+                                              0.00, 0.00, 0.0000, 0.00, 0.00, 0.00,
+                                              0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
+                                              0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
+                                              0.00, 0.00, 0.00, 0.00, 0.00, 0.01]
+    # self.spawn_object(panel_name, goal, goal.header.frame_id, pose_with_uncertainty = pose_with_uncertainty)
+    rospy.sleep(0.5)
 
     if not goal:
       rospy.logerr("Abort pick of %s, plate not detected" % panel_name)
