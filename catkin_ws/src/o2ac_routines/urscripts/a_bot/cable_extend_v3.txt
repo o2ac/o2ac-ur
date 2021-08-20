@@ -1,0 +1,33 @@
+ Program
+   Robot Program
+     Gripper Move72% (1)
+     MoveL
+       above_cabl_base
+       at_cable_base
+     Gripper Move84% (1)
+     MoveL
+       wait_for_bbot
+       Popup: wait for b_bot to grasp cable. press enter to move together
+       past_cable
+       Waypoint_1
+     Gripper Move49% (1)
+     MoveJ
+       high_back
+       Popup: wait for b_bot to prepare cable. press enter to pick it
+       above_cable_end
+     MoveL
+       at_cable_end
+     Gripper Close (1)
+     Popup: press enter, then the robot will move to insert
+     MoveL
+       midpoint
+       by_terminal
+     MoveL
+       above_hole
+       Popup: press enter, then the robot will move to insert
+       down
+     Gripper Move78% (1)
+     MoveJ
+       up
+     MoveJ
+       above_cable_end
