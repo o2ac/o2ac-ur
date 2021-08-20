@@ -28,9 +28,6 @@
 [submodule "underlay_ws/src/ur_python_utilities"]
 	path = underlay_ws/src/ur_python_utilities
 	url = http://gitlab+deploy-token-440688:eYTsSmM4yjjtN5eXCx2C@gitlab.com/o2ac/third-party/ur_python_utilities.git
-# [submodule "underlay_ws/src/third_party/ur_client_library"]
-# 	path = underlay_ws/src/third_party/ur_client_library
-# 	url = https://github.com/UniversalRobots/Universal_Robots_Client_Library
-[submodule "underlay_ws/src/third_party/ur_drivers"]
+# [submodule "underlay_ws/src/third_party/ur_drivers"]
 	path = underlay_ws/src/third_party/ur_drivers
 	url = https://github.com/UniversalRobots/Universal_Robots_ROS_Driver.git
