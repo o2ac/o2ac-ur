@@ -31,9 +31,11 @@ signal.signal(signal.SIGINT, signal_handler)
 def main():
     rospy.init_node("testscript")
     global controller
+    rospy.set_param("grasp_plugin", True)
     controller = O2ACAssembly()
+    # controller.b_bot.gripper.gripper.release(link_name="panel_bearing_tmp::panel_bearing")
     controller.get_large_item_position_from_top("panel_motor")
-    pose = conversions.to_pose_stamped("tray_center", [0.10, 0.037, 0.031, 0, tau/4, 0])
+    pose = conversions.to_pose_stamped("tray_center", [0.09, 0.037, 0.015, 0, tau/4, 0])
     controller.b_bot.go_to_pose_goal(pose)
     # spawner = GazeboModels('o2ac_gazebo')
     name = "panel_bearing"
@@ -43,6 +45,7 @@ def main():
     objpose = [op[:3], op[3:]] 
     models = [Model(name, objpose[0], orientation=objpose[1], reference_frame="world")]
     controller.gazebo_scene.load_models(models,)
+    # controller.b_bot.gripper.gripper.grab(link_name="panel_bearing_tmp::panel_bearing")
     # controller.orient_motor_pulley("taskboard_small_shaft")
     # controller.insert_motor_pulley("taskboard_small_shaft")
     # controller.prepare_screw_tool_idler_pulley("taskboard_long_hole_top_link", simultaneous=True)

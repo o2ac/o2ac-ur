@@ -26,7 +26,7 @@ class RobotiqGripper():
             self.gripper = actionlib.SimpleActionClient('/%s/gripper_action_controller' % self.ns, robotiq_msgs.msg.CModelCommandAction)
         else:
             try:
-                self.gripper = GripperController(namespace=self.ns, prefix=self.ns + '_', timeout=2.0)
+                self.gripper = GripperController(namespace=self.ns, prefix=self.ns + '_', timeout=2.0, attach_link='o2ac_bots::%s_wrist_3_link' % self.ns)
             except Exception as e:
                 rospy.logwarn("Fail to instantiate GripperController for simulation: " + str(e))
                 rospy.logwarn("Instantiating dummy gripper, hoping for moveit Fake controllers")

@@ -2,8 +2,8 @@
 <sdf version='1.6'>
   <model name='panel_bearing'>
     <!-- <static>true</static> -->
-    <link name='panel_bearing_base'>
-      <pose frame=''>0 0 0 0 0 0</pose>
+    <link name='panel_bearing'>
+      <pose frame=''>-0.059474, -0.036572, -0.004999 0 0 0</pose>
       <inertial>
         <pose frame=''>0.059474, 0.036572, 0.004999 0 0 0</pose>
         <mass>0.449</mass>
@@ -25,7 +25,7 @@
           </mesh>
         </geometry>
       </visual>
-      <collision name='panel_bearing_base_collision'>
+      <collision name='panel_bearing'>
         <pose frame=''>0 0 0 0 0 0</pose>
         <geometry>
           <mesh>

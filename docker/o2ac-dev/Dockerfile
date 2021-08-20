@@ -37,7 +37,7 @@ RUN apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key C1CF6
 
 # Install ROS-desktop-full packages (including ROS, rqt, rviz, and more).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-melodic-desktop-full=1.4.1-0bionic.20210601.163047 \
+    ros-melodic-desktop-full=1.4.1-0bionic.20210719.224425 \
     python-rosdep=0.21.0-1 \
 	&& rm -rf /var/lib/apt/lists/*
 
@@ -75,13 +75,13 @@ RUN pip install --upgrade pip==9.0.1
 
 # Install more common optional packages/tools.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    inetutils-ping=2:1.9.4-3 \
+    inetutils-ping=2:1.9.4-3ubuntu0.1 \
     iproute2=4.15.0-2ubuntu1.3 \
     gdb=8.1.1-0ubuntu1 \
     mesa-utils=8.4.0-1 \
     nano=2.9.3-2 \
     net-tools=1.60+git20161116.90da8a0-1ubuntu1 \
-    openssh-client=1:7.6p1-4ubuntu0.3 \
+    openssh-client=1:7.6p1-4ubuntu0.5 \
     python-catkin-tools=0.6.1-1 \
     python-tk=2.7.17-1~18.04 \
     unzip=6.0-21ubuntu1.1 \
@@ -103,8 +103,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install MoveIt dependencies because we build it from source.
 # Also install the binaries to pull in the dependencies.
 RUN apt-get update && apt-get install -y --no-install-recommends \ 
-    ros-melodic-moveit-resources=0.7.3-1bionic.20210601.162654 \
-    ros-melodic-moveit=1.0.8-1bionic.20210601.181746 \
+    ros-melodic-moveit-resources=0.7.3-1bionic.20210719.224510 \
+    ros-melodic-moveit=1.0.8-1bionic.20210720.003319 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -120,16 +120,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install other dependencies of our workspace
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-melodic-effort-controllers=0.17.2-1bionic.20210601.160930 \
-    ros-melodic-industrial-robot-status-controller=0.1.2-1bionic.20210505.031032 \
+    ros-melodic-effort-controllers=0.17.2-1bionic.20210719.221053 \
+    ros-melodic-industrial-robot-status-controller=0.1.2-1bionic.20210716.091354 \
     ros-melodic-socketcan-interface=0.8.5-1bionic.20210427.132022 \
-    ros-melodic-industrial-robot-status-interface=0.1.2-1bionic.20210505.021106 \
+    ros-melodic-industrial-robot-status-interface=0.1.2-1bionic.20210616.200040 \
     ros-melodic-soem=1.4.1003-1bionic.20201015.050528 \
     ros-melodic-graph-msgs=0.1.0-1bionic.20210505.012422 \
     ros-melodic-spacenav-node=1.14.0-1bionic.20210505.025354 \
     ros-melodic-joy-teleop=0.3.1-1bionic.20210505.030303 \
     ros-melodic-code-coverage=0.4.3-1bionic.20200803.132715 \
-    ros-melodic-panda-moveit-config=0.7.4-1bionic.20210601.180341 \
+    ros-melodic-panda-moveit-config=0.7.4-1bionic.20210720.001801 \
     socat=1.7.3.2-2ubuntu2 \
     libqt5x11extras5-dev=5.9.5-0ubuntu1 \
 	&& rm -rf /var/lib/apt/lists/*	
@@ -138,7 +138,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install JSK tools for visualization in Rviz
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-melodic-jsk-visualization=2.1.7-2bionic.20210521.215100 \
+    ros-melodic-jsk-visualization=2.1.7-2bionic.20210722.195645 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -157,18 +157,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install URe controller dependencies.
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-melodic-ros-control=0.18.3-1bionic.20210505.031003 \
+    ros-melodic-ros-control=0.18.4-1bionic.20210616.200840 \
     ros-melodic-robot-controllers=0.6.0-0bionic.20210505.035206 \
-    ros-melodic-velocity-controllers=0.17.2-1bionic.20210505.031515 \
-    ros-melodic-joint-trajectory-controller=0.17.2-1bionic.20210601.161156 \
-    ros-melodic-force-torque-sensor-controller=0.17.2-1bionic.20210505.030952 \
+    ros-melodic-velocity-controllers=0.17.2-1bionic.20210616.201142 \
+    ros-melodic-joint-trajectory-controller=0.17.2-1bionic.20210719.221457 \
+    ros-melodic-force-torque-sensor-controller=0.17.2-1bionic.20210616.200644 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
 
 # Add industrial_core submodule
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-melodic-industrial-core=0.7.1-1bionic.20210601.172212 \
+    ros-melodic-industrial-core=0.7.3-1bionic.20210719.233718 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -209,7 +209,7 @@ RUN curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > mic
 
 # Update cache and install VS Code as a package.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    code=1.58.2-1626302803 \
+    code=1.59.1-1629375198 \
 	&& rm -rf /var/lib/apt/lists/*
 
 # Set VS Code as the default text editor.
@@ -280,10 +280,10 @@ RUN echo 'deb http://librealsense.intel.com/Debian/apt-repo bionic main' | tee /
 RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key C8B3A55A6F3EFCDE
 RUN apt-get update && apt-get install -y --no-install-recommends \
     librealsense2-dkms=1.3.18-0ubuntu1 \
-    librealsense2-utils=2.48.0-0~realsense0.4975 \
-    librealsense2-dev=2.48.0-0~realsense0.4975 \
-    librealsense2-udev-rules=2.48.0-0~realsense0.4975 \
-    librealsense2-dbg=2.48.0-0~realsense0.4975 \
+    librealsense2-utils=2.49.0-0~realsense0.5306 \
+    librealsense2-dev=2.49.0-0~realsense0.5306 \
+    librealsense2-udev-rules=2.49.0-0~realsense0.5306 \
+    librealsense2-dbg=2.49.0-0~realsense0.5306 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -357,11 +357,12 @@ RUN pip2 install pyquaternion==0.9.9
 # Utilities
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	htop=2.1.0-3 \
-    ros-melodic-rqt-multiplot=0.0.10-0bionic.20210505.024543 \
+    ros-melodic-rqt-multiplot=0.0.10-0bionic.20210716.100721 \
     ros-melodic-trac-ik-python=1.5.1-1bionic.20210505.040855 \
-    ros-melodic-trac-ik-kinematics-plugin=1.5.1-1bionic.20210601.165301 \
+    ros-melodic-trac-ik-kinematics-plugin=1.5.1-1bionic.20210719.231506 \
     ros-melodic-flexbe-behavior-engine=1.3.1-1bionic.20210505.053009 \
-    ros-melodic-jsk-rviz-plugins \
+    ros-melodic-gripper-action-controller=0.17.2-1bionic.20210719.221351 \
+    ros-melodic-jsk-rviz-plugins=2.1.7-2bionic.20210722.191423 \
     python-rosinstall=0.7.8-1 \
 	&& rm -rf /var/lib/apt/lists/*
 
