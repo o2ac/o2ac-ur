@@ -40,8 +40,8 @@ class RobotiqGripper():
                 def close():
                     return command(0.0)
 
-                def open():
-                    return command(1.0)
+                def open(opening_width=1.0):
+                    return command(opening_width)
 
                 def command(cmd):
                     if gripper_type == "85":
@@ -66,7 +66,7 @@ class RobotiqGripper():
                     rospy.logerr("Rviz move_group gripper failed: %s " % error)
                     return False
                 setattr(GripperDummy, "close", lambda *args, **kwargs: close())
-                setattr(GripperDummy, "open", lambda *args, **kwargs: open())
+                setattr(GripperDummy, "open", lambda self, opening_width: open(opening_width))
                 setattr(GripperDummy, "command", lambda self, cmd: command(cmd))
 
     def _gripper_status_callback(self, msg):
@@ -88,7 +88,7 @@ class RobotiqGripper():
             command = opening_width if opening_width else "open"
             res = self.send_command(command, wait=wait, velocity=velocity)
         else:
-            res = self.gripper.open()
+            res = self.gripper.open(opening_width)
 
         if self.last_attached_object[0]:
             self.detach_object(object_to_detach=self.last_attached_object[0])

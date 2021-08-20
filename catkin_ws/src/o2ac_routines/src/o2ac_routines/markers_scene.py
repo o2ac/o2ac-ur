@@ -30,6 +30,11 @@ class MarkersScene():
 
     def attach_item(self, item_name, to_link):
         current_pose = self.published_items[item_name]
+        current_pose.header.stamp = rospy.Time(0)
+        try:
+            self.listener.waitForTransform(to_link, current_pose.header.frame_id, current_pose.header.stamp, rospy.Duration(1))
+        except:
+            return False
         new_pose = self.listener.transformPose(to_link, current_pose)
         color = ColorRGBA(1., 0.0, 1., 0.9) # Purple
         self.spawn_item(item_name, new_pose, attach=True, color=color)
