@@ -455,8 +455,6 @@ class O2ACBase(object):
           if success:
             first_approach = False
 
-      self.confirm_to_proceed("????")
-
       # Break out of loop if screw suctioned
       rospy.sleep(wait_for_suction_time)
       screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False) or (not self.use_real_robot)

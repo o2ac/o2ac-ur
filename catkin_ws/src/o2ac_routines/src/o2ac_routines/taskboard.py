@@ -35,6 +35,7 @@
 # Author: Felix von Drigalski
 
 import copy
+from o2ac_assembly_database.parts_reader import PartsReader
 from o2ac_routines import helpers
 import rospy
 import geometry_msgs.msg
@@ -68,6 +69,7 @@ class O2ACTaskboard(O2ACCommon):
     # self.at_set_screw_hole = conversions.to_pose_stamped("taskboard_set_screw_link", [-0.018, -0.001, 0.001, 0, 0, 0])  # MAGIC NUMBER (points downward)  PROXXON tool tip
     if not self.assembly_database.db_name == "taskboard":
       self.assembly_database.change_assembly("taskboard")
+      self.markers_scene.parts_database = PartsReader("taskboard", load_meshes=False)
     
     self.subtask_completed = {
       "M2 set screw": True,
@@ -486,17 +488,59 @@ class O2ACTaskboard(O2ACCommon):
       self.allow_collisions_with_robot_hand("tray_center", "a_bot", False)
       
       # Move to ready pose, check if belt was picked
+      self.a_bot_success = False
+      self.b_bot_success = False
       def a_bot_task():
-        a_bot_wait_with_belt_pose = [0.646294116973877, -1.602117200891012, 2.0059760252581995, -1.3332312864116211, -0.8101084868060511, -2.4642069975482386]
-        self.a_bot.move_joints(a_bot_wait_with_belt_pose)
+        a_bot_wait_with_belt_pose = [0.27640044689178467, -1.8691555462279261, 2.0014026800738733, -1.287313537006714, -1.5502598921405237, -2.5121548811541956]
+        for _ in range(5): # Wait for other robot to be out of the way
+          self.a_bot_success = self.a_bot.move_joints(a_bot_wait_with_belt_pose)
+          if self.a_bot_success:
+            break
+          rospy.sleep(1.0)
       def b_bot_task():
-        b_bot_look_at_belt = [1.95739448, -1.40047674, 1.92903739, -1.98750128, -2.1883457, 1.7778782]
-        self.b_bot.move_joints(b_bot_look_at_belt, speed=0.3)
+        b_bot_look_at_belt = [1.9197747707366943, -1.3494791400483628, 1.9283998648272913, -2.6345297298827113, -1.9446824232684534, 0.5834413170814514]
+        for _ in range(5): # Wait for other robot to be out of the way
+          self.b_bot_success = self.b_bot.move_joints(b_bot_look_at_belt, speed=0.3)
+          if self.b_bot_success:
+            break
+          rospy.sleep(1.0)
         self.vision.activate_camera("b_bot_outside_camera")
       self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=180.0)
       
+      self.confirm_to_proceed("Check belt with vision?")
+      if not self.a_bot_success or not self.b_bot_success or not self.vision.check_pick_success("belt"):
+        rospy.logerr("Belt pick has failed. Return tool and abort.")
+        self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp")
+        rospy.sleep(2)
+        pick_goal.pose.position.x = 0  # In tray_center
+        pick_goal.pose.position.y = 0
+        pick_goal.pose.position.z += 0.06
+        self.a_bot.move_lin(pick_goal)
+        self.a_bot.gripper.open(opening_width=0.07, wait=False)
+        self.a_bot.go_to_named_pose("home")
+        wait_for_UR_program("/b_bot", rospy.Duration.from_sec(20))
+        return False
+        
+      # go to prep pose for urscript routine
+      self.a_bot_success = False
+      self.b_bot_success = False
+      def a_bot_task():
+        a_bot_wait_with_belt_pose = [0.646294116973877, -1.602117200891012, 2.0059760252581995, -1.3332312864116211, -0.8101084868060511, -2.4642069975482386]
+        for _ in range(5): # Wait for other robot to be out of the way
+          self.a_bot_success = self.a_bot.move_joints(a_bot_wait_with_belt_pose, speed=1.0)
+          if self.a_bot_success:
+            break
+          rospy.sleep(1.0)
+      def b_bot_task():
+        b_bot_look_at_belt = [1.95739448, -1.40047674, 1.92903739, -1.98750128, -2.1883457, 1.7778782]
+        for _ in range(5): # Wait for other robot to be out of the way
+          self.b_bot_success = self.b_bot.move_joints(b_bot_look_at_belt, speed=1.0)
+          if self.b_bot_success:
+            break
+          rospy.sleep(1.0)
+      self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=180.0)
       
-      if not self.vision.check_pick_success("belt"):
+      if not self.a_bot_success or not self.b_bot_success:
         rospy.logerr("Belt pick has failed. Return tool and abort.")
         self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp")
         rospy.sleep(2)
@@ -700,18 +744,19 @@ class O2ACTaskboard(O2ACCommon):
     # ==========================================================
 
     if task_name == "bearing":
-      success = self.pick_up_and_insert_bearing(task="taskboard")
+      success = self.pick_up_and_insert_bearing(task="taskboard", robot_name="a_bot")
       self.a_bot.gripper.forget_attached_item()
       self.b_bot.gripper.forget_attached_item()
+      self.a_bot.go_to_named_pose("home")
       if success:
         success = self.align_bearing_holes(task="taskboard")
       self.despawn_object("bearing")
       return success
       
     if task_name == "screw_bearing":
-      self.equip_tool('b_bot', 'screw_tool_m4')
+      self.equip_tool('a_bot', 'screw_tool_m4')
       success = self.fasten_bearing(task="taskboard")
-      self.unequip_tool('b_bot', 'screw_tool_m4')
+      self.unequip_tool('a_bot', 'screw_tool_m4')
       return success
     
     # ==========================================================

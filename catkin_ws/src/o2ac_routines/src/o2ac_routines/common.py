@@ -35,6 +35,7 @@
 # Author: Felix von Drigalski
 
 import bz2
+from o2ac_assembly_database.parts_reader import PartsReader
 from o2ac_routines import helpers
 from o2ac_routines.base import *
 from math import radians, degrees, sin, cos, pi
@@ -165,6 +166,7 @@ class O2ACCommon(O2ACBase):
     pose.header.frame_id = 'attached_base_origin_link'
     pose.pose.orientation.w = 1.0
     self.assembly_database.publish_assembly_frames(pose, prefix="assembled_")
+    self.markers_scene.parts_database = PartsReader(assembly_name, load_meshes=False)
     # TODO(cambel): load the objects dimensions from somewhere
     self.dimensions_dataset = {}
     if self.assembly_database.db_name == "wrs_assembly_2021":
@@ -174,7 +176,7 @@ class O2ACCommon(O2ACBase):
       self.dimensions_dataset.update({"panel_bearing": [0.09, 0.116, 0.012]})
       self.dimensions_dataset.update({"panel_motor"  : [0.06, 0.07, 0.012]})
     else:
-      raise ValueError("Unknown data")
+      pass
     return True
 
   ######## Higher-level routines used in both assembly and taskboard
@@ -610,7 +612,7 @@ class O2ACCommon(O2ACBase):
 
   ########
 
-  def simple_pick(self, robot_name, object_pose, grasp_height=0.0, speed_fast=0.5, speed_slow=0.3, gripper_command="close", 
+  def simple_pick(self, robot_name, object_pose, grasp_height=0.0, speed_fast=1.0, speed_slow=0.3, gripper_command="close", 
           gripper_force=40.0, grasp_width=0.140, minimum_grasp_width=0.0,
           approach_height=0.05, item_id_to_attach = "", 
           lift_up_after_pick=True, acc_fast=1.0, acc_slow=.1, 
@@ -1640,9 +1642,9 @@ class O2ACCommon(O2ACBase):
       end_pose.pose.position.z += 0.0005  # Avoid pulling the bearing out little by little
       end_pose.pose.orientation = geometry_msgs.msg.Quaternion(
                         *tf_conversions.transformations.quaternion_from_euler(angle/2.0, 0, 0))
-      self.b_bot.go_to_pose_goal(start_pose, speed=.2, end_effector_link = "b_bot_bearing_rotate_helper_link")
-      self.b_bot.gripper.close()
-      self.b_bot.go_to_pose_goal(end_pose, speed=.2, end_effector_link = "b_bot_bearing_rotate_helper_link")
+      self.b_bot.go_to_pose_goal(start_pose, speed=.2, end_effector_link = "b_bot_bearing_rotate_helper_link", move_lin=True)
+      self.b_bot.gripper.close(velocity=0.1, wait=True)
+      self.b_bot.go_to_pose_goal(end_pose, speed=.2, end_effector_link = "b_bot_bearing_rotate_helper_link", move_lin=True)
       self.b_bot.gripper.open()
 
     while adjustment_motions < max_adjustments:
@@ -1650,7 +1652,7 @@ class O2ACCommon(O2ACBase):
       if self.b_bot.gripper.opening_width < 0.06:
         self.b_bot.gripper.open()
       
-      self.b_bot.go_to_pose_goal(camera_look_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.3, acceleration=.15)
+      self.b_bot.go_to_pose_goal(camera_look_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.3, acceleration=.15, move_lin=True)
       if np.random.uniform() > 0.4:  # = 60% chance
         self.activate_led("b_bot", on=False)
       else:
@@ -1689,7 +1691,7 @@ class O2ACCommon(O2ACBase):
     rospy.logerr("Did not manage to align the bearing holes.")
     return False
 
-  def pick_up_and_insert_bearing(self, task=""):
+  def pick_up_and_insert_bearing(self, task="", robot_name="b_bot"):
     if not task:
       rospy.logerr("Specify the task!")
       return False
@@ -1699,16 +1701,14 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("look this up")
       bearing_target_link = "assembled_part_07_inserted"
 
-    self.ab_bot.go_to_named_pose("home")
-
-    if not self.pick_bearing():
+    if not self.pick_bearing(robot_name=robot_name):
       return False
 
-    if not self.orient_bearing(task):
+    if not self.orient_bearing(task, robot_name):
       return False
 
     # Insert bearing
-    if not self.insert_bearing(bearing_target_link, task=task):
+    if not self.insert_bearing(bearing_target_link, task=task, robot_name=robot_name):
       rospy.logerr("insert_bearing returned False. Breaking out")
       return False
 
@@ -1819,7 +1819,7 @@ class O2ACCommon(O2ACBase):
     if robot_name == "b_bot":
       target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.004, 0.000, 0.002, 0, 0, 0, 1.])
     else:
-      target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.004, 0.014, -0.003, 0, 0, 0, 1.])
+      target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.003, 0.014, -0.003, 0, 0, 0, 1.])
     selection_matrix = [0., 0.3, 0.3, .8, .8, .8]
     result = robot.do_insertion(target_pose_target_frame, insertion_direction=insertion_direction, force=10.0, timeout=20.0, 
                                 radius=0.002, relaxed_target_by=0.003, selection_matrix=selection_matrix)
@@ -1888,11 +1888,11 @@ class O2ACCommon(O2ACBase):
 
       return self.fasten_set_of_screws(screw_poses, screw_size=4, robot_name=robot_name, only_retighten=only_retighten,
                                 skip_intermediate_pose=skip_intermediate_pose,
-                                simultaneous=simultaneous, with_extra_retighten=with_extra_retighten)
+                                simultaneous=simultaneous, with_extra_retighten=with_extra_retighten, tries=15)
 
   def fasten_set_of_screws(self, screw_poses, screw_size, robot_name, only_retighten=False, skip_intermediate_pose=False, 
                            simultaneous=False, with_extra_retighten=False, intermediate_pose=None, unequip_when_done=True,
-                           skip_return=False, attempts=1):
+                           skip_return=False, attempts=1, tries=8):
     if not self.equip_tool(robot_name, 'screw_tool_m%s' % screw_size):
       rospy.logerr("Fail to equip tool abort!")
       return False
@@ -1914,7 +1914,6 @@ class O2ACCommon(O2ACBase):
     
     # Go to bearing and fasten all the screws
     all_screws_done = False
-    tries = 0
     first_screw = True
     while not all_screws_done and tries < 8:
       for n in range(len(screw_poses)):
@@ -1966,7 +1965,7 @@ class O2ACCommon(O2ACBase):
 
       all_screws_done = all(value == "done" for value in screw_status.values())
       if not all_screws_done and simultaneous:
-        rospy.sleep(2) # extra time for b_bot to get out of the way
+        rospy.sleep(3) # extra time for b_bot to get out of the way
       tries += 1
 
     if with_extra_retighten:
@@ -2307,17 +2306,23 @@ class O2ACCommon(O2ACBase):
     """
     self.equip_tool("b_bot", "padless_tool_m4")
     self.allow_collisions_with_robot_hand("padless_tool_m4", "a_bot")
-    self.b_bot.go_to_named_pose("screw_ready")
-    if not self.playback_sequence("idler_pulley_ready_screw_tool"):
-      rospy.logerr("Fail to complete idler_pulley_ready_screw_tool")
-      return False
+
+    seq = []
+    seq.append(helpers.to_sequence_item("screw_ready", speed=1.0))
+    seq.append(helpers.to_sequence_item("horizontal_screw_ready", speed=1.0))
+    # self.b_bot.go_to_named_pose("screw_ready")
+    # self.b_bot.go_to_named_pose("horizontal_screw_ready")
 
     rospy.loginfo("Going to near tb (b_bot)") # Push with tool
     target_rotation = np.deg2rad([30.0, 0.0, 0.0]).tolist()
+    approach_pose = conversions.to_pose_stamped(target_link, [-0.05,0,0] + target_rotation)
     xyz_light_push = [-0.01, -0.001, 0.001]  # MAGIC NUMBERS
     near_tb_pose = conversions.to_pose_stamped(target_link, xyz_light_push + target_rotation)
-    success = self.b_bot.move_lin(near_tb_pose, speed=0.05, acceleration=0.05, end_effector_link="b_bot_screw_tool_m4_tip_link")
-    if not success:
+    seq.append(helpers.to_sequence_item(approach_pose, speed=1.0, end_effector_link="b_bot_screw_tool_m4_tip_link"))
+    seq.append(helpers.to_sequence_item(near_tb_pose, speed=0.3, end_effector_link="b_bot_screw_tool_m4_tip_link"))
+    # success = self.b_bot.move_lin(near_tb_pose, speed=0.05, acceleration=0.05, end_effector_link="b_bot_screw_tool_m4_tip_link")
+
+    if not self.execute_sequence("b_bot", seq, "prepare_screw_tool_idler_pulley"):
       return False
 
     self.vision.activate_camera("a_bot_inside_camera")
@@ -2339,9 +2344,9 @@ class O2ACCommon(O2ACBase):
 
   def insert_screw_tool_tip_into_idler_pulley_head(self):
     selection_matrix = [0., 0.9, 0.9, 1, 1, 1]
-    self.b_bot.execute_spiral_trajectory("YZ", max_radius=0.003, radius_direction="+Y", steps=50,
+    self.b_bot.execute_spiral_trajectory("YZ", max_radius=0.003, radius_direction="+Y", steps=30,
                                          revolutions=2, target_force=0, selection_matrix=selection_matrix, check_displacement_time=10,
-                                         termination_criteria=None, timeout=6.0, end_effector_link="b_bot_screw_tool_m4_tip_link")
+                                         termination_criteria=None, timeout=4.0, end_effector_link="b_bot_screw_tool_m4_tip_link")
     return True
 
   def fasten_idler_pulley_with_nut_tool(self, target_link):
@@ -2456,7 +2461,7 @@ class O2ACCommon(O2ACBase):
     return success
 
   def pick_shaft(self, attempt_nr=0, called_recursively=False):
-    options = {'center_on_corner': True, 'approach_height': 0.02, 'grab_and_drop': True, 'center_on_close_border': True, 'with_tool': True}
+    options = {'center_on_corner': True, 'approach_height': 0.02, 'grab_and_drop': True, 'center_on_close_border': True, 'with_tool': True, 'check_too_close_to_border': True}
     goal = self.look_and_get_grasp_point("shaft", options=options)
     if not isinstance(goal, geometry_msgs.msg.PoseStamped):
       print("goal", type(goal), goal)
@@ -2487,7 +2492,7 @@ class O2ACCommon(O2ACBase):
 
     picked_ok = self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.03, approach_height=0.1, 
                               item_id_to_attach="shaft", minimum_grasp_width=0.004,  axis="z", lift_up_after_pick=True,
-                              speed_slow=0.1)
+                              speed_slow=0.3)
     
     
     if not picked_ok:
@@ -2522,7 +2527,7 @@ class O2ACCommon(O2ACBase):
     target_pose_target_frame = self.listener.transformPose(target_link, current_pose)
     target_pose_target_frame.pose.position.x = 0.04 if from_behind else -0.01 # Magic number
 
-    selection_matrix = [0., 0.2, 0.2, 1, 1, 1]
+    selection_matrix = [0., 0.2, 0.2, 1, 1, 0.8]
     offset = -0.003 if from_behind else 0.003
     self.b_bot.move_lin_rel(relative_translation = [offset,0,0], acceleration = 0.1, speed=.03) # Release shaft for next push
     result = self.b_bot.do_insertion(target_pose_target_frame, insertion_direction=direction, force=5.0, timeout=15.0, 

@@ -90,7 +90,7 @@
     <joint name="${prefix}robotiq_85_set_screw_tool_tip_joint" type="fixed">
       <parent link="${prefix}tool_intermediate_link"/>
       <child link="${prefix}set_screw_tool_tip_link"/>
-      <origin rpy="0 0 0" xyz="0.068 0 0.0014"/>
+      <origin rpy="0 0 0" xyz="0.078 0 0.0014"/>
     </joint>
     <link name="${prefix}set_screw_tool_tip_link"/>
 
