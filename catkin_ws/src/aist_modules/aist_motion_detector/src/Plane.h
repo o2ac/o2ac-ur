@@ -30,13 +30,22 @@ class Plane
     static size_t	ndataMin()			{ return N;  }
     const vector_type&	normal()		const	{ return _n; }
     value_type		distance()		const	{ return _d; }
-    value_type		distance(const vector_type& point) const
+    value_type		sdistance(const vector_type& x) const
 			{
-			    return std::abs(_n.dot(point) + _d);
+			    return _n.dot(x) + _d;
 			}
-    vector_type		cross_point(const vector_type& view_vector) const
+    value_type		distance(const vector_type& x) const
 			{
-			    return (-_d/_n.dot(view_vector)) * view_vector;
+			    return std::abs(sdistance(x));
+			}
+    vector_type		cross_point(const vector_type& v,
+				    const vector_type& x={0, 0, 0}) const
+			{
+			    return x - (sdistance(x)/_n.dot(v)) * v;
+			}
+    vector_type		projection(const vector_type& x) const
+			{
+			    return x - sdistance(x) * _n;
 			}
 
     friend std::ostream&

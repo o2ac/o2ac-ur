@@ -7,20 +7,25 @@ add_compile_options(-std=c++14)
 add_compile_options(-fpermissive)
 add_compile_options(-pthread)
 
+find_package(Boost REQUIRED)
+find_package(OpenCV REQUIRED)
+
 find_package(
   catkin REQUIRED
   COMPONENTS
-    sensor_msgs
+    roscpp
+    roslib
     image_transport
-    cv_bridge
+    tf
+    sensor_msgs
+    geometry_msgs
+    genmsg
     message_generation
     actionlib_msgs
     actionlib
     ddynamic_reconfigure
-    rospy
+    cv_bridge
 )
-
-find_package(OpenCV REQUIRED)
 
 #catkin_python_setup()
 
@@ -33,66 +38,57 @@ include_directories(
   src
 )
 
-#add_action_files(
-#  FILES Localize.action
-#)
+add_action_files(
+  FILES FindCabletip.action
+)
 
-#generate_messages(
-#  DEPENDENCIES
-#    actionlib_msgs
-#    actionlib
-#    geometry_msgs
-#    std_msgs
-#)
+generate_messages(
+  DEPENDENCIES
+    actionlib_msgs
+    actionlib
+    geometry_msgs
+)
 
 catkin_package(
   CATKIN_DEPENDS
     roscpp
-    rospy
     message_runtime
     sensor_msgs
-    pluginlib
-    nodelet
+    geometry_msgs
 )
 
-add_executable(
-  ${PROJECT_NAME}
+add_executable(${PROJECT_NAME}
   src/main.cpp
   src/MotionDetector.cpp
 )
 
-add_dependencies(
-  ${PROJECT_NAME}
-#  ${PROJECT_NAME}_gencpp
-  ${${PREOJECT_NAME}_EXPORTED_TARGETS}
-  ${catkin_EXPORTED_TARGETS}
-)
-
-target_link_libraries(
-  ${PROJECT_NAME}
+target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
   ${roscpp_LIBRARIES}
   ${OpenCV_LIBRARIES}
 )
 
-add_library(
-  ${PROJECT_NAME}_nodelet
+add_dependencies(${PROJECT_NAME}
+  ${PROJECT_NAME}_gencpp
+  ${${PREOJECT_NAME}_EXPORTED_TARGETS}
+  ${catkin_EXPORTED_TARGETS}
+)
+
+add_library(${PROJECT_NAME}_nodelet
   src/nodelet.cpp
   src/MotionDetector.cpp
 )
 
-add_dependencies(
-  ${PROJECT_NAME}_nodelet
-#  ${PROJECT_NAME}_gencpp
-  ${${PREOJECT_NAME}_EXPORTED_TARGETS}
-  ${catkin_EXPORTED_TARGETS}
-)
-
-target_link_libraries(
-  ${PROJECT_NAME}_nodelet
+target_link_libraries(${PROJECT_NAME}_nodelet
   ${catkin_LIBRARIES}
   ${roscpp_LIBRARIES}
   ${OpenCV_LIBRARIES}
+)
+
+add_dependencies(${PROJECT_NAME}_nodelet
+  ${PROJECT_NAME}_gencpp
+  ${${PREOJECT_NAME}_EXPORTED_TARGETS}
+  ${catkin_EXPORTED_TARGETS}
 )
 
 #############
