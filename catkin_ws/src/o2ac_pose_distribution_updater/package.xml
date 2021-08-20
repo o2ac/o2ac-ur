@@ -16,9 +16,13 @@
   <exec_depend>actionlib_msgs</exec_depend>
   <build_depend>o2ac_msgs</build_depend>
   <exec_depend>o2ac_msgs</exec_depend>
+  <build_depend>o2ac_skills</build_depend>
+  <exec_depend>o2ac_skills</exec_depend>
   <build_depend>std_msgs</build_depend>
   <exec_depend>std_msgs</exec_depend>
   <build_depend>geometry_msgs</build_depend>
   <exec_depend>geometry_msgs</exec_depend>
+  <depend>moveit_ros_planning</depend>
+  <depend>moveit_ros_planning_interface</depend>
 
 </package>

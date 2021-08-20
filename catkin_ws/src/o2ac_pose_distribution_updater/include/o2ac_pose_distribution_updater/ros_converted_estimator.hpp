@@ -33,13 +33,11 @@ public:
                   const geometry_msgs::Pose &gripper_pose,
                   const unsigned char &distribution_type,
                   const geometry_msgs::PoseWithCovariance &old_distibution,
-                  geometry_msgs::PoseWithCovariance &new_distribution,
-                  const bool use_linear_approximation = true);
+                  geometry_msgs::PoseWithCovariance &new_distribution);
 
   void push_step(const moveit_msgs::CollisionObject &gripped_object,
                  const geometry_msgs::Pose &gripper_pose,
                  const unsigned char &distribution_type,
                  const geometry_msgs::PoseWithCovariance &old_distibution,
-                 geometry_msgs::PoseWithCovariance &new_distribution,
-                 const bool use_linear_approximation = true);
+                 geometry_msgs::PoseWithCovariance &new_distribution);
 };

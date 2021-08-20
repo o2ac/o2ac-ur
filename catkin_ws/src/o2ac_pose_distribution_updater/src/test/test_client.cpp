@@ -158,7 +158,7 @@ int main(int argc, char **argv) {
 
   // create the visualization marker publisher
   marker_publisher =
-      nd.advertise<visualization_msgs::MarkerArray>("test_marker", 1);
+      nd.advertise<visualization_msgs::MarkerArray>("test_marker_array", 1);
 
   ros::Duration(1.0).sleep();
   RUN_ALL_TESTS();

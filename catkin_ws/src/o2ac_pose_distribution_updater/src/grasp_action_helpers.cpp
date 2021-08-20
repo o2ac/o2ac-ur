@@ -1,4 +1,5 @@
 #include "o2ac_pose_distribution_updater/grasp_action_helpers.hpp"
+#include "o2ac_pose_distribution_updater/convex_hull.hpp"
 
 namespace {
 const double INF = 1e9, EPS = 1e-9, LARGE_EPS = 1e-7;
@@ -141,26 +142,23 @@ grasp_calculator::grasp_calculator(
   // calculate the convex hull of the vertices projected along the z-axis
 
   namespace bg = boost::geometry;
-  bg::model::multi_point<Eigen::Vector2d> projected_points;
+  std::vector<Eigen::Vector2d> projected_points(current_vertices.size()), hull;
 
-  for (auto &vertex : current_vertices) {
-    bg::append(projected_points, (Eigen::Vector2d)vertex.block(0, 0, 2, 1));
+  for (int i = 0; i < current_vertices.size(); i++) {
+    projected_points[i] = current_vertices[i].head<2>();
   }
 
-  static const bool clock_wise = false;
-  bg::model::ring<Eigen::Vector2d, clock_wise> hull;
-  bg::convex_hull(projected_points, hull);
-  hull.resize(hull.size() - 1);
+  convex_hull_for_Eigen_Vector2d(projected_points, hull);
 
   // find the left-most and right-most vertices of the hull
 
   int hull_size = hull.size();
   int left_vertex_id = 0, right_vertex_id = 0;
   for (int i = 1; i < hull_size; i++) {
-    if (hull[i].x() < hull[left_vertex_id].x() - EPS) {
+    if (hull[i].x() < hull[left_vertex_id].x()) {
       left_vertex_id = i;
     }
-    if (hull[i].x() > hull[right_vertex_id].x() + EPS) {
+    if (hull[i].x() > hull[right_vertex_id].x()) {
       right_vertex_id = i;
     }
   }
@@ -196,14 +194,14 @@ grasp_calculator::grasp_calculator(
                    -first_direction *
                        right_edge(1)); // the angle such that the right edge is
                                        // parallel to y-axis after rotation
-    if (left_angle <= right_angle + EPS) {
+    if (left_angle <= right_angle) {
       Eigen::Rotation2Dd rotation(first_direction * left_angle);
       double left_y = first_direction * (rotation * hull[left_vertex_id])(1);
       double next_left_y =
           first_direction * (rotation * hull[next_left_vertex_id])(1);
       double right_y = first_direction * (rotation * hull[right_vertex_id])(1);
       if (left_y - LARGE_EPS <= right_y && right_y <= next_left_y + LARGE_EPS &&
-          left_y + LARGE_EPS < next_left_y) {
+          left_y + EPS < next_left_y) {
         // the hull is stable after rotation
         rotation_angle = left_angle;
         next_vertex_id = next_left_vertex_id;
@@ -218,7 +216,7 @@ grasp_calculator::grasp_calculator(
       double next_right_y =
           first_direction * (rotation * hull[next_right_vertex_id])(1);
       if (next_right_y - LARGE_EPS <= left_y && left_y <= right_y + LARGE_EPS &&
-          next_right_y + LARGE_EPS < right_y) {
+          next_right_y + EPS < right_y) {
         // the hull is stable after rotation
         rotation_angle = right_angle;
         next_vertex_id = next_right_vertex_id;
@@ -404,25 +402,18 @@ grasp_calculator::grasp_calculator(
     left_x = final_vertices[gripper_touch_vertex_id_3](0);
     right_x = final_vertices[gripper_touch_vertex_id_1](0);
   }
-  bg::model::multi_point<Eigen::Vector2d> points_on_left_gripper,
-      points_on_right_gripper;
+  std::vector<Eigen::Vector2d> points_on_left_gripper, points_on_right_gripper;
 
   for (auto &vertex : final_vertices) {
     if (vertex(0) <= left_x + LARGE_EPS) {
-      bg::append(points_on_left_gripper,
-                 (Eigen::Vector2d)vertex.block(1, 0, 2, 1));
+      points_on_left_gripper.push_back(vertex.tail<2>());
     }
     if (vertex(0) >= right_x - LARGE_EPS) {
-      bg::append(points_on_right_gripper,
-                 (Eigen::Vector2d)vertex.block(1, 0, 2, 1));
+      points_on_right_gripper.push_back(vertex.tail<2>());
     }
   }
-  // calculate the convex hulls of the points on left and right grippers
-  bg::model::ring<Eigen::Vector2d, clock_wise> left_hull, right_hull;
-  bg::convex_hull(points_on_left_gripper, left_hull);
-  bg::convex_hull(points_on_right_gripper, right_hull);
-  // if the two convex hulls are disjoint, the object is unstable
-  if (bg::disjoint(left_hull, right_hull)) {
+  if (!do_intersect_convex_hulls(points_on_left_gripper,
+                                 points_on_right_gripper)) {
     throw(std::runtime_error("Unstable after gripping"));
   }
 
@@ -534,7 +525,7 @@ grasp_calculator::calculate_transform_after_grasping(
 }
 
 // the class to use Autodiff
-class calculate_perturbation_after_grasping : grasp_calculator {
+class calculate_perturbation_after_grasping : public grasp_calculator {
 
 public:
   using grasp_calculator::grasp_calculator;
@@ -573,9 +564,6 @@ public:
             .matrix()); // the first approximation of
                         // check_operator(log(result_transform * new_mean^{-1}))
   }
-
-  // the function to return new_mean
-  Eigen::Isometry3d get_new_mean() { return new_mean; }
 };
 
 void grasp_update_Lie_distribution(
@@ -599,7 +587,7 @@ void grasp_update_Lie_distribution(
   assert(mean_perturbation.norm() < LARGE_EPS);
 
   // new_mean is calculated in the class calculate_perturbation_AD
-  new_mean = calculate_perturbation_AD.get_new_mean();
+  new_mean = calculate_perturbation_AD.new_mean;
 
   // The covariance of the function value is calculated by the covariance of the
   // argument and Jacobian.
