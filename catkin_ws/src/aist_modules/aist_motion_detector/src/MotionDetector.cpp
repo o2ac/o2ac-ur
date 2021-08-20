@@ -4,7 +4,6 @@
  *  \brief	ROS node for tracking corners in 2D images
  */
 #include "MotionDetector.h"
-#include "Plane.h"
 #include <sensor_msgs/image_encodings.h>
 #include <opencv2/calib3d.hpp>
 #include <opencv2/imgproc.hpp>
@@ -15,10 +14,22 @@ namespace aist_motion_detector
 /************************************************************************
 *  static functions							*
 ************************************************************************/
-static inline cv::Point3f
+template <class T> static inline cv::Point3_<T>
 pointTFToCV(const tf::Point& p)
 {
     return {p.x(), p.y(), p.z()};
+}
+
+template <class T> static inline cv::Vec<T, 3>
+vector3TFToCV(const tf::Vector3& v)
+{
+    return {v.x(), v.y(), v.z()};
+}
+
+template <class T> static inline tf::Vector3
+vector3CVToTF(const cv::Vec<T, 3>& v)
+{
+    return {v(0), v(1), v(2)};
 }
 
 static inline bool
@@ -86,6 +97,12 @@ crossPoint(const TU::Plane<T, 2>& l1, const TU::Plane<T, 2>& l2)
     return {p[0]/p[2], p[1]/p[2]};
 }
     
+static std::ostream&
+operator <<(std::ostream& out, const tf::Vector3& v)
+{
+    return out << ' ' << v.x() << ' ' << v.y() << ' ' << v.z() << std::endl;
+}
+
 /************************************************************************
 *  class MotionDetector							*
 ************************************************************************/
@@ -99,6 +116,7 @@ MotionDetector::MotionDetector(const ros::NodeHandle& nh)
      _camera_pub(_it.advertiseCamera("depth", 1)),
      _image_pub(_it.advertise("image", 1)),
      _listener(),
+     _broadcaster(),
      _find_cabletip_srv(_nh, "find_cabletip", false),
      _current_goal(nullptr),
      _ddr(_nh),
@@ -110,7 +128,9 @@ MotionDetector::MotionDetector(const ros::NodeHandle& nh)
      _top_left(0, 0),
      _bottom_right(0, 0),
      _corners(),
-     _mask()
+     _mask(),
+     _Tct(),
+     _camera_info(nullptr)
 {
   // Setup FindCabletip action server.
     _find_cabletip_srv.registerGoalCallback(boost::bind(&goal_cb, this));
@@ -157,11 +177,21 @@ MotionDetector::preempt_cb()
 {
     if (_nframes > 0)
     {
-	detect_cabletip();
+	const auto		T = find_cabletip();
+	geometry_msgs::Pose	pose;
+	tf::poseTFToMsg(T, pose);
+
 	_image_pub.publish(_mask.toImageMsg());
 
 	FindCabletipResult	result;
+	result.pose.header.frame_id = _current_goal->target_frame;
+	result.pose.header.stamp    = ros::Time::now();
+	result.pose.pose	    = pose;
 	_find_cabletip_srv.setPreempted(result);
+
+	_broadcaster.sendTransform({T, result.pose.header.stamp,
+				    result.pose.header.frame_id,
+				    "cabletip_link"});
 
 	_nframes = 0;
     }
@@ -207,11 +237,13 @@ MotionDetector::accumulate_mask(const cv::Mat& mask,
 				const std::string& target_frame,
 				const camera_info_cp& camera_info)
 {
+    _camera_info = camera_info;
+    
   // Get transform from the target frame to camera frame.
-    _listener.waitForTransform(camera_info->header.frame_id, target_frame,
-			       camera_info->header.stamp, ros::Duration(1.0));
-    _listener.lookupTransform(camera_info->header.frame_id, target_frame,
-			      camera_info->header.stamp, _Tct);
+    _listener.waitForTransform(_camera_info->header.frame_id, target_frame,
+			       _camera_info->header.stamp, ros::Duration(1.0));
+    _listener.lookupTransform(_camera_info->header.frame_id, target_frame,
+			      _camera_info->header.stamp, _Tct);
 
   // Transfrom ROI corners to camera frame.
     const tf::Point	corners[] = {{_search_top,    0.0, -_search_width/2},
@@ -220,14 +252,14 @@ MotionDetector::accumulate_mask(const cv::Mat& mask,
 				     {_search_bottom, 0.0, -_search_width/2}};
     cv::Mat_<point3_t>	pt3s(1, 4);
     for (size_t i = 0; i < 4; ++i)
-	pt3s(i) = pointTFToCV(_Tct * corners[i]);
+	pt3s(i) = pointTFToCV<value_t>(_Tct * corners[i]);
 
   // Project ROI corners onto the image.
-    cv::Mat_<float>	K(3, 3);
-    std::copy_n(std::begin(camera_info->K), 9, K.begin());
-    cv::Mat_<float>	D(1, 4);
-    std::copy_n(std::begin(camera_info->D), 4, D.begin());
-    const auto		zero = cv::Mat_<float>::zeros(1, 3);
+    cv::Mat_<value_t>	K(3, 3);
+    std::copy_n(std::begin(_camera_info->K), 9, K.begin());
+    cv::Mat_<value_t>	D(1, 4);
+    std::copy_n(std::begin(_camera_info->D), 4, D.begin());
+    const auto		zero = cv::Mat_<value_t>::zeros(1, 3);
     cv::Mat_<point2_t>	p(1, 4);
     cv::projectPoints(pt3s, zero, zero, K, D, p);
 
@@ -237,7 +269,7 @@ MotionDetector::accumulate_mask(const cv::Mat& mask,
 	return;
 
     _mask.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
-    _mask.header   = camera_info->header;
+    _mask.header   = _camera_info->header;
 
     if (_nframes == 0)
     {
@@ -264,8 +296,8 @@ MotionDetector::accumulate_mask(const cv::Mat& mask,
     ++_nframes;
 }
 
-void
-MotionDetector::find_cabletip(const tf::Transform& Tct)
+tf::Transform
+MotionDetector::find_cabletip()
 {
   // Fill the outside of ROI with zero.
     const point_t	outer[]   = {{0,		  0},
@@ -289,9 +321,9 @@ MotionDetector::find_cabletip(const tf::Transform& Tct)
     _mask.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
 
   // Create a line of finger-tip border.
-    const cv::Vec<float, 2>	ends[] = {_corners(0) - point2_t(_top_left),
+    const cv::Vec<value_t, 2>	ends[] = {_corners(0) - point2_t(_top_left),
 					  _corners(1) - point2_t(_top_left)};
-    const TU::Plane<float, 2>	fingertip(ends, ends + 2);
+    const line_t		fingertip(ends, ends + 2);
 
   // Assign labels to the binarized mask image.
     cv::Mat	labels, stats, centroids;
@@ -302,7 +334,7 @@ MotionDetector::find_cabletip(const tf::Transform& Tct)
     const auto	lmax = findLargestRegion(labels, stats, nlabels, fingertip);
     
   // Fit a line to the points in the region.
-    std::vector<cv::Vec<float, 2> >	cable_points;
+    std::vector<cv::Vec<value_t, 2> >	cable_points;
     for (int v = 0; v < labels.rows; ++v)
     {
 	auto	p = labels.ptr<int>(v, 0);
@@ -317,31 +349,71 @@ MotionDetector::find_cabletip(const tf::Transform& Tct)
 	    else
 		*q = 0;
     }
-    TU::Plane<float, 2>	cable(cable_points.begin(), cable_points.end());
+    line_t	cable(cable_points.begin(), cable_points.end());
 
   // Compute cross point between finger-tip border and cable.
     const auto	root = crossPoint(fingertip, cable);
 
   // Find a point in the region farest from the cross point.
-    float	dmax = 0;
-    point_t	cabletip;
+    value_t	dmax = 0;
+    point2_t	cabletip;
     for (const auto& cable_point : cable_points)
     {
 	const auto	p = cable.projection(cable_point);
 	const auto	d = cv::norm(p, root);
 	if (d > dmax)
 	{
-	    dmax = d;
-	    cabletip = {p(0), p(1)};
+	    dmax     = d;
+	    cabletip = p;
 	}
     }
 
-    cv::drawMarker(_mask.image, point_t(root), cv::Scalar(128));
-    cv::drawMarker(_mask.image, cabletip, cv::Scalar(128));
+    cv::drawMarker(_mask.image, point_t(root),	   cv::Scalar(128));
+    cv::drawMarker(_mask.image, point_t(cabletip), cv::Scalar(128));
     
   // Plane including fingertip described w.r.t. camera frame.
-    auto	ry = _Tct.getBasis().getColumn(1);
-    auto	d  = 
+    const auto		nc = vector3TFToCV<value_t>(_Tct.getBasis()
+						    .getColumn(1));
+    const auto		tc = vector3TFToCV<value_t>(_Tct.getOrigin());
+    const plane_t	plane(nc, -nc.dot(tc));
+
+  // Compute cross point between the plane and view vectors
+  // for root and fingertip.
+    const auto		root3 = _Tct.inverse()
+			      * vector3CVToTF(
+				  plane.cross_point(
+				      view_vector(root(0) + _top_left.x,
+						  root(1) + _top_left.y)));
+    const auto		tip3  = _Tct.inverse()
+			      * vector3CVToTF(
+				  plane.cross_point(
+				      view_vector(cabletip.x + _top_left.x,
+						  cabletip.y + _top_left.y)));
+    const auto		rx = (tip3 - root3).normalize();
+    const tf::Vector3	ry(0, 1, 0);
+    const auto		rz = rx.cross(ry).normalize();
+
+    std::cerr << "root3 = " << root3 << std::endl;
+    std::cerr << "tip3  = " << tip3  << std::endl;
+    
+    return tf::Transform({rx.x(), ry.x(), rz.x(),
+			  rx.y(), ry.y(), rz.y(),
+			  rx.z(), ry.z(), rz.z()},
+			 tip3);
+}
+
+MotionDetector::vector3_t
+MotionDetector::view_vector(const value_t u, value_t v) const
+{
+    cv::Mat_<value_t>	K(3, 3);
+    std::copy_n(std::begin(_camera_info->K), 9, K.begin());
+    cv::Mat_<value_t>	D(1, 4);
+    std::copy_n(std::begin(_camera_info->D), 4, D.begin());
+    cv::Mat_<point2_t>	uv(1, 1), xy(1, 1);
+    uv(0) = {u, v};
+    cv::undistortPoints(uv, xy, K, D);
+
+    return {xy(0).x, xy(0).y, value_t(1)};
 }
 
 }	// namespace aist_motion_detector

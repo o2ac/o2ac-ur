@@ -11,12 +11,14 @@
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 #include <tf/transform_listener.h>
+#include <tf/transform_broadcaster.h>
 #include <actionlib/server/simple_action_server.h>
 #include <ddynamic_reconfigure/ddynamic_reconfigure.h>
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/core.hpp>
 #include <opencv2/bgsegm.hpp>
 #include <aist_motion_detector/FindCabletipAction.h>
+#include "Plane.h"
 
 namespace aist_motion_detector
 {
@@ -34,10 +36,16 @@ class MotionDetector
     using sync_policy_t	 = message_filters::sync_policies::
 				ApproximateTime<camera_info_t,
 						image_t, image_t>;
+
     using bgsub_p	 = cv::Ptr<cv::BackgroundSubtractor>;
-    using point3_t	 = cv::Point3f;
-    using point2_t	 = cv::Point2f;
+
+    using value_t	 = float;
+    using point3_t	 = cv::Point3_<value_t>;
+    using point2_t	 = cv::Point_<value_t>;
     using point_t	 = cv::Point;
+    using vector3_t	 = cv::Vec<value_t, 3>;
+    using line_t	 = TU::Plane<value_t, 2>;
+    using plane_t	 = TU::Plane<value_t, 3>;
     
   public:
 		MotionDetector(const ros::NodeHandle& nh)		;
@@ -64,7 +72,9 @@ class MotionDetector
     void	accumulate_mask(const cv::Mat& image,
 				const std::string& target_frame,
 				const camera_info_cp& camera_info)	;
-    void	find_cabletip()						;
+    tf::Transform
+		find_cabletip()						;
+    vector3_t	view_vector(value_t u, value_t v)		const	;
     
   private:
     ros::NodeHandle					_nh;
@@ -78,7 +88,8 @@ class MotionDetector
     const image_transport::Publisher			_image_pub;
 
     const tf::TransformListener				_listener;
-
+    tf::TransformBroadcaster				_broadcaster;
+    
     actionlib::SimpleActionServer<FindCabletipAction>	_find_cabletip_srv;
     FindCabletipGoalConstPtr				_current_goal;
 
@@ -96,7 +107,8 @@ class MotionDetector
     point_t						_bottom_right;
     cv::Mat_<point2_t>					_corners;
     cv_bridge::CvImage					_mask;
-    tf::Transform					_Tct;
+    tf::StampedTransform				_Tct;
+    camera_info_cp					_camera_info;
 };
 
 }	// namespace aist_motion_detector
