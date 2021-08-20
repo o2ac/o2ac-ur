@@ -121,7 +121,7 @@ MotionDetector::MotionDetector(const ros::NodeHandle& nh)
      _current_goal(nullptr),
      _ddr(_nh),
      _bgsub(cv::createBackgroundSubtractorMOG2()),
-     _search_top(_nh.param("search_top", 0.003)),
+     _search_top(_nh.param("search_top", 0.005)),
      _search_bottom(_nh.param("search_bottom", 0.030)),
      _search_width(_nh.param("search_width", 0.050)),
      _nframes(0),
@@ -143,7 +143,7 @@ MotionDetector::MotionDetector(const ros::NodeHandle& nh)
   // Setup parameters and ddynamic_reconfigure server.
     _ddr.registerVariable<double>("search_top", &_search_top,
 				  "Top of search area in meters",
-				  -0.005, 0.005);
+				  -0.010, 0.010);
     _ddr.registerVariable<double>("search_bottom", &_search_bottom,
 				  "Bottom of search area in meters",
 				  0.005, 0.050);
