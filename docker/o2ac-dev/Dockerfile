@@ -351,6 +351,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ################################################################################
 
+# Install cgal
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	libcgal-dev=4.11-2build1 \
+	&& rm -rf /var/lib/apt/lists/*
+
+################################################################################
+
+# Install matheval
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	libmatheval-dev=1.1.11+dfsg-3build1 \
+	&& rm -rf /var/lib/apt/lists/*
+
+################################################################################
+
 # Dependency for ur_python_utilities
 RUN pip2 install pyquaternion==0.9.9
 
