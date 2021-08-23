@@ -1,34 +1,16 @@
 <launch>
-
+    <param name="config_file" value="$(find o2ac_pose_distribution_updater)/launch/estimator_config.yaml"/>
     <rosparam>
-      number_of_particles: 1000
-      noise_variance: [0.001, 0.001, 0.001, 0.0087, 0.0087, 0.0087]
-      ground_size: [2.0, 2.0, 2.0]
-      ground_position: [0.0, 0.0, -0.994]
-      box_size: [0.4, 0.2, 0.097]
-      box_position: [-0.20, -0.485, 0.0485]
+    marker_array_topic_name: o2ac_pose_belief_visualization_marker_array
+    visualization_scale: [1.0, 1.0, 1.0]
+    mean_color: [1.0, 0.0, 0.0, 1.0]
+    variance_color: [0.0, 0.0, 1.0, 0.04]
+    number_of_particles_to_visualize: 50
 
-      distance_threshold: 0.002
-
-      look_threshold: 100
-      calibration_object_points: [-0.369, -0.16, 0.0289, -0.393, -0.1374, 0.0135, -0.3676, -0.1147, 0.0288]
-      calibration_image_points: [1096.40710449, 663.35202026, 1204.28242493, 740.49017334, 1363.73980713, 666.20413208]
-      camera_fx: 1386.4278564453125
-      camera_fy: 1386.4278564453125
-      camera_cx: 980.115173398438
-      camera_cy: 534.3704833984375
-
-      marker_array_topic_name: o2ac_pose_belief_visualization_marker_array
-      visualization_scale: [1.0, 1.0, 1.0]
-      mean_color: [1.0, 0.0, 0.0, 1.0]
-      variance_color: [0.0, 0.0, 1.0, 0.04]
-      number_of_particles_to_visualize: 50
-
-      gripper_height: 0.256
-      gripper_width: 0.020
-      gripper_thickness: 0.006
+    use_planning_scene_monitor: false
+    visualize_each_step: true
     </rosparam>
-
+    
     <node name="pose_distribution_updater" pkg="o2ac_pose_distribution_updater" type="update_distribution_action_server" output="screen">
     </node>
 </launch>

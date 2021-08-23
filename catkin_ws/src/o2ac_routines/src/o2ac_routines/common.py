@@ -43,6 +43,8 @@ tau = 2*pi
 from o2ac_routines.thread_with_trace import ThreadTrace
 from ur_control.constants import DONE, TERMINATION_CRITERIA
 from trajectory_msgs.msg import JointTrajectoryPoint
+from ur_gazebo.gazebo_spawner import GazeboModels
+from ur_gazebo.model import Model
 
 import numpy as np
 
@@ -67,6 +69,10 @@ class O2ACCommon(O2ACBase):
     self.assembly_marker_publisher = rospy.Publisher("o2ac_assembly_markers", visualization_msgs.msg.Marker, queue_size = 100)
 
     self.define_tray_views()
+
+    self.update_distribution_client = actionlib.SimpleActionClient("update_distribution", o2ac_msgs.msg.updateDistributionAction)
+
+    self.gazebo_scene = GazeboModels('o2ac_gazebo')
 
   def define_tray_views(self):
     """
@@ -329,7 +335,7 @@ class O2ACCommon(O2ACBase):
 
     # Look from top first
     self.vision.activate_camera(robot_name+"_outside_camera")
-    if not skip_moving and self.use_real_robot:
+    if not skip_moving:
       view_poses = [self.tray_view_high] + self.close_tray_views
       for pose in view_poses:
         if not self.active_robots[robot_name].go_to_pose_goal(pose, end_effector_link=robot_name+"_outside_camera_color_frame", move_lin=True, retry_non_linear=True):
@@ -342,7 +348,7 @@ class O2ACCommon(O2ACBase):
       object_pose = self.detect_object_in_camera_view(item_name)
 
     if object_pose:
-      rospy.logdebug("Found " + item_name + ". Publishing to planning scene.")
+      rospy.loginfo("Found " + item_name + ". Publishing to planning scene.")
       # TODO: Apply Place action of pose estimation to constrain object to the tray_center plane
       # Workaround: Just set z to 0 
       object_pose.header.stamp = rospy.Time.now()
@@ -366,6 +372,16 @@ class O2ACCommon(O2ACBase):
         obj.header.frame_id = object_pose.header.frame_id
         obj.pose = object_pose.pose
         self.planning_scene_interface.add_object(obj)
+        if True:
+          # Spawn the part in gazebo
+          print("??? gazebo")
+          name = "panel_bearing"
+          # objpose = [[-0.294+.1, -.18+.1, 0.85], [0, 0, 0., 0.]] 
+          op = conversions.from_pose_to_list(object_pose.pose)
+          objpose = [op[:3], op[3:]] 
+          models = [Model(name, objpose[0], orientation=objpose[1], reference_frame=object_pose.header.frame_id)]
+          self.gazebo_scene.load_models(models,)
+          pass
 
         rospy.sleep(0.5)
         self.constrain_into_tray(item_name)
@@ -616,7 +632,7 @@ class O2ACCommon(O2ACBase):
           approach_height=0.05, item_id_to_attach = "", 
           lift_up_after_pick=True, acc_fast=1.0, acc_slow=.1, 
           gripper_velocity = .1, axis="x", sign=+1,
-          retreat_height = None, approach_with_move_lin=True, attach_with_collisions=False):
+                  retreat_height = None, approach_with_move_lin=True, attach_with_collisions=False, pose_with_uncertainty=None, object_name="", pick_from_ground=True):
     """
     This function (outdated) performs a grasp with the robot, but it is not updated in the planning scene.
     It does not use the object in simulation. It can be used for simple tests and prototyping, but should
@@ -668,10 +684,42 @@ class O2ACCommon(O2ACBase):
       seq.append(helpers.to_sequence_gripper("close", gripper_velocity=gripper_velocity, gripper_force=gripper_force))
       # robot.gripper.close(force=gripper_force, velocity=gripper_velocity)
 
-    # break seq here
-    if not self.execute_sequence(robot_name, seq, "simple_pick"):
-      rospy.logerr("Fail to simple pick with sequence")
-      return False
+    # # break seq here
+    # if not self.execute_sequence(robot_name, seq, "simple_pick"):
+    #   rospy.logerr("Fail to simple pick with sequence")
+    #   return False
+
+    if pose_with_uncertainty != None:
+      tip_link = robot_name + "_gripper_tip_link"
+      collision_object=self.assembly_database.get_collision_object(object_name)
+      if pick_from_ground:
+        now=rospy.Time.now()
+        update_goal=o2ac_msgs.msg.updateDistributionGoal()
+        update_goal.observation_type=update_goal.GRASP_OBSERVATION
+        update_goal.gripped_object=collision_object
+        self.listener.waitForTransform("world", tip_link, now, rospy.Duration(1.0))
+        update_goal.gripper_pose.pose= tf_conversions.posemath.toMsg(tf_conversions.posemath.fromTf(self.listener.lookupTransform("world", tip_link, now)))
+        update_goal.gripper_pose.header.frame_id="world"
+        update_goal.gripper_pose.header.stamp= now
+        update_goal.distribution_type=1
+        update_goal.distribution=self.transform_pose_with_uncertainty(tip_link, pose_with_uncertainty, now=now)
+        self.update_distribution_client.send_goal(update_goal)
+        self.update_distribution_client.wait_for_result()
+        update_result = self.update_distribution_client.get_result()
+        pose_with_uncertainty.header=update_result.distribution.header
+        pose_with_uncertainty.pose=update_result.distribution.pose
+      else:
+        transformed_pose=self.transform_pose_with_uncertainty(tip_link, pose_with_uncertainty)
+        pose_with_uncertainty.header=transformed_pose.header
+        pose_with_uncertainty.pose=transformed_pose.pose
+
+      visualizer=rospy.ServiceProxy("visualize_pose_belief", o2ac_msgs.srv.visualizePoseBelief)
+      visualization_request = o2ac_msgs.srv.visualizePoseBeliefRequest()
+      visualization_request.object = collision_object
+      visualization_request.distribution_type = 1
+      visualization_request.distribution = pose_with_uncertainty
+      visualization_request.frame_locked=True
+      visualizer(visualization_request)
 
     success = True
     if minimum_grasp_width > robot.gripper.opening_width and self.use_real_robot:
@@ -3550,16 +3598,24 @@ class O2ACCommon(O2ACBase):
       return False
     return True
 
-  def pick_panel_with_handover(self, panel_name="panel_bearing", simultaneous=True, rotate_on_failure=True, rotation_retry_counter=0):
+  def pick_panel_with_handover(self, panel_name="panel_bearing", simultaneous=True, rotate_on_failure=True, rotation_retry_counter=0, pose_with_uncertainty=None):
     grasp_width = 0.05
-    if self.use_real_robot:
-      self.activate_led("b_bot")
-      goal = self.get_large_item_position_from_top(panel_name, "b_bot")
-      rospy.sleep(0.2)
-    else:
-      goal = conversions.to_pose_stamped("tray_center", [0.02, -0.03, 0.001, 0.0, 0.0, tau/4])
-      self.spawn_object(panel_name, goal, goal.header.frame_id)
-      rospy.sleep(0.5)
+    self.activate_led("b_bot")
+    goal = self.get_large_item_position_from_top(panel_name, "b_bot")
+    rospy.sleep(0.2)
+    
+    # goal = conversions.to_pose_stamped("tray_center", [0.02, -0.03, 0.001, 0.0, 0.0, tau/4])
+    if pose_with_uncertainty !=None:
+      pose_with_uncertainty.header=goal.header
+      pose_with_uncertainty.pose.pose = goal.pose
+      pose_with_uncertainty.pose.covariance=[0.0001, 0.00, 0.00, 0.00, 0.00, 0.00,
+                                              0.00, 0.0001, 0.00, 0.00, 0.00, 0.00,
+                                              0.00, 0.00, 0.0000, 0.00, 0.00, 0.00,
+                                              0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
+                                              0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
+                                              0.00, 0.00, 0.00, 0.00, 0.00, 0.01]
+    # self.spawn_object(panel_name, goal, goal.header.frame_id, pose_with_uncertainty = pose_with_uncertainty)
+    rospy.sleep(0.5)
 
     if not goal:
       rospy.logerr("Abort pick of %s, plate not detected" % panel_name)
@@ -3576,7 +3632,8 @@ class O2ACCommon(O2ACBase):
     self.allow_collisions_with_robot_hand("tray", "b_bot", allow=True)
     success = self.simple_pick("b_bot", object_pose=grasp_pose, grasp_width=grasp_width, approach_height=0.05, grasp_height=0.005, 
                      axis="z", item_id_to_attach=panel_name, lift_up_after_pick=True, approach_with_move_lin=False,
-                     speed_fast=1.0, minimum_grasp_width=0.001, attach_with_collisions=True)
+                               speed_fast=1.0, minimum_grasp_width=0.001, attach_with_collisions=True, pose_with_uncertainty=pose_with_uncertainty, object_name=panel_name)
+      
     self.allow_collisions_with_robot_hand("tray", "b_bot", allow=True)
 
     if not success:
@@ -3602,7 +3659,7 @@ class O2ACCommon(O2ACBase):
 
     handover_pose = conversions.to_pose_stamped("tray_center", [0.0, 0.1, 0.2, -tau/4, tau/8, -tau/4])
     handover_grasp = "grasp_7" if panel_name == "panel_bearing" else "grasp_9"
-    if not self.simple_handover("b_bot", "a_bot", handover_pose, panel_name, handover_grasp, simultaneous=False):
+    if not self.simple_handover("b_bot", "a_bot", handover_pose, panel_name, handover_grasp, simultaneous=False, pose_with_uncertainty=pose_with_uncertainty):
       rospy.logerr("Fail to handover")
       return False
     return True
@@ -3638,7 +3695,7 @@ class O2ACCommon(O2ACBase):
     elif center_with_tool:
       self.move_towards_center_with_tool(robot_name, target_pose=tool_pull_pose, distance=0.06, start_with_spiral=True)
 
-  def place_panel(self, robot_name, panel_name, pick_again=True, grasp_pose=None, invert_gripper=True, fake_position=False):
+  def place_panel(self, robot_name, panel_name, pick_again=True, grasp_pose=None, invert_gripper=True, fake_position=False, pose_with_uncertainty=None):
     """ Place panel in assembly pose """
     if fake_position:  # For debugging
       aligned_pose = [0.0, 0.067, -0.080] if panel_name == "panel_bearing" else [0.0, -0.063, -0.080]
@@ -3657,7 +3714,7 @@ class O2ACCommon(O2ACBase):
       grasp_pose = self.listener.transformPose("world", grasp_pose)
       success = self.simple_pick(robot_name, object_pose=grasp_pose, grasp_width=0.04, approach_height=0.1, grasp_height=0.0, 
                       axis="z", item_id_to_attach=panel_name, lift_up_after_pick=False, approach_with_move_lin=False,
-                      speed_fast=1.0, attach_with_collisions=True)
+                                 speed_fast=1.0, attach_with_collisions=True, pose_with_uncertainty=pose_with_uncertainty, object_name=panel_name)
       self.active_robots[robot_name].move_lin_rel(relative_translation=[0,-0.01,0.15])
       if not success:
         rospy.logerr("Fail to pick from stored pose")
@@ -3680,6 +3737,8 @@ class O2ACCommon(O2ACBase):
     self.planning_scene_interface.disallow_collisions("base_fixture_top", panel_name)
     self.active_robots[robot_name].gripper.open(opening_width=0.03, velocity=0.03)
     self.active_robots[robot_name].gripper.forget_attached_item()
+    if pose_with_uncertainty!=None:
+      self.place_object_with_uncertainty(panel_name, pose_with_uncertainty, 0.855)
     if panel_name == "panel_bearing":
       self.assembly_status.bearing_panel_placed_outside_of_tray = False
     else:
@@ -3692,7 +3751,60 @@ class O2ACCommon(O2ACBase):
     rospy.logerr("return_l_plates is not implemented.")
     pass 
 
-  def center_panel(self, panel_name, robot_name="a_bot", speed=1.0, store=True):
+  def place_object_with_uncertainty(self, object_name, pose_with_uncertainty, support_surface):
+    now=rospy.Time.now()
+    collision_object=self.assembly_database.get_collision_object(object_name)
+    update_goal=o2ac_msgs.msg.updateDistributionGoal()
+    update_goal.observation_type=update_goal.PLACE_OBSERVATION
+    update_goal.gripped_object=collision_object
+    update_goal.place_observation.support_surface=support_surface
+    self.listener.waitForTransform("world", pose_with_uncertainty.header.frame_id, now, rospy.Duration(1.0))
+    update_goal.gripper_pose.pose= tf_conversions.posemath.toMsg(tf_conversions.posemath.fromTf(self.listener.lookupTransform("world", pose_with_uncertainty.header.frame_id, now)))
+    update_goal.gripper_pose.header.frame_id="world"
+    update_goal.gripper_pose.header.stamp= now
+    update_goal.distribution_type=1
+    update_goal.distribution=pose_with_uncertainty
+    self.update_distribution_client.send_goal(update_goal)
+    self.update_distribution_client.wait_for_result()
+    update_result = self.update_distribution_client.get_result()
+    transformed_pose=self.transform_pose_with_uncertainty("world", update_result.distribution, now=now)
+    pose_with_uncertainty.header=transformed_pose.header
+    pose_with_uncertainty.pose=transformed_pose.pose
+
+    visualizer=rospy.ServiceProxy("visualize_pose_belief", o2ac_msgs.srv.visualizePoseBelief)
+    visualization_request = o2ac_msgs.srv.visualizePoseBeliefRequest()
+    visualization_request.object = collision_object
+    visualization_request.distribution_type = 1
+    visualization_request.distribution = pose_with_uncertainty
+    visualization_request.frame_locked=True
+    visualizer(visualization_request)
+
+  def push_object_with_uncertainty(self, object_name, gripper_pose, pose_with_uncertainty, y_shift=0.0):
+    collision_object=self.assembly_database.get_collision_object(object_name)
+    update_goal=o2ac_msgs.msg.updateDistributionGoal()
+    update_goal.observation_type=update_goal.PUSH_OBSERVATION
+    update_goal.gripped_object=collision_object
+    update_goal.gripper_pose = self.listener.transformPose("world", gripper_pose)
+    gripper_transform = tf_conversions.posemath.fromMsg(update_goal.gripper_pose.pose)
+    update_goal.distribution_type=1
+    self.transform_uncertainty(gripper_transform.Inverse(), pose_with_uncertainty.pose, update_goal.distribution.pose)
+    update_goal.distribution.header.frame_id="fake"
+    update_goal.distribution.header.stamp=rospy.Time(0)
+    self.update_distribution_client.send_goal(update_goal)
+    self.update_distribution_client.wait_for_result()
+    update_result = self.update_distribution_client.get_result()
+    self.transform_uncertainty(gripper_transform, update_result.distribution.pose, pose_with_uncertainty.pose)
+    pose_with_uncertainty.pose.pose.position.y+=y_shift
+
+    visualizer=rospy.ServiceProxy("visualize_pose_belief", o2ac_msgs.srv.visualizePoseBelief)
+    visualization_request = o2ac_msgs.srv.visualizePoseBeliefRequest()
+    visualization_request.object = collision_object
+    visualization_request.distribution_type = 1
+    visualization_request.distribution = pose_with_uncertainty
+    visualization_request.frame_locked=True
+    visualizer(visualization_request)
+  
+  def center_panel(self, panel_name, robot_name="a_bot", speed=1.0, store=True, pose_with_uncertainty=None):
     """ Places the plate next to the tray in a well-defined position, by pushing it into a stopper.
     """
     self.planning_scene_interface.allow_collisions("a_bot_base_smfl", panel_name)
@@ -3717,12 +3829,14 @@ class O2ACCommon(O2ACBase):
     seq.append(helpers.to_sequence_item(above_centering_joint_pose, speed=speed, linear=False))
     seq.append(helpers.to_sequence_item(above_centering_pose, speed=speed))
     seq.append(helpers.to_sequence_item(at_centering_pose, speed=speed))
-    # if not self.execute_sequence("a_bot", seq, "center_panel_part1"):
-    #   rospy.logerr("fail to center panel: %s" % panel_name)
-    #   return False
-    # self.active_robots[robot_name].gripper.open(opening_width=0.01, wait=False)
-    seq.append(helpers.to_sequence_gripper(0.01, gripper_velocity=1.0, wait=False))
-    # seq = []
+    if not self.execute_sequence("a_bot", seq, "center_panel_part1"):
+      rospy.logerr("fail to center panel: %s" % panel_name)
+      return False
+    self.active_robots[robot_name].gripper.open(opening_width=0.01, wait=False)
+    if pose_with_uncertainty !=None:
+      self.place_object_with_uncertainty(panel_name, pose_with_uncertainty, 0.7501)
+    seq = []
+    # seq.append(helpers.to_sequence_gripper(0.01, gripper_velocity=1.0, wait=False))
     seq.append(helpers.to_sequence_item(pre_push_pose, speed=speed))
     seq.append(helpers.to_sequence_gripper(0.005, gripper_force=0, gripper_velocity=1.0))
     seq.append(helpers.to_sequence_item(push_pose, speed=0.5))
@@ -3739,6 +3853,13 @@ class O2ACCommon(O2ACBase):
     # if not self.active_robots[robot_name].go_to_pose_goal(push_pose, speed=0.5):
     #   rospy.logerr("fail to push: %s" % panel_name)
     #   return False
+    self.active_robots[robot_name].gripper.forget_attached_item()
+    
+    aligned_pose = [0.0, 0.067, -0.080] if panel_name == "panel_bearing" else [0.0, -0.063, -0.080]
+    self.update_collision_item_pose(panel_name, conversions.to_pose_stamped(centering_frame, aligned_pose + [-0.500, 0.500, -0.500, -0.500]))
+    if pose_with_uncertainty!=None:
+      push_gripper_pose=conversions.to_pose_stamped(centering_frame, [0.0, aligned_pose[1] - 0.020/2., -0.01, 0., 0., 0.])
+      self.push_object_with_uncertainty(panel_name, push_gripper_pose, pose_with_uncertainty, y_shift=0.08)
 
     def pre_callback():
       self.active_robots[robot_name].gripper.forget_attached_item()
@@ -3800,7 +3921,7 @@ class O2ACCommon(O2ACBase):
     # at_hole    = conversions.to_pose_stamped("assembled_part_01_screw_hole_panel1_1", [-0.06, 0.0125, 0.052, -tau/2, 0, 0])
     # self.active_robots[robot_name].go_to_pose_goal(at_hole, speed=0.2)
 
-  def simple_handover(self, from_robot_name, to_robot_name, handover_pose, object_name, grasp_pose, speed=1.0, simultaneous=True):
+  def simple_handover(self, from_robot_name, to_robot_name, handover_pose, object_name, grasp_pose, speed=1.0, simultaneous=True, pose_with_uncertainty=None):
     self.a_bot_success = False
     self.b_bot_success = False
     def b_task():
@@ -3828,7 +3949,7 @@ class O2ACCommon(O2ACBase):
     self.allow_collisions_with_robot_hand(object_name, to_robot_name, allow=True)
     if not self.simple_pick(to_robot_name, object_pose=handover_grasp_pose, grasp_width=0.06, approach_height=0.05, grasp_height=0.0, 
                      axis="y", item_id_to_attach=object_name, lift_up_after_pick=False, approach_with_move_lin=False,
-                     speed_fast=1.0, speed_slow=0.2, attach_with_collisions=True):
+                            speed_fast=1.0, speed_slow=0.2, attach_with_collisions=True, pose_with_uncertainty=pose_with_uncertainty, object_name=object_name, pick_from_ground=False):
       rospy.logerr("Fail to execute handover's grasp")
       return False
 

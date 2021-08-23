@@ -1,6 +1,6 @@
 Panels:
   - Class: rviz/Displays
-    Help Height: 70
+    Help Height: 138
     Name: Displays
     Property Tree Widget:
       Expanded:
@@ -8,6 +8,7 @@ Panels:
         - /PlanningScene1/Scene Robot1
         - /DepthCloud1/Auto Size1
         - /Move Success Visualization1/Namespaces1
+        - /MarkerArray1
       Splitter Ratio: 0.6773163080215454
     Tree Height: 801
   - Class: rviz/Help
@@ -26,20 +27,20 @@ Panels:
     Name: Motion Planning Tasks
     Tasks View:
       property_splitter:
-        - 149
-        - 147
+        - 146
+        - 146
       solution_sorting:
         column: 0
         order: 1
       solutions_splitter:
-        - 48
-        - 48
+        - 46
+        - 46
       solutions_view_columns: ~
       tasks_view_columns:
-        - 26
-        - 26
-        - 26
-        - 35
+        - 200
+        - 53
+        - 53
+        - 69
   - Class: o2ac/O2ACSetupPanel
     Name: O2ACSetupPanel
   - Class: moveit_task_constructor/Motion Planning Tasks
@@ -51,20 +52,20 @@ Panels:
     Name: Motion Planning Tasks
     Tasks View:
       property_splitter:
-        - 148
-        - 148
+        - 146
+        - 146
       solution_sorting:
         column: 0
         order: 1
       solutions_splitter:
-        - 48
-        - 48
+        - 46
+        - 46
       solutions_view_columns: ~
       tasks_view_columns:
-        - 26
-        - 26
-        - 26
-        - 35
+        - 200
+        - 53
+        - 53
+        - 69
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -800,132 +801,6 @@ Visualization Manager:
           Show Trail: false
           Value: true
         simple_holder_tip_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        taskboard_assy_part_07:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        taskboard_assy_part_07_back_hole:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        taskboard_assy_part_07_back_tip:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        taskboard_assy_part_07_front_hole:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        taskboard_assy_part_07_inserted:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        taskboard_assy_part_07_origin:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        taskboard_assy_part_07_screw_hole_1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        taskboard_assy_part_07_screw_hole_2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        taskboard_assy_part_07_screw_hole_3:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        taskboard_assy_part_07_screw_hole_4:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        taskboard_base:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        taskboard_base_screw_1_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        taskboard_base_screw_2_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        taskboard_base_screw_3_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        taskboard_base_screw_4_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        taskboard_bearing_target_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        taskboard_bearing_target_screw_1_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        taskboard_bearing_target_screw_2_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        taskboard_bearing_target_screw_3_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        taskboard_bearing_target_screw_4_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        taskboard_large_pulley:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        taskboard_long_hole_middle_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        taskboard_long_hole_top_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        taskboard_m3_screw_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        taskboard_m4_screw_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        taskboard_plate:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        taskboard_set_screw_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        taskboard_small_pulley:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        taskboard_small_shaft:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        taskboard_surface:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -2691,132 +2566,6 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          taskboard_assy_part_07:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          taskboard_assy_part_07_back_hole:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_back_tip:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_front_hole:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_inserted:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_origin:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_screw_hole_1:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_screw_hole_2:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_screw_hole_3:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_screw_hole_4:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_base:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          taskboard_base_screw_1_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_base_screw_2_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_base_screw_3_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_base_screw_4_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_bearing_target_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_bearing_target_screw_1_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_bearing_target_screw_2_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_bearing_target_screw_3_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_bearing_target_screw_4_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_large_pulley:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          taskboard_long_hole_middle_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_long_hole_top_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_m3_screw_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_m4_screw_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_plate:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          taskboard_set_screw_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_small_pulley:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          taskboard_small_shaft:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          taskboard_surface:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
           tray:
             Alpha: 1
             Show Axes: false
@@ -3645,132 +3394,6 @@ Visualization Manager:
             Show Trail: false
             Value: true
           simple_holder_tip_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          taskboard_assy_part_07_back_hole:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_back_tip:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_front_hole:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_inserted:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_origin:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_screw_hole_1:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_screw_hole_2:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_screw_hole_3:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_screw_hole_4:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_base:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          taskboard_base_screw_1_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_base_screw_2_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_base_screw_3_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_base_screw_4_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_bearing_target_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_bearing_target_screw_1_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_bearing_target_screw_2_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_bearing_target_screw_3_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_bearing_target_screw_4_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_large_pulley:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          taskboard_long_hole_middle_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_long_hole_top_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_m3_screw_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_m4_screw_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_plate:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          taskboard_set_screw_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_small_pulley:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          taskboard_small_shaft:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          taskboard_surface:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -4709,132 +4332,6 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          taskboard_assy_part_07:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          taskboard_assy_part_07_back_hole:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_back_tip:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_front_hole:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_inserted:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_origin:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_screw_hole_1:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_screw_hole_2:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_screw_hole_3:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_assy_part_07_screw_hole_4:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_base:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          taskboard_base_screw_1_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_base_screw_2_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_base_screw_3_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_base_screw_4_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_bearing_target_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_bearing_target_screw_1_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_bearing_target_screw_2_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_bearing_target_screw_3_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_bearing_target_screw_4_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_large_pulley:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          taskboard_long_hole_middle_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_long_hole_top_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_m3_screw_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_m4_screw_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_plate:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          taskboard_set_screw_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_small_pulley:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          taskboard_small_shaft:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          taskboard_surface:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
           tray:
             Alpha: 1
             Show Axes: false
@@ -4938,6 +4435,14 @@ Visualization Manager:
         {}
       Trail Step Size: 1
       Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /o2ac_pose_belief_visualization_marker_array
+      Name: MarkerArray
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -5003,4 +4508,4 @@ Window Geometry:
     collapsed: false
   Width: 1244
   X: 676
-  Y: 27
+  Y: 54

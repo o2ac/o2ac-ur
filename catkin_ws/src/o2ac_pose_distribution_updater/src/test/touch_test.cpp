@@ -4,22 +4,6 @@ The implementation of the touch test
 
 #include "o2ac_pose_distribution_updater/test.hpp"
 
-void load_CollisionObject_from_file(
-    std::shared_ptr<moveit_msgs::CollisionObject> &object,
-    const std::string &file_path) {
-  object = std::shared_ptr<moveit_msgs::CollisionObject>(
-      new moveit_msgs::CollisionObject());
-  object->pose = to_Pose(0., 0., 0., 1., 0., 0., 0.);
-  std::vector<Eigen::Vector3d> vertices;
-  std::vector<boost::array<int, 3>> triangles;
-  read_stl_from_file_path(file_path, vertices, triangles);
-  for (auto &vertex : vertices) {
-    vertex /= 1000.0; // milimeter -> meter
-  }
-  add_mesh_to_CollisionObject(object, vertices, triangles,
-                              Eigen::Isometry3d::Identity());
-}
-
 void touch_test(const std::shared_ptr<Client> &client,
                 const std::string &input_file_path,
                 const std::string &gripped_geometry_file_path,

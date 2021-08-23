@@ -1,0 +1,25 @@
+number_of_particles: 100
+noise_variance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+ground_size: [2.0, 2.0, 2.0]
+ground_position: [0.0, 0.0, -0.994]
+box_size: [0.4, 0.2, 0.097]
+box_position: [-0.20, -0.485, 0.0485]
+
+distance_threshold: 0.002
+
+look_threshold: 100
+calibration_object_points: [[-0.369, -0.16, 0.0289], [-0.393, -0.1374, 0.0135], [-0.3676, -0.1147, 0.0288]]
+calibration_image_points: [[1096.40710449, 663.35202026], [1204.28242493, 740.49017334], [1363.73980713, 666.20413208]]
+camera_fx: 1386.4278564453125
+camera_fy: 1386.4278564453125
+camera_cx: 980.115173398438
+camera_cy: 534.3704833984375
+image_height: 1080
+image_width: 1920
+looked_point: [-0.38, -0.14, 0.04]
+
+use_linear_approximation: false
+
+gripper_height: 0.0
+gripper_width: 0.020
+gripper_thickness: 0.006
