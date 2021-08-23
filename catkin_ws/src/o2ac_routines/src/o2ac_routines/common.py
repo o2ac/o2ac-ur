@@ -413,7 +413,7 @@ class O2ACCommon(O2ACBase):
     for view in [self.tray_view_high] + self.close_tray_views + self.close_tray_views_rot_left + self.close_tray_views_rot_right + self.close_tray_views_rot_left_more + self.close_tray_views_rot_left_90:
       assert not rospy.is_shutdown()
       self.vision.activate_camera(robot_name + "_outside_camera")
-      self.active_robots[robot_name].go_to_pose_goal(view, end_effector_link=robot_name + "_outside_camera_color_frame", speed=.5, acceleration=.3, wait=True)
+      self.active_robots[robot_name].go_to_pose_goal(view, end_effector_link=robot_name + "_outside_camera_color_frame", speed=.5, acceleration=.3, wait=True, move_lin=True)
       rospy.sleep(0.5)
       self.get_3d_poses_from_ssd()
 
@@ -635,7 +635,7 @@ class O2ACCommon(O2ACBase):
     if gripper_command=="do_nothing":
       pass
     else: 
-      seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=grasp_width, gripper_velocity=0.1, wait=False))
+      seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=grasp_width, gripper_velocity=1.0, wait=False))
       # robot.gripper.send_command(command=grasp_width, wait=False) # Open
 
     approach_pose = copy.deepcopy(object_pose)
@@ -1234,7 +1234,10 @@ class O2ACCommon(O2ACBase):
     corner_pose = copy.deepcopy(object_pose)
     corner_pose.pose.position.x = np.sign(corner_pose.pose.position.x) * 0.105
     corner_pose.pose.position.y = np.sign(corner_pose.pose.position.y) * 0.165
-    corner_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(0, tau/4, -tau/6))
+    if robot_name == "b_bot":
+      corner_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(0, tau/4, -tau/6))
+    else:
+      corner_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(0, tau/4,  tau/6))
 
     return self.move_towards_tray_center_with_push(robot_name, corner_pose, approach_height, go_back_halfway=go_back_halfway)
 
@@ -1418,7 +1421,7 @@ class O2ACCommon(O2ACBase):
     """
     Looks at the end of the shaft and returns True if 
     """
-    look_at_shaft_end_pose = conversions.to_pose_stamped("vgroove_aid_link", [ -0.013, 0.124, 0.130, radians(130.0), 0, 0])
+    look_at_shaft_end_pose = conversions.to_pose_stamped("vgroove_aid_link", [ -0.013, 0.124, 0.135, radians(130.0), 0, 0])
     self.vision.activate_camera("b_bot_inside_camera")
     self.activate_led("b_bot")
     
@@ -1992,37 +1995,48 @@ class O2ACCommon(O2ACBase):
 
   ########  Motor pulley
 
-  def pick_and_insert_motor_pulley(self, task):
+  def pick_and_insert_motor_pulley(self, task, robot_name="b_bot"):
     if task == "taskboard":
       target_link = "taskboard_small_shaft"
     elif task == "assembly":
       rospy.logerr("look this up")
-      target_link = "assembled_part_07_inserted"
+      target_link = "assembled_part_05_center"
     
-    if not self.pick_motor_pulley():
+    if not self.pick_motor_pulley(robot_name="b_bot"):
       return False
 
-    if not self.orient_motor_pulley(target_link):
+    if not self.orient_motor_pulley(target_link, robot_name="b_bot"):
       return False
 
-    return self.insert_motor_pulley(target_link)
+    return self.insert_motor_pulley(target_link, robot_name="b_bot")
 
-  def orient_motor_pulley(self, target_link):
-    if not self.playback_sequence(routine_filename="motor_pulley_orient"):
+  def orient_motor_pulley(self, target_link, robot_name="b_bot"):
+    if not self.playback_sequence(routine_filename="motor_pulley_orient_"+robot_name):
       rospy.logerr("Fail to complete the playback sequence motor pulley orient")
-      self.pick_from_centering_area_and_drop_in_tray("b_bot")
+      self.pick_from_centering_area_and_drop_in_tray(robot_name)
       return False
-    pre_insertion_pose = conversions.to_pose_stamped(target_link, [-0.006, -0.000, -0.003] + np.deg2rad([180, 35, 0]).tolist()) # Manually defined target pose in object frame
-    self.b_bot.go_to_pose_goal(pre_insertion_pose, speed=0.1)
+
+    if robot_name == "b_bot":
+      approach_pose      = conversions.to_pose_stamped(target_link, [-0.05, 0.0, 0.0] + np.deg2rad([180, 35, 0]).tolist()) 
+      pre_insertion_pose = conversions.to_pose_stamped(target_link, [-0.006, 0, -0.003] + np.deg2rad([180, 35, 0]).tolist()) # Manually defined target pose in object frame
+    else:
+      approach_pose      = conversions.to_pose_stamped(target_link, [-0.05, 0.0, 0.0] + np.deg2rad([180, -35, 0]).tolist()) 
+      pre_insertion_pose = conversions.to_pose_stamped(target_link, [0.004, -0.002, 0.007] + np.deg2rad([180, -35, 0]).tolist()) # Manually defined target pose in object frame
+    
+    if not self.active_robots[robot_name].go_to_pose_goal(approach_pose, speed=0.5):
+      return False
+    if not self.active_robots[robot_name].go_to_pose_goal(pre_insertion_pose, speed=0.1):
+      return False
+    self.confirm_to_proceed("finetune")
     return True
 
-  def pick_motor_pulley(self, attempt=2):
-    options = {'grasp_width': 0.06, 'center_on_corner': True, 'approach_height': 0.02, 'grab_and_drop': True, 'object_width': 0.03}
-    goal = self.look_and_get_grasp_point("motor_pulley", options=options)
+  def pick_motor_pulley(self, attempt=2, robot_name="b_bot"):
+    options = {'grasp_width': 0.05, 'center_on_corner': True, 'approach_height': 0.02, 'grab_and_drop': True, 'object_width': 0.03}
+    goal = self.look_and_get_grasp_point("motor_pulley", robot_name=robot_name, options=options)
     if not isinstance(goal, geometry_msgs.msg.PoseStamped):
       rospy.logerr("Could not find motor_pulley in tray. Skipping procedure.")
       return False
-    goal.pose.position.x -= 0.01 # MAGIC NUMBER
+    # goal.pose.position.x -= 0.01 # MAGIC NUMBER
     goal.pose.position.z = 0.0
 
     motor_pulley_pose = copy.deepcopy(goal)
@@ -2030,48 +2044,110 @@ class O2ACCommon(O2ACBase):
     self.markers_scene.spawn_item("motor_pulley", motor_pulley_pose)
     # self.spawn_object("motor_pulley", motor_pulley_pose)
     self.planning_scene_interface.allow_collisions("motor_pulley", "")
-    self.vision.activate_camera("b_bot_inside_camera")
-    self.activate_led("b_bot", False)
+    self.vision.activate_camera(robot_name + "_inside_camera")
+    self.activate_led(robot_name, False)
     
-    if not self.simple_pick("b_bot", goal, gripper_force=50.0, grasp_width=.06, axis="z", grasp_height=0.002, item_id_to_attach="motor_pulley"):
+    if not self.simple_pick(robot_name, goal, gripper_force=50.0, grasp_width=.05, axis="z", grasp_height=0.002, item_id_to_attach="motor_pulley"):
       rospy.logerr("Fail to simple_pick")
       return False
 
-    if not self.simple_gripper_check("b_bot"):
+    if not self.simple_gripper_check(robot_name):
       rospy.logerr("Gripper did not grasp the pulley --> Stop")
       return self.pick_motor_pulley(attempt=attempt-1)
 
     return True
 
-  def insert_motor_pulley(self, target_link, attempts=1):
-    target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.015, -0.000, -0.009, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
+  def insert_motor_pulley(self, target_link, attempts=1, robot_name="b_bot"):
+    if robot_name == "b_bot":
+      target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.015, -0.000, -0.009, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
+      relaxed_by = 0.005
+    else:
+      target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.012, -0.002, 0.009, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
+      relaxed_by = 0.001
 
     selection_matrix = [0., 0.3, 0.3, 1.0, 1.0, 1.0]
 
-    result = self.b_bot.do_insertion(target_pose_target_frame, radius=0.0005, 
+    result = self.active_robots[robot_name].do_insertion(target_pose_target_frame, radius=0.0005, 
                                                       insertion_direction="-X", force=8.0, timeout=15.0, 
-                                                      wiggle_direction="X", wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=1.,
-                                                      relaxed_target_by=0.005, selection_matrix=selection_matrix)
+                                                      wiggle_direction=None, wiggle_angle=np.deg2rad(4.0), wiggle_revolutions=1.,
+                                                      relaxed_target_by=relaxed_by, selection_matrix=selection_matrix)
     success = (result == TERMINATION_CRITERIA)
 
     if not success:
-      current_pose = self.listener.transformPose(target_link, self.b_bot.get_current_pose_stamped())
+      current_pose = self.listener.transformPose(target_link, self.active_robots[robot_name].get_current_pose_stamped())
       if current_pose.pose.position.x > 0.004:
-        return self.insert_motor_pulley(target_link, attempts=attempts-1)
+        return self.insert_motor_pulley(target_link, attempts=attempts-1, robot_name=robot_name)
 
       if attempts > 0: # try again the pulley is still there   
         rospy.logwarn("** Insertion Incomplete, trying again **")
-        return self.insert_motor_pulley(target_link, attempts=attempts-1)
+        return self.insert_motor_pulley(target_link, attempts=attempts-1, robot_name=robot_name)
       else:
         # TODO(cambel): return to tray to drop pulley
-        self.b_bot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
-        self.drop_in_tray("b_bot")
+        self.active_robots[robot_name].move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
+        self.drop_in_tray(robot_name)
         rospy.logerr("** Insertion Failed!! **")
         return False
 
-    self.b_bot.gripper.open(opening_width=0.04, wait=True)
-    success &= self.b_bot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
+    self.active_robots[robot_name].gripper.open(opening_width=0.04, wait=True)
+    success &= self.active_robots[robot_name].move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
     return success
+
+  def rotate_motor_pulley(self, target_link, rotations=6):
+    """"
+      Use the gripper finger's pad to rotate the motor pulley by going up and down
+    """
+    self.allow_collisions_with_robot_hand("panel_motor", "a_bot")
+    approach_pose   = conversions.to_pose_stamped(target_link, [-0.05, -0.050,-0.004, tau/2, 0, 0])
+    up_pose         = conversions.to_pose_stamped(target_link, [0.043, -0.0585,-0.018, tau/2, 0, 0])
+    down_pose       = conversions.to_pose_stamped(target_link, [0.043, -0.0585, 0.012, tau/2, 0, 0])
+    center_out_pose = conversions.to_pose_stamped(target_link, [0.043, -0.050,-0.004, tau/2, 0, 0])
+
+    self.a_bot.gripper.open(wait=False)
+
+    seq = []
+    seq.append(helpers.to_sequence_item(approach_pose, speed=1.0))
+    trajectory = [[center_out_pose, 0.0, 1.0], [up_pose, 0.0, 0.5], [down_pose, 0.0, 0.2]]
+    trajectory *= rotations
+    seq.append(["trajectory", trajectory])
+    seq.append(helpers.to_sequence_item(center_out_pose, speed=1.0))
+    seq.append(helpers.to_sequence_item(approach_pose, speed=1.0))
+    self.execute_sequence("a_bot", seq, "rotate motor pulley")
+    self.allow_collisions_with_robot_hand("panel_motor", "a_bot", allow=False)
+    return True
+
+  def fasten_motor_pulley(self, target_link):
+    self.equip_tool("b_bot", "set_screw_tool")
+
+    b_bot_approach_pose    = conversions.to_pose_stamped(target_link, [0.006, -0.002, -0.072]+ np.deg2rad([174.3, -87.6, -135.8]).tolist())
+    b_bot_above_hole_pose  = conversions.to_pose_stamped(target_link, [0.007, -0.0035, -0.009]+ np.deg2rad([174.3, -87.6, -135.8]).tolist())
+    b_bot_at_hole_pose     = conversions.to_pose_stamped(target_link, [0.007, -0.005, -0.005]+ np.deg2rad([174.3, -87.6, -135.8]).tolist())
+
+    # Find both holes
+    for i in range(2):
+      if i > 0:
+        # Rotate once to get the current hole out of the way
+        self.confirm_to_proceed("rotate?")
+        self.rotate_motor_pulley(target_link, rotations=1) 
+      
+      self.b_bot.go_to_pose_goal(b_bot_approach_pose, speed=1.0, move_lin=True, end_effector_link="b_bot_set_screw_tool_tip_link")
+      self.confirm_to_proceed("down1?")
+      self.b_bot.go_to_pose_goal(b_bot_above_hole_pose, speed=0.05, move_lin=True, end_effector_link="b_bot_set_screw_tool_tip_link")
+      
+      self.confirm_to_proceed("rotate?")
+      self.rotate_motor_pulley(target_link)
+      
+      self.confirm_to_proceed("down2?")
+
+      self.b_bot.go_to_pose_goal(b_bot_at_hole_pose, speed=0.015, move_lin=True, end_effector_link="b_bot_set_screw_tool_tip_link")
+      self.tools.set_motor("set_screw_tool", "tighten", duration=10.0, skip_final_loosen_and_retighten=True, wait=False)
+      self.b_bot.execute_spiral_trajectory("YZ", max_radius=0.001, radius_direction="+Y", steps=50,
+                                          revolutions=2, target_force=0, check_displacement_time=10,
+                                          termination_criteria=None, timeout=9, end_effector_link="b_bot_set_screw_tool_tip_link")
+      
+      self.b_bot.go_to_pose_goal(b_bot_approach_pose, speed=0.02, move_lin=True, end_effector_link="b_bot_set_screw_tool_tip_link")
+    
+    self.unequip_tool("b_bot", "set_screw_tool")
+    return True
 
   ########  Idler pulley
     
@@ -2645,13 +2721,13 @@ class O2ACCommon(O2ACBase):
 
     approach_vgroove = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [-0.100, 0, 0, tau/2., 0, 0])
     on_vgroove =       conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.000, 0, 0, tau/2., 0, 0])
-    inside_vgroove =   conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.007, 0, 0, tau/2., 0, 0])
+    inside_vgroove =   conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.011, 0, 0, tau/2., 0, 0])
 
-    if not self.b_bot.go_to_pose_goal(approach_vgroove, move_lin=False):
+    if not self.b_bot.go_to_pose_goal(approach_vgroove, speed=1.0, move_lin=False):
       rospy.logerr("Fail to go to approach_vgroove")
       return False
 
-    if not self.b_bot.go_to_pose_goal(on_vgroove, speed=0.1):
+    if not self.b_bot.go_to_pose_goal(on_vgroove, speed=0.5):
       rospy.logerr("Fail to go to on_vgroove")
       return False
     if not self.b_bot.go_to_pose_goal(inside_vgroove, speed=0.1):
@@ -2664,15 +2740,15 @@ class O2ACCommon(O2ACBase):
     if shaft_has_hole_at_top:
       self.b_bot.go_to_pose_goal(inside_vgroove, speed=0.1)
       self.b_bot.gripper.close()
-      self.b_bot.go_to_pose_goal(approach_vgroove, speed=0.1)
+      self.b_bot.go_to_pose_goal(approach_vgroove, speed=0.3)
     else:  # Turn gripper around
       approach_turned = copy.deepcopy(approach_vgroove)
       approach_turned.pose = helpers.rotatePoseByRPY(tau/2, 0, 0, approach_turned.pose)
       in_groove_turned = copy.deepcopy(approach_turned)
       in_groove_turned.pose.position.x = inside_vgroove.pose.position.x
 
-      self.b_bot.go_to_pose_goal(approach_vgroove, speed=0.1)
-      self.b_bot.go_to_pose_goal(approach_turned, speed=0.1)
+      self.b_bot.go_to_pose_goal(approach_vgroove, speed=0.5)
+      self.b_bot.go_to_pose_goal(approach_turned, speed=0.5)
       self.b_bot.go_to_pose_goal(in_groove_turned, speed=0.1)
       self.b_bot.gripper.close()
       self.b_bot.go_to_pose_goal(approach_turned, speed=0.1)
@@ -2830,7 +2906,7 @@ class O2ACCommon(O2ACBase):
       return False
 
     goal.pose.position.z = -0.001 # Magic Numbers for grasping
-    goal.pose.position.x -= 0.01
+    # goal.pose.position.x -= 0.01
     goal = self.listener.transformPose("world", goal)  # This is not necessary
 
     self.vision.activate_camera("a_bot_inside_camera")  # Just for visualization

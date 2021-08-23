@@ -116,6 +116,10 @@ if __name__ == '__main__':
         c.do_change_tool_action("b_bot", equip=True, screw_size=3)
       elif i == '161':
         c.do_change_tool_action("b_bot", equip=False, screw_size=3)
+      if i == "17":
+        c.equip_tool("b_bot", "set_screw_tool")
+      if i == "18":
+        c.unequip_tool("b_bot", "set_screw_tool")
       elif i == '21':
         c.take_tray_from_agv()
       elif i == '211':
