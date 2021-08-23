@@ -213,15 +213,6 @@ Localization::localize_full(const goal_cp& goal)
 	pho::sdk::StopCriterion::NumberOfResults(goal->nposes));
     ROS_DEBUG_STREAM("(Localization)   stop citeria succesfully set.");
 
-  // Setup transformation from URDF model to PLY model. This corresponds to
-  // the rotation from STL mesh to assy_part_XX link specified by
-  // rpy="1.5707 0 0"
-  // in o2ac_parts_description/urdf/generated/XX_YYYY_macro.urdf.xacro.
-    const tf::Transform	Tpm({1.0,  0.0, 0.0,
-			     0.0,  0.0, 1.0,
-			     0.0, -1.0, 0.0},
-			    {0.0,  0.0, 0.0});
-
   // Execute localization.
     auto	queue = _localization->StartAsync();
     for (pho::sdk::LocalizationPose locPose; queue.GetNext(locPose); )
@@ -236,7 +227,7 @@ Localization::localize_full(const goal_cp& goal)
 
 	feedback_t	feedback;
 	feedback.pose.header = _file_info->header;
-	tf::poseTFToMsg(Tcp * Tpm, feedback.pose.pose);
+	tf::poseTFToMsg(Tcp, feedback.pose.pose);
 	feedback.overlap = locPose.VisibleOverlap;
 	_localize_srv.publishFeedback(feedback);
 

@@ -100,7 +100,7 @@ class DynamixelControllerActionServer():
 
         # Check if the command was sent successfully
         if not response.comm_result:
-            rospy.logerr('Sending the dynamixel command was not succesful')
+            rospy.logerr('Sending the dynamixel command was not successful')
             return False
         else:
             # If the command was sent successfully, start waiting for the task to complete

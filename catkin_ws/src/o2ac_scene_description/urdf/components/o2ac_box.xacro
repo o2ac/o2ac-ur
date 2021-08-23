@@ -2,20 +2,22 @@
 
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
   
-  <xacro:macro name="o2ac_box" params="boxname box_w box_l box_h parent *origin">
-    <!-- This creates a box with the origin in the bottom corner, fixed to the world link. -->
+  <xacro:macro name="o2ac_box" params="boxname box_w box_l box_h parent invisible:=false *origin">
+    <!-- This creates a box with the origin in the bottom corner. -->
     
     <link name="${boxname}">
       <!-- w is in x, l is in y, h is in z -->
-      <visual>
-        <origin xyz="${box_w/2} ${box_l/2} ${box_h/2}" rpy="0 0 0"/>
-        <geometry>
-          <box size="${box_w} ${box_l} ${box_h}"/> 
-        </geometry>
-        <material name="Grey">
-          <color rgba="0.7 0.7 0.7 1.0"/>
-        </material>
-      </visual>
+      <xacro:if value="${not invisible}">
+        <visual>
+          <origin xyz="${box_w/2} ${box_l/2} ${box_h/2}" rpy="0 0 0"/>
+          <geometry>
+            <box size="${box_w} ${box_l} ${box_h}"/> 
+          </geometry>
+          <material name="Grey">
+            <color rgba="0.7 0.7 0.7 1.0"/>
+          </material>
+        </visual>
+      </xacro:if>
       <collision>
         <origin xyz="${box_w/2} ${box_l/2} ${box_h/2}" rpy="0 0 0"/>
         <geometry>

@@ -20,4 +20,8 @@
   <depend>pluginlib</depend>
   <depend>nodelet</depend>
   <depend>aist_depth_filter</depend>
+
+  <export>
+    <nodelet plugin="${prefix}/nodelet_description.xml"/>
+  </export>
 </package>

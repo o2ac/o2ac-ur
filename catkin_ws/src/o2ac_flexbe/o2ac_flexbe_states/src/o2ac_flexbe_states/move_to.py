@@ -46,7 +46,7 @@ class MoveToActionState(EventState):
 
             Logger.logwarn('result %s' % str(result))
 
-            if not result:
+            if not result.success:
                 Logger.logwarn('Fail to complete MoveTo')
                 self._success = False
                 return 'error'

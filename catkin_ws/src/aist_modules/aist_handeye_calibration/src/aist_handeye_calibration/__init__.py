@@ -13,7 +13,9 @@ from o2ac_routines.base import O2ACBase
 class HandEyeCalibrationBaseRoutines(O2ACBase):
     def __init__(self):
         super(HandEyeCalibrationBaseRoutines, self).__init__()
+        self.get_parameters()
 
+    def get_parameters(self):
         camera_name = rospy.get_param('~camera_name', 'a_bot_inside_camera')
         camera_type = rospy.get_param('~camera_type', 'DepthCamera')
         self._camera         = DepthCamera.create(camera_name, camera_type)

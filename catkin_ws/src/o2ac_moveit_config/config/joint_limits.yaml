@@ -19,34 +19,34 @@ joint_limits:
     min_position: -0.01
     max_position: 1.0
     has_velocity_limits: true
-    max_velocity: 2
+    max_velocity: 16
     has_acceleration_limits: true
-    max_acceleration: 2
+    max_acceleration: 16
   a_bot_left_inner_finger_joint:
     has_velocity_limits: true
-    max_velocity: 2
+    max_velocity: 16
     has_acceleration_limits: true
-    max_acceleration: 2
+    max_acceleration: 16
   a_bot_left_inner_knuckle_joint:
     has_velocity_limits: true
-    max_velocity: 2
+    max_velocity: 16
     has_acceleration_limits: true
-    max_acceleration: 2
+    max_acceleration: 16
   a_bot_right_inner_finger_joint:
     has_velocity_limits: true
-    max_velocity: 2
+    max_velocity: 16
     has_acceleration_limits: true
-    max_acceleration: 2
+    max_acceleration: 16
   a_bot_right_inner_knuckle_joint:
     has_velocity_limits: true
-    max_velocity: 2
+    max_velocity: 16
     has_acceleration_limits: true
-    max_acceleration: 2
+    max_acceleration: 16
   a_bot_right_outer_knuckle_joint:
     has_velocity_limits: true
-    max_velocity: 2
+    max_velocity: 16
     has_acceleration_limits: true
-    max_acceleration: 2
+    max_acceleration: 16
   a_bot_shoulder_lift_joint:
     has_velocity_limits: true
     max_velocity: 3.14
@@ -81,34 +81,34 @@ joint_limits:
     min_position: -0.01
     max_position: 1.0
     has_velocity_limits: true
-    max_velocity: 2
+    max_velocity: 16
     has_acceleration_limits: true
-    max_acceleration: 2
+    max_acceleration: 16
   b_bot_left_inner_finger_joint:
     has_velocity_limits: true
-    max_velocity: 2
+    max_velocity: 16
     has_acceleration_limits: true
-    max_acceleration: 2
+    max_acceleration: 16
   b_bot_left_inner_knuckle_joint:
     has_velocity_limits: true
-    max_velocity: 2
+    max_velocity: 16
     has_acceleration_limits: true
-    max_acceleration: 2
+    max_acceleration: 16
   b_bot_right_inner_finger_joint:
     has_velocity_limits: true
-    max_velocity: 2
+    max_velocity: 16
     has_acceleration_limits: true
-    max_acceleration: 2
+    max_acceleration: 16
   b_bot_right_inner_knuckle_joint:
     has_velocity_limits: true
-    max_velocity: 2
+    max_velocity: 16
     has_acceleration_limits: true
-    max_acceleration: 2
+    max_acceleration: 16
   b_bot_right_outer_knuckle_joint:
     has_velocity_limits: true
-    max_velocity: 2
+    max_velocity: 16
     has_acceleration_limits: true
-    max_acceleration: 2
+    max_acceleration: 16
   b_bot_shoulder_lift_joint:
     has_velocity_limits: true
     max_velocity: 3.14

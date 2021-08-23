@@ -66,7 +66,7 @@ from aist_depth_filter     import DepthFilterClient
 from aist_new_localization import LocalizationClient
 from aist_model_spawner    import ModelSpawnerClient
 
-from o2ac_vision.pose_estimation_func import ShaftHoleDetection, TemplateMatching
+from o2ac_vision.pose_estimation_func import MotorOrientation, ShaftHoleDetection, TemplateMatching
 from o2ac_vision.pose_estimation_func import FastGraspabilityEvaluation
 from o2ac_vision.pose_estimation_func import ShaftAnalysis
 from o2ac_vision.pose_estimation_func import PickCheck
@@ -303,7 +303,7 @@ class O2ACVisionServer(object):
             self.execute_belt_detection(im_in, im_vis)
 
         elif self.angle_detection_server.is_active():
-            self.execute_angle_detection(im_in)
+            self.execute_angle_detection(im_in, im_vis)
 
         elif self.shaft_hole_detection_server.is_active():
             self.execute_shaft_hole_detection(im_in)
@@ -320,7 +320,7 @@ class O2ACVisionServer(object):
 ### ======= Process active goals of action servers
 
     def execute_get_2d_poses_from_ssd(self, im_in, im_vis):
-        rospy.loginfo("Execute get_2d_poses_from_ssd action")
+        rospy.loginfo("Executing get_2d_poses_from_ssd action")
 
         action_result = o2ac_msgs.msg.get2DPosesFromSSDResult()
         action_result.results, im_vis = self.get_2d_poses_from_ssd(im_in,
@@ -329,7 +329,7 @@ class O2ACVisionServer(object):
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
 
     def execute_get_3d_poses_from_ssd(self, im_in, im_vis):
-        rospy.loginfo("Execute get_3d_poses_from_ssd action")
+        rospy.loginfo("Executing get_3d_poses_from_ssd action")
 
         poses2d_array, im_vis = self.get_2d_poses_from_ssd(im_in, im_vis)
         action_result = o2ac_msgs.msg.get3DPosesFromSSDResult()
@@ -348,6 +348,7 @@ class O2ACVisionServer(object):
 
     def execute_localization(self, im_in, im_vis):
         rospy.loginfo("Executing localization action")
+
         # Apply SSD first to get the object's bounding box
         poses2d_array, im_vis = self.get_2d_poses_from_ssd(im_in, im_vis)
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
@@ -386,7 +387,7 @@ class O2ACVisionServer(object):
             self.write_to_log(im_in, im_vis, "localization")
 
     def execute_belt_detection(self, im_in, im_vis):
-        rospy.loginfo("Received a request to detect belt grasp points")
+        rospy.loginfo("Executing belt grasp points detection")
 
         # Get bounding boxes, then belt grasp points
         ssd_results, im_vis = self.detect_object_in_image(im_in, im_vis)
@@ -409,20 +410,25 @@ class O2ACVisionServer(object):
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
         self.write_to_log(im_in, im_vis, "belt_detection")
 
-    def execute_angle_detection(self, image):
+    def execute_angle_detection(self, im_in, im_vis):
         goal = self.angle_detection_server.current_goal.get_goal()
-        rospy.loginfo("Received a request to detect angle of %s", goal.item_id)
+        rospy.loginfo("Executing angle detection for item: %s", goal.item_id)
 
-        # Pass action goal to Python3 node
-        action_goal = goal
-        action_goal.rgb_image = self.bridge.cv2_to_imgmsg(image)
-        self._py3_axclient.send_goal(action_goal)
+        if goal.get_motor_from_top:
+            action_result = o2ac_msgs.msg.detectAngleResult()
+            action_result.succeeded, action_result.rotation_angle, im_vis = self.motor_angle_detection_from_top(im_in, im_vis)
+            self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
+            self.write_to_log(im_in, im_vis, "motor_orientation_detection")
+        else:  # Pass action goal to Python3 node
+            action_goal = goal
+            action_goal.rgb_image = self.bridge.cv2_to_imgmsg(im_in)
+            self._py3_axclient.send_goal(action_goal)
 
-        if (not self._py3_axclient.wait_for_result(rospy.Duration(3.0))):
-            rospy.logerr("Angle detection timed out.")
-            self._py3_axclient.cancel_goal()  # Cancel goal if timeout expired
+            if (not self._py3_axclient.wait_for_result(rospy.Duration(3.0))):
+                rospy.logerr("Angle detection timed out.")
+                self._py3_axclient.cancel_goal()  # Cancel goal if timeout expired
 
-        action_result = self._py3_axclient.get_result()
+            action_result = self._py3_axclient.get_result()
         self.angle_detection_server.set_succeeded(action_result)
 
     def execute_shaft_hole_detection(self, im_in):
@@ -622,9 +628,9 @@ class O2ACVisionServer(object):
         """
 
         # Convert to grayscale
-        if im_in.shape[2] == 3: 
+        if im_in.shape[2] == 3:
             im_gray = cv2.cvtColor(im_in, cv2.COLOR_BGR2GRAY)
-        else: 
+        else:
             im_gray = im_in
 
         has_hole, im_vis = self.shaft_hole_detector.main_proc(im_gray)  # if True hole is observed in im_in
@@ -641,41 +647,63 @@ class O2ACVisionServer(object):
         return pick_successful, im_vis
 
     def localize(self, item_id, bbox, poses2d, shape):
-        size   = self._param_localization[item_id]['size']
-        margin = 15
-        x0     = max(bbox[0] - margin, 0)
-        y0     = max(bbox[1] - margin, 0)
-        x1     = min(bbox[0] + bbox[2] + margin, shape[1])
-        y1     = min(bbox[1] + bbox[3] + margin, shape[0])
+        # (u0, v0)/(u1, v1): upper-left/lower-right corner of bbox
+        margin = 30
+        u0     = bbox[0] - margin
+        v0     = bbox[1] - margin
+        u1     = bbox[0] + bbox[2] + margin
+        v1     = bbox[1] + bbox[3] + margin
 
-        self._dfilter.roi = (x0, y0, x1, y1)
+        # Setup ROI for depth filter.
+        self._dfilter.roi = (u0, v0, u1, v1)
 
-        ox = x0
-        oy = y0
-        dx = 0.0
-        dy = 0.0
-        # if len(poses2d) == 1 and poses2d[0].theta == 0:
-        #     if x0 == 0:
-        #         ox = x1
-        #         poses2d[0].x = ox
-        #         dx = -size[0]/2
-        #     elif x1 == shape[1]:
-        #         poses2d[0].x = ox
-        #         dx = size[0]/2
-        #     if y0 == 0:
-        #         oy = y1
-        #         poses2d[0].y = oy
-        #         dy = size[1]/2
-        #     elif y1 == shape[0]:
-        #         poses2d[0].y = oy
-        #         dy = -size[1]/2
+        if len(poses2d) == 1 and poses2d[0].theta == 0:
+            # If the bounding box includes a image corner, give up
+            # localization because we cannot estimate its center.
+            if (u0 < 0 or u1 > shape[1]) and (v0 < 0 or v1 > shape[0]):
+                rospy.logwarn('Cannot localize[%s] because the bounding box includes a corner of image.', item_id)
+                return None
 
+            # Estimate the object center as the bouinding box center.
+            poses2d[0].x = 0.5*(u0 + u1)
+            poses2d[0].y = 0.5*(v0 + v1)
+
+            aspect_ratio = self._param_localization[item_id]['aspect_ratio']
+
+            # Correct object center if the bounding box intersects with
+            # the image border.
+            if v0 < 0:
+                if v1 - v0 < u1 - u0:
+                    poses2d[0].y = v1 - 0.5*(u1 - u0)*aspect_ratio
+                else:
+                    poses2d[0].y = v1 - 0.5*(u1 - u0)/aspect_ratio
+            elif v1 > shape[0]:
+                if v1 - v0 < u1 - u0:
+                    poses2d[0].y = v0 + 0.5*(u1 - u0)*aspect_ratio
+                else:
+                    poses2d[0].y = v0 + 0.5*(u1 - u0)/aspect_ratio
+
+            if u0 < 0:
+                if u1 - u0 < v1 - v0:
+                    poses2d[0].x = u1 - 0.5*(v1 - v0)*aspect_ratio
+                else:
+                    poses2d[0].x = u1 - 0.5*(v1 - v0)/aspect_ratio
+            elif u1 > shape[1]:
+                if u1 - u0 < v1 - v0:
+                    poses2d[0].x = u0 + 0.5*(v1 - v0)*aspect_ratio
+                else:
+                    poses2d[0].x = u0 + 0.5*(v1 - v0)/aspect_ratio
+
+        if u0 < 0:
+            u0 = 0
+        if v0 < 0:
+            v0 = 0
         for pose2d in poses2d:
-            pose2d.x -= ox
-            pose2d.y -= oy
+            pose2d.x -= u0
+            pose2d.y -= v0
+
         self._localizer.send_goal_with_target_frame(item_id, 'tray_center',
-                                                    rospy.Time.now(),
-                                                    poses2d, dx, dy)
+                                                    rospy.Time.now(), poses2d)
         return self._localizer.wait_for_result()
 
     def item_id(self, class_id):
@@ -685,7 +713,7 @@ class O2ACVisionServer(object):
 
     def detect_pulley_screws(self, im_in, im_vis):
         # Convert to grayscale
-        if im_in.shape[2] == 3: 
+        if im_in.shape[2] == 3:
             im_gray = cv2.cvtColor(im_in, cv2.COLOR_BGR2GRAY)
         else:
             im_gray = im_in
@@ -697,6 +725,26 @@ class O2ACVisionServer(object):
         # TODO: Draw green rectangle around bbox if detected, red if not. Display score.
         return detected
 
+    def motor_angle_detection_from_top(self, im_in, im_vis):
+        """
+        When looking at the motor from the top, detects the cables and returns their position.
+        
+        Return values:
+        motor_seen: bool (False if no motor in view)
+        motor_rotation_flag: int (0:right, 1:left, 2:top, 3:bottom  (documented in pose_estimation_func))
+        im_vis: Result visualization
+        """        
+        ssd_results, im_vis = self.detect_object_in_image(im_in, im_vis)
+
+        m = MotorOrientation()
+        angle_orientation = m.main_proc(im_in, ssd_results)  # if True hole is observed in im_in
+        im_vis = m.draw_im_vis(im_vis)
+        motor_seen = angle_orientation is not False
+        if motor_seen:
+            return motor_seen, radians(angle_orientation), im_vis
+        else:
+            return False, 0.0, im_vis
+        
 
 ### ========
 

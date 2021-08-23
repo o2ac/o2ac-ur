@@ -1,10 +1,11 @@
-# This action will be called when the camera is looking at the bearing or large pulley
+# This action will be called when the camera is looking at the bearing, large pulley or motor
 # from the front to check the angle difference to its target position.
+# Can also be called looking at the motor from the top
 
 # Request
 string item_id     # Name of the item ("bearing", "pulley" or the part name)
-string camera_id   # Which camera to use. "a_bot_cam_outside", "a_bot_cam_inside"...
-
+bool get_motor_from_top  # Uses a separate pipeline for looking at the motor from the top. 
+                         # Returns the position of the cables.
 
 ## Only used internally to pass to the Python3 node
 sensor_msgs/Image rgb_image

@@ -69,6 +69,13 @@ function o2ac-fix-permission-issues () {
   popd
 }
 
+function o2ac-tests () {
+  # Run tests.
+  pushd .
+  source /root/o2ac-ur/docker/o2ac-dev/scripts/run-tests.sh
+  popd
+}
+
 function o2ac-run-vscode-editor () {
   # Store the current directory and execute scripts in the current shell process.
   pushd .

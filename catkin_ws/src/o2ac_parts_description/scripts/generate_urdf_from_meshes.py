@@ -13,8 +13,8 @@ filenames = os.listdir(os.path.join(rp.get_path("o2ac_parts_description"), "mesh
 filenames_strip1 = []
 filenames_no_ext = []
 for name in filenames:
-    filenames_strip1.append(os.path.splitext(name)[0]) 
-for name in filenames_strip1: 
+    filenames_strip1.append(os.path.splitext(name)[0])
+for name in filenames_strip1:
     filenames_no_ext.append(os.path.splitext(name)[0])        # This removes the .vhacd from ".vhacd.dae" files
 partnames = list(sorted(set(filenames_no_ext)))   # Removes duplicates and sorts (because sets do not allow duplicate entries)
 out_dir = os.path.join(rp.get_path("o2ac_parts_description"), "urdf/generated")
@@ -88,7 +88,7 @@ for part_num, partname in enumerate(partnames):
             if int(entry[0]) == int(partname[0:2]):
                 new_joint = ""
                 new_joint +=  "    <joint name=\"${prefix}" + mname_int + "_LINK_NAME_joint\" type=\"fixed\"> \n"
-                new_joint +=  "      <parent link=\"${prefix}" + mname_int + "\"/> \n"
+                new_joint +=  "      <parent link=\"${prefix}" + mname_int + "_origin\"/> \n"
                 new_joint +=  "      <child link=\"${prefix}" + mname_int + "_LINK_NAME\"/> \n"
                 new_joint +=  "      <origin rpy=\"${" + \
                                     entry[2] + "} ${" + \

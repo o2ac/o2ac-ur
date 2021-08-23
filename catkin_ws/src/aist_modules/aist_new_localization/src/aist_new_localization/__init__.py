@@ -16,7 +16,7 @@ class LocalizationClient(object):
     _DefaultParams = {'origin':           [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
                       'rotation_range':   [0.0, 0.0, 0,0],
                       'refine_transform': False,
-                      'transform_2d':     False}
+                      'check_borders':    False}
 
     def __init__(self, server='/localization'):
         super(LocalizationClient, self).__init__()
@@ -49,12 +49,9 @@ class LocalizationClient(object):
     def get_settings(self):
         return self._dyn_reconf.get_configuration()
 
-    def send_goal(self, object_name, plane,
-                  poses2d=[gmsg.Pose2D(0.0, 0.0, 0.0)], dx=0.0, dy=0.0):
+    def send_goal(self, object_name, plane, poses2d):
         params = self._params[object_name]
         origin = copy.copy(params['origin'])  # Must be copied
-        origin[0] += dx
-        origin[1] += dy
         origin[3] = np.radians(origin[3])
         origin[4] = np.radians(origin[4])
         origin[5] = np.radians(origin[5])
@@ -62,7 +59,8 @@ class LocalizationClient(object):
         rotation_range = params['rotation_range']
         if rotation_range[0] < rotation_range[1] and \
            rotation_range[2] > 0:
-            goal.poses2d = [ gmsg.Pose2D(0.0, 0.0, np.radians(theta))
+            goal.poses2d = [ gmsg.Pose2D(poses2d[0].x,
+                                         poses2d[0].y, np.radians(theta))
                              for theta in np.arange(*rotation_range) ]
         else:
             goal.poses2d = poses2d
@@ -72,12 +70,11 @@ class LocalizationClient(object):
                                      gmsg.Quaternion(*tfs.quaternion_from_euler(
                                          *origin[3:6])))
         goal.refine_transform = params['refine_transform']
-        goal.transform_2d     = params['transform_2d']
+        goal.check_borders    = params['check_borders']
         self._localize.send_goal(goal)
 
     def send_goal_with_target_frame(self, object_name, frame_id, stamp,
-                                    poses2d=[gmsg.Pose2D(0.0, 0.0, 0.0)],
-                                    dx=0.0, dy=0.0):
+                                    poses2d):
         plane = dmsg.PlaneStamped()
         plane.header.frame_id = frame_id
         plane.header.stamp    = stamp
@@ -85,7 +82,7 @@ class LocalizationClient(object):
         plane.plane.normal.y  = 0
         plane.plane.normal.z  = 1
         plane.plane.distance  = 0
-        return self.send_goal(object_name, plane, poses2d, dx, dy)
+        return self.send_goal(object_name, plane, poses2d)
 
     def wait_for_result(self, timeout=0):
         if not self._localize.wait_for_result(rospy.Duration(timeout)):

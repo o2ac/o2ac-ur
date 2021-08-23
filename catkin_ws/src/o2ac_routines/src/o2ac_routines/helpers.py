@@ -35,10 +35,30 @@ import ur_dashboard_msgs.msg
 import moveit_msgs.msg
 from moveit_msgs.msg import RobotState
 from sensor_msgs.msg import JointState
-
+from shape_msgs.msg import SolidPrimitive
 from std_msgs.msg import String, Float64MultiArray
-
+import trajectory_msgs.msg
 helper_fct_marker_id_count = 0
+
+def save_task_plan(func):
+  '''Decorator that optionally save the solution to a plan.'''
+
+  def wrap(*args, **kwargs):
+      save_solution_to_file = kwargs.pop("save_solution_to_file", None)
+      result = func(*args, **kwargs)
+      
+      if result is None:
+        rospy.logerr("No solution from server")
+        return
+
+      if result.success and save_solution_to_file:
+        path = rospkg.RosPack().get_path('o2ac_routines') + '/MP_solutions/'
+        with open(path + save_solution_to_file,'wb') as f:
+          pickle.dump(result, f)
+        rospy.loginfo("Writing solution to: %s" % save_solution_to_file)
+      return result  
+  return wrap
+
 
 def upload_mtc_modules_initial_params():
   '''
@@ -134,7 +154,10 @@ def rotateQuaternionByRPY(roll, pitch, yaw, in_quat):
   Input: geometry_msgs.msg.Quaternion
   Output: geometry_msgs.msg.Quaternion rotated by roll, pitch, yaw in its frame
   """
-  q_in = [in_quat.x, in_quat.y, in_quat.z, in_quat.w]
+  if type(in_quat) == type(geometry_msgs.msg.Quaternion()):
+    q_in = [in_quat.x, in_quat.y, in_quat.z, in_quat.w]
+  else:
+    q_in = in_quat
   q_rot = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
   q_rotated = tf.transformations.quaternion_multiply(q_in, q_rot)
 
@@ -159,6 +182,24 @@ def rotateTranslationByRPY(roll, pitch, yaw, in_point):
   xyz_new = np.dot(matrix, xyz)
   return geometry_msgs.msg.Point(*xyz_new[:3])
 
+def rotateTranslationByQuat(quat, in_point):
+  try:
+    if type(quat) == type(geometry_msgs.msg.Quaternion()):
+      q = [quat.x, quat.y, quat.z, quat.w]
+    else:
+      q = quat
+    if type(in_point) == type(geometry_msgs.msg.Point()):
+      p = [in_point.x, in_point.y, in_point.z]
+    else:
+      p = in_point
+  except:
+    pass # header doesn't exist so the object is probably not posestamped
+  
+  matrix = tf.transformations.quaternion_matrix(q)
+  xyz = np.array([p[0], p[1], p[2], 1]).reshape((4,1))
+  xyz_new = np.dot(matrix, xyz)
+  return geometry_msgs.msg.Point(*xyz_new[:3])
+
 # RPY rotations are applied in the frame of the pose.
 def rotatePoseByRPY(roll, pitch, yaw, in_pose):
   # Catch if in_pose is a PoseStamped instead of a Pose.
@@ -172,16 +213,92 @@ def rotatePoseByRPY(roll, pitch, yaw, in_pose):
   
   rotated_pose = copy.deepcopy(in_pose)
   rotated_pose.orientation = rotateQuaternionByRPY(roll, pitch, yaw, rotated_pose.orientation)
-  return rotated_pose  
+  return rotated_pose
 
-# // Returns the angle between two quaternions
-# double quaternionDistance(geometry_msgs::Quaternion q1, geometry_msgs::Quaternion q2) 
-# { 
+# Taken from the transformations library: https://github.com/cgohlke/transformations/blob/master/transformations/transformations.py#L1772
+def vector_norm(data, axis=None, out=None):
+    data = np.array(data, dtype=np.float64, copy=True)
+    if out is None:
+        if data.ndim == 1:
+            return sqrt(np.dot(data, data))
+        data *= data
+        out = np.atleast_1d(np.sum(data, axis=axis))
+        np.sqrt(out, out)
+        return out
+    data *= data
+    np.sum(data, axis=axis, out=out)
+    np.sqrt(out, out)
+    return None
+
+# Taken from the transformations library: https://github.com/cgohlke/transformations/blob/master/transformations/transformations.py#L1818
+def angle_between_vectors(v0, v1, directed=True, axis=0):
+    """Return angle between vectors.
+    If directed is False, the input vectors are interpreted as undirected axes,
+    i.e. the maximum angle is pi/2.
+    >>> a = angle_between_vectors([1, -2, 3], [-1, 2, -3])
+    >>> np.allclose(a, math.pi)
+    True
+    >>> a = angle_between_vectors([1, -2, 3], [-1, 2, -3], directed=False)
+    >>> np.allclose(a, 0)
+    True
+    >>> v0 = [[2, 0, 0, 2], [0, 2, 0, 2], [0, 0, 2, 2]]
+    >>> v1 = [[3], [0], [0]]
+    >>> a = angle_between_vectors(v0, v1)
+    >>> np.allclose(a, [0, 1.5708, 1.5708, 0.95532])
+    True
+    >>> v0 = [[2, 0, 0], [2, 0, 0], [0, 2, 0], [2, 0, 0]]
+    >>> v1 = [[0, 3, 0], [0, 0, 3], [0, 0, 3], [3, 3, 3]]
+    >>> a = angle_between_vectors(v0, v1, axis=1)
+    >>> np.allclose(a, [1.5708, 1.5708, 1.5708, 0.95532])
+    True
+    """
+    v0 = np.array(v0, dtype=np.float64, copy=False)
+    v1 = np.array(v1, dtype=np.float64, copy=False)
+    dot = np.sum(v0 * v1, axis=axis)
+    dot /= vector_norm(v0, axis=axis) * vector_norm(v1, axis=axis)
+    dot = np.clip(dot, -1.0, 1.0)
+    return np.arccos(dot if directed else np.fabs(dot))
+
+def getOrientedFlatGraspPoseFromXAxis(pre_grasp_pose):
+  """ Used to obtain the grasp pose for e.g. the motor, where only the direction of the x-axis matters.
+      
+      Input: PoseStamped or Pose of motor_center in stationary frame (e.g. tray_center)
+      Output: PoseStamped or Pose, z-axis aligned with frame, x-axis in XY-plane
+  """
+  try:
+    if type(pre_grasp_pose) == type(geometry_msgs.msg.PoseStamped()):
+      outpose = copy.deepcopy(pre_grasp_pose)
+      outpose.pose = getOrientedFlatGraspPoseFromXAxis(pre_grasp_pose.pose)
+      return outpose
+  except Exception as e:
+    rospy.logerr("Error!")
+    rospy.logerr(e)
+    pass
+
+  # Take (1,0,0) in motor/center, rotate to tray center
+  p_x_object = geometry_msgs.msg.Point(1.0, 0, 0)
+  p_x_object = rotateTranslationByQuat(pre_grasp_pose.orientation, p_x_object)
+
+  # Project to XY-plane
+  p_xy_in_header_frame = copy.deepcopy(p_x_object)
+  p_xy_in_header_frame.z = 0.0
+
+  # Get angle between projected object axis and tray_center x-axis
+  theta = angle_between_vectors([p_xy_in_header_frame.x, p_xy_in_header_frame.y, p_xy_in_header_frame.z], [1.0, 0, 0])
+  outpose = copy.deepcopy(pre_grasp_pose)
+  outpose.orientation = tf.transformations.quaternion_from_euler(0, 0, theta)
+  
+  outpose = rotatePoseByRPY(0, tau/4, 0, outpose)
+
+  return outpose
+
+# # Returns the angle between two quaternions
+# def quaternionDistance(q1, q2):
+#   # q1, q2 are lists
 #   tf::Quaternion q1tf, q2tf
 #   tf::quaternionMsgToTF(q1, q1tf)
 #   tf::quaternionMsgToTF(q2, q2tf)
-#   return 2*q1tf.angle(q2tf) 
-# }
+#   return 2*q1tf.angle(q2tf)
 
 # double pointDistance(geometry_msgs::Point p1, geometry_msgs::Point p2)
 # {
@@ -461,23 +578,27 @@ def get_trajectory_joint_goal(plan, joints_order=None):
   return plan.joint_trajectory.points[-1].positions
 
 def to_robot_state(move_group, joints):
-  joint_state = JointState()
-  joint_state.header.stamp = rospy.Time.now()
-  joint_state.name = move_group.get_active_joints()
-  joint_state.position = joints
-  moveit_robot_state = RobotState()
-  moveit_robot_state.joint_state = joint_state
+  moveit_robot_state = move_group.get_current_state()
+  moveit_robot_state.joint_state.header.stamp = rospy.Time.now()
+  active_joints = move_group.get_active_joints()
+  temp_joint_values = list(moveit_robot_state.joint_state.position)
+  for i in range(len(active_joints)):
+    temp_joint_values[moveit_robot_state.joint_state.name.index(active_joints[i])] = joints[i]
+  moveit_robot_state.joint_state.position = temp_joint_values
   return moveit_robot_state
 
-def to_sequence_gripper(gripper, gripper_opening_width=0.14, gripper_force=40, gripper_velocity=0.03):
+def to_sequence_gripper(action, gripper_opening_width=0.14, gripper_force=40, gripper_velocity=0.03, pre_callback=None, post_callback=None, wait=True):
   item = {
     "pose_type": "gripper",
     "gripper":
             {
-              "action":gripper,
-              "width": gripper_opening_width,
+              "action": action,
+              "open_width": gripper_opening_width,
               "force": gripper_force,
               "velocity": gripper_velocity,
+              "pre_callback": pre_callback,
+              "post_callback": post_callback,
+              "wait": wait,
             }
     }
   return ["waypoint", item]
@@ -494,20 +615,23 @@ def to_sequence_item_relative(pose, relative_to_base=False, relative_to_tcp=Fals
   item.update({"speed": speed, "acc": acc})
   return ["waypoint", item]
 
-def to_sequence_item(pose, speed=0.5, acc=0.25):
+def to_sequence_item(pose, speed=0.5, acc=0.25, linear=True, end_effector_link=None):
   if isinstance(pose, geometry_msgs.msg.PoseStamped):
     item           = {"pose": conversions.from_point(pose.pose.position).tolist() + np.rad2deg(transformations.euler_from_quaternion(conversions.from_quaternion(pose.pose.orientation))).tolist(),
                       "pose_type": "task-space-in-frame",
                       "frame_id": pose.header.frame_id,
+                      "move_linear": linear,
+                      "end_effector_link": end_effector_link,
                      }
   if isinstance(pose, str):
     item           = {"pose": pose,
                       "pose_type": "named-pose",
                      }
   if isinstance(pose, list): # Assume joint angles
-    item       = {"pose": pose,
-                  "pose_type": "joint-space-goal-cartesian-lin-motion",
-                  }
+    # if not explicitly defined, use linear motion
+      item       = {"pose": pose,
+                    "pose_type": "joint-space-goal-cartesian-lin-motion" if linear else "joint-space",
+                    }
   item.update({"speed": speed, "acc": acc})
 
   return ["waypoint", item]
@@ -526,6 +650,36 @@ def to_sequence_trajectory(trajectory, blend_radiuses=0.0, speed=0.5, default_fr
     elif isinstance(t, list):
       sequence_trajectory.append([conversions.to_pose_stamped(default_frame, t), br, spd])
   return ["trajectory", sequence_trajectory]
+
+def to_sequence_joint_trajectory(trajectory, blend_radiuses=0.0, speed=0.5):
+  sequence_trajectory = []
+  blend_radiuses = blend_radiuses if isinstance(blend_radiuses, list) else np.zeros_like(trajectory)+blend_radiuses
+  speeds = speed if isinstance(speed, list) else np.zeros_like(trajectory)+speed
+  for i, (t, br, spd) in enumerate(zip(trajectory, blend_radiuses, speeds)):
+    sequence_trajectory.append([t, br, spd])
+  return ["joint_trajectory", sequence_trajectory]
+
+def to_sequence_item_dual_arm(pose1, pose2, speed, planner="OMPL"):
+  item = {"pose": conversions.from_pose_to_list(pose1.pose),
+          "pose2": conversions.from_pose_to_list(pose2.pose),
+          "pose_type": "task-space-in-frame",
+          "frame_id": pose1.header.frame_id,
+          "planner": planner,
+         }
+  item.update({"speed":speed})
+  return ["waypoint", item]
+
+def to_sequence_item_master_slave(master, slave, pose, slave_relative_pose, speed):
+  item = {
+      "pose": conversions.from_pose_to_list(pose.pose),
+      "pose_type": "master-slave",
+      "master_name": master,
+      "slave_name": slave,
+      "slave_relation": slave_relative_pose,
+      "frame_id": pose.header.frame_id,
+      "speed": speed,
+  }
+  return ["waypoint", item]
 
 def get_plan_full_path(name):
   rp = rospkg.RosPack()
@@ -550,6 +704,12 @@ def save_sequence_plans(name, plans):
   bagfile = get_plan_full_path(name)
   if os.path.exists(bagfile):
     os.remove(bagfile)
+
+  # Make sure the directory exists before trying to open a file
+  saved_plans_directory = os.path.dirname(bagfile)
+  if not os.path.exists(saved_plans_directory):
+    os.makedirs(saved_plans_directory)
+  
   with rosbag.Bag(bagfile, 'w') as bag:
     bag.write(topic="robot_name", msg=String(data=plans[0]))
     bag.write(topic="initial_joint_configuration", msg=Float64MultiArray(data=plans[1]))
@@ -559,3 +719,50 @@ def save_sequence_plans(name, plans):
       else:
         bag.write(topic="plan", msg=plan)
 
+def create_tray_collision_object(id, pose, frame_id):
+  tray_co = moveit_msgs.msg.CollisionObject()
+  tray_co.header.frame_id = frame_id
+  tray_co.id = id
+  tray_co.primitives = [SolidPrimitive()]
+  tray_co.primitive_poses = [pose] 
+  tray_co.primitives[0].type = SolidPrimitive.BOX
+  tray_co.primitives[0].dimensions = [.255, .375, 0.05]
+  tray_co.operation = tray_co.ADD
+  tray_co.subframe_names = ["center"]
+  tray_co.subframe_poses = [pose]
+  return tray_co
+
+def combine_plans(a_bot_plan, b_bot_plan):
+  assert a_bot_plan.joint_trajectory.header.frame_id == b_bot_plan.joint_trajectory.header.frame_id
+  plan = moveit_msgs.msg.RobotTrajectory()
+  plan.joint_trajectory.header = a_bot_plan.joint_trajectory.header
+  plan.joint_trajectory.joint_names = a_bot_plan.joint_trajectory.joint_names + b_bot_plan.joint_trajectory.joint_names
+  a_num_points = len(a_bot_plan.joint_trajectory.points)
+  b_num_points = len(b_bot_plan.joint_trajectory.points)
+  print("a_bot # points:", a_num_points)
+  print("b_bot # points:", b_num_points)
+  if a_num_points == b_num_points or a_num_points < b_num_points:
+    for i in range(a_num_points):
+      plan.joint_trajectory.points.append(concat_joint_trajectory_point(a_bot_plan.joint_trajectory.points[i], b_bot_plan.joint_trajectory.points[i]))
+
+  if a_num_points < b_num_points:
+    diff = a_num_points - b_num_points
+    for i in range(diff, 0):
+      plan.joint_trajectory.points.append(concat_joint_trajectory_point(a_bot_plan.joint_trajectory.points[-1], b_bot_plan.joint_trajectory.points[i]))
+
+  if a_num_points > b_num_points:
+    for i in range(b_num_points):
+      plan.joint_trajectory.points.append(concat_joint_trajectory_point(a_bot_plan.joint_trajectory.points[i], b_bot_plan.joint_trajectory.points[i]))
+    diff = b_num_points - a_num_points
+    for i in range(diff, 0):
+      plan.joint_trajectory.points.append(concat_joint_trajectory_point(a_bot_plan.joint_trajectory.points[i], b_bot_plan.joint_trajectory.points[-1]))
+  return plan
+
+def concat_joint_trajectory_point(point1, point2):
+  point = trajectory_msgs.msg.JointTrajectoryPoint()
+  point.positions = point1.positions + point2.positions
+  point.velocities = point1.velocities + point2.velocities
+  point.accelerations = point1.accelerations + point2.accelerations
+  point.effort = point1.effort + point2.effort
+  point.time_from_start = point1.time_from_start
+  return point

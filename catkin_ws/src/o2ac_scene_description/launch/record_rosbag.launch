@@ -17,21 +17,21 @@
 
   <!-- publish RGB and D frames with 5Hz on /camera_throttled -->
   <arg name="throttled_rate" default="2.0" />
-  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_1" args="messages /b_bot_outside_camera/aligned_depth_to_color/image_raw/compressedDepth $(arg throttled_rate) /b_bot_outside_camera_throttled/aligned_depth_to_color/image_raw/compressedDepth">
+  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_1" args="messages /b_bot_outside_camera/aligned_depth_to_color/image_raw $(arg throttled_rate) /b_bot_outside_camera_throttled/aligned_depth_to_color/image_raw">
   </node>
-  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_2" args="messages /b_bot_outside_camera/color/image_raw/compressed $(arg throttled_rate) /b_bot_outside_camera_throttled/color/image_raw/compressed">
+  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_2" args="messages /b_bot_outside_camera/color/image_raw $(arg throttled_rate) /b_bot_outside_camera_throttled/color/image_raw">
   </node>
-  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_3" args="messages /a_bot_outside_camera/aligned_depth_to_color/image_raw/compressedDepth $(arg throttled_rate) /a_bot_outside_camera_throttled/aligned_depth_to_color/image_raw/compressedDepth">
+  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_3" args="messages /a_bot_outside_camera/aligned_depth_to_color/image_raw $(arg throttled_rate) /a_bot_outside_camera_throttled/aligned_depth_to_color/image_raw">
   </node>
-  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_4" args="messages /a_bot_outside_camera/color/image_raw/compressed $(arg throttled_rate) /a_bot_outside_camera_throttled/color/image_raw/compressed">
+  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_4" args="messages /a_bot_outside_camera/color/image_raw $(arg throttled_rate) /a_bot_outside_camera_throttled/color/image_raw">
   </node>
-  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_5" args="messages /b_bot_inside_camera/aligned_depth_to_color/image_raw/compressedDepth $(arg throttled_rate) /b_bot_inside_camera_throttled/aligned_depth_to_color/image_raw/compressedDepth">
+  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_5" args="messages /b_bot_inside_camera/aligned_depth_to_color/image_raw $(arg throttled_rate) /b_bot_inside_camera_throttled/aligned_depth_to_color/image_raw">
   </node>
-  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_6" args="messages /b_bot_inside_camera/color/image_raw/compressed $(arg throttled_rate) /b_bot_inside_camera_throttled/color/image_raw/compressed">
+  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_6" args="messages /b_bot_inside_camera/color/image_raw $(arg throttled_rate) /b_bot_inside_camera_throttled/color/image_raw">
   </node>
-  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_7" args="messages /a_bot_inside_camera/aligned_depth_to_color/image_raw/compressedDepth $(arg throttled_rate) /a_bot_inside_camera_throttled/aligned_depth_to_color/image_raw/compressedDepth">
+  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_7" args="messages /a_bot_inside_camera/aligned_depth_to_color/image_raw $(arg throttled_rate) /a_bot_inside_camera_throttled/aligned_depth_to_color/image_raw">
   </node>
-  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_8" args="messages /a_bot_inside_camera/color/image_raw/compressed $(arg throttled_rate) /a_bot_inside_camera_throttled/color/image_raw/compressed">
+  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_8" args="messages /a_bot_inside_camera/color/image_raw $(arg throttled_rate) /a_bot_inside_camera_throttled/color/image_raw">
   </node>
 
   <group if="$(arg include_pointclouds)">

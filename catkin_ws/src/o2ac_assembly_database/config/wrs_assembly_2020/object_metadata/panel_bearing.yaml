@@ -1,4 +1,27 @@
+collision_objects:
+- type: BOX 
+  dimensions: [0.116, 0.09, 0.005]
+  pose: [0.058, 0.045, 0.0025, 0.0, 0.0, 0.0]
+- type: BOX 
+  dimensions: [0.116, 0.005, 0.025]
+  pose: [0.058, 0.0, 0.0125, 0.0, 0.0, 0.0]
 subframes:
+- pose_xyzrpy:
+  - 0.0
+  - 0.0
+  - 0.0
+  - -pi/2
+  - 0.0
+  - -pi/2
+  name: bottom_corner_1
+- pose_xyzrpy:
+  - 0.116
+  - 0.0
+  - 0.0
+  - -pi/2
+  - 0.0
+  - -pi/2
+  name: bottom_corner_2
 - pose_xyzrpy:
   - 0.006
   - 0.0
@@ -39,6 +62,14 @@ subframes:
   - -pi/2
   - 0.0
   name: front_hole
+- pose_xyzrpy:
+  - 0.058
+  - 0.045
+  - 0.0
+  - -pi/2
+  - -pi/2
+  - 0.0
+  name: center
 - pose_xyzrpy:
   - 0.095
   - 0.05

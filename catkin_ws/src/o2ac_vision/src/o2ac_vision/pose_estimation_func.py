@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 import cv2
 import numpy as np
 import math
@@ -697,12 +698,13 @@ class PickCheck():
     """ Verify that the grasp was successful
 
     Args:
-        ssd_detection: ssd_detection
+        ssd_detection(list): result of ssd_detection
       
     """
     def __init__( self, ssd_detection ):
         self.ssd_detection = ssd_detection
         self.ssd_results = None
+        self.target = None 
         self.im_vis = None
 
     def check( self, im_in, class_id, ssd_treshold=0.6 ):
@@ -716,23 +718,47 @@ class PickCheck():
             bool: If True, grasp was successful.
         """
         flag = False
-        im_vis = im_in.copy()
-        self.ssd_results, self.im_vis = self.ssd_detection.object_detection(im_in, 
-                                                                  im_vis, 
+        im_tmp = im_in.copy()
+        self.im_vis = im_in.copy()
+        self.ssd_results, _ = self.ssd_detection.object_detection(im_in, 
+                                                                  im_tmp, 
                                                                   ssd_treshold, 
                                                                   0.8)
 
         for res in self.ssd_results:
             if res["class"] == class_id:
                 flag = True
+                self.target = res
         
         return flag
 
     def get_ssd_results( self ):
         return self.ssd_results
+    
+    def draw_result( self ):
+        
+        if self.target is not None:
+        
+            bbox = self.target["bbox"]
+            bb_color = (0,255,0)
+            im_vis = cv2.rectangle( self.im_vis, (bbox[0],  bbox[1]),
+                                    (bbox[0]+bbox[2], bbox[1]+bbox[3]),
+                                    bb_color, 3 )
+            text = self.target["name"] + " is picked!"
+            cv2.putText( self.im_vis, text,
+                         (20, 30),1, 1.5, (255,255,255), 2, cv2.LINE_AA )
+            cv2.putText( self.im_vis, text,
+                         (20, 30),1, 1.5, (0,255,0), 1, cv2.LINE_AA )
+        else:
+            text = "Picking is failed!"
+            cv2.putText( self.im_vis, text,
+                         (20, 30),1, 1.5, (255,255,255), 2, cv2.LINE_AA )
+            cv2.putText( self.im_vis, text,
+                         (20, 30),1, 1.5, (0,0,255), 1, cv2.LINE_AA )
 
     
     def get_im_result( self ):
+        self.draw_result()
         return self.im_vis
         
 #############################################################################
@@ -1026,3 +1052,345 @@ class ShaftHoleDetection():
             visible_hole = True
 
         return visible_hole, im_vis
+
+#############################################################
+# MotorOrientation class: sample code
+# 
+# # Object detection
+# ssd_results, im_vis = ssd_detection.object_detection(im_in, im_vis, 0.3, 0.8)
+# 
+# # Orientation analysis
+# mo = MotorOrientation()
+# orientation = mo.main_proc(im_in, ssd_results)
+# 
+# orientation is cable direction in degree
+# # False: motor was not detected
+#
+# if orientation is not False:
+#    print(orientation)
+#    plt.imshow(mo.get_im_vis(im_vis))
+# else:
+#    print("no motor")
+#############################################################
+class MotorOrientation():
+    def __init__( self ):
+        """ Calculation of motor's orientation code
+        """
+        self.cable_orientation = 0.0
+        self.im_roi = list()
+        self.th = 0.5
+    
+    def main_proc( self, im_in, ssd_results ):
+        """ Detect motor orientation code
+        Input:
+            im_in(np.array): input image. 3ch
+            ssd_results(list): list of ssd_result
+        """
+        # get motor bbox
+        class_list = [d.get('class') for d in ssd_results]
+        if  (4 in class_list) is False:
+            return False
+        motor_idx = class_list.index(4) # motor id is 4.
+        bbox = ssd_results[motor_idx]['bbox']
+        self.bb_x,self.bb_y,self.bb_w,self.bb_h = bbox[0], bbox[1], bbox[2], bbox[3]
+
+        im_red = self.get_red_mask(im_in, self.th )
+
+        im_w = im_red.shape[1]
+        im_h = im_red.shape[0]
+        # x and y coordinate of roi surrounding bbox.
+        rx = np.array([
+            self.bb_x - self.bb_h,
+            self.bb_x,
+            self.bb_x + self.bb_w,
+            self.bb_x + self.bb_w + self.bb_h
+        ])
+        ry = np.array([
+            self.bb_y - self.bb_h,
+            self.bb_y,
+            self.bb_y + self.bb_h,
+            self.bb_y + (2*self.bb_h)
+        ])
+        # clip
+        rx = np.clip(rx,0,im_w-1)
+        ry = np.clip(ry,0,im_h-1)
+        
+
+        # Crop RoI
+        self.im_roi.append( im_red[ry[1]:ry[2],rx[2]:rx[3]].copy() ) # 0
+        self.im_roi.append( im_red[ry[2]:ry[3],rx[2]:rx[3]].copy() ) # 1
+        self.im_roi.append( im_red[ry[2]:ry[3],rx[1]:rx[2]].copy() ) # 2
+        self.im_roi.append( im_red[ry[2]:ry[3],rx[0]:rx[1]].copy() ) # 3
+        self.im_roi.append( im_red[ry[1]:ry[2],rx[0]:rx[1]].copy() ) # 4
+        self.im_roi.append( im_red[ry[0]:ry[1],rx[0]:rx[1]].copy() ) # 5
+        self.im_roi.append( im_red[ry[0]:ry[1],rx[1]:rx[2]].copy() ) # 6
+        self.im_roi.append( im_red[ry[0]:ry[1],rx[2]:rx[3]].copy() ) # 7
+
+        n_red = list()
+        for roi in self.im_roi:
+            # Get red mask
+            n_red.append( np.sum( roi ) )
+
+        orientation_code = np.argmax(n_red)
+        self.cable_orientation = orientation_code * 45.0
+
+        return self.cable_orientation  # In degrees
+
+    def split_hsv( self, im_in ):
+        im_hsv = cv2.cvtColor( im_in, cv2.COLOR_BGR2HSV )
+        im_h = im_hsv[:,:,0].copy()
+        im_s = im_hsv[:,:,1].copy()
+        im_v = im_hsv[:,:,2].copy()
+        return im_h, im_s, im_v
+
+    def set_th( self, th ):
+        self.th = th
+
+    def get_red_mask( self, im_in, th=0.5 ):
+        """ redが優勢なチャンネルを取り出す
+        　　redとgreen, redとblueのチャンネルを比較して，
+            redが際立って大きいかどうかを調べる．
+        """
+        im_r = im_in[:,:,2].astype(np.float)
+        im_g = im_in[:,:,1].astype(np.float)
+        im_b = im_in[:,:,0].astype(np.float)
+
+        e = 0.1 # epsilon
+        rb = im_b / (im_r+e) 
+        rg = im_g / (im_r+e)
+
+        rb2 = np.where( rb<th, 1, 0 )
+        rg2 = np.where( rg<th, 1, 0 )
+        im_red_mask = np.logical_and( rb2, rg2 )
+
+        return im_red_mask # 1 means red pixel
+
+    def get_im_vis( self, im_in ):
+        center = (self.bb_x+int(self.bb_w/2),
+                  self.bb_y+int(self.bb_h/2))
+        off = np.array([[50],[0]] )
+        radian = np.radians( self.cable_orientation )
+        rot = np.array( [ [np.cos(radian), -np.sin(radian)],
+                          [np.sin(radian), np.cos(radian)]
+                       ])
+        rot_off = np.dot( rot, off ).astype(np.int)
+        im_vis = cv2.arrowedLine(im_in, center, 
+                                (center[0]+rot_off[0], center[1]+rot_off[1]), 
+                                (0,255,0), 3, cv2.LINE_AA, tipLength=0.3)
+        
+        text = "Orientation: " + str(self.cable_orientation)
+        im_vis = cv2.putText(im_vis, text, (20,20), 0, 0.5,(255,255,255),2, cv2.LINE_AA)
+        im_vis = cv2.putText(im_vis, text, (20,20), 0, 0.5,(255,0,0),1, cv2.LINE_AA)
+        return im_vis
+
+
+#####################################################
+# Sample code
+#
+# # generate hole mask
+# hole_positions = np.array([[274,164],
+#                           [320,164],
+#                           [342,204],
+#                           [320,243],
+#                           [274,243],
+#                           [250,204] ])
+#
+# shc = ScrewHoleCheck( hole_positions )
+# idx = shc.main_proc( imgs )
+#
+# Note:
+#  you can check hole posisions by call
+#    img_vis = shc.get_visualization()
+#  also you can get result image of specific image id
+#    img_vis = shc.get_visualization_idx( id )
+#####################################################
+class ScrewHoleCheck_():
+    def __init__( self, hole_positions, radius=5 ):
+        """ ScrewHoleCheck
+        Args:
+          hole_positions(np.araay): hole positions in image coordinate (nx2)
+                                    [[x,y],[x,y],...,[x,y]]
+          radius(int): radius of hole in pixel
+        """
+        self.hp = hole_positions
+        self.radius = radius # hole radius in pixel
+
+        self.min_idx = 0 # image index
+
+    def create_hole_mask( self, size ):
+        """ create binary hole mask
+        """
+        im_mask = np.zeros( size )
+        for p in self.hp:
+            im_mask = cv2.circle( im_mask, (p[0],p[1]), self.radius, 1, -1 )
+
+        return im_mask
+
+    def main_proc( self, imgs ):
+        """
+        Args:
+          imgs(list): a list of images whlie rotating parts
+        """
+        # Convert RGB2Gray
+        self.imgs = list()
+        for im in imgs:
+            if im.ndim == 3:
+                im = cv2.cvtColor( im, cv2.COLOR_RGB2GRAY )
+            self.imgs.append( im )
+
+        # Create hole mask
+        self.im_hole_mask = self.create_hole_mask( self.imgs[0].shape )
+
+
+        # Check intensity value of holes
+        self.pixel_values = list()
+        for i, img in enumerate(self.imgs):
+            iv = np.sum(img*self.im_hole_mask)    
+            self.pixel_values.append( iv )
+
+        # detect image index of min intensity values
+        self.pixel_values = np.asarray(self.pixel_values)
+        self.min_idx = np.argmin(self.pixel_values)
+
+        return self.min_idx
+    
+    def get_visualization( self ):
+        """ get result image
+        """
+
+        im_vis = self.get_visualization_idx( self.min_idx )
+        return im_vis
+
+    def get_visualization_idx( self, idx ):
+        """ get result image for specific id
+        """
+        
+        im_vis = cv2.cvtColor( self.imgs[idx], cv2.cv2.COLOR_GRAY2BGR )
+        im_vis = im_vis.astype(np.float)
+        im_vis[:,:,1] += + self.im_hole_mask*100
+        im_vis = np.clip(im_vis,0,255)
+        im_vis = im_vis.astype(np.uint8)
+
+        # visualize hole positions
+        for i, p in enumerate(self.hp):
+            # close to hole
+            text = "id:" + str(i) 
+            cv2.putText( im_vis, text,
+                         (p[0]+10, p[1]), 1, 1.0, (255,255,255), 2, cv2.LINE_AA )
+            cv2.putText( im_vis, text,
+                         (p[0]+10, p[1]), 1, 1.0, (255,0,0), 1, cv2.LINE_AA )
+            # left top in image
+            text = "id:" + str(i) + "(" + str(p[0]) + "," + str(p[1]) + ")"
+            cv2.putText( im_vis, text,
+                         (10, 60+25*i), 1, 1.0, (255,255,255), 2, cv2.LINE_AA )
+            cv2.putText( im_vis, text,
+                         (10, 60+25*i), 1, 1.0, (255,0,0), 1, cv2.LINE_AA )
+
+        if idx == self.min_idx:
+            text = "image id:"+ str(idx) + "...OK"
+            cv2.putText( im_vis, text,
+                         (10, 30), 1, 1.5, (255,255,255), 2, cv2.LINE_AA )
+            cv2.putText( im_vis, text,
+                         (10, 30), 1, 1.5, (0,150,0), 1, cv2.LINE_AA )
+        else:
+            text = "image id:"+ str(idx) + "...X"
+            cv2.putText( im_vis, text,
+                         (10, 30), 1, 1.5, (255,255,255), 2, cv2.LINE_AA )
+            cv2.putText( im_vis, text,
+                         (10, 30), 1, 1.5, (0,0,255), 1, cv2.LINE_AA )
+
+
+        return im_vis
+
+#####################################################
+# Sample code
+#
+# radius = 46
+# scd = ScrewHoleDetector( img, radius )
+# hole_centers = scd.main_proc()
+#
+# plt.imshow( scd.get_visualization() )
+#####################################################
+class ScrewHoleDetector():
+    def __init__( self, im_in, c_radius, 
+                        hole_min_radius=3, 
+                        hole_max_radius=10 ):
+        """ Screw holes detector
+            This class assumes that screw holes arranged in a circle
+            Args:
+                im_in(np.array): input image (3ch)
+                c_radius(int): circle radius (not a hole radius ) in pixel
+                hole_min_radius(int): hole min radius to be detected
+                hole_max_radius(int): hole max radius to be detected
+
+        """
+        if im_in.ndim == 3:
+            im_in = cv2.cvtColor( im_in, cv2.COLOR_RGB2GRAY )
+        self.im_in = im_in.copy()
+
+        self.c_radius = c_radius
+        self.hole_min_radius = hole_min_radius
+        self.hole_max_radius = hole_max_radius
+
+        
+        self.cand_circles = cv2.HoughCircles( self.im_in, 
+                            cv2.HOUGH_GRADIENT,
+                            dp=2,  
+                            minDist=2*self.hole_max_radius, #検出される円の中心同士の最小距離．
+                            param1=200, #Canny() エッジ検出器に渡される2つの閾値の内，大きい方の閾値
+                            param2=20, #円の中心を検出する際の投票数の閾値
+                            minRadius=self.hole_min_radius,  #円の半径の最小値
+                            maxRadius=self.hole_max_radius #円の半径の最大値
+                            )
+
+        self.im_score = np.zeros( self.im_in.shape )
+        self.cand_centers = np.asarray( self.cand_circles[0,:,:2] )
+        self.valid_centers = None # final result. circle positions(x,y)
+
+    def main_proc(self):
+        """
+        Args:
+        Return:
+          n screw hole position in pixels (n,2). 
+          position is (x,y) 
+        """
+        # circle image shape of (n_circles, imy, imx, n_circles)
+        im_circles = np.zeros( (self.cand_centers.shape[0], 
+                                self.im_in.shape[0], 
+                                self.im_in.shape[1]) )
+
+        for i, c in enumerate(self.cand_centers):
+            cv2.circle( im_circles[i], (c[0], c[1]), self.c_radius, 1, 2 )
+
+        for im in im_circles:
+            self.im_score += im
+
+        
+        # get maximum coordinate
+        loc = np.unravel_index(self.im_score.argmax(), self.im_score.shape)
+
+        valid_circles = list()
+        for i in range(self.cand_centers.shape[0]):
+            if im_circles[i,loc[0], loc[1]] == 1:
+                valid_circles.append( self.cand_centers[i] )
+        self.valid_circles = np.asarray( valid_circles )
+
+        return self.valid_circles.astype(np.int)
+
+    def get_visualization( self ):
+
+
+        im_vis = cv2.cvtColor( self.im_in, cv2.COLOR_GRAY2BGR )
+        # draw_candidate circles
+        circles = np.uint16(np.around(self.cand_circles))
+        for i in circles[0,:]:
+            # draw the outer circle
+            cv2.circle(im_vis,(i[0],i[1]),i[2],(255,0,0),1)
+            # draw the center of the circle
+            cv2.circle(im_vis,(i[0],i[1]),2,(255,0,0),2)
+
+        # draw valid circles
+        for c in self.valid_circles:
+            cv2.circle(im_vis,(c[0],c[1]),5,(0,255,0),2)
+
+        return im_vis

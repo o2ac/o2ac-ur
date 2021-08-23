@@ -7,6 +7,11 @@
   <arg name="continuous_streaming"	default="false"/>
   <arg name="camera_name"		default="camera_multiplexer"/>
   <arg name="vis"			default="true"/>
+  <arg name="use_nodelet"		default="true"/>
+  <arg if="$(arg use_nodelet)"
+       name="manager"			value="camera_manager"/>
+  <arg unless="$(arg use_nodelet)"
+       name="manager"			value=""/>
 
   <!-- Localization parameters -->
   <arg name="nposes"	default="2"/>
@@ -17,17 +22,19 @@
   <rosparam param="shaft_hole_detection/bbox">[350, 100, 100, 100]</rosparam>
 
   <!-- Construct recognition pipeline -->
-  <include file="$(find o2ac_vision)/launch/recognition_pipeline.launch">
+  <include file="$(dirname)/recognition_pipeline.launch">
+    <arg name="manager"			value="$(arg manager)"/>
     <arg name="continuous_streaming"	value="$(arg continuous_streaming)"/>
-    <!-- <arg name="camera_name"		value="$(arg camera_name)"/> -->
     <arg name="nposes"			value="$(arg nposes)"/>
     <arg name="timeout"			value="$(arg timeout)"/>
     <!-- <arg name="ply_dir"			value="$(arg ply_dir)"/> -->
     <arg name="urdf_dir"		value="$(arg urdf_dir)"/>
+
     <!-- Topic names for a raw realsense camera -->
     <!-- <arg name="camera_info_topic" value="$(arg camera_name)/color/camera_info"/>
     <arg name="image_topic"	  value="$(arg camera_name)/color/image_raw"/>
     <arg name="depth_topic"	  value="$(arg camera_name)/aligned_depth_to_color/image_raw"/> -->
+
     <!-- Topic names of the camera multiplexer -->
     <arg name="camera_info_topic" value="$(arg camera_name)/camera_info"/>
     <arg name="image_topic"	  value="$(arg camera_name)/image"/>

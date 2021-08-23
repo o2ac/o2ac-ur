@@ -59,20 +59,36 @@ catkin_package(
     nodelet
 )
 
-add_executable(aist_new_localization
+add_executable(${PROJECT_NAME}
   src/main.cpp src/Localization.cpp
 )
 
-target_link_libraries(aist_new_localization
+target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
   ${roscpp_LIBRARIES}
   ${OpenCV_LIBRARIES}
 )
 
-add_dependencies(aist_new_localization
+add_dependencies(${PROJECT_NAME}
   ${PROJECT_NAME}_gencpp
   ${${PREOJECT_NAME}_EXPORTED_TARGETS}
   ${catkin_EXPORTED_TARGETS}
+)
+
+add_library(${PROJECT_NAME}_nodelet
+  src/nodelet.cpp src/Localization.cpp
+)
+
+add_dependencies(${PROJECT_NAME}_nodelet
+  ${PROJECT_NAME}_gencpp
+  ${${PREOJECT_NAME}_EXPORTED_TARGETS}
+  ${catkin_EXPORTED_TARGETS}
+)
+
+target_link_libraries(${PROJECT_NAME}_nodelet
+  ${catkin_LIBRARIES}
+  ${roscpp_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 
 add_executable(mesh_sampler
@@ -94,7 +110,7 @@ target_link_libraries(mesh_sampler
 #############
 install(
   TARGETS
-    aist_new_localization mesh_sampler
+    ${PROJECT_NAME} ${PROJECT_NAME}_nodelet mesh_sampler
   ARCHIVE
     DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY

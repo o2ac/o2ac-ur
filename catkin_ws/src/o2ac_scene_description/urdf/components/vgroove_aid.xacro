@@ -37,7 +37,7 @@
   <joint name="${jigname}_drop_point_joint" type="fixed">
     <parent link="${jigname}_link"/>
     <child link="${jigname}_drop_point_link"/>
-    <origin rpy="0 ${pi/2} ${-pi/2}" xyz="0 0 0.04"/>
+    <origin rpy="0 ${pi/2} ${-pi/2}" xyz="0 0 0.05"/>
   </joint>
   <link name="${jigname}_drop_point_link"/>
 

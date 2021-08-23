@@ -2,7 +2,7 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro"
        name="o2ac_base_scene" >
   <!-- This is the main file defining our robot arrangement and physical environment. -->
-
+  <xacro:arg name="taskboard" default="false"/>
   <!-- Calibration parameters -->
   <xacro:property name="a_bot_x" value="-0.004"/>
   <xacro:property name="a_bot_y" value="-0.525"/>
@@ -23,7 +23,10 @@
   <!-- Scene items (trays, columns, tools, jigs, feeders...) -->
   <xacro:include filename="$(find o2ac_scene_description)/urdf/o2ac_environment.xacro" />
   <!-- <xacro:include filename="$(find flexwrist_experiment)/urdf/2020-01-experiment-scene.xacro" /> -->
-  <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/taskboard_scene.xacro" /> -->
+  <!-- This argument can be set in base_scene_upload.launch -->
+  <xacro:if value="$(arg taskboard)">
+    <xacro:include filename="$(find o2ac_scene_description)/urdf/taskboard_scene.xacro" />
+  </xacro:if>
   <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/assembly_scene.xacro" /> -->
   <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/camera_calibration_scene.xacro" /> -->
 

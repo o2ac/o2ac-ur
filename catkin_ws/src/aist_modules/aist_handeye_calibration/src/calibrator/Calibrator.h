@@ -35,6 +35,9 @@ class Calibrator
     const std::string&	object_frame()				const	;
     const std::string&	world_frame()				const	;
 
+    void	get_parameters()					;
+    bool	get_parameters(std_srvs::Trigger::Request&,
+			       std_srvs::Trigger::Response& res)	;
     bool	get_sample_list(GetSampleList::Request&,
 				GetSampleList::Response& res)		;
     bool	take_sample(std_srvs::Trigger::Request&,
@@ -49,6 +52,7 @@ class Calibrator
   private:
     ros::NodeHandle		_nh;
 
+    const ros::ServiceServer	_get_parameters_srv;
     const ros::ServiceServer	_get_sample_list_srv;
     const ros::ServiceServer	_take_sample_srv;
     const ros::ServiceServer	_compute_calibration_srv;

@@ -38,7 +38,7 @@ part_number, frame_name, roll, pitch, yaw, x, y, z
 7, front_hole, 0.0, 0.0, pi, 0.0, 0.0, 0.0
 7, back_hole, 0.0, 0.0, 0.0, -0.03, 0.0, 0.0
 7, back_tip, 0.0, 0.0, pi, -0.03, 0.0, 0.0
-7, inserted, 0.0, 0.0, pi, -0.008, 0.0, 0.0
+7, inserted, -pi/2, 0.0, pi, -0.008, 0.0, 0.0
 7, screw_hole_1, 0.0, 0.0, pi, 0.0, 0.022, 0.0
 7, screw_hole_2, 0.0, 0.0, pi, 0.0, -0.022, 0.0
 7, screw_hole_3, 0.0, 0.0, pi, 0.0, 0.0, 0.022

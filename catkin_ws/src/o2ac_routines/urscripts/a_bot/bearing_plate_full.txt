@@ -36,8 +36,8 @@
        'align'
        Gripper Close (1)
        Gripper Move74% (1)
-     Call bearing_plate_positioni_1
-   bearing_plate_positioni_1
+     Call bearing_plate_positioning
+   bearing_plate_positioning
      MoveL
        before_push
      Gripper Close (1)
@@ -46,7 +46,7 @@
        before_push
      Gripper Move52% (1)
      MoveL
-       Waypoint_2
+       'Waypoint_2'
        final_grasp
      Gripper Close (1)
      Gripper Move82% (1)

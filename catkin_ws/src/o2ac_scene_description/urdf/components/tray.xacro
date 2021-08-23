@@ -86,6 +86,29 @@
       <origin rpy="0 0 0" xyz="0.08 ${tray_l+0.02} 0.0"/>
     </joint>
 
+    <link name="${trayname}_left_stopper2">
+      <visual>
+        <origin rpy="0 0 0" xyz="0.0 -0.01 0.01"/>
+        <geometry>
+          <box size="0.06 0.02 0.05"/>
+        </geometry>
+        <material name="white">
+          <color rgba="0 0 0 1"/>
+        </material>
+      </visual>
+      <!-- <collision>
+        <origin rpy="0 0 0" xyz="0.0 -0.01 0.01"/>
+        <geometry>
+          <box size="0.06 0.02 0.05"/> 
+        </geometry>
+      </collision> -->
+    </link>
+    <joint name="${trayname}_left_stopper2_joint" type="fixed">
+      <parent link="${trayname}" />
+      <child link = "${trayname}_left_stopper2" />
+      <origin rpy="0 0 0" xyz="0.21 ${tray_l+0.02} 0.0"/>
+    </joint>
+
     <link name="${trayname}_right_stopper">
       <visual>
         <origin rpy="0 0 0" xyz="0.0 -0.01 0.01"/>
@@ -107,6 +130,29 @@
       <parent link="${trayname}" />
       <child link = "${trayname}_right_stopper" />
       <origin rpy="0 0 0" xyz="0.08 0.0 0.0"/>
+    </joint>
+
+    <link name="${trayname}_right_stopper2">
+      <visual>
+        <origin rpy="0 0 0" xyz="0.0 -0.01 0.01"/>
+        <geometry>
+          <box size="0.06 0.02 0.05"/>
+        </geometry>
+        <material name="white">
+          <color rgba="0 0 0 1"/>
+        </material>
+      </visual>
+      <!-- <collision>
+        <origin rpy="0 0 0" xyz="0.0 -0.01 0.01"/>
+        <geometry>
+          <box size="0.06 0.02 0.05"/> 
+        </geometry>
+      </collision> -->
+    </link>
+    <joint name="${trayname}_right_stopper2_joint" type="fixed">
+      <parent link="${trayname}" />
+      <child link = "${trayname}_right_stopper2" />
+      <origin rpy="0 0 0" xyz="0.21 0.0 0.0"/>
     </joint>
   </xacro:if>
 

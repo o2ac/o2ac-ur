@@ -1,3 +1,4 @@
+# The docker-compose file for a container running on a single development machine
 version: "2.4"
 
 ################################################################################
@@ -20,6 +21,9 @@ services:
       - NVIDIA_DRIVER_CAPABILITIES=all
       - NVIDIA_REQUIRE_CUDA=cuda>=9.0
       - DOCKER_RUNTIME=${DOCKER_RUNTIME}
+      # ROS parameters
+      - ROS_HOSTNAME=o2ac-ur
+      - ROS_MASTER_URI=http://o2ac-ur:11311
     image: registry.gitlab.com/o2ac/o2ac-ur/o2ac-dev:latest
     build:
       context: ../
@@ -38,8 +42,8 @@ services:
     network_mode: host
     extra_hosts:
       - "o2ac-ur:127.0.0.1"   # Seems that this might be needed for ROS networking
-      - "o2ac-ur:192.168.1.5" # The host PC
-      - "o2ac-vision-pc:192.168.1.6" # The PC with the cameras and vision nodes
+      - "o2ac-ur:192.168.2.5" # The host PC
+      - "o2ac-vision-pc:192.168.2.6" # The PC with the cameras and vision nodes
       - "a_bot:192.168.1.41"
       - "b_bot:192.168.1.42"
     command: /root/o2ac-ur/docker/o2ac-dev/scripts/initialize-docker-container.sh

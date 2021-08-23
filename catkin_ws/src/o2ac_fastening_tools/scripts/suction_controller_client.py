@@ -41,7 +41,7 @@ if __name__ == '__main__':
             res = controller.suction(name, False, False)
 
             if not res.success :
-                rospy.logerr("Can not pick screw")
+                rospy.logerr("Could not pick screw")
 
             rospy.sleep(1)
 

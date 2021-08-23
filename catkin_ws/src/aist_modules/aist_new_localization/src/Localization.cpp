@@ -30,6 +30,12 @@ matrix44(const tf::Transform& transform)
     return m;
 }
 
+cv::Point3f
+pclpointToCV(const pcl::PointXYZ& p)
+{
+    return {p.x, p.y, p.z};
+}
+
 template <class T, unsigned long int D> static std::ostream&
 operator <<(std::ostream& out, const boost::array<T, D>& vec)
 {
@@ -139,7 +145,7 @@ Localization::localize_cb(const camera_info_cp& camera_info,
     ROS_INFO_STREAM("(Localization) Activated a goal["
 		    << _current_goal->object_name << "]...");
 
-  // Convert the given base plane to depth frame.
+  // Convert the given base plane to camera frame.
     vector3_t	n;
     value_t	d;
     try
@@ -154,7 +160,7 @@ Localization::localize_cb(const camera_info_cp& camera_info,
 	return;
     }
 
-  // Transformation: gaze_point_frame <== URDF_model frame
+  // Transformation: gaze_point_frame <== URDF model_frame
     const tf::Transform	Tgm({_current_goal->origin.orientation.x,
 			     _current_goal->origin.orientation.y,
 			     _current_goal->origin.orientation.z,
@@ -168,11 +174,7 @@ Localization::localize_cb(const camera_info_cp& camera_info,
     value_t	min_error = std::numeric_limits<value_t>::max();
     for (const auto& pose2d : _current_goal->poses2d)
     {
-	const auto	v = view_vector(camera_info,
-					(pose2d.x > 0.0 ? pose2d.x :
-					 0.5*camera_info->width),
-					(pose2d.y > 0.0 ? pose2d.y :
-					 0.5*camera_info->height));
+	const auto	v = view_vector(camera_info, pose2d.x, pose2d.y);
 	const auto	x = (-d/n.dot(v)) * v;
 	auto		r = n.cross(vector3_t(std::cos(pose2d.theta),
 					      std::sin(pose2d.theta), 0));
@@ -180,19 +182,34 @@ Localization::localize_cb(const camera_info_cp& camera_info,
 	const auto	q = r.cross(n);
 
       // Transformation: camera_frame <== gaze_point_frame <== model_frame
-	auto	Tcm = tf::Transform(tf::Matrix3x3(q(0), r(0), n(0),
-						  q(1), r(1), n(1),
-						  q(2), r(2), n(2)),
-				    tf::Vector3(x(0), x(1), x(2))) * Tgm;
+	auto		Tcm = tf::Transform({q(0), r(0), n(0),
+					     q(1), r(1), n(1),
+					     q(2), r(2), n(2)},
+					    {x(0), x(1), x(2)}) * Tgm;
 
 	if (_current_goal->refine_transform)
 	{
+	  // Check border
+	    uint32_t	check_borders = 0x0;
+	    if (_current_goal->check_borders)
+	    {
+		if (pose2d.x >= std::floor(0.5*depth->width))
+		    check_borders |= CHECK_LEFT_BORDER;
+		if (pose2d.x <= std::ceil(0.5*depth->width))
+		    check_borders |= CHECK_RIGHT_BORDER;
+		if (pose2d.y >= std::floor(0.5*depth->height))
+		    check_borders |= CHECK_UPPER_BORDER;
+		if (pose2d.y <= std::ceil(0.5*depth->height))
+		    check_borders |= CHECK_LOWER_BORDER;
+	    }
+
 	    value_t	error;
 
 	    try
 	    {
 		Tcm = refine_transform(_current_goal->object_name,
-				       Tcm, camera_info, depth, error);
+				       Tcm, camera_info, depth,
+				       check_borders, error);
 	    }
 	    catch (const std::exception& err)
 	    {
@@ -268,7 +285,8 @@ tf::Transform
 Localization::refine_transform(const std::string& object_name,
 			       const tf::Transform& Tcm,
 			       const camera_info_cp& camera_info,
-			       const image_cp& depth, value_t& error) const
+			       const image_cp& depth, uint32_t check_borders,
+			       value_t& error) const
 {
     using namespace sensor_msgs;
     using pcl_point_t	= pcl::PointXYZ;
@@ -316,14 +334,9 @@ Localization::refine_transform(const std::string& object_name,
     icp.setTransformationEpsilon(_transformation_epsilon);
     icp.setEuclideanFitnessEpsilon(_fitness_epsilon);
 
-    const tf::Transform	Tmp({1.0, 0.0, 0.0,
-			     0.0, 1.0, 0.0,
-			     0.0, 0.0, 1.0},
-			    {0.0, 0.0, 0.0});
-
   // Perform ICP to refine model pose
     pcl_cloud_p	registered_cloud(new pcl_cloud_t);
-    icp.align(*registered_cloud, matrix44<value_t>(Tcm * Tmp));
+    icp.align(*registered_cloud, matrix44<value_t>(Tcm));
 
     if (!icp.hasConverged())
 	throw std::runtime_error("convergence failure in ICP");
@@ -333,15 +346,56 @@ Localization::refine_transform(const std::string& object_name,
     pcl::toROSMsg(*registered_cloud, registered_cloud_msg);
     _model_cloud_pub.publish(registered_cloud_msg);
 
-  // Get transformation from model PCD cloud to camera frame.
-    error = icp.getFitnessScore();
-    const auto	Tcp = icp.getFinalTransformation();
+  // Check if registered model cloud is involved within the view volume.
+    if (within_view_volume(registered_cloud->begin(), registered_cloud->end(),
+			   camera_info, check_borders))
+    {
+      // Get transformation from model PCD cloud to camera frame.
+	error = icp.getFitnessScore();
+    }
+    else
+	error = std::numeric_limits<value_t>::max();
 
   // Return transformation from URDF model to camera frame.
+    const auto	Tcp = icp.getFinalTransformation();
     return tf::Transform({Tcp(0, 0), Tcp(0, 1), Tcp(0, 2),
     			  Tcp(1, 0), Tcp(1, 1), Tcp(1, 2),
     			  Tcp(2, 0), Tcp(2, 1), Tcp(2, 2)},
-    			 {Tcp(0, 3), Tcp(1, 3), Tcp(2, 3)}) * Tmp.inverse();
+    			 {Tcp(0, 3), Tcp(1, 3), Tcp(2, 3)});
+}
+
+template <class ITER> bool
+Localization::within_view_volume(ITER begin, ITER end,
+				 const camera_info_cp& camera_info,
+				 uint32_t check_borders) const
+{
+    const auto	v0 = view_vector(camera_info, 0, 0);
+    const auto	v1 = view_vector(camera_info, camera_info->width, 0);
+    const auto	v2 = view_vector(camera_info, camera_info->width,
+					      camera_info->height);
+    const auto	v3 = view_vector(camera_info, 0, camera_info->height);
+    std::array<vector3_t, 4>	normals = {v0.cross(v1), v1.cross(v2),
+					   v2.cross(v3), v3.cross(v0)};
+
+    uint32_t	mask = 0x1;
+    for (const auto& normal : normals)
+    {
+	if (check_borders & mask)
+	    for (auto point = begin; point != end; ++point)
+		if (normal.dot(pclpointToCV(*point)) < 0)
+		{
+		    ROS_WARN_STREAM("(Localization) Collision against "
+				    << (mask == CHECK_UPPER_BORDER ? "upper" :
+					mask == CHECK_RIGHT_BORDER ? "right" :
+					mask == CHECK_LOWER_BORDER ? "lower" :
+								     "left")
+				    << " border of bounding box");
+		    return false;
+		}
+	mask <<= 1;
+    }
+
+    return true;
 }
 
 }	// namespace aist_new_localization

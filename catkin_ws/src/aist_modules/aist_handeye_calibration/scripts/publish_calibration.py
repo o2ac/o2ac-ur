@@ -1,10 +1,8 @@
 #!/usr/bin/env python2
 
-import os
-import rospy
-from tf import TransformBroadcaster, TransformListener, transformations as tfs
+import rospy, tf
 from geometry_msgs import msg as gmsg
-from math import degrees
+from std_srvs      import srv as ssrv
 
 #########################################################################
 #  local functions                                                      #
@@ -20,81 +18,48 @@ class CalibrationPublisher(object):
     def __init__(self):
         super(CalibrationPublisher, self).__init__()
 
-        self._broadcaster = TransformBroadcaster()
-        self._listener    = TransformListener()
-
-        eye_on_hand = rospy.get_param("~eye_on_hand", False)
-        parent = rospy.get_param("~robot_effector_frame" if eye_on_hand else
-                                 "~robot_base_frame")
-        child  = rospy.get_param("~camera_frame")
-
-        self._dummy = rospy.get_param("~dummy", False)
-        if not self._dummy:
-            T = rospy.get_param("~transform")
-        elif eye_on_hand:
-            T = CalibrationPublisher.Tec
-        else:
-            T = CalibrationPublisher.Tbc
-
-        self._transform = gmsg.TransformStamped()
-        self._transform.header.frame_id = parent
-        self._transform.child_frame_id  = child
-        self._transform.transform \
-            = gmsg.Transform(gmsg.Vector3(T["x"], T["y"], T["z"]),
-                             gmsg.Quaternion(
-                                 T["qx"], T["qy"], T["qz"], T["qw"]))
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exception_type, exception_value, traceback):
-        if not self._dummy:
-            # Get camera(optical) <- camera(body) transform
-            opt_body = self._get_transform(
-                        rospy.get_param("~camera_optical_frame"),
-                        rospy.get_param("~camera_body_frame"))
-            bot_opt  = ((self._transform.transform.translation.x,
-                         self._transform.transform.translation.y,
-                         self._transform.transform.translation.z),
-                        (self._transform.transform.rotation.x,
-                         self._transform.transform.rotation.y,
-                         self._transform.transform.rotation.z,
-                         self._transform.transform.rotation.w))
-
-            mat = tfs.concatenate_matrices(
-                self._listener.fromTranslationRotation(*bot_opt),
-                self._listener.fromTranslationRotation(*opt_body))
-            print("\n=== Estimated effector/base <- camera_body transform ===")
-            self._print_mat(mat)
-            print("\n")
-        return True
+        self._broadcaster       = tf.TransformBroadcaster()
+        self._get_transform_srv = rospy.Service("~get_transform",
+                                                ssrv.Trigger,
+                                                self._get_transform_cb)
+        self._transform         = self._get_transform()
 
     def run(self):
         rate = rospy.Rate(50)
         while not rospy.is_shutdown():
-            self._transform.header.stamp = rospy.Time.now()
-            self._broadcaster.sendTransformMessage(self._transform)
+            self._publish_transform()
             rate.sleep()
 
-    def _get_transform(self, target_frame, source_frame):
-        now = rospy.Time.now()
-        self._listener.waitForTransform(target_frame, source_frame, now,
-                                        rospy.Duration(10))
-        return self._listener.lookupTransform(target_frame, source_frame, now)
+    def _get_transform_cb(self, req):
+        self._get_transform()
+        return ssrv.TriggerResponse(True, "transform loaded.")
 
-    def _print_mat(self, mat):
-        xyz = tfs.translation_from_matrix(mat)
-        rpy = map(degrees, tfs.euler_from_matrix(mat))
-        print('<origin xyz="{0[0]} {0[1]} {0[2]}" rpy="${{{1[0]}*pi/180}} ${{{1[1]}*pi/180}} ${{{1[2]}*pi/180}}"/>'.format(xyz, rpy))
+    def _get_transform(self):
+        if rospy.get_param("~dummy", False):
+            child  = rospy.get_param("~camera_frame")
+            if rospy.get_param("~eye_on_hand", False):
+                parent = rospy.get_param("~robot_effector_frame")
+                T      = CalibrationPublisher.Tec
+            else:
+                parent = rospy.get_param("~robot_base_frame")
+                T      = CalibrationPublisher.Tbc
+        else:
+            parent = rospy.get_param("~parent")
+            child  = rospy.get_param("~child")
+            T      = rospy.get_param("~transform")
 
-    def _print_transform(self, transform):
-        xyz = (transform.translation.x,
-               transform.translation.y, transform.translation.z)
-        rpy = map(degrees, tfs.euler_from_quaternion((transform.rotation.x,
-                                                      transform.rotation.y,
-                                                      transform.rotation.z,
-                                                      transform.rotation.w)))
-        print('<origin xyz="{0[0]} {0[1]} {0[2]}" rpy="${{{1[0]}*pi/180}} ${{{1[1]}*pi/180}} ${{{1[2]}*pi/180}}"/>'.format(xyz, rpy))
+        transform = gmsg.TransformStamped()
+        transform.header.frame_id = parent
+        transform.child_frame_id  = child
+        transform.transform \
+            = gmsg.Transform(gmsg.Vector3(T["x"], T["y"], T["z"]),
+                             gmsg.Quaternion(T["qx"], T["qy"],
+                                             T["qz"], T["qw"]))
+        return transform
+
+    def _publish_transform(self):
+        self._transform.header.stamp = rospy.Time.now()
+        self._broadcaster.sendTransformMessage(self._transform)
 
 
 #########################################################################
@@ -106,5 +71,5 @@ if __name__ == "__main__":
     while rospy.get_time() == 0.0:
         pass
 
-    with CalibrationPublisher() as cp:
-        cp.run()
+    cp = CalibrationPublisher()
+    cp.run()

@@ -6,6 +6,7 @@ import time
 import o2ac_msgs.msg
 import controller_manager_msgs.msg
 import std_srvs.srv
+from ur_control.constants import TERMINATION_CRITERIA
 import ur_dashboard_msgs.srv
 import ur_msgs.srv
 
@@ -15,14 +16,9 @@ from o2ac_routines.ur_force_control import URForceController
 from o2ac_routines.robotiq_gripper import RobotiqGripper
 from o2ac_routines import helpers
 
-from ur_control import conversions
-from ur_pykdl import ur_kinematics
-
-from trac_ik_python.trac_ik import IK
-
 
 class URRobot(RobotBase):
-    def __init__(self, namespace, tf_listener):
+    def __init__(self, namespace, tf_listener, markers_scene):
         """
         namespace should be "a_bot" or "b_bot".
         use_real_robot is a boolean
@@ -33,15 +29,11 @@ class URRobot(RobotBase):
         self.ns = namespace
         self.marker_counter = 0
 
-        # forward kinematics helper
-        self.kdl = ur_kinematics(base_link=self.ns+"_base_link", ee_link=self.ns+"_gripper_tip_link")
-        # IK solver
-        self.ik_solver = IK(base_link=self.ns+"_base_link", tip_link=self.ns+"_gripper_tip_link", solve_type="Distance", timeout=0.01)
-
         try:
             self.force_controller = URForceController(robot_name=namespace, listener=tf_listener)
         except rospy.ROSException as e:
-            rospy.logwarn("No force control capabilities since controller could not be instantiated" + str(e))
+            self.force_controller = None
+            rospy.logwarn("No force control capabilities since controller could not be instantiated: " + str(e))
 
         self.gripper_group = moveit_commander.MoveGroupCommander(self.ns+"_robotiq_85")
 
@@ -71,7 +63,7 @@ class URRobot(RobotBase):
         self.robot_safety_mode = None
         self.robot_status = dict()
 
-        self.gripper = RobotiqGripper(namespace=self.ns, gripper_group=self.gripper_group)
+        self.gripper = RobotiqGripper(namespace=self.ns, gripper_group=self.gripper_group, markers_scene=markers_scene)
 
     def safety_mode_callback(self, msg):
         self.robot_safety_mode = msg.mode
@@ -255,6 +247,7 @@ class URRobot(RobotBase):
 
     @helpers.check_for_real_robot
     def load_and_execute_program(self, program_name="", recursion_depth=0):
+        self.activate_ros_control_on_ur()
         if not self.load_program(program_name, recursion_depth):
             return False
         return self.execute_loaded_program()
@@ -264,7 +257,7 @@ class URRobot(RobotBase):
         if not self.use_real_robot:
             return True
 
-        if recursion_depth > 6:
+        if recursion_depth > 10:
             rospy.logerr("Tried too often. Breaking out.")
             rospy.logerr("Could not load " + program_name + ". Is the UR in Remote Control mode and program installed with correct name?")
             return False
@@ -276,14 +269,21 @@ class URRobot(RobotBase):
             rospy.sleep(.5)
 
             # Load program if it not loaded already
-            request = ur_dashboard_msgs.srv.LoadRequest()
-            request.filename = program_name
-            response = self.ur_dashboard_clients["load_program"].call(request)
-            if response.success:  # Try reconnecting to dashboard
-                load_success = True
+            response = self.ur_dashboard_clients["get_loaded_program"].call(ur_dashboard_msgs.srv.GetLoadedProgramRequest())
+            # print("response:")
+            # print(response)
+            if response.program_name == '/programs/' + program_name:
                 return True
             else:
-                rospy.logerr("Could not load " + program_name + ". Is the UR in Remote Control mode and program installed with correct name?")
+                rospy.loginfo("Loaded program is different %s. Attempting to load new program %s" % (response.program_name, program_name))
+                request = ur_dashboard_msgs.srv.LoadRequest()
+                request.filename = program_name
+                response = self.ur_dashboard_clients["load_program"].call(request)
+                if response.success:  # Try reconnecting to dashboard
+                    load_success = True
+                    return True
+                else:
+                    rospy.logerr("Could not load " + program_name + ". Is the UR in Remote Control mode and program installed with correct name?")
         except:
             rospy.logwarn("Dashboard service did not respond to load_program!")
         if not load_success:
@@ -304,13 +304,17 @@ class URRobot(RobotBase):
     @helpers.check_for_real_robot
     def execute_loaded_program(self):
         # Run the program
-        response = self.ur_dashboard_clients["play"].call(std_srvs.srv.TriggerRequest())
-        if not response.success:
-            rospy.logerr("Could not start program. Is the UR in Remote Control mode and program installed with correct name?")
+        try:
+            response = self.ur_dashboard_clients["play"].call(std_srvs.srv.TriggerRequest())
+            if not response.success:
+                rospy.logerr("Could not start program. Is the UR in Remote Control mode and program installed with correct name?")
+                return False
+            else:
+                rospy.loginfo("Successfully started program on robot " + self.ns)
+                return True
+        except Exception as e:
+            rospy.logerr(str(e))
             return False
-        else:
-            rospy.loginfo("Successfully started program on robot " + self.ns)
-            return True
 
     @helpers.check_for_real_robot
     def close_ur_popup(self):
@@ -330,21 +334,31 @@ class URRobot(RobotBase):
     # ------ Force control functions
 
     def force_control(self, *args, **kwargs):
-        self.activate_ros_control_on_ur()
-        return self.force_controller.force_control(*args, **kwargs)
+        if self.force_controller:
+            self.activate_ros_control_on_ur()
+            return self.force_controller.force_control(*args, **kwargs)
+        return TERMINATION_CRITERIA
 
     def execute_circular_trajectory(self, *args, **kwargs):
-        self.activate_ros_control_on_ur()
-        return self.force_controller.execute_circular_trajectory(*args, **kwargs)
+        if self.force_controller:
+            self.activate_ros_control_on_ur()
+            return self.force_controller.execute_circular_trajectory(*args, **kwargs)
+        return True
 
     def execute_spiral_trajectory(self, *args, **kwargs):
-        self.activate_ros_control_on_ur()
-        return self.force_controller.execute_spiral_trajectory(*args, **kwargs)
+        if self.force_controller:
+            self.activate_ros_control_on_ur()
+            return self.force_controller.execute_spiral_trajectory(*args, **kwargs)
+        return True
 
     def linear_push(self, *args, **kwargs):
-        self.activate_ros_control_on_ur()
-        return self.force_controller.linear_push(*args, **kwargs)
+        if self.force_controller:
+            self.activate_ros_control_on_ur()
+            return self.force_controller.linear_push(*args, **kwargs)
+        return True
 
     def do_insertion(self, *args, **kwargs):
-        self.activate_ros_control_on_ur()
-        return self.force_controller.do_insertion(*args, **kwargs)
+        if self.force_controller:
+            self.activate_ros_control_on_ur()
+            return self.force_controller.do_insertion(*args, **kwargs)
+        return TERMINATION_CRITERIA

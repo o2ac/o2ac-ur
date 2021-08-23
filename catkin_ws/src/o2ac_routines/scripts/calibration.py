@@ -34,6 +34,7 @@
 #
 # Author: Felix von Drigalski
 
+from os import name
 import sys
 import copy
 import rospy
@@ -119,7 +120,7 @@ class CalibrationClass(O2ACCommon):
       ps_approach = copy.deepcopy(pose)
       ps_approach.pose.position.x -= .05
       rospy.loginfo("============ Press `Enter` to move " + robot_name + " to " + pose.header.frame_id)
-      self.skill_server.publish_marker(pose, "place_pose")
+      helpers.publish_marker(pose, namespace="place_pose")
       raw_input()
       robot = self.active_robots[robot_name]
       if go_home:
@@ -163,7 +164,7 @@ class CalibrationClass(O2ACCommon):
     poses = []
     pose0 = geometry_msgs.msg.PoseStamped()
     pose0.pose.orientation.w = 1.0
-    pose0.pose.position.x = -.01
+    pose0.pose.position.x = -.005
     if context == "b_bot_m4_assembly_plates":
       robot.go_to_named_pose("screw_ready")
       pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/8, 0, 0) )
@@ -180,17 +181,15 @@ class CalibrationClass(O2ACCommon):
     if context == "motor_plate":
       for i in range(2):
         poses.append(copy.deepcopy(pose0))
-      poses[0].header.frame_id = "assembled_assy_part_02_bottom_screw_hole_aligner_2"
-      poses[1].header.frame_id = "assembled_assy_part_02_bottom_screw_hole_aligner_1"
+      poses[0].header.frame_id = "assembled_part_02_bottom_screw_hole_aligner_2"
+      poses[1].header.frame_id = "assembled_part_02_bottom_screw_hole_aligner_1"
     else:
-      for i in range(4):
+      for i in range(2):
         poses.append(copy.deepcopy(pose0))
-      poses[0].header.frame_id = "assembled_assy_part_03_bottom_screw_hole_aligner_2"
-      poses[1].header.frame_id = "assembled_assy_part_03_bottom_screw_hole_aligner_1"
-      poses[2].header.frame_id = "assembled_assy_part_01_fixation_hole_1"
-      poses[3].header.frame_id = "assembled_assy_part_01_fixation_hole_2"
+      poses[0].header.frame_id = "assembled_part_03_bottom_screw_hole_aligner_2"
+      poses[1].header.frame_id = "assembled_part_03_bottom_screw_hole_aligner_1"
 
-    self.cycle_through_calibration_poses(poses, robot_name, go_home=False, end_effector_link=end_effector_link, move_lin=True)
+    self.cycle_through_calibration_poses(poses, robot_name, go_home=False, end_effector_link=end_effector_link, move_lin=True, with_approach=True)
     return 
 
   def assembly_calibration_assembled_parts(self):
@@ -205,20 +204,20 @@ class CalibrationClass(O2ACCommon):
     for i in range(5):
       poses.append(copy.deepcopy(pose0))
 
-    poses[1].header.frame_id = "assembled_assy_part_03"   # Top of plate 2
+    poses[1].header.frame_id = "assembled_part_03"   # Top of plate 2
     poses[1].pose.position.x = .058
     poses[1].pose.position.y = -.0025
     poses[1].pose.position.z = .095 + .01
     poses[1].pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0) )
 
-    poses[2].header.frame_id = "assembled_assy_part_08_front_tip"  # Front of rotary shaft
+    poses[2].header.frame_id = "assembled_part_08_front_tip"  # Front of rotary shaft
     poses[2].pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, -tau/2) )
     poses[2].pose.position.x = .03
 
-    poses[3].header.frame_id = "assembled_assy_part_14_screw_head"
+    poses[3].header.frame_id = "assembled_part_14_screw_head"
     poses[3].pose.position.x = -.03
 
-    poses[4].header.frame_id = "assembled_assy_part_04_tip"
+    poses[4].header.frame_id = "assembled_part_04_tip"
     poses[4].pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/2, 0, -tau/2) )
     poses[4].pose.position.x = .03
 
@@ -357,7 +356,7 @@ class CalibrationClass(O2ACCommon):
     poses = []
 
     pose0 = geometry_msgs.msg.PoseStamped()
-    pose0.header.frame_id = "assembled_assy_part_01_screw_hole_panel1_1"
+    pose0.header.frame_id = "assembled_part_01_screw_hole_panel1_1"
     if robot_name=="b_bot":
       pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/8, 0, 0))
       pose0.pose.position.x -= .01
@@ -365,9 +364,9 @@ class CalibrationClass(O2ACCommon):
     for i in range(4):
       poses.append(copy.deepcopy(pose0))
 
-    poses[1].header.frame_id = "assembled_assy_part_01_screw_hole_panel1_2"
-    poses[2].header.frame_id = "assembled_assy_part_01_screw_hole_panel2_1"
-    poses[3].header.frame_id = "assembled_assy_part_01_screw_hole_panel2_2"
+    poses[1].header.frame_id = "assembled_part_01_screw_hole_panel1_2"
+    poses[2].header.frame_id = "assembled_part_01_screw_hole_panel2_1"
+    poses[3].header.frame_id = "assembled_part_01_screw_hole_panel2_2"
     end_effector_link=robot_name+ tool_name
     self.cycle_through_calibration_poses(poses, robot_name, go_home=False, move_lin=True, end_effector_link=end_effector_link)
     return
@@ -382,7 +381,7 @@ class CalibrationClass(O2ACCommon):
 
     pose0 = geometry_msgs.msg.PoseStamped()
     if robot_name=="b_bot":
-      pose0.header.frame_id = "assembled_assy_part_03_bottom_screw_hole_aligner_1"
+      pose0.header.frame_id = "assembled_part_03_bottom_screw_hole_aligner_1"
       pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/8, 0, 0))
       pose0.pose.position.x = -.01
     
@@ -398,7 +397,7 @@ class CalibrationClass(O2ACCommon):
     
     pose0 = geometry_msgs.msg.PoseStamped()
     if robot_name == "a_bot":
-      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/12, 0, 0))
+      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(radians(80), 0, 0))
       pose0.header.frame_id = "m3_feeder_outlet_link"
       ee_link = robot_name + "_screw_tool_m3_tip_link"
     else:
@@ -406,17 +405,17 @@ class CalibrationClass(O2ACCommon):
       pose0.header.frame_id = "m4_feeder_outlet_link"
       ee_link = robot_name + "_screw_tool_m4_tip_link"
     
-    self.skill_server.toggle_collisions(collisions_on=False)
+    # self.planning_scene_interface.allow_collisions(collisions_on=False)
     
     poses = []
     for i in range(3):
       poses.append(copy.deepcopy(pose0))
-    poses[0].pose.position.x = -.02
+    poses[0].pose.position.x = -.01
     poses[1].pose.position.x = 0
-    poses[2].pose.position.x = -.02
+    poses[2].pose.position.x = -.01
     
     self.cycle_through_calibration_poses(poses, robot_name, go_home=False, move_lin=True, end_effector_link=ee_link)
-    self.skill_server.toggle_collisions(collisions_on=True)
+    # self.skill_server.toggle_collisions(collisions_on=True)
     self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
     return
   
@@ -428,6 +427,7 @@ class CalibrationClass(O2ACCommon):
     return
   
   def vertical_plate_screw_position_test(self, panel, robot_name = "b_bot"):
+    self.set_assembly("wrs_assembly_2021")
     """panel should be motor_plate or bearing_plate"""
     rospy.loginfo("============ Move tool to screw position of plates ============")
     
@@ -442,14 +442,13 @@ class CalibrationClass(O2ACCommon):
       pose0.header.frame_id = "bottom_screw_hole_2"
       ee_link = robot_name + "_screw_tool_m4_tip_link"
     if panel == "bearing_panel":
-      part_name = "assembled_assy_part_03_"
+      part_name = "assembled_part_03_"
     elif panel == "motor_panel":
-      part_name = "assembled_assy_part_02_"
+      part_name = "assembled_part_02_"
     
     pose0.header.frame_id = part_name + "bottom_screw_hole_1"
-    pose0.pose.position.x = -.01
     
-    self.toggle_collisions(collisions_on=False)
+    # self.toggle_collisions(collisions_on=False)
     
     poses = []
     for i in range(2):
@@ -457,7 +456,7 @@ class CalibrationClass(O2ACCommon):
     poses[1].header.frame_id = part_name + "bottom_screw_hole_2"
     
     self.cycle_through_calibration_poses(poses, robot_name, go_home=False, move_lin=True, end_effector_link=ee_link)
-    self.toggle_collisions(collisions_on=True)
+    # self.toggle_collisions(collisions_on=True)
     self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
     return
   
@@ -547,8 +546,8 @@ if __name__ == '__main__':
       rospy.loginfo("===== TASKBOARD TASK")
       rospy.loginfo("31, 32: Go to screw holes with a_bot m3, b_bot m4")
       rospy.loginfo("===== ASSEMBLY TASK (no parts may be mounted!)")
-      rospy.loginfo("501-502: Assembly base plate (a_bot, b_bot)")
-      rospy.loginfo("503-504: Assembly base plate (b_bot m4, a_bot m3)")
+      rospy.loginfo("501-502: Base plate screw holes (a_bot, b_bot)")
+      rospy.loginfo("503-504: Base plate screw holes (b_bot m4, a_bot m3)")
       rospy.loginfo("511-512: Motor plate holes (b_bot, b_bot m4)")
       rospy.loginfo("55: Bearing screw holes (b_bot m4)")
       rospy.loginfo("===== TOOLS ")
@@ -588,6 +587,12 @@ if __name__ == '__main__':
       if r == "13":
         c.make_space_for_robot("a_bot")
         c.equip_tool("a_bot", "screw_tool_m3") 
+      if r == "13b":
+        c.make_space_for_robot("b_bot")
+        c.equip_tool("b_bot", "screw_tool_m3") 
+      if r == "14b":
+        c.make_space_for_robot("b_bot")
+        c.unequip_tool("b_bot", "screw_tool_m3")
       if r == "14":
         c.make_space_for_robot("a_bot")
         c.unequip_tool("a_bot", "screw_tool_m3")
@@ -597,6 +602,12 @@ if __name__ == '__main__':
       if r == "16":
         c.make_space_for_robot("b_bot")
         c.unequip_tool("b_bot", "screw_tool_m4")
+      if r == "15a":
+        c.make_space_for_robot("a_bot")
+        c.equip_tool("a_bot", "screw_tool_m4")
+      if r == "16a":
+        c.make_space_for_robot("a_bot")
+        c.unequip_tool("a_bot", "screw_tool_m4")
       if r == "17":
         c.make_space_for_robot("b_bot")
         c.equip_tool("b_bot", "set_screw_tool")
@@ -647,6 +658,10 @@ if __name__ == '__main__':
         c.assembly_calibration_base_plate("b_bot", end_effector_link="b_bot_screw_tool_m4_tip_link")
       if r == '504':
         c.assembly_calibration_base_plate("a_bot", end_effector_link="a_bot_screw_tool_m3_tip_link")
+      if r == '503a':
+        c.assembly_calibration_base_plate("a_bot", end_effector_link="a_bot_screw_tool_m4_tip_link")
+      if r == '504b':
+        c.assembly_calibration_base_plate("b_bot", end_effector_link="b_bot_screw_tool_m3_tip_link")
       if r == '5041':
         c.assembly_calibration_base_plate("a_bot", end_effector_link="a_bot_screw_tool_m3_tip_link", context="rotate_pose")
       if r == '511':
@@ -659,7 +674,7 @@ if __name__ == '__main__':
       if r == '53':  # Bearing rotation
         ps = geometry_msgs.msg.PoseStamped()
         
-        ps.header.frame_id = "assembled_assy_part_07_inserted"
+        ps.header.frame_id = "assembled_part_07_inserted"
         ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, radians(0), 0))
         ps.pose.position = geometry_msgs.msg.Point(-0.0, 0.0, 0.0)
         c.b_bot.go_to_pose_goal(ps, speed=.1, acceleration=.04, end_effector_link = "b_bot_bearing_rotate_helper_link")
@@ -727,6 +742,12 @@ if __name__ == '__main__':
       if r == "activate":
         c.a_bot.activate_ros_control_on_ur()
         c.b_bot.activate_ros_control_on_ur()
+      if r == "load2020":
+        c.assembly_status.tray_placed_on_table = True
+        c.set_assembly("wrs_assembly_2020")
+      if r == "load2021":
+        c.assembly_status.tray_placed_on_table = True
+        c.set_assembly("wrs_assembly_2021")
       if r == 'x':
         break
     rospy.loginfo("============ Exiting!")

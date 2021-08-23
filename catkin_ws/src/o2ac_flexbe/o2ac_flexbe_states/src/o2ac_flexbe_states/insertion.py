@@ -10,21 +10,23 @@ class InsertActionState(EventState):
     '''
     Actionlib for executing an insertion for a given object and task
 
-    -- object_name        string  Name object to be inserted
+    -- robot_name         string  Name of robot performing the operation
     -- task_name          string  Name the task (insertion parameters dependent on task)
+    -- object_name        string  Name object to be inserted
 
     <= success              Insertion sequence completed successfully.
     <= error                Insertion sequence failed to execute.
 
     '''
 
-    def __init__(self, object_name, task_name):
+    def __init__(self, robot_name, task_name, object_name):
         super(InsertActionState, self).__init__(outcomes=['success', 'error'])
 
         self._topic = 'o2ac_flexbe/force_insertion'
         self._client = ProxyActionClient({self._topic: InsertAction})  # pass required clients as dict (topic: type)
-        self._object_name = object_name
+        self._robot_name = robot_name
         self._task_name = task_name
+        self._object_name = object_name
 
         self._success = False
 
@@ -37,7 +39,7 @@ class InsertActionState(EventState):
 
             Logger.logwarn('insert result %s' % str(result))  # for debug
 
-            if not result:
+            if not result.success:
                 Logger.logwarn('Fail to complete insertion of %s in task %s' % (self._object_name, self._task_name))
                 self._success = False
                 return 'error'
@@ -48,8 +50,9 @@ class InsertActionState(EventState):
 
     def on_enter(self, userdata):
         goal = InsertGoal()
-        goal.object_name = self._object_name
+        goal.robot_name = self._robot_name
         goal.task_name = self._task_name
+        goal.object_name = self._object_name
 
         self._success = True
         try:

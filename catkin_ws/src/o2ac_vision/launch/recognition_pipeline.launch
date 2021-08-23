@@ -2,6 +2,9 @@
 <launch>
   <!-- Launches the nodes required for the 3D recognition pipeline. -->
 
+  <!-- Name of nodelet manager (without nodelet if empty string is given) -->
+  <arg name="manager"			default=""/>
+
   <!-- Mode of object detector -->
   <arg name="continuous_streaming"	default="false"/>
 
@@ -19,7 +22,6 @@
   <arg name="image_topic"	default="/camera_multiplexer/image"/>
   <arg name="depth_topic"	default="/camera_multiplexer/depth"/>
   <arg name="normal_topic"	default=""/>
-  <arg name="manager"		default=""/>
 
   <!-- Spawn vision server -->
   <node name="o2ac_vision_server"
@@ -27,8 +29,8 @@
     <remap from="/camera_info"		to="$(arg camera_info_topic)"/>
     <remap from="/image"		to="$(arg image_topic)"/>
     <remap from="/depth"		to="$(arg depth_topic)"/>
-
     <param name="continuous_streaming"	value="$(arg continuous_streaming)"/>
+
     <!-- Localization params -->
     <param name="nposes"		value="$(arg nposes)"/>
     <param name="timeout"		value="$(arg timeout)"/>
@@ -48,9 +50,7 @@
       <arg name="depth_topic"		value="$(arg depth_topic)"/>
       <arg name="normal_topic"		value="$(arg normal_topic)"/>
       <arg name="ply_dir"		value="$(arg mesh_dir)"/>
-      <arg name="manager"
-  	   value="$(eval ''
-  		  if manager == 'realsense2_camera_manager' else manager)"/>
+      <arg name="manager"		value="$(arg manager)"/>
     </include>
 
     <include unless="$(arg use_localization_sdk)"
@@ -59,9 +59,7 @@
       <arg name="image_topic"		value="$(arg image_topic)"/>
       <arg name="depth_topic"		value="$(arg depth_topic)"/>
       <arg name="pcd_dir"		value="$(arg mesh_dir)"/>
-      <arg name="manager"
-  	   value="$(eval ''
-  		  if manager == 'realsense2_camera_manager' else manager)"/>
+      <arg name="manager"		value="$(arg manager)"/>
     </include>
 
     <!-- Spawn model_spawner -->

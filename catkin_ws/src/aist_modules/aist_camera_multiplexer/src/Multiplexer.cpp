@@ -1,7 +1,7 @@
 /*!
  *  \file	Multiplexer.cpp
  *  \author	Toshio UESHIBA
- *  \brief	ROS node for applying filters to depth images
+ *  \brief	ROS node for selecting one camera from multiple cameras
  */
 #include "Multiplexer.h"
 
@@ -11,24 +11,32 @@ namespace aist_camera_multiplexer
 *  class Multiplexer::Subscribers					*
 ************************************************************************/
 Multiplexer::Subscribers::Subscribers(Multiplexer* multiplexer,
-				      int camera_number)
-    :_camera_info_sub(multiplexer->_nh.subscribe<camera_info_t>(
-			  "/camera_info" + std::to_string(camera_number), 1,
+				      const std::string& camera_name)
+    :_camera_name(camera_name),
+     _camera_info_sub(multiplexer->_nh.subscribe<camera_info_t>(
+			  _camera_name + "/camera_info", 1,
 			  boost::bind(&Multiplexer::camera_info_cb,
-				      multiplexer, _1, camera_number))),
+				      multiplexer, _1,
+				      multiplexer->ncameras()))),
      _image_sub( multiplexer->_nh.subscribe<image_t>(
-		     "/image" + std::to_string(camera_number), 1,
+		     _camera_name + "/image", 1,
 		     boost::bind(&Multiplexer::image_cb,
-				 multiplexer, _1, camera_number))),
+				 multiplexer, _1, multiplexer->ncameras()))),
      _depth_sub( multiplexer->_nh.subscribe<image_t>(
-		     "/depth" + std::to_string(camera_number), 1,
+		     _camera_name + "/depth", 1,
 		     boost::bind(&Multiplexer::depth_cb,
-				 multiplexer, _1, camera_number))),
+				 multiplexer, _1, multiplexer->ncameras()))),
      _normal_sub(multiplexer->_nh.subscribe<image_t>(
-		     "/normal" + std::to_string(camera_number), 1,
+		     _camera_name + "/normal", 1,
 		     boost::bind(&Multiplexer::normal_cb,
-				 multiplexer, _1, camera_number)))
+				 multiplexer, _1, multiplexer->ncameras())))
 {
+}
+
+const std::string&
+Multiplexer::Subscribers::camera_name() const
+{
+    return _camera_name;
 }
 
 /************************************************************************
@@ -53,11 +61,10 @@ Multiplexer::Multiplexer(const ros::NodeHandle& nh)
     }
 
     std::map<std::string, int>	enum_cameras;
-    for (int camera_number = 0; camera_number < camera_names.size();
-	 ++camera_number)
+    for (const auto& camera_name : camera_names)
     {
-	_subscribers.emplace_back(new Subscribers(this, camera_number));
-	enum_cameras[camera_names[camera_number]] = camera_number;
+	enum_cameras[camera_name] = ncameras();
+	_subscribers.emplace_back(new Subscribers(this, camera_name));
     }
 
     _ddr.registerEnumVariable<int>("active_camera", 0,
@@ -73,21 +80,42 @@ Multiplexer::run()
     ros::spin();
 }
 
+int
+Multiplexer::ncameras() const
+{
+    return _subscribers.size();
+}
+
 void
 Multiplexer::activate_camera(int camera_number)
 {
-    if (0 <= camera_number && camera_number < _subscribers.size())
+    if (0 <= camera_number && camera_number < ncameras())
     {
 	_camera_number = camera_number;
 
-	ROS_INFO_STREAM("(Multiplexer) activate camera number["
-			<< _camera_number << ']');
+	ROS_INFO_STREAM("(Multiplexer) activate camera["
+			<< _subscribers[camera_number]->camera_name() << ']');
     }
     else
     {
 	ROS_ERROR_STREAM("(Multiplexer) requested camera number["
 			 << camera_number << "] is out of range");
     }
+}
+
+bool
+Multiplexer::activate_camera_cb(ActivateCamera::Request&  req,
+				ActivateCamera::Response& res)
+{
+    for (int i = 0; i < ncameras(); ++i)
+	if (_subscribers[i]->camera_name() == req.camera_name)
+	{
+	    activate_camera(i);
+	    res.success = true;
+	    return true;
+	}
+    res.success = false;
+    return true;
 }
 
 void

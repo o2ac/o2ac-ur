@@ -111,7 +111,11 @@
 			"regex": "cpp",
 			"slist": "cpp",
 			"cfenv": "cpp",
-			"valarray": "cpp"
+			"valarray": "cpp",
+			"shared_mutex": "cpp",
+			"variant": "cpp",
+			"*.inc": "cpp",
+			"bit": "cpp"
 		},
 		"python.autoComplete.extraPaths": [
 			"./catkin_ws/src/o2ac_assembly_database/src",
@@ -144,7 +148,8 @@
 		"cSpell.words": [
 			"commander",
 			"moveit",
-			"rospy"
+			"rospy",
+			"tolist"
 		]
 	},
 	"extensions": {

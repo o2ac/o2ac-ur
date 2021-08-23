@@ -1,5 +1,7 @@
 <launch>
 
+  <arg name="execution_type" default="interpolate" />
+
   <!-- specify the planning pipeline -->
   <arg name="pipeline" default="ompl" />
 
@@ -55,6 +57,7 @@
     <arg name="debug" value="$(arg debug)"/>
     <arg name="pipeline" value="$(arg pipeline)"/>
     <arg name="load_robot_description" value="$(arg load_robot_description)"/>
+    <arg name="execution_type" value="$(arg execution_type)" />
   </include>
 
   <!-- Run Rviz and load the default config to see the state of the move_group node -->

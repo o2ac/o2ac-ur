@@ -1,7 +1,7 @@
 # Request
+string robot_name
 string task_name
 string object_name
-string robot_name
 ---
 # Result
 bool success

@@ -22,6 +22,9 @@ namespace aist_handeye_calibration
 ************************************************************************/
 Calibrator::Calibrator(const ros::NodeHandle& nh)
     :_nh(nh),
+     _get_parameters_srv(
+	 _nh.advertiseService("get_parameters",
+			      &Calibrator::get_parameters, this)),
      _get_sample_list_srv(
 	 _nh.advertiseService("get_sample_list",
 			      &Calibrator::get_sample_list, this)),
@@ -39,29 +42,9 @@ Calibrator::Calibrator(const ros::NodeHandle& nh)
      _eye_on_hand(true),
      _timeout(5.0)
 {
-    ROS_INFO_STREAM("initializing calibrator...");
+    get_parameters();
 
-    _nh.param<bool>("use_dual_quaternion",
-		    _use_dual_quaternion, _use_dual_quaternion);
-    _nh.param<bool>("eye_on_hand", _eye_on_hand, _eye_on_hand);
-
-    if (_eye_on_hand)
-    {
-	_nh.param<std::string>("robot_effector_frame",	_eMc.header.frame_id,
-			       "tool0");
-	_nh.param<std::string>("robot_base_frame",	_wMo.header.frame_id,
-			       "base_link");
-    }
-    else
-    {
-	_nh.param<std::string>("robot_effector_frame",	_wMo.header.frame_id,
-			       "tool0");
-	_nh.param<std::string>("robot_base_frame",	_eMc.header.frame_id,
-			       "base_link");
-    }
-
-    _nh.param<std::string>("camera_frame", _eMc.child_frame_id, "camera_frame");
-    _nh.param<std::string>("marker_frame", _wMo.child_frame_id, "marker_frame");
+    ROS_INFO_STREAM("calibrator started");
 }
 
 Calibrator::~Calibrator()
@@ -96,6 +79,57 @@ const std::string&
 Calibrator::world_frame() const
 {
     return _wMo.header.frame_id;
+}
+
+void
+Calibrator::get_parameters()
+{
+    _use_dual_quaternion = _nh.param<bool>("use_dual_quaternion", false);
+    _eye_on_hand	 = _nh.param<bool>("eye_on_hand", true);
+
+    if (_eye_on_hand)
+    {
+	_eMc.header.frame_id = _nh.param<std::string>("robot_effector_frame",
+						      "tool0");
+	_wMo.header.frame_id = _nh.param<std::string>("robot_base_frame",
+						      "base_link");
+    }
+    else
+    {
+	_wMo.header.frame_id = _nh.param<std::string>("robot_effector_frame",
+						      "tool0");
+	_eMc.header.frame_id = _nh.param<std::string>("robot_base_frame",
+						      "base_link");
+    }
+
+    _eMc.child_frame_id = _nh.param<std::string>("camera_frame",
+						 "camera_frame");
+    _wMo.child_frame_id = _nh.param<std::string>("marker_frame",
+						 "marker_frame");
+}
+
+bool
+Calibrator::get_parameters(std_srvs::Trigger::Request&,
+			   std_srvs::Trigger::Response& res)
+{
+    try
+    {
+	get_parameters();
+
+	res.success = true;
+	res.message = "succeeded.";
+
+	ROS_INFO_STREAM("take_sample(): " << res.message);
+    }
+    catch (const std::exception& err)
+    {
+	res.success = false;
+	res.message = err.what();
+
+	ROS_ERROR_STREAM("get_parameters(): " << res.message);
+    }
+
+    return res.success;
 }
 
 bool
@@ -220,9 +254,6 @@ Calibrator::save_calibration(std_srvs::Trigger::Request&,
 	YAML::Emitter	emitter;
 	emitter << YAML::BeginMap;
 
-	emitter << YAML::Key   << "eye_on_hand"
-		<< YAML::Value << _eye_on_hand;
-
 	emitter << YAML::Key   << "parent"
 		<< YAML::Value << effector_frame();
 	emitter << YAML::Key   << "child"
@@ -256,9 +287,11 @@ Calibrator::save_calibration(std_srvs::Trigger::Request&,
 	emitter << YAML::EndMap;
 
       // Read calibration file name from parameter server.
-	std::string	calib_file;
-	_nh.param<std::string>("calib_file", calib_file,
-			       getenv("HOME") + std::string("/.ros/aist_handeye_calibration/calib.yaml"));
+	const auto calib_file
+			= _nh.param<std::string>(
+			    "calib_file",
+			    getenv("HOME") +
+			    std::string("/.ros/aist_handeye_calibration/calib.yaml"));
 
       // Open/create parent directory of the calibration file.
 	const auto	dir = calib_file.substr(0,

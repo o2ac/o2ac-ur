@@ -11,7 +11,7 @@ waypoints:
 - pose_type: gripper
   gripper:
     action: open
-    velocity: 0.1
+    velocity: 1.0
 - pose: [0.0, 0, 0.25, 0, 0, 0]
   pose_type: relative-base
   speed: 1.0

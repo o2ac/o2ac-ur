@@ -1,20 +1,24 @@
 import actionlib
+from o2ac_assembly_database.parts_reader import PartsReader
+from o2ac_routines import helpers
 import rospy
 import robotiq_msgs.msg
 import numpy as np
-
+import visualization_msgs.msg
 from ur_control.controllers import GripperController  # Simulation only
 
 
 class RobotiqGripper():
-    def __init__(self, namespace, gripper_group):
+    def __init__(self, namespace, gripper_group, markers_scene):
         self.use_real_robot = rospy.get_param("use_real_robot", False)
         self.ns = namespace
         self.gripper_group = gripper_group
 
+        self.markers_scene = markers_scene
+
         self.opening_width = 0.0
 
-        self.last_attached_object = None
+        self.last_attached_object = (None, False) # object name (string), with_collisions (bool)
 
         # Gripper
         if self.use_real_robot:
@@ -24,7 +28,7 @@ class RobotiqGripper():
             try:
                 self.gripper = GripperController(namespace=self.ns, prefix=self.ns + '_', timeout=2.0)
             except Exception as e:
-                rospy.logwarn("Fail to instantiate GripperController for simulation, " + str(e))
+                rospy.logwarn("Fail to instantiate GripperController for simulation: " + str(e))
                 rospy.logwarn("Instantiating dummy gripper, hoping for moveit Fake controllers")
 
                 gripper_type = str(rospy.get_param(self.ns + "/gripper_type"))
@@ -34,14 +38,10 @@ class RobotiqGripper():
                 self.gripper = GripperDummy()
 
                 def close():
-                    gripper_group.set_named_target("close")
-                    gripper_group.go()
-                    return True
+                    return command(0.0)
 
-                def open():
-                    gripper_group.set_named_target("open")
-                    gripper_group.go()
-                    return True
+                def open(opening_width=1.0):
+                    return command(opening_width)
 
                 def command(cmd):
                     if gripper_type == "85":
@@ -54,38 +54,47 @@ class RobotiqGripper():
                     cmd_joints = gripper_group.get_current_joint_values()
                     cmd_joints[0] = (max_gap - distance) * max_angle / max_gap
                     gripper_group.set_joint_value_target(cmd_joints)
-                    gripper_group.go(wait=True)
-                    return True
+                    success, plan, planning_time, error = gripper_group.plan()
+                    if success:
+                        gripper_group.execute(plan, wait=True)
+                        current_joints = gripper_group.get_current_joint_values()
+                        goal_joints = helpers.get_trajectory_joint_goal(plan, gripper_group.get_active_joints())
+                        success = helpers.all_close(goal_joints, current_joints, 0.01)
+                        if not success:
+                            rospy.logerr("Rviz move_group gripper to execute")
+                        return success
+                    rospy.logerr("Rviz move_group gripper failed: %s " % error)
+                    return False
                 setattr(GripperDummy, "close", lambda *args, **kwargs: close())
-                setattr(GripperDummy, "open", lambda *args, **kwargs: open())
+                setattr(GripperDummy, "open", lambda self, opening_width: open(opening_width))
                 setattr(GripperDummy, "command", lambda self, cmd: command(cmd))
 
     def _gripper_status_callback(self, msg):
         self.opening_width = msg.position  # [m]
 
-    def close(self, force=40.0, velocity=.1, wait=True, attached_last_object=False):
+    def close(self, force=40.0, velocity=1.0, wait=True):
         res = False
         if self.use_real_robot:
             res = self.send_command("close", force=force, velocity=velocity, wait=wait)
         else:
             res = self.gripper.close()
-        if attached_last_object and self.last_attached_object:
-            self.attach_object(self.last_attached_object)
+        if self.last_attached_object[0]:
+            self.attach_object(object_to_attach=self.last_attached_object[0], with_collisions=self.last_attached_object[1])
         return res
 
-    def open(self, velocity=.1, wait=True, opening_width=None, detached_last_object=False):
+    def open(self, velocity=1.0, wait=True, opening_width=None):
         res = False
         if self.use_real_robot:
             command = opening_width if opening_width else "open"
             res = self.send_command(command, wait=wait, velocity=velocity)
         else:
-            res = self.gripper.open()
+            res = self.gripper.open(opening_width)
 
-        if detached_last_object and self.last_attached_object:
-            self.detach_object(self.last_attached_object)
+        if self.last_attached_object[0]:
+            self.detach_object(object_to_detach=self.last_attached_object[0])
         return res
 
-    def send_command(self, command, force=40.0, velocity=.1, wait=True, attached_last_object=False):
+    def send_command(self, command, force=40.0, velocity=1.0, wait=True):
         """
         gripper: a_bot or b_bot
         command: "open", "close" or opening width
@@ -127,32 +136,45 @@ class RobotiqGripper():
             else:
                 res = self.gripper.command(command)
 
-        if attached_last_object and self.last_attached_object:
+        if self.last_attached_object[0]:
             if command == "close":
-                self.attach_object(self.last_attached_object)
+                self.attach_object(object_to_attach=self.last_attached_object[0], with_collisions=self.last_attached_object[1])
             elif command == "open":
-                self.detach_object(self.last_attached_object)
+                self.detach_object(object_to_detach=self.last_attached_object[0])
+            else:
+                self.detach_object(object_to_detach=self.last_attached_object[0])
         return res
 
-    def attach_object(self, object_to_attach=None, attach_to_link=None):
+    def attach_object(self, object_to_attach=None, attach_to_link=None, with_collisions=False):
+        if not self.last_attached_object[0] and not object_to_attach:
+            return
         try:
             to_link = self.ns + "_ee_link" if attach_to_link is None else attach_to_link
-            self.gripper_group.attach_object(object_to_attach, to_link,
-                                             touch_links=[self.ns + "_gripper_tip_link",
-                                                          self.ns + "_left_inner_finger_pad",
-                                                          self.ns + "_left_inner_finger",
-                                                          self.ns + "_left_inner_knuckle",
-                                                          self.ns + "_right_inner_finger_pad",
-                                                          self.ns + "_right_inner_finger",
-                                                          self.ns + "_right_inner_knuckle"])
-            self.last_attached_object = object_to_attach
+            if with_collisions:
+                self.gripper_group.attach_object(object_to_attach, to_link,
+                                                touch_links=[self.ns + "_gripper_tip_link",
+                                                            self.ns + "_left_inner_finger_pad",
+                                                            self.ns + "_left_inner_finger",
+                                                            self.ns + "_left_inner_knuckle",
+                                                            self.ns + "_right_inner_finger_pad",
+                                                            self.ns + "_right_inner_finger",
+                                                            self.ns + "_right_inner_knuckle"])
+            else:
+                self.markers_scene.attach_item(object_to_attach, to_link)
+            self.last_attached_object = (object_to_attach, with_collisions)
         except Exception as e:
             rospy.logerr(object_to_attach + " could not be attached! robot_name = " + self.ns)
             print(e)
 
     def detach_object(self, object_to_detach):
         try:
-            self.gripper_group.detach_object(object_to_detach)
+            if self.last_attached_object[1]:
+                self.gripper_group.detach_object(object_to_detach)
+            else:
+                self.markers_scene.detach_item(object_to_detach)
         except Exception as e:
             rospy.logerr(object_to_detach + " could not be detached! robot_name = " + self.ns)
             print(e)
+
+    def forget_attached_item(self):
+        self.last_attached_object = (None, False)

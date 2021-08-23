@@ -1,7 +1,6 @@
 <launch>
 
   <!-- This file makes it easy to include the settings for trajectory execution  -->
-
   <arg name="execution_type" default="interpolate" />
 
   <!-- Flag indicating whether MoveIt is allowed to load/unload  or switch controllers -->
@@ -18,7 +17,7 @@
   <!-- Load the robot specific controller manager; this sets the moveit_controller_manager ROS parameter -->
   <arg name="moveit_controller_manager" default="o2ac_base_scene" />
   <include file="$(find o2ac_moveit_config)/launch/$(arg moveit_controller_manager)_moveit_controller_manager.launch.xml">
-    <!-- <arg name="execution_type" value="$(arg execution_type)" /> -->
+    <arg name="execution_type" value="$(arg execution_type)" />
   </include>
   
 

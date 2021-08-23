@@ -1,0 +1,106 @@
+subframes:
+- pose_xyzrpy:
+  - 0.002
+  - 0.0
+  - 0.0
+  - -pi/2
+  - 0.0
+  - 0.0
+  name: center
+grasp_points:
+- grasp_name: grasp_1
+  pose_xyzrpy:
+  - 0.004
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+- grasp_name: grasp_2
+  pose_xyzrpy:
+  - 0.004
+  - 0.0
+  - 0.0
+  - 0.5235987755982988
+  - 0.0
+  - 0.0
+- grasp_name: grasp_3
+  pose_xyzrpy:
+  - 0.004
+  - 0.0
+  - 0.0
+  - 1.0471975511965976
+  - 0.0
+  - 0.0
+- grasp_name: grasp_4
+  pose_xyzrpy:
+  - 0.004
+  - 0.0
+  - 0.0
+  - 1.5707963267948966
+  - 0.0
+  - 0.0
+- grasp_name: grasp_5
+  pose_xyzrpy:
+  - 0.004
+  - 0.0
+  - 0.0
+  - 2.0943951023931953
+  - 0.0
+  - 0.0
+- grasp_name: grasp_6
+  pose_xyzrpy:
+  - 0.004
+  - 0.0
+  - 0.0
+  - 2.617993877991494
+  - 0.0
+  - 0.0
+- grasp_name: grasp_7
+  pose_xyzrpy:
+  - 0.004
+  - 0.0
+  - 0.0
+  - 3.141592653589793
+  - 0.0
+  - 0.0
+- grasp_name: grasp_8
+  pose_xyzrpy:
+  - 0.004
+  - 0.0
+  - 0.0
+  - 3.665191429188092
+  - 0.0
+  - 0.0
+- grasp_name: grasp_9
+  pose_xyzrpy:
+  - 0.004
+  - 0.0
+  - 0.0
+  - 4.1887902047863905
+  - 0.0
+  - 0.0
+- grasp_name: grasp_10
+  pose_xyzrpy:
+  - 0.004
+  - 0.0
+  - 0.0
+  - 4.71238898038469
+  - 0.0
+  - 0.0
+- grasp_name: grasp_11
+  pose_xyzrpy:
+  - 0.004
+  - 0.0
+  - 0.0
+  - 5.235987755982988
+  - 0.0
+  - 0.0
+- grasp_name: grasp_12
+  pose_xyzrpy:
+  - 0.004
+  - 0.0
+  - 0.0
+  - 5.759586531581287
+  - 0.0
+  - 0.0

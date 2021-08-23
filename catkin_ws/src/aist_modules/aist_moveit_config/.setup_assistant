@@ -2,7 +2,7 @@ moveit_setup_assistant_config:
   URDF:
     package: aist_scene_description
     relative_path: urdf/base_scene.urdf.xacro
-    xacro_args: ""
+    xacro_args: "scene:=camera_calibration"
   SRDF:
     relative_path: config/base_scene.srdf
   CONFIG:

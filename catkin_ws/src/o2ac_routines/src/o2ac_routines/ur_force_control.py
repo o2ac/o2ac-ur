@@ -31,6 +31,7 @@ class URForceController(CompliantController):
     def __init__(self, robot_name, listener, tcp_link='gripper_tip_link', **kwargs):
         self.listener = listener
         self.default_tcp_link = robot_name + '_' + tcp_link
+        self.robot_name = robot_name
 
         CompliantController.__init__(self, ft_sensor=True, namespace=robot_name,
                                      joint_names_prefix=robot_name+'_', robot_urdf=robot_name,
@@ -70,7 +71,7 @@ class URForceController(CompliantController):
             self._init_ik_solver(self.base_link, end_effector_link)
 
         if config_file is None:
-            config_file = "force_control"
+            config_file = "force_control_" + self.robot_name
         self._init_force_controller(config_file)
 
         rospy.sleep(1.0)  # give it some time to set up before moving
@@ -95,56 +96,38 @@ class URForceController(CompliantController):
 
         return result
 
-    def execute_circular_trajectory(self, plane, radius, radius_direction,
-                                    steps=100, revolutions=5,
-                                    wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0,
-                                    target_force=None, selection_matrix=None, timeout=10.,
-                                    displacement_epsilon=0.002, check_displacement_time=2.0,
-                                    termination_criteria=None):
+    def execute_circular_trajectory(self, *args, **kwargs):
         """
             Execute a circular trajectory on a given plane, with respect to the base of the robot, with a given radius
             Note: we assume that the robot is in its initial position 
         """
-        initial_pose = self.end_effector()
-        trajectory = traj_utils.compute_trajectory(initial_pose, plane, radius, radius_direction, steps, revolutions, from_center=True, trajectory_type="circular",
-                                                   wiggle_direction=wiggle_direction, wiggle_angle=wiggle_angle, wiggle_revolutions=wiggle_revolutions)
-        return self.force_control(target_force=target_force, target_positions=trajectory, selection_matrix=selection_matrix,
-                                  timeout=timeout, relative_to_ee=False, termination_criteria=termination_criteria,
-                                  displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time)
+        kwargs.update({"trajectory_type": "circular"})
+        return self.execute_trajectory(*args, **kwargs)
 
-    def execute_spiral_trajectory(self, plane, max_radius, radius_direction,
-                                  steps=100, revolutions=5,
-                                  wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0,
-                                  target_force=None, selection_matrix=None, timeout=10.,
-                                  displacement_epsilon=0.002, check_displacement_time=2.0,
-                                  termination_criteria=None, config_file=None):
-        """
-            Execute a spiral trajectory on a given plane, with respect to the base of the robot, with a given max radius
-            Note: we assume that the robot is in its initial position 
-        """
-        initial_pose = self.end_effector()
-        trajectory = traj_utils.compute_trajectory(initial_pose, plane, max_radius, radius_direction, steps, revolutions, from_center=True, trajectory_type="spiral",
-                                                   wiggle_direction=wiggle_direction, wiggle_angle=wiggle_angle, wiggle_revolutions=wiggle_revolutions)
-        return self.force_control(target_force=target_force, target_positions=trajectory, selection_matrix=selection_matrix,
-                                  timeout=timeout, relative_to_ee=False, termination_criteria=termination_criteria,
-                                  displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time, config_file=config_file)
+    def execute_spiral_trajectory(self, *args, **kwargs):
+        kwargs.update({"trajectory_type": "spiral"})
+        return self.execute_trajectory(*args, **kwargs)
 
-    def execute_spiral_trajectory2(self, plane, max_radius, radius_direction,
-                                   steps=100, revolutions=5,
-                                   wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0,
-                                   target_force=None, selection_matrix=None, timeout=10.,
-                                   displacement_epsilon=0.002, check_displacement_time=2.0,
-                                   termination_criteria=None, config_file=None,
-                                   end_effector_link=None):
+    def execute_trajectory(self, plane, max_radius, radius_direction,
+                            steps=100, revolutions=5,
+                            wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0,
+                            target_force=None, selection_matrix=None, timeout=10.,
+                            displacement_epsilon=0.002, check_displacement_time=2.0,
+                            termination_criteria=None, config_file=None,
+                            end_effector_link=None, trajectory_type="spiral"):
+        from_center = True if trajectory_type == "spiral" else False
         eff = self.default_tcp_link if not end_effector_link else end_effector_link
         dummy_trajectory = traj_utils.compute_trajectory([0, 0, 0, 0, 0, 0, 1.],
-                                                         plane, max_radius, radius_direction, steps, revolutions, from_center=True, trajectory_type="spiral",
+                                                         plane, max_radius, radius_direction, steps, revolutions, from_center=from_center, trajectory_type=trajectory_type,
                                                          wiggle_direction=wiggle_direction, wiggle_angle=wiggle_angle, wiggle_revolutions=wiggle_revolutions)
         # convert dummy_trajectory (initial pose frame id) to robot's base frame
         now = rospy.Time.now()
-        self.listener.waitForTransform(self.base_link, eff, now, rospy.Duration(1))
-        translation, rotation = self.listener.lookupTransform(self.base_link, eff, now)
-        transform2target = self.listener.fromTranslationRotation(translation, rotation)
+        try:
+            self.listener.waitForTransform(self.base_link, eff, now, rospy.Duration(1))
+            transform2target = self.listener.fromTranslationRotation(*self.listener.lookupTransform(self.base_link, eff, now))
+        except:
+            return False
+
         trajectory = []
         for p in dummy_trajectory:
             ps = conversions.to_pose_stamped(self.base_link, p)
@@ -164,7 +147,7 @@ class URForceController(CompliantController):
         direction: string, direction for linear_push +- X,Y,Z relative to base or end-effector, see next argument
         relative_to_ee: bool, whether to use the base_link of the robot as frame or the ee_link (+ ee_transform)
         """
-        config_file = "force_control" if slow else "force_control_linear_push"
+        config_file = "force_control_" + self.robot_name if slow else "force_control_linear_push"
         target_force = get_target_force(direction, force)
 
         if selection_matrix is None:
@@ -203,26 +186,25 @@ class URForceController(CompliantController):
         plane = get_orthogonal_plane(insertion_direction[1])
         radius_direction = get_random_valid_direction(plane) if radius_direction is None else radius_direction
 
-        target_force = get_target_force(insertion_direction, force)
+        offset = 1 if self.robot_name == "b_bot" else -1 # account for robot's mirror position
+        target_force = offset * get_target_force(insertion_direction, force)
         if selection_matrix is None:
             selection_matrix = np.array(target_force == 0.0) * 0.8  # define the selection matrix based on the target force
 
         translation, rotation = self.listener.lookupTransform(target_pose_in_target_frame.header.frame_id, self.ns + "_base_link", rospy.Time.now())
         transform2target = self.listener.fromTranslationRotation(translation, rotation)
 
+        start_pose_robot_base = conversions.to_pose_stamped(self.ns + "_base_link", self.end_effector())
+        start_pose_in_target_frame = conversions.transform_pose(target_pose_in_target_frame.header.frame_id, transform2target, start_pose_robot_base)
+        start_pose_of = conversions.from_pose_to_list(start_pose_in_target_frame.pose)
+        target_pose_of = conversions.from_pose_to_list(target_pose_in_target_frame.pose)
+        more_than = start_pose_of[axis] < target_pose_of[axis]
+
         def termination_criteria(current_pose, standby):
             current_pose_robot_base = conversions.to_pose_stamped(self.ns + "_base_link", current_pose)
-            # current_pose_in_target_frame = self.listener.transformPose(target_pose_in_target_frame.header.frame_id, current_pose_robot_base)
             current_pose_in_target_frame = conversions.transform_pose(target_pose_in_target_frame.header.frame_id, transform2target, current_pose_robot_base)
             current_pose_of = conversions.from_pose_to_list(current_pose_in_target_frame.pose)
-            target_pose_of = conversions.from_pose_to_list(target_pose_in_target_frame.pose)
             # print("check cp,tp", current_pose_of[axis], target_pose_of[axis])
-            # TODO(cambel): set everything around a fixed frame (world) to avoid this hack
-            # Investigate why the Z direction works backwards
-            if 'Z' in insertion_direction:
-                more_than = insertion_direction[0] == '+'
-            else:
-                more_than = insertion_direction[0] == '-' if self.ns == "b_bot" else insertion_direction[0] == '+'
             if more_than:
                 return current_pose_of[axis] >= target_pose_of[axis] or \
                     (standby and current_pose_of[axis] >= target_pose_of[axis] - relaxed_target_by)

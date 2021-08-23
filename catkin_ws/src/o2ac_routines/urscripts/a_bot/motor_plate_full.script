@@ -1,4 +1,5 @@
 def motor_plate_full():
+  set_safety_mode_transition_hardness(1)
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -6,23 +7,22 @@ def motor_plate_full():
   set_analog_outputdomain(0, 0)
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
-  step_count_3bb42fa3_703f_48a6_9ee9_c10e26d7869f = 0.0
-  thread Step_Counter_Thread_be5559b6_740e_4e63_b5ad_507ab194332f():
+  step_count_2087ac3b_d490_4ba7_a129_a758f6fd2001 = 0.0
+  thread Step_Counter_Thread_ee712b86_800a_4090_8eb6_7f207b858e8e():
     while (True):
-      step_count_3bb42fa3_703f_48a6_9ee9_c10e26d7869f = step_count_3bb42fa3_703f_48a6_9ee9_c10e26d7869f + 1.0
+      step_count_2087ac3b_d490_4ba7_a129_a758f6fd2001 = step_count_2087ac3b_d490_4ba7_a129_a758f6fd2001 + 1.0
       sync()
     end
   end
-  run Step_Counter_Thread_be5559b6_740e_4e63_b5ad_507ab194332f()
+  run Step_Counter_Thread_ee712b86_800a_4090_8eb6_7f207b858e8e()
   set_gravity([0.0, 0.0, 9.82])
+  set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
+  set_payload(1.27, [0.0, -0.017, 0.053])
   set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
   set_tool_output_mode(0)
   set_tool_digital_output_mode(0, 1)
   set_tool_digital_output_mode(1, 1)
   set_tool_voltage(24)
-  set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
-  set_payload(1.27, [0.0, -0.017, 0.053])
-  set_safety_mode_transition_hardness(1)
   # begin: URCap Installation Node
   #   Source: External Control, 1.0.5, FZI Research Center for Information Technology
   #   Type: External Control
@@ -2375,16 +2375,12 @@ def motor_plate_full():
   global above_final_wp1_q=[1.4309152364730835, -1.9648615322508753, 2.1416290442096155, -2.0883847675719203, -1.5231717268573206, -0.1292346159564417]
   global final_1_p=p[.087742164611, -.448558021304, .178336342687, .001042627948, -2.829435793641, 1.331934594919]
   global final_1_q=[1.3531674146652222, -2.074134965936178, 2.6977575461017054, -3.064441820184225, -1.4161666075335901, -0.14639693895448858]
-  global before_push_1_p=p[.088025207576, -.408838637486, .133607939645, .004031941508, 3.140912605991, -.012153270126]
-  global before_push_1_q=[1.4572399854660034, -1.7519966564574183, 2.084729019795553, -1.911145349542135, -1.5692794958697718, -0.11098319688905889]
-  global push_almost_end_p=p[.088001730593, -.424840025257, .133626828978, .003952011763, 3.141001445721, .008458549401]
-  global push_almost_end_q=[1.4627541303634644, -1.7007323704161585, 2.039006058369772, -1.9036532841124476, -1.570796314870016, -0.10552579561342412]
-  global push_end_1_p=p[.087978470107, -.431827325692, .133657333928, .004102811311, 3.140839765158, -.029270637510]
-  global push_end_1_q=[1.4625142812728882, -1.7003504238524378, 2.0451791922198694, -1.9340912304320277, -1.5681961218463343, -0.10564548174013311]
-  global before_push_2_p=p[.088017198400, -.382895917297, .133609183028, .004033841124, 3.140913982262, -.012159060798]
-  global before_push_2_q=[1.449220061302185, -1.821801324883932, 2.1374204794513147, -1.8940235577025355, -1.5692194143878382, -0.11900169054140264]
-  global above_plate_1_p=p[.088009725867, -.440155028394, .173171531014, .003788905314, 3.094225838707, -.537439932371]
-  global above_plate_1_q=[1.4309152364730835, -1.9333750210204066, 2.242018524800436, -2.2202073536314906, -1.5231598059283655, -0.1292346159564417]
+  global before_push_1_p=p[.084740567589, -.404628609593, .134415519261, .004583856962, -3.002038017427, .877192727165]
+  global before_push_1_q=[1.3703633546829224, -2.134392877618307, 2.5859983603106897, -2.5840188465514125, -1.4758380095111292, -0.1760790983783167]
+  global push_almost_end_p=p[.084751077868, -.420360944873, .134440472341, .004610581843, -3.002004252782, .877313595176]
+  global push_almost_end_q=[1.3842064142227173, -2.066794534722799, 2.5602148214923304, -2.626984258691305, -1.4831975142108362, -0.16432601610292608]
+  global push_end_1_p=p[.084729894096, -.424199496029, .134446288249, .004529910544, -3.001956726932, .877334872705]
+  global push_end_1_q=[1.387259840965271, -2.051066061059469, 2.553641144429342, -2.636393209496969, -1.484875504170553, -0.16169292131532842]
   global at_plate_1_p=p[.088004736177, -.463264857343, .152055266021, .003421665360, 2.946007142832, -1.086961872713]
   global at_plate_1_q=[1.3859785795211792, -1.964694162408346, 2.5725610891925257, -2.877037664453024, -1.4505475203143519, -0.1386655012713831]
   def motor_plate_positioning_1():
@@ -2411,13 +2407,10 @@ def motor_plate_full():
     $ 47 "MoveL"
     $ 48 "push_almost_end" "breakAfter"
     set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
-    movel(push_almost_end_p, a=0.1, v=0.1, r=0.004)
+    movel(push_almost_end_p, a=0.1, v=0.1, r=0.002)
     $ 49 "push_end_1" "breakAfter"
     set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
     movel(push_end_1_p, a=0.008, v=0.05)
-    $ 50 "before_push_2" "breakAfter"
-    set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
-    movel(before_push_2_p, a=0.8, v=0.8)
     # begin: URCap Program Node
     #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
     #   Type: Gripper
@@ -2434,9 +2427,6 @@ def motor_plate_full():
     rq_wait("1")
     # end: URCap Program Node
     $ 52 "MoveJ"
-    $ 53 "above_plate_1" "breakAfter"
-    set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
-    movej(get_inverse_kin(above_plate_1_p, qnear=above_plate_1_q), a=2.6179938779914944, v=2.6179938779914944, r=0.03)
     $ 54 "at_plate_1" "breakAfter"
     set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
     movej(get_inverse_kin(at_plate_1_p, qnear=at_plate_1_q), a=2.6179938779914944, v=2.6179938779914944)
