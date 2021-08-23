@@ -1,3 +1,4 @@
+# The docker-compose file for a container running on a single development machine
 version: "2.4"
 
 ################################################################################
@@ -5,8 +6,8 @@ version: "2.4"
 services:
   o2ac-ur:
     hostname: o2ac-ur
-    # runtime: ${DOCKER_RUNTIME}
-    privileged: true  # To allow use of the realtime kernel's PREEMPT functions
+    runtime: ${DOCKER_RUNTIME}
+    privileged: true
     environment:
       # Pass host user information.
       - HOST_USER=${USER}
@@ -16,10 +17,13 @@ services:
       - DISPLAY
       - QT_X11_NO_MITSHM=1
       # Configure Nvidia Docker interface.
-      # - NVIDIA_VISIBLE_DEVICES=all
-      # - NVIDIA_DRIVER_CAPABILITIES=all
-      # - NVIDIA_REQUIRE_CUDA=cuda>=9.0
-      # - DOCKER_RUNTIME=${DOCKER_RUNTIME}
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - NVIDIA_REQUIRE_CUDA=cuda>=9.0
+      - DOCKER_RUNTIME=${DOCKER_RUNTIME}
+      # ROS parameters
+      - ROS_HOSTNAME=o2ac-ur
+      - ROS_MASTER_URI=http://o2ac-ur:11311
     image: registry.gitlab.com/o2ac/o2ac-ur/o2ac-dev:latest
     build:
       context: ../
