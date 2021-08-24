@@ -35,21 +35,21 @@ fi
 # (Setting ENV variable invalidates after script terminates)
 export DOCKERFILE_COMMIT_SHORT_SHA="$(git log -n 1 --pretty=format:%h docker/Dockerfile)"
 
-# # Login to gitlab docker registry to authenticate
-# echo ""
-# echo "Login to registry.gitlab.com... Enter your username and password:"
-# docker login registry.gitlab.com
+# Login to gitlab docker registry to authenticate
+echo ""
+echo "Login to registry.gitlab.com... Enter your username and password:"
+docker login registry.gitlab.com
 
-# # If the script runs in CI mode, image builds directly.
-# # Otherwise try to pull it from the server. If this fails, it has to be build locally.
-# if [[ "$DOCKER_PROJECT" == "gitlab-ci" ]]; then
-#   docker-compose -p ${DOCKER_PROJECT} -f ./docker/docker-compose.yml build
-# else
-#   # regular developer use case
-#   docker-compose -p ${DOCKER_PROJECT} -f ./docker/docker-compose.yml pull
-#   if [[ "$?" -ne "0" ]]; then
-#     docker-compose -p ${DOCKER_PROJECT} -f ./docker/docker-compose.yml build
-#   fi
-# fi
+# If the script runs in CI mode, image builds directly.
+# Otherwise try to pull it from the server. If this fails, it has to be build locally.
+if [[ "$DOCKER_PROJECT" == "gitlab-ci" ]]; then
+  docker-compose -p ${DOCKER_PROJECT} -f ./docker/docker-compose.yml build
+else
+  # regular developer use case
+  docker-compose -p ${DOCKER_PROJECT} -f ./docker/docker-compose.yml pull
+  if [[ "$?" -ne "0" ]]; then
+    docker-compose -p ${DOCKER_PROJECT} -f ./docker/docker-compose.yml build
+  fi
+fi
 
-docker-compose -p ${DOCKER_PROJECT} -f ./docker/docker-compose.yml build
+# docker-compose -p ${DOCKER_PROJECT} -f ./docker/docker-compose.yml build
