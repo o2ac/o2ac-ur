@@ -39,7 +39,8 @@ int main(int argc, char **argv) {
   ros::NodeHandle nd;
 
   int argi = 1;
-  std::string stl_file_path(argv[argi++]), metadata_file_path(argv[argi++]), initial_grasp_name(argv[argi++]);
+  std::string stl_file_path(argv[argi++]), metadata_file_path(argv[argi++]),
+      initial_grasp_name(argv[argi++]);
 
   std::shared_ptr<mesh_object> gripped_geometry(new mesh_object);
   read_stl_from_file_path(std::string(stl_file_path),
@@ -61,10 +62,9 @@ int main(int argc, char **argv) {
       translation_cost, rotation_cost;
 
   CostFunction cost_function =
-      [](const action_type &type,
-	 const Eigen::Isometry3d &current_gripper_pose,
-	 const Eigen::Isometry3d &target_gripper_pose) -> double {
-	return 1.0;
+      [](const action_type &type, const Eigen::Isometry3d &current_gripper_pose,
+         const Eigen::Isometry3d &target_gripper_pose) -> double {
+    return 1.0;
   };
 
   boost::array<bool, 5> able_action;
@@ -79,44 +79,54 @@ int main(int argc, char **argv) {
   };
 
   planner.set_cost_function(std::make_shared<CostFunction>(cost_function));
-  planner.set_validity_checker(std::make_shared<ValidityChecker>(
-      use_moveit ? moveit_validity_checker : type_validity_checker));
+  planner.set_validity_checker(
+      std::make_shared<ValidityChecker>(type_validity_checker));
 
   int initially_gripping = true;
   double support_surface = 0.0;
   // set covariance
-  CovarianceMatrix pre_initial_covariance = CovarianceMatrix::Zero();
+  CovarianceMatrix pre_initial_covariance = CovarianceMatrix::Zero(),
+                   initial_covariance;
+  double coordinate_variance = atof(argv[argi++]),
+         angle_variance = atof(argv[argi++]);
   for (int i = 0; i < 3; i++) {
-    pre_initial_covariance(i,i) = 0.0001;
+    pre_initial_covariance(i, i) = coordinate_variance;
   }
   for (int i = 3; i < 6; i++) {
-    pre_initial_covariance(i,i) = 0.01;
+    pre_initial_covariance(i, i) = angle_variance;
   }
 
-  Eigen::Isometry3d initial_mean, initial_gripper_pose = (*grasp_points)[name_to_id[initial_grasp_name]];
-  planner.grasp_step_with_Lie_distribution(gripped_geometry->vertices,
-					   gripped_geometry->triangles,
-					   initial_gripper_pose,
-					   initial_gripper_pose.inverse(),
-					   pre_initial_covariance,
-					   initial_mean,
-					   initial_covariance,
-					   false);
+  Eigen::Isometry3d initial_mean,
+      initial_gripper_pose(
+          Eigen::AngleAxisd(asin(1.0), Eigen::Vector3d::UnitY())),
+      pre_initial_mean =
+          (*grasp_points)[name_to_id[initial_grasp_name]].inverse();
+  planner.grasp_step_with_Lie_distribution(
+      gripped_geometry->vertices, gripped_geometry->triangles,
+      initial_gripper_pose, pre_initial_mean, pre_initial_covariance,
+      initial_mean, initial_covariance, true);
 
   // make action plan
   CovarianceMatrix objective_coefficients = CovarianceMatrix::Identity();
-  int max_cost = 4;
+  int max_cost = 3;
 
   planner.set_geometry(gripped_geometry, grasp_points, support_surface);
-  
-  auto result = std::move(planner::best_scores_for_each_costs(initial_gripper_pose, initially_gripping,
-							      initial_mean,
-							      initial_covariance,
-							      objective_coefficients,
-							      max_cost));
-  for(int i=0;i<=max_cost;i++){
-    printf("%lf ",result[i].first);
+
+  auto result = std::move(planner.best_scores_for_each_costs(
+      initial_gripper_pose, initially_gripping, initial_mean,
+      initial_covariance, objective_coefficients, max_cost));
+  for (int i = 0; i <= max_cost; i++) {
+    printf("%lf ", result[i].first);
+    fprintf(stderr, "%lf ", result[i].first);
   }
   putchar('\n');
+  fputc('\n', stderr);
+  for (int i = 0; i <= max_cost; i++) {
+    for (auto &action : result[i].second) {
+      printf("%d\n", action.type);
+      print_pose(action.gripper_pose);
+    }
+  }
+
   return 0;
 }

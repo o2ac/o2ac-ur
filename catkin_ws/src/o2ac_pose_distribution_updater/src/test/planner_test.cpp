@@ -176,7 +176,7 @@ int main(int argc, char **argv) {
   fscanf(config_file, "%lf%d", &objective_value, &is_goal_pose);
 
   planner.set_geometry(gripped_geometry, grasp_points, support_surface);
-  
+
   std::vector<UpdateAction> actions;
   if (is_goal_pose) {
     char goal_grasp_name[1000];
@@ -187,16 +187,14 @@ int main(int argc, char **argv) {
         (*grasp_points)[name_to_id[std::string(goal_grasp_name)]].inverse();
     std::cerr << goal_pose.matrix() << std::endl;
     actions = planner.calculate_plan(
-        initial_gripper_pose,
-        initially_gripping, initial_mean, initial_covariance,
-        objective_coefficients, objective_value, true,
+        initial_gripper_pose, initially_gripping, initial_mean,
+        initial_covariance, objective_coefficients, objective_value, true,
         check_near_to_goal_pose(goal_pose, translation_threshold,
                                 rotation_threshold));
   } else {
-    actions = planner.calculate_plan(
-        initial_gripper_pose,
-        initially_gripping, initial_mean, initial_covariance,
-        objective_coefficients, objective_value);
+    actions = planner.calculate_plan(initial_gripper_pose, initially_gripping,
+                                     initial_mean, initial_covariance,
+                                     objective_coefficients, objective_value);
   }
 
   fclose(config_file);

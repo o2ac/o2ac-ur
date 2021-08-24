@@ -78,23 +78,27 @@ add_dependencies(update_distribution_action_server ${${PROJECT_NAME}_EXPORTED_TA
 target_link_libraries(update_distribution_action_server estimator ros_converters distribution_conversions)
 
 if(CATKIN_ENABLE_TESTING)
-#   find_package(rostest REQUIRED)
-#   add_rostest_gtest(test_client test/unit_test.test src/test/test_client.cpp src/test/touch_test.cpp src/test/look_test.cpp src/test/place_test.cpp src/test/grasp_test.cpp)
-#   target_link_libraries(test_client ros_converters ${FCL_LIBRARIES} ${OpenCV_LIBRARIES} test_tools distribution_conversions)
-# 
-#   add_executable(visualize_test src/test/visuzalize_test.cpp)
-#   add_dependencies(visualize_test ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-#   target_link_libraries(visualize_test test_tools)
-# 
-#   add_executable(planner_test src/test/planner_test.cpp)
-#   add_dependencies(planner_test ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-#   target_link_libraries(planner_test ${LIBMATHEVAL_LIBRARIES} planner ${catkin_LIBRARIES} read_stl)
-# 
-#   add_executable(execute_plan src/test/execute_plan.cpp)
-#   add_dependencies(execute_plan ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-#   target_link_libraries(execute_plan planner test_tools read_stl)
-# 
-#   add_executable(simulation src/test/simulation_in_demo.cpp)
-#   add_dependencies(simulation ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-#   target_link_libraries(simulation planner test_tools read_stl)
+  find_package(rostest REQUIRED)
+  add_rostest_gtest(test_client test/unit_test.test src/test/test_client.cpp src/test/touch_test.cpp src/test/look_test.cpp src/test/place_test.cpp src/test/grasp_test.cpp)
+  target_link_libraries(test_client ros_converters ${FCL_LIBRARIES} ${OpenCV_LIBRARIES} test_tools distribution_conversions)
+
+  add_executable(visualize_test src/test/visuzalize_test.cpp)
+  add_dependencies(visualize_test ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+  target_link_libraries(visualize_test test_tools)
+
+  add_executable(planner_test src/test/planner_test.cpp)
+  add_dependencies(planner_test ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+  target_link_libraries(planner_test ${LIBMATHEVAL_LIBRARIES} planner ${catkin_LIBRARIES} read_stl)
+
+  add_executable(execute_plan src/test/execute_plan.cpp)
+  add_dependencies(execute_plan ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+  target_link_libraries(execute_plan planner test_tools read_stl)
+
+  add_executable(simulation src/test/simulation_in_demo.cpp)
+  add_dependencies(simulation ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+  target_link_libraries(simulation planner test_tools read_stl)
+
+  add_executable(best_scores src/test/best_score_test.cpp)
+  add_dependencies(best_scores ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+  target_link_libraries(best_scores ${LIBMATHEVAL_LIBRARIES} planner test_tools read_stl)
 endif()
