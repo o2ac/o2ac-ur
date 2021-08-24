@@ -262,7 +262,7 @@ class O2ACAssembly(O2ACCommon):
     self.despawn_object("bearing")
     return success
   
-  def subtask_c2(self):
+  def subtask_c2(self, simultaneous=True):
     rospy.loginfo("======== SUBTASK C (output shaft) ========")
     self.ab_bot.go_to_named_pose("home")
     
@@ -282,13 +282,15 @@ class O2ACAssembly(O2ACCommon):
     if not self.orient_shaft():
       return False
 
-    pre_insertion_shaft = conversions.to_pose_stamped("tray_center", [0.0, 0, 0.2, 0, 0, -tau/4.])
-    if not self.b_bot.go_to_pose_goal(pre_insertion_shaft, speed=0.2):
+    # pre_insertion_shaft = conversions.to_pose_stamped("tray_center", [0.0, 0, 0.2, 0, 0, -tau/4.])
+    pre_insertion_shaft = [1.78158, -0.98719, 2.42349, -4.57638, -1.78597, 0.00433]
+    # if not self.b_bot.go_to_pose_goal(pre_insertion_shaft, speed=0.4, move_lin=True):
+    if not self.b_bot.move_joints(pre_insertion_shaft, speed=0.4):
       rospy.logerr("Fail to go to pre_insertion_shaft")
       return False
 
-    pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [-0.002, -0.001, 0.25]+np.deg2rad([-180, 90, -90]).tolist())
-    if not self.a_bot.go_to_pose_goal(pre_insertion_end_cap, speed=0.2, move_lin=False):
+    pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [-0.002, 0.002, 0.25, -0.5, 0.5, 0.5, 0.5])
+    if not self.a_bot.go_to_pose_goal(pre_insertion_end_cap, speed=0.4, move_lin=False):
       rospy.logerr("Fail to go to pre_insertion_end_cap")
       return False
 
@@ -300,6 +302,7 @@ class O2ACAssembly(O2ACCommon):
     self.confirm_to_proceed("Did insertion succeed? Press Enter to open gripper")
 
     self.a_bot.gripper.send_command(0.06, velocity=0.01)
+    self.a_bot.move_lin_rel([0,0,0.05], speed=0.3)
     self.a_bot.gripper.detach_object("end_cap")
     self.despawn_object("end_cap")
     
@@ -315,9 +318,10 @@ class O2ACAssembly(O2ACCommon):
 
     if not self.align_shaft("assembled_part_07_inserted", pre_insert_offset=0.065):
       return False
-
+    self.allow_collisions_with_robot_hand("base_fixture_top", "b_bot")
     if not self.insert_shaft("assembled_part_07_inserted", target=0.043):
       return False
+    self.allow_collisions_with_robot_hand("base_fixture_top", "b_bot", False)
 
     if not self.b_bot.go_to_named_pose("home"):
        return False

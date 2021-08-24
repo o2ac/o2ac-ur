@@ -1477,9 +1477,11 @@ class O2ACCommon(O2ACBase):
     self.confirm_to_proceed("Looking at shaft tip")
 
     res = self.vision.call_shaft_hole_detection()
-    print("=== shaft screw_hole detection returned:")
-    print(res)
-    return res
+    if res:
+      print("=== shaft screw_hole detection returned:")
+      print(res)
+      return res.has_hole
+    raise ValueError("Fail to call shaft hole detection")
 
   def turn_shaft_until_groove_found(self):
     if not self.use_real_robot:
@@ -2169,8 +2171,9 @@ class O2ACCommon(O2ACBase):
     self.equip_tool("b_bot", "set_screw_tool")
 
     b_bot_approach_pose    = conversions.to_pose_stamped(target_link, [0.006, -0.002, -0.072]+ np.deg2rad([174.3, -87.6, -135.8]).tolist())
-    b_bot_above_hole_pose  = conversions.to_pose_stamped(target_link, [0.007, -0.0035, -0.009]+ np.deg2rad([174.3, -87.6, -135.8]).tolist())
-    b_bot_at_hole_pose     = conversions.to_pose_stamped(target_link, [0.007, -0.005, -0.005]+ np.deg2rad([174.3, -87.6, -135.8]).tolist())
+    b_bot_above_hole_pose  = conversions.to_pose_stamped(target_link, [0.007, -0.0035,-0.007]+ np.deg2rad([174.3, -87.6, -135.8]).tolist())
+    b_bot_centering_pose   = conversions.to_pose_stamped(target_link, [0.009,  0.001, -0.005]+ np.deg2rad([-170.5, -88, -151]).tolist())
+    b_bot_at_hole_pose     = conversions.to_pose_stamped(target_link, [0.006,  -0.002, 0.004]+ np.deg2rad([-170.5, -88, -151]).tolist())
 
     # Find both holes
     for i in range(2):
@@ -2188,13 +2191,20 @@ class O2ACCommon(O2ACBase):
       
       self.confirm_to_proceed("down2?")
 
+      self.b_bot.go_to_pose_goal(b_bot_centering_pose, speed=0.03, move_lin=True, end_effector_link="b_bot_set_screw_tool_tip_link")
       self.b_bot.go_to_pose_goal(b_bot_at_hole_pose, speed=0.015, move_lin=True, end_effector_link="b_bot_set_screw_tool_tip_link")
-      self.tools.set_motor("set_screw_tool", "tighten", duration=10.0, skip_final_loosen_and_retighten=True, wait=False)
-      self.b_bot.execute_spiral_trajectory("YZ", max_radius=0.001, radius_direction="+Y", steps=50,
-                                          revolutions=2, target_force=0, check_displacement_time=10,
-                                          termination_criteria=None, timeout=9, end_effector_link="b_bot_set_screw_tool_tip_link")
-      
+      self.tools.set_motor("set_screw_tool", "tighten", duration=10.0, skip_final_loosen_and_retighten=True, wait=True)
+
+      result = self.tools.fastening_tool_client.get_result()
+      rospy.loginfo("Set screw motor result: %s" % result)
+      motor_stalled = False
+      if result is not None:
+        motor_stalled = result.motor_stalled
       self.b_bot.go_to_pose_goal(b_bot_approach_pose, speed=0.02, move_lin=True, end_effector_link="b_bot_set_screw_tool_tip_link")
+      if motor_stalled:
+        break
+      else:
+        print("not stalled")
     
     self.unequip_tool("b_bot", "set_screw_tool")
     return True
@@ -2558,7 +2568,7 @@ class O2ACCommon(O2ACBase):
     if task == "taskboard":
       target_link = "taskboard_assy_part_07_inserted"
     elif task == "assembly":
-      target_link = "assembly_assy_part_07_inserted"
+      target_link = "assembled_part_07_inserted"
     
     self.allow_collisions_with_robot_hand("shaft", "b_bot", True)
     
@@ -2581,10 +2591,11 @@ class O2ACCommon(O2ACBase):
     rospy.loginfo("Going to approach pose (b_bot)")
     if from_behind:
       post_pick_pose = conversions.to_pose_stamped(target_link, [-0.15, 0.0, -0.10, -tau/4, -radians(50), -tau/4])
+      success = self.b_bot.go_to_pose_goal(post_pick_pose)
       above_pose     = conversions.to_pose_stamped(target_link, [0.0, 0.002, -0.10, -tau/4, -radians(50), -tau/4])
       behind_pose    = conversions.to_pose_stamped(target_link, [0.09, 0.002, -0.05, -tau/4, -radians(50), -tau/4])
       pre_insertion_pose = conversions.to_pose_stamped(target_link, [pre_insert_offset, -0.001, 0.001, -tau/4, -radians(50), -tau/4])
-      trajectory = [[post_pick_pose, 0.05, 0.8], [above_pose, 0.05, 0.5], [behind_pose, 0.01, 0.5], [pre_insertion_pose, 0.0, 0.2]]
+      trajectory = [[post_pick_pose, 0.0, 0.8], [above_pose, 0.03, 0.5], [behind_pose, 0.01, 0.5], [pre_insertion_pose, 0.0, 0.2]]
     else:
       rotation = [-tau/4, -radians(50), -tau/4]
       in_front_pose    = conversions.to_pose_stamped(target_link, [-0.09, 0.002, 0.0] + rotation)
@@ -2601,13 +2612,13 @@ class O2ACCommon(O2ACBase):
         rospy.sleep(2)
     if not success: # try without linear trajectory
       if from_behind:
-        success = self.b_bot.go_to_pose_goal(post_pick_pose)
-        success &= self.b_bot.go_to_pose_goal(above_pose)
-        success &= self.b_bot.go_to_pose_goal(behind_pose)
-        success &= self.b_bot.go_to_pose_goal(pre_insertion_pose)
+        success = self.b_bot.go_to_pose_goal(post_pick_pose, move_lin=True, retry_non_linear=True)
+        success &= self.b_bot.go_to_pose_goal(above_pose, move_lin=True, retry_non_linear=True)
+        success &= self.b_bot.go_to_pose_goal(behind_pose, move_lin=True, retry_non_linear=True)
+        success &= self.b_bot.go_to_pose_goal(pre_insertion_pose, move_lin=True, retry_non_linear=True)
       else:
-        success = self.b_bot.go_to_pose_goal(in_front_pose)
-        success &= self.b_bot.go_to_pose_goal(pre_insertion_pose)
+        success = self.b_bot.go_to_pose_goal(in_front_pose, move_lin=True, retry_non_linear=True)
+        success &= self.b_bot.go_to_pose_goal(pre_insertion_pose, move_lin=True, retry_non_linear=True)
     return success
 
   def pick_shaft(self, attempt_nr=0, called_recursively=False):
@@ -2786,25 +2797,26 @@ class O2ACCommon(O2ACBase):
 
     self.b_bot.gripper.open(opening_width=0.06)
 
-    shaft_has_hole_at_top = self.check_screw_hole_visible_on_shaft_in_v_groove()
+    try: # Give up if the hole detection fails TODO: implement fallback
+      shaft_has_hole_at_top = self.check_screw_hole_visible_on_shaft_in_v_groove()
+    except:
+      return False
+
     if shaft_has_hole_at_top:
       self.b_bot.go_to_pose_goal(inside_vgroove, speed=0.1)
       self.b_bot.gripper.close()
       self.b_bot.go_to_pose_goal(approach_vgroove, speed=0.3)
     else:  # Turn gripper around
-      approach_turned = copy.deepcopy(approach_vgroove)
-      approach_turned.pose = helpers.rotatePoseByRPY(tau/2, 0, 0, approach_turned.pose)
-      in_groove_turned = copy.deepcopy(approach_turned)
-      in_groove_turned.pose.position.x = inside_vgroove.pose.position.x
-
-      self.b_bot.go_to_pose_goal(approach_vgroove, speed=0.5)
-      self.b_bot.go_to_pose_goal(approach_turned, speed=0.5)
-      self.b_bot.go_to_pose_goal(in_groove_turned, speed=0.1)
+      self.b_bot.move_lin_rel([0,0,0.02], speed=0.4)
+      above_vgroove  = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [-0.010, 0, 0, 0, 0, 0])
+      inside_vgroove = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.011, 0, 0, 0, 0, 0])
+      self.b_bot.go_to_pose_goal(above_vgroove, speed=0.3)
+      self.b_bot.go_to_pose_goal(inside_vgroove, speed=0.2)
       self.b_bot.gripper.close()
-      self.b_bot.go_to_pose_goal(approach_turned, speed=0.1)
+      self.b_bot.move_lin_rel([0,0,0.1], speed=0.3)
     
     self.b_bot.go_to_named_pose("home")
-    self.b_bot.gripper.last_attached_object = None # clean attach/detach memory
+    self.b_bot.gripper.forget_attached_item() # clean attach/detach memory
     return True
 
   def centering_shaft(self):
@@ -2907,7 +2919,7 @@ class O2ACCommon(O2ACBase):
     return True
 
   @check_for_real_robot
-  def is_the_placed_end_cap_upside_down(self, dy=0.0, dz=0.0, led_on=False):
+  def is_the_placed_end_cap_upside_down(self, dy=0.0, dz=0.0, led_on=True):
     """ Look at the end cap placed next a few times, return.
 
         dy, dz add an offset to the camera position.
@@ -2935,9 +2947,9 @@ class O2ACCommon(O2ACBase):
     
     if len(results) == 0:
       rospy.logerr("Failed to see the end cap!")
-      if not led_on:
-        rospy.loginfo("Retry with LED on")
-        return self.is_the_placed_end_cap_upside_down(dy, dz, led_on=True)
+      if led_on:
+        rospy.loginfo("Retry with LED off")
+        return self.is_the_placed_end_cap_upside_down(dy, dz, led_on=off)
       return False
 
     print(">>> end_cap views result:", np.array(results))
@@ -2976,11 +2988,10 @@ class O2ACCommon(O2ACBase):
     target_pose.pose.position.z -= 0.002
     self.a_bot.move_lin_rel(relative_translation=[0,0,0.001]) # release pressure before insertion
 
-    selection_matrix = [0.3, 0.3, 0., 1.0, 1, 1]
+    selection_matrix = [0.2, 0.2, 0., 1.0, 1, 1]
 
-    # target_pose = conversions.to_pose_stamped("tray_center", [-0.002, -0.001, 0.237, 0, 0, 0])
-    result = self.a_bot.do_insertion(target_pose, insertion_direction="-Z", force=2, timeout=15.0, 
-                                  radius=0.003, revolutions=3, relaxed_target_by=0.0005, selection_matrix=selection_matrix,
+    result = self.a_bot.do_insertion(target_pose, insertion_direction="-Z", force=3, timeout=15.0, 
+                                  radius=0.002, revolutions=4, relaxed_target_by=0.0008, selection_matrix=selection_matrix,
                                   check_displacement_time=3., displacement_epsilon=0.0005)
     success = result in (TERMINATION_CRITERIA)
 
@@ -2991,8 +3002,7 @@ class O2ACCommon(O2ACBase):
 
   def fasten_end_cap(self):
     self.vision.activate_camera("a_bot_outside_camera")
-    if not self.a_bot.go_to_named_pose("screw_ready"):
-      return False
+
     if not self.do_change_tool_action("a_bot", equip=True, screw_size = 4):
       rospy.logerr("Failed equip m4")
       return False
@@ -3008,8 +3018,8 @@ class O2ACCommon(O2ACBase):
       return False
     
     self.confirm_to_proceed("go to above_hole_screw_pose")
-    above_hole_screw_pose = conversions.to_pose_stamped("tray_center", [-0.001, 0.019, 0.388]+np.deg2rad([180, 30, 90]).tolist())
-    if not self.a_bot.go_to_pose_goal(above_hole_screw_pose, speed=0.2, move_lin=False):
+    above_hole_screw_pose = conversions.to_pose_stamped("tray_center", [-0.003, 0.036, 0.4]+np.deg2rad([180, 30, 90]).tolist())
+    if not self.a_bot.go_to_pose_goal(above_hole_screw_pose, speed=0.2, move_lin=True):
       rospy.logerr("Fail to go to above_hole_screw_pose")
       return False
 
@@ -3017,14 +3027,14 @@ class O2ACCommon(O2ACBase):
     obj.header.frame_id = "b_bot_gripper_tip_link"
     obj.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/4, -tau/4, -tau/4))
     obj.pose = helpers.rotatePoseByRPY(0, 0, tau/2, obj.pose)
-    obj.pose.position = conversions.to_point([-.006, 0, .0375])
+    obj.pose.position = conversions.to_point([-.006, 0, .038])
     self.planning_scene_interface.add_object(obj)
     self.b_bot.gripper.attach_object(obj.id)
 
     self.confirm_to_proceed("try to screw")
     self.vision.activate_camera("b_bot_inside_camera")
-    hole_screw_pose = conversions.to_pose_stamped("move_group/shaft/screw_hole", [0.0, 0.002, -0.010, 0, 0, 0])
-    self.skill_server.do_screw_action("a_bot", hole_screw_pose, screw_height=0.02, screw_size=4, loosen_and_retighten_when_done=True)
+    hole_screw_pose = conversions.to_pose_stamped("move_group/shaft/screw_hole", [0.0, 0.003, -0.001, 0, 0, 0])
+    self.screw("a_bot", hole_screw_pose, screw_height=0.02, screw_size=4, skip_final_loosen_and_retighten=False, attempts=0)
     
     self.confirm_to_proceed("unequip tool")
     self.tools.set_suction("screw_tool_m4", suction_on=False, wait=False)
