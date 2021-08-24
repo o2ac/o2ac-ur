@@ -300,7 +300,11 @@ class O2ACVisionServer(object):
             self.execute_localization(im_in, im_vis)
 
         elif self.belt_detection_server.is_active():
-            self.execute_belt_detection(im_in, im_vis)
+            try:
+                self.execute_belt_detection(im_in, im_vis)
+            except Exception as e:
+                rospy.logfatal("Unexpected error: %s" % e)
+                pass
 
         elif self.angle_detection_server.is_active():
             self.execute_angle_detection(im_in, im_vis)
@@ -738,7 +742,7 @@ class O2ACVisionServer(object):
 
         m = MotorOrientation()
         angle_orientation = m.main_proc(im_in, ssd_results)  # if True hole is observed in im_in
-        im_vis = m.draw_im_vis(im_vis)
+        im_vis = m.get_im_vis(im_vis)
         motor_seen = angle_orientation is not False
         if motor_seen:
             return motor_seen, radians(angle_orientation), im_vis

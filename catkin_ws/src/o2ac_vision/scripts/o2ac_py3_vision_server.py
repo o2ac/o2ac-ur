@@ -57,7 +57,7 @@ import visualization_msgs.msg
 import sensor_msgs.msg
 import std_msgs.msg
 
-from o2ac_vision.bearing_pose_estimation import BearingPoseEstimator, PoseEstimator
+from o2ac_vision.bearing_pose_estimation import BearingPoseEstimator, InPlaneRotationEstimator, get_templates
 
 
 class O2ACBearingPoseEstimationServer(object):
@@ -99,17 +99,20 @@ class O2ACBearingPoseEstimationServer(object):
             rotation, translation = estimator.main_proc( threshold=3.0, ds=3.0 )
         
         if goal.item_id == "motor":
-            src_pts = np.array([[287,94], [470,91], [285,270], [490,265]], dtype=np.float32)
+            # src_pts = np.array([[287,94], [470,91], [285,270], [490,265]], dtype=np.float32)
             ## destination points (rectified corner points)
-            dst_pts = np.array([[287,94], [470,91], [287,270], [470,265]], dtype=np.float32)
-            mat = cv2.getPerspectiveTransform(src_pts, dst_pts)
+            # dst_pts = np.array([[287,94], [470,91], [287,270], [470,265]], dtype=np.float32)
+            # mat = cv2.getPerspectiveTransform(src_pts, dst_pts)
 
             bbox = [270,180,240,240]  # Set bounding box(x,y,w,h)
-            template_path = os.path.join(rospkg.RosPack().get_path('o2ac_vision'), 'config', 'motor_template_image.png')
-            im_template = cv2.imread(template_path, 0)  # Read template image (use option "0")
+            template_path = os.path.join(rospkg.RosPack().get_path('wrs_dataset'), 'data/motor_front/')
+            im_templates = get_templates(template_path, "name")
+            # im_template = cv2.imread(template_path, 0)  # Read template image (use option "0")
 
-            estimator = PoseEstimator( im_template, im_in2, bbox, mat )  # Define pose estimation class
-            rotation, translation = estimator.main_proc( threshold=5.0, ds=10.0 )  # Do registration
+            estimator = InPlaneRotationEstimator( im_templates, im_in2, bbox)  # Define pose estimation class
+            # estimator = PoseEstimator( im_template, im_in2, bbox, mat )  # Define pose estimation class
+            # rotation, translation = estimator.main_proc( threshold=5.0, ds=10.0 )  # Do registration
+            rotation, translation, mse = estimator.main_proc( ds=10.0 )  # Do registration
         
         action_result = o2ac_msgs.msg.detectAngleResult()
         if rotation:
