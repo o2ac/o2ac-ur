@@ -69,28 +69,28 @@ public:
       const std::shared_ptr<ValidityChecker> &validity_checker) {
     this->validity_checker = validity_checker;
   }
-  
+
   void set_geometry(
-    const std::shared_ptr<mesh_object> &gripped_geometry,
-    const std::shared_ptr<std::vector<Eigen::Isometry3d>> &grasp_points,
-    const double &support_surface);
+      const std::shared_ptr<mesh_object> &gripped_geometry,
+      const std::shared_ptr<std::vector<Eigen::Isometry3d>> &grasp_points,
+      const double &support_surface);
 
   std::vector<UpdateAction> calculate_plan(
       const Eigen::Isometry3d &current_gripper_pose,
-      const bool &current_gripping,
-      const Eigen::Isometry3d &current_mean,
+      const bool &current_gripping, const Eigen::Isometry3d &current_mean,
       const CovarianceMatrix &current_covariance,
       const CovarianceMatrix &objective_coefficients,
       const double &objective_value, const bool goal_gripping = false,
       const std::function<bool(const Eigen::Isometry3d &)> check_goal_pose =
           [](const Eigen::Isometry3d &pose) { return true; });
 
-  std::vector<std::pair<double, std::vector<UpdateAction>>> best_scores_for_each_costs(
-    const Eigen::Isometry3d &current_gripper_pose, const bool &current_gripping,
-    const Eigen::Isometry3d &current_mean,
-    const CovarianceMatrix &current_covariance,
-    const CovarianceMatrix &objective_coefficients,
-    const int &max_cost);
+  std::vector<std::pair<double, std::vector<UpdateAction>>>
+  best_scores_for_each_costs(const Eigen::Isometry3d &current_gripper_pose,
+                             const bool &current_gripping,
+                             const Eigen::Isometry3d &current_mean,
+                             const CovarianceMatrix &current_covariance,
+                             const CovarianceMatrix &objective_coefficients,
+                             const int &max_cost);
 };
 
 std::function<bool(const Eigen::Isometry3d)>
