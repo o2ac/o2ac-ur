@@ -276,14 +276,10 @@ RUN echo "Host gitlab.com" > /root/.ssh/config \
 # librealsense2
 RUN rm -f /etc/apt/sources.list.d/realsense-public.list
 RUN echo 'deb http://librealsense.intel.com/Debian/apt-repo bionic main' | tee /etc/apt/sources.list.d/realsense-public.list
-# RUN apt-key adv --keyserver keys.gnupg.net --recv-key C8B3A55A6F3EFCDE
 RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key C8B3A55A6F3EFCDE
 RUN apt-get update && apt-get install -y --no-install-recommends \
     librealsense2-dkms=1.3.18-0ubuntu1 \
     librealsense2-utils=2.49.0-0~realsense0.5306 \
-    librealsense2-dev=2.49.0-0~realsense0.5306 \
-    librealsense2-udev-rules=2.49.0-0~realsense0.5306 \
-    librealsense2-dbg=2.49.0-0~realsense0.5306 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
