@@ -80,13 +80,13 @@ parts_list:
     cad: 13_MBGA30-2.stl
     description: Idler for Round Belt - Wide
   - id: 14
-    name: idler_pin 
+    name: idler_pin
     type: 14_BGPSL6-9-L30-F8
     cad: 14_BGPSL6-9-L30-F8.stl
     description: Bearing Shaft Screw
   - id: 15
     name: m6_nut
-    type: 15_SLBNR6 
+    type: 15_SLBNR6
     cad: 15_SLBNR6.stl
     description: M6 Hex Nut  (Fixing for idler shaft)
   - id: 16
@@ -106,9 +106,39 @@ parts_list:
     description: 10mm M3 Socket Head Cap Screw  (metric coarse thread)
   - id: 19
     name: m3_screw_short
-    type: 19_MSSFS3-6 
+    type: 19_MSSFS3-6
     cad: 19_MSSFS3-6.stl
     description: 6mm M3 Hex Socket Set Screw  (metric coarse thread)
+  - id: 32
+    name: surprise_pulley_40mm
+    type: 32_MBRFA40-2-P6
+    cad: 32_MBRFA40-2-P6.stl
+    description: Pulley for Round Belt (4mm) - Setscrew P.D.40mm
+  - id: 33
+    name: surprise_pulley_45mm
+    type: 33_MBRFA45-2-P6
+    cad: 33_MBRFA45-2-P6.stl
+    description: Pulley for Round Belt (4mm) - Setscrew P.D.45mm
+  - id: 34
+    name: surprise_pulley_48mm
+    type: 34_MBRFA48-2-P6
+    cad: 34_MBRFA48-2-P6.stl
+    description: Pulley for Round Belt (4mm) - Setscrew P.D.48mm
+  - id: 35
+    name: surprise_pulley_CLAMPING_45mm
+    type: 35_MBRAC45-2-10
+    cad: 35_MBRAC45-2-10.stl
+    description: Pulley for Round Belts Clamping Type P.D.45mm
+  - id: 36
+    name: surprise_pulley_CLAMPING_48mm
+    type: 36_MBRAC48-2-10
+    cad: 36_MBRAC48-2-10.stl
+    description: Pulley for Round Belts Clamping Type P.D.48mm
+  - id: 37
+    name: surprise_pulley_CLAMPING_80mm
+    type: 37_MBRAC80-2-10
+    cad: 37_MBRAC80-2-10.stl
+    description: Pulley for Round Belts Clamping Type P.D.80mm
   - id: 50
     name: taskboard_idler_small
     type: MBGNA30-2
