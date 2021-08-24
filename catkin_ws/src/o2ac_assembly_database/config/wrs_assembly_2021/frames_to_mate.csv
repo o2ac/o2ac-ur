@@ -8,7 +8,7 @@ part_01_screw_hole_panel1_1, part_03_bottom_screw_hole_aligner_1,   0, 0, 0,   0
 
 # The motor
 part_02_back_hole, part_04_inserted_02,   pi, 0, 0,   0,0,0, Panel2 + Motor
-part_04_tip,       part_05_center,        0, 0, 0,   0.005,0,0, Motor + Pulley
+part_04_tip,       part_05_center,        0, 0, pi,   0.005,0,0, Motor + Pulley
 
 # The bearing and output shaft
 part_03_front_hole,    part_07_inserted,      pi, 0, 0,   0,0,0, Panel2 + Bearing

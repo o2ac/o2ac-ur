@@ -113,8 +113,7 @@ void ROSConvertedPoseEstimator::grasp_step(
     const geometry_msgs::Pose &gripper_pose,
     const unsigned char &distribution_type,
     const geometry_msgs::PoseWithCovariance &old_distibution,
-    geometry_msgs::PoseWithCovariance &new_distribution,
-    const bool use_linear_approximation) {
+    geometry_msgs::PoseWithCovariance &new_distribution) {
   // convert from moveit_msgs::CollisionObject to std::vector<Eigen::Vector3d>
   // and std::vector<boost::array<int, 3>>
   std::vector<Eigen::Vector3d> vertices;
@@ -147,7 +146,7 @@ void ROSConvertedPoseEstimator::grasp_step(
   // execute step
   PoseEstimator::grasp_step_with_Lie_distribution(
       vertices, triangles, gripper_transform, old_mean, old_covariance,
-      new_mean, new_covariance, use_linear_approximation);
+      new_mean, new_covariance);
 
   if (distribution_type == o2ac_msgs::updateDistributionGoal::RPY_COVARIANCE) {
     // convert from Particle and CovarianceMatrix to PoseWithcovariance
@@ -169,8 +168,7 @@ void ROSConvertedPoseEstimator::push_step(
     const geometry_msgs::Pose &gripper_pose,
     const unsigned char &distribution_type,
     const geometry_msgs::PoseWithCovariance &old_distibution,
-    geometry_msgs::PoseWithCovariance &new_distribution,
-    const bool use_linear_approximation) {
+    geometry_msgs::PoseWithCovariance &new_distribution) {
   // convert from moveit_msgs::CollisionObject to std::vector<Eigen::Vector3d>
   // and std::vector<boost::array<int, 3>>
   std::vector<Eigen::Vector3d> vertices;
@@ -203,7 +201,7 @@ void ROSConvertedPoseEstimator::push_step(
   // execute step
   PoseEstimator::push_step_with_Lie_distribution(
       vertices, triangles, gripper_transform, old_mean, old_covariance,
-      new_mean, new_covariance, use_linear_approximation);
+      new_mean, new_covariance);
 
   if (distribution_type == o2ac_msgs::updateDistributionGoal::RPY_COVARIANCE) {
     // convert from Particle and CovarianceMatrix to PoseWithcovariance

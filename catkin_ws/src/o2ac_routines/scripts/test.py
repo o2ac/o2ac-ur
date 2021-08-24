@@ -15,6 +15,10 @@ import numpy as np
 import sys, signal
 import geometry_msgs.msg
 from math import pi, radians
+
+from ur_gazebo.gazebo_spawner import GazeboModels
+from ur_gazebo.model import Model
+
 tau = 2.0*pi  # Part of math from Python 3.6
 
 def signal_handler(sig, frame):
@@ -23,202 +27,6 @@ def signal_handler(sig, frame):
 
 
 signal.signal(signal.SIGINT, signal_handler)
-
-def test_force_control(c):
-    selection_matrix = [0., 1., 1., 1., 1., 1.]
-    target_force = np.array([0., 0., 0., 0., 0., 0.])
-
-    c.b_bot.go_to_pose_goal(controller.tray_view_high)
-    c.b_bot.force_controller.force_control(target_force=target_force, selection_matrix=selection_matrix, timeout=30.0)
-
-def one_thread_simultaneous_motion():
-    controller = O2ACCommon()
-
-    p, _ = controller.ab_bot.go_to_named_pose("home", plan_only=True)
-    controller.ab_bot.execute_plan(p, wait=True)
-    controller.ab_bot.go_to_named_pose("home")
-
-    speed = 1.0
-
-    plan_a_screw_ready, _ = controller.a_bot.go_to_named_pose("screw_ready", plan_only=True, speed=speed)
-    plan_b_screw_ready, _ = controller.b_bot.go_to_named_pose("screw_ready", plan_only=True, speed=speed)
-
-    a_bot_at_tray = conversions.to_pose_stamped("tray_center", [-0.048, 0.11, 0.031, -0.504, 0.506, 0.495, 0.495]) 
-    plan_a_at_tray, _ = controller.a_bot.go_to_pose_goal(a_bot_at_tray, plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_a_screw_ready), speed=speed)
-    b_bot_at_tray = conversions.to_pose_stamped("tray_center", [0.002, -0.12, 0.166, 0.507, 0.504, -0.496, 0.493])
-    plan_b_at_tray, _ = controller.b_bot.go_to_pose_goal(b_bot_at_tray, plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_b_screw_ready), speed=speed)
-
-    plan_a_tool_pick_ready, _ = controller.a_bot.go_to_named_pose("tool_pick_ready", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_a_at_tray), speed=speed)
-    plan_b_tool_pick_ready, _ = controller.b_bot.go_to_named_pose("tool_pick_ready", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_b_at_tray), speed=speed)
-
-    plan_a_screw_ready_2, _ = controller.a_bot.go_to_named_pose("screw_ready", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_a_tool_pick_ready), speed=speed)
-    plan_b_screw_ready_2, _ = controller.b_bot.go_to_named_pose("screw_ready", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_b_tool_pick_ready), speed=speed)
-
-    plan_a_home, _ = controller.a_bot.go_to_named_pose("home", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_a_screw_ready_2), speed=speed)
-    plan_b_home, _ = controller.b_bot.go_to_named_pose("home", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_b_screw_ready_2), speed=speed)
-
-    plan_a_back, _ = controller.a_bot.go_to_named_pose("back", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_a_home), speed=speed)
-    plan_b_back, _ = controller.b_bot.go_to_named_pose("back", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_b_home), speed=speed)
-
-    plan_a_home2, _ = controller.a_bot.go_to_named_pose("home", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_a_back), speed=speed)
-    plan_b_home2, _ = controller.b_bot.go_to_named_pose("home", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_b_back), speed=speed)
-
-    # rospy.sleep(2)
-
-    print("duration plan_a_screw_ready:", helpers.get_trajectory_duration(plan_a_screw_ready))
-    print("duration plan_b_screw_ready:", helpers.get_trajectory_duration(plan_b_screw_ready))
-    print("duration plan_a_at_tray:", helpers.get_trajectory_duration(plan_a_at_tray))
-    print("duration plan_b_at_tray:", helpers.get_trajectory_duration(plan_b_at_tray))
-    print("duration plan_a_tool_pick_ready:", helpers.get_trajectory_duration(plan_a_tool_pick_ready))
-    print("duration plan_b_tool_pick_ready:", helpers.get_trajectory_duration(plan_b_tool_pick_ready))
-    print("duration plan_a_screw_ready_2:", helpers.get_trajectory_duration(plan_a_screw_ready_2))
-    print("duration plan_b_screw_ready_2:", helpers.get_trajectory_duration(plan_b_screw_ready_2))
-    print("duration plan_a_home:", helpers.get_trajectory_duration(plan_a_home))
-    print("duration plan_b_home:", helpers.get_trajectory_duration(plan_b_home))
-    
-    b = True
-
-    controller.a_bot.execute_plan(plan_a_screw_ready, False)
-    if b:
-        rospy.sleep(0.1)
-        controller.b_bot.execute_plan(plan_b_screw_ready, False)
-    print("Result??",controller.a_bot.robot_group.wait_for_motion_result())
-    rospy.sleep(0.1)
-    controller.a_bot.execute_plan(plan_a_at_tray, False)
-    if b:
-        rospy.sleep(0.1)
-        controller.b_bot.execute_plan(plan_b_at_tray, False)
-    rospy.sleep(0.1)
-    controller.a_bot.execute_plan(plan_a_tool_pick_ready, False)
-    if b:
-        rospy.sleep(0.1)
-        controller.b_bot.execute_plan(plan_b_tool_pick_ready, False)
-    rospy.sleep(0.1)
-    controller.a_bot.execute_plan(plan_a_screw_ready_2, False)
-    if b:
-        rospy.sleep(0.1)
-        controller.b_bot.execute_plan(plan_b_screw_ready_2, False)
-    rospy.sleep(0.1)
-    controller.a_bot.execute_plan(plan_a_home, False)
-    if b:
-        rospy.sleep(0.1)
-        controller.b_bot.execute_plan(plan_b_home, False)
-    rospy.sleep(0.1)
-    controller.a_bot.execute_plan(plan_a_back, False)
-    if b:
-        rospy.sleep(0.1)
-        controller.b_bot.execute_plan(plan_b_back, False)
-    rospy.sleep(0.1)
-    controller.a_bot.execute_plan(plan_a_home2, False)
-    if b:
-        rospy.sleep(0.1)
-        controller.b_bot.execute_plan(plan_b_home2, False)
-
-def a_bot_thread(controller):
-    speed = 1.0
-
-    plan_a_screw_ready, _ = controller.a_bot.go_to_named_pose("screw_ready", plan_only=True, speed=speed)
-
-    # a_bot_above_at_tray = conversions.to_pose_stamped("tray_center", [-0.048, 0.0, 0.3, -0.504, 0.506, 0.495, 0.495]) 
-    # plan_a_above_at_tray, _ = controller.a_bot.go_to_pose_goal(a_bot_above_at_tray, plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_a_screw_ready), speed=speed)
-
-    a_bot_at_tray = conversions.to_pose_stamped("tray_center", [-0.048, 0.11, 0.031, -0.504, 0.506, 0.495, 0.495]) 
-    plan_a_at_tray, _ = controller.a_bot.go_to_pose_goal(a_bot_at_tray, plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_a_screw_ready), speed=speed)
-
-    plan_a_tool_pick_ready, _ = controller.a_bot.go_to_named_pose("tool_pick_ready", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_a_at_tray), speed=speed)
-
-    plan_a_screw_ready_2, _ = controller.a_bot.go_to_named_pose("screw_ready", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_a_tool_pick_ready), speed=speed)
-
-    plan_a_home, _ = controller.a_bot.go_to_named_pose("home", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_a_screw_ready_2), speed=speed)
-
-    plan_a_back, _ = controller.a_bot.go_to_named_pose("back", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_a_home), speed=speed)
-
-    plan_a_home2, _ = controller.a_bot.go_to_named_pose("home", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_a_back), speed=speed)
-
-    print("duration plan_a_screw_ready:", helpers.get_trajectory_duration(plan_a_screw_ready))
-    print("duration plan_a_at_tray:", helpers.get_trajectory_duration(plan_a_at_tray))
-    print("duration plan_a_tool_pick_ready:", helpers.get_trajectory_duration(plan_a_tool_pick_ready))
-    print("duration plan_a_screw_ready_2:", helpers.get_trajectory_duration(plan_a_screw_ready_2))
-    print("duration plan_a_home:", helpers.get_trajectory_duration(plan_a_home))
-    
-    controller.a_bot.execute_plan(plan_a_screw_ready, False)
-    rospy.sleep(0.1)
-    controller.a_bot.execute_plan(plan_a_at_tray, False)
-    rospy.sleep(0.1)
-    controller.a_bot.execute_plan(plan_a_tool_pick_ready, False)
-    rospy.sleep(0.1)
-    controller.a_bot.execute_plan(plan_a_screw_ready_2, False)
-    rospy.sleep(0.1)
-    controller.a_bot.execute_plan(plan_a_home, False)
-    rospy.sleep(0.1)
-    controller.a_bot.execute_plan(plan_a_back, False)
-    rospy.sleep(0.1)
-    controller.a_bot.execute_plan(plan_a_home2, False)
-    
-def b_bot_thread(controller):
-    speed = 1.0
-
-    plan_b_screw_ready, _ = controller.b_bot.go_to_named_pose("screw_ready", plan_only=True, speed=speed)
-
-    # b_bot_above_at_tray = conversions.to_pose_stamped("tray_center", [0.103, 0.110, 0.372, 0.368, 0.366, -0.607, 0.602]) 
-    # plan_b_above_at_tray, _ = controller.a_bot.go_to_pose_goal(b_bot_above_at_tray, plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_b_screw_ready), speed=speed)
-
-    b_bot_at_tray = conversions.to_pose_stamped("tray_center", [0.002, -0.15, 0.02, 0.507, 0.504, -0.496, 0.493])
-    plan_b_at_tray, _ = controller.b_bot.go_to_pose_goal(b_bot_at_tray, plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_b_screw_ready), speed=speed)
-
-    plan_b_tool_pick_ready, _ = controller.b_bot.go_to_named_pose("tool_pick_ready", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_b_at_tray), speed=speed)
-
-    plan_b_screw_ready_2, _ = controller.b_bot.go_to_named_pose("screw_ready", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_b_tool_pick_ready), speed=speed)
-
-    plan_b_home, _ = controller.b_bot.go_to_named_pose("home", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_b_screw_ready_2), speed=speed)
-
-    plan_b_back, _ = controller.b_bot.go_to_named_pose("back", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_b_home), speed=speed)
-
-    plan_b_home2, _ = controller.b_bot.go_to_named_pose("home", plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan_b_back), speed=speed)
-
-    print("duration plan_b_screw_ready:", helpers.get_trajectory_duration(plan_b_screw_ready))
-    print("duration plan_b_at_tray:", helpers.get_trajectory_duration(plan_b_at_tray))
-    print("duration plan_b_tool_pick_ready:", helpers.get_trajectory_duration(plan_b_tool_pick_ready))
-    print("duration plan_b_screw_ready_2:", helpers.get_trajectory_duration(plan_b_screw_ready_2))
-    print("duration plan_b_home:", helpers.get_trajectory_duration(plan_b_home))
-    
-    controller.b_bot.execute_plan(plan_b_screw_ready, False)
-    rospy.sleep(0.1)
-    controller.b_bot.execute_plan(plan_b_at_tray, False)
-    rospy.sleep(0.1)
-    controller.b_bot.execute_plan(plan_b_tool_pick_ready, False)
-    rospy.sleep(0.1)
-    controller.b_bot.execute_plan(plan_b_screw_ready_2, False)
-    rospy.sleep(0.1)
-    controller.b_bot.execute_plan(plan_b_home, False)
-    rospy.sleep(0.1)
-    controller.b_bot.execute_plan(plan_b_back, False)
-    rospy.sleep(0.1)
-    controller.b_bot.execute_plan(plan_b_home2, False)
-
-def planning_thread(controller):
-    while not rospy.is_shutdown():
-        target_link = "taskboard_assy_part_07_inserted"
-        rotation = np.deg2rad([-22.5, -88.5, -157.5]).tolist()  # Arbitrary
-
-        post_pick_pose = conversions.to_pose_stamped(target_link, [-0.15, 0.0, -0.10] + rotation)
-        above_pose = conversions.to_pose_stamped(target_link, [0.0, 0.002, -0.10] + rotation)
-        behind_pose = conversions.to_pose_stamped(target_link, [0.09, 0.002, -0.05] + rotation)
-        pre_insertion_pose = conversions.to_pose_stamped(target_link, [0.065, 0.001, 0.001] + rotation)
-
-        trajectory = [[post_pick_pose, 0.05, 0.8], [above_pose, 0.05, 0.5], [behind_pose, 0.01, 0.5], [pre_insertion_pose, 0.0, 0.2]]
-        rospy.loginfo("Going to position shaft to pre-insertion (b_bot)")
-        if not controller.b_bot.move_lin_trajectory(trajectory, speed=0.5, acceleration=0.25, plan_only=True):
-            rospy.logerr("Fail to position shaft to pre-insertion")
-            return False
-        
-        rospy.sleep(1)
-
-def a_bot_m3(controller):
-    controller.do_task("M3 screw")
-
-def b_bot_m4(controller):
-    controller.do_task("M4 screw")
 
 def main():
     rospy.init_node("testscript")
@@ -232,6 +40,21 @@ def main():
     # controller.move_b_bot_to_setscrew_initial_pos()
     # controller.do_task("M2 set screw")
     # controller.do_task("M3 screw", fake_execution_for_calibration=False, simultaneous=False)
+    rospy.set_param("grasp_plugin", True)
+    controller = O2ACAssembly()
+    # controller.b_bot.gripper.gripper.release(link_name="panel_bearing_tmp::panel_bearing")
+    controller.get_large_item_position_from_top("panel_motor")
+    pose = conversions.to_pose_stamped("tray_center", [0.09, 0.037, 0.015, 0, tau/4, 0])
+    controller.b_bot.go_to_pose_goal(pose)
+    # spawner = GazeboModels('o2ac_gazebo')
+    name = "panel_bearing"
+    object_pose = conversions.to_pose_stamped("tray_center", [0,0,0,0,0,0])
+    object_pose = controller.listener.transformPose("world", object_pose)
+    op = conversions.from_pose_to_list(object_pose.pose)
+    objpose = [op[:3], op[3:]] 
+    models = [Model(name, objpose[0], orientation=objpose[1], reference_frame="world")]
+    controller.gazebo_scene.load_models(models,)
+    # controller.b_bot.gripper.gripper.grab(link_name="panel_bearing_tmp::panel_bearing")
     # controller.orient_motor_pulley("taskboard_small_shaft")
     # controller.insert_motor_pulley("taskboard_small_shaft")
     # controller.prepare_screw_tool_idler_pulley("taskboard_long_hole_top_link", simultaneous=True)
@@ -274,6 +97,11 @@ def main():
     # controller.publish_part_in_assembled_position("base")
     # controller.fasten_motor()
     # controller.fasten_motor_fallback()
+    # controller = O2ACAssembly()
+    # controller.reset_scene_and_robots()
+    # controller.publish_part_in_assembled_position("panel_bearing")
+    # controller.publish_part_in_assembled_position("panel_motor")
+    # controller.publish_part_in_assembled_position("base")
     # controller.confirm_motor_and_place_in_aid()
     # controller.center_panel_on_base_plate("panel_motor")
     # inside_vgroove =   conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.0, 0.002, -0.005, tau/2., radians(3.0), radians(30)])
@@ -283,6 +111,8 @@ def main():
     # controller.align_motor_pre_insertion()
     # controller.confirm_to_proceed("insert??")
     # controller.insert_motor("assembled_part_02_back_hole")
+    # controller.confirm_to_proceed("fastem??")
+    # controller.fasten_motor()
     # controller.confirm_to_proceed("fasten??")
     # controller.b_bot.gripper.open()
     # controller.b_bot.move_lin_rel(relative_translation=[-0.02,0.1,0.1])
@@ -295,7 +125,8 @@ def main():
     # selection_matrix = [1., 1., 1., 0.7, 1., 1.]
     # controller.b_bot.execute_spiral_trajectory("XY", max_radius=0, radius_direction="+Y", steps=50,
     #                                      revolutions=1, target_force=0, check_displacement_time=10,
-    #                                      wiggle_direction="Z", wiggle_angle=radians(10.0), wiggle_revolutions=1.0,
+    #                     
+    #                  wiggle_direction="Z", wiggle_angle=radians(10.0), wiggle_revolutions=1.0,
     #                                      termination_criteria=tc, timeout=20, selection_matrix=selection_matrix)
     # controller.place_panel("a_bot", "panel_motor", pick_again=True, fake_position=True)
     # controller.fasten_panel("panel_motor", True)

@@ -26,21 +26,16 @@ void convert_to_triangle_list(
   }
 }
 
-std::random_device seed_generator;
-std::default_random_engine engine(seed_generator());
-std::normal_distribution<> unit_normal_distribution(0.0, 1.0);
-
 void PoseBeliefVisualizer::make_marker_from_particle(
     const std_msgs::Header &header,
     const std::vector<geometry_msgs::Point> &triangle_list,
     const geometry_msgs::Pose &pose, const std_msgs::ColorRGBA &color,
-    const ros::Duration &lifetime, visualization_msgs::Marker &marker) {
+    const ros::Duration &lifetime, const bool &frame_locked,
+    visualization_msgs::Marker &marker) {
   // Given header, object shape given as triangle list, pose given as
   // geometry_msgs::pose and color, make a marker
 
   marker.header = header;
-  marker.ns = object_namespace;
-  marker.id = object_id++;
 
   marker.type = visualization_msgs::Marker::TRIANGLE_LIST;
   marker.points = triangle_list;
@@ -50,7 +45,7 @@ void PoseBeliefVisualizer::make_marker_from_particle(
   marker.color = color;
   marker.lifetime = lifetime;
 
-  marker.frame_locked = true;
+  marker.frame_locked = frame_locked;
   marker.action = visualization_msgs::Marker::ADD;
 }
 
@@ -120,11 +115,18 @@ void PoseBeliefVisualizer::inner_publish_marker_for_pose_belief(
   visualization_msgs::MarkerArray marker_array;
   marker_array.markers.resize(poses_to_publish.size());
   for (int i = 0; i < poses_to_publish.size(); i++) {
-    make_marker_from_particle(
-        belief.distribution.header, triangle_list, poses_to_publish[i].first,
-        poses_to_publish[i].second, belief.lifetime, marker_array.markers[i]);
+    make_marker_from_particle(belief.distribution.header, triangle_list,
+                              poses_to_publish[i].first,
+                              poses_to_publish[i].second, belief.lifetime,
+                              belief.frame_locked, marker_array.markers[i]);
+    if (belief.object.id == "") {
+      marker_array.markers[i].ns = object_namespace;
+      marker_array.markers[i].id = object_id++;
+    } else {
+      marker_array.markers[i].ns = belief.object.id;
+      marker_array.markers[i].id = i;
+    }
   }
-
   // publish visualization markers
   marker_publisher.publish(marker_array);
 }

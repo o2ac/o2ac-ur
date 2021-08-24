@@ -301,64 +301,71 @@ class O2ACTaskboard(O2ACCommon):
 
     # Pick bearing, do motor_pulley
     self.publish_status_text("Target: pick bearing")
-    def a_bot_task():
-      self.pick_bearing("a_bot")
-    def b_bot_task():
-      self.b_bot.go_to_named_pose("home")
-    self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=180.0)
     self.a_success = False
     self.b_success = False
-    def a_bot_task(): # orient/insert bearing
-      self.a_success = self.orient_bearing("taskboard", robot_name="a_bot", part1=True, part2=False)
-      self.a_bot.gripper.forget_attached_item()
-    def b_bot_task(): # pick/orient/insert motor pulley
-      self.subtask_completed["motor pulley"] = self.do_task("motor pulley")
-      self.b_success = self.subtask_completed["motor pulley"]
-      self.b_bot.go_to_named_pose("home")
+    def a_bot_task():
+      self.a_success = self.pick_bearing("a_bot")
+      centerint_pose = conversions.to_pose_stamped("left_centering_link", [-0.15, 0, 0.0, -tau/2, 0, 0])
+      self.a_success &= self.a_bot.go_to_pose_goal(centerint_pose, speed=1.0)
+    def b_bot_task():
+      self.b_success = self.b_bot.go_to_named_pose("home")
     self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=180.0)
-    
-    self.orient_bearing("taskboard", robot_name="a_bot", part1=False, part2=True)
-    self.subtask_completed["bearing"] = self.insert_bearing("taskboard_bearing_target_link", robot_name="a_bot")
-    
-    print("task 1:", self.a_success, self.b_success)
 
-    # Align bearing, pick screw with a_bot
-    if self.a_success and self.b_success:
-      rospy.loginfo(">>> Prepare for fastening bearing")
-      def a_bot_task2(): # prepare a_bot with screw tool m4 / pick screw from feeder
-        self.a_success = self.a_bot.go_to_named_pose("home")
-        self.a_success = self.equip_tool("a_bot", 'screw_tool_m4')
-        self.a_success &= self.pick_screw_from_feeder_python("a_bot", screw_size=4)
-      def b_bot_task2(): # align bearing holes
-        self.b_success = self.align_bearing_holes(task="taskboard")
-        self.b_success &= self.b_bot.go_to_named_pose("home")
-      self.do_tasks_simultaneous(a_bot_task2, b_bot_task2, timeout=120.0)
-    print("task 2:", self.a_success, self.b_success)
-
-    # Fasten bearing, insert shaft
-    if self.a_success and self.b_success:
-      print(">>>> fastening bearing")
-      def a_bot_task3(): # fasten bearing
-        rospy.sleep(10) # wait for b_bot to find->pick shaft
-        self.subtask_completed["screw_bearing"] = self.fasten_bearing(task="taskboard", robot_name="a_bot", simultaneous=True)
-        if not self.subtask_completed["screw_bearing"]:
-          rospy.logerr("Failed to do simultaneous fastening")
-      def b_bot_task3(): # pick/orient/insert motor pulley
-        self.subtask_completed["shaft"] = self.do_task("shaft")
-        self.vision.activate_camera("a_bot_outside_camera")
+    if self.a_bot_success and self.b_bot_success:
+      self.a_success = False
+      self.b_success = False
+      def a_bot_task(): # orient/insert bearing
+        self.a_success = self.orient_bearing("taskboard", robot_name="a_bot", part1=True, part2=False)
+        self.a_bot.gripper.forget_attached_item()
+      def b_bot_task(): # pick/orient/insert motor pulley
+        self.subtask_completed["motor pulley"] = self.do_task("motor pulley")
+        self.b_success = self.subtask_completed["motor pulley"]
         self.b_bot.go_to_named_pose("home")
-      self.do_tasks_simultaneous(a_bot_task3, b_bot_task3, timeout=300.0)
-    print("task 3:", self.subtask_completed["screw_bearing"], self.subtask_completed["shaft"])
+      self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=180.0)
+      
+      self.orient_bearing("taskboard", robot_name="a_bot", part1=False, part2=True)
+      self.subtask_completed["bearing"] = self.insert_bearing("taskboard_bearing_target_link", robot_name="a_bot")
+      
+      print("task 1:", self.a_success, self.b_success)
+
+      # Align bearing, pick screw with a_bot
+      if self.a_success and self.b_success:
+        rospy.loginfo(">>> Prepare for fastening bearing")
+        def a_bot_task2(): # prepare a_bot with screw tool m4 / pick screw from feeder
+          self.a_success = self.a_bot.go_to_named_pose("home")
+          self.a_success = self.equip_tool("a_bot", 'screw_tool_m4')
+          self.a_success &= self.pick_screw_from_feeder_python("a_bot", screw_size=4)
+        def b_bot_task2(): # align bearing holes
+          self.b_success = self.align_bearing_holes(task="taskboard")
+          self.b_success &= self.b_bot.go_to_named_pose("home")
+        self.do_tasks_simultaneous(a_bot_task2, b_bot_task2, timeout=180.0)
+      print("task 2:", self.a_success, self.b_success)
+
+      # Fasten bearing, insert shaft
+      if self.a_success and self.b_success:
+        print(">>>> fastening bearing")
+        def a_bot_task3(): # fasten bearing
+          rospy.sleep(10) # wait for b_bot to find->pick shaft
+          self.subtask_completed["screw_bearing"] = self.fasten_bearing(task="taskboard", robot_name="a_bot", simultaneous=True)
+          if not self.subtask_completed["screw_bearing"]:
+            rospy.logerr("Failed to do simultaneous fastening")
+        def b_bot_task3(): # pick/orient/insert motor pulley
+          self.subtask_completed["shaft"] = self.do_task("shaft")
+          self.vision.activate_camera("a_bot_outside_camera")
+          self.b_bot.go_to_named_pose("home")
+        self.do_tasks_simultaneous(a_bot_task3, b_bot_task3, timeout=300.0)
+      print("task 3:", self.subtask_completed["screw_bearing"], self.subtask_completed["shaft"])
 
     self.despawn_object("bearing")
+    self.unequip_tool("a_bot", 'screw_tool_m4')
     self.ab_bot.go_to_named_pose("home")
 
-    order = ["belt", "motor pulley", "shaft", "idler pulley", "bearing"]
+    order = ["belt", "motor pulley", "shaft", "idler pulley", "bearing", "screw_bearing"]
     task_complete = False
     # Loop through the remaining items
     self.confirm_to_proceed("Continue into loop to retry parts?")
     unsuccessful_attempts = 0
-    while not task_complete:
+    while not task_complete and unsuccessful_attempts < 10:
       for item in order:
         if not self.execute_step(item):
           unsuccessful_attempts += 1

@@ -3,6 +3,7 @@ Helper functions for the place action
  */
 
 #include "o2ac_pose_distribution_updater/place_action_helpers.hpp"
+#include "o2ac_pose_distribution_updater/convex_hull.hpp"
 const double EPS = 1e-9, LARGE_EPS = 1e-6;
 
 int argmin(const std::vector<double> &vec) {
@@ -22,7 +23,8 @@ void find_three_points(const std::vector<Eigen::Vector3d> &current_vertices,
                        int &ground_touch_vertex_id_1,
                        int &ground_touch_vertex_id_2,
                        int &ground_touch_vertex_id_3,
-                       Eigen::Quaterniond &rotation, bool &stability) {
+                       Eigen::Quaterniond &rotation, bool &stability,
+                       const bool balance_check) {
   // Given the coordinates of vertices and center of gravity, find the three
   // points touching the ground after placing The object rotation occured by
   // placing is stored to 'rotation' Stabliity after placing is checked and
@@ -47,7 +49,7 @@ void find_three_points(const std::vector<Eigen::Vector3d> &current_vertices,
   Eigen::Vector3d first_axis =
       (current_vertices[ground_touch_vertex_id_1] - current_center_of_gravity)
           .cross(Eigen::Vector3d::UnitZ());
-  if (first_axis.norm() < EPS) {
+  if (balance_check && first_axis.norm() < EPS) {
     throw std::runtime_error("Balanced at the first rotation");
   }
   first_axis = first_axis.normalized();
@@ -88,7 +90,7 @@ void find_three_points(const std::vector<Eigen::Vector3d> &current_vertices,
   double direction =
       (rotated_center_of_gravity - rotated_vertices[ground_touch_vertex_id_1])
           .cross(second_axis)(2);
-  if (std::abs(direction) < EPS) {
+  if (balance_check && std::abs(direction) < EPS) {
     throw std::runtime_error("Balanced at the second rotation");
   }
   if (direction < 0.0) {
@@ -127,26 +129,21 @@ void find_three_points(const std::vector<Eigen::Vector3d> &current_vertices,
   // calculate the convex hull of the vertices touching the ground
   double min_z = final_vertices[ground_touch_vertex_id_1](2);
 
-  namespace bg = boost::geometry;
-  using bg_2d_point = bg::model::d2::point_xy<double>;
-  bg::model::multi_point<bg_2d_point> points_on_ground;
+  std::vector<Eigen::Vector2d> points_on_ground;
 
-  for (int i = 0; i < number_of_vertices; i++) {
-    Eigen::Vector3d &vertice = final_vertices[i];
-    if (vertice(2) <= min_z + EPS) {
-      bg::append(points_on_ground, bg_2d_point(vertice(0), vertice(1)));
+  for (auto &vertex : final_vertices) {
+    if (vertex(2) <= min_z + EPS) {
+      points_on_ground.push_back((Eigen::Vector2d)vertex.head<2>());
     }
   }
 
-  bg::model::polygon<bg_2d_point> hull;
-  bg::convex_hull(points_on_ground, hull);
-
   // If the center of geometry projected to ground is in the convex hull, the
   // object is stable
-  bg_2d_point projected_center_of_gravity(final_center_of_gravity(0),
-                                          final_center_of_gravity(1));
+  Eigen::Vector2d projected_center_of_gravity =
+      final_center_of_gravity.head<2>();
 
-  stability = bg::within(projected_center_of_gravity, hull);
+  stability =
+      check_inside_convex_hull(projected_center_of_gravity, points_on_ground);
 }
 
 template <typename T>
@@ -325,36 +322,73 @@ void place_update_distribution(const Particle &old_mean,
   new_covariance = Jacobian * old_covariance * Jacobian.transpose();
 }
 
-class calculate_perturbation {
+place_calculator::place_calculator(const Eigen::Isometry3d &old_mean,
+                                   const Eigen::Vector3d &center_of_gravity,
+                                   const std::vector<Eigen::Vector3d> &vertices,
+                                   const double &support_surface,
+                                   const Eigen::Isometry3d &gripper_transform,
+                                   const bool balance_check) {
+  this->center_of_gravity = center_of_gravity;
+  this->support_surface = support_surface;
+  this->gripper_transform = gripper_transform;
+  this->old_mean = old_mean;
+
+  Eigen::Vector3d current_center_of_gravity =
+      gripper_transform * old_mean * center_of_gravity;
+  int number_of_vertices = vertices.size();
+  std::vector<Eigen::Vector3d> current_vertices(number_of_vertices);
+  for (int i = 0; i < number_of_vertices; i++) {
+    current_vertices[i] = gripper_transform * old_mean * vertices[i];
+  }
+
+  // calculate the three vertices of the object touching the ground
+  int ground_touch_vertex_id_1, ground_touch_vertex_id_2,
+      ground_touch_vertex_id_3; // The first point touching the ground, and
+                                // the second and the third.
+  Eigen::Quaterniond rotation;
+  bool stability;
+  find_three_points(current_vertices, current_center_of_gravity,
+                    ground_touch_vertex_id_1, ground_touch_vertex_id_2,
+                    ground_touch_vertex_id_3, rotation, stability,
+                    balance_check);
+
+  ground_touch_vertex_1 = vertices[ground_touch_vertex_id_1];
+  ground_touch_vertex_2 = vertices[ground_touch_vertex_id_2];
+  ground_touch_vertex_3 = vertices[ground_touch_vertex_id_3];
+
+  // If the object is not stable after placing, throw exception
+  if (!stability) {
+    throw std::runtime_error("Unstable after placing");
+  }
+
+  // calculate new mean
+
+  // The translation is occured to hold the physical restraints
+  Eigen::Vector3d final_center_of_gravity =
+      rotation * current_center_of_gravity;
+  Eigen::Vector3d final_ground_touch_vertex_1 =
+      rotation * current_vertices[ground_touch_vertex_id_1];
+  Eigen::Vector3d final_translation;
+  final_translation
+      << current_center_of_gravity(0) -
+             final_center_of_gravity(
+                 0), // The x-coordinate of the center of gravity is not changed
+      current_center_of_gravity(1) -
+          final_center_of_gravity(
+              1), // The y-coordinate of the center of gravity is not changed
+      support_surface - final_ground_touch_vertex_1(
+                            2); // The z-coordinate of the vertices touching the
+                                // ground is that of the ground
+
+  new_mean = gripper_transform.inverse() *
+             Eigen::Translation3d(final_translation) * rotation *
+             gripper_transform * old_mean;
+}
+
+class calculate_perturbation : public place_calculator {
 
 public:
-  Eigen::Vector3d center_of_gravity, ground_touch_vertex_1,
-      ground_touch_vertex_2,
-      ground_touch_vertex_3; // the coordinates of center of gravity, first
-                             // touching point, second touching point and third
-                             // touching point
-  double support_surface;    // the z-coordinate of the ground
-  Eigen::Isometry3d gripper_transform, old_mean,
-      new_mean; // The gripper transform, the mean transform before placing, the
-                // mean transform after placing
-
-  calculate_perturbation(const Eigen::Vector3d &center_of_gravity,
-                         const Eigen::Vector3d &ground_touch_vertex_1,
-                         const Eigen::Vector3d &ground_touch_vertex_2,
-                         const Eigen::Vector3d &ground_touch_vertex_3,
-                         const double &support_surface,
-                         const Eigen::Isometry3d &gripper_transform,
-                         const Eigen::Isometry3d &old_mean,
-                         const Eigen::Isometry3d &new_mean) {
-    this->center_of_gravity = center_of_gravity;
-    this->ground_touch_vertex_1 = ground_touch_vertex_1;
-    this->ground_touch_vertex_2 = ground_touch_vertex_2;
-    this->ground_touch_vertex_3 = ground_touch_vertex_3;
-    this->support_surface = support_surface;
-    this->gripper_transform = gripper_transform;
-    this->old_mean = old_mean;
-    this->new_mean = new_mean;
-  }
+  using place_calculator::place_calculator;
 
   // Neede by Eigen AutoDiff
   enum { InputsAtCompileTime = 6, ValuesAtCompileTime = 6 };
@@ -398,18 +432,18 @@ public:
 void place_update_Lie_distribution(const Eigen::Isometry3d &old_mean,
                                    const CovarianceMatrix &old_covariance,
                                    const Eigen::Vector3d &center_of_gravity,
-                                   const Eigen::Vector3d &ground_touch_vertex_1,
-                                   const Eigen::Vector3d &ground_touch_vertex_2,
-                                   const Eigen::Vector3d &ground_touch_vertex_3,
+                                   const std::vector<Eigen::Vector3d> &vertices,
                                    const double &support_surface,
                                    const Eigen::Isometry3d &gripper_transform,
-                                   const Eigen::Isometry3d &new_mean,
+                                   Eigen::Isometry3d &new_mean,
                                    CovarianceMatrix &new_covariance) {
   // Calculate the particle after placing and its Jacobian
   Eigen::AutoDiffJacobian<calculate_perturbation> calculate_perturbation_AD(
-      center_of_gravity, ground_touch_vertex_1, ground_touch_vertex_2,
-      ground_touch_vertex_3, support_surface, gripper_transform, old_mean,
-      new_mean);
+      old_mean, center_of_gravity, vertices, support_surface,
+      gripper_transform);
+
+  new_mean = calculate_perturbation_AD.new_mean;
+
   // By Eigen AutoDiff, calculate_particle_AD automatically calculates the
   // operation of calculate_particle and its Jacobian
   Eigen::Matrix<double, 6, 1> mean_perturbation;

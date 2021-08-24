@@ -64,7 +64,7 @@ def update_libraries_without_vars(dockerfile_path):
             if lib_name_ver[1][0] != '$': # ignore variables for now
                 lib_names.append(lib_name_ver[0])
                 lib_versions.append(lib_name_ver[1])
-        except:
+        except Exception as e:
             print(e)
             print("Error while reading in lines. Are all libraries on their own line?")
             print("Failed on line:")

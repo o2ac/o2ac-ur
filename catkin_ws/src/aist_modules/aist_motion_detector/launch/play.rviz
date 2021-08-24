@@ -4,13 +4,14 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /TF1
         - /TF1/Frames1
+        - /motion_result1
         - /RGB1
-        - /DepthCloud1
         - /DepthCloud1/Status1
         - /DepthCloud1/Auto Size1
       Splitter Ratio: 0.3957158923149109
-    Tree Height: 140
+    Tree Height: 364
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -306,8 +307,6 @@ Visualization Manager:
           Value: true
         back_limit_b:
           Value: true
-        base:
-          Value: true
         base_fixture_top:
           Value: false
         belt_tool_holder:
@@ -316,11 +315,7 @@ Visualization Manager:
           Value: false
         belt_tool_pickup_link:
           Value: false
-        calibrated_a_bot_inside_camera_color_optical_frame:
-          Value: true
-        calibrated_a_bot_outside_camera_color_optical_frame:
-          Value: true
-        calibrated_b_bot_inside_camera_color_optical_frame:
+        cabletip_link:
           Value: true
         calibrated_b_bot_outside_camera_color_optical_frame:
           Value: true
@@ -386,8 +381,6 @@ Visualization Manager:
           Value: false
         simple_holder_tip_link:
           Value: false
-        tool0_controller:
-          Value: true
         tray:
           Value: false
         tray_center:
@@ -424,7 +417,7 @@ Visualization Manager:
           Value: false
         world:
           Value: false
-      Marker Scale: 0.30000001192092896
+      Marker Scale: 0.15000000596046448
       Name: TF
       Show Arrows: false
       Show Axes: true
@@ -461,6 +454,8 @@ Visualization Manager:
                                     {}
                                   a_bot_set_screw_tool_tip_link:
                                     {}
+                                cabletip_link:
+                                  {}
                               a_bot_inside_cam_link:
                                 a_bot_inside_camera_connector_link:
                                   a_bot_inside_camera_link:
@@ -506,10 +501,6 @@ Visualization Manager:
                                     a_bot_right_inner_finger:
                                       a_bot_right_inner_finger_pad:
                                         {}
-                            calibrated_a_bot_inside_camera_color_optical_frame:
-                              {}
-                            calibrated_a_bot_outside_camera_color_optical_frame:
-                              {}
                           a_bot_tool0:
                             {}
             a_bot_base_smfl:
@@ -597,8 +588,6 @@ Visualization Manager:
                                     b_bot_right_inner_finger:
                                       b_bot_right_inner_finger_pad:
                                         {}
-                            calibrated_b_bot_inside_camera_color_optical_frame:
-                              {}
                             calibrated_b_bot_outside_camera_color_optical_frame:
                               {}
                           b_bot_tool0:
@@ -1510,7 +1499,7 @@ Visualization Manager:
       Visual Enabled: true
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /motion_detector/image
+      Image Topic: /motion_detector/mask
       Max Value: 1
       Median window: 5
       Min Value: 0
@@ -1522,7 +1511,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /camera_multiplexer/image
+      Image Topic: /b_bot_outside_camera_throttled/color/image_raw
       Max Value: 1
       Median window: 5
       Min Value: 0
@@ -1622,10 +1611,10 @@ Visualization Manager:
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 752
+  Height: 1722
   Hide Left Dock: false
   Hide Right Dock: true
-  QMainWindow State: 000000ff00000000fd0000000400000000000003790000023efc020000000afb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000abfb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003b000000c7000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000001a006d006f00740069006f006e005f0072006500730075006c00740100000108000000ca0000001600fffffffb0000000600520047004201000001d8000000a10000001600ffffff000000010000014f000005e7fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a005600690065007700730000000069000005e7000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000056a00000056fc0100000002fb0000000800540069006d006501000000000000056a0000024400fffffffb0000000800540069006d00650100000000000004500000000000000000000001eb0000023e00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd000000040000000000000379000005c6fc020000000afb0000001200530065006c0065006300740069006f006e00000001e10000009b000000ab00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000abfb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c0061007900730100000069000001d00000017800fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000001a006d006f00740069006f006e005f0072006500730075006c00740100000245000002570000002100fffffffb0000000600520047004201000004a8000001870000002100ffffff000000010000014f000005e7fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a005600690065007700730000000069000005e70000012300fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e1000001970000000300000ac100000056fc0100000002fb0000000800540069006d0065010000000000000ac10000045300fffffffb0000000800540069006d006501000000000000045000000000000000000000073c000005c600000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   RGB:
     collapsed: false
   Selection:
@@ -1636,8 +1625,8 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: true
-  Width: 1386
-  X: 409
-  Y: 204
+  Width: 2753
+  X: 574
+  Y: 153
   motion_result:
     collapsed: false

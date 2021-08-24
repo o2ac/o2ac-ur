@@ -26,7 +26,7 @@ class RobotiqGripper():
             self.gripper = actionlib.SimpleActionClient('/%s/gripper_action_controller' % self.ns, robotiq_msgs.msg.CModelCommandAction)
         else:
             try:
-                self.gripper = GripperController(namespace=self.ns, prefix=self.ns + '_', timeout=2.0)
+                self.gripper = GripperController(namespace=self.ns, prefix=self.ns + '_', timeout=2.0, attach_link='o2ac_bots::%s_wrist_3_link' % self.ns)
             except Exception as e:
                 rospy.logwarn("Fail to instantiate GripperController for simulation: " + str(e))
                 rospy.logwarn("Instantiating dummy gripper, hoping for moveit Fake controllers")
@@ -40,8 +40,8 @@ class RobotiqGripper():
                 def close():
                     return command(0.0)
 
-                def open():
-                    return command(1.0)
+                def open(opening_width=1.0):
+                    return command(opening_width)
 
                 def command(cmd):
                     if gripper_type == "85":
@@ -66,7 +66,7 @@ class RobotiqGripper():
                     rospy.logerr("Rviz move_group gripper failed: %s " % error)
                     return False
                 setattr(GripperDummy, "close", lambda *args, **kwargs: close())
-                setattr(GripperDummy, "open", lambda *args, **kwargs: open())
+                setattr(GripperDummy, "open", lambda self, opening_width: open(opening_width))
                 setattr(GripperDummy, "command", lambda self, cmd: command(cmd))
 
     def _gripper_status_callback(self, msg):
@@ -88,7 +88,7 @@ class RobotiqGripper():
             command = opening_width if opening_width else "open"
             res = self.send_command(command, wait=wait, velocity=velocity)
         else:
-            res = self.gripper.open()
+            res = self.gripper.open(opening_width)
 
         if self.last_attached_object[0]:
             self.detach_object(object_to_detach=self.last_attached_object[0])

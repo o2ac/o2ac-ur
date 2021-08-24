@@ -18,7 +18,7 @@ int main (int argc, char **argv) {
   
   // Dynamic parameters. Last arg is the default value. You can assign these from a launch file.
   nh.param<std::string>("move_group", movegroup_name, "a_bot");
-  nh.param<std::string>("ee_link", ee_link, "a_bot_ee_link");
+  nh.param<std::string>("ee_link", ee_link, "a_bot_gripper_tip_link");
   
   // Dynamic parameter to choose the rate at which this node should run
   double ros_rate;
@@ -44,8 +44,13 @@ int main (int argc, char **argv) {
   while (ros::ok()) {
     if (true) {
       
-      command_cartesian_position = group.getCurrentPose(ee_link);  
+      command_cartesian_position = group.getCurrentPose(ee_link);
+      ROS_INFO_STREAM("EE at: " << command_cartesian_position.pose.position.x << ", " << command_cartesian_position.pose.position.y << ", " << command_cartesian_position.pose.position.z);
+      
       command_cartesian_position.pose.position.z -= direction * 0.10;
+
+      ROS_INFO_STREAM("Move to: " << command_cartesian_position.pose.position.x << ", " << command_cartesian_position.pose.position.y << ", " << command_cartesian_position.pose.position.z);
+      
   
       group.setStartStateToCurrentState();
       group.setPoseTarget(command_cartesian_position, ee_link);

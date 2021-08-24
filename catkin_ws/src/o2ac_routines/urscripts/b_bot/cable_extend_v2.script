@@ -1,21 +1,20 @@
 def cable_extend_v2():
-  step_count_74696692_88ce_45f1_9a79_5e5b9bec3825 = 0
-  thread Step_Counter_Thread_59eec7aa_79c2_4345_bedd_727ddfff4ee8():
-    while (True):
-      step_count_74696692_88ce_45f1_9a79_5e5b9bec3825 = step_count_74696692_88ce_45f1_9a79_5e5b9bec3825 + 1
-      sync()
-    end
-  end
-  run Step_Counter_Thread_59eec7aa_79c2_4345_bedd_727ddfff4ee8()
-  set_safety_mode_transition_hardness(1)
   set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
   set_tool_output_mode(0)
   set_tool_digital_output_mode(0, 1)
   set_tool_digital_output_mode(1, 1)
   set_tool_voltage(24)
   set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
-  set_payload(0.0)
   set_gravity([0.0, 0.0, 9.82])
+  step_count_d8982edd_c131_40a0_909f_f0b10d0d9131 = 0.0
+  thread Step_Counter_Thread_854ae126_c367_49ef_9977_cb4b191f8274():
+    while (True):
+      step_count_d8982edd_c131_40a0_909f_f0b10d0d9131 = step_count_d8982edd_c131_40a0_909f_f0b10d0d9131 + 1.0
+      sync()
+    end
+  end
+  run Step_Counter_Thread_854ae126_c367_49ef_9977_cb4b191f8274()
+  set_target_payload(1.200000, [0.001000, -0.018000, 0.049000], [0.002086, 0.002086, 0.002086, 0.000000, 0.000000, 0.000000])
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -23,8 +22,9 @@ def cable_extend_v2():
   set_analog_outputdomain(0, 0)
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
+  set_safety_mode_transition_hardness(1)
   # begin: URCap Installation Node
-  #   Source: External Control, 1.0.2, FZI Research Center for Information Technology
+  #   Source: External Control, 1.0.5, FZI Research Center for Information Technology
   #   Type: External Control
   # end: URCap Installation Node
   # begin: URCap Installation Node
@@ -2345,10 +2345,18 @@ def cable_extend_v2():
   global high_back_q=[0.6850695836134424, -1.8893007823899843, 2.191333452922837, -2.1307548459673793, -1.2544725445690297, 3.8042538380914337]
   global above_cable_p=p[-.167205940160, -.537006434166, .202341770936, 2.058996852022, -1.934382101123, .399433824089]
   global above_cable_q=[0.9121716527344699, -1.573100102791802, 2.029667019745176, -2.34829394451748, -1.3192887268830331, 4.032494274201525]
-  global at_cable_p=p[-.166850461140, -.564373590663, .137946081202, 2.058996857302, -1.934382103918, .399433815848]
-  global at_cable_q=[0.9479476681379193, -1.4227002523918593, 2.060119469434783, -2.537728297841387, -1.3310655690533562, 4.068651446631325]
-  global cable_extended_from_p=p[-.166836068917, -.564353412808, .137910021316, 2.059036942314, -1.934470423479, .399448290031]
-  global cable_extended_to_p=p[-.294368488963, -.564355127508, .137925936089, 2.059008218062, -1.934460795557, .399400216124]
+  global at_cable_p=p[-.166901691565, -.560897999281, .146118286512, 2.058945929784, -1.934390269730, .399392107826]
+  global at_cable_q=[0.943617582321167, -1.4429712456515809, 2.0581329504596155, -2.514491697350973, -1.329651180897848, 4.064310073852539]
+  def calculate_point_to_move_towards(feature, direction, position_distance):
+    local posDir=[direction[0], direction[1], direction[2]]
+    if (norm(posDir) < 1e-6):
+      return get_target_waypoint()
+    end
+    local direction_vector_normalized=normalize(posDir)
+    local displacement_pose=p[direction_vector_normalized[0] * position_distance,direction_vector_normalized[1] * position_distance,direction_vector_normalized[2] * position_distance,0,0,0]
+    local wanted_displacement_in_base_frame=pose_sub(pose_trans(feature, displacement_pose), feature)
+    return pose_add(get_target_waypoint(), wanted_displacement_in_base_frame)
+  end
   global hold_cable_p=p[-.256309030771, -.562045186701, .151184805993, -.040699780888, 2.858418712384, -1.294524327141]
   global hold_cable_q=[0.6483348529751733, -1.3374283620297494, 2.2315731634693847, -3.0588322141888913, -0.9146081137517887, 5.542929785527264]
   global Waypoint_1_p=p[-.282011116911, -.454342988681, .145636740044, .088156362527, -2.975774711186, .962378779932]
@@ -2385,7 +2393,7 @@ def cable_extend_v2():
   $ 7 "MoveL"
   $ 8 "at_cable" "breakAfter"
   set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
-  movel(at_cable_p, a=1.2, v=0.15)
+  movel(at_cable_p, a=0.2, v=0.1)
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
@@ -2404,13 +2412,31 @@ def cable_extend_v2():
   $ 10 "Popup: wait for a_bot to release"
   popup("wait for a_bot to release", "Message", False, False, blocking=True)
   $ 11 "MoveL"
-  $ 12 "cable_extended" "breakAfter"
-  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
-  movel(pose_add(get_target_tcp_pose(), pose_sub(cable_extended_to_p, cable_extended_from_p)), a=1.2, v=0.01)
+  $ 12 "Direction: Base X-"
+  global move_thread_flag_12=0
+  thread move_thread_12():
+    enter_critical
+    move_thread_flag_12 = 1
+    local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [-1.0,0.0,0.0], 0.129)
+    movel(towardsPos, a=0.25, v=0.01)
+    move_thread_flag_12 = 2
+    exit_critical
+  end
+  move_thread_flag_12 = 0
+  move_thread_han_12 = run move_thread_12()
+  while (True):
+    sleep(1.0E-10)
+    if (move_thread_flag_12 > 1):
+      join move_thread_han_12
+      $ 13 "Until (distance)"
+      break
+    end
+    sync()
+  end
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
-  $ 13 "Gripper Close (1)"
+  $ 14 "Gripper Close (1)"
   if not(gripper_connected[0]):
     popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
   end
@@ -2422,31 +2448,16 @@ def cable_extend_v2():
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 14 "MoveJ"
-  $ 15 "hold_cable" "breakAfter"
+  $ 15 "MoveJ"
+  $ 16 "hold_cable" "breakAfter"
   set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
   movej(get_inverse_kin(hold_cable_p, qnear=hold_cable_q), a=1.3962634015954636, v=1.0471975511965976)
-  # begin: URCap Program Node
-  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
-  #   Type: Gripper
-  $ 17 "Gripper Move85% (1)"
-  if not(gripper_connected[0]):
-    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
-  end
-  if not(rq_is_gripper_activated("1")):
-    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
-  end
-  rq_set_pos_spd_for(217, 0, 255, "1")
-  rq_wait_pos_spe_for_request(217, 0, 255, "1")
-  rq_go_to("1")
-  rq_wait("1")
-  # end: URCap Program Node
-  $ 18 "Popup: wait for a_bot to grasp cable. press enter to go observe"
+  $ 19 "Popup: wait for a_bot to grasp cable. press enter to go observe"
   popup("wait for a_bot to grasp cable. press enter to go observe", "Message", False, False, blocking=True)
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
-  $ 19 "Gripper Open (1)"
+  $ 20 "Gripper Open (1)"
   if not(gripper_connected[0]):
     popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
   end
@@ -2458,14 +2469,14 @@ def cable_extend_v2():
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 20 "MoveL"
-  $ 21 "Waypoint_1" "breakAfter"
+  $ 21 "MoveL"
+  $ 22 "Waypoint_1" "breakAfter"
   set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
   movel(Waypoint_1_p, a=1.2, v=0.25)
-  $ 22 "Waypoint_2" "breakAfter"
+  $ 23 "Waypoint_2" "breakAfter"
   set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
   movel(Waypoint_2_p, a=1.2, v=0.25)
-  $ 23 "look_at_cable" "breakAfter"
+  $ 24 "look_at_cable" "breakAfter"
   set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
   movel(look_at_cable_p, a=1.2, v=0.25)
 end

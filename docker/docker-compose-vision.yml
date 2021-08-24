@@ -1,3 +1,4 @@
+# The docker-compose file for the container running on the vision PC
 version: "2.4"
 
 ################################################################################
@@ -20,6 +21,9 @@ services:
       - NVIDIA_DRIVER_CAPABILITIES=all
       - NVIDIA_REQUIRE_CUDA=cuda>=9.0
       - DOCKER_RUNTIME=${DOCKER_RUNTIME}
+      # ROS parameters
+      - ROS_HOSTNAME=o2ac-vision-pc
+      - ROS_MASTER_URI=http://o2ac-vision-pc:11311
     image: registry.gitlab.com/o2ac/o2ac-ur/o2ac-dev:latest
     build:
       context: ../
@@ -41,5 +45,5 @@ services:
       - "o2ac-vision-pc:192.168.2.6" # The PC with the cameras and vision nodes
       - "a_bot:192.168.1.41"
       - "b_bot:192.168.1.42"
-    command: /root/o2ac-ur/docker/o2ac-dev/scripts/initialize-docker-container.sh
+    command: /root/o2ac-ur/docker/o2ac-dev/scripts/initialize-docker-vision-container.sh
     shm_size: 1g # a PhoXi data size about 100MB.

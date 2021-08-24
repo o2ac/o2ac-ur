@@ -1,5 +1,5 @@
 def motor_plate_positioning():
-  set_gravity([0.0, 0.0, 9.82])
+  set_safety_mode_transition_hardness(1)
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -7,22 +7,22 @@ def motor_plate_positioning():
   set_analog_outputdomain(0, 0)
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
+  step_count_2087ac3b_d490_4ba7_a129_a758f6fd2001 = 0.0
+  thread Step_Counter_Thread_ee712b86_800a_4090_8eb6_7f207b858e8e():
+    while (True):
+      step_count_2087ac3b_d490_4ba7_a129_a758f6fd2001 = step_count_2087ac3b_d490_4ba7_a129_a758f6fd2001 + 1.0
+      sync()
+    end
+  end
+  run Step_Counter_Thread_ee712b86_800a_4090_8eb6_7f207b858e8e()
+  set_gravity([0.0, 0.0, 9.82])
   set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
-  set_payload(1.0, [-0.005, -0.018, 0.077])
-  set_safety_mode_transition_hardness(1)
+  set_payload(1.27, [0.0, -0.017, 0.053])
   set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
   set_tool_output_mode(0)
   set_tool_digital_output_mode(0, 1)
   set_tool_digital_output_mode(1, 1)
   set_tool_voltage(24)
-  step_count_2fe973b8_dfaa_4ff3_9eba_0e4cc8272f4e = 0.0
-  thread Step_Counter_Thread_2a6f9e7d_e5b9_4882_a134_55570160fb0a():
-    while (True):
-      step_count_2fe973b8_dfaa_4ff3_9eba_0e4cc8272f4e = step_count_2fe973b8_dfaa_4ff3_9eba_0e4cc8272f4e + 1.0
-      sync()
-    end
-  end
-  run Step_Counter_Thread_2a6f9e7d_e5b9_4882_a134_55570160fb0a()
   # begin: URCap Installation Node
   #   Source: External Control, 1.0.5, FZI Research Center for Information Technology
   #   Type: External Control
@@ -2341,30 +2341,23 @@ def motor_plate_positioning():
       sync()
   end
   # end: URCap Installation Node
-  global before_push_1_p=p[.088017198400, -.382895917297, .133609183028, .004033841124, 3.140913982262, -.012159060798]
-  global before_push_1_q=[1.449220061302185, -1.821801324883932, 2.1374204794513147, -1.8940235577025355, -1.5692194143878382, -0.11900169054140264]
-  global push_end_1_p=p[.087996111429, -.430312865811, .133650880475, .004005270032, 3.140990246869, .008376818378]
-  global push_end_1_q=[1.4641326665878296, -1.686843057672018, 2.0270231405841272, -1.9056102238097132, -1.5707719961749476, -0.10411340395082647]
-  global before_push_2_p=p[.088017198400, -.382895917297, .133609183028, .004033841124, 3.140913982262, -.012159060798]
-  global before_push_2_q=[1.449220061302185, -1.821801324883932, 2.1374204794513147, -1.8940235577025355, -1.5692194143878382, -0.11900169054140264]
-  global above_plate_1_p=p[.088009725867, -.440155028394, .173171531014, .003788905314, 3.094225838707, -.537439932371]
-  global above_plate_1_q=[1.4309152364730835, -1.9333750210204066, 2.242018524800436, -2.2202073536314906, -1.5231598059283655, -0.1292346159564417]
+  global before_push_1_p=p[.084740567589, -.404628609593, .134415519261, .004583856962, -3.002038017427, .877192727165]
+  global before_push_1_q=[1.3703633546829224, -2.134392877618307, 2.5859983603106897, -2.5840188465514125, -1.4758380095111292, -0.1760790983783167]
+  global push_almost_end_p=p[.084751077868, -.420360944873, .134440472341, .004610581843, -3.002004252782, .877313595176]
+  global push_almost_end_q=[1.3842064142227173, -2.066794534722799, 2.5602148214923304, -2.626984258691305, -1.4831975142108362, -0.16432601610292608]
+  global push_end_1_p=p[.084729894096, -.424199496029, .134446288249, .004529910544, -3.001956726932, .877334872705]
+  global push_end_1_q=[1.387259840965271, -2.051066061059469, 2.553641144429342, -2.636393209496969, -1.484875504170553, -0.16169292131532842]
   global at_plate_1_p=p[.088004736177, -.463264857343, .152055266021, .003421665360, 2.946007142832, -1.086961872713]
   global at_plate_1_q=[1.3859785795211792, -1.964694162408346, 2.5725610891925257, -2.877037664453024, -1.4505475203143519, -0.1386655012713831]
   $ 1 "Robot Program"
-  $ 2 "MoveJ"
-  $ 3 "currentpose≔get_actual_tcp_pose()get_actual_joint_positions()"
-  global currentpose= get_actual_tcp_pose () get_actual_joint_positions ()
-  $ 4 "currentpose" "breakAfter"
-  movej(currentpose, a=1.3962634015954636, v=1.0471975511965976)
-  $ 5 "MoveL"
-  $ 6 "before_push_1" "breakAfter"
+  $ 2 "MoveL"
+  $ 3 "before_push_1" "breakAfter"
   set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
   movel(before_push_1_p, a=1.2, v=0.25)
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
-  $ 7 "Gripper Close (1)"
+  $ 4 "Gripper Close (1)"
   if not(gripper_connected[0]):
     popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
   end
@@ -2376,39 +2369,36 @@ def motor_plate_positioning():
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 8 "MoveL"
-  $ 9 "push_end_1" "breakAfter"
+  $ 5 "MoveL"
+  $ 6 "push_almost_end" "breakAfter"
   set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
-  movel(push_end_1_p, a=0.01, v=0.02)
-  $ 10 "before_push_2" "breakAfter"
+  movel(push_almost_end_p, a=0.1, v=0.1, r=0.002)
+  $ 7 "push_end_1" "breakAfter"
   set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
-  movel(before_push_2_p, a=0.5, v=0.25)
+  movel(push_end_1_p, a=0.008, v=0.05)
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
-  $ 11 "Gripper Move73% (1)"
+  $ 9 "Gripper Move70% (1)"
   if not(gripper_connected[0]):
     popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
   end
   if not(rq_is_gripper_activated("1")):
     popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
   end
-  rq_set_pos_spd_for(185, 0, 0, "1")
-  rq_wait_pos_spe_for_request(185, 0, 0, "1")
+  rq_set_pos_spd_for(179, 255, 255, "1")
+  rq_wait_pos_spe_for_request(179, 255, 255, "1")
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
-  $ 12 "MoveJ"
-  $ 13 "above_plate_1" "breakAfter"
+  $ 10 "MoveJ"
+  $ 12 "at_plate_1" "breakAfter"
   set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
-  movej(get_inverse_kin(above_plate_1_p, qnear=above_plate_1_q), a=1.3962634015954636, v=1.0471975511965976, r=0.03)
-  $ 14 "at_plate_1" "breakAfter"
-  set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
-  movej(get_inverse_kin(at_plate_1_p, qnear=at_plate_1_q), a=1.3962634015954636, v=1.0471975511965976)
+  movej(get_inverse_kin(at_plate_1_p, qnear=at_plate_1_q), a=2.6179938779914944, v=2.6179938779914944)
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
-  $ 15 "Gripper Close (1)"
+  $ 13 "Gripper Close (1)"
   if not(gripper_connected[0]):
     popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
   end
@@ -2423,15 +2413,15 @@ def motor_plate_positioning():
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
-  $ 16 "Gripper Move83% (1)"
+  $ 14 "Gripper Move82% (1)"
   if not(gripper_connected[0]):
     popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
   end
   if not(rq_is_gripper_activated("1")):
     popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
   end
-  rq_set_pos_spd_for(211, 0, 255, "1")
-  rq_wait_pos_spe_for_request(211, 0, 255, "1")
+  rq_set_pos_spd_for(210, 0, 255, "1")
+  rq_wait_pos_spe_for_request(210, 0, 255, "1")
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
