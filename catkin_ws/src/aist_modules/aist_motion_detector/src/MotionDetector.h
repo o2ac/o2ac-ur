@@ -69,7 +69,7 @@ class MotionDetector
 			     bool select)				;
 
   // utility functions
-    void	accumulate_mask(const cv::Mat& image,
+    void	accumulate_mask(cv::Mat& image, const cv::Mat& mask,
 				const std::string& target_frame,
 				const camera_info_cp& camera_info)	;
     tf::Transform
@@ -86,6 +86,7 @@ class MotionDetector
     message_filters::Synchronizer<sync_policy_t>	_sync;
     const image_transport::CameraPublisher		_camera_pub;
     const image_transport::Publisher			_image_pub;
+    const image_transport::Publisher			_mask_pub;
 
     const tf::TransformListener				_listener;
     tf::TransformBroadcaster				_broadcaster;
@@ -106,7 +107,7 @@ class MotionDetector
     point_t						_top_left;
     point_t						_bottom_right;
     cv::Mat_<point2_t>					_corners;
-    cv_bridge::CvImage					_mask;
+    cv_bridge::CvImage					_cv_mask;
     tf::StampedTransform				_Tct;
     camera_info_cp					_camera_info;
 };
