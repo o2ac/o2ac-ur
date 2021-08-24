@@ -3463,7 +3463,7 @@ class O2ACCommon(O2ACBase):
     self.active_robots[robot_name].gripper.open(opening_width=0.03, velocity=0.05)
     self.active_robots[robot_name].gripper.forget_attached_item()
     if pose_with_uncertainty!=None:
-      self.place_object_with_uncertainty(panel_name, pose_with_uncertainty, 0.855)
+      self.place_object_with_uncertainty(panel_name, pose_with_uncertainty, 0.856)
     if panel_name == "panel_bearing":
       self.assembly_status.bearing_panel_placed_outside_of_tray = False
     else:
@@ -3504,7 +3504,7 @@ class O2ACCommon(O2ACBase):
     visualization_request.frame_locked=True
     visualizer(visualization_request)
 
-  def push_object_with_uncertainty(self, object_name, gripper_pose, pose_with_uncertainty, y_shift=0.0):
+  def push_object_with_uncertainty(self, object_name, gripper_pose, pose_with_uncertainty):
     collision_object=self.assembly_database.get_collision_object(object_name)
     update_goal=o2ac_msgs.msg.updateDistributionGoal()
     update_goal.observation_type=update_goal.PUSH_OBSERVATION
@@ -3519,7 +3519,6 @@ class O2ACCommon(O2ACBase):
     self.update_distribution_client.wait_for_result()
     update_result = self.update_distribution_client.get_result()
     self.transform_uncertainty(gripper_transform, update_result.distribution.pose, pose_with_uncertainty.pose)
-    pose_with_uncertainty.pose.pose.position.y+=y_shift
 
     visualizer=rospy.ServiceProxy("visualize_pose_belief", o2ac_msgs.srv.visualizePoseBelief)
     visualization_request = o2ac_msgs.srv.visualizePoseBeliefRequest()
@@ -3587,8 +3586,8 @@ class O2ACCommon(O2ACBase):
     aligned_pose = [0.0, 0.067, -0.080] if panel_name == "panel_bearing" else [0.0, -0.063, -0.080]
     self.update_collision_item_pose(panel_name, conversions.to_pose_stamped(centering_frame, aligned_pose + [-0.500, 0.500, -0.500, -0.500]))
     if pose_with_uncertainty!=None:
-      push_gripper_pose=conversions.to_pose_stamped(centering_frame, [0.0, aligned_pose[1] - 0.020/2., -0.01, 0., 0., 0.])
-      self.push_object_with_uncertainty(panel_name, push_gripper_pose, pose_with_uncertainty, y_shift=0.08)
+      push_gripper_pose=conversions.to_pose_stamped(centering_frame, [0.0, aligned_pose[1], obj_dims[1]-0.07, pi, 0., 0.])
+      self.push_object_with_uncertainty(panel_name, push_gripper_pose, pose_with_uncertainty)
 
     at_panel_center = conversions.to_pose_stamped(centering_frame, [-0.02, y_pos, -0.08+obj_dims[1]/2, tau/2, 0, 0])
     self.active_robots[robot_name].gripper.open(opening_width=0.03)
