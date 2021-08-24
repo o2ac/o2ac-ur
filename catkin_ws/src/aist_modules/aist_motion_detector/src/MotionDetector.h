@@ -105,7 +105,6 @@ class MotionDetector
 
     int							_nframes;
     point_t						_top_left;
-    point_t						_bottom_right;
     cv::Mat_<point2_t>					_corners;
     cv_bridge::CvImage					_cv_mask;
     tf::StampedTransform				_Tct;

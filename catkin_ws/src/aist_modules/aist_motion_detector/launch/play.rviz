@@ -4,10 +4,7 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /TF1
         - /TF1/Frames1
-        - /motion_result1
-        - /RGB1
         - /DepthCloud1/Status1
         - /DepthCloud1/Auto Size1
       Splitter Ratio: 0.3957158923149109
@@ -1511,7 +1508,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /b_bot_outside_camera_throttled/color/image_raw
+      Image Topic: /motion_detector/image
       Max Value: 1
       Median window: 5
       Min Value: 0
@@ -1627,6 +1624,6 @@ Window Geometry:
     collapsed: true
   Width: 2753
   X: 574
-  Y: 153
+  Y: 93
   motion_result:
     collapsed: false

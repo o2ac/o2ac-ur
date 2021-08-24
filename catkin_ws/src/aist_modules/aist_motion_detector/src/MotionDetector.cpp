@@ -127,7 +127,6 @@ MotionDetector::MotionDetector(const ros::NodeHandle& nh)
      _search_width(_nh.param("search_width", 0.050)),
      _nframes(0),
      _top_left(0, 0),
-     _bottom_right(0, 0),
      _corners(),
      _cv_mask(),
      _Tct(),
@@ -275,16 +274,19 @@ MotionDetector::accumulate_mask(cv::Mat& image, const cv::Mat& mask,
     _cv_mask.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
     _cv_mask.header   = _camera_info->header;
 
+    const point_t top_left(int(std::min({p(0).x, p(1).x, p(2).x, p(3).x})),
+			   int(std::min({p(0).y, p(1).y, p(2).y, p(3).y})));
+
     if (_nframes == 0)
     {
       // Crop the given image.
-	_top_left.x	= int(std::min({p(0).x, p(1).x, p(2).x, p(3).x}));
-	_top_left.y	= int(std::min({p(0).y, p(1).y, p(2).y, p(3).y}));
-	_bottom_right.x = int(std::max({p(0).x, p(1).x, p(2).x, p(3).x}));
-	_bottom_right.y	= int(std::max({p(0).y, p(1).y, p(2).y, p(3).y}));
-	_corners	= p;
-	mask(cv::Rect(_top_left, _bottom_right)).convertTo(_cv_mask.image,
-							   CV_16UC1);
+	const point_t	bottom_right(
+			    int(std::max({p(0).x, p(1).x, p(2).x, p(3).x})),
+			    int(std::max({p(0).y, p(1).y, p(2).y, p(3).y})));
+	mask(cv::Rect(top_left, bottom_right)).convertTo(_cv_mask.image,
+							 CV_16UC1);
+	_top_left = top_left;
+	_corners  = p;
     }
     else
     {
@@ -292,7 +294,7 @@ MotionDetector::accumulate_mask(cv::Mat& image, const cv::Mat& mask,
 	cv::warpPerspective(mask, warped_mask, cv::findHomography(_corners, p),
 			    mask.size(), cv::WARP_INVERSE_MAP);
 	cv::Mat	warped_and_converted_mask;
-	warped_mask(cv::Rect(_top_left, _bottom_right))
+	warped_mask(cv::Rect(_top_left, _cv_mask.image.size()))
 	    .convertTo(warped_and_converted_mask, CV_16UC1);
 	_cv_mask.image += warped_and_converted_mask;
     }
@@ -300,10 +302,10 @@ MotionDetector::accumulate_mask(cv::Mat& image, const cv::Mat& mask,
     for (int v = 0; v < _cv_mask.image.rows; ++v)
     {
 	auto	p = _cv_mask.image.ptr<uint16_t>(v, 0);
-	auto	q = image.ptr<cv::Vec3b>(_top_left.y + v, 0) + _top_left.x;
+	auto	q = image.ptr<cv::Vec3b>(top_left.y + v, 0) + top_left.x;
 
 	for (const auto pe = p + _cv_mask.image.cols; p < pe; ++p, ++q)
-	    if (*p)
+	    if (*p >= 255)
 	    {
 		(*q)[1] = 255;
 		(*q)[2] = 255;
