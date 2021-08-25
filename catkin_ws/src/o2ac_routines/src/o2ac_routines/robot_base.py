@@ -245,8 +245,6 @@ class RobotBase():
             end_effector_link = self.ns + "_gripper_tip_link"
         group.set_end_effector_link(end_effector_link)
 
-        if initial_joints:
-            group.set_start_state(helpers.to_robot_state(group, initial_joints))
 
         if move_lin:  # is this necessary??
             pose_goal_ = self.listener.transformPose("world", pose_goal_stamped)
@@ -256,6 +254,11 @@ class RobotBase():
         start_time = rospy.Time.now()
         tries = 0
         while not success and (rospy.Time.now() - start_time < rospy.Duration(timeout)) and not rospy.is_shutdown():
+            if initial_joints:
+                group.set_start_state(helpers.to_robot_state(group, initial_joints))
+            else:
+                group.set_start_state_to_current_state()
+
             group.set_pose_target(pose_goal_)
             success, plan, planning_time, error = group.plan()
 
@@ -268,8 +271,8 @@ class RobotBase():
                     continue
             if success:
                 if plan_only:
-                    group.clear_pose_targets()
                     group.set_start_state_to_current_state()
+                    group.clear_pose_targets()
                     return plan, planning_time
                 else:
                     success = self.execute_plan(plan, wait=wait)

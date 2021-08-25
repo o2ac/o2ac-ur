@@ -298,7 +298,7 @@ if __name__ == '__main__':
         print(c.get_motor_angle())
       elif r == "872":
         c.set_assembly("wrs_assembly_2020")
-        c.confirm_motor_and_place_in_aid()
+        c.confirm_motor_and_place_in_aid(calibration=True)
       elif r == "88":
         c.check_if_shaft_in_v_groove()
       elif r == "89":

@@ -3052,8 +3052,8 @@ class O2ACCommon(O2ACBase):
         continue
       
       # Place motor in storage area
-      p_through = conversions.to_pose_stamped("right_storage_area_link", [-0.15, 0, 0.10, -90, 0, 0])
-      p_drop    = conversions.to_pose_stamped("right_storage_area_link", [-0.03, 0, 0.0, -135, 0, 0])
+      p_through = conversions.to_pose_stamped("right_storage_area_link", [-0.15, 0, 0.0, -90, 0, 0])
+      p_drop    = conversions.to_pose_stamped("right_storage_area_link", [-0.03, 0, 0.0, -90, 0, 0])
       self.b_bot.go_to_pose_goal(p_through, speed=.5, wait=True)
       self.b_bot.go_to_pose_goal(p_drop, speed=.5, wait=True)
       self.b_bot.gripper.open()
@@ -3089,128 +3089,178 @@ class O2ACCommon(O2ACBase):
   def attempt_motor_tray_pick(self, robot_name="b_bot"):
     """ Do one pick attempt, ignoring the motor's orientation.
     """
-    self.vision.activate_camera("b_bot_outside_camera")
-    self.active_robots[robot_name].go_to_pose_goal(self.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.5, acceleration=.2)
-    res = self.get_3d_poses_from_ssd()
-    obj_id = self.assembly_database.name_to_id("motor")
-    try:
-      options = {'grasp_width': 0.085, 'object_width': 0.05}
-      r2 = self.get_feasible_grasp_points(obj_id, options=options)
-      p = r2[0]
-      # TODO(cambel): use vision to determine the direction of the cables, thus the direction for picking
-      if len(r2) > 1 and np.random.uniform() > 0.5:  # Randomly choose between vertical and horizontal orientation
-        pr = r2[1]
-        # p = helpers.rotatePoseByRPY(tau/4, 0, 0, p)
-      p.pose.position.z = 0.015
-      self.simple_pick(robot_name, p, gripper_force=100.0, grasp_width=.085, axis="z")
-      if self.active_robots[robot_name].gripper.opening_width < 0.031:
-        rospy.logerr("Motor not successfully grasped")
-        return False
-    except:
-      rospy.logerr("Did not see the motor in the tray")
+    options = {'grasp_width': 0.085, 'object_width': 0.04, 'check_for_close_items': False, 'check_too_close_to_border': False, 'center_on_corner': True}
+    object_pose = self.look_and_get_grasp_point("motor", robot_name, options)
+    if not isinstance(object_pose, geometry_msgs.msg.PoseStamped):
+      rospy.logerr("Motor not found or not graspable")
+      return False
+    dx, dy = self.distances_from_tray_border(object_pose)
+    print("Motor distance from tray's borders", dx, dy)
+    if dx > 0.08 and dy > 0.08:
+      # If not close to any tray border, attempt a grasp considering the cables orientation
+      rgb_theta = None
+      tries = 10
+      while not rgb_theta and tries > 0:
+        rgb_theta = self.vision.get_motor_angle_from_top_view(camera="b_bot_outside_camera")
+        tries -= 1
+      if rgb_theta is None:
+        rospy.logerr("Motor not detected by `get motor angle`! Attempting blind grasp")
+      else:
+        rgb_theta = rgb_theta - tau/2 # rotate 180, align camera to motor tip
+        rgb_theta = (rgb_theta) % tau # wrap angle to range [0, TAU]
+        object_pose = self.listener.transformPose("right_centering_link", object_pose)
+        object_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, rgb_theta))
+    object_pose.pose.position.z = 0.014
+    self.simple_pick(robot_name, object_pose, gripper_force=100.0, grasp_width=.085, axis="z")
+    if not self.simple_gripper_check(robot_name, min_opening_width=0.031):
+      rospy.logerr("Motor not successfully grasped")
       return False
     return True
 
-  def confirm_motor_pose(self, vision_only=False):
-    p_view = conversions.to_pose_stamped("right_centering_link", [-self.tray_view_high.pose.position.z, -0.05, -0.05, 0, 0, 0])
-    p_view = self.listener.transformPose("tray_center", p_view)
-    p_view.pose.orientation = self.tray_view_high.pose.orientation
-    self.vision.activate_camera("b_bot_outside_camera")
-    self.b_bot.go_to_pose_goal(p_view, end_effector_link="b_bot_outside_camera_color_frame", speed=.5, wait=True)
+  def motor_centering_fallback(self, remaining_attempts=3):
+    motor_placed, motor_pose = self.find_motor_centering_area()
+    if not motor_placed:
+      rospy.logerr("Motor not found during fallback. Abort.")
+      self.b_bot.gripper.open(wait=False)
+      return False
+    motor_pose = self.listener.transformPose("right_centering_link", motor_pose)
+    motor_pose.pose.position.x = -0.01  # Grasp height
+    motor_pose.pose.orientation = conversions.to_quaternion(transformations.quaternion_from_euler(-tau/4, 0, 0))
+    if not self.simple_pick("b_bot", object_pose=motor_pose, grasp_width=.085, 
+                            axis="x", sign=-1, approach_height=0.07, minimum_grasp_width=0.02):
+      rospy.logerr("Fail picking during fallback. Abort.")
+      self.b_bot.gripper.open(wait=False)
+      self.b_bot.go_to_named_pose("home")
+      return False
+    if not self.simple_gripper_check(robot_name="b_bot", min_opening_width=0.02) and remaining_attempts > 0:
+      self.b_bot.gripper.open(wait=False)
+      self.motor_centering_fallback(remaining_attempts=remaining_attempts-1)
+    self.drop_in_tray("b_bot")
+    return False
 
-    # Look at the motor from above, confirm that SSD sees it
-    rospy.sleep(1.0)
-    res = self.get_3d_poses_from_ssd()
-    motor_placed = True
-    try:
-      motor_id = self.assembly_database.name_to_id("motor")
-      print("res", res)
-      if not motor_id in res.class_ids:
+  def find_motor_centering_area(self):
+    """ Return pose of motor if seen in centering area """
+    motor_placed = False
+    remaining_tries = 10
+    while not motor_placed and remaining_tries > 0:
+      p_view = conversions.to_pose_stamped("right_centering_link", [-self.tray_view_high.pose.position.z, -0.05, -0.05, 0, 0, 0])
+      p_view = self.listener.transformPose("tray_center", p_view)
+      p_view.pose.orientation = self.tray_view_high.pose.orientation
+      self.vision.activate_camera("b_bot_outside_camera")
+      self.b_bot.go_to_pose_goal(p_view, end_effector_link="b_bot_outside_camera_color_frame", speed=.5, wait=True, move_lin=True)
+
+      # Look at the motor from above, confirm that SSD sees it
+      rospy.sleep(1.0)
+      res = self.get_3d_poses_from_ssd()
+      try:
+        motor_id = self.assembly_database.name_to_id("motor")
+        motor_placed = (motor_id in res.class_ids)
+      except:
         motor_placed = False
-    except:
-      motor_placed = False
-    if not motor_placed and not vision_only:
+      remaining_tries -= 1
+      if motor_placed:
+        break
+    return motor_placed, self.objects_in_tray.get(motor_id, None)
+
+  def confirm_motor_pose(self, calibration=False, use_cad=False):
+    """ 
+      Confirm the position of the motor in the centering area
+      calibration ON: Skip any fallbacks
+      use_cad ON: Use cad to predict orientation of the motor (Optionally use the RGB matching to confirm)
+      use_cad OFF: Use the RGB matching to confirm the orientation of the motor's cables
+    """
+    motor_placed, motor_pose = self.find_motor_centering_area()
+
+    if not motor_placed and not calibration:
       rospy.logerr("Motor not detected by SSD! Return item and abort")
-      p_pick = conversions.to_pose_stamped("right_centering_link", [-.002, -0.05, -0.05, 0, 0, 0])
-      p_pick = self.listener.transformPose("tray_center", p_pick)
-      p_pick.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
-      self.simple_pick("b_bot", object_pose=p_pick, gripper_force=100, axis="z", retreat_height=.1)
-      self.drop_in_tray("b_bot")
+      self.motor_centering_fallback()
       return False
 
+    # Get a closer look for the detection of the motor's orientation
     p_view = conversions.to_pose_stamped("right_centering_link", [-0.30, -0.05, -0.05, 0, 0, 0])
     p_view = self.listener.transformPose("tray_center", p_view)
     p_view.pose.orientation = self.tray_view_high.pose.orientation
     self.b_bot.go_to_pose_goal(p_view, end_effector_link="b_bot_outside_camera_color_frame", speed=.5, wait=True)
     
     # Use CAD matching to determine orientation
-    pose = self.get_large_item_position_from_top("motor", skip_moving=True)
+    if use_cad:
+      pose = self.get_large_item_position_from_top("motor", skip_moving=True)
+      if not pose:
+        rospy.logerr("Could not find motor via CAD matching!")
+        return False
+      self.planning_scene_interface.allow_collisions("motor")
 
-    if not pose:
-      rospy.logerr("Could not find motor via CAD matching!")
-      return False
+      # TODO: Call Place action on CAD result to constrain motor to surface
+      # Get motor grasp pose from CAD result
+      rospy.sleep(0.5)  # To let the scene update with the motor
+      p_motor = conversions.to_pose_stamped("move_group/motor/center", [0, 0, 0, 0, 0, 0])  # x-axis points along axis towards the front (shaft)
+      p_motor_in_tray_center = self.listener.transformPose("tray_center", p_motor)
+      p_motor_in_tray_center.pose = helpers.getOrientedFlatGraspPoseFromXAxis(p_motor_in_tray_center.pose)
+      p_motor_in_centering_link = self.listener.transformPose("right_centering_link", p_motor_in_tray_center)
+      p_motor_in_centering_link.pose.position.x = -0.006  # Grasp height
+      
+      # Check that motor direction matches the cables seen in RGB image
+      rgb_theta = self.vision.get_motor_angle_from_top_view(camera="b_bot_outside_camera")
+      q = p_motor_in_centering_link.pose.orientation
+      rpy = tf.transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])
+      rgb_theta = rgb_theta % tau # wrap angle to range [0, TAU]
+      cad_theta = rgb_theta
+      # cad_theta = rpy[0] % tau # wrap angle to range [0, TAU]
+      print("rgb_theta ", rgb_theta, "cad_theta", cad_theta)
+      # FIXME: cable orientation not working, relying only on CAD matching
+      # If arrow and motor do not point in the same direction
+      # if rgb_theta and abs(rgb_theta - cad_theta) > tau/4:
+      #   p_motor_in_centering_link = helpers.rotatePoseByRPY(-tau/2, 0, 0, p_motor_in_centering_link)
+    else:
+      # Use RGB only
+      rgb_theta = None
+      tries = 10
+      while not rgb_theta and tries > 0:
+        rgb_theta = self.vision.get_motor_angle_from_top_view(camera="b_bot_outside_camera")
+        tries -= 1
+      if rgb_theta is None:
+        rospy.logerr("Motor not detected by `get motor angle`! Return item and abort")
+        self.motor_centering_fallback()
+        return False
+      rgb_theta = rgb_theta - tau/2 # rotate 180, align camera to motor tip
+      rgb_theta = (rgb_theta) % tau # wrap angle to range [0, TAU]
+      motor_pose = self.listener.transformPose("right_centering_link", motor_pose)
+      motor_pose.pose.position.x = -0.007  # Grasp height
+      motor_pose.pose.orientation = conversions.to_quaternion(transformations.quaternion_from_euler(rgb_theta, 0, 0))
     
-    self.planning_scene_interface.allow_collisions("motor")
+    return motor_pose
 
-    # TODO: Call Place action on CAD result to constrain motor to surface
-    # Get motor grasp pose from CAD result
-    rospy.sleep(0.5)  # To let the scene update with the motor
-    p_motor = conversions.to_pose_stamped("move_group/motor/center", [0, 0, 0, 0, 0, 0])  # x-axis points along axis towards the front (shaft)
-    p_motor_in_tray_center = self.listener.transformPose("tray_center", p_motor)
-    p_motor_in_tray_center.pose = helpers.getOrientedFlatGraspPoseFromXAxis(p_motor_in_tray_center.pose)
-    p_motor_in_centering_link = self.listener.transformPose("right_centering_link", p_motor_in_tray_center)
-    p_motor_in_centering_link.pose.position.x = -0.006  # Grasp height
-
-    # # DEBUGGING: Use RGB only
-    # p_motor_in_centering_link = self.objects_in_tray[motor_id]
-    # print("p_motor_in_centering_link", p_motor_in_centering_link.pose.position)
-    # p_motor_in_centering_link = self.listener.transformPose("right_centering_link", p_motor_in_centering_link)
-    # p_motor_in_centering_link.pose.position.x = -0.006  # Grasp height
-    # print("p_motor_in_centering_link", p_motor_in_centering_link.pose.position)
-
-    # Check that motor direction matches the cables seen in RGB image
-    rgb_theta = self.vision.get_motor_angle_from_top_view(camera="b_bot_outside_camera")
-    q = p_motor_in_centering_link.pose.orientation
-    rpy = tf.transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])
-    rgb_theta = rgb_theta % tau # wrap angle to range [0, TAU]
-    cad_theta = rgb_theta
-    
-    # cad_theta = rpy[0] % tau # wrap angle to range [0, TAU]
-    print("rgb_theta ", rgb_theta, "cad_theta", cad_theta)
-    
-    # FIXME: cable orientation not working, relying only on CAD matching
-    # If arrow and motor do not point in the same direction
-    # if rgb_theta and abs(rgb_theta - cad_theta) > tau/4:
-    #   p_motor_in_centering_link = helpers.rotatePoseByRPY(-tau/2, 0, 0, p_motor_in_centering_link)
-    
-    return p_motor_in_centering_link
-
-  def confirm_motor_and_place_in_aid(self):
+  def confirm_motor_and_place_in_aid(self, calibration=False):
     """ Assumes that the motor is grasped in a random orientation. 
         Places it in the separate area, determines the orientation, centers it, and places it in the vgroove.
     """
-    p_motor_in_centering_link = self.confirm_motor_pose()
+    p_motor_in_centering_link = self.confirm_motor_pose(calibration=calibration)
     if not p_motor_in_centering_link:
+      # No need for more fallbacks
       return False
 
     # Pick motor in defined orientation and move up
-    if not self.simple_pick("b_bot", object_pose=p_motor_in_centering_link, grasp_width=.08, axis="x", sign=-1, approach_height=0.07, minimum_grasp_width=0.01):
+    if not self.simple_pick("b_bot", object_pose=p_motor_in_centering_link, grasp_width=.08, 
+                            axis="x", sign=-1, approach_height=0.07, minimum_grasp_width=0.02):
       rospy.logerr("Fail to pick motor")
-      p_pick = conversions.to_pose_stamped("right_centering_link", [-.002, -0.05, -0.05, 0, 0, 0])
-      p_pick = self.listener.transformPose("tray_center", p_pick)
-      p_pick.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
-      self.simple_pick("b_bot", object_pose=p_pick, gripper_force=100, axis="z", retreat_height=.1)
-      self.drop_in_tray("b_bot")
+      self.motor_centering_fallback()
       return False
     self.planning_scene_interface.remove_world_object("motor")
     
     # For safety of the cameras, urscript is blind of them
-    pre_orient_pose    = conversions.to_pose_stamped("right_centering_link", [-0.05, 0.0, 0.0, radians(-90), 0, 0])
-    self.b_bot.go_to_pose_goal(pre_orient_pose, speed=1.0, move_lin=True)
+    # pre_orient_pose = conversions.to_pose_stamped("right_centering_link", [-0.05, 0.0, 0.0, radians(-90), 0, 0])
+    pre_orient_pose = [1.84255, -1.90216, 2.56565, -2.23376, -1.56659, -1.29859] # safer with joint target
+    if not self.b_bot.move_joints(pre_orient_pose, speed=1.0):
+      rospy.logerr("Fail to go to urscript start pose")
+      self.motor_centering_fallback()
+      return False
 
     self.confirm_to_proceed("motor picked?")
 
-    return self.orient_motor_in_aid_edge()
+    if not calibration:
+      if not self.orient_motor_in_aid_edge():
+        self.motor_centering_fallback()
+        return False
 
   def orient_motor_in_aid_edge_urscript(self):
     if not self.b_bot.load_and_execute_program(program_name="wrs2020/motor_orient_2.urp"):
