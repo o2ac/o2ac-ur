@@ -5058,7 +5058,8 @@ class O2ACCommon(O2ACBase):
     grasp_height        = 0.015  if grasp_name == "big_holes_grasp" else 0.0
     self.allow_collisions_with_robot_hand("workplate", "a_bot", allow=True)
     success = self.simple_pick("a_bot", grasp_pose, axis="z", approach_height=0.05, retreat_height=0.15, grasp_height=grasp_height,
-                               grasp_width=grasp_width, gripper_force=100.0, minimum_grasp_width=minimum_grasp_width, lift_up_after_pick=False)
+                               grasp_width=grasp_width, gripper_force=100.0, minimum_grasp_width=minimum_grasp_width, lift_up_after_pick=False,
+                               item_id_to_attach="base", attach_with_collisions=True)
 
     success &= self.simple_gripper_check("a_bot", min_opening_width=minimum_grasp_width)
     
