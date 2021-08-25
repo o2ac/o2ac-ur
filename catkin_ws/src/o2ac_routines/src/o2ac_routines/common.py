@@ -4021,10 +4021,10 @@ class O2ACCommon(O2ACBase):
     y_pos = 0.065 if panel_name == "panel_bearing" else -0.065
     z_pos = gripper_at_stopper + obj_dims[1]
 
-    above_centering_pose = conversions.to_pose_stamped(centering_frame, [-0.15, y_pos, z_pos, tau/2, 0, 0])
-    at_centering_pose    = conversions.to_pose_stamped(centering_frame, [x_pos, y_pos, z_pos, tau/2, 0, 0])
-    pre_push_pose        = conversions.to_pose_stamped(centering_frame, [-0.01, y_pos, z_pos, tau/2, 0, 0])
-    push_pose            = conversions.to_pose_stamped(centering_frame, [-0.011, y_pos, gripper_at_stopper, tau/2, 0, 0])
+    above_centering_pose = conversions.to_pose_stamped(centering_frame, [-0.15, y_pos, z_pos, 0, 0, 0])
+    at_centering_pose    = conversions.to_pose_stamped(centering_frame, [x_pos, y_pos, z_pos, 0, 0, 0])
+    pre_push_pose        = conversions.to_pose_stamped(centering_frame, [-0.01, y_pos, z_pos, 0, 0, 0])
+    push_pose            = conversions.to_pose_stamped(centering_frame, [-0.011, y_pos, gripper_at_stopper, 0, 0, 0])
     above_centering_joint_pose = [0.48, -2.05, 2.05, -1.55, -1.58, -1.09]
 
     seq = []
@@ -4070,7 +4070,7 @@ class O2ACCommon(O2ACBase):
 
     seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=0.03, gripper_velocity=1.0, pre_callback=pre_callback))
   
-    at_panel_center = conversions.to_pose_stamped(centering_frame, [-0.02, y_pos, -0.08+obj_dims[1]/2, tau/2, 0, 0])
+    at_panel_center = conversions.to_pose_stamped(centering_frame, [-0.02, y_pos, -0.08+obj_dims[1]/2, 0, 0, 0])
 
     # self.active_robots[robot_name].gripper.open(opening_width=0.03)
     if store:
@@ -4985,10 +4985,16 @@ class O2ACCommon(O2ACBase):
     self.a_bot.gripper.attach_object("base", with_collisions=True)
     self.planning_scene_interface.allow_collisions("base", "")
 
+
     dx, dy = self.distances_from_tray_border(grasp_pose)
     print("distance from border dx:", dx, "dy:", dy)
-    direction = 'x' if dy > dx else 'y'
-    self.move_towards_tray_center("a_bot", distance=0.05, go_back_halfway=True, one_direction=direction, go_back_ratio=0.4)
+    if self.assembly_database.db_name == "wrs_assembly_2021":
+      if dx < 0.03 or dy < 0.03: # only move to center if terminal is too close border
+        direction = 'x' if dy > dx else 'y'
+        self.move_towards_tray_center("a_bot", distance=0.05, go_back_halfway=True, one_direction=direction, go_back_ratio=0.4)
+    else:
+      direction = 'x' if dy > dx else 'y'
+      self.move_towards_tray_center("a_bot", distance=0.05, go_back_halfway=True, one_direction=direction, go_back_ratio=0.4)
     # move_towards_tray_center disables collisions with the tray, so we have to reallow them here
     self.allow_collisions_with_robot_hand("tray", "a_bot")
     self.allow_collisions_with_robot_hand("tray_center", "a_bot")
