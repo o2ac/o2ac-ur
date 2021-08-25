@@ -273,7 +273,7 @@ MotionDetector::accumulate_mask(const cv::Mat& mask,
 	!withinImage(p(2), mask) || !withinImage(p(3), mask))
 	return;
 
-    _cv_mask.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
+    _cv_mask.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
     _cv_mask.header   = _camera_info->header;
 
     const point_t top_left(int(std::min({p(0).x, p(1).x, p(2).x, p(3).x})),
@@ -286,7 +286,7 @@ MotionDetector::accumulate_mask(const cv::Mat& mask,
 			    int(std::max({p(0).x, p(1).x, p(2).x, p(3).x})),
 			    int(std::max({p(0).y, p(1).y, p(2).y, p(3).y})));
 	mask(cv::Rect(top_left, bottom_right)).convertTo(_cv_mask.image,
-							 CV_8UC1);
+							 CV_16UC1);
 	_top_left = top_left;
 	_corners  = p;
     }
@@ -297,19 +297,19 @@ MotionDetector::accumulate_mask(const cv::Mat& mask,
 			    mask.size(), cv::WARP_INVERSE_MAP);
 	cv::Mat	warped_and_converted_mask;
 	warped_mask(cv::Rect(_top_left, _cv_mask.image.size()))
-	    .convertTo(warped_and_converted_mask, CV_8UC1);
+	    .convertTo(warped_and_converted_mask, CV_16UC1);
 	(_cv_mask.image += warped_and_converted_mask) /= 2;
     }
 
   // Paint motion mask over the input RGB image.
     for (int v = 0; v < _cv_mask.image.rows; ++v)
     {
-	auto	p = _cv_mask.image.ptr<uint8_t>(v, 0);
+	auto	p = _cv_mask.image.ptr<uint16_t>(v, 0);
 	auto	q = _cv_image->image.ptr<cv::Vec3b>(top_left.y + v, 0)
 		  + top_left.x;
 
 	for (const auto pe = p + _cv_mask.image.cols; p < pe; ++p, ++q)
-	    if (*p >= 127)
+	    if (*p >= 255)
 	    {
 		(*q)[1] = 255;
 		(*q)[2] = 255;
@@ -338,7 +338,7 @@ MotionDetector::find_cabletip()
 		 cv::Scalar(0), cv::LINE_8);
 
   // Binarize the accumultated mask image.
-    _cv_mask.image /= _nframes;
+  //_cv_mask.image /= _nframes;
     cv::Mat	mask;
     _cv_mask.image.convertTo(mask, CV_8UC1);
     cv::threshold(mask, _cv_mask.image, 0, 255,
@@ -434,12 +434,19 @@ MotionDetector::find_cabletip()
 		  + _top_left.x;
 
 	for (const auto pe = p + _cv_mask.image.cols; p < pe; ++p, ++q)
-	    if (*p == 255)
+	    if (*p)
 	    {
-		(*q)[0] = 255;
+		(*q)[0] = 0;
+		(*q)[1] = 255;
+		(*q)[2] = 0;
+	    }
+	    else
+	    {
+		(*q)[0] = 0;
+		(*q)[1] = 0;
+		(*q)[2] = 0;
 	    }
     }
-
 }
 
 MotionDetector::vector3_t
