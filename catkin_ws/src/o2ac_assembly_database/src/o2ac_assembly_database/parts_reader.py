@@ -140,16 +140,16 @@ class PartsReader(object):
         rospy.logerr("Could not find object with id " + str(object_name))
         return None
 
-    def get_assembled_visualization_marker(self, object_name, marker_id_num=1):
+    def get_assembled_visualization_marker(self, object_name, marker_id_num=None):
         """ Returns a visualization marker of the object in its assembled position. Assumes the assembly frames have been published. """
         for (c_obj, mesh_filepath) in zip(self._collision_objects, self._mesh_filepaths):
             if c_obj.id == object_name:
                 marker = visualization_msgs.msg.Marker()
                 marker.type = marker.MESH_RESOURCE
                 marker.mesh_resource = "file://" + mesh_filepath
-                marker.id = marker_id_num
-                
                 object_id = self.name_to_id(object_name)
+                marker.id = marker_id_num if marker_id_num else object_id
+                
                 marker.header.frame_id = "assembled_part_" + str(object_id).zfill(2)  # Fill with leading zeroes
                 marker.scale = geometry_msgs.msg.Vector3(0.001, 0.001, 0.001)
                 try:
