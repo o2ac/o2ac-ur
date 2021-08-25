@@ -93,6 +93,13 @@
     <origin xyz="0.257 -0.607 -0.0149" rpy="0 0 0" />  
   </xacro:simple_holder> 
 
+  <joint name="right_storage_area_joint" type="fixed">
+    <parent link="workspace_center"/>
+    <child link="right_storage_area_link"/>
+    <origin xyz="0.25 0.50 -0.0149" rpy="0 ${pi/2} -${pi/2}" />
+  </joint>
+  <link name="right_storage_area_link"/>
+
   <joint name="right_centering_joint" type="fixed">
     <parent link="workspace_center"/>
     <child link="right_centering_link"/>
