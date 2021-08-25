@@ -128,6 +128,7 @@ MotionDetector::MotionDetector(const ros::NodeHandle& nh)
      _nframes(0),
      _top_left(0, 0),
      _corners(),
+     _cv_image(nullptr),
      _cv_mask(),
      _Tct(),
      _camera_info(nullptr)
@@ -181,6 +182,7 @@ MotionDetector::preempt_cb()
 	geometry_msgs::Pose	pose;
 	tf::poseTFToMsg(T, pose);
 
+	_image_pub.publish(_cv_image->toImageMsg());
 	_mask_pub.publish(_cv_mask.toImageMsg());
 
 	FindCabletipResult	result;
@@ -210,17 +212,17 @@ MotionDetector::image_cb(const camera_info_cp& camera_info,
     try
     {
       // Perform background subtraction
-	auto			cv_image = cv_bridge::toCvCopy(image);
+	_cv_image = cv_bridge::toCvCopy(image);
 	cv_bridge::CvImage	cv_mask;
 	cv_mask.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
 	cv_mask.header   = camera_info->header;
-	_bgsub->apply(cv_image->image, cv_mask.image);
+	_bgsub->apply(_cv_image->image, cv_mask.image);
 
       // Accumulate updated foreground.
-	accumulate_mask(cv_image->image, cv_mask.image,
+	accumulate_mask(cv_mask.image,
 			_current_goal->target_frame, camera_info);
 
-	_image_pub.publish(cv_image->toImageMsg());
+	_image_pub.publish(_cv_image->toImageMsg());
 	_mask_pub.publish(cv_mask.toImageMsg());
     }
     catch (const tf::TransformException& err)
@@ -236,7 +238,7 @@ MotionDetector::image_cb(const camera_info_cp& camera_info,
 }
 
 void
-MotionDetector::accumulate_mask(cv::Mat& image, const cv::Mat& mask,
+MotionDetector::accumulate_mask(const cv::Mat& mask,
 				const std::string& target_frame,
 				const camera_info_cp& camera_info)
 {
@@ -299,13 +301,15 @@ MotionDetector::accumulate_mask(cv::Mat& image, const cv::Mat& mask,
 	(_cv_mask.image += warped_and_converted_mask) /= 2;
     }
 
+  // Paint motion mask over the input RGB image.
     for (int v = 0; v < _cv_mask.image.rows; ++v)
     {
 	auto	p = _cv_mask.image.ptr<uint8_t>(v, 0);
-	auto	q = image.ptr<cv::Vec3b>(top_left.y + v, 0) + top_left.x;
+	auto	q = _cv_image->image.ptr<cv::Vec3b>(top_left.y + v, 0)
+		  + top_left.x;
 
 	for (const auto pe = p + _cv_mask.image.cols; p < pe; ++p, ++q)
-	    if (*p >= 255)
+	    if (*p >= 127)
 	    {
 		(*q)[1] = 255;
 		(*q)[2] = 255;
@@ -421,6 +425,21 @@ MotionDetector::find_cabletip()
 			  rx.y(), ry.y(), rz.y(),
 			  rx.z(), ry.z(), rz.z()},
 			 tip3);
+
+  // Paint motion mask over the input RGB image.
+    for (int v = 0; v < _cv_mask.image.rows; ++v)
+    {
+	auto	p = _cv_mask.image.ptr<uint8_t>(v, 0);
+	auto	q = _cv_image->image.ptr<cv::Vec3b>(_top_left.y + v, 0)
+		  + _top_left.x;
+
+	for (const auto pe = p + _cv_mask.image.cols; p < pe; ++p, ++q)
+	    if (*p == 255)
+	    {
+		(*q)[0] = 255;
+	    }
+    }
+
 }
 
 MotionDetector::vector3_t

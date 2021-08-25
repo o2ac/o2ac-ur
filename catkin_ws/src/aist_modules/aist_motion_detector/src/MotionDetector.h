@@ -69,7 +69,7 @@ class MotionDetector
 			     bool select)				;
 
   // utility functions
-    void	accumulate_mask(cv::Mat& image, const cv::Mat& mask,
+    void	accumulate_mask(const cv::Mat& mask,
 				const std::string& target_frame,
 				const camera_info_cp& camera_info)	;
     tf::Transform
@@ -106,6 +106,7 @@ class MotionDetector
     int							_nframes;
     point_t						_top_left;
     cv::Mat_<point2_t>					_corners;
+    cv_bridge::CvImagePtr				_cv_image;
     cv_bridge::CvImage					_cv_mask;
     tf::StampedTransform				_Tct;
     camera_info_cp					_camera_info;
