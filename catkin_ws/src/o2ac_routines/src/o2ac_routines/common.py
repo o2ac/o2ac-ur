@@ -1936,9 +1936,11 @@ class O2ACCommon(O2ACBase):
       screw_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(offset*tau/12, 0, 0) )
       screw_poses.append(screw_pose)
 
-      return self.fasten_set_of_screws(screw_poses, screw_size=4, robot_name=robot_name, only_retighten=only_retighten,
-                                skip_intermediate_pose=skip_intermediate_pose,
-                                simultaneous=simultaneous, with_extra_retighten=with_extra_retighten, tries=15)
+      print("#screws", len(screw_poses))
+
+    return self.fasten_set_of_screws(screw_poses, screw_size=4, robot_name=robot_name, only_retighten=only_retighten,
+                              skip_intermediate_pose=skip_intermediate_pose,
+                              simultaneous=simultaneous, with_extra_retighten=with_extra_retighten, tries=15)
 
   def fasten_set_of_screws(self, screw_poses, screw_size, robot_name, only_retighten=False, skip_intermediate_pose=False, 
                            simultaneous=False, with_extra_retighten=False, intermediate_pose=None, unequip_when_done=True,
@@ -3109,10 +3111,7 @@ class O2ACCommon(O2ACBase):
       return False
     return True
 
-  def confirm_motor_and_place_in_aid(self):
-    """ Assumes that the motor is grasped in a random orientation. 
-        Places it in the separate area, determines the orientation, centers it, and places it in the vgroove.
-    """
+  def confirm_motor_pose(self, vision_only=False):
     p_view = conversions.to_pose_stamped("right_centering_link", [-self.tray_view_high.pose.position.z, -0.05, -0.05, 0, 0, 0])
     p_view = self.listener.transformPose("tray_center", p_view)
     p_view.pose.orientation = self.tray_view_high.pose.orientation
@@ -3125,11 +3124,12 @@ class O2ACCommon(O2ACBase):
     motor_placed = True
     try:
       motor_id = self.assembly_database.name_to_id("motor")
+      print("res", res)
       if not motor_id in res.class_ids:
         motor_placed = False
     except:
       motor_placed = False
-    if not motor_placed:
+    if not motor_placed and not vision_only:
       rospy.logerr("Motor not detected by SSD! Return item and abort")
       p_pick = conversions.to_pose_stamped("right_centering_link", [-.002, -0.05, -0.05, 0, 0, 0])
       p_pick = self.listener.transformPose("tray_center", p_pick)
@@ -3161,26 +3161,52 @@ class O2ACCommon(O2ACBase):
     p_motor_in_centering_link = self.listener.transformPose("right_centering_link", p_motor_in_tray_center)
     p_motor_in_centering_link.pose.position.x = -0.006  # Grasp height
 
+    # # DEBUGGING: Use RGB only
+    # p_motor_in_centering_link = self.objects_in_tray[motor_id]
+    # print("p_motor_in_centering_link", p_motor_in_centering_link.pose.position)
+    # p_motor_in_centering_link = self.listener.transformPose("right_centering_link", p_motor_in_centering_link)
+    # p_motor_in_centering_link.pose.position.x = -0.006  # Grasp height
+    # print("p_motor_in_centering_link", p_motor_in_centering_link.pose.position)
+
     # Check that motor direction matches the cables seen in RGB image
     rgb_theta = self.vision.get_motor_angle_from_top_view(camera="b_bot_outside_camera")
     q = p_motor_in_centering_link.pose.orientation
     rpy = tf.transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])
     rgb_theta = rgb_theta % tau # wrap angle to range [0, TAU]
-    cad_theta = rpy[0] % tau # wrap angle to range [0, TAU]
+    cad_theta = rgb_theta
+    
+    # cad_theta = rpy[0] % tau # wrap angle to range [0, TAU]
     print("rgb_theta ", rgb_theta, "cad_theta", cad_theta)
     
     # FIXME: cable orientation not working, relying only on CAD matching
     # If arrow and motor do not point in the same direction
     # if rgb_theta and abs(rgb_theta - cad_theta) > tau/4:
     #   p_motor_in_centering_link = helpers.rotatePoseByRPY(-tau/2, 0, 0, p_motor_in_centering_link)
+    
+    return p_motor_in_centering_link
+
+  def confirm_motor_and_place_in_aid(self):
+    """ Assumes that the motor is grasped in a random orientation. 
+        Places it in the separate area, determines the orientation, centers it, and places it in the vgroove.
+    """
+    p_motor_in_centering_link = self.confirm_motor_pose()
+    if not p_motor_in_centering_link:
+      return False
 
     # Pick motor in defined orientation and move up
-    self.simple_pick("b_bot", object_pose=p_motor_in_centering_link, grasp_width=.08, axis="x", sign=-1, approach_height=0.07)
+    if not self.simple_pick("b_bot", object_pose=p_motor_in_centering_link, grasp_width=.08, axis="x", sign=-1, approach_height=0.07, minimum_grasp_width=0.01):
+      rospy.logerr("Fail to pick motor")
+      p_pick = conversions.to_pose_stamped("right_centering_link", [-.002, -0.05, -0.05, 0, 0, 0])
+      p_pick = self.listener.transformPose("tray_center", p_pick)
+      p_pick.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
+      self.simple_pick("b_bot", object_pose=p_pick, gripper_force=100, axis="z", retreat_height=.1)
+      self.drop_in_tray("b_bot")
+      return False
     self.planning_scene_interface.remove_world_object("motor")
     
     # For safety of the cameras, urscript is blind of them
     pre_orient_pose    = conversions.to_pose_stamped("right_centering_link", [-0.05, 0.0, 0.0, radians(-90), 0, 0])
-    self.b_bot.go_to_pose_goal(pre_orient_pose, speed=1.0)
+    self.b_bot.go_to_pose_goal(pre_orient_pose, speed=1.0, move_lin=True)
 
     self.confirm_to_proceed("motor picked?")
 
@@ -3390,20 +3416,7 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Fail to fasten remaining screws of motor")
       return False
 
-    # for screw_pose in screw_poses:
-    #   self.pick_and_fasten_screw(robot_name, screw_pose, screw_size=3, approach_distance=0.07, intermediate_pose=intermediate_pose, speed=speed)
-    
-    
-    # def a_bot_task():
-    # def b_bot_task():
-    #   pass
-      # tc = lambda a, b: self.tools.fastening_tool_client.get_state() != GoalStatus.ACTIVE
-      # selection_matrix = [1., 1., 1., 0.7, 1., 1.0]
-      # self.active_robots[support_robot].execute_spiral_trajectory("XY", max_radius=0, radius_direction="+Y", steps=50,
-      #                                                     revolutions=1, target_force=0, check_displacement_time=10,
-      #                                                     wiggle_direction="Z", wiggle_angle=radians(10.0), wiggle_revolutions=1.0,
-      #                                                     termination_criteria=tc, timeout=20, selection_matrix=selection_matrix)
-    # self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=60.0)
+    return True
 
   def fasten_motor_fallback(self):
     """"
@@ -4016,7 +4029,7 @@ class O2ACCommon(O2ACBase):
       raise ValueError("Unknown data")
     
     hold_pose = conversions.to_pose_stamped(part_name + "bottom_screw_hole_1", [-0.034, offsets[0], offsets[1], 0, radians(40), 0])
-    if not self.a_bot.go_to_pose_goal(hold_pose, speed=0.5):
+    if not self.a_bot.go_to_pose_goal(hold_pose, speed=0.5, move_lin=True):
       return False
     self.a_bot.gripper.close(velocity=0.01, force=60, wait=False)
     
@@ -4554,8 +4567,8 @@ class O2ACCommon(O2ACBase):
     
     # Grasp
     self.b_bot.gripper.attach_object(tray_name)
-    self.b_bot.gripper.close(wait=False)
-    self.a_bot.gripper.close()
+    self.b_bot.gripper.close(force=100)
+    self.a_bot.gripper.close(force=100)
 
     # move to tray center
     if tray_parallel:
@@ -4623,8 +4636,8 @@ class O2ACCommon(O2ACBase):
     
     # Grasp
     self.b_bot.gripper.attach_object(tray_name)
-    self.b_bot.gripper.close(wait=False)
-    self.a_bot.gripper.close()
+    self.b_bot.gripper.close(force=100, wait=False)
+    self.a_bot.gripper.close(force=100)
     self.ab_bot.master_slave_control("a_bot", "b_bot", a_bot_above_tray_table, slave_relation)
 
     if tray_name == "tray1":
@@ -4817,6 +4830,8 @@ class O2ACCommon(O2ACBase):
         self.rotate_plate_collision_object_in_tray("base")
         rospy.sleep(1.5)
         return self.pick_base_panel(grasp_name=grasp_name, skip_initial_perception=True, use_b_bot_camera=False, retry_with_rotated_orientation=False, retry_counter=retry_counter)
+      elif retry_counter < 3:
+        return self.pick_base_panel(skip_initial_perception=False, use_b_bot_camera=False, retry_with_rotated_orientation=True, retry_counter=retry_counter+1)
       else:  # If retry has also failed
         rospy.logerr("Plate was not perceived by gripper. Breaking out.")
         self.a_bot.gripper.open(wait=False)
@@ -4845,7 +4860,7 @@ class O2ACCommon(O2ACBase):
     if not self.a_bot.go_to_pose_goal(centering_pose, speed=0.5, move_lin=True):
       return False
 
-    self.center_with_gripper("a_bot", opening_width=0.06, gripper_force=80, required_width_when_closed=0.008, move_back_to_initial_position=False)
+    self.center_with_gripper("a_bot", opening_width=0.06, gripper_force=100, required_width_when_closed=0.008, move_back_to_initial_position=False)
     self.update_base_plate_pose_from_grasp_pose(centering_pose)
 
     if not self.a_bot.move_lin_rel(relative_translation=[0, 0, 0.1]):

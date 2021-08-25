@@ -936,11 +936,12 @@ class O2ACAssembly(O2ACCommon):
     pose.pose.orientation.w = 1
     return self.do_plan_pickplace_action('b_bot', 'panel_bearing', pose, save_solution_to_file = 'panel_bearing/bottom_screw_hole_aligner_1')
 
-  def assemble_drive_unit(self, tray_name=None, simultaneous_execution=True):
-    if tray_name:
-      if not self.pick_tray_from_agv_stack_calibration_long_side(tray_name=tray_name):
-        rospy.logerr("Fail to pick and place tray. Abort!")
-        return False
+  def assemble_drive_unit(self, tray_name=None, simultaneous_execution=True, tray_on_table=False):
+    if not tray_on_table:
+      if tray_name:
+        if not self.pick_tray_from_agv_stack_calibration_long_side(tray_name=tray_name):
+          rospy.logerr("Fail to pick and place tray. Abort!")
+          return False
 
     # L-plates and base plate
     success = self.panels_tasks_combined(simultaneous=simultaneous_execution)
@@ -990,15 +991,16 @@ class O2ACAssembly(O2ACCommon):
     
     # self.subtask_c() # bearing, clamping pulley set
 
-  def full_assembly_task(self, simultaneous_execution=False):
+  def full_assembly_task(self, simultaneous_execution=True):
     self.ab_bot.go_to_named_pose("home")
     self.reset_scene_and_robots()
     orders = []
-    orders.append({"tray_name":"tray1", "assembly_name":"wrs_assembly_2021", "status":AssemblyStatus()})  # Top tray
+    # orders.append({"tray_name":"tray1", "assembly_name":"wrs_assembly_2021", "status":AssemblyStatus()})  # Top tray
     orders.append({"tray_name":"tray2", "assembly_name":"wrs_assembly_2020", "status":AssemblyStatus()})  # Bottom tray
 
     ### Use this line to adjust the start state in case of a reset
-    # orders[0]["status"].tray_placed_on_table = True
+    orders[0]["status"].tray_placed_on_table = True
+    # orders[0]["status"].tray_placed_on_table = False
 
     if not orders[0]["status"].tray_placed_on_table:
       def load_first_assembly():
@@ -1006,11 +1008,14 @@ class O2ACAssembly(O2ACCommon):
       self.do_tasks_simultaneous(load_first_assembly, self.center_tray_stack, timeout=90)
     else:
       self.set_assembly(orders[0]["assembly_name"])
+      stack_center=[0.05, 0.14]
+      tray_heights=[0.075,0.02]
+      self.trays_return = {"tray%s"%(i+1): (stack_center+[tray_height], True) for i, tray_height in enumerate(tray_heights[::-1])}
       
     for order in orders:
       self.assembly_status = order["status"]
       self.set_assembly(order["assembly_name"])
-      self.assemble_drive_unit(order["tray_name"], simultaneous_execution)
+      self.assemble_drive_unit(order["tray_name"], simultaneous_execution, tray_on_table=order["status"].tray_placed_on_table)
     rospy.loginfo("==== Finished both tasks ====")
     return
 
@@ -1047,8 +1052,8 @@ class O2ACAssembly(O2ACCommon):
 
     if self.assembly_status.completed_subtask_g:  # Bearing plate
       self.assembly_status.completed_subtask_c1 = self.subtask_c1() # bearing 
-      if self.assembly_status.completed_subtask_c1:
-        self.assembly_status.completed_subtask_c2 = self.subtask_c2() # shaft
+      # if self.assembly_status.completed_subtask_c1:
+      #   self.assembly_status.completed_subtask_c2 = self.subtask_c2() # shaft
       #   if self.assembly_status.completed_subtask_c2:
       #     self.assembly_status.completed_subtask_e = self.subtask_e() # bearing spacer / output pulley
     
