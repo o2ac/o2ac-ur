@@ -2815,15 +2815,15 @@ class O2ACCommon(O2ACBase):
       return False
 
     if shaft_has_hole_at_top:
-      self.b_bot.go_to_pose_goal(inside_vgroove, speed=0.1)
+      self.b_bot.go_to_pose_goal(inside_vgroove, speed=0.1, linear=True)
       self.b_bot.gripper.close()
-      self.b_bot.go_to_pose_goal(approach_vgroove, speed=0.3)
+      self.b_bot.go_to_pose_goal(approach_vgroove, speed=0.3, linear=True)
     else:  # Turn gripper around
-      self.b_bot.move_lin_rel([0,0,0.02], speed=0.4)
+      self.b_bot.move_lin_rel([0,0,0.02], speed=0.4, linear=True)
       above_vgroove  = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [-0.010, 0, 0, 0, 0, 0])
       inside_vgroove = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.011, 0, 0, 0, 0, 0])
-      self.b_bot.go_to_pose_goal(above_vgroove, speed=0.3)
-      self.b_bot.go_to_pose_goal(inside_vgroove, speed=0.2)
+      self.b_bot.go_to_pose_goal(above_vgroove, speed=0.3, linear=True)
+      self.b_bot.go_to_pose_goal(inside_vgroove, speed=0.2, linear=True)
       self.b_bot.gripper.close()
       self.b_bot.move_lin_rel([0,0,0.1], speed=0.3)
     
@@ -3052,6 +3052,7 @@ class O2ACCommon(O2ACBase):
     self.planning_scene_interface.add_object(obj)
     self.planning_scene_interface.allow_collisions("shaft")
     self.b_bot.gripper.attach_object(obj.id)
+    rospy.sleep(0.5)
 
     self.confirm_to_proceed("try to screw")
     self.vision.activate_camera("b_bot_inside_camera")
@@ -3225,7 +3226,7 @@ class O2ACCommon(O2ACBase):
     """
     motor_placed, motor_pose = self.find_motor_centering_area()
     
-    if not use_cad:
+    if not use_cad and motor_pose:
       visual_motor_pose = copy.deepcopy(motor_pose)
       visual_motor_pose.pose.position.z = -0.035
       self.markers_scene.spawn_item("motor", visual_motor_pose)
@@ -3287,9 +3288,10 @@ class O2ACCommon(O2ACBase):
       motor_pose.pose.position.x = -0.007  # Grasp height
       motor_pose.pose.orientation = conversions.to_quaternion(transformations.quaternion_from_euler(rgb_theta, 0, 0))
     
-    visual_motor_pose = copy.deepcopy(motor_pose)
-    visual_motor_pose.pose.position.x = -0.035
-    self.markers_scene.spawn_item("motor", visual_motor_pose)
+    if motor_pose:
+      visual_motor_pose = copy.deepcopy(motor_pose)
+      visual_motor_pose.pose.position.x = -0.035
+      self.markers_scene.spawn_item("motor", visual_motor_pose)
 
     return motor_pose
 
@@ -3636,13 +3638,13 @@ class O2ACCommon(O2ACBase):
     self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
     
     if allow_collision_with_object:
-      self.planning_scene_interface.allow_collisions("screw_tool_m4", allow_collision_with_object)  # Has to be allowed after each screw attempt
+      self.planning_scene_interface.allow_collisions("screw_tool_m%s" % screw_size, allow_collision_with_object)  # Has to be allowed after each screw attempt
     res = self.screw(robot_name, screw_hole_pose, screw_size, screw_height, stay_put_after_screwing=False, skip_final_loosen_and_retighten=False, spiral_radius=spiral_radius)
     if allow_collision_with_object:
-      self.planning_scene_interface.allow_collisions("screw_tool_m4", allow_collision_with_object)  # Has to be allowed after each screw attempt
+      self.planning_scene_interface.allow_collisions("screw_tool_m%s" % screw_size, allow_collision_with_object)  # Has to be allowed after each screw attempt
     self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
     if allow_collision_with_object:
-      self.planning_scene_interface.allow_collisions("screw_tool_m4", allow_collision_with_object) 
+      self.planning_scene_interface.allow_collisions("screw_tool_m%s" % screw_size, allow_collision_with_object) 
     return res  # Bool
 
   def fasten_screw_horizontal(self, robot_name, screw_hole_pose, screw_height = .02, screw_size = 4):
@@ -4251,6 +4253,7 @@ class O2ACCommon(O2ACBase):
         return False
     rospy.loginfo("Successfully fastened screw 1")
 
+    screw_target_pose.header.frame_id = part_name + "bottom_screw_hole_2"
     self.a_bot_success = False
     self.b_bot_success = False
     def a_bot_task():
@@ -4278,7 +4281,6 @@ class O2ACCommon(O2ACBase):
     if not self.a_bot_success or not self.b_bot_success:
       rospy.logerr("Failed to fasten panel. simultaneous=%s"%simultaneous)
 
-    screw_target_pose.header.frame_id = part_name + "bottom_screw_hole_2"
     if not self.b_bot_success:
       # Fallback for screw 2: Realign tool, recenter plate, try again
       rospy.logerr("Failed to fasten panel screw 2, trying to realign tool and retrying.")

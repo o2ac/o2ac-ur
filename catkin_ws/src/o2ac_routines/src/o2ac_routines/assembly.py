@@ -378,6 +378,7 @@ class O2ACAssembly(O2ACCommon):
     self.confirm_to_proceed("insert to bearing")
     if not self.align_shaft("assembled_part_07_inserted", pre_insert_offset=0.065):
       return False
+    self.b_bot.gripper.forget_attached_item()
 
     self.a_bot_success = False
     self.b_bot_success = False
@@ -398,6 +399,7 @@ class O2ACAssembly(O2ACCommon):
       self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=300)
     else:
       b_bot_task()
+    self.despawn_object("shaft")
     
     if not self.a_bot_success or not self.b_bot_success:
       rospy.logerr("Fail to do simultaneous shaft insertion and bearing spacer")
