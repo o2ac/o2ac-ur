@@ -4231,12 +4231,11 @@ class O2ACCommon(O2ACBase):
     
     return self.execute_sequence("a_bot", seq, "center_panel_on_base_plate")
 
-  def fasten_panel(self, panel_name, simultaneous=False, a_bot_task_2nd_screw=None, unequip_tool_on_success=False):
+  def hold_panel_for_fastening(self, panel_name):
     if panel_name == "panel_bearing":
       part_name = "assembled_part_03_"
     elif panel_name == "panel_motor":
       part_name = "assembled_part_02_"
-
     self.a_bot.gripper.send_command(0.06, wait=False)
     self.a_bot.gripper.forget_attached_item()
     self.despawn_object(panel_name)
@@ -4255,8 +4254,16 @@ class O2ACCommon(O2ACBase):
     # Open gripper slightly
     self.a_bot.gripper.send_command(0.005, velocity=0.01, wait=False)
     # self.publish_part_in_assembled_position(panel_name)
+
+  def fasten_panel(self, panel_name, simultaneous=False, a_bot_task_2nd_screw=None, unequip_tool_on_success=False):
+    if panel_name == "panel_bearing":
+      part_name = "assembled_part_03_"
+    elif panel_name == "panel_motor":
+      part_name = "assembled_part_02_"
     
     self.confirm_to_proceed("Plate in the correct position?")
+    if not simultaneous:
+      self.hold_panel_for_fastening(panel_name)
 
     self.do_change_tool_action("b_bot", equip=True, screw_size = 4)
     self.vision.activate_camera(camera_name="b_bot_outside_camera")

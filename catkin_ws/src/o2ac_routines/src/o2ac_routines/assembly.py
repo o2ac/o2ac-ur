@@ -936,19 +936,27 @@ class O2ACAssembly(O2ACCommon):
       self.return_l_plates()
       return False
 
-    self.a_bot_success_2nd = False
-    def a_bot_2nd_task():
-      self.a_bot_success_2nd = self.place_panel("a_bot", "panel_motor", pick_again=True, fake_position=True)
-      return self.a_bot_success_2nd
 
     # Fasten plates
-    # if not self.place_panel("a_bot", "panel_bearing", pick_again=True, grasp_pose=self.panel_bearing_pose):
     if not self.place_panel("a_bot", "panel_bearing", pick_again=True, fake_position=True):
       return False
+    
+    if simultaneous:
+      self.hold_panel_for_fastening("panel_bearing")
+
     self.publish_status_text("Target: fasten panel bearing")
+    
+    self.a_bot_success_2nd = False
+    def a_bot_2nd_task():
+      if not self.place_panel("a_bot", "panel_motor", pick_again=True, fake_position=True):
+        return False
+      if simultaneous:
+        self.a_bot_success_2nd = self.hold_panel_for_fastening("panel_motor")
+      else:
+        self.a_bot_success_2nd = True
+      return self.a_bot_success_2nd
     if not self.fasten_panel("panel_bearing", simultaneous=simultaneous, a_bot_task_2nd_screw=a_bot_2nd_task):
       return False
-    
 
     self.a_bot_success = False
     self.b_bot_success = False
