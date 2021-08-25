@@ -891,7 +891,7 @@ class O2ACAssembly(O2ACCommon):
         self.b_bot.go_to_named_pose("home")
     
     if simultaneous:
-      self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=60)
+      self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=300)
     else:
       a_bot_task()
       b_bot_task()
