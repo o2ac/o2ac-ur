@@ -1168,7 +1168,7 @@ class O2ACBase(object):
       return False
     if ((robot.robot_status.carrying_tool == False) and unequip):
       rospy.logerr("Robot is not holding a tool. Cannot unequip any.")
-      return False
+      return True # this is not an error
     
     # Set up poses
     ps_approach = geometry_msgs.msg.PoseStamped()

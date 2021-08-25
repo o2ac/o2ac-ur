@@ -1482,6 +1482,9 @@ class O2ACCommon(O2ACBase):
     self.b_bot.go_to_pose_goal(look_at_shaft_end_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=0.15)
     self.confirm_to_proceed("Looking at shaft tip")
 
+    if not self.use_real_robot:
+      return True
+
     res = self.vision.call_shaft_hole_detection()
     if res:
       print("=== shaft screw_hole detection returned:")
@@ -1988,13 +1991,13 @@ class O2ACCommon(O2ACBase):
         seq = []
         if not first_screw and screw_status[n] == "empty": # go back
           if intermediate_pose:
-            seq.append(helpers.to_sequence_item(intermediate_pose, speed=speed, end_effector_link = robot_name+"_screw_tool_m3_tip_link"))
-          seq.append(helpers.to_sequence_item("horizontal_screw_ready", speed=speed))
-          seq.append(helpers.to_sequence_item("screw_ready", speed=speed))
+            seq.append(helpers.to_sequence_item(intermediate_pose, speed=speed, end_effector_link = robot_name+"_screw_tool_m3_tip_link", linear=True))
+          seq.append(helpers.to_sequence_item("horizontal_screw_ready", speed=speed, linear=True))
+          seq.append(helpers.to_sequence_item("screw_ready", speed=speed, linear=True))
         
         if not skip_intermediate_pose and first_screw and screw_status[n] == "maybe_stuck_in_hole": # get ready for screwing
-          seq.append(helpers.to_sequence_item("horizontal_screw_ready", speed=speed))
-          seq.append(helpers.to_sequence_item("screw_ready", speed=speed))
+          seq.append(helpers.to_sequence_item("horizontal_screw_ready", speed=speed, linear=True))
+          seq.append(helpers.to_sequence_item("screw_ready", speed=speed, linear=True))
 
         if seq:
           self.execute_sequence(robot_name, seq, "fasten_screws_return_seq")
@@ -2044,9 +2047,9 @@ class O2ACCommon(O2ACBase):
     elif not skip_return:
       seq = []
       if intermediate_pose:
-        seq.append(helpers.to_sequence_item(intermediate_pose, speed=speed, end_effector_link = robot_name+"_screw_tool_m3_tip_link"))
-      seq.append(helpers.to_sequence_item("horizontal_screw_ready", speed=speed))
-      seq.append(helpers.to_sequence_item("screw_ready", speed=speed))
+        seq.append(helpers.to_sequence_item(intermediate_pose, speed=speed, end_effector_link = robot_name+"_screw_tool_m3_tip_link", linear=True))
+      seq.append(helpers.to_sequence_item("horizontal_screw_ready", speed=speed, linear=True))
+      seq.append(helpers.to_sequence_item("screw_ready", speed=speed, linear=True))
       self.execute_sequence(robot_name, seq, "fasten_screws_return_seq")
     
     if unequip_when_done:
@@ -2211,7 +2214,7 @@ class O2ACCommon(O2ACBase):
       if result is not None:
         motor_stalled = result.motor_stalled
       self.b_bot.go_to_pose_goal(b_bot_approach_pose, speed=0.02, move_lin=True, end_effector_link="b_bot_set_screw_tool_tip_link")
-      if motor_stalled:
+      if motor_stalled or not self.use_real_robot:
         break
       else:
         print("not stalled")
@@ -2640,12 +2643,11 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Could not find shaft in tray. Skipping procedure.")
       return False
     
-    # # Spawn object FIXME(cambel)
     gp = conversions.from_pose_to_list(goal.pose)
     gp[:2] += [0.075/2.0, 0.0] # Magic Numbers for visuals 
     gp[2] = 0.005
     euler_gp = tf_conversions.transformations.euler_from_quaternion(gp[3:])
-    shaft_pose = conversions.to_pose_stamped("tray_center", gp[:3].tolist() + [0, 0, -tau/2-euler_gp[0]])
+    shaft_pose = conversions.to_pose_stamped("tray_center", gp[:3].tolist() + [0, 0, euler_gp[0] % tau])
     self.markers_scene.spawn_item("shaft", shaft_pose)
     # self.spawn_object("shaft", shaft_pose)
     # self.planning_scene_interface.allow_collisions("shaft", "")
@@ -2665,7 +2667,6 @@ class O2ACCommon(O2ACBase):
     picked_ok = self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.03, approach_height=0.1, 
                               item_id_to_attach="shaft", minimum_grasp_width=0.004,  axis="z", lift_up_after_pick=True,
                               speed_slow=0.3)
-    
     
     if not picked_ok:
     # if not self.pick("b_bot", object_name="shaft", grasp_pose=goal):
@@ -2853,15 +2854,20 @@ class O2ACCommon(O2ACBase):
       return False
 
     self.b_bot.gripper.open(opening_width=0.03)
-    self.b_bot.gripper.close(velocity=0.013, force=40)  # Minimum force and speed
-    # self.b_bot.linear_push(3, "-Y", max_translation=0.05, timeout=15.0)
-    self.b_bot.move_lin_rel(relative_translation=[0, -.055, 0], speed=.05)
+    self.b_bot.gripper.close(velocity=0.02, force=0)  # Minimum force and speed
+    self.b_bot.move_lin_rel(relative_translation=[0, -.055, 0], speed=.1)
     self.b_bot.gripper.open(opening_width=0.03)
     if not self.b_bot.go_to_pose_goal(shaft_center, speed=0.1):
       rospy.logerr("Fail to go to relative shaft center")
       return False
 
+    shaft_pose = self.listener.transformPose("tray_center", self.b_bot.get_current_pose_stamped())
+    shaft_pose.pose.position.y -= 0.035
+    shaft_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, tau/4))
+    self.markers_scene.spawn_item("shaft", shaft_pose)
     self.b_bot.gripper.close()
+    self.b_bot.gripper.attach_object("shaft")
+
     if not self.simple_gripper_check("b_bot", 0.004):
       rospy.logerr("No shaft detected in gripper. Going back up and aborting.")
       self.b_bot.go_to_pose_goal(approach_centering)
@@ -2980,11 +2986,14 @@ class O2ACCommon(O2ACBase):
 
     goal.pose.position.z = -0.001 # Magic Numbers for grasping
     # goal.pose.position.x -= 0.01
-    goal = self.listener.transformPose("world", goal)  # This is not necessary
+    goal = self.listener.transformPose("tray_center", goal)  # This is not necessary
+    marker_pose = copy.deepcopy(goal)
+    marker_pose.pose.position.z = 0.007
+    self.markers_scene.spawn_item("end_cap", marker_pose)
 
     self.vision.activate_camera("a_bot_inside_camera")  # Just for visualization
     if not self.simple_pick("a_bot", goal, axis="z", speed_fast=0.5, gripper_force=100.0, grasp_width=.04, 
-                               approach_height=0.1, item_id_to_attach="", lift_up_after_pick=True, approach_with_move_lin=False):
+                               approach_height=0.1, item_id_to_attach="end_cap", lift_up_after_pick=True, approach_with_move_lin=False):
       rospy.logerr("Fail to simple_pick")
       return False
 
@@ -3011,7 +3020,7 @@ class O2ACCommon(O2ACBase):
 
     return success
 
-  def fasten_end_cap(self):
+  def fasten_end_cap(self, skip_unequip_tool=False):
     self.vision.activate_camera("a_bot_outside_camera")
 
     if not self.do_change_tool_action("a_bot", equip=True, screw_size = 4):
@@ -3034,12 +3043,14 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Fail to go to above_hole_screw_pose")
       return False
 
+    self.despawn_object("shaft")
     obj = self.assembly_database.get_collision_object("shaft")
     obj.header.frame_id = "b_bot_gripper_tip_link"
     obj.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/4, -tau/4, -tau/4))
     obj.pose = helpers.rotatePoseByRPY(0, 0, tau/2, obj.pose)
     obj.pose.position = conversions.to_point([-.006, 0, .038])
     self.planning_scene_interface.add_object(obj)
+    self.planning_scene_interface.allow_collisions("shaft")
     self.b_bot.gripper.attach_object(obj.id)
 
     self.confirm_to_proceed("try to screw")
@@ -3053,10 +3064,15 @@ class O2ACCommon(O2ACBase):
     if not self.a_bot.go_to_named_pose("screw_ready"):
       return False
     
-    if not self.do_change_tool_action("a_bot", equip=False, screw_size = 4):
-      rospy.logerr("Failed unequip m4")
-      return False
+    if not skip_unequip_tool:
+      if not self.do_change_tool_action("a_bot", equip=False, screw_size = 4):
+        rospy.logerr("Failed unequip m4")
+        return False
     
+    self.despawn_object("shaft")
+    shaft_pose = conversions.to_pose_stamped("b_bot_gripper_tip_link", conversions.from_pose_to_list(obj.pose))
+    self.markers_scene.spawn_item("shaft", shaft_pose)
+
     return True
 
   ######## Motor
