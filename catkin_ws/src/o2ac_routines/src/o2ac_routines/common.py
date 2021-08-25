@@ -372,7 +372,8 @@ class O2ACCommon(O2ACBase):
         obj.header.frame_id = object_pose.header.frame_id
         obj.pose = object_pose.pose
         self.planning_scene_interface.add_object(obj)
-        if True:
+        self.planning_scene_interface.allow_collisions(item_name)
+        if not self.use_real_robot:
           # Spawn the part in gazebo
           print("??? gazebo")
           name = "panel_bearing"
@@ -685,9 +686,9 @@ class O2ACCommon(O2ACBase):
       # robot.gripper.close(force=gripper_force, velocity=gripper_velocity)
 
     # # break seq here
-    # if not self.execute_sequence(robot_name, seq, "simple_pick"):
-    #   rospy.logerr("Fail to simple pick with sequence")
-    #   return False
+    if not self.execute_sequence(robot_name, seq, "simple_pick"):
+      rospy.logerr("Fail to simple pick with sequence")
+      return False
 
     if pose_with_uncertainty != None:
       tip_link = robot_name + "_gripper_tip_link"
@@ -895,7 +896,7 @@ class O2ACCommon(O2ACBase):
           dy = abs(pose.pose.position.y - object_pose.pose.position.y)
           if dx < 1e-4 and dy < 1e-4:
             continue  # It's the item itself or a duplicate
-          if condition == Y_BORDER_SAFE:
+          elif condition == Y_BORDER_SAFE:
             if dx < min_dist_to_border and dy < dist_far:
               item_too_close = True
           elif condition == X_BORDER_SAFE:
@@ -3294,11 +3295,14 @@ class O2ACCommon(O2ACBase):
     pass
 
   def insert_motor(self, target_link, attempts=1):
-    target_pose = conversions.to_pose_stamped(target_link, [-0.019, -0.004, -0.014, -tau/4, radians(60), -tau/4])
+    if self.assembly_database.db_name == "wrs_assembly_2021":
+      target_pose = conversions.to_pose_stamped(target_link, [-0.021, -0.002, -0.008, -tau/4, radians(60), -tau/4])
+    else:
+      target_pose = conversions.to_pose_stamped(target_link, [-0.021, -0.006, -0.015, -tau/4, radians(60), -tau/4])
     selection_matrix = [0., 0.2, 0.2, 1, 1, 1]
     self.b_bot.linear_push(2, "+X", max_translation=0.03, timeout=10.0)
     result = self.b_bot.do_insertion(target_pose, insertion_direction="+X", force=8.0, timeout=20.0, 
-                                      wiggle_direction="X", wiggle_angle=np.deg2rad(3.0), wiggle_revolutions=1.0,
+                                      wiggle_direction=None, wiggle_angle=np.deg2rad(3.0), wiggle_revolutions=1.0,
                                       radius=0.003, relaxed_target_by=0.002, selection_matrix=selection_matrix)
     success = result == TERMINATION_CRITERIA
 
@@ -3721,7 +3725,7 @@ class O2ACCommon(O2ACBase):
     self.allow_collisions_with_robot_hand(panel_name, "b_bot", allow=True)
     self.allow_collisions_with_robot_hand("tray", "b_bot", allow=True)
     success = self.simple_pick("b_bot", object_pose=grasp_pose, grasp_width=grasp_width, approach_height=0.05, grasp_height=0.005, 
-                     axis="z", item_id_to_attach=panel_name, lift_up_after_pick=True, approach_with_move_lin=False,
+                               axis="z", item_id_to_attach=panel_name, lift_up_after_pick=True, approach_with_move_lin=False,
                                speed_fast=1.0, minimum_grasp_width=0.001, attach_with_collisions=True, pose_with_uncertainty=pose_with_uncertainty, object_name=panel_name)
       
     self.allow_collisions_with_robot_hand("tray", "b_bot", allow=True)
@@ -4606,9 +4610,9 @@ class O2ACCommon(O2ACBase):
     rospy.sleep(0.3)
     try:
       self.listener.waitForTransform("agv_tray_center", "move_group/"+tray_name+"/center", rospy.Time(0), rospy.Duration(5))
+      tray_pose = self.listener.transformPose("agv_tray_center", conversions.to_pose_stamped("move_group/"+tray_name+"/center",[0,0,0,0,0,0]))
     except:
       pass
-    tray_pose = self.listener.transformPose("agv_tray_center", conversions.to_pose_stamped("move_group/"+tray_name+"/center",[0,0,0,0,0,0]))
     tray_point = conversions.from_point(tray_pose.pose.position)
     tray_parallel = self.trays[tray_name][1]
     pick_orientation  = [tau/4, tau/4, 0] if not tray_parallel else [ 0, tau/4, 0]

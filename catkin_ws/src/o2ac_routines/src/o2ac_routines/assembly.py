@@ -269,17 +269,33 @@ class O2ACAssembly(O2ACCommon):
     self.allow_collisions_with_robot_hand("shaft", "b_bot", True)
     self.allow_collisions_with_robot_hand("end_cap", "a_bot", True)
     
-    self.publish_status_text("Target: end cap" )
     
+    self.publish_status_text("Target: shaft & end cap" )
     if not self.pick_end_cap():
       return False
-    if not self.orient_shaft_end_cap():
-      return False
+    
+    self.a_bot_success = False
+    self.b_bot_success = False
+    def a_task():
+      self.a_bot_success = self.orient_shaft_end_cap()
+      
+    def b_task():
+      self.publish_status_text("Target: shaft" )
+      self.b_bot_success = self.pick_shaft()
+      self.b_bot_success = self.orient_shaft()
+    
+    if simultaneous:
+      self.do_tasks_simultaneous(a_task, b_task, timeout=200)
+    else:
+      a_task()
+      b_task()
 
-    self.publish_status_text("Target: shaft" )
-    if not self.pick_shaft():
-      return False
-    if not self.orient_shaft():
+    if not self.a_bot_success or not self.a_bot_success:
+      rospy.logerr("Fail to assemble shaft")
+      self.drop_in_tray("b_bot")
+      self.b_bot.go_to_named_pose("home")
+      self.drop_in_tray("a_bot")
+      self.a_bot.go_to_named_pose("home")
       return False
 
     # pre_insertion_shaft = conversions.to_pose_stamped("tray_center", [0.0, 0, 0.2, 0, 0, -tau/4.])
@@ -1043,9 +1059,10 @@ class O2ACAssembly(O2ACCommon):
     self.do_change_tool_action("b_bot", equip=False, screw_size=4)
 
     if success:
+      self.assembly_status.completed_subtask_a = self.subtask_a() # motor
       self.assembly_status.completed_subtask_c1 = self.subtask_c1() # bearing 
-      # if self.assembly_status.completed_subtask_c1:
-      #   self.assembly_status.completed_subtask_c2 = self.subtask_c2() # shaft
+      if self.assembly_status.completed_subtask_c1:
+        self.assembly_status.completed_subtask_c2 = self.subtask_c2() # shaft
       #   if self.assembly_status.completed_subtask_c2:
       #     self.assembly_status.completed_subtask_e = self.subtask_e() # bearing spacer / output pulley
     
@@ -1093,10 +1110,14 @@ class O2ACAssembly(O2ACCommon):
     # orders[0]["status"].tray_placed_on_table = False
 
     if not orders[0]["status"].tray_placed_on_table:
+      print("get from AGV")
       def load_first_assembly():
         self.set_assembly(orders[0]["assembly_name"])
-      self.do_tasks_simultaneous(load_first_assembly, self.center_tray_stack, timeout=90)
+      # self.do_tasks_simultaneous(load_first_assembly, self.center_tray_stack, timeout=90)
+      load_first_assembly()
+      self.center_tray_stack()
     else:
+      print("already in the table")
       self.set_assembly(orders[0]["assembly_name"])
       stack_center=[0.05, 0.14]
       tray_heights=[0.075,0.02]

@@ -7,6 +7,8 @@
   <arg name="script_sender_port_a" default="50002" />
   <arg name="reverse_port_b" default="50003" doc="Port that will be opened by the driver to allow direct communication between the driver and the robot controller."/>
   <arg name="script_sender_port_b" default="50004" doc="The driver will offer an interface to receive the program's URScript on this port. If the robot cannot connect to this port, `External Control` will stop immediately."/>
+  <arg name="trajectory_interface_port_a" default="50005" doc="The driver will offer an interface to receive complete trajectories on this port. To use this, make sure a pass_through_controller is running. See the controller documentation for details."/>
+  <arg name="trajectory_interface_port_b" default="50006" doc="The driver will offer an interface to receive complete trajectories on this port. To use this, make sure a pass_through_controller is running. See the controller documentation for details."/>
   <arg name="use_tool_communication_a" default="false"/>
   <arg name="use_tool_communication_b" default="false" doc="On e-Series robots tool communication can be enabled with this argument"/>
   <arg name="tool_device_name_a" default="/tmp/ttyUR_a"/>
@@ -68,6 +70,7 @@
     <arg name="robot_ip" value="$(arg robot_ip_a)"/>
     <arg name="reverse_port" value="$(arg reverse_port_a)"/>
     <arg name="script_sender_port" value="$(arg script_sender_port_a)"/>
+    <arg name="trajectory_interface_port" value="$(arg trajectory_interface_port_a)"/>
     <arg name="limited" value="$(arg limited)"/>
     <arg name="tf_prefix" value="$(arg tf_prefix)"/>
     <arg name="controllers" value="$(arg controllers)"/>
@@ -94,6 +97,7 @@
     <arg name="robot_ip" value="$(arg robot_ip_b)"/>
     <arg name="reverse_port" value="$(arg reverse_port_b)"/>
     <arg name="script_sender_port" value="$(arg script_sender_port_b)"/>
+    <arg name="trajectory_interface_port" value="$(arg trajectory_interface_port_b)"/>
     <arg name="limited" value="$(arg limited)"/>
     <arg name="tf_prefix" value="$(arg tf_prefix)"/>
     <arg name="controllers" value="$(arg controllers)"/>
