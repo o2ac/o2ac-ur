@@ -4,19 +4,21 @@ waypoints:
 - pose: [-0.15, 0, 0.02, -90, 0, 0] # translation, orientation (degrees)
   pose_type: task-space-in-frame
   frame_id: left_centering_link
-  speed: 1.0
+  speed: 0.8
+  acc: 0.5
   desc: Above tray edge
 - pose: [-0.08, 0, 0.02, -90, 0, 0] 
   pose_type: task-space-in-frame
   frame_id: left_centering_link
   speed: 0.8
+  acc: 0.5
   is_trajectory: True
   blend: 0.01
   desc: Above centering point
-- pose: [-0.02, 0, 0.02, -90, 0, 0] 
+- pose: [-0.02, 0, 0.02, -90, 0, 0]
   pose_type: task-space-in-frame
   frame_id: left_centering_link
-  speed: 0.2
+  speed: 0.3
   is_trajectory: True
   blend: 0.0
   desc: dropping 
@@ -29,6 +31,7 @@ waypoints:
   pose_type: task-space-in-frame
   frame_id: left_centering_link
   speed: 1.0
+  acc: 0.8
 - pose_type: gripper
   gripper:
     action: 'close-open'
@@ -39,22 +42,24 @@ waypoints:
   pose_type: task-space-in-frame
   frame_id: left_centering_link
   speed: 1.0
+  acc: 0.8
 - pose: [0.0, 0, 0, 0, -30, 0] 
   pose_type: relative-tcp
-  speed: 0.8
+  speed: 0.6
+  # acc: 0.8
 - pose_type: gripper
   gripper:
     action: 'close'
     velocity: 0.05
 - pose: [0.0, 0, 0.04, 0, 0, 0] 
   pose_type: relative-world
-  speed: 0.2
+  speed: 0.6
 - pose: [0.0, 0, 0.0, 0, 90, 0] 
   pose_type: relative-tcp
-  speed: 0.4
+  speed: 0.6
 - pose: [0.0, 0, -0.035, 0, 0, 0] 
   pose_type: relative-world
-  speed: 0.2
+  speed: 0.3
 - pose_type: gripper
   gripper:
     action: 'open'
@@ -62,18 +67,18 @@ waypoints:
     velocity: 0.1
 - pose: [0.0, 0.0, 0.0, 0, -90, 0] 
   pose_type: relative-tcp
-  speed: 0.4
+  speed: 0.6
 - pose_type: gripper
   gripper:
     action: 'close'
     velocity: 0.05
 - pose: [0.0, 0, 0.05, 0, 0, 0] 
   pose_type: relative-world
-  speed: 0.2
+  speed: 0.3
 - pose: [-0.025, 0, 0.02, -90, 0, -20] 
   pose_type: task-space-in-frame
   frame_id: left_centering_link
-  speed: 0.5
+  speed: 0.6
   desc: dropping
 - pose_type: gripper
   gripper:
@@ -84,6 +89,7 @@ waypoints:
   pose_type: task-space-in-frame
   frame_id: left_centering_link
   speed: 1.0
+  acc: 0.8
 - pose_type: gripper
   gripper:
     action: 'close-open'
@@ -94,14 +100,17 @@ waypoints:
   pose_type: task-space-in-frame
   frame_id: left_centering_link
   speed: 1.0
+  acc: 0.8
 - pose: [0.0, 0, -0.015, 0, 35, 0] 
   pose_type: relative-tcp
-  speed: 1.0
+  speed: 0.6
+  acc: 0.4
 - pose_type: gripper
   gripper:
     action: 'close'
     velocity: 0.05
 - pose: [0.0, 0, 0.05, 0, 0, 0] 
   pose_type: relative-world
-  speed: 0.1
+  speed: 0.57
+  acc: 0.5
   desc: move up
