@@ -131,14 +131,12 @@ class O2ACVisionServer(object):
 
             # Action server for 2D localization by SSD
             self.get_2d_poses_from_ssd_server \
-                    = actionlib.SimpleActionServer("~get_2d_poses_from_ssd",
-                                                    o2ac_msgs.msg.get2DPosesFromSSDAction,
-                                                    self.execute_get_2d_poses_from_ssd)
-            self.a_bot_inside_camera = rospy.Subscriber("/a_bot_inside_camera/color/image_raw", sensor_msgs.msg.Image, self.a_bot_inside_camera_callback)
-            self.a_bot_outside_camera = rospy.Subscriber("/a_bot_outside_camera/color/image_raw", sensor_msgs.msg.Image, self.a_bot_outside_camera_callback)
-            self.b_bot_inside_camera = rospy.Subscriber("/b_bot_inside_camera/color/image_raw", sensor_msgs.msg.Image, self.b_bot_inside_camera_callback)
-            self.b_bot_outside_camera = rospy.Subscriber("/b_bot_outside_camera/color/image_raw", sensor_msgs.msg.Image, self.b_bot_outside_camera_callback)
-            self.last_image = {}
+                = actionlib.SimpleActionServer(
+                    "~get_2d_poses_from_ssd",
+                    o2ac_msgs.msg.get2DPosesFromSSDAction, auto_start=False)
+            self.get_2d_poses_from_ssd_server.register_goal_callback(
+                self.get_2d_poses_from_ssd_goal_callback)
+            self.get_2d_poses_from_ssd_server.start()
 
             # Action server for 3D localization by SSD
             self.get_3d_poses_from_ssd_server \
@@ -243,9 +241,9 @@ class O2ACVisionServer(object):
 
     ### ======= Callbacks of action servers
 
-    # def get_2d_poses_from_ssd_goal_callback(self):
-    #     print("get_2d_poses_from_ssd called")
-    #     self.get_2d_poses_from_ssd_server.accept_new_goal()
+    def get_2d_poses_from_ssd_goal_callback(self):
+        print("get_2d_poses_from_ssd called")
+        self.get_2d_poses_from_ssd_server.accept_new_goal()
 
     def get_3d_poses_from_ssd_goal_callback(self):
         self.get_3d_poses_from_ssd_server.accept_new_goal()
@@ -267,18 +265,6 @@ class O2ACVisionServer(object):
         self.pick_success_server.accept_new_goal()
 
 ### ======= Callbacks of subscribed topics
-
-    def a_bot_inside_camera_callback(self, image):
-        self.last_image["a_bot_inside_camera"] = image
-
-    def a_bot_outside_camera_callback(self, image):
-        self.last_image["a_bot_outside_camera"] = image
-
-    def b_bot_inside_camera_callback(self, image):
-        self.last_image["b_bot_inside_camera"] = image
-
-    def b_bot_outside_camera_callback(self, image):
-        self.last_image["b_bot_outside_camera"] = image
 
     def synced_images_callback(self, camera_info, image, depth):
         self._camera_info = camera_info
@@ -304,8 +290,8 @@ class O2ACVisionServer(object):
             self.results_pub.publish(poses2d_array)
             self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
 
-        # elif self.get_2d_poses_from_ssd_server.is_active():
-        #     self.execute_get_2d_poses_from_ssd(im_in, im_vis)
+        elif self.get_2d_poses_from_ssd_server.is_active():
+            self.execute_get_2d_poses_from_ssd(im_in, im_vis)
 
         elif self.get_3d_poses_from_ssd_server.is_active():
             self.execute_get_3d_poses_from_ssd(im_in, im_vis)
@@ -333,18 +319,12 @@ class O2ACVisionServer(object):
 
 ### ======= Process active goals of action servers
 
-    def execute_get_2d_poses_from_ssd(self, goal):
+    def execute_get_2d_poses_from_ssd(self, im_in, im_vis):
         rospy.loginfo("Executing get_2d_poses_from_ssd action")
-        image = self.last_image.get(goal.camera_name, None)
-        action_result = o2ac_msgs.msg.get2DPosesFromSSDResult()
-        if not image:
-            rospy.logerr("Image for camera %s not found!" % goal.camera_name)
-            self.get_2d_poses_from_ssd_server.set_aborted(result=action_result)
-            
-        im_in  = self.bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
-        im_vis = im_in.copy()
-        action_result.results, im_vis = self.get_2d_poses_from_ssd(im_in, im_vis, fake_depth=True)
 
+        action_result = o2ac_msgs.msg.get2DPosesFromSSDResult()
+        action_result.results, im_vis = self.get_2d_poses_from_ssd(im_in,
+                                                                   im_vis)
         self.get_2d_poses_from_ssd_server.set_succeeded(action_result)
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
 
@@ -479,7 +459,7 @@ class O2ACVisionServer(object):
 
 ### ======= Localization helpers
 
-    def get_2d_poses_from_ssd(self, im_in, im_vis, fake_depth=False):
+    def get_2d_poses_from_ssd(self, im_in, im_vis):
         """
         Finds an object's bounding box on the tray, then attempts to find its pose.
         Can also find grasp poses for the belt.
@@ -535,7 +515,7 @@ class O2ACVisionServer(object):
             # Publish result markers
             poses3d = []
             for pose2d in poses2d.poses:
-                pose3d = self.convert_pose_2d_to_3d(pose2d, fake_depth=fake_depth)
+                pose3d = self.convert_pose_2d_to_3d(pose2d)
                 if pose3d:
                     poses3d.append(pose3d)
                     rospy.loginfo("Found pose for class %d: (%f, %f, %f)",
@@ -768,7 +748,7 @@ class O2ACVisionServer(object):
 
 ### ========
 
-    def convert_pose_2d_to_3d(self, pose2d, fake_depth=False):
+    def convert_pose_2d_to_3d(self, pose2d):
         """
         Convert a 2D pose to a 3D pose in the tray using the current depth image.
         Returns a PoseStamped in tray_center.
@@ -778,16 +758,11 @@ class O2ACVisionServer(object):
         if self._depth is None:
             rospy.logerr("No depth image found")
             return
-        
-        if not fake_depth:
-            depth = self.bridge.imgmsg_to_cv2(self._depth,
-                                            desired_encoding="passthrough")
-            xyz = self.cam_helper.project_2d_to_3d_from_images(self._camera_info,
-                                                            pose2d.x, pose2d.y,
-                                                            [depth])
-        else:
-            xyz = self.cam_helper.project_2d_to_3d(self._camera_info, pose2d.x, pose2d.y, [0])[0]
-
+        depth = self.bridge.imgmsg_to_cv2(self._depth,
+                                          desired_encoding="passthrough")
+        xyz = self.cam_helper.project_2d_to_3d_from_images(self._camera_info,
+                                                           pose2d.x, pose2d.y,
+                                                           [depth])
         if not xyz:
             return None
         p3d.pose.position.x = xyz[0]
@@ -798,8 +773,6 @@ class O2ACVisionServer(object):
         try:
             p3d.header.stamp = rospy.Time(0.0)
             p3d = self.listener.transformPose("tray_center", p3d)
-            if fake_depth:
-                p3d.pose.position.z = 0
         except Exception as e:
             rospy.logerr('Pose transform failed(): {}'.format(e))
 

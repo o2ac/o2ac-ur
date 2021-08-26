@@ -42,26 +42,6 @@ class VisionClient():
         return False
 
     @check_for_real_robot
-    def read_from_2d_ssd(self, camera_name):
-        """
-        Returns object poses as estimated by the SSD neural network and reprojection.
-        Also updates self.objects_in_tray
-        """
-        # Send goal, wait for result
-        self.ssd_client.send_goal(o2ac_msgs.msg.get2DPosesFromSSDGoal(camera_name=camera_name))
-        if (not self.ssd_client.wait_for_result(rospy.Duration(4.0))):
-            self.ssd_client.cancel_goal()  # Cancel goal if timeout expired
-            rospy.logerr("Call for 2D SSD result returned no result. Is o2ac_vision running?")
-            return False
-
-        # Read result and return
-        try:
-            return self.ssd_client.get_result()
-        except:
-            pass
-        return False
-
-    @check_for_real_robot
     def read_from_ssd(self):
         """
         Returns object poses as estimated by the SSD neural network and reprojection.
