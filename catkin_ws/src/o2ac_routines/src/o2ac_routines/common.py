@@ -4086,7 +4086,7 @@ class O2ACCommon(O2ACBase):
     above_centering_pose = conversions.to_pose_stamped(centering_frame, [-0.15, y_pos, z_pos, 0, 0, 0])
     at_centering_pose    = conversions.to_pose_stamped(centering_frame, [x_pos, y_pos, z_pos, 0, 0, 0])
     pre_push_pose        = conversions.to_pose_stamped(centering_frame, [-0.01, y_pos, z_pos, 0, 0, 0])
-    push_pose            = conversions.to_pose_stamped(centering_frame, [-0.011, y_pos, gripper_at_stopper, 0, 0, 0])
+    push_pose            = conversions.to_pose_stamped(centering_frame, [-0.015, y_pos, gripper_at_stopper, 0, 0, 0])
     above_centering_joint_pose = [0.48, -2.05, 2.05, -1.55, -1.58, -1.09-(tau/2)]
 
     seq = []
@@ -4095,7 +4095,7 @@ class O2ACCommon(O2ACBase):
     seq.append(helpers.to_sequence_item(at_centering_pose, speed=speed))
     seq.append(helpers.to_sequence_gripper(0.01, gripper_velocity=1.0, wait=False))
     seq.append(helpers.to_sequence_item(pre_push_pose, speed=speed))
-    seq.append(helpers.to_sequence_gripper('close', gripper_force=0, gripper_velocity=0.1))
+    seq.append(helpers.to_sequence_gripper(0.005, gripper_force=0, gripper_velocity=0.1))
     seq.append(helpers.to_sequence_item(push_pose, speed=0.5))
 
     def post_callback():
