@@ -1743,7 +1743,7 @@ class O2ACCommon(O2ACBase):
       else:
         rospy.logwarn("Bearing angle not found in image.")
         times_perception_failed_in_a_row += 1
-      if times_it_looked_like_success > 3:
+      if times_it_looked_like_success > 2:
         rospy.loginfo("Bearing angle looked correct " + str(times_it_looked_like_success) + " times. Judged successful.")
         return True
       if times_perception_failed_in_a_row > 5:
@@ -2657,6 +2657,7 @@ class O2ACCommon(O2ACBase):
 
   def pick_shaft(self, attempt_nr=0, called_recursively=False):
     options = {'center_on_corner': True, 'approach_height': 0.02, 'grab_and_drop': True, 'center_on_close_border': True, 'with_tool': True, 'check_too_close_to_border': True}
+    self.vision.activate_camera("b_bot_outside_camera")
     goal = self.look_and_get_grasp_point("shaft", options=options)
     if not isinstance(goal, geometry_msgs.msg.PoseStamped):
       print("goal", type(goal), goal)
