@@ -2,7 +2,7 @@
 #include "o2ac_pose_distribution_updater/convex_hull.hpp"
 
 namespace {
-const double INF = 1e9, EPS = 1e-9, LARGE_EPS = 1e-7;
+const double INF = 1e9, EPS = 1e-9, LARGE_EPS = 1e-3;
 }
 
 // a class for calculating the pose after grasping
@@ -392,29 +392,32 @@ grasp_calculator::grasp_calculator(
     }
   }
 
-  // stability check
-  double left_x, right_x;
-  // collect the vertex on the left and right grippers
-  if (double_vertex_side == -1) {
-    left_x = final_vertices[gripper_touch_vertex_id_1](0);
-    right_x = final_vertices[gripper_touch_vertex_id_3](0);
-  } else {
-    left_x = final_vertices[gripper_touch_vertex_id_3](0);
-    right_x = final_vertices[gripper_touch_vertex_id_1](0);
-  }
-  std::vector<Eigen::Vector2d> points_on_left_gripper, points_on_right_gripper;
+  if (balance_check) {
+    // stability check
+    double left_x, right_x;
+    // collect the vertex on the left and right grippers
+    if (double_vertex_side == -1) {
+      left_x = final_vertices[gripper_touch_vertex_id_1](0);
+      right_x = final_vertices[gripper_touch_vertex_id_3](0);
+    } else {
+      left_x = final_vertices[gripper_touch_vertex_id_3](0);
+      right_x = final_vertices[gripper_touch_vertex_id_1](0);
+    }
+    std::vector<Eigen::Vector2d> points_on_left_gripper,
+        points_on_right_gripper;
 
-  for (auto &vertex : final_vertices) {
-    if (vertex(0) <= left_x + LARGE_EPS) {
-      points_on_left_gripper.push_back(vertex.tail<2>());
+    for (auto &vertex : final_vertices) {
+      if (vertex(0) <= left_x + LARGE_EPS) {
+        points_on_left_gripper.push_back(vertex.tail<2>());
+      }
+      if (vertex(0) >= right_x - LARGE_EPS) {
+        points_on_right_gripper.push_back(vertex.tail<2>());
+      }
     }
-    if (vertex(0) >= right_x - LARGE_EPS) {
-      points_on_right_gripper.push_back(vertex.tail<2>());
+    if (!do_intersect_convex_hulls(points_on_left_gripper,
+                                   points_on_right_gripper)) {
+      throw(std::runtime_error("Unstable after gripping"));
     }
-  }
-  if (!do_intersect_convex_hulls(points_on_left_gripper,
-                                 points_on_right_gripper)) {
-    throw(std::runtime_error("Unstable after gripping"));
   }
 
   // calculate the pose after grasping
