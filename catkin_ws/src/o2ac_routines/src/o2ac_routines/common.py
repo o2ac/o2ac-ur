@@ -2241,18 +2241,18 @@ class O2ACCommon(O2ACBase):
     new_pose = self.move_towards_tray_center(robot_name, move_distance)
     return new_pose
 
-  def pick_idler_pulley(self, object_pose=None):
+  def pick_idler_pulley(self, object_pose=None, attempts=5):
     if not object_pose: # Find the idler pulley pose when not given
       rospy.loginfo("Look for the idler pulley")
       options = {'check_for_close_items': False, 'center_on_corner': True, 'center_on_close_border': True, 
-                'min_dist_to_border': 0.04, 'allow_pick_near_border': False, 'object_width': 0.03}
+                'min_dist_to_border': 0.05, 'allow_pick_near_border': False, 'object_width': 0.03}
       object_pose = self.look_and_get_grasp_point("taskboard_idler_pulley_small", robot_name="a_bot", options=options)
 
       if not isinstance(object_pose, geometry_msgs.msg.PoseStamped):
         rospy.logerr("Could not find idler pulley in tray. Skipping procedure.")
         return False
       
-      object_pose, is_safe_grasp  = self.constrain_grasp_into_tray("a_bot", object_pose, grasp_width=0.06, object_width=0.03)
+      object_pose, is_safe_grasp  = self.constrain_grasp_into_tray("a_bot", object_pose, grasp_width=0.06, object_width=0.04)
 
       dx, dy = self.distances_from_tray_border(object_pose)
       if not is_safe_grasp: # Too close to one of the borders but not a corner
@@ -2296,31 +2296,44 @@ class O2ACCommon(O2ACBase):
       return False
 
     if not is_safe_grasp:
-      rospy.logwarn("Too close to border, centering")
-      self.a_bot.gripper.close()
-      self.a_bot.gripper.attach_object("taskboard_idler_pulley_small")
-      direction = "y" if dx > dy else "x"
-      if not self.move_towards_tray_center("a_bot", distance=0.06, go_back_halfway=False, one_direction=direction):
-        rospy.logerr("Fail to move to the center")
-        return False
-      self.a_bot.gripper.open(opening_width=0.06)
-      current_pose = self.listener.transformPose("tray_center", self.a_bot.get_current_pose_stamped())
-      current_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(0, tau/4, -tau/4))
-      return self.pick_idler_pulley(current_pose)
+      if attempts > 0:
+        rospy.logwarn("Too close to border, centering")
+        self.a_bot.gripper.close()
+        self.a_bot.gripper.attach_object("taskboard_idler_pulley_small")
+        direction = "y" if dx > dy else "x"
+        if not self.move_towards_tray_center("a_bot", distance=0.06, go_back_halfway=False, one_direction=direction):
+          rospy.logerr("Fail to move to the center")
+          return False
+        self.a_bot.gripper.open(opening_width=0.06)
+        if not object_pose: # if we tried with vision before, try once with the new current pose
+          current_pose = self.listener.transformPose("tray_center", self.a_bot.get_current_pose_stamped())
+          current_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(0, tau/4, -tau/4))
+          return self.pick_idler_pulley(current_pose, attempts=attempts-1)
+        else: # we try the current pose and we are back here, try vision again
+          return self.pick_idler_pulley(attempts=attempts-1)
+      rospy.logerr("Fail to complete grasp_idler_pulley, ABORT")
+      return False
+      
 
     self.a_bot.gripper.open(wait=False, opening_width=0.06)
     if not self.center_with_gripper("a_bot", opening_width=.08):
       rospy.logerr("Fail to complete center_with_gripper")
       return False
     if not self.grasp_idler_pulley():
-      rospy.logerr("Fail to complete grasp_idler_pulley, retry")
-      self.a_bot.gripper.close()
-      if not self.move_towards_tray_center("a_bot", 0.06, go_back_halfway=False):
-        return False
-      self.a_bot.gripper.open()
-      current_pose = self.listener.transformPose("tray_center", self.a_bot.get_current_pose_stamped())
-      current_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(0, tau/4, -tau/4))
-      return self.pick_idler_pulley(current_pose)
+      if attempts > 0:
+        rospy.logerr("Fail to complete grasp_idler_pulley, retry")
+        self.a_bot.gripper.close()
+        if not self.move_towards_tray_center("a_bot", 0.06, go_back_halfway=False):
+          return False
+        self.a_bot.gripper.open()
+        if not object_pose: # if we tried with vision before, try once with the new current pose
+          current_pose = self.listener.transformPose("tray_center", self.a_bot.get_current_pose_stamped())
+          current_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(0, tau/4, -tau/4))
+          return self.pick_idler_pulley(current_pose, attempts=attempts-1)
+        else: # we try the current pose and we are back here, try vision again
+          return self.pick_idler_pulley(attempts=attempts-1)
+      rospy.logerr("Fail to complete grasp_idler_pulley, ABORT")
+      return False
     return True
 
   def pick_and_insert_idler_pulley(self, task="", simultaneous=False):
