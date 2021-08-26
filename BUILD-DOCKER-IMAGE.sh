@@ -51,3 +51,5 @@ else
     docker-compose -p ${DOCKER_PROJECT} -f ./docker/docker-compose.yml build
   fi
 fi
+
+# docker-compose -p ${DOCKER_PROJECT} -f ./docker/docker-compose.yml build

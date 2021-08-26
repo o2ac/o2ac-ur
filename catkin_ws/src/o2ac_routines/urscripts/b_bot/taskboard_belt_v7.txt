@@ -10,6 +10,7 @@
      Wait: 2.0
      MoveJ
        Waypoint_1
+       Waypoint_3
        Waypoint_2
        Waypoint_5
        Waypoint_4

@@ -1,0 +1,18 @@
+ Program
+   Robot Program
+     Gripper Move52% (1)
+     MoveJ
+       currentpose≔get_actual_tcp_pose()get_actual_joint_positions()
+       currentpose
+     MoveL
+       before_push
+     Gripper Close (1)
+     MoveL
+       push_end
+       before_push
+     Gripper Move52% (1)
+     MoveL
+       'Waypoint_2'
+       final_grasp
+     Gripper Close (1)
+     Gripper Move85% (1)

@@ -192,7 +192,7 @@ if __name__ == '__main__':
       if i == "579":
         c.fasten_bearing("c", only_retighten=True)
       if i == "575":
-        c.align_bearing_holes(task="c")
+        c.align_bearing_holes(task="taskboard")
       if i == "58":
         c.do_task("idler pulley")
       if i == "58s":

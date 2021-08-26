@@ -229,8 +229,11 @@ class RobotBase():
         return True
 
     def go_to_pose_goal(self, pose_goal_stamped, speed=0.5, acceleration=0.25,
-                        end_effector_link="", move_lin=True, wait=True, plan_only=False, initial_joints=None,
-                        allow_joint_configuration_flip=False, move_ptp=False, timeout=5, retry_non_linear=True):
+                        end_effector_link="", move_lin=False, wait=True, plan_only=False, initial_joints=None,
+                        allow_joint_configuration_flip=False, move_ptp=True, timeout=5, retry_non_linear=False):
+        
+        move_ptp = False if move_lin else move_ptp # Override if move_lin is set (Linear takes priority since PTP is the default value)
+
         planner = "LINEAR" if move_lin else ("PTP" if move_ptp else "OMPL")
         if not self.set_up_move_group(speed, acceleration, planner):
             return False
@@ -271,9 +274,12 @@ class RobotBase():
                 else:
                     success = self.execute_plan(plan, wait=wait)
             else:
-                rospy.sleep(0.2)
-                rospy.logwarn("go_to_pose_goal(move_lin=%s) attempt failed. Retrying." % str(move_lin))
-                tries += 1
+                if move_ptp: # Just one try is enough for PTP, give up and try OMPL
+                    self.set_up_move_group(speed, acceleration, "OMPL")
+                else:
+                    rospy.sleep(0.2)
+                    rospy.logwarn("go_to_pose_goal(move_lin=%s) attempt failed. Retrying." % str(move_lin))
+                    tries += 1
 
         if not success:
             rospy.logerr("go_to_pose_goal failed " + str(tries) + " times! Broke out, published failed pose.")
@@ -409,7 +415,10 @@ class RobotBase():
             elif relative_to_tcp:
                 new_pose.header.stamp = rospy.Time.now()
                 # Workaround for TF lookup into the future error
-                self.listener.waitForTransform(self.ns + "_gripper_tip_link", new_pose.header.frame_id, new_pose.header.stamp, rospy.Duration(1))
+                try:
+                    self.listener.waitForTransform(self.ns + "_gripper_tip_link", new_pose.header.frame_id, new_pose.header.stamp, rospy.Duration(1))
+                except:
+                    pass
                 new_pose = self.listener.transformPose(self.ns + "_gripper_tip_link", new_pose)
 
         new_position = conversions.from_point(new_pose.pose.position) + relative_translation
@@ -435,13 +444,14 @@ class RobotBase():
             return self.go_to_pose_goal(new_pose, speed=speed, acceleration=acceleration,
                                         end_effector_link=end_effector_link,  wait=wait,
                                         move_lin=True, plan_only=plan_only, initial_joints=initial_joints,
-                                        allow_joint_configuration_flip=allow_joint_configuration_flip)
+                                        allow_joint_configuration_flip=allow_joint_configuration_flip,
+                                        retry_non_linear=False)
 
-    def go_to_named_pose(self, pose_name, speed=0.5, acceleration=0.5, wait=True, plan_only=False, initial_joints=None):
+    def go_to_named_pose(self, pose_name, speed=0.5, acceleration=0.5, wait=True, plan_only=False, initial_joints=None, move_ptp=True):
         """
         pose_name should be a named pose in the moveit_config, such as "home", "back" etc.
         """
-        if not self.set_up_move_group(speed, acceleration, planner="OMPL"):
+        if not self.set_up_move_group(speed, acceleration, planner=("PTP" if move_ptp else "OMPL")):
             return False
         group = self.robot_group
 
@@ -459,6 +469,11 @@ class RobotBase():
             else:
                 return self.execute_plan(plan, wait=wait)
         else:
+            if move_ptp:
+                rospy.logerr("NamedPose: Failed planning with PTP, retry with OMPL")
+                # Try again with OMPL
+                return self.go_to_named_pose(pose_name=pose_name, speed=speed, acceleration=acceleration, 
+                                      wait=wait, plan_only=plan_only, initial_joints=initial_joints, move_ptp=False)
             rospy.logerr("Failed planning with error: %s" % error)
             return False
 

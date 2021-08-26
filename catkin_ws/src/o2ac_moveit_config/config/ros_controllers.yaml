@@ -52,18 +52,18 @@ controller_list:
       - b_bot_wrist_1_joint
       - b_bot_wrist_2_joint
       - b_bot_wrist_3_joint
-  # - name: /a_bot/gripper_controller
-  #   action_ns: gripper_cmd
-  #   default: True
-  #   type: GripperCommand
-  #   joints:
-  #     - a_bot_finger_joint
-  # - name: /b_bot/gripper_controller
-  #   action_ns: gripper_cmd
-  #   default: True
-  #   type: GripperCommand
-  #   joints:
-  #     - b_bot_finger_joint
+  - name: /a_bot/gripper_controller
+    action_ns: gripper_cmd
+    default: True
+    type: GripperCommand
+    joints:
+      - a_bot_finger_joint
+  - name: /b_bot/gripper_controller
+    action_ns: gripper_cmd
+    default: True
+    type: GripperCommand
+    joints:
+      - b_bot_finger_joint
 # b_bot/gripper_controller:
 #   type: GripperCommand
 #   joints:

@@ -1,5 +1,4 @@
 def taskboard_place_hook():
-  set_safety_mode_transition_hardness(1)
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -7,22 +6,23 @@ def taskboard_place_hook():
   set_analog_outputdomain(0, 0)
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
-  step_count_72a13bbf_3cdc_4b8e_9212_2d4736308fd7 = 0.0
-  thread Step_Counter_Thread_8704a516_783d_4495_b12d_ad855c6201b8():
-    while (True):
-      step_count_72a13bbf_3cdc_4b8e_9212_2d4736308fd7 = step_count_72a13bbf_3cdc_4b8e_9212_2d4736308fd7 + 1.0
-      sync()
-    end
-  end
-  run Step_Counter_Thread_8704a516_783d_4495_b12d_ad855c6201b8()
   set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
   set_tool_output_mode(0)
   set_tool_digital_output_mode(0, 1)
   set_tool_digital_output_mode(1, 1)
   set_tool_voltage(24)
+  set_safety_mode_transition_hardness(1)
   set_target_payload(1.200000, [0.001000, -0.018000, 0.049000], [0.002086, 0.002086, 0.002086, 0.000000, 0.000000, 0.000000])
-  set_gravity([0.0, 0.0, 9.82])
   set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
+  step_count_e589f2cf_3472_4680_ad33_87ce92f17a50 = 0.0
+  thread Step_Counter_Thread_0d334258_1384_4d49_a3f6_b05007f658ab():
+    while (True):
+      step_count_e589f2cf_3472_4680_ad33_87ce92f17a50 = step_count_e589f2cf_3472_4680_ad33_87ce92f17a50 + 1.0
+      sync()
+    end
+  end
+  run Step_Counter_Thread_0d334258_1384_4d49_a3f6_b05007f658ab()
+  set_gravity([0.0, 0.0, 9.82])
   # begin: URCap Installation Node
   #   Source: External Control, 1.0.5, FZI Research Center for Information Technology
   #   Type: External Control
@@ -2362,19 +2362,19 @@ def taskboard_place_hook():
   $ 5 "MoveL"
   $ 6 "home" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movel(home_p, a=0.8, v=0.8)
+  movel(home_p, a=0.8, v=1.2)
   $ 7 "Waypoint_right" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movel(Waypoint_right_p, a=0.8, v=0.8, r=0.05)
+  movel(Waypoint_right_p, a=0.8, v=1.2, r=0.05)
   $ 8 "high_approach" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movel(high_approach_p, a=0.8, v=0.8, r=0.05)
+  movel(high_approach_p, a=0.8, v=1.2, r=0.05)
   $ 9 "before_tool" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movel(before_tool_p, a=0.8, v=0.8, r=0.005)
+  movel(before_tool_p, a=0.8, v=1.2, r=0.005)
   $ 10 "grasp_tool" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movel(grasp_tool_p, a=0.8, v=0.8)
+  movel(grasp_tool_p, a=0.8, v=1.2)
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper
@@ -2392,11 +2392,11 @@ def taskboard_place_hook():
   # end: URCap Program Node
   $ 12 "above_tool" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movel(above_tool_p, a=0.8, v=0.8)
+  movel(above_tool_p, a=0.8, v=1.2, r=0.01)
   $ 13 "Waypoint_right" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movel(Waypoint_right_p, a=0.8, v=0.8, r=0.05)
+  movel(Waypoint_right_p, a=0.8, v=1.2, r=0.05)
   $ 14 "home" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movel(home_p, a=0.8, v=0.8)
+  movel(home_p, a=0.8, v=1.2)
 end

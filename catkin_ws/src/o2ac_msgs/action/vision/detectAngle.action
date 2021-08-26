@@ -20,9 +20,6 @@ float32 rotation_angle   # The angle by which the object needs to be turned
                          # Negative angle = counter-clockwise turn is required
 float32 confidence
 
-uint8 motor_rotation_flag # Received when get_motor_From_top is true.
-                          # 0:right, 1:left, 2:top, 3:bottom  (documented in pose_estimation_func)
-
 ---
 # Feedback (values that can be sent to the client while the action is running)
 

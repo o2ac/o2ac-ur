@@ -8,6 +8,7 @@ import copy
 import os, json
 import open3d as o3d
 import math
+import glob
 from math import tau  # = 2*pi = one turn. https://tauday.com/tau-manifesto
 from o2ac_vision.common_3d_func import centering, rpy2mat, mat2rpy
 
@@ -305,62 +306,62 @@ class BearingPoseEstimator:
         im_result = cv2.putText( im_result, str_rotate, (5,30), 1, 1.25, (0, 255, 255), 1, cv2.LINE_AA )
         return im_result
 
-"""
-################################################################################################
-# Sample code for In-plane pose estimation on RGB image for the motor
-# 
-# make perspective transformation
-## source points (corner points of vgroove)
-src_pts = np.array([[287,94], [470,91], [285,270], [490,265]], dtype=np.float32)
-## destination points (rectified corner points)
-dst_pts = np.array([[287,94], [470,91], [287,270], [470,265]], dtype=np.float32)
-mat = cv2.getPerspectiveTransform(src_pts, dst_pts)
 
-# set bounding box(x,y,w,h)
-bbox = [270,180,240,240]
-
-# read template image (use option "0")
-im_temp = cv2.imread("../../../motor_front.png",0)
-
-# define pose estimation class
-pe = PoseEstimator( im_temp, img, bbox, mat )
-# do registration
-rotation, translation = pe.main_proc( threshold=5.0, ds=10.0 )
-print(rotation, translation) # => CCW rotation (rad) is returned
-im_vis = pe.get_result_image()
-################################################################################################
-"""
-class PoseEstimator:
-    """ Pose estimation on RGB image
+def get_templates( path, name ):
+    """ load template imagess
+    Args:
+        path(str): path of template images
+        name(str): name of image without angle and extention
+                   ex: m180.png -> "m"
+    Return:
+        tupple of template consist of image and angle(deg)
     """
-    def __init__( self, im_s, img, bbox, mat=None ):
+    im_temps = list()
+    data_path = os.path.join(path,name+"*png")
+    filelist = sorted(glob.glob(data_path))
+    
+    for n in filelist:
+        img = cv2.imread( n, 0 )
+        angle = float(n.split("/")[-1].split("m")[-1].split(".png")[0] )
+        im_temps.append( (img, angle) )
+    return im_temps
+
+########################################################################
+# Sample code:
+#   im_temps = get_templates("path-to-template","m")
+#   ipre = InPlaneRotationEstimator( im_temps, img, [290,210,200,200] )
+#   angle,trans,mse = ipre.main_proc( ds=5.0 )
+#   print(np.degrees(angle), mse)
+#
+########################################################################
+class InPlaneRotationEstimator():
+    def __init__( self, im_s, img_t, bbox ):
         """
-        Args:
-           im_s(ndarray): source image(template) 1ch
-           img(ndarray): target image(input scene) 1ch
-           bbox(list): bounding box (x,y,w,h)
-           mat(ndarray,optional): perspective transformation for img
+        im_s(list): tupple of source images (edge_image, angle[deg])
+        im_t(np.array): target image (Grayscale)
+        bbox: bounding box of ROI (tuple [x,y,w,h])
         """
-        
-        if mat is not None:
-            img = cv2.warpPerspective(img, mat, (img.shape[1], img.shape[0]))
+
         # crop target image using a bounding box
-        self.im_t = img[ bbox[1]:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2] ].copy()
+        self.im_t = img_t[ bbox[1]:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2] ].copy()
         
         # generate source point cloud
-        self.im_s = im_s
-        self.pcd_s = self.get_pcd( im_s )
+        self.pcd_s = list()
+        self.initial_angles = list()
+        for im in im_s:
+            self.pcd_s.append( self.get_pcd( im[0] ) )
+            self.initial_angles.append( im[1] )
         
         # generate target point cloud
-        #self.im_t = cv2.GaussianBlur(self.im_t,(5,5),0)
+        #im_t = cv2.GaussianBlur(im_t,(5,5),0)
         self.pcd_t = self.get_pcd( self.im_t )
         
         # data
         self.trans_final = np.identity(4)
+        self.rotate = 0.0 # result rotation in radians
         self.mse = 100000
         self.pcds = None
         self.d = None
-        self.threshold = 10000
         
         
     def get_pcd( self, img ):
@@ -383,95 +384,82 @@ class PoseEstimator:
         return pcd_edge
 
     
-    def main_proc( self, threshold, ds=5.0 ):
-        """ do pose estimation.
+    def main_proc( self, ds=5.0 ):
+        """
+        Main function running the pose estimation.
 
-        Args:
-          threshold: distance threshold of registration.
-                     If MSE is lower than this value,
-                     transformation is returned.
-          ds: downsampling rate for points. This parameter
-              should be larger than "threshold"
-        Return:
-            float: rotation angle (CCW)
-            translation:  translation in pixels (y,x)
-            If pose estimation fails, (False, False) is returned
+        Arguments:
+            ds: downsampling rate for points.
+        Returns:
+            rotation:       rotation angle (CW) in radians
+            translation:    translation in pixels (y,x)
+            mse:            mean squared error
         """
 
-        self.threshold = threshold
         
         # Preprocessing
         ##  downsampling edge pixels
-        self.pcd_s.paint_uniform_color([0.0,0.0,1.0])
-        pcd_s_ds = self.pcd_s.voxel_down_sample( voxel_size=ds )
         pcd_t_ds = self.pcd_t.voxel_down_sample( voxel_size=ds )
         pcd_t_ds, center_t = centering(pcd_t_ds)
-        pcd_s_ds, center_s = centering(pcd_s_ds)
-        ts_c = np.identity(4)
-        ts_c[:3,3] = -center_s
-        tt_c = np.identity(4)
-        tt_c[:3,3] = center_t
-        
-        # initial rotations
-        #init_rotations = np.radians(np.arange(0,360,5))
-        init_rotations = np.radians(np.arange(0,360,10))
-        #init_rotations = [np.radians(150.0)]
-        mses = []
-        reg_transes = []
-        Ts = []
-        for init in init_rotations:
-            
-            ##  apply initial rotation to the source point cloud
-            T = rpy2mat( 0, 0, init )
-            pcd_s_ds_ini = copy.deepcopy(pcd_s_ds)
-            pcd_s_ds_ini.transform(T)
-            
-            # Registration by ICP algorithm
-            reg = ICPRegistration( pcd_s_ds_ini, pcd_t_ds )
-            reg.set_distance_tolerance( ds*0.5 )
-            mse_tmp, reg_trans_tmp = reg.registration()
-            mses.append(mse_tmp)
-            reg_transes.append(reg_trans_tmp)
-            Ts.append(T)
-            
-        mses = np.asarray(mses)
-        idx = np.argmin(mses)
-        self.mse = mses[idx]
-        reg_trans = reg_transes[idx]
-                  
-        if self.mse < self.threshold:
-            """
-            # check transformation progress
-            hoge = copy.deepcopy(self.pcd_s)
-            mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=100., origin=[0.0,0.0,0.0])
-            o3d.visualization.draw_geometries( [mesh_frame,hoge, self.pcd_t], width=640, height=500)
-            hoge.transform( ts_c )
-            o3d.visualization.draw_geometries( [mesh_frame,hoge, self.pcd_t], width=640, height=500)
-            hoge.transform( T )
-            o3d.visualization.draw_geometries( [mesh_frame,hoge, self.pcd_t], width=640, height=500)
-            hoge.transform( reg_trans )
-            o3d.visualization.draw_geometries( [mesh_frame,hoge, self.pcd_t], width=640, height=500)
-            hoge.transform( tt_c )
-            o3d.visualization.draw_geometries( [mesh_frame,hoge, self.pcd_t], width=640, height=500)
-            """
+        self.result_id = 0
+        reg_trans =  None
 
-            TT = np.dot( Ts[idx], ts_c )
-            TT = np.dot( reg_trans,TT )
-            self.trans_final = np.dot( tt_c, TT )
-            self.pcds = reg.pcds
-            self.d = reg.d
-            # Get registration result
-            #  translation[x,y] and rotation
-            _,_,rotation = mat2rpy(self.trans_final)
-            # d_rotate = np.degrees(rotation)
-            translation = self.trans_final[:2,3]
-            return rotation, translation
-        return False, False
+        self.pcd_registrated = list() # results of ICP
+        for i in range(len(self.pcd_s)):
+            self.pcd_s[i].paint_uniform_color([0.0,0.0,1.0])
+            pcd_s_ds = self.pcd_s[i].voxel_down_sample( voxel_size=ds )
+
+            
+            pcd_s_ds, center_s = centering(pcd_s_ds)
+            ts_c = np.identity(4)
+            ts_c[:3,3] = -center_s
+            tt_c = np.identity(4)
+            tt_c[:3,3] = center_t
+        
+          
+            # Registration by ICP algorithm
+            reg = ICPRegistration( pcd_s_ds, pcd_t_ds )
+            reg.set_distance_tolerance( ds*0.5 )
+            mse, rt = reg.registration()
+            if mse < self.mse:
+                self.result_id = i
+                print("Init:", self.initial_angles[i], self.mse, "==>", mse)
+                self.mse = mse
+                reg_trans = rt
+                TT = np.dot( reg_trans, ts_c )
+                self.trans_final = np.dot( tt_c, TT )
+
+                # check transformation progress
+                """
+                hoge = copy.deepcopy(pcd_s_ds)
+                hoge.paint_uniform_color([1,0,0])
+                mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=100., origin=[0.0,0.0,0.0])
+                o3d.visualization.draw_geometries( [mesh_frame,hoge, pcd_t_ds], width=640, height=500)
+                hoge.transform( rt )
+                o3d.visualization.draw_geometries( [mesh_frame,hoge, pcd_t_ds], width=640, height=500)
+                """
+
+        self.pcds = reg.pcds
+        self.d = reg.d
+        # Get registration result
+        #  translation[x,y] and rotation
+        _,_,rotate = mat2rpy(self.trans_final)
+        print( "Initial angle is:", self.initial_angles[self.result_id] )
+        rotate = np.radians(self.initial_angles[self.result_id])+rotate
+        translation = self.trans_final[:2,3]
+
+        # Choose the direction that results in the smaller rotation
+        if rotate > tau:  
+            rotate -= tau
+        elif rotate < 0:
+            rotate += tau
+        
+        self.rotate = rotate
+        return self.rotate, translation, self.mse
             
         
     def vis_registration3d( self ):
-        
-        pcd_final = copy.deepcopy(self.pcd_s)
+        pcd_final = copy.deepcopy(self.pcd_s[self.result_id])
         pcd_final.transform(self.trans_final)
         o3d.visualization.draw_geometries( [self.pcd_t, pcd_final], width=640, height=500)
         
@@ -479,25 +467,22 @@ class PoseEstimator:
         return self.pcds
         
     def get_result_image( self ):
-        
+        """
+        Returns the result visualization as a 3-channel image.
+        """
+
         im_result = cv2.cvtColor(self.im_t, cv2.COLOR_GRAY2BGR )
-        pcd_final = copy.deepcopy( self.pcd_s )
+        pcd_final = copy.deepcopy(self.pcd_s[self.result_id])
 
         pcd_final.transform(self.trans_final)
         np_final = np.asarray( pcd_final.points, np.int )
-
-        if self.mse < self.threshold:
-            for i in range(np_final.shape[0]):
-                im_result = cv2.circle( im_result, (np_final[i,1],np_final[i,0]), 2, (0,255,0), -1, cv2.LINE_AA )
+        for i in range(np_final.shape[0]):
+            im_result = cv2.circle( im_result, (np_final[i,1],np_final[i,0]), 1, (0,255,0), -1, cv2.LINE_AA )
         
+        im_result = cv2.rectangle( im_result, (5,12), (170,38), (0,0,0), -1)
         # Draw rotation in image
-        _,_,rotate = mat2rpy(self.trans_final)
-        print("trans_final", self.trans_final)
-        d_rotate = np.degrees(rotate)
-        str_rotate = format(d_rotate,'.2f')+"[deg](CCW), MSE:"+format(self.mse,'.2f')
-        im_result = cv2.putText( im_result, str_rotate, (10,30), 1, 0.7, (255, 255, 255), 2, cv2.LINE_AA )
-        if self.mse < self.threshold:
-            im_result = cv2.putText( im_result, str_rotate, (10,30), 1, 0.7, (255, 0, 0), 1, cv2.LINE_AA )
-        else:
-            im_result = cv2.putText( im_result, str_rotate, (10,30), 1, 0.7, (0, 0, 255), 1, cv2.LINE_AA )
+        d_rotate = np.degrees(self.rotate)
+        str_rotate = format(d_rotate,'.2f')+"[deg](CCW)"
+        im_result = cv2.putText( im_result, str_rotate, (5,30), 1, 1.25, (255, 255, 255), 2, cv2.LINE_AA )
+        im_result = cv2.putText( im_result, str_rotate, (5,30), 1, 1.25, (0, 255, 255), 1, cv2.LINE_AA )
         return im_result

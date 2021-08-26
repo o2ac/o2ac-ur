@@ -22,22 +22,30 @@ class MarkersScene():
         marker = visualization_msgs.msg.Marker()
         marker.id = self.parts_database.name_to_id(item_name)
         marker.action = marker.DELETE
-        self.marker_publisher.publish(marker)
         try:
+            self.marker_publisher.publish(marker)
             del self.published_items[item_name]
         except Exception as e:
             rospy.logerr("Try to delete item: %s but it does not exist" % item_name)
 
     def attach_item(self, item_name, to_link):
         current_pose = self.published_items[item_name]
+        current_pose.header.stamp = rospy.Time(0)
+        try:
+            self.listener.waitForTransform(to_link, current_pose.header.frame_id, current_pose.header.stamp, rospy.Duration(1))
+        except:
+            return False
         new_pose = self.listener.transformPose(to_link, current_pose)
         color = ColorRGBA(1., 0.0, 1., 0.9) # Purple
         self.spawn_item(item_name, new_pose, attach=True, color=color)
 
     def detach_item(self, item_name):
-        current_pose = self.published_items[item_name]
-        new_pose = self.listener.transformPose("world", current_pose)
-        self.spawn_item(item_name, new_pose, attach=False)
+        current_pose = self.published_items.get(item_name, None)
+        if current_pose:
+            new_pose = self.listener.transformPose("world", current_pose)
+            self.spawn_item(item_name, new_pose, attach=False)
+        else:
+            rospy.logerr("Try to detach item: %s but it does not exist" % item_name)
 
     def delete_all(self):
         marker = visualization_msgs.msg.Marker()

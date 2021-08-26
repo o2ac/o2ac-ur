@@ -7,6 +7,22 @@ collision_objects:
   pose: [0.058, 0.0, 0.0125, 0.0, 0.0, 0.0]
 subframes:
 - pose_xyzrpy:
+  - 0.0
+  - 0.0
+  - 0.0
+  - -pi/2
+  - 0.0
+  - -pi/2
+  name: bottom_corner_1
+- pose_xyzrpy:
+  - 0.116
+  - 0.0
+  - 0.0
+  - -pi/2
+  - 0.0
+  - -pi/2
+  name: bottom_corner_2
+- pose_xyzrpy:
   - 0.006
   - 0.0
   - 0.015

@@ -1,3 +1,10 @@
+collision_objects:
+- type: BOX 
+  dimensions: [0.2, 0.008, 0.12]
+  pose: [0.1, 0.004, 0.06, 0.0, 0.0, 0.0]
+- type: BOX 
+  dimensions: [0.025, 0.025, 0.025]
+  pose: [0.1, 0.012, 0.0975, 0.0, 0.0, 0.0]
 subframes:
 - pose_xyzrpy:
   - 0.01
@@ -72,39 +79,6 @@ subframes:
   - 0.0
   - -pi/2
   name: screw_hole_panel2_2
-# Position in the back
-- pose_xyzrpy:
-  - 0.006
-  - 0.01
-  - 0.052
-  - -pi/2
-  - 0.0
-  - -pi/2
-  name: screw_hole_panel1_3
-- pose_xyzrpy:
-  - 0.11
-  - 0.01
-  - 0.052
-  - -pi/2
-  - 0.0
-  - -pi/2
-  name: screw_hole_panel1_4
-- pose_xyzrpy:
-  - 0.136
-  - 0.01
-  - 0.05
-  - -pi/2
-  - 0.0
-  - -pi/2
-  name: screw_hole_panel2_3
-- pose_xyzrpy:
-  - 0.196
-  - 0.01
-  - 0.05
-  - -pi/2
-  - 0.0
-  - -pi/2
-  name: screw_hole_panel2_4
 - pose_xyzrpy:
   - 0.1
   - 0.03

@@ -195,22 +195,52 @@ class O2ACAssembly(O2ACCommon):
       self.allow_collisions_with_robot_hand("base_fixture_top", "a_bot", allow=False)
     return True
 
-  def subtask_a(self):
+  def subtask_a(self, simultaneous=True):
     # ============= SUBTASK A (picking and inserting and fastening the motor) =======================
     rospy.loginfo("======== SUBTASK A (motor) ========")
     self.publish_status_text("Target: Motor")
-    self.pick_and_center_motor()
-    self.orient_motor()
+    
+    self.a_success = False
+    self.b_success = False
+    def b_task():
+      self.b_success = self.pick_and_center_motor()
+    def a_task():
+      self.a_success = self.do_change_tool_action("a_bot", equip=True, screw_size=3)
+      self.a_success &= self.a_bot.go_to_named_pose("screw_ready")
 
-    self.do_change_tool_action("a_bot", equip=True, screw_size=3)
-    self.a_bot.go_to_named_pose("screw_ready")
+    if simultaneous:
+      self.do_tasks_simultaneous(a_task, b_task, timeout=120)
+    else:
+      b_task()
+      a_task()
 
-    self.align_motor_pre_insertion()
-    self.insert_motor()
-    self.align_motor_holes()
-    self.fasten_motor()
-    # TODO: Fasten two motor screws with support from b_bot, open b_bot gripper, finish fastening with a_bot
-    return False
+    if not self.a_success or not self.b_success:
+      rospy.logerr("Fail to do subtask a, part 1 (a_bot:%s)(b_bot:%s)" % (self.a_success, self.b_success))
+      self.do_change_tool_action("a_bot", equip=False, screw_size=3)
+      self.a_bot.go_to_named_pose("home")
+      self.b_bot.gripper.open()
+      self.b_bot.go_to_named_pose("home")
+      return False
+
+    if not self.align_motor_pre_insertion():
+      rospy.logerr("Fail to do subtask a, part 2")
+      return False
+    if not self.insert_motor("assembled_part_02_back_hole"):
+      rospy.logerr("Fail to do subtask a, part 3")
+      return False
+    # TODO
+    # if not self.align_motor_holes():
+    #   return False
+    if not self.fasten_motor():
+      rospy.logerr("Fail to do subtask a, part 4. Attempt Fallback once")
+      if not self.fasten_motor_fallback():
+        rospy.logerr("Fail to do fallback")
+        self.do_change_tool_action("a_bot", equip=False, screw_size=3)
+        self.a_bot.go_to_named_pose("home")
+        self.b_bot.gripper.open()
+        self.b_bot.go_to_named_pose("home")
+
+    return True
 
   def subtask_b(self):
     rospy.loginfo("======== SUBTASK B (motor pulley) ========")
@@ -226,8 +256,7 @@ class O2ACAssembly(O2ACCommon):
       self.b_bot.gripper.forget_attached_item()
       if self.align_bearing_holes(task="assembly"):
         self.b_bot.go_to_named_pose("home")
-        if self.fasten_bearing(task="assembly"):
-          self.fasten_bearing(task="assembly", only_retighten=True)
+        if self.fasten_bearing(task="assembly", with_extra_retighten=True):
           self.unequip_tool('b_bot', 'screw_tool_m4')
           success = True
     self.despawn_object("bearing")
@@ -815,7 +844,7 @@ class O2ACAssembly(O2ACCommon):
     if not self.place_panel("a_bot", "panel_bearing", pick_again=True, fake_position=True):
       return False
     self.publish_status_text("Target: fasten panel bearing")
-    if not self.fasten_panel("panel_bearing"):
+    if not self.fasten_panel("panel_bearing", simultaneous=simultaneous):
       return False
 
     self.a_bot_success = False
@@ -839,7 +868,7 @@ class O2ACAssembly(O2ACCommon):
       self.return_l_plates()
       return False
   
-    if not self.fasten_panel("panel_motor"):
+    if not self.fasten_panel("panel_motor", simultaneous=simultaneous):
       self.do_change_tool_action("b_bot", equip=False, screw_size = 4)
       return False
 
@@ -907,16 +936,14 @@ class O2ACAssembly(O2ACCommon):
     pose.pose.orientation.w = 1
     return self.do_plan_pickplace_action('b_bot', 'panel_bearing', pose, save_solution_to_file = 'panel_bearing/bottom_screw_hole_aligner_1')
 
-  def assemble_drive_unit(self, tray_name=None, simultaneous_execution=False):
-    if simultaneous_execution:
-      return self.assemble_drive_unit_simultaneous()
+  def assemble_drive_unit(self, tray_name=None, simultaneous_execution=True):
     if tray_name:
       if not self.pick_tray_from_agv_stack_calibration_long_side(tray_name=tray_name):
         rospy.logerr("Fail to pick and place tray. Abort!")
         return False
 
     # L-plates and base plate
-    success = self.panels_tasks_combined()
+    success = self.panels_tasks_combined(simultaneous=simultaneous_execution)
     if success:
       self.assembly_status.completed_subtask_f = True
       self.assembly_status.completed_subtask_g = True
@@ -967,13 +994,21 @@ class O2ACAssembly(O2ACCommon):
     self.ab_bot.go_to_named_pose("home")
     self.reset_scene_and_robots()
     orders = []
-    # orders.append({"tray_name":"tray1", "assembly_name":"wrs_assembly_2021"})  # Top tray
-    orders.append({"tray_name":"tray2", "assembly_name":"wrs_assembly_2020"})  # Bottom tray
-    def load_first_assembly():
-      self.set_assembly(order["assembly_name"])
-    self.do_tasks_simultaneous(load_first_assembly, self.center_tray_stack, timeout=90)
+    orders.append({"tray_name":"tray1", "assembly_name":"wrs_assembly_2021", "status":AssemblyStatus()})  # Top tray
+    orders.append({"tray_name":"tray2", "assembly_name":"wrs_assembly_2020", "status":AssemblyStatus()})  # Bottom tray
+
+    ### Use this line to adjust the start state in case of a reset
+    # orders[0]["status"].tray_placed_on_table = True
+
+    if not orders[0]["status"].tray_placed_on_table:
+      def load_first_assembly():
+        self.set_assembly(orders[0]["assembly_name"])
+      self.do_tasks_simultaneous(load_first_assembly, self.center_tray_stack, timeout=90)
+    else:
+      self.set_assembly(orders[0]["assembly_name"])
+      
     for order in orders:
-      self.assembly_status = AssemblyStatus()
+      self.assembly_status = order["status"]
       self.set_assembly(order["assembly_name"])
       self.assemble_drive_unit(order["tray_name"], simultaneous_execution)
     rospy.loginfo("==== Finished both tasks ====")

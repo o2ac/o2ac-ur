@@ -43,10 +43,10 @@
      MoveL
        push_almost_end
        push_end_1
-       before_push_2
+       'before_push_2'
      Gripper Move70% (1)
      MoveJ
-       above_plate_1
+       'above_plate_1'
        at_plate_1
      Gripper Close (1)
      Gripper Move82% (1)
