@@ -154,10 +154,13 @@ class RobotBase():
         acc = copy.copy(acceleration)
         if sp > 1.0:
             sp = 1.0
-        if acc > sp/2.0:
-            # if acc > (sp/2.0 + .00001):  # This seems to trigger because of rounding errors unless we add this small value
-            rospy.logdebug("Setting acceleration to " + str(sp/2.0) + " instead of " + str(acceleration) + " to avoid jerky motion.")
+        if acc is None:
+            rospy.logdebug("Setting acceleration to " + str(sp) + " by default.")
             acc = sp/2.0
+        else:
+            if acc > sp:
+                rospy.logdebug("Setting acceleration to " + str(sp) + " instead of " + str(acceleration) + " to avoid jerky motion.")
+                acc = sp
         return (sp, acc)
 
     def check_goal_pose_reached(self, goal_pose):
@@ -228,7 +231,7 @@ class RobotBase():
             return helpers.all_close(goal_joints, current_joints, 0.01)
         return True
 
-    def go_to_pose_goal(self, pose_goal_stamped, speed=0.5, acceleration=0.25,
+    def go_to_pose_goal(self, pose_goal_stamped, speed=0.5, acceleration=None,
                         end_effector_link="", move_lin=False, wait=True, plan_only=False, initial_joints=None,
                         allow_joint_configuration_flip=False, move_ptp=True, timeout=5, retry_non_linear=False):
         
@@ -302,7 +305,7 @@ class RobotBase():
                                 allow_joint_configuration_flip=allow_joint_configuration_flip, move_ptp=True, timeout=timeout, retry_non_linear=False)
         return success
 
-    def move_lin_trajectory(self, trajectory, speed=1.0, acceleration=0.5, end_effector_link="",
+    def move_lin_trajectory(self, trajectory, speed=1.0, acceleration=None, end_effector_link="",
                             plan_only=False, initial_joints=None, allow_joint_configuration_flip=False, timeout=10):
         # TODO: Add allow_joint_configuration_flip
         if not self.set_up_move_group(speed, acceleration, planner="LINEAR"):
@@ -384,14 +387,14 @@ class RobotBase():
         rospy.logerr("Failed to plan linear trajectory. error code: %s" % response.response.error_code.val)
         return False
 
-    def move_lin(self, pose_goal_stamped, speed=0.5, acceleration=0.5, end_effector_link="", wait=True,
+    def move_lin(self, pose_goal_stamped, speed=0.5, acceleration=None, end_effector_link="", wait=True,
                  plan_only=False, initial_joints=None, allow_joint_configuration_flip=False):
         return self.go_to_pose_goal(pose_goal_stamped, speed, acceleration, end_effector_link, move_lin=True,
                                     wait=wait, plan_only=plan_only, initial_joints=initial_joints,
                                     allow_joint_configuration_flip=allow_joint_configuration_flip)
 
     def move_lin_rel(self, relative_translation=[0, 0, 0], relative_rotation=[0, 0, 0], speed=.5,
-                     acceleration=0.2, relative_to_robot_base=False, relative_to_tcp=False,
+                     acceleration=None, relative_to_robot_base=False, relative_to_tcp=False,
                      wait=True, end_effector_link="", plan_only=False, initial_joints=None,
                      allow_joint_configuration_flip=False, pose_only=False):
         '''
@@ -459,7 +462,7 @@ class RobotBase():
                                         allow_joint_configuration_flip=allow_joint_configuration_flip,
                                         retry_non_linear=False)
 
-    def go_to_named_pose(self, pose_name, speed=0.5, acceleration=0.5, wait=True, plan_only=False, initial_joints=None, move_ptp=True):
+    def go_to_named_pose(self, pose_name, speed=0.5, acceleration=None, wait=True, plan_only=False, initial_joints=None, move_ptp=True):
         """
         pose_name should be a named pose in the moveit_config, such as "home", "back" etc.
         """
@@ -497,7 +500,7 @@ class RobotBase():
                     rospy.sleep(0.2)
         return success
 
-    def move_joints(self, joint_pose_goal, speed=0.6, acceleration=0.3, wait=True, plan_only=False, initial_joints=None, move_ptp=True):
+    def move_joints(self, joint_pose_goal, speed=0.6, acceleration=None, wait=True, plan_only=False, initial_joints=None, move_ptp=True):
         if not self.set_up_move_group(speed, acceleration, planner=("PTP" if move_ptp else "OMPL")):
             return False
         group = self.robot_group
@@ -532,7 +535,7 @@ class RobotBase():
 
         return False
 
-    def move_joints_trajectory(self, trajectory, speed=1.0, acceleration=0.5, plan_only=False, initial_joints=None, timeout=5.0):
+    def move_joints_trajectory(self, trajectory, speed=1.0, acceleration=None, plan_only=False, initial_joints=None, timeout=5.0):
         if not self.set_up_move_group(speed, acceleration, planner="PTP"):
             return False
 
@@ -601,7 +604,7 @@ class RobotBase():
                     rospy.sleep(0.2)
         return False
 
-    def move_circ(self, pose_goal_stamped, constraint_point, constraint_type="center", speed=0.5, acceleration=0.25, wait=True, end_effector_link="",
+    def move_circ(self, pose_goal_stamped, constraint_point, constraint_type="center", speed=0.5, acceleration=None, wait=True, end_effector_link="",
                     plan_only=False, initial_joints=None, timeout=5.0):
         if not self.set_up_move_group(speed, acceleration, "CIRC"):
             return False
