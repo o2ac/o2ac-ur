@@ -844,7 +844,7 @@ class O2ACBase(object):
       self.upload_tool_grasps_to_param_server(screw_id)
     spawn_objects(self.assembly_database, objects, poses, reference_frame)
   
-  def get_3d_poses_from_ssd(self):
+  def get_3d_poses_from_ssd(self, camera_name=None):
     """
     Returns object poses as estimated by the SSD neural network and reprojection.
     Also updates self.objects_in_tray
@@ -854,7 +854,10 @@ class O2ACBase(object):
       rospy.logwarn("Clearing all object poses in memory")
       self.objects_in_tray = dict()
       self.object_in_tray_is_upside_down = dict()
-      res = self.vision.read_from_ssd()
+      if camera_name:
+        res = self.vision.read_from_2d_ssd(camera_name)
+      else:
+        res = self.vision.read_from_ssd()
       for idx, pose, upside_down in zip(res.class_ids, res.poses, res.upside_down):
         self.objects_in_tray[idx] = pose
         self.object_in_tray_is_upside_down[idx] = upside_down

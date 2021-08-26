@@ -407,6 +407,7 @@ class O2ACCommon(O2ACBase):
     Does very light feasibility check before returning.
     """
     self.active_robots[robot_name].go_to_named_pose("above_tray", speed=1.0)
+    camera_name = robot_name + "_outside_camera"
 
     if not self.use_real_robot: # For simulation
       rospy.logwarn("Returning position near center (simulation)")
@@ -422,7 +423,7 @@ class O2ACCommon(O2ACBase):
       rospy.logwarn("look_and_get_grasp_point got " + object_id + " but will use id number " + str(object_id_num))
       return self.look_and_get_object_pose(object_id_num, robot_name)
 
-    self.vision.activate_camera(robot_name + "_outside_camera")
+    # self.vision.activate_camera(camera_name)
     self.activate_led(robot_name)
 
     if object_id in self.objects_in_tray:
@@ -436,10 +437,10 @@ class O2ACCommon(O2ACBase):
 
     for view in [self.tray_view_high] + self.close_tray_views + self.close_tray_views_rot_left + self.close_tray_views_rot_right + self.close_tray_views_rot_left_more + self.close_tray_views_rot_left_90:
       assert not rospy.is_shutdown()
-      self.vision.activate_camera(robot_name + "_outside_camera")
+      # self.vision.activate_camera(camera_name)
       self.active_robots[robot_name].go_to_pose_goal(view, end_effector_link=robot_name + "_outside_camera_color_frame", speed=.5, acceleration=.3, wait=True, move_lin=True)
       rospy.sleep(0.5)
-      self.get_3d_poses_from_ssd()
+      self.get_3d_poses_from_ssd(camera_name)
 
       object_pose = copy.deepcopy(self.objects_in_tray.get(object_id, None))
       if object_pose:
@@ -455,7 +456,7 @@ class O2ACCommon(O2ACBase):
         rospy.loginfo("Looking closer at object_id " + str(object_id))
         self.active_robots[robot_name].go_to_pose_goal(close_view, end_effector_link=robot_name + "_outside_camera_color_frame", speed=.3, acceleration=.3)
         rospy.sleep(0.5)
-        self.get_3d_poses_from_ssd()
+        self.get_3d_poses_from_ssd(camera_name)
         
         close_object_pose = copy.deepcopy(self.objects_in_tray.get(object_id, None))
 
@@ -484,7 +485,7 @@ class O2ACCommon(O2ACBase):
     options.update({"rotation_offset": -1 if robot_name == "b_bot" else 1})
     if object_pose:
       rospy.loginfo("Object found: checking for feasible grasps")
-      grasps = self.get_feasible_grasp_points(object_id, object_pose=object_pose, options=options)
+      grasps = self.get_feasible_grasp_points(object_id, object_pose=object_pose, options=options, robot_name)
       print("grasps found?", grasps)
       if grasps:
         if grasps == CORNER and center_on_corner:
@@ -1037,11 +1038,12 @@ class O2ACCommon(O2ACBase):
     # TODO: Consider the grasp width and actual collisions using the PlanningScene
     return self.simple_grasp_sanity_check(grasp_pose, border_dist)
     
-  def get_feasible_grasp_points(self, object_in_scene, object_pose=None, options={}):
+  def get_feasible_grasp_points(self, object_in_scene, object_pose=None, options={}, robot_name="b_bot"):
     """
     Returns a list of PoseStamped grasp points for an object that is currently in the scene.
     object_in_scene can be the string or the id number of the object.
     """
+
     # , grasp_width=0.06, check_for_close_items=True, check_too_close_to_border=False, rotation_offset=1, min_dist_to_border=0.02, allow_pick_near_border=True
     if isinstance(object_in_scene, str):
       object_id = self.assembly_database.name_to_id(object_in_scene)
@@ -1054,7 +1056,8 @@ class O2ACCommon(O2ACBase):
     
     if object_id in self.belt_id:
       # We get the belt grasp candidates directly from the vision because they are not stored anywhere from a previous view
-      res = self.get_3d_poses_from_ssd()
+      camera_name = robot_name + "_outside_camera"
+      res = self.get_3d_poses_from_ssd(camera_name)
       grasp_poses = []
       for idx, pose in enumerate(res.poses):
         if res.class_ids[idx] == 6:
@@ -2960,14 +2963,14 @@ class O2ACCommon(O2ACBase):
 
         dy, dz add an offset to the camera position.
     """
-    self.vision.activate_camera("a_bot_outside_camera")
+    # self.vision.activate_camera("a_bot_outside_camera")
     self.activate_led("a_bot", on=led_on)
 
     cam_height = -self.tray_view_low.pose.position.z -.005
 
     def go_and_record(view_pose, results):
       self.a_bot.go_to_pose_goal(view_pose, speed=0.5, end_effector_link="a_bot_outside_camera_color_frame")
-      self.get_3d_poses_from_ssd()
+      self.get_3d_poses_from_ssd("a_bot_outside_camera")
       obj_id = self.assembly_database.name_to_id("end_cap")
       res = copy.copy(self.object_in_tray_is_upside_down.get(obj_id, None))
       if res is not None:
@@ -3229,7 +3232,7 @@ class O2ACCommon(O2ACBase):
 
       # Look at the motor from above, confirm that SSD sees it
       rospy.sleep(1.0)
-      res = self.get_3d_poses_from_ssd()
+      res = self.get_3d_poses_from_ssd("b_bot_outside_camera")
       try:
         motor_id = self.assembly_database.name_to_id("motor")
         motor_placed = (motor_id in res.class_ids)
