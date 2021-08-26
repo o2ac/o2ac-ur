@@ -7,7 +7,7 @@
   <arg name="continuous_streaming"	default="false"/>
   <arg name="camera_name"		default="camera_multiplexer"/>
   <arg name="vis"			default="true"/>
-  <arg name="use_nodelet"		default="true"/>
+  <arg name="use_nodelet"		default="false"/>
   <arg if="$(arg use_nodelet)"
        name="manager"			value="camera_manager"/>
   <arg unless="$(arg use_nodelet)"
