@@ -1356,36 +1356,39 @@ class O2ACCommon(O2ACBase):
     robot.go_to_pose_goal(object_pose_in_world, move_lin=True)
     return True
   
-  def center_with_gripper(self, robot_name, opening_width, gripper_force=40, required_width_when_closed=0.0, clockwise=False, move_back_to_initial_position=True):
+  def center_with_gripper(self, robot_name, opening_width, gripper_force=40, gripper_velocity=0.01, 
+                                required_width_when_closed=0.0, clockwise=False, 
+                                move_back_to_initial_position=True):
     """
     Centers cylindrical object at the current location, by closing/opening the gripper and rotating the robot's last joint.
 
     If required_width_when_closed is set, the function returns False when the gripper closes and detects a smaller width.
     """
     robot = self.active_robots[robot_name]
-    robot.gripper.close(force = 1.0, velocity = 0.1)
+    robot.gripper.close(force=gripper_force, velocity=gripper_velocity)
     if required_width_when_closed:
       if not self.simple_gripper_check(robot_name, min_opening_width=required_width_when_closed):
         return False
-    robot.gripper.send_command(command=opening_width, force=gripper_force, velocity = 0.001)
+    robot.gripper.send_command(command=opening_width, force=gripper_force, velocity=gripper_velocity)
 
     # rotate gripper 90deg
     initial_pose = robot.get_current_pose_stamped()
     offset = -tau/4.0 if clockwise else tau/4.0
     success = robot.move_lin_rel(relative_rotation=[offset, 0, 0], speed=1.0, relative_to_tcp=True)
     if not success:
-      rospy.logerr("Fail to rotate 90deg %s" % success)
-      return False
+      rospy.logerr("Fail to rotate 90deg %s. Retry with -90deg" % success)
+      if not robot.move_lin_rel(relative_rotation=[-offset, 0, 0], speed=1.0, relative_to_tcp=True):
+        return False
     
     # close-open
-    robot.gripper.close(force = 1.0, velocity = 0.003)
+    robot.gripper.close(force=gripper_force, velocity=gripper_velocity)
     if required_width_when_closed:
       if not self.simple_gripper_check(robot_name, min_opening_width=required_width_when_closed):
-        robot.gripper.send_command(command=opening_width, force=gripper_force, velocity = 0.13)
+        robot.gripper.send_command(command=opening_width, force=gripper_force, velocity=gripper_velocity)
         if move_back_to_initial_position:
           robot.go_to_pose_goal(initial_pose, speed=1.0)
         return False
-    robot.gripper.send_command(command=opening_width, force=gripper_force, velocity = 0.001)
+    robot.gripper.send_command(command=opening_width, force=gripper_force, velocity=gripper_velocity)
 
     # rotate gripper -90deg
     if move_back_to_initial_position:
@@ -1883,10 +1886,11 @@ class O2ACCommon(O2ACBase):
     """ Only inserts the bearing, does not align the holes.
     """
     robot = self.active_robots[robot_name]
-    insertion_direction = "-X" if robot_name == "b_bot" else "+X"
     if robot_name == "b_bot":
+      insertion_direction = "-X" if robot_name == "b_bot" else "+X"
       target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.004, 0.000, 0.002, 0, 0, 0, 1.])
     else:
+      insertion_direction = "-X" if task == "assembly" else "+X"
       target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.003, 0.014, -0.003, 0, 0, 0, 1.])
     selection_matrix = [0., 0.3, 0.3, .8, .8, .8]
     result = robot.do_insertion(target_pose_target_frame, insertion_direction=insertion_direction, force=10.0, timeout=20.0, 
@@ -3378,7 +3382,7 @@ class O2ACCommon(O2ACBase):
         self.insert_motor(target_link, attempts-1)
       return False
 
-    self.b_bot.linear_push(4, "+Z", max_translation=0.02, timeout=10.0)
+    self.b_bot.linear_push(4, "+Z", max_translation=0.01, timeout=10.0)
     self.b_bot.gripper.forget_attached_item()
     return True
 
@@ -4253,7 +4257,8 @@ class O2ACCommon(O2ACBase):
     
     # Open gripper slightly
     self.a_bot.gripper.send_command(0.005, velocity=0.01, wait=False)
-    # self.publish_part_in_assembled_position(panel_name)
+
+    return True
 
   def fasten_panel(self, panel_name, simultaneous=False, a_bot_task_2nd_screw=None, unequip_tool_on_success=False):
     if panel_name == "panel_bearing":
@@ -4961,12 +4966,12 @@ class O2ACCommon(O2ACBase):
   def pick_base_panel(self, grasp_name='default_grasp', skip_initial_perception=False, use_b_bot_camera=False, retry_with_rotated_orientation=True, retry_counter=0):
     # TODO(cambel): Add fallback grasp names, if nothing else, use terminal for grasp
     # Find base panel 
+    if use_b_bot_camera:
+      robot_name = "b_bot"
+    else:
+      robot_name = "a_bot"
     if self.use_real_robot:
       if not skip_initial_perception:
-        if use_b_bot_camera:
-          robot_name = "b_bot"
-        else:
-          robot_name = "a_bot"
 
         self.activate_led(robot_name)
         rospy.loginfo("Looking for base plate")
@@ -4978,6 +4983,7 @@ class O2ACCommon(O2ACBase):
           self.active_robots[robot_name].go_to_named_pose("home")
           return False
     else:
+      self.active_robots[robot_name].go_to_named_pose("above_tray", speed=1.0)
       goal = conversions.to_pose_stamped("tray_center", [-0.08, -0.08, 0.001, tau/4, 0, tau/4])
       self.spawn_object("base", goal, goal.header.frame_id)
       rospy.sleep(0.5)

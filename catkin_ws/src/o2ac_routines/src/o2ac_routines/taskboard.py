@@ -324,7 +324,7 @@ class O2ACTaskboard(O2ACCommon):
       self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=180.0)
       
       self.orient_bearing("taskboard", robot_name="a_bot", part1=False, part2=True)
-      self.subtask_completed["bearing"] = self.insert_bearing("taskboard_bearing_target_link", robot_name="a_bot")
+      self.subtask_completed["bearing"] = self.insert_bearing("taskboard_bearing_target_link", robot_name="a_bot", task="taskboard")
       
       print("task 1:", self.a_success, self.b_success)
 

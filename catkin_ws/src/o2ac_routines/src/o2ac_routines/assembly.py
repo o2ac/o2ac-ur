@@ -178,7 +178,7 @@ class O2ACAssembly(O2ACCommon):
     self.a_bot.gripper.open(opening_width=0.05, wait=False)
     self.a_bot.gripper.open()
     self.a_bot.gripper.forget_attached_item()
-    self.a_bot.move_lin_rel(relative_translation=[0.03, -0.05, 0.01], speed=1.0)
+    self.a_bot.move_lin_rel(relative_translation=[0.05, -0.1, 0.01], speed=1.0)
 
     def set_base_plate():
       self.lock_base_plate()
@@ -946,25 +946,29 @@ class O2ACAssembly(O2ACCommon):
 
     self.publish_status_text("Target: fasten panel bearing")
     
-    self.a_bot_success_2nd = False
+    self.place_motor_panel = False
+    self.hold_motor_panel = False
     def a_bot_2nd_task():
-      if not self.place_panel("a_bot", "panel_motor", pick_again=True, fake_position=True):
-        return False
+      self.place_motor_panel = self.place_panel("a_bot", "panel_motor", pick_again=True, fake_position=True)
       if simultaneous:
-        self.a_bot_success_2nd = self.hold_panel_for_fastening("panel_motor")
+        self.hold_motor_panel = self.hold_panel_for_fastening("panel_motor")
       else:
-        self.a_bot_success_2nd = True
-      return self.a_bot_success_2nd
+        self.hold_motor_panel = True
+      return True
     if not self.fasten_panel("panel_bearing", simultaneous=simultaneous, a_bot_task_2nd_screw=a_bot_2nd_task):
       return False
 
     self.a_bot_success = False
     self.b_bot_success = False
     def a_bot_task():
-      if not self.a_bot_success_2nd:
+      if not self.place_motor_panel:
         rospy.logwarn("Retrying place panel motor")
         self.a_bot_success = self.place_panel("a_bot", "panel_motor", pick_again=True, fake_position=True)
-      else:
+      if not self.hold_motor_panel:
+        rospy.logwarn("Retrying hold panel motor")
+        self.a_bot_success = self.hold_panel_for_fastening("panel_motor")
+      
+      if self.place_motor_panel and self.hold_motor_panel:
         self.a_bot_success = True
 
     def b_bot_task():
@@ -976,7 +980,6 @@ class O2ACAssembly(O2ACCommon):
     else:
       a_bot_task()
       b_bot_task()
-    del self.a_bot_success_2nd
     
     self.publish_part_in_assembled_position("panel_bearing")
     self.publish_part_in_assembled_position("panel_motor")
@@ -1186,8 +1189,8 @@ class O2ACAssembly(O2ACCommon):
     rospy.loginfo("==== Finished.")
 
   def unload_assembled_unit(self, tray_name=None):
-    self.do_change_tool_action("a_bot", equip=False)
-    self.do_change_tool_action("b_bot", equip=False)
+    self.unequip_tool("a_bot")
+    self.unequip_tool("b_bot")
     self.ab_bot.go_to_named_pose("home")
     if not self.unload_drive_unit():
       rospy.logerr("Fail to unload drive unit. Abort!")
