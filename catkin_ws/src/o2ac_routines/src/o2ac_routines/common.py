@@ -1886,11 +1886,10 @@ class O2ACCommon(O2ACBase):
     """ Only inserts the bearing, does not align the holes.
     """
     robot = self.active_robots[robot_name]
+    insertion_direction = "-X"
     if robot_name == "b_bot":
-      insertion_direction = "-X" if robot_name == "b_bot" else "+X"
       target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.004, 0.000, 0.002, 0, 0, 0, 1.])
     else:
-      insertion_direction = "-X" if task == "assembly" else "+X"
       target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.003, 0.014, -0.003, 0, 0, 0, 1.])
     selection_matrix = [0., 0.3, 0.3, .8, .8, .8]
     result = robot.do_insertion(target_pose_target_frame, insertion_direction=insertion_direction, force=10.0, timeout=20.0, 
