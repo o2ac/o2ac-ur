@@ -311,7 +311,7 @@ class O2ACTaskboard(O2ACCommon):
       self.b_success = self.b_bot.go_to_named_pose("home")
     self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=180.0)
 
-    if self.a_bot_success and self.b_bot_success:
+    if self.a_success and self.b_success:
       self.a_success = False
       self.b_success = False
       def a_bot_task(): # orient/insert bearing
@@ -468,42 +468,70 @@ class O2ACTaskboard(O2ACCommon):
         return True
 
       self.ab_bot.go_to_named_pose("home")
-      
-      self.a_bot.go_to_pose_goal(self.tray_view_high, end_effector_link="a_bot_outside_camera_color_frame", speed=.8, move_lin=False)
 
       self.vision.activate_camera("a_bot_outside_camera")
       self.activate_led("a_bot")
-      res = self.get_3d_poses_from_ssd()
-      r2 = self.get_feasible_grasp_points("belt")
-      if r2:
-        pick_goal = r2[0]
-        pick_goal.pose.position.z = 0.000
-      else:
-        rospy.logerr("Could not find belt grasp pose! Aborting.")
+      
+      # Look for belt
+      global res, r2, pick_goal
+      global b_bot_loaded_program
+      b_bot_ran_program = False
+      def a_bot_task():
+        global res, r2, pick_goal
+        self.a_bot.go_to_pose_goal(self.tray_view_high, end_effector_link="a_bot_outside_camera_color_frame", speed=.8, move_lin=False)
+        res = self.get_3d_poses_from_ssd()
+        r2 = self.get_feasible_grasp_points("belt")
+        if r2:
+          pick_goal = r2[0]
+          pick_goal.pose.position.z = 0.000  # Pick height
+        else:
+          rospy.logerr("Could not find belt grasp pose! Aborting.")
+          return False
+      def b_bot_task():
+        global b_bot_loaded_program
+        b_bot_loaded_program = self.b_bot.load_program(program_name="wrs2020/taskboard_pick_hook.urp")
+      self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=180.0)
+      if not b_bot_loaded_program:
+          return False
+          
+      # Pick belt and tool
+      self.confirm_to_proceed("Pick tool with b_bot and belt with a_bot?")
+      global b_bot_executed_program
+      b_bot_executed_program = False
+      def a_bot_task():
+        self.allow_collisions_with_robot_hand("tray", "a_bot")
+        self.allow_collisions_with_robot_hand("tray_center", "a_bot")
+        self.simple_pick("a_bot", pick_goal, gripper_force=100.0, grasp_width=.08, axis="z")
+        self.a_bot.move_lin_rel(relative_translation=[0,0,.1])
+        self.allow_collisions_with_robot_hand("tray", "a_bot", False)
+        self.allow_collisions_with_robot_hand("tray_center", "a_bot", False)
+        # Move to show pose to check if belt was picked
+        a_bot_wait_with_belt_pose = [0.27640044689178467, -1.8691555462279261, 2.0014026800738733, -1.287313537006714, -1.5502598921405237, -2.5121548811541956]
+        for _ in range(5): # Wait for b_bot to be out of the way
+          self.a_bot_success = self.a_bot.move_joints(a_bot_wait_with_belt_pose, speed=1.0)
+          if self.a_bot_success:
+            break
+          rospy.sleep(1.0)
+      def b_bot_task():
+        # Equip the belt tool with b_bot
+        global b_bot_executed_program
+        b_bot_executed_program = self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_pick_hook.urp", skip_ros_activation=True)
+        # b_bot_executed_program = self.execute_loaded_program()
+        if not b_bot_executed_program:
+          return False
+        wait_for_UR_program("/b_bot", rospy.Duration.from_sec(20))
+      self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=180.0)
+      if not b_bot_executed_program:
+        # Return belt
         return False
       
-      self.confirm_to_proceed("Pick tool with b_bot?")
-      rospy.sleep(1)
-      self.a_bot.activate_ros_control_on_ur()
-      self.b_bot.activate_ros_control_on_ur()
-      # Equip the belt tool with b_bot
-      if not self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_pick_hook.urp"):
-        return False
-      rospy.sleep(2)  # Wait for b_bot to have moved out of the way
-      self.allow_collisions_with_robot_hand("tray", "a_bot")
-      self.allow_collisions_with_robot_hand("tray_center", "a_bot")
-      self.simple_pick("a_bot", pick_goal, gripper_force=100.0, grasp_width=.08, axis="z")
-      self.a_bot.move_lin_rel(relative_translation=[0,0,.1])
-      self.allow_collisions_with_robot_hand("tray", "a_bot", False)
-      self.allow_collisions_with_robot_hand("tray_center", "a_bot", False)
-      
-      # Move to ready pose, check if belt was picked
+      # Check pick success
       self.a_bot_success = False
       self.b_bot_success = False
       def a_bot_task():
         a_bot_wait_with_belt_pose = [0.27640044689178467, -1.8691555462279261, 2.0014026800738733, -1.287313537006714, -1.5502598921405237, -2.5121548811541956]
         for _ in range(5): # Wait for other robot to be out of the way
-          self.a_bot_success = self.a_bot.move_joints(a_bot_wait_with_belt_pose)
+          self.a_bot_success = self.a_bot.move_joints(a_bot_wait_with_belt_pose, speed=1.0)
           if self.a_bot_success:
             break
           rospy.sleep(1.0)
@@ -516,7 +544,6 @@ class O2ACTaskboard(O2ACCommon):
           rospy.sleep(1.0)
         self.vision.activate_camera("b_bot_outside_camera")
       self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=180.0)
-      
       self.confirm_to_proceed("Check belt with vision?")
       if not self.a_bot_success or not self.b_bot_success or not self.vision.check_pick_success("belt"):
         rospy.logerr("Belt pick has failed. Return tool and abort.")
@@ -532,24 +559,28 @@ class O2ACTaskboard(O2ACCommon):
         return False
         
       # go to prep pose for urscript routine
-      self.a_bot_success = False
-      self.b_bot_success = False
-      def a_bot_task():
-        a_bot_wait_with_belt_pose = [0.646294116973877, -1.602117200891012, 2.0059760252581995, -1.3332312864116211, -0.8101084868060511, -2.4642069975482386]
-        for _ in range(5): # Wait for other robot to be out of the way
-          self.a_bot_success = self.a_bot.move_joints(a_bot_wait_with_belt_pose, speed=1.0)
-          if self.a_bot_success:
-            break
-          rospy.sleep(1.0)
-      def b_bot_task():
-        b_bot_look_at_belt = [1.95739448, -1.40047674, 1.92903739, -1.98750128, -2.1883457, 1.7778782]
-        for _ in range(5): # Wait for other robot to be out of the way
-          self.b_bot_success = self.b_bot.move_joints(b_bot_look_at_belt, speed=1.0)
-          if self.b_bot_success:
-            break
-          rospy.sleep(1.0)
-      self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=180.0)
-      
+      self.a_bot_success = True
+      self.b_bot_success = True
+      # def a_bot_task():
+      #   a_bot_wait_with_belt_pose = [0.646294116973877, -1.602117200891012, 2.0059760252581995, -1.3332312864116211, -0.8101084868060511, -2.4642069975482386]
+      #   for _ in range(5): # Wait for other robot to be out of the way
+      #     self.a_bot_success = self.a_bot.move_joints(a_bot_wait_with_belt_pose, speed=1.0)
+      #     if self.a_bot_success:
+      #       break
+      #     rospy.sleep(1.0)
+      # def b_bot_task():
+      #   b_bot_look_at_belt = [1.95739448, -1.40047674, 1.92903739, -1.98750128, -2.1883457, 1.7778782]
+      #   for _ in range(5): # Wait for other robot to be out of the way
+      #     self.b_bot_success = self.b_bot.move_joints(b_bot_look_at_belt, speed=1.0)
+      #     if self.b_bot_success:
+      #       break
+      #     rospy.sleep(1.0)
+      # self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=180.0)
+      a_bot_wait_with_belt_pose = [0.6462941, -1.6021172, 2.00597602, -1.33323128, -0.81010848, -2.4642069]
+      b_bot_look_at_belt = [1.95739448, -1.40047674, 1.92903739, -1.98750128, -2.1883457, 1.7778782]
+      q = a_bot_wait_with_belt_pose + b_bot_look_at_belt
+      self.a_bot_success = self.ab_bot.move_joints(q, speed=1.0)
+
       if not self.a_bot_success or not self.b_bot_success:
         rospy.logerr("Belt pick has failed. Return tool and abort.")
         self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp")
@@ -586,7 +617,7 @@ class O2ACTaskboard(O2ACCommon):
         return False
       wait_for_UR_program("/b_bot", rospy.Duration.from_sec(20))
 
-      # b_bot is now above the tray, looking at the 
+      # b_bot is now above the tray, looking at the taskboard
       # TODO(felixvd): Use vision to check belt threading success
       
       self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp")
