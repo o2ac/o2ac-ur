@@ -485,7 +485,7 @@ class O2ACCommon(O2ACBase):
     options.update({"rotation_offset": -1 if robot_name == "b_bot" else 1})
     if object_pose:
       rospy.loginfo("Object found: checking for feasible grasps")
-      grasps = self.get_feasible_grasp_points(object_id, object_pose=object_pose, options=options, robot_name)
+      grasps = self.get_feasible_grasp_points(object_id, object_pose=object_pose, options=options, robot_name=robot_name)
       print("grasps found?", grasps)
       if grasps:
         if grasps == CORNER and center_on_corner:
@@ -2247,6 +2247,7 @@ class O2ACCommon(O2ACBase):
   def pick_idler_pulley(self, object_pose=None, attempts=5):
     if not object_pose: # Find the idler pulley pose when not given
       rospy.loginfo("Look for the idler pulley")
+      self.vision.activate_camera("a_bot_outside_camera")
       options = {'check_for_close_items': False, 'center_on_corner': True, 'center_on_close_border': True, 
                 'min_dist_to_border': 0.05, 'allow_pick_near_border': False, 'object_width': 0.03}
       object_pose = self.look_and_get_grasp_point("taskboard_idler_pulley_small", robot_name="a_bot", options=options)
@@ -2508,7 +2509,7 @@ class O2ACCommon(O2ACBase):
     rospy.loginfo("Going to near tb (b_bot)") # Push with tool
     target_rotation = np.deg2rad([30.0, 0.0, 0.0]).tolist()
     approach_pose = conversions.to_pose_stamped(target_link, [-0.05,0,0] + target_rotation)
-    xyz_light_push = [-0.01, -0.001, 0.001]  # MAGIC NUMBERS
+    xyz_light_push = [-0.005, -0.001, 0.001]  # MAGIC NUMBERS
     near_tb_pose = conversions.to_pose_stamped(target_link, xyz_light_push + target_rotation)
     seq.append(helpers.to_sequence_item(approach_pose, speed=1.0, end_effector_link="b_bot_screw_tool_m4_tip_link"))
     seq.append(helpers.to_sequence_item(near_tb_pose, speed=0.3, end_effector_link="b_bot_screw_tool_m4_tip_link"))
@@ -2518,12 +2519,12 @@ class O2ACCommon(O2ACBase):
       return False
 
     self.vision.activate_camera("a_bot_inside_camera")
-    self.tools.set_motor("padless_tool_m4", "tighten", duration=12.0)
+    self.tools.set_motor("padless_tool_m4", "tighten", duration=10.0)
     self.insert_screw_tool_tip_into_idler_pulley_head()
     
     ## Incline the tool slightly 
     self.planning_scene_interface.allow_collisions("padless_tool_m4", "taskboard_plate")
-    xyz_hard_push = [0.001, -0.001, 0.001]  # MAGIC NUMBERS (target without inclination)
+    xyz_hard_push = [0.006, -0.001, 0.001]  # MAGIC NUMBERS (target without inclination)
     inclination_angle_deg = 3.0
     inclined_orientation_hard_push = np.deg2rad([30.0, inclination_angle_deg, 0.0]).tolist()
     s = sin(np.deg2rad(inclination_angle_deg)) * 0.008  # 8 mm is roughly the distance from the taskboard surface to the 
