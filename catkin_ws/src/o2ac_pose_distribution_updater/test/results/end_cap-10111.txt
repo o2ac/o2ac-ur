@@ -1,0 +1,2 @@
+/root/o2ac-ur/catkin_ws/devel/lib/o2ac_pose_distribution_updater/best_scores /root/o2ac-ur/catkin_ws/src/o2ac_assembly_database/config/wrs_assembly_2020/meshes/09_EDCS10.stl /root/o2ac-ur/catkin_ws/src/o2ac_assembly_database/config/wrs_assembly_2020/object_metadata/end_cap.yaml grasp_1 10111 0.00001 0.001 100. 100. 100. 1. 1. 1. 
+0.073623 1000000000.000000 1000000000.000000 1000000000.000000 

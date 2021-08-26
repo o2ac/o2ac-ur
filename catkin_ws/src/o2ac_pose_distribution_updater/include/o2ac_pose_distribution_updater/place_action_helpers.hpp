@@ -44,7 +44,7 @@ public:
                    const std::vector<Eigen::Vector3d> &vertices,
                    const double &support_surface,
                    const Eigen::Isometry3d &gripper_transform,
-                   const bool balance_check = true);
+                   const bool balance_check = true, const bool stability_check = true);
 };
 
 void place_update_Lie_distribution(const Eigen::Isometry3d &old_mean,

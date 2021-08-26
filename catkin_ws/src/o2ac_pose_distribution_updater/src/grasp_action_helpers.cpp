@@ -103,7 +103,8 @@ grasp_calculator::grasp_calculator(
     const std::vector<Eigen::Vector3d> &all_vertices,
     const Eigen::Isometry3d &gripper_transform,
     const Eigen::Isometry3d &old_mean, const Eigen::Vector3d &center_of_gravity,
-    const bool balance_check) {
+    const bool balance_check,
+    const bool stability_check) {
 
   // rotate the world coordinates to make the direction of the gripper x-axis
   Eigen::Vector3d gripping_direction =
@@ -392,7 +393,7 @@ grasp_calculator::grasp_calculator(
     }
   }
 
-  if (balance_check) {
+  if (stability_check) {
     // stability check
     double left_x, right_x;
     // collect the vertex on the left and right grippers

@@ -327,7 +327,8 @@ place_calculator::place_calculator(const Eigen::Isometry3d &old_mean,
                                    const std::vector<Eigen::Vector3d> &vertices,
                                    const double &support_surface,
                                    const Eigen::Isometry3d &gripper_transform,
-                                   const bool balance_check) {
+                                   const bool balance_check,
+				   const bool stability_check) {
   this->center_of_gravity = center_of_gravity;
   this->support_surface = support_surface;
   this->gripper_transform = gripper_transform;
@@ -357,7 +358,7 @@ place_calculator::place_calculator(const Eigen::Isometry3d &old_mean,
   ground_touch_vertex_3 = vertices[ground_touch_vertex_id_3];
 
   // If the object is not stable after placing, throw exception
-  if (balance_check && !stability) {
+  if (stability_check && !stability) {
     throw std::runtime_error("Unstable after placing");
   }
 

@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
   planner.grasp_step_with_Lie_distribution(
       gripped_geometry->vertices, gripped_geometry->triangles,
       initial_gripper_pose, pre_initial_mean, pre_initial_covariance,
-      initial_mean, initial_covariance, true);
+      initial_mean, initial_covariance, false);
 
   // make action plan
   CovarianceMatrix objective_coefficients = CovarianceMatrix::Zero();
