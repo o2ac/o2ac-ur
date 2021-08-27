@@ -13,16 +13,7 @@ from math import tau  # = 2*pi = one turn. https://tauday.com/tau-manifesto
 from o2ac_vision.common_3d_func import centering, rpy2mat, mat2rpy
 
 
-#############################################################################
-#
-# Bearing pose estimation
-#
-# Sample code
-#    be = BearingPoseEstimator( im_temp, img, bbox )
-#    d_rotate, translation = be.main_proc( threshold=3.0, ds=3.0 )
-#    im_vis = be.get_result_image()
-#
-#############################################################################
+
 
 class ICPRegistration:
     """Full scratch implementation of ICP algorithm."""
@@ -149,13 +140,23 @@ class ICPRegistration:
                       )
         return rot
     
-    
+#############################################################################
+#
+# Bearing pose estimation
+#
+# Sample code
+#    be = BearingPoseEstimator( im_temp, img, bbox )
+#    d_rotate, translation = be.main_proc( threshold=3.0, ds=3.0 )
+#    im_vis = be.get_result_image()
+#
+#############################################################################    
 class BearingPoseEstimator:
-    def __init__( self, im_s, img, bbox ):
+    def __init__( self, im_s, img, bbox, edge_param=[50,200] ):
         """
-        im_temp: template image (Grayscale)
-        im_t: input image (Grayscale)
-        bbox: bounding box of the bearing (tuple [x,y,w,h])
+        im_s(numpy.ndarray): source image (template) (Grayscale)
+        im(numpy.ndarray):  target image (Grayscale)
+        bbox(list(int)): bounding box of the bearing (tuple [x,y,w,h])
+        edge_param(list(int)): parameter for canny edge detector
         """
 
         # crop target image using a bounding box
@@ -163,11 +164,11 @@ class BearingPoseEstimator:
         
         # generate source point cloud
         self.im_s = im_s
-        self.pcd_s = self.get_pcd( im_s )
+        self.pcd_s, self.im_edge_s = self.get_pcd( im_s, edge_param )
         
         # generate target point cloud
         #im_t = cv2.GaussianBlur(im_t,(5,5),0)
-        self.pcd_t = self.get_pcd( self.im_t )
+        self.pcd_t, self.im_edge_t = self.get_pcd( self.im_t, edge_param )
         
         # data
         self.trans_final = np.identity(4)
@@ -176,13 +177,13 @@ class BearingPoseEstimator:
         self.d = None
         
         
-    def get_pcd( self, img ):
+    def get_pcd( self, img, edge_param ):
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
         cl1 = clahe.apply( img )
         _canny1 = 100 #parameter1 for canny edge detection
         _canny2 = 200 #parameter2 for canny edge detection
         # Edge detection
-        edges = cv2.Canny( cl1, _canny1, _canny2 )
+        edges = cv2.Canny( cl1, edge_param[0], edge_param[1] )
 
         tmp = np.array( np.where( edges>0 ) )
         np_edge = tmp.T.copy()
@@ -193,7 +194,7 @@ class BearingPoseEstimator:
         pcd_edge = o3d.geometry.PointCloud()
         pcd_edge.points = o3d.utility.Vector3dVector(np_edge3.astype(np.float))
 
-        return pcd_edge
+        return pcd_edge, edges
 
     
     def main_proc( self, threshold, ds=5.0 ):
@@ -305,7 +306,6 @@ class BearingPoseEstimator:
         im_result = cv2.putText( im_result, str_rotate, (5,30), 1, 1.25, (255, 255, 255), 2, cv2.LINE_AA )
         im_result = cv2.putText( im_result, str_rotate, (5,30), 1, 1.25, (0, 255, 255), 1, cv2.LINE_AA )
         return im_result
-
 
 def get_templates( path, name ):
     """ load template imagess
