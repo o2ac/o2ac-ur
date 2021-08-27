@@ -1,3 +1,7 @@
+collision_objects:
+- type: CYLINDER 
+  dimensions: [0.055, 0.005]
+  pose: [0.0275, 0.0, 0.0, 0.0, 1.5707, 0.0]
 subframes:
 - pose_xyzrpy:
   - 0.0

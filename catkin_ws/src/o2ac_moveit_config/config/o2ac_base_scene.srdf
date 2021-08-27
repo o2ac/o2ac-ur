@@ -192,14 +192,6 @@
     <group_state name="close" group="b_bot_robotiq_85">
         <joint name="b_bot_finger_joint" value="0.8028" />
     </group_state>
-    <group_state name="above_tray" group="a_bot">
-        <joint name="a_bot_elbow_joint" value="1.96" />
-        <joint name="a_bot_shoulder_lift_joint" value="-1.876" />
-        <joint name="a_bot_shoulder_pan_joint" value="0.717" />
-        <joint name="a_bot_wrist_1_joint" value="-1.64" />
-        <joint name="a_bot_wrist_2_joint" value="-1.58" />
-        <joint name="a_bot_wrist_3_joint" value="-0.85" />
-    </group_state>
     <group_state name="bearing_handover" group="b_bot">
         <joint name="b_bot_elbow_joint" value="2.06" />
         <joint name="b_bot_shoulder_lift_joint" value="-1.78" />
@@ -231,6 +223,38 @@
         <joint name="a_bot_wrist_1_joint" value="-0.9790" />
         <joint name="a_bot_wrist_2_joint" value="-0.6834" />
         <joint name="a_bot_wrist_3_joint" value="1.1082" />
+    </group_state>
+    <group_state name="centering_area" group="b_bot">
+        <joint name="b_bot_elbow_joint" value="2.36439" />
+        <joint name="b_bot_shoulder_lift_joint" value="-2.07523" />
+        <joint name="b_bot_shoulder_pan_joint" value="1.84342" />
+        <joint name="b_bot_wrist_1_joint" value="-1.85972" />
+        <joint name="b_bot_wrist_2_joint" value="-1.56609" />
+        <joint name="b_bot_wrist_3_joint" value="-1.29952" />
+    </group_state>
+    <group_state name="centering_area" group="a_bot">
+        <joint name="a_bot_elbow_joint" value="2.18966" />
+        <joint name="a_bot_shoulder_lift_joint" value="-2.10898" />
+        <joint name="a_bot_shoulder_pan_joint" value="0.38181" />
+        <joint name="a_bot_wrist_1_joint" value="-1.65007" />
+        <joint name="a_bot_wrist_2_joint" value="-1.56754" />
+        <joint name="a_bot_wrist_3_joint" value="0.38096" />
+    </group_state>
+    <group_state name="above_tray" group="b_bot">
+        <joint name="b_bot_elbow_joint" value="1.49878" />
+        <joint name="b_bot_shoulder_lift_joint" value="-1.44992" />
+        <joint name="b_bot_shoulder_pan_joint" value="1.59350" />
+        <joint name="b_bot_wrist_1_joint" value="-1.61256" />
+        <joint name="b_bot_wrist_2_joint" value="-1.82635" />
+        <joint name="b_bot_wrist_3_joint" value="-1.54880" />
+    </group_state>
+    <group_state name="above_tray" group="a_bot">
+        <joint name="a_bot_elbow_joint" value="1.53914" />
+        <joint name="a_bot_shoulder_lift_joint" value="-1.51666" />
+        <joint name="a_bot_shoulder_pan_joint" value="1.03477" />
+        <joint name="a_bot_wrist_1_joint" value="-1.45612" />
+        <joint name="a_bot_wrist_2_joint" value="-1.34467" />
+        <joint name="a_bot_wrist_3_joint" value="1.01749" />
     </group_state>
     <group_state name="home" group="ab_bot">
         <joint name="a_bot_elbow_joint" value="1.4" />
