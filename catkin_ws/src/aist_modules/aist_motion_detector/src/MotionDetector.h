@@ -73,7 +73,7 @@ class MotionDetector
 				const std::string& target_frame,
 				const camera_info_cp& camera_info)	;
     tf::Transform
-		find_cabletip()						;
+		find_cabletip(const point_t& top_left)			;
     vector3_t	view_vector(value_t u, value_t v)		const	;
     
   private:
@@ -107,7 +107,7 @@ class MotionDetector
     point_t						_top_left;
     cv::Mat_<point2_t>					_corners;
     cv_bridge::CvImagePtr				_cv_image;
-    cv_bridge::CvImage					_cv_mask;
+    cv_bridge::CvImage					_cv_accum;
     tf::StampedTransform				_Tct;
     camera_info_cp					_camera_info;
 };
