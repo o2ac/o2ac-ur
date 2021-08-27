@@ -644,14 +644,14 @@ class O2ACTaskboard(O2ACCommon):
       rospy.loginfo("=== set screw: at at_set_screw_hole ===")
       self.confirm_to_proceed("Move into hole?")
       # self.b_bot.go_to_pose_goal(self.in_set_screw_hole, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True, speed=0.02)
-      dist = 0.005
+      dist = 0.0025
       self.b_bot.move_lin_rel(relative_translation=[-dist, 0, 0], speed=0.02, wait=True)
       # This expects to be exactly above the set screw hole
       self.confirm_to_proceed("Turn on motor and do spiral?")
       
       self.tools.set_motor("set_screw_tool", "tighten", duration = 13.0, skip_final_loosen_and_retighten=True)
 
-      self.b_bot.execute_spiral_trajectory("YZ", max_radius=0.0015, radius_direction="+Y", steps=50,
+      self.b_bot.execute_spiral_trajectory("YZ", max_radius=0.001, radius_direction="+Y", steps=50,
                                           revolutions=2, target_force=0, check_displacement_time=10,
                                           termination_criteria=None, timeout=6, end_effector_link="b_bot_set_screw_tool_tip_link")
       rospy.sleep(3.0)
