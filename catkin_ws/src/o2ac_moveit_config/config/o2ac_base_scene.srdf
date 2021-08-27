@@ -271,8 +271,8 @@
         <joint name="b_bot_wrist_3_joint" value="0" />
     </group_state>
     <!--END EFFECTOR: Purpose: Represent information about an end effector.-->
-    <end_effector name="a_bot_tip" parent_link="a_bot_ee_link" group="a_bot_robotiq_85" parent_group="a_bot" />
-    <end_effector name="b_bot_tip" parent_link="b_bot_ee_link" group="b_bot_robotiq_85" parent_group="b_bot" />
+    <end_effector name="a_bot_tip" parent_link="a_bot_gripper_tip_link" group="a_bot_robotiq_85" parent_group="a_bot" />
+    <end_effector name="b_bot_tip" parent_link="b_bot_gripper_tip_link" group="b_bot_robotiq_85" parent_group="b_bot" />
     <!--VIRTUAL JOINT: Purpose: this element defines a virtual joint between a robot link and an external frame of reference (considered fixed with respect to the robot)-->
     <virtual_joint name="world_to_o2ac" type="fixed" parent_frame="world" child_link="o2ac_ground" />
     <!--DISABLE COLLISIONS: By default it is assumed that any link of the robot could potentially come into collision with any other link in the robot. This tag disables collision checking between a specified pair of links. -->

@@ -3739,6 +3739,101 @@ class O2ACCommon(O2ACBase):
 
 #### subtasks assembly 
 
+#### subtask e - idler pulley
+
+  def pick_idler_spacer(self, robot_name="b_bot"):
+    options = {'check_for_close_items': True, 'declutter_with_tool': True, 'object_width': 0.005, 'grasp_width': 0.04}
+    idler_spacer_pose = self.look_and_get_grasp_point("idler_spacer", options=options)
+    
+    marker_pose = copy.deepcopy(idler_spacer_pose)
+    marker_pose.pose.position.z = 0
+    marker_pose.pose.orientation = conversions.to_quaternion(transformations.quaternion_from_euler(0, -tau/4, 0))
+    self.markers_scene.spawn_item("idler_spacer", marker_pose)
+    idler_spacer_pose.pose.position.z = 0.0 # Magic numbers
+
+    self.vision.activate_camera(robot_name + "_inside_camera")
+    if not self.simple_pick(robot_name, idler_spacer_pose, grasp_height=0.001, 
+                            gripper_force=50.0, grasp_width=.04, axis="z", approach_height=0.07, gripper_command=0.03,
+                            item_id_to_attach="idler_spacer"):
+      rospy.logerr("Fail to simple_pick")
+      return False
+
+    if not self.simple_gripper_check(robot_name, min_opening_width=0.002):
+      rospy.logerr("Gripper did not grasp the idler_spacer --> Stop")
+      return False
+    return True
+  
+  def orient_idler_pulley_assembly(self, robot_name):
+    centering_area = "right_centering_link" if robot_name == "b_bot" else "left_centering_link"
+    self.active_robots[robot_name].go_to_named_pose("centering_area")
+    self.active_robots[robot_name].go_to_pose_goal(conversions.to_pose_stamped(centering_area, [-0.005, 0, 0, -tau/4, 0, 0]))
+    self.center_with_gripper(robot_name, opening_width=0.03, gripper_force=0, gripper_velocity=0.01, move_back_to_initial_position=True)
+    self.active_robots[robot_name].gripper.close()
+    self.active_robots[robot_name].go_to_named_pose("centering_area")
+    return True
+
+  def pick_idler_pulley_assembly(self, robot_name="b_bot"):
+    options = {'check_for_close_items': True, 'declutter_with_tool': True, 'object_width': 0.005, 'grasp_width': 0.04}
+    idler_pulley_pose = self.look_and_get_grasp_point("idler_pulley", options=options)
+
+    idler_pulley_pose.pose.position.z = 0.0 # Magic numbers
+    
+    marker_pose = copy.deepcopy(idler_pulley_pose)
+    marker_pose.pose.orientation = conversions.to_quaternion(transformations.quaternion_from_euler(0, -tau/4, 0))
+    self.markers_scene.spawn_item("idler_pulley", marker_pose)
+
+    self.vision.activate_camera(robot_name + "_inside_camera")
+    if not self.simple_pick(robot_name, idler_pulley_pose, grasp_height=0.001, 
+                            gripper_force=50.0, grasp_width=.04, axis="z", approach_height=0.07, gripper_command=0.03,
+                            item_id_to_attach="idler_pulley"):
+      rospy.logerr("Fail to simple_pick")
+      return False
+
+    if not self.simple_gripper_check(robot_name, min_opening_width=0.002):
+      rospy.logerr("Gripper did not grasp the idler_pulley --> Stop")
+      return False
+    return True
+
+  def pick_idler_pin(self, robot_name="b_bot"):
+    options = {'check_for_close_items': True, 'declutter_with_tool': True, 'object_width': 0.005, 'grasp_width': 0.04}
+    idler_pin_pose = self.look_and_get_grasp_point("idler_pin", options=options)
+    
+    idler_pin_pose.pose.position.z = 0.0 # Magic numbers
+    
+    marker_pose = copy.deepcopy(idler_pin_pose)
+    marker_pose.pose.position.z = 0.005
+    marker_pose.pose.orientation = conversions.to_quaternion(transformations.quaternion_from_euler(0, 0, 0))
+    self.markers_scene.spawn_item("idler_pin", marker_pose)
+    
+
+    self.vision.activate_camera(robot_name + "_inside_camera")
+    if not self.simple_pick(robot_name, idler_pin_pose, grasp_height=0.001, 
+                            gripper_force=50.0, grasp_width=.04, axis="z", approach_height=0.07, gripper_command=0.03,
+                            item_id_to_attach="idler_pin"):
+      rospy.logerr("Fail to simple_pick")
+      return False
+
+    if not self.simple_gripper_check(robot_name, min_opening_width=0.002):
+      rospy.logerr("Gripper did not grasp the idler_pin --> Stop")
+      return False
+    return True
+
+  def pick_washer(self, washer_number, robot_name):
+    washer_name = "washer_holder%s" % washer_number
+    self.allow_collisions_with_robot_hand(washer_name, robot_name, True)
+    orientation = [0, 0, 0] if washer_number < 3 else [0, -tau/4, 0]
+    approach_pose = conversions.to_pose_stamped(washer_name + "_collar_link", [-0.1, 0, 0] + orientation)
+    at_pose = conversions.to_pose_stamped(washer_name + "_collar_link", [0, 0, 0] + orientation)
+    self.active_robots[robot_name].gripper.open(opening_width=0.03, wait=False)
+    self.active_robots[robot_name].go_to_pose_goal(approach_pose, speed=1.0)
+    self.active_robots[robot_name].go_to_pose_goal(at_pose, speed=1.0, move_lin=True)
+    self.active_robots[robot_name].gripper.close()
+    self.active_robots[robot_name].go_to_pose_goal(approach_pose, speed=1.0, move_lin=True)
+    self.allow_collisions_with_robot_hand(washer_name, robot_name, False)
+    return True
+
+####
+
   def pick_bearing_spacer(self, robot_name="b_bot"):
     options = {'check_for_close_items': True, 'declutter_with_tool': True, 'object_width': 0.005, 'grasp_width': 0.04}
     bearing_spacer_pose = self.look_and_get_grasp_point("bearing_spacer", options=options)
