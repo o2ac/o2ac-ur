@@ -562,24 +562,27 @@ if __name__ == '__main__':
       if r == '1':
         c.a_bot.go_to_named_pose("home")
         c.b_bot.go_to_named_pose("home")
-      if r == '1000':
+      if r == '1000':  # Speed test
         ps = geometry_msgs.msg.PoseStamped()
         ps.header.frame_id = "workspace_center"
         ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, tau/2))
-        ps.pose.position.z = .2
-        c.b_bot.go_to_named_pose("home")
-        c.move_lin("b_bot", ps, speed=.2, acceleration=.04)
-        c.b_bot.go_to_named_pose("home")
-        c.move_lin("b_bot", ps, speed=.2, acceleration=.08)
-        c.b_bot.go_to_named_pose("home")
-        c.move_lin("b_bot", ps, speed=.2, acceleration=.15)
-        c.b_bot.go_to_named_pose("home")
+        ps.pose.position.z = .3
+        # c.b_bot.go_to_named_pose("home")
+        # c.b_bot.move_lin(ps, speed=.2)
+        # c.b_bot.go_to_named_pose("home", speed=0.3)
+        # c.b_bot.move_lin(ps, speed=.5)
+        # c.b_bot.go_to_named_pose("home", speed=0.6)
+        c.b_bot.move_lin(ps, speed=.5, acceleration=0.8)
+        c.b_bot.go_to_named_pose("home", speed=0.5, acceleration=0.8)
       if r == '100':
         c.a_bot.go_to_named_pose("home")
         c.b_bot.go_to_named_pose("home")
       if r == '101':
         c.a_bot.go_to_named_pose("back")
         c.b_bot.go_to_named_pose("back")
+      if r == '102':
+        c.b_bot.go_to_named_pose("back", speed=1.0, acceleration=0.7)
+        c.b_bot.go_to_named_pose("home", speed=1.0, acceleration=0.7)
       if r == '11':
         c.vision.activate_camera("b_bot_outside_camera")
       if r == '12':
