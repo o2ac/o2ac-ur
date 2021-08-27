@@ -360,10 +360,7 @@ Planner::best_scores_for_each_costs(
 
   std::vector<std::pair<double, int>> best_plans(max_cost + 1,
                                                  std::make_pair(INF, -1));
-  for (int id = 0;; id++) {
-    if (nodes[id].cost > max_cost) {
-      break;
-    }
+  for (int id = 0; id < nodes.size(); id++) {
     double score = objective_coefficients
                        .cwiseProduct(transform_covariance(
                            nodes[id].mean.inverse(), nodes[id].covariance))
@@ -375,6 +372,10 @@ Planner::best_scores_for_each_costs(
       best_plans[nodes[id].cost] = std::make_pair(score, id);
     }
 
+    if (nodes[id].cost >= max_cost) {
+      continue;
+    }
+    
     std::vector<UpdateAction> candidates;
     calculate_action_candidates(nodes[id].gripper_pose, nodes[id].mean,
                                 nodes[id].covariance, nodes[id].gripping,
