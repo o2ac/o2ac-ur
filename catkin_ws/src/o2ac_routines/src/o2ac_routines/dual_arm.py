@@ -105,7 +105,7 @@ class DualArm(RobotBase):
         master = self.active_robots[master_name]
         slave_initial_joints = initial_joints[6:] if initial_joints is not None else None
         master_initial_joints = initial_joints[:6] if initial_joints is not None else None
-        result = master.go_to_pose_goal(target_pose, speed=speed, plan_only=True, initial_joints=master_initial_joints)
+        result = master.go_to_pose_goal(target_pose, speed=speed, plan_only=True, initial_joints=master_initial_joints, move_lin=True)
         if not result:
             rospy.logerr("Failed to plan `master` trajectory. Abort.")
             return False

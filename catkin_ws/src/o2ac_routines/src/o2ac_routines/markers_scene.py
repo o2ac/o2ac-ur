@@ -1,4 +1,5 @@
 
+import copy
 import rospy
 import visualization_msgs.msg
 
@@ -16,7 +17,7 @@ class MarkersScene():
         color = color if color else ColorRGBA(0.2, 1.0, 0.2, 0.9) # GREEN
         item_marker = self.parts_database.get_visualization_marker(item_name, pose_stamped.pose, pose_stamped.header.frame_id, color, frame_locked=attach)
         self.marker_publisher.publish(item_marker)
-        self.published_items.update({item_name: pose_stamped})
+        self.published_items.update({item_name: copy.deepcopy(pose_stamped)})
 
     def despawn_item(self, item_name):
         marker = visualization_msgs.msg.Marker()

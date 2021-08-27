@@ -154,10 +154,13 @@ class RobotBase():
         acc = copy.copy(acceleration)
         if sp > 1.0:
             sp = 1.0
-        if acc > sp/2.0:
-            # if acc > (sp/2.0 + .00001):  # This seems to trigger because of rounding errors unless we add this small value
-            rospy.logdebug("Setting acceleration to " + str(sp/2.0) + " instead of " + str(acceleration) + " to avoid jerky motion.")
+        if acc is None:
+            rospy.logdebug("Setting acceleration to " + str(sp) + " by default.")
             acc = sp/2.0
+        else:
+            if acc > sp:
+                rospy.logdebug("Setting acceleration to " + str(sp) + " instead of " + str(acceleration) + " to avoid jerky motion.")
+                acc = sp
         return (sp, acc)
 
     def check_goal_pose_reached(self, goal_pose):
@@ -228,7 +231,7 @@ class RobotBase():
             return helpers.all_close(goal_joints, current_joints, 0.01)
         return True
 
-    def go_to_pose_goal(self, pose_goal_stamped, speed=0.5, acceleration=0.25,
+    def go_to_pose_goal(self, pose_goal_stamped, speed=0.5, acceleration=None,
                         end_effector_link="", move_lin=False, wait=True, plan_only=False, initial_joints=None,
                         allow_joint_configuration_flip=False, move_ptp=True, timeout=5, retry_non_linear=False):
         
@@ -245,8 +248,6 @@ class RobotBase():
             end_effector_link = self.ns + "_gripper_tip_link"
         group.set_end_effector_link(end_effector_link)
 
-        if initial_joints:
-            group.set_start_state(helpers.to_robot_state(group, initial_joints))
 
         if move_lin:  # is this necessary??
             pose_goal_ = self.listener.transformPose("world", pose_goal_stamped)
@@ -255,7 +256,14 @@ class RobotBase():
         success = False
         start_time = rospy.Time.now()
         tries = 0
+        robots_in_simultaneous = rospy.get_param("/o2ac/simultaneous", False)
+        timeout = 15.0 if robots_in_simultaneous else timeout
         while not success and (rospy.Time.now() - start_time < rospy.Duration(timeout)) and not rospy.is_shutdown():
+            if initial_joints:
+                group.set_start_state(helpers.to_robot_state(group, initial_joints))
+            else:
+                group.set_start_state_to_current_state()
+
             group.set_pose_target(pose_goal_)
             success, plan, planning_time, error = group.plan()
 
@@ -268,18 +276,20 @@ class RobotBase():
                     continue
             if success:
                 if plan_only:
-                    group.clear_pose_targets()
                     group.set_start_state_to_current_state()
+                    group.clear_pose_targets()
                     return plan, planning_time
                 else:
                     success = self.execute_plan(plan, wait=wait)
             else:
                 if move_ptp: # Just one try is enough for PTP, give up and try OMPL
                     self.set_up_move_group(speed, acceleration, "OMPL")
+                if robots_in_simultaneous:
+                    rospy.sleep(1.0) # give time to other robot to get out of the way
                 else:
                     rospy.sleep(0.2)
-                    rospy.logwarn("go_to_pose_goal(move_lin=%s) attempt failed. Retrying." % str(move_lin))
-                    tries += 1
+                rospy.logwarn("go_to_pose_goal(move_lin=%s) attempt failed. Retrying." % str(move_lin))
+                tries += 1
 
         if not success:
             rospy.logerr("go_to_pose_goal failed " + str(tries) + " times! Broke out, published failed pose.")
@@ -292,10 +302,10 @@ class RobotBase():
         group.clear_pose_targets()
         if not success and move_lin and retry_non_linear:
             return self.go_to_pose_goal(pose_goal_stamped, speed/2, acceleration, end_effector_link, move_lin=False, plan_only=plan_only, initial_joints=initial_joints,
-                                allow_joint_configuration_flip=allow_joint_configuration_flip, move_ptp=False, timeout=timeout, retry_non_linear=False)
+                                allow_joint_configuration_flip=allow_joint_configuration_flip, move_ptp=True, timeout=timeout, retry_non_linear=False)
         return success
 
-    def move_lin_trajectory(self, trajectory, speed=1.0, acceleration=0.5, end_effector_link="",
+    def move_lin_trajectory(self, trajectory, speed=1.0, acceleration=None, end_effector_link="",
                             plan_only=False, initial_joints=None, allow_joint_configuration_flip=False, timeout=10):
         # TODO: Add allow_joint_configuration_flip
         if not self.set_up_move_group(speed, acceleration, planner="LINEAR"):
@@ -328,7 +338,7 @@ class RobotBase():
             msi.req.start_state = helpers.to_robot_state(self.robot_group, initial_joints)
         else:
             msi.req.start_state = helpers.to_robot_state(self.robot_group, self.robot_group.get_current_joint_values())
-        
+
         motion_plan_requests.append(msi)
 
         for wp, blend_radius, spd in waypoints:
@@ -353,6 +363,8 @@ class RobotBase():
 
         start_time = rospy.Time.now()
         success = False
+        robots_in_simultaneous = rospy.get_param("/o2ac/simultaneous", False)
+        timeout = 15.0 if robots_in_simultaneous else timeout
         while not success and (rospy.Time.now() - start_time < rospy.Duration(timeout)) and not rospy.is_shutdown():
 
             self.sequence_move_group.send_goal_and_wait(goal)
@@ -368,18 +380,21 @@ class RobotBase():
                 else:
                     return self.execute_plan(plan, wait=True)
             else:
-                rospy.sleep(0.2)
+                if robots_in_simultaneous:
+                    rospy.sleep(1.0) # give time to other robot to get out of the way
+                else:
+                    rospy.sleep(0.2)
         rospy.logerr("Failed to plan linear trajectory. error code: %s" % response.response.error_code.val)
         return False
 
-    def move_lin(self, pose_goal_stamped, speed=0.5, acceleration=0.5, end_effector_link="", wait=True,
+    def move_lin(self, pose_goal_stamped, speed=0.5, acceleration=None, end_effector_link="", wait=True,
                  plan_only=False, initial_joints=None, allow_joint_configuration_flip=False):
         return self.go_to_pose_goal(pose_goal_stamped, speed, acceleration, end_effector_link, move_lin=True,
                                     wait=wait, plan_only=plan_only, initial_joints=initial_joints,
                                     allow_joint_configuration_flip=allow_joint_configuration_flip)
 
     def move_lin_rel(self, relative_translation=[0, 0, 0], relative_rotation=[0, 0, 0], speed=.5,
-                     acceleration=0.2, relative_to_robot_base=False, relative_to_tcp=False,
+                     acceleration=None, relative_to_robot_base=False, relative_to_tcp=False,
                      wait=True, end_effector_link="", plan_only=False, initial_joints=None,
                      allow_joint_configuration_flip=False, pose_only=False):
         '''
@@ -447,7 +462,7 @@ class RobotBase():
                                         allow_joint_configuration_flip=allow_joint_configuration_flip,
                                         retry_non_linear=False)
 
-    def go_to_named_pose(self, pose_name, speed=0.5, acceleration=0.5, wait=True, plan_only=False, initial_joints=None, move_ptp=True):
+    def go_to_named_pose(self, pose_name, speed=0.5, acceleration=None, wait=True, plan_only=False, initial_joints=None, move_ptp=True):
         """
         pose_name should be a named pose in the moveit_config, such as "home", "back" etc.
         """
@@ -455,50 +470,72 @@ class RobotBase():
             return False
         group = self.robot_group
 
-        if initial_joints:
-            group.set_start_state(helpers.to_robot_state(group, initial_joints))
-
         group.set_named_target(pose_name)
 
-        success, plan, planning_time, error = group.plan()
-        if success:
-            group.clear_pose_targets()
-            group.set_start_state_to_current_state()
-            if plan_only:
-                return plan, planning_time
+        start_time = rospy.Time.now()
+        robots_in_simultaneous = rospy.get_param("/o2ac/simultaneous", False)
+        timeout = 15.0 if robots_in_simultaneous else 5.0
+        success = False
+        while not success and (rospy.Time.now() - start_time < rospy.Duration(timeout)) and not rospy.is_shutdown():
+            if initial_joints:
+                group.set_start_state(helpers.to_robot_state(group, initial_joints))
             else:
-                return self.execute_plan(plan, wait=wait)
-        else:
-            if move_ptp:
-                rospy.logerr("NamedPose: Failed planning with PTP, retry with OMPL")
-                # Try again with OMPL
-                return self.go_to_named_pose(pose_name=pose_name, speed=speed, acceleration=acceleration, 
-                                      wait=wait, plan_only=plan_only, initial_joints=initial_joints, move_ptp=False)
-            rospy.logerr("Failed planning with error: %s" % error)
-            return False
+                group.set_start_state_to_current_state()
+            success, plan, planning_time, error = group.plan()
+            if success:
+                group.clear_pose_targets()
+                group.set_start_state_to_current_state()
+                if plan_only:
+                    return plan, planning_time
+                else:
+                    success = self.execute_plan(plan, wait=wait)
+            else:
+                if move_ptp:
+                    rospy.logerr("NamedPose: Failed planning with PTP, retry with OMPL")
+                    self.set_up_move_group(speed, acceleration, "OMPL")
+                rospy.logerr("Failed planning with error: %s" % error)
+                if robots_in_simultaneous:
+                    rospy.sleep(1.0)
+                else:
+                    rospy.sleep(0.2)
+        return success
 
-    def move_joints(self, joint_pose_goal, speed=0.6, acceleration=0.3, wait=True, plan_only=False, initial_joints=None):
-        if not self.set_up_move_group(speed, acceleration, planner="OMPL"):
+    def move_joints(self, joint_pose_goal, speed=0.6, acceleration=None, wait=True, plan_only=False, initial_joints=None, move_ptp=True):
+        if not self.set_up_move_group(speed, acceleration, planner=("PTP" if move_ptp else "OMPL")):
             return False
         group = self.robot_group
 
-        if initial_joints:
-            group.set_start_state(helpers.to_robot_state(group, initial_joints))
-
         group.set_joint_value_target(joint_pose_goal)
 
-        success, plan, planning_time, error = group.plan()
-        if success:
-            group.set_start_state_to_current_state()
-            if plan_only:
-                return plan, planning_time
+        start_time = rospy.Time.now()
+        robots_in_simultaneous = rospy.get_param("/o2ac/simultaneous", False)
+        timeout = 15.0 if robots_in_simultaneous else 5.0
+        success = False
+        while not success and (rospy.Time.now() - start_time < rospy.Duration(timeout)) and not rospy.is_shutdown():
+            if initial_joints:
+                group.set_start_state(helpers.to_robot_state(group, initial_joints))
             else:
-                return self.execute_plan(plan, wait=wait)
-        else:
-            rospy.logerr("Failed planning with error: %s" % error)
-            return False
+                group.set_start_state_to_current_state()
+            success, plan, planning_time, error = group.plan()
+            if success:
+                group.set_start_state_to_current_state()
+                if plan_only:
+                    return plan, planning_time
+                else:
+                    return self.execute_plan(plan, wait=wait)
+            else:
+                if move_ptp:
+                    rospy.logerr("MoveJoints: Failed planning with PTP, retry with OMPL")
+                    self.set_up_move_group(speed, acceleration, "OMPL")
+                rospy.logerr("Failed planning with error: %s" % error)
+                if robots_in_simultaneous:
+                    rospy.sleep(1.0)
+                else:
+                    rospy.sleep(0.2)
 
-    def move_joints_trajectory(self, trajectory, speed=1.0, acceleration=0.5, plan_only=False, initial_joints=None, timeout=5.0):
+        return False
+
+    def move_joints_trajectory(self, trajectory, speed=1.0, acceleration=None, plan_only=False, initial_joints=None, timeout=5.0):
         if not self.set_up_move_group(speed, acceleration, planner="PTP"):
             return False
 
@@ -544,8 +581,9 @@ class RobotBase():
 
         start_time = rospy.Time.now()
         success = False
+        robots_in_simultaneous = rospy.get_param("/o2ac/simultaneous", False)
+        timeout = 15.0 if robots_in_simultaneous else timeout
         while not success and (rospy.Time.now() - start_time < rospy.Duration(timeout)) and not rospy.is_shutdown():
-
             self.sequence_move_group.send_goal_and_wait(goal)
             response = self.sequence_move_group.get_result()
             
@@ -558,10 +596,15 @@ class RobotBase():
                     return plan, planning_time
                 else:
                     return self.execute_plan(plan, wait=True)
-        rospy.logerr("Failed to plan joint trajectory. error code: %s" % response.response.error_code.val)
+            else:
+                rospy.logerr("Failed to plan joint trajectory. error code: %s" % response.response.error_code.val)
+                if robots_in_simultaneous:
+                    rospy.sleep(1.0)
+                else:
+                    rospy.sleep(0.2)
         return False
 
-    def move_circ(self, pose_goal_stamped, constraint_point, constraint_type="center", speed=0.5, acceleration=0.25, wait=True, end_effector_link="",
+    def move_circ(self, pose_goal_stamped, constraint_point, constraint_type="center", speed=0.5, acceleration=None, wait=True, end_effector_link="",
                     plan_only=False, initial_joints=None, timeout=5.0):
         if not self.set_up_move_group(speed, acceleration, "CIRC"):
             return False

@@ -373,7 +373,7 @@ if __name__ == '__main__':
         pose_with_uncertainty=geometry_msgs.msg.PoseWithCovarianceStamped()
         if not c.pick_panel_with_handover("panel_bearing", simultaneous=False, pose_with_uncertainty=pose_with_uncertainty):
           break
-        c.center_panel("panel_bearing", store=True, pose_with_uncertainty=pose_with_uncertainty)
+        c.center_panel_with_uncertainty("panel_bearing", store=True, pose_with_uncertainty=pose_with_uncertainty)
         c.place_panel("a_bot", "panel_bearing", pick_again=True, fake_position=True, pose_with_uncertainty=pose_with_uncertainty)
       elif i == "pickmotorpanel":
         c.pick_panel_with_handover("panel_motor", simultaneous=False)
@@ -405,6 +405,8 @@ if __name__ == '__main__':
       if i == "activate":
         c.a_bot.activate_ros_control_on_ur()
         c.b_bot.activate_ros_control_on_ur()
+      if i == "competitionmodeon":
+        c.competition_mode = True
       elif i == 'x':
         break
       elif i == "":

@@ -7,6 +7,8 @@
   <!-- Gazebo needs to start up paused in order for us to be able to set the initial joint configurations.
        This is a known bug as of July 2018. -->
 
+  <param name="use_gazebo_sim" type="bool" value="true" />
+
   <env name="GAZEBO_MODEL_PATH"
        value="$(find o2ac_parts_description):$(find o2ac_scene_description):$(find o2ac_gazebo)/models:$(optenv GAZEBO_MODEL_PATH)" />
 
