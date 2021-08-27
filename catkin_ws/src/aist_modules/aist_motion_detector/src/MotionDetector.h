@@ -69,12 +69,12 @@ class MotionDetector
 			     bool select)				;
 
   // utility functions
-    void	accumulate_mask(const cv::Mat& mask,
-				const std::string& target_frame,
-				const camera_info_cp& camera_info)	;
     tf::Transform
-		find_cabletip(const point_t& top_left)			;
-    vector3_t	view_vector(value_t u, value_t v)		const	;
+		find_cabletip(cv::Mat& image,
+			      const std::string& target_frame,
+			      const camera_info_cp& camera_info)	;
+    vector3_t	view_vector(const camera_info_cp& camera_info,
+			    value_t u, value_t v)		const	;
     
   private:
     ros::NodeHandle					_nh;
@@ -86,7 +86,6 @@ class MotionDetector
     message_filters::Synchronizer<sync_policy_t>	_sync;
     const image_transport::CameraPublisher		_camera_pub;
     const image_transport::Publisher			_image_pub;
-    const image_transport::Publisher			_mask_pub;
 
     const tf::TransformListener				_listener;
     tf::TransformBroadcaster				_broadcaster;
@@ -102,14 +101,6 @@ class MotionDetector
     double						_search_top;
     double						_search_bottom;
     double						_search_width;
-
-    int							_nframes;
-    point_t						_top_left;
-    cv::Mat_<point2_t>					_corners;
-    cv_bridge::CvImagePtr				_cv_image;
-    cv_bridge::CvImage					_cv_accum;
-    tf::StampedTransform				_Tct;
-    camera_info_cp					_camera_info;
 };
 
 }	// namespace aist_motion_detector
