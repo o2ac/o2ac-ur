@@ -42,6 +42,7 @@ class PoseEstimator {
 public:
   // Parameters for Gaussian particle filter
   int number_of_particles;
+  int touch_number_of_particles, look_number_of_particles, place_number_of_particles, grasp_number_of_particles, push_number_of_particles;
   Particle noise_variance;
   // Variables for Gaussian particle filter
   std::vector<Particle> particles;
@@ -73,6 +74,7 @@ public:
 
   void set_particle_parameters(const int &number_of_particles,
                                const Particle &noise_variance);
+  void reset_number_of_particles(const int &number_of_particles);
 
   void set_touch_parameters(
       const std::vector<std::shared_ptr<fcl::CollisionObject>> &touched_objects,
