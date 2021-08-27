@@ -79,6 +79,8 @@ if __name__ == '__main__':
         c.prep_taskboard_task_simultaneous()
       if i == "simpleprep":
         c.prep_taskboard_task()
+      if i == "ssprep":
+        c.move_b_bot_to_setscrew_initial_pos()
       if i == "ssup":
         c.at_set_screw_hole.pose.position.z -= 0.001
         c.move_b_bot_to_setscrew_initial_pos()
@@ -91,7 +93,11 @@ if __name__ == '__main__':
         c.competition_mode = True
         c.full_taskboard_task_simultaneous(do_screws=True, skip_tray_placing=False)
         c.competition_mode = False
-      if i == "screwsonly":
+      if i == "startnocarry":
+        c.competition_mode = True
+        c.full_taskboard_task_simultaneous(do_screws=True, skip_tray_placing=True)
+        c.competition_mode = False
+      if i == "screwsonly" or i == "screws":
         c.competition_mode = True
         c.do_screw_tasks_simultaneous()
         c.competition_mode = False
@@ -222,6 +228,8 @@ if __name__ == '__main__':
       if i == "reset":
         c.reset_scene_and_robots()
         c.reset_assembly_visualization()
+      if i == "competitionmodeon":
+        c.competition_mode = True
       if i == "x":
         break
       print("This took: %.3f seconds" % (time.time() - tic_start))

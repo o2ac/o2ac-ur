@@ -474,24 +474,27 @@ class O2ACTaskboard(O2ACCommon):
       
       # Look for belt
       global res, r2, pick_goal
-      global b_bot_loaded_program
+      global a_bot_found_belt, b_bot_loaded_program
+      a_bot_found_belt = False
       b_bot_ran_program = False
       def a_bot_task():
-        global res, r2, pick_goal
+        global res, r2, pick_goal, a_bot_found_belt
         self.a_bot.go_to_pose_goal(self.tray_view_high, end_effector_link="a_bot_outside_camera_color_frame", speed=.8, move_lin=False)
         res = self.get_3d_poses_from_ssd()
         r2 = self.get_feasible_grasp_points("belt")
         if r2:
           pick_goal = r2[0]
           pick_goal.pose.position.z = 0.000  # Pick height
+          a_bot_found_belt = True
         else:
           rospy.logerr("Could not find belt grasp pose! Aborting.")
+          a_bot_found_belt = False
           return False
       def b_bot_task():
         global b_bot_loaded_program
         b_bot_loaded_program = self.b_bot.load_program(program_name="wrs2020/taskboard_pick_hook.urp")
       self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=180.0)
-      if not b_bot_loaded_program:
+      if not a_bot_found_belt or not b_bot_loaded_program:
           return False
           
       # Pick belt and tool
@@ -499,6 +502,7 @@ class O2ACTaskboard(O2ACCommon):
       global b_bot_executed_program
       b_bot_executed_program = False
       def a_bot_task():
+        global pick_goal
         self.allow_collisions_with_robot_hand("tray", "a_bot")
         self.allow_collisions_with_robot_hand("tray_center", "a_bot")
         self.simple_pick("a_bot", pick_goal, gripper_force=100.0, grasp_width=.08, axis="z")

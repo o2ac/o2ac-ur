@@ -1851,7 +1851,7 @@ class O2ACCommon(O2ACBase):
       else:
         rotation = [0, radians(-35.0), 0] if robot_name == "b_bot" else [tau/2, radians(-35.0), 0]
 
-      approach_pose       = conversions.to_pose_stamped(bearing_target_link, [-0.050, -0.001, 0.005] + rotation)
+      approach_pose = conversions.to_pose_stamped(bearing_target_link, [-0.050, -0.001, 0.005] + rotation)
       if task == "taskboard":
         if robot_name == "b_bot":
           preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017,  0.000, 0.002 ]+ rotation)
@@ -4874,6 +4874,8 @@ class O2ACCommon(O2ACBase):
     return True
 
   def unload_drive_unit(self):
+    """ Pick the drive unit from the fixation and place it in the tray.
+    """
     a_bot_above_drive_unit = conversions.to_pose_stamped("assembled_part_02_back_hole", [0.0025, -0.068, 0.060, 0, 0.891, tau/4])
     b_bot_above_drive_unit = conversions.to_pose_stamped("assembled_part_03_front_hole", [0.0025, -0.067, 0.078, 0, 0.883, tau/4])
     a_bot_at_drive_unit = conversions.to_pose_stamped("assembled_part_02_back_hole", [0.0025, -0.018, 0.008, 0, 0.891, tau/4])
@@ -4926,7 +4928,11 @@ class O2ACCommon(O2ACBase):
     self.publish_status_text("SUCCESS: Unload product")
     return True
 
-  def do_tasks_simultaneous(self, function_a_bot, function_b_bot, timeout=30.0):
+  def do_tasks_simultaneous(self, function_a_bot, function_b_bot, timeout=60.0):
+    """ Execute two threads simultaneously. Break out after a time.
+
+        TODO: Add usage example
+    """
     a_thread = ThreadTrace(target=function_a_bot)
     a_thread.daemon = True
     b_thread = ThreadTrace(target=function_b_bot)

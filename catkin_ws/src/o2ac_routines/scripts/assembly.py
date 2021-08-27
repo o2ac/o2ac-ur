@@ -405,6 +405,8 @@ if __name__ == '__main__':
       if i == "activate":
         c.a_bot.activate_ros_control_on_ur()
         c.b_bot.activate_ros_control_on_ur()
+      if i == "competitionmodeon":
+        c.competition_mode = True
       elif i == 'x':
         break
       elif i == "":

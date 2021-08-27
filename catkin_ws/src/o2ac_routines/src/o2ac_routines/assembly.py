@@ -1289,6 +1289,7 @@ class O2ACAssembly(O2ACCommon):
     return
 
   def assemble_drive_unit_simultaneous(self):
+    # This is the v2. "orchestrated" is v3.
     if not self.assembly_status.tray_placed_on_table:
       self.center_tray_stack()
       self.pick_tray_from_agv_stack_calibration_long_side("tray1")
