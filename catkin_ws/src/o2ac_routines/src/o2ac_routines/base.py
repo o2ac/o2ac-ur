@@ -125,6 +125,8 @@ class O2ACBase(object):
 
     # Status variables and settings
     self.use_real_robot = rospy.get_param("use_real_robot", False)
+    self.use_gazebo_sim = rospy.get_param("use_gazebo_sim", False)
+    
     self.force_ur_script_linear_motion = False
     self.force_moveit_linear_motion = True
     self.use_dummy_vision = False  # If True, avoids using the cameras and returns dummy values

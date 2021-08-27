@@ -379,16 +379,14 @@ class O2ACCommon(O2ACBase):
         obj.pose = object_pose.pose
         self.planning_scene_interface.add_object(obj)
         self.planning_scene_interface.allow_collisions(item_name)
-        # if not self.use_real_robot:
-        #   # Spawn the part in gazebo
-        #   print("??? gazebo")
-        #   name = "panel_bearing"
-        #   # objpose = [[-0.294+.1, -.18+.1, 0.85], [0, 0, 0., 0.]] 
-        #   op = conversions.from_pose_to_list(object_pose.pose)
-        #   objpose = [op[:3], op[3:]] 
-        #   models = [Model(name, objpose[0], orientation=objpose[1], reference_frame=object_pose.header.frame_id)]
-        #   self.gazebo_scene.load_models(models,)
-        #   pass
+        if self.use_gazebo_sim:
+          # Spawn the part in gazebo
+          print("spawn to gazebo")
+          name = "panel_bearing"
+          gazebo_pose = self.listener.transformPose("world", object_pose)
+          models = [Model(name, pose=gazebo_pose.pose, reference_frame=gazebo_pose.header.frame_id, file_type="sdf")]
+          print(models[0].pose)
+          self.gazebo_scene.load_models(models)
         rospy.sleep(0.5)
         self.constrain_into_tray(item_name)
       return object_pose

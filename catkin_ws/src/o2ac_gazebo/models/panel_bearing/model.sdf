@@ -3,17 +3,17 @@
   <model name='panel_bearing'>
     <!-- <static>true</static> -->
     <link name='panel_bearing'>
-      <pose frame=''>-0.059474, -0.036572, -0.004999 0 0 0</pose>
+      <pose frame=''>0 0 0 0 0 0</pose>
       <inertial>
-        <pose frame=''>0.059474, 0.036572, 0.004999 0 0 0</pose>
+        <pose frame=''> 0.059474 0.036572 0.004999 0 0 0</pose>
         <mass>0.449</mass>
         <inertia>
-          <ixx>4.126e8</ixx>
-          <ixy>5294058</ixy>
-          <ixz>1653857</ixz>
-          <iyy>5341e8</iyy>
-          <iyz>3825070</iyz>
-          <izz>9.167e8</izz>
+          <ixx>4.1260000e-3</ixx>
+          <ixy>5.2940580e-5</ixy>
+          <ixz>1.6538570e-5</ixz>
+          <iyy>5.3410000e-3</iyy>
+          <iyz>3.8250702e-4</iyz>
+          <izz>9.1670000e-3</izz>
         </inertia>
       </inertial>
       <visual name='panel_bearing'>
@@ -24,6 +24,12 @@
             <uri>model://meshes/03-PANEL2.stl</uri>
           </mesh>
         </geometry>
+        <material>
+          <script>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+            <name>Gazebo/Grey</name>
+          </script>
+        </material>
       </visual>
       <collision name='panel_bearing'>
         <pose frame=''>0 0 0 0 0 0</pose>
@@ -45,8 +51,8 @@
             <torsional>
               <coefficient>1</coefficient>
               <patch_radius>0</patch_radius>
-              <surface_radius>0</surface_radius>
-              <use_patch_radius>1</use_patch_radius>
+              <surface_radius>0.9</surface_radius>
+              <use_patch_radius>0</use_patch_radius>
               <ode>
                 <slip>0</slip>
               </ode>
@@ -63,7 +69,7 @@
             <ode>
               <soft_cfm>0.01</soft_cfm>
               <soft_erp>0.2</soft_erp>
-              <kp>1e+4</kp>
+              <kp>1e+5</kp>
               <kd>1</kd>
               <max_vel>0.01</max_vel>
               <min_depth>0</min_depth>
