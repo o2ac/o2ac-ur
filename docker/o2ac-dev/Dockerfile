@@ -280,6 +280,7 @@ RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key C8B3A55A6F3
 RUN apt-get update && apt-get install -y --no-install-recommends \
     librealsense2-dkms=1.3.18-0ubuntu1 \
     librealsense2-utils=2.49.0-0~realsense0.5306 \
+    librealsense2-dev=2.49.0-0~realsense0.5306 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -309,7 +310,7 @@ RUN pip install gym
 ################################################################################
 
 # Install eigenpy 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y -- install-recommends \
     ros-melodic-eigenpy=2.6.4-1bionic.20210527.213718 \
 	&& rm -rf /var/lib/apt/lists/*
 
