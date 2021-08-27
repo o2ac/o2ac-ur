@@ -36,14 +36,14 @@
         <geometry>
           <mesh>
             <scale>0.001 0.001 0.001</scale>
-            <uri>model://meshes/03-PANEL2.stl</uri>
+            <uri>model://meshes/03-PANEL2-collision.stl</uri>
           </mesh>
         </geometry>
         <surface>
           <friction>
             <ode>
-              <mu>1</mu>
-              <mu2>1</mu2>
+              <mu>0.5</mu>
+              <mu2>0.5</mu2>
               <fdir1>0 0 0</fdir1>
               <slip1>0.1</slip1>
               <slip2>0.1</slip2>
@@ -69,7 +69,7 @@
             <ode>
               <soft_cfm>0.01</soft_cfm>
               <soft_erp>0.2</soft_erp>
-              <kp>1e+5</kp>
+              <kp>1e+4</kp>
               <kd>1</kd>
               <max_vel>0.01</max_vel>
               <min_depth>0</min_depth>
