@@ -95,8 +95,8 @@ class O2ACBearingPoseEstimationServer(object):
         im_vis = im_in.copy()
 
         if goal.item_id == "bearing":
-            estimator = BearingPoseEstimator( self.bearing_template, im_in2, [200, 100, 320, 300] )
-            rotation, translation = estimator.main_proc( threshold=3.0, ds=3.0 )
+            estimator = BearingPoseEstimator( self.bearing_template, im_in2, [200, 100, 320, 280] )
+            rotation, translation = estimator.main_proc( threshold=4.0, ds=3.0 )
         
         if goal.item_id == "motor":
             # src_pts = np.array([[287,94], [470,91], [285,270], [490,265]], dtype=np.float32)
