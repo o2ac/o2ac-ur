@@ -19,6 +19,9 @@ from math import pi, radians
 from ur_gazebo.gazebo_spawner import GazeboModels
 from ur_gazebo.model import Model
 
+from o2ac_assembly_database.assembly_reader import AssemblyReader
+import visualization_msgs.msg
+
 tau = 2.0*pi  # Part of math from Python 3.6
 
 def signal_handler(sig, frame):
@@ -31,6 +34,28 @@ signal.signal(signal.SIGINT, signal_handler)
 def main():
     rospy.init_node("testscript")
     global controller
+
+    print("test")
+
+    global assembly_database, assembly_marker_publisher, assembly_marker_id_counter
+    assembly_database = AssemblyReader()
+    assembly_database.change_assembly("wrs_assembly_2020")
+    assembly_marker_publisher = rospy.Publisher("/o2ac_assembly_markers", visualization_msgs.msg.Marker, queue_size = 100)
+    assembly_marker_id_counter = 0
+
+    def publish_part_in_assembled_position(object_name, test_header_frame=""):
+        global assembly_database, assembly_marker_publisher, assembly_marker_id_counter
+        marker = assembly_database.get_assembled_visualization_marker(object_name, assembly_marker_id_counter)
+        assembly_marker_id_counter += 1
+        assembly_marker_publisher.publish(marker)
+        print("published: ", object_name, marker)
+    publish_part_in_assembled_position("base")
+    publish_part_in_assembled_position("panel_bearing")
+    publish_part_in_assembled_position("panel_motor")
+    publish_part_in_assembled_position("bearing")
+    publish_part_in_assembled_position("motor")
+    return
+
     # controller = O2ACTaskboard()
     # controller.b_bot.go_to_pose_goal(controller.at_set_screw_hole, speed=0.01, end_effector_link="b_bot_set_screw_tool_tip_link")
     # controller.reset_scene_and_robots()
@@ -40,20 +65,20 @@ def main():
     # controller.move_b_bot_to_setscrew_initial_pos()
     # controller.do_task("M2 set screw")
     # controller.do_task("M3 screw", fake_execution_for_calibration=False, simultaneous=False)
-    rospy.set_param("grasp_plugin", True)
-    controller = O2ACAssembly()
-    # controller.b_bot.gripper.gripper.release(link_name="panel_bearing_tmp::panel_bearing")
-    controller.get_large_item_position_from_top("panel_motor")
-    pose = conversions.to_pose_stamped("tray_center", [0.09, 0.037, 0.015, 0, tau/4, 0])
-    controller.b_bot.go_to_pose_goal(pose)
-    # spawner = GazeboModels('o2ac_gazebo')
-    name = "panel_bearing"
-    object_pose = conversions.to_pose_stamped("tray_center", [0,0,0,0,0,0])
-    object_pose = controller.listener.transformPose("world", object_pose)
-    op = conversions.from_pose_to_list(object_pose.pose)
-    objpose = [op[:3], op[3:]] 
-    models = [Model(name, objpose[0], orientation=objpose[1], reference_frame="world")]
-    controller.gazebo_scene.load_models(models,)
+    # rospy.set_param("grasp_plugin", True)
+    # controller = O2ACAssembly()
+    # # controller.b_bot.gripper.gripper.release(link_name="panel_bearing_tmp::panel_bearing")
+    # controller.get_large_item_position_from_top("panel_motor")
+    # pose = conversions.to_pose_stamped("tray_center", [0.09, 0.037, 0.015, 0, tau/4, 0])
+    # controller.b_bot.go_to_pose_goal(pose)
+    # # spawner = GazeboModels('o2ac_gazebo')
+    # name = "panel_bearing"
+    # object_pose = conversions.to_pose_stamped("tray_center", [0,0,0,0,0,0])
+    # object_pose = controller.listener.transformPose("world", object_pose)
+    # op = conversions.from_pose_to_list(object_pose.pose)
+    # objpose = [op[:3], op[3:]] 
+    # models = [Model(name, objpose[0], orientation=objpose[1], reference_frame="world")]
+    # controller.gazebo_scene.load_models(models,)
     # controller.b_bot.gripper.gripper.grab(link_name="panel_bearing_tmp::panel_bearing")
     # controller.orient_motor_pulley("taskboard_small_shaft")
     # controller.insert_motor_pulley("taskboard_small_shaft")

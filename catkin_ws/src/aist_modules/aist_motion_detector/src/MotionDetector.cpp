@@ -113,8 +113,8 @@ MotionDetector::MotionDetector(const ros::NodeHandle& nh)
      _image_sub(_it, "/image", 1),
      _depth_sub(_it, "/depth", 1),
      _sync(sync_policy_t(10), _camera_info_sub, _image_sub, _depth_sub),
-     _camera_pub(_it.advertiseCamera("depth", 1)),
      _image_pub(_it.advertise("image", 1)),
+     _camera_pub(_it.advertiseCamera("depth", 1)),
      _listener(),
      _broadcaster(),
      _find_cabletip_srv(_nh, "find_cabletip", false),
@@ -223,7 +223,7 @@ MotionDetector::image_cb(const camera_info_cp& camera_info,
 tf::Transform
 MotionDetector::find_cabletip(cv::Mat& image, cv::Mat& depth,
 			      const std::string& target_frame,
-			      const camera_info_cp& camera_info)
+			      const camera_info_cp& camera_info) const
 {
   // Create foregroud mask.
     cv::Mat	mask;
@@ -391,7 +391,7 @@ MotionDetector::find_cabletip(cv::Mat& image, cv::Mat& depth,
 
 MotionDetector::vector3_t
 MotionDetector::view_vector(const camera_info_cp& camera_info,
-			    const value_t u, value_t v) const
+			    const value_t u, value_t v)
 {
     cv::Mat_<value_t>	K(3, 3);
     std::copy_n(std::begin(camera_info->K), 9, K.begin());

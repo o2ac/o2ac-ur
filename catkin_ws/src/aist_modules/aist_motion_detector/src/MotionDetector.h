@@ -62,19 +62,14 @@ class MotionDetector
     void	image_cb(const camera_info_cp& camera_info,
 			 const image_cp& image, const image_cp& depth)	;
 
-  // ddynamic_reconfigure callbacks
-    void	set_sequential_mode_cb(bool enable)			;
-    template <class T>
-    void	set_param_cb(T MotionDetector::* field, T value,
-			     bool select)				;
-
   // utility functions
     tf::Transform
 		find_cabletip(cv::Mat& image, cv::Mat& depth,
 			      const std::string& target_frame,
-			      const camera_info_cp& camera_info)	;
-    vector3_t	view_vector(const camera_info_cp& camera_info,
-			    value_t u, value_t v)		const	;
+			      const camera_info_cp& camera_info) const	;
+    static vector3_t
+		view_vector(const camera_info_cp& camera_info,
+			    value_t u, value_t v)			;
     
   private:
     ros::NodeHandle					_nh;
@@ -84,8 +79,8 @@ class MotionDetector
     image_transport::SubscriberFilter			_depth_sub;
     message_filters::Subscriber<camera_info_t>		_camera_info_sub;
     message_filters::Synchronizer<sync_policy_t>	_sync;
-    const image_transport::CameraPublisher		_camera_pub;
     const image_transport::Publisher			_image_pub;
+    const image_transport::CameraPublisher		_camera_pub;
 
     const tf::TransformListener				_listener;
     tf::TransformBroadcaster				_broadcaster;

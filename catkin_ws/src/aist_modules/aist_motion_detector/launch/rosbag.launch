@@ -22,13 +22,16 @@
 
   <!-- Launch motion_detector -->
   <include file="$(dirname)/run.launch">
+    <!-- <arg name="camera_info_topic" -->
+    <!-- 	 value="$(arg camera_name)_throttled/color/camera_info"/> -->
+    <!-- <arg name="image_topic" -->
+    <!-- 	 value="$(arg camera_name)_throttled/color/image_raw"/> -->
     <arg name="camera_info_topic"
-	 value="$(arg camera_name)_throttled/color/camera_info"/>
+	 value="$(arg camera_name)/color/camera_info"/>
     <arg name="image_topic"
-	 value="$(arg camera_name)_throttled/color/image_raw"/>
+	 value="$(arg camera_name)/color/image_raw"/>
     <arg name="depth_topic"
-	 value="$(arg camera_name
-		)_throttled/aligned_depth_to_color/image_raw"/>
+	 value="$(arg camera_name)/aligned_depth_to_color/image_raw"/>
   </include>
 
   <!-- Launch axclient -->
