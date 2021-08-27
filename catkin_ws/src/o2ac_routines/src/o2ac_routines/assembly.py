@@ -495,6 +495,41 @@ class O2ACAssembly(O2ACCommon):
 
     return self.a_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
 
+  def subtask_e_urscript(self):
+    """ A hard-coded UR script version of the subtask. Expects the spacer and pulley to be in the correct locations
+        in storage.
+    """
+    self.ab_bot.go_to_named_pose("home")
+    
+    self.a_bot.load_and_execute_program(program_name="wrs2020/asm_idler_pulley_v1.urp", skip_ros_activation=True)
+    self.b_bot.load_and_execute_program(program_name="wrs2020/asm_idler_pulley_p1.urp", skip_ros_activation=True)
+
+    # Go through pause dialogues
+    self.confirm_to_proceed("Go through pause dialogs manually. Press enter after b_bot went home and a_bot holds the pulley at the ridge.")
+
+    # Equip padless tool
+    self.equip_tool("b_bot", "padless_tool_m4")
+    self.b_bot.go_to_named_pose("horizontal_screw_ready")
+    self.b_bot.load_and_execute_program(program_name="wrs2020/asm_idler_pulley_p2.urp", skip_ros_activation=True)
+    
+    # Go through pause dialogues again
+    self.confirm_to_proceed("Go through pause dialogs manually. Did both robots finish?")
+    
+    # When a_bot is finished:
+    self.playback_sequence("idler_pulley_equip_nut_tool")
+    self.fasten_idler_pulley_with_nut_tool(target_link = "assembled_part_03_pulley_ridge_top")
+
+    def a_bot_task():
+      return self.playback_sequence("idler_pulley_unequip_nut_tool")
+    def b_bot_task():
+      success = self.playback_sequence("idler_pulley_return_screw_tool")
+      if not success:
+        rospy.logerr("Fail to complete idler_pulley_return_screw_tool")
+      return success and self.unequip_tool("b_bot", "padless_tool_m4")
+      
+    if not self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=60):
+      return False
+
   def subtask_f(self):
     rospy.loginfo("======== SUBTASK F (motor panel (small L-plate)) ========")
     attempts = 0
