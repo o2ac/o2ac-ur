@@ -121,7 +121,9 @@ if __name__ == '__main__':
         c.competition_mode = False
         c.full_taskboard_task(do_screws=False)
       if i == "carry":
-        c.take_tray_from_agv()
+        # c.take_tray_from_agv()
+        c.center_tray_stack()
+        c.pick_tray_from_agv_stack_calibration_long_side(tray_name="tray2")
       if i == "1":
         c.ab_bot.go_to_named_pose("home")
       if i == "11":

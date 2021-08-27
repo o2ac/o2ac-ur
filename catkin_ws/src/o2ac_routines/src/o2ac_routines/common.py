@@ -4736,7 +4736,7 @@ class O2ACCommon(O2ACBase):
     self.b_bot.gripper.open(wait=False)
 
     offset = 0.0 # w.r.t to the tray's center, to avoid grasping the center with both robots
-    long_side = 0.375/2.
+    long_side = 0.375/2. + 0.004
     a_bot_point = [tray_point[0] - long_side, tray_point[1] - offset]
     b_bot_point = [tray_point[0] + long_side, tray_point[1] + offset]
     if tray_parallel:
