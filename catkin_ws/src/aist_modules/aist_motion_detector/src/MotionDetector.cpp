@@ -206,35 +206,46 @@ void
 MotionDetector::image_cb(const camera_info_cp& camera_info,
 			 const image_cp& image, const image_cp& depth)
 {
-    if (!_find_cabletip_srv.isActive())
-    	return;
-
-    try
+    _cv_image = cv_bridge::toCvCopy(image);
+    
+    if (_find_cabletip_srv.isActive())
     {
-      // Perform background subtraction
-	_cv_image = cv_bridge::toCvCopy(image);
-	cv_bridge::CvImage	cv_mask;
-	cv_mask.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
-	cv_mask.header   = camera_info->header;
-	_bgsub->apply(_cv_image->image, cv_mask.image);
+	try
+	{
+	  // Perform background subtraction
+	    cv_bridge::CvImage	cv_mask;
+	    cv_mask.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
+	    cv_mask.header   = camera_info->header;
+	    _bgsub->apply(_cv_image->image, cv_mask.image);
 
-      // Accumulate updated foreground.
-	accumulate_mask(cv_mask.image,
-			_current_goal->target_frame, camera_info);
+	  // Binarize mask image.
+	    for (int v = 0; v < cv_mask.image.rows; ++v)
+	    {
+		auto	p = cv_mask.image.ptr<uint8_t>(v, 0);
 
-	_image_pub.publish(_cv_image->toImageMsg());
-	_mask_pub.publish(cv_mask.toImageMsg());
+		for (const auto pe = p + _cv_mask.image.cols; p < pe; ++p)
+		    if (*p < 255)
+			*p = 0;
+	    }
+
+	  // Accumulate updated foreground.
+	    accumulate_mask(cv_mask.image,
+			    _current_goal->target_frame, camera_info);
+	    _mask_pub.publish(cv_mask.toImageMsg());
+	}
+	catch (const tf::TransformException& err)
+	{
+	    ROS_ERROR_STREAM("(MotionDetector) TransformException: "
+			     << err.what());
+	}
+	catch (const cv_bridge::Exception& err)
+	{
+	    ROS_ERROR_STREAM("(MotionDetector) cv_bridge exception: "
+			     << err.what());
+	}
     }
-    catch (const tf::TransformException& err)
-    {
-	ROS_ERROR_STREAM("(MotionDetector) TransformException: "
-			 << err.what());
-    }
-    catch (const cv_bridge::Exception& err)
-    {
-	ROS_ERROR_STREAM("(MotionDetector) cv_bridge exception: "
-			 << err.what());
-    }
+
+    _image_pub.publish(_cv_image->toImageMsg());
 }
 
 void
@@ -273,9 +284,6 @@ MotionDetector::accumulate_mask(const cv::Mat& mask,
 	!withinImage(p(2), mask) || !withinImage(p(3), mask))
 	return;
 
-    _cv_mask.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
-    _cv_mask.header   = _camera_info->header;
-
     const point_t top_left(int(std::min({p(0).x, p(1).x, p(2).x, p(3).x})),
 			   int(std::min({p(0).y, p(1).y, p(2).y, p(3).y})));
 
@@ -287,8 +295,10 @@ MotionDetector::accumulate_mask(const cv::Mat& mask,
 			    int(std::max({p(0).y, p(1).y, p(2).y, p(3).y})));
 	mask(cv::Rect(top_left, bottom_right)).convertTo(_cv_mask.image,
 							 CV_16UC1);
-	_top_left = top_left;
-	_corners  = p;
+	_cv_mask.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
+	_cv_mask.header   = _camera_info->header;
+	_top_left	  = top_left;
+	_corners	  = p;
     }
     else
     {
