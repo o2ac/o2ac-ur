@@ -181,7 +181,9 @@ MotionDetector::image_cb(const camera_info_cp& camera_info,
     {
 	try
 	{
+	    const auto		cv_depth = cv_bridge::toCvCopy(depth);
 	    const auto		T = find_cabletip(cv_image->image,
+						  cv_depth->image,
 						  _current_goal->target_frame,
 						  camera_info);
 	    geometry_msgs::Pose	pose;
@@ -196,6 +198,8 @@ MotionDetector::image_cb(const camera_info_cp& camera_info,
 	    _broadcaster.sendTransform({T, feedback.pose.header.stamp,
 					feedback.pose.header.frame_id,
 					"cabletip_link"});
+
+	    _camera_pub.publish(cv_depth->toImageMsg(), camera_info);
 	}
 	catch (const tf::TransformException& err)
 	{
@@ -217,7 +221,7 @@ MotionDetector::image_cb(const camera_info_cp& camera_info,
 }
 
 tf::Transform
-MotionDetector::find_cabletip(cv::Mat& image,
+MotionDetector::find_cabletip(cv::Mat& image, cv::Mat& depth,
 			      const std::string& target_frame,
 			      const camera_info_cp& camera_info)
 {
@@ -284,10 +288,7 @@ MotionDetector::find_cabletip(cv::Mat& image,
 
 	for (const auto pe = p + mask.cols; p < pe; ++p, ++q)
 	    if (*p >= 255)
-	    {
 		(*q)[1] = 255;
-		(*q)[2] = 255;
-	    }
     }
 
   // Create a line of finger-tip border.
@@ -364,19 +365,22 @@ MotionDetector::find_cabletip(cv::Mat& image,
     {
 	auto	p = mask.ptr<uint8_t>(v, 0);
 	auto	q = image.ptr<cv::Vec3b>(v, 0);
-
-	for (const auto pe = p + mask.cols; p < pe; ++p, ++q)
+	auto	r = depth.ptr<float>(v, 0);
+	
+	for (const auto pe = p + mask.cols; p < pe; ++p, ++q, ++r)
 	    if (*p)
 	    {
 		(*q)[0] = 0;
 		(*q)[1] = 255;
-		(*q)[2] = 0;
+		(*q)[2] = 255;
 	    }
+	    else
+		*r = 0;
     }
 
-    cv::drawMarker(image, point_t(root), cv::Scalar(0, 255, 0),
+    cv::drawMarker(image, point_t(root), cv::Scalar(0, 255, 255),
 		   cv::MARKER_CROSS, 20, 2);
-    cv::drawMarker(image, point_t(cabletip), cv::Scalar(0, 255, 0),
+    cv::drawMarker(image, point_t(cabletip), cv::Scalar(0, 255, 255),
 		   cv::MARKER_CROSS, 20, 2);
     
     return tf::Transform({rx.x(), ry.x(), rz.x(),

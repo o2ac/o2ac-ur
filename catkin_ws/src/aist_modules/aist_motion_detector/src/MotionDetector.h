@@ -70,7 +70,7 @@ class MotionDetector
 
   // utility functions
     tf::Transform
-		find_cabletip(cv::Mat& image,
+		find_cabletip(cv::Mat& image, cv::Mat& depth,
 			      const std::string& target_frame,
 			      const camera_info_cp& camera_info)	;
     vector3_t	view_vector(const camera_info_cp& camera_info,
