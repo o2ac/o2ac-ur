@@ -2344,7 +2344,7 @@ class O2ACCommon(O2ACBase):
       idler_puller_target_link = "taskboard_long_hole_top_link"
     elif task == "assembly":
       rospy.logerr("look this up")
-      idler_puller_target_link = "assembly_long_hole_middle_link"
+      idler_puller_target_link = "assembly_long_hole_top_link"
 
     self.ab_bot.go_to_named_pose("home")
     
@@ -2538,9 +2538,18 @@ class O2ACCommon(O2ACBase):
     return True
 
   def fasten_idler_pulley_with_nut_tool(self, target_link):
+    """ Assumes that the nut tool is equipped and the screw tool is in the idler pulley.
+        Holds the nut in different places and turns on the motor to fasten the pulley.
+
+        target_link should be "taskboard_long_hole_top_link" or "assembled_part_03_pulley_ridge_top".
+    """
     approach_pose = conversions.to_pose_stamped(target_link, [0.1, 0.0, 0.0, 0.0, 0.0, 0.0])
     seq = []
     seq.append(helpers.to_sequence_item(approach_pose, end_effector_link="a_bot_nut_tool_m4_hole_link", speed=1.0))
+
+    x_offset = 0.0  # The Taskboard pulley is shorter than the assembly one
+    if target_link == "assembled_part_03_pulley_ridge_top":
+      x_offset = 0.004
 
     success = False
     idler_pulley_screwing_succeeded = False
@@ -2552,8 +2561,8 @@ class O2ACCommon(O2ACBase):
         break
       # Move nut tool forward so nut touches the screw
       d = offset  # 
-      approach_pose = conversions.to_pose_stamped(target_link, [0.06, 0.0, d + 0.004, 0.0, 0.0, 0.0])
-      pushed_into_screw = conversions.to_pose_stamped(target_link, [0.011, 0.0, d + 0.004, 0.0, 0.0, 0.0])
+      approach_pose = conversions.to_pose_stamped(target_link, [0.06 + x_offset, 0.0, d + 0.004, 0.0, 0.0, 0.0])
+      pushed_into_screw = conversions.to_pose_stamped(target_link, [0.011 + x_offset, 0.0, d + 0.004, 0.0, 0.0, 0.0])
       if not first_approach:
         seq = []
       seq.append(helpers.to_sequence_item(approach_pose, end_effector_link="a_bot_nut_tool_m4_hole_link", speed=0.5))

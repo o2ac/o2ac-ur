@@ -272,6 +272,12 @@ if __name__ == '__main__':
         c.subtask_b() # motor pulley
       elif i == '96':
         c.subtask_e() # idler pin
+      elif i == '96ur':
+        c.subtask_e_urscript() # idler pin
+      elif i == '968':
+        c.playback_sequence("idler_pulley_equip_nut_tool") 
+      elif i == '969':
+        c.fasten_idler_pulley_with_nut_tool(target_link = "assembled_part_03_pulley_ridge_top")
       elif i == '97':
         c.subtask_c2() # shaft
       elif i == '971':
