@@ -346,7 +346,7 @@ class O2ACTaskboard(O2ACCommon):
         print(">>>> fastening bearing")
         def a_bot_task3(): # fasten bearing
           rospy.sleep(10) # wait for b_bot to find->pick shaft
-          self.subtask_completed["screw_bearing"] = self.fasten_bearing(task="taskboard", robot_name="a_bot", simultaneous=True)
+          self.subtask_completed["screw_bearing"] = self.fasten_bearing(task="taskboard", robot_name="a_bot", simultaneous=True, with_extra_retighten=True)
           if not self.subtask_completed["screw_bearing"]:
             rospy.logerr("Failed to do simultaneous fastening")
         def b_bot_task3(): # pick/orient/insert motor pulley
@@ -790,7 +790,7 @@ class O2ACTaskboard(O2ACCommon):
       
     if task_name == "screw_bearing":
       self.equip_tool('a_bot', 'screw_tool_m4')
-      success = self.fasten_bearing(task="taskboard")
+      success = self.fasten_bearing(task="taskboard", with_extra_retighten=True)
       self.unequip_tool('a_bot', 'screw_tool_m4')
       return success
     
