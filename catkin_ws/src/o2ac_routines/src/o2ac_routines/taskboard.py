@@ -65,7 +65,7 @@ class O2ACTaskboard(O2ACCommon):
     
     self.downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, pi))
     self.downward_orientation_cylinder_axis_along_workspace_x = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, tau/4))
-    self.at_set_screw_hole = conversions.to_pose_stamped("taskboard_set_screw_link", [0.004, -0.001, -0.001, 0, 0, 0])  # MAGIC NUMBER (points downward) MIZUMI tool tip
+    self.at_set_screw_hole = conversions.to_pose_stamped("taskboard_set_screw_link", [0.0, 0, 0, 0, 0, 0])  # MAGIC NUMBERS (z points down, y points right) MIZUMI tool tip
     # self.at_set_screw_hole = conversions.to_pose_stamped("taskboard_set_screw_link", [-0.018, -0.001, 0.001, 0, 0, 0])  # MAGIC NUMBER (points downward)  PROXXON tool tip
     if not self.assembly_database.db_name == "taskboard":
       self.assembly_database.change_assembly("taskboard")
@@ -185,10 +185,8 @@ class O2ACTaskboard(O2ACCommon):
     screw_approach = copy.deepcopy(self.at_set_screw_hole)
     screw_approach.pose.position.x = -0.03
     seq.append(helpers.to_sequence_item(screw_approach, speed=0.5, end_effector_link="b_bot_set_screw_tool_tip_link"))
-    # self.b_bot.go_to_pose_goal(screw_approach, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True, speed=0.5)
-    screw_approach.pose.position.x = -0.01
+    screw_approach.pose.position.x = -0.005
     seq.append(helpers.to_sequence_item(screw_approach, speed=0.1, end_effector_link="b_bot_set_screw_tool_tip_link", linear=True))
-    # self.b_bot.go_to_pose_goal(screw_approach, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True, speed=0.1)
     self.execute_sequence("b_bot", seq, "prep_set_screw_tool")
 
   def do_screw_tasks_from_prep_position(self):
@@ -634,42 +632,31 @@ class O2ACTaskboard(O2ACCommon):
       rospy.loginfo("=== set screw: start ===")
       self.vision.activate_camera("b_bot_inside_camera")
       screw_approach = copy.deepcopy(self.at_set_screw_hole)
-      screw_approach.pose.position.x = -0.01
+      screw_approach.pose.position.x = -0.005
       self.b_bot.go_to_pose_goal(screw_approach, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True)
       self.b_bot.go_to_pose_goal(self.at_set_screw_hole, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True, speed=0.02)
       rospy.loginfo("=== set screw: at at_set_screw_hole ===")
+      self.confirm_to_proceed("Move into hole?")
+      # self.b_bot.go_to_pose_goal(self.in_set_screw_hole, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True, speed=0.02)
+      dist = 0.005
+      self.b_bot.move_lin_rel(relative_translation=[-dist, 0, 0], speed=0.02, wait=True)
       # This expects to be exactly above the set screw hole
-      self.confirm_to_proceed("Turn on motor and move into screw hole?")
-      self.tools.set_motor("set_screw_tool", "tighten", duration = 15.0, skip_final_loosen_and_retighten=True)
+      self.confirm_to_proceed("Turn on motor and do spiral?")
+      
+      self.tools.set_motor("set_screw_tool", "tighten", duration = 13.0, skip_final_loosen_and_retighten=True)
 
       self.b_bot.execute_spiral_trajectory("YZ", max_radius=0.0015, radius_direction="+Y", steps=50,
                                           revolutions=2, target_force=0, check_displacement_time=10,
                                           termination_criteria=None, timeout=6, end_effector_link="b_bot_set_screw_tool_tip_link")
-
-      dist = .002
-      self.b_bot.move_lin_rel(relative_translation=[-dist, 0, 0], speed=0.03, wait=True)
-      rospy.loginfo("=== set screw: move in ===")
-      # Stop spiral motion if the tool action finished, regardless of success/failure
-
-      if self.use_real_robot:
-        rospy.sleep(2.0) # Wait for the screw to be screwed in a little bit
-      d = .002
-      rospy.loginfo("=== set screw: move in 2 by " + str(d) + " m. ===")
-      self.b_bot.move_lin_rel(relative_translation=[-d, 0, 0], speed=0.002, wait=False)
+      rospy.sleep(3.0)
       
-      if self.use_real_robot:
-        rospy.sleep(2.0)
-      self.confirm_to_proceed("Go back?")
-      if self.b_bot.is_protective_stopped():
-        rospy.logwarn("Robot was protective stopped after set screw insertion!")
-        self.b_bot.unlock_protective_stop()
-        rospy.sleep(1)
-        if self.b_bot.is_protective_stopped():
-          return False
-
+      self.confirm_to_proceed("Move back?")
+      # Move away
       self.b_bot.move_lin_rel(relative_translation=[0.01, 0, 0], speed=0.03)
       self.b_bot.move_lin_rel(relative_translation=[0.05, 0, 0], speed=0.1)
       self.b_bot.go_to_named_pose("horizontal_screw_ready", speed=0.5, acceleration=0.5)
+
+      ### Skip unequipping since that is done in a separate step
       # self.confirm_to_proceed("Unequip tool?")
       # self.b_bot.go_to_named_pose("home", speed=0.5, acceleration=0.5)
       # self.unequip_tool("b_bot", "set_screw_tool")
