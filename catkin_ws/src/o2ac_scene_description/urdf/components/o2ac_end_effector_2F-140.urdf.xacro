@@ -66,14 +66,14 @@
     <joint name="${prefix}robotiq_85_screw_tool_m4_tip_joint" type="fixed">
       <parent link="${prefix}tool_intermediate_link"/>
       <child link="${prefix}screw_tool_m4_tip_link"/>
-      <origin rpy="0 0 0" xyz=".146 0 -0.005 "/>
+      <origin rpy="0 0 0" xyz=".146 -.001 -0.005 "/>
     </joint>
     <link name="${prefix}screw_tool_m4_tip_link"/>
 
     <joint name="${prefix}robotiq_85_screw_tool_m3_tip_joint" type="fixed">
       <parent link="${prefix}tool_intermediate_link"/>
       <child link="${prefix}screw_tool_m3_tip_link"/>
-      <origin rpy="0 0 0" xyz=".128 0 -.0045 "/>
+      <origin rpy="0 0 0" xyz=".128 -.001 -.0045 "/>
     </joint>
     <link name="${prefix}screw_tool_m3_tip_link"/>
 
