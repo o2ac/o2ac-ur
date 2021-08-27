@@ -682,7 +682,7 @@ class O2ACTaskboard(O2ACCommon):
       approach_pose.header.frame_id = "taskboard_m3_screw_link"
       # Offset measured with the tool on the real hole: [0.004, 0.000, -0.004]
       approach_pose.pose.position.x = -.04
-      approach_pose.pose.position.y = -.001    # MAGIC NUMBER (y-axis of the frame points right)
+      approach_pose.pose.position.y = .001    # MAGIC NUMBER (y-axis of the frame points right)
       approach_pose.pose.position.z = -.005  # MAGIC NUMBER (z-axis of the frame points down)
       approach_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/12, 0, 0))
       if not self.a_bot.go_to_pose_goal(approach_pose, speed=0.5, end_effector_link="a_bot_screw_tool_m3_tip_link", move_lin = True):

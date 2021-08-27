@@ -2506,7 +2506,7 @@ class O2ACCommon(O2ACBase):
     rospy.loginfo("Going to near tb (b_bot)") # Push with tool
     target_rotation = np.deg2rad([30.0, 0.0, 0.0]).tolist()
     approach_pose = conversions.to_pose_stamped(target_link, [-0.05,0,0] + target_rotation)
-    xyz_light_push = [-0.005, -0.001, 0.001]  # MAGIC NUMBERS
+    xyz_light_push = [-0.005, -0.002, 0.002]  # MAGIC NUMBERS
     near_tb_pose = conversions.to_pose_stamped(target_link, xyz_light_push + target_rotation)
     seq.append(helpers.to_sequence_item(approach_pose, speed=1.0, end_effector_link="b_bot_screw_tool_m4_tip_link"))
     seq.append(helpers.to_sequence_item(near_tb_pose, speed=0.3, end_effector_link="b_bot_screw_tool_m4_tip_link"))
