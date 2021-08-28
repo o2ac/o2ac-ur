@@ -79,6 +79,8 @@ from o2ac_routines.vision_client import VisionClient
 from o2ac_routines.ur_robot import URRobot
 from o2ac_routines.tools import Tools
 
+from ur_gazebo.gazebo_spawner import GazeboModels
+from ur_gazebo.model import Model
 
 class AssemblyStatus(object):
   """ A helper class containing booleans describing the state of the assembly.
@@ -128,6 +130,8 @@ class O2ACBase(object):
     # Status variables and settings
     self.use_real_robot = rospy.get_param("use_real_robot", False)
     self.use_gazebo_sim = rospy.get_param("use_gazebo_sim", False)
+    if self.use_gazebo_sim:
+      self.gazebo_scene = GazeboModels('o2ac_gazebo')
     
     self.force_ur_script_linear_motion = False
     self.force_moveit_linear_motion = True
@@ -1490,7 +1494,7 @@ class O2ACBase(object):
       robot.robot_group.wait_for_motion_result(45.0) # wait for motion max of 45 seconds
       # Finished preplanning the whole sequence: Execute remaining waypoints
       while backlog:
-        if not self.check_plan_goal_reached(robot_name, active_plan):
+        if active_plan and not self.check_plan_goal_reached(robot_name, active_plan):
           rospy.logerr("%s: Fail to execute plan: target pose not reach" % robot_name)
           return False
 

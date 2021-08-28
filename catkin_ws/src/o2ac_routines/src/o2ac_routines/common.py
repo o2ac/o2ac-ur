@@ -43,8 +43,6 @@ tau = 2*pi
 from o2ac_routines.thread_with_trace import ThreadTrace
 from ur_control.constants import DONE, TERMINATION_CRITERIA
 from trajectory_msgs.msg import JointTrajectoryPoint
-from ur_gazebo.gazebo_spawner import GazeboModels
-from ur_gazebo.model import Model
 
 import numpy as np
 
@@ -71,8 +69,6 @@ class O2ACCommon(O2ACBase):
     self.define_tray_views()
 
     self.update_distribution_client = actionlib.SimpleActionClient("update_distribution", o2ac_msgs.msg.updateDistributionAction)
-
-    self.gazebo_scene = GazeboModels('o2ac_gazebo')
 
   def define_tray_views(self):
     """
@@ -756,39 +752,60 @@ class O2ACCommon(O2ACBase):
     
     return success
 
-  def simple_place(self, robot_name, object_pose, place_height=0.05, speed_fast=0.1, speed_slow=0.02, 
-      gripper_command="open", approach_height=0.05, item_id_to_detach = "", lift_up_after_place = True, acc_fast=1.0, acc_slow=.1):
+  def simple_place(self, robot_name, object_pose, place_height=0.05, speed_fast=1.0, speed_slow=0.3, 
+                         gripper_command="open", approach_height=0.05, axis="x", sign=+1,
+                         item_id_to_detach = "", lift_up_after_place = True, acc_fast=0.6, acc_slow=0.15):
     """
     A very simple place operation. item_id_to_detach is used to update the planning scene by
     removing an item that has been attached (=grasped) by the robot in the MoveIt planning scene.
     It is ignored if empty.
-
-    This procedure works by changing the x axis of the target pose's frame. 
-    It may produce dangerous motions in other configurations.
     """
+
+    seq = []
+
     rospy.loginfo("Going above place target")
-    object_pose.pose.position.x -= approach_height
-    self.active_robots[robot_name].go_to_pose_goal(object_pose, speed=speed_fast, acceleration=acc_fast, move_lin=False)
+    approach_pose = copy.deepcopy(object_pose)
+    op = conversions.from_point(object_pose.pose.position)
+    op[get_direction_index(axis)] += approach_height * sign
+    approach_pose.pose.position = conversions.to_point(op)
+    seq.append(helpers.to_sequence_item(approach_pose, speed=speed_fast, acc=acc_fast, linear=False))
+    # if not self.active_robots[robot_name].go_to_pose_goal(approach_pose, speed=speed_fast, acceleration=acc_fast, move_lin=False):
+    #   rospy.logerr("fail to go to approach pose")
+    #   return False
    
     rospy.loginfo("Moving to place target")
-    object_pose.pose.position.x += place_height
-    self.active_robots[robot_name].go_to_pose_goal(object_pose, speed=speed_slow, acceleration=acc_slow, move_lin=False)
-    object_pose.pose.position.x -= place_height
+    place_pose = copy.deepcopy(object_pose)
+    op = conversions.from_point(object_pose.pose.position)
+    op[get_direction_index(axis)] += place_height * sign
+    place_pose.pose.position = conversions.to_point(op)
+    seq.append(helpers.to_sequence_item(place_pose, speed=speed_slow, acc=acc_slow, linear=False))
+    # if not self.active_robots[robot_name].go_to_pose_goal(place_pose, speed=speed_slow, acceleration=acc_slow, move_lin=True):
+    #   rospy.logerr("fail to go to place pose")
+    #   return False
     
     robot = self.active_robots[robot_name]
 
     #gripper open
     if gripper_command=="do_nothing":
       pass
-    else: 
-      robot.gripper.open()
+    else:
+      seq.append(helpers.to_sequence_gripper('open', gripper_velocity=1.0))
+      # robot.gripper.open()
 
     if item_id_to_detach:
       robot.robot_group.detach_object(item_id_to_detach)
 
     if lift_up_after_place:
       rospy.loginfo("Moving back up")
-      self.active_robots[robot_name].go_to_pose_goal(object_pose, speed=speed_fast, move_lin=False)  
+      seq.append(helpers.to_sequence_item(approach_pose, speed=speed_fast, acc=acc_fast, linear=False))
+      # if not self.active_robots[robot_name].go_to_pose_goal(approach_pose, speed=speed_fast, move_lin=False):
+      #   rospy.logerr("fail to go to retrieve pose")
+      #   return False
+    
+    if not self.execute_sequence(robot_name, seq, "simple place"):
+      rospy.logerr("fail to simple place")
+      return False
+
     return True
 
   def simple_grasp_generation(self, object_pose, options):
@@ -3750,8 +3767,8 @@ class O2ACCommon(O2ACBase):
 
 #### subtask e - idler pulley
 
-  def pick_idler_spacer(self, robot_name="b_bot"):
-    options = {'check_for_close_items': True, 'declutter_with_tool': True, 'object_width': 0.005, 'grasp_width': 0.04}
+  def pick_idler_spacer(self, robot_name="b_bot", attempts=3):
+    options = {'check_for_close_items': True, 'declutter_with_tool': True, 'object_width': 0.005, 'grasp_width': 0.03}
     idler_spacer_pose = self.look_and_get_grasp_point("idler_spacer", options=options)
     
     marker_pose = copy.deepcopy(idler_spacer_pose)
@@ -3764,25 +3781,39 @@ class O2ACCommon(O2ACBase):
     if not self.simple_pick(robot_name, idler_spacer_pose, grasp_height=0.001, 
                             gripper_force=50.0, grasp_width=.04, axis="z", approach_height=0.07, gripper_command=0.03,
                             item_id_to_attach="idler_spacer"):
-      rospy.logerr("Fail to simple_pick")
+      rospy.logerr("Fail to simple_pick --> try again")
+      self.active_robots[robot_name].gripper.open(opening_width=0.05)
+      if attempts > 0:
+        self.pick_idler_spacer(robot_name=robot_name, attempts=attempts-1)
       return False
 
-    if not self.simple_gripper_check(robot_name, min_opening_width=0.002):
-      rospy.logerr("Gripper did not grasp the idler_spacer --> Stop")
+    if not self.simple_gripper_check(robot_name, min_opening_width=0.015):
+      rospy.logerr("Gripper did not grasp the idler_pulley --> try again")
+      self.active_robots[robot_name].gripper.open(opening_width=0.05)
+      if attempts > 0:
+        self.pick_idler_spacer(robot_name=robot_name, attempts=attempts-1)
       return False
     return True
-  
-  def orient_idler_pulley_assembly(self, robot_name):
+
+
+  def orient_idler_pulley_assembly(self, robot_name, target_pose, store=False):
+    """
+      Orient Idler - spacer or pulley in the centering area.
+      Optionally define the pose where the centering will be done.
+      Optionally leave the object in the centered pose.
+    """
     centering_area = "right_centering_link" if robot_name == "b_bot" else "left_centering_link"
+    centering_pose = target_pose if target_pose else conversions.to_pose_stamped(centering_area, [-0.005, 0, 0, -tau/4, 0, 0])
     self.active_robots[robot_name].go_to_named_pose("centering_area")
-    self.active_robots[robot_name].go_to_pose_goal(conversions.to_pose_stamped(centering_area, [-0.005, 0, 0, -tau/4, 0, 0]))
+    self.active_robots[robot_name].go_to_pose_goal(centering_pose)
     self.center_with_gripper(robot_name, opening_width=0.03, gripper_force=0, gripper_velocity=0.01, move_back_to_initial_position=True)
-    self.active_robots[robot_name].gripper.close()
+    if not store:
+      self.active_robots[robot_name].gripper.close()
     self.active_robots[robot_name].go_to_named_pose("centering_area")
     return True
 
-  def pick_idler_pulley_assembly(self, robot_name="b_bot"):
-    options = {'check_for_close_items': True, 'declutter_with_tool': True, 'object_width': 0.005, 'grasp_width': 0.04}
+  def pick_idler_pulley_assembly(self, robot_name="b_bot", attempts=3):
+    options = {'grasp_width': 0.05, 'center_on_corner': True, 'approach_height': 0.02, 'grab_and_drop': True, 'object_width': 0.03}
     idler_pulley_pose = self.look_and_get_grasp_point("idler_pulley", options=options)
 
     idler_pulley_pose.pose.position.z = 0.0 # Magic numbers
@@ -3793,13 +3824,19 @@ class O2ACCommon(O2ACBase):
 
     self.vision.activate_camera(robot_name + "_inside_camera")
     if not self.simple_pick(robot_name, idler_pulley_pose, grasp_height=0.001, 
-                            gripper_force=50.0, grasp_width=.04, axis="z", approach_height=0.07, gripper_command=0.03,
+                            gripper_force=50.0, grasp_width=.05, axis="z", approach_height=0.07, gripper_command=0.03,
                             item_id_to_attach="idler_pulley"):
-      rospy.logerr("Fail to simple_pick")
+      rospy.logerr("Fail to simple_pick --> try again")
+      self.active_robots[robot_name].gripper.open(opening_width=0.05)
+      if attempts > 0:
+        self.pick_idler_pulley_assembly(robot_name=robot_name, attempts=attempts-1)
       return False
 
-    if not self.simple_gripper_check(robot_name, min_opening_width=0.002):
-      rospy.logerr("Gripper did not grasp the idler_pulley --> Stop")
+    if not self.simple_gripper_check(robot_name, min_opening_width=0.015):
+      rospy.logerr("Gripper did not grasp the idler_pulley --> try again")
+      self.active_robots[robot_name].gripper.open(opening_width=0.05)
+      if attempts > 0:
+        self.pick_idler_pulley_assembly(robot_name=robot_name, attempts=attempts-1)
       return False
     return True
 

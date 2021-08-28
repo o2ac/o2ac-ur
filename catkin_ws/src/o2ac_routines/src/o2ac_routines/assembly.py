@@ -414,14 +414,8 @@ class O2ACAssembly(O2ACCommon):
     
     return True
 
-  def subtask_d(self):
-    # Fasten large pulley to output shaft
-    rospy.loginfo("======== SUBTASK D (output pulley) ========")
-    rospy.logerr("Subtask D not implemented yet")
-    return False
-
-  def subtask_e(self, simultaneous_execution=True):
-    rospy.loginfo("======== SUBTASK E (output pulley) ========") 
+  def subtask_d(self, simultaneous_execution=True):
+    rospy.loginfo("======== SUBTASK D (output pulley) ========") 
 
     self.a_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
     self.b_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
@@ -495,17 +489,36 @@ class O2ACAssembly(O2ACCommon):
 
     return self.a_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
 
+  def subtask_e(self, simultaneous_execution=True):
+    # Fasten large pulley to output shaft
+    rospy.loginfo("======== SUBTASK E (output pulley) ========") 
+    # rospy.logerr("Subtask D not implemented yet")
+    return self.subtask_e_urscript()
+
   def subtask_e_urscript(self):
     """ A hard-coded UR script version of the subtask. Expects the spacer and pulley to be in the correct locations
         in storage.
     """
+    idler_pulley_store_pose = conversions.to_pose_stamped("left_centering_link", [-0.006, 0.003, 0.061, -tau/4, 0, 0])
+    idler_spacer_store_pose = conversions.to_pose_stamped("left_centering_link", [-0.006, 0.002, 0.163, -tau/4, 0, 0])
+
     self.ab_bot.go_to_named_pose("home")
+
+    self.pick_idler_pulley_assembly("a_bot")
+    self.simple_place("a_bot", idler_pulley_store_pose, place_height=0.005, approach_height=0.15, axis="x", sign=-1)
+    # self.orient_idler_pulley_assembly("a_bot", idler_pulley_store_pose, store=True)
+    
+    self.pick_idler_spacer("a_bot")
+    self.simple_place("a_bot", idler_spacer_store_pose, place_height=0.0, approach_height=0.15, axis="x", sign=-1)
+    # self.orient_idler_pulley_assembly("a_bot", idler_spacer_store_pose, store=True)
     
     self.a_bot.load_and_execute_program(program_name="wrs2020/asm_idler_pulley_v1.urp", skip_ros_activation=True)
     self.b_bot.load_and_execute_program(program_name="wrs2020/asm_idler_pulley_p1.urp", skip_ros_activation=True)
 
     # Go through pause dialogues
     self.confirm_to_proceed("Go through pause dialogs manually. Press enter after b_bot went home and a_bot holds the pulley at the ridge.")
+
+    # TODO(cambel): move a_bot to some target pose w.r.t a frame id for any changes in the product arrangement
 
     # Equip padless tool
     self.equip_tool("b_bot", "padless_tool_m4")
@@ -529,6 +542,8 @@ class O2ACAssembly(O2ACCommon):
       
     if not self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=60):
       return False
+
+    return True
 
   def subtask_f(self):
     rospy.loginfo("======== SUBTASK F (motor panel (small L-plate)) ========")
@@ -1241,7 +1256,10 @@ class O2ACAssembly(O2ACCommon):
 
       # bearing spacer / output pulley
       if self.assembly_status.completed_subtask_c2:
-        self.assembly_status.completed_subtask_e = self.subtask_e(simultaneous_execution=True) 
+        self.assembly_status.completed_subtask_d = self.subtask_d(simultaneous_execution=True)
+
+      # Idler pulley
+      self.assembly_status.completed_subtask_e = self.subtask_e() 
     
     self.unload_assembled_unit(tray_name)
     rospy.loginfo("==== Finished.")
@@ -1280,7 +1298,8 @@ class O2ACAssembly(O2ACCommon):
       if self.assembly_status.completed_subtask_c1:
         self.assembly_status.completed_subtask_c2 = self.subtask_c2() # shaft
       #   if self.assembly_status.completed_subtask_c2:
-      #     self.assembly_status.completed_subtask_e = self.subtask_e() # bearing spacer / output pulley
+      #     self.assembly_status.completed_subtask_d = self.subtask_d() # bearing spacer/output pulley
+      #   self.assembly_status.completed_subtask_e = self.subtask_e() # idler pulley
     
     self.do_change_tool_action("a_bot", equip=False)
     self.ab_bot.go_to_named_pose("home")
