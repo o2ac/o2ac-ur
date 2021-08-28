@@ -3031,7 +3031,7 @@ class O2ACCommon(O2ACBase):
     return True
 
   def insert_end_cap(self, attempts=1):
-    self.a_bot.linear_push(force=2.5, direction="-Z", max_translation=0.05, timeout=10.0)
+    self.a_bot.linear_push(force=2.5, direction="-Z", max_translation=0.02, timeout=10.0)
     target_pose = self.a_bot.get_current_pose_stamped()
     target_pose.pose.position.z -= 0.002
     self.a_bot.move_lin_rel(relative_translation=[0,0,0.001]) # release pressure before insertion
@@ -4376,7 +4376,7 @@ class O2ACCommon(O2ACBase):
 
     return True
 
-  def fasten_panel(self, panel_name, simultaneous=False, a_bot_task_2nd_screw=None, unequip_tool_on_success=False):
+  def fasten_panel(self, panel_name, simultaneous=False, a_bot_task_2nd_screw=None, unequip_tool_on_success=False, b_bot_2nd_task=None):
     if panel_name == "panel_bearing":
       part_name = "assembled_part_03_"
     elif panel_name == "panel_motor":
@@ -4429,6 +4429,8 @@ class O2ACCommon(O2ACBase):
       self.b_bot_success = self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel_name, spiral_radius=0.003)
       if unequip_tool_on_success:
         self.do_change_tool_action("b_bot", equip=False, screw_size = 4)
+      if b_bot_2nd_task:
+        self.b_bot_success = b_bot_2nd_task()
     
     if simultaneous:
       self.do_tasks_simultaneous(a_bot_task, b_bot_task, 180)

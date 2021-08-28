@@ -95,7 +95,9 @@ class AssemblyStatus(object):
 
     self.belt_placed_outside_of_tray = False
     self.motor_placed_outside_of_tray = False
+    self.motor_inserted_in_panel = False
     self.bearing_placed_outside_of_tray = False
+    self.bearing_inserted_in_panel = False
 
     self.completed_subtask_zero = False  # Base
     self.completed_subtask_a = False  # Motor
