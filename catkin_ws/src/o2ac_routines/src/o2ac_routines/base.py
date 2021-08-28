@@ -1473,12 +1473,14 @@ class O2ACBase(object):
 
         # execute next plan 
         next_plan, index, plan_type = backlog.pop(0)
-        print(robot_name, ": Executing sequence plan: index,", index, "type", plan_type)
+        rospy.loginfo(robot_name + ": Executing sequence plan: index," + str(index) + "type" + str(plan_type))
         wait = True if i == len(sequence) -1 else False
         self.execute_waypoint_plan(robot_name, next_plan, wait=wait)
 
         if isinstance(next_plan, dict):  # Gripper action
-          continue
+          active_plan = None
+          active_plan_start_time = rospy.Time(0)
+          active_plan_duration = 0.0
         elif isinstance(next_plan, moveit_msgs.msg.RobotTrajectory):
           active_plan = next_plan
           active_plan_start_time = rospy.Time.now()
@@ -1493,7 +1495,7 @@ class O2ACBase(object):
           return False
 
         next_plan, index, plan_type = backlog.pop(0)
-        print(robot_name, ": Executing plan (backlog loop): index,", index, "type", plan_type)
+        rospy.loginfo(robot_name + ": Executing plan (backlog loop): index," + str(index) + "type" + str(plan_type))
         self.execute_waypoint_plan(robot_name, next_plan, True)
         if isinstance(next_plan, (moveit_msgs.msg.RobotTrajectory)):
           active_plan = next_plan
