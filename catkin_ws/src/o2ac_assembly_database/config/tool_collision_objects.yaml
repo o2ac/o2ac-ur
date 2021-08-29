@@ -84,15 +84,29 @@ set_screw_tool:
   subframe:
     name: 'set_screw_tool_tip'
     pose: [0.0, -.0015, -.028, 0.0, 1.5707, -1.5707]
-nut_holder:
-  id: 'nut_holder'
-  frame_id: 'nut_holder_link'
+nut_holder1:
+  id: 'nut_holder1'
+  frame_id: 'nut_holder1_link'
   primitives:
     [
       { # The upper box
         type: 'BOX',
         dimensions: [0.04, 0.04, 0.02],
-        pose: [0.0, 0.02, 0.01, 0.0, 0.0, 0.0]
+        pose: [0.0, -0.01, 0.02, 1.5707, 0.0, 0.0]
+      },
+    ]
+  subframe:
+    name: 'nut_holder_center'
+    pose: [0.02, 0.04, 0.01, 0.0, 0, 0]
+nut_holder2:
+  id: 'nut_holder2'
+  frame_id: 'nut_holder2_link'
+  primitives:
+    [
+      { # The upper box
+        type: 'BOX',
+        dimensions: [0.04, 0.04, 0.02],
+        pose: [0.0, -0.01, 0.02, 1.5707, 0.0, 0.0]
       },
     ]
   subframe:

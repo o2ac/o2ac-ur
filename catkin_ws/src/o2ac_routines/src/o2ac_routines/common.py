@@ -70,6 +70,8 @@ class O2ACCommon(O2ACBase):
 
     self.update_distribution_client = actionlib.SimpleActionClient("update_distribution", o2ac_msgs.msg.updateDistributionAction)
 
+    self.nut_tool_used = False
+
   def define_tray_views(self):
     """
     Define the poses used to position the camera to look into the tray.
@@ -2409,13 +2411,7 @@ class O2ACCommon(O2ACBase):
       self.a_bot.move_lin_rel(relative_translation=[-0.15, 0, 0.0], relative_to_tcp=True, speed=1.0)
       return False
     
-    self.a_bot.gripper.open(opening_width=0.05)
-    self.a_bot.gripper.forget_attached_item()    
-    self.a_bot.move_lin_rel(relative_translation=[-0.15, 0, 0.0], relative_to_tcp=True, speed=1.0)
-    self.allow_collisions_with_robot_hand("padless_tool_m4", "a_bot", False)
-    self.allow_collisions_with_robot_hand("taskboard_plate", "a_bot", False)
-    
-    if not self.playback_sequence("idler_pulley_equip_nut_tool"):
+    if not self.equip_nut_tool():
       rospy.logerr("Fail to complete equip_nut_tool")
       self.playback_sequence("idler_pulley_return_screw_tool")
       self.unequip_tool("b_bot", "padless_tool_m4")
@@ -2427,7 +2423,7 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Fail to complete fasten_idler_pulley_with_nut_tool")
 
     def a_bot_task2():
-      return self.playback_sequence("idler_pulley_unequip_nut_tool")
+      return self.unequip_nut_tool()
 
     def b_bot_task2():
       success = self.playback_sequence("idler_pulley_return_screw_tool")
@@ -2445,7 +2441,62 @@ class O2ACCommon(O2ACBase):
         return False
 
     return True
+
+  def equip_nut_tool(self):
+    self.allow_collisions_with_robot_hand("padless_tool_m4", "a_bot", True)
+
+    if not self.nut_tool_used:
+      above_nut_aid = [1.51833, -1.9979, 1.83185, -1.41133, -1.57929, 3.09534]
+      nut_holder_name = "nut_holder1"
+    else:
+      above_nut_aid = [1.91526, -1.81915, 1.72051, -1.47392, -1.58145, 3.49249]
+      nut_holder_name = "nut_holder2"
+
+    self.spawn_tool(nut_holder_name)
+    self.planning_scene_interface.allow_collisions(nut_holder_name)
+    def post_cb():
+      self.a_bot.gripper.attach_object(nut_holder_name, with_collisions=True)
     
+    self.a_bot.gripper.forget_attached_item()    
+    seq = []
+    seq.append(helpers.to_sequence_gripper('open', gripper_opening_width=0.05, gripper_velocity=1.0))
+    seq.append(helpers.to_sequence_item_relative([-0.15, 0, 0, 0, 0, 0], relative_to_tcp=True, speed=1.0))
+    seq.append(helpers.to_sequence_item(above_nut_aid, speed=1.0, linear=False))
+    seq.append(helpers.to_sequence_gripper('open', gripper_opening_width=0.1, gripper_velocity=1.0, wait=False))
+    seq.append(helpers.to_sequence_item_relative([0, 0, -0.25, 0, 0, 0], speed=0.6))
+    seq.append(helpers.to_sequence_gripper('close', gripper_force=60, gripper_velocity=0.1, post_callback=post_cb))
+    seq.append(helpers.to_sequence_item_relative([0, 0, 0.25, 0, 0, 0], speed=0.4))
+
+    success = self.execute_sequence("a_bot", seq, "equip nut tool")
+
+    self.allow_collisions_with_robot_hand("padless_tool_m4", "a_bot", False)
+
+    return success
+
+  def unequip_nut_tool(self):
+    if not self.nut_tool_used:
+      above_nut_aid = [1.51833, -1.9979, 1.83185, -1.41133, -1.57929, 3.09534]
+      nut_holder_name = "nut_holder1"
+    else:
+      above_nut_aid = [1.91526, -1.81915, 1.72051, -1.47392, -1.58145, 3.49249]
+      nut_holder_name = "nut_holder2"
+
+    self.planning_scene_interface.allow_collisions(nut_holder_name)
+    def post_cb():
+      self.a_bot.gripper.forget_attached_item()
+      self.despawn_tool(nut_holder_name)
+    
+    seq = []
+    seq.append(helpers.to_sequence_item(above_nut_aid, speed=1.0, linear=False))
+    seq.append(helpers.to_sequence_item_relative([0, -0.01, -0.25, 0, 0, 0], speed=0.6))
+    seq.append(helpers.to_sequence_gripper('open', gripper_opening_width=0.1, gripper_velocity=1.0, post_callback=post_cb))
+    seq.append(helpers.to_sequence_item_relative([0, 0, 0.25, 0, 0, 0], speed=0.4))
+
+    success = self.execute_sequence("a_bot", seq, "unequip nut tool")
+    self.nut_tool_used = True
+
+    return success
+
   def center_idler_pulley(self):
     # Center first time
     self.a_bot.gripper.close(force=40.0, velocity=0.013)

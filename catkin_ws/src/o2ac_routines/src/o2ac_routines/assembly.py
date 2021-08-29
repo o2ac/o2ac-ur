@@ -529,11 +529,11 @@ class O2ACAssembly(O2ACCommon):
     self.confirm_to_proceed("Go through pause dialogs manually. Did both robots finish?")
     
     # When a_bot is finished:
-    self.playback_sequence("idler_pulley_equip_nut_tool")
+    self.equip_nut_tool()
     self.fasten_idler_pulley_with_nut_tool(target_link = "assembled_part_03_pulley_ridge_top")
 
     def a_bot_task():
-      return self.playback_sequence("idler_pulley_unequip_nut_tool")
+      return self.unequip_nut_tool()
     def b_bot_task():
       success = self.playback_sequence("idler_pulley_return_screw_tool")
       if not success:

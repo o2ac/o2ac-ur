@@ -391,4 +391,18 @@
     <origin xyz=".02 0 -.01" rpy="0 ${pi/2} 0" />
   </joint>
 
+  <link name="nut_holder1_link"/>
+  <joint name="nut_holder1_joint" type="fixed">
+    <parent link="workspace_center" />
+    <child link="nut_holder1_link" />
+    <origin xyz="-0.11 -0.2 -0.015" rpy="0 0 0" />
+  </joint>
+
+  <link name="nut_holder2_link"/>
+  <joint name="nut_holder2_joint" type="fixed">
+    <parent link="workspace_center" />
+    <child link="nut_holder2_link" />
+    <origin xyz="-0.255 -0.2 -0.015" rpy="0 0 0" />
+  </joint>
+
 </robot>

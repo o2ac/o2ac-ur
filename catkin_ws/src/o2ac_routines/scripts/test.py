@@ -31,6 +31,18 @@ signal.signal(signal.SIGINT, signal_handler)
 def main():
     rospy.init_node("testscript")
     global controller
+#     a = np.array([	
+# 54380492,
+# 2.566528,
+# 0.802040,
+# 2.566528,
+# 73519448,
+# 5042046,
+# 0.802040,
+# 5042046,
+# 123943176 
+#     ])
+#     print(a/(1000.0)**5)
     # controller = O2ACTaskboard()
     # controller.b_bot.go_to_pose_goal(controller.at_set_screw_hole, speed=0.01, end_effector_link="b_bot_set_screw_tool_tip_link")
     # controller.b_bot.go_to_named_pose("home")
@@ -47,15 +59,45 @@ def main():
     # controller.confirm_motor_and_place_in_aid()
     # controller.align_motor_pre_insertion()
 
-    # controller = O2ACCommon()
-    # controller.b_bot.gripper.gripper.release(link_name="panel_bearing_tmp::panel_bearing")
-    controller = O2ACAssembly()
-    controller.ab_bot.go_to_named_pose("home")
-    controller.get_large_item_position_from_top("panel_motor")
-    pose = conversions.to_pose_stamped("tray_center", [0.09, 0.037, 0.015, 0, tau/4, 0])
-    controller.b_bot.go_to_pose_goal(pose)
-    pose = conversions.to_pose_stamped("tray_center", [-0.024, -0.108, 0.006, 0.707, -0.010, -0.707, 0.003])
-    controller.a_bot.go_to_pose_goal(pose)
+    controller = O2ACCommon()
+    controller.reset_scene_and_robots()
+    controller.a_bot.go_to_named_pose("home")
+    # controller.allow_collisions_with_robot_hand("front_bar", "a_bot")
+    # controller.allow_collisions_with_robot_hand("base_fixture_top", "a_bot")
+    # controller.nut_tool_used = True
+    controller.equip_nut_tool()
+    controller.unequip_nut_tool()
+    controller.equip_nut_tool()
+    controller.unequip_nut_tool()
+    # controller.a_bot.gripper.open()
+    # controller.a_bot.move_lin_rel([0,-0.005,0])
+    # controller.spawn_tool("nut_holder")
+    # above_nut_aid = [1.7012, -1.9212, 1.788, -1.4422, -1.5809, 3.2784]
+    # controller.a_bot.move_joints(above_nut_aid)
+    # motor_pose = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [0.0, 0, 0, 0, 0, 0])
+    # controller.simple_place("b_bot", motor_pose, place_height=0.0, speed_fast=1.0, speed_slow=0.3, approach_height=0.1, axis="x", sign=-1)
+    # controller.reset_scene_and_robots()
+    # controller.pick_idler_spacer()
+    # controller.reset_scene_and_robots()
+    # controller.pick_idler_pin()
+    # controller.reset_scene_and_robots()
+    # controller.pick_idler_pulley_assembly()
+    # controller.playback_sequence("bearing_orient_a_bot", use_saved_plans=False)
+    # controller.reset_scene_and_robots()
+    # # controller.orient_bearing("assembly", "a_bot", part1=False, part2=True)
+    # # motor_pose = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [-0.01, -0.02, -0.005, tau/2,0,tau/4])
+    # # controller.markers_scene.spawn_item("motor", motor_pose)
+    # controller.confirm_motor_and_place_in_aid()
+    # controller.align_motor_pre_insertion()
+
+    # # controller.b_bot.gripper.gripper.release(link_name="panel_bearing_tmp::panel_bearing")
+    # controller = O2ACAssembly()
+    # controller.ab_bot.go_to_named_pose("home")
+    # controller.get_large_item_position_from_top("panel_motor")
+    # pose = conversions.to_pose_stamped("tray_center", [0.09, 0.037, 0.015, 0, tau/4, 0])
+    # controller.b_bot.go_to_pose_goal(pose)
+    # pose = conversions.to_pose_stamped("tray_center", [-0.024, -0.108, 0.006, 0.707, -0.010, -0.707, 0.003])
+    # controller.a_bot.go_to_pose_goal(pose)
     # spawner = GazeboModels('o2ac_gazebo')]
     # name = "panel_bearing"
     # object_pose = conversions.to_pose_stamped("tray_center", [0,0,0,0,0,0])
@@ -90,7 +132,7 @@ def main():
     # controller.allow_collisions_with_robot_hand("agv_table", "a_bot")
     # controller.planning_scene_interface.allow_collisions("agv_table")
     # controller.playback_sequence("bearing_orient_a_bot", use_saved_plans=False`)
-    # print("a_bot", controller.a_bot.robot_group.get_current_joint_values())
+    print("a_bot", np.round(controller.a_bot.robot_group.get_current_joint_values(), 5).tolist())
     # print("b_bot", controller.b_bot.robot_group.get_current_joint_values())
     # pose = conversions.to_pose_stamped("left_centering_link", [-0.02, 0, 0.02, radians(-30), 0, 0])
     # controller.a_bot.go_to_pose_goal(pose)
