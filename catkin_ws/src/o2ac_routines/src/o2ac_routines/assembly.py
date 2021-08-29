@@ -277,7 +277,6 @@ class O2ACAssembly(O2ACCommon):
     if not self.fasten_motor_pulley(target_link, skip_unequip=simultaneous_execution):
       return False
     
-
     return True
 
   def subtask_c1(self):
@@ -297,7 +296,8 @@ class O2ACAssembly(O2ACCommon):
   
   def subtask_c2(self, simultaneous_execution=True, skip_pick_end_cap=False, assemble_bearing_spacer=False):
     rospy.loginfo("======== SUBTASK C (output shaft) ========")
-    self.ab_bot.go_to_named_pose("home")
+    if not simultaneous_execution:
+      self.ab_bot.go_to_named_pose("home")
     
     self.allow_collisions_with_robot_hand("shaft", "b_bot", True)
     self.allow_collisions_with_robot_hand("end_cap", "a_bot", True)
@@ -307,8 +307,7 @@ class O2ACAssembly(O2ACCommon):
       if not self.pick_end_cap():
         return False
       if simultaneous_execution:
-        centerint_pose = conversions.to_pose_stamped("left_centering_link", [-0.15, 0, 0.0, -tau/2, 0, 0])
-        self.a_success &= self.a_bot.go_to_pose_goal(centerint_pose, speed=1.0)
+        self.a_success &= self.a_bot.go_to_named_pose("centerint_area", speed=1.0)
 
     self.a_bot_success = False
     self.b_bot_success = False
@@ -370,7 +369,6 @@ class O2ACAssembly(O2ACCommon):
     if not self.fasten_end_cap():
       return False
     
-
     if not self.a_bot.go_to_named_pose("home"):
       return False
     
@@ -389,14 +387,14 @@ class O2ACAssembly(O2ACCommon):
           return False
         if not self.align_bearing_spacer_pre_insertion("a_bot"):
           return False
-        if not self.insert_bearing_spacer("assembled_part_07_inserted", "a_bot"):
-          return False
         self.assembly_status.bearing_spacer_assembled = True
       self.a_bot_success = True
     def b_bot_task():
       self.allow_collisions_with_robot_hand("base_fixture_top", "b_bot")
+      self.despawn_object("shaft")
       if not self.insert_shaft("assembled_part_07_inserted", target=0.043):
         return False
+      self.publish_part_in_assembled_position("shaft", marker_only=True)
       self.allow_collisions_with_robot_hand("base_fixture_top", "b_bot", False)
       self.b_bot_success = True
 
@@ -405,10 +403,12 @@ class O2ACAssembly(O2ACCommon):
       self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=300)
     else:
       b_bot_task()
-    self.despawn_object("shaft")
     
     if not self.a_bot_success or not self.b_bot_success:
       rospy.logerr("Fail to do simultaneous shaft insertion and bearing spacer")
+      return False
+
+    if not self.insert_bearing_spacer("assembled_part_07_inserted", "a_bot"):
       return False
 
     if not simultaneous_execution:
@@ -1229,7 +1229,7 @@ class O2ACAssembly(O2ACCommon):
         if not self.do_change_tool_action("a_bot", screw_size=3, equip=True):
           rospy.logerr("Fail to equip tool")
           return False
-        self.a_bot_success = success
+      self.a_bot_success = success
 
     def b_bot_task():
       if self.assembly_status.motor_placed_outside_of_tray and not self.assembly_status.motor_inserted_in_panel:
@@ -1240,7 +1240,7 @@ class O2ACAssembly(O2ACCommon):
           return False
         self.despawn_object("motor")
         self.publish_part_in_assembled_position("motor", marker_only=True)
-        self.b_bot_success = True
+      self.b_bot_success = True
 
     self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=300)
     
@@ -1293,10 +1293,10 @@ class O2ACAssembly(O2ACCommon):
       self.a_bot_success = False
       self.b_bot_success = False
       def a_bot_task():
+        self.a_bot.move_lin_rel([0.05,0,0], speed=0.5)
         if not self.pick_end_cap():
           return False
-        centerint_pose = conversions.to_pose_stamped("left_centering_link", [-0.15, 0, 0.0, -tau/2, 0, 0])
-        if not self.a_bot.go_to_pose_goal(centerint_pose, speed=1.0):
+        if not self.a_bot.go_to_named_pose("centering_area", speed=1.0):
           return False
         self.a_bot_success = True
       def b_bot_task():
