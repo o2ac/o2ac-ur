@@ -100,6 +100,7 @@ class AssemblyStatus(object):
     self.motor_inserted_in_panel = False
     self.bearing_placed_outside_of_tray = False
     self.bearing_inserted_in_panel = False
+    self.bearing_spacer_assembled = False
 
     self.completed_subtask_zero = False  # Base
     self.completed_subtask_a = False  # Motor
@@ -567,8 +568,8 @@ class O2ACBase(object):
     else:
       new_y_offset = 0.0
       new_z_offset = 0.0
-    rospy.set_param("screw_picking/" + robot_name + "/last_successful_offset_m" + str(screw_size) + "_y", new_y_offset)
-    rospy.set_param("screw_picking/" + robot_name + "/last_successful_offset_m" + str(screw_size) + "_z", new_z_offset)
+    rospy.set_param("screw_picking/" + robot_name + "/last_successful_offset_m" + str(screw_size) + "_y", float(new_y_offset))
+    rospy.set_param("screw_picking/" + robot_name + "/last_successful_offset_m" + str(screw_size) + "_z", float(new_z_offset))
 
     self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=0.1, skip_final_loosen_and_retighten=True)
 

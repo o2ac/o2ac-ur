@@ -755,7 +755,7 @@ class O2ACCommon(O2ACBase):
     return success
 
   def simple_place(self, robot_name, object_pose, place_height=0.05, speed_fast=1.0, speed_slow=0.3, 
-                         gripper_command="open", approach_height=0.05, axis="x", sign=+1,
+                         gripper_command="open", gripper_opening_width=0.14, approach_height=0.05, axis="x", sign=+1,
                          item_id_to_detach = "", lift_up_after_place = True, acc_fast=0.6, acc_slow=0.15):
     """
     A very simple place operation. item_id_to_detach is used to update the planning scene by
@@ -791,7 +791,7 @@ class O2ACCommon(O2ACBase):
     if gripper_command=="do_nothing":
       pass
     else:
-      seq.append(helpers.to_sequence_gripper('open', gripper_velocity=1.0))
+      seq.append(helpers.to_sequence_gripper('open', gripper_velocity=1.0, gripper_opening_width=gripper_opening_width))
       # robot.gripper.open()
 
     if item_id_to_detach:
@@ -2911,15 +2911,15 @@ class O2ACCommon(O2ACBase):
       return False
 
     if shaft_has_hole_at_top:
-      self.b_bot.go_to_pose_goal(inside_vgroove, speed=0.1, linear=True)
+      self.b_bot.go_to_pose_goal(inside_vgroove, speed=0.1, move_lin=True)
       self.b_bot.gripper.close()
-      self.b_bot.go_to_pose_goal(approach_vgroove, speed=0.3, linear=True)
+      self.b_bot.go_to_pose_goal(approach_vgroove, speed=0.3, move_lin=True)
     else:  # Turn gripper around
-      self.b_bot.move_lin_rel([0,0,0.02], speed=0.4, linear=True)
+      self.b_bot.move_lin_rel([0,0,0.02], speed=0.4, move_lin=True)
       above_vgroove  = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [-0.010, 0, 0, 0, 0, 0])
       inside_vgroove = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.011, 0, 0, 0, 0, 0])
-      self.b_bot.go_to_pose_goal(above_vgroove, speed=0.3, linear=True)
-      self.b_bot.go_to_pose_goal(inside_vgroove, speed=0.2, linear=True)
+      self.b_bot.go_to_pose_goal(above_vgroove, speed=0.3, move_lin=True)
+      self.b_bot.go_to_pose_goal(inside_vgroove, speed=0.2, move_lin=True)
       self.b_bot.gripper.close()
       self.b_bot.move_lin_rel([0,0,0.1], speed=0.3)
     
@@ -3820,7 +3820,7 @@ class O2ACCommon(O2ACBase):
 
   def pick_idler_spacer(self, robot_name="b_bot", attempts=3):
     options = {'check_for_close_items': True, 'declutter_with_tool': True, 'object_width': 0.005, 'grasp_width': 0.03}
-    idler_spacer_pose = self.look_and_get_grasp_point("idler_spacer", options=options)
+    idler_spacer_pose = self.look_and_get_grasp_point("idler_spacer", robot_name=robot_name, options=options)
     
     marker_pose = copy.deepcopy(idler_spacer_pose)
     marker_pose.pose.position.z = 0
@@ -3845,7 +3845,6 @@ class O2ACCommon(O2ACBase):
         self.pick_idler_spacer(robot_name=robot_name, attempts=attempts-1)
       return False
     return True
-
 
   def orient_idler_pulley_assembly(self, robot_name, target_pose, store=False):
     """
@@ -3929,15 +3928,23 @@ class O2ACCommon(O2ACBase):
     self.allow_collisions_with_robot_hand(washer_name, robot_name, False)
     return True
 
-####
+#### subtask d - bearing spacer / output pulley
 
   def pick_bearing_spacer(self, robot_name="b_bot"):
     options = {'check_for_close_items': True, 'declutter_with_tool': True, 'object_width': 0.005, 'grasp_width': 0.04}
-    bearing_spacer_pose = self.look_and_get_grasp_point("bearing_spacer", options=options)
-    bearing_spacer_pose.pose.position.x -= 0.005 # Magic numbers
+    bearing_spacer_pose = self.look_and_get_grasp_point("bearing_spacer", robot_name=robot_name, options=options)
+    
+    marker_pose = copy.deepcopy(bearing_spacer_pose)
+    marker_pose.pose.position.z = 0.004
+    marker_pose.pose.orientation = conversions.to_quaternion(transformations.quaternion_from_euler(0, -tau/4, 0))
+    self.markers_scene.spawn_item("bearing_spacer", marker_pose)
+
+    bearing_spacer_pose.pose.position.z = 0
 
     self.vision.activate_camera(robot_name + "_inside_camera")
-    if not self.simple_pick(robot_name, bearing_spacer_pose, grasp_height=0.001, gripper_force=50.0, grasp_width=.04, axis="z", approach_height=0.07, gripper_command=0.03):
+    if not self.simple_pick(robot_name, bearing_spacer_pose, grasp_height=0.001, gripper_force=50.0,
+                            grasp_width=.04, axis="z", approach_height=0.07,
+                            item_id_to_attach="bearing_spacer"):
       rospy.logerr("Fail to simple_pick")
       return False
 
@@ -3946,14 +3953,80 @@ class O2ACCommon(O2ACBase):
       return False
     return True
 
+  def orient_bearing_spacer(self, robot_name="b_bot"):
+    centering_frame = "left_centering_link" if robot_name == "a_bot" else "right_centering_link"
+    place_pose = conversions.to_pose_stamped(centering_frame, [0, 0, 0, radians(-30), 0, 0])
+    
+    if not self.simple_place(robot_name, place_pose, place_height=0.005, gripper_opening_width=0.03, lift_up_after_place=False, approach_height=0.15,
+                      axis="x", sign=-1):
+      return False
+    
+    if not self.center_with_gripper(robot_name, opening_width=0.03, gripper_force=0, gripper_velocity=0.03, move_back_to_initial_position=False):
+      return False
+
+    seq = []
+    pre_grasp_pose = conversions.to_pose_stamped(centering_frame, [-0.01, 0, 0, radians(-30), 0, 0])
+    seq.append(helpers.to_sequence_item(pre_grasp_pose, speed=1.0, linear=True))
+    seq.append(helpers.to_sequence_item_relative(pose=[0, 0, -0.0125, 0, 35, 0], relative_to_tcp=True, speed=1.0))
+    seq.append(helpers.to_sequence_gripper('close', gripper_force=60, gripper_velocity=0.05))
+    seq.append(helpers.to_sequence_item_relative([0, 0, 0.05, 0, 0, 0], speed=0.4))
+    if not self.execute_sequence(robot_name, seq, "orient bearing spacer"):
+      return False
+    
+    return True
+  
+  def align_bearing_spacer_pre_insertion(self, robot_name="b_bot"):
+    seq = []
+
+    rotation = [0, radians(-35.0), 0] if robot_name == "b_bot" else [tau/2, radians(-35.0), 0]
+
+    midway        = conversions.to_pose_stamped("assembled_part_07_inserted", [-0.15, 0, 0]      + rotation)
+    pre_insertion = conversions.to_pose_stamped("assembled_part_07_inserted", [-0.063, 0, 0.013] + rotation)
+
+    seq.append(helpers.to_sequence_item("centering_area", speed=0.4, linear=False))
+    seq.append(helpers.to_sequence_item(midway, speed=1.0, linear=False))
+    seq.append(helpers.to_sequence_item(pre_insertion, speed=0.2, linear=True))
+
+    return self.execute_sequence(robot_name, seq, "align bearing spacer pre insertion")
+
+  def insert_bearing_spacer(self, target_link, robot_name="b_bot", attempts=1):
+    target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.04, 0.0, 0.0, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
+
+    selection_matrix = [0.0, 0.3, 0.3, 0.95, 1.0, 1.0]
+    result = self.active_robots[robot_name].do_insertion(target_pose_target_frame, radius=0.0005, 
+                                                      insertion_direction="-X", force=5.0, timeout=15.0, 
+                                                      relaxed_target_by=0.005, selection_matrix=selection_matrix)
+    success = result == TERMINATION_CRITERIA
+
+    if not success:
+      grasp_check = self.simple_insertion_check(robot_name, 0.06, min_opening_width=0.02)
+      if grasp_check and attempts > 0: # try again the spacer is still there   
+        return self.insert_bearing_spacer(target_link, attempts=attempts-1)
+      elif not grasp_check or not attempts > 0:
+        self.active_robots[robot_name].gripper.open(wait=True, opening_width=0.08)
+        self.active_robots[robot_name].move_lin_rel(relative_translation = [0.10,0,0], acceleration = 0.015, speed=.03)
+        rospy.logerr("** Insertion Failed!! **")
+        return False
+
+    self.active_robots[robot_name].gripper.open(wait=True, opening_width=0.08)
+    self.active_robots[robot_name].move_lin_rel(relative_translation = [0.10,0,0], acceleration = 0.015, speed=.03)
+    return success
+
   def pick_output_pulley(self, robot_name="b_bot"):
     options = {'grasp_width': 0.05, 'check_for_close_items': False, 'object_width': 0.0}
-    output_pulley_pose = self.look_and_get_grasp_point("output_pulley", options=options)
-    output_pulley_pose.pose.position.x -= 0.005 # Magic numbers
-    output_pulley_pose.pose.position.z = 0.0 # Magic numbers
+    output_pulley_pose = self.look_and_get_grasp_point("output_pulley", robot_name=robot_name, options=options)
+
+    marker_pose = copy.deepcopy(output_pulley_pose)
+    marker_pose.pose.position.z = 0.008
+    marker_pose.pose.orientation = conversions.to_quaternion(transformations.quaternion_from_euler(0, -tau/4, 0))
+    self.markers_scene.spawn_item("output_pulley", marker_pose)
+
+    output_pulley_pose.pose.position.z = 0.0
 
     self.vision.activate_camera(robot_name + "_inside_camera")
-    if not self.simple_pick(robot_name, output_pulley_pose, grasp_height=0.011, gripper_force=50.0, grasp_width=.05, axis="z", approach_height=0.07, gripper_command=0.03):
+    if not self.simple_pick(robot_name, output_pulley_pose, grasp_height=0.011, gripper_force=50.0,
+                            grasp_width=.05, axis="z", approach_height=0.06,
+                            item_id_to_attach="output_pulley"):
       rospy.logerr("Fail to simple_pick")
       return False
 
@@ -3962,60 +4035,106 @@ class O2ACCommon(O2ACBase):
       return False
     return True
 
-  def insert_bearing_spacer(self, target_link, attempts=1):
-    target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.04, 0.0, 0.0, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
+  def orient_output_pulley(self, robot_name="b_bot"):
+    centering_frame = "left_centering_link" if robot_name == "a_bot" else "right_centering_link"
+    place_pose = conversions.to_pose_stamped(centering_frame, [-0.011, 0, 0, radians(-30), 0, 0])
+    
+    if not self.simple_place(robot_name, place_pose, place_height=0.005, gripper_opening_width=0.03, lift_up_after_place=False, approach_height=0.15,
+                      axis="x", sign=-1):
+      return False
+    
+    if not self.center_with_gripper(robot_name, opening_width=0.05, gripper_force=40, gripper_velocity=0.1, move_back_to_initial_position=False):
+      return False
 
-    selection_matrix = [0.0, 0.3, 0.3, 0.95, 1.0, 1.0]
-    result = self.b_bot.do_insertion(target_pose_target_frame, radius=0.0005, 
-                                                      insertion_direction="-X", force=5.0, timeout=15.0, 
-                                                      relaxed_target_by=0.005, selection_matrix=selection_matrix)
-    success = result == TERMINATION_CRITERIA
+    seq = []
+    pre_grasp_pose = conversions.to_pose_stamped(centering_frame, [-0.02, 0, 0, radians(-30), 0, 0])
+    seq.append(helpers.to_sequence_item(pre_grasp_pose, speed=1.0, linear=True))
+    seq.append(helpers.to_sequence_item_relative(pose=[0, 0, -0.0125, 0, 35, 0], relative_to_tcp=True, speed=1.0))
+    seq.append(helpers.to_sequence_gripper('close', gripper_force=60, gripper_velocity=0.05))
+    seq.append(helpers.to_sequence_item_relative([0, 0, 0.05, 0, 0, 0], speed=0.4))
+    if not self.execute_sequence(robot_name, seq, "orient output pulley"):
+      return False
+    
+    return True
+  
+  def align_output_pulley_pre_insertion(self, robot_name="b_bot"):
+    seq = []
 
-    if not success:
-      grasp_check = self.simple_insertion_check("b_bot", 0.06, min_opening_width=0.02)
-      if grasp_check and attempts > 0: # try again the spacer is still there   
-        return self.insert_bearing_spacer(target_link, attempts=attempts-1)
-      elif not grasp_check or not attempts > 0:
-        self.b_bot.gripper.open(wait=True, opening_width=0.08)
-        self.b_bot.move_lin_rel(relative_translation = [0.10,0,0], acceleration = 0.015, speed=.03)
-        rospy.logerr("** Insertion Failed!! **")
-        return False
+    rotation = [0, radians(-35.0), 0] if robot_name == "b_bot" else [tau/2, radians(-35.0), 0]
 
-    self.b_bot.gripper.open(wait=True, opening_width=0.08)
-    self.b_bot.move_lin_rel(relative_translation = [0.10,0,0], acceleration = 0.015, speed=.03)
-    return success
+    midway        = conversions.to_pose_stamped("assembled_part_07_inserted", [-0.15, 0, 0]     + rotation)
+    pre_insertion = conversions.to_pose_stamped("assembled_part_07_inserted", [-0.07, 0, 0.013] + rotation)
 
-  def insert_output_pulley(self, target_link, attempts=1):
+    seq.append(helpers.to_sequence_item("centering_area", speed=0.4, linear=False))
+    seq.append(helpers.to_sequence_item(midway, speed=1.0, linear=False))
+    seq.append(helpers.to_sequence_item(pre_insertion, speed=0.2, linear=True))
+
+    return self.execute_sequence(robot_name, seq, "align output pulley pre insertion")
+
+
+  def insert_output_pulley(self, target_link, robot_name="b_bot", attempts=1):
     rospy.loginfo("Starting insertion of output pulley")
     target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.043, 0.0, 0.0, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
 
     selection_matrix = [0.0, 0.3, 0.3, 0.95, 1.0, 1.0]
-    result = self.b_bot.do_insertion(target_pose_target_frame, radius=0.003, 
+    result = self.active_robots[robot_name].do_insertion(target_pose_target_frame, radius=0.003, 
                                                       insertion_direction="-X", force=8.0, timeout=15.0, 
                                                       relaxed_target_by=0.005, selection_matrix=selection_matrix)
     success = result == TERMINATION_CRITERIA
     rospy.loginfo("insertion finished with status: %s" % result)
 
     if not success:
-      grasp_check = self.simple_insertion_check("b_bot", 0.09, min_opening_width=0.02)
+      grasp_check = self.simple_insertion_check(robot_name, 0.09, min_opening_width=0.02)
       if grasp_check and attempts > 0: # try again the pulley is still there   
         return self.insert_output_pulley(target_link, attempts=attempts-1)
       elif not grasp_check or not attempts > 0:
-        self.b_bot.gripper.open(wait=True, opening_width=0.08)
-        self.b_bot.move_lin_rel(relative_translation = [0.10,0,0], acceleration = 0.015, speed=.03)
+        self.active_robots[robot_name].gripper.open(wait=True, opening_width=0.08)
+        self.active_robots[robot_name].move_lin_rel(relative_translation = [0.10,0,0], acceleration = 0.015, speed=.03)
         rospy.logerr("** Insertion Failed!! **")
         return False
 
     rospy.loginfo("Preparing push")
-    self.b_bot.gripper.open(wait=True, opening_width=0.09)
-    self.b_bot.move_lin_rel(relative_translation=[0.02,0,0])
-    self.b_bot.gripper.send_command(0.04, wait=False)
+    self.active_robots[robot_name].gripper.open(wait=True, opening_width=0.09)
+    self.active_robots[robot_name].move_lin_rel(relative_translation=[0.02,0,0])
+    self.active_robots[robot_name].gripper.send_command(0.04, wait=False)
     rospy.loginfo("Starting push")
-    success = self.b_bot.force_controller.linear_push(force=8, direction="-X", max_translation=0.1, timeout=20.)
+    success = self.active_robots[robot_name].force_controller.linear_push(force=8, direction="-X", max_translation=0.05, timeout=20.)
 
-    self.b_bot.gripper.open(wait=True, opening_width=0.09)
-    self.b_bot.move_lin_rel(relative_translation = [0.10,0,0], acceleration = 0.015, speed=.03)
+    self.active_robots[robot_name].gripper.open(wait=True, opening_width=0.09)
+    self.active_robots[robot_name].move_lin_rel(relative_translation = [0.10,0,0], acceleration = 0.015, speed=.03)
     return success
+
+  def check_output_pulley_angle(self):
+    # Look at pulley with b_bot
+    approach_centering = conversions.to_pose_stamped("assembled_part_08_inserted", [-0.1, 0, -0.15,  np.deg2rad(180), np.deg2rad(-60), 0])
+    self.b_bot.go_to_pose_goal(approach_centering, speed=0.1, end_effector_link="b_bot_outside_camera_link", move_lin=False)
+    self.vision.activate_camera("b_bot_outside_camera")
+
+    self.vision.activate_pulley_screw_detection()
+
+    while not rospy.is_shutdown():
+      print("screws visible:", self.vision.check_if_pulley_screws_visible())
+      rospy.sleep(0.1)
+
+    return True
+    # TODO: Turn pulley with a_bot, stop when screws visible
+
+  def fasten_output_pulley(self):
+    self.equip_tool("b_bot", "padless_tool_m4")
+
+    screw_poses = ["assembled_part_11_screw_head_1", "assembled_part_11_screw_head_2"]
+
+    for screw_frame in screw_poses:
+      approach_screw = conversions.to_pose_stamped(screw_frame, [-0.1, 0, 0, 0, 0, 0])
+      at_screw = conversions.to_pose_stamped(screw_frame, [ 0.005, 0, 0, 0, 0, 0])
+      self.b_bot.go_to_pose_goal(approach_screw, speed=0.5, move_lin=True, end_effector_link="b_bot_screw_tool_m4_tip_link")
+      self.b_bot.go_to_pose_goal(at_screw, speed=0.2, move_lin=True, end_effector_link="b_bot_screw_tool_m4_tip_link")
+      self.tools.set_motor("padless_tool_m4", "tighten", duration=10)
+      self.b_bot.go_to_pose_goal(approach_screw, speed=0.4, move_lin=True, end_effector_link="b_bot_screw_tool_m4_tip_link")
+
+    self.unequip_tool("b_bot", "padless_tool_m4")
+    return True
+####
 
   def pick_panel_with_handover(self, panel_name="panel_bearing", simultaneous=True, rotate_on_failure=True, rotation_retry_counter=0, pose_with_uncertainty=None):
     grasp_width = 0.05
@@ -4151,7 +4270,8 @@ class O2ACCommon(O2ACBase):
     place_pose       = conversions.to_pose_stamped(object_frame, [-0.016, offsets[0], offsets[1], 0, 0, 0])
     
     self.planning_scene_interface.allow_collisions("base_fixture_top", panel_name)
-    self.active_robots[robot_name].go_to_pose_goal(above_plate_pose, speed=1.0, move_lin=False)
+    if not self.active_robots[robot_name].go_to_pose_goal(above_plate_pose, speed=1.0, move_lin=True, timeout=15):
+      return False
     self.active_robots[robot_name].go_to_pose_goal(place_pose, speed=0.2)
     self.planning_scene_interface.disallow_collisions("base_fixture_top", panel_name)
     self.active_robots[robot_name].gripper.open(opening_width=0.03, velocity=0.03)
@@ -4558,21 +4678,6 @@ class O2ACCommon(O2ACBase):
     
     self.publish_part_in_assembled_position(panel_name, disable_collisions=False)
     return True
-
-  def check_output_pulley_angle(self):
-    # Look at pulley with b_bot
-    approach_centering = conversions.to_pose_stamped("assembled_part_08_inserted", [-0.1, 0, -0.15,  np.deg2rad(180), np.deg2rad(-60), 0])
-    self.b_bot.go_to_pose_goal(approach_centering, speed=0.1, end_effector_link="b_bot_outside_camera_link", move_lin=False)
-    self.vision.activate_camera("b_bot_outside_camera")
-
-    self.vision.activate_pulley_screw_detection()
-
-    while not rospy.is_shutdown():
-      print("screws visible:", self.vision.check_if_pulley_screws_visible())
-      rospy.sleep(0.1)
-
-
-    # TODO: Turn pulley with a_bot, stop when screws visible
 
   def check_motor_pulley_angle(self):
     # Check bearing orientation

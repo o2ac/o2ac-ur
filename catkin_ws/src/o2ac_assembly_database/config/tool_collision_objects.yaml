@@ -77,8 +77,13 @@ set_screw_tool:
     [
       { # The upper box
         type: 'BOX',
-        dimensions: [0.059, 0.032, 0.052],
+        dimensions: [0.032, 0.058, 0.052],
         pose: [0.0, -0.0115, 0.0275, 0.0, 0.0, 0.0]
+      },
+      { # The cylinder representing the tip
+        type: 'CYLINDER',
+        dimensions: [.025, .0075],
+        pose: [0.0, 0.0, -0.01, 0.0, 0.0, 0.0]
       },
     ]
   subframe:

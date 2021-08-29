@@ -148,7 +148,11 @@ class URForceController(CompliantController):
         relative_to_ee: bool, whether to use the base_link of the robot as frame or the ee_link (+ ee_transform)
         """
         config_file = "force_control_" + self.robot_name if slow else "force_control_linear_push"
-        target_force = get_target_force(direction, force)
+        if "Z" in direction:
+            target_force = get_target_force(direction, force)
+        else:
+            offset = 1 if self.robot_name == "b_bot" else -1 # account for robot's mirror position
+            target_force = offset * get_target_force(direction, force)
 
         if selection_matrix is None:
             selection_matrix = np.array(target_force == 0.0) * 1.0  # define the selection matrix based on the target force

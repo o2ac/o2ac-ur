@@ -178,7 +178,6 @@ class O2ACAssembly(O2ACCommon):
     self.a_bot.gripper.open(opening_width=0.05, wait=False)
     self.a_bot.gripper.open()
     self.a_bot.gripper.forget_attached_item()
-    self.a_bot.move_lin_rel(relative_translation=[0.05, -0.1, 0.01], speed=1.0)
 
     def set_base_plate():
       self.lock_base_plate()
@@ -187,7 +186,7 @@ class O2ACAssembly(O2ACCommon):
       rospy.sleep(0.3)
       self.lock_base_plate()
     def a_bot_return():
-      self.a_bot.go_to_named_pose("home")
+      self.a_bot.move_lin_rel(relative_translation=[0.05, -0.15, 0.01], speed=1.0)
       self.allow_collisions_with_robot_hand("base", "a_bot", allow=False)
       self.publish_part_in_assembled_position("base")
     self.do_tasks_simultaneous(a_bot_return, set_base_plate)
@@ -296,7 +295,7 @@ class O2ACAssembly(O2ACCommon):
     self.despawn_object("bearing")
     return success
   
-  def subtask_c2(self, simultaneous_execution=True, skip_pick_end_cap=False, pick_bearing_spacer=False):
+  def subtask_c2(self, simultaneous_execution=True, skip_pick_end_cap=False, assemble_bearing_spacer=False):
     rospy.loginfo("======== SUBTASK C (output shaft) ========")
     self.ab_bot.go_to_named_pose("home")
     
@@ -383,9 +382,16 @@ class O2ACAssembly(O2ACCommon):
     self.a_bot_success = False
     self.b_bot_success = False
     def a_bot_task():
-      if pick_bearing_spacer:
-        if not self.pick_bearing_spacer(robot_name="a_bot"):
+      if assemble_bearing_spacer:
+        if not self.pick_bearing_spacer("a_bot"):
           return False
+        if not self.orient_bearing_spacer("a_bot"):
+          return False
+        if not self.align_bearing_spacer_pre_insertion("a_bot"):
+          return False
+        if not self.insert_bearing_spacer("assembled_part_07_inserted", "a_bot"):
+          return False
+        self.assembly_status.bearing_spacer_assembled = True
       self.a_bot_success = True
     def b_bot_task():
       self.allow_collisions_with_robot_hand("base_fixture_top", "b_bot")
@@ -428,7 +434,7 @@ class O2ACAssembly(O2ACCommon):
     if not self.pick_bearing_spacer():
       return False
 
-    if not self.playback_sequence("bearing_spacer_orient"):
+    if not self.orient_bearing_spacer():
       rospy.logerr("Fail to complete the playback sequence bearing_spacer_orient")
       return False
 
@@ -488,6 +494,51 @@ class O2ACAssembly(O2ACCommon):
       return False
 
     return self.a_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
+
+  def subtask_d_orquestrated(self):
+    # bearing spacer
+    if not self.assembly_status.bearing_spacer_assembled:
+      if not self.pick_bearing_spacer("a_bot"):
+        return False
+      if not self.orient_bearing_spacer("a_bot"):
+        return False
+      if not self.align_bearing_spacer_pre_insertion("a_bot"):
+        return False
+      if not self.insert_bearing_spacer("assembled_part_07_inserted", "a_bot"):
+        return False
+    
+    # output pulley
+    if not self.pick_output_pulley("a_bot"):
+      return False
+    if not self.orient_output_pulley("a_bot"):
+      return False
+    if not self.align_output_pulley_pre_insertion("a_bot"):
+      return False
+    if not self.insert_output_pulley("assembled_part_07_inserted", "a_bot"):
+        return False
+
+    self.a_bot_success = False
+    self.b_bot_success = False
+    def a_task():
+      # TODO: Orient output pulley screws with a_bot
+      # if not self.check_output_pulley_angle():
+      #     return False
+      # self.a_bot_success = True
+      self.a_bot_success = False
+      
+    def b_task():
+      self.b_bot.move_lin_rel([-0.05,0,0], speed=1.0)
+      if not self.equip_tool("b_bot", "padless_tool_m4"):
+        return False
+      self.b_bot_success = True
+
+    self.do_tasks_simultaneous(a_task, b_task, timeout=180)
+
+    if not self.a_bot_success or not self.b_bot_success:
+      rospy.logerr("Fail to equip tool/align orient pulley angle a:%s b:%s" % (self.a_bot_success, self.b_bot_success))
+      return False
+
+    return self.fasten_output_pulley()
 
   def subtask_e(self, simultaneous_execution=True):
     # Fasten large pulley to output shaft
@@ -937,11 +988,6 @@ class O2ACAssembly(O2ACCommon):
         rospy.loginfo("Picking and orienting motor")
         self.assembly_status.motor_placed_outside_of_tray = self.pick_motor()
         self.b_bot.go_to_named_pose("centering_area", speed=1.0)
-      else:
-        self.activate_led("b_bot")
-        rospy.loginfo("Looking for base plate with b_bot")
-        self.base_pose = self.get_large_item_position_from_top("base", "b_bot")
-        self.b_bot.go_to_named_pose("home")
     
     if simultaneous:
       self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=300)
@@ -956,17 +1002,25 @@ class O2ACAssembly(O2ACCommon):
     # Pick base plate with a_bot, prepare fastening with b_bot
     self.skip_perception = isinstance(self.base_pose, geometry_msgs.msg.PoseStamped)
     self.a_bot_success = False
+    self.place_bearing_panel = False
     self.b_bot_success = False
     def a_bot_task():
       self.publish_status_text("Target: base plate")
       self.a_bot_success = self.subtask_zero(skip_initial_perception=self.skip_perception)
       if not self.a_bot_success:
         self.a_bot_success = self.subtask_zero(skip_initial_perception=False)
+      # Fasten plates
+      if simultaneous:
+        if not self.place_panel("a_bot", "panel_bearing", pick_again=True, fake_position=True):
+          rospy.logerr("Fail to place bearing panel in simultaneous!!")
+          return False
+        self.hold_panel_for_fastening("panel_bearing")
+        self.place_bearing_panel = True
     def b_bot_task():
       if pick_and_orient_insert_motor:
         self.orient_motor()
       start_time = rospy.get_time()
-      while not self.b_bot_success and rospy.get_time()-start_time < 15:
+      while not self.b_bot_success and rospy.get_time()-start_time < 20:
         self.b_bot_success = self.do_change_tool_action("b_bot", equip=True, screw_size = 4)
       if self.b_bot_success:
         self.b_bot_success = False
@@ -979,17 +1033,17 @@ class O2ACAssembly(O2ACCommon):
       a_bot_task()
       b_bot_task()
     if not self.b_bot_success or not self.a_bot_success:
-      rospy.logerr("Fail to do panels_assembly3: simultaneous=%s" % simultaneous)
+      rospy.logerr("Fail to do panels_assembly3: simultaneous=%s a:%s b:%s" % (simultaneous,self.b_bot_success, self.a_bot_success))
       if not self.do_change_tool_action("b_bot", equip=False, screw_size = 4):
         raise  # Something is very wrong if this fails
       self.ab_bot.go_to_named_pose("home")
       self.return_l_plates()
       return False
 
-
     # Fasten plates
-    if not self.place_panel("a_bot", "panel_bearing", pick_again=True, fake_position=True):
-      return False
+    if not self.place_bearing_panel:
+      if not self.place_panel("a_bot", "panel_bearing", pick_again=True, fake_position=True):
+        return False
     
     if simultaneous:
       self.hold_panel_for_fastening("panel_bearing")
@@ -1252,11 +1306,11 @@ class O2ACAssembly(O2ACCommon):
         rospy.logerr("Fail to do simultaneous unequip and pick end cap a_bot:%s b_bot:%s" % (self.a_bot_success, self.b_bot_success))
         return False
 
-      self.assembly_status.completed_subtask_c2 = self.subtask_c2(simultaneous_execution=True, skip_pick_end_cap=True)
+      self.assembly_status.completed_subtask_c2 = self.subtask_c2(simultaneous_execution=True, skip_pick_end_cap=True, assemble_bearing_spacer=True)
 
       # bearing spacer / output pulley
       if self.assembly_status.completed_subtask_c2:
-        self.assembly_status.completed_subtask_d = self.subtask_d(simultaneous_execution=True)
+        self.assembly_status.completed_subtask_d = self.subtask_d_orquestrated()
 
       # Idler pulley
       self.assembly_status.completed_subtask_e = self.subtask_e() 
@@ -1267,14 +1321,16 @@ class O2ACAssembly(O2ACCommon):
   def unload_assembled_unit(self, tray_name=None):
     self.unequip_tool("a_bot")
     self.unequip_tool("b_bot")
+    self.reset_scene_and_robots()
     self.ab_bot.go_to_named_pose("home")
     if not self.unload_drive_unit():
       rospy.logerr("Fail to unload drive unit. Abort!")
-      return
+      return False
     if tray_name:
       if not self.return_tray_to_agv_stack_calibration_long_side(tray_name):
         rospy.logerr("Fail to return tray. Abort!")
-        return
+        return False
+    return True
 
   def assemble_drive_unit(self, tray_name=None, simultaneous_execution=True, tray_on_table=False):
     if not tray_on_table:
