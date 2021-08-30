@@ -71,6 +71,7 @@ class O2ACCommon(O2ACBase):
     self.update_distribution_client = actionlib.SimpleActionClient("update_distribution", o2ac_msgs.msg.updateDistributionAction)
 
     self.nut_tool_used = False
+    self.end_cap_is_upside_down = False
 
   def define_tray_views(self):
     """
@@ -2771,7 +2772,10 @@ class O2ACCommon(O2ACBase):
       success = self.b_bot.go_to_pose_goal(post_pick_pose)
       above_pose     = conversions.to_pose_stamped(target_link, [0.0, 0.002, -0.10, -tau/4, -radians(50), -tau/4])
       behind_pose    = conversions.to_pose_stamped(target_link, [0.09, 0.002, -0.05, -tau/4, -radians(50), -tau/4])
-      pre_insertion_pose = conversions.to_pose_stamped(target_link, [pre_insert_offset, -0.001, 0.001, -tau/4, -radians(50), -tau/4])
+      if target_link == "assembled_part_07_inserted":
+        pre_insertion_pose = conversions.to_pose_stamped(target_link, [pre_insert_offset, -0.002, 0.009, -tau/4, -radians(50), -tau/4])
+      else:
+        pre_insertion_pose = conversions.to_pose_stamped(target_link, [pre_insert_offset, -0.001, 0.001, -tau/4, -radians(50), -tau/4])
       trajectory = [[post_pick_pose, 0.0, 0.8], [above_pose, 0.03, 0.5], [behind_pose, 0.01, 0.5], [pre_insertion_pose, 0.0, 0.2]]
     else:
       rotation = [-tau/4, -radians(50), -tau/4]
@@ -2812,7 +2816,8 @@ class O2ACCommon(O2ACBase):
     gp[:2] += [0.075/2.0, 0.0] # Magic Numbers for visuals 
     gp[2] = 0.005
     euler_gp = tf_conversions.transformations.euler_from_quaternion(gp[3:])
-    shaft_pose = conversions.to_pose_stamped("tray_center", gp[:3].tolist() + [0, 0, euler_gp[0] % tau])
+    print("gripper orientation from SSD", euler_gp[0])
+    shaft_pose = conversions.to_pose_stamped("tray_center", gp[:3].tolist() + [0, 0, tau/2 + euler_gp[0] % tau/2])
     self.markers_scene.spawn_item("shaft", shaft_pose)
     # self.spawn_object("shaft", shaft_pose)
     # self.planning_scene_interface.allow_collisions("shaft", "")
@@ -2914,7 +2919,7 @@ class O2ACCommon(O2ACBase):
 
     target_pose_target_frame.pose.position.x = target # Magic number
 
-    for _ in range(6):
+    for _ in range(5):
       result = self.b_bot.do_insertion(target_pose_target_frame, insertion_direction=direction, force=15.0, timeout=10.0, 
                                                     radius=0.005, relaxed_target_by=0.005, selection_matrix=selection_matrix, 
                                                     check_displacement_time=3)
@@ -2935,9 +2940,12 @@ class O2ACCommon(O2ACBase):
         self.b_bot.gripper.open(wait=True)
 
         if from_behind:
-          re_pick_pose = conversions.to_pose_stamped(target_link, [0.06, 0.000, -0.002] + rotation)
+          if target_link == "assembled_part_07_inserted":
+            re_pick_pose = conversions.to_pose_stamped(target_link, [0.07, -0.002, 0.009] + rotation)
+          else:
+            re_pick_pose = conversions.to_pose_stamped(target_link, [0.07, 0.000, -0.002] + rotation)
         else:
-          re_pick_pose = conversions.to_pose_stamped(target_link, [-0.06, 0.000, -0.002] + rotation)
+          re_pick_pose = conversions.to_pose_stamped(target_link, [-0.07, 0.000, -0.002] + rotation)
         if not self.b_bot.move_lin(re_pick_pose, speed=0.05):
           rospy.logerr("** Fail to return to pre insertion pose **")
           return False
@@ -2981,19 +2989,21 @@ class O2ACCommon(O2ACBase):
       print("fail to detect shaft hole", e)
       return False
 
+    seq = []
     if shaft_has_hole_at_top:
-      self.b_bot.go_to_pose_goal(inside_vgroove, speed=0.1, move_lin=True)
-      self.b_bot.gripper.close()
-      self.b_bot.go_to_pose_goal(approach_vgroove, speed=0.3, move_lin=True)
+      seq.append(helpers.to_sequence_item(inside_vgroove, speed=0.1))
+      seq.append(helpers.to_sequence_gripper('close', gripper_force=40, gripper_velocity=1.0))
+      seq.append(helpers.to_sequence_item(approach_vgroove, speed=0.3))
     else:  # Turn gripper around
-      self.b_bot.move_lin_rel([0,0,0.02], speed=0.4)
       above_vgroove  = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [-0.010, 0, 0, 0, 0, 0])
       inside_vgroove = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.011, 0, 0, 0, 0, 0])
-      self.b_bot.go_to_pose_goal(above_vgroove, speed=0.3, move_lin=True)
-      self.b_bot.go_to_pose_goal(inside_vgroove, speed=0.2, move_lin=True)
-      self.b_bot.gripper.close()
-      self.b_bot.move_lin_rel([0,0,0.1], speed=0.3)
+      seq.append(helpers.to_sequence_item_relative([0,0,0.03,0,0,0], speed=0.2))
+      seq.append(helpers.to_sequence_item(above_vgroove, speed=0.3))
+      seq.append(helpers.to_sequence_item(inside_vgroove, speed=0.2))
+      seq.append(helpers.to_sequence_gripper('close', gripper_force=40, gripper_velocity=1.0))
+      seq.append(helpers.to_sequence_item_relative([0,0,0.01,0,0,0], speed=0.2))
     
+    self.execute_sequence("b_bot", seq, "orient shaft")
     self.b_bot.go_to_named_pose("home")
     self.b_bot.gripper.forget_attached_item() # clean attach/detach memory
     return True
@@ -3006,39 +3016,33 @@ class O2ACCommon(O2ACBase):
     on_centering =       conversions.to_pose_stamped("tray_left_stopper", [0.0, shaft_length,    -0.004, tau/2., tau/4., tau/4.])
     shaft_center =       conversions.to_pose_stamped("tray_left_stopper", [0.0, shaft_length/2., -0.008, tau/2., tau/4., tau/4.])
 
-    # if not self.b_bot.move_lin_trajectory([(approach_centering, 0.005, 0.6), (on_centering, 0.01, 0.4)]):
-    #   return False
+    seq = []
+    seq.append(helpers.to_sequence_item(approach_centering, speed=1.0, linear=False))
+    seq.append(helpers.to_sequence_item(on_centering, speed=0.5))
+    seq.append(helpers.to_sequence_gripper('open', gripper_opening_width=0.03, gripper_velocity=1.0))
+    seq.append(helpers.to_sequence_gripper('open', gripper_opening_width=0.0105, gripper_velocity=0.03))
+    # seq.append(helpers.to_sequence_gripper('close', gripper_force=0, gripper_velocity=0.02))
+    seq.append(helpers.to_sequence_item_relative([0, -0.055, 0, 0, 0, 0], speed=0.1))
+    seq.append(helpers.to_sequence_gripper('open', gripper_opening_width=0.03, gripper_velocity=1.0))
+    seq.append(helpers.to_sequence_item(shaft_center, speed=0.4, linear=True))
+    def post_cb():
+      shaft_pose = self.listener.transformPose("tray_center", self.b_bot.get_current_pose_stamped())
+      shaft_pose.pose.position.y -= 0.035
+      shaft_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, tau/4))
+      self.markers_scene.spawn_item("shaft", shaft_pose)
+      self.b_bot.gripper.attach_object("shaft")
+    seq.append(helpers.to_sequence_gripper('close', gripper_force=40, gripper_velocity=1.0, post_callback=post_cb))
 
-    # TODO(cambel): make this a trajectory
-    if not self.b_bot.go_to_pose_goal(approach_centering):
-      rospy.logerr("Fail to go to approaching_centering")
-      self.b_bot.go_to_named_pose("home")  # Fallback because sometimes the planning fails for no reason??
-      if not self.b_bot.go_to_pose_goal(approach_centering):
-        rospy.logerr("Fail to go to approaching_centering AGAIN")
-        return False
-    if not self.b_bot.go_to_pose_goal(on_centering):
-      rospy.logerr("Fail to go to on_centering")
+    if not self.execute_sequence("b_bot", seq, "centering_shaft"):
+      rospy.logerr("Fail to center shaft or lost somewhere. Going back up and aborting.")
+      self.b_bot.go_to_pose_goal(approach_centering)
       return False
-
-    self.b_bot.gripper.open(opening_width=0.03)
-    self.b_bot.gripper.close(velocity=0.02, force=0)  # Minimum force and speed
-    self.b_bot.move_lin_rel(relative_translation=[0, -.055, 0], speed=.1)
-    self.b_bot.gripper.open(opening_width=0.03)
-    if not self.b_bot.go_to_pose_goal(shaft_center, speed=0.1):
-      rospy.logerr("Fail to go to relative shaft center")
-      return False
-
-    shaft_pose = self.listener.transformPose("tray_center", self.b_bot.get_current_pose_stamped())
-    shaft_pose.pose.position.y -= 0.035
-    shaft_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, tau/4))
-    self.markers_scene.spawn_item("shaft", shaft_pose)
-    self.b_bot.gripper.close()
-    self.b_bot.gripper.attach_object("shaft")
 
     if not self.simple_gripper_check("b_bot", 0.004):
       rospy.logerr("No shaft detected in gripper. Going back up and aborting.")
       self.b_bot.go_to_pose_goal(approach_centering)
       return False
+
     self.b_bot.move_lin_rel(relative_translation=[0, 0.01, 0.1], speed=.3)
     return True
 
@@ -3061,34 +3065,27 @@ class O2ACCommon(O2ACBase):
     self.a_bot.go_to_pose_goal(above_pose, speed=0.5)
     self.a_bot.go_to_pose_goal(place_pose, speed=0.3, move_lin=True)
     self.center_with_gripper("a_bot", opening_width=0.05, gripper_force=0, gripper_velocity=0.01)
-    self.a_bot.gripper.close(velocity=0.03)
+    self.a_bot.gripper.close(velocity=0.03, force=60)
     self.a_bot.go_to_pose_goal(above_pose, speed=0.5)
 
     if not ready_to_put_on_shaft:  # Do reorientation procedure
-      approach_centering = conversions.to_pose_stamped("simple_holder_tip_link", [0.0, 0, 0.1,        0, tau/4., tau/4.])
-      close_to_tip       = conversions.to_pose_stamped("simple_holder_tip_link", [0.0, -0.008,  0.01, 0, tau/4., tau/4.])
-      push_down          = conversions.to_pose_stamped("simple_holder_tip_link", [0.0, -0.008, -0.02, 0, tau/4., tau/4.])
-      prepare_second_push= conversions.to_pose_stamped("simple_holder_tip_link", [0.0, -0.03,   0.05, 0, tau/4., tau/4.])
+      approach_centering = conversions.to_pose_stamped("simple_holder_tip_link", [0.0, 0, 0.1,      tau/4., tau/4., tau/4.])
+      close_to_tip       = conversions.to_pose_stamped("simple_holder_tip_link", [-0.008, 0,  0.01, tau/4., tau/4., tau/4.])
+      push_down          = conversions.to_pose_stamped("simple_holder_tip_link", [-0.008, 0, -0.02, tau/4., tau/4., tau/4.])
+      prepare_second_push= conversions.to_pose_stamped("simple_holder_tip_link", [-0.030,  0,  0.05, tau/4., tau/4., tau/4.])
       close_to_edge      = conversions.to_pose_stamped("simple_holder",          [0.08, -0.10, 0.001, tau/4., tau/4., tau/4.])
       push_edge          = conversions.to_pose_stamped("simple_holder",          [0.02, -0.10, 0.001, tau/4., tau/4., tau/4.])
       
-      if not self.a_bot.go_to_pose_goal(approach_centering, move_lin=False):
-        rospy.logerr("Fail to go to approach_centering")
-        return False
-      if not self.a_bot.go_to_pose_goal(close_to_tip, speed=0.5):
-        rospy.logerr("Fail to go to close_to_tip")
-        return False
-      if not self.a_bot.go_to_pose_goal(push_down, speed=0.01):
-        rospy.logerr("Fail to go to push_down")
-        return False
-      if not self.a_bot.go_to_pose_goal(prepare_second_push, speed=0.5):
-        rospy.logerr("Fail to go to prepare_second_push")
-        return False
-      if not self.a_bot.go_to_pose_goal(close_to_edge, speed=0.5):
-        rospy.logerr("Fail to go to close_to_edge")
-        return False
-      if not self.a_bot.go_to_pose_goal(push_edge, speed=0.01):
-        rospy.logerr("Fail to go to push_edge")
+      seq = []
+      seq.append(helpers.to_sequence_item(approach_centering, linear=False))
+      seq.append(helpers.to_sequence_item(close_to_tip, speed=0.5))
+      seq.append(helpers.to_sequence_item(push_down, speed=0.05))
+      seq.append(helpers.to_sequence_item(prepare_second_push, speed=0.5))
+      seq.append(helpers.to_sequence_item(close_to_edge, speed=0.5))
+      seq.append(helpers.to_sequence_item(push_edge, speed=0.05))
+
+      if not self.execute_sequence(robot_name, seq, "orient end cap"):
+        rospy.logerr("Fail to go to orient end cap")
         return False
 
       self.a_bot.gripper.open(velocity=0.03, opening_width=0.03)
@@ -3096,7 +3093,7 @@ class O2ACCommon(O2ACBase):
         rospy.logerr("Fail to go to center with gripper")
         return False
 
-      self.a_bot.gripper.close(velocity=0.03)
+      self.a_bot.gripper.close(velocity=0.03, force=60)
       
       if not self.a_bot.move_lin_rel(relative_translation=[0, 0, 0.15]):
         rospy.logerr("Fail to go to centering_pose")
@@ -3141,7 +3138,7 @@ class O2ACCommon(O2ACBase):
       if led_on:
         rospy.loginfo("Retry with LED off")
         return self.is_the_placed_end_cap_upside_down(dy, dz, led_on=False)
-      return False
+      return self.end_cap_is_upside_down # return value found at picking time
 
     print(">>> end_cap views result:", np.array(results))
     is_upside_down = np.mean(np.array(results) * 1) >= 0.5
@@ -3158,6 +3155,7 @@ class O2ACCommon(O2ACBase):
     if not isinstance(goal, geometry_msgs.msg.PoseStamped):
       rospy.logerr("Could not find shaft in tray. Skipping procedure.")
       return False
+    self.end_cap_is_upside_down = copy.copy(self.object_in_tray_is_upside_down.get(self.assembly_database.name_to_id("end_cap"), False))
 
     goal.pose.position.z = -0.001 # Magic Numbers for grasping
     # goal.pose.position.x -= 0.01
@@ -3236,8 +3234,8 @@ class O2ACCommon(O2ACBase):
     self.confirm_to_proceed("try to screw")
     self.vision.activate_camera("b_bot_inside_camera")
     hole_screw_pose = conversions.to_pose_stamped("move_group/shaft/screw_hole", [0.0, 0.003, -0.001, 0, 0, 0])
-    hole_screw_pose_tray_center = self.get_transformed_collision_object_pose(object_name="shaft/screw_hole", object_pose=hole_screw_pose)
-    self.screw("a_bot", hole_screw_pose_tray_center, screw_height=0.02, screw_size=4, skip_final_loosen_and_retighten=False, attempts=0)
+    hole_screw_pose_transformed = self.get_transformed_collision_object_pose("shaft/screw_hole", hole_screw_pose, "right_centering_link")
+    self.screw("a_bot", hole_screw_pose_transformed, screw_height=0.02, screw_size=4, skip_final_loosen_and_retighten=False, attempts=0)
     
     self.confirm_to_proceed("unequip tool")
     self.tools.set_suction("screw_tool_m4", suction_on=False, wait=False)
@@ -4999,16 +4997,16 @@ class O2ACCommon(O2ACBase):
     self.b_bot.gripper.open(wait=False)
     seq = []
     # push side
-    seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_side_start_high, b_bot_push_tray_side_start_high, planner="OMPL", speed=0.3))
-    seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_side_start, b_bot_push_tray_side_start, planner="OMPL", speed=0.5))
+    seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_side_start_high, b_bot_push_tray_side_start_high, planner="OMPL", speed=1.0, acc=0.8))
+    seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_side_start, b_bot_push_tray_side_start, planner="OMPL", speed=1.0, acc=0.8))
     seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_side_goal, b_bot_push_tray_side_goal, planner="OMPL", speed=0.1))
-    seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_side_retreat, b_bot_push_tray_side_retreat, planner="OMPL", speed=0.5))
+    seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_side_retreat, b_bot_push_tray_side_retreat, planner="OMPL", speed=1.0, acc=0.8))
 
     # push front
-    seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_front_start_high, b_bot_push_tray_front_start_high, planner="OMPL", speed=0.8))
-    seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_front_start, b_bot_push_tray_front_start, planner="OMPL", speed=0.6))
+    seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_front_start_high, b_bot_push_tray_front_start_high, planner="OMPL", speed=1.0, acc=0.8))
+    seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_front_start, b_bot_push_tray_front_start, planner="OMPL", speed=1.0, acc=0.8))
     seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_front_goal, b_bot_push_tray_front_goal, planner="OMPL", speed=0.1))
-    seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_front_retreat, b_bot_push_tray_front_retreat, planner="OMPL", speed=0.5))
+    seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_front_retreat, b_bot_push_tray_front_retreat, planner="OMPL", speed=1.0, acc=0.8))
     self.execute_sequence("ab_bot", seq, "tray_orient_part1", plan_while_moving=True, save_on_success=True, use_saved_plans=use_saved_trajectory)
     # self.ab_bot.go_to_goal_poses(a_bot_push_tray_side_start_high, b_bot_push_tray_side_start_high, planner="OMPL", speed=0.3)
     # self.ab_bot.go_to_goal_poses(a_bot_push_tray_side_start, b_bot_push_tray_side_start, planner="OMPL", speed=0.5)
@@ -5033,7 +5031,7 @@ class O2ACCommon(O2ACBase):
     self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=False)
     self.allow_collisions_with_robot_hand("tray_center", "b_bot", allow=False)
 
-  def spawn_tray_stack(self, stack_center=[0.05, 0.14], tray_heights=[0.075,0.02], orientation_parallel=False):
+  def spawn_tray_stack(self, stack_center=[0.06, 0.14], tray_heights=[0.075,0.02], orientation_parallel=False):
     orientation = [0, 0, 0] if orientation_parallel else [0, 0, tau/4] # tray's long side parallel to the table
     self.trays = {"tray%s"%(i+1): (stack_center+[tray_height], orientation_parallel) for i, tray_height in enumerate(tray_heights)}
     self.trays_return = {"tray%s"%(i+1): (stack_center+[tray_height], orientation_parallel) for i, tray_height in enumerate(tray_heights[::-1])}
@@ -5140,7 +5138,7 @@ class O2ACCommon(O2ACBase):
     
     a_bot_point = [-offset, -long_side] if tray_parallel else [offset, -long_side]
 
-    a_bot_at_tray_table    = conversions.to_pose_stamped("tray_center", [a_bot_point[0], a_bot_point[1], 0.02] + place_orientation)
+    a_bot_at_tray_table    = conversions.to_pose_stamped("tray_center", [a_bot_point[0]-0.01, a_bot_point[1], 0.015] + place_orientation)
     a_bot_above_table      = conversions.to_pose_stamped("tray_center", [a_bot_point[0], a_bot_point[1], 0.15] + place_orientation)
 
     # Go to tray
@@ -5156,10 +5154,10 @@ class O2ACCommon(O2ACBase):
     # move to tray center
     if tray_parallel:
       seq = []
-      seq.append(helpers.to_sequence_item_master_slave("a_bot", "b_bot", a_bot_above_tray_agv, slave_relation, speed=0.4))
-      seq.append(helpers.to_sequence_item_master_slave("a_bot", "b_bot", a_bot_above_table, slave_relation, speed=0.4))
-      seq.append(helpers.to_sequence_item_master_slave("a_bot", "b_bot", a_bot_at_tray_table, slave_relation, speed=0.4))
-      self.execute_sequence("ab_bot", seq, "pick_tray_long_side", use_saved_plans=use_saved_trajectory)
+      seq.append(helpers.to_sequence_item_master_slave("a_bot", "b_bot", a_bot_above_tray_agv, slave_relation, speed=0.6))
+      seq.append(helpers.to_sequence_item_master_slave("a_bot", "b_bot", a_bot_above_table, slave_relation, speed=0.6))
+      seq.append(helpers.to_sequence_item_master_slave("a_bot", "b_bot", a_bot_at_tray_table, slave_relation, speed=0.6))
+      self.execute_sequence("ab_bot", seq, "pick_tray_long_side", save_on_success=True, use_saved_plans=use_saved_trajectory)
     else:
       self.ab_bot.master_slave_control("a_bot", "b_bot", a_bot_above_tray_agv, slave_relation)
       slave_relation = self.ab_bot.get_relative_pose_of_slave("a_bot", "b_bot") # necessary in case of rotations

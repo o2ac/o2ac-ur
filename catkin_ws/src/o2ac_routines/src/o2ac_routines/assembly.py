@@ -352,8 +352,12 @@ class O2ACAssembly(O2ACCommon):
       rospy.logerr("Fail to go to pre_insertion_shaft")
       return False
 
-    pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [-0.002, 0.002, 0.240]+np.deg2rad([-180, 90, -90]).tolist())
-    if not self.a_bot.go_to_pose_goal(pre_insertion_end_cap, speed=0.3, move_lin=False):
+    above_pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [-0.003, 0.002, 0.280]+np.deg2rad([-180, 90, -90]).tolist())
+    if not self.a_bot.go_to_pose_goal(above_pre_insertion_end_cap, speed=0.6, move_lin=False):
+      rospy.logerr("Fail to go to pre_insertion_end_cap")
+      return False
+    pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [-0.003, 0.002, 0.240]+np.deg2rad([-180, 90, -90]).tolist())
+    if not self.a_bot.go_to_pose_goal(pre_insertion_end_cap, speed=0.3, move_lin=True):
       rospy.logerr("Fail to go to pre_insertion_end_cap")
       return False
 

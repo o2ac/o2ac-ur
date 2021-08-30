@@ -1629,7 +1629,7 @@ class O2ACBase(object):
     pose              = params.get("pose", None)
     pose_type         = params["pose_type"]
     speed             = params.get("speed", 0.5)
-    acceleration      = params.get("acc", 0.25)
+    acceleration      = params.get("acc", speed/2.)
     gripper_params    = params.get("gripper", None)
     end_effector_link = params.get("end_effector_link", None)
 
