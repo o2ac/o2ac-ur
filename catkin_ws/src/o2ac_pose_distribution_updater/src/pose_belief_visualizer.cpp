@@ -1,4 +1,5 @@
 #include "o2ac_pose_distribution_updater/pose_belief_visualizer.hpp"
+#include "o2ac_pose_distribution_updater/estimator.hpp"
 
 void convert_to_triangle_list(
     const moveit_msgs::CollisionObject &object,
@@ -74,16 +75,15 @@ void PoseBeliefVisualizer::inner_publish_marker_for_pose_belief(
   poses_to_publish.push_back(
       std::make_pair(belief.distribution.pose.pose, mean_color));
 
-  CovarianceMatrix Cholesky_L(
-      covariance.llt().matrixL()); // old_covariance == Cholesky_L *
-  // Cholesky_L.transpose()
+  CovarianceMatrix X =
+      safe_XXT(covariance); // old_covariance == X * X.transpose()
 
   if (belief.distribution_type == belief.RPY_COVARIANCE) {
     // The covariance matrix is interpreted as covariance in 6 axes of particles
 
     Particle mean = pose_to_particle(belief.distribution.pose.pose);
     for (int i = 0; i < number_of_particles; i++) {
-      Particle particle = mean + Cholesky_L * get_UND_particle();
+      Particle particle = mean + X * get_UND_particle();
       geometry_msgs::Pose converted_pose;
       particle_to_pose(particle, converted_pose);
       poses_to_publish.push_back(
@@ -97,8 +97,7 @@ void PoseBeliefVisualizer::inner_publish_marker_for_pose_belief(
     Eigen::Isometry3d mean;
     tf::poseMsgToEigen(belief.distribution.pose.pose, mean);
     for (int i = 0; i < number_of_particles; i++) {
-      Eigen::Matrix<double, 6, 1> deviation_vector =
-          Cholesky_L * get_UND_particle();
+      Eigen::Matrix<double, 6, 1> deviation_vector = X * get_UND_particle();
       Eigen::Isometry3d deviation =
           Eigen::Isometry3d(Eigen::Matrix<double, 4, 4>(
               hat_operator<double>(deviation_vector).exp())) *
