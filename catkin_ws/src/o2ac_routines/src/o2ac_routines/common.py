@@ -720,7 +720,7 @@ class O2ACCommon(O2ACBase):
         pose_with_uncertainty.header=transformed_pose.header
         pose_with_uncertainty.pose=transformed_pose.pose
 
-      self.visualize_object_with_distribution(self, collision_object, pose_with_uncertainty, frame_locked=True)
+      self.visualize_object_with_distribution(collision_object, pose_with_uncertainty, frame_locked=True)
 
     success = True
     if minimum_grasp_width > robot.gripper.opening_width and self.use_real_robot:
@@ -4319,7 +4319,7 @@ class O2ACCommon(O2ACBase):
     pose_with_uncertainty.header=transformed_pose.header
     pose_with_uncertainty.pose=transformed_pose.pose
 
-    self.visualize_object_with_distribution(self, collision_object, pose_with_uncertainty, frame_locked=True)
+    self.visualize_object_with_distribution(collision_object, pose_with_uncertainty, frame_locked=True)
     
   def push_object_with_uncertainty(self, object_name, gripper_pose, pose_with_uncertainty, y_shift=0.0):
     collision_object=self.assembly_database.get_collision_object(object_name)
@@ -4338,7 +4338,7 @@ class O2ACCommon(O2ACBase):
     self.transform_uncertainty(gripper_transform, update_result.distribution.pose, pose_with_uncertainty.pose)
     pose_with_uncertainty.pose.pose.position.y+=y_shift
 
-    self.visualize_object_with_distribution(self, collision_object, pose_with_uncertainty, frame_locked=True)
+    self.visualize_object_with_distribution(collision_object, pose_with_uncertainty, frame_locked=True)
   
   def center_panel_with_uncertainty(self, panel_name, robot_name="a_bot", speed=1.0, store=True, pose_with_uncertainty=None):
     """ Places the plate next to the tray in a well-defined position, by pushing it into a stopper.

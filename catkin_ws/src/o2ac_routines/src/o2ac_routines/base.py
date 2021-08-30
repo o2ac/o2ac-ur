@@ -270,7 +270,7 @@ class O2ACBase(object):
         
     self.planning_scene_interface.add_object(collision_object)
     if pose_with_uncertainty != None:
-      self.visualize_object_with_distribution(self, collision_object, pose_with_uncertainty, frame_locked=True)
+      self.visualize_object_with_distribution(collision_object, pose_with_uncertainty, frame_locked=True)
   
   def visualize_object_with_distribution(self, collision_object, pose_with_uncertainty, frame_locked=False):
     """ Publishes a MarkerArray visualizing the object pose and uncertainty.
