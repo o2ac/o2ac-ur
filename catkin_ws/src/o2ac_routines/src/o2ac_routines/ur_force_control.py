@@ -147,7 +147,7 @@ class URForceController(CompliantController):
         direction: string, direction for linear_push +- X,Y,Z relative to base or end-effector, see next argument
         relative_to_ee: bool, whether to use the base_link of the robot as frame or the ee_link (+ ee_transform)
         """
-        config_file = "force_control_" + self.robot_name if slow else "force_control_linear_push"
+        config_file = "force_control_" + self.robot_name if slow else "force_control_linear_push_" + self.robot_name
         if "Z" in direction:
             target_force = get_target_force(direction, force)
         else:

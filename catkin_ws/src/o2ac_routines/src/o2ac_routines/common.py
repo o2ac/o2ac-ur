@@ -116,6 +116,49 @@ class O2ACCommon(O2ACBase):
     self.close_tray_views_rot_left_more = [rotatePoseByRPY(radians(50),0,0, pose) for pose in self.close_tray_views]
     self.close_tray_views_rot_left_90 = [rotatePoseByRPY(radians(90),0,0, pose) for pose in self.close_tray_views]
 
+  def define_local_tray_views(self, high_height=.38, low_height=.28):
+    """
+    Define the poses used to position the camera to look into the tray.
+
+    Example usage: self.b_bot.go_to_pose_goal(self.tray_view_high, 
+                                        end_effector_link="b_bot_outside_camera_color_frame", 
+                                        speed=.1, acceleration=.04)
+    """
+    x_offset = .055  # At low_height
+    y_offset = .095  # At low_height
+
+    ps = geometry_msgs.msg.PoseStamped()
+    ps.header.frame_id = "tray_center"
+    ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
+    ps.pose.position.z = high_height
+
+    # Centered views (high up and close)
+    tray_view_high = copy.deepcopy(ps)
+    # self.tray_view_high.pose.position.x += 0.015  # Magic number (the camera frames used for planning are uncalibrated)
+    ps.pose.position.z = low_height
+    tray_view_low = copy.deepcopy(ps)
+
+    # Close views in corners
+    ps.pose.position.x = x_offset
+    ps.pose.position.y = y_offset
+    tray_view_close_front_b = copy.deepcopy(ps)
+    ps.pose.position.x = -x_offset
+    ps.pose.position.y = y_offset
+    tray_view_close_back_b = copy.deepcopy(ps)
+    ps.pose.position.x = x_offset
+    ps.pose.position.y = -y_offset
+    tray_view_close_front_a = copy.deepcopy(ps)
+    ps.pose.position.x = -x_offset
+    ps.pose.position.y = -y_offset
+    tray_view_close_back_a = copy.deepcopy(ps)
+
+    close_tray_views = [tray_view_low, tray_view_close_front_b, tray_view_close_back_b, tray_view_close_front_a, tray_view_close_back_a]
+    # close_tray_views_rot_left = [rotatePoseByRPY(radians(20),0,0, pose) for pose in close_tray_views]
+    # close_tray_views_rot_right = [rotatePoseByRPY(radians(-20),0,0, pose) for pose in close_tray_views]
+    # close_tray_views_rot_left_more = [rotatePoseByRPY(radians(50),0,0, pose) for pose in close_tray_views]
+    # close_tray_views_rot_left_90 = [rotatePoseByRPY(radians(90),0,0, pose) for pose in close_tray_views]
+    return tray_view_high, close_tray_views
+
   def publish_part_in_assembled_position(self, object_name, test_header_frame="", disable_collisions=False, marker_only=False):
     """ Move or publish a part as a collision object in its final assembled position.
         This is used to "finish" assembling a part.
@@ -1644,8 +1687,8 @@ class O2ACCommon(O2ACBase):
     return True
 
   @check_for_real_robot
-  def simple_gripper_check(self, robot_name, min_opening_width=0.001):
-    self.active_robots[robot_name].gripper.close() # confirm that there is something grasped
+  def simple_gripper_check(self, robot_name, min_opening_width=0.001, velocity=1.0):
+    self.active_robots[robot_name].gripper.close(velocity=velocity) # confirm that there is something grasped
     if robot_name == "a_bot":
       min_opening_width += 0.005 # a_bot gripper is not very precise...
     success = self.active_robots[robot_name].gripper.opening_width > min_opening_width
@@ -2109,13 +2152,12 @@ class O2ACCommon(O2ACBase):
       pre_insertion_pose = conversions.to_pose_stamped(target_link, [-0.006, 0, -0.003] + np.deg2rad([180, 35, 0]).tolist()) # Manually defined target pose in object frame
     else:
       approach_pose      = conversions.to_pose_stamped(target_link, [-0.050, -0.002, 0.007] + np.deg2rad([180, -35, 0]).tolist()) 
-      pre_insertion_pose = conversions.to_pose_stamped(target_link, [-0.006, -0.002, 0.007] + np.deg2rad([180, -35, 0]).tolist()) # Manually defined target pose in object frame
+      pre_insertion_pose = conversions.to_pose_stamped(target_link, [-0.007, -0.000, 0.007] + np.deg2rad([180, -35, 0]).tolist()) # Manually defined target pose in object frame
     
     if not self.active_robots[robot_name].go_to_pose_goal(approach_pose, speed=0.5):
       return False
     if not self.active_robots[robot_name].go_to_pose_goal(pre_insertion_pose, speed=0.1):
       return False
-    self.confirm_to_proceed("finetune")
     return True
 
   def pick_motor_pulley(self, attempt=2, robot_name="b_bot"):
@@ -2150,7 +2192,7 @@ class O2ACCommon(O2ACBase):
       target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.005, -0.000, -0.009, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
       relaxed_by = 0.005
     else:
-      target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.004, -0.002, 0.009, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
+      target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.003, -0.002, 0.009, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
       relaxed_by = 0.001
 
     selection_matrix = [0., 0.3, 0.3, 1.0, 1.0, 1.0]
@@ -2186,8 +2228,8 @@ class O2ACCommon(O2ACBase):
     """
     self.allow_collisions_with_robot_hand("panel_motor", "a_bot")
     approach_pose   = conversions.to_pose_stamped(target_link, [-0.05, -0.050,-0.004, tau/2, 0, 0])
-    up_pose         = conversions.to_pose_stamped(target_link, [0.033, -0.0585,-0.018, tau/2, 0, 0])
-    down_pose       = conversions.to_pose_stamped(target_link, [0.033, -0.0585, 0.012, tau/2, 0, 0])
+    up_pose         = conversions.to_pose_stamped(target_link, [0.033, -0.0578,-0.018, tau/2, 0, 0])
+    down_pose       = conversions.to_pose_stamped(target_link, [0.033, -0.0578, 0.012, tau/2, 0, 0])
     center_out_pose = conversions.to_pose_stamped(target_link, [0.033, -0.050,-0.004, tau/2, 0, 0])
 
     self.a_bot.gripper.open(wait=False)
@@ -2203,40 +2245,45 @@ class O2ACCommon(O2ACBase):
     self.allow_collisions_with_robot_hand("panel_motor", "a_bot", allow=False)
     return True
 
-  def fasten_motor_pulley(self, target_link, skip_unequip=False):
+  def fasten_motor_pulley(self, target_link, skip_unequip=False, simultaneous=False):
     self.equip_tool("b_bot", "set_screw_tool")
 
     b_bot_approach_pose    = conversions.to_pose_stamped(target_link, [0.001, -0.002, -0.072]+ np.deg2rad([174.3, -87.6, -135.8]).tolist())
-    b_bot_above_hole_pose  = conversions.to_pose_stamped(target_link, [0.002, -0.0035,-0.007]+ np.deg2rad([174.3, -87.6, -135.8]).tolist())
-    b_bot_centering_pose   = conversions.to_pose_stamped(target_link, [0.004,  0.001, -0.005]+ np.deg2rad([-170.5, -88, -151]).tolist())
-    b_bot_at_hole_pose     = conversions.to_pose_stamped(target_link, [0.002,  -0.002, 0.004]+ np.deg2rad([-170.5, -88, -151]).tolist())
+    b_bot_above_hole_pose  = conversions.to_pose_stamped(target_link, [-0.004, -0.003,-0.007]+ np.deg2rad([174.3, -87.6, -135.8]).tolist())
+    b_bot_centering_pose   = conversions.to_pose_stamped(target_link, [-0.005, -0.003,-0.007]+ np.deg2rad([-170.5, -88, -151]).tolist())
+    b_bot_at_hole_pose     = conversions.to_pose_stamped(target_link, [-0.004, -0.003, 0.005]+ np.deg2rad([-170.5, -88, -151]).tolist())
 
+    a_bot_approach_push_pose = conversions.to_pose_stamped(target_link, [-0.04, 0, 0, tau/2, 0, 0])
+    a_bot_push_pose = conversions.to_pose_stamped(target_link, [-0.0025, 0, 0, tau/2, 0, 0])
+    def a_task_push_pulley():
+      self.a_bot.go_to_pose_goal(a_bot_approach_push_pose, speed=0.8, move_lin=True)
+      self.a_bot.gripper.close(wait=False)
+      self.a_bot.go_to_pose_goal(a_bot_push_pose, speed=0.1, move_lin=True)
     # Find both holes
     for i in range(2):
       if i > 0:
         # Rotate once to get the current hole out of the way
-        self.confirm_to_proceed("rotate?")
+        # self.confirm_to_proceed("rotate?")
         self.rotate_motor_pulley(target_link, rotations=1) 
-      
+
       self.b_bot.go_to_pose_goal(b_bot_approach_pose, speed=1.0, move_lin=True, end_effector_link="b_bot_set_screw_tool_tip_link")
-      self.confirm_to_proceed("down1?")
+      # self.confirm_to_proceed("down1?")
       self.b_bot.go_to_pose_goal(b_bot_above_hole_pose, speed=0.05, move_lin=True, end_effector_link="b_bot_set_screw_tool_tip_link")
       
-      self.confirm_to_proceed("rotate?")
+      # self.confirm_to_proceed("rotate?")
       self.rotate_motor_pulley(target_link)
       
-      self.confirm_to_proceed("down2?")
+      # self.confirm_to_proceed("down2?")
+      def b_task_fastening_pose():
+        self.b_bot.go_to_pose_goal(b_bot_centering_pose, speed=0.03, move_lin=True, end_effector_link="b_bot_set_screw_tool_tip_link")
+        self.b_bot.go_to_pose_goal(b_bot_at_hole_pose, speed=0.015, move_lin=True, end_effector_link="b_bot_set_screw_tool_tip_link")
+      if simultaneous:
+        self.do_tasks_simultaneous(a_task_push_pulley, b_task_fastening_pose, timeout=60)
+      else:
+        b_task_fastening_pose()
+        a_task_push_pulley()
 
-      self.b_bot.go_to_pose_goal(b_bot_centering_pose, speed=0.03, move_lin=True, end_effector_link="b_bot_set_screw_tool_tip_link")
-      self.b_bot.go_to_pose_goal(b_bot_at_hole_pose, speed=0.015, move_lin=True, end_effector_link="b_bot_set_screw_tool_tip_link")
-      
-      approach_push_pose = conversions.to_pose_stamped(target_link, [-0.05, 0, 0, tau/2, 0, 0])
-      push_pose = conversions.to_pose_stamped(target_link, [-0.005, 0, 0, tau/2, 0, 0])
-      self.a_bot.go_to_pose_goal(approach_push_pose, speed=0.8, move_lin=True)
-      self.a_bot.gripper.close(wait=False)
-      self.a_bot.go_to_pose_goal(push_pose, speed=0.1, move_lin=True)
-      
-      self.tools.set_motor("set_screw_tool", "tighten", duration=10.0, skip_final_loosen_and_retighten=True, wait=True)
+      self.tools.set_motor("set_screw_tool", "tighten", duration=4.0, skip_final_loosen_and_retighten=True, wait=True)
 
       result = self.tools.fastening_tool_client.get_result()
       rospy.loginfo("Set screw motor result: %s" % result)
@@ -3958,7 +4005,7 @@ class O2ACCommon(O2ACBase):
     bearing_spacer_pose.pose.position.z = 0
 
     self.vision.activate_camera(robot_name + "_inside_camera")
-    if not self.simple_pick(robot_name, bearing_spacer_pose, grasp_height=0.001, gripper_force=50.0,
+    if not self.simple_pick(robot_name, bearing_spacer_pose, grasp_height=0.0, gripper_force=50.0,
                             grasp_width=.04, axis="z", approach_height=0.07,
                             item_id_to_attach="bearing_spacer"):
       rospy.logerr("Fail to simple_pick")
@@ -3973,17 +4020,17 @@ class O2ACCommon(O2ACBase):
     centering_frame = "left_centering_link" if robot_name == "a_bot" else "right_centering_link"
     place_pose = conversions.to_pose_stamped(centering_frame, [0, 0, 0, radians(-30), 0, 0])
     
-    if not self.simple_place(robot_name, place_pose, place_height=0.005, gripper_opening_width=0.03, lift_up_after_place=False, approach_height=0.15,
+    if not self.simple_place(robot_name, place_pose, place_height=0.0045, gripper_opening_width=0.03, lift_up_after_place=False, approach_height=0.15,
                       axis="x", sign=-1):
       return False
     
-    if not self.center_with_gripper(robot_name, opening_width=0.03, gripper_force=0, gripper_velocity=0.03, move_back_to_initial_position=False):
+    if not self.center_with_gripper(robot_name, opening_width=0.03, gripper_force=0, gripper_velocity=0.01, move_back_to_initial_position=False):
       return False
 
     seq = []
-    pre_grasp_pose = conversions.to_pose_stamped(centering_frame, [-0.01, 0, 0, radians(-30), 0, 0])
+    pre_grasp_pose = conversions.to_pose_stamped(centering_frame, [-0.008, 0, 0, radians(-30), 0, 0])
     seq.append(helpers.to_sequence_item(pre_grasp_pose, speed=1.0, linear=True))
-    seq.append(helpers.to_sequence_item_relative(pose=[0, 0, -0.0125, 0, 35, 0], relative_to_tcp=True, speed=1.0))
+    seq.append(helpers.to_sequence_item_relative(pose=[0, 0, -0.0075, 0, 35, 0], relative_to_tcp=True, speed=1.0))
     seq.append(helpers.to_sequence_gripper('close', gripper_force=60, gripper_velocity=0.05))
     seq.append(helpers.to_sequence_item_relative([0, 0, 0.05, 0, 0, 0], speed=0.4))
     if not self.execute_sequence(robot_name, seq, "orient bearing spacer"):
@@ -3997,7 +4044,7 @@ class O2ACCommon(O2ACBase):
     rotation = [0, radians(-35.0), 0] if robot_name == "b_bot" else [tau/2, radians(-35.0), 0]
 
     midway        = conversions.to_pose_stamped("assembled_part_07_inserted", [-0.15, 0, 0]      + rotation)
-    pre_insertion = conversions.to_pose_stamped("assembled_part_07_inserted", [-0.063, 0, 0.013] + rotation)
+    pre_insertion = conversions.to_pose_stamped("assembled_part_07_inserted", [-0.058, 0, 0.007] + rotation)
 
     seq.append(helpers.to_sequence_item("centering_area", speed=0.4, linear=False))
     seq.append(helpers.to_sequence_item(midway, speed=1.0, linear=False))
@@ -4006,7 +4053,7 @@ class O2ACCommon(O2ACBase):
     return self.execute_sequence(robot_name, seq, "align bearing spacer pre insertion")
 
   def insert_bearing_spacer(self, target_link, robot_name="b_bot", attempts=1):
-    target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.04, 0.0, 0.0, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
+    target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.045, 0.0, 0.0, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
 
     selection_matrix = [0.0, 0.3, 0.3, 0.95, 1.0, 1.0]
     result = self.active_robots[robot_name].do_insertion(target_pose_target_frame, radius=0.0005, 
@@ -4063,14 +4110,14 @@ class O2ACCommon(O2ACBase):
       return False
 
     seq = []
-    pre_grasp_pose = conversions.to_pose_stamped(centering_frame, [-0.02, 0, 0, radians(-30), 0, 0])
+    pre_grasp_pose = conversions.to_pose_stamped(centering_frame, [-0.005, 0, 0, radians(-30), 0, 0])
+    seq.append(helpers.to_sequence_gripper('open', gripper_opening_width=0.1, gripper_velocity=1.0))
     seq.append(helpers.to_sequence_item(pre_grasp_pose, speed=1.0, linear=True))
-    seq.append(helpers.to_sequence_item_relative(pose=[0, 0, -0.0125, 0, 35, 0], relative_to_tcp=True, speed=1.0))
+    seq.append(helpers.to_sequence_item_relative(pose=[0, 0, -0.01, 0, 35, 0], relative_to_tcp=True, speed=1.0))
     seq.append(helpers.to_sequence_gripper('close', gripper_force=60, gripper_velocity=0.05))
     seq.append(helpers.to_sequence_item_relative([0, 0, 0.05, 0, 0, 0], speed=0.4))
     if not self.execute_sequence(robot_name, seq, "orient output pulley"):
       return False
-    
     return True
   
   def align_output_pulley_pre_insertion(self, robot_name="b_bot"):
@@ -4079,7 +4126,7 @@ class O2ACCommon(O2ACBase):
     rotation = [0, radians(-35.0), 0] if robot_name == "b_bot" else [tau/2, radians(-35.0), 0]
 
     midway        = conversions.to_pose_stamped("assembled_part_07_inserted", [-0.15, 0, 0]     + rotation)
-    pre_insertion = conversions.to_pose_stamped("assembled_part_07_inserted", [-0.07, 0, 0.013] + rotation)
+    pre_insertion = conversions.to_pose_stamped("assembled_part_07_inserted", [-0.053, 0.001, 0.009] + rotation)
 
     seq.append(helpers.to_sequence_item("centering_area", speed=0.4, linear=False))
     seq.append(helpers.to_sequence_item(midway, speed=1.0, linear=False))
@@ -4087,10 +4134,9 @@ class O2ACCommon(O2ACBase):
 
     return self.execute_sequence(robot_name, seq, "align output pulley pre insertion")
 
-
   def insert_output_pulley(self, target_link, robot_name="b_bot", attempts=1):
     rospy.loginfo("Starting insertion of output pulley")
-    target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.043, 0.0, 0.0, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
+    target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.038, 0.0, 0.0, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
 
     selection_matrix = [0.0, 0.3, 0.3, 0.95, 1.0, 1.0]
     result = self.active_robots[robot_name].do_insertion(target_pose_target_frame, radius=0.003, 
@@ -4099,8 +4145,8 @@ class O2ACCommon(O2ACBase):
     success = result == TERMINATION_CRITERIA
     rospy.loginfo("insertion finished with status: %s" % result)
 
-    if not success:
-      grasp_check = self.simple_insertion_check(robot_name, 0.09, min_opening_width=0.02)
+    grasp_check = self.simple_insertion_check(robot_name, 0.1, min_opening_width=0.02, velocity=1.0)
+    if not success and not grasp_check:
       if grasp_check and attempts > 0: # try again the pulley is still there   
         return self.insert_output_pulley(target_link, attempts=attempts-1)
       elif not grasp_check or not attempts > 0:
@@ -4110,14 +4156,20 @@ class O2ACCommon(O2ACBase):
         return False
 
     rospy.loginfo("Preparing push")
-    self.active_robots[robot_name].gripper.open(wait=True, opening_width=0.09)
-    self.active_robots[robot_name].move_lin_rel(relative_translation=[0.02,0,0])
-    self.active_robots[robot_name].gripper.send_command(0.04, wait=False)
-    rospy.loginfo("Starting push")
-    success = self.active_robots[robot_name].force_controller.linear_push(force=8, direction="-X", max_translation=0.05, timeout=20.)
+    rotation = [0, radians(-35.0), 0] if robot_name == "b_bot" else [tau/2, radians(-35), 0]
+    push_pose = conversions.to_pose_stamped(target_link, [-0.008, 0, 0.006] + rotation)
 
-    self.active_robots[robot_name].gripper.open(wait=True, opening_width=0.09)
-    self.active_robots[robot_name].move_lin_rel(relative_translation = [0.10,0,0], acceleration = 0.015, speed=.03)
+    rospy.loginfo("Starting push")
+    # self.a_bot.go_to_pose_goal(target_pose, speed=0.02, move_lin=True)
+    current_pose = self.listener.transformPose(target_link, self.a_bot.get_current_pose_stamped())
+    tries = 0
+    while current_pose.pose.position.x < push_pose.pose.position.x and tries < 5:
+      self.active_robots[robot_name].gripper.close()
+      success = self.active_robots[robot_name].force_controller.linear_push(force=15, direction="-X", max_translation=0.05, timeout=5.)
+      self.active_robots[robot_name].gripper.open(wait=True, opening_width=0.1)
+      current_pose = self.listener.transformPose(target_link, self.a_bot.get_current_pose_stamped())
+
+    self.active_robots[robot_name].move_lin_rel(relative_translation = [0.10,0,0], acceleration = 0.05, speed=.1)
     return success
 
   def check_output_pulley_angle(self):
@@ -4430,7 +4482,7 @@ class O2ACCommon(O2ACBase):
     above_centering_pose = conversions.to_pose_stamped(centering_frame, [-0.15, y_pos, z_pos, 0, 0, 0])
     at_centering_pose    = conversions.to_pose_stamped(centering_frame, [x_pos, y_pos, z_pos, 0, 0, 0])
     pre_push_pose        = conversions.to_pose_stamped(centering_frame, [-0.01, y_pos, z_pos, 0, 0, 0])
-    push_pose            = conversions.to_pose_stamped(centering_frame, [-0.015, y_pos, gripper_at_stopper, 0, 0, 0])
+    push_pose            = conversions.to_pose_stamped(centering_frame, [-0.0125, y_pos, gripper_at_stopper, 0, 0, 0])
     above_centering_joint_pose = [0.48, -2.05, 2.05, -1.55, -1.58, -1.09-(tau/2)]
 
     seq = []
@@ -4440,7 +4492,7 @@ class O2ACCommon(O2ACBase):
     seq.append(helpers.to_sequence_gripper(0.01, gripper_velocity=1.0, wait=False))
     seq.append(helpers.to_sequence_item(pre_push_pose, speed=speed))
     seq.append(helpers.to_sequence_gripper(0.005, gripper_force=0, gripper_velocity=0.1))
-    seq.append(helpers.to_sequence_item(push_pose, speed=0.5))
+    seq.append(helpers.to_sequence_item(push_pose, speed=0.3))
 
     def post_callback():
       self.active_robots[robot_name].gripper.forget_attached_item()
@@ -5305,16 +5357,17 @@ class O2ACCommon(O2ACBase):
       robot_name = "a_bot"
     if self.use_real_robot:
       if not skip_initial_perception:
-
         self.activate_led(robot_name)
         rospy.loginfo("Looking for base plate")
         base_pose = self.get_large_item_position_from_top("base", robot_name)
-        if use_b_bot_camera:
-          self.active_robots[robot_name].go_to_named_pose("home")
         if not base_pose:
-          rospy.logerr("Cannot find base plate in tray. Return False.")
-          self.active_robots[robot_name].go_to_named_pose("home")
-          return False
+          if use_b_bot_camera:
+            self.active_robots[robot_name].go_to_named_pose("home")
+            rospy.logerr("Cannot find base plate in tray. Return False.")
+            self.active_robots[robot_name].go_to_named_pose("home")
+            return False
+          if retry_counter < 5:
+            return self.pick_base_panel(skip_initial_perception=False, use_b_bot_camera=False, retry_with_rotated_orientation=True, retry_counter=retry_counter+1)
     else:
       self.active_robots[robot_name].go_to_named_pose("above_tray", speed=1.0)
       goal = conversions.to_pose_stamped("tray_center", [-0.08, -0.08, 0.001, tau/4, 0, tau/4])
@@ -5361,7 +5414,7 @@ class O2ACCommon(O2ACBase):
         self.rotate_plate_collision_object_in_tray("base")
         rospy.sleep(1.5)
         return self.pick_base_panel(grasp_name=grasp_name, skip_initial_perception=True, use_b_bot_camera=False, retry_with_rotated_orientation=False, retry_counter=retry_counter)
-      elif retry_counter < 3:
+      elif retry_counter < 5:
         return self.pick_base_panel(skip_initial_perception=False, use_b_bot_camera=False, retry_with_rotated_orientation=True, retry_counter=retry_counter+1)
       else:  # If retry has also failed
         rospy.logerr("Plate was not perceived by gripper. Breaking out.")

@@ -274,7 +274,7 @@ class O2ACAssembly(O2ACCommon):
       rospy.logerr("Fail to do motor pulley fastening (simultaneous=%s)  a_bot:%s b_bot:%s" % (simultaneous_execution, self.a_bot_success, self.b_bot_success))
       return False
 
-    if not self.fasten_motor_pulley(target_link, skip_unequip=simultaneous_execution):
+    if not self.fasten_motor_pulley(target_link, skip_unequip=simultaneous_execution, simultaneous=simultaneous_execution):
       return False
     
     return True

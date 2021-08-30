@@ -1207,7 +1207,7 @@ class O2ACBase(object):
         if not self.spawn_tool(tool_name):
           rospy.logwarn("Could not spawn the tool. Continuing.")
         self.allow_collisions_with_robot_hand(tool_name, robot_name)
-      sequence.append(helpers.to_sequence_gripper('open', gripper_opening_width=0.06, pre_callback=pre_cb, wait=False))
+      sequence.append(helpers.to_sequence_gripper('open', gripper_opening_width=0.07, pre_callback=pre_cb, wait=False))
 
     sequence.append(helpers.to_sequence_item("tool_pick_ready"))
     # self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
@@ -1270,9 +1270,9 @@ class O2ACBase(object):
         robot.robot_status.carrying_tool = False
         robot.robot_status.held_tool_id = ""
         self.publish_robot_status()
-      sequence.append(helpers.to_sequence_gripper(action='open', gripper_opening_width=0.06, gripper_velocity=1.0, post_callback=post_cb))
+      sequence.append(helpers.to_sequence_gripper(action='open', gripper_opening_width=0.07, gripper_velocity=1.0, post_callback=post_cb))
     elif realign:  # Drop the tool into the holder once
-      sequence.append(helpers.to_sequence_gripper(action='open', gripper_opening_width=0.06, gripper_velocity=1.0))
+      sequence.append(helpers.to_sequence_gripper(action='open', gripper_opening_width=0.07, gripper_velocity=1.0))
       sequence.append(helpers.to_sequence_gripper(action='close', gripper_velocity=1.0))
 
     # sequence = []
@@ -1283,7 +1283,7 @@ class O2ACBase(object):
       ps_in_holder.pose.position.x += 0.001  # To remove the offset for placing applied earlier
       lin_speed = 0.2
       sequence.append(helpers.to_sequence_item(pull_back_slightly, speed=lin_speed))
-      sequence.append(helpers.to_sequence_gripper(action='open', gripper_opening_width=0.06, gripper_velocity=1.0))
+      sequence.append(helpers.to_sequence_gripper(action='open', gripper_opening_width=0.07, gripper_velocity=1.0))
       sequence.append(helpers.to_sequence_item(ps_in_holder, speed=lin_speed))
       sequence.append(helpers.to_sequence_gripper(action='close', gripper_force=100, gripper_velocity=0.1))
     
@@ -1478,7 +1478,7 @@ class O2ACBase(object):
 
         # execute next plan 
         next_plan, index, plan_type = backlog.pop(0)
-        rospy.loginfo(robot_name + ": Executing sequence plan: index," + str(index) + "type" + str(plan_type))
+        rospy.loginfo(robot_name + ": Executing sequence plan: index, " + str(index) + " type " + str(plan_type))
         wait = True if i == len(sequence) -1 else False
         self.execute_waypoint_plan(robot_name, next_plan, wait=wait)
 
@@ -1500,7 +1500,7 @@ class O2ACBase(object):
           return False
 
         next_plan, index, plan_type = backlog.pop(0)
-        rospy.loginfo(robot_name + ": Executing plan (backlog loop): index," + str(index) + "type" + str(plan_type))
+        rospy.loginfo(robot_name + ": Executing plan (backlog loop): index, " + str(index) + " type " + str(plan_type))
         self.execute_waypoint_plan(robot_name, next_plan, True)
         if isinstance(next_plan, (moveit_msgs.msg.RobotTrajectory)):
           active_plan = next_plan
@@ -1608,7 +1608,7 @@ class O2ACBase(object):
       elif gripper_action == 'close':
         success = robot.gripper.close(force=force, velocity=velocity, wait=wait)
       elif gripper_action == 'close-open':
-        robot.gripper.close(velocity=velocity, wait=wait)
+        robot.gripper.close(velocity=velocity, force=force, wait=wait)
         success = robot.gripper.open(opening_width=opening_width, velocity=velocity, wait=wait)
       elif isinstance(gripper_action, float):
         success = robot.gripper.send_command(gripper_action, force=force, velocity=velocity, wait=wait)
