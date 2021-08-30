@@ -4299,13 +4299,17 @@ class O2ACCommon(O2ACBase):
     rospy.logerr("return_l_plates is not implemented.")
     pass 
 
-  def place_object_with_uncertainty(self, object_name, pose_with_uncertainty, support_surface):
+  def place_object_with_uncertainty(self, object_name, pose_with_uncertainty, support_surface_height):
+    """ Calculate the object pose with uncertainty after a PLACE action (the pose input parameter is changed in place)
+
+        support_surface_height is the z-coordinate of the support surface in the world frame.    
+    """
     now=rospy.Time.now()
     collision_object=self.assembly_database.get_collision_object(object_name)
     update_goal=o2ac_msgs.msg.updateDistributionGoal()
     update_goal.observation_type=update_goal.PLACE_OBSERVATION
     update_goal.gripped_object=collision_object
-    update_goal.place_observation.support_surface=support_surface
+    update_goal.place_observation.support_surface=support_surface_height
     self.listener.waitForTransform("world", pose_with_uncertainty.header.frame_id, now, rospy.Duration(1.0))
     update_goal.gripper_pose.pose= tf_conversions.posemath.toMsg(tf_conversions.posemath.fromTf(self.listener.lookupTransform("world", pose_with_uncertainty.header.frame_id, now)))
     update_goal.gripper_pose.header.frame_id="world"
@@ -4322,6 +4326,11 @@ class O2ACCommon(O2ACBase):
     self.visualize_object_with_distribution(collision_object, pose_with_uncertainty, frame_locked=True)
     
   def push_object_with_uncertainty(self, object_name, gripper_pose, pose_with_uncertainty, y_shift=0.0):
+    """ Calculate the object pose with uncertainty after a PUSH action (the pose input parameter is changed in place).
+        This call of push action is particular: it simulates pushing the object into another object, while letting it slide through the gripper.
+
+        y_shift is the amount by which the gripper moved (?)
+    """
     collision_object=self.assembly_database.get_collision_object(object_name)
     update_goal=o2ac_msgs.msg.updateDistributionGoal()
     update_goal.observation_type=update_goal.PUSH_OBSERVATION
