@@ -278,7 +278,7 @@ class PartsReader(object):
                 mesh_pose.position = conversions.to_vector3(conversions.to_float(data['mesh_pose'][0]['pose_xyzrpy'][:3]) )
                 mesh_pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(*conversions.to_float(data['mesh_pose'][0]['pose_xyzrpy'][3:])))
             subframes = data['subframes']
-            simplified_collision_objects = data.get('collision_objects', None)
+            simplified_collision_objects = data.get('collision_primitives', None)
             primitive_collision_objects = self._get_collision_object(simplified_collision_objects)
 
             grasps = data['grasp_points']
@@ -372,6 +372,8 @@ class PartsReader(object):
         return mesh
 
     def _get_collision_object(self, collision_objects):
+        """ Convert a YAML representation of a collision primitive to the shape_msg.
+        """
         if not collision_objects:
             return None
 
