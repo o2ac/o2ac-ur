@@ -372,18 +372,19 @@ class O2ACCommon(O2ACBase):
     return success
   
   ####### Vision
+  @lock_vision
   def get_large_item_position_from_top(self, item_name, robot_name="b_bot", skip_moving=False):
     """
     This function look at the tray from the top only, and publishes the result to the planning scene.
     
     Returns False if object was not found, the pose if it was.
     """
-
+    tray_view_high, close_tray_views = self.define_local_tray_views()
     # Look from top first
     self.vision.activate_camera(robot_name+"_outside_camera")
     if not skip_moving:
       self.active_robots[robot_name].go_to_named_pose("above_tray", speed=1.0)
-      view_poses = [self.tray_view_high] + self.close_tray_views
+      view_poses = [tray_view_high] + close_tray_views
       for pose in view_poses:
         if not self.active_robots[robot_name].go_to_pose_goal(pose, end_effector_link=robot_name+"_outside_camera_color_frame", move_lin=True, retry_non_linear=True):
           rospy.logerr("Failed to move to camera view pose in get_large_item_position_from_top.")
@@ -440,6 +441,7 @@ class O2ACCommon(O2ACBase):
       obj.pose = pose_stamped.pose
       self.planning_scene_interface.add_object(obj)
 
+  @lock_vision
   def look_and_get_object_pose(self, object_id, robot_name="b_bot"):
     """
     Looks at the tray from above and gets grasp points of items.
@@ -1735,6 +1737,7 @@ class O2ACCommon(O2ACBase):
     return self.screw(robot_name, screw_pose, screw_size=screw_size, screw_height=0.02, skip_final_loosen_and_retighten=False, spiral_radius=0.003, attempts=attempts)
 
   @check_for_real_robot
+  @lock_vision
   def align_bearing_holes(self, max_adjustments=10, task=""):
     """
     Align the bearing holes.

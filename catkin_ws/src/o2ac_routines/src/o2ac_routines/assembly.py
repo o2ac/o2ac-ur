@@ -99,7 +99,7 @@ class O2ACAssembly(O2ACCommon):
 
     self.vision.activate_camera("a_bot_outside_camera")
     self.activate_led("a_bot")
-    res = self.get_3d_poses_from_ssd()
+    self.get_3d_poses_from_ssd()
     r2 = self.get_feasible_grasp_points("belt")
     if r2:
       pick_goal = r2[0]
@@ -251,6 +251,7 @@ class O2ACAssembly(O2ACCommon):
         return False
       if not self.orient_motor_pulley(target_link, robot_name="a_bot"):
         return False
+      self.confirm_to_proceed("finetune")
       if not self.insert_motor_pulley(target_link, robot_name="a_bot"):
         return False
       self.a_bot.gripper.forget_attached_item()
@@ -498,12 +499,21 @@ class O2ACAssembly(O2ACCommon):
   def subtask_d_orquestrated(self):
     # bearing spacer
     if not self.assembly_status.bearing_spacer_assembled:
+      # Debug/calibration place b_bot to hold shaft
+      # approach_hold_pose = conversions.to_pose_stamped("assembled_part_07_inserted", [0.15, 0.000, -0.15] + np.deg2rad([-90,-90,-90]).tolist())
+      # self.b_bot.go_to_pose_goal(approach_hold_pose)
+      # pre_hold_pose = conversions.to_pose_stamped("assembled_part_07_inserted", [0.15, 0.000, 0.02] + np.deg2rad([-90,-90,-90]).tolist())
+      # self.b_bot.go_to_pose_goal(pre_hold_pose)
+      # at_hold_pose = conversions.to_pose_stamped("assembled_part_07_inserted", [0.043, 0.000, 0.02] + np.deg2rad([-90,-90,-90]).tolist())
+      # self.b_bot.go_to_pose_goal(at_hold_pose)
+
       if not self.pick_bearing_spacer("a_bot"):
         return False
       if not self.orient_bearing_spacer("a_bot"):
         return False
       if not self.align_bearing_spacer_pre_insertion("a_bot"):
         return False
+      self.confirm_to_proceed("fine tune")
       if not self.insert_bearing_spacer("assembled_part_07_inserted", "a_bot"):
         return False
     
@@ -514,8 +524,11 @@ class O2ACAssembly(O2ACCommon):
       return False
     if not self.align_output_pulley_pre_insertion("a_bot"):
       return False
+    self.confirm_to_proceed("fine tune")
     if not self.insert_output_pulley("assembled_part_07_inserted", "a_bot"):
         return False
+
+    return True
 
     self.a_bot_success = False
     self.b_bot_success = False
@@ -1212,6 +1225,7 @@ class O2ACAssembly(O2ACCommon):
 
     self.do_change_tool_action("b_bot", equip=False, screw_size=4)
 
+
     # Bearing and Motor
     self.a_bot_success = False
     self.b_bot_success = False
@@ -1283,6 +1297,8 @@ class O2ACAssembly(O2ACCommon):
       self.assembly_status.completed_subtask_a = True # Motor 
       self.assembly_status.completed_subtask_c1 = True # bearing
     
+    return
+
     # Motor pulley
     if self.assembly_status.completed_subtask_a:
       self.assembly_status.completed_subtask_b  = self.subtask_b(simultaneous_execution=True)

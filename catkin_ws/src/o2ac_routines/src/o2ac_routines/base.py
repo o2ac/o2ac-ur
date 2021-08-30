@@ -82,6 +82,8 @@ from o2ac_routines.tools import Tools
 from ur_gazebo.gazebo_spawner import GazeboModels
 from ur_gazebo.model import Model
 
+import threading
+
 class AssemblyStatus(object):
   """ A helper class containing booleans describing the state of the assembly.
       May as well be a dictionary, but this makes auto-completion easier.
@@ -173,6 +175,7 @@ class O2ACBase(object):
 
     self.skill_server = SkillServerClient()
     self.vision = VisionClient()
+    self.vision_lock = threading.RLock() # different from the lock insider VisionClient. same name for simplicity in the wrapper
     self.tools = Tools()
 
     self.pick_place_planning_client = actionlib.SimpleActionClient('plan_pick_place', moveit_task_constructor_msgs.msg.PlanPickPlaceAction)
@@ -1398,7 +1401,7 @@ class O2ACBase(object):
     if not plan_while_moving:
       for i, point in enumerate(sequence):
         rospy.loginfo("Sequence point: %i - %s" % (i+1, point[0]))
-        # self.confirm_to_proceed("playback_sequence")
+        self.confirm_to_proceed("playback_sequence")
         if point[0] == "waypoint":
           waypoint_params = point[1]
           res = self.move_to_sequence_waypoint(robot_name, waypoint_params)

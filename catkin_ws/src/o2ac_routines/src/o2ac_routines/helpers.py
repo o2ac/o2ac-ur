@@ -563,6 +563,18 @@ def check_for_real_robot(func):
         return True
     return wrap
 
+def lock_vision(func):
+    '''Decorator that locks resources while being used. Assumes there is a self.vision_lock accessible in the decorated method'''
+    def wrap(*args, **kwargs):
+        result = False
+        # print("== waiting for lock ==", func.__name__)
+        with args[0].vision_lock:
+            # print("Lock acquired", func.__name__)
+            result = func(*args, **kwargs)
+        # print("Lock released", func.__name__)
+        return result
+    return wrap
+
 def get_trajectory_duration(plan):
   time_from_start = plan.joint_trajectory.points[-1].time_from_start
   duration = rospy.Time(time_from_start.secs, time_from_start.nsecs)
