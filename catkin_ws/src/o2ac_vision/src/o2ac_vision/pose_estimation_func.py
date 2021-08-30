@@ -1064,7 +1064,7 @@ class ShaftHoleDetection():
             # text = "Hole on other side! (" + str(self.score_w_hole) + " > " + str(self.score_wo_hole) + ")"
             text = "X!"
             im_vis = cv2.putText(im_vis, text, (1,10), 0, 0.5,(255,255,255),2, cv2.LINE_AA)
-            im_vis = cv2.putText(im_vis, text, (1,10), 0, 0.5,(0,0,255),1, cv2.LINE_AA)        
+            im_vis = cv2.putText(im_vis, text, (1,10), 0, 0.5,(0,0,255),1, cv2.LINE_AA)
 
         return visible_hole, im_vis
 
