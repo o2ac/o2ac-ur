@@ -191,6 +191,9 @@ class O2ACBase(object):
 
     # Publisher for status text
     self.pub_status_text = rospy.Publisher("/o2ac_text_to_image", String, queue_size=1)
+
+    self.update_distribution_client = actionlib.SimpleActionClient("update_distribution", o2ac_msgs.msg.updateDistributionAction)
+    self.distribution_visualizer = rospy.ServiceProxy("visualize_pose_belief", o2ac_msgs.srv.visualizePoseBelief)
     
     self.screw_tools = {}
     self.define_tool_collision_objects()
@@ -205,6 +208,8 @@ class O2ACBase(object):
   ############## ------ Internal functions (and convenience functions)
 
   def transform_uncertainty(self, transform, pose_with_uncertainty, transformed_pose):
+    """ Transforms the covariance of a pose. Also see https://wiki.ros.org/pose_cov_ops
+    """
     transformed_pose.pose = tf_conversions.posemath.toMsg(transform * tf_conversions.posemath.fromMsg(pose_with_uncertainty.pose))
 
     transform_matrix=numpy.matrix(tf_conversions.posemath.toMatrix(transform))
@@ -231,6 +236,8 @@ class O2ACBase(object):
     transformed_pose.covariance = numpy.asarray(transformed_covariance_matrix)
   
   def transform_pose_with_uncertainty(self, target_frame, pose_with_uncertainty, now=None):
+    """ Transforms a pose with covariance. Also see https://wiki.ros.org/pose_cov_ops
+    """
     if now==None:
       now=rospy.Time.now()
     self.listener.waitForTransform(target_frame, pose_with_uncertainty.header.frame_id, now, rospy.Duration(1.0))
@@ -241,7 +248,6 @@ class O2ACBase(object):
     self.transform_uncertainty(transform, pose_with_uncertainty.pose, transformed_pose.pose)
     return transformed_pose
     
-  
   def spawn_object(self, object_name, object_pose, object_reference_frame="", pose_with_uncertainty=None):
     collision_object = self.assembly_database.get_collision_object(object_name)
     if isinstance(object_pose, geometry_msgs.msg._PoseStamped.PoseStamped):
@@ -264,14 +270,19 @@ class O2ACBase(object):
         
     self.planning_scene_interface.add_object(collision_object)
     if pose_with_uncertainty != None:
-      rospy.wait_for_service("visualize_pose_belief")
-      visualizer=rospy.ServiceProxy("visualize_pose_belief", o2ac_msgs.srv.visualizePoseBelief)
-      visualization_request = o2ac_msgs.srv.visualizePoseBeliefRequest()
-      visualization_request.object = collision_object
-      visualization_request.distribution_type = 1
-      visualization_request.distribution = pose_with_uncertainty
-      visualization_request.frame_locked=True
-      visualizer(visualization_request)
+      self.visualize_object_with_distribution(self, collision_object, pose_with_uncertainty, frame_locked=True)
+  
+  def visualize_object_with_distribution(self, collision_object, pose_with_uncertainty, frame_locked=False):
+    """ Publishes a MarkerArray visualizing the object pose and uncertainty.
+
+        collision_object must be of type moveit_msgs.msg.CollisionObject
+    """
+    visualization_request = o2ac_msgs.srv.visualizePoseBeliefRequest()
+    visualization_request.object = collision_object
+    visualization_request.distribution_type = 1
+    visualization_request.distribution = pose_with_uncertainty
+    visualization_request.frame_locked=frame_locked
+    self.distribution_visualizer(visualization_request)
 
   def despawn_object(self, object_name):
     self.planning_scene_interface.remove_attached_object(name=object_name)

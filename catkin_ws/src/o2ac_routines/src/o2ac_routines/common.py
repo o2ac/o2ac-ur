@@ -68,8 +68,6 @@ class O2ACCommon(O2ACBase):
 
     self.define_tray_views()
 
-    self.update_distribution_client = actionlib.SimpleActionClient("update_distribution", o2ac_msgs.msg.updateDistributionAction)
-
     self.nut_tool_used = False
 
   def define_tray_views(self):
@@ -722,13 +720,7 @@ class O2ACCommon(O2ACBase):
         pose_with_uncertainty.header=transformed_pose.header
         pose_with_uncertainty.pose=transformed_pose.pose
 
-      visualizer=rospy.ServiceProxy("visualize_pose_belief", o2ac_msgs.srv.visualizePoseBelief)
-      visualization_request = o2ac_msgs.srv.visualizePoseBeliefRequest()
-      visualization_request.object = collision_object
-      visualization_request.distribution_type = 1
-      visualization_request.distribution = pose_with_uncertainty
-      visualization_request.frame_locked=True
-      visualizer(visualization_request)
+      self.visualize_object_with_distribution(self, collision_object, pose_with_uncertainty, frame_locked=True)
 
     success = True
     if minimum_grasp_width > robot.gripper.opening_width and self.use_real_robot:
@@ -4159,6 +4151,7 @@ class O2ACCommon(O2ACBase):
     rospy.sleep(0.2)
     
     # goal = conversions.to_pose_stamped("tray_center", [0.02, -0.03, 0.001, 0.0, 0.0, tau/4])
+    # Initialize the pose 
     if pose_with_uncertainty !=None:
       pose_with_uncertainty.header=goal.header
       pose_with_uncertainty.pose.pose = goal.pose
@@ -4326,14 +4319,8 @@ class O2ACCommon(O2ACBase):
     pose_with_uncertainty.header=transformed_pose.header
     pose_with_uncertainty.pose=transformed_pose.pose
 
-    visualizer=rospy.ServiceProxy("visualize_pose_belief", o2ac_msgs.srv.visualizePoseBelief)
-    visualization_request = o2ac_msgs.srv.visualizePoseBeliefRequest()
-    visualization_request.object = collision_object
-    visualization_request.distribution_type = 1
-    visualization_request.distribution = pose_with_uncertainty
-    visualization_request.frame_locked=True
-    visualizer(visualization_request)
-
+    self.visualize_object_with_distribution(self, collision_object, pose_with_uncertainty, frame_locked=True)
+    
   def push_object_with_uncertainty(self, object_name, gripper_pose, pose_with_uncertainty, y_shift=0.0):
     collision_object=self.assembly_database.get_collision_object(object_name)
     update_goal=o2ac_msgs.msg.updateDistributionGoal()
@@ -4351,13 +4338,7 @@ class O2ACCommon(O2ACBase):
     self.transform_uncertainty(gripper_transform, update_result.distribution.pose, pose_with_uncertainty.pose)
     pose_with_uncertainty.pose.pose.position.y+=y_shift
 
-    visualizer=rospy.ServiceProxy("visualize_pose_belief", o2ac_msgs.srv.visualizePoseBelief)
-    visualization_request = o2ac_msgs.srv.visualizePoseBeliefRequest()
-    visualization_request.object = collision_object
-    visualization_request.distribution_type = 1
-    visualization_request.distribution = pose_with_uncertainty
-    visualization_request.frame_locked=True
-    visualizer(visualization_request)
+    self.visualize_object_with_distribution(self, collision_object, pose_with_uncertainty, frame_locked=True)
   
   def center_panel_with_uncertainty(self, panel_name, robot_name="a_bot", speed=1.0, store=True, pose_with_uncertainty=None):
     """ Places the plate next to the tray in a well-defined position, by pushing it into a stopper.
