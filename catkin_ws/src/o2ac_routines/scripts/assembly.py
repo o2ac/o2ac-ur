@@ -375,7 +375,7 @@ if __name__ == '__main__':
           break
         c.center_panel("panel_bearing", store=True)
         c.place_panel("a_bot", "panel_bearing", pick_again=True, fake_position=True)
-      elif i == "pickplacebearingpanelwithuncertainty":
+      elif i == "pickplacebearingpanelwithuncertainty" or i == "ppbu":
         pose_with_uncertainty=geometry_msgs.msg.PoseWithCovarianceStamped()
         if not c.pick_panel_with_handover("panel_bearing", simultaneous=False, pose_with_uncertainty=pose_with_uncertainty):
           break

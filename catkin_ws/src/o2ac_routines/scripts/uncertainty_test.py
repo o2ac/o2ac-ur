@@ -56,32 +56,42 @@ def main():
     controller.publish_part_in_assembled_position("base")
 
     # Spawn the motor plate with a given uncertainty in the gripper. 
-    plate_pose = conversions.to_pose_stamped("assembled_part_02", [0, 0, 0, 0, 0, 0,])  # at plate
+    plate_pose = conversions.to_pose_stamped("assembled_part_02", [.008, 0.01, 0, 0, 0, 0.1])  # at plate
     plate_pose = controller.listener.transformPose("a_bot_gripper_tip_link", plate_pose)
     pose_with_uncertainty = geometry_msgs.msg.PoseWithCovarianceStamped()
     pose_with_uncertainty.header = plate_pose.header
     pose_with_uncertainty.pose.pose = plate_pose.pose
     # Is the covariance defined in the header frame? 
-    pose_with_uncertainty.pose.covariance=[0.0001, 0.00, 0.00, 0.00, 0.00, 0.00,
+    pose_with_uncertainty.pose.covariance= [0.0001, 0.00, 0.00, 0.00, 0.00, 0.00,
                                             0.00, 0.000, 0.00, 0.00, 0.00, 0.00,
                                             0.00, 0.00, 0.0001, 0.00, 0.00, 0.00,
                                             0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
                                             0.00, 0.00, 0.00, 0.00, 0.01, 0.00,
                                             0.00, 0.00, 0.00, 0.00, 0.00, 0.00]
     motor_panel_co = controller.assembly_database.get_collision_object("panel_motor")
-    controller.visualize_object_with_distribution(motor_panel_co, pose_with_uncertainty)
     
-
     controller.a_bot.go_to_pose_goal(start_pose)
     controller.a_bot.gripper.open(opening_width=0.003)
+    rospy.sleep(1.0)
+    controller.visualize_object_with_distribution(motor_panel_co, pose_with_uncertainty, frame_locked=True)
     controller.confirm_to_proceed("Start?")
-    controller.a_bot.go_to_pose_goal(start_pose)
-    controller.a_bot.gripper.open(opening_width=0.02)
+    
     controller.a_bot.go_to_pose_goal(drop_pose)
+    controller.a_bot.gripper.open(opening_width=0.02)
+    support_surface = controller.listener.transformPose("world", plate_pose)
+    rospy.sleep(1.0)
+    controller.place_object_with_uncertainty("panel_motor", pose_with_uncertainty, support_surface_height=support_surface.pose.position.z)
+    controller.confirm_to_proceed("Dropped plate. Continue?")
+    
     controller.a_bot.go_to_pose_goal(push_start_pose)
     controller.a_bot.gripper.close()
     controller.a_bot.go_to_pose_goal(push_almost_over_pose)
     controller.a_bot.go_to_pose_goal(push_done_pose)
+    rospy.sleep(1.0)
+    controller.push_object_with_uncertainty("panel_motor", pose_with_uncertainty, gripper_pose=push_done_pose)
+    controller.confirm_to_proceed("Pushed plate. Continue?")
+    
+    controller.a_bot.go_to_pose_goal(push_start_pose)
     controller.a_bot.gripper.open(opening_width=0.02)
     controller.a_bot.go_to_pose_goal(at_plate_pose)
     controller.a_bot.gripper.open(opening_width=0.005)
