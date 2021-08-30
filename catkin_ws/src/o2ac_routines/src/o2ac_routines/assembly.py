@@ -73,8 +73,8 @@ class O2ACAssembly(O2ACCommon):
     super(O2ACAssembly, self).__init__()
     
     # Load the initial database
-    if not self.assembly_database.db_name == "wrs_assembly_2020":
-      self.set_assembly("wrs_assembly_2020")
+    if not self.assembly_database.db_name == "wrs_assembly_2021":
+      self.set_assembly("wrs_assembly_2021")
 
     # Spawn tools and objects
     self.define_tool_collision_objects()
@@ -137,9 +137,15 @@ class O2ACAssembly(O2ACCommon):
     self.unlock_base_plate()
     self.publish_status_text("Target: base plate")
     grasp_name = "big_holes_grasp" if self.assembly_database.db_name == "wrs_assembly_2021" else "default_grasp"
-    grasp_name = self.pick_base_panel(grasp_name=grasp_name, skip_initial_perception=skip_initial_perception, use_b_bot_camera=use_b_bot_camera)
-    if not grasp_name:
-      rospy.logerr("Fail to grasp base")
+    success = self.pick_base_panel(grasp_name=grasp_name, skip_initial_perception=skip_initial_perception, use_b_bot_camera=use_b_bot_camera)
+    if not success:
+      rospy.logerr("Fail to grasp base. Trying again with different grasp (default_grasp)")
+      grasp_name = "terminal_grasp"
+      success = self.pick_base_panel(grasp_name=grasp_name, skip_initial_perception=skip_initial_perception, use_b_bot_camera=use_b_bot_camera)
+      # if not success:
+      #   rospy.logerr("Fail to grasp base. Trying again with different grasp (terminal_grasp)")
+      #   grasp_name = "terminal_grasp"
+      #   success = self.pick_base_panel(grasp_name=grasp_name, skip_initial_perception=skip_initial_perception, use_b_bot_camera=use_b_bot_camera)
       return False
     
     self.allow_collisions_with_robot_hand("tray", "a_bot", allow=False)
@@ -186,7 +192,7 @@ class O2ACAssembly(O2ACCommon):
       rospy.sleep(0.3)
       self.lock_base_plate()
     def a_bot_return():
-      self.a_bot.move_lin_rel(relative_translation=[0.05, -0.15, 0.01], speed=1.0)
+      self.a_bot.move_lin_rel(relative_translation=[0.05, -0.1, 0.02], speed=1.0)
       self.allow_collisions_with_robot_hand("base", "a_bot", allow=False)
       self.publish_part_in_assembled_position("base")
     self.do_tasks_simultaneous(a_bot_return, set_base_plate)
@@ -308,7 +314,7 @@ class O2ACAssembly(O2ACCommon):
       if not self.pick_end_cap():
         return False
       if simultaneous_execution:
-        self.a_success &= self.a_bot.go_to_named_pose("centerint_area", speed=1.0)
+        self.a_bot.go_to_named_pose("centering_area", speed=1.0)
 
     self.a_bot_success = False
     self.b_bot_success = False
@@ -346,7 +352,7 @@ class O2ACAssembly(O2ACCommon):
       rospy.logerr("Fail to go to pre_insertion_shaft")
       return False
 
-    pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [-0.002, -0.001, 0.25]+np.deg2rad([-180, 90, -90]).tolist())
+    pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [-0.002, 0.002, 0.240]+np.deg2rad([-180, 90, -90]).tolist())
     if not self.a_bot.go_to_pose_goal(pre_insertion_end_cap, speed=0.3, move_lin=False):
       rospy.logerr("Fail to go to pre_insertion_end_cap")
       return False
@@ -992,7 +998,6 @@ class O2ACAssembly(O2ACCommon):
     
     # Store motor panel, look at base plate with b_bot
     self.panel_motor_pose = None
-    self.base_pose = False
     def a_bot_task():
       self.panel_motor_pose = self.center_panel("panel_motor", store=True)
       self.assembly_status.motor_panel_placed_outside_of_tray = True
@@ -1008,19 +1013,18 @@ class O2ACAssembly(O2ACCommon):
       a_bot_task()
       b_bot_task()
 
-    if not self.panel_motor_pose and not self.base_pose:
+    if not self.panel_motor_pose or not self.assembly_status.motor_placed_outside_of_tray:
       rospy.logerr("Fail to do panels_assembly2: simultaneous=%s" % simultaneous)
       return False
 
     # Pick base plate with a_bot, prepare fastening with b_bot
-    self.skip_perception = isinstance(self.base_pose, geometry_msgs.msg.PoseStamped)
     self.a_bot_success = False
     self.place_bearing_panel = False
     self.b_bot_success = False
     def a_bot_task():
       self.publish_status_text("Target: base plate")
-      self.a_bot_success = self.subtask_zero(skip_initial_perception=self.skip_perception)
-      if not self.a_bot_success:
+      self.a_bot_success = self.subtask_zero(skip_initial_perception=False)
+      if not self.a_bot_success: # Try again
         self.a_bot_success = self.subtask_zero(skip_initial_perception=False)
       # Fasten plates
       if simultaneous:
@@ -1031,12 +1035,13 @@ class O2ACAssembly(O2ACCommon):
         self.place_bearing_panel = True
     def b_bot_task():
       if pick_and_orient_insert_motor:
+        rospy.sleep(5)
         self.orient_motor()
+        self.b_bot.move_lin_rel(relative_translation=[0,0,0.06], speed=0.3)
       start_time = rospy.get_time()
       while not self.b_bot_success and rospy.get_time()-start_time < 20:
         self.b_bot_success = self.do_change_tool_action("b_bot", equip=True, screw_size = 4)
       if self.b_bot_success:
-        self.b_bot_success = False
         self.b_bot_success = self.pick_screw_from_feeder("b_bot", screw_size = 4)
         self.b_bot.go_to_named_pose("feeder_pick_ready")
 
@@ -1066,11 +1071,16 @@ class O2ACAssembly(O2ACCommon):
     self.place_motor_panel = False
     self.hold_motor_panel = False
     def a_bot_2nd_task():
-      self.place_motor_panel = self.place_panel("a_bot", "panel_motor", pick_again=True, fake_position=True)
-      if simultaneous:
-        self.hold_motor_panel = self.hold_panel_for_fastening("panel_motor")
-      else:
-        self.hold_motor_panel = True
+      # self.allow_collisions_with_robot_hand("panel_motor", "b_bot", False)
+      # self.planning_scene_interface.disallow_collisions("panel_motor", "screw_tool_m4")
+      # rospy.sleep(10)
+      # self.place_motor_panel = self.place_panel("a_bot", "panel_motor", pick_again=True, fake_position=True)
+      # if simultaneous:
+      #   self.hold_motor_panel = self.hold_panel_for_fastening("panel_motor")
+      # else:
+      #   self.hold_motor_panel = True
+      # self.planning_scene_interface.allow_collisions("panel_motor", "screw_tool_m4")
+      # self.allow_collisions_with_robot_hand("panel_motor", "b_bot", True)
       return True
     if not self.fasten_panel("panel_bearing", simultaneous=simultaneous, a_bot_task_2nd_screw=a_bot_2nd_task):
       return False

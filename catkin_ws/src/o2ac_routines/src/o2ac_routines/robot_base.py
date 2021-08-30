@@ -286,7 +286,7 @@ class RobotBase():
                     self.set_up_move_group(speed, acceleration, "OMPL")
                 if robots_in_simultaneous:
                     rospy.sleep(1.0) # give time to other robot to get out of the way
-                else:
+                elif not move_ptp:
                     rospy.sleep(0.2)
                 rospy.logwarn("go_to_pose_goal(move_lin=%s) attempt failed. Retrying." % str(move_lin))
                 tries += 1
@@ -430,11 +430,14 @@ class RobotBase():
             elif relative_to_tcp:
                 new_pose.header.stamp = rospy.Time.now()
                 # Workaround for TF lookup into the future error
-                try:
-                    self.listener.waitForTransform(self.ns + "_gripper_tip_link", new_pose.header.frame_id, new_pose.header.stamp, rospy.Duration(1))
-                except:
-                    pass
-                new_pose = self.listener.transformPose(self.ns + "_gripper_tip_link", new_pose)
+                tries = 0
+                while tries < 10:
+                    try:
+                        self.listener.waitForTransform(self.ns + "_gripper_tip_link", new_pose.header.frame_id, new_pose.header.stamp, rospy.Duration(1))
+                        new_pose = self.listener.transformPose(self.ns + "_gripper_tip_link", new_pose)
+                        break
+                    except:
+                        tries += 1
 
         new_position = conversions.from_point(new_pose.pose.position) + relative_translation
         new_pose.pose.position = conversions.to_point(new_position)

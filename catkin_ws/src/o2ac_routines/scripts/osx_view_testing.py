@@ -300,7 +300,11 @@ if __name__ == '__main__':
         c.set_assembly("wrs_assembly_2020")
         c.confirm_motor_and_place_in_aid(calibration=True)
       elif r == "88":
-        c.check_if_shaft_in_v_groove()
+        c.check_screw_hole_visible_on_shaft_in_v_groove()
+      elif r == "881":
+        res = c.vision.call_shaft_hole_detection()
+        print("=== shaft screw_hole detection returned:")
+        print(res)
       elif r == "89":
         if not c.assembly_database.db_name == "wrs_assembly_2020":
           c.set_assembly("wrs_assembly_2020")

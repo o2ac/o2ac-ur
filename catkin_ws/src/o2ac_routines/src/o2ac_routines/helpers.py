@@ -567,11 +567,16 @@ def lock_vision(func):
     '''Decorator that locks resources while being used. Assumes there is a self.vision_lock accessible in the decorated method'''
     def wrap(*args, **kwargs):
         result = False
-        # print("== waiting for lock ==", func.__name__)
-        with args[0].vision_lock:
-            # print("Lock acquired", func.__name__)
+        print("== waiting for lock ==", func.__name__)
+        try:
+            args[0].vision_lock.acquire()
+            print("Lock acquired", func.__name__)
             result = func(*args, **kwargs)
-        # print("Lock released", func.__name__)
+        except Exception as e:
+          print("(lock_vision) received an exception", func.__name__, e)
+        finally:
+          args[0].vision_lock.release()
+          print("Lock released", func.__name__)
         return result
     return wrap
 

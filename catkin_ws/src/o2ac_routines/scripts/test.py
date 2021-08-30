@@ -31,6 +31,21 @@ signal.signal(signal.SIGINT, signal_handler)
 def main():
     rospy.init_node("testscript")
     global controller
+    controller = O2ACAssembly()
+    # controller.align_bearing_spacer_pre_insertion("a_bot")
+    # controller.orient_bearing_spacer("a_bot")
+    controller.reset_scene_and_robots()
+    # controller.publish_part_in_assembled_position("panel_bearing")
+    # controller.publish_part_in_assembled_position("panel_motor")
+    # controller.publish_part_in_assembled_position("base")
+    # controller.publish_part_in_assembled_position("motor", marker_only=True)
+    # controller.subtask_b(simultaneous_execution=True)
+    controller.pick_shaft()
+    controller.orient_shaft()
+    # controller.subtask_c2()
+    # controller.pick_shaft()
+    # controller.pick_shaft()
+    # controller.subtask_d_orquestrated()
 #     a = np.array([	
 # 54380492,
 # 2.566528,
@@ -59,16 +74,15 @@ def main():
     # controller.confirm_motor_and_place_in_aid()
     # controller.align_motor_pre_insertion()
 
-    controller = O2ACCommon()
-    controller.reset_scene_and_robots()
-    controller.a_bot.go_to_named_pose("home")
+    # controller = O2ACCommon()
+    # controller.a_bot.go_to_named_pose("home")
     # controller.allow_collisions_with_robot_hand("front_bar", "a_bot")
     # controller.allow_collisions_with_robot_hand("base_fixture_top", "a_bot")
     # controller.nut_tool_used = True
-    controller.equip_nut_tool()
-    controller.unequip_nut_tool()
-    controller.equip_nut_tool()
-    controller.unequip_nut_tool()
+    # controller.equip_nut_tool()
+    # controller.unequip_nut_tool()
+    # controller.equip_nut_tool()
+    # controller.unequip_nut_tool()
     # controller.a_bot.gripper.open()
     # controller.a_bot.move_lin_rel([0,-0.005,0])
     # controller.spawn_tool("nut_holder")
@@ -91,7 +105,6 @@ def main():
     # controller.align_motor_pre_insertion()
 
     # # controller.b_bot.gripper.gripper.release(link_name="panel_bearing_tmp::panel_bearing")
-    # controller = O2ACAssembly()
     # controller.ab_bot.go_to_named_pose("home")
     # controller.get_large_item_position_from_top("panel_motor")
     # pose = conversions.to_pose_stamped("tray_center", [0.09, 0.037, 0.015, 0, tau/4, 0])
