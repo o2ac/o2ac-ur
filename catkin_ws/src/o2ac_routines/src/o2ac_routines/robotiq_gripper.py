@@ -116,10 +116,10 @@ class RobotiqGripper():
                 goal.position = 0.140
             else:
                 goal.position = command     # This sets the opening width directly
-                rospy.loginfo(command)
+                rospy.logdebug(command)
 
             self.gripper.send_goal(goal)
-            rospy.loginfo("Sending command " + str(command) + " to gripper: " + self.ns)
+            rospy.logdebug("Sending command " + str(command) + " to gripper: " + self.ns)
             if wait:
                 self.gripper.wait_for_result(rospy.Duration(6.0))  # Default wait time: 6 s
                 result = self.gripper.get_result()

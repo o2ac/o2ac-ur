@@ -1426,7 +1426,7 @@ class O2ACBase(object):
       for i, point in enumerate(sequence):
         gripper_action = None
 
-        rospy.loginfo("(plan_while_moving, %s) Sequence point: %i - %s" % (robot_name, i+1, point[0]))
+        rospy.logdebug("(plan_while_moving, %s) Sequence point: %i - %s" % (robot_name, i+1, point[0]))
         # self.confirm_to_proceed("playback_sequence")
 
         res = self.plan_waypoint(robot_name, point, previous_plan, end_effector_link=end_effector_link) # res = plan, planning_time 
@@ -1470,7 +1470,7 @@ class O2ACBase(object):
           if remaining_time < 0.1: # Not enough time for queue up another plan; wait for execution to complete
             if not robot.robot_group.wait_for_motion_result(45.0): # wait for motion max of 45 seconds
               rospy.logerr("%s: MoveIt aborted the motion" % robot_name)
-            rospy.loginfo("%s: Waited for motion result" % robot_name)
+            rospy.logdebug("%s: Waited for motion result" % robot_name)
           else:
             # Try planning another point
             continue
@@ -1481,7 +1481,7 @@ class O2ACBase(object):
 
         # execute next plan 
         next_plan, index, plan_type = backlog.pop(0)
-        rospy.loginfo(robot_name + ": Executing sequence plan: index, " + str(index) + " type " + str(plan_type))
+        rospy.logdebug(robot_name + ": Executing sequence plan: index, " + str(index) + " type " + str(plan_type))
         wait = True if i == len(sequence) -1 else False
         self.execute_waypoint_plan(robot_name, next_plan, wait=wait)
 
@@ -1503,7 +1503,7 @@ class O2ACBase(object):
           return False
 
         next_plan, index, plan_type = backlog.pop(0)
-        rospy.loginfo(robot_name + ": Executing plan (backlog loop): index, " + str(index) + " type " + str(plan_type))
+        rospy.logdebug(robot_name + ": Executing plan (backlog loop): index, " + str(index) + " type " + str(plan_type))
         self.execute_waypoint_plan(robot_name, next_plan, True)
         if isinstance(next_plan, (moveit_msgs.msg.RobotTrajectory)):
           active_plan = next_plan

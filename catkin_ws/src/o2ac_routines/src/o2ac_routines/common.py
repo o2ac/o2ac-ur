@@ -528,7 +528,7 @@ class O2ACCommon(O2ACBase):
     if object_pose:
       rospy.loginfo("Object found: checking for feasible grasps")
       grasps = self.get_feasible_grasp_points(object_id, object_pose=object_pose, options=options)
-      print("grasps found?", grasps)
+      rospy.loginfo("grasps found? %s" % bool(grasps))
       if grasps:
         if grasps == CORNER and center_on_corner:
           if not self.move_towards_tray_center_from_corner(robot_name, object_pose, options):
