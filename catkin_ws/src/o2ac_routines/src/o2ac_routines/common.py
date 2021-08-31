@@ -4839,10 +4839,10 @@ class O2ACCommon(O2ACBase):
         self.b_bot_success = False
         return False
       self.b_bot_success = self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel_name, spiral_radius=0.003)
-      if unequip_tool_on_success:
+      if self.b_bot_success and unequip_tool_on_success:
         self.do_change_tool_action("b_bot", equip=False, screw_size = 4)
-      if b_bot_2nd_task:
-        self.b_bot_success = b_bot_2nd_task()
+      if self.b_bot_success and b_bot_2nd_task:
+        b_bot_2nd_task()
     
     if simultaneous:
       self.do_tasks_simultaneous(a_bot_task, b_bot_task, 300)
@@ -5061,7 +5061,7 @@ class O2ACCommon(O2ACBase):
     short_side = 0.255/2.
     long_side = 0.375/2.
 
-    self.spawn_tray_stack(stack_center=[-0.03,0], tray_heights=[0.05,0.0], orientation_parallel=orientation_parallel)
+    self.spawn_tray_stack(orientation_parallel=orientation_parallel)
     # self.spawn_tray_stack()
     try:
       self.listener.waitForTransform("agv_tray_center", "move_group/tray1/center", rospy.Time(0), rospy.Duration(5))
@@ -5144,7 +5144,7 @@ class O2ACCommon(O2ACBase):
     self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=False)
     self.allow_collisions_with_robot_hand("tray_center", "b_bot", allow=False)
 
-  def spawn_tray_stack(self, stack_center=[0.06, 0.14], tray_heights=[0.075,0.02], orientation_parallel=False):
+  def spawn_tray_stack(self, stack_center=[-0.03,0], tray_heights=[0.05,0.0], orientation_parallel=False):
     orientation = [0, 0, 0] if orientation_parallel else [0, 0, tau/4] # tray's long side parallel to the table
     self.trays = {"tray%s"%(i+1): (stack_center+[tray_height], orientation_parallel) for i, tray_height in enumerate(tray_heights)}
     self.trays_return = {"tray%s"%(i+1): (stack_center+[tray_height], orientation_parallel) for i, tray_height in enumerate(tray_heights[::-1])}

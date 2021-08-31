@@ -255,7 +255,7 @@ if __name__ == '__main__':
         c.playback_sequence("bearing_orient")
         c.playback_sequence("bearing_move_to_assembly")
       elif i == '932':
-        c.fasten_bearing(task="assembly")
+        c.fasten_bearing(task="assembly", robot_name="b_bot", with_extra_retighten=True)
       elif i == '9322':
         c.fasten_bearing(task="assembly", only_retighten=True)
       elif i == '933':

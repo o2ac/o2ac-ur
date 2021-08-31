@@ -1132,12 +1132,18 @@ class O2ACAssembly(O2ACCommon):
       def a_bot_2nd_task():
         self.publish_status_text("Target: Bearing")
         if not self.pick_bearing("a_bot"):
+          rospy.logerr("Fail to pick bearing (1). abort")
           return False
         self.assembly_status.bearing_picked = True
         if not self.orient_bearing("assembly", "a_bot", part1=True, part2=True):
+          rospy.logerr("Fail to orient bearing (1). abort")
+          self.drop_in_tray("a_bot")
           return False
         self.assembly_status.bearing_oriented = True
         if not self.insert_bearing("assembled_part_07_inserted", robot_name="a_bot"):
+          rospy.logerr("Fail to insert bearing (1). abort")
+          self.a_bot.move_lin_rel(relative_translation=[0.03,0,0], speed=0.05)
+          self.drop_in_tray("a_bot")
           return False
         self.a_bot.move_lin_rel(relative_translation=[0.1,0,0])
         self.assembly_status.bearing_inserted_in_panel = True
@@ -1277,19 +1283,17 @@ class O2ACAssembly(O2ACCommon):
       if not self.assembly_status.bearing_oriented:
         self.publish_status_text("Target: Bearing(Orient) & Motor")
         if not self.orient_bearing("assembly", "a_bot", part1=True, part2=True):
-          return False
+          if not self.pick_bearing("a_bot"):
+            return False
+          if not self.orient_bearing("assembly", "a_bot", part1=True, part2=True):  
+            return False
       if not self.assembly_status.bearing_inserted_in_panel:
         self.publish_status_text("Target: Bearing(Insert) & Motor")
         if not self.insert_bearing("assembled_part_07_inserted", robot_name="a_bot"):
           return False
-
-      self.publish_status_text("Target: Motor")
       self.assembly_status.bearing_inserted_in_panel = True
       if not self.a_bot.go_to_named_pose("home"):
         rospy.logerr("Fail to go home")
-      if not self.do_change_tool_action("a_bot", screw_size=3, equip=True):
-        rospy.logerr("Fail to equip tool")
-        return False
       self.a_bot_success = True
     def b_bot_task():
       if self.assembly_status.motor_placed_outside_of_tray:
@@ -1307,9 +1311,18 @@ class O2ACAssembly(O2ACCommon):
       self.b_bot_success = True
 
     self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=300)
-    
+
+    if not self.a_bot_success and self.b_bot_success: # B bot is still OK
+      self.assembly_status.bearing_picked = False
+      self.assembly_status.bearing_oriented = False
+      self.assembly_status.bearing_inserted_in_panel = False
+
     if not self.a_bot_success or not self.b_bot_success:
       rospy.logerr("Fail to do simultaneous motor and bearing insertion a_bot:%s b_bot:%s" % (self.a_bot_success, self.b_bot_success))
+      self.b_bot.gripper.open()
+      self.a_bot.gripper.open()
+      self.a_bot.go_to_named_pose("home")
+      self.b_bot.go_to_named_pose("home")
       self.unload_assembled_unit(tray_name)
       return False
     else:
@@ -1317,6 +1330,10 @@ class O2ACAssembly(O2ACCommon):
       
     self.publish_status_text("Target: Fasten Motor")
     
+    if not self.do_change_tool_action("a_bot", screw_size=3, equip=True):
+      rospy.logerr("Fail to equip tool")
+      return False
+
     if not self.fasten_motor(simultaneous=False, part1=True, part2=False):
       rospy.logerr("Fail to do subtask a, Fastening part 1")
       if not self.fasten_motor_fallback():
@@ -1327,23 +1344,40 @@ class O2ACAssembly(O2ACCommon):
         self.b_bot.go_to_named_pose("home")
         return False
 
+    if not self.assembly_status.bearing_inserted_in_panel:
+      self.assembly_status.bearing_picked = self.pick_bearing("b_bot")
+
     self.a_bot_success = False
     self.b_bot_success = False
     def a_bot_task():
       self.a_bot_success = self.fasten_motor(simultaneous=False, part1=False, part2=True)
     def b_bot_task():
       self.publish_status_text("Target: Fasten Motor & Bearing")
-      if not self.align_bearing_holes(task="assembly"):
-        return False
-      self.b_bot.move_lin_rel(relative_translation=[0,-0.05,0.15], speed=1.0)
-      if not self.fasten_bearing("assembly", robot_name="b_bot", with_extra_retighten=True):
-        return False
-      self.b_bot_success = True
+      if not self.assembly_status.bearing_inserted_in_panel and not self.assembly_status.bearing_picked:
+        if not self.orient_bearing("assembly", "b_bot"):
+          self.drop_in_tray()
+          return False
+        if not self.insert_bearing("assembled_part_07_inserted", robot_name="b_bot"):
+          return False
+        self.assembly_status.bearing_inserted_in_panel = True
+      if self.assembly_status.bearing_inserted_in_panel:
+        if not self.align_bearing_holes(task="assembly"):
+          return False
+        self.b_bot.move_lin_rel(relative_translation=[0,-0.05,0.15], speed=1.0)
+        if not self.fasten_bearing("assembly", robot_name="b_bot", with_extra_retighten=True):
+          return False
+        self.b_bot_success = True
 
     self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=300)
 
     if not self.a_bot_success or not self.b_bot_success:
       rospy.logerr("Fail to do simultaneous motor and bearing fastening a_bot:%s b_bot:%s" % (self.a_bot_success, self.b_bot_success))
+      self.do_change_tool_action("a_bot", equip=False, screw_size=3)
+      self.do_change_tool_action("b_bot", equip=False, screw_size=4)
+      self.a_bot.gripper.open()
+      self.a_bot.go_to_named_pose("home")
+      self.b_bot.gripper.open()
+      self.b_bot.go_to_named_pose("home")
       self.unload_assembled_unit(tray_name)
       return False
 
@@ -1464,11 +1498,11 @@ class O2ACAssembly(O2ACCommon):
     self.reset_scene_and_robots()
     orders = []
     orders.append({"tray_name":"tray1", "assembly_name":"wrs_assembly_2021", "status":AssemblyStatus()})  # Top tray
-    # orders.append({"tray_name":"tray2", "assembly_name":"wrs_assembly_2020", "status":AssemblyStatus()})  # Bottom tray
+    orders.append({"tray_name":"tray2", "assembly_name":"wrs_assembly_2020", "status":AssemblyStatus()})  # Bottom tray
 
     ### Use this line to adjust the start state in case of a reset
-    orders[0]["status"].tray_placed_on_table = True
-    # orders[0]["status"].tray_placed_on_table = False
+    # orders[0]["status"].tray_placed_on_table = True
+    orders[0]["status"].tray_placed_on_table = False
 
     if not orders[0]["status"].tray_placed_on_table:
       print("get from AGV")
@@ -1480,8 +1514,8 @@ class O2ACAssembly(O2ACCommon):
     else:
       print("already in the table")
       self.set_assembly(orders[0]["assembly_name"])
-      stack_center=[0.05, 0.14]
-      tray_heights=[0.075,0.02]
+      stack_center=[-0.03,0]
+      tray_heights=[0.05,0.0]
       self.trays_return = {"tray%s"%(i+1): (stack_center+[tray_height], True) for i, tray_height in enumerate(tray_heights[::-1])}
       
     for order in orders:
