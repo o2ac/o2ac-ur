@@ -41,6 +41,7 @@ class RobotiqGripper():
                     return command(0.0)
 
                 def open(opening_width=1.0):
+                    opening_width = opening_width if opening_width else 1.0
                     return command(opening_width)
 
                 def command(cmd):

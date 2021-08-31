@@ -186,8 +186,12 @@ class URForceController(CompliantController):
         plane = get_orthogonal_plane(insertion_direction[1])
         radius_direction = get_random_valid_direction(plane) if radius_direction is None else radius_direction
 
-        offset = 1 if self.robot_name == "b_bot" else -1 # account for robot's mirror position
-        target_force = offset * get_target_force(insertion_direction, force)
+        if "Z" in insertion_direction:
+            target_force = get_target_force(insertion_direction, force)
+        else:
+            offset = 1 if self.robot_name == "b_bot" else -1 # account for robot's mirror position
+            target_force = offset * get_target_force(insertion_direction, force)
+
         if selection_matrix is None:
             selection_matrix = np.array(target_force == 0.0) * 0.8  # define the selection matrix based on the target force
 

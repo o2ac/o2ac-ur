@@ -527,7 +527,7 @@ class O2ACBase(object):
       adjusted_pose.pose.position.x -= descend_distance
       success = False
       while not success: # TODO(cambel, felix): infinite loop?
-        success = self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, end_effector_link=screw_tool_link)
+        success = self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, end_effector_link=screw_tool_link, move_lin=True)
         
       # Break out of loop if screw suctioned or max search radius exceeded
       rospy.sleep(wait_for_suction_time)
@@ -611,14 +611,14 @@ class O2ACBase(object):
     pushed_into_hole = copy.deepcopy(screw_tip_at_hole)
     pushed_into_hole.pose.position.x += insertion_amount
 
-    self.active_robots[robot_name].go_to_pose_goal(away_from_hole, end_effector_link=screw_tool_link, speed=0.5)
+    self.active_robots[robot_name].go_to_pose_goal(away_from_hole, end_effector_link=screw_tool_link, speed=0.5, move_lin=True, retry_non_linear=True)
     
     self.tools.set_motor(fastening_tool_name, direction="tighten", wait=False, duration=duration, 
                          skip_final_loosen_and_retighten=skip_final_loosen_and_retighten)
 
     self.planning_scene_interface.allow_collisions(screw_tool_id)
 
-    self.active_robots[robot_name].go_to_pose_goal(pushed_into_hole, end_effector_link=screw_tool_link, speed=0.02)
+    self.active_robots[robot_name].go_to_pose_goal(pushed_into_hole, end_effector_link=screw_tool_link, speed=0.02, move_lin=True)
 
     # Stop spiral motion if the tool action finished, regardless of success/failure
     tc = lambda a, b: self.tools.fastening_tool_client.get_state() != GoalStatus.ACTIVE
@@ -638,7 +638,7 @@ class O2ACBase(object):
       motor_stalled = result.motor_stalled
 
     if not stay_put_after_screwing:
-      self.active_robots[robot_name].go_to_pose_goal(away_from_hole, end_effector_link=screw_tool_link, speed=0.02)
+      self.active_robots[robot_name].go_to_pose_goal(away_from_hole, end_effector_link=screw_tool_link, speed=0.02, move_lin=True)
 
     self.planning_scene_interface.disallow_collisions(screw_tool_id)
 
@@ -883,10 +883,6 @@ class O2ACBase(object):
     Returns object pose if object was detected in current camera view and published to planning scene,
     False otherwise.
     """
-    if not self.use_real_robot:
-      rospy.logwarn("Returning position near center (simulation)")
-      return conversions.to_pose_stamped("tray_center", [-0.01, 0.05, 0.02] + np.deg2rad([0,90.,0]).tolist())
-
     # TODO: merge with "look_and_get_grasp_points"
     object_type = self.assembly_database.name_to_type(item_name)
     if not object_type:
@@ -1168,7 +1164,7 @@ class O2ACBase(object):
       return False
     if ((robot.robot_status.carrying_tool == False) and unequip):
       rospy.logerr("Robot is not holding a tool. Cannot unequip any.")
-      return False
+      return True # this is not an error
     
     # Set up poses
     ps_approach = geometry_msgs.msg.PoseStamped()

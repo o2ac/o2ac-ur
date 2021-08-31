@@ -1,6 +1,6 @@
 robot_name: a_bot
 waypoints:
-- pose: [-0.15, 0, -0.10, -180, 0, 0] # translation, orientation (degrees)
+- pose: [-0.15, 0, -0.0, -180, 0, 0] # translation, orientation (degrees)
   pose_type: task-space-in-frame
   frame_id: left_centering_link
   speed: 1.0

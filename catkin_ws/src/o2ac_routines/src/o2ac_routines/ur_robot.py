@@ -246,8 +246,9 @@ class URRobot(RobotBase):
                     return True
 
     @helpers.check_for_real_robot
-    def load_and_execute_program(self, program_name="", recursion_depth=0):
-        self.activate_ros_control_on_ur()
+    def load_and_execute_program(self, program_name="", recursion_depth=0, skip_ros_activation=False):
+        if not skip_ros_activation:
+            self.activate_ros_control_on_ur()
         if not self.load_program(program_name, recursion_depth):
             return False
         return self.execute_loaded_program()
