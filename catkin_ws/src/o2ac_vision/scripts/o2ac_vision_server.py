@@ -72,7 +72,7 @@ from o2ac_vision.pose_estimation_func import ShaftAnalysis
 from o2ac_vision.pose_estimation_func import PickCheck
 from o2ac_vision.pose_estimation_func import PulleyScrewDetection
 
-from o2ac_vision.cam_utils import O2ACCameraHelper
+from o2ac_vision.cam_utils import CAMERA_FAILURE, O2ACCameraHelper
 
 import o2ac_vision.o2ac_ssd
 ssd_detection = o2ac_vision.o2ac_ssd.ssd_detection()
@@ -340,14 +340,21 @@ class O2ACVisionServer(object):
         action_result.poses       = []
         action_result.class_ids   = []
         action_result.upside_down = []
+        success = True
         for poses2d in poses2d_array:
             for pose2d in poses2d.poses:
                 p3d = self.convert_pose_2d_to_3d(pose2d)
+                if CAMERA_FAILURE:
+                    success = False
                 if p3d:
                     action_result.class_ids.append(poses2d.class_id)
                     action_result.poses.append(p3d)
                     action_result.upside_down.append(poses2d.upside_down)
-        self.get_3d_poses_from_ssd_server.set_succeeded(action_result)
+        if success:
+            self.get_3d_poses_from_ssd_server.set_succeeded(action_result)
+        else:
+            action_result.error_code = -1
+            self.get_3d_poses_from_ssd_server.set_aborted(action_result, "Camera failure")
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
 
     def execute_localization(self, im_in, im_vis):
@@ -405,11 +412,19 @@ class O2ACVisionServer(object):
                 poses2d += p2d
 
         action_result = o2ac_msgs.msg.beltDetectionResult()
+        success = True
         for pose2d in poses2d:
             pose3d = self.convert_pose_2d_to_3d(pose2d)
+            if pose3d == CAMERA_FAILURE:
+                success = False
+                break
             if pose3d:
                 action_result.grasp_points.append(pose3d)
-        self.belt_detection_server.set_succeeded(action_result)
+        if success:
+            self.belt_detection_server.set_succeeded(action_result)
+        else:
+            # action_result.error_code = -1
+            self.belt_detection_server.set_aborted(action_result, "Camera failure")
 
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
         self.write_to_log(im_in, im_vis, "belt_detection")
@@ -520,6 +535,8 @@ class O2ACVisionServer(object):
             poses3d = []
             for pose2d in poses2d.poses:
                 pose3d = self.convert_pose_2d_to_3d(pose2d)
+                if pose3d == CAMERA_FAILURE:
+                    continue
                 if pose3d:
                     poses3d.append(pose3d)
                     rospy.loginfo("Found pose for class %d: (%f, %f, %f)",
@@ -527,6 +544,7 @@ class O2ACVisionServer(object):
                                   pose3d.pose.position.x,
                                   pose3d.pose.position.y,
                                   pose3d.pose.position.z)
+
             if poses3d:
                 if target in apply_grasp_detection:
                     self.publish_belt_grasp_pose_markers(poses3d)
@@ -761,12 +779,17 @@ class O2ACVisionServer(object):
         p3d.header.frame_id = self._camera_info.header.frame_id
         if self._depth is None:
             rospy.logerr("No depth image found")
-            return
+            return None
         depth = self.bridge.imgmsg_to_cv2(self._depth,
                                           desired_encoding="passthrough")
         xyz = self.cam_helper.project_2d_to_3d_from_images(self._camera_info,
                                                            pose2d.x, pose2d.y,
                                                            [depth])
+        
+        if xyz == CAMERA_FAILURE:
+            return CAMERA_FAILURE
+
+        # We may not have find anything so its okay to return None
         if not xyz:
             return None
         p3d.pose.position.x = xyz[0]
