@@ -867,6 +867,8 @@ class O2ACBase(object):
       self.objects_in_tray = dict()
       self.object_in_tray_is_upside_down = dict()
       res = self.vision.read_from_ssd()
+      if not res:
+        return False
       for idx, pose, upside_down in zip(res.class_ids, res.poses, res.upside_down):
         self.objects_in_tray[idx] = pose
         self.object_in_tray_is_upside_down[idx] = upside_down

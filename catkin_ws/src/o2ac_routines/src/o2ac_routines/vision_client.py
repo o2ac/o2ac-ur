@@ -60,7 +60,10 @@ class VisionClient():
 
         # Read result and return
         try:
-            return self.ssd_client.get_result()
+            response = self.ssd_client.get_result()
+            if response.class_ids and response.class_ids[0] == [-1]:
+                return False
+            return response
         except:
             pass
         return False

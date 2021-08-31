@@ -93,7 +93,6 @@ class O2ACCommon(O2ACBase):
 
     # Centered views (high up and close)
     self.tray_view_high = copy.deepcopy(ps)
-    # self.tray_view_high.pose.position.x += 0.015  # Magic number (the camera frames used for planning are uncalibrated)
     ps.pose.position.z = low_height
     self.tray_view_low = copy.deepcopy(ps)
 
@@ -117,7 +116,7 @@ class O2ACCommon(O2ACBase):
     self.close_tray_views_rot_left_more = [rotatePoseByRPY(radians(50),0,0, pose) for pose in self.close_tray_views]
     self.close_tray_views_rot_left_90 = [rotatePoseByRPY(radians(90),0,0, pose) for pose in self.close_tray_views]
 
-  def define_local_tray_views(self, high_height=.38, low_height=.3):
+  def define_local_tray_views(self, high_height=.385, low_height=.24, robot_name="b_bot", include_rotated_views=False):
     """
     Define the poses used to position the camera to look into the tray.
 
@@ -125,17 +124,22 @@ class O2ACCommon(O2ACBase):
                                         end_effector_link="b_bot_outside_camera_color_frame", 
                                         speed=.1, acceleration=.04)
     """
-    x_offset = .055  # At low_height
-    y_offset = .095  # At low_height
+    if robot_name == "b_bot":
+      x_offset = .055  # At low_height
+      y_offset = .095  # At low_height
+    if robot_name == "a_bot":
+      x_offset = .055  # At low_height
+      y_offset = .095  # At low_height
 
     ps = geometry_msgs.msg.PoseStamped()
     ps.header.frame_id = "tray_center"
     ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
+    ps.pose.position.y = -0.01 if robot_name == "b_bot" else 0
+    ps.pose.position.x = 0 if robot_name == "b_bot" else 0.02
     ps.pose.position.z = high_height
 
     # Centered views (high up and close)
     tray_view_high = copy.deepcopy(ps)
-    # self.tray_view_high.pose.position.x += 0.015  # Magic number (the camera frames used for planning are uncalibrated)
     ps.pose.position.z = low_height
     tray_view_low = copy.deepcopy(ps)
 
@@ -154,10 +158,11 @@ class O2ACCommon(O2ACBase):
     tray_view_close_back_a = copy.deepcopy(ps)
 
     close_tray_views = [tray_view_low, tray_view_close_front_b, tray_view_close_back_b, tray_view_close_front_a, tray_view_close_back_a]
-    # close_tray_views_rot_left = [rotatePoseByRPY(radians(20),0,0, pose) for pose in close_tray_views]
-    # close_tray_views_rot_right = [rotatePoseByRPY(radians(-20),0,0, pose) for pose in close_tray_views]
-    # close_tray_views_rot_left_more = [rotatePoseByRPY(radians(50),0,0, pose) for pose in close_tray_views]
-    # close_tray_views_rot_left_90 = [rotatePoseByRPY(radians(90),0,0, pose) for pose in close_tray_views]
+    if include_rotated_views:
+      close_tray_views.append(rotatePoseByRPY(radians(20),0,0, pose) for pose in close_tray_views)
+      close_tray_views.append(rotatePoseByRPY(radians(-20),0,0, pose) for pose in close_tray_views)
+      close_tray_views.append(rotatePoseByRPY(radians(50),0,0, pose) for pose in close_tray_views)
+      close_tray_views.append(rotatePoseByRPY(radians(90),0,0, pose) for pose in close_tray_views)
     return tray_view_high, close_tray_views
 
   def publish_part_in_assembled_position(self, object_name, test_header_frame="", disable_collisions=False, marker_only=False):
@@ -170,7 +175,8 @@ class O2ACCommon(O2ACBase):
       return True
 
     # Remove from scene or detach from robot
-    self.planning_scene_interface.remove_attached_object(name=object_name)
+    self.despawn_object(object_name)
+    # self.planning_scene_interface.remove_attached_object(name=object_name)
 
     # # DEBUGGING: Remove object from the scene
     # if True:
@@ -380,7 +386,7 @@ class O2ACCommon(O2ACBase):
     
     Returns False if object was not found, the pose if it was.
     """
-    tray_view_high, close_tray_views = self.define_local_tray_views()
+    tray_view_high, close_tray_views = self.define_local_tray_views(low_height=.3)
     # Look from top first
     self.vision.activate_camera(robot_name+"_outside_camera")
     if not skip_moving:
@@ -471,17 +477,23 @@ class O2ACCommon(O2ACBase):
       del self.objects_in_tray[object_id]
 
     if self.use_dummy_vision:
-      self.active_robots[robot_name].go_to_pose_goal(self.tray_view_high, end_effector_link=robot_name + "_outside_camera_color_frame", speed=.5, acceleration=.3, wait=True)
       rospy.logwarn("Using dummy vision! Setting object pose to tray center.")
       self.objects_in_tray[object_id] = conversions.to_pose_stamped("tray_center", [ 0,0,0, 0, 0, 0])
       return self.objects_in_tray[object_id]
 
-    for view in [self.tray_view_high] + self.close_tray_views + self.close_tray_views_rot_left + self.close_tray_views_rot_right + self.close_tray_views_rot_left_more + self.close_tray_views_rot_left_90:
+    tray_views = self.define_local_tray_views(robot_name=robot_name, include_rotated_views=True)
+
+    for view in tray_views:
       assert not rospy.is_shutdown()
       self.vision.activate_camera(robot_name + "_outside_camera")
       self.active_robots[robot_name].go_to_pose_goal(view, end_effector_link=robot_name + "_outside_camera_color_frame", speed=.5, acceleration=.3, wait=True, move_lin=True)
       rospy.sleep(0.5)
-      self.get_3d_poses_from_ssd()
+      
+      tries = 10
+      while tries > 0:
+        if self.get_3d_poses_from_ssd():
+          break
+        tries -= 1
 
       object_pose = copy.deepcopy(self.objects_in_tray.get(object_id, None))
       if object_pose:
@@ -498,7 +510,11 @@ class O2ACCommon(O2ACBase):
         self.vision.activate_camera(robot_name + "_outside_camera")
         self.active_robots[robot_name].go_to_pose_goal(close_view, end_effector_link=robot_name + "_outside_camera_color_frame", speed=.3, acceleration=.3)
         rospy.sleep(0.5)
-        self.get_3d_poses_from_ssd()
+        tries = 10
+        while tries > 0:
+          if self.get_3d_poses_from_ssd():
+            break
+          tries -= 1
         
         close_object_pose = copy.deepcopy(self.objects_in_tray.get(object_id, None))
 
@@ -3116,7 +3132,11 @@ class O2ACCommon(O2ACBase):
     def go_and_record(view_pose, results):
       self.vision.activate_camera("a_bot_outside_camera")
       self.a_bot.go_to_pose_goal(view_pose, speed=0.5, end_effector_link="a_bot_outside_camera_color_frame")
-      self.get_3d_poses_from_ssd()
+      tries = 10
+      while tries > 0:
+        if self.get_3d_poses_from_ssd():
+          break
+        tries -= 1
       obj_id = self.assembly_database.name_to_id("end_cap")
       res = copy.copy(self.object_in_tray_is_upside_down.get(obj_id, None))
       if res is not None:
@@ -3391,7 +3411,13 @@ class O2ACCommon(O2ACBase):
 
       # Look at the motor from above, confirm that SSD sees it
       rospy.sleep(1.0)
-      res = self.get_3d_poses_from_ssd()
+      tries = 10
+      res = None
+      while tries > 0:
+        res = self.get_3d_poses_from_ssd()
+        if res:
+          break
+        tries -= 1
       try:
         motor_id = self.assembly_database.name_to_id("motor")
         motor_placed = (motor_id in res.class_ids)
