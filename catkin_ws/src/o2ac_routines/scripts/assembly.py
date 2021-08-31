@@ -407,7 +407,7 @@ if __name__ == '__main__':
         c.pick_tray_from_agv_stack_calibration_long_side("tray1")
       if i == 'carryhigh':
         c.center_tray_stack()
-        c.pick_tray_from_agv_stack_calibration_long_side("tray1")
+        c.pick_tray_from_agv_stack_calibration_long_side("tray2")
       if i == "activate":
         c.a_bot.activate_ros_control_on_ur()
         c.b_bot.activate_ros_control_on_ur()
