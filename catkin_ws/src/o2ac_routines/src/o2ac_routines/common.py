@@ -1728,41 +1728,84 @@ class O2ACCommon(O2ACBase):
 
   def pick_and_fasten_screw(self, robot_name, screw_pose, screw_size, 
                              approach_distance=0.07, intermediate_pose=None, speed=0.7, 
-                             duration=20.0, attempts=1, spiral_radius=0.003):
+                             duration=20.0, attempts=1, spiral_radius=0.003, 
+                             save_plan_on_success=True, hole_center_pose=None, 
+                             saved_plan=None, skip_initial_motion=False):
     """Returns bool, screw success"""
+    if not skip_initial_motion:
+      seq = []
+      seq.append(helpers.to_sequence_item("screw_ready", speed=1.0, linear=False))
+      seq.append(helpers.to_sequence_item("feeder_pick_ready", speed=1.0, linear=False))
+      self.execute_sequence(robot_name, seq, "go to screw feed pose")
+      # self.active_robots[robot_name].go_to_named_pose("screw_ready", speed=speed)
+      # self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready", speed=speed)
+    
     # Pick screw
-    self.active_robots[robot_name].go_to_named_pose("screw_ready", speed=speed)
-    self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready", speed=speed)
-    pick_success = self.pick_screw_from_feeder_python(robot_name, screw_size=screw_size)
+    pick_success = self.pick_screw_from_feeder_python(robot_name, screw_size=screw_size, skip_retreat=save_plan_on_success)
 
     if not pick_success:
       rospy.logerr("Could not pick screw. Why?? Breaking out.")
       self.unequip_tool('b_bot', 'screw_tool_m4')
       return False
-    
-    if not self.active_robots[robot_name].go_to_named_pose("screw_ready", speed=speed):
-      return False
-    if not self.active_robots[robot_name].go_to_named_pose("horizontal_screw_ready", speed=speed):
-      return False
 
-    if intermediate_pose:
-      if not self.active_robots[robot_name].go_to_pose_goal(intermediate_pose, 
-                                                     end_effector_link = robot_name+"_screw_tool_m%s_tip_link"%screw_size,
-                                                     speed=speed):
-        rospy.logerr("Fail to go to intermediate pose")
+    feeder_to_hole_plan = None
+    eef = robot_name+"_screw_tool_m%s_tip_link"%screw_size
+    if save_plan_on_success:
+      success = False
+      if saved_plan:
+        success = self.a_bot.execute_plan(saved_plan)
+        if not success:
+          rospy.logerr("Failed to execute saved_plan. Try to compute plan again. are we in the same initial pose?")
+        feeder_to_hole_plan = saved_plan
+      if not success:
+        saved_plan = None
+        waypoints = []
+        waypoints.append(("feeder_pick_ready",      0, 1.0))
+        waypoints.append(("screw_ready",            0, 1.0))
+        waypoints.append(("horizontal_screw_ready", 0, 1.0))
+        if intermediate_pose:
+          waypoints.append((self.active_robots[robot_name].compute_ik(intermediate_pose, timeout=0.02, retry=True, end_effector_link = eef), 0, 0.7))
+        waypoints.append((self.active_robots[robot_name].compute_ik(hole_center_pose, timeout=0.02, retry=True, end_effector_link = eef), 0, 0.3))
+        res = self.active_robots[robot_name].move_joints_trajectory(waypoints, plan_only=True)
+        if not res:
+          rospy.logerr("Fail to plan feeder_to_hole_plan")
+          return False
+        else:
+          feeder_to_hole_plan, _ = res
+          if not self.a_bot.execute_plan(feeder_to_hole_plan):
+            rospy.logerr("Failed to execute feeder_to_hole_plan")
+            return False
+    else:
+      if not self.active_robots[robot_name].go_to_named_pose("screw_ready", speed=speed):
+        return False
+      if not self.active_robots[robot_name].go_to_named_pose("horizontal_screw_ready", speed=speed):
+        return False
+
+      if intermediate_pose:
+        if not self.active_robots[robot_name].go_to_pose_goal(intermediate_pose, 
+                                                      end_effector_link = eef,
+                                                      speed=speed):
+          rospy.logerr("Fail to go to intermediate pose")
+          return False
+      
+      screw_pose_approach = copy.deepcopy(screw_pose)
+      screw_pose_approach.pose.position.x -= approach_distance
+      
+      if not self.active_robots[robot_name].go_to_pose_goal(screw_pose_approach, 
+                                                            end_effector_link = eef,
+                                                            move_lin=False):
+        rospy.logerr("Fail to go to approach screw hole pose")
         return False
     
-    screw_pose_approach = copy.deepcopy(screw_pose)
-    screw_pose_approach.pose.position.x -= approach_distance
-    
-    if not self.active_robots[robot_name].go_to_pose_goal(screw_pose_approach, 
-                                                          end_effector_link = robot_name+"_screw_tool_m%s_tip_link"%screw_size,
-                                                          move_lin=False):
-      rospy.logerr("Fail to go to approach screw hole pose")
-      return False
-    
-    return self.screw(robot_name, screw_pose, screw_size=screw_size, screw_height=0.02, duration=duration, 
-                      skip_final_loosen_and_retighten=False, spiral_radius=spiral_radius, attempts=attempts, retry_on_failure=True)
+    success = self.screw(robot_name, screw_pose, screw_size=screw_size, screw_height=0.02, duration=duration, 
+                         skip_final_loosen_and_retighten=False, spiral_radius=spiral_radius, attempts=attempts, 
+                         retry_on_failure=True, stay_put_after_screwing=save_plan_on_success)
+    if success:
+      if save_plan_on_success:
+        return feeder_to_hole_plan
+      else:
+        return True
+    return False
 
   @check_for_real_robot
   @lock_vision
@@ -2066,7 +2109,7 @@ class O2ACCommon(O2ACBase):
 
   def fasten_set_of_screws(self, screw_poses, screw_size, robot_name, only_retighten=False, skip_intermediate_pose=False, 
                            simultaneous=False, with_extra_retighten=False, intermediate_pose=None, unequip_when_done=True,
-                           skip_return=False, attempts=1, tries=8):
+                           skip_return=False, attempts=1, tries=8, hole_center_pose=None):
     if not self.equip_tool(robot_name, 'screw_tool_m%s' % screw_size):
       rospy.logerr("Fail to equip tool abort!")
       return False
@@ -2090,18 +2133,47 @@ class O2ACCommon(O2ACBase):
     # Go to bearing and fasten all the screws
     all_screws_done = False
     first_screw = True
+    feeder_to_hole_plan = None
+    hole_to_feeder_plan = None
+    if robot_name == "a_bot":
+      rotation = [radians(80), 0, 0]
+    elif robot_name == "b_bot":
+      rotation = [-tau/6, 0, 0]
+    pose_feeder = conversions.to_pose_stamped("m" + str(screw_size) + "_feeder_outlet_link", [0, 0, 0]+rotation)
+    if hole_center_pose:
+      screw_set_center_pose = hole_center_pose
+    else:
+      screw_set_center_pose = copy.deepcopy(screw_poses[0])
+      screw_set_center_pose.pose.position.x -= 0.05
     while not all_screws_done and tries > 0:
       for n in range(len(screw_poses)):
         assert not rospy.is_shutdown(), "lost connection to ros?"
         if screw_status[n] == "done":
           continue
+
+        screw_pose_approach = copy.deepcopy(screw_poses[n])
+        screw_pose_approach.pose.position.x -= 0.03
         
         seq = []
         if not first_screw and screw_status[n] == "empty": # go back
-          if intermediate_pose:
-            seq.append(helpers.to_sequence_item(intermediate_pose, speed=speed, end_effector_link=screw_tool_link , linear=True))
-          seq.append(helpers.to_sequence_item("horizontal_screw_ready", speed=speed, linear=True))
-          seq.append(helpers.to_sequence_item("screw_ready", speed=speed, linear=True))
+          if not hole_to_feeder_plan:
+            waypoints = []
+            if intermediate_pose:
+              waypoints.append((self.active_robots[robot_name].compute_ik(intermediate_pose, timeout=0.02, retry=True, end_effector_link=screw_tool_link), 0, 1.0))
+            waypoints.append(("horizontal_screw_ready", 0, 1.0))
+            waypoints.append(("screw_ready",            0, 1.0))
+            waypoints.append(("feeder_pick_ready",      0, 1.0))
+            waypoints.append((self.active_robots[robot_name].compute_ik(pose_feeder, timeout=0.02, retry=True, end_effector_link=screw_tool_link), 0, 0.3))
+      
+            res = self.active_robots[robot_name].move_joints_trajectory(waypoints, plan_only=True)
+            if not res:
+              rospy.logerr("Fail to plan hole_to_feeder_plan")
+              return False
+            else:
+              hole_to_feeder_plan, _ = res
+          if not self.a_bot.execute_plan(hole_to_feeder_plan):
+            rospy.logerr("Failed to execute hole_to_feeder_plan")
+            return False
         
         if not skip_intermediate_pose and first_screw and screw_status[n] == "maybe_stuck_in_hole": # get ready for screwing
           seq.append(helpers.to_sequence_item("horizontal_screw_ready", speed=speed, linear=True))
@@ -2110,12 +2182,17 @@ class O2ACCommon(O2ACBase):
         if seq:
           self.execute_sequence(robot_name, seq, "fasten_screws_return_seq")
 
-        if first_screw:
-          first_screw = False
-
         if screw_status[n] == "empty":
-          success = self.pick_and_fasten_screw(robot_name, screw_poses[n], screw_size=screw_size, intermediate_pose=intermediate_pose, attempts=attempts)
-          if success:
+          feeder_to_hole_plan = self.pick_and_fasten_screw(robot_name, screw_poses[n], screw_size=screw_size, 
+                                                           intermediate_pose=intermediate_pose, attempts=attempts,
+                                                           save_plan_on_success=True, saved_plan=feeder_to_hole_plan,
+                                                           hole_center_pose=screw_set_center_pose,
+                                                           skip_initial_motion=(not first_screw))
+          trajectory = [[screw_pose_approach, 0.0, 0.02], [screw_set_center_pose, 0.0, 0.3]]
+          if not self.active_robots[robot_name].move_lin_trajectory(trajectory, end_effector_link=screw_tool_link):
+            rospy.logerr("Failed to go to screw_set_center_pose")
+            return False
+          if feeder_to_hole_plan:
             screw_status[n] = "done" 
           else:
             rospy.sleep(0.2)
@@ -2127,12 +2204,14 @@ class O2ACCommon(O2ACBase):
               screw_status[n] == "maybe_stuck_in_hole"
             
         elif screw_status[n] == "maybe_stuck_in_hole":  # Retighten
-          screw_pose_approach = copy.deepcopy(screw_poses[n])
-          screw_pose_approach.pose.position.x -= 0.07
-          robot.go_to_pose_goal(screw_pose_approach, end_effector_link=screw_tool_link, move_lin=False)
           success = self.screw(robot_name, screw_poses[n], screw_size=screw_size, screw_height=0.02, 
-                               skip_final_loosen_and_retighten=False, spiral_radius=0.003, retry_on_failure=True)
+                               skip_final_loosen_and_retighten=False, spiral_radius=0.003, retry_on_failure=True,
+                               stay_put_after_screwing=True)
+          robot.go_to_pose_goal(screw_pose_approach, end_effector_link=screw_tool_link, speed=0.1, move_lin=True)
           screw_status[n] = "done" if success else "maybe_stuck_in_hole"
+        
+        if first_screw:
+          first_screw = False
         
         if robot.is_protective_stopped():
           rospy.logerr("Critical error: %s  protective stopped. Something is wrong. Wait to unlock, move back, abort." % robot_name)
@@ -2152,7 +2231,7 @@ class O2ACCommon(O2ACBase):
         rospy.logwarn("NOT done, but aborting")
 
     if with_extra_retighten:
-      return self.fasten_set_of_screws(screw_poses, screw_size=screw_size, robot_name=robot_name, only_retighten=True,
+      return self.fasten_set_of_screws(screw_poses[::-1], screw_size=screw_size, robot_name=robot_name, only_retighten=True,
                                        simultaneous=simultaneous, with_extra_retighten=False, 
                                        skip_intermediate_pose=True, intermediate_pose=intermediate_pose, 
                                        unequip_when_done=unequip_when_done)

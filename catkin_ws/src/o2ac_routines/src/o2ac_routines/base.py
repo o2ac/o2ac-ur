@@ -403,14 +403,17 @@ class O2ACBase(object):
     # # TODO(felixvd): Add the set screw and nut tool objects from the C++ file
 
   ######
-  def pick_screw_from_feeder_python(self, robot_name, screw_size, realign_tool_upon_failure=True):
+  def pick_screw_from_feeder_python(self, robot_name, screw_size, realign_tool_upon_failure=True, skip_retreat=False):
     if self.tools.screw_is_suctioned.get("m" + str(screw_size), False): 
       rospy.loginfo("(pick_screw_from_feeder) But a screw was already detected in the tool. Returning true without doing anything.")
       return True
 
     assert robot_name in ("a_bot", "b_bot"), "unsupported operation for robot %s" % robot_name
-    offset = 1 if robot_name == "a_bot" else -1
-    pose_feeder = conversions.to_pose_stamped("m" + str(screw_size) + "_feeder_outlet_link", [0, 0, 0, np.deg2rad(offset*60), 0, 0])
+    if robot_name == "a_bot":
+      rotation = [radians(80), 0, 0]
+    elif robot_name == "b_bot":
+      rotation = [-tau/6, 0, 0]
+    pose_feeder = conversions.to_pose_stamped("m" + str(screw_size) + "_feeder_outlet_link", [0, 0, 0]+rotation)
     
     screw_tool_id = "screw_tool_m" + str(screw_size)
     screw_tool_link = robot_name + "_screw_tool_m" + str(screw_size) + "_tip_link"
@@ -421,9 +424,17 @@ class O2ACBase(object):
         rospy.logerr("Robot is not carrying the correct tool (" + fastening_tool_name + ") and it failed to be equipped. Abort.")
         return False
 
-    screw_picked = self.suck_screw(robot_name, pose_feeder, screw_tool_id, screw_tool_link, fastening_tool_name, do_spiral_search_at_bottom=True)
+    self.suck_screw(robot_name, pose_feeder, screw_tool_id, screw_tool_link, fastening_tool_name, do_spiral_search_at_bottom=True, skip_retreat=skip_retreat)
     
-    if screw_picked:
+    # check again that the screw is there
+    screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
+    
+    if screw_picked or not self.use_real_robot:
+      if skip_retreat:
+        # Go to a central position (either we went through the gate or we didn't)
+        above_screw_head_pose = copy.deepcopy(pose_feeder)
+        above_screw_head_pose.pose.position.x -= 0.03
+        self.active_robots[robot_name].go_to_pose_goal(above_screw_head_pose, speed=0.3, end_effector_link=screw_tool_link, move_lin=True)
       return True
     elif realign_tool_upon_failure:
         self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
@@ -435,7 +446,8 @@ class O2ACBase(object):
         self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
         return False
 
-  def suck_screw(self, robot_name, screw_head_pose, screw_tool_id, screw_tool_link, fastening_tool_name, do_spiral_search_at_bottom=True):
+  def suck_screw(self, robot_name, screw_head_pose, screw_tool_id, screw_tool_link, fastening_tool_name, 
+                       do_spiral_search_at_bottom=True, skip_retreat=False):
     """ Strategy: 
          - Move 1 cm above the screw head pose
          - Go down real slow for 2 cm while turning the motor in the direction that would loosen the screw
@@ -446,7 +458,7 @@ class O2ACBase(object):
     rospy.loginfo("Suck screw command")
 
     if robot_name == "a_bot":
-      rotation = [radians(80), 0, 0] if screw_tool_id == "screw_tool_m4" else [radians(80), 0, 0]
+      rotation = [radians(80), 0, 0]
     elif robot_name == "b_bot":
       rotation = [-tau/6, 0, 0]
 
@@ -580,20 +592,21 @@ class O2ACBase(object):
 
     self.tools.set_motor(fastening_tool_name, direction="loosen", wait=False, duration=0.1, skip_final_loosen_and_retighten=True)
 
-    # Move away from feeder
-    waypoints = []
-    through_gate = None
-    if screw_picked:
-      rospy.loginfo("Moving back through sensor gate.")
-      rel_pose = self.active_robots[robot_name].move_lin_rel([0.02,0,0.0], pose_only=True)
-      through_gate = self.active_robots[robot_name].compute_ik(rel_pose, timeout=0.02, retry=True)
-      waypoints.append((through_gate,0,0.1))
-    rel_pose = self.active_robots[robot_name].move_lin_rel([0.0,0,0.05], pose_only=True, initial_joints=through_gate)
-    waypoints.append((self.active_robots[robot_name].compute_ik(rel_pose, timeout=0.02, retry=True), 0, 0.6))
-    waypoints.append(("feeder_pick_ready",0,0.6))
-    if not self.active_robots[robot_name].move_joints_trajectory(waypoints):
-      rospy.logerr("Go to feeder_pick_ready failed. abort.")
-      screw_picked = False
+    if not skip_retreat or not screw_picked: # go back in case of failure
+      # Move away from feeder
+      waypoints = []
+      through_gate = None
+      if screw_picked:
+        rospy.loginfo("Moving back through sensor gate.")
+        rel_pose = self.active_robots[robot_name].move_lin_rel([0.02,0,0.0], pose_only=True)
+        through_gate = self.active_robots[robot_name].compute_ik(rel_pose, timeout=0.02, retry=True)
+        waypoints.append((through_gate,0,0.1))
+      rel_pose = self.active_robots[robot_name].move_lin_rel([0.0,0,0.05], pose_only=True, initial_joints=through_gate)
+      waypoints.append((self.active_robots[robot_name].compute_ik(rel_pose, timeout=0.02, retry=True), 0, 0.6))
+      waypoints.append(("feeder_pick_ready",0,0.6))
+      if not self.active_robots[robot_name].move_joints_trajectory(waypoints):
+        rospy.logerr("Go to feeder_pick_ready failed. abort.")
+        screw_picked = False
 
     if (screw_tool_id == "screw_tool_m3"):
       self.planning_scene_interface.disallow_collisions(screw_tool_id, "m3_feeder_link")
