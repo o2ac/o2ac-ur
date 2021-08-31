@@ -73,8 +73,8 @@ class O2ACAssembly(O2ACCommon):
     super(O2ACAssembly, self).__init__()
     
     # Load the initial database
-    if not self.assembly_database.db_name == "wrs_assembly_2020":
-      self.set_assembly("wrs_assembly_2020")
+    if not self.assembly_database.db_name == "wrs_assembly_2021":
+      self.set_assembly("wrs_assembly_2021")
 
     # Spawn tools and objects
     self.define_tool_collision_objects()
