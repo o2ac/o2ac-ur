@@ -1008,7 +1008,7 @@ class O2ACAssembly(O2ACCommon):
     def b_bot_task():
       if pick_and_orient_insert_motor:
         rospy.loginfo("Picking and orienting motor")
-        self.assembly_status.motor_placed_outside_of_tray = self.pick_motor()
+        self.assembly_status.motor_picked = self.pick_motor()
         self.b_bot.go_to_named_pose("centering_area", speed=1.0)
     
     if simultaneous:
@@ -1017,8 +1017,8 @@ class O2ACAssembly(O2ACCommon):
       a_bot_task()
       b_bot_task()
 
-    if not self.panel_motor_pose or not self.assembly_status.motor_placed_outside_of_tray:
-      rospy.logerr("Fail to do panels_assembly2: simultaneous=%s a:%s b:%s" % (simultaneous, self.assembly_status.motor_placed_outside_of_tray, self.panel_motor_pose))
+    if not self.panel_motor_pose or not self.assembly_status.motor_picked:
+      rospy.logerr("Fail to do panels_assembly2: simultaneous=%s a:%s b:%s" % (simultaneous, self.assembly_status.motor_picked, self.panel_motor_pose))
       return False
 
     # Pick base plate with a_bot, prepare fastening with b_bot
@@ -1038,9 +1038,9 @@ class O2ACAssembly(O2ACCommon):
         self.panel_bearing_picked = True
       self.a_bot_success = True
     def b_bot_task():
-      if pick_and_orient_insert_motor:
+      if pick_and_orient_insert_motor and self.assembly_status.motor_picked:
         rospy.sleep(5)
-        self.orient_motor()
+        self.assembly_status.motor_oriented = self.orient_motor()
         self.b_bot.move_lin_rel(relative_translation=[0,0,0.06], speed=0.3)
       start_time = rospy.get_time()
       while not self.b_bot_success and rospy.get_time()-start_time < 20:
@@ -1118,7 +1118,7 @@ class O2ACAssembly(O2ACCommon):
       a_bot_task()
       b_bot_task()
     
-    self.publish_part_in_assembled_position("panel_bearing")
+    self.publish_part_in_assembled_position("panel_bearing", disable_collisions=True)
     self.publish_part_in_assembled_position("panel_motor", disable_collisions=True)
 
     if not self.b_bot_success or not self.a_bot_success:
@@ -1132,8 +1132,10 @@ class O2ACAssembly(O2ACCommon):
         self.publish_status_text("Target: Bearing")
         if not self.pick_bearing("a_bot"):
           return False
+        self.assembly_status.bearing_picked = True
         if not self.orient_bearing("assembly", "a_bot", part1=True, part2=True):
           return False
+        self.assembly_status.bearing_oriented = True
         if not self.insert_bearing("assembled_part_07_inserted", robot_name="a_bot"):
           return False
         self.assembly_status.bearing_inserted_in_panel = True
@@ -1146,13 +1148,20 @@ class O2ACAssembly(O2ACCommon):
     else:
       a_bot_2nd_task = lambda : True
     
-    if pick_and_orient_insert_motor:
+    if pick_and_orient_insert_motor and self.assembly_status.motor_oriented:
       def b_bot_2nd_task():
         self.publish_status_text("Target: Bearing & Motor")
         self.b_bot.go_to_named_pose("centering_area")
         if not self.align_motor_pre_insertion():
           return False
         if not self.insert_motor("assembled_part_02_back_hole"):
+          self.b_bot.move_lin_rel(relative_translation=[-0.05,0,0])
+          self.b_bot.move_lin_rel(relative_translation=[0,0.05,0.1])
+          place_pose = conversions.to_pose_stamped("right_centering_link", [0.0,0,0,0,0,0])
+          self.simple_place("b_bot", place_pose, axis='x', sign=-1, approach_height=0.15, item_id_to_detach='motor', place_height=0.03)
+          self.assembly_status.motor_panel_placed_outside_of_tray = True
+          self.assembly_status.motor_picked = False
+          self.assembly_status.motor_oriented = False
           return False
         self.despawn_object("motor")
         self.publish_part_in_assembled_position("motor", marker_only=True)
@@ -1167,11 +1176,10 @@ class O2ACAssembly(O2ACCommon):
       return False
 
     self.do_change_tool_action("b_bot", equip=False, screw_size = 4)
-    self.publish_part_in_assembled_position("panel_motor")
+    
 
     del self.panel_bearing_pose
     del self.panel_motor_pose
-    del self.skip_perception
     return True
 
   def subtask_h(self):
@@ -1232,46 +1240,58 @@ class O2ACAssembly(O2ACCommon):
     return self.do_plan_pickplace_action('b_bot', 'panel_bearing', pose, save_solution_to_file = 'panel_bearing/bottom_screw_hole_aligner_1')
 
   def assemble_drive_unit_orchestrated(self, tray_name=None, simultaneous_execution=True, tray_on_table=False):
-    if not tray_on_table and tray_name:
-      if not self.pick_tray_from_agv_stack_calibration_long_side(tray_name=tray_name):
-        rospy.logerr("Fail to pick and place tray. Abort!")
-        return False
+    # if not tray_on_table and tray_name:
+    #   if not self.pick_tray_from_agv_stack_calibration_long_side(tray_name=tray_name):
+    #     rospy.logerr("Fail to pick and place tray. Abort!")
+    #     return False
 
-    # L-plates and base plate
-    success = self.panels_tasks_combined(simultaneous=simultaneous_execution, pick_and_orient_insert_bearing=True, pick_and_orient_insert_motor=True)
-    if success:
-      self.assembly_status.completed_subtask_f = True
-      self.assembly_status.completed_subtask_g = True
-    else:
-      rospy.logfatal("Fail to assemble panels... call a reset!")
-      return False
+    # # L-plates and base plate
+    # success = self.panels_tasks_combined(simultaneous=simultaneous_execution, pick_and_orient_insert_bearing=True, pick_and_orient_insert_motor=True)
+    # if success:
+    #   self.assembly_status.completed_subtask_f = True
+    #   self.assembly_status.completed_subtask_g = True
+    # else:
+    #   rospy.logfatal("Fail to assemble panels... call a reset!")
+    #   return False
+    # self.publish_part_in_assembled_position("panel_motor")
+    # self.publish_part_in_assembled_position("panel_bearing")
 
-    self.do_change_tool_action("b_bot", equip=False, screw_size=4)
+    # self.do_change_tool_action("b_bot", equip=False, screw_size=4)
 
     # Bearing and Motor
     self.a_bot_success = False
     self.b_bot_success = False
     def a_bot_task():
-      if not self.assembly_status.bearing_inserted_in_panel:
-        self.publish_status_text("Target: Bearing & Motor")
+      self.publish_status_text("Target: Bearing & Motor")
+      if not self.assembly_status.bearing_picked:
+        self.publish_status_text("Target: Bearing(Pick) & Motor")
         if not self.pick_bearing("a_bot"):
           return False
+      if not self.assembly_status.bearing_oriented:
+        self.publish_status_text("Target: Bearing(Orient) & Motor")
         if not self.orient_bearing("assembly", "a_bot", part1=True, part2=True):
           return False
+      if not self.assembly_status.bearing_inserted_in_panel:
+        self.publish_status_text("Target: Bearing(Insert) & Motor")
         if not self.insert_bearing("assembled_part_07_inserted", robot_name="a_bot"):
           return False
-        self.assembly_status.bearing_inserted_in_panel = True
-        if not self.a_bot.go_to_named_pose("home"):
-          rospy.logerr("Fail to go home")
-        if not self.do_change_tool_action("a_bot", screw_size=3, equip=True):
-          rospy.logerr("Fail to equip tool")
-          return False
-      self.a_bot_success = success
+
+      self.publish_status_text("Target: Motor")
+      self.assembly_status.bearing_inserted_in_panel = True
+      if not self.a_bot.go_to_named_pose("home"):
+        rospy.logerr("Fail to go home")
+      if not self.do_change_tool_action("a_bot", screw_size=3, equip=True):
+        rospy.logerr("Fail to equip tool")
+        return False
+      self.a_bot_success = True
     def b_bot_task():
-      if self.assembly_status.motor_placed_outside_of_tray and not self.assembly_status.motor_inserted_in_panel:
+      if self.assembly_status.motor_placed_outside_of_tray:
+        if not self.confirm_motor_and_place_in_aid():
+          return False
+      if not self.assembly_status.motor_inserted_in_panel:
         self.publish_status_text("Target: Bearing & Motor")
         self.b_bot.go_to_named_pose("centering_area")
-        if not self.align_motor_pre_insertion():
+        if not self.align_motor_pre_insertion(simultaneous=True):
           return False
         if not self.insert_motor("assembled_part_02_back_hole"):
           return False
@@ -1308,6 +1328,7 @@ class O2ACAssembly(O2ACCommon):
       self.publish_status_text("Target: Fasten Motor & Bearing")
       if not self.align_bearing_holes(task="assembly"):
         return False
+      self.b_bot.move_lin_rel(relative_translation=[0,0,0.1], speed=1.0)
       if not self.fasten_bearing("assembly", robot_name="b_bot", with_extra_retighten=True):
         return False
       self.b_bot_success = True

@@ -98,9 +98,13 @@ class AssemblyStatus(object):
     self.motor_panel_placed_outside_of_tray = False
 
     self.belt_placed_outside_of_tray = False
+    self.motor_picked = False
+    self.motor_oriented = False
     self.motor_placed_outside_of_tray = False
     self.motor_inserted_in_panel = False
     self.bearing_placed_outside_of_tray = False
+    self.bearing_picked = False
+    self.bearing_oriented = False
     self.bearing_inserted_in_panel = False
     self.bearing_spacer_assembled = False
 
@@ -1152,6 +1156,7 @@ class O2ACBase(object):
     operation can be "equip", "unequip" or "realign".
     """
     robot = self.active_robots[robot_name]
+    gripper_force = 80 if robot_name == "b_bot" else 150
     if tool_name == "":
       tool_name = self.active_robots[robot_name].robot_status.held_tool_id
 
@@ -1290,7 +1295,7 @@ class O2ACBase(object):
       sequence.append(helpers.to_sequence_item(pull_back_slightly, speed=lin_speed))
       sequence.append(helpers.to_sequence_gripper(action='open', gripper_opening_width=0.07, gripper_velocity=1.0))
       sequence.append(helpers.to_sequence_item(ps_in_holder, speed=lin_speed))
-      sequence.append(helpers.to_sequence_gripper(action='close', gripper_force=100, gripper_velocity=0.1))
+      sequence.append(helpers.to_sequence_gripper(action='close', gripper_force=gripper_force, gripper_velocity=0.1))
     
     # Plan & execute linear motion away from the tool change position
     rospy.loginfo("Moving back to screw tool approach pose LIN.")

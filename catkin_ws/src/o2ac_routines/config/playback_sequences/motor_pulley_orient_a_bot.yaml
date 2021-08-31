@@ -35,7 +35,7 @@ waypoints:
     velocity: 0.01
     force: 0
   desc: Centering 
-- pose: [-0.005, 0, 0.0, -30, 0, 0] 
+- pose: [-0.008, 0, 0.0, -30, 0, 0] 
   pose_type: task-space-in-frame
   frame_id: left_centering_link
   speed: 1.0
