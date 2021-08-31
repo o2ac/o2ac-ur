@@ -4150,7 +4150,6 @@ class O2ACCommon(O2ACBase):
     goal = self.get_large_item_position_from_top(panel_name, "b_bot")
     rospy.sleep(0.2)
     
-    # goal = conversions.to_pose_stamped("tray_center", [0.02, -0.03, 0.001, 0.0, 0.0, tau/4])
     # Initialize the pose 
     if pose_with_uncertainty !=None:
       pose_with_uncertainty.header=goal.header
