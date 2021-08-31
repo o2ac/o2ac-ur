@@ -8,7 +8,7 @@ int64[] class_ids                   # Part IDs detected by SSD
 # float64[] confidence              # Confidence of SSD results
 geometry_msgs/PoseStamped[] poses   # 3D poses in tray_center frame
 bool[] upside_down                  # True if the item is upside down
-
+int32 error_code                      # 0 If everything OK, -1 if there is camera failure
 
 ---
 # Feedback
