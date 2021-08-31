@@ -135,7 +135,7 @@ class O2ACCommon(O2ACBase):
     # self.assembly_marker_publisher.publish(marker)
 
     object_id = self.assembly_database.name_to_id(object_name)
-    collision_object = self.assembly_database.get_collision_object(object_name)
+    collision_object = self.assembly_database.get_collision_object(object_name, use_simplified_collision_shapes=False)
     if test_header_frame:
       collision_object.header.frame_id = test_header_frame
     else:
