@@ -1,10 +1,10 @@
-# collision_primitives:
-# - type: BOX 
-#   dimensions: [0.06, 0.06, 0.005]
-#   pose: [0.03, 0.03, 0.0025, 0.0, 0.0, 0.0]
-# - type: BOX 
-#   dimensions: [0.06, 0.005, 0.025]
-#   pose: [0.03, 0.0, 0.0125, 0.0, 0.0, 0.0]
+collision_primitives:
+- type: BOX 
+  dimensions: [0.06, 0.06, 0.005]
+  pose: [0.03, 0.03, 0.0025, 0.0, 0.0, 0.0]
+- type: BOX 
+  dimensions: [0.06, 0.005, 0.025]
+  pose: [0.03, 0.0, 0.0125, 0.0, 0.0, 0.0]
 subframes:
 - pose_xyzrpy:
   - 0.03
