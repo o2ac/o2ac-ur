@@ -89,3 +89,39 @@ localization_parameters:
     rotation_range: [0.0, 0.0, 0.0]
     refine_transform: false
     check_borders: false
+  32_MBRFA40-2-P6:
+    aspect_ratio: 1.0
+    origin: [0.0, 0.0, 0.005, 0.0, 90.0, 0.0]
+    rotation_range: [0.0, 0.0, 0.0]
+    refine_transform: true
+    check_borders: true
+  33_MBRFA45-2-P6:
+    aspect_ratio: 1.0
+    origin: [0.0, 0.0, 0.005, 0.0, 90.0, 0.0]
+    rotation_range: [0.0, 0.0, 0.0]
+    refine_transform: true
+    check_borders: true
+  34_MBRFA48-2-P6:
+    aspect_ratio: 1.0
+    origin: [0.0, 0.0, 0.005, 0.0, 90.0, 0.0]
+    rotation_range: [0.0, 0.0, 0.0]
+    refine_transform: true
+    check_borders: true
+  35_MBRAC45-2-10:
+    aspect_ratio: 1.0
+    origin: [0.0, 0.0, 0.005, 0.0, -90.0, 0.0]
+    rotation_range: [0.0, 0.0, 0.0]
+    refine_transform: true
+    check_borders: true
+  36_MBRAC48-2-10:
+    aspect_ratio: 1.0
+    origin: [0.0, 0.0, 0.005, 0.0, -90.0, 0.0]
+    rotation_range: [0.0, 0.0, 0.0]
+    refine_transform: true
+    check_borders: true
+  37_MBRAC80-2-10:
+    aspect_ratio: 1.0
+    origin: [0.0, 0.0, 0.005, 0.0, -90.0, 0.0]
+    rotation_range: [0.0, 0.0, 0.0]
+    refine_transform: true
+    check_borders: true
