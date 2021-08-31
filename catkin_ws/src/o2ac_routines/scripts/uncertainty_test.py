@@ -41,9 +41,10 @@ def main():
     # abot motor plate 
     start_pose = conversions.to_pose_stamped("workspace_center", [-0.091, -0.045, 0.124, -0.003, 0.863, 1.567])  # start
     drop_pose = conversions.to_pose_stamped("workspace_center", [-0.091, -0.058, 0.124, -0.003, 0.863, 1.567])  # pull left
-    push_start_pose = conversions.to_pose_stamped("workspace_center", [-0.087, -0.112, 0.098, -0.000, 1.57079632679, 1.57079632679])  # push start
-    push_almost_over_pose = conversions.to_pose_stamped("workspace_center", [-0.087, -0.086, 0.098, -0.000, 1.57079632679, 1.57079632679])  # push almost over
-    push_done_pose = conversions.to_pose_stamped("workspace_center", [-0.087, -0.086, 0.098, -0.000, 1.57079632679, 1.57079632679])  # push done
+    push_start_pose = conversions.to_pose_stamped("workspace_center", [-0.087, -0.112, 0.098, -0.033, 1.001, 1.541])  # push start
+    push_almost_over_pose = conversions.to_pose_stamped("workspace_center", [-0.087, -0.086, 0.098, -0.033, 1.001, 1.541])  # push almost over
+    push_done_pose = conversions.to_pose_stamped("workspace_center", [-0.087, -0.086, 0.098, -0.033, 1.001, 1.541])  # push done
+    true_push_done_pose = conversions.to_pose_stamped("workspace_center", [-0.087, -0.086, 0.098, -0.000, 1.57079632679, 1.57079632679])  # push done
     at_plate_pose = conversions.to_pose_stamped("workspace_center", [-0.091, -0.045, 0.117, -0.003, 0.863, 1.567])  # at plate
     
     
@@ -89,7 +90,7 @@ def main():
     controller.a_bot.go_to_pose_goal(push_almost_over_pose)
     controller.a_bot.go_to_pose_goal(push_done_pose)
     rospy.sleep(1.0)
-    controller.push_object_with_uncertainty("panel_motor", push_done_pose, pose_with_uncertainty)
+    controller.push_object_with_uncertainty("panel_motor", true_push_done_pose, pose_with_uncertainty)
     controller.confirm_to_proceed("Pushed plate. Continue?")
     
     controller.a_bot.go_to_pose_goal(push_start_pose)
