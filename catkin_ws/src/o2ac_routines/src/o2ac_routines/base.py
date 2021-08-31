@@ -180,6 +180,7 @@ class O2ACBase(object):
     self.skill_server = SkillServerClient()
     self.vision = VisionClient()
     self.vision_lock = threading.RLock() # different from the lock insider VisionClient. same name for simplicity in the wrapper
+    self.impedance_lock = threading.RLock() # different from the lock insider VisionClient. same name for simplicity in the wrapper
     self.tools = Tools()
 
     self.pick_place_planning_client = actionlib.SimpleActionClient('plan_pick_place', moveit_task_constructor_msgs.msg.PlanPickPlaceAction)
@@ -636,9 +637,9 @@ class O2ACBase(object):
 
     # Stop spiral motion if the tool action finished, regardless of success/failure
     tc = lambda a, b: self.tools.fastening_tool_client.get_state() != GoalStatus.ACTIVE
-    self.active_robots[robot_name].execute_spiral_trajectory("YZ", max_radius=spiral_radius, radius_direction="+Y", steps=50,
+    self.active_robots[robot_name].execute_spiral_trajectory("YZ", max_radius=spiral_radius, steps=100,
                                                           revolutions=3, target_force=0, check_displacement_time=10,
-                                                          termination_criteria=tc, timeout=10, end_effector_link=screw_tool_link)
+                                                          termination_criteria=tc, timeout=duration/2.0, end_effector_link=screw_tool_link)
 
     if not self.use_real_robot:
       return True
