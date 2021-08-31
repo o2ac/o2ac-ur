@@ -41,9 +41,9 @@ def main():
     # abot motor plate 
     start_pose = conversions.to_pose_stamped("workspace_center", [-0.091, -0.045, 0.124, -0.003, 0.863, 1.567])  # start
     drop_pose = conversions.to_pose_stamped("workspace_center", [-0.091, -0.058, 0.124, -0.003, 0.863, 1.567])  # pull left
-    push_start_pose = conversions.to_pose_stamped("workspace_center", [-0.087, -0.112, 0.098, -0.033, 1.001, 1.541])  # push start
-    push_almost_over_pose = conversions.to_pose_stamped("workspace_center", [-0.087, -0.086, 0.098, -0.033, 1.001, 1.541])  # push almost over
-    push_done_pose = conversions.to_pose_stamped("workspace_center", [-0.087, -0.086, 0.098, -0.033, 1.001, 1.541])  # push done
+    push_start_pose = conversions.to_pose_stamped("workspace_center", [-0.087, -0.112, 0.098, -0.000, 1.57079632679, 1.57079632679])  # push start
+    push_almost_over_pose = conversions.to_pose_stamped("workspace_center", [-0.087, -0.086, 0.098, -0.000, 1.57079632679, 1.57079632679])  # push almost over
+    push_done_pose = conversions.to_pose_stamped("workspace_center", [-0.087, -0.086, 0.098, -0.000, 1.57079632679, 1.57079632679])  # push done
     at_plate_pose = conversions.to_pose_stamped("workspace_center", [-0.091, -0.045, 0.117, -0.003, 0.863, 1.567])  # at plate
     
     
@@ -55,6 +55,10 @@ def main():
     # controller.publish_part_in_assembled_position("panel_motor")
     controller.publish_part_in_assembled_position("base")
 
+    controller.a_bot.go_to_pose_goal(start_pose)
+    controller.a_bot.gripper.open(opening_width=0.003)
+    rospy.sleep(1.0)
+    
     # Spawn the motor plate with a given uncertainty in the gripper. 
     plate_pose = conversions.to_pose_stamped("assembled_part_02", [.008, 0.01, 0, 0, 0, 0.1])  # at plate
     plate_pose = controller.listener.transformPose("a_bot_gripper_tip_link", plate_pose)
@@ -70,9 +74,6 @@ def main():
                                             0.00, 0.00, 0.00, 0.00, 0.00, 0.00]
     motor_panel_co = controller.assembly_database.get_collision_object("panel_motor")
     
-    controller.a_bot.go_to_pose_goal(start_pose)
-    controller.a_bot.gripper.open(opening_width=0.003)
-    rospy.sleep(1.0)
     controller.visualize_object_with_distribution(motor_panel_co, pose_with_uncertainty, frame_locked=True)
     controller.confirm_to_proceed("Start?")
     
@@ -88,7 +89,7 @@ def main():
     controller.a_bot.go_to_pose_goal(push_almost_over_pose)
     controller.a_bot.go_to_pose_goal(push_done_pose)
     rospy.sleep(1.0)
-    controller.push_object_with_uncertainty("panel_motor", pose_with_uncertainty, gripper_pose=push_done_pose)
+    controller.push_object_with_uncertainty("panel_motor", push_done_pose, pose_with_uncertainty)
     controller.confirm_to_proceed("Pushed plate. Continue?")
     
     controller.a_bot.go_to_pose_goal(push_start_pose)
