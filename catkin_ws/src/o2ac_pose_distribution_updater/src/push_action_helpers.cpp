@@ -1,4 +1,5 @@
 #include "o2ac_pose_distribution_updater/push_action_helpers.hpp"
+#include "o2ac_pose_distribution_updater/convex_hull.hpp"
 
 namespace {
 const double INF = 1e9, EPS = 1e-9, LARGE_EPS = 1e-7;
@@ -39,25 +40,23 @@ push_calculator::push_calculator(const std::vector<Eigen::Vector3d> &vertices,
   Eigen::Vector2d projected_center =
       (current_transform * center_of_gravity).block(0, 0, 2, 1);
 
-  namespace bg = boost::geometry;
-  bg::model::multi_point<Eigen::Vector2d> projected_points;
+  std::vector<Eigen::Vector2d> projected_points, hull;
 
-  for (auto &vertex : current_vertices) {
-    bg::append(projected_points, (Eigen::Vector2d)vertex.block(0, 0, 2, 1));
-  }
+  std::transform(current_vertices.begin(), current_vertices.end(),
+                 std::back_inserter(projected_points),
+                 [](const Eigen::Vector3d &vertex) {
+                   return (Eigen::Vector2d)vertex.block(0, 0, 2, 1);
+                 });
 
-  static const bool clock_wise = false;
-  bg::model::ring<Eigen::Vector2d, clock_wise> hull;
-  bg::convex_hull(projected_points, hull);
-  hull.resize(hull.size() - 1);
+  convex_hull_for_Eigen_Vector2d(projected_points, hull);
 
   // find the left-most and right-most vertices of the hull
 
   int hull_size = hull.size();
-  int left_vertex_id = 0, next_left_vertex_id;
+  int first_left_vertex_id = 0;
   for (int i = 1; i < hull_size; i++) {
-    if (hull[i].x() < hull[left_vertex_id].x() - EPS) {
-      left_vertex_id = i;
+    if (hull[i](0) < hull[first_left_vertex_id](0)) {
+      first_left_vertex_id = i;
     }
   }
 
@@ -65,13 +64,15 @@ push_calculator::push_calculator(const std::vector<Eigen::Vector3d> &vertices,
 
   // calculate the direction
 
-  double first_rotation_value = projected_center.y() - hull[left_vertex_id].y();
+  double first_rotation_value =
+      projected_center.y() - hull[first_left_vertex_id].y();
   first_direction = (first_rotation_value > 0.0 ? 1 : -1);
 
   // find the rotation angle
   // after rotation, at least one edge of the hull must be on the gripper
   // (parallel to y-axis) and the hull must be stable find such edge
   Eigen::Rotation2Dd rotation;
+  int left_vertex_id = first_left_vertex_id, next_left_vertex_id;
   while (1) {
     next_left_vertex_id =
         (left_vertex_id - first_direction + hull_size) % hull_size;
@@ -92,6 +93,13 @@ push_calculator::push_calculator(const std::vector<Eigen::Vector3d> &vertices,
       break;
     }
     left_vertex_id = next_left_vertex_id;
+    if (left_vertex_id == first_left_vertex_id) {
+      throw(std::runtime_error("center of gravity is out of the convex hull"));
+    }
+  }
+  if (hull[next_left_vertex_id](0) >
+      rotated_gripper_transform.translation()(0) + gripper_width / 2.0) {
+    throw std::runtime_error("gripper does not reach the object");
   }
   if (balance_check && std::abs(first_rotation_value) < EPS &&
       rotation.angle() > EPS) {
@@ -120,9 +128,6 @@ push_calculator::push_calculator(const std::vector<Eigen::Vector3d> &vertices,
   Eigen::Vector3d total_translation;
   double x_shift = rotated_gripper_transform.translation()(0) +
                    gripper_width / 2.0 - (rotation * hull[left_vertex_id])(0);
-  if (x_shift < 0.0) {
-    throw std::runtime_error("gripper does not reach the object");
-  }
   total_translation << x_shift,
       // the the x-coordinates of gripper should be gripper_width
       projected_center(1) -

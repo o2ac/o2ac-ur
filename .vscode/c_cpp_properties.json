@@ -1,0 +1,47 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "",
+        "limitSymbolsToIncludedHeaders": true
+      },
+      "includePath": [
+        "/home/artuser/catkin_ws/devel/include/**",
+        "/opt/ros/melodic/include/**",
+        "/home/artuser/catkin_ws/src/artros/aist_robotiq/include/**",
+        "/home/artuser/catkin_ws/src/artros/aist_utility/include/**",
+        "/home/artuser/catkin_ws/src/artros/third_party/aruco_ros/aruco/include/**",
+        "/home/artuser/catkin_ws/src/artros/third_party/aruco_ros/aruco_ros/include/**",
+        "/home/artuser/catkin_ws/src/srv_tools/bag_tools/include/**",
+        "/home/artuser/catkin_ws/src/artros/third_party/ur_robot_driver/controller_stopper/include/**",
+        "/home/artuser/catkin_ws/src/artros/third_party/ddynamic_reconfigure/include/**",
+        "/opt/ros/melodic/share/fetch_gazebo/include/**",
+        "/home/artuser/catkin_ws/src/artros/third_party/iiwa_stack/iiwa_hw/include/**",
+        "/home/artuser/catkin_ws/src/artros/third_party/iiwa_stack/iiwa_ros/include/**",
+        "/home/artuser/catkin_ws/src/khi_robot/khi_duaro_ikfast_plugin/include/**",
+        "/home/artuser/catkin_ws/src/khi_robot/khi_robot_control/include/**",
+        "/home/artuser/catkin_ws/src/khi_robot/khi_rs_ikfast_plugin/include/**",
+        "/home/artuser/catkin_ws/src/artros/o2as_fastening_tools/include/**",
+        "/home/artuser/catkin_ws/src/rail_mesh_icp/include/**",
+        "/home/artuser/catkin_ws/src/torobo_robot/rbdl/include/**",
+        "/home/artuser/catkin_ws/src/artros/third_party/realsense-ros/realsense2_camera/include/**",
+        "/home/artuser/catkin_ws/src/roboticsgroup_gazebo_plugins/include/**",
+        "/home/artuser/catkin_ws/src/torobo_robot/torobo_collision_detector/include/**",
+        "/home/artuser/catkin_ws/src/torobo_robot/torobo_common/include/**",
+        "/home/artuser/catkin_ws/src/torobo_robot/torobo_control/include/**",
+        "/home/artuser/catkin_ws/src/torobo_robot/torobo_driver/include/**",
+        "/home/artuser/catkin_ws/src/torobo_robot/torobo_dynamics/include/**",
+        "/home/artuser/catkin_ws/src/torobo_robot/torobo_gazebo_ros_control/include/**",
+        "/home/artuser/catkin_ws/src/torobo_robot/torobo_gripper_action_controller/include/**",
+        "/home/artuser/catkin_ws/src/torobo_robot/torobo_motion_manager/include/**",
+        "/home/artuser/catkin_ws/src/artros/third_party/ur_robot_driver/ur_calibration/include/**",
+        "/home/artuser/catkin_ws/src/artros/third_party/ur_robot_driver/ur_controllers/include/**",
+        "/home/artuser/catkin_ws/src/artros/third_party/universal_robot/ur_kinematics/include/**",
+        "/home/artuser/catkin_ws/src/artros/third_party/ur_robot_driver/ur_robot_driver/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS"
+    }
+  ],
+  "version": 4
+}

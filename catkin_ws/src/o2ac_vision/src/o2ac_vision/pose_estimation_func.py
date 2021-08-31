@@ -1078,6 +1078,7 @@ class MotorOrientation():
         """
         self.cable_orientation = 0.0
         self.im_roi = list()
+        self.th = 0.5
     
     def main_proc( self, im_in, ssd_results ):
         """ Detect motor orientation code
@@ -1093,8 +1094,10 @@ class MotorOrientation():
         bbox = ssd_results[motor_idx]['bbox']
         self.bb_x,self.bb_y,self.bb_w,self.bb_h = bbox[0], bbox[1], bbox[2], bbox[3]
 
-        im_w = im_in.shape[1]
-        im_h = im_in.shape[0]
+        im_red = self.get_red_mask(im_in, self.th )
+
+        im_w = im_red.shape[1]
+        im_h = im_red.shape[0]
         # x and y coordinate of roi surrounding bbox.
         rx = np.array([
             self.bb_x - self.bb_h,
@@ -1114,20 +1117,19 @@ class MotorOrientation():
         
 
         # Crop RoI
-        self.im_roi.append( im_in[ry[1]:ry[2],rx[2]:rx[3]].copy() ) # 0
-        self.im_roi.append( im_in[ry[2]:ry[3],rx[2]:rx[3]].copy() ) # 1
-        self.im_roi.append( im_in[ry[2]:ry[3],rx[1]:rx[2]].copy() ) # 2
-        self.im_roi.append( im_in[ry[2]:ry[3],rx[0]:rx[1]].copy() ) # 3
-        self.im_roi.append( im_in[ry[1]:ry[2],rx[0]:rx[1]].copy() ) # 4
-        self.im_roi.append( im_in[ry[0]:ry[1],rx[0]:rx[1]].copy() ) # 5
-        self.im_roi.append( im_in[ry[0]:ry[1],rx[1]:rx[2]].copy() ) # 6
-        self.im_roi.append( im_in[ry[0]:ry[1],rx[2]:rx[3]].copy() ) # 7
+        self.im_roi.append( im_red[ry[1]:ry[2],rx[2]:rx[3]].copy() ) # 0
+        self.im_roi.append( im_red[ry[2]:ry[3],rx[2]:rx[3]].copy() ) # 1
+        self.im_roi.append( im_red[ry[2]:ry[3],rx[1]:rx[2]].copy() ) # 2
+        self.im_roi.append( im_red[ry[2]:ry[3],rx[0]:rx[1]].copy() ) # 3
+        self.im_roi.append( im_red[ry[1]:ry[2],rx[0]:rx[1]].copy() ) # 4
+        self.im_roi.append( im_red[ry[0]:ry[1],rx[0]:rx[1]].copy() ) # 5
+        self.im_roi.append( im_red[ry[0]:ry[1],rx[1]:rx[2]].copy() ) # 6
+        self.im_roi.append( im_red[ry[0]:ry[1],rx[2]:rx[3]].copy() ) # 7
 
         n_red = list()
         for roi in self.im_roi:
             # Get red mask
-            im_r = self.get_red_mask( roi )
-            n_red.append( np.sum( im_r ) )
+            n_red.append( np.sum( roi ) )
 
         orientation_code = np.argmax(n_red)
         self.cable_orientation = orientation_code * 45.0
@@ -1141,20 +1143,27 @@ class MotorOrientation():
         im_v = im_hsv[:,:,2].copy()
         return im_h, im_s, im_v
 
-    # Hue value is distributed between 0 to 179
-    def get_red_mask( self, im_in ):
-        # split image into h,s,v planes
-        im_h,im_s,im_v = self.split_hsv(im_in)
+    def set_th( self, th ):
+        self.th = th
 
-        # saturation mask
-        im_mask = np.where(im_s<100,0,1)
+    def get_red_mask( self, im_in, th=0.5 ):
+        """ redが優勢なチャンネルを取り出す
+        　　redとgreen, redとblueのチャンネルを比較して，
+            redが際立って大きいかどうかを調べる．
+        """
+        im_r = im_in[:,:,2].astype(np.float)
+        im_g = im_in[:,:,1].astype(np.float)
+        im_b = im_in[:,:,0].astype(np.float)
 
-        # red mask
-        im_red1 = np.where( im_h<30 ,1,0)
-        im_red2 = np.where( 150<im_h ,1,0)
-        im_red = np.logical_or(im_red1, im_red2)
-        im_red = np.logical_and( im_mask, im_red )
-        return im_red # 1 means red pixel
+        e = 0.1 # epsilon
+        rb = im_b / (im_r+e) 
+        rg = im_g / (im_r+e)
+
+        rb2 = np.where( rb<th, 1, 0 )
+        rg2 = np.where( rg<th, 1, 0 )
+        im_red_mask = np.logical_and( rb2, rg2 )
+
+        return im_red_mask # 1 means red pixel
 
     def get_im_vis( self, im_in ):
         center = (self.bb_x+int(self.bb_w/2),

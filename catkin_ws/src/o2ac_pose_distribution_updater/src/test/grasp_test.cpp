@@ -60,8 +60,7 @@ void grasp_test(const std::shared_ptr<Client> &client,
     // Convert these to updateDistributiongoal
     o2ac_msgs::updateDistributionGoal goal;
     goal.observation_type = goal.GRASP_OBSERVATION;
-    particle_to_pose(gripper_pose_particle,
-                     goal.grasp_observation.gripper_pose.pose);
+    particle_to_pose(gripper_pose_particle, goal.gripper_pose.pose);
     goal.distribution_type = distribution_type;
     goal.distribution.pose = to_PoseWithCovariance(mean, covariance);
     goal.gripped_object = *gripped_geometry;
@@ -144,7 +143,7 @@ void grasp_test(const std::shared_ptr<Client> &client,
       // store the current time
       auto current_time = ros::Time::now();
       // broadcast the gripper pose
-      auto result_gripper_pose = goal.grasp_observation.gripper_pose.pose;
+      auto result_gripper_pose = goal.gripper_pose.pose;
       result_gripper_pose.position.y += 0.1;
       broadcast_gripper_pose(result_gripper_frame_id, current_time,
                              result_gripper_pose);

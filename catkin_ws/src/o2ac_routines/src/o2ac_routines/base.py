@@ -195,8 +195,45 @@ class O2ACBase(object):
     
   ############## ------ Internal functions (and convenience functions)
 
-  def spawn_object(self, object_name, object_pose, object_reference_frame=""):
- 
+  def transform_uncertainty(self, transform, pose_with_uncertainty, transformed_pose):
+    transformed_pose.pose = tf_conversions.posemath.toMsg(transform * tf_conversions.posemath.fromMsg(pose_with_uncertainty.pose))
+
+    transform_matrix=numpy.matrix(tf_conversions.posemath.toMatrix(transform))
+    inverse_transform_matrix=numpy.linalg.inv(transform_matrix)
+    adjoint_matrix=numpy.matrix(numpy.zeros(shape=(6,6)))
+    for i in range(6):
+      unit_matrix=numpy.matrix(numpy.zeros(shape=(4,4)))
+      if i < 3:
+        unit_matrix[i,3]=1.
+      else:
+        unit_matrix[(i-2)%3,(i-1)%3]=-1.
+        unit_matrix[(i-1)%3,(i-2)%3]=1.
+      result_matrix=transform_matrix * unit_matrix * inverse_transform_matrix
+      for j in range(6):
+        if j < 3:
+          adjoint_matrix[j,i]=result_matrix[j,3]
+        else:
+          adjoint_matrix[j,i]=result_matrix[(j-1)%3,(j-2)%3]
+
+    covariance_matrix = numpy.matrix(pose_with_uncertainty.covariance)
+    covariance_matrix.resize(6,6)
+    transformed_covariance_matrix = adjoint_matrix * covariance_matrix * numpy.linalg.inv(adjoint_matrix)
+    transformed_covariance_matrix.resize(36)
+    transformed_pose.covariance = numpy.asarray(transformed_covariance_matrix)
+  
+  def transform_pose_with_uncertainty(self, target_frame, pose_with_uncertainty, now=None):
+    if now==None:
+      now=rospy.Time.now()
+    self.listener.waitForTransform(target_frame, pose_with_uncertainty.header.frame_id, now, rospy.Duration(1.0))
+    transform = tf_conversions.posemath.fromTf(self.listener.lookupTransform(target_frame, pose_with_uncertainty.header.frame_id, now))
+    transformed_pose = geometry_msgs.msg.PoseWithCovarianceStamped()
+    transformed_pose.header.frame_id = target_frame
+    transformed_pose.header.stamp = now
+    self.transform_uncertainty(transform, pose_with_uncertainty.pose, transformed_pose.pose)
+    return transformed_pose
+    
+  
+  def spawn_object(self, object_name, object_pose, object_reference_frame="", pose_with_uncertainty=None):
     collision_object = self.assembly_database.get_collision_object(object_name)
     if isinstance(object_pose, geometry_msgs.msg._PoseStamped.PoseStamped):
       co_pose = object_pose.pose
@@ -217,6 +254,15 @@ class O2ACBase(object):
     collision_object.pose = co_pose
         
     self.planning_scene_interface.add_object(collision_object)
+    if pose_with_uncertainty != None:
+      rospy.wait_for_service("visualize_pose_belief")
+      visualizer=rospy.ServiceProxy("visualize_pose_belief", o2ac_msgs.srv.visualizePoseBelief)
+      visualization_request = o2ac_msgs.srv.visualizePoseBeliefRequest()
+      visualization_request.object = collision_object
+      visualization_request.distribution_type = 1
+      visualization_request.distribution = pose_with_uncertainty
+      visualization_request.frame_locked=True
+      visualizer(visualization_request)
 
   def despawn_object(self, object_name):
     self.planning_scene_interface.remove_attached_object(name=object_name)
@@ -481,7 +527,7 @@ class O2ACBase(object):
       adjusted_pose.pose.position.x -= descend_distance
       success = False
       while not success: # TODO(cambel, felix): infinite loop?
-        success = self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, end_effector_link=screw_tool_link)
+        success = self.active_robots[robot_name].go_to_pose_goal(adjusted_pose, speed=0.05, end_effector_link=screw_tool_link, move_lin=True)
         
       # Break out of loop if screw suctioned or max search radius exceeded
       rospy.sleep(wait_for_suction_time)
@@ -565,14 +611,14 @@ class O2ACBase(object):
     pushed_into_hole = copy.deepcopy(screw_tip_at_hole)
     pushed_into_hole.pose.position.x += insertion_amount
 
-    self.active_robots[robot_name].go_to_pose_goal(away_from_hole, end_effector_link=screw_tool_link, speed=0.5)
+    self.active_robots[robot_name].go_to_pose_goal(away_from_hole, end_effector_link=screw_tool_link, speed=0.5, move_lin=True, retry_non_linear=True)
     
     self.tools.set_motor(fastening_tool_name, direction="tighten", wait=False, duration=duration, 
                          skip_final_loosen_and_retighten=skip_final_loosen_and_retighten)
 
     self.planning_scene_interface.allow_collisions(screw_tool_id)
 
-    self.active_robots[robot_name].go_to_pose_goal(pushed_into_hole, end_effector_link=screw_tool_link, speed=0.02)
+    self.active_robots[robot_name].go_to_pose_goal(pushed_into_hole, end_effector_link=screw_tool_link, speed=0.02, move_lin=True)
 
     # Stop spiral motion if the tool action finished, regardless of success/failure
     tc = lambda a, b: self.tools.fastening_tool_client.get_state() != GoalStatus.ACTIVE
@@ -592,7 +638,7 @@ class O2ACBase(object):
       motor_stalled = result.motor_stalled
 
     if not stay_put_after_screwing:
-      self.active_robots[robot_name].go_to_pose_goal(away_from_hole, end_effector_link=screw_tool_link, speed=0.02)
+      self.active_robots[robot_name].go_to_pose_goal(away_from_hole, end_effector_link=screw_tool_link, speed=0.02, move_lin=True)
 
     self.planning_scene_interface.disallow_collisions(screw_tool_id)
 
@@ -837,10 +883,6 @@ class O2ACBase(object):
     Returns object pose if object was detected in current camera view and published to planning scene,
     False otherwise.
     """
-    if not self.use_real_robot:
-      rospy.logwarn("Returning position near center (simulation)")
-      return conversions.to_pose_stamped("tray_center", [-0.01, 0.05, 0.02] + np.deg2rad([0,90.,0]).tolist())
-
     # TODO: merge with "look_and_get_grasp_points"
     object_type = self.assembly_database.name_to_type(item_name)
     if not object_type:
@@ -1122,7 +1164,7 @@ class O2ACBase(object):
       return False
     if ((robot.robot_status.carrying_tool == False) and unequip):
       rospy.logerr("Robot is not holding a tool. Cannot unequip any.")
-      return False
+      return True # this is not an error
     
     # Set up poses
     ps_approach = geometry_msgs.msg.PoseStamped()

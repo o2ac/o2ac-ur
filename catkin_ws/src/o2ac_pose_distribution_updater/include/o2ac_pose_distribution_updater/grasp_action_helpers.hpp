@@ -4,9 +4,6 @@ Helper functions for the grasp action
 
 #include <Eigen/Geometry>
 
-#include <boost/geometry.hpp>
-#include <boost/geometry/geometries/polygon.hpp>
-
 #include "o2ac_pose_distribution_updater/conversions.hpp"
 #include "o2ac_pose_distribution_updater/operators_for_Lie_distribution.hpp"
 #include <unsupported/Eigen/AutoDiff>

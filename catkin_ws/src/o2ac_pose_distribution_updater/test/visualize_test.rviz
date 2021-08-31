@@ -70,6 +70,14 @@ Visualization Manager:
         box: true
       Queue Size: 100
       Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: test_marker_array
+      Name: Marker
+      Namespaces:
+        box: true
+      Queue Size: 100
+      Value: true
     - Class: rviz/TF
       Enabled: false
       Frame Timeout: 15

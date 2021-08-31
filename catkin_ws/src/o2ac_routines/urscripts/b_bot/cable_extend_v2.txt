@@ -10,12 +10,13 @@
      Gripper Move85% (1)
      Popup: wait for a_bot to release
      MoveL
-       cable_extended
+       Direction: Base X-
+         Until (distance)
      Gripper Close (1)
      MoveJ
        hold_cable
        'Waypoint_5'
-     Gripper Move85% (1)
+     'Gripper Move85% (1)'
      Popup: wait for a_bot to grasp cable. press enter to go observe
      Gripper Open (1)
      MoveL

@@ -31,6 +31,7 @@ class URForceController(CompliantController):
     def __init__(self, robot_name, listener, tcp_link='gripper_tip_link', **kwargs):
         self.listener = listener
         self.default_tcp_link = robot_name + '_' + tcp_link
+        self.robot_name = robot_name
 
         CompliantController.__init__(self, ft_sensor=True, namespace=robot_name,
                                      joint_names_prefix=robot_name+'_', robot_urdf=robot_name,
@@ -70,7 +71,7 @@ class URForceController(CompliantController):
             self._init_ik_solver(self.base_link, end_effector_link)
 
         if config_file is None:
-            config_file = "force_control"
+            config_file = "force_control_" + self.robot_name
         self._init_force_controller(config_file)
 
         rospy.sleep(1.0)  # give it some time to set up before moving
@@ -146,7 +147,7 @@ class URForceController(CompliantController):
         direction: string, direction for linear_push +- X,Y,Z relative to base or end-effector, see next argument
         relative_to_ee: bool, whether to use the base_link of the robot as frame or the ee_link (+ ee_transform)
         """
-        config_file = "force_control" if slow else "force_control_linear_push"
+        config_file = "force_control_" + self.robot_name if slow else "force_control_linear_push"
         target_force = get_target_force(direction, force)
 
         if selection_matrix is None:
@@ -185,7 +186,12 @@ class URForceController(CompliantController):
         plane = get_orthogonal_plane(insertion_direction[1])
         radius_direction = get_random_valid_direction(plane) if radius_direction is None else radius_direction
 
-        target_force = get_target_force(insertion_direction, force)
+        if "Z" in insertion_direction:
+            target_force = get_target_force(insertion_direction, force)
+        else:
+            offset = 1 if self.robot_name == "b_bot" else -1 # account for robot's mirror position
+            target_force = offset * get_target_force(insertion_direction, force)
+
         if selection_matrix is None:
             selection_matrix = np.array(target_force == 0.0) * 0.8  # define the selection matrix based on the target force
 
@@ -196,7 +202,6 @@ class URForceController(CompliantController):
         start_pose_in_target_frame = conversions.transform_pose(target_pose_in_target_frame.header.frame_id, transform2target, start_pose_robot_base)
         start_pose_of = conversions.from_pose_to_list(start_pose_in_target_frame.pose)
         target_pose_of = conversions.from_pose_to_list(target_pose_in_target_frame.pose)
-        start_dist = abs(start_pose_of[axis] - target_pose_of[axis])
         more_than = start_pose_of[axis] < target_pose_of[axis]
 
         def termination_criteria(current_pose, standby):

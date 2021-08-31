@@ -1,4 +1,5 @@
 
+import copy
 import rospy
 import visualization_msgs.msg
 
@@ -16,7 +17,7 @@ class MarkersScene():
         color = color if color else ColorRGBA(0.2, 1.0, 0.2, 0.9) # GREEN
         item_marker = self.parts_database.get_visualization_marker(item_name, pose_stamped.pose, pose_stamped.header.frame_id, color, frame_locked=attach)
         self.marker_publisher.publish(item_marker)
-        self.published_items.update({item_name: pose_stamped})
+        self.published_items.update({item_name: copy.deepcopy(pose_stamped)})
 
     def despawn_item(self, item_name):
         marker = visualization_msgs.msg.Marker()
@@ -30,6 +31,11 @@ class MarkersScene():
 
     def attach_item(self, item_name, to_link):
         current_pose = self.published_items[item_name]
+        current_pose.header.stamp = rospy.Time(0)
+        try:
+            self.listener.waitForTransform(to_link, current_pose.header.frame_id, current_pose.header.stamp, rospy.Duration(1))
+        except:
+            return False
         new_pose = self.listener.transformPose(to_link, current_pose)
         color = ColorRGBA(1., 0.0, 1., 0.9) # Purple
         self.spawn_item(item_name, new_pose, attach=True, color=color)

@@ -34,3 +34,11 @@
     local-name: third_party/aruco_ros
     uri: https://gitlab+deploy-token-490815:UjSrt8ABUzbng94K6-ua@gitlab.com/o2ac/third-party/aruco_ros
     version: 4c0bb5010487efe539d89f75367a93fd8403a40d
+- git:
+    local-name: third_party/ur_drivers
+    uri: https://github.com/UniversalRobots/Universal_Robots_ROS_Driver.git
+    version: 13db13e33702866f230614a6d0bfe583794d8d04
+- git:
+    local-name: third_party/gazebo_ros_link_attacher
+    uri: https://github.com/pal-robotics/gazebo_ros_link_attacher.git
+    version: melodic-devel

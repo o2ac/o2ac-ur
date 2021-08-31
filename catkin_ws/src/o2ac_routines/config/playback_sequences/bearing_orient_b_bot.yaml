@@ -1,7 +1,7 @@
 # Define the points in the trajectory
 robot_name: 'b_bot' # for security define the robot here
 waypoints:
-- pose: [-0.15, 0, 0.10, -90, 0, 0] # translation, orientation (degrees)
+- pose: [-0.15, 0, 0.05, -90, 0, 0] # translation, orientation (degrees)
   pose_type: task-space-in-frame
   frame_id: right_centering_link
   speed: 1.0

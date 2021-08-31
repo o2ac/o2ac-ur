@@ -113,8 +113,8 @@ MotionDetector::MotionDetector(const ros::NodeHandle& nh)
      _image_sub(_it, "/image", 1),
      _depth_sub(_it, "/depth", 1),
      _sync(sync_policy_t(10), _camera_info_sub, _image_sub, _depth_sub),
-     _camera_pub(_it.advertiseCamera("depth", 1)),
      _image_pub(_it.advertise("image", 1)),
+     _camera_pub(_it.advertiseCamera("depth", 1)),
      _listener(),
      _broadcaster(),
      _find_cabletip_srv(_nh, "find_cabletip", false),
@@ -123,14 +123,7 @@ MotionDetector::MotionDetector(const ros::NodeHandle& nh)
      _bgsub(cv::createBackgroundSubtractorMOG2()),
      _search_top(_nh.param("search_top", 0.005)),
      _search_bottom(_nh.param("search_bottom", 0.030)),
-     _search_width(_nh.param("search_width", 0.050)),
-     _nframes(0),
-     _top_left(0, 0),
-     _bottom_right(0, 0),
-     _corners(),
-     _mask(),
-     _Tct(),
-     _camera_info(nullptr)
+     _search_width(_nh.param("search_width", 0.050))
 {
   // Setup FindCabletip action server.
     _find_cabletip_srv.registerGoalCallback(boost::bind(&goal_cb, this));
@@ -167,7 +160,6 @@ void
 MotionDetector::goal_cb()
 {
     _current_goal = _find_cabletip_srv.acceptNewGoal();
-    _nframes	  = 0;
     ROS_INFO_STREAM("(MotionDetector) Given a goal["
 		    << _current_goal->target_frame << ']');
 }
@@ -175,28 +167,7 @@ MotionDetector::goal_cb()
 void
 MotionDetector::preempt_cb()
 {
-    if (_nframes > 0)
-    {
-	const auto		T = find_cabletip();
-	geometry_msgs::Pose	pose;
-	tf::poseTFToMsg(T, pose);
-
-	_image_pub.publish(_mask.toImageMsg());
-
-	FindCabletipResult	result;
-	result.pose.header.frame_id = _current_goal->target_frame;
-	result.pose.header.stamp    = ros::Time::now();
-	result.pose.pose	    = pose;
-	_find_cabletip_srv.setPreempted(result);
-
-	_broadcaster.sendTransform({T, result.pose.header.stamp,
-				    result.pose.header.frame_id,
-				    "cabletip_link"});
-
-	_nframes = 0;
-    }
-    else
-	_find_cabletip_srv.setPreempted();
+    _find_cabletip_srv.setPreempted();
     ROS_INFO_STREAM("(MotionDetector) Cancelled a goal");
 }
 
@@ -204,125 +175,124 @@ void
 MotionDetector::image_cb(const camera_info_cp& camera_info,
 			 const image_cp& image, const image_cp& depth)
 {
-    if (!_find_cabletip_srv.isActive())
-    	return;
-
-    try
-    {
-      // Perform background subtraction
-	cv_bridge::CvImage	mask;
-	_bgsub->apply(cv_bridge::toCvShare(image)->image, mask.image);
-
-      // Accumulate updated foreground.
-	accumulate_mask(mask.image, _current_goal->target_frame, camera_info);
-
-	mask.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
-	mask.header   = camera_info->header;
-	_image_pub.publish(mask.toImageMsg());
-    }
-    catch (const tf::TransformException& err)
-    {
-	ROS_ERROR_STREAM("(MotionDetector) TransformException: "
-			 << err.what());
-    }
-    catch (const cv_bridge::Exception& err)
-    {
-	ROS_ERROR_STREAM("(MotionDetector) cv_bridge exception: "
-			 << err.what());
-    }
-}
-
-void
-MotionDetector::accumulate_mask(const cv::Mat& mask,
-				const std::string& target_frame,
-				const camera_info_cp& camera_info)
-{
-    _camera_info = camera_info;
+    const auto	cv_image = cv_bridge::toCvCopy(image);
     
-  // Get transform from the target frame to camera frame.
-    _listener.waitForTransform(_camera_info->header.frame_id, target_frame,
-			       _camera_info->header.stamp, ros::Duration(1.0));
-    _listener.lookupTransform(_camera_info->header.frame_id, target_frame,
-			      _camera_info->header.stamp, _Tct);
-
-  // Transfrom ROI corners to camera frame.
-    const tf::Point	corners[] = {{_search_top,    0.0, -_search_width/2},
-				     {_search_top,    0.0,  _search_width/2},
-				     {_search_bottom, 0.0,  _search_width/2},
-				     {_search_bottom, 0.0, -_search_width/2}};
-    cv::Mat_<point3_t>	pt3s(1, 4);
-    for (size_t i = 0; i < 4; ++i)
-	pt3s(i) = pointTFToCV<value_t>(_Tct * corners[i]);
-
-  // Project ROI corners onto the image.
-    cv::Mat_<value_t>	K(3, 3);
-    std::copy_n(std::begin(_camera_info->K), 9, K.begin());
-    cv::Mat_<value_t>	D(1, 4);
-    std::copy_n(std::begin(_camera_info->D), 4, D.begin());
-    const auto		zero = cv::Mat_<value_t>::zeros(1, 3);
-    cv::Mat_<point2_t>	p(1, 4);
-    cv::projectPoints(pt3s, zero, zero, K, D, p);
-
-  // Confirm that all the projected corners are included within the image.
-    if (!withinImage(p(0), mask) || !withinImage(p(1), mask) ||
-	!withinImage(p(2), mask) || !withinImage(p(3), mask))
-	return;
-
-    _mask.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
-    _mask.header   = _camera_info->header;
-
-    if (_nframes == 0)
+    if (_find_cabletip_srv.isActive())
     {
-      // Crop the given image.
-	_top_left.x	= int(std::min({p(0).x, p(1).x, p(2).x, p(3).x}));
-	_top_left.y	= int(std::min({p(0).y, p(1).y, p(2).y, p(3).y}));
-	_bottom_right.x = int(std::max({p(0).x, p(1).x, p(2).x, p(3).x}));
-	_bottom_right.y	= int(std::max({p(0).y, p(1).y, p(2).y, p(3).y}));
-	_corners	= p;
-	mask(cv::Rect(_top_left, _bottom_right)).convertTo(_mask.image,
-							   CV_16UC1);
-    }
-    else
-    {
-	cv::Mat	warped_mask;
-	cv::warpPerspective(mask, warped_mask, cv::findHomography(_corners, p),
-			    mask.size(), cv::WARP_INVERSE_MAP);
-	cv::Mat	warped_and_converted_mask;
-	warped_mask(cv::Rect(_top_left, _bottom_right))
-	    .convertTo(warped_and_converted_mask, CV_16UC1);
-	_mask.image += warped_and_converted_mask;
+	try
+	{
+	    const auto		cv_depth = cv_bridge::toCvCopy(depth);
+	    const auto		T = find_cabletip(cv_image->image,
+						  cv_depth->image,
+						  _current_goal->target_frame,
+						  camera_info);
+	    geometry_msgs::Pose	pose;
+	    tf::poseTFToMsg(T, pose);
+
+	    FindCabletipFeedback	feedback;
+	    feedback.pose.header.frame_id = _current_goal->target_frame;
+	    feedback.pose.header.stamp    = ros::Time::now();
+	    feedback.pose.pose		  = pose;
+	    _find_cabletip_srv.publishFeedback(feedback);
+
+	    _broadcaster.sendTransform({T, feedback.pose.header.stamp,
+					feedback.pose.header.frame_id,
+					"cabletip_link"});
+
+	    _camera_pub.publish(cv_depth->toImageMsg(), camera_info);
+	}
+	catch (const tf::TransformException& err)
+	{
+	    ROS_ERROR_STREAM("(MotionDetector) TransformException: "
+			     << err.what());
+	}
+	catch (const cv_bridge::Exception& err)
+	{
+	    ROS_ERROR_STREAM("(MotionDetector) cv_bridge exception: "
+			     << err.what());
+	}
+	catch (const std::exception& err)
+	{
+	    ROS_ERROR_STREAM("(MotionDetector) " << err.what());
+	}
     }
 
-    ++_nframes;
+    _image_pub.publish(cv_image->toImageMsg());
 }
 
 tf::Transform
-MotionDetector::find_cabletip()
+MotionDetector::find_cabletip(cv::Mat& image, cv::Mat& depth,
+			      const std::string& target_frame,
+			      const camera_info_cp& camera_info) const
 {
-  // Fill the outside of ROI with zero.
-    const point_t	outer[]   = {{0,		  0},
-				     {_mask.image.cols-1, 0},
-				     {_mask.image.cols-1, _mask.image.rows-1},
-				     {0,		  _mask.image.rows-1}};
-    const point_t	inner[]   = {point_t(_corners(0)) - _top_left,
-				     point_t(_corners(1)) - _top_left,
-				     point_t(_corners(2)) - _top_left,
-				     point_t(_corners(3)) - _top_left};
-    const point_t*	borders[] = {outer, inner};
-    const int		npoints[] = {4, 4};
-    cv::fillPoly(_mask.image, borders, npoints, 2, cv::Scalar(0), cv::LINE_8);
-
-  // Binarize the accumultated mask image.
-    _mask.image /= _nframes;
+  // Create foregroud mask.
     cv::Mat	mask;
-    _mask.image.convertTo(mask, CV_8UC1);
-    cv::threshold(mask, _mask.image, 0, 255,
-		  cv::THRESH_BINARY | cv::THRESH_OTSU);
-    _mask.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
+    _bgsub->apply(image, mask);
+    
+  // Binarize mask image.
+    for (int v = 0; v < mask.rows; ++v)
+    {
+	auto	p = mask.ptr<uint8_t>(v, 0);
+
+	for (const auto pe = p + mask.cols; p < pe; ++p)
+	    if (*p < 255)
+		*p = 0;
+    }
+    
+  // Get transform from the target frame to camera frame.
+    tf::StampedTransform	Tct;
+    _listener.waitForTransform(camera_info->header.frame_id, target_frame,
+			       camera_info->header.stamp, ros::Duration(1.0));
+    _listener.lookupTransform(camera_info->header.frame_id, target_frame,
+			      camera_info->header.stamp, Tct);
+
+  // Transfrom ROI corners to camera frame.
+    const tf::Point	pts[] = {{_search_top,    0.0, -_search_width/2},
+				 {_search_top,    0.0,  _search_width/2},
+				 {_search_bottom, 0.0,  _search_width/2},
+				 {_search_bottom, 0.0, -_search_width/2}};
+    cv::Mat_<point3_t>	pt3s(1, 4);
+    for (size_t i = 0; i < 4; ++i)
+	pt3s(i) = pointTFToCV<value_t>(Tct * pts[i]);
+
+  // Project ROI corners onto the image.
+    cv::Mat_<value_t>	K(3, 3);
+    std::copy_n(std::begin(camera_info->K), 9, K.begin());
+    cv::Mat_<value_t>	D(1, 4);
+    std::copy_n(std::begin(camera_info->D), 4, D.begin());
+    const auto		zero = cv::Mat_<value_t>::zeros(1, 3);
+    cv::Mat_<point2_t>	pt2s(1, 4);
+    cv::projectPoints(pt3s, zero, zero, K, D, pt2s);
+    point_t		corners[] = {point_t(pt2s(0)), point_t(pt2s(1)),
+				     point_t(pt2s(2)), point_t(pt2s(3))};
+    
+  // Confirm that all the projected corners are included within the image.
+    if (!withinImage(corners[0], mask) || !withinImage(corners[1], mask) ||
+	!withinImage(corners[2], mask) || !withinImage(corners[3], mask))
+	throw std::runtime_error("ROI in 3D space projects onto the outside of image");
+
+  // Fill the outside of ROI with zero.
+    const point_t	outer[]	  = {{0,	   0},
+				     {mask.cols-1, 0},
+				     {mask.cols-1, mask.rows-1},
+				     {0,	   mask.rows-1}};
+    const point_t*	borders[] = {outer, corners};
+    const int		npoints[] = {4, 4};
+    cv::fillPoly(mask, borders, npoints, 2, cv::Scalar(0), cv::LINE_8);
+
+  // Paint motion mask over the input RGB image.
+    for (int v = 0; v < mask.rows; ++v)
+    {
+	auto	p = mask.ptr<uint8_t>(v, 0);
+	auto	q = image.ptr<cv::Vec3b>(v, 0);
+
+	for (const auto pe = p + mask.cols; p < pe; ++p, ++q)
+	    if (*p >= 255)
+		(*q)[1] = 255;
+    }
 
   // Create a line of finger-tip border.
-    const cv::Vec<value_t, 2>	ends[] = {_corners(0) - point2_t(_top_left),
-					  _corners(1) - point2_t(_top_left)};
+    const cv::Vec<value_t, 2>	ends[] = {pt2s(0), pt2s(1)};
     const line_t		fingertip(ends, ends + 2);
 
   // Assign labels to the binarized mask image.
@@ -338,7 +308,7 @@ MotionDetector::find_cabletip()
     for (int v = 0; v < labels.rows; ++v)
     {
 	auto	p = labels.ptr<int>(v, 0);
-	auto	q = _mask.image.ptr<uint8_t>(v, 0);
+	auto	q = mask.ptr<uint8_t>(v, 0);
 
 	for (int u = 0; u < labels.cols; ++u, ++p, ++q)
 	    if (*p == lmax)
@@ -368,33 +338,50 @@ MotionDetector::find_cabletip()
 	}
     }
 
-    cv::drawMarker(_mask.image, point_t(root),	   cv::Scalar(128));
-    cv::drawMarker(_mask.image, point_t(cabletip), cv::Scalar(128));
-    
   // Plane including fingertip described w.r.t. camera frame.
-    const auto		nc = vector3TFToCV<value_t>(_Tct.getBasis()
+    const auto		nc = vector3TFToCV<value_t>(Tct.getBasis()
 						    .getColumn(1));
-    const auto		tc = vector3TFToCV<value_t>(_Tct.getOrigin());
+    const auto		tc = vector3TFToCV<value_t>(Tct.getOrigin());
     const plane_t	plane(nc, -nc.dot(tc));
 
   // Compute cross point between the plane and view vectors
   // for root and fingertip.
-    const auto		root3 = _Tct.inverse()
-			      * vector3CVToTF(
-				  plane.cross_point(
-				      view_vector(root(0) + _top_left.x,
-						  root(1) + _top_left.y)));
-    const auto		tip3  = _Tct.inverse()
-			      * vector3CVToTF(
-				  plane.cross_point(
-				      view_vector(cabletip.x + _top_left.x,
-						  cabletip.y + _top_left.y)));
+    const auto		root3 = Tct.inverse()
+			      * vector3CVToTF(plane.cross_point(
+						  view_vector(camera_info,
+							      root(0),
+							      root(1))));
+    const auto		tip3  = Tct.inverse()
+			      * vector3CVToTF(plane.cross_point(
+						  view_vector(camera_info,
+							      cabletip.x,
+							      cabletip.y)));
     const auto		rx = (tip3 - root3).normalize();
     const tf::Vector3	ry(0, 1, 0);
     const auto		rz = rx.cross(ry).normalize();
 
-    std::cerr << "root3 = " << root3 << std::endl;
-    std::cerr << "tip3  = " << tip3  << std::endl;
+  // Paint motion mask over the input RGB image.
+    for (int v = 0; v < mask.rows; ++v)
+    {
+	auto	p = mask.ptr<uint8_t>(v, 0);
+	auto	q = image.ptr<cv::Vec3b>(v, 0);
+	auto	r = depth.ptr<float>(v, 0);
+	
+	for (const auto pe = p + mask.cols; p < pe; ++p, ++q, ++r)
+	    if (*p)
+	    {
+		(*q)[0] = 0;
+		(*q)[1] = 255;
+		(*q)[2] = 255;
+	    }
+	    else
+		*r = 0;
+    }
+
+    cv::drawMarker(image, point_t(root), cv::Scalar(0, 255, 255),
+		   cv::MARKER_CROSS, 20, 2);
+    cv::drawMarker(image, point_t(cabletip), cv::Scalar(0, 255, 255),
+		   cv::MARKER_CROSS, 20, 2);
     
     return tf::Transform({rx.x(), ry.x(), rz.x(),
 			  rx.y(), ry.y(), rz.y(),
@@ -403,12 +390,13 @@ MotionDetector::find_cabletip()
 }
 
 MotionDetector::vector3_t
-MotionDetector::view_vector(const value_t u, value_t v) const
+MotionDetector::view_vector(const camera_info_cp& camera_info,
+			    const value_t u, value_t v)
 {
     cv::Mat_<value_t>	K(3, 3);
-    std::copy_n(std::begin(_camera_info->K), 9, K.begin());
+    std::copy_n(std::begin(camera_info->K), 9, K.begin());
     cv::Mat_<value_t>	D(1, 4);
-    std::copy_n(std::begin(_camera_info->D), 4, D.begin());
+    std::copy_n(std::begin(camera_info->D), 4, D.begin());
     cv::Mat_<point2_t>	uv(1, 1), xy(1, 1);
     uv(0) = {u, v};
     cv::undistortPoints(uv, xy, K, D);

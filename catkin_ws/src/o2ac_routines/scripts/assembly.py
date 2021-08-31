@@ -116,6 +116,10 @@ if __name__ == '__main__':
         c.do_change_tool_action("b_bot", equip=True, screw_size=3)
       elif i == '161':
         c.do_change_tool_action("b_bot", equip=False, screw_size=3)
+      if i == "17":
+        c.equip_tool("b_bot", "set_screw_tool")
+      if i == "18":
+        c.unequip_tool("b_bot", "set_screw_tool")
       elif i == '21':
         c.take_tray_from_agv()
       elif i == '211':
@@ -365,6 +369,12 @@ if __name__ == '__main__':
           break
         c.center_panel("panel_bearing", store=True)
         c.place_panel("a_bot", "panel_bearing", pick_again=True, fake_position=True)
+      elif i == "pickplacebearingpanelwithuncertainty":
+        pose_with_uncertainty=geometry_msgs.msg.PoseWithCovarianceStamped()
+        if not c.pick_panel_with_handover("panel_bearing", simultaneous=False, pose_with_uncertainty=pose_with_uncertainty):
+          break
+        c.center_panel_with_uncertainty("panel_bearing", store=True, pose_with_uncertainty=pose_with_uncertainty)
+        c.place_panel("a_bot", "panel_bearing", pick_again=True, fake_position=True, pose_with_uncertainty=pose_with_uncertainty)
       elif i == "pickmotorpanel":
         c.pick_panel_with_handover("panel_motor", simultaneous=False)
       elif i == "pickplacemotorpanel":
@@ -395,6 +405,8 @@ if __name__ == '__main__':
       if i == "activate":
         c.a_bot.activate_ros_control_on_ur()
         c.b_bot.activate_ros_control_on_ur()
+      if i == "competitionmodeon":
+        c.competition_mode = True
       elif i == 'x':
         break
       elif i == "":
