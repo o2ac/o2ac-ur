@@ -425,14 +425,13 @@ class O2ACBase(object):
     if screw_picked:
       return True
     elif realign_tool_upon_failure:
-        self.active_robots[robot_name].move_lin_rel(relative_translation=[0,0,0.05])
-        self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
+        self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
         rospy.loginfo("pickScrewFromFeeder failed. Realigning tool and retrying.")
         screw_tool_id = "screw_tool_m" + str(screw_size)
         self.realign_tool(robot_name, screw_tool_id)
         return self.pick_screw_from_feeder_python(robot_name, screw_size, realign_tool_upon_failure=False)
     else:
-        self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
+        self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
         return False
 
   def suck_screw(self, robot_name, screw_head_pose, screw_tool_id, screw_tool_link, fastening_tool_name, do_spiral_search_at_bottom=True):
@@ -605,13 +604,12 @@ class O2ACBase(object):
     else:
       rospy.logerr("Failed to pick screw.")
       self.tools.set_suction(screw_tool_id, suction_on=False, eject=False, wait=False)
-      self.active_robots[robot_name].move_lin_rel([0,0,0.1], speed=0.2)
     
     return screw_picked
 
   def screw(self, robot_name, screw_hole_pose, screw_size, screw_height=0.02,
             stay_put_after_screwing=False, duration=20.0, skip_final_loosen_and_retighten=False,
-            spiral_radius=0.0015, attempts=1):
+            spiral_radius=0.0015, attempts=0, retry_on_failure=False):
     screw_tool_link = robot_name + "_screw_tool_" + "m" + str(screw_size) + "_tip_link"
     screw_tool_id = "screw_tool_m" + str(screw_size)
     fastening_tool_name = "screw_tool_m" + str(screw_size)
@@ -653,6 +651,20 @@ class O2ACBase(object):
     if result is not None:
       motor_stalled = result.motor_stalled
 
+    screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
+    # Check if the screw is in the hole or not
+    if retry_on_failure and not motor_stalled and screw_picked:
+      # Try once more
+      self.tools.set_motor(fastening_tool_name, direction="tighten", wait=False, duration=5, 
+                         skip_final_loosen_and_retighten=skip_final_loosen_and_retighten)
+      finished_before_timeout = self.tools.fastening_tool_client.wait_for_result(rospy.Duration(6))
+      result = self.tools.fastening_tool_client.get_result()
+      rospy.loginfo("Screw tool motor command (retry). Finish before timeout: %s" % finished_before_timeout)
+      rospy.loginfo("Result: %s" % result)
+      motor_stalled = False
+      if result is not None:
+        motor_stalled = result.motor_stalled
+
     if not stay_put_after_screwing:
       self.active_robots[robot_name].go_to_pose_goal(away_from_hole, end_effector_link=screw_tool_link, speed=0.02, move_lin=True)
 
@@ -665,7 +677,7 @@ class O2ACBase(object):
         return self.screw(robot_name=robot_name, screw_hole_pose=screw_hole_pose, screw_size=screw_size, screw_height=screw_height,
               stay_put_after_screwing=stay_put_after_screwing, duration=duration, skip_final_loosen_and_retighten=skip_final_loosen_and_retighten,
               spiral_radius=spiral_radius, attempts=attempts-1)
-      return False
+      return False            
         
     self.tools.set_suction(screw_tool_id, suction_on=False, eject=False, wait=False)
     return motor_stalled

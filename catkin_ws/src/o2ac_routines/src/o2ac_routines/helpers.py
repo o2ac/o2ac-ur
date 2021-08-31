@@ -563,6 +563,23 @@ def check_for_real_robot(func):
         return True
     return wrap
 
+def lock_impedance(func):
+    '''Decorator that locks resources while being used. Assumes there is a self.vision_lock accessible in the decorated method'''
+    def wrap(*args, **kwargs):
+        result = False
+        # print("== waiting for lock ==", func.__name__)
+        try:
+            args[0].impedance_lock.acquire()
+            # print("Lock acquired", func.__name__)
+            result = func(*args, **kwargs)
+        except Exception as e:
+          print("(lock_impedance) received an exception", func.__name__, e)
+        finally:
+          args[0].impedance_lock.release()
+          # print("Lock released", func.__name__)
+        return result
+    return wrap
+
 def lock_vision(func):
     '''Decorator that locks resources while being used. Assumes there is a self.vision_lock accessible in the decorated method'''
     def wrap(*args, **kwargs):
