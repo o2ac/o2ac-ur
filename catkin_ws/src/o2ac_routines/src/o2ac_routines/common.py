@@ -4161,6 +4161,8 @@ class O2ACCommon(O2ACBase):
                                               0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
                                               0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
                                               0.00, 0.00, 0.00, 0.00, 0.00, 0.01]
+      collision_object = self.assembly_database.get_collision_object(panel_name)
+      self.visualize_object_with_distribution(collision_object, pose_with_uncertainty, frame_locked=True)
     # self.spawn_object(panel_name, goal, goal.header.frame_id, pose_with_uncertainty = pose_with_uncertainty)
     rospy.sleep(0.5)
 
