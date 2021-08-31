@@ -80,7 +80,7 @@ def main():
     controller.a_bot.gripper.open(opening_width=0.02)
     support_surface = controller.listener.transformPose("world", plate_pose)
     rospy.sleep(1.0)
-    controller.place_object_with_uncertainty("panel_motor", pose_with_uncertainty, support_surface_height=support_surface.pose.position.z)
+    controller.place_object_with_uncertainty("panel_motor", pose_with_uncertainty, support_surface_height=0.856)
     controller.confirm_to_proceed("Dropped plate. Continue?")
     
     controller.a_bot.go_to_pose_goal(push_start_pose)
