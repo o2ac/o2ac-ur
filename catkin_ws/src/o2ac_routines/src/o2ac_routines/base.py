@@ -395,16 +395,17 @@ class O2ACBase(object):
       tool_co.header.frame_id = tool["frame_id"]
       tool_co.id = tool["id"]
 
-      primitive_num = len(tool['primitives'])
+      tool_co.visual_geometry_mesh_url = tool.get("mesh_url", "")
 
+      # Define collision geometry
+      primitive_num = len(tool['primitives'])
       tool_co.primitives = [SolidPrimitive() for _ in range(primitive_num)] # instead of resize()
       tool_co.primitive_poses = [Pose() for _ in range(primitive_num)] 
-
       for i, primitive in enumerate(tool["primitives"]):
         try:
           tool_co.primitives[i].type = PRIMITIVES[(primitive['type'])]
         except KeyError as e:
-          rospy.logerr("Invalid Collition Object Primitive type: %s " % primitive['type'])
+          rospy.logerr("Invalid Collision Object Primitive type: %s " % primitive['type'])
           raise
         tool_co.primitives[i].dimensions = primitive['dimensions']
         tool_co.primitive_poses[i] = conversions.to_pose(conversions.to_float(primitive['pose']))
@@ -416,8 +417,6 @@ class O2ACBase(object):
       tool_co.subframe_names = [tool["subframe"]["name"]]
 
       self.screw_tools[tool["id"]] = tool_co
-
-    # # TODO(felixvd): Add the set screw and nut tool objects from the C++ file
 
   ######
   def pick_screw_from_feeder_python(self, robot_name, screw_size, realign_tool_upon_failure=True, skip_retreat=False):
@@ -891,8 +890,11 @@ class O2ACBase(object):
     return
 
   def spawn_multiple_objects(self, assembly_name, objects, poses, reference_frame):
+    """ Spawn objects in the planning scene.
+        objects is a list of object names.
+        poses is a list of poses in [x,y,z,r,p,y] format.
+    """
     # Init params
-    # TODO(Cambel): Fix redundant calls to this definitions params and tool object collitions
     upload_mtc_modules_initial_params()
     self.assembly_database.change_assembly(assembly_name)
 
@@ -902,7 +904,16 @@ class O2ACBase(object):
     for screw_id in screw_ids:
       self.spawn_tool('screw_tool_' + screw_id)
       self.upload_tool_grasps_to_param_server(screw_id)
-    spawn_objects(self.assembly_database, objects, poses, reference_frame)
+    
+    for (object_name, pose) in zip(objects, poses):
+      co = self.assembly_database.get_collision_object(object_name)
+      if co:
+        co.header.frame_id = reference_frame
+        co.pose = conversions.to_pose(pose)  # Convert geometry_msgs.msg.Pose
+        self.planning_scene_interface.apply_collision_object(co)
+      else:
+        rospy.logerr("Could not find object with name " + object_name + ". Did not spawn to planning scene.")
+
   
   def get_3d_poses_from_ssd(self):
     """

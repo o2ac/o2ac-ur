@@ -75,46 +75,6 @@ def upload_mtc_modules_initial_params():
   rospy.set_param('mtc_modules/retreat_direction', [-1.0, 0.0, 0.0])
   rospy.set_param('mtc_modules/support_surfaces', ['tray_center', 'screw_tool_holder_long'])
 
-def spawn_objects(assembly_database, object_names, object_poses, object_reference_frame):
-  '''
-  Spawn collision objects in the planning scene
-
-  This function uses the o2ac_assembly_database module to spawn objects in the scene. The assembly, its objects and their metadata
-  has to be set up inside the o2ac_assembly_database module.
-
-  Given a list of object names from an assembly, this functions spawns the listed objects in the corresponding poses in input 'object_poses'.
-  The inputs 'object_names' and 'object_poses' must have the same lengths.
-  The object poses are lists of floats in [x,y,z,r,p,y] format and are relative to the object_reference_frame
-  '''
-  moveit_commander.roscpp_initialize(sys.argv)
-  planning_scene_interface = moveit_commander.PlanningSceneInterface()
-  transformer = tf.Transformer(True, rospy.Duration(10.0))
-
-  for (object_name, object_pose) in zip(object_names, object_poses):
-    co_pose = geometry_msgs.msg.Pose()
-    co_pose.position = geometry_msgs.msg.Point(*object_pose[:3])
-    quaternion = tf.transformations.quaternion_from_euler(*conversions.to_float(object_pose[3:]))
-    co_pose.orientation = geometry_msgs.msg.Quaternion(*quaternion)
-
-    collision_object = next((co for co in assembly_database._collision_objects if co.id == object_name), None)
-    assert collision_object is not None, "Collision object for '%s' does not exist or names do not match" % object_name
-
-    # Create copy to avoid modifying the original
-    collision_object_copy = moveit_msgs.msg.CollisionObject()
-    collision_object_copy.header.frame_id = object_reference_frame
-    collision_object_copy.pose = co_pose
-    
-    # Shallow copy the rest
-    collision_object_copy.operation = collision_object.operation
-    collision_object_copy.type = collision_object.type
-    collision_object_copy.id = collision_object.id
-    collision_object_copy.primitives = collision_object.primitives
-    collision_object_copy.primitive_poses = collision_object.primitive_poses
-    collision_object_copy.meshes = collision_object.meshes
-    collision_object_copy.mesh_poses = collision_object.mesh_poses
-    
-    planning_scene_interface.add_object(collision_object_copy)
-
 def is_program_running(topic_namespace, service_client):
   req = ur_dashboard_msgs.srv.IsProgramRunningRequest()
   res = []
