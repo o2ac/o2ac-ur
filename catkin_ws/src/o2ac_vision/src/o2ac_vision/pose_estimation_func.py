@@ -1052,15 +1052,19 @@ class ShaftHoleDetection():
         if self.score_w_hole < self.score_wo_hole:
             visible_hole = True
         
+        im_vis = self.cm_w.get_result_image()
+        im_vis = cv2.cvtColor( im_vis, cv2.COLOR_GRAY2RGB )
         # Draw result
         if visible_hole:
-            text = "Shaft hole seen! (" + str(self.score_w_hole) + " < " + str(self.score_wo_hole) + ")"
-            im_vis = cv2.putText(im_vis, text, (20,20), 0, 0.5,(255,255,255),2, cv2.LINE_AA)
-            im_vis = cv2.putText(im_vis, text, (20,20), 0, 0.5,(0,255,0),1, cv2.LINE_AA)
+            # text = "Shaft hole seen! (" + str(self.score_w_hole) + " < " + str(self.score_wo_hole) + ")"
+            text = "O!"
+            im_vis = cv2.putText(im_vis, text, (1,10), 0, 0.5,(255,255,255),2, cv2.LINE_AA)
+            im_vis = cv2.putText(im_vis, text, (1,10), 0, 0.5,(0,255,0),1, cv2.LINE_AA)
         else:
-            text = "Hole on other side! (" + str(self.score_w_hole) + " > " + str(self.score_wo_hole) + ")"
-            im_vis = cv2.putText(im_vis, text, (20,20), 0, 0.5,(255,255,255),2, cv2.LINE_AA)
-            im_vis = cv2.putText(im_vis, text, (20,20), 0, 0.5,(0,0,255),1, cv2.LINE_AA)
+            # text = "Hole on other side! (" + str(self.score_w_hole) + " > " + str(self.score_wo_hole) + ")"
+            text = "X!"
+            im_vis = cv2.putText(im_vis, text, (1,10), 0, 0.5,(255,255,255),2, cv2.LINE_AA)
+            im_vis = cv2.putText(im_vis, text, (1,10), 0, 0.5,(0,0,255),1, cv2.LINE_AA)        
 
         return visible_hole, im_vis
 
