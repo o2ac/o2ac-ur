@@ -350,11 +350,10 @@ class O2ACVisionServer(object):
                     action_result.class_ids.append(poses2d.class_id)
                     action_result.poses.append(p3d)
                     action_result.upside_down.append(poses2d.upside_down)
-        if success:
-            self.get_3d_poses_from_ssd_server.set_succeeded(action_result)
-        else:
-            action_result.error_code = -1
-            self.get_3d_poses_from_ssd_server.set_aborted(action_result, "Camera failure")
+        if not success:
+            action_result = o2ac_msgs.msg.get3DPosesFromSSDResult()
+            action_result.class_ids   = [-1]
+        self.get_3d_poses_from_ssd_server.set_succeeded(action_result)
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
 
     def execute_localization(self, im_in, im_vis):
