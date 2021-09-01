@@ -1145,28 +1145,42 @@ class O2ACAssembly(O2ACCommon):
           self.a_bot.move_lin_rel(relative_translation=[0.03,0,0], speed=0.05)
           self.drop_in_tray("a_bot")
           return False
-        self.a_bot.move_lin_rel(relative_translation=[0.1,0,0])
+        
         self.assembly_status.bearing_inserted_in_panel = True
-        if not self.a_bot.go_to_named_pose("home"):
+
+        rel_pose1 = self.a_bot.move_lin_rel([0.1,0,0.0], pose_only=True)
+        rel_pose2 = self.a_bot.move_lin_rel([0.1,-0.2,0.1], pose_only=True)
+        waypoints = []
+        waypoints.append((self.b_bot.compute_ik(rel_pose1, timeout=0.02, retry=True), 0, 1.0))
+        waypoints.append((self.b_bot.compute_ik(rel_pose2, timeout=0.02, retry=True), 0, 1.0))
+        waypoints.append(("home", 0, 1.0))
+        if not self.b_bot.move_joints_trajectory(waypoints):
           rospy.logerr("Fail to go home")
-        return True
+          self.b_bot.move_lin_rel(relative_translation=[0.1, 0, 0])
+          self.b_bot.move_lin_rel(relative_translation=[0.1, -0.2, 0.1])
+          self.b_bot.go_to_named_pose("home")
+          return False
     else:
       a_bot_2nd_task = lambda : True
     
     if pick_and_orient_insert_motor and self.assembly_status.motor_oriented:
       def b_bot_2nd_task():
         self.publish_status_text("Target: Bearing & Motor")
-        self.b_bot.go_to_named_pose("centering_area")
+        midpoint1      = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [-0.25, 0.1, 0.4, tau/2,  0, radians(28)])
+        waypoints = []
+        waypoints.append((self.b_bot.compute_ik(midpoint1, timeout=0.02, retry=True), 0, 1.0))
+        waypoints.append(("centering_area", 0, 1.0))
+        self.b_bot.move_joints_trajectory(waypoints)
         if not self.align_motor_pre_insertion():
           return False
         if not self.insert_motor("assembled_part_02_back_hole"):
           rospy.logerr("Fail to insert motor!!")
           if self.b_bot.is_protective_stopped():
-            rospy.logfatal("Something is very wrong")
+            rospy.logfatal("Something is very wrong. Trying to unlock and proceed")
             self.b_bot.unlock_protective_stop()
+            self.b_bot.gripper.open()
           self.b_bot.move_lin_rel(relative_translation=[-0.05,0,0], speed=0.05)
           self.b_bot.move_lin_rel(relative_translation=[0,0.05,0.1])
-          midpoint1      = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [-0.25, 0.1, 0.4, tau/2,  0, radians(28)])
           self.b_bot.go_to_pose_goal(midpoint1)
           self.b_bot.go_to_named_pose("centering_area")
           # self.orient_motor_in_aid_edge()
@@ -1266,6 +1280,7 @@ class O2ACAssembly(O2ACCommon):
     else:
       rospy.logfatal("Fail to assemble panels... call a reset!")
       return False
+
     self.publish_part_in_assembled_position("panel_motor")
     self.publish_part_in_assembled_position("panel_bearing")
 
@@ -1363,7 +1378,7 @@ class O2ACAssembly(O2ACCommon):
       if self.assembly_status.bearing_inserted_in_panel:
         if not self.align_bearing_holes(task="assembly"):
           return False
-        self.b_bot.move_lin_rel(relative_translation=[0,-0.05,0.15], speed=1.0)
+        self.b_bot.move_lin_rel(relative_translation=[0.05, 0.05, 0.1], speed=1.0)
         if not self.fasten_bearing("assembly", robot_name="b_bot", with_extra_retighten=True):
           return False
         self.b_bot_success = True
