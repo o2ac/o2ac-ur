@@ -267,6 +267,7 @@ class RobotBase():
             group.set_pose_target(pose_goal_)
             success, plan, planning_time, error = group.plan()
 
+
             if success:
                 if self.joint_configuration_changes(plan.joint_trajectory.points[0].positions,
                                                     plan.joint_trajectory.points[-1].positions) \
@@ -275,6 +276,9 @@ class RobotBase():
                     rospy.logwarn("Joint configuration would have flipped.")
                     continue
             if success:
+                if planner != "LINEAR":
+                    # retime
+                    plan = self.robot_group.retime_trajectory(self.robot_group.get_current_state(), plan, algorithm="time_optimal_trajectory_generation")
                 if plan_only:
                     group.set_start_state_to_current_state()
                     group.clear_pose_targets()
@@ -486,6 +490,8 @@ class RobotBase():
                 group.set_start_state_to_current_state()
             success, plan, planning_time, error = group.plan()
             if success:
+                # retime
+                plan = self.robot_group.retime_trajectory(self.robot_group.get_current_state(), plan, algorithm="time_optimal_trajectory_generation")
                 group.clear_pose_targets()
                 group.set_start_state_to_current_state()
                 if plan_only:
@@ -521,6 +527,8 @@ class RobotBase():
                 group.set_start_state_to_current_state()
             success, plan, planning_time, error = group.plan()
             if success:
+                # retime
+                plan = self.robot_group.retime_trajectory(self.robot_group.get_current_state(), plan, algorithm="time_optimal_trajectory_generation")
                 group.set_start_state_to_current_state()
                 if plan_only:
                     return plan, planning_time
@@ -594,6 +602,8 @@ class RobotBase():
 
             if response.response.error_code.val == 1:
                 plan = response.response.planned_trajectories[0]  # support only one plan?
+                # retime
+                plan = self.robot_group.retime_trajectory(self.robot_group.get_current_state(), plan, algorithm="time_optimal_trajectory_generation")
                 planning_time = response.response.planning_time
                 if plan_only:
                     return plan, planning_time

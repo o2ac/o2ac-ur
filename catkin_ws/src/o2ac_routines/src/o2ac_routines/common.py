@@ -1721,7 +1721,7 @@ class O2ACCommon(O2ACBase):
   def pick_and_fasten_screw(self, robot_name, screw_pose, screw_size, 
                              approach_distance=0.07, intermediate_pose=None, speed=0.7, 
                              duration=20.0, attempts=1, spiral_radius=0.003, 
-                             save_plan_on_success=True, hole_center_pose=None, 
+                             save_plan_on_success=True, screw_set_center_pose=None, 
                              saved_plan=None, skip_initial_motion=False):
     """Returns bool, screw success"""
     if not skip_initial_motion:
@@ -1756,16 +1756,13 @@ class O2ACCommon(O2ACBase):
         waypoints.append(("horizontal_screw_ready", 0, 1.0))
         if intermediate_pose:
           waypoints.append((self.active_robots[robot_name].compute_ik(intermediate_pose, timeout=0.02, retry=True, end_effector_link = eef), 0, 1.0))
-        waypoints.append((self.active_robots[robot_name].compute_ik(hole_center_pose, timeout=0.02, retry=True, end_effector_link = eef), 0, 0.3))
+        waypoints.append((self.active_robots[robot_name].compute_ik(screw_set_center_pose, timeout=0.02, retry=True, end_effector_link = eef), 0, 0.3))
         res = self.active_robots[robot_name].move_joints_trajectory(waypoints, plan_only=True)
         if not res:
           rospy.logerr("Fail to plan feeder_to_hole_plan")
           return False
         else:
           feeder_to_hole_plan, _ = res
-          feeder_to_hole_plan = self.active_robots[robot_name].robot_group.retime_trajectory(
-                                                            self.active_robots[robot_name].robot_group.get_current_state(), 
-                                                            feeder_to_hole_plan, algorithm="time_optimal_trajectory_generation")
           if not self.active_robots[robot_name].execute_plan(feeder_to_hole_plan):
             rospy.logerr("Failed to execute feeder_to_hole_plan")
             return False
@@ -2090,11 +2087,11 @@ class O2ACCommon(O2ACBase):
     return self.fasten_set_of_screws(screw_poses, screw_size=4, robot_name=robot_name, only_retighten=only_retighten,
                               skip_intermediate_pose=skip_intermediate_pose,
                               simultaneous=simultaneous, with_extra_retighten=with_extra_retighten, tries=15,
-                              hole_center_pose=screw_set_center_pose)
+                              screw_set_center_pose=screw_set_center_pose)
 
   def fasten_set_of_screws(self, screw_poses, screw_size, robot_name, only_retighten=False, skip_intermediate_pose=False, 
                            simultaneous=False, with_extra_retighten=False, intermediate_pose=None, unequip_when_done=True,
-                           skip_return=False, attempts=1, tries=8, hole_center_pose=None):
+                           skip_return=False, attempts=1, tries=8, screw_set_center_pose=None):
     if not self.equip_tool(robot_name, 'screw_tool_m%s' % screw_size):
       rospy.logerr("Fail to equip tool abort!")
       return False
@@ -2126,8 +2123,8 @@ class O2ACCommon(O2ACBase):
       rotation = [-tau/6, 0, 0]
     pose_feeder = conversions.to_pose_stamped("m" + str(screw_size) + "_feeder_outlet_link", [0, 0, 0]+rotation)
     pose_feeder.pose.position.x -= 0.03
-    if hole_center_pose:
-      screw_set_center_pose = hole_center_pose
+    if screw_set_center_pose:
+      screw_set_center_pose = screw_set_center_pose
     else:
       screw_set_center_pose = copy.deepcopy(screw_poses[0])
       screw_set_center_pose.pose.position.x -= 0.05
@@ -2157,9 +2154,6 @@ class O2ACCommon(O2ACBase):
               return False
             else:
               hole_to_feeder_plan, _ = res
-            hole_to_feeder_plan = self.active_robots[robot_name].robot_group.retime_trajectory(
-                                                                    self.active_robots[robot_name].robot_group.get_current_state(), 
-                                                                    hole_to_feeder_plan, algorithm="time_optimal_trajectory_generation")
           if not self.active_robots[robot_name].execute_plan(hole_to_feeder_plan):
             rospy.logerr("Failed to execute hole_to_feeder_plan")
             return False
@@ -2175,7 +2169,7 @@ class O2ACCommon(O2ACBase):
           feeder_to_hole_plan = self.pick_and_fasten_screw(robot_name, screw_poses[n], screw_size=screw_size, 
                                                            intermediate_pose=intermediate_pose, attempts=attempts,
                                                            save_plan_on_success=True, saved_plan=feeder_to_hole_plan,
-                                                           hole_center_pose=screw_set_center_pose,
+                                                           screw_set_center_pose=screw_set_center_pose,
                                                            skip_initial_motion=(not first_screw))
           trajectory = [[screw_pose_approach, 0.0, 0.02], [screw_set_center_pose, 0.0, 0.3]]
           if not self.active_robots[robot_name].move_lin_trajectory(trajectory, end_effector_link=screw_tool_link):
@@ -3893,7 +3887,7 @@ class O2ACCommon(O2ACBase):
       # Finish remaining screws
       if not self.fasten_set_of_screws(screw_poses[2:], screw_size=3, robot_name=robot_name, only_retighten=False,
                                       skip_intermediate_pose=False, simultaneous=simultaneous, with_extra_retighten=False,
-                                      hole_center_pose=screw_set_center_pose):
+                                      screw_set_center_pose=screw_set_center_pose):
         rospy.logerr("Fail to fasten remaining screws of motor")
         return False
 
