@@ -1,4 +1,4 @@
-collision_objects:
+collision_primitives:
 - type: CYLINDER 
   dimensions: [0.055, 0.016]
   pose: [0.016, -0.005, -0.006, 0.0, 0.0, 0.0]

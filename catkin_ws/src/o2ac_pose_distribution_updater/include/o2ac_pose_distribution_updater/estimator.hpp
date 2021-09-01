@@ -38,6 +38,8 @@ Eigen::Vector3d
 calculate_center_of_gravity(const std::vector<Eigen::Vector3d> &vertices,
                             const std::vector<boost::array<int, 3>> &triangles);
 
+CovarianceMatrix safe_XXT(const CovarianceMatrix &A);
+
 class PoseEstimator {
 public:
   // Parameters for Gaussian particle filter

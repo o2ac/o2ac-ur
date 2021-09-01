@@ -68,8 +68,6 @@ class O2ACCommon(O2ACBase):
 
     self.define_tray_views()
 
-    self.update_distribution_client = actionlib.SimpleActionClient("update_distribution", o2ac_msgs.msg.updateDistributionAction)
-
     self.nut_tool_used = False
     self.end_cap_is_upside_down = False
 
@@ -187,7 +185,7 @@ class O2ACCommon(O2ACBase):
     # self.assembly_marker_publisher.publish(marker)
 
     object_id = self.assembly_database.name_to_id(object_name)
-    collision_object = self.assembly_database.get_collision_object(object_name)
+    collision_object = self.assembly_database.get_collision_object(object_name, use_simplified_collision_shapes=False)
     if test_header_frame:
       collision_object.header.frame_id = test_header_frame
     else:
@@ -787,13 +785,7 @@ class O2ACCommon(O2ACBase):
         pose_with_uncertainty.header=transformed_pose.header
         pose_with_uncertainty.pose=transformed_pose.pose
 
-      visualizer=rospy.ServiceProxy("visualize_pose_belief", o2ac_msgs.srv.visualizePoseBelief)
-      visualization_request = o2ac_msgs.srv.visualizePoseBeliefRequest()
-      visualization_request.object = collision_object
-      visualization_request.distribution_type = 1
-      visualization_request.distribution = pose_with_uncertainty
-      visualization_request.frame_locked=True
-      visualizer(visualization_request)
+      self.visualize_object_with_distribution(collision_object, pose_with_uncertainty, frame_locked=True)
 
     success = True
     if minimum_grasp_width > robot.gripper.opening_width and self.use_real_robot:
@@ -4413,7 +4405,7 @@ class O2ACCommon(O2ACBase):
     goal = self.get_large_item_position_from_top(panel_name, "b_bot")
     rospy.sleep(0.2)
     
-    # goal = conversions.to_pose_stamped("tray_center", [0.02, -0.03, 0.001, 0.0, 0.0, tau/4])
+    # Initialize the pose 
     if pose_with_uncertainty !=None:
       pose_with_uncertainty.header=goal.header
       pose_with_uncertainty.pose.pose = goal.pose
@@ -4423,6 +4415,8 @@ class O2ACCommon(O2ACBase):
                                               0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
                                               0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
                                               0.00, 0.00, 0.00, 0.00, 0.00, 0.01]
+      collision_object = self.assembly_database.get_collision_object(panel_name)
+      self.visualize_object_with_distribution(collision_object, pose_with_uncertainty, frame_locked=True)
     # self.spawn_object(panel_name, goal, goal.header.frame_id, pose_with_uncertainty = pose_with_uncertainty)
     rospy.sleep(0.5)
 
@@ -4565,13 +4559,17 @@ class O2ACCommon(O2ACBase):
     rospy.logerr("return_l_plates is not implemented.")
     pass 
 
-  def place_object_with_uncertainty(self, object_name, pose_with_uncertainty, support_surface):
+  def place_object_with_uncertainty(self, object_name, pose_with_uncertainty, support_surface_height):
+    """ Calculate the object pose with uncertainty after a PLACE action (the pose input parameter is changed in place)
+
+        support_surface_height is the z-coordinate of the support surface in the world frame.    
+    """
     now=rospy.Time.now()
     collision_object=self.assembly_database.get_collision_object(object_name)
     update_goal=o2ac_msgs.msg.updateDistributionGoal()
     update_goal.observation_type=update_goal.PLACE_OBSERVATION
     update_goal.gripped_object=collision_object
-    update_goal.place_observation.support_surface=support_surface
+    update_goal.place_observation.support_surface=support_surface_height
     self.listener.waitForTransform("world", pose_with_uncertainty.header.frame_id, now, rospy.Duration(1.0))
     update_goal.gripper_pose.pose= tf_conversions.posemath.toMsg(tf_conversions.posemath.fromTf(self.listener.lookupTransform("world", pose_with_uncertainty.header.frame_id, now)))
     update_goal.gripper_pose.header.frame_id="world"
@@ -4585,15 +4583,14 @@ class O2ACCommon(O2ACBase):
     pose_with_uncertainty.header=transformed_pose.header
     pose_with_uncertainty.pose=transformed_pose.pose
 
-    visualizer=rospy.ServiceProxy("visualize_pose_belief", o2ac_msgs.srv.visualizePoseBelief)
-    visualization_request = o2ac_msgs.srv.visualizePoseBeliefRequest()
-    visualization_request.object = collision_object
-    visualization_request.distribution_type = 1
-    visualization_request.distribution = pose_with_uncertainty
-    visualization_request.frame_locked=True
-    visualizer(visualization_request)
-
+    self.visualize_object_with_distribution(collision_object, pose_with_uncertainty, frame_locked=True)
+    
   def push_object_with_uncertainty(self, object_name, gripper_pose, pose_with_uncertainty, y_shift=0.0):
+    """ Calculate the object pose with uncertainty after a PUSH action (the pose input parameter is changed in place).
+        This call of push action is particular: it simulates pushing the object into another object, while letting it slide through the gripper.
+
+        y_shift is the amount by which the gripper moved (?)
+    """
     collision_object=self.assembly_database.get_collision_object(object_name)
     update_goal=o2ac_msgs.msg.updateDistributionGoal()
     update_goal.observation_type=update_goal.PUSH_OBSERVATION
@@ -4610,13 +4607,7 @@ class O2ACCommon(O2ACBase):
     self.transform_uncertainty(gripper_transform, update_result.distribution.pose, pose_with_uncertainty.pose)
     pose_with_uncertainty.pose.pose.position.y+=y_shift
 
-    visualizer=rospy.ServiceProxy("visualize_pose_belief", o2ac_msgs.srv.visualizePoseBelief)
-    visualization_request = o2ac_msgs.srv.visualizePoseBeliefRequest()
-    visualization_request.object = collision_object
-    visualization_request.distribution_type = 1
-    visualization_request.distribution = pose_with_uncertainty
-    visualization_request.frame_locked=True
-    visualizer(visualization_request)
+    self.visualize_object_with_distribution(collision_object, pose_with_uncertainty, frame_locked=True)
   
   def center_panel_with_uncertainty(self, panel_name, robot_name="a_bot", speed=1.0, store=True, pose_with_uncertainty=None):
     """ Places the plate next to the tray in a well-defined position, by pushing it into a stopper.

@@ -79,9 +79,12 @@ class PartsReader(object):
         self.load_meshes = load_meshes 
         rospy.loginfo("Done loading parts database " + db_name)
     
-    def get_collision_object(self, object_name):
+    def get_collision_object(self, object_name, use_simplified_collision_shapes=True):
         '''
         This returns the collision object (including subframes) for an object_name.
+
+        If use_simplified_collision_shapes is true and primitives are defined in the object's metadata,
+        they will be used as collision geometry instead of the object's mesh.
         '''
         for i, c_obj in enumerate(self._collision_objects):
             if c_obj.id == object_name:
@@ -94,17 +97,17 @@ class PartsReader(object):
                 c_new.operation = c_obj.operation
                 c_new.type = c_obj.type
                 c_new.id = c_obj.id
-                if self._primitive_collision_objects[i]:
-                    print("using primitives:", object_name)
+                if self._primitive_collision_objects[i] and use_simplified_collision_shapes:
+                    rospy.loginfo("Using primitives for collision object: " + object_name)
                     c_new.primitives = self._primitive_collision_objects[i][0]
                     c_new.primitive_poses = self._primitive_collision_objects[i][1]
                 elif self.load_meshes and not c_obj.meshes: # lazy loading of meshes
-                    print("loading meshes:", object_name)
+                    rospy.loginfo("Loading meshes for collision object: " + object_name)
                     c_obj.meshes = [self._read_mesh(self._mesh_filepaths[i], (0.001, 0.001, 0.001))]
                     c_new.meshes = c_obj.meshes
                     c_new.mesh_poses = c_obj.mesh_poses
                 else:
-                    print("Already loaded meshes", object_name)
+                    rospy.logdebug("Already loaded meshes for object " + object_name)
                     c_new.meshes = c_obj.meshes
                     c_new.mesh_poses = c_obj.mesh_poses
 
@@ -278,7 +281,7 @@ class PartsReader(object):
                 mesh_pose.position = conversions.to_vector3(conversions.to_float(data['mesh_pose'][0]['pose_xyzrpy'][:3]) )
                 mesh_pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(*conversions.to_float(data['mesh_pose'][0]['pose_xyzrpy'][3:])))
             subframes = data['subframes']
-            simplified_collision_objects = data.get('collision_objects', None)
+            simplified_collision_objects = data.get('collision_primitives', None)
             primitive_collision_objects = self._get_collision_object(simplified_collision_objects)
 
             grasps = data['grasp_points']
@@ -372,6 +375,8 @@ class PartsReader(object):
         return mesh
 
     def _get_collision_object(self, collision_objects):
+        """ Convert a YAML representation of a collision primitive to the shape_msg.
+        """
         if not collision_objects:
             return None
 

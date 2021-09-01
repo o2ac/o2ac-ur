@@ -199,6 +199,9 @@ class O2ACBase(object):
 
     # Publisher for status text
     self.pub_status_text = rospy.Publisher("/o2ac_text_to_image", String, queue_size=1)
+
+    self.update_distribution_client = actionlib.SimpleActionClient("update_distribution", o2ac_msgs.msg.updateDistributionAction)
+    self.distribution_visualizer = rospy.ServiceProxy("visualize_pose_belief", o2ac_msgs.srv.visualizePoseBelief)
     
     self.screw_tools = {}
     self.define_tool_collision_objects()
@@ -213,6 +216,8 @@ class O2ACBase(object):
   ############## ------ Internal functions (and convenience functions)
 
   def transform_uncertainty(self, transform, pose_with_uncertainty, transformed_pose):
+    """ Transforms the covariance of a pose. Also see https://wiki.ros.org/pose_cov_ops
+    """
     transformed_pose.pose = tf_conversions.posemath.toMsg(transform * tf_conversions.posemath.fromMsg(pose_with_uncertainty.pose))
 
     transform_matrix=numpy.matrix(tf_conversions.posemath.toMatrix(transform))
@@ -239,6 +244,8 @@ class O2ACBase(object):
     transformed_pose.covariance = numpy.asarray(transformed_covariance_matrix)
   
   def transform_pose_with_uncertainty(self, target_frame, pose_with_uncertainty, now=None):
+    """ Transforms a pose with covariance. Also see https://wiki.ros.org/pose_cov_ops
+    """
     if now==None:
       now=rospy.Time.now()
     self.listener.waitForTransform(target_frame, pose_with_uncertainty.header.frame_id, now, rospy.Duration(1.0))
@@ -249,7 +256,6 @@ class O2ACBase(object):
     self.transform_uncertainty(transform, pose_with_uncertainty.pose, transformed_pose.pose)
     return transformed_pose
     
-  
   def spawn_object(self, object_name, object_pose, object_reference_frame="", pose_with_uncertainty=None):
     collision_object = self.assembly_database.get_collision_object(object_name)
     if isinstance(object_pose, geometry_msgs.msg._PoseStamped.PoseStamped):
@@ -271,15 +277,25 @@ class O2ACBase(object):
     collision_object.pose = co_pose
         
     self.planning_scene_interface.add_object(collision_object)
+
     if pose_with_uncertainty != None:
-      rospy.wait_for_service("visualize_pose_belief")
-      visualizer=rospy.ServiceProxy("visualize_pose_belief", o2ac_msgs.srv.visualizePoseBelief)
-      visualization_request = o2ac_msgs.srv.visualizePoseBeliefRequest()
-      visualization_request.object = collision_object
-      visualization_request.distribution_type = 1
-      visualization_request.distribution = pose_with_uncertainty
-      visualization_request.frame_locked=True
-      visualizer(visualization_request)
+      # Get the visual geometry instead of the collision geometry
+      collision_object_pretty = self.assembly_database.get_collision_object(object_name, use_simplified_collision_shapes=False)          
+      collision_object_pretty.header.frame_id = collision_object.header.frame_id
+      collision_object_pretty.pose = collision_object.pose
+      self.visualize_object_with_distribution(collision_object_pretty, pose_with_uncertainty, frame_locked=True)
+  
+  def visualize_object_with_distribution(self, collision_object, pose_with_uncertainty, frame_locked=False):
+    """ Publishes a MarkerArray visualizing the object pose and uncertainty.
+
+        collision_object must be of type moveit_msgs.msg.CollisionObject
+    """
+    visualization_request = o2ac_msgs.srv.visualizePoseBeliefRequest()
+    visualization_request.object = collision_object
+    visualization_request.distribution_type = 1
+    visualization_request.distribution = pose_with_uncertainty
+    visualization_request.frame_locked=frame_locked
+    self.distribution_visualizer(visualization_request)
 
   def despawn_object(self, object_name):
     self.planning_scene_interface.remove_attached_object(name=object_name)
@@ -779,7 +795,7 @@ class O2ACBase(object):
     self.spawn_multiple_objects('wrs_assembly_2020', ['base'], [[0.12, 0.2, 0.0, tau/4, 0.0, -tau/4]], 'attached_base_origin_link')
     self.spawn_multiple_objects('wrs_assembly_2020', objects, poses, 'world')
 
-  def object_pose_from_fake_perception(self, object_name, xyz_noise=[0.003, 0.003, 0.002], rpy_noise=[radians(5), radians(5), radians(10)]):
+  def object_pose_from_fake_perception(self, object_name, xyz_noise=[0.003, 0.003, 0.002], rpy_noise=[radians(5), radians(5), radians(7)]):
     """ Obtains the object pose at a pre-defined position with some noise. 
         Simulates vision.
     """
@@ -806,7 +822,7 @@ class O2ACBase(object):
       'shaft', 'end_cap', 'bearing_spacer', 'output_pulley', 'idler_spacer', 'idler_pulley', 'idler_pin']
     if layout_number == 1:
       poses = [[0.12, 0.02, 0.001, 0.0, 0.0, tau/2],
-              [0.02, -0.06, 0.001, 0.0, 0.0, -tau/4],
+              [-0.02, 0.0, 0.001, 0.0, 0.0, -tau/4],
               [-0.09, -0.12, 0.001, tau/4, -tau/4, 0.0],
               [-0.02, -0.16, 0.005, 0.0, -tau/4, 0.0],
               [0.0, 0.0, 0.001, 0.0, tau/4, 0.0],

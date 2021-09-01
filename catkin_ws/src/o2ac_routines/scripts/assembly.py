@@ -134,6 +134,23 @@ if __name__ == '__main__':
         c.pick_screw_from_feeder("b_bot", screw_size=4)
       elif i == '321':
         c.pick_screw_from_feeder("b_bot", screw_size=3)
+      elif i == "4":
+        parts = ['base', 'panel_motor', 'panel_bearing', 'motor', 'motor_pulley', 'bearing',
+          'shaft', 'end_cap', 'bearing_spacer', 'output_pulley', 'idler_spacer', 'idler_pulley', 'idler_pin']
+        for part in parts:
+          c.publish_part_in_assembled_position(part)
+      elif i == "4idler":
+        parts = ['idler_spacer', 'idler_pulley', 'idler_pin']
+        for part in parts:
+          c.publish_part_in_assembled_position(part)
+      elif i == "4bearing":
+        parts = ['bearing', 'shaft', 'end_cap', 'bearing_spacer', 'output_pulley']
+        for part in parts:
+          c.publish_part_in_assembled_position(part)
+      elif i == "4motor":
+        parts = ['motor', 'motor_pulley']
+        for part in parts:
+          c.publish_part_in_assembled_position(part)
       elif i == "41":
         c.publish_part_in_assembled_position("base")
       elif i == "421":
@@ -375,7 +392,7 @@ if __name__ == '__main__':
           break
         c.center_panel("panel_bearing", store=True)
         c.place_panel("a_bot", "panel_bearing", pick_again=True, fake_position=True)
-      elif i == "pickplacebearingpanelwithuncertainty":
+      elif i == "pickplacebearingpanelwithuncertainty" or i == "ppbu":
         pose_with_uncertainty=geometry_msgs.msg.PoseWithCovarianceStamped()
         if not c.pick_panel_with_handover("panel_bearing", simultaneous=False, pose_with_uncertainty=pose_with_uncertainty):
           break

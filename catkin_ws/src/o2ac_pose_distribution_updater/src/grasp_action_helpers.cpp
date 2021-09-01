@@ -2,7 +2,7 @@
 #include "o2ac_pose_distribution_updater/convex_hull.hpp"
 
 namespace {
-const double INF = 1e9, EPS = 1e-9, LARGE_EPS = 1e-7;
+const double INF = 1e9, EPS = 1e-9, LARGE_EPS = 1e-3;
 }
 
 // a class for calculating the pose after grasping
@@ -374,6 +374,7 @@ grasp_calculator::grasp_calculator(
   gripper_touch_vertex_2 = vertices[gripper_touch_vertex_id_2];
   gripper_touch_vertex_3 = vertices[gripper_touch_vertex_id_3];
   gripper_touch_vertex_4 = vertices[gripper_touch_vertex_id_4];
+
   ground_touch_vertex_1 = all_vertices[ground_touch_vertex_id_1];
   ground_touch_vertex_2 = all_vertices[ground_touch_vertex_id_2];
 
