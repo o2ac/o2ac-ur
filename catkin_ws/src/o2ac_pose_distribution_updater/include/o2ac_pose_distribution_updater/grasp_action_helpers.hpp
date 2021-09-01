@@ -39,7 +39,7 @@ public:
                    const Eigen::Isometry3d &old_mean,
                    const Eigen::Vector3d &center_of_gravity,
                    const bool balance_check = true,
-		   const bool stability_check = true);
+                   const bool stability_check = true);
 
   // provide function to calculate the pose after grasping given a initial pose
   // in the neighborhood of old_mean

@@ -375,7 +375,7 @@ Planner::best_scores_for_each_costs(
     if (nodes[id].cost >= max_cost) {
       continue;
     }
-    
+
     std::vector<UpdateAction> candidates;
     calculate_action_candidates(nodes[id].gripper_pose, nodes[id].mean,
                                 nodes[id].covariance, nodes[id].gripping,

@@ -38,10 +38,16 @@ int main(int argc, char **argv) {
   ros::init(argc, argv, "planner_test");
   ros::NodeHandle nd;
 
-  FILE *config_file =
-      fopen("/root/o2ac-ur/catkin_ws/src/o2ac_pose_distribution_updater/test/"
-            "planning_test_config.txt",
-            "r");
+  std::string config_file_name;
+  if (argc > 1) {
+    config_file_name = std::string(argv[1]);
+  } else {
+    config_file_name =
+        "/root/o2ac-ur/catkin_ws/src/o2ac_pose_distribution_updater/test/"
+        "planning_test_config.txt";
+  }
+
+  FILE *config_file = fopen(config_file_name.c_str(), "r");
   char stl_file_path[1000], metadata_file_path[1000];
   fscanf(config_file, "%999s%999s", stl_file_path, metadata_file_path);
 
@@ -101,8 +107,33 @@ int main(int argc, char **argv) {
     robot_group.setMaxAccelerationScalingFactor(0.5);
     robot_group.setPlanningTime(15.0);
 
+    const double pushing_length = 0.05, retreat_height = 0.05;
+
     std::vector<geometry_msgs::Pose> waypoints(1);
-    tf::poseEigenToMsg(target_gripper_pose, waypoints[0]);
+    tf::poseEigenToMsg(current_gripper_pose, waypoints[0]);
+    geometry_msgs::Pose gripper_pose;
+    tf::poseEigenToMsg(target_gripper_pose, gripper_pose);
+    if (type == place_action_type) {
+      geometry_msgs::Pose high_pose = gripper_pose;
+      high_pose.position.z += retreat_height;
+      waypoints.push_back(high_pose);
+      waypoints.push_back(gripper_pose);
+    } else if (type == grasp_action_type) {
+      waypoints.push_back(gripper_pose);
+      /*geometry_msgs::Pose high_pose = gripper_pose;
+      high_pose.position.z += retreat_height;
+      waypoints.push_back(high_pose);*/
+    } else if (type == push_action_type) {
+      Eigen::Isometry3d eigen_pose_before_push = target_gripper_pose;
+      eigen_pose_before_push.translation() -=
+          pushing_length *
+          (target_gripper_pose.rotation() * Eigen::Vector3d::UnitZ());
+      geometry_msgs::Pose pose_before_push;
+      tf::poseEigenToMsg(eigen_pose_before_push, pose_before_push);
+      waypoints.push_back(pose_before_push);
+      waypoints.push_back(gripper_pose);
+    }
+
     moveit_msgs::RobotTrajectory trajectory;
     const double jump_threshold = 0.0;
     const double eef_step = 0.01;
@@ -142,26 +173,37 @@ int main(int argc, char **argv) {
   } else {
     // set initial pose belief
     scan_pose(initial_mean, config_file);
-    initial_gripper_pose = Eigen::Isometry3d::Identity();
+    scan_pose(initial_gripper_pose, config_file);
   }
   double support_surface;
-  fscanf(config_file, "%lf", &support_surface);
-  // set covariance randomly
-  std::random_device seed_generator;
-  std::default_random_engine engine(seed_generator());
-  std::uniform_real_distribution<double> uniform_distribution(-1.0, 1.0);
-  CovarianceMatrix deviation, initial_covariance;
-  double deviation_scale[6];
-  for (int i = 0; i < 6; i++) {
-    fscanf(config_file, "%lf", deviation_scale + i);
-  }
-  for (int i = 0; i < 6; i++) {
-    for (int j = 0; j < 6; j++) {
-      deviation(i, j) = deviation_scale[j] * uniform_distribution(engine);
+  int covariance_given;
+  fscanf(config_file, "%lf%d", &support_surface, &covariance_given);
+  CovarianceMatrix initial_covariance;
+  if (covariance_given) {
+    for (int i = 0; i < 6; i++) {
+      for (int j = 0; j < 6; j++) {
+        double value;
+        fscanf(config_file, "%lf", &value);
+        initial_covariance(i, j) = value;
+      }
     }
+  } else {
+    // set covariance randomly
+    std::random_device seed_generator;
+    std::default_random_engine engine(seed_generator());
+    std::uniform_real_distribution<double> uniform_distribution(-1.0, 1.0);
+    CovarianceMatrix deviation;
+    double deviation_scale[6];
+    for (int i = 0; i < 6; i++) {
+      fscanf(config_file, "%lf", deviation_scale + i);
+    }
+    for (int i = 0; i < 6; i++) {
+      for (int j = 0; j < 6; j++) {
+        deviation(i, j) = deviation_scale[j] * uniform_distribution(engine);
+      }
+    }
+    initial_covariance = deviation.transpose() * deviation;
   }
-  initial_covariance = deviation.transpose() * deviation;
-
   // make action plan
   CovarianceMatrix objective_coefficients;
   for (int i = 0; i < 6; i++) {

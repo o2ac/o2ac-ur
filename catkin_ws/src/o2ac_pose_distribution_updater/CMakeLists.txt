@@ -101,4 +101,8 @@ if(CATKIN_ENABLE_TESTING)
   add_executable(best_scores src/test/best_score_test.cpp)
   add_dependencies(best_scores ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
   target_link_libraries(best_scores ${LIBMATHEVAL_LIBRARIES} planner test_tools read_stl)
+
+  add_executable(print_scene src/test/print_scene.cpp)
+  add_dependencies(print_scene ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+  target_link_libraries(print_scene  ${catkin_LIBRARIES} read_stl planner)
 endif()

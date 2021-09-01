@@ -142,12 +142,15 @@ void PoseEstimator::load_config_file(const std::string &file_path) {
     calibration_image_points.push_back(point);
   }
 
-  this->touch_number_of_particles = config["touch_number_of_particles"].as<int>();
+  this->touch_number_of_particles =
+      config["touch_number_of_particles"].as<int>();
   this->look_number_of_particles = config["look_number_of_particles"].as<int>();
-  this->place_number_of_particles = config["place_number_of_particles"].as<int>();
-  this->grasp_number_of_particles = config["grasp_number_of_particles"].as<int>();
+  this->place_number_of_particles =
+      config["place_number_of_particles"].as<int>();
+  this->grasp_number_of_particles =
+      config["grasp_number_of_particles"].as<int>();
   this->push_number_of_particles = config["push_number_of_particles"].as<int>();
-  this->noise_variance=noise_variance;
+  this->noise_variance = noise_variance;
 
   set_touch_parameters(touched_objects,
                        config["distance_threshold"].as<double>());
@@ -305,7 +308,8 @@ void PoseEstimator::calculate_new_distribution(
 
   double sum_of_likelihoods =
       std::accumulate(likelihoods.begin(), likelihoods.end(), 0.0);
-  std::cerr << "The sum of likelihoods:" << sum_of_likelihoods << " / " << number_of_particles << '\n';
+  std::cerr << "The sum of likelihoods:" << sum_of_likelihoods << " / "
+            << number_of_particles << '\n';
   if (sum_of_likelihoods <= EPS) {
     throw std::runtime_error("The sum of likelihoods is 0");
   }
@@ -343,7 +347,8 @@ void PoseEstimator::calculate_new_Lie_distribution(
 
   double sum_of_likelihoods =
       std::accumulate(likelihoods.begin(), likelihoods.end(), 0.0);
-  std::cerr << "The sum of likelihoods:" << sum_of_likelihoods << " / " << number_of_particles << '\n';
+  std::cerr << "The sum of likelihoods:" << sum_of_likelihoods << " / "
+            << number_of_particles << '\n';
   if (sum_of_likelihoods <= EPS) {
     throw std::runtime_error("The sum of likelihoods is 0");
   }
@@ -546,9 +551,9 @@ void PoseEstimator::place_step_with_Lie_distribution(
               (Eigen::Matrix<double, 4, 4>)(hat_operator(particles[i]).exp())) *
           old_mean;
       try {
-        place_calculator calculator(input_transform,
-                                    center_of_gravity_of_gripped, vertices,
-                                    support_surface, gripper_transform, false, false);
+        place_calculator calculator(
+            input_transform, center_of_gravity_of_gripped, vertices,
+            support_surface, gripper_transform, false, false);
 
         particle_transforms[i] = calculator.new_mean;
 

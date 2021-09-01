@@ -328,7 +328,7 @@ place_calculator::place_calculator(const Eigen::Isometry3d &old_mean,
                                    const double &support_surface,
                                    const Eigen::Isometry3d &gripper_transform,
                                    const bool balance_check,
-				   const bool stability_check) {
+                                   const bool stability_check) {
   this->center_of_gravity = center_of_gravity;
   this->support_surface = support_surface;
   this->gripper_transform = gripper_transform;
