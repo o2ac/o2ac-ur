@@ -344,8 +344,6 @@ class O2ACVisionServer(object):
         for poses2d in poses2d_array:
             for pose2d in poses2d.poses:
                 p3d = self.convert_pose_2d_to_3d(pose2d)
-                if CAMERA_FAILURE:
-                    success = False
                 if p3d:
                     action_result.class_ids.append(poses2d.class_id)
                     action_result.poses.append(p3d)
@@ -784,10 +782,6 @@ class O2ACVisionServer(object):
         xyz = self.cam_helper.project_2d_to_3d_from_images(self._camera_info,
                                                            pose2d.x, pose2d.y,
                                                            [depth])
-        
-        if xyz == CAMERA_FAILURE:
-            return CAMERA_FAILURE
-
         # We may not have find anything so its okay to return None
         if not xyz:
             return None
