@@ -1035,11 +1035,12 @@ class ShaftHoleDetection():
         """
 
         im_vis = im_in.copy()
-        # crop image
+        
+        # Crop image
         im_vis = im_vis[self.bbox[1]:self.bbox[1]+self.bbox[3],self.bbox[0]:self.bbox[0]+self.bbox[2]]
-
         im_vis = cv2.resize( im_vis, None, fx=self.ds_rate, fy=self.ds_rate)
-
+        
+        # Evaluate image
         self.cm_w = ChamferMatching( self.im_t_w_hole, im_vis )
         self.cm_wo = ChamferMatching( self.im_t_wo_hole, im_vis )
         smap_w = self.cm_w.main_proc()
@@ -1050,6 +1051,20 @@ class ShaftHoleDetection():
         visible_hole = False
         if self.score_w_hole < self.score_wo_hole:
             visible_hole = True
+        
+        im_vis = self.cm_w.get_result_image()
+        im_vis = cv2.cvtColor( im_vis, cv2.COLOR_GRAY2RGB )
+        # Draw result
+        if visible_hole:
+            # text = "Shaft hole seen! (" + str(self.score_w_hole) + " < " + str(self.score_wo_hole) + ")"
+            text = "O!"
+            im_vis = cv2.putText(im_vis, text, (1,10), 0, 0.5,(255,255,255),2, cv2.LINE_AA)
+            im_vis = cv2.putText(im_vis, text, (1,10), 0, 0.5,(0,255,0),1, cv2.LINE_AA)
+        else:
+            # text = "Hole on other side! (" + str(self.score_w_hole) + " > " + str(self.score_wo_hole) + ")"
+            text = "X!"
+            im_vis = cv2.putText(im_vis, text, (1,10), 0, 0.5,(255,255,255),2, cv2.LINE_AA)
+            im_vis = cv2.putText(im_vis, text, (1,10), 0, 0.5,(0,0,255),1, cv2.LINE_AA)        
 
         return visible_hole, im_vis
 
