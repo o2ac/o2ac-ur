@@ -14,7 +14,7 @@ class MarkersScene():
         self.published_items = {}
 
     def spawn_item(self, item_name, pose_stamped, attach=False, color=None):
-        color = color if color else ColorRGBA(0.2, 1.0, 0.2, 0.9) # GREEN
+        color = color if color else ColorRGBA(0.2, 0.9, 0.2, 1.0) # GREEN
         item_marker = self.parts_database.get_visualization_marker(item_name, pose_stamped.pose, pose_stamped.header.frame_id, color, frame_locked=attach)
         self.marker_publisher.publish(item_marker)
         self.published_items.update({item_name: copy.deepcopy(pose_stamped)})
@@ -31,19 +31,29 @@ class MarkersScene():
 
     def attach_item(self, item_name, to_link):
         current_pose = self.published_items[item_name]
-        current_pose.header.stamp = rospy.Time(0)
-        try:
-            self.listener.waitForTransform(to_link, current_pose.header.frame_id, current_pose.header.stamp, rospy.Duration(1))
-        except:
-            return False
-        new_pose = self.listener.transformPose(to_link, current_pose)
+        tries = 0
+        while tries < 10:
+            try:
+                self.listener.waitForTransform(to_link, current_pose.header.frame_id, current_pose.header.stamp, rospy.Duration(1))
+                new_pose = self.listener.transformPose(to_link, current_pose)
+                break
+            except:
+                return False
         color = ColorRGBA(1., 0.0, 1., 0.9) # Purple
         self.spawn_item(item_name, new_pose, attach=True, color=color)
 
     def detach_item(self, item_name):
         current_pose = self.published_items.get(item_name, None)
         if current_pose:
-            new_pose = self.listener.transformPose("world", current_pose)
+            tries = 0
+            current_pose.header.stamp = rospy.Time.now()
+            while tries < 10:
+                try:
+                    self.listener.waitForTransform("world", current_pose.header.frame_id, current_pose.header.stamp, rospy.Duration(1))
+                    new_pose = self.listener.transformPose("world", current_pose)
+                    break
+                except:
+                    return False
             self.spawn_item(item_name, new_pose, attach=False)
         else:
             rospy.logerr("Try to detach item: %s but it does not exist" % item_name)

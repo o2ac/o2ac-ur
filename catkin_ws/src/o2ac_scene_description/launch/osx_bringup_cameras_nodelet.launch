@@ -100,6 +100,9 @@
 		subst_value="true">[$(arg camera_names)]</rosparam>
     </node>
 
+    <node unless="$(arg use_nodelet)" name="camera_watcher" pkg="o2ac_vision" type="o2ac_camera_watcher.py" output="screen">
+    </node>
+
     <group if="$(arg use_nodelet)">
       <node name="$(arg multiplexer_name)"
 	    pkg="nodelet" type="nodelet" output="screen"

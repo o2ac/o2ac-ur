@@ -28,16 +28,16 @@ subframes:
   - 0.01
   - -0.00875
   - 0.0
-  - pi/2
   - 0.0
+  - -pi/2
   name: screw_head_1
 - pose_xyzrpy:
   - 0.01
   - 0.01
   - 0.00875
   - 0.0
-  - pi/2
   - 0.0
+  - -pi/2
   name: screw_head_2
 grasp_points:
 - grasp_name: grasp_1

@@ -145,11 +145,11 @@ if __name__ == '__main__':
       elif r == '14':
         c.vision.activate_camera("b_bot_outside_camera")
       elif r == '2':
-        c.b_bot.go_to_pose_goal(c.tray_view_high, end_effector_link="b_bot_outside_camera_color_frame", speed=.5, acceleration=.2)
-        # c.b_bot.go_to_pose_goal(c.tray_view_high, end_effector_link="calibrated_b_bot_outside_camera_color_optical_frame", speed=.5, acceleration=.2)
+        tray_views = c.define_local_tray_views(robot_name="b_bot")
+        c.b_bot.go_to_pose_goal(tray_views[0], end_effector_link="b_bot_outside_camera_color_frame", speed=.5, acceleration=.2)
       elif r == '2a':
-        c.a_bot.go_to_pose_goal(c.tray_view_high, end_effector_link="a_bot_outside_camera_color_frame", speed=.5, acceleration=.2)
-        # c.a_bot.go_to_pose_goal(c.tray_view_high, end_effector_link="calibrated_a_bot_outside_camera_color_optical_frame", speed=.5, acceleration=.2)
+        tray_views = c.define_local_tray_views(robot_name="a_bot")
+        c.a_bot.go_to_pose_goal(tray_views[0], end_effector_link="a_bot_outside_camera_color_frame", speed=.5, acceleration=.2)
       elif r == '3':
         ps = geometry_msgs.msg.PoseStamped()
         ps.header.frame_id = "tray_center"
@@ -300,7 +300,11 @@ if __name__ == '__main__':
         c.set_assembly("wrs_assembly_2020")
         c.confirm_motor_and_place_in_aid(calibration=True)
       elif r == "88":
-        c.check_if_shaft_in_v_groove()
+        c.check_screw_hole_visible_on_shaft_in_v_groove()
+      elif r == "881":
+        res = c.vision.call_shaft_hole_detection()
+        print("=== shaft screw_hole detection returned:")
+        print(res)
       elif r == "89":
         if not c.assembly_database.db_name == "wrs_assembly_2020":
           c.set_assembly("wrs_assembly_2020")

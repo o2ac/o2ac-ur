@@ -1,0 +1,8 @@
+<library path="lib/libaist_motion_detector_nodelet">
+  <class name="aist_motion_detector/aist_motion_detector_nodelet"
+	 type="aist_motion_detector::MotionDetectorNodelet"
+	 base_class_type="nodelet::Nodelet">
+    <description>
+    </description>
+  </class>
+</library>

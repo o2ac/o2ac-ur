@@ -1,4 +1,4 @@
-collision_objects:
+collision_primitives:
 - type: BOX 
   dimensions: [0.116, 0.09, 0.005]
   pose: [0.058, 0.045, 0.0025, 0.0, 0.0, 0.0]
@@ -74,7 +74,7 @@ subframes:
   - 0.095
   - 0.05
   - 0.0
-  - -pi/2
+  - pi/2
   - -pi/2
   - 0.0
   name: pulley_ridge_bottom
@@ -82,7 +82,7 @@ subframes:
   - 0.095
   - 0.065
   - 0.0
-  - -pi/2
+  - pi/2
   - -pi/2
   - 0.0
   name: pulley_ridge_middle
@@ -90,7 +90,7 @@ subframes:
   - 0.095
   - 0.08
   - 0.0
-  - -pi/2
+  - pi/2
   - -pi/2
   - 0.0
   name: pulley_ridge_top

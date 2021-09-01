@@ -66,8 +66,9 @@ Plane<T, N>::fit(ITER begin, ITER end)
 
   // Check #points.
     const auto	npoints = std::distance(begin, end);
-    if (npoints < 3)
-	throw std::runtime_error("Failed to fit a plane: three or more points required!");
+    if (npoints < N)
+	throw std::runtime_error("Failed to fit a plane: " + std::to_string(N)
+				 + " or more points required!");
 
   // Compute centroid.
     auto	centroid = vector_type::zeros();

@@ -13,23 +13,24 @@ namespace aist_camera_multiplexer
 Multiplexer::Subscribers::Subscribers(Multiplexer* multiplexer,
 				      const std::string& camera_name)
     :_camera_name(camera_name),
+     _it(multiplexer->_nh),
+     _image_sub( _it.subscribe(_camera_name + "/image", 1,
+			       boost::bind(&Multiplexer::image_cb,
+					   multiplexer, _1,
+					   multiplexer->ncameras()))),
+     _depth_sub( _it.subscribe(_camera_name + "/depth", 1,
+			       boost::bind(&Multiplexer::depth_cb,
+					   multiplexer, _1,
+					   multiplexer->ncameras()))),
+     _normal_sub(_it.subscribe(_camera_name + "/normal", 1,
+			       boost::bind(&Multiplexer::normal_cb,
+					   multiplexer, _1,
+					   multiplexer->ncameras()))),
      _camera_info_sub(multiplexer->_nh.subscribe<camera_info_t>(
 			  _camera_name + "/camera_info", 1,
 			  boost::bind(&Multiplexer::camera_info_cb,
 				      multiplexer, _1,
-				      multiplexer->ncameras()))),
-     _image_sub( multiplexer->_nh.subscribe<image_t>(
-		     _camera_name + "/image", 1,
-		     boost::bind(&Multiplexer::image_cb,
-				 multiplexer, _1, multiplexer->ncameras()))),
-     _depth_sub( multiplexer->_nh.subscribe<image_t>(
-		     _camera_name + "/depth", 1,
-		     boost::bind(&Multiplexer::depth_cb,
-				 multiplexer, _1, multiplexer->ncameras()))),
-     _normal_sub(multiplexer->_nh.subscribe<image_t>(
-		     _camera_name + "/normal", 1,
-		     boost::bind(&Multiplexer::normal_cb,
-				 multiplexer, _1, multiplexer->ncameras())))
+				      multiplexer->ncameras())))
 {
 }
 

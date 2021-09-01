@@ -2,7 +2,7 @@
 #include "o2ac_pose_distribution_updater/convex_hull.hpp"
 
 namespace {
-const double INF = 1e9, EPS = 1e-9, LARGE_EPS = 1e-7;
+const double INF = 1e9, EPS = 1e-9, LARGE_EPS = 1e-3;
 }
 
 push_calculator::push_calculator(const std::vector<Eigen::Vector3d> &vertices,

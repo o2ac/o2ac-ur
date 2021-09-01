@@ -563,6 +563,40 @@ def check_for_real_robot(func):
         return True
     return wrap
 
+def lock_impedance(func):
+    '''Decorator that locks resources while being used. Assumes there is a self.vision_lock accessible in the decorated method'''
+    def wrap(*args, **kwargs):
+        result = False
+        # print("== waiting for lock ==", func.__name__)
+        try:
+            args[0].impedance_lock.acquire()
+            # print("Lock acquired", func.__name__)
+            result = func(*args, **kwargs)
+        except Exception as e:
+          print("(lock_impedance) received an exception", func.__name__, e)
+        finally:
+          args[0].impedance_lock.release()
+          # print("Lock released", func.__name__)
+        return result
+    return wrap
+
+def lock_vision(func):
+    '''Decorator that locks resources while being used. Assumes there is a self.vision_lock accessible in the decorated method'''
+    def wrap(*args, **kwargs):
+        result = False
+        print("== waiting for lock ==", func.__name__)
+        try:
+            args[0].vision_lock.acquire()
+            print("Lock acquired", func.__name__)
+            result = func(*args, **kwargs)
+        except Exception as e:
+          print("(lock_vision) received an exception", func.__name__, e)
+        finally:
+          args[0].vision_lock.release()
+          print("Lock released", func.__name__)
+        return result
+    return wrap
+
 def get_trajectory_duration(plan):
   time_from_start = plan.joint_trajectory.points[-1].time_from_start
   duration = rospy.Time(time_from_start.secs, time_from_start.nsecs)
@@ -659,7 +693,7 @@ def to_sequence_joint_trajectory(trajectory, blend_radiuses=0.0, speed=0.5):
     sequence_trajectory.append([t, br, spd])
   return ["joint_trajectory", sequence_trajectory]
 
-def to_sequence_item_dual_arm(pose1, pose2, speed, planner="OMPL"):
+def to_sequence_item_dual_arm(pose1, pose2, speed, acc=None, planner="OMPL"):
   item = {"pose": conversions.from_pose_to_list(pose1.pose),
           "pose2": conversions.from_pose_to_list(pose2.pose),
           "pose_type": "task-space-in-frame",
@@ -667,6 +701,7 @@ def to_sequence_item_dual_arm(pose1, pose2, speed, planner="OMPL"):
           "planner": planner,
          }
   item.update({"speed":speed})
+  item.update({"acc":acc})
   return ["waypoint", item]
 
 def to_sequence_item_master_slave(master, slave, pose, slave_relative_pose, speed):

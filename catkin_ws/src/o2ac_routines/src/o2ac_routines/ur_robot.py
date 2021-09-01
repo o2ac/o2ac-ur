@@ -98,6 +98,7 @@ class URRobot(RobotBase):
             if response.success:
                 break
             rospy.sleep(0.2)
+        self.ur_dashboard_clients["stop"].call(std_srvs.srv.TriggerRequest())
         if not response.success:
             rospy.logwarn("Could not unlock protective stop of " + self.ns + "!")
         return response.success
@@ -188,6 +189,11 @@ class URRobot(RobotBase):
                 rospy.logwarn("Try to connect to dashboard service.")
                 response = self.ur_dashboard_clients["connect"].call()
                 rospy.sleep(1.0)
+                try:
+                    rospy.logwarn("Try to stop service.")
+                    response = self.ur_dashboard_clients["stop"].call()
+                except:
+                    pass
         except:
             rospy.logwarn("Dashboard service did not respond! (2)")
             pass

@@ -1,4 +1,4 @@
-collision_objects:
+collision_primitives:
 - type: BOX 
   dimensions: [0.06, 0.06, 0.005]
   pose: [0.03, 0.03, 0.0025, 0.0, 0.0, 0.0]
@@ -55,7 +55,7 @@ subframes:
   - -pi/2
   name: bottom_screw_hole_2
 - pose_xyzrpy:
-  - 0.02225
+  - 0.03775
   - 0.051423
   - 0.0
   - pi/2
@@ -63,29 +63,21 @@ subframes:
   - 0.0
   name: motor_screw_hole_1
 - pose_xyzrpy:
-  - 0.03775
-  - 0.051423
-  - 0.0
-  - pi/2
-  - -pi/2
-  - 0.0
-  name: motor_screw_hole_2
-- pose_xyzrpy:
-  - 0.01415
-  - 0.038
-  - 0.0
-  - pi/2
-  - -pi/2
-  - 0.0
-  name: motor_screw_hole_3
-- pose_xyzrpy:
   - 0.0455
   - 0.038
   - 0.0
   - pi/2
   - -pi/2
   - 0.0
-  name: motor_screw_hole_4
+  name: motor_screw_hole_2
+- pose_xyzrpy:
+  - 0.03775
+  - 0.024577
+  - 0.0
+  - pi/2
+  - -pi/2
+  - 0.0
+  name: motor_screw_hole_3
 - pose_xyzrpy:
   - 0.02225
   - 0.024577
@@ -93,10 +85,18 @@ subframes:
   - pi/2
   - -pi/2
   - 0.0
+  name: motor_screw_hole_4
+- pose_xyzrpy:
+  - 0.01415
+  - 0.038
+  - 0.0
+  - pi/2
+  - -pi/2
+  - 0.0
   name: motor_screw_hole_5
 - pose_xyzrpy:
-  - 0.03775
-  - 0.024577
+  - 0.02225
+  - 0.051423
   - 0.0
   - pi/2
   - -pi/2
