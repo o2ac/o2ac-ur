@@ -802,6 +802,27 @@ def concat_joint_trajectory_point(point1, point2):
   point.time_from_start = point1.time_from_start
   return point
 
+def stack_plans(plans):
+  staked_plan = copy.deepcopy(plans.pop(0))
+  for plan in plans:
+    staked_plan = copy.deepcopy(stack_two_plans(staked_plan, plan))
+  return staked_plan
+
+def stack_two_plans(plan1, plan2):
+  # Stack 2 plans of the same move group
+  plan = copy.deepcopy(plan1)
+  plan1_duration = plan1.joint_trajectory.points[-1].time_from_start
+  plan2.joint_trajectory.points.pop(0)
+  for point in plan2.joint_trajectory.points:
+    new_point = copy.deepcopy(point)
+    new_point.time_from_start += plan1_duration
+    plan.joint_trajectory.points.append(new_point)
+  print("----")
+  print("plan1:", len(plan1.joint_trajectory.points), get_trajectory_duration(plan1))
+  print("plan2:", len(plan2.joint_trajectory.points), get_trajectory_duration(plan2))
+  print("plan res:", len(plan.joint_trajectory.points), get_trajectory_duration(plan))
+  return plan
+
 def save_single_plan(filename, plan):
   bagfile = get_plan_full_path(filename)
   if os.path.exists(bagfile):

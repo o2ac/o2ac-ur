@@ -5189,28 +5189,42 @@ class O2ACCommon(O2ACBase):
     saved_plan = helpers.load_single_plan(plan_name)
     if not saved_plan:
       rospy.loginfo("Computing center trays's plan")
-      waypoints = []
       # push side
+      waypoints = []
       waypoints.append((self.ab_bot.compute_ik(a_bot_push_tray_side_start_high, b_bot_push_tray_side_start_high, timeout=0.02, retry=True), 0, 1.0))
       waypoints.append((self.ab_bot.compute_ik(a_bot_push_tray_side_start, b_bot_push_tray_side_start, timeout=0.02, retry=True), 0, 1.0))
-      waypoints.append((self.ab_bot.compute_ik(a_bot_push_tray_side_goal, b_bot_push_tray_side_goal, timeout=0.02, retry=True), 0, 0.1))
-      waypoints.append((self.ab_bot.compute_ik(a_bot_push_tray_side_retreat, b_bot_push_tray_side_retreat, timeout=0.02, retry=True), 0, 1.0))
-
-      # push front
-      waypoints.append((self.ab_bot.compute_ik(a_bot_push_tray_front_start_high, b_bot_push_tray_front_start_high, timeout=0.02, retry=True), 0, 1.0))
-      waypoints.append((self.ab_bot.compute_ik(a_bot_push_tray_front_start, b_bot_push_tray_front_start, timeout=0.02, retry=True), 0, 1.0))
-      waypoints.append((self.ab_bot.compute_ik(a_bot_push_tray_front_goal, b_bot_push_tray_front_goal, timeout=0.02, retry=True), 0, 0.1))
-      waypoints.append((self.ab_bot.compute_ik(a_bot_push_tray_front_retreat, b_bot_push_tray_front_retreat, timeout=0.02, retry=True), 0, 1.0))
-      
-      # prepare for pick up
-      waypoints.append((self.ab_bot.compute_ik(a_bot_above_tray_agv, b_bot_above_tray_agv, timeout=0.02, retry=True), 0, 1.0))
-
-      res = self.ab_bot.move_joints_trajectory(waypoints, plan_only=True)
-      if not res:
+      res1 = self.ab_bot.move_joints_trajectory(waypoints, plan_only=True)
+      if not res1:
         rospy.logerr("Fail to plan center trays")
         return False
+      plan1, _ = res1
+      plan2, _ = self.ab_bot.go_to_goal_poses(a_bot_push_tray_side_goal, b_bot_push_tray_side_goal, planner="OMPL", speed=0.1, plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan1))
+
+      # push front
+      waypoints = []
+      waypoints.append((self.ab_bot.compute_ik(a_bot_push_tray_side_retreat, b_bot_push_tray_side_retreat, timeout=0.02, retry=True), 0, 1.0))
+      waypoints.append((self.ab_bot.compute_ik(a_bot_push_tray_front_start_high, b_bot_push_tray_front_start_high, timeout=0.02, retry=True), 0, 1.0))
+      waypoints.append((self.ab_bot.compute_ik(a_bot_push_tray_front_start, b_bot_push_tray_front_start, timeout=0.02, retry=True), 0, 1.0))
+      res3 = self.ab_bot.move_joints_trajectory(waypoints, plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan2))
+      if not res3:
+        rospy.logerr("Fail to plan center trays")
+        return False
+      plan3, _ = res3
+
+      plan4, _ = self.ab_bot.go_to_goal_poses(a_bot_push_tray_front_goal, b_bot_push_tray_front_goal, planner="OMPL", speed=0.1, plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan3))
       
-      saved_plan, _ = res
+      # prepare for pick up
+      waypoints = []
+      waypoints.append((self.ab_bot.compute_ik(a_bot_push_tray_front_retreat, b_bot_push_tray_front_retreat, timeout=0.02, retry=True), 0, 1.0))
+      waypoints.append((self.ab_bot.compute_ik(a_bot_above_tray_agv, b_bot_above_tray_agv, timeout=0.02, retry=True), 0, 1.0))
+
+      res5 = self.ab_bot.move_joints_trajectory(waypoints, plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan4))
+      if not res5:
+        rospy.logerr("Fail to plan center trays")
+        return False
+      plan5, _ = res5
+
+      saved_plan = helpers.stack_plans([plan1, plan2, plan3, plan4, plan5])
       helpers.save_single_plan(plan_name, saved_plan)
     else:
       rospy.loginfo("Using trays's saved plan")
