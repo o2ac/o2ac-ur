@@ -67,7 +67,7 @@ class AssemblyReader(PartsReader):
     
     def change_assembly(self, assembly_name):
         if self.db_name != assembly_name:
-            self._collision_objects, self._grasps, self._mesh_filepaths, self._primitive_collision_objects = None, None, None, None
+            self._collision_objects, self._grasps, self._mesh_filepaths, self._mesh_urls, self._collision_geometry = None, None, None, None, None
             self.load_db(assembly_name)
             self.assembly_tree = self.get_assembly_tree(self._collision_objects)
             self._upload_grasps_to_param_server(assembly_name)

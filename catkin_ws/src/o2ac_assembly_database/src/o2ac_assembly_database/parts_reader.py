@@ -75,7 +75,7 @@ class PartsReader(object):
         self.db_name = db_name
         self._directory = os.path.join(self._rospack.get_path('o2ac_assembly_database'), 'config', db_name)
         self._parts_list = self._read_parts_list()
-        self._collision_objects, self._grasps, self._mesh_filepaths, self._primitive_collision_objects = self.get_collision_objects_with_metadata()
+        self._collision_objects, self._grasps, self._mesh_filepaths, self._mesh_urls, self._collision_geometry = self.get_collision_objects_with_metadata()
         self.load_meshes = load_meshes 
         rospy.loginfo("Done loading parts database " + db_name)
     
@@ -97,10 +97,10 @@ class PartsReader(object):
                 c_new.operation = c_obj.operation
                 c_new.type = c_obj.type
                 c_new.id = c_obj.id
-                if self._primitive_collision_objects[i] and use_simplified_collision_shapes:
+                if self._collision_geometry[i] and use_simplified_collision_shapes:
                     rospy.loginfo("Using primitives for collision object: " + object_name)
-                    c_new.primitives = self._primitive_collision_objects[i][0]
-                    c_new.primitive_poses = self._primitive_collision_objects[i][1]
+                    c_new.primitives = self._collision_geometry[i][0]
+                    c_new.primitive_poses = self._collision_geometry[i][1]
                 elif self.load_meshes and not c_obj.meshes: # lazy loading of meshes
                     rospy.loginfo("Loading meshes for collision object: " + object_name)
                     c_obj.meshes = [self._read_mesh(self._mesh_filepaths[i], (0.001, 0.001, 0.001))]
@@ -110,6 +110,12 @@ class PartsReader(object):
                     rospy.logdebug("Already loaded meshes for object " + object_name)
                     c_new.meshes = c_obj.meshes
                     c_new.mesh_poses = c_obj.mesh_poses
+                
+                c_new.visual_geometry_mesh_url = self._mesh_urls[i]
+                try:
+                    c_new.visual_geometry_mesh_pose = c_obj.mesh_poses[0]
+                except Exception as e:
+                    print(e)
 
                 c_new.planes = c_obj.planes
                 c_new.plane_poses = c_obj.plane_poses
@@ -281,8 +287,8 @@ class PartsReader(object):
                 mesh_pose.position = conversions.to_vector3(conversions.to_float(data['mesh_pose'][0]['pose_xyzrpy'][:3]) )
                 mesh_pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(*conversions.to_float(data['mesh_pose'][0]['pose_xyzrpy'][3:])))
             subframes = data['subframes']
-            simplified_collision_objects = data.get('collision_primitives', None)
-            primitive_collision_objects = self._get_collision_object(simplified_collision_objects)
+            simplified_collision_object_text = data.get('collision_primitives', None)
+            primitive_collision_objects = self._get_collision_shapes(simplified_collision_object_text)
 
             grasps = data['grasp_points']
 
@@ -374,8 +380,8 @@ class PartsReader(object):
         pyassimp.release(scene)
         return mesh
 
-    def _get_collision_object(self, collision_objects):
-        """ Convert a YAML representation of a collision primitive to the shape_msg.
+    def _get_collision_shapes(self, collision_objects):
+        """ Convert YAML representation of collision primitive to the shape_msg.
         """
         if not collision_objects:
             return None
@@ -442,11 +448,13 @@ class PartsReader(object):
         collision_objects = []
         grasps = []
         mesh_filepaths = []
+        mesh_urls = []
         primitive_collision_objects = []
 
         for part in self._parts_list:
             # Find mesh
             mesh_filepath = os.path.join(self._directory, 'meshes', part['cad'])
+            mesh_url = "package://o2ac_assembly_database/config/" + self.db_name + "/meshes/" + part['cad']
 
             # Set the pose of the collision object
             posestamped = geometry_msgs.msg.PoseStamped()
@@ -476,7 +484,8 @@ class PartsReader(object):
             collision_objects.append(collision_object)
 
             mesh_filepaths.append(mesh_filepath)
+            mesh_urls.append(mesh_url)
 
             primitive_collision_objects.append(primitive_collision_object)
 
-        return (collision_objects, grasps, mesh_filepaths, primitive_collision_objects)
+        return (collision_objects, grasps, mesh_filepaths, mesh_urls, primitive_collision_objects)
