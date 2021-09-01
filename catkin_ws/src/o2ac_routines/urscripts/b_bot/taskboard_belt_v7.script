@@ -1,4 +1,12 @@
 def taskboard_belt_v7():
+  set_safety_mode_transition_hardness(1)
+  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
+  set_tool_output_mode(0)
+  set_tool_digital_output_mode(0, 1)
+  set_tool_digital_output_mode(1, 1)
+  set_tool_voltage(24)
+  set_gravity([0.0, 0.0, 9.82])
+  set_target_payload(1.200000, [0.001000, -0.018000, 0.049000], [0.002086, 0.002086, 0.002086, 0.000000, 0.000000, 0.000000])
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -6,23 +14,15 @@ def taskboard_belt_v7():
   set_analog_outputdomain(0, 0)
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
-  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
-  set_tool_output_mode(0)
-  set_tool_digital_output_mode(0, 1)
-  set_tool_digital_output_mode(1, 1)
-  set_tool_voltage(24)
-  set_safety_mode_transition_hardness(1)
-  set_target_payload(1.200000, [0.001000, -0.018000, 0.049000], [0.002086, 0.002086, 0.002086, 0.000000, 0.000000, 0.000000])
-  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
-  step_count_e589f2cf_3472_4680_ad33_87ce92f17a50 = 0.0
-  thread Step_Counter_Thread_0d334258_1384_4d49_a3f6_b05007f658ab():
+  step_count_9b1fffff_2c73_47fe_b4e0_91010705d17b = 0.0
+  thread Step_Counter_Thread_ee8d851e_74d3_4c7f_a165_84ed67f5cd9e():
     while (True):
-      step_count_e589f2cf_3472_4680_ad33_87ce92f17a50 = step_count_e589f2cf_3472_4680_ad33_87ce92f17a50 + 1.0
+      step_count_9b1fffff_2c73_47fe_b4e0_91010705d17b = step_count_9b1fffff_2c73_47fe_b4e0_91010705d17b + 1.0
       sync()
     end
   end
-  run Step_Counter_Thread_0d334258_1384_4d49_a3f6_b05007f658ab()
-  set_gravity([0.0, 0.0, 9.82])
+  run Step_Counter_Thread_ee8d851e_74d3_4c7f_a165_84ed67f5cd9e()
+  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
   # begin: URCap Installation Node
   #   Source: External Control, 1.0.5, FZI Research Center for Information Technology
   #   Type: External Control
@@ -2415,8 +2415,8 @@ def taskboard_belt_v7():
   global grasp_tool_q=[2.534108235275429, -1.052344728769686, 1.8694364197099782, -1.6855003797547994, -2.008547655205186, -0.45329883263686455]
   global above_tool_p=p[.459162036872, -.210304370404, .204200915087, 1.746289903912, -1.730646652929, -.729047870182]
   global above_tool_q=[2.534531999016338, -1.1982101810088324, 1.7961559816585861, -1.4668132023983578, -2.008949988225595, -0.45437501586286544]
-  global home_p=p[.130649315071, -.180735318564, .515944936221, -.011904141620, -3.140282836653, -.031779029209]
-  global home_q=[1.5699191093444824, -2.0999165974059046, 1.3999560515033167, -0.8500288289836426, -1.5699761549579065, 5.9604644775390625E-5]
+  global home_p=p[.130839262395, -.184015842289, .680899942252, -.011754653600, -3.140296679081, -.031759273707]
+  global home_q=[1.570002794265747, -2.1000262699522914, 1.4000285307513636, -0.8500042122653504, -1.5699628035174769, 4.77681533084251E-5]
   def taskboard_pick_hook():
     $ 39 "taskboard_pick_hook" "noBreak"
     # begin: URCap Program Node
@@ -2534,8 +2534,8 @@ def taskboard_belt_v7():
   movej(get_inverse_kin(looking_at_belt_p, qnear=looking_at_belt_q), a=1.3962634015954636, v=1.0471975511965976)
   $ 7 "Popup: start sequence with a_bot (simultaneous start)"
   popup("start sequence with a_bot (simultaneous start)", "Message", False, False, blocking=True)
-  $ 11 "Wait: 2.0"
-  sleep(2.0)
+  $ 11 "Wait: 1.5"
+  sleep(1.5)
   $ 12 "MoveJ"
   $ 13 "Waypoint_1" "breakAfter"
   set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])

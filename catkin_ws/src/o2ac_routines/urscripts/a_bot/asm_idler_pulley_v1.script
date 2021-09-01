@@ -1,0 +1,4615 @@
+def asm_idler_pulley_v1():
+  set_standard_analog_input_domain(0, 1)
+  set_standard_analog_input_domain(1, 1)
+  set_tool_analog_input_domain(0, 1)
+  set_tool_analog_input_domain(1, 1)
+  set_analog_outputdomain(0, 0)
+  set_analog_outputdomain(1, 0)
+  set_input_actions_to_default()
+  set_gravity([0.0, 0.0, 9.82])
+  step_count_4bc2adfd_cef5_4622_a014_61e15fc33b91 = 0.0
+  thread Step_Counter_Thread_200e17b0_6c22_4d7c_a0dd_4c956ad22691():
+    while (True):
+      step_count_4bc2adfd_cef5_4622_a014_61e15fc33b91 = step_count_4bc2adfd_cef5_4622_a014_61e15fc33b91 + 1.0
+      sync()
+    end
+  end
+  run Step_Counter_Thread_200e17b0_6c22_4d7c_a0dd_4c956ad22691()
+  set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
+  set_payload(1.27, [0.0, -0.017, 0.053])
+  set_safety_mode_transition_hardness(1)
+  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
+  set_tool_output_mode(0)
+  set_tool_digital_output_mode(0, 1)
+  set_tool_digital_output_mode(1, 1)
+  set_tool_voltage(24)
+  # begin: URCap Installation Node
+  #   Source: External Control, 1.0.5, FZI Research Center for Information Technology
+  #   Type: External Control
+  # end: URCap Installation Node
+  # begin: URCap Installation Node
+  #   Source: rs485, 1.0.0, FZI Research Center for Information Technology
+  #   Type: RS485
+  global rs485=rpc_factory("xmlrpc", "http://127.0.0.1:40404/RPC2")
+  # end: URCap Installation Node
+  # begin: URCap Installation Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Vacuum
+  #################################################
+  # Vacuum Grip Check
+  #################################################
+  
+  vacuumGripCheckThread1 = 0
+  vacuumGripCheckThread2 = 0
+  vacuumGripCheckThread3 = 0
+  vacuumGripCheckThread4 = 0
+  vacuumGripCheckThread1Running = False
+  vacuumGripCheckThread2Running = False
+  vacuumGripCheckThread3Running = False
+  vacuumGripCheckThread4Running = False
+  vacuumGripCheckSocketId = "1"
+  vacuumGripCheckThreadStarted = False
+  
+  thread vacuumGripCheck():
+    gripper_socket = vacuumGripCheckSocketId
+    vacuumGripCheckThreadStarted = True
+  
+    while (True):
+      objectDetectedDebounceCtr = 0
+  
+      while (objectDetectedDebounceCtr < 3):
+        if(rq_is_vacuum_obj_detected(gripper_socket="1")):
+          objectDetectedDebounceCtr = objectDetectedDebounceCtr + 1
+        else:
+          objectDetectedDebounceCtr = 0
+        end
+        sleep(0.1)
+      end
+  
+      objectNotDetectedDebounceCtr = 0
+  
+      while objectNotDetectedDebounceCtr < 3:
+        if (not rq_is_vacuum_obj_detected(gripper_socket="1")):
+          objectNotDetectedDebounceCtr = objectNotDetectedDebounceCtr + 1
+        else:
+          objectNotDetectedDebounceCtr = 0
+        end
+        sleep(0.1)
+      end
+  
+      socket_open("127.0.0.1",29999,"dashboardServerSocket")
+      socket_send_line("pause","dashboardServerSocket")
+      socket_send_string("popup Vacuum grip check has detected an object drop.", "dashboardServerSocket")
+      socket_send_byte(10, "dashboardServerSocket")
+      socket_close("dashboardServerSocket")
+  
+      sync()
+    end
+  end
+  
+  def startVacuumGripCheckThread(gripperId="1"):
+    vacuumGripCheckSocketId = gripperId
+    threadHandle = run vacuumGripCheck()
+    waitForVacuumGripCheckThreadStarted()
+    return threadHandle
+  end
+  
+  def stopVacuumGripCheckThread(threadHandle):
+    kill threadHandle
+  end
+  
+  def waitForVacuumGripCheckThreadStarted():
+    while (not(vacuumGripCheckThreadStarted)):
+      sync()
+    end
+    vacuumGripCheckThreadStarted = False
+  end
+  #################################################
+  # End - Vacuum Grip Check
+  #################################################
+  
+  #################################################
+  # Stops the pump on a distance travelled
+  #################################################
+  global stopPumpDistance = 100
+  global stopPumpSocketId = "0"
+  global stopPumpThreadStarted = [False, False, False, False]
+  global stopPumpThreadHandles = [0, 0, 0, 0]
+  
+  thread stopPumpOnDistanceTravelled():
+    distance = stopPumpDistance
+    socketId = stopPumpSocketId
+    stopPumpThreadStarted[rq_socket_to_index(socketId)] = True
+  
+    measuredDistance = waitForDistanceTravelled(distance)
+  
+    rq_stop(socketId)
+  
+    stopPumpThreadStarted[rq_socket_to_index(socketId)] = False
+  end
+  
+  def waitForDistanceTravelled(distance):
+    startingPose = get_actual_tcp_pose()
+    measuredDistance = 0
+    while (measuredDistance < distance):
+      sleep(0.1)
+      measuredDistance = point_dist(get_actual_tcp_pose(), startingPose)
+    end
+  
+    return measuredDistance
+  end
+  
+  def startStopPumpOnDistanceTravelledThread(distance, gripper_socket="1"):
+    if (stopPumpThreadStarted[rq_socket_to_index(gripper_socket)]):
+      return 0
+    end
+  
+    global stopPumpDistance = distance
+    global stopPumpSocketId = gripper_socket
+    stopPumpThreadHandles[rq_socket_to_index(gripper_socket)] = run stopPumpOnDistanceTravelled()
+    waitForStopPumpOnDistanceTravelledThreadStarted(gripper_socket)
+    return stopPumpThreadHandles[rq_socket_to_index(gripper_socket)]
+  end
+  
+  def waitForStopPumpOnDistanceTravelledThreadStarted(gripper_socket="1"):
+    while (not(stopPumpThreadStarted[rq_socket_to_index(gripper_socket)])):
+      sync()
+    end
+  end
+  
+  def stopStopPumpOnDistanceTravelledThread(gripper_socket="1"):
+    handle = stopPumpThreadHandles[rq_socket_to_index(gripper_socket)]
+    threadIsRunning = stopPumpThreadStarted[rq_socket_to_index(gripper_socket)]
+    if (threadIsRunning):
+      kill handle
+      clear_socket_buffer(gripper_socket, 0.01)
+      stopPumpThreadHandles[rq_socket_to_index(gripper_socket)] = 0
+    end
+  end
+  #################################################
+  # End - Stops the pump on a distance travelled
+  #################################################
+  
+  #################################################
+  # Vacuum general functions
+  #################################################
+  def rq_wait_for_vacuum_object_detected(gripper_socket="1"):
+      while (not rq_is_vacuum_obj_detected(gripper_socket)):
+          if (rq_is_vacuum_timeout(gripper_socket)):
+              return False
+          end
+          sync()
+      end
+      return True
+  end
+  
+  def rq_wait_for_vacuum_object_secured(gripper_socket="1"):
+      while (not rq_is_vacuum_obj_secured(gripper_socket)):
+          if (rq_is_vacuum_timeout(gripper_socket)):
+              return False
+          end
+          sync()
+      end
+      return True
+  end
+  
+  def rq_wait_for_vacuum_object_suction_complete(gripper_socket="1"):
+      remaining_retries = 50
+  
+       # Wait for suction started
+      while (not rq_is_vacuum_obj_in_suction(gripper_socket) and
+             not rq_is_vacuum_obj_detected(gripper_socket) and
+             remaining_retries > 0):
+          sleep(0.01)
+          remaining_retries = remaining_retries - 1
+      end
+  
+      # Wait for suction completed
+      while (rq_is_vacuum_obj_in_suction(gripper_socket)):
+          if (rq_is_vacuum_timeout(gripper_socket)):
+              return False
+          end
+          sleep(0.01)
+      end
+  
+      return True
+  end
+  
+  def rq_wait_for_vacuum_object_not_detected(gripper_socket="1"):
+      while (rq_is_vacuum_obj_detected(gripper_socket)):
+          sleep(0.01)
+      end
+  end
+  
+  def rq_is_vacuum_obj_detected(gripper_socket="1"):
+      gOBJ = rq_get_var("OBJ", 1, gripper_socket)
+      sync()
+      return is_vacuum_OBJ_object_detected(gOBJ)
+  end
+  
+  def rq_is_vacuum_obj_secured(gripper_socket="1"):
+      gOBJ = rq_get_var("OBJ", 1, gripper_socket)
+      sync()
+      return is_vacuum_OBJ_object_secured(gOBJ)
+  end
+  
+  def rq_is_vacuum_obj_in_suction(gripper_socket="1"):
+      gOBJ = rq_get_var("OBJ", 1, gripper_socket)
+      sync()
+  
+      if(is_vacuum_OBJ_object_in_motion(gOBJ)):
+          return True
+      else:
+          return False
+      end
+  end
+  
+  def rq_is_vacuum_timeout(gripper_socket="1"):
+      gFLT = rq_get_var("FLT", 2, gripper_socket)
+      sync()
+  
+      if(gFLT ==6):
+          return True
+      end
+  
+      return False
+  end
+  
+  def is_vacuum_OBJ_object_in_motion(gOBJ):
+      if (gOBJ == 0):
+          return True
+      end
+  
+      return False
+  end
+  
+  def is_vacuum_OBJ_object_detected(gOBJ):
+      if (gOBJ == 1 or gOBJ == 2):
+          return True
+      end
+  
+      return False
+  end
+  
+  def is_vacuum_OBJ_object_secured(gOBJ):
+      if (gOBJ == 2):
+          return True
+      end
+  
+      return False
+  end
+  
+  def rq_set_pressure_timeout_minimum_vacuum(pressure, timeout, minimum, gripper_socket="1"):
+      rq_set_pos_spd_for(pressure, timeout, minimum, gripper_socket)
+  end
+  
+  def is_FLT_vacuum_timeout(gFLT):
+    if (gFLT == 6):
+        return True
+    end
+  
+    return False
+  end
+  
+  def is_continuous_grip(maximum_vacuum):
+    return maximum_vacuum == 0
+  end
+  
+  def rq_vacuum_release(advanced_mode=False, shutoff_distance_cm=5, wait_for_object_released=True, gripper_socket="1"):
+    local shutoff_distance = scale(shutoff_distance_cm, [0, 99], [0.00, 0.99])
+    local pressure = 255
+    local minimum = 0
+    local timeout = 255
+    rq_vacuum_release_raw(advanced_mode, pressure, minimum, timeout, shutoff_distance, wait_for_object_released, gripper_socket)
+  end
+  
+  def rq_vacuum_release_raw(advanced_mode, pressure, minimum, timeout, shutoff_distance, wait_for_object_released, gripper_socket):
+    rq_reset_fault_and_activate(gripper_socket)
+    rq_set_pressure_timeout_minimum_vacuum(pressure, timeout, minimum, gripper_socket)
+  
+    if advanced_mode:
+      rq_set_gripper_mode(1, gripper_socket)
+    else:
+      rq_set_gripper_mode(0, gripper_socket)
+    end
+  
+    rq_set_GTO_and_wait(1, gripper_socket)
+  
+    if wait_for_object_released:
+      while (rq_is_vacuum_obj_detected(gripper_socket)):
+        rq_set_pressure_timeout_minimum_vacuum(pressure, timeout, minimum, gripper_socket)
+  
+        if advanced_mode:
+          rq_set_gripper_mode(1, gripper_socket)
+        else:
+          rq_set_gripper_mode(0, gripper_socket)
+        end
+  
+        rq_set_GTO_and_wait(1, gripper_socket)
+        sleep(0.01)
+      end
+    end
+  
+    if advanced_mode:
+      startStopPumpOnDistanceTravelledThread(shutoff_distance, gripper_socket)
+    end
+  end
+  
+  def rq_vacuum_grip(advanced_mode=False, maximum_vacuum=60, minimum_vacuum=40, timeout_ms=3000, wait_for_object_detected=True, gripper_socket="1"):
+    local pressure = scale(maximum_vacuum, [0, 100], [100, 0])
+    local minimum = scale(minimum_vacuum, [0, 100], [100, 0])
+    local timeout = scale(timeout_ms, [0, 25500], [0, 255])
+    rq_vacuum_grip_raw(advanced_mode, pressure, minimum, timeout, gripper_socket)
+    if wait_for_object_detected:
+          suction_completed = rq_wait_for_vacuum_object_suction_complete(gripper_socket)
+          if(not suction_completed):
+              rq_set_var("GTO", 0, gripper_socket)
+          end
+    end
+  end
+  
+  def rq_vacuum_grip_raw(advanced_mode, pressure, minimum, timeout, gripper_socket):
+    stopStopPumpOnDistanceTravelledThread(gripper_socket)
+    rq_reset_fault_and_activate(gripper_socket)
+  
+    rq_set_pressure_timeout_minimum_vacuum(pressure, timeout, minimum, gripper_socket)
+  
+    if advanced_mode:
+      rq_set_gripper_mode(1, gripper_socket)
+    else:
+      rq_set_gripper_mode(0, gripper_socket)
+    end
+  
+    rq_set_GTO_and_wait(1, gripper_socket)
+  
+  end
+  
+  def rq_reset_fault_and_activate(gripper_socket):
+      gFLT = rq_get_var("FLT", 2, gripper_socket)
+  
+      if(not is_FLT_no_fault(gFLT)):
+          if(is_FLT_vacuum_timeout(gFLT)):
+              rq_set_GTO_and_wait(0, gripper_socket)
+          elif(is_FLT_faulted(gFLT)):
+              rq_set_GTO_and_wait(0, gripper_socket)
+              rq_set_var("ACT", 1, gripper_socket)
+          end
+      elif(not rq_is_gripper_activated(gripper_socket)):
+          rq_set_GTO_and_wait(0, gripper_socket)
+          rq_set_var("ACT", 1, gripper_socket)
+      end
+  end
+  #################################################
+  # End - Vacuum general functions
+  #################################################
+  vacuumGripCheckWarningTitle = "Vacuum grip check"
+  vacuumGripCheckWarningMessage = "Vacuum gripper object lost"
+  vacuumGripTimeoutTitle = "Vacuum gripper fault"
+  vacuumGripTimeoutMessage = "Grip has timed out"
+  # end: URCap Installation Node
+  # begin: URCap Installation Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  rq_gripper_socket_ip_address = "127.0.0.1"
+  rq_gripper_socket_port = 63352
+  
+  rq_comm_check_fail_counter = [0, 0, 0, 0]
+  
+  rq_read_act = [-1, -1, -1, -1]
+  rq_read_gto = [-1, -1, -1, -1]
+  rq_read_for = [-1, -1, -1, -1]
+  rq_read_spe = [-1, -1, -1, -1]
+  rq_read_obj = [-1, -1, -1, -1]
+  rq_read_sta = [-1, -1, -1, -1]
+  rq_read_flt = [-1, -1, -1, -1]
+  rq_read_pos = [-1, -1, -1, -1]
+  rq_read_pre = [-1, -1, -1, -1]
+  rq_read_lbp = [-1, -1, -1, -1]
+  rq_read_lrd = [-1, -1, -1, -1]
+  rq_read_lbl = [-1, -1, -1, -1]
+  rq_read_lgn = [-1, -1, -1, -1]
+  rq_read_msc = [-1, -1, -1, -1]
+  rq_read_mod = [-1, -1, -1, -1]
+  rq_read_cou = [-1, -1, -1, -1]
+  rq_read_ncy = [-1, -1, -1, -1]
+  rq_read_dst = [-1, -1, -1, -1]
+  rq_read_pco = [-1, -1, -1, -1]
+  
+  rq_string_initial_value = "N/A"
+  
+  rq_read_snu_1 = rq_string_initial_value
+  rq_read_snu_2 = rq_string_initial_value
+  rq_read_snu_3 = rq_string_initial_value
+  rq_read_snu_4 = rq_string_initial_value
+  
+  rq_read_fwv_1 = rq_string_initial_value
+  rq_read_fwv_2 = rq_string_initial_value
+  rq_read_fwv_3 = rq_string_initial_value
+  rq_read_fwv_4 = rq_string_initial_value
+  
+  rq_read_ver_1 = rq_string_initial_value
+  rq_read_ver_2 = rq_string_initial_value
+  rq_read_ver_3 = rq_string_initial_value
+  rq_read_ver_4 = rq_string_initial_value
+  
+  rq_read_act_req = [True, True, True, True]
+  rq_read_gto_req = [True, True, True, True]
+  rq_read_for_req = [True, True, True, True]
+  rq_read_spe_req = [True, True, True, True]
+  rq_read_obj_req = [True, True, True, True]
+  rq_read_sta_req = [True, True, True, True]
+  rq_read_flt_req = [True, True, True, True]
+  rq_read_pos_req = [True, True, True, True]
+  rq_read_pre_req = [True, True, True, True]
+  rq_read_lbp_req = [True, True, True, True]
+  rq_read_lrd_req = [True, True, True, True]
+  rq_read_lbl_req = [True, True, True, True]
+  rq_read_lgn_req = [True, True, True, True]
+  rq_read_msc_req = [True, True, True, True]
+  rq_read_mod_req = [True, True, True, True]
+  rq_read_cou_req = [True, True, True, True]
+  rq_read_ncy_req = [True, True, True, True]
+  rq_read_dst_req = [True, True, True, True]
+  rq_read_pco_req = [True, True, True, True]
+  
+  rq_read_snu_1_req = False
+  rq_read_snu_2_req = False
+  rq_read_snu_3_req = False
+  rq_read_snu_4_req = False
+  
+  rq_read_fwv_1_req = False
+  rq_read_fwv_2_req = False
+  rq_read_fwv_3_req = False
+  rq_read_fwv_4_req = False
+  
+  rq_read_ver_1_req = False
+  rq_read_ver_2_req = False
+  rq_read_ver_3_req = False
+  rq_read_ver_4_req = False
+  
+  rq_write_act_request = [False, False, False, False]
+  rq_write_gto_request = [False, False, False, False]
+  rq_write_atr_request = [False, False, False, False]
+  rq_write_ard_request = [False, False, False, False]
+  rq_write_pos_request = [False, False, False, False]
+  rq_write_lbp_request = [False, False, False, False]
+  rq_write_lrd_request = [False, False, False, False]
+  rq_write_lbl_request = [False, False, False, False]
+  rq_write_lgn_request = [False, False, False, False]
+  rq_write_msc_request = [False, False, False, False]
+  rq_write_mod_request = [False, False, False, False]
+  
+  rq_write_act = [-1, -1, -1, -1]
+  rq_write_gto = [-1, -1, -1, -1]
+  rq_write_atr = [-1, -1, -1, -1]
+  rq_write_ard = [-1, -1, -1, -1]
+  rq_write_for = [-1, -1, -1, -1]
+  rq_write_spe = [-1, -1, -1, -1]
+  rq_write_pos = [-1, -1, -1, -1]
+  rq_write_lbp = [-1, -1, -1, -1]
+  rq_write_lrd = [-1, -1, -1, -1]
+  rq_write_lbl = [-1, -1, -1, -1]
+  rq_write_lgn = [-1, -1, -1, -1]
+  rq_write_msc = [-1, -1, -1, -1]
+  rq_write_mod = [-1, -1, -1, -1]
+  
+  rq_write_act_previous = rq_write_act
+  rq_write_gto_previous = rq_write_gto
+  rq_write_atr_previous = rq_write_atr
+  rq_write_ard_previous = rq_write_ard
+  rq_write_for_previous = rq_write_for
+  rq_write_spe_previous = rq_write_spe
+  rq_write_pos_previous = rq_write_pos
+  rq_write_lbp_previous = rq_write_lbp
+  rq_write_lrd_previous = rq_write_lrd
+  rq_write_lbl_previous = rq_write_lbl
+  rq_write_lgn_previous = rq_write_lgn
+  rq_write_msc_previous = rq_write_msc
+  rq_write_mod_previous = rq_write_mod
+  
+  gripper_connected = [False, False, False, False]
+  gripper_socket_open = [False, False, False, False]
+  rq_comm_clear_socket_buffer_enabled = [True, True, True, True]
+  rq_comm_check_counter = 0
+  rq_gripper_communication_thread_started = False
+  
+  thread rq_gripper_communication():
+      rq_comm_read_constants()
+      rq_comm_read_variables()
+      rq_comm_initialize_write_values()
+  
+      while(True):
+          rq_comm_clear_socket_buffer()
+          rq_comm_check()
+          rq_comm_read_variables()
+          rq_comm_write_variables()
+  
+          rq_gripper_communication_thread_started = True
+          sync()
+      end
+  end
+  
+  def rq_socket_to_index(gripper_socket="1"):
+      # Patch in case gripper_socket is an integer
+      gripper_socket_string = str_cat("", gripper_socket)
+  
+      if(gripper_socket_string == "1"):
+          return 0
+      elif(gripper_socket_string == "2"):
+          return 1
+      elif(gripper_socket_string == "3"):
+          return 2
+      elif(gripper_socket_string == "4"):
+          return 3
+      end
+      return 0
+  end
+  
+  def rq_index_to_socket(index=0):
+      if(index == 0):
+          return "1"
+      elif(index == 1):
+          return "2"
+      elif(index == 2):
+          return "3"
+      elif(index == 3):
+          return "4"
+      end
+      return "1"
+  end
+  
+  def rq_comm_check():
+      index = 0
+      rq_comm_check_fail_counter_max = 99999
+  
+      if(rq_comm_check_counter < 50):
+          rq_comm_check_counter = rq_comm_check_counter + 1
+      else:
+          rq_comm_check_counter = 0
+  
+          while(index <= 3):
+              socket = rq_index_to_socket(index)
+  
+              if(gripper_connected[index]):
+                  # Patch in case gripper_socket is an integer
+                  gripper_socket_string = str_cat("", socket)
+  
+                  sid_list = rq_get_sid(socket)
+                  is_gripper_in_sid_list = rq_is_gripper_in_sid_list(gripper_socket_string, sid_list)
+  
+                  if(is_gripper_in_sid_list):
+                      rq_comm_check_fail_counter[index] = 0
+                  else:
+                      rq_comm_check_fail_counter[index] = rq_comm_check_fail_counter[index] + 1
+                  end
+  
+                  if(rq_comm_check_fail_counter[index] > rq_comm_check_fail_counter_max):
+                      message = str_cat("Communication lost with Robotiq's Gripper Slave ID ", gripper_socket_string)
+                      popup(message, "Communication Error", False, True, True)
+                  end
+              end
+              index = index + 1
+          end
+      end
+  end
+  
+  def rq_init_comm_if_connected(gripper_sid=9, gripper_socket="1"):
+      if(not is_gripper_socket_open(gripper_socket)):
+        open_gripper_socket(gripper_socket)
+      end
+  
+      socket_sid_set = rq_set_sid(gripper_sid, gripper_socket)
+  
+      if(socket_sid_set):
+          # Patch in case gripper_socket is an integer
+          gripper_socket_string = str_cat("", gripper_socket)
+  
+          sid_list = rq_get_sid(gripper_socket)
+          is_gripper_in_sid_list = rq_is_gripper_in_sid_list(gripper_socket_string, sid_list)
+  
+          if(is_gripper_in_sid_list):
+              rq_set_gripper_connected(gripper_socket_string)
+              return True
+          end
+      end
+  
+      return False
+  end
+  
+  def open_gripper_socket(gripper_socket="1"):
+      is_open = socket_open(rq_gripper_socket_ip_address, rq_gripper_socket_port, gripper_socket)
+      set_gripper_socket_open(gripper_socket, is_open)
+  end
+  
+  def is_gripper_socket_open(gripper_socket="1"):
+      return gripper_socket_open[rq_socket_to_index(gripper_socket)]
+  end
+  
+  def set_gripper_socket_open(gripper_socket, is_open):
+      gripper_socket_open[rq_socket_to_index(gripper_socket)] = is_open
+  end
+  
+  def rq_set_gripper_connected(gripper_id="1"):
+      gripper_connected[rq_socket_to_index(gripper_id)] = True
+  end
+  
+  def rq_is_gripper_connected(gripper_id="1"):
+      return gripper_connected[rq_socket_to_index(gripper_id)]
+  end
+  
+  def rq_set_sid(gripper_sid=9, gripper_socket="1"):
+      socket_set_var("SID", gripper_sid,  gripper_socket)
+      ack = socket_read_byte_list(3, gripper_socket)
+      return is_ack(ack)
+  end
+  
+  def rq_get_sid(gripper_socket="1"):
+      socket_send_string("GET SID", gripper_socket)
+      sid_list = socket_read_byte_list(17, gripper_socket)
+      return sid_list
+  end
+  
+  def rq_wait_for_gripper_connected():
+      gripper_socket = "gripper_conn_socket"
+      socket_open(rq_gripper_socket_ip_address, rq_gripper_socket_port, gripper_socket)
+  
+      remainingRetries = 2000
+      sid_list = rq_get_sid(gripper_socket)
+      gripper_is_connected = rq_is_any_gripper_connected(sid_list)
+  
+      while(not gripper_is_connected and remainingRetries > 0):
+          remainingRetries = remainingRetries - 1
+          sid_list = rq_get_sid(gripper_socket)
+          gripper_is_connected = rq_is_any_gripper_connected(sid_list)
+      end
+  
+      socket_close(gripper_socket)
+  end
+  
+  def rq_is_any_gripper_connected(sid_list):
+      is_gripper_1_connected = rq_is_gripper1_in_sid_list(sid_list)
+      is_gripper_2_connected = rq_is_gripper2_in_sid_list(sid_list)
+      is_gripper_3_connected = rq_is_gripper3_in_sid_list(sid_list)
+      is_gripper_4_connected = rq_is_gripper4_in_sid_list(sid_list)
+  
+      return is_gripper_1_connected or is_gripper_2_connected or is_gripper_3_connected or is_gripper_4_connected
+  end
+  
+  def rq_is_gripper_ascii_in_sid_list(gripper_ascii_sid, sid_list):
+      sid_list_length = sid_list[0]
+      sid_list_empty_length = 2
+  
+      if (sid_list_length <= sid_list_empty_length):
+          return False
+      end
+  
+      sid1 = sid_list[2]
+      sid2 = sid_list[5]
+      sid3 = sid_list[8]
+      sid4 = sid_list[11]
+  
+      return sid1 == gripper_ascii_sid or sid2 == gripper_ascii_sid or sid3 == gripper_ascii_sid or sid4 == gripper_ascii_sid
+  end
+  
+  def rq_is_gripper_in_sid_list(gripper_socket_string, sid_list):
+      if(gripper_socket_string == "1"):
+          return rq_is_gripper1_in_sid_list(sid_list)
+      elif(gripper_socket_string == "2"):
+          return rq_is_gripper2_in_sid_list(sid_list)
+      elif(gripper_socket_string == "3"):
+          return rq_is_gripper3_in_sid_list(sid_list)
+      elif(gripper_socket_string == "4"):
+          return rq_is_gripper4_in_sid_list(sid_list)
+      end
+      return False
+  end
+  
+  def rq_is_gripper1_in_sid_list(sid_list):
+      gripper_1_sid_ascii = 57
+      return rq_is_gripper_ascii_in_sid_list(gripper_1_sid_ascii, sid_list)
+  end
+  
+  def rq_is_gripper2_in_sid_list(sid_list):
+      gripper_2_sid_ascii = 50
+      return rq_is_gripper_ascii_in_sid_list(gripper_2_sid_ascii, sid_list)
+  end
+  
+  def rq_is_gripper3_in_sid_list(sid_list):
+      gripper_3_sid_ascii = 51
+      return rq_is_gripper_ascii_in_sid_list(gripper_3_sid_ascii, sid_list)
+  end
+  
+  def rq_is_gripper4_in_sid_list(sid_list):
+      gripper_4_sid_ascii = 52
+      return rq_is_gripper_ascii_in_sid_list(gripper_4_sid_ascii, sid_list)
+  end
+  
+  def rq_comm_clear_socket_buffer():
+      index = 0
+  
+      while(index <= 3):
+          socket = rq_index_to_socket(index)
+  
+          if(gripper_connected[index] and rq_comm_clear_socket_buffer_enabled[index]):
+              byte_in_buffer = socket_read_byte_list(1, socket, 0.002)
+              while(byte_in_buffer[0] >= 1):
+                  byte_in_buffer = socket_read_byte_list(1, socket, 0.002)
+              end
+              rq_comm_clear_socket_buffer_enabled[index] = False
+          end
+          index = index + 1
+      end
+  end
+  
+  def rq_comm_initialize_write_values():
+      index = 0
+  
+      while(index <= 3):
+          socket = rq_index_to_socket(index)
+  
+          if(gripper_connected[index]):
+  
+              if(rq_write_act[index] == -1 and rq_read_act[index] != -1):
+                  rq_write_act[index] = rq_read_act[index]
+                  rq_write_act_previous[index] = rq_read_act[index]
+              elif(rq_write_act_previous[index] == -1 and rq_read_act[index] != -1):
+                  rq_write_act_previous[index] = rq_read_act[index]
+              end
+  
+              if(rq_write_gto[index] == -1 and rq_read_gto[index] != -1):
+                  rq_write_gto[index] = rq_read_gto[index]
+                  rq_write_gto_previous[index] = rq_read_gto[index]
+              elif(rq_write_gto_previous[index] == -1 and rq_read_gto[index] != -1):
+                  rq_write_gto_previous[index] = rq_read_gto[index]
+              end
+  
+              if(rq_write_for[index] == -1 and rq_read_for[index] != -1):
+                  rq_write_for[index] = rq_read_for[index]
+                  rq_write_for_previous[index] = rq_read_for[index]
+              elif(rq_write_for_previous[index] == -1 and rq_read_for[index] != -1):
+                  rq_write_for_previous[index] = rq_read_for[index]
+              end
+  
+              if(rq_write_spe[index] == -1 and rq_read_spe[index] != -1):
+                  rq_write_spe[index] = rq_read_spe[index]
+                  rq_write_spe_previous[index] = rq_read_spe[index]
+              elif(rq_write_spe_previous[index] == -1 and rq_read_spe[index] != -1):
+                  rq_write_spe_previous[index] = rq_read_spe[index]
+              end
+  
+              if(rq_write_pos[index] == -1 and rq_read_pos[index] != -1):
+                  rq_write_pos[index] = rq_read_pos[index]
+                  rq_write_pos_previous[index] = rq_read_pos[index]
+              elif(rq_write_pos_previous[index] == -1 and rq_read_pos[index] != -1):
+                  rq_write_pos_previous[index] = rq_read_pos[index]
+              end
+  
+              if(rq_write_lbp[index] == -1 and rq_read_lbp[index] != -1):
+                  rq_write_lbp[index] = rq_read_lbp[index]
+                  rq_write_lbp_previous[index] = rq_read_lbp[index]
+              elif(rq_write_lbp_previous[index] == -1 and rq_read_lbp[index] != -1):
+                  rq_write_lbp_previous[index] = rq_read_lbp[index]
+              end
+  
+              if(rq_write_lrd[index] == -1 and rq_read_lrd[index] != -1):
+                  rq_write_lrd[index] = rq_read_lrd[index]
+                  rq_write_lrd_previous[index] = rq_read_lrd[index]
+              elif(rq_write_lrd_previous[index] == -1 and rq_read_lrd[index] != -1):
+                  rq_write_lrd_previous[index] = rq_read_lrd[index]
+              end
+  
+              if(rq_write_lbl[index] == -1 and rq_read_lbl[index] != -1):
+                  rq_write_lbl[index] = rq_read_lbl[index]
+                  rq_write_lbl_previous[index] = rq_read_lbl[index]
+              elif(rq_write_lbl_previous[index] == -1 and rq_read_lbl[index] != -1):
+                  rq_write_lbl_previous[index] = rq_read_lbl[index]
+              end
+  
+              if(rq_write_lgn[index] == -1 and rq_read_lgn[index] != -1):
+                  rq_write_lgn[index] = rq_read_lgn[index]
+                  rq_write_lgn_previous[index] = rq_read_lgn[index]
+              elif(rq_write_lgn_previous[index] == -1 and rq_read_lgn[index] != -1):
+                  rq_write_lgn_previous[index] = rq_read_lgn[index]
+              end
+  
+              if(rq_write_msc[index] == -1 and rq_read_msc[index] != -1):
+                  rq_write_msc[index] = rq_read_msc[index]
+                  rq_write_msc_previous[index] = rq_read_msc[index]
+              elif(rq_write_msc_previous[index] == -1 and rq_read_msc[index] != -1):
+                  rq_write_msc_previous[index] = rq_read_msc[index]
+              end
+  
+              if(rq_write_mod[index] == -1 and rq_read_mod[index] != -1):
+                  rq_write_mod[index] = rq_read_mod[index]
+                  rq_write_mod_previous[index] = rq_read_mod[index]
+              elif(rq_write_mod_previous[index] == -1 and rq_read_mod[index] != -1):
+                  rq_write_mod_previous[index] = rq_read_mod[index]
+              end
+  
+          end
+          index = index + 1
+      end
+  end
+  
+  def rq_comm_set_var(var, value=0, gripper_socket="1"):
+      socket_set_var(var, value, gripper_socket)
+      return socket_read_byte_list(3, gripper_socket)
+  end
+  
+  def rq_comm_set_pos_spe_for(pos=0, speed=0, force=0, gripper_socket="1"):
+      socket_send_string("SET POS", gripper_socket)
+      socket_send_byte(32, gripper_socket)
+      socket_send_string(pos, gripper_socket)
+      socket_send_byte(32, gripper_socket)
+      socket_send_string("SPE", gripper_socket)
+      socket_send_byte(32, gripper_socket)
+      socket_send_string(speed, gripper_socket)
+      socket_send_byte(32, gripper_socket)
+      socket_send_string("FOR", gripper_socket)
+      socket_send_byte(32, gripper_socket)
+      socket_send_string(force, gripper_socket)
+      socket_send_byte(10, gripper_socket)
+      return socket_read_byte_list(3, gripper_socket)
+  end
+  
+  def rq_comm_read_variables():
+      index = 0
+  
+      while(index <= 3):
+          socket = rq_index_to_socket(index)
+  
+          if(gripper_connected[index]):
+  
+              if(rq_read_act_req[index]):
+                  rq_read_act[index] = socket_get_var("ACT", socket)
+                  rq_read_act_req[index] = False
+              end
+  
+              if(rq_read_gto_req[index]):
+                  rq_read_gto[index] = socket_get_var("GTO", socket)
+                  rq_read_gto_req[index] = False
+              end
+  
+              if(rq_read_pre_req[index]):
+                  rq_read_pre[index] = socket_get_var("PRE", socket)
+                  rq_read_pre_req[index] = False
+              end
+  
+              if(rq_read_pos_req[index]):
+                  rq_read_pos[index] = socket_get_var("POS", socket)
+                  rq_read_pos_req[index] = False
+              end
+  
+              if(rq_read_spe_req[index]):
+                  rq_read_spe[index] = socket_get_var("SPE", socket)
+                  rq_read_spe_req[index] = False
+              end
+  
+              if(rq_read_for_req[index]):
+                  rq_read_for[index] = socket_get_var("FOR", socket)
+                  rq_read_for_req[index] = False
+              end
+  
+              if(rq_read_obj_req[index]):
+                  rq_read_obj[index] = socket_get_var("OBJ", socket)
+                  rq_read_obj_req[index] = False
+              end
+  
+              if(rq_read_sta_req[index]):
+                  rq_read_sta[index] = socket_get_var("STA", socket)
+                  rq_read_sta_req[index] = False
+              end
+  
+              if(rq_read_mod_req[index]):
+                  rq_read_mod[index] = socket_get_var("MOD", socket)
+                  rq_read_mod_req[index] = False
+              end
+  
+              if(rq_read_flt_req[index]):
+                  rq_read_flt[index] = socket_get_var("FLT",socket)
+                  rq_read_flt_req[index] = False
+              end
+  
+              if(rq_read_lbp_req[index]):
+                  rq_read_lbp[index] = socket_get_var("LBP", socket)
+                  rq_read_lbp_req[index] = False
+              end
+  
+              if(rq_read_lrd_req[index]):
+                  rq_read_lrd[index] = socket_get_var("LRD", socket)
+                  rq_read_lrd_req[index] = False
+              end
+  
+              if(rq_read_lbl_req[index]):
+                  rq_read_lbl[index] = socket_get_var("LBL",socket)
+                  rq_read_lbl_req[index] = False
+              end
+  
+              if(rq_read_lgn_req[index]):
+                  rq_read_lgn[index] = socket_get_var("LGN", socket)
+                  rq_read_lgn_req[index] = False
+              end
+  
+              if(rq_read_msc_req[index]):
+                  rq_read_msc[index] = socket_get_var("MSC", socket)
+                  rq_read_msc_req[index] = False
+              end
+  
+              if(rq_read_cou_req[index]):
+                  rq_read_cou[index] = socket_get_var("COU", socket)
+                  rq_read_cou_req[index] = False
+              end
+  
+              if(rq_read_ncy_req[index]):
+                  rq_read_ncy[index] = socket_get_var("NCY", socket)
+                  rq_read_ncy_req[index] = False
+              end
+  
+              if(rq_read_dst_req[index]):
+                  rq_read_dst[index] = socket_get_var("DST", socket)
+                  rq_read_dst_req[index] = False
+              end
+  
+              if(rq_read_pco_req[index]):
+                  rq_read_pco[index] = socket_get_var("PCO", socket)
+                  rq_read_pco_req[index] = False
+              end
+          end
+          index = index + 1
+      end
+  end
+  
+  def rq_comm_read_constants():
+  
+      if(gripper_connected[0]):
+          while(rq_read_snu_1 == rq_string_initial_value):
+              socket_send_string("GET SNU", "1")
+              rq_read_snu_1 = socket_read_string("1")
+          end
+  
+          while(rq_read_fwv_1 == rq_string_initial_value):
+              socket_send_string("GET FWV", "1")
+              rq_read_fwv_1 = socket_read_string("1")
+          end
+  
+          while(rq_read_ver_1 == rq_string_initial_value):
+              socket_send_string("GET VER", "1")
+              rq_read_ver_1 = socket_read_string("1")
+          end
+      end
+  
+      if(gripper_connected[1]):
+          while(rq_read_snu_2 == rq_string_initial_value):
+              socket_send_string("GET SNU", "2")
+              rq_read_snu_2 = socket_read_string("2")
+          end
+  
+          while(rq_read_fwv_2 == rq_string_initial_value):
+              socket_send_string("GET FWV", "2")
+              rq_read_fwv_2 = socket_read_string("2")
+          end
+  
+          while(rq_read_ver_2 == rq_string_initial_value):
+              socket_send_string("GET VER", "2")
+              rq_read_ver_2 = socket_read_string("2")
+          end
+      end
+  
+      if(gripper_connected[2]):
+          while(rq_read_snu_3 == rq_string_initial_value):
+              socket_send_string("GET SNU", "3")
+              rq_read_snu_3 = socket_read_string("3")
+          end
+  
+          while(rq_read_fwv_3 == rq_string_initial_value):
+              socket_send_string("GET FWV", "3")
+              rq_read_fwv_3 = socket_read_string("3")
+          end
+  
+          while(rq_read_ver_3 == rq_string_initial_value):
+              socket_send_string("GET VER", "3")
+              rq_read_ver_3 = socket_read_string("3")
+          end
+      end
+  
+      if(gripper_connected[3]):
+          while(rq_read_snu_4 == rq_string_initial_value):
+              socket_send_string("GET SNU", "4")
+              rq_read_snu_4 = socket_read_string("4")
+          end
+  
+          while(rq_read_fwv_4 == rq_string_initial_value):
+              socket_send_string("GET FWV", "4")
+              rq_read_fwv_4 = socket_read_string("4")
+          end
+  
+          while(rq_read_ver_4 == rq_string_initial_value):
+              socket_send_string("GET VER", "4")
+              rq_read_ver_4 = socket_read_string("4")
+          end
+      end
+  end
+  
+  def rq_comm_write_variables():
+      index = 0
+  
+      while(index <= 3):
+          socket = rq_index_to_socket(index)
+  
+          if(gripper_connected[index]):
+  
+              if(rq_write_act_request[index]):
+                  if(is_ack(rq_comm_set_var("ACT", rq_write_act[index], socket))):
+                      rq_write_act_previous[index] = rq_write_act[index]
+                      rq_write_act_request[index] = False
+                  end
+              end
+  
+              if(rq_write_gto_request[index]):
+                  if(is_ack(rq_comm_set_var("GTO", rq_write_gto[index], socket))):
+                      rq_write_gto_previous[index] = rq_write_gto[index]
+                      rq_write_gto_request[index] = False
+                  end
+              end
+  
+              if(rq_write_atr_request[index]):
+                  if(is_ack(rq_comm_set_var("ATR", rq_write_atr[index], socket))):
+                      rq_write_atr_previous[index] = rq_write_atr[index]
+                      rq_write_atr_request[index] = False
+                  end
+              end
+  
+              if(rq_write_ard_request[index]):
+                  if(is_ack(rq_comm_set_var("ARD", rq_write_ard[index], socket))):
+                      rq_write_ard_previous[index] = rq_write_ard[index]
+                      rq_write_ard_request[index] = False
+                  end
+              end
+  
+              if(rq_write_pos_request[index]):
+                  if(is_ack(rq_comm_set_pos_spe_for(rq_write_pos[index], rq_write_spe[index], rq_write_for[index], socket))):
+                      rq_write_pos_previous[index] = rq_write_pos[index]
+                      rq_write_spe_previous[index] = rq_write_spe[index]
+                      rq_write_for_previous[index] = rq_write_for[index]
+                      rq_write_pos_request[index] = False
+                  end
+              end
+  
+              if(rq_write_lbp_request[index]):
+                  if(is_ack(rq_comm_set_var("LBP", rq_write_lbp[index], socket))):
+                      rq_write_lbp_previous[index] = rq_write_lbp[index]
+                      rq_write_lbp_request[index] = False
+                  end
+              end
+  
+              if(rq_write_lrd_request[index]):
+                  if(is_ack(rq_comm_set_var("LRD", rq_write_lrd[index], socket))):
+                      rq_write_lrd_previous[index] = rq_write_lrd[index]
+                      rq_write_lrd_request[index] = False
+                  end
+              end
+  
+              if(rq_write_lbl_request[index]):
+                  if(is_ack(rq_comm_set_var("LBL", rq_write_lbl[index], socket))):
+                      rq_write_lbl_previous[index] = rq_write_lbl[index]
+                      rq_write_lbl_request[index] = False
+                  end
+              end
+  
+              if(rq_write_lgn_request[index]):
+                  if(is_ack(rq_comm_set_var("LGN", rq_write_lgn[index], socket))):
+                      rq_write_lgn_previous[index] = rq_write_lgn[index]
+                      rq_write_lgn_request[index] = False
+                  end
+              end
+  
+              if(rq_write_msc_request[index]):
+                  if(is_ack(rq_comm_set_var("MSC", rq_write_msc[index], socket))):
+                      rq_write_msc_previous[index] = rq_write_msc[index]
+                      rq_write_msc_request[index] = False
+                  end
+              end
+  
+              if(rq_write_mod_request[index]):
+                  if(is_ack(rq_comm_set_var("MOD", rq_write_mod[index], socket))):
+                      rq_write_mod_previous[index] = rq_write_mod[index]
+                      rq_write_mod_request[index] = False
+                  end
+              end
+          end
+          index = index + 1
+      end
+  end
+  
+  def rq_activate(gripper_socket="1"):
+      if (not rq_is_gripper_activated(gripper_socket)):
+          rq_reset(gripper_socket)
+  
+          while(not rq_get_var("ACT", 1, gripper_socket) == 0 or not rq_get_var("STA", 1, gripper_socket) == 0):
+              rq_reset(gripper_socket)
+              sync()
+          end
+  
+          rq_set_var("ACT",1, gripper_socket)
+      end
+  end
+  
+  def rq_activate_and_wait(gripper_socket="1"):
+      if (not rq_is_gripper_activated(gripper_socket)):
+          rq_activate(gripper_socket)
+          sleep(1.0)
+  
+          while(not rq_get_var("ACT", 1, gripper_socket) == 1 or not rq_get_var("STA", 1, gripper_socket) == 3):
+              sleep(0.1)
+          end
+  
+          sleep(0.5)
+      end
+  end
+  
+  def rq_activate_all_grippers(reset=False):
+      if(gripper_connected[0]):
+          rq_reset_and_activate("1", reset)
+      end
+  
+      if(gripper_connected[1]):
+          rq_reset_and_activate("2", reset)
+      end
+  
+      if(gripper_connected[2]):
+          rq_reset_and_activate("3", reset)
+      end
+  
+      if(gripper_connected[3]):
+          rq_reset_and_activate("4", reset)
+      end
+  end
+  
+  def rq_reset_and_activate(gripper_socket="1", reset=False):
+      if(reset):
+          rq_reset(gripper_socket)
+          rq_activate_and_wait(gripper_socket)
+      elif(not rq_is_gripper_activated(gripper_socket)):
+          rq_activate_and_wait(gripper_socket)
+      end
+  end
+  
+  def rq_reset(gripper_socket="1"):
+      rq_set_var("ACT", 0, gripper_socket)
+      rq_set_var("ATR", 0, gripper_socket)
+  
+      while(not rq_get_var("ACT", 1, gripper_socket) == 0 or not rq_get_var("STA", 1, gripper_socket) == 0):
+          rq_set_var("ACT", 0, gripper_socket)
+          rq_set_var("ATR", 0, gripper_socket)
+          sync()
+      end
+  
+      sleep(0.5)
+  end
+  
+  def rq_auto_release_open_and_wait(gripper_socket="1"):
+      rq_set_var("ATR",0, gripper_socket)
+      rq_set_var("ARD",0, gripper_socket)
+      rq_set_var("ACT",1, gripper_socket)
+      sleep(0.1)
+      rq_set_var("ATR",1, gripper_socket)
+  
+      rq_wait_autorelease_completed(gripper_socket)
+  end
+  
+  def rq_auto_release_close_and_wait(gripper_socket="1"):
+      rq_set_var("ATR",0, gripper_socket)
+      rq_set_var("ARD",1, gripper_socket)
+      rq_set_var("ACT",1, gripper_socket)
+      sleep(0.1)
+      rq_set_var("ATR",1, gripper_socket)
+  
+      rq_wait_autorelease_completed(gripper_socket)
+  end
+  
+  def rq_wait_autorelease_completed(gripper_socket="1"):
+      remainingRetries = 20
+      gFLT = rq_get_var("FLT", 2, gripper_socket)
+  
+      while(not is_FLT_autorelease_in_progress(gFLT) and remainingRetries > 0):
+          remainingRetries = remainingRetries - 1
+          gFLT = rq_get_var("FLT", 2, gripper_socket)
+          sleep(0.1)
+      end
+  
+      remainingRetries = 100
+      gFLT = rq_get_var("FLT", 2, gripper_socket)
+  
+      while(not is_FLT_autorelease_completed(gFLT) and remainingRetries > 0):
+          remainingRetries = remainingRetries - 1
+          gFLT = rq_get_var("FLT", 2, gripper_socket)
+          sleep(0.1)
+      end
+  end
+  
+  def rq_set_force(force, gripper_socket="1"):
+      force = floor(scale(force, [0, 255], [0.0, 255.0]))
+      rq_set_var("FOR", force, gripper_socket)
+  end
+  
+  def rq_set_speed(speed, gripper_socket="1"):
+      speed = floor(scale(speed, [0, 255], [0.0, 255.0]))
+      rq_set_var("SPE", speed, gripper_socket)
+  end
+  
+  def rq_open(gripper_socket="1"):
+      rq_move(0, gripper_socket)
+  end
+  
+  def rq_close(gripper_socket="1"):
+      rq_move(255, gripper_socket)
+  end
+  
+  def rq_open_and_wait(gripper_socket="1"):
+      rq_move_and_wait(0, gripper_socket)
+  end
+  
+  def rq_close_and_wait(gripper_socket="1"):
+      rq_move_and_wait(255, gripper_socket)
+  end
+  
+  def rq_move(pos, gripper_socket="1"):
+      rq_set_pos(pos, gripper_socket)
+      rq_go_to(gripper_socket)
+  end
+  
+  def rq_move_and_wait(pos, gripper_socket="1"):
+      rq_move(pos, gripper_socket)
+  
+      while (not rq_is_motion_complete(gripper_socket)):
+          # wait for motion completed
+          sync()
+      end
+  end
+  
+  def rq_wait_for_pos_request(pos, gripper_socket="1"):
+      gPRE = rq_get_var("PRE", 3, gripper_socket)
+  
+      while (gPRE != pos):
+          rq_set_var("POS", pos, gripper_socket)
+          sync()
+          gPRE = rq_get_var("PRE", 3, gripper_socket)
+      end
+  end
+  
+  def rq_wait_pos_spe_for_request(pos, speed, force, gripper_socket="1"):
+      gPRE = rq_get_var("PRE", 3, gripper_socket)
+  
+      while (gPRE != pos):
+          rq_set_pos_spe_for_var(pos, speed, force, gripper_socket)
+          sync()
+          gPRE = rq_get_var("PRE", 3, gripper_socket)
+      end
+  end
+  
+  def rq_wait_for_pos(pos, gripper_socket="1"):
+      rq_wait_for_pos_request(pos, gripper_socket)
+  
+      # Wait for the gripper motion to complete
+      while (not rq_is_motion_complete(gripper_socket)):
+          # wait for motion completed
+          sync()
+          rq_set_var("GTO", 1, gripper_socket)
+      end
+  end
+  
+  def rq_wait(gripper_socket="1"):
+      # Wait for the gripper motion to complete
+      while (not rq_is_motion_complete(gripper_socket)):
+          sync()
+          # The following patch is for Robotiq's Camera issue when communication is lost, but not the activation
+          # the communication driver reset the GTO bit
+          rq_set_var("GTO", 1, gripper_socket)
+      end
+  end
+  
+  def rq_wait_for_object_detected(gripper_socket="1"):
+      # Wait the object detection
+      while (not rq_is_object_detected(gripper_socket)):
+          sync()
+      end
+  end
+  
+  # set the position
+  def rq_set_pos(pos, gripper_socket="1"):
+      pos = floor(scale(pos, [0, 255], [0.0, 255.0]))
+      rq_set_var("POS", pos, gripper_socket)
+      rq_wait_for_pos_request(pos, gripper_socket)
+  end
+  
+  def rq_set_pos_spd_for(pos, speed, force, gripper_socket="1"):
+      pos = floor(scale(pos, [0, 255], [0.0, 255.0]))
+      speed = floor(scale(speed, [0, 255], [0.0, 255.0]))
+      force = floor(scale(force, [0, 255], [0.0, 255.0]))
+  
+      rq_set_pos_spe_for_var(pos, speed, force, gripper_socket)
+  end
+  
+  def rq_set_gripper_max_current_mA(current_mA, gripper_socket="1"):
+      current = floor(current_mA / 10)
+  
+      rq_set_var("MSC", current, gripper_socket)
+      current_read = rq_get_var("MSC", 1, gripper_socket)
+  
+      while(current_read != current):
+          rq_set_var("MSC", current, gripper_socket)
+          current_read = rq_get_var("MSC", 1, gripper_socket)
+      end
+  end
+  
+  def rq_set_gripper_mode(mode, gripper_socket="1"):
+      rq_set_var("MOD", mode, gripper_socket)
+  end
+  
+  def rq_set_gripper_max_cur(current_mA, gripper_socket="1"):
+      rq_set_gripper_max_current_mA(current_mA, gripper_socket)
+  end
+  
+  def rq_get_gripper_max_current_mA(gripper_socket="1"):
+      current = rq_get_var("MSC", 1, gripper_socket)
+  
+      if(current == -1):
+          current_mA = current
+      else:
+          current_mA = current * 10
+      end
+  
+      return current_mA
+  end
+  
+  def rq_get_gripper_max_cur(gripper_socket="1"):
+      return rq_get_gripper_max_current_mA(gripper_socket)
+  end
+  
+  def rq_set_max_current_for_all_grippers():
+      current_mA = rq_get_max_current_mA()
+  
+      if(gripper_connected[0]):
+          rq_set_gripper_max_current_mA(current_mA, "1")
+      end
+  
+      if(gripper_connected[1]):
+          rq_set_gripper_max_current_mA(current_mA, "2")
+      end
+  
+      if(gripper_connected[2]):
+          rq_set_gripper_max_current_mA(current_mA, "3")
+      end
+  
+      if(gripper_connected[3]):
+          rq_set_gripper_max_current_mA(current_mA, "4")
+      end
+  end
+  
+  def rq_get_max_current_mA():
+      max_current_mA = 0
+  
+      if(rq_current_limit_enabled):
+          nb_connected_grippers = rq_get_nb_connected_grippers()
+  
+          if(nb_connected_grippers == 1):
+              max_current_mA = 600
+          elif(nb_connected_grippers > 1):
+              max_current_mA = 450
+          end
+      else:
+  
+      end
+  
+      return max_current_mA
+  end
+  
+  def rq_get_nb_connected_grippers():
+      nb_connected_grippers = 0
+  
+      if(gripper_connected[0]):
+          nb_connected_grippers = nb_connected_grippers + 1
+      end
+  
+      if(gripper_connected[1]):
+          nb_connected_grippers = nb_connected_grippers + 1
+      end
+  
+      if(gripper_connected[2]):
+          nb_connected_grippers = nb_connected_grippers + 1
+      end
+  
+      if(gripper_connected[3]):
+          nb_connected_grippers = nb_connected_grippers + 1
+      end
+  
+      return nb_connected_grippers
+  end
+  
+  def rq_list_of_bytes_to_value(list_of_bytes):
+      value = -1
+  
+      # response list length
+      if (list_of_bytes[0] == 1):
+          value = list_of_bytes[1] - 48
+      elif (list_of_bytes[0] == 2):
+          value = (list_of_bytes[1] - 48) * 10 + (list_of_bytes[2] - 48)
+      elif (list_of_bytes[0] == 3):
+          value = (list_of_bytes[1] - 48) * 100 + (list_of_bytes[2] - 48) * 10 + (list_of_bytes[3] - 48)
+      end
+  
+      return value
+  end
+  
+  def rq_is_motion_complete(gripper_socket="1"):
+      gOBJ = rq_get_var("OBJ", 1, gripper_socket)
+      sync()
+      return is_OBJ_gripper_at_position(gOBJ) or is_OBJ_object_detected(gOBJ)
+  end
+  
+  def rq_is_gripper_activated(gripper_socket="1"):
+      gSTA = rq_get_var("STA", 1, gripper_socket)
+      sync()
+      return is_STA_gripper_activated(gSTA)
+  end
+  
+  def rq_is_object_detected(gripper_socket="1"):
+      gOBJ = rq_get_var("OBJ", 1, gripper_socket)
+      sync()
+      return is_OBJ_object_detected(gOBJ)
+  end
+  
+  def rq_current_pos(gripper_socket="1"):
+      gPOS = rq_get_var("POS", 1, gripper_socket)
+      sync()
+      return gPOS
+  end
+  
+  def rq_motor_current(gripper_socket="1"):
+      rq_current = rq_get_var("COU", 1, gripper_socket)
+      sync()
+      return rq_current * 10
+  end
+  
+  def rq_print_connected_grippers():
+      if(gripper_connected[0]):
+          textmsg("Gripper 1 : ", "connected and socket open.")
+      end
+  
+      if (gripper_connected[1]):
+          textmsg("Gripper 2 : ", "connected and socket open.")
+      end
+  
+      if (gripper_connected[2]):
+          textmsg("Gripper 3 : ", "connected and socket open.")
+      end
+  
+      if (gripper_connected[3]):
+          textmsg("Gripper 4 : ", "connected and socket open.")
+      end
+  end
+  
+  def rq_print_gripper_fault_code(gripper_socket="1"):
+      gFLT = rq_get_var("FLT", 2, gripper_socket)
+  
+      if(is_FLT_no_fault(gFLT)):
+          textmsg("Gripper Fault : ", "No Fault (0x00)")
+      elif (is_FLT_action_delayed(gFLT)):
+          textmsg("Gripper Fault : ", "Priority Fault: Action delayed, initialization must be completed prior to action (0x05)")
+      elif (is_FLT_not_activated(gFLT)):
+          textmsg("Gripper Fault : ", "Priority Fault: The activation must be set prior to action (0x07)")
+      elif (is_FLT_autorelease_in_progress(gFLT)):
+          textmsg("Gripper Fault : ", "Minor Fault: Automatic release in progress (0x0B)")
+      elif (is_FLT_overcurrent(gFLT)):
+          textmsg("Gripper Fault : ", "Minor Fault: Overcurrent protection triggered (0x0E)")
+      elif (is_FLT_autorelease_completed(gFLT)):
+          textmsg("Gripper Fault : ", "Major Fault: Automatic release completed (0x0F)")
+      else:
+          textmsg("Gripper Fault : ", "Unknown Fault")
+      end
+  end
+  
+  def rq_print_gripper_num_cycles(gripper_socket="1"):
+      num_cycles = rq_get_var("NCY", 1, gripper_socket)
+  
+      if(num_cycles == -1):
+          textmsg("Gripper Cycle Number : ", "Number of cycles is unreachable.")
+      else:
+          textmsg("Gripper Cycle Number : ", num_cycles)
+      end
+  end
+  
+  def rq_print_gripper_driver_state(gripper_socket="1"):
+      driver_state = rq_get_var("DST", 1, gripper_socket)
+  
+      if(driver_state == 0):
+          textmsg("Gripper Driver State : ", "RQ_STATE_INIT")
+      elif(driver_state == 1):
+          textmsg("Gripper Driver State : ", "RQ_STATE_LISTEN")
+      elif(driver_state == 2):
+          textmsg("Gripper Driver State : ", "RQ_STATE_READ_INFO")
+      elif(driver_state == 3):
+          textmsg("Gripper Driver State : ", "RQ_STATE_ACTIVATION")
+      else:
+          textmsg("Gripper Driver State : ", "RQ_STATE_RUN")
+      end
+  end
+  
+  def rq_print_gripper_serial_number(gripper_socket="1"):
+      serial_number = rq_get_var_string("SNU", 1, gripper_socket)
+      textmsg("Gripper Serial Number : ", serial_number)
+  end
+  
+  def rq_print_gripper_firmware_version(gripper_socket="1"):
+      firmware_version = rq_get_var_string("FWV", 1, gripper_socket)
+      textmsg("Gripper Firmware Version : ", firmware_version)
+  end
+  
+  def rq_print_gripper_driver_version(gripper_socket="1"):
+      driver_version = rq_get_var_string("VER", 1, gripper_socket)
+      textmsg("Gripper Driver Version : ", driver_version)
+  end
+  
+  def rq_print_gripper_connection_state(gripper_socket="1"):
+      connection_state = rq_get_var("PCO", 1, gripper_socket)
+  
+      if (connection_state == 0):
+          textmsg("Gripper Connection State : ", "No connection problem detected")
+      else:
+          textmsg("Gripper Connection State : ", "Connection problem detected")
+      end
+  end
+  
+  # Returns True if list_of_bytes is [3, 'a', 'c', 'k']
+  def is_ack(list_of_bytes):
+  
+      # list length is not 3
+      if (list_of_bytes[0] != 3):
+          return False
+      end
+  
+      # first byte not is 'a'?
+      if (list_of_bytes[1] != 97):
+          return False
+      end
+  
+      # first byte not is 'c'?
+      if (list_of_bytes[2] != 99):
+          return False
+      end
+  
+      # first byte not is 'k'?
+      if (list_of_bytes[3] != 107):
+          return False
+      end
+  
+      return True
+  end
+  
+  # Returns True if list_of_bytes is not [3, 'a', 'c', 'k']
+  def is_not_ack(list_of_bytes):
+      if (is_ack(list_of_bytes)):
+          return False
+      else:
+          return True
+      end
+  end
+  
+  def is_STA_gripper_activated (gSTA):
+      if (gSTA == 3):
+          return True
+      end
+  
+      return False
+  end
+  
+  def is_OBJ_object_detected (gOBJ):
+      if (gOBJ == 1 or gOBJ == 2):
+          return True
+      end
+  
+      return False
+  end
+  
+  def is_OBJ_gripper_at_position (gOBJ):
+      if (gOBJ == 3):
+          return True
+      end
+  
+      return False
+  end
+  
+  def is_not_OBJ_gripper_at_position (gOBJ):
+      if (is_OBJ_gripper_at_position(gOBJ)):
+          return False
+      else:
+          return True
+      end
+  end
+  
+  #### GTO Section ####
+  def rq_stop(gripper_socket="1"):
+      rq_set_var("GTO", 0, gripper_socket)
+  end
+  
+  def rq_set_GTO_and_wait(value, gripper_socket="1"):
+      rq_set_var("GTO" ,value, gripper_socket)
+      while(not is_GTO(value, rq_get_var("GTO", 1, gripper_socket))):
+        sync()
+      end
+  end
+  
+  def rq_go_to(gripper_socket="1"):
+      rq_set_var("GTO", 1, gripper_socket)
+  end
+  
+  
+  def is_GTO(goto_value, rGTO):
+      return rGTO == goto_value
+  end
+  #### GTO Section ####
+  
+  def is_FLT_no_fault(gFLT):
+      return gFLT == 0
+  end
+  
+  def is_FLT_warning(gFLT):
+      return gFLT >= 1 and gFLT <= 7
+  end
+  
+  def is_FLT_faulted(gFLT):
+      return gFLT >= 8
+  end
+  
+  def is_FLT_action_delayed(gFLT):
+      return gFLT == 5
+  end
+  
+  def is_FLT_not_activated(gFLT):
+      return gFLT == 7
+  end
+  
+  def is_FLT_autorelease_in_progress(gFLT):
+      return gFLT == 11
+  end
+  
+  def is_FLT_overcurrent(gFLT):
+      return gFLT == 14
+  end
+  
+  def is_FLT_autorelease_completed(gFLT):
+      return gFLT == 15
+  end
+  
+  def rq_set_var(var_name, var_value, gripper_socket="1"):
+      index = rq_socket_to_index(gripper_socket)
+  
+      enter_critical
+  
+      if (var_name == "ACT"):
+          rq_write_act[index] = var_value
+          rq_write_act_request[index] = True
+      elif (var_name == "GTO"):
+          rq_write_gto[index] = var_value
+          rq_write_gto_request[index] = True
+      elif (var_name == "ATR"):
+          rq_write_atr[index] = var_value
+          rq_write_atr_request[index] = True
+      elif (var_name == "ARD"):
+          rq_write_ard[index] = var_value
+          rq_write_ard_request[index] = True
+      elif (var_name == "FOR"):
+          rq_write_for[index] = var_value
+          rq_write_pos_request[index] = True
+      elif (var_name == "SPE"):
+          rq_write_spe[index] = var_value
+          rq_write_pos_request[index] = True
+      elif (var_name == "POS"):
+          rq_write_pos[index] = var_value
+          rq_write_pos_request[index] = True
+      elif (var_name == "LBP"):
+          rq_write_lbp[index] = var_value
+          rq_write_lbp_request[index] = True
+      elif (var_name == "LRD"):
+          rq_write_lrd[index] = var_value
+          rq_write_lrd_request[index] = True
+      elif (var_name == "LBL"):
+          rq_write_lbl[index] = var_value
+          rq_write_lbl_request[index] = True
+      elif (var_name == "LGN"):
+          rq_write_lgn[index] = var_value
+          rq_write_lgn_request[index] = True
+      elif (var_name == "MSC"):
+          rq_write_msc[index] = var_value
+          rq_write_msc_request[index] = True
+      elif (var_name == "MOD"):
+          rq_write_mod[index] = var_value
+          rq_write_mod_request[index] = True
+      end
+  
+      exit_critical
+  
+      if (var_name == "ACT"):
+          while(rq_write_act_request[index]):
+              sync()
+          end
+      elif (var_name == "GTO"):
+          while(rq_write_gto_request[index]):
+              sync()
+          end
+      elif (var_name == "ATR"):
+          while(rq_write_atr_request[index]):
+              sync()
+          end
+      elif (var_name == "ARD"):
+          while(rq_write_ard_request[index]):
+              sync()
+          end
+      elif (var_name == "FOR"):
+          while(rq_write_pos_request[index]):
+              sync()
+          end
+      elif (var_name == "SPE"):
+          while(rq_write_pos_request[index]):
+              sync()
+          end
+      elif (var_name == "POS"):
+          while(rq_write_pos_request[index]):
+              sync()
+          end
+      elif (var_name == "LBP"):
+          while(rq_write_lbp_request[index]):
+              sync()
+          end
+      elif (var_name == "LRD"):
+          while(rq_write_lrd_request[index]):
+              sync()
+          end
+      elif (var_name == "LBL"):
+          while(rq_write_lbl_request[index]):
+              sync()
+          end
+      elif (var_name == "LGN"):
+          while(rq_write_lgn_request[index]):
+              sync()
+          end
+      elif (var_name == "MSC"):
+          while(rq_write_msc_request[index]):
+              sync()
+          end
+      elif (var_name == "MOD"):
+          while(rq_write_mod_request[index]):
+              sync()
+          end
+      end
+  end
+  
+  def rq_set_pos_spe_for_var(pos, speed, force, gripper_socket="1"):
+      index = rq_socket_to_index(gripper_socket)
+  
+      enter_critical
+  
+      rq_write_for[index] = force
+      rq_write_spe[index] = speed
+      rq_write_pos[index] = pos
+      rq_write_pos_request[index] = True
+  
+      exit_critical
+  end
+  
+  def rq_get_var(var_name, nbr_bytes, gripper_socket="1"):
+      index = rq_socket_to_index(gripper_socket)
+      var_value = -1
+  
+      if (var_name == "ACT"):
+          enter_critical
+          rq_read_act_req[index] = True
+          exit_critical
+          while(rq_read_act_req[index]):
+              sync()
+          end
+          var_value = rq_read_act[index]
+  
+      elif (var_name == "GTO"):
+          enter_critical
+          rq_read_gto_req[index] = True
+          exit_critical
+          while(rq_read_gto_req[index]):
+              sync()
+          end
+          var_value = rq_read_gto[index]
+  
+      elif (var_name == "FOR"):
+          enter_critical
+          rq_read_for_req[index] = True
+          exit_critical
+          while(rq_read_for_req[index]):
+              sync()
+          end
+          var_value = rq_read_for[index]
+  
+      elif (var_name == "SPE"):
+          enter_critical
+          rq_read_spe_req[index] = True
+          exit_critical
+          while(rq_read_spe_req[index]):
+              sync()
+          end
+          var_value = rq_read_spe[index]
+  
+      elif (var_name == "OBJ"):
+          enter_critical
+          rq_read_obj_req[index] = True
+          exit_critical
+          while(rq_read_obj_req[index]):
+              sync()
+          end
+          var_value = rq_read_obj[index]
+  
+      elif (var_name == "STA"):
+          enter_critical
+          rq_read_sta_req[index] = True
+          exit_critical
+          while(rq_read_sta_req[index]):
+              sync()
+          end
+          var_value = rq_read_sta[index]
+  
+      elif (var_name == "FLT"):
+          enter_critical
+          rq_read_flt_req[index] = True
+          exit_critical
+          while(rq_read_flt_req[index]):
+              sync()
+          end
+          var_value = rq_read_flt[index]
+  
+      elif (var_name == "POS"):
+          enter_critical
+          rq_read_pos_req[index] = True
+          exit_critical
+          while(rq_read_pos_req[index]):
+              sync()
+          end
+          var_value = rq_read_pos[index]
+  
+      elif (var_name == "PRE"):
+          enter_critical
+          rq_read_pre_req[index] = True
+          exit_critical
+          while(rq_read_pre_req[index]):
+              sync()
+          end
+          var_value = rq_read_pre[index]
+  
+      elif (var_name == "LBP"):
+          enter_critical
+          rq_read_lbp_req[index] = True
+          exit_critical
+          while(rq_read_lbp_req[index]):
+              sync()
+          end
+          var_value = rq_read_lbp[index]
+  
+      elif (var_name == "LRD"):
+          enter_critical
+          rq_read_lrd_req[index] = True
+          exit_critical
+          while(rq_read_lrd_req[index]):
+              sync()
+          end
+          var_value = rq_read_lrd[index]
+  
+      elif (var_name == "LBL"):
+          enter_critical
+          rq_read_lbl_req[index] = True
+          exit_critical
+          while(rq_read_lbl_req[index]):
+              sync()
+          end
+          var_value = rq_read_lbl[index]
+  
+      elif (var_name == "LGN"):
+          enter_critical
+          rq_read_lgn_req[index] = True
+          exit_critical
+          while(rq_read_lgn_req[index]):
+              sync()
+          end
+          var_value = rq_read_lgn[index]
+  
+      elif (var_name == "MSC"):
+          enter_critical
+          rq_read_msc_req[index] = True
+          exit_critical
+          while(rq_read_msc_req[index]):
+              sync()
+          end
+          var_value = rq_read_msc[index]
+  
+      elif (var_name == "MOD"):
+          enter_critical
+          rq_read_mod_req[index] = True
+          exit_critical
+          while(rq_read_mod_req[index]):
+              sync()
+          end
+          var_value = rq_read_mod[index]
+  
+      elif (var_name == "NCY"):
+          enter_critical
+          rq_read_ncy_req[index] = True
+          exit_critical
+          while(rq_read_ncy_req[index]):
+              sync()
+          end
+          var_value = rq_read_ncy[index]
+  
+      elif (var_name == "PCO"):
+          enter_critical
+          rq_read_pco_req[index] = True
+          exit_critical
+          while(rq_read_pco_req[index]):
+              sync()
+          end
+          var_value = rq_read_pco[index]
+  
+      elif (var_name == "DST"):
+          enter_critical
+          rq_read_dst_req[index] = True
+          exit_critical
+          while(rq_read_dst_req[index]):
+              sync()
+          end
+          var_value = rq_read_dst[index]
+  
+      end
+  
+      return var_value
+  end
+  
+  def rq_get_var_string(var_name, nbr_bytes, gripper_socket="1"):
+      index = rq_socket_to_index(gripper_socket)
+      var_value = ""
+  
+      enter_critical
+  
+      if (var_name == "SNU"):
+          if(gripper_socket == "1"):
+              var_value = rq_read_snu_1
+          elif(gripper_socket == "2"):
+              var_value = rq_read_snu_2
+          elif(gripper_socket == "3"):
+              var_value = rq_read_snu_3
+          elif(gripper_socket == "4"):
+              var_value = rq_read_snu_4
+          end
+      elif (var_name == "FWV"):
+          if(gripper_socket == "1"):
+              var_value = rq_read_fwv_1
+          elif(gripper_socket == "2"):
+              var_value = rq_read_fwv_2
+          elif(gripper_socket == "3"):
+              var_value = rq_read_fwv_3
+          elif(gripper_socket == "4"):
+              var_value = rq_read_fwv_4
+          end
+      elif (var_name == "VER"):
+          if(gripper_socket == "1"):
+              var_value = rq_read_ver_1
+          elif(gripper_socket == "2"):
+              var_value = rq_read_ver_2
+          elif(gripper_socket == "3"):
+              var_value = rq_read_ver_3
+          elif(gripper_socket == "4"):
+              var_value = rq_read_ver_4
+          end
+      end
+  
+      exit_critical
+  
+      return var_value
+  end
+  
+  def rq_is_object_validated(gripper_selected, gripper_socket="1"):
+      if(gripper_selected):
+          if(rq_is_object_detected(gripper_socket)):
+              return True
+          else:
+              return False
+          end
+      else:
+          return True
+      end
+  end
+  
+  ############################################
+  # normalized functions (maps 0-100 to 0-255)
+  ############################################
+  def rq_set_force_norm(force_norm, gripper_socket="1"):
+      force_gripper = norm_to_gripper(force_norm)
+      rq_set_force(force_gripper, gripper_socket)
+  end
+  
+  def rq_set_speed_norm(speed_norm, gripper_socket="1"):
+      speed_gripper = norm_to_gripper(speed_norm)
+      rq_set_speed(speed_gripper, gripper_socket)
+  end
+  
+  def rq_move_norm(pos_norm, gripper_socket="1"):
+      pos_gripper = norm_to_gripper(pos_norm)
+      rq_move(pos_gripper, gripper_socket)
+  end
+  
+  def rq_move_and_wait_norm(pos_norm, gripper_socket="1"):
+      pos_gripper = norm_to_gripper(pos_norm)
+      rq_move_and_wait(pos_gripper, gripper_socket)
+  end
+  
+  def rq_set_pos_norm(pos_norm, gripper_socket="1"):
+      pos_gripper = norm_to_gripper(pos_norm)
+      rq_set_pos(pos_gripper, gripper_socket)
+  end
+  
+  def rq_current_pos_norm(gripper_socket="1"):
+      pos_gripper = rq_current_pos(gripper_socket)
+      pos_norm = gripper_to_norm(pos_gripper)
+      return pos_norm
+  end
+  
+  def gripper_to_norm(value_gripper):
+      value_norm = (value_gripper / 255) * 100
+      return floor(value_norm)
+  end
+  
+  def norm_to_gripper(value_norm):
+      value_gripper = (value_norm / 100) * 255
+      return ceil(value_gripper)
+  end
+  
+  def rq_get_position():
+      return rq_current_pos_norm()
+  end
+  
+  def rq_gripper_led_on(gripper_socket="1"):
+      rq_set_var("LBP",0, gripper_socket)
+  end
+  
+  def rq_gripper_led_off(gripper_socket="1"):
+      rq_set_var("LBP",1, gripper_socket)
+      rq_set_var("LRD",0, gripper_socket)
+      rq_set_var("LBL",0, gripper_socket)
+      rq_set_var("LGN",0, gripper_socket)
+  end
+  
+  def rq_gripper_led_force_red(gripper_socket="1"):
+      rq_set_var("LBP",1, gripper_socket)
+      rq_set_var("LRD",1, gripper_socket)
+      rq_set_var("LBL",0, gripper_socket)
+      rq_set_var("LGN",0, gripper_socket)
+  end
+  
+  def rq_gripper_led_force_blue(gripper_socket="1"):
+      rq_set_var("LBP",1, gripper_socket)
+      rq_set_var("LRD",0, gripper_socket)
+      rq_set_var("LBL",1, gripper_socket)
+      rq_set_var("LGN",0, gripper_socket)
+  end
+  
+  def rq_gripper_led_force_green(gripper_socket="1"):
+      rq_set_var("LBP",1, gripper_socket)
+      rq_set_var("LRD",0, gripper_socket)
+      rq_set_var("LBL",0, gripper_socket)
+      rq_set_var("LGN",1, gripper_socket)
+  end
+  
+  def rq_gripper_led_force_purple(gripper_socket="1"):
+      rq_set_var("LBP",1, gripper_socket)
+      rq_set_var("LRD",1, gripper_socket)
+      rq_set_var("LBL",1, gripper_socket)
+      rq_set_var("LGN",0, gripper_socket)
+  end
+  
+  ############################################
+  # mm/inches functions
+  ############################################
+  gripper_closed_norm = [100, 100, 100, 100]
+  gripper_open_norm = [0, 0, 0, 0]
+  gripper_closed_mm = [0, 0, 0, 0]
+  gripper_open_mm = [50, 50, 50, 50]
+  
+  def rq_current_pos_mm(gripper_socket=1):
+      pos_gripper = rq_current_pos(gripper_socket)
+      pos_mm = gripper_to_mm(pos_gripper, gripper_socket)
+      return round_value_2_dec(pos_mm)
+  end
+  
+  def rq_current_pos_inches(gripper_socket=1):
+      pos_gripper = rq_current_pos(gripper_socket)
+      pos_mm = gripper_to_mm(pos_gripper, gripper_socket)
+      pos_in = pos_mm / 25.4
+      return round_value_2_dec(pos_in)
+  end
+  
+  def rq_move_mm(pos_mm, gripper_socket=1):
+      pos_gripper = mm_to_gripper(pos_mm, gripper_socket)
+      rq_move(pos_gripper, gripper_socket)
+  end
+  
+  def rq_move_and_wait_mm(pos_mm, gripper_socket=1):
+      pos_gripper = mm_to_gripper(pos_mm, gripper_socket)
+      rq_move_and_wait(pos_gripper, gripper_socket)
+  end
+  
+  def rq_move_inches(pos_in, gripper_socket=1):
+      pos_mm = pos_in * 25.4
+      rq_move_mm(pos_mm, gripper_socket)
+  end
+  
+  def rq_move_and_wait_inches(pos_in, gripper_socket=1):
+      pos_mm = pos_in * 25.4
+      rq_move_and_wait_mm(pos_mm, gripper_socket)
+  end
+  
+  def get_closed_norm(gripper_socket):
+      return gripper_closed_norm[gripper_socket - 1]
+  end
+  
+  def get_open_norm(gripper_socket):
+      return gripper_open_norm[gripper_socket - 1]
+  end
+  
+  def get_closed_mm(gripper_socket):
+      return gripper_closed_mm[gripper_socket - 1]
+  end
+  
+  def get_open_mm(gripper_socket):
+      return gripper_open_mm[gripper_socket - 1]
+  end
+  
+  def set_closed_norm(closed_norm, gripper_socket):
+      gripper_closed_norm[gripper_socket - 1] = closed_norm
+  end
+  
+  def set_open_norm(open_norm, gripper_socket):
+      gripper_open_norm[gripper_socket - 1] = open_norm
+  end
+  
+  def set_closed_mm(closed_mm, gripper_socket):
+      gripper_closed_mm[gripper_socket - 1] = closed_mm
+  end
+  
+  def set_open_mm(open_mm, gripper_socket):
+      gripper_open_mm[gripper_socket - 1] = open_mm
+  end
+  
+  def gripper_to_mm(value_gripper, gripper_socket):
+      closed_norm = get_closed_norm(gripper_socket)
+      open_norm = get_open_norm(gripper_socket)
+      closed_mm = get_closed_mm(gripper_socket)
+      open_mm = get_open_mm(gripper_socket)
+  
+      value_norm = (value_gripper / 255) * 100
+  
+      slope = (closed_mm - open_mm) / (closed_norm - open_norm)
+      value_mm = slope * (value_norm - closed_norm) + closed_mm
+  
+      if (value_mm > open_mm):
+          value_mm_limited = open_mm
+      elif (value_mm < closed_mm):
+          value_mm_limited = closed_mm
+      else:
+          value_mm_limited = value_mm
+      end
+  
+      return value_mm_limited
+  end
+  
+  def mm_to_gripper(value_mm, gripper_socket):
+      closed_norm = get_closed_norm(gripper_socket)
+      open_norm = get_open_norm(gripper_socket)
+      closed_mm = get_closed_mm(gripper_socket)
+      open_mm = get_open_mm(gripper_socket)
+  
+      slope = (closed_norm - open_norm) / (closed_mm - open_mm)
+      value_norm = (value_mm - closed_mm) * slope + closed_norm
+  
+      value_gripper = value_norm * 255 / 100
+  
+      if (value_gripper > 255):
+          value_gripper_limited = 255
+      elif (value_gripper < 0):
+          value_gripper_limited = 0
+      else:
+          value_gripper_limited = round_value(value_gripper)
+      end
+  
+      return value_gripper_limited
+  end
+  
+  def round_value(value):
+      value_mod = value % 1
+  
+      if(value_mod < 0.5):
+          return floor(value)
+      else:
+          return ceil(value)
+      end
+  end
+  
+  def round_value_2_dec(value):
+      value_x_100 = value * 100
+      value_x_100_rounded = round_value(value_x_100)
+      return value_x_100_rounded / 100
+  end
+  
+  def clear_socket_buffer(gripper_socket="1", read_timeout = 0.1):
+      rq_comm_clear_socket_buffer_enabled[rq_socket_to_index(gripper_socket)] = True
+  end
+  
+  def rq_gripper_id_to_ascii(gripper_id):
+      if(gripper_id == "1"):
+          return 57
+      elif(gripper_id == "2"):
+          return 50
+      elif(gripper_id == "3"):
+          return 51
+      elif(gripper_id == "4"):
+          return 52
+      end
+  end
+  
+  def scale(value, rawRange, scaledRange):
+      def computeSlope(inputRange, outputRange):
+          outputRangeDelta = outputRange[1] - outputRange[0]
+          inputRangeDelta = inputRange[1] - inputRange[0]
+  
+          if (inputRangeDelta == 0):
+              return 0
+          else:
+              return outputRangeDelta / inputRangeDelta
+          end
+      end
+  
+      def computeIntercept(slope, inputRange, outputRange):
+          return outputRange[0] - (slope * inputRange[0])
+      end
+  
+      def clipScaledValue(outputScaledValue, outputRange):
+          if (outputRange[0] < outputRange[1]):
+              return clipWhenLowerLimitIsLessThanHigher(outputScaledValue, outputRange)
+          else:
+              return clipWhenLowerLimitIsGreaterThanHigherLimit(outputScaledValue, outputRange)
+          end
+      end
+  
+      def clipWhenLowerLimitIsGreaterThanHigherLimit(outputScaledValue, outputRange):
+          if (outputScaledValue < outputRange[1]):
+              return outputRange[1]
+          elif (outputScaledValue > outputRange[0]):
+              return outputRange[0]
+          else:
+              return outputScaledValue
+          end
+      end
+  
+      def clipWhenLowerLimitIsLessThanHigher(outputScaledValue, outputRange):
+          if (outputScaledValue < outputRange[0]):
+              return outputRange[0]
+          elif (outputScaledValue > outputRange[1]):
+              return outputRange[1]
+          else:
+              return outputScaledValue
+          end
+      end
+  
+      slope = computeSlope(rawRange, scaledRange)
+      intercept = computeIntercept(slope, rawRange, scaledRange)
+      scaledValue = slope * value + intercept
+      return clipScaledValue(scaledValue, scaledRange)
+  end
+  
+  def limit(value, range):
+      return scale(value, range, range)
+  end
+  
+  
+  rq_init_comm_if_connected(9, "1")
+  rq_init_comm_if_connected(2, "2")
+  rq_init_comm_if_connected(3, "3")
+  rq_init_comm_if_connected(4, "4")
+  rq_print_connected_grippers()
+  rq_gripper_communication_thread = run rq_gripper_communication()
+  set_closed_norm(100.0, 1)
+  set_open_norm(0.0, 1)
+  set_closed_mm(0.0, 1)
+  set_open_mm(50.0, 1)
+  set_closed_norm(100.0, 2)
+  set_open_norm(0.0, 2)
+  set_closed_mm(0.0, 2)
+  set_open_mm(50.0, 2)
+  set_closed_norm(100.0, 3)
+  set_open_norm(0.0, 3)
+  set_closed_mm(0.0, 3)
+  set_open_mm(50.0, 3)
+  set_closed_norm(100.0, 4)
+  set_open_norm(0.0, 4)
+  set_closed_mm(0.0, 4)
+  set_open_mm(50.0, 4)
+  rq_current_limit_enabled = False
+  while(not rq_gripper_communication_thread_started):
+      sync()
+  end
+  # end: URCap Installation Node
+  global above_pin_p=p[-.203450684083, -.419874445087, .103989700422, -2.253073072531, -2.157180944053, .002492318611]
+  global above_pin_q=[0.8458099365234375, -1.5866452656187953, 2.017813507710592, -2.0017243824400843, -1.5931862036334437, 0.8892917633056641]
+  global at_pin_pick_p=p[-.203464927282, -.419862573609, .056338848390, -2.253132030621, -2.157082131224, .002466457552]
+  global at_pin_pick_q=[0.8457859754562378, -1.5258701604655762, 2.094487015401022, -2.139154096642965, -1.593210522328512, 0.8893399238586426]
+  global handover_0_p=p[-.100562145353, -.623368917478, .587469169930, 1.557199471692, .005892233096, .017711392203]
+  global handover_0_q=[0.8096064329147339, -1.7742945156493128, 2.0197227636920374, -3.406096120873922, -0.7946932951556605, 3.1623921394348145]
+  def calculate_point_to_move_towards(feature, direction, position_distance):
+    local posDir=[direction[0], direction[1], direction[2]]
+    if (norm(posDir) < 1e-6):
+      return get_target_waypoint()
+    end
+    local direction_vector_normalized=normalize(posDir)
+    local displacement_pose=p[direction_vector_normalized[0] * position_distance,direction_vector_normalized[1] * position_distance,direction_vector_normalized[2] * position_distance,0,0,0]
+    local wanted_displacement_in_base_frame=pose_sub(pose_trans(feature, displacement_pose), feature)
+    return pose_add(get_target_waypoint(), wanted_displacement_in_base_frame)
+  end
+  global at_pin_tip_g_p=p[-.193590641142, -.468718833114, .318203989062, 3.135829914251, .013980776172, .016750354895]
+  global at_pin_tip_g_q=[0.9053512811660767, -1.5700938266566773, 1.4409807364093226, -1.4395077985576172, -1.5588911215411585, 2.4672179222106934]
+  global turn_left_from_p=p[-.247486801492, -.411573050152, .065313917167, -.003437618205, -3.124553733445, -.024357088742]
+  global turn_left_to_p=p[-.247449730161, -.411548080312, .065274026133, 2.224369603888, -2.217203501542, -.036085349892]
+  global turn_right_from_p=p[-.247463626251, -.411550844659, .065305682922, 2.224354777830, -2.217084403545, -.036125165160]
+  global turn_right_to_p=p[-.247473880744, -.411553753801, .065267500422, -.003529415780, -3.124664704057, -.024447162109]
+  global above_storage_p=p[-.206583214667, -.165262886723, .189567374888, 3.135937490129, .013819272203, .016950566630]
+  global above_storage_q=[0.13689959049224854, -2.232969900170797, 2.2011974493609827, -1.5290451806834717, -1.563838307057516, 1.698847770690918]
+  global at_pulley_pick_p=p[-.206615573108, -.165271889139, .031943756363, 3.135883248372, .013762490744, .016879841822]
+  global at_pulley_pick_q=[0.13685166835784912, -2.118704935113424, 2.5748966375934046, -2.0170608959593714, -1.5637901465045374, 1.698835849761963]
+  global high_abv_stack_p=p[-.189725445343, -.466715336712, .400407969396, 3.135820545969, .013902544392, .016843802437]
+  global high_abv_stack_q=[0.9090335965156555, -1.5311939281276246, 1.1851308981524866, -1.2225724023631592, -1.5588305632220667, 2.470950126647949]
+  global at_tip_1_p=p[-.193580583119, -.468753246779, .326241013286, 3.135730716804, .014037636733, .016699019188]
+  global at_tip_1_q=[0.905387282371521, -1.5674551290324708, 1.4176681677447718, -1.4189320367625733, -1.558854881917135, 2.4672179222106934]
+  global at_spacer_pick_p=p[-.206636010555, -.063719682914, .031971230943, 3.135925481542, .013791759012, .016760952376]
+  global at_spacer_pick_q=[-0.36760169664491826, -2.3646213016905726, 2.6428898016559046, -1.8370739422240199, -1.5694721380816858, 1.1943907737731934]
+  global Waypoint_3_p=p[.008222035759, -.412726147799, .343305594815, 3.135831415487, .013866437308, .016840003269]
+  global Waypoint_3_q=[1.2520877122879028, -1.7930995426573695, 1.5729606787311, -1.3526383203319092, -1.5588067213641565, 2.814052104949951]
+  global Waypoint_4_p=p[.022896027583, -.424571803605, .175571031448, 2.223277210908, 2.204197015431, .006003805492]
+  global Waypoint_4_q=[1.2967971563339233, -1.7619015179076136, 1.9798763434039515, -1.79079069713735, -1.5594566504107874, 1.3054275512695312]
+  global Washer_pick_p=p[.025107438350, -.424601473849, .080477716845, 2.223303729999, 2.204191691325, .005775710395]
+  global Washer_pick_q=[1.3021849393844604, -1.6727940044798792, 2.1653221289264124, -2.065524240533346, -1.5595529715167444, 1.3108305931091309]
+  global standby_p=p[.005685179602, -.341025980657, .277744284845, 1.965546934646, 1.852739018079, -.598609013124]
+  global standby_q=[0.7996598482131958, -2.578907629052633, 2.2887867132769983, -1.747169633904928, -1.2245739142047327, 0.9417672157287598]
+  global Waypoint_5_p=p[.065953536446, -.482527532795, .246175078795, 1.687811105007, 1.744984340595, -.802229824879]
+  global Waypoint_5_q=[1.2790499925613403, -2.1143628559508265, 2.494124237691061, -2.7886134586729945, -1.354297939931051, 1.3424758911132812]
+  global pick_from_bbot_p=p[.056137660609, -.537361371640, .199319189955, 1.687766281411, 1.744991450835, -.802312526335]
+  global pick_from_bbot_q=[1.3028327226638794, -1.8249384365477503, 2.483717743550436, -3.0710302791991175, -1.3720229307757776, 1.3586702346801758]
+  global hold_at_ridge_p=p[.071966910423, -.536845087463, .202630834111, 1.687720083032, 1.745012921486, -.802304900790]
+  global hold_at_ridge_q=[1.3590229749679565, -1.8203112087645472, 2.4714553991900843, -3.0701056919493617, -1.4140198866473597, 1.3965425491333008]
+  global above_holdr2_p=p[.386165637045, -.211525344945, .278141213018, 1.727502534813, 1.787837789787, .773071081644]
+  global above_holdr2_q=[1.6716638803482056, -2.208670278588766, 2.230439011250631, -1.6408363781371058, -0.7692864576922815, 1.6577954292297363]
+  global washer_pick_p=p[.364949098061, -.213417705576, .070097410196, 1.885227073362, 1.880140223904, .595227268652]
+  global washer_pick_q=[1.7873326539993286, -1.9598289928831996, 2.6037166754352015, -2.34884037593984, -0.982823673878805, 1.83070707321167]
+  global Waypoint_12_p=p[.183744189485, -.350619434456, .198320414473, -2.204871723134, -2.190455930808, .029253323819]
+  global Waypoint_12_q=[1.7396036386489868, -1.8235193691649378, 1.9633567968951624, -1.6940885982909144, -1.605452839528219, 1.7464499473571777]
+  global close_xx_p=p[.147498239294, -.550961016833, .203301226886, -2.204879884912, -2.190516134985, .029372100373]
+  global close_xx_q=[1.6174243688583374, -1.3971937012723465, 1.5436599890338343, -1.7051540813841761, -1.607234303151266, 1.624180793762207]
+  global Waypoint_8_p=p[.113077845471, -.549296090240, .211619632922, -2.205034541347, -2.191022605621, .027820514092]
+  global Waypoint_8_q=[1.5549553632736206, -1.4241034549525757, 1.5543106237994593, -1.69079651455068, -1.6068971792804163, 1.5615143775939941]
+  global above_nut_tool_p=p[.192884732767, -.311331019388, .218062371510, 3.131271022674, .003516696981, .012540162072]
+  global above_nut_tool_q=[1.7472268342971802, -1.943141599694723, 1.9989898840533655, -1.6381784878172816, -1.5647051970111292, 3.315812110900879]
+  global far_above_aid_p=p[.185019096797, -.283792636552, .367304292306, 3.042680902329, .026563110970, .084319055785]
+  global far_above_aid_q=[1.7020064753902373, -2.048689914084605, 1.698222608429436, -1.3225164712276074, -1.5256608506079274, -3.0273782669562017]
+  global above_nut_aid_p=p[.172518791669, -.318273425587, .132878161095, 3.133380520256, -.012299475227, -.017877840602]
+  global above_nut_aid_q=[1.7038884162902832, -1.9053694210448207, 2.1946585814105433, -1.865117689172262, -1.5802338759051722, -3.0008745829211634]
+  global at_nut_aid_p=p[.172518791507, -.325105144658, .044859818834, 3.133380522930, -.012299473365, -.017877807544]
+  global at_nut_aid_q=[1.7008358608447125, -1.772984410229805, 2.3523702214478983, -2.1552410013822296, -1.5800526627193454, -3.0029113805654823]
+  global slightly_above_p=p[.172518791602, -.311073425380, .221087290808, 3.133380522262, -.012299470151, -.017877816864]
+  global slightly_above_q=[1.707040324159599, -1.9628154127911497, 2.0013111966267783, -1.6142932479399184, -1.5805562003862246, -2.9984633868590365]
+  global Waypoint_1_p=p[.193097756602, -.290823670746, .241653026938, -2.260048997145, -2.099249290239, .099918099943]
+  global Waypoint_1_q=[1.8478151386659725, -1.9397922630227171, 1.9313458878933474, -1.5409716331482013, -1.6510694345103847, -4.361775396383348]
+  global Waypoint_2_p=p[.193097756557, -.544308337414, .241653026830, -2.260048996528, -2.099249289791, .099918100829]
+  global Waypoint_2_q=[1.727046018538763, -1.3836527682034427, 1.4317224810158242, -1.6075486353081008, -1.6526126446060267, -4.481901420142556]
+  global before_shaft_p=p[.144251085602, -.544484690945, .263341138056, 2.242492804428, 2.189532025244, -.081749471248]
+  global before_shaft_q=[1.6109319925308228, -1.4637715381434937, 1.4804027716266077, -1.627099176446432, -1.605260197316305, -4.649039093648092]
+  global at_shaft_from_p=p[.144250775304, -.544503395432, .263350888765, 2.242452757892, 2.189542303601, -.081826722560]
+  global at_shaft_to_p=p[.137728386096, -.544490623769, .263396937500, 2.242460503477, 2.189502040343, -.081888933452]
+  $ 1 "Robot Program"
+  $ 2 "var_1≔get_actual_joint_positions()"
+  global var_1= get_actual_joint_positions ()
+  $ 3 "MoveJ"
+  $ 4 "var_1" "breakAfter"
+  movej(var_1, a=1.3962634015954636, v=1.0471975511965976)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 5 "Gripper Move71% (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(181, 0, 255, "1")
+  rq_wait_pos_spe_for_request(181, 0, 255, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 6 "MoveL"
+  $ 7 "above_pin" "breakAfter"
+  movel(above_pin_p, a=1.2, v=0.5)
+  $ 8 "at_pin_pick" "breakAfter"
+  movel(at_pin_pick_p, a=1.2, v=0.5)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 9 "Gripper Close (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(255, 0, 0, "1")
+  rq_wait_pos_spe_for_request(255, 0, 0, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 10 "MoveJ"
+  $ 11 "handover_0" "breakAfter"
+  movej(get_inverse_kin(handover_0_p, qnear=handover_0_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 12 "Popup: wait for b_bot to grasp pin. Press continue to release and proceed"
+  popup("wait for b_bot to grasp pin. Press continue to release and proceed", "Message", False, False, blocking=True)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 13 "Gripper Move35% (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(89, 255, 255, "1")
+  rq_wait_pos_spe_for_request(89, 255, 255, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 14 "MoveL"
+  $ 15 "Direction: Base Y+"
+  global move_thread_flag_15=0
+  thread move_thread_15():
+    enter_critical
+    move_thread_flag_15 = 1
+    local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,1.0,0.0], 0.08)
+    movel(towardsPos, a=1.2, v=0.25)
+    move_thread_flag_15 = 2
+    exit_critical
+  end
+  move_thread_flag_15 = 0
+  move_thread_han_15 = run move_thread_15()
+  while (True):
+    sleep(1.0E-10)
+    if (move_thread_flag_15 > 1):
+      join move_thread_han_15
+      $ 16 "Until (distance)"
+      break
+    end
+    sync()
+  end
+  $ 17 "Popup: c when bbot moved down"
+  popup("c when bbot moved down", "Message", False, False, blocking=True)
+  $ 18 "center pin"
+  $ 19 "MoveL"
+  $ 21 "at_pin_tip_g" "breakAfter"
+  movel(at_pin_tip_g_p, a=1.2, v=0.25)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 22 "Gripper Close (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(255, 255, 255, "1")
+  rq_wait_pos_spe_for_request(255, 255, 255, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 23 "Gripper Move42% (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(107, 255, 255, "1")
+  rq_wait_pos_spe_for_request(107, 255, 255, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 24 "MoveL"
+  $ 25 "turn_left" "breakAfter"
+  movel(pose_add(get_target_tcp_pose(), pose_sub(turn_left_to_p, turn_left_from_p)), a=1.2, v=0.8)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 26 "Gripper Close (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(255, 255, 255, "1")
+  rq_wait_pos_spe_for_request(255, 255, 255, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 27 "Gripper Move58% (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(147, 0, 0, "1")
+  rq_wait_pos_spe_for_request(147, 0, 0, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 28 "MoveL"
+  $ 29 "turn_right" "breakAfter"
+  movel(pose_add(get_target_tcp_pose(), pose_sub(turn_right_to_p, turn_right_from_p)), a=1.2, v=0.8)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 30 "Gripper Close (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(255, 255, 255, "1")
+  rq_wait_pos_spe_for_request(255, 255, 255, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 31 "Gripper Open (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(0, 255, 255, "1")
+  rq_wait_pos_spe_for_request(0, 255, 255, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 32 "get pulley"
+  $ 33 "MoveL"
+  $ 34 "above_storage" "breakAfter"
+  movel(above_storage_p, a=1.2, v=0.5, r=0.05)
+  $ 35 "at_pulley_pick" "breakAfter"
+  movel(at_pulley_pick_p, a=1.2, v=0.5)
+  $ 36 "center+grasp"
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 37 "Gripper Close (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(255, 0, 0, "1")
+  rq_wait_pos_spe_for_request(255, 0, 0, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 38 "Gripper Move45% (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(115, 0, 0, "1")
+  rq_wait_pos_spe_for_request(115, 0, 0, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 39 "MoveL"
+  $ 40 "turn_left" "breakAfter"
+  movel(pose_add(get_target_tcp_pose(), pose_sub(turn_left_to_p, turn_left_from_p)), a=1.2, v=0.8)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 41 "Gripper Close (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(255, 0, 0, "1")
+  rq_wait_pos_spe_for_request(255, 0, 0, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 42 "Gripper Move58% (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(147, 0, 0, "1")
+  rq_wait_pos_spe_for_request(147, 0, 0, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 43 "MoveL"
+  $ 44 "turn_right" "breakAfter"
+  movel(pose_add(get_target_tcp_pose(), pose_sub(turn_right_to_p, turn_right_from_p)), a=1.2, v=0.8)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 45 "Gripper Close (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(255, 0, 0, "1")
+  rq_wait_pos_spe_for_request(255, 0, 0, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 46 "stack pulley"
+  $ 47 "MoveJ"
+  $ 48 "high_abv_stack" "breakAfter"
+  movej(get_inverse_kin(high_abv_stack_p, qnear=high_abv_stack_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 49 "MoveL"
+  $ 50 "at_tip_1" "breakAfter"
+  movel(at_tip_1_p, a=1.2, v=0.25)
+  $ 51 "push_down"
+  $ 52 "p_start≔get_actual_tcp_pose()"
+  global p_start= get_actual_tcp_pose ()
+  $ 53 "Force"
+  sleep(0.02)
+  zero_ftsensor()
+  force_mode(p[0.0,0.0,0.0,0.0,0.0,0.0], [0, 0, 1, 0, 0, 0], [-5.0, 0.0, -5.0, 0.0, 0.0, 0.0], 2, [0.1, 0.1, 0.01, 0.3490658503988659, 0.3490658503988659, 0.3490658503988659])
+  $ 54 "MoveL" "noBreak"
+  $ 55 "Loop 1 times" "noBreak"
+  Loop_6 = 0
+  while (Loop_6 < 1):
+    $ 56 "Direction: Base Y+" "noBreak"
+    global move_thread_flag_56=0
+    thread move_thread_56():
+      enter_critical
+      move_thread_flag_56 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,1.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_56 = 2
+      exit_critical
+    end
+    move_thread_flag_56 = 0
+    move_thread_han_56 = run move_thread_56()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_56 > 1):
+        join move_thread_han_56
+        $ 57 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 58 "Direction: Base X+" "noBreak"
+    global move_thread_flag_58=0
+    thread move_thread_58():
+      enter_critical
+      move_thread_flag_58 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [1.0,0.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_58 = 2
+      exit_critical
+    end
+    move_thread_flag_58 = 0
+    move_thread_han_58 = run move_thread_58()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_58 > 1):
+        join move_thread_han_58
+        $ 59 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 60 "Direction: Base Y-" "noBreak"
+    global move_thread_flag_60=0
+    thread move_thread_60():
+      enter_critical
+      move_thread_flag_60 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,-1.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_60 = 2
+      exit_critical
+    end
+    move_thread_flag_60 = 0
+    move_thread_han_60 = run move_thread_60()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_60 > 1):
+        join move_thread_han_60
+        $ 61 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 62 "Direction: Base Y-" "noBreak"
+    global move_thread_flag_62=0
+    thread move_thread_62():
+      enter_critical
+      move_thread_flag_62 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,-1.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_62 = 2
+      exit_critical
+    end
+    move_thread_flag_62 = 0
+    move_thread_han_62 = run move_thread_62()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_62 > 1):
+        join move_thread_han_62
+        $ 63 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 64 "Direction: Base X-" "noBreak"
+    global move_thread_flag_64=0
+    thread move_thread_64():
+      enter_critical
+      move_thread_flag_64 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [-1.0,0.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_64 = 2
+      exit_critical
+    end
+    move_thread_flag_64 = 0
+    move_thread_han_64 = run move_thread_64()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_64 > 1):
+        join move_thread_han_64
+        $ 65 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 66 "Direction: Base Y+" "noBreak"
+    global move_thread_flag_66=0
+    thread move_thread_66():
+      enter_critical
+      move_thread_flag_66 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,1.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_66 = 2
+      exit_critical
+    end
+    move_thread_flag_66 = 0
+    move_thread_han_66 = run move_thread_66()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_66 > 1):
+        join move_thread_han_66
+        $ 67 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 68 "Direction: Base Y+" "noBreak"
+    global move_thread_flag_68=0
+    thread move_thread_68():
+      enter_critical
+      move_thread_flag_68 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,1.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_68 = 2
+      exit_critical
+    end
+    move_thread_flag_68 = 0
+    move_thread_han_68 = run move_thread_68()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_68 > 1):
+        join move_thread_han_68
+        $ 69 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 70 "Direction: Base X-" "noBreak"
+    global move_thread_flag_70=0
+    thread move_thread_70():
+      enter_critical
+      move_thread_flag_70 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [-1.0,0.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_70 = 2
+      exit_critical
+    end
+    move_thread_flag_70 = 0
+    move_thread_han_70 = run move_thread_70()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_70 > 1):
+        join move_thread_han_70
+        $ 71 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 72 "Direction: Base Y-" "noBreak"
+    global move_thread_flag_72=0
+    thread move_thread_72():
+      enter_critical
+      move_thread_flag_72 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,-1.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_72 = 2
+      exit_critical
+    end
+    move_thread_flag_72 = 0
+    move_thread_han_72 = run move_thread_72()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_72 > 1):
+        join move_thread_han_72
+        $ 73 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 74 "Direction: Base Y-" "noBreak"
+    global move_thread_flag_74=0
+    thread move_thread_74():
+      enter_critical
+      move_thread_flag_74 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,-1.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_74 = 2
+      exit_critical
+    end
+    move_thread_flag_74 = 0
+    move_thread_han_74 = run move_thread_74()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_74 > 1):
+        join move_thread_han_74
+        $ 75 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 76 "Direction: Base X-" "noBreak"
+    global move_thread_flag_76=0
+    thread move_thread_76():
+      enter_critical
+      move_thread_flag_76 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [-1.0,0.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_76 = 2
+      exit_critical
+    end
+    move_thread_flag_76 = 0
+    move_thread_han_76 = run move_thread_76()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_76 > 1):
+        join move_thread_han_76
+        $ 77 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 78 "Direction: Base Y+" "noBreak"
+    global move_thread_flag_78=0
+    thread move_thread_78():
+      enter_critical
+      move_thread_flag_78 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,1.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_78 = 2
+      exit_critical
+    end
+    move_thread_flag_78 = 0
+    move_thread_han_78 = run move_thread_78()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_78 > 1):
+        join move_thread_han_78
+        $ 79 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    Loop_6 = Loop_6 + 1
+  end
+  end_force_mode()
+  stopl(5.0)
+  $ 81 "p_now≔get_actual_tcp_pose()"
+  global p_now= get_actual_tcp_pose ()
+  $ 82 "d≔pose_dist(p_start,p_now)"
+  global d= pose_dist (p_start,p_now)
+  $ 83 "Popup"
+  popup(str_cat("",d), "Message", False, False, blocking=True)
+  $ 84 "If d < 0.01"
+  if (d < 0.01):
+    $ 85 "Popup: fail?"
+    popup("fail?", "Message", False, False, blocking=True)
+  end
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 86 "Gripper Move42% (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(107, 255, 255, "1")
+  rq_wait_pos_spe_for_request(107, 255, 255, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 87 "recenter pin"
+  $ 88 "MoveL"
+  $ 89 "at_pin_tip_g" "breakAfter"
+  movel(at_pin_tip_g_p, a=1.2, v=0.25)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 90 "Gripper Close (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(255, 255, 255, "1")
+  rq_wait_pos_spe_for_request(255, 255, 255, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 91 "Gripper Move42% (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(107, 255, 255, "1")
+  rq_wait_pos_spe_for_request(107, 255, 255, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 92 "MoveJ"
+  $ 93 "high_abv_stack" "breakAfter"
+  movej(get_inverse_kin(high_abv_stack_p, qnear=high_abv_stack_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 94 "get spacer"
+  $ 95 "MoveL"
+  $ 96 "above_storage" "breakAfter"
+  movel(above_storage_p, a=1.2, v=0.5, r=0.05)
+  $ 97 "at_spacer_pick" "breakAfter"
+  movel(at_spacer_pick_p, a=1.2, v=0.5)
+  $ 98 "center+grasp"
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 99 "Gripper Close (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(255, 0, 0, "1")
+  rq_wait_pos_spe_for_request(255, 0, 0, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 100 "Gripper Move62% (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(158, 0, 255, "1")
+  rq_wait_pos_spe_for_request(158, 0, 255, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 101 "MoveL"
+  $ 102 "turn_left" "breakAfter"
+  movel(pose_add(get_target_tcp_pose(), pose_sub(turn_left_to_p, turn_left_from_p)), a=1.2, v=0.8)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 103 "Gripper Close (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(255, 0, 0, "1")
+  rq_wait_pos_spe_for_request(255, 0, 0, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 104 "Gripper Move58% (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(147, 0, 0, "1")
+  rq_wait_pos_spe_for_request(147, 0, 0, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 105 "MoveL"
+  $ 106 "turn_right" "breakAfter"
+  movel(pose_add(get_target_tcp_pose(), pose_sub(turn_right_to_p, turn_right_from_p)), a=1.2, v=0.8)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 107 "Gripper Close (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(255, 0, 0, "1")
+  rq_wait_pos_spe_for_request(255, 0, 0, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 108 "MoveL"
+  $ 109 "above_storage" "breakAfter"
+  movel(above_storage_p, a=1.2, v=0.5)
+  $ 110 "stack spacer"
+  $ 111 "MoveJ"
+  $ 112 "high_abv_stack" "breakAfter"
+  movej(get_inverse_kin(high_abv_stack_p, qnear=high_abv_stack_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 113 "MoveL"
+  $ 114 "at_tip_1" "breakAfter"
+  movel(at_tip_1_p, a=1.2, v=0.25)
+  $ 115 "push_down"
+  $ 116 "p_start≔get_actual_tcp_pose()"
+  global p_start= get_actual_tcp_pose ()
+  $ 117 "Force"
+  sleep(0.02)
+  zero_ftsensor()
+  force_mode(p[0.0,0.0,0.0,0.0,0.0,0.0], [0, 0, 1, 0, 0, 0], [-5.0, 0.0, -5.0, 0.0, 0.0, 0.0], 2, [0.1, 0.1, 0.01, 0.3490658503988659, 0.3490658503988659, 0.3490658503988659])
+  $ 118 "MoveL" "noBreak"
+  $ 119 "Loop 1 times" "noBreak"
+  Loop_3 = 0
+  while (Loop_3 < 1):
+    $ 120 "Direction: Base Y+" "noBreak"
+    global move_thread_flag_120=0
+    thread move_thread_120():
+      enter_critical
+      move_thread_flag_120 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,1.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_120 = 2
+      exit_critical
+    end
+    move_thread_flag_120 = 0
+    move_thread_han_120 = run move_thread_120()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_120 > 1):
+        join move_thread_han_120
+        $ 121 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 122 "Direction: Base X+" "noBreak"
+    global move_thread_flag_122=0
+    thread move_thread_122():
+      enter_critical
+      move_thread_flag_122 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [1.0,0.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_122 = 2
+      exit_critical
+    end
+    move_thread_flag_122 = 0
+    move_thread_han_122 = run move_thread_122()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_122 > 1):
+        join move_thread_han_122
+        $ 123 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 124 "Direction: Base Y-" "noBreak"
+    global move_thread_flag_124=0
+    thread move_thread_124():
+      enter_critical
+      move_thread_flag_124 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,-1.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_124 = 2
+      exit_critical
+    end
+    move_thread_flag_124 = 0
+    move_thread_han_124 = run move_thread_124()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_124 > 1):
+        join move_thread_han_124
+        $ 125 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 126 "Direction: Base Y-" "noBreak"
+    global move_thread_flag_126=0
+    thread move_thread_126():
+      enter_critical
+      move_thread_flag_126 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,-1.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_126 = 2
+      exit_critical
+    end
+    move_thread_flag_126 = 0
+    move_thread_han_126 = run move_thread_126()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_126 > 1):
+        join move_thread_han_126
+        $ 127 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 128 "Direction: Base X-" "noBreak"
+    global move_thread_flag_128=0
+    thread move_thread_128():
+      enter_critical
+      move_thread_flag_128 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [-1.0,0.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_128 = 2
+      exit_critical
+    end
+    move_thread_flag_128 = 0
+    move_thread_han_128 = run move_thread_128()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_128 > 1):
+        join move_thread_han_128
+        $ 129 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 130 "Direction: Base Y+" "noBreak"
+    global move_thread_flag_130=0
+    thread move_thread_130():
+      enter_critical
+      move_thread_flag_130 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,1.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_130 = 2
+      exit_critical
+    end
+    move_thread_flag_130 = 0
+    move_thread_han_130 = run move_thread_130()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_130 > 1):
+        join move_thread_han_130
+        $ 131 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 132 "Direction: Base Y+" "noBreak"
+    global move_thread_flag_132=0
+    thread move_thread_132():
+      enter_critical
+      move_thread_flag_132 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,1.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_132 = 2
+      exit_critical
+    end
+    move_thread_flag_132 = 0
+    move_thread_han_132 = run move_thread_132()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_132 > 1):
+        join move_thread_han_132
+        $ 133 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 134 "Direction: Base X-" "noBreak"
+    global move_thread_flag_134=0
+    thread move_thread_134():
+      enter_critical
+      move_thread_flag_134 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [-1.0,0.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_134 = 2
+      exit_critical
+    end
+    move_thread_flag_134 = 0
+    move_thread_han_134 = run move_thread_134()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_134 > 1):
+        join move_thread_han_134
+        $ 135 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 136 "Direction: Base Y-" "noBreak"
+    global move_thread_flag_136=0
+    thread move_thread_136():
+      enter_critical
+      move_thread_flag_136 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,-1.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_136 = 2
+      exit_critical
+    end
+    move_thread_flag_136 = 0
+    move_thread_han_136 = run move_thread_136()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_136 > 1):
+        join move_thread_han_136
+        $ 137 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 138 "Direction: Base Y-" "noBreak"
+    global move_thread_flag_138=0
+    thread move_thread_138():
+      enter_critical
+      move_thread_flag_138 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,-1.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_138 = 2
+      exit_critical
+    end
+    move_thread_flag_138 = 0
+    move_thread_han_138 = run move_thread_138()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_138 > 1):
+        join move_thread_han_138
+        $ 139 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 140 "Direction: Base X-" "noBreak"
+    global move_thread_flag_140=0
+    thread move_thread_140():
+      enter_critical
+      move_thread_flag_140 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [-1.0,0.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_140 = 2
+      exit_critical
+    end
+    move_thread_flag_140 = 0
+    move_thread_han_140 = run move_thread_140()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_140 > 1):
+        join move_thread_han_140
+        $ 141 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 142 "Direction: Base Y+" "noBreak"
+    global move_thread_flag_142=0
+    thread move_thread_142():
+      enter_critical
+      move_thread_flag_142 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,1.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_142 = 2
+      exit_critical
+    end
+    move_thread_flag_142 = 0
+    move_thread_han_142 = run move_thread_142()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_142 > 1):
+        join move_thread_han_142
+        $ 143 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    Loop_3 = Loop_3 + 1
+  end
+  end_force_mode()
+  stopl(5.0)
+  $ 145 "p_now≔get_actual_tcp_pose()"
+  global p_now= get_actual_tcp_pose ()
+  $ 146 "d≔pose_dist(p_start,p_now)"
+  global d= pose_dist (p_start,p_now)
+  $ 147 "Popup"
+  popup(str_cat("",d), "Message", False, False, blocking=True)
+  $ 148 "If d < 0.01"
+  if (d < 0.01):
+    $ 149 "Popup: fail?"
+    popup("fail?", "Message", False, False, blocking=True)
+  end
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 150 "Gripper Move42% (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(107, 255, 255, "1")
+  rq_wait_pos_spe_for_request(107, 255, 255, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 151 "recenter pin"
+  $ 152 "MoveL"
+  $ 153 "at_pin_tip_g" "breakAfter"
+  movel(at_pin_tip_g_p, a=1.2, v=0.25)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 154 "Gripper Close (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(255, 255, 255, "1")
+  rq_wait_pos_spe_for_request(255, 255, 255, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 155 "Gripper Move42% (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(107, 255, 255, "1")
+  rq_wait_pos_spe_for_request(107, 255, 255, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 156 "MoveJ"
+  $ 157 "high_abv_stack" "breakAfter"
+  movej(get_inverse_kin(high_abv_stack_p, qnear=high_abv_stack_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 158 "get washer"
+  $ 159 "MoveL"
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 160 "Gripper Move75% (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(190, 0, 255, "1")
+  rq_wait_pos_spe_for_request(190, 0, 255, "1")
+  rq_go_to("1")
+  # end: URCap Program Node
+  $ 161 "Waypoint_3" "breakAfter"
+  movel(Waypoint_3_p, a=1.2, v=0.3, r=0.05)
+  $ 162 "Waypoint_4" "breakAfter"
+  movel(Waypoint_4_p, a=1.2, v=0.3, r=0.03)
+  $ 163 "Washer_pick" "breakAfter"
+  movel(Washer_pick_p, a=1.2, v=0.3)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 164 "Gripper Close (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(255, 255, 255, "1")
+  rq_wait_pos_spe_for_request(255, 255, 255, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 165 "Waypoint_4" "breakAfter"
+  movel(Waypoint_4_p, a=1.2, v=0.3, r=0.03)
+  $ 166 "Waypoint_3" "breakAfter"
+  movel(Waypoint_3_p, a=1.2, v=0.3, r=0.05)
+  $ 167 "stack washer"
+  $ 168 "MoveJ"
+  $ 169 "high_abv_stack" "breakAfter"
+  movej(get_inverse_kin(high_abv_stack_p, qnear=high_abv_stack_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 170 "MoveL"
+  $ 171 "at_tip_1" "breakAfter"
+  movel(at_tip_1_p, a=1.2, v=0.25)
+  $ 172 "push_down"
+  $ 173 "p_start≔get_actual_tcp_pose()"
+  global p_start= get_actual_tcp_pose ()
+  $ 174 "Force"
+  sleep(0.02)
+  zero_ftsensor()
+  force_mode(p[0.0,0.0,0.0,0.0,0.0,0.0], [0, 0, 1, 0, 0, 0], [-5.0, 0.0, -5.0, 0.0, 0.0, 0.0], 2, [0.1, 0.1, 0.01, 0.3490658503988659, 0.3490658503988659, 0.3490658503988659])
+  $ 175 "MoveL" "noBreak"
+  $ 176 "Loop 1 times" "noBreak"
+  Loop_8 = 0
+  while (Loop_8 < 1):
+    $ 177 "Direction: Base Y+" "noBreak"
+    global move_thread_flag_177=0
+    thread move_thread_177():
+      enter_critical
+      move_thread_flag_177 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,1.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_177 = 2
+      exit_critical
+    end
+    move_thread_flag_177 = 0
+    move_thread_han_177 = run move_thread_177()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_177 > 1):
+        join move_thread_han_177
+        $ 178 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 179 "Direction: Base X+" "noBreak"
+    global move_thread_flag_179=0
+    thread move_thread_179():
+      enter_critical
+      move_thread_flag_179 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [1.0,0.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_179 = 2
+      exit_critical
+    end
+    move_thread_flag_179 = 0
+    move_thread_han_179 = run move_thread_179()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_179 > 1):
+        join move_thread_han_179
+        $ 180 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 181 "Direction: Base Y-" "noBreak"
+    global move_thread_flag_181=0
+    thread move_thread_181():
+      enter_critical
+      move_thread_flag_181 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,-1.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_181 = 2
+      exit_critical
+    end
+    move_thread_flag_181 = 0
+    move_thread_han_181 = run move_thread_181()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_181 > 1):
+        join move_thread_han_181
+        $ 182 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 183 "Direction: Base Y-" "noBreak"
+    global move_thread_flag_183=0
+    thread move_thread_183():
+      enter_critical
+      move_thread_flag_183 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,-1.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_183 = 2
+      exit_critical
+    end
+    move_thread_flag_183 = 0
+    move_thread_han_183 = run move_thread_183()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_183 > 1):
+        join move_thread_han_183
+        $ 184 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 185 "Direction: Base X-" "noBreak"
+    global move_thread_flag_185=0
+    thread move_thread_185():
+      enter_critical
+      move_thread_flag_185 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [-1.0,0.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_185 = 2
+      exit_critical
+    end
+    move_thread_flag_185 = 0
+    move_thread_han_185 = run move_thread_185()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_185 > 1):
+        join move_thread_han_185
+        $ 186 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 187 "Direction: Base Y+" "noBreak"
+    global move_thread_flag_187=0
+    thread move_thread_187():
+      enter_critical
+      move_thread_flag_187 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,1.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_187 = 2
+      exit_critical
+    end
+    move_thread_flag_187 = 0
+    move_thread_han_187 = run move_thread_187()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_187 > 1):
+        join move_thread_han_187
+        $ 188 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 189 "Direction: Base Y+" "noBreak"
+    global move_thread_flag_189=0
+    thread move_thread_189():
+      enter_critical
+      move_thread_flag_189 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,1.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_189 = 2
+      exit_critical
+    end
+    move_thread_flag_189 = 0
+    move_thread_han_189 = run move_thread_189()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_189 > 1):
+        join move_thread_han_189
+        $ 190 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 191 "Direction: Base X-" "noBreak"
+    global move_thread_flag_191=0
+    thread move_thread_191():
+      enter_critical
+      move_thread_flag_191 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [-1.0,0.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_191 = 2
+      exit_critical
+    end
+    move_thread_flag_191 = 0
+    move_thread_han_191 = run move_thread_191()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_191 > 1):
+        join move_thread_han_191
+        $ 192 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 193 "Direction: Base Y-" "noBreak"
+    global move_thread_flag_193=0
+    thread move_thread_193():
+      enter_critical
+      move_thread_flag_193 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,-1.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_193 = 2
+      exit_critical
+    end
+    move_thread_flag_193 = 0
+    move_thread_han_193 = run move_thread_193()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_193 > 1):
+        join move_thread_han_193
+        $ 194 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 195 "Direction: Base Y-" "noBreak"
+    global move_thread_flag_195=0
+    thread move_thread_195():
+      enter_critical
+      move_thread_flag_195 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,-1.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_195 = 2
+      exit_critical
+    end
+    move_thread_flag_195 = 0
+    move_thread_han_195 = run move_thread_195()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_195 > 1):
+        join move_thread_han_195
+        $ 196 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 197 "Direction: Base X-" "noBreak"
+    global move_thread_flag_197=0
+    thread move_thread_197():
+      enter_critical
+      move_thread_flag_197 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [-1.0,0.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_197 = 2
+      exit_critical
+    end
+    move_thread_flag_197 = 0
+    move_thread_han_197 = run move_thread_197()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_197 > 1):
+        join move_thread_han_197
+        $ 198 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 199 "Direction: Base Y+" "noBreak"
+    global move_thread_flag_199=0
+    thread move_thread_199():
+      enter_critical
+      move_thread_flag_199 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,1.0,0.0], 0.001)
+      movel(towardsPos, a=0.005, v=0.005)
+      move_thread_flag_199 = 2
+      exit_critical
+    end
+    move_thread_flag_199 = 0
+    move_thread_han_199 = run move_thread_199()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_199 > 1):
+        join move_thread_han_199
+        $ 200 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    Loop_8 = Loop_8 + 1
+  end
+  end_force_mode()
+  stopl(5.0)
+  $ 202 "d≔pose_dist(p_start,get_actual_tcp_pose())"
+  global d= pose_dist (p_start, get_actual_tcp_pose ())
+  $ 203 "Popup"
+  popup(str_cat("",d), "Message", False, False, blocking=True)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 204 "Gripper Move42% (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(107, 255, 255, "1")
+  rq_wait_pos_spe_for_request(107, 255, 255, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 205 "recenter pin"
+  $ 206 "MoveL"
+  $ 207 "at_pin_tip_g" "breakAfter"
+  movel(at_pin_tip_g_p, a=1.2, v=0.25)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 208 "Gripper Close (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(255, 255, 255, "1")
+  rq_wait_pos_spe_for_request(255, 255, 255, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 209 "Gripper Move42% (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(107, 255, 255, "1")
+  rq_wait_pos_spe_for_request(107, 255, 255, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 210 "MoveJ"
+  $ 211 "high_abv_stack" "breakAfter"
+  movej(get_inverse_kin(high_abv_stack_p, qnear=high_abv_stack_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 212 "MoveJ"
+  $ 213 "standby" "breakAfter"
+  movej(get_inverse_kin(standby_p, qnear=standby_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 214 "Popup: wait until bbot inclined stack. continue to grasp pulley"
+  popup("wait until bbot inclined stack. continue to grasp pulley", "Message", False, False, blocking=True)
+  $ 215 "MoveJ"
+  $ 216 "Waypoint_5" "breakAfter"
+  movej(get_inverse_kin(Waypoint_5_p, qnear=Waypoint_5_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 217 "pick_from_bbot" "breakAfter"
+  movej(get_inverse_kin(pick_from_bbot_p, qnear=pick_from_bbot_q), a=1.3962634015954636, v=1.0471975511965976)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 218 "Gripper Close (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(255, 0, 255, "1")
+  rq_wait_pos_spe_for_request(255, 0, 255, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 219 "Popup: wait for bbot retreat. continue to insert into ridge"
+  popup("wait for bbot retreat. continue to insert into ridge", "Message", False, False, blocking=True)
+  $ 220 "MoveL"
+  $ 221 "hold_at_ridge" "breakAfter"
+  movel(hold_at_ridge_p, a=0.05, v=0.01)
+  $ 222 "Popup: wait for padless tool to tension. c to open slightly and wait"
+  popup("wait for padless tool to tension. c to open slightly and wait", "Message", False, False, blocking=True)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 223 "Gripper Move65% (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(165, 0, 0, "1")
+  rq_wait_pos_spe_for_request(165, 0, 0, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 224 "Popup: wait for tool to incline. c to move away and get washer"
+  popup("wait for tool to incline. c to move away and get washer", "Message", False, False, blocking=True)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 225 "Gripper Move54% (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(138, 0, 0, "1")
+  rq_wait_pos_spe_for_request(138, 0, 0, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 226 "move away, get washer2"
+  $ 227 "MoveL"
+  $ 228 "Direction: Tool Z-"
+  global move_thread_flag_228=0
+  thread move_thread_228():
+    enter_critical
+    move_thread_flag_228 = 1
+    local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [0.0,0.0,-1.0], 0.15)
+    movel(towardsPos, a=1.2, v=0.25, r=0.05)
+    move_thread_flag_228 = 2
+    exit_critical
+  end
+  move_thread_flag_228 = 0
+  move_thread_han_228 = run move_thread_228()
+  while (True):
+    sleep(1.0E-10)
+    if (move_thread_flag_228 > 1):
+      join move_thread_han_228
+      $ 229 "Until (distance)"
+      break
+    end
+    sync()
+  end
+  $ 230 "MoveL"
+  $ 231 "above_holdr2" "breakAfter"
+  movel(above_holdr2_p, a=1.2, v=0.25, r=0.018)
+  $ 232 "washer_pick" "breakAfter"
+  movel(washer_pick_p, a=1.2, v=0.25)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 233 "Gripper Close (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(255, 0, 255, "1")
+  rq_wait_pos_spe_for_request(255, 0, 255, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 234 "Direction: Tool Y+"
+  global move_thread_flag_234=0
+  thread move_thread_234():
+    enter_critical
+    move_thread_flag_234 = 1
+    local towardsPos=calculate_point_to_move_towards(get_forward_kin(), [0.0,1.0,0.0], 0.05)
+    movel(towardsPos, a=1.2, v=0.25, r=0.02)
+    move_thread_flag_234 = 2
+    exit_critical
+  end
+  move_thread_flag_234 = 0
+  move_thread_han_234 = run move_thread_234()
+  while (True):
+    sleep(1.0E-10)
+    if (move_thread_flag_234 > 1):
+      join move_thread_han_234
+      $ 235 "Until (distance)"
+      break
+    end
+    sync()
+  end
+  $ 236 "above_holdr2" "breakAfter"
+  movel(above_holdr2_p, a=1.2, v=0.25, r=0.05)
+  $ 237 "Waypoint_12" "breakAfter"
+  movel(Waypoint_12_p, a=1.2, v=0.25, r=0.05)
+  $ 238 "close_xx" "breakAfter"
+  movel(close_xx_p, a=1.2, v=0.25, r=0.02)
+  $ 239 "Waypoint_8" "breakAfter"
+  movel(Waypoint_8_p, a=1.2, v=0.05)
+  $ 240 "Force"
+  sleep(0.02)
+  zero_ftsensor()
+  force_mode(p[0.0,0.0,0.0,0.0,0.0,0.0], [1, 0, 0, 0, 0, 0], [-5.0, 0.0, -5.0, 0.0, 0.0, 0.0], 2, [0.005, 0.1, 0.1, 0.3490658503988659, 0.3490658503988659, 0.3490658503988659])
+  $ 241 "MoveL" "noBreak"
+  $ 242 "Loop 1 times" "noBreak"
+  Loop_2 = 0
+  while (Loop_2 < 1):
+    $ 243 "Direction: Base Y+" "noBreak"
+    global move_thread_flag_243=0
+    thread move_thread_243():
+      enter_critical
+      move_thread_flag_243 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,1.0,0.0], 0.001)
+      movel(towardsPos, a=0.01, v=0.005)
+      move_thread_flag_243 = 2
+      exit_critical
+    end
+    move_thread_flag_243 = 0
+    move_thread_han_243 = run move_thread_243()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_243 > 1):
+        join move_thread_han_243
+        $ 244 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 245 "Direction: Base Z+" "noBreak"
+    global move_thread_flag_245=0
+    thread move_thread_245():
+      enter_critical
+      move_thread_flag_245 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,0.0,1.0], 0.001)
+      movel(towardsPos, a=0.01, v=0.005)
+      move_thread_flag_245 = 2
+      exit_critical
+    end
+    move_thread_flag_245 = 0
+    move_thread_han_245 = run move_thread_245()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_245 > 1):
+        join move_thread_han_245
+        $ 246 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 247 "Direction: Base Y-" "noBreak"
+    global move_thread_flag_247=0
+    thread move_thread_247():
+      enter_critical
+      move_thread_flag_247 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,-1.0,0.0], 0.001)
+      movel(towardsPos, a=0.01, v=0.005)
+      move_thread_flag_247 = 2
+      exit_critical
+    end
+    move_thread_flag_247 = 0
+    move_thread_han_247 = run move_thread_247()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_247 > 1):
+        join move_thread_han_247
+        $ 248 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 249 "Direction: Base Y-" "noBreak"
+    global move_thread_flag_249=0
+    thread move_thread_249():
+      enter_critical
+      move_thread_flag_249 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,-1.0,0.0], 0.001)
+      movel(towardsPos, a=0.01, v=0.005)
+      move_thread_flag_249 = 2
+      exit_critical
+    end
+    move_thread_flag_249 = 0
+    move_thread_han_249 = run move_thread_249()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_249 > 1):
+        join move_thread_han_249
+        $ 250 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 251 "Direction: Base Z-" "noBreak"
+    global move_thread_flag_251=0
+    thread move_thread_251():
+      enter_critical
+      move_thread_flag_251 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,0.0,-1.0], 0.001)
+      movel(towardsPos, a=0.01, v=0.005)
+      move_thread_flag_251 = 2
+      exit_critical
+    end
+    move_thread_flag_251 = 0
+    move_thread_han_251 = run move_thread_251()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_251 > 1):
+        join move_thread_han_251
+        $ 252 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 253 "Direction: Base Y+" "noBreak"
+    global move_thread_flag_253=0
+    thread move_thread_253():
+      enter_critical
+      move_thread_flag_253 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,1.0,0.0], 0.001)
+      movel(towardsPos, a=0.01, v=0.005)
+      move_thread_flag_253 = 2
+      exit_critical
+    end
+    move_thread_flag_253 = 0
+    move_thread_han_253 = run move_thread_253()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_253 > 1):
+        join move_thread_han_253
+        $ 254 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 255 "Direction: Base Y+" "noBreak"
+    global move_thread_flag_255=0
+    thread move_thread_255():
+      enter_critical
+      move_thread_flag_255 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,1.0,0.0], 0.001)
+      movel(towardsPos, a=0.01, v=0.005)
+      move_thread_flag_255 = 2
+      exit_critical
+    end
+    move_thread_flag_255 = 0
+    move_thread_han_255 = run move_thread_255()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_255 > 1):
+        join move_thread_han_255
+        $ 256 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 257 "Direction: Base Z-" "noBreak"
+    global move_thread_flag_257=0
+    thread move_thread_257():
+      enter_critical
+      move_thread_flag_257 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,0.0,-1.0], 0.001)
+      movel(towardsPos, a=0.01, v=0.005)
+      move_thread_flag_257 = 2
+      exit_critical
+    end
+    move_thread_flag_257 = 0
+    move_thread_han_257 = run move_thread_257()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_257 > 1):
+        join move_thread_han_257
+        $ 258 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 259 "Direction: Base Y-" "noBreak"
+    global move_thread_flag_259=0
+    thread move_thread_259():
+      enter_critical
+      move_thread_flag_259 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,-1.0,0.0], 0.001)
+      movel(towardsPos, a=0.01, v=0.005)
+      move_thread_flag_259 = 2
+      exit_critical
+    end
+    move_thread_flag_259 = 0
+    move_thread_han_259 = run move_thread_259()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_259 > 1):
+        join move_thread_han_259
+        $ 260 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 261 "Direction: Base Y-" "noBreak"
+    global move_thread_flag_261=0
+    thread move_thread_261():
+      enter_critical
+      move_thread_flag_261 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,-1.0,0.0], 0.001)
+      movel(towardsPos, a=0.01, v=0.005)
+      move_thread_flag_261 = 2
+      exit_critical
+    end
+    move_thread_flag_261 = 0
+    move_thread_han_261 = run move_thread_261()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_261 > 1):
+        join move_thread_han_261
+        $ 262 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 263 "Direction: Base Z-" "noBreak"
+    global move_thread_flag_263=0
+    thread move_thread_263():
+      enter_critical
+      move_thread_flag_263 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,0.0,-1.0], 0.001)
+      movel(towardsPos, a=0.01, v=0.005)
+      move_thread_flag_263 = 2
+      exit_critical
+    end
+    move_thread_flag_263 = 0
+    move_thread_han_263 = run move_thread_263()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_263 > 1):
+        join move_thread_han_263
+        $ 264 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 265 "Direction: Base Y+" "noBreak"
+    global move_thread_flag_265=0
+    thread move_thread_265():
+      enter_critical
+      move_thread_flag_265 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,1.0,0.0], 0.001)
+      movel(towardsPos, a=0.01, v=0.005)
+      move_thread_flag_265 = 2
+      exit_critical
+    end
+    move_thread_flag_265 = 0
+    move_thread_han_265 = run move_thread_265()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_265 > 1):
+        join move_thread_han_265
+        $ 266 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    Loop_2 = Loop_2 + 1
+  end
+  end_force_mode()
+  stopl(5.0)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 268 "Gripper Move60% (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(154, 0, 255, "1")
+  rq_wait_pos_spe_for_request(154, 0, 255, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 269 "Direction: Base X+"
+  global move_thread_flag_269=0
+  thread move_thread_269():
+    enter_critical
+    move_thread_flag_269 = 1
+    local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [1.0,0.0,0.0], 0.05)
+    movel(towardsPos, a=1.2, v=0.25)
+    move_thread_flag_269 = 2
+    exit_critical
+  end
+  move_thread_flag_269 = 0
+  move_thread_han_269 = run move_thread_269()
+  while (True):
+    sleep(1.0E-10)
+    if (move_thread_flag_269 > 1):
+      join move_thread_han_269
+      $ 270 "Until (distance)"
+      break
+    end
+    sync()
+  end
+  $ 271 "MoveJ"
+  $ 272 "above_nut_tool" "breakAfter"
+  movej(get_inverse_kin(above_nut_tool_p, qnear=above_nut_tool_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 273 "Popup: call nut routine"
+  popup("call nut routine", "Message", False, False, blocking=True)
+  $ 274 "nut routine"
+  $ 275 "MoveL"
+  $ 276 "far_above_aid" "breakAfter"
+  movel(far_above_aid_p, a=1.2, v=0.25)
+  $ 277 "MoveL"
+  $ 278 "above_nut_aid" "breakAfter"
+  movel(above_nut_aid_p, a=1.2, v=0.25)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 279 "Gripper Move22% (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(56, 255, 255, "1")
+  rq_wait_pos_spe_for_request(56, 255, 255, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 280 "at_nut_aid" "breakAfter"
+  movel(at_nut_aid_p, a=1.2, v=0.25)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 281 "Gripper Close (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(255, 255, 255, "1")
+  rq_wait_pos_spe_for_request(255, 255, 255, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 282 "slightly_above" "breakAfter"
+  movel(slightly_above_p, a=1.2, v=0.25)
+  $ 283 "MoveJ"
+  $ 284 "Waypoint_1" "breakAfter"
+  movej(get_inverse_kin(Waypoint_1_p, qnear=Waypoint_1_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 285 "Waypoint_2" "breakAfter"
+  movej(get_inverse_kin(Waypoint_2_p, qnear=Waypoint_2_q), a=1.3962634015954636, v=1.0471975511965976, r=0.036)
+  $ 286 "before_shaft" "breakAfter"
+  movej(get_inverse_kin(before_shaft_p, qnear=before_shaft_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 287 "MoveL"
+  $ 288 "at_shaft" "breakAfter"
+  movel(pose_add(get_target_tcp_pose(), pose_sub(at_shaft_to_p, at_shaft_from_p)), a=0.1, v=0.005)
+  $ 289 "Popup: turn on motor, then press enter to start spiral motion"
+  popup("turn on motor, then press enter to start spiral motion", "Message", False, False, blocking=True)
+  $ 290 "Force"
+  sleep(0.02)
+  zero_ftsensor()
+  force_mode(p[0.0,0.0,0.0,0.0,0.0,0.0], [1, 0, 0, 0, 0, 0], [-5.0, 0.0, 10.0, 0.0, 0.0, 0.0], 2, [0.005, 0.1, 0.1, 0.3490658503988659, 0.3490658503988659, 0.3490658503988659])
+  $ 291 "Loop 5 times" "noBreak"
+  Loop_1 = 0
+  while (Loop_1 < 5):
+    $ 292 "Direction: Base Y+" "noBreak"
+    global move_thread_flag_292=0
+    thread move_thread_292():
+      enter_critical
+      move_thread_flag_292 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,1.0,0.0], 0.002)
+      movel(towardsPos, a=0.1, v=0.005)
+      move_thread_flag_292 = 2
+      exit_critical
+    end
+    move_thread_flag_292 = 0
+    move_thread_han_292 = run move_thread_292()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_292 > 1):
+        join move_thread_han_292
+        $ 293 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 294 "Direction: Base Z+" "noBreak"
+    global move_thread_flag_294=0
+    thread move_thread_294():
+      enter_critical
+      move_thread_flag_294 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,0.0,1.0], 0.002)
+      movel(towardsPos, a=0.1, v=0.005)
+      move_thread_flag_294 = 2
+      exit_critical
+    end
+    move_thread_flag_294 = 0
+    move_thread_han_294 = run move_thread_294()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_294 > 1):
+        join move_thread_han_294
+        $ 295 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 296 "Direction: Base Y-" "noBreak"
+    global move_thread_flag_296=0
+    thread move_thread_296():
+      enter_critical
+      move_thread_flag_296 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,-1.0,0.0], 0.002)
+      movel(towardsPos, a=0.1, v=0.005)
+      move_thread_flag_296 = 2
+      exit_critical
+    end
+    move_thread_flag_296 = 0
+    move_thread_han_296 = run move_thread_296()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_296 > 1):
+        join move_thread_han_296
+        $ 297 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 298 "Direction: Base Y-" "noBreak"
+    global move_thread_flag_298=0
+    thread move_thread_298():
+      enter_critical
+      move_thread_flag_298 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,-1.0,0.0], 0.002)
+      movel(towardsPos, a=0.1, v=0.005)
+      move_thread_flag_298 = 2
+      exit_critical
+    end
+    move_thread_flag_298 = 0
+    move_thread_han_298 = run move_thread_298()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_298 > 1):
+        join move_thread_han_298
+        $ 299 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 300 "Direction: Base Z-" "noBreak"
+    global move_thread_flag_300=0
+    thread move_thread_300():
+      enter_critical
+      move_thread_flag_300 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,0.0,-1.0], 0.002)
+      movel(towardsPos, a=0.1, v=0.005)
+      move_thread_flag_300 = 2
+      exit_critical
+    end
+    move_thread_flag_300 = 0
+    move_thread_han_300 = run move_thread_300()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_300 > 1):
+        join move_thread_han_300
+        $ 301 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 302 "Direction: Base Y+" "noBreak"
+    global move_thread_flag_302=0
+    thread move_thread_302():
+      enter_critical
+      move_thread_flag_302 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,1.0,0.0], 0.002)
+      movel(towardsPos, a=0.1, v=0.005)
+      move_thread_flag_302 = 2
+      exit_critical
+    end
+    move_thread_flag_302 = 0
+    move_thread_han_302 = run move_thread_302()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_302 > 1):
+        join move_thread_han_302
+        $ 303 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 304 "Direction: Base Y+" "noBreak"
+    global move_thread_flag_304=0
+    thread move_thread_304():
+      enter_critical
+      move_thread_flag_304 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,1.0,0.0], 0.002)
+      movel(towardsPos, a=0.1, v=0.005)
+      move_thread_flag_304 = 2
+      exit_critical
+    end
+    move_thread_flag_304 = 0
+    move_thread_han_304 = run move_thread_304()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_304 > 1):
+        join move_thread_han_304
+        $ 305 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 306 "Direction: Base Z-" "noBreak"
+    global move_thread_flag_306=0
+    thread move_thread_306():
+      enter_critical
+      move_thread_flag_306 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,0.0,-1.0], 0.002)
+      movel(towardsPos, a=0.1, v=0.005)
+      move_thread_flag_306 = 2
+      exit_critical
+    end
+    move_thread_flag_306 = 0
+    move_thread_han_306 = run move_thread_306()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_306 > 1):
+        join move_thread_han_306
+        $ 307 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 308 "Direction: Base Y-" "noBreak"
+    global move_thread_flag_308=0
+    thread move_thread_308():
+      enter_critical
+      move_thread_flag_308 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,-1.0,0.0], 0.002)
+      movel(towardsPos, a=0.1, v=0.005)
+      move_thread_flag_308 = 2
+      exit_critical
+    end
+    move_thread_flag_308 = 0
+    move_thread_han_308 = run move_thread_308()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_308 > 1):
+        join move_thread_han_308
+        $ 309 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 310 "Direction: Base Y-" "noBreak"
+    global move_thread_flag_310=0
+    thread move_thread_310():
+      enter_critical
+      move_thread_flag_310 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,-1.0,0.0], 0.002)
+      movel(towardsPos, a=0.1, v=0.005)
+      move_thread_flag_310 = 2
+      exit_critical
+    end
+    move_thread_flag_310 = 0
+    move_thread_han_310 = run move_thread_310()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_310 > 1):
+        join move_thread_han_310
+        $ 311 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 312 "Direction: Base Z+" "noBreak"
+    global move_thread_flag_312=0
+    thread move_thread_312():
+      enter_critical
+      move_thread_flag_312 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,0.0,1.0], 0.002)
+      movel(towardsPos, a=0.1, v=0.005)
+      move_thread_flag_312 = 2
+      exit_critical
+    end
+    move_thread_flag_312 = 0
+    move_thread_han_312 = run move_thread_312()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_312 > 1):
+        join move_thread_han_312
+        $ 313 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    $ 314 "Direction: Base Y+" "noBreak"
+    global move_thread_flag_314=0
+    thread move_thread_314():
+      enter_critical
+      move_thread_flag_314 = 1
+      local towardsPos=calculate_point_to_move_towards(p[0.0,0.0,0.0,0.0,0.0,0.0], [0.0,1.0,0.0], 0.002)
+      movel(towardsPos, a=0.1, v=0.005)
+      move_thread_flag_314 = 2
+      exit_critical
+    end
+    move_thread_flag_314 = 0
+    move_thread_han_314 = run move_thread_314()
+    while (True):
+      sleep(1.0E-10)
+      if (move_thread_flag_314 > 1):
+        join move_thread_han_314
+        $ 315 "Until (distance)" "noBreak"
+        break
+      end
+      sync()
+    end
+    Loop_1 = Loop_1 + 1
+  end
+  end_force_mode()
+  stopl(5.0)
+  $ 316 "Popup: ok?"
+  popup("ok?", "Message", False, False, blocking=True)
+  $ 317 "MoveJ"
+  $ 318 "before_shaft" "breakAfter"
+  movej(get_inverse_kin(before_shaft_p, qnear=before_shaft_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 319 "Waypoint_2" "breakAfter"
+  movej(get_inverse_kin(Waypoint_2_p, qnear=Waypoint_2_q), a=2.0943951023931953, v=2.0943951023931953, r=0.05)
+  $ 320 "Waypoint_1" "breakAfter"
+  movej(get_inverse_kin(Waypoint_1_p, qnear=Waypoint_1_q), a=2.0943951023931953, v=2.0943951023931953)
+  $ 321 "MoveL"
+  $ 322 "slightly_above" "breakAfter"
+  movel(slightly_above_p, a=1.2, v=0.25)
+  $ 323 "at_nut_aid" "breakAfter"
+  movel(at_nut_aid_p, a=1.2, v=0.25)
+  # begin: URCap Program Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  $ 324 "Gripper Move22% (1)"
+  if not(gripper_connected[0]):
+    popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+  end
+  if not(rq_is_gripper_activated("1")):
+    popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+  end
+  rq_set_pos_spd_for(56, 255, 255, "1")
+  rq_wait_pos_spe_for_request(56, 255, 255, "1")
+  rq_go_to("1")
+  rq_wait("1")
+  # end: URCap Program Node
+  $ 325 "above_nut_aid" "breakAfter"
+  movel(above_nut_aid_p, a=1.2, v=0.25)
+end
