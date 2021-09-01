@@ -1498,11 +1498,11 @@ class O2ACAssembly(O2ACCommon):
     self.reset_scene_and_robots()
     orders = []
     orders.append({"tray_name":"tray1", "assembly_name":"wrs_assembly_2021", "status":AssemblyStatus()})  # Top tray
-    orders.append({"tray_name":"tray2", "assembly_name":"wrs_assembly_2020", "status":AssemblyStatus()})  # Bottom tray
+    # orders.append({"tray_name":"tray2", "assembly_name":"wrs_assembly_2020", "status":AssemblyStatus()})  # Bottom tray
 
     ### Use this line to adjust the start state in case of a reset
-    # orders[0]["status"].tray_placed_on_table = True
-    orders[0]["status"].tray_placed_on_table = False
+    orders[0]["status"].tray_placed_on_table = True
+    # orders[0]["status"].tray_placed_on_table = False
 
     if not orders[0]["status"].tray_placed_on_table:
       print("get from AGV")
