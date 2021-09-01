@@ -442,16 +442,16 @@ class O2ACBase(object):
 
     self.suck_screw(robot_name, pose_feeder, screw_tool_id, screw_tool_link, fastening_tool_name, do_spiral_search_at_bottom=True, skip_retreat=skip_retreat)
     
+    if skip_retreat:
+      # Go to a central position (either we went through the gate or maybe we didn't)
+      above_screw_head_pose = copy.deepcopy(pose_feeder)
+      above_screw_head_pose.pose.position.x -= 0.03
+      self.active_robots[robot_name].go_to_pose_goal(above_screw_head_pose, speed=0.3, end_effector_link=screw_tool_link, move_lin=True)
+    
     # check again that the screw is there
     screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
-    
     if screw_picked or not self.use_real_robot:
-      if skip_retreat:
-        # Go to a central position (either we went through the gate or we didn't)
-        above_screw_head_pose = copy.deepcopy(pose_feeder)
-        above_screw_head_pose.pose.position.x -= 0.03
-        self.active_robots[robot_name].go_to_pose_goal(above_screw_head_pose, speed=0.3, end_effector_link=screw_tool_link, move_lin=True)
-      return True
+        return True
     elif realign_tool_upon_failure:
         self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
         rospy.loginfo("pickScrewFromFeeder failed. Realigning tool and retrying.")
@@ -623,6 +623,8 @@ class O2ACBase(object):
       if not self.active_robots[robot_name].move_joints_trajectory(waypoints):
         rospy.logerr("Go to feeder_pick_ready failed. abort.")
         screw_picked = False
+    if skip_retreat and screw_picked:
+      self.active_robots[robot_name].move_lin_rel([0.02,0,0.0], speed=0.1)
 
     if (screw_tool_id == "screw_tool_m3"):
       self.planning_scene_interface.disallow_collisions(screw_tool_id, "m3_feeder_link")
