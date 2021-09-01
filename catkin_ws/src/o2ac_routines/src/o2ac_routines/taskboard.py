@@ -291,7 +291,7 @@ class O2ACTaskboard(O2ACCommon):
     self.unequip_tool("b_bot")
 
     if not skip_tray_placing:
-      self.center_tray_stack()
+      self.center_tray_stack(spawn_single_tray=True)
       self.pick_tray_from_agv_stack_calibration_long_side(tray_name="tray2")
       # self.take_tray_from_agv()
 

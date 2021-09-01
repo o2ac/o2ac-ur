@@ -5116,7 +5116,7 @@ class O2ACCommon(O2ACBase):
     
     self.publish_status_text("SUCCESS: Tray")
 
-  def center_tray_stack(self, orientation_parallel=True):
+  def center_tray_stack(self, orientation_parallel=True, spawn_single_tray=False):
     self.allow_collisions_with_robot_hand("tray", "a_bot", allow=True)
     self.allow_collisions_with_robot_hand("tray", "b_bot", allow=True)
     self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=True)
@@ -5124,7 +5124,7 @@ class O2ACCommon(O2ACBase):
     short_side = 0.255/2.
     long_side = 0.375/2.
 
-    self.spawn_tray_stack(orientation_parallel=orientation_parallel)
+    self.spawn_tray_stack(orientation_parallel=orientation_parallel, spawn_single_tray=spawn_single_tray)
 
     try:
       self.listener.waitForTransform("agv_tray_center", "move_group/tray1/center", rospy.Time(0), rospy.Duration(5))
@@ -5238,13 +5238,14 @@ class O2ACCommon(O2ACBase):
     self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=False)
     self.allow_collisions_with_robot_hand("tray_center", "b_bot", allow=False)
 
-  def spawn_tray_stack(self, stack_center=[-0.03,0], tray_heights=[0.05,0.0], orientation_parallel=False):
+  def spawn_tray_stack(self, stack_center=[-0.03,0], tray_heights=[0.05,0.0], orientation_parallel=False, spawn_single_tray=False):
     orientation = [0, 0, 0] if orientation_parallel else [0, 0, tau/4] # tray's long side parallel to the table
     self.trays = {"tray%s"%(i+1): (stack_center+[tray_height], orientation_parallel) for i, tray_height in enumerate(tray_heights)}
     self.trays_return = {"tray%s"%(i+1): (stack_center+[tray_height], orientation_parallel) for i, tray_height in enumerate(tray_heights[::-1])}
-    for name, pose in self.trays.items():
+    for i, (name, pose) in enumerate(self.trays.items()):
       pose = conversions.to_pose(pose[0]+orientation)
-      self.planning_scene_interface.add_object(helpers.create_tray_collision_object(name, pose, "agv_tray_center"))
+      if (spawn_single_tray and i == len(self.trays)-1) or not spawn_single_tray:
+        self.planning_scene_interface.add_object(helpers.create_tray_collision_object(name, pose, "agv_tray_center"))
       self.planning_scene_interface.allow_collisions(name, "")
 
   def pick_tray_from_agv_stack_calibration_short_side(self, tray_name):
