@@ -282,7 +282,7 @@ class O2ACAssembly(O2ACCommon):
       rospy.logerr("Fail to do motor pulley fastening (simultaneous=%s)  a_bot:%s b_bot:%s" % (simultaneous_execution, self.a_bot_success, self.b_bot_success))
       return False
 
-    if not self.fasten_motor_pulley(target_link, skip_unequip=simultaneous_execution, simultaneous=simultaneous_execution):
+    if not self.fasten_motor_pulley(target_link, simultaneous=simultaneous_execution):
       return False
     
     return True
@@ -1362,23 +1362,26 @@ class O2ACAssembly(O2ACCommon):
     if not self.assembly_status.bearing_inserted_in_panel:
       self.assembly_status.bearing_picked = self.pick_bearing("b_bot")
 
+    if not self.assembly_status.bearing_inserted_in_panel and not self.assembly_status.bearing_picked:
+      if not self.orient_bearing("assembly", "b_bot"):
+        self.drop_in_tray()
+        return False
+      if not self.insert_bearing("assembled_part_07_inserted", robot_name="b_bot"):
+        return False
+      self.assembly_status.bearing_inserted_in_panel = True
+    if self.assembly_status.bearing_inserted_in_panel: # in the best case, we can do this at first try
+      if not self.align_bearing_holes(task="assembly"):
+        return False
+      self.b_bot.go_to_named_pose("centering_area")
+      self.assembly_status.bearing_holes_aligned = True
+
     self.a_bot_success = False
     self.b_bot_success = False
     def a_bot_task():
       self.a_bot_success = self.fasten_motor(simultaneous=False, part1=False, part2=True)
     def b_bot_task():
-      self.publish_status_text("Target: Fasten Motor & Bearing")
-      if not self.assembly_status.bearing_inserted_in_panel and not self.assembly_status.bearing_picked:
-        if not self.orient_bearing("assembly", "b_bot"):
-          self.drop_in_tray()
-          return False
-        if not self.insert_bearing("assembled_part_07_inserted", robot_name="b_bot"):
-          return False
-        self.assembly_status.bearing_inserted_in_panel = True
-      if self.assembly_status.bearing_inserted_in_panel:
-        if not self.align_bearing_holes(task="assembly"):
-          return False
-        self.b_bot.move_lin_rel(relative_translation=[0.05, 0.05, 0.1], speed=1.0)
+      self.publish_status_text("Fasten Motor & Bearing")
+      if self.assembly_status.bearing_holes_aligned:
         if not self.fasten_bearing("assembly", robot_name="b_bot", with_extra_retighten=True):
           return False
         self.b_bot_success = True

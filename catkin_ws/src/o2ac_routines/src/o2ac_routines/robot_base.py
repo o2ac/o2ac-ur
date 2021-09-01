@@ -559,8 +559,11 @@ class RobotBase():
         for point, blend_radius, speed in trajectory:
             if isinstance(point, str):
                 joint_values = helpers.ordered_joint_values_from_dict(group.get_named_target_values(point), group.get_active_joints())
-            else:
+            elif isinstance(point, list) or isinstance(point, geometry_msgs.msg.PoseStamped):
                 joint_values = point
+            else:
+                rospy.logerr("Joint trajectory with invalid point: type=%s" % type(point))
+                return False
             waypoints.append((joint_values, blend_radius, speed))
 
         group.set_joint_value_target(initial_joints if initial_joints else group.get_current_joint_values())

@@ -185,7 +185,7 @@ class O2ACCommon(O2ACBase):
     # self.assembly_marker_publisher.publish(marker)
 
     object_id = self.assembly_database.name_to_id(object_name)
-    collision_object = self.assembly_database.get_collision_object(object_name, use_simplified_collision_shapes=False)
+    collision_object = self.assembly_database.get_collision_object(object_name, use_simplified_collision_shapes=True)
     if test_header_frame:
       collision_object.header.frame_id = test_header_frame
     else:
@@ -1823,6 +1823,7 @@ class O2ACCommon(O2ACBase):
     camera_look_pose.pose.position = geometry_msgs.msg.Point(-0.155, 0.005, 0.0)
 
     def rotate_bearing_by_angle(angle):
+      self.allow_collisions_with_robot_hand("panel_bearing", "b_bot", True)
       self.b_bot.gripper.open()
       start_pose = copy.deepcopy(grasp_pose)
       start_pose.pose.orientation = geometry_msgs.msg.Quaternion(
@@ -1835,6 +1836,7 @@ class O2ACCommon(O2ACBase):
       self.b_bot.gripper.close(velocity=0.1, wait=True)
       self.b_bot.go_to_pose_goal(end_pose, speed=.2, end_effector_link = "b_bot_bearing_rotate_helper_link", move_lin=True)
       self.b_bot.gripper.open()
+      self.allow_collisions_with_robot_hand("panel_bearing", "b_bot", False)
 
     while adjustment_motions < max_adjustments:
       # Look at tb bearing
@@ -2379,7 +2381,7 @@ class O2ACCommon(O2ACBase):
     self.allow_collisions_with_robot_hand("panel_motor", "a_bot", allow=False)
     return True
 
-  def fasten_motor_pulley(self, target_link, skip_unequip=False, simultaneous=False):
+  def fasten_motor_pulley(self, target_link, simultaneous=False):
     self.equip_tool("b_bot", "set_screw_tool")
 
     if self.assembly_database.db_name == "wrs_assembly_2021":
@@ -2436,10 +2438,16 @@ class O2ACCommon(O2ACBase):
       else:
         print("not stalled")
     
-    if not skip_unequip:
+    def a_bot_task():
       self.a_bot.move_lin_rel([0.05,0,0], speed=0.5)
       self.a_bot.go_to_named_pose("above_tray")
+    def b_bot_task():
       self.unequip_tool("b_bot", "set_screw_tool")
+    if simultaneous:
+      self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=60)
+    else:
+      b_bot_task()
+      a_bot_task()
     return True
 
   ########  Idler pulley
@@ -3898,11 +3906,13 @@ class O2ACCommon(O2ACBase):
       self.execute_sequence(support_robot, seq, "fasten_motor_b_bot_return")
 
     if part2:
+      # To avoid b_bot camera with the tool cable
+      intermediate_pose = conversions.to_pose_stamped("assembled_part_02_back_hole", [0.05, -0.1, 0.006, radians(150), 0, tau/2])
       screw_set_center_pose = conversions.to_pose_stamped("assembled_part_05_center", [-0.02, 0, 0, offset*tau/12, 0, 0])
       # Finish remaining screws
       if not self.fasten_set_of_screws(screw_poses[2:], screw_size=3, robot_name=robot_name, only_retighten=False,
                                       skip_intermediate_pose=False, simultaneous=simultaneous, with_extra_retighten=False,
-                                      screw_set_center_pose=screw_set_center_pose):
+                                      intermediate_pose=intermediate_pose, screw_set_center_pose=screw_set_center_pose):
         rospy.logerr("Fail to fasten remaining screws of motor")
         return False
 
@@ -4678,7 +4688,7 @@ class O2ACCommon(O2ACBase):
 
     above_centering_pose = conversions.to_pose_stamped(centering_frame, [-0.15, y_pos, z_pos, 0, 0, 0])
     at_centering_pose    = conversions.to_pose_stamped(centering_frame, [x_pos, y_pos, z_pos, 0, 0, 0])
-    pre_push_pose        = conversions.to_pose_stamped(centering_frame, [-0.01, y_pos, z_pos, 0, 0, 0])
+    pre_push_pose        = conversions.to_pose_stamped(centering_frame, [-0.01, y_pos, z_pos + 0.01, 0, 0, 0])
     push_pose            = conversions.to_pose_stamped(centering_frame, [-0.0125, y_pos, gripper_at_stopper, 0, 0, 0])
     above_centering_joint_pose = [0.48, -2.05, 2.05, -1.55, -1.58, -1.09-(tau/2)]
 
@@ -5609,6 +5619,12 @@ class O2ACCommon(O2ACBase):
     rospy.set_param("/o2ac/simultaneous", True) # Inform of simultaneous to param server
     a_thread.start()
     b_thread.start()
+    a_thread.join()
+    rospy.loginfo("a_bot DONE")
+    b_thread.join()
+    rospy.loginfo("b_bot DONE")
+    
+    timeout = 1500 # almost ignore
 
     start_time = rospy.Time.now()
     a_thread.join(timeout)

@@ -106,6 +106,7 @@ class AssemblyStatus(object):
     self.bearing_picked = False
     self.bearing_oriented = False
     self.bearing_inserted_in_panel = False
+    self.bearing_holes_aligned = False
     self.bearing_spacer_assembled = False
 
     self.completed_subtask_zero = False  # Base
@@ -444,8 +445,8 @@ class O2ACBase(object):
     if skip_retreat:
       # Go to a central position (either we went through the gate or maybe we didn't)
       above_screw_head_pose = copy.deepcopy(pose_feeder)
-      above_screw_head_pose.pose.position.x -= 0.03
-      self.active_robots[robot_name].go_to_pose_goal(above_screw_head_pose, speed=0.3, end_effector_link=screw_tool_link, move_lin=True)
+      above_screw_head_pose.pose.position.x -= 0.04
+      self.active_robots[robot_name].go_to_pose_goal(above_screw_head_pose, speed=0.5, end_effector_link=screw_tool_link, move_lin=True)
     
     # check again that the screw is there
     screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
@@ -619,7 +620,7 @@ class O2ACBase(object):
       rel_pose = self.active_robots[robot_name].move_lin_rel([0.0,0,0.05], pose_only=True, initial_joints=through_gate)
       waypoints.append((self.active_robots[robot_name].compute_ik(rel_pose, timeout=0.02, retry=True), 0, 0.6))
       waypoints.append(("feeder_pick_ready",0,0.6))
-      if not self.active_robots[robot_name].move_joints_trajectory(waypoints):
+      if not self.active_robots[robot_name].move_joints_trajectory(waypoints, speed=0.5):
         rospy.logerr("Go to feeder_pick_ready failed. abort.")
         screw_picked = False
     if skip_retreat and screw_picked:
