@@ -685,13 +685,13 @@ def to_sequence_trajectory(trajectory, blend_radiuses=0.0, speed=0.5, default_fr
       sequence_trajectory.append([conversions.to_pose_stamped(default_frame, t), br, spd])
   return ["trajectory", sequence_trajectory]
 
-def to_sequence_joint_trajectory(trajectory, blend_radiuses=0.0, speed=0.5):
+def to_sequence_joint_trajectory(trajectory, blend_radiuses=0.0, speed=0.5, end_effector_link=""):
   sequence_trajectory = []
   blend_radiuses = blend_radiuses if isinstance(blend_radiuses, list) else np.zeros_like(trajectory)+blend_radiuses
   speeds = speed if isinstance(speed, list) else np.zeros_like(trajectory)+speed
-  for i, (t, br, spd) in enumerate(zip(trajectory, blend_radiuses, speeds)):
-    sequence_trajectory.append([t, br, spd])
-  return ["joint_trajectory", sequence_trajectory]
+  for waypoint, br, spd in zip(trajectory, blend_radiuses, speeds):
+    sequence_trajectory.append([waypoint, br, spd])
+  return ["joint_trajectory", sequence_trajectory, end_effector_link]
 
 def to_sequence_item_dual_arm(pose1, pose2, speed, acc=None, planner="OMPL"):
   item = {"pose": conversions.from_pose_to_list(pose1.pose),

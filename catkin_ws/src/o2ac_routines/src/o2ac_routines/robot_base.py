@@ -546,10 +546,14 @@ class RobotBase():
 
         return False
 
-    def move_joints_trajectory(self, trajectory, speed=1.0, acceleration=None, plan_only=False, initial_joints=None, timeout=5.0):
+    def move_joints_trajectory(self, trajectory, speed=1.0, acceleration=None, plan_only=False, initial_joints=None, end_effector_link="", timeout=5.0):
         speed_, accel_ = self.set_up_move_group(speed, acceleration, planner="PTP")
 
         group = self.robot_group
+
+        if not end_effector_link:
+            end_effector_link = self.ns + "_gripper_tip_link"
+        group.set_end_effector_link(end_effector_link)
 
         waypoints = []
         for point, blend_radius, speed in trajectory:

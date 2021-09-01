@@ -1296,7 +1296,7 @@ class O2ACBase(object):
 
     # sequence.append(helpers.to_sequence_item("tool_pick_ready"))
     # sequence.append(helpers.to_sequence_trajectory([ps_approach,ps_in_holder], [0.005,0.0], speed=[0.5, 0.2]))
-    sequence.append(helpers.to_sequence_joint_trajectory(["tool_pick_ready",ps_approach,ps_in_holder], speed=[1.0,1.0,0.3]))
+    sequence.append(helpers.to_sequence_joint_trajectory(["tool_pick_ready", ps_approach, ps_in_holder], speed=[1.0,1.0,0.3]))
     
     # Close gripper, attach the tool object to the gripper in the Planning Scene.
     # Its collision with the parent link is set to allowed in the original planning scene.
@@ -1611,14 +1611,9 @@ class O2ACBase(object):
         rospy.logerr("Trajectory: %s" % trajectory)
         raise ValueError("Invalid trajectory type %s" % type(trajectory[0][0]))
     elif point[0] == "joint_trajectory":
+      eef = point[2] if len(point) > 2 else "" # optional end effector
       # TODO(cambel): support master-slave trajectories
-      res = self.active_robots[robot_name].move_joints_trajectory(point[1], plan_only=True, initial_joints=initial_joints)
-      if res:
-        plan, planning_time = res
-        plan = self.active_robots[robot_name].robot_group.retime_trajectory(
-                                              self.active_robots[robot_name].robot_group.get_current_state(), 
-                                              plan, algorithm="time_optimal_trajectory_generation")
-        return plan, planning_time
+      return self.active_robots[robot_name].move_joints_trajectory(point[1], plan_only=True, initial_joints=initial_joints, end_effector_link=eef)
     else:
       raise ValueError("Invalid sequence type: %s" % point[0])
 
