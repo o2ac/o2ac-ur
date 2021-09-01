@@ -269,8 +269,13 @@ class O2ACBase(object):
     collision_object.pose = co_pose
         
     self.planning_scene_interface.add_object(collision_object)
+
     if pose_with_uncertainty != None:
-      self.visualize_object_with_distribution(collision_object, pose_with_uncertainty, frame_locked=True)
+      # Get the visual geometry instead of the collision geometry
+      collision_object_pretty = self.assembly_database.get_collision_object(object_name, use_simplified_collision_shapes=False)          
+      collision_object_pretty.header.frame_id = collision_object.header.frame_id
+      collision_object_pretty.pose = collision_object.pose
+      self.visualize_object_with_distribution(collision_object_pretty, pose_with_uncertainty, frame_locked=True)
   
   def visualize_object_with_distribution(self, collision_object, pose_with_uncertainty, frame_locked=False):
     """ Publishes a MarkerArray visualizing the object pose and uncertainty.
@@ -757,7 +762,7 @@ class O2ACBase(object):
     self.spawn_multiple_objects('wrs_assembly_2020', ['base'], [[0.12, 0.2, 0.0, tau/4, 0.0, -tau/4]], 'attached_base_origin_link')
     self.spawn_multiple_objects('wrs_assembly_2020', objects, poses, 'world')
 
-  def object_pose_from_fake_perception(self, object_name, xyz_noise=[0.003, 0.003, 0.002], rpy_noise=[radians(5), radians(5), radians(10)]):
+  def object_pose_from_fake_perception(self, object_name, xyz_noise=[0.003, 0.003, 0.002], rpy_noise=[radians(5), radians(5), radians(7)]):
     """ Obtains the object pose at a pre-defined position with some noise. 
         Simulates vision.
     """
@@ -784,7 +789,7 @@ class O2ACBase(object):
       'shaft', 'end_cap', 'bearing_spacer', 'output_pulley', 'idler_spacer', 'idler_pulley', 'idler_pin']
     if layout_number == 1:
       poses = [[0.12, 0.02, 0.001, 0.0, 0.0, tau/2],
-              [0.02, -0.06, 0.001, 0.0, 0.0, -tau/4],
+              [-0.02, 0.0, 0.001, 0.0, 0.0, -tau/4],
               [-0.09, -0.12, 0.001, tau/4, -tau/4, 0.0],
               [-0.02, -0.16, 0.005, 0.0, -tau/4, 0.0],
               [0.0, 0.0, 0.001, 0.0, tau/4, 0.0],
