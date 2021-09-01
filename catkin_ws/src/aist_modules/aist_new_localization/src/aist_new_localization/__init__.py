@@ -64,7 +64,7 @@ class LocalizationClient(object):
                              for theta in np.arange(*rotation_range) ]
         else:
             goal.poses2d = poses2d
-        goal.object_name = object_name
+        goal.object_name = params['object_name']
         goal.plane       = plane
         goal.origin      = gmsg.Pose(gmsg.Point(*origin[0:3]),
                                      gmsg.Quaternion(*tfs.quaternion_from_euler(

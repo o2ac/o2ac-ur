@@ -1,0 +1,7 @@
+# Goal
+string target_frame  # center of search area in 3D
+---
+# Result
+---
+# Feedback
+geometry_msgs/PoseStamped pose  # pose of detected target

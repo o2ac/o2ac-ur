@@ -1,0 +1,14 @@
+<?xml version="1.0" ?>
+<launch>
+
+  <!-- <arg name="bag_file"		default="2021-7-16-cable-view-raw-b.bag"/> -->
+  <arg name="bag_file"		default="b_bot_outside_cam_2021-08-27-12-52-12.bag"/>
+  <arg name="data_dir"		default="$(env HOME
+					 )/o2ac-ur/catkin_ws/src/data"/>
+  <arg name="rate"		default="0.2"/>
+  
+  <!-- Play rosbag file -->
+  <node name="rosbag_play" pkg="rosbag" type="play" output="screen"
+	args="-r $(arg rate) --clock $(arg data_dir)/$(arg bag_file)"/>
+
+</launch>

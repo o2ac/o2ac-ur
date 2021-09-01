@@ -139,21 +139,33 @@
 
     <!-- ========================== -->
     <!-- The indexes correspond to the order in camera_names -->
-    <remap from="/camera_info0"	to="$(arg camera0_name)/color/camera_info"/>
-    <remap from="/image0"	to="$(arg camera0_name)/color/image_raw"/>
-    <remap from="/depth0"	to="$(arg camera0_name)/aligned_depth_to_color/image_raw"/>
+    <remap from="/camera_multiplexer/$(arg camera0_name)/camera_info"
+	   to="/$(arg camera0_name)/color/camera_info"/>
+    <remap from="/camera_multiplexer/$(arg camera0_name)/image"
+	   to="/$(arg camera0_name)/color/image_raw"/>
+    <remap from="/camera_multiplexer/$(arg camera0_name)/depth"
+	   to="/$(arg camera0_name)/aligned_depth_to_color/image_raw"/>
 
-    <remap from="/camera_info1"	to="$(arg camera1_name)/color/camera_info"/>
-    <remap from="/image1"	to="$(arg camera1_name)/color/image_raw"/>
-    <remap from="/depth1"	to="$(arg camera1_name)/aligned_depth_to_color/image_raw"/>
+    <remap from="/camera_multiplexer/$(arg camera1_name)/camera_info"
+	   to="/$(arg camera1_name)/color/camera_info"/>
+    <remap from="/camera_multiplexer/$(arg camera1_name)/image"
+	   to="/$(arg camera1_name)/color/image_raw"/>
+    <remap from="/camera_multiplexer/$(arg camera1_name)/depth"
+	   to="/$(arg camera1_name)/aligned_depth_to_color/image_raw"/>
 
-    <remap from="/camera_info2"	to="$(arg camera2_name)/color/camera_info"/>
-    <remap from="/image2"	to="$(arg camera2_name)/color/image_raw"/>
-    <remap from="/depth2"	to="$(arg camera2_name)/aligned_depth_to_color/image_raw"/>
+    <remap from="/camera_multiplexer/$(arg camera2_name)/camera_info"
+	   to="/$(arg camera2_name)/color/camera_info"/>
+    <remap from="/camera_multiplexer/$(arg camera2_name)/image"
+	   to="/$(arg camera2_name)/color/image_raw"/>
+    <remap from="/camera_multiplexer/$(arg camera2_name)/depth"
+	   to="/$(arg camera2_name)/aligned_depth_to_color/image_raw"/>
 
-    <remap from="/camera_info3"	to="$(arg camera3_name)/color/camera_info"/>
-    <remap from="/image3"	to="$(arg camera3_name)/color/image_raw"/>
-    <remap from="/depth3"	to="$(arg camera3_name)/aligned_depth_to_color/image_raw"/>
+    <remap from="/camera_multiplexer/$(arg camera3_name)/camera_info"
+	   to="/$(arg camera3_name)/color/camera_info"/>
+    <remap from="/camera_multiplexer/$(arg camera3_name)/image"
+	   to="/$(arg camera3_name)/color/image_raw"/>
+    <remap from="/camera_multiplexer/$(arg camera3_name)/depth"
+	   to="/$(arg camera3_name)/aligned_depth_to_color/image_raw"/>
   </node>
 
   <node name="camera_watcher" pkg="o2ac_vision" type="o2ac_camera_watcher.py" output="screen">
@@ -166,7 +178,8 @@
 
   <!-- This is a scene-mounted camera that can be added for debugging or recording videos. -->
   <!-- <include file="$(find realsense2_camera)/launch/rs_camera.launch">
-    <arg name="camera" value="scene_camera"/>
+    <arg name="camera" value="scene_camera"/><arg name="camera_names"	default="a_bot_inside_camera"/>
+  <arg name="serial_nos"	default="'636201000324'"/>
     <arg name="serial_no" value="819312070094"/>
     <arg name="enable_pointcloud" value="true"/>
     <arg name="fisheye_fps"         value="15"/>

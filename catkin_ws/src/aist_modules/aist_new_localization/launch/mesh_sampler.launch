@@ -20,6 +20,12 @@
 				 17_SCB4-10
 				 18_SCB3-10
 				 19_MSSFS3-6
+				 32_MBRFA40-2-P6
+				 33_MBRFA45-2-P6
+				 34_MBRFA48-2-P6
+				 35_MBRAC45-2-10
+				 36_MBRAC48-2-10
+				 37_MBRAC80-2-10
 				 50_MBGNA30-2
 				 51_MBGNA60-2"/>
   <arg name="n_samples"	default="1000"/>
