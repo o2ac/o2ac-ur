@@ -417,8 +417,16 @@ if __name__ == '__main__':
       if i == "centertrays":
         c.center_tray_stack()
       if i == "return":
+        stack_center=[-0.03,0]
+        tray_heights=[0.05,0.0]
+        c.trays = {"tray%s"%(i+1): (stack_center+[tray_height], True) for i, tray_height in enumerate(tray_heights)}
+        c.trays_return = {"tray%s"%(i+1): (stack_center+[tray_height], True) for i, tray_height in enumerate(tray_heights[::-1])}
         c.return_tray_to_agv_stack_calibration_long_side("tray2")
       if i == "return_long":
+        stack_center=[-0.03,0]
+        tray_heights=[0.05,0.0]
+        c.trays = {"tray%s"%(i+1): (stack_center+[tray_height], True) for i, tray_height in enumerate(tray_heights)}
+        c.trays_return = {"tray%s"%(i+1): (stack_center+[tray_height], True) for i, tray_height in enumerate(tray_heights[::-1])}
         c.return_tray_to_agv_stack_calibration_long_side("tray1")
       if i == 'carryhigh':
         c.center_tray_stack()

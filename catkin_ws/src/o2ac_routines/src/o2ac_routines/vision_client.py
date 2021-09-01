@@ -60,12 +60,9 @@ class VisionClient():
 
         # Read result and return
         try:
-            response = self.ssd_client.get_result()
-            if response.class_ids and response.class_ids[0] == [-1]:
-                return False
-            return response
-        except:
-            pass
+            return self.ssd_client.get_result()
+        except Exception as e:
+            rospy.logerr("Exception at get_3d_poses_from_ssd %s" % e)
         return False
 
     @check_for_real_robot

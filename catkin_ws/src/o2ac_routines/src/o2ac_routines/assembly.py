@@ -1531,6 +1531,7 @@ class O2ACAssembly(O2ACCommon):
       self.set_assembly(orders[0]["assembly_name"])
       stack_center=[-0.03,0]
       tray_heights=[0.05,0.0]
+      self.trays = {"tray%s"%(i+1): (stack_center+[tray_height], True) for i, tray_height in enumerate(tray_heights)}
       self.trays_return = {"tray%s"%(i+1): (stack_center+[tray_height], True) for i, tray_height in enumerate(tray_heights[::-1])}
       
     for order in orders:

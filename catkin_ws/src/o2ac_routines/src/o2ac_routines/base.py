@@ -921,8 +921,8 @@ class O2ACBase(object):
         self.objects_in_tray[idx] = pose
         self.object_in_tray_is_upside_down[idx] = upside_down
       return res
-    except:
-      pass
+    except Exception as e:
+      rospy.logerr("Exception at get_3d_poses_from_ssd %s" % e)
     return False
   
   def get_bearing_angle(self, camera="b_bot_inside_camera"):
