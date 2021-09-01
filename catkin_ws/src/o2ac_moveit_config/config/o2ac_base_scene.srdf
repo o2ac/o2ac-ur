@@ -270,6 +270,34 @@
         <joint name="b_bot_wrist_2_joint" value="-1.57" />
         <joint name="b_bot_wrist_3_joint" value="0" />
     </group_state>
+    <group_state name="centering_area" group="ab_bot">
+        <joint name="a_bot_elbow_joint" value="2.18966" />
+        <joint name="a_bot_shoulder_lift_joint" value="-2.10898" />
+        <joint name="a_bot_shoulder_pan_joint" value="0.38181" />
+        <joint name="a_bot_wrist_1_joint" value="-1.65007" />
+        <joint name="a_bot_wrist_2_joint" value="-1.56754" />
+        <joint name="a_bot_wrist_3_joint" value="0.38096" />
+        <joint name="b_bot_elbow_joint" value="2.36439" />
+        <joint name="b_bot_shoulder_lift_joint" value="-2.07523" />
+        <joint name="b_bot_shoulder_pan_joint" value="1.84342" />
+        <joint name="b_bot_wrist_1_joint" value="-1.85972" />
+        <joint name="b_bot_wrist_2_joint" value="-1.56609" />
+        <joint name="b_bot_wrist_3_joint" value="-1.29952" />
+    </group_state>
+    <group_state name="pickup_tray" group="ab_bot">
+        <joint name="a_bot_elbow_joint" value="1.51056" />
+        <joint name="a_bot_shoulder_lift_joint" value="-1.37167" />
+        <joint name="a_bot_shoulder_pan_joint" value="0.37494" />
+        <joint name="a_bot_wrist_1_joint" value="-1.70822" />
+        <joint name="a_bot_wrist_2_joint" value="-1.56785" />
+        <joint name="a_bot_wrist_3_joint" value="0.37517" />
+        <joint name="b_bot_elbow_joint" value="1.66252" />
+        <joint name="b_bot_shoulder_lift_joint" value="-1.33994" />
+        <joint name="b_bot_shoulder_pan_joint" value="2.30602" />
+        <joint name="b_bot_wrist_1_joint" value="-1.8928" />
+        <joint name="b_bot_wrist_2_joint" value="-1.56463" />
+        <joint name="b_bot_wrist_3_joint" value="-0.83574" />
+    </group_state>
     <!--END EFFECTOR: Purpose: Represent information about an end effector.-->
     <end_effector name="a_bot_tip" parent_link="a_bot_gripper_tip_link" group="a_bot_robotiq_85" parent_group="a_bot" />
     <end_effector name="b_bot_tip" parent_link="b_bot_gripper_tip_link" group="b_bot_robotiq_85" parent_group="b_bot" />

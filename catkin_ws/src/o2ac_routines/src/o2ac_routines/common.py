@@ -5116,7 +5116,7 @@ class O2ACCommon(O2ACBase):
     
     self.publish_status_text("SUCCESS: Tray")
 
-  def center_tray_stack(self, orientation_parallel=True, use_saved_trajectory=True):
+  def center_tray_stack(self, orientation_parallel=True):
     self.allow_collisions_with_robot_hand("tray", "a_bot", allow=True)
     self.allow_collisions_with_robot_hand("tray", "b_bot", allow=True)
     self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=True)
@@ -5125,7 +5125,7 @@ class O2ACCommon(O2ACBase):
     long_side = 0.375/2.
 
     self.spawn_tray_stack(orientation_parallel=orientation_parallel)
-    # self.spawn_tray_stack()
+
     try:
       self.listener.waitForTransform("agv_tray_center", "move_group/tray1/center", rospy.Time(0), rospy.Duration(5))
     except:
@@ -5136,6 +5136,7 @@ class O2ACCommon(O2ACBase):
     # Push the tray from the side
     self.a_bot.gripper.open(wait=False)
     self.b_bot.gripper.open(wait=False)
+    self.ab_bot.go_to_named_pose("centering_area", speed=1.0)
 
     # Gripper needs to be open for these poses
     offset = long_side + 0.1 if orientation_parallel else short_side + 0.1
@@ -5168,39 +5169,55 @@ class O2ACCommon(O2ACBase):
     b_bot_push_tray_front_goal       = conversions.to_pose_stamped(frame, [b_bot_goal[0] , b_bot_goal[1] , -0.01, 0, tau/4, 0])
     b_bot_push_tray_front_retreat    = conversions.to_pose_stamped(frame, [b_bot_start[0], b_bot_goal[1], b_bot_point[2], 0, tau/4, 0])
 
+    offset = 0.0 # w.r.t to the tray's center, to avoid grasping the center with both robots
+    long_side = 0.375/2. + 0.004
+    a_bot_point = [tray_point[0] - long_side, tray_point[1] - offset]
+    b_bot_point = [tray_point[0] + long_side, tray_point[1] + offset]
+    if orientation_parallel:
+      a_bot_point = [tray_point[0] - offset, tray_point[1] - long_side]
+      b_bot_point = [tray_point[0] + offset, tray_point[1] + long_side]
+    a_bot_z_high = tray_point[2] + 0.10
+    pick_orientation  = [tau/4, tau/4, 0] if not orientation_parallel else [ 0, tau/4, 0]
+    a_bot_above_tray_agv = conversions.to_pose_stamped("agv_tray_center", [a_bot_point[0], a_bot_point[1], a_bot_z_high] + pick_orientation)
+    b_bot_above_tray_agv = conversions.to_pose_stamped("agv_tray_center", [b_bot_point[0], b_bot_point[1], a_bot_z_high] + pick_orientation)
+
     # Push the tray from the side
     self.a_bot.gripper.open(wait=False)
     self.b_bot.gripper.open(wait=False)
-    seq = []
-    # push side
-    seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_side_start_high, b_bot_push_tray_side_start_high, planner="OMPL", speed=1.0, acc=0.8))
-    seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_side_start, b_bot_push_tray_side_start, planner="OMPL", speed=1.0, acc=0.8))
-    seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_side_goal, b_bot_push_tray_side_goal, planner="OMPL", speed=0.1))
-    seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_side_retreat, b_bot_push_tray_side_retreat, planner="OMPL", speed=1.0, acc=0.8))
 
-    # push front
-    seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_front_start_high, b_bot_push_tray_front_start_high, planner="OMPL", speed=1.0, acc=0.8))
-    seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_front_start, b_bot_push_tray_front_start, planner="OMPL", speed=1.0, acc=0.8))
-    seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_front_goal, b_bot_push_tray_front_goal, planner="OMPL", speed=0.1))
-    seq.append(helpers.to_sequence_item_dual_arm(a_bot_push_tray_front_retreat, b_bot_push_tray_front_retreat, planner="OMPL", speed=1.0, acc=0.8))
-    self.execute_sequence("ab_bot", seq, "tray_orient_part1", plan_while_moving=True, save_on_success=True, use_saved_plans=use_saved_trajectory)
-    # self.ab_bot.go_to_goal_poses(a_bot_push_tray_side_start_high, b_bot_push_tray_side_start_high, planner="OMPL", speed=0.3)
-    # self.ab_bot.go_to_goal_poses(a_bot_push_tray_side_start, b_bot_push_tray_side_start, planner="OMPL", speed=0.5)
-    # self.ab_bot.go_to_goal_poses(a_bot_push_tray_side_goal, b_bot_push_tray_side_goal, planner="OMPL", speed=0.1)
-    # self.ab_bot.go_to_goal_poses(a_bot_push_tray_side_retreat, b_bot_push_tray_side_retreat, planner="OMPL", speed=0.5)
+    plan_name = "center_trays" + ("_parallel" if orientation_parallel else "")
+    saved_plan = helpers.load_single_plan(plan_name)
+    if not saved_plan:
+      rospy.loginfo("Computing center trays's plan")
+      waypoints = []
+      # push side
+      waypoints.append((self.ab_bot.compute_ik(a_bot_push_tray_side_start_high, b_bot_push_tray_side_start_high, timeout=0.02, retry=True), 0, 1.0))
+      waypoints.append((self.ab_bot.compute_ik(a_bot_push_tray_side_start, b_bot_push_tray_side_start, timeout=0.02, retry=True), 0, 1.0))
+      waypoints.append((self.ab_bot.compute_ik(a_bot_push_tray_side_goal, b_bot_push_tray_side_goal, timeout=0.02, retry=True), 0, 0.1))
+      waypoints.append((self.ab_bot.compute_ik(a_bot_push_tray_side_retreat, b_bot_push_tray_side_retreat, timeout=0.02, retry=True), 0, 1.0))
 
-    # Push from the front
-    # TODO: Push from the back with b_bot
-    # seq = []
-    # seq.append(helpers.to_sequence_item(a_bot_push_tray_front_start_high, speed=0.8))
-    # seq.append(helpers.to_sequence_item(a_bot_push_tray_front_start, speed=0.6))
-    # seq.append(helpers.to_sequence_item(a_bot_push_tray_front_goal, speed=0.08))
-    # seq.append(helpers.to_sequence_item(a_bot_push_tray_front_retreat, speed=0.6))
-    # self.execute_sequence("a_bot", seq, "tray_orient_part2", plan_while_moving=True, save_on_success=True, use_saved_plans=use_saved_trajectory)
-    # self.a_bot.go_to_pose_goal(a_bot_push_tray_front_start_high, speed=0.8)
-    # self.a_bot.go_to_pose_goal(a_bot_push_tray_front_start, speed=0.6)
-    # self.a_bot.go_to_pose_goal(a_bot_push_tray_front_goal, speed=0.08)
-    # self.a_bot.go_to_pose_goal(a_bot_push_tray_front_retreat, speed=0.6)
+      # push front
+      waypoints.append((self.ab_bot.compute_ik(a_bot_push_tray_front_start_high, b_bot_push_tray_front_start_high, timeout=0.02, retry=True), 0, 1.0))
+      waypoints.append((self.ab_bot.compute_ik(a_bot_push_tray_front_start, b_bot_push_tray_front_start, timeout=0.02, retry=True), 0, 1.0))
+      waypoints.append((self.ab_bot.compute_ik(a_bot_push_tray_front_goal, b_bot_push_tray_front_goal, timeout=0.02, retry=True), 0, 0.1))
+      waypoints.append((self.ab_bot.compute_ik(a_bot_push_tray_front_retreat, b_bot_push_tray_front_retreat, timeout=0.02, retry=True), 0, 1.0))
+      
+      # prepare for pick up
+      waypoints.append((self.ab_bot.compute_ik(a_bot_above_tray_agv, b_bot_above_tray_agv, timeout=0.02, retry=True), 0, 1.0))
+
+      res = self.ab_bot.move_joints_trajectory(waypoints, plan_only=True)
+      if not res:
+        rospy.logerr("Fail to plan center trays")
+        return False
+      
+      saved_plan, _ = res
+      helpers.save_single_plan(plan_name, saved_plan)
+    else:
+      rospy.loginfo("Using trays's saved plan")
+
+    if not self.ab_bot.execute_plan(saved_plan):
+      rospy.logerr("Fail to execute center trays")
+      return False
 
     self.allow_collisions_with_robot_hand("tray", "a_bot", allow=False)
     self.allow_collisions_with_robot_hand("tray", "b_bot", allow=False)
@@ -5253,7 +5270,7 @@ class O2ACCommon(O2ACBase):
     self.ab_bot.master_slave_control("b_bot", "a_bot", b_bot_at_tray_agv, slave_relation)
     
     # Grasp
-    self.b_bot.gripper.attach_object("tray1")
+    self.b_bot.gripper.attach_object("tray1", with_collisions=True)
     self.a_bot.gripper.close()
     self.b_bot.gripper.close()
 
@@ -5282,6 +5299,7 @@ class O2ACCommon(O2ACBase):
     return True
 
   def pick_tray_from_agv_stack_calibration_long_side(self, tray_name, use_saved_trajectory=True):
+    self.ab_bot.go_to_named_pose("pickup_tray", speed=1.0)
     rospy.sleep(0.3)
     try:
       self.listener.waitForTransform("agv_tray_center", "move_group/"+tray_name+"/center", rospy.Time(0), rospy.Duration(5))
@@ -5296,8 +5314,8 @@ class O2ACCommon(O2ACBase):
     self.allow_collisions_with_robot_hand("tray", "b_bot", allow=True)
     self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=True)
     self.allow_collisions_with_robot_hand("tray_center", "b_bot", allow=True)
-    self.a_bot.gripper.open(wait=False)
-    self.b_bot.gripper.open(wait=False)
+    self.a_bot.gripper.open(opening_width=0.05, wait=False)
+    self.b_bot.gripper.open(opening_width=0.05, wait=False)
 
     offset = 0.0 # w.r.t to the tray's center, to avoid grasping the center with both robots
     long_side = 0.375/2. + 0.004
@@ -5318,21 +5336,22 @@ class O2ACCommon(O2ACBase):
     a_bot_above_table      = conversions.to_pose_stamped("tray_center", [a_bot_point[0], a_bot_point[1], 0.15] + place_orientation)
 
     # Go to tray
-    self.ab_bot.go_to_goal_poses(a_bot_above_tray_agv, b_bot_above_tray_agv, planner="OMPL")
+    self.ab_bot.go_to_goal_poses(a_bot_above_tray_agv, b_bot_above_tray_agv, planner="OMPL", speed=1.0)
     slave_relation = self.ab_bot.get_relative_pose_of_slave("a_bot", "b_bot")
     self.ab_bot.master_slave_control("a_bot", "b_bot", a_bot_at_tray_agv, slave_relation)
     
     # Grasp
-    self.b_bot.gripper.attach_object(tray_name)
-    self.b_bot.gripper.close(force=100)
+    self.b_bot.gripper.attach_object(tray_name, with_collisions=True)
+    self.b_bot.gripper.close(force=100, wait=False)
     self.a_bot.gripper.close(force=100)
+    rospy.sleep(0.5)
 
     # move to tray center
     if tray_parallel:
       seq = []
       seq.append(helpers.to_sequence_item_master_slave("a_bot", "b_bot", a_bot_above_tray_agv, slave_relation, speed=0.6))
       seq.append(helpers.to_sequence_item_master_slave("a_bot", "b_bot", a_bot_above_table, slave_relation, speed=0.6))
-      seq.append(helpers.to_sequence_item_master_slave("a_bot", "b_bot", a_bot_at_tray_table, slave_relation, speed=0.6))
+      seq.append(helpers.to_sequence_item_master_slave("a_bot", "b_bot", a_bot_at_tray_table, slave_relation, speed=0.4))
       self.execute_sequence("ab_bot", seq, "pick_tray_long_side", save_on_success=True, use_saved_plans=use_saved_trajectory)
     else:
       self.ab_bot.master_slave_control("a_bot", "b_bot", a_bot_above_tray_agv, slave_relation)
@@ -5344,7 +5363,8 @@ class O2ACCommon(O2ACBase):
     self.b_bot.gripper.detach_object(tray_name)
     self.b_bot.gripper.forget_attached_item()
     self.b_bot.gripper.open(wait=False)
-    self.a_bot.gripper.open()
+    self.a_bot.gripper.open(wait=False)
+    rospy.sleep(0.5)
 
     self.ab_bot.master_slave_control("a_bot", "b_bot", a_bot_above_table, slave_relation)
     if tray_parallel:
@@ -5392,7 +5412,7 @@ class O2ACCommon(O2ACBase):
     self.ab_bot.master_slave_control("a_bot", "b_bot", a_bot_at_tray_table, slave_relation)
     
     # Grasp
-    self.b_bot.gripper.attach_object(tray_name)
+    self.b_bot.gripper.attach_object(tray_name, with_collisions=True)
     self.b_bot.gripper.close(force=100, wait=False)
     self.a_bot.gripper.close(force=100)
     self.ab_bot.master_slave_control("a_bot", "b_bot", a_bot_above_tray_table, slave_relation)

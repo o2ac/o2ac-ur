@@ -420,10 +420,10 @@ if __name__ == '__main__':
         c.return_tray_to_agv_stack_calibration_long_side("tray2")
       if i == "return_long":
         c.return_tray_to_agv_stack_calibration_long_side("tray1")
-      if i == 'carry':
-        c.pick_tray_from_agv_stack_calibration_long_side("tray1")
       if i == 'carryhigh':
         c.center_tray_stack()
+        c.pick_tray_from_agv_stack_calibration_long_side("tray1")
+      if i == 'carrylow':
         c.pick_tray_from_agv_stack_calibration_long_side("tray2")
       if i == "activate":
         c.a_bot.activate_ros_control_on_ur()

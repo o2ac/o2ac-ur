@@ -801,3 +801,27 @@ def concat_joint_trajectory_point(point1, point2):
   point.effort = point1.effort + point2.effort
   point.time_from_start = point1.time_from_start
   return point
+
+def save_single_plan(filename, plan):
+  bagfile = get_plan_full_path(filename)
+  if os.path.exists(bagfile):
+    os.remove(bagfile)
+
+  # Make sure the directory exists before trying to open a file
+  saved_plans_directory = os.path.dirname(bagfile)
+  if not os.path.exists(saved_plans_directory):
+    os.makedirs(saved_plans_directory)
+  
+  with rosbag.Bag(bagfile, 'w') as bag:
+    bag.write(topic="plan", msg=plan)
+
+def load_single_plan(filename):
+  bagfile = get_plan_full_path(filename)
+  plan = None
+  if not os.path.exists(bagfile):
+    rospy.logwarn("Plan: %s does not exist" % bagfile)
+    return None
+  with rosbag.Bag(bagfile, 'r') as bag:
+    for (topic, msg, ts) in bag.read_messages():
+      plan = msg
+  return plan

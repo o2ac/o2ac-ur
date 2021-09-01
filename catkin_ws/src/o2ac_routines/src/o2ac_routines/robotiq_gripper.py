@@ -37,14 +37,14 @@ class RobotiqGripper():
                     pass
                 self.gripper = GripperDummy()
 
-                def close():
-                    return command(0.0)
+                def close(wait=True):
+                    return command(0.0, wait=wait)
 
-                def open(opening_width=1.0):
+                def open(opening_width=1.0, wait=True):
                     opening_width = opening_width if opening_width else 1.0
-                    return command(opening_width)
+                    return command(opening_width, wait=wait)
 
-                def command(cmd):
+                def command(cmd, wait=True):
                     if gripper_type == "85":
                         max_gap = 0.085
                         max_angle = 0.8028
@@ -57,7 +57,7 @@ class RobotiqGripper():
                     gripper_group.set_joint_value_target(cmd_joints)
                     success, plan, planning_time, error = gripper_group.plan()
                     if success:
-                        gripper_group.execute(plan, wait=True)
+                        gripper_group.execute(plan, wait=wait)
                         current_joints = gripper_group.get_current_joint_values()
                         goal_joints = helpers.get_trajectory_joint_goal(plan, gripper_group.get_active_joints())
                         success = helpers.all_close(goal_joints, current_joints, 0.01)
@@ -66,9 +66,9 @@ class RobotiqGripper():
                         return success
                     rospy.logerr("Rviz move_group gripper failed: %s " % error)
                     return False
-                setattr(GripperDummy, "close", lambda *args, **kwargs: close())
-                setattr(GripperDummy, "open", lambda self, opening_width: open(opening_width))
-                setattr(GripperDummy, "command", lambda self, cmd: command(cmd))
+                setattr(GripperDummy, "close", lambda self, wait: close(wait))
+                setattr(GripperDummy, "open", lambda self, opening_width, wait: open(opening_width, wait))
+                setattr(GripperDummy, "command", lambda self, cmd, wait: command(cmd, wait))
 
     def _gripper_status_callback(self, msg):
         self.opening_width = msg.position  # [m]
@@ -78,7 +78,7 @@ class RobotiqGripper():
         if self.use_real_robot:
             res = self.send_command("close", force=force, velocity=velocity, wait=wait)
         else:
-            res = self.gripper.close()
+            res = self.gripper.close(wait=wait)
         if self.last_attached_object[0]:
             self.attach_object(object_to_attach=self.last_attached_object[0], with_collisions=self.last_attached_object[1])
         return res
@@ -89,7 +89,7 @@ class RobotiqGripper():
             command = opening_width if opening_width else "open"
             res = self.send_command(command, wait=wait, velocity=velocity)
         else:
-            res = self.gripper.open(opening_width)
+            res = self.gripper.open(opening_width, wait=wait)
 
         if self.last_attached_object[0]:
             self.detach_object(object_to_detach=self.last_attached_object[0])
@@ -131,11 +131,11 @@ class RobotiqGripper():
                 res = True
         else:
             if command == "close":
-                res = self.gripper.close()
+                res = self.gripper.close(wait=wait)
             elif command == "open":
-                res = self.gripper.open()
+                res = self.gripper.open(wait=wait)
             else:
-                res = self.gripper.command(command)
+                res = self.gripper.command(command, wait=wait)
 
         if self.last_attached_object[0]:
             if command == "close":
