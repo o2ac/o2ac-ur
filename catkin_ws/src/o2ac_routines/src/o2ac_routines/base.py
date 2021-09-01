@@ -420,10 +420,6 @@ class O2ACBase(object):
 
   ######
   def pick_screw_from_feeder_python(self, robot_name, screw_size, realign_tool_upon_failure=True, skip_retreat=False):
-    if self.tools.screw_is_suctioned.get("m" + str(screw_size), False): 
-      rospy.loginfo("(pick_screw_from_feeder) But a screw was already detected in the tool. Returning true without doing anything.")
-      return True
-
     assert robot_name in ("a_bot", "b_bot"), "unsupported operation for robot %s" % robot_name
     if robot_name == "a_bot":
       rotation = [radians(80), 0, 0]
@@ -439,6 +435,9 @@ class O2ACBase(object):
       if not self.equip_tool(robot_name, fastening_tool_name):
         rospy.logerr("Robot is not carrying the correct tool (" + fastening_tool_name + ") and it failed to be equipped. Abort.")
         return False
+    if self.tools.screw_is_suctioned.get("m" + str(screw_size), False): 
+      rospy.loginfo("(pick_screw_from_feeder) But a screw was already detected in the tool. Returning true without doing anything.")
+      return True
 
     self.suck_screw(robot_name, pose_feeder, screw_tool_id, screw_tool_link, fastening_tool_name, do_spiral_search_at_bottom=True, skip_retreat=skip_retreat)
     

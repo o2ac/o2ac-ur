@@ -1743,6 +1743,9 @@ class O2ACCommon(O2ACBase):
       self.unequip_tool('b_bot', 'screw_tool_m4')
       return False
 
+    if not screw_set_center_pose:
+      screw_set_center_pose = copy.deepcopy(screw_pose)
+      screw_set_center_pose.pose.position.x -= 0.04
     feeder_to_hole_plan = None
     eef = robot_name+"_screw_tool_m%s_tip_link"%screw_size
     if save_plan_on_success:
@@ -3857,12 +3860,18 @@ class O2ACCommon(O2ACBase):
     if part1:
       # Attempt first screw only
       success = self.pick_and_fasten_screw(robot_name, screw_poses[0], screw_size=3, 
-                                           intermediate_pose=intermediate_pose, attempts=0, duration=30, spiral_radius=0.002)
-      seq = []
-      seq.append(helpers.to_sequence_item(intermediate_pose, speed=0.6, linear=True, end_effector_link = robot_name+"_screw_tool_m3_tip_link"))
-      seq.append(helpers.to_sequence_item("horizontal_screw_ready", speed=0.6))
-      seq.append(helpers.to_sequence_item("screw_ready", speed=0.6))
-      self.execute_sequence(robot_name, seq, "fasten_motor_screw_return")
+                                           intermediate_pose=intermediate_pose, attempts=0, 
+                                           duration=30, spiral_radius=0.002, save_plan_on_success=False)
+      eef = robot_name+"_screw_tool_m3_tip_link"
+      waypoints = []
+      rel_pose = self.a_bot.move_lin_rel([-0.03,0,0], relative_to_tcp=True, pose_only=True, end_effector_link=eef)
+      waypoints.append((self.active_robots[robot_name].compute_ik(rel_pose, timeout=0.02, retry=True, end_effector_link = eef), 0, 0.1))
+      waypoints.append((self.active_robots[robot_name].compute_ik(intermediate_pose, timeout=0.02, retry=True, end_effector_link = eef), 0, 0.1))
+      waypoints.append(("horizontal_screw_ready", 0, 1.0))
+      waypoints.append(("screw_ready",      0, 1.0))
+      if not self.active_robots[robot_name].move_joints_trajectory(waypoints):
+        rospy.logerr("Fail to go to back from screwing(%s)" % robot_name)
+        return False
 
       if not success:
         # Fallback: Return False here for b_bot to retry the motor insertion
@@ -3872,7 +3881,8 @@ class O2ACCommon(O2ACBase):
                                       skip_intermediate_pose=False, simultaneous=simultaneous, skip_return=True,
                                       intermediate_pose=intermediate_pose, unequip_when_done=False, attempts=0):
         rospy.logerr("Fail to fasten second screw of motor")
-        self.execute_sequence(robot_name, seq, "fasten_motor_screw_return")
+        if not self.active_robots[robot_name].move_joints_trajectory(waypoints):
+          rospy.logerr("Fail to go to back from screwing(%s)" % robot_name)
         return False
       
       # Retighten first two screws
@@ -4678,8 +4688,8 @@ class O2ACCommon(O2ACBase):
     seq.append(helpers.to_sequence_item(at_centering_pose, speed=speed))
     seq.append(helpers.to_sequence_gripper(0.01, gripper_velocity=1.0, wait=False))
     seq.append(helpers.to_sequence_item(pre_push_pose, speed=speed))
-    seq.append(helpers.to_sequence_gripper(0.004, gripper_force=0, gripper_velocity=0.1))
-    seq.append(helpers.to_sequence_item(push_pose, speed=0.3))
+    seq.append(helpers.to_sequence_gripper(0.00425, gripper_force=0, gripper_velocity=0.1))
+    seq.append(helpers.to_sequence_item(push_pose, speed=0.1))
 
     def post_callback():
       self.active_robots[robot_name].gripper.forget_attached_item()
@@ -4862,6 +4872,7 @@ class O2ACCommon(O2ACBase):
 
     screw_target_pose = conversions.to_pose_stamped(part_name + "bottom_screw_hole_1", [0, 0, 0, radians(-25), 0, 0])
     
+    
     if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel_name):
       # Fallback for screw 1
       rospy.logerr("Failed to fasten panel screw 1, trying to realign tool and retry.")
@@ -4891,7 +4902,8 @@ class O2ACCommon(O2ACBase):
           return False
     rospy.loginfo("Successfully fastened screw 1")
 
-    screw_target_pose.header.frame_id = part_name + "bottom_screw_hole_2"
+    ##### Second screw #####
+    screw_target_pose = conversions.to_pose_stamped(part_name + "bottom_screw_hole_2", [0, 0, 0, radians(-45), 0, 0])
     self.a_bot_success = False
     self.b_bot_success = False
     def a_bot_task():

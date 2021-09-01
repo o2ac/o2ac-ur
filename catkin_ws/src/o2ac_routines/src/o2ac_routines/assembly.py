@@ -1148,17 +1148,17 @@ class O2ACAssembly(O2ACCommon):
         
         self.assembly_status.bearing_inserted_in_panel = True
 
-        rel_pose1 = self.a_bot.move_lin_rel([0.1,0,0.0], pose_only=True)
-        rel_pose2 = self.a_bot.move_lin_rel([0.1,-0.2,0.1], pose_only=True)
+        rel_pose1 = self.a_bot.move_lin_rel([0.15,0,0.0], pose_only=True)
+        rel_pose2 = self.a_bot.move_lin_rel([0.1,-0.3,0.2], pose_only=True)
         waypoints = []
-        waypoints.append((self.b_bot.compute_ik(rel_pose1, timeout=0.02, retry=True), 0, 1.0))
-        waypoints.append((self.b_bot.compute_ik(rel_pose2, timeout=0.02, retry=True), 0, 1.0))
-        waypoints.append(("home", 0, 1.0))
-        if not self.b_bot.move_joints_trajectory(waypoints):
+        waypoints.append((self.a_bot.compute_ik(rel_pose1, timeout=0.02, retry=True), 0, 1.0))
+        waypoints.append((self.a_bot.compute_ik(rel_pose2, timeout=0.02, retry=True), 0, 1.0))
+        waypoints.append(("screw_ready", 0, 1.0))
+        if not self.a_bot.move_joints_trajectory(waypoints):
           rospy.logerr("Fail to go home")
-          self.b_bot.move_lin_rel(relative_translation=[0.1, 0, 0])
-          self.b_bot.move_lin_rel(relative_translation=[0.1, -0.2, 0.1])
-          self.b_bot.go_to_named_pose("home")
+          self.a_bot.move_lin_rel(relative_translation=[0.1, 0, 0])
+          self.a_bot.move_lin_rel(relative_translation=[0.1, -0.2, 0.1])
+          self.a_bot.go_to_named_pose("home")
           return False
     else:
       a_bot_2nd_task = lambda : True
