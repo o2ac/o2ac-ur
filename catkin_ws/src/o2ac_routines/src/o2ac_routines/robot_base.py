@@ -125,7 +125,7 @@ class RobotBase():
         group.set_max_velocity_scaling_factor(speed_)
         group.set_max_acceleration_scaling_factor(accel_)
         self.set_planner(planner)
-        return True
+        return speed_, accel_
 
     def set_planner(self, planner="OMPL"):
         group = self.robot_group
@@ -238,8 +238,7 @@ class RobotBase():
         move_ptp = False if move_lin else move_ptp # Override if move_lin is set (Linear takes priority since PTP is the default value)
 
         planner = "LINEAR" if move_lin else ("PTP" if move_ptp else "OMPL")
-        if not self.set_up_move_group(speed, acceleration, planner):
-            return False
+        speed_, accel_ = self.set_up_move_group(speed, acceleration, planner)
 
         group = self.robot_group
         group.clear_pose_targets()
@@ -278,7 +277,8 @@ class RobotBase():
             if success:
                 if planner != "LINEAR":
                     # retime
-                    plan = self.robot_group.retime_trajectory(self.robot_group.get_current_state(), plan, algorithm="time_optimal_trajectory_generation")
+                    plan = self.robot_group.retime_trajectory(self.robot_group.get_current_state(), plan, algorithm="time_optimal_trajectory_generation",
+                                                              velocity_scaling_factor=speed_, acceleration_scaling_factor=accel_)
                 if plan_only:
                     group.set_start_state_to_current_state()
                     group.clear_pose_targets()
@@ -473,8 +473,7 @@ class RobotBase():
         """
         pose_name should be a named pose in the moveit_config, such as "home", "back" etc.
         """
-        if not self.set_up_move_group(speed, acceleration, planner=("PTP" if move_ptp else "OMPL")):
-            return False
+        speed_, accel_ = self.set_up_move_group(speed, acceleration, planner=("PTP" if move_ptp else "OMPL"))
         group = self.robot_group
 
         group.set_named_target(pose_name)
@@ -491,7 +490,8 @@ class RobotBase():
             success, plan, planning_time, error = group.plan()
             if success:
                 # retime
-                plan = self.robot_group.retime_trajectory(self.robot_group.get_current_state(), plan, algorithm="time_optimal_trajectory_generation")
+                plan = self.robot_group.retime_trajectory(self.robot_group.get_current_state(), plan, algorithm="time_optimal_trajectory_generation",
+                                                              velocity_scaling_factor=speed_, acceleration_scaling_factor=accel_)
                 group.clear_pose_targets()
                 group.set_start_state_to_current_state()
                 if plan_only:
@@ -510,8 +510,7 @@ class RobotBase():
         return success
 
     def move_joints(self, joint_pose_goal, speed=0.6, acceleration=None, wait=True, plan_only=False, initial_joints=None, move_ptp=True):
-        if not self.set_up_move_group(speed, acceleration, planner=("PTP" if move_ptp else "OMPL")):
-            return False
+        speed_, accel_ = self.set_up_move_group(speed, acceleration, planner=("PTP" if move_ptp else "OMPL"))
         group = self.robot_group
 
         group.set_joint_value_target(joint_pose_goal)
@@ -528,7 +527,8 @@ class RobotBase():
             success, plan, planning_time, error = group.plan()
             if success:
                 # retime
-                plan = self.robot_group.retime_trajectory(self.robot_group.get_current_state(), plan, algorithm="time_optimal_trajectory_generation")
+                plan = self.robot_group.retime_trajectory(self.robot_group.get_current_state(), plan, algorithm="time_optimal_trajectory_generation",
+                                                              velocity_scaling_factor=speed_, acceleration_scaling_factor=accel_)
                 group.set_start_state_to_current_state()
                 if plan_only:
                     return plan, planning_time
@@ -547,8 +547,7 @@ class RobotBase():
         return False
 
     def move_joints_trajectory(self, trajectory, speed=1.0, acceleration=None, plan_only=False, initial_joints=None, timeout=5.0):
-        if not self.set_up_move_group(speed, acceleration, planner="PTP"):
-            return False
+        speed_, accel_ = self.set_up_move_group(speed, acceleration, planner="PTP")
 
         group = self.robot_group
 
@@ -603,7 +602,8 @@ class RobotBase():
             if response.response.error_code.val == 1:
                 plan = response.response.planned_trajectories[0]  # support only one plan?
                 # retime
-                plan = self.robot_group.retime_trajectory(self.robot_group.get_current_state(), plan, algorithm="time_optimal_trajectory_generation")
+                plan = self.robot_group.retime_trajectory(self.robot_group.get_current_state(), plan, algorithm="time_optimal_trajectory_generation",
+                                                              velocity_scaling_factor=speed_, acceleration_scaling_factor=accel_)
                 planning_time = response.response.planning_time
                 if plan_only:
                     return plan, planning_time
