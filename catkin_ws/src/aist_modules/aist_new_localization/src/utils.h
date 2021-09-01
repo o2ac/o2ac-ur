@@ -126,6 +126,10 @@ create_pointcloud(const sensor_msgs::CameraInfo& camera_info,
 {
     using namespace	sensor_msgs;
 
+    if (camera_info.height != depth.height ||
+        camera_info.width  != depth.width)
+        throw std::runtime_error("create_pointcloud() inconsistent sizes between camera_info and depth");
+        
     PointCloud2	cloud;
     cloud.is_bigendian	= false;
     cloud.is_dense	= false;
