@@ -863,7 +863,14 @@ class O2ACBase(object):
     for object_name, pose in zip(objects, poses):
       self.fake_tray_object_positions[object_name] = pose
 
-  def spawn_objects_for_demo(self, base_plate_in_tray=False, layout_number=1):
+  def spawn_panel(self):    
+    co = self.assembly_database.get_collision_object("panel_bearing")
+    co.header.frame_id = "tray_center"
+    co.pose = conversions.to_pose([-0.05, -0.05, 0.001, tau/4, 0, 0])
+    self.planning_scene_interface.apply_collision_object(co)
+    self.planning_scene_interface.allow_collisions("panel_bearing", "")
+
+  def spawn_objects_for_demo(self, base_plate_in_tray=False, layout_number=1):    
     if layout_number == 4:
       objects = ['base', 'panel_motor', 'panel_bearing']
       poses = [[0.1, 0.04, 0.001, tau/4, 0.0, tau/2],

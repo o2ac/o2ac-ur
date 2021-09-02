@@ -6,6 +6,8 @@
 
 #include <eigen_conversions/eigen_msg.h>
 #include <moveit/move_group_interface/move_group_interface.h>
+#include <moveit/robot_state/conversions.h>
+
 #include <ros/ros.h>
 
 void load_grasp_points(const std::string &yaml_file_path,
@@ -37,6 +39,9 @@ int main(int argc, char **argv) {
 
   ros::init(argc, argv, "planner_test");
   ros::NodeHandle nd;
+
+  ros::AsyncSpinner spinner(1);
+  spinner.start();
 
   std::string config_file_name;
   if (argc > 1) {
@@ -99,48 +104,68 @@ int main(int argc, char **argv) {
     if (type == touch_action_type || type == look_action_type) {
       return false;
     }
+    // fprintf(stderr, "%d\n",static_cast<int>(type));
+    // print_pose(current_gripper_pose, stderr);
+    // print_pose(target_gripper_pose, stderr);
     robot_group.clearPoseTargets();
     robot_group.setPoseReferenceFrame("world");
     robot_group.setStartStateToCurrentState();
     robot_group.setEndEffectorLink("a_bot_gripper_tip_link");
-    robot_group.setMaxVelocityScalingFactor(0.1);
-    robot_group.setMaxAccelerationScalingFactor(0.5);
     robot_group.setPlanningTime(15.0);
 
     const double pushing_length = 0.05, retreat_height = 0.05;
+    std::vector<Eigen::Isometry3d> target_poses(1, current_gripper_pose);
 
-    std::vector<geometry_msgs::Pose> waypoints(1);
-    tf::poseEigenToMsg(current_gripper_pose, waypoints[0]);
-    geometry_msgs::Pose gripper_pose;
-    tf::poseEigenToMsg(target_gripper_pose, gripper_pose);
     if (type == place_action_type) {
-      geometry_msgs::Pose high_pose = gripper_pose;
-      high_pose.position.z += retreat_height;
-      waypoints.push_back(high_pose);
-      waypoints.push_back(gripper_pose);
+      Eigen::Isometry3d high_pose = target_gripper_pose;
+      high_pose.translation().z() += retreat_height;
+      target_poses.push_back(high_pose);
+      target_poses.push_back(target_gripper_pose);
     } else if (type == grasp_action_type) {
-      waypoints.push_back(gripper_pose);
+      target_poses.push_back(target_gripper_pose);
       /*geometry_msgs::Pose high_pose = gripper_pose;
       high_pose.position.z += retreat_height;
       waypoints.push_back(high_pose);*/
     } else if (type == push_action_type) {
-      Eigen::Isometry3d eigen_pose_before_push = target_gripper_pose;
-      eigen_pose_before_push.translation() -=
+      Eigen::Isometry3d pose_before_push = target_gripper_pose;
+      pose_before_push.translation() -=
           pushing_length *
           (target_gripper_pose.rotation() * Eigen::Vector3d::UnitZ());
-      geometry_msgs::Pose pose_before_push;
-      tf::poseEigenToMsg(eigen_pose_before_push, pose_before_push);
-      waypoints.push_back(pose_before_push);
-      waypoints.push_back(gripper_pose);
+      target_poses.push_back(pose_before_push);
+      target_poses.push_back(target_gripper_pose);
     }
 
-    moveit_msgs::RobotTrajectory trajectory;
-    const double jump_threshold = 0.0;
-    const double eef_step = 0.01;
-    double cartesian_success = robot_group.computeCartesianPath(
-        waypoints, eef_step, jump_threshold, trajectory);
+    moveit::core::RobotState last_state(*robot_group.getCurrentState());
+    for (int t = 0;; t++) {
+      moveit_msgs::RobotTrajectory trajectory;
+      std::vector<geometry_msgs::Pose> waypoints(1);
+      const double jump_threshold = 0.0;
+      const double eef_step = 0.01;
+      if (t <= 1) {
+        robot_group.setMaxVelocityScalingFactor(0.1);
+        robot_group.setMaxAccelerationScalingFactor(0.5);
+      } else {
+        robot_group.setMaxVelocityScalingFactor(0.01);
+        robot_group.setMaxAccelerationScalingFactor(0.01);
+      }
+      tf::poseEigenToMsg(target_poses[t], waypoints[0]);
+      double cartesian_success = robot_group.computeCartesianPath(
+          waypoints, eef_step, jump_threshold, trajectory);
 
-    return cartesian_success > 0.95;
+      if (cartesian_success <= 0.95) {
+        // fprintf(stderr, "NG\n");
+        return false;
+      }
+      if (t + 1 >= target_poses.size())
+        break;
+
+      moveit::core::jointTrajPointToRobotState(
+          trajectory.joint_trajectory,
+          trajectory.joint_trajectory.points.size() - 1, last_state);
+      robot_group.setStartState(last_state);
+    }
+    // fprintf(stderr, "OK\n");
+    return true;
   };
   boost::array<bool, 5> able_action;
   if (!use_moveit) {
@@ -220,7 +245,8 @@ int main(int argc, char **argv) {
   planner.set_geometry(gripped_geometry, grasp_points, support_surface);
 
   std::vector<UpdateAction> actions;
-  if (is_goal_pose) {
+
+  if (is_goal_pose == 1) {
     char goal_grasp_name[1000];
     double translation_threshold, rotation_threshold;
     fscanf(config_file, "%999s%lf%lf", goal_grasp_name, &translation_threshold,
@@ -228,18 +254,22 @@ int main(int argc, char **argv) {
     Eigen::Isometry3d goal_pose =
         (*grasp_points)[name_to_id[std::string(goal_grasp_name)]].inverse();
     std::cerr << goal_pose.matrix() << std::endl;
-    actions = planner.calculate_plan(
-        initial_gripper_pose, initially_gripping, initial_mean,
-        initial_covariance, objective_coefficients, objective_value, true,
-        check_near_to_goal_pose(goal_pose, translation_threshold,
-                                rotation_threshold));
-  } else {
-    actions = planner.calculate_plan(initial_gripper_pose, initially_gripping,
-                                     initial_mean, initial_covariance,
-                                     objective_coefficients, objective_value);
+    planner.set_goal_checker(
+        std::make_shared<GoalChecker>(check_near_to_goal_pose(
+            goal_pose, translation_threshold, rotation_threshold)));
+
+  } else if (is_goal_pose == 2) {
+    planner.set_goal_checker(std::make_shared<GoalChecker>(
+        [](const bool &gripping, const Eigen::Isometry3d &pose) {
+          return !gripping;
+        }));
   }
 
   fclose(config_file);
+
+  actions = planner.calculate_plan(initial_gripper_pose, initially_gripping,
+                                   initial_mean, initial_covariance,
+                                   objective_coefficients, objective_value);
 
   // print action plan
   printf("%s\n", stl_file_path);

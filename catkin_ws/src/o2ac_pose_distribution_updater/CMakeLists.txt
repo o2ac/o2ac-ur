@@ -104,5 +104,5 @@ if(CATKIN_ENABLE_TESTING)
 
   add_executable(print_scene src/test/print_scene.cpp)
   add_dependencies(print_scene ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-  target_link_libraries(print_scene  ${catkin_LIBRARIES} read_stl planner)
+  target_link_libraries(print_scene test_tools planner)
 endif()

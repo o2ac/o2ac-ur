@@ -211,12 +211,11 @@ void Planner::calculate_action_candidates(
   }
 }
 
-std::function<bool(const Eigen::Isometry3d)>
-check_near_to_goal_pose(const Eigen::Isometry3d &goal_pose,
-                        const double &translation_threshold,
-                        const double &rotation_threshold) {
-  return [goal_pose, translation_threshold,
-          rotation_threshold](const Eigen::Isometry3d &pose) -> bool {
+GoalChecker check_near_to_goal_pose(const Eigen::Isometry3d &goal_pose,
+                                    const double &translation_threshold,
+                                    const double &rotation_threshold) {
+  return [goal_pose, translation_threshold, rotation_threshold](
+             const bool &gripping, const Eigen::Isometry3d &pose) -> bool {
     Eigen::Isometry3d move = pose * goal_pose.inverse();
     return move.translation().norm() < translation_threshold &&
            Eigen::AngleAxisd(move.rotation()).angle() < rotation_threshold;
@@ -240,13 +239,13 @@ void Planner::set_geometry(
   looked_point = camera_pose * (-0.10 * Eigen::Vector3d::UnitZ());
 }
 
-std::vector<UpdateAction> Planner::calculate_plan(
-    const Eigen::Isometry3d &current_gripper_pose, const bool &current_gripping,
-    const Eigen::Isometry3d &current_mean,
-    const CovarianceMatrix &current_covariance,
-    const CovarianceMatrix &objective_coefficients,
-    const double &objective_value, const bool goal_gripping,
-    const std::function<bool(const Eigen::Isometry3d &)> check_goal_pose) {
+std::vector<UpdateAction>
+Planner::calculate_plan(const Eigen::Isometry3d &current_gripper_pose,
+                        const bool &current_gripping,
+                        const Eigen::Isometry3d &current_mean,
+                        const CovarianceMatrix &current_covariance,
+                        const CovarianceMatrix &objective_coefficients,
+                        const double &objective_value) {
 
   struct node {
     Eigen::Isometry3d mean, gripper_pose;
@@ -283,8 +282,7 @@ std::vector<UpdateAction> Planner::calculate_plan(
             id > 0 ? nodes[id].previous_action.type : -1, nodes[id].cost,
             score);
     if (score < objective_value &&
-        (!goal_gripping ||
-         nodes[id].gripping && check_goal_pose(nodes[id].mean))) {
+        ((*goal_checker)(nodes[id].gripping, nodes[id].mean))) {
       goal_node_id = id;
       break;
     }

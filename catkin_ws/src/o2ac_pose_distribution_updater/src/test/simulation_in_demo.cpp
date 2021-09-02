@@ -253,8 +253,8 @@ int main(int argc, char **argv) {
         ROS_ERROR("Moving to place failed");
         break;
       }
-      if (!skill_server.moveToCartPoseLIN(gripper_pose, robot_name, true, "",
-                                          0.01, 0.01)) {
+      ros::Duration(1.0).sleep(); // 1 second
+      if (!skill_server.moveToCartPoseLIN(gripper_pose, robot_name)) {
         ROS_ERROR("Placing down failed");
         break;
       }
