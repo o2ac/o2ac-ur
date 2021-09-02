@@ -897,7 +897,7 @@ class O2ACAssembly(O2ACCommon):
     screw_target_pose.header.frame_id = part_name + "bottom_screw_hole_1"
     screw_target_pose.pose.orientation = geometry_msgs.msg.Quaternion(
                 *tf_conversions.transformations.quaternion_from_euler(radians(-20), 0, 0))
-    if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel):
+    if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel, approach_from_front=approach_from_front):
       # Fallback for screw 1
       rospy.logerr("Failed to fasten panel screw 1, trying to realign tool and retry.")
       self.realign_tool("b_bot", "screw_tool_m4")
@@ -921,7 +921,7 @@ class O2ACAssembly(O2ACCommon):
       helpers.wait_for_UR_program("/a_bot", rospy.Duration.from_sec(20))
       
       # Retry fastening
-      if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel):
+      if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel, approach_from_front=approach_from_front):
         rospy.logerr("Failed to fasten panel screw 2 again. Aborting.")
         return False
     rospy.loginfo("Successfully fastened screw 1")
@@ -939,7 +939,7 @@ class O2ACAssembly(O2ACCommon):
       rospy.logerr("Failed to pick second screw from feeder, could not fix the issue. Abort.")
 
     screw_target_pose.header.frame_id = part_name + "bottom_screw_hole_2"
-    if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel):
+    if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel, approach_from_front=approach_from_front):
       # Fallback for screw 2: Realign tool, recenter plate, try again
       rospy.logerr("Failed to fasten panel screw 2, trying to realign tool and retrying.")
       self.realign_tool("b_bot", "screw_tool_m4")
@@ -961,7 +961,7 @@ class O2ACAssembly(O2ACCommon):
       if not self.a_bot.go_to_named_pose("home"):
         rospy.logerr("Failed to move a_bot home!")
         return False
-      if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel):
+      if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel, approach_from_front=approach_from_front):
         rospy.logerr("Failed to fasten panel screw 2 again. Aborting.")
         return False
     self.unlock_base_plate()
@@ -1031,7 +1031,6 @@ class O2ACAssembly(O2ACCommon):
       if not self.subtask_zero(skip_initial_perception=False): 
         if not self.subtask_zero(skip_initial_perception=False): # Try again
           return False
-      # Fasten plates
       if simultaneous:
         if not self.place_panel("a_bot", "panel_bearing", pick_again=True, pick_only=True, fake_position=True):
           rospy.logerr("Fail to place bearing panel in simultaneous!!")

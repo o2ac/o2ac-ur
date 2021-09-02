@@ -3984,26 +3984,41 @@ class O2ACCommon(O2ACBase):
     self.allow_collisions_with_robot_hand("tray", robot_name, allow=False)
     return p_new
 
-  def fasten_screw_vertical(self, robot_name, screw_hole_pose, allow_collision_with_object="", screw_height = .02, screw_size = 4, spiral_radius=0.0015):
+  def fasten_screw_vertical(self, robot_name, screw_hole_pose, allow_collision_with_object="", screw_height = .02, screw_size = 4, spiral_radius=0.0015, approach_from_front=False):
     """
-    This works for the two L-plates when they are facing forward.
+    Fasten a screw on one of the L-plates.
+
+    Starts and ends at feeder_pick_ready.
+    allow_collision_with_object is the name of the object we are fastening (the screw needs to be able to move into it, because of the tool's compliance)
     """
     if not screw_size==3 and not screw_size==4:
       rospy.logerr("Screw size needs to be 3 or 4 but is: " + str(screw_size))
       return False
 
-    self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
-    
-    if allow_collision_with_object:
-      self.planning_scene_interface.allow_collisions("screw_tool_m%s" % screw_size, allow_collision_with_object)  # Has to be allowed after each screw attempt
+    def approach():
+      self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
+      if approach_from_front:
+        self.active_robots[robot_name].go_to_named_pose("screw_ready_passthrough")
+        self.active_robots[robot_name].go_to_named_pose("screw_ready_front")
+    def retreat():
+      if approach_from_front:
+        self.active_robots[robot_name].go_to_named_pose("screw_ready_front")
+        self.active_robots[robot_name].go_to_named_pose("screw_ready_passthrough")
+      self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
+
+    def set_collisions(allow=True):
+      """ Allow collisions with the L-plate and base. """
+      if allow_collision_with_object:
+        self.planning_scene_interface.allow_collisions("screw_tool_m%s" % screw_size, allow_collision_with_object)  # Has to be set after each screw attempt
+
+    approach()
+    set_collisions()
     res = self.screw(robot_name, screw_hole_pose, screw_size, screw_height, 
                      stay_put_after_screwing=False, skip_final_loosen_and_retighten=False, 
                      spiral_radius=spiral_radius, attempts=0)
-    if allow_collision_with_object:
-      self.planning_scene_interface.allow_collisions("screw_tool_m%s" % screw_size, allow_collision_with_object)  # Has to be allowed after each screw attempt
-    self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
-    if allow_collision_with_object:
-      self.planning_scene_interface.allow_collisions("screw_tool_m%s" % screw_size, allow_collision_with_object) 
+    set_collisions()
+    retreat()
+    set_collisions(allow=False)
     return res  # Bool
 
   def fasten_screw_horizontal(self, robot_name, screw_hole_pose, screw_height = .02, screw_size = 4):
@@ -4527,16 +4542,48 @@ class O2ACCommon(O2ACBase):
       if pick_only:
         return True
 
-    object_frame = "assembled_part_01_screw_hole_panel1_1" if panel_name == "panel_bearing" else "assembled_part_01_screw_hole_panel2_1"
+    # Set place positions.
+    # The plate dimensions should be in the assembly_database, but currently we only store the subframes there.
+    if panel_name == "panel_bearing":
+      object_frame = "assembled_part_01_screw_hole_panel1_1"
+      l_plate = 0.116
+    else:
+      object_frame = "assembled_part_01_screw_hole_panel2_1"
+      if self.assembly_database.db_name == "wrs_assembly_2021":
+        l_plate = 0.06
+      elif self.assembly_database.db_name == "wrs_assembly_2020":
+        l_plate = 0.07
 
     if self.assembly_database.db_name == "wrs_assembly_2021":
-      offsets = [0.01, 0.116/2-0.007] if panel_name == "panel_bearing" else [0.011, 0.06/2-0.008]  # MAGIC NUMBERS
+      if panel_name == "panel_bearing":
+        offset_y = 0.01             # MAGIC NUMBER (points to the global forward (x-axis))
+        offset_z = -0.007           # MAGIC NUMBER (points to the global left (negative y-axis))
+      else:
+        offset_y = 0.011            # MAGIC NUMBER
+        offset_z = -0.008           # MAGIC NUMBER
     elif self.assembly_database.db_name == "wrs_assembly_2020":
-      offsets = [0.01, 0.116/2-0.0065] if panel_name == "panel_bearing" else [0.011, 0.07/2-0.006]  # MAGIC NUMBERS
+      if panel_name == "panel_bearing":
+        offset_y = 0.01             # MAGIC NUMBER
+        offset_z = -0.0065          # MAGIC NUMBER
+      else:
+        offset_y = 0.011            # MAGIC NUMBER
+        offset_z = -0.006           # MAGIC NUMBER
+    elif self.assembly_database.db_name == "wrs_assembly_2021_surprise":
+      if panel_name == "panel_bearing":
+        if self.assembly_database.assembly_info.get(["bearing_panel_facing_backward"], False):
+          offset_y = -0.01          # MAGIC NUMBER (TODO)
+          offset_z = -0.007         # MAGIC NUMBER (TODO)
+        else:
+          offset_y = 0.01           # MAGIC NUMBER
+          offset_z = -0.007         # MAGIC NUMBER
+      else:
+        offset_y = 0.011            # MAGIC NUMBER
+        offset_z = -0.008           # MAGIC NUMBER     
     else:
       raise ValueError("Unknown data")
-    above_plate_pose = conversions.to_pose_stamped(object_frame, [-0.100, offsets[0], offsets[1], 0, 0, 0])
-    place_pose       = conversions.to_pose_stamped(object_frame, [-0.016, offsets[0], offsets[1], 0, 0, 0])
+    
+    above_plate_pose = conversions.to_pose_stamped(object_frame, [-0.100, offset_y, l_plate/2 + offset_z, 0, 0, 0])
+    place_pose       = conversions.to_pose_stamped(object_frame, [-0.016, offset_y, l_plate/2 + offset_z, 0, 0, 0])
     
     self.planning_scene_interface.allow_collisions("base_fixture_top", panel_name)
     if not self.active_robots[robot_name].go_to_pose_goal(above_plate_pose, speed=1.0, move_lin=True, timeout=15):
@@ -4855,8 +4902,10 @@ class O2ACCommon(O2ACBase):
   def fasten_panel(self, panel_name, simultaneous=False, a_bot_task_2nd_screw=None, unequip_tool_on_success=False, b_bot_2nd_task=None):
     if panel_name == "panel_bearing":
       part_name = "assembled_part_03_"
+      approach_from_front = self.assembly_database.assembly_info.get(["bearing_panel_facing_backward"], False)
     elif panel_name == "panel_motor":
       part_name = "assembled_part_02_"
+      approach_from_front = self.assembly_database.assembly_info.get(["motor_panel_facing_backward"], False)
     
     self.confirm_to_proceed("Plate in the correct position?")
     if not simultaneous:
@@ -4873,7 +4922,7 @@ class O2ACCommon(O2ACBase):
 
     screw_target_pose = conversions.to_pose_stamped(part_name + "bottom_screw_hole_1", [0, 0, 0, radians(-25), 0, 0])
     
-    if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel_name):
+    if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel_name, approach_from_front=approach_from_front):
       # Fallback for screw 1
       rospy.logerr("Failed to fasten panel screw 1, trying to realign tool and retry.")
       def b_bot_task():
@@ -4885,16 +4934,16 @@ class O2ACCommon(O2ACBase):
       if simultaneous:
         self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=120)
       else:
-        b_bot_task
-        a_bot_task
+        b_bot_task()
+        a_bot_task()
       # Retry fastening
       if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel_name):
         rospy.logerr("Failed to fasten panel screw 2, trying to realign tool and retry.")
         if simultaneous:
           self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=120)
         else:
-          b_bot_task
-          a_bot_task
+          b_bot_task()
+          a_bot_task()
         if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel_name):
           rospy.logerr("Failed to fasten panel screw 3 abort.")
           self.unequip_tool("b_bot")
