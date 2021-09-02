@@ -4413,10 +4413,51 @@ class O2ACCommon(O2ACBase):
 
     self.vision.activate_pulley_screw_detection()
 
-    while not rospy.is_shutdown():
-      print("screws visible:", self.vision.check_if_pulley_screws_visible())
-      rospy.sleep(0.1)
+    global pulley_screws_visible
+    pulley_screws_visible = False
+    def f(msg):
+      global pulley_screws_visible
+      if not pulley_screws_visible == msg.data:
+        rospy.loginfo("=== pulley_screws_visible changed to: " + str(msg.data))
+      pulley_screws_visible = msg.data
+    rospy.Subscriber("/o2ac_vision_server/pulley_screws_in_view", Bool, f)
+    rospy.sleep(0.5)
 
+    # pulley_grasp_pose = conversions.to_pose_stamped("assembled_part_11_front_hole", [0.006, 0, 0.006,  0, np.deg2rad(60), 0])
+    pulley_grasp_pose = conversions.to_pose_stamped("assembled_part_07_front_hole", [-0.012, -0.000, -0.006, tau/2, 0, 0])
+    approach_pulley = conversions.to_pose_stamped("assembled_part_07_front_hole", [-0.05, 0, -0.006, tau/2, 0, 0])
+
+    self.a_bot.go_to_pose_goal(approach_pulley)
+
+    screws_upright = False
+    tries = 0
+    while not screws_upright and not rospy.is_shutdown() and tries < 10:
+      # screws_seen_at_angle = find_pulley_screws(approach_centering)
+      
+      # Rotate the pulley
+      self.rotate_motor_pulley(self, "assembled_part_07_front_hole", rotations=1, 
+                                      offset_from_center=0.04, x_offset=0.024, skip_approach=True)
+      if pulley_screws_visible:
+        # Grasp with a_bot
+        self.a_bot.go_to_pose_goal(approach_pulley, speed=0.3)
+        self.a_bot.go_to_pose_goal(pulley_grasp_pose, speed=0.3)
+        self.a_bot.gripper.close(force=100)
+
+        # Push shaft into contact
+        approach_hold_pose = conversions.to_pose_stamped("assembled_part_07_inserted", [0.15, 0.000, -0.15] + np.deg2rad([-90,-90,-90]).tolist())
+        pre_hold_pose = conversions.to_pose_stamped("assembled_part_07_inserted", [0.15, 0.000, 0.02] + np.deg2rad([-90,-90,-90]).tolist())
+        at_hold_pose = conversions.to_pose_stamped("assembled_part_07_inserted", [0.043, 0.000, 0.02] + np.deg2rad([-90,-90,-90]).tolist())
+        self.b_bot.gripper.close(wait=False)
+        self.b_bot.go_to_pose_goal(approach_hold_pose)
+        self.b_bot.go_to_pose_goal(pre_hold_pose)
+        self.b_bot.go_to_pose_goal(at_hold_pose)
+        self.b_bot.go_to_pose_goal(pre_hold_pose)
+        self.b_bot.go_to_named_pose("screw_ready")
+        
+        # Fasten two screws
+        self.fasten_output_pulley()
+        break
+    self.vision.activate_pulley_screw_detection(False)
     return True
     # TODO: Turn pulley with a_bot, stop when screws visible
 

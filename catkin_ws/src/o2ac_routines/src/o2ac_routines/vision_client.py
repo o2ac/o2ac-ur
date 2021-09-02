@@ -132,12 +132,6 @@ class VisionClient():
         self.pulley_screw_detection_streaming = activate
 
     # @lock_vision
-    def check_if_pulley_screws_visible(self):
-        """ The pulley_screw_detection_stream_client needs to be set to True before calling this. """
-        msg = rospy.wait_for_message('/o2ac_vision_server/pulley_screws_in_view', std_msgs.msg.Bool, rospy.Duration(1.0))
-        return msg.data
-
-    # @lock_vision
     def check_pick_success(self, object_name):
         """ Returns true if the visual pick success check for the object returns True.
             This can only be used in specific pre-determined situations and for certain items.
