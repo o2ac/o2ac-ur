@@ -299,7 +299,7 @@ class RobotBase():
                 tries += 1
 
         if not success:
-            rospy.logerr("go_to_pose_goal failed " + str(tries) + " times! Broke out, published failed pose.")
+            rospy.logerr("go_to_pose_goal failed " + str(tries) + " times! Broke out, published failed pose. simultaneous=" + str(robots_in_simultaneous))
             helpers.publish_marker(pose_goal_stamped, "pose", self.ns + "_move_lin_failed_pose_" + str(self.marker_counter))
             self.marker_counter += 1
         else:
@@ -403,7 +403,7 @@ class RobotBase():
     def move_lin_rel(self, relative_translation=[0, 0, 0], relative_rotation=[0, 0, 0], speed=.5,
                      acceleration=None, relative_to_robot_base=False, relative_to_tcp=False,
                      wait=True, end_effector_link="", plan_only=False, initial_joints=None,
-                     allow_joint_configuration_flip=False, pose_only=False):
+                     allow_joint_configuration_flip=False, pose_only=False, timeout=5.0):
         '''
         Does a lin_move relative to the current position of the robot.
 
@@ -470,7 +470,7 @@ class RobotBase():
                                         end_effector_link=end_effector_link,  wait=wait,
                                         move_lin=True, plan_only=plan_only, initial_joints=initial_joints,
                                         allow_joint_configuration_flip=allow_joint_configuration_flip,
-                                        retry_non_linear=False)
+                                        retry_non_linear=False, timeout=timeout)
 
     def go_to_named_pose(self, pose_name, speed=0.5, acceleration=None, wait=True, plan_only=False, initial_joints=None, move_ptp=True):
         """

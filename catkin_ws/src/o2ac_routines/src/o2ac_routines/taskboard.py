@@ -480,7 +480,14 @@ class O2ACTaskboard(O2ACCommon):
       def a_bot_task():
         global res, r2, pick_goal, a_bot_found_belt
         self.a_bot.go_to_pose_goal(self.tray_view_high, end_effector_link="a_bot_outside_camera_color_frame", speed=.8, move_lin=False)
-        res = self.get_3d_poses_from_ssd()
+        tries = 10
+        res = None
+        while tries > 0:
+          res = self.get_3d_poses_from_ssd()
+          if res:
+            break
+          rospy.sleep(1)
+          tries -= 1
         r2 = self.get_feasible_grasp_points("belt")
         if r2:
           pick_goal = r2[0]
@@ -497,6 +504,7 @@ class O2ACTaskboard(O2ACCommon):
       if not a_bot_found_belt or not b_bot_loaded_program:
           return False
           
+      self.vision.activate_camera("b_bot_outside_camera")
       # Pick belt and tool
       self.confirm_to_proceed("Pick tool with b_bot and belt with a_bot?")
       global b_bot_executed_program

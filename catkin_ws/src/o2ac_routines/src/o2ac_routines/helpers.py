@@ -597,7 +597,7 @@ def to_sequence_gripper(action, gripper_opening_width=0.14, gripper_force=40, gr
     }
   return ["waypoint", item]
 
-def to_sequence_item_relative(pose, relative_to_base=False, relative_to_tcp=False, speed=0.5, acc=0.25):
+def to_sequence_item_relative(pose, relative_to_base=False, relative_to_tcp=False, speed=0.5, acc=0.25, retime=False):
   if relative_to_tcp:
     pose_type = 'relative-tcp'
   elif relative_to_base:
@@ -606,10 +606,10 @@ def to_sequence_item_relative(pose, relative_to_base=False, relative_to_tcp=Fals
     pose_type = 'relative-world'
   item  = {"pose": pose,
            "pose_type": pose_type}
-  item.update({"speed": speed, "acc": acc})
+  item.update({"speed": speed, "acc": acc, "retime": retime})
   return ["waypoint", item]
 
-def to_sequence_item(pose, speed=0.5, acc=0.25, linear=True, end_effector_link=None):
+def to_sequence_item(pose, speed=0.5, acc=0.25, linear=True, end_effector_link=None, retime=False):
   if isinstance(pose, geometry_msgs.msg.PoseStamped):
     item           = {"pose": conversions.from_point(pose.pose.position).tolist() + np.rad2deg(transformations.euler_from_quaternion(conversions.from_quaternion(pose.pose.orientation))).tolist(),
                       "pose_type": "task-space-in-frame",
@@ -626,7 +626,7 @@ def to_sequence_item(pose, speed=0.5, acc=0.25, linear=True, end_effector_link=N
       item       = {"pose": pose,
                     "pose_type": "joint-space-goal-cartesian-lin-motion" if linear else "joint-space",
                     }
-  item.update({"speed": speed, "acc": acc})
+  item.update({"speed": speed, "acc": acc, "retime": retime})
 
   return ["waypoint", item]
 
@@ -713,6 +713,10 @@ def save_sequence_plans(name, plans):
         bag.write(topic="gripper_action", msg=String(json.dumps(plan)))
       else:
         bag.write(topic="plan", msg=plan)
+
+# def retime_plans(move_group, plans):
+#   plan = self.robot_group.retime_trajectory(self.robot_group.get_current_state(), plan, algorithm="time_optimal_trajectory_generation",
+#                                                               velocity_scaling_factor=speed_, acceleration_scaling_factor=accel_)
 
 def create_tray_collision_object(id, pose, frame_id):
   tray_co = moveit_msgs.msg.CollisionObject()
