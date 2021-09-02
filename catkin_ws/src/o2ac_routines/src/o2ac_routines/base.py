@@ -211,6 +211,7 @@ class O2ACBase(object):
     if not self.use_real_robot:
       self.define_objects_in_tray_arrangement()  # For simulated vision
 
+    rospy.set_param("/o2ac/simultaneous", False)
     rospy.sleep(.5)
     rospy.loginfo("Finished initializing class")
     
@@ -1443,6 +1444,7 @@ class O2ACBase(object):
           playback_trajectories.append(["trajectory", trajectory])
           trajectory = []
 
+        waypoint.update({"retime": True})
         playback_trajectories.append(["waypoint", waypoint])
       
     if trajectory:
@@ -1698,6 +1700,7 @@ class O2ACBase(object):
     acceleration      = params.get("acc", speed/2.)
     gripper_params    = params.get("gripper", None)
     end_effector_link = params.get("end_effector_link", None)
+    retime            = params.get("retime", False)
 
     if pose_type  == 'joint-space':
       success = robot.move_joints(pose, speed=speed, acceleration=acceleration, plan_only=plan_only, initial_joints=initial_joints)
@@ -1731,6 +1734,13 @@ class O2ACBase(object):
       success = self.execute_gripper_action(robot_name, gripper_params)
     else:
       raise ValueError("Invalid pose_type: %s" % pose_type)
+
+    if plan_only and success and retime:
+      rospy.loginfo("retiming waypoint")
+      plan, planning_time = success
+      plan = robot.robot_group.retime_trajectory(robot.robot_group.get_current_state(), plan, algorithm="time_optimal_trajectory_generation",
+                                                  velocity_scaling_factor=speed, acceleration_scaling_factor=acceleration)
+      return plan, planning_time
 
     return success
 
