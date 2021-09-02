@@ -1721,6 +1721,22 @@ class O2ACCommon(O2ACBase):
 
   ######## Bearing
 
+  def rotate_cylinder_by_angle(self, angle, robot_name, grasp_pose, 
+                               grasp_width=0.085, ignore_collisions_with=""):
+    """ From a given grasp pose, rotates relative to world frame x axis """
+    if ignore_collisions_with:
+      self.allow_collisions_with_robot_hand(ignore_collisions_with, robot_name, True)
+    seq = []
+    seq.append(helpers.to_sequence_gripper('open', gripper_opening_width=grasp_width, gripper_velocity=1.0, wait=False))
+    seq.append(helpers.to_sequence_item(grasp_pose, speed=0.2))
+    seq.append(helpers.to_sequence_item_relative([0, 0, 0, -angle/2.0, 0, 0], relative_to_tcp=False, speed=0.2))
+    seq.append(helpers.to_sequence_gripper('close', gripper_force=40, gripper_velocity=1.0))
+    seq.append(helpers.to_sequence_item_relative([0, 0, 0, angle, 0, 0], relative_to_tcp=False, speed=0.2))
+    seq.append(helpers.to_sequence_gripper('open', gripper_opening_width=grasp_width, gripper_velocity=1.0))
+    self.execute_sequence(robot_name, seq, "rotate cylinder by angle")
+    if ignore_collisions_with:
+      self.allow_collisions_with_robot_hand(ignore_collisions_with, robot_name, False)
+
   def pick_and_fasten_screw(self, robot_name, screw_pose, screw_size, 
                              approach_distance=0.07, intermediate_pose=None, speed=0.7, 
                              duration=20.0, attempts=1, spiral_radius=0.003, 
@@ -2946,7 +2962,7 @@ class O2ACCommon(O2ACBase):
     if not isinstance(goal, geometry_msgs.msg.PoseStamped):
       print("goal", type(goal), goal)
       rospy.logerr("Could not find shaft in tray. Skipping procedure.")
-      if attempt_nr < 5:
+      if attempt_nr < 6:
         return self.pick_shaft(attempt_nr=attempt_nr+1)
       return False
     
@@ -2979,7 +2995,7 @@ class O2ACCommon(O2ACBase):
     if not picked_ok:
     # if not self.pick("b_bot", object_name="shaft", grasp_pose=goal):
       rospy.logerr("Failed to pick shaft")
-      if attempt_nr < 3:
+      if attempt_nr < 6:
         rospy.loginfo("Try again")
         print("goal.pose.orientation", goal.pose.orientation)
         goal_rotated = helpers.rotatePoseByRPY(tau/4, 0, 0, goal)
@@ -2996,7 +3012,7 @@ class O2ACCommon(O2ACBase):
       return False
     return True
 
-  def insert_shaft(self, target_link, attempts=1, target=0.06, from_behind=True):
+  def insert_shaft(self, target_link, attempts=1, target=0.065, from_behind=True):
     """
     Insert shaft with force control using b_bot. The shaft has to be in front of the hole already.
     """
