@@ -792,7 +792,7 @@ class O2ACVisionServer(object):
         xyz = self.cam_helper.project_2d_to_3d_from_images(self._camera_info,
                                                            pose2d.x, pose2d.y,
                                                            [depth])
-        # We may not have find anything so its okay to return None
+        # We may not have found anything so it's okay to return None
         if not xyz:
             return None
         p3d.pose.position.x = xyz[0]
