@@ -701,7 +701,9 @@ class O2ACCommon(O2ACBase):
           approach_height=0.05, item_id_to_attach = "", 
           lift_up_after_pick=True, acc_fast=1.0, acc_slow=.1, 
           gripper_velocity = .1, axis="x", sign=+1,
-          retreat_height = None, approach_with_move_lin=True, attach_with_collisions=False, pose_with_uncertainty=None, object_name="", pick_from_ground=True):
+          retreat_height = None, approach_with_move_lin=True, 
+          attach_with_collisions=False, pose_with_uncertainty=None, object_name="", pick_from_ground=True,
+          allow_collision_with_tray=False):
     """
     This function (outdated) performs a grasp with the robot, but it is not updated in the planning scene.
     It does not use the object in simulation. It can be used for simple tests and prototyping, but should
@@ -713,6 +715,8 @@ class O2ACCommon(O2ACBase):
 
     attach_with_collisions use the CollisionObject otherwise try to attach the visualization Marker
     """
+    if allow_collision_with_tray:
+      self.allow_collisions_with_robot_hand("tray", robot_name)
     rospy.loginfo("Entered simple_pick")
     if item_id_to_attach:
       self.allow_collisions_with_robot_hand(item_id_to_attach, robot_name)
@@ -761,6 +765,8 @@ class O2ACCommon(O2ACBase):
     # # break seq here
     if not self.execute_sequence(robot_name, seq, "simple_pick"):
       rospy.logerr("Fail to simple pick with sequence")
+      if allow_collision_with_tray:
+        self.allow_collisions_with_robot_hand("tray", robot_name, False)
       return False
 
     if pose_with_uncertainty != None:
@@ -794,6 +800,8 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Gripper opening width after pick less than minimum (" + str(minimum_grasp_width) + "): " + str(robot.gripper.opening_width) + ". Return False.")
       robot.gripper.open(opening_width=grasp_width)
       robot.gripper.forget_attached_item()
+      if allow_collision_with_tray:
+        self.allow_collisions_with_robot_hand("tray", robot_name, False)
       success = False
 
     if lift_up_after_pick:
@@ -808,9 +816,13 @@ class O2ACCommon(O2ACBase):
       if not robot.go_to_pose_goal(retreat_pose, speed=speed_slow, acceleration=acc_slow, move_lin=True):
         rospy.logerr("Fail to go to lift_up_pose. Opening.")
         robot.gripper.open(grasp_width)
+        if allow_collision_with_tray:
+          self.allow_collisions_with_robot_hand("tray", robot_name, False)
         return False
       robot.gripper.close() # catch false grasps
-    
+
+    if allow_collision_with_tray:
+        self.allow_collisions_with_robot_hand("tray", robot_name, False)
     return success
 
   def simple_place(self, robot_name, object_pose, place_height=0.05, speed_fast=1.0, speed_slow=0.3, 
@@ -1676,7 +1688,9 @@ class O2ACCommon(O2ACBase):
     grasp_pose.pose.position.z = 0.002
     robot = self.active_robots[robot_name]
     robot.gripper.open(opening_width=grasp_width)
-    success = self.simple_pick(robot_name, grasp_pose, approach_height=0.05, lift_up_after_pick=True, axis="z", approach_with_move_lin=False)
+    grasp_pose = self.constrain_grasp_into_tray(robot_name, grasp_pose, grasp_width=0.08)
+    success = self.simple_pick(robot_name, grasp_pose, approach_height=0.05, lift_up_after_pick=True, axis="z", 
+                               approach_with_move_lin=False, allow_collision_with_tray=True)
     robot.gripper.open()
     if not success:      
       rospy.logerr("Fail to simple pick (grab_and_drop)")
@@ -1967,7 +1981,7 @@ class O2ACCommon(O2ACBase):
     # if not self.pick_from_two_poses_topdown(robot_name, "bearing", goal, grasp_width=0.07):
     if not self.simple_pick(robot_name, goal, gripper_force=50.0, grasp_width=.07, 
                             axis="z", grasp_height=0.002, item_id_to_attach="bearing", 
-                            minimum_grasp_width=0.01):
+                            minimum_grasp_width=0.01, allow_collision_with_tray=True):
       if attempts > 0:
         rospy.logwarn("Fail to pick bearing from tray. Try again remaining attempts:%s" % attempts)
         return self.pick_bearing(robot_name, attempts-1)
@@ -2027,7 +2041,7 @@ class O2ACCommon(O2ACBase):
         if robot_name == "b_bot":
           preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017,  0.000, 0.002 ]+ rotation)
         elif robot_name == "a_bot":
-          preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.013, 0.014, -0.003 ]+ rotation)
+          preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.013, 0.015, -0.003 ]+ rotation)
         else:
           raise ValueError("Unknown robot")
       elif task == "assembly":
@@ -2102,7 +2116,7 @@ class O2ACCommon(O2ACBase):
     # Go back regardless of success
     # TODO(cambel): implement fallback in case of error
     robot.gripper.open(wait=True)
-    success &= robot.move_lin_rel(relative_translation = [0.025,0,0], acceleration = 0.015, speed=.03)
+    success &= robot.move_lin_rel(relative_translation = [0.05,0,0], acceleration = 0.2, speed=.1)
     return success
 
   def fasten_bearing(self, task="", only_retighten=False, robot_name="b_bot", 
@@ -2343,7 +2357,9 @@ class O2ACCommon(O2ACBase):
     self.vision.activate_camera(robot_name + "_inside_camera")
     self.activate_led(robot_name, False)
     
-    if not self.simple_pick(robot_name, goal, gripper_force=50.0, grasp_width=.05, axis="z", grasp_height=0.002, item_id_to_attach="motor_pulley"):
+    if not self.simple_pick(robot_name, goal, gripper_force=50.0, grasp_width=.05, 
+                            axis="z", grasp_height=0.002, item_id_to_attach="motor_pulley",
+                            allow_collision_with_tray=True):
       rospy.logerr("Fail to simple_pick")
       if attempt > 0:
         rospy.logwarn("Could not pick motor_pulley in tray. Try again remaining attempts:%s" % attempt)
@@ -2692,8 +2708,13 @@ class O2ACCommon(O2ACBase):
       return self.unequip_nut_tool()
 
     def b_bot_task2():
-      success = self.playback_sequence("idler_pulley_return_screw_tool")
-      if not success:
+      waypoints = []
+      intermediate_pose = conversions.to_pose_stamped("workspace_center", [0.15, 0.0, 0.30, 50, 50, -140])
+      waypoints.append((self.b_bot.move_lin_rel([-0.1, 0, 0.0], pose_only=True), 0, 1.0))
+      waypoints.append((intermediate_pose, 0, 1.0))
+      waypoints.append(("horizontal_screw_ready", 0, 1.0))
+      waypoints.append(("feeder_pick_ready",      0, 1.0))
+      if not self.b_bot.move_joints_trajectory(waypoints, speed=1.0):
         rospy.logerr("Fail to complete idler_pulley_return_screw_tool")
       return success and self.unequip_tool("b_bot", "padless_tool_m4")
 
@@ -3034,7 +3055,7 @@ class O2ACCommon(O2ACBase):
 
     picked_ok = self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.03, approach_height=0.1, 
                               item_id_to_attach="shaft", minimum_grasp_width=0.004,  axis="z", lift_up_after_pick=True,
-                              speed_slow=0.3)
+                              speed_slow=0.3, allow_collision_with_tray=True)
     
     if not picked_ok:
     # if not self.pick("b_bot", object_name="shaft", grasp_pose=goal):
@@ -3369,7 +3390,8 @@ class O2ACCommon(O2ACBase):
     self.vision.activate_camera("a_bot_inside_camera")  # Just for visualization
     self.allow_collisions_with_robot_hand("tray", "a_bot")
     if not self.simple_pick("a_bot", goal, axis="z", speed_fast=0.5, gripper_force=100.0, grasp_width=.04, 
-                               approach_height=0.1, item_id_to_attach="end_cap", lift_up_after_pick=True, approach_with_move_lin=False):
+                               approach_height=0.1, item_id_to_attach="end_cap", lift_up_after_pick=True, 
+                               approach_with_move_lin=False, allow_collision_with_tray=True):
       rospy.logerr("Fail to simple_pick")
       self.allow_collisions_with_robot_hand("tray", "a_bot", False)
       return False
@@ -3548,7 +3570,8 @@ class O2ACCommon(O2ACBase):
     self.markers_scene.spawn_item("motor", motor_pose)
     self.planning_scene_interface.allow_collisions("motor")
     object_pose.pose.position.z = 0.014
-    self.simple_pick(robot_name, object_pose, gripper_force=100.0, grasp_width=.085, axis="z", item_id_to_attach="motor", attach_with_collisions=False)
+    self.simple_pick(robot_name, object_pose, gripper_force=100.0, grasp_width=.085, axis="z", 
+                     item_id_to_attach="motor", attach_with_collisions=False, allow_collision_with_tray=True)
     if not self.simple_gripper_check(robot_name, min_opening_width=0.031):
       rospy.logerr("Motor not successfully grasped")
       return False
@@ -3565,7 +3588,7 @@ class O2ACCommon(O2ACBase):
     motor_pose.pose.position.x = -0.01  # Grasp height
     motor_pose.pose.orientation = conversions.to_quaternion(transformations.quaternion_from_euler(-tau/4, 0, 0))
     if not self.simple_pick("b_bot", object_pose=motor_pose, grasp_width=.085, 
-                            axis="x", sign=-1, approach_height=0.07, minimum_grasp_width=0.02):
+                            axis="x", sign=-1, approach_height=0.07, minimum_grasp_width=0.02,):
       rospy.logerr("Fail picking during fallback. Abort.")
       self.b_bot.gripper.open(wait=False)
       self.b_bot.go_to_named_pose("home")
@@ -4173,7 +4196,7 @@ class O2ACCommon(O2ACBase):
     self.vision.activate_camera(robot_name + "_inside_camera")
     if not self.simple_pick(robot_name, idler_spacer_pose, grasp_height=0.001, 
                             gripper_force=50.0, grasp_width=.04, axis="z", approach_height=0.07, gripper_command=0.03,
-                            item_id_to_attach="idler_spacer"):
+                            item_id_to_attach="idler_spacer", allow_collision_with_tray=True):
       rospy.logerr("Fail to simple_pick --> try again")
       self.active_robots[robot_name].gripper.open(opening_width=0.05)
       if attempts > 0:
@@ -4217,7 +4240,7 @@ class O2ACCommon(O2ACBase):
     self.vision.activate_camera(robot_name + "_inside_camera")
     if not self.simple_pick(robot_name, idler_pulley_pose, grasp_height=0.001, 
                             gripper_force=50.0, grasp_width=.05, axis="z", approach_height=0.07, gripper_command=0.03,
-                            item_id_to_attach="idler_pulley"):
+                            item_id_to_attach="idler_pulley", allow_collision_with_tray=True):
       rospy.logerr("Fail to simple_pick --> try again")
       self.active_robots[robot_name].gripper.open(opening_width=0.05)
       if attempts > 0:
@@ -4247,7 +4270,7 @@ class O2ACCommon(O2ACBase):
     self.vision.activate_camera(robot_name + "_inside_camera")
     if not self.simple_pick(robot_name, idler_pin_pose, grasp_height=0.001, 
                             gripper_force=50.0, grasp_width=.04, axis="z", approach_height=0.07, gripper_command=0.03,
-                            item_id_to_attach="idler_pin"):
+                            item_id_to_attach="idler_pin", allow_collision_with_tray=True):
       rospy.logerr("Fail to simple_pick")
       return False
 
@@ -4286,7 +4309,7 @@ class O2ACCommon(O2ACBase):
     self.vision.activate_camera(robot_name + "_inside_camera")
     if not self.simple_pick(robot_name, bearing_spacer_pose, grasp_height=0.0, gripper_force=50.0,
                             grasp_width=.04, axis="z", approach_height=0.07,
-                            item_id_to_attach="bearing_spacer"):
+                            item_id_to_attach="bearing_spacer", allow_collision_with_tray=True):
       rospy.logerr("Fail to simple_pick")
       return False
 
@@ -4561,7 +4584,9 @@ class O2ACCommon(O2ACBase):
     self.allow_collisions_with_robot_hand("tray", "b_bot", allow=True)
     success = self.simple_pick("b_bot", object_pose=grasp_pose, grasp_width=grasp_width, approach_height=0.05, grasp_height=0.005, 
                                axis="z", item_id_to_attach=panel_name, lift_up_after_pick=True, approach_with_move_lin=False,
-                               speed_fast=1.0, minimum_grasp_width=0.001, attach_with_collisions=True, pose_with_uncertainty=pose_with_uncertainty, object_name=panel_name)
+                               speed_fast=1.0, minimum_grasp_width=0.001, attach_with_collisions=True, 
+                               pose_with_uncertainty=pose_with_uncertainty, object_name=panel_name,
+                               allow_collision_with_tray=True)
       
     self.allow_collisions_with_robot_hand("tray", "b_bot", allow=True)
 
@@ -4579,7 +4604,7 @@ class O2ACCommon(O2ACBase):
             return self.pick_panel_with_handover(panel_name, simultaneous, rotate_on_failure=True, rotation_retry_counter=0) # potential infinite loop...
           if self.simple_pick("b_bot", object_pose=grasp_pose, grasp_width=grasp_width, approach_height=0.05, grasp_height=0.005, 
                               axis="z", item_id_to_attach=panel_name, lift_up_after_pick=True, approach_with_move_lin=False,
-                              speed_fast=1.0, minimum_grasp_width=0.001, attach_with_collisions=True):
+                              speed_fast=1.0, minimum_grasp_width=0.001, attach_with_collisions=True, allow_collision_with_tray=True):
             break
           rotation_retry_counter += 1
       else:
