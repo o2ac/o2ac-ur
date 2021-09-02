@@ -215,9 +215,8 @@ int main(int argc, char **argv) {
         }
         gripper_is_open = false;
       }
-      // if (!skill_server.moveToCartPoseLIN(gripper_pose, robot_name, true, "",
-      //                                    0.01, 0.01)) {
-      if (!skill_server.moveToCartPoseLIN(gripper_pose, robot_name)) {
+      if (!skill_server.moveToCartPoseLIN(gripper_pose, robot_name, true, "",
+                                          0.01, 0.01)) {
         ROS_ERROR("Pushing object failed");
         break;
       }
@@ -254,10 +253,8 @@ int main(int argc, char **argv) {
         ROS_ERROR("Moving to place failed");
         break;
       }
-      // if (!skill_server.moveToCartPoseLIN(gripper_pose, robot_name, true, "",
-      //                                    0.01, 0.01)) {
-      // To slow down causes error
-      if (!skill_server.moveToCartPoseLIN(gripper_pose, robot_name)) {
+      if (!skill_server.moveToCartPoseLIN(gripper_pose, robot_name, true, "",
+                                          0.01, 0.01)) {
         ROS_ERROR("Placing down failed");
         break;
       }
