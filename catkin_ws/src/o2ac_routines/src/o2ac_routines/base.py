@@ -1175,6 +1175,7 @@ class O2ACBase(object):
     return self.wrs_subtask_b_planning_client.get_result()
 
   def spawn_tool(self, tool_name):
+    self.despawn_tool(tool_name)
     if tool_name in self.screw_tools: 
       rospy.loginfo("Spawn: " + tool_name)
       self.planning_scene_interface.add_object(self.screw_tools[tool_name])
@@ -1186,6 +1187,7 @@ class O2ACBase(object):
   def despawn_tool(self, tool_name):
     if tool_name in self.screw_tools: 
       rospy.loginfo("Despawn: " + tool_name)
+      self.planning_scene_interface.remove_attached_object(self.screw_tools[tool_name].id)
       self.planning_scene_interface.remove_world_object(self.screw_tools[tool_name].id)
       return True
     else:

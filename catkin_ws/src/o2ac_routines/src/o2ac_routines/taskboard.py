@@ -359,6 +359,10 @@ class O2ACTaskboard(O2ACCommon):
         rospy.loginfo("==== End: Align Bearing (%s, %s) ====" % (self.a_success, self.b_success))
 
       print("task 2:", self.a_success, self.b_success)
+      if not self.a_success or not self.b_success:
+        self.unequip_tool("a_bot")
+        self.tools.set_suction("screw_tool_m4", False)
+        self.a_bot.go_to_named_pose("home")
 
       # Fasten bearing, insert shaft
       if self.subtask_completed["bearing"] and self.a_success and self.b_success:
@@ -762,12 +766,13 @@ class O2ACTaskboard(O2ACCommon):
       self.a_bot.go_to_named_pose("home")
       if success:
         success = self.align_bearing_holes(task="taskboard")
+        self.b_bot.go_to_named_pose("home")
       self.despawn_object("bearing")
       return success
       
     if task_name == "screw_bearing":
       self.equip_tool('a_bot', 'screw_tool_m4')
-      success = self.fasten_bearing(task="taskboard", with_extra_retighten=True)
+      success = self.fasten_bearing(task="taskboard", robot_name="a_bot", with_extra_retighten=True)
       self.unequip_tool('a_bot', 'screw_tool_m4')
       return success
     

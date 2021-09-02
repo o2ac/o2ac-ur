@@ -32,7 +32,20 @@ def main():
     rospy.init_node("testscript")
     global c
     c = O2ACTaskboard()
-    
+    c.orient_bearing("taskboard", "a_bot", part1=False)
+    # c.prepare_screw_tool_idler_pulley("taskboard_long_hole_top_link")
+    # c.equip_nut_tool()
+    # c.confirm_to_proceed(">>>")
+    # def a_bot_task2():
+    #     rospy.sleep(2)
+    #     c.a_success = c.unequip_nut_tool()
+    #     return c.a_success
+    # def b_bot_task2():
+    #   # rospy.sleep(10)
+    #   c.b_success = c.return_padless_tool_idler_pulley()
+    #   return c.b_success
+    # c.do_tasks_simultaneous(a_bot_task2, b_bot_task2, timeout=60)
+    # c.return_padless_tool_idler_pulley()
     # c = O2ACAssembly()
     # c.confirm_motor_and_place_in_aid()
     # c.align_motor_pre_insertion()
@@ -42,14 +55,14 @@ def main():
     # c.b_bot.move_lin_rel([0,0,0.01], speed=0.1)
     # c.b_bot.gripper.open()
 
-    c.pick_bearing("a_bot")
-    c.orient_bearing("taskboard", "a_bot", part1=True)
+    # c.reset_scene_and_robots()
+    # c.pick_bearing("a_bot")
+    # c.orient_bearing("taskboard", "a_bot", part1=True)
     # grasp_pose = conversions.to_pose_stamped("taskboard_bearing_target_link", [-0.155, 0.005, 0.0, -.5, .5, -.5, .5])
     # c.a_bot.go_to_pose_goal(grasp_pose, speed=0.1, end_effector_link="a_bot_outside_camera_color_optical_frame", move_lin=False)
     # approach_centering = conversions.to_pose_stamped("assembled_part_08_inserted", [-0.1, 0, -0.15,  np.deg2rad(180), np.deg2rad(-60), 0])
     # c.b_bot.go_to_pose_goal(approach_centering, speed=0.05, end_effector_link="b_bot_outside_camera_link", move_lin=False)
     # c.pick_bearing("a_bot")
-    # c.reset_scene_and_robots()
     # c.publish_part_in_assembled_position("panel_bearing")
     # c.publish_part_in_assembled_position("panel_motor")
     # c.publish_part_in_assembled_position("base")
