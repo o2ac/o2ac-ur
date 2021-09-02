@@ -127,8 +127,7 @@ if __name__ == '__main__':
         c.competition_mode = False
         c.full_taskboard_task(do_screws=False)
       if i == "carry":
-        # c.take_tray_from_agv()
-        c.center_tray_stack()
+        c.center_tray_stack(spawn_single_tray=True)
         c.pick_tray_from_agv_stack_calibration_long_side(tray_name="tray2")
       if i == "1":
         c.ab_bot.go_to_named_pose("home")
@@ -201,6 +200,8 @@ if __name__ == '__main__':
         c.fasten_bearing("c", only_retighten=True)
       if i == "575":
         c.align_bearing_holes(task="taskboard")
+      if i == "575a":
+        c.align_bearing_holes(task="taskboard", robot_name="a_bot")
       if i == "58":
         c.do_task("idler pulley")
       if i == "58s":

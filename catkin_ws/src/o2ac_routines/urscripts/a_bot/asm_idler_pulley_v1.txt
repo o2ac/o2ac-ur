@@ -1,0 +1,326 @@
+ Program
+   Robot Program
+     var_1≔get_actual_joint_positions()
+     MoveJ
+       var_1
+     Gripper Move71% (1)
+     MoveL
+       above_pin
+       at_pin_pick
+     Gripper Close (1)
+     MoveJ
+       handover_0
+     Popup: wait for b_bot to grasp pin. Press continue to release and proceed
+     Gripper Move35% (1)
+     MoveL
+       Direction: Base Y+
+         Until (distance)
+     Popup: c when bbot moved down
+     center pin
+       MoveL
+         'Waypoint_9'
+         at_pin_tip_g
+       Gripper Close (1)
+       Gripper Move42% (1)
+       MoveL
+         turn_left
+       Gripper Close (1)
+       Gripper Move58% (1)
+       MoveL
+         turn_right
+       Gripper Close (1)
+       Gripper Open (1)
+     get pulley
+       MoveL
+         above_storage
+         at_pulley_pick
+       center+grasp
+         Gripper Close (1)
+         Gripper Move45% (1)
+         MoveL
+           turn_left
+         Gripper Close (1)
+         Gripper Move58% (1)
+         MoveL
+           turn_right
+         Gripper Close (1)
+     stack pulley
+       MoveJ
+         high_abv_stack
+       MoveL
+         at_tip_1
+       push_down
+         p_start≔get_actual_tcp_pose()
+         Force
+           MoveL
+             Loop 1 times
+               Direction: Base Y+
+                 Until (distance)
+               Direction: Base X+
+                 Until (distance)
+               Direction: Base Y-
+                 Until (distance)
+               Direction: Base Y-
+                 Until (distance)
+               Direction: Base X-
+                 Until (distance)
+               Direction: Base Y+
+                 Until (distance)
+               Direction: Base Y+
+                 Until (distance)
+               Direction: Base X-
+                 Until (distance)
+               Direction: Base Y-
+                 Until (distance)
+               Direction: Base Y-
+                 Until (distance)
+               Direction: Base X-
+                 Until (distance)
+               Direction: Base Y+
+                 Until (distance)
+           'Wait: 4.0'
+         p_now≔get_actual_tcp_pose()
+         d≔pose_dist(p_start,p_now)
+         Popup
+         If d < 0.01
+           Popup: fail?
+       Gripper Move42% (1)
+       recenter pin
+         MoveL
+           at_pin_tip_g
+         Gripper Close (1)
+         Gripper Move42% (1)
+       MoveJ
+         high_abv_stack
+     get spacer
+       MoveL
+         above_storage
+         at_spacer_pick
+       center+grasp
+         Gripper Close (1)
+         Gripper Move62% (1)
+         MoveL
+           turn_left
+         Gripper Close (1)
+         Gripper Move58% (1)
+         MoveL
+           turn_right
+         Gripper Close (1)
+       MoveL
+         above_storage
+     stack spacer
+       MoveJ
+         high_abv_stack
+       MoveL
+         at_tip_1
+       push_down
+         p_start≔get_actual_tcp_pose()
+         Force
+           MoveL
+             Loop 1 times
+               Direction: Base Y+
+                 Until (distance)
+               Direction: Base X+
+                 Until (distance)
+               Direction: Base Y-
+                 Until (distance)
+               Direction: Base Y-
+                 Until (distance)
+               Direction: Base X-
+                 Until (distance)
+               Direction: Base Y+
+                 Until (distance)
+               Direction: Base Y+
+                 Until (distance)
+               Direction: Base X-
+                 Until (distance)
+               Direction: Base Y-
+                 Until (distance)
+               Direction: Base Y-
+                 Until (distance)
+               Direction: Base X-
+                 Until (distance)
+               Direction: Base Y+
+                 Until (distance)
+           'Wait: 4.0'
+         p_now≔get_actual_tcp_pose()
+         d≔pose_dist(p_start,p_now)
+         Popup
+         If d < 0.01
+           Popup: fail?
+       Gripper Move42% (1)
+       recenter pin
+         MoveL
+           at_pin_tip_g
+         Gripper Close (1)
+         Gripper Move42% (1)
+       MoveJ
+         high_abv_stack
+     get washer
+       MoveL
+         Gripper Move75% (1)
+         Waypoint_3
+         Waypoint_4
+         Washer_pick
+         Gripper Close (1)
+         Waypoint_4
+         Waypoint_3
+     stack washer
+       MoveJ
+         high_abv_stack
+       MoveL
+         at_tip_1
+       push_down
+         p_start≔get_actual_tcp_pose()
+         Force
+           MoveL
+             Loop 1 times
+               Direction: Base Y+
+                 Until (distance)
+               Direction: Base X+
+                 Until (distance)
+               Direction: Base Y-
+                 Until (distance)
+               Direction: Base Y-
+                 Until (distance)
+               Direction: Base X-
+                 Until (distance)
+               Direction: Base Y+
+                 Until (distance)
+               Direction: Base Y+
+                 Until (distance)
+               Direction: Base X-
+                 Until (distance)
+               Direction: Base Y-
+                 Until (distance)
+               Direction: Base Y-
+                 Until (distance)
+               Direction: Base X-
+                 Until (distance)
+               Direction: Base Y+
+                 Until (distance)
+           'Wait: 4.0'
+         d≔pose_dist(p_start,get_actual_tcp_pose())
+         Popup
+       Gripper Move42% (1)
+       recenter pin
+         MoveL
+           at_pin_tip_g
+         Gripper Close (1)
+         Gripper Move42% (1)
+       MoveJ
+         high_abv_stack
+     MoveJ
+       standby
+     Popup: wait until bbot inclined stack. continue to grasp pulley
+     MoveJ
+       Waypoint_5
+       pick_from_bbot
+       Gripper Close (1)
+     Popup: wait for bbot retreat. continue to insert into ridge
+     MoveL
+       hold_at_ridge
+     Popup: wait for padless tool to tension. c to open slightly and wait
+     Gripper Move65% (1)
+     Popup: wait for tool to incline. c to move away and get washer
+     Gripper Move54% (1)
+     move away, get washer2
+       MoveL
+         Direction: Tool Z-
+           Until (distance)
+       MoveL
+         above_holdr2
+         washer_pick
+         Gripper Close (1)
+         Direction: Tool Y+
+           Until (distance)
+         above_holdr2
+         Waypoint_12
+         close_xx
+         Waypoint_8
+         Force
+           MoveL
+             Loop 1 times
+               Direction: Base Y+
+                 Until (distance)
+               Direction: Base Z+
+                 Until (distance)
+               Direction: Base Y-
+                 Until (distance)
+               Direction: Base Y-
+                 Until (distance)
+               Direction: Base Z-
+                 Until (distance)
+               Direction: Base Y+
+                 Until (distance)
+               Direction: Base Y+
+                 Until (distance)
+               Direction: Base Z-
+                 Until (distance)
+               Direction: Base Y-
+                 Until (distance)
+               Direction: Base Y-
+                 Until (distance)
+               Direction: Base Z-
+                 Until (distance)
+               Direction: Base Y+
+                 Until (distance)
+           'Wait: 4.0'
+         Gripper Move60% (1)
+         Direction: Base X+
+           Until (distance)
+       MoveJ
+         above_nut_tool
+     Popup: call nut routine
+     nut routine
+       MoveL
+         far_above_aid
+       MoveL
+         above_nut_aid
+         Gripper Move22% (1)
+         at_nut_aid
+         Gripper Close (1)
+         slightly_above
+       MoveJ
+         Waypoint_1
+         Waypoint_2
+         before_shaft
+       MoveL
+         at_shaft
+         Popup: turn on motor, then press enter to start spiral motion
+         Force
+           Loop 5 times
+             Direction: Base Y+
+               Until (distance)
+             Direction: Base Z+
+               Until (distance)
+             Direction: Base Y-
+               Until (distance)
+             Direction: Base Y-
+               Until (distance)
+             Direction: Base Z-
+               Until (distance)
+             Direction: Base Y+
+               Until (distance)
+             Direction: Base Y+
+               Until (distance)
+             Direction: Base Z-
+               Until (distance)
+             Direction: Base Y-
+               Until (distance)
+             Direction: Base Y-
+               Until (distance)
+             Direction: Base Z+
+               Until (distance)
+             Direction: Base Y+
+               Until (distance)
+       Popup: ok?
+       MoveJ
+         before_shaft
+         Waypoint_2
+         Waypoint_1
+       MoveL
+         slightly_above
+         at_nut_aid
+         Gripper Move22% (1)
+         above_nut_aid

@@ -52,6 +52,11 @@ class DualArm(RobotBase):
         response = self.moveit_state_validity_srv.call(req)
         return response.valid
 
+    def compute_ik(self, robot1_pose, robot2_pose, timeout, end_effector_link1="", end_effector_link2="", joints_seed1=None, joints_seed2=None, retry=False, allow_collisions=False):
+        joints1 = self.robot1.compute_ik(robot1_pose, joints_seed=joints_seed1, timeout=timeout, end_effector_link=end_effector_link1, retry=retry, allow_collisions=allow_collisions)
+        joints2 = self.robot2.compute_ik(robot2_pose, joints_seed=joints_seed2, timeout=timeout, end_effector_link=end_effector_link2, retry=retry, allow_collisions=allow_collisions)
+        return joints1 + joints2 # concat results
+
     # Dual Arm manipulation
 
     def go_to_goal_poses(self, robot1_pose, robot2_pose, plan_only=False, speed=0.5, acceleration=0.25, 

@@ -1,0 +1,4 @@
+parent: a_bot_ee_link
+child: calibrated_a_bot_inside_camera_color_optical_frame
+transform: {x: 0.02907154386100037, y: 9.156598607081012e-05, z: 0.05841698314336533, qx: -0.5799348096429533, qy: 0.5797537846805503, qz: -0.4051220241152225, qw: 0.4042738073258705}
+calibration_date: Fri Jul  2 12:11:27 2021

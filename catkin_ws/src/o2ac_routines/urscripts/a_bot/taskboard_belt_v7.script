@@ -1,19 +1,4 @@
 def taskboard_belt_v7():
-  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
-  set_tool_output_mode(0)
-  set_tool_digital_output_mode(0, 1)
-  set_tool_digital_output_mode(1, 1)
-  set_tool_voltage(24)
-  set_safety_mode_transition_hardness(1)
-  set_gravity([0.0, 0.0, 9.82])
-  step_count_0fe2b42c_a2ae_449b_a6e0_8204579f1c3a = 0.0
-  thread Step_Counter_Thread_6a550108_e66f_49b0_b834_1301a39a1111():
-    while (True):
-      step_count_0fe2b42c_a2ae_449b_a6e0_8204579f1c3a = step_count_0fe2b42c_a2ae_449b_a6e0_8204579f1c3a + 1.0
-      sync()
-    end
-  end
-  run Step_Counter_Thread_6a550108_e66f_49b0_b834_1301a39a1111()
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -21,8 +6,23 @@ def taskboard_belt_v7():
   set_analog_outputdomain(0, 0)
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
+  set_gravity([0.0, 0.0, 9.82])
+  step_count_4bc2adfd_cef5_4622_a014_61e15fc33b91 = 0.0
+  thread Step_Counter_Thread_200e17b0_6c22_4d7c_a0dd_4c956ad22691():
+    while (True):
+      step_count_4bc2adfd_cef5_4622_a014_61e15fc33b91 = step_count_4bc2adfd_cef5_4622_a014_61e15fc33b91 + 1.0
+      sync()
+    end
+  end
+  run Step_Counter_Thread_200e17b0_6c22_4d7c_a0dd_4c956ad22691()
   set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
   set_payload(1.27, [0.0, -0.017, 0.053])
+  set_safety_mode_transition_hardness(1)
+  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
+  set_tool_output_mode(0)
+  set_tool_digital_output_mode(0, 1)
+  set_tool_digital_output_mode(1, 1)
+  set_tool_voltage(24)
   # begin: URCap Installation Node
   #   Source: External Control, 1.0.5, FZI Research Center for Information Technology
   #   Type: External Control
@@ -2355,8 +2355,8 @@ def taskboard_belt_v7():
   global Waypoint_6_q=[0.2761969566345215, -2.3103372059264125, 2.2500465551959437, -1.5353351396373291, -1.5197380224811, -1.6910160223590296]
   global Waypoint_11_p=p[-.060570893677, -.196004744925, .369832555763, -.001188709483, 3.117658125469, .000314046127]
   global Waypoint_11_q=[0.538735032081604, -2.2744556866087855, 1.7249096075641077, -1.0005970758250733, -1.5586984793292444, -1.0329487959491175]
-  global home_p=p[.132399273074, -.179474410090, .460725286257, -.005112846227, -3.141398079733, -.030665261060]
-  global home_q=[1.5699501037597656, -2.09990992168569, 1.4001105467425745, -0.849999265079834, -1.5699175039874476, -5.5615101949513246E-5]
+  global home_p=p[.133238551836, -.183128735853, .680368223652, .001180359771, 3.140607311632, .032673900940]
+  global home_q=[1.5700217485427856, -2.0999938450255335, 1.400015656148092, -0.8500111860087891, -1.5699895063983362, -3.129640688115387E-5]
   $ 1 "Robot Program"
   $ 2 "MoveJ"
   $ 3 "currentpose≔get_actual_joint_positions()"

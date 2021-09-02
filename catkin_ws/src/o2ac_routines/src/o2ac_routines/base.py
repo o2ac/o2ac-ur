@@ -106,6 +106,7 @@ class AssemblyStatus(object):
     self.bearing_picked = False
     self.bearing_oriented = False
     self.bearing_inserted_in_panel = False
+    self.bearing_holes_aligned = False
     self.bearing_spacer_assembled = False
 
     self.completed_subtask_zero = False  # Base
@@ -394,16 +395,17 @@ class O2ACBase(object):
       tool_co.header.frame_id = tool["frame_id"]
       tool_co.id = tool["id"]
 
-      primitive_num = len(tool['primitives'])
+      tool_co.visual_geometry_mesh_url = tool.get("mesh_url", "")
 
+      # Define collision geometry
+      primitive_num = len(tool['primitives'])
       tool_co.primitives = [SolidPrimitive() for _ in range(primitive_num)] # instead of resize()
       tool_co.primitive_poses = [Pose() for _ in range(primitive_num)] 
-
       for i, primitive in enumerate(tool["primitives"]):
         try:
           tool_co.primitives[i].type = PRIMITIVES[(primitive['type'])]
         except KeyError as e:
-          rospy.logerr("Invalid Collition Object Primitive type: %s " % primitive['type'])
+          rospy.logerr("Invalid Collision Object Primitive type: %s " % primitive['type'])
           raise
         tool_co.primitives[i].dimensions = primitive['dimensions']
         tool_co.primitive_poses[i] = conversions.to_pose(conversions.to_float(primitive['pose']))
@@ -416,14 +418,8 @@ class O2ACBase(object):
 
       self.screw_tools[tool["id"]] = tool_co
 
-    # # TODO(felixvd): Add the set screw and nut tool objects from the C++ file
-
   ######
   def pick_screw_from_feeder_python(self, robot_name, screw_size, realign_tool_upon_failure=True, skip_retreat=False):
-    if self.tools.screw_is_suctioned.get("m" + str(screw_size), False): 
-      rospy.loginfo("(pick_screw_from_feeder) But a screw was already detected in the tool. Returning true without doing anything.")
-      return True
-
     assert robot_name in ("a_bot", "b_bot"), "unsupported operation for robot %s" % robot_name
     if robot_name == "a_bot":
       rotation = [radians(80), 0, 0]
@@ -439,19 +435,22 @@ class O2ACBase(object):
       if not self.equip_tool(robot_name, fastening_tool_name):
         rospy.logerr("Robot is not carrying the correct tool (" + fastening_tool_name + ") and it failed to be equipped. Abort.")
         return False
+    if self.tools.screw_is_suctioned.get("m" + str(screw_size), False): 
+      rospy.loginfo("(pick_screw_from_feeder) But a screw was already detected in the tool. Returning true without doing anything.")
+      return True
 
     self.suck_screw(robot_name, pose_feeder, screw_tool_id, screw_tool_link, fastening_tool_name, do_spiral_search_at_bottom=True, skip_retreat=skip_retreat)
     
+    if skip_retreat:
+      # Go to a central position (either we went through the gate or maybe we didn't)
+      above_screw_head_pose = copy.deepcopy(pose_feeder)
+      above_screw_head_pose.pose.position.x -= 0.04
+      self.active_robots[robot_name].go_to_pose_goal(above_screw_head_pose, speed=0.5, end_effector_link=screw_tool_link, move_lin=True)
+    
     # check again that the screw is there
     screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
-    
     if screw_picked or not self.use_real_robot:
-      if skip_retreat:
-        # Go to a central position (either we went through the gate or we didn't)
-        above_screw_head_pose = copy.deepcopy(pose_feeder)
-        above_screw_head_pose.pose.position.x -= 0.03
-        self.active_robots[robot_name].go_to_pose_goal(above_screw_head_pose, speed=0.3, end_effector_link=screw_tool_link, move_lin=True)
-      return True
+        return True
     elif realign_tool_upon_failure:
         self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
         rospy.loginfo("pickScrewFromFeeder failed. Realigning tool and retrying.")
@@ -620,9 +619,11 @@ class O2ACBase(object):
       rel_pose = self.active_robots[robot_name].move_lin_rel([0.0,0,0.05], pose_only=True, initial_joints=through_gate)
       waypoints.append((self.active_robots[robot_name].compute_ik(rel_pose, timeout=0.02, retry=True), 0, 0.6))
       waypoints.append(("feeder_pick_ready",0,0.6))
-      if not self.active_robots[robot_name].move_joints_trajectory(waypoints):
+      if not self.active_robots[robot_name].move_joints_trajectory(waypoints, speed=0.5):
         rospy.logerr("Go to feeder_pick_ready failed. abort.")
         screw_picked = False
+    if skip_retreat and screw_picked:
+      self.active_robots[robot_name].move_lin_rel([0.02,0,0.0], speed=0.1)
 
     if (screw_tool_id == "screw_tool_m3"):
       self.planning_scene_interface.disallow_collisions(screw_tool_id, "m3_feeder_link")
@@ -889,8 +890,11 @@ class O2ACBase(object):
     return
 
   def spawn_multiple_objects(self, assembly_name, objects, poses, reference_frame):
+    """ Spawn objects in the planning scene.
+        objects is a list of object names.
+        poses is a list of poses in [x,y,z,r,p,y] format.
+    """
     # Init params
-    # TODO(Cambel): Fix redundant calls to this definitions params and tool object collitions
     upload_mtc_modules_initial_params()
     self.assembly_database.change_assembly(assembly_name)
 
@@ -900,7 +904,16 @@ class O2ACBase(object):
     for screw_id in screw_ids:
       self.spawn_tool('screw_tool_' + screw_id)
       self.upload_tool_grasps_to_param_server(screw_id)
-    spawn_objects(self.assembly_database, objects, poses, reference_frame)
+    
+    for (object_name, pose) in zip(objects, poses):
+      co = self.assembly_database.get_collision_object(object_name)
+      if co:
+        co.header.frame_id = reference_frame
+        co.pose = conversions.to_pose(pose)  # Convert geometry_msgs.msg.Pose
+        self.planning_scene_interface.apply_collision_object(co)
+      else:
+        rospy.logerr("Could not find object with name " + object_name + ". Did not spawn to planning scene.")
+
   
   def get_3d_poses_from_ssd(self):
     """
@@ -919,8 +932,8 @@ class O2ACBase(object):
         self.objects_in_tray[idx] = pose
         self.object_in_tray_is_upside_down[idx] = upside_down
       return res
-    except:
-      pass
+    except Exception as e:
+      rospy.logerr("Exception at get_3d_poses_from_ssd %s" % e)
     return False
   
   def get_bearing_angle(self, camera="b_bot_inside_camera"):
@@ -1240,6 +1253,7 @@ class O2ACBase(object):
     elif tool_name == "nut_tool_m6":
       ps_approach.pose.position.z = -.025
     elif tool_name == "set_screw_tool":
+      ps_approach.pose.position.x = -.02
       ps_approach.pose.position.z = -.01
     elif tool_name == "belt_tool":
       ps_approach.pose.position.z = -.025
@@ -1261,8 +1275,6 @@ class O2ACBase(object):
         self.allow_collisions_with_robot_hand(tool_name, robot_name)
       sequence.append(helpers.to_sequence_gripper('open', gripper_opening_width=0.07, pre_callback=pre_cb, wait=False))
 
-    sequence.append(helpers.to_sequence_item("tool_pick_ready"))
-    # self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
 
     ps_approach.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, -pi/6, 0))
     ps_move_away = copy.deepcopy(ps_approach)
@@ -1294,11 +1306,15 @@ class O2ACBase(object):
     elif realign:
       lin_speed = 0.5
 
-    sequence.append(helpers.to_sequence_trajectory([ps_approach,ps_in_holder], [0.005,0.0], speed=[0.5, 0.2]))
-    # if not self.execute_sequence(robot_name, sequence, "approach sequence equip/unequip tool", plan_while_moving=True):
-    #   rospy.logerr("Fail to complete the equip/unequip tool sequence")
-    #   return False
-
+    # sequence.append(helpers.to_sequence_item("tool_pick_ready"))
+    # sequence.append(helpers.to_sequence_trajectory([ps_approach,ps_in_holder], [0.005,0.0], speed=[0.5, 0.2]))
+    # plan linear then retime
+    plan1, _ = self.active_robots[robot_name].go_to_pose_goal(ps_approach, plan_only=True, initial_joints=self.active_robots[robot_name].get_named_pose_target("tool_pick_ready"))
+    ps_approach_q = helpers.get_trajectory_joint_goal(plan1)
+    plan2, _ = self.active_robots[robot_name].go_to_pose_goal(ps_in_holder, plan_only=True, initial_joints=ps_approach_q)
+    ps_in_holder_q = helpers.get_trajectory_joint_goal(plan2)
+    sequence.append(helpers.to_sequence_joint_trajectory(["tool_pick_ready", ps_approach_q, ps_in_holder_q], speed=[1.0,1.0,0.3]))
+    
     # Close gripper, attach the tool object to the gripper in the Planning Scene.
     # Its collision with the parent link is set to allowed in the original planning scene.
     if equip:
@@ -1345,7 +1361,7 @@ class O2ACBase(object):
     lin_speed = 1.0
 
     sequence.append(helpers.to_sequence_item(ps_move_away, speed=lin_speed))
-    sequence.append(helpers.to_sequence_item("tool_pick_ready"))
+    sequence.append(helpers.to_sequence_item("tool_pick_ready", speed=0.7))
     
     success = self.execute_sequence(robot_name, sequence, "equip/unequip tool", plan_while_moving=True)
     if not success:
@@ -1612,8 +1628,9 @@ class O2ACBase(object):
         rospy.logerr("Trajectory: %s" % trajectory)
         raise ValueError("Invalid trajectory type %s" % type(trajectory[0][0]))
     elif point[0] == "joint_trajectory":
+      eef = point[2] if len(point) > 2 else "" # optional end effector
       # TODO(cambel): support master-slave trajectories
-      return self.active_robots[robot_name].move_joints_trajectory(point[1], plan_only=True, initial_joints=initial_joints)
+      return self.active_robots[robot_name].move_joints_trajectory(point[1], plan_only=True, initial_joints=initial_joints, end_effector_link=eef)
     else:
       raise ValueError("Invalid sequence type: %s" % point[0])
 
@@ -1686,7 +1703,7 @@ class O2ACBase(object):
       success = robot.move_joints(pose, speed=speed, acceleration=acceleration, plan_only=plan_only, initial_joints=initial_joints)
     elif pose_type == 'joint-space-goal-cartesian-lin-motion':
       p = robot.compute_fk(pose) # Forward Kinematics
-      success = robot.go_to_pose_goal(p, speed=speed, acceleration=acceleration, plan_only=plan_only, initial_joints=initial_joints, end_effector_link=end_effector_link)
+      success = robot.go_to_pose_goal(p, speed=speed, acceleration=acceleration, plan_only=plan_only, initial_joints=initial_joints, end_effector_link=end_effector_link, move_lin=True)
     elif pose_type == 'task-space-in-frame':
       frame_id = params.get("frame_id", "world")
       # Convert orientation to radians!

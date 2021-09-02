@@ -1,0 +1,54 @@
+ Program
+   Robot Program
+     MoveJ
+       currentpose≔get_actual_joint_positions()
+       currentpose
+     center
+       MoveJ
+         above_center
+       MoveL
+         start_center
+         Direction: Base X+
+           Until (tool_contact_detection)
+         Gripper Open (1)
+     pick
+       'Gripper Open (1)'
+       'MoveJ'
+       MoveL
+         pick
+         Gripper Close (1)
+         above_pick
+     10 drops
+       MoveL
+         above_drop_init
+         at_drop_initial
+         Gripper Move26% (1)
+         Loop 3 times
+           repick
+           Gripper Close (1)
+           redrop
+           If rq_current_pos_mm() < 10
+             above_center
+             Halt
+           Gripper Move26% (1)
+         Loop 3 times
+           repick_low
+           Gripper Close (1)
+           redrop
+           If rq_current_pos_mm() < 10
+             above_center
+             Halt
+           'Gripper Move26% (1)'
+           Gripper Open (1)
+     place
+       MoveL
+         pick2
+         Gripper Open (1)
+         inclined
+         Direction: Base X+
+           Until (tool_contact_detection)
+         up
+         forward
+         place
+         Gripper Move1% (1)
+     'touch'

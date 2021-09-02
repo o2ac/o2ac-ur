@@ -7,7 +7,7 @@
        looking_at_belt
      Popup: start sequence with a_bot (simultaneous start)
      'MoveJ'
-     Wait: 2.0
+     Wait: 1.5
      MoveJ
        Waypoint_1
        Waypoint_3

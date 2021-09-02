@@ -4,7 +4,7 @@
        currentpose≔get_actual_joint_positions()
        currentpose
      MoveL
-       home
+       home_1
        Waypoint_right
        high_approach
        before_tool

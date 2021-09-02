@@ -1,5 +1,9 @@
 def motor_plate_positioning():
-  set_safety_mode_transition_hardness(1)
+  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
+  set_tool_output_mode(0)
+  set_tool_digital_output_mode(0, 1)
+  set_tool_digital_output_mode(1, 1)
+  set_tool_voltage(24)
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -7,22 +11,18 @@ def motor_plate_positioning():
   set_analog_outputdomain(0, 0)
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
-  step_count_2087ac3b_d490_4ba7_a129_a758f6fd2001 = 0.0
-  thread Step_Counter_Thread_ee712b86_800a_4090_8eb6_7f207b858e8e():
+  step_count_3b1c6934_d466_4037_85be_cf8b55eac33c = 0.0
+  thread Step_Counter_Thread_8097bd6c_1241_4c07_bdb2_bf6deb955466():
     while (True):
-      step_count_2087ac3b_d490_4ba7_a129_a758f6fd2001 = step_count_2087ac3b_d490_4ba7_a129_a758f6fd2001 + 1.0
+      step_count_3b1c6934_d466_4037_85be_cf8b55eac33c = step_count_3b1c6934_d466_4037_85be_cf8b55eac33c + 1.0
       sync()
     end
   end
-  run Step_Counter_Thread_ee712b86_800a_4090_8eb6_7f207b858e8e()
-  set_gravity([0.0, 0.0, 9.82])
+  run Step_Counter_Thread_8097bd6c_1241_4c07_bdb2_bf6deb955466()
   set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
   set_payload(1.27, [0.0, -0.017, 0.053])
-  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
-  set_tool_output_mode(0)
-  set_tool_digital_output_mode(0, 1)
-  set_tool_digital_output_mode(1, 1)
-  set_tool_voltage(24)
+  set_safety_mode_transition_hardness(1)
+  set_gravity([0.0, 0.0, 9.82])
   # begin: URCap Installation Node
   #   Source: External Control, 1.0.5, FZI Research Center for Information Technology
   #   Type: External Control

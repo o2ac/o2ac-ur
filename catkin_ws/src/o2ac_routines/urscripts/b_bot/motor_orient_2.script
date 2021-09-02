@@ -1,6 +1,12 @@
 def motor_orient_2():
   set_safety_mode_transition_hardness(1)
+  set_target_payload(1.200000, [0.001000, -0.018000, 0.049000], [0.002086, 0.002086, 0.002086, 0.000000, 0.000000, 0.000000])
   set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
+  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
+  set_tool_output_mode(0)
+  set_tool_digital_output_mode(0, 1)
+  set_tool_digital_output_mode(1, 1)
+  set_tool_voltage(24)
   set_gravity([0.0, 0.0, 9.82])
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
@@ -9,20 +15,14 @@ def motor_orient_2():
   set_analog_outputdomain(0, 0)
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
-  step_count_0bb0a7f5_c3cf_4f46_9dc7_6c37a6487799 = 0.0
-  thread Step_Counter_Thread_ffeccf7f_6554_4338_8736_45b1acf2fe9f():
+  step_count_90c2ed72_6270_4b4f_99ab_ce51dbb09331 = 0.0
+  thread Step_Counter_Thread_d486e535_fbfa_45af_80b8_c3afd649759c():
     while (True):
-      step_count_0bb0a7f5_c3cf_4f46_9dc7_6c37a6487799 = step_count_0bb0a7f5_c3cf_4f46_9dc7_6c37a6487799 + 1.0
+      step_count_90c2ed72_6270_4b4f_99ab_ce51dbb09331 = step_count_90c2ed72_6270_4b4f_99ab_ce51dbb09331 + 1.0
       sync()
     end
   end
-  run Step_Counter_Thread_ffeccf7f_6554_4338_8736_45b1acf2fe9f()
-  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
-  set_tool_output_mode(0)
-  set_tool_digital_output_mode(0, 1)
-  set_tool_digital_output_mode(1, 1)
-  set_tool_voltage(24)
-  set_target_payload(1.200000, [0.001000, -0.018000, 0.049000], [0.002086, 0.002086, 0.002086, 0.000000, 0.000000, 0.000000])
+  run Step_Counter_Thread_d486e535_fbfa_45af_80b8_c3afd649759c()
   # begin: URCap Installation Node
   #   Source: External Control, 1.0.5, FZI Research Center for Information Technology
   #   Type: External Control
@@ -2377,8 +2377,8 @@ def motor_orient_2():
   global up_q=[2.1280224323272705, -1.8827620945372523, 2.484903637562887, -2.105976720849508, -1.6145265738116663, -1.0372031370746058]
   global forward_p=p[.311323457439, -.170193864385, .074399272006, 2.224848351339, -2.170806629203, -.117933893279]
   global forward_q=[2.2894654273986816, -1.7101837597289027, 2.36158258119692, -2.148445268670553, -1.6028583685504358, -0.875592056904928]
-  global place_p=p[.306708855730, -.170465733440, .067470053472, 2.224910285520, -2.170709998983, -.117889846721]
-  global place_q=[2.278940200805664, -1.7068640194334925, 2.381441656743185, -2.1720415554442347, -1.6036847273456019, -0.8860490957843226]
+  global place_p=p[.306714569522, -.169627398547, .066936860646, 2.224928494125, -2.170740962923, -.117916858917]
+  global place_q=[2.280489444732666, -1.7068635425963343, 2.383158508931295, -2.173680921594137, -1.6035411993609827, -0.8844898382769983]
   $ 1 "Robot Program"
   $ 2 "MoveJ"
   $ 3 "currentpose≔get_actual_joint_positions()"
@@ -2578,8 +2578,8 @@ def motor_orient_2():
   if not(rq_is_gripper_activated("1")):
     popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
   end
-  rq_set_pos_spd_for(255, 255, 255, "1")
-  rq_wait_pos_spe_for_request(255, 255, 255, "1")
+  rq_set_pos_spd_for(255, 0, 0, "1")
+  rq_wait_pos_spe_for_request(255, 0, 0, "1")
   rq_go_to("1")
   rq_wait("1")
   # end: URCap Program Node
@@ -2623,7 +2623,7 @@ def motor_orient_2():
   $ 51 "forward" "breakAfter"
   movel(forward_p, a=1.2, v=0.25)
   $ 52 "place" "breakAfter"
-  movel(place_p, a=1.2, v=0.25)
+  movel(place_p, a=1.2, v=0.02)
   # begin: URCap Program Node
   #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
   #   Type: Gripper

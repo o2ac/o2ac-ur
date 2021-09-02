@@ -60,12 +60,9 @@ class VisionClient():
 
         # Read result and return
         try:
-            response = self.ssd_client.get_result()
-            if response.class_ids and response.class_ids[0] == [-1]:
-                return False
-            return response
-        except:
-            pass
+            return self.ssd_client.get_result()
+        except Exception as e:
+            rospy.logerr("Exception at get_3d_poses_from_ssd %s" % e)
         return False
 
     @check_for_real_robot
@@ -133,12 +130,6 @@ class VisionClient():
         req.data = activate
         self.pulley_screw_detection_stream_client.call(req)
         self.pulley_screw_detection_streaming = activate
-
-    # @lock_vision
-    def check_if_pulley_screws_visible(self):
-        """ The pulley_screw_detection_stream_client needs to be set to True before calling this. """
-        msg = rospy.wait_for_message('/o2ac_vision_server/pulley_screws_in_view', std_msgs.msg.Bool, rospy.Duration(1.0))
-        return msg.data
 
     # @lock_vision
     def check_pick_success(self, object_name):
