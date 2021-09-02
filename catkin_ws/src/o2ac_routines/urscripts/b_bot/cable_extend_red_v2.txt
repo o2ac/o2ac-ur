@@ -1,0 +1,42 @@
+ Program
+   Robot Program
+     cable_pull_len≔0.122
+     'Length that b_bot straightens the cable for'
+     p0≔get_actual_joint_positions()
+     MoveJ
+       p0
+     Loop
+       Gripper Move69% (1)
+       MoveJ
+         high_back
+         Popup: wait for a_bot to prepare cable
+         above_cable
+       MoveL
+         at_cable
+       Gripper Move85% (1)
+       cable_pull_len≔0.122
+       Popup: continue to move together with a_bot
+       MoveL
+         p0≔get_actual_tcp_pose()
+         Direction: Base X-
+           Until (expression)
+       Gripper Close (1)
+       MoveL
+         hold_cable
+         'Waypoint_5'
+       Loop 3 times
+         MoveL
+           hold_cable
+           Gripper Close (1)
+           Direction: Tool Y+
+             Until (distance)
+           Gripper Move49% (1)
+           'pull_start'
+       Gripper Open (1)
+       Popup: wait for a_bot to grasp cable. press enter to straighten cable and go observe
+       MoveL
+         Waypoint_1
+         Waypoint_2
+         look_at_cable
+       Popup: Did a_bot insert cable? Continue to repeat whole procedure. Stop progam to end.
+       cable_pull_len≔cable_pull_len-0.002

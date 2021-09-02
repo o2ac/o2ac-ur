@@ -134,6 +134,23 @@ if __name__ == '__main__':
         c.pick_screw_from_feeder("b_bot", screw_size=4)
       elif i == '321':
         c.pick_screw_from_feeder("b_bot", screw_size=3)
+      elif i == "4":
+        parts = ['base', 'panel_motor', 'panel_bearing', 'motor', 'motor_pulley', 'bearing',
+          'shaft', 'end_cap', 'bearing_spacer', 'output_pulley', 'idler_spacer', 'idler_pulley', 'idler_pin']
+        for part in parts:
+          c.publish_part_in_assembled_position(part)
+      elif i == "4idler":
+        parts = ['idler_spacer', 'idler_pulley', 'idler_pin']
+        for part in parts:
+          c.publish_part_in_assembled_position(part)
+      elif i == "4bearing":
+        parts = ['bearing', 'shaft', 'end_cap', 'bearing_spacer', 'output_pulley']
+        for part in parts:
+          c.publish_part_in_assembled_position(part)
+      elif i == "4motor":
+        parts = ['motor', 'motor_pulley']
+        for part in parts:
+          c.publish_part_in_assembled_position(part)
       elif i == "41":
         c.publish_part_in_assembled_position("base")
       elif i == "421":
@@ -255,7 +272,7 @@ if __name__ == '__main__':
         c.playback_sequence("bearing_orient")
         c.playback_sequence("bearing_move_to_assembly")
       elif i == '932':
-        c.fasten_bearing(task="assembly")
+        c.fasten_bearing(task="assembly", robot_name="b_bot", with_extra_retighten=True)
       elif i == '9322':
         c.fasten_bearing(task="assembly", only_retighten=True)
       elif i == '933':
@@ -272,6 +289,12 @@ if __name__ == '__main__':
         c.subtask_b() # motor pulley
       elif i == '96':
         c.subtask_e() # idler pin
+      elif i == '96ur':
+        c.subtask_e_urscript() # idler pin
+      elif i == '968':
+        c.playback_sequence("idler_pulley_equip_nut_tool") 
+      elif i == '969':
+        c.fasten_idler_pulley_with_nut_tool(target_link = "assembled_part_03_pulley_ridge_top")
       elif i == '97':
         c.subtask_c2() # shaft
       elif i == '971':
@@ -369,7 +392,7 @@ if __name__ == '__main__':
           break
         c.center_panel("panel_bearing", store=True)
         c.place_panel("a_bot", "panel_bearing", pick_again=True, fake_position=True)
-      elif i == "pickplacebearingpanelwithuncertainty":
+      elif i == "pickplacebearingpanelwithuncertainty" or i == "ppbu":
         pose_with_uncertainty=geometry_msgs.msg.PoseWithCovarianceStamped()
         if not c.pick_panel_with_handover("panel_bearing", simultaneous=False, pose_with_uncertainty=pose_with_uncertainty):
           break
@@ -394,14 +417,22 @@ if __name__ == '__main__':
       if i == "centertrays":
         c.center_tray_stack()
       if i == "return":
+        stack_center=[-0.03,0]
+        tray_heights=[0.05,0.0]
+        c.trays = {"tray%s"%(i+1): (stack_center+[tray_height], True) for i, tray_height in enumerate(tray_heights)}
+        c.trays_return = {"tray%s"%(i+1): (stack_center+[tray_height], True) for i, tray_height in enumerate(tray_heights[::-1])}
         c.return_tray_to_agv_stack_calibration_long_side("tray2")
       if i == "return_long":
+        stack_center=[-0.03,0]
+        tray_heights=[0.05,0.0]
+        c.trays = {"tray%s"%(i+1): (stack_center+[tray_height], True) for i, tray_height in enumerate(tray_heights)}
+        c.trays_return = {"tray%s"%(i+1): (stack_center+[tray_height], True) for i, tray_height in enumerate(tray_heights[::-1])}
         c.return_tray_to_agv_stack_calibration_long_side("tray1")
-      if i == 'carry':
-        c.pick_tray_from_agv_stack_calibration_long_side("tray1")
       if i == 'carryhigh':
         c.center_tray_stack()
         c.pick_tray_from_agv_stack_calibration_long_side("tray1")
+      if i == 'carrylow':
+        c.pick_tray_from_agv_stack_calibration_long_side("tray2")
       if i == "activate":
         c.a_bot.activate_ros_control_on_ur()
         c.b_bot.activate_ros_control_on_ur()

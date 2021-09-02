@@ -9,6 +9,5 @@ int64[] class_ids                   # Part IDs detected by SSD
 geometry_msgs/PoseStamped[] poses   # 3D poses in tray_center frame
 bool[] upside_down                  # True if the item is upside down
 
-
 ---
 # Feedback

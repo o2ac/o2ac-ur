@@ -72,7 +72,7 @@ from o2ac_vision.pose_estimation_func import ShaftAnalysis
 from o2ac_vision.pose_estimation_func import PickCheck
 from o2ac_vision.pose_estimation_func import PulleyScrewDetection
 
-from o2ac_vision.cam_utils import O2ACCameraHelper
+from o2ac_vision.cam_utils import CAMERA_FAILURE, O2ACCameraHelper
 
 import o2ac_vision.o2ac_ssd
 ssd_detection = o2ac_vision.o2ac_ssd.ssd_detection()
@@ -300,7 +300,11 @@ class O2ACVisionServer(object):
             self.execute_localization(im_in, im_vis)
 
         elif self.belt_detection_server.is_active():
-            self.execute_belt_detection(im_in, im_vis)
+            try:
+                self.execute_belt_detection(im_in, im_vis)
+            except Exception as e:
+                rospy.logfatal("Unexpected error: %s" % e)
+                pass
 
         elif self.angle_detection_server.is_active():
             self.execute_angle_detection(im_in, im_vis)
@@ -336,6 +340,7 @@ class O2ACVisionServer(object):
         action_result.poses       = []
         action_result.class_ids   = []
         action_result.upside_down = []
+        success = True
         for poses2d in poses2d_array:
             for pose2d in poses2d.poses:
                 p3d = self.convert_pose_2d_to_3d(pose2d)
@@ -343,6 +348,9 @@ class O2ACVisionServer(object):
                     action_result.class_ids.append(poses2d.class_id)
                     action_result.poses.append(p3d)
                     action_result.upside_down.append(poses2d.upside_down)
+        if not success:
+            action_result = o2ac_msgs.msg.get3DPosesFromSSDResult()
+            action_result.class_ids   = [-1]
         self.get_3d_poses_from_ssd_server.set_succeeded(action_result)
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
 
@@ -401,11 +409,19 @@ class O2ACVisionServer(object):
                 poses2d += p2d
 
         action_result = o2ac_msgs.msg.beltDetectionResult()
+        success = True
         for pose2d in poses2d:
             pose3d = self.convert_pose_2d_to_3d(pose2d)
+            if pose3d == CAMERA_FAILURE:
+                success = False
+                break
             if pose3d:
                 action_result.grasp_points.append(pose3d)
-        self.belt_detection_server.set_succeeded(action_result)
+        if success:
+            self.belt_detection_server.set_succeeded(action_result)
+        else:
+            # action_result.error_code = -1
+            self.belt_detection_server.set_aborted(action_result, "Camera failure")
 
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
         self.write_to_log(im_in, im_vis, "belt_detection")
@@ -516,6 +532,8 @@ class O2ACVisionServer(object):
             poses3d = []
             for pose2d in poses2d.poses:
                 pose3d = self.convert_pose_2d_to_3d(pose2d)
+                if pose3d == CAMERA_FAILURE:
+                    continue
                 if pose3d:
                     poses3d.append(pose3d)
                     rospy.loginfo("Found pose for class %d: (%f, %f, %f)",
@@ -523,6 +541,7 @@ class O2ACVisionServer(object):
                                   pose3d.pose.position.x,
                                   pose3d.pose.position.y,
                                   pose3d.pose.position.z)
+
             if poses3d:
                 if target in apply_grasp_detection:
                     self.publish_belt_grasp_pose_markers(poses3d)
@@ -722,7 +741,17 @@ class O2ACVisionServer(object):
         score, detected = s.main_proc()
         print("Screws detected: ", detected)
         print("Score: ", score)
-        # TODO: Draw green rectangle around bbox if detected, red if not. Display score.
+        
+        text2 = "Score: %.2f%%                   " % (score*100.0)
+        if score > 0.69:
+            color = (0,255,0)
+        else:
+            color = (0,0,255)
+        
+        im_vis = cv2.putText(im_vis, text2, (bbox[0]-120, bbox[1]-30), 0, 1.5, (255,255,255), 7, cv2.LINE_AA)
+        im_vis = cv2.putText(im_vis, text2, (bbox[0]-120, bbox[1]-30), 0, 1.5, color, 4, cv2.LINE_AA)
+        
+        im_vis = cv2.rectangle( im_vis, (bbox[0],  bbox[1]), (bbox[0]+bbox[2], bbox[1]+bbox[3]), color, 6)
         return detected
 
     def motor_angle_detection_from_top(self, im_in, im_vis):
@@ -738,7 +767,7 @@ class O2ACVisionServer(object):
 
         m = MotorOrientation()
         angle_orientation = m.main_proc(im_in, ssd_results)  # if True hole is observed in im_in
-        im_vis = m.draw_im_vis(im_vis)
+        im_vis = m.get_im_vis(im_vis)
         motor_seen = angle_orientation is not False
         if motor_seen:
             return motor_seen, radians(angle_orientation), im_vis
@@ -757,12 +786,13 @@ class O2ACVisionServer(object):
         p3d.header.frame_id = self._camera_info.header.frame_id
         if self._depth is None:
             rospy.logerr("No depth image found")
-            return
+            return None
         depth = self.bridge.imgmsg_to_cv2(self._depth,
                                           desired_encoding="passthrough")
         xyz = self.cam_helper.project_2d_to_3d_from_images(self._camera_info,
                                                            pose2d.x, pose2d.y,
                                                            [depth])
+        # We may not have find anything so its okay to return None
         if not xyz:
             return None
         p3d.pose.position.x = xyz[0]
@@ -784,7 +814,7 @@ class O2ACVisionServer(object):
         timeprefix = now.strftime("%Y-%m-%d_%H:%M:%S")
         folder = os.path.join(self.rospack.get_path("o2ac_vision"), "log")
         cv2.imwrite(os.path.join(folder, timeprefix + "_" + action_name + "_in.png") , img_in)
-        cv2.imwrite(os.path.join(folder, timeprefix + "_" + action_name + "_out.jpg") , img_out)
+        cv2.imwrite(os.path.join(folder, timeprefix + "_" + action_name + "_out.png") , img_out)
 
 ### ========  Visualization
 

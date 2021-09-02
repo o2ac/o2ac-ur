@@ -49,7 +49,7 @@
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/screw_feeder.xacro" />
   
   <xacro:screw_feeder feedername="m3_feeder" parent="workspace_center" with_collision_geometry="false">
-    <origin xyz="-.512 -.155 0.015" rpy="0 0 0" />   
+    <origin xyz="-.5115 -.156 0.015" rpy="0 0 0" />   
   </xacro:screw_feeder> 
   <xacro:screw_feeder feedername="m4_feeder" parent="workspace_center" with_collision_geometry="false">
     <origin xyz="-.512 .0037 0.018" rpy="0 0 0" />   
@@ -114,6 +114,25 @@
   </joint>
   <link name="left_centering_link"/>
 
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/washer_holder.xacro" />
+  <xacro:washer_holder partname="washer_holder1" parent="workspace_center">
+    <origin xyz="0 -0.14 0.001" rpy="0 0 0" />  
+  </xacro:washer_holder>
+
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/washer_holder.xacro" />
+  <xacro:washer_holder partname="washer_holder2" parent="workspace_center">
+    <origin xyz="0 -0.05 0.001" rpy="0 0 0" />
+  </xacro:washer_holder> 
+
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/washer_holder.xacro" />
+  <xacro:washer_holder partname="washer_holder3" parent="workspace_center">
+    <origin xyz="0.325 -0.6 -0.045" rpy="0 ${pi/2} 0" />  
+  </xacro:washer_holder>
+
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/washer_holder.xacro" />
+  <xacro:washer_holder partname="washer_holder4" parent="workspace_center">
+    <origin xyz="0.325 -0.5 -0.045" rpy="0 ${pi/2} 0" />  
+  </xacro:washer_holder> 
   <!-- ======== -->
 
   <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/components/nut_holder.xacro" />
@@ -121,10 +140,6 @@
     <origin xyz="0 .6 0.02" rpy="0 0 0" />  
   </xacro:nut_holder> 
 
-  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/washer_holder.xacro" />
-  <xacro:washer_holder partname="washer_holder" parent="a_bot_base_smfl">
-    <origin xyz="0 .54 0.02" rpy="0 0 0" />  
-  </xacro:washer_holder> 
 
   <xacro:nut_holder partname="calibration_cone" parent="workspace_center">
     <origin xyz="${-0.365+0.01} ${0.345+.03} ${0.022-0.0465}" rpy="0 0 0" />  

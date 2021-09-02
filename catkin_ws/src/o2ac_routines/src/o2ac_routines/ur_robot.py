@@ -7,6 +7,7 @@ import o2ac_msgs.msg
 import controller_manager_msgs.msg
 import std_srvs.srv
 from ur_control.constants import TERMINATION_CRITERIA
+from ur_control import conversions
 import ur_dashboard_msgs.srv
 import ur_msgs.srv
 
@@ -49,6 +50,7 @@ class URRobot(RobotBase):
             "unlock_protective_stop": rospy.ServiceProxy("/%s/ur_hardware_interface/dashboard/unlock_protective_stop" % self.ns, std_srvs.srv.Trigger),
         }
 
+        self.set_payload_srv = rospy.ServiceProxy('/%s/ur_hardware_interface/set_payload' % self.ns, ur_msgs.srv.SetPayload)
         self.speed_slider = rospy.ServiceProxy("/%s/ur_hardware_interface/set_speed_slider" % self.ns, ur_msgs.srv.SetSpeedSliderFraction)
 
         self.set_io = rospy.ServiceProxy('/%s/ur_hardware_interface/set_io' % self.ns, ur_msgs.srv.SetIO)
@@ -98,6 +100,7 @@ class URRobot(RobotBase):
             if response.success:
                 break
             rospy.sleep(0.2)
+        self.ur_dashboard_clients["stop"].call(std_srvs.srv.TriggerRequest())
         if not response.success:
             rospy.logwarn("Could not unlock protective stop of " + self.ns + "!")
         return response.success
@@ -113,6 +116,23 @@ class URRobot(RobotBase):
         rospy.set_param(self.ns + "/carrying_object", self.robot_status.carrying_object)
         rospy.set_param(self.ns + "/carrying_tool",   self.robot_status.carrying_tool)
         rospy.set_param(self.ns + "/held_tool_id",    self.robot_status.held_tool_id)
+
+    @helpers.check_for_real_robot
+    def set_payload(self, mass, center_of_gravity):
+        """ 
+            mass float
+            center_of_gravity list[3] 
+        """
+        self.activate_ros_control_on_ur()
+        try:
+            payload = ur_msgs.srv.SetPayloadRequest()
+            payload.payload = mass
+            payload.center_of_gravity = conversions.to_vector3(center_of_gravity)
+            self.set_payload_srv(payload)
+            return True
+        except Exception as e:
+            rospy.logerr("Exception trying to set payload: %s" % e)
+        return False
 
     @helpers.check_for_real_robot
     def wait_for_control_status_to_turn_on(self, waittime):
@@ -188,6 +208,11 @@ class URRobot(RobotBase):
                 rospy.logwarn("Try to connect to dashboard service.")
                 response = self.ur_dashboard_clients["connect"].call()
                 rospy.sleep(1.0)
+                try:
+                    rospy.logwarn("Try to stop service.")
+                    response = self.ur_dashboard_clients["stop"].call()
+                except:
+                    pass
         except:
             rospy.logwarn("Dashboard service did not respond! (2)")
             pass

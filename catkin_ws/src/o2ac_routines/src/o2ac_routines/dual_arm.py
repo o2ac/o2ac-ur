@@ -52,9 +52,15 @@ class DualArm(RobotBase):
         response = self.moveit_state_validity_srv.call(req)
         return response.valid
 
+    def compute_ik(self, robot1_pose, robot2_pose, timeout, end_effector_link1="", end_effector_link2="", joints_seed1=None, joints_seed2=None, retry=False, allow_collisions=False):
+        joints1 = self.robot1.compute_ik(robot1_pose, joints_seed=joints_seed1, timeout=timeout, end_effector_link=end_effector_link1, retry=retry, allow_collisions=allow_collisions)
+        joints2 = self.robot2.compute_ik(robot2_pose, joints_seed=joints_seed2, timeout=timeout, end_effector_link=end_effector_link2, retry=retry, allow_collisions=allow_collisions)
+        return joints1 + joints2 # concat results
+
     # Dual Arm manipulation
 
-    def go_to_goal_poses(self, robot1_pose, robot2_pose, plan_only=False, speed=0.5, acceleration=0.25, planner="OMPL", robot1_ee_link=None, robot2_ee_link=None, initial_joints=None):
+    def go_to_goal_poses(self, robot1_pose, robot2_pose, plan_only=False, speed=0.5, acceleration=0.25, 
+                         planner="OMPL", robot1_ee_link=None, robot2_ee_link=None, initial_joints=None, timeout=10.0):
         self.set_up_move_group(speed, acceleration, planner)
 
         ee_link1 = self.robot1.ns + "_gripper_tip_link" if robot1_ee_link is None else robot1_ee_link
@@ -67,23 +73,21 @@ class DualArm(RobotBase):
             self.robot_group.set_start_state(helpers.to_robot_state(self.robot_group, initial_joints))
 
         success = False
-        tries = 10
-        while not success and tries > 0 and not rospy.is_shutdown():
-            tries -= 1
-            if plan_only:
-                success, plan, planning_time, error = self.robot_group.plan()
-
-                self.robot_group.clear_pose_targets()
-                return plan, planning_time
-            else:
-                self.robot_group.go(wait=True)
-                success = self.robot1.check_goal_pose_reached(robot1_pose) and self.robot2.check_goal_pose_reached(robot2_pose)
-
+        start_time = rospy.get_time()
+        while not success and (rospy.get_time()-start_time < timeout) and not rospy.is_shutdown():
+            success, plan, planning_time, error = self.robot_group.plan()
+            if success:
+                if plan_only:
+                    self.robot_group.clear_pose_targets()
+                    return plan, planning_time
+                else:
+                    self.robot_group.go(wait=True)
+                    success = self.robot1.check_goal_pose_reached(robot1_pose) and self.robot2.check_goal_pose_reached(robot2_pose)
             if not success:
                 rospy.logwarn("ab_go_to_poses attempt failed")
 
         self.robot_group.clear_pose_targets()
-        return True
+        return success
 
     def get_relative_pose_of_slave(self, master_name, slave_name):
         """ Return the relative pose """

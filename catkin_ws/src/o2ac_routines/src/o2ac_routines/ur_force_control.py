@@ -1,4 +1,5 @@
 from numpy.matrixlib.defmatrix import asmatrix
+from o2ac_routines import helpers
 import rospy
 import rospkg
 import yaml
@@ -108,7 +109,7 @@ class URForceController(CompliantController):
         kwargs.update({"trajectory_type": "spiral"})
         return self.execute_trajectory(*args, **kwargs)
 
-    def execute_trajectory(self, plane, max_radius, radius_direction,
+    def execute_trajectory(self, plane, max_radius, radius_direction=None,
                             steps=100, revolutions=5,
                             wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0,
                             target_force=None, selection_matrix=None, timeout=10.,
@@ -117,8 +118,9 @@ class URForceController(CompliantController):
                             end_effector_link=None, trajectory_type="spiral"):
         from_center = True if trajectory_type == "spiral" else False
         eff = self.default_tcp_link if not end_effector_link else end_effector_link
+        direction = radius_direction if radius_direction else helpers.get_random_valid_direction(plane)
         dummy_trajectory = traj_utils.compute_trajectory([0, 0, 0, 0, 0, 0, 1.],
-                                                         plane, max_radius, radius_direction, steps, revolutions, from_center=from_center, trajectory_type=trajectory_type,
+                                                         plane, max_radius, direction, steps, revolutions, from_center=from_center, trajectory_type=trajectory_type,
                                                          wiggle_direction=wiggle_direction, wiggle_angle=wiggle_angle, wiggle_revolutions=wiggle_revolutions)
         # convert dummy_trajectory (initial pose frame id) to robot's base frame
         now = rospy.Time.now()
@@ -147,8 +149,12 @@ class URForceController(CompliantController):
         direction: string, direction for linear_push +- X,Y,Z relative to base or end-effector, see next argument
         relative_to_ee: bool, whether to use the base_link of the robot as frame or the ee_link (+ ee_transform)
         """
-        config_file = "force_control_" + self.robot_name if slow else "force_control_linear_push"
-        target_force = get_target_force(direction, force)
+        config_file = "force_control_" + self.robot_name if slow else "force_control_linear_push_" + self.robot_name
+        if "Z" in direction:
+            target_force = get_target_force(direction, force)
+        else:
+            offset = 1 if self.robot_name == "b_bot" else -1 # account for robot's mirror position
+            target_force = offset * get_target_force(direction, force)
 
         if selection_matrix is None:
             selection_matrix = np.array(target_force == 0.0) * 1.0  # define the selection matrix based on the target force

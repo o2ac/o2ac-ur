@@ -75,46 +75,6 @@ def upload_mtc_modules_initial_params():
   rospy.set_param('mtc_modules/retreat_direction', [-1.0, 0.0, 0.0])
   rospy.set_param('mtc_modules/support_surfaces', ['tray_center', 'screw_tool_holder_long'])
 
-def spawn_objects(assembly_database, object_names, object_poses, object_reference_frame):
-  '''
-  Spawn collision objects in the planning scene
-
-  This function uses the o2ac_assembly_database module to spawn objects in the scene. The assembly, its objects and their metadata
-  has to be set up inside the o2ac_assembly_database module.
-
-  Given a list of object names from an assembly, this functions spawns the listed objects in the corresponding poses in input 'object_poses'.
-  The inputs 'object_names' and 'object_poses' must have the same lengths.
-  The object poses are lists of floats in [x,y,z,r,p,y] format and are relative to the object_reference_frame
-  '''
-  moveit_commander.roscpp_initialize(sys.argv)
-  planning_scene_interface = moveit_commander.PlanningSceneInterface()
-  transformer = tf.Transformer(True, rospy.Duration(10.0))
-
-  for (object_name, object_pose) in zip(object_names, object_poses):
-    co_pose = geometry_msgs.msg.Pose()
-    co_pose.position = geometry_msgs.msg.Point(*object_pose[:3])
-    quaternion = tf.transformations.quaternion_from_euler(*conversions.to_float(object_pose[3:]))
-    co_pose.orientation = geometry_msgs.msg.Quaternion(*quaternion)
-
-    collision_object = next((co for co in assembly_database._collision_objects if co.id == object_name), None)
-    assert collision_object is not None, "Collision object for '%s' does not exist or names do not match" % object_name
-
-    # Create copy to avoid modifying the original
-    collision_object_copy = moveit_msgs.msg.CollisionObject()
-    collision_object_copy.header.frame_id = object_reference_frame
-    collision_object_copy.pose = co_pose
-    
-    # Shallow copy the rest
-    collision_object_copy.operation = collision_object.operation
-    collision_object_copy.type = collision_object.type
-    collision_object_copy.id = collision_object.id
-    collision_object_copy.primitives = collision_object.primitives
-    collision_object_copy.primitive_poses = collision_object.primitive_poses
-    collision_object_copy.meshes = collision_object.meshes
-    collision_object_copy.mesh_poses = collision_object.mesh_poses
-    
-    planning_scene_interface.add_object(collision_object_copy)
-
 def is_program_running(topic_namespace, service_client):
   req = ur_dashboard_msgs.srv.IsProgramRunningRequest()
   res = []
@@ -563,6 +523,40 @@ def check_for_real_robot(func):
         return True
     return wrap
 
+def lock_impedance(func):
+    '''Decorator that locks resources while being used. Assumes there is a self.vision_lock accessible in the decorated method'''
+    def wrap(*args, **kwargs):
+        result = False
+        # print("== waiting for lock ==", func.__name__)
+        try:
+            args[0].impedance_lock.acquire()
+            # print("Lock acquired", func.__name__)
+            result = func(*args, **kwargs)
+        except Exception as e:
+          print("(lock_impedance) received an exception", func.__name__, e)
+        finally:
+          args[0].impedance_lock.release()
+          # print("Lock released", func.__name__)
+        return result
+    return wrap
+
+def lock_vision(func):
+    '''Decorator that locks resources while being used. Assumes there is a self.vision_lock accessible in the decorated method'''
+    def wrap(*args, **kwargs):
+        result = False
+        print("== waiting for lock ==", func.__name__)
+        try:
+            args[0].vision_lock.acquire()
+            print("Lock acquired", func.__name__)
+            result = func(*args, **kwargs)
+        except Exception as e:
+          print("(lock_vision) received an exception", func.__name__, e)
+        finally:
+          args[0].vision_lock.release()
+          print("Lock released", func.__name__)
+        return result
+    return wrap
+
 def get_trajectory_duration(plan):
   time_from_start = plan.joint_trajectory.points[-1].time_from_start
   duration = rospy.Time(time_from_start.secs, time_from_start.nsecs)
@@ -651,15 +645,15 @@ def to_sequence_trajectory(trajectory, blend_radiuses=0.0, speed=0.5, default_fr
       sequence_trajectory.append([conversions.to_pose_stamped(default_frame, t), br, spd])
   return ["trajectory", sequence_trajectory]
 
-def to_sequence_joint_trajectory(trajectory, blend_radiuses=0.0, speed=0.5):
+def to_sequence_joint_trajectory(trajectory, blend_radiuses=0.0, speed=0.5, end_effector_link="", linear=False):
   sequence_trajectory = []
   blend_radiuses = blend_radiuses if isinstance(blend_radiuses, list) else np.zeros_like(trajectory)+blend_radiuses
   speeds = speed if isinstance(speed, list) else np.zeros_like(trajectory)+speed
-  for i, (t, br, spd) in enumerate(zip(trajectory, blend_radiuses, speeds)):
-    sequence_trajectory.append([t, br, spd])
-  return ["joint_trajectory", sequence_trajectory]
+  for waypoint, br, spd in zip(trajectory, blend_radiuses, speeds):
+    sequence_trajectory.append([waypoint, br, spd])
+  return ["joint_trajectory", sequence_trajectory, end_effector_link, linear]
 
-def to_sequence_item_dual_arm(pose1, pose2, speed, planner="OMPL"):
+def to_sequence_item_dual_arm(pose1, pose2, speed, acc=None, planner="OMPL"):
   item = {"pose": conversions.from_pose_to_list(pose1.pose),
           "pose2": conversions.from_pose_to_list(pose2.pose),
           "pose_type": "task-space-in-frame",
@@ -667,6 +661,7 @@ def to_sequence_item_dual_arm(pose1, pose2, speed, planner="OMPL"):
           "planner": planner,
          }
   item.update({"speed":speed})
+  item.update({"acc":acc})
   return ["waypoint", item]
 
 def to_sequence_item_master_slave(master, slave, pose, slave_relative_pose, speed):
@@ -766,3 +761,48 @@ def concat_joint_trajectory_point(point1, point2):
   point.effort = point1.effort + point2.effort
   point.time_from_start = point1.time_from_start
   return point
+
+def stack_plans(plans):
+  staked_plan = copy.deepcopy(plans.pop(0))
+  for plan in plans:
+    staked_plan = copy.deepcopy(stack_two_plans(staked_plan, plan))
+  return staked_plan
+
+def stack_two_plans(plan1, plan2):
+  # Stack 2 plans of the same move group
+  plan = copy.deepcopy(plan1)
+  plan1_duration = plan1.joint_trajectory.points[-1].time_from_start
+  plan2.joint_trajectory.points.pop(0)
+  for point in plan2.joint_trajectory.points:
+    new_point = copy.deepcopy(point)
+    new_point.time_from_start += plan1_duration
+    plan.joint_trajectory.points.append(new_point)
+  print("----")
+  print("plan1:", len(plan1.joint_trajectory.points), get_trajectory_duration(plan1))
+  print("plan2:", len(plan2.joint_trajectory.points), get_trajectory_duration(plan2))
+  print("plan res:", len(plan.joint_trajectory.points), get_trajectory_duration(plan))
+  return plan
+
+def save_single_plan(filename, plan):
+  bagfile = get_plan_full_path(filename)
+  if os.path.exists(bagfile):
+    os.remove(bagfile)
+
+  # Make sure the directory exists before trying to open a file
+  saved_plans_directory = os.path.dirname(bagfile)
+  if not os.path.exists(saved_plans_directory):
+    os.makedirs(saved_plans_directory)
+  
+  with rosbag.Bag(bagfile, 'w') as bag:
+    bag.write(topic="plan", msg=plan)
+
+def load_single_plan(filename):
+  bagfile = get_plan_full_path(filename)
+  plan = None
+  if not os.path.exists(bagfile):
+    rospy.logwarn("Plan: %s does not exist" % bagfile)
+    return None
+  with rosbag.Bag(bagfile, 'r') as bag:
+    for (topic, msg, ts) in bag.read_messages():
+      plan = msg
+  return plan

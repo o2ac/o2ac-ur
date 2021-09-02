@@ -33,11 +33,12 @@ class Multiplexer
 	const std::string&	camera_name()			const	;
 
       private:
-	const std::string	_camera_name;
-	ros::Subscriber		_camera_info_sub;
-	ros::Subscriber		_image_sub;
-	ros::Subscriber		_depth_sub;
-	ros::Subscriber		_normal_sub;
+	const std::string		_camera_name;
+	image_transport::ImageTransport	_it;
+	image_transport::Subscriber	_image_sub;
+	image_transport::Subscriber	_depth_sub;
+	image_transport::Subscriber	_normal_sub;
+	ros::Subscriber			_camera_info_sub;
     };
 
     using subscribers_cp = std::shared_ptr<const Subscribers>;

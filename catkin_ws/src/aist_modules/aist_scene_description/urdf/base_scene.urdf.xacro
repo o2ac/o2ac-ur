@@ -71,26 +71,29 @@
     <origin xyz="${b_bot_x} ${b_bot_y} ${bots_z}" rpy="0 0 ${b_bot_theta}"/>
   </joint>
 
-  <!-- Spawn and attach gripper (+ FT300 sensor) -->
+  <!-- Spawn and attach force sensor -->
   <xacro:include filename="$(find o2ac_scene_description
 			   )/urdf/components/ft300.urdf.xacro"/>
-  <xacro:ft300 prefix="a_bot_" parent="a_bot_ee_link">
+  <xacro:ft300 prefix="a_bot_ftsensor_" parent="a_bot_ee_link">
     <origin xyz="0 0 0" rpy="0 0 0"/>
   </xacro:ft300>
+
+  <xacro:ft300 prefix="b_bot_ftsensor_" parent="b_bot_ee_link">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </xacro:ft300>
+>
+  <!-- Spawn and attach gripper -->
   <xacro:include filename="$(find o2ac_scene_description
 			   )/urdf/components/o2ac_end_effector.urdf.xacro" />
   <xacro:o2ac_end_effector prefix="a_bot_" use_soft_wrist="false"
   			   use_cameras="true"
-  			   parent = "a_bot_ft300_flange_link" />
+  			   parent = "a_bot_ftsensor_flange_link" />
 
-  <xacro:ft300 prefix="b_bot_" parent="b_bot_ee_link">
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-  </xacro:ft300>
   <xacro:include filename="$(find aist_scene_description
   			   )/urdf/components/single_suction_gripper.urdf.xacro"/>
-  <xacro:single_suction_gripper prefix="b_bot_"
-  				parent="b_bot_ft300_flange_link">
-    <origin xyz="0 0 0" rpy="0 ${0.4*pi/180} ${0.1*pi/180}"/>
+  <xacro:single_suction_gripper prefix="b_bot_gripper_"
+  				parent="b_bot_ftsensor_flange_link">
+    <origin xyz="0 0 0" rpy="0 ${-0.1*pi/180} ${0.15*pi/180}"/>
   </xacro:single_suction_gripper>
 
   <!-- Provide force feedback -->

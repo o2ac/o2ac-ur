@@ -1,0 +1,49 @@
+ Program
+   Robot Program
+     MoveJ
+       'currentpose≔get_actual_joint_positions()'
+       'currentpose'
+       home
+       Gripper Close (1)
+       handover_0
+       'looking_at_belt'
+     Touch+Grasp
+       MoveL
+         Direction: Base Z+
+           Until (tool_contact_detection)
+       Gripper Move60% (1)
+       MoveL
+         Direction: Base Z+
+           Until (distance)
+       Gripper Close (1)
+     Popup: wait for a_bot to release, Continue to move down
+     MoveJ
+       present_pulley
+     Popup: wait for a_bot to stack 3 parts. Continue to move into ridge
+     MoveJ
+       Waypoint_6
+       Waypoint_7
+       Waypoint_8
+     'MoveL'
+     Popup: wait for abot to take stack. c to release and get tool
+     Gripper Move58% (1)
+     MoveL
+       Direction: Base X+
+         Until (distance)
+     MoveJ
+       home
+     Popup: take padless tool, go to horizontal ready. c to move with tool
+     MoveJ
+       horiz_screw_rdy
+       before_stack
+     MoveL
+       in_stack_H
+     Popup: wait for abot to open. c to incline slightly
+     MoveL
+       Waypoint_10
+     Popup: wait for washer and nut and fastening
+     Wait: 1.5
+     'MoveJ'
+     MoveL
+       Direction: Base X+
+         Until (distance)

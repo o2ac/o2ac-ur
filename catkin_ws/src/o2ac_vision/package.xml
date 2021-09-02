@@ -38,8 +38,8 @@
   <run_depend>aist_depth_filter</run_depend>
   <build_depend>aist_depth_filter</build_depend>
 
-  <run_depend>aist_localization</run_depend>
-  <build_depend>aist_localization</build_depend>
+  <run_depend>aist_new_localization</run_depend>
+  <build_depend>aist_new_localization</build_depend>
 
   <run_depend>aist_model_spawner</run_depend>
   <build_depend>aist_model_spawner</build_depend>

@@ -374,6 +374,7 @@ grasp_calculator::grasp_calculator(
   gripper_touch_vertex_2 = vertices[gripper_touch_vertex_id_2];
   gripper_touch_vertex_3 = vertices[gripper_touch_vertex_id_3];
   gripper_touch_vertex_4 = vertices[gripper_touch_vertex_id_4];
+
   ground_touch_vertex_1 = all_vertices[ground_touch_vertex_id_1];
   ground_touch_vertex_2 = all_vertices[ground_touch_vertex_id_2];
 

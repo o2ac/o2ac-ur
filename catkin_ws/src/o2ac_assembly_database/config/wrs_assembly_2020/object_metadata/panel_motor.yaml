@@ -1,4 +1,4 @@
-collision_objects:
+collision_primitives:
 - type: BOX 
   dimensions: [0.07, 0.06, 0.005]
   pose: [0.035, 0.03, 0.0025, 0.0, 0.0, 0.0]

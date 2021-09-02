@@ -260,9 +260,9 @@ CovarianceMatrix safe_XXT(const CovarianceMatrix &A) {
   CovarianceMatrix X = solver.eigenvectors();
   Particle eigenvalues = solver.eigenvalues();
   for (int i = 0; i < 6; i++) {
-    if (eigenvalues(i) < -EPS) {
+    /*if (eigenvalues(i) < -EPS) {
       throw std::runtime_error("Covariance matrix has a negative eigenvalue");
-    }
+      }*/
     X.col(i) *= sqrt(std::max(eigenvalues(i), 0.0));
   }
   return X;

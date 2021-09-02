@@ -7,7 +7,7 @@ Panels:
         - /MotionPlanning1/Planning Request1
         - /DepthCloud1/Auto Size1
       Splitter Ratio: 0.5068285465240479
-    Tree Height: 313
+    Tree Height: 568
   - Class: rviz/Help
     Name: Help
   - Class: rviz/Views
@@ -111,16 +111,16 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          a_bot_ft300_flange_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          a_bot_ft300_link:
+          a_bot_ftsensor_base_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          a_bot_ft300_wrench_link:
+          a_bot_ftsensor_flange_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          a_bot_ftsensor_wrench_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -349,16 +349,25 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          b_bot_ft300_flange_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          b_bot_ft300_link:
+          b_bot_ftsensor_base_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          b_bot_ft300_wrench_link:
+          b_bot_ftsensor_flange_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          b_bot_ftsensor_wrench_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          b_bot_gripper_single_suction_gripper_base_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          b_bot_gripper_single_suction_gripper_pad_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -367,15 +376,6 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          b_bot_single_suction_gripper_base_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          b_bot_single_suction_gripper_pad_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
           b_bot_tool0:
             Alpha: 1
             Show Axes: false
@@ -405,11 +405,6 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
           workbox:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          workspace_ar_marker:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -505,16 +500,16 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          a_bot_ft300_flange_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          a_bot_ft300_link:
+          a_bot_ftsensor_base_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          a_bot_ft300_wrench_link:
+          a_bot_ftsensor_flange_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          a_bot_ftsensor_wrench_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -743,16 +738,25 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          b_bot_ft300_flange_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          b_bot_ft300_link:
+          b_bot_ftsensor_base_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          b_bot_ft300_wrench_link:
+          b_bot_ftsensor_flange_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          b_bot_ftsensor_wrench_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          b_bot_gripper_single_suction_gripper_base_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          b_bot_gripper_single_suction_gripper_pad_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -761,15 +765,6 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          b_bot_single_suction_gripper_base_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          b_bot_single_suction_gripper_pad_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
           b_bot_tool0:
             Alpha: 1
             Show Axes: false
@@ -799,11 +794,6 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
           workbox:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          workspace_ar_marker:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -842,12 +832,12 @@ Visualization Manager:
           Value: false
         a_bot_forearm_link:
           Value: false
-        a_bot_ft300_flange_link:
-          Value: false
-        a_bot_ft300_link:
-          Value: false
-        a_bot_ft300_wrench_link:
-          Value: false
+        a_bot_ftsensor_base_link:
+          Value: true
+        a_bot_ftsensor_flange_link:
+          Value: true
+        a_bot_ftsensor_wrench_link:
+          Value: true
         a_bot_gripper_tip_link:
           Value: true
         a_bot_inside_cam_link:
@@ -950,18 +940,18 @@ Visualization Manager:
           Value: false
         b_bot_forearm_link:
           Value: false
-        b_bot_ft300_flange_link:
-          Value: false
-        b_bot_ft300_link:
-          Value: false
-        b_bot_ft300_wrench_link:
+        b_bot_ftsensor_base_link:
+          Value: true
+        b_bot_ftsensor_flange_link:
+          Value: true
+        b_bot_ftsensor_wrench_link:
+          Value: true
+        b_bot_gripper_single_suction_gripper_base_link:
+          Value: true
+        b_bot_gripper_single_suction_gripper_pad_link:
           Value: true
         b_bot_shoulder_link:
           Value: false
-        b_bot_single_suction_gripper_base_link:
-          Value: false
-        b_bot_single_suction_gripper_pad_link:
-          Value: true
         b_bot_tool0:
           Value: false
         b_bot_upper_arm_link:
@@ -976,8 +966,6 @@ Visualization Manager:
           Value: false
         workbox:
           Value: false
-        workspace_ar_marker:
-          Value: true
         workspace_center:
           Value: false
         world:
@@ -1000,11 +988,11 @@ Visualization Manager:
                       a_bot_wrist_2_link:
                         a_bot_wrist_3_link:
                           a_bot_ee_link:
-                            a_bot_ft300_link:
-                              a_bot_ft300_flange_link:
+                            a_bot_ftsensor_base_link:
+                              a_bot_ftsensor_flange_link:
                                 a_bot_coupling:
                                   {}
-                                a_bot_ft300_wrench_link:
+                                a_bot_ftsensor_wrench_link:
                                   {}
                                 a_bot_robotiq_85_base_link:
                                   a_bot_cam_cables_link:
@@ -1082,20 +1070,19 @@ Visualization Manager:
                       b_bot_wrist_2_link:
                         b_bot_wrist_3_link:
                           b_bot_ee_link:
-                            b_bot_ft300_link:
-                              b_bot_ft300_flange_link:
-                                b_bot_ft300_wrench_link:
+                            b_bot_ftsensor_base_link:
+                              b_bot_ftsensor_flange_link:
+                                b_bot_ftsensor_wrench_link:
                                   {}
-                                b_bot_single_suction_gripper_base_link:
-                                  b_bot_single_suction_gripper_pad_link:
+                                b_bot_gripper_single_suction_gripper_base_link:
+                                  b_bot_gripper_single_suction_gripper_pad_link:
                                     {}
                           b_bot_tool0:
                             {}
             workbox:
               {}
             workspace_center:
-              workspace_ar_marker:
-                {}
+              {}
       Update Interval: 0
       Value: true
     - Class: rviz/Image
@@ -1204,7 +1191,7 @@ Window Geometry:
     collapsed: false
   Displays:
     collapsed: false
-  Height: 759
+  Height: 1366
   Help:
     collapsed: false
   Hide Left Dock: false
@@ -1213,9 +1200,9 @@ Window Geometry:
     collapsed: false
   MotionPlanning - Trajectory Slider:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd0000000100000000000001ca000002a1fc0200000009fc0000003b0000018f000001840100001afa000000010100000002fb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e00670100000000ffffffff000001ca00fffffffb000000100044006900730070006c0061007900730100000000000002a20000015600fffffffb0000000800480065006c00700000000342000000bb0000006e00fffffffb0000000a0056006900650077007300000003b0000000b0000000a000fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670100000374000001890000000000000000fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000001600000016fb000000140043006f006c006f00720049006d00610067006501000001d0000000830000001600fffffffb00000014004400650070007400680049006d0061006700650100000259000000830000001600fffffffb0000000a0049006d00610067006501000003380000008600000000000000000000029e000002a100000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000001000000000000036a000004c4fc0200000009fc00000069000002d1000002c001000034fa000000010100000002fb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e00670100000000ffffffff0000036a00fffffffb000000100044006900730070006c0061007900730100000000000002a2000001dc00fffffffb0000000800480065006c00700000000342000000bb000000cf00fffffffb0000000a0056006900650077007300000003b0000000b00000012300fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670100000374000001890000000000000000fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000002100000021fb000000140043006f006c006f00720049006d0061006700650100000346000000f20000002100fffffffb00000014004400650070007400680049006d0061006700650100000444000000e90000002100fffffffb0000000a0049006d0061006700650100000338000000860000000000000000000005e6000004c400000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Views:
     collapsed: false
-  Width: 1134
-  X: 232
-  Y: 110
+  Width: 2396
+  X: 407
+  Y: 316

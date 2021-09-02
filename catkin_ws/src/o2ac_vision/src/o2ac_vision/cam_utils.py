@@ -10,6 +10,7 @@ import numpy as np
 import copy
 import time
 
+CAMERA_FAILURE = -1
 
 class O2ACCameraHelper(object):
     """
@@ -64,15 +65,17 @@ class O2ACCameraHelper(object):
         except:
             pass
 
-        if len(depth_vals) == 0:
-            depth_vals.append(0)
-            rospy.logerr("No depth value found in image!")
-            if not average_with_radius:
-                rospy.loginfo("Reattempting backprojection with neighboring pixels")
-                return self.project_2d_to_3d_from_images(camera_info, u, v, depth_images, average_with_radius=8)
-            else:
-                rospy.logerr("Could not find pixels in depth image to reproject! Returning None")
-                return None
+        if not depth_vals:
+            rospy.logwarn("No depth value found at pixel u,v!, returning with depth 0")
+            return self.project_2d_to_3d(camera_info, [u], [v], [0])[0]
+            # depth_vals.append(0)
+            # if not average_with_radius:
+            #     rospy.loginfo("Reattempting backprojection with neighboring pixels")
+            #     return self.project_2d_to_3d_from_images(camera_info, u, v, depth_images, average_with_radius=8)
+            # else:
+            #     rospy.logerr("Could not find pixels in depth image to reproject! Returning None")
+            #     return False
+                # return CAMERA_FAILURE
         depth = np.mean(depth_vals)
 
         # Backproject to 3D

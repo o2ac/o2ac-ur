@@ -125,7 +125,7 @@ class RobotBase():
         group.set_max_velocity_scaling_factor(speed_)
         group.set_max_acceleration_scaling_factor(accel_)
         self.set_planner(planner)
-        return True
+        return speed_, accel_
 
     def set_planner(self, planner="OMPL"):
         group = self.robot_group
@@ -202,6 +202,9 @@ class RobotBase():
     def get_current_pose(self):
         return self.robot_group.get_current_pose().pose
 
+    def get_named_pose_target(self, name):
+        return helpers.ordered_joint_values_from_dict(self.robot_group.get_named_target_values(name), self.robot_group.get_active_joints())
+
     def save_plan(self, filename, plan):
         rp = rospkg.RosPack()
         bagfile = rp.get_path("o2ac_routines") + "/config/saved_plans/" + filename
@@ -238,8 +241,7 @@ class RobotBase():
         move_ptp = False if move_lin else move_ptp # Override if move_lin is set (Linear takes priority since PTP is the default value)
 
         planner = "LINEAR" if move_lin else ("PTP" if move_ptp else "OMPL")
-        if not self.set_up_move_group(speed, acceleration, planner):
-            return False
+        speed_, accel_ = self.set_up_move_group(speed, acceleration, planner)
 
         group = self.robot_group
         group.clear_pose_targets()
@@ -267,6 +269,7 @@ class RobotBase():
             group.set_pose_target(pose_goal_)
             success, plan, planning_time, error = group.plan()
 
+
             if success:
                 if self.joint_configuration_changes(plan.joint_trajectory.points[0].positions,
                                                     plan.joint_trajectory.points[-1].positions) \
@@ -275,6 +278,10 @@ class RobotBase():
                     rospy.logwarn("Joint configuration would have flipped.")
                     continue
             if success:
+                if planner != "LINEAR":
+                    # retime
+                    plan = self.robot_group.retime_trajectory(self.robot_group.get_current_state(), plan, algorithm="time_optimal_trajectory_generation",
+                                                              velocity_scaling_factor=speed_, acceleration_scaling_factor=accel_)
                 if plan_only:
                     group.set_start_state_to_current_state()
                     group.clear_pose_targets()
@@ -286,7 +293,7 @@ class RobotBase():
                     self.set_up_move_group(speed, acceleration, "OMPL")
                 if robots_in_simultaneous:
                     rospy.sleep(1.0) # give time to other robot to get out of the way
-                else:
+                elif not move_ptp:
                     rospy.sleep(0.2)
                 rospy.logwarn("go_to_pose_goal(move_lin=%s) attempt failed. Retrying." % str(move_lin))
                 tries += 1
@@ -430,11 +437,14 @@ class RobotBase():
             elif relative_to_tcp:
                 new_pose.header.stamp = rospy.Time.now()
                 # Workaround for TF lookup into the future error
-                try:
-                    self.listener.waitForTransform(self.ns + "_gripper_tip_link", new_pose.header.frame_id, new_pose.header.stamp, rospy.Duration(1))
-                except:
-                    pass
-                new_pose = self.listener.transformPose(self.ns + "_gripper_tip_link", new_pose)
+                tries = 0
+                while tries < 10:
+                    try:
+                        self.listener.waitForTransform(self.ns + "_gripper_tip_link", new_pose.header.frame_id, new_pose.header.stamp, rospy.Duration(1))
+                        new_pose = self.listener.transformPose(self.ns + "_gripper_tip_link", new_pose)
+                        break
+                    except:
+                        tries += 1
 
         new_position = conversions.from_point(new_pose.pose.position) + relative_translation
         new_pose.pose.position = conversions.to_point(new_position)
@@ -466,8 +476,7 @@ class RobotBase():
         """
         pose_name should be a named pose in the moveit_config, such as "home", "back" etc.
         """
-        if not self.set_up_move_group(speed, acceleration, planner=("PTP" if move_ptp else "OMPL")):
-            return False
+        speed_, accel_ = self.set_up_move_group(speed, acceleration, planner=("PTP" if move_ptp else "OMPL"))
         group = self.robot_group
 
         group.set_named_target(pose_name)
@@ -483,6 +492,9 @@ class RobotBase():
                 group.set_start_state_to_current_state()
             success, plan, planning_time, error = group.plan()
             if success:
+                # retime
+                plan = self.robot_group.retime_trajectory(self.robot_group.get_current_state(), plan, algorithm="time_optimal_trajectory_generation",
+                                                              velocity_scaling_factor=speed_, acceleration_scaling_factor=accel_)
                 group.clear_pose_targets()
                 group.set_start_state_to_current_state()
                 if plan_only:
@@ -501,8 +513,7 @@ class RobotBase():
         return success
 
     def move_joints(self, joint_pose_goal, speed=0.6, acceleration=None, wait=True, plan_only=False, initial_joints=None, move_ptp=True):
-        if not self.set_up_move_group(speed, acceleration, planner=("PTP" if move_ptp else "OMPL")):
-            return False
+        speed_, accel_ = self.set_up_move_group(speed, acceleration, planner=("PTP" if move_ptp else "OMPL"))
         group = self.robot_group
 
         group.set_joint_value_target(joint_pose_goal)
@@ -518,6 +529,9 @@ class RobotBase():
                 group.set_start_state_to_current_state()
             success, plan, planning_time, error = group.plan()
             if success:
+                # retime
+                plan = self.robot_group.retime_trajectory(self.robot_group.get_current_state(), plan, algorithm="time_optimal_trajectory_generation",
+                                                              velocity_scaling_factor=speed_, acceleration_scaling_factor=accel_)
                 group.set_start_state_to_current_state()
                 if plan_only:
                     return plan, planning_time
@@ -535,18 +549,24 @@ class RobotBase():
 
         return False
 
-    def move_joints_trajectory(self, trajectory, speed=1.0, acceleration=None, plan_only=False, initial_joints=None, timeout=5.0):
-        if not self.set_up_move_group(speed, acceleration, planner="PTP"):
-            return False
+    def move_joints_trajectory(self, trajectory, speed=1.0, acceleration=None, plan_only=False, initial_joints=None, end_effector_link="", timeout=5.0):
+        speed_, accel_ = self.set_up_move_group(speed, acceleration, planner="PTP")
 
         group = self.robot_group
+
+        if not end_effector_link:
+            end_effector_link = self.ns + "_gripper_tip_link"
+        group.set_end_effector_link(end_effector_link)
 
         waypoints = []
         for point, blend_radius, speed in trajectory:
             if isinstance(point, str):
                 joint_values = helpers.ordered_joint_values_from_dict(group.get_named_target_values(point), group.get_active_joints())
-            else:
+            elif isinstance(point, tuple) or isinstance(point, list) or isinstance(point, geometry_msgs.msg.PoseStamped):
                 joint_values = point
+            else:
+                rospy.logerr("Joint trajectory with invalid point: type=%s" % type(point))
+                return False
             waypoints.append((joint_values, blend_radius, speed))
 
         group.set_joint_value_target(initial_joints if initial_joints else group.get_current_joint_values())
@@ -591,6 +611,9 @@ class RobotBase():
 
             if response.response.error_code.val == 1:
                 plan = response.response.planned_trajectories[0]  # support only one plan?
+                # retime
+                plan = self.robot_group.retime_trajectory(self.robot_group.get_current_state(), plan, algorithm="time_optimal_trajectory_generation",
+                                                              velocity_scaling_factor=speed_, acceleration_scaling_factor=accel_)
                 planning_time = response.response.planning_time
                 if plan_only:
                     return plan, planning_time

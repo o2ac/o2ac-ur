@@ -25,22 +25,22 @@
     <arg name="enable_streaming"	value="$(arg enable_streaming)"/>
   </include>
 
-  <include file="$(find aist_depth_filter)/launch/run.launch"
-	   ns="$(arg camera_name)">
-    <arg name="camera_info_topic" value="color/camera_info"/>
-    <arg name="image_topic"	  value="color/image_raw"/>
-    <arg name="depth_topic"	  value="aligned_depth_to_color/image_raw"/>
+  <include file="$(find aist_depth_filter)/launch/run.launch">
+    <arg name="camera_info_topic" value="$(arg camera_name
+					 )/color/camera_info"/>
+    <arg name="image_topic"	  value="$(arg camera_name)/color/image_raw"/>
+    <arg name="depth_topic"	  value="$(arg camera_name
+					 )/aligned_depth_to_color/image_raw"/>
     <arg name="normal_topic"	  value=""/>
     <arg name="manager"
 	 value="$(eval ''
 		if manager == 'realsense2_camera_manager' else manager)"/>
   </include>
 
-  <include file="$(find aist_visual_tracker)/launch/run.launch"
-	   ns="$(arg camera_name)">
-    <arg name="camera_info_topic" value="depth_filter/camera_info"/>
-    <arg name="image_topic"	  value="depth_filter/image"/>
-    <arg name="depth_topic"	  value="depth_filter/depth"/>
+  <include file="$(dirname)/run.launch">
+    <arg name="camera_info_topic" value="/depth_filter/camera_info"/>
+    <arg name="image_topic"	  value="/depth_filter/image"/>
+    <arg name="depth_topic"	  value="/depth_filter/depth"/>
     <arg name="manager"
 	 value="$(eval ''
 		if manager == 'realsense2_camera_manager' else manager)"/>

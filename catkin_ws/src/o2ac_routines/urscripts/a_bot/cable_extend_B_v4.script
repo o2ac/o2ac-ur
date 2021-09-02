@@ -1,14 +1,12 @@
 def cable_extend_B_v4():
-  set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
-  set_payload(1.27, [0.0, -0.017, 0.053])
-  step_count_77f346ae_7c8c_4344_a8b2_81ddc147fa66 = 0.0
-  thread Step_Counter_Thread_ad75be27_9d93_4f1c_a95a_94b41675272a():
+  step_count_86d1ad5a_aa99_42e5_9759_477933cdd9fd = 0.0
+  thread Step_Counter_Thread_34f2fa9b_c7b1_4017_b106_1816758b2483():
     while (True):
-      step_count_77f346ae_7c8c_4344_a8b2_81ddc147fa66 = step_count_77f346ae_7c8c_4344_a8b2_81ddc147fa66 + 1.0
+      step_count_86d1ad5a_aa99_42e5_9759_477933cdd9fd = step_count_86d1ad5a_aa99_42e5_9759_477933cdd9fd + 1.0
       sync()
     end
   end
-  run Step_Counter_Thread_ad75be27_9d93_4f1c_a95a_94b41675272a()
+  run Step_Counter_Thread_34f2fa9b_c7b1_4017_b106_1816758b2483()
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -17,12 +15,14 @@ def cable_extend_B_v4():
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
   set_safety_mode_transition_hardness(1)
+  set_gravity([0.0, 0.0, 9.82])
+  set_tcp(p[0.0,0.0,0.22,0.0,0.0,0.0])
+  set_payload(1.27, [0.0, -0.017, 0.053])
   set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
   set_tool_output_mode(0)
   set_tool_digital_output_mode(0, 1)
   set_tool_digital_output_mode(1, 1)
   set_tool_voltage(24)
-  set_gravity([0.0, 0.0, 9.82])
   # begin: URCap Installation Node
   #   Source: External Control, 1.0.5, FZI Research Center for Information Technology
   #   Type: External Control
