@@ -74,9 +74,10 @@ class PartsReader(object):
         rospy.loginfo("Loading new parts database: " + db_name)
         self.db_name = db_name
         self._directory = os.path.join(self._rospack.get_path('o2ac_assembly_database'), 'config', db_name)
+        self.assembly_info = self._read_assembly_info()
         self._parts_list = self._read_parts_list()
         self._collision_objects, self._grasps, self._mesh_filepaths, self._primitive_collision_objects = self.get_collision_objects_with_metadata()
-        self.load_meshes = load_meshes 
+        self.load_meshes = load_meshes
         rospy.loginfo("Done loading parts database " + db_name)
     
     def get_collision_object(self, object_name, use_simplified_collision_shapes=True):
@@ -260,6 +261,12 @@ class PartsReader(object):
         with open(path, 'r') as file_open:
             parts_list = yaml.load(file_open)
         return parts_list['parts_list']
+    
+    def _read_assembly_info(self):
+        path = os.path.join(self._directory, 'assembly_info.yaml')
+        with open(path, 'r') as file_open:
+            assembly_info = yaml.load(file_open)
+        return assembly_info
 
     def _read_object_metadata(self, object_name):
         '''Read and return the object metadata including the subframes and the grasp points

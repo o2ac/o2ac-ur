@@ -30,7 +30,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-# Author: Karoly Istvan Artur
+# Author: Karoly Istvan Artur, Felix von Drigalski
 
 import yaml
 import os
@@ -67,7 +67,9 @@ class AssemblyReader(PartsReader):
     
     def change_assembly(self, assembly_name):
         if self.db_name != assembly_name:
+            # Clear current database from memory
             self._collision_objects, self._grasps, self._mesh_filepaths, self._primitive_collision_objects = None, None, None, None
+            # Load the new database
             self.load_db(assembly_name)
             self.assembly_tree = self.get_assembly_tree(self._collision_objects)
             self._upload_grasps_to_param_server(assembly_name)
@@ -79,7 +81,7 @@ class AssemblyReader(PartsReader):
         'base_object' input is a string specifying the name of the object onto which the child object will be placed
         'child_object' input is a string specifying the name of the object to be placed onto the base object
 
-        If no mating is defined between the two object, or the objects are not part of the loaded assembly the function returns None
+        Returns None if no mating is defined between the two objects, or the objects are not part of the loaded assembly
         '''
         base_object_id = next((part['id'] for part in self._parts_list if part['name'] == base_object), None)
         child_object_id = next((part['id'] for part in self._parts_list if part['name'] == child_object), None)
