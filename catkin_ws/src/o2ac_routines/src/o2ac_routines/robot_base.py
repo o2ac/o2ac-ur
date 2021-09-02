@@ -202,6 +202,9 @@ class RobotBase():
     def get_current_pose(self):
         return self.robot_group.get_current_pose().pose
 
+    def get_named_pose_target(self, name):
+        return helpers.ordered_joint_values_from_dict(self.robot_group.get_named_target_values(name), self.robot_group.get_active_joints())
+
     def save_plan(self, filename, plan):
         rp = rospkg.RosPack()
         bagfile = rp.get_path("o2ac_routines") + "/config/saved_plans/" + filename
@@ -559,7 +562,7 @@ class RobotBase():
         for point, blend_radius, speed in trajectory:
             if isinstance(point, str):
                 joint_values = helpers.ordered_joint_values_from_dict(group.get_named_target_values(point), group.get_active_joints())
-            elif isinstance(point, list) or isinstance(point, geometry_msgs.msg.PoseStamped):
+            elif isinstance(point, tuple) or isinstance(point, list) or isinstance(point, geometry_msgs.msg.PoseStamped):
                 joint_values = point
             else:
                 rospy.logerr("Joint trajectory with invalid point: type=%s" % type(point))

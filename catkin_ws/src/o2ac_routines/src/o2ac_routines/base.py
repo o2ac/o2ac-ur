@@ -1242,6 +1242,7 @@ class O2ACBase(object):
     elif tool_name == "nut_tool_m6":
       ps_approach.pose.position.z = -.025
     elif tool_name == "set_screw_tool":
+      ps_approach.pose.position.x = -.02
       ps_approach.pose.position.z = -.01
     elif tool_name == "belt_tool":
       ps_approach.pose.position.z = -.025
@@ -1296,7 +1297,12 @@ class O2ACBase(object):
 
     # sequence.append(helpers.to_sequence_item("tool_pick_ready"))
     # sequence.append(helpers.to_sequence_trajectory([ps_approach,ps_in_holder], [0.005,0.0], speed=[0.5, 0.2]))
-    sequence.append(helpers.to_sequence_joint_trajectory(["tool_pick_ready", ps_approach, ps_in_holder], speed=[1.0,1.0,0.3]))
+    # plan linear then retime
+    plan1, _ = self.active_robots[robot_name].go_to_pose_goal(ps_approach, plan_only=True, initial_joints=self.active_robots[robot_name].get_named_pose_target("tool_pick_ready"))
+    ps_approach_q = helpers.get_trajectory_joint_goal(plan1)
+    plan2, _ = self.active_robots[robot_name].go_to_pose_goal(ps_in_holder, plan_only=True, initial_joints=ps_approach_q)
+    ps_in_holder_q = helpers.get_trajectory_joint_goal(plan2)
+    sequence.append(helpers.to_sequence_joint_trajectory(["tool_pick_ready", ps_approach_q, ps_in_holder_q], speed=[1.0,1.0,0.3]))
     
     # Close gripper, attach the tool object to the gripper in the Planning Scene.
     # Its collision with the parent link is set to allowed in the original planning scene.
@@ -1686,7 +1692,7 @@ class O2ACBase(object):
       success = robot.move_joints(pose, speed=speed, acceleration=acceleration, plan_only=plan_only, initial_joints=initial_joints)
     elif pose_type == 'joint-space-goal-cartesian-lin-motion':
       p = robot.compute_fk(pose) # Forward Kinematics
-      success = robot.go_to_pose_goal(p, speed=speed, acceleration=acceleration, plan_only=plan_only, initial_joints=initial_joints, end_effector_link=end_effector_link)
+      success = robot.go_to_pose_goal(p, speed=speed, acceleration=acceleration, plan_only=plan_only, initial_joints=initial_joints, end_effector_link=end_effector_link, move_lin=True)
     elif pose_type == 'task-space-in-frame':
       frame_id = params.get("frame_id", "world")
       # Convert orientation to radians!
