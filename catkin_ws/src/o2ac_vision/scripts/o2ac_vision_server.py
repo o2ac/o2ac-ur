@@ -344,8 +344,6 @@ class O2ACVisionServer(object):
         for poses2d in poses2d_array:
             for pose2d in poses2d.poses:
                 p3d = self.convert_pose_2d_to_3d(pose2d)
-                if CAMERA_FAILURE:
-                    success = False
                 if p3d:
                     action_result.class_ids.append(poses2d.class_id)
                     action_result.poses.append(p3d)
@@ -743,7 +741,17 @@ class O2ACVisionServer(object):
         score, detected = s.main_proc()
         print("Screws detected: ", detected)
         print("Score: ", score)
-        # TODO: Draw green rectangle around bbox if detected, red if not. Display score.
+        
+        text2 = "Score: %.2f%%                   " % (score*100.0)
+        if score > 0.69:
+            color = (0,255,0)
+        else:
+            color = (0,0,255)
+        
+        im_vis = cv2.putText(im_vis, text2, (bbox[0]-120, bbox[1]-30), 0, 1.5, (255,255,255), 7, cv2.LINE_AA)
+        im_vis = cv2.putText(im_vis, text2, (bbox[0]-120, bbox[1]-30), 0, 1.5, color, 4, cv2.LINE_AA)
+        
+        im_vis = cv2.rectangle( im_vis, (bbox[0],  bbox[1]), (bbox[0]+bbox[2], bbox[1]+bbox[3]), color, 6)
         return detected
 
     def motor_angle_detection_from_top(self, im_in, im_vis):
@@ -784,10 +792,6 @@ class O2ACVisionServer(object):
         xyz = self.cam_helper.project_2d_to_3d_from_images(self._camera_info,
                                                            pose2d.x, pose2d.y,
                                                            [depth])
-        
-        if xyz == CAMERA_FAILURE:
-            return CAMERA_FAILURE
-
         # We may not have find anything so its okay to return None
         if not xyz:
             return None
@@ -810,7 +814,7 @@ class O2ACVisionServer(object):
         timeprefix = now.strftime("%Y-%m-%d_%H:%M:%S")
         folder = os.path.join(self.rospack.get_path("o2ac_vision"), "log")
         cv2.imwrite(os.path.join(folder, timeprefix + "_" + action_name + "_in.png") , img_in)
-        cv2.imwrite(os.path.join(folder, timeprefix + "_" + action_name + "_out.jpg") , img_out)
+        cv2.imwrite(os.path.join(folder, timeprefix + "_" + action_name + "_out.png") , img_out)
 
 ### ========  Visualization
 

@@ -310,6 +310,10 @@ if __name__ == '__main__':
           c.set_assembly("wrs_assembly_2020")
           rospy.sleep(1.0)
         c.check_output_pulley_angle()
+      elif r == "899":
+        c.vision.activate_pulley_screw_detection()
+      elif r == "890":
+        c.vision.activate_pulley_screw_detection(False)
       elif r == 'push':
         c.b_bot.linear_push(force=10, direction="-Z", relative_to_ee=False, timeout=15.0)
       elif r == "reset":
