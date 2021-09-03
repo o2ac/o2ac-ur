@@ -236,7 +236,8 @@ class RobotBase():
 
     def go_to_pose_goal(self, pose_goal_stamped, speed=0.5, acceleration=None,
                         end_effector_link="", move_lin=False, wait=True, plan_only=False, initial_joints=None,
-                        allow_joint_configuration_flip=False, move_ptp=True, timeout=5, retry_non_linear=False):
+                        allow_joint_configuration_flip=False, move_ptp=True, timeout=5, retry_non_linear=False,
+                        retime=False):
         
         move_ptp = False if move_lin else move_ptp # Override if move_lin is set (Linear takes priority since PTP is the default value)
 
@@ -278,7 +279,7 @@ class RobotBase():
                     rospy.logwarn("Joint configuration would have flipped.")
                     continue
             if success:
-                if planner != "LINEAR":
+                if planner != "LINEAR" or retime:
                     # retime
                     plan = self.robot_group.retime_trajectory(self.robot_group.get_current_state(), plan, algorithm="time_optimal_trajectory_generation",
                                                               velocity_scaling_factor=speed_, acceleration_scaling_factor=accel_)
@@ -403,7 +404,7 @@ class RobotBase():
     def move_lin_rel(self, relative_translation=[0, 0, 0], relative_rotation=[0, 0, 0], speed=.5,
                      acceleration=None, relative_to_robot_base=False, relative_to_tcp=False,
                      wait=True, end_effector_link="", plan_only=False, initial_joints=None,
-                     allow_joint_configuration_flip=False, pose_only=False, timeout=5.0):
+                     allow_joint_configuration_flip=False, pose_only=False, timeout=5.0, retime=False):
         '''
         Does a lin_move relative to the current position of the robot.
 
@@ -470,7 +471,7 @@ class RobotBase():
                                         end_effector_link=end_effector_link,  wait=wait,
                                         move_lin=True, plan_only=plan_only, initial_joints=initial_joints,
                                         allow_joint_configuration_flip=allow_joint_configuration_flip,
-                                        retry_non_linear=False, timeout=timeout)
+                                        retry_non_linear=False, timeout=timeout, retime=retime)
 
     def go_to_named_pose(self, pose_name, speed=0.5, acceleration=None, wait=True, plan_only=False, initial_joints=None, move_ptp=True):
         """

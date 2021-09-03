@@ -658,14 +658,18 @@ class O2ACBase(object):
     pushed_into_hole = copy.deepcopy(screw_tip_at_hole)
     pushed_into_hole.pose.position.x += insertion_amount
 
-    self.active_robots[robot_name].go_to_pose_goal(away_from_hole, end_effector_link=screw_tool_link, speed=0.5, move_lin=True, retry_non_linear=True)
-    
+    if not self.active_robots[robot_name].go_to_pose_goal(away_from_hole, end_effector_link=screw_tool_link, speed=0.5, move_lin=True, retry_non_linear=True):
+      rospy.logerr("Fail to go to away_from_hole")
+      return False
+
     self.tools.set_motor(fastening_tool_name, direction="tighten", wait=False, duration=duration, 
                          skip_final_loosen_and_retighten=skip_final_loosen_and_retighten)
 
     self.planning_scene_interface.allow_collisions(screw_tool_id)
 
-    self.active_robots[robot_name].go_to_pose_goal(pushed_into_hole, end_effector_link=screw_tool_link, speed=0.02, move_lin=True)
+    if not self.active_robots[robot_name].go_to_pose_goal(pushed_into_hole, end_effector_link=screw_tool_link, speed=0.02, move_lin=True):
+      rospy.logerr("Fail to go to pushed_into_hole")
+      return False
 
     # Stop spiral motion if the tool action finished, regardless of success/failure
     tc = lambda a, b: self.tools.fastening_tool_client.get_state() != GoalStatus.ACTIVE
