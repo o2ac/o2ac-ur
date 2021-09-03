@@ -221,6 +221,7 @@ int main(int argc, char **argv) {
         break;
       }
     } else if (action.type == grasp_action_type) {
+      
       if (!gripper_is_open) {
         // if (!skill_server.openGripper(robot_name)) {
         gripper_group.setNamedTarget("open");
@@ -236,16 +237,16 @@ int main(int argc, char **argv) {
       gripper_group.setNamedTarget("close");
       // if (!skill_server.closeGripper(robot_name)) {
       if (gripper_group.move() == moveit_msgs::MoveItErrorCodes::FAILURE) {
-        ROS_ERROR("Closing to grasp failed");
+        ROS_ERROR("Closing at grasp failed");
         break;
       }
       gripper_is_open = false;
-      /*geometry_msgs::PoseStamped high_pose = gripper_pose;
+      geometry_msgs::PoseStamped high_pose = gripper_pose;
       high_pose.pose.position.z += retreat_height;
       if (!skill_server.moveToCartPoseLIN(high_pose, robot_name)) {
         ROS_ERROR("Moving after grasp failed");
         break;
-        }*/
+        }
     } else if (action.type == place_action_type) {
       geometry_msgs::PoseStamped high_pose = gripper_pose;
       high_pose.pose.position.z += retreat_height;

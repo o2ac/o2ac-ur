@@ -60,6 +60,8 @@ import o2ac_routines.helpers as helpers
 
 import moveit_commander
 
+import subprocess
+import os
 import sys, signal
 def signal_handler(sig, frame):
     print('You pressed Ctrl+C!')
@@ -200,13 +202,32 @@ if __name__ == '__main__':
         break
       elif i == "":
         continue
+      
+      ###### Planning section
+      def plan(panel_name = "panel_bearing", mesh_filename = "03-PANEL2.stl", plan_type = "grasp_8"):
+        demo_sh_command = "rosrun o2ac_pose_distribution_updater print_scene " + panel_name + " " + mesh_filename +  " " + plan_type + " > tmp0 && echo Planning starts && rosrun o2ac_pose_distribution_updater planner_test tmp0 > tmp1 && echo Visualization of the plan starts && rosrun o2ac_pose_distribution_updater simulation tmp1"
+        os.system(demo_sh_command)
+        print("================")
+      if i == "plan11":
+        plan("panel_bearing", "03-PANEL2.stl", "any")
+      elif i == "plan12":
+        plan("panel_bearing", "03-PANEL2.stl", "placed")
+      elif i == "plan13":
+        plan("panel_bearing", "03-PANEL2.stl", "grasp_8")
+      
+      if i == "plan21":
+        plan("panel_bearing", "02-PANEL.stl", "any")
+      elif i == "plan22":
+        plan("panel_bearing", "02-PANEL.stl", "placed")
+      elif i == "plan23":
+        plan("panel_bearing", "02-PANEL.stl", "grasp_8")
 
       ###### Robot section 
       if i == "robots":
         c = O2ACAssembly()
         tray_views = c.define_local_tray_views(robot_name="a_bot")
       if i == "gopose":
-        c.a_bot.go_to_pose_goal(tray_views[0], end_effector_link="a_bot_outside_camera_color_frame", speed=.8, acceleration=.5)
+        c.a_bot.go_to_pose_goal(tray_views[0], end_effector_link="", speed=.8, acceleration=.5)
       elif i == "pickplacebearingpanel":
         if not c.pick_panel_with_handover("panel_bearing", simultaneous=False):
           break
