@@ -274,8 +274,8 @@ class O2ACTaskboard(O2ACCommon):
     #####
     self.subtask_completed = {
       "M2 set screw": True,
-      "M3 screw": False,
-      "M4 screw": False,
+      "M3 screw": True,
+      "M4 screw": True,
       "belt": False,
       "bearing": False,
       "screw_bearing": False,
@@ -285,9 +285,6 @@ class O2ACTaskboard(O2ACCommon):
     }
     if do_screws:
       success = self.do_screw_tasks_simultaneous()
-      if success:
-        self.subtask_completed["M3 screw"] = True
-        self.subtask_completed["M4 screw"] = True
     else:
       self.subtask_completed["M3 screw"] = True
       self.subtask_completed["M4 screw"] = True
