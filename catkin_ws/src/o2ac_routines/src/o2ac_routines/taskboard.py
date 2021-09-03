@@ -176,7 +176,10 @@ class O2ACTaskboard(O2ACCommon):
       self.equip_tool("b_bot", "set_screw_tool")
       self.b_bot.go_to_named_pose("horizontal_screw_ready")
       self.move_b_bot_to_setscrew_initial_pos()
-    return self.do_tasks_simultaneous(do_with_a, do_with_b, timeout=50.0)
+    success =  self.do_tasks_simultaneous(do_with_a, do_with_b, timeout=50.0)
+    print("a_bot status:", self.a_bot.robot_status)
+    print("b_bot status:", self.b_bot.robot_status)
+    return success
 
   def move_b_bot_to_setscrew_initial_pos(self):
     seq = []
@@ -265,6 +268,9 @@ class O2ACTaskboard(O2ACCommon):
     Start the taskboard task from the fully prepped position (set screw tool and M3 tool equipped).
     Includes simultaneous executions.
     """
+    print("+++++++++ Starting full TB simultaneous +++++++++++++")
+    print("a_bot status:", self.a_bot.robot_status)
+    print("b_bot status:", self.b_bot.robot_status)
     #####
     self.subtask_completed = {
       "M2 set screw": True,
@@ -278,7 +284,6 @@ class O2ACTaskboard(O2ACCommon):
       "idler pulley": False,
     }
     if do_screws:
-      # self.do_screw_tasks_from_prep_position()
       success = self.do_screw_tasks_simultaneous()
       if success:
         self.subtask_completed["M3 screw"] = True
@@ -302,7 +307,6 @@ class O2ACTaskboard(O2ACCommon):
     rospy.loginfo("==== Start: Idler Pulley ====")
     self.subtask_completed["idler pulley"] = self.do_task("idler pulley", simultaneous=True)
     rospy.loginfo("==== End: Idler Pulley (%s) ====" % (self.subtask_completed["idler pulley"]))
-    
 
     # Pick bearing, do motor_pulley
     rospy.loginfo("==== Start: Pick Bearing ====")
@@ -418,6 +422,9 @@ class O2ACTaskboard(O2ACCommon):
     """
     ### - Set screw
     self.publish_status_text("M3 set screw")
+    
+    print("a_bot status:", self.a_bot.robot_status)
+    print("b_bot status:", self.b_bot.robot_status)
     
     self.vision.activate_camera("b_bot_inside_camera")
     self.a_bot_success = False
@@ -550,7 +557,7 @@ class O2ACTaskboard(O2ACCommon):
         global pick_goal
         self.allow_collisions_with_robot_hand("tray", "a_bot")
         self.allow_collisions_with_robot_hand("tray_center", "a_bot")
-        self.simple_pick("a_bot", pick_goal, gripper_force=100.0, grasp_width=.04, axis="z")
+        self.simple_pick("a_bot", pick_goal, gripper_force=100.0, grasp_width=.04, axis="z", grasp_height=0.001)
         self.a_bot.move_lin_rel(relative_translation=[0,0,.1])
         self.allow_collisions_with_robot_hand("tray", "a_bot", False)
         self.allow_collisions_with_robot_hand("tray_center", "a_bot", False)
@@ -571,7 +578,7 @@ class O2ACTaskboard(O2ACCommon):
       a_bot_wait_with_belt_pose = [0.27640044689178467, -1.8691555462279261, 2.0014026800738733, -1.287313537006714, -1.5502598921405237, -2.5121548811541956]
       b_bot_look_at_belt = [1.9197747707366943, -1.3494791400483628, 1.9283998648272913, -2.6345297298827113, -1.9446824232684534, 0.5834413170814514]
       success = self.ab_bot.move_joints(a_bot_wait_with_belt_pose+b_bot_look_at_belt, speed=1.0)
-      
+      rospy.sleep(1)
       self.confirm_to_proceed("Check belt with vision?")
       if not success or not self.vision.check_pick_success("belt"):
         rospy.logerr("Belt pick has failed. Return tool and abort.")
@@ -668,8 +675,11 @@ class O2ACTaskboard(O2ACCommon):
       
       self.confirm_to_proceed("Move back?")
       # Move away
-      self.b_bot.move_lin_rel(relative_translation=[0.06, 0, 0], speed=0.1)
-      self.b_bot.go_to_named_pose("horizontal_screw_ready", speed=0.5, acceleration=0.5)
+      waypoints = []
+      waypoints.append((self.b_bot.move_lin_rel(relative_translation=[0.06, 0, 0], pose_only=True), 0, 0.3))
+      waypoints.append(("horizontal_screw_ready", 0, 1.0))
+      waypoints.append(("tool_pick_ready", 0, 1.0))
+      self.b_bot.move_joints_trajectory(waypoints, speed=1.0)
 
       ### Skip unequipping since that is done in a separate step
       # self.confirm_to_proceed("Unequip tool?")
@@ -790,4 +800,5 @@ class O2ACTaskboard(O2ACCommon):
       success = self.pick_and_insert_idler_pulley("taskboard", simultaneous=simultaneous)
       self.despawn_object("taskboard_idler_pulley_small")
       self.a_bot.gripper.forget_attached_item()
+      self.unequip_tool("b_bot")
       return success

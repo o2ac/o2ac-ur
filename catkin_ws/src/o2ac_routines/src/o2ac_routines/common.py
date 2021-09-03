@@ -1776,6 +1776,7 @@ class O2ACCommon(O2ACBase):
     """Returns bool, screw success"""
     fastening_tool_name = "screw_tool_m" + str(screw_size)
     if not self.active_robots[robot_name].robot_status.held_tool_id == fastening_tool_name:
+      rospy.loginfo("Tool already in the robot skip motion")
       skip_initial_motion = True
 
     if not skip_initial_motion:

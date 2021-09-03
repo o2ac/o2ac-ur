@@ -433,6 +433,7 @@ class O2ACBase(object):
     fastening_tool_name = "screw_tool_m" + str(screw_size)
     
     if not self.active_robots[robot_name].robot_status.held_tool_id == fastening_tool_name:
+      rospy.loginfo("Trying to pick screw without a tool. Will equip first.")
       if not self.equip_tool(robot_name, fastening_tool_name):
         rospy.logerr("Robot is not carrying the correct tool (" + fastening_tool_name + ") and it failed to be equipped. Abort.")
         return False
@@ -1325,11 +1326,10 @@ class O2ACBase(object):
         self.active_robots[robot_name].gripper.attach_object(tool_name, with_collisions=True)
         self.active_robots[robot_name].gripper.forget_attached_item()
         self.allow_collisions_with_robot_hand(tool_name, robot_name)
-      def post_cb():
         robot.robot_status.carrying_tool = True
         robot.robot_status.held_tool_id = tool_name
         self.publish_robot_status()
-      sequence.append(helpers.to_sequence_gripper(action='close', gripper_velocity=1.0, pre_callback=pre_cb, post_callback=post_cb))
+      sequence.append(helpers.to_sequence_gripper(action='close', gripper_velocity=1.0, pre_callback=pre_cb))
       # robot.gripper.close()
     elif unequip:
       # robot.gripper.open(opening_width=0.06)
@@ -1688,7 +1688,7 @@ class O2ACBase(object):
       else:
         raise ValueError("Unsupported gripper action: %s of type %s" % (gripper_action, type(gripper_action)))
 
-    if success and post_operation_callback:
+    if post_operation_callback:  # Assume gripper always succeeds
       post_operation_callback()
     return success
 
