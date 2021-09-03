@@ -669,9 +669,9 @@ class O2ACBase(object):
 
     # Stop spiral motion if the tool action finished, regardless of success/failure
     tc = lambda a, b: self.tools.fastening_tool_client.get_state() != GoalStatus.ACTIVE
-    self.active_robots[robot_name].execute_spiral_trajectory("YZ", max_radius=spiral_radius, steps=100,
+    self.active_robots[robot_name].execute_spiral_trajectory("YZ", max_radius=spiral_radius, radius_direction="+Y", steps=50,
                                                           revolutions=3, target_force=0, check_displacement_time=10,
-                                                          termination_criteria=tc, timeout=duration/2.0, end_effector_link=screw_tool_link)
+                                                          termination_criteria=tc, timeout=duration-2.0, end_effector_link=screw_tool_link)
 
     if not self.use_real_robot:
       return True
