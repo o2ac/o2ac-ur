@@ -357,19 +357,19 @@ class O2ACAssembly(O2ACCommon):
     if not self.a_bot.go_to_pose_goal(above_pre_insertion_end_cap, speed=0.6, move_lin=False):
       rospy.logerr("Fail to go to pre_insertion_end_cap")
       return False
-    pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [-0.003, 0.002, 0.240]+np.deg2rad([-180, 90, -90]).tolist())
+    pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [-0.003, 0.002, 0.245]+np.deg2rad([-180, 90, -90]).tolist())
     if not self.a_bot.go_to_pose_goal(pre_insertion_end_cap, speed=0.3, move_lin=True):
       rospy.logerr("Fail to go to pre_insertion_end_cap")
       return False
 
-    self.confirm_to_proceed("insertion of end cap")
+    # self.confirm_to_proceed("insertion of end cap")
     if not self.insert_end_cap():
-      rospy.logerr("failed to insert end cap")
-      return False
+      rospy.logerr("failed to insert end cap. maybe")
+      # return False
     self.despawn_object("end_cap")
     self.a_bot.gripper.forget_attached_item()
 
-    self.confirm_to_proceed("Did insertion succeed? Press Enter to open gripper")
+    # self.confirm_to_proceed("Did insertion succeed? Press Enter to open gripper")
 
     self.a_bot.gripper.send_command(0.06, velocity=0.01)
     self.a_bot.move_lin_rel([0,0,0.05], speed=0.3)
@@ -384,7 +384,7 @@ class O2ACAssembly(O2ACCommon):
     if not self.a_bot.go_to_named_pose("home"):
       return False
     
-    self.confirm_to_proceed("insert to bearing")
+    # self.confirm_to_proceed("insert to bearing")
     if not self.align_shaft("assembled_part_07_inserted", pre_insert_offset=0.065):
       return False
     self.b_bot.gripper.forget_attached_item()
