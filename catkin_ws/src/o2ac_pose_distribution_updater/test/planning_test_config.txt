@@ -1,5 +1,6 @@
 /root/o2ac-ur/catkin_ws/src/o2ac_assembly_database/config/wrs_assembly_2020/meshes/03-PANEL2.stl
 /root/o2ac-ur/catkin_ws/src/o2ac_assembly_database/config/wrs_assembly_2020/object_metadata/panel_motor.yaml
+0
 1.0 1.0 1.0 1.0 1.0 0.0 0.0
 0
 0 0 1 1 1

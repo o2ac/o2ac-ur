@@ -270,23 +270,25 @@ Planner::calculate_plan(const Eigen::Isometry3d &current_gripper_pose,
   open_nodes.push(std::make_pair(0.0, 0));
   int goal_node_id = -1;
   double optimal_score = INF;
-  while (!open_nodes.empty()) {
+  while (goal_node_id == -1 && !open_nodes.empty()) {
     int id = -open_nodes.top().second;
     open_nodes.pop();
 
-    double score = objective_coefficients
-                       .cwiseProduct(transform_covariance(
-                           nodes[id].mean.inverse(), nodes[id].covariance))
-                       .sum();
-    fprintf(stderr, "%d %d %d %lf %lf\n", id, nodes[id].previous_node_id,
-            id > 0 ? nodes[id].previous_action.type : -1, nodes[id].cost,
-            score);
-    if (score < objective_value &&
-        ((*goal_checker)(nodes[id].gripping, nodes[id].mean))) {
-      goal_node_id = id;
-      break;
+    if (!use_BFS) {
+      double score = objective_coefficients
+                         .cwiseProduct(transform_covariance(
+                             nodes[id].mean.inverse(), nodes[id].covariance))
+                         .sum();
+      fprintf(stderr, "%d %d %d %lf %lf\n", id, nodes[id].previous_node_id,
+              id > 0 ? nodes[id].previous_action.type : -1, nodes[id].cost,
+              score);
+      if (score < objective_value &&
+          ((*goal_checker)(nodes[id].gripping, nodes[id].mean))) {
+        goal_node_id = id;
+        break;
+      }
+      optimal_score = score;
     }
-    optimal_score = score;
 
     std::vector<UpdateAction> candidates;
     calculate_action_candidates(nodes[id].gripper_pose, nodes[id].mean,
@@ -306,11 +308,28 @@ Planner::calculate_plan(const Eigen::Isometry3d &current_gripper_pose,
                            candidate.type != push_action_type);
       new_node.previous_node_id = id;
       new_node.previous_action = candidate;
-      new_node.cost = nodes[id].cost + (*cost_function)(candidate.type,
-                                                        nodes[id].gripper_pose,
-                                                        candidate.gripper_pose);
+      new_node.cost =
+          nodes[id].cost +
+          (use_BFS ? 1.0
+                   : (*cost_function)(candidate.type, nodes[id].gripper_pose,
+                                      candidate.gripper_pose));
       int new_id = nodes.size();
       nodes.push_back(new_node);
+      if (use_BFS) {
+        double score = objective_coefficients
+                           .cwiseProduct(transform_covariance(
+                               new_node.mean.inverse(), new_node.covariance))
+                           .sum();
+        fprintf(stderr, "%d %d %d %lf %lf\n", new_id, new_node.previous_node_id,
+                id > 0 ? new_node.previous_action.type : -1, new_node.cost,
+                score);
+        if (score < objective_value &&
+            ((*goal_checker)(new_node.gripping, new_node.mean))) {
+          goal_node_id = new_id;
+          break;
+        }
+        optimal_score = score;
+      }
       open_nodes.push(std::make_pair(-new_node.cost, -new_id));
     }
   }

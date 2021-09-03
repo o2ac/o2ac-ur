@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
        "wrs_assembly_2020/meshes/03-PANEL2.stl");
   puts("/root/o2ac-ur/catkin_ws/src/o2ac_assembly_database/config/"
        "wrs_assembly_2020/object_metadata/panel_bearing.yaml");
-  puts("1.0 1.0 1.0 1.0 1.0 0.0 0.0");
+  puts("1");
   puts("1");
   puts("0");
   print_pose(new_mean);
@@ -93,14 +93,39 @@ int main(int argc, char **argv) {
   std::cout << CovarianceMatrix::Identity() << std::endl;
   puts("1e-6");
   char goal_condition[100];
-  scanf("%99s", goal_condition);
-  if (!strcmp(goal_condition, "any")) {
-    puts("0");
-  } else if (!strcmp(goal_condition, "placed")) {
-    puts("2");
-  } else {
-    puts("1");
-    printf("%s\n0.01 0.01\n", goal_condition);
+  while (true) {
+    fprintf(stderr, "goal condition?\n  \'any\': any pose is OK\n  \'placed\': "
+                    "it must be placed\n"
+                    "  grasp name: it must be grasped by named pose\n     "
+                    "candidates:'default_grasp' or 'grasp_1' ~ 'grasp_28'\n");
+    char grasp_names[30][100];
+    sprintf(grasp_names[0], "default_grasp");
+    for (int i = 1; i <= 28; i++) {
+      sprintf(grasp_names[i + 1], "grasp_%d", i);
+    }
+    scanf("%99s", goal_condition);
+    if (!strcmp(goal_condition, "any")) {
+      puts("0");
+      break;
+    } else if (!strcmp(goal_condition, "placed")) {
+      puts("2");
+      break;
+    } else {
+      bool known = false;
+      for (int i = 0; i < 29; i++) {
+        if (!strcmp(goal_condition, grasp_names[i])) {
+          known = true;
+          break;
+        }
+      }
+      if (!known) {
+        fputs("Unknown grasp name\n", stderr);
+      } else {
+        puts("1");
+        printf("%s\n0.01 0.01\n", goal_condition);
+        break;
+      }
+    }
   }
   return 0;
 }

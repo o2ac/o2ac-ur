@@ -72,12 +72,18 @@ int main(int argc, char **argv) {
   planner.load_config_file(
       "/root/o2ac-ur/catkin_ws/src/o2ac_pose_distribution_updater/launch/"
       "estimator_config.yaml");
+  int use_BFS;
+  fscanf(config_file, "%d", &use_BFS);
   double touch_cost, look_cost, place_cost, grasp_cost, push_cost,
       translation_cost, rotation_cost;
-  int use_moveit;
-  fscanf(config_file, "%lf%lf%lf%lf%lf%lf%lf%d", &touch_cost, &look_cost,
-         &place_cost, &grasp_cost, &push_cost, &translation_cost,
-         &rotation_cost, &use_moveit);
+  if (use_BFS) {
+    planner.use_BFS = true;
+  } else {
+    planner.use_BFS = false;
+    fscanf(config_file, "%lf%lf%lf%lf%lf%lf%lf", &touch_cost, &look_cost,
+           &place_cost, &grasp_cost, &push_cost, &translation_cost,
+           &rotation_cost);
+  }
   boost::array<double, 5> action_cost{touch_cost, look_cost, place_cost,
                                       grasp_cost, push_cost};
 
@@ -95,6 +101,11 @@ int main(int argc, char **argv) {
                                  current_gripper_pose.rotation().inverse())
                    .angle();
   };
+  if (!use_BFS) {
+    planner.set_cost_function(std::make_shared<CostFunction>(cost_function));
+  }
+  int use_moveit;
+  fscanf(config_file, "%d", &use_moveit);
 
   moveit::planning_interface::MoveGroupInterface robot_group("a_bot");
   ValidityChecker moveit_validity_checker =
@@ -182,7 +193,6 @@ int main(int argc, char **argv) {
     return able_action[static_cast<int>(type)];
   };
 
-  planner.set_cost_function(std::make_shared<CostFunction>(cost_function));
   planner.set_validity_checker(std::make_shared<ValidityChecker>(
       use_moveit ? moveit_validity_checker : type_validity_checker));
 

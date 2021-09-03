@@ -66,6 +66,8 @@ private:
                               std::vector<UpdateAction> &candidates);
 
 public:
+  bool use_BFS = false;
+
   void set_cost_function(const std::shared_ptr<CostFunction> &cost_function) {
     this->cost_function = cost_function;
   }
