@@ -2,7 +2,7 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro"
        name="o2ac_base_scene" >
   <!-- This is the main file defining our robot arrangement and physical environment. -->
-  <xacro:arg name="taskboard" default="true"/>
+  <xacro:arg name="taskboard" default="false"/>
   <!-- Calibration parameters -->
   <xacro:property name="a_bot_x" value="-0.004"/>
   <xacro:property name="a_bot_y" value="-0.525"/>
