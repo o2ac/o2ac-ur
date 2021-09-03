@@ -2323,12 +2323,8 @@ class O2ACCommon(O2ACBase):
       approach_pose      = conversions.to_pose_stamped(target_link, [-0.05, 0.0, 0.0] + np.deg2rad([180, 35, 0]).tolist()) 
       pre_insertion_pose = conversions.to_pose_stamped(target_link, [-0.005, -0.001, -0.003] + np.deg2rad([180, 35, 0]).tolist()) # Manually defined target pose in object frame
     else:
-      if self.assembly_database.db_name == "wrs_assembly_2021":
-        approach_pose      = conversions.to_pose_stamped(target_link, [-0.050, 0.003, 0.001] + np.deg2rad([180, -35, 0]).tolist()) 
-        pre_insertion_pose = conversions.to_pose_stamped(target_link, [-0.007, 0.003, 0.001] + np.deg2rad([180, -35, 0]).tolist()) # Manually defined target pose in object frame
-      else:
-        approach_pose      = conversions.to_pose_stamped(target_link, [-0.050, -0.000, 0.009] + np.deg2rad([180, -35, 0]).tolist()) 
-        pre_insertion_pose = conversions.to_pose_stamped(target_link, [-0.007, -0.000, 0.009] + np.deg2rad([180, -35, 0]).tolist()) # Manually defined target pose in object frame
+      approach_pose      = conversions.to_pose_stamped(target_link, [-0.050, -0.000, 0.009] + np.deg2rad([180, -35, 0]).tolist()) 
+      pre_insertion_pose = conversions.to_pose_stamped(target_link, [-0.007, 0.001, 0.008] + np.deg2rad([180, -35, 0]).tolist()) # Manually defined target pose in object frame
     
     if not self.active_robots[robot_name].go_to_pose_goal(approach_pose, speed=0.5):
       return False
@@ -2381,30 +2377,29 @@ class O2ACCommon(O2ACBase):
   def insert_motor_pulley(self, target_link, attempts=1, robot_name="b_bot"):
     if robot_name == "b_bot":
       target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.013, -0.000, -0.009, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
+      wiggle_direction="X"
       relaxed_by = 0.005
     else:
-      if self.assembly_database.db_name == "wrs_assembly_2021":
-        target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.003, 0.003, 0.001, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
-      else:
-        target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.003, -0.002, 0.009, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
+      target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.003, -0.002, 0.009, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
       relaxed_by = 0.001
+      wiggle_direction=None
 
     selection_matrix = [0., 0.2, 0.2, 1.0, 1.0, 1.0]
-
     result = self.active_robots[robot_name].do_insertion(target_pose_target_frame, radius=0.0005, 
                                                       insertion_direction="-X", force=8.0, timeout=15.0, 
-                                                      wiggle_direction="X", wiggle_angle=np.deg2rad(5.0), wiggle_revolutions=1.,
+                                                      wiggle_direction=wiggle_direction, wiggle_angle=np.deg2rad(5.0), wiggle_revolutions=1.,
                                                       relaxed_target_by=relaxed_by, selection_matrix=selection_matrix)
     success = (result == TERMINATION_CRITERIA)
 
     if not success:
       current_pose = self.listener.transformPose(target_link, self.active_robots[robot_name].get_current_pose_stamped())
       print("current pose motor pulley ", current_pose.pose.position.x)
-      if current_pose.pose.position.x > -0.003:
-        self.b_bot.gripper.open(opening_width=0.04)
-        self.b_bot.gripper.close()
-        self.active_robots[robot_name].linear_push(force=10, direction="-X", max_translation=0.01)
-        return self.insert_motor_pulley(target_link, attempts=attempts-1, robot_name=robot_name)
+      if self.assembly_database.db_name == "taskboard":
+        if current_pose.pose.position.x > -0.003:
+          self.b_bot.gripper.open(opening_width=0.04)
+          self.b_bot.gripper.close()
+          self.active_robots[robot_name].linear_push(force=10, direction="-X", max_translation=0.01)
+          return self.insert_motor_pulley(target_link, attempts=attempts-1, robot_name=robot_name)
 
       if attempts > 0: # try again the pulley is still there   
         rospy.logwarn("** Insertion Incomplete, trying again **")
@@ -2454,16 +2449,10 @@ class O2ACCommon(O2ACBase):
   def fasten_motor_pulley(self, target_link, simultaneous=False):
     self.equip_tool("b_bot", "set_screw_tool")
 
-    if self.assembly_database.db_name == "wrs_assembly_2021":
-      b_bot_approach_pose    = conversions.to_pose_stamped(target_link, [0.001, -0.002, -0.072]+ np.deg2rad([174.3, -87.6, -135.8]).tolist())
-      b_bot_above_hole_pose  = conversions.to_pose_stamped(target_link, [-0.004, 0.002, -0.006]+ np.deg2rad([174.3, -87.6, -135.8]).tolist())
-      b_bot_centering_pose   = conversions.to_pose_stamped(target_link, [-0.003, 0.002, -0.007]+ np.deg2rad([-170.5, -88, -151]).tolist())
-      b_bot_at_hole_pose     = conversions.to_pose_stamped(target_link, [-0.003, 0.00,   0.005]+ np.deg2rad([-170.5, -88, -151]).tolist())
-    else:
-      b_bot_approach_pose    = conversions.to_pose_stamped(target_link, [0.001, -0.002, -0.072]+ np.deg2rad([174.3, -87.6, -135.8]).tolist())
-      b_bot_above_hole_pose  = conversions.to_pose_stamped(target_link, [-0.004, -0.003,-0.007]+ np.deg2rad([174.3, -87.6, -135.8]).tolist())
-      b_bot_centering_pose   = conversions.to_pose_stamped(target_link, [-0.005, -0.003,-0.007]+ np.deg2rad([-170.5, -88, -151]).tolist())
-      b_bot_at_hole_pose     = conversions.to_pose_stamped(target_link, [-0.004, -0.002, 0.005]+ np.deg2rad([-170.5, -88, -151]).tolist())
+    b_bot_approach_pose    = conversions.to_pose_stamped(target_link, [0.001, -0.002, -0.072]+ np.deg2rad([174.3, -87.6, -135.8]).tolist())
+    b_bot_above_hole_pose  = conversions.to_pose_stamped(target_link, [-0.004, -0.003,-0.007]+ np.deg2rad([174.3, -87.6, -135.8]).tolist())
+    b_bot_centering_pose   = conversions.to_pose_stamped(target_link, [-0.005, -0.003,-0.007]+ np.deg2rad([-170.5, -88, -151]).tolist())
+    b_bot_at_hole_pose     = conversions.to_pose_stamped(target_link, [-0.004, -0.002, 0.005]+ np.deg2rad([-170.5, -88, -151]).tolist())
 
     a_bot_approach_push_pose = conversions.to_pose_stamped(target_link, [-0.04, 0, 0, tau/2, 0, 0])
     a_bot_push_pose = conversions.to_pose_stamped(target_link, [-0.0025, 0, 0, tau/2, 0, 0])
@@ -2472,7 +2461,7 @@ class O2ACCommon(O2ACBase):
       self.a_bot.gripper.close(wait=False)
       self.a_bot.go_to_pose_goal(a_bot_push_pose, speed=0.1, move_lin=True)
     
-    offset_from_center = -0.058 if self.assembly_database.db_name == "wrs_assembly_2020" else -0.0535
+    offset_from_center = -0.058 if self.assembly_database.db_name == "wrs_assembly_2020" else -0.056
     # Find both holes
     for i in range(2):
       if i > 0:
@@ -2504,7 +2493,7 @@ class O2ACCommon(O2ACBase):
       motor_stalled = False
       if result is not None:
         motor_stalled = result.motor_stalled
-      self.b_bot.go_to_pose_goal(b_bot_approach_pose, speed=0.02, move_lin=True, end_effector_link="b_bot_set_screw_tool_tip_link")
+      self.b_bot.go_to_pose_goal(b_bot_approach_pose, speed=0.2, move_lin=True, end_effector_link="b_bot_set_screw_tool_tip_link")
       if motor_stalled or not self.use_real_robot:
         break
       else:
@@ -3772,15 +3761,15 @@ class O2ACCommon(O2ACBase):
   def flip_motor_in_aid(self, angle):
     """ Turn motor in aid by 180 degrees. 
     """
+    approach_pose = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [-0.054, -0.078, 0.005] + np.deg2rad([180, 2.998, 60.047]).tolist())
+    grasp_pose    = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [-0.004, 0.008, -0.000] + np.deg2rad([180, 3.002, 60.047]).tolist())
+
     pass
 
   @lock_impedance
   def insert_motor(self, target_link, attempts=1):
     inclination = radians(28)
-    if self.assembly_database.db_name == "wrs_assembly_2021":
-      target_pose = conversions.to_pose_stamped(target_link, [-0.028, -0.002, -0.008, -tau/4, tau/4-inclination, -tau/4])
-    else:
-      target_pose = conversions.to_pose_stamped(target_link, [-0.028, -0.006, -0.015, -tau/4, tau/4-inclination, -tau/4])
+    target_pose  = conversions.to_pose_stamped(target_link, [-0.028, -0.004, -0.0155, -tau/4, tau/4-inclination, -tau/4])
     selection_matrix = [0., 0.2, 0.2, 1, 1, 1]
     self.b_bot.linear_push(2, "+X", max_translation=0.03, timeout=10.0)
     result = self.b_bot.do_insertion(target_pose, insertion_direction="+X", force=8.0, timeout=20.0, 
@@ -3900,16 +3889,13 @@ class O2ACCommon(O2ACBase):
     above_vgroove  = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [-0.2, 0, 0,      tau/2., radians(3.0), inclination])
     midpoint1      = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [-0.25, 0.1, 0.4, tau/2,  radians(3.0), inclination])
     midpoint2      = conversions.to_pose_stamped("assembled_part_02_back_hole", [-0.100, 0, 0.1, -tau/4, tau/4-inclination, -tau/4])
-    if self.assembly_database.db_name == "wrs_assembly_2021":
-      pre_insertion  = conversions.to_pose_stamped("assembled_part_02_back_hole", [-0.055, -0.002, -0.008, -tau/4, tau/4-inclination, -tau/4])
-    else:
-      pre_insertion  = conversions.to_pose_stamped("assembled_part_02_back_hole", [-0.055, -0.006, -0.015, -tau/4, tau/4-inclination, -tau/4])
+    pre_insertion  = conversions.to_pose_stamped("assembled_part_02_back_hole", [-0.055, -0.004, -0.0155, -tau/4, tau/4-inclination, -tau/4])
     
     if simultaneous:
       self.b_bot.go_to_pose_goal(above_vgroove, speed=1.0)
     self.b_bot.go_to_pose_goal(inside_vgroove, speed=0.2, move_lin=True)
     self.confirm_to_proceed("")
-    self.b_bot.gripper.close(force=60, velocity=0.01)
+    self.b_bot.gripper.close(force=70, velocity=0.01)
     if not self.simple_gripper_check("b_bot", min_opening_width=0.01):
       self.b_bot.gripper.open()
       self.b_bot.go_to_pose_goal(above_vgroove, move_lin=True)
@@ -3917,12 +3903,20 @@ class O2ACCommon(O2ACBase):
       return False
 
     self.b_bot.gripper.attach_object("motor")
-    seq = []
-    seq.append(helpers.to_sequence_item(above_vgroove, speed=0.2))
-    seq.append(helpers.to_sequence_item(midpoint1, speed=0.6, linear=False))
-    seq.append(helpers.to_sequence_item(midpoint2, speed=0.6, linear=False))
-    seq.append(helpers.to_sequence_item(pre_insertion, speed=0.4))
-    return self.execute_sequence("b_bot", seq, "align motor pre insertion")
+    self.b_bot.move_lin_rel([0,0,0.03], speed=0.2)
+    # seq = []
+    # seq.append(helpers.to_sequence_item(above_vgroove, speed=0.2))
+    # seq.append(helpers.to_sequence_item(midpoint1, speed=1.0, linear=False))
+    # seq.append(helpers.to_sequence_item(midpoint2, speed=1.0, linear=False))
+    # seq.append(helpers.to_sequence_item(pre_insertion, speed=0.8))
+    # return self.execute_sequence("b_bot", seq, "align motor pre insertion")
+    waypoints = []
+    waypoints.append((self.b_bot.compute_ik(above_vgroove, timeout=0.02, retry=True), 0, 1.0))
+    waypoints.append((self.b_bot.compute_ik(midpoint1, timeout=0.02, retry=True), 0, 1.0))
+    waypoints.append((self.b_bot.compute_ik(midpoint2, timeout=0.02, retry=True), 0, 1.0))
+    waypoints.append((self.b_bot.compute_ik(pre_insertion, timeout=0.02, retry=True), 0, 1.0))
+    return self.b_bot.move_joints_trajectory(waypoints)
+    # seq.append(helpers.to_sequence_joint_trajectory([midpoint1, midpoint2, pre_insertion], speed=[1,1,1.0]))
   
   def align_motor_holes(self):
     """ Starts with the gripper holding the motor at the assembled position after insertion
