@@ -4667,6 +4667,7 @@ class O2ACCommon(O2ACBase):
       aligned_pose = [0.0, 0.067, -0.080] if panel_name == "panel_bearing" else [0.0, -0.063, -0.080]
       goal = conversions.to_pose_stamped("left_centering_link", aligned_pose + [-0.500, 0.500, -0.500, -0.500])
       self.spawn_object(panel_name, goal, goal.header.frame_id)
+      self.planning_scene_interface.allow_collisions(panel_name)
       # object dimensions
       obj_dims = self.dimensions_dataset[panel_name]
       # x,y,z pose w.r.t centering link
@@ -4704,25 +4705,25 @@ class O2ACCommon(O2ACBase):
       if panel_name == "panel_bearing":
         offset_y = 0.01             # MAGIC NUMBER (points to the global forward (x-axis))
         offset_z = -0.007           # MAGIC NUMBER (points to the global left (negative y-axis))
-      else:
+      else: # panel_motor
         offset_y = 0.011            # MAGIC NUMBER
-        offset_z = -0.008           # MAGIC NUMBER
+        offset_z = -0.006           # MAGIC NUMBER
     elif self.assembly_database.db_name == "wrs_assembly_2020":
       if panel_name == "panel_bearing":
         offset_y = 0.01             # MAGIC NUMBER
         offset_z = -0.0065          # MAGIC NUMBER
-      else:
+      else: # panel_motor
         offset_y = 0.011            # MAGIC NUMBER
         offset_z = -0.006           # MAGIC NUMBER
     elif self.assembly_database.db_name == "wrs_assembly_2021_surprise":
       if panel_name == "panel_bearing":
-        if self.assembly_database.assembly_info.get(["bearing_panel_facing_backward"], False):
+        if self.assembly_database.assembly_info.get("bearing_panel_facing_backward", False):
           offset_y = -0.01          # MAGIC NUMBER (TODO)
           offset_z = -0.007         # MAGIC NUMBER (TODO)
-        else:
+        else: 
           offset_y = 0.01           # MAGIC NUMBER
           offset_z = -0.007         # MAGIC NUMBER
-      else:
+      else: # panel_motor
         offset_y = 0.011            # MAGIC NUMBER
         offset_z = -0.008           # MAGIC NUMBER     
     else:
@@ -5048,10 +5049,10 @@ class O2ACCommon(O2ACBase):
   def fasten_panel(self, panel_name, simultaneous=False, a_bot_task_2nd_screw=None, unequip_tool_on_success=False, b_bot_2nd_task=None):
     if panel_name == "panel_bearing":
       part_name = "assembled_part_03_"
-      approach_from_front = self.assembly_database.assembly_info.get(["bearing_panel_facing_backward"], False)
+      approach_from_front = self.assembly_database.assembly_info.get("bearing_panel_facing_backward", False)
     elif panel_name == "panel_motor":
       part_name = "assembled_part_02_"
-      approach_from_front = self.assembly_database.assembly_info.get(["motor_panel_facing_backward"], False)
+      approach_from_front = self.assembly_database.assembly_info.get("motor_panel_facing_backward", False)
     
     self.confirm_to_proceed("Plate in the correct position?")
     if not simultaneous:
@@ -5103,7 +5104,7 @@ class O2ACCommon(O2ACBase):
     self.b_bot_success = False
     def a_bot_task():
       self.a_bot.gripper.open(opening_width=0.03, wait=False)
-      self.a_bot_success = self.a_bot.move_lin_rel(relative_translation=[-0.1,0,0], relative_to_tcp=True)
+      self.a_bot_success = self.a_bot.move_lin_rel(relative_translation=[-0.2,0,0], relative_to_tcp=True)
       if a_bot_task_2nd_screw:
         rospy.loginfo("Attempting a_bot extra task while b_bot fasten 2nd screw")
         self.a_bot_success = a_bot_task_2nd_screw()
