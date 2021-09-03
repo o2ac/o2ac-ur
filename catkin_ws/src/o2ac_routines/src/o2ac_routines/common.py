@@ -43,6 +43,9 @@ tau = 2*pi
 from o2ac_routines.thread_with_trace import ThreadTrace
 from ur_control.constants import DONE, TERMINATION_CRITERIA
 from trajectory_msgs.msg import JointTrajectoryPoint
+from ur_gazebo.gazebo_spawner import GazeboModels
+from ur_gazebo.model import Model
+import gazebo_msgs
 
 import numpy as np
 
@@ -71,6 +74,10 @@ class O2ACCommon(O2ACBase):
     self.nut_tool_used = False
     self.end_cap_is_upside_down = False
 
+    self.update_distribution_client = actionlib.SimpleActionClient("update_distribution", o2ac_msgs.msg.updateDistributionAction)
+
+    # self.gazebo_scene = GazeboModels('o2ac_gazebo')
+    
   def define_tray_views(self):
     """
     Define the poses used to position the camera to look into the tray.
@@ -4558,6 +4565,79 @@ class O2ACCommon(O2ACBase):
 
 #### L-plates
 
+  def grasp_test(self, object_name="panel_bearing"):
+    
+    self.gazebo_scene = GazeboModels('o2ac_gazebo')
+
+    grasp_width = 0.05
+    self.activate_led("b_bot")
+
+    print("input file name?")
+    while True:
+      try:
+        #input_file_name=input()
+        input_file_name = 'grasp_test_input.txt'
+        with open(input_file_name) as input_file:
+          grasp_pose_data=map(float, input_file.readline().split(' '))
+          pose_data_set=[]
+          for line in input_file.readlines():
+            pose_data_set.append(map(float, line.split(' ')))
+        break
+      except Exception as e:
+        print(e)
+        pass
+    
+    print("move gripper")
+    grasp_pose=conversions.to_pose_stamped("tray_center", grasp_pose_data)
+    self.constrain_grasp_into_tray("b_bot", grasp_pose, grasp_width=grasp_width)
+    
+    model_state_getter=rospy.ServiceProxy("/gazebo/get_model_state", gazebo_msgs.srv.GetModelState)
+    model_deleter=rospy.ServiceProxy("/gazebo/delete_model", gazebo_msgs.srv.DeleteModel)
+    
+    print("output file name?")
+    #output_file_name=input()
+    output_file_name = 'grasp_test_output.txt'
+    with open(output_file_name ,'w') as output_file:
+      for pose_data in pose_data_set:
+        print("test: ", pose_data)
+        object_pose = conversions.to_pose_stamped("tray_center", pose_data)
+        gazebo_pose = self.listener.transformPose("world", object_pose)
+        models = [Model(object_name, pose=gazebo_pose.pose, reference_frame=gazebo_pose.header.frame_id, file_type="sdf")]
+        model_name = object_name+'_tmp'
+        # Spawn the part in gazebo
+        print("spawn to gazebo")
+        name = "panel_bearing"
+        print(models[0].pose)
+        self.gazebo_scene.load_models(models)
+        rospy.sleep(0.5)
+        print("grasp")
+        self.simple_pick("b_bot", object_pose=grasp_pose, grasp_width=grasp_width, approach_height=0.05, grasp_height=0.005, 
+                       axis="z", item_id_to_attach=object_name, lift_up_after_pick=False, approach_with_move_lin=False,
+                       speed_fast=1.0, minimum_grasp_width=0.001, attach_with_collisions=True)
+        self.active_robots["b_bot"].gripper.open(opening_width=0.03)
+        print("output result")
+        model_state_request = gazebo_msgs.srv.GetModelStateRequest()
+        model_state_request.model_name = model_name
+        model_state_request.relative_entity_name = gazebo_pose.header.frame_id
+        model_state_response = model_state_getter(model_state_request)
+        print(model_state_response)
+        if not model_state_response.success:
+          output_file.write(model_state_response.status_message + '\n')
+          rospy.logerr(model_state_response.status_message)
+        else:
+          grasped_pose = self.listener.transformPose("tray_center", model_state_response)
+          print>> output_file, grasped_pose.pose
+          print(grasped_pose.pose)
+
+        delete_model_request = gazebo_msgs.srv.DeleteModelRequest()
+        delete_model_request.model_name = model_name
+        delete_model_response = model_deleter(delete_model_request)
+        if not delete_model_response.success:
+          rospy.logerr(delete_model_response.status_message)
+      
+        rospy.sleep(0.5)
+    
+  
   def pick_panel_with_handover(self, panel_name="panel_bearing", simultaneous=True, rotate_on_failure=True, rotation_retry_counter=0, pose_with_uncertainty=None):
     grasp_width = 0.05
     self.activate_led("b_bot")
@@ -4739,7 +4819,7 @@ class O2ACCommon(O2ACBase):
     self.active_robots[robot_name].gripper.open(opening_width=0.03, velocity=0.03)
     self.active_robots[robot_name].gripper.forget_attached_item()
     if pose_with_uncertainty!=None:
-      self.place_object_with_uncertainty(panel_name, pose_with_uncertainty, 0.855)
+      self.place_object_with_uncertainty(panel_name, pose_with_uncertainty, 0.856)
     if panel_name == "panel_bearing":
       self.assembly_status.bearing_panel_placed_outside_of_tray = False
     else:
@@ -4798,7 +4878,6 @@ class O2ACCommon(O2ACBase):
     self.update_distribution_client.wait_for_result()
     update_result = self.update_distribution_client.get_result()
     self.transform_uncertainty(gripper_transform, update_result.distribution.pose, pose_with_uncertainty.pose)
-    pose_with_uncertainty.pose.pose.position.y+=y_shift
 
     self.visualize_object_with_distribution(collision_object, pose_with_uncertainty, frame_locked=True)
   
@@ -4838,9 +4917,9 @@ class O2ACCommon(O2ACBase):
     
     aligned_pose = [0.0, 0.067, -0.080] if panel_name == "panel_bearing" else [0.0, -0.063, -0.080]
     self.update_collision_item_pose(panel_name, conversions.to_pose_stamped(centering_frame, aligned_pose + [-0.500, 0.500, -0.500, -0.500]))
-    if pose_with_uncertainty:
-      push_gripper_pose=conversions.to_pose_stamped(centering_frame, [0.0, aligned_pose[1] - 0.020/2., -0.01, 0., 0., 0.])
-      self.push_object_with_uncertainty(panel_name, push_gripper_pose, pose_with_uncertainty, y_shift=0.08)
+    if pose_with_uncertainty!=None:
+      push_gripper_pose=conversions.to_pose_stamped(centering_frame, [0.0, aligned_pose[1], obj_dims[1]-0.07, pi, 0., 0.])
+      self.push_object_with_uncertainty(panel_name, push_gripper_pose, pose_with_uncertainty)
 
     at_panel_center = conversions.to_pose_stamped(centering_frame, [-0.02, y_pos, -0.08+obj_dims[1]/2, 0, 0, 0])
 

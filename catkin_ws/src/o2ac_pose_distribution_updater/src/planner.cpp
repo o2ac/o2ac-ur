@@ -2,7 +2,7 @@
 #include "o2ac_pose_distribution_updater/convex_hull.hpp"
 
 namespace {
-double LARGE_EPS = 1e-8, EPS = 1e-9, INF = 1e9;
+double LARGE_EPS = 1e-3, EPS = 1e-9, INF = 1e9;
 double pi = acos(-1);
 } // namespace
 
@@ -172,7 +172,7 @@ void Planner::calculate_action_candidates(
 
     Eigen::Vector3d current_center = current_mean * center_of_gravity;
     Eigen::Vector2d projected_center = current_center.head<2>();
-    int number_of_push_actions = 30;
+    int number_of_push_actions = 10;
     auto random_array =
         std::move(get_random_array(number_of_push_actions, hull.size()));
     for (int t = 0; t < random_array.size(); t++) {
@@ -211,12 +211,11 @@ void Planner::calculate_action_candidates(
   }
 }
 
-std::function<bool(const Eigen::Isometry3d)>
-check_near_to_goal_pose(const Eigen::Isometry3d &goal_pose,
-                        const double &translation_threshold,
-                        const double &rotation_threshold) {
-  return [goal_pose, translation_threshold,
-          rotation_threshold](const Eigen::Isometry3d &pose) -> bool {
+GoalChecker check_near_to_goal_pose(const Eigen::Isometry3d &goal_pose,
+                                    const double &translation_threshold,
+                                    const double &rotation_threshold) {
+  return [goal_pose, translation_threshold, rotation_threshold](
+             const bool &gripping, const Eigen::Isometry3d &pose) -> bool {
     Eigen::Isometry3d move = pose * goal_pose.inverse();
     return move.translation().norm() < translation_threshold &&
            Eigen::AngleAxisd(move.rotation()).angle() < rotation_threshold;
@@ -226,8 +225,7 @@ check_near_to_goal_pose(const Eigen::Isometry3d &goal_pose,
 void Planner::set_geometry(
     const std::shared_ptr<mesh_object> &gripped_geometry,
     const std::shared_ptr<std::vector<Eigen::Isometry3d>> &grasp_points,
-    const double &support_surface)
-{
+    const double &support_surface) {
   this->gripped_geometry = gripped_geometry;
   this->grasp_points = grasp_points;
   this->support_surface = support_surface;
@@ -235,17 +233,19 @@ void Planner::set_geometry(
                                                   gripped_geometry->triangles);
   calculate_place_candidates(gripped_geometry->vertices, center_of_gravity,
                              place_candidates, convex_hull_vertices);
+  fprintf(stderr, "number of place candidates:%d\n",
+          (int)place_candidates.size());
   Eigen::Isometry3d camera_pose = get_camera_pose();
   looked_point = camera_pose * (-0.10 * Eigen::Vector3d::UnitZ());
 }
 
-std::vector<UpdateAction> Planner::calculate_plan(
-    const Eigen::Isometry3d &current_gripper_pose, const bool &current_gripping,
-    const Eigen::Isometry3d &current_mean,
-    const CovarianceMatrix &current_covariance,
-    const CovarianceMatrix &objective_coefficients,
-    const double &objective_value, const bool goal_gripping,
-    const std::function<bool(const Eigen::Isometry3d &)> check_goal_pose) {
+std::vector<UpdateAction>
+Planner::calculate_plan(const Eigen::Isometry3d &current_gripper_pose,
+                        const bool &current_gripping,
+                        const Eigen::Isometry3d &current_mean,
+                        const CovarianceMatrix &current_covariance,
+                        const CovarianceMatrix &objective_coefficients,
+                        const double &objective_value) {
 
   struct node {
     Eigen::Isometry3d mean, gripper_pose;
@@ -270,24 +270,25 @@ std::vector<UpdateAction> Planner::calculate_plan(
   open_nodes.push(std::make_pair(0.0, 0));
   int goal_node_id = -1;
   double optimal_score = INF;
-  while (!open_nodes.empty()) {
+  while (goal_node_id == -1 && !open_nodes.empty()) {
     int id = -open_nodes.top().second;
     open_nodes.pop();
 
-    double score = objective_coefficients
-                       .cwiseProduct(transform_covariance(
-                           nodes[id].mean.inverse(), nodes[id].covariance))
-                       .sum();
-    fprintf(stderr, "%d %d %d %lf %lf\n", id, nodes[id].previous_node_id,
-            id > 0 ? nodes[id].previous_action.type : -1, nodes[id].cost,
-            score);
-    if (score < objective_value &&
-        (!goal_gripping ||
-         nodes[id].gripping && check_goal_pose(nodes[id].mean))) {
-      goal_node_id = id;
-      break;
+    if (!use_BFS) {
+      double score = objective_coefficients
+                         .cwiseProduct(transform_covariance(
+                             nodes[id].mean.inverse(), nodes[id].covariance))
+                         .sum();
+      fprintf(stderr, "%d %d %d %lf %lf\n", id, nodes[id].previous_node_id,
+              id > 0 ? nodes[id].previous_action.type : -1, nodes[id].cost,
+              score);
+      if (score < objective_value &&
+          ((*goal_checker)(nodes[id].gripping, nodes[id].mean))) {
+        goal_node_id = id;
+        break;
+      }
+      optimal_score = score;
     }
-    optimal_score = score;
 
     std::vector<UpdateAction> candidates;
     calculate_action_candidates(nodes[id].gripper_pose, nodes[id].mean,
@@ -307,11 +308,28 @@ std::vector<UpdateAction> Planner::calculate_plan(
                            candidate.type != push_action_type);
       new_node.previous_node_id = id;
       new_node.previous_action = candidate;
-      new_node.cost = nodes[id].cost + (*cost_function)(candidate.type,
-                                                        nodes[id].gripper_pose,
-                                                        candidate.gripper_pose);
+      new_node.cost =
+          nodes[id].cost +
+          (use_BFS ? 1.0
+                   : (*cost_function)(candidate.type, nodes[id].gripper_pose,
+                                      candidate.gripper_pose));
       int new_id = nodes.size();
       nodes.push_back(new_node);
+      if (use_BFS) {
+        double score = objective_coefficients
+                           .cwiseProduct(transform_covariance(
+                               new_node.mean.inverse(), new_node.covariance))
+                           .sum();
+        fprintf(stderr, "%d %d %d %lf %lf\n", new_id, new_node.previous_node_id,
+                id > 0 ? new_node.previous_action.type : -1, new_node.cost,
+                score);
+        if (score < objective_value &&
+            ((*goal_checker)(new_node.gripping, new_node.mean))) {
+          goal_node_id = new_id;
+          break;
+        }
+        optimal_score = score;
+      }
       open_nodes.push(std::make_pair(-new_node.cost, -new_id));
     }
   }
@@ -332,12 +350,12 @@ std::vector<UpdateAction> Planner::calculate_plan(
   return actions;
 }
 
-std::vector<std::pair<double, std::vector<UpdateAction>>> Planner::best_scores_for_each_costs(
+std::vector<std::pair<double, std::vector<UpdateAction>>>
+Planner::best_scores_for_each_costs(
     const Eigen::Isometry3d &current_gripper_pose, const bool &current_gripping,
     const Eigen::Isometry3d &current_mean,
     const CovarianceMatrix &current_covariance,
-    const CovarianceMatrix &objective_coefficients,
-    const int &max_cost) {
+    const CovarianceMatrix &objective_coefficients, const int &max_cost) {
 
   struct node {
     Eigen::Isometry3d mean, gripper_pose;
@@ -357,11 +375,9 @@ std::vector<std::pair<double, std::vector<UpdateAction>>> Planner::best_scores_f
   nodes[0].cost = 0.0;
   nodes[0].gripping = current_gripping;
 
-  std::vector<std::pair<double,int> > best_plans(max_cost+1, std::make_pair(INF,-1));
-  for(int id=0;;id++){
-    if(nodes[id].cost>max_cost){
-      break;
-    }
+  std::vector<std::pair<double, int>> best_plans(max_cost + 1,
+                                                 std::make_pair(INF, -1));
+  for (int id = 0; id < nodes.size(); id++) {
     double score = objective_coefficients
                        .cwiseProduct(transform_covariance(
                            nodes[id].mean.inverse(), nodes[id].covariance))
@@ -369,8 +385,12 @@ std::vector<std::pair<double, std::vector<UpdateAction>>> Planner::best_scores_f
     fprintf(stderr, "%d %d %d %d %lf\n", id, nodes[id].previous_node_id,
             id > 0 ? nodes[id].previous_action.type : -1, nodes[id].cost,
             score);
-    if(nodes[id].gripping && best_plans[nodes[id].cost].first > score){
+    if (nodes[id].gripping && best_plans[nodes[id].cost].first > score) {
       best_plans[nodes[id].cost] = std::make_pair(score, id);
+    }
+
+    if (nodes[id].cost >= max_cost) {
+      continue;
     }
 
     std::vector<UpdateAction> candidates;
@@ -397,10 +417,11 @@ std::vector<std::pair<double, std::vector<UpdateAction>>> Planner::best_scores_f
       nodes.push_back(new_node);
     }
   }
-  std::vector<std::pair<double, std::vector<UpdateAction>>> best_actions(max_cost+1);
-  for(int cost=0;cost<=max_cost;cost++){
+  std::vector<std::pair<double, std::vector<UpdateAction>>> best_actions(
+      max_cost + 1);
+  for (int cost = 0; cost <= max_cost; cost++) {
     best_actions[cost].first = best_plans[cost].first;
-    if(best_plans[cost].second == -1){
+    if (best_plans[cost].second == -1) {
       continue;
     }
     int goal_node_id = best_plans[cost].second;
@@ -408,7 +429,8 @@ std::vector<std::pair<double, std::vector<UpdateAction>>> Planner::best_scores_f
       best_actions[cost].second.push_back(nodes[goal_node_id].previous_action);
       goal_node_id = nodes[goal_node_id].previous_node_id;
     }
-    std::reverse(best_actions[cost].second.begin(), best_actions[cost].second.end());
+    std::reverse(best_actions[cost].second.begin(),
+                 best_actions[cost].second.end());
   }
   return best_actions;
 }

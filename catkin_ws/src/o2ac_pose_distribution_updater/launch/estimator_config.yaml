@@ -1,4 +1,8 @@
-number_of_particles: 100
+touch_number_of_particles: 10
+look_number_of_particles: 10
+place_number_of_particles: 10
+grasp_number_of_particles: 10
+push_number_of_particles: 10
 noise_variance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 ground_size: [2.0, 2.0, 2.0]
 ground_position: [0.0, 0.0, -0.994]
