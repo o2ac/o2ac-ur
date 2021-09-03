@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
     char grasp_names[30][100];
     sprintf(grasp_names[0], "default_grasp");
     for (int i = 1; i <= 28; i++) {
-      sprintf(grasp_names[i + 1], "grasp_%d", i);
+      sprintf(grasp_names[i], "grasp_%d", i);
     }
     scanf("%99s", goal_condition);
     if (!strcmp(goal_condition, "any")) {
