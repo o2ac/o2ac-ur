@@ -14,9 +14,13 @@ int main(int argc, char **argv) {
 
   tf::TransformListener listener;
   tf::StampedTransform tf_transform, tf_gripper_transform;
+
+  std::string object_name(argv[1]);
+  std::string stl_name(argv[2]);
+
   while (true) {
     try {
-      listener.lookupTransform("/world", "/move_group/panel_bearing",
+      listener.lookupTransform("/world", "/move_group/" + object_name,
                                ros::Time(0), tf_transform);
       listener.lookupTransform("/world", "/a_bot_gripper_tip_link",
                                ros::Time(0), tf_gripper_transform);
@@ -42,7 +46,8 @@ int main(int argc, char **argv) {
   std::vector<Eigen::Vector3d> vertices;
   std::vector<boost::array<int, 3>> triangles;
   read_stl_from_file_path("/root/o2ac-ur/catkin_ws/src/o2ac_assembly_database/"
-                          "config/wrs_assembly_2020/meshes/03-PANEL2.stl",
+                          "config/wrs_assembly_2020/meshes/" +
+                              stl_name,
                           vertices, triangles);
   for (int i = 0; i < vertices.size(); i++) {
     vertices[i] /= 1000.;
@@ -78,10 +83,14 @@ int main(int argc, char **argv) {
   send_pose_belief(visualizer_client, *object, 1, 0.0, current_pose);
   fputs("sended\n", stderr);
 
-  puts("/root/o2ac-ur/catkin_ws/src/o2ac_assembly_database/config/"
-       "wrs_assembly_2020/meshes/03-PANEL2.stl");
-  puts("/root/o2ac-ur/catkin_ws/src/o2ac_assembly_database/config/"
-       "wrs_assembly_2020/object_metadata/panel_bearing.yaml");
+  puts(("/root/o2ac-ur/catkin_ws/src/o2ac_assembly_database/config/"
+        "wrs_assembly_2020/meshes/" +
+        stl_name)
+           .c_str());
+  puts(("/root/o2ac-ur/catkin_ws/src/o2ac_assembly_database/config/"
+        "wrs_assembly_2020/object_metadata/" +
+        object_name + ".yaml")
+           .c_str());
   puts("1");
   puts("1");
   puts("0");
@@ -92,39 +101,33 @@ int main(int argc, char **argv) {
   std::cout << new_covariance << std::endl;
   std::cout << CovarianceMatrix::Identity() << std::endl;
   puts("1e-6");
-  char goal_condition[100];
-  while (true) {
-    fprintf(stderr, "goal condition?\n  \'any\': any pose is OK\n  \'placed\': "
+  char *goal_condition = argv[3];
+  /*fprintf(stderr, "goal condition?\n  \'any\': any pose is OK\n  \'placed\': "
                     "it must be placed\n"
                     "  grasp name: it must be grasped by named pose\n     "
-                    "candidates:'default_grasp' or 'grasp_1' ~ 'grasp_28'\n");
-    char grasp_names[30][100];
-    sprintf(grasp_names[0], "default_grasp");
-    for (int i = 1; i <= 28; i++) {
-      sprintf(grasp_names[i], "grasp_%d", i);
+                    "candidates:'default_grasp' or 'grasp_1' ~ 'grasp_28'\n");*/
+  char grasp_names[30][100];
+  sprintf(grasp_names[0], "default_grasp");
+  for (int i = 1; i <= 28; i++) {
+    sprintf(grasp_names[i], "grasp_%d", i);
+  }
+  if (!strcmp(goal_condition, "any")) {
+    puts("0");
+  } else if (!strcmp(goal_condition, "placed")) {
+    puts("2");
+  } else {
+    bool known = false;
+    for (int i = 0; i < 29; i++) {
+      if (!strcmp(goal_condition, grasp_names[i])) {
+        known = true;
+      }
     }
-    scanf("%99s", goal_condition);
-    if (!strcmp(goal_condition, "any")) {
-      puts("0");
-      break;
-    } else if (!strcmp(goal_condition, "placed")) {
-      puts("2");
-      break;
+    if (!known) {
+      fputs("Unknown grasp name\n", stderr);
+      return 1;
     } else {
-      bool known = false;
-      for (int i = 0; i < 29; i++) {
-        if (!strcmp(goal_condition, grasp_names[i])) {
-          known = true;
-          break;
-        }
-      }
-      if (!known) {
-        fputs("Unknown grasp name\n", stderr);
-      } else {
-        puts("1");
-        printf("%s\n0.01 0.01\n", goal_condition);
-        break;
-      }
+      puts("1");
+      printf("%s\n0.01 0.01\n", goal_condition);
     }
   }
   return 0;
