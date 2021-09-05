@@ -1304,7 +1304,7 @@ class O2ACCommon(O2ACBase):
       if not self.execute_sequence("b_bot", seq, 'spiral_for_tool', end_effector_link="b_bot_plunger_tip_link"):
         rospy.logerr("Fail to do spiral")
 
-    if not self.move_towards_tray_center(robot_name, distance=distance, go_back_halfway=False, one_direction=direction, speed=0.1, acc=0.1, end_effector_link="b_bot_plunger_tip_link"):
+    if not self.move_towards_tray_center(robot_name, distance=distance, go_back_halfway=False, one_direction=direction, speed=0.05, acc=0.05, end_effector_link="b_bot_plunger_tip_link"):
       rospy.logerr("Fail to move towards center")
       self.playback_sequence("plunger_tool_unequip")
       self.b_bot.go_to_named_pose("home")
@@ -1691,6 +1691,10 @@ class O2ACCommon(O2ACBase):
     grasp_pose, _  = self.constrain_grasp_into_tray(robot_name, grasp_pose, grasp_width=0.08)
     success = self.simple_pick(robot_name, grasp_pose, approach_height=0.05, lift_up_after_pick=True, axis="z", 
                                approach_with_move_lin=False, allow_collision_with_tray=True)
+    drop_pose = self.listener.transformPose("tray_center", grasp_pose)
+    drop_pose.pose.position.x = np.random.uniform(low=-0.05, high=0.05)
+    drop_pose.pose.position.y = np.random.uniform(low=-0.05, high=0.05)
+    robot.go_to_pose_goal(drop_pose)
     robot.gripper.open()
     if not success:      
       rospy.logerr("Fail to simple pick (grab_and_drop)")
@@ -3018,11 +3022,12 @@ class O2ACCommon(O2ACBase):
         success &= self.b_bot.go_to_pose_goal(pre_insertion_pose, move_lin=True, retry_non_linear=True)
     return success
 
-  def pick_shaft(self, attempt_nr=0, called_recursively=False):
+  def pick_shaft(self, attempt_nr=0):
     self.despawn_object("shaft")
     options = {'center_on_corner': True, 'approach_height': 0.02, 
                'grab_and_drop': True, 'center_on_close_border': True,
-               'with_tool': True, 'check_too_close_to_border': True, 'robot_name': "b_bot"}
+               'with_tool': True, 'check_too_close_to_border': True, 'robot_name': "b_bot",
+               "use_grasp_pose_directly_in_simple_pick":True}
     self.vision.activate_camera("b_bot_outside_camera")
     goal = self.look_and_get_grasp_point("shaft", options=options)
     if not isinstance(goal, geometry_msgs.msg.PoseStamped):
@@ -3031,13 +3036,14 @@ class O2ACCommon(O2ACBase):
       if attempt_nr < 6:
         return self.pick_shaft(attempt_nr=attempt_nr+1)
       return False
-    
+
     gp = conversions.from_pose_to_list(goal.pose)
-    gp[:2] += [0.075/2.0, 0.0] # Magic Numbers for visuals 
     gp[2] = 0.005
-    euler_gp = tf_conversions.transformations.euler_from_quaternion(gp[3:])
-    print("gripper orientation from SSD", euler_gp[0])
-    shaft_pose = conversions.to_pose_stamped("tray_center", gp[:3].tolist() + [0, 0, tau/2 + euler_gp[0] % tau/2])
+    rotation = tf_conversions.transformations.euler_from_quaternion(gp[3:])[0]%(tau/2)
+    print("gripper orientation from SSD", degrees(rotation))
+    translation_correction = 0.075/2.0
+    gp[:2] += [translation_correction*cos(rotation)-0.01, -translation_correction*sin(rotation)] # Magic Numbers for visuals 
+    shaft_pose = conversions.to_pose_stamped("tray_center", gp[:3].tolist() + [0, 0, tau/2 - rotation ])
     self.markers_scene.spawn_item("shaft", shaft_pose)
     # self.spawn_object("shaft", shaft_pose)
     # self.planning_scene_interface.allow_collisions("shaft", "")
@@ -3047,33 +3053,13 @@ class O2ACCommon(O2ACBase):
 
     self.vision.activate_camera("b_bot_inside_camera")
 
-    # if self.too_close_to_border(goal, border_dist=0.02):
-    #   if not called_recursively:
-    #     self.move_towards_center_from_border_with_tool(robot_name="b_bot", object_pose=goal)
-    #     self.pick_shaft(self, attempt_nr=0, called_recursively=True)
-    #   else:
-    #     rospy.logerr("Shaft too close to border. Trying to pick even though correction seems to have failed.")
-
     picked_ok = self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.03, approach_height=0.1, 
                               item_id_to_attach="shaft", minimum_grasp_width=0.004,  axis="z", lift_up_after_pick=True,
                               speed_slow=0.5, allow_collision_with_tray=True)
     
     if not picked_ok:
-    # if not self.pick("b_bot", object_name="shaft", grasp_pose=goal):
       rospy.logerr("Failed to pick shaft")
       if attempt_nr < 6:
-        rospy.loginfo("Try again")
-        print("goal.pose.orientation", goal.pose.orientation)
-        goal_rotated = helpers.rotatePoseByRPY(tau/4, 0, 0, goal)
-        print("goal_rotated.pose.orientation", goal_rotated.pose.orientation)
-        options = {"use_grasp_pose_directly_in_simple_pick":True}
-        if attempt_nr == 0:
-          self.grab_and_drop("b_bot", goal_rotated, options=options)
-        if attempt_nr > 0:
-          # TODO: Don't do this randomly. Try each side of the shaft.
-          goal.pose.position.x += np.random.uniform() * 0.006 - .003
-          goal.pose.position.y += np.random.uniform() * 0.006 - .003
-          self.declutter_with_tool("b_bot", goal)
         return self.pick_shaft(attempt_nr=attempt_nr+1)
       return False
     return True
