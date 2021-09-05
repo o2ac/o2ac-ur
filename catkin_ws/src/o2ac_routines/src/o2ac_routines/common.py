@@ -544,19 +544,21 @@ class O2ACCommon(O2ACBase):
       rospy.loginfo("grasps found? %s" % bool(grasps))
       if grasps:
         if grasps == CORNER and center_on_corner:
+          rospy.loginfo("=== Pick fallback: Corner ===")
           if not self.move_towards_tray_center_from_corner(robot_name, object_pose, options):
             rospy.logerr("Fail to move_towards_tray_center_from_corner")
             return False
           options.update({"center_on_corner": False})
           return self.look_and_get_grasp_point(object_id, robot_name, options)
         elif grasps == TOO_CLOSE_TO_BORDER and center_on_close_border:
-          rospy.loginfo("Moving away from border")
+          rospy.loginfo("=== Pick fallback: Moving away from border===")
           if not self.move_towards_center_from_border(robot_name, object_pose, options):
             rospy.logerr("Fail to move_towards_center_from_border")
             return False
           options.update({"center_on_close_border": False})
           return self.look_and_get_grasp_point(object_id, robot_name, options)
         elif grasps == TOO_CLOSE_TO_OTHER_OBJECTS:
+          rospy.loginfo("=== Pick fallback: Too close to other object===")
           fallback_methods = []
           if grab_and_drop:
             fallback_methods.append("grab_and_drop")
@@ -565,10 +567,12 @@ class O2ACCommon(O2ACBase):
 
           fallback = random.choice(fallback_methods)
           if fallback == "grab_and_drop":
+            rospy.loginfo("=== Pick fallback: grab and drop===")
             if not self.grab_and_drop(robot_name, object_pose, options):
               rospy.logerr("Fail to grab and drop")
               return False
           elif fallback == "declutter_with_tool":
+            rospy.loginfo("=== Pick fallback: declutter with tool===")
             if not self.declutter_with_tool(robot_name, object_pose):
               rospy.logerr("Fail to declutter_with_tool")
               return False
@@ -879,7 +883,7 @@ class O2ACCommon(O2ACBase):
 
     return True
 
-  def simple_grasp_generation(self, object_pose, options):
+  def simple_grasp_generation(self, object_pose, options, object_id=-1):
     """
     Returns a list of one grasp for an object.
     Based only on border distance and distance to other objects.
@@ -906,7 +910,7 @@ class O2ACCommon(O2ACBase):
     grasp_along_x.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, rotation_offset*tau/4))
     grasps_solutions = [] # valid grasps based on distance to tray's border and closer items
     
-    safe_conditions = self.grasp_sanity_check(object_pose, options)
+    safe_conditions = self.grasp_sanity_check(object_pose, options, object_id=object_id)
 
     if isinstance(safe_conditions, list):
       if TOO_CLOSE_TO_BORDER in safe_conditions:
@@ -931,7 +935,7 @@ class O2ACCommon(O2ACBase):
       return grasps_solutions
     return safe_conditions
 
-  def grasp_sanity_check(self, object_pose, options):
+  def grasp_sanity_check(self, object_pose, options, object_id=-1):
     """
       dist_close: float, min distance allowed in the direction that the gripper does not open
     """  
@@ -984,12 +988,15 @@ class O2ACCommon(O2ACBase):
       for condition in safe_conditions:
         item_too_close = False
         for obj, pose in self.objects_in_tray.items():
+          if obj == object_id: # skip same object id 
+            continue
           if obj == 6: # Skip the belt
             continue
-          dx = abs(pose.pose.position.x - object_pose.pose.position.x)
-          dy = abs(pose.pose.position.y - object_pose.pose.position.y)
-          if dx < 1e-4 and dy < 1e-4:
-            continue  # It's the item itself or a duplicate
+          if obj == -1: # For undefined object id
+            dx = abs(pose.pose.position.x - object_pose.pose.position.x)
+            dy = abs(pose.pose.position.y - object_pose.pose.position.y)
+            if dx < 1e-3 and dy < 1e-3:
+              continue  # It's the item itself or a duplicate
           elif condition == Y_BORDER_SAFE:
             if dx < min_dist_to_border and dy < dist_far:
               item_too_close = True
@@ -1167,7 +1174,7 @@ class O2ACCommon(O2ACBase):
       # For the shaft, use the orientation from the SSD
       if self.assembly_database.id_to_name(object_id) == "shaft":
         object_ps, _ = self.constrain_grasp_into_tray("b_bot", object_ps, grasp_width=grasp_width, object_width=0.01)
-        res = self.grasp_sanity_check(object_ps, options)
+        res = self.grasp_sanity_check(object_ps, options, object_id=object_id)
         print("shaft >>> sanity check", res)
         if isinstance(res, list):
           if TOO_CLOSE_TO_BORDER in res:
@@ -1182,13 +1189,13 @@ class O2ACCommon(O2ACBase):
           return res
 
       # For other small items, use any pose from above that works
-      return self.simple_grasp_generation(object_pose=object_ps, options=options)
+      return self.simple_grasp_generation(object_pose=object_ps, options=options, object_id=object_id)
       # TODO: Consider the idler spacer, which can stand upright or lie on the side.
       
     if object_id in self.large_item_ids:
       # For large items, use any pose from above that works
       # TODO: Get grasp poses from database
-      return self.simple_grasp_generation(object_pose=object_ps, options=options)
+      return self.simple_grasp_generation(object_pose=object_ps, options=options, object_id=object_id)
     
     return [None]
 
@@ -1256,18 +1263,12 @@ class O2ACCommon(O2ACBase):
 
     return True
 
-  def move_towards_center_with_tool(self, robot_name, target_pose, distance=0.10, direction=None, start_with_spiral = False):
+  def move_towards_center_with_tool(self, robot_name, target_pose, distance=0.10, direction=None, start_with_spiral=False):
     if robot_name == "a_bot":
       self.a_bot.go_to_named_pose("home")
     
-    # Put pose into tray_center and assign orientation
-    try:
-      self.listener.waitForTransform("tray_center", target_pose.header.frame_id, target_pose.header.stamp, rospy.Duration(1.0))
-    except:
-      pass
-    target_pose_tray = self.listener.transformPose("tray_center", target_pose)
-    target_pose_tray.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
-    
+    self.allow_collisions_with_robot_hand("plunger_tool_link", "b_bot")
+
     robot_name == "b_bot"
     robot = self.active_robots[robot_name]
 
@@ -1275,7 +1276,7 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Fail to equip tool")
       return False
 
-    safe_approach_pose = copy.deepcopy(target_pose_tray)
+    safe_approach_pose = copy.deepcopy(target_pose)
     if direction == 'x':
       safe_approach_pose.pose.position.x -= np.sign(safe_approach_pose.pose.position.x) * 0.015
     if direction == 'y':
@@ -1287,7 +1288,7 @@ class O2ACCommon(O2ACBase):
       self.b_bot.go_to_named_pose("home")
       return False
 
-    touch_pose = copy.deepcopy(target_pose_tray)
+    touch_pose = copy.deepcopy(target_pose)
     touch_pose.pose.position.z = -0.002
     if not robot.go_to_pose_goal(touch_pose, speed=0.05, end_effector_link="b_bot_plunger_tip_link"):
       rospy.logerr("Fail to approach 2")
@@ -1316,9 +1317,9 @@ class O2ACCommon(O2ACBase):
     if not self.playback_sequence("plunger_tool_unequip"):
       rospy.logerr("Fail to unequip tool")
       return False
+    self.allow_collisions_with_robot_hand("plunger_tool_link", "b_bot", False)
 
     self.b_bot.go_to_named_pose("home")
-    
     return True
 
   def move_towards_center_from_border_with_tool(self, robot_name, object_pose, start_with_spiral=False, distance=0.1):
@@ -1341,6 +1342,7 @@ class O2ACCommon(O2ACBase):
     go_back_halfway = options.get('go_back_halfway', True)
 
     if with_tool:
+      rospy.loginfo("=== Pick fallback: Moving away from border with tool===")
       return self.move_towards_center_from_border_with_tool(robot_name, object_pose)
 
     robot = self.active_robots[robot_name]
@@ -3045,12 +3047,12 @@ class O2ACCommon(O2ACBase):
 
     self.vision.activate_camera("b_bot_inside_camera")
 
-    if self.too_close_to_border(goal, border_dist=0.02):
-      if not called_recursively:
-        self.move_towards_center_from_border_with_tool(robot_name="b_bot", object_pose=goal)
-        self.pick_shaft(self, attempt_nr=0, called_recursively=True)
-      else:
-        rospy.logerr("Shaft too close to border. Trying to pick even though correction seems to have failed.")
+    # if self.too_close_to_border(goal, border_dist=0.02):
+    #   if not called_recursively:
+    #     self.move_towards_center_from_border_with_tool(robot_name="b_bot", object_pose=goal)
+    #     self.pick_shaft(self, attempt_nr=0, called_recursively=True)
+    #   else:
+    #     rospy.logerr("Shaft too close to border. Trying to pick even though correction seems to have failed.")
 
     picked_ok = self.simple_pick("b_bot", goal, gripper_force=100.0, grasp_width=.03, approach_height=0.1, 
                               item_id_to_attach="shaft", minimum_grasp_width=0.004,  axis="z", lift_up_after_pick=True,
