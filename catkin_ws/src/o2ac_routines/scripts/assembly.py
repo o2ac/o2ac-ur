@@ -381,12 +381,18 @@ if __name__ == '__main__':
         c.assembly_status.tray_placed_on_table = True
         c.set_assembly("wrs_assembly_2021")
         c.assemble_drive_unit()
+      elif i == "load2019s":
+        c.assembly_status.tray_placed_on_table = True
+        c.set_assembly("wrs_assembly_2019_surprise")
       elif i == "load2020":
         c.assembly_status.tray_placed_on_table = True
         c.set_assembly("wrs_assembly_2020")
       elif i == "load2021":
         c.assembly_status.tray_placed_on_table = True
         c.set_assembly("wrs_assembly_2021")
+      elif i == "load2021s":
+        c.assembly_status.tray_placed_on_table = True
+        c.set_assembly("wrs_assembly_2021_surprise")
       elif i == "pickplacebearingpanel":
         if not c.pick_panel_with_handover("panel_bearing", simultaneous=False):
           break

@@ -744,17 +744,17 @@ class PickCheck():
             im_vis = cv2.rectangle( self.im_vis, (bbox[0],  bbox[1]),
                                     (bbox[0]+bbox[2], bbox[1]+bbox[3]),
                                     bb_color, 3 )
-            text = self.target["name"] + " is picked!"
+            text = self.target["name"] + " picked!"
             cv2.putText( self.im_vis, text,
-                         (20, 30),1, 1.5, (255,255,255), 2, cv2.LINE_AA )
+                         (50, 80),1, 3, (255,255,255), 2, cv2.LINE_AA )
             cv2.putText( self.im_vis, text,
-                         (20, 30),1, 1.5, (0,255,0), 1, cv2.LINE_AA )
+                         (50, 80),1, 3, (0,255,0), 1, cv2.LINE_AA )
         else:
-            text = "Picking is failed!"
+            text = "Pick failed!"
             cv2.putText( self.im_vis, text,
-                         (20, 30),1, 1.5, (255,255,255), 2, cv2.LINE_AA )
+                         (50, 80),1, 3, (255,255,255), 2, cv2.LINE_AA )
             cv2.putText( self.im_vis, text,
-                         (20, 30),1, 1.5, (0,0,255), 1, cv2.LINE_AA )
+                         (50, 80),1, 3, (0,0,255), 1, cv2.LINE_AA )
 
     
     def get_im_result( self ):
@@ -884,7 +884,6 @@ class PulleyScrewDetection():
         self.im_temp = im_temp.copy()
         
         # resize image
-
         self.im_in = cv2.resize( self.im_in, None, fx=ds_rate, fy=ds_rate)
         self.im_temp = cv2.resize( self.im_temp, None, fx=ds_rate, fy=ds_rate)      
         self.im_vis = self.im_in.copy()

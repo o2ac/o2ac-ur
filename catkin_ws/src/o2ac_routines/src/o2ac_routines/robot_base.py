@@ -236,7 +236,8 @@ class RobotBase():
 
     def go_to_pose_goal(self, pose_goal_stamped, speed=0.5, acceleration=None,
                         end_effector_link="", move_lin=False, wait=True, plan_only=False, initial_joints=None,
-                        allow_joint_configuration_flip=False, move_ptp=True, timeout=5, retry_non_linear=False):
+                        allow_joint_configuration_flip=False, move_ptp=True, timeout=5, retry_non_linear=False,
+                        retime=False):
         
         move_ptp = False if move_lin else move_ptp # Override if move_lin is set (Linear takes priority since PTP is the default value)
 
@@ -278,7 +279,7 @@ class RobotBase():
                     rospy.logwarn("Joint configuration would have flipped.")
                     continue
             if success:
-                if planner != "LINEAR":
+                if planner != "LINEAR" or retime:
                     # retime
                     plan = self.robot_group.retime_trajectory(self.robot_group.get_current_state(), plan, algorithm="time_optimal_trajectory_generation",
                                                               velocity_scaling_factor=speed_, acceleration_scaling_factor=accel_)
@@ -299,7 +300,7 @@ class RobotBase():
                 tries += 1
 
         if not success:
-            rospy.logerr("go_to_pose_goal failed " + str(tries) + " times! Broke out, published failed pose.")
+            rospy.logerr("go_to_pose_goal failed " + str(tries) + " times! Broke out, published failed pose. simultaneous=" + str(robots_in_simultaneous))
             helpers.publish_marker(pose_goal_stamped, "pose", self.ns + "_move_lin_failed_pose_" + str(self.marker_counter))
             self.marker_counter += 1
         else:
@@ -403,7 +404,7 @@ class RobotBase():
     def move_lin_rel(self, relative_translation=[0, 0, 0], relative_rotation=[0, 0, 0], speed=.5,
                      acceleration=None, relative_to_robot_base=False, relative_to_tcp=False,
                      wait=True, end_effector_link="", plan_only=False, initial_joints=None,
-                     allow_joint_configuration_flip=False, pose_only=False):
+                     allow_joint_configuration_flip=False, pose_only=False, timeout=5.0, retime=False):
         '''
         Does a lin_move relative to the current position of the robot.
 
@@ -470,7 +471,7 @@ class RobotBase():
                                         end_effector_link=end_effector_link,  wait=wait,
                                         move_lin=True, plan_only=plan_only, initial_joints=initial_joints,
                                         allow_joint_configuration_flip=allow_joint_configuration_flip,
-                                        retry_non_linear=False)
+                                        retry_non_linear=False, timeout=timeout, retime=retime)
 
     def go_to_named_pose(self, pose_name, speed=0.5, acceleration=None, wait=True, plan_only=False, initial_joints=None, move_ptp=True):
         """
@@ -575,7 +576,7 @@ class RobotBase():
         msi.req = group.construct_motion_plan_request()
         msi.blend_radius = 0.0
         msi.req.start_state = helpers.to_robot_state(group, initial_joints if initial_joints else group.get_current_joint_values())
-        
+
         motion_plan_requests = []
         motion_plan_requests.append(msi)
 
@@ -609,7 +610,7 @@ class RobotBase():
             
             group.clear_pose_targets()
 
-            if response.response.error_code.val == 1:
+            if response.response.error_code.val == 1:  # Success
                 plan = response.response.planned_trajectories[0]  # support only one plan?
                 # retime
                 plan = self.robot_group.retime_trajectory(self.robot_group.get_current_state(), plan, algorithm="time_optimal_trajectory_generation",
@@ -625,6 +626,8 @@ class RobotBase():
                     rospy.sleep(1.0)
                 else:
                     rospy.sleep(0.2)
+                # Update the joint state
+                goal.request.items[0].req.start_state = helpers.to_robot_state(group, initial_joints if initial_joints else group.get_current_joint_values())
         return False
 
     def move_circ(self, pose_goal_stamped, constraint_point, constraint_type="center", speed=0.5, acceleration=None, wait=True, end_effector_link="",

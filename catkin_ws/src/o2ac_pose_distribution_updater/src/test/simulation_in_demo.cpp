@@ -26,15 +26,28 @@ int main(int argc, char **argv) {
     }*/
 
   // open file
-  FILE *in = fopen("/root/o2ac-ur/catkin_ws/src/o2ac_pose_distribution_updater/"
-                   "test/plan.txt",
-                   "r");
+  FILE *in;
+  if (argc > 1) {
+    in = fopen(argv[1], "r");
+  } else {
+    in = fopen("/root/o2ac-ur/catkin_ws/src/o2ac_pose_distribution_updater/"
+               "test/plan.txt",
+               "r");
+  }
 
   // load stl file
 
   ROS_INFO("Loading stl file");
   char stl_file_path[1000];
-  fscanf(in, "%999s", stl_file_path);
+  while (true) {
+    fscanf(in, "%999s", stl_file_path);
+    if (stl_file_path[0] != 27) {
+      break;
+    }
+    char c;
+    while ((c = getc(in)) != '\n')
+      ;
+  }
   std::shared_ptr<moveit_msgs::CollisionObject> object(
       new moveit_msgs::CollisionObject);
   load_CollisionObject_from_file(object, std::string(stl_file_path));
@@ -208,6 +221,7 @@ int main(int argc, char **argv) {
         break;
       }
     } else if (action.type == grasp_action_type) {
+      
       if (!gripper_is_open) {
         // if (!skill_server.openGripper(robot_name)) {
         gripper_group.setNamedTarget("open");
@@ -223,7 +237,7 @@ int main(int argc, char **argv) {
       gripper_group.setNamedTarget("close");
       // if (!skill_server.closeGripper(robot_name)) {
       if (gripper_group.move() == moveit_msgs::MoveItErrorCodes::FAILURE) {
-        ROS_ERROR("Closing to grasp failed");
+        ROS_ERROR("Closing at grasp failed");
         break;
       }
       gripper_is_open = false;
@@ -232,7 +246,7 @@ int main(int argc, char **argv) {
       if (!skill_server.moveToCartPoseLIN(high_pose, robot_name)) {
         ROS_ERROR("Moving after grasp failed");
         break;
-      }
+        }
     } else if (action.type == place_action_type) {
       geometry_msgs::PoseStamped high_pose = gripper_pose;
       high_pose.pose.position.z += retreat_height;
@@ -240,8 +254,8 @@ int main(int argc, char **argv) {
         ROS_ERROR("Moving to place failed");
         break;
       }
-      if (!skill_server.moveToCartPoseLIN(gripper_pose, robot_name, true, "",
-                                          0.01, 0.01)) {
+      ros::Duration(1.0).sleep(); // 1 second
+      if (!skill_server.moveToCartPoseLIN(gripper_pose, robot_name)) {
         ROS_ERROR("Placing down failed");
         break;
       }

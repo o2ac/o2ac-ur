@@ -9,17 +9,15 @@ waypoints:
 - pose: [-0.15, -0.000, 0.445, 60, 0, 0] 
   pose_type: task-space-in-frame
   frame_id: left_centering_link
-  speed: 0.8
+  speed: 1.0
   acc: 0.5
-  is_trajectory: True
-  blend: 0.01
+  move_linear: False
   desc: Above centering point
 - pose: [-0.02, 0, 0.445, 60, 0, 0]
   pose_type: task-space-in-frame
   frame_id: left_centering_link
-  speed: 0.3
-  is_trajectory: True
-  blend: 0.0
+  speed: 1.0
+  move_linear: False
   desc: dropping 
 - pose_type: gripper
   gripper:

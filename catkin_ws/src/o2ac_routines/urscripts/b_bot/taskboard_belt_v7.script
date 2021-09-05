@@ -1,12 +1,20 @@
 def taskboard_belt_v7():
-  set_safety_mode_transition_hardness(1)
+  set_target_payload(1.200000, [0.001000, -0.018000, 0.049000], [0.002086, 0.002086, 0.002086, 0.000000, 0.000000, 0.000000])
+  set_gravity([0.0, 0.0, 9.82])
   set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
   set_tool_output_mode(0)
   set_tool_digital_output_mode(0, 1)
   set_tool_digital_output_mode(1, 1)
   set_tool_voltage(24)
-  set_gravity([0.0, 0.0, 9.82])
-  set_target_payload(1.200000, [0.001000, -0.018000, 0.049000], [0.002086, 0.002086, 0.002086, 0.000000, 0.000000, 0.000000])
+  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
+  step_count_fc17d6b4_ea5a_4872_b482_35ada58e8a76 = 0.0
+  thread Step_Counter_Thread_3577485e_64c1_4d85_8889_852519113ac0():
+    while (True):
+      step_count_fc17d6b4_ea5a_4872_b482_35ada58e8a76 = step_count_fc17d6b4_ea5a_4872_b482_35ada58e8a76 + 1.0
+      sync()
+    end
+  end
+  run Step_Counter_Thread_3577485e_64c1_4d85_8889_852519113ac0()
   set_standard_analog_input_domain(0, 1)
   set_standard_analog_input_domain(1, 1)
   set_tool_analog_input_domain(0, 1)
@@ -14,15 +22,7 @@ def taskboard_belt_v7():
   set_analog_outputdomain(0, 0)
   set_analog_outputdomain(1, 0)
   set_input_actions_to_default()
-  step_count_9b1fffff_2c73_47fe_b4e0_91010705d17b = 0.0
-  thread Step_Counter_Thread_ee8d851e_74d3_4c7f_a165_84ed67f5cd9e():
-    while (True):
-      step_count_9b1fffff_2c73_47fe_b4e0_91010705d17b = step_count_9b1fffff_2c73_47fe_b4e0_91010705d17b + 1.0
-      sync()
-    end
-  end
-  run Step_Counter_Thread_ee8d851e_74d3_4c7f_a165_84ed67f5cd9e()
-  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
+  set_safety_mode_transition_hardness(1)
   # begin: URCap Installation Node
   #   Source: External Control, 1.0.5, FZI Research Center for Information Technology
   #   Type: External Control
@@ -2385,10 +2385,6 @@ def taskboard_belt_v7():
   global Waypoint_28_q=[1.5066182189604747, -1.3033505481144196, 1.9392542079894, -2.308294869665946, -2.1966702237640225, 1.3838054943543323]
   global above_tray_1_p=p[.266865858867, -.496011607624, .339710783308, -1.796494330540, -1.802621027860, .672264597199]
   global above_tray_1_q=[1.9385147094726562, -1.2940040689757843, 1.621237579976217, -1.5871526203551234, -2.2268765608416956, 2.0403857231140137]
-  global drop_belt_p=p[.230499322760, -.434047863505, .320964590444, 1.776294822443, 1.883507805954, -.894572030171]
-  global drop_belt_q=[1.8533408641815186, -1.4578536015800019, 2.1740692297564905, -2.998843332330221, -1.8957060019122522, 1.6759496927261353]
-  global look_at_result_p=p[.266865068288, -.496016684094, .308801298984, -1.796515476519, -1.802601968294, .672305195332]
-  global look_at_result_q=[1.9384160041809082, -1.2678858202746888, 1.6707223097430628, -1.6625033817686976, -2.226795021687643, 2.040841817855835]
   global home_1_p=p[.130649315071, -.180735318564, .515944936221, -.011904141620, -3.140282836653, -.031779029209]
   global home_1_q=[1.5699191093444824, -2.0999165974059046, 1.3999560515033167, -0.8500288289836426, -1.5699761549579065, 5.9604644775390625E-5]
   global above_tool_1_p=p[.459162036872, -.210304370404, .204200915087, 1.746289903912, -1.730646652929, -.729047870182]
@@ -2601,13 +2597,4 @@ def taskboard_belt_v7():
   $ 34 "above_tray_1" "breakAfter"
   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
   movel(above_tray_1_p, a=0.6, v=1.0, r=0.03)
-  $ 35 "drop_belt" "breakAfter"
-  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movel(drop_belt_p, a=0.6, v=1.0, r=0.005)
-  $ 36 "above_tray_1" "breakAfter"
-  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movel(above_tray_1_p, a=0.6, v=1.0, r=0.009)
-  $ 37 "look_at_result" "breakAfter"
-  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
-  movel(look_at_result_p, a=0.6, v=1.0)
 end

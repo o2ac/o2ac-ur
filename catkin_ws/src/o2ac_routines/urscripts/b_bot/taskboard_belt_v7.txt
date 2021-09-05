@@ -31,9 +31,9 @@
        Waypoint_27
        Waypoint_28
        above_tray_1
-       drop_belt
-       above_tray_1
-       look_at_result
+       'drop_belt'
+       'above_tray_1'
+       'look_at_result'
      'Call taskboard_place_hook_1'
    taskboard_pick_hook
      Gripper Open (1)

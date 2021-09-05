@@ -7,6 +7,22 @@ collision_primitives:
   pose: [0.03, 0.0, 0.0125, 0.0, 0.0, 0.0]
 subframes:
 - pose_xyzrpy:
+  - 0.0
+  - 0.0
+  - 0.0
+  - -pi/2
+  - 0.0
+  - -pi/2
+  name: bottom_corner_1
+- pose_xyzrpy:
+  - 0.06
+  - 0.0
+  - 0.0
+  - -pi/2
+  - 0.0
+  - -pi/2
+  name: bottom_corner_2
+- pose_xyzrpy:
   - 0.03
   - 0.038
   - 0.005

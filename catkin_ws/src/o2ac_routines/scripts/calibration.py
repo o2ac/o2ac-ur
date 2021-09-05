@@ -647,18 +647,16 @@ if __name__ == '__main__':
         c.taskboard_calibration_with_tools(robot_name="b_bot", end_effector_link="b_bot_screw_tool_m4_tip_link")
       if r == '321':
         c.taskboard_calibration_with_tools(robot_name="b_bot", end_effector_link="b_bot_gripper_tip_link")
-      if r == '5':
-        c.set_assembly("wrs_assembly_2020")
       if r == '501':
         c.assembly_calibration_base_plate("a_bot")
       if r == '5011':
         c.assembly_calibration_base_plate("a_bot", context="rotate_pose")
       if r == '502':
-        c.assembly_calibration_base_plate("b_bot")
+        c.assembly_calibration_base_plate("b_bot", end_effector_link="b_bot_screw_tool_m4_tip_link", context="b_bot_m4_assembly_plates")
       if r == '5022':
         c.assembly_calibration_base_plate("b_bot", context="rotate_pose")
       if r == '503':
-        c.assembly_calibration_base_plate("b_bot", end_effector_link="b_bot_screw_tool_m4_tip_link")
+        c.assembly_calibration_base_plate("b_bot", end_effector_link="b_bot_screw_tool_m4_tip_link", context="motor_plate")
       if r == '504':
         c.assembly_calibration_base_plate("a_bot", end_effector_link="a_bot_screw_tool_m3_tip_link")
       if r == '503a':

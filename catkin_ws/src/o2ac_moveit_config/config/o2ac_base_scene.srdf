@@ -92,14 +92,6 @@
         <joint name="a_bot_wrist_2_joint" value="-0.719" />
         <joint name="a_bot_wrist_3_joint" value="2.146" />
     </group_state>
-    <group_state name="screw_ready_back" group="a_bot">
-        <joint name="a_bot_elbow_joint" value="1.5722" />
-        <joint name="a_bot_shoulder_lift_joint" value="-2.6696" />
-        <joint name="a_bot_shoulder_pan_joint" value="1.7915" />
-        <joint name="a_bot_wrist_1_joint" value="0.872" />
-        <joint name="a_bot_wrist_2_joint" value="1.5723" />
-        <joint name="a_bot_wrist_3_joint" value="-3.1413" />
-    </group_state>
     <group_state name="horizontal_screw_ready" group="a_bot">
         <joint name="a_bot_elbow_joint" value="1.7833" />
         <joint name="a_bot_shoulder_lift_joint" value="-2.2774" />
@@ -107,14 +99,6 @@
         <joint name="a_bot_wrist_1_joint" value="-1.2035" />
         <joint name="a_bot_wrist_2_joint" value="-0.9542" />
         <joint name="a_bot_wrist_3_joint" value="3.4589" />
-    </group_state>
-    <group_state name="horizontal_screw_ready_backside" group="a_bot">
-        <joint name="a_bot_elbow_joint" value="1.4194" />
-        <joint name="a_bot_shoulder_lift_joint" value="-1.58795" />
-        <joint name="a_bot_shoulder_pan_joint" value="2.10442" />
-        <joint name="a_bot_wrist_1_joint" value="-1.0816" />
-        <joint name="a_bot_wrist_2_joint" value="-2.05636" />
-        <joint name="a_bot_wrist_3_joint" value="2.1684" />
     </group_state>
     <group_state name="back" group="a_bot">
         <joint name="a_bot_elbow_joint" value="1" />
@@ -148,13 +132,21 @@
         <joint name="b_bot_wrist_2_joint" value="-1.06229" />
         <joint name="b_bot_wrist_3_joint" value="-3.44211" />
     </group_state>
-    <group_state name="screw_ready_back" group="b_bot">
-        <joint name="b_bot_elbow_joint" value="2.4472" />
-        <joint name="b_bot_shoulder_lift_joint" value="-2.9506" />
-        <joint name="b_bot_shoulder_pan_joint" value="1.0761" />
-        <joint name="b_bot_wrist_1_joint" value="0.4513" />
-        <joint name="b_bot_wrist_2_joint" value="1.57" />
-        <joint name="b_bot_wrist_3_joint" value="-3.1415" />
+    <group_state name="screw_ready_passthrough" group="b_bot">
+        <joint name="b_bot_elbow_joint" value="2.4269" />
+        <joint name="b_bot_shoulder_lift_joint" value="-2.5184" />
+        <joint name="b_bot_shoulder_pan_joint" value="0.9546" />
+        <joint name="b_bot_wrist_1_joint" value="-2.5467" />
+        <joint name="b_bot_wrist_2_joint" value="-1.6402" />
+        <joint name="b_bot_wrist_3_joint" value="-3.0895" />
+    </group_state>
+    <group_state name="screw_ready_front" group="b_bot">
+        <joint name="b_bot_elbow_joint" value="2.2269" />
+        <joint name="b_bot_shoulder_lift_joint" value="-2.3684" />
+        <joint name="b_bot_shoulder_pan_joint" value="1.5989" />
+        <joint name="b_bot_wrist_1_joint" value="-2.54672" />
+        <joint name="b_bot_wrist_2_joint" value="-1.6402" />
+        <joint name="b_bot_wrist_3_joint" value="-3.0895" />
     </group_state>
     <group_state name="horizontal_screw_ready" group="b_bot">
         <joint name="b_bot_elbow_joint" value="2.4134" />
@@ -220,7 +212,7 @@
         <joint name="a_bot_elbow_joint" value="1.6967" />
         <joint name="a_bot_shoulder_lift_joint" value="-1.9232" />
         <joint name="a_bot_shoulder_pan_joint" value="1.3097" />
-        <joint name="a_bot_wrist_1_joint" value="-0.9790" />
+        <joint name="a_bot_wrist_1_joint" value="-0.979" />
         <joint name="a_bot_wrist_2_joint" value="-0.6834" />
         <joint name="a_bot_wrist_3_joint" value="1.1082" />
     </group_state>
@@ -243,10 +235,10 @@
     <group_state name="above_tray" group="b_bot">
         <joint name="b_bot_elbow_joint" value="1.49878" />
         <joint name="b_bot_shoulder_lift_joint" value="-1.44992" />
-        <joint name="b_bot_shoulder_pan_joint" value="1.59350" />
+        <joint name="b_bot_shoulder_pan_joint" value="1.5935" />
         <joint name="b_bot_wrist_1_joint" value="-1.61256" />
         <joint name="b_bot_wrist_2_joint" value="-1.82635" />
-        <joint name="b_bot_wrist_3_joint" value="-1.54880" />
+        <joint name="b_bot_wrist_3_joint" value="-1.5488" />
     </group_state>
     <group_state name="above_tray" group="a_bot">
         <joint name="a_bot_elbow_joint" value="1.53914" />
@@ -325,12 +317,6 @@
     <disable_collisions link1="a_bot_base_link" link2="plunger_tool_holder" reason="Never" />
     <disable_collisions link1="a_bot_base_link" link2="plunger_tool_link" reason="Never" />
     <disable_collisions link1="a_bot_base_link" link2="right_bar" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="taskboard_assy_part_07" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="taskboard_base" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="taskboard_large_pulley" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="taskboard_plate" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="taskboard_small_pulley" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="taskboard_small_shaft" reason="Never" />
     <disable_collisions link1="a_bot_base_link" link2="tray" reason="Adjacent" />
     <disable_collisions link1="a_bot_base_link" link2="tray_center" reason="Never" />
     <disable_collisions link1="a_bot_base_link" link2="tv" reason="Adjacent" />
@@ -354,12 +340,6 @@
     <disable_collisions link1="a_bot_base_smfl" link2="plunger_tool_holder" reason="Never" />
     <disable_collisions link1="a_bot_base_smfl" link2="plunger_tool_link" reason="Never" />
     <disable_collisions link1="a_bot_base_smfl" link2="right_bar" reason="Never" />
-    <disable_collisions link1="a_bot_base_smfl" link2="taskboard_assy_part_07" reason="Never" />
-    <disable_collisions link1="a_bot_base_smfl" link2="taskboard_base" reason="Never" />
-    <disable_collisions link1="a_bot_base_smfl" link2="taskboard_large_pulley" reason="Never" />
-    <disable_collisions link1="a_bot_base_smfl" link2="taskboard_plate" reason="Never" />
-    <disable_collisions link1="a_bot_base_smfl" link2="taskboard_small_pulley" reason="Never" />
-    <disable_collisions link1="a_bot_base_smfl" link2="taskboard_small_shaft" reason="Never" />
     <disable_collisions link1="a_bot_base_smfl" link2="tray" reason="Adjacent" />
     <disable_collisions link1="a_bot_base_smfl" link2="tray_center" reason="Never" />
     <disable_collisions link1="a_bot_base_smfl" link2="tv" reason="Adjacent" />
@@ -449,8 +429,6 @@
     <disable_collisions link1="a_bot_ee_link" link2="horizontal_column_top" reason="Never" />
     <disable_collisions link1="a_bot_ee_link" link2="plunger_tool_holder" reason="Never" />
     <disable_collisions link1="a_bot_ee_link" link2="plunger_tool_link" reason="Never" />
-    <disable_collisions link1="a_bot_ee_link" link2="taskboard_assy_part_07" reason="Never" />
-    <disable_collisions link1="a_bot_ee_link" link2="taskboard_small_shaft" reason="Never" />
     <disable_collisions link1="a_bot_forearm_link" link2="a_bot_upper_arm_link" reason="Adjacent" />
     <disable_collisions link1="a_bot_forearm_link" link2="a_bot_wrist_1_link" reason="Adjacent" />
     <disable_collisions link1="a_bot_forearm_link" link2="a_bot_wrist_2_link" reason="Never" />
@@ -593,7 +571,6 @@
     <disable_collisions link1="a_bot_right_outer_finger" link2="a_bot_wrist_2_link" reason="Never" />
     <disable_collisions link1="a_bot_right_outer_finger" link2="a_bot_wrist_3_link" reason="Never" />
     <disable_collisions link1="a_bot_right_outer_finger" link2="horizontal_column_top" reason="Never" />
-    <disable_collisions link1="a_bot_right_outer_finger" link2="taskboard_small_shaft" reason="Never" />
     <disable_collisions link1="a_bot_right_outer_knuckle" link2="a_bot_robotiq_arg2f_base_link" reason="Adjacent" />
     <disable_collisions link1="a_bot_right_outer_knuckle" link2="a_bot_wrist_1_link" reason="Never" />
     <disable_collisions link1="a_bot_right_outer_knuckle" link2="a_bot_wrist_2_link" reason="Never" />
@@ -624,12 +601,6 @@
     <disable_collisions link1="a_bot_shoulder_link" link2="plunger_tool_holder" reason="Never" />
     <disable_collisions link1="a_bot_shoulder_link" link2="plunger_tool_link" reason="Never" />
     <disable_collisions link1="a_bot_shoulder_link" link2="right_bar" reason="Never" />
-    <disable_collisions link1="a_bot_shoulder_link" link2="taskboard_assy_part_07" reason="Never" />
-    <disable_collisions link1="a_bot_shoulder_link" link2="taskboard_base" reason="Never" />
-    <disable_collisions link1="a_bot_shoulder_link" link2="taskboard_large_pulley" reason="Never" />
-    <disable_collisions link1="a_bot_shoulder_link" link2="taskboard_plate" reason="Never" />
-    <disable_collisions link1="a_bot_shoulder_link" link2="taskboard_small_pulley" reason="Never" />
-    <disable_collisions link1="a_bot_shoulder_link" link2="taskboard_small_shaft" reason="Never" />
     <disable_collisions link1="a_bot_shoulder_link" link2="tray" reason="Never" />
     <disable_collisions link1="a_bot_shoulder_link" link2="tray_center" reason="Never" />
     <disable_collisions link1="a_bot_shoulder_link" link2="tv" reason="Never" />
@@ -648,9 +619,6 @@
     <disable_collisions link1="a_bot_upper_arm_link" link2="plunger_tool_holder" reason="Never" />
     <disable_collisions link1="a_bot_upper_arm_link" link2="plunger_tool_link" reason="Never" />
     <disable_collisions link1="a_bot_upper_arm_link" link2="right_bar" reason="Never" />
-    <disable_collisions link1="a_bot_upper_arm_link" link2="taskboard_assy_part_07" reason="Never" />
-    <disable_collisions link1="a_bot_upper_arm_link" link2="taskboard_large_pulley" reason="Never" />
-    <disable_collisions link1="a_bot_upper_arm_link" link2="taskboard_small_shaft" reason="Never" />
     <disable_collisions link1="a_bot_upper_arm_link" link2="tv" reason="Never" />
     <disable_collisions link1="a_bot_upper_arm_link" link2="vertical_column_left" reason="Never" />
     <disable_collisions link1="a_bot_upper_arm_link" link2="vertical_column_right" reason="Never" />
@@ -689,12 +657,6 @@
     <disable_collisions link1="b_bot_base_link" link2="plunger_tool_holder" reason="Adjacent" />
     <disable_collisions link1="b_bot_base_link" link2="plunger_tool_link" reason="Never" />
     <disable_collisions link1="b_bot_base_link" link2="right_bar" reason="Never" />
-    <disable_collisions link1="b_bot_base_link" link2="taskboard_assy_part_07" reason="Never" />
-    <disable_collisions link1="b_bot_base_link" link2="taskboard_base" reason="Never" />
-    <disable_collisions link1="b_bot_base_link" link2="taskboard_large_pulley" reason="Never" />
-    <disable_collisions link1="b_bot_base_link" link2="taskboard_plate" reason="Never" />
-    <disable_collisions link1="b_bot_base_link" link2="taskboard_small_pulley" reason="Never" />
-    <disable_collisions link1="b_bot_base_link" link2="taskboard_small_shaft" reason="Never" />
     <disable_collisions link1="b_bot_base_link" link2="tray" reason="Adjacent" />
     <disable_collisions link1="b_bot_base_link" link2="tray_center" reason="Never" />
     <disable_collisions link1="b_bot_base_link" link2="tv" reason="Adjacent" />
@@ -714,12 +676,6 @@
     <disable_collisions link1="b_bot_base_smfl" link2="plunger_tool_holder" reason="Never" />
     <disable_collisions link1="b_bot_base_smfl" link2="plunger_tool_link" reason="Never" />
     <disable_collisions link1="b_bot_base_smfl" link2="right_bar" reason="Never" />
-    <disable_collisions link1="b_bot_base_smfl" link2="taskboard_assy_part_07" reason="Never" />
-    <disable_collisions link1="b_bot_base_smfl" link2="taskboard_base" reason="Never" />
-    <disable_collisions link1="b_bot_base_smfl" link2="taskboard_large_pulley" reason="Never" />
-    <disable_collisions link1="b_bot_base_smfl" link2="taskboard_plate" reason="Never" />
-    <disable_collisions link1="b_bot_base_smfl" link2="taskboard_small_pulley" reason="Never" />
-    <disable_collisions link1="b_bot_base_smfl" link2="taskboard_small_shaft" reason="Never" />
     <disable_collisions link1="b_bot_base_smfl" link2="tray" reason="Adjacent" />
     <disable_collisions link1="b_bot_base_smfl" link2="tray_center" reason="Never" />
     <disable_collisions link1="b_bot_base_smfl" link2="tv" reason="Adjacent" />
@@ -801,8 +757,6 @@
     <disable_collisions link1="b_bot_ee_link" link2="b_bot_wrist_2_link" reason="Never" />
     <disable_collisions link1="b_bot_ee_link" link2="b_bot_wrist_3_link" reason="Adjacent" />
     <disable_collisions link1="b_bot_ee_link" link2="horizontal_column_top" reason="Never" />
-    <disable_collisions link1="b_bot_ee_link" link2="taskboard_small_pulley" reason="Never" />
-    <disable_collisions link1="b_bot_ee_link" link2="taskboard_small_shaft" reason="Never" />
     <disable_collisions link1="b_bot_forearm_link" link2="b_bot_upper_arm_link" reason="Adjacent" />
     <disable_collisions link1="b_bot_forearm_link" link2="b_bot_wrist_1_link" reason="Adjacent" />
     <disable_collisions link1="b_bot_forearm_link" link2="b_bot_wrist_2_link" reason="Never" />
@@ -916,7 +870,6 @@
     <disable_collisions link1="b_bot_right_inner_finger_pad" link2="b_bot_wrist_2_link" reason="Never" />
     <disable_collisions link1="b_bot_right_inner_finger_pad" link2="b_bot_wrist_3_link" reason="Never" />
     <disable_collisions link1="b_bot_right_inner_finger_pad" link2="horizontal_column_top" reason="Never" />
-    <disable_collisions link1="b_bot_right_inner_finger_pad" link2="taskboard_small_shaft" reason="Never" />
     <disable_collisions link1="b_bot_right_inner_knuckle" link2="b_bot_right_outer_finger" reason="Never" />
     <disable_collisions link1="b_bot_right_inner_knuckle" link2="b_bot_right_outer_knuckle" reason="Never" />
     <disable_collisions link1="b_bot_right_inner_knuckle" link2="b_bot_robotiq_arg2f_base_link" reason="Adjacent" />
@@ -935,7 +888,6 @@
     <disable_collisions link1="b_bot_right_outer_knuckle" link2="b_bot_wrist_2_link" reason="Never" />
     <disable_collisions link1="b_bot_right_outer_knuckle" link2="b_bot_wrist_3_link" reason="Never" />
     <disable_collisions link1="b_bot_right_outer_knuckle" link2="horizontal_column_top" reason="Never" />
-    <disable_collisions link1="b_bot_right_outer_knuckle" link2="taskboard_small_shaft" reason="Never" />
     <disable_collisions link1="b_bot_robotiq_arg2f_base_link" link2="b_bot_wrist_1_link" reason="Never" />
     <disable_collisions link1="b_bot_robotiq_arg2f_base_link" link2="b_bot_wrist_2_link" reason="Never" />
     <disable_collisions link1="b_bot_robotiq_arg2f_base_link" link2="b_bot_wrist_3_link" reason="Never" />
@@ -952,12 +904,6 @@
     <disable_collisions link1="b_bot_shoulder_link" link2="plunger_tool_holder" reason="Never" />
     <disable_collisions link1="b_bot_shoulder_link" link2="plunger_tool_link" reason="Never" />
     <disable_collisions link1="b_bot_shoulder_link" link2="right_bar" reason="Never" />
-    <disable_collisions link1="b_bot_shoulder_link" link2="taskboard_assy_part_07" reason="Never" />
-    <disable_collisions link1="b_bot_shoulder_link" link2="taskboard_base" reason="Never" />
-    <disable_collisions link1="b_bot_shoulder_link" link2="taskboard_large_pulley" reason="Never" />
-    <disable_collisions link1="b_bot_shoulder_link" link2="taskboard_plate" reason="Never" />
-    <disable_collisions link1="b_bot_shoulder_link" link2="taskboard_small_pulley" reason="Never" />
-    <disable_collisions link1="b_bot_shoulder_link" link2="taskboard_small_shaft" reason="Never" />
     <disable_collisions link1="b_bot_shoulder_link" link2="tray" reason="Never" />
     <disable_collisions link1="b_bot_shoulder_link" link2="tray_center" reason="Never" />
     <disable_collisions link1="b_bot_shoulder_link" link2="tv" reason="Never" />
@@ -968,7 +914,6 @@
     <disable_collisions link1="b_bot_upper_arm_link" link2="horizontal_column_for_tools" reason="Never" />
     <disable_collisions link1="b_bot_upper_arm_link" link2="horizontal_column_top" reason="Never" />
     <disable_collisions link1="b_bot_upper_arm_link" link2="left_bar" reason="Never" />
-    <disable_collisions link1="b_bot_upper_arm_link" link2="taskboard_small_pulley" reason="Never" />
     <disable_collisions link1="b_bot_upper_arm_link" link2="tv" reason="Never" />
     <disable_collisions link1="b_bot_upper_arm_link" link2="vertical_column_left" reason="Never" />
     <disable_collisions link1="b_bot_upper_arm_link" link2="vertical_column_right" reason="Never" />
@@ -988,12 +933,6 @@
     <disable_collisions link1="back_bar" link2="plunger_tool_holder" reason="Never" />
     <disable_collisions link1="back_bar" link2="plunger_tool_link" reason="Never" />
     <disable_collisions link1="back_bar" link2="right_bar" reason="Default" />
-    <disable_collisions link1="back_bar" link2="taskboard_assy_part_07" reason="Never" />
-    <disable_collisions link1="back_bar" link2="taskboard_base" reason="Never" />
-    <disable_collisions link1="back_bar" link2="taskboard_large_pulley" reason="Never" />
-    <disable_collisions link1="back_bar" link2="taskboard_plate" reason="Never" />
-    <disable_collisions link1="back_bar" link2="taskboard_small_pulley" reason="Never" />
-    <disable_collisions link1="back_bar" link2="taskboard_small_shaft" reason="Never" />
     <disable_collisions link1="back_bar" link2="tray" reason="Never" />
     <disable_collisions link1="back_bar" link2="tray_center" reason="Never" />
     <disable_collisions link1="back_bar" link2="tv" reason="Never" />
@@ -1010,12 +949,6 @@
     <disable_collisions link1="base_fixture_top" link2="plunger_tool_holder" reason="Never" />
     <disable_collisions link1="base_fixture_top" link2="plunger_tool_link" reason="Never" />
     <disable_collisions link1="base_fixture_top" link2="right_bar" reason="Adjacent" />
-    <disable_collisions link1="base_fixture_top" link2="taskboard_assy_part_07" reason="Never" />
-    <disable_collisions link1="base_fixture_top" link2="taskboard_base" reason="Adjacent" />
-    <disable_collisions link1="base_fixture_top" link2="taskboard_large_pulley" reason="Never" />
-    <disable_collisions link1="base_fixture_top" link2="taskboard_plate" reason="Default" />
-    <disable_collisions link1="base_fixture_top" link2="taskboard_small_pulley" reason="Never" />
-    <disable_collisions link1="base_fixture_top" link2="taskboard_small_shaft" reason="Never" />
     <disable_collisions link1="base_fixture_top" link2="tray" reason="Adjacent" />
     <disable_collisions link1="base_fixture_top" link2="tray_center" reason="Never" />
     <disable_collisions link1="base_fixture_top" link2="tv" reason="Adjacent" />
@@ -1031,12 +964,6 @@
     <disable_collisions link1="belt_tool_holder" link2="plunger_tool_holder" reason="Adjacent" />
     <disable_collisions link1="belt_tool_holder" link2="plunger_tool_link" reason="Never" />
     <disable_collisions link1="belt_tool_holder" link2="right_bar" reason="Never" />
-    <disable_collisions link1="belt_tool_holder" link2="taskboard_assy_part_07" reason="Never" />
-    <disable_collisions link1="belt_tool_holder" link2="taskboard_base" reason="Never" />
-    <disable_collisions link1="belt_tool_holder" link2="taskboard_large_pulley" reason="Never" />
-    <disable_collisions link1="belt_tool_holder" link2="taskboard_plate" reason="Never" />
-    <disable_collisions link1="belt_tool_holder" link2="taskboard_small_pulley" reason="Never" />
-    <disable_collisions link1="belt_tool_holder" link2="taskboard_small_shaft" reason="Never" />
     <disable_collisions link1="belt_tool_holder" link2="tray" reason="Never" />
     <disable_collisions link1="belt_tool_holder" link2="tray_center" reason="Never" />
     <disable_collisions link1="belt_tool_holder" link2="tv" reason="Never" />
@@ -1051,12 +978,6 @@
     <disable_collisions link1="belt_tool_link" link2="plunger_tool_holder" reason="Never" />
     <disable_collisions link1="belt_tool_link" link2="plunger_tool_link" reason="Never" />
     <disable_collisions link1="belt_tool_link" link2="right_bar" reason="Never" />
-    <disable_collisions link1="belt_tool_link" link2="taskboard_assy_part_07" reason="Never" />
-    <disable_collisions link1="belt_tool_link" link2="taskboard_base" reason="Never" />
-    <disable_collisions link1="belt_tool_link" link2="taskboard_large_pulley" reason="Never" />
-    <disable_collisions link1="belt_tool_link" link2="taskboard_plate" reason="Never" />
-    <disable_collisions link1="belt_tool_link" link2="taskboard_small_pulley" reason="Never" />
-    <disable_collisions link1="belt_tool_link" link2="taskboard_small_shaft" reason="Never" />
     <disable_collisions link1="belt_tool_link" link2="tray" reason="Never" />
     <disable_collisions link1="belt_tool_link" link2="tray_center" reason="Never" />
     <disable_collisions link1="belt_tool_link" link2="tv" reason="Never" />
@@ -1070,12 +991,6 @@
     <disable_collisions link1="front_bar" link2="plunger_tool_holder" reason="Never" />
     <disable_collisions link1="front_bar" link2="plunger_tool_link" reason="Never" />
     <disable_collisions link1="front_bar" link2="right_bar" reason="Never" />
-    <disable_collisions link1="front_bar" link2="taskboard_assy_part_07" reason="Never" />
-    <disable_collisions link1="front_bar" link2="taskboard_base" reason="Never" />
-    <disable_collisions link1="front_bar" link2="taskboard_large_pulley" reason="Never" />
-    <disable_collisions link1="front_bar" link2="taskboard_plate" reason="Never" />
-    <disable_collisions link1="front_bar" link2="taskboard_small_pulley" reason="Never" />
-    <disable_collisions link1="front_bar" link2="taskboard_small_shaft" reason="Never" />
     <disable_collisions link1="front_bar" link2="tray" reason="Never" />
     <disable_collisions link1="front_bar" link2="tray_center" reason="Never" />
     <disable_collisions link1="front_bar" link2="tv" reason="Never" />
@@ -1088,12 +1003,6 @@
     <disable_collisions link1="horizontal_column_for_tools" link2="plunger_tool_holder" reason="Never" />
     <disable_collisions link1="horizontal_column_for_tools" link2="plunger_tool_link" reason="Never" />
     <disable_collisions link1="horizontal_column_for_tools" link2="right_bar" reason="Never" />
-    <disable_collisions link1="horizontal_column_for_tools" link2="taskboard_assy_part_07" reason="Never" />
-    <disable_collisions link1="horizontal_column_for_tools" link2="taskboard_base" reason="Never" />
-    <disable_collisions link1="horizontal_column_for_tools" link2="taskboard_large_pulley" reason="Never" />
-    <disable_collisions link1="horizontal_column_for_tools" link2="taskboard_plate" reason="Never" />
-    <disable_collisions link1="horizontal_column_for_tools" link2="taskboard_small_pulley" reason="Never" />
-    <disable_collisions link1="horizontal_column_for_tools" link2="taskboard_small_shaft" reason="Never" />
     <disable_collisions link1="horizontal_column_for_tools" link2="tray" reason="Adjacent" />
     <disable_collisions link1="horizontal_column_for_tools" link2="tray_center" reason="Never" />
     <disable_collisions link1="horizontal_column_for_tools" link2="tv" reason="Adjacent" />
@@ -1105,12 +1014,6 @@
     <disable_collisions link1="horizontal_column_top" link2="plunger_tool_holder" reason="Never" />
     <disable_collisions link1="horizontal_column_top" link2="plunger_tool_link" reason="Never" />
     <disable_collisions link1="horizontal_column_top" link2="right_bar" reason="Never" />
-    <disable_collisions link1="horizontal_column_top" link2="taskboard_assy_part_07" reason="Never" />
-    <disable_collisions link1="horizontal_column_top" link2="taskboard_base" reason="Never" />
-    <disable_collisions link1="horizontal_column_top" link2="taskboard_large_pulley" reason="Never" />
-    <disable_collisions link1="horizontal_column_top" link2="taskboard_plate" reason="Never" />
-    <disable_collisions link1="horizontal_column_top" link2="taskboard_small_pulley" reason="Never" />
-    <disable_collisions link1="horizontal_column_top" link2="taskboard_small_shaft" reason="Never" />
     <disable_collisions link1="horizontal_column_top" link2="tray" reason="Adjacent" />
     <disable_collisions link1="horizontal_column_top" link2="tray_center" reason="Never" />
     <disable_collisions link1="horizontal_column_top" link2="tv" reason="Adjacent" />
@@ -1121,12 +1024,6 @@
     <disable_collisions link1="left_bar" link2="plunger_tool_holder" reason="Never" />
     <disable_collisions link1="left_bar" link2="plunger_tool_link" reason="Never" />
     <disable_collisions link1="left_bar" link2="right_bar" reason="Never" />
-    <disable_collisions link1="left_bar" link2="taskboard_assy_part_07" reason="Never" />
-    <disable_collisions link1="left_bar" link2="taskboard_base" reason="Never" />
-    <disable_collisions link1="left_bar" link2="taskboard_large_pulley" reason="Never" />
-    <disable_collisions link1="left_bar" link2="taskboard_plate" reason="Never" />
-    <disable_collisions link1="left_bar" link2="taskboard_small_pulley" reason="Never" />
-    <disable_collisions link1="left_bar" link2="taskboard_small_shaft" reason="Never" />
     <disable_collisions link1="left_bar" link2="tray" reason="Never" />
     <disable_collisions link1="left_bar" link2="tray_center" reason="Never" />
     <disable_collisions link1="left_bar" link2="tv" reason="Never" />
@@ -1136,12 +1033,6 @@
     <disable_collisions link1="left_bar" link2="workplate" reason="Never" />
     <disable_collisions link1="plunger_tool_holder" link2="plunger_tool_link" reason="Adjacent" />
     <disable_collisions link1="plunger_tool_holder" link2="right_bar" reason="Never" />
-    <disable_collisions link1="plunger_tool_holder" link2="taskboard_assy_part_07" reason="Never" />
-    <disable_collisions link1="plunger_tool_holder" link2="taskboard_base" reason="Never" />
-    <disable_collisions link1="plunger_tool_holder" link2="taskboard_large_pulley" reason="Never" />
-    <disable_collisions link1="plunger_tool_holder" link2="taskboard_plate" reason="Never" />
-    <disable_collisions link1="plunger_tool_holder" link2="taskboard_small_pulley" reason="Never" />
-    <disable_collisions link1="plunger_tool_holder" link2="taskboard_small_shaft" reason="Never" />
     <disable_collisions link1="plunger_tool_holder" link2="tray" reason="Never" />
     <disable_collisions link1="plunger_tool_holder" link2="tray_center" reason="Never" />
     <disable_collisions link1="plunger_tool_holder" link2="tv" reason="Never" />
@@ -1150,12 +1041,6 @@
     <disable_collisions link1="plunger_tool_holder" link2="vgroove_aid_link" reason="Never" />
     <disable_collisions link1="plunger_tool_holder" link2="workplate" reason="Never" />
     <disable_collisions link1="plunger_tool_link" link2="right_bar" reason="Never" />
-    <disable_collisions link1="plunger_tool_link" link2="taskboard_assy_part_07" reason="Never" />
-    <disable_collisions link1="plunger_tool_link" link2="taskboard_base" reason="Never" />
-    <disable_collisions link1="plunger_tool_link" link2="taskboard_large_pulley" reason="Never" />
-    <disable_collisions link1="plunger_tool_link" link2="taskboard_plate" reason="Never" />
-    <disable_collisions link1="plunger_tool_link" link2="taskboard_small_pulley" reason="Never" />
-    <disable_collisions link1="plunger_tool_link" link2="taskboard_small_shaft" reason="Never" />
     <disable_collisions link1="plunger_tool_link" link2="tray" reason="Never" />
     <disable_collisions link1="plunger_tool_link" link2="tray_center" reason="Never" />
     <disable_collisions link1="plunger_tool_link" link2="tv" reason="Never" />
@@ -1163,12 +1048,6 @@
     <disable_collisions link1="plunger_tool_link" link2="vertical_column_right" reason="Never" />
     <disable_collisions link1="plunger_tool_link" link2="vgroove_aid_link" reason="Never" />
     <disable_collisions link1="plunger_tool_link" link2="workplate" reason="Never" />
-    <disable_collisions link1="right_bar" link2="taskboard_assy_part_07" reason="Never" />
-    <disable_collisions link1="right_bar" link2="taskboard_base" reason="Never" />
-    <disable_collisions link1="right_bar" link2="taskboard_large_pulley" reason="Never" />
-    <disable_collisions link1="right_bar" link2="taskboard_plate" reason="Never" />
-    <disable_collisions link1="right_bar" link2="taskboard_small_pulley" reason="Never" />
-    <disable_collisions link1="right_bar" link2="taskboard_small_shaft" reason="Never" />
     <disable_collisions link1="right_bar" link2="tray" reason="Never" />
     <disable_collisions link1="right_bar" link2="tray_center" reason="Never" />
     <disable_collisions link1="right_bar" link2="tv" reason="Never" />
@@ -1176,63 +1055,6 @@
     <disable_collisions link1="right_bar" link2="vertical_column_right" reason="Never" />
     <disable_collisions link1="right_bar" link2="vgroove_aid_link" reason="Never" />
     <disable_collisions link1="right_bar" link2="workplate" reason="Never" />
-    <disable_collisions link1="taskboard_assy_part_07" link2="taskboard_base" reason="Never" />
-    <disable_collisions link1="taskboard_assy_part_07" link2="taskboard_large_pulley" reason="Never" />
-    <disable_collisions link1="taskboard_assy_part_07" link2="taskboard_plate" reason="Adjacent" />
-    <disable_collisions link1="taskboard_assy_part_07" link2="taskboard_small_pulley" reason="Never" />
-    <disable_collisions link1="taskboard_assy_part_07" link2="taskboard_small_shaft" reason="Never" />
-    <disable_collisions link1="taskboard_assy_part_07" link2="tray" reason="Never" />
-    <disable_collisions link1="taskboard_assy_part_07" link2="tray_center" reason="Never" />
-    <disable_collisions link1="taskboard_assy_part_07" link2="tv" reason="Never" />
-    <disable_collisions link1="taskboard_assy_part_07" link2="vertical_column_left" reason="Never" />
-    <disable_collisions link1="taskboard_assy_part_07" link2="vertical_column_right" reason="Never" />
-    <disable_collisions link1="taskboard_assy_part_07" link2="vgroove_aid_link" reason="Never" />
-    <disable_collisions link1="taskboard_assy_part_07" link2="workplate" reason="Never" />
-    <disable_collisions link1="taskboard_base" link2="taskboard_large_pulley" reason="Never" />
-    <disable_collisions link1="taskboard_base" link2="taskboard_plate" reason="Adjacent" />
-    <disable_collisions link1="taskboard_base" link2="taskboard_small_pulley" reason="Never" />
-    <disable_collisions link1="taskboard_base" link2="taskboard_small_shaft" reason="Never" />
-    <disable_collisions link1="taskboard_base" link2="tray" reason="Never" />
-    <disable_collisions link1="taskboard_base" link2="tray_center" reason="Never" />
-    <disable_collisions link1="taskboard_base" link2="tv" reason="Never" />
-    <disable_collisions link1="taskboard_base" link2="vertical_column_left" reason="Never" />
-    <disable_collisions link1="taskboard_base" link2="vertical_column_right" reason="Never" />
-    <disable_collisions link1="taskboard_base" link2="vgroove_aid_link" reason="Never" />
-    <disable_collisions link1="taskboard_base" link2="workplate" reason="Never" />
-    <disable_collisions link1="taskboard_large_pulley" link2="taskboard_plate" reason="Adjacent" />
-    <disable_collisions link1="taskboard_large_pulley" link2="taskboard_small_pulley" reason="Never" />
-    <disable_collisions link1="taskboard_large_pulley" link2="taskboard_small_shaft" reason="Never" />
-    <disable_collisions link1="taskboard_large_pulley" link2="tray" reason="Never" />
-    <disable_collisions link1="taskboard_large_pulley" link2="tray_center" reason="Never" />
-    <disable_collisions link1="taskboard_large_pulley" link2="tv" reason="Never" />
-    <disable_collisions link1="taskboard_large_pulley" link2="vertical_column_left" reason="Never" />
-    <disable_collisions link1="taskboard_large_pulley" link2="vertical_column_right" reason="Never" />
-    <disable_collisions link1="taskboard_large_pulley" link2="vgroove_aid_link" reason="Never" />
-    <disable_collisions link1="taskboard_large_pulley" link2="workplate" reason="Never" />
-    <disable_collisions link1="taskboard_plate" link2="taskboard_small_pulley" reason="Adjacent" />
-    <disable_collisions link1="taskboard_plate" link2="taskboard_small_shaft" reason="Adjacent" />
-    <disable_collisions link1="taskboard_plate" link2="tray" reason="Never" />
-    <disable_collisions link1="taskboard_plate" link2="tray_center" reason="Never" />
-    <disable_collisions link1="taskboard_plate" link2="tv" reason="Never" />
-    <disable_collisions link1="taskboard_plate" link2="vertical_column_left" reason="Never" />
-    <disable_collisions link1="taskboard_plate" link2="vertical_column_right" reason="Never" />
-    <disable_collisions link1="taskboard_plate" link2="vgroove_aid_link" reason="Never" />
-    <disable_collisions link1="taskboard_plate" link2="workplate" reason="Never" />
-    <disable_collisions link1="taskboard_small_pulley" link2="taskboard_small_shaft" reason="Never" />
-    <disable_collisions link1="taskboard_small_pulley" link2="tray" reason="Never" />
-    <disable_collisions link1="taskboard_small_pulley" link2="tray_center" reason="Never" />
-    <disable_collisions link1="taskboard_small_pulley" link2="tv" reason="Never" />
-    <disable_collisions link1="taskboard_small_pulley" link2="vertical_column_left" reason="Never" />
-    <disable_collisions link1="taskboard_small_pulley" link2="vertical_column_right" reason="Never" />
-    <disable_collisions link1="taskboard_small_pulley" link2="vgroove_aid_link" reason="Never" />
-    <disable_collisions link1="taskboard_small_pulley" link2="workplate" reason="Never" />
-    <disable_collisions link1="taskboard_small_shaft" link2="tray" reason="Never" />
-    <disable_collisions link1="taskboard_small_shaft" link2="tray_center" reason="Never" />
-    <disable_collisions link1="taskboard_small_shaft" link2="tv" reason="Never" />
-    <disable_collisions link1="taskboard_small_shaft" link2="vertical_column_left" reason="Never" />
-    <disable_collisions link1="taskboard_small_shaft" link2="vertical_column_right" reason="Never" />
-    <disable_collisions link1="taskboard_small_shaft" link2="vgroove_aid_link" reason="Never" />
-    <disable_collisions link1="taskboard_small_shaft" link2="workplate" reason="Never" />
     <disable_collisions link1="tray" link2="tray_center" reason="Adjacent" />
     <disable_collisions link1="tray" link2="tv" reason="Adjacent" />
     <disable_collisions link1="tray" link2="vertical_column_left" reason="Adjacent" />
@@ -1254,20 +1076,15 @@
     <disable_collisions link1="vertical_column_right" link2="vgroove_aid_link" reason="Never" />
     <disable_collisions link1="vertical_column_right" link2="workplate" reason="Adjacent" />
     <disable_collisions link1="vgroove_aid_link" link2="workplate" reason="Never" />
-
-    <!-- MANUALLY ADDED -->
     <disable_collisions link1="a_bot_left_inner_finger" link2="a_bot_right_inner_finger" reason="Never" />
     <disable_collisions link1="a_bot_left_inner_finger" link2="a_bot_right_inner_finger_pad" reason="Never" />
     <disable_collisions link1="a_bot_left_inner_finger" link2="a_bot_right_inner_knuckle" reason="Never" />
-
     <disable_collisions link1="a_bot_left_inner_finger_pad" link2="a_bot_right_inner_finger" reason="Never" />
     <disable_collisions link1="a_bot_left_inner_finger_pad" link2="a_bot_right_inner_finger_pad" reason="Never" />
     <disable_collisions link1="a_bot_left_inner_finger_pad" link2="a_bot_right_inner_knuckle" reason="Never" />
-    
     <disable_collisions link1="a_bot_left_inner_knuckle" link2="a_bot_right_inner_finger" reason="Never" />
     <disable_collisions link1="a_bot_left_inner_knuckle" link2="a_bot_right_inner_finger_pad" reason="Never" />
     <disable_collisions link1="a_bot_left_inner_knuckle" link2="a_bot_right_inner_knuckle" reason="Never" />
-    
     <disable_collisions link1="b_bot_left_inner_finger" link2="b_bot_right_inner_finger_pad" reason="Never" />
     <disable_collisions link1="b_bot_left_inner_finger_pad" link2="b_bot_right_inner_finger" reason="Never" />
     <disable_collisions link1="b_bot_left_inner_finger_pad" link2="b_bot_right_inner_finger_pad" reason="Never" />

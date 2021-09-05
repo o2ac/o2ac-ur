@@ -109,7 +109,7 @@ class O2ACVisionServer(object):
 
         shaft_w_hole_file  = self.rospack.get_path("o2ac_vision") + "/config/shaft_w_hole.png"
         shaft_wo_hole_file = self.rospack.get_path("o2ac_vision") + "/config/shaft_wo_hole.png"
-        sdh_bbox = rospy.get_param("shaft_hole_detection/bbox", [350,100,100,100])
+        sdh_bbox = rospy.get_param("shaft_hole_detection/bbox", [375, 278, 90, 90])
         self.shaft_hole_detector = ShaftHoleDetection(shaft_w_hole_file, shaft_wo_hole_file, sdh_bbox)
 
         pulley_template_filepath = self.rospack.get_path("wrs_dataset") + "/data/pulley/pulley_screw_temp.png"
@@ -792,7 +792,7 @@ class O2ACVisionServer(object):
         xyz = self.cam_helper.project_2d_to_3d_from_images(self._camera_info,
                                                            pose2d.x, pose2d.y,
                                                            [depth])
-        # We may not have find anything so its okay to return None
+        # We may not have found anything so it's okay to return None
         if not xyz:
             return None
         p3d.pose.position.x = xyz[0]

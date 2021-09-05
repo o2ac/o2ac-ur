@@ -96,7 +96,7 @@ subframes:
   - -pi/2
   name: screw_hole_panel1_2
 - pose_xyzrpy:
-  - 0.133
+  - 0.131
   - 0.01
   - 0.028
   - -pi/2
@@ -104,7 +104,7 @@ subframes:
   - -pi/2
   name: screw_hole_panel2_1
 - pose_xyzrpy:
-  - 0.193
+  - 0.179
   - 0.01
   - 0.028
   - -pi/2
@@ -152,6 +152,38 @@ subframes:
   - pi
   - pi/2
   name: terminal_top
+- pose_xyzrpy:
+  - 0.092
+  - 0.028
+  - 0.108
+  - 0
+  - pi
+  - 1.8325953 # pi/2 + 15deg
+  name: cable_pin1
+- pose_xyzrpy:
+  - 0.092
+  - 0.028
+  - 0.092
+  - 0
+  - pi 
+  - 1.8325953 # pi/2 + 15deg
+  name: cable_pin2
+- pose_xyzrpy:
+  - 0.108
+  - 0.028
+  - 0.092
+  - 0
+  - pi
+  - 1.308997326 # pi/2 - 15deg
+  name: cable_pin3
+- pose_xyzrpy:
+  - 0.108
+  - 0.028
+  - 0.108
+  - 0
+  - pi
+  - 1.308997326 # pi/2 - 15deg
+  name: cable_pin4
 grasp_points:
 - grasp_name: default_grasp
   pose_xyzrpy:

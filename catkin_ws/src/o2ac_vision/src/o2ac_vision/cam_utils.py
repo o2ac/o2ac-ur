@@ -41,12 +41,28 @@ class O2ACCameraHelper(object):
             depth_images.append(self.bridge.imgmsg_to_cv2(img_ros, desired_encoding="passthrough"))
         
         return self.project_2d_to_3d_from_images(camera_info, u, v, depth_images, average_with_radius)
-        
+    
+    def get_depth_vals_from_radius(self, img, u, v, average_with_radius=5):
+        """ Does not actually use a radius, but a box around the pixel.
+        """
+        depth_vals = []
+        if average_with_radius:
+            for i in range(-average_with_radius, average_with_radius):
+                for j in range(-average_with_radius, average_with_radius):
+                    try:
+                        uc = int(np.clip(u+i, 0, 640))
+                        vc = int(np.clip(v+j, 0, 480))
+                        depth_vals.append(img[vc, uc])
+                    except:
+                        rospy.logwarn("Error in get_depth_vals_from_radius")
+                        pass
+        return depth_vals
+
     def project_2d_to_3d_from_images(self, camera_info, u, v, depth_images=[], average_with_radius=0):
         """
         Go through depth images (list of images in cv2 format) and return 3D pose of single pixel (u,v).
         average_with_radius uses nearby pixels for averaging the depth value. radius=0 evaluates only the pixel.
-        Does not actually use a radius, but a box around
+        Does not actually use a radius, but a box around the pixel.
         """
         # Average over images and area
         depth_vals = []
@@ -57,29 +73,33 @@ class O2ACCameraHelper(object):
                 else:
                     rospy.logwarn("Skipping pixel in depth backprojection")
                 if average_with_radius:
-                    for i in range(-average_with_radius, average_with_radius):
-                        for j in range(-average_with_radius, average_with_radius):
-                            uc = int(np.clip(estimated_poses_msg.bbox[1] + round(estimated_poses_msg.bbox[3]/2), 0, 640))
-                            vc = int(np.clip(estimated_poses_msg.bbox[1] + round(estimated_poses_msg.bbox[3]/2), 0, 480))
-                            depth_vals.append(img[vc, uc])
+                    depth_vals.extend(self.get_depth_vals_from_radius(img, u, v, average_with_radius))
         except:
             pass
 
         if not depth_vals:
-            rospy.logwarn("No depth value found at pixel u,v!, returning with depth 0")
-            return self.project_2d_to_3d(camera_info, [u], [v], [0])[0]
-            # depth_vals.append(0)
-            # if not average_with_radius:
-            #     rospy.loginfo("Reattempting backprojection with neighboring pixels")
-            #     return self.project_2d_to_3d_from_images(camera_info, u, v, depth_images, average_with_radius=8)
-            # else:
-            #     rospy.logerr("Could not find pixels in depth image to reproject! Returning None")
-            #     return False
-                # return CAMERA_FAILURE
+            if not average_with_radius:
+                rospy.loginfo("Reattempting backprojection with neighboring pixels")
+                return self.project_2d_to_3d_from_images(camera_info, u, v, depth_images, average_with_radius=8)
+            else:
+                rospy.logerr("Could not find pixels in depth image to reproject! Returning interpolated")
+                # Use crudely interpolated depth
+                d_center = np.mean(self.get_depth_vals_from_box(depth_images[0], 320, 240, average_with_radius=5))
+                x_factor = np.round(abs(u-320) * 42.0/37.0)  # 42: Hypotenuse. 37: Dist to tray at high view. 20: dist to tray edge (other leg of the triangle)
+                y_factor = np.round(abs(v-240) * 39.0/37.0)
+
+                d_interpolated = d_center* ( 1 + (x_factor+y_factor)/2.0)
+                print("d_interpolated", d_interpolated)
+                depth_vals.append(d_center)
+        
         depth = np.mean(depth_vals)
+
+        if average_with_radius:
+            print("With average_with_radius, found " + str(len(depth_vals)) + " depth vals with mean of " + str(depth))
 
         # Backproject to 3D
         position = self.project_2d_to_3d(camera_info, [u], [v], [depth])
+        # if position.z 
         return position[0]
 
     def project_2d_to_3d(self, camera_info, u, v, d):
