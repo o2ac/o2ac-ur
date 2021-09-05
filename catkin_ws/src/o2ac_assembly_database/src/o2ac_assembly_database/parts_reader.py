@@ -60,9 +60,10 @@ class PartsReader(object):
     The grasp data for each object can be published to the parameter server.
     '''
 
-    def __init__(self, db_name="", load_meshes=True):
+    def __init__(self, db_name="", load_meshes=True, verbose=True):
         self._rospack = rospkg.RosPack()
         self.db_name = db_name
+        self.verbose = verbose
         if self.db_name:
             self.load_db(db_name, load_meshes=load_meshes)
         
@@ -71,14 +72,16 @@ class PartsReader(object):
         '''
         Switch between assemblies
         '''
-        rospy.loginfo("Loading new parts database: " + db_name)
+        if self.verbose:
+            rospy.loginfo("Loading new parts database: " + db_name)
         self.db_name = db_name
         self._directory = os.path.join(self._rospack.get_path('o2ac_assembly_database'), 'config', db_name)
         self.assembly_info = self._read_assembly_info()
         self._parts_list = self._read_parts_list()
         self._collision_objects, self._grasps, self._mesh_filepaths, self._mesh_urls, self._collision_geometry = self.get_collision_objects_with_metadata()
         self.load_meshes = load_meshes
-        rospy.loginfo("Done loading parts database " + db_name)
+        if self.verbose:
+            rospy.loginfo("Done loading parts database " + db_name)
     
     def get_collision_object(self, object_name, use_simplified_collision_shapes=True):
         '''
@@ -342,8 +345,9 @@ class PartsReader(object):
                 grasp_poses.append(grasp_pose)
 
         else:
-            rospy.logwarn('Object \'' + object_name + '\' has no metadata defined! \n \
-                           Returning empty metadata information! \n')
+            if self.verbose:
+                rospy.logwarn('Object \'' + object_name + '\' has no metadata defined! \n \
+                            Returning empty metadata information! \n')
         return (subframe_names, subframe_poses, grasp_names, grasp_poses, mesh_pose, primitive_collision_objects)
 
     def _read_mesh(self, filename, scale):
