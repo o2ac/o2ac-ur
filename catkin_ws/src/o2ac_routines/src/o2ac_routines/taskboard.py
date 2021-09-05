@@ -571,45 +571,33 @@ class O2ACTaskboard(O2ACCommon):
         # Return belt
         return False
       
-      # Check pick success
+      # Go to check pick pose
       a_bot_wait_with_belt_pose = [0.27640044689178467, -1.8691555462279261, 2.0014026800738733, -1.287313537006714, -1.5502598921405237, -2.5121548811541956]
       b_bot_look_at_belt = [1.9197747707366943, -1.3494791400483628, 1.9283998648272913, -2.6345297298827113, -1.9446824232684534, 0.5834413170814514]
-      success = self.ab_bot.move_joints(a_bot_wait_with_belt_pose+b_bot_look_at_belt, speed=1.0)
-      rospy.sleep(1)
-      self.confirm_to_proceed("Check belt with vision?")
-      if not success or not self.vision.check_pick_success("belt"):
-        rospy.logerr("Belt pick has failed. Return tool and abort.")
-        self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp")
-        rospy.sleep(2)
-        pick_goal.pose.position.x = 0  # In tray_center
-        pick_goal.pose.position.y = 0
-        pick_goal.pose.position.z += 0.06
-        self.a_bot.move_lin(pick_goal)
-        self.a_bot.gripper.open(opening_width=0.07, wait=False)
-        self.a_bot.go_to_named_pose("home")
-        wait_for_UR_program("/b_bot", rospy.Duration.from_sec(20))
+      if not self.ab_bot.move_joints(a_bot_wait_with_belt_pose+b_bot_look_at_belt, speed=1.0):
+        self.belt_fallback(pick_goal)
         return False
-        
-      # go to prep pose for urscript routine
-      self.a_bot_success = True
-      self.b_bot_success = True
+      
+      # Check pick success
+      self.confirm_to_proceed("Check belt with vision?")
+      success =  False
+      tries = 0
+      while not success and tries < 10:
+        rospy.sleep(0.5)
+        success = self.vision.check_pick_success("belt")
+        tries += 1
+      
+      if not success:
+        self.belt_fallback(pick_goal)
+        return False
 
       a_bot_wait_with_belt_pose = [0.6462941, -1.6021172, 2.00597602, -1.33323128, -0.81010848, -2.4642069]
       b_bot_look_at_belt = [1.95739448, -1.40047674, 1.92903739, -1.98750128, -2.1883457, 1.7778782]
       q = a_bot_wait_with_belt_pose + b_bot_look_at_belt
-      self.a_bot_success = self.ab_bot.move_joints(q, speed=1.0)
+      success = self.ab_bot.move_joints(q, speed=1.0)
 
-      if not self.a_bot_success or not self.b_bot_success:
-        rospy.logerr("Belt pick has failed. Return tool and abort.")
-        self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp")
-        rospy.sleep(2)
-        pick_goal.pose.position.x = 0  # In tray_center
-        pick_goal.pose.position.y = 0
-        pick_goal.pose.position.z += 0.06
-        self.a_bot.move_lin(pick_goal)
-        self.a_bot.gripper.open(opening_width=0.07, wait=False)
-        self.a_bot.go_to_named_pose("home")
-        wait_for_UR_program("/b_bot", rospy.Duration.from_sec(20))
+      if not success:
+        self.belt_fallback(pick_goal)
         return False
 
       self.confirm_to_proceed("Load and execute the belt threading programs?")

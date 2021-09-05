@@ -6098,3 +6098,18 @@ class O2ACCommon(O2ACBase):
     self.planning_scene_interface.add_object(obj)
     rospy.sleep(0.1)
     self.constrain_into_tray(plate_name)
+
+## Belt
+
+  def belt_fallback(self, pick_goal):
+    rospy.logerr("Belt pick has failed. Return tool and abort.")
+    self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp")
+    rospy.sleep(2)
+    pick_goal.pose.position.x = 0  # In tray_center
+    pick_goal.pose.position.y = 0
+    pick_goal.pose.position.z += 0.06
+    self.a_bot.go_to_named_pose(pick_goal, speed=1.0)
+    self.a_bot.gripper.open(opening_width=0.07, wait=False)
+    self.a_bot.go_to_named_pose("home")
+    wait_for_UR_program("/b_bot", rospy.Duration.from_sec(20))
+    return True
