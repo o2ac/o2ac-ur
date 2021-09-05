@@ -48,6 +48,13 @@
     </joint>
     <link name="${prefix}gripper_tip_link"/>
 
+    <link name="${prefix}cable_tool_tip_link"/>
+    <joint name="${prefix}cable_tool_tip_link_joint" type="fixed">
+      <parent link="${prefix}gripper_tip_link"/>
+      <child link="${prefix}cable_tool_tip_link"/>
+      <origin rpy="0.0 0.0 0.0" xyz="${.03} 0.0 0.0"/>
+    </joint>
+
     <joint name="${prefix}plunger_tip_link_joint" type="fixed">
       <parent link="${prefix}gripper_tip_link"/>
       <child link="${prefix}plunger_tip_link"/>

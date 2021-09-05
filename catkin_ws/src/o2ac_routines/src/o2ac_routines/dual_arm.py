@@ -61,7 +61,7 @@ class DualArm(RobotBase):
 
     def go_to_goal_poses(self, robot1_pose, robot2_pose, plan_only=False, speed=0.5, acceleration=0.25, 
                          planner="OMPL", robot1_ee_link=None, robot2_ee_link=None, initial_joints=None, timeout=10.0):
-        self.set_up_move_group(speed, acceleration, planner)
+        speed_, accel_ = self.set_up_move_group(speed, acceleration, planner)
 
         ee_link1 = self.robot1.ns + "_gripper_tip_link" if robot1_ee_link is None else robot1_ee_link
         ee_link2 = self.robot2.ns + "_gripper_tip_link" if robot2_ee_link is None else robot2_ee_link
@@ -78,6 +78,8 @@ class DualArm(RobotBase):
             success, plan, planning_time, error = self.robot_group.plan()
             if success:
                 if plan_only:
+                    plan = self.robot_group.retime_trajectory(self.robot_group.get_current_state(), plan, algorithm="time_optimal_trajectory_generation",
+                                                              velocity_scaling_factor=speed_, acceleration_scaling_factor=accel_)
                     self.robot_group.clear_pose_targets()
                     return plan, planning_time
                 else:
