@@ -62,6 +62,14 @@
     </joint>
     <link name="${prefix}plunger_tip_link"/>
 
+
+    <joint name="${prefix}belt_hook_curve_link_joint" type="fixed">
+      <parent link="${prefix}gripper_tip_link"/>
+      <child link="${prefix}belt_hook_curve_link"/>
+      <origin rpy="0 0 ${-radians(10)}" xyz=".04 0 0"/>
+    </joint>
+    <link name="${prefix}belt_hook_curve_link"/>
+
     <!-- ========= -->
     <!-- Add screw tool tip frames. X-axis points along the screw into the hole. -->
     

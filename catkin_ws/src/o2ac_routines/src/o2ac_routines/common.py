@@ -6370,6 +6370,69 @@ class O2ACCommon(O2ACBase):
 
 ## Belt
 
+  def define_belt_threading_waypoints(self, pulley_center_frame, radius, d_buffer, q_start, q_end):
+    """ Return a list of 6D poses that contour the pulley with the belt hook tool.
+        The end effector link is assumed to be around the curve of the hook, where the belt would be.
+        The pulley_center_frame is assumed to at the center of the groove.
+    """
+    def pulley_zy(pulley_radius, d_buffer, theta):
+      """ Return a tuple (z, y) of the target position around the pulley.
+          Theta needs to be [0, tau].
+      """
+      z = sin(theta)*(pulley_radius + d_buffer)
+      y = cos(theta)*(pulley_radius + d_buffer)
+      return (z, y)
+    
+    def orientation(theta, theta_min, theta_max, q_start, q_end):
+      ratio = (theta - theta_min)/(theta_max-theta_min)
+      return tf_conversions.transformations.quaternion_slerp(q_start, q_end, ratio)
+
+    waypoints = []
+    theta_min = tau/4.0
+    theta_max = tau*3/4.0
+    step = (theta_max-theta_min)/20
+    q_start = tf_conversions.transformations.quaternion_from_euler(tau/2 + radians(5), 0, 0)
+    q_start = tf_conversions.transformations.quaternion_from_euler(tau/2 - radians(5), 0, 0)
+    for theta in range(theta_min, theta_max+step, step):  # To include last element
+      pz, py = pulley_zy()
+      p = conversions.to_pose_stamped(pulley_center_frame, [0, py, pz, 0, 0, 0])
+      q = orientation(theta, theta_min, theta_max, q_start, q_end)
+      p.pose.orientation = geometry_msgs.msg.Quaternion(*q)
+      waypoints.append(p)
+    return waypoints
+
+  def thread_belt_with_b_bot(self):
+    # Start pose from UR script:
+    # global pulley_east_p=p[.055997818734, -.418531223747, .290523106530, -1.827798982973, -1.874228477717, .614956800003]
+    p_start = conversions.to_pose_stamped("b_bot_base", [.055997, -.418531, .290523, 0, 0, 0])
+    q = helpers.ur_axis_angle_to_quat([-1.827798, -1.874228, .614956])
+    p_start.pose.orientation = geometry_msgs.msg.Quaternion(*q)
+    
+    # End pose from UR script:
+    # global after_pulley_p=p[.044329768444, -.474814986661, .308597350181, -1.711792093336, -2.015147036377, .657820892175]
+    p_end = conversions.to_pose_stamped("b_bot_base", [.044329, -.474814, .308597, 0, 0, 0])
+    q = helpers.ur_axis_angle_to_quat([-1.71179, -2.01514, .657820])
+    p_end.pose.orientation = geometry_msgs.msg.Quaternion(*q)
+    
+    # FIXME: What was the frame name?
+    waypoints = self.define_belt_threading_waypoints("taskboard_output_pulley_frame", radius=0.03, d_buffer=0.01)
+
+    self.b_bot.go_to_pose_goal(p_start, end_effector_link="b_bot_belt_hook_curve_link")
+    # TODO: Set end effector link
+    (plan, fraction) = self.b_bot.compute_cartesian_path(waypoints,
+                                      0.004,        # eef_step
+                                      0.1)         # jump_threshold
+    if fraction > 0.99:
+      self.b_bot.execute_plan(plan)
+      self.b_bot.go_to_pose_goal(p_end, end_effector_link="b_bot_belt_hook_curve_link")
+      return True
+    else:
+      rospy.logerror("compute_cartesian_path failed: fraction = " +str(fraction))
+      return False
+    
+
+
+
   def belt_fallback(self, pick_goal):
     rospy.logerr("Belt pick has failed. Return tool and abort.")
     self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp")
