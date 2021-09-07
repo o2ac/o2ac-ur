@@ -62,7 +62,7 @@
   <joint name="${boardname}_small_shaft" type="fixed">
     <parent link="${boardname}_plate" />
     <child link = "${boardname}_small_shaft" />
-    <origin rpy="0 0 ${pi}" xyz="${.025+.025} 0.099 0.085"/>
+    <origin rpy="0 0 ${pi}" xyz="${.025+.025} 0.100 0.084"/>
   </joint>
   <link name="${boardname}_small_shaft">
     <visual>
@@ -85,14 +85,16 @@
   <!-- The bearing -->
   <xacro:include filename="$(find o2ac_parts_description)/urdf/generated/07_SBARB6200ZZ_30_macro.urdf.xacro" />
   <xacro:assy_part_07 prefix="${boardname}_" parent="${boardname}_plate" spawn_attached="true"> 
-    <origin rpy="${pi} 0 0" xyz="${0.025+.008} 0.165 0.12"/> 
+    <origin rpy="${pi} 0 0" xyz="${0.025+.008} 0.164 0.122"/> 
+    <!-- I think this was always wrong in the original taskboard (z 0.12 instead of 0.119),
+         so I added 2 mm. -->
   </xacro:assy_part_07> 
   
   <!-- The small pulley -->
   <joint name="${boardname}_small_pulley" type="fixed">
     <parent link="${boardname}_plate" />
     <child link = "${boardname}_small_pulley" />
-    <origin rpy="0 0 ${pi}" xyz="${.025+.013} 0.0275 0.033"/>
+    <origin rpy="0 0 ${pi}" xyz="${.025+.013} 0.028 0.034"/>
   </joint>
   <link name="${boardname}_small_pulley">
     <visual>
@@ -116,7 +118,7 @@
   <joint name="${boardname}_large_pulley" type="fixed">
     <parent link="${boardname}_plate" />
     <child link = "${boardname}_large_pulley" />
-    <origin rpy="0 0 ${pi}" xyz="${.025+.0165} 0.1575 0.04"/>
+    <origin rpy="0 0 ${pi}" xyz="${.025+.0165} 0.158 0.041"/>
   </joint>
   <link name="${boardname}_large_pulley">
     <visual>
@@ -148,28 +150,28 @@
   <joint name="${boardname}_set_screw_joint" type="fixed">
     <parent link="${boardname}_plate"/>
     <child link="${boardname}_set_screw_link"/>
-    <origin rpy="${pi} 0 ${pi}" xyz=".025 0.054 0.075"/>
+    <origin rpy="${pi} 0 ${pi}" xyz=".025 0.054 0.074"/>
   </joint>
   <link name="${boardname}_set_screw_link"/>
 
   <joint name="${boardname}_m3_screw_joint" type="fixed">
     <parent link="${boardname}_plate"/>
     <child link="${boardname}_m3_screw_link"/>
-    <origin rpy="${pi} 0 ${pi}" xyz=".025 0.072 0.035"/>
+    <origin rpy="${pi} 0 ${pi}" xyz=".025 0.073 0.035"/>
   </joint>
   <link name="${boardname}_m3_screw_link"/>
 
   <joint name="${boardname}_m4_screw_joint" type="fixed">
     <parent link="${boardname}_plate"/>
     <child link="${boardname}_m4_screw_link"/>
-    <origin rpy="${pi} 0 ${pi}" xyz=".025 0.105 0.036"/>
+    <origin rpy="${pi} 0 ${pi}" xyz=".025 0.106 0.036"/>
   </joint>
   <link name="${boardname}_m4_screw_link"/>
 
   <joint name="${boardname}_long_hole_middle_joint" type="fixed">
     <parent link="${boardname}_plate"/>
     <child link="${boardname}_long_hole_middle_link"/>
-    <origin rpy="${pi} 0 ${pi}" xyz=".025 0.1 0.125"/>
+    <origin rpy="${pi} 0 ${pi}" xyz=".025 0.101 0.125"/>
   </joint>
   <link name="${boardname}_long_hole_middle_link"/>
 
@@ -183,7 +185,7 @@
   <joint name="${boardname}_bearing_target_joint" type="fixed">
     <parent link="${boardname}_plate"/>
     <child link="${boardname}_bearing_target_link"/>
-    <origin rpy="${pi} 0 ${pi}" xyz=".025 0.034 0.12"/>
+    <origin rpy="${pi} 0 ${pi}" xyz=".025 0.035 0.12"/>
   </joint>
   <link name="${boardname}_bearing_target_link"/>
 
