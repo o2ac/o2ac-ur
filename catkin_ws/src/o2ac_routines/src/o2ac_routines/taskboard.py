@@ -65,8 +65,9 @@ class O2ACTaskboard(O2ACCommon):
     
     self.downward_orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, pi))
     self.downward_orientation_cylinder_axis_along_workspace_x = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, tau/4))
-    self.at_set_screw_hole = conversions.to_pose_stamped("taskboard_set_screw_link", [0.0, 0, 0, 0, 0, 0])  # MAGIC NUMBERS (z points down, y points right) MIZUMI tool tip
-    # self.at_set_screw_hole = conversions.to_pose_stamped("taskboard_set_screw_link", [-0.018, -0.001, 0.001, 0, 0, 0])  # MAGIC NUMBER (points downward)  PROXXON tool tip
+    magic_number_offset_y = -0.001  # MAGIC NUMBER for the set screw
+    magic_number_offset_z = 0.002  # MAGIC NUMBER for the set screw
+    self.at_set_screw_hole = conversions.to_pose_stamped("taskboard_set_screw_link", [0.0, magic_number_offset_y, magic_number_offset_z, 0, 0, 0])  # MAGIC NUMBERS (z points down, y points right) custom tool tip
     if not self.assembly_database.db_name == "taskboard":
       self.assembly_database.change_assembly("taskboard")
       self.markers_scene.parts_database = PartsReader("taskboard", load_meshes=False)
@@ -676,7 +677,9 @@ class O2ACTaskboard(O2ACCommon):
 
     if task_name == "M3 screw":
       self.vision.activate_camera("b_bot_outside_camera")
-      hole_pose = conversions.to_pose_stamped("taskboard_m3_screw_link", [0.004, -0.001, -0.005, -tau/12, 0, 0])
+      magic_number_offset_y = 0.000  # MAGIC NUMBER
+      magic_number_offset_z = -0.003  # MAGIC NUMBER
+      hole_pose = conversions.to_pose_stamped("taskboard_m3_screw_link", [0.004, magic_number_offset_y, magic_number_offset_z, -tau/12, 0, 0])
       if not fake_execution_for_calibration:
         self.pick_and_fasten_screw("a_bot", hole_pose, screw_size=3, approach_distance=0.05, speed=1.0, 
                                    duration=30, attempts=1, spiral_radius=0.002, save_plan_on_success=True)
@@ -709,7 +712,10 @@ class O2ACTaskboard(O2ACCommon):
 
     if task_name == "M4 screw":
       self.vision.activate_camera("b_bot_outside_camera")
-      hole_pose = conversions.to_pose_stamped("taskboard_m4_screw_link", [0, -0.001, -0.001, tau/12, 0, 0])
+      magic_number_offset_y = -0.001  # MAGIC NUMBER
+      magic_number_offset_z = 0.002  # MAGIC NUMBER
+      hole_pose = conversions.to_pose_stamped("taskboard_m4_screw_link", [0, magic_number_offset_y, magic_number_offset_z, tau/12, 0, 0])
+
       if not fake_execution_for_calibration:
         self.pick_and_fasten_screw("b_bot", hole_pose, screw_size=4, approach_distance=0.05, speed=1.0, duration=30, attempts=1, spiral_radius=0.002)
         eef = "b_bot_screw_tool_m4_tip_link"

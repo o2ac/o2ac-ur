@@ -444,6 +444,10 @@ class O2ACBase(object):
       rospy.loginfo("(pick_screw_from_feeder) But a screw was already detected in the tool. Returning true without doing anything.")
       return True
 
+    # MAGIC NUMBERS (this feeder is calibrated for b_bot)
+    if robot_name == "a_bot" and screw_size == 4:
+      pose_feeder.pose.position.y += -.004
+      pose_feeder.pose.position.z += -.003
     self.suck_screw(robot_name, pose_feeder, screw_tool_id, screw_tool_link, fastening_tool_name, do_spiral_search_at_bottom=True, skip_retreat=skip_retreat)
     
     if skip_retreat:
@@ -1238,6 +1242,8 @@ class O2ACBase(object):
     unequip = (operation == "unequip")
     realign = (operation == "realign")
 
+    b_bot_magic_global_y_offset = -0.004  # Due to calibration issues on site
+
     ###
     lin_speed = 0.5
     # The second comparison is not always necessary, but readability comes first.
@@ -1281,19 +1287,6 @@ class O2ACBase(object):
       rospy.logerr(tool_name, " is not implemented!")
       return False
 
-    rospy.loginfo("Going to before_tool_pickup pose.")
-    # Go to named pose, then approach
-    sequence = []
-    if equip:
-      # robot.gripper.open(opening_width=0.06)
-      def pre_cb():
-        rospy.loginfo("Spawning tool.")
-        if not self.spawn_tool(tool_name):
-          rospy.logwarn("Could not spawn the tool. Continuing.")
-        self.allow_collisions_with_robot_hand(tool_name, robot_name)
-      sequence.append(helpers.to_sequence_gripper('open', gripper_opening_width=0.07, pre_callback=pre_cb, wait=False))
-
-
     ps_approach.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, -pi/6, 0))
     ps_move_away = copy.deepcopy(ps_approach)
 
@@ -1311,6 +1304,25 @@ class O2ACBase(object):
       ps_in_holder.pose.position.x -= 0.001   # Don't move all the way into the magnet to place
       ps_approach.pose.position.z -= 0.01 # Approach diagonally so nothing gets stuck
 
+    if robot_name == "b_bot" and b_bot_magic_global_y_offset:
+      rospy.logwarn("Adding ")
+      ps_in_holder.pose.position.y += b_bot_magic_global_y_offset
+      ps_approach.pose.position.y += b_bot_magic_global_y_offset
+      ps_move_away.pose.position.y += b_bot_magic_global_y_offset
+
+    ##### Execute 
+
+    rospy.loginfo("Going to before_tool_pickup pose.")
+    # Go to named pose, then approach
+    sequence = []
+    if equip:
+      # robot.gripper.open(opening_width=0.06)
+      def pre_cb():
+        rospy.loginfo("Spawning tool.")
+        if not self.spawn_tool(tool_name):
+          rospy.logwarn("Could not spawn the tool. Continuing.")
+        self.allow_collisions_with_robot_hand(tool_name, robot_name)
+      sequence.append(helpers.to_sequence_gripper('open', gripper_opening_width=0.07, pre_callback=pre_cb, wait=False))
 
     rospy.loginfo("Moving to screw tool approach pose LIN.")
   

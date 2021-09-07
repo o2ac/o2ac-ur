@@ -7,13 +7,15 @@
 <!-- The gripper center would be about 44 mm from the top, so the tip might be 111 mm further down -->
 <!-- The tip\axis seems to be 11.5 mm from the "front" side. The front side looks into the gripper -->
 
-  <!-- Tool holders at the back of the robot system -->
+  <xacro:property name="tool_offset_global_y" value="-.004" />
+  <xacro:property name="set_screw_tool_extra_offset_global_y" value="-.004" />
 
+  <!-- Tool holders at the back of the robot system -->
   <!-- The long tool holder with 3 tools -->
   <joint name="screw_tool_holder_long_to_environment_joint" type="fixed">
     <parent link="horizontal_column_for_tools" />
     <child link="screw_tool_holder_long" />
-    <origin xyz=".04 .0 .04" rpy="0.0 0.0 ${-pi/2}" />
+    <origin xyz=".04 ${tool_offset_global_y} .04" rpy="0.0 0.0 ${-pi/2}" />
   </joint>
 
   <link name="screw_tool_holder_long">
@@ -63,7 +65,7 @@
   <joint name="screw_holder_short_to_environment_joint" type="fixed">
     <parent link="horizontal_column_for_tools" />
     <child link="screw_tool_holder_short" />
-    <origin xyz=".04 .3 .04" rpy="0.0 0.0 ${-pi/2}" />
+    <origin xyz=".04 ${.3+set_screw_tool_extra_offset_global_y} .04" rpy="0.0 0.0 ${-pi/2}" />
   </joint>
 
   <link name="screw_tool_holder_short">
@@ -114,7 +116,9 @@
   <xacro:property name="bit_cushion_to_axis" value="0.0285"/>
   <xacro:property name="back_plate_offset_long" value=".009"/>
   <xacro:property name="back_plate_offset_short" value=".01"/>
-  <xacro:property name="tool_offset" value="${-.005 + bit_cushion_to_axis}" />  
+  <xacro:property name="tool_offset" value="${-.005 + bit_cushion_to_axis}" />
+  
+  <!--  -->
   <!-- The collision boxes of the tools only include the top part (not what is hanging underneath the holder) -->
 
   <link name="set_screw_tool_link">

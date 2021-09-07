@@ -5,11 +5,14 @@
   <xacro:arg name="taskboard" default="false"/>
   <!-- Calibration parameters -->
   <xacro:property name="a_bot_x" value="-0.004"/>
-  <xacro:property name="a_bot_y" value="-0.525"/>
-  <xacro:property name="a_bot_theta" value="0.0"/>
-  <xacro:property name="b_bot_x" value="-0.0"/>
-  <xacro:property name="b_bot_y" value="0.525"/>
-  <xacro:property name="b_bot_theta" value="-3.141"/>
+  <xacro:property name="a_bot_y" value="-0.531"/>     <!-- Positive moves to the left -->
+  <!-- Original: -0.525 -->
+  <xacro:property name="a_bot_z_angle" value="0.0"/>
+  <xacro:property name="a_bot_y_angle" value="0.0"/>
+  <xacro:property name="b_bot_x" value="-0.001"/>
+  <xacro:property name="b_bot_y" value="0.531"/>
+  <xacro:property name="b_bot_z_angle" value="-3.141"/>
+  <xacro:property name="b_bot_y_angle" value="0"/>
 
   <xacro:property name="bots_z" value="0.75"/>
 
@@ -85,16 +88,30 @@
 
   <link name="o2ac_ground" />
 
-  <joint name="world_a_bot_joint" type="fixed">
+  <link name="a_bot_intermediate_link" />
+  <joint name="world_a_bot_intermediate_joint" type="fixed">
     <parent link="o2ac_ground" />
+    <child link="a_bot_intermediate_link" />
+    <origin xyz="${a_bot_x} ${a_bot_y} ${bots_z}" rpy="0.0 0.0 ${a_bot_z_angle}" />
+  </joint>
+
+  <joint name="world_a_bot_joint" type="fixed">
+    <parent link="a_bot_intermediate_link" />
     <child link="a_bot_base_link" />
-    <origin xyz="${a_bot_x} ${a_bot_y} ${bots_z}" rpy="0.0 0.0 ${a_bot_theta}" />
+    <origin xyz="0 0 0" rpy="${a_bot_y_angle} 0.0 0.0" />
+  </joint>
+
+  <link name="b_bot_intermediate_link" />
+  <joint name="world_b_bot_intermediate_joint" type="fixed">
+    <parent link="o2ac_ground" />
+    <child link="b_bot_intermediate_link" />
+    <origin xyz="${b_bot_x} ${b_bot_y} ${bots_z}" rpy="0.0 0.0 ${b_bot_z_angle}" />
   </joint>
 
   <joint name="world_b_bot_joint" type="fixed">
-    <parent link="o2ac_ground" />
-    <child link = "b_bot_base_link" />
-    <origin xyz="${b_bot_x} ${b_bot_y} ${bots_z}" rpy="0.0 0.0 ${b_bot_theta}" />
+    <parent link="b_bot_intermediate_link" />
+    <child link="b_bot_base_link" />
+    <origin xyz="0 0 0" rpy="${-b_bot_y_angle} 0.0 0.0" />
   </joint>
 
   <!-- Spawn and attach robotiq 85 gripper (+ cameras) -->
