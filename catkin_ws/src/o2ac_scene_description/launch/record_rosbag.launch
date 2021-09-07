@@ -5,7 +5,8 @@
   <arg name="record_all_throttled" default="true" />
   <arg name="include_pointclouds" default="true" />
 
-  <arg name="file_dir" default="/$(find o2ac_scene_description)/../../bagfiles/" />
+  <arg name="file_dir" default="$(find o2ac_scene_description)/../../bagfiles" />
+  <!-- <arg name="file_dir" default="/root/o2ac-ur/catkin_ws/bagfiles" /> -->
 
  <node pkg="rosbag" type="record" name="rosbag_record_cams"
        args="record -o $(arg file_dir)/cameras /joint_states -e '/._bot_(in|out)side_camera/(.*)'" 
