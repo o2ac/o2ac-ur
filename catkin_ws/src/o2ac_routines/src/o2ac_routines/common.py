@@ -991,6 +991,7 @@ class O2ACCommon(O2ACBase):
       
     # Finally check that other objects are not too close
     print("check for close items", check_for_close_items)
+    dx, dy = self.distances_from_tray_border(object_pose)
     if check_for_close_items:
       for condition in safe_conditions:
         item_too_close = False
@@ -2056,18 +2057,20 @@ class O2ACCommon(O2ACBase):
         if robot_name == "b_bot":
           preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017,  0.000, 0.002 ]+ rotation)
         elif robot_name == "a_bot":
-          preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.013, 0.015, -0.003 ]+ rotation)
+          preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.016, 0.015, -0.003 ]+ rotation)
         else:
           raise ValueError("Unknown robot")
       elif task == "assembly":
         preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.014, 0.001, 0.011] + rotation)
 
-      trajectory = [(at_tray_border_pose, 0.01, 1.0), (approach_pose, 0.02, 1.0), (preinsertion_pose, 0, 0.2)]
+      trajectory = [(self.active_robots[robot_name].compute_ik(at_tray_border_pose, timeout=0.02, retry=True), 0.01, 1.0), 
+                    (self.active_robots[robot_name].compute_ik(approach_pose, timeout=0.02, retry=True), 0.02, 1.0),
+                    (self.active_robots[robot_name].compute_ik(preinsertion_pose, timeout=0.02, retry=True), 0, 0.2)]
       if not self.active_robots[robot_name].move_joints_trajectory(trajectory=trajectory, speed=1.0):
         rospy.logerr("Could not go to preinsertion")
         self.pick_from_centering_area_and_drop_in_tray(robot_name)
         return False
-
+      self.confirm_to_proceed("finetune")
       self.despawn_object("bearing")
     return True
 
@@ -2199,7 +2202,7 @@ class O2ACCommon(O2ACBase):
     elif robot_name == "b_bot":
       rotation = [-tau/6, 0, 0]
     pose_feeder = conversions.to_pose_stamped("m" + str(screw_size) + "_feeder_outlet_link", [0, 0, 0]+rotation)
-    pose_feeder.pose.position.x -= 0.03
+    pose_feeder.pose.position.x -= 0.04
     if screw_set_center_pose:
       screw_set_center_pose = screw_set_center_pose
     else:
@@ -2334,7 +2337,7 @@ class O2ACCommon(O2ACBase):
 
     if robot_name == "b_bot":
       approach_pose      = conversions.to_pose_stamped(target_link, [-0.05, 0.0, 0.0] + np.deg2rad([180, 35, 0]).tolist()) 
-      pre_insertion_pose = conversions.to_pose_stamped(target_link, [-0.005, -0.001, -0.003] + np.deg2rad([180, 35, 0]).tolist()) # Manually defined target pose in object frame
+      pre_insertion_pose = conversions.to_pose_stamped(target_link, [-0.005, 0.001, -0.005] + np.deg2rad([180, 35, 0]).tolist()) # Manually defined target pose in object frame
     else:
       approach_pose      = conversions.to_pose_stamped(target_link, [-0.050, -0.000, 0.009] + np.deg2rad([180, -35, 0]).tolist()) 
       pre_insertion_pose = conversions.to_pose_stamped(target_link, [-0.007, 0.001, 0.008] + np.deg2rad([180, -35, 0]).tolist()) # Manually defined target pose in object frame
@@ -2819,8 +2822,8 @@ class O2ACCommon(O2ACBase):
     rospy.loginfo("Going to near tb (a_bot)")
     # MAGIC NUMBERS (offset from TCP to tip of idler pulley thread)
     approach_pose = conversions.to_pose_stamped(target_link, [(-0.07),  0.01, 0.0, tau/4.0, 0, tau/8.])
-    near_tb_pose = conversions.to_pose_stamped(target_link,  [(-0.016), 0.01, 0.0, tau/4.0, 0, tau/8.])
-    in_tb_pose = conversions.to_pose_stamped(target_link,    [(-0.008), 0.01, 0.0, tau/4.0, 0, tau/8.])
+    near_tb_pose = conversions.to_pose_stamped(target_link,  [(-0.016), 0.011, 0.0, tau/4.0, 0, tau/8.])
+    in_tb_pose = conversions.to_pose_stamped(target_link,    [(-0.011), 0.011, 0.0, tau/4.0, 0, tau/8.])
     in_tb_pose_world = self.listener.transformPose("world", in_tb_pose)
 
     waypoints = []
@@ -2829,6 +2832,8 @@ class O2ACCommon(O2ACBase):
     if not self.a_bot.move_joints_trajectory(waypoints):
       rospy.logerr("Fail to go to TB pose")
       return False
+    
+    self.confirm_to_proceed("finetune")
 
     rospy.loginfo("Moving into ridge (a_bot)")
     insertion_offsets = [0.0]
@@ -2844,6 +2849,9 @@ class O2ACCommon(O2ACBase):
       if not self.use_real_robot:
         return True
 
+      print("target range", in_tb_pose_world.pose.position.x)
+      print("current pose", self.a_bot.robot_group.get_current_pose().pose.position.x)
+      self.confirm_to_proceed("ok?")
       if success and self.a_bot.robot_group.get_current_pose().pose.position.x <= in_tb_pose_world.pose.position.x:
         return True
       else:
@@ -2890,6 +2898,7 @@ class O2ACCommon(O2ACBase):
     xyz_hard_push[2] -= s
     push_pose = conversions.to_pose_stamped(target_link, xyz_hard_push + inclined_orientation_hard_push)
     success = self.b_bot.move_lin(push_pose, speed=0.02, acceleration=0.02, end_effector_link="b_bot_screw_tool_m4_tip_link")
+    self.confirm_to_proceed("finetune")
     return success
 
   def insert_screw_tool_tip_into_idler_pulley_head(self):
@@ -2909,7 +2918,7 @@ class O2ACCommon(O2ACBase):
     waypoints = []
     waypoints.append((approach_pose, 0, 1.0))
     
-    x_offset = -0.001  # The Taskboard pulley is shorter than the assembly one
+    x_offset = -0.01  # The Taskboard pulley is shorter than the assembly one
     if target_link == "assembled_part_03_pulley_ridge_top":
       x_offset = 0.004
 
@@ -2921,17 +2930,18 @@ class O2ACCommon(O2ACBase):
       if idler_pulley_screwing_succeeded:
         success = True
         break
-      # Move nut tool forward so nut touches the screw
+      # Move nut tool forward so nut touches the screw 
       d = offset  # 
-      approach_pose = conversions.to_pose_stamped(target_link, [0.06 + x_offset, 0.0, d + 0.004, 0.0, 0.0, 0.0])
-      pushed_into_screw = conversions.to_pose_stamped(target_link, [0.011 + x_offset, 0.0, d + 0.004, 0.0, 0.0, 0.0])
-      if not first_approach:
+      approach_pose     = conversions.to_pose_stamped(target_link, [0.060 + x_offset, 0.001, d + 0.004, 0.0, 0.0, 0.0])
+      pushed_into_screw = conversions.to_pose_stamped(target_link, [0.011 + x_offset, 0.001, d + 0.004, 0.0, 0.0, 0.0])
+      if not first_approach: 
         waypoints = []
       waypoints.append((approach_pose, 0, 1.0))
       waypoints.append((pushed_into_screw, 0, 0.2))
       if not self.a_bot.move_joints_trajectory(waypoints, speed=1.0, end_effector_link="a_bot_nut_tool_m4_hole_link"):
         rospy.logerr("Fail to prepare nut of for idler pulley")
         return False
+      self.confirm_to_proceed("finetune")
       
       response = self.tools.set_motor("padless_tool_m4", "tighten", duration=3.0, wait=True, skip_final_loosen_and_retighten=True)
       if not self.use_real_robot:
@@ -3002,7 +3012,7 @@ class O2ACCommon(O2ACBase):
       if target_link == "assembled_part_07_inserted":
         pre_insertion_pose = conversions.to_pose_stamped(target_link, [pre_insert_offset, -0.002, 0.009, -tau/4, -radians(50), -tau/4])
       else:
-        pre_insertion_pose = conversions.to_pose_stamped(target_link, [pre_insert_offset, -0.001, 0.001, -tau/4, -radians(50), -tau/4])
+        pre_insertion_pose = conversions.to_pose_stamped(target_link, [pre_insert_offset, -0.003, 0.002, -tau/4, -radians(50), -tau/4])
       trajectory = [[post_pick_pose, 0.0, 0.8], [above_pose, 0.03, 0.5], [behind_pose, 0.01, 0.5], [pre_insertion_pose, 0.0, 0.2]]
     else:
       rotation = [-tau/4, -radians(50), -tau/4]
@@ -3027,6 +3037,7 @@ class O2ACCommon(O2ACBase):
       else:
         success = self.b_bot.go_to_pose_goal(in_front_pose, move_lin=True, retry_non_linear=True)
         success &= self.b_bot.go_to_pose_goal(pre_insertion_pose, move_lin=True, retry_non_linear=True)
+    self.confirm_to_proceed("finetune")
     return success
 
   def pick_shaft(self, attempt_nr=0):

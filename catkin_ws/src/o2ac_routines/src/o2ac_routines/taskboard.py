@@ -647,7 +647,7 @@ class O2ACTaskboard(O2ACCommon):
       rospy.loginfo("=== set screw: at at_set_screw_hole ===")
       self.confirm_to_proceed("Move into hole?")
       # self.b_bot.go_to_pose_goal(self.in_set_screw_hole, end_effector_link="b_bot_set_screw_tool_tip_link", move_lin=True, speed=0.02)
-      dist = 0.0045
+      dist = 0.0035
       self.b_bot.move_lin_rel(relative_translation=[-dist, 0, 0], speed=0.02, wait=True)
       # This expects to be exactly above the set screw hole
       self.confirm_to_proceed("Turn on motor and do spiral?")

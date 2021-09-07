@@ -308,8 +308,8 @@ class O2ACBase(object):
 
   def confirm_to_proceed(self, next_task_name):
     # Ignore during simultaneous motions
-    if rospy.get_param("/o2ac/simultaneous", False):
-      return True
+    # if rospy.get_param("/o2ac/simultaneous", False):
+    #   return True
     if self.competition_mode:
       return True
     rospy.loginfo("Press enter to proceed to: " + next_task_name)

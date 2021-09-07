@@ -583,7 +583,11 @@ class RobotBase():
         for wp, blend_radius, spd in waypoints:
             self.set_up_move_group(spd, spd/2.0, planner="PTP")
             group.clear_pose_targets()
-            group.set_joint_value_target(wp)
+            try:
+                group.set_joint_value_target(wp)
+            except Exception as e:
+                rospy.logerr("Can set joint traj point: %s. Abort" % e)
+                break
             msi = moveit_msgs.msg.MotionSequenceItem()
             msi.req = group.construct_motion_plan_request()
             msi.req.start_state = moveit_msgs.msg.RobotState()
