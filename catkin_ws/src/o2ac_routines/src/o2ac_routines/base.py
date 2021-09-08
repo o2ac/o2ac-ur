@@ -495,7 +495,7 @@ class O2ACBase(object):
     
     # Approach pose
     above_screw_head_pose = copy.deepcopy(screw_head_pose)
-    above_screw_head_pose.pose.position.x -= 0.01
+    above_screw_head_pose.pose.position.x -= 0.015
 
     if (screw_tool_id == "screw_tool_m3"):
       self.planning_scene_interface.allow_collisions(screw_tool_id, "m3_feeder_link")
