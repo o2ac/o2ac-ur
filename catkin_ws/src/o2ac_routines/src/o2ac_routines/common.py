@@ -2375,7 +2375,7 @@ class O2ACCommon(O2ACBase):
     self.vision.activate_camera(robot_name + "_inside_camera")
     self.activate_led(robot_name, False)
     
-    if not self.simple_pick(robot_name, goal, gripper_force=50.0, grasp_width=.05, 
+    if not self.simple_pick(robot_name, goal, gripper_force=30.0, grasp_width=.05, 
                             axis="z", grasp_height=0.002, item_id_to_attach="motor_pulley",
                             allow_collision_with_tray=True):
       rospy.logerr("Fail to simple_pick")
@@ -2397,7 +2397,7 @@ class O2ACCommon(O2ACBase):
 
   def insert_motor_pulley(self, target_link, attempts=1, robot_name="b_bot"):
     if robot_name == "b_bot":
-      target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.013, -0.000, -0.009, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
+      target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.013, 0.001, -0.005, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
       wiggle_direction="X"
       relaxed_by = 0.005
     else:
@@ -2406,18 +2406,19 @@ class O2ACCommon(O2ACBase):
       wiggle_direction=None
 
     selection_matrix = [0., 0.2, 0.2, 1.0, 1.0, 1.0]
-    result = self.active_robots[robot_name].do_insertion(target_pose_target_frame, radius=0.0005, 
+    result = self.active_robots[robot_name].do_insertion(target_pose_target_frame, radius=0.005, 
                                                       insertion_direction="-X", force=8.0, timeout=15.0, 
                                                       wiggle_direction=wiggle_direction, wiggle_angle=np.deg2rad(5.0), wiggle_revolutions=1.,
                                                       relaxed_target_by=relaxed_by, selection_matrix=selection_matrix)
     success = (result == TERMINATION_CRITERIA)
 
     if not success:
+      self.confirm_to_proceed("finetune")
+      self.active_robots[robot_name].linear_push(force=8, direction="-X", max_translation=0.01, timeout=5)
       current_pose = self.listener.transformPose(target_link, self.active_robots[robot_name].get_current_pose_stamped())
       print("current pose motor pulley ", current_pose.pose.position.x)
-      self.confirm_to_proceed("finetune")
       if self.assembly_database.db_name == "taskboard":
-        if current_pose.pose.position.x > -0.0048:
+        if current_pose.pose.position.x > -0.003:
           self.b_bot.gripper.open(opening_width=0.04)
           self.b_bot.gripper.close()
           self.active_robots[robot_name].linear_push(force=10, direction="-X", max_translation=0.01)
