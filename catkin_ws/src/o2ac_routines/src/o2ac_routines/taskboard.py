@@ -84,8 +84,7 @@ class O2ACTaskboard(O2ACCommon):
       "idler pulley": False,
     }
 
-    self.bearing_in_storage = False
-    self.motor_pulley_in_storage = False
+    self.use_storage_on_failure = True
 
   def spawn_example_objects(self):
     # This function spawns the objects into the tray as if they had been recognized by the vision node
