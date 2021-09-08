@@ -2075,8 +2075,7 @@ class O2ACCommon(O2ACBase):
         if robot_name == "b_bot":
           preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017,  0.000, 0.002 ]+ rotation)
         elif robot_name == "a_bot":
-          # preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.016, 0.015, -0.003 ]+ rotation) # Good Magic Number
-          preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.016, 0.013, -0.002 ]+ rotation)
+          preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.016, 0.015, -0.003 ]+ rotation)
         else:
           raise ValueError("Unknown robot")
       elif task == "assembly":
