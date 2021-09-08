@@ -4984,11 +4984,11 @@ class O2ACCommon(O2ACBase):
 
     if self.assembly_database.db_name == "wrs_assembly_2021":
       if panel_name == "panel_bearing":
-        offset_y = 0.01             # MAGIC NUMBER (points to the global forward (x-axis))
-        offset_z = -0.007           # MAGIC NUMBER (points to the global left (negative y-axis))
+        offset_y = 0.015             # MAGIC NUMBER (points to the global forward (x-axis))
+        offset_z = -0.0125           # MAGIC NUMBER (points to the global left (negative y-axis))
       else: # panel_motor
-        offset_y = 0.011            # MAGIC NUMBER
-        offset_z = -0.006           # MAGIC NUMBER
+        offset_y = 0.016            # MAGIC NUMBER
+        offset_z = -0.013           # MAGIC NUMBER
     elif self.assembly_database.db_name == "wrs_assembly_2020":
       if panel_name == "panel_bearing":
         offset_y = 0.01             # MAGIC NUMBER
