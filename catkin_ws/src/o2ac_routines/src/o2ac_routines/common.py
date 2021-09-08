@@ -1955,14 +1955,18 @@ class O2ACCommon(O2ACBase):
     return False
 
   def pick_up_and_insert_bearing(self, task="", robot_name="b_bot"):
+    """ If bearing_is_in_storage, the bearing is picked from storage and not the tray.
+    """
     if not task:
       rospy.logerr("Specify the task!")
       return False
     if task == "taskboard":
       bearing_target_link = "taskboard_bearing_target_link"
+      put_in_storage_if_failure = True
     elif task == "assembly":
       rospy.logerr("look this up")
       bearing_target_link = "assembled_part_07_inserted"
+      put_in_storage_if_failure = False
 
     if not self.pick_bearing(robot_name=robot_name):
       return False
@@ -1971,7 +1975,7 @@ class O2ACCommon(O2ACBase):
       return False
 
     # Insert bearing
-    if not self.insert_bearing(bearing_target_link, task=task, robot_name=robot_name):
+    if not self.insert_bearing(bearing_target_link, task=task, robot_name=robot_name, put_in_storage_if_failure=put_in_storage_if_failure):
       rospy.logerr("insert_bearing returned False. Breaking out")
       return False
 
@@ -2060,7 +2064,8 @@ class O2ACCommon(O2ACBase):
         if robot_name == "b_bot":
           preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017,  0.000, 0.002 ]+ rotation)
         elif robot_name == "a_bot":
-          preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.016, 0.015, -0.003 ]+ rotation)
+          # preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.016, 0.015, -0.003 ]+ rotation) # Good Magic Number
+          preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.016, 0.013, -0.002 ]+ rotation)
         else:
           raise ValueError("Unknown robot")
       elif task == "assembly":
@@ -2089,7 +2094,7 @@ class O2ACCommon(O2ACBase):
     return self.orient_bearing(task, robot_name, part1=False, part2=True)
 
   @lock_impedance
-  def insert_bearing(self, target_link, try_recenter=True, try_reinsertion=True, robot_name="b_bot", task="assembly", attempts=1):
+  def insert_bearing(self, target_link, try_recenter=True, try_reinsertion=True, robot_name="b_bot", task="assembly", attempts=1, put_in_storage_if_failure=False):
     """ Only inserts the bearing, does not align the holes.
     """
     robot = self.active_robots[robot_name]
@@ -2105,11 +2110,13 @@ class O2ACCommon(O2ACBase):
     if result != TERMINATION_CRITERIA:
       current_pose = self.listener.transformPose(target_link, self.active_robots[robot_name].get_current_pose_stamped())
       print("current pose bearing ", current_pose.pose.position.x)
+      print("target pose bearing ", target_pose_target_frame.pose.position.x-0.008)
+      self.confirm_to_proceed("finetune")
       if current_pose.pose.position.x > (target_pose_target_frame.pose.position.x-0.008): # approx. -0.014
         self.active_robots[robot_name].gripper.open(opening_width=0.1)
         self.active_robots[robot_name].gripper.close()
         self.active_robots[robot_name].linear_push(force=10, direction="-X", max_translation=0.015)
-        return self.insert_bearing(target_link, attempts=attempts-1, robot_name=robot_name, try_recenter=try_recenter, try_reinsertion=try_reinsertion, task=task)
+        return self.insert_bearing(target_link, attempts=attempts-1, robot_name=robot_name, try_recenter=try_recenter, try_reinsertion=try_reinsertion, task=task, put_in_storage_if_failure=put_in_storage_if_failure)
 
       # move back
       robot.move_lin_rel(relative_translation = [0.005,0,0], acceleration = 0.015, speed=.03)
@@ -2119,17 +2126,22 @@ class O2ACCommon(O2ACBase):
       if try_reinsertion:
         # Try to insert again
         rospy.logwarn("** Insertion Incomplete, trying again **")
-        return self.insert_bearing(target_link, try_recenter=True, try_reinsertion=False, robot_name=robot_name, task=task)
+        return self.insert_bearing(target_link, try_recenter=True, try_reinsertion=False, robot_name=robot_name, task=task, put_in_storage_if_failure=put_in_storage_if_failure)
       elif try_recenter:
         # Try to recenter the bearing
         rospy.logwarn("** Insertion Incomplete, trying from centering again **")
         robot.move_lin_rel(relative_translation = [0.1,0,0], acceleration = 0.1, speed=.2)
         self.fallback_recenter_bearing(task=task, robot_name=robot_name)
-        return self.insert_bearing(target_link, try_recenter=False, try_reinsertion=False, robot_name=robot_name, task=task)
+        return self.insert_bearing(target_link, try_recenter=False, try_reinsertion=False, robot_name=robot_name, task=task, put_in_storage_if_failure=put_in_storage_if_failure)
       else:
         rospy.logerr("** Insertion Incomplete, dropping bearing into tray **")
-        robot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
-        self.drop_in_tray(robot_name)
+        if put_in_storage_if_failure:
+          robot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
+          store_pose = conversions.to_pose_stamped("left_centering_link", [-0.020, 0.007, 0.0]+np.deg2rad([-35.179, 29.784, -19.294]).tolist())
+          self.simple_place(robot_name, store_pose, place_height=0.0, gripper_opening_width=0.09, axis="x", sign=-1)
+          self.bearing_in_storage = True
+        else:
+          self.drop_in_tray(robot_name)
         return False
 
     robot.gripper.open(opening_width=0.08, wait=True)
@@ -2328,9 +2340,11 @@ class O2ACCommon(O2ACBase):
   def pick_and_insert_motor_pulley(self, task, robot_name="b_bot"):
     if task == "taskboard":
       target_link = "taskboard_small_shaft"
+      put_in_storage_if_failure = True
     elif task == "assembly":
       rospy.logerr("look this up")
       target_link = "assembled_part_05_center"
+      put_in_storage_if_failure = False
     
     if not self.pick_motor_pulley(robot_name="b_bot"):
       return False
@@ -2338,7 +2352,7 @@ class O2ACCommon(O2ACBase):
     if not self.orient_motor_pulley(target_link, robot_name="b_bot"):
       return False
 
-    return self.insert_motor_pulley(target_link, robot_name="b_bot")
+    return self.insert_motor_pulley(target_link, robot_name="b_bot", put_in_storage_if_failure=put_in_storage_if_failure)
 
   def orient_motor_pulley(self, target_link, robot_name="b_bot"):
     if not self.playback_sequence(routine_filename="motor_pulley_orient_"+robot_name):
@@ -2398,7 +2412,7 @@ class O2ACCommon(O2ACBase):
 
     return True
 
-  def insert_motor_pulley(self, target_link, attempts=1, robot_name="b_bot"):
+  def insert_motor_pulley(self, target_link, attempts=3, robot_name="b_bot", retry_insertion=True, put_in_storage_if_failure=False):
     if robot_name == "b_bot":
       target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.013, 0.001, -0.005, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
       wiggle_direction="X"
@@ -2425,7 +2439,7 @@ class O2ACCommon(O2ACBase):
           self.b_bot.gripper.open(opening_width=0.04)
           self.b_bot.gripper.close()
           self.active_robots[robot_name].linear_push(force=10, direction="-X", max_translation=0.01)
-          return self.insert_motor_pulley(target_link, attempts=attempts-1, robot_name=robot_name)
+          return self.insert_motor_pulley(target_link, attempts=attempts-1, robot_name=robot_name, put_in_storage_if_failure=put_in_storage_if_failure)
 
       if attempts > 0: # try again the pulley is still there
         if retry_insertion: # TODO: try some new poses?
@@ -2438,7 +2452,13 @@ class O2ACCommon(O2ACBase):
       else:
         # TODO(cambel): return to tray to drop pulley
         self.active_robots[robot_name].move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
-        self.drop_in_tray(robot_name)
+        if put_in_storage_if_failure:
+          robot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
+          store_pose = conversions.to_pose_stamped("right_centering_link", [-0.01, 0, 0.0] +np.deg2rad([-135, 0, 0]).tolist())
+          self.simple_place(robot_name, store_pose, place_height=0.0, gripper_opening_width=0.09, axis="x", sign=-1)
+          self.motor_pulley_in_storage = True
+        else:
+          self.drop_in_tray(robot_name)
         rospy.logerr("** Insertion Failed!! **")
         return False
 
@@ -5079,6 +5099,7 @@ class O2ACCommon(O2ACBase):
       return False
     self.active_robots[robot_name].go_to_pose_goal(place_pose, speed=0.2, move_lin=True)
     self.planning_scene_interface.disallow_collisions("base_fixture_top", panel_name)
+    self.confirm_to_proceed("finetune")
     self.active_robots[robot_name].gripper.open(opening_width=0.03, velocity=0.03)
     self.active_robots[robot_name].gripper.forget_attached_item()
     if pose_with_uncertainty!=None:
