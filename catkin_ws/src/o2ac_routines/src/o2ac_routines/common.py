@@ -80,7 +80,7 @@ class O2ACCommon(O2ACBase):
     self.is_bearing_in_storage = False 
     self.bearing_store_pose = conversions.to_pose_stamped("left_centering_link", [-0.020, 0.007, 0.0]+np.deg2rad([-35.179, 29.784, -19.294]).tolist())
     self.is_motor_pulley_in_storage = False 
-    self.motor_pulley_store_pose = conversions.to_pose_stamped("right_centering_link", [-0.01, 0, 0.0] +np.deg2rad([-135, 0, 0]).tolist())
+    self.motor_pulley_store_pose = conversions.to_pose_stamped("right_centering_link", [-0.005, 0, 0.0] +np.deg2rad([-135, 0, 0]).tolist())
 
     # self.gazebo_scene = GazeboModels('o2ac_gazebo')
     
@@ -1996,6 +1996,9 @@ class O2ACCommon(O2ACBase):
     if self.is_bearing_in_storage: # FIXME only works for Taskboard with a_bot
       self.a_bot.go_to_named_pose("centering_area")
       goal = copy.deepcopy(self.bearing_store_pose)
+      goal = self.listener.transformPose("tray_center", goal)
+      goal.pose.orientation = conversions.to_quaternion(transformations.quaternion_from_euler(*np.deg2rad([35,90.,0]).tolist()))
+      goal.pose.position.z = -0.015
       self.is_bearing_in_storage = False
     else:
       goal = self.look_and_get_grasp_point("bearing", robot_name, options=options)
@@ -2464,6 +2467,7 @@ class O2ACCommon(O2ACBase):
 
     if self.is_motor_pulley_in_storage:
       goal = copy.deepcopy(self.motor_pulley_store_pose)
+      goal = self.listener.transformPose("tray_center", goal)
       self.b_bot.go_to_named_pose("centering_area")
       self.is_motor_pulley_in_storage = False
     else:
