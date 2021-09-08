@@ -337,6 +337,7 @@ class O2ACTaskboard(O2ACCommon):
       rospy.loginfo("==== End: Pick Bearing (%s, %s) ====" % (self.a_success, self.b_success))
       
       rospy.loginfo("==== Start: Insert Bearing ====")
+      self.vision.activate_camera("a_bot_inside_camera")
       self.orient_bearing("taskboard", robot_name="a_bot", part1=False, part2=True)
       self.subtask_completed["bearing"] = self.insert_bearing("taskboard_bearing_target_link", robot_name="a_bot", task="taskboard")
       rospy.loginfo("==== End: Pick Bearing (%s) ====" % (self.subtask_completed["bearing"]))
