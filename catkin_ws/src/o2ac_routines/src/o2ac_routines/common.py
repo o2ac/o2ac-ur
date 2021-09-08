@@ -1982,10 +1982,7 @@ class O2ACCommon(O2ACBase):
       
     goal = self.look_and_get_grasp_point("bearing", robot_name, options=options)
     if not isinstance(goal, geometry_msgs.msg.PoseStamped):
-      if attempts > 0:
-        rospy.logwarn("Could not find bearing in tray. Try again remaining attempts:%s" % attempts)
-        return self.pick_bearing(robot_name, attempts-1)
-      rospy.logerr("Could not find bearing in tray. Skipping procedure.")
+      rospy.logerr("Could not see bearing in tray. Skipping procedure.")
       return False
     self.vision.activate_camera(robot_name + "_inside_camera")
     goal.pose.position.z = 0.0
@@ -2365,9 +2362,6 @@ class O2ACCommon(O2ACBase):
     options = {'grasp_width': 0.05, 'center_on_corner': True, 'approach_height': 0.02, 'grab_and_drop': True, 'object_width': 0.03}
     goal = self.look_and_get_grasp_point("motor_pulley", robot_name=robot_name, options=options)
     if not isinstance(goal, geometry_msgs.msg.PoseStamped):
-      if attempt > 0:
-        rospy.logwarn("Could not find bearing in tray. Try again remaining attempts:%s" % attempt)
-        return self.pick_motor_pulley(robot_name=robot_name, attempt=attempt-1)
       rospy.logerr("Could not find motor_pulley in tray. Skipping procedure.")
       return False
     # goal.pose.position.x -= 0.01 # MAGIC NUMBER
@@ -3065,10 +3059,7 @@ class O2ACCommon(O2ACBase):
     self.vision.activate_camera("b_bot_outside_camera")
     goal = self.look_and_get_grasp_point("shaft", options=options)
     if not isinstance(goal, geometry_msgs.msg.PoseStamped):
-      print("goal", type(goal), goal)
       rospy.logerr("Could not find shaft in tray. Skipping procedure.")
-      if attempt_nr < 6:
-        return self.pick_shaft(attempt_nr=attempt_nr+1)
       return False
 
     gp = conversions.from_pose_to_list(goal.pose)
@@ -3399,8 +3390,6 @@ class O2ACCommon(O2ACBase):
     goal = self.look_and_get_grasp_point("end_cap", robot_name="a_bot", options=options)
     if not isinstance(goal, geometry_msgs.msg.PoseStamped):
       rospy.logerr("Could not find shaft in tray. Skipping procedure.")
-      if attempts > 0:
-        return self.pick_end_cap(attempts-1)
       return False
     self.end_cap_is_upside_down = copy.copy(self.object_in_tray_is_upside_down.get(self.assembly_database.name_to_id("end_cap"), False))
 
