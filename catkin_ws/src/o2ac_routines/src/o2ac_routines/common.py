@@ -3285,7 +3285,7 @@ class O2ACCommon(O2ACBase):
     self.b_bot.move_lin_rel(relative_translation = [offset,0,0], acceleration = 0.1, speed=.03) # Release shaft for next push
     result = self.b_bot.do_insertion(target_pose_target_frame, insertion_direction=direction, force=5.0, timeout=15.0, 
                                     wiggle_direction="Z", wiggle_angle=np.deg2rad(10.0), wiggle_revolutions=1.0,
-                                    radius=0.002, relaxed_target_by=0.0, selection_matrix=selection_matrix)
+                                    radius=0.003, relaxed_target_by=0.0, selection_matrix=selection_matrix)
     success = result in (TERMINATION_CRITERIA, DONE)
 
     current_pose = self.b_bot.robot_group.get_current_pose()
