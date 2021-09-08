@@ -2103,6 +2103,80 @@ class O2ACCommon(O2ACBase):
 
     return self.orient_bearing(task, robot_name, part1=False, part2=True)
 
+  def insert_bearing_fallback(self, task, target_link, robot_name="a_bot"):
+    """
+        If first fallback don't work, try 4 additional initial poses close to the expected pose
+    """
+    rospy.logerr("** Insertion still Failed. Insertion with extra search area **")
+    # Try to 
+    if task=="taskboard":
+      rotation = [0, radians(-35.0), 0] if robot_name == "b_bot" else [tau/4, 0, radians(35.0)]
+    else:
+      rotation = [0, radians(-35.0), 0] if robot_name == "b_bot" else [tau/2, radians(-35.0), 0]
+
+    if robot_name == "b_bot":
+      pre_insertion_pose = conversions.to_pose_stamped(target_link, [-0.017,  0.000, 0.002 ]+ rotation)
+      target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.004, 0.000, 0.002, 0, 0, 0, 1.])
+    else:
+      pre_insertion_pose = conversions.to_pose_stamped(target_link, [-0.016, 0.015, -0.003 ]+ rotation)
+      target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.003, 0.014, -0.003, 0, 0, 0, 1.])
+    selection_matrix = [0., 0.2, 0.2, 1.0, 1.0, 1.0]
+    
+    offsets = [[0.0015, 0.0015],[-0.0015, 0.0015],[0.0015, -0.0015],[-0.0015, -0.0015]]
+    robot = self.active_robots[robot_name] 
+    for i in range(4):
+      start_pose = copy.deepcopy(pre_insertion_pose)
+      start_pose.pose.position.y += offsets[i][0]
+      start_pose.pose.position.z += offsets[i][1]
+      
+      # move back and go to new initial pose
+      robot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
+      robot.go_to_pose_goal(start_pose, speed=0.1, move_lin=True)
+      # Attempt insertion at new pose
+      result = robot.do_insertion(target_pose_target_frame, radius=0.005, 
+                                                        insertion_direction="-X", force=8.0, timeout=15.0, 
+                                                        wiggle_direction=None, wiggle_angle=np.deg2rad(0), wiggle_revolutions=1.,
+                                                        relaxed_target_by=0.003, selection_matrix=selection_matrix)
+      success = (result == TERMINATION_CRITERIA)
+
+      if not success:
+        # One small extra check and push if we are a bit inside the small shaft
+        current_pose = self.listener.transformPose(target_link, robot.get_current_pose_stamped())
+        print("current pose bearing", current_pose.pose.position.x)
+        if current_pose.pose.position.x > (target_pose_target_frame.pose.position.x-0.008): # approx. -0.014
+          robot.gripper.open(opening_width=0.04)
+          robot.gripper.close()
+          robot.linear_push(force=10, direction="-X", max_translation=0.01)
+          break
+      else:
+        break
+
+    if success:
+      robot.gripper.open(opening_width=0.08, wait=True)
+      robot.move_lin_rel(relative_translation = [0.012,0,0], acceleration = 0.015, speed=.03)
+      robot.gripper.close(force=30, velocity=0.01, wait=True)
+
+      result = robot.do_insertion(target_pose_target_frame, insertion_direction="-X", force=10.0, timeout=30.0, 
+                                  radius=0.0, wiggle_direction="X", wiggle_angle=np.deg2rad(3.0), wiggle_revolutions=1.0,
+                                  relaxed_target_by=0.003, selection_matrix=selection_matrix)
+      
+      success = result in (TERMINATION_CRITERIA, DONE)
+
+      # Go back regardless of success
+      robot.gripper.open(wait=True)
+      robot.move_lin_rel(relative_translation = [0.1,0,0.05], speed=.3)
+      return success
+
+    rospy.logerr("** Insertion Incomplete, dropping bearing into tray **")
+    if self.use_storage_on_failure:
+      robot.move_lin_rel(relative_translation = [0.05,0,0], acceleration = 0.015, speed=.03)
+      self.simple_place(robot_name, self.bearing_store_pose, place_height=0.0, gripper_opening_width=0.09, axis="x", sign=-1)
+      self.is_bearing_in_storage = True
+    else:
+      robot.move_lin_rel(relative_translation = [0.05,0,0], acceleration = 0.015, speed=.03)
+      self.drop_in_tray(robot_name)
+    return False
+
   @lock_impedance
   def insert_bearing(self, target_link, try_recenter=True, try_reinsertion=True, 
                       robot_name="b_bot", task="assembly", attempts=2):
@@ -2131,22 +2205,25 @@ class O2ACCommon(O2ACBase):
 
       # TODO(cambel): check that the bearing is not slightly inserted
       #               otherwise we may trigger a safety lock
-      if try_reinsertion:
-        # Try to insert again
-        # move back
-        rospy.logwarn("** Insertion Incomplete, trying again **")
-        robot.move_lin_rel(relative_translation = [0.005,0,0], acceleration = 0.015, speed=.03)
-        return self.insert_bearing(target_link, try_recenter=True, try_reinsertion=False, robot_name=robot_name, task=task)
-      elif try_recenter:
-        # Try to recenter the bearing
-        rospy.logwarn("** Insertion Incomplete, trying from centering again **")
-        robot.move_lin_rel(relative_translation = [0.1,0,0], acceleration = 0.1, speed=.2)
-        self.fallback_recenter_bearing(task=task, robot_name=robot_name)
-        return self.insert_bearing(target_link, try_recenter=False, try_reinsertion=False, robot_name=robot_name, task=task)
+      if attempts > 0:
+        if try_reinsertion:
+          # Try to insert again
+          # move back
+          rospy.logwarn("** Insertion Incomplete, trying again **")
+          robot.move_lin_rel(relative_translation = [0.005,0,0], acceleration = 0.015, speed=.03)
+          return self.insert_bearing(target_link, try_recenter=True, try_reinsertion=False, robot_name=robot_name, task=task, attempts=attempts-1)
+        else:
+          # Try to recenter the bearing
+          rospy.logwarn("** Insertion Incomplete, trying from centering again **")
+          robot.move_lin_rel(relative_translation = [0.1,0,0], acceleration = 0.1, speed=.2)
+          self.fallback_recenter_bearing(task=task, robot_name=robot_name)
+          return self.insert_bearing(target_link, try_recenter=False, try_reinsertion=False, robot_name=robot_name, task=task, attempts=attempts-1)
+      # elif attempts == 0:
+      #     return self.insert_bearing_fallback(task, target_link, robot_name)
       else:
         rospy.logerr("** Insertion Incomplete, dropping bearing into tray **")
+        robot.move_lin_rel(relative_translation = [0.05,0,0], acceleration = 0.015, speed=.03)
         if self.use_storage_on_failure:
-          robot.move_lin_rel(relative_translation = [0.05,0,0], acceleration = 0.015, speed=.03)
           self.simple_place(robot_name, self.bearing_store_pose, place_height=0.0, gripper_opening_width=0.09, axis="x", sign=-1)
           self.is_bearing_in_storage = True
         else:
@@ -2425,6 +2502,63 @@ class O2ACCommon(O2ACBase):
 
     return True
 
+  def insert_motor_pulley_fallback(self, target_link, robot_name="b_bot"):
+    """
+        If first fallback don't work, try 4 additional initial poses close to the expected pose
+    """
+    rospy.logerr("** Insertion still Failed. Insertion with extra search area **")
+    # Try to 
+    if robot_name == "b_bot":
+      target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.013, 0.001, -0.005, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
+      wiggle_direction="X"
+      relaxed_by = 0.005
+      pre_insertion_pose = conversions.to_pose_stamped(target_link, [-0.005, 0.001, -0.005] + np.deg2rad([180, 35, 0]).tolist()) # Manually defined target pose in object frame
+    else:
+      pre_insertion_pose = conversions.to_pose_stamped(target_link, [-0.007, 0.001, 0.008] + np.deg2rad([180, -35, 0]).tolist()) # Manually defined target pose in object frame
+      target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.003, -0.002, 0.009, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
+      relaxed_by = 0.001
+      wiggle_direction=None
+    selection_matrix = [0., 0.2, 0.2, 1.0, 1.0, 1.0]
+    
+    offsets = [[0.0015, 0.0015],[-0.0015, 0.0015],[0.0015, -0.0015],[-0.0015, -0.0015]]
+    for i in range(4):
+      start_pose = copy.deepcopy(pre_insertion_pose)
+      start_pose.pose.position.y += offsets[i][0]
+      start_pose.pose.position.z += offsets[i][1]
+      
+      # move back and go to new initial pose
+      self.active_robots[robot_name].move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
+      self.active_robots[robot_name].go_to_pose_goal(start_pose, speed=0.1, move_lin=True)
+      # Attempt insertion at new pose
+      result = self.active_robots[robot_name].do_insertion(target_pose_target_frame, radius=0.005, 
+                                                        insertion_direction="-X", force=8.0, timeout=15.0, 
+                                                        wiggle_direction=wiggle_direction, wiggle_angle=np.deg2rad(5.0), wiggle_revolutions=1.,
+                                                        relaxed_target_by=relaxed_by, selection_matrix=selection_matrix)
+      success = (result == TERMINATION_CRITERIA)
+
+      if not success:
+        # One small extra check and push if we are a bit inside the small shaft
+        current_pose = self.listener.transformPose(target_link, self.active_robots[robot_name].get_current_pose_stamped())
+        print("current pose motor pulley ", current_pose.pose.position.x)
+        if current_pose.pose.position.x > -0.003:
+          self.active_robots[robot_name].gripper.open(opening_width=0.04)
+          self.active_robots[robot_name].gripper.close()
+          self.active_robots[robot_name].linear_push(force=10, direction="-X", max_translation=0.01)
+          return True # If we are this close, assume success
+      else:
+        return True
+  
+    rospy.logerr("** Insertion Failed!! **")
+    self.active_robots[robot_name].move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
+    if self.use_storage_on_failure:
+      robot.move_lin_rel(relative_translation = [0.05,0,0], acceleration = 0.015, speed=.03)
+      self.simple_place(robot_name, self.motor_pulley_store_pose, place_height=0.0, gripper_opening_width=0.09, axis="x", sign=-1, approach_height=0.1)
+      self.is_motor_pulley_in_storage = True
+    else:
+      # return to tray to drop pulley
+      self.drop_in_tray(robot_name)
+    return False
+
   def insert_motor_pulley(self, target_link, attempts=2, robot_name="b_bot", retry_insertion=True):
     if robot_name == "b_bot":
       target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.013, 0.001, -0.005, 0.0, 0.0, 0.0]) # Manually defined target pose in object frame
@@ -2449,24 +2583,26 @@ class O2ACCommon(O2ACBase):
       print("current pose motor pulley ", current_pose.pose.position.x)
       if self.assembly_database.db_name == "taskboard":
         if current_pose.pose.position.x > -0.003:
-          self.b_bot.gripper.open(opening_width=0.04)
-          self.b_bot.gripper.close()
+          self.active_robots[robot_name].gripper.open(opening_width=0.04)
+          self.active_robots[robot_name].gripper.close()
           self.active_robots[robot_name].linear_push(force=10, direction="-X", max_translation=0.01)
           return self.insert_motor_pulley(target_link, attempts=attempts-1, robot_name=robot_name, retry_insertion=retry_insertion)
 
       if attempts > 0: # try again the pulley is still there
         if retry_insertion:
+          self.active_robots[robot_name].move_lin_rel(relative_translation = [0.005,0,0], acceleration = 0.015, speed=.03)
           return self.insert_motor_pulley(target_link, attempts=attempts-1, robot_name=robot_name, retry_insertion=False)
         else: # try reorient first
           rospy.logwarn("** Insertion Incomplete, trying again **")
           self.active_robots[robot_name].move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
           self.orient_motor_pulley(target_link, robot_name)
-          return self.insert_motor_pulley(target_link, attempts=attempts-1, robot_name=robot_name, retry_insertion=retry_insertion)
+          return self.insert_motor_pulley(target_link, attempts=attempts-1, robot_name=robot_name, retry_insertion=True)
+      # elif attempts == 0:
+      #     return self.insert_motor_pulley_fallback(target_link, robot_name)
       else:
         rospy.logerr("** Insertion Failed!! **")
         self.active_robots[robot_name].move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
         if self.use_storage_on_failure:
-          robot.move_lin_rel(relative_translation = [0.05,0,0], acceleration = 0.015, speed=.03)
           self.simple_place(robot_name, self.motor_pulley_store_pose, place_height=0.0, gripper_opening_width=0.09, axis="x", sign=-1, approach_height=0.1)
           self.is_motor_pulley_in_storage = True
         else:
