@@ -2109,7 +2109,7 @@ class O2ACCommon(O2ACBase):
         self.active_robots[robot_name].gripper.open(opening_width=0.1)
         self.active_robots[robot_name].gripper.close()
         self.active_robots[robot_name].linear_push(force=10, direction="-X", max_translation=0.015)
-        return self.insert_bearing(target_link, attempts=attempts-1, robot_name=robot_name, try_recenter=try_recenter, try_reinsertion=try_reinsertion)
+        return self.insert_bearing(target_link, attempts=attempts-1, robot_name=robot_name, try_recenter=try_recenter, try_reinsertion=try_reinsertion, task=task)
 
       # move back
       robot.move_lin_rel(relative_translation = [0.005,0,0], acceleration = 0.015, speed=.03)
@@ -2119,13 +2119,13 @@ class O2ACCommon(O2ACBase):
       if try_reinsertion:
         # Try to insert again
         rospy.logwarn("** Insertion Incomplete, trying again **")
-        return self.insert_bearing(target_link, try_recenter=True, try_reinsertion=False, robot_name=robot_name)
+        return self.insert_bearing(target_link, try_recenter=True, try_reinsertion=False, robot_name=robot_name, task=task)
       elif try_recenter:
         # Try to recenter the bearing
         rospy.logwarn("** Insertion Incomplete, trying from centering again **")
         robot.move_lin_rel(relative_translation = [0.1,0,0], acceleration = 0.1, speed=.2)
-        self.fallback_recenter_bearing(task, robot_name=robot_name)
-        return self.insert_bearing(target_link, try_recenter=False, try_reinsertion=False, robot_name=robot_name)
+        self.fallback_recenter_bearing(task=task, robot_name=robot_name)
+        return self.insert_bearing(target_link, try_recenter=False, try_reinsertion=False, robot_name=robot_name, task=task)
       else:
         rospy.logerr("** Insertion Incomplete, dropping bearing into tray **")
         robot.move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
