@@ -2421,8 +2421,9 @@ class O2ACCommon(O2ACBase):
     if not success:
       current_pose = self.listener.transformPose(target_link, self.active_robots[robot_name].get_current_pose_stamped())
       print("current pose motor pulley ", current_pose.pose.position.x)
+      self.confirm_to_proceed("finetune")
       if self.assembly_database.db_name == "taskboard":
-        if current_pose.pose.position.x > -0.003:
+        if current_pose.pose.position.x > -0.0048:
           self.b_bot.gripper.open(opening_width=0.04)
           self.b_bot.gripper.close()
           self.active_robots[robot_name].linear_push(force=10, direction="-X", max_translation=0.01)
@@ -2902,7 +2903,7 @@ class O2ACCommon(O2ACBase):
     ## Incline the tool slightly 
     self.planning_scene_interface.allow_collisions("padless_tool_m4", "taskboard_plate")
     xyz_hard_push = [0.006, -0.001, 0.001]  # MAGIC NUMBERS (target without inclination)
-    inclination_angle_deg = 3.0
+    inclination_angle_deg = 1.0
     inclined_orientation_hard_push = np.deg2rad([30.0, inclination_angle_deg, 0.0]).tolist()
     s = sin(np.deg2rad(inclination_angle_deg)) * 0.008  # 8 mm is roughly the distance from the taskboard surface to the 
                                                         # head of the screw, so adding this offset should result in a rotation
@@ -2961,6 +2962,9 @@ class O2ACCommon(O2ACBase):
       else:
         idler_pulley_screwing_succeeded = response.motor_stalled
       
+      if idler_pulley_screwing_succeeded: # tighten the nut a bit more...
+        self.tools.set_motor("padless_tool_m4", "tighten", duration=3.0, wait=True, skip_final_loosen_and_retighten=True)
+
       if first_approach:
         first_approach = False
 
