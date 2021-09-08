@@ -2055,7 +2055,7 @@ class O2ACCommon(O2ACBase):
       else:
         rotation = [0, radians(-35.0), 0] if robot_name == "b_bot" else [tau/2, radians(-35.0), 0]
 
-      approach_pose = conversions.to_pose_stamped(bearing_target_link, [-0.050, -0.001, 0.005] + rotation)
+      approach_pose = conversions.to_pose_stamped(bearing_target_link, [-0.10, -0.001, 0.005] + rotation)
       if task == "taskboard":
         if robot_name == "b_bot":
           preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.017,  0.000, 0.002 ]+ rotation)
@@ -2100,7 +2100,7 @@ class O2ACCommon(O2ACBase):
       target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.003, 0.014, -0.003, 0, 0, 0, 1.])
     selection_matrix = [0., 0.3, 0.3, .8, .8, .8]
     result = robot.do_insertion(target_pose_target_frame, insertion_direction=insertion_direction, force=10.0, timeout=20.0, 
-                                radius=0.002, relaxed_target_by=0.003, selection_matrix=selection_matrix)
+                                radius=0.0035, relaxed_target_by=0.003, selection_matrix=selection_matrix)
     
     if result != TERMINATION_CRITERIA:
       current_pose = self.listener.transformPose(target_link, self.active_robots[robot_name].get_current_pose_stamped())
@@ -2427,11 +2427,14 @@ class O2ACCommon(O2ACBase):
           self.active_robots[robot_name].linear_push(force=10, direction="-X", max_translation=0.01)
           return self.insert_motor_pulley(target_link, attempts=attempts-1, robot_name=robot_name)
 
-      if attempts > 0: # try again the pulley is still there   
-        rospy.logwarn("** Insertion Incomplete, trying again **")
-        self.active_robots[robot_name].move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
-        self.orient_motor_pulley(target_link, robot_name)
-        return self.insert_motor_pulley(target_link, attempts=attempts-1, robot_name=robot_name)
+      if attempts > 0: # try again the pulley is still there
+        if retry_insertion: # TODO: try some new poses?
+          return self.insert_motor_pulley(target_link, attempts=attempts-1, robot_name=robot_name, retry_insertion=False, put_in_storage_if_failure=put_in_storage_if_failure)
+        else: # try reorient first
+          rospy.logwarn("** Insertion Incomplete, trying again **")
+          self.active_robots[robot_name].move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
+          self.orient_motor_pulley(target_link, robot_name)
+          return self.insert_motor_pulley(target_link, attempts=attempts-1, robot_name=robot_name, put_in_storage_if_failure=put_in_storage_if_failure)
       else:
         # TODO(cambel): return to tray to drop pulley
         self.active_robots[robot_name].move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
