@@ -265,18 +265,18 @@ class CalibrationClass(O2ACCommon):
     elif hole == "m4":
       poses.append(copy.deepcopy(pose0))
       poses[0].header.frame_id = "taskboard_m4_screw_link"
-      poses[0].pose.position.y += -0.001
-      poses[0].pose.position.z += 0.002
+      poses[0].pose.position.y += -0.001  # MAGIC NUMBER (points right)
+      poses[0].pose.position.z += 0.002  # MAGIC NUMBER (points down)
     elif hole == "m3":
       poses.append(copy.deepcopy(pose0))
       poses[0].header.frame_id = "taskboard_m3_screw_link"
-      poses[0].pose.position.y += 0.000
-      poses[0].pose.position.z += -0.003
+      poses[0].pose.position.y += 0.001  # MAGIC NUMBER (points right)
+      poses[0].pose.position.z += -0.001  # MAGIC NUMBER (points down)
     elif hole == "setscrew":
       poses.append(copy.deepcopy(pose0))
       poses[0].header.frame_id = "taskboard_set_screw_link"
-      poses[0].pose.position.y += -0.002
-      poses[0].pose.position.z += 0.003
+      poses[0].pose.position.y += -0.002  # MAGIC NUMBER (points right)
+      poses[0].pose.position.z += 0.003  # MAGIC NUMBER (points down)
 
     self.cycle_through_calibration_poses(poses, robot_name, go_home=False, with_approach=True, end_effector_link=end_effector_link, move_lin=True)
     self.active_robots[robot_name].go_to_named_pose("horizontal_screw_ready")

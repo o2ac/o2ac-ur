@@ -2086,7 +2086,7 @@ class O2ACCommon(O2ACBase):
     return self.orient_bearing(task, robot_name, part1=False, part2=True)
 
   @lock_impedance
-  def insert_bearing(self, target_link, try_recenter=True, try_reinsertion=True, robot_name="b_bot", task="assembly"):
+  def insert_bearing(self, target_link, try_recenter=True, try_reinsertion=True, robot_name="b_bot", task="assembly", attempts=1):
     """ Only inserts the bearing, does not align the holes.
     """
     robot = self.active_robots[robot_name]
@@ -2100,6 +2100,14 @@ class O2ACCommon(O2ACBase):
                                 radius=0.002, relaxed_target_by=0.003, selection_matrix=selection_matrix)
     
     if result != TERMINATION_CRITERIA:
+      current_pose = self.listener.transformPose(target_link, self.active_robots[robot_name].get_current_pose_stamped())
+      print("current pose bearing ", current_pose.pose.position.x)
+      if current_pose.pose.position.x > (target_pose_target_frame.pose.position.x-0.008): # approx. -0.014
+        self.active_robots[robot_name].gripper.open(opening_width=0.1)
+        self.active_robots[robot_name].gripper.close()
+        self.active_robots[robot_name].linear_push(force=10, direction="-X", max_translation=0.015)
+        return self.insert_bearing(target_link, attempts=attempts-1, robot_name=robot_name, try_recenter=try_recenter, try_reinsertion=try_reinsertion)
+
       # move back
       robot.move_lin_rel(relative_translation = [0.005,0,0], acceleration = 0.015, speed=.03)
 
@@ -2698,6 +2706,7 @@ class O2ACCommon(O2ACBase):
       self.a_bot.gripper.forget_attached_item()    
       self.a_bot.move_lin_rel(relative_translation=[-0.15, 0, 0.0], relative_to_tcp=True, speed=1.0)
       return False
+    self.despawn_object("taskboard_idler_pulley_small")
     
     if not self.equip_nut_tool():
       rospy.logerr("Fail to complete equip_nut_tool")
@@ -5717,13 +5726,15 @@ class O2ACCommon(O2ACBase):
     b_bot_point = [tray_x + 0.004, tray_y + offset, tray1_z + 0.08]
     a_bot_goal = tray_y-long_side-0.025 if orientation_parallel else tray_y-short_side-0.025
     b_bot_goal = tray_y+long_side+0.025 if orientation_parallel else tray_y+short_side+0.025
+    a_bot_centering_height = tray1_z - 0.065
+    b_bot_centering_height = tray1_z - 0.07
     frame = "agv_tray_center"
     a_bot_push_tray_side_start_high = conversions.to_pose_stamped(frame, [a_bot_point[0], a_bot_point[1], a_bot_point[2], tau/4, tau/4, 0])
     b_bot_push_tray_side_start_high = conversions.to_pose_stamped(frame, [b_bot_point[0], b_bot_point[1], b_bot_point[2], -tau/4, tau/4, 0])
-    a_bot_push_tray_side_start      = conversions.to_pose_stamped(frame, [a_bot_point[0], a_bot_point[1], -0.010, tau/4, tau/4, 0])
-    b_bot_push_tray_side_start      = conversions.to_pose_stamped(frame, [b_bot_point[0], b_bot_point[1],  0.005, -tau/4, tau/4, 0])
-    a_bot_push_tray_side_goal       = conversions.to_pose_stamped(frame, [a_bot_point[0], a_bot_goal, -0.010, tau/4, tau/4, 0])
-    b_bot_push_tray_side_goal       = conversions.to_pose_stamped(frame, [b_bot_point[0], b_bot_goal,  0.005, -tau/4, tau/4, 0]) #.277
+    a_bot_push_tray_side_start      = conversions.to_pose_stamped(frame, [a_bot_point[0], a_bot_point[1], a_bot_centering_height, tau/4, tau/4, 0])
+    b_bot_push_tray_side_start      = conversions.to_pose_stamped(frame, [b_bot_point[0], b_bot_point[1], b_bot_centering_height, -tau/4, tau/4, 0])
+    a_bot_push_tray_side_goal       = conversions.to_pose_stamped(frame, [a_bot_point[0], a_bot_goal, a_bot_centering_height, tau/4, tau/4, 0])
+    b_bot_push_tray_side_goal       = conversions.to_pose_stamped(frame, [b_bot_point[0], b_bot_goal, b_bot_centering_height, -tau/4, tau/4, 0]) #.277
     a_bot_push_tray_side_retreat    = a_bot_push_tray_side_start_high
     b_bot_push_tray_side_retreat    = b_bot_push_tray_side_start_high if orientation_parallel else conversions.to_pose_stamped(frame, [-0.004, 0.48, 0.14, -tau/4, tau/4, 0])
 
@@ -5731,15 +5742,15 @@ class O2ACCommon(O2ACBase):
     a_bot_start = [tray_x - short_side - 0.10, tray_y] if orientation_parallel else [tray_x - long_side - 0.1, tray_y]
     a_bot_goal  = [tray_x - short_side - 0.025, tray_y] if orientation_parallel else [tray_x - long_side, tray_y]
     a_bot_push_tray_front_start_high = conversions.to_pose_stamped(frame, [a_bot_start[0], a_bot_start[1], a_bot_point[2], tau/2, tau/4, 0])
-    a_bot_push_tray_front_start      = conversions.to_pose_stamped(frame, [a_bot_start[0], a_bot_start[1], -0.01, tau/2, tau/4, 0])
-    a_bot_push_tray_front_goal       = conversions.to_pose_stamped(frame, [a_bot_goal[0] , a_bot_goal[1] , -0.01, tau/2, tau/4, 0])
+    a_bot_push_tray_front_start      = conversions.to_pose_stamped(frame, [a_bot_start[0], a_bot_start[1], a_bot_centering_height, tau/2, tau/4, 0])
+    a_bot_push_tray_front_goal       = conversions.to_pose_stamped(frame, [a_bot_goal[0] , a_bot_goal[1] , a_bot_centering_height, tau/2, tau/4, 0])
     a_bot_push_tray_front_retreat    = conversions.to_pose_stamped(frame, [a_bot_start[0], 0.0, a_bot_point[2], tau/2, tau/4, 0])
     
     b_bot_goal  = [tray_x + short_side + 0.03, tray_y + 0.05] if orientation_parallel else [tray_x + long_side, tray_y]
     b_bot_start = [tray_x + short_side + 0.13, tray_y + 0.05] if orientation_parallel else [tray_x + long_side + 0.1, tray_y]
     b_bot_push_tray_front_start_high = conversions.to_pose_stamped(frame, [b_bot_start[0], b_bot_start[1], b_bot_point[2], 0, tau/4, 0])
-    b_bot_push_tray_front_start      = conversions.to_pose_stamped(frame, [b_bot_start[0], b_bot_start[1], -0.01, 0, tau/4, 0])
-    b_bot_push_tray_front_goal       = conversions.to_pose_stamped(frame, [b_bot_goal[0] , b_bot_goal[1] , -0.01, 0, tau/4, 0])
+    b_bot_push_tray_front_start      = conversions.to_pose_stamped(frame, [b_bot_start[0], b_bot_start[1], a_bot_centering_height, 0, tau/4, 0])
+    b_bot_push_tray_front_goal       = conversions.to_pose_stamped(frame, [b_bot_goal[0] , b_bot_goal[1] , a_bot_centering_height, 0, tau/4, 0])
     b_bot_push_tray_front_retreat    = conversions.to_pose_stamped(frame, [b_bot_start[0], b_bot_goal[1], b_bot_point[2], 0, tau/4, 0])
 
     offset = 0.0 # w.r.t to the tray's center, to avoid grasping the center with both robots
@@ -5811,7 +5822,7 @@ class O2ACCommon(O2ACBase):
     self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=False)
     self.allow_collisions_with_robot_hand("tray_center", "b_bot", allow=False)
 
-  def spawn_tray_stack(self, stack_center=[-0.03,0], tray_heights=[0.05,0.0], orientation_parallel=False, spawn_single_tray=False):
+  def spawn_tray_stack(self, stack_center=[-0.03,0], tray_heights=[0.03,-0.02], orientation_parallel=False, spawn_single_tray=False):
     orientation = [0, 0, 0] if orientation_parallel else [0, 0, tau/4] # tray's long side parallel to the table
     self.trays = {"tray%s"%(i+1): (stack_center+[tray_height], orientation_parallel) for i, tray_height in enumerate(tray_heights)}
     self.trays_return = {"tray%s"%(i+1): (stack_center+[tray_height], orientation_parallel) for i, tray_height in enumerate(tray_heights[::-1])}
@@ -5902,8 +5913,8 @@ class O2ACCommon(O2ACBase):
     self.allow_collisions_with_robot_hand("tray", "b_bot", allow=True)
     self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=True)
     self.allow_collisions_with_robot_hand("tray_center", "b_bot", allow=True)
-    self.a_bot.gripper.open(opening_width=0.05, wait=False)
-    self.b_bot.gripper.open(opening_width=0.05, wait=False)
+    self.a_bot.gripper.open(opening_width=0.08, wait=False)
+    self.b_bot.gripper.open(opening_width=0.08, wait=False)
 
     offset = 0.0 # w.r.t to the tray's center, to avoid grasping the center with both robots
     long_side = 0.375/2. + 0.004
@@ -5920,7 +5931,7 @@ class O2ACCommon(O2ACBase):
     
     a_bot_point = [-offset, -long_side] if tray_parallel else [offset, -long_side]
 
-    a_bot_at_tray_table    = conversions.to_pose_stamped("tray_center", [a_bot_point[0]-0.016, a_bot_point[1], 0.03] + place_orientation)
+    a_bot_at_tray_table    = conversions.to_pose_stamped("tray_center", [a_bot_point[0]-0.0162, a_bot_point[1]-0.003, 0.04] + place_orientation)
     a_bot_above_table      = conversions.to_pose_stamped("tray_center", [a_bot_point[0]-0.016, a_bot_point[1], 0.15] + place_orientation)
     a_bot_above_low_table  = conversions.to_pose_stamped("tray_center", [a_bot_point[0]-0.016, a_bot_point[1], 0.05] + place_orientation)
 
@@ -5977,8 +5988,8 @@ class O2ACCommon(O2ACBase):
       self.ab_bot.master_slave_control("a_bot", "b_bot", a_bot_at_tray_table, slave_relation)
       self.a_bot.gripper.close(wait=False)
       self.b_bot.gripper.close()
-      self.b_bot.gripper.open(opening_width=0.05, wait=False)
-      self.a_bot.gripper.open(opening_width=0.05, wait=False)
+      self.b_bot.gripper.open(opening_width=0.08, wait=False)
+      self.a_bot.gripper.open(opening_width=0.08, wait=False)
       rospy.sleep(0.5)
       self.ab_bot.master_slave_control("a_bot", "b_bot", a_bot_above_table, slave_relation)
       # a_bot_at_tray_table_rotated    = conversions.to_pose_stamped("tray_center", [+0.225/2., 0, 0.015, -tau/4, tau/4, 0])
@@ -6441,9 +6452,6 @@ class O2ACCommon(O2ACBase):
       rospy.logerror("compute_cartesian_path failed: fraction = " +str(fraction))
       return False
     
-
-
-
   def belt_fallback(self, pick_goal):
     rospy.logerr("Belt pick has failed. Return tool and abort.")
     self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp")
@@ -6451,7 +6459,7 @@ class O2ACCommon(O2ACBase):
     pick_goal.pose.position.x = 0  # In tray_center
     pick_goal.pose.position.y = 0
     pick_goal.pose.position.z += 0.06
-    self.a_bot.go_to_named_pose(pick_goal, speed=1.0)
+    self.a_bot.go_to_pose_goal(pick_goal, speed=1.0)
     self.a_bot.gripper.open(opening_width=0.07, wait=False)
     self.a_bot.go_to_named_pose("home")
     wait_for_UR_program("/b_bot", rospy.Duration.from_sec(20))
