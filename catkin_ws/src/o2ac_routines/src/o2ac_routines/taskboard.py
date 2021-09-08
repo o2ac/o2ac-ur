@@ -625,6 +625,7 @@ class O2ACTaskboard(O2ACCommon):
         return False
 
       self.confirm_to_proceed("Load and execute the belt threading programs?")
+      self.vision.activate_camera("b_bot_inside_camera")
       success_a = self.a_bot.load_program(program_name="wrs2020/taskboard_belt_v8.urp")
       success_b = self.b_bot.load_program(program_name="wrs2020/taskboard_belt_v8.urp")
       if success_a and success_b:
