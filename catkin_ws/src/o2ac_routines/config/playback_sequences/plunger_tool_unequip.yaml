@@ -1,9 +1,9 @@
 robot_name: b_bot
 waypoints:
-- pose: [-0.25, 0, 0.10, -90, 0, 0] # translation, orientation (degrees)
-  pose_type: task-space-in-frame
-  frame_id: right_centering_link
+- pose: "centering_area" # translation, orientation (degrees)
+  pose_type: named-pose
   speed: 1.0
+  acc: 0.5
   desc: Above tray edge
 - pose: [-0.2, 0.0, 0.0, 0, 0,0] 
   pose_type: task-space-in-frame

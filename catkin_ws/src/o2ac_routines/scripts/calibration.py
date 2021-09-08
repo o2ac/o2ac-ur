@@ -472,8 +472,8 @@ class CalibrationClass(O2ACCommon):
     # MAGIC NUMBERS (needs to be synced with pick_screw_from_feeder_python)
     if robot_name == "a_bot" and feeder_size == "m4":
       rospy.logerr("APPLYING MAGIC NUMBERS")
-      pose0.pose.position.y += -.004
-      pose0.pose.position.z += -.003
+      pose0.pose.position.y += -.004 # (world negative y-axis)
+      pose0.pose.position.z += -.0035 # (world x-axis)
 
     poses = []
     for i in range(3):

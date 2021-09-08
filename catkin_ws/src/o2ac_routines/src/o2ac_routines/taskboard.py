@@ -691,7 +691,25 @@ class O2ACTaskboard(O2ACCommon):
       # self.confirm_to_proceed("Unequip tool?")
       # self.b_bot.go_to_named_pose("home", speed=0.5, acceleration=0.5)
       if not simultaneous:
-        self.unequip_tool("b_bot", "set_screw_tool")
+        tries = 3
+        success = False
+        while tries > 0:
+          success = self.unequip_tool("b_bot", "set_screw_tool")
+          if not success:
+            self.b_bot.go_to_named_pose("home")
+            tries -= 1
+          else:
+            break
+        if not success:
+          rospy.logerr("Fail to unequip set screw, dropping it")
+          self.b_bot.go_to_named_pose("screw_ready")
+          self.b_bot.gripper.open()
+          self.b_bot.robot_status.carrying_tool = False
+          self.b_bot.robot_status.held_tool_id = ""
+          self.b_bot.gripper.forget_attached_item()
+          self.despawn_tool("set_screw_tool")
+          self.b_bot.go_to_named_pose("home")
+        
     
     # ==========================================================
 

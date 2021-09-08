@@ -695,9 +695,13 @@ class O2ACBase(object):
     if result is not None:
       motor_stalled = result.motor_stalled
 
+    if not motor_stalled:
+      rospy.logerr("Fail to fasten screw! motor not stalled.")
+
     screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
     # Check if the screw is in the hole or not
     if retry_on_failure and not motor_stalled and screw_picked:
+      rospy.logerr("Attempt to screw again. (retry_on_failure)")
       # Try once more
       self.tools.set_motor(fastening_tool_name, direction="tighten", wait=False, duration=5, 
                          skip_final_loosen_and_retighten=skip_final_loosen_and_retighten)
@@ -718,6 +722,7 @@ class O2ACBase(object):
     if screw_picked and not stay_put_after_screwing:
       rospy.logerr("screw did not succeed: screw is still suctioned.")
       if attempts > 0:
+        rospy.logerr("Attempt to screw again. (attempts > 0)")
         return self.screw(robot_name=robot_name, screw_hole_pose=screw_hole_pose, screw_size=screw_size, screw_height=screw_height,
               stay_put_after_screwing=stay_put_after_screwing, duration=duration, skip_final_loosen_and_retighten=skip_final_loosen_and_retighten,
               spiral_radius=spiral_radius, attempts=attempts-1)

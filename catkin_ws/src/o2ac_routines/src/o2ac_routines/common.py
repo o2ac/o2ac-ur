@@ -164,10 +164,14 @@ class O2ACCommon(O2ACBase):
 
     close_tray_views = [tray_view_low, tray_view_close_front_b, tray_view_close_back_b, tray_view_close_front_a, tray_view_close_back_a]
     if include_rotated_views:
-      close_tray_views.append(rotatePoseByRPY(radians(20),0,0, pose) for pose in close_tray_views)
-      close_tray_views.append(rotatePoseByRPY(radians(-20),0,0, pose) for pose in close_tray_views)
-      close_tray_views.append(rotatePoseByRPY(radians(50),0,0, pose) for pose in close_tray_views)
-      close_tray_views.append(rotatePoseByRPY(radians(90),0,0, pose) for pose in close_tray_views)
+      rot_20  = [rotatePoseByRPY(radians(20),0,0, pose) for pose in close_tray_views]
+      rot_n20 = [rotatePoseByRPY(radians(-20),0,0, pose) for pose in close_tray_views]
+      rot_50  = [rotatePoseByRPY(radians(50),0,0, pose) for pose in close_tray_views]
+      rot_90  = [rotatePoseByRPY(radians(90),0,0, pose) for pose in close_tray_views]
+      close_tray_views += rot_20
+      close_tray_views += rot_n20
+      close_tray_views += rot_50
+      close_tray_views += rot_90
     return tray_view_high, close_tray_views
 
   def publish_part_in_assembled_position(self, object_name, test_header_frame="", disable_collisions=False, marker_only=False):
@@ -1327,7 +1331,6 @@ class O2ACCommon(O2ACBase):
       return False
     self.allow_collisions_with_robot_hand("plunger_tool_link", "b_bot", False)
 
-    self.b_bot.go_to_named_pose("home")
     return True
 
   def move_towards_center_from_border_with_tool(self, robot_name, object_pose, start_with_spiral=False, distance=0.1):
@@ -1336,11 +1339,11 @@ class O2ACCommon(O2ACBase):
     direction = None
     if dx < dy: # Use the close border
       direction = 'x'
-      border_pose.pose.position.x = 0.12 if np.sign(border_pose.pose.position.x) == 1 else -0.13 # non-symmetric tray_center
+      border_pose.pose.position.x = 0.12 if np.sign(border_pose.pose.position.x) == 1 else -0.133 # non-symmetric tray_center
       border_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/4, tau/4+np.sign(border_pose.pose.position.x)*radians(15), -tau/2))
     else:
       direction = 'y'
-      border_pose.pose.position.y = 0.186 if np.sign(border_pose.pose.position.y) == 1 else -0.19 # non-symmetric tray_center
+      border_pose.pose.position.y = 0.186 if np.sign(border_pose.pose.position.y) == 1 else -0.193 # non-symmetric tray_center
       border_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/4, tau/4-np.sign(border_pose.pose.position.y)*radians(15), tau/4))
 
     return self.move_towards_center_with_tool(robot_name, border_pose, direction=direction, start_with_spiral=start_with_spiral, distance=distance)
@@ -2830,7 +2833,7 @@ class O2ACCommon(O2ACBase):
   def insert_idler_pulley(self, target_link):
     rospy.loginfo("Going to near tb (a_bot)")
     # MAGIC NUMBERS (offset from TCP to tip of idler pulley thread)
-    approach_pose = conversions.to_pose_stamped(target_link, [(-0.07),  0.01, 0.0, tau/4.0, 0, tau/8.])
+    approach_pose = conversions.to_pose_stamped(target_link, [(-0.15),   0.011,-0.05, tau/4.0, 0, tau/8.])
     near_tb_pose = conversions.to_pose_stamped(target_link,  [(-0.016), 0.011, 0.0, tau/4.0, 0, tau/8.])
     in_tb_pose = conversions.to_pose_stamped(target_link,    [(-0.011), 0.011, 0.0, tau/4.0, 0, tau/8.])
     in_tb_pose_world = self.listener.transformPose("world", in_tb_pose)
@@ -2853,7 +2856,7 @@ class O2ACCommon(O2ACBase):
 
     for offset in insertion_offsets:
       selection_matrix = [0.,1.,1.,1,1,1]
-      success = self.a_bot.linear_push(8, "-X", max_translation=0.015, timeout=10.0, slow=True, selection_matrix=selection_matrix)
+      success = self.a_bot.linear_push(10, "-X", max_translation=0.01, timeout=10.0, slow=False, selection_matrix=selection_matrix)
 
       if not self.use_real_robot:
         return True
@@ -5221,7 +5224,7 @@ class O2ACCommon(O2ACBase):
     seq.append(helpers.to_sequence_item(at_centering_pose, speed=speed))
     seq.append(helpers.to_sequence_gripper(0.01, gripper_velocity=1.0, wait=False))
     seq.append(helpers.to_sequence_item(pre_push_pose, speed=speed))
-    seq.append(helpers.to_sequence_gripper(0.00425, gripper_force=0, gripper_velocity=0.1))
+    seq.append(helpers.to_sequence_gripper(0.0048, gripper_force=0, gripper_velocity=0.1))
     seq.append(helpers.to_sequence_item(push_pose, speed=0.1))
 
     def post_callback():
