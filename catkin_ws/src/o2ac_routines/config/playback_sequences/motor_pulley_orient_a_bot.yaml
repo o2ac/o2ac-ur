@@ -24,6 +24,13 @@ waypoints:
     action: 'open'
     open_width: 0.06
     velocity: 0.01
+- pose_type: gripper
+  gripper:
+    action: 'close-open'
+    open_width: 0.06
+    velocity: 0.01
+    force: 0
+  desc: Centering
 - pose: [-0.005, 0, 0.0, 60, 0, 0] 
   pose_type: task-space-in-frame
   frame_id: left_centering_link
@@ -45,8 +52,8 @@ waypoints:
 - pose_type: gripper
   gripper:
     action: 'close'
-    velocity: 0.1
-    force: 60
+    velocity: 0.01
+    force: 50
 - pose: [0, 0, 0.06, 0, 0, 0] 
   pose_type: relative-world
   speed: 0.3
