@@ -1744,13 +1744,16 @@ class O2ACCommon(O2ACBase):
     rotation_offset = -1 if robot_name == "b_bot" else 1
     above_tray       = conversions.to_pose_stamped("tray_center", [0, 0, 0.15, 0, tau/4, rotation_offset*tau/4])
     tray_center_pose = conversions.to_pose_stamped("tray_center", [0, 0, 0.06, 0, tau/4, rotation_offset*tau/4])
+    drop_pose = self.listener.transformPose("tray_center", tray_center_pose)
+    drop_pose.pose.position.x = np.random.uniform(low=-0.08, high=0.08)
+    drop_pose.pose.position.y = np.random.uniform(low=-0.08, high=0.08)
     
     if not robot.go_to_pose_goal(above_tray):
       rospy.logerr("fail to go to above_tray (drop_in_tray)")
       return False
 
-    if not robot.go_to_pose_goal(tray_center_pose):
-      rospy.logerr("fail to go to tray_center_pose (drop_in_tray)")
+    if not robot.go_to_pose_goal(drop_pose):
+      rospy.logerr("fail to go to drop_pose (drop_in_tray)")
       return False
 
     robot.gripper.open() 
