@@ -1206,7 +1206,7 @@ class O2ACBase(object):
   def despawn_tool(self, tool_name):
     if tool_name in self.screw_tools: 
       rospy.loginfo("Despawn: " + tool_name)
-      self.planning_scene_interface.remove_attached_object(self.screw_tools[tool_name].id)
+      self.planning_scene_interface.remove_attached_object(name=self.screw_tools[tool_name].id)
       self.planning_scene_interface.remove_world_object(self.screw_tools[tool_name].id)
       return True
     else:
