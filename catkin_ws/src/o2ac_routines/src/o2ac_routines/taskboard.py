@@ -307,6 +307,7 @@ class O2ACTaskboard(O2ACCommon):
     rospy.loginfo("==== Start: Idler Pulley ====")
     self.subtask_completed["idler pulley"] = self.do_task("idler pulley", simultaneous=True)
     rospy.loginfo("==== End: Idler Pulley (%s) ====" % (self.subtask_completed["idler pulley"]))
+    self.subtask_completed["idler pulley"] = True  # We have no fallback, so we do not reattempt
 
     # Pick bearing, do motor_pulley
     rospy.loginfo("==== Start: Pick Bearing ====")
@@ -379,6 +380,7 @@ class O2ACTaskboard(O2ACCommon):
           self.subtask_completed["screw_bearing"] = self.fasten_bearing(task="taskboard", robot_name="a_bot", simultaneous=True, with_extra_retighten=True)
           if not self.subtask_completed["screw_bearing"]:
             rospy.logerr("Failed to do simultaneous fastening")
+          self.subtask_completed["screw_bearing"] = True # We have no fallback, we do not reattempt
         def b_bot_task3(): # pick/orient/insert motor pulley
           if not self.subtask_completed["shaft"]:
             self.publish_status_text("Target: Shaft")
