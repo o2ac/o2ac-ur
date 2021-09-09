@@ -740,7 +740,9 @@ class O2ACTaskboard(O2ACCommon):
         waypoints.append(("horizontal_screw_ready", 0, 1.0))
         waypoints.append(("screw_ready",      0, 1.0))
         if not self.a_bot.move_joints_trajectory(waypoints):
-          rospy.logerr("Fail to go to back from screwing(a_bot)")
+          if not self.a_bot.move_joints_trajectory(waypoints):
+            rospy.logerr("Fail to go to back from screwing(a_bot)")
+            return False
           return False
       else:
         hole_pose.pose.position.x -= 0.005
