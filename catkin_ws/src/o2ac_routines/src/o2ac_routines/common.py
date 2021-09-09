@@ -2228,6 +2228,7 @@ class O2ACCommon(O2ACBase):
         robot.move_lin_rel(relative_translation = [0.05,0,0], acceleration = 0.015, speed=.03)
         if self.use_storage_on_failure:
           self.simple_place(robot_name, self.bearing_store_pose, place_height=0.0, gripper_opening_width=0.09, axis="x", sign=-1)
+          self.a_bot.gripper.forget_attached_item()
           self.is_bearing_in_storage = True
         else:
           self.drop_in_tray(robot_name)
@@ -2608,6 +2609,7 @@ class O2ACCommon(O2ACBase):
         self.active_robots[robot_name].move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
         if self.use_storage_on_failure:
           self.simple_place(robot_name, self.motor_pulley_store_pose, place_height=0.0, gripper_opening_width=0.09, axis="x", sign=-1, approach_height=0.1)
+          self.b_bot.gripper.forget_attached_item()
           self.is_motor_pulley_in_storage = True
         else:
           # return to tray to drop pulley
