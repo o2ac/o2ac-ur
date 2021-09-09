@@ -23,21 +23,29 @@ subframes:
   - 0.0
   name: tip
 - pose_xyzrpy:
-  - 0.019
-  - -0.006
-  - 0.027
-  - -pi/2
-  - -pi/2
-  - 0.0
-  name: inserted_13
-- pose_xyzrpy:
-  - 0.019
-  - -0.006
+  - 0.02
+  - -0.007
   - 0.021
   - -pi/2
   - -pi/2
   - 0.0
   name: inserted_02
+- pose_xyzrpy:
+  - 0.011
+  - -0.006
+  - -0.04
+  - -pi/2
+  - -pi/2
+  - 0.0
+  name: black_cable_connector
+- pose_xyzrpy:
+  - 0.029
+  - 0.006
+  - -0.04
+  - -pi/2
+  - -pi/2
+  - 0.0
+  name: red_cable_connector
 grasp_points:
 - grasp_name: grasp_1
   pose_xyzrpy:

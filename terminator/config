@@ -481,11 +481,11 @@
       position = 410
       ratio = 0.2224633749321758
     [[[child2]]]
-      type = HPaned
+      type = VPaned
       parent = child1
       order = 0
       position = 211
-      ratio = 0.5209876543209877
+      ratio = 0.5
     [[[child3]]]
       type = VPaned
       parent = child2

@@ -48,12 +48,27 @@
     </joint>
     <link name="${prefix}gripper_tip_link"/>
 
+    <link name="${prefix}cable_tool_tip_link"/>
+    <joint name="${prefix}cable_tool_tip_link_joint" type="fixed">
+      <parent link="${prefix}gripper_tip_link"/>
+      <child link="${prefix}cable_tool_tip_link"/>
+      <origin rpy="0.0 0.0 0.0" xyz="${.03} 0.0 0.0"/>
+    </joint>
+
     <joint name="${prefix}plunger_tip_link_joint" type="fixed">
       <parent link="${prefix}gripper_tip_link"/>
       <child link="${prefix}plunger_tip_link"/>
       <origin rpy="0 0 0" xyz=".10 0 0"/>
     </joint>
     <link name="${prefix}plunger_tip_link"/>
+
+
+    <joint name="${prefix}belt_hook_curve_link_joint" type="fixed">
+      <parent link="${prefix}gripper_tip_link"/>
+      <child link="${prefix}belt_hook_curve_link"/>
+      <origin rpy="0 0 ${-radians(10)}" xyz=".04 0 0"/>
+    </joint>
+    <link name="${prefix}belt_hook_curve_link"/>
 
     <!-- ========= -->
     <!-- Add screw tool tip frames. X-axis points along the screw into the hole. -->
@@ -76,7 +91,7 @@
     <joint name="${prefix}robotiq_85_screw_tool_m4_tip_joint" type="fixed">
       <parent link="${prefix}tool_intermediate_link"/>
       <child link="${prefix}screw_tool_m4_tip_link"/>
-      <origin rpy="0 0 0" xyz=".146 0 0.005 "/>
+      <origin rpy="0 0 0" xyz=".148 0.0 0.005 "/>
     </joint>
     <link name="${prefix}screw_tool_m4_tip_link"/>
 

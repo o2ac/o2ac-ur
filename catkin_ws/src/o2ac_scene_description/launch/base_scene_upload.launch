@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="taskboard" default="false"/>
+  <arg name="taskboard" default="true"/>
   <!-- This file is used by MoveIt. -->
   <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find o2ac_scene_description)/urdf/base_scene.urdf.xacro' taskboard:=$(arg taskboard)" />
 

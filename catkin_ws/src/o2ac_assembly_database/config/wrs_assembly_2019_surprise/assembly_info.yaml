@@ -1,0 +1,8 @@
+# This file contains metadata about the assembly.
+description: A surprise set from the WRS2020 trials held in 2019
+
+panel_bearing_facing_backward: True
+panel_motor_facing_backward: False
+switched_motor_and_bearing: True
+
+motor_shaft_down: True

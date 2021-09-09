@@ -6,11 +6,12 @@ Panels:
       Expanded:
         - /Global Options1
         - /PlanningScene1/Scene Robot1
+        - /PlanningScene1/Scene Robot1/Links1
         - /DepthCloud1/Auto Size1
         - /RobotModel1/Links1
         - /RobotModel1/Links1/b_bot_ee_link1
       Splitter Ratio: 0.7235293984413147
-    Tree Height: 793
+    Tree Height: 550
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -857,7 +858,7 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          taskboard_assy_part_07:
+          tray:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -866,39 +867,44 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          taskboard_assy_part_07_back_tip:
+            Value: false
+          tray_left_stopper:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          taskboard_assy_part_07_front_hole:
+            Value: false
+          tray_left_stopper2:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          taskboard_assy_part_07_inserted:
+            Value: false
+          tray_right_stopper:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          taskboard_assy_part_07_origin:
+            Value: false
+          tray_right_stopper2:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          taskboard_assy_part_07_screw_hole_1:
+            Value: false
+          traycorner_1_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          taskboard_assy_part_07_screw_hole_2:
+          traycorner_2_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          taskboard_assy_part_07_screw_hole_3:
+          traycorner_3_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          taskboard_assy_part_07_screw_hole_4:
+          traycorner_4_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          taskboard_base:
+          tv:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -907,39 +913,44 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          taskboard_base_screw_2_link:
+            Value: false
+          vertical_column_right:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          taskboard_base_screw_3_link:
+            Value: false
+          vgroove_aid_drop_point_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          taskboard_base_screw_4_link:
+          vgroove_aid_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          taskboard_bearing_target_link:
+            Value: false
+          washer_holder1:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          taskboard_bearing_target_screw_1_link:
+            Value: false
+          washer_holder1_collar_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          taskboard_bearing_target_screw_2_link:
+          washer_holder1_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          taskboard_bearing_target_screw_3_link:
+          washer_holder2:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          taskboard_bearing_target_screw_4_link:
+            Value: false
+          washer_holder2_collar_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          taskboard_large_pulley:
+          washer_holder2_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -948,19 +959,21 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          taskboard_long_hole_top_link:
+            Value: false
+          washer_holder3_collar_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          taskboard_m3_screw_link:
+          washer_holder3_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          taskboard_m4_screw_link:
+          washer_holder4:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          taskboard_plate:
+            Value: false
+          washer_holder4_collar_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -1165,7 +1178,7 @@ Visualization Manager:
       Marker Topic: /o2ac_assembly_markers
       Name: Assembly Visualization
       Namespaces:
-        {}
+        "": true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -1921,7 +1934,7 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        taskboard_assy_part_07:
+        tray:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -1930,39 +1943,44 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        taskboard_assy_part_07_back_tip:
+          Value: true
+        tray_left_stopper:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        taskboard_assy_part_07_front_hole:
+          Value: true
+        tray_left_stopper2:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        taskboard_assy_part_07_inserted:
+          Value: true
+        tray_right_stopper:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        taskboard_assy_part_07_origin:
+          Value: true
+        tray_right_stopper2:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        taskboard_assy_part_07_screw_hole_1:
+          Value: true
+        traycorner_1_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        taskboard_assy_part_07_screw_hole_2:
+        traycorner_2_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        taskboard_assy_part_07_screw_hole_3:
+        traycorner_3_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        taskboard_assy_part_07_screw_hole_4:
+        traycorner_4_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        taskboard_base:
+        tv:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -1971,31 +1989,35 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        taskboard_base_screw_2_link:
+          Value: true
+        vertical_column_right:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        taskboard_base_screw_3_link:
+          Value: true
+        vgroove_aid_drop_point_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        taskboard_base_screw_4_link:
+        vgroove_aid_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        taskboard_bearing_target_link:
+          Value: true
+        washer_holder1:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        taskboard_bearing_target_screw_1_link:
+          Value: true
+        washer_holder1_collar_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        taskboard_bearing_target_screw_2_link:
+        washer_holder1_tip_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        taskboard_bearing_target_screw_3_link:
+        washer_holder2:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -2012,11 +2034,11 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        taskboard_long_hole_top_link:
+        washer_holder2_tip_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        taskboard_m3_screw_link:
+        washer_holder3:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -2033,7 +2055,7 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        taskboard_small_pulley:
+        washer_holder3_tip_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -2047,7 +2069,7 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        tray:
+        washer_holder4_tip_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -2192,7 +2214,7 @@ Visualization Manager:
       Background Alpha: 0.800000011920929
       Background Color: 0; 0; 0
       Class: jsk_rviz_plugin/OverlayText
-      Enabled: true
+      Enabled: false
       Foreground Alpha: 0.800000011920929
       Foreground Color: 25; 255; 240
       Invert Shadow: false
@@ -2201,7 +2223,7 @@ Visualization Manager:
       Overtake FG Color Properties: false
       Overtake Position Properties: false
       Topic: /text_sample
-      Value: true
+      Value: false
       font: DejaVu Sans Mono
       height: 128
       left: 0

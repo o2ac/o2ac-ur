@@ -6,6 +6,8 @@
 
 #include <eigen_conversions/eigen_msg.h>
 #include <moveit/move_group_interface/move_group_interface.h>
+#include <moveit/robot_state/conversions.h>
+
 #include <ros/ros.h>
 
 void load_grasp_points(const std::string &yaml_file_path,
@@ -38,10 +40,19 @@ int main(int argc, char **argv) {
   ros::init(argc, argv, "planner_test");
   ros::NodeHandle nd;
 
-  FILE *config_file =
-      fopen("/root/o2ac-ur/catkin_ws/src/o2ac_pose_distribution_updater/test/"
-            "planning_test_config.txt",
-            "r");
+  ros::AsyncSpinner spinner(1);
+  spinner.start();
+
+  std::string config_file_name;
+  if (argc > 1) {
+    config_file_name = std::string(argv[1]);
+  } else {
+    config_file_name =
+        "/root/o2ac-ur/catkin_ws/src/o2ac_pose_distribution_updater/test/"
+        "planning_test_config.txt";
+  }
+
+  FILE *config_file = fopen(config_file_name.c_str(), "r");
   char stl_file_path[1000], metadata_file_path[1000];
   fscanf(config_file, "%999s%999s", stl_file_path, metadata_file_path);
 
@@ -61,12 +72,18 @@ int main(int argc, char **argv) {
   planner.load_config_file(
       "/root/o2ac-ur/catkin_ws/src/o2ac_pose_distribution_updater/launch/"
       "estimator_config.yaml");
+  int use_BFS;
+  fscanf(config_file, "%d", &use_BFS);
   double touch_cost, look_cost, place_cost, grasp_cost, push_cost,
       translation_cost, rotation_cost;
-  int use_moveit;
-  fscanf(config_file, "%lf%lf%lf%lf%lf%lf%lf%d", &touch_cost, &look_cost,
-         &place_cost, &grasp_cost, &push_cost, &translation_cost,
-         &rotation_cost, &use_moveit);
+  if (use_BFS) {
+    planner.use_BFS = true;
+  } else {
+    planner.use_BFS = false;
+    fscanf(config_file, "%lf%lf%lf%lf%lf%lf%lf", &touch_cost, &look_cost,
+           &place_cost, &grasp_cost, &push_cost, &translation_cost,
+           &rotation_cost);
+  }
   boost::array<double, 5> action_cost{touch_cost, look_cost, place_cost,
                                       grasp_cost, push_cost};
 
@@ -84,6 +101,11 @@ int main(int argc, char **argv) {
                                  current_gripper_pose.rotation().inverse())
                    .angle();
   };
+  if (!use_BFS) {
+    planner.set_cost_function(std::make_shared<CostFunction>(cost_function));
+  }
+  int use_moveit;
+  fscanf(config_file, "%d", &use_moveit);
 
   moveit::planning_interface::MoveGroupInterface robot_group("a_bot");
   ValidityChecker moveit_validity_checker =
@@ -93,23 +115,68 @@ int main(int argc, char **argv) {
     if (type == touch_action_type || type == look_action_type) {
       return false;
     }
+    // fprintf(stderr, "%d\n",static_cast<int>(type));
+    // print_pose(current_gripper_pose, stderr);
+    // print_pose(target_gripper_pose, stderr);
     robot_group.clearPoseTargets();
     robot_group.setPoseReferenceFrame("world");
     robot_group.setStartStateToCurrentState();
     robot_group.setEndEffectorLink("a_bot_gripper_tip_link");
-    robot_group.setMaxVelocityScalingFactor(0.1);
-    robot_group.setMaxAccelerationScalingFactor(0.5);
     robot_group.setPlanningTime(15.0);
 
-    std::vector<geometry_msgs::Pose> waypoints(1);
-    tf::poseEigenToMsg(target_gripper_pose, waypoints[0]);
-    moveit_msgs::RobotTrajectory trajectory;
-    const double jump_threshold = 0.0;
-    const double eef_step = 0.01;
-    double cartesian_success = robot_group.computeCartesianPath(
-        waypoints, eef_step, jump_threshold, trajectory);
+    const double pushing_length = 0.05, retreat_height = 0.05;
+    std::vector<Eigen::Isometry3d> target_poses(1, current_gripper_pose);
 
-    return cartesian_success > 0.95;
+    if (type == place_action_type) {
+      Eigen::Isometry3d high_pose = target_gripper_pose;
+      high_pose.translation().z() += retreat_height;
+      target_poses.push_back(high_pose);
+      target_poses.push_back(target_gripper_pose);
+    } else if (type == grasp_action_type) {
+      target_poses.push_back(target_gripper_pose);
+      /*geometry_msgs::Pose high_pose = gripper_pose;
+      high_pose.position.z += retreat_height;
+      waypoints.push_back(high_pose);*/
+    } else if (type == push_action_type) {
+      Eigen::Isometry3d pose_before_push = target_gripper_pose;
+      pose_before_push.translation() -=
+          pushing_length *
+          (target_gripper_pose.rotation() * Eigen::Vector3d::UnitZ());
+      target_poses.push_back(pose_before_push);
+      target_poses.push_back(target_gripper_pose);
+    }
+
+    moveit::core::RobotState last_state(*robot_group.getCurrentState());
+    for (int t = 0;; t++) {
+      moveit_msgs::RobotTrajectory trajectory;
+      std::vector<geometry_msgs::Pose> waypoints(1);
+      const double jump_threshold = 0.0;
+      const double eef_step = 0.01;
+      if (t <= 1) {
+        robot_group.setMaxVelocityScalingFactor(0.1);
+        robot_group.setMaxAccelerationScalingFactor(0.5);
+      } else {
+        robot_group.setMaxVelocityScalingFactor(0.01);
+        robot_group.setMaxAccelerationScalingFactor(0.01);
+      }
+      tf::poseEigenToMsg(target_poses[t], waypoints[0]);
+      double cartesian_success = robot_group.computeCartesianPath(
+          waypoints, eef_step, jump_threshold, trajectory);
+
+      if (cartesian_success <= 0.95) {
+        // fprintf(stderr, "NG\n");
+        return false;
+      }
+      if (t + 1 >= target_poses.size())
+        break;
+
+      moveit::core::jointTrajPointToRobotState(
+          trajectory.joint_trajectory,
+          trajectory.joint_trajectory.points.size() - 1, last_state);
+      robot_group.setStartState(last_state);
+    }
+    // fprintf(stderr, "OK\n");
+    return true;
   };
   boost::array<bool, 5> able_action;
   if (!use_moveit) {
@@ -126,7 +193,6 @@ int main(int argc, char **argv) {
     return able_action[static_cast<int>(type)];
   };
 
-  planner.set_cost_function(std::make_shared<CostFunction>(cost_function));
   planner.set_validity_checker(std::make_shared<ValidityChecker>(
       use_moveit ? moveit_validity_checker : type_validity_checker));
 
@@ -142,26 +208,37 @@ int main(int argc, char **argv) {
   } else {
     // set initial pose belief
     scan_pose(initial_mean, config_file);
-    initial_gripper_pose = Eigen::Isometry3d::Identity();
+    scan_pose(initial_gripper_pose, config_file);
   }
   double support_surface;
-  fscanf(config_file, "%lf", &support_surface);
-  // set covariance randomly
-  std::random_device seed_generator;
-  std::default_random_engine engine(seed_generator());
-  std::uniform_real_distribution<double> uniform_distribution(-1.0, 1.0);
-  CovarianceMatrix deviation, initial_covariance;
-  double deviation_scale[6];
-  for (int i = 0; i < 6; i++) {
-    fscanf(config_file, "%lf", deviation_scale + i);
-  }
-  for (int i = 0; i < 6; i++) {
-    for (int j = 0; j < 6; j++) {
-      deviation(i, j) = deviation_scale[j] * uniform_distribution(engine);
+  int covariance_given;
+  fscanf(config_file, "%lf%d", &support_surface, &covariance_given);
+  CovarianceMatrix initial_covariance;
+  if (covariance_given) {
+    for (int i = 0; i < 6; i++) {
+      for (int j = 0; j < 6; j++) {
+        double value;
+        fscanf(config_file, "%lf", &value);
+        initial_covariance(i, j) = value;
+      }
     }
+  } else {
+    // set covariance randomly
+    std::random_device seed_generator;
+    std::default_random_engine engine(seed_generator());
+    std::uniform_real_distribution<double> uniform_distribution(-1.0, 1.0);
+    CovarianceMatrix deviation;
+    double deviation_scale[6];
+    for (int i = 0; i < 6; i++) {
+      fscanf(config_file, "%lf", deviation_scale + i);
+    }
+    for (int i = 0; i < 6; i++) {
+      for (int j = 0; j < 6; j++) {
+        deviation(i, j) = deviation_scale[j] * uniform_distribution(engine);
+      }
+    }
+    initial_covariance = deviation.transpose() * deviation;
   }
-  initial_covariance = deviation.transpose() * deviation;
-
   // make action plan
   CovarianceMatrix objective_coefficients;
   for (int i = 0; i < 6; i++) {
@@ -176,9 +253,10 @@ int main(int argc, char **argv) {
   fscanf(config_file, "%lf%d", &objective_value, &is_goal_pose);
 
   planner.set_geometry(gripped_geometry, grasp_points, support_surface);
-  
+
   std::vector<UpdateAction> actions;
-  if (is_goal_pose) {
+
+  if (is_goal_pose == 1) {
     char goal_grasp_name[1000];
     double translation_threshold, rotation_threshold;
     fscanf(config_file, "%999s%lf%lf", goal_grasp_name, &translation_threshold,
@@ -186,20 +264,22 @@ int main(int argc, char **argv) {
     Eigen::Isometry3d goal_pose =
         (*grasp_points)[name_to_id[std::string(goal_grasp_name)]].inverse();
     std::cerr << goal_pose.matrix() << std::endl;
-    actions = planner.calculate_plan(
-        initial_gripper_pose,
-        initially_gripping, initial_mean, initial_covariance,
-        objective_coefficients, objective_value, true,
-        check_near_to_goal_pose(goal_pose, translation_threshold,
-                                rotation_threshold));
-  } else {
-    actions = planner.calculate_plan(
-        initial_gripper_pose,
-        initially_gripping, initial_mean, initial_covariance,
-        objective_coefficients, objective_value);
+    planner.set_goal_checker(
+        std::make_shared<GoalChecker>(check_near_to_goal_pose(
+            goal_pose, translation_threshold, rotation_threshold)));
+
+  } else if (is_goal_pose == 2) {
+    planner.set_goal_checker(std::make_shared<GoalChecker>(
+        [](const bool &gripping, const Eigen::Isometry3d &pose) {
+          return !gripping;
+        }));
   }
 
   fclose(config_file);
+
+  actions = planner.calculate_plan(initial_gripper_pose, initially_gripping,
+                                   initial_mean, initial_covariance,
+                                   objective_coefficients, objective_value);
 
   // print action plan
   printf("%s\n", stl_file_path);

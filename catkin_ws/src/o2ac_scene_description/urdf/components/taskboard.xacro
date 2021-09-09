@@ -88,7 +88,7 @@
     <origin rpy="${pi} 0 0" xyz="${0.025+.008} 0.165 0.12"/> 
   </xacro:assy_part_07> 
   
-  <!-- The large pulley -->
+  <!-- The small pulley -->
   <joint name="${boardname}_small_pulley" type="fixed">
     <parent link="${boardname}_plate" />
     <child link = "${boardname}_small_pulley" />

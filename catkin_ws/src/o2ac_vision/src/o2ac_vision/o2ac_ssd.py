@@ -59,6 +59,10 @@ class ssd_detection():
         fname_weight = rospack.get_path("wrs_dataset") + "/ssd.pytorch/WRS.pth"
         self.net = build_ssd('test', 300, 22)    # initialize SSD
         self.net.load_weights( fname_weight )
+        # parameter for color adjustment
+        self.c_param = dict()
+        self.c_param["offset"] = np.array( [0.0,0.0,0.0] )
+        self.c_param["gamma"] = 1.0        
 
     def object_detection(self, im_in, im_vis=None, threshold = 0.6, overlap_threshold = 0.8):
         """ Object detection by SSD
@@ -72,6 +76,8 @@ class ssd_detection():
         Return:
           results... a list of dict(bbox, class_id, score)
         """
+        # color adjustment
+        im_in = image_transform( im_in, self.c_param )
 
         # Preproc
         x = cv2.resize( im_in, (300, 300)).astype(np.float32 )
@@ -208,3 +214,38 @@ def compute_iou( bboxA, bboxB ):
 
     iou = float(area_inter) / float(area_A + area_B - area_inter)
     return iou
+
+
+def image_transform( img, param ):
+    """ パラメータに基づいて画像を変更
+        Args:
+        img(np.array): image to be transformed. (3ch)
+        param(dict): parameter consist of offset(np.array) and gamma(float).
+    """
+    # Copy parameter
+    offset = np.array([0.0, 0.0, 0.0])
+    gamma = 1.0
+    if "offset" in param:
+        offset = param["offset"]
+    if "gamma" in param:
+        gamma = param["gamma"]
+
+
+    img = img.copy()
+    img = img + offset
+    img = np.clip(img, 0, 255).astype(np.uint8)
+    img = create_gamma_img( gamma, img )
+    return img
+
+# ガンマ補正
+def create_gamma_img(gamma, img):
+    """ 画像のガンマ補正 
+        Args:
+        gamma(float): ガンマ値
+        img(np.array): 画像
+        Return:
+        補正後の画像(np.array) 
+    """
+    x = np.arange(256)
+    y = (255.0*(x/255.0) ** (1.0/gamma)).astype(np.uint8)
+    return cv2.LUT(img, y)

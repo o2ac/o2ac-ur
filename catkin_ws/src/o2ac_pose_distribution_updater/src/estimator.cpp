@@ -142,8 +142,16 @@ void PoseEstimator::load_config_file(const std::string &file_path) {
     calibration_image_points.push_back(point);
   }
 
-  set_particle_parameters(config["number_of_particles"].as<int>(),
-                          noise_variance);
+  this->touch_number_of_particles =
+      config["touch_number_of_particles"].as<int>();
+  this->look_number_of_particles = config["look_number_of_particles"].as<int>();
+  this->place_number_of_particles =
+      config["place_number_of_particles"].as<int>();
+  this->grasp_number_of_particles =
+      config["grasp_number_of_particles"].as<int>();
+  this->push_number_of_particles = config["push_number_of_particles"].as<int>();
+  this->noise_variance = noise_variance;
+
   set_touch_parameters(touched_objects,
                        config["distance_threshold"].as<double>());
   set_look_parameters(
@@ -168,6 +176,15 @@ void PoseEstimator::set_particle_parameters(const int &number_of_particles,
                                             const Particle &noise_variance) {
   this->number_of_particles = number_of_particles;
   this->noise_variance = noise_variance;
+
+  particles = std::vector<Particle>(number_of_particles);
+  particle_transforms = std::vector<Eigen::Isometry3d>(number_of_particles);
+  fcl_particle_transforms = std::vector<fcl::Transform3f>(number_of_particles);
+  likelihoods = std::vector<double>(number_of_particles);
+}
+
+void PoseEstimator::reset_number_of_particles(const int &number_of_particles) {
+  this->number_of_particles = number_of_particles;
 
   particles = std::vector<Particle>(number_of_particles);
   particle_transforms = std::vector<Eigen::Isometry3d>(number_of_particles);
@@ -291,7 +308,8 @@ void PoseEstimator::calculate_new_distribution(
 
   double sum_of_likelihoods =
       std::accumulate(likelihoods.begin(), likelihoods.end(), 0.0);
-  std::cerr << "The sum of likelihoods:" << sum_of_likelihoods << '\n';
+  std::cerr << "The sum of likelihoods:" << sum_of_likelihoods << " / "
+            << number_of_particles << '\n';
   if (sum_of_likelihoods <= EPS) {
     throw std::runtime_error("The sum of likelihoods is 0");
   }
@@ -329,7 +347,8 @@ void PoseEstimator::calculate_new_Lie_distribution(
 
   double sum_of_likelihoods =
       std::accumulate(likelihoods.begin(), likelihoods.end(), 0.0);
-  std::cerr << "The sum of likelihoods:" << sum_of_likelihoods << '\n';
+  std::cerr << "The sum of likelihoods:" << sum_of_likelihoods << " / "
+            << number_of_particles << '\n';
   if (sum_of_likelihoods <= EPS) {
     throw std::runtime_error("The sum of likelihoods is 0");
   }
@@ -427,6 +446,7 @@ void PoseEstimator::touched_step(
     const fcl::Transform3f &gripper_transform, const Particle &old_mean,
     const CovarianceMatrix &old_covariance, Particle &new_mean,
     CovarianceMatrix &new_covariance) {
+  reset_number_of_particles(touch_number_of_particles);
   generate_particles(old_mean, old_covariance);
   for (int i = 0; i < number_of_particles; i++) {
     fcl_particle_transforms[i] = particle_to_transform(particles[i]);
@@ -445,6 +465,7 @@ void PoseEstimator::touched_step_with_Lie_distribution(
     const fcl::Transform3f &gripper_transform,
     const Eigen::Isometry3d &old_mean, const CovarianceMatrix &old_covariance,
     Eigen::Isometry3d &new_mean, CovarianceMatrix &new_covariance) {
+  reset_number_of_particles(touch_number_of_particles);
   generate_particles(Particle::Zero(), old_covariance);
   for (int i = 0; i < number_of_particles; i++) {
     particle_transforms[i] =
@@ -466,6 +487,7 @@ void PoseEstimator::place_step(
     const Eigen::Isometry3d &gripper_transform, const double &support_surface,
     const Particle &old_mean, const CovarianceMatrix &old_covariance,
     Particle &new_mean, CovarianceMatrix &new_covariance) {
+  reset_number_of_particles(place_number_of_particles);
   // calculate the center of gravity
   int number_of_vertices = vertices.size();
   Eigen::Vector3d center_of_gravity_of_gripped =
@@ -510,6 +532,7 @@ void PoseEstimator::place_step_with_Lie_distribution(
     const Eigen::Isometry3d &old_mean, const CovarianceMatrix &old_covariance,
     Eigen::Isometry3d &new_mean, CovarianceMatrix &new_covariance,
     const bool validity_check) {
+  reset_number_of_particles(place_number_of_particles);
   // calculate the center of gravity
   Eigen::Vector3d center_of_gravity_of_gripped =
       calculate_center_of_gravity(vertices, triangles);
@@ -528,9 +551,9 @@ void PoseEstimator::place_step_with_Lie_distribution(
               (Eigen::Matrix<double, 4, 4>)(hat_operator(particles[i]).exp())) *
           old_mean;
       try {
-        place_calculator calculator(input_transform,
-                                    center_of_gravity_of_gripped, vertices,
-                                    support_surface, gripper_transform, false);
+        place_calculator calculator(
+            input_transform, center_of_gravity_of_gripped, vertices,
+            support_surface, gripper_transform, false, false);
 
         particle_transforms[i] = calculator.new_mean;
 
@@ -553,6 +576,7 @@ void PoseEstimator::grasp_step_with_Lie_distribution(
     const Eigen::Isometry3d &old_mean, const CovarianceMatrix &old_covariance,
     Eigen::Isometry3d &new_mean, CovarianceMatrix &new_covariance,
     const bool validity_check) {
+  reset_number_of_particles(grasp_number_of_particles);
   // calculate the center of gravity
   Eigen::Vector3d center_of_gravity_of_gripped =
       calculate_center_of_gravity(vertices, triangles);
@@ -602,7 +626,7 @@ void PoseEstimator::grasp_step_with_Lie_distribution(
         truncate_object(input_transform, cut_vertices);
         grasp_calculator calculator(cut_vertices, vertices, gripper_transform,
                                     input_transform,
-                                    center_of_gravity_of_gripped, false);
+                                    center_of_gravity_of_gripped, false, false);
         particle_transforms[i] = calculator.new_mean;
         likelihoods[i] = 1.;
       } catch (std::runtime_error &e) {
@@ -623,6 +647,7 @@ void PoseEstimator::push_step_with_Lie_distribution(
     const Eigen::Isometry3d &old_mean, const CovarianceMatrix &old_covariance,
     Eigen::Isometry3d &new_mean, CovarianceMatrix &new_covariance,
     const bool validity_check) {
+  reset_number_of_particles(push_number_of_particles);
   // calculate the center of gravity
   Eigen::Vector3d center_of_gravity_of_gripped =
       calculate_center_of_gravity(vertices, triangles);
@@ -778,6 +803,7 @@ void PoseEstimator::look_step(
     const boost::array<unsigned int, 4> &ROI, const Particle &old_mean,
     const CovarianceMatrix &old_covariance, Particle &new_mean,
     CovarianceMatrix &new_covariance) {
+  reset_number_of_particles(look_number_of_particles);
   cv::Mat looked_image_ROI =
       looked_image(cv::Rect(ROI[2], ROI[0], ROI[3] - ROI[2], ROI[1] - ROI[0]));
   cv::Mat binary_looked_image;
@@ -798,6 +824,7 @@ void PoseEstimator::look_step_with_Lie_distribution(
     const boost::array<unsigned int, 4> &ROI, const Eigen::Isometry3d &old_mean,
     const CovarianceMatrix &old_covariance, Eigen::Isometry3d &new_mean,
     CovarianceMatrix &new_covariance, const bool already_binary) {
+  reset_number_of_particles(look_number_of_particles);
   cv::Mat binary_looked_image;
   if (!already_binary) {
     cv::Mat looked_image_ROI = looked_image(

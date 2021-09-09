@@ -10,7 +10,7 @@ class MarkersScene():
     def __init__(self, listener):
         self.listener = listener
         self.marker_publisher = rospy.Publisher("o2ac_assembly_markers", visualization_msgs.msg.Marker, queue_size = 100)
-        self.parts_database = PartsReader("wrs_assembly_2021", load_meshes=False) # TODO this should be a param somewhere 
+        self.parts_database = PartsReader("wrs_assembly_2021", load_meshes=False, verbose=False) # TODO this should be a param somewhere 
         self.published_items = {}
 
     def spawn_item(self, item_name, pose_stamped, attach=False, color=None):

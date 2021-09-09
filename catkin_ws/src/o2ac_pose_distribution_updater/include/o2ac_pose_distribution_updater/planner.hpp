@@ -24,6 +24,8 @@ using ValidityChecker = std::function<bool(
     const action_type &, const Eigen::Isometry3d &, const Eigen::Isometry3d &)>;
 using CostFunction = std::function<double(
     const action_type &, const Eigen::Isometry3d &, const Eigen::Isometry3d &)>;
+using GoalChecker =
+    std::function<bool(const bool &, const Eigen::Isometry3d &)>;
 
 class Planner : public PoseEstimator {
 private:
@@ -48,6 +50,9 @@ private:
         return 1.0;
       });
 
+  std::shared_ptr<GoalChecker> goal_checker = std::make_shared<GoalChecker>(
+      [](const bool &gripping, const Eigen::Isometry3d &pose) { return true; });
+
   void apply_action(const Eigen::Isometry3d &old_mean,
                     const CovarianceMatrix &old_covariance,
                     const UpdateAction &action, Eigen::Isometry3d &new_mean,
@@ -61,6 +66,8 @@ private:
                               std::vector<UpdateAction> &candidates);
 
 public:
+  bool use_BFS = false;
+
   void set_cost_function(const std::shared_ptr<CostFunction> &cost_function) {
     this->cost_function = cost_function;
   }
@@ -69,31 +76,33 @@ public:
       const std::shared_ptr<ValidityChecker> &validity_checker) {
     this->validity_checker = validity_checker;
   }
-  
+
+  void set_goal_checker(const std::shared_ptr<GoalChecker> &goal_checker) {
+    this->goal_checker = goal_checker;
+  }
+
   void set_geometry(
-    const std::shared_ptr<mesh_object> &gripped_geometry,
-    const std::shared_ptr<std::vector<Eigen::Isometry3d>> &grasp_points,
-    const double &support_surface);
+      const std::shared_ptr<mesh_object> &gripped_geometry,
+      const std::shared_ptr<std::vector<Eigen::Isometry3d>> &grasp_points,
+      const double &support_surface);
 
-  std::vector<UpdateAction> calculate_plan(
-      const Eigen::Isometry3d &current_gripper_pose,
-      const bool &current_gripping,
-      const Eigen::Isometry3d &current_mean,
-      const CovarianceMatrix &current_covariance,
-      const CovarianceMatrix &objective_coefficients,
-      const double &objective_value, const bool goal_gripping = false,
-      const std::function<bool(const Eigen::Isometry3d &)> check_goal_pose =
-          [](const Eigen::Isometry3d &pose) { return true; });
+  std::vector<UpdateAction>
+  calculate_plan(const Eigen::Isometry3d &current_gripper_pose,
+                 const bool &current_gripping,
+                 const Eigen::Isometry3d &current_mean,
+                 const CovarianceMatrix &current_covariance,
+                 const CovarianceMatrix &objective_coefficients,
+                 const double &objective_value);
 
-  std::vector<std::pair<double, std::vector<UpdateAction>>> best_scores_for_each_costs(
-    const Eigen::Isometry3d &current_gripper_pose, const bool &current_gripping,
-    const Eigen::Isometry3d &current_mean,
-    const CovarianceMatrix &current_covariance,
-    const CovarianceMatrix &objective_coefficients,
-    const int &max_cost);
+  std::vector<std::pair<double, std::vector<UpdateAction>>>
+  best_scores_for_each_costs(const Eigen::Isometry3d &current_gripper_pose,
+                             const bool &current_gripping,
+                             const Eigen::Isometry3d &current_mean,
+                             const CovarianceMatrix &current_covariance,
+                             const CovarianceMatrix &objective_coefficients,
+                             const int &max_cost);
 };
 
-std::function<bool(const Eigen::Isometry3d)>
-check_near_to_goal_pose(const Eigen::Isometry3d &goal_pose,
-                        const double &translation_threshold,
-                        const double &rotation_threshold);
+GoalChecker check_near_to_goal_pose(const Eigen::Isometry3d &goal_pose,
+                                    const double &translation_threshold,
+                                    const double &rotation_threshold);

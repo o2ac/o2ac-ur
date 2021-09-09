@@ -310,7 +310,7 @@ RUN pip install gym
 ################################################################################
 
 # Install eigenpy 
-RUN apt-get update && apt-get install -y -- install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-melodic-eigenpy=2.6.4-1bionic.20210527.213718 \
 	&& rm -rf /var/lib/apt/lists/*
 
