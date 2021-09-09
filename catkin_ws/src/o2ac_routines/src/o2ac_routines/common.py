@@ -3143,7 +3143,11 @@ class O2ACCommon(O2ACBase):
 
     success = False
     idler_pulley_screwing_succeeded = False
-    offsets = [0.0, -0.002, -0.004, -0.006, -0.008, 0.008, 0.006, 0.004, 0.002]
+    # if careful_mode:
+    offsets = [0.0, -0.001, -0.002, -0.003, -0.004, -0.005, -0.006, -0.007, -0.008, 
+                 0.008, 0.007, 0.006, 0.005, 0.004, 0.003, 0.002, 0.001, 0.000]
+    # else:
+    #   offsets = [0.0, -0.002, -0.004, -0.006, -0.008, 0.008, 0.006, 0.004, 0.002]
     first_approach = True
     for offset in offsets:
       if idler_pulley_screwing_succeeded:
