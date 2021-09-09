@@ -385,6 +385,7 @@ class O2ACTaskboard(O2ACCommon):
           if not self.subtask_completed["shaft"]:
             self.publish_status_text("Target: Shaft")
             self.subtask_completed["shaft"] = self.do_task("shaft")
+            self.subtask_completed["shaft"] = True  # We have no fallback, we do not reattempt
           else:
             self.subtask_completed["shaft"] = False
             if not self.centering_shaft():
@@ -394,6 +395,7 @@ class O2ACTaskboard(O2ACCommon):
               self.drop_in_tray("b_bot")
               return False
             self.subtask_completed["shaft"] = self.insert_shaft("taskboard_assy_part_07_inserted")
+            self.subtask_completed["shaft"] = True  # We have no fallback, we do not reattempt
             self.publish_status_text("Target: Bearing") # show the bearing again
           self.vision.activate_camera("a_bot_outside_camera")
           self.b_bot.go_to_named_pose("home")
