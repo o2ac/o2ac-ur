@@ -2496,7 +2496,7 @@ class O2ACCommon(O2ACBase):
       rospy.logerr("Could not pick motor_pulley in tray. Skipping procedure.")
       return False
 
-    if not self.simple_gripper_check(robot_name):
+    if not self.simple_gripper_check(robot_name, min_opening_width=0.02):
       rospy.logerr("Gripper did not grasp the pulley --> Stop")
       if attempt > 0:
         rospy.logwarn("Could not pick motor_pulley in tray. Try again remaining attempts:%s" % attempt)
