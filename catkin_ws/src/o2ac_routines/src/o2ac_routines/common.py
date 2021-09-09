@@ -3362,7 +3362,7 @@ class O2ACCommon(O2ACBase):
 
     target_pose_target_frame.pose.position.x = target # Magic number
 
-    for _ in range(5):
+    for _ in range(10):
       result = self.b_bot.do_insertion(target_pose_target_frame, insertion_direction=direction, force=15.0, timeout=10.0, 
                                                     radius=0.005, relaxed_target_by=0.005, selection_matrix=selection_matrix, 
                                                     check_displacement_time=3)
