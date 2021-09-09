@@ -446,8 +446,12 @@ class O2ACBase(object):
 
     # MAGIC NUMBERS (this feeder is calibrated for b_bot)
     if robot_name == "a_bot" and screw_size == 4:
-      pose_feeder.pose.position.y += -.004
-      pose_feeder.pose.position.z += -.003
+      pose_feeder.pose.position.y += -.004  # points to the left of the feeder (to a_bot)
+      pose_feeder.pose.position.z += -.003  # points to the back
+    if robot_name == "b_bot" and screw_size == 4:
+      pose_feeder.pose.position.y += -.002
+      pose_feeder.pose.position.z += -.002
+
     self.suck_screw(robot_name, pose_feeder, screw_tool_id, screw_tool_link, fastening_tool_name, do_spiral_search_at_bottom=True, skip_retreat=skip_retreat)
     
     if skip_retreat:
