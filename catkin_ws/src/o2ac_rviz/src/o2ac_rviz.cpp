@@ -415,7 +415,7 @@ void O2ACSetupPanel::on_button_loosen_m4_1s_clicked()
 
 void O2ACSetupPanel::on_button_tighten_nut_5s_clicked()
 {
-    ss_.sendFasteningToolCommand("nut_tool_m6", "tighten", false, 5.0);
+    ss_.sendFasteningToolCommand("padless_tool_m4", "tighten", false, 5.0);
 }
 
 void O2ACSetupPanel::on_button_tighten_m2s_5s_clicked()
@@ -425,7 +425,7 @@ void O2ACSetupPanel::on_button_tighten_m2s_5s_clicked()
 
 void O2ACSetupPanel::on_button_loosen_nut_1s_clicked()
 {
-    ss_.sendFasteningToolCommand("nut_tool_m6", "loosen", false, 1.0);
+    ss_.sendFasteningToolCommand("padless_tool_m4", "loosen", false, 1.0);
 }
 
 void O2ACSetupPanel::on_button_loosen_m2s_1s_clicked()
