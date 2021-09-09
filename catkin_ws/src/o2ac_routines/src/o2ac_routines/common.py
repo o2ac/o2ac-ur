@@ -2245,7 +2245,7 @@ class O2ACCommon(O2ACBase):
 
     # Go back regardless of success
     robot.gripper.open(wait=True)
-    success &= robot.move_lin_rel(relative_translation = [0.1,0,0.05], speed=.3)
+    success &= robot.move_lin_rel(relative_translation = [0.15,0,0.05], speed=.3)
     return success
 
   def fasten_bearing(self, task="", only_retighten=False, robot_name="b_bot", 
