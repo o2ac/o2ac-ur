@@ -733,6 +733,7 @@ class O2ACTaskboard(O2ACCommon):
         self.tools.set_motor("screw_tool_m3", "tighten", duration = 10.0, skip_final_loosen_and_retighten=True, wait=True)
 
         eef = "a_bot_screw_tool_m3_tip_link"
+        self.a_bot.move_lin_rel([0.02,0,0], speed=0.015, end_effector_link=eef)  # Move back slow to prevent protective stop
         waypoints = []
         rel_pose = self.a_bot.move_lin_rel([0.03,0,0], pose_only=True, end_effector_link=eef)
         waypoints.append((self.a_bot.compute_ik(rel_pose, timeout=0.02, retry=True, end_effector_link = eef), 0, 0.1))
@@ -771,6 +772,7 @@ class O2ACTaskboard(O2ACCommon):
         self.tools.set_motor("screw_tool_m4", "tighten", duration = 10.0, skip_final_loosen_and_retighten=True, wait=True)
         
         eef = "b_bot_screw_tool_m4_tip_link"
+        self.b_bot.move_lin_rel([0.01,0,0], speed=0.01, end_effector_link=eef) # Move extra slow to prevent protective stop
         waypoints = []
         rel_pose = self.b_bot.move_lin_rel([0.03,0,0], pose_only=True, end_effector_link=eef)
         waypoints.append((self.b_bot.compute_ik(rel_pose, timeout=0.02, retry=True, end_effector_link = eef), 0, 0.1))
