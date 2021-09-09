@@ -85,7 +85,7 @@
   <!-- The bearing -->
   <xacro:include filename="$(find o2ac_parts_description)/urdf/generated/07_SBARB6200ZZ_30_macro.urdf.xacro" />
   <xacro:assy_part_07 prefix="${boardname}_" parent="${boardname}_plate" spawn_attached="true"> 
-    <origin rpy="${pi} 0 0" xyz="${0.025+.008} 0.164 0.122"/> 
+    <origin rpy="${pi} 0 0" xyz="${0.025+.008} 0.164 0.118"/> 
     <!-- I think this was always wrong in the original taskboard (z 0.12 instead of 0.119),
          so I added 2 mm. -->
   </xacro:assy_part_07> 
