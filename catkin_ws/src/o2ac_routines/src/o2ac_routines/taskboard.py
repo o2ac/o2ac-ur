@@ -724,7 +724,7 @@ class O2ACTaskboard(O2ACCommon):
       hole_pose = conversions.to_pose_stamped("taskboard_m3_screw_link", [0.004, magic_number_offset_y, magic_number_offset_z, -tau/12, 0, 0])
       if not fake_execution_for_calibration:
         self.pick_and_fasten_screw("a_bot", hole_pose, screw_size=3, approach_distance=0.05, speed=1.0, 
-                                   duration=40, attempts=0, spiral_radius=0.0025, save_plan_on_success=True)
+                                   duration=60, attempts=0, spiral_radius=0.0025, save_plan_on_success=True)
         eef = "a_bot_screw_tool_m3_tip_link"
         waypoints = []
         rel_pose = self.a_bot.move_lin_rel([0.03,0,0], pose_only=True, end_effector_link=eef)
@@ -759,7 +759,7 @@ class O2ACTaskboard(O2ACCommon):
       hole_pose = conversions.to_pose_stamped("taskboard_m4_screw_link", [0, magic_number_offset_y, magic_number_offset_z, tau/12, 0, 0])
 
       if not fake_execution_for_calibration:
-        self.pick_and_fasten_screw("b_bot", hole_pose, screw_size=4, approach_distance=0.05, speed=1.0, duration=30, attempts=1, spiral_radius=0.002)
+        self.pick_and_fasten_screw("b_bot", hole_pose, screw_size=4, approach_distance=0.05, speed=1.0, duration=40, attempts=1, spiral_radius=0.002)
         eef = "b_bot_screw_tool_m4_tip_link"
         waypoints = []
         rel_pose = self.b_bot.move_lin_rel([0.03,0,0], pose_only=True, end_effector_link=eef)
