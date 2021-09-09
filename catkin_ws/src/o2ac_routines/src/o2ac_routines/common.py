@@ -2620,7 +2620,7 @@ class O2ACCommon(O2ACBase):
       current_pose = self.listener.transformPose(target_link, self.active_robots[robot_name].get_current_pose_stamped())
       print("current pose motor pulley ", current_pose.pose.position.x)
       if self.assembly_database.db_name == "taskboard":
-        if current_pose.pose.position.x > -0.003:
+        if current_pose.pose.position.x > -0.0034:
           self.active_robots[robot_name].gripper.open(opening_width=0.04)
           self.active_robots[robot_name].gripper.close()
           self.active_robots[robot_name].linear_push(force=10, direction="-X", max_translation=0.01)
