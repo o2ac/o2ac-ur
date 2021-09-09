@@ -2433,14 +2433,21 @@ class O2ACCommon(O2ACBase):
     elif task == "assembly":
       rospy.logerr("look this up")
       target_link = "assembled_part_05_center"
-    
+
+    insert_has_failed_before = False
+    if self.is_motor_pulley_in_storage:
+      insert_has_failed_before = True
+
     if not self.pick_motor_pulley(robot_name=robot_name):
       return False
 
     if not self.orient_motor_pulley(target_link, robot_name=robot_name):
       return False
 
-    return self.insert_motor_pulley(target_link, robot_name=robot_name)
+    if not insert_has_failed_before:
+      return self.insert_motor_pulley(target_link, robot_name=robot_name)
+    else:
+      return self.insert_motor_pulley_fallback(target_link, robot_name="b_bot")
 
   def orient_motor_pulley(self, target_link, robot_name="b_bot"):
     if not self.playback_sequence(routine_filename="motor_pulley_orient_"+robot_name):
@@ -2549,15 +2556,21 @@ class O2ACCommon(O2ACBase):
           self.active_robots[robot_name].gripper.open(opening_width=0.04)
           self.active_robots[robot_name].gripper.close()
           self.active_robots[robot_name].linear_push(force=10, direction="-X", max_translation=0.01)
+
+          self.active_robots[robot_name].gripper.open(opening_width=0.04, wait=True)
+          self.active_robots[robot_name].move_lin_rel(relative_translation = [0.05,0,0], acceleration = 0.3, speed=.03)
           return True # If we are this close, assume success
       else:
+        self.active_robots[robot_name].gripper.open(opening_width=0.04, wait=True)
+        self.active_robots[robot_name].move_lin_rel(relative_translation = [0.05,0,0], acceleration = 0.3, speed=.03)
         return True
   
     rospy.logerr("** Insertion Failed!! **")
     self.active_robots[robot_name].move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
     if self.use_storage_on_failure:
-      robot.move_lin_rel(relative_translation = [0.05,0,0], acceleration = 0.015, speed=.03)
+      self.active_robots[robot_name].move_lin_rel(relative_translation = [0.05,0,0], acceleration = 0.015, speed=.03)
       self.simple_place(robot_name, self.motor_pulley_store_pose, place_height=0.0, gripper_opening_width=0.09, axis="x", sign=-1, approach_height=0.1)
+      self.active_robots[robot_name].gripper.forget_attached_item()
       self.is_motor_pulley_in_storage = True
     else:
       # return to tray to drop pulley
@@ -2594,7 +2607,7 @@ class O2ACCommon(O2ACBase):
           return self.insert_motor_pulley(target_link, attempts=attempts-1, robot_name=robot_name, retry_insertion=retry_insertion)
 
       if attempts > 0: # try again the pulley is still there
-        if retry_insertion:
+        if retry_insertion:  # = Retry directly after end of last insertion, wherever it stopped
           self.active_robots[robot_name].move_lin_rel(relative_translation = [0.005,0,0], acceleration = 0.015, speed=.03)
           return self.insert_motor_pulley(target_link, attempts=attempts-1, robot_name=robot_name, retry_insertion=False)
         else: # try reorient first
@@ -2602,8 +2615,6 @@ class O2ACCommon(O2ACBase):
           self.active_robots[robot_name].move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
           self.orient_motor_pulley(target_link, robot_name)
           return self.insert_motor_pulley(target_link, attempts=attempts-1, robot_name=robot_name, retry_insertion=True)
-      # elif attempts == 0:
-      #     return self.insert_motor_pulley_fallback(target_link, robot_name)
       else:
         rospy.logerr("** Insertion Failed!! **")
         self.active_robots[robot_name].move_lin_rel(relative_translation = [0.03,0,0], acceleration = 0.015, speed=.03)
