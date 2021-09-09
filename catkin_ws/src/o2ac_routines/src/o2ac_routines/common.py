@@ -3152,7 +3152,7 @@ class O2ACCommon(O2ACBase):
       # Move nut tool forward so nut touches the screw 
       d = offset  # 
       approach_pose     = conversions.to_pose_stamped(target_link, [0.060 + x_offset, 0.001, d + 0.004, 0.0, 0.0, 0.0])
-      pushed_into_screw = conversions.to_pose_stamped(target_link, [0.011 + x_offset, 0.001, d + 0.004, 0.0, 0.0, 0.0])
+      pushed_into_screw = conversions.to_pose_stamped(target_link, [0.009 + x_offset, 0.001, d + 0.004, 0.0, 0.0, 0.0])
       if not first_approach: 
         waypoints = []
       waypoints.append((approach_pose, 0, 1.0))
