@@ -4567,6 +4567,7 @@ class O2ACCommon(O2ACBase):
         waypoints.append(("screw_ready_front", 0, 1.0))
       self.active_robots[robot_name].move_joints_trajectory(waypoints)
     def retreat():
+      self.b_bot.move_lin_rel([-0.02,0,0], relative_to_tcp=True, speed=0.015, end_effector_link="%s_screw_tool_m%s_tip_link" % (robot_name, screw_size))
       waypoints = []
       if approach_from_front:
         waypoints.append(("screw_ready_front", 0, 1.0))
@@ -4576,8 +4577,11 @@ class O2ACCommon(O2ACBase):
 
     approach()
     res = self.screw(robot_name, screw_hole_pose, screw_size, screw_height, 
-                     stay_put_after_screwing=False, skip_final_loosen_and_retighten=False, 
+                     stay_put_after_screwing=True, skip_final_loosen_and_retighten=False, 
                      spiral_radius=spiral_radius, attempts=0)
+    # second extra tighten, may get stuck, we will go up slowly
+    self.tools.set_motor("screw_tool_m%s" % screw_size, "tighten", duration = 10.0, skip_final_loosen_and_retighten=True, wait=True)
+    self.confirm_to_proceed("finetune")
     retreat()
     if allow_collision_with_object:
       self.planning_scene_interface.disallow_collisions("screw_tool_m%s" % screw_size, allow_collision_with_object)
