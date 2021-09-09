@@ -2700,17 +2700,17 @@ class O2ACCommon(O2ACBase):
     for i in range(2):
       if i > 0:
         # Rotate once to get the current hole out of the way
-        # self.confirm_to_proceed("rotate?")
+        self.confirm_to_proceed("rotate?")
         self.rotate_motor_pulley(target_link, rotations=1, offset_from_center=offset_from_center, x_offset=0.033)
 
       self.b_bot.go_to_pose_goal(b_bot_approach_pose, speed=1.0, move_lin=True, end_effector_link="b_bot_set_screw_tool_tip_link")
-      # self.confirm_to_proceed("down1?")
+      self.confirm_to_proceed("down1?")
       self.b_bot.go_to_pose_goal(b_bot_above_hole_pose, speed=0.05, move_lin=True, end_effector_link="b_bot_set_screw_tool_tip_link")
       
-      # self.confirm_to_proceed("rotate?")
+      self.confirm_to_proceed("rotate?")
       self.rotate_motor_pulley(target_link, rotations=6, offset_from_center=offset_from_center, x_offset=0.033)
       
-      # self.confirm_to_proceed("down2?")
+      self.confirm_to_proceed("down2?")
       def b_task_fastening_pose():
         self.b_bot.go_to_pose_goal(b_bot_centering_pose, speed=0.03, move_lin=True, end_effector_link="b_bot_set_screw_tool_tip_link")
         self.b_bot.go_to_pose_goal(b_bot_at_hole_pose, speed=0.015, move_lin=True, end_effector_link="b_bot_set_screw_tool_tip_link")
@@ -3497,7 +3497,7 @@ class O2ACCommon(O2ACBase):
     self.b_bot.move_lin_rel(relative_translation=[0, 0.01, 0.1], speed=.3)
     return True
 
-  def orient_shaft_end_cap(self, robot_name="a_bot"):
+  def orient_shaft_end_cap(self, robot_name="a_bot", ignore_orientation=False):
     # Note only works for 'a_bot'
     # TODO: Make it work for both robots (not a priority)
     centering_frame = "left_centering_link" if robot_name == "a_bot" else "right_centering_link"
@@ -3519,6 +3519,9 @@ class O2ACCommon(O2ACBase):
     self.center_with_gripper("a_bot", opening_width=0.05, gripper_force=0, gripper_velocity=0.01)
     self.a_bot.gripper.close(velocity=0.03, force=60)
     self.a_bot.go_to_pose_goal(above_pose, speed=0.5)
+
+    if ignore_orientation:
+      return True
 
     if not ready_to_put_on_shaft:  # Do reorientation procedure
       approach_centering = conversions.to_pose_stamped("simple_holder_tip_link", [0.0, 0, 0.1,      tau/4., tau/4., tau/4.])
@@ -3676,7 +3679,7 @@ class O2ACCommon(O2ACBase):
     self.planning_scene_interface.allow_collisions("shaft")
     self.b_bot.gripper.attach_object(obj.id, with_collisions=True)
     
-    # self.confirm_to_proceed("pick screw")
+    self.confirm_to_proceed("pick screw")
     if not self.pick_screw_from_feeder("a_bot", screw_size = 4, realign_tool_upon_failure=True):
       rospy.logerr("Failed to pick screw from feeder, could not fix the issue. Abort.")
       self.do_change_tool_action("a_bot", equip=False, screw_size = 4)
@@ -3686,19 +3689,19 @@ class O2ACCommon(O2ACBase):
     if not self.a_bot.go_to_named_pose("screw_ready"):
       return False
     
-    # self.confirm_to_proceed("go to above_hole_screw_pose")
+    self.confirm_to_proceed("go to above_hole_screw_pose")
     above_hole_screw_pose = conversions.to_pose_stamped("tray_center", [-0.003, 0.036, 0.4]+np.deg2rad([180, 30, 90]).tolist())
     if not self.a_bot.go_to_pose_goal(above_hole_screw_pose, speed=0.2, move_lin=True):
       rospy.logerr("Fail to go to above_hole_screw_pose")
       return False
 
-    # self.confirm_to_proceed("try to screw")
+    self.confirm_to_proceed("try to screw")
     self.vision.activate_camera("b_bot_inside_camera")
     hole_screw_pose = conversions.to_pose_stamped("move_group/shaft/screw_hole", [0.0, 0.002, -0.002, 0, 0, 0])
     hole_screw_pose_transformed = self.get_transformed_collision_object_pose("shaft/screw_hole", hole_screw_pose, "right_centering_link")
     self.screw("a_bot", hole_screw_pose_transformed, screw_height=0.02, screw_size=4, skip_final_loosen_and_retighten=False, attempts=0, spiral_radius=0.0025)
     
-    # self.confirm_to_proceed("unequip tool")
+    self.confirm_to_proceed("unequip tool")
     self.tools.set_suction("screw_tool_m4", suction_on=False, wait=False)
 
     if not self.a_bot.go_to_named_pose("screw_ready"):
@@ -4148,6 +4151,7 @@ class O2ACCommon(O2ACBase):
     pre_insertion  = conversions.to_pose_stamped("assembled_part_02_back_hole", [-0.055, -0.004, -0.0155, -tau/4, tau/4-inclination, -tau/4])
     
     if simultaneous:
+      # TODO(cambel): do we need midpoint 1 here?
       self.b_bot.go_to_pose_goal(above_vgroove, speed=1.0)
     self.b_bot.go_to_pose_goal(inside_vgroove, speed=0.2, move_lin=True)
     self.confirm_to_proceed("")

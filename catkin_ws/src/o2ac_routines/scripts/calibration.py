@@ -37,12 +37,16 @@
 from os import name
 import sys
 import copy
+
+import numpy as np
 import rospy
 
 import geometry_msgs.msg
 import tf
 import tf_conversions
 from math import pi, radians, degrees
+
+from ur_control import conversions
 tau = 2.0*pi  # Part of math from Python 3.6
 
 from o2ac_routines.common import O2ACCommon
@@ -282,8 +286,6 @@ class CalibrationClass(O2ACCommon):
     self.active_robots[robot_name].go_to_named_pose("horizontal_screw_ready")
     return 
 
-
-
   def tray_sponge_calibration(self, robot_name="a_bot", end_effector_link="a_bot_gripper_tip_link"):
     rospy.loginfo("============ Touching tray sponge. ============")
     rospy.loginfo("eef link " + end_effector_link + " should be touching the tray sponge in middle, then left, then right.")
@@ -396,7 +398,6 @@ class CalibrationClass(O2ACCommon):
 
     self.cycle_through_calibration_poses(poses, robot_name, go_home=False, with_approach=True, end_effector_link=end_effector_link, move_lin=True)
     return 
-
 
   def make_space_for_robot(self, robot_name):
     if robot_name=="b_bot":
@@ -582,7 +583,6 @@ class CalibrationClass(O2ACCommon):
     self.active_robots[robot_name].go_to_named_pose("horizontal_screw_ready")
     return
   
-
   def go_to_tool_pickup_pose(self, robot_name = "b_bot", screw_tool_id = "screw_tool_m4"):
     self.b_bot.go_to_named_pose("tool_pick_ready")
     ps_tool_pickup = geometry_msgs.msg.PoseStamped()
@@ -592,6 +592,82 @@ class CalibrationClass(O2ACCommon):
     ps_tool_pickup.pose.position.z = -.008
     self.b_bot.go_to_pose_goal(ps_tool_pickup, speed=.1, acceleration=.02)
 
+  def place_panel(self, panel_name):
+    self.a_bot.gripper.open()
+    self.a_bot.move_lin_rel([0,0,0.1])
+    self.a_bot.go_to_named_pose("centering_area")
+    self.place_panel("a_bot", panel_name, pick_again=True, fake_position=True)
+
+  def motor_insertion_from_aid(self):
+    self.b_bot.gripper.open()
+    self.b_bot.move_lin_rel([0,0,0.2])
+    self.b_bot.go_to_named_pose("centering_area")
+    self.align_motor_pre_insertion(False)
+    self.confirm_to_proceed("finetune")
+    self.insert_motor("assembled_part_02_back_hole")
+    self.confirm_to_proceed("are we done?")
+
+  def bearing_insertion_assembly(self):
+    self.a_bot.gripper.open()
+    self.a_bot.move_lin_rel([0,0,0.1])
+    self.a_bot.go_to_named_pose("home")
+    self.pick_bearing("a_bot")
+    self.orient_bearing(task="assembly", robot_name="a_bot")
+    self.confirm_to_proceed("finetune")
+    self.insert_bearing("assembled_part_07_inserted", robot_name="a_bot")
+
+  def motor_pulley_insertion(self):
+    self.a_bot.gripper.open()
+    self.a_bot.move_lin_rel([0,0,0.1])
+    self.a_bot.go_to_named_pose("home")
+    self.pick_motor_pulley(robot_name="a_bot")
+    self.orient_motor_pulley("assembled_part_05_center", robot_name="a_bot")
+    self.confirm_to_proceed("finetune")
+    self.insert_motor_pulley("assembled_part_05_center", robot_name="a_bot", retry_insertion=True)
+    self.confirm_to_proceed("are we done?")
+
+  def motor_pulley_fastening(self):
+    self.a_bot.gripper.open()
+    self.fasten_motor_pulley("assembled_part_05_center")
+
+  def end_cap_and_shaft_prep(self):
+    self.pick_end_cap()
+    self.orient_shaft_end_cap()
+    self.pick_and_center_shaft()
+    self.orient_shaft()
+    
+  def end_cap_and_shaft_preinsertion(self):
+    above_pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [-0.003, 0.002, 0.280]+np.deg2rad([-180, 90, -90]).tolist())
+    if not self.a_bot.go_to_pose_goal(above_pre_insertion_end_cap, speed=0.6, move_lin=False):
+      rospy.logerr("Fail to go to pre_insertion_end_cap")
+      return False
+    pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [-0.003, 0.002, 0.245]+np.deg2rad([-180, 90, -90]).tolist())
+    if not self.a_bot.go_to_pose_goal(pre_insertion_end_cap, speed=0.3, move_lin=True):
+      rospy.logerr("Fail to go to pre_insertion_end_cap")
+      return False
+
+  def simple_end_cap_pick(self):
+    self.a_bot.go_to_named_pose("centering_area")
+    self.orient_shaft_end_cap(ignore_orientation=True)
+
+  def end_cap_insertion(self):
+    self.insert_end_cap()
+    self.a_bot.gripper.send_command(0.06, velocity=0.01)
+    self.a_bot.move_lin_rel([0,0,0.05], speed=0.3)
+
+  def bearing_spacer(self):
+    self.pick_bearing_spacer("a_bot")
+    self.orient_bearing_spacer("a_bot")
+    self.confirm_to_proceed("finetune")
+    self.insert_bearing_spacer("assembled_part_07_inserted", "a_bot")
+    self.confirm_to_proceed("okay?")
+  
+  def output_pulley(self):
+    self.pick_output_pulley("a_bot")
+    self.orient_output_pulley("a_bot")
+    self.confirm_to_proceed("finetune")
+    self.insert_output_pulley("assembled_part_07_inserted", "a_bot")
+    self.confirm_to_proceed("okay?")
 
 if __name__ == '__main__':
   try:
@@ -618,6 +694,7 @@ if __name__ == '__main__':
       rospy.loginfo("503-504: Base plate screw holes (a_bot m3, b_bot m4)")
       rospy.loginfo("511-512: Motor plate holes (b_bot, b_bot m4)")
       rospy.loginfo("55: Bearing screw holes (b_bot m4)")
+      rospy.loginfo("60: L-plates")
       rospy.loginfo("===== TOOLS ")
       # rospy.loginfo("65 (651/652): Go to belt tool pickup position (and equip/unequip it)")
       # rospy.loginfo("66 (661/662): Go to plunger tool pickup position (and equip/unequip it)")
@@ -813,6 +890,32 @@ if __name__ == '__main__':
       if r == '544':
         c.vision.activate_camera("b_bot_outside_camera")
         angle = c.get_motor_angle()
+      if r == '601':
+        c.calibrate_place_panel("panel_bearing")
+      if r == '602':
+        c.calibrate_place_panel("panel_motor")
+      if r == '602':
+        c.motor_insertion_from_aid()
+      if r == '603':
+        c.bearing_insertion_assembly()
+      if r == '604':
+        c.motor_pulley_insertion()
+      if r == '605':
+        c.motor_pulley_fastening()
+      if r == '606':
+        c.end_cap_and_shaft_prep()
+      if r == '607':
+        c.end_cap_and_shaft_preinsertion()
+      if r == '608':
+        c.simple_end_cap_pick()
+      if r == '609':
+        c.end_cap_insertion()
+      if r == '610':
+        c.fasten_end_cap()
+      if r == '611':
+        c.bearing_spacer()
+      if r == '612':
+        c.output_pulley()
       if r == '6':
         c.a_bot.go_to_named_pose("back")
         c.b_bot.go_to_named_pose("screw_ready")
