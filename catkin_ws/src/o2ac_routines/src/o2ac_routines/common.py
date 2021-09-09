@@ -600,7 +600,7 @@ class O2ACCommon(O2ACBase):
           options.update({'center_on_corner': True})
           return self.look_and_get_grasp_point(object_id, robot_name, options) # May end in infinite loop?
         else:
-          return grasps[0]
+          return random.choice(grasps)
       rospy.logerror("No feasible grasps! %s" % grasps)
     return False
 
