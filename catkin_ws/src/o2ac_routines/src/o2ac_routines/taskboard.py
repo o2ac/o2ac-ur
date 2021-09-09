@@ -725,6 +725,9 @@ class O2ACTaskboard(O2ACCommon):
       if not fake_execution_for_calibration:
         self.pick_and_fasten_screw("a_bot", hole_pose, screw_size=3, approach_distance=0.05, speed=1.0, 
                                    duration=60, attempts=0, spiral_radius=0.0025, save_plan_on_success=True)
+
+        self.tools.set_motor("screw_tool_m3", "tighten", duration = 10.0, skip_final_loosen_and_retighten=True, wait=True)
+
         eef = "a_bot_screw_tool_m3_tip_link"
         waypoints = []
         rel_pose = self.a_bot.move_lin_rel([0.03,0,0], pose_only=True, end_effector_link=eef)
@@ -760,6 +763,9 @@ class O2ACTaskboard(O2ACCommon):
 
       if not fake_execution_for_calibration:
         self.pick_and_fasten_screw("b_bot", hole_pose, screw_size=4, approach_distance=0.05, speed=1.0, duration=40, attempts=1, spiral_radius=0.002)
+        
+        self.tools.set_motor("screw_tool_m4", "tighten", duration = 10.0, skip_final_loosen_and_retighten=True, wait=True)
+        
         eef = "b_bot_screw_tool_m4_tip_link"
         waypoints = []
         rel_pose = self.b_bot.move_lin_rel([0.03,0,0], pose_only=True, end_effector_link=eef)

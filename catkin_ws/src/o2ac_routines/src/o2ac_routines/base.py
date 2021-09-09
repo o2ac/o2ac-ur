@@ -688,6 +688,9 @@ class O2ACBase(object):
                                                           revolutions=3, target_force=0, check_displacement_time=10,
                                                           termination_criteria=tc, timeout=duration-2.0, end_effector_link=screw_tool_link)
 
+    if not self.active_robots[robot_name].go_to_pose_goal(pushed_into_hole, end_effector_link=screw_tool_link, speed=0.01, move_lin=True):
+      rospy.logerr("Fail to go to pushed_into_hole after spiral")
+
     if not self.use_real_robot:
       return True
     
