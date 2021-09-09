@@ -6014,7 +6014,7 @@ class O2ACCommon(O2ACBase):
         rospy.logerr("Fail to plan center trays")
         return False
       plan1, _ = res1
-      plan2, _ = self.ab_bot.go_to_goal_poses(a_bot_push_tray_side_goal, b_bot_push_tray_side_goal, planner="OMPL", speed=0.1, plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan1))
+      plan2, _ = self.ab_bot.go_to_goal_poses(a_bot_push_tray_side_goal, b_bot_push_tray_side_goal, planner="OMPL", speed=0.05, plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan1))
 
       # push front
       waypoints = []
@@ -6027,7 +6027,7 @@ class O2ACCommon(O2ACBase):
         return False
       plan3, _ = res3
 
-      plan4, _ = self.ab_bot.go_to_goal_poses(a_bot_push_tray_front_goal, b_bot_push_tray_front_goal, planner="OMPL", speed=0.1, plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan3))
+      plan4, _ = self.ab_bot.go_to_goal_poses(a_bot_push_tray_front_goal, b_bot_push_tray_front_goal, planner="OMPL", speed=0.05, plan_only=True, initial_joints=helpers.get_trajectory_joint_goal(plan3))
       
       # prepare for pick up
       waypoints = []
@@ -6161,11 +6161,11 @@ class O2ACCommon(O2ACBase):
     b_bot_above_tray_agv = conversions.to_pose_stamped("agv_tray_center", [b_bot_point[0], b_bot_point[1], a_bot_z_high] + pick_orientation)
     a_bot_at_tray_agv    = conversions.to_pose_stamped("agv_tray_center", [a_bot_point[0], a_bot_point[1], a_bot_z_low]  + pick_orientation)
     
-    a_bot_point = [-offset, -long_side] if tray_parallel else [offset, -long_side]
+    a_bot_point = [-offset-0.017, -long_side-0.003] if tray_parallel else [offset, -long_side]
 
-    a_bot_at_tray_table    = conversions.to_pose_stamped("tray_center", [a_bot_point[0]-0.0162, a_bot_point[1]-0.003, 0.04] + place_orientation)
-    a_bot_above_table      = conversions.to_pose_stamped("tray_center", [a_bot_point[0]-0.016, a_bot_point[1], 0.15] + place_orientation)
-    a_bot_above_low_table  = conversions.to_pose_stamped("tray_center", [a_bot_point[0]-0.016, a_bot_point[1], 0.05] + place_orientation)
+    a_bot_at_tray_table    = conversions.to_pose_stamped("tray_center", [a_bot_point[0], a_bot_point[1], 0.03] + place_orientation)
+    a_bot_above_table      = conversions.to_pose_stamped("tray_center", [a_bot_point[0], a_bot_point[1], 0.15] + place_orientation)
+    a_bot_above_low_table  = conversions.to_pose_stamped("tray_center", [a_bot_point[0], a_bot_point[1], 0.04] + place_orientation)
 
     # Go to tray
     self.ab_bot.go_to_goal_poses(a_bot_above_tray_agv, b_bot_above_tray_agv, planner="OMPL", speed=1.0)
@@ -6186,7 +6186,7 @@ class O2ACCommon(O2ACBase):
       seq.append(helpers.to_sequence_item_master_slave("a_bot", "b_bot", a_bot_above_tray_agv, slave_relation, speed=0.6))
       seq.append(helpers.to_sequence_item_master_slave("a_bot", "b_bot", a_bot_above_table, slave_relation, speed=0.6))
       seq.append(helpers.to_sequence_item_master_slave("a_bot", "b_bot", a_bot_above_low_table, slave_relation, speed=0.3))
-      seq.append(helpers.to_sequence_item_master_slave("a_bot", "b_bot", a_bot_at_tray_table, slave_relation, speed=0.05))
+      seq.append(helpers.to_sequence_item_master_slave("a_bot", "b_bot", a_bot_at_tray_table, slave_relation, speed=0.015))
       self.execute_sequence("ab_bot", seq, "pick_tray_long_side", save_on_success=True, use_saved_plans=use_saved_trajectory)
     else:
       self.ab_bot.master_slave_control("a_bot", "b_bot", a_bot_above_tray_agv, slave_relation)
