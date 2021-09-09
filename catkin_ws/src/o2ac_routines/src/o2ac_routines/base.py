@@ -450,7 +450,7 @@ class O2ACBase(object):
       pose_feeder.pose.position.z += -.003  # points to the back
     if robot_name == "b_bot" and screw_size == 4:
       pose_feeder.pose.position.y += -.002
-      pose_feeder.pose.position.z += -.002
+      pose_feeder.pose.position.z += -.001
 
     self.suck_screw(robot_name, pose_feeder, screw_tool_id, screw_tool_link, fastening_tool_name, do_spiral_search_at_bottom=True, skip_retreat=skip_retreat)
     
@@ -524,7 +524,7 @@ class O2ACBase(object):
 
     self.tools.set_suction(screw_tool_id, suction_on=True, eject=False, wait=False)
 
-    descend_distance = 0.017
+    descend_distance = 0.019
 
     max_radius = .0025
     theta_incr = tau/6
@@ -568,7 +568,7 @@ class O2ACBase(object):
 
       if do_spiral_search_at_bottom:
         tc = lambda a, b: self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
-        self.active_robots[robot_name].execute_spiral_trajectory("YZ", max_radius=0.0025, radius_direction="+Y", steps=25,
+        self.active_robots[robot_name].execute_spiral_trajectory("YZ", max_radius=0.0015, radius_direction="+Y", steps=25,
                                                           revolutions=2, target_force=0, check_displacement_time=10,
                                                           termination_criteria=tc, timeout=1, end_effector_link=screw_tool_link)
 
