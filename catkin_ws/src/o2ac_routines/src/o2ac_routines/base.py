@@ -524,7 +524,7 @@ class O2ACBase(object):
 
     self.tools.set_suction(screw_tool_id, suction_on=True, eject=False, wait=False)
 
-    descend_distance = 0.015
+    descend_distance = 0.017
 
     max_radius = .0025
     theta_incr = tau/6
