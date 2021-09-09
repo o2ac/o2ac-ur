@@ -563,6 +563,10 @@ def get_trajectory_duration(plan):
   return duration.to_sec()
 
 def get_trajectory_joint_goal(plan, joints_order=None):
+  if plan is None:
+    rospy.logerr("Error! Received no valid plan in get_trajectory_joint_goal: ")
+    rospy.logerr(plan)
+    return False
   if joints_order is not None:
     joint_values = []
     for joint in joints_order:
