@@ -92,22 +92,27 @@ class AssemblyStatus(object):
   """
   def __init__(self):
     # rospy.get_param("/last_assembly_status", False)
-    self.tray_placed_on_table = True
+    self.tray_placed_on_table = False
 
     self.bearing_panel_placed_outside_of_tray = False
     self.motor_panel_placed_outside_of_tray = False
-
+    
     self.belt_placed_outside_of_tray = False
+
     self.motor_picked = False
     self.motor_oriented = False
     self.motor_placed_outside_of_tray = False
     self.motor_inserted_in_panel = False
+    
     self.bearing_placed_outside_of_tray = False
     self.bearing_picked = False
     self.bearing_oriented = False
     self.bearing_inserted_in_panel = False
     self.bearing_holes_aligned = False
     self.bearing_spacer_assembled = False
+
+    self.idler_pulley_spacer_placed_outside_of_tray = False
+    self.idler_pulley_placed_outside_of_tray = False
 
     self.completed_subtask_zero = False  # Base
     self.completed_subtask_a = False  # Motor
