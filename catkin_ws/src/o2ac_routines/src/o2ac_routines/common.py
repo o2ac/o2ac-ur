@@ -2307,6 +2307,10 @@ class O2ACCommon(O2ACBase):
       else:
         screw_status[n] = "empty"
     
+    if only_retighten and self.tools.screw_is_suctioned["m"+str(screw_size)]:
+      rospy.logwarn("Screw already in tool, but we want to retighten! Breaking out without retightening.")
+      return True
+
     robot = self.active_robots[robot_name]
     if not skip_intermediate_pose:
       self.confirm_to_proceed("intermediate pose")
@@ -2371,6 +2375,15 @@ class O2ACCommon(O2ACBase):
                                                            save_plan_on_success=True, saved_plan=feeder_to_hole_plan,
                                                            screw_set_center_pose=screw_set_center_pose,
                                                            skip_initial_motion=(not first_screw))
+          if self.active_robots[robot_name].is_protective_stopped():
+            rospy.logerr("Screw was already there, robot collided! Releasing protective stop and marking screw as done.")
+            while self.active_robots[robot_name].is_protective_stopped():
+              self.active_robots[robot_name].unlock_protective_stop()
+              rospy.sleep(1)
+            self.active_robots[robot_name].go_to_pose_goal(screw_pose_approach, speed=0.2)
+            screw_status[n] = "done"
+            continue
+          
           trajectory = [[screw_pose_approach, 0.0, 0.02], [screw_set_center_pose, 0.0, 0.3]]
           if not self.active_robots[robot_name].move_lin_trajectory(trajectory, end_effector_link=screw_tool_link):
             rospy.logerr("Failed to go to screw_set_center_pose")
