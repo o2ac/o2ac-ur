@@ -112,6 +112,7 @@ if __name__ == '__main__':
     set_assembly("wrs_assembly_2020")
 
     while True:
+      rospy.loginfo("Enter load2020, load2021, load2021flipped, load2019surprise to change assembly.")
       rospy.loginfo("Enter 31, 32 to spawn panels.")
       rospy.loginfo("Enter 4, 4idler, 4bearing, 4motor to publish parts at target position.")
       rospy.loginfo("Enter 55, 551, 552 to spawn parts in example layout.")
@@ -124,7 +125,9 @@ if __name__ == '__main__':
         set_assembly("wrs_assembly_2020")
       if i == "load2021":
         set_assembly("wrs_assembly_2021")
-      if i == "loadsurprise2019":
+      if i == "load2021flipped":
+        set_assembly("wrs_assembly_2021_flipped")
+      if i == "load2019surprise":
         set_assembly("wrs_assembly_2019_surprise")
       # if i == "loadsurprise":
       #   set_assembly("wrs_assembly_2021_surprise")
