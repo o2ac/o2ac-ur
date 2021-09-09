@@ -1968,11 +1968,13 @@ class O2ACCommon(O2ACBase):
       return False
     if task == "taskboard":
       bearing_target_link = "taskboard_bearing_target_link"
-      put_in_storage_if_failure = True
     elif task == "assembly":
       rospy.logerr("look this up")
       bearing_target_link = "assembled_part_07_inserted"
-      put_in_storage_if_failure = False
+
+    insert_has_failed_before = False
+    if self.is_bearing_in_storage:
+      insert_has_failed_before = True
 
     if not self.pick_bearing(robot_name=robot_name):
       return False
@@ -1980,10 +1982,14 @@ class O2ACCommon(O2ACBase):
     if not self.orient_bearing(task, robot_name):
       return False
 
-    # Insert bearing
-    if not self.insert_bearing(bearing_target_link, task=task, robot_name=robot_name):
-      rospy.logerr("insert_bearing returned False. Breaking out")
-      return False
+    if not insert_has_failed_before:
+      # Insert bearing
+      if not self.insert_bearing(bearing_target_link, task=task, robot_name=robot_name):
+        rospy.logerr("insert_bearing returned False. Breaking out")
+        return False
+    else:
+      return self.insert_bearing_fallback(task, bearing_target_link, "a_bot")
+
 
     return True
 
@@ -2126,7 +2132,8 @@ class O2ACCommon(O2ACBase):
     selection_matrix = [0., 0.2, 0.2, 1.0, 1.0, 1.0]
     
     offsets = [[0.0015, 0.0015],[-0.0015, 0.0015],[0.0015, -0.0015],[-0.0015, -0.0015]]
-    robot = self.active_robots[robot_name] 
+    robot = self.active_robots[robot_name]
+
     for i in range(4):
       start_pose = copy.deepcopy(pre_insertion_pose)
       start_pose.pose.position.y += offsets[i][0]
@@ -2137,7 +2144,7 @@ class O2ACCommon(O2ACBase):
       robot.go_to_pose_goal(start_pose, speed=0.1, move_lin=True)
       # Attempt insertion at new pose
       result = robot.do_insertion(target_pose_target_frame, radius=0.005, 
-                                                        insertion_direction="-X", force=8.0, timeout=15.0, 
+                                                        insertion_direction="-X", force=8.0, timeout=20.0, 
                                                         wiggle_direction=None, wiggle_angle=np.deg2rad(0), wiggle_revolutions=1.,
                                                         relaxed_target_by=0.003, selection_matrix=selection_matrix)
       success = (result == TERMINATION_CRITERIA)
@@ -2146,10 +2153,11 @@ class O2ACCommon(O2ACBase):
         # One small extra check and push if we are a bit inside the small shaft
         current_pose = self.listener.transformPose(target_link, robot.get_current_pose_stamped())
         print("current pose bearing", current_pose.pose.position.x)
-        if current_pose.pose.position.x > (target_pose_target_frame.pose.position.x-0.008): # approx. -0.014
+        if current_pose.pose.position.x > -0.014: # approx. -0.014
           robot.gripper.open(opening_width=0.04)
           robot.gripper.close()
           robot.linear_push(force=10, direction="-X", max_translation=0.01)
+          success = True # assume partial success, will try second part insertion
           break
       else:
         break
@@ -2167,13 +2175,14 @@ class O2ACCommon(O2ACBase):
 
       # Go back regardless of success
       robot.gripper.open(wait=True)
-      robot.move_lin_rel(relative_translation = [0.1,0,0.05], speed=.3)
+      robot.move_lin_rel(relative_translation = [0.15,0,0.05], speed=.3)
       return success
 
     rospy.logerr("** Insertion Incomplete, dropping bearing into tray **")
     if self.use_storage_on_failure:
       robot.move_lin_rel(relative_translation = [0.05,0,0], acceleration = 0.015, speed=.03)
       self.simple_place(robot_name, self.bearing_store_pose, place_height=0.0, gripper_opening_width=0.09, axis="x", sign=-1)
+      robot.gripper.forget_attached_item()
       self.is_bearing_in_storage = True
     else:
       robot.move_lin_rel(relative_translation = [0.05,0,0], acceleration = 0.015, speed=.03)
@@ -2200,7 +2209,7 @@ class O2ACCommon(O2ACBase):
       print("current pose bearing ", current_pose.pose.position.x)
       print("target pose bearing ", target_pose_target_frame.pose.position.x-0.008)
       self.confirm_to_proceed("finetune")
-      if current_pose.pose.position.x > (target_pose_target_frame.pose.position.x-0.008): # approx. -0.014
+      if current_pose.pose.position.x > -0.014: # approx. -0.014
         self.active_robots[robot_name].gripper.open(opening_width=0.1)
         self.active_robots[robot_name].gripper.close()
         self.active_robots[robot_name].linear_push(force=10, direction="-X", max_translation=0.015, timeout=5)
@@ -2221,8 +2230,6 @@ class O2ACCommon(O2ACBase):
           robot.move_lin_rel(relative_translation = [0.1,0,0], acceleration = 0.1, speed=.2)
           self.fallback_recenter_bearing(task=task, robot_name=robot_name)
           return self.insert_bearing(target_link, try_recenter=False, try_reinsertion=False, robot_name=robot_name, task=task, attempts=attempts-1)
-      # elif attempts == 0:
-      #     return self.insert_bearing_fallback(task, target_link, robot_name)
       else:
         rospy.logerr("** Insertion Incomplete, dropping bearing into tray **")
         robot.move_lin_rel(relative_translation = [0.05,0,0], acceleration = 0.015, speed=.03)
