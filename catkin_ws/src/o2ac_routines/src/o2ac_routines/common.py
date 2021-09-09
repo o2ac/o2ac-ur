@@ -3178,6 +3178,10 @@ class O2ACCommon(O2ACBase):
     if not self.a_bot.go_to_pose_goal(retreat_pose, end_effector_link="a_bot_nut_tool_m4_hole_link", speed=1.0):
       return False
     
+    if success:
+      rospy.loginfo("fasten_idler_pulley_with_nut_tool succeeded!")
+    else:
+      rospy.loginfo("fasten_idler_pulley_with_nut_tool failed!")
     return success
   
   ######## Shaft

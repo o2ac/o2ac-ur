@@ -287,7 +287,7 @@ class O2ACTaskboard(O2ACCommon):
       "idler pulley": False,
     }
     if do_screws:
-      success = self.do_screw_tasks_simultaneous()
+      self.do_screw_tasks_simultaneous()
     else:
       self.subtask_completed["M3 screw"] = True
       self.subtask_completed["M4 screw"] = True
@@ -304,6 +304,7 @@ class O2ACTaskboard(O2ACCommon):
     rospy.loginfo("==== Start: Belt ====")
     self.subtask_completed["belt"] = self.do_task("belt")
     rospy.loginfo("==== End: Belt (%s) ====" % (self.subtask_completed["belt"]))
+
     rospy.loginfo("==== Start: Idler Pulley ====")
     self.subtask_completed["idler pulley"] = self.do_task("idler pulley", simultaneous=True)
     rospy.loginfo("==== End: Idler Pulley (%s) ====" % (self.subtask_completed["idler pulley"]))
@@ -731,7 +732,6 @@ class O2ACTaskboard(O2ACCommon):
                                    duration=60, attempts=0, spiral_radius=0.0025, save_plan_on_success=True)
 
         self.tools.set_motor("screw_tool_m3", "tighten", duration = 10.0, skip_final_loosen_and_retighten=True, wait=True)
-
         eef = "a_bot_screw_tool_m3_tip_link"
         self.a_bot.move_lin_rel([0.02,0,0], speed=0.015, end_effector_link=eef)  # Move back slow to prevent protective stop
         waypoints = []
