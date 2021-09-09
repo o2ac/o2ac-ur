@@ -5555,7 +5555,7 @@ class O2ACCommon(O2ACBase):
     self.allow_collisions_with_robot_hand(object_name, from_robot_name, allow=False)
     return success
 
-  def center_panel_on_base_plate(self, panel_name):
+  def center_panel_on_base_plate(self, panel_name, calibration=False):
     self.allow_collisions_with_robot_hand("panel_motor", robot_name="a_bot")
     self.allow_collisions_with_robot_hand("panel_bearing", robot_name="a_bot")
     switch_panels_order = self.assembly_database.assembly_info.get("switched_motor_and_bearing", False)
@@ -5601,7 +5601,7 @@ class O2ACCommon(O2ACBase):
     seq.append(helpers.to_sequence_item(hold_pose, speed=0.5, linear=True))
     seq.append(helpers.to_sequence_gripper("close", gripper_force=80, gripper_velocity=0.01, wait=False))
     
-    return self.execute_sequence("a_bot", seq, "center_panel_on_base_plate", plan_while_moving=True)
+    return self.execute_sequence("a_bot", seq, "center_panel_on_base_plate", plan_while_moving=calibration)
 
   def hold_panel_for_fastening(self, panel_name):
     self.a_bot.gripper.send_command(0.06, wait=False)

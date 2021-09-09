@@ -592,7 +592,7 @@ class CalibrationClass(O2ACCommon):
     ps_tool_pickup.pose.position.z = -.008
     self.b_bot.go_to_pose_goal(ps_tool_pickup, speed=.1, acceleration=.02)
 
-  def place_panel(self, panel_name):
+  def calibrate_place_panel(self, panel_name):
     self.a_bot.gripper.open()
     self.a_bot.move_lin_rel([0,0,0.1])
     self.a_bot.go_to_named_pose("centering_area")
@@ -892,30 +892,46 @@ if __name__ == '__main__':
         angle = c.get_motor_angle()
       if r == '601':
         c.calibrate_place_panel("panel_bearing")
+      if r == '601f':
+        c.fasten_panel('panel_bearing')
+      if r == '601b':
+        c.center_panel_on_base_plate("panel_bearing", calibration=True)
       if r == '602':
         c.calibrate_place_panel("panel_motor")
-      if r == '602':
-        c.motor_insertion_from_aid()
+      if r == '602f':
+        c.fasten_panel('panel_motor')
+      if r == '601b':
+        c.center_panel_on_base_plate("panel_motor", calibration=True)
       if r == '603':
-        c.bearing_insertion_assembly()
+        c.motor_insertion_from_aid()
       if r == '604':
-        c.motor_pulley_insertion()
+        c.bearing_insertion_assembly()
       if r == '605':
-        c.motor_pulley_fastening()
+        c.motor_pulley_insertion()
       if r == '606':
-        c.end_cap_and_shaft_prep()
+        c.motor_pulley_fastening()
       if r == '607':
-        c.end_cap_and_shaft_preinsertion()
+        c.end_cap_and_shaft_prep()
       if r == '608':
-        c.simple_end_cap_pick()
+        c.end_cap_and_shaft_preinsertion()
       if r == '609':
-        c.end_cap_insertion()
+        c.simple_end_cap_pick()
       if r == '610':
-        c.fasten_end_cap()
+        c.end_cap_insertion()
       if r == '611':
-        c.bearing_spacer()
+        c.fasten_end_cap()
       if r == '612':
+        c.bearing_spacer()
+      if r == '613':
         c.output_pulley()
+      if r == '614':
+        c.insert_motor_cables("black")
+      if r == '614t':
+        c.insert_motor_cables_with_tool("black")
+      if r == '615':
+        c.insert_motor_cables("red")
+      if r == '615t':
+        c.insert_motor_cables_with_tool("black")
       if r == '6':
         c.a_bot.go_to_named_pose("back")
         c.b_bot.go_to_named_pose("screw_ready")
