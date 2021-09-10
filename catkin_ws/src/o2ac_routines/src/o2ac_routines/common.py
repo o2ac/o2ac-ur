@@ -4036,6 +4036,7 @@ class O2ACCommon(O2ACBase):
       self.b_bot.gripper.close(force=100, velocity=0.1)
       self.b_bot.gripper.open()
     self.b_bot.go_to_pose_goal(approach_pose, move_lin=True, speed=1.0, retime=True)
+    return True
 
   @lock_impedance
   def insert_motor(self, target_link, attempts=1):
@@ -4112,8 +4113,14 @@ class O2ACCommon(O2ACBase):
     if use_urscript:
       # TODO: Confirm that the motor is indeed in the vgroove after urscript
       if not self.orient_motor_in_aid_edge_urscript():
+        rospy.logerror("Fail to orient motor with URscript, script error?")
+        return False
+      if self.b_bot.gripper.opening_width < 0.01: # Fail to orient motor urscript
+        rospy.logerror("Fail to orient motor with URscript, gripper is closed")
         return False
       self.center_motor_tip()
+      return True
+
     # ALTERNATIVE B:
     self.center_motor()
     
