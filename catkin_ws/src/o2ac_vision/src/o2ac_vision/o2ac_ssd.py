@@ -64,7 +64,7 @@ class ssd_detection():
         self.c_param["offset"] = np.array( [0.0,0.0,0.0] )
         self.c_param["gamma"] = 1.0        
 
-    def object_detection(self, im_in, im_vis=None, threshold = 0.6, overlap_threshold = 0.8):
+    def object_detection(self, im_in, im_vis=None, threshold = 0.6, overlap_threshold = 0.3):
         """ Object detection by SSD
 
         Args:
