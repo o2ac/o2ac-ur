@@ -2342,9 +2342,10 @@ class O2ACCommon(O2ACBase):
       else:
         screw_status[n] = "empty"
     
-    if only_retighten and self.tools.screw_is_suctioned["m"+str(screw_size)]:
-      rospy.logwarn("Screw already in tool, but we want to retighten! Breaking out without retightening.")
-      return True
+    if self.use_real_robot:
+      if only_retighten and self.tools.screw_is_suctioned.get("m"+str(screw_size), None):
+        rospy.logwarn("Screw already in tool, but we want to retighten! Breaking out without retightening.")
+        return True
 
     robot = self.active_robots[robot_name]
     if not skip_intermediate_pose:
