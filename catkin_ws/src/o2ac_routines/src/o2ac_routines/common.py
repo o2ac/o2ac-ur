@@ -618,7 +618,7 @@ class O2ACCommon(O2ACBase):
           return self.look_and_get_grasp_point(object_id, robot_name, options) # May end in infinite loop?
         else:
           return random.choice(grasps)
-      rospy.logerror("No feasible grasps! %s" % grasps)
+      rospy.logerr("No feasible grasps! %s" % grasps)
     return False
 
   def adjust_tip_position_visually(self, robot_name, use_inside_camera=False, use_outside_camera=False):
@@ -4157,7 +4157,7 @@ class O2ACCommon(O2ACBase):
         rospy.logerror("Fail to orient motor with URscript.")
         return False
       if self.b_bot.gripper.opening_width < 0.01: # Fail to orient motor urscript
-        rospy.logerror("Fail to orient motor with URscript, gripper is closed")
+        rospy.logerr("Fail to orient motor with URscript, gripper is closed")
         return False
       self.center_motor_tip()
       return True
