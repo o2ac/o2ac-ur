@@ -1334,6 +1334,7 @@ class O2ACAssembly(O2ACCommon):
       if not self.pick_tray_from_agv_stack_calibration_long_side(tray_name=tray_name):
         rospy.logerr("Fail to pick and place tray. Abort!")
         return False
+      self.assembly_status.tray_placed_on_table = True
 
     self.update_assembly_display()
 
@@ -1350,6 +1351,8 @@ class O2ACAssembly(O2ACCommon):
         rospy.logfatal("Fail to assemble panels... call a reset!")
         raise
     self.ab_bot.go_to_named_pose("home")
+    
+    self.update_assembly_display()
 
     return self.assemble_drive_unit(tray_name)
 
