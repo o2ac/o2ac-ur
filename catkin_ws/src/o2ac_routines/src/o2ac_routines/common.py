@@ -3882,7 +3882,7 @@ class O2ACCommon(O2ACBase):
     return motor_placed, self.objects_in_tray.get(motor_id, None)
 
   @lock_vision
-  def confirm_motor_pose(self, calibration=False, use_cad=False):
+  def confirm_motor_pose(self, calibration=False, use_cad=True):
     """ 
       Confirm the position of the motor in the centering area
       calibration ON: Skip any fallbacks
@@ -3925,7 +3925,16 @@ class O2ACCommon(O2ACBase):
       motor_pose.pose.position.x = -0.006  # Grasp height
       
       # Check that motor direction matches the cables seen in RGB image
-      rgb_theta = self.vision.get_motor_angle_from_top_view(camera="b_bot_outside_camera")
+      # Use RGB only
+      rgb_theta = None
+      tries = 10
+      while not rgb_theta and tries > 0:
+        rgb_theta = self.vision.get_motor_angle_from_top_view(camera="b_bot_outside_camera")
+        tries -= 1
+      if rgb_theta is None:
+        rospy.logerr("Motor not detected by `get motor angle`! Return item and abort")
+        self.motor_centering_fallback()
+        return False
       q = motor_pose.pose.orientation
       rpy = tf.transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])
       rgb_theta = rgb_theta - tau/2 # rotate 180, align camera to motor tip
@@ -3933,8 +3942,8 @@ class O2ACCommon(O2ACBase):
       cad_theta = rpy[0] % tau # wrap angle to range [0, TAU]
       print("rgb_theta ", rgb_theta, "cad_theta", cad_theta)
       # If arrow and motor do not point in the same direction
-      if rgb_theta and abs(rgb_theta - cad_theta) > tau/4: # If there is a big difference, discard CAD and rely on rgb estimation
-        motor_pose.pose.orientation = conversions.to_quaternion(transformations.quaternion_from_euler(rgb_theta, 0, 0))
+      if rgb_theta and abs(rgb_theta - cad_theta) > tau/4: # If there is a big difference, flip the motor by 180deg
+        motor_pose = helpers.rotatePoseByRPY(tau/2, 0, 0, motor_pose)
       self.planning_scene_interface.remove_world_object("motor")
     else:
       # Use RGB only
