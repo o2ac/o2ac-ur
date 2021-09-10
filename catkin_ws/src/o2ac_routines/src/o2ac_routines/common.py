@@ -243,7 +243,7 @@ class O2ACCommon(O2ACBase):
     self.markers_scene.parts_database = PartsReader(assembly_name, load_meshes=False, verbose=False)
     # TODO(cambel): load the objects dimensions from somewhere
     self.dimensions_dataset = {}
-    if self.assembly_database.db_name in ["wrs_assembly_2021", "wrs_assembly_2021_flipped"]:
+    if self.assembly_database.db_name in ["wrs_assembly_2021", "wrs_assembly_2021_surprise"]:
       self.dimensions_dataset.update({"panel_bearing": [0.09, 0.116, 0.012]})
       self.dimensions_dataset.update({"panel_motor"  : [0.06, 0.06, 0.012]})
     elif self.assembly_database.db_name in ["wrs_assembly_2020", "wrs_assembly_2019_surprise"] :
@@ -5304,7 +5304,7 @@ class O2ACCommon(O2ACBase):
       l_plate = 0.116
     else: # panel_motor
       object_frame = "assembled_part_01_screw_hole_panel2_1"
-      if self.assembly_database.db_name in ["wrs_assembly_2021", "wrs_assembly_2021_flipped"]:
+      if self.assembly_database.db_name in ["wrs_assembly_2021", "wrs_assembly_2021_surprise"]:
         l_plate = 0.06
       elif self.assembly_database.db_name in ["wrs_assembly_2020", "wrs_assembly_2019_surprise"]:
         l_plate = 0.07
@@ -5323,7 +5323,7 @@ class O2ACCommon(O2ACBase):
       else: # panel_motor
         offset_y = 0.011            # MAGIC NUMBER
         offset_z = -0.006           # MAGIC NUMBER
-    elif self.assembly_database.db_name == "wrs_assembly_2021_flipped":
+    elif self.assembly_database.db_name == "wrs_assembly_2021_surprise":
       if panel_name == "panel_bearing":
         if self.assembly_database.assembly_info.get("panel_bearing_facing_backward", False):
           offset_y = -0.01          # MAGIC NUMBER (TODO)
@@ -5361,7 +5361,7 @@ class O2ACCommon(O2ACBase):
       if panel_name == "panel_bearing":
         l_plate = 0.116
       else:
-        if self.assembly_database.db_name in ["wrs_assembly_2021", "wrs_assembly_2021_flipped"]:
+        if self.assembly_database.db_name in ["wrs_assembly_2021", "wrs_assembly_2021_surprise"]:
           l_plate = 0.06
         elif self.assembly_database.db_name in ["wrs_assembly_2020", "wrs_assembly_2019_surprise"]:
           l_plate = 0.07

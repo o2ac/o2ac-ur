@@ -125,9 +125,9 @@ if __name__ == '__main__':
         set_assembly("wrs_assembly_2020")
       if i == "load2021":
         set_assembly("wrs_assembly_2021")
-      if i == "load2021flipped":
-        set_assembly("wrs_assembly_2021_flipped")
-      if i == "load2019surprise":
+      if i == "load2021s":
+        set_assembly("wrs_assembly_2021_surprise")
+      if i == "load2019s":
         set_assembly("wrs_assembly_2019_surprise")
       # if i == "loadsurprise":
       #   set_assembly("wrs_assembly_2021_surprise")
