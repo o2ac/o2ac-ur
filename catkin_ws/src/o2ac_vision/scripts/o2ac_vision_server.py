@@ -376,14 +376,15 @@ class O2ACVisionServer(object):
         action_result = o2ac_msgs.msg.localizeObjectResult()
         for poses2d in poses2d_array:
             poses3d = o2ac_msgs.msg.Estimated3DPoses()
-            poses3d.class_id, poses3d.poses \
-                = self.localize(poses2d.class_id, poses2d.bbox, poses2d.poses,
-                                im_in.shape)
+            poses3d.class_id = poses2d.class_id
+            poses3d.poses, error \
+                = self.localize(self.item_id(poses2d.class_id),
+                                poses2d.bbox, poses2d.poses, im_in.shape)
             if poses3d.poses:
                 action_result.detected_poses.append(poses3d)
                 # Spawn URDF models
                 for n, pose in enumerate(poses3d.poses.poses):
-                    self._spawner.add(self.item_id(poses3d.class_id),
+                    self._spawner.add(self._param_localization[self.item_id(poses3d.class_id)]['object_name'],
                                       geometry_msgs.msg.PoseStamped(
                                           poses3d.poses.header, pose),
                                       '{:02d}_'.format(n))
@@ -725,7 +726,8 @@ class O2ACVisionServer(object):
 
         self._localizer.send_goal_with_target_frame(item_id, 'tray_center',
                                                     rospy.Time.now(), poses2d)
-        return self._localizer.wait_for_result()
+        result = self._localizer.wait_for_result()
+        return result.poses, result.error
 
     def item_id(self, class_id):
         """ Returns the name (item_id) of the item's id number (class_id) of the SSD.
