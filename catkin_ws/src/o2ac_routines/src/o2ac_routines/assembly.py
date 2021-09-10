@@ -1238,8 +1238,8 @@ class O2ACAssembly(O2ACCommon):
     self.do_change_tool_action("b_bot", equip=False, screw_size = 4)
     
 
-    rospy.loginf("===== Panels assembly completed! =====")
-    rospy.loginf("===== Assembly status: %s =====" % str(vars(self.assembly_status)))
+    rospy.loginfo("===== Panels assembly completed! =====")
+    rospy.loginfo("===== Assembly status: %s =====" % str(vars(self.assembly_status)))
 
     del self.panel_bearing_pose
     del self.panel_motor_pose
