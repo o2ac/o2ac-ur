@@ -1113,18 +1113,43 @@ class MotorOrientation():
         im_w = im_red.shape[1]
         im_h = im_red.shape[0]
         # x and y coordinate of roi surrounding bbox.
+        bb_h2 = int(self.bb_h/2)
+        bb_w2 = int(self.bb_w/2)
+        cx, cy = self.bb_x + bb_w2, self.bb_y + bb_h2
+        scale = 2.0
+        vbb_w, vbb_h = scale * self.bb_w, scale * self.bb_h
+        vbb_step_x, vbb_step_y = int(vbb_w/3) , int(vbb_h/3)
+        vbb_w2, vbb_h2 = int(vbb_w/2), int(vbb_h/2)
+
         rx = np.array([
-            self.bb_x - self.bb_h,
-            self.bb_x,
-            self.bb_x + self.bb_w,
-            self.bb_x + self.bb_w + self.bb_h
+            cx - vbb_w2,
+            cx - vbb_w2 + vbb_step_x,
+            cx - vbb_w2 + (vbb_step_x)*2,
+            cx - vbb_w2 + (vbb_step_x)*3
         ])
         ry = np.array([
-            self.bb_y - self.bb_h,
-            self.bb_y,
-            self.bb_y + self.bb_h,
-            self.bb_y + (2*self.bb_h)
+            cy - vbb_h2,
+            cy - vbb_h2 + vbb_step_y,
+            cy - vbb_h2 + (vbb_step_y)*2,
+            cy - vbb_h2 + (vbb_step_y)*3
         ])
+
+        self.vboxes = [
+            (rx[0],ry[0]), (rx[1],ry[1]),
+            (rx[1],ry[0]), (rx[2],ry[1]),
+            (rx[2],ry[0]), (rx[3],ry[1]),
+            (rx[0],ry[1]), (rx[1],ry[2]),
+            (rx[2],ry[1]), (rx[3],ry[2]),
+            (rx[0],ry[2]), (rx[1],ry[3]),
+            (rx[1],ry[2]), (rx[2],ry[3]),
+            (rx[2],ry[2]), (rx[3],ry[3])
+        ]
+
+        max_dist = np.linalg.norm( (cx-self.vboxes[0][0], cy-self.vboxes[0][1]) )
+        self.im_dist = self.calc_dist_map( im_red, cx, cy, max_dist  )
+        im_red = im_red*self.im_dist
+        self.dist_map = im_red
+
         # clip
         rx = np.clip(rx,0,im_w-1)
         ry = np.clip(ry,0,im_h-1)
@@ -1140,15 +1165,15 @@ class MotorOrientation():
         self.im_roi.append( im_red[ry[0]:ry[1],rx[1]:rx[2]].copy() ) # 6
         self.im_roi.append( im_red[ry[0]:ry[1],rx[2]:rx[3]].copy() ) # 7
 
-        n_red = list()
+        self.n_red = list()
         for roi in self.im_roi:
             # Get red mask
-            n_red.append( np.sum( roi ) )
+            self.n_red.append( np.sum( roi ) )
 
-        orientation_code = np.argmax(n_red)
+        orientation_code = np.argmax(self.n_red)
         self.cable_orientation = orientation_code * 45.0
 
-        return self.cable_orientation  # In degrees
+        return self.cable_orientation
 
     def split_hsv( self, im_in ):
         im_hsv = cv2.cvtColor( im_in, cv2.COLOR_BGR2HSV )
@@ -1179,6 +1204,15 @@ class MotorOrientation():
 
         return im_red_mask # 1 means red pixel
 
+    def calc_dist_map( self, img, cx, cy, max_dist ):
+        im_dist = np.zeros( img.shape )
+        for j in range(img.shape[0]):
+            for i in range(img.shape[1]):
+                    if img[j,i]:
+                        dist = np.linalg.norm( (cx-i, cy-j) )
+                        im_dist[j,i] = (max_dist - dist)/max_dist
+        return im_dist
+
     def get_im_vis( self, im_in ):
         center = (self.bb_x+int(self.bb_w/2),
                   self.bb_y+int(self.bb_h/2))
@@ -1188,15 +1222,20 @@ class MotorOrientation():
                           [np.sin(radian), np.cos(radian)]
                        ])
         rot_off = np.dot( rot, off ).astype(np.int)
-        im_vis = cv2.arrowedLine(im_in, center, 
+
+        im_vis = im_in.copy()
+        for i in range(8):
+            im_vis = cv2.rectangle( im_vis, self.vboxes[2*i], self.vboxes[2*i+1], (255,255,255), 2 )
+            im_vis = cv2.rectangle( im_vis, self.vboxes[2*i], self.vboxes[2*i+1], (255,0,0), 1 )
+        im_vis = cv2.arrowedLine(im_vis, center, 
                                 (center[0]+rot_off[0], center[1]+rot_off[1]), 
                                 (0,255,0), 3, cv2.LINE_AA, tipLength=0.3)
         
         text = "Orientation: " + str(self.cable_orientation)
         im_vis = cv2.putText(im_vis, text, (20,20), 0, 0.5,(255,255,255),2, cv2.LINE_AA)
         im_vis = cv2.putText(im_vis, text, (20,20), 0, 0.5,(255,0,0),1, cv2.LINE_AA)
-        return im_vis
 
+        return im_vis
 
 #####################################################
 # Sample code
