@@ -208,10 +208,16 @@ class O2ACAssembly(O2ACCommon):
     self.a_success = False
     self.b_success = False
     def b_task():
-      if not self.pick_motor():
+      self.b_success = self.pick_motor()
+      if not self.b_success:
         rospy.logerr("Fail to pick motor")
         return False
+      self.assembly_status.motor_placed_outside_of_tray = True
       self.b_success = self.orient_motor()
+      if not self.b_success:
+        rospy.logerr("Fail to orient motor")
+        return False
+      self.assembly_status.motor_oriented = self.b_success
     def a_task():
       self.a_success = self.do_change_tool_action("a_bot", equip=True, screw_size=3)
       self.a_success &= self.a_bot.go_to_named_pose("screw_ready")
