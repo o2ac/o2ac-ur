@@ -5816,6 +5816,9 @@ class O2ACCommon(O2ACBase):
     screw_target_pose = conversions.to_pose_stamped(screw_order[0], [0, 0, 0] + orientation)
     print("pose",screw_target_pose.pose)
 
+    if approach_from_front:
+      screw_target_pose.pose.position.z += 0.0025
+
     if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel_name, approach_from_front=approach_from_front):
       # Fallback for screw 1
       rospy.logerr("Failed to fasten panel screw 1, trying to realign tool and retry.")
@@ -5831,14 +5834,14 @@ class O2ACCommon(O2ACBase):
         b_bot_task()
         a_bot_task()
       # Retry fastening
-      if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel_name):
+      if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel_name, approach_from_front=approach_from_front):
         rospy.logerr("Failed to fasten panel screw 2, trying to realign tool and retry.")
         if simultaneous:
           self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=120)
         else:
           b_bot_task()
           a_bot_task()
-        if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel_name):
+        if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel_name, approach_from_front=approach_from_front):
           rospy.logerr("Failed to fasten panel screw 3 abort.")
           self.unequip_tool("b_bot")
           self.a_bot.gripper.open()
@@ -5888,25 +5891,11 @@ class O2ACCommon(O2ACBase):
       self.realign_tool("b_bot", "screw_tool_m4")
       self.b_bot.go_to_named_pose("feeder_pick_ready")
       self.pick_screw_from_feeder("b_bot", screw_size = 4)
-      self.hold_panel_for_fastening(panel_name)
-      self.a_bot.gripper.open(opening_width=0.03, wait=False)
+      self.a_bot.gripper.open(opening_width=0.07, wait=True)
+      self.hold_panel_for_fastening(panel_name, skip_initial_gripper_closing=True)
+      self.a_bot.gripper.open(opening_width=0.03, velocity=0.01, wait=True)
       self.a_bot_success = self.a_bot.move_lin_rel(relative_translation=[-0.2,0,0], relative_to_tcp=True)
       
-      # Recenter plate
-      center_plate_pose = geometry_msgs.msg.PoseStamped()
-      if panel_name == "panel_bearing":
-        center_plate_pose.header.frame_id = part_name + "pulley_ridge_middle"
-      else:  # motor panel
-        center_plate_pose.header.frame_id = part_name + "motor_screw_hole_5"
-      center_plate_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, radians(60), -tau/4))
-      center_plate_pose.pose.position.x = 0.0025
-      if not simultaneous: # TODO: add a fallback for simultaneous motions
-        self.a_bot.gripper.open(opening_width=0.04, wait=False)
-        self.a_bot.move_lin_rel([0.2,0,0], relative_to_tcp=True, speed=.3)
-        self.a_bot.go_to_pose_goal(center_plate_pose, move_lin=True)
-        self.a_bot.gripper.close(force = 100)
-        self.a_bot.gripper.open()
-        self.a_bot.move_lin_rel([-0.2,0,0], relative_to_tcp=True, speed=.3)
       if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel_name, approach_from_front=approach_from_front):
         rospy.logerr("Failed to fasten panel screw 2 again. Aborting.")
         return False

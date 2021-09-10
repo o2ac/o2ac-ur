@@ -1515,6 +1515,7 @@ class O2ACAssembly(O2ACCommon):
     rospy.loginfo("==== Finished.")
 
   def unload_assembled_unit(self, tray_name=None):
+    self.publish_status_text("Unloading")
     self.unequip_tool("a_bot")
     self.unequip_tool("b_bot")
     self.reset_scene_and_robots()
@@ -1523,6 +1524,7 @@ class O2ACAssembly(O2ACCommon):
       rospy.logerr("Fail to unload drive unit. Abort!")
       return False
     if tray_name:
+      self.publish_status_text("Returning tray")
       if not self.return_tray_to_agv_stack_calibration_long_side(tray_name):
         rospy.logerr("Fail to return tray. Abort!")
         return False
@@ -1582,49 +1584,49 @@ class O2ACAssembly(O2ACCommon):
     self.a_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
     self.do_change_tool_action("b_bot", equip=False, screw_size=4)
 
-    # ======= Motor ========
-    if not self.assembly_status.completed_subtask_a:
-      rospy.loginfo("=== subtask A: START ===")
-      self.assembly_status.completed_subtask_a = self.subtask_a() # motor
-      rospy.loginfo("=== subtask A: Finish (%s) ===" % self.assembly_status.completed_subtask_a)
-    self.do_change_tool_action("a_bot", equip=False)
-
-    # ======= Motor Pulley ========
-    if self.assembly_status.completed_subtask_a and not self.assembly_status.completed_subtask_b:
-      rospy.loginfo("=== subtask B: START ===")
-      self.assembly_status.completed_subtask_b = self.subtask_b() # motor
-      rospy.loginfo("=== subtask B: Finish (%s) ===" % self.assembly_status.completed_subtask_b)
-    self.do_change_tool_action("a_bot", equip=False)
-
     # ======= Bearing ========
     if not self.assembly_status.completed_subtask_c1:  
       rospy.loginfo("=== subtask C1: START ===")
       self.assembly_status.completed_subtask_c1 = self.subtask_c1() # bearing
       rospy.loginfo("=== subtask C1: Finish (%s) ===" % self.assembly_status.completed_subtask_c1)
 
-    # ======= Shaft ========
-    if self.assembly_status.completed_subtask_c1 and not self.assembly_status.completed_subtask_c2:
-      rospy.loginfo("=== subtask C2: START ===")
-      self.assembly_status.completed_subtask_c2 = self.subtask_c2() # shaft
-      rospy.loginfo("=== subtask C2: Finish (%s) ===" % self.assembly_status.completed_subtask_c2)
+    # # ======= Motor ========
+    # if not self.assembly_status.completed_subtask_a:
+    #   rospy.loginfo("=== subtask A: START ===")
+    #   self.assembly_status.completed_subtask_a = self.subtask_a() # motor
+    #   rospy.loginfo("=== subtask A: Finish (%s) ===" % self.assembly_status.completed_subtask_a)
+    # self.do_change_tool_action("a_bot", equip=False)
 
-    # ======= Output Pulley ========
-    if self.assembly_status.completed_subtask_c2 and not self.assembly_status.completed_subtask_d:
-      rospy.loginfo("=== subtask D: START ===")
-      self.assembly_status.completed_subtask_d = self.subtask_d() # bearing spacer/output pulley
-      rospy.loginfo("=== subtask D: Finish (%s) ===" % self.assembly_status.completed_subtask_d)
+    # # ======= Motor Pulley ========
+    # if self.assembly_status.completed_subtask_a and not self.assembly_status.completed_subtask_b:
+    #   rospy.loginfo("=== subtask B: START ===")
+    #   self.assembly_status.completed_subtask_b = self.subtask_b() # motor
+    #   rospy.loginfo("=== subtask B: Finish (%s) ===" % self.assembly_status.completed_subtask_b)
+    # self.do_change_tool_action("a_bot", equip=False)
 
-    # ======= Idler Pulley ========
-    if not self.assembly_status.completed_subtask_e:
-      rospy.loginfo("=== subtask E: START ===")
-      self.assembly_status.completed_subtask_e = self.subtask_e() 
-      rospy.loginfo("=== subtask E: Finish (%s) ===" % self.assembly_status.completed_subtask_)
+    # # ======= Shaft ========
+    # if self.assembly_status.completed_subtask_c1 and not self.assembly_status.completed_subtask_c2:
+    #   rospy.loginfo("=== subtask C2: START ===")
+    #   self.assembly_status.completed_subtask_c2 = self.subtask_c2() # shaft
+    #   rospy.loginfo("=== subtask C2: Finish (%s) ===" % self.assembly_status.completed_subtask_c2)
+
+    # # ======= Output Pulley ========
+    # if self.assembly_status.completed_subtask_c2 and not self.assembly_status.completed_subtask_d:
+    #   rospy.loginfo("=== subtask D: START ===")
+    #   self.assembly_status.completed_subtask_d = self.subtask_d() # bearing spacer/output pulley
+    #   rospy.loginfo("=== subtask D: Finish (%s) ===" % self.assembly_status.completed_subtask_d)
+
+    # # ======= Idler Pulley ========
+    # if not self.assembly_status.completed_subtask_e:
+    #   rospy.loginfo("=== subtask E: START ===")
+    #   self.assembly_status.completed_subtask_e = self.subtask_e() 
+    #   rospy.loginfo("=== subtask E: Finish (%s) ===" % self.assembly_status.completed_subtask_)
     
-    # ======= Motor Cables ========
-    if not self.assembly_status.completed_subtask_i1 or not self.assembly_status.completed_subtask_i2:
-      rospy.loginfo("=== subtask I: START ===")
-      success = self.subtask_i() 
-      rospy.loginfo("=== subtask E: Finish (%s) ===" % success)
+    # # ======= Motor Cables ========
+    # if not self.assembly_status.completed_subtask_i1 or not self.assembly_status.completed_subtask_i2:
+    #   rospy.loginfo("=== subtask I: START ===")
+    #   success = self.subtask_i() 
+    #   rospy.loginfo("=== subtask E: Finish (%s) ===" % success)
     
     self.unload_assembled_unit(tray_name)
     rospy.loginfo("==== Finished. ====")
@@ -1636,7 +1638,7 @@ class O2ACAssembly(O2ACCommon):
     orders.append({"tray_name":"tray1", "assembly_name":"wrs_assembly_2021_surprise", "status":self.get_first_order_status()})  # Top tray
     orders.append({"tray_name":"tray2", "assembly_name":"wrs_assembly_2021", "status":self.get_second_order_status()})  # Bottom tray
 
-    simultaneous = [True, True]
+    simultaneous = [False, True]
     unload_right_away = [False, False]
 
     if not orders[0]["status"].tray_placed_on_table:

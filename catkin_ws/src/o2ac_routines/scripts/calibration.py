@@ -939,6 +939,13 @@ if __name__ == '__main__':
         c.fasten_motor()
       if r == '604':
         c.bearing_insertion_assembly()
+      if r == '604i':
+        c.orient_bearing(task="assembly", robot_name="a_bot", part1=False)
+        print("current pose", conversions.from_pose_to_list(c.listener.transformPose("assembled_part_07_inserted", c.a_bot.get_current_pose_stamped()).pose))
+        c.confirm_to_proceed("finetune")
+        c.insert_bearing("assembled_part_07_inserted", robot_name="a_bot")
+        print("current pose", conversions.from_pose_to_list(c.listener.transformPose("assembled_part_07_inserted", c.a_bot.get_current_pose_stamped()).pose))
+        c.confirm_to_proceed("we are done?")
       if r == '604f':
         c.fasten_bearing(task="assembly", robot_name="a_bot")
       if r == '604fb':
@@ -1008,6 +1015,9 @@ if __name__ == '__main__':
       if r == "load2021":
         c.assembly_status.tray_placed_on_table = True
         c.set_assembly("wrs_assembly_2021")
+      if r == "load2021s":
+        c.assembly_status.tray_placed_on_table = True
+        c.set_assembly("wrs_assembly_2021_surprise")
       if r == 'x':
         break
     rospy.loginfo("============ Exiting!")
