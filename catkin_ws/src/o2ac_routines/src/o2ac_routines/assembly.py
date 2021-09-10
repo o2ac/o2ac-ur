@@ -1522,12 +1522,8 @@ class O2ACAssembly(O2ACCommon):
     self.ab_bot.go_to_named_pose("home")
     self.reset_scene_and_robots()
     orders = []
-    orders.append({"tray_name":"tray1", "assembly_name":"wrs_assembly_2021", "status":AssemblyStatus()})  # Top tray
-    # orders.append({"tray_name":"tray2", "assembly_name":"wrs_assembly_2020", "status":AssemblyStatus()})  # Bottom tray
-
-    ### Use this line to adjust the start state in case of a reset
-    orders[0]["status"].tray_placed_on_table = True
-    # orders[0]["status"].tray_placed_on_table = False
+    orders.append({"tray_name":"tray1", "assembly_name":"wrs_assembly_2021", "status":self.get_first_order_status()})  # Top tray
+    orders.append({"tray_name":"tray2", "assembly_name":"wrs_assembly_2020", "status":self.get_second_order_status()})  # Bottom tray
 
     if not orders[0]["status"].tray_placed_on_table:
       print("get from AGV")
@@ -1537,7 +1533,7 @@ class O2ACAssembly(O2ACCommon):
       load_first_assembly()
       self.center_tray_stack()
     else:
-      print("already in the table")
+      print("already on the table")
       self.set_assembly(orders[0]["assembly_name"])
       stack_center=[-0.03,0]
       tray_heights=[0.05,0.0]
@@ -1550,6 +1546,86 @@ class O2ACAssembly(O2ACCommon):
       self.assemble_drive_unit_orchestrated(order["tray_name"], simultaneous_execution, tray_on_table=order["status"].tray_placed_on_table)
     rospy.loginfo("==== Finished both tasks ====")
     return
+
+  def get_first_order_status(self):
+    """ A convenience function to define the status of the first order (to be used after a reset in the competition)
+    """
+    s = AssemblyStatus()
+    s.tray_placed_on_table = False
+
+    s.bearing_panel_placed_outside_of_tray = False
+    s.motor_panel_placed_outside_of_tray = False
+    
+    s.belt_placed_outside_of_tray = False
+
+    s.motor_picked = False
+    s.motor_oriented = False
+    s.motor_placed_outside_of_tray = False
+    s.motor_inserted_in_panel = False
+    
+    s.bearing_placed_outside_of_tray = False
+    s.bearing_picked = False
+    s.bearing_oriented = False
+    s.bearing_inserted_in_panel = False
+    s.bearing_holes_aligned = False
+    s.bearing_spacer_assembled = False
+
+    s.idler_pulley_spacer_placed_outside_of_tray = False
+    s.idler_pulley_placed_outside_of_tray = False
+
+    s.completed_subtask_zero = False  # Base
+    s.completed_subtask_a = False  # Motor
+    s.completed_subtask_b = False  # Motor pulley
+    s.completed_subtask_c1 = False  # Bearing
+    s.completed_subtask_c2 = False  # Shaft
+    s.completed_subtask_d = False  # Fasten output pulley
+    s.completed_subtask_e = False  # Output pulley
+    s.completed_subtask_f = False  # Motor plate
+    s.completed_subtask_g = False  # Bearing plate
+    s.completed_subtask_h = False  # Belt
+    s.completed_subtask_i1 = False  # Cable 1
+    s.completed_subtask_i2 = False  # Cable 2
+    return s
+  
+  def get_second_order_status(self):
+    """ A convenience function to define the status of the first order (to be used after a reset in the competition)
+    """
+    s = AssemblyStatus()
+    s.tray_placed_on_table = False
+
+    s.bearing_panel_placed_outside_of_tray = False
+    s.motor_panel_placed_outside_of_tray = False
+    
+    s.belt_placed_outside_of_tray = False
+
+    s.motor_picked = False
+    s.motor_oriented = False
+    s.motor_placed_outside_of_tray = False
+    s.motor_inserted_in_panel = False
+    
+    s.bearing_placed_outside_of_tray = False
+    s.bearing_picked = False
+    s.bearing_oriented = False
+    s.bearing_inserted_in_panel = False
+    s.bearing_holes_aligned = False
+    s.bearing_spacer_assembled = False
+
+    s.idler_pulley_spacer_placed_outside_of_tray = False
+    s.idler_pulley_placed_outside_of_tray = False
+
+    s.completed_subtask_zero = False  # Base
+    s.completed_subtask_a = False  # Motor
+    s.completed_subtask_b = False  # Motor pulley
+    s.completed_subtask_c1 = False  # Bearing
+    s.completed_subtask_c2 = False  # Shaft
+    s.completed_subtask_d = False  # Fasten output pulley
+    s.completed_subtask_e = False  # Output pulley
+    s.completed_subtask_f = False  # Motor plate
+    s.completed_subtask_g = False  # Bearing plate
+    s.completed_subtask_h = False  # Belt
+    s.completed_subtask_i1 = False  # Cable 1
+    s.completed_subtask_i2 = False  # Cable 2
+    return s
 
   def assemble_drive_unit_simultaneous(self):
     # This is the v2. "orchestrated" is v3.

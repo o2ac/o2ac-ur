@@ -43,6 +43,7 @@ def main():
     # c.fasten_panel("panel_motor", simultaneous=False)
     # c.hold_panel_for_fastening("panel_motor")
     # c = O2ACTaskboard()
+    # c.reset_scene_and_robots()
     # c.is_bearing_in_storage = True
     # c.pick_bearing(robot_name="a_bot")
     # c.is_motor_pulley_in_storage = True
@@ -55,7 +56,13 @@ def main():
     # c.publish_part_in_assembled_position("panel_motor")
     # c.publish_part_in_assembled_position("panel_bearing")
     # c.publish_part_in_assembled_position("motor", marker_only=True)
-    # c.insert_motor_cables_with_tool()
+    
+    c = O2ACAssembly()
+    c.insert_motor_cables_without_tools_normal(cable_color="black", cable_straighten_distance=0.133)
+    print("done")
+    return
+
+    # c.insert_motor_cables_with_tool(cable_color="black")
     # c.equip_cable_tool()
     # c.unequip_cable_tool()
     # c.spawn_tool("cable_tool")

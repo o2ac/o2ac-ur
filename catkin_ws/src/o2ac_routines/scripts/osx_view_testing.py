@@ -314,6 +314,14 @@ if __name__ == '__main__':
         c.vision.activate_pulley_screw_detection()
       elif r == "890":
         c.vision.activate_pulley_screw_detection(False)
+      elif r == "ledaon":
+        c.activate_led("a_bot")
+      elif r == "ledaoff":
+        c.activate_led("a_bot", on=False)
+      elif r == "ledbon":
+        c.activate_led("b_bot")
+      elif r == "ledboff":
+        c.activate_led("b_bot", on=False)
       elif r == 'push':
         c.b_bot.linear_push(force=10, direction="-Z", relative_to_ee=False, timeout=15.0)
       elif r == "reset":

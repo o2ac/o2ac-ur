@@ -4300,9 +4300,12 @@ class O2ACCommon(O2ACBase):
     
     return self.fasten_motor(simultaneous=False)
 
-  def insert_motor_cables(self, cable_color="black"):
+  def insert_motor_cables_without_tools_normal(self, cable_color="black", cable_straighten_distance=0.127):
     """
-      insert motor cable in termina
+      Pick and insert motor cable into terminal.
+      cable_straighten_distance is the distance that the grippers move away from the motor after caging the cable.
+      The procedure used to succeed with a straighten distance of 0.127 - 0.133.
+
       cable_color: "black" or "red"
     """
     if cable_color not in ["black", "red"]:
@@ -4315,10 +4318,42 @@ class O2ACCommon(O2ACBase):
     else:
       pin_frame_id = "assembled_part_01_cable_pin4" if not switch_panels_order else "assembled_part_01_cable_pin1"
 
-    cable_length = -0.1
-
     frame_id = "assembled_part_04_black_cable_connector"
+
+    ### b_bot black
+# global high_back_p=p[-.177127900982, -.419476419693, .231309924284, 2.058996860484, -1.934382102503, .399433807103]
+#   global high_back_q=[0.6850695836134424, -1.8893007823899843, 2.191333452922837, -2.1307548459673793, -1.2544725445690297, 3.8042538380914337]
+#   global above_cable_p=p[-.167205940160, -.537006434166, .202341770936, 2.058996852022, -1.934382101123, .399433824089]
+#   global above_cable_q=[0.9121716527344699, -1.573100102791802, 2.029667019745176, -2.34829394451748, -1.3192887268830331, 4.032494274201525]
+#   global at_cable_p=p[-.166901691565, -.560897999281, .146118286512, 2.058945929784, -1.934390269730, .399392107826]
+#   global at_cable_q=[0.943617582321167, -1.4429712456515809, 2.0581329504596155, -2.514491697350973, -1.329651180897848, 4.064310073852539]
+    ### a_bot black
+  # global above_cabl_base_p=p[.167249394086, -.416392753306, .229475179132, 1.834156629321, -1.801945213822, .736727580426]
+  # global above_cabl_base_q=[1.6513884252160569, -2.151729059706909, 2.448358478399614, -2.589686121185471, -1.566597931383523, -1.5058330139051037]
+  # global at_cable_base_p=p[.163076761807, -.484758627579, .153468937851, 1.793367880792, -1.804541028093, .671862472570]
+  # global at_cable_base_q=[1.6871095786925876, -1.7744179628393715, 2.467708759932142, -2.980060271660026, -1.654217672952079, -1.477163390838836]
+  # global wait_for_bbot_p=p[.194303761965, -.484758627405, .153468937854, 1.793367764209, -1.804540855770, .671862630300]
+  # global wait_for_bbot_q=[1.7895625874673418, -1.7246730662031373, 2.4280854661469977, -2.9806450132961197, -1.7213115245813047, -1.3989358341572444]
+  
+  
+  ### a_bot red
+  # global above_cabl_base_p=p[.164159594106, -.392961851793, .226989586766, 1.793492255519, -1.804629458559, .671606214403]
+  # global above_cabl_base_q=[1.743733286857605, -2.183592458764547, 2.463839356099264, -2.5640679798521937, -1.6937859694110315, -1.4375231901751917]
+  # global at_cable_base_p=p[.163224678993, -.465929014721, .144285997472, 1.793424256911, -1.804405728066, .671995904095]
+  # global at_cable_base_q=[1.6948474645614624, -1.802526136437887, 2.518900696431295, -3.0044743023314417, -1.6615985075580042, -1.4746993223773401]
+  
+  ### b_bot red
+  #   global high_back_p=p[-.177127900982, -.419476419693, .231309924284, 2.058996860484, -1.934382102503, .399433807103]
+  # global high_back_q=[0.6850695836134424, -1.8893007823899843, 2.191333452922837, -2.1307548459673793, -1.2544725445690297, 3.8042538380914337]
+  # global above_cable_p=p[-.177699550963, -.580059568918, .163180691405, -2.236542335490, 2.103784096878, .090229857943]
+  # global above_cable_q=[1.0715283155441284, -1.2223808330348511, 1.5514424482928675, -1.8169332943358363, -1.6036742369281214, 4.152665138244629]
+  # global at_cable_p=p[-.177540411774, -.577395320450, .133965770693, -2.236541301873, 2.103797796490, .090122356831]
+  # global at_cable_q=[1.0695730447769165, -1.2036127907088776, 1.6047781149493616, -1.8891211948790492, -1.6037567297564905, 4.1511430740356445]
+
+
+
     a_bot_approach        = conversions.to_pose_stamped(frame_id, [-0.0196, 0.0654,-0.0550, 0.24386819, -0.67967013, -0.2553104,  0.64295678])
+    a_bot_approach_joint_angles = [1.6479237652044516, -2.1317710453102503, 2.4398570813671423, -2.6001601502839837, -1.5634912741554847, -1.5071992003970864]
     a_bot_at_cable        = conversions.to_pose_stamped(frame_id, [-0.0138,-0.0029, 0.0210, 0.25176847, -0.65889104, -0.24766403, 0.66418203])
     a_bot_wait_for_b      = conversions.to_pose_stamped(frame_id, [-0.0450,-0.0029, 0.0210, 0.25177093, -0.65888475, -0.24766217, 0.66418803])
     a_bot_waypoint1       = conversions.to_pose_stamped(frame_id, [-0.2030, 0.0018, 0.0151, 0.22084576, -0.74102362, -0.2770966, 0.57037586])
@@ -4329,41 +4364,68 @@ class O2ACCommon(O2ACBase):
     a_bot_above_hole2     = conversions.to_pose_stamped(pin_frame_id, [-0.0200, 0.0002,-0.0031, 0, 0, 0, 0])
 
     b_bot_high_back       = conversions.to_pose_stamped(frame_id, [-0.0238,-0.1282,-0.0689, 0.6899835657316222, 0.11914032194144523, 0.6950818535198647, 0.1630628088049338])
+    b_bot_high_back_joint_angles = [0.7006445817283591, -1.8739225704108315, 2.1823571269783097, -2.1411263938365996, -1.2586588897036604, -2.462758500406678]
     b_bot_above_cable     = conversions.to_pose_stamped(frame_id, [-0.0138,-0.0109,-0.0400, 0.690004249738519, 0.11929506126840099, 0.6950668177408967, 0.16292618750616827])
     b_bot_at_cable        = conversions.to_pose_stamped(frame_id, [-0.0135, 0.0131, 0.0162, 0.689987773146987, 0.11931277548834202, 0.695081113732324, 0.16292200540615387])
     b_bot_hold_cable      = conversions.to_pose_stamped(frame_id, [-0.0924, 0.0101, 0.0029, 0.7071360069944063, 0.55517288386069, 0.43636119671648077,-0.036477974696698945])
     b_bot_Waypoint_1      = conversions.to_pose_stamped(frame_id, [-0.1287,-0.0918, 0.0158, 0.6403967731232784, 0.618262549049528, 0.33913201040299534,-0.3043564898866053])
-    b_bot_Waypoint_2      = conversions.to_pose_stamped(frame_id, [-0.0879,-0.1159,-0.0572, 0.6403968097964423, 0.6182626350195856, 0.3391318726899746,-0.3043563915329672])
+    b_bot_Waypoint_2      = conversions.to_pose_stamped(frame_id, [-0.0879,-0.15  , -0.06 , 0.6403967731232784, 0.618262549049528, 0.33913201040299534,-0.3043564898866053])
     b_bot_look_at_cable   = conversions.to_pose_stamped(frame_id, [-0.0378,-0.1581, 0.0497, 0.609497539310126, 0.6163826114272067, 0.3506917013529725,-0.3544016880705233])
 
+    self.allow_collisions_with_robot_hand("motor", "a_bot", allow=True)
+    self.allow_collisions_with_robot_hand("motor", "a_bot", allow=True)
+    self.vision.activate_camera("a_bot_inside_camera")
+    self.b_bot.gripper.open(opening_width=0.01, wait=False)
     self.a_bot.gripper.open(opening_width=0.01, wait=False)
-    self.b_bot.gripper.open(opening_width=0.01, wait=True)
-
-    self.ab_bot.go_to_goal_poses(a_bot_approach, b_bot_high_back, speed=1.0)
-    self.ab_bot.go_to_goal_poses(a_bot_at_cable, b_bot_above_cable, speed=1.0)
-    self.a_bot.gripper.send_command(0.005)
+    success = self.ab_bot.go_to_named_pose("home")
+    # TODO: Use a_bot_approach_joint_angles, b_bot_high_back_joint_angles
+    success = self.ab_bot.go_to_goal_poses(a_bot_approach, b_bot_high_back, speed=1.0)
+    print("a_bot joint values", self.a_bot.robot_group.get_current_joint_values())
+    print("b_bot joint values", self.b_bot.robot_group.get_current_joint_values())
     
-    self.a_bot.go_to_pose_goal(a_bot_wait_for_b, move_lin=True, speed=0.1)
-    self.b_bot.go_to_pose_goal(b_bot_at_cable, move_lin=True, speed=0.1)
-
+    success &= self.ab_bot.go_to_goal_poses(a_bot_at_cable, b_bot_above_cable, speed=1.0)
+    success &= self.a_bot.gripper.send_command(0.005)
+    if not success:
+      rospy.logerr("Failed to go to cable with a_bot")
+    
+    self.confirm_to_proceed("Move forward with a, go to cable with b?")
+    
+    success = self.a_bot.go_to_pose_goal(a_bot_wait_for_b, move_lin=True, speed=0.1)
+    success &= self.b_bot.go_to_pose_goal(b_bot_at_cable, move_lin=True, speed=0.1)
     self.b_bot.gripper.send_command(0.005)
+    if not success:
+      rospy.logerr("Failed to go to cable with b_bot")
+    self.confirm_to_proceed("Move forward with both robots?")
 
-    target_pose = self.a_bot.move_lin_rel([cable_length,0,0], speed=0.05, pose_only=True)
+    # Pull cables
+    target_pose = self.a_bot.move_lin_rel([-cable_straighten_distance,0,0], speed=0.03, pose_only=True)
     slave_relation = self.ab_bot.get_relative_pose_of_slave("a_bot", "b_bot")
-    self.ab_bot.master_slave_control("a_bot", "b_bot", target_pose, slave_relation, speed=0.1)
+    success = self.ab_bot.master_slave_control("a_bot", "b_bot", target_pose, slave_relation, speed=0.1)
+    if not success:
+      rospy.logerr("Failed to pull cable")
     self.b_bot.gripper.close()
-
+    self.confirm_to_proceed("Cable should be grasped. Move a_bot back and present cable with b_bot?")
+    
+    # Move a_bot back, grasp cable
+    self.vision.activate_camera("b_bot_inside_camera")
     self.a_bot.gripper.send_command(0.02, wait=False)
-    self.a_bot.go_to_pose_goal(a_bot_waypoint1, speed=1.0)
-
-    self.ab_bot.go_to_goal_poses(a_bot_high_back, b_bot_hold_cable, speed=1.0)
-
-    self.a_bot.go_to_pose_goal(a_bot_above_cable_end, move_lin=True, speed=0.5)
-    self.a_bot.go_to_pose_goal(a_bot_at_cable_end, move_lin=True, speed=0.5)
+    success = self.a_bot.go_to_pose_goal(a_bot_waypoint1, speed=1.0)
+    success &= self.ab_bot.go_to_goal_poses(a_bot_high_back, b_bot_hold_cable, speed=1.0)
+    success &= self.a_bot.go_to_pose_goal(a_bot_above_cable_end, move_lin=True, speed=0.5)
+    success &= self.a_bot.go_to_pose_goal(a_bot_at_cable_end, move_lin=True, speed=0.5)
     self.a_bot.gripper.close(force=150)
-    self.b_bot.gripper.open(opening_width=0.03)
-    self.b_bot.go_to_pose_goal(b_bot_Waypoint_1, move_lin=True, speed=0.5)
+    self.b_bot.gripper.open(wait=False)
+    if not success:
+      rospy.logerr("Failed to grasp cable with a_bot")
+    # TODO: Add straightening (move_lin_rel and move back)
+    success = self.b_bot.go_to_pose_goal(b_bot_Waypoint_1, move_lin=True, speed=0.5)
+    if not success:
+      rospy.logerr("Failed to move back with b_bot")
+    
+
+    # Insert with a_bot, look at cable with b_bot
     def b_bot_task():
+      self.vision.activate_camera("b_bot_outside_camera")
       self.b_bot.go_to_pose_goal(b_bot_Waypoint_2, move_lin=True, speed=0.5)
       self.b_bot.go_to_pose_goal(b_bot_look_at_cable, move_lin=True, speed=0.5)
     def a_bot_task():
@@ -4374,7 +4436,25 @@ class O2ACCommon(O2ACBase):
       self.a_bot.move_lin_rel([-0.021,0,0], relative_to_tcp=True, speed=0.1)
       
     self.do_tasks_simultaneous(a_bot_task, b_bot_task)
-    # TODO confirm that the insertion was successful
+
+    a_bot_tip_start = self.a_bot.get_current_pose_stamped()
+    if self.use_real_robot:
+      self.a_bot.force_controller.linear_push(force=15, direction="-Z", max_translation=0.03, relative_to_ee=True, timeout=5.)
+    else:
+      self.a_bot.move_lin_rel([-0.03,0,0], relative_to_tcp=True, speed=0.01)
+    rospy.sleep(0.5)
+    a_bot_tip_end = self.a_bot.get_current_pose_stamped()
+
+    insertion_success = False
+    if pose_dist(a_bot_tip_start.pose, a_bot_tip_end.pose) < 0.005:
+      rospy.logerr("Cable tip " + cable_color + " was not inserted successfully!")
+      insertion_success = False
+    else:
+      rospy.loginfo("Cable tip " + cable_color + " successfully inserted!")
+      insertion_success = True
+
+    self.allow_collisions_with_robot_hand("motor", "a_bot", allow=False)
+    self.allow_collisions_with_robot_hand("motor", "a_bot", allow=False)
 
 
   def equip_cable_tool(self, robot_name="a_bot"):
