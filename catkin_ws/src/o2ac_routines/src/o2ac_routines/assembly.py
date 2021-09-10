@@ -1303,7 +1303,7 @@ class O2ACAssembly(O2ACCommon):
     pose.pose.orientation.w = 1
     return self.do_plan_pickplace_action('b_bot', 'panel_bearing', pose, save_solution_to_file = 'panel_bearing/bottom_screw_hole_aligner_1')
 
-  def assemble_drive_unit_orchestrated(self, tray_name=None, simultaneous_execution=True, tray_on_table=False):
+  def assemble_drive_unit_orchestrated(self, tray_name=None, simultaneous_execution=True):
     if not self.assembly_status.tray_placed_on_table and tray_name:
       if not self.pick_tray_from_agv_stack_calibration_long_side(tray_name=tray_name):
         rospy.logerr("Fail to pick and place tray. Abort!")
@@ -1422,12 +1422,10 @@ class O2ACAssembly(O2ACCommon):
       def b_bot_task():
         self.publish_status_text("Fasten Motor & Bearing")
         self.b_bot_success = True
-
-        # if self.assembly_status.bearing_holes_aligned:
-        #   if not self.fasten_bearing("assembly", robot_name="b_bot", with_extra_retighten=True):
-        #     return False
-        #   self.b_bot_success = True
-
+        if self.assembly_status.bearing_holes_aligned:
+          if not self.fasten_bearing("assembly", robot_name="b_bot", with_extra_retighten=True):
+            return False
+          self.b_bot_success = True
 
       self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=300)
 
@@ -1451,10 +1449,10 @@ class O2ACAssembly(O2ACCommon):
     elif not self.assembly_status.completed_subtask_c1:
       self.assembly_status.completed_subtask_c1 = self.subtask_c1()
 
-    # # Motor pulley
-    # if self.assembly_status.completed_subtask_a:
-    #   self.publish_status_text("Target: Motor Pulley")
-    #   self.assembly_status.completed_subtask_b  = self.subtask_b(simultaneous_execution=True)
+    # Motor pulley
+    if self.assembly_status.completed_subtask_a:
+      self.publish_status_text("Target: Motor Pulley")
+      self.assembly_status.completed_subtask_b  = self.subtask_b(simultaneous_execution=True)
 
     # # Shaft + end cap
     # # unequip set screw tool + pick end cap
