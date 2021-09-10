@@ -32,7 +32,8 @@ def main():
     rospy.init_node("testscript")
     global c
     c = O2ACCommon()
-    print(conversions.from_pose_to_list(c.listener.transformPose("assembled_part_02_back_hole", c.b_bot.get_current_pose_stamped()).pose))
+    c.center_motor_tip()
+    # print(conversions.from_pose_to_list(c.listener.transformPose("assembled_part_02_back_hole", c.b_bot.get_current_pose_stamped()).pose))
     # c.reset_scene_and_robots()
     # c.center_panel("panel_bearing")
     # c.center_panel_on_base_plate("panel_motor")
@@ -57,10 +58,10 @@ def main():
     # c.publish_part_in_assembled_position("panel_bearing")
     # c.publish_part_in_assembled_position("motor", marker_only=True)
     
-    c = O2ACAssembly()
-    c.insert_motor_cables_without_tools_normal(cable_color="black", cable_straighten_distance=0.133)
-    print("done")
-    return
+    # c = O2ACAssembly()
+    # c.insert_motor_cables_without_tools_normal(cable_color="black", cable_straighten_distance=0.133)
+    # print("done")
+    # return
 
     # c.insert_motor_cables_with_tool(cable_color="black")
     # c.equip_cable_tool()

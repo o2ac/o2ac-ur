@@ -126,6 +126,10 @@ class AssemblyStatus(object):
     self.completed_subtask_h = False  # Belt
     self.completed_subtask_i1 = False  # Cable 1
     self.completed_subtask_i2 = False  # Cable 2
+
+    self.assembly_unloaded = False
+    
+    self.tray_delivered_to_agv = False
   
 
 
@@ -450,6 +454,9 @@ class O2ACBase(object):
       return True
 
     # MAGIC NUMBERS (this feeder is calibrated for b_bot)
+    if robot_name == "a_bot" and screw_size == 3:
+      pose_feeder.pose.position.y += -.001  # points to the left of the feeder (to a_bot)
+      pose_feeder.pose.position.z += -.001  # points to the back
     if robot_name == "a_bot" and screw_size == 4:
       pose_feeder.pose.position.y += -.004  # points to the left of the feeder (to a_bot)
       pose_feeder.pose.position.z += -.003  # points to the back

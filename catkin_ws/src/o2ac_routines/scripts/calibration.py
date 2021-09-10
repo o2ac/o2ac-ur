@@ -613,8 +613,11 @@ class CalibrationClass(O2ACCommon):
     self.a_bot.go_to_named_pose("home")
     self.pick_bearing("a_bot")
     self.orient_bearing(task="assembly", robot_name="a_bot")
+    print("current pose", conversions.from_pose_to_list(self.listener.transformPose("assembled_part_07_inserted", self.a_bot.get_current_pose_stamped()).pose))
     self.confirm_to_proceed("finetune")
     self.insert_bearing("assembled_part_07_inserted", robot_name="a_bot")
+    print("current pose", conversions.from_pose_to_list(self.listener.transformPose("assembled_part_07_inserted", self.a_bot.get_current_pose_stamped()).pose))
+    self.confirm_to_proceed("we are done?")
 
   def motor_pulley_insertion(self):
     self.a_bot.gripper.open()
@@ -622,8 +625,10 @@ class CalibrationClass(O2ACCommon):
     self.a_bot.go_to_named_pose("home")
     self.pick_motor_pulley(robot_name="a_bot")
     self.orient_motor_pulley("assembled_part_05_center", robot_name="a_bot")
+    print("current pose", conversions.from_pose_to_list(self.listener.transformPose("assembled_part_05_center", self.a_bot.get_current_pose_stamped()).pose))
     self.confirm_to_proceed("finetune")
     self.insert_motor_pulley("assembled_part_05_center", robot_name="a_bot", retry_insertion=True)
+    print("current pose", conversions.from_pose_to_list(self.listener.transformPose("assembled_part_05_center", self.a_bot.get_current_pose_stamped()).pose))
     self.confirm_to_proceed("are we done?")
 
   def motor_pulley_fastening(self):
@@ -910,8 +915,14 @@ if __name__ == '__main__':
         c.center_panel_on_base_plate("panel_motor", calibration=True)
       if r == '603':
         c.motor_insertion_from_aid()
+      if r == '603f':
+        c.fasten_motor()
       if r == '604':
         c.bearing_insertion_assembly()
+      if r == '604f':
+        c.fasten_bearing(task="assembly", robot_name="a_bot")
+      if r == '604fb':
+        c.fasten_bearing(task="assembly", robot_name="b_bot")
       if r == '605':
         c.motor_pulley_insertion()
       if r == '606':

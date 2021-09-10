@@ -95,7 +95,8 @@ class URRobot(RobotBase):
         rospy.loginfo("Attempting to unlock protective stop of " + self.ns)
         while not rospy.is_shutdown():
             response = service_client.call(request)
-            if time.time() - start_time > 5.0:
+            if time.time() - start_time > 20.0:
+                rospy.logerr("Timeout of 20s exceeded in unlock protective stop")
                 break
             if response.success:
                 break
