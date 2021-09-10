@@ -1635,7 +1635,7 @@ class O2ACAssembly(O2ACCommon):
     """ A convenience function to define the status of the first order (to be used after a reset in the competition)
     """
     s = AssemblyStatus()
-    s.tray_placed_on_table = False
+    s.tray_placed_on_table = True
 
     s.bearing_panel_placed_outside_of_tray = False
     s.motor_panel_placed_outside_of_tray = False
@@ -1657,7 +1657,7 @@ class O2ACAssembly(O2ACCommon):
     s.idler_pulley_spacer_placed_outside_of_tray = False
     s.idler_pulley_placed_outside_of_tray = False
 
-    s.completed_subtask_zero = False  # Base
+    s.completed_subtask_zero = True  # Base
     s.completed_subtask_a = False  # Motor
     s.completed_subtask_b = False  # Motor pulley
     s.completed_subtask_c1 = False  # Bearing
