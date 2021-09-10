@@ -31,16 +31,22 @@ signal.signal(signal.SIGINT, signal_handler)
 def main():
     rospy.init_node("testscript")
     global c
-    # c = O2ACAssembly()
+    c = O2ACCommon()
+    print(conversions.from_pose_to_list(c.listener.transformPose("assembled_part_02_back_hole", c.b_bot.get_current_pose_stamped()).pose))
+    # c.reset_scene_and_robots()
+    # c.center_panel("panel_bearing")
+    # c.center_panel_on_base_plate("panel_motor")
+    # c.ab_bot.go_to_named_pose("home")
     # c.place_panel("a_bot", "panel_bearing", pick_again=True, fake_position=True)
+    # c.fasten_panel("panel_bearing", simultaneous=False)
     # c.place_panel("a_bot", "panel_motor", pick_again=True, fake_position=True)
+    # c.fasten_panel("panel_motor", simultaneous=False)
     # c.hold_panel_for_fastening("panel_motor")
-    c = O2ACTaskboard()
-    c.reset_scene_and_robots()
+    # c = O2ACTaskboard()
     # c.is_bearing_in_storage = True
     # c.pick_bearing(robot_name="a_bot")
-    c.is_motor_pulley_in_storage = True
-    c.pick_motor_pulley(robot_name="b_bot")
+    # c.is_motor_pulley_in_storage = True
+    # c.pick_motor_pulley(robot_name="b_bot")
     # c.fallback_recenter_bearing("taskboard", "a_bot")
     # c.insert_bearing("taskboard_bearing_target_link", robot_name="a_bot", task="taskboard")
     # c.equip_nut_tool()

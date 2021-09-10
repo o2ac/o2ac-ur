@@ -890,17 +890,23 @@ if __name__ == '__main__':
       if r == '544':
         c.vision.activate_camera("b_bot_outside_camera")
         angle = c.get_motor_angle()
+      if r == '600':
+        c.a_bot.gripper.open()
+        c.a_bot.move_lin_rel([0,0,0.1])
+      if r == '600b':
+        c.b_bot.gripper.open()
+        c.b_bot.move_lin_rel([0,0,0.1])
       if r == '601':
         c.calibrate_place_panel("panel_bearing")
       if r == '601f':
         c.fasten_panel('panel_bearing')
-      if r == '601b':
+      if r == '601b':  # Fallback to reposition
         c.center_panel_on_base_plate("panel_bearing", calibration=True)
       if r == '602':
         c.calibrate_place_panel("panel_motor")
       if r == '602f':
         c.fasten_panel('panel_motor')
-      if r == '601b':
+      if r == '602b':  # Fallback to reposition
         c.center_panel_on_base_plate("panel_motor", calibration=True)
       if r == '603':
         c.motor_insertion_from_aid()

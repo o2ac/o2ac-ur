@@ -4144,12 +4144,12 @@ class O2ACCommon(O2ACBase):
     self.allow_collisions_with_robot_hand("motor", "b_bot")
     self.b_bot.gripper.open()
     inclination = radians(28)
-    inside_vgroove = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.0, 0.005, 0,  tau/2., radians(3.0), inclination])
+    inside_vgroove = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.0, 0.0056, -0.004,  tau/2., radians(3.0), inclination])
     above_vgroove  = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [-0.2, 0, 0,      tau/2., radians(3.0), inclination])
     midpoint1      = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [-0.25, 0.1, 0.4, tau/2,  radians(3.0), inclination])
     midpoint2      = conversions.to_pose_stamped("assembled_part_02_back_hole", [-0.100, 0, 0.1, -tau/4, tau/4-inclination, -tau/4])
-    pre_insertion  = conversions.to_pose_stamped("assembled_part_02_back_hole", [-0.055, -0.004, -0.0155, -tau/4, tau/4-inclination, -tau/4])
-    
+    pre_insertion  = conversions.to_pose_stamped("assembled_part_02_back_hole", [-0.055, -0.0053 -0.0183, -tau/4, tau/4-inclination, -tau/4])
+
     if simultaneous:
       # TODO(cambel): do we need midpoint 1 here?
       self.b_bot.go_to_pose_goal(above_vgroove, speed=1.0)
@@ -4567,7 +4567,7 @@ class O2ACCommon(O2ACBase):
         waypoints.append(("screw_ready_front", 0, 1.0))
       self.active_robots[robot_name].move_joints_trajectory(waypoints)
     def retreat():
-      self.b_bot.move_lin_rel([-0.02,0,0], relative_to_tcp=True, speed=0.015, end_effector_link="%s_screw_tool_m%s_tip_link" % (robot_name, screw_size))
+      self.b_bot.move_lin_rel([0, 0, 0.02], speed=0.015, end_effector_link="%s_screw_tool_m%s_tip_link" % (robot_name, screw_size))
       waypoints = []
       if approach_from_front:
         waypoints.append(("screw_ready_front", 0, 1.0))
@@ -5210,7 +5210,7 @@ class O2ACCommon(O2ACBase):
     if self.assembly_database.db_name == "wrs_assembly_2021":
       if panel_name == "panel_bearing":
         offset_y = 0.015             # MAGIC NUMBER (points to the global forward (x-axis))
-        offset_z = -0.011           # MAGIC NUMBER (points to the global left (negative y-axis))
+        offset_z = -0.0105           # MAGIC NUMBER (points to the global left (negative y-axis))
       else: # panel_motor
         offset_y = 0.014            # MAGIC NUMBER
         offset_z = -0.0085           # MAGIC NUMBER (+ l_plate/2)
@@ -5264,7 +5264,7 @@ class O2ACCommon(O2ACBase):
         elif self.assembly_database.db_name in ["wrs_assembly_2020", "wrs_assembly_2019_surprise"]:
           l_plate = 0.07
       fingertip_width = .03
-      distance_to_stopper = -0.064 # w.r.t left centering link
+      distance_to_stopper = 0.064 # w.r.t left centering link
       distance_to_touched_geometry = distance_to_stopper + fingertip_width/2
       visual_offset_y = 0.067 if panel_name == "panel_bearing" else -0.063
       visual_offset_x = -distance_to_touched_geometry+l_plate if self.assembly_database.assembly_info.get(panel_name + "_facing_backward", False) else -distance_to_touched_geometry
@@ -5588,14 +5588,22 @@ class O2ACCommon(O2ACBase):
     hold_pose.pose.position.x = - 0.034
     hold_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, radians(40), 0))
 
+    if panel_name == "panel_bearing":
+      magic_distance = 0.0  # MAGIC NUMBER  (positive pulls the plate back more)
+      light_touch_opening_width = 0.006
+    elif panel_name == "panel_motor":
+      magic_distance = 0.004  # MAGIC NUMBER  (positive pulls the plate back more)
+      light_touch_opening_width = 0.005
+
     seq = []
     seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=0.04, wait=False))
     seq.append(helpers.to_sequence_item(pre_push_pose, speed=0.5, linear=True))
-    seq.append(helpers.to_sequence_gripper(0.005, gripper_force=0, gripper_velocity=1.0))
+    seq.append(helpers.to_sequence_gripper(light_touch_opening_width, gripper_force=0, gripper_velocity=1.0))
     seq.append(helpers.to_sequence_item(push_pose, speed=0.1, linear=True))
     seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=0.02, wait=True))
-    seq.append(helpers.to_sequence_item_relative(pose=[0, -obj_dims[1]/2+0.015, 0, 0, 0, 0]))
-    seq.append(helpers.to_sequence_gripper("close", gripper_velocity=0.1, gripper_force=40))
+    if panel_name == "panel_motor":
+      seq.append(helpers.to_sequence_item_relative(pose=[0, -obj_dims[1]/2+0.015 + magic_distance, 0, 0, 0, 0]))
+      seq.append(helpers.to_sequence_gripper("close", gripper_velocity=0.01, gripper_force=40))
     seq.append(helpers.to_sequence_item(place_pose, speed=0.5, linear=True))
     seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=0.02, gripper_velocity=0.01, wait=True))
     seq.append(helpers.to_sequence_item(hold_pose, speed=0.5, linear=True))
@@ -6167,9 +6175,9 @@ class O2ACCommon(O2ACBase):
     
     a_bot_point = [-offset-0.017, -long_side-0.003] if tray_parallel else [offset, -long_side]
 
-    a_bot_at_tray_table    = conversions.to_pose_stamped("tray_center", [a_bot_point[0], a_bot_point[1], 0.03] + place_orientation)
+    a_bot_at_tray_table    = conversions.to_pose_stamped("tray_center", [a_bot_point[0], a_bot_point[1], 0.04] + place_orientation)
     a_bot_above_table      = conversions.to_pose_stamped("tray_center", [a_bot_point[0], a_bot_point[1], 0.15] + place_orientation)
-    a_bot_above_low_table  = conversions.to_pose_stamped("tray_center", [a_bot_point[0], a_bot_point[1], 0.04] + place_orientation)
+    a_bot_above_low_table  = conversions.to_pose_stamped("tray_center", [a_bot_point[0], a_bot_point[1], 0.05] + place_orientation)
 
     # Go to tray
     self.ab_bot.go_to_goal_poses(a_bot_above_tray_agv, b_bot_above_tray_agv, planner="OMPL", speed=1.0)
