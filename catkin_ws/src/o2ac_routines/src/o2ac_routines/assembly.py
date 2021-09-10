@@ -1057,12 +1057,11 @@ class O2ACAssembly(O2ACCommon):
       self.a_bot_success = True
     def b_bot_task():
       if pick_and_orient_insert_motor and self.assembly_status.motor_picked:
-        self.b_bot.gripper.open()
-        # rospy.sleep(5)
-        # self.assembly_status.motor_oriented = self.orient_motor()
-        # if not self.assembly_status.motor_oriented:
-        #   self.assembly_status.motor_placed_outside_of_tray = True
-        # self.b_bot.move_lin_rel(relative_translation=[0,0,0.06], speed=0.3)
+        rospy.sleep(5)
+        self.assembly_status.motor_oriented = self.orient_motor()
+        if not self.assembly_status.motor_oriented:
+          self.assembly_status.motor_placed_outside_of_tray = True
+        self.b_bot.move_lin_rel(relative_translation=[0,0,0.06], speed=0.3)
       start_time = rospy.get_time()
       while not self.b_bot_success and rospy.get_time()-start_time < 20:
         self.b_bot_success = self.do_change_tool_action("b_bot", equip=True, screw_size = 4)
@@ -1312,7 +1311,7 @@ class O2ACAssembly(O2ACCommon):
 
     if not self.assembly_status.completed_subtask_f and not self.assembly_status.completed_subtask_g:
       # L-plates and base plate
-      success = self.panels_tasks_combined(simultaneous=simultaneous_execution, pick_and_orient_insert_bearing=True, pick_and_orient_insert_motor=False)
+      success = self.panels_tasks_combined(simultaneous=simultaneous_execution, pick_and_orient_insert_bearing=True, pick_and_orient_insert_motor=True)
       if success:
         self.assembly_status.completed_subtask_f = True
         self.assembly_status.completed_subtask_g = True
@@ -1636,17 +1635,17 @@ class O2ACAssembly(O2ACCommon):
     """ A convenience function to define the status of the first order (to be used after a reset in the competition)
     """
     s = AssemblyStatus()
-    s.tray_placed_on_table = True
+    s.tray_placed_on_table = False
 
     s.bearing_panel_placed_outside_of_tray = False
     s.motor_panel_placed_outside_of_tray = False
     
     s.belt_placed_outside_of_tray = False
 
-    s.motor_picked = True
-    s.motor_oriented = True
+    s.motor_picked = False
+    s.motor_oriented = False
     s.motor_placed_outside_of_tray = False
-    s.motor_inserted_in_panel = True
+    s.motor_inserted_in_panel = False
     
     s.bearing_placed_outside_of_tray = False
     s.bearing_picked = False
@@ -1658,8 +1657,8 @@ class O2ACAssembly(O2ACCommon):
     s.idler_pulley_spacer_placed_outside_of_tray = False
     s.idler_pulley_placed_outside_of_tray = False
 
-    s.completed_subtask_zero = True  # Base
-    s.completed_subtask_a = True  # Motor
+    s.completed_subtask_zero = False  # Base
+    s.completed_subtask_a = False  # Motor
     s.completed_subtask_b = False  # Motor pulley
     s.completed_subtask_c1 = False  # Bearing
     s.completed_subtask_c2 = False  # Shaft
@@ -1671,9 +1670,9 @@ class O2ACAssembly(O2ACCommon):
     s.completed_subtask_i1 = False  # Cable 1
     s.completed_subtask_i2 = False  # Cable 2
 
-    s.assembly_unloaded = True
+    s.assembly_unloaded = False
     
-    s.tray_delivered_to_agv = True
+    s.tray_delivered_to_agv = False
     return s
   
   def get_second_order_status(self):
@@ -1687,10 +1686,10 @@ class O2ACAssembly(O2ACCommon):
     
     s.belt_placed_outside_of_tray = False
 
-    s.motor_picked = True
-    s.motor_oriented = True
-    s.motor_placed_outside_of_tray = True
-    s.motor_inserted_in_panel = True
+    s.motor_picked = False
+    s.motor_oriented = False
+    s.motor_placed_outside_of_tray = False
+    s.motor_inserted_in_panel = False
     
     s.bearing_placed_outside_of_tray = False
     s.bearing_picked = False
@@ -1703,7 +1702,7 @@ class O2ACAssembly(O2ACCommon):
     s.idler_pulley_placed_outside_of_tray = False
 
     s.completed_subtask_zero = False  # Base
-    s.completed_subtask_a = True  # Motor
+    s.completed_subtask_a = False  # Motor
     s.completed_subtask_b = False  # Motor pulley
     s.completed_subtask_c1 = False  # Bearing
     s.completed_subtask_c2 = False  # Shaft
