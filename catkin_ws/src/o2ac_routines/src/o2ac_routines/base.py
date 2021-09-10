@@ -155,6 +155,7 @@ class O2ACBase(object):
     self.use_dummy_vision = False  # If True, avoids using the cameras and returns dummy values
 
     self.competition_mode = False   # Setting this to True disables confirmation dialogs etc., thus enabling uninterrupted automatic motion
+    self.calibration_mode = False # for screw, pick screw and tool related tuning
 
     self.run_mode_ = True     # The modes limit the maximum speed of motions. Used with the safety system @WRS2020
     self.pause_mode_ = False
@@ -534,6 +535,13 @@ class O2ACBase(object):
     search_start_pose.pose.position.z += initial_offset_z
     screw_picked = False
 
+    if self.calibration_mode:
+      self.confirm_to_proceed("Go to above_screw_head_pose ")
+      self.active_robots[robot_name].go_to_pose_goal(above_screw_head_pose, speed=0.3)
+      self.confirm_to_proceed("Go up")
+      self.active_robots[robot_name].move_lin_rel([0,0,0.1], speed=0.2)
+      return True
+
     self.tools.set_suction(screw_tool_id, suction_on=True, eject=False, wait=False)
 
     descend_distance = 0.02
@@ -685,14 +693,20 @@ class O2ACBase(object):
       rospy.logerr("Fail to go to away_from_hole")
       return False
 
-    self.tools.set_motor(fastening_tool_name, direction="tighten", wait=False, duration=duration, 
-                         skip_final_loosen_and_retighten=skip_final_loosen_and_retighten)
+    if not self.calibration_mode:
+      self.tools.set_motor(fastening_tool_name, direction="tighten", wait=False, duration=duration, 
+                          skip_final_loosen_and_retighten=skip_final_loosen_and_retighten)
 
     self.planning_scene_interface.allow_collisions(screw_tool_id)
 
     if not self.active_robots[robot_name].go_to_pose_goal(pushed_into_hole, end_effector_link=screw_tool_link, speed=0.02, move_lin=True):
       rospy.logerr("Fail to go to pushed_into_hole")
       return False
+    
+    if self.calibration_mode:
+      self.confirm_to_proceed("finetune")
+      self.tools.set_suction(screw_tool_id, suction_on=False, eject=False, wait=False)
+      return True
 
     # Stop spiral motion if the tool action finished, regardless of success/failure
     tc = lambda a, b: self.tools.fastening_tool_client.get_state() != GoalStatus.ACTIVE
