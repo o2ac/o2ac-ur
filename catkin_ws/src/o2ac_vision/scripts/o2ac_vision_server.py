@@ -368,23 +368,28 @@ class O2ACVisionServer(object):
             poses2d_array = [poses2d for poses2d in poses2d_array
                              if self.item_id(poses2d.class_id) == goal.item_id]
 
-        # Check duplicate class_id
-
         self._spawner.delete_all()
 
         # Execute localization for each item with 2D poses detected by SSD.
         action_result = o2ac_msgs.msg.localizeObjectResult()
         for poses2d in poses2d_array:
+            item_id = self.item_id(poses2d.class_id)
+            if rospy.get_param('~surprise', False):
+                if item_id == '05_MBRFA30-2-P6':
+                    item_id = '32_MBRFA40-2-P6'
+                elif item_id == '11_MBRAC60-2-10':
+                    item_id = '36_MBRAC48-2-10'
+
             poses3d = o2ac_msgs.msg.Estimated3DPoses()
             poses3d.class_id = poses2d.class_id
             poses3d.poses, error \
-                = self.localize(self.item_id(poses2d.class_id),
+                = self.localize(item_id,
                                 poses2d.bbox, poses2d.poses, im_in.shape)
             if poses3d.poses:
                 action_result.detected_poses.append(poses3d)
                 # Spawn URDF models
                 for n, pose in enumerate(poses3d.poses.poses):
-                    self._spawner.add(self._param_localization[self.item_id(poses3d.class_id)]['object_name'],
+                    self._spawner.add(item_id,
                                       geometry_msgs.msg.PoseStamped(
                                           poses3d.poses.header, pose),
                                       '{:02d}_'.format(n))

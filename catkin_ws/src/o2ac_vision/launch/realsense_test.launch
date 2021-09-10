@@ -2,6 +2,8 @@
 <launch>
   <!-- Launch file for testing the recognition pipeline using only the annotation database (no camera or robot). -->
 
+  <arg name="surprise"			default="false"/>
+
   <arg name="use_nodelet"		default="false"/>
 
   <arg  if="$(arg use_nodelet)"
@@ -59,6 +61,7 @@
 
   <!-- Construct recognition pipeline -->
   <include file="$(dirname)/recognition_pipeline.launch">
+    <arg name="surprise"		value="$(arg surprise)"/>
     <arg name="manager"			value="$(arg manager)"/>
     <arg name="continuous_streaming"	value="$(arg continuous_streaming)"/>
     <arg name="use_localization_sdk"	value="$(arg use_localization_sdk)"/>
