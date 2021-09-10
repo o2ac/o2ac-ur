@@ -1031,7 +1031,7 @@ class O2ACAssembly(O2ACCommon):
       self.assembly_status.motor_panel_placed_outside_of_tray = True
     def b_bot_task():
       if pick_and_orient_insert_motor:
-        rospy.loginfo("Picking and orienting motor")
+        rospy.loginfo("Picking motor")
         self.assembly_status.motor_picked = self.pick_motor()
         self.b_bot.go_to_named_pose("centering_area", speed=1.0)
     

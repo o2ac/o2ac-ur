@@ -4012,7 +4012,7 @@ class O2ACCommon(O2ACBase):
       self.motor_centering_fallback()
       return False
     
-    # For safety of the cameras, urscript is blind of them
+    # For safety of the cameras (urscript motions ignore them)
     # pre_orient_pose = conversions.to_pose_stamped("right_centering_link", [-0.05, 0.0, 0.0, radians(-90), 0, 0])
     pre_orient_pose = [1.84255, -1.90216, 2.56565, -2.23376, -1.56659, -1.29859] # safer with joint target
     if not self.b_bot.move_joints(pre_orient_pose, speed=1.0):
@@ -4148,7 +4148,7 @@ class O2ACCommon(O2ACBase):
     if use_urscript:
       # TODO: Confirm that the motor is indeed in the vgroove after urscript
       if not self.orient_motor_in_aid_edge_urscript():
-        rospy.logerror("Fail to orient motor with URscript, script error?")
+        rospy.logerror("Fail to orient motor with URscript.")
         return False
       if self.b_bot.gripper.opening_width < 0.01: # Fail to orient motor urscript
         rospy.logerror("Fail to orient motor with URscript, gripper is closed")
@@ -4327,9 +4327,9 @@ class O2ACCommon(O2ACBase):
 
   def fasten_motor_fallback(self):
     """"
-      Reverse insertion with B_BOT
-      Re align motor, and try insertion again
-      Then fasten again
+      Reverse insertion with B_BOT.
+      Realign motor, and try insertion again.
+      Then fasten again.
     """
     seq = []
     seq.append(helpers.to_sequence_item_relative([-0.04,0,0,0,0,0], speed=0.01)) # go back very slowly / reverse insertion
@@ -4343,7 +4343,7 @@ class O2ACCommon(O2ACBase):
     # drop motor
     seq.append(helpers.to_sequence_gripper('open', gripper_velocity=1.0, wait=False))
     self.execute_sequence("b_bot", seq, "fasten_motor_fallback")
-    # pick it again, necessary for urscript
+    # pick it again (necessary for urscript)
     self.simple_pick("b_bot", object_pose=re_picking, grasp_width=.08, axis="x", sign=-1, approach_height=0.07, lift_up_after_pick=False)
     # re orient
     if not self.orient_motor_in_aid_edge():
