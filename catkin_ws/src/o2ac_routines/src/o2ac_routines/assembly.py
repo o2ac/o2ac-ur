@@ -1584,7 +1584,7 @@ class O2ACAssembly(O2ACCommon):
     self.ab_bot.go_to_named_pose("home")
     self.reset_scene_and_robots()
     orders = []
-    orders.append({"tray_name":"tray1", "assembly_name":"wrs_assembly_2021", "status":self.get_first_order_status()})  # Top tray
+    orders.append({"tray_name":"tray1", "assembly_name":"wrs_assembly_2021_surprise", "status":self.get_first_order_status()})  # Top tray
     orders.append({"tray_name":"tray2", "assembly_name":"wrs_assembly_2021", "status":self.get_second_order_status()})  # Bottom tray
 
     simultaneous = [True, True]
