@@ -184,13 +184,13 @@ class O2ACCommon(O2ACBase):
     """ Move or publish a part as a collision object in its final assembled position.
         This is used to "finish" assembling a part.
     """
+    # Remove from scene or detach from robot
+    self.despawn_object(object_name)
+
     if marker_only:
       marker = self.assembly_database.get_assembled_visualization_marker(object_name)
       self.assembly_marker_publisher.publish(marker)
       return True
-
-    # Remove from scene or detach from robot
-    self.despawn_object(object_name)
     # self.planning_scene_interface.remove_attached_object(name=object_name)
 
     # # DEBUGGING: Remove object from the scene
@@ -5718,21 +5718,21 @@ class O2ACCommon(O2ACBase):
     seq.append(helpers.to_sequence_item(pre_push_pose, speed=0.5, linear=True))
     seq.append(helpers.to_sequence_gripper(light_touch_opening_width, gripper_force=0, gripper_velocity=1.0))
     seq.append(helpers.to_sequence_item(push_pose, speed=0.1, linear=True))
-    seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=0.02, wait=True))
+    seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=0.01, wait=True))
     if panel_name == "panel_motor":
       seq.append(helpers.to_sequence_item_relative(pose=[0, -obj_dims[1]/2+0.015 + magic_distance, 0, 0, 0, 0]))
       seq.append(helpers.to_sequence_gripper("close", gripper_velocity=0.01, gripper_force=40))
     seq.append(helpers.to_sequence_item(place_pose, speed=0.5, linear=True))
-    seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=0.02, gripper_velocity=0.01, wait=True))
+    seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=0.01, gripper_velocity=0.01, wait=True))
     seq.append(helpers.to_sequence_item(hold_pose, speed=0.5, linear=True))
-    seq.append(helpers.to_sequence_gripper("close", gripper_force=80, gripper_velocity=0.01, wait=False))
+    seq.append(helpers.to_sequence_gripper("close", gripper_force=30, gripper_velocity=0.01, wait=False))
     
     return self.execute_sequence("a_bot", seq, "center_panel_on_base_plate", plan_while_moving=calibration)
 
   def hold_panel_for_fastening(self, panel_name):
-    self.a_bot.gripper.send_command(0.06, wait=False)
+    self.a_bot.gripper.send_command(0.01, velocity=0.01, wait=False)
     self.a_bot.gripper.forget_attached_item()
-    self.despawn_object(panel_name)
+    self.publish_part_in_assembled_position(panel_name, marker_only=True)
     
     place_pose_inclined = self.define_panel_place_pose(panel_name)
     place_pose_inclined.pose.position.x = - 0.034
