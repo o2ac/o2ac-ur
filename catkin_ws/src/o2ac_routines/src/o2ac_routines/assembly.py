@@ -1544,29 +1544,35 @@ class O2ACAssembly(O2ACCommon):
       self.a_bot.go_to_named_pose("home")
       rospy.loginfo("=== subtask ZERO: FINISH ===")
 
-    # ======= Panel Bearing ========
-    if not self.assembly_status.completed_subtask_g:
-      rospy.loginfo("=== subtask G: START ===")
-      success = self.pick_panel_with_handover("panel_bearing", simultaneous=True, rotate_on_failure=True)
-      if success:
-        success = self.center_panel("panel_bearing", store=False)
-      if success:
-        success = self.fasten_panel("panel_bearing", simultaneous=True)
-      self.assembly_status.completed_subtask_g = success
-      rospy.loginfo("=== subtask G: START ===")
-      rospy.loginfo("=== subtask G: Finish (%s) ===" % success)
+    def do_panel(panel_name, placed_outside_of_tray, subtask_completed):
+      if not subtask_completed:
+        rospy.loginfo("=== subtask " + panel_name + ": START ===")
+        if not placed_outside_of_tray:
+          for i in range(3):
+            success = self.pick_panel_with_handover(panel_name, simultaneous=True, rotate_on_failure=True)
+            if success:
+              break
+          if success:
+            self.center_panel(panel_name, store=True)
+            placed_outside_of_tray = True
+          else:
+            rospy.logerr("Could not pick bearing panel!")
+        if placed_outside_of_tray:
+          success = self.place_panel("a_bot", panel_name, pick_again=True, fake_position=True)
+        if success:
+          success = self.fasten_panel(panel_name, simultaneous=False)
+        subtask_completed = success
+        rospy.loginfo("=== subtask " + panel_name + ": Finish (%s) ===" % success)
+      return subtask_completed
     
-    # ======= Panel Motor ========
-    if not self.assembly_status.completed_subtask_f:
-      rospy.loginfo("=== subtask F: START ===")
-      success = self.pick_panel_with_handover("panel_motor", simultaneous=True, rotate_on_failure=True)
-      if success:
-        success = self.center_panel("panel_motor", store=False)
-      if success:
-        success = self.fasten_panel("panel_motor", simultaneous=True)
-      self.assembly_status.completed_subtask_f = success
-      rospy.loginfo("=== subtask F: Finish (%s) ===" % success)
-    
+    switch_panels_order = self.assembly_database.assembly_info.get("switched_motor_and_bearing", False)
+    if switch_panels_order:
+      do_panel("panel_motor", self.assembly_status.motor_panel_placed_outside_of_tray, self.assembly_status.completed_subtask_f)
+      do_panel("panel_bearing", self.assembly_status.bearing_panel_placed_outside_of_tray, self.assembly_status.completed_subtask_g)
+    else:
+      do_panel("panel_bearing", self.assembly_status.bearing_panel_placed_outside_of_tray, self.assembly_status.completed_subtask_g)
+      do_panel("panel_motor", self.assembly_status.motor_panel_placed_outside_of_tray, self.assembly_status.completed_subtask_f)
+
     self.a_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
     self.do_change_tool_action("b_bot", equip=False, screw_size=4)
 
