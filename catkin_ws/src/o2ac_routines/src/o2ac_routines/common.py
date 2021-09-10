@@ -5572,6 +5572,44 @@ class O2ACCommon(O2ACBase):
     # If store, return pose
     return at_panel_center if store else True
 
+  def pull_back_panel_on_base_plate(self, panel_name):
+    """ Pull the panel to the left with a_bot, then push it back into place and regrasp it.
+        A fallback to reposition the panel.
+    """
+    self.allow_collisions_with_robot_hand("panel_motor", robot_name="a_bot")
+    self.allow_collisions_with_robot_hand("panel_bearing", robot_name="a_bot")
+    obj_dims = self.dimensions_dataset[panel_name]
+    if not panel_name == "panel_bearing" and not panel_name == "panel_motor":
+      raise ValueError("Invalid panel name %s" % panel_name)
+
+    self.a_bot.gripper.close(wait=False)
+    height_offset = -obj_dims[0]/2 + 0.01 # 1cm above panel bottom w.r.t to panel center
+    
+    vertical_place_pose = self.define_panel_place_pose(panel_name)
+    hold_pose = copy.deepcopy(vertical_place_pose)
+    hold_pose.pose.position.x = - 0.034
+    hold_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, radians(40), 0))
+
+    pull_distance = 0.015
+    pre_push_pose = self.listener.transformPose("workspace_center", hold_pose)
+    pre_push_pose.pose.position.y -= pull_distance + 0.02 + obj_dims[1]
+    print("obj_dims: ", obj_dims)
+    push_pose = copy.deepcopy(pre_push_pose)
+    push_pose.pose.position.y += 0.03  # Magic number
+    
+    seq = []
+    seq.append(helpers.to_sequence_gripper("close", gripper_opening_width=0.04, wait=False))
+    seq.append(helpers.to_sequence_item_relative(pose = [0, -pull_distance, 0, 0, 0, 0]))
+    seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=0.02, wait=True))
+    seq.append(helpers.to_sequence_item(pre_push_pose, speed=0.5, linear=True))
+    seq.append(helpers.to_sequence_gripper("close", gripper_force=40))
+    seq.append(helpers.to_sequence_item(push_pose, speed=0.1, linear=True))
+    seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=0.02, wait=True))
+    seq.append(helpers.to_sequence_item(hold_pose, speed=0.5, linear=True))
+    seq.append(helpers.to_sequence_gripper("close", gripper_force=40, gripper_velocity=0.01, wait=False))
+    
+    return self.execute_sequence("a_bot", seq, "pull_back_panel_on_base_plate", plan_while_moving=True)
+
   def center_panel(self, panel_name, robot_name="a_bot", speed=1.0, store=True):
     """ Places the plate next to the tray in a well-defined position, by pushing it into a stopper.
     """
