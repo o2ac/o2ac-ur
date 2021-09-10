@@ -6809,7 +6809,7 @@ class O2ACCommon(O2ACBase):
       self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=False)
       self.allow_collisions_with_robot_hand("workplate", "a_bot", allow=False)
       self.despawn_object("base")
-      if retry_counter < 3:
+      if retry_counter < 5:
         return self.pick_base_panel(grasp_name=grasp_name, skip_initial_perception=False, use_b_bot_camera=False, retry_with_rotated_orientation=True, retry_counter=retry_counter+1)
       else:
         rospy.logerr("Fail to grasp base plate")
