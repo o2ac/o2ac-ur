@@ -2113,7 +2113,11 @@ class O2ACCommon(O2ACBase):
         else:
           raise ValueError("Unknown robot")
       elif task == "assembly":
-        preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.018, 0.001, 0.013] + rotation)
+        if self.assembly_database.assembly_info.get("panel_bearing_facing_backward", False):
+          preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.016, 0.001, 0.008] + rotation)
+        else:  # Regular assembly
+          preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.018, 0.001, 0.013] + rotation)
+        
 
       trajectory = [(self.active_robots[robot_name].compute_ik(at_tray_border_pose, timeout=0.02, retry=True), 0.01, 1.0), 
                     (self.active_robots[robot_name].compute_ik(approach_pose, timeout=0.02, retry=True), 0.02, 1.0),
@@ -2304,8 +2308,12 @@ class O2ACCommon(O2ACBase):
         screw_pose.pose.position.z += -.001  # MAGIC NUMBER
       elif task == "assembly":
         screw_pose = conversions.to_pose_stamped("assembled_part_07_screw_hole_" + str(i), [0, 0, 0, offset*tau/12, 0, 0])
-        screw_pose.pose.position.z += .00045  # MAGIC NUMBER  (points down)
-        screw_pose.pose.position.y += -.0015  # MAGIC NUMBER  (points right)
+        if self.assembly_database.assembly_info.get("panel_bearing_facing_backward", False):
+          screw_pose.pose.position.z += -.004  # MAGIC NUMBER  (points down)
+          screw_pose.pose.position.y += -.000  # MAGIC NUMBER  (points right)
+        else:  # Regular assembly
+          screw_pose.pose.position.z += .0005  # MAGIC NUMBER  (points down)
+          screw_pose.pose.position.y += -.0015  # MAGIC NUMBER  (points right)
       screw_pose.pose.position.x += .006  # This needs to be quite far forward, because the thread is at the plate level (behind the frame)
       screw_poses.append(screw_pose)
 
@@ -5345,7 +5353,7 @@ class O2ACCommon(O2ACBase):
     if self.assembly_database.db_name == "wrs_assembly_2021":
       if panel_name == "panel_bearing":
         offset_y = 0.015             # MAGIC NUMBER (points to the global forward (x-axis))
-        offset_z = -0.01           # MAGIC NUMBER (points to the global left (negative y-axis))
+        offset_z =-0.010             # MAGIC NUMBER (points to the global left (negative y-axis))(+ l_plate/2)
       else: # panel_motor
         offset_y = 0.014            # MAGIC NUMBER
         offset_z = -0.0085           # MAGIC NUMBER (+ l_plate/2)
@@ -5359,14 +5367,14 @@ class O2ACCommon(O2ACBase):
     elif self.assembly_database.db_name == "wrs_assembly_2021_surprise":
       if panel_name == "panel_bearing":
         if self.assembly_database.assembly_info.get("panel_bearing_facing_backward", False):
-          offset_y = -0.01          # MAGIC NUMBER (TODO)
-          offset_z = -0.007         # MAGIC NUMBER (TODO)
+          offset_y = -0.011         # MAGIC NUMBER 
+          offset_z = -0.010         # MAGIC NUMBER 0.048 - 0.116/2 = 
         else: 
-          offset_y = 0.01           # MAGIC NUMBER
+          offset_y = 0.01           # MAGIC NUMBER 
           offset_z = -0.007         # MAGIC NUMBER
       else: # panel_motor
-        offset_y = 0.011            # MAGIC NUMBER
-        offset_z = -0.008           # MAGIC NUMBER     
+        offset_y = 0.015            # MAGIC NUMBER
+        offset_z =-0.010            # MAGIC NUMBER
     elif self.assembly_database.db_name == "wrs_assembly_2019_surprise":
       if panel_name == "panel_bearing":
         if self.assembly_database.assembly_info.get("panel_bearing_facing_backward", False):
@@ -5726,10 +5734,18 @@ class O2ACCommon(O2ACBase):
     hold_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, radians(40), 0))
 
     if panel_name == "panel_bearing":
-      magic_distance = 0.0  # MAGIC NUMBER  (positive pulls the plate back more)
+      if self.assembly_database.assembly_info.get("panel_bearing_facing_backward", False):
+        # The surprise assembly
+        print("Using new parameter ====")
+        magic_distance = 0.006  # MAGIC NUMBER  (positive pulls the plate back more)
+      else:  # The regular assembly
+        magic_distance = 0.0  # MAGIC NUMBER  (positive pulls the plate back more)
       light_touch_opening_width = 0.007
     elif panel_name == "panel_motor":
-      magic_distance = 0.004  # MAGIC NUMBER  (positive pulls the plate back more)
+      if self.assembly_database.assembly_info.get("switched_motor_and_bearing", False):
+        magic_distance = 0.0  # MAGIC NUMBER  (positive pulls the plate back more)
+      else:
+        magic_distance = 0.004  # MAGIC NUMBER  (positive pulls the plate back more)
       light_touch_opening_width = 0.005
     
     grasp_height_offset = 0.004  # Increases grasp height so drop from place_pose height is not too high
@@ -5740,7 +5756,7 @@ class O2ACCommon(O2ACBase):
     seq.append(helpers.to_sequence_gripper(light_touch_opening_width, gripper_force=0, gripper_velocity=1.0))
     seq.append(helpers.to_sequence_item(push_pose, speed=0.05, linear=True))
     seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=0.02, gripper_velocity=0.01, wait=True))
-    if panel_name == "panel_motor":
+    if magic_distance > 0.0:
       seq.append(helpers.to_sequence_item_relative(pose=[0, -obj_dims[1]/2+0.03 + magic_distance, grasp_height_offset, 0, 0, 0]))
       seq.append(helpers.to_sequence_gripper("close", gripper_velocity=0.01, gripper_force=40))
     seq.append(helpers.to_sequence_item(place_pose, speed=0.5, linear=True))
@@ -5750,8 +5766,9 @@ class O2ACCommon(O2ACBase):
     
     return self.execute_sequence("a_bot", seq, "center_panel_on_base_plate", plan_while_moving=(not calibration))
 
-  def hold_panel_for_fastening(self, panel_name):
-    self.a_bot.gripper.send_command(0.015, velocity=0.01, wait=True)
+  def hold_panel_for_fastening(self, panel_name, skip_initial_gripper_closing=False):
+    if not skip_initial_gripper_closing:
+      self.a_bot.gripper.send_command(0.015, velocity=0.01, wait=True)
     self.a_bot.gripper.forget_attached_item()
     self.publish_part_in_assembled_position(panel_name, marker_only=True)
     
