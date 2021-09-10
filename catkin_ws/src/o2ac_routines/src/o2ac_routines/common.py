@@ -6501,10 +6501,27 @@ class O2ACCommon(O2ACBase):
   def unload_drive_unit(self):
     """ Pick the drive unit from the fixation and place it in the tray.
     """
-    a_bot_above_drive_unit = conversions.to_pose_stamped("assembled_part_02_back_hole", [0.0025, -0.068, 0.060, 0, 0.891, tau/4])
-    b_bot_above_drive_unit = conversions.to_pose_stamped("assembled_part_03_front_hole", [0.0025, -0.067, 0.078, 0, 0.883, tau/4])
-    a_bot_at_drive_unit = conversions.to_pose_stamped("assembled_part_02_back_hole", [0.0025, -0.018, 0.008, 0, 0.891, tau/4])
-    b_bot_at_drive_unit = conversions.to_pose_stamped("assembled_part_03_front_hole", [0.0025, -0.017, 0.028, 0, 0.883, tau/4])
+    above_panel_motor = [0.0025, -0.068, 0.060, 0, 0.891, tau/4]
+    at_panel_motor = [0.0025, -0.018, 0.008, 0, 0.891, tau/4]
+    above_panel_bearing = [0.0025, -0.067, 0.078, 0, 0.883, tau/4]
+    at_panel_bearing = [0.0025, -0.017, 0.028, 0, 0.883, tau/4]
+    panels = [[above_panel_motor, at_panel_motor], [above_panel_bearing, at_panel_bearing]]
+    if self.assembly_database.assembly_info.get("switched_motor_and_bearing", False):
+      a_bot_reference_frame = "assembled_part_03_front_hole"
+      b_bot_reference_frame = "assembled_part_02_back_hole"
+      above_panel_motor[-1] *= -1 # fix orientation
+      above_panel_motor[1]  *= -1 # fix orientation
+      at_panel_motor[-1]    *= -1 # fix orientation
+      at_panel_motor[1]     *= -1 # fix orientation
+      panels = panels[::-1]
+    else: # regular assembly
+      a_bot_reference_frame = "assembled_part_02_back_hole"
+      b_bot_reference_frame = "assembled_part_03_front_hole"
+
+    a_bot_above_drive_unit = conversions.to_pose_stamped(a_bot_reference_frame, panels[0][0])
+    a_bot_at_drive_unit    = conversions.to_pose_stamped(a_bot_reference_frame, panels[0][1])
+    b_bot_above_drive_unit = conversions.to_pose_stamped(b_bot_reference_frame, panels[1][0])
+    b_bot_at_drive_unit    = conversions.to_pose_stamped(b_bot_reference_frame, panels[1][1])
     
     b_bot_drive_unit_loosened = self.listener.transformPose("tray_center", b_bot_at_drive_unit)
     b_bot_drive_unit_loosened.pose.position.x -= 0.008
