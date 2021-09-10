@@ -1324,8 +1324,8 @@ class O2ACAssembly(O2ACCommon):
     if assembly_status.completed_subtask_g:
       self.publish_part_in_assembled_position("panel_motor")
 
-    if not self.assembly_status.tray_placed_on_table and tray_name:
   def assemble_drive_unit_orchestrated(self, tray_name=None, simultaneous_execution=True):
+    if not self.assembly_status.tray_placed_on_table and tray_name:
       if not self.pick_tray_from_agv_stack_calibration_long_side(tray_name=tray_name):
         rospy.logerr("Fail to pick and place tray. Abort!")
         return False
