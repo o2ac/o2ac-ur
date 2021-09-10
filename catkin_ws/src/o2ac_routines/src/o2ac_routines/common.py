@@ -5328,7 +5328,7 @@ class O2ACCommon(O2ACBase):
     if self.assembly_database.db_name == "wrs_assembly_2021":
       if panel_name == "panel_bearing":
         offset_y = 0.015             # MAGIC NUMBER (points to the global forward (x-axis))
-        offset_z = -0.0105           # MAGIC NUMBER (points to the global left (negative y-axis))
+        offset_z = -0.01           # MAGIC NUMBER (points to the global left (negative y-axis))
       else: # panel_motor
         offset_y = 0.014            # MAGIC NUMBER
         offset_z = -0.0085           # MAGIC NUMBER (+ l_plate/2)
@@ -5423,7 +5423,7 @@ class O2ACCommon(O2ACBase):
     print("Plate place pose:", panel_name, grasp_pose.pose.position)
     
     self.planning_scene_interface.allow_collisions("base_fixture_top", panel_name)
-    if not self.active_robots[robot_name].go_to_pose_goal(above_plate_pose, speed=1.0, move_lin=True, timeout=15):
+    if not self.active_robots[robot_name].go_to_pose_goal(above_plate_pose, speed=0.5, move_lin=True, timeout=15):
       return False
     self.active_robots[robot_name].go_to_pose_goal(place_pose, speed=0.2, move_lin=True)
     self.planning_scene_interface.disallow_collisions("base_fixture_top", panel_name)
@@ -5701,7 +5701,7 @@ class O2ACCommon(O2ACBase):
       orientation = [0,0,0] if not self.assembly_database.assembly_info.get("panel_motor_facing_backward", False) else [tau/2,0,0]
     else:
       orientation = [0,0,0] if not self.assembly_database.assembly_info.get("panel_bearing_facing_backward", False) else [tau/2,0,0]
-    push_pose     = conversions.to_pose_stamped(push_pose_frame_id, [-0.01, -0.0025, 0.015] + orientation)
+    push_pose     = conversions.to_pose_stamped(push_pose_frame_id, [-0.01, -0.0025, 0.03] + orientation)
     
     place_pose = self.define_panel_place_pose(panel_name)
     hold_pose = copy.deepcopy(place_pose)
@@ -5710,29 +5710,31 @@ class O2ACCommon(O2ACBase):
 
     if panel_name == "panel_bearing":
       magic_distance = 0.0  # MAGIC NUMBER  (positive pulls the plate back more)
-      light_touch_opening_width = 0.006
+      light_touch_opening_width = 0.007
     elif panel_name == "panel_motor":
       magic_distance = 0.004  # MAGIC NUMBER  (positive pulls the plate back more)
       light_touch_opening_width = 0.005
+    
+    grasp_height_offset = 0.004  # Increases grasp height so drop from place_pose height is not too high
 
     seq = []
     seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=0.04, wait=False))
     seq.append(helpers.to_sequence_item(pre_push_pose, speed=0.5, linear=True))
     seq.append(helpers.to_sequence_gripper(light_touch_opening_width, gripper_force=0, gripper_velocity=1.0))
-    seq.append(helpers.to_sequence_item(push_pose, speed=0.1, linear=True))
-    seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=0.01, wait=True))
+    seq.append(helpers.to_sequence_item(push_pose, speed=0.05, linear=True))
+    seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=0.02, gripper_velocity=0.01, wait=True))
     if panel_name == "panel_motor":
-      seq.append(helpers.to_sequence_item_relative(pose=[0, -obj_dims[1]/2+0.015 + magic_distance, 0, 0, 0, 0]))
+      seq.append(helpers.to_sequence_item_relative(pose=[0, -obj_dims[1]/2+0.03 + magic_distance, grasp_height_offset, 0, 0, 0]))
       seq.append(helpers.to_sequence_gripper("close", gripper_velocity=0.01, gripper_force=40))
     seq.append(helpers.to_sequence_item(place_pose, speed=0.5, linear=True))
     seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=0.01, gripper_velocity=0.01, wait=True))
     seq.append(helpers.to_sequence_item(hold_pose, speed=0.5, linear=True))
     seq.append(helpers.to_sequence_gripper("close", gripper_force=30, gripper_velocity=0.01, wait=False))
     
-    return self.execute_sequence("a_bot", seq, "center_panel_on_base_plate", plan_while_moving=calibration)
+    return self.execute_sequence("a_bot", seq, "center_panel_on_base_plate", plan_while_moving=(not calibration))
 
   def hold_panel_for_fastening(self, panel_name):
-    self.a_bot.gripper.send_command(0.01, velocity=0.01, wait=False)
+    self.a_bot.gripper.send_command(0.015, velocity=0.01, wait=True)
     self.a_bot.gripper.forget_attached_item()
     self.publish_part_in_assembled_position(panel_name, marker_only=True)
     
@@ -5741,7 +5743,7 @@ class O2ACCommon(O2ACBase):
     place_pose_inclined.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, radians(40), 0))
     if not self.a_bot.go_to_pose_goal(place_pose_inclined, move_lin=True):
       return False
-    self.a_bot.gripper.close(velocity=0.01, force=40, wait=False)
+    self.a_bot.gripper.close(velocity=0.01, force=40, wait=True)
     
     # Open gripper slightly
     self.a_bot.gripper.send_command(0.0045, velocity=0.01, wait=False)
