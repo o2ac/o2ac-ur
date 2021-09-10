@@ -1496,19 +1496,20 @@ class O2ACCommon(O2ACBase):
   
   def center_with_gripper(self, robot_name, opening_width, gripper_force=40, gripper_velocity=0.01, 
                                 required_width_when_closed=0.0, clockwise=False, 
-                                move_back_to_initial_position=True):
+                                move_back_to_initial_position=True, skip_first_grasp=False):
     """
     Centers cylindrical object at the current location, by closing/opening the gripper and rotating the robot's last joint.
 
     If required_width_when_closed is set, the function returns False when the gripper closes and detects a smaller width.
     """
     robot = self.active_robots[robot_name]
-    robot.gripper.close(force=gripper_force, velocity=gripper_velocity)
-    if required_width_when_closed:
-      if not self.simple_gripper_check(robot_name, min_opening_width=required_width_when_closed):
-        robot.gripper.send_command(command=opening_width, force=gripper_force, velocity=gripper_velocity)
-        return False
-    robot.gripper.send_command(command=opening_width, force=gripper_force, velocity=gripper_velocity)
+    if not skip_first_grasp:
+      robot.gripper.close(force=gripper_force, velocity=gripper_velocity)
+      if required_width_when_closed:
+        if not self.simple_gripper_check(robot_name, min_opening_width=required_width_when_closed):
+          robot.gripper.send_command(command=opening_width, force=gripper_force, velocity=gripper_velocity)
+          return False
+      robot.gripper.send_command(command=opening_width, force=gripper_force, velocity=gripper_velocity)
 
     # rotate gripper 90deg
     initial_pose = robot.get_current_pose_stamped()
@@ -6777,7 +6778,7 @@ class O2ACCommon(O2ACBase):
 
     self.center_with_gripper("a_bot", opening_width=0.06, gripper_force=150, 
                                       required_width_when_closed=0.008, move_back_to_initial_position=False,
-                                      gripper_velocity=0.2)
+                                      gripper_velocity=0.2, skip_first_grasp=True)
     self.update_base_plate_pose_from_grasp_pose(centering_pose)
 
     if not self.a_bot.move_lin_rel(relative_translation=[0, 0, 0.1]):
