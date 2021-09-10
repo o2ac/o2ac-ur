@@ -5400,7 +5400,9 @@ class O2ACCommon(O2ACBase):
     print("Plate grasp pose:", panel_name, grasp_pose.pose.position)
 
     if pick_again:
-      assert grasp_pose, "No grasp pose provided"
+      if not grasp_pose:
+        rospy.logerr("No grasp pose provided")
+        return False
       if invert_gripper:
         grasp_pose.pose.orientation = conversions.to_quaternion(transformations.quaternion_from_euler(0, 0, 0))
       grasp_pose = self.listener.transformPose("world", grasp_pose)

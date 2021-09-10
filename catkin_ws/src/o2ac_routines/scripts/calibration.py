@@ -779,10 +779,22 @@ if __name__ == '__main__':
         c.unequip_tool("b_bot", "padless_tool_m4")
       if r == '21':
         c.screw_feeder_calibration(robot_name="a_bot")
+      if r == '210':
+        c.calibration_mode = True
+        c.pick_screw_from_feeder_python(robot_name="a_bot", screw_size=3, realign_tool_upon_failure=False, skip_retreat=False)
+        c.calibration_mode = False
       if r == '22':
         c.screw_feeder_calibration(robot_name="b_bot")
+      if r == '220':
+        c.calibration_mode = True
+        c.pick_screw_from_feeder_python(robot_name="b_bot", screw_size=4, realign_tool_upon_failure=False, skip_retreat=False)
+        c.calibration_mode = False
       if r == '22a':
         c.screw_feeder_calibration(robot_name="a_bot", feeder_size="m4")
+      if r == '220a':
+        c.calibration_mode = True
+        c.pick_screw_from_feeder_python(robot_name="a_bot", screw_size=4, realign_tool_upon_failure=False, skip_retreat=False)
+        c.calibration_mode = False
       if r == '23':
         c.screw_feeder_pick_test(robot_name="a_bot", screw_size=3)
       if r == '24':
@@ -905,12 +917,20 @@ if __name__ == '__main__':
         c.calibrate_place_panel("panel_bearing")
       if r == '601f':
         c.fasten_panel('panel_bearing')
+      if r == '601fc':
+        c.calibration_mode = True
+        c.fasten_panel('panel_bearing')
+        c.calibration_mode = False
       if r == '601b':  # Fallback to reposition
         c.center_panel_on_base_plate("panel_bearing", calibration=True)
       if r == '602':
         c.calibrate_place_panel("panel_motor")
       if r == '602f':
         c.fasten_panel('panel_motor')
+      if r == '602fc':
+        c.calibration_mode = True
+        c.fasten_panel('panel_motor')
+        c.calibration_mode = False
       if r == '602b':  # Fallback to reposition
         c.center_panel_on_base_plate("panel_motor", calibration=True)
       if r == '603':

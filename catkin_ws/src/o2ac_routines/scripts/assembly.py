@@ -130,10 +130,12 @@ if __name__ == '__main__':
         c.unload_drive_unit()
       elif i == '31':
         c.pick_screw_from_feeder("a_bot", screw_size=3)
+      elif i == '31b':
+        c.pick_screw_from_feeder("b_bot", screw_size=3)
       elif i == '32':
         c.pick_screw_from_feeder("b_bot", screw_size=4)
-      elif i == '321':
-        c.pick_screw_from_feeder("b_bot", screw_size=3)
+      elif i == '32a':
+        c.pick_screw_from_feeder("a_bot", screw_size=4)
       elif i == "4":
         parts = ['base', 'panel_motor', 'panel_bearing', 'motor', 'motor_pulley', 'bearing',
           'shaft', 'end_cap', 'bearing_spacer', 'output_pulley', 'idler_spacer', 'idler_pulley', 'idler_pin']
