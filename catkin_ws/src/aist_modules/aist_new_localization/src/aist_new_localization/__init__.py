@@ -90,4 +90,4 @@ class LocalizationClient(object):
             return None
         elif self._localize.get_state() != GoalStatus.SUCCEEDED:
             return None
-        return self._localize.get_result().poses
+        return self._localize.get_result()

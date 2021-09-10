@@ -9,7 +9,7 @@
   <arg name="pth_file_name"	default="WRS.pth"/>
 
   <!-- Mode of object detector -->
-  <arg name="continuous_streaming"	default="false"/>
+  <arg name="continuous_streaming"	defaultn	="false"/>
 
   <!-- Localization parameters -->
   <arg name="nposes"			default="2"/>
@@ -19,6 +19,7 @@
   <arg name="urdf_dir"			default="$(find o2ac_parts_description
 						 )/urdf/generated"/>
   <arg name="use_localization_sdk"	default="false"/>
+  <arg name="settings"			default="settings"/>
 
   <!-- AIST depth_filter parameters -->
   <arg name="camera_info_topic"	default="/camera_multiplexer/camera_info"/>
@@ -39,7 +40,7 @@
     <param name="nposes"		value="$(arg nposes)"/>
     <param name="timeout"		value="$(arg timeout)"/>
     <rosparam if="$(arg use_localization_sdk)"
-	      file="$(find aist_localization)/config/settings.yaml"/>
+	      file="$(find aist_localization)/config/$(arg settings).yaml"/>
     <rosparam unless="$(arg use_localization_sdk)"
 	      file="$(find aist_new_localization)/config/settings.yaml"/>
   </node>

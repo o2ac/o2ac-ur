@@ -10,6 +10,7 @@ bool                           check_borders
 ---
 # Result definition
 geometry_msgs/PoseArray poses
+float32                 error
 
 ---
 # Feedback definition

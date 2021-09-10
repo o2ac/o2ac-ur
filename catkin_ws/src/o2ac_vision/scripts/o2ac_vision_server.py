@@ -368,16 +368,17 @@ class O2ACVisionServer(object):
             poses2d_array = [poses2d for poses2d in poses2d_array
                              if self.item_id(poses2d.class_id) == goal.item_id]
 
+        # Check duplicate class_id
+
         self._spawner.delete_all()
 
         # Execute localization for each item with 2D poses detected by SSD.
         action_result = o2ac_msgs.msg.localizeObjectResult()
         for poses2d in poses2d_array:
             poses3d = o2ac_msgs.msg.Estimated3DPoses()
-            poses3d.class_id = poses2d.class_id
-            poses3d.poses    = self.localize(self.item_id(poses2d.class_id),
-                                             poses2d.bbox, poses2d.poses,
-                                             im_in.shape)
+            poses3d.class_id, poses3d.poses \
+                = self.localize(poses2d.class_id, poses2d.bbox, poses2d.poses,
+                                im_in.shape)
             if poses3d.poses:
                 action_result.detected_poses.append(poses3d)
                 # Spawn URDF models
@@ -742,28 +743,28 @@ class O2ACVisionServer(object):
         score, detected = s.main_proc()
         print("Screws detected: ", detected)
         print("Score: ", score)
-        
+
         text2 = "Score: %.2f%%                   " % (score*100.0)
         if score > 0.69:
             color = (0,255,0)
         else:
             color = (0,0,255)
-        
+
         im_vis = cv2.putText(im_vis, text2, (bbox[0]-120, bbox[1]-30), 0, 1.5, (255,255,255), 7, cv2.LINE_AA)
         im_vis = cv2.putText(im_vis, text2, (bbox[0]-120, bbox[1]-30), 0, 1.5, color, 4, cv2.LINE_AA)
-        
+
         im_vis = cv2.rectangle( im_vis, (bbox[0],  bbox[1]), (bbox[0]+bbox[2], bbox[1]+bbox[3]), color, 6)
         return detected
 
     def motor_angle_detection_from_top(self, im_in, im_vis):
         """
         When looking at the motor from the top, detects the cables and returns their position.
-        
+
         Return values:
         motor_seen: bool (False if no motor in view)
         motor_rotation_flag: int (0:right, 1:left, 2:top, 3:bottom  (documented in pose_estimation_func))
         im_vis: Result visualization
-        """        
+        """
         ssd_results, im_vis = self.detect_object_in_image(im_in, im_vis)
 
         m = MotorOrientation()
@@ -774,7 +775,7 @@ class O2ACVisionServer(object):
             return motor_seen, radians(angle_orientation), im_vis
         else:
             return False, 0.0, im_vis
-        
+
 
 ### ========
 
