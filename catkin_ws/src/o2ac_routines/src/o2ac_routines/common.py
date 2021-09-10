@@ -189,17 +189,31 @@ class O2ACCommon(O2ACBase):
       self.assembly_marker_publisher.publish(marker)
       return True
 
+    # Publish object as marker first
+    marker = self.assembly_database.get_assembled_visualization_marker(object_name, self.assembly_marker_id_counter)
+    
+    ps1 = geometry_msgs.msg.PoseStamped()
+    ps1.header = marker.header
+    ps1.pose = marker.pose
+    psworld = self.listener.transformPose("workspace_center", ps1)
+    marker.header = psworld.header
+    marker.pose = psworld.pose
+    marker.pose.position.x += 0.0001  # Shift visualization 0.1 mm forward to get precedence over the visual geometry (which is currently rendered ugly)
+
+    self.assembly_marker_id_counter += 1
+    self.assembly_marker_publisher.publish(marker)
+
+    if not object_name == "panel_bearing" and not object_name == "panel_motor":
+      rospy.logwarn("Skipping the collision object " + object_name + " and publishing marker instead.")
+      return True
+
     # Remove from scene or detach from robot
+    self.planning_scene_interface.remove_attached_object(name=object_name)
     self.despawn_object(object_name)
-    # self.planning_scene_interface.remove_attached_object(name=object_name)
 
     # # DEBUGGING: Remove object from the scene
     # if True:
     #   self.planning_scene_interface.remove_world_object(name=object_name)
-      
-    # marker = self.assembly_database.get_assembled_visualization_marker(object_name, self.assembly_marker_id_counter)
-    # self.assembly_marker_id_counter += 1
-    # self.assembly_marker_publisher.publish(marker)
 
     object_id = self.assembly_database.name_to_id(object_name)
     collision_object = self.assembly_database.get_collision_object(object_name, use_simplified_collision_shapes=True)

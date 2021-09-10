@@ -195,6 +195,7 @@ class O2ACAssembly(O2ACCommon):
       self.a_bot.move_lin_rel(relative_translation=[0.05, -0.1, 0.02], speed=1.0)
       self.allow_collisions_with_robot_hand("base", "a_bot", allow=False)
       self.publish_part_in_assembled_position("base")
+
     self.do_tasks_simultaneous(a_bot_return, set_base_plate)
     if not self.use_real_robot:
       self.allow_collisions_with_robot_hand("base_fixture_top", "a_bot", allow=False)
@@ -1303,25 +1304,47 @@ class O2ACAssembly(O2ACCommon):
     pose.pose.orientation.w = 1
     return self.do_plan_pickplace_action('b_bot', 'panel_bearing', pose, save_solution_to_file = 'panel_bearing/bottom_screw_hole_aligner_1')
 
+  def update_assembly_display(self, assembly_status=None):
+    if assembly_status is None:
+      assembly_status = self.assembly_status
+
+    if assembly_status.completed_subtask_zero:
+      self.publish_part_in_assembled_position("base")
+    # if assembly_status.completed_subtask_a:
+    #   self.publish_part_in_assembled_position("")
+    # if assembly_status.completed_subtask_b:
+    #   self.publish_part_in_assembled_position("")
+    # if assembly_status.completed_subtask_c:
+    #   self.publish_part_in_assembled_position("")
+    # if assembly_status.completed_subtask_d:
+    #   self.publish_part_in_assembled_position("")
+    # if assembly_status.completed_subtask_e:
+    #   self.publish_part_in_assembled_position("")
+    if assembly_status.completed_subtask_f:
+      self.publish_part_in_assembled_position("panel_motor")
+    if assembly_status.completed_subtask_g:
+      self.publish_part_in_assembled_position("panel_motor")
+
   def assemble_drive_unit_orchestrated(self, tray_name=None, simultaneous_execution=True, tray_on_table=False):
     if not tray_on_table and tray_name:
       if not self.pick_tray_from_agv_stack_calibration_long_side(tray_name=tray_name):
         rospy.logerr("Fail to pick and place tray. Abort!")
         return False
 
+    self.update_assembly_display()
+
     if not self.assembly_status.completed_subtask_f and not self.assembly_status.completed_subtask_g:
       # L-plates and base plate
       success = self.panels_tasks_combined(simultaneous=simultaneous_execution, pick_and_orient_insert_bearing=True, pick_and_orient_insert_motor=True)
       if success:
+        self.assembly_status.completed_subtask_zero = True
         self.assembly_status.completed_subtask_f = True
         self.assembly_status.completed_subtask_g = True
       else:
         rospy.logfatal("Fail to assemble panels... call a reset!")
         raise
 
-    self.publish_part_in_assembled_position("base")
-    self.publish_part_in_assembled_position("panel_motor")
-    self.publish_part_in_assembled_position("panel_bearing")
+    self.update_assembly_display()
 
     self.do_change_tool_action("b_bot", equip=False, screw_size=4)
 
