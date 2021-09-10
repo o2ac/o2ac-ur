@@ -473,6 +473,10 @@ class O2ACBase(object):
       above_screw_head_pose.pose.position.x -= 0.04
       self.active_robots[robot_name].go_to_pose_goal(above_screw_head_pose, speed=0.5, end_effector_link=screw_tool_link, move_lin=True)
     
+    if self.calibration_mode:
+      self.active_robots[robot_name].go_to_named_pose("feeder_pick_ready")
+      return True
+
     # check again that the screw is there
     screw_picked = self.tools.screw_is_suctioned.get(screw_tool_id[-2:], False)
     if screw_picked or not self.use_real_robot:
@@ -536,15 +540,20 @@ class O2ACBase(object):
     screw_picked = False
 
     if self.calibration_mode:
+      approach_pose = copy.deepcopy(above_screw_head_pose)
+      approach_pose.pose.position.x -= 0.03
+      self.confirm_to_proceed("Go to approach screw head ")
+      self.active_robots[robot_name].go_to_pose_goal(approach_pose, speed=0.3, end_effector_link=screw_tool_link)
       self.confirm_to_proceed("Go to above_screw_head_pose ")
-      self.active_robots[robot_name].go_to_pose_goal(above_screw_head_pose, speed=0.3)
+      above_screw_head_pose.pose.position.x += 0.015
+      self.active_robots[robot_name].go_to_pose_goal(above_screw_head_pose, speed=0.1, end_effector_link=screw_tool_link, move_lin=True)
       self.confirm_to_proceed("Go up")
       self.active_robots[robot_name].move_lin_rel([0,0,0.1], speed=0.2)
       return True
 
     self.tools.set_suction(screw_tool_id, suction_on=True, eject=False, wait=False)
 
-    descend_distance = 0.02
+    descend_distance = 0.017
 
     max_radius = .0025
     theta_incr = tau/6
