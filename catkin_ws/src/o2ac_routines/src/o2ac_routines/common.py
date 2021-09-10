@@ -4040,7 +4040,13 @@ class O2ACCommon(O2ACBase):
     if not self.b_bot.load_and_execute_program(program_name="wrs2020/motor_orient_2c.urp"):
       rospy.logerr("Fail to orient with URScript")
       return False
-    return helpers.wait_for_UR_program("/b_bot", rospy.Duration.from_sec(60))
+    helpers.wait_for_UR_program("/b_bot", rospy.Duration.from_sec(60))
+
+    # The success of the script is encoded in the gripper opening width
+    if self.b_bot.gripper.opening_width > 0.01:
+      return True
+    else:
+      return False
 
   def flip_motor_in_aid(self, recursion=False):
     """ 
