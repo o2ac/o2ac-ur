@@ -1255,7 +1255,8 @@ class O2ACAssembly(O2ACCommon):
   def subtask_i(self):
     # Insert motor cables
     rospy.loginfo("======== SUBTASK I (cables) ========")
-    rospy.logerr("Subtask I not implemented yet")
+    self.insert_motor_cables_without_tools_normal("red")
+    self.insert_motor_cables_without_tools_normal("black")
     return False
 
   ##############
@@ -1502,62 +1503,83 @@ class O2ACAssembly(O2ACCommon):
         return False
     return True
 
-  def assemble_drive_unit(self, tray_name=None, simultaneous_execution=True, tray_on_table=False):
-    if not tray_on_table:
+  def assemble_drive_unit(self, tray_name=None, simultaneous_execution=True):
+    # ======= Tray ========
+    if not self.assembly_status.tray_placed_on_table:
       if tray_name:
         if not self.pick_tray_from_agv_stack_calibration_long_side(tray_name=tray_name):
           rospy.logerr("Fail to pick and place tray. Abort!")
           return False
 
-    # L-plates and base plate
-    success = self.panels_tasks_combined(simultaneous=simultaneous_execution)
-    if success:
-      self.assembly_status.completed_subtask_f = True
-      self.assembly_status.completed_subtask_g = True
+    # ======= Base Plate ========
+    if not self.assembly_status.completed_subtask_zero:
+      self.b_bot.go_to_named_pose("home")
+      self.publish_status_text("Target: base plate")
+      if not self.subtask_zero(skip_initial_perception=False):
+        if not self.subtask_zero(skip_initial_perception=False): # Try again
+          rospy.logfatal("Fail to do subtask zero! call a reset")
+          raise # Nothing to do other than reset
+      self.a_bot.go_to_named_pose("home")
 
+    # ======= Panel Bearing ========
+    if not self.assembly_status.completed_subtask_g:
+      success = self.pick_panel_with_handover("panel_bearing", simultaneous=True, rotate_on_failure=True)
+      if success:
+        success = self.center_panel("panel_bearing", store=False)
+      if success:
+        success = self.fasten_panel("panel_bearing", simultaneous=True)
+      self.assembly_status.completed_subtask_g = success
+      rospy.loginfo("Subtask G result: " + str(success))
+    
+    # ======= Panel Motor ========
+    if not self.assembly_status.completed_subtask_f:
+      success = self.pick_panel_with_handover("panel_motor", simultaneous=True, rotate_on_failure=True)
+      if success:
+        success = self.center_panel("panel_motor", store=False)
+      if success:
+        success = self.fasten_panel("panel_motor", simultaneous=True)
+      self.assembly_status.completed_subtask_f = success
+      rospy.loginfo("Subtask F result: " + str(success))
+    
     self.a_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
     self.do_change_tool_action("b_bot", equip=False, screw_size=4)
 
-    if success:
+    # ======= Motor ========
+    if not self.assembly_status.completed_subtask_a:
       self.assembly_status.completed_subtask_a = self.subtask_a() # motor
-      self.assembly_status.completed_subtask_c1 = self.subtask_c1() # bearing 
-      if self.assembly_status.completed_subtask_c1:
-        self.assembly_status.completed_subtask_c2 = self.subtask_c2() # shaft
-      #   if self.assembly_status.completed_subtask_c2:
-      #     self.assembly_status.completed_subtask_d = self.subtask_d() # bearing spacer/output pulley
-      #   self.assembly_status.completed_subtask_e = self.subtask_e() # idler pulley
+    self.do_change_tool_action("a_bot", equip=False)
+
+    # ======= Motor Pulley ========
+    if self.assembly_status.completed_subtask_a and not self.assembly_status.completed_subtask_b:
+      self.assembly_status.completed_subtask_b = self.subtask_b() # motor
+    self.do_change_tool_action("a_bot", equip=False)
+
+    # ======= Bearing ========
+    if not self.assembly_status.completed_subtask_c1:  
+      self.assembly_status.completed_subtask_c1 = self.subtask_c1() # bearing
+
+    # ======= Shaft ========
+    if self.assembly_status.completed_subtask_c1 and not self.assembly_status.completed_subtask_c2:
+      self.assembly_status.completed_subtask_c2 = self.subtask_c2() # shaft
+
+    # ======= Output Pulley ========
+    if self.assembly_status.completed_subtask_c2 and not self.assembly_status.completed_subtask_d:
+      self.assembly_status.completed_subtask_d = self.subtask_d() # bearing spacer/output pulley
+
+    # ======= Idler Pulley ========
+    if not self.assembly_status.completed_subtask_e:
+      self.assembly_status.completed_subtask_e = self.subtask_e() # idler pulley
+    
+    # ======= Motor Cables ========
+    if not self.assembly_status.completed_subtask_i1 or not self.assembly_status.completed_subtask_i2:
+      success = self.subtask_i() # idler pulley
     
     self.do_change_tool_action("a_bot", equip=False)
-    self.ab_bot.go_to_named_pose("home")
-    if not self.unload_drive_unit():
-      rospy.logerr("Fail to unload drive unit. Abort!")
-      return
-    if tray_name:
-      if not self.return_tray_to_agv_stack_calibration_long_side(tray_name):
-        rospy.logerr("Fail to return tray. Abort!")
-        return
-    rospy.loginfo("==== Finished.")
-
-    # self.subtask_a() # motor
-
-    # # To prepare subtask E
-    # self.pick_retainer_pin_from_tray_and_place_in_holder(do_centering=False)
-    # self.confirm_to_proceed("press enter to proceed")
-    # self.b_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
-
-    # assy.go_to_named_pose("back", "c_bot", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=assy.use_real_robot)
-    # assy.do_change_tool_action("b_bot", equip=False, screw_size=4)
-
-    # self.go_to_named_pose("home", "c_bot", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
-    # self.b_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
-
-    # self.subtask_e(pick_from_holder=True) #idle pulley
-
-    # self.go_to_named_pose("home", "c_bot", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
-    # self.b_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
-    # self.a_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest, force_ur_script=self.use_real_robot)
     
-    # self.subtask_c() # bearing, clamping pulley set
+    self.ab_bot.go_to_named_pose("home")
+
+    self.unload_assembled_unit(tray_name)
+    rospy.loginfo("==== Finished.")
 
   def full_assembly_task(self, simultaneous_execution=True):
     self.ab_bot.go_to_named_pose("home")
