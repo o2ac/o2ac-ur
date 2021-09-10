@@ -5,7 +5,7 @@ parent_frame, child_frame, roll, pitch, yaw, x, y, z, notes
 
 # The panels
 part_01_screw_hole_panel2_1, part_02_bottom_screw_hole_aligner_1,   0, 0, 0,   0,0,0, Base + Panel1
-part_01_screw_hole_panel1_1, part_03_bottom_screw_hole_aligner_1,   pi, 0, 0,   0,0,0, Base + Panel2
+part_01_screw_hole_panel1_2, part_03_bottom_screw_hole_aligner_1,   pi, 0, 0,   0,0,0, Base + Panel2
 
 # The motor
 part_02_back_hole_bottom, part_04_inserted_02,   0, 0, 0,   0,0,0, Panel2 + Motor

@@ -81,32 +81,32 @@ subframes:
 # Position in the front
 - pose_xyzrpy:
   - 0.077
+  - 0.01
   - 0.025
-  - 0.030
   - -pi/2
   - 0.0
   - -pi/2
   name: screw_hole_panel1_1
 - pose_xyzrpy:
-  - 0.179
+  - 0.181
+  - 0.01
   - 0.025
-  - 0.030
   - -pi/2
   - 0.0
   - -pi/2
   name: screw_hole_panel1_2
 - pose_xyzrpy:
   - 0.008
+  - 0.01
   - 0.048
-  - 0.028
   - -pi/2
   - 0.0
   - -pi/2
   name: screw_hole_panel2_1
 - pose_xyzrpy:
   - 0.056
+  - 0.01
   - 0.048
-  - 0.028
   - -pi/2
   - 0.0
   - -pi/2
