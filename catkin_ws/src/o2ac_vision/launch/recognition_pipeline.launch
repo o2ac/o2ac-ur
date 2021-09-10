@@ -5,6 +5,9 @@
   <!-- Name of nodelet manager (without nodelet if empty string is given) -->
   <arg name="manager"			default=""/>
 
+  <!-- Pytorch learning data file name -->
+  <arg name="pth_file_name"	default="WRS.pth"/>
+
   <!-- Mode of object detector -->
   <arg name="continuous_streaming"	default="false"/>
 
@@ -30,6 +33,7 @@
     <remap from="/image"		to="$(arg image_topic)"/>
     <remap from="/depth"		to="$(arg depth_topic)"/>
     <param name="continuous_streaming"	value="$(arg continuous_streaming)"/>
+    <param name="pth_file_name" value="$(arg pth_file_name)"/>
 
     <!-- Localization params -->
     <param name="nposes"		value="$(arg nposes)"/>
