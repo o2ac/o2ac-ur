@@ -75,7 +75,8 @@ from o2ac_vision.pose_estimation_func import PulleyScrewDetection
 from o2ac_vision.cam_utils import CAMERA_FAILURE, O2ACCameraHelper
 
 import o2ac_vision.o2ac_ssd
-ssd_detection = o2ac_vision.o2ac_ssd.ssd_detection()
+ssd_detection = o2ac_vision.o2ac_ssd.ssd_detection(rospy.get_param('~pth_file_name', "WRS.pth"))
+print("Loaded SSD from file: ", ssd_detection)
 
 class O2ACVisionServer(object):
     """

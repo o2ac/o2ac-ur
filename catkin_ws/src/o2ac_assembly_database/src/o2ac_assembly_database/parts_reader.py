@@ -117,7 +117,9 @@ class PartsReader(object):
                 
                 c_new.visual_geometry_mesh_url = self._mesh_urls[i]
                 try:
-                    c_new.visual_geometry_mesh_pose = c_obj.mesh_poses[0]
+                    c_new.visual_geometry_pose = c_obj.mesh_poses[0]
+                    rospy.loginfo("Setting visual_geometry_pose of object " + c_obj.id)
+                    print(c_new.visual_geometry_pose)
                 except Exception as e:
                     print(e)
 

@@ -191,15 +191,32 @@ class O2ACCommon(O2ACBase):
       marker = self.assembly_database.get_assembled_visualization_marker(object_name)
       self.assembly_marker_publisher.publish(marker)
       return True
-    # self.planning_scene_interface.remove_attached_object(name=object_name)
+
+    # Publish object as marker first
+    marker = self.assembly_database.get_assembled_visualization_marker(object_name, self.assembly_marker_id_counter)
+    
+    ps1 = geometry_msgs.msg.PoseStamped()
+    ps1.header = marker.header
+    ps1.pose = marker.pose
+    psworld = self.listener.transformPose("workspace_center", ps1)
+    marker.header = psworld.header
+    marker.pose = psworld.pose
+    marker.pose.position.x += 0.0001  # Shift visualization 0.1 mm forward to get precedence over the visual geometry (which is currently rendered ugly)
+
+    self.assembly_marker_id_counter += 1
+    self.assembly_marker_publisher.publish(marker)
+
+    if not object_name == "panel_bearing" and not object_name == "panel_motor":
+      rospy.logwarn("Skipping the collision object " + object_name + " and publishing marker instead.")
+      return True
+
+    # Remove from scene or detach from robot
+    self.planning_scene_interface.remove_attached_object(name=object_name)
+    self.despawn_object(object_name)
 
     # # DEBUGGING: Remove object from the scene
     # if True:
     #   self.planning_scene_interface.remove_world_object(name=object_name)
-      
-    # marker = self.assembly_database.get_assembled_visualization_marker(object_name, self.assembly_marker_id_counter)
-    # self.assembly_marker_id_counter += 1
-    # self.assembly_marker_publisher.publish(marker)
 
     object_id = self.assembly_database.name_to_id(object_name)
     collision_object = self.assembly_database.get_collision_object(object_name, use_simplified_collision_shapes=True)
@@ -243,7 +260,7 @@ class O2ACCommon(O2ACBase):
     self.markers_scene.parts_database = PartsReader(assembly_name, load_meshes=False, verbose=False)
     # TODO(cambel): load the objects dimensions from somewhere
     self.dimensions_dataset = {}
-    if self.assembly_database.db_name in ["wrs_assembly_2021", "wrs_assembly_2021_flipped"]:
+    if self.assembly_database.db_name in ["wrs_assembly_2021", "wrs_assembly_2021_surprise"]:
       self.dimensions_dataset.update({"panel_bearing": [0.09, 0.116, 0.012]})
       self.dimensions_dataset.update({"panel_motor"  : [0.06, 0.06, 0.012]})
     elif self.assembly_database.db_name in ["wrs_assembly_2020", "wrs_assembly_2019_surprise"] :
@@ -5320,7 +5337,7 @@ class O2ACCommon(O2ACBase):
       l_plate = 0.116
     else: # panel_motor
       object_frame = "assembled_part_01_screw_hole_panel2_1"
-      if self.assembly_database.db_name in ["wrs_assembly_2021", "wrs_assembly_2021_flipped"]:
+      if self.assembly_database.db_name in ["wrs_assembly_2021", "wrs_assembly_2021_surprise"]:
         l_plate = 0.06
       elif self.assembly_database.db_name in ["wrs_assembly_2020", "wrs_assembly_2019_surprise"]:
         l_plate = 0.07
@@ -5339,7 +5356,7 @@ class O2ACCommon(O2ACBase):
       else: # panel_motor
         offset_y = 0.011            # MAGIC NUMBER
         offset_z = -0.006           # MAGIC NUMBER
-    elif self.assembly_database.db_name == "wrs_assembly_2021_flipped":
+    elif self.assembly_database.db_name == "wrs_assembly_2021_surprise":
       if panel_name == "panel_bearing":
         if self.assembly_database.assembly_info.get("panel_bearing_facing_backward", False):
           offset_y = -0.01          # MAGIC NUMBER (TODO)
@@ -5377,7 +5394,7 @@ class O2ACCommon(O2ACBase):
       if panel_name == "panel_bearing":
         l_plate = 0.116
       else:
-        if self.assembly_database.db_name in ["wrs_assembly_2021", "wrs_assembly_2021_flipped"]:
+        if self.assembly_database.db_name in ["wrs_assembly_2021", "wrs_assembly_2021_surprise"]:
           l_plate = 0.06
         elif self.assembly_database.db_name in ["wrs_assembly_2020", "wrs_assembly_2019_surprise"]:
           l_plate = 0.07

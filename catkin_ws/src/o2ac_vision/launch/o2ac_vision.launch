@@ -4,6 +4,7 @@
 
   <!-- Mode of object detector -->
   <!-- Continuous streaming is expensive and meant for debugging. -->
+  <arg name="pth_file_name" default="WRS.pth"/>
   <arg name="continuous_streaming"	default="false"/>
   <arg name="camera_name"		default="camera_multiplexer"/>
   <arg name="vis"			default="true"/>
@@ -24,6 +25,7 @@
   <!-- Construct recognition pipeline -->
   <include file="$(dirname)/recognition_pipeline.launch">
     <arg name="manager"			value="$(arg manager)"/>
+    <arg name="pth_file_name"			value="$(arg pth_file_name)"/>
     <arg name="continuous_streaming"	value="$(arg continuous_streaming)"/>
     <arg name="nposes"			value="$(arg nposes)"/>
     <arg name="timeout"			value="$(arg timeout)"/>

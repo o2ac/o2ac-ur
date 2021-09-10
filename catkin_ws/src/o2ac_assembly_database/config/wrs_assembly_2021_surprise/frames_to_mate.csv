@@ -5,14 +5,15 @@ parent_frame, child_frame, roll, pitch, yaw, x, y, z, notes
 
 # The panels
 part_01_screw_hole_panel2_1, part_02_bottom_screw_hole_aligner_1,   0, 0, 0,   0,0,0, Base + Panel1
-part_01_screw_hole_panel1_1, part_03_bottom_screw_hole_aligner_1,   0, 0, 0,   0,0,0, Base + Panel2
+part_01_screw_hole_panel1_2, part_03_bottom_screw_hole_aligner_1,   pi, 0, 0,   0,0,0, Base + Panel2
 
 # The motor
-part_02_back_hole, part_04_inserted_02,   pi, 0, 0,   0,0,0, Panel2 + Motor
+part_02_back_hole_bottom, part_04_inserted_02,   0, 0, 0,   0,0,0, Panel2 + Motor
+#part_02_back_hole, part_04_inserted_02,   pi, 0, 0,   0,0,0, Panel2 + Motor
 part_04_tip,       part_05_center,        0, 0, pi,   -0.005,0,0, Motor + Pulley
 
 # The bearing and output shaft
-part_03_front_hole,    part_07_inserted,      pi, 0, 0,   0,0,0, Panel2 + Bearing
+part_03_back_hole,     part_07_inserted,      pi, 0, 0,   0,0,0, Panel2 + Bearing
 part_07_front_hole,    part_10_center,        0, 0, 0,    0.001,0,0, Bearing + Spacer
 part_10_center,        part_11_back_tip,      pi, 0, 0,   -0.002,0,0, Spacer + Pulley
 part_07_back_hole,     part_09_inner_surface, 0, 0, 0,    -0.001,0,0, Bearing + End Cap

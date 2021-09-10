@@ -80,70 +80,37 @@ subframes:
   name: corner_4
 # Position in the front
 - pose_xyzrpy:
-  - 0.006
+  - 0.077
   - 0.01
-  - 0.030
+  - 0.025
   - -pi/2
   - 0.0
   - -pi/2
   name: screw_hole_panel1_1
 - pose_xyzrpy:
-  - 0.11
+  - 0.181
   - 0.01
-  - 0.030
+  - 0.025
   - -pi/2
   - 0.0
   - -pi/2
   name: screw_hole_panel1_2
 - pose_xyzrpy:
-  - 0.131
+  - 0.008
   - 0.01
-  - 0.028
+  - 0.048
   - -pi/2
   - 0.0
   - -pi/2
   name: screw_hole_panel2_1
 - pose_xyzrpy:
-  - 0.193
+  - 0.056
   - 0.01
-  - 0.028
+  - 0.048
   - -pi/2
   - 0.0
   - -pi/2
   name: screw_hole_panel2_2
-# Position in the back
-- pose_xyzrpy:
-  - 0.006
-  - 0.0
-  - 0.030
-  - -pi/2
-  - 0.0
-  - -pi/2
-  name: screw_hole_panel1_3
-- pose_xyzrpy:
-  - 0.11
-  - 0.0
-  - 0.032
-  - -pi/2
-  - 0.0
-  - -pi/2
-  name: screw_hole_panel1_4
-- pose_xyzrpy:
-  - 0.133
-  - 0.0
-  - 0.028
-  - -pi/2
-  - 0.0
-  - -pi/2
-  name: screw_hole_panel2_3
-- pose_xyzrpy:
-  - 0.196
-  - 0.0
-  - 0.028
-  - -pi/2
-  - 0.0
-  - -pi/2
-  name: screw_hole_panel2_4
 - pose_xyzrpy:
   - 0.1
   - 0.03

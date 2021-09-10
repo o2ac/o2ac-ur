@@ -54,9 +54,9 @@ annotations = glob.glob(annotation_root)
 
 class ssd_detection():
 
-    def __init__(self):
+    def __init__(self, pth_file_name="WRS.pth"):
         rospack = rospkg.RosPack()
-        fname_weight = rospack.get_path("wrs_dataset") + "/ssd.pytorch/WRS.pth"
+        fname_weight = rospack.get_path("wrs_dataset") + "/ssd.pytorch/" + pth_file_name
         self.net = build_ssd('test', 300, 22)    # initialize SSD
         self.net.load_weights( fname_weight )
         # parameter for color adjustment
