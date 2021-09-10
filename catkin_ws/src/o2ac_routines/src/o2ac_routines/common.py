@@ -184,13 +184,14 @@ class O2ACCommon(O2ACBase):
     """ Move or publish a part as a collision object in its final assembled position.
         This is used to "finish" assembling a part.
     """
+    self.despawn_object(object_name, collisions_only=True)
+    
     # Remove from scene or detach from robot
-    self.despawn_object(object_name)
-
     if marker_only:
       marker = self.assembly_database.get_assembled_visualization_marker(object_name)
       self.assembly_marker_publisher.publish(marker)
       return True
+
 
     # Publish object as marker first
     marker = self.assembly_database.get_assembled_visualization_marker(object_name, self.assembly_marker_id_counter)
@@ -5421,8 +5422,11 @@ class O2ACCommon(O2ACBase):
       aligned_pose = [0.0, visual_offset_y, visual_offset_x]
       orientation = [-0.5, 0.5, -0.5, -0.5] if not self.assembly_database.assembly_info.get(panel_name + "_facing_backward", False) else [0, tau/4, tau/4]
       goal = conversions.to_pose_stamped("left_centering_link", aligned_pose + orientation)
-      self.spawn_object(panel_name, goal, goal.header.frame_id)
-      self.planning_scene_interface.allow_collisions(panel_name)
+      if pick_again:
+        self.despawn_object(panel_name, collisions_only=True)
+        self.markers_scene.spawn_item(panel_name, goal)
+        # self.spawn_object(panel_name, goal, goal.header.frame_id)
+        self.planning_scene_interface.allow_collisions(panel_name)
       # object dimensions
       obj_dims = self.dimensions_dataset[panel_name]
       # x,y,z pose w.r.t centering link
@@ -5440,7 +5444,7 @@ class O2ACCommon(O2ACBase):
       grasp_pose = self.listener.transformPose("world", grasp_pose)
       success = self.simple_pick(robot_name, object_pose=grasp_pose, grasp_width=0.04, approach_height=0.1, grasp_height=0.0, 
                       axis="z", item_id_to_attach=panel_name, lift_up_after_pick=False, approach_with_move_lin=False,
-                                 speed_fast=1.0, attach_with_collisions=True, pose_with_uncertainty=pose_with_uncertainty, object_name=panel_name)
+                                 speed_fast=1.0, attach_with_collisions=False, pose_with_uncertainty=pose_with_uncertainty, object_name=panel_name)
       self.active_robots[robot_name].move_lin_rel(relative_translation=[0,-0.01,0.15])
       if not success:
         rospy.logerr("Fail to pick from stored pose")
@@ -5649,8 +5653,19 @@ class O2ACCommon(O2ACBase):
 
     def post_callback():
       self.active_robots[robot_name].gripper.forget_attached_item()
-      aligned_pose = [0.0, 0.067, -0.080] if panel_name == "panel_bearing" else [0.0, -0.063, -0.080]
-      self.update_collision_item_pose(panel_name, conversions.to_pose_stamped(centering_frame, aligned_pose + [-0.500, 0.500, -0.500, -0.500]))
+      fingertip_width = .03
+      distance_to_stopper = 0.064 # w.r.t left centering link
+      distance_to_touched_geometry = distance_to_stopper + fingertip_width/2
+      visual_offset_y = 0.067 if panel_name == "panel_bearing" else -0.063
+      visual_offset_x = -distance_to_touched_geometry+obj_dims[1] if self.assembly_database.assembly_info.get(panel_name + "_facing_backward", False) else -distance_to_touched_geometry
+      aligned_pose = [0.0, visual_offset_y, visual_offset_x]
+      orientation = [-0.5, 0.5, -0.5, -0.5] if not self.assembly_database.assembly_info.get(panel_name + "_facing_backward", False) else [0, tau/4, tau/4]
+      visual_pose = conversions.to_pose_stamped("left_centering_link", aligned_pose + orientation)
+      self.despawn_object(panel_name, collisions_only=True)
+      self.markers_scene.spawn_item(panel_name, visual_pose)
+      # self.update_collision_item_pose(panel_name, visual_pose)
+      # aligned_pose = [0.0, 0.067, -0.080] if panel_name == "panel_bearing" else [0.0, -0.063, -0.080]
+      # self.update_collision_item_pose(panel_name, conversions.to_pose_stamped(centering_frame, aligned_pose + [-0.500, 0.500, -0.500, -0.500]))
 
     seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=0.03, gripper_velocity=1.0, post_callback=post_callback))
   
@@ -5947,7 +5962,6 @@ class O2ACCommon(O2ACBase):
     
     self.set_base_lock(closed=False)
     self.set_base_lock(closed=True)
-    self.publish_part_in_assembled_position(panel_name, disable_collisions=False)
     return True
 
 #### Tray manipulation
@@ -6909,7 +6923,7 @@ class O2ACCommon(O2ACBase):
       self.b_bot.go_to_pose_goal(p_end, end_effector_link="b_bot_belt_hook_curve_link")
       return True
     else:
-      rospy.logerror("compute_cartesian_path failed: fraction = " +str(fraction))
+      rospy.logerr("compute_cartesian_path failed: fraction = " +str(fraction))
       return False
     
   def belt_fallback(self, pick_goal):
