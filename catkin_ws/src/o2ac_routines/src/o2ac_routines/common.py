@@ -2472,7 +2472,7 @@ class O2ACCommon(O2ACBase):
         rospy.logwarn("NOT done, but aborting")
 
     if with_extra_retighten:
-      return self.fasten_set_of_screws(screw_poses[::-1], screw_size=screw_size, robot_name=robot_name, only_retighten=True,
+      return self.fasten_set_of_screws(screw_poses, screw_size=screw_size, robot_name=robot_name, only_retighten=True,
                                        simultaneous=simultaneous, with_extra_retighten=False, 
                                        skip_intermediate_pose=True, intermediate_pose=intermediate_pose, 
                                        unequip_when_done=unequip_when_done)
