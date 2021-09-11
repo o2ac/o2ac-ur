@@ -5442,9 +5442,7 @@ class O2ACCommon(O2ACBase):
       obj_dims = self.dimensions_dataset[panel_name]
       # x,y,z pose w.r.t centering link
       y_pos = 0.065 if panel_name == "panel_bearing" else -0.065
-      grasp_pose = conversions.to_pose_stamped("left_centering_link", [-0.02, y_pos, -distance_to_touched_geometry+obj_dims[1]/2, tau/2, 0, 0])
-    
-      print("Plate grasp pose:", panel_name, grasp_pose.pose.position)
+      grasp_pose = conversions.to_pose_stamped("left_centering_link", [-0.02, y_pos, -distance_to_touched_geometry+obj_dims[1]/2, tau/2, 0, 0])    
 
     if pick_again:
       if not grasp_pose:
@@ -5467,7 +5465,7 @@ class O2ACCommon(O2ACBase):
     above_plate_pose = copy.deepcopy(place_pose)
     above_plate_pose.pose.position.x = -0.100
 
-    print("Plate place pose:", panel_name, grasp_pose.pose.position)
+    # print("Plate place pose:", panel_name, grasp_pose.pose.position)
     
     self.planning_scene_interface.allow_collisions("base_fixture_top", panel_name)
     if not self.active_robots[robot_name].go_to_pose_goal(above_plate_pose, speed=0.5, move_lin=True, timeout=15):
@@ -5890,12 +5888,12 @@ class O2ACCommon(O2ACBase):
       magic_y_offset = -.0005  # MAGIC NUMBER (points into the L_shoe)
       magic_z_offset = -.002  # MAGIC NUMBER (points to the right of the panel when looking at it from the back (into the L))
       rospy.loginfo("Applying fasten_panel magic numbers")
-      print(magic_inclination, magic_z_offset)
+      # print(magic_inclination, magic_z_offset)
 
     orientation = [tau/2+radians(25), 0, magic_inclination] if approach_from_front else [radians(-25), 0, 0]
-    print("rot",orientation)
+    # print("rot",orientation)
     screw_target_pose = conversions.to_pose_stamped(screw_order[0], [0, magic_y_offset, magic_z_offset] + orientation)
-    print("pose",screw_target_pose.pose)
+    # print("pose",screw_target_pose.pose)
 
     if approach_from_front:
       screw_target_pose.pose.position.z += 0.0025
