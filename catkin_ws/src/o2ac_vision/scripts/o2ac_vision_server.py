@@ -500,6 +500,7 @@ class O2ACVisionServer(object):
         apply_2d_pose_estimation = [8,9,10,14]             # Small items --> Neural Net
         apply_3d_pose_estimation = [1,2,3,4,5,7,11,12,13]  # Large items --> CAD matching
         apply_grasp_detection    = [6]                     # Belt --> Fast Grasp Estimation
+        apply_motor_orientation  = [4]
 
         for ssd_result in ssd_results:
             target  = ssd_result["class"]
@@ -523,6 +524,11 @@ class O2ACVisionServer(object):
                             int(poses2d.bbox[0] + round(poses2d.bbox[2]/2)),
                             int(poses2d.bbox[1] + round(poses2d.bbox[3]/2)),
                             0)
+                if target in apply_motor_orientation:
+                    motor_seen, orientation, im_vis \
+                        = self.motor_angle_detection_from_top(im_in, im_vis)
+                    if motor_seen:
+                        pose2d.theta = orientation + pi/2
                 poses2d.poses = [pose2d]
 
             elif target in apply_grasp_detection:
@@ -689,7 +695,7 @@ class O2ACVisionServer(object):
             # localization because we cannot estimate its center.
             if (u0 < 0 or u1 > shape[1]) and (v0 < 0 or v1 > shape[0]):
                 rospy.logwarn('Cannot localize[%s] because the bounding box includes a corner of image.', item_id)
-                return None
+                return None, 0
 
             # Estimate the object center as the bouinding box center.
             poses2d[0].x = 0.5*(u0 + u1)
