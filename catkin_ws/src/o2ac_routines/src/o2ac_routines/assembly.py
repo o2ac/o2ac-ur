@@ -1409,7 +1409,7 @@ class O2ACAssembly(O2ACCommon):
     
     # ======= L-Plates ========
 
-    def do_panel(panel_name, placed_outside_of_tray, subtask_completed):
+    def do_panel(panel_name, placed_outside_of_tray, subtask_completed, start_with_fallback=False):
       if not subtask_completed:
         rospy.loginfo("=== subtask " + panel_name + ": START ===")
         if not placed_outside_of_tray:
@@ -1424,6 +1424,8 @@ class O2ACAssembly(O2ACCommon):
             rospy.logerr("Could not pick bearing panel!")
         if placed_outside_of_tray:
           success = self.place_panel("a_bot", panel_name, pick_again=True, fake_position=True)
+          if start_with_fallback:
+            self.center_panel_on_base_plate(panel_name)
         if success:
           self.hold_panel_for_fastening(panel_name)
           success = self.fasten_panel(panel_name, simultaneous=True, unequip_tool_on_success=True)
@@ -1436,7 +1438,7 @@ class O2ACAssembly(O2ACCommon):
       do_panel("panel_motor", self.assembly_status.motor_panel_placed_outside_of_tray, self.assembly_status.completed_subtask_f)
       do_panel("panel_bearing", self.assembly_status.bearing_panel_placed_outside_of_tray, self.assembly_status.completed_subtask_g)
     else:
-      do_panel("panel_bearing", self.assembly_status.bearing_panel_placed_outside_of_tray, self.assembly_status.completed_subtask_g)
+      do_panel("panel_bearing", self.assembly_status.bearing_panel_placed_outside_of_tray, self.assembly_status.completed_subtask_g, start_with_fallback=True)
       do_panel("panel_motor", self.assembly_status.motor_panel_placed_outside_of_tray, self.assembly_status.completed_subtask_f)
 
     self.a_bot.go_to_named_pose("home", speed=self.speed_fastest, acceleration=self.acc_fastest)
