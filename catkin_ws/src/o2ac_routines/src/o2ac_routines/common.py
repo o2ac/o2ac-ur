@@ -5831,7 +5831,9 @@ class O2ACCommon(O2ACBase):
     seq.append(helpers.to_sequence_item(place_pose, speed=0.5, linear=True))
     seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=0.01, gripper_velocity=0.01, wait=True))
     seq.append(helpers.to_sequence_item(hold_pose, speed=0.5, linear=True))
-    seq.append(helpers.to_sequence_gripper("close", gripper_force=30, gripper_velocity=0.01, wait=False))
+    seq.append(helpers.to_sequence_gripper("close", gripper_force=0, gripper_velocity=0.01, wait=False))
+    # hold it lightly
+    seq.append(helpers.to_sequence_gripper("open", gripper_opening_width=0.006, gripper_velocity=0.01, wait=True))
     
     return self.execute_sequence("a_bot", seq, "center_panel_on_base_plate", plan_while_moving=(not calibration))
 
