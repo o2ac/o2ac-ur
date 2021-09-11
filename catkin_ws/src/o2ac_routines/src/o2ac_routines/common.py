@@ -1515,10 +1515,10 @@ class O2ACCommon(O2ACBase):
     # rotate gripper 90deg
     initial_pose = robot.get_current_pose_stamped()
     offset = -tau/4.0 if clockwise else tau/4.0
-    success = robot.move_lin_rel(relative_rotation=[offset, 0, 0], speed=1.0, relative_to_tcp=True, plan_only=True)
+    success = robot.move_lin_rel(relative_rotation=[offset, 0, 0], speed=1.0, relative_to_tcp=True, plan_only=True, retime=True)
     if not success:
       rospy.logerr("Fail to plan - rotate 90deg %s. Retry with -90deg" % robot_name)
-      if not robot.move_lin_rel(relative_rotation=[-offset, 0, 0], speed=1.0, relative_to_tcp=True):
+      if not robot.move_lin_rel(relative_rotation=[-offset, 0, 0], speed=1.0, relative_to_tcp=True, retime=True):
         return False
     plan, _ = success
     plan = robot.robot_group.retime_trajectory(robot.robot_group.get_current_state(), plan, algorithm="time_optimal_trajectory_generation",
@@ -5362,7 +5362,7 @@ class O2ACCommon(O2ACBase):
     if self.assembly_database.db_name == "wrs_assembly_2021":
       if panel_name == "panel_bearing":
         offset_y = 0.015             # MAGIC NUMBER (points to the global forward (x-axis))
-        offset_z =-0.010             # MAGIC NUMBER (points to the global left (negative y-axis))(+ l_plate/2)
+        offset_z =-0.0095             # MAGIC NUMBER (points to the global left (negative y-axis))(+ l_plate/2)
       else: # panel_motor
         offset_y = 0.014            # MAGIC NUMBER
         offset_z = -0.0085           # MAGIC NUMBER (+ l_plate/2)
@@ -5434,7 +5434,7 @@ class O2ACCommon(O2ACBase):
       y_pos = 0.065 if panel_name == "panel_bearing" else -0.065
       grasp_pose = conversions.to_pose_stamped("left_centering_link", [-0.02, y_pos, -distance_to_touched_geometry+obj_dims[1]/2, tau/2, 0, 0])
     
-    print("Plate grasp pose:", panel_name, grasp_pose.pose.position)
+      print("Plate grasp pose:", panel_name, grasp_pose.pose.position)
 
     if pick_again:
       if not grasp_pose:
@@ -5838,10 +5838,10 @@ class O2ACCommon(O2ACBase):
     place_pose_inclined.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, radians(40), 0))
     if not self.a_bot.go_to_pose_goal(place_pose_inclined, move_lin=True):
       return False
-    self.a_bot.gripper.close(velocity=0.01, force=40, wait=True)
+    self.a_bot.gripper.close(velocity=0.1, force=0, wait=True)
     
     # Open gripper slightly
-    self.a_bot.gripper.send_command(0.0045, velocity=0.01, wait=False)
+    self.a_bot.gripper.send_command(0.006, velocity=0.01, wait=True)
 
     return True
 
@@ -5872,9 +5872,19 @@ class O2ACCommon(O2ACBase):
     if approach_from_front:
       screw_order = screw_order[::-1]
 
-    orientation = [tau/2+radians(25), 0, 0] if approach_from_front else [radians(-25), 0, 0]
+    magic_inclination = 0
+    magic_y_offset = 0
+    magic_z_offset = 0
+    if panel_name == "panel_bearing" and not approach_from_front:
+      magic_inclination = radians(2)  # MAGIC NUMBER. Inclines the tool away from the bearing panel
+      magic_y_offset = -.0005  # MAGIC NUMBER (points into the L_shoe)
+      magic_z_offset = -.002  # MAGIC NUMBER (points to the right of the panel when looking at it from the back (into the L))
+      rospy.loginfo("Applying fasten_panel magic numbers")
+      print(magic_inclination, magic_z_offset)
+
+    orientation = [tau/2+radians(25), 0, magic_inclination] if approach_from_front else [radians(-25), 0, 0]
     print("rot",orientation)
-    screw_target_pose = conversions.to_pose_stamped(screw_order[0], [0, 0, 0] + orientation)
+    screw_target_pose = conversions.to_pose_stamped(screw_order[0], [0, magic_y_offset, magic_z_offset] + orientation)
     print("pose",screw_target_pose.pose)
 
     if approach_from_front:
@@ -5913,7 +5923,7 @@ class O2ACCommon(O2ACBase):
 
     ##### Second screw #####
     orientation = [tau/2+radians(30), 0, 0] if approach_from_front else [radians(-45), 0, 0]
-    screw_target_pose = conversions.to_pose_stamped(screw_order[1], [0, 0, 0] + orientation)
+    screw_target_pose = conversions.to_pose_stamped(screw_order[1], [0, magic_y_offset, magic_z_offset] + orientation)
     if panel_name == "panel_bearing":
       screw_target_pose.pose.position.y -= 0.0015
     self.a_bot_success = False
@@ -5961,7 +5971,9 @@ class O2ACCommon(O2ACBase):
         rospy.logerr("Failed to fasten panel screw 2 again. Aborting.")
         return False
     
+    rospy.sleep(0.3)
     self.set_base_lock(closed=False)
+    rospy.sleep(0.3)
     self.set_base_lock(closed=True)
     return True
 
@@ -6367,7 +6379,7 @@ class O2ACCommon(O2ACBase):
 
     offset = 0.0 # w.r.t to the tray's center, to avoid grasping the center with both robots
     long_side = 0.375/2. + 0.004
-    a_bot_point = [tray_point[0] - long_side, tray_point[1] - offset]
+    a_bot_point = [-0.196, tray_point[1] - offset] # used to be tray_point[0] - long_side
     b_bot_point = [tray_point[0] + long_side, tray_point[1] + offset + 0.005]
     if tray_parallel:
       a_bot_point = [tray_point[0] - offset, tray_point[1] - long_side]
@@ -6486,10 +6498,10 @@ class O2ACCommon(O2ACBase):
     offset = 0.0 # w.r.t to the tray's center, to avoid grasping the center with both robots
     long_side = 0.375/2.
     short_side = 0.255
-    a_bot_point = [-offset, -long_side]
+    a_bot_point = [-offset, -0.196] # used to be -long_side
     b_bot_point = [+offset-0.01, +long_side]
     a_bot_z_high = 0.10
-    a_bot_z_low  = 0.025
+    a_bot_z_low  = 0.02
     a_bot_above_tray_table = conversions.to_pose_stamped("tray_center", [a_bot_point[0], a_bot_point[1], a_bot_z_high, 0, tau/4, 0])
     b_bot_above_tray_table = conversions.to_pose_stamped("tray_center", [b_bot_point[0], b_bot_point[1], a_bot_z_high, 0, tau/4, 0])
     a_bot_at_tray_table    = conversions.to_pose_stamped("tray_center", [a_bot_point[0], a_bot_point[1], a_bot_z_low,  0, tau/4, 0])
@@ -6504,12 +6516,14 @@ class O2ACCommon(O2ACBase):
 
     # Grasp
     self.b_bot.gripper.attach_object(tray_name, with_collisions=True)
-    self.b_bot.gripper.close(force=100, wait=False)
-    self.a_bot.gripper.close(force=100)
-    self.b_bot.set_payload(2.5, center_of_gravity=[0.001, -0.018, 0.049])
-    self.a_bot.set_payload(2.5, center_of_gravity=[0.0, -0.017, 0.053])
+    self.b_bot.gripper.close(force=150, wait=False)
+    self.a_bot.gripper.close(force=150)
+    self.b_bot.set_payload(3, center_of_gravity=[0.001, -0.018, 0.049])
+    self.a_bot.set_payload(3, center_of_gravity=[0.0, -0.017, 0.053])
     self.confirm_to_proceed("2")
-    self.ab_bot.master_slave_control("a_bot", "b_bot", a_bot_above_tray_table, slave_relation, speed=0.1)
+    if not self.ab_bot.master_slave_control("a_bot", "b_bot", a_bot_above_tray_table, slave_relation, speed=0.05):
+      rospy.logerr("Fail to return tray 1. Abort")
+      raise
     self.confirm_to_proceed("3")
 
     if tray_name == "tray1":
@@ -6531,14 +6545,29 @@ class O2ACCommon(O2ACBase):
       raise ValueError("More than 2 trays are not supported yet")
     orientation = [0, tau/4, 0] if tray_parallel else [-tau/4, tau/4, 0]
 
-    a_bot_above_tray_agv = conversions.to_pose_stamped("agv_tray_center", [a_bot_point[0], a_bot_point[1], a_bot_z_high] + orientation)
-    a_bot_at_tray_agv    = conversions.to_pose_stamped("agv_tray_center", [a_bot_point[0], a_bot_point[1], a_bot_z_low]  + orientation)
+    a_bot_above_tray_agv = conversions.to_pose_stamped("agv_tray_center", [a_bot_point[0]+0.01, a_bot_point[1], a_bot_z_high] + orientation)
+    a_bot_at_tray_agv    = conversions.to_pose_stamped("agv_tray_center", [a_bot_point[0]+0.01, a_bot_point[1], a_bot_z_low]  + orientation)
 
     # move to agv tray center
-    self.ab_bot.master_slave_control("a_bot", "b_bot", a_bot_above_tray_agv, slave_relation, speed=0.1)
+    if not self.ab_bot.master_slave_control("a_bot", "b_bot", a_bot_above_tray_agv, slave_relation, speed=0.05):
+      rospy.logerr("Fail to return tray 2. Trying to recover")
+      if self.b_bot.is_protective_stopped():
+        rospy.logerr("b_bot hit protective stop. Trying to unlock and proceed")
+        self.b_bot.unlock_protective_stop()
+      if self.a_bot.is_protective_stopped():
+        rospy.logerr("a_bot hit protective stop. Trying to unlock and proceed")
+        self.a_bot.unlock_protective_stop()
 
     slave_relation = self.ab_bot.get_relative_pose_of_slave("a_bot", "b_bot")
-    self.ab_bot.master_slave_control("a_bot", "b_bot", a_bot_at_tray_agv, slave_relation, speed=0.1)
+    if not self.ab_bot.master_slave_control("a_bot", "b_bot", a_bot_at_tray_agv, slave_relation, speed=0.05):
+      rospy.logerr("Fail to return tray 3. Trying to recover")
+      if self.b_bot.is_protective_stopped():
+        rospy.logerr("b_bot hit protective stop. Trying to unlock and proceed")
+        self.b_bot.unlock_protective_stop()
+      if self.a_bot.is_protective_stopped():
+        rospy.logerr("a_bot hit protective stop. Trying to unlock and proceed")
+        self.a_bot.unlock_protective_stop()
+      
     
     self.b_bot.gripper.detach_object(tray_name)
     self.b_bot.gripper.forget_attached_item()
@@ -6566,7 +6595,8 @@ class O2ACCommon(O2ACBase):
     above_panel_bearing = [0.0025, -0.067, 0.078, 0, 0.883, tau/4]
     at_panel_bearing = [0.0025, -0.017, 0.028, 0, 0.883, tau/4]
     panels = [[above_panel_motor, at_panel_motor], [above_panel_bearing, at_panel_bearing]]
-    if self.assembly_database.assembly_info.get("switched_motor_and_bearing", False):
+    switched_plates = self.assembly_database.assembly_info.get("switched_motor_and_bearing", False)
+    if switched_plates:
       a_bot_reference_frame = "assembled_part_03_front_hole"
       b_bot_reference_frame = "assembled_part_02_back_hole"
       above_panel_motor[-1] *= -1 # fix orientation
@@ -6606,6 +6636,8 @@ class O2ACCommon(O2ACBase):
 
     self.b_bot.gripper.close(force=100, wait=False)
     self.a_bot.gripper.close(force=100, wait=True)
+    self.a_bot.set_payload(2.5, center_of_gravity=[0.0, -0.017, 0.053])
+    self.b_bot.set_payload(2.5, center_of_gravity=[0.001, -0.018, 0.049]) # Default
 
     # Move product to the tray
 
@@ -6632,8 +6664,14 @@ class O2ACCommon(O2ACBase):
 
     unlock_robots()
 
-    self.a_bot.gripper.open(opening_width=0.07, wait=False)
-    self.b_bot.gripper.open(opening_width=0.07)
+    if switched_plates:
+      self.b_bot.gripper.open(opening_width=0.07)
+      self.a_bot.gripper.open(opening_width=0.07)
+    else:
+      self.a_bot.gripper.open(opening_width=0.07)
+      self.b_bot.gripper.open(opening_width=0.07)
+    self.a_bot.set_payload(1.27, center_of_gravity=[0.0, -0.017, 0.053])
+    self.b_bot.set_payload(1.2, center_of_gravity=[0.001, -0.018, 0.049]) # Default
 
     self.ab_bot.go_to_named_pose("home")
     self.publish_status_text("SUCCESS: Unload product")
@@ -6756,9 +6794,9 @@ class O2ACCommon(O2ACBase):
     self.planning_scene_interface.allow_collisions("base", "")  # Allow collisions with all other objects
     self.planning_scene_interface.allow_collisions("base", "tray")
     self.planning_scene_interface.allow_collisions("base", "tray_center")
-    if not self.a_bot.go_to_pose_goal(above_centering_pose, speed=0.5, move_lin=False):
+    if not self.a_bot.go_to_pose_goal(above_centering_pose, speed=1.0, move_lin=False):
       return False
-    if not self.a_bot.go_to_pose_goal(centering_pose, speed=0.5, move_lin=True):
+    if not self.a_bot.go_to_pose_goal(centering_pose, speed=1.0, move_lin=True, retime=True):
       return False
 
     self.allow_collisions_with_robot_hand("tray", "a_bot")

@@ -181,11 +181,14 @@ class O2ACAssembly(O2ACCommon):
     # self.a_bot.move_joints(above_base_drop, speed=0.5)
     # self.a_bot.go_to_pose_goal(base_drop, speed=0.3, move_lin = True)
     # self.a_bot.go_to_pose_goal(base_inserted, speed=0.05, move_lin = True)
-    self.a_bot.gripper.open(opening_width=0.05, wait=False)
-    self.a_bot.gripper.open()
+    self.a_bot.gripper.open(opening_width=0.0425, velocity=0.05)
+    self.a_bot.gripper.close(force=0, velocity=0.03, wait=False)
+    self.a_bot.gripper.open(opening_width=0.0425)
     self.a_bot.gripper.forget_attached_item()
+    self.a_bot.move_lin_rel([0,0,0.02])
 
     def set_base_plate():
+      rospy.sleep(0.3)
       self.lock_base_plate()
       rospy.sleep(0.3)
       self.unlock_base_plate()
@@ -302,6 +305,7 @@ class O2ACAssembly(O2ACCommon):
       self.publish_part_in_assembled_position("bearing", marker_only=True)
       self.a_bot.go_to_named_pose("centering_area")
       self.a_bot.gripper.forget_attached_item()
+      self.b_bot.go_to_named_pose("home")
       if self.align_bearing_holes(task="assembly"):
         self.b_bot.go_to_named_pose("home")
         success = self.fasten_bearing(task="assembly", with_extra_retighten=True)
@@ -982,6 +986,7 @@ class O2ACAssembly(O2ACCommon):
     if switch_panels_order:
       panels_order = panels_order[::-1]
 
+    print("self.assembly_status.completed_subtask_zero", self.assembly_status.completed_subtask_zero)
     if do_base_plate_first and not self.assembly_status.completed_subtask_zero:
       self.b_bot.go_to_named_pose("home")
       self.publish_status_text("Target: base plate")
@@ -993,6 +998,7 @@ class O2ACAssembly(O2ACCommon):
       self.a_bot.go_to_named_pose("home")
 
     self.publish_status_text("Target: L-plates")
+    
     # Pick bearing panel
     success = False
     for i in range(5):
@@ -1338,7 +1344,10 @@ class O2ACAssembly(O2ACCommon):
 
     self.update_assembly_display()
 
-    if not self.assembly_status.completed_subtask_f and not self.assembly_status.completed_subtask_g:
+    if not self.assembly_status.completed_subtask_f and not self.assembly_status.completed_subtask_g \
+        and not self.assembly_status.bearing_panel_placed_outside_of_tray and not self.assembly_status.motor_panel_placed_outside_of_tray:
+      
+      print("Starting simultaneous Plates!")
       # L-plates and base plate
       success = self.panels_tasks_combined(simultaneous=simultaneous_execution,
                                            pick_and_orient_insert_bearing=False,
@@ -1361,7 +1370,7 @@ class O2ACAssembly(O2ACCommon):
     self.unequip_tool("a_bot")
     self.unequip_tool("b_bot")
     self.reset_scene_and_robots()
-    self.ab_bot.go_to_named_pose("home")
+    self.ab_bot.go_to_named_pose("home", speed=1.0)
     if not self.unload_drive_unit():
       rospy.logerr("Fail to unload drive unit. Abort!")
       return False
@@ -1585,8 +1594,8 @@ class O2ACAssembly(O2ACCommon):
     s = AssemblyStatus()
     s.tray_placed_on_table = False
 
-    s.bearing_panel_placed_outside_of_tray = False
-    s.motor_panel_placed_outside_of_tray = False
+    s.bearing_panel_placed_outside_of_tray = True
+    s.motor_panel_placed_outside_of_tray   = True
     
     s.belt_placed_outside_of_tray = False
 
