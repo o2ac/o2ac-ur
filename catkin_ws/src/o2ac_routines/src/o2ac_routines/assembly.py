@@ -1130,7 +1130,7 @@ class O2ACAssembly(O2ACCommon):
     def a_bot_2nd_task():
       self.panel_motor_picked = self.place_panel("a_bot", panels_order[1], pick_again=True, pick_only=True, fake_position=True)
       return True
-    if not self.fasten_panel(panels_order[0], simultaneous=simultaneous, a_bot_task_2nd_screw=a_bot_2nd_task):
+    if not self.fasten_panel(panels_order[0], simultaneous=simultaneous, a_bot_task_2nd_screw=None):
       return False
 
     self.a_bot_success = False
