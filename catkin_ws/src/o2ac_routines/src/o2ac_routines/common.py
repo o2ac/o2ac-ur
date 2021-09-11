@@ -3570,8 +3570,8 @@ class O2ACCommon(O2ACBase):
 
     if not ready_to_put_on_shaft:  # Do reorientation procedure
       approach_centering = conversions.to_pose_stamped("simple_holder_tip_link", [0.0, 0, 0.1,      tau/4., tau/4., tau/4.])
-      close_to_tip       = conversions.to_pose_stamped("simple_holder_tip_link", [-0.0075, 0,  0.01, tau/4., tau/4., tau/4.])
-      push_down          = conversions.to_pose_stamped("simple_holder_tip_link", [-0.0075, 0, -0.02, tau/4., tau/4., tau/4.])
+      close_to_tip       = conversions.to_pose_stamped("simple_holder_tip_link", [-0.004, -0.008, 0.01, tau/4., tau/4., tau/4.]) # -0.0075, 0,  0.01
+      push_down          = conversions.to_pose_stamped("simple_holder_tip_link", [-0.004, -0.008, -0.02, tau/4., tau/4., tau/4.])
       prepare_second_push= conversions.to_pose_stamped("simple_holder_tip_link", [-0.030,  0,  0.05, tau/4., tau/4., tau/4.])
       close_to_edge      = conversions.to_pose_stamped("simple_holder",          [0.08, -0.10, 0.001, tau/4., tau/4., tau/4.])
       push_edge          = conversions.to_pose_stamped("simple_holder",          [0.02, -0.10, 0.001, tau/4., tau/4., tau/4.])
@@ -3584,7 +3584,7 @@ class O2ACCommon(O2ACBase):
       seq.append(helpers.to_sequence_item(close_to_edge, speed=0.5))
       seq.append(helpers.to_sequence_item(push_edge, speed=0.05))
 
-      if not self.execute_sequence(robot_name, seq, "orient end cap"):
+      if not self.execute_sequence(robot_name, seq, "orient end cap", plan_while_moving=(not calibration)):
         rospy.logerr("Fail to go to orient end cap")
         return False
 
