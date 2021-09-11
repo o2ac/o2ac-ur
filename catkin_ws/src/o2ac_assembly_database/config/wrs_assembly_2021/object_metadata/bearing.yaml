@@ -41,16 +41,16 @@ subframes:
   name: screw_hole_1
 - pose_xyzrpy:
   - 0.0
-  - 0.0
   - 0.022
+  - 0.0
   - pi/2
   - 0.0
   - pi
   name: screw_hole_2
 - pose_xyzrpy:
   - 0.0
-  - 0.022
   - 0.0
+  - 0.022
   - pi/2
   - 0.0
   - pi
