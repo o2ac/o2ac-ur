@@ -3448,7 +3448,7 @@ class O2ACCommon(O2ACBase):
     return True
 
 #### shaft orientation
-  def orient_shaft(self):    
+  def orient_shaft(self, calibration=False):    
     if not self.centering_shaft():
       return False
 
@@ -3490,7 +3490,7 @@ class O2ACCommon(O2ACBase):
       seq.append(helpers.to_sequence_gripper('close', gripper_force=40, gripper_velocity=1.0))
       seq.append(helpers.to_sequence_item_relative([0,0,0.01,0,0,0], speed=0.2))
     
-    self.execute_sequence("b_bot", seq, "orient shaft")
+    self.execute_sequence("b_bot", seq, "orient shaft", plan_while_moving=(not calibration))
     self.b_bot.go_to_named_pose("home")
     self.b_bot.gripper.forget_attached_item() # clean attach/detach memory
     return True
@@ -3533,7 +3533,7 @@ class O2ACCommon(O2ACBase):
     self.b_bot.move_lin_rel(relative_translation=[0, 0.01, 0.1], speed=.3)
     return True
 
-  def orient_shaft_end_cap(self, robot_name="a_bot", ignore_orientation=False):
+  def orient_shaft_end_cap(self, robot_name="a_bot", ignore_orientation=False, calibration=False):
     # Note only works for 'a_bot'
     # TODO: Make it work for both robots (not a priority)
     centering_frame = "left_centering_link" if robot_name == "a_bot" else "right_centering_link"
