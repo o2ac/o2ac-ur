@@ -1550,7 +1550,7 @@ class O2ACAssembly(O2ACCommon):
     """ A convenience function to define the status of the first order (to be used after a reset in the competition)
     """
     s = AssemblyStatus()
-    s.tray_placed_on_table = False
+    s.tray_placed_on_table = False # Needs to be True when doing second set only!
 
     s.bearing_panel_placed_outside_of_tray = False
     s.motor_panel_placed_outside_of_tray = False
@@ -1573,17 +1573,17 @@ class O2ACAssembly(O2ACCommon):
     s.idler_pulley_placed_outside_of_tray = False
 
     s.completed_subtask_zero = False  # Base
-    s.completed_subtask_a = False  # Motor
-    s.completed_subtask_b = False  # Motor pulley
-    s.completed_subtask_c1 = False  # Bearing
-    s.completed_subtask_c2 = False  # Shaft
-    s.completed_subtask_d = False  # Fasten output pulley
-    s.completed_subtask_e = False  # Output pulley
-    s.completed_subtask_f = False  # Motor plate
-    s.completed_subtask_g = False  # Bearing plate
-    s.completed_subtask_h = False  # Belt
-    s.completed_subtask_i1 = False  # Cable 1
-    s.completed_subtask_i2 = False  # Cable 2
+    s.completed_subtask_a    = False  # Motor
+    s.completed_subtask_b    = False  # Motor pulley
+    s.completed_subtask_c1   = False  # Bearing
+    s.completed_subtask_c2   = False  # Shaft
+    s.completed_subtask_d    = False  # Fasten output pulley
+    s.completed_subtask_e    = False  # Output pulley
+    s.completed_subtask_f    = False  # Motor plate
+    s.completed_subtask_g    = False  # Bearing plate
+    s.completed_subtask_h    = False  # Belt
+    s.completed_subtask_i1   = False  # Cable 1
+    s.completed_subtask_i2   = False  # Cable 2
 
     s.assembly_unloaded = False
     
@@ -1596,8 +1596,8 @@ class O2ACAssembly(O2ACCommon):
     s = AssemblyStatus()
     s.tray_placed_on_table = False
 
-    s.bearing_panel_placed_outside_of_tray = True
-    s.motor_panel_placed_outside_of_tray   = True
+    s.bearing_panel_placed_outside_of_tray = False
+    s.motor_panel_placed_outside_of_tray   = False
     
     s.belt_placed_outside_of_tray = False
 
@@ -1617,17 +1617,17 @@ class O2ACAssembly(O2ACCommon):
     s.idler_pulley_placed_outside_of_tray = False
 
     s.completed_subtask_zero = False  # Base
-    s.completed_subtask_a = False  # Motor
-    s.completed_subtask_b = False  # Motor pulley
-    s.completed_subtask_c1 = False  # Bearing
-    s.completed_subtask_c2 = False  # Shaft
-    s.completed_subtask_d = False  # Fasten output pulley
-    s.completed_subtask_e = False  # Output pulley
-    s.completed_subtask_f = False  # Motor plate
-    s.completed_subtask_g = False  # Bearing plate
-    s.completed_subtask_h = False  # Belt
-    s.completed_subtask_i1 = False  # Cable 1
-    s.completed_subtask_i2 = False  # Cable 2
+    s.completed_subtask_a    = False  # Motor
+    s.completed_subtask_b    = False  # Motor pulley
+    s.completed_subtask_c1   = False  # Bearing
+    s.completed_subtask_c2   = False  # Shaft
+    s.completed_subtask_d    = False  # Fasten output pulley
+    s.completed_subtask_e    = False  # Output pulley
+    s.completed_subtask_f    = False  # Motor plate
+    s.completed_subtask_g    = False  # Bearing plate
+    s.completed_subtask_h    = False  # Belt
+    s.completed_subtask_i1   = False  # Cable 1
+    s.completed_subtask_i2   = False  # Cable 2
 
     s.assembly_unloaded = False
     
