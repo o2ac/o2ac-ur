@@ -4735,7 +4735,8 @@ class O2ACCommon(O2ACBase):
                      stay_put_after_screwing=True, skip_final_loosen_and_retighten=False, 
                      spiral_radius=spiral_radius, attempts=0)
     # second extra tighten, may get stuck, we will go up slowly
-    self.tools.set_motor("screw_tool_m%s" % screw_size, "tighten", duration = 10.0, skip_final_loosen_and_retighten=True, wait=True)
+    if res:
+      self.tools.set_motor("screw_tool_m%s" % screw_size, "tighten", duration = 10.0, skip_final_loosen_and_retighten=True, wait=True)
     self.confirm_to_proceed("finetune")
     retreat()
     if allow_collision_with_object:
