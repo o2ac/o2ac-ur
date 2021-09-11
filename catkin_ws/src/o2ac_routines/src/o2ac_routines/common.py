@@ -2433,13 +2433,16 @@ class O2ACCommon(O2ACBase):
           if feeder_to_hole_plan:
             screw_status[n] = "done" 
           else:
-            rospy.sleep(0.2)
+            # TODO(cambel): change so that it is do not turn off
+            self.tools.set_suction("screw_tool_m%s" % screw_size, suction_on=True, eject=False, wait=False)
+            rospy.sleep(1)
             if self.tools.screw_is_suctioned["m%s"%screw_size]:
               rospy.logwarn("Screw detected in tool after failing to screw!")
               screw_status[n] == "empty"
             else:
               rospy.logwarn("Screw failed, skiping")
               screw_status[n] == "maybe_stuck_in_hole"
+            self.tools.set_suction("screw_tool_m%s" % screw_size, suction_on=False, eject=False, wait=False)
             
         elif screw_status[n] == "maybe_stuck_in_hole":  # Retighten
           success = self.screw(robot_name, screw_poses[n], screw_size=screw_size, screw_height=0.02, 
