@@ -2318,7 +2318,7 @@ class O2ACCommon(O2ACBase):
         screw_pose = conversions.to_pose_stamped("assembled_part_07_screw_hole_" + str(i), [0, 0, 0, offset*tau/12, 0, 0])
         if self.assembly_database.assembly_info.get("panel_bearing_facing_backward", False):
           screw_pose.pose.position.z += -.004  # MAGIC NUMBER  (points down)
-          screw_pose.pose.position.y += -.000  # MAGIC NUMBER  (points right)
+          screw_pose.pose.position.y += -.001  # MAGIC NUMBER  (points right)
         else:  # Regular assembly
           screw_pose.pose.position.z += .0005  # MAGIC NUMBER  (points down)
           screw_pose.pose.position.y += -.0015  # MAGIC NUMBER  (points right)
