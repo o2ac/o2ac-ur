@@ -623,6 +623,7 @@ class CalibrationClass(O2ACCommon):
     self.a_bot.gripper.open()
     self.a_bot.move_lin_rel([0,0,0.1])
     self.a_bot.go_to_named_pose("home")
+    self.is_motor_pulley_in_storage = False
     self.pick_motor_pulley(robot_name="a_bot")
     self.orient_motor_pulley("assembled_part_05_center", robot_name="a_bot")
     print("current pose", conversions.from_pose_to_list(self.listener.transformPose("assembled_part_05_center", self.a_bot.get_current_pose_stamped()).pose))
@@ -937,6 +938,12 @@ if __name__ == '__main__':
         c.motor_insertion_from_aid()
       if r == '603f':
         c.fasten_motor()
+      if r == '603f2':
+        c.fasten_motor(part1=False, part2=True)
+      if r == '603f2c':
+        c.calibration_mode = True
+        c.fasten_motor(part1=False, part2=True)
+        c.calibration_mode = False
       if r == '604':
         c.bearing_insertion_assembly()
       if r == '604i':

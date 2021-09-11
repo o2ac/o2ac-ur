@@ -2536,7 +2536,7 @@ class O2ACCommon(O2ACBase):
 
   def pick_motor_pulley(self, attempt=5, robot_name="b_bot"):
     self.despawn_object("motor_pulley")
-    options = {'grasp_width': 0.05, 'center_on_corner': True, 'approach_height': 0.02, 'grab_and_drop': True, 'object_width': 0.03}
+    options = {'grasp_width': 0.07, 'center_on_corner': True, 'approach_height': 0.02, 'grab_and_drop': True, 'object_width': 0.03}
 
     if self.is_motor_pulley_in_storage:
       goal = copy.deepcopy(self.motor_pulley_store_pose)
@@ -2559,7 +2559,7 @@ class O2ACCommon(O2ACBase):
     self.vision.activate_camera(robot_name + "_inside_camera")
     self.activate_led(robot_name, False)
     
-    if not self.simple_pick(robot_name, goal, gripper_force=30.0, grasp_width=.05, 
+    if not self.simple_pick(robot_name, goal, gripper_force=30.0, grasp_width=.07, 
                             axis="z", grasp_height=0.002, item_id_to_attach="motor_pulley",
                             allow_collision_with_tray=True):
       rospy.logerr("Fail to simple_pick")
@@ -2692,7 +2692,7 @@ class O2ACCommon(O2ACBase):
           self.drop_in_tray(robot_name)
         return False
 
-    self.active_robots[robot_name].gripper.open(opening_width=0.04, wait=True)
+    self.active_robots[robot_name].gripper.open(opening_width=0.07, wait=True)
     success &= self.active_robots[robot_name].move_lin_rel(relative_translation = [0.03,0,0], speed=.3)
     return success
 
@@ -2729,18 +2729,19 @@ class O2ACCommon(O2ACBase):
     self.equip_tool("b_bot", "set_screw_tool")
 
     b_bot_approach_pose    = conversions.to_pose_stamped(target_link, [0.001, -0.002, -0.072]+ np.deg2rad([174.3, -87.6, -135.8]).tolist())
-    b_bot_above_hole_pose  = conversions.to_pose_stamped(target_link, [-0.004, -0.003,-0.007]+ np.deg2rad([174.3, -87.6, -135.8]).tolist())
-    b_bot_centering_pose   = conversions.to_pose_stamped(target_link, [-0.005, -0.003,-0.007]+ np.deg2rad([-170.5, -88, -151]).tolist())
-    b_bot_at_hole_pose     = conversions.to_pose_stamped(target_link, [-0.004, -0.002, 0.005]+ np.deg2rad([-170.5, -88, -151]).tolist())
+    b_bot_above_hole_pose  = conversions.to_pose_stamped(target_link, [-0.003, 0.000, -0.009]+ np.deg2rad([174.3, -87.6, -135.8]).tolist())
+    b_bot_centering_pose   = conversions.to_pose_stamped(target_link, [-0.003, 0.000, -0.009]+ np.deg2rad([-170.5, -88, -151]).tolist())
+    b_bot_at_hole_pose     = conversions.to_pose_stamped(target_link, [-0.003, 0.000,  0.005]+ np.deg2rad([-170.5, -88, -151]).tolist())
 
     a_bot_approach_push_pose = conversions.to_pose_stamped(target_link, [-0.04, 0, 0, tau/2, 0, 0])
-    a_bot_push_pose = conversions.to_pose_stamped(target_link, [-0.0025, 0, 0, tau/2, 0, 0])
+    a_bot_push_pose = conversions.to_pose_stamped(target_link, [-0.003, 0, 0, tau/2, 0, 0])
     def a_task_push_pulley():
       self.a_bot.go_to_pose_goal(a_bot_approach_push_pose, speed=0.8, move_lin=True)
       self.a_bot.gripper.close(wait=False)
       self.a_bot.go_to_pose_goal(a_bot_push_pose, speed=0.1, move_lin=True)
     
-    offset_from_center = -0.058 if self.assembly_database.db_name == "wrs_assembly_2020" else -0.056
+    # offset_from_center = -0.058 if self.assembly_database.db_name == "wrs_assembly_2020" else -0.056
+    offset_from_center = -0.04 # "wrs_assembly_2021 + surprise part"
     # Find both holes
     for i in range(2):
       if i > 0:
@@ -4273,7 +4274,10 @@ class O2ACCommon(O2ACBase):
     return True
 
   def fasten_motor(self, robot_name="a_bot", support_robot="b_bot", simultaneous=False, part1=True, part2=True):
-    """ Assumes that the tool is already equipped """
+    """ Assumes that the tool is already equipped. 
+        Part 1 contains the first two screws until the support robot can release the motor.
+        Part 2 contains the rest.
+    """
     assert robot_name != support_robot, "Same robot cannot fill both roles"
     offset = -1 if robot_name == "a_bot" else 1
     screw_order = [6,4,2,1,3,5] if not self.assembly_database.assembly_info.get("motor_shaft_down", False) else [4,6,2,3,1,5]
@@ -4281,6 +4285,8 @@ class O2ACCommon(O2ACBase):
     for i in screw_order: # interlock order
       if self.assembly_database.db_name == "wrs_assembly_2021":
         screw_pose = conversions.to_pose_stamped("assembled_part_02_motor_screw_hole_%s"%i, [0.007, 0, 0.0, offset*tau/12, 0, 0])
+        screw_pose.pose.position.y += 0.001
+        screw_pose.pose.position.z += 0.002
       else:
         screw_pose = conversions.to_pose_stamped("assembled_part_02_motor_screw_hole_%s"%i, [0.007, 0, 0.0, offset*tau/12, 0, 0])
       screw_poses.append(screw_pose)
@@ -4701,7 +4707,8 @@ class O2ACCommon(O2ACBase):
 
   def fasten_screw_vertical(self, robot_name, screw_hole_pose, allow_collision_with_object="", 
                                   screw_height = .02, screw_size = 4, spiral_radius=0.0015,
-                                  approach_from_front=False):
+                                  approach_from_front=False, do_lengthwise_search_first=False,
+                                  close_a_bot_during_l_search=False):
     """
     Fasten a screw on one of the L-plates.
 
@@ -4733,10 +4740,10 @@ class O2ACCommon(O2ACBase):
     approach()
     res = self.screw(robot_name, screw_hole_pose, screw_size, screw_height, 
                      stay_put_after_screwing=True, skip_final_loosen_and_retighten=False, 
-                     spiral_radius=spiral_radius, attempts=0)
+                     spiral_radius=spiral_radius, attempts=0, do_lengthwise_search_first=do_lengthwise_search_first)
     # second extra tighten, may get stuck, we will go up slowly
     if res:
-      self.tools.set_motor("screw_tool_m%s" % screw_size, "tighten", duration = 10.0, skip_final_loosen_and_retighten=True, wait=True)
+      self.tools.set_motor("screw_tool_m%s" % screw_size, "tighten", duration = 10.0, skip_final_loosen_and_retighten=False, wait=True)
     self.confirm_to_proceed("finetune")
     retreat()
     if allow_collision_with_object:
@@ -5990,7 +5997,7 @@ class O2ACCommon(O2ACBase):
       self.a_bot.gripper.open(opening_width=0.03, velocity=0.01, wait=True)
       self.a_bot_success = self.a_bot.move_lin_rel(relative_translation=[-0.2,0,0], relative_to_tcp=True)
       
-      if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel_name, approach_from_front=approach_from_front):
+      if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel_name, approach_from_front=approach_from_front, do_lengthwise_search_first=True):
         rospy.logerr("Failed to fasten panel screw 2 again. Aborting.")
         return False
     
