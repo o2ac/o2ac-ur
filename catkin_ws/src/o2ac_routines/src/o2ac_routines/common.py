@@ -2020,7 +2020,7 @@ class O2ACCommon(O2ACBase):
 
     return True
 
-  def pick_bearing(self, robot_name="b_bot", attempts=5):
+  def pick_bearing(self, robot_name="b_bot", attempts=3, try_extra_fallback=True):
     if robot_name == "b_bot":
       options = {'center_on_corner': True, 'check_for_close_items': False, 'grasp_width': 0.08, 'go_back_halfway': False, 'object_width': 0.06}
     else:
@@ -2056,6 +2056,12 @@ class O2ACCommon(O2ACBase):
       if attempts > 0:
         rospy.logwarn("Fail to pick bearing from tray. Try again remaining attempts:%s" % attempts)
         return self.pick_bearing(robot_name, attempts-1)
+      if attempts == 0 and try_extra_fallback:
+        if not rospy.get_param("/o2ac/simultaneous", False):
+          self.a_bot.go_to_named_pose("centering_area", speed=1.0)
+          self.move_towards_tray_center_from_corner("b_bot", goal)
+          self.b_bot.go_to_named_pose("home")
+          return self.pick_bearing(robot_name, attempts=3, try_extra_fallback=False)
       rospy.logerr("Fail to pick bearing from tray")
       return False
     return True
