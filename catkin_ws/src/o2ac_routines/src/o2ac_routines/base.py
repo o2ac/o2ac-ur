@@ -683,7 +683,10 @@ class O2ACBase(object):
 
   def screw(self, robot_name, screw_hole_pose, screw_size, screw_height=0.02,
             stay_put_after_screwing=False, duration=20.0, skip_final_loosen_and_retighten=False,
-            spiral_radius=0.0015, attempts=0, retry_on_failure=False):
+            spiral_radius=0.0015, attempts=0, retry_on_failure=False, do_lengthwise_search_first=False,
+            close_a_bot_during_l_search=False):
+    """ Move to a screw hole with a tool and fasten a screw that the tool carries.
+    """
     screw_tool_link = robot_name + "_screw_tool_" + "m" + str(screw_size) + "_tip_link"
     screw_tool_id = "screw_tool_m" + str(screw_size)
     fastening_tool_name = "screw_tool_m" + str(screw_size)
@@ -691,23 +694,57 @@ class O2ACBase(object):
 
     approach_height = .01
     insertion_amount = .02
-
+    
     screw_tip_at_hole = copy.deepcopy(screw_hole_pose)
     screw_tip_at_hole.pose.position.x -= screw_height
+    
     away_from_hole = copy.deepcopy(screw_tip_at_hole)
     away_from_hole.pose.position.x -= approach_height
     pushed_into_hole = copy.deepcopy(screw_tip_at_hole)
     pushed_into_hole.pose.position.x += insertion_amount
 
     if not self.active_robots[robot_name].go_to_pose_goal(away_from_hole, end_effector_link=screw_tool_link, speed=0.5, move_lin=True, retry_non_linear=True):
-      rospy.logerr("Fail to go to away_from_hole")
+      rospy.logerr("Fail to approach via away_from_hole")
       return False
+
+    self.planning_scene_interface.allow_collisions(screw_tool_id)
+
+    # Move 
+    if do_lengthwise_search_first:
+      if close_a_bot_during_l_search:
+        rospy.loginfo("Closing a_bot ")
+        original_width = self.a_bot.gripper.opening_width 
+        self.a_bot.gripper.close()
+
+      push_lightly_depth = 0.009  # MAGIC NUMBER (increasing it increases the distance
+      screw_lightly_pushing_into_plate = copy.deepcopy(pushed_into_hole)
+      screw_lightly_pushing_into_plate.pose.position.x -= push_lightly_depth
+
+      p_side_1 = copy.deepcopy(screw_lightly_pushing_into_plate)
+      p_side_2 = copy.deepcopy(screw_lightly_pushing_into_plate)
+      
+      p_side_1.pose.position.z += 0.003
+      p_side_2.pose.position.z -= 0.003
+      seq = []
+      seq.append(helpers.to_sequence_item(p_side_1, end_effector_link=screw_tool_link, speed=0.05, linear=True))
+      seq.append(helpers.to_sequence_item(p_side_2, end_effector_link=screw_tool_link, speed=0.05, linear=True))
+      seq.append(helpers.to_sequence_item(screw_lightly_pushing_into_plate, end_effector_link=screw_tool_link, speed=0.05, linear=True))
+      if not self.execute_sequence(robot_name, seq, "linear search", end_effector_link=screw_tool_link):
+        self.confirm_to_proceed("go forward?")
+        self.active_robots[robot_name].go_to_pose_goal(p_side_1, end_effector_link=screw_tool_link, speed=0.05, move_lin=True)
+        self.confirm_to_proceed("go back?")
+        self.active_robots[robot_name].go_to_pose_goal(p_side_2, end_effector_link=screw_tool_link, speed=0.05, move_lin=True)
+        self.confirm_to_proceed("go to center?")
+        self.active_robots[robot_name].go_to_pose_goal(screw_lightly_pushing_into_plate, end_effector_link=screw_tool_link, speed=0.05, move_lin=True)
+
+      if close_a_bot_during_l_search:
+        original_width = self.a_bot.gripper.opening_width 
+        self.a_bot.gripper.open(opening_width=original_width+0.01, velocity=0.01)
+        self.a_bot.gripper.open(opening_width=original_width, velocity=0.01)
 
     if not self.calibration_mode:
       self.tools.set_motor(fastening_tool_name, direction="tighten", wait=False, duration=duration, 
                           skip_final_loosen_and_retighten=skip_final_loosen_and_retighten)
-
-    self.planning_scene_interface.allow_collisions(screw_tool_id)
 
     if not self.active_robots[robot_name].go_to_pose_goal(pushed_into_hole, end_effector_link=screw_tool_link, speed=0.02, move_lin=True):
       rospy.logerr("Fail to go to pushed_into_hole")

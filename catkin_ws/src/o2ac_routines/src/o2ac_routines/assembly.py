@@ -73,8 +73,8 @@ class O2ACAssembly(O2ACCommon):
     super(O2ACAssembly, self).__init__()
     
     # Load the initial database
-    if not self.assembly_database.db_name == "wrs_assembly_2021":
-      self.set_assembly("wrs_assembly_2021")
+    if not self.assembly_database.db_name == "wrs_assembly_2021_surprise":
+      self.set_assembly("wrs_assembly_2021_surprise")
 
     # Spawn tools and objects
     self.define_tool_collision_objects()
@@ -303,11 +303,11 @@ class O2ACAssembly(O2ACCommon):
     success = False
     if self.pick_up_and_insert_bearing(task="assembly", robot_name="a_bot"):
       self.publish_part_in_assembled_position("bearing", marker_only=True)
-      self.a_bot.go_to_named_pose("centering_area")
+      self.a_bot.go_to_named_pose("centering_area", speed=1.0)
       self.a_bot.gripper.forget_attached_item()
-      self.b_bot.go_to_named_pose("home")
+      self.b_bot.go_to_named_pose("home", speed=1.0)
       if self.align_bearing_holes(task="assembly"):
-        self.b_bot.go_to_named_pose("home")
+        self.b_bot.go_to_named_pose("home", speed=1.0)
         success = self.fasten_bearing(task="assembly", with_extra_retighten=True)
         self.unequip_tool('b_bot', 'screw_tool_m4')
     return success
@@ -995,7 +995,7 @@ class O2ACAssembly(O2ACCommon):
           return False
       self.assembly_status.completed_subtask_zero = True
       self.publish_part_in_assembled_position("base", marker_only=True)
-      self.a_bot.go_to_named_pose("home")
+      self.a_bot.go_to_named_pose("home", speed=1.0)
 
     self.publish_status_text("Target: L-plates")
     
@@ -1130,13 +1130,15 @@ class O2ACAssembly(O2ACCommon):
     def a_bot_2nd_task():
       self.panel_motor_picked = self.place_panel("a_bot", panels_order[1], pick_again=True, pick_only=True, fake_position=True)
       return True
-    if not self.fasten_panel(panels_order[0], simultaneous=simultaneous, a_bot_task_2nd_screw=None):
+
+    dummy_Task = lambda : True
+    if not self.fasten_panel(panels_order[0], simultaneous=simultaneous, a_bot_task_2nd_screw=dummy_Task):
       return False
 
     self.a_bot_success = False
     self.b_bot_success = False
     def a_bot_task():
-      if not self.place_panel("a_bot", panels_order[1], pick_again=(not self.panel_motor_picked), fake_position=False):
+      if not self.place_panel("a_bot", panels_order[1], pick_again=True, fake_position=True):
         self.drop_in_tray("a_bot")
         return False
       if not self.hold_panel_for_fastening(panels_order[1]):
@@ -1144,7 +1146,8 @@ class O2ACAssembly(O2ACCommon):
       self.a_bot_success = True
 
     def b_bot_task():
-      self.b_bot_success = self.pick_screw_from_feeder("b_bot", screw_size = 4)
+      self.pick_screw_from_feeder("b_bot", screw_size = 4)
+      self.b_bot_success = True
     
     self.publish_status_text("Target: %s" % panels_order[1])
     if simultaneous:

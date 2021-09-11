@@ -1937,7 +1937,7 @@ class O2ACCommon(O2ACBase):
       end_pose.pose.position.z += 0.0005  # Avoid pulling the bearing out little by little
       end_pose.pose.orientation = geometry_msgs.msg.Quaternion(
                         *tf_conversions.transformations.quaternion_from_euler(angle/2.0, 0, 0))
-      self.b_bot.go_to_pose_goal(start_pose, speed=.2, end_effector_link = "b_bot_bearing_rotate_helper_link", move_lin=True)
+      self.b_bot.go_to_pose_goal(start_pose, speed=1.0, end_effector_link = "b_bot_bearing_rotate_helper_link", move_lin=True)
       self.b_bot.gripper.close(velocity=0.1, wait=True)
       self.b_bot.go_to_pose_goal(end_pose, speed=.2, end_effector_link = "b_bot_bearing_rotate_helper_link", move_lin=True)
       self.b_bot.gripper.open()
@@ -1948,7 +1948,7 @@ class O2ACCommon(O2ACBase):
       if self.b_bot.gripper.opening_width < 0.06:
         self.b_bot.gripper.open()
       
-      self.b_bot.go_to_pose_goal(camera_look_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=.3, acceleration=.15, move_lin=True)
+      self.b_bot.go_to_pose_goal(camera_look_pose, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=1.0)
       if np.random.uniform() > 0.4:  # = 60% chance
         self.activate_led("b_bot", on=False)
       else:
@@ -2290,7 +2290,7 @@ class O2ACCommon(O2ACBase):
 
     # Go back regardless of success
     robot.gripper.open(wait=True)
-    success &= robot.move_lin_rel(relative_translation = [0.15,0,0.05], speed=.3)
+    success &= robot.move_lin_rel(relative_translation = [0.15,0,0.05], speed=1.0, retime=True)
     return success
 
   def fasten_bearing(self, task="", only_retighten=False, robot_name="b_bot", 
@@ -5888,7 +5888,7 @@ class O2ACCommon(O2ACBase):
     if panel_name == "panel_bearing" and not approach_from_front:
       magic_inclination = radians(2)  # MAGIC NUMBER. Inclines the tool away from the bearing panel
       magic_y_offset = -.0005  # MAGIC NUMBER (points into the L_shoe)
-      magic_z_offset = -.002  # MAGIC NUMBER (points to the right of the panel when looking at it from the back (into the L))
+      magic_z_offset = -.001  # MAGIC NUMBER (points to the right of the panel when looking at it from the back (into the L))
       rospy.loginfo("Applying fasten_panel magic numbers")
       # print(magic_inclination, magic_z_offset)
 
@@ -5900,29 +5900,37 @@ class O2ACCommon(O2ACBase):
     if approach_from_front:
       screw_target_pose.pose.position.z += 0.0025
 
-    if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel_name, approach_from_front=approach_from_front):
+    if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel_name, approach_from_front=approach_from_front,
+                                       do_lengthwise_search_first=True, close_a_bot_during_l_search=True):
       # Fallback for screw 1
       rospy.logerr("Failed to fasten panel screw 1, trying to realign tool and retry.")
+      self.a_bot_success = False
       def b_bot_task():
         self.realign_tool("b_bot", "screw_tool_m4")
         self.b_bot.go_to_named_pose("feeder_pick_ready")
         self.pick_screw_from_feeder("b_bot", screw_size = 4)
+        self.b_bot.go_to_named_pose("screw_ready")
       def a_bot_task():
-        self.center_panel_on_base_plate(panel_name)
+        self.a_bot_success = self.center_panel_on_base_plate(panel_name)
       if simultaneous:
         self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=120)
       else:
         b_bot_task()
         a_bot_task()
+      if not self.a_bot_success:
+        self.hold_panel_for_fastening(panel_name)
       # Retry fastening
-      if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel_name, approach_from_front=approach_from_front):
+      if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel_name, approach_from_front=approach_from_front, do_lengthwise_search_first=True, close_a_bot_during_l_search=True):
         rospy.logerr("Failed to fasten panel screw 2, trying to realign tool and retry.")
+        self.a_bot_success = False
         if simultaneous:
           self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=120)
         else:
           b_bot_task()
           a_bot_task()
-        if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel_name, approach_from_front=approach_from_front):
+        if not self.a_bot_success:
+          self.hold_panel_for_fastening(panel_name)
+        if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel_name, approach_from_front=approach_from_front, do_lengthwise_search_first=True, close_a_bot_during_l_search=True):
           rospy.logerr("Failed to fasten panel screw 3 abort.")
           self.unequip_tool("b_bot")
           self.a_bot.gripper.open()
@@ -5936,6 +5944,9 @@ class O2ACCommon(O2ACBase):
     screw_target_pose = conversions.to_pose_stamped(screw_order[1], [0, magic_y_offset, magic_z_offset] + orientation)
     if panel_name == "panel_bearing" and not approach_from_front:
       screw_target_pose.pose.position.y += -0.0015
+      screw_target_pose.pose.position.z += -0.001
+    if panel_name == "panel_bearing" and approach_from_front:
+      screw_target_pose.pose.position.z += 0.001
 
     self.a_bot_success = False
     self.b_bot_success = False
@@ -5947,12 +5958,13 @@ class O2ACCommon(O2ACBase):
         self.a_bot_success = a_bot_task_2nd_screw()
         if not self.a_bot_success:
           rospy.logerr("Fail to do a_bot extra task")
+      return True
     def b_bot_task():
       if not self.pick_screw_from_feeder("b_bot", screw_size = 4, realign_tool_upon_failure=True):
         self.b_bot_success = False
         return False
       self.b_bot_success = self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel_name,
-                                                       spiral_radius=0.003, approach_from_front=approach_from_front)
+                                                       spiral_radius=0.003, approach_from_front=approach_from_front, do_lengthwise_search_first=True)
       if self.b_bot_success and unequip_tool_on_success:
         self.do_change_tool_action("b_bot", equip=False, screw_size = 4)
       if self.b_bot_success and b_bot_2nd_task:
@@ -6478,7 +6490,7 @@ class O2ACCommon(O2ACBase):
       # self.ab_bot.go_to_goal_poses(a_bot_above_tray_table_rotated, b_bot_above_tray_table_rotated, planner="OMPL", speed=1.0)
 
     if tray_parallel:
-      self.a_bot.go_to_named_pose("home", speed=1.0)
+      self.b_bot.go_to_named_pose("home", speed=1.0)
       # self.ab_bot.go_to_named_pose("home")
     else:
       self.a_bot.go_to_named_pose("home", speed=1.0)
@@ -6752,6 +6764,7 @@ class O2ACCommon(O2ACBase):
   def pick_base_panel(self, grasp_name='default_grasp', skip_initial_perception=False, 
                             use_b_bot_camera=False, retry_with_rotated_orientation=True, 
                             retry_counter=0):
+    rospy.loginfo("Base plate grasp name: %s" % grasp_name)
     # TODO(cambel): Add fallback grasp names, if nothing else, use terminal for grasp
     # Find base panel 
     if use_b_bot_camera:
@@ -6830,7 +6843,7 @@ class O2ACCommon(O2ACBase):
         return False
     print("gripper opening after terminal confirmation:", round(self.a_bot.gripper.opening_width, 4))
 
-    self.orient_base_panel(centering_pose)
+    # self.orient_base_panel(centering_pose)
     
     # move_towards_tray_center disables collisions with the tray, so we have to reallow them here
     self.allow_collisions_with_robot_hand("tray", "a_bot")
