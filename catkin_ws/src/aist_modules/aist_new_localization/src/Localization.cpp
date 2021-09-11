@@ -296,10 +296,6 @@ Localization::refine_transform(const std::string& object_name,
 
   // Load model PCD and convert to PCL cloud.
     pcl_cloud_p	model_cloud(new pcl_cloud_t);
-    if (!model_cloud)
-    {
-        throw std::runtime_error("failed to allocate model cloud!");
-    }
     const auto	pcd_file = _pcd_dir + '/' + object_name + ".pcd";
     if (pcl::io::loadPCDFile<pcl_point_t>(pcd_file, *model_cloud) < 0)
 	throw std::runtime_error("cannot load model PCD: " + pcd_file);
@@ -308,10 +304,6 @@ Localization::refine_transform(const std::string& object_name,
 
   // Convert depth image to PCL cloud.
     pcl_cloud_p	data_cloud(new pcl_cloud_t);
-    if (!data_cloud)
-    {
-        throw std::runtime_error("failed to allocate data cloud!");
-    }
     if (depth->encoding == image_encodings::MONO16 ||
 	depth->encoding == image_encodings::TYPE_16UC1)
     {
@@ -332,6 +324,12 @@ Localization::refine_transform(const std::string& object_name,
     cloud_t	data_cloud_msg;
     pcl::toROSMsg(*data_cloud, data_cloud_msg);
     _data_cloud_pub.publish(data_cloud_msg);
+
+  // Confirm that model and data cloud are not empty.
+    if (model_cloud->empty())
+	throw std::runtime_error("empty model cloud!");
+    if (data_cloud->empty())
+	throw std::runtime_error("empty data cloud!");
 
   // Set inputs and parameters for ICP.
     icp_t	icp;
