@@ -6560,7 +6560,7 @@ class O2ACCommon(O2ACBase):
     a_bot_at_tray_agv    = conversions.to_pose_stamped("agv_tray_center", [a_bot_point[0]+0.01, a_bot_point[1], a_bot_z_low]  + orientation)
 
     # move to agv tray center
-    if not self.ab_bot.master_slave_control("a_bot", "b_bot", a_bot_above_tray_agv, slave_relation, speed=0.05):
+    if not self.ab_bot.master_slave_control("a_bot", "b_bot", a_bot_above_tray_agv, slave_relation, speed=0.1):
       rospy.logerr("Fail to return tray 2. Trying to recover")
       if self.b_bot.is_protective_stopped():
         rospy.logerr("b_bot hit protective stop. Trying to unlock and proceed")
@@ -6570,7 +6570,7 @@ class O2ACCommon(O2ACBase):
         self.a_bot.unlock_protective_stop()
 
     slave_relation = self.ab_bot.get_relative_pose_of_slave("a_bot", "b_bot")
-    if not self.ab_bot.master_slave_control("a_bot", "b_bot", a_bot_at_tray_agv, slave_relation, speed=0.05):
+    if not self.ab_bot.master_slave_control("a_bot", "b_bot", a_bot_at_tray_agv, slave_relation, speed=0.1):
       rospy.logerr("Fail to return tray 3. Trying to recover")
       if self.b_bot.is_protective_stopped():
         rospy.logerr("b_bot hit protective stop. Trying to unlock and proceed")
