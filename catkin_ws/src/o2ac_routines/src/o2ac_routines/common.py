@@ -2327,7 +2327,7 @@ class O2ACCommon(O2ACBase):
 
     return self.fasten_set_of_screws(screw_poses, screw_size=4, robot_name=robot_name, only_retighten=only_retighten,
                               skip_intermediate_pose=skip_intermediate_pose,
-                              simultaneous=simultaneous, with_extra_retighten=with_extra_retighten, tries=15,
+                              simultaneous=simultaneous, with_extra_retighten=with_extra_retighten, tries=4,
                               screw_set_center_pose=screw_set_center_pose)
 
   def fasten_set_of_screws(self, screw_poses, screw_size, robot_name, only_retighten=False, skip_intermediate_pose=False, 
