@@ -5934,8 +5934,9 @@ class O2ACCommon(O2ACBase):
     ##### Second screw #####
     orientation = [tau/2+radians(30), 0, 0] if approach_from_front else [radians(-45), 0, 0]
     screw_target_pose = conversions.to_pose_stamped(screw_order[1], [0, magic_y_offset, magic_z_offset] + orientation)
-    if panel_name == "panel_bearing":
-      screw_target_pose.pose.position.y -= 0.0015
+    if panel_name == "panel_bearing" and not approach_from_front:
+      screw_target_pose.pose.position.y += -0.0015
+
     self.a_bot_success = False
     self.b_bot_success = False
     def a_bot_task():
@@ -6872,7 +6873,7 @@ class O2ACCommon(O2ACBase):
     success = self.simple_gripper_check("a_bot", min_opening_width=minimum_grasp_width)
 
     if not success:
-      self.a_bot.gripper.open()
+      self.a_bot.gripper.open(0.0425)
       self.a_bot.move_lin_rel(relative_translation=[0, 0, 0.1])
       self.allow_collisions_with_robot_hand("tray", "a_bot", allow=False)
       self.allow_collisions_with_robot_hand("tray_center", "a_bot", allow=False)
