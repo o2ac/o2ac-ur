@@ -1272,6 +1272,97 @@ class O2ACAssembly(O2ACCommon):
     self.insert_motor_cables_without_tools_normal("black")
     return False
 
+  def exhibition_1(self):
+    """ Fasten motor and bearing from their insertion position (motor has 2 screws already) 
+    """
+    def a_bot_task():
+      self.fasten_motor("a_bot", part1=False)
+    def b_bot_task():
+      self.fasten_bearing("assembly", with_extra_retighten=False, robot_name="b_bot")
+
+    self.do_tasks_simultaneous(a_bot_task, b_bot_task)
+  
+  def exhibition_2(self):
+    """    insert motor pulley and shaft+endcap    """
+    self.subtask_b(simultaneous_execution=True)
+    self.unequip_tool("b_bot", "set_screw_tool")
+    self.ab_bot.go_to_named_pose("home")
+
+    self.pick_end_cap()
+
+    def a_bot_task():
+      self.orient_shaft_end_cap("a_bot")
+    def b_bot_task():
+      approach_vgroove = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [-0.100, 0, 0, tau/2., 0, 0])
+      on_vgroove =       conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.000, 0, 0, tau/2., 0, 0])
+      inside_vgroove =   conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.011, 0, 0, tau/2., 0, 0])
+      self.b_bot.go_to_pose_goal(approach_vgroove)
+      self.b_bot.go_to_pose_goal(on_vgroove, move_lin=True, speed=0.1)
+      self.b_bot.go_to_pose_goal(inside_vgroove, move_lin=True, speed=0.05)
+      # pre_insertion_shaft = conversions.to_pose_stamped("tray_center", [0.0, 0, 0.2, 0, 0, -tau/4.])
+      # if not self.b_bot.go_to_pose_goal(pre_insertion_shaft, speed=0.3):
+      pre_insertion_shaft = [1.78158, -0.98719, 2.42349, -4.57638, -1.78597, 0.00433]
+      if not self.b_bot.move_joints(pre_insertion_shaft, speed=0.4):
+        rospy.logerr("Fail to go to pre_insertion_shaft")
+        return False
+
+
+    self.do_tasks_simultaneous(a_bot_task, b_bot_task)
+
+    if not self.a_bot_success or not self.a_bot_success:
+      rospy.logerr("Fail to assemble shaft")
+      self.drop_in_tray("b_bot")
+      self.b_bot.go_to_named_pose("home")
+      self.drop_in_tray("a_bot")
+      self.a_bot.go_to_named_pose("home")
+      return False
+
+
+    above_pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [-0.003, 0.002, 0.290]+np.deg2rad([-180, 90, -90]).tolist())
+    if not self.a_bot.go_to_pose_goal(above_pre_insertion_end_cap, speed=0.6, move_lin=False):
+      rospy.logerr("Fail to go to pre_insertion_end_cap")
+      return False
+    pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [-0.003, 0.002, 0.255]+np.deg2rad([-180, 90, -90]).tolist())
+    if not self.a_bot.go_to_pose_goal(pre_insertion_end_cap, speed=0.3, move_lin=True):
+      rospy.logerr("Fail to go to pre_insertion_end_cap")
+      return False
+    self.confirm_to_proceed('finetune')
+
+    # self.confirm_to_proceed("insertion of end cap")
+    if not self.insert_end_cap():
+      rospy.logerr("failed to insert end cap. maybe")
+      # return False
+    self.despawn_object("end_cap")
+    self.a_bot.gripper.forget_attached_item()
+
+    # self.confirm_to_proceed("Did insertion succeed? Press Enter to open gripper")
+
+    self.a_bot.gripper.send_command(0.06, velocity=0.01)
+    self.a_bot.move_lin_rel([0,0,0.05], speed=0.3)
+    self.a_bot.gripper.detach_object("end_cap")
+    self.despawn_object("end_cap")
+    
+    self.confirm_to_proceed("prepare screw")
+
+    if not self.fasten_end_cap():
+      return False
+    
+    if not self.a_bot.go_to_named_pose("home"):
+      return False
+    
+    if not self.align_shaft("assembled_part_07_inserted", pre_insert_offset=0.065):
+      return False
+    self.b_bot.gripper.forget_attached_item()
+
+    self.allow_collisions_with_robot_hand("base_fixture_top", "b_bot")
+    self.despawn_object("shaft", collisions_only=True)
+    self.confirm_to_proceed('finetune')
+    if not self.insert_shaft("assembled_part_07_inserted", target=0.043):
+      return False
+    self.publish_part_in_assembled_position("shaft", marker_only=True)
+    self.allow_collisions_with_robot_hand("base_fixture_top", "b_bot", False)
+    
+    self.ab_bot.go_to_named_pose("home")
   ##############
 
   def mtc_pick_screw_tool(self, screw_type):

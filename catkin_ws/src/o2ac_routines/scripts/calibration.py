@@ -639,7 +639,7 @@ class CalibrationClass(O2ACCommon):
   def end_cap_and_shaft_prep(self):
     self.pick_end_cap()
     self.orient_shaft_end_cap(calibration=True)
-    self.pick_and_center_shaft()
+    self.pick_shaft()
     self.orient_shaft(calibration=True)
     
   def end_cap_and_shaft_preinsertion(self):

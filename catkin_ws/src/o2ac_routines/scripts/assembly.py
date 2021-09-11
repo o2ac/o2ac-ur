@@ -358,6 +358,16 @@ if __name__ == '__main__':
         c.print_objects_in_tray()
       elif i == "endcap":
         c.orient_shaft_end_cap()
+      elif i == 'e1':
+        c.competition_mode = True
+        c.exhibition_1()
+        c.competition_mode = False
+      elif i == 'e2':
+        c.competition_mode = True
+        c.exhibition_2()
+        c.competition_mode = False
+      elif i == 'e2c':
+        c.exhibition_2()
       elif i == 'START' or i == 'start' or i == "9999":
         c.competition_mode = True
         c.full_assembly_task()
