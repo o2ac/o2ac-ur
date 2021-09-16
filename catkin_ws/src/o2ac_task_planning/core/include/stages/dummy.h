@@ -33,39 +33,40 @@
  *********************************************************************/
 
 /* Authors: Artur Istvan Karoly
-   Desc:    Dummy stage for non-planned actions during execution (e.g. turn on suction)
+   Desc:    Dummy stage for non-planned actions during execution (e.g. turn on
+   suction)
 */
 
 #pragma once
 
-#include <moveit/task_constructor/stage.h>
-#include <moveit/task_constructor/properties.h>
-#include <moveit/task_constructor/type_traits.h>
 #include <map>
+#include <moveit/task_constructor/properties.h>
+#include <moveit/task_constructor/stage.h>
+#include <moveit/task_constructor/type_traits.h>
 
 namespace moveit {
 namespace core {
 MOVEIT_CLASS_FORWARD(JointModelGroup);
 }
-}
+} // namespace moveit
 
 namespace moveit {
 namespace task_constructor {
 namespace stages {
 
-class Dummy : public PropagatingEitherWay
-{
+class Dummy : public PropagatingEitherWay {
 public:
-	typedef std::function<void(const planning_scene::PlanningScenePtr& scene, const PropertyMap& properties)>
-	    ApplyCallback;
-	Dummy(const std::string& name = "Dummy");
+  typedef std::function<void(const planning_scene::PlanningScenePtr &scene,
+                             const PropertyMap &properties)>
+      ApplyCallback;
+  Dummy(const std::string &name = "Dummy");
 
-	void computeForward(const InterfaceState& from) override;
-	void computeBackward(const InterfaceState& to) override;
+  void computeForward(const InterfaceState &from) override;
+  void computeBackward(const InterfaceState &to) override;
 
 protected:
-	ApplyCallback callback_;
+  ApplyCallback callback_;
 };
-}
-}
-}
+} // namespace stages
+} // namespace task_constructor
+} // namespace moveit

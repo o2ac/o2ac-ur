@@ -47,19 +47,19 @@ namespace stages {
 /** Simple IK pose generator to place an attached object in a specific pose
  *
  * The "pose" property, inherited from GeneratePose specifies the target pose
- * of the grasped object. This stage transforms this pose into a target pose for the ik_frame */
-class GenerateHandoverPose : public GeneratePose
-{
+ * of the grasped object. This stage transforms this pose into a target pose for
+ * the ik_frame */
+class GenerateHandoverPose : public GeneratePose {
 public:
-	GenerateHandoverPose(const std::string& name = "handover pose");
+  GenerateHandoverPose(const std::string &name = "handover pose");
 
-	void compute() override;
+  void compute() override;
 
-	void setObject(const std::string& object) { setProperty("object", object); }
+  void setObject(const std::string &object) { setProperty("object", object); }
 
 protected:
-	void onNewSolution(const SolutionBase& s) override;
+  void onNewSolution(const SolutionBase &s) override;
 };
-}
-}
-}
+} // namespace stages
+} // namespace task_constructor
+} // namespace moveit

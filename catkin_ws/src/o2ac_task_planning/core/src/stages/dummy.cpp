@@ -33,31 +33,32 @@
  *********************************************************************/
 
 /* Authors: Artur Istvan Karoly
-   Desc:    Dummy stage for non-planned actions during execution (e.g. turn on suction)
+   Desc:    Dummy stage for non-planned actions during execution (e.g. turn on
+   suction)
 */
 
-#include <stages/dummy.h>
-#include <moveit/task_constructor/storage.h>
 #include <moveit/planning_scene/planning_scene.h>
+#include <moveit/task_constructor/storage.h>
+#include <stages/dummy.h>
 
 namespace moveit {
 namespace task_constructor {
 namespace stages {
 
-Dummy::Dummy(const std::string& name) : PropagatingEitherWay(name) {}
+Dummy::Dummy(const std::string &name) : PropagatingEitherWay(name) {}
 
-void Dummy::computeForward(const InterfaceState& from) {
-    planning_scene::PlanningScenePtr scene = from.scene()->diff();
-    InterfaceState result(scene);
-	sendForward(from, std::move(result), SubTrajectory());
-}
-
-void Dummy::computeBackward(const InterfaceState& to) {
-    planning_scene::PlanningScenePtr scene = to.scene()->diff();
-    InterfaceState result(scene);
-	sendBackward(std::move(result), to, SubTrajectory());
+void Dummy::computeForward(const InterfaceState &from) {
+  planning_scene::PlanningScenePtr scene = from.scene()->diff();
+  InterfaceState result(scene);
+  sendForward(from, std::move(result), SubTrajectory());
 }
 
+void Dummy::computeBackward(const InterfaceState &to) {
+  planning_scene::PlanningScenePtr scene = to.scene()->diff();
+  InterfaceState result(scene);
+  sendBackward(std::move(result), to, SubTrajectory());
 }
-}
-}
+
+} // namespace stages
+} // namespace task_constructor
+} // namespace moveit

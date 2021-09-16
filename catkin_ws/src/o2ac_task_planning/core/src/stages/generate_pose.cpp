@@ -34,62 +34,66 @@
 
 /* Authors: Robert Haschke, Michael Goerner */
 
-#include <stages/generate_pose.h>
-#include <moveit/task_constructor/storage.h>
-#include <moveit/task_constructor/marker_tools.h>
 #include <moveit/planning_scene/planning_scene.h>
+#include <moveit/task_constructor/marker_tools.h>
+#include <moveit/task_constructor/storage.h>
 #include <rviz_marker_tools/marker_creation.h>
+#include <stages/generate_pose.h>
 
 namespace moveit {
 namespace task_constructor {
 namespace stages {
 
-GeneratePose::GeneratePose(const std::string& name) : MonitoringGenerator(name) {
-	auto& p = properties();
-	p.declare<geometry_msgs::PoseStamped>("pose", "target pose to pass on in spawned states");
+GeneratePose::GeneratePose(const std::string &name)
+    : MonitoringGenerator(name) {
+  auto &p = properties();
+  p.declare<geometry_msgs::PoseStamped>(
+      "pose", "target pose to pass on in spawned states");
 }
 
 void GeneratePose::reset() {
-	upstream_solutions_.clear();
-	MonitoringGenerator::reset();
+  upstream_solutions_.clear();
+  MonitoringGenerator::reset();
 }
 
-void GeneratePose::onNewSolution(const SolutionBase& s) {
-	// It's safe to store a pointer to this solution, as the generating stage stores it
-	upstream_solutions_.push(&s);
+void GeneratePose::onNewSolution(const SolutionBase &s) {
+  // It's safe to store a pointer to this solution, as the generating stage
+  // stores it
+  upstream_solutions_.push(&s);
 }
 
-bool GeneratePose::canCompute() const {
-	return upstream_solutions_.size() > 0;
-}
+bool GeneratePose::canCompute() const { return upstream_solutions_.size() > 0; }
 
 void GeneratePose::compute() {
-	if (upstream_solutions_.empty())
-		return;
+  if (upstream_solutions_.empty())
+    return;
 
-	planning_scene::PlanningScenePtr scene = upstream_solutions_.pop()->end()->scene()->diff();
-	if(_poses.empty()){
-		_poses.push_back(properties().get<geometry_msgs::PoseStamped>("pose"));
-	}
-	for(geometry_msgs::PoseStamped target_pose : _poses){
-		if (target_pose.header.frame_id.empty())
-			target_pose.header.frame_id = scene->getPlanningFrame();
-		else if (!scene->knowsFrameTransform(target_pose.header.frame_id)) {
-			ROS_WARN_NAMED("GeneratePose", "Unknown frame: '%s'", target_pose.header.frame_id.c_str());
-			return;
-		}
+  planning_scene::PlanningScenePtr scene =
+      upstream_solutions_.pop()->end()->scene()->diff();
+  if (_poses.empty()) {
+    _poses.push_back(properties().get<geometry_msgs::PoseStamped>("pose"));
+  }
+  for (geometry_msgs::PoseStamped target_pose : _poses) {
+    if (target_pose.header.frame_id.empty())
+      target_pose.header.frame_id = scene->getPlanningFrame();
+    else if (!scene->knowsFrameTransform(target_pose.header.frame_id)) {
+      ROS_WARN_NAMED("GeneratePose", "Unknown frame: '%s'",
+                     target_pose.header.frame_id.c_str());
+      return;
+    }
 
-		InterfaceState state(scene);
-		state.properties().set("target_pose", target_pose);
+    InterfaceState state(scene);
+    state.properties().set("target_pose", target_pose);
 
-		SubTrajectory trajectory;
-		trajectory.setCost(0.0);
+    SubTrajectory trajectory;
+    trajectory.setCost(0.0);
 
-		rviz_marker_tools::appendFrame(trajectory.markers(), target_pose, 0.1, "pose frame");
+    rviz_marker_tools::appendFrame(trajectory.markers(), target_pose, 0.1,
+                                   "pose frame");
 
-		spawn(std::move(state), std::move(trajectory));
-	}
+    spawn(std::move(state), std::move(trajectory));
+  }
 }
-}
-}
-}
+} // namespace stages
+} // namespace task_constructor
+} // namespace moveit

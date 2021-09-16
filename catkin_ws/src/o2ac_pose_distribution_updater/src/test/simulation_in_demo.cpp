@@ -221,7 +221,7 @@ int main(int argc, char **argv) {
         break;
       }
     } else if (action.type == grasp_action_type) {
-      
+
       if (!gripper_is_open) {
         // if (!skill_server.openGripper(robot_name)) {
         gripper_group.setNamedTarget("open");
@@ -246,7 +246,7 @@ int main(int argc, char **argv) {
       if (!skill_server.moveToCartPoseLIN(high_pose, robot_name)) {
         ROS_ERROR("Moving after grasp failed");
         break;
-        }
+      }
     } else if (action.type == place_action_type) {
       geometry_msgs::PoseStamped high_pose = gripper_pose;
       high_pose.pose.position.z += retreat_height;

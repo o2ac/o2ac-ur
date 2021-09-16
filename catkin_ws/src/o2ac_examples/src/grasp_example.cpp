@@ -1,19 +1,19 @@
-#include "ros/ros.h"
 #include "o2ac_helper_functions.h"
-#include <tf/transform_listener.h>    // Includes the TF conversions
+#include "ros/ros.h"
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
+#include <tf/transform_listener.h> // Includes the TF conversions
 
 #include <moveit_msgs/Grasp.h>
 
-// This example spawns an object in the scene and tries to pick and place it. Based on:
+// This example spawns an object in the scene and tries to pick and place it.
+// Based on:
 // http://docs.ros.org/kinetic/api/moveit_tutorials/html/doc/planning_scene_ros_api/planning_scene_ros_api_tutorial.html
 // http://docs.ros.org/kinetic/api/moveit_tutorials/html/doc/pick_place/pick_place_tutorial.html
 
 // ################################################################
 
-void openGripper(trajectory_msgs::JointTrajectory& posture)
-{
+void openGripper(trajectory_msgs::JointTrajectory &posture) {
   /* Add the knuckle joint of the robotiq gripper. */
   posture.joint_names.resize(1);
   posture.joint_names[0] = "a_bot_robotiq_85_left_knuckle_joint";
@@ -25,8 +25,7 @@ void openGripper(trajectory_msgs::JointTrajectory& posture)
   posture.points[0].time_from_start = ros::Duration(0.5);
 }
 
-void closedGripper(trajectory_msgs::JointTrajectory& posture)
-{
+void closedGripper(trajectory_msgs::JointTrajectory &posture) {
   /* Add the knuckle joint of the robotiq gripper. */
   posture.joint_names.resize(1);
   posture.joint_names[0] = "a_bot_robotiq_85_left_knuckle_joint";
@@ -49,7 +48,8 @@ void pick(moveit::planning_interface::MoveGroupInterface &move_group) {
   // This is the pose of the parent link of the robot's end effector.
   // The orientation is not tested yet, but hopefully looks down.
   grasps[0].grasp_pose.header.frame_id = "set2_bin2_4";
-  grasps[0].grasp_pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, M_PI/12, M_PI);
+  grasps[0].grasp_pose.pose.orientation =
+      tf::createQuaternionMsgFromRollPitchYaw(0, M_PI / 12, M_PI);
   grasps[0].grasp_pose.pose.position.x = -0.01;
   grasps[0].grasp_pose.pose.position.y = 0.0;
   grasps[0].grasp_pose.pose.position.z = 0.1;
@@ -80,14 +80,13 @@ void pick(moveit::planning_interface::MoveGroupInterface &move_group) {
   // +++++++++++++++++++++++++++++++++++
   closedGripper(grasps[0].grasp_posture);
 
-  for (int i = 1; i < 20; i++) 
-  {
+  for (int i = 1; i < 20; i++) {
     grasps[i] = grasps[0];
 
     // Alternative:
     // grasps[i].grasp_pose.pose.orientation =
-    // tf::createQuaternionMsgFromRollPitchYaw(0, M_PI/8 + rand()*M_PI/12, M_PI);
-    // grasps[i].grasp_pose.pose.position.x =
+    // tf::createQuaternionMsgFromRollPitchYaw(0, M_PI/8 + rand()*M_PI/12,
+    // M_PI); grasps[i].grasp_pose.pose.position.x =
     // grasps[i].grasp_pose.pose.position.x + rand()*.02;
     // grasps[i].grasp_pose.pose.position.y =
     // grasps[i].grasp_pose.pose.position.y;

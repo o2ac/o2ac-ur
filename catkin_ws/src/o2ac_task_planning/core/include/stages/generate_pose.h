@@ -38,35 +38,36 @@
 
 #pragma once
 
-#include <moveit/task_constructor/stage.h>
-#include <moveit/task_constructor/cost_queue.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <moveit/task_constructor/cost_queue.h>
+#include <moveit/task_constructor/stage.h>
 
 namespace moveit {
 namespace task_constructor {
 namespace stages {
 
-class GeneratePose : public MonitoringGenerator
-{
+class GeneratePose : public MonitoringGenerator {
 public:
-	GeneratePose(const std::string& name = "generate pose");
+  GeneratePose(const std::string &name = "generate pose");
 
-	void reset() override;
-	bool canCompute() const override;
-	void compute() override;
+  void reset() override;
+  bool canCompute() const override;
+  void compute() override;
 
-	void setPose(const geometry_msgs::PoseStamped pose) { setProperty("pose", std::move(pose)); }
-	void setPose(std::vector<geometry_msgs::PoseStamped> poses){
-		if(!poses.empty()){
-			_poses = poses;
-		}
-	}
+  void setPose(const geometry_msgs::PoseStamped pose) {
+    setProperty("pose", std::move(pose));
+  }
+  void setPose(std::vector<geometry_msgs::PoseStamped> poses) {
+    if (!poses.empty()) {
+      _poses = poses;
+    }
+  }
 
 protected:
-	void onNewSolution(const SolutionBase& s) override;
-	ordered<const SolutionBase*> upstream_solutions_;
-	std::vector<geometry_msgs::PoseStamped> _poses;
+  void onNewSolution(const SolutionBase &s) override;
+  ordered<const SolutionBase *> upstream_solutions_;
+  std::vector<geometry_msgs::PoseStamped> _poses;
 };
-}
-}
-}
+} // namespace stages
+} // namespace task_constructor
+} // namespace moveit

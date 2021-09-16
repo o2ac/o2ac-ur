@@ -33,7 +33,8 @@
  *********************************************************************/
 
 /* Authors: Robert Haschke, Artur Istvan Karoly
-   Desc:    Generator Stage to place an object at a certain pose enabling positioning with a subframe of the object
+   Desc:    Generator Stage to place an object at a certain pose enabling
+   positioning with a subframe of the object
 */
 
 #pragma once
@@ -47,23 +48,22 @@ namespace stages {
 /** Simple IK pose generator to place an attached object in a specific pose
  *
  * The "pose" property, inherited from GeneratePose specifies the target pose
- * of the grasped object. This stage transforms this pose into a target pose for the ik_frame */
-class GeneratePlacePose : public GeneratePose
-{
+ * of the grasped object. This stage transforms this pose into a target pose for
+ * the ik_frame */
+class GeneratePlacePose : public GeneratePose {
 public:
-	GeneratePlacePose(const std::string& name = "place pose");
+  GeneratePlacePose(const std::string &name = "place pose");
 
-	void compute() override;
+  void compute() override;
 
-	void setObject(const std::string& object) { setProperty("object", object); }
-	void setSubframe(const std::string& subframe)
-	{
-		setProperty("subframe", subframe);
-	}
+  void setObject(const std::string &object) { setProperty("object", object); }
+  void setSubframe(const std::string &subframe) {
+    setProperty("subframe", subframe);
+  }
 
 protected:
-	void onNewSolution(const SolutionBase& s) override;
+  void onNewSolution(const SolutionBase &s) override;
 };
-}
-}
-}
+} // namespace stages
+} // namespace task_constructor
+} // namespace moveit
