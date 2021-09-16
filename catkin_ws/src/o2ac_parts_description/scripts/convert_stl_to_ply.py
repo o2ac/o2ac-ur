@@ -2,13 +2,15 @@
 
 # Reads every STL file in the meshes folder and saves it as a PLY file.
 
+import open3d as o3d
 import rospkg
 import os
 import sys
 import copy
 from pathlib import Path
 
-directory = os.path.join(rospkg.RosPack().get_path('o2ac_parts_description'), 'meshes')
+directory = os.path.join(rospkg.RosPack().get_path(
+    'o2ac_parts_description'), 'meshes')
 
 nothing_to_be_done = True
 # First check if we need to do anything
@@ -24,7 +26,6 @@ if nothing_to_be_done:
     sys.exit()
 
 print("Convert STL to PLY files in " + directory)
-import open3d as o3d
 for filename in os.listdir(directory):
     if filename.endswith("STL") or filename.endswith("stl"):
         stl_filepath = os.path.join(directory, filename)

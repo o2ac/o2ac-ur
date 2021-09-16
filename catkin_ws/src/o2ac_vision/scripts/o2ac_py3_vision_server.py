@@ -34,6 +34,14 @@
 #
 # Author: Felix von Drigalski
 
+from o2ac_vision.bearing_pose_estimation import BearingPoseEstimator, InPlaneRotationEstimator, get_templates
+import std_msgs.msg
+import sensor_msgs.msg
+import visualization_msgs.msg
+import geometry_msgs.msg
+import o2ac_msgs.msg
+import cv_bridge  # This offers conversion methods between OpenCV
+import cv2
 import rospy
 import os
 import copy
@@ -43,21 +51,11 @@ import actionlib
 import numpy as np
 from math import pi, radians, degrees
 tau = 2.0*pi  # Part of math from Python 3.6
-import cv2
-import cv_bridge  # This offers conversion methods between OpenCV
-                  # and ROS formats
-                  # See here:
-                  #   http://wiki.ros.org/cv_bridge/Tutorials/ConvertingBetweenROSImagesAndOpenCVImagesPython
-                  # Note that a similar package exists for PCL:
-                  #   http://wiki.ros.org/pcl_ros
-
-import o2ac_msgs.msg
-import geometry_msgs.msg
-import visualization_msgs.msg
-import sensor_msgs.msg
-import std_msgs.msg
-
-from o2ac_vision.bearing_pose_estimation import BearingPoseEstimator, InPlaneRotationEstimator, get_templates
+# and ROS formats
+# See here:
+#   http://wiki.ros.org/cv_bridge/Tutorials/ConvertingBetweenROSImagesAndOpenCVImagesPython
+# Note that a similar package exists for PCL:
+#   http://wiki.ros.org/pcl_ros
 
 
 class O2ACBearingPoseEstimationServer(object):
@@ -77,13 +75,13 @@ class O2ACBearingPoseEstimationServer(object):
         self.image_pub = rospy.Publisher('/o2ac_vision_server/result_image', sensor_msgs.msg.Image, queue_size=1)
         self.marker_pub = rospy.Publisher('/o2ac_vision_server/result_markers', visualization_msgs.msg.Marker, queue_size=1)
         self.marker_array_pub = rospy.Publisher('/o2ac_vision_server/result_marker_arrays', visualization_msgs.msg.MarkerArray, queue_size=1)
-        
+
         self.angle_detection_action_server = actionlib.SimpleActionServer("~internal/detect_angle", o2ac_msgs.msg.detectAngleAction,
-            execute_cb = self.angle_detection_callback, auto_start=False)
+                                                                          execute_cb=self.angle_detection_callback, auto_start=False)
         self.angle_detection_action_server.start()
 
         template_filename = os.path.join(rospkg.RosPack().get_path('o2ac_vision'), 'config', 'bearing_template_image.png')
-        
+
         self.bearing_template = cv2.imread(template_filename, cv2.IMREAD_GRAYSCALE)
         rospy.loginfo("o2ac_py3_vision_server started up")
 
@@ -95,25 +93,25 @@ class O2ACBearingPoseEstimationServer(object):
         im_vis = im_in.copy()
 
         if goal.item_id == "bearing":
-            estimator = BearingPoseEstimator( self.bearing_template, im_in2, [200, 100, 320, 280] )
-            rotation, translation = estimator.main_proc( threshold=4.0, ds=3.0 )
-        
+            estimator = BearingPoseEstimator(self.bearing_template, im_in2, [200, 100, 320, 280])
+            rotation, translation = estimator.main_proc(threshold=4.0, ds=3.0)
+
         if goal.item_id == "motor":
             # src_pts = np.array([[287,94], [470,91], [285,270], [490,265]], dtype=np.float32)
-            ## destination points (rectified corner points)
+            # destination points (rectified corner points)
             # dst_pts = np.array([[287,94], [470,91], [287,270], [470,265]], dtype=np.float32)
             # mat = cv2.getPerspectiveTransform(src_pts, dst_pts)
 
-            bbox = [270,180,240,240]  # Set bounding box(x,y,w,h)
+            bbox = [270, 180, 240, 240]  # Set bounding box(x,y,w,h)
             template_path = os.path.join(rospkg.RosPack().get_path('wrs_dataset'), 'data/motor_front/')
             im_templates = get_templates(template_path, "name")
             # im_template = cv2.imread(template_path, 0)  # Read template image (use option "0")
 
-            estimator = InPlaneRotationEstimator( im_templates, im_in2, bbox)  # Define pose estimation class
+            estimator = InPlaneRotationEstimator(im_templates, im_in2, bbox)  # Define pose estimation class
             # estimator = PoseEstimator( im_template, im_in2, bbox, mat )  # Define pose estimation class
             # rotation, translation = estimator.main_proc( threshold=5.0, ds=10.0 )  # Do registration
-            rotation, translation, mse = estimator.main_proc( ds=10.0 )  # Do registration
-        
+            rotation, translation, mse = estimator.main_proc(ds=10.0)  # Do registration
+
         action_result = o2ac_msgs.msg.detectAngleResult()
         if rotation:
             action_result.succeeded = True
@@ -125,14 +123,15 @@ class O2ACBearingPoseEstimationServer(object):
         im_vis = estimator.get_result_image()
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
         self.write_to_log(im_in, im_vis, "angle_detection")
-    
+
     def write_to_log(self, img_in, img_out, action_name):
         now = datetime.now()
         timeprefix = now.strftime("%Y-%m-%d_%H:%M:%S")
         rospack = rospkg.RosPack()
         folder = os.path.join(rospack.get_path("o2ac_vision"), "log")
-        cv2.imwrite(os.path.join(folder, timeprefix + "_" + action_name + "_in.png") , img_in)
-        cv2.imwrite(os.path.join(folder, timeprefix + "_" + action_name + "_out.jpg") , img_out)
+        cv2.imwrite(os.path.join(folder, timeprefix + "_" + action_name + "_in.png"), img_in)
+        cv2.imwrite(os.path.join(folder, timeprefix + "_" + action_name + "_out.jpg"), img_out)
+
 
 if __name__ == '__main__':
     rospy.init_node('o2ac_py3_vision_server', anonymous=False)

@@ -8,7 +8,7 @@ from o2ac_msgs.msg import PickUpAction, PickUpGoal
 
 class PickUpActionState(EventState):
     '''
-    Actionlib for picking up an object from the tray. 
+    Actionlib for picking up an object from the tray.
     This looks for an object with the vision system and then attempt to pick it up.
 
     -- object_name        string  Name of the object to be pickup
@@ -21,11 +21,17 @@ class PickUpActionState(EventState):
     '''
 
     def __init__(self, object_name):
-        super(PickUpActionState, self).__init__(outcomes=['success', 'error'],
-                                                output_keys=["gripper_opening"])
+        super(
+            PickUpActionState,
+            self).__init__(
+            outcomes=[
+                'success',
+                'error'],
+            output_keys=["gripper_opening"])
 
         self._topic = 'o2ac_flexbe/pickup_object'
-        self._client = ProxyActionClient({self._topic: PickUpAction})  # pass required clients as dict (topic: type)
+        # pass required clients as dict (topic: type)
+        self._client = ProxyActionClient({self._topic: PickUpAction})
         self._object_name = object_name
 
         self._success = False

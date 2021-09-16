@@ -10,9 +10,11 @@ from o2ac_msgs.msg import *
 import actionlib
 import actionlib_tutorials.msg
 
+
 class FasteningToolController:
     def fasten(self, name):
-        client = actionlib.SimpleActionClient('screw_tool_control', ScrewToolControlAction)
+        client = actionlib.SimpleActionClient(
+            'screw_tool_control', ScrewToolControlAction)
         client.wait_for_server()
         goal = ScrewToolControlGoal()
 
@@ -20,10 +22,11 @@ class FasteningToolController:
         goal.speed = 100
         goal.direction = "tighten"
 
-        client.send_goal_and_wait(goal,rospy.Duration(10),rospy.Duration(10))
+        client.send_goal_and_wait(goal, rospy.Duration(10), rospy.Duration(10))
         client.wait_for_result()
-        
+
         return client.get_result()
+
 
 if __name__ == '__main__':
     try:
@@ -37,7 +40,7 @@ if __name__ == '__main__':
         ]
 
         for name in name_list:
-            if not controller.fasten(name) :
+            if not controller.fasten(name):
                 break
 
         print('')

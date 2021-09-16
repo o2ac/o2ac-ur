@@ -8,7 +8,7 @@ from o2ac_msgs.msg import PickAction, PickGoal
 
 class PickActionState(EventState):
     '''
-    Actionlib for picking up an object from the tray. 
+    Actionlib for picking up an object from the tray.
     This looks for an object with the vision system and then attempt to pick it up.
 
     -- robot_name         string  Name of robot performing the operation
@@ -25,7 +25,8 @@ class PickActionState(EventState):
         super(PickActionState, self).__init__(outcomes=['success', 'error'])
 
         self._topic = 'o2ac_flexbe/pick_object'
-        self._client = ProxyActionClient({self._topic: PickAction})  # pass required clients as dict (topic: type)
+        # pass required clients as dict (topic: type)
+        self._client = ProxyActionClient({self._topic: PickAction})
         self._robot_name = robot_name
         self._object_name = object_name
 

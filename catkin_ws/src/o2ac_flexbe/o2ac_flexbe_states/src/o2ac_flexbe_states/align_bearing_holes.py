@@ -18,10 +18,17 @@ class AlignBearingHolesActionState(EventState):
     '''
 
     def __init__(self, task_name):
-        super(AlignBearingHolesActionState, self).__init__(outcomes=['success', 'error'])
+        super(
+            AlignBearingHolesActionState,
+            self).__init__(
+            outcomes=[
+                'success',
+                'error'])
 
         self._topic = 'o2ac_flexbe/align_bearing_holes'
-        self._client = ProxyActionClient({self._topic: AlignBearingHolesAction})  # pass required clients as dict (topic: type)
+        # pass required clients as dict (topic: type)
+        self._client = ProxyActionClient(
+            {self._topic: AlignBearingHolesAction})
         self._task_name = task_name
 
         self._success = False
@@ -52,7 +59,9 @@ class AlignBearingHolesActionState(EventState):
         try:
             self._client.send_goal(self._topic, goal)
         except Exception as e:
-            Logger.logwarn('Failed to send the AlignBearingHoles command:\n%s' % str(e))
+            Logger.logwarn(
+                'Failed to send the AlignBearingHoles command:\n%s' %
+                str(e))
             self._success = False
 
     def on_exit(self, userdata):

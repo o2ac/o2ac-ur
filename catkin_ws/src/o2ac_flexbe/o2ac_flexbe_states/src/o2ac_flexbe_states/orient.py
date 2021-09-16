@@ -23,7 +23,8 @@ class OrientActionState(EventState):
         super(OrientActionState, self).__init__(outcomes=['success', 'error'])
 
         self._topic = 'o2ac_flexbe/orient'
-        self._client = ProxyActionClient({self._topic: OrientAction})  # pass required clients as dict (topic: type)
+        # pass required clients as dict (topic: type)
+        self._client = ProxyActionClient({self._topic: OrientAction})
         self._robot_name = robot_name
         self._task_name = task_name
         self._object_name = object_name

@@ -9,6 +9,7 @@
     - *acceleration*: acceleration scale factor (percentage)
     - *blend*: specified only if you want two or more points to be considered as one trajectory with blended intersections
     - *gripper*: Defines the action to take with the gripper, can not be part of a blended trajectory. **It is always executed after reaching the defined posed!**
+    - *linear*: Whether to force linear path during planning
         - *action*: 'open', 'close' or 'close-open'. 
         - *opening_width*: 0.14 only considered for open or close-open actions
         - *force*: from 40 to 100 (N), only on close or close-open actions

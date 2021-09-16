@@ -1,7 +1,8 @@
 #!/usr/bin/python
 
 import argparse
-import rospy, tf
+import rospy
+import tf
 import random
 from gazebo_msgs.srv import DeleteModel, SpawnModel, SpawnModelRequest
 from geometry_msgs.msg import *
@@ -26,7 +27,7 @@ urdf_files = {
 }
 
 
-def spawn_part(ix_part, part_amount = 5, bin_number = 1):
+def spawn_part(ix_part, part_amount=5, bin_number=1):
     # Create service proxy
     spawn_model = rospy.ServiceProxy('/gazebo/spawn_urdf_model', SpawnModel)
     rospy.wait_for_service('/gazebo/spawn_urdf_model')
@@ -35,13 +36,14 @@ def spawn_part(ix_part, part_amount = 5, bin_number = 1):
     with open(urdf_files[ix_part], "r") as f:
         model_xml = f.read()
 
-    for item_counter in range(part_amount):    
+    for item_counter in range(part_amount):
         # Object pose
-        q = tf.transformations.quaternion_from_euler(random.random()*3.14, random.random()*3.14, random.random()*3.14)
+        q = tf.transformations.quaternion_from_euler(
+            random.random() * 3.14, random.random() * 3.14, random.random() * 3.14)
         pose = Pose()
-        pose.position.x = 0.15 + random.random()*.08
-        pose.position.y = 0.05 + random.random()*.06 - .112*(bin_number-1)
-        pose.position.z = 1.3 + random.random()*.1      # To avoid collisions
+        pose.position.x = 0.15 + random.random() * .08
+        pose.position.y = 0.05 + random.random() * .06 - .112 * (bin_number - 1)
+        pose.position.z = 1.3 + random.random() * .1      # To avoid collisions
         pose.orientation.x = q[0]
         pose.orientation.y = q[1]
         pose.orientation.z = q[2]
@@ -63,11 +65,20 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Spawn workpiece')
     parser.add_argument('ix_part', metavar='ix_part', type=int,
                         help='Parts number, integer between 4 and 18')
-    parser.add_argument('part_amount', metavar='part_amount', type=int, default=5,
-                        help='Number of parts to spawn (integer)')
-    parser.add_argument('bin_number', metavar='bin_number', type=int, default=1,
-                        help='ID number of the bin to spawn the parts over')    
+    parser.add_argument(
+        'part_amount',
+        metavar='part_amount',
+        type=int,
+        default=5,
+        help='Number of parts to spawn (integer)')
+    parser.add_argument(
+        'bin_number',
+        metavar='bin_number',
+        type=int,
+        default=1,
+        help='ID number of the bin to spawn the parts over')
     args = parser.parse_args()
-    print("Spawning " + str(args.part_amount) + " parts of ID " + str(args.ix_part) + " in bin number " + str(args.bin_number))
+    print("Spawning " + str(args.part_amount) + " parts of ID " +
+          str(args.ix_part) + " in bin number " + str(args.bin_number))
 
     spawn_part(args.ix_part, args.part_amount, args.bin_number)

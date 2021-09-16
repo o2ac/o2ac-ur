@@ -35,20 +35,23 @@
 # Author: Felix von Drigalski, Cristian C. Beltran-Hernandez
 
 try:
-  from jsk_rviz_plugins.msg import *
+    from jsk_rviz_plugins.msg import *
 except:
-  import roslib;roslib.load_manifest("jsk_rviz_plugins")
-  from jsk_rviz_plugins.msg import *
+    import roslib
+    roslib.load_manifest("jsk_rviz_plugins")
+    from jsk_rviz_plugins.msg import *
 
 from std_msgs.msg import ColorRGBA
 import rospy
+
 
 def time_convert(sec):
     mins = sec // 60
     sec = int(sec % 60)
     hours = mins // 60
     mins = mins % 60
-    return "{:02d}:{:02d}:{:02d}".format(int(hours),int(mins),sec)
+    return "{:02d}:{:02d}:{:02d}".format(int(hours), int(mins), sec)
+
 
 def main():
     rospy.init_node("overlay_sample")
@@ -75,6 +78,7 @@ def main():
         text.bg_color = ColorRGBA(0.0, 0.0, 0.0, 0.2)
         text_pub.publish(text)
         r.sleep()
+
 
 if __name__ == "__main__":
     main()

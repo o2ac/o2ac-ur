@@ -12,6 +12,7 @@ import time
 
 CAMERA_FAILURE = -1
 
+
 class O2ACCameraHelper(object):
     """
     A class to help deal with vision calculations and camera management.
@@ -39,9 +40,9 @@ class O2ACCameraHelper(object):
         depth_images = []
         for img_ros in depth_images_ros:
             depth_images.append(self.bridge.imgmsg_to_cv2(img_ros, desired_encoding="passthrough"))
-        
+
         return self.project_2d_to_3d_from_images(camera_info, u, v, depth_images, average_with_radius)
-    
+
     def get_depth_vals_from_radius(self, img, u, v, average_with_radius=5):
         """ Does not actually use a radius, but a box around the pixel.
         """
@@ -88,10 +89,10 @@ class O2ACCameraHelper(object):
                 x_factor = np.round(abs(u-320) * 42.0/37.0)  # 42: Hypotenuse. 37: Dist to tray at high view. 20: dist to tray edge (other leg of the triangle)
                 y_factor = np.round(abs(v-240) * 39.0/37.0)
 
-                d_interpolated = d_center* ( 1 + (x_factor+y_factor)/2.0)
+                d_interpolated = d_center * (1 + (x_factor+y_factor)/2.0)
                 print("d_interpolated", d_interpolated)
                 depth_vals.append(d_center)
-        
+
         depth = np.mean(depth_vals)
 
         if average_with_radius:
@@ -99,7 +100,7 @@ class O2ACCameraHelper(object):
 
         # Backproject to 3D
         position = self.project_2d_to_3d(camera_info, [u], [v], [depth])
-        # if position.z 
+        # if position.z
         return position[0]
 
     def project_2d_to_3d(self, camera_info, u, v, d):
@@ -110,10 +111,10 @@ class O2ACCameraHelper(object):
         """
         npoints = len(d)
         xy = cv2.undistortPoints(np.expand_dims(np.array(list(zip(u, v)),
-                                                            dtype=np.float32),
+                                                         dtype=np.float32),
                                                 axis=0),
-                                    np.array(camera_info.K).reshape((3, 3)),
-                                    np.array(camera_info.D))
+                                 np.array(camera_info.K).reshape((3, 3)),
+                                 np.array(camera_info.D))
         xy = xy.ravel().reshape(npoints, 2)
-        return [ (xy[i, 0]*d[i], xy[i, 1]*d[i], d[i])
-                    for i in range(npoints) ]
+        return [(xy[i, 0]*d[i], xy[i, 1]*d[i], d[i])
+                for i in range(npoints)]

@@ -61,12 +61,13 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 CAMERA_IDS = {
-    "a_bot_inside_camera"  : 0,
-    "a_bot_outside_camera" : 1,
-    "b_bot_inside_camera"  : 2,
-    "b_bot_outside_camera" : 3,
-    "scene_camera"         : 4,
-    }
+    "a_bot_inside_camera": 0,
+    "a_bot_outside_camera": 1,
+    "b_bot_inside_camera": 2,
+    "b_bot_outside_camera": 3,
+    "scene_camera": 4,
+}
+
 
 class O2ACWatcher(object):
 
@@ -141,7 +142,7 @@ class O2ACWatcher(object):
         # Extracts camera name from the header by stripping prefix "calibrated_" and suffix "_color_optical_frame"
         # Ex.: "calibrated_b_bot_inside_camera_color_optical_frame" --> "b_bot_inside_camera"
         self.current_camera_name = cam_info.header.frame_id[11:-20]  # str
-        
+
     def check_status_loop(self):
         r = rospy.Rate(1)
         softreset = True
@@ -212,6 +213,7 @@ class O2ACWatcher(object):
             r.sleep()
 
         rospy.logerr("Stopping o2ac_camera_watcher (rospy shutdown)")
+
 
 if __name__ == '__main__':
     rospy.init_node('o2ac_camera_watcher', anonymous=False)

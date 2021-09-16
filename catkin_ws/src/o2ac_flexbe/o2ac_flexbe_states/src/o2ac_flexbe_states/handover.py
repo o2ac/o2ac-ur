@@ -20,10 +20,16 @@ class HandoverActionState(EventState):
     '''
 
     def __init__(self, from_robot_name, to_robot_name, object_name):
-        super(HandoverActionState, self).__init__(outcomes=['success', 'error'])
+        super(
+            HandoverActionState,
+            self).__init__(
+            outcomes=[
+                'success',
+                'error'])
 
         self._topic = 'o2ac_flexbe/handover'
-        self._client = ProxyActionClient({self._topic: HandoverAction})  # pass required clients as dict (topic: type)
+        # pass required clients as dict (topic: type)
+        self._client = ProxyActionClient({self._topic: HandoverAction})
         self._from_robot_name = from_robot_name
         self._to_robot_name = to_robot_name
         self._object_name = object_name
@@ -58,7 +64,9 @@ class HandoverActionState(EventState):
         try:
             self._client.send_goal(self._topic, goal)
         except Exception as e:
-            Logger.logwarn('Failed to send the Handoverion command:\n%s' % str(e))
+            Logger.logwarn(
+                'Failed to send the Handoverion command:\n%s' %
+                str(e))
             self._success = False
 
     def on_exit(self, userdata):

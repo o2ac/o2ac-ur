@@ -1,23 +1,32 @@
 #!/usr/bin/env python
 
-import os, sys, glob, rospy, re, json, cv2, threading
+import os
+import sys
+import glob
+import rospy
+import re
+import json
+import cv2
+import threading
 import numpy as np
-from cv_bridge         import CvBridge
-from sensor_msgs       import msg as smsg
-from geometry_msgs     import msg as gmsg
+from cv_bridge import CvBridge
+from sensor_msgs import msg as smsg
+from geometry_msgs import msg as gmsg
 from aist_depth_filter import DepthFilterClient
-from tf                import TransformBroadcaster, transformations as tfs
+from tf import TransformBroadcaster, transformations as tfs
 
 #########################################################################
 #  gloabal functions                                                    #
 #########################################################################
+
+
 def transform_from_plane(plane):
     def normalize(v):
         return v / np.linalg.norm(v)
 
     t = gmsg.TransformStamped()
     t.header.frame_id = plane.header.frame_id
-    t.child_frame_id  = "tray_center"
+    t.child_frame_id = "tray_center"
 
     # Compute translation
     k = np.array([plane.plane.normal.x,
@@ -34,7 +43,7 @@ def transform_from_plane(plane):
     q = tfs.quaternion_from_matrix(np.array([[i[0], j[0], k[0], 0.0],
                                              [i[1], j[1], k[1], 0.0],
                                              [i[2], j[2], k[2], 0.0],
-                                             [ 0.0,  0.0,  0.0, 1.0]]))
+                                             [0.0,  0.0,  0.0, 1.0]]))
     t.transform.rotation.x = q[0]
     t.transform.rotation.y = q[1]
     t.transform.rotation.z = q[2]
@@ -51,6 +60,7 @@ class ImageFeeder(object):
     Supplies images from the annotation database to the recognition pipeline.
     Used for testing the pipeline without using a camera or robot.
     """
+
     def __init__(self, data_dir):
         super(ImageFeeder, self).__init__()
 
@@ -65,16 +75,16 @@ class ImageFeeder(object):
                 rospy.logerr('(Feeder) %s', str(e))
 
         Kt = intrinsic['intrinsic_matrix']
-        K  = [Kt[0], Kt[3], Kt[6], Kt[1], Kt[4], Kt[7], Kt[2], Kt[5], Kt[8]]
-        self._cinfo                  = smsg.CameraInfo()
-        self._cinfo.header.frame_id  = rospy.get_param('~camera_frame', 'map')
-        self._cinfo.height           = intrinsic['height']
-        self._cinfo.width            = intrinsic['width']
+        K = [Kt[0], Kt[3], Kt[6], Kt[1], Kt[4], Kt[7], Kt[2], Kt[5], Kt[8]]
+        self._cinfo = smsg.CameraInfo()
+        self._cinfo.header.frame_id = rospy.get_param('~camera_frame', 'map')
+        self._cinfo.height = intrinsic['height']
+        self._cinfo.width = intrinsic['width']
         self._cinfo.distortion_model = 'plumb_bob'
-        self._cinfo.D         = [0, 0, 0, 0, 0]
-        self._cinfo.K         = K
-        self._cinfo.R         = [1, 0, 0, 0, 1, 0, 0, 0, 1]
-        self._cinfo.P         = K[0:3] + [0] + K[3:6] + [0] + K[6:9] + [0]
+        self._cinfo.D = [0, 0, 0, 0, 0]
+        self._cinfo.K = K
+        self._cinfo.R = [1, 0, 0, 0, 1, 0, 0, 0, 1]
+        self._cinfo.P = K[0:3] + [0] + K[3:6] + [0] + K[6:9] + [0]
         self._cinfo.binning_x = 0
         self._cinfo.binning_y = 0
 
@@ -83,13 +93,13 @@ class ImageFeeder(object):
         self._image_pub = rospy.Publisher('~image', smsg.Image, queue_size=1)
         self._depth_pub = rospy.Publisher('~depth', smsg.Image, queue_size=1)
 
-        self._dfilter     = DepthFilterClient('depth_filter')
+        self._dfilter = DepthFilterClient('depth_filter')
         self._broadcaster = TransformBroadcaster()
-        self._transform   = None
+        self._transform = None
 
         self._image = None
         self._depth = None
-        self._run   = True
+        self._run = True
 
         thread = threading.Thread(target=self._stream_image)
         thread.start()
@@ -140,7 +150,6 @@ class ImageFeeder(object):
                     self._broadcaster.sendTransformMessage(self._transform)
 
             rate.sleep()
-
 
 
 #########################################################################

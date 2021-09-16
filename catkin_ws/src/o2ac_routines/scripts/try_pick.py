@@ -48,6 +48,7 @@ hand_open_pose = 'open'
 hand_close_pose = 'close'
 hand = moveit_commander.MoveGroupCommander(hand_name)
 
+
 def pick_place_client():
     client = actionlib.SimpleActionClient('plan_pick_place', moveit_task_constructor_msgs.msg.PlanPickPlaceAction)
     rospy.loginfo("wait for plan_pick_place server")
@@ -109,7 +110,6 @@ def pick_place_client():
     goal.grasps.append(grasp)
     goal.grasps.append(grasp_2)
 
-
     place_pose = PoseStamped()
     place_pose.header.frame_id = 'tray_center'
     place_pose.pose.orientation.w = 1
@@ -136,6 +136,7 @@ def pick_place_client():
     client.wait_for_result()
 
     return client.get_result()
+
 
 if __name__ == '__main__':
     try:

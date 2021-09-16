@@ -34,27 +34,24 @@
 #
 # Author: Cristian C. Beltran-Hernandez
 
+import signal
+import sys
+from ur_control import conversions
+from o2ac_routines.assembly import O2ACAssembly
+from o2ac_routines.common import O2ACCommon
+from o2ac_msgs.msg import HandoverAction, HandoverResult
+from o2ac_msgs.msg import MoveToAction, MoveToResult
+from o2ac_msgs.msg import OrientAction, OrientResult
+from o2ac_msgs.msg import FastenAction, FastenResult
+from o2ac_msgs.msg import AlignBearingHolesAction, AlignBearingHolesResult
+from o2ac_msgs.msg import InsertAction, InsertResult
+from o2ac_msgs.msg import PickAction, PickResult
+from o2ac_msgs.msg import PlayBackSequenceAction, PlayBackSequenceResult
+import actionlib
+import rospy
+import numpy as np
 from math import pi
 tau = 2*pi
-import numpy as np
-import rospy
-import actionlib
-
-from o2ac_msgs.msg import PlayBackSequenceAction, PlayBackSequenceResult
-from o2ac_msgs.msg import PickAction, PickResult
-from o2ac_msgs.msg import InsertAction, InsertResult
-from o2ac_msgs.msg import AlignBearingHolesAction, AlignBearingHolesResult
-from o2ac_msgs.msg import FastenAction, FastenResult
-from o2ac_msgs.msg import OrientAction, OrientResult
-from o2ac_msgs.msg import MoveToAction, MoveToResult
-from o2ac_msgs.msg import HandoverAction, HandoverResult
-from o2ac_routines.common import O2ACCommon
-from o2ac_routines.assembly import O2ACAssembly
-
-from ur_control import conversions
-
-import sys
-import signal
 
 
 def signal_handler(sig, frame):
@@ -66,6 +63,8 @@ signal.signal(signal.SIGINT, signal_handler)
 
 
 class SkillServer:
+    """ Action servers for Flexbe Interface """
+
     def __init__(self):
         # self.controller = O2ACCommon()
         self.controller = O2ACAssembly()
@@ -130,9 +129,9 @@ class SkillServer:
             pick_pose.header.stamp = rospy.Time(0)
             pick_pose = self.controller.listener.transformPose("world", pick_pose)
             self.controller.allow_collisions_with_robot_hand(object_name, robot_name, allow=True)
-            success = self.controller.simple_pick(robot_name, object_pose=pick_pose, grasp_width=0.06, approach_height=0.05, grasp_height=0.005, 
-                     axis="z", item_id_to_attach=object_name, lift_up_after_pick=True, approach_with_move_lin=False,
-                     speed_fast=1.0)
+            success = self.controller.simple_pick(robot_name, object_pose=pick_pose, grasp_width=0.06, approach_height=0.05, grasp_height=0.005,
+                                                  axis="z", item_id_to_attach=object_name, lift_up_after_pick=True, approach_with_move_lin=False,
+                                                  speed_fast=1.0)
         else:
             pick_pose = self.controller.look_and_get_grasp_point(object_name)
 

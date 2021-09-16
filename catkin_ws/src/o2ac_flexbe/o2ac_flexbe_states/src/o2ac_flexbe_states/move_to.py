@@ -22,12 +22,19 @@ class MoveToActionState(EventState):
 
     '''
 
-    def __init__(self, robot_name, target_pose, pose_type="joints", frame_id="world", target_named_pose="", motion_planner="linear"):
+    def __init__(
+            self,
+            robot_name,
+            target_pose,
+            pose_type="joints",
+            frame_id="world",
+            target_named_pose="",
+            motion_planner="linear"):
         super(MoveToActionState, self).__init__(outcomes=['success', 'error'])
 
-
         self._topic = 'o2ac_flexbe/MoveTo'
-        self._client = ProxyActionClient({self._topic: MoveToAction})  # pass required clients as dict (topic: type)
+        # pass required clients as dict (topic: type)
+        self._client = ProxyActionClient({self._topic: MoveToAction})
         self._robot_name = robot_name
         self._target_pose = target_pose
         self._pose_type = pose_type

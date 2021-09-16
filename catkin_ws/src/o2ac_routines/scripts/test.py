@@ -12,7 +12,8 @@ import tf
 from o2ac_routines.helpers import get_target_force
 import o2ac_routines.helpers as helpers
 import numpy as np
-import sys, signal
+import sys
+import signal
 import geometry_msgs.msg
 from math import pi, radians
 
@@ -21,6 +22,7 @@ from ur_gazebo.model import Model
 
 tau = 2.0*pi  # Part of math from Python 3.6
 
+
 def signal_handler(sig, frame):
     print('You pressed Ctrl+C!')
     sys.exit(0)
@@ -28,12 +30,13 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
+
 def main():
     rospy.init_node("testscript")
     global c
     c = O2ACCommon()
     # c.a_bot.gripper.open(opening_width=0.006)
-    c.b_bot.move_lin_rel(relative_rotation=[0,-radians(0.5), 0], speed=0.01, end_effector_link="b_bot_screw_tool_m4_tip_link")
+    c.b_bot.move_lin_rel(relative_rotation=[0, -radians(0.5), 0], speed=0.01, end_effector_link="b_bot_screw_tool_m4_tip_link")
     # print(conversions.from_pose_to_list(c.listener.transformPose("assembled_part_02_back_hole", c.b_bot.get_current_pose_stamped()).pose))
     # c.reset_scene_and_robots()
     # c.center_panel("panel_bearing")
@@ -58,7 +61,7 @@ def main():
     # c.publish_part_in_assembled_position("panel_motor")
     # c.publish_part_in_assembled_position("panel_bearing")
     # c.publish_part_in_assembled_position("motor", marker_only=True)
-    
+
     # c = O2ACAssembly()
     # c.insert_motor_cables_without_tools_normal(cable_color="black", cable_straighten_distance=0.133)
     # print("done")
@@ -68,7 +71,7 @@ def main():
     # c.equip_cable_tool()
     # c.unequip_cable_tool()
     # c.spawn_tool("cable_tool")
-    
+
 
 if __name__ == "__main__":
     main()

@@ -4,6 +4,7 @@ import yaml
 ### ObjectConfig ###
 ####################
 
+
 def read_object_yaml_config(conf_filename):
     f = open(conf_filename, "r")
     conf = f.read()
@@ -11,5 +12,3 @@ def read_object_yaml_config(conf_filename):
     f.close()
 
     return data
-
-

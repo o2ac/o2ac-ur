@@ -54,7 +54,7 @@ class RobotiqGripper():
 
         self.opening_width = 0.0
 
-        self.last_attached_object = (None, False) # object name (string), with_collisions (bool)
+        self.last_attached_object = (None, False)  # object name (string), with_collisions (bool)
 
         # Gripper
         if self.use_real_robot:
@@ -189,13 +189,13 @@ class RobotiqGripper():
             to_link = self.ns + "_ee_link" if attach_to_link is None else attach_to_link
             if with_collisions:
                 self.gripper_group.attach_object(object_to_attach, to_link,
-                                                touch_links=[self.ns + "_gripper_tip_link",
-                                                            self.ns + "_left_inner_finger_pad",
-                                                            self.ns + "_left_inner_finger",
-                                                            self.ns + "_left_inner_knuckle",
-                                                            self.ns + "_right_inner_finger_pad",
-                                                            self.ns + "_right_inner_finger",
-                                                            self.ns + "_right_inner_knuckle"])
+                                                 touch_links=[self.ns + "_gripper_tip_link",
+                                                              self.ns + "_left_inner_finger_pad",
+                                                              self.ns + "_left_inner_finger",
+                                                              self.ns + "_left_inner_knuckle",
+                                                              self.ns + "_right_inner_finger_pad",
+                                                              self.ns + "_right_inner_finger",
+                                                              self.ns + "_right_inner_knuckle"])
             else:
                 self.markers_scene.attach_item(object_to_attach, to_link)
             self.last_attached_object = (object_to_attach, with_collisions)

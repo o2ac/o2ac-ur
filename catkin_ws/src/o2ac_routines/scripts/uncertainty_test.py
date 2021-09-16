@@ -12,7 +12,8 @@ import tf
 from o2ac_routines.helpers import get_target_force
 import o2ac_routines.helpers as helpers
 import numpy as np
-import sys, signal
+import sys
+import signal
 import geometry_msgs.msg
 from math import pi, radians
 
@@ -21,6 +22,7 @@ from ur_gazebo.model import Model
 
 tau = 2.0*pi  # Part of math from Python 3.6
 
+
 def signal_handler(sig, frame):
     print('You pressed Ctrl+C!')
     sys.exit(0)
@@ -28,17 +30,16 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
+
 def main():
     rospy.init_node("testscript")
     global controller
-    
+
     controller = O2ACAssembly()
     controller.reset_scene_and_robots()
     controller.b_bot.go_to_named_pose("home")
-    
-    
 
-    # abot motor plate 
+    # abot motor plate
     start_pose = conversions.to_pose_stamped("workspace_center", [-0.091, -0.045, 0.124, -0.003, 0.863, 1.567])  # start
     drop_pose = conversions.to_pose_stamped("workspace_center", [-0.091, -0.058, 0.124, -0.003, 0.863, 1.567])  # pull left
     push_start_pose = conversions.to_pose_stamped("workspace_center", [-0.087, -0.112, 0.098, -0.033, 1.001, 1.541])  # push start
@@ -46,43 +47,43 @@ def main():
     push_done_pose = conversions.to_pose_stamped("workspace_center", [-0.087, -0.086, 0.098, -0.033, 1.001, 1.541])  # push done
     at_plate_pose = conversions.to_pose_stamped("workspace_center", [-0.091, -0.045, 0.117, -0.003, 0.863, 1.567])  # at plate
 
-    upright_push_done_pose = conversions.to_pose_stamped("workspace_center", 
-                                [-0.087, -0.086, 0.098, -0.000, 1.57079632679, 1.57079632679])  
-                                # This is required because the push action expects the gripper to be upright. This position corresponds to the "real"
-                                # distance from the gripper tip link to the contact point with the object in the final push phase.
-    
+    upright_push_done_pose = conversions.to_pose_stamped("workspace_center",
+                                                         [-0.087, -0.086, 0.098, -0.000, 1.57079632679, 1.57079632679])
+    # This is required because the push action expects the gripper to be upright. This position corresponds to the "real"
+    # distance from the gripper tip link to the contact point with the object in the final push phase.
+
     # Fine-tune for visualization
     push_done_pose.pose.position.y += -0.002
     upright_push_done_pose.pose.position.y += -0.003
-    
+
     controller.set_assembly("wrs_assembly_2021")
-    
+
     # controller.publish_part_in_assembled_position("panel_motor")
     controller.publish_part_in_assembled_position("base")
 
     controller.a_bot.go_to_pose_goal(start_pose)
     controller.a_bot.gripper.open(opening_width=0.003)
     rospy.sleep(1.0)
-    
-    # Spawn the motor plate with a given uncertainty in the gripper. 
+
+    # Spawn the motor plate with a given uncertainty in the gripper.
     plate_pose = conversions.to_pose_stamped("assembled_part_02", [.012, 0.01, 0, 0, 0, -0.06])  # at plate
     plate_pose = controller.listener.transformPose("a_bot_gripper_tip_link", plate_pose)
     pose_with_uncertainty = geometry_msgs.msg.PoseWithCovarianceStamped()
     pose_with_uncertainty.header = plate_pose.header
     pose_with_uncertainty.pose.pose = plate_pose.pose
-    # Is the covariance defined in the header frame? 
-    pose_with_uncertainty.pose.covariance= [0.00002, 0.00, 0.00, 0.00, 0.00, 0.00,
-                                            0.00, 0.000, 0.00, 0.00, 0.00, 0.00,
-                                            0.00, 0.00, 0.00002, 0.00, 0.00, 0.00,
-                                            0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
-                                            0.00, 0.00, 0.00, 0.00, 0.01, 0.00,
-                                            0.00, 0.00, 0.00, 0.00, 0.00, 0.00]
+    # Is the covariance defined in the header frame?
+    pose_with_uncertainty.pose.covariance = [0.00002, 0.00, 0.00, 0.00, 0.00, 0.00,
+                                             0.00, 0.000, 0.00, 0.00, 0.00, 0.00,
+                                             0.00, 0.00, 0.00002, 0.00, 0.00, 0.00,
+                                             0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
+                                             0.00, 0.00, 0.00, 0.00, 0.01, 0.00,
+                                             0.00, 0.00, 0.00, 0.00, 0.00, 0.00]
     motor_panel_co = controller.assembly_database.get_collision_object("panel_motor")
     motor_panel_co_pretty = controller.assembly_database.get_collision_object("panel_motor", use_simplified_collision_shapes=False)
-    
+
     controller.visualize_object_with_distribution(motor_panel_co_pretty, pose_with_uncertainty, frame_locked=True)
     controller.confirm_to_proceed("Start?")
-    
+
     controller.a_bot.go_to_pose_goal(drop_pose, speed=0.01)
     controller.a_bot.gripper.open(opening_width=0.02)
     support_surface = controller.listener.transformPose("world", plate_pose)
@@ -91,7 +92,7 @@ def main():
     controller.place_object_with_uncertainty("panel_motor", pose_with_uncertainty, support_surface_height=0.856)
     controller.visualize_object_with_distribution(motor_panel_co_pretty, pose_with_uncertainty, frame_locked=False)
     controller.confirm_to_proceed("Dropped plate. Continue?")
-    
+
     controller.a_bot.go_to_pose_goal(push_start_pose, speed=0.01)
     controller.a_bot.gripper.close()
     controller.confirm_to_proceed("About to push plate. Continue?")
@@ -102,12 +103,11 @@ def main():
     controller.push_object_with_uncertainty("panel_motor", upright_push_done_pose, pose_with_uncertainty)
     controller.visualize_object_with_distribution(motor_panel_co_pretty, pose_with_uncertainty, frame_locked=False)
     controller.confirm_to_proceed("Pushed plate. Continue?")
-    
+
     controller.a_bot.go_to_pose_goal(push_start_pose, speed=0.01)
     controller.a_bot.gripper.open(opening_width=0.02)
     controller.a_bot.go_to_pose_goal(at_plate_pose, speed=0.01)
     controller.a_bot.gripper.open(opening_width=0.005)
-
 
     # pose_with_uncertainty=geometry_msgs.msg.PoseWithCovarianceStamped()
     # pose_with_uncertainty.header = goal.header
@@ -119,7 +119,6 @@ def main():
     #                                         0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
     #                                         0.00, 0.00, 0.00, 0.00, 0.00, 0.01]
 
-    
     # # controller.b_bot.gripper.gripper.release(link_name="panel_bearing_tmp::panel_bearing")
     # controller = O2ACAssembly()
     # controller.ab_bot.go_to_named_pose("home")
@@ -133,7 +132,7 @@ def main():
     # object_pose = conversions.to_pose_stamped("tray_center", [0,0,0,0,0,0])
     # object_pose = controller.listener.transformPose("world", object_pose)
     # op = conversions.from_pose_to_list(object_pose.pose)
-    # objpose = [op[:3], op[3:]] 
+    # objpose = [op[:3], op[3:]]
     # models = [Model(name, objpose[0], orientation=objpose[1], reference_frame="world")]
     # controller.gazebo_scene.load_models(models,)
     # controller.b_bot.gripper.gripper.grab(link_name="panel_bearing_tmp::panel_bearing")
@@ -145,7 +144,7 @@ def main():
     # controller.centering_shaft()
     # controller.align_shaft("taskboard_assy_part_07_inserted")
     # controller.b_bot.go_to_pose_goal(pre_insertion_pose, move_lin=False)
-    
+
     # controller.equip_tool("b_bot", "set_screw_tool")
     # controller.b_bot.go_to_named_pose("horizontal_screw_ready")
     # controller.move_b_bot_to_setscrew_initial_pos()
@@ -168,7 +167,6 @@ def main():
     # controller.a_bot.go_to_pose_goal(pose)
     # controller.a_bot.move_lin_rel(relative_translation=[0,0,0.015], relative_rotation=[0, radians(35), 0], relative_to_tcp=True)
 
-    
     # controller.do_change_tool_action("b_bot", equip=False, screw_size = 4)
     # controller = O2ACAssembly()
     # controller.reset_scene_and_robots()
@@ -207,7 +205,7 @@ def main():
     # selection_matrix = [1., 1., 1., 0.7, 1., 1.]
     # controller.b_bot.execute_spiral_trajectory("XY", max_radius=0, radius_direction="+Y", steps=50,
     #                                      revolutions=1, target_force=0, check_displacement_time=10,
-    #                     
+    #
     #                  wiggle_direction="Z", wiggle_angle=radians(10.0), wiggle_revolutions=1.0,
     #                                      termination_criteria=tc, timeout=20, selection_matrix=selection_matrix)
     # controller.place_panel("a_bot", "panel_motor", pick_again=True, fake_position=True)
@@ -219,7 +217,7 @@ def main():
     # controller.set_assembly("wrs_assembly_2021")
     # controller.get_large_item_position_from_top("panel_motor")
     # controller.get_large_item_position_from_top("panel_bearing")
-    
+
     # cp = controller.listener.transformPose("tray_center", controller.a_bot.get_current_pose_stamped())
     # print("a bot pose", cp.pose.position)
     # grasp_pose = controller.get_transformed_grasp_pose("base", "terminal_grasp", target_frame="tray_center")
@@ -247,7 +245,7 @@ def main():
     # controller.place_panel("a_bot", "panel_bearing", grasp_pose=pose)
     # controller.b_bot.go_to_named_pose("feeder_pick_ready")
     # controller.confirm_to_proceed("2??")
-    
+
     # controller.ab_bot.go_to_named_pose("home")
     # controller.reset_scene_and_robots()
     # controller.get_large_item_position_from_top("base", "b_bot")
@@ -327,12 +325,11 @@ def main():
     #                                             revolutions=1, target_force=0, check_displacement_time=10,
     #                                             wiggle_direction="Z", wiggle_angle=radians(15.0), wiggle_revolutions=2.0,
     #                                             termination_criteria=None, timeout=10, selection_matrix=selection_matrix)
-    
+
     ### fasten motor ####
     # controller.confirm_to_proceed("fasten?")
     # controller.do_change_tool_action("a_bot", equip=True, screw_size=3)
     # controller.fasten_motor()
-
 
     ###################################
 
@@ -346,7 +343,7 @@ def main():
 
     # controller.allow_collisions_with_robot_hand("tray", "a_bot")
     # controller.allow_collisions_with_robot_hand("tray_center", "a_bot")
-    
+
     # controller.playback_sequence("bearing_orient_down_b_bot")
 
     # robot_name = "b_bot"
@@ -367,12 +364,9 @@ def main():
     # if not controller.execute_sequence(robot_name, [trajectory], "go to preinsertion", plan_while_moving=False):
     #   rospy.logerr("Could not go to preinsertion")
 
-    
-    
     # # tool_pull_pose = conversions.to_pose_stamped("move_group/panel_motor", [0.03, 0.038, 0.0, 0, 0, 0])
     # tool_pull_pose = conversions.to_pose_stamped("move_group/panel_bearing/front_hole", [0.0, 0.0, 0.0, 0, 0, 0])
     # controller.move_towards_center_with_tool("b_bot", target_pose=tool_pull_pose, distance=0.05, start_with_spiral=True)
-    
 
     # # controller = O2ACCommon()
     # # test_force_control(controller)
@@ -387,7 +381,7 @@ def main():
     # if a.is_alive():
     #     a.kill()
     #     b.kill()
-    
+
     # if b.is_alive():
     #     b.kill()
 
@@ -420,7 +414,7 @@ def main():
     # at_object_pose = conversions.to_pose_stamped("right_centering_link", [-0.005, 0, 0.0, 0, 0, 0] )
     # controller.b_bot.go_to_pose_goal(at_object_pose, speed=0.5)
     # controller.center_with_gripper("b_bot", opening_width=0.085)
-    
+
     # controller.vision.activate_camera("b_bot_inside_camera")
     # look_at_output_pulley = conversions.to_pose_stamped("assembled_part_08_inserted", [-0.212, 0, 0.0, -tau/4, 0, -tau/4])
     # controller.b_bot.go_to_pose_goal(look_at_output_pulley, end_effector_link="b_bot_inside_camera_color_optical_frame", speed=0.05)
@@ -468,12 +462,11 @@ def main():
     # controller.b_bot.move_joints([1.8108925819396973, -2.119059225121969, 1.8984859625445765, -1.3372403693250199,
     # -1.780367676411764, 1.1874641180038452])
     # controller.b_bot.move_joints([1.444, -1.61 ,  2.504, -1.964, -1.2  , -2.578])
-    
 
     # controller.b_bot.go_to_named_pose("home", speed=1.0)
     # st = rospy.get_time()
     # print("TIME old", rospy.get_time()-st)
-    
+
     # controller.b_bot.go_to_named_pose("home", speed=1.0)
     # controller.b_bot.gripper.open()
     # st = rospy.get_time()
@@ -486,18 +479,18 @@ def main():
     # st = rospy.get_time()
     # controller.playback_sequence(routine_filename="ready_screw_tool_horizontal", wait=False)
     # print("TIME new", rospy.get_time()-st)
-    
+
     # controller.b_bot.go_to_named_pose("home", speed=1.0)
     # # plan, _ = controller.b_bot.plan_relative_goal(relative_translation=[0.05,0.0,0.0], relative_to_tcp=True)
     # plan, _ = controller.b_bot.plan_relative_goal(relative_rotation=[0,np.deg2rad(-15),0], relative_to_tcp=True)
     # controller.b_bot.execute_plan(plan, wait=True)
-    
+
     # controller.b_bot.go_to_named_pose("home", speed=1.0)
     # q = controller.b_bot.robot_group.get_current_joint_values()
     # # plan, _ = controller.b_bot.plan_relative_goal(initial_joints=q, relative_translation=[0.05,0.0,0.0], relative_to_tcp=True)
     # plan, _ = controller.b_bot.plan_relative_goal(relative_rotation=[0,np.deg2rad(-15),0], relative_to_tcp=True, initial_joints=q)
     # controller.b_bot.execute_plan(plan, wait=True)
-    
+
     # controller.b_bot.go_to_named_pose("home", speed=1.0)
     # q = controller.b_bot.robot_group.get_current_joint_values()
     # # plan, _ = controller.b_bot.plan_relative_goal(initial_joints=q, relative_translation=[0.05,0.0,0.0], relative_to_tcp=True)
@@ -528,13 +521,13 @@ def main():
 
     # approach_vgroove = conversions.to_pose_stamped("tray_center", [0.0, 0.0, 0.3]+np.deg2rad([-180, 90, -90]).tolist())
     # controller.b_bot.go_to_pose_goal(approach_vgroove, speed=1.0)
-   
+
     # approach_vgroove = conversions.to_pose_stamped("tray_center", [0.0, -0.2, 0.3]+np.deg2rad([-180, 90, -90]).tolist())
-    # controller.a_bot.go_to_pose_goal(approach_vgroove, speed=1.0)    
+    # controller.a_bot.go_to_pose_goal(approach_vgroove, speed=1.0)
 
     # rospy.logwarn("TOTAL TIME!! %f" % (st-rospy.get_time()))
 
-    ############# with planning ##########3
+    # with planning ##########3
     # st = rospy.get_time()
     # start_time = rospy.get_time()
     # approach_vgroove = conversions.to_pose_stamped("tray_center", [0.0, 0.2, 0.3]+np.deg2rad([-180, 90, 90]).tolist())
@@ -555,7 +548,7 @@ def main():
     # waiting_time = duration - planning_time if duration - planning_time > 0 else 0.0
     # print("b_bot waiting time", waiting_time)
     # rospy.sleep(waiting_time)
-    
+
     # start_time = rospy.get_time()
     # if not controller.b_bot.execute_plan(plan):
     #   rospy.logerr("Fail to go to approach_vgroove")
@@ -569,7 +562,7 @@ def main():
     # waiting_time = duration - planning_time if duration - planning_time > 0 else 0.0
     # print("a_bot waiting time", waiting_time)
     # rospy.sleep(waiting_time)
-    
+
     # start_time = rospy.get_time()
     # if not controller.a_bot.execute_plan(plan):
     #   rospy.logerr("Fail to go to approach_vgroove")
@@ -599,9 +592,8 @@ def main():
     # controller.check_bearing_angle()
 
     # controller.turn_shaft_until_groove_found()
-    
-    # controller.panel_subtask2()
 
+    # controller.panel_subtask2()
 
     # controller.insert_shaft("taskboard_assy_part_07_inserted")
 
@@ -625,7 +617,6 @@ def main():
     # approach_pose = conversions.to_pose_stamped("taskboard_long_hole_middle_link", [0.1, 0.0, 0.0, 0.0, 0.0, 0.0])
     # controller.a_bot.move_lin(approach_pose, end_effector_link="a_bot_nut_tool_m4_hole_link", speed=0.4)
     # controller.playback_sequence("idler_pulley_unequip_nut_tool")
-    
 
     # controller.playback_sequence("idler_pulley_release_screw_tool")
     # controller.unequip_tool("b_bot", "padless_tool_m4")
@@ -660,7 +651,7 @@ def main():
     # controller.test("taskboard_assy_part_07_inserted")
     # controller.spiral_search_with_nut_tool()
     # controller.insert_idler_pulley("taskboard_long_hole_middle_link")
-    
+
     # controller.a_bot.move_joints([0.6765, -1.5287, 2.2274, -0.6668, -0.1085, 1.5388], acceleration = 0.05, speed=.1)
     # controller.playback_sequence("idler_pulley_prepare_nut_tool")
     # controller.orient_idle_pulley("taskboard")
@@ -679,23 +670,21 @@ def main():
     # rospy.sleep(2)
     # controller.b_bot.move_joints([1.864789605140686, -1.8883010349669398, 2.4725635687457483, -2.175955434838766,
     # -1.5510090033160608, 1.1179262399673462], acceleration = 0.05, speed=.1)
-    
+
     # controller.b_bot.move_joints([1.8636610507965088, -1.6897312603392542, 2.5860729853259485, -2.4881612263121546,
     # -1.5512121359454554, 1.1185405254364014], acceleration = 0.05, speed=.1)
-    
-    
+
     # controller.insert_bearing(task = "taskboard")
 
-
-    ### Calculate relative motions from UR script (bugged)
+    # Calculate relative motions from UR script (bugged)
     # incline_from_p=[-.240053176805, -.418617584930, .068066729204, -3.141276531850, -.007684409336, .022148737280]
     # incline_to_p=[-.240066422408, -.413499926398, .066111609186, 2.466355790625, -.000195404290, -.019394393672]
-    
+
     # xyz_from = incline_from_p[:3]
     # axisangle_from = incline_from_p[3:]
     # quat_from = helpers.ur_axis_angle_to_quat(axisangle_from)
     # quat_from_inv = tf.transformations.quaternion_inverse(quat_from)
-    
+
     # xyz_to = incline_to_p[:3]
     # axisangle_to = incline_to_p[3:]
     # quat_to = helpers.ur_axis_angle_to_quat(axisangle_to)
@@ -712,12 +701,11 @@ def main():
     # p.header.frame_id = "a_bot_tool0"
     # p.pose.position = geometry_msgs.msg.Point(*xyz_relative)
     # p.pose.orientation = geometry_msgs.msg.Quaternion(*quat_relative)
-    
+
     # relative_motion_in_tip_link = helpers.rotatePoseByRPY(1.571, -1.571, 0.000, p)  # From tool0 to gripper_tip_link
     # relative_motion_in_tip_link.pose.position = helpers.rotateTranslationByRPY(1.571, -1.571, 0.000, relative_motion_in_tip_link.pose.position)
     # print("relative translation and rotation is (in gripper_tip_link):")
     # print(relative_motion_in_tip_link.pose)
-    
 
 
 if __name__ == "__main__":

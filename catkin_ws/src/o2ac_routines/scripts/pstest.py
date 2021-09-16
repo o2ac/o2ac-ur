@@ -9,7 +9,6 @@ import copy
 if __name__ == '__main__':
     rospy.init_node('ps_test_client')
 
-
     # Disable collisions
     robot_group = moveit_commander.MoveGroupCommander("panda_arm")
     robot_group
@@ -26,5 +25,5 @@ if __name__ == '__main__':
         print("t")
 
     sub_ = rospy.Subscriber("/move_group/monitored_planning_scene", moveit_msgs.msg.PlanningScene, clean_and_publish)
-    
+
     rospy.spin()

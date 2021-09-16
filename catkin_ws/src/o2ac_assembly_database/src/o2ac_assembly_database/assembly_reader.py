@@ -30,7 +30,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-# Author: Karoly Istvan Artur, Felix von Drigalski
+# Author: Karoly Istvan Artur, Felix von Drigalski, Cristian C. Beltran-Hernandez
 
 import yaml
 import os
@@ -50,6 +50,7 @@ import geometry_msgs.msg
 from o2ac_assembly_database.parts_reader import PartsReader
 from ur_control import conversions
 
+
 class AssemblyReader(PartsReader):
     '''
     Load stored collision objects. This class also allows publishing a tree to TF,
@@ -62,9 +63,9 @@ class AssemblyReader(PartsReader):
         self._broadcaster = tf2_ros.StaticTransformBroadcaster()
         # self._broadcaster = tf2_ros.TransformBroadcaster()
         if self.db_name:  # = If a database is loaded the attribute is set in the super method
-          self.change_assembly(assembly_name)
+            self.change_assembly(assembly_name)
         self.assembly_frame_pub_timer = []
-    
+
     def change_assembly(self, assembly_name):
         if self.db_name != assembly_name:
             # Clear current database from memory
@@ -85,16 +86,17 @@ class AssemblyReader(PartsReader):
         '''
         base_object_id = next((part['id'] for part in self._parts_list if part['name'] == base_object), None)
         child_object_id = next((part['id'] for part in self._parts_list if part['name'] == child_object), None)
-        transform = next((mating_transform for mating_transform in self.mating_transforms if int(mating_transform.header.frame_id.split('_')[1]) == base_object_id and int(mating_transform.child_frame_id.split('_')[1]) == child_object_id), None)
+        transform = next((mating_transform for mating_transform in self.mating_transforms if int(mating_transform.header.frame_id.split('_')
+                         [1]) == base_object_id and int(mating_transform.child_frame_id.split('_')[1]) == child_object_id), None)
         if transform is not None:
-            frame_mating = get_transform(parent_frame=base_object + '/' + '_'.join(transform.header.frame_id.split('_')[2:]), 
+            frame_mating = get_transform(parent_frame=base_object + '/' + '_'.join(transform.header.frame_id.split('_')[2:]),
                                          child_frame=child_object + '/' + '_'.join(transform.child_frame_id.split('_')[2:]),
                                          transform=transform.transform)
             return frame_mating
         else:
             return None
 
-    def publish_assembly_frames(self, assembly_pose = None, prefix=""):
+    def publish_assembly_frames(self, assembly_pose=None, prefix=""):
         '''
         Publish assembly target frames for tf
 
@@ -126,34 +128,34 @@ class AssemblyReader(PartsReader):
             base_transform.transform.translation = conversions.to_vector3(conversions.from_point(assembly_pose.pose.position))
             base_transform.transform.rotation = assembly_pose.pose.orientation
         self.mating_transforms_to_pub = [base_transform]
-        
+
         # Get all transforms in the assembly tree as a list and start publishing it
         for (frame, properties) in all_frames_dict.items():
-            (trans,rot) = self.assembly_tree.lookupTransform(properties['parent'],frame,rospy.Time(0))
+            (trans, rot) = self.assembly_tree.lookupTransform(properties['parent'], frame, rospy.Time(0))
             mating_transform = get_transform(prefix + properties['parent'], prefix + frame, transform=conversions.to_transform(trans + rot))
             self.mating_transforms_to_pub.append(mating_transform)
-        
+
         if self.assembly_frame_pub_timer:
             self.assembly_frame_pub_timer.shutdown()
         rospy.loginfo("Starting to publish frames for assembly " + self.db_name)
         self._broadcaster.sendTransform(self.mating_transforms_to_pub)
-        
+
         # This line and the function below would be used for non-static transforms
         # self.assembly_frame_pub_timer = rospy.Timer(rospy.Duration(3.0), self._pub_frames)
-        
+
     def _pub_frames(self, timerevent):
         for t in self.mating_transforms_to_pub:
             t.header.stamp = rospy.Time.now()
         self._broadcaster.sendTransform(self.mating_transforms_to_pub)
-    
+
     def deactivate_frame_publishing(self, activate=True):
         self.assembly_frame_pub_timer.shutdown()
 
-    def get_assembly_tree(self, collision_objects = []):
+    def get_assembly_tree(self, collision_objects=[]):
         '''
         Return the assembly target represented as a tree of tf transforms
         '''
-        
+
         self.mating_transforms = self._read_frames_to_mate_csv()
         if not self.mating_transforms:
             rospy.loginfo("No assembly tree defined")
@@ -170,7 +172,7 @@ class AssemblyReader(PartsReader):
             mating_transform.header.frame_id = mating_transform.header.frame_id
             mating_transform.child_frame_id = mating_transform.child_frame_id
             self._add_part_to_assembly_tree(assembly_tree, tree_2, mating_transform)
-        
+
         return assembly_tree
 
     def _read_frames_to_mate_csv(self):
@@ -287,14 +289,15 @@ class AssemblyReader(PartsReader):
 
                 tree_1.setTransform(tree_2_frame_transform)
 
+
 def get_transform(parent_frame, child_frame, transformer=None, transform=None):
     t = geometry_msgs.msg.TransformStamped()
     t.header.frame_id = parent_frame
     t.child_frame_id = child_frame
-    
+
     if transform is None:
         assert transformer is not None, "Transformer needs to be defined!"
-        (trans,rot) = transformer.lookupTransform(parent_frame, child_frame, rospy.Time(0))
+        (trans, rot) = transformer.lookupTransform(parent_frame, child_frame, rospy.Time(0))
         t.transform = conversions.to_transform(trans + rot)
     else:
         t.transform = transform
@@ -302,21 +305,21 @@ def get_transform(parent_frame, child_frame, transformer=None, transform=None):
 
 
 if __name__ == '__main__':
-  print("Testing assembly handler.")
-  try:
-    c = AssemblyReader()
-    rospy.init_node('o2ac_assembly_database', anonymous=True)
-    while not rospy.is_shutdown():
-      rospy.loginfo("============ Calibration procedures ============ ")
-      rospy.loginfo("Enter a number to do things with the Assembly Database: ")
-      rospy.loginfo("1: Publish TF tree")
-      rospy.loginfo("2: Publish parts to the scene")
-      r = raw_input()
-      if r == '1':
-        c.publish_assembly_frames()
-      if r == '2':
-        print("Not yet implemented")
-      if r == 'x':
-        break
-  except Exception as e:
-    print("Received error:" + type(e))
+    print("Testing assembly handler.")
+    try:
+        c = AssemblyReader()
+        rospy.init_node('o2ac_assembly_database', anonymous=True)
+        while not rospy.is_shutdown():
+            rospy.loginfo("============ Calibration procedures ============ ")
+            rospy.loginfo("Enter a number to do things with the Assembly Database: ")
+            rospy.loginfo("1: Publish TF tree")
+            rospy.loginfo("2: Publish parts to the scene")
+            r = raw_input()
+            if r == '1':
+                c.publish_assembly_frames()
+            if r == '2':
+                print("Not yet implemented")
+            if r == 'x':
+                break
+    except Exception as e:
+        print("Received error:" + type(e))

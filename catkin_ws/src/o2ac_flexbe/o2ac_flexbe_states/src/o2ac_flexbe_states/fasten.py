@@ -22,7 +22,8 @@ class FastenActionState(EventState):
         super(FastenActionState, self).__init__(outcomes=['success', 'error'])
 
         self._topic = 'o2ac_flexbe/fasten'
-        self._client = ProxyActionClient({self._topic: FastenAction})  # pass required clients as dict (topic: type)
+        # pass required clients as dict (topic: type)
+        self._client = ProxyActionClient({self._topic: FastenAction})
         self._task_name = task_name
         self._object_name = object_name
 

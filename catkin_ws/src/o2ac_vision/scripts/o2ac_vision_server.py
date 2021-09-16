@@ -34,6 +34,24 @@
 #
 # Author: Felix von Drigalski
 
+import o2ac_vision.o2ac_ssd
+from o2ac_vision.cam_utils import CAMERA_FAILURE, O2ACCameraHelper
+from o2ac_vision.pose_estimation_func import PulleyScrewDetection
+from o2ac_vision.pose_estimation_func import PickCheck
+from o2ac_vision.pose_estimation_func import ShaftAnalysis
+from o2ac_vision.pose_estimation_func import FastGraspabilityEvaluation
+from o2ac_vision.pose_estimation_func import MotorOrientation, ShaftHoleDetection, TemplateMatching
+from aist_model_spawner import ModelSpawnerClient
+from aist_new_localization import LocalizationClient
+from aist_depth_filter import DepthFilterClient
+import std_srvs.srv
+import std_msgs.msg
+import visualization_msgs.msg
+import geometry_msgs.msg
+import o2ac_msgs.msg
+import sensor_msgs.msg
+import cv_bridge  # This offers conversion methods between OpenCV
+import cv2
 import rospy
 import tf
 import tf_conversions
@@ -47,36 +65,16 @@ import actionlib
 import numpy as np
 from math import pi, radians, degrees
 tau = 2.0*pi  # Part of math from Python 3.6
-import cv2
-import cv_bridge  # This offers conversion methods between OpenCV
-                  # and ROS formats
-                  # See here:
-                  #   http://wiki.ros.org/cv_bridge/Tutorials/ConvertingBetweenROSImagesAndOpenCVImagesPython
-                  # Note that a similar package exists for PCL:
-                  #   http://wiki.ros.org/pcl_ros
+# and ROS formats
+# See here:
+#   http://wiki.ros.org/cv_bridge/Tutorials/ConvertingBetweenROSImagesAndOpenCVImagesPython
+# Note that a similar package exists for PCL:
+#   http://wiki.ros.org/pcl_ros
 
-import sensor_msgs.msg
-import o2ac_msgs.msg
-import geometry_msgs.msg
-import visualization_msgs.msg
-import std_msgs.msg
-import std_srvs.srv
 
-from aist_depth_filter     import DepthFilterClient
-from aist_new_localization import LocalizationClient
-from aist_model_spawner    import ModelSpawnerClient
-
-from o2ac_vision.pose_estimation_func import MotorOrientation, ShaftHoleDetection, TemplateMatching
-from o2ac_vision.pose_estimation_func import FastGraspabilityEvaluation
-from o2ac_vision.pose_estimation_func import ShaftAnalysis
-from o2ac_vision.pose_estimation_func import PickCheck
-from o2ac_vision.pose_estimation_func import PulleyScrewDetection
-
-from o2ac_vision.cam_utils import CAMERA_FAILURE, O2ACCameraHelper
-
-import o2ac_vision.o2ac_ssd
 ssd_detection = o2ac_vision.o2ac_ssd.ssd_detection(rospy.get_param('~pth_file_name', "WRS.pth"))
 print("Loaded SSD from file: ", ssd_detection)
+
 
 class O2ACVisionServer(object):
     """
@@ -97,7 +95,6 @@ class O2ACVisionServer(object):
                              "threshold": 0.01}
         self._param_fge = rospy.get_param('~param_fge', default_param_fge)
 
-
         # Load parameters for localization
         self._param_localization = rospy.get_param('~localization_parameters')
         self._models = tuple(part_id
@@ -108,7 +105,7 @@ class O2ACVisionServer(object):
         background_file = self.rospack.get_path("o2ac_vision") + "/config/shaft_background.png"
         self.shaft_bg_image = cv2.imread(background_file, 0)
 
-        shaft_w_hole_file  = self.rospack.get_path("o2ac_vision") + "/config/shaft_w_hole.png"
+        shaft_w_hole_file = self.rospack.get_path("o2ac_vision") + "/config/shaft_w_hole.png"
         shaft_wo_hole_file = self.rospack.get_path("o2ac_vision") + "/config/shaft_wo_hole.png"
         sdh_bbox = rospy.get_param("shaft_hole_detection/bbox", [375, 278, 90, 90])
         self.shaft_hole_detector = ShaftHoleDetection(shaft_w_hole_file, shaft_wo_hole_file, sdh_bbox)
@@ -126,9 +123,9 @@ class O2ACVisionServer(object):
             rospy.logwarn("Localization action server is not running because SSD results are being streamed! Turn off continuous mode to use localization.")
         else:
             # Clients for depth filtering and localization
-            self._dfilter   = DepthFilterClient('depth_filter')
+            self._dfilter = DepthFilterClient('depth_filter')
             self._localizer = LocalizationClient('localization')
-            self._spawner   = ModelSpawnerClient('model_spawner')
+            self._spawner = ModelSpawnerClient('model_spawner')
 
             # Action server for 2D localization by SSD
             self.get_2d_poses_from_ssd_server \
@@ -208,8 +205,8 @@ class O2ACVisionServer(object):
         self.depth_sub \
             = message_filters.Subscriber('/depth', sensor_msgs.msg.Image)
         sync = message_filters.ApproximateTimeSynchronizer(
-                [self.camera_info_sub, self.image_sub, self.depth_sub],
-                10, 0.01)
+            [self.camera_info_sub, self.image_sub, self.depth_sub],
+            10, 0.01)
         sync.registerCallback(self.synced_images_callback)
 
         self.bridge = cv_bridge.CvBridge()
@@ -219,28 +216,28 @@ class O2ACVisionServer(object):
                                            o2ac_msgs.msg.Estimated2DPosesArray,
                                            queue_size=1)
         self.pulley_screw_detection_pub = rospy.Publisher('~activate_pulley_screw_detection',
-                                           std_msgs.msg.Bool,
-                                           queue_size=1)
+                                                          std_msgs.msg.Bool,
+                                                          queue_size=1)
 
         # Setup publisher for output result image
         self.image_pub = rospy.Publisher('~result_image',
                                          sensor_msgs.msg.Image, queue_size=1)
 
         # For visualization
-        self.cam_helper             = O2ACCameraHelper()
-        self.listener               = tf.TransformListener()
+        self.cam_helper = O2ACCameraHelper()
+        self.listener = tf.TransformListener()
         self.pose_marker_id_counter = 0
-        self.pose_marker_array      = 0
-        self._camera_info           = None
-        self._depth                 = None
+        self.pose_marker_array = 0
+        self._camera_info = None
+        self._depth = None
         self.marker_array_pub = rospy.Publisher(
-                                        '~result_marker_arrays',
-                                        visualization_msgs.msg.MarkerArray,
-                                        queue_size=1)
+            '~result_marker_arrays',
+            visualization_msgs.msg.MarkerArray,
+            queue_size=1)
 
         rospy.loginfo("O2AC_vision has started up!")
 
-    ### ======= Callbacks of action servers
+    # ======= Callbacks of action servers
 
     def get_2d_poses_from_ssd_goal_callback(self):
         print("get_2d_poses_from_ssd called")
@@ -265,13 +262,13 @@ class O2ACVisionServer(object):
     def pick_success_callback(self):
         self.pick_success_server.accept_new_goal()
 
-### ======= Callbacks of subscribed topics
+# ======= Callbacks of subscribed topics
 
     def synced_images_callback(self, camera_info, image, depth):
         self._camera_info = camera_info
-        self._depth       = depth
+        self._depth = depth
 
-        im_in  = self.bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
+        im_in = self.bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
         im_vis = im_in.copy()
 
         if self.pulley_screw_detection_stream_active:
@@ -322,7 +319,7 @@ class O2ACVisionServer(object):
         res.success = True
         return res
 
-### ======= Process active goals of action servers
+# ======= Process active goals of action servers
 
     def execute_get_2d_poses_from_ssd(self, im_in, im_vis):
         rospy.loginfo("Executing get_2d_poses_from_ssd action")
@@ -338,8 +335,8 @@ class O2ACVisionServer(object):
 
         poses2d_array, im_vis = self.get_2d_poses_from_ssd(im_in, im_vis)
         action_result = o2ac_msgs.msg.get3DPosesFromSSDResult()
-        action_result.poses       = []
-        action_result.class_ids   = []
+        action_result.poses = []
+        action_result.class_ids = []
         action_result.upside_down = []
         success = True
         for poses2d in poses2d_array:
@@ -351,7 +348,7 @@ class O2ACVisionServer(object):
                     action_result.upside_down.append(poses2d.upside_down)
         if not success:
             action_result = o2ac_msgs.msg.get3DPosesFromSSDResult()
-            action_result.class_ids   = [-1]
+            action_result.class_ids = [-1]
         self.get_3d_poses_from_ssd_server.set_succeeded(action_result)
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
 
@@ -375,9 +372,9 @@ class O2ACVisionServer(object):
         for poses2d in poses2d_array:
             poses3d = o2ac_msgs.msg.Estimated3DPoses()
             poses3d.class_id = poses2d.class_id
-            poses3d.poses    = self.localize(self.item_id(poses2d.class_id),
-                                             poses2d.bbox, poses2d.poses,
-                                             im_in.shape)
+            poses3d.poses = self.localize(self.item_id(poses2d.class_id),
+                                          poses2d.bbox, poses2d.poses,
+                                          im_in.shape)
             if poses3d.poses:
                 action_result.detected_poses.append(poses3d)
                 # Spawn URDF models
@@ -474,7 +471,7 @@ class O2ACVisionServer(object):
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
         self.write_to_log(im_in, im_vis, "pick_success")
 
-### ======= Localization helpers
+# ======= Localization helpers
 
     def get_2d_poses_from_ssd(self, im_in, im_vis):
         """
@@ -489,17 +486,17 @@ class O2ACVisionServer(object):
         self.reset_pose_markers()
 
         # Pose estimation
-        poses2d_array            = []                      # Contains all results
-        apply_2d_pose_estimation = [8,9,10,14]             # Small items --> Neural Net
-        apply_3d_pose_estimation = [1,2,3,4,5,7,11,12,13]  # Large items --> CAD matching
-        apply_grasp_detection    = [6]                     # Belt --> Fast Grasp Estimation
+        poses2d_array = []                      # Contains all results
+        apply_2d_pose_estimation = [8, 9, 10, 14]             # Small items --> Neural Net
+        apply_3d_pose_estimation = [1, 2, 3, 4, 5, 7, 11, 12, 13]  # Large items --> CAD matching
+        apply_grasp_detection = [6]                     # Belt --> Fast Grasp Estimation
 
         for ssd_result in ssd_results:
-            target  = ssd_result["class"]
-            poses2d = o2ac_msgs.msg.Estimated2DPoses() # Stores the result for one item/class id
-            poses2d.class_id    = target
-            poses2d.confidence  = ssd_result["confidence"]
-            poses2d.bbox        = ssd_result["bbox"]
+            target = ssd_result["class"]
+            poses2d = o2ac_msgs.msg.Estimated2DPoses()  # Stores the result for one item/class id
+            poses2d.class_id = target
+            poses2d.confidence = ssd_result["confidence"]
+            poses2d.bbox = ssd_result["bbox"]
             poses2d.upside_down = ssd_result["state"]
 
             if target in apply_2d_pose_estimation:
@@ -513,9 +510,9 @@ class O2ACVisionServer(object):
                 rospy.loginfo("Seeing object id %d. Apply 3D pose estimation",
                               target)
                 pose2d = geometry_msgs.msg.Pose2D(
-                            int(poses2d.bbox[0] + round(poses2d.bbox[2]/2)),
-                            int(poses2d.bbox[1] + round(poses2d.bbox[3]/2)),
-                            0)
+                    int(poses2d.bbox[0] + round(poses2d.bbox[2]/2)),
+                    int(poses2d.bbox[1] + round(poses2d.bbox[3]/2)),
+                    0)
                 poses2d.poses = [pose2d]
 
             elif target in apply_grasp_detection:
@@ -587,7 +584,7 @@ class O2ACVisionServer(object):
 
         return geometry_msgs.msg.Pose2D(center[1], center[0],
                                         radians(orientation)), \
-               im_vis
+            im_vis
 
     def belt_grasp_detection_in_image(self, im_in, im_vis, ssd_result):
         """
@@ -597,10 +594,10 @@ class O2ACVisionServer(object):
         start = time.time()
 
         # Generation of a hand template
-        im_hand = np.zeros( (60,60), np.float )
-        hand_width = 20 #in pixel
-        im_hand[20:20+hand_width,0:10] = 1
-        im_hand[20:20+hand_width,50:60] = 1
+        im_hand = np.zeros((60, 60), np.float)
+        hand_width = 20  # in pixel
+        im_hand[20:20+hand_width, 0:10] = 1
+        im_hand[20:20+hand_width, 50:60] = 1
 
         bbox = ssd_result["bbox"]
         margin = 30
@@ -621,11 +618,11 @@ class O2ACVisionServer(object):
                                                                   left_right])
 
         # Subtracting tau/4 (90 degrees) to the rotation result to match the gripper_tip_link orientation
-        return [ geometry_msgs.msg.Pose2D(result[1] + (bbox[0] - margin),
-                                          result[0] + (bbox[1] - margin),
-                                          radians(result[2])-tau/4)
-                 for result in results ], \
-               im_vis
+        return [geometry_msgs.msg.Pose2D(result[1] + (bbox[0] - margin),
+                                         result[0] + (bbox[1] - margin),
+                                         radians(result[2])-tau/4)
+                for result in results], \
+            im_vis
 
     def detect_angle_from_front_view(self, im_in, im_vis):
         """
@@ -662,17 +659,17 @@ class O2ACVisionServer(object):
         if item_id == "belt":
             class_id = 6
         pc = PickCheck(ssd_detection)
-        pick_successful = pc.check( im_in, class_id )
+        pick_successful = pc.check(im_in, class_id)
         im_vis = pc.get_im_result()
         return pick_successful, im_vis
 
     def localize(self, item_id, bbox, poses2d, shape):
         # (u0, v0)/(u1, v1): upper-left/lower-right corner of bbox
         margin = 30
-        u0     = bbox[0] - margin
-        v0     = bbox[1] - margin
-        u1     = bbox[0] + bbox[2] + margin
-        v1     = bbox[1] + bbox[3] + margin
+        u0 = bbox[0] - margin
+        v0 = bbox[1] - margin
+        u1 = bbox[0] + bbox[2] + margin
+        v1 = bbox[1] + bbox[3] + margin
 
         # Setup ROI for depth filter.
         self._dfilter.roi = (u0, v0, u1, v1)
@@ -737,33 +734,33 @@ class O2ACVisionServer(object):
             im_gray = cv2.cvtColor(im_in, cv2.COLOR_BGR2GRAY)
         else:
             im_gray = im_in
-        bbox = [300,180,200,120]   # (x,y,w,h)      bbox of search area
+        bbox = [300, 180, 200, 120]   # (x,y,w,h)      bbox of search area
         s = PulleyScrewDetection(im_gray, self.pulley_screws_template_image, bbox)
         score, detected = s.main_proc()
         print("Screws detected: ", detected)
         print("Score: ", score)
-        
+
         text2 = "Score: %.2f%%                   " % (score*100.0)
         if score > 0.69:
-            color = (0,255,0)
+            color = (0, 255, 0)
         else:
-            color = (0,0,255)
-        
-        im_vis = cv2.putText(im_vis, text2, (bbox[0]-120, bbox[1]-30), 0, 1.5, (255,255,255), 7, cv2.LINE_AA)
+            color = (0, 0, 255)
+
+        im_vis = cv2.putText(im_vis, text2, (bbox[0]-120, bbox[1]-30), 0, 1.5, (255, 255, 255), 7, cv2.LINE_AA)
         im_vis = cv2.putText(im_vis, text2, (bbox[0]-120, bbox[1]-30), 0, 1.5, color, 4, cv2.LINE_AA)
-        
-        im_vis = cv2.rectangle( im_vis, (bbox[0],  bbox[1]), (bbox[0]+bbox[2], bbox[1]+bbox[3]), color, 6)
+
+        im_vis = cv2.rectangle(im_vis, (bbox[0],  bbox[1]), (bbox[0]+bbox[2], bbox[1]+bbox[3]), color, 6)
         return detected
 
     def motor_angle_detection_from_top(self, im_in, im_vis):
         """
         When looking at the motor from the top, detects the cables and returns their position.
-        
+
         Return values:
         motor_seen: bool (False if no motor in view)
         motor_rotation_flag: int (0:right, 1:left, 2:top, 3:bottom  (documented in pose_estimation_func))
         im_vis: Result visualization
-        """        
+        """
         ssd_results, im_vis = self.detect_object_in_image(im_in, im_vis)
 
         m = MotorOrientation()
@@ -774,9 +771,9 @@ class O2ACVisionServer(object):
             return motor_seen, radians(angle_orientation), im_vis
         else:
             return False, 0.0, im_vis
-        
 
-### ========
+
+# ========
 
     def convert_pose_2d_to_3d(self, pose2d):
         """
@@ -814,10 +811,10 @@ class O2ACVisionServer(object):
         now = datetime.now()
         timeprefix = now.strftime("%Y-%m-%d_%H:%M:%S")
         folder = os.path.join(self.rospack.get_path("o2ac_vision"), "log")
-        cv2.imwrite(os.path.join(folder, timeprefix + "_" + action_name + "_in.png") , img_in)
-        cv2.imwrite(os.path.join(folder, timeprefix + "_" + action_name + "_out.png") , img_out)
+        cv2.imwrite(os.path.join(folder, timeprefix + "_" + action_name + "_in.png"), img_in)
+        cv2.imwrite(os.path.join(folder, timeprefix + "_" + action_name + "_out.png"), img_out)
 
-### ========  Visualization
+# ========  Visualization
 
     def publish_belt_grasp_pose_markers(self, grasp_poses_3d):
         # Clear the namespace first
@@ -847,7 +844,7 @@ class O2ACVisionServer(object):
             p0.header.frame_id = helper_frame_name
             p0.header.stamp = rospy.Time(0.0)
             p0.pose.position = geometry_msgs.msg.Point(0, 0, 0)
-            p0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0,0,0))
+            p0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
 
             # Define first marker
             i += 1
@@ -895,7 +892,6 @@ class O2ACVisionServer(object):
 
             marker_array.markers.append(gripper_pad_marker)
 
-
             i += 1
             gripper_pad_marker2 = copy.deepcopy(gripper_pad_marker)
             gripper_pad_marker2.id = i
@@ -925,7 +921,7 @@ class O2ACVisionServer(object):
                 arrow_y = copy.deepcopy(arrow_marker)
                 arrow_y.id = i
                 p = copy.deepcopy(p0)
-                p.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0,0,tau/4))
+                p.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, tau/4))
                 p = self.listener.transformPose(base_frame_name, p)
                 arrow_y.pose = p.pose
 
@@ -933,7 +929,7 @@ class O2ACVisionServer(object):
                 arrow_z = copy.deepcopy(arrow_marker)
                 arrow_z.id = i
                 p = copy.deepcopy(p0)
-                p.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0,-tau/4,0))
+                p.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, -tau/4, 0))
                 p = self.listener.transformPose(base_frame_name, p)
                 arrow_z.pose = p.pose
 
@@ -989,9 +985,9 @@ class O2ACVisionServer(object):
             p0.header.frame_id = helper_frame_name
             p0.header.stamp = rospy.Time(0.0)
             p0.pose.position = geometry_msgs.msg.Point(0, 0, 0)
-            p0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0,0,0))
+            p0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
 
-            ## Draw arrows
+            # Draw arrows
             arrow_marker = visualization_msgs.msg.Marker()
             arrow_marker.ns = "/objects"
             arrow_marker.id = i
@@ -1006,7 +1002,7 @@ class O2ACVisionServer(object):
             arrow_x = copy.deepcopy(arrow_marker)
             arrow_x.id = i
             p = copy.deepcopy(p0)
-            p.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0,0,0))
+            p.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
             p = self.listener.transformPose(base_frame_name, p)
             arrow_x.pose = p.pose
 
@@ -1014,7 +1010,7 @@ class O2ACVisionServer(object):
             arrow_y = copy.deepcopy(arrow_marker)
             arrow_y.id = i
             p = copy.deepcopy(p0)
-            p.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0,0,tau/4))
+            p.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, tau/4))
             p = self.listener.transformPose(base_frame_name, p)
             arrow_y.pose = p.pose
 
@@ -1022,7 +1018,7 @@ class O2ACVisionServer(object):
             arrow_z = copy.deepcopy(arrow_marker)
             arrow_z.id = i
             p = copy.deepcopy(p0)
-            p.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0,-tau/4,0))
+            p.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, -tau/4, 0))
             p = self.listener.transformPose(base_frame_name, p)
             arrow_z.pose = p.pose
 
@@ -1034,6 +1030,7 @@ class O2ACVisionServer(object):
             self.pose_marker_array.markers.append(arrow_y)
             self.pose_marker_array.markers.append(arrow_z)
         self.pose_marker_id_counter = i
+
 
 if __name__ == '__main__':
     rospy.init_node('o2ac_vision_server', anonymous=False)

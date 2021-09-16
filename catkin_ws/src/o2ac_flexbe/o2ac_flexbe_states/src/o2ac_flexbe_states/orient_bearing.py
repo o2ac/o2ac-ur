@@ -18,10 +18,16 @@ class OrientBearingActionState(EventState):
     '''
 
     def __init__(self, task_name):
-        super(OrientBearingActionState, self).__init__(outcomes=['success', 'error'])
+        super(
+            OrientBearingActionState,
+            self).__init__(
+            outcomes=[
+                'success',
+                'error'])
 
         self._topic = 'o2ac_flexbe/fasten_bearing'
-        self._client = ProxyActionClient({self._topic: OrientBearingAction})  # pass required clients as dict (topic: type)
+        # pass required clients as dict (topic: type)
+        self._client = ProxyActionClient({self._topic: OrientBearingAction})
         self._task_name = task_name
 
         self._success = False
@@ -52,7 +58,9 @@ class OrientBearingActionState(EventState):
         try:
             self._client.send_goal(self._topic, goal)
         except Exception as e:
-            Logger.logwarn('Failed to send the OrientBearing command:\n%s' % str(e))
+            Logger.logwarn(
+                'Failed to send the OrientBearing command:\n%s' %
+                str(e))
             self._success = False
 
     def on_exit(self, userdata):

@@ -145,12 +145,12 @@ class URForceController(CompliantController):
         return self.execute_trajectory(*args, **kwargs)
 
     def execute_trajectory(self, plane, max_radius, radius_direction=None,
-                            steps=100, revolutions=5,
-                            wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0,
-                            target_force=None, selection_matrix=None, timeout=10.,
-                            displacement_epsilon=0.002, check_displacement_time=2.0,
-                            termination_criteria=None, config_file=None,
-                            end_effector_link=None, trajectory_type="spiral"):
+                           steps=100, revolutions=5,
+                           wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0,
+                           target_force=None, selection_matrix=None, timeout=10.,
+                           displacement_epsilon=0.002, check_displacement_time=2.0,
+                           termination_criteria=None, config_file=None,
+                           end_effector_link=None, trajectory_type="spiral"):
         from_center = True if trajectory_type == "spiral" else False
         eff = self.default_tcp_link if not end_effector_link else end_effector_link
         direction = radius_direction if radius_direction else helpers.get_random_valid_direction(plane)
@@ -188,7 +188,7 @@ class URForceController(CompliantController):
         if "Z" in direction:
             target_force = get_target_force(direction, force)
         else:
-            offset = 1 if self.robot_name == "b_bot" else -1 # account for robot's mirror position
+            offset = 1 if self.robot_name == "b_bot" else -1  # account for robot's mirror position
             target_force = offset * get_target_force(direction, force)
 
         if selection_matrix is None:
@@ -230,7 +230,7 @@ class URForceController(CompliantController):
         if "Z" in insertion_direction:
             target_force = get_target_force(insertion_direction, force)
         else:
-            offset = 1 if self.robot_name == "b_bot" else -1 # account for robot's mirror position
+            offset = 1 if self.robot_name == "b_bot" else -1  # account for robot's mirror position
             target_force = offset * get_target_force(insertion_direction, force)
 
         if selection_matrix is None:

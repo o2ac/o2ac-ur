@@ -23,7 +23,8 @@ class InsertActionState(EventState):
         super(InsertActionState, self).__init__(outcomes=['success', 'error'])
 
         self._topic = 'o2ac_flexbe/force_insertion'
-        self._client = ProxyActionClient({self._topic: InsertAction})  # pass required clients as dict (topic: type)
+        # pass required clients as dict (topic: type)
+        self._client = ProxyActionClient({self._topic: InsertAction})
         self._robot_name = robot_name
         self._task_name = task_name
         self._object_name = object_name
@@ -40,11 +41,15 @@ class InsertActionState(EventState):
             Logger.logwarn('insert result %s' % str(result))  # for debug
 
             if not result.success:
-                Logger.logwarn('Fail to complete insertion of %s in task %s' % (self._object_name, self._task_name))
+                Logger.logwarn(
+                    'Fail to complete insertion of %s in task %s' %
+                    (self._object_name, self._task_name))
                 self._success = False
                 return 'error'
             else:
-                Logger.logwarn('Succeed! completed insertion of %s in task %s' % (self._object_name, self._task_name))
+                Logger.logwarn(
+                    'Succeed! completed insertion of %s in task %s' %
+                    (self._object_name, self._task_name))
                 self._success = True
                 return 'success'
 
@@ -58,7 +63,9 @@ class InsertActionState(EventState):
         try:
             self._client.send_goal(self._topic, goal)
         except Exception as e:
-            Logger.logwarn('Failed to send the Insertion command:\n%s' % str(e))
+            Logger.logwarn(
+                'Failed to send the Insertion command:\n%s' %
+                str(e))
             self._success = False
 
     def on_exit(self, userdata):

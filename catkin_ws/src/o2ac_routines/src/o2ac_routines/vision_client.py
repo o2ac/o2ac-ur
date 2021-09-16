@@ -42,8 +42,9 @@ import std_srvs.srv
 import std_msgs.msg
 import geometry_msgs.msg
 
-from o2ac_routines.helpers import check_for_real_robot#, lock_vision
+from o2ac_routines.helpers import check_for_real_robot  # , lock_vision
 import threading
+
 
 class VisionClient():
     def __init__(self):

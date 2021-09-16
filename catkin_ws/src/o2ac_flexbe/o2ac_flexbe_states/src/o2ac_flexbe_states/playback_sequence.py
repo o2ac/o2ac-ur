@@ -8,7 +8,7 @@ from o2ac_msgs.msg import PlayBackSequenceAction, PlayBackSequenceGoal
 
 class PlayBackActionState(EventState):
     '''
-    Actionlib for executing a playback sequence 
+    Actionlib for executing a playback sequence
 
     -- sequence_name        string  Name of the recorded playback sequence
 
@@ -18,10 +18,16 @@ class PlayBackActionState(EventState):
     '''
 
     def __init__(self, sequence_name):
-        super(PlayBackActionState, self).__init__(outcomes=['success', 'error'])
+        super(
+            PlayBackActionState,
+            self).__init__(
+            outcomes=[
+                'success',
+                'error'])
 
         self._topic = 'o2ac_flexbe/playback_sequence'
-        self._client = ProxyActionClient({self._topic: PlayBackSequenceAction})  # pass required clients as dict (topic: type)
+        # pass required clients as dict (topic: type)
+        self._client = ProxyActionClient({self._topic: PlayBackSequenceAction})
         self._sequence_name = sequence_name
 
         self._success = False
@@ -52,7 +58,9 @@ class PlayBackActionState(EventState):
         try:
             self._client.send_goal(self._topic, goal)
         except Exception as e:
-            Logger.logwarn('Failed to send the PlayBackSequence command:\n%s' % str(e))
+            Logger.logwarn(
+                'Failed to send the PlayBackSequence command:\n%s' %
+                str(e))
             self._success = False
 
     def on_exit(self, userdata):

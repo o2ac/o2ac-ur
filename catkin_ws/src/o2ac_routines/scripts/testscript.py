@@ -43,9 +43,9 @@ goal.pose.orientation = geometry_msgs.msg.Quaternion(0.0042461, 0.51239, -0.0187
 waypoints = []
 waypoints.append(goal.pose)
 (plan, fraction) = group.compute_cartesian_path(
-                                      waypoints,   # waypoints to follow
-                                      0.01,        # eef_step
-                                      0.0)         # jump_threshold
+    waypoints,   # waypoints to follow
+    0.01,        # eef_step
+    0.0)         # jump_threshold
 rospy.loginfo("Compute cartesian path succeeded " + str(fraction*100) + "%")
 plan = group.retime_trajectory(robot.get_current_state(), plan, 1.0)
 group.execute(plan, wait=True)

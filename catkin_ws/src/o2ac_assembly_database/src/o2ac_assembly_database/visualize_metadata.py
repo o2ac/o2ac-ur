@@ -50,6 +50,7 @@ from o2ac_assembly_database.assembly_reader import AssemblyReader
 import o2ac_routines.helpers as helpers
 from math import pi
 
+
 class MetadataVisualizer():
     '''Class for object metadata visualization
     '''
@@ -68,17 +69,17 @@ class MetadataVisualizer():
         # 'robotiq_85_right_finger_link']
 
         self._gripper_links = ['b_bot_base',
-        'b_bot_left_inner_knuckle',
-        'b_bot_left_outer_knuckle',
-        'b_bot_left_inner_finger',
-        'b_bot_left_inner_finger_pad',
-        'b_bot_right_inner_knuckle',
-        'b_bot_right_outer_knuckle',
-        'b_bot_right_inner_finger',
-        'b_bot_right_inner_finger_pad']
+                               'b_bot_left_inner_knuckle',
+                               'b_bot_left_outer_knuckle',
+                               'b_bot_left_inner_finger',
+                               'b_bot_left_inner_finger_pad',
+                               'b_bot_right_inner_knuckle',
+                               'b_bot_right_outer_knuckle',
+                               'b_bot_right_inner_finger',
+                               'b_bot_right_inner_finger_pad']
 
         self._robot_commander = moveit_commander.RobotCommander()
-        self._gripper_visual = self._robot_commander.get_robot_markers({},self._gripper_links)
+        self._gripper_visual = self._robot_commander.get_robot_markers({}, self._gripper_links)
 
         self._pub = rospy.Publisher('o2ac_metadata_visualizer', visualization_msgs.msg.MarkerArray, queue_size=100)
         self._transformer = tf.Transformer(True, rospy.Duration(10.0))
@@ -98,7 +99,7 @@ class MetadataVisualizer():
         transform.transform.rotation = child_pose.orientation
         return transform
 
-    def add_object_marker(self, assembly_name, mesh_file_name, object_pose, mesh_pose, namespace = 'object', marker_array_to_append_to=""):
+    def add_object_marker(self, assembly_name, mesh_file_name, object_pose, mesh_pose, namespace='object', marker_array_to_append_to=""):
         '''Add a marker of an object from o2ac_assembly_database to a MarkerArray to be displayed in rviz
         The assembly name is the name of the assembly (folder) in which the mesh file of the object can be found
         The mesh_file_name should be the name of a mesh of one objects in the o2ac_assembly_database package
@@ -132,7 +133,7 @@ class MetadataVisualizer():
 
         return(marker_array_to_append_to)
 
-    def add_frames(self, frame_names, poses, reference_frame = 'object', marker_array_to_append_to=""):
+    def add_frames(self, frame_names, poses, reference_frame='object', marker_array_to_append_to=""):
         '''Add markers visualizing coordinate frames to a MarkerArray
         The 'frame_names' are also displayed as text in the visualization
         The input 'poses' is a list of poses for the frames relative to the 'reference_frame'
@@ -162,13 +163,13 @@ class MetadataVisualizer():
             y_transform = geometry_msgs.msg.TransformStamped()
             y_transform.header.frame_id = frame
             y_transform.child_frame_id = frame + '_y'
-            y_transform.transform.rotation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_about_axis(pi/2, (0,0,1)).tolist())
+            y_transform.transform.rotation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_about_axis(pi/2, (0, 0, 1)).tolist())
             transformer.setTransform(y_transform)
 
             z_transform = geometry_msgs.msg.TransformStamped()
             z_transform.header.frame_id = frame
             z_transform.child_frame_id = frame + '_z'
-            z_transform.transform.rotation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_about_axis(-pi/2, (0,1,0)).tolist())
+            z_transform.transform.rotation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_about_axis(-pi/2, (0, 1, 0)).tolist())
             transformer.setTransform(z_transform)
 
             global_pose = geometry_msgs.msg.Pose()
@@ -208,10 +209,10 @@ class MetadataVisualizer():
             arrow_z.color.b = 1.0
 
             (trans, rot) = transformer.lookupTransform('world', frame + '_y', rospy.Time(0))
-            arrow_y.pose.orientation =  geometry_msgs.msg.Quaternion(*rot)
+            arrow_y.pose.orientation = geometry_msgs.msg.Quaternion(*rot)
 
             (trans, rot) = transformer.lookupTransform('world', frame + '_z', rospy.Time(0))
-            arrow_z.pose.orientation =  geometry_msgs.msg.Quaternion(*rot)
+            arrow_z.pose.orientation = geometry_msgs.msg.Quaternion(*rot)
 
             marker_array_to_append_to.markers.append(arrow_x)
             marker_array_to_append_to.markers.append(arrow_y)
@@ -237,14 +238,13 @@ class MetadataVisualizer():
 
         return(marker_array_to_append_to)
 
-
-    def publish_gripper_marker_array(self, frame = 'world'):
+    def publish_gripper_marker_array(self, frame='world'):
         '''Publish markers to visualize the gripper.
         The gripper is shown with 'gripper_tip_link' moved to 'frame'.
         '''
 
         g_transform = geometry_msgs.msg.TransformStamped()
-        (g_trans,g_rot) = self._transformer.lookupTransform('world', frame, rospy.Time(0))
+        (g_trans, g_rot) = self._transformer.lookupTransform('world', frame, rospy.Time(0))
         g_transform.header.frame_id = 'world'
         g_transform.child_frame_id = frame
         g_transform.transform.translation = geometry_msgs.msg.Vector3(*g_trans)
@@ -256,13 +256,14 @@ class MetadataVisualizer():
 
         tip_link = self._robot_commander.get_link('gripper_tip_link')
         tip_link_translation = tf.transformations.translation_matrix((tip_link.pose().pose.position.x, tip_link.pose().pose.position.y, tip_link.pose().pose.position.z))
-        tip_link_rotation = tf.transformations.quaternion_matrix((tip_link.pose().pose.orientation.x, tip_link.pose().pose.orientation.y, tip_link.pose().pose.orientation.z, tip_link.pose().pose.orientation.w))
+        tip_link_rotation = tf.transformations.quaternion_matrix((tip_link.pose().pose.orientation.x, tip_link.pose().pose.orientation.y,
+                                                                 tip_link.pose().pose.orientation.z, tip_link.pose().pose.orientation.w))
         gripper_base_in_tip_link = tf.transformations.inverse_matrix(np.matmul(tip_link_translation, tip_link_rotation))
 
         translation = tf.transformations.translation_from_matrix(gripper_base_in_tip_link).tolist()
         quaternion = tf.transformations.quaternion_from_matrix(gripper_base_in_tip_link).tolist()
 
-        gripper_base_transform =  geometry_msgs.msg.TransformStamped()
+        gripper_base_transform = geometry_msgs.msg.TransformStamped()
         gripper_base_transform.header.frame_id = frame
         gripper_base_transform.child_frame_id = 'gripper_base'
         gripper_base_transform.transform.translation = geometry_msgs.msg.Vector3(*translation)
@@ -274,12 +275,12 @@ class MetadataVisualizer():
         for link in self._gripper_links:
             robot_link = self._robot_commander.get_link(link)
             transformer.setTransform(self._to_transform_stamped('gripper_base', link, robot_link.pose().pose))
-            (trans,rot) = transformer.lookupTransform('world', link, rospy.Time(0))
+            (trans, rot) = transformer.lookupTransform('world', link, rospy.Time(0))
             global_pose = geometry_msgs.msg.Pose()
             global_pose.position = geometry_msgs.msg.Point(*trans)
             global_pose.orientation = geometry_msgs.msg.Quaternion(*rot)
             poses.append(global_pose)
-        
+
         i = 0
         for (pose, marker) in zip(poses, self._gripper_visual.markers):
             marker.header.frame_id = 'world'
@@ -292,8 +293,8 @@ class MetadataVisualizer():
 
         rospy.sleep(1)
         self._pub.publish(self._gripper_visual)
-    
-    def add_grasp_viz(self, grasps, namespace = '', marker_array_to_append_to=""):
+
+    def add_grasp_viz(self, grasps, namespace='', marker_array_to_append_to=""):
         '''Add to a MarkerArray markers visualizing the input 'grasps'.
         The arrows point along the 'x' axis of the grasp frames, with an offset of -0.15 from the origin along the 'x' axis.
         Two pad markers are spaced apart on the 'y' axis. Opening width is not considered.
@@ -307,7 +308,7 @@ class MetadataVisualizer():
         for grasp in grasps:
             grasp_counter += 1
             g_transform = geometry_msgs.msg.TransformStamped()
-            (g_trans,g_rot) = self._transformer.lookupTransform('world', grasp, rospy.Time(0))
+            (g_trans, g_rot) = self._transformer.lookupTransform('world', grasp, rospy.Time(0))
             g_transform.header.frame_id = 'world'
             g_transform.child_frame_id = grasp
             g_transform.transform.translation = geometry_msgs.msg.Vector3(*g_trans)
@@ -331,9 +332,9 @@ class MetadataVisualizer():
             gripper_pad_transform_r.transform.translation.y += 0.01
             transformer.setTransform(gripper_pad_transform_r)
 
-            (trans,rot) = transformer.lookupTransform('world', 'arrow_' + str(i), rospy.Time(0))
-            (trans_pad_l,rot_pad_l) = transformer.lookupTransform('world', 'pad_l_' + str(i), rospy.Time(0))
-            (trans_pad_r,rot_pad_r) = transformer.lookupTransform('world', 'pad_r_' + str(i), rospy.Time(0))
+            (trans, rot) = transformer.lookupTransform('world', 'arrow_' + str(i), rospy.Time(0))
+            (trans_pad_l, rot_pad_l) = transformer.lookupTransform('world', 'pad_l_' + str(i), rospy.Time(0))
+            (trans_pad_r, rot_pad_r) = transformer.lookupTransform('world', 'pad_r_' + str(i), rospy.Time(0))
 
             arrow_marker = visualization_msgs.msg.Marker()
             arrow_marker.header.frame_id = 'world'
@@ -351,7 +352,7 @@ class MetadataVisualizer():
 
             arrow_marker.color.a = 1.0
             arrow_marker.color.r = 1.0
-            
+
             marker_array_to_append_to.markers.append(arrow_marker)
 
             gripper_pad_marker_l = visualization_msgs.msg.Marker()
@@ -363,7 +364,7 @@ class MetadataVisualizer():
 
             gripper_pad_marker_l.pose.position = geometry_msgs.msg.Point(*trans_pad_l)
             gripper_pad_marker_l.pose.orientation = geometry_msgs.msg.Quaternion(*rot_pad_l)
-            
+
             gripper_pad_marker_l.scale.x = 0.03
             gripper_pad_marker_l.scale.y = 0.002
             gripper_pad_marker_l.scale.z = 0.02
@@ -374,7 +375,7 @@ class MetadataVisualizer():
             gripper_pad_marker_l.color.b = 0.4
 
             marker_array_to_append_to.markers.append(gripper_pad_marker_l)
-            
+
             i += 1
 
             gripper_pad_marker_r = copy.deepcopy(gripper_pad_marker_l)
@@ -388,7 +389,7 @@ class MetadataVisualizer():
             marker_array_to_append_to.markers.append(gripper_pad_marker_r)
 
             i += 1
-            
+
             text_marker = visualization_msgs.msg.Marker()
             text_marker.header.frame_id = 'world'
             text_marker.ns = namespace + '/grasp_names'
@@ -397,7 +398,7 @@ class MetadataVisualizer():
             text_marker.action = text_marker.ADD
             text_marker.pose = arrow_marker.pose
             # text_marker.pose = gripper_pad_marker_l.pose
-            
+
             # text_marker.pose.position = geometry_msgs.msg.Point(0,0,-.1)
             # text_marker.pose.position = geometry_msgs.msg.Point(*trans)
             # text_marker.pose.orientation = geometry_msgs.msg.Quaternion(*rot)
@@ -410,7 +411,6 @@ class MetadataVisualizer():
             marker_array_to_append_to.markers.append(text_marker)
             i += 1
         return(marker_array_to_append_to)
-
 
 
 if __name__ == '__main__':
@@ -429,7 +429,7 @@ if __name__ == '__main__':
 
     if object_name:
         mesh_name = next((part['cad'] for part in assembly_reader._parts_list if part['name'] == object_name))
-        
+
         co = next(collision_object for collision_object in assembly_reader._collision_objects if collision_object.id == object_name)
 
         viz = MetadataVisualizer()
@@ -446,19 +446,19 @@ if __name__ == '__main__':
         object_pose = geometry_msgs.msg.Pose()
         object_pose.orientation.w = 1
 
-        marker_array = viz.add_object_marker(db_name, mesh_name, object_pose, object_pose, marker_array_to_append_to = marker_array)
+        marker_array = viz.add_object_marker(db_name, mesh_name, object_pose, object_pose, marker_array_to_append_to=marker_array)
 
         if only_subframes:
-            marker_array = viz.add_frames(co.subframe_names,co.subframe_poses, marker_array_to_append_to = marker_array)
+            marker_array = viz.add_frames(co.subframe_names, co.subframe_poses, marker_array_to_append_to=marker_array)
         elif only_grasps:
-            marker_array = viz.add_frames(grasp_names,grasp_poses, marker_array_to_append_to = marker_array)
+            marker_array = viz.add_frames(grasp_names, grasp_poses, marker_array_to_append_to=marker_array)
             if gripper_at_grasp:
                 viz.publish_gripper_marker_array(gripper_at_grasp)
         else:
-            marker_array = viz.add_frames(frame_names,frame_poses, marker_array_to_append_to = marker_array)
+            marker_array = viz.add_frames(frame_names, frame_poses, marker_array_to_append_to=marker_array)
             if gripper_at_grasp:
                 viz.publish_gripper_marker_array(gripper_at_grasp)
-            marker_array = viz.add_grasp_viz(grasp_names, marker_array_to_append_to = marker_array)
+            marker_array = viz.add_grasp_viz(grasp_names, marker_array_to_append_to=marker_array)
 
     else:  # Show all objects
         offset = 0.4
@@ -488,7 +488,7 @@ if __name__ == '__main__':
                 mesh_pose.position.y += co.mesh_poses[0].position.y
                 mesh_pose.position.z += co.mesh_poses[0].position.z
                 mesh_pose.orientation = helpers.multiply_quaternion_msgs(mesh_pose.orientation, co.mesh_poses[0].orientation)
-                
+
             marker_array = viz.add_object_marker(db_name, mesh_name, object_pose, mesh_pose, co.id, marker_array)
 
             if only_subframes:
@@ -515,12 +515,10 @@ if __name__ == '__main__':
                 for name in frame_names:
                     name = co.id + '/' + name
                 marker_array = viz.add_grasp_viz(frame_names, co.id, marker_array)
-    
+
     rospy.sleep(1)
     rospy.loginfo("Publishing visualization markers.")
     while not rospy.is_shutdown():
         viz._pub.publish(marker_array)
         rospy.sleep(2)
     rospy.loginfo("Done.")
-    
-    

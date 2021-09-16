@@ -140,9 +140,9 @@ class RobotBase():
         if retry:
             start_time = rospy.get_time()
             while res.error_code.val != moveit_msgs.msg.MoveItErrorCodes.SUCCESS \
-                  and not rospy.is_shutdown() and (rospy.get_time() - start_time < 10):
+                    and not rospy.is_shutdown() and (rospy.get_time() - start_time < 10):
                 res = self.moveit_ik_srv.call(req)
-        
+
         if res.error_code.val != moveit_msgs.msg.MoveItErrorCodes.SUCCESS:
             rospy.logwarn("compute IK failed with code: %s" % res.error_code.val)
             return None
@@ -274,8 +274,8 @@ class RobotBase():
                         end_effector_link="", move_lin=False, wait=True, plan_only=False, initial_joints=None,
                         allow_joint_configuration_flip=False, move_ptp=True, timeout=5, retry_non_linear=False,
                         retime=False):
-        
-        move_ptp = False if move_lin else move_ptp # Override if move_lin is set (Linear takes priority since PTP is the default value)
+
+        move_ptp = False if move_lin else move_ptp  # Override if move_lin is set (Linear takes priority since PTP is the default value)
 
         planner = "LINEAR" if move_lin else ("PTP" if move_ptp else "OMPL")
         speed_, accel_ = self.set_up_move_group(speed, acceleration, planner)
@@ -286,7 +286,6 @@ class RobotBase():
         if not end_effector_link:
             end_effector_link = self.ns + "_gripper_tip_link"
         group.set_end_effector_link(end_effector_link)
-
 
         if move_lin:  # is this necessary??
             pose_goal_ = self.listener.transformPose("world", pose_goal_stamped)
@@ -305,7 +304,6 @@ class RobotBase():
 
             group.set_pose_target(pose_goal_)
             success, plan, planning_time, error = group.plan()
-
 
             if success:
                 if self.joint_configuration_changes(plan.joint_trajectory.points[0].positions,
@@ -326,10 +324,10 @@ class RobotBase():
                 else:
                     success = self.execute_plan(plan, wait=wait)
             else:
-                if move_ptp: # Just one try is enough for PTP, give up and try OMPL
+                if move_ptp:  # Just one try is enough for PTP, give up and try OMPL
                     self.set_up_move_group(speed, acceleration, "OMPL")
                 if robots_in_simultaneous:
-                    rospy.sleep(1.0) # give time to other robot to get out of the way
+                    rospy.sleep(1.0)  # give time to other robot to get out of the way
                 elif not move_ptp:
                     rospy.sleep(0.2)
                 rospy.logwarn("go_to_pose_goal(move_lin=%s) attempt failed. Retrying." % str(move_lin))
@@ -346,7 +344,7 @@ class RobotBase():
         group.clear_pose_targets()
         if not success and move_lin and retry_non_linear:
             return self.go_to_pose_goal(pose_goal_stamped, speed/2, acceleration, end_effector_link, move_lin=False, plan_only=plan_only, initial_joints=initial_joints,
-                                allow_joint_configuration_flip=allow_joint_configuration_flip, move_ptp=True, timeout=timeout, retry_non_linear=False)
+                                        allow_joint_configuration_flip=allow_joint_configuration_flip, move_ptp=True, timeout=timeout, retry_non_linear=False)
         return success
 
     def move_lin_trajectory(self, trajectory, speed=1.0, acceleration=None, end_effector_link="",
@@ -413,7 +411,7 @@ class RobotBase():
 
             self.sequence_move_group.send_goal_and_wait(goal)
             response = self.sequence_move_group.get_result()
-            
+
             group.clear_pose_targets()
 
             if response.response.error_code.val == 1:
@@ -425,7 +423,7 @@ class RobotBase():
                     return self.execute_plan(plan, wait=True)
             else:
                 if robots_in_simultaneous:
-                    rospy.sleep(1.0) # give time to other robot to get out of the way
+                    rospy.sleep(1.0)  # give time to other robot to get out of the way
                 else:
                     rospy.sleep(0.2)
         rospy.logerr("Failed to plan linear trajectory. error code: %s" % response.response.error_code.val)
@@ -531,7 +529,7 @@ class RobotBase():
             if success:
                 # retime
                 plan = self.robot_group.retime_trajectory(self.robot_group.get_current_state(), plan, algorithm="time_optimal_trajectory_generation",
-                                                              velocity_scaling_factor=speed_, acceleration_scaling_factor=accel_)
+                                                          velocity_scaling_factor=speed_, acceleration_scaling_factor=accel_)
                 group.clear_pose_targets()
                 group.set_start_state_to_current_state()
                 if plan_only:
@@ -568,7 +566,7 @@ class RobotBase():
             if success:
                 # retime
                 plan = self.robot_group.retime_trajectory(self.robot_group.get_current_state(), plan, algorithm="time_optimal_trajectory_generation",
-                                                              velocity_scaling_factor=speed_, acceleration_scaling_factor=accel_)
+                                                          velocity_scaling_factor=speed_, acceleration_scaling_factor=accel_)
                 group.set_start_state_to_current_state()
                 if plan_only:
                     return plan, planning_time
@@ -650,14 +648,14 @@ class RobotBase():
         while not success and (rospy.Time.now() - start_time < rospy.Duration(timeout)) and not rospy.is_shutdown():
             self.sequence_move_group.send_goal_and_wait(goal)
             response = self.sequence_move_group.get_result()
-            
+
             group.clear_pose_targets()
 
             if response.response.error_code.val == 1:  # Success
                 plan = response.response.planned_trajectories[0]  # support only one plan?
                 # retime
                 plan = self.robot_group.retime_trajectory(self.robot_group.get_current_state(), plan, algorithm="time_optimal_trajectory_generation",
-                                                              velocity_scaling_factor=speed_, acceleration_scaling_factor=accel_)
+                                                          velocity_scaling_factor=speed_, acceleration_scaling_factor=accel_)
                 planning_time = response.response.planning_time
                 if plan_only:
                     return plan, planning_time
@@ -674,7 +672,7 @@ class RobotBase():
         return False
 
     def move_circ(self, pose_goal_stamped, constraint_point, constraint_type="center", speed=0.5, acceleration=None, wait=True, end_effector_link="",
-                    plan_only=False, initial_joints=None, timeout=5.0):
+                  plan_only=False, initial_joints=None, timeout=5.0):
         if not self.set_up_move_group(speed, acceleration, "CIRC"):
             return False
 
@@ -699,11 +697,11 @@ class RobotBase():
         pc = moveit_msgs.msg.PositionConstraint()
         if constraint_type == "center":
             constraint_pose = conversions.from_pose_to_list(self.get_current_pose())[:3] - constraint_point
-            constraint_pose = conversions.to_pose(constraint_pose.tolist()+[0,0,0])
+            constraint_pose = conversions.to_pose(constraint_pose.tolist()+[0, 0, 0])
         else:
-            constraint_pose = conversions.to_pose(constraint_point+[0,0,0]) # Pose
+            constraint_pose = conversions.to_pose(constraint_point+[0, 0, 0])  # Pose
         pc.constraint_region.primitive_poses = [constraint_pose]
-        constraint.position_constraints = [pc] 
+        constraint.position_constraints = [pc]
         group.set_path_constraints(constraint)
 
         success = False

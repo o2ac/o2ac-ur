@@ -30,11 +30,11 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-# Author: Karoly Istvan Artur, Felix von Drigalski
+# Author: Karoly Istvan Artur, Felix von Drigalski, Cristian C. Beltran-Hernandez
 
 import os
 import yaml
-import copy 
+import copy
 
 import rospy
 import rospkg
@@ -53,6 +53,7 @@ except:
     # support pyassimp > 3.0
     import pyassimp
 
+
 class PartsReader(object):
     '''
     Loads collision objects with metadata from a database in the config folder, 
@@ -66,7 +67,6 @@ class PartsReader(object):
         self.verbose = verbose
         if self.db_name:
             self.load_db(db_name, load_meshes=load_meshes)
-        
 
     def load_db(self, db_name, load_meshes=True):
         '''
@@ -82,7 +82,7 @@ class PartsReader(object):
         self.load_meshes = load_meshes
         if self.verbose:
             rospy.loginfo("Done loading parts database " + db_name)
-    
+
     def get_collision_object(self, object_name, use_simplified_collision_shapes=True):
         '''
         This returns the collision object (including subframes) for an object_name.
@@ -96,7 +96,7 @@ class PartsReader(object):
                 c_new = moveit_msgs.msg.CollisionObject()
                 c_new.header = copy.deepcopy(c_obj.header)
                 c_new.pose = copy.deepcopy(c_obj.pose)
-                
+
                 # Shallow copy the other fields to avoid deep copying meshes
                 c_new.operation = c_obj.operation
                 c_new.type = c_obj.type
@@ -105,7 +105,7 @@ class PartsReader(object):
                     rospy.loginfo("Using primitives for collision object: " + object_name)
                     c_new.primitives = self._collision_geometry[i][0]
                     c_new.primitive_poses = self._collision_geometry[i][1]
-                elif self.load_meshes and not c_obj.meshes: # lazy loading of meshes
+                elif self.load_meshes and not c_obj.meshes:  # lazy loading of meshes
                     rospy.loginfo("Loading meshes for collision object: " + object_name)
                     c_obj.meshes = [self._read_mesh(self._mesh_filepaths[i], (0.001, 0.001, 0.001))]
                     c_new.meshes = c_obj.meshes
@@ -114,7 +114,7 @@ class PartsReader(object):
                     rospy.logdebug("Already loaded meshes for object " + object_name)
                     c_new.meshes = c_obj.meshes
                     c_new.mesh_poses = c_obj.mesh_poses
-                
+
                 c_new.visual_geometry_mesh_url = self._mesh_urls[i]
                 try:
                     c_new.visual_geometry_pose = c_obj.mesh_poses[0]
@@ -130,7 +130,7 @@ class PartsReader(object):
                 return c_new
         rospy.logerr("Could not find collision object with id " + str(object_name))
         return None
-    
+
     def get_visualization_marker(self, object_name, pose, frame_id, color=None, lifetime=0, frame_locked=False):
         """ Returns a visualization marker of the object on a given pose. """
         for (c_obj, mesh_filepath) in zip(self._collision_objects, self._mesh_filepaths):
@@ -146,7 +146,7 @@ class PartsReader(object):
                 marker.scale = geometry_msgs.msg.Vector3(0.001, 0.001, 0.001)
                 if color:
                     marker.color = color
-                else:    
+                else:
                     marker.color.a = 1.0
                     marker.color.g = .8
                     marker.color.b = .5
@@ -164,14 +164,14 @@ class PartsReader(object):
                 marker.mesh_resource = "file://" + mesh_filepath
                 object_id = self.name_to_id(object_name)
                 marker.id = marker_id_num if marker_id_num else object_id
-                
+
                 marker.header.frame_id = "assembled_part_" + str(object_id).zfill(2)  # Fill with leading zeroes
                 marker.scale = geometry_msgs.msg.Vector3(0.001, 0.001, 0.001)
                 try:
                     marker.pose = c_obj.mesh_poses[0]
                 except:
                     marker.pose.orientation.w = 1.0
-                
+
                 marker.color.a = 1.0
                 marker.color.g = .8
                 marker.color.b = .5
@@ -187,7 +187,7 @@ class PartsReader(object):
         """
         grasp_pose_stamped = geometry_msgs.msg.PoseStamped()
         grasp_pose_stamped.header.frame_id = object_name
-        
+
         object_grasps = next((part for part in self._grasps if part["part_name"] == object_name), None)
         for (_grasp_name, grasp_pose) in zip(object_grasps['grasp_names'], object_grasps['grasp_poses']):
             if _grasp_name == grasp_name:
@@ -196,7 +196,7 @@ class PartsReader(object):
         rospy.logerr("Did not find grasp_name " + grasp_name + " for object " + object_name)
         return None
 
-    #### Converters 
+    # Converters
 
     def id_to_name(self, id_num):
         """
@@ -208,7 +208,7 @@ class PartsReader(object):
                 return obj["name"]
         rospy.logerr("Could not find object with id " + str(id_num))
         return ""
-    
+
     def name_to_id(self, name):
         """
         Returns the id of the object with the given name.
@@ -219,7 +219,7 @@ class PartsReader(object):
                 return obj["id"]
         rospy.logerr("Could not find object with name " + str(name))
         return False
-    
+
     def id_to_type(self, id_num):
         """
         Returns the type of the object with the given id number.
@@ -230,7 +230,7 @@ class PartsReader(object):
                 return obj["type"]
         rospy.logerr("Could not find object with id " + str(id_num))
         return ""
-    
+
     def type_to_id(self, type):
         """
         Returns the id of the object with the given type.
@@ -241,7 +241,7 @@ class PartsReader(object):
                 return obj["id"]
         rospy.logerr("Could not find object with type " + str(type))
         return False
-    
+
     def name_to_type(self, name):
         """
         Returns the type of the object with the given name.
@@ -253,7 +253,7 @@ class PartsReader(object):
         rospy.logerr("Could not find object with name " + str(name))
         return False
 
-    #### 
+    ####
 
     def _upload_grasps_to_param_server(self, namespace):
         '''Upload grasps to the ROS param server
@@ -262,17 +262,17 @@ class PartsReader(object):
         '''
         for part in self._grasps:
             for (grasp_name, grasp_pose) in zip(part['grasp_names'], part['grasp_poses']):
-              d = {'position': conversions.from_point(grasp_pose.position).tolist(),
-               'orientation': conversions.from_quaternion(grasp_pose.orientation).tolist()}
-              param_name = '/'.join(['', namespace, part['part_name'], grasp_name])
-              rospy.set_param(param_name, d)
-              
+                d = {'position': conversions.from_point(grasp_pose.position).tolist(),
+                     'orientation': conversions.from_quaternion(grasp_pose.orientation).tolist()}
+                param_name = '/'.join(['', namespace, part['part_name'], grasp_name])
+                rospy.set_param(param_name, d)
+
     def _read_parts_list(self):
         path = os.path.join(self._directory, 'parts_list.yaml')
         with open(path, 'r') as file_open:
             parts_list = yaml.load(file_open)
         return parts_list['parts_list']
-    
+
     def _read_assembly_info(self):
         path = os.path.join(self._directory, 'assembly_info.yaml')
         with open(path, 'r') as file_open:
@@ -296,7 +296,7 @@ class PartsReader(object):
                 data = yaml.load(f)
             if "mesh_pose" in data:
                 mesh_pose = geometry_msgs.msg.Pose()
-                mesh_pose.position = conversions.to_vector3(conversions.to_float(data['mesh_pose'][0]['pose_xyzrpy'][:3]) )
+                mesh_pose.position = conversions.to_vector3(conversions.to_float(data['mesh_pose'][0]['pose_xyzrpy'][:3]))
                 mesh_pose.orientation = geometry_msgs.msg.Quaternion(*tf.transformations.quaternion_from_euler(*conversions.to_float(data['mesh_pose'][0]['pose_xyzrpy'][3:])))
             subframes = data['subframes']
             simplified_collision_object_text = data.get('collision_primitives', None)
@@ -304,7 +304,7 @@ class PartsReader(object):
 
             grasps = data['grasp_points']
 
-            # Create the transformation between the world and the collision object        
+            # Create the transformation between the world and the collision object
             transformer = tf.Transformer(True, rospy.Duration(10.0))
             collision_object_transform = geometry_msgs.msg.TransformStamped()
             collision_object_transform.header.frame_id = 'WORLD'
@@ -322,14 +322,14 @@ class PartsReader(object):
                 subframe_transform = geometry_msgs.msg.TransformStamped()
                 subframe_transform.header.frame_id = 'OBJECT'
                 subframe_transform.child_frame_id = subframe['name']
-                subframe_transform.transform.translation = conversions.to_vector3(conversions.to_float(subframe['pose_xyzrpy'][:3]) )
+                subframe_transform.transform.translation = conversions.to_vector3(conversions.to_float(subframe['pose_xyzrpy'][:3]))
                 quaternion = tf.transformations.quaternion_from_euler(*conversions.to_float(subframe['pose_xyzrpy'][3:]))
                 subframe_transform.transform.rotation = conversions.to_quaternion(quaternion)
-    
+
                 transformer.setTransform(subframe_transform)
 
                 # Get the pose of the subframe in the world frame and add the subframe pose to the subframe poses of the collision object
-                (trans,rot) = transformer.lookupTransform('WORLD', subframe['name'], rospy.Time(0))
+                (trans, rot) = transformer.lookupTransform('WORLD', subframe['name'], rospy.Time(0))
 
                 subframe_pose = conversions.to_pose(trans+rot)
 
@@ -340,7 +340,7 @@ class PartsReader(object):
 
                 # Create the pose message for the grasp
                 grasp_pose = geometry_msgs.msg.Pose()
-                grasp_pose.position = conversions.to_vector3(conversions.to_float(grasp['pose_xyzrpy'][:3]) )
+                grasp_pose.position = conversions.to_vector3(conversions.to_float(grasp['pose_xyzrpy'][:3]))
                 quaternion = tf.transformations.quaternion_from_euler(*conversions.to_float(grasp['pose_xyzrpy'][3:]))
                 grasp_pose.orientation = geometry_msgs.msg.Quaternion(*quaternion.tolist())
 
@@ -401,7 +401,7 @@ class PartsReader(object):
 
         PRIMITIVES = {"BOX": shape_msgs.msg.SolidPrimitive.BOX, "CYLINDER": shape_msgs.msg.SolidPrimitive.CYLINDER}
         primitives = []
-        primitive_poses = [] 
+        primitive_poses = []
 
         for co in collision_objects:
             primitive = shape_msgs.msg.SolidPrimitive()
@@ -413,9 +413,9 @@ class PartsReader(object):
             primitive.dimensions = co['dimensions']
             primitives.append(primitive)
             primitive_poses.append(conversions.to_pose(conversions.to_float(co['pose'])))
-        
+
         return (primitives, primitive_poses)
-        
+
     def _make_collision_object_from_mesh(self, name, pose, filename, scale=(1, 1, 1)):
         '''
         Reimplementation of '__make_mesh()' function from 'moveit_commander/planning_scene_interface.py'
@@ -440,7 +440,7 @@ class PartsReader(object):
         co.pose.orientation.w = 1.0
         co.header = pose.header
         co.mesh_poses = [pose.pose]
-        
+
         return co
 
     def get_collision_objects_with_metadata(self):
@@ -472,16 +472,15 @@ class PartsReader(object):
             # Set the pose of the collision object
             posestamped = geometry_msgs.msg.PoseStamped()
             posestamped.header.frame_id = 'assembly_root'
-            
-            
+
             subframe_names, subframe_poses, grasp_names, grasp_poses, mesh_pose, primitive_collision_object = self._read_object_metadata(part['name'])
-            
+
             collision_object_pose = geometry_msgs.msg.Pose()
             if mesh_pose:
                 collision_object_pose = mesh_pose
             else:  # Neutral pose if no mesh pose has been defined
                 collision_object_pose.orientation.w = 1
-            
+
             posestamped.pose = collision_object_pose
 
             collision_object = self._make_collision_object_without_mesh(part['name'], posestamped)

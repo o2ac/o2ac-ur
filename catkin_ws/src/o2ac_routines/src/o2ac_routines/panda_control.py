@@ -55,6 +55,7 @@ from franka_control.srv import SetCartesianImpedance
 from franka_control.srv import SetLoad
 from franka_control.srv import SetFullCollisionBehavior
 
+
 class ControlSwitcher:
     # Class to switch between controllers in ROS
     def __init__(self, controllers, controller_manager_node='/controller_manager'):
@@ -63,18 +64,18 @@ class ControlSwitcher:
         rospy.wait_for_service(controller_manager_node + "/list_controllers")
 
         self.switcher_srv = rospy.ServiceProxy(controller_manager_node + "/switch_controller", cm_srv.SwitchController)
-        self.lister_srv   = rospy.ServiceProxy(controller_manager_node + "/list_controller"  , cm_srv.ListControllers)
+        self.lister_srv = rospy.ServiceProxy(controller_manager_node + "/list_controller", cm_srv.ListControllers)
 
     def switch_controllers(self, start_controller_names):
         rospy.sleep(0.5)
         # Get list of controller full names to start and stop
         start_controllers = [self.controllers[start_controller] for start_controller in start_controller_names]
-        stop_controllers  = [self.controllers[n] for n in self.controllers if  n not in start_controller_names]
+        stop_controllers = [self.controllers[n] for n in self.controllers if n not in start_controller_names]
 
         controller_switch_msg = cm_srv.SwitchControllerRequest()
         controller_switch_msg.strictness = 1
         controller_switch_msg.start_controllers = start_controllers
-        controller_switch_msg.stop_controllers  = stop_controllers
+        controller_switch_msg.stop_controllers = stop_controllers
 
         result = self.switcher_srv(controller_switch_msg).ok
         if result:
@@ -83,10 +84,9 @@ class ControlSwitcher:
         else:
             rospy.logdebug("Failed switching controllers")
             return False
-    
+
     def stop_controllers(self):
         self.switch_controllers([])
-
 
 
 class Panda:
@@ -97,7 +97,6 @@ class Panda:
 
         self.tf_listener = tf.TransformListener()
         self.ERROR = False
-        
 
         # self.robot = moveit_commander.RobotCommander()
         # self.scene = moveit_commander.PlanningSceneInterface()
@@ -115,9 +114,9 @@ class Panda:
         #  Joint Impedance Service Proxy
         self.impedance_serv = rospy.ServiceProxy('/franka_control/set_joint_impedance', SetJointImpedance)
         #  EE Load Service Proxy
-        self.load_serv      = rospy.ServiceProxy('/franka_control/set_load', SetLoad)
+        self.load_serv = rospy.ServiceProxy('/franka_control/set_load', SetLoad)
         #  Collision Service
-        self.collision_serv      = rospy.ServiceProxy('/franka_control/set_full_collision_behavior', SetFullCollisionBehavior)
+        self.collision_serv = rospy.ServiceProxy('/franka_control/set_full_collision_behavior', SetFullCollisionBehavior)
         rospy.Subscriber('/franka_state_controller/franka_states', FrankaState, self.robot_state_callback, queue_size=1)
 
         # Create the controller switcher
@@ -125,7 +124,6 @@ class Panda:
                                    'velocity': 'cartesian_velocity_node_controller'})
 
         rospy.sleep(1)
-
 
     def robot_state_callback(self, msg):
         for s in FrankaErrors.__slots__:
@@ -143,12 +141,11 @@ class Panda:
 
     def set_ee_load(self, mass):
         self.cs.stop_controllers()
-        self.load_serv(mass, [0.0,0.0,0.0], [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])  
-
+        self.load_serv(mass, [0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
     def set_collision_behaviour_low(self):
         lower_torque_thresholds_nominal = [25.0, 25.0, 22.0, 20.0, 19.0, 17.0, 14.0]
-        upper_torque_thresholds_nominal = [35.0, 35.0, 32.0, 30.0, 29.0, 27.0, 24.0]     
+        upper_torque_thresholds_nominal = [35.0, 35.0, 32.0, 30.0, 29.0, 27.0, 24.0]
         lower_torque_thresholds_acceleration = [25.0, 25.0, 22.0, 20.0, 19.0, 17.0, 14.0]
         upper_torque_thresholds_acceleration = [35.0, 35.0, 32.0, 30.0, 29.0, 27.0, 24.0]
 
@@ -156,16 +153,15 @@ class Panda:
         upper_force_thresholds_nominal = [40.0, 40.0, 40.0, 35.0, 35.0, 35.0]
         lower_force_thresholds_acceleration = [30.0, 30.0, 30.0, 25.0, 25.0, 25.0]
         upper_force_thresholds_acceleration = [40.0, 40.0, 40.0, 35.0, 35.0, 35.0]
-                                                
-        self.collision_serv(lower_torque_thresholds_acceleration,
-                                                     upper_torque_thresholds_acceleration,
-                                                     lower_torque_thresholds_nominal,
-                                                     upper_torque_thresholds_nominal,
-                                                     lower_force_thresholds_acceleration,
-                                                     upper_force_thresholds_acceleration,
-                                                     lower_force_thresholds_nominal,
-                                                     upper_force_thresholds_nominal)
 
+        self.collision_serv(lower_torque_thresholds_acceleration,
+                            upper_torque_thresholds_acceleration,
+                            lower_torque_thresholds_nominal,
+                            upper_torque_thresholds_nominal,
+                            lower_force_thresholds_acceleration,
+                            upper_force_thresholds_acceleration,
+                            lower_force_thresholds_nominal,
+                            upper_force_thresholds_nominal)
 
     def set_gripper(self, width, speed=0.1, wait=True):
         client = actionlib.SimpleActionClient('franka_gripper/move', franka_gripper.msg.MoveAction)
@@ -190,9 +186,9 @@ class Panda:
         # Control the robot for 5 seconds w/ velocity control
         rate = rospy.Rate(100)
         v = geometry_msgs.msg.Twist()
-        v.linear.x  = vel[0]
-        v.linear.y  = vel[1]
-        v.linear.z  = vel[2]
+        v.linear.x = vel[0]
+        v.linear.y = vel[1]
+        v.linear.z = vel[2]
         v.angular.x = vel[3]
         v.angular.y = vel[4]
         v.angular.z = vel[5]
@@ -208,17 +204,15 @@ class Panda:
             t = 2*np.pi*float(i)/500
             x = 0.005*(a*t*np.sin(t))
             z = 0.005*(a*t*np.cos(t))
-            self.publish_cartesian_vel([x,vel,z, 0.0,0.0,0.0])
+            self.publish_cartesian_vel([x, vel, z, 0.0, 0.0, 0.0])
             rate.sleep()
-
-
 
     def move_till_contact(self, vel):
         self.cs.switch_controllers(["velocity"])
         rate = rospy.Rate(100)
         while True:
-            self.publish_cartesian_vel([0.0,vel,0.0, 0.0,0.0,0.0])
-            if self.ERROR: 
+            self.publish_cartesian_vel([0.0, vel, 0.0, 0.0, 0.0, 0.0])
+            if self.ERROR:
                 self.recovery_pub.publish(ErrorRecoveryActionGoal())
                 return
             rate.sleep()
@@ -229,13 +223,13 @@ class Panda:
         # Archimides Spiral
         a = 0.2
         for i in range(3000):
-            s = np.clip(i,0,80)
+            s = np.clip(i, 0, 80)
             t = 2*np.pi*float(i)/500
             s = 2*np.pi*float(s)/500
             print(s)
             x = 0.005*(a*s*np.sin(t))
             z = 0.005*(a*s*np.cos(t))
-            self.publish_cartesian_vel([x,vel,z, 0.0,0.0,0.0])
+            self.publish_cartesian_vel([x, vel, z, 0.0, 0.0, 0.0])
             rate.sleep()
 
     def move_to_pose(self, pose, velocity=0.1):
@@ -243,9 +237,9 @@ class Panda:
         self.cs.switch_controllers(['moveit'])
 
         pose_goal = geometry_msgs.msg.PoseStamped()
-        pose_goal.pose.position.x    = pose[0]
-        pose_goal.pose.position.y    = pose[1]
-        pose_goal.pose.position.z    = pose[2]
+        pose_goal.pose.position.x = pose[0]
+        pose_goal.pose.position.y = pose[1]
+        pose_goal.pose.position.z = pose[2]
         pose_goal.pose.orientation.x = pose[3]
         pose_goal.pose.orientation.y = pose[4]
         pose_goal.pose.orientation.z = pose[5]
@@ -255,9 +249,9 @@ class Panda:
         pose_goal_world = self.tf_listener.transformPose("world", pose_goal).pose
 
         (plan, fraction) = self.group.compute_cartesian_path(
-                                                            [pose_goal_world],
-                                                            0.005,
-                                                            0.0)
+            [pose_goal_world],
+            0.005,
+            0.0)
         plan = self.group.retime_trajectory(self.robot.get_current_state(), plan, velocity)
         if fraction != 1.0:
             raise ValueError("Unable to plan path")
@@ -267,7 +261,6 @@ class Panda:
         self.group.clear_pose_targets()
         print("Done!")
         return success
-        
 
 
 # panda = Panda()
@@ -280,7 +273,6 @@ class Panda:
 # panda.move_to_pose(home_pose, velocity=0.5)
 # panda.set_gripper(0.3)
 # panda.grasp(speed=0.5)
-
 
 
 # # Above grasp pose
@@ -327,4 +319,3 @@ class Panda:
 # while True:
 #     panda.publish_cartesian_vel([0.0,0.005,0.0,0.0,0.0,0.0])
 #     rate.sleep()
-

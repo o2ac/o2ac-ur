@@ -41,54 +41,66 @@ from math import pi
 
 from o2ac_routines.base import O2ACCommonBase
 
+
 class ExampleClass(O2ACCommonBase):
-  # Use a class like this to extend the base class and create your own routines.
+    # Use a class like this to extend the base class and create your own
+    # routines.
 
-  def __init__(self):
-    super(ExampleClass, self).__init__()
-    rospy.sleep(.5)
+    def __init__(self):
+        super(ExampleClass, self).__init__()
+        rospy.sleep(.5)
 
-  def my_move_function(self, robot="b_bot"):
-    # Create a target Pose in the world
-    target_pose = geometry_msgs.msg.PoseStamped()
-    target_pose.header.frame_id = "workspace_center"  # The frame in which the pose is defined
-    target_pose.pose.position.x = 0.1 
-    target_pose.pose.position.y = 0.0
-    target_pose.pose.position.z = 0.1 
-    
-    target_pose.pose.orientation.w = 1.0  # This sets the orientation to neutral (= the same as the frame_id)
-    
-    # This command sets an orientation from roll, pitch, yaw
-    target_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, pi*3/4, pi/2))
-    
-    # This uses the go_to_pose_goal function defined in base.py to go to the pose
-    self.active_robots[robot].go_to_pose_goal(target_pose, 
-            speed=0.03, acceleration=.1, end_effector_link=robot+"_gripper_tip_link", move_lin=False)
-    
-    # The end_effector_link defines which part of the robot is moved to the target pose (it can be another part, or a tool!)
-    # move_lin defines if the robot will attempt a linear motion or "free motion" planning
+    def my_move_function(self, robot="b_bot"):
+        # Create a target Pose in the world
+        target_pose = geometry_msgs.msg.PoseStamped()
+        # The frame in which the pose is defined
+        target_pose.header.frame_id = "workspace_center"
+        target_pose.pose.position.x = 0.1
+        target_pose.pose.position.y = 0.0
+        target_pose.pose.position.z = 0.1
+
+        # This sets the orientation to neutral (= the same as the frame_id)
+        target_pose.pose.orientation.w = 1.0
+
+        # This command sets an orientation from roll, pitch, yaw
+        target_pose.pose.orientation = geometry_msgs.msg.Quaternion(
+            *tf_conversions.transformations.quaternion_from_euler(0, pi * 3 / 4, pi / 2))
+
+        # This uses the go_to_pose_goal function defined in base.py to go to
+        # the pose
+        self.active_robots[robot].go_to_pose_goal(
+            target_pose,
+            speed=0.03,
+            acceleration=.1,
+            end_effector_link=robot +
+            "_gripper_tip_link",
+            move_lin=False)
+
+        # The end_effector_link defines which part of the robot is moved to the target pose (it can be another part, or a tool!)
+        # move_lin defines if the robot will attempt a linear motion or "free
+        # motion" planning
 
 
 if __name__ == '__main__':
-  try:
-    c = ExampleClass()
-    i = 1
-    while i:
-      rospy.loginfo("Enter 1 to move a_bot to the target pose.")
-      rospy.loginfo("Enter 2 to move b_bot to the target pose.")
-      rospy.loginfo("Enter 3 to move robhots to home position.")
-      rospy.loginfo("Enter x to exit.")
-      i = raw_input()
-      if i == '1':
-        c.my_move_function("a_bot")
-      if i == '2':
-        c.my_move_function("b_bot")
-      if i == '3':
-        c.go_to_named_pose("home","a_bot")
-        c.go_to_named_pose("home","b_bot")
-      elif i == 'x':
-        break
-      elif i == "":
-        continue
-  except rospy.ROSInterruptException:
-    pass
+    try:
+        c = ExampleClass()
+        i = 1
+        while i:
+            rospy.loginfo("Enter 1 to move a_bot to the target pose.")
+            rospy.loginfo("Enter 2 to move b_bot to the target pose.")
+            rospy.loginfo("Enter 3 to move robhots to home position.")
+            rospy.loginfo("Enter x to exit.")
+            i = raw_input()
+            if i == '1':
+                c.my_move_function("a_bot")
+            if i == '2':
+                c.my_move_function("b_bot")
+            if i == '3':
+                c.go_to_named_pose("home", "a_bot")
+                c.go_to_named_pose("home", "b_bot")
+            elif i == 'x':
+                break
+            elif i == "":
+                continue
+    except rospy.ROSInterruptException:
+        pass

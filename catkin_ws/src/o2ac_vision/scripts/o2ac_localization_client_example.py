@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 
-import rospy, actionlib
-from o2ac_msgs          import msg as omsg
+import rospy
+import actionlib
+from o2ac_msgs import msg as omsg
 from aist_model_spawner import ModelSpawnerClient
 
 ######################################################################
 #  global functions                                                  #
 ######################################################################
+
+
 def is_num(s):
     try:
         float(s)
@@ -18,6 +21,8 @@ def is_num(s):
 #########################################################################
 #  class ObjectLocalizationClient                                        #
 #########################################################################
+
+
 class ObjectLocalizationClient(object):
 
     def __init__(self, server=''):
@@ -38,6 +43,7 @@ class ObjectLocalizationClient(object):
     def get_result(self):
         result = self._localize.get_result()
         return result.succeeded, result.confidences, result.detected_poses
+
 
 #########################################################################
 #  main                                                                 #
@@ -60,10 +66,10 @@ if __name__ == '__main__':
                '12_CLBUS6-9-9.5',               # 12
                '13_MBGA30-2',                   # 13
                '14_BGPSL6-9-L30-F8',            # 14
-              )
+               )
 
     recognizer = ObjectLocalizationClient('o2ac_vision_server')
-    spawner    = ModelSpawnerClient()
+    spawner = ModelSpawnerClient()
 
     while not rospy.is_shutdown():
         print('\n=============')

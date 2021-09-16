@@ -40,8 +40,9 @@ import rospy
 import o2ac_msgs.msg
 from o2ac_routines.helpers import check_for_real_robot, wait_for_UR_program
 
-import std_srvs.srv # toggleCollisions_client
-import geometry_msgs.msg # urscript_client
+import std_srvs.srv  # toggleCollisions_client
+import geometry_msgs.msg  # urscript_client
+
 
 class SkillServerClient():
     def __init__(self):
@@ -53,9 +54,9 @@ class SkillServerClient():
 
         self.publishMarker_client = rospy.ServiceProxy('/o2ac_skills/publishMarker', o2ac_msgs.srv.publishMarker)
         self.disable_markers = True
-        
+
         self.toggleCollisions_client = rospy.ServiceProxy('/o2ac_skills/toggleCollisions', std_srvs.srv.SetBool)
-        
+
         self.urscript_client = rospy.ServiceProxy('/o2ac_skills/sendScriptToUR', o2ac_msgs.srv.sendScriptToUR)
         self.use_real_robot = rospy.get_param("use_real_robot", False)
 
@@ -76,8 +77,8 @@ class SkillServerClient():
         self.pick_screw_from_feeder_client.wait_for_result(rospy.Duration(60.0))
         rospy.logdebug("Getting result")
         return self.pick_screw_from_feeder_client.get_result()
-        
-    def do_place_action(self, robot_name, pose_stamped, tool_name = "", screw_size=0):
+
+    def do_place_action(self, robot_name, pose_stamped, tool_name="", screw_size=0):
         # Call the place action
         goal = o2ac_msgs.msg.placeGoal()
         goal.robot_name = robot_name
@@ -93,7 +94,7 @@ class SkillServerClient():
         rospy.logdebug("Getting result")
         return self.place_client.get_result()
 
-    def do_regrasp(self, giver_robot_name, receiver_robot_name, grasp_distance = .02):
+    def do_regrasp(self, giver_robot_name, receiver_robot_name, grasp_distance=.02):
         """The item goes from giver to receiver."""
         goal = o2ac_msgs.msg.regraspGoal()
         goal.giver_robot_name = giver_robot_name
@@ -106,8 +107,8 @@ class SkillServerClient():
         return self.regrasp_client.get_result()
 
     @check_for_real_robot
-    def do_screw_action(self, robot_name, target_hole, screw_height = 0.02, 
-                            screw_size = 4, stay_put_after_screwing=False, loosen_and_retighten_when_done=True):
+    def do_screw_action(self, robot_name, target_hole, screw_height=0.02,
+                        screw_size=4, stay_put_after_screwing=False, loosen_and_retighten_when_done=True):
         goal = o2ac_msgs.msg.screwGoal()
         goal.target_hole = target_hole
         goal.screw_height = screw_height
@@ -124,15 +125,15 @@ class SkillServerClient():
         except:
             print("failed to return screw result")
             print(res)
-            return False    
+            return False
 
-    def do_change_tool_action(self, robot_name, equip=True, screw_size = 4):
-        ### DEPRECATED
+    def do_change_tool_action(self, robot_name, equip=True, screw_size=4):
+        # DEPRECATED
         goal = o2ac_msgs.msg.changeToolGoal()
         goal.robot_name = robot_name
         goal.equip_the_tool = equip
         goal.screw_size = screw_size
-        rospy.loginfo("Sending changeTool action goal.")    
+        rospy.loginfo("Sending changeTool action goal.")
         self.change_tool_client.send_goal(goal)
         self.change_tool_client.wait_for_result()
         return self.change_tool_client.get_result()
@@ -156,7 +157,7 @@ class SkillServerClient():
 
 ##### URScript with skill server? #####
 
-    def move_lin_rel(self, robot_name, relative_translation = [0,0,0], relative_rotation = [0,0,0], acceleration = 0.5, velocity = .03, relative_to_robot_base=False, wait = True, max_wait=30.0):
+    def move_lin_rel(self, robot_name, relative_translation=[0, 0, 0], relative_rotation=[0, 0, 0], acceleration=0.5, velocity=.03, relative_to_robot_base=False, wait=True, max_wait=30.0):
         '''
         Does a lin_move relative to the current position of the robot. Uses the robot's TCP.
 
@@ -190,7 +191,7 @@ class SkillServerClient():
         return res.success
 
     def move_joints(self, group_name, joint_pose_goal, speed, acceleration):
-        rospy.logdebug("Real robot is being used. Send joint command to robot controller directly via URScript.") 
+        rospy.logdebug("Real robot is being used. Send joint command to robot controller directly via URScript.")
         req = o2ac_msgs.srv.sendScriptToURRequest()
         req.program_id = "move_j"
         req.robot_name = group_name
@@ -214,11 +215,11 @@ class SkillServerClient():
         return res.success
 
     def transformTargetPoseFromTipLinkToURTCP(self, ps, robot_name, end_effector_link, listener):
-        # This transforms a pose from the end_effector_link set in MoveIt to the TCP used in the UR controller. 
+        # This transforms a pose from the end_effector_link set in MoveIt to the TCP used in the UR controller.
         # It is used when sending commands to the UR controller directly, without MoveIt/ROS controllers.
         rospy.logdebug("Received pose to transform to TCP link:")
-        rospy.logdebug(str(ps.pose.position.x) + ", " + str(ps.pose.position.y)  + ", " + str(ps.pose.position.z))
-        rospy.logdebug(str(ps.pose.orientation.x) + ", " + str(ps.pose.orientation.y)  + ", " + str(ps.pose.orientation.z)  + ", " + str(ps.pose.orientation.w))
+        rospy.logdebug(str(ps.pose.position.x) + ", " + str(ps.pose.position.y) + ", " + str(ps.pose.position.z))
+        rospy.logdebug(str(ps.pose.orientation.x) + ", " + str(ps.pose.orientation.y) + ", " + str(ps.pose.orientation.z) + ", " + str(ps.pose.orientation.w))
 
         t = listener.lookupTransform(end_effector_link, robot_name + "_tool0", rospy.Time())
 
@@ -252,13 +253,12 @@ class SkillServerClient():
         ps_new = listener.transformPose(ps.header.frame_id, ps_wrist)
 
         rospy.logdebug("New pose:")
-        rospy.logdebug(str(ps_new.pose.position.x) + ", " + str(ps_new.pose.position.y)  + ", " + str(ps_new.pose.position.z))
-        rospy.logdebug(str(ps_new.pose.orientation.x) + ", " + str(ps_new.pose.orientation.y)  + ", " + str(ps_new.pose.orientation.z)  + ", " + str(ps_new.pose.orientation.w))
+        rospy.logdebug(str(ps_new.pose.position.x) + ", " + str(ps_new.pose.position.y) + ", " + str(ps_new.pose.position.z))
+        rospy.logdebug(str(ps_new.pose.orientation.x) + ", " + str(ps_new.pose.orientation.y) + ", " + str(ps_new.pose.orientation.z) + ", " + str(ps_new.pose.orientation.w))
 
         return ps_new
 
-
-    def horizontal_spiral_motion(self, robot_name, max_radius = .01, radius_increment = .001, speed = 0.02, spiral_axis="Z"):
+    def horizontal_spiral_motion(self, robot_name, max_radius=.01, radius_increment=.001, speed=0.02, spiral_axis="Z"):
         if rospy.is_shutdown():
             return False
         rospy.loginfo("Performing horizontal spiral motion at speed " + str(speed) + " and radius " + str(max_radius))
@@ -268,18 +268,18 @@ class SkillServerClient():
         req.program_id = "spiral_motion"
         req.robot_name = robot_name
         req.max_radius = max_radius
-        req.radius_increment = radius_increment    
+        req.radius_increment = radius_increment
         req.velocity = speed
         req.spiral_axis = spiral_axis
         res = self.urscript_client.call(req)
         wait_for_UR_program("/" + robot_name, rospy.Duration.from_sec(30.0))
         return res.success
 
-    def do_insertion(self, robot_name, max_insertion_distance= 0.0, 
-                            max_approach_distance = 0.0, max_force = .0,
-                            max_radius = 0.0, radius_increment = .0,
-                            peck_mode=False,
-                            wait = True, horizontal=False):
+    def do_insertion(self, robot_name, max_insertion_distance=0.0,
+                     max_approach_distance=0.0, max_force=.0,
+                     max_radius=0.0, radius_increment=.0,
+                     peck_mode=False,
+                     wait=True, horizontal=False):
         if not self.use_real_robot:
             return True
         # Directly calls the UR service rather than the action of the skill_server
@@ -304,11 +304,10 @@ class SkillServerClient():
             wait_for_UR_program("/" + robot_name, rospy.Duration.from_sec(30.0))
         return res.success
 
-
-    def do_spiral_search(self, robot_name, max_insertion_distance= 0.0, 
-                            max_approach_distance = 0.0, max_force = .0,
-                            max_radius = 0.0, radius_increment = .0,
-                            peck_mode=False, wait = True):
+    def do_spiral_search(self, robot_name, max_insertion_distance=0.0,
+                         max_approach_distance=0.0, max_force=.0,
+                         max_radius=0.0, radius_increment=.0,
+                         peck_mode=False, wait=True):
         if not self.use_real_robot:
             return True
         # Directly calls the UR service rather than the action of the skill_server
@@ -330,12 +329,12 @@ class SkillServerClient():
             rospy.sleep(2.0)
             wait_for_UR_program("/" + robot_name, rospy.Duration.from_sec(30.0))
         return res.success
-  
-    def do_helix_motion(self, robot_name, max_force = 50,
-                            helix_forward_axis = "Z+",
-                            helix_forward_increment = 0.01, helix_forward_limit = 0.1,
-                            max_radius = 0.005, radius_increment = .005,
-                            wait = True):
+
+    def do_helix_motion(self, robot_name, max_force=50,
+                        helix_forward_axis="Z+",
+                        helix_forward_increment=0.01, helix_forward_limit=0.1,
+                        max_radius=0.005, radius_increment=.005,
+                        wait=True):
         if not self.use_real_robot:
             return True
         rospy.loginfo("Performing helix motion with radius " + str(max_radius) + " and forward limit " + str(helix_forward_limit))
@@ -354,13 +353,13 @@ class SkillServerClient():
             wait_for_UR_program("/" + robot_name, rospy.Duration.from_sec(60.0))
         return res.success
 
-    def movelin_around_shifted_tcp(self, robot_name, wait = True, desired_twist = [0,0,0,0,0,0], tcp_position = [0.0,0.0,0.0,0.0,0.0,0.0],
-                            velocity = 0.1, acceleration = 0.02):
+    def movelin_around_shifted_tcp(self, robot_name, wait=True, desired_twist=[0, 0, 0, 0, 0, 0], tcp_position=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                                   velocity=0.1, acceleration=0.02):
         """
         Shifts the TCP to tcp_position (in the robot wrist frame) and moves by desired_twist.
 
         For the UR, this sets the TCP inside the UR controller and uses the movel command. The TCP is reset afterwards.
-        
+
         The desired twist is the desired relative motion and should be in the coordinates of the shifted TCP. This method is used to 
         rotate around the tip of the workpiece during the alignment for adaptive insertion, when the robot touches the hole with the peg to find its position precisely.
         Using the position calculated from the robot link lengths and reported joint angles would introduce too much of an error.
@@ -383,8 +382,8 @@ class SkillServerClient():
             rospy.sleep(2.0)
             wait_for_UR_program("/" + robot_name, rospy.Duration.from_sec(30.0))
         return res.success
-  
-    def set_tcp_in_ur(self, robot_name, tcp_pose = [0.0,0.0,0.0,0.0,0.0,0.0]):
+
+    def set_tcp_in_ur(self, robot_name, tcp_pose=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]):
         """
         Change the TCP inside the UR controller (use with caution!)
         """
@@ -398,7 +397,7 @@ class SkillServerClient():
         res = self.urscript_client.call(req)
         return res.success
 
-    def do_linear_push(self, robot_name, force, wait = True, direction = "Z+", max_approach_distance=0.1, forward_speed=0.0, acceleration = 0.05, direction_vector=[0, 0, 0], use_base_coords=False):
+    def do_linear_push(self, robot_name, force, wait=True, direction="Z+", max_approach_distance=0.1, forward_speed=0.0, acceleration=0.05, direction_vector=[0, 0, 0], use_base_coords=False):
         if not self.use_real_robot:
             return True
         # Directly calls the UR service rather than the action of the skill_server

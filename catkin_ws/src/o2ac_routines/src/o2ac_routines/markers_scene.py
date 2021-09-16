@@ -41,15 +41,16 @@ import visualization_msgs.msg
 from o2ac_assembly_database.parts_reader import PartsReader
 from std_msgs.msg import ColorRGBA
 
+
 class MarkersScene():
     def __init__(self, listener):
         self.listener = listener
-        self.marker_publisher = rospy.Publisher("o2ac_assembly_markers", visualization_msgs.msg.Marker, queue_size = 100)
-        self.parts_database = PartsReader("wrs_assembly_2021", load_meshes=False, verbose=False) # TODO this should be a param somewhere 
+        self.marker_publisher = rospy.Publisher("o2ac_assembly_markers", visualization_msgs.msg.Marker, queue_size=100)
+        self.parts_database = PartsReader("wrs_assembly_2021", load_meshes=False, verbose=False)  # TODO this should be a param somewhere
         self.published_items = {}
 
     def spawn_item(self, item_name, pose_stamped, attach=False, color=None):
-        color = color if color else ColorRGBA(0.2, 0.9, 0.2, 1.0) # GREEN
+        color = color if color else ColorRGBA(0.2, 0.9, 0.2, 1.0)  # GREEN
         item_marker = self.parts_database.get_visualization_marker(item_name, pose_stamped.pose, pose_stamped.header.frame_id, color, frame_locked=attach)
         self.marker_publisher.publish(item_marker)
         self.published_items.update({item_name: copy.deepcopy(pose_stamped)})
@@ -75,7 +76,7 @@ class MarkersScene():
                 break
             except:
                 return False
-        color = ColorRGBA(1., 0.0, 1., 1.0) # Purple
+        color = ColorRGBA(1., 0.0, 1., 1.0)  # Purple
         self.spawn_item(item_name, new_pose, attach=True, color=color)
 
     def detach_item(self, item_name):
