@@ -32,8 +32,22 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-# Author: Felix von Drigalski
+# Author: Felix von Drigalski, Cristian C. Beltran-Hernandez
 
+from ur_control.constants import DONE, TERMINATION_CRITERIA
+import o2ac_routines.helpers as helpers
+from o2ac_routines.common import O2ACCommon
+from o2ac_assembly_database.assembly_reader import AssemblyReader
+from o2ac_assembly_database.parts_reader import PartsReader
+import moveit_task_constructor_msgs.msg
+import moveit_msgs.msg
+import std_msgs.msg
+import o2ac_msgs.msg
+import actionlib
+from o2ac_msgs.srv import *
+import numpy as np
+import time
+import math
 from os import wait
 import sys
 import copy
