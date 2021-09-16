@@ -1277,8 +1277,12 @@ class O2ACAssembly(O2ACCommon):
     """
     def a_bot_task():
       self.fasten_motor("a_bot", part1=False)
+      self.unequip_tool("a_bot")
+      self.a_bot.go_to_named_pose("home")
     def b_bot_task():
       self.fasten_bearing("assembly", with_extra_retighten=False, robot_name="b_bot")
+      self.unequip_tool("b_bot")
+      self.b_bot.go_to_named_pose("home")
 
     self.do_tasks_simultaneous(a_bot_task, b_bot_task)
   
@@ -1292,37 +1296,33 @@ class O2ACAssembly(O2ACCommon):
 
     def a_bot_task():
       self.orient_shaft_end_cap("a_bot")
+      pass
     def b_bot_task():
-      approach_vgroove = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [-0.100, 0, 0, tau/2., 0, 0])
-      on_vgroove =       conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.000, 0, 0, tau/2., 0, 0])
-      inside_vgroove =   conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.011, 0, 0, tau/2., 0, 0])
+      approach_vgroove = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [-0.100, -0.001, -0.005, tau/2., 0, 0])
+      on_vgroove =       conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.000, -0.001, -0.005, tau/2., 0, 0])
+      grasp_pose     =   conversions.to_pose_stamped("vgroove_aid_drop_point_link", [ 0.012, -0.001, -0.005, tau/2., 0, 0])
       self.b_bot.go_to_pose_goal(approach_vgroove)
       self.b_bot.go_to_pose_goal(on_vgroove, move_lin=True, speed=0.1)
-      self.b_bot.go_to_pose_goal(inside_vgroove, move_lin=True, speed=0.05)
+      self.b_bot.go_to_pose_goal(grasp_pose, move_lin=True, speed=0.05)
+      self.b_bot.gripper.close()
+      self.b_bot.go_to_pose_goal(on_vgroove, move_lin=True, speed=0.1)
+      self.b_bot.go_to_pose_goal(approach_vgroove)
+      self.b_bot.go_to_named_pose("home")
       # pre_insertion_shaft = conversions.to_pose_stamped("tray_center", [0.0, 0, 0.2, 0, 0, -tau/4.])
       # if not self.b_bot.go_to_pose_goal(pre_insertion_shaft, speed=0.3):
-      pre_insertion_shaft = [1.78158, -0.98719, 2.42349, -4.57638, -1.78597, 0.00433]
-      if not self.b_bot.move_joints(pre_insertion_shaft, speed=0.4):
-        rospy.logerr("Fail to go to pre_insertion_shaft")
-        return False
-
-
+    
     self.do_tasks_simultaneous(a_bot_task, b_bot_task)
-
-    if not self.a_bot_success or not self.a_bot_success:
-      rospy.logerr("Fail to assemble shaft")
-      self.drop_in_tray("b_bot")
-      self.b_bot.go_to_named_pose("home")
-      self.drop_in_tray("a_bot")
-      self.a_bot.go_to_named_pose("home")
+    
+    pre_insertion_shaft = [1.78158, -0.98719, 2.42349, -4.57638, -1.78597, 0.00433]
+    if not self.b_bot.move_joints(pre_insertion_shaft, speed=0.4):
+      rospy.logerr("Fail to go to pre_insertion_shaft")
       return False
 
-
-    above_pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [-0.003, 0.002, 0.290]+np.deg2rad([-180, 90, -90]).tolist())
+    above_pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [0.000, 0.010, 0.290]+np.deg2rad([-180, 90, -90]).tolist())
     if not self.a_bot.go_to_pose_goal(above_pre_insertion_end_cap, speed=0.6, move_lin=False):
       rospy.logerr("Fail to go to pre_insertion_end_cap")
       return False
-    pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [-0.003, 0.002, 0.255]+np.deg2rad([-180, 90, -90]).tolist())
+    pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [0.001, 0.011, 0.250]+np.deg2rad([-180, 90, -90]).tolist())
     if not self.a_bot.go_to_pose_goal(pre_insertion_end_cap, speed=0.3, move_lin=True):
       rospy.logerr("Fail to go to pre_insertion_end_cap")
       return False
