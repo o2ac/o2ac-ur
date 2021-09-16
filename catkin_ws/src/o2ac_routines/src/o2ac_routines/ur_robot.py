@@ -55,6 +55,11 @@ from o2ac_routines import helpers
 
 
 class URRobot(RobotBase):
+    """ Universal Robots specific implementation of RobotBase
+        This class provides access to useful hardware specific services.
+        Access to force control and gripper is also defined here.
+    """
+
     def __init__(self, namespace, tf_listener, markers_scene):
         """
         namespace should be "a_bot" or "b_bot".

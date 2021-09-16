@@ -359,6 +359,450 @@ class O2ACBase(object):
         self.markers_scene.delete_all()
         self.publish_status_text("")
 
+    ######
+
+    def do_insert_action(self, active_robot_name, passive_robot_name="",
+                         starting_offset=0.05, max_insertion_distance=0.01,
+                         max_approach_distance=.1, max_force=5,
+                         max_radius=.001, radius_increment=.0001):
+        rospy.logerr("This is probably not implemented. Aborting")
+        return
+        goal = o2ac_msgs.msg.insertGoal()
+        goal.active_robot_name = active_robot_name
+        goal.passive_robot_name = passive_robot_name
+        goal.starting_offset = starting_offset
+        goal.max_insertion_distance = max_insertion_distance
+        goal.max_approach_distance = max_approach_distance
+        goal.max_force = max_force
+        goal.max_radius = max_radius
+        goal.radius_increment = radius_increment
+        rospy.loginfo("Sending insert action goal.")
+        self.insert_client.send_goal(goal)
+        self.insert_client.wait_for_result()
+        return self.insert_client.get_result()
+
+    def upload_tool_grasps_to_param_server(self, tool_id):
+        transformer = tf.Transformer(True, rospy.Duration(10.0))
+
+        rospy.sleep(0.2)
+        (trans, rot) = self.listener.lookupTransform('/screw_tool_' + tool_id + '_pickup_link', '/move_group/screw_tool_' + tool_id, rospy.Time())
+        collision_object_to_pickup_link = geometry_msgs.msg.TransformStamped()
+        collision_object_to_pickup_link.header.frame_id = 'screw_tool_' + tool_id + '_pickup_link'
+        collision_object_to_pickup_link.child_frame_id = 'screw_tool_' + tool_id
+        collision_object_to_pickup_link.transform.translation = geometry_msgs.msg.Vector3(*trans)
+        collision_object_to_pickup_link.transform.rotation = geometry_msgs.msg.Quaternion(*rot)
+        transformer.setTransform(collision_object_to_pickup_link)
+
+        grasp_pose_to_pickup_link = geometry_msgs.msg.TransformStamped()
+        grasp_pose_to_pickup_link.header.frame_id = 'screw_tool_' + tool_id + '_pickup_link'
+        grasp_pose_to_pickup_link.child_frame_id = 'grasp_1'
+        grasp_pose_to_pickup_link.transform.translation = geometry_msgs.msg.Vector3(0.015, 0.0, -0.03)
+        grasp_pose_to_pickup_link.transform.rotation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, -pi/6, 0))
+        transformer.setTransform(grasp_pose_to_pickup_link)
+
+        (trans, rot) = transformer.lookupTransform('screw_tool_' + tool_id, 'grasp_1', rospy.Time(0))
+        rospy.set_param('tools/screw_tool_' + tool_id + '/grasp_1/position', trans)
+        rospy.set_param('tools/screw_tool_' + tool_id + '/grasp_1/orientation', rot)
+
+    # Parts spawning
+
+    def spawn_objects_for_closed_loop_test(self):
+        objects = ['panel_bearing', 'panel_motor']
+        poses = [[0.4, -0.35, 0.8, tau/4, 0, tau/4], [0.5, 0.3, 1, tau/4, 0, 0]]
+        self.spawn_multiple_objects('wrs_assembly_2020', ['base'], [[0.12, 0.2, 0.0, tau/4, 0.0, -tau/4]], 'attached_base_origin_link')
+        self.spawn_multiple_objects('wrs_assembly_2020', objects, poses, 'world')
+
+    def object_pose_from_fake_perception(self, object_name, xyz_noise=[0.003, 0.003, 0.002], rpy_noise=[radians(5), radians(5), radians(7)]):
+        """ Obtains the object pose at a pre-defined position with some noise. 
+            Simulates vision.
+        """
+        # Get object pose and add noise
+        try:
+            object_pose = conversions.to_pose_stamped("tray_center", self.fake_tray_object_positions[object_name])
+            object_pose.pose.position.x += np.random.uniform(low=xyz_noise[0], high=xyz_noise[0])
+            object_pose.pose.position.y += np.random.uniform(low=xyz_noise[1], high=xyz_noise[1])
+            object_pose.pose.position.z += np.random.uniform(low=xyz_noise[2], high=xyz_noise[2])
+            object_pose.pose.orientation = helpers.rotateQuaternionByRPY(np.random.uniform(low=rpy_noise[0], high=rpy_noise[0]),
+                                                                         np.random.uniform(low=rpy_noise[1], high=rpy_noise[1]),
+                                                                         np.random.uniform(low=rpy_noise[2], high=rpy_noise[2]),
+                                                                         object_pose.pose.orientation)
+        except Exception as e:
+            print(e)
+            return False
+        return object_pose
+
+    def define_objects_in_tray_arrangement(self, layout_number=1):
+        """ Define the positions of all objects in the tray (for simulation).
+        """
+        self.fake_tray_object_positions = dict()
+        objects = ['panel_motor', 'panel_bearing', 'motor', 'motor_pulley', 'bearing',
+                   'shaft', 'end_cap', 'bearing_spacer', 'output_pulley', 'idler_spacer', 'idler_pulley', 'idler_pin']
+        if layout_number == 1:
+            poses = [[0.12, 0.02, 0.001, 0.0, 0.0, tau/2],
+                     [-0.02, 0.0, 0.001, 0.0, 0.0, -tau/4],
+                     [-0.09, -0.12, 0.001, tau/4, -tau/4, 0.0],
+                     [-0.02, -0.16, 0.005, 0.0, -tau/4, 0.0],
+                     [0.0, 0.0, 0.001, 0.0, tau/4, 0.0],
+                     [-0.04, 0.0, 0.005, 0.0, 0.0, -tau/2],
+                     [-0.1, -0.06, 0.001, 0.0, -tau/4, 0.0],
+                     [-0.07, -0.06, 0.001, 0.0, -tau/4, 0.0],
+                     [-0.02, -0.08, 0.005, 0.0, -tau/4, 0.0],
+                     [-0.04, -0.03, 0.001, 0.0, -tau/4, 0.0],
+                     [-0.05, -0.13, 0.001, 0.0, -tau/4, 0.0],
+                     [-0.1, -0.03, 0.005, 0.0, 0.0, 0.0]]
+        elif layout_number == 2:
+            poses = [[-0.04, 0.01, 0.001, 0.0, 0.0, tau/2],
+                     [0.01, -0.08, 0.001, 0.0, 0.0, tau/2],
+                     [0.1, -0.13, 0.001, tau/4, -tau/4, 0.0],
+                     [0.05, -0.07, 0.011, 0.0, -tau/4, 0.0],
+                     [0.06, 0, 0.001, 0.0, tau/4, 0.0],
+                     [0.04, 0.03, 0.011, 0.0, 0.0, -tau/2],
+                     [0.11, -0.06, 0.001, 0.0, -tau/4, 0.0],
+                     [0.08, -0.06, 0.001, 0.0, -tau/4, 0.0],
+                     [0, -0.03, 0.011, 0.0, -tau/4, 0.0],
+                     [0.1, -0.03, 0.001, 0.0, -tau/4, 0.0],
+                     [0.05, -0.13, 0.001, 0.0, -tau/4, 0.0],
+                     [0.04, -0.17, 0.011, 0.0, 0.0, 0.0]]
+        elif layout_number == 3:
+            poses = [[0.000, 0.020, 0.001, 0.000, -0.000, 3.140000],
+                     [0.100, -0.040, 0.001, 0.000, -0.000, 1.580000],
+                     [-0.060, 0.060, 0.001, 2.218, -1.568, 0.932410],
+                     [-0.040, 0.160, 0.011, -3.141, -1.570, -3.141592],
+                     [0.080, 0.130, 0.001, 2.756, 1.570, -2.756991],
+                     [-0.090, -0.040, 0.011, 0.000, -0.000, 1.570000],
+                     [-0.060, 0.120, 0.001, -3.141, -1.570, -3.141592],
+                     [-0.040, 0.100, 0.001, -3.141, -1.570, -3.141592],
+                     [0.000, 0.120, 0.011, 2.366, -1.569, 2.366991],
+                     [-0.090, 0.100, 0.001, -3.141, -1.570, -3.141592],
+                     [-0.080, 0.150, 0.001, -3.141, -1.570, -3.141592],
+                     [-0.010, 0.060, 0.011, 0.001, -0.001, -1.571593]]
+        for object_name, pose in zip(objects, poses):
+            self.fake_tray_object_positions[object_name] = pose
+
+    def spawn_panel(self):
+        co = self.assembly_database.get_collision_object("panel_bearing")
+        co.header.frame_id = "tray_center"
+        co.pose = conversions.to_pose([-0.05, -0.05, 0.001, tau/4, 0, 0])
+        self.planning_scene_interface.apply_collision_object(co)
+        self.planning_scene_interface.allow_collisions("panel_bearing", "")
+
+    def spawn_objects_for_demo(self, base_plate_in_tray=False, layout_number=1):
+        if layout_number == 4:
+            objects = ['base', 'panel_motor', 'panel_bearing']
+            poses = [[0.1, 0.04, 0.001, tau/4, 0.0, tau/2],
+                     [-0.04, 0.01, 0.001, 0.0, 0.0, tau/2],
+                     [0.01, -0.08, 0.001, 0.0, 0.0, tau/2]]
+            self.spawn_multiple_objects('wrs_assembly_2020', objects, poses, 'tray_center')
+            return
+
+        self.define_objects_in_tray_arrangement(layout_number=layout_number)
+        objects = []
+        poses = []
+        for object_name, pose in self.fake_tray_object_positions.items():
+            objects.append(object_name)
+            poses.append(pose)
+
+        self.spawn_multiple_objects('wrs_assembly_2020', objects, poses, 'tray_center')
+        if not base_plate_in_tray:  # Spawn the base plate on the fixation, for MTC demos
+            self.spawn_multiple_objects('wrs_assembly_2020', ['base'], [[0.12, 0.2, 0.0, tau/4, 0.0, -tau/4]], 'attached_base_origin_link')
+        else:
+            if layout_number == 3:
+                self.spawn_multiple_objects('wrs_assembly_2020', ['base'], [[-0.1, -0.04, 0.001, tau/4, 0.0, 0.0]], 'tray_center')
+            else:  # layout 2
+                self.spawn_multiple_objects('wrs_assembly_2020', ['base'], [[0.1, 0.05, 0.001, tau/4, 0.0, tau/2]], 'tray_center')
+        return
+
+    def spawn_multiple_objects(self, assembly_name, objects, poses, reference_frame):
+        """ Spawn objects in the planning scene.
+            objects is a list of object names.
+            poses is a list of poses in [x,y,z,r,p,y] format.
+        """
+        # Init params
+        upload_mtc_modules_initial_params()
+        self.assembly_database.change_assembly(assembly_name)
+
+        # Spawn tools and objects
+        self.define_tool_collision_objects()
+        screw_ids = ['m3', 'm4']
+        for screw_id in screw_ids:
+            self.spawn_tool('screw_tool_' + screw_id)
+            self.upload_tool_grasps_to_param_server(screw_id)
+
+        for (object_name, pose) in zip(objects, poses):
+            co = self.assembly_database.get_collision_object(object_name)
+            if co:
+                co.header.frame_id = reference_frame
+                co.pose = conversions.to_pose(pose)  # Convert geometry_msgs.msg.Pose
+                self.planning_scene_interface.apply_collision_object(co)
+            else:
+                rospy.logerr("Could not find object with name " + object_name + ". Did not spawn to planning scene.")
+
+    def get_3d_poses_from_ssd(self):
+        """
+        Returns object poses as estimated by the SSD neural network and reprojection.
+        Also updates self.objects_in_tray
+        """
+        # Read result and return
+        try:
+            rospy.logwarn("Clearing all object poses in memory")
+            self.objects_in_tray = dict()
+            self.object_in_tray_is_upside_down = dict()
+            res = self.vision.read_from_ssd()
+            if not res:
+                return False
+            for idx, pose, upside_down in zip(res.class_ids, res.poses, res.upside_down):
+                self.objects_in_tray[idx] = pose
+                self.object_in_tray_is_upside_down[idx] = upside_down
+            return res
+        except Exception as e:
+            rospy.logerr("Exception at get_3d_poses_from_ssd %s" % e)
+        return False
+
+    def get_bearing_angle(self, camera="b_bot_inside_camera"):
+        """
+        When looking at the bearing from the front, returns the rotation angle 
+        to align the screw holes.
+        """
+        if self.use_dummy_vision or not self.use_real_robot:
+            return 0.0001  # 0.0 would be recognized as vision failure
+        return self.vision.get_angle_from_vision(camera, item_name="bearing")
+
+    def get_motor_angle(self, camera="b_bot_outside_camera"):
+        """
+        When looking at the motor in the vgroove, this returns the rotation angle.
+        """
+        return self.vision.get_angle_from_vision(camera, item_name="motor")
+
+    def detect_object_in_camera_view(self, item_name, publish_to_scene=True):
+        """
+        Returns object pose if object was detected in current camera view and published to planning scene,
+        False otherwise.
+        """
+        # TODO: merge with "look_and_get_grasp_points"
+        object_type = self.assembly_database.name_to_type(item_name)
+        if not object_type:
+            rospy.logerr("Could not find the object " + item_name + " in database, or its type field is empty.")
+            return False
+
+        if self.use_real_robot:
+            object_pose = self.vision.localize_object(object_type)
+        else:  # In simulation, return pose with noise
+            return self.object_pose_from_fake_perception(item_name)
+
+        if object_pose:
+            rospy.loginfo("Localized " + item_name + " via CAD matching")
+            if publish_to_scene:
+                co = self.assembly_database.get_collision_object(object_name=item_name)
+                co.header.frame_id = object_pose.header.frame_id
+                co.pose = object_pose.pose
+
+                self.planning_scene_interface.apply_collision_object(co)
+                self.planning_scene_interface.allow_collisions("tray_center", co.id)  # tray_center is the tray surface
+            return object_pose
+        else:
+            rospy.logerr("Did not detect " + item_name)
+            return False
+
+###########
+# MTC call function
+###########
+
+    @save_task_plan
+    def plan_pick_place(self, robot_name, object_name, grasp_poses, pick_only=True, place_only=False):
+        '''
+        Function for calling the plan_pick_place MTC action
+        The function returns the MTC solution containing the trajectories
+
+        grasp_pose is a geometry_msgs.msg.PoseStamped (usually in the frame "object_name") for the robot's gripper_tip_link frame.
+        '''
+        goal = moveit_task_constructor_msgs.msg.PlanPickPlaceGoal()
+        if pick_only:
+            goal.task_type = moveit_task_constructor_msgs.msg.PlanPickPlaceGoal.PICK_ONLY
+        elif place_only:
+            goal.task_type = moveit_task_constructor_msgs.msg.PlanPickPlaceGoal.PLACE_ONLY
+        else:
+            goal.task_type = moveit_task_constructor_msgs.msg.PlanPickPlaceGoal.PICK_AND_PLACE
+        goal.arm_group_name = robot_name
+        goal.hand_group_name = robot_name + '_robotiq_85'
+        goal.eef_name = robot_name + '_tip'
+        goal.hand_frame = robot_name + '_gripper_tip_link'
+        goal.object_id = object_name
+        goal.support_surfaces = ["tray_center"]
+
+        for grasp_pose in grasp_poses:
+            grasp = moveit_msgs.msg.Grasp()
+
+            grasp.grasp_pose = grasp_pose
+
+            approach_direction = geometry_msgs.msg.Vector3Stamped()
+            approach_direction.header.frame_id = 'world'
+            approach_direction.vector.z = -1
+            grasp.pre_grasp_approach.direction = approach_direction
+            grasp.pre_grasp_approach.min_distance = 0.05
+            grasp.pre_grasp_approach.desired_distance = 0.1
+
+            lift_direction = geometry_msgs.msg.Vector3Stamped()
+            lift_direction.header.frame_id = 'world'
+            lift_direction.vector.z = 1
+            grasp.post_grasp_retreat.direction = lift_direction
+            grasp.post_grasp_retreat.min_distance = 0.05
+            grasp.post_grasp_retreat.desired_distance = 0.1
+
+            hand = self.active_robots[robot_name].gripper_group
+            hand_open = hand.get_named_target_values("open")
+            hand_closed = hand.get_named_target_values("close")
+
+            for (joint, value) in hand_open.items():
+                joint_traj_point = JointTrajectoryPoint()
+                joint_traj_point.positions.append(value)
+                grasp.pre_grasp_posture.joint_names.append(joint)
+                grasp.pre_grasp_posture.points.append(joint_traj_point)
+
+            for (joint, value) in hand_closed.items():
+                joint_traj_point = JointTrajectoryPoint()
+                joint_traj_point.positions.append(value)
+                grasp.grasp_posture.joint_names.append(joint)
+                grasp.grasp_posture.points.append(joint_traj_point)
+
+            goal.grasps.append(grasp)
+
+        place_pose = geometry_msgs.msg.PoseStamped()
+        place_pose.header.frame_id = 'tray_center'
+        place_pose.pose.orientation.w = 1
+        place_pose.pose.position.z = 0.3
+        goal.place_locations = [moveit_msgs.msg.PlaceLocation()]
+        goal.place_locations[0].place_pose = place_pose
+
+        place_direction = geometry_msgs.msg.Vector3Stamped()
+        place_direction.header.frame_id = 'world'
+        place_direction.vector.z = -1
+        goal.place_locations[0].pre_place_approach.direction = place_direction
+        goal.place_locations[0].pre_place_approach.min_distance = 0.05
+        goal.place_locations[0].pre_place_approach.desired_distance = 0.15
+
+        retreat_direction = geometry_msgs.msg.Vector3Stamped()
+        retreat_direction.header.frame_id = 'world'
+        retreat_direction.vector.z = -1
+        goal.place_locations[0].post_place_retreat.direction = retreat_direction
+        goal.place_locations[0].post_place_retreat.min_distance = 0.05
+        goal.place_locations[0].post_place_retreat.desired_distance = 0.15
+
+        rospy.loginfo("Sending pick planning goal.")
+        self.pick_place_planning_client.send_goal(goal)
+        self.pick_place_planning_client.wait_for_result(rospy.Duration(15.0))
+        return self.pick_place_planning_client.get_result()
+
+    @save_task_plan
+    def do_plan_pick_action(self, object_name, grasp_parameter_location='', lift_direction_reference_frame='', lift_direction=[], robot_name=''):
+        '''
+        Function for calling the action for pick planning
+        The function returns the action result that contains the trajectories for the motion plan
+        '''
+        goal = o2ac_task_planning_msgs.msg.PickObjectGoal()
+        goal.object_name = object_name
+        goal.grasp_parameter_location = grasp_parameter_location
+        goal.lift_direction_reference_frame = lift_direction_reference_frame
+        goal.lift_direction = lift_direction
+        goal.robot_name = robot_name
+        rospy.loginfo("Sending pick planning goal.")
+        self.pick_planning_client.send_goal(goal)
+        self.pick_planning_client.wait_for_result()
+        return self.pick_planning_client.get_result()
+
+    @save_task_plan
+    def do_plan_place_action(self, object_name, object_target_pose, release_object_after_place=True, object_subframe_to_place='', approach_place_direction_reference_frame='', approach_place_direction=[]):
+        '''
+        Function for calling the action for place planning
+        The function returns the action result that contains the trajectories for the motion plan
+        '''
+        goal = moveit_task_constructor_msgs.msg.PlaceObjectGoal()
+        goal.object_name = object_name
+        goal.release_object_after_place = release_object_after_place
+        goal.object_target_pose = object_target_pose
+        goal.object_subframe_to_place = object_subframe_to_place
+        goal.approach_place_direction_reference_frame = approach_place_direction_reference_frame
+        goal.approach_place_direction = approach_place_direction
+        rospy.loginfo("Sending place planning goal.")
+        self.place_planning_client.send_goal(goal)
+        self.place_planning_client.wait_for_result()
+        return self.place_planning_client.get_result()
+
+    @save_task_plan
+    def do_plan_release_action(self, object_name, pose_to_retreat_to=''):
+        '''
+        Function for calling the action for release planning
+        The function returns the action result that contains the trajectories for the motion plan
+        '''
+        goal = moveit_task_constructor_msgs.msg.ReleaseObjectGoal()
+        goal.object_name = object_name
+        goal.pose_to_retreat_to = pose_to_retreat_to
+        rospy.loginfo("Sending release planning goal.")
+        self.release_planning_client.send_goal(goal)
+        self.release_planning_client.wait_for_result()
+        return self.release_planning_client.get_result()
+
+    @save_task_plan
+    def do_plan_pickplace_action(self, object_name, object_target_pose, grasp_parameter_location='', release_object_after_place=True, object_subframe_to_place='',
+                                 lift_direction_reference_frame='', lift_direction=[], approach_place_direction_reference_frame='', approach_place_direction=[], robot_names='', force_robot_order=False):
+        '''
+        Function for calling the action for pick-place (potentially with regrasp) planning
+        The function returns the action result that contains the trajectories for the motion plan
+        '''
+        goal = moveit_task_constructor_msgs.msg.PickPlaceWithRegraspGoal()
+        goal.object_name = object_name
+        goal.object_target_pose = object_target_pose
+        goal.grasp_parameter_location = grasp_parameter_location
+        goal.release_object_after_place = release_object_after_place
+        goal.object_subframe_to_place = object_subframe_to_place
+        goal.lift_direction_reference_frame = lift_direction_reference_frame
+        goal.lift_direction = lift_direction
+        goal.approach_place_direction_reference_frame = approach_place_direction_reference_frame
+        goal.approach_place_direction = approach_place_direction
+        goal.robot_names = robot_names
+        goal.force_robot_order = force_robot_order
+        rospy.loginfo("Sending pickplace planning goal.")
+        self.pickplace_planning_client.send_goal(goal)
+        self.pickplace_planning_client.wait_for_result()
+        return self.pickplace_planning_client.get_result()
+
+    @save_task_plan
+    def do_plan_fastening_action(self, object_name, object_target_pose, object_subframe_to_place='', approach_place_direction_reference_frame='', approach_place_direction=[]):
+        '''
+        Function for calling the action for fastening planning
+        The function returns the action result that contains the trajectories for the motion plan
+        '''
+        goal = moveit_task_constructor_msgs.msg.PlaceObjectGoal()
+        goal.object_name = object_name
+        goal.object_target_pose = object_target_pose
+        goal.object_subframe_to_place = object_subframe_to_place
+        goal.approach_place_direction_reference_frame = approach_place_direction_reference_frame
+        goal.approach_place_direction = approach_place_direction
+        rospy.loginfo("Sending fastening planning goal.")
+        self.fastening_planning_client.send_goal(goal)
+        self.fastening_planning_client.wait_for_result()
+        return self.fastening_planning_client.get_result()
+
+    @save_task_plan
+    def do_plan_wrs_subtask_b_action(self, object_name, object_target_pose, object_subframe_to_place, approach_place_direction_reference_frame='', approach_place_direction=[]):
+        '''
+        Function for calling the action for subassembly (fixing the motor L plate on the base plate) planning
+        The function returns the action result that contains the trajectories for the motion plan
+        '''
+        goal = moveit_task_constructor_msgs.msg.PickPlaceWithRegraspGoal()
+        goal.object_name = object_name
+        goal.object_target_pose = object_target_pose
+        goal.object_subframe_to_place = object_subframe_to_place
+        goal.approach_place_direction_reference_frame = approach_place_direction_reference_frame
+        goal.approach_place_direction = approach_place_direction
+        rospy.loginfo("Sending wrs subtask B planning goal.")
+        self.wrs_subtask_b_planning_client.send_goal(goal)
+        self.wrs_subtask_b_planning_client.wait_for_result()
+        return self.wrs_subtask_b_planning_client.get_result()
+
+###########
+# Tool related methods
+###########
+
     @check_for_real_robot
     def activate_led(self, LED_name="b_bot", on=True):
         request = ur_msgs.srv.SetIORequest()
@@ -434,7 +878,25 @@ class O2ACBase(object):
 
             self.screw_tools[tool["id"]] = tool_co
 
-    ######
+    def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=True):
+        return self.pick_screw_from_feeder_python(robot_name, screw_size, realign_tool_upon_failure)  # Python-only version
+        res = self.skill_server.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure)
+        try:
+            if res.success:
+                return True
+        except:
+            pass
+        if realign_tool_upon_failure:
+            self.active_robots[robot_name].move_lin_rel(relative_translation=[0, 0, 0.05])
+            self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
+            rospy.loginfo("pickScrewFromFeeder failed. Realigning tool and retrying.")
+            screw_tool_id = "screw_tool_m" + str(screw_size)
+            self.realign_tool(robot_name, screw_tool_id)
+            return self.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure=False)
+        else:
+            self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
+            return False
+
     def pick_screw_from_feeder_python(self, robot_name, screw_size, realign_tool_upon_failure=True, skip_retreat=False):
         assert robot_name in ("a_bot", "b_bot"), "unsupported operation for robot %s" % robot_name
         if robot_name == "a_bot":
@@ -812,471 +1274,6 @@ class O2ACBase(object):
         self.tools.set_suction(screw_tool_id, suction_on=False, eject=False, wait=False)
         return motor_stalled
 
-    def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=True):
-        return self.pick_screw_from_feeder_python(robot_name, screw_size, realign_tool_upon_failure)  # Python-only version
-        res = self.skill_server.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure)
-        try:
-            if res.success:
-                return True
-        except:
-            pass
-        if realign_tool_upon_failure:
-            self.active_robots[robot_name].move_lin_rel(relative_translation=[0, 0, 0.05])
-            self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
-            rospy.loginfo("pickScrewFromFeeder failed. Realigning tool and retrying.")
-            screw_tool_id = "screw_tool_m" + str(screw_size)
-            self.realign_tool(robot_name, screw_tool_id)
-            return self.pick_screw_from_feeder(robot_name, screw_size, realign_tool_upon_failure=False)
-        else:
-            self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
-            return False
-
-    def do_insert_action(self, active_robot_name, passive_robot_name="",
-                         starting_offset=0.05, max_insertion_distance=0.01,
-                         max_approach_distance=.1, max_force=5,
-                         max_radius=.001, radius_increment=.0001):
-        rospy.logerr("This is probably not implemented. Aborting")
-        return
-        goal = o2ac_msgs.msg.insertGoal()
-        goal.active_robot_name = active_robot_name
-        goal.passive_robot_name = passive_robot_name
-        goal.starting_offset = starting_offset
-        goal.max_insertion_distance = max_insertion_distance
-        goal.max_approach_distance = max_approach_distance
-        goal.max_force = max_force
-        goal.max_radius = max_radius
-        goal.radius_increment = radius_increment
-        rospy.loginfo("Sending insert action goal.")
-        self.insert_client.send_goal(goal)
-        self.insert_client.wait_for_result()
-        return self.insert_client.get_result()
-
-    def do_change_tool_action(self, robot_name, equip=True, screw_size=4):
-        if screw_size == 2:
-            tool_name = "set_screw_tool"
-        else:
-            tool_name = "screw_tool_m" + str(screw_size)
-
-        if equip:
-            res = self.equip_tool(robot_name, tool_name)
-        else:
-            res = self.unequip_tool(robot_name, tool_name)
-        return res
-
-    def upload_tool_grasps_to_param_server(self, tool_id):
-        transformer = tf.Transformer(True, rospy.Duration(10.0))
-
-        rospy.sleep(0.2)
-        (trans, rot) = self.listener.lookupTransform('/screw_tool_' + tool_id + '_pickup_link', '/move_group/screw_tool_' + tool_id, rospy.Time())
-        collision_object_to_pickup_link = geometry_msgs.msg.TransformStamped()
-        collision_object_to_pickup_link.header.frame_id = 'screw_tool_' + tool_id + '_pickup_link'
-        collision_object_to_pickup_link.child_frame_id = 'screw_tool_' + tool_id
-        collision_object_to_pickup_link.transform.translation = geometry_msgs.msg.Vector3(*trans)
-        collision_object_to_pickup_link.transform.rotation = geometry_msgs.msg.Quaternion(*rot)
-        transformer.setTransform(collision_object_to_pickup_link)
-
-        grasp_pose_to_pickup_link = geometry_msgs.msg.TransformStamped()
-        grasp_pose_to_pickup_link.header.frame_id = 'screw_tool_' + tool_id + '_pickup_link'
-        grasp_pose_to_pickup_link.child_frame_id = 'grasp_1'
-        grasp_pose_to_pickup_link.transform.translation = geometry_msgs.msg.Vector3(0.015, 0.0, -0.03)
-        grasp_pose_to_pickup_link.transform.rotation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, -pi/6, 0))
-        transformer.setTransform(grasp_pose_to_pickup_link)
-
-        (trans, rot) = transformer.lookupTransform('screw_tool_' + tool_id, 'grasp_1', rospy.Time(0))
-        rospy.set_param('tools/screw_tool_' + tool_id + '/grasp_1/position', trans)
-        rospy.set_param('tools/screw_tool_' + tool_id + '/grasp_1/orientation', rot)
-
-    # Parts spawning
-
-    def spawn_objects_for_closed_loop_test(self):
-        objects = ['panel_bearing', 'panel_motor']
-        poses = [[0.4, -0.35, 0.8, tau/4, 0, tau/4], [0.5, 0.3, 1, tau/4, 0, 0]]
-        self.spawn_multiple_objects('wrs_assembly_2020', ['base'], [[0.12, 0.2, 0.0, tau/4, 0.0, -tau/4]], 'attached_base_origin_link')
-        self.spawn_multiple_objects('wrs_assembly_2020', objects, poses, 'world')
-
-    def object_pose_from_fake_perception(self, object_name, xyz_noise=[0.003, 0.003, 0.002], rpy_noise=[radians(5), radians(5), radians(7)]):
-        """ Obtains the object pose at a pre-defined position with some noise. 
-            Simulates vision.
-        """
-        # Get object pose and add noise
-        try:
-            object_pose = conversions.to_pose_stamped("tray_center", self.fake_tray_object_positions[object_name])
-            object_pose.pose.position.x += np.random.uniform(low=xyz_noise[0], high=xyz_noise[0])
-            object_pose.pose.position.y += np.random.uniform(low=xyz_noise[1], high=xyz_noise[1])
-            object_pose.pose.position.z += np.random.uniform(low=xyz_noise[2], high=xyz_noise[2])
-            object_pose.pose.orientation = helpers.rotateQuaternionByRPY(np.random.uniform(low=rpy_noise[0], high=rpy_noise[0]),
-                                                                         np.random.uniform(low=rpy_noise[1], high=rpy_noise[1]),
-                                                                         np.random.uniform(low=rpy_noise[2], high=rpy_noise[2]),
-                                                                         object_pose.pose.orientation)
-        except Exception as e:
-            print(e)
-            return False
-        return object_pose
-
-    def define_objects_in_tray_arrangement(self, layout_number=1):
-        """ Define the positions of all objects in the tray (for simulation).
-        """
-        self.fake_tray_object_positions = dict()
-        objects = ['panel_motor', 'panel_bearing', 'motor', 'motor_pulley', 'bearing',
-                   'shaft', 'end_cap', 'bearing_spacer', 'output_pulley', 'idler_spacer', 'idler_pulley', 'idler_pin']
-        if layout_number == 1:
-            poses = [[0.12, 0.02, 0.001, 0.0, 0.0, tau/2],
-                     [-0.02, 0.0, 0.001, 0.0, 0.0, -tau/4],
-                     [-0.09, -0.12, 0.001, tau/4, -tau/4, 0.0],
-                     [-0.02, -0.16, 0.005, 0.0, -tau/4, 0.0],
-                     [0.0, 0.0, 0.001, 0.0, tau/4, 0.0],
-                     [-0.04, 0.0, 0.005, 0.0, 0.0, -tau/2],
-                     [-0.1, -0.06, 0.001, 0.0, -tau/4, 0.0],
-                     [-0.07, -0.06, 0.001, 0.0, -tau/4, 0.0],
-                     [-0.02, -0.08, 0.005, 0.0, -tau/4, 0.0],
-                     [-0.04, -0.03, 0.001, 0.0, -tau/4, 0.0],
-                     [-0.05, -0.13, 0.001, 0.0, -tau/4, 0.0],
-                     [-0.1, -0.03, 0.005, 0.0, 0.0, 0.0]]
-        elif layout_number == 2:
-            poses = [[-0.04, 0.01, 0.001, 0.0, 0.0, tau/2],
-                     [0.01, -0.08, 0.001, 0.0, 0.0, tau/2],
-                     [0.1, -0.13, 0.001, tau/4, -tau/4, 0.0],
-                     [0.05, -0.07, 0.011, 0.0, -tau/4, 0.0],
-                     [0.06, 0, 0.001, 0.0, tau/4, 0.0],
-                     [0.04, 0.03, 0.011, 0.0, 0.0, -tau/2],
-                     [0.11, -0.06, 0.001, 0.0, -tau/4, 0.0],
-                     [0.08, -0.06, 0.001, 0.0, -tau/4, 0.0],
-                     [0, -0.03, 0.011, 0.0, -tau/4, 0.0],
-                     [0.1, -0.03, 0.001, 0.0, -tau/4, 0.0],
-                     [0.05, -0.13, 0.001, 0.0, -tau/4, 0.0],
-                     [0.04, -0.17, 0.011, 0.0, 0.0, 0.0]]
-        elif layout_number == 3:
-            poses = [[0.000, 0.020, 0.001, 0.000, -0.000, 3.140000],
-                     [0.100, -0.040, 0.001, 0.000, -0.000, 1.580000],
-                     [-0.060, 0.060, 0.001, 2.218, -1.568, 0.932410],
-                     [-0.040, 0.160, 0.011, -3.141, -1.570, -3.141592],
-                     [0.080, 0.130, 0.001, 2.756, 1.570, -2.756991],
-                     [-0.090, -0.040, 0.011, 0.000, -0.000, 1.570000],
-                     [-0.060, 0.120, 0.001, -3.141, -1.570, -3.141592],
-                     [-0.040, 0.100, 0.001, -3.141, -1.570, -3.141592],
-                     [0.000, 0.120, 0.011, 2.366, -1.569, 2.366991],
-                     [-0.090, 0.100, 0.001, -3.141, -1.570, -3.141592],
-                     [-0.080, 0.150, 0.001, -3.141, -1.570, -3.141592],
-                     [-0.010, 0.060, 0.011, 0.001, -0.001, -1.571593]]
-        for object_name, pose in zip(objects, poses):
-            self.fake_tray_object_positions[object_name] = pose
-
-    def spawn_panel(self):
-        co = self.assembly_database.get_collision_object("panel_bearing")
-        co.header.frame_id = "tray_center"
-        co.pose = conversions.to_pose([-0.05, -0.05, 0.001, tau/4, 0, 0])
-        self.planning_scene_interface.apply_collision_object(co)
-        self.planning_scene_interface.allow_collisions("panel_bearing", "")
-
-    def spawn_objects_for_demo(self, base_plate_in_tray=False, layout_number=1):
-        if layout_number == 4:
-            objects = ['base', 'panel_motor', 'panel_bearing']
-            poses = [[0.1, 0.04, 0.001, tau/4, 0.0, tau/2],
-                     [-0.04, 0.01, 0.001, 0.0, 0.0, tau/2],
-                     [0.01, -0.08, 0.001, 0.0, 0.0, tau/2]]
-            self.spawn_multiple_objects('wrs_assembly_2020', objects, poses, 'tray_center')
-            return
-
-        self.define_objects_in_tray_arrangement(layout_number=layout_number)
-        objects = []
-        poses = []
-        for object_name, pose in self.fake_tray_object_positions.items():
-            objects.append(object_name)
-            poses.append(pose)
-
-        self.spawn_multiple_objects('wrs_assembly_2020', objects, poses, 'tray_center')
-        if not base_plate_in_tray:  # Spawn the base plate on the fixation, for MTC demos
-            self.spawn_multiple_objects('wrs_assembly_2020', ['base'], [[0.12, 0.2, 0.0, tau/4, 0.0, -tau/4]], 'attached_base_origin_link')
-        else:
-            if layout_number == 3:
-                self.spawn_multiple_objects('wrs_assembly_2020', ['base'], [[-0.1, -0.04, 0.001, tau/4, 0.0, 0.0]], 'tray_center')
-            else:  # layout 2
-                self.spawn_multiple_objects('wrs_assembly_2020', ['base'], [[0.1, 0.05, 0.001, tau/4, 0.0, tau/2]], 'tray_center')
-        return
-
-    def spawn_multiple_objects(self, assembly_name, objects, poses, reference_frame):
-        """ Spawn objects in the planning scene.
-            objects is a list of object names.
-            poses is a list of poses in [x,y,z,r,p,y] format.
-        """
-        # Init params
-        upload_mtc_modules_initial_params()
-        self.assembly_database.change_assembly(assembly_name)
-
-        # Spawn tools and objects
-        self.define_tool_collision_objects()
-        screw_ids = ['m3', 'm4']
-        for screw_id in screw_ids:
-            self.spawn_tool('screw_tool_' + screw_id)
-            self.upload_tool_grasps_to_param_server(screw_id)
-
-        for (object_name, pose) in zip(objects, poses):
-            co = self.assembly_database.get_collision_object(object_name)
-            if co:
-                co.header.frame_id = reference_frame
-                co.pose = conversions.to_pose(pose)  # Convert geometry_msgs.msg.Pose
-                self.planning_scene_interface.apply_collision_object(co)
-            else:
-                rospy.logerr("Could not find object with name " + object_name + ". Did not spawn to planning scene.")
-
-    def get_3d_poses_from_ssd(self):
-        """
-        Returns object poses as estimated by the SSD neural network and reprojection.
-        Also updates self.objects_in_tray
-        """
-        # Read result and return
-        try:
-            rospy.logwarn("Clearing all object poses in memory")
-            self.objects_in_tray = dict()
-            self.object_in_tray_is_upside_down = dict()
-            res = self.vision.read_from_ssd()
-            if not res:
-                return False
-            for idx, pose, upside_down in zip(res.class_ids, res.poses, res.upside_down):
-                self.objects_in_tray[idx] = pose
-                self.object_in_tray_is_upside_down[idx] = upside_down
-            return res
-        except Exception as e:
-            rospy.logerr("Exception at get_3d_poses_from_ssd %s" % e)
-        return False
-
-    def get_bearing_angle(self, camera="b_bot_inside_camera"):
-        """
-        When looking at the bearing from the front, returns the rotation angle 
-        to align the screw holes.
-        """
-        if self.use_dummy_vision or not self.use_real_robot:
-            return 0.0001  # 0.0 would be recognized as vision failure
-        return self.vision.get_angle_from_vision(camera, item_name="bearing")
-
-    def get_motor_angle(self, camera="b_bot_outside_camera"):
-        """
-        When looking at the motor in the vgroove, this returns the rotation angle.
-        """
-        return self.vision.get_angle_from_vision(camera, item_name="motor")
-
-    def detect_object_in_camera_view(self, item_name, publish_to_scene=True):
-        """
-        Returns object pose if object was detected in current camera view and published to planning scene,
-        False otherwise.
-        """
-        # TODO: merge with "look_and_get_grasp_points"
-        object_type = self.assembly_database.name_to_type(item_name)
-        if not object_type:
-            rospy.logerr("Could not find the object " + item_name + " in database, or its type field is empty.")
-            return False
-
-        if self.use_real_robot:
-            object_pose = self.vision.localize_object(object_type)
-        else:  # In simulation, return pose with noise
-            return self.object_pose_from_fake_perception(item_name)
-
-        if object_pose:
-            rospy.loginfo("Localized " + item_name + " via CAD matching")
-            if publish_to_scene:
-                co = self.assembly_database.get_collision_object(object_name=item_name)
-                co.header.frame_id = object_pose.header.frame_id
-                co.pose = object_pose.pose
-
-                self.planning_scene_interface.apply_collision_object(co)
-                self.planning_scene_interface.allow_collisions("tray_center", co.id)  # tray_center is the tray surface
-            return object_pose
-        else:
-            rospy.logerr("Did not detect " + item_name)
-            return False
-
-    @save_task_plan
-    def plan_pick_place(self, robot_name, object_name, grasp_poses, pick_only=True, place_only=False):
-        '''
-        Function for calling the plan_pick_place MTC action
-        The function returns the MTC solution containing the trajectories
-
-        grasp_pose is a geometry_msgs.msg.PoseStamped (usually in the frame "object_name") for the robot's gripper_tip_link frame.
-        '''
-        goal = moveit_task_constructor_msgs.msg.PlanPickPlaceGoal()
-        if pick_only:
-            goal.task_type = moveit_task_constructor_msgs.msg.PlanPickPlaceGoal.PICK_ONLY
-        elif place_only:
-            goal.task_type = moveit_task_constructor_msgs.msg.PlanPickPlaceGoal.PLACE_ONLY
-        else:
-            goal.task_type = moveit_task_constructor_msgs.msg.PlanPickPlaceGoal.PICK_AND_PLACE
-        goal.arm_group_name = robot_name
-        goal.hand_group_name = robot_name + '_robotiq_85'
-        goal.eef_name = robot_name + '_tip'
-        goal.hand_frame = robot_name + '_gripper_tip_link'
-        goal.object_id = object_name
-        goal.support_surfaces = ["tray_center"]
-
-        for grasp_pose in grasp_poses:
-            grasp = moveit_msgs.msg.Grasp()
-
-            grasp.grasp_pose = grasp_pose
-
-            approach_direction = geometry_msgs.msg.Vector3Stamped()
-            approach_direction.header.frame_id = 'world'
-            approach_direction.vector.z = -1
-            grasp.pre_grasp_approach.direction = approach_direction
-            grasp.pre_grasp_approach.min_distance = 0.05
-            grasp.pre_grasp_approach.desired_distance = 0.1
-
-            lift_direction = geometry_msgs.msg.Vector3Stamped()
-            lift_direction.header.frame_id = 'world'
-            lift_direction.vector.z = 1
-            grasp.post_grasp_retreat.direction = lift_direction
-            grasp.post_grasp_retreat.min_distance = 0.05
-            grasp.post_grasp_retreat.desired_distance = 0.1
-
-            hand = self.active_robots[robot_name].gripper_group
-            hand_open = hand.get_named_target_values("open")
-            hand_closed = hand.get_named_target_values("close")
-
-            for (joint, value) in hand_open.items():
-                joint_traj_point = JointTrajectoryPoint()
-                joint_traj_point.positions.append(value)
-                grasp.pre_grasp_posture.joint_names.append(joint)
-                grasp.pre_grasp_posture.points.append(joint_traj_point)
-
-            for (joint, value) in hand_closed.items():
-                joint_traj_point = JointTrajectoryPoint()
-                joint_traj_point.positions.append(value)
-                grasp.grasp_posture.joint_names.append(joint)
-                grasp.grasp_posture.points.append(joint_traj_point)
-
-            goal.grasps.append(grasp)
-
-        place_pose = geometry_msgs.msg.PoseStamped()
-        place_pose.header.frame_id = 'tray_center'
-        place_pose.pose.orientation.w = 1
-        place_pose.pose.position.z = 0.3
-        goal.place_locations = [moveit_msgs.msg.PlaceLocation()]
-        goal.place_locations[0].place_pose = place_pose
-
-        place_direction = geometry_msgs.msg.Vector3Stamped()
-        place_direction.header.frame_id = 'world'
-        place_direction.vector.z = -1
-        goal.place_locations[0].pre_place_approach.direction = place_direction
-        goal.place_locations[0].pre_place_approach.min_distance = 0.05
-        goal.place_locations[0].pre_place_approach.desired_distance = 0.15
-
-        retreat_direction = geometry_msgs.msg.Vector3Stamped()
-        retreat_direction.header.frame_id = 'world'
-        retreat_direction.vector.z = -1
-        goal.place_locations[0].post_place_retreat.direction = retreat_direction
-        goal.place_locations[0].post_place_retreat.min_distance = 0.05
-        goal.place_locations[0].post_place_retreat.desired_distance = 0.15
-
-        rospy.loginfo("Sending pick planning goal.")
-        self.pick_place_planning_client.send_goal(goal)
-        self.pick_place_planning_client.wait_for_result(rospy.Duration(15.0))
-        return self.pick_place_planning_client.get_result()
-
-    @save_task_plan
-    def do_plan_pick_action(self, object_name, grasp_parameter_location='', lift_direction_reference_frame='', lift_direction=[], robot_name=''):
-        '''
-        Function for calling the action for pick planning
-        The function returns the action result that contains the trajectories for the motion plan
-        '''
-        goal = o2ac_task_planning_msgs.msg.PickObjectGoal()
-        goal.object_name = object_name
-        goal.grasp_parameter_location = grasp_parameter_location
-        goal.lift_direction_reference_frame = lift_direction_reference_frame
-        goal.lift_direction = lift_direction
-        goal.robot_name = robot_name
-        rospy.loginfo("Sending pick planning goal.")
-        self.pick_planning_client.send_goal(goal)
-        self.pick_planning_client.wait_for_result()
-        return self.pick_planning_client.get_result()
-
-    @save_task_plan
-    def do_plan_place_action(self, object_name, object_target_pose, release_object_after_place=True, object_subframe_to_place='', approach_place_direction_reference_frame='', approach_place_direction=[]):
-        '''
-        Function for calling the action for place planning
-        The function returns the action result that contains the trajectories for the motion plan
-        '''
-        goal = moveit_task_constructor_msgs.msg.PlaceObjectGoal()
-        goal.object_name = object_name
-        goal.release_object_after_place = release_object_after_place
-        goal.object_target_pose = object_target_pose
-        goal.object_subframe_to_place = object_subframe_to_place
-        goal.approach_place_direction_reference_frame = approach_place_direction_reference_frame
-        goal.approach_place_direction = approach_place_direction
-        rospy.loginfo("Sending place planning goal.")
-        self.place_planning_client.send_goal(goal)
-        self.place_planning_client.wait_for_result()
-        return self.place_planning_client.get_result()
-
-    @save_task_plan
-    def do_plan_release_action(self, object_name, pose_to_retreat_to=''):
-        '''
-        Function for calling the action for release planning
-        The function returns the action result that contains the trajectories for the motion plan
-        '''
-        goal = moveit_task_constructor_msgs.msg.ReleaseObjectGoal()
-        goal.object_name = object_name
-        goal.pose_to_retreat_to = pose_to_retreat_to
-        rospy.loginfo("Sending release planning goal.")
-        self.release_planning_client.send_goal(goal)
-        self.release_planning_client.wait_for_result()
-        return self.release_planning_client.get_result()
-
-    @save_task_plan
-    def do_plan_pickplace_action(self, object_name, object_target_pose, grasp_parameter_location='', release_object_after_place=True, object_subframe_to_place='',
-                                 lift_direction_reference_frame='', lift_direction=[], approach_place_direction_reference_frame='', approach_place_direction=[], robot_names='', force_robot_order=False):
-        '''
-        Function for calling the action for pick-place (potentially with regrasp) planning
-        The function returns the action result that contains the trajectories for the motion plan
-        '''
-        goal = moveit_task_constructor_msgs.msg.PickPlaceWithRegraspGoal()
-        goal.object_name = object_name
-        goal.object_target_pose = object_target_pose
-        goal.grasp_parameter_location = grasp_parameter_location
-        goal.release_object_after_place = release_object_after_place
-        goal.object_subframe_to_place = object_subframe_to_place
-        goal.lift_direction_reference_frame = lift_direction_reference_frame
-        goal.lift_direction = lift_direction
-        goal.approach_place_direction_reference_frame = approach_place_direction_reference_frame
-        goal.approach_place_direction = approach_place_direction
-        goal.robot_names = robot_names
-        goal.force_robot_order = force_robot_order
-        rospy.loginfo("Sending pickplace planning goal.")
-        self.pickplace_planning_client.send_goal(goal)
-        self.pickplace_planning_client.wait_for_result()
-        return self.pickplace_planning_client.get_result()
-
-    @save_task_plan
-    def do_plan_fastening_action(self, object_name, object_target_pose, object_subframe_to_place='', approach_place_direction_reference_frame='', approach_place_direction=[]):
-        '''
-        Function for calling the action for fastening planning
-        The function returns the action result that contains the trajectories for the motion plan
-        '''
-        goal = moveit_task_constructor_msgs.msg.PlaceObjectGoal()
-        goal.object_name = object_name
-        goal.object_target_pose = object_target_pose
-        goal.object_subframe_to_place = object_subframe_to_place
-        goal.approach_place_direction_reference_frame = approach_place_direction_reference_frame
-        goal.approach_place_direction = approach_place_direction
-        rospy.loginfo("Sending fastening planning goal.")
-        self.fastening_planning_client.send_goal(goal)
-        self.fastening_planning_client.wait_for_result()
-        return self.fastening_planning_client.get_result()
-
-    @save_task_plan
-    def do_plan_wrs_subtask_b_action(self, object_name, object_target_pose, object_subframe_to_place, approach_place_direction_reference_frame='', approach_place_direction=[]):
-        '''
-        Function for calling the action for subassembly (fixing the motor L plate on the base plate) planning
-        The function returns the action result that contains the trajectories for the motion plan
-        '''
-        goal = moveit_task_constructor_msgs.msg.PickPlaceWithRegraspGoal()
-        goal.object_name = object_name
-        goal.object_target_pose = object_target_pose
-        goal.object_subframe_to_place = object_subframe_to_place
-        goal.approach_place_direction_reference_frame = approach_place_direction_reference_frame
-        goal.approach_place_direction = approach_place_direction
-        rospy.loginfo("Sending wrs subtask B planning goal.")
-        self.wrs_subtask_b_planning_client.send_goal(goal)
-        self.wrs_subtask_b_planning_client.wait_for_result()
-        return self.wrs_subtask_b_planning_client.get_result()
-
     def spawn_tool(self, tool_name):
         self.despawn_tool(tool_name)
         if tool_name in self.screw_tools:
@@ -1491,6 +1488,18 @@ class O2ACBase(object):
 
         return True
 
+    def do_change_tool_action(self, robot_name, equip=True, screw_size=4):
+        if screw_size == 2:
+            tool_name = "set_screw_tool"
+        else:
+            tool_name = "screw_tool_m" + str(screw_size)
+
+        if equip:
+            res = self.equip_tool(robot_name, tool_name)
+        else:
+            res = self.unequip_tool(robot_name, tool_name)
+        return res
+
     def allow_collisions_with_robot_hand(self, link_name, robot_name, allow=True):
         """Allow collisions of a link with the robot hand"""
         hand_links = [
@@ -1522,6 +1531,14 @@ class O2ACBase(object):
                 objects_without_tools.append(n)
         print(objects_without_tools)
         self.planning_scene_interface.allow_collisions(objects_without_tools, "")
+
+###########
+# Sequences related methods
+# A sequence is a collection of actions that can be:
+# - Record and replay. Record sequences are stored in a file (./config/saved_plans).
+# - Plan subsequent actions while the current one is being executed.
+# - Sequences can be defined from a config file (./config/playback_sequences) or with code (see equip_unequip_realign_tool() for an example)
+###########
 
     def read_playback_sequence(self, routine_filename, default_frame="world"):
         """

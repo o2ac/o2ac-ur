@@ -87,8 +87,9 @@ class RobotBase():
 
     def compute_fk(self, robot_state=None, tcp_link=None, frame_id=None):
         """
-            Compute the Forward kinematics for a move group using the moveit service
-            robot_state: if pass as `list`: assumes that the joint values are in the same order as defined for that group
+            Compute the Forward kinematics for a move group using the MoveIt service
+            robot_state: list, tuple, or moveit_msgs.msg.RobotState
+                         if passed as `list` or `tuple`: assumes that the joint values are in the same order as defined for that group
         """
         if robot_state:
             if isinstance(robot_state, moveit_msgs.msg.RobotState):
@@ -116,7 +117,12 @@ class RobotBase():
 
     def compute_ik(self, target_pose, joints_seed=None, timeout=0.01, end_effector_link="", retry=False, allow_collisions=False):
         """
-            Compute the inverse kinematics for a move group the moveit service
+            Compute the Inverse Kinematics for a move group the MoveIt service
+            target_pose: PoseStamped
+            joints_seed: list, must be in the same order as defined for that group
+            timeout: float, overrides the timeout for the IK solver (higher is sometimes better)
+            retry: bool, for 10 secs send the same request until success or timeout
+            allow_collisions: bool, compute IK with or without considering collisions with other objects (Likely self-collisions are always considered)
             return
             solution: `list`: the joint values are in the same order as defined for that group
         """
@@ -153,6 +159,7 @@ class RobotBase():
         return solution
 
     def set_up_move_group(self, speed, acceleration, planner="OMPL"):
+        """ Set move group interface's planner, speed scaling, and acceleration scaling """
         assert not rospy.is_shutdown()
         (speed_, accel_) = self.limit_speed_and_acc(speed, acceleration)
         group = self.robot_group
@@ -242,12 +249,14 @@ class RobotBase():
         return helpers.ordered_joint_values_from_dict(self.robot_group.get_named_target_values(name), self.robot_group.get_active_joints())
 
     def save_plan(self, filename, plan):
+        """ Store a given plan to a file """
         rp = rospkg.RosPack()
         bagfile = rp.get_path("o2ac_routines") + "/config/saved_plans/" + filename
         with rosbag.Bag(bagfile, 'w') as bag:
             bag.write(topic="saved_plan", msg=plan)
 
     def load_saved_plan(self, filename):
+        """ Loads a given plan from a file """
         rp = rospkg.RosPack()
         bagfile = rp.get_path("o2ac_routines") + "/config/saved_plans/" + filename
         with rosbag.Bag(bagfile, 'r') as bag:
@@ -274,7 +283,16 @@ class RobotBase():
                         end_effector_link="", move_lin=False, wait=True, plan_only=False, initial_joints=None,
                         allow_joint_configuration_flip=False, move_ptp=True, timeout=5, retry_non_linear=False,
                         retime=False):
-
+        """ Move robot to a given PoseStamped goal 
+            pose_goal_stamped: PoseStamped
+            plan_only: bool, if true, return only plan and planning time
+            initial_joints: list, initial joint configuration for planning
+            allow_joint_configuration: bool
+            move_lin: bool, if true, force used of Pilz linear planner
+            move_ptp: bool, if true, plan first using Pilz PTP planner, in case of failure, retry with OMPL
+            retry_non_linear: bool, if true, move_lin true and the planner fails to plan, replan using OMPL
+            retime: bool, if true, retime plan using `time_optimal_trajectory_generation`
+        """
         move_ptp = False if move_lin else move_ptp  # Override if move_lin is set (Linear takes priority since PTP is the default value)
 
         planner = "LINEAR" if move_lin else ("PTP" if move_ptp else "OMPL")
@@ -349,6 +367,8 @@ class RobotBase():
 
     def move_lin_trajectory(self, trajectory, speed=1.0, acceleration=None, end_effector_link="",
                             plan_only=False, initial_joints=None, allow_joint_configuration_flip=False, timeout=10):
+        """ From multiple waypoints, compute a linear trajectory using Pilz Linear planner"""
+
         # TODO: Add allow_joint_configuration_flip
         if not self.set_up_move_group(speed, acceleration, planner="LINEAR"):
             return False
@@ -431,6 +451,7 @@ class RobotBase():
 
     def move_lin(self, pose_goal_stamped, speed=0.5, acceleration=None, end_effector_link="", wait=True,
                  plan_only=False, initial_joints=None, allow_joint_configuration_flip=False):
+        """ Wrapper for compatibility with old API """
         return self.go_to_pose_goal(pose_goal_stamped, speed, acceleration, end_effector_link, move_lin=True,
                                     wait=wait, plan_only=plan_only, initial_joints=initial_joints,
                                     allow_joint_configuration_flip=allow_joint_configuration_flip)
@@ -440,11 +461,14 @@ class RobotBase():
                      wait=True, end_effector_link="", plan_only=False, initial_joints=None,
                      allow_joint_configuration_flip=False, pose_only=False, timeout=5.0, retime=False):
         '''
-        Does a lin_move relative to the current position of the robot.
+        Does a move_lin relative to the current position of the robot.
 
-        relative_translation: translation relative to current tcp position, expressed in robot's own base frame
-        relative_rotation: rotation relative to current tcp position, expressed in robot's own base frame
+        relative_translation: translation relative to current tcp position, expressed in world frame
+        relative_rotation: rotation relative to current tcp position, expressed in world frame
+
+        If any of the following flags is active, the relative motion is not expressed in the world frame any more
         relative_to_robot_base: If true, uses the robot_base coordinates for the relative motion (not workspace_center!)
+        relative_to_tcp: If true, uses the robot's end effector link coordinates for the relative motion
         '''
         if not end_effector_link:
             end_effector_link = self.ns + "_gripper_tip_link"
@@ -548,6 +572,7 @@ class RobotBase():
         return success
 
     def move_joints(self, joint_pose_goal, speed=0.6, acceleration=None, wait=True, plan_only=False, initial_joints=None, move_ptp=True):
+        """ Wrapper for MoveIt joint target commands """
         speed_, accel_ = self.set_up_move_group(speed, acceleration, planner=("PTP" if move_ptp else "OMPL"))
         group = self.robot_group
 
@@ -584,8 +609,9 @@ class RobotBase():
 
         return False
 
-    def move_joints_trajectory(self, trajectory, speed=1.0, acceleration=None, plan_only=False, initial_joints=None, end_effector_link="", timeout=5.0):
-        speed_, accel_ = self.set_up_move_group(speed, acceleration, planner="PTP")
+    def move_joints_trajectory(self, trajectory, speed=1.0, acceleration=None, plan_only=False, initial_joints=None, end_effector_link="", planner="PTP", timeout=5.0):
+        """ From multiple waypoints, compute a joint trajectory using PTP or OMPL"""
+        speed_, accel_ = self.set_up_move_group(speed, acceleration, planner=planner)
 
         group = self.robot_group
 
@@ -618,7 +644,7 @@ class RobotBase():
         motion_plan_requests.append(msi)
 
         for wp, blend_radius, spd in waypoints:
-            self.set_up_move_group(spd, spd/2.0, planner="PTP")
+            self.set_up_move_group(spd, spd/2.0, planner=planner)
             group.clear_pose_targets()
             try:
                 group.set_joint_value_target(wp)

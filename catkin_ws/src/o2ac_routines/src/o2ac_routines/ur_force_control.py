@@ -64,6 +64,7 @@ def create_pid(pid, default_ki=0.0, default_kd=0.0):
 
 
 class URForceController(CompliantController):
+    """ Compliant control functions """
     def __init__(self, robot_name, listener, tcp_link='gripper_tip_link', **kwargs):
         self.listener = listener
         self.default_tcp_link = robot_name + '_' + tcp_link
@@ -101,6 +102,10 @@ class URForceController(CompliantController):
             selection_matrix: list[6], define which direction is controlled by position(1.0) or force(0.0)
             relative_to_ee: bool, whether to use the base_link of the robot as frame or the ee_link (+ ee_transform)
             timeout: float, duration in seconds of the force control
+            termination_criteria: lambda, condition that if achieved stops the force control otherwise keep going until timeout
+            displacement_epsilon: float, minimum translation displacement before considering the robot non-static
+            check_displacement_time: float, time interval for checking whether the robot is static or not (see argument displacement_epsilon)
+                                            The condition of static/non-static can be access when defining `termination_criteria`
         """
         if end_effector_link and end_effector_link != self.default_tcp_link:
             # Init IK and FK solvers with new end effector link
@@ -134,13 +139,17 @@ class URForceController(CompliantController):
 
     def execute_circular_trajectory(self, *args, **kwargs):
         """
-            Execute a circular trajectory on a given plane, with respect to the base of the robot, with a given radius
-            Note: we assume that the robot is in its initial position 
+            Execute a circular trajectory on a given plane, with respect to the robot's end effector, with a given radius
+            Note: we assume that the robot is in its starting position 
         """
         kwargs.update({"trajectory_type": "circular"})
         return self.execute_trajectory(*args, **kwargs)
 
     def execute_spiral_trajectory(self, *args, **kwargs):
+        """
+            Execute a spiral trajectory on a given plane, with respect to the robot's end effector, with a given radius
+            Note: we assume that the robot is in its starting position 
+        """
         kwargs.update({"trajectory_type": "spiral"})
         return self.execute_trajectory(*args, **kwargs)
 
@@ -219,7 +228,8 @@ class URForceController(CompliantController):
                      config_file=None):
         """
             target_pose_in_target_frame: PoseStamp, target in target frame
-            insertion_direction: string, [+/-] "X", "Y", or "Z" in robot's base frame! Note: limited to one direction TODO: convert to target frame? or compute from target frame?
+            insertion_direction: string, [+/-] "X", "Y", or "Z" in robot's base frame! Note: limited to one direction 
+            TODO: convert to target frame? or compute from target frame?
             relaxed_target_by: float, distance to allow the insertion to succeed if there is no motion in 2 seconds
             TODO: try to make the insertion direction define-able as an axis with respect to the object-to-be-inserted and the target-frame
         """
