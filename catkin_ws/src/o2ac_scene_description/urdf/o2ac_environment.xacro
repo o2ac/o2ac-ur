@@ -19,7 +19,7 @@
   </xacro:o2ac_box> 
 
   <xacro:o2ac_box boxname="horizontal_column_for_tools" box_w=".04" box_l=".4" box_h=".04" parent="o2ac_ground">
-    <origin xyz="${vert_column_x_back} -.2 1.046" rpy="0 0 0" />   
+    <origin xyz="${vert_column_x_back} -.2 1.058" rpy="0 0 0" />   
   </xacro:o2ac_box> 
 
   <!-- Invisible walls to avoid OMPL creating crazy plans (sanity limits) -->
@@ -49,10 +49,10 @@
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/screw_feeder.xacro" />
   
   <xacro:screw_feeder feedername="m3_feeder" parent="workspace_center" with_collision_geometry="false">
-    <origin xyz="-.5115 -.155 0.005" rpy="0 0 0" />   
+    <origin xyz="-.5115 -.1555 0.015" rpy="0 0 0" />   
   </xacro:screw_feeder> 
   <xacro:screw_feeder feedername="m4_feeder" parent="workspace_center" with_collision_geometry="false">
-    <origin xyz="-.513 -.002 0.008" rpy="0 0 0" />   
+    <origin xyz="-.514 0.009 0.018" rpy="0 0 0" />   
   </xacro:screw_feeder> 
 
   <!-- Base fixture -->

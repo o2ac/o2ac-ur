@@ -920,14 +920,11 @@ class O2ACBase(object):
 
         # MAGIC NUMBERS (this feeder is calibrated for b_bot)
         if robot_name == "a_bot" and screw_size == 3:
-            pose_feeder.pose.position.y += -.001  # points to the left of the feeder (to a_bot)
-            pose_feeder.pose.position.z += -.001  # points to the back
+            pose_feeder.pose.position.y += 0  # points to the left of the feeder (to a_bot)
+            pose_feeder.pose.position.z += 0  # points to the back
         if robot_name == "a_bot" and screw_size == 4:
-            pose_feeder.pose.position.y += -.004  # points to the left of the feeder (to a_bot)
-            pose_feeder.pose.position.z += -.002  # points to the back
-        if robot_name == "b_bot" and screw_size == 4:
-            pose_feeder.pose.position.y += -.002
-            pose_feeder.pose.position.z += -.001
+            pose_feeder.pose.position.y += 0.008  # points to the left of the feeder (to a_bot) - Translation: [-0.004, 0.008, -0.000]
+            pose_feeder.pose.position.z += 0.0  # points to the back - Translation: [-0.045, -0.004, 0.008]
 
         self.suck_screw(robot_name, pose_feeder, screw_tool_id, screw_tool_link, fastening_tool_name, do_spiral_search_at_bottom=True, skip_retreat=skip_retreat)
 
@@ -1007,7 +1004,7 @@ class O2ACBase(object):
             approach_pose = copy.deepcopy(above_screw_head_pose)
             approach_pose.pose.position.x -= 0.03
             self.confirm_to_proceed("Go to approach screw head ")
-            self.active_robots[robot_name].go_to_pose_goal(approach_pose, speed=0.3, end_effector_link=screw_tool_link)
+            self.active_robots[robot_name].go_to_pose_goal(approach_pose, speed=0.3, end_effector_link=screw_tool_link, move_lin=True)
             self.confirm_to_proceed("Go to above_screw_head_pose ")
             above_screw_head_pose.pose.position.x += 0.015
             self.active_robots[robot_name].go_to_pose_goal(above_screw_head_pose, speed=0.1, end_effector_link=screw_tool_link, move_lin=True)
@@ -1017,7 +1014,7 @@ class O2ACBase(object):
 
         self.tools.set_suction(screw_tool_id, suction_on=True, eject=False, wait=False)
 
-        descend_distance = 0.017
+        descend_distance = 0.019
 
         max_radius = .0025
         theta_incr = tau/6
@@ -1309,7 +1306,7 @@ class O2ACBase(object):
         """
         return self.equip_unequip_realign_tool(robot_name, screw_tool_id, "realign")
 
-    def equip_unequip_realign_tool(self, robot_name, tool_name, operation):
+    def equip_unequip_realign_tool(self, robot_name, tool_name, operation, calibration_mode=False):
         """
         operation can be "equip", "unequip" or "realign".
         """
@@ -1323,7 +1320,7 @@ class O2ACBase(object):
         unequip = (operation == "unequip")
         realign = (operation == "realign")
 
-        b_bot_magic_global_y_offset = -0.004  # Due to calibration issues on site
+        b_bot_magic_global_y_offset = 0.0  # Due to calibration issues on site
 
         ###
         lin_speed = 0.5
@@ -1390,6 +1387,20 @@ class O2ACBase(object):
             ps_in_holder.pose.position.y += b_bot_magic_global_y_offset
             ps_approach.pose.position.y += b_bot_magic_global_y_offset
             ps_move_away.pose.position.y += b_bot_magic_global_y_offset
+
+        if calibration_mode:
+            self.active_robots[robot_name].gripper.open(opening_width=0.08, wait=False)
+            self.confirm_to_proceed("Go to tool_pick_ready")
+            self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
+            self.confirm_to_proceed("Go to approach pose")
+            self.active_robots[robot_name].go_to_pose_goal(ps_approach, speed=.1, move_lin=True)
+            self.confirm_to_proceed("Go to in holder pose")
+            self.active_robots[robot_name].go_to_pose_goal(ps_in_holder, speed=.1, move_lin=True)
+            self.confirm_to_proceed("Go to approach pose")
+            self.active_robots[robot_name].go_to_pose_goal(ps_approach, speed=.1, move_lin=True)
+            self.confirm_to_proceed("Go to tool_pick_ready")
+            self.active_robots[robot_name].go_to_named_pose("tool_pick_ready")
+            return True
 
         # Execute
 

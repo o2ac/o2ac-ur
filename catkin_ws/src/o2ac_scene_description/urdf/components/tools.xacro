@@ -7,8 +7,8 @@
 <!-- The gripper center would be about 44 mm from the top, so the tip might be 111 mm further down -->
 <!-- The tip\axis seems to be 11.5 mm from the "front" side. The front side looks into the gripper -->
 
-  <xacro:property name="tool_offset_global_y" value="-.004" />
-  <xacro:property name="set_screw_tool_extra_offset_global_y" value="-.004" />
+  <xacro:property name="tool_offset_global_y" value="-0.004" />
+  <xacro:property name="set_screw_tool_extra_offset_global_y" value="-.002" />
 
   <!-- Tool holders at the back of the robot system -->
   <!-- The long tool holder with 3 tools -->

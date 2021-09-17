@@ -4,13 +4,15 @@
   <!-- This is the main file defining our robot arrangement and physical environment. -->
   <xacro:arg name="taskboard" default="false"/>
   <!-- Calibration parameters -->
-  <xacro:property name="a_bot_x" value="-0.004"/>
-  <xacro:property name="a_bot_y" value="-0.531"/>     <!-- Positive moves to the left -->
+  <xacro:property name="a_bot_x" value="-0.004"/>     <!-- Positive moves back -->
+  <xacro:property name="a_bot_y" value="-0.529"/>     <!-- Positive moves left -->
+  <xacro:property name="a_bot_z" value="0.0005"/>     <!-- Positive moves down -->
   <!-- Original: -0.525 -->
   <xacro:property name="a_bot_z_angle" value="0.0"/>
   <xacro:property name="a_bot_y_angle" value="0.0"/>
-  <xacro:property name="b_bot_x" value="-0.001"/>
-  <xacro:property name="b_bot_y" value="0.531"/>
+  <xacro:property name="b_bot_x" value="-0.0025"/>
+  <xacro:property name="b_bot_y" value="0.527"/>
+  <xacro:property name="b_bot_z" value="-0.005"/>
   <xacro:property name="b_bot_z_angle" value="-3.141"/>
   <xacro:property name="b_bot_y_angle" value="0"/>
 
@@ -92,7 +94,7 @@
   <joint name="world_a_bot_intermediate_joint" type="fixed">
     <parent link="o2ac_ground" />
     <child link="a_bot_intermediate_link" />
-    <origin xyz="${a_bot_x} ${a_bot_y} ${bots_z}" rpy="0.0 0.0 ${a_bot_z_angle}" />
+    <origin xyz="${a_bot_x} ${a_bot_y} ${bots_z+a_bot_z}" rpy="0.0 0.0 ${a_bot_z_angle}" />
   </joint>
 
   <joint name="world_a_bot_joint" type="fixed">
@@ -105,7 +107,7 @@
   <joint name="world_b_bot_intermediate_joint" type="fixed">
     <parent link="o2ac_ground" />
     <child link="b_bot_intermediate_link" />
-    <origin xyz="${b_bot_x} ${b_bot_y} ${bots_z}" rpy="0.0 0.0 ${b_bot_z_angle}" />
+    <origin xyz="${b_bot_x} ${b_bot_y} ${bots_z+b_bot_z}" rpy="0.0 0.0 ${b_bot_z_angle}" />
   </joint>
 
   <joint name="world_b_bot_joint" type="fixed">

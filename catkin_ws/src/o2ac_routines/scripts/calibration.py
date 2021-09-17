@@ -181,7 +181,7 @@ class CalibrationClass(O2ACCommon):
       robot.go_to_named_pose("screw_ready")
       pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/6, 0, 0) )
     if robot_name == "a_bot":
-      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(tau/4, 0, 0) )
+      pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0) )
     if robot_name == "b_bot":
       pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0) )
     self.allow_collisions_with_robot_hand("base_fixture_top", robot_name)
@@ -196,8 +196,8 @@ class CalibrationClass(O2ACCommon):
     if context == "motor_plate":
       for i in range(2):
         poses.append(copy.deepcopy(pose0))
-      poses[0].header.frame_id = "assembled_part_01_screw_hole_panel1_1"
-      poses[1].header.frame_id = "assembled_part_01_screw_hole_panel1_2"
+      poses[0].header.frame_id = "assembled_part_01_screw_hole_panel2_1"
+      poses[1].header.frame_id = "assembled_part_01_screw_hole_panel2_2"
     else:
       for i in range(2):
         poses.append(copy.deepcopy(pose0))
@@ -828,6 +828,14 @@ if __name__ == '__main__':
         c.taskboard_calibration_with_tools(robot_name="b_bot", end_effector_link="b_bot_gripper_tip_link")
       if r == '33':
         c.taskboard_calibration_with_tools(robot_name="b_bot", end_effector_link="b_bot_set_screw_tool_tip_link", hole="setscrew")
+      if r == 'am3':
+        c.equip_unequip_realign_tool("a_bot", "screw_tool_m3", "equip", calibration_mode=True)
+      if r == 'am4':
+        c.equip_unequip_realign_tool("a_bot", "screw_tool_m4", "equip", calibration_mode=True)
+      if r == 'bm4':
+        c.equip_unequip_realign_tool("b_bot", "screw_tool_m4", "equip", calibration_mode=True)
+      if r == 'bm3':
+        c.equip_unequip_realign_tool("b_bot", "screw_tool_m3", "equip", calibration_mode=True)
       if r == '501':
         c.assembly_calibration_base_plate("a_bot", context="motor_plate")
       if r == '5011':
