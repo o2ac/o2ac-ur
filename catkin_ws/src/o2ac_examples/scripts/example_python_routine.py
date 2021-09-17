@@ -2,7 +2,7 @@
 
 # Software License Agreement (BSD License)
 #
-# Copyright (c) 2020, OMRON SINIC X Corp.
+# Copyright (c) 2021, OMRON SINIC X Corp.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,25 +32,25 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-# Author: Felix von Drigalski
+# Author: Felix von Drigalski, Cristian C. Beltran-Hernandez
 
 import rospy
 import geometry_msgs.msg
 import tf_conversions
 from math import pi
 
-from o2ac_routines.base import O2ACCommonBase
+from o2ac_routines.base import O2ACCommon
 
 
-class ExampleClass(O2ACCommonBase):
-    # Use a class like this to extend the base class and create your own
+class ExampleClass(O2ACCommon):
+    # Use a class like this to extend the base/common class and create your own
     # routines.
 
     def __init__(self):
         super(ExampleClass, self).__init__()
         rospy.sleep(.5)
 
-    def my_move_function(self, robot="b_bot"):
+    def my_move_function(self, robot_name="b_bot"):
         # Create a target Pose in the world
         target_pose = geometry_msgs.msg.PoseStamped()
         # The frame in which the pose is defined
@@ -68,17 +68,15 @@ class ExampleClass(O2ACCommonBase):
 
         # This uses the go_to_pose_goal function defined in base.py to go to
         # the pose
-        self.active_robots[robot].go_to_pose_goal(
+        self.active_robots[robot_name].go_to_pose_goal(
             target_pose,
             speed=0.03,
             acceleration=.1,
-            end_effector_link=robot +
-            "_gripper_tip_link",
+            end_effector_link=robot_name + "_gripper_tip_link",
             move_lin=False)
 
         # The end_effector_link defines which part of the robot is moved to the target pose (it can be another part, or a tool!)
-        # move_lin defines if the robot will attempt a linear motion or "free
-        # motion" planning
+        # move_lin defines if the robot will attempt a linear motion or "free motion" planning
 
 
 if __name__ == '__main__':
