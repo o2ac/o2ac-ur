@@ -2267,7 +2267,7 @@ class O2ACCommon(O2ACBase):
                 if self.assembly_database.assembly_info.get("panel_bearing_facing_backward", False):
                     preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.016, 0.001, 0.008] + rotation)
                 else:  # Regular assembly
-                    preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.018, 0.001, 0.013] + rotation)
+                    preinsertion_pose = conversions.to_pose_stamped(bearing_target_link, [-0.014, -0.001, 0.013] + rotation)
 
             trajectory = [(self.active_robots[robot_name].compute_ik(at_tray_border_pose, timeout=0.02, retry=True), 0.01, 1.0),
                           (self.active_robots[robot_name].compute_ik(approach_pose, timeout=0.02, retry=True), 0.02, 1.0),
@@ -2463,7 +2463,7 @@ class O2ACCommon(O2ACBase):
                     screw_pose.pose.position.y += -.001  # MAGIC NUMBER  (points right)
                 else:  # Regular assembly
                     screw_pose.pose.position.z += .0005  # MAGIC NUMBER  (points down)
-                    screw_pose.pose.position.y += -.0015  # MAGIC NUMBER  (points right)
+                    screw_pose.pose.position.y += .000  # MAGIC NUMBER  (points right)
             screw_pose.pose.position.x += .006  # This needs to be quite far forward, because the thread is at the plate level (behind the frame)
             screw_poses.append(screw_pose)
 
