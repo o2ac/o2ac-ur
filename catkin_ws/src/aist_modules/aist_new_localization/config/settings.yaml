@@ -20,7 +20,7 @@ localization_parameters:
   04_37D-GEARMOTOR-50-70:
     aspect_ratio: 0.685
     origin: [-0.0185, 0.0, 0.0185, 90.0, 0.0, 0.0]
-    rotation_range: [0.0, 0.0, 0.0]
+    rotation_range: [-30.0, 30.0, 15.0]
     refine_transform: true
     check_borders: false
   05_MBRFA30-2-P6:

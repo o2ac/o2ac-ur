@@ -31,6 +31,7 @@ add_service_files(
   FILES
     GetSampleList.srv
     ComputeCalibration.srv
+    LoadTransform.srv
 )
 
 generate_messages(

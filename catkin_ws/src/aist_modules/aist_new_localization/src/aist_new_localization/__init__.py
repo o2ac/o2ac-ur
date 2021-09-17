@@ -60,7 +60,8 @@ class LocalizationClient(object):
         if rotation_range[0] < rotation_range[1] and \
            rotation_range[2] > 0:
             goal.poses2d = [ gmsg.Pose2D(poses2d[0].x,
-                                         poses2d[0].y, np.radians(theta))
+                                         poses2d[0].y,
+                                         np.radians(theta) + poses2d[0].theta)
                              for theta in np.arange(*rotation_range) ]
         else:
             goal.poses2d = poses2d
