@@ -30,11 +30,22 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
+def test_gazebo():
+    name = "panel_bearing"
+    object_pose = conversions.to_pose_stamped("tray_center", [0,0,0,0,0,0])
+    object_pose = c.listener.transformPose("world", object_pose)
+    op = conversions.from_pose_to_list(object_pose.pose)
+    objpose = [op[:3], op[3:]]
+    models = [Model(name, objpose[0], orientation=objpose[1], reference_frame="world")]
+    c.gazebo_scene.load_models(models,)
+    c.b_bot.gripper.gripper.grab(link_name="panel_bearing_tmp::panel_bearing")
+    c.b_bot.gripper.gripper.release(link_name="panel_bearing_tmp::panel_bearing")
 
 def main():
     rospy.init_node("testscript")
     global c
     c = O2ACCommon()
+    # test_gazebo()
     # c.a_bot.gripper.open(opening_width=0.006)
     c.b_bot.move_lin_rel(relative_rotation=[0, -radians(0.5), 0], speed=0.01, end_effector_link="b_bot_screw_tool_m4_tip_link")
     # print(conversions.from_pose_to_list(c.listener.transformPose("assembled_part_02_back_hole", c.b_bot.get_current_pose_stamped()).pose))
