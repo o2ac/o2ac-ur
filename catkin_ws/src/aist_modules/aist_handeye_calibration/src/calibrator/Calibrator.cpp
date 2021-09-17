@@ -278,6 +278,30 @@ Calibrator::save_calibration(std_srvs::Trigger::Request&,
 		<< YAML::Value << _eMc.transform.rotation.w
 		<< YAML::EndMap;
 
+	emitter << YAML::Key   << "marker_parent"
+		<< YAML::Value << world_frame();
+	emitter << YAML::Key   << "marker_child"
+		<< YAML::Value << object_frame();
+	emitter << YAML::Key   << "marker_transform"
+		<< YAML::Value
+		<< YAML::Flow
+		<< YAML::BeginMap
+		<< YAML::Key   << "x"
+		<< YAML::Value << _wMo.transform.translation.x
+		<< YAML::Key   << "y"
+		<< YAML::Value << _wMo.transform.translation.y
+		<< YAML::Key   << "z"
+		<< YAML::Value << _wMo.transform.translation.z
+		<< YAML::Key   << "qx"
+		<< YAML::Value << _wMo.transform.rotation.x
+		<< YAML::Key   << "qy"
+		<< YAML::Value << _wMo.transform.rotation.y
+		<< YAML::Key   << "qz"
+		<< YAML::Value << _wMo.transform.rotation.z
+		<< YAML::Key   << "qw"
+		<< YAML::Value << _wMo.transform.rotation.w
+		<< YAML::EndMap;
+
 	const auto	tval = time(nullptr);
 	const auto	tstr = ctime(&tval);
 	tstr[strlen(tstr)-1] = '\0';

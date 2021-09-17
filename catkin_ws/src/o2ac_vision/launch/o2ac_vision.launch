@@ -4,7 +4,7 @@
 
   <!-- Mode of object detector -->
   <!-- Continuous streaming is expensive and meant for debugging. -->
-  <arg name="pth_file_name" default="WRS.pth"/>
+  <arg name="pth_file_name"		default="WRS_day3.pth"/>
   <arg name="continuous_streaming"	default="false"/>
   <arg name="camera_name"		default="camera_multiplexer"/>
   <arg name="vis"			default="true"/>
@@ -19,7 +19,7 @@
   <arg name="timeout"	default="10"/>
   <arg name="ply_dir"	default="$(find o2ac_parts_description)/meshes"/>
   <arg name="urdf_dir"	default="$(find o2ac_parts_description)/urdf/generated"/>
-  
+
   <rosparam param="shaft_hole_detection/bbox">[375, 278, 90, 90]</rosparam>
 
   <!-- Construct recognition pipeline -->

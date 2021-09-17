@@ -226,6 +226,7 @@ Localization::localize_cb(const camera_info_cp& camera_info,
 		tf::poseTFToMsg(Tcm, pose);
 		result.poses.poses.resize(1);
 		result.poses.poses[0] = pose;
+		result.error	      = error;
 
 		min_error = error;
 	    }
@@ -235,13 +236,16 @@ Localization::localize_cb(const camera_info_cp& camera_info,
 	    geometry_msgs::Pose	pose;
 	    tf::poseTFToMsg(Tcm, pose);
 	    result.poses.poses.push_back(pose);
+	    result.error = 0;
 	}
     }
 
     _localize_srv.setSucceeded(result);
 
     ROS_INFO_STREAM("(Localization) Succeeded: "
-		    << result.poses.poses.size() << " pose(s) found.");
+		    << result.poses.poses.size()
+		    << " pose(s) found with error="
+		    << result.error);
 }
 
 void
@@ -355,10 +359,7 @@ Localization::refine_transform(const std::string& object_name,
   // Check if registered model cloud is involved within the view volume.
     if (within_view_volume(registered_cloud->begin(), registered_cloud->end(),
 			   camera_info, check_borders))
-    {
-      // Get transformation from model PCD cloud to camera frame.
 	error = icp.getFitnessScore();
-    }
     else
 	error = std::numeric_limits<value_t>::max();
 

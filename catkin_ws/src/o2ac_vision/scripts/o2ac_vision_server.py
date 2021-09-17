@@ -373,16 +373,23 @@ class O2ACVisionServer(object):
         # Execute localization for each item with 2D poses detected by SSD.
         action_result = o2ac_msgs.msg.localizeObjectResult()
         for poses2d in poses2d_array:
+            item_id = self.item_id(poses2d.class_id)
+            if rospy.get_param('~surprise', False):
+                if item_id == '05_MBRFA30-2-P6':
+                    item_id = '32_MBRFA40-2-P6'
+                elif item_id == '11_MBRAC60-2-10':
+                    item_id = '36_MBRAC48-2-10'
+
             poses3d = o2ac_msgs.msg.Estimated3DPoses()
             poses3d.class_id = poses2d.class_id
-            poses3d.poses    = self.localize(self.item_id(poses2d.class_id),
-                                             poses2d.bbox, poses2d.poses,
-                                             im_in.shape)
+            poses3d.poses, error \
+                = self.localize(item_id,
+                                poses2d.bbox, poses2d.poses, im_in.shape)
             if poses3d.poses:
                 action_result.detected_poses.append(poses3d)
                 # Spawn URDF models
                 for n, pose in enumerate(poses3d.poses.poses):
-                    self._spawner.add(self.item_id(poses3d.class_id),
+                    self._spawner.add(item_id,
                                       geometry_msgs.msg.PoseStamped(
                                           poses3d.poses.header, pose),
                                       '{:02d}_'.format(n))
@@ -493,6 +500,7 @@ class O2ACVisionServer(object):
         apply_2d_pose_estimation = [8,9,10,14]             # Small items --> Neural Net
         apply_3d_pose_estimation = [1,2,3,4,5,7,11,12,13]  # Large items --> CAD matching
         apply_grasp_detection    = [6]                     # Belt --> Fast Grasp Estimation
+        apply_motor_orientation  = [4]
 
         for ssd_result in ssd_results:
             target  = ssd_result["class"]
@@ -516,6 +524,11 @@ class O2ACVisionServer(object):
                             int(poses2d.bbox[0] + round(poses2d.bbox[2]/2)),
                             int(poses2d.bbox[1] + round(poses2d.bbox[3]/2)),
                             0)
+                if target in apply_motor_orientation:
+                    motor_seen, orientation, im_vis \
+                        = self.motor_angle_detection_from_top(im_in, im_vis)
+                    if motor_seen:
+                        pose2d.theta = orientation + pi/2
                 poses2d.poses = [pose2d]
 
             elif target in apply_grasp_detection:
@@ -682,7 +695,7 @@ class O2ACVisionServer(object):
             # localization because we cannot estimate its center.
             if (u0 < 0 or u1 > shape[1]) and (v0 < 0 or v1 > shape[0]):
                 rospy.logwarn('Cannot localize[%s] because the bounding box includes a corner of image.', item_id)
-                return None
+                return None, 0
 
             # Estimate the object center as the bouinding box center.
             poses2d[0].x = 0.5*(u0 + u1)
@@ -724,7 +737,8 @@ class O2ACVisionServer(object):
 
         self._localizer.send_goal_with_target_frame(item_id, 'tray_center',
                                                     rospy.Time.now(), poses2d)
-        return self._localizer.wait_for_result()
+        result = self._localizer.wait_for_result()
+        return result.poses, result.error
 
     def item_id(self, class_id):
         """ Returns the name (item_id) of the item's id number (class_id) of the SSD.
@@ -742,28 +756,28 @@ class O2ACVisionServer(object):
         score, detected = s.main_proc()
         print("Screws detected: ", detected)
         print("Score: ", score)
-        
+
         text2 = "Score: %.2f%%                   " % (score*100.0)
         if score > 0.69:
             color = (0,255,0)
         else:
             color = (0,0,255)
-        
+
         im_vis = cv2.putText(im_vis, text2, (bbox[0]-120, bbox[1]-30), 0, 1.5, (255,255,255), 7, cv2.LINE_AA)
         im_vis = cv2.putText(im_vis, text2, (bbox[0]-120, bbox[1]-30), 0, 1.5, color, 4, cv2.LINE_AA)
-        
+
         im_vis = cv2.rectangle( im_vis, (bbox[0],  bbox[1]), (bbox[0]+bbox[2], bbox[1]+bbox[3]), color, 6)
         return detected
 
     def motor_angle_detection_from_top(self, im_in, im_vis):
         """
         When looking at the motor from the top, detects the cables and returns their position.
-        
+
         Return values:
         motor_seen: bool (False if no motor in view)
         motor_rotation_flag: int (0:right, 1:left, 2:top, 3:bottom  (documented in pose_estimation_func))
         im_vis: Result visualization
-        """        
+        """
         ssd_results, im_vis = self.detect_object_in_image(im_in, im_vis)
 
         m = MotorOrientation()
@@ -774,7 +788,7 @@ class O2ACVisionServer(object):
             return motor_seen, radians(angle_orientation), im_vis
         else:
             return False, 0.0, im_vis
-        
+
 
 ### ========
 

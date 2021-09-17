@@ -370,9 +370,9 @@ MotionDetector::find_cabletip(cv::Mat& image, cv::Mat& depth,
 	for (const auto pe = p + mask.cols; p < pe; ++p, ++q, ++r)
 	    if (*p)
 	    {
-		(*q)[0] = 0;
-		(*q)[1] = 255;
-		(*q)[2] = 255;
+	      //(*q)[0] = 0;
+		(*q)[1] = 196;
+		(*q)[2] = 196;
 	    }
 	    else
 		*r = 0;

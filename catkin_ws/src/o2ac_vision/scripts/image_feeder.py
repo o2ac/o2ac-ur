@@ -155,7 +155,7 @@ if __name__ == '__main__':
     feeder = ImageFeeder(data_dir)
 
     while not rospy.is_shutdown():
-        datasets = ('Close', 'Far')
+        datasets = ('Far', 'Close')
         for dataset in datasets:
             annotation_filenames = glob.glob(data_dir + '/Annotations/' +
                                              dataset + '/Image-wise/*.json')
