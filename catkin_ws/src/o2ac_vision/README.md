@@ -4,13 +4,14 @@ o2ac_vision
 
 This package contains nodes that execute and advertise vision actions, e.g.:
 
-- Object detection
-- Part pose estimation
+- Object detection (SSD)
+- Part pose estimation (CAD matching)
 - Belt grasp pose detection
+- Bearing rotation estimation
 
 All vision skills are action-based, so that calculations are allowed to fail and time out.
 
-For this, the Python nodes should advertise a number of actions, which are defined in o2ac_msgs.
+For this, the Python nodes advertise a number of actions which are defined in o2ac_msgs.
 
 ## QUICKSTART
 
@@ -18,6 +19,8 @@ At OSX, run:
 ```
 roslaunch o2ac_vision o2ac_vision.launch
 ```
+
+This starts up all the nodes processing vision data in the O2AC system.
 
 ---
 # Part recognition
@@ -115,4 +118,3 @@ The first command establishes connections between nodes shown in the figure abov
  - **continuous_streaming** -- If `true`, the pipeline operates in `continuous mode` which continuously processes incoming image streams and outputs the SSD recognition results (but not 3D localization). (default: `false`)
 
 The second command launches a sample client program which provides a CUI(command user interface) for commanding the pipeline to find and localize parts specified by their IDs. The `rqt_reconfigure` GUI is also launched which allows you to ajust various parameters used in the localizer. Please refer to the [the manual for Photoneo Localization SDK](https://photoneo.com/files/manuals/LocalizationSDK/LocalizationSDK1.3-UserManual.pdf) for details.
-
