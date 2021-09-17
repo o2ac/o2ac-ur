@@ -52,9 +52,9 @@ private slots:
   void on_button_tighten_m4_5s_clicked();
   void on_button_loosen_m3_1s_clicked();
   void on_button_loosen_m4_1s_clicked();
-  void on_button_tighten_nut_5s_clicked();
+  void on_button_tighten_padless_m4_5s_clicked();
   void on_button_tighten_m2s_5s_clicked();
-  void on_button_loosen_nut_1s_clicked();
+  void on_button_loosen_padless_m4_1s_clicked();
   void on_button_loosen_m2s_1s_clicked();
 
   void on_button_vacuum_m3_clicked();
@@ -421,7 +421,7 @@ void O2ACSetupPanel::on_button_loosen_m4_1s_clicked() {
   ss_.sendFasteningToolCommand("screw_tool_m4", "loosen", false, 1.0);
 }
 
-void O2ACSetupPanel::on_button_tighten_nut_5s_clicked() {
+void O2ACSetupPanel::on_button_tighten_padless_m4_5s_clicked() {
   ss_.sendFasteningToolCommand("padless_tool_m4", "tighten", false, 5.0);
 }
 
@@ -429,7 +429,7 @@ void O2ACSetupPanel::on_button_tighten_m2s_5s_clicked() {
   ss_.sendFasteningToolCommand("set_screw_tool", "tighten", false, 5.0);
 }
 
-void O2ACSetupPanel::on_button_loosen_nut_1s_clicked() {
+void O2ACSetupPanel::on_button_loosen_padless_m4_1s_clicked() {
   ss_.sendFasteningToolCommand("padless_tool_m4", "loosen", false, 1.0);
 }
 
