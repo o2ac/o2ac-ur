@@ -37,17 +37,15 @@
 import numpy as np
 import gazebo_msgs
 from ur_gazebo.model import Model
-from ur_gazebo.gazebo_spawner import GazeboModels
-from trajectory_msgs.msg import JointTrajectoryPoint
 from ur_control.constants import DONE, TERMINATION_CRITERIA
 from o2ac_routines.thread_with_trace import ThreadTrace
 from o2ac_assembly_database.parts_reader import PartsReader
-from o2ac_routines import helpers, markers_scene
+from o2ac_routines import helpers
 from o2ac_routines.base import *
 from math import radians, degrees, sin, cos, pi
 tau = 2*pi
 
-
+# Constants for picking fallbacks
 CORNER = "corner"
 TOO_CLOSE_TO_OTHER_OBJECTS = "too_close_to_other_object"
 TOO_CLOSE_TO_BORDER = "too_close_to_border"
@@ -82,8 +80,6 @@ class O2ACCommon(O2ACBase):
         self.bearing_store_pose = conversions.to_pose_stamped("left_centering_link", [-0.020, 0.007, 0.0]+np.deg2rad([-35.179, 29.784, -19.294]).tolist())
         self.is_motor_pulley_in_storage = False
         self.motor_pulley_store_pose = conversions.to_pose_stamped("right_centering_link", [-0.005, 0, 0.0] + np.deg2rad([-135, 0, 0]).tolist())
-
-        # self.gazebo_scene = GazeboModels('o2ac_gazebo')
 
 # Higher-level routines used in both assembly and taskboard
 
@@ -5419,8 +5415,6 @@ class O2ACCommon(O2ACBase):
 ##########
 
     def grasp_test(self, object_name="panel_bearing"):
-
-        self.gazebo_scene = GazeboModels('o2ac_gazebo')
 
         grasp_width = 0.05
         self.activate_led("b_bot")
