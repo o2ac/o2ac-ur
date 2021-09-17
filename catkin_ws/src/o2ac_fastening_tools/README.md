@@ -43,7 +43,7 @@ Take care not to have the same IDs for Dynamixels connected to the same controll
 
 Specifically, refer to [here](http://support.robotis.com/en/product/actuator/dynamixel_x/xl_series/xl-320.htm#Actuator_Address_03).
 
-Enter the names of each motor ID and gripper in this file: `config/gripper.yaml`
+Enter the names of each motor ID and gripper in this file: `config/fastening_tools.yaml`
 
 # How to use
 ## About action service
@@ -58,7 +58,7 @@ The return value is a boolean type.
 The feedback value is current the rotation speed (uint32).
 
 - "fastening_tool_name" : 
-The gripper names are set in the `gripper.yaml` in the config folder.
+The tool names are set in the `fastening_tools.yaml` in the config folder.
 If you want to add a new motor, add it to this file.
 Do not duplicate the motor names or ids.
 

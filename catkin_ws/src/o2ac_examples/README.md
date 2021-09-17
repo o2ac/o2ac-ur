@@ -14,10 +14,8 @@ This node contains:
 
 Don't forget to use the correct network and set the robot IPs correctly. The IPs are:
     
-    a_bot (UR5, left): 192.168.1.43  
-    b_bot (UR5, left): 192.168.1.42  
-    c_bot (UR3, left): 192.168.1.41  
-    Robotiq gripper (UR3, left): 192.168.1.40  
+    a_bot (UR5, left): 192.168.1.41  
+    b_bot (UR5, right): 192.168.1.42  
 
 # How to use the examples in simulation
 
