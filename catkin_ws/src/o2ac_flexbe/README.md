@@ -2,14 +2,36 @@
 
 ## Running an existing example
 
-1. Launch flexbe GUI editor
+1. Launch the python skill server
+    ```
+    rosrun o2ac_routines skill_server.py
+    ```
+2. Launch flexbe GUI editor
     ```
     roslaunch flexbe_app flexbe_full.launch
     ```
-2. Load the `bearing taskboard` example using the `load behavior` bottom at the top
-3. Click `run time control`
-4. Click `start execution`
+3. Load the `bearing taskboard` example using the `load behavior` bottom at the top
+4. Click `run time control`
+5. Click `start execution`
 
+# From Task skeleton to Flexbe behavior
+A PDDL task skeleton demo can be found in `o2ac_flexbe_behaviors/config/test_pddl` with the following content:
+```
+pick b_bot panel_bearing
+handover b_bot a_bot panel_bearing
+orient a_bot assembly panel_bearing
+fasten b_bot panel_bearing
+```
+To create a Flexbe behavior from this PDDL example, open flexbe and use the button `Behavior Dashboard > Load Task Skeleton` from the toolbar above.
+The new behavior will be populated, saving this new behavior is required before execution.
+
+The demo logic for this functionality can be found here:
+
+`underlay_ws/src/third_party/flexbe_app/src/ui/ui_menu.js > this.loadTaskClicked()`
+
+TODO:
+- Add a selector for input PDDL file
+- Add more action states
 
 ## Creating a new behavior
 http://wiki.ros.org/flexbe/Tutorials/Creating%20a%20New%20Behavior
