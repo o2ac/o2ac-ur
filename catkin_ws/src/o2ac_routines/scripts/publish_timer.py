@@ -34,6 +34,8 @@
 #
 # Author: Felix von Drigalski, Cristian C. Beltran-Hernandez
 
+# This file publishes a countdown timer (visualized in Rviz).
+
 try:
     from jsk_rviz_plugins.msg import *
 except:

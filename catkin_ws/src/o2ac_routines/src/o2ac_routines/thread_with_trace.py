@@ -50,6 +50,8 @@ signal.signal(signal.SIGINT, signal_handler)
 
 
 class ThreadTrace(threading.Thread):
+    """ A convenience class to spawn a thread and track its status.
+    """
     def __init__(self, *args, **keywords):
         threading.Thread.__init__(self, *args, **keywords)
         self.killed = False
