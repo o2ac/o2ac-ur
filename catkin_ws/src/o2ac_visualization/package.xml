@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>o2ac_visualization</name>
-  <version>0.0.0</version>
+  <version>0.1.0</version>
   <description>The o2ac_visualization package</description>
 
   <maintainer email="FvDrigalski@gmail.com">Felix von Drigalski</maintainer>

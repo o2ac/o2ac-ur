@@ -1,10 +1,12 @@
 <package>
   <name>o2ac_flexbe_behaviors</name>
-  <version>1.0.0</version>
+  <version>0.1.0</version>
   <description>
      o2ac_flexbe_behaviors references all implemented behaviors.
   </description>
-  <maintainer email="todo@todo.com">TODO</maintainer>
+
+  <maintainer email="cristianbehe@gmail.com">Cristian C. Beltran-Hernandez</maintainer>
+
   <license>BSD</license>
 
   <buildtool_depend>catkin</buildtool_depend>

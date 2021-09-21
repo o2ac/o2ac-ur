@@ -1,10 +1,11 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>o2ac_rviz</name>
-  <version>0.0.1</version>
+  <version>0.1.0</version>
   <description>RViz plugin for Team O2AC</description>
 
   <maintainer email="felix.drigalski@sinicx.com">Felix von Drigalski</maintainer>
+  <maintainer email="cristianbehe@gmail.com">Cristian C. Beltran-Hernandez</maintainer>
 
   <license>BSD</license>
 

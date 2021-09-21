@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <package>
   <name>o2ac_routines</name>
-  <version>0.0.0</version>
+  <version>0.1.0</version>
   <description>The o2ac_routines package</description>
 
   <maintainer email="f.drigalski@sinicx.com">Felix von Drigalski</maintainer>
+  <maintainer email="cristianbehe@gmail.com">Cristian C. Beltran-Hernandez</maintainer>
 
-  <license>TODO</license>
-
+  <license>BSD</license>
  
   <build_depend>roscpp</build_depend>
   <build_depend>rospy</build_depend>

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>o2ac_vision</name>
-  <version>0.0.0</version>
+  <version>0.1.0</version>
   <description>The o2ac_vision package</description>
 
   <maintainer email="f.drigalski@sinicx.com">Felix von Drigalski</maintainer>

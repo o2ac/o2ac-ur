@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-#!/usr/bin/env python
-
 # Software License Agreement (BSD License)
 #
 # Copyright (c) 2021, OMRON SINIC X

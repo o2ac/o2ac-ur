@@ -1,11 +1,14 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>o2ac_assembly_database</name>
-  <version>0.0.1</version>
+  <version>0.1.0</version>
   <description>The o2ac_assembly_database package</description>
 
-  <maintainer email="artur.istvan.karoly@gmail.com">root</maintainer>
-  <license>TODO</license>
+  <maintainer email="artur.istvan.karoly@gmail.com">Artur Karoly</maintainer>
+  <author email="FvDrigalski@gmail.com">Felix von Drigalski</author>
+  <maintainer email="cristianbehe@gmail.com">Cristian C. Beltran-Hernandez</maintainer>
+
+  <license>BSD</license>
 
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>rospy</build_depend>
