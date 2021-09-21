@@ -20,6 +20,7 @@
   <!-- Launch moveit -->
   <include file="$(find o2ac_moveit_config)/launch/move_group.launch">
     <arg name="debug" value="$(arg debug)" />
+    <arg name="sim" value="$(arg sim)" />
   </include>
 
   <!-- Launch moveit with rviz -->

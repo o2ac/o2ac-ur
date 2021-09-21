@@ -1,5 +1,6 @@
 <launch>
   <!-- GDB Debug Option -->
+  <arg name="sim" default="false" />
   <arg name="debug" default="false" />
   <arg unless="$(arg debug)" name="launch_prefix" value="" />
   <arg     if="$(arg debug)" name="launch_prefix"
@@ -73,6 +74,7 @@
     <arg name="moveit_controller_manager" value="o2ac_base_scene" unless="$(arg fake_execution)"/>
     <arg name="moveit_controller_manager" value="fake" if="$(arg fake_execution)"/>
     <arg name="execution_type" value="$(arg execution_type)" />
+    <arg name="sim" value="$(arg sim)" />
   </include>
 
   <!-- Sensors Functionality -->
