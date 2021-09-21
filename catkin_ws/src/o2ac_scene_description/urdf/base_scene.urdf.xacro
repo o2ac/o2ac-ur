@@ -4,16 +4,16 @@
   <!-- This is the main file defining our robot arrangement and physical environment. -->
   <xacro:arg name="taskboard" default="false"/>
   <!-- Calibration parameters -->
-  <xacro:property name="a_bot_x" value="-0.004"/>     <!-- Positive moves back -->
-  <xacro:property name="a_bot_y" value="-0.529"/>     <!-- Positive moves left -->
+  <xacro:property name="a_bot_x" value="-0.005"/>     <!-- Positive moves back -->
+  <xacro:property name="a_bot_y" value="-0.527"/>     <!-- Positive moves left -->
   <xacro:property name="a_bot_z" value="0.0005"/>     <!-- Positive moves down -->
-  <!-- Original: -0.525 -->
   <xacro:property name="a_bot_z_angle" value="0.0"/>
   <xacro:property name="a_bot_y_angle" value="0.0"/>
-  <xacro:property name="b_bot_x" value="-0.0025"/>
-  <xacro:property name="b_bot_y" value="0.527"/>
-  <xacro:property name="b_bot_z" value="-0.005"/>
-  <xacro:property name="b_bot_z_angle" value="-3.141"/>
+
+  <xacro:property name="b_bot_x" value="-0.002"/>
+  <xacro:property name="b_bot_y" value="0.529"/>
+  <xacro:property name="b_bot_z" value="-0.001"/>
+  <xacro:property name="b_bot_z_angle" value="${-3.1415926 + -0.001}"/> <!-- Mirror a_bot + calibration offset -->
   <xacro:property name="b_bot_y_angle" value="0"/>
 
   <xacro:property name="bots_z" value="0.75"/>

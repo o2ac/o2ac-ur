@@ -144,7 +144,7 @@ class CalibrationClass(O2ACCommon):
             self.c_bot.go_to_named_pose("home")
         return
 
-    def assembly_calibration_base_plate(self, robot_name="b_bot", end_effector_link="", context=""):
+    def assembly_calibration_base_plate(self, robot_name="b_bot", end_effector_link="", panel_name="", rotation=0):
         # if not self.set_assembly("wrs_assembly_2020"):
         rospy.loginfo("============ Calibrating base plate for the assembly task. ============")
         rospy.loginfo("eef link " + end_effector_link + " should be 5 mm above each corner of the plate.")
@@ -161,36 +161,31 @@ class CalibrationClass(O2ACCommon):
         poses = []
         pose0 = geometry_msgs.msg.PoseStamped()
         pose0.pose.orientation.w = 1.0
-        pose0.pose.position.x = -.001
-        if context == "b_bot_m4_assembly_plates":
-            robot.go_to_named_pose("screw_ready")
-            pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/8, 0, 0))
-        if context == "motor_plate" and "screw" in end_effector_link:
-            robot.go_to_named_pose("screw_ready")
-            pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-tau/6, 0, 0))
-        if robot_name == "a_bot":
-            pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
-        if robot_name == "b_bot":
-            pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
+        pose0.pose.position.x = -.014
+        zero_rot = -tau/2 if robot_name == "a_bot" else 0
+        pose0.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(zero_rot + rotation, 0, 0))
+        
         self.allow_collisions_with_robot_hand("base_fixture_top", robot_name)
 
-        if context == "rotate_pose":
-            pose0.pose.orientation = helpers.rotateQuaternionByRPY(tau/4, 0, 0, pose0.pose.orientation)
-        if context == "rotate_pose_25":
-            pose0.pose.orientation = helpers.rotateQuaternionByRPY(radians(-25), 0, 0, pose0.pose.orientation)
-        if context == "rotate_pose_front45":
-            pose0.pose.orientation = helpers.rotateQuaternionByRPY(radians(45), 0, 0, pose0.pose.orientation)
-
-        if context == "motor_plate":
+        if panel_name == "motor_panel":
             for i in range(2):
                 poses.append(copy.deepcopy(pose0))
             poses[0].header.frame_id = "assembled_part_01_screw_hole_panel2_1"
             poses[1].header.frame_id = "assembled_part_01_screw_hole_panel2_2"
-        else:
+        elif panel_name == "bearing_panel":
             for i in range(2):
                 poses.append(copy.deepcopy(pose0))
+            poses[0].header.frame_id = "assembled_part_01_screw_hole_panel1_1"
+            poses[1].header.frame_id = "assembled_part_01_screw_hole_panel1_2"
+        else:
+            for i in range(4):
+                poses.append(copy.deepcopy(pose0))
             poses[0].header.frame_id = "assembled_part_01_screw_hole_panel2_2"
-            poses[1].header.frame_id = "assembled_part_01_screw_hole_panel1_1"
+            poses[1].header.frame_id = "assembled_part_01_screw_hole_panel2_1"
+            poses[2].header.frame_id = "assembled_part_01_screw_hole_panel1_2"
+            poses[3].header.frame_id = "assembled_part_01_screw_hole_panel1_1"
+
+        print("moving to #", len(poses), "poses")
 
         self.cycle_through_calibration_poses(poses, robot_name, go_home=False, end_effector_link=end_effector_link, move_lin=True, with_approach=True)
         return
@@ -769,6 +764,14 @@ if __name__ == '__main__':
                 c.unequip_tool("b_bot", "padless_tool_m4")
             if r == '21':
                 c.screw_feeder_calibration(robot_name="a_bot")
+            if r == 'am3':
+                c.equip_unequip_realign_tool("a_bot", "screw_tool_m3", "equip", calibration_mode=True)
+            if r == 'am4':
+                c.equip_unequip_realign_tool("a_bot", "screw_tool_m4", "equip", calibration_mode=True)
+            if r == 'bm4':
+                c.equip_unequip_realign_tool("b_bot", "screw_tool_m4", "equip", calibration_mode=True)
+            if r == 'bm3':
+                c.equip_unequip_realign_tool("b_bot", "screw_tool_m3", "equip", calibration_mode=True)
             if r == '210':
                 c.calibration_mode = True
                 c.pick_screw_from_feeder_python(robot_name="a_bot", screw_size=3, realign_tool_upon_failure=False, skip_retreat=False)
@@ -817,44 +820,42 @@ if __name__ == '__main__':
                 c.taskboard_calibration_with_tools(robot_name="b_bot", end_effector_link="b_bot_gripper_tip_link")
             if r == '33':
                 c.taskboard_calibration_with_tools(robot_name="b_bot", end_effector_link="b_bot_set_screw_tool_tip_link", hole="setscrew")
-            if r == 'am3':
-                c.equip_unequip_realign_tool("a_bot", "screw_tool_m3", "equip", calibration_mode=True)
-            if r == 'am4':
-                c.equip_unequip_realign_tool("a_bot", "screw_tool_m4", "equip", calibration_mode=True)
-            if r == 'bm4':
-                c.equip_unequip_realign_tool("b_bot", "screw_tool_m4", "equip", calibration_mode=True)
-            if r == 'bm3':
-                c.equip_unequip_realign_tool("b_bot", "screw_tool_m3", "equip", calibration_mode=True)
             if r == '501':
-                c.assembly_calibration_base_plate("a_bot", context="motor_plate")
+                c.assembly_calibration_base_plate("a_bot", panel_name="motor_panel")
             if r == '5011':
-                c.assembly_calibration_base_plate("a_bot", context="rotate_pose")
+                c.assembly_calibration_base_plate("a_bot", panel_name="bearing_panel")
+            if r == '5012':
+                c.assembly_calibration_base_plate("a_bot", panel_name="motor_panel", rotation=tau/4)
             if r == '502':
-                c.assembly_calibration_base_plate("b_bot", context="motor_plate")
+                c.assembly_calibration_base_plate("b_bot", panel_name="motor_panel")
+            if r == '5021':
+                c.assembly_calibration_base_plate("b_bot", panel_name="bearing_panel")
             if r == '5022':
-                c.assembly_calibration_base_plate("b_bot", context="rotate_pose")
+                c.assembly_calibration_base_plate("b_bot", panel_name="motor_panel", rotation=tau/4)
+            if r == '5023':
+                c.assembly_calibration_base_plate("b_bot", panel_name="both")
             if r == '503':
-                c.assembly_calibration_base_plate("a_bot", end_effector_link="a_bot_screw_tool_m3_tip_link")
+                c.assembly_calibration_base_plate("a_bot", end_effector_link="a_bot_screw_tool_m3_tip_link", panel_name="motor_panel")
             if r == '5031':
-                c.assembly_calibration_base_plate("a_bot", end_effector_link="a_bot_screw_tool_m3_tip_link", context="rotate_pose")
+                c.assembly_calibration_base_plate("a_bot", end_effector_link="a_bot_screw_tool_m3_tip_link", panel_name="bearing_panel")
             if r == '5032':
-                c.assembly_calibration_base_plate("a_bot", end_effector_link="a_bot_screw_tool_m3_tip_link", context="rotate_pose_25")
+                c.assembly_calibration_base_plate("a_bot", end_effector_link="a_bot_screw_tool_m3_tip_link", panel_name="motor_panel", rotation=radians(25))
             if r == '5033':
-                c.assembly_calibration_base_plate("a_bot", end_effector_link="a_bot_screw_tool_m3_tip_link", context="rotate_pose_front45")
+                c.assembly_calibration_base_plate("a_bot", end_effector_link="a_bot_screw_tool_m3_tip_link", panel_name="motor_panel", rotation=radians(45))
             if r == '504':
-                c.assembly_calibration_base_plate("b_bot", end_effector_link="b_bot_screw_tool_m4_tip_link")
+                c.assembly_calibration_base_plate("b_bot", end_effector_link="b_bot_screw_tool_m4_tip_link", panel_name="both")
             if r == '5041':
-                c.assembly_calibration_base_plate("b_bot", end_effector_link="b_bot_screw_tool_m4_tip_link", context="rotate_pose")
+                c.assembly_calibration_base_plate("b_bot", end_effector_link="b_bot_screw_tool_m4_tip_link", panel_name="both", rotation=radians(25))
             if r == '5042':
-                c.assembly_calibration_base_plate("b_bot", end_effector_link="b_bot_screw_tool_m4_tip_link", context="rotate_pose_25")
+                c.assembly_calibration_base_plate("b_bot", end_effector_link="b_bot_screw_tool_m4_tip_link", panel_name="both", rotation=radians(45))
             if r == '5043':
-                c.assembly_calibration_base_plate("b_bot", end_effector_link="b_bot_screw_tool_m4_tip_link", context="rotate_pose_front45")
-            if r == '5041a':
-                c.assembly_calibration_base_plate("a_bot", end_effector_link="a_bot_screw_tool_m4_tip_link", context="rotate_pose")
+                c.assembly_calibration_base_plate("b_bot", end_effector_link="b_bot_screw_tool_m4_tip_link", panel_name="both", rotation=radians(-45))
+            if r == '504a':
+                c.assembly_calibration_base_plate("a_bot", end_effector_link="a_bot_screw_tool_m4_tip_link", panel_name="both")
             if r == '5042a':
-                c.assembly_calibration_base_plate("a_bot", end_effector_link="a_bot_screw_tool_m4_tip_link", context="rotate_pose_25")
+                c.assembly_calibration_base_plate("a_bot", end_effector_link="a_bot_screw_tool_m4_tip_link", panel_name="both", rotation=radians(25))
             if r == '5043a':
-                c.assembly_calibration_base_plate("a_bot", end_effector_link="a_bot_screw_tool_m4_tip_link", context="rotate_pose_front45")
+                c.assembly_calibration_base_plate("a_bot", end_effector_link="a_bot_screw_tool_m4_tip_link", panel_name="both", rotation=radians(-45))
             if r == '504a':
                 c.assembly_calibration_base_plate("a_bot", end_effector_link="a_bot_screw_tool_m4_tip_link")
             if r == '503b':

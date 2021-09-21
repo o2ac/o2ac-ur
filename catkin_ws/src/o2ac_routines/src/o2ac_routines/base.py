@@ -1320,8 +1320,6 @@ class O2ACBase(object):
         unequip = (operation == "unequip")
         realign = (operation == "realign")
 
-        b_bot_magic_global_y_offset = 0.0  # Due to calibration issues on site
-
         ###
         lin_speed = 0.5
         # The second comparison is not always necessary, but readability comes first.
@@ -1381,12 +1379,6 @@ class O2ACBase(object):
         if unequip or realign:
             ps_in_holder.pose.position.x -= 0.001   # Don't move all the way into the magnet to place
             ps_approach.pose.position.z -= 0.01  # Approach diagonally so nothing gets stuck
-
-        if robot_name == "b_bot" and b_bot_magic_global_y_offset:
-            rospy.logwarn("Adding ")
-            ps_in_holder.pose.position.y += b_bot_magic_global_y_offset
-            ps_approach.pose.position.y += b_bot_magic_global_y_offset
-            ps_move_away.pose.position.y += b_bot_magic_global_y_offset
 
         if calibration_mode:
             self.active_robots[robot_name].gripper.open(opening_width=0.08, wait=False)
