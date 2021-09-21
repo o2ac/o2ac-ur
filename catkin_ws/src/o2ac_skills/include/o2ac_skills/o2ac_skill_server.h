@@ -88,6 +88,8 @@ public:
   bool updatePlanningScene();
   
   // Internal functions
+  void updateRobotStatusFromParameterServer(const std::string robot_name);
+  void updateRobotStatus(std::string robot_name, bool carrying_object, bool carrying_tool, std::string held_tool_id);
   bool equipScrewTool(std::string robot_name, std::string screw_tool_id);
   bool unequipScrewTool(std::string robot_name);
   bool equipUnequipScrewTool(std::string robot_name, std::string screw_tool_id, std::string equip_or_unequip);

@@ -816,6 +816,23 @@ std::string SkillServer::getEELink(std::string robot_name) {
 
 // ----------- Internal functions
 
+void SkillServer::updateRobotStatusFromParameterServer(const std::string robot_name){
+  bool carrying_object, carrying_tool;
+  std::string held_tool_id;
+  ros::param::param<bool>        (robot_name + "/carrying_object", carrying_object, false);
+  ros::param::param<bool>        (robot_name + "/carrying_tool",   carrying_tool,   false);
+  ros::param::param<std::string> (robot_name + "/held_tool_id",    held_tool_id,    "");
+  robot_statuses_[robot_name].carrying_object = carrying_object;
+  robot_statuses_[robot_name].carrying_tool   = carrying_tool;
+  robot_statuses_[robot_name].held_tool_id    = held_tool_id;
+}
+
+void SkillServer::updateRobotStatus(std::string robot_name, bool carrying_object, bool carrying_tool, std::string held_tool_id){
+  ros::param::set(robot_name + "/carrying_object", carrying_object);
+  ros::param::set(robot_name + "/carrying_tool",   carrying_tool);
+  ros::param::set(robot_name + "/held_tool_id",    held_tool_id);
+}
+
 bool SkillServer::equipScrewTool(std::string robot_name,
                                  std::string screw_tool_id) {
   ROS_INFO_STREAM("Equipping screw tool " << screw_tool_id);
@@ -830,6 +847,7 @@ bool SkillServer::unequipScrewTool(std::string robot_name) {
 bool SkillServer::equipUnequipScrewTool(std::string robot_name,
                                         std::string screw_tool_id,
                                         std::string equip_or_unequip) {
+  updateRobotStatusFromParameterServer(robot_name);
   // Sanity check on the input instruction
   bool equip = (equip_or_unequip == "equip");
   bool unequip = (equip_or_unequip == "unequip");
@@ -985,15 +1003,13 @@ bool SkillServer::equipUnequipScrewTool(std::string robot_name,
     acm_no_collisions.setEntry(screw_tool_id, true); // To allow collisions now
     planning_scene_interface_.applyPlanningScene(ps_no_collisions);
 
-    robot_statuses_[robot_name].carrying_tool = true;
-    robot_statuses_[robot_name].held_tool_id = screw_tool_id;
+    updateRobotStatus(robot_name, true, false, screw_tool_id);
   } else if (unequip) {
     openGripper(robot_name);
     detachTool(screw_tool_id, robot_name);
     held_screw_tool_ = "";
     acm_original.removeEntry(screw_tool_id);
-    robot_statuses_[robot_name].carrying_tool = false;
-    robot_statuses_[robot_name].held_tool_id = "";
+    updateRobotStatus(robot_name, false, false, "screw_tool_id");
   }
   acm_original.getMessage(planning_scene_.allowed_collision_matrix);
   ros::Duration(.5).sleep();
