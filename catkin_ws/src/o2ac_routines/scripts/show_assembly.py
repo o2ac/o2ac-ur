@@ -36,27 +36,18 @@
 
 import signal
 import os
-import subprocess
 import moveit_commander
-import o2ac_routines.helpers as helpers
 from o2ac_routines.assembly import O2ACAssembly
 from o2ac_assembly_database.assembly_reader import AssemblyReader
-from o2ac_assembly_database.parts_reader import PartsReader
-from ur_control import conversions, transformations
+from ur_control import conversions
 import visualization_msgs.msg
-import moveit_msgs.msg
 from o2ac_msgs.srv import *
 import random
-import numpy as np
 import time
-import math
 import sys
-import copy
 import rospy
 import geometry_msgs.msg
-import tf_conversions
-import tf
-from math import pi, radians, sin, cos
+from math import pi
 tau = 2.0*pi  # Part of math from Python 3.6
 
 

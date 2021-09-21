@@ -35,25 +35,16 @@
 # Author: Felix von Drigalski
 
 import o2ac_routines.helpers as helpers
-from o2ac_routines.helpers import wait_for_UR_program
-import o2ac_vision
 from ur_control import conversions
 import o2ac_msgs.msg
 import actionlib
-import cv2
-from cv_bridge import CvBridge
-from sensor_msgs.msg import Image
 from o2ac_routines.common import O2ACCommon
-import sys
-import copy
-from moveit_commander import robot
 import rospy
 import numpy as np
 
 import geometry_msgs.msg
-import tf
 import tf_conversions
-from math import pi, degrees, radians
+from math import pi
 tau = 2.0*pi  # Part of math from Python 3.6
 
 

@@ -38,9 +38,8 @@ import signal
 import sys
 from ur_control import conversions
 from o2ac_routines.assembly import O2ACAssembly
-from o2ac_routines.common import O2ACCommon
 from o2ac_msgs.msg import HandoverAction, HandoverResult
-from o2ac_msgs.msg import MoveToAction, MoveToResult
+from o2ac_msgs.msg import MoveToAction
 from o2ac_msgs.msg import OrientAction, OrientResult
 from o2ac_msgs.msg import FastenAction, FastenResult
 from o2ac_msgs.msg import AlignBearingHolesAction, AlignBearingHolesResult
@@ -66,7 +65,6 @@ class SkillServer:
     """ Action servers for Flexbe Interface """
 
     def __init__(self):
-        # self.controller = O2ACCommon()
         self.controller = O2ACAssembly()
         self.controller.reset_scene_and_robots()
         self.controller.competition_mode = True
