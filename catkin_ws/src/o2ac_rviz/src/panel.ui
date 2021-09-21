@@ -2,12 +2,15 @@
 <ui version="4.0">
  <class>O2ACSetupPanel</class>
  <widget class="QWidget" name="O2ACSetupPanel">
+  <property name="enabled">
+   <bool>true</bool>
+  </property>
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>299</width>
-    <height>377</height>
+    <width>484</width>
+    <height>473</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -221,24 +224,21 @@
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="label_b_inside_cam_online">
+      <widget class="QPushButton" name="button_b_bot_inside_camera">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="MinimumExpanding" vsizetype="Maximum">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
        <property name="minimumSize">
         <size>
-         <width>15</width>
+         <width>10</width>
          <height>0</height>
         </size>
        </property>
        <property name="text">
         <string>X</string>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignCenter</set>
        </property>
       </widget>
      </item>
@@ -266,24 +266,15 @@
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="label_b_outside_cam_online">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="MinimumExpanding" vsizetype="Maximum">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
+      <widget class="QPushButton" name="button_b_bot_outside_camera">
        <property name="minimumSize">
         <size>
-         <width>15</width>
+         <width>10</width>
          <height>0</height>
         </size>
        </property>
        <property name="text">
         <string>X</string>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignCenter</set>
        </property>
       </widget>
      </item>
@@ -311,24 +302,15 @@
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="label_a_inside_cam_online">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="MinimumExpanding" vsizetype="Maximum">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
+      <widget class="QPushButton" name="button_a_bot_inside_camera">
        <property name="minimumSize">
         <size>
-         <width>15</width>
+         <width>10</width>
          <height>0</height>
         </size>
        </property>
        <property name="text">
         <string>X</string>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignCenter</set>
        </property>
       </widget>
      </item>
@@ -356,24 +338,21 @@
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="label_a_outside_cam_online">
+      <widget class="QPushButton" name="button_a_bot_outside_camera">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="MinimumExpanding" vsizetype="Maximum">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
        <property name="minimumSize">
         <size>
-         <width>15</width>
+         <width>10</width>
          <height>0</height>
         </size>
        </property>
        <property name="text">
         <string>X</string>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignCenter</set>
        </property>
       </widget>
      </item>

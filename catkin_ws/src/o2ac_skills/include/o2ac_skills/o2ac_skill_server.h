@@ -58,6 +58,11 @@
 #include <actionlib/client/simple_action_client.h>
 #include <robotiq_msgs/CModelCommandAction.h>
 
+// Dynamic reconfigure
+#include <dynamic_reconfigure/BoolParameter.h>
+#include <dynamic_reconfigure/Reconfigure.h>
+#include <dynamic_reconfigure/Config.h>
+
 // The circle constant tau = 2*pi. One tau is one rotation in radians.
 const double tau = 6.283185307179586476925;
 
@@ -124,6 +129,7 @@ public:
   void executeRegrasp(const o2ac_msgs::regraspGoalConstPtr& goal);
   void executeScrew(const o2ac_msgs::screwGoalConstPtr& goal);
   void executeChangeTool(const o2ac_msgs::changeToolGoalConstPtr& goal);
+  bool activateCamera(const int camera_id);
   
 
 // private:

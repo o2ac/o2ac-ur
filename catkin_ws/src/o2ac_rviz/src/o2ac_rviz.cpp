@@ -34,6 +34,11 @@ private slots:
   void on_button_open_base_fixation_clicked();
   void on_button_close_base_fixation_clicked();
 
+  void on_button_a_bot_inside_camera_clicked();
+  void on_button_a_bot_outside_camera_clicked();
+  void on_button_b_bot_inside_camera_clicked();
+  void on_button_b_bot_outside_camera_clicked();
+
   void on_button_a_bot_m3_equip_clicked();
   void on_button_a_bot_m3_unequip_clicked();
   void on_button_a_bot_m3_pick_screw_clicked();
@@ -208,38 +213,29 @@ void O2ACSetupPanel::update_status(const ros::TimerEvent &event) {
   // Check that cameras have received an image within the last 0.5 seconds
   std::chrono::time_point<std::chrono::system_clock> now =
       std::chrono::system_clock::now();
-  // auto time_since_last_msg =
-  // std::chrono::duration_cast<std::chrono::milliseconds>(now -
-  // last_a_bot_inside_cam_message_time); if (time_since_last_msg <
-  // std::chrono::milliseconds{500})
-  //     ui.label_a_inside_cam_online->setStyleSheet(green_label_style);
-  // else
-  //     ui.label_a_inside_cam_online->setStyleSheet(red_label_style);
+  auto time_since_last_msg = std::chrono::duration_cast<std::chrono::milliseconds>(
+      now - last_a_bot_inside_cam_message_time); 
+  if (!(time_since_last_msg < std::chrono::milliseconds{500})) {
+    ui.button_a_bot_inside_camera->setStyleSheet(grey_button_style);
+  }
 
-  // time_since_last_msg =
-  // std::chrono::duration_cast<std::chrono::milliseconds>(now -
-  // last_a_bot_outside_cam_message_time); if (time_since_last_msg <
-  // std::chrono::milliseconds{500})
-  //     ui.label_a_outside_cam_online->setStyleSheet(green_label_style);
-  // else
-  //     ui.label_a_outside_cam_online->setStyleSheet(red_label_style);
+  time_since_last_msg = std::chrono::duration_cast<std::chrono::milliseconds>(
+      now - last_a_bot_outside_cam_message_time); 
+  if (!(time_since_last_msg < std::chrono::milliseconds{500})) {
+      ui.button_a_bot_outside_camera->setStyleSheet(grey_button_style);
+  }
 
-  auto time_since_last_msg =
-      std::chrono::duration_cast<std::chrono::milliseconds>(
-          now - last_b_bot_inside_cam_message_time);
-  // std::cout << "time_since_last_msg is " << time_since_last_msg.count() <<
-  // std::endl;
-  if (time_since_last_msg < std::chrono::milliseconds{500})
-    ui.label_b_inside_cam_online->setStyleSheet(green_label_style);
-  else
-    ui.label_b_inside_cam_online->setStyleSheet(red_label_style);
+  time_since_last_msg = std::chrono::duration_cast<std::chrono::milliseconds>(
+      now - last_b_bot_inside_cam_message_time);
+  if (!(time_since_last_msg < std::chrono::milliseconds{500})) {
+    ui.button_b_bot_inside_camera->setStyleSheet(grey_button_style);
+  }
 
   time_since_last_msg = std::chrono::duration_cast<std::chrono::milliseconds>(
       now - last_b_bot_outside_cam_message_time);
-  if (time_since_last_msg < std::chrono::milliseconds{500})
-    ui.label_b_outside_cam_online->setStyleSheet(green_label_style);
-  else
-    ui.label_b_outside_cam_online->setStyleSheet(red_label_style);
+  if (!(time_since_last_msg < std::chrono::milliseconds{500})) {
+    ui.button_b_bot_outside_camera->setStyleSheet(grey_button_style);
+  }
 }
 
 void O2ACSetupPanel::io_state_callback(const ur_msgs::IOStates &states) {
@@ -355,6 +351,54 @@ void O2ACSetupPanel::on_button_open_base_fixation_clicked() {
 void O2ACSetupPanel::on_button_close_base_fixation_clicked() {
   ss_.setSuctionEjection("base_plate_release", false);
   ss_.setSuctionEjection("base_plate_lock", true);
+}
+void O2ACSetupPanel::on_button_a_bot_inside_camera_clicked() {
+  if (ss_.activateCamera(0)) {
+    ui.button_a_bot_inside_camera ->setText("O");
+    ui.button_a_bot_outside_camera->setText("-");
+    ui.button_b_bot_inside_camera ->setText("-");
+    ui.button_b_bot_outside_camera->setText("-");
+    ui.button_a_bot_inside_camera->setStyleSheet(green_button_style);
+    ui.button_a_bot_outside_camera->setStyleSheet(yellow_button_style);
+    ui.button_b_bot_inside_camera->setStyleSheet(yellow_button_style);
+    ui.button_b_bot_outside_camera->setStyleSheet(yellow_button_style);
+  }
+}
+void O2ACSetupPanel::on_button_a_bot_outside_camera_clicked() {
+  if (ss_.activateCamera(1)) {
+    ui.button_a_bot_inside_camera ->setText("-");
+    ui.button_a_bot_outside_camera->setText("O");
+    ui.button_b_bot_inside_camera ->setText("-");
+    ui.button_b_bot_outside_camera->setText("-");
+    ui.button_a_bot_inside_camera->setStyleSheet(yellow_button_style);
+    ui.button_a_bot_outside_camera->setStyleSheet(green_button_style);
+    ui.button_b_bot_inside_camera->setStyleSheet(yellow_button_style);
+    ui.button_b_bot_outside_camera->setStyleSheet(yellow_button_style);
+  }
+}
+void O2ACSetupPanel::on_button_b_bot_inside_camera_clicked() {
+  if (ss_.activateCamera(2)) {
+    ui.button_a_bot_inside_camera ->setText("-");
+    ui.button_a_bot_outside_camera->setText("-");
+    ui.button_b_bot_inside_camera ->setText("O");
+    ui.button_b_bot_outside_camera->setText("-");
+    ui.button_a_bot_inside_camera->setStyleSheet(yellow_button_style);
+    ui.button_a_bot_outside_camera->setStyleSheet(yellow_button_style);
+    ui.button_b_bot_inside_camera->setStyleSheet(green_button_style);
+    ui.button_b_bot_outside_camera->setStyleSheet(yellow_button_style);
+  }
+}
+void O2ACSetupPanel::on_button_b_bot_outside_camera_clicked() {
+  if (ss_.activateCamera(3)) {
+    ui.button_a_bot_inside_camera ->setText("-");
+    ui.button_a_bot_outside_camera->setText("-");
+    ui.button_b_bot_inside_camera ->setText("-");
+    ui.button_b_bot_outside_camera->setText("O");
+    ui.button_a_bot_inside_camera->setStyleSheet(yellow_button_style);
+    ui.button_a_bot_outside_camera->setStyleSheet(yellow_button_style);
+    ui.button_b_bot_inside_camera->setStyleSheet(yellow_button_style);
+    ui.button_b_bot_outside_camera->setStyleSheet(green_button_style);
+  }
 }
 
 // Equip commands

@@ -2006,6 +2006,28 @@ void SkillServer::executeChangeTool(
     changeToolActionServer_.setAborted();
 }
 
+bool SkillServer::activateCamera(const int camera_id) {
+  ROS_INFO_STREAM("Activating camera: " << camera_id);
+  dynamic_reconfigure::ReconfigureRequest srv_req;
+  dynamic_reconfigure::ReconfigureResponse srv_resp;
+  dynamic_reconfigure::IntParameter activate_camera;
+  dynamic_reconfigure::Config conf;
+
+  activate_camera.name = "active_camera";
+  activate_camera.value = camera_id;
+  conf.ints.push_back(activate_camera);
+
+  srv_req.config = conf;
+
+  if (ros::service::call("/camera_multiplexer/set_parameters", srv_req, srv_resp)) {
+    ROS_INFO("call to set camera_multiplexer parameters succeeded");
+    return true;
+  } else {
+    ROS_INFO("call to set camera_multiplexer parameters failed");
+    return false;
+  }
+}
+
 // ----------- End of the class definitions
 
 int main(int argc, char **argv) {

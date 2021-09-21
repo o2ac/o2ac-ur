@@ -75,20 +75,20 @@ public:
   QPushButton *button_loosen_m3_1s;
   QPushButton *button_tighten_m3_5s;
   QLabel *label_tool_m4_alive;
-  QLabel *tool_row_nut;
+  QLabel *tool_row_padless_m4;
   QLabel *tool_header_tighten;
   QLabel *tool_row_m2s;
-  QLabel *label_tool_nut_alive;
+  QLabel *label_tool_padless_m4_alive;
   QLabel *label_tool_m2s_alive;
-  QPushButton *button_tighten_nut_5s;
+  QPushButton *button_tighten_padless_m4_5s;
   QPushButton *button_tighten_m2s_5s;
-  QPushButton *button_loosen_nut_1s;
+  QPushButton *button_loosen_padless_m4_1s;
   QPushButton *button_loosen_m2s_1s;
-  QPushButton *button_a_bot_nut_equip;
+  QPushButton *button_a_bot_padless_m4_equip;
   QPushButton *button_a_bot_m2s_unequip;
   QPushButton *button_close_b_8;
   QPushButton *button_b_bot_m2s_equip;
-  QLabel *label_tool_nut_vac;
+  QLabel *label_tool_padless_m4_vac;
   QLabel *label_tool_m2s_vac;
 
   void setupUi(QWidget *O2ACSetupForm) {
@@ -116,6 +116,31 @@ public:
     group_activation->addWidget(button_robots_home);
 
     verticalLayout->addLayout(group_activation);
+
+    cameras_group = new QGroupBox(O2ACSetupForm);
+    cameras_group->setObjectName(QStringLiteral("cameras_group"));
+    cameras_group->setAlignment(Qt::AlignCenter);
+    cameras_group->setFlat(false);
+    camerasHorizontalLayout = new QHBoxLayout();
+    camerasHorizontalLayout->setObjectName(QStringLiteral("camerasHorizontalLayout"));
+
+    a_bot_inside_camera_btn = new QPushButton(cameras_group);
+    a_bot_inside_camera_btn->setObjectName(QStringLiteral("a_bot_inside_camera_btn"));
+    camerasHorizontalLayout->addWidget(a_bot_inside_camera_btn);
+    
+    a_bot_outside_camera_btn = new QPushButton(cameras_group);
+    a_bot_outside_camera_btn->setObjectName(QStringLiteral("a_bot_outside_camera_btn"));
+    camerasHorizontalLayout->addWidget(a_bot_outside_camera_btn);
+    
+    b_bot_inside_camera_btn = new QPushButton(cameras_group);
+    b_bot_inside_camera_btn->setObjectName(QStringLiteral("b_bot_inside_camera_btn"));
+    camerasHorizontalLayout->addWidget(b_bot_inside_camera_btn);
+    
+    b_bot_outside_camera_btn = new QPushButton(cameras_group);
+    b_bot_outside_camera_btn->setObjectName(QStringLiteral("b_bot_outside_camera_btn"));
+    camerasHorizontalLayout->addWidget(b_bot_outside_camera_btn);
+
+    verticalLayout->addLayout(camerasHorizontalLayout);
 
     horizontalLayout_3 = new QHBoxLayout();
     horizontalLayout_3->setObjectName(QStringLiteral("horizontalLayout_3"));
@@ -361,11 +386,11 @@ public:
 
     gridLayout->addWidget(label_tool_m4_alive, 2, 1, 1, 1);
 
-    tool_row_nut = new QLabel(tool_group_box);
-    tool_row_nut->setObjectName(QStringLiteral("tool_row_nut"));
-    tool_row_nut->setAlignment(Qt::AlignCenter);
+    tool_row_padless_m4 = new QLabel(tool_group_box);
+    tool_row_padless_m4->setObjectName(QStringLiteral("tool_row_padless_m4"));
+    tool_row_padless_m4->setAlignment(Qt::AlignCenter);
 
-    gridLayout->addWidget(tool_row_nut, 3, 0, 1, 1);
+    gridLayout->addWidget(tool_row_padless_m4, 3, 0, 1, 1);
 
     tool_header_tighten = new QLabel(tool_group_box);
     tool_header_tighten->setObjectName(QStringLiteral("tool_header_tighten"));
@@ -379,11 +404,11 @@ public:
 
     gridLayout->addWidget(tool_row_m2s, 4, 0, 1, 1);
 
-    label_tool_nut_alive = new QLabel(tool_group_box);
-    label_tool_nut_alive->setObjectName(QStringLiteral("label_tool_nut_alive"));
-    label_tool_nut_alive->setAlignment(Qt::AlignCenter);
+    label_tool_padless_m4_alive = new QLabel(tool_group_box);
+    label_tool_padless_m4_alive->setObjectName(QStringLiteral("label_tool_padless_m4_alive"));
+    label_tool_padless_m4_alive->setAlignment(Qt::AlignCenter);
 
-    gridLayout->addWidget(label_tool_nut_alive, 3, 1, 1, 1);
+    gridLayout->addWidget(label_tool_padless_m4_alive, 3, 1, 1, 1);
 
     label_tool_m2s_alive = new QLabel(tool_group_box);
     label_tool_m2s_alive->setObjectName(QStringLiteral("label_tool_m2s_alive"));
@@ -391,12 +416,12 @@ public:
 
     gridLayout->addWidget(label_tool_m2s_alive, 4, 1, 1, 1);
 
-    button_tighten_nut_5s = new QPushButton(tool_group_box);
-    button_tighten_nut_5s->setObjectName(
-        QStringLiteral("button_tighten_nut_5s"));
-    button_tighten_nut_5s->setMinimumSize(QSize(20, 0));
+    button_tighten_padless_m4_5s = new QPushButton(tool_group_box);
+    button_tighten_padless_m4_5s->setObjectName(
+        QStringLiteral("button_tighten_padless_m4_5s"));
+    button_tighten_padless_m4_5s->setMinimumSize(QSize(20, 0));
 
-    gridLayout->addWidget(button_tighten_nut_5s, 3, 2, 1, 1);
+    gridLayout->addWidget(button_tighten_padless_m4_5s, 3, 2, 1, 1);
 
     button_tighten_m2s_5s = new QPushButton(tool_group_box);
     button_tighten_m2s_5s->setObjectName(
@@ -405,11 +430,11 @@ public:
 
     gridLayout->addWidget(button_tighten_m2s_5s, 4, 2, 1, 1);
 
-    button_loosen_nut_1s = new QPushButton(tool_group_box);
-    button_loosen_nut_1s->setObjectName(QStringLiteral("button_loosen_nut_1s"));
-    button_loosen_nut_1s->setMinimumSize(QSize(20, 0));
+    button_loosen_padless_m4_1s = new QPushButton(tool_group_box);
+    button_loosen_padless_m4_1s->setObjectName(QStringLiteral("button_loosen_padless_m4_1s"));
+    button_loosen_padless_m4_1s->setMinimumSize(QSize(20, 0));
 
-    gridLayout->addWidget(button_loosen_nut_1s, 3, 3, 1, 1);
+    gridLayout->addWidget(button_loosen_padless_m4_1s, 3, 3, 1, 1);
 
     button_loosen_m2s_1s = new QPushButton(tool_group_box);
     button_loosen_m2s_1s->setObjectName(QStringLiteral("button_loosen_m2s_1s"));
@@ -417,15 +442,15 @@ public:
 
     gridLayout->addWidget(button_loosen_m2s_1s, 4, 3, 1, 1);
 
-    button_a_bot_nut_equip = new QPushButton(tool_group_box);
-    button_a_bot_nut_equip->setObjectName(
-        QStringLiteral("button_a_bot_nut_equip"));
+    button_a_bot_padless_m4_equip = new QPushButton(tool_group_box);
+    button_a_bot_padless_m4_equip->setObjectName(
+        QStringLiteral("button_a_bot_padless_m4_equip"));
     sizePolicy.setHeightForWidth(
-        button_a_bot_nut_equip->sizePolicy().hasHeightForWidth());
-    button_a_bot_nut_equip->setSizePolicy(sizePolicy);
-    button_a_bot_nut_equip->setMinimumSize(QSize(45, 0));
+        button_a_bot_padless_m4_equip->sizePolicy().hasHeightForWidth());
+    button_a_bot_padless_m4_equip->setSizePolicy(sizePolicy);
+    button_a_bot_padless_m4_equip->setMinimumSize(QSize(45, 0));
 
-    gridLayout->addWidget(button_a_bot_nut_equip, 3, 6, 1, 1);
+    gridLayout->addWidget(button_a_bot_padless_m4_equip, 3, 6, 1, 1);
 
     button_a_bot_m2s_unequip = new QPushButton(tool_group_box);
     button_a_bot_m2s_unequip->setObjectName(
@@ -450,11 +475,11 @@ public:
 
     gridLayout->addWidget(button_b_bot_m2s_equip, 4, 6, 1, 1);
 
-    label_tool_nut_vac = new QLabel(tool_group_box);
-    label_tool_nut_vac->setObjectName(QStringLiteral("label_tool_nut_vac"));
-    label_tool_nut_vac->setAlignment(Qt::AlignCenter);
+    label_tool_padless_m4_vac = new QLabel(tool_group_box);
+    label_tool_padless_m4_vac->setObjectName(QStringLiteral("label_tool_padless_m4_vac"));
+    label_tool_padless_m4_vac->setAlignment(Qt::AlignCenter);
 
-    gridLayout->addWidget(label_tool_nut_vac, 3, 4, 1, 1);
+    gridLayout->addWidget(label_tool_padless_m4_vac, 3, 4, 1, 1);
 
     label_tool_m2s_vac = new QLabel(tool_group_box);
     label_tool_m2s_vac->setObjectName(QStringLiteral("label_tool_m2s_vac"));
@@ -546,25 +571,25 @@ public:
         QApplication::translate("O2ACSetupForm", "5s", Q_NULLPTR));
     label_tool_m4_alive->setText(
         QApplication::translate("O2ACSetupForm", "\342\235\214", Q_NULLPTR));
-    tool_row_nut->setText(
-        QApplication::translate("O2ACSetupForm", "Nut", Q_NULLPTR));
+    tool_row_padless_m4->setText(
+        QApplication::translate("O2ACSetupForm", "P-M4", Q_NULLPTR));
     tool_header_tighten->setText(
         QApplication::translate("O2ACSetupForm", "Screw", Q_NULLPTR));
     tool_row_m2s->setText(
         QApplication::translate("O2ACSetupForm", "M2s", Q_NULLPTR));
-    label_tool_nut_alive->setText(
+    label_tool_padless_m4_alive->setText(
         QApplication::translate("O2ACSetupForm", "\342\235\214", Q_NULLPTR));
     label_tool_m2s_alive->setText(
         QApplication::translate("O2ACSetupForm", "\342\235\214", Q_NULLPTR));
-    button_tighten_nut_5s->setText(
+    button_tighten_padless_m4_5s->setText(
         QApplication::translate("O2ACSetupForm", "5s", Q_NULLPTR));
     button_tighten_m2s_5s->setText(
         QApplication::translate("O2ACSetupForm", "5s", Q_NULLPTR));
-    button_loosen_nut_1s->setText(
+    button_loosen_padless_m4_1s->setText(
         QApplication::translate("O2ACSetupForm", "1s", Q_NULLPTR));
     button_loosen_m2s_1s->setText(
         QApplication::translate("O2ACSetupForm", "1s", Q_NULLPTR));
-    button_a_bot_nut_equip->setText(
+    button_a_bot_padless_m4_equip->setText(
         QApplication::translate("O2ACSetupForm", "a_bot", Q_NULLPTR));
     button_a_bot_m2s_unequip->setText(
         QApplication::translate("O2ACSetupForm", "a_bot", Q_NULLPTR));
@@ -572,7 +597,7 @@ public:
         QApplication::translate("O2ACSetupForm", "b_bot", Q_NULLPTR));
     button_b_bot_m2s_equip->setText(
         QApplication::translate("O2ACSetupForm", "b_bot", Q_NULLPTR));
-    label_tool_nut_vac->setText(
+    label_tool_padless_m4_vac->setText(
         QApplication::translate("O2ACSetupForm", "\342\236\226", Q_NULLPTR));
     label_tool_m2s_vac->setText(
         QApplication::translate("O2ACSetupForm", "\342\236\226", Q_NULLPTR));
