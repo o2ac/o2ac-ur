@@ -33,7 +33,7 @@ If you find this repository useful, please star it and cite our papers.
 
 The Docker and shell script backbone of this project is based on the HSR environment maintained at the [Emergent Systems Laboratory](http://www.em.ci.ritsumei.ac.jp/), Department of Human and Computer Intelligence, College of Information Science and Engineering, [Ritsumeikan University](http://en.ritsumei.ac.jp/). For support, contact [Coarobo GK](https://coarobo.com/).
 
-Team O2AC at the World Robot Summit 2020 Assembly Challenge consisted of members from OMRON SINIC X, OMRON, Osaka University, National Institute for Advanced Science and Technology (AIST) and Chukyo University:
+Team O2AC at the World Robot Summit 2020 Assembly Challenge consisted of members from **OMRON SINIC X**, **OMRON**, **Osaka University**, **National Institute for Advanced Science and Technology (AIST)** and **Chukyo University**:
 
 - Felix von Drigalski (OMRON SINIC X)
 - Kazumi Kasaura (OMRON SINIC X)
@@ -55,4 +55,4 @@ Team O2AC at the World Robot Summit 2020 Assembly Challenge consisted of members
 - Weiwei Wan (Osaka University)
 - Kensuke Harada (Osaka University)
 
-We thank each organisation for their support and for the approval to release the source code.
+We thank each organization for their support and for the approval to release the source code.
