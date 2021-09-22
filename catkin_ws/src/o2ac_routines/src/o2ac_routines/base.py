@@ -923,8 +923,8 @@ class O2ACBase(object):
             pose_feeder.pose.position.y += 0  # points to the left of the feeder (to a_bot)
             pose_feeder.pose.position.z += 0  # points to the back
         if robot_name == "a_bot" and screw_size == 4:
-            pose_feeder.pose.position.y += 0.008  # points to the left of the feeder (to a_bot) - Translation: [-0.004, 0.008, -0.000]
-            pose_feeder.pose.position.z += 0.0  # points to the back - Translation: [-0.045, -0.004, 0.008]
+            pose_feeder.pose.position.y += -0.001  # points to the left of the feeder (to a_bot) - Translation: [-0.004, 0.008, -0.000]
+            pose_feeder.pose.position.z += 0.002  # points to the back - Translation: [-0.045, -0.004, 0.008]
 
         self.suck_screw(robot_name, pose_feeder, screw_tool_id, screw_tool_link, fastening_tool_name, do_spiral_search_at_bottom=True, skip_retreat=skip_retreat)
 
@@ -977,7 +977,7 @@ class O2ACBase(object):
 
         # Approach pose
         above_screw_head_pose = copy.deepcopy(screw_head_pose)
-        above_screw_head_pose.pose.position.x -= 0.015
+        above_screw_head_pose.pose.position.x -= 0.025
 
         if (screw_tool_id == "screw_tool_m3"):
             self.planning_scene_interface.allow_collisions(screw_tool_id, "m3_feeder_link")
@@ -1006,7 +1006,7 @@ class O2ACBase(object):
             self.confirm_to_proceed("Go to approach screw head ")
             self.active_robots[robot_name].go_to_pose_goal(approach_pose, speed=0.3, end_effector_link=screw_tool_link, move_lin=True)
             self.confirm_to_proceed("Go to above_screw_head_pose ")
-            above_screw_head_pose.pose.position.x += 0.015
+            above_screw_head_pose.pose.position.x += 0.025
             self.active_robots[robot_name].go_to_pose_goal(above_screw_head_pose, speed=0.1, end_effector_link=screw_tool_link, move_lin=True)
             self.confirm_to_proceed("Go up")
             self.active_robots[robot_name].move_lin_rel([0, 0, 0.1], speed=0.2)
@@ -1014,7 +1014,7 @@ class O2ACBase(object):
 
         self.tools.set_suction(screw_tool_id, suction_on=True, eject=False, wait=False)
 
-        descend_distance = 0.019
+        descend_distance = 0.026
 
         max_radius = .0025
         theta_incr = tau/6
@@ -1343,6 +1343,8 @@ class O2ACBase(object):
         # Set up poses
         ps_approach = geometry_msgs.msg.PoseStamped()
         ps_approach.header.frame_id = tool_name + "_pickup_link"
+        
+        tool_inclination_offset = 0
 
         # Define approach pose
         # z = 0 is at the holder surface, and z-axis of pickup_link points downwards!
@@ -1350,6 +1352,8 @@ class O2ACBase(object):
         if tool_name == "screw_tool_m3" or tool_name == "screw_tool_m4" or tool_name == "padless_tool_m4":
             ps_approach.pose.position.x = -.04
             ps_approach.pose.position.z = -.008
+            if tool_name == "screw_tool_m4":
+                tool_inclination_offset = radians(0.0) # Fix for the physical deformation of the tool
         elif tool_name == "nut_tool_m6":
             ps_approach.pose.position.z = -.025
         elif tool_name == "set_screw_tool":
@@ -1363,7 +1367,7 @@ class O2ACBase(object):
             rospy.logerr(tool_name, " is not implemented!")
             return False
 
-        ps_approach.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, -pi/6, 0))
+        ps_approach.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, -pi/6 + tool_inclination_offset, 0))
         ps_move_away = copy.deepcopy(ps_approach)
 
         # Define pickup pose
@@ -1468,7 +1472,8 @@ class O2ACBase(object):
 
         if equip or realign:  # Pull back and let go once to align the tool with the magnet properly
             pull_back_slightly = copy.deepcopy(ps_in_holder)
-            pull_back_slightly.pose.position.x -= 0.002
+            pull_back_slightly.pose.position.x -= 0.003
+            pull_back_slightly.pose.position.z -= 0.001
             ps_in_holder.pose.position.x += 0.001  # To remove the offset for placing applied earlier
             lin_speed = 0.2
             sequence.append(helpers.to_sequence_item(pull_back_slightly, speed=lin_speed))

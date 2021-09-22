@@ -59,7 +59,7 @@
   <joint name="${trayname}_center_joint" type="fixed">
     <parent link="${trayname}" />
     <child link = "${trayname}_center" />
-    <origin rpy="0 0 0" xyz="${tray_w/2} ${tray_l/2} 0.013"/>
+    <origin rpy="0 0 0" xyz="${tray_w/2} ${tray_l/2} 0.010"/>
   </joint>
 
   <xacro:if value="${with_stoppers}">

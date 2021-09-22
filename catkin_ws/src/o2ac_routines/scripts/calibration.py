@@ -596,10 +596,10 @@ class CalibrationClass(O2ACCommon):
         self.a_bot.go_to_named_pose("home")
         self.pick_bearing("a_bot")
         self.orient_bearing(task="assembly", robot_name="a_bot")
-        print("current pose", conversions.from_pose_to_list(self.listener.transformPose("assembled_part_07_inserted", self.a_bot.get_current_pose_stamped()).pose))
+        print("current pose", np.round(conversions.from_pose_to_list(self.listener.transformPose("assembled_part_07_inserted", self.a_bot.get_current_pose_stamped()).pose), 4))
         self.confirm_to_proceed("finetune")
         self.insert_bearing("assembled_part_07_inserted", robot_name="a_bot")
-        print("current pose", conversions.from_pose_to_list(self.listener.transformPose("assembled_part_07_inserted", self.a_bot.get_current_pose_stamped()).pose))
+        print("current pose", np.round(conversions.from_pose_to_list(self.listener.transformPose("assembled_part_07_inserted", self.a_bot.get_current_pose_stamped()).pose), 4))
         self.confirm_to_proceed("we are done?")
 
     def motor_pulley_insertion(self):
@@ -609,7 +609,7 @@ class CalibrationClass(O2ACCommon):
         self.is_motor_pulley_in_storage = False
         self.pick_motor_pulley(robot_name="a_bot")
         self.orient_motor_pulley("assembled_part_05_center", robot_name="a_bot")
-        print("current pose", conversions.from_pose_to_list(self.listener.transformPose("assembled_part_05_center", self.a_bot.get_current_pose_stamped()).pose))
+        print("current pose", np.round(conversions.from_pose_to_list(self.listener.transformPose("assembled_part_05_center", self.a_bot.get_current_pose_stamped()).pose), 4))
         self.confirm_to_proceed("finetune")
         self.insert_motor_pulley("assembled_part_05_center", robot_name="a_bot", retry_insertion=True)
         print("current pose", conversions.from_pose_to_list(self.listener.transformPose("assembled_part_05_center", self.a_bot.get_current_pose_stamped()).pose))
@@ -626,11 +626,16 @@ class CalibrationClass(O2ACCommon):
         self.orient_shaft(calibration=True)
 
     def end_cap_and_shaft_preinsertion(self):
-        above_pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [-0.003, 0.002, 0.280]+np.deg2rad([-180, 90, -90]).tolist())
+        pre_insertion_shaft = [1.78158, -0.98719, 2.42349, -4.57638, -1.78597, 0.00433]
+        if not self.b_bot.move_joints(pre_insertion_shaft, speed=0.4):
+            rospy.logerr("Fail to go to pre_insertion_shaft")
+            return False
+
+        above_pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [-0.004, 0.011, 0.280]+np.deg2rad([-180, 90, -90]).tolist())
         if not self.a_bot.go_to_pose_goal(above_pre_insertion_end_cap, speed=0.6, move_lin=False):
             rospy.logerr("Fail to go to pre_insertion_end_cap")
             return False
-        pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [-0.003, 0.002, 0.245]+np.deg2rad([-180, 90, -90]).tolist())
+        pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [-0.004, 0.011, 0.245]+np.deg2rad([-180, 90, -90]).tolist())
         if not self.a_bot.go_to_pose_goal(pre_insertion_end_cap, speed=0.3, move_lin=True):
             rospy.logerr("Fail to go to pre_insertion_end_cap")
             return False
@@ -647,13 +652,15 @@ class CalibrationClass(O2ACCommon):
     def bearing_spacer(self):
         self.pick_bearing_spacer("a_bot")
         self.orient_bearing_spacer("a_bot")
+        self.align_bearing_spacer_pre_insertion(robot_name="a_bot")
         self.confirm_to_proceed("finetune")
         self.insert_bearing_spacer("assembled_part_07_inserted", "a_bot")
         self.confirm_to_proceed("okay?")
 
     def output_pulley(self):
-        self.pick_output_pulley("a_bot")
+        # self.pick_output_pulley("a_bot")
         self.orient_output_pulley("a_bot")
+        self.align_output_pulley_pre_insertion("a_bot")
         self.confirm_to_proceed("finetune")
         self.insert_output_pulley("assembled_part_07_inserted", "a_bot")
         self.confirm_to_proceed("okay?")
@@ -663,6 +670,7 @@ if __name__ == '__main__':
     try:
         rospy.init_node('o2ac_routines', anonymous=False)
         c = CalibrationClass()
+        # c.set_assembly("wrs_assembly_2021")
 
         while not rospy.is_shutdown():
             rospy.loginfo("============ Calibration procedures ============ ")
@@ -938,6 +946,10 @@ if __name__ == '__main__':
                 c.fasten_motor()
             if r == '603f2':
                 c.fasten_motor(part1=False, part2=True)
+            if r == '603f1c':
+                c.calibration_mode = True
+                c.fasten_motor(part1=True, part2=False)
+                c.calibration_mode = False
             if r == '603f2c':
                 c.calibration_mode = True
                 c.fasten_motor(part1=False, part2=True)
@@ -961,6 +973,15 @@ if __name__ == '__main__':
                 c.motor_pulley_fastening()
             if r == '607':
                 c.end_cap_and_shaft_prep()
+            if r == '607sp':
+                c.pick_shaft()
+            if r == '607so':
+                c.orient_shaft(calibration=True, ignore_orientation=False)
+            if r == '607so2':
+                c.orient_shaft(calibration=True, ignore_orientation=True)
+            if r == '607so3':
+                pre_insertion_shaft = [1.78158, -0.98719, 2.42349, -4.57638, -1.78597, 0.00433]
+                c.b_bot.move_joints(pre_insertion_shaft, speed=0.4)
             if r == '608':
                 c.end_cap_and_shaft_preinsertion()
             if r == '609':
@@ -970,16 +991,19 @@ if __name__ == '__main__':
             if r == '611':
                 c.fasten_end_cap()
             if r == '612':
-                c.bearing_spacer()
+                c.align_shaft("assembled_part_07_inserted", pre_insert_offset=0.065)
+                c.insert_shaft("assembled_part_07_inserted", target=0.043)
             if r == '613':
-                c.output_pulley()
+                c.bearing_spacer()
             if r == '614':
-                c.insert_motor_cables("black")
-            if r == '614t':
-                c.insert_motor_cables_with_tool("black")
+                c.output_pulley()
             if r == '615':
-                c.insert_motor_cables("red")
+                c.insert_motor_cables_without_tools_normal("black")
             if r == '615t':
+                c.insert_motor_cables_with_tool("black")
+            if r == '616':
+                c.insert_motor_cables_without_tools_normal("red")
+            if r == '616t':
                 c.insert_motor_cables_with_tool("black")
             if r == '6':
                 c.a_bot.go_to_named_pose("back")

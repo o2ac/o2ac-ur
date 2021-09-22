@@ -312,8 +312,8 @@ class O2ACAssembly(O2ACCommon):
             self.b_bot.go_to_named_pose("home", speed=1.0)
             if self.align_bearing_holes(task="assembly"):
                 self.b_bot.go_to_named_pose("home", speed=1.0)
-                success = self.fasten_bearing(task="assembly", with_extra_retighten=True)
-                self.unequip_tool('b_bot', 'screw_tool_m4')
+                success = self.fasten_bearing(task="assembly", with_extra_retighten=True, robot_name="a_bot")
+                self.unequip_tool('a_bot', 'screw_tool_m4')
         return success
 
     def subtask_c2(self, simultaneous_execution=True, skip_pick_end_cap=False, assemble_bearing_spacer=False):

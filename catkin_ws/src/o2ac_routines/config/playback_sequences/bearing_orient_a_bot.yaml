@@ -47,7 +47,7 @@ waypoints:
   frame_id: left_centering_link
   speed: 1.0
   acc: 0.8
-- pose: [0.0, 0, 0, 0, 60, 0] 
+- pose: [-0.005, 0, -0.005, 0, 60, 0] 
   pose_type: relative-tcp
   speed: 0.6
   # acc: 0.8
