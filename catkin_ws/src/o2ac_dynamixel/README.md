@@ -1,7 +1,7 @@
 # Dynamixel Command package
 
 This package can be used to configure and command Dynamixel motors using an action server.
-The action message is created for high-level commands for grippers that are powered by Dynamixel motors.
+This is used by `o2ac_fastening_tools` to actuate the tools using Dynamixel motors.
 
 ## Setup
 

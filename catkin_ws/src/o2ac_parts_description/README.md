@@ -1,5 +1,9 @@
 # o2ac_parts_description
 
+THIS PACKAGE IS MOSTLY DEPRECATED.
+
+--- 
+
 This package includes URDF and mesh models of the parts used in WRC2018. 
 The URDF files are generated automatically from the mesh files, and additional frames appended to it.
 The models can be used for simulation. You can check the parts are correctly 

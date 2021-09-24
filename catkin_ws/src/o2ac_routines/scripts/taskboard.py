@@ -90,8 +90,9 @@ if __name__ == '__main__':
             if i == "ssdown":
                 c.at_set_screw_hole.pose.position.z += 0.001
                 c.move_b_bot_to_setscrew_initial_pos()
-
+            #########################
             # Simultaneous tasks
+            #########################
             if i == "start":
                 c.competition_mode = True
                 c.full_taskboard_task_simultaneous(do_screws=True, skip_tray_placing=False)
@@ -108,8 +109,9 @@ if __name__ == '__main__':
                 c.competition_mode = True
                 c.full_taskboard_task_simultaneous(do_screws=False, skip_tray_placing=True)
                 c.competition_mode = False
-
+            #########################
             # Non-simultaneous versions
+            #########################
             if i == "simplestart":
                 c.competition_mode = True
                 c.full_taskboard_task(skip_tray_placing=False)
@@ -122,7 +124,9 @@ if __name__ == '__main__':
                 c.competition_mode = True
                 c.do_screw_tasks_from_prep_position()
                 c.competition_mode = False
-
+            #########################
+            # Miscellaneous useful commands
+            #########################
             if i == "test":
                 c.competition_mode = False
                 c.full_taskboard_task(skip_tray_placing=False)
@@ -140,6 +144,9 @@ if __name__ == '__main__':
             if i == "12":
                 c.a_bot.gripper.open(wait=False)
                 c.b_bot.gripper.open(wait=False)
+            #########################
+            # Tools
+            #########################
             if i == "13":
                 c.equip_tool("a_bot", "screw_tool_m3")
             if i == "14":
@@ -172,6 +179,9 @@ if __name__ == '__main__':
                 c.pick_screw_from_feeder("b_bot", screw_size=4)
             if i == "23":
                 c.pick_screw_from_feeder("a_bot", screw_size=4)
+            #########################
+            # Taskboard individual subtasks
+            #########################
             if i == "31":
                 c.do_task("M3 screw", fake_execution_for_calibration=True)
             if i == "32":
@@ -184,11 +194,6 @@ if __name__ == '__main__':
                 c.do_task("M4 screw")
             if i == "54":
                 c.do_task("belt")
-            if i == "544":
-                s = c.do_task("belt")
-                while not s and not rospy.is_shutdown():
-                    s = c.do_task("belt")
-                    rospy.sleep(1)
             if i == "55":
                 c.do_task("motor pulley")
             if i == "56":
@@ -200,7 +205,7 @@ if __name__ == '__main__':
             if i == "577a":
                 c.fasten_bearing(task="taskboard", robot_name="a_bot", simultaneous=True)
             if i == "579":
-                c.fasten_bearing("c", only_retighten=True)
+                c.fasten_bearing("taskboard", only_retighten=True)
             if i == "575":
                 c.align_bearing_holes(task="taskboard")
             if i == "575a":
@@ -209,6 +214,9 @@ if __name__ == '__main__':
                 c.do_task("idler pulley")
             if i == "58s":
                 c.do_task("idler pulley", simultaneous=True)
+            #########################
+            # Miscellaneous
+            #########################
             if i == "8":
                 c.spawn_example_objects()
             if i == "9":
@@ -217,18 +225,6 @@ if __name__ == '__main__':
                 c.activate_led("b_bot", on=False)
             if i == "d1":
                 c.b_bot.check_for_dead_controller_and_force_start()
-            if i == "f1":
-                pick_pose = geometry_msgs.msg.PoseStamped()
-                pick_pose.header.frame_id = "tray_center"
-                pick_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
-                pick_pose.pose.position.x = 0.03
-                c.simple_pick("a_bot", pick_pose, approach_height=0.05, item_id_to_attach="bearing", lift_up_after_pick=True)
-            if i == "f2":
-                ps = geometry_msgs.msg.PoseStamped()
-                ps.header.frame_id = "tray_center"
-                ps.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, 0, 0))
-                ps.pose.position.z = -0.15
-                c.go_to_pose_goal("a_bot", ps, speed=0.1, end_effector_link="bearing/back_hole", move_lin=False)
             if i == "reset":
                 c.reset_scene_and_robots()
                 c.reset_assembly_visualization()
@@ -239,6 +235,6 @@ if __name__ == '__main__':
             print("This took: %.3f seconds" % (time.time() - tic_start))
             i = True
 
-        print "============ Done!"
+        print("============ Done!=============")
     except rospy.ROSInterruptException:
         pass

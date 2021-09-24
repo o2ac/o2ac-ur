@@ -28,7 +28,7 @@ The part recognition node consists of two components. One is the object detectio
 Part recognition module needs template pre-trained models and templates.
 Please download them from following links:
 
-- Pre-traind model weights of SSD
+- Pre-trained model weights of SSD
   Rename the downloaded weights to ```WRS.pth``` and place it into ```wrs_dataset/ssd.pytorch```. Please select appropriate weights considering pytorch version.
   - for pytorch version less than 1.6.0: [download](https://drive.google.com/file/d/1uD31_ptek17DBT_dBTwLWFDgMbUcxd2V/view?usp=sharing)
   - for newer version: [download](https://drive.google.com/file/d/15UXmlxeY3SwAeF70ZU2nCYCDJSVMnCkK/view?usp=sharing)
@@ -38,10 +38,10 @@ Please download them from following links:
   Place ```templates``` into ```wrs_dataset/data/```.
 - Template image for bering angle estimation: [download](https://drive.google.com/drive/folders/1qjwkHFLJ4KVpx1_S5BJLbSMZ4lKvtRPZ?usp=sharing)
   
-  Place ```bering_template_image.png``` and ```mot_template_image.png``` into ```o2ac_vision/config```.
+  Place ```bearing_template_image.png``` and ```shaft_template_image.png``` into ```o2ac_vision/config```.
 
 #### Object detection
-Python scripts of Single Shot MultiBox Detector (SSD) are cloned from [ssd.pytorch](https://github.com/amdegroot/ssd.pytorch).
+Python scripts of Single Shot MultiBox Detector (SSD) are based on [ssd.pytorch](https://github.com/amdegroot/ssd.pytorch).
 This module detects multiple objects in a tray. 
 A list of dictionary which contain bounding box, class id, state(back or front) and confidence is returned.
 
