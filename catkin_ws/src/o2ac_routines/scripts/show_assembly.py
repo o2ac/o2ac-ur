@@ -78,13 +78,10 @@ if __name__ == '__main__':
             pose.pose.orientation.w = 1.0
             assembly_database.publish_assembly_frames(pose, prefix="assembled_")
 
-        assembly_marker_id_counter = 0
-
         def publish_part_in_assembled_position(object_name, marker_only=False):
             if marker_only:
                 marker = assembly_database.get_assembled_visualization_marker(object_name)
                 assembly_marker_publisher.publish(marker)
-                assembly_marker_id_counter += 1
                 return True
 
             object_id = assembly_database.name_to_id(object_name)
@@ -120,9 +117,6 @@ if __name__ == '__main__':
                 set_assembly("wrs_assembly_2021_surprise")
             if i == "load2019s":
                 set_assembly("wrs_assembly_2019_surprise")
-            # if i == "loadsurprise":
-            #   set_assembly("wrs_assembly_2021_surprise")
-
             if i == "3":
                 spawn_panel(offset_xyz=[-0.05, -0.05, 0], offset_rpy=[tau/4, 0, 0])
             if i == "31":
@@ -183,13 +177,13 @@ if __name__ == '__main__':
             elif i == "46":
                 publish_part_in_assembled_position("pulley")
             elif i == '55':
-                spawn_objects_for_demo(base_plate_in_tray=True, layout_number=2)
+                c.spawn_objects_for_demo(base_plate_in_tray=True, layout_number=2)
             elif i == '551':
-                spawn_objects_for_demo(layout_number=4)
+                c.spawn_objects_for_demo(layout_number=4)
             elif i == '552':
-                spawn_objects_for_demo(base_plate_in_tray=True, layout_number=1)
+                c.spawn_objects_for_demo(base_plate_in_tray=True, layout_number=1)
             elif i == '553':
-                spawn_objects_for_demo(base_plate_in_tray=True, layout_number=3)
+                c.spawn_objects_for_demo(base_plate_in_tray=True, layout_number=3)
             elif i == "reset":
                 reset_scene()
             elif i == 'x':
