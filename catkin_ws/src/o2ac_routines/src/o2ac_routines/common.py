@@ -2304,7 +2304,7 @@ class O2ACCommon(O2ACBase):
         else:
             pre_insertion_pose = conversions.to_pose_stamped(target_link, [-0.016, 0.015, -0.003] + rotation)
             target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.003, 0.014, -0.003, 0, 0, 0, 1.])
-        selection_matrix = [0., 0.2, 0.2, 1.0, 1.0, 1.0]
+        force_position_selection_matrix = [0., 0.2, 0.2, 1.0, 1.0, 1.0]
 
         offsets = [[0.0015, 0.0015], [-0.0015, 0.0015], [0.0015, -0.0015], [-0.0015, -0.0015]]
         robot = self.active_robots[robot_name]
@@ -2321,7 +2321,7 @@ class O2ACCommon(O2ACBase):
             result = robot.do_insertion(target_pose_target_frame, radius=0.005,
                                         insertion_direction="-X", force=8.0, timeout=20.0,
                                         wiggle_direction=None, wiggle_angle=np.deg2rad(0), wiggle_revolutions=1.,
-                                        relaxed_target_by=0.003, selection_matrix=selection_matrix)
+                                        goal_tolerance_if_lockup=0.003, force_position_selection_matrix=force_position_selection_matrix)
             success = (result == TERMINATION_CRITERIA)
 
             if not success:
@@ -2344,7 +2344,7 @@ class O2ACCommon(O2ACBase):
 
             result = robot.do_insertion(target_pose_target_frame, insertion_direction="-X", force=10.0, timeout=30.0,
                                         radius=0.0, wiggle_direction="X", wiggle_angle=np.deg2rad(3.0), wiggle_revolutions=1.0,
-                                        relaxed_target_by=0.003, selection_matrix=selection_matrix)
+                                        goal_tolerance_if_lockup=0.003, force_position_selection_matrix=force_position_selection_matrix)
 
             success = result in (TERMINATION_CRITERIA, DONE)
 
@@ -2375,9 +2375,9 @@ class O2ACCommon(O2ACBase):
             target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.004, 0.000, 0.002, 0, 0, 0, 1.])
         else:
             target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.003, 0.014, -0.003, 0, 0, 0, 1.])
-        selection_matrix = [0., 0.3, 0.3, .8, .8, .8]
+        force_position_selection_matrix = [0., 0.3, 0.3, .8, .8, .8]
         result = robot.do_insertion(target_pose_target_frame, insertion_direction=insertion_direction, force=10.0, timeout=20.0,
-                                    radius=0.0035, relaxed_target_by=0.003, selection_matrix=selection_matrix)
+                                    radius=0.0035, goal_tolerance_if_lockup=0.003, force_position_selection_matrix=force_position_selection_matrix)
 
         if result != TERMINATION_CRITERIA:
             current_pose = self.listener.transformPose(target_link, self.active_robots[robot_name].get_current_pose_stamped())
@@ -2422,7 +2422,7 @@ class O2ACCommon(O2ACBase):
 
         result = robot.do_insertion(target_pose_target_frame, insertion_direction=insertion_direction, force=10.0, timeout=30.0,
                                     radius=0.0, wiggle_direction="X", wiggle_angle=np.deg2rad(3.0), wiggle_revolutions=1.0,
-                                    relaxed_target_by=0.003, selection_matrix=selection_matrix)
+                                    goal_tolerance_if_lockup=0.003, force_position_selection_matrix=force_position_selection_matrix)
 
         success = result in (TERMINATION_CRITERIA, DONE)
 
@@ -2728,14 +2728,14 @@ class O2ACCommon(O2ACBase):
         if robot_name == "b_bot":
             target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.013, 0.001, -0.005, 0.0, 0.0, 0.0])  # Manually defined target pose in object frame
             wiggle_direction = "X"
-            relaxed_by = 0.005
+            relaxed_goal_tolerance = 0.005
             pre_insertion_pose = conversions.to_pose_stamped(target_link, [-0.005, 0.001, -0.005] + np.deg2rad([180, 35, 0]).tolist())  # Manually defined target pose in object frame
         else:
             pre_insertion_pose = conversions.to_pose_stamped(target_link, [-0.007, 0.001, 0.008] + np.deg2rad([180, -35, 0]).tolist())  # Manually defined target pose in object frame
             target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.003, -0.002, 0.009, 0.0, 0.0, 0.0])  # Manually defined target pose in object frame
-            relaxed_by = 0.001
+            relaxed_goal_tolerance = 0.001
             wiggle_direction = None
-        selection_matrix = [0., 0.2, 0.2, 1.0, 1.0, 1.0]
+        force_position_selection_matrix = [0., 0.2, 0.2, 1.0, 1.0, 1.0]
 
         offsets = [[0.0015, 0.0015], [-0.0015, 0.0015], [0.0015, -0.0015], [-0.0015, -0.0015]]
         for i in range(4):
@@ -2750,7 +2750,7 @@ class O2ACCommon(O2ACBase):
             result = self.active_robots[robot_name].do_insertion(target_pose_target_frame, radius=0.005,
                                                                  insertion_direction="-X", force=8.0, timeout=15.0,
                                                                  wiggle_direction=wiggle_direction, wiggle_angle=np.deg2rad(5.0), wiggle_revolutions=1.,
-                                                                 relaxed_target_by=relaxed_by, selection_matrix=selection_matrix)
+                                                                 goal_tolerance_if_lockup=relaxed_goal_tolerance, force_position_selection_matrix=force_position_selection_matrix)
             success = (result == TERMINATION_CRITERIA)
 
             if not success:
@@ -2786,17 +2786,17 @@ class O2ACCommon(O2ACBase):
         if robot_name == "b_bot":  # Taskboard b_bot
             target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.013, 0.001, -0.005, 0.0, 0.0, 0.0])  # Manually defined target pose in object frame
             wiggle_direction = "X"
-            relaxed_by = 0.005
+            relaxed_goal_tolerance = 0.005
         else:  # Assembly a_bot
             target_pose_target_frame = conversions.to_pose_stamped(target_link, [0.001, -0.0015, 0.007, 0.0, 0.0, 0.0])  # Manually defined target pose in object frame
-            relaxed_by = 0.001
+            relaxed_goal_tolerance = 0.001
             wiggle_direction = None
 
-        selection_matrix = [0., 0.2, 0.2, 1.0, 1.0, 1.0]
+        force_position_selection_matrix = [0., 0.2, 0.2, 1.0, 1.0, 1.0]
         result = self.active_robots[robot_name].do_insertion(target_pose_target_frame, radius=0.005,
                                                              insertion_direction="-X", force=8.0, timeout=15.0,
                                                              wiggle_direction=wiggle_direction, wiggle_angle=np.deg2rad(5.0), wiggle_revolutions=1.,
-                                                             relaxed_target_by=relaxed_by, selection_matrix=selection_matrix)
+                                                             goal_tolerance_if_lockup=relaxed_goal_tolerance, force_position_selection_matrix=force_position_selection_matrix)
         success = (result == TERMINATION_CRITERIA)
 
         if not success:
@@ -3275,8 +3275,8 @@ class O2ACCommon(O2ACBase):
             insertion_offsets.append(-d2*(i+1))
 
         for offset in insertion_offsets:
-            selection_matrix = [0., 1., 1., 1, 1, 1]
-            success = self.a_bot.linear_push(10, "-X", max_translation=0.01, timeout=10.0, slow=False, selection_matrix=selection_matrix)
+            force_position_selection_matrix = [0., 1., 1., 1, 1, 1]
+            success = self.a_bot.linear_push(10, "-X", max_translation=0.01, timeout=10.0, slow=False, force_position_selection_matrix=force_position_selection_matrix)
 
             if not self.use_real_robot:
                 return True
@@ -3334,9 +3334,9 @@ class O2ACCommon(O2ACBase):
         return success
 
     def insert_screw_tool_tip_into_idler_pulley_head(self):
-        selection_matrix = [0., 0.9, 0.9, 1, 1, 1]
+        force_position_selection_matrix = [0., 0.9, 0.9, 1, 1, 1]
         self.b_bot.execute_spiral_trajectory("YZ", max_radius=0.003, radius_direction="+Y", steps=30,
-                                             revolutions=2, target_force=0, selection_matrix=selection_matrix, check_displacement_time=10,
+                                             revolutions=2, target_force=0, force_position_selection_matrix=force_position_selection_matrix, check_displacement_time=10,
                                              termination_criteria=None, timeout=4.0, end_effector_link="b_bot_screw_tool_m4_tip_link")
         return True
 
@@ -3536,12 +3536,12 @@ class O2ACCommon(O2ACBase):
         target_pose_target_frame = self.listener.transformPose(target_link, current_pose)
         target_pose_target_frame.pose.position.x = 0.006 if from_behind else -0.01  # Magic number
 
-        selection_matrix = [0., 0.2, 0.2, 1, 1, 0.8]
+        force_position_selection_matrix = [0., 0.2, 0.2, 1, 1, 0.8]
         offset = -0.003 if from_behind else 0.003
         self.b_bot.move_lin_rel(relative_translation=[offset, 0, 0], acceleration=0.1, speed=.03)  # Release shaft for next push
         result = self.b_bot.do_insertion(target_pose_target_frame, insertion_direction=direction, force=5.0, timeout=15.0,
                                          wiggle_direction="Z", wiggle_angle=np.deg2rad(10.0), wiggle_revolutions=1.0,
-                                         radius=0.003, relaxed_target_by=0.0, selection_matrix=selection_matrix)
+                                         radius=0.003, goal_tolerance_if_lockup=0.0, force_position_selection_matrix=force_position_selection_matrix)
         success = result in (TERMINATION_CRITERIA, DONE)
 
         current_pose = self.b_bot.robot_group.get_current_pose()
@@ -3587,7 +3587,7 @@ class O2ACCommon(O2ACBase):
 
         for _ in range(10):
             result = self.b_bot.do_insertion(target_pose_target_frame, insertion_direction=direction, force=15.0, timeout=10.0,
-                                             radius=0.005, relaxed_target_by=0.005, selection_matrix=selection_matrix,
+                                             radius=0.005, goal_tolerance_if_lockup=0.005, force_position_selection_matrix=force_position_selection_matrix,
                                              check_displacement_time=3)
             success = result == TERMINATION_CRITERIA
             offset = -0.003 if from_behind else 0.003
@@ -3872,10 +3872,10 @@ class O2ACCommon(O2ACBase):
         target_pose = conversions.to_pose_stamped("tray_center", [-0.004, 0.011, 0.243]+np.deg2rad([-180, 90, -90]).tolist())
         # self.a_bot.move_lin_rel(relative_translation=[0, 0, 0.001])  # release pressure before insertion
 
-        selection_matrix = [0.15, 0.15, 0., 1.0, 1, 1]
+        force_position_selection_matrix = [0.15, 0.15, 0., 1.0, 1, 1]
 
         result = self.a_bot.do_insertion(target_pose, insertion_direction="-Z", force=4, timeout=15.0,
-                                         radius=0.001, revolutions=4, relaxed_target_by=0.001, selection_matrix=selection_matrix,
+                                         radius=0.001, revolutions=4, goal_tolerance_if_lockup=0.001, force_position_selection_matrix=force_position_selection_matrix,
                                          check_displacement_time=3., displacement_epsilon=0.0005)
         success = result in (TERMINATION_CRITERIA)
 
@@ -4279,11 +4279,11 @@ class O2ACCommon(O2ACBase):
     def insert_motor(self, target_link, attempts=1):
         inclination = radians(28)
         target_pose = conversions.to_pose_stamped(target_link, [-0.026, -0.004, -0.0155, -tau/4, tau/4-inclination, -tau/4])
-        selection_matrix = [0., 0.2, 0.2, 1, 1, 1]
+        force_position_selection_matrix = [0., 0.2, 0.2, 1, 1, 1]
         self.b_bot.linear_push(2, "+X", max_translation=0.05, timeout=15.0)
         result = self.b_bot.do_insertion(target_pose, insertion_direction="+X", force=8.0, timeout=20.0,
                                          wiggle_direction=None, wiggle_angle=np.deg2rad(3.0), wiggle_revolutions=1.0,
-                                         radius=0.003, relaxed_target_by=0.002, selection_matrix=selection_matrix)
+                                         radius=0.003, goal_tolerance_if_lockup=0.002, force_position_selection_matrix=force_position_selection_matrix)
         success = result == TERMINATION_CRITERIA
 
         if not success:
@@ -5114,10 +5114,10 @@ class O2ACCommon(O2ACBase):
     def insert_bearing_spacer(self, target_link, robot_name="b_bot", attempts=1):
         target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.048, 0.0, 0.0, 0.0, 0.0, 0.0])  # Manually defined target pose in object frame
 
-        selection_matrix = [0.0, 0.3, 0.3, 0.95, 1.0, 1.0]
+        force_position_selection_matrix = [0.0, 0.3, 0.3, 0.95, 1.0, 1.0]
         result = self.active_robots[robot_name].do_insertion(target_pose_target_frame, radius=0.0005,
                                                              insertion_direction="-X", force=5.0, timeout=15.0,
-                                                             relaxed_target_by=0.005, selection_matrix=selection_matrix)
+                                                             goal_tolerance_if_lockup=0.005, force_position_selection_matrix=force_position_selection_matrix)
         success = result == TERMINATION_CRITERIA
 
         if not success:
@@ -5199,10 +5199,10 @@ class O2ACCommon(O2ACBase):
         rospy.loginfo("Starting insertion of output pulley")
         target_pose_target_frame = conversions.to_pose_stamped(target_link, [-0.038, 0.0, 0.0, 0.0, 0.0, 0.0])  # Manually defined target pose in object frame
 
-        selection_matrix = [0.0, 0.3, 0.3, 0.95, 1.0, 1.0]
+        force_position_selection_matrix = [0.0, 0.3, 0.3, 0.95, 1.0, 1.0]
         result = self.active_robots[robot_name].do_insertion(target_pose_target_frame, radius=0.001,
                                                              insertion_direction="-X", force=8.0, timeout=15.0,
-                                                             relaxed_target_by=0.005, selection_matrix=selection_matrix)
+                                                             goal_tolerance_if_lockup=0.005, force_position_selection_matrix=force_position_selection_matrix)
         success = result == TERMINATION_CRITERIA
         rospy.loginfo("insertion finished with status: %s" % result)
 

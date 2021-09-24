@@ -9,5 +9,5 @@ force:
   d: 'default'
   i: 'default'
   dynamic: False
-selection_matrix: [1., 1., 1., 1., 1., 1.] # 1: position control, 0: force control, any value in between is a compromise of position and force
+force_position_selection_matrix: [1., 1., 1., 1., 1., 1.] # 1: position control, 0: force control, any value in between is a compromise of position and force
 max_force_torque: [30., 30., 30., 4., 4., 4.] # try to avoid emergency stops with a lower max force torque 

@@ -65,6 +65,7 @@ def create_pid(pid, default_ki=0.0, default_kd=0.0):
 
 class URForceController(CompliantController):
     """ Compliant control functions """
+
     def __init__(self, robot_name, listener, tcp_link='gripper_tip_link', **kwargs):
         self.listener = listener
         self.default_tcp_link = robot_name + '_' + tcp_link
@@ -84,14 +85,14 @@ class URForceController(CompliantController):
         force_pd = create_pid(config['force'],    default_kd=0.03,  default_ki=0.01)
 
         dt = config['dt']
-        selection_matrix = config['selection_matrix']
+        force_position_selection_matrix = config['force_position_selection_matrix']
 
         self.max_force_torque = config['max_force_torque']
 
-        self.force_model = ForcePositionController(position_pd=position_pd, force_pd=force_pd, alpha=np.diag(selection_matrix), dt=dt)
+        self.force_model = ForcePositionController(position_pd=position_pd, force_pd=force_pd, alpha=np.diag(force_position_selection_matrix), dt=dt)
 
     def force_control(self, target_force=None, target_positions=None,
-                      selection_matrix=None, relative_to_ee=False,
+                      force_position_selection_matrix=None, relative_to_ee=False,
                       timeout=10.0, stop_on_target_force=False, termination_criteria=None,
                       displacement_epsilon=0.002, check_displacement_time=2.0,
                       config_file=None, time_compensation=True, end_effector_link=None):
@@ -99,7 +100,7 @@ class URForceController(CompliantController):
             Use with caution!! 
             target_force: list[6], target force for each direction x,y,z,ax,ay,az
             target_positions: array[array[7]] or array[7], can define a single target pose or a trajectory of multiple poses.
-            selection_matrix: list[6], define which direction is controlled by position(1.0) or force(0.0)
+            force_position_selection_matrix: list[6], define which direction is controlled by position(1.0) or force(0.0)
             relative_to_ee: bool, whether to use the base_link of the robot as frame or the ee_link (+ ee_transform)
             timeout: float, duration in seconds of the force control
             termination_criteria: lambda, condition that if achieved stops the force control otherwise keep going until timeout
@@ -123,7 +124,7 @@ class URForceController(CompliantController):
         target_force = np.array([0., 0., 0., 0., 0., 0.]) if target_force is None else np.array(target_force)
 
         self.force_model.set_goals(force=target_force)
-        self.force_model.alpha = np.diag(selection_matrix) if selection_matrix is not None else self.force_model.alpha  # alpha is the selection_matrix
+        self.force_model.alpha = np.diag(force_position_selection_matrix) if force_position_selection_matrix is not None else self.force_model.alpha  # alpha is the force_position_selection_matrix
 
         result = self.set_hybrid_control_trajectory(target_positions, self.force_model, max_force_torque=self.max_force_torque, timeout=timeout,
                                                     stop_on_target_force=stop_on_target_force, termination_criteria=termination_criteria,
@@ -179,13 +180,13 @@ class URForceController(CompliantController):
             ps = conversions.to_pose_stamped(self.base_link, p)
             trajectory.append(conversions.from_pose_to_list(conversions.transform_pose(self.base_link, transform2target, ps).pose))
 
-        sm = selection_matrix if selection_matrix else [1., 1., 1., 1., 1., 1.]  # no force control by default
-        return self.force_control(target_force=target_force, target_positions=trajectory, selection_matrix=sm,
+        sm = force_position_selection_matrix if force_position_selection_matrix else [1., 1., 1., 1., 1., 1.]  # no force control by default
+        return self.force_control(target_force=target_force, target_positions=trajectory, force_position_selection_matrix=sm,
                                   timeout=timeout, relative_to_ee=False, termination_criteria=termination_criteria,
                                   displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time, config_file=config_file,
                                   time_compensation=False, end_effector_link=end_effector_link)
 
-    def linear_push(self, force, direction, max_translation=None, relative_to_ee=False, timeout=10.0, slow=False, selection_matrix=None):
+    def linear_push(self, force, direction, max_translation=None, relative_to_ee=False, timeout=10.0, slow=False, force_position_selection_matrix=None):
         """
         Apply force control in one direction until contact with `force`
         robot_name: string, name of the robot
@@ -200,8 +201,8 @@ class URForceController(CompliantController):
             offset = 1 if self.robot_name == "b_bot" else -1  # account for robot's mirror position
             target_force = offset * get_target_force(direction, force)
 
-        if selection_matrix is None:
-            selection_matrix = np.array(target_force == 0.0) * 1.0  # define the selection matrix based on the target force
+        if force_position_selection_matrix is None:
+            force_position_selection_matrix = np.array(target_force == 0.0) * 1.0  # define the selection matrix based on the target force
 
         initial_pose = self.end_effector()[get_direction_index(direction[1])]
 
@@ -210,7 +211,7 @@ class URForceController(CompliantController):
         else:
             termination_criteria = None
 
-        result = self.force_control(target_force=target_force, selection_matrix=selection_matrix,
+        result = self.force_control(target_force=target_force, force_position_selection_matrix=force_position_selection_matrix,
                                     relative_to_ee=relative_to_ee, timeout=timeout, stop_on_target_force=True,
                                     termination_criteria=termination_criteria,
                                     config_file=config_file)
@@ -222,9 +223,9 @@ class URForceController(CompliantController):
         return False
 
     def do_insertion(self, target_pose_in_target_frame, insertion_direction, timeout,
-                     radius=0.0, radius_direction=None, revolutions=3, force=1.0, relaxed_target_by=0.0,
+                     radius=0.0, radius_direction=None, revolutions=3, force=1.0, goal_tolerance_if_lockup=0.0,
                      wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0,
-                     selection_matrix=None, displacement_epsilon=0.002, check_displacement_time=2.0,
+                     force_position_selection_matrix=None, displacement_epsilon=0.002, check_displacement_time=2.0,
                      config_file=None):
         """
             target_pose_in_target_frame: PoseStamp, target in target frame
@@ -243,8 +244,8 @@ class URForceController(CompliantController):
             offset = 1 if self.robot_name == "b_bot" else -1  # account for robot's mirror position
             target_force = offset * get_target_force(insertion_direction, force)
 
-        if selection_matrix is None:
-            selection_matrix = np.array(target_force == 0.0) * 0.8  # define the selection matrix based on the target force
+        if force_position_selection_matrix is None:
+            force_position_selection_matrix = np.array(target_force == 0.0) * 0.8  # define the selection matrix based on the target force
 
         translation, rotation = self.listener.lookupTransform(target_pose_in_target_frame.header.frame_id, self.ns + "_base_link", rospy.Time.now())
         transform2target = self.listener.fromTranslationRotation(translation, rotation)
@@ -262,13 +263,13 @@ class URForceController(CompliantController):
             # print("check cp,tp", current_pose_of[axis], target_pose_of[axis])
             if more_than:
                 return current_pose_of[axis] >= target_pose_of[axis] or \
-                    (standby and current_pose_of[axis] >= target_pose_of[axis] - relaxed_target_by)
+                    (standby and current_pose_of[axis] >= target_pose_of[axis] - goal_tolerance_if_lockup)
             return current_pose_of[axis] <= target_pose_of[axis] or \
-                (standby and current_pose_of[axis] <= target_pose_of[axis] + relaxed_target_by)
+                (standby and current_pose_of[axis] <= target_pose_of[axis] + goal_tolerance_if_lockup)
 
         result = self.execute_spiral_trajectory(plane, max_radius=radius, radius_direction=radius_direction, steps=100, revolutions=revolutions,
                                                 wiggle_direction=wiggle_direction, wiggle_angle=wiggle_angle, wiggle_revolutions=wiggle_revolutions,
-                                                target_force=target_force, selection_matrix=selection_matrix, timeout=timeout,
+                                                target_force=target_force, force_position_selection_matrix=force_position_selection_matrix, timeout=timeout,
                                                 displacement_epsilon=displacement_epsilon, check_displacement_time=check_displacement_time,
                                                 termination_criteria=termination_criteria, config_file=config_file)
 
