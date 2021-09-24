@@ -4585,14 +4585,14 @@ class O2ACCommon(O2ACBase):
         else:
             pin_frame_id = "assembled_part_01_cable_pin4" if not switch_panels_order else "assembled_part_01_cable_pin1"
 
-        frame_id = "assembled_part_04_black_cable_connector"
+        frame_id = "assembled_part_04_%s_cable_connector" % cable_color
 
         # b_bot black
 
         a_bot_approach = conversions.to_pose_stamped(frame_id, [-0.0196, 0.0654, -0.0550, 0.24386819, -0.67967013, -0.2553104,  0.64295678])
         a_bot_approach_joint_angles = [1.6479237652044516, -2.1317710453102503, 2.4398570813671423, -2.6001601502839837, -1.5634912741554847, -1.5071992003970864]
-        a_bot_at_cable = conversions.to_pose_stamped(frame_id, [-0.0138, -0.0029, 0.0210, 0.25176847, -0.65889104, -0.24766403, 0.66418203])
-        a_bot_wait_for_b = conversions.to_pose_stamped(frame_id, [-0.0450, -0.0029, 0.0210, 0.25177093, -0.65888475, -0.24766217, 0.66418803])
+        a_bot_at_cable = conversions.to_pose_stamped(frame_id, [-0.025, -0.014, 0.013, 0.25176847, -0.65889104, -0.24766403, 0.66418203])
+        a_bot_wait_for_b = conversions.to_pose_stamped(frame_id, [-0.0450, -0.014, 0.013, 0.25177093, -0.65888475, -0.24766217, 0.66418803])
         a_bot_waypoint1 = conversions.to_pose_stamped(frame_id, [-0.2030, 0.0018, 0.0151, 0.22084576, -0.74102362, -0.2770966, 0.57037586])
         a_bot_high_back = conversions.to_pose_stamped(frame_id, [-0.0940, 0.1611, -0.1636, 0.2437983283352903, -0.6796027356802858, -0.255514920422451, 0.6429732670945957])
         a_bot_above_cable_end = conversions.to_pose_stamped(frame_id, [-0.0740, 0.0367, -0.0352, -0.16547481426477773, 0.8274737495079801, 0.31185939044806815, -0.4366337141227206])
@@ -4602,8 +4602,8 @@ class O2ACCommon(O2ACBase):
 
         b_bot_high_back = conversions.to_pose_stamped(frame_id, [-0.0238, -0.1282, -0.0689, 0.6899835657316222, 0.11914032194144523, 0.6950818535198647, 0.1630628088049338])
         b_bot_high_back_joint_angles = [0.7006445817283591, -1.8739225704108315, 2.1823571269783097, -2.1411263938365996, -1.2586588897036604, -2.462758500406678]
-        b_bot_above_cable = conversions.to_pose_stamped(frame_id, [-0.0138, -0.0109, -0.0400, 0.690004249738519, 0.11929506126840099, 0.6950668177408967, 0.16292618750616827])
-        b_bot_at_cable = conversions.to_pose_stamped(frame_id, [-0.0135, 0.0131, 0.0162, 0.689987773146987, 0.11931277548834202, 0.695081113732324, 0.16292200540615387])
+        b_bot_at_cable = conversions.to_pose_stamped(frame_id, [-0.015, 0.002, 0.013, 0.689987773146987, 0.11931277548834202, 0.695081113732324, 0.16292200540615387])
+        b_bot_above_cable = self.b_bot.move_lin_rel([-0.10,0,0], relative_to_tcp=True, initial_joints=self.b_bot.compute_ik(b_bot_at_cable, retry=True, allow_collisions=True), pose_only=True)
         b_bot_hold_cable = conversions.to_pose_stamped(frame_id, [-0.0924, 0.0101, 0.0029, 0.7071360069944063, 0.55517288386069, 0.43636119671648077, -0.036477974696698945])
         b_bot_Waypoint_1 = conversions.to_pose_stamped(frame_id, [-0.1287, -0.0918, 0.0158, 0.6403967731232784, 0.618262549049528, 0.33913201040299534, -0.3043564898866053])
         b_bot_Waypoint_2 = conversions.to_pose_stamped(frame_id, [-0.0879, -0.15, -0.06, 0.6403967731232784, 0.618262549049528, 0.33913201040299534, -0.3043564898866053])
@@ -4613,21 +4613,22 @@ class O2ACCommon(O2ACBase):
         self.allow_collisions_with_robot_hand("motor", "a_bot", allow=True)
         self.vision.activate_camera("a_bot_inside_camera")
         self.b_bot.gripper.open(opening_width=0.01, wait=False)
-        self.a_bot.gripper.open(opening_width=0.01, wait=False)
-        success = self.ab_bot.go_to_named_pose("home")
+        self.a_bot.gripper.open(opening_width=0.02, velocity=0.01, wait=False)
+        # success = self.ab_bot.go_to_named_pose("home")
         # TODO: Use a_bot_approach_joint_angles, b_bot_high_back_joint_angles
         success = self.ab_bot.go_to_goal_poses(a_bot_approach, b_bot_high_back, speed=1.0)
         print("a_bot joint values", self.a_bot.robot_group.get_current_joint_values())
         print("b_bot joint values", self.b_bot.robot_group.get_current_joint_values())
 
-        success &= self.ab_bot.go_to_goal_poses(a_bot_at_cable, b_bot_above_cable, speed=1.0)
+        success &= self.ab_bot.go_to_goal_poses(a_bot_at_cable, b_bot_above_cable, speed=0.2)
         success &= self.a_bot.gripper.send_command(0.005)
         if not success:
             rospy.logerr("Failed to go to cable with a_bot")
 
         self.confirm_to_proceed("Move forward with a, go to cable with b?")
 
-        success = self.a_bot.go_to_pose_goal(a_bot_wait_for_b, move_lin=True, speed=0.1)
+        # success = self.a_bot.go_to_pose_goal(a_bot_wait_for_b, move_lin=True, speed=0.1)
+        success = self.a_bot.move_lin_rel([-0.025, 0, 0], speed=0.1)
         success &= self.b_bot.go_to_pose_goal(b_bot_at_cable, move_lin=True, speed=0.1)
         self.b_bot.gripper.send_command(0.005)
         if not success:
@@ -4637,7 +4638,7 @@ class O2ACCommon(O2ACBase):
         # Pull cables
         target_pose = self.a_bot.move_lin_rel([-cable_straighten_distance, 0, 0], speed=0.03, pose_only=True)
         slave_relation = self.ab_bot.get_relative_pose_of_slave("a_bot", "b_bot")
-        success = self.ab_bot.master_slave_control("a_bot", "b_bot", target_pose, slave_relation, speed=0.1)
+        success = self.ab_bot.master_slave_control("a_bot", "b_bot", target_pose, slave_relation, speed=0.02)
         if not success:
             rospy.logerr("Failed to pull cable")
         self.b_bot.gripper.close()
@@ -4647,9 +4648,13 @@ class O2ACCommon(O2ACBase):
         self.vision.activate_camera("b_bot_inside_camera")
         self.a_bot.gripper.send_command(0.02, wait=False)
         success = self.a_bot.go_to_pose_goal(a_bot_waypoint1, speed=1.0)
+        self.confirm_to_proceed("ok?")
         success &= self.ab_bot.go_to_goal_poses(a_bot_high_back, b_bot_hold_cable, speed=1.0)
+        self.confirm_to_proceed("ok?")
         success &= self.a_bot.go_to_pose_goal(a_bot_above_cable_end, move_lin=True, speed=0.5)
-        success &= self.a_bot.go_to_pose_goal(a_bot_at_cable_end, move_lin=True, speed=0.5)
+        self.confirm_to_proceed("ok?")
+        success &= self.a_bot.go_to_pose_goal(a_bot_at_cable_end, move_lin=True, speed=0.01)
+        self.confirm_to_proceed("ok?")
         self.a_bot.gripper.close(force=150)
         self.b_bot.gripper.open(wait=False)
         if not success:
@@ -4673,7 +4678,11 @@ class O2ACCommon(O2ACBase):
             self.a_bot.gripper.open(opening_width=0.02)
             self.a_bot.move_lin_rel([-0.021, 0, 0], relative_to_tcp=True, speed=0.1)
 
-        self.do_tasks_simultaneous(a_bot_task, b_bot_task)
+        # self.do_tasks_simultaneous(a_bot_task, b_bot_task)
+        b_bot_task()
+        self.confirm_to_proceed("ok?")
+
+        a_bot_task()
 
         a_bot_tip_start = self.a_bot.get_current_pose_stamped()
         if self.use_real_robot:
@@ -4693,31 +4702,41 @@ class O2ACCommon(O2ACBase):
 
         self.allow_collisions_with_robot_hand("motor", "a_bot", allow=False)
         self.allow_collisions_with_robot_hand("motor", "a_bot", allow=False)
+        return insertion_success
 
     def equip_cable_tool(self, robot_name="a_bot"):
+        speed = 1.0 if not self.calibration_mode else 0.1
         pickup_pose = conversions.to_pose_stamped("cable_holder_pickup_link", [0.02, 0, 0, 0, 0, 0])
         approach_pose = conversions.to_pose_stamped("cable_holder_pickup_link", [-0.1, 0, 0.1, 0, 0, 0])
         self.active_robots[robot_name].gripper.open(wait=False)
-        if not self.active_robots[robot_name].go_to_pose_goal(approach_pose, speed=1.0):
+        self.confirm_to_proceed("go to approach pose")
+        if not self.active_robots[robot_name].go_to_pose_goal(approach_pose, speed=speed):
             return False
-        if not self.active_robots[robot_name].go_to_pose_goal(pickup_pose, speed=1.0, move_lin=True, retime=True):
+        self.confirm_to_proceed("go to pickup pose")
+        if not self.active_robots[robot_name].go_to_pose_goal(pickup_pose, speed=speed, move_lin=True, retime=True):
             return False
         self.spawn_tool("cable_tool")
         self.allow_collisions_with_robot_hand("cable_tool", robot_name)
-        self.active_robots[robot_name].gripper.send_command(0.05, force=40)
+        self.active_robots[robot_name].gripper.send_command(0.065, force=40)
         self.active_robots[robot_name].gripper.attach_object("cable_tool", with_collisions=True)
         self.active_robots[robot_name].gripper.forget_attached_item()
-        if not self.active_robots[robot_name].move_lin_rel([0, 0, 0.1], speed=1.0, retime=True):
+        self.confirm_to_proceed("go back")
+        if not self.active_robots[robot_name].move_lin_rel([0, 0, 0.1], speed=speed, retime=True):
             return False
-        if not self.active_robots[robot_name].go_to_pose_goal(approach_pose, speed=1.0):
+        if not self.active_robots[robot_name].go_to_pose_goal(approach_pose, speed=speed):
             return False
         return True
 
     def unequip_cable_tool(self, robot_name="a_bot"):
-        approach_pose = conversions.to_pose_stamped("cable_holder_pickup_link", [-0.1, 0, 0, 0, 0, 0])
-        pickup_pose = conversions.to_pose_stamped("cable_holder_pickup_link", [0.018, 0, 0, 0, 0, 0])
-        if not self.active_robots[robot_name].go_to_pose_goal(approach_pose, speed=1.0):
+        approach_pose_far = conversions.to_pose_stamped("cable_holder_pickup_link", [-0.1, 0, 0.1, 0, 0, 0])
+        approach_pose_close = conversions.to_pose_stamped("cable_holder_pickup_link", [-0.1, 0, 0, 0, 0, 0])
+        pickup_pose = conversions.to_pose_stamped("cable_holder_pickup_link", [0.016, 0, 0, 0, 0, 0])
+        self.confirm_to_proceed("go to approach pose")
+        if not self.active_robots[robot_name].go_to_pose_goal(approach_pose_far, speed=1.0):
             return False
+        if not self.active_robots[robot_name].go_to_pose_goal(approach_pose_close, speed=1.0):
+            return False
+        self.confirm_to_proceed("go to pickup pose")
         if not self.active_robots[robot_name].go_to_pose_goal(pickup_pose, speed=0.3, move_lin=True, retime=True):
             return False
         self.active_robots[robot_name].gripper.detach_object("cable_tool")
@@ -4727,15 +4746,17 @@ class O2ACCommon(O2ACBase):
         self.active_robots[robot_name].gripper.forget_attached_item()
         if not self.active_robots[robot_name].move_lin_rel([0, 0, 0.1], speed=1.0, retime=True):
             return False
-        if not self.active_robots[robot_name].go_to_pose_goal(approach_pose, speed=1.0):
+        if not self.active_robots[robot_name].go_to_pose_goal(approach_pose_close, speed=1.0):
             return False
         return True
 
-    def insert_motor_cables_with_tool(self, cable_color="black"):
+    def insert_motor_cables_with_tool(self, cable_color="black", cable_straighten_distance=0.10):
         """
           insert motor cable in termina
           cable_color: "black" or "red"
         """
+        speed_fast = 1.0 if not self.calibration_mode else 0.1
+        speed_slow = 0.1 if not self.calibration_mode else 0.01
         if cable_color not in ["black", "red"]:
             raise ValueError("invalid cable %s" % cable_color)
 
@@ -4748,16 +4769,16 @@ class O2ACCommon(O2ACBase):
             pin_frame_id = "assembled_part_01_cable_pin4" if not switch_panels_order else "assembled_part_01_cable_pin1"
             frame_id = "assembled_part_04_red_cable_connector"
 
-        cable_length = 0.06
         self.ab_bot.go_to_named_pose("home")
         self.b_bot.gripper.send_command(0.02, wait=False)
+        self.confirm_to_proceed(" equip tool ")
         self.equip_cable_tool("a_bot")
 
         a_bot_approach = conversions.to_pose_stamped(frame_id, [-0.0196, 0.0654, -0.0550, tau/4, -tau/8, -tau/4])
         a_bot_at_cable = conversions.to_pose_stamped(frame_id, [-0.014, 0.0, 0.0, tau/4, -tau/8, -tau/4])
 
-        b_bot_approach = conversions.to_pose_stamped(frame_id, [-0.1134, -0.0630, -0.0662]+np.deg2rad([87, -67, 90]).tolist())
-        b_bot_at_cable_tip = conversions.to_pose_stamped(frame_id, [-0.1134, 0.0130, 0.0162]+np.deg2rad([87, -67, 90]).tolist())
+        b_bot_at_cable_tip = conversions.to_pose_stamped(frame_id, [-0.147, 0.003, 0.013]+np.deg2rad([88.063, -50.163, 88.697]).tolist())
+        b_bot_approach = self.b_bot.move_lin_rel([-0.10,0,0], relative_to_tcp=True, initial_joints=self.b_bot.compute_ik(b_bot_at_cable_tip, retry=True, allow_collisions=True), pose_only=True)
         b_bot_hold_cable = conversions.to_pose_stamped(frame_id, [-0.0924, 0.0101, 0.0029]+np.deg2rad([145, -41,  90]).tolist())
         b_bot_Waypoint_1 = conversions.to_pose_stamped(frame_id, [-0.1287, -0.0918, 0.0158]+np.deg2rad([177, -54,  90]).tolist())
         b_bot_Waypoint_2 = conversions.to_pose_stamped(frame_id, [-0.0879, -0.1159, -0.0572]+np.deg2rad([177, -54,  90]).tolist())
@@ -4766,52 +4787,68 @@ class O2ACCommon(O2ACBase):
         a_bot_above_cable_end = conversions.to_pose_stamped(frame_id, [-0.0740, 0.0367, -0.0352]+np.deg2rad([123, -38, -136]).tolist())
         a_bot_at_cable_end = conversions.to_pose_stamped(frame_id, [-0.0870, 0.0113, -0.0142]+np.deg2rad([124, -37, -138]).tolist())
         a_bot_midpoint = conversions.to_pose_stamped(frame_id, [-0.0260, -0.0045, -0.0028]+np.deg2rad([95, -52, -107]).tolist())
-        a_bot_above_hole2 = conversions.to_pose_stamped(pin_frame_id, [-0.0200, 0.0002, -0.0031, 0, 0, 0, 0])
+        a_bot_above_hole2 = conversions.to_pose_stamped(pin_frame_id, [-0.0200, 0.0002, -0.0031, tau/4, 0, 0])
 
         self.planning_scene_interface.allow_collisions("cable_tool", "motor")
         self.planning_scene_interface.allow_collisions("cable_tool", "b_bot_right_outer_knuckle")
         # self.planning_scene_interface.allow_collisions("cable_tool", "b_bot_right_outer_knuckle")
         self.allow_collisions_with_robot_hand("cable_tool", "b_bot")
-        self.a_bot.go_to_pose_goal(a_bot_approach, speed=1.0,  end_effector_link="a_bot_cable_tool_tip_link")
-        self.a_bot.go_to_pose_goal(a_bot_at_cable, speed=0.3, move_lin=True, retime=True,  end_effector_link="a_bot_cable_tool_tip_link")
-        self.a_bot.gripper.close()
-        self.a_bot.move_lin_rel(relative_translation=[-cable_length, 0, 0],  end_effector_link="a_bot_cable_tool_tip_link", speed=0.1, retime=True)
+        self.confirm_to_proceed(" approach cable 1 ")
+        self.a_bot.go_to_pose_goal(a_bot_approach, speed=speed_fast,  end_effector_link="a_bot_cable_tool_tip_link")
+        self.confirm_to_proceed(" approach cable 2")
+        self.a_bot.go_to_pose_goal(a_bot_at_cable, speed=speed_slow, move_lin=True, retime=True,  end_effector_link="a_bot_cable_tool_tip_link")
+        self.a_bot.gripper.close(force=200)
+        self.confirm_to_proceed("move to cable tip a_bot")
+        self.a_bot.move_lin_rel(relative_translation=[-cable_straighten_distance, 0, 0],  end_effector_link="a_bot_cable_tool_tip_link", speed=0.1, retime=True)
 
-        self.b_bot.go_to_pose_goal(b_bot_approach, speed=1.0)
-        self.confirm_to_proceed("0")
-        self.b_bot.go_to_pose_goal(b_bot_at_cable_tip, speed=0.3, move_lin=True, retime=True)
-        self.b_bot.gripper.close(force=100)
+        self.b_bot.go_to_pose_goal(b_bot_approach, speed=speed_fast)
+        self.confirm_to_proceed(" go to cable tip ")
+        self.b_bot.go_to_pose_goal(b_bot_at_cable_tip, speed=speed_slow, move_lin=True, retime=True)
+        self.confirm_to_proceed("1")
+        self.b_bot.gripper.close(force=100, velocity=0.1)
 
-        self.a_bot.gripper.open(opening_width=0.05)
-        self.a_bot.move_lin_rel([-0.1, 0, 0], speed=0.3, relative_to_tcp=True, end_effector_link="a_bot_cable_tool_tip_link", retime=True)
+        self.a_bot.gripper.open(opening_width=0.065, velocity=0.1)
+        self.a_bot.move_lin_rel([-0.1, 0, 0], speed=speed_slow, relative_to_tcp=True, end_effector_link="a_bot_cable_tool_tip_link", retime=True)
+        self.confirm_to_proceed("2")
 
-        self.b_bot.go_to_pose_goal(b_bot_hold_cable, speed=0.3, move_lin=True, retime=True)
+        self.b_bot.go_to_pose_goal(b_bot_hold_cable, speed=speed_slow, move_lin=True, retime=True)
+        self.confirm_to_proceed("3")
 
         self.unequip_cable_tool("a_bot")
-        self.a_bot.gripper.send_command(0.02, wait=False)
+        self.a_bot.gripper.send_command(0.04, wait=False)
 
-        self.a_bot.go_to_pose_goal(a_bot_above_cable_end, speed=1.0)
-        self.a_bot.go_to_pose_goal(a_bot_at_cable_end, speed=0.1, move_lin=True, retime=True)
+        self.confirm_to_proceed("4")
+        self.a_bot.go_to_pose_goal(a_bot_above_cable_end, speed=speed_fast)
+        self.a_bot.go_to_pose_goal(a_bot_at_cable_end, speed=speed_slow, move_lin=True, retime=True)
+        self.confirm_to_proceed("5")
 
         self.a_bot.gripper.close(force=150)
-        self.b_bot.gripper.open(opening_width=0.05)
-        self.b_bot.go_to_pose_goal(b_bot_Waypoint_1, move_lin=True, speed=0.3, retime=True)
+        self.b_bot.gripper.open()
+        self.b_bot.go_to_pose_goal(b_bot_Waypoint_1, move_lin=True, speed=speed_slow, retime=True)
+        self.confirm_to_proceed("6")
 
         def b_bot_task():
-            self.b_bot.go_to_pose_goal(b_bot_Waypoint_2, move_lin=True, speed=1.0, retime=True)
+            self.b_bot.go_to_pose_goal(b_bot_Waypoint_2, move_lin=True, speed=speed_fast, retime=True)
             self.allow_collisions_with_robot_hand("base_fixture_top", "b_bot")
-            self.b_bot.go_to_pose_goal(b_bot_look_at_cable, move_lin=True, speed=1.0, retime=True)
+            self.b_bot.go_to_pose_goal(b_bot_look_at_cable, move_lin=True, speed=speed_fast, retime=True)
 
         def a_bot_task():
             self.a_bot.go_to_pose_goal(a_bot_midpoint, move_lin=True, speed=0.5)
+            self.confirm_to_proceed("7")
             self.a_bot.go_to_pose_goal(a_bot_above_hole2, move_lin=True, speed=0.5)
+            self.confirm_to_proceed("8")
             self.a_bot.move_lin_rel([0.021, 0, 0], relative_to_tcp=True, speed=0.01)
             self.a_bot.gripper.open(opening_width=0.02)
             self.a_bot.move_lin_rel([-0.021, 0, 0], relative_to_tcp=True, speed=0.1)
 
-        self.do_tasks_simultaneous(a_bot_task, b_bot_task)
-        self.b_bot.move_lin_rel([0.021, 0, 0], relative_to_tcp=True, speed=0.01)
+        # self.do_tasks_simultaneous(a_bot_task, b_bot_task)
+        b_bot_task()
+        self.confirm_to_proceed("ok?")
+        a_bot_task()
+
         self.allow_collisions_with_robot_hand("base_fixture_top", "b_bot")
+        self.b_bot.move_lin_rel([-0.15, 0, 0], relative_to_tcp=True, speed=speed_fast)
+        self.a_bot.move_lin_rel([-0.15, 0, 0], relative_to_tcp=True, speed=speed_fast)
         # TODO confirm that the insertion was successful
 
         # waypoints = []

@@ -997,14 +997,39 @@ if __name__ == '__main__':
                 c.bearing_spacer()
             if r == '614':
                 c.output_pulley()
+            if r == '615r':
+                c.a_bot.gripper.open(opening_width=0.03)
+                c.a_bot.move_lin_rel([-0.15,0,0], relative_to_tcp=True, speed=0.2)
+                c.b_bot.gripper.open(opening_width=0.03)
+                c.b_bot.move_lin_rel([-0.15,0,0], relative_to_tcp=True, speed=0.2)
             if r == '615':
+                c.publish_part_in_assembled_position("base")
+                c.publish_part_in_assembled_position("panel_motor")
+                c.publish_part_in_assembled_position("motor")
                 c.insert_motor_cables_without_tools_normal("black")
             if r == '615t':
+                c.publish_part_in_assembled_position("base")
+                c.publish_part_in_assembled_position("panel_motor")
+                c.publish_part_in_assembled_position("motor")
                 c.insert_motor_cables_with_tool("black")
             if r == '616':
+                c.publish_part_in_assembled_position("base")
+                c.publish_part_in_assembled_position("panel_motor")
+                c.publish_part_in_assembled_position("motor")
                 c.insert_motor_cables_without_tools_normal("red")
             if r == '616t':
-                c.insert_motor_cables_with_tool("black")
+                c.publish_part_in_assembled_position("base")
+                c.publish_part_in_assembled_position("panel_motor")
+                c.publish_part_in_assembled_position("motor")
+                c.insert_motor_cables_with_tool("red")
+            if r == '617':
+                c.calibration_mode = True
+                c.equip_cable_tool()
+                c.calibration_mode = False
+            if r == '618':
+                c.calibration_mode = True
+                c.unequip_cable_tool()
+                c.calibration_mode = False
             if r == '6':
                 c.a_bot.go_to_named_pose("back")
                 c.b_bot.go_to_named_pose("screw_ready")

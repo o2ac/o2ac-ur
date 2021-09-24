@@ -124,7 +124,7 @@
     <origin xyz="0 -0.05 0.001" rpy="0 0 0" />
   </xacro:washer_holder> 
 
-  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/washer_holder.xacro" />
+  <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/components/washer_holder.xacro" />
   <xacro:washer_holder partname="washer_holder3" parent="workspace_center">
     <origin xyz="0.325 -0.6 -0.045" rpy="0 ${pi/2} 0" />  
   </xacro:washer_holder>
@@ -132,7 +132,7 @@
   <xacro:include filename="$(find o2ac_scene_description)/urdf/components/washer_holder.xacro" />
   <xacro:washer_holder partname="washer_holder4" parent="workspace_center">
     <origin xyz="0.325 -0.5 -0.045" rpy="0 ${pi/2} 0" />  
-  </xacro:washer_holder> 
+  </xacro:washer_holder>  -->
   <!-- ======== -->
 
   <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/components/nut_holder.xacro" />
