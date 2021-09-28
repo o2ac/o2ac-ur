@@ -586,6 +586,7 @@ class CalibrationClass(O2ACCommon):
         self.b_bot.move_lin_rel([0, 0, 0.2])
         self.b_bot.go_to_named_pose("centering_area")
         self.align_motor_pre_insertion(False)
+        print("current pose", np.round(conversions.from_pose_to_list(self.listener.transformPose("assembled_part_02_back_hole", self.a_bot.get_current_pose_stamped()).pose), 4))
         self.confirm_to_proceed("finetune")
         self.insert_motor("assembled_part_02_back_hole")
         self.confirm_to_proceed("are we done?")
@@ -765,10 +766,8 @@ if __name__ == '__main__':
                 c.make_space_for_robot("b_bot")
                 c.unequip_tool("b_bot", "set_screw_tool")
             if r == "191":
-                c.make_space_for_robot("b_bot")
                 c.equip_tool("b_bot", "padless_tool_m4")
             if r == "192":
-                c.make_space_for_robot("b_bot")
                 c.unequip_tool("b_bot", "padless_tool_m4")
             if r == '21':
                 c.screw_feeder_calibration(robot_name="a_bot")
@@ -997,6 +996,10 @@ if __name__ == '__main__':
                 c.bearing_spacer()
             if r == '614':
                 c.output_pulley()
+            if r == '614f':
+                c.fasten_output_pulley()
+            if r == '614c':
+                c.check_output_pulley_angle()
             if r == '615r':
                 c.a_bot.gripper.open(opening_width=0.03)
                 c.a_bot.move_lin_rel([-0.15,0,0], relative_to_tcp=True, speed=0.2)

@@ -1946,18 +1946,24 @@ class O2ACCommon(O2ACBase):
 ##########
 
     def rotate_cylinder_by_angle(self, angle, robot_name, grasp_pose,
-                                 grasp_width=0.085, ignore_collisions_with=""):
-        """ From a given grasp pose, rotates relative to world frame x axis """
+                                 gripper_opening_width=0.085, 
+                                 ignore_collisions_with="",
+                                 stop_condition=None):
+        """ From a given grasp pose, rotates relative to world frame x axis. Angle in degrees """
         if ignore_collisions_with:
             self.allow_collisions_with_robot_hand(ignore_collisions_with, robot_name, True)
         seq = []
-        seq.append(helpers.to_sequence_gripper('open', gripper_opening_width=grasp_width, gripper_velocity=1.0, wait=False))
+        seq.append(helpers.to_sequence_gripper('open', gripper_opening_width=gripper_opening_width, gripper_velocity=0.1, wait=False))
         seq.append(helpers.to_sequence_item(grasp_pose, speed=0.2))
-        seq.append(helpers.to_sequence_item_relative([0, 0, 0, -angle/2.0, 0, 0], relative_to_tcp=False, speed=0.2))
-        seq.append(helpers.to_sequence_gripper('close', gripper_force=40, gripper_velocity=1.0))
-        seq.append(helpers.to_sequence_item_relative([0, 0, 0, angle, 0, 0], relative_to_tcp=False, speed=0.2))
-        seq.append(helpers.to_sequence_gripper('open', gripper_opening_width=grasp_width, gripper_velocity=1.0))
+        seq.append(helpers.to_sequence_item_relative([0, 0, 0, -angle/2.0, 0, 0], relative_to_tcp=False, speed=0.3))
+        seq.append(helpers.to_sequence_gripper('close', gripper_force=40, gripper_velocity=0.1))
         self.execute_sequence(robot_name, seq, "rotate cylinder by angle")
+        for _ in range(int(angle/3)): # move degree by degree
+            if not stop_condition():
+                self.a_bot.move_lin_rel(relative_rotation=[radians(3),0,0], relative_to_tcp=False, speed=0.3)
+        # seq.append(helpers.to_sequence_item_relative([-0.0001, 0, 0, angle, 0, 0], relative_to_tcp=False, speed=0.3))
+        # seq.append(helpers.to_sequence_gripper('open', gripper_opening_width=gripper_opening_width, gripper_velocity=0.1))
+        self.a_bot.gripper.open(opening_width=gripper_opening_width)
         if ignore_collisions_with:
             self.allow_collisions_with_robot_hand(ignore_collisions_with, robot_name, False)
 
@@ -4278,7 +4284,7 @@ class O2ACCommon(O2ACBase):
     @lock_impedance
     def insert_motor(self, target_link, attempts=1):
         inclination = radians(28)
-        target_pose = conversions.to_pose_stamped(target_link, [-0.026, -0.004, -0.0155, -tau/4, tau/4-inclination, -tau/4])
+        target_pose = conversions.to_pose_stamped(target_link, [-0.024, -0.004, -0.0155, -tau/4, tau/4-inclination, -tau/4])
         force_position_selection_matrix = [0., 0.2, 0.2, 1, 1, 1]
         self.b_bot.linear_push(2, "+X", max_translation=0.05, timeout=15.0)
         result = self.b_bot.do_insertion(target_pose, insertion_direction="+X", force=8.0, timeout=20.0,
@@ -4403,11 +4409,11 @@ class O2ACCommon(O2ACBase):
         self.allow_collisions_with_robot_hand("motor", "b_bot")
         self.b_bot.gripper.open()
         inclination = radians(28)
-        inside_vgroove = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [0.0, 0.0056, -0.004,  tau/2., radians(3.0), inclination])
+        inside_vgroove = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [0.005, 0.004, -0.007,  tau/2., radians(3.0), inclination])
         above_vgroove = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [-0.2, 0, 0,      tau/2., radians(3.0), inclination])
         midpoint1 = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [-0.25, 0.1, 0.4, tau/2,  radians(3.0), inclination])
         midpoint2 = conversions.to_pose_stamped("assembled_part_02_back_hole", [-0.100, 0, 0.1, -tau/4, tau/4-inclination, -tau/4])
-        pre_insertion = conversions.to_pose_stamped("assembled_part_02_back_hole", [-0.055, -0.0053, -0.0183, -tau/4, tau/4-inclination, -tau/4])
+        pre_insertion = conversions.to_pose_stamped("assembled_part_02_back_hole", [-0.055, -0.007, -0.023, -tau/4, tau/4-inclination, -tau/4])
 
         if simultaneous:
             # TODO(cambel): do we need midpoint 1 here?
@@ -5236,9 +5242,14 @@ class O2ACCommon(O2ACBase):
         return success
 
     def check_output_pulley_angle(self):
+        # Position a_bot first
+        self.a_bot.gripper.open(wait=False)
+        approach_pulley = conversions.to_pose_stamped("assembled_part_07_front_hole", [-0.03, 0.0, -0.005, tau/2, 0, 0])
+        self.a_bot.go_to_pose_goal(approach_pulley)
+
         # Look at pulley with b_bot
-        approach_centering = conversions.to_pose_stamped("assembled_part_08_inserted", [-0.1, 0, -0.15,  np.deg2rad(180), np.deg2rad(-60), 0])
-        self.b_bot.go_to_pose_goal(approach_centering, speed=0.1, end_effector_link="b_bot_outside_camera_link", move_lin=False)
+        approach_centering = conversions.to_pose_stamped("assembled_part_08_inserted", [-0.1, 0, -0.150,  0, radians(-60), 0])
+        self.b_bot.go_to_pose_goal(approach_centering, speed=0.1, end_effector_link="b_bot_outside_camera_link", move_lin=True)
         self.vision.activate_camera("b_bot_outside_camera")
 
         self.vision.activate_pulley_screw_detection()
@@ -5251,61 +5262,71 @@ class O2ACCommon(O2ACBase):
             if not pulley_screws_visible == msg.data:
                 rospy.loginfo("=== pulley_screws_visible changed to: " + str(msg.data))
             pulley_screws_visible = msg.data
-        rospy.Subscriber("/o2ac_vision_server/pulley_screws_in_view", Bool, f)
+        rospy.Subscriber("/o2ac_vision_server/activate_pulley_screw_detection", Bool, f)
         rospy.sleep(0.5)
-
-        # pulley_grasp_pose = conversions.to_pose_stamped("assembled_part_11_front_hole", [0.006, 0, 0.006,  0, np.deg2rad(60), 0])
-        pulley_grasp_pose = conversions.to_pose_stamped("assembled_part_07_front_hole", [-0.012, -0.000, -0.006, tau/2, 0, 0])
-        approach_pulley = conversions.to_pose_stamped("assembled_part_07_front_hole", [-0.05, 0, -0.006, tau/2, 0, 0])
-
-        self.a_bot.go_to_pose_goal(approach_pulley)
 
         screws_upright = False
         tries = 0
-        while not screws_upright and not rospy.is_shutdown() and tries < 10:
-            # screws_seen_at_angle = find_pulley_screws(approach_centering)
-
+        while not screws_upright and not rospy.is_shutdown() and tries < 10: # Full revolution at 10 deg each time
             # Rotate the pulley
-            self.rotate_motor_pulley(self, "assembled_part_07_front_hole", rotations=1,
-                                     offset_from_center=0.04, x_offset=0.024, skip_approach=True)
+            stop_condition = lambda: pulley_screws_visible
+            self.rotate_cylinder_by_angle(45, "a_bot", approach_pulley, gripper_opening_width=0.04, stop_condition=stop_condition)
             if pulley_screws_visible:
-                # Grasp with a_bot
-                self.a_bot.go_to_pose_goal(approach_pulley, speed=0.3)
-                self.a_bot.go_to_pose_goal(pulley_grasp_pose, speed=0.3)
-                self.a_bot.gripper.close(force=100)
-
-                # Push shaft into contact
-                approach_hold_pose = conversions.to_pose_stamped("assembled_part_07_inserted", [0.15, 0.000, -0.15] + np.deg2rad([-90, -90, -90]).tolist())
-                pre_hold_pose = conversions.to_pose_stamped("assembled_part_07_inserted", [0.15, 0.000, 0.02] + np.deg2rad([-90, -90, -90]).tolist())
-                at_hold_pose = conversions.to_pose_stamped("assembled_part_07_inserted", [0.043, 0.000, 0.02] + np.deg2rad([-90, -90, -90]).tolist())
-                self.b_bot.gripper.close(wait=False)
-                self.b_bot.go_to_pose_goal(approach_hold_pose)
-                self.b_bot.go_to_pose_goal(pre_hold_pose)
-                self.b_bot.go_to_pose_goal(at_hold_pose)
-                self.b_bot.go_to_pose_goal(pre_hold_pose)
-                self.b_bot.go_to_named_pose("screw_ready")
-
+                self.vision.activate_pulley_screw_detection(False)
                 # Fasten two screws
                 self.fasten_output_pulley()
                 break
         self.vision.activate_pulley_screw_detection(False)
         return True
-        # TODO: Turn pulley with a_bot, stop when screws visible
 
     def fasten_output_pulley(self):
+        pulley_grasp_pose = conversions.to_pose_stamped("assembled_part_07_front_hole", [-0.007, 0.001, 0.001, tau/2, 0, 0])
+        approach_pulley = conversions.to_pose_stamped("assembled_part_07_front_hole", [-0.02, 0.001, 0.001, tau/2, 0, 0])
+
+        # Grasp with a_bot
+        self.confirm_to_proceed("approach pulley a_bot")
+        self.a_bot.go_to_pose_goal(approach_pulley, speed=0.3)
+        self.confirm_to_proceed("pulley_grasp_pose a_bot")
+        self.a_bot.go_to_pose_goal(pulley_grasp_pose, speed=0.3)
+        self.a_bot.gripper.close(force=100, velocity=0.01)
+
+        # Push shaft into contact
+        approach_hold_pose = conversions.to_pose_stamped("assembled_part_07_inserted", [0.15, 0.000, -0.15] + np.deg2rad([-90, -90, -90]).tolist())
+        pre_hold_pose = conversions.to_pose_stamped("assembled_part_07_inserted", [0.15, 0.000, 0.02] + np.deg2rad([-90, -90, -90]).tolist())
+        at_hold_pose = conversions.to_pose_stamped("assembled_part_07_inserted", [0.043, 0.000, 0.02] + np.deg2rad([-90, -90, -90]).tolist())
+        self.b_bot.gripper.close(wait=False)
+        self.confirm_to_proceed("pulley_grasp_pose a_bot")
+        self.b_bot.go_to_pose_goal(approach_hold_pose)
+        self.b_bot.go_to_pose_goal(pre_hold_pose, move_lin=True)
+        self.b_bot.go_to_pose_goal(at_hold_pose, move_lin=True)
+        self.b_bot.go_to_pose_goal(pre_hold_pose, move_lin=True)
+        self.b_bot.go_to_pose_goal(approach_hold_pose, move_lin=True)
+        self.b_bot.go_to_named_pose("tool_pick_ready")
+
         self.equip_tool("b_bot", "padless_tool_m4")
 
         screw_poses = ["assembled_part_11_screw_head_1", "assembled_part_11_screw_head_2"]
 
+        self.allow_collisions_with_robot_hand("padless_tool_m4", "a_bot")
+        
         for screw_frame in screw_poses:
             approach_screw = conversions.to_pose_stamped(screw_frame, [-0.1, 0, 0, 0, 0, 0])
-            at_screw = conversions.to_pose_stamped(screw_frame, [0.005, 0, 0, 0, 0, 0])
+            at_screw = conversions.to_pose_stamped(screw_frame, [0.005, 0.0, 0.0, 0, 0, 0])
+            self.confirm_to_proceed("go to approach screw pose")
             self.b_bot.go_to_pose_goal(approach_screw, speed=0.5, move_lin=True, end_effector_link="b_bot_screw_tool_m4_tip_link")
+            self.confirm_to_proceed("go to at screw pose")
             self.b_bot.go_to_pose_goal(at_screw, speed=0.2, move_lin=True, end_effector_link="b_bot_screw_tool_m4_tip_link")
-            self.tools.set_motor("padless_tool_m4", "tighten", duration=10)
+            self.tools.set_motor("padless_tool_m4", "tighten", duration=10, wait=True, skip_final_loosen_and_retighten=True)
+            self.b_bot.move_lin_rel([0,0,0.01], speed=0.015, end_effector_link="b_bot_screw_tool_m4_tip_link")
+            self.confirm_to_proceed("go to back")
             self.b_bot.go_to_pose_goal(approach_screw, speed=0.4, move_lin=True, end_effector_link="b_bot_screw_tool_m4_tip_link")
+        
+        self.allow_collisions_with_robot_hand("padless_tool_m4", "a_bot", False)
 
         self.unequip_tool("b_bot", "padless_tool_m4")
+        self.a_bot.gripper.open(wait=False)
+        self.a_bot.move_lin_rel([0.1,0,0.1])
+        self.a_bot.go_to_named_pose("home")
         return True
 
 ##########
