@@ -303,8 +303,8 @@ class FasteningToolController(object):
                 break
 
             # If both readings are below an arbitrary threshold, we assume the motor has stalled
-            # rospy.loginfo_throttle(0.25, "last speed_readings: %s" % speed_readings)
-            if all(speed <= 15 for speed in speed_readings):
+            stall_threshold = 18
+            if all(speed <= stall_threshold for speed in speed_readings):
                 feedback.motor_speed = 0
             else:
                 feedback.motor_speed = max(speed_readings)

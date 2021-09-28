@@ -157,7 +157,7 @@ class URForceController(CompliantController):
     def execute_trajectory(self, plane, max_radius, radius_direction=None,
                            steps=100, revolutions=5,
                            wiggle_direction=None, wiggle_angle=0.0, wiggle_revolutions=0.0,
-                           target_force=None, selection_matrix=None, timeout=10.,
+                           target_force=None, force_position_selection_matrix=None, timeout=10.,
                            displacement_epsilon=0.002, check_displacement_time=2.0,
                            termination_criteria=None, config_file=None,
                            end_effector_link=None, trajectory_type="spiral"):
