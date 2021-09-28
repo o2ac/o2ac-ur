@@ -44,11 +44,12 @@ The tooltip should be strong and accurate. A DIY tooltip is not practical at all
 </div>
 
 ## Assembly sequence
+* Note: Assemble and arrange the cable set of the motor at the beginning.
 <div align="center">
     <img width="100%" src="pic/sequence.jpg"></img>
 </div>
 
-* Note: Assemble and arrange the cable set of the motor at the beginning.
+
 
 
 
