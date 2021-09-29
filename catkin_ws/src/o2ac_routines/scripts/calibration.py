@@ -939,6 +939,8 @@ if __name__ == '__main__':
                 c.calibration_mode = False
             if r == '602b':  # Fallback to reposition
                 c.center_panel_on_base_plate("panel_motor", calibration=True)
+            if r == '603p':
+                c.pick_and_orient_motor()
             if r == '603':
                 c.motor_insertion_from_aid()
             if r == '603f':

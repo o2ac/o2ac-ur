@@ -1314,7 +1314,7 @@ class O2ACCommon(O2ACBase):
 
         if object_id in self.small_item_ids:
             # For the shaft, use the orientation from the SSD
-            if self.assembly_database.id_to_name(object_id) == "shaft":
+            if self.assembly_database.id_to_name(object_id) in ["shaft", "idler_pin"]:
                 object_ps, _ = self.constrain_grasp_into_tray("b_bot", object_ps, grasp_width=grasp_width, object_width=0.01)
                 res = self.grasp_sanity_check(object_ps, options, object_id=object_id)
                 print("shaft >>> sanity check", res)
@@ -1948,24 +1948,49 @@ class O2ACCommon(O2ACBase):
     def rotate_cylinder_by_angle(self, angle, robot_name, grasp_pose,
                                  gripper_opening_width=0.085, 
                                  ignore_collisions_with="",
-                                 stop_condition=None):
+                                 stop_condition=None,
+                                 gripper_rotation_only=False):
         """ From a given grasp pose, rotates relative to world frame x axis. Angle in degrees """
+        stop_condition = stop_condition if stop_condition is not None else lambda: True 
         if ignore_collisions_with:
             self.allow_collisions_with_robot_hand(ignore_collisions_with, robot_name, True)
         seq = []
         seq.append(helpers.to_sequence_gripper('open', gripper_opening_width=gripper_opening_width, gripper_velocity=0.1, wait=False))
-        seq.append(helpers.to_sequence_item(grasp_pose, speed=0.2))
-        seq.append(helpers.to_sequence_item_relative([0, 0, 0, -angle/2.0, 0, 0], relative_to_tcp=False, speed=0.3))
+        seq.append(helpers.to_sequence_item(grasp_pose, speed=1.0, linear=True, retime=True))
+        seq.append(helpers.to_sequence_item_relative([0, 0, 0, -angle/2.0, 0, 0], relative_to_tcp=False, speed=1.0, retime=True))
         seq.append(helpers.to_sequence_gripper('close', gripper_force=40, gripper_velocity=0.1))
         self.execute_sequence(robot_name, seq, "rotate cylinder by angle")
-        for _ in range(int(angle/3)): # move degree by degree
-            if not stop_condition():
-                self.a_bot.move_lin_rel(relative_rotation=[radians(3),0,0], relative_to_tcp=False, speed=0.3)
+        success = False
+        if gripper_rotation_only:
+            success = self.raw_gripper_rotation(robot_name, angle, stop_condition)
+        else:
+            for _ in range(int(angle/3)): # move degree by degree
+                if not stop_condition():
+                    self.active_robots[robot_name].move_lin_rel(relative_rotation=[radians(3),0,0], relative_to_tcp=False, speed=0.3)
+                else:
+                    success = True
+                    break
         # seq.append(helpers.to_sequence_item_relative([-0.0001, 0, 0, angle, 0, 0], relative_to_tcp=False, speed=0.3))
         # seq.append(helpers.to_sequence_gripper('open', gripper_opening_width=gripper_opening_width, gripper_velocity=0.1))
-        self.a_bot.gripper.open(opening_width=gripper_opening_width)
+        self.active_robots[robot_name].gripper.open(opening_width=gripper_opening_width, velocity=0.01)
         if ignore_collisions_with:
             self.allow_collisions_with_robot_hand(ignore_collisions_with, robot_name, False)
+        return success
+
+    def raw_gripper_rotation(self, robot_name, max_angle, stop_condition=None):
+        """ Be very careful! raw joint commands without collision checking!! """
+        initial_joints = self.active_robots[robot_name].force_controller.joint_angles()
+        current_rotation = 0
+        dt = 5./360. # 0.1 revolution per second
+        rate = rospy.Rate(1./dt)
+        stop_condition = stop_condition if stop_condition is not None else lambda: True 
+        while abs(current_rotation) < radians(max_angle) and not stop_condition():
+            cmd = self.active_robots[robot_name].force_controller.joint_angles()
+            cmd[-1] -= radians(2.)
+            self.active_robots[robot_name].force_controller.set_joint_positions_flex(cmd, t=dt)
+            rate.sleep()
+            current_rotation = initial_joints[-1] - self.active_robots[robot_name].force_controller.joint_angles()[-1]
+        return stop_condition()
 
     def pick_and_fasten_screw(self, robot_name, screw_pose, screw_size,
                               approach_distance=0.07, intermediate_pose=None, speed=0.7,
@@ -3352,9 +3377,13 @@ class O2ACCommon(O2ACBase):
 
             target_link should be "taskboard_long_hole_top_link" or "assembled_part_03_pulley_ridge_top".
         """
-        approach_pose = conversions.to_pose_stamped(target_link, [0.1, 0.0, 0.0, 0.0, 0.0, 0.0])
+        approach_pose_above = conversions.to_pose_stamped(target_link, [0.1, 0.05, -0.1, 0, 0, 0])
+        approach_pose_below = conversions.to_pose_stamped(target_link, [0.1, 0.05, 0, 0, 0, 0])
+        approach_pose = conversions.to_pose_stamped(target_link, [0.1, 0.0, 0, 0, 0, 0])
         waypoints = []
-        waypoints.append((approach_pose, 0, 1.0))
+        waypoints.append((self.a_bot.compute_ik(approach_pose_above, retry=True, end_effector_link="a_bot_nut_tool_m4_hole_link"), 0, 1.0))
+        waypoints.append((self.a_bot.compute_ik(approach_pose_below, retry=True, end_effector_link="a_bot_nut_tool_m4_hole_link"), 0, 1.0))
+        waypoints.append((self.a_bot.compute_ik(approach_pose, retry=True, end_effector_link="a_bot_nut_tool_m4_hole_link"), 0, 1.0))
 
         x_offset = -0.01  # The Taskboard pulley is shorter than the assembly one
         if target_link == "assembled_part_03_pulley_ridge_top":
@@ -3374,12 +3403,12 @@ class O2ACCommon(O2ACBase):
                 break
             # Move nut tool forward so nut touches the screw
             d = offset  #
-            approach_pose = conversions.to_pose_stamped(target_link, [0.060 + x_offset, 0.001, d + 0.004, 0.0, 0.0, 0.0])
-            pushed_into_screw = conversions.to_pose_stamped(target_link, [0.009 + x_offset, 0.001, d + 0.004, 0.0, 0.0, 0.0])
+            approach_pose = conversions.to_pose_stamped(target_link, [0.060 + x_offset, 0.001, d + 0.004, 0, 0, 0])
+            pushed_into_screw = conversions.to_pose_stamped(target_link, [0.009 + x_offset, 0.001, d + 0.004, 0, 0, 0])
             if not first_approach:
                 waypoints = []
-            waypoints.append((approach_pose, 0, 1.0))
-            waypoints.append((pushed_into_screw, 0, 0.2))
+            waypoints.append((self.a_bot.compute_ik(approach_pose, retry=True, end_effector_link="a_bot_nut_tool_m4_hole_link"), 0, 1.0))
+            waypoints.append((self.a_bot.compute_ik(pushed_into_screw, retry=True, end_effector_link="a_bot_nut_tool_m4_hole_link"), 0, 0.2))
             if not self.a_bot.move_joints_trajectory(waypoints, speed=1.0, end_effector_link="a_bot_nut_tool_m4_hole_link"):
                 rospy.logerr("Fail to prepare nut of for idler pulley")
                 return False
@@ -3397,7 +3426,7 @@ class O2ACCommon(O2ACBase):
             if first_approach:
                 first_approach = False
 
-        retreat_pose = conversions.to_pose_stamped(target_link, [0.1, 0.0, 0.0, 0.0, 0.0, 0.0])
+        retreat_pose = conversions.to_pose_stamped(target_link, [0.1, 0.0, 0.0, 0, 0, 0])
         if not self.a_bot.go_to_pose_goal(retreat_pose, end_effector_link="a_bot_nut_tool_m4_hole_link", speed=1.0):
             return False
 
@@ -4139,8 +4168,8 @@ class O2ACCommon(O2ACBase):
         if use_cad:
             pose = self.get_large_item_position_from_top("motor", skip_moving=True)
             if not pose:
-                rospy.logerr("Could not find motor via CAD matching!")
-                return False
+                rospy.logerr("Could not find motor via CAD matching!. Retry with only RGB estimation")
+                return self.confirm_motor_pose(self, use_cad=False)
             self.planning_scene_interface.allow_collisions("motor")
 
             # TODO: Call Place action on CAD result to constrain motor to surface
@@ -4239,7 +4268,7 @@ class O2ACCommon(O2ACBase):
         if not self.use_real_robot:
             rospy.sleep(15.0)  # assume time needed for centering with urscript
             return True
-        if not self.b_bot.load_and_execute_program(program_name="wrs2020/motor_orient_2c.urp"):
+        if not self.b_bot.load_and_execute_program(program_name="wrs2020/motor_orient_3.urp"):
             rospy.logerr("Fail to orient with URScript")
             return False
         helpers.wait_for_UR_program("/b_bot", rospy.Duration.from_sec(60))
@@ -4358,10 +4387,10 @@ class O2ACCommon(O2ACBase):
             if not self.orient_motor_in_aid_edge_urscript():
                 rospy.logerror("Fail to orient motor with URscript.")
                 return False
-            if self.b_bot.gripper.opening_width < 0.01:  # Fail to orient motor urscript
-                rospy.logerr("Fail to orient motor with URscript, gripper is closed")
-                return False
-            self.center_motor_tip()
+            # if self.b_bot.gripper.opening_width < 0.01:  # Fail to orient motor urscript
+            #     rospy.logerr("Fail to orient motor with URscript, gripper is closed")
+            #     return False
+            # self.center_motor_tip()
             return True
 
         # ALTERNATIVE B:
@@ -4409,7 +4438,7 @@ class O2ACCommon(O2ACBase):
         self.allow_collisions_with_robot_hand("motor", "b_bot")
         self.b_bot.gripper.open()
         inclination = radians(28)
-        inside_vgroove = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [0.005, 0.004, -0.007,  tau/2., radians(3.0), inclination])
+        inside_vgroove = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [0.005, 0.007, -0.007,  tau/2., radians(3.0), inclination])
         above_vgroove = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [-0.2, 0, 0,      tau/2., radians(3.0), inclination])
         midpoint1 = conversions.to_pose_stamped("vgroove_aid_drop_point_link", [-0.25, 0.1, 0.4, tau/2,  radians(3.0), inclination])
         midpoint2 = conversions.to_pose_stamped("assembled_part_02_back_hole", [-0.100, 0, 0.1, -tau/4, tau/4-inclination, -tau/4])
@@ -4477,7 +4506,7 @@ class O2ACCommon(O2ACBase):
             if self.assembly_database.db_name == "wrs_assembly_2021":
                 screw_pose = conversions.to_pose_stamped("assembled_part_02_motor_screw_hole_%s" % i, [0.005, 0, 0.0, offset*tau/12, 0, 0])
                 screw_pose.pose.position.y += -0.0015
-                screw_pose.pose.position.z += -0.006
+                screw_pose.pose.position.z += -0.0065
             else:
                 screw_pose = conversions.to_pose_stamped("assembled_part_02_motor_screw_hole_%s" % i, [0.005, 0, 0.0, offset*tau/12, 0, 0])
             screw_poses.append(screw_pose)
@@ -4715,10 +4744,10 @@ class O2ACCommon(O2ACBase):
         pickup_pose = conversions.to_pose_stamped("cable_holder_pickup_link", [0.02, 0, 0, 0, 0, 0])
         approach_pose = conversions.to_pose_stamped("cable_holder_pickup_link", [-0.1, 0, 0.1, 0, 0, 0])
         self.active_robots[robot_name].gripper.open(wait=False)
-        self.confirm_to_proceed("go to approach pose")
+        # self.confirm_to_proceed("go to approach pose")
         if not self.active_robots[robot_name].go_to_pose_goal(approach_pose, speed=speed):
             return False
-        self.confirm_to_proceed("go to pickup pose")
+        # self.confirm_to_proceed("go to pickup pose")
         if not self.active_robots[robot_name].go_to_pose_goal(pickup_pose, speed=speed, move_lin=True, retime=True):
             return False
         self.spawn_tool("cable_tool")
@@ -4726,7 +4755,7 @@ class O2ACCommon(O2ACBase):
         self.active_robots[robot_name].gripper.send_command(0.065, force=40)
         self.active_robots[robot_name].gripper.attach_object("cable_tool", with_collisions=True)
         self.active_robots[robot_name].gripper.forget_attached_item()
-        self.confirm_to_proceed("go back")
+        # self.confirm_to_proceed("go back")
         if not self.active_robots[robot_name].move_lin_rel([0, 0, 0.1], speed=speed, retime=True):
             return False
         if not self.active_robots[robot_name].go_to_pose_goal(approach_pose, speed=speed):
@@ -4737,12 +4766,12 @@ class O2ACCommon(O2ACBase):
         approach_pose_far = conversions.to_pose_stamped("cable_holder_pickup_link", [-0.1, 0, 0.1, 0, 0, 0])
         approach_pose_close = conversions.to_pose_stamped("cable_holder_pickup_link", [-0.1, 0, 0, 0, 0, 0])
         pickup_pose = conversions.to_pose_stamped("cable_holder_pickup_link", [0.016, 0, 0, 0, 0, 0])
-        self.confirm_to_proceed("go to approach pose")
+        # self.confirm_to_proceed("go to approach pose")
         if not self.active_robots[robot_name].go_to_pose_goal(approach_pose_far, speed=1.0):
             return False
         if not self.active_robots[robot_name].go_to_pose_goal(approach_pose_close, speed=1.0):
             return False
-        self.confirm_to_proceed("go to pickup pose")
+        # self.confirm_to_proceed("go to pickup pose")
         if not self.active_robots[robot_name].go_to_pose_goal(pickup_pose, speed=0.3, move_lin=True, retime=True):
             return False
         self.active_robots[robot_name].gripper.detach_object("cable_tool")
@@ -4756,7 +4785,7 @@ class O2ACCommon(O2ACBase):
             return False
         return True
 
-    def insert_motor_cables_with_tool(self, cable_color="black", cable_straighten_distance=0.10):
+    def insert_motor_cables_with_tool(self, cable_color="black", simultaneous=False):
         """
           insert motor cable in termina
           cable_color: "black" or "red"
@@ -4769,9 +4798,12 @@ class O2ACCommon(O2ACBase):
         switch_panels_order = self.assembly_database.assembly_info.get("switched_motor_and_bearing", False)
 
         if cable_color == "black":
+            cable_straighten_distance=0.11
             pin_frame_id = "assembled_part_01_cable_pin3" if not switch_panels_order else "assembled_part_01_cable_pin2"
             frame_id = "assembled_part_04_black_cable_connector"
         else:
+            cable_straighten_distance=0.107
+            magic_offset = 0.003
             pin_frame_id = "assembled_part_01_cable_pin4" if not switch_panels_order else "assembled_part_01_cable_pin1"
             frame_id = "assembled_part_04_red_cable_connector"
 
@@ -4781,80 +4813,113 @@ class O2ACCommon(O2ACBase):
         self.equip_cable_tool("a_bot")
 
         a_bot_approach = conversions.to_pose_stamped(frame_id, [-0.0196, 0.0654, -0.0550, tau/4, -tau/8, -tau/4])
+        a_bot_approach_joints = [ 1.7585, -2.2083,  2.4632, -2.6015, -1.6995,  4.8476]
         a_bot_at_cable = conversions.to_pose_stamped(frame_id, [-0.014, 0.0, 0.0, tau/4, -tau/8, -tau/4])
 
-        b_bot_at_cable_tip = conversions.to_pose_stamped(frame_id, [-0.147, 0.003, 0.013]+np.deg2rad([88.063, -50.163, 88.697]).tolist())
+        b_bot_at_cable_tip = conversions.to_pose_stamped(frame_id, [-0.146+magic_offset, 0.008, 0.015]+np.deg2rad([95.577, -35.913, 87.909]).tolist())
         b_bot_approach = self.b_bot.move_lin_rel([-0.10,0,0], relative_to_tcp=True, initial_joints=self.b_bot.compute_ik(b_bot_at_cable_tip, retry=True, allow_collisions=True), pose_only=True)
         b_bot_hold_cable = conversions.to_pose_stamped(frame_id, [-0.0924, 0.0101, 0.0029]+np.deg2rad([145, -41,  90]).tolist())
+        b_bot_hold_cable_joints = [0.6128, -1.3216, 2.3303, -3.1671, -0.8829, -1.1103]
         b_bot_Waypoint_1 = conversions.to_pose_stamped(frame_id, [-0.1287, -0.0918, 0.0158]+np.deg2rad([177, -54,  90]).tolist())
         b_bot_Waypoint_2 = conversions.to_pose_stamped(frame_id, [-0.0879, -0.1159, -0.0572]+np.deg2rad([177, -54,  90]).tolist())
         b_bot_look_at_cable = conversions.to_pose_stamped(frame_id, [-0.0378, -0.1581, 0.0497, 0.609497539310126, 0.6163826114272067, 0.3506917013529725, -0.3544016880705233])
 
         a_bot_above_cable_end = conversions.to_pose_stamped(frame_id, [-0.0740, 0.0367, -0.0352]+np.deg2rad([123, -38, -136]).tolist())
+        a_bot_above_cable_end_joints = [1.0515, -2.1195, 2.4875, -2.2124, -0.6725, 4.0819]
         a_bot_at_cable_end = conversions.to_pose_stamped(frame_id, [-0.0870, 0.0113, -0.0142]+np.deg2rad([124, -37, -138]).tolist())
+        a_bot_at_cable_end_joints = [1.4942, -1.7568, 2.4559, -2.9346, -1.1347, 4.6422]
         a_bot_midpoint = conversions.to_pose_stamped(frame_id, [-0.0260, -0.0045, -0.0028]+np.deg2rad([95, -52, -107]).tolist())
         a_bot_above_hole2 = conversions.to_pose_stamped(pin_frame_id, [-0.0200, 0.0002, -0.0031, tau/4, 0, 0])
 
+        # Allow collisions
         self.planning_scene_interface.allow_collisions("cable_tool", "motor")
         self.planning_scene_interface.allow_collisions("cable_tool", "b_bot_right_outer_knuckle")
-        # self.planning_scene_interface.allow_collisions("cable_tool", "b_bot_right_outer_knuckle")
         self.allow_collisions_with_robot_hand("cable_tool", "b_bot")
-        self.confirm_to_proceed(" approach cable 1 ")
-        self.a_bot.go_to_pose_goal(a_bot_approach, speed=speed_fast,  end_effector_link="a_bot_cable_tool_tip_link")
-        self.confirm_to_proceed(" approach cable 2")
+
+        self.confirm_to_proceed(" go to approach cable? ")
+        # self.a_bot.go_to_pose_goal(a_bot_approach, speed=speed_fast,  end_effector_link="a_bot_cable_tool_tip_link")
+        self.a_bot.move_joints(a_bot_approach_joints, speed=speed_fast)
+        self.confirm_to_proceed(" go to cable?")
         self.a_bot.go_to_pose_goal(a_bot_at_cable, speed=speed_slow, move_lin=True, retime=True,  end_effector_link="a_bot_cable_tool_tip_link")
         self.a_bot.gripper.close(force=200)
         self.confirm_to_proceed("move to cable tip a_bot")
-        self.a_bot.move_lin_rel(relative_translation=[-cable_straighten_distance, 0, 0],  end_effector_link="a_bot_cable_tool_tip_link", speed=0.1, retime=True)
-
-        self.b_bot.go_to_pose_goal(b_bot_approach, speed=speed_fast)
-        self.confirm_to_proceed(" go to cable tip ")
+        def a_task():
+            self.a_bot.move_lin_rel(relative_translation=[-cable_straighten_distance, 0, 0],  end_effector_link="a_bot_cable_tool_tip_link", speed=0.1, retime=True)
+        def b_task():
+            self.b_bot.go_to_named_pose("screw_ready")
+            self.b_bot.go_to_pose_goal(b_bot_approach, speed=speed_fast)
+        if simultaneous:
+            self.do_tasks_simultaneous(a_task, b_task)
+        else:
+            a_task()
+            self.confirm_to_proceed(" go to approach b_bot ")
+            b_task()
+        self.confirm_to_proceed(" go to cable tip b_bot")
         self.b_bot.go_to_pose_goal(b_bot_at_cable_tip, speed=speed_slow, move_lin=True, retime=True)
-        self.confirm_to_proceed("1")
-        self.b_bot.gripper.close(force=100, velocity=0.1)
 
+        self.confirm_to_proceed(" grasp b_bot, release a_bot")
+        self.b_bot.gripper.close(force=150, velocity=0.05)
         self.a_bot.gripper.open(opening_width=0.065, velocity=0.1)
         self.a_bot.move_lin_rel([-0.1, 0, 0], speed=speed_slow, relative_to_tcp=True, end_effector_link="a_bot_cable_tool_tip_link", retime=True)
-        self.confirm_to_proceed("2")
+        
+        self.confirm_to_proceed(" go to hold pose, unequip tool ")
 
-        self.b_bot.go_to_pose_goal(b_bot_hold_cable, speed=speed_slow, move_lin=True, retime=True)
-        self.confirm_to_proceed("3")
+        def b_task():
+            # self.b_bot.go_to_pose_goal(b_bot_hold_cable, speed=speed_fast, move_lin=True, retime=True)
+            self.b_bot.move_joints(b_bot_hold_cable_joints, speed=speed_fast)
+        def a_task():
+            self.unequip_cable_tool("a_bot")
+            self.a_bot.gripper.send_command(0.07, wait=True)
+        if simultaneous:
+            self.do_tasks_simultaneous(a_task, b_task)
+        else:
+            b_task()
+            a_task()
+        
+        self.confirm_to_proceed("go to approach cable a_bot")
+        # self.a_bot.go_to_pose_goal(a_bot_above_cable_end, speed=speed_fast)
+        self.a_bot.move_joints(a_bot_above_cable_end_joints, speed=speed_fast)
 
-        self.unequip_cable_tool("a_bot")
-        self.a_bot.gripper.send_command(0.04, wait=False)
-
-        self.confirm_to_proceed("4")
-        self.a_bot.go_to_pose_goal(a_bot_above_cable_end, speed=speed_fast)
-        self.a_bot.go_to_pose_goal(a_bot_at_cable_end, speed=speed_slow, move_lin=True, retime=True)
-        self.confirm_to_proceed("5")
-
-        self.a_bot.gripper.close(force=150)
+        self.confirm_to_proceed("go to at cable a_bot")
+        # self.a_bot.go_to_pose_goal(a_bot_at_cable_end, speed=speed_slow, move_lin=True, retime=True)
+        self.a_bot.move_joints(a_bot_at_cable_end_joints, speed=speed_slow)
+        
+        self.confirm_to_proceed("grasp a_bot, release b_bot")
+        self.a_bot.gripper.close(force=150, velocity=0.05)
         self.b_bot.gripper.open()
-        self.b_bot.go_to_pose_goal(b_bot_Waypoint_1, move_lin=True, speed=speed_slow, retime=True)
-        self.confirm_to_proceed("6")
-
+        # self.b_bot.go_to_pose_goal(b_bot_Waypoint_1, move_lin=True, speed=speed_slow, retime=True)
+        
         def b_bot_task():
+            self.vision.activate_camera("b_bot_outside_camera")
             self.b_bot.go_to_pose_goal(b_bot_Waypoint_2, move_lin=True, speed=speed_fast, retime=True)
             self.allow_collisions_with_robot_hand("base_fixture_top", "b_bot")
             self.b_bot.go_to_pose_goal(b_bot_look_at_cable, move_lin=True, speed=speed_fast, retime=True)
 
         def a_bot_task():
-            self.a_bot.go_to_pose_goal(a_bot_midpoint, move_lin=True, speed=0.5)
-            self.confirm_to_proceed("7")
-            self.a_bot.go_to_pose_goal(a_bot_above_hole2, move_lin=True, speed=0.5)
-            self.confirm_to_proceed("8")
-            self.a_bot.move_lin_rel([0.021, 0, 0], relative_to_tcp=True, speed=0.01)
-            self.a_bot.gripper.open(opening_width=0.02)
-            self.a_bot.move_lin_rel([-0.021, 0, 0], relative_to_tcp=True, speed=0.1)
+            self.a_bot.load_and_execute_program(program_name="wrs2020/cable_insert_%s_v1b.urp"%cable_color, skip_ros_activation=True)
+            helpers.wait_for_UR_program("/a_bot", rospy.Duration.from_sec(60))
+            return 
+            # self.a_bot.go_to_pose_goal(a_bot_midpoint, move_lin=True, speed=0.5)
+            # self.confirm_to_proceed("7")
+            # self.a_bot.go_to_pose_goal(a_bot_above_hole2, move_lin=True, speed=0.5)
+            # self.confirm_to_proceed("8")
+            # self.a_bot.move_lin_rel([0.021, 0, 0], relative_to_tcp=True, speed=0.01)
+            # self.a_bot.gripper.open(opening_width=0.02)
+            # self.a_bot.move_lin_rel([-0.021, 0, 0], relative_to_tcp=True, speed=0.1)
 
-        # self.do_tasks_simultaneous(a_bot_task, b_bot_task)
-        b_bot_task()
-        self.confirm_to_proceed("ok?")
-        a_bot_task()
+        if simultaneous:
+            self.do_tasks_simultaneous(a_bot_task, b_bot_task)
+        else:
+            self.confirm_to_proceed("move b_bot")
+            b_bot_task()
+            self.confirm_to_proceed("ok?")
+            a_bot_task()
 
         self.allow_collisions_with_robot_hand("base_fixture_top", "b_bot")
-        self.b_bot.move_lin_rel([-0.15, 0, 0], relative_to_tcp=True, speed=speed_fast)
-        self.a_bot.move_lin_rel([-0.15, 0, 0], relative_to_tcp=True, speed=speed_fast)
+        self.b_bot.move_lin_rel([0, 0, 0.1], speed=0.5)
+        self.a_bot.gripper.open()
+        self.a_bot.move_lin_rel([-0.1, 0, 0], relative_to_tcp=True, speed=0.5)
+        self.ab_bot.go_to_named_pose("home")
         # TODO confirm that the insertion was successful
 
         # waypoints = []
@@ -4938,6 +5003,154 @@ class O2ACCommon(O2ACBase):
         wait_for_UR_program("/b_bot", rospy.Duration.from_sec(20))
         return True
 
+    def belt_urscript(self, task_name="asm2021"):
+        if not self.use_real_robot:
+            rospy.logwarn("Cannot simulate task: belt")
+            return True
+
+        self.ab_bot.go_to_named_pose("home")
+
+        self.vision.activate_camera("a_bot_outside_camera")
+        self.activate_led("a_bot")
+
+        # Look for belt
+        global res, r2, pick_goal
+        global a_bot_found_belt, b_bot_loaded_program
+        a_bot_found_belt = False
+
+        def a_bot_task():
+            global res, r2, pick_goal, a_bot_found_belt
+            self.a_bot.go_to_pose_goal(self.tray_view_high, end_effector_link="a_bot_outside_camera_color_frame", speed=.8, move_lin=False)
+            tries = 10
+            res = None
+            while tries > 0 and not rospy.is_shutdown():
+                res = self.get_3d_poses_from_ssd()
+                if res:
+                    break
+                rospy.sleep(1)
+                tries -= 1
+            r2 = self.get_feasible_grasp_points("belt")
+            if r2:
+                pick_goal = r2[0]
+                pick_goal.pose.position.z = 0.000  # Pick height
+                a_bot_found_belt = True
+            else:
+                rospy.logerr("Could not find belt grasp pose! Aborting.")
+                a_bot_found_belt = False
+                return False
+
+        def b_bot_task():
+            global b_bot_loaded_program
+            b_bot_loaded_program = self.b_bot.load_program(program_name="wrs2020/taskboard_pick_hook.urp")
+        self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=180.0)
+        if not a_bot_found_belt or not b_bot_loaded_program:
+            return False
+
+        self.vision.activate_camera("b_bot_outside_camera")
+        # Pick belt and tool
+        self.confirm_to_proceed("Pick tool with b_bot and belt with a_bot?")
+        global b_bot_executed_program
+        b_bot_executed_program = False
+
+        def a_bot_task():
+            global pick_goal
+            self.allow_collisions_with_robot_hand("tray", "a_bot")
+            self.allow_collisions_with_robot_hand("tray_center", "a_bot")
+            self.simple_pick("a_bot", pick_goal, gripper_force=100.0, grasp_width=.04, axis="z", grasp_height=0.001)
+            self.a_bot.move_lin_rel(relative_translation=[0, 0, .1])
+            self.allow_collisions_with_robot_hand("tray", "a_bot", False)
+            self.allow_collisions_with_robot_hand("tray_center", "a_bot", False)
+
+        def b_bot_task():
+            # Equip the belt tool with b_bot
+            global b_bot_executed_program
+            b_bot_executed_program = self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_pick_hook.urp", skip_ros_activation=True)
+            # b_bot_executed_program = self.execute_loaded_program()
+            if not b_bot_executed_program:
+                return False
+            wait_for_UR_program("/b_bot", rospy.Duration.from_sec(20))
+        self.do_tasks_simultaneous(a_bot_task, b_bot_task, timeout=180.0)
+        if not b_bot_executed_program:
+            # Return belt
+            return False
+
+        # Go to check pick pose
+        a_bot_wait_with_belt_pose = [0.27640044689178467, -1.8691555462279261, 2.0014026800738733, -1.287313537006714, -1.5502598921405237, -2.5121548811541956]
+        b_bot_look_at_belt = [1.9197747707366943, -1.3494791400483628, 1.9283998648272913, -2.6345297298827113, -1.9446824232684534, 0.5834413170814514]
+        if not self.ab_bot.move_joints(a_bot_wait_with_belt_pose+b_bot_look_at_belt, speed=1.0):
+            rospy.logerr("Fail to go to look at belt. Retrying")
+            tries = 0
+            success = False
+            while tries < 10:
+                rospy.sleep(0.2)
+                success = self.ab_bot.move_joints(a_bot_wait_with_belt_pose+b_bot_look_at_belt, speed=1.0)
+                if success:
+                    break
+                rospy.logerr("Fail to go to look at belt. Retrying")
+                tries += 1
+            if not success:
+                rospy.logerr("Fail to go to look at belt. too many times. abort")
+                return False
+
+        # Check pick success
+        self.confirm_to_proceed("Check belt with vision?")
+        success = False
+        tries = 0
+        while tries < 15:
+            rospy.sleep(0.5)
+            success = self.vision.check_pick_success("belt")
+            if success:
+                break
+            else:
+                rospy.logwarn("fail to detect success pick of belt")
+            tries += 1
+
+        print("belt success?", success)
+        if not success:
+            self.belt_fallback(pick_goal)
+            return False
+
+        a_bot_wait_with_belt_pose = [0.6462941, -1.6021172, 2.00597602, -1.33323128, -0.81010848, -2.4642069]
+        b_bot_look_at_belt = [1.95739448, -1.40047674, 1.92903739, -1.98750128, -2.1883457, 1.7778782]
+        q = a_bot_wait_with_belt_pose + b_bot_look_at_belt
+        success = self.ab_bot.move_joints(q, speed=1.0)
+
+        if not success:
+            rospy.logerr("Fail to go to wait pose")
+            self.belt_fallback(pick_goal)
+            return False
+
+        self.confirm_to_proceed("Load and execute the belt threading programs?")
+        self.vision.activate_camera("b_bot_inside_camera")
+        success_a = self.a_bot.load_program(program_name="wrs2020/%s_belt_v1.urp" % task_name)
+        success_b = self.b_bot.load_program(program_name="wrs2020/%s_belt_v1.urp" % task_name)
+        if success_a and success_b:
+            print("Loaded belt program on a_bot.")
+            rospy.sleep(1)
+            success = self.a_bot.execute_loaded_program()
+            success = self.b_bot.execute_loaded_program()
+            if success:
+                print("Starting belt threading execution.")
+                rospy.sleep(2)
+                self.a_bot.close_ur_popup()
+                self.b_bot.close_ur_popup()
+        else:
+            print("Problem loading. Not executing belt procedure.")
+            self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp")
+            rospy.sleep(3)
+            self.drop_in_tray("a_bot")
+            self.a_bot.go_to_named_pose("home")
+            wait_for_UR_program("/b_bot", rospy.Duration.from_sec(20))
+            return False
+        wait_for_UR_program("/b_bot", rospy.Duration.from_sec(20))
+
+        # b_bot is now above the tray, looking at the taskboard
+        # TODO(felixvd): Use vision to check belt threading success
+
+        self.b_bot.load_and_execute_program(program_name="wrs2020/taskboard_place_hook.urp")
+        rospy.sleep(2)
+        wait_for_UR_program("/b_bot", rospy.Duration.from_sec(20))
+        return True
 
 ########## subtasks assembly #########
 
@@ -4948,16 +5161,20 @@ class O2ACCommon(O2ACBase):
     def pick_idler_spacer(self, robot_name="b_bot", attempts=3):
         options = {'check_for_close_items': True, 'declutter_with_tool': True, 'object_width': 0.005, 'grasp_width': 0.03}
         idler_spacer_pose = self.look_and_get_grasp_point("idler_spacer", robot_name=robot_name, options=options)
+        
+        if not isinstance(idler_spacer_pose, geometry_msgs.msg.PoseStamped):
+            rospy.logerr("Could not find idler_spacer in tray. Skipping procedure.")
+            return False
 
         marker_pose = copy.deepcopy(idler_spacer_pose)
         marker_pose.pose.position.z = 0
         marker_pose.pose.orientation = conversions.to_quaternion(transformations.quaternion_from_euler(0, -tau/4, 0))
         self.markers_scene.spawn_item("idler_spacer", marker_pose)
-        idler_spacer_pose.pose.position.z = 0.0  # Magic numbers
+        idler_spacer_pose.pose.position.z = 0.001  # Magic numbers
 
         self.vision.activate_camera(robot_name + "_inside_camera")
         if not self.simple_pick(robot_name, idler_spacer_pose, grasp_height=0.001,
-                                gripper_force=50.0, grasp_width=.04, axis="z", approach_height=0.07, gripper_command=0.03,
+                                gripper_force=0.0, grasp_width=.04, axis="z", approach_height=0.07, gripper_command=0.03,
                                 item_id_to_attach="idler_spacer", allow_collision_with_tray=True):
             rospy.logerr("Fail to simple_pick --> try again")
             self.active_robots[robot_name].gripper.open(opening_width=0.05)
@@ -4965,7 +5182,7 @@ class O2ACCommon(O2ACBase):
                 self.pick_idler_spacer(robot_name=robot_name, attempts=attempts-1)
             return False
 
-        if not self.simple_gripper_check(robot_name, min_opening_width=0.015):
+        if not self.simple_gripper_check(robot_name, min_opening_width=-0.001):
             rospy.logerr("Gripper did not grasp the idler_pulley --> try again")
             self.active_robots[robot_name].gripper.open(opening_width=0.05)
             if attempts > 0:
@@ -4991,8 +5208,12 @@ class O2ACCommon(O2ACBase):
 
     def pick_idler_pulley_assembly(self, robot_name="b_bot", attempts=3):
         options = {'grasp_width': 0.05, 'center_on_corner': True, 'approach_height': 0.02, 'grab_and_drop': True, 'object_width': 0.03}
-        idler_pulley_pose = self.look_and_get_grasp_point("idler_pulley", options=options)
-
+        idler_pulley_pose = self.look_and_get_grasp_point("idler_pulley", robot_name=robot_name, options=options)
+        
+        if not isinstance(idler_pulley_pose, geometry_msgs.msg.PoseStamped):
+            rospy.logerr("Could not find idler_pulley in tray. Skipping procedure.")
+            return False
+        
         idler_pulley_pose.pose.position.z = 0.0  # Magic numbers
 
         marker_pose = copy.deepcopy(idler_pulley_pose)
@@ -5017,9 +5238,13 @@ class O2ACCommon(O2ACBase):
             return False
         return True
 
-    def pick_idler_pin(self, robot_name="b_bot"):
+    def pick_idler_pin(self, robot_name="b_bot", fake_position=False):
         options = {'check_for_close_items': True, 'declutter_with_tool': True, 'object_width': 0.005, 'grasp_width': 0.04}
-        idler_pin_pose = self.look_and_get_grasp_point("idler_pin", options=options)
+        idler_pin_pose = self.look_and_get_grasp_point("idler_pin", robot_name=robot_name, options=options)
+
+        if not isinstance(idler_pin_pose, geometry_msgs.msg.PoseStamped):
+            rospy.logerr("Could not find idler_pin in tray. Skipping procedure.")
+            return False
 
         idler_pin_pose.pose.position.z = 0.0  # Magic numbers
 
@@ -5028,7 +5253,11 @@ class O2ACCommon(O2ACBase):
         marker_pose.pose.orientation = conversions.to_quaternion(transformations.quaternion_from_euler(0, 0, 0))
         self.markers_scene.spawn_item("idler_pin", marker_pose)
 
+        idler_pin_pose = self.a_bot.move_lin_rel([0,0,-0.012], relative_to_tcp=True, initial_joints=self.a_bot.compute_ik(idler_pin_pose, retry=True), pose_only=True)
+
         self.vision.activate_camera(robot_name + "_inside_camera")
+        if fake_position:
+            return True
         if not self.simple_pick(robot_name, idler_pin_pose, grasp_height=0.001,
                                 gripper_force=50.0, grasp_width=.04, axis="z", approach_height=0.07, gripper_command=0.03,
                                 item_id_to_attach="idler_pin", allow_collision_with_tray=True):
@@ -5249,8 +5478,9 @@ class O2ACCommon(O2ACBase):
 
         # Look at pulley with b_bot
         approach_centering = conversions.to_pose_stamped("assembled_part_08_inserted", [-0.1, 0, -0.150,  0, radians(-60), 0])
-        self.b_bot.go_to_pose_goal(approach_centering, speed=0.1, end_effector_link="b_bot_outside_camera_link", move_lin=True)
+        self.b_bot.go_to_pose_goal(approach_centering, speed=0.5, end_effector_link="b_bot_outside_camera_link", move_lin=True)
         self.vision.activate_camera("b_bot_outside_camera")
+        self.activate_led("b_bot")
 
         self.vision.activate_pulley_screw_detection()
 
@@ -5265,25 +5495,26 @@ class O2ACCommon(O2ACBase):
         rospy.Subscriber("/o2ac_vision_server/activate_pulley_screw_detection", Bool, f)
         rospy.sleep(0.5)
 
-        screws_upright = False
         tries = 0
-        while not screws_upright and not rospy.is_shutdown() and tries < 10: # Full revolution at 10 deg each time
+        while not rospy.is_shutdown() and tries < 10: # Full revolution at 10 deg each time
             # Rotate the pulley
-            stop_condition = lambda: pulley_screws_visible
-            self.rotate_cylinder_by_angle(45, "a_bot", approach_pulley, gripper_opening_width=0.04, stop_condition=stop_condition)
             if pulley_screws_visible:
                 self.vision.activate_pulley_screw_detection(False)
                 # Fasten two screws
                 self.fasten_output_pulley()
                 break
+            stop_condition = lambda: pulley_screws_visible
+            self.rotate_cylinder_by_angle(100, "a_bot", approach_pulley, gripper_opening_width=0.04, 
+                                          stop_condition=stop_condition, gripper_rotation_only=True)
         self.vision.activate_pulley_screw_detection(False)
         return True
 
     def fasten_output_pulley(self):
-        pulley_grasp_pose = conversions.to_pose_stamped("assembled_part_07_front_hole", [-0.007, 0.001, 0.001, tau/2, 0, 0])
+        pulley_grasp_pose = conversions.to_pose_stamped("assembled_part_07_front_hole", [0.005, 0.001, 0.001, tau/2, 0, 0])
         approach_pulley = conversions.to_pose_stamped("assembled_part_07_front_hole", [-0.02, 0.001, 0.001, tau/2, 0, 0])
 
         # Grasp with a_bot
+        self.a_bot.gripper.open(opening_width=0.14)
         self.confirm_to_proceed("approach pulley a_bot")
         self.a_bot.go_to_pose_goal(approach_pulley, speed=0.3)
         self.confirm_to_proceed("pulley_grasp_pose a_bot")
@@ -5296,12 +5527,22 @@ class O2ACCommon(O2ACBase):
         at_hold_pose = conversions.to_pose_stamped("assembled_part_07_inserted", [0.043, 0.000, 0.02] + np.deg2rad([-90, -90, -90]).tolist())
         self.b_bot.gripper.close(wait=False)
         self.confirm_to_proceed("pulley_grasp_pose a_bot")
-        self.b_bot.go_to_pose_goal(approach_hold_pose)
-        self.b_bot.go_to_pose_goal(pre_hold_pose, move_lin=True)
-        self.b_bot.go_to_pose_goal(at_hold_pose, move_lin=True)
-        self.b_bot.go_to_pose_goal(pre_hold_pose, move_lin=True)
-        self.b_bot.go_to_pose_goal(approach_hold_pose, move_lin=True)
-        self.b_bot.go_to_named_pose("tool_pick_ready")
+        seq = []
+        seq.append(helpers.to_sequence_item(approach_hold_pose, speed=1.0, retime=True))
+        seq.append(helpers.to_sequence_item(pre_hold_pose, speed=1.0, retime=True))
+        seq.append(helpers.to_sequence_item(at_hold_pose, speed=1.0, retime=True))
+        seq.append(helpers.to_sequence_item(pre_hold_pose, speed=1.0, retime=True))
+        seq.append(helpers.to_sequence_item(approach_hold_pose, speed=1.0, retime=True))
+        seq.append(helpers.to_sequence_item("tool_pick_ready", speed=1.0, retime=True))
+        if not self.execute_sequence("b_bot", seq, "push shaft into place"):
+            rospy.logerr("Fail to push shaft into place with b_bot")
+            return False
+        # self.b_bot.go_to_pose_goal(approach_hold_pose)
+        # self.b_bot.go_to_pose_goal(pre_hold_pose, move_lin=True)
+        # self.b_bot.go_to_pose_goal(at_hold_pose, move_lin=True)
+        # self.b_bot.go_to_pose_goal(pre_hold_pose, move_lin=True)
+        # self.b_bot.go_to_pose_goal(approach_hold_pose, move_lin=True)
+        # self.b_bot.go_to_named_pose("tool_pick_ready")
 
         self.equip_tool("b_bot", "padless_tool_m4")
 
@@ -5311,12 +5552,13 @@ class O2ACCommon(O2ACBase):
         
         for screw_frame in screw_poses:
             approach_screw = conversions.to_pose_stamped(screw_frame, [-0.1, 0, 0, 0, 0, 0])
-            at_screw = conversions.to_pose_stamped(screw_frame, [0.005, 0.0, 0.0, 0, 0, 0])
+            at_screw = conversions.to_pose_stamped(screw_frame, [0.0025, 0.0005, 0.0, 0, 0, 0])
             self.confirm_to_proceed("go to approach screw pose")
             self.b_bot.go_to_pose_goal(approach_screw, speed=0.5, move_lin=True, end_effector_link="b_bot_screw_tool_m4_tip_link")
             self.confirm_to_proceed("go to at screw pose")
             self.b_bot.go_to_pose_goal(at_screw, speed=0.2, move_lin=True, end_effector_link="b_bot_screw_tool_m4_tip_link")
             self.tools.set_motor("padless_tool_m4", "tighten", duration=10, wait=True, skip_final_loosen_and_retighten=True)
+            self.tools.set_motor("padless_tool_m4", "loosen", duration=0.1, skip_final_loosen_and_retighten=True)
             self.b_bot.move_lin_rel([0,0,0.01], speed=0.015, end_effector_link="b_bot_screw_tool_m4_tip_link")
             self.confirm_to_proceed("go to back")
             self.b_bot.go_to_pose_goal(approach_screw, speed=0.4, move_lin=True, end_effector_link="b_bot_screw_tool_m4_tip_link")
@@ -5953,7 +6195,7 @@ class O2ACCommon(O2ACBase):
         # x,y,z pose w.r.t centering link
         x_pos = -0.065 if panel_name == "panel_bearing" else -0.045
         y_pos = 0.065 if panel_name == "panel_bearing" else -0.065  # Arbitrary position
-        z_pos = gripper_at_stopper + obj_dims[1]
+        z_pos = gripper_at_stopper + obj_dims[1] + 0.01
 
         above_centering_pose = conversions.to_pose_stamped(centering_frame, [-0.15, y_pos, z_pos, 0, 0, 0])
         at_centering_pose = conversions.to_pose_stamped(centering_frame, [x_pos, y_pos, z_pos, 0, 0, 0])
@@ -5967,7 +6209,7 @@ class O2ACCommon(O2ACBase):
         seq.append(helpers.to_sequence_item(at_centering_pose, speed=speed))
         seq.append(helpers.to_sequence_gripper(0.01, gripper_velocity=1.0, wait=False))
         seq.append(helpers.to_sequence_item(pre_push_pose, speed=speed))
-        seq.append(helpers.to_sequence_gripper(0.0048, gripper_force=0, gripper_velocity=0.1))
+        seq.append(helpers.to_sequence_gripper(0.0053, gripper_force=0, gripper_velocity=0.01))
         seq.append(helpers.to_sequence_item(push_pose, speed=0.1))
 
         def post_callback():
@@ -6163,7 +6405,7 @@ class O2ACCommon(O2ACBase):
         self.a_bot.gripper.close(velocity=0.1, force=0, wait=True)
 
         # Open gripper slightly
-        self.a_bot.gripper.send_command(0.006, velocity=0.01, wait=True)
+        self.a_bot.gripper.send_command(0.007, velocity=0.01, wait=True)
 
         return True
 
@@ -6199,7 +6441,7 @@ class O2ACCommon(O2ACBase):
         magic_z_offset = 0
         if panel_name == "panel_bearing" and not approach_from_front:
             magic_inclination = radians(2.5)  # MAGIC NUMBER. Inclines the tool away from the bearing panel
-            magic_y_offset = -0.002  # MAGIC NUMBER (points into the L_shoe)
+            magic_y_offset = -0.001  # MAGIC NUMBER (points into the L_shoe)
             magic_z_offset = 0.0  # MAGIC NUMBER (points to the right of the panel when looking at it from the back (into the L))
             rospy.loginfo("Applying fasten_panel magic numbers")
             print("magic_inclination", magic_inclination, magic_z_offset)
@@ -6217,7 +6459,7 @@ class O2ACCommon(O2ACBase):
             screw_target_pose.pose.position.z += 0.0025
 
         if not self.fasten_screw_vertical('b_bot', screw_target_pose, allow_collision_with_object=panel_name, approach_from_front=approach_from_front,
-                                          do_lengthwise_search_first=False, close_a_bot_during_l_search=True):
+                                          do_lengthwise_search_first=True, close_a_bot_during_l_search=True):
             # Fallback for screw 1
             rospy.logerr("Failed to fasten panel screw 1, trying to realign tool and retry.")
             self.a_bot_success = False
@@ -6227,6 +6469,7 @@ class O2ACCommon(O2ACBase):
                 self.b_bot.go_to_named_pose("feeder_pick_ready")
                 self.pick_screw_from_feeder("b_bot", screw_size=4)
                 self.b_bot.go_to_named_pose("screw_ready")
+                self.b_bot.move_lin_rel([0,0.1,0])
 
             def a_bot_task():
                 self.a_bot_success = self.center_panel_on_base_plate(panel_name)
