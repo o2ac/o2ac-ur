@@ -116,6 +116,7 @@ class O2ACVisionServer(object):
         pulley_template_filepath = self.rospack.get_path("wrs_dataset") + "/data/pulley/pulley_screw_temp.png"
         self.pulley_screws_template_image = cv2.imread(pulley_template_filepath, 0)
         self.pulley_screw_detection_stream_active = False
+        self.pulley_screw_detection_log_to_file = False
         self.activate_pulley_screw_detection_service = rospy.Service("~activate_pulley_screw_detection", std_srvs.srv.SetBool, self.set_pulley_screw_detection_callback)
 
         # Determine whether the detection server works in continuous mode or not.
@@ -281,6 +282,9 @@ class O2ACVisionServer(object):
 
             # Publish images visualizing results
             self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_vis))
+            if self.pulley_screw_detection_log_to_file:
+                self.write_to_log(im_in, im_vis, "output_pulley_screws")
+                self.pulley_screw_detection_log_to_file = False
 
         # Pass image to SSD if continuous display is turned on
         if self.continuous_streaming:
@@ -318,6 +322,7 @@ class O2ACVisionServer(object):
 
     def set_pulley_screw_detection_callback(self, msg):
         self.pulley_screw_detection_stream_active = msg.data
+        self.pulley_screw_detection_log_to_file = msg.data
         res = std_srvs.srv.SetBoolResponse()
         res.success = True
         return res
@@ -751,14 +756,14 @@ class O2ACVisionServer(object):
             im_gray = cv2.cvtColor(im_in, cv2.COLOR_BGR2GRAY)
         else:
             im_gray = im_in
-        bbox = [300,180,200,120]   # (x,y,w,h)      bbox of search area
+        bbox = [344,163,120,70]   # (x,y,w,h)      bbox of search area
         s = PulleyScrewDetection(im_gray, self.pulley_screws_template_image, bbox)
         score, detected = s.main_proc()
         print("Screws detected: ", detected)
         print("Score: ", score)
 
         text2 = "Score: %.2f%%                   " % (score*100.0)
-        if score > 0.69:
+        if score > 0.80: # Magic number
             color = (0,255,0)
         else:
             color = (0,0,255)
