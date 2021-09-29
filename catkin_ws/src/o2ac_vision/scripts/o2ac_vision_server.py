@@ -110,7 +110,7 @@ class O2ACVisionServer(object):
 
         shaft_w_hole_file  = self.rospack.get_path("o2ac_vision") + "/config/shaft_w_hole.png"
         shaft_wo_hole_file = self.rospack.get_path("o2ac_vision") + "/config/shaft_wo_hole.png"
-        sdh_bbox = rospy.get_param("shaft_hole_detection/bbox", [375, 278, 90, 90])
+        sdh_bbox = rospy.get_param("shaft_hole_detection/bbox", [375, 275, 100, 100])
         self.shaft_hole_detector = ShaftHoleDetection(shaft_w_hole_file, shaft_wo_hole_file, sdh_bbox)
 
         pulley_template_filepath = self.rospack.get_path("wrs_dataset") + "/data/pulley/pulley_screw_temp.png"
@@ -763,10 +763,10 @@ class O2ACVisionServer(object):
         print("Score: ", score)
 
         text2 = "Score: %.2f%%                   " % (score*100.0)
-        if score > 0.80: # Magic number
-            color = (0,255,0)
+        if score > s.threshold:
+            color = (0,255,0)  # Green
         else:
-            color = (0,0,255)
+            color = (0,0,255)  # Red
 
         im_vis = cv2.putText(im_vis, text2, (bbox[0]-120, bbox[1]-30), 0, 1.5, (255,255,255), 7, cv2.LINE_AA)
         im_vis = cv2.putText(im_vis, text2, (bbox[0]-120, bbox[1]-30), 0, 1.5, color, 4, cv2.LINE_AA)
