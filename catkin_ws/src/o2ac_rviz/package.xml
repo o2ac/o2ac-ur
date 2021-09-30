@@ -13,7 +13,6 @@
 
   <build_depend>qtbase5-dev</build_depend>
   
-
   <exec_depend>libqt5-core</exec_depend>
   <exec_depend>libqt5-gui</exec_depend>
   <exec_depend>libqt5-widgets</exec_depend>
@@ -21,8 +20,8 @@
   <depend>rviz</depend>
   <depend>ur_msgs</depend>
   <depend>o2ac_skills</depend>
+  <depend>std_msgs</depend>
   
-
   <export>
     <rviz plugin="${prefix}/plugin_description.xml"/>
   </export>

@@ -32,7 +32,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-# Author: Felix von Drigalski
+# Author: Cristian C. Beltran-Hernandez, Felix von Drigalski
 
 
 from time import sleep, time

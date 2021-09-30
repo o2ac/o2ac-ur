@@ -14,6 +14,8 @@ set(CMAKE_AUTOUIC ON)
 find_package(catkin REQUIRED COMPONENTS
   o2ac_skills
   ur_msgs
+
+  std_msgs
   rviz
   roscpp
 )
@@ -22,6 +24,8 @@ find_package(catkin REQUIRED COMPONENTS
 # find_package(Boost REQUIRED COMPONENTS system)
 
 find_package(Qt5 ${rviz_QT_VERSION} EXACT REQUIRED Core Widgets)
+
+catkin_python_setup()
 
 catkin_package(
 #  INCLUDE_DIRS include
