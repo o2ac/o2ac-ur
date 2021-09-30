@@ -54,61 +54,109 @@ import signal
 
 
 def signal_handler(sig, frame):
-    print('You pressed Ctrl+C!')
+    print("You pressed Ctrl+C!")
     sys.exit(0)
 
 
 signal.signal(signal.SIGINT, signal_handler)
 
 CAMERA_IDS = {
-    "a_bot_inside_camera"  : 0,
-    "a_bot_outside_camera" : 1,
-    "b_bot_inside_camera"  : 2,
-    "b_bot_outside_camera" : 3,
-    "scene_camera"         : 4,
-    }
+    "a_bot_inside_camera": 0,
+    "a_bot_outside_camera": 1,
+    "b_bot_inside_camera": 2,
+    "b_bot_outside_camera": 3,
+    "scene_camera": 4,
+}
+
 
 class O2ACWatcher(object):
-
     def __init__(self):
         # Load camera names to determine which cameras will be checked
         default_camera_names = {"camera_multiplexer": True}
-        self.camera_names = rospy.get_param('~camera_names', default_camera_names)
+        self.camera_names = rospy.get_param("~camera_names", default_camera_names)
         self.bridge = cv_bridge.CvBridge()
 
         self.reset_services = {}
         if "camera_multiplexer" in self.camera_names:
-            self.b_bot_outside_camera = rospy.Subscriber("/camera_multiplexer/depth", sensor_msgs.msg.Image, self.camera_multiplexer_callback)
+            self.b_bot_outside_camera = rospy.Subscriber(
+                "/camera_multiplexer/depth",
+                sensor_msgs.msg.Image,
+                self.camera_multiplexer_callback,
+            )
             # Keeps track of which camera is active:
-            self.camera_info_sub = rospy.Subscriber("/camera_multiplexer/camera_info", sensor_msgs.msg.CameraInfo, self.camera_info_callback)
+            self.camera_info_sub = rospy.Subscriber(
+                "/camera_multiplexer/camera_info",
+                sensor_msgs.msg.CameraInfo,
+                self.camera_info_callback,
+            )
             self.current_camera_name = ""
             self.last_image = sensor_msgs.msg.Image()
-            self.multiplexer_camera_names = rospy.get_param('/camera_multiplexer/camera_names', default_camera_names)
+            self.multiplexer_camera_names = rospy.get_param(
+                "/camera_multiplexer/camera_names", default_camera_names
+            )
             for cam in self.multiplexer_camera_names:
-                rospy.wait_for_service('/%s/realsense2_camera/reset' % cam)
-                self.reset_services.update({cam: rospy.ServiceProxy('/%s/realsense2_camera/reset' % cam, std_srvs.srv.Empty)})
+                rospy.wait_for_service("/%s/realsense2_camera/reset" % cam)
+                self.reset_services.update(
+                    {
+                        cam: rospy.ServiceProxy(
+                            "/%s/realsense2_camera/reset" % cam, std_srvs.srv.Empty
+                        )
+                    }
+                )
 
         # Setup subscribers for input depth images
         if "a_bot_inside_camera" in self.camera_names:
-            self.a_bot_inside_camera = rospy.Subscriber("/a_bot_inside_camera/aligned_depth_to_color/image_raw", sensor_msgs.msg.Image, self.a_bot_inside_camera_callback)
-            rospy.wait_for_service('/a_bot_inside_camera/realsense2_camera/reset')
-            self.a_bot_inside_camera_reset = rospy.ServiceProxy('/a_bot_inside_camera/realsense2_camera/reset', std_srvs.srv.Empty)
-            self.reset_services.update({"a_bot_inside_camera": self.a_bot_inside_camera_reset})
+            self.a_bot_inside_camera = rospy.Subscriber(
+                "/a_bot_inside_camera/aligned_depth_to_color/image_raw",
+                sensor_msgs.msg.Image,
+                self.a_bot_inside_camera_callback,
+            )
+            rospy.wait_for_service("/a_bot_inside_camera/realsense2_camera/reset")
+            self.a_bot_inside_camera_reset = rospy.ServiceProxy(
+                "/a_bot_inside_camera/realsense2_camera/reset", std_srvs.srv.Empty
+            )
+            self.reset_services.update(
+                {"a_bot_inside_camera": self.a_bot_inside_camera_reset}
+            )
         if "a_bot_outside_camera" in self.camera_names:
-            self.a_bot_outside_camera = rospy.Subscriber("/a_bot_outside_camera/aligned_depth_to_color/image_raw", sensor_msgs.msg.Image, self.a_bot_outside_camera_callback)
-            rospy.wait_for_service('/a_bot_outside_camera/realsense2_camera/reset')
-            self.a_bot_outside_camera_reset = rospy.ServiceProxy('/a_bot_outside_camera/realsense2_camera/reset', std_srvs.srv.Empty)
-            self.reset_services.update({"a_bot_outside_camera": self.a_bot_outside_camera_reset})
+            self.a_bot_outside_camera = rospy.Subscriber(
+                "/a_bot_outside_camera/aligned_depth_to_color/image_raw",
+                sensor_msgs.msg.Image,
+                self.a_bot_outside_camera_callback,
+            )
+            rospy.wait_for_service("/a_bot_outside_camera/realsense2_camera/reset")
+            self.a_bot_outside_camera_reset = rospy.ServiceProxy(
+                "/a_bot_outside_camera/realsense2_camera/reset", std_srvs.srv.Empty
+            )
+            self.reset_services.update(
+                {"a_bot_outside_camera": self.a_bot_outside_camera_reset}
+            )
         if "b_bot_inside_camera" in self.camera_names:
-            self.b_bot_inside_camera = rospy.Subscriber("/b_bot_inside_camera/aligned_depth_to_color/image_raw", sensor_msgs.msg.Image, self.b_bot_inside_camera_callback)
-            rospy.wait_for_service('/b_bot_inside_camera/realsense2_camera/reset')
-            self.b_bot_inside_camera_reset = rospy.ServiceProxy('/b_bot_inside_camera/realsense2_camera/reset', std_srvs.srv.Empty)
-            self.reset_services.update({"b_bot_inside_camera": self.b_bot_inside_camera_reset})
+            self.b_bot_inside_camera = rospy.Subscriber(
+                "/b_bot_inside_camera/aligned_depth_to_color/image_raw",
+                sensor_msgs.msg.Image,
+                self.b_bot_inside_camera_callback,
+            )
+            rospy.wait_for_service("/b_bot_inside_camera/realsense2_camera/reset")
+            self.b_bot_inside_camera_reset = rospy.ServiceProxy(
+                "/b_bot_inside_camera/realsense2_camera/reset", std_srvs.srv.Empty
+            )
+            self.reset_services.update(
+                {"b_bot_inside_camera": self.b_bot_inside_camera_reset}
+            )
         if "b_bot_outside_camera" in self.camera_names:
-            self.b_bot_outside_camera = rospy.Subscriber("/b_bot_outside_camera/aligned_depth_to_color/image_raw", sensor_msgs.msg.Image, self.b_bot_outside_camera_callback)
-            rospy.wait_for_service('/b_bot_outside_camera/realsense2_camera/reset')
-            self.b_bot_outside_camera_reset = rospy.ServiceProxy('/b_bot_outside_camera/realsense2_camera/reset', std_srvs.srv.Empty)
-            self.reset_services.update({"b_bot_outside_camera": self.b_bot_outside_camera_reset})
+            self.b_bot_outside_camera = rospy.Subscriber(
+                "/b_bot_outside_camera/aligned_depth_to_color/image_raw",
+                sensor_msgs.msg.Image,
+                self.b_bot_outside_camera_callback,
+            )
+            rospy.wait_for_service("/b_bot_outside_camera/realsense2_camera/reset")
+            self.b_bot_outside_camera_reset = rospy.ServiceProxy(
+                "/b_bot_outside_camera/realsense2_camera/reset", std_srvs.srv.Empty
+            )
+            self.reset_services.update(
+                {"b_bot_outside_camera": self.b_bot_outside_camera_reset}
+            )
 
         # Initialize times
         self.last_msg_times = dict()
@@ -139,9 +187,10 @@ class O2ACWatcher(object):
 
     def camera_info_callback(self, cam_info):
         # Extracts camera name from the header by stripping prefix "calibrated_" and suffix "_color_optical_frame"
-        # Ex.: "calibrated_b_bot_inside_camera_color_optical_frame" --> "b_bot_inside_camera"
+        # Ex.: "calibrated_b_bot_inside_camera_color_optical_frame" -->
+        # "b_bot_inside_camera"
         self.current_camera_name = cam_info.header.frame_id[11:-20]  # str
-        
+
     def check_status_loop(self):
         r = rospy.Rate(1)
         softreset = True
@@ -154,16 +203,25 @@ class O2ACWatcher(object):
             for cam in self.camera_names:
                 # Check if depth image empty
                 if self.last_image.data:
-                    last_depth_image_cv = self.bridge.imgmsg_to_cv2(self.last_image, desired_encoding="passthrough")
+                    last_depth_image_cv = self.bridge.imgmsg_to_cv2(
+                        self.last_image, desired_encoding="passthrough"
+                    )
                     s = cv2.sumElems(last_depth_image_cv)
                     sum_depth_vals = s[0]
                     if sum_depth_vals:
-                        self.last_full_depth_image_time = now  # We just care about the "active" camera
+                        self.last_full_depth_image_time = (
+                            now  # We just care about the "active" camera
+                        )
 
-                rospy.sleep(.01)
-                time_since_last_nonempty_depth_img = now - self.last_full_depth_image_time
+                rospy.sleep(0.01)
+                time_since_last_nonempty_depth_img = (
+                    now - self.last_full_depth_image_time
+                )
                 time_since_last_msg = now - self.last_msg_times.get(cam, rospy.Time())
-                camera_reset_required |= (time_since_last_msg.secs > 3 or time_since_last_nonempty_depth_img.secs > 3)
+                camera_reset_required |= (
+                    time_since_last_msg.secs > 3
+                    or time_since_last_nonempty_depth_img.secs > 3
+                )
                 if time_since_last_msg.secs > 3:
                     rospy.logerr("(NO DEPTH IMAGE RECEIVED)")
                 elif time_since_last_nonempty_depth_img.secs > 3:
@@ -191,28 +249,52 @@ class O2ACWatcher(object):
                         if reset:
                             rospy.logwarn("Soft resetting camera: %s" % cam_name)
                             reset()
-                            rospy.sleep(10)  # Ensure that the camera has time to start up, to avoid an infinite loop
+                            # Ensure that the camera has time to start up, to
+                            # avoid an infinite loop
+                            rospy.sleep(10)
                             softreset = False  # Next time a reset is required, try the hard reset
                         else:
-                            rospy.logerr("Softreset service not found. camera: %s" % cam_name)
+                            rospy.logerr(
+                                "Softreset service not found. camera: %s" % cam_name
+                            )
                             softreset = False  # Next time a reset is required, try the hard reset
                     else:
-                        # Restart camera by killing the nodes and spawning a roslaunch process
-                        os.system("rosnode kill /" + cam_name + "/realsense2_camera /" + cam_name + "/realsense2_camera_manager")
+                        # Restart camera by killing the nodes and spawning a
+                        # roslaunch process
+                        os.system(
+                            "rosnode kill /"
+                            + cam_name
+                            + "/realsense2_camera /"
+                            + cam_name
+                            + "/realsense2_camera_manager"
+                        )
                         rospy.sleep(1)
-                        command = "roslaunch o2ac_scene_description osx_bringup_cam" + str(cam_num) + ".launch initial_reset:=true"
+                        command = (
+                            "roslaunch o2ac_scene_description osx_bringup_cam"
+                            + str(cam_num)
+                            + ".launch initial_reset:=true"
+                        )
                         rospy.loginfo("Executing command: " + command)
                         assert not rospy.is_shutdown(), "Did ros die?"
                         thread.start_new_thread(os.system, (command,))
                         assert not rospy.is_shutdown(), "Did ros die?"
                         rospy.loginfo("Sleeping for 15 seconds to let camera restart")
-                        rospy.sleep(15)  # Ensure that the camera has time to start up, to avoid an infinite loop
-                        rospy.loginfo("Camera watcher active again (waited 15 seconds for camera " + str(self.current_camera_name) + " to restart)")
-                        softreset = True  # Next time a reset is required, try the soft reset
+                        # Ensure that the camera has time to start up, to avoid
+                        # an infinite loop
+                        rospy.sleep(15)
+                        rospy.loginfo(
+                            "Camera watcher active again (waited 15 seconds for camera "
+                            + str(self.current_camera_name)
+                            + " to restart)"
+                        )
+                        softreset = (
+                            True  # Next time a reset is required, try the soft reset
+                        )
             r.sleep()
 
         rospy.logerr("Stopping o2ac_camera_watcher (rospy shutdown)")
 
-if __name__ == '__main__':
-    rospy.init_node('o2ac_camera_watcher', anonymous=False)
+
+if __name__ == "__main__":
+    rospy.init_node("o2ac_camera_watcher", anonymous=False)
     c = O2ACWatcher()
