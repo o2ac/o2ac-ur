@@ -6,7 +6,7 @@
 
   <maintainer email="f.drigalski@sinicx.com">Felix von Drigalski</maintainer>
 
-  <license>TODO</license>
+  <license>BSD</license>
 
   <build_depend>roscpp</build_depend>
   <build_depend>rospy</build_depend>
