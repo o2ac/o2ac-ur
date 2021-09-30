@@ -785,15 +785,18 @@ class O2ACVisionServer(object):
         """
         ssd_results, im_vis = self.detect_object_in_image(im_in, im_vis)
 
-        m = MotorOrientation()
-        angle_orientation = m.main_proc(im_in, ssd_results)  # if True hole is observed in im_in
-        im_vis = m.get_im_vis(im_vis)
-        motor_seen = angle_orientation is not False
-        if motor_seen:
-            return motor_seen, radians(angle_orientation), im_vis
-        else:
+        try:
+            m = MotorOrientation()
+            angle_orientation = m.main_proc(im_in, ssd_results)  # if True hole is observed in im_in
+            im_vis = m.get_im_vis(im_vis)
+            motor_seen = angle_orientation is not False
+            if motor_seen:
+                return motor_seen, radians(angle_orientation), im_vis
+            else:
+                return False, 0.0, im_vis
+        except Exception as e:
+            rospy.logerr("Fail to detect motor")
             return False, 0.0, im_vis
-
 
 ### ========
 
