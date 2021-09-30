@@ -32,7 +32,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-# Author: Felix von Drigalski
+# Author: Felix von Drigalski, Toshio Ueshiba
 
 import o2ac_vision.o2ac_ssd
 from o2ac_vision.cam_utils import CAMERA_FAILURE, O2ACCameraHelper
