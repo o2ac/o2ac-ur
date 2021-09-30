@@ -603,7 +603,7 @@ def lock_impedance(func):
         return result
     return wrap
 
-
+import traceback
 def lock_vision(func):
     '''Decorator that locks resources while being used. Assumes there is a self.vision_lock accessible in the decorated method'''
     def wrap(*args, **kwargs):
@@ -615,6 +615,7 @@ def lock_vision(func):
             result = func(*args, **kwargs)
         except Exception as e:
             print("(lock_vision) received an exception", func.__name__, e)
+            traceback.print_exc()
         finally:
             args[0].vision_lock.release()
             print("Lock released", func.__name__)
