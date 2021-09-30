@@ -1,5 +1,7 @@
-o2ac_vision
+# o2ac_vision
+
 ===============
+
 ## Introduction
 
 This package contains nodes that execute and advertise vision actions, e.g.:
@@ -52,7 +54,7 @@ A list of dictionary which contain bounding box, class id, state(back or front) 
 This component estimates the 2D pose (x,y,theta) of **small targets** in the image coordinate system. It feeds the output of the object detection module, a list of bounding box and object class id.
 
 #### Bearing and motor pose estimation
-This compornent compute in-plane rotation angle of bering using ICP algorithm.
+This component compute in-plane rotation angle of bering using ICP algorithm.
 Counter clock-wise rotation angle and tlanslation are returned.
 
 

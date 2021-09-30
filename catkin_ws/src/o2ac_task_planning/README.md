@@ -1,6 +1,8 @@
 # o2ac_task_planning
 
-This node starts multiple action servers for different tasks, such as `Pick Object`, `Place Object` etc. The action servers do the task planning when a request arrives and they return the best solution if it is found, which contains the trajectories for executing the plan.
+NOTE: This package was not actively used during the WRS2020, but is a prototype extending MoveIt Task Constructor with symbolic task planning.
+
+This package starts multiple action servers for different tasks, such as `Pick Object`, `Place Object` etc. The action servers do the task planning when a request arrives and they return the best solution if it is found, which contains the trajectories for executing the plan.
 
 ## QUICKSTART
 
@@ -8,7 +10,7 @@ In separate terminals:
 
 ```bash
 roslaunch o2ac_moveit_config demo.launch
-# Publish the parameters == TODO(karolyartur)
+# Publish the parameters. TODO(karolyartur)
 rosrun o2ac_task_planning_core mtc_modules_server 
 rosrun downward fast-downward-server.py
 ```
@@ -94,7 +96,7 @@ roslaunch o2ac_moveit_config demo.launch
 
 **Before running the node make sure that the required parameters (initial parameters and grasps) are loaded to the parameter server, MoveIt is running and the required collision objects are in the scene.**
 
-**TODO(karolyartur): Point to an explanation on how that's done, avoid vague instructions like "the required X" (people who need to read instructions generally don't know what is required)**
+**TODO(karolyartur): Point to an explanation on how that's done, be specific with instructions like "the required X" (the people who need to read instructions generally don't know what is required)**
 
 To run the node type:
 
@@ -152,7 +154,7 @@ In the `Motion Planning Tasks` panel, under `Task Tree` the hierarchical represe
 For a detailed explanation on the meaning of the fields of the action goal see the definition of the [action messages](https://gitlab.com/o2ac/o2ac-ur/-/tree/integrate-mtc-in-o2ac-routines/catkin_ws/src/o2ac_task_planning/msgs/action).
 
 
-For an example use case, first call
+For an example use case, first call:
 
 ```bash
 roslaunch o2ac_moveit_config demo.launch 
