@@ -632,11 +632,11 @@ class CalibrationClass(O2ACCommon):
             rospy.logerr("Fail to go to pre_insertion_shaft")
             return False
 
-        above_pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [-0.004, 0.011, 0.280]+np.deg2rad([-180, 90, -90]).tolist())
+        above_pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [-0.004, 0.010, 0.280]+np.deg2rad([-180, 90, -90]).tolist())
         if not self.a_bot.go_to_pose_goal(above_pre_insertion_end_cap, speed=0.6, move_lin=False):
             rospy.logerr("Fail to go to pre_insertion_end_cap")
             return False
-        pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [-0.004, 0.011, 0.245]+np.deg2rad([-180, 90, -90]).tolist())
+        pre_insertion_end_cap = conversions.to_pose_stamped("tray_center", [-0.0045, 0.010, 0.245]+np.deg2rad([-180, 90, -90]).tolist())
         if not self.a_bot.go_to_pose_goal(pre_insertion_end_cap, speed=0.3, move_lin=True):
             rospy.logerr("Fail to go to pre_insertion_end_cap")
             return False
@@ -659,7 +659,7 @@ class CalibrationClass(O2ACCommon):
         self.confirm_to_proceed("okay?")
 
     def output_pulley(self):
-        # self.pick_output_pulley("a_bot")
+        self.pick_output_pulley("a_bot")
         self.orient_output_pulley("a_bot")
         self.align_output_pulley_pre_insertion("a_bot")
         self.confirm_to_proceed("finetune")
@@ -941,6 +941,8 @@ if __name__ == '__main__':
                 c.center_panel_on_base_plate("panel_motor", calibration=True)
             if r == '603p':
                 c.pick_and_orient_motor()
+            if r == '603o':
+                c.orient_motor()
             if r == '603':
                 c.motor_insertion_from_aid()
             if r == '603f':
@@ -983,6 +985,8 @@ if __name__ == '__main__':
             if r == '607so3':
                 pre_insertion_shaft = [1.78158, -0.98719, 2.42349, -4.57638, -1.78597, 0.00433]
                 c.b_bot.move_joints(pre_insertion_shaft, speed=0.4)
+            if r == '607so4':
+                c.check_screw_hole_visible_on_shaft_in_v_groove()
             if r == '608':
                 c.end_cap_and_shaft_preinsertion()
             if r == '609':

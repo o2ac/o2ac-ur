@@ -296,13 +296,20 @@ if __name__ == '__main__':
                 c.check_screw_hole_visible_on_shaft_in_v_groove()
             elif i == '977':
                 c.is_the_placed_end_cap_upside_down()
-                # 97: shaft, 98: clamp pulley, 99: belt).")
             elif i == "9772":
                 # Test end cap insertion
                 c.insert_end_cap()
                 print("result", result)
+            # 98: clamp pulley
+            elif i == '99': # belt
+                c.subtask_h()
             elif i == '991':
                 c.pick_and_store_belt()
+            elif i == '99b':
+                c.insert_motor_cables_with_tool("black", simultaneous=True)
+            elif i == '99r':
+                c.insert_motor_cables_with_tool("red", simultaneous=True)
+                c.publish_status_text("Finished!")
             elif i == '97spawn':
                 obj = c.assembly_database.get_collision_object("shaft")
                 obj.header.frame_id = "b_bot_gripper_tip_link"
@@ -322,7 +329,7 @@ if __name__ == '__main__':
                 c.a_bot.gripper.open()
             elif i == "898":
                 c.a_bot.go_to_named_pose("home", force_ur_script=False)
-            elif i == '100':  # Test Force control be careful!!
+            elif i == '100':  # Test Force control (be careful!!)
                 b_bot_starting_position = [1.7078, -1.5267, 2.0624, -2.1325, -1.6114, 1.7185]
                 c.move_joints("b_bot", b_bot_starting_position)
 
@@ -335,7 +342,7 @@ if __name__ == '__main__':
                 rospy.logwarn("STARTING Force Control with target_force: %s %s %s" % (str(target_force), "timeout", str(timeout)))
                 c.b_bot.force_control(target_force=target_force, selection_matrix=selection_matrix, timeout=timeout, stop_on_target_force=True)
                 rospy.logwarn("FINISHED Force Control")
-            elif i == '101':  # Test Force control be careful!!
+            elif i == '101':  # Test Force control (be careful!!)
                 force = 10.0  # N
                 direction = '-Z'
 
