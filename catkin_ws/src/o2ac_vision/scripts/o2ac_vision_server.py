@@ -271,6 +271,7 @@ class O2ACVisionServer(object):
     def synced_images_callback(self, camera_info, image, depth):
         self._camera_info = camera_info
         self._depth       = depth
+        rospy.loginfo_throttle(5, "synced images callback (alive)")
 
         im_in  = self.bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
         im_vis = im_in.copy()
