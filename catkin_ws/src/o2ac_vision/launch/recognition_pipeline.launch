@@ -5,6 +5,8 @@
   <!-- Name of nodelet manager (without nodelet if empty string is given) -->
   <arg name="manager"			default=""/>
 
+  <arg name="surprise"			default="false"/>
+
   <!-- Pytorch learning data file name -->
   <arg name="pth_file_name"	default="WRS.pth"/>
 
@@ -34,6 +36,7 @@
     <remap from="/depth"		to="$(arg depth_topic)"/>
     <param name="continuous_streaming"	value="$(arg continuous_streaming)"/>
     <param name="pth_file_name" value="$(arg pth_file_name)"/>
+    <param name="surprise"		value="$(arg surprise)"/>
 
     <!-- Localization params -->
     <param name="nposes"		value="$(arg nposes)"/>

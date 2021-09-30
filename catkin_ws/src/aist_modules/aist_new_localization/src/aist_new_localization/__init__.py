@@ -60,11 +60,12 @@ class LocalizationClient(object):
         if rotation_range[0] < rotation_range[1] and \
            rotation_range[2] > 0:
             goal.poses2d = [ gmsg.Pose2D(poses2d[0].x,
-                                         poses2d[0].y, np.radians(theta))
+                                         poses2d[0].y,
+                                         np.radians(theta) + poses2d[0].theta)
                              for theta in np.arange(*rotation_range) ]
         else:
             goal.poses2d = poses2d
-        goal.object_name = params['object_name']
+        goal.object_name = object_name
         goal.plane       = plane
         goal.origin      = gmsg.Pose(gmsg.Point(*origin[0:3]),
                                      gmsg.Quaternion(*tfs.quaternion_from_euler(
@@ -90,4 +91,4 @@ class LocalizationClient(object):
             return None
         elif self._localize.get_state() != GoalStatus.SUCCEEDED:
             return None
-        return self._localize.get_result().poses
+        return self._localize.get_result()

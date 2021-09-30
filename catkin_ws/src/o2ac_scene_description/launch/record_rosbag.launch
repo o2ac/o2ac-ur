@@ -47,11 +47,11 @@
     </node>
   </group>
   
-  <group if="$(arg record_all_throttled)">
+  <!-- <group if="$(arg record_all_throttled)"> -->
       <!-- Subscribe to joint states and compressed throttled cam images and point clouds -->
       <node pkg="rosbag" type="record" name="rosbag_record_throttled"
             args="record -o $(arg file_dir)/throttled /joint_states -e '/._bot_(in|out)side_camera_throttled/(.*)'"
             if="$(arg record_all_throttled)" />
-  </group>
+  <!-- </group> -->
 
 </launch>

@@ -1,12 +1,14 @@
 from .voc0712 import VOCDetection, VOCAnnotationTransform, VOC_CLASSES, VOC_ROOT
-#from .visapp2020 import VISAPP2020_Detection, AnnotationTransform, VISAPP2020_CLASSES, VISAPP_ROOT
+
+# from .visapp2020 import VISAPP2020_Detection, AnnotationTransform, VISAPP2020_CLASSES, VISAPP_ROOT
 from .wrs2020 import WRS2020_Detection, AnnotationTransform, WRS2020_CLASSES, WRS_ROOT
 
-#from .coco import COCODetection, COCOAnnotationTransform, COCO_CLASSES, COCO_ROOT, get_label_map
+# from .coco import COCODetection, COCOAnnotationTransform, COCO_CLASSES, COCO_ROOT, get_label_map
 from .config import *
 import torch
 import cv2
 import numpy as np
+
 
 def detection_collate(batch):
     """Custom collate fn for dealing with batches of images that have a different

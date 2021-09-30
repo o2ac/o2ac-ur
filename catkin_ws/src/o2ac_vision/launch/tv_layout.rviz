@@ -5,13 +5,15 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
+        - /PlanningScene1
         - /PlanningScene1/Scene Robot1
         - /PlanningScene1/Scene Robot1/Links1
         - /DepthCloud1/Auto Size1
+        - /RobotModel1
         - /RobotModel1/Links1
         - /RobotModel1/Links1/b_bot_ee_link1
-      Splitter Ratio: 0.7235293984413147
-    Tree Height: 550
+      Splitter Ratio: 0.7448680400848389
+    Tree Height: 859
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -704,6 +706,7 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: false
           cable_holder_pickup_link:
             Alpha: 1
             Show Axes: false
@@ -863,144 +866,6 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: false
-          taskboard_assy_part_07_back_hole:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: false
-          tray_left_stopper:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: false
-          tray_left_stopper2:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: false
-          tray_right_stopper:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: false
-          tray_right_stopper2:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: false
-          traycorner_1_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          traycorner_2_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          traycorner_3_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          traycorner_4_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          tv:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: false
-          taskboard_base_screw_1_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: false
-          vertical_column_right:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: false
-          vgroove_aid_drop_point_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          vgroove_aid_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: false
-          washer_holder1:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: false
-          washer_holder1_collar_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          washer_holder1_tip_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          washer_holder2:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: false
-          washer_holder2_collar_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          washer_holder2_tip_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: false
-          taskboard_long_hole_middle_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: false
-          washer_holder3_collar_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          washer_holder3_tip_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          washer_holder4:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: false
-          washer_holder4_collar_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: false
-          taskboard_set_screw_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          taskboard_small_pulley:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: false
-          taskboard_small_shaft:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: false
-          taskboard_surface:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          tray:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: false
           tray_center:
             Alpha: 1
             Show Axes: false
@@ -1089,32 +954,6 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
           washer_holder2_tip_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          washer_holder3:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: false
-          washer_holder3_collar_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          washer_holder3_tip_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          washer_holder4:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: false
-          washer_holder4_collar_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          washer_holder4_tip_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -1780,6 +1619,7 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+          Value: true
         cable_holder_pickup_link:
           Alpha: 1
           Show Axes: false
@@ -1939,141 +1779,6 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        taskboard_assy_part_07_back_hole:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        tray_left_stopper:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        tray_left_stopper2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        tray_right_stopper:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        tray_right_stopper2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        traycorner_1_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        traycorner_2_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        traycorner_3_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        traycorner_4_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        tv:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        taskboard_base_screw_1_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        vertical_column_right:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        vgroove_aid_drop_point_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        vgroove_aid_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        washer_holder1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        washer_holder1_collar_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        washer_holder1_tip_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        washer_holder2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        taskboard_bearing_target_screw_4_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        taskboard_large_pulley:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        taskboard_long_hole_middle_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        washer_holder2_tip_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        washer_holder3:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        taskboard_m4_screw_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        taskboard_plate:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        taskboard_set_screw_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        washer_holder3_tip_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        taskboard_small_shaft:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        taskboard_surface:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        washer_holder4_tip_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
         tray_center:
           Alpha: 1
           Show Axes: false
@@ -2165,32 +1870,6 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        washer_holder3:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        washer_holder3_collar_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        washer_holder3_tip_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        washer_holder4:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        washer_holder4_collar_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        washer_holder4_tip_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         workplate:
           Alpha: 1
           Show Axes: false
@@ -2274,20 +1953,20 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.8447974324226379
+      Pitch: 0.7097973823547363
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.0053958892822265625
+      Yaw: 0.03039577230811119
     Saved: ~
 Window Geometry:
   Camera image:
     collapsed: false
   Displays:
-    collapsed: false
-  Height: 1016
-  Hide Left Dock: false
+    collapsed: true
+  Height: 1043
+  Hide Left Dock: true
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd000000040000000000000157000003a2fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003b000003a2000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c000002610000000100000226000003a2fc0200000006fb000000260056006900730069006f006e00200052006500730075006c007400200049006d006100670065010000003b0000016c0000001600fffffffb000000160053007400610074007500730020005400650078007401000001ad000000570000001600fffffffb0000001800430061006d00650072006100200069006d006100670065010000020a000001d30000001600fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003b000002b4000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007800000003efc0100000002fb0000000800540069006d00650000000000000007800000042700fffffffb0000000800540069006d00650100000000000004500000000000000000000003af000003a200000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd000000040000000000000157000003e4fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c0061007900730000000014000003e4000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c000002610000000100000226000003e4fc0200000006fb000000260056006900730069006f006e00200052006500730075006c007400200049006d0061006700650100000014000001860000001600fffffffb000000160053007400610074007500730020005400650078007401000001a00000005c0000001600fffffffb0000001800430061006d00650072006100200069006d0061006700650100000202000001f60000001600fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003b000002b4000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007800000003efc0100000002fb0000000800540069006d00650000000000000007800000042700fffffffb0000000800540069006d0065010000000000000450000000000000000000000554000003e400000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730000000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Status Text:
@@ -2300,6 +1979,6 @@ Window Geometry:
     collapsed: false
   Vision Result Image:
     collapsed: false
-  Width: 1848
-  X: 72
-  Y: 27
+  Width: 1920
+  X: 2560
+  Y: 0

@@ -28,7 +28,7 @@ class ICPRegistration:
 
         # Initialization
         # Registration vector
-        self.q = np.array([1., 0., 0., 0., 0., 0., 0.])
+        self.q = np.array([1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
         # parameters
         self.distance_tolerance = 0.01
@@ -48,7 +48,7 @@ class ICPRegistration:
 
     def rho(self, x):
         delta = 5
-        return x**2/(delta+x**2)
+        return x ** 2 / (delta + x ** 2)
 
     def closest_points(self):
         idx_list = []
@@ -58,7 +58,7 @@ class ICPRegistration:
             idx_list.append(idx[0])
             distance.append(d[0])
             # M-estimater
-            #distance.append( d[0]*self.rho(np.sqrt(d[0])) )
+            # distance.append( d[0]*self.rho(np.sqrt(d[0])) )
 
         np_pcd_y = self.np_pcd_t[idx_list]
         self.d.append(np.sqrt(np.mean(np.array(distance))))
@@ -75,13 +75,13 @@ class ICPRegistration:
         n_points = np_pcd_s.shape[0]
         rho_sum = 0
         for i in range(n_points):
-            d = LA.norm(np_pcd_s[i]-np_pcd_y[i])
+            d = LA.norm(np_pcd_s[i] - np_pcd_y[i])
             # M-estimater
-            #rho = self.rho(d)
+            # rho = self.rho(d)
             # rho_sum+=rho
-            #covar += rho*np.dot( np_pcd_s[i].reshape(-1, 1), np_pcd_y[i].reshape(1, -1) )
+            # covar += rho*np.dot( np_pcd_s[i].reshape(-1, 1), np_pcd_y[i].reshape(1, -1) )
             covar += np.dot(np_pcd_s[i].reshape(-1, 1), np_pcd_y[i].reshape(1, -1))
-        #covar /=rho_sum
+        # covar /=rho_sum
         covar /= n_points
         covar -= np.dot(mu_s.reshape(-1, 1), mu_y.reshape(1, -1))
 
@@ -96,7 +96,7 @@ class ICPRegistration:
         Q[0, 0] = tr_covar
         Q[0, 1:4] = delta
         Q[1:4, 0] = delta
-        Q[1:4, 1:4] = covar + covar.T - tr_covar*i3d
+        Q[1:4, 1:4] = covar + covar.T - tr_covar * i3d
 
         w, v = LA.eig(Q)
         rot = self.quaternion2rotation(v[:, np.argmax(w)])
@@ -116,7 +116,7 @@ class ICPRegistration:
 
             self.final_transformation = np.dot(transform, self.final_transformation)
             self.pcds.append(copy.deepcopy(self.pcd_s))
-            if (2 < i) and (0.999 < self.d[-1]/self.d[-2]):
+            if (2 < i) and (0.999 < self.d[-1] / self.d[-2]):
                 break
             if self.d[-1] < self.distance_tolerance:
                 break
@@ -125,19 +125,27 @@ class ICPRegistration:
 
     # quaternion to rotation matrix
     def quaternion2rotation(self, q):
-        rot = np.array([[q[0]**2+q[1]**2-q[2]**2-q[3]**2,
-                         2.0*(q[1]*q[2]-q[0]*q[3]),
-                         2.0*(q[1]*q[3]+q[0]*q[2])],
-
-                        [2.0*(q[1]*q[2]+q[0]*q[3]),
-                        q[0]**2+q[2]**2-q[1]**2-q[3]**2,
-                         2.0*(q[2]*q[3]-q[0]*q[1])],
-
-                        [2.0*(q[1]*q[3]-q[0]*q[2]),
-                         2.0*(q[2]*q[3]+q[0]*q[1]),
-                        q[0]**2+q[3]**2-q[1]**2-q[2]**2]]
-                       )
+        rot = np.array(
+            [
+                [
+                    q[0] ** 2 + q[1] ** 2 - q[2] ** 2 - q[3] ** 2,
+                    2.0 * (q[1] * q[2] - q[0] * q[3]),
+                    2.0 * (q[1] * q[3] + q[0] * q[2]),
+                ],
+                [
+                    2.0 * (q[1] * q[2] + q[0] * q[3]),
+                    q[0] ** 2 + q[2] ** 2 - q[1] ** 2 - q[3] ** 2,
+                    2.0 * (q[2] * q[3] - q[0] * q[1]),
+                ],
+                [
+                    2.0 * (q[1] * q[3] - q[0] * q[2]),
+                    2.0 * (q[2] * q[3] + q[0] * q[1]),
+                    q[0] ** 2 + q[3] ** 2 - q[1] ** 2 - q[2] ** 2,
+                ],
+            ]
+        )
         return rot
+
 
 #############################################################################
 #
@@ -161,14 +169,14 @@ class BearingPoseEstimator:
         """
 
         # crop target image using a bounding box
-        self.im_t = img[bbox[1]:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2]].copy()
+        self.im_t = img[bbox[1] : bbox[1] + bbox[3], bbox[0] : bbox[0] + bbox[2]].copy()
 
         # generate source point cloud
         self.im_s = im_s
         self.pcd_s, self.im_edge_s = self.get_pcd(im_s, edge_param)
 
         # generate target point cloud
-        #im_t = cv2.GaussianBlur(im_t,(5,5),0)
+        # im_t = cv2.GaussianBlur(im_t,(5,5),0)
         self.pcd_t, self.im_edge_t = self.get_pcd(self.im_t, edge_param)
 
         # data
@@ -225,9 +233,7 @@ class BearingPoseEstimator:
         tt_c[:3, 3] = center_t
 
         # initial rotations
-        init_rotations = [
-            0, np.radians(22.5), np.radians(45.0), np.radians(67.5)
-        ]
+        init_rotations = [0, np.radians(22.5), np.radians(45.0), np.radians(67.5)]
         for init in init_rotations:
             # apply initial rotation to the source point cloud
             T = rpy2mat(0, 0, init)
@@ -236,7 +242,7 @@ class BearingPoseEstimator:
 
             # Registration by ICP algorithm
             reg = ICPRegistration(pcd_s_ds_ini, pcd_t_ds)
-            reg.set_distance_tolerance(ds*0.5)
+            reg.set_distance_tolerance(ds * 0.5)
             self.mse, reg_trans = reg.registration()
             if self.mse < threshold:
                 """
@@ -266,17 +272,19 @@ class BearingPoseEstimator:
                 translation = self.trans_final[:2, 3]
 
                 # Choose the direction that results in the smaller rotation
-                if rotate > tau/8:
-                    rotate -= tau/4
-                elif rotate < -tau/8:
-                    rotate += tau/4
+                if rotate > tau / 8:
+                    rotate -= tau / 4
+                elif rotate < -tau / 8:
+                    rotate += tau / 4
                 return rotate, translation
         return False, False
 
     def vis_registration3d(self):
         pcd_final = copy.deepcopy(self.pcd_s)
         pcd_final.transform(self.trans_final)
-        o3d.visualization.draw_geometries([self.pcd_t, pcd_final], width=640, height=500)
+        o3d.visualization.draw_geometries(
+            [self.pcd_t, pcd_final], width=640, height=500
+        )
 
     def get_pcds(self):
         return self.pcds
@@ -293,20 +301,31 @@ class BearingPoseEstimator:
         np_final = np.asarray(pcd_final.points, np.int)
 
         for i in range(np_final.shape[0]):
-            im_result = cv2.circle(im_result, (np_final[i, 1], np_final[i, 0]), 2, (0, 255, 0), -1, cv2.LINE_AA)
+            im_result = cv2.circle(
+                im_result,
+                (np_final[i, 1], np_final[i, 0]),
+                2,
+                (0, 255, 0),
+                -1,
+                cv2.LINE_AA,
+            )
 
         im_result = cv2.rectangle(im_result, (5, 12), (170, 38), (0, 0, 0), -1)
         # Draw rotation in image
         _, _, rotate = mat2rpy(self.trans_final)
         d_rotate = np.degrees(rotate)
-        str_rotate = format(d_rotate, '.2f')+"[deg](CW)"
-        im_result = cv2.putText(im_result, str_rotate, (5, 30), 1, 1.25, (255, 255, 255), 2, cv2.LINE_AA)
-        im_result = cv2.putText(im_result, str_rotate, (5, 30), 1, 1.25, (0, 255, 255), 1, cv2.LINE_AA)
+        str_rotate = format(d_rotate, ".2f") + "[deg](CW)"
+        im_result = cv2.putText(
+            im_result, str_rotate, (5, 30), 1, 1.25, (255, 255, 255), 2, cv2.LINE_AA
+        )
+        im_result = cv2.putText(
+            im_result, str_rotate, (5, 30), 1, 1.25, (0, 255, 255), 1, cv2.LINE_AA
+        )
         return im_result
 
 
 def get_templates(path, name):
-    """ load template imagess
+    """load template imagess
     Args:
         path(str): path of template images
         name(str): name of image without angle and extention
@@ -315,7 +334,7 @@ def get_templates(path, name):
         tupple of template consist of image and angle(deg)
     """
     im_temps = list()
-    data_path = os.path.join(path, name+"*png")
+    data_path = os.path.join(path, name + "*png")
     filelist = sorted(glob.glob(data_path))
 
     for n in filelist:
@@ -323,6 +342,7 @@ def get_templates(path, name):
         angle = float(n.split("/")[-1].split("m")[-1].split(".png")[0])
         im_temps.append((img, angle))
     return im_temps
+
 
 ########################################################################
 # Sample code:
@@ -334,7 +354,7 @@ def get_templates(path, name):
 ########################################################################
 
 
-class InPlaneRotationEstimator():
+class InPlaneRotationEstimator:
     def __init__(self, im_s, img_t, bbox):
         """
         im_s(list): tupple of source images (edge_image, angle[deg])
@@ -343,7 +363,9 @@ class InPlaneRotationEstimator():
         """
 
         # crop target image using a bounding box
-        self.im_t = img_t[bbox[1]:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2]].copy()
+        self.im_t = img_t[
+            bbox[1] : bbox[1] + bbox[3], bbox[0] : bbox[0] + bbox[2]
+        ].copy()
 
         # generate source point cloud
         self.pcd_s = list()
@@ -353,7 +375,7 @@ class InPlaneRotationEstimator():
             self.initial_angles.append(im[1])
 
         # generate target point cloud
-        #im_t = cv2.GaussianBlur(im_t,(5,5),0)
+        # im_t = cv2.GaussianBlur(im_t,(5,5),0)
         self.pcd_t = self.get_pcd(self.im_t)
 
         # data
@@ -414,7 +436,7 @@ class InPlaneRotationEstimator():
 
             # Registration by ICP algorithm
             reg = ICPRegistration(pcd_s_ds, pcd_t_ds)
-            reg.set_distance_tolerance(ds*0.5)
+            reg.set_distance_tolerance(ds * 0.5)
             mse, rt = reg.registration()
             if mse < self.mse:
                 self.result_id = i
@@ -440,7 +462,7 @@ class InPlaneRotationEstimator():
         #  translation[x,y] and rotation
         _, _, rotate = mat2rpy(self.trans_final)
         print("Initial angle is:", self.initial_angles[self.result_id])
-        rotate = np.radians(self.initial_angles[self.result_id])+rotate
+        rotate = np.radians(self.initial_angles[self.result_id]) + rotate
         translation = self.trans_final[:2, 3]
 
         # Choose the direction that results in the smaller rotation
@@ -455,7 +477,9 @@ class InPlaneRotationEstimator():
     def vis_registration3d(self):
         pcd_final = copy.deepcopy(self.pcd_s[self.result_id])
         pcd_final.transform(self.trans_final)
-        o3d.visualization.draw_geometries([self.pcd_t, pcd_final], width=640, height=500)
+        o3d.visualization.draw_geometries(
+            [self.pcd_t, pcd_final], width=640, height=500
+        )
 
     def get_pcds(self):
         return self.pcds
@@ -471,12 +495,23 @@ class InPlaneRotationEstimator():
         pcd_final.transform(self.trans_final)
         np_final = np.asarray(pcd_final.points, np.int)
         for i in range(np_final.shape[0]):
-            im_result = cv2.circle(im_result, (np_final[i, 1], np_final[i, 0]), 1, (0, 255, 0), -1, cv2.LINE_AA)
+            im_result = cv2.circle(
+                im_result,
+                (np_final[i, 1], np_final[i, 0]),
+                1,
+                (0, 255, 0),
+                -1,
+                cv2.LINE_AA,
+            )
 
         im_result = cv2.rectangle(im_result, (5, 12), (170, 38), (0, 0, 0), -1)
         # Draw rotation in image
         d_rotate = np.degrees(self.rotate)
-        str_rotate = format(d_rotate, '.2f')+"[deg](CCW)"
-        im_result = cv2.putText(im_result, str_rotate, (5, 30), 1, 1.25, (255, 255, 255), 2, cv2.LINE_AA)
-        im_result = cv2.putText(im_result, str_rotate, (5, 30), 1, 1.25, (0, 255, 255), 1, cv2.LINE_AA)
+        str_rotate = format(d_rotate, ".2f") + "[deg](CCW)"
+        im_result = cv2.putText(
+            im_result, str_rotate, (5, 30), 1, 1.25, (255, 255, 255), 2, cv2.LINE_AA
+        )
+        im_result = cv2.putText(
+            im_result, str_rotate, (5, 30), 1, 1.25, (0, 255, 255), 1, cv2.LINE_AA
+        )
         return im_result

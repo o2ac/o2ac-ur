@@ -34,7 +34,11 @@
 #
 # Author: Felix von Drigalski
 
-from o2ac_vision.bearing_pose_estimation import BearingPoseEstimator, InPlaneRotationEstimator, get_templates
+from o2ac_vision.bearing_pose_estimation import (
+    BearingPoseEstimator,
+    InPlaneRotationEstimator,
+    get_templates,
+)
 import std_msgs.msg
 import sensor_msgs.msg
 import visualization_msgs.msg
@@ -50,7 +54,8 @@ import rospkg
 import actionlib
 import numpy as np
 from math import pi, radians, degrees
-tau = 2.0*pi  # Part of math from Python 3.6
+
+tau = 2.0 * pi  # Part of math from Python 3.6
 # and ROS formats
 # See here:
 #   http://wiki.ros.org/cv_bridge/Tutorials/ConvertingBetweenROSImagesAndOpenCVImagesPython
@@ -68,32 +73,55 @@ class O2ACBearingPoseEstimationServer(object):
     """
 
     def __init__(self):
-        rospy.init_node('o2ac_py3_vision_server', anonymous=False)
+        rospy.init_node("o2ac_py3_vision_server", anonymous=False)
         self.bridge = cv_bridge.CvBridge()
 
         # Setup publisher for output result image
-        self.image_pub = rospy.Publisher('/o2ac_vision_server/result_image', sensor_msgs.msg.Image, queue_size=1)
-        self.marker_pub = rospy.Publisher('/o2ac_vision_server/result_markers', visualization_msgs.msg.Marker, queue_size=1)
-        self.marker_array_pub = rospy.Publisher('/o2ac_vision_server/result_marker_arrays', visualization_msgs.msg.MarkerArray, queue_size=1)
+        self.image_pub = rospy.Publisher(
+            "/o2ac_vision_server/result_image", sensor_msgs.msg.Image, queue_size=1
+        )
+        self.marker_pub = rospy.Publisher(
+            "/o2ac_vision_server/result_markers",
+            visualization_msgs.msg.Marker,
+            queue_size=1,
+        )
+        self.marker_array_pub = rospy.Publisher(
+            "/o2ac_vision_server/result_marker_arrays",
+            visualization_msgs.msg.MarkerArray,
+            queue_size=1,
+        )
 
-        self.angle_detection_action_server = actionlib.SimpleActionServer("~internal/detect_angle", o2ac_msgs.msg.detectAngleAction,
-                                                                          execute_cb=self.angle_detection_callback, auto_start=False)
+        self.angle_detection_action_server = actionlib.SimpleActionServer(
+            "~internal/detect_angle",
+            o2ac_msgs.msg.detectAngleAction,
+            execute_cb=self.angle_detection_callback,
+            auto_start=False,
+        )
         self.angle_detection_action_server.start()
 
-        template_filename = os.path.join(rospkg.RosPack().get_path('o2ac_vision'), 'config', 'bearing_template_image.png')
+        template_filename = os.path.join(
+            rospkg.RosPack().get_path("o2ac_vision"),
+            "config",
+            "bearing_template_image.png",
+        )
 
         self.bearing_template = cv2.imread(template_filename, cv2.IMREAD_GRAYSCALE)
         rospy.loginfo("o2ac_py3_vision_server started up")
 
     def angle_detection_callback(self, goal):
         rospy.loginfo("Received a request to detect bearing angle (py3)")
-        # im_in  = self.bridge.imgmsg_to_cv2(goal.rgb_image, desired_encoding="bgr8")  # Requires Python2 --> use numpy directly
-        im_in = np.frombuffer(goal.rgb_image.data, dtype=np.uint8).reshape(goal.rgb_image.height, goal.rgb_image.width, -1)
+        # im_in  = self.bridge.imgmsg_to_cv2(goal.rgb_image,
+        # desired_encoding="bgr8")  # Requires Python2 --> use numpy directly
+        im_in = np.frombuffer(goal.rgb_image.data, dtype=np.uint8).reshape(
+            goal.rgb_image.height, goal.rgb_image.width, -1
+        )
         im_in2 = cv2.cvtColor(im_in, cv2.COLOR_RGB2GRAY)
         im_vis = im_in.copy()
 
         if goal.item_id == "bearing":
-            estimator = BearingPoseEstimator(self.bearing_template, im_in2, [200, 100, 320, 280])
+            estimator = BearingPoseEstimator(
+                self.bearing_template, im_in2, [200, 100, 320, 280]
+            )
             rotation, translation = estimator.main_proc(threshold=4.0, ds=3.0)
 
         if goal.item_id == "motor":
@@ -103,13 +131,19 @@ class O2ACBearingPoseEstimationServer(object):
             # mat = cv2.getPerspectiveTransform(src_pts, dst_pts)
 
             bbox = [270, 180, 240, 240]  # Set bounding box(x,y,w,h)
-            template_path = os.path.join(rospkg.RosPack().get_path('wrs_dataset'), 'data/motor_front/')
+            template_path = os.path.join(
+                rospkg.RosPack().get_path("wrs_dataset"), "data/motor_front/"
+            )
             im_templates = get_templates(template_path, "name")
-            # im_template = cv2.imread(template_path, 0)  # Read template image (use option "0")
+            # im_template = cv2.imread(template_path, 0)  # Read template image
+            # (use option "0")
 
-            estimator = InPlaneRotationEstimator(im_templates, im_in2, bbox)  # Define pose estimation class
+            estimator = InPlaneRotationEstimator(
+                im_templates, im_in2, bbox
+            )  # Define pose estimation class
             # estimator = PoseEstimator( im_template, im_in2, bbox, mat )  # Define pose estimation class
-            # rotation, translation = estimator.main_proc( threshold=5.0, ds=10.0 )  # Do registration
+            # rotation, translation = estimator.main_proc( threshold=5.0,
+            # ds=10.0 )  # Do registration
             rotation, translation, mse = estimator.main_proc(ds=10.0)  # Do registration
 
         action_result = o2ac_msgs.msg.detectAngleResult()
@@ -129,11 +163,15 @@ class O2ACBearingPoseEstimationServer(object):
         timeprefix = now.strftime("%Y-%m-%d_%H:%M:%S")
         rospack = rospkg.RosPack()
         folder = os.path.join(rospack.get_path("o2ac_vision"), "log")
-        cv2.imwrite(os.path.join(folder, timeprefix + "_" + action_name + "_in.png"), img_in)
-        cv2.imwrite(os.path.join(folder, timeprefix + "_" + action_name + "_out.jpg"), img_out)
+        cv2.imwrite(
+            os.path.join(folder, timeprefix + "_" + action_name + "_in.png"), img_in
+        )
+        cv2.imwrite(
+            os.path.join(folder, timeprefix + "_" + action_name + "_out.jpg"), img_out
+        )
 
 
-if __name__ == '__main__':
-    rospy.init_node('o2ac_py3_vision_server', anonymous=False)
+if __name__ == "__main__":
+    rospy.init_node("o2ac_py3_vision_server", anonymous=False)
     c = O2ACBearingPoseEstimationServer()
     rospy.spin()

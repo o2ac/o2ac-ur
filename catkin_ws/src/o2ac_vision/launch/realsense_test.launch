@@ -1,0 +1,89 @@
+<?xml version="1.0" ?>
+<launch>
+  <!-- Launch file for testing the recognition pipeline using only the annotation database (no camera or robot). -->
+
+  <arg name="surprise"			default="false"/>
+
+  <arg name="use_nodelet"		default="false"/>
+
+  <arg  if="$(arg use_nodelet)"
+	name="manager"			value="camera_manager"/>
+  <node if="$(arg use_nodelet)"
+	name="$(arg manager)" pkg="nodelet" type="nodelet"
+	args="manager" output="screen" respawn="false"/>
+  <arg unless="$(arg use_nodelet)"
+       name="manager"			value=""/>
+
+  <!-- Mode of object detector -->
+  <arg name="continuous_streaming"	default="false"/>
+  <arg name="use_localization_sdk"	default="false"/>
+
+  <!-- Localization parameters -->
+  <arg name="nposes"		default="2"/>
+  <arg name="timeout"		default="10"/>
+  <arg name="mesh_dir"		default="$(find o2ac_parts_description
+					 )/meshes"/>
+  <arg name="urdf_dir"		default="$(find o2ac_parts_description
+					 )/urdf/generated"/>
+
+  <!-- Camera parameters -->
+  <arg name="serial_no"		default=""/>
+  <arg name="camera_name"	default="a_bot_camera"/>
+  <arg name="camera_width"	default="640"/>
+  <arg name="camera_height"	default="480"/>
+  <arg name="fps"		default="30"/>
+  <arg name="enable_streaming"	default="true"/>
+  <arg name="publish_tf"	default="true"/>
+
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <arg name="serial_no"		value="$(arg serial_no)"/>
+    <arg name="camera"			value="$(arg camera_name)"/>
+    <arg name="tf_prefix"		value="calibrated_$(arg camera_name)"/>
+    <arg name="publish_tf"		value="$(arg publish_tf)"/>
+    <arg name="enable_depth"		value="true"/>
+    <arg name="enable_infra1"		value="true"/>
+    <arg name="enable_infra2"		value="false"/>
+    <arg name="enable_pointcloud"	value="false"/>
+    <arg name="align_depth"		value="true"/>
+    <arg name="depth_width"		value="$(arg camera_width)"/>
+    <arg name="depth_height"		value="$(arg camera_height)"/>
+    <arg name="depth_fps"		value="$(arg fps)"/>
+    <arg name="infra_width"		value="$(arg camera_width)"/>
+    <arg name="infra_height"		value="$(arg camera_height)"/>
+    <arg name="infra_fps"		value="$(arg fps)"/>
+    <arg name="color_width"		value="$(arg camera_width)"/>
+    <arg name="color_height"		value="$(arg camera_height)"/>
+    <arg name="color_fps"		value="$(arg fps)"/>
+    <arg name="enable_streaming"	value="$(arg enable_streaming)"/>
+    <arg name="manager"			value="$(arg manager)"
+	 unless="$(eval manager == '')"/>
+  </include>
+
+  <!-- Construct recognition pipeline -->
+  <include file="$(dirname)/recognition_pipeline.launch">
+    <arg name="surprise"		value="$(arg surprise)"/>
+    <arg name="manager"			value="$(arg manager)"/>
+    <arg name="continuous_streaming"	value="$(arg continuous_streaming)"/>
+    <arg name="use_localization_sdk"	value="$(arg use_localization_sdk)"/>
+    <arg name="nposes"			value="$(arg nposes)"/>
+    <arg name="timeout"			value="$(arg timeout)"/>
+    <arg name="mesh_dir"		value="$(arg mesh_dir)"/>
+    <arg name="urdf_dir"		value="$(arg urdf_dir)"/>
+
+    <!-- Topic names for feeder -->
+    <arg name="camera_info_topic" value="$(arg camera_name
+					 )/color/camera_info"/>
+    <arg name="image_topic"	  value="$(arg camera_name)/color/image_raw"/>
+    <arg name="depth_topic"	  value="$(arg camera_name
+					 )/aligned_depth_to_color/image_raw"/>
+  </include>
+
+  <!-- Spawn plane detector -->
+  <node name="detect_plane" pkg="o2ac_vision" type="detect_plane.py"
+	output="screen"/>
+
+  <!-- Spawn visualizer and parameter configurator -->
+  <node name="$(anon rviz)" pkg="rviz" type="rviz" output="screen"
+  	args="-d $(find o2ac_vision)/launch/realsense.rviz"/>
+
+</launch>

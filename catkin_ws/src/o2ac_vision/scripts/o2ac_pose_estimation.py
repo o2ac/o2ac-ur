@@ -14,18 +14,18 @@ import actionlib
 import o2ac_msgs.msg
 from o2ac_vision.pose_estimation_func import *
 
-# This file uses the SSD to estimate the 2D poses of objects in the tray when viewing it from above.
+# This file uses the SSD to estimate the 2D poses of objects in the tray
+# when viewing it from above.
 
 
-class pose_estimation():
-
+class pose_estimation:
     def __init__(self, im_in, ssd_result):
         rospack = rospkg.RosPack()
         temp_root = rospack.get_path("wrs_dataset") + "/data/templates"
         # Name of template infomation
         temp_info_name = "template_info.json"
         # downsampling rate
-        ds_rate = 1.0/2.0
+        ds_rate = 1.0 / 2.0
 
         if im_in.shape[2] == 3:
             im_in = cv2.cvtColor(im_in, cv2.COLOR_BGR2GRAY)
@@ -44,7 +44,7 @@ class pose_estimation():
             center, ori = self.TM.compute(ssd_result)
 
             elapsed_time = time.time() - start
-            print("Processing time[msec]: ", 1000*elapsed_time)
+            print("Processing time[msec]: ", 1000 * elapsed_time)
 
             self.save_result_image("result.png", ssd_result, ori, center)
 
