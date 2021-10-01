@@ -906,32 +906,6 @@ class O2ACCommon(O2ACBase):
                 self.allow_collisions_with_robot_hand("tray", robot_name, False)
             return False
 
-        if pose_with_uncertainty != None:
-            tip_link = robot_name + "_gripper_tip_link"
-            collision_object = self.assembly_database.get_collision_object(object_name)
-            if pick_from_ground:
-                now = rospy.Time.now()
-                update_goal = o2ac_msgs.msg.updateDistributionGoal()
-                update_goal.observation_type = update_goal.GRASP_OBSERVATION
-                update_goal.gripped_object = collision_object
-                self.listener.waitForTransform("world", tip_link, now, rospy.Duration(1.0))
-                update_goal.gripper_pose.pose = tf_conversions.posemath.toMsg(tf_conversions.posemath.fromTf(self.listener.lookupTransform("world", tip_link, now)))
-                update_goal.gripper_pose.header.frame_id = "world"
-                update_goal.gripper_pose.header.stamp = now
-                update_goal.distribution_type = 1
-                update_goal.distribution = self.transform_pose_with_uncertainty(tip_link, pose_with_uncertainty, now=now)
-                self.update_distribution_client.send_goal(update_goal)
-                self.update_distribution_client.wait_for_result()
-                update_result = self.update_distribution_client.get_result()
-                pose_with_uncertainty.header = update_result.distribution.header
-                pose_with_uncertainty.pose = update_result.distribution.pose
-            else:
-                transformed_pose = self.transform_pose_with_uncertainty(tip_link, pose_with_uncertainty)
-                pose_with_uncertainty.header = transformed_pose.header
-                pose_with_uncertainty.pose = transformed_pose.pose
-
-            self.visualize_object_with_distribution(collision_object, pose_with_uncertainty, frame_locked=True)
-
         success = True
         if minimum_grasp_width > robot.gripper.opening_width and self.use_real_robot:
             rospy.logerr("Gripper opening width after pick less than minimum (" + str(minimum_grasp_width) + "): " + str(robot.gripper.opening_width) + ". Return False.")
@@ -5857,19 +5831,6 @@ class O2ACCommon(O2ACBase):
         goal = self.get_large_item_position_from_top(panel_name, "b_bot")
         rospy.sleep(0.2)
 
-        # Initialize the pose
-        if pose_with_uncertainty != None:
-            pose_with_uncertainty.header = goal.header
-            pose_with_uncertainty.pose.pose = goal.pose
-            pose_with_uncertainty.pose.covariance = [0.0001, 0.00, 0.00, 0.00, 0.00, 0.00,
-                                                     0.00, 0.0001, 0.00, 0.00, 0.00, 0.00,
-                                                     0.00, 0.00, 0.0000, 0.00, 0.00, 0.00,
-                                                     0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
-                                                     0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
-                                                     0.00, 0.00, 0.00, 0.00, 0.00, 0.01]
-            collision_object = self.assembly_database.get_collision_object(panel_name)
-            self.visualize_object_with_distribution(collision_object, pose_with_uncertainty, frame_locked=True)
-        # self.spawn_object(panel_name, goal, goal.header.frame_id, pose_with_uncertainty = pose_with_uncertainty)
         rospy.sleep(0.5)
 
         if not goal:
@@ -6078,8 +6039,6 @@ class O2ACCommon(O2ACBase):
         self.active_robots[robot_name].gripper.open(opening_width=0.007, velocity=0.01)
         self.active_robots[robot_name].gripper.forget_attached_item()
         self.despawn_object(panel_name)
-        if pose_with_uncertainty != None:
-            self.place_object_with_uncertainty(panel_name, pose_with_uncertainty, 0.856)
         if panel_name == "panel_bearing":
             self.assembly_status.bearing_panel_placed_outside_of_tray = False
         else:
@@ -6091,108 +6050,6 @@ class O2ACCommon(O2ACBase):
         """
         rospy.logerr("return_l_plates is not implemented.")
         pass
-
-    def place_object_with_uncertainty(self, object_name, pose_with_uncertainty, support_surface_height):
-        """ Calculate the object pose with uncertainty after a PLACE action (the pose input parameter is changed in place)
-
-            support_surface_height is the z-coordinate of the support surface in the world frame.    
-        """
-        now = rospy.Time.now()
-        collision_object = self.assembly_database.get_collision_object(object_name)
-        update_goal = o2ac_msgs.msg.updateDistributionGoal()
-        update_goal.observation_type = update_goal.PLACE_OBSERVATION
-        update_goal.gripped_object = collision_object
-        update_goal.place_observation.support_surface = support_surface_height
-        self.listener.waitForTransform("world", pose_with_uncertainty.header.frame_id, now, rospy.Duration(1.0))
-        update_goal.gripper_pose.pose = tf_conversions.posemath.toMsg(tf_conversions.posemath.fromTf(self.listener.lookupTransform("world", pose_with_uncertainty.header.frame_id, now)))
-        update_goal.gripper_pose.header.frame_id = "world"
-        update_goal.gripper_pose.header.stamp = now
-        update_goal.distribution_type = 1
-        update_goal.distribution = pose_with_uncertainty
-        self.update_distribution_client.send_goal(update_goal)
-        self.update_distribution_client.wait_for_result()
-        update_result = self.update_distribution_client.get_result()
-        transformed_pose = self.transform_pose_with_uncertainty("world", update_result.distribution, now=now)
-        pose_with_uncertainty.header = transformed_pose.header
-        pose_with_uncertainty.pose = transformed_pose.pose
-
-        self.visualize_object_with_distribution(collision_object, pose_with_uncertainty, frame_locked=True)
-
-    def push_object_with_uncertainty(self, object_name, gripper_pose, pose_with_uncertainty, y_shift=0.0):
-        """ Calculate the object pose with uncertainty after a PUSH action (the pose input parameter is changed in place).
-            This call of push action is particular: it simulates pushing the object into another object, while letting it slide through the gripper.
-
-            y_shift is the amount by which the gripper moved (?)
-        """
-        collision_object = self.assembly_database.get_collision_object(object_name)
-        update_goal = o2ac_msgs.msg.updateDistributionGoal()
-        update_goal.observation_type = update_goal.PUSH_OBSERVATION
-        update_goal.gripped_object = collision_object
-        update_goal.gripper_pose = self.listener.transformPose("world", gripper_pose)
-        gripper_transform = tf_conversions.posemath.fromMsg(update_goal.gripper_pose.pose)
-        update_goal.distribution_type = 1
-        self.transform_uncertainty(gripper_transform.Inverse(), pose_with_uncertainty.pose, update_goal.distribution.pose)
-        update_goal.distribution.header.frame_id = "fake"
-        update_goal.distribution.header.stamp = rospy.Time(0)
-        self.update_distribution_client.send_goal(update_goal)
-        self.update_distribution_client.wait_for_result()
-        update_result = self.update_distribution_client.get_result()
-        self.transform_uncertainty(gripper_transform, update_result.distribution.pose, pose_with_uncertainty.pose)
-
-        self.visualize_object_with_distribution(collision_object, pose_with_uncertainty, frame_locked=True)
-
-    def center_panel_with_uncertainty(self, panel_name, robot_name="a_bot", speed=1.0, store=True, pose_with_uncertainty=None):
-        """ Places the plate next to the tray in a well-defined position, by pushing it into a stopper.
-        """
-        self.planning_scene_interface.allow_collisions("a_bot_base_smfl", panel_name)
-        centering_frame = "left_centering_link"
-        # object dimensions
-        obj_dims = self.dimensions_dataset[panel_name]
-
-        # Magic numbers
-        gripper_at_stopper = -0.065
-        # x,y,z pose w.r.t centering link
-        x_pos = -0.065 if panel_name == "panel_bearing" else -0.045
-        y_pos = 0.065 if panel_name == "panel_bearing" else -0.065
-        z_pos = gripper_at_stopper + obj_dims[1]
-
-        above_centering_pose = conversions.to_pose_stamped(centering_frame, [-0.15, y_pos, z_pos, 0, 0, 0])
-        at_centering_pose = conversions.to_pose_stamped(centering_frame, [x_pos, y_pos, z_pos, 0, 0, 0])
-        pre_push_pose = conversions.to_pose_stamped(centering_frame, [-0.01, y_pos, z_pos, 0, 0, 0])
-        push_pose = conversions.to_pose_stamped(centering_frame, [-0.011, y_pos, gripper_at_stopper, 0, 0, 0])
-        above_centering_joint_pose = [0.48, -2.05, 2.05, -1.55, -1.58, -1.09-(tau/2)]
-
-        self.active_robots[robot_name].move_joints(above_centering_joint_pose, speed=speed)
-        self.active_robots[robot_name].go_to_pose_goal(above_centering_pose, speed=speed)
-        self.active_robots[robot_name].go_to_pose_goal(at_centering_pose, speed=speed)
-        self.active_robots[robot_name].gripper.open(opening_width=0.01)
-        if pose_with_uncertainty:
-            self.place_object_with_uncertainty(panel_name, pose_with_uncertainty, 0.7501)
-        self.active_robots[robot_name].go_to_pose_goal(pre_push_pose, speed=speed)
-        self.active_robots[robot_name].gripper.send_command(0.005, force=0, velocity=0.03)
-        if not self.active_robots[robot_name].go_to_pose_goal(push_pose, speed=0.5):
-            rospy.logerr("fail to push: %s" % panel_name)
-            return False
-        self.active_robots[robot_name].gripper.forget_attached_item()
-
-        aligned_pose = [0.0, 0.067, -0.080] if panel_name == "panel_bearing" else [0.0, -0.063, -0.080]
-        self.update_collision_item_pose(panel_name, conversions.to_pose_stamped(centering_frame, aligned_pose + [-0.500, 0.500, -0.500, -0.500]))
-        if pose_with_uncertainty != None:
-            push_gripper_pose = conversions.to_pose_stamped(centering_frame, [0.0, aligned_pose[1], obj_dims[1]-0.07, pi, 0., 0.])
-            self.push_object_with_uncertainty(panel_name, push_gripper_pose, pose_with_uncertainty)
-
-        at_panel_center = conversions.to_pose_stamped(centering_frame, [-0.02, y_pos, -0.08+obj_dims[1]/2, 0, 0, 0])
-
-        self.active_robots[robot_name].gripper.open(opening_width=0.03)
-        if store:
-            self.active_robots[robot_name].move_lin_rel(relative_translation=[0, -0.1, 0.15])
-        else:
-            self.active_robots[robot_name].go_to_pose_goal(at_panel_center, speed=0.2)
-            self.active_robots[robot_name].gripper.close()
-            self.active_robots[robot_name].move_lin_rel(relative_translation=[0, -0.1, 0.15])
-
-        # If store, return pose
-        return at_panel_center if store else True
 
     def pull_back_panel_on_base_plate(self, panel_name):
         """ Pull the panel to the left with a_bot, then push it back into place and regrasp it.

@@ -225,47 +225,6 @@ class O2ACBase(object):
 
     # ------ Internal functions (and convenience functions)
 
-    def transform_uncertainty(self, transform, pose_with_uncertainty, transformed_pose):
-        """ Transforms the covariance of a pose. Also see https://wiki.ros.org/pose_cov_ops
-        """
-        transformed_pose.pose = tf_conversions.posemath.toMsg(transform * tf_conversions.posemath.fromMsg(pose_with_uncertainty.pose))
-
-        transform_matrix = numpy.matrix(tf_conversions.posemath.toMatrix(transform))
-        inverse_transform_matrix = numpy.linalg.inv(transform_matrix)
-        adjoint_matrix = numpy.matrix(numpy.zeros(shape=(6, 6)))
-        for i in range(6):
-            unit_matrix = numpy.matrix(numpy.zeros(shape=(4, 4)))
-            if i < 3:
-                unit_matrix[i, 3] = 1.
-            else:
-                unit_matrix[(i-2) % 3, (i-1) % 3] = -1.
-                unit_matrix[(i-1) % 3, (i-2) % 3] = 1.
-            result_matrix = transform_matrix * unit_matrix * inverse_transform_matrix
-            for j in range(6):
-                if j < 3:
-                    adjoint_matrix[j, i] = result_matrix[j, 3]
-                else:
-                    adjoint_matrix[j, i] = result_matrix[(j-1) % 3, (j-2) % 3]
-
-        covariance_matrix = numpy.matrix(pose_with_uncertainty.covariance)
-        covariance_matrix.resize(6, 6)
-        transformed_covariance_matrix = adjoint_matrix * covariance_matrix * numpy.linalg.inv(adjoint_matrix)
-        transformed_covariance_matrix.resize(36)
-        transformed_pose.covariance = numpy.asarray(transformed_covariance_matrix)
-
-    def transform_pose_with_uncertainty(self, target_frame, pose_with_uncertainty, now=None):
-        """ Transforms a pose with covariance. Also see https://wiki.ros.org/pose_cov_ops
-        """
-        if now == None:
-            now = rospy.Time.now()
-        self.listener.waitForTransform(target_frame, pose_with_uncertainty.header.frame_id, now, rospy.Duration(1.0))
-        transform = tf_conversions.posemath.fromTf(self.listener.lookupTransform(target_frame, pose_with_uncertainty.header.frame_id, now))
-        transformed_pose = geometry_msgs.msg.PoseWithCovarianceStamped()
-        transformed_pose.header.frame_id = target_frame
-        transformed_pose.header.stamp = now
-        self.transform_uncertainty(transform, pose_with_uncertainty.pose, transformed_pose.pose)
-        return transformed_pose
-
     def spawn_object(self, object_name, object_pose, object_reference_frame="", pose_with_uncertainty=None):
         collision_object = self.assembly_database.get_collision_object(object_name)
         if isinstance(object_pose, geometry_msgs.msg._PoseStamped.PoseStamped):
@@ -287,25 +246,6 @@ class O2ACBase(object):
         collision_object.pose = co_pose
 
         self.planning_scene_interface.add_object(collision_object)
-
-        if pose_with_uncertainty != None:
-            # Get the visual geometry instead of the collision geometry
-            collision_object_pretty = self.assembly_database.get_collision_object(object_name, use_simplified_collision_shapes=False)
-            collision_object_pretty.header.frame_id = collision_object.header.frame_id
-            collision_object_pretty.pose = collision_object.pose
-            self.visualize_object_with_distribution(collision_object_pretty, pose_with_uncertainty, frame_locked=True)
-
-    def visualize_object_with_distribution(self, collision_object, pose_with_uncertainty, frame_locked=False):
-        """ Publishes a MarkerArray visualizing the object pose and uncertainty.
-
-            collision_object must be of type moveit_msgs.msg.CollisionObject
-        """
-        visualization_request = o2ac_msgs.srv.visualizePoseBeliefRequest()
-        visualization_request.object = collision_object
-        visualization_request.distribution_type = 1
-        visualization_request.distribution = pose_with_uncertainty
-        visualization_request.frame_locked = frame_locked
-        self.distribution_visualizer(visualization_request)
 
     def despawn_object(self, object_name, collisions_only=False):
         self.planning_scene_interface.remove_attached_object(name=object_name)

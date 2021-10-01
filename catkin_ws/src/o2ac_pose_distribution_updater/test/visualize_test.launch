@@ -1,5 +1,0 @@
-<launch>
-	<include file="$(find o2ac_pose_distribution_updater)/launch/distribution_updater.launch" />
-	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find o2ac_pose_distribution_updater)/test/visualize_test.rviz" required="true" />
-	<node name="visualize_test" pkg="o2ac_pose_distribution_updater" type="visualize_test" required="true" output="screen"/>
-</launch>

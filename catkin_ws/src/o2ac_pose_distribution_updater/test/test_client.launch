@@ -1,7 +1,0 @@
-<launch>
-	<param name="test_directory" value="$(find o2ac_pose_distribution_updater)/test"/>
-
-	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find o2ac_pose_distribution_updater)/test/test.rviz" required="true" />	
-
-	<test test-name="test_client" pkg="o2ac_pose_distribution_updater" type="test_client"/>
-</launch>
