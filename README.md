@@ -4,17 +4,41 @@
 
 This repository provides the robot solution and a common runtime/development environment for Team O2AC in the Industrial Challenge of the [World Robot Summit 2020](http://worldrobotsummit.org/en/).
 
+See our intro video here:
+
+https://www.youtube.com/watch?v=Dm76puapISY
+
+See our exhibition talk and demo here:
+
+https://www.youtube.com/watch?v=tue42LWGzO0&t=2090s
+
+See our completed taskboard run here:
+
+https://www.youtube.com/watch?v=u2Hrf--aK5k&t=21522s
+
+## SUMMARY
+
+This repository contains both the ROS packages used to control the O2AC robot system, as well as a series of shell scripts and Docker images to build and run the code.  
+With this, you can:
+
+- Use two robot arms
+- Plan and execute motions simultaneously and independently on each arm, without risk of collision
+- Execute motion sequences while subsequent motions are being planned, minimizing waiting times
+- Fasten screws
+- Build a screw tool 
+- Detect and pick parts from an unstructured tray
+- Generate parts assemblies and use their TF frames
+
+- Complete the WRS2020 taskboard task
+- Complete the WRS2020 assembly task (with enough luck)
+
 ## QUICK START
 
 1) Clone the repository into your home folder in Ubuntu 18.04 (or newer).
-2) Execute the three scripts (SETUP-DEVEL-MACHINE.sh, BUILD-DOCKER-IMAGE.sh, RUN-DOCKER-CONTAINER.sh)
-3) Read the [documentation](https://gitlab.com/o2ac/o2ac-ur/wikis/home), check the [Troubleshooting page](https://gitlab.com/o2ac/o2ac-ur/wikis/troubleshooting) if you have any problems, and report an issue if you are still stuck afterwards.
-
-## Summary
-
-This repository contains both the ROS packages used to control the O2AC robot system, as well as a series of shell scripts and Docker images to build and run the code.
-
-TODO: Link achievements, videos, overview
+2) Install the development environment (`SETUP-DEVEL-MACHINE.sh`, then `BUILD-DOCKER-IMAGE.sh`)
+3) Run `LAUNCH-TERMINATOR-TERMINAL.sh`
+4) Execute `roslaunch o2ac_moveit_config demo.launch` and `rosrun o2ac_routines assembly.py` (in separate terminals)
+5) Read the [documentation](https://gitlab.com/o2ac/o2ac-ur/wikis/home), check the [Troubleshooting page](https://gitlab.com/o2ac/o2ac-ur/wikis/troubleshooting) if you have any problems, and report an issue if you are still stuck afterwards.
 
 
 ## Contribution Guidelines
@@ -27,9 +51,19 @@ https://gitlab.com/o2ac/o2ac-ur/wikis/contribution-guidelines
 Minor compatibility issues are expected to arise. Please report any issue by using the issue tracker:
 https://gitlab.com/o2ac/o2ac-ur/issues
 
-## Credits
+## Citing
 
-If you find this repository useful, please star it and cite our papers.
+If you find this repository useful, please star it and cite our papers:
+
+Felix von Drigalski, Chisato Nakashima, Yoshiya Shibata, Yoshinori Konishi, Joshua C. Triyonoputro, Kaidi Nie, Damien Petit, Toshio Ueshiba, Ryuichi Takase, Yukiyasu Domae, Taku Yoshioka, Yoshihisa Ijiri, Ixchel G. Ramirez-Alpizar, Weiwei Wan & Kensuke Harada (2020) Team O2AS at the world robot summit 2018: an approach to robotic kitting and assembly tasks using general purpose grippers and tools, Advanced Robotics, 34:7-8, 514-530, DOI: 10.1080/01691864.2020.1734481  
+[arXiv](https://arxiv.org/abs/2003.02427)
+
+Felix von Drigalski, Christian Schlette, Martin Rudorfer, Nikolaus Correll, Joshua C. Triyonoputro, Weiwei Wan, Tokuo Tsuji & Tetsuyou Watanabe (2020) Robots assembling machines: learning from the World Robot Summit 2018 Assembly Challenge, Advanced Robotics, 34:7-8, 408-421, DOI: 10.1080/01691864.2019.1705910  
+[arXiv](https://arxiv.org/abs/1911.05884)
+
+(WRS2020 versions to come)
+
+## Credits
 
 The Docker and shell script backbone of this project is based on the HSR environment maintained at the [Emergent Systems Laboratory](http://www.em.ci.ritsumei.ac.jp/), Department of Human and Computer Intelligence, College of Information Science and Engineering, [Ritsumeikan University](http://en.ritsumei.ac.jp/). For support, contact [Coarobo GK](https://coarobo.com/).
 
@@ -49,7 +83,6 @@ Team O2AC at the World Robot Summit 2020 Assembly Challenge consisted of members
 - Tenho Houda (Chukyo University)
 - Yu Horiuchi (Chukyo University)
 - Ryosuke Tachi (Chukyo University)
-
 - Manabu Hashimoto (Chukyo University)
 - Yukiyasu Domae (AIST)
 - Weiwei Wan (Osaka University)
