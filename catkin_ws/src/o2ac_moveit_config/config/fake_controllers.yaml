@@ -1,0 +1,36 @@
+controller_list:
+  - name: fake_a_bot_controller
+    type: $(arg execution_type)
+    joints:
+      - a_bot_shoulder_pan_joint
+      - a_bot_shoulder_lift_joint
+      - a_bot_elbow_joint
+      - a_bot_wrist_1_joint
+      - a_bot_wrist_2_joint
+      - a_bot_wrist_3_joint
+  - name: fake_b_bot_controller
+    type: $(arg execution_type)
+    joints:
+      - b_bot_shoulder_pan_joint
+      - b_bot_shoulder_lift_joint
+      - b_bot_elbow_joint
+      - b_bot_wrist_1_joint
+      - b_bot_wrist_2_joint
+      - b_bot_wrist_3_joint
+  - name: fake_a_bot_robotiq_85_controller
+    type: $(arg execution_type)
+    joints:
+      - a_bot_finger_joint
+  - name: fake_b_bot_robotiq_85_controller
+    type: $(arg execution_type)
+    joints:
+      - b_bot_finger_joint
+initial:  # Define initial robot poses.
+  - group: a_bot
+    pose: home
+  - group: b_bot
+    pose: home
+  - group: a_bot_robotiq_85
+    pose: open
+  - group: b_bot_robotiq_85
+    pose: open

@@ -1,0 +1,133 @@
+# Define the points in the trajectory
+robot_name: 'a_bot' # for security define the robot here
+waypoints:
+- pose: "centering_area" # translation, orientation (degrees)
+  pose_type: named-pose
+  speed: 1.0
+  acc: 0.5
+  desc: Above tray edge
+- pose: [-0.15, -0.000, 0.445, 60, 0, 0] 
+  pose_type: task-space-in-frame
+  frame_id: left_centering_link
+  speed: 1.0
+  acc: 0.5
+  move_linear: False
+  desc: Above centering point
+- pose: [-0.02, 0, 0.445, 60, 0, 0]
+  pose_type: task-space-in-frame
+  frame_id: left_centering_link
+  speed: 1.0
+  move_linear: False
+  desc: dropping 
+- pose_type: gripper
+  gripper:
+    action: 'open'
+    open_width: 0.08
+    velocity: 1.0
+- pose_type: gripper
+  gripper:
+    action: 'close-open'
+    open_width: 0.08
+    velocity: 0.01
+    force: 0
+  desc: Centering
+- pose: [-0.02, 0, 0.445, -30, 0, 0] 
+  pose_type: task-space-in-frame
+  frame_id: left_centering_link
+  speed: 1.0
+  acc: 0.8
+- pose_type: gripper
+  gripper:
+    action: 'close-open'
+    open_width: 0.08
+    velocity: 0.01
+  desc: Centering 
+- pose: [-0.022, 0, 0.445, 60, 0, 0] 
+  pose_type: task-space-in-frame
+  frame_id: left_centering_link
+  speed: 1.0
+  acc: 0.8
+- pose: [-0.005, 0, -0.005, 0, 60, 0] 
+  pose_type: relative-tcp
+  speed: 0.6
+  # acc: 0.8
+- pose_type: gripper
+  gripper:
+    action: 'close'
+    velocity: 0.05
+- pose: [0.0, 0, 0.04, 0, 0, 0] 
+  pose_type: relative-world
+  speed: 0.6
+- pose: [0.0, 0, 0.0, 0, -110, 0] 
+  pose_type: relative-tcp
+  speed: 0.6
+- pose: [0.0, 0, -0.035, 0, 0, 0] 
+  pose_type: relative-world
+  speed: 0.3
+- pose_type: gripper
+  gripper:
+    action: 'open'
+    open_width: 0.08
+    velocity: 0.1
+- pose: [0.0, 0.0, 0.0, 0, 115, 0] 
+  pose_type: relative-tcp
+  speed: 0.6
+- pose_type: gripper
+  gripper:
+    action: 'close'
+    velocity: 0.05
+- pose: [0.0, 0, 0.05, 0, 0, 0] 
+  pose_type: relative-world
+  speed: 0.3
+- pose: [-0.025, 0, 0.445, 60, 0, 0] 
+  pose_type: task-space-in-frame
+  frame_id: left_centering_link
+  speed: 0.6
+  desc: dropping
+- pose_type: gripper
+  gripper:
+    action: 'open'
+    open_width: 0.08
+    velocity: 0.01
+- pose_type: gripper
+  gripper:
+    action: 'close-open'
+    open_width: 0.08
+    velocity: 0.01
+    force: 0
+  desc: Centering
+- pose: [-0.02, 0, 0.445, -30, 0, 0] 
+  pose_type: task-space-in-frame
+  frame_id: left_centering_link
+  speed: 1.0
+  acc: 0.8
+- pose_type: gripper
+  gripper:
+    action: 'close-open'
+    open_width: 0.08
+    velocity: 0.01
+    force: 0
+  desc: Centering 
+- pose: [-0.02, 0, 0.445, 60, 0, 0] 
+  pose_type: task-space-in-frame
+  frame_id: left_centering_link
+  speed: 1.0
+  acc: 0.8
+- pose: [0.0, 0, -0.015, 0, 35, 0] 
+  pose_type: relative-tcp
+  speed: 0.6
+  acc: 0.4
+- pose_type: gripper
+  gripper:
+    action: 'close'
+    velocity: 0.05
+- pose: [0.0, 0, 0.05, 0, 0, 0] 
+  pose_type: relative-world
+  speed: 0.57
+  acc: 0.5
+  desc: move up
+- pose: "centering_area" # translation, orientation (degrees)
+  pose_type: named-pose
+  speed: 1.0
+  acc: 0.5
+  desc: Above tray edge

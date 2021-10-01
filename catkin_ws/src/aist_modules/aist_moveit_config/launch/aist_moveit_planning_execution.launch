@@ -1,0 +1,35 @@
+<launch>
+  <arg name="scene" default=""/>
+  <arg name="sim" default="false" />
+  <arg name="debug" default="false" />
+  <arg name="config" default="$(find aist_moveit_config)/launch/moveit.rviz" />
+
+  <!-- aist parameter -->
+  <param name="use_real_robot" type="bool" value="$(eval not sim)" />
+
+  <!-- The two lines below are taken from connect_real_robots.launch and need to
+       be commented out when running Gazebo -->
+  <group unless="$(arg sim)">
+    <include file="$(find
+		   aist_scene_description)/launch/base_scene_upload.launch">
+      <arg name="scene" value="$(arg scene)"/>
+    </include>
+    <node name="robot_state_publisher" pkg="robot_state_publisher"
+	  type="robot_state_publisher" />
+  </group>
+
+  <!-- Remap follow_joint_trajectory -->
+  <remap if="$(arg sim)" from="/follow_joint_trajectory" to="/arm_controller/follow_joint_trajectory"/>
+
+  <!-- Launch moveit -->
+  <include file="$(find aist_moveit_config)/launch/move_group.launch">
+    <arg name="load_robot_description"	value="false" />
+    <arg name="debug"			value="$(arg debug)" />
+  </include>
+
+  <!-- Launch moveit with rviz -->
+  <include file="$(find aist_moveit_config)/launch/moveit_rviz.launch">
+    <arg name="debug"		value="$(arg debug)" />
+    <arg name="rviz_config"	value="$(arg config)" />
+  </include>
+</launch>

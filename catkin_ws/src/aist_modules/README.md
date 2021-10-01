@@ -1,0 +1,1 @@
+These packages contain the 3D localization and calibration routines written by the AIST members.

@@ -1,0 +1,7 @@
+<library path="lib/libaist_model_spawner">
+  <class name="aist_model_spawner/TransientModel"
+	 type="rviz::TransientModelDisplay"
+	 base_class_type="rviz::Display">
+    <description>transient model display panel</description>
+  </class>
+</library>

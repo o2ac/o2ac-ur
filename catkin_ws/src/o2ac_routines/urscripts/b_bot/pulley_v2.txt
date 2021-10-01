@@ -1,0 +1,62 @@
+ Program
+   Robot Program
+     MoveJ
+       home
+     Gripper Move16% (1)
+     MoveL
+       above
+       Waypoint_2
+     Gripper Close (1)
+     Gripper Move21% (1)
+     MoveL
+       Waypoint_3
+     Gripper Close (1)
+     Gripper Move36% (1)
+     MoveL
+       Waypoint_2
+       Waypoint_1
+     Gripper Close (1)
+     MoveL
+       above_inclined
+     'MoveJ'
+     'MoveJ'
+     'Force'
+     MoveJ
+       Waypoint_4
+       beforehole
+     MoveL
+       athole
+     MoveL
+       Direction: Base X-
+         Until (tool_contact_detection)
+     Force
+       MoveL
+         rightturn
+         leftturn
+         leftturn
+         rightturn
+     Gripper Open (1)
+     MoveJ
+       beforehole
+       Waypoint_5
+       Waypoint_8
+     Gripper Move71% (1)
+     Folder
+       loop_1≔1
+       tcp_p≔get_actual_tcp_pose()
+       Force
+         Loop ( tcp_p[0] > -0.090) and  (loop_1 < 3) 
+           MoveL
+             right1
+             tcp_p≔get_actual_tcp_pose()
+             left1
+             tcp_p≔get_actual_tcp_pose()
+             left1
+             tcp_p≔get_actual_tcp_pose()
+             right1
+             tcp_p≔get_actual_tcp_pose()
+           loop_1≔loop_1+1
+     MoveJ
+       back
+     MoveJ
+       home

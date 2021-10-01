@@ -1,0 +1,14 @@
+ Program
+   Robot Program
+     MoveL
+       before_push
+     Gripper Close (1)
+     MoveL
+       push_end
+       Popup: pushed. continue?
+       before_push
+     Gripper Move73% (1)
+     MoveJ
+       above_plate
+       at_plate
+     Gripper Close (1)

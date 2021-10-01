@@ -1,0 +1,188 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro"
+       name="o2ac_environment" >
+
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_box.xacro" />
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_box_2.xacro" />
+  <!-- This file defines the frames surrounding the robots, used to fix the tools, multi-jig etc. -->
+  <xacro:property name="vert_column_x_back" value="${-.325-.15-.04}"/>
+  
+  <xacro:o2ac_box boxname="vertical_column_right" box_w=".04" box_l=".04" box_h="2.0" parent="o2ac_ground">
+    <origin xyz="${vert_column_x_back} .2 0" rpy="0 0 0" />   
+  </xacro:o2ac_box> 
+  <xacro:o2ac_box boxname="vertical_column_left" box_w=".04" box_l=".04" box_h="2.0" parent="o2ac_ground">
+    <origin xyz="${vert_column_x_back} -.24 0" rpy="0 0 0" />   
+  </xacro:o2ac_box> 
+
+  <xacro:o2ac_box boxname="horizontal_column_top" box_w=".04" box_l=".4" box_h=".04" parent="o2ac_ground">
+    <origin xyz="${vert_column_x_back} -.2 1.96" rpy="0 0 0" />   
+  </xacro:o2ac_box> 
+
+  <xacro:o2ac_box boxname="horizontal_column_for_tools" box_w=".04" box_l=".4" box_h=".04" parent="o2ac_ground">
+    <origin xyz="${vert_column_x_back} -.2 1.058" rpy="0 0 0" />   
+  </xacro:o2ac_box> 
+
+  <!-- Invisible walls to avoid OMPL creating crazy plans (sanity limits) -->
+  <xacro:o2ac_box_2 boxname="agv_table" box_w=".6" box_l=".5" box_h=".05" invisible="true" parent="workspace_center">
+    <origin xyz=".65 0 -.04" rpy="0 0 0" />
+  </xacro:o2ac_box_2>
+
+  <xacro:o2ac_box_2 boxname="back_limit_a" box_w=".05" box_l=".5" box_h=".5" invisible="true" parent="workspace_center">
+    <origin xyz="${vert_column_x_back} -.5 .3" rpy="0 0 0" />
+  </xacro:o2ac_box_2>
+
+  <xacro:o2ac_box_2 boxname="back_limit_b" box_w=".05" box_l=".5" box_h=".5" invisible="true" parent="workspace_center">
+    <origin xyz="${vert_column_x_back} .5 .3" rpy="0 0 0" />
+  </xacro:o2ac_box_2>
+
+  <xacro:o2ac_box_2 boxname="side_limit_a" box_w="1.0" box_l=".05" box_h="1.0" invisible="true" parent="workspace_center">
+    <origin xyz=".0 1.1 .5" rpy="0 0 0" />
+  </xacro:o2ac_box_2>
+  <xacro:o2ac_box_2 boxname="side_limit_b" box_w="1.0" box_l=".05" box_h="1.0" invisible="true" parent="workspace_center">
+    <origin xyz=".0 -1.1 .5" rpy="0 0 0" />
+  </xacro:o2ac_box_2>
+
+  <!-- Screw holder & screw tool visual -->
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/tools.xacro" />
+
+  <!-- Add screw feeders -->
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/screw_feeder.xacro" />
+  
+  <xacro:screw_feeder feedername="m3_feeder" parent="workspace_center" with_collision_geometry="false">
+    <origin xyz="-.5115 -.1555 0.015" rpy="0 0 0" />   
+  </xacro:screw_feeder> 
+  <xacro:screw_feeder feedername="m4_feeder" parent="workspace_center" with_collision_geometry="false">
+    <origin xyz="-.514 0.009 0.018" rpy="0 0 0" />   
+  </xacro:screw_feeder> 
+
+  <!-- Base fixture -->
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/base_fixture.xacro" />
+  <xacro:base_fixture parent="workspace_center">
+    <origin xyz="-0.294 -.18 0" rpy="0 0 0" />   
+  </xacro:base_fixture> 
+
+  <!-- Tray -->
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/tray.xacro" />
+  <xacro:tray trayname="tray" parent="workspace_center">
+    <origin xyz="0.05 -0.2 0.0001" rpy="0 0 0" />
+  </xacro:tray>
+
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/tray.xacro" />
+  <xacro:tray trayname="agv_tray" parent="workspace_center" with_visual="false" with_collision_geometry="false" with_stoppers="false">
+    <origin xyz="0.37 -0.2 0.001" rpy="0 0 0" />
+  </xacro:tray>
+
+  <!-- Add the jigs -->
+  <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/components/jig_flat_slope.xacro" />
+  <xacro:jig_flat_slope jigname="jig_flat_slope" parent="horizontal_column_1">
+    <origin xyz="0.04 0.15 0" rpy="0 0 0" />   
+  </xacro:jig_flat_slope>  -->
+  
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/vgroove_aid.xacro" />
+  <xacro:vgroove_aid jigname="vgroove_aid" parent="b_bot_base_link">
+    <origin xyz="-0.2957 0.169 0.0" rpy="0 0 ${pi/2}" />   
+  </xacro:vgroove_aid> 
+
+  <!-- The second vgroove at the back (for the motor)-->
+  <!-- <xacro:vgroove_aid jigname="vgroove_aid_motor" parent="b_bot_base_link">
+    <origin xyz="-0.26 -0.28 0.001" rpy="0 0 0" />   
+  </xacro:vgroove_aid>  -->
+
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/simple_holder.xacro" />
+  <xacro:simple_holder partname="simple_holder" parent="workspace_center">
+    <origin xyz="0.257 -0.607 -0.0149" rpy="0 0 0" />  
+  </xacro:simple_holder> 
+
+  <joint name="right_storage_area_joint" type="fixed">
+    <parent link="workspace_center"/>
+    <child link="right_storage_area_link"/>
+    <origin xyz="0.25 0.50 -0.0149" rpy="0 ${pi/2} -${pi/2}" />
+  </joint>
+  <link name="right_storage_area_link"/>
+
+  <joint name="right_centering_joint" type="fixed">
+    <parent link="workspace_center"/>
+    <child link="right_centering_link"/>
+    <origin xyz="0.20 0.30 -0.0149" rpy="0 ${pi/2} -${pi/2}" />
+  </joint>
+  <link name="right_centering_link"/>
+
+  <joint name="left_centering_joint" type="fixed">
+    <parent link="workspace_center"/>
+    <child link="left_centering_link"/>
+    <origin xyz="0.20 -0.30 -0.0149" rpy="0 ${pi/2} -${pi/2}" />
+  </joint>
+  <link name="left_centering_link"/>
+
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/washer_holder.xacro" />
+  <xacro:washer_holder partname="washer_holder1" parent="workspace_center">
+    <origin xyz="0 -0.14 0.001" rpy="0 0 0" />  
+  </xacro:washer_holder>
+
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/washer_holder.xacro" />
+  <xacro:washer_holder partname="washer_holder2" parent="workspace_center">
+    <origin xyz="0 -0.05 0.001" rpy="0 0 0" />
+  </xacro:washer_holder> 
+
+  <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/components/washer_holder.xacro" />
+  <xacro:washer_holder partname="washer_holder3" parent="workspace_center">
+    <origin xyz="0.325 -0.6 -0.045" rpy="0 ${pi/2} 0" />  
+  </xacro:washer_holder>
+
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/washer_holder.xacro" />
+  <xacro:washer_holder partname="washer_holder4" parent="workspace_center">
+    <origin xyz="0.325 -0.5 -0.045" rpy="0 ${pi/2} 0" />  
+  </xacro:washer_holder>  -->
+  <!-- ======== -->
+
+  <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/components/nut_holder.xacro" />
+  <xacro:nut_holder partname="nut_holder" parent="a_bot_base_smfl">
+    <origin xyz="0 .6 0.02" rpy="0 0 0" />  
+  </xacro:nut_holder> 
+
+
+  <xacro:nut_holder partname="calibration_cone" parent="workspace_center">
+    <origin xyz="${-0.365+0.01} ${0.345+.03} ${0.022-0.0465}" rpy="0 0 0" />  
+  </xacro:nut_holder>   -->
+
+  <!-- ======== -->
+  <!-- TV -->
+  
+  <link name="tv">
+    <!-- This tv box origin is at the front bottom, so it can more easily be measured  -->
+    <xacro:property name="tv_length_x" value="0.06"/>
+    <xacro:property name="tv_length_y" value="0.96"/>
+    <xacro:property name="tv_length_z" value="0.56"/>
+  
+    <visual>
+      <origin xyz="${-tv_length_x/2} 0.0 ${tv_length_z/2}" rpy="0 0 0"/>
+      <geometry>
+        <box size="${tv_length_x} ${tv_length_y} ${tv_length_z}"/> 
+      </geometry>
+      <material name="Black">
+        <color rgba="0.1 0.1 0.1 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="${-tv_length_x/2} 0.0 ${tv_length_z/2}" rpy="0 0 0"/>
+      <geometry>
+        <!-- 7.5 cm on each side -->
+        <box size="${tv_length_x + 0.15} ${tv_length_y + 0.15} ${tv_length_z+0.1}"/> 
+      </geometry>
+    </collision>
+    <!-- This is required for Gazebo. -->
+    <inertial>
+      <mass value="1.0" />
+      <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0" />
+    </inertial>
+  </link>
+  <gazebo reference="tv">
+    <material>Gazebo/Black</material>
+  </gazebo>
+  <joint name="tv_joint" type="fixed">
+    <parent link="o2ac_ground" />
+    <child link = "tv" />
+    <origin xyz="-0.4 0.0 1.55" rpy="0 0 0" />
+  </joint>
+
+</robot>

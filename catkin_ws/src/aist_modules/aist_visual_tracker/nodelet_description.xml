@@ -1,0 +1,8 @@
+<library path="lib/libaist_visual_tracker_nodelet">
+  <class name="aist_visual_tracker/aist_visual_tracker_nodelet"
+	 type="aist_visual_tracker::KLTTrackerNodelet"
+	 base_class_type="nodelet::Nodelet">
+    <description>
+    </description>
+  </class>
+</library>

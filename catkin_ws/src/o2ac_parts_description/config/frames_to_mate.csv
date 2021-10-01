@@ -1,0 +1,25 @@
+parent_frame, child_frame, roll, pitch, yaw, x, y, z, notes
+# This is bugged.
+# The rpy,xyz offset is described in the child_frame (?)
+
+# The panels
+assy_part_01_screw_hole_panel2_1, assy_part_02_bottom_screw_hole_aligner_1,   0, 0, 0,   0,0,0, Base + Panel1
+assy_part_01_screw_hole_panel1_1, assy_part_03_bottom_screw_hole_aligner_1,   0, 0, 0,   0,0,0, Base + Panel2
+
+# The motor
+assy_part_02_back_hole, assy_part_04_inserted_02,   pi, 0, 0,   0,0,0, Panel2 + Motor
+assy_part_04_tip, assy_part_05_center,   0, 0, 0,   0.005,0,0, Motor + Pulley
+
+# The bearing and output shaft
+assy_part_03_front_hole, assy_part_07_inserted,   0, 0, 0,   0,0,0, Panel2 + Bearing
+assy_part_07_front_hole, assy_part_10_center,   0, 0, 0,   -0.001,0,0, Bearing + Washer
+assy_part_10_center, assy_part_11_back_tip,   0, 0, 0,    0.002,0,0, Bearing + Pulley
+assy_part_07_back_hole, assy_part_09_inner_surface,   0, 0, 0,   -0.001,0,0, Bearing + End Cap
+assy_part_09_inner_surface, assy_part_08_back_tip,   0, 0, pi,   0,0,0, End Cap + Rotary Shaft
+
+# The idler assembly in the middle
+assy_part_03_pulley_ridge_bottom, assy_part_12_center,   0, 0, 0,   0.00475,0,0, Panel2 + Spacer
+assy_part_12_center, assy_part_13_center,   0, 0, 0,   0.00475+0.009,0,0, Spacer + Pulley
+assy_part_13_center, assy_part_14_inserted,   0, 0, 0,   0,0,0, Pulley + Screw
+assy_part_03_pulley_ridge_bottom, assy_part_16_center,   0, 0, 0,   -(0.005+.001),0,0, Panel2 + Washer
+assy_part_16_center, assy_part_15_center,   0, 0, pi,   .001+.0025,0,0, Washer + Nut

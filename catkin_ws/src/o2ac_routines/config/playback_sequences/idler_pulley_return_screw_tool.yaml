@@ -1,0 +1,18 @@
+robot_name: b_bot
+waypoints:
+- desc: retreat tool
+  pose: [-0.1, 0, 0.0, 0, 0, 0]
+  pose_type: relative-base
+  speed: 0.5
+- pose: [0.15, 0.0, 0.30, 50, 50, -140]
+  pose_type: task-space-in-frame
+  frame_id: workspace_center
+  speed: 1.0
+  blend: 0.01
+  is_trajectory: True
+- pose: [0.05,  0.05,  0.45, 180,  30 , -90]
+  pose_type: task-space-in-frame
+  frame_id: workspace_center
+  speed: 0.5
+  blend: 0.0
+  is_trajectory: True

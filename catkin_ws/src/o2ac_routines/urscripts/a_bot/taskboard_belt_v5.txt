@@ -1,0 +1,27 @@
+ Program
+   Robot Program
+     'MoveJ'
+     MoveL
+       'above_tray'
+       wait_w_belt
+     Popup: start sequence together with b_bot (simultaneous start)
+     Wait: 2.5
+     MoveL
+       Waypoint_5
+     MoveJ
+       Waypoint_6
+     MoveL
+       Waypoint_13
+       Waypoint_7
+     Wait: 1.0
+     MoveL
+       Waypoint_8
+     MoveL
+       Waypoint_9
+     Wait: 5.0
+     Gripper Move80% (1)
+     MoveL
+       Waypoint_10
+     MoveJ
+       Waypoint_11
+       home

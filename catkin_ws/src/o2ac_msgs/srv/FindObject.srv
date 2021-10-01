@@ -1,0 +1,9 @@
+# Request
+geometry_msgs/PoseStamped expected_position # Where the object is expected to be
+float64 position_tolerance                  # How far the object may be from the expected position (in m)
+string object_id                            # The part to detect, e.g. "4" for the motor
+string camera                               # The camera to be used for the recognition ("phoxi", "a_bot_realsense"...)
+---
+# Response
+bool success
+geometry_msgs/PoseStamped object_pose

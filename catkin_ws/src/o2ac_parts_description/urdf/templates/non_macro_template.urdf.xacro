@@ -1,0 +1,6 @@
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="MACRONAME_EXTERNAL">
+  <xacro:include filename="$(find o2ac_parts_description)/urdf/generated/PARTNAME_macro.urdf.xacro"/>
+  <xacro:MACRONAME_EXTERNAL prefix="" parent="world" spawn_attached="false">
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+  </xacro:MACRONAME_EXTERNAL>
+</robot>

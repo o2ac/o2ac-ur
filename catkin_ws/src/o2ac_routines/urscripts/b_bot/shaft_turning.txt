@@ -1,0 +1,16 @@
+ Program
+   Robot Program
+     Gripper Move46% (1)
+     MoveL
+       at_shaft
+     'Wait: 1.0'
+     MoveL
+       at_shaft_left
+     Gripper Close (1)
+     MoveL
+       at_left_up
+       at_right_up
+       at_right
+     Gripper Move46% (1)
+     MoveL
+       at_shaft

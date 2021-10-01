@@ -1,0 +1,17 @@
+ Program
+   Robot Program
+     Gripper Move76% (1)
+     MoveJ
+       above_cable
+     MoveL
+       at_cable_base
+     Gripper Move84% (1)
+     MoveL
+       at_cable_tip
+     Gripper Move89% (1)
+     Popup: press enter, then the robot will move to insert
+     MoveL
+       midpoint
+     MoveL
+       by_terminal
+     'MoveL'

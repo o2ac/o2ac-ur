@@ -1,0 +1,39 @@
+robot_name: b_bot
+waypoints:
+- pose: "centering_area" # translation, orientation (degrees)
+  pose_type: named-pose
+  speed: 1.0
+  acc: 0.5
+  desc: Above tray edge
+- pose: [-0.2, 0.0, 0.0, 0, 0,0] 
+  pose_type: task-space-in-frame
+  frame_id: plunger_tool_pickup_link
+  speed: 0.4
+  is_trajectory: True
+  blend: 0.005
+  desc: Above tool
+- pose: [-0.01, 0.0, 0.0, 0, 0,0] 
+  pose_type: task-space-in-frame
+  frame_id: plunger_tool_pickup_link
+  speed: 0.2
+  is_trajectory: True
+  blend: 0.005
+  desc: at tool
+- pose_type: gripper
+  gripper:
+    action: 'open'
+    velocity: 0.1
+- pose: [-0.1, 0.0, 0.0, 0, 0,0] 
+  pose_type: task-space-in-frame
+  frame_id: plunger_tool_pickup_link
+  speed: 0.2
+  is_trajectory: True
+  blend: 0.005
+  desc: Above tool
+- pose: [-0.15, 0, 0.10, -90, 0, 0] # translation, orientation (degrees)
+  pose_type: task-space-in-frame
+  frame_id: right_centering_link
+  speed: 0.4
+  is_trajectory: True
+  blend: 0.005
+  desc: Above tray edge

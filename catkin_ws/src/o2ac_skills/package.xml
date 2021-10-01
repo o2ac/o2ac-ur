@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>o2ac_skills</name>
+  <version>0.6.0</version>
+  <description>The o2ac_skills package</description>
+
+  <maintainer email="FvDrigalski@gmail.com">Felix von Drigalski</maintainer>
+  <maintainer email="cristianbehe@gmail.com">Cristian C. Beltran-Hernandez</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>rospy</build_depend>
+
+  <build_depend>actionlib</build_depend>
+  <build_depend>tf</build_depend>
+  
+  <exec_depend>tf</exec_depend>
+  
+  <build_depend>o2ac_msgs</build_depend>
+  <exec_depend>o2ac_msgs</exec_depend>
+
+  <exec_depend>message_generation</exec_depend>
+  
+  <build_depend>moveit_core</build_depend>
+  <build_depend>moveit_commander</build_depend>
+  <build_depend>moveit_ros_planning_interface</build_depend>
+  <build_depend>moveit_ros_planning</build_depend>
+  <exec_depend>moveit_core</exec_depend>
+  <exec_depend>moveit_commander</exec_depend>
+  <exec_depend>moveit_ros_planning_interface</exec_depend>
+  <exec_depend>moveit_ros_planning</exec_depend>
+
+  <depend>std_msgs</depend>
+	<depend>control_msgs</depend>
+	<depend>robotiq_msgs</depend>
+	<depend>std_srvs</depend>
+	<depend>ur_robot_driver</depend>
+  
+</package>

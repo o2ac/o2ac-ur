@@ -1,0 +1,28 @@
+# Define the goal
+# Fields that have to be set:
+string object_name  # Name of the object to pick and place
+geometry_msgs/PoseStamped object_target_pose  # The target pose that the object will be placed at
+
+# Optional fields: (If not set, the default values will be used. See README for more details)
+string grasp_parameter_location  # The parameter under which grasp information is stored. See README for details on the parameter tree structure
+string object_subframe_to_place   # If defined, the target pose will be set for this subframe instead of the object's frame. Us the form: "object_name/subframe_name"
+bool release_object_after_place  # If set to True the plan includes the robot retreating after placing the object
+string lift_direction_reference_frame  # The coordinate frame in which the direction of lifting the object (lift_direction) is defined
+float64[] lift_direction  # Vector of the form [x,y,z] for setting the direction of lifting the object
+string approach_place_direction_reference_frame  # The coordinate frame in which the direction of placing the object (approach_place_direction) is defined
+float64[] approach_place_direction  # Vector of the form [x,y,z] for setting the direction of placing the object
+string[] robot_names  # Name of the robot(s) for pick-place operation (if not set, and there are multiple robots, the planning is done for all robots and all pairs of robots and the best solution is returned)
+bool force_robot_order  # If set to True the first robot in robot_names picks the object and the second robot in robot_names places it when planning with regrasp
+
+# Fields currently not in use (these have no effect yet)
+float64 approach_object_min_dist  # Minimum approach distance in the approach_place_direction when placing the object
+float64 approach_object_max_dist  # Maximum approach distance in the approach_place_direction when placing the object
+float64 lift_object_min_dist  # Minimum lift distance in the lift_direction
+float64 lift_object_max_dist  # Maximum lift distance in the lift_direction
+string surface_link  # name of link on which the object lies before picking
+---
+# Define the result
+bool success
+moveit_task_constructor_msgs/Solution solution
+---
+# Define a feedback message

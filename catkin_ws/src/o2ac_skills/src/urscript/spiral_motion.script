@@ -1,0 +1,69 @@
+def SpiralMotion():
+    def get_spiral_position(theta, r, spiral_axis):
+        newpose = p[0,0,0,0,0,0]
+        x=cos(d2r(theta))*r
+        y=sin(d2r(theta))*r
+        if (spiral_axis == "Z"):
+            newpose[0] = x
+            newpose[1] = y
+        elif (spiral_axis == "Y"):
+            newpose[2] = x
+            newpose[0] = y
+        elif (spiral_axis == "X"):
+            newpose[1] = x
+            newpose[2] = y
+        elif (spiral_axis == "YZ"):
+            newpose[0] = x
+            newpose[1] = y/1.41
+            newpose[2] = y/1.41
+        elif (spiral_axis == "Y30Z60"):
+            newpose[0] = x
+            newpose[1] = y*0.5
+            newpose[2] = y*0.866
+        end
+        return newpose
+    end
+    def spiral_motion(max_radius=5.0, radius_incr=0.3, speed=0.01, acceleration=0.6, spiral_axis="Z", theta_incr=30):
+        if (max_radius < 0.0005) or (max_radius > .1):
+            textmsg("ERROR: max_radius parameter in m must be between 0.0005 m and 0.1 m")
+        else:
+            if (radius_incr < 0.0001) or (radius_incr > 0.05):
+                textmsg("ERROR: radius_incr parameter in m must be between 0.0001 m and .05 m")
+            else:
+                global max_radius_set = max_radius
+                # global theta_incr = 30  # Degrees
+                global radius_inc_set = radius_incr / (360 / theta_incr)
+                global r=0.0003  #Start radius
+                global z_insert_distance = 0.001  #in meter
+                global x=0
+                global y=0
+                global z=0
+                global pos=p[0,0,0,0,0,0]
+                global next_position=p[0,0,0,0,0,0]
+                global z_Insert=p[0,0,z_insert_distance,0,0,0]
+                global current_pos=p[0,0,0,0,0,0]
+                global theta=0
+                global RealRadius=0
+                global Search_result = False
+                sync()
+                #Find the bore of the part#
+                current_pos=get_actual_tcp_pose()
+                textmsg("Spiral motion")
+                sync()
+                while ((RealRadius <= max_radius_set)):
+                    #standard method
+                    theta=theta+theta_incr
+                    pos = get_spiral_position(theta, r, spiral_axis)
+                    r=r + radius_inc_set
+                    RealRadius = sqrt(pow(norm(x),2)+pow(norm(y),2))
+                    next_pos=pose_trans(current_pos,pos)
+                    movep(next_pos, a=acceleration, v=speed, r=0.0)
+                    sleep(0.02)  # Can this be tuned to go faster?
+                end
+                textmsg("Done")
+                return True
+            end
+        end
+    end
+
+    # Insert real program here.

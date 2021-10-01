@@ -1,0 +1,12 @@
+#Request
+moveit_msgs/CollisionObject object
+uint8 distribution_type
+geometry_msgs/PoseWithCovarianceStamped distribution
+duration lifetime
+bool frame_locked
+
+# Values for distribution_type
+uint8 RPY_COVARIANCE = 0
+uint8 LIE_COVARIANCE = 1
+---
+#Response

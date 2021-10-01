@@ -1,0 +1,22 @@
+# This action should be called when the camera looks at the tray or an object.
+# The distance from the tray needs to match the part that is being searched.
+# Small parts require "near" distance. Large ones (CAD-matching) require "far" distance.
+
+# Request (sent from the action client to the action server)
+string item_id     # Name of the item. The CAD model should be retrieved separately (o2ac_parts_description)
+
+# Optional parameter:
+# A guess where the object is expected to be. This could be used e.g. with YOLO,
+# to define a region of interest.
+geometry_msgs/PoseWithCovarianceStamped expected_pose
+
+---
+# Result (returned from the server to the client)
+
+o2ac_msgs/Estimated3DPoses[] detected_poses
+
+# Optional
+geometry_msgs/PoseWithCovarianceStamped[] detected_poses_with_covariance
+
+---
+# Feedback (values that can be sent to the client while the action is running)

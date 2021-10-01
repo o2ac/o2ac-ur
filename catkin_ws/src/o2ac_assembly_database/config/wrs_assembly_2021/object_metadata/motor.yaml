@@ -1,0 +1,145 @@
+collision_primitives:
+- type: CYLINDER 
+  dimensions: [0.055, 0.016]
+  pose: [0.016, -0.005, -0.006, 0.0, 0.0, 0.0]
+- type: CYLINDER 
+  dimensions: [0.015, 0.0025]
+  pose: [0.016, -0.0125, 0.0257, 0.0, 0.0, 0.0]
+subframes:
+- pose_xyzrpy:
+  - 0.016
+  - 0.0
+  - 0.0
+  - -pi/2
+  - -pi/2
+  - 0.0
+  name: center
+- pose_xyzrpy:
+  - 0.02
+  - -0.007
+  - 0.042
+  - -pi/2
+  - -pi/2
+  - 0.0
+  name: tip
+- pose_xyzrpy:
+  - 0.02
+  - -0.007
+  - 0.021
+  - -pi/2
+  - -pi/2
+  - 0.0
+  name: inserted_02
+- pose_xyzrpy:
+  - 0.011
+  - -0.006
+  - -0.04
+  - -pi/2
+  - -pi/2
+  - 0.0
+  name: black_cable_connector
+- pose_xyzrpy:
+  - 0.029
+  - 0.006
+  - -0.04
+  - -pi/2
+  - -pi/2
+  - 0.0
+  name: red_cable_connector
+grasp_points:
+- grasp_name: grasp_1
+  pose_xyzrpy:
+  - 0.019
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+- grasp_name: grasp_2
+  pose_xyzrpy:
+  - 0.019
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.5235987755982988
+- grasp_name: grasp_3
+  pose_xyzrpy:
+  - 0.019
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 1.0471975511965976
+- grasp_name: grasp_4
+  pose_xyzrpy:
+  - 0.019
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 1.5707963267948966
+- grasp_name: grasp_5
+  pose_xyzrpy:
+  - 0.019
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 2.0943951023931953
+- grasp_name: grasp_6
+  pose_xyzrpy:
+  - 0.019
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 2.617993877991494
+- grasp_name: grasp_7
+  pose_xyzrpy:
+  - 0.019
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 3.141592653589793
+- grasp_name: grasp_8
+  pose_xyzrpy:
+  - 0.019
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 3.665191429188092
+- grasp_name: grasp_9
+  pose_xyzrpy:
+  - 0.019
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 4.1887902047863905
+- grasp_name: grasp_10
+  pose_xyzrpy:
+  - 0.019
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 4.71238898038469
+- grasp_name: grasp_11
+  pose_xyzrpy:
+  - 0.019
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 5.235987755982988
+- grasp_name: grasp_12
+  pose_xyzrpy:
+  - 0.019
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 5.759586531581287

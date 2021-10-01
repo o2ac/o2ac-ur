@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="taskboard_scene">
+  <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/components/taskboard.xacro" /> -->
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/taskboard_2021_competition.xacro" />
+  <xacro:taskboard boardname="taskboard" parent="attached_base_origin_back_link">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </xacro:taskboard>
+</robot>

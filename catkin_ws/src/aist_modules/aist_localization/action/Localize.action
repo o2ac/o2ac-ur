@@ -1,0 +1,18 @@
+# Goal definition
+string  object_name  # <object_name>.ply gives the name of the object model
+bool    in_plane     # determine pose within a plane
+
+int32   nposes       # number of candidate poses (effective only for FULL)
+
+geometry_msgs/Pose2D[] poses2d
+
+bool    sideways     # true if object x-axis is parallel to a supporting plane
+float32 x_offset     # x-offset of object center w.r.t. object base frame
+float32 z_offset     # z-offset of object center w.r.t. object base frame
+---
+# Result definition
+bool success
+---
+# Feedback definition
+geometry_msgs/PoseStamped pose
+float32 overlap

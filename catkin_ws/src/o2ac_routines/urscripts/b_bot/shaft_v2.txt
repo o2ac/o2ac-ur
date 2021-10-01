@@ -1,0 +1,84 @@
+ Program
+   Robot Program
+     MoveJ
+       beforehole
+     MoveL
+       'athole'
+       Direction: Tool Y-
+         Until (tool_contact_detection)
+     MoveL
+       Direction: Base Z+
+         Until (distance)
+     Force
+       Wait: 3.0
+       'Loop 10 times'
+       'spiral motion'
+       'Loop 30 times'
+       'grid motion'
+       loop_1≔1
+       tcp_p≔get_actual_tcp_pose()
+       Loop ( tcp_p[0] > -0.078) and  (loop_1 < 6) 
+         MoveL
+           Direction: Tool X+
+             Until (distance)
+           Direction: Tool Z-
+             Until (distance)
+           Direction: Tool X-
+             Until (distance)
+           Direction: Tool X-
+             Until (distance)
+           Direction: Tool Z+
+             Until (distance)
+           Direction: Tool X+
+             Until (distance)
+           Direction: Tool X+
+             Until (distance)
+           Direction: Tool Z+
+             Until (distance)
+           Direction: Tool X-
+             Until (distance)
+           Direction: Tool X-
+             Until (distance)
+           Direction: Tool Z-
+             Until (distance)
+           Direction: Tool X+
+             Until (distance)
+         tcp_p≔get_actual_tcp_pose()
+         MoveL
+           Direction: Tool X+
+             Until (distance)
+           Direction: Tool Z-
+             Until (distance)
+           Direction: Tool X-
+             Until (distance)
+           Direction: Tool X-
+             Until (distance)
+           Direction: Tool Z+
+             Until (distance)
+           Direction: Tool X+
+             Until (distance)
+           Direction: Tool X+
+             Until (distance)
+           Direction: Tool Z+
+             Until (distance)
+           Direction: Tool X-
+             Until (distance)
+           Direction: Tool X-
+             Until (distance)
+           Direction: Tool Z-
+             Until (distance)
+           Direction: Tool X+
+             Until (distance)
+         loop_1≔loop_1+1
+         tcp_p≔get_actual_tcp_pose()
+     Gripper Open (1)
+     MoveJ
+       push_shaft_rdy
+     Gripper Close (1)
+     MoveL
+       push_shaft
+     MoveJ
+       home
+     Halt
+     MoveJ
+       fully_inserted

@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="config"		default="o2ac"/>
+  <arg name="camera_name"	default="a_bot_inside_camera"/>
+
+  <arg if="$(eval config == 'o2ac')"
+       name="scene_description"	value="$(find o2ac_scene_description)"/>
+  <arg if="$(eval config == 'aist')"
+       name="scene_description"	value="$(find aist_scene_description)"/>
+
+  <!-- Publish hand-eye calibration -->
+  <node  name="$(anon handeye_publisher)"
+	 pkg="aist_handeye_calibration" type="publish_calibration.py"
+	 output="screen">
+    <rosparam file="$(arg scene_description
+		    )/config/camera_calibration/$(arg camera_name).yaml"/>
+  </node>
+
+</launch>

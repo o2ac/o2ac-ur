@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="assembly_scene">
+  
+  <xacro:include filename="$(find o2ac_parts_description)/urdf/assembly_parts_macros.urdf.xacro"/>
+  <!-- <xacro:include filename="$(find o2ac_parts_description)/urdf/display_all_parts.urdf.xacro"/> -->
+  
+  <!-- ====== Uncomment this block to show the completed assembly -->
+  <!-- <xacro:include filename="$(find o2ac_parts_description)/urdf/generated/full_assembly.urdf.xacro"/>
+  <xacro:full_assembly prefix="assembled_" parent="attached_base_origin_link">
+    <origin xyz=".12 .2 0" rpy="0 0 ${-pi/2}" />
+  </xacro:full_assembly> -->
+
+  <!-- ====== Uncomment this block to add the frames of the complete assembly, but not the objects -->
+  <xacro:include filename="$(find o2ac_parts_description)/urdf/generated/full_assembly_frames_only.urdf.xacro"/>
+  <xacro:full_assembly_frames_only prefix="assembled_" parent="attached_base_origin_link">
+    <origin xyz=".12 .2 0" rpy="0 0 ${-pi/2}" />  
+  </xacro:full_assembly_frames_only>
+  
+  <!-- The base plate -->
+  <!-- <xacro:assy_part_01 prefix="dummy" parent="assembled_assy_part_01" spawn_attached="true">
+    <origin xyz="0 0 0" rpy="0 0 0" />   
+  </xacro:assy_part_01> -->
+
+  <!-- <xacro:assy_part_frames_only_02 prefix="initial_" parent="workspace_center" spawn_attached="true">
+    <origin xyz="-.18 -0.05 0" rpy="0 0 ${pi}" />   
+  </xacro:assy_part_frames_only_02>
+
+  <xacro:assy_part_frames_only_03 prefix="initial_" parent="workspace_center" spawn_attached="true">
+    <origin xyz="-.18 0.045 0" rpy="0 0 ${pi}" />   
+  </xacro:assy_part_frames_only_03>
+
+  <xacro:assy_part_frames_only_14 prefix="intermediate_" parent="workspace_center" spawn_attached="true">
+    <origin xyz=".25 -0.15 .50" rpy="${pi/2} ${-pi/2} 0" />   
+  </xacro:assy_part_frames_only_14> -->
+</robot>

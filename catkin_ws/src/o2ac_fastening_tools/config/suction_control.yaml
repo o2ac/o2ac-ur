@@ -1,0 +1,13 @@
+suction_control:
+  - name: screw_tool_m3        # Name of screw fastening tool
+    digital_in_port: 0         # The pin to which the pressure sensor is connected
+    digital_out_port_vac: 0    # The pin to which the 'vac' of vacuum pump unit is connected
+  - name: screw_tool_m4
+    digital_in_port: 1
+    digital_out_port_vac: 1
+  - name: base_plate_lock
+    digital_in_port: 2
+    digital_out_port_vac: 2
+  - name: base_plate_release
+    digital_in_port: 3
+    digital_out_port_vac: 3

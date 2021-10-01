@@ -1,0 +1,201 @@
+# Documentation for configuration of GitLab CI jobs with '.gitlab-ci.yml':
+# https://docs.gitlab.com/ee/ci/yaml/
+# https://gitlab.com/help/ci/docker/using_docker_build.md
+
+################################################################################
+
+# Define the pipeline stages.
+# https://docs.gitlab.com/ee/ci/yaml/#stage
+
+stages:
+  - build-docker-image
+  - build-catkin-workspace-clean
+  - run-unit-tests
+
+################################################################################
+
+# Define YAML anchors to avoid duplicating code across the configuration file.
+# https://docs.gitlab.com/ee/ci/yaml/#anchors
+
+.ci_docker:
+  # Pull the custom Docker base image defined in '../docker/ci-docker/Dockerfile'.
+  image: ${CI_REGISTRY_IMAGE}/ci-docker:latest
+  services:
+    # Make sure that Docker-in-Docker is available on the GitLab runner.
+    # https://gitlab.com/help/ci/docker/using_docker_build.md#use-docker-in-docker-executor
+    - docker:dind
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  before_script:
+    # Display information for debug purpose.
+    - date -Iseconds
+    - docker images
+    - docker ps -a
+  after_script:
+    # Display information for debug purpose.
+    - docker images
+    - docker ps -a
+    - date -Iseconds
+
+
+#################################################################################
+
+# Manually build the Docker image.
+
+build-docker-image:
+  extends: .ci_docker
+  stage: build-docker-image
+  when: manual
+  script:
+    #### Previously "before_script"
+    # Create a shared directory between the containers of the Docker executor and the project workspace.
+    # https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#use-docker-in-docker-executor
+    # https://gitlab.com/gitlab-org/gitlab-ce/issues/41227
+    - 'export SHARED_PATH="$(dirname ${CI_PROJECT_DIR})/shared"'
+    - mkdir -p ${SHARED_PATH}/
+    # Copy the content of the project workspace to the shared directory. 
+    # Cleaning shared directory first to avoid a copy error claiming that the .git file already exists. #FIXME
+    - rm -rf ${SHARED_PATH}/*
+    - cp -r ./ ${SHARED_PATH}/
+    # Log into the Docker registry of the project.
+    - docker login -u ${CI_REGISTRY_USER} -p ${CI_REGISTRY_PASSWORD} ${CI_REGISTRY}
+    ####
+
+    - ./BUILD-DOCKER-IMAGE.sh gitlab-ci
+    # Get the commit hash of the built Dockerfile for backup.
+    - DOCKER_FILE_HASH=`git log -n 1 --no-merges --pretty=format:%h ./docker/o2ac-dev/Dockerfile`
+    # Save the Docker image into a persistent data volume in the GitLab CI Docker executor.
+    # In addition, request file lock to avoid race conditions.
+    - ./gitlab-ci/scripts/lock-shared-resource.bash createOrWait ${DOCKER_FILE_HASH}
+    - docker save -o /data/docker-image-${DOCKER_FILE_HASH}.tar ${CI_REGISTRY_IMAGE}/o2ac-dev:latest
+    - ./gitlab-ci/scripts/lock-shared-resource.bash release ${DOCKER_FILE_HASH}
+
+    #### Previously "after_script"
+    # Copy the content of the shared directory back to the project workspace.
+    # Note: This extra step is required due to some path limitations with the GitLab CI 'artifacts' command.
+    - 'export SHARED_PATH="$(dirname ${CI_PROJECT_DIR})/shared"'
+    - cp -r ${SHARED_PATH}/. ./
+    ####
+
+
+################################################################################
+
+# Build the Catkin workspace inside a Docker container instance of the image, from scratch.
+
+build-catkin-workspace-clean:
+  extends: .ci_docker
+  stage: build-catkin-workspace-clean
+  when: manual
+  script:
+    #### Previously "before_script"
+    # Create a shared directory between the containers of the Docker executor and the project workspace.
+    # https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#use-docker-in-docker-executor
+    # https://gitlab.com/gitlab-org/gitlab-ce/issues/41227
+    - 'export SHARED_PATH="$(dirname ${CI_PROJECT_DIR})/shared"'
+    - mkdir -p ${SHARED_PATH}/
+    # Copy the content of the project workspace to the shared directory. 
+    # Cleaning shared directory first to avoid a copy error claiming that the .git file already exists. #FIXME
+    - rm -rf ${SHARED_PATH}/*
+    - cp -r ./ ${SHARED_PATH}/
+    # Log into the Docker registry of the project.
+    - docker login -u ${CI_REGISTRY_USER} -p ${CI_REGISTRY_PASSWORD} ${CI_REGISTRY}
+    ####
+
+    # Get the currently used Dockerfile hash.
+    - DOCKER_FILE_HASH=`git log -n 1 --no-merges --pretty=format:%h ./docker/o2ac-dev/Dockerfile`
+    # Load the Docker image from the data volume of the GitLab CI Docker executor.
+    - docker load -i /data/docker-image-${DOCKER_FILE_HASH}.tar  # Takes about 7 minutes (!)
+    # Touch the file to update the creation timestamp and mark as in use (LRU).
+    - touch /data/docker-image-${DOCKER_FILE_HASH}.tar
+    # Build the Catkin workspace inside the Docker container of the project workspace that is mapped to the shared directory.
+    - docker run
+      -e CI=${CI}
+      -v ${SHARED_PATH}/:/root/o2ac-ur/
+      ${CI_REGISTRY_IMAGE}/o2ac-dev:latest /root/o2ac-ur/docker/o2ac-dev/scripts/reset-catkin-workspace.sh
+    # Copy the content of the shared directory back to the project workspace.
+    # Note: This extra step is required due to some path limitations with the GitLab CI 'artifacts' command.
+    #       This command requires a specific runner (shared runners won't work)
+    # Cleaning directory first to avoid copy errors. #FIXME
+    - rm -rf ./*
+    - cp -r ${SHARED_PATH}/. ./
+  # Save the build result to pass it to the next jobs using the GitLab CI 'dependencies' command.
+  artifacts:
+    name: ${CI_PROJECT_NAME}-${CI_COMMIT_SHORT_SHA}-${CI_JOB_NAME}
+    paths:
+      # Note: Only paths relative to the project workspace can be used
+      # https://docs.gitlab.com/ee/ci/yaml/#artifacts
+      # https://gitlab.com/gitlab-org/gitlab-ce/issues/15530
+      - ./catkin_ws/.catkin_tools/
+      - ./catkin_ws/build/
+      - ./catkin_ws/devel/
+      - ./catkin_ws/install/
+      - ./catkin_ws/src/CMakeLists.txt
+      - ./underlay_ws/.catkin_tools/
+      - ./underlay_ws/build/
+      - ./underlay_ws/devel/
+      - ./underlay_ws/install/
+      - ./underlay_ws/src/CMakeLists.txt
+    expire_in: 1 week
+
+################################################################################
+
+# Run unit tests inside independent Docker container instances.
+
+run-unit-tests:
+  extends: .ci_docker
+  stage: run-unit-tests
+  #when: manual
+  script:
+    #### Previously "before_script"
+    # Create a shared directory between the containers of the Docker executor and the project workspace.
+    # https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#use-docker-in-docker-executor
+    # https://gitlab.com/gitlab-org/gitlab-ce/issues/41227
+    - 'export SHARED_PATH="$(dirname ${CI_PROJECT_DIR})/shared"'
+    - mkdir -p ${SHARED_PATH}/
+    # Copy the content of the project workspace to the shared directory. 
+    # Cleaning shared directory first to avoid a copy error claiming that the .git file already exists. #FIXME
+    - rm -rf ${SHARED_PATH}/*
+    - cp -r ./ ${SHARED_PATH}/
+    # Log into the Docker registry of the project.
+    - docker login -u ${CI_REGISTRY_USER} -p ${CI_REGISTRY_PASSWORD} ${CI_REGISTRY}
+    ####
+
+    # Load the Docker image from the data volume of the GitLab CI Docker executor.
+    - DOCKER_FILE_HASH=`git log -n 1 --no-merges --pretty=format:%h ./docker/o2ac-dev/Dockerfile`
+    - docker load -i /data/docker-image-${DOCKER_FILE_HASH}.tar  # Takes about 7 minutes (!)
+    # Touch the file to update the creation timestamp and mark as in use (LRU).
+    - touch /data/docker-image-${DOCKER_FILE_HASH}.tar
+    - docker run
+      -e CI=${CI}
+      -v ${SHARED_PATH}/:/root/o2ac-ur/
+      ${CI_REGISTRY_IMAGE}/o2ac-dev:latest
+      /bin/bash -c "source /root/o2ac-ur/gitlab-ci/scripts/build-workspace-and-run-tests.bash
+        && mkdir -p /root/o2ac-ur/ros/log/latest/
+        && cp -r /root/.ros/log/latest/ /root/o2ac-ur/ros/log/latest/"
+    
+    #### Previously "after_script"
+    # Copy the content of the shared directory back to the project workspace.
+    # Note: This extra step is required due to some path limitations with the GitLab CI 'artifacts' command.
+    #       This command requires a specific runner (shared runners won't work)
+    # Cleaning directory first to avoid copy errors. #FIXME
+    - rm -rf ./*
+    - cp -r ${SHARED_PATH}/. ./
+    ####
+  artifacts:
+    name: ${CI_PROJECT_NAME}-${CI_COMMIT_SHORT_SHA}-${CI_JOB_NAME}
+    paths:
+      # Note: Only paths relative to the project workspace can be used, thus '/path/to/shared/' is not permitted.
+      # https://docs.gitlab.com/ee/ci/yaml/#artifacts
+      # https://gitlab.com/gitlab-org/gitlab-ce/issues/15530
+      - ./catkin_ws/.catkin_tools/
+      - ./catkin_ws/build/
+      - ./catkin_ws/devel/
+      - ./catkin_ws/install/
+      - ./catkin_ws/src/CMakeLists.txt
+      - ./underlay_ws/.catkin_tools/
+      - ./underlay_ws/build/
+      - ./underlay_ws/devel/
+      - ./underlay_ws/install/
+      - ./underlay_ws/src/CMakeLists.txt
+      - ./ros/log/latest/
+    expire_in: 1 week

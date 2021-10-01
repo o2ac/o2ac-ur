@@ -1,0 +1,186 @@
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="base_fixture">
+
+  <xacro:macro name="base_fixture" params="parent *origin">
+  <xacro:property name="top_mesh" value="package://o2ac_scene_description/meshes/base_fixture_reoriented.stl" />
+  <xacro:property name="short_bar_mesh" value="package://o2ac_scene_description/meshes/HFSP5-2080-200.stl" />
+  <xacro:property name="long_bar_mesh" value="package://o2ac_scene_description/meshes/HFSP5-2080-320.stl" />
+
+  <xacro:property name="length" value=".32" />
+  <xacro:property name="width" value=".24" />
+
+  <link name="base_fixture_top">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0.08"/>
+      <geometry>
+        <mesh filename="${top_mesh}" scale=".0001 .0001 .0001"/>
+      </geometry>
+      <material name="white">
+        <color rgba=".9 .9 .9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="${width/2} ${length/2} ${.08+.005/2}"/>
+      <geometry>
+        <box size="${width} ${length} 0.005"/>
+      </geometry>
+    </collision>
+    <!-- The long stopper bar -->
+    <collision>
+      <origin rpy="0 0 0" xyz="${width-.02/2} ${length-.22/2} ${.08+.02/2}"/>
+      <geometry>
+        <box size="${.02} ${.22} ${0.02}"/>
+      </geometry>
+    </collision>
+    <!-- The short stopper bar -->
+    <collision>
+      <origin rpy="0 0 0" xyz="${width-.18/2} ${length-.02/2} ${.08+.02/2}"/>
+      <geometry>
+        <box size="${.18} ${.02} ${0.02}"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="base_fixture_joint" type="fixed" >
+    <parent link="${parent}" />
+    <child link = "base_fixture_top" />
+    <xacro:insert_block name="origin"/>
+  </joint>
+
+  <link name="front_bar">
+    <visual>
+      <origin rpy="0 0 0" xyz=".01 ${length/2} .04"/>
+      <geometry>
+        <box size=".02 ${length} .08"/>
+      </geometry>
+      <material name="grey">
+        <color rgba=".4 .4 .4 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz=".01 ${length/2} .04"/>
+      <geometry>
+        <box size=".02 ${length} .08"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="front_bar_joint" type="fixed">
+    <parent link="base_fixture_top" />
+    <child link = "front_bar" />
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+  </joint>
+
+  <link name="back_bar">
+    <visual>
+      <origin rpy="0 0 0" xyz=".01 ${length/2} .04"/>
+      <geometry>
+        <box size=".02 ${length} .08"/>
+        <!-- <mesh filename="${long_bar_mesh}" scale=".001 .001 .001"/> -->
+      </geometry>
+      <material name="grey">
+        <color rgba=".4 .4 .4 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz=".01 ${length/2} .04"/>
+      <geometry>
+        <box size=".02 ${length} .08"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="back_bar_joint" type="fixed">
+    <parent link="base_fixture_top" />
+    <child link = "back_bar" />
+    <origin rpy="0 0 0" xyz=".22 0 0"/>
+  </joint>
+
+  <link name="left_bar">
+    <visual>
+      <origin rpy="0 0 0" xyz="${width/2-.02} 0.01 .04"/>
+      <geometry>
+        <box size="${width-.04} .02 .08"/>
+        <!-- <mesh filename="${long_bar_mesh}" scale=".001 .001 .001"/> -->
+      </geometry>
+      <material name="grey">
+        <color rgba=".4 .4 .4 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="${width/2-.02} 0.01 .04"/>
+      <geometry>
+        <box size="${width-.04} .02 .08"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_bar_joint" type="fixed">
+    <parent link="base_fixture_top" />
+    <child link = "left_bar" />
+    <origin rpy="0 0 0" xyz=".02 0 0"/>
+  </joint>
+
+  <link name="right_bar">
+    <visual>
+      <origin rpy="0 0 0" xyz="${width/2-.02} 0.01 .04"/>
+      <geometry>
+        <box size="${width-.04} .02 .08"/>
+        <!-- <mesh filename="${long_bar_mesh}" scale=".001 .001 .001"/> -->
+      </geometry>
+      <material name="grey">
+        <color rgba=".4 .4 .4 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="${width/2-.02} 0.01 .04"/>
+      <geometry>
+        <box size="${width-.04} .02 .08"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="right_bar_joint" type="fixed">
+    <parent link="base_fixture_top" />
+    <child link = "right_bar" />
+    <origin rpy="0 0 0" xyz=".02 .3 0" />
+  </joint>
+
+  <!-- Frames on top of corners -->
+   
+  <joint name="attached_base_origin_joint" type="fixed">
+    <parent link="base_fixture_top"/>
+    <child link="attached_base_origin_link"/>
+    <origin rpy="${pi/2} 0 ${-pi/2}" xyz=".22 .3 0.085"/>
+  </joint>
+  <link name="attached_base_origin_link"/>
+  
+  <joint name="attached_base_origin_back_joint" type="fixed">
+    <parent link="base_fixture_top"/>
+    <child link="attached_base_origin_back_link"/>
+    <origin rpy="0.0 0 0" xyz=".1 .1 0.085"/>
+  </joint>
+  <link name="attached_base_origin_back_link"/>
+<!--
+  <joint name="base_fixture_corner_2_joint" type="fixed">
+    <parent link="base_fixture"/>
+    <child link="base_fixture_corner_2_link"/>
+    <origin rpy="0.0 0 0" xyz="${width-0.005} ${0.005} 0.055"/>
+  </joint>
+  <link name="base_fixture_corner_2_link"/>
+
+  <joint name="base_fixture_corner_3_joint" type="fixed">
+    <parent link="base_fixture"/>
+    <child link="base_fixture_corner_3_link"/>
+    <origin rpy="0.0 0 0" xyz="${0.005} ${length-0.005} 0.055"/>
+  </joint>
+  <link name="base_fixture_corner_3_link"/>
+
+  <joint name="base_fixture_corner_4_joint" type="fixed">
+    <parent link="base_fixture"/>
+    <child link="base_fixture_corner_4_link"/>
+    <origin rpy="0.0 0 0" xyz="${width-0.005} ${length-0.005} 0.055"/>
+  </joint>
+  <link name="base_fixture_corner_4_link"/> -->
+
+
+  </xacro:macro>
+  <!-- Add additional links for us to plan with.-->
+</robot>
+

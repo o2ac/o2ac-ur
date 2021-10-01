@@ -1,0 +1,63 @@
+<?xml version="1.0" ?>
+<launch>
+
+  <arg name="bag_file"		default="2021-7-16-cable-view-raw-b.bag"/>
+  <arg name="data_dir"		default="$(env HOME
+					 )/o2ac-ur/catkin_ws/src/data"/>
+  <arg name="camera_name"	default="b_bot_outside_camera"/>
+
+  <node name="rosbag_play" pkg="rosbag" type="play" output="screen"
+	args="-l $(arg data_dir)/$(arg bag_file)"/>
+
+  <include file="$(dirname)/run.launch">
+    <arg name="camera_info_topic"
+	 value="$(arg camera_name)_throttled/color/camera_info"/>
+    <arg name="image_topic"
+	 value="$(arg camera_name)_throttled/color/image_raw"/>
+    <arg name="depth_topic"
+	 value="$(arg camera_name
+		)_throttled/aligned_depth_to_color/image_raw"/>
+  </include>
+
+  <include file="$(find aist_handeye_calibration
+		 )/launch/publish_calibration.launch">
+    <arg name="camera_name"	value="$(arg camera_name)"/>
+  </include>
+
+  <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->
+  <include file="$(find o2ac_moveit_config)/launch/planning_context.launch">
+    <arg name="load_robot_description" value="true"/>
+  </include>
+
+  <!-- We do not have a robot connected, so publish fake joint states -->
+  <node name="joint_state_publisher"
+	pkg="joint_state_publisher" type="joint_state_publisher">
+    <param name="use_gui"	value="false"/>
+    <param name="rate"		value="500"/>
+    <rosparam param="source_list">
+      [move_group/fake_controller_joint_states]
+    </rosparam>
+  </node>
+
+  <!-- Given the published joint states, publish tf for the robot links -->
+  <node name="robot_state_publisher"
+	pkg="robot_state_publisher" type="robot_state_publisher"
+	respawn="true" output="screen" />
+
+  <!-- Run the main MoveIt executable without trajectory execution (we do not have controllers configured by default) -->
+  <include file="$(find o2ac_moveit_config)/launch/move_group.launch">
+    <arg name="allow_trajectory_execution"	value="true"/>
+    <arg name="fake_execution"			value="true"/>
+    <arg name="info"				value="true"/>
+    <arg name="pipeline"			value="ompl"/>
+  </include>
+
+  <!-- Run Rviz and load the default config to see the state of the move_group node -->
+  <include file="$(find o2ac_moveit_config)/launch/moveit_rviz.launch">
+    <arg name="rviz_config"
+	 value="$(find aist_visual_tracker)/launch/play.rviz"/>
+  </include>
+
+  <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure"/>
+
+</launch>

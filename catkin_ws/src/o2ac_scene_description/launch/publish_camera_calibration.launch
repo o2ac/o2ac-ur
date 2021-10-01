@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="config"		default="o2ac"/>
+  <arg name="camera_name"	default="a_phoxi_m_camera"/>
+
+  <!-- Publish hand-eye calibration -->
+  <node  name="$(anon handeye_publisher)"
+	 pkg="aist_handeye_calibration" type="publish_calibration.py"
+	 output="screen">
+    <rosparam file="$(dirname
+		    )/../config/camera_calibration/$(arg camera_name).yaml"/>
+  </node>
+
+</launch>

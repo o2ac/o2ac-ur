@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<package>
+  <name>o2ac_gazebo</name>
+  <version>0.1.0</version>
+  <description>
+      Gazebo files, based on the Universal UR5/10 robot arm gazebo module.
+  </description>
+
+  <author>Felix von Drigalski</author>
+  <author email="FvDrigalski@gmail.com">Felix von Drigalski</author>
+  <maintainer email="FvDrigalski@gmail.com">Felix von Drigalski</maintainer>
+  <maintainer email="cristianbehe@gmail.com">Cristian C. Beltran-Hernandez</maintainer>
+
+  <license>BSD</license>
+
+  <!-- <url type="website">http://ros.org/wiki/ur_gazebo</url> -->
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <run_depend>ur_description</run_depend>
+  <run_depend>gazebo_ros</run_depend>
+  <run_depend>gazebo_ros_control</run_depend>
+  <run_depend>robotiq_gazebo</run_depend>
+  <run_depend>joint_state_controller</run_depend>
+  <run_depend>joint_trajectory_controller</run_depend>
+  <run_depend>effort_controllers</run_depend>
+  <run_depend>ros_controllers</run_depend>
+  <run_depend>robot_state_publisher</run_depend>
+  <run_depend>controller_manager</run_depend>
+
+  <export>
+    <gazebo_ros gazebo_media_path="${prefix}" />
+  </export>
+</package>

@@ -1,0 +1,439 @@
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+<!-- This holder has a size of about 155 mm x 40 mm x 26 mm -->
+<!-- The Bit cushion has a height of 30.5 mm, starts about 24 mm from the top-->
+<!-- The gripper center would be about 44 mm from the top, so the tip might be 111 mm further down -->
+<!-- The tip\axis seems to be 11.5 mm from the "front" side. The front side looks into the gripper -->
+
+  <xacro:property name="tool_offset_global_y" value="0.003" />
+  <xacro:property name="set_screw_tool_extra_offset_global_y" value="-.002" />
+
+  <!-- Tool holders at the back of the robot system -->
+  <!-- The long tool holder with 3 tools -->
+  <joint name="screw_tool_holder_long_to_environment_joint" type="fixed">
+    <parent link="horizontal_column_for_tools" />
+    <child link="screw_tool_holder_long" />
+    <origin xyz=".04 ${tool_offset_global_y} .04" rpy="0.0 0.0 ${-pi/2}" />
+  </joint>
+
+  <link name="screw_tool_holder_long">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+    <!-- The horizontal plate -->
+    <visual>
+      <origin rpy="0 0 0" xyz="-0.15 .0033 0.002"/>
+      <geometry>
+        <box size=".3 .066 .004"/> 
+      </geometry>
+      <material name="grey">
+        <color rgba=".5 .5 .5 1"/>
+      </material>
+    </visual>
+    <!-- <collision>
+      <origin rpy="0 0 0" xyz="-0.15 .0033 0.002"/>
+      <geometry>
+        <box size=".3 .066 .004"/> 
+      </geometry>
+    </collision> -->
+
+    <!-- The vertical plate -->
+    <visual>
+      <origin rpy="0 0 0" xyz="-0.15 -.011 0.0179"/>
+      <geometry>
+        <box size=".3 .004 .035"/>  
+      </geometry>
+      <material name="grey">
+        <color rgba=".5 .5 .5 1"/>
+      </material>
+    </visual>
+    <!-- <collision>
+      <origin rpy="0 0 0" xyz="-0.15 -.011 0.0179"/>
+      <geometry>
+        <box size=".3 .004 .035"/> 
+      </geometry>
+    </collision> -->
+  </link>
+
+  <!-- ==== -->
+
+  <!-- The short tool holder with a single tool -->
+  <joint name="screw_holder_short_to_environment_joint" type="fixed">
+    <parent link="horizontal_column_for_tools" />
+    <child link="screw_tool_holder_short" />
+    <origin xyz=".04 ${.3+set_screw_tool_extra_offset_global_y} .04" rpy="0.0 0.0 ${-pi/2}" />
+  </joint>
+
+  <link name="screw_tool_holder_short">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+    <!-- The horizontal plate -->
+    <visual>
+      <origin rpy="0 0 0" xyz="-0.05 .0013 0.002"/>
+      <geometry>
+        <box size=".1 .066 .004"/> 
+      </geometry>
+      <material name="whitish">
+        <color rgba=".7 .7 .7 1"/>
+      </material>
+    </visual>
+    <!-- <collision>
+      <origin rpy="0 0 0" xyz="-0.05 .0013 0.002"/>
+      <geometry>
+        <box size=".1 .066 .004"/> 
+      </geometry>
+    </collision> -->
+
+    <!-- The vertical plate -->
+    <visual>
+      <origin rpy="0 0 0" xyz="-0.05 -.014 0.0179"/>
+      <geometry>
+        <box size=".1 .004 .035"/>  
+      </geometry>
+      <material name="grey">
+        <color rgba=".5 .5 .5 1"/>
+      </material>
+    </visual>
+    <!-- <collision>
+      <origin rpy="0 0 0" xyz="-0.05 -.014 0.0179"/>
+      <geometry>
+        <box size=".1 .004 .035"/> 
+      </geometry>
+    </collision> -->
+  </link>
+  
+
+  <!-- ++++++++++++++++++++++++++++ -->
+  <!-- Screw tools on the holders in the back of the system -->
+  
+  <xacro:property name="bit_cushion_to_axis" value="0.0285"/>
+  <xacro:property name="back_plate_offset_long" value=".009"/>
+  <xacro:property name="back_plate_offset_short" value=".01"/>
+  <xacro:property name="tool_offset" value="${-.005 + bit_cushion_to_axis}" />
+  
+  <!--  -->
+  <!-- The collision boxes of the tools only include the top part (not what is hanging underneath the holder) -->
+
+  <link name="set_screw_tool_link">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>`
+      <mass value="1.0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+    <!-- <visual>
+      <origin rpy="0 0 0" xyz="0 0 ${.052/2}"/>
+      <geometry>
+        <box size=".026 .059 .052"/>
+      </geometry>
+      <material name="yellowish">
+        <color rgba=".9 .9 .7 1"/>
+      </material>
+    </visual> -->
+    <!-- <collision>
+      <origin rpy="0 0 0" xyz="0 0 ${.052/2}"/>
+      <geometry>
+        <box size=".026 .059 .052"/>
+      </geometry>
+    </collision> -->
+  </link>
+  <joint name="set_screw_tool_to_holder" type="fixed">
+    <parent link="screw_tool_holder_short" />
+    <child link="set_screw_tool_link" />
+    <origin xyz="-0.05 ${-back_plate_offset_short + .059/2 + .0155} 0.004" rpy="0.0 0.0 0.0" />
+  </joint>
+
+  <link name="screw_tool_m4_link">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+    <!-- <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://o2ac_scene_description/meshes/screw_tool_m4_BC5-XL320-AY3.5-EH3R4.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="white">
+        <color rgba=".9 .9 .9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 ${-.12/2}"/>
+      <geometry>
+        <cylinder length=".12" radius=".01"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 ${-.12/2}"/>
+      <geometry>
+        <cylinder length=".12" radius=".01"/>
+      </geometry>
+    </collision> -->
+  </link>
+  <joint name="screw_tool_m4_to_holder" type="fixed">
+    <parent link="screw_tool_holder_long" />
+    <child link="screw_tool_m4_link" />
+    <origin xyz="-0.25 ${tool_offset} 0.004" rpy="0.0 0.0 0.0" />
+  </joint>
+
+  <link name="screw_tool_m3_link">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+    <!-- <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://o2ac_scene_description/meshes/screw_tool_m3_BC5-XL320-R-AY2.6-EH2.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="white">
+        <color rgba=".9 .9 .9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 ${-.1/2}"/>
+      <geometry>
+        <cylinder length=".1" radius=".01"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 ${-.1/2}"/>
+      <geometry>
+        <cylinder length=".1" radius=".01"/>
+      </geometry>
+    </collision> -->
+  </link>
+  <joint name="screw_tool_m3_to_holder" type="fixed">
+    <parent link="screw_tool_holder_long" />
+    <child link="screw_tool_m3_link" />
+    <origin xyz="-0.05 ${tool_offset} 0.004" rpy="0.0 0.0 0.0" />
+  </joint>
+
+  <link name="padless_tool_m4_link">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+  </link>
+  <joint name="padless_tool_m4_to_holder" type="fixed">
+    <parent link="screw_tool_holder_long" />
+    <child link="padless_tool_m4_link" />
+    <origin xyz="-0.15 ${tool_offset} 0.004" rpy="0.0 0.0 0.0" />
+  </joint>
+  
+  <!-- Extra links to position the gripper more easily -->
+
+  <link name="screw_tool_m3_pickup_link"/>
+  <joint name="screw_tool_m3_pickup_joint" type="fixed">
+    <parent link="screw_tool_m3_link" />
+    <child link="screw_tool_m3_pickup_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 ${pi} ${pi/2}" />
+  </joint>
+
+  <link name="screw_tool_m4_pickup_link"/>
+  <joint name="screw_tool_m4_pickup_joint" type="fixed">
+    <parent link="screw_tool_m4_link" />
+    <child link="screw_tool_m4_pickup_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 ${pi} ${pi/2}" />
+  </joint>
+
+  <link name="padless_tool_m4_pickup_link"/>
+  <joint name="padless_tool_m4_pickup_joint" type="fixed">
+    <parent link="padless_tool_m4_link" />
+    <child link="padless_tool_m4_pickup_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 ${pi} ${pi/2}" />
+  </joint>
+
+  <link name="set_screw_tool_pickup_link"/>
+  <joint name="set_screw_tool_pickup_joint" type="fixed">
+    <parent link="set_screw_tool_link" />
+    <child link="set_screw_tool_pickup_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 ${pi} ${pi/2}" />
+  </joint>
+
+<!-- ================ -->
+<!-- Tools at the front of b_bot base -->
+
+<!-- Belt hook tool -->
+  <link name="belt_tool_holder">
+    <visual>
+      <origin rpy="${pi/2} 0 ${pi/2}" xyz="0 -.025 -.005"/>
+      <geometry>
+        <mesh filename="package://o2ac_scene_description/meshes/gravity_tool_holder.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="grey">
+        <color rgba=".5 .5 .5 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="${.05/2} 0 ${-.045/2}"/>
+      <geometry>
+        <box size=".05 .05 .045"/> 
+      </geometry>
+    </collision>
+  </link>
+  <joint name="belt_holder_to_environment_joint" type="fixed">
+    <parent link="b_bot_base" />
+    <child link="belt_tool_holder" />
+    <origin xyz=".325 -.2 .0" rpy="0 0 0" />
+  </joint>
+
+  <link name="belt_tool_link">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 ${-pi/2}" xyz="0.02 0 -0.017"/>
+      <geometry>
+        <mesh filename="package://o2ac_scene_description/meshes/belt_hook_tool.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="white">
+        <color rgba=".9 .9 .9 1"/>
+      </material>
+    </visual>
+    <!-- The graspable part -->
+    <collision>
+      <origin rpy="0 0 0" xyz="${.04/2} 0 ${-.01}"/>
+      <geometry>
+        <box size=".04 .03 .055"/>
+      </geometry>
+    </collision>
+    <!-- The bottom part -->
+    <collision>
+      <origin rpy="0 0 0" xyz="${.02} 0 ${-.03-.1/2}"/>
+      <geometry>
+        <box size=".01 .035 .1"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="belt_tool_to_holder_joint" type="fixed">
+    <parent link="belt_tool_holder" />
+    <child link="belt_tool_link" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+
+  <link name="belt_tool_pickup_link"/>
+  <joint name="belt_holder_to_pickup_link_joint" type="fixed">
+    <parent link="belt_tool_link" />
+    <child link="belt_tool_pickup_link" />
+    <origin xyz=".02 0 -.01" rpy="0 ${pi/2} 0" />
+  </joint>
+
+  <!-- Plunger tool -->
+  <link name="plunger_tool_holder">
+    <visual>
+      <origin rpy="${pi/2} 0 ${pi/2}" xyz="0 -.025 -.005"/>
+      <geometry>
+        <mesh filename="package://o2ac_scene_description/meshes/gravity_tool_holder.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="grey">
+        <color rgba=".5 .5 .5 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="${.05/2} 0 ${-.045/2}"/>
+      <geometry>
+        <box size=".05 .05 .045"/> 
+      </geometry>
+    </collision>
+  </link>
+  <joint name="plunger_holder_to_environment_joint" type="fixed">
+    <parent link="b_bot_base" />
+    <child link="plunger_tool_holder" />
+    <origin xyz=".325 -.1 .0" rpy="0 0 0" />
+  </joint>
+
+  <link name="plunger_tool_link">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 ${pi/2} ${pi/2}" xyz="0.02 0 -0.017"/>
+      <geometry>
+        <mesh filename="package://o2ac_scene_description/meshes/plunger_tool.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="white">
+        <color rgba=".9 .9 .9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="${.04/2} 0 ${-.01}"/>
+      <geometry>
+        <box size=".04 .03 .055"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="${.02} 0 ${-.03-.08/2}"/>
+      <geometry>
+        <cylinder length=".08" radius=".01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="plunger_tool_to_holder_joint" type="fixed">
+    <parent link="plunger_tool_holder" />
+    <child link="plunger_tool_link" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+
+  <link name="plunger_tool_pickup_link"/>
+  <joint name="plunger_holder_to_pickup_link_joint" type="fixed">
+    <parent link="plunger_tool_link" />
+    <child link="plunger_tool_pickup_link" />
+    <origin xyz=".02 0 -.01" rpy="0 ${pi/2} 0" />
+  </joint>
+
+  <link name="nut_holder1_link"/>
+  <joint name="nut_holder1_joint" type="fixed">
+    <parent link="workspace_center" />
+    <child link="nut_holder1_link" />
+    <origin xyz="-0.11 -0.2 -0.015" rpy="0 0 0" />
+  </joint>
+
+  <link name="cable_holder_link">
+      <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+    <visual>
+      <origin rpy="${-pi/2} 0 0" xyz="0.13 0.043 0.0225"/>
+      <geometry>
+        <mesh filename="package://o2ac_scene_description/meshes/cable_tool_holder_vertical.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="white">
+        <color rgba=".9 .9 .9 1"/>
+      </material>
+    </visual>
+  </link>
+  <joint name="cable_holder_joint" type="fixed">
+    <parent link="workspace_center" />
+    <child link="cable_holder_link" />
+    <origin xyz="-0.503 -0.225 0.19" rpy="0 0 0" />
+  </joint>
+  <link name="cable_holder_pickup_link"/>
+  <joint name="cable_holder_pickup_joint" type="fixed">
+    <parent link="cable_holder_link" />
+    <child link="cable_holder_pickup_link" />
+    <origin xyz="0.1 0.004 0.015" rpy="0 ${pi/2} 0" />
+  </joint>
+  <link name="nut_holder2_link"/>
+  <joint name="nut_holder2_joint" type="fixed">
+    <parent link="workspace_center" />
+    <child link="nut_holder2_link" />
+    <origin xyz="-0.255 -0.2 -0.015" rpy="0 0 0" />
+  </joint>
+
+</robot>

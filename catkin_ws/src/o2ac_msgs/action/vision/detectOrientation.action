@@ -1,0 +1,19 @@
+# This action will be called when the camera is looking at either the bearing (from the front),
+# the idler pulley, or the large pulley (from above), to check their orientation so that their
+# screws can be fastened.
+
+# Request
+string item_id     # Name of the item.
+string camera_id   # Which camera to use. "a_bot_cam_outside", "a_bot_cam_inside"...
+
+---
+# Result
+
+bool succeeded
+float32 detected_angle_offset   # The angle by which the object needs to be turned
+                                # around its axis until it is in the target position.
+                                # (= screws pointing up, or the bearing holes aligned)
+float32 confidence
+
+---
+# Feedback (values that can be sent to the client while the action is running)

@@ -1,0 +1,66 @@
+subframes:
+- pose_xyzrpy:
+  - 0.0
+  - 0.0
+  - 0.0
+  - pi/2
+  - 0.0
+  - pi
+  name: front_hole
+- pose_xyzrpy:
+  - -0.03
+  - 0.0
+  - 0.0
+  - -pi/2
+  - 0.0
+  - 0.0
+  name: back_hole
+- pose_xyzrpy:
+  - -0.03
+  - 0.0
+  - 0.0
+  - pi/2
+  - 0.0
+  - pi
+  name: back_tip
+- pose_xyzrpy:
+  - -0.008
+  - 0.0
+  - 0.0
+  - pi/2
+  - 0.0
+  - pi
+  name: inserted
+- pose_xyzrpy:
+  - 0.0
+  - 0.0
+  - -0.022
+  - pi/2
+  - 0.0
+  - pi
+  name: screw_hole_1
+- pose_xyzrpy:
+  - 0.0
+  - 0.0
+  - 0.022
+  - pi/2
+  - 0.0
+  - pi
+  name: screw_hole_2
+- pose_xyzrpy:
+  - 0.0
+  - 0.022
+  - 0.0
+  - pi/2
+  - 0.0
+  - pi
+  name: screw_hole_3
+- pose_xyzrpy:
+  - 0.0
+  - -0.022
+  - 0.0
+  - pi/2
+  - 0.0
+  - pi
+  name: screw_hole_4
+grasp_points: []

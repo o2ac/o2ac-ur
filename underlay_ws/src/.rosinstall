@@ -1,0 +1,44 @@
+- git:
+    local-name: rosparam_shortcuts
+    uri: https://github.com/PickNikRobotics/rosparam_shortcuts.git
+    version: melodic-devel
+- git:
+    local-name: third_party/geometric_shapes
+    uri: https://github.com/ros-planning/geometric_shapes.git
+    version: noetic-devel
+- git:
+    local-name: third_party/moveit_resources
+    uri: https://github.com/ros-planning/moveit_resources.git
+    version: master
+- git:
+    local-name: third_party/moveit_visual_tools
+    uri: https://github.com/ros-planning/moveit_visual_tools.git
+    version: master
+- git:
+    local-name: third_party/rviz_visual_tools
+    uri: https://github.com/PickNikRobotics/rviz_visual_tools
+    version: master
+- git:
+    local-name: third_party/flexbe_app
+    uri: https://github.com/cambel/flexbe_app.git
+    version: pddl-flexbe
+- git:
+    local-name: third_party/generic_flexbe_states
+    uri: https://github.com/FlexBE/generic_flexbe_states.git
+    version: master
+- git:
+    local-name: third_party/robotiq
+    uri: https://github.com/ros-industrial/robotiq.git
+    version: 66961ec6b6c9c493f13410d16ce32cea1648babf
+- git:
+    local-name: third_party/aruco_ros
+    uri: https://gitlab+deploy-token-490815:UjSrt8ABUzbng94K6-ua@gitlab.com/o2ac/third-party/aruco_ros
+    version: 4c0bb5010487efe539d89f75367a93fd8403a40d
+- git:
+    local-name: third_party/ur_drivers
+    uri: https://github.com/UniversalRobots/Universal_Robots_ROS_Driver.git
+    version: 13db13e33702866f230614a6d0bfe583794d8d04
+- git:
+    local-name: third_party/gazebo_ros_link_attacher
+    uri: https://github.com/pal-robotics/gazebo_ros_link_attacher.git
+    version: melodic-devel

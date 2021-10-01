@@ -1,0 +1,8 @@
+<library path="lib/libaist_camera_multiplexer_nodelet">
+  <class name="aist_camera_multiplexer/aist_camera_multiplexer_nodelet"
+	 type="aist_camera_multiplexer::MultiplexerNodelet"
+	 base_class_type="nodelet::Nodelet">
+    <description>
+    </description>
+  </class>
+</library>

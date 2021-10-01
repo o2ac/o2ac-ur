@@ -1,0 +1,8 @@
+# This is just a wrapper around the move_group functionality
+
+# Request
+string named_pose       # ex: "home", "back", "screw_ready"
+string planning_group   #  "a_bot", "b_bot", "c_bot", "front_bots", "all_bots"
+---
+# Response
+bool success

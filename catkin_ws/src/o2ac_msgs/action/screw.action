@@ -1,0 +1,16 @@
+# This should be called when the screw tool is ready to insert a screw somewhere.
+# Screws can be picked up via the pick action.
+
+# Request
+geometry_msgs/PoseStamped target_hole # x points into the screw hole
+float64 screw_height         # In m, measured from the bottom of the head (M3x5 has a screw_height of 0.005)
+uint8 screw_size             # M3, M4, M6 (without the M)
+string robot_name            # b_bot, c_bot
+bool stay_put_after_screwing # If true, the robot stays at the position where the screw was screwed in (hopefully)
+bool loosen_and_retighten_when_done # If true, when motor is stalled, it loosens for 1 sec and then tightens again. This is to avoid screws stuck at the start of the thread.
+---
+# Result
+bool success
+---
+# Feedback
+float32 progress

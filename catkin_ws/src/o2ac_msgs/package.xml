@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<package>
+  <name>o2ac_msgs</name>
+  <version>0.6.0</version>
+  <description>Some ROS messages to communicate inside the o2ac project</description>
+  <author email="fvdrigalski@gmail.com">Felix v. Drigalski</author>
+  <maintainer email="fvdrigalski@gmail.com">Felix v. Drigalski</maintainer>
+  <maintainer email="cristianbehe@gmail.com">Cristian C. Beltran-Hernandez</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>message_generation</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>visualization_msgs</build_depend>
+  <build_depend>actionlib_msgs</build_depend>
+  <build_depend>actionlib</build_depend>
+  <build_depend>moveit_msgs</build_depend>
+
+  <run_depend>message_runtime</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>geometry_msgs</run_depend>
+  <run_depend>visualization_msgs</run_depend>
+  <run_depend>actionlib_msgs</run_depend>
+  <run_depend>actionlib</run_depend>
+  <run_depend>moveit_msgs</run_depend>
+
+</package>

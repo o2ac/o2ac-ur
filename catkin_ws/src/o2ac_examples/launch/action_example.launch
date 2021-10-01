@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- Set arguments for the robot connection -->
+  <arg name="robot_ip_b" default="192.168.1.42"/>
+
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+
+  <!-- Connect robot -->
+  <node name="b_bot_ur_driver" pkg="ur_robot_driver" type="ur_robot_driver_node" output="screen" ns="b_bot_controller">
+    <param name="prefix" type="str" value="b_bot_" />
+    <param name="robot_ip_address" type="str" value="$(arg robot_ip_b)" />
+    <param name="reverse_port" type="int" value="50002" /> 
+    <param name="min_payload" type="double" value="0.0" />
+    <param name="max_payload" type="double" value="3.0" />
+    <param name="max_velocity" type="double" value="10.0" />
+    <param name="servoj_time" type="double" value="0.008" />
+    <param name="base_frame" type="str" value="b_bot_base" />
+    <param name="tool_frame" type="str" value="b_bot_ee_link" />
+    <param name="require_activation" type="str" value="Never" />
+    <param name="shutdown_on_disconnect" type="bool" value="true"/>
+    <remap from="joint_states" to="/joint_states"/>
+  </node>
+
+  <!-- Grippers -->
+  <include file="$(find robotiq_control)/launch/ur_cmodel_action_controller.launch">
+    <arg name="namespace" value="b_bot" />
+    <arg name="topic" value="/b_bot/ur_hardware_interface/script_command" />
+  </include>
+
+  <!-- This calls the action client example -->
+  <node name="action_example" pkg="o2ac_examples" type="action_example" respawn="false" output="screen" />
+  
+</launch>

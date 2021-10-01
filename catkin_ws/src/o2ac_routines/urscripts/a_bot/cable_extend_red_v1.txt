@@ -1,0 +1,59 @@
+ Program
+   Robot Program
+     Gripper Move72% (1)
+     'curr_pose≔get_actual_joint_positions()'
+     MoveL
+       'curr_pose'
+       above_cabl_base
+       at_cable_base
+     Gripper Move84% (1)
+     MoveL
+       'wait_for_bbot'
+       Direction: Base X+
+         Until (distance)
+       Popup: wait for b_bot to grasp cable. press enter to move together
+       past_cable
+       Waypoint_1
+     MoveJ
+       high_back
+       Popup: wait for b_bot to prepare cable. press enter to pick it
+       Gripper Move49% (1)
+       above_cable_end
+     MoveL
+       at_cable_end
+     Gripper Close (1)
+     Popup: press enter, then the robot will move to insert
+     MoveL
+       midpoint
+       by_terminal
+     MoveL
+       above_hole2
+       Popup: press enter, then the robot will move to insert
+       Direction: Base
+         Until (distance)
+     'push more'
+     Confirm success by pulling lightly
+       Gripper Move78% (1)
+       MoveL
+         Direction: Base
+           Until (distance)
+       Gripper Close (1)
+     z_height_start≔get_actual_tcp_pose()
+     'Loop 6 times'
+     MoveL
+       Direction: Base
+         Until (tool_contact_detection)
+         Until (distance)
+     heigh_end≔get_actual_tcp_pose()
+     var_1≔pose_dist(z_height_start, heigh_end)
+     Popup
+     If pose_dist(z_height_start, heigh_end) < 0.01
+       'successfully inserted'
+       Gripper Move78% (1)
+       MoveL
+         Direction: Base
+           Until (distance)
+       'MoveJ'
+       'MoveJ'
+     Else
+       'cable still loose'

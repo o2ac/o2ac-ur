@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<launch>
+
+  <arg name="config"/>
+  <arg name="calib_dir"/>
+  <arg name="camera_name"/>
+  <arg name="check"/>
+  <arg name="use_dual_quaternion"/>
+
+  <!-- Set name of the configuration file -->
+  <arg name="config_file" value="$(dirname)/../../config/$(arg config
+				 )/$(arg camera_name).yaml"/>
+  <arg name="calib_file"  value="$(arg calib_dir)/$(arg camera_name).yaml"/>
+
+  <!-- Select and turn on laser only for a camera to be calibrated -->
+  <node name="activate_camera"
+	pkg="aist_camera_multiplexer" type="activate_camera.py"
+	args="$(arg camera_name)"/>
+
+  <!-- Start ArUco -->
+  <node name="aruco_detector"
+	pkg="aist_aruco_ros" type="aist_aruco_detector" output="screen">
+    <remap from="/camera_info"	to="camera_multiplexer/camera_info"/>
+    <remap from="/image"	to="camera_multiplexer/image"/>
+    <remap from="/depth"	to="camera_multiplexer/depth"/>
+    <rosparam file="$(arg config_file)"/>
+  </node>
+
+  <!-- Start calibrator -->
+  <node unless="$(arg check)"
+	name="handeye_calibrator"
+	pkg="aist_handeye_calibration" type="calibrator" output="screen">
+    <param name="use_dual_quaternion"	 value="$(arg use_dual_quaternion)"/>
+    <param name="calib_file"		 value="$(arg calib_file)"/>
+    <rosparam file="$(arg config_file)"/>
+  </node>
+
+</launch>

@@ -1,0 +1,18 @@
+<?xml version="1.0" ?>
+<launch>
+
+  <arg name="urdf_dir"
+       default="$(find o2ac_parts_description)/urdf/generated"/>
+
+  <include file="$(find aist_model_spawner)/launch/run.launch">
+    <arg name="urdf_dir"	value="$(arg urdf_dir)"/>
+  </include>
+
+  <arg name="command_args"
+       value="-d $(find aist_model_spawner)/launch/test.rviz"/>
+  <node name="$(anon rviz)" pkg="rviz" type="rviz"
+	respawn="false" args="$(arg command_args)"
+	output="screen">
+  </node>
+
+</launch>

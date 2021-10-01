@@ -1,0 +1,2608 @@
+def taskboard_belt_v6():
+  step_count_5537326a_1f16_4728_a424_74d0cb7e9dc2 = 0.0
+  thread Step_Counter_Thread_648031c9_5687_4318_a426_7c8d1f4d9b8b():
+    while (True):
+      step_count_5537326a_1f16_4728_a424_74d0cb7e9dc2 = step_count_5537326a_1f16_4728_a424_74d0cb7e9dc2 + 1.0
+      sync()
+    end
+  end
+  run Step_Counter_Thread_648031c9_5687_4318_a426_7c8d1f4d9b8b()
+  set_tool_communication(True, 115200, 0, 1, 1.5, 3.5)
+  set_tool_output_mode(0)
+  set_tool_digital_output_mode(0, 1)
+  set_tool_digital_output_mode(1, 1)
+  set_tool_voltage(24)
+  set_safety_mode_transition_hardness(1)
+  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
+  set_standard_analog_input_domain(0, 1)
+  set_standard_analog_input_domain(1, 1)
+  set_tool_analog_input_domain(0, 1)
+  set_tool_analog_input_domain(1, 1)
+  set_analog_outputdomain(0, 0)
+  set_analog_outputdomain(1, 0)
+  set_input_actions_to_default()
+  set_gravity([0.0, 0.0, 9.82])
+  set_target_payload(1.200000, [0.001000, -0.018000, 0.049000], [0.002086, 0.002086, 0.002086, 0.000000, 0.000000, 0.000000])
+  # begin: URCap Installation Node
+  #   Source: External Control, 1.0.5, FZI Research Center for Information Technology
+  #   Type: External Control
+  # end: URCap Installation Node
+  # begin: URCap Installation Node
+  #   Source: rs485, 1.0.0, FZI Research Center for Information Technology
+  #   Type: RS485
+  global rs485=rpc_factory("xmlrpc", "http://127.0.0.1:40404/RPC2")
+  # end: URCap Installation Node
+  # begin: URCap Installation Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Vacuum
+  #################################################
+  # Vacuum Grip Check
+  #################################################
+  
+  vacuumGripCheckThread1 = 0
+  vacuumGripCheckThread2 = 0
+  vacuumGripCheckThread3 = 0
+  vacuumGripCheckThread4 = 0
+  vacuumGripCheckThread1Running = False
+  vacuumGripCheckThread2Running = False
+  vacuumGripCheckThread3Running = False
+  vacuumGripCheckThread4Running = False
+  vacuumGripCheckSocketId = "1"
+  vacuumGripCheckThreadStarted = False
+  
+  thread vacuumGripCheck():
+    gripper_socket = vacuumGripCheckSocketId
+    vacuumGripCheckThreadStarted = True
+  
+    while (True):
+      objectDetectedDebounceCtr = 0
+  
+      while (objectDetectedDebounceCtr < 3):
+        if(rq_is_vacuum_obj_detected(gripper_socket="1")):
+          objectDetectedDebounceCtr = objectDetectedDebounceCtr + 1
+        else:
+          objectDetectedDebounceCtr = 0
+        end
+        sleep(0.1)
+      end
+  
+      objectNotDetectedDebounceCtr = 0
+  
+      while objectNotDetectedDebounceCtr < 3:
+        if (not rq_is_vacuum_obj_detected(gripper_socket="1")):
+          objectNotDetectedDebounceCtr = objectNotDetectedDebounceCtr + 1
+        else:
+          objectNotDetectedDebounceCtr = 0
+        end
+        sleep(0.1)
+      end
+  
+      socket_open("127.0.0.1",29999,"dashboardServerSocket")
+      socket_send_line("pause","dashboardServerSocket")
+      socket_send_string("popup Vacuum grip check has detected an object drop.", "dashboardServerSocket")
+      socket_send_byte(10, "dashboardServerSocket")
+      socket_close("dashboardServerSocket")
+  
+      sync()
+    end
+  end
+  
+  def startVacuumGripCheckThread(gripperId="1"):
+    vacuumGripCheckSocketId = gripperId
+    threadHandle = run vacuumGripCheck()
+    waitForVacuumGripCheckThreadStarted()
+    return threadHandle
+  end
+  
+  def stopVacuumGripCheckThread(threadHandle):
+    kill threadHandle
+  end
+  
+  def waitForVacuumGripCheckThreadStarted():
+    while (not(vacuumGripCheckThreadStarted)):
+      sync()
+    end
+    vacuumGripCheckThreadStarted = False
+  end
+  #################################################
+  # End - Vacuum Grip Check
+  #################################################
+  
+  #################################################
+  # Stops the pump on a distance travelled
+  #################################################
+  global stopPumpDistance = 100
+  global stopPumpSocketId = "0"
+  global stopPumpThreadStarted = [False, False, False, False]
+  global stopPumpThreadHandles = [0, 0, 0, 0]
+  
+  thread stopPumpOnDistanceTravelled():
+    distance = stopPumpDistance
+    socketId = stopPumpSocketId
+    stopPumpThreadStarted[rq_socket_to_index(socketId)] = True
+  
+    measuredDistance = waitForDistanceTravelled(distance)
+  
+    rq_stop(socketId)
+  
+    stopPumpThreadStarted[rq_socket_to_index(socketId)] = False
+  end
+  
+  def waitForDistanceTravelled(distance):
+    startingPose = get_actual_tcp_pose()
+    measuredDistance = 0
+    while (measuredDistance < distance):
+      sleep(0.1)
+      measuredDistance = point_dist(get_actual_tcp_pose(), startingPose)
+    end
+  
+    return measuredDistance
+  end
+  
+  def startStopPumpOnDistanceTravelledThread(distance, gripper_socket="1"):
+    if (stopPumpThreadStarted[rq_socket_to_index(gripper_socket)]):
+      return 0
+    end
+  
+    global stopPumpDistance = distance
+    global stopPumpSocketId = gripper_socket
+    stopPumpThreadHandles[rq_socket_to_index(gripper_socket)] = run stopPumpOnDistanceTravelled()
+    waitForStopPumpOnDistanceTravelledThreadStarted(gripper_socket)
+    return stopPumpThreadHandles[rq_socket_to_index(gripper_socket)]
+  end
+  
+  def waitForStopPumpOnDistanceTravelledThreadStarted(gripper_socket="1"):
+    while (not(stopPumpThreadStarted[rq_socket_to_index(gripper_socket)])):
+      sync()
+    end
+  end
+  
+  def stopStopPumpOnDistanceTravelledThread(gripper_socket="1"):
+    handle = stopPumpThreadHandles[rq_socket_to_index(gripper_socket)]
+    threadIsRunning = stopPumpThreadStarted[rq_socket_to_index(gripper_socket)]
+    if (threadIsRunning):
+      kill handle
+      clear_socket_buffer(gripper_socket, 0.01)
+      stopPumpThreadHandles[rq_socket_to_index(gripper_socket)] = 0
+    end
+  end
+  #################################################
+  # End - Stops the pump on a distance travelled
+  #################################################
+  
+  #################################################
+  # Vacuum general functions
+  #################################################
+  def rq_wait_for_vacuum_object_detected(gripper_socket="1"):
+      while (not rq_is_vacuum_obj_detected(gripper_socket)):
+          if (rq_is_vacuum_timeout(gripper_socket)):
+              return False
+          end
+          sync()
+      end
+      return True
+  end
+  
+  def rq_wait_for_vacuum_object_secured(gripper_socket="1"):
+      while (not rq_is_vacuum_obj_secured(gripper_socket)):
+          if (rq_is_vacuum_timeout(gripper_socket)):
+              return False
+          end
+          sync()
+      end
+      return True
+  end
+  
+  def rq_wait_for_vacuum_object_suction_complete(gripper_socket="1"):
+      remaining_retries = 50
+  
+       # Wait for suction started
+      while (not rq_is_vacuum_obj_in_suction(gripper_socket) and
+             not rq_is_vacuum_obj_detected(gripper_socket) and
+             remaining_retries > 0):
+          sleep(0.01)
+          remaining_retries = remaining_retries - 1
+      end
+  
+      # Wait for suction completed
+      while (rq_is_vacuum_obj_in_suction(gripper_socket)):
+          if (rq_is_vacuum_timeout(gripper_socket)):
+              return False
+          end
+          sleep(0.01)
+      end
+  
+      return True
+  end
+  
+  def rq_wait_for_vacuum_object_not_detected(gripper_socket="1"):
+      while (rq_is_vacuum_obj_detected(gripper_socket)):
+          sleep(0.01)
+      end
+  end
+  
+  def rq_is_vacuum_obj_detected(gripper_socket="1"):
+      gOBJ = rq_get_var("OBJ", 1, gripper_socket)
+      sync()
+      return is_vacuum_OBJ_object_detected(gOBJ)
+  end
+  
+  def rq_is_vacuum_obj_secured(gripper_socket="1"):
+      gOBJ = rq_get_var("OBJ", 1, gripper_socket)
+      sync()
+      return is_vacuum_OBJ_object_secured(gOBJ)
+  end
+  
+  def rq_is_vacuum_obj_in_suction(gripper_socket="1"):
+      gOBJ = rq_get_var("OBJ", 1, gripper_socket)
+      sync()
+  
+      if(is_vacuum_OBJ_object_in_motion(gOBJ)):
+          return True
+      else:
+          return False
+      end
+  end
+  
+  def rq_is_vacuum_timeout(gripper_socket="1"):
+      gFLT = rq_get_var("FLT", 2, gripper_socket)
+      sync()
+  
+      if(gFLT ==6):
+          return True
+      end
+  
+      return False
+  end
+  
+  def is_vacuum_OBJ_object_in_motion(gOBJ):
+      if (gOBJ == 0):
+          return True
+      end
+  
+      return False
+  end
+  
+  def is_vacuum_OBJ_object_detected(gOBJ):
+      if (gOBJ == 1 or gOBJ == 2):
+          return True
+      end
+  
+      return False
+  end
+  
+  def is_vacuum_OBJ_object_secured(gOBJ):
+      if (gOBJ == 2):
+          return True
+      end
+  
+      return False
+  end
+  
+  def rq_set_pressure_timeout_minimum_vacuum(pressure, timeout, minimum, gripper_socket="1"):
+      rq_set_pos_spd_for(pressure, timeout, minimum, gripper_socket)
+  end
+  
+  def is_FLT_vacuum_timeout(gFLT):
+    if (gFLT == 6):
+        return True
+    end
+  
+    return False
+  end
+  
+  def is_continuous_grip(maximum_vacuum):
+    return maximum_vacuum == 0
+  end
+  
+  def rq_vacuum_release(advanced_mode=False, shutoff_distance_cm=5, wait_for_object_released=True, gripper_socket="1"):
+    local shutoff_distance = scale(shutoff_distance_cm, [0, 99], [0.00, 0.99])
+    local pressure = 255
+    local minimum = 0
+    local timeout = 255
+    rq_vacuum_release_raw(advanced_mode, pressure, minimum, timeout, shutoff_distance, wait_for_object_released, gripper_socket)
+  end
+  
+  def rq_vacuum_release_raw(advanced_mode, pressure, minimum, timeout, shutoff_distance, wait_for_object_released, gripper_socket):
+    rq_reset_fault_and_activate(gripper_socket)
+    rq_set_pressure_timeout_minimum_vacuum(pressure, timeout, minimum, gripper_socket)
+  
+    if advanced_mode:
+      rq_set_gripper_mode(1, gripper_socket)
+    else:
+      rq_set_gripper_mode(0, gripper_socket)
+    end
+  
+    rq_set_GTO_and_wait(1, gripper_socket)
+  
+    if wait_for_object_released:
+      while (rq_is_vacuum_obj_detected(gripper_socket)):
+        rq_set_pressure_timeout_minimum_vacuum(pressure, timeout, minimum, gripper_socket)
+  
+        if advanced_mode:
+          rq_set_gripper_mode(1, gripper_socket)
+        else:
+          rq_set_gripper_mode(0, gripper_socket)
+        end
+  
+        rq_set_GTO_and_wait(1, gripper_socket)
+        sleep(0.01)
+      end
+    end
+  
+    if advanced_mode:
+      startStopPumpOnDistanceTravelledThread(shutoff_distance, gripper_socket)
+    end
+  end
+  
+  def rq_vacuum_grip(advanced_mode=False, maximum_vacuum=60, minimum_vacuum=40, timeout_ms=3000, wait_for_object_detected=True, gripper_socket="1"):
+    local pressure = scale(maximum_vacuum, [0, 100], [100, 0])
+    local minimum = scale(minimum_vacuum, [0, 100], [100, 0])
+    local timeout = scale(timeout_ms, [0, 25500], [0, 255])
+    rq_vacuum_grip_raw(advanced_mode, pressure, minimum, timeout, gripper_socket)
+    if wait_for_object_detected:
+          suction_completed = rq_wait_for_vacuum_object_suction_complete(gripper_socket)
+          if(not suction_completed):
+              rq_set_var("GTO", 0, gripper_socket)
+          end
+    end
+  end
+  
+  def rq_vacuum_grip_raw(advanced_mode, pressure, minimum, timeout, gripper_socket):
+    stopStopPumpOnDistanceTravelledThread(gripper_socket)
+    rq_reset_fault_and_activate(gripper_socket)
+  
+    rq_set_pressure_timeout_minimum_vacuum(pressure, timeout, minimum, gripper_socket)
+  
+    if advanced_mode:
+      rq_set_gripper_mode(1, gripper_socket)
+    else:
+      rq_set_gripper_mode(0, gripper_socket)
+    end
+  
+    rq_set_GTO_and_wait(1, gripper_socket)
+  
+  end
+  
+  def rq_reset_fault_and_activate(gripper_socket):
+      gFLT = rq_get_var("FLT", 2, gripper_socket)
+  
+      if(not is_FLT_no_fault(gFLT)):
+          if(is_FLT_vacuum_timeout(gFLT)):
+              rq_set_GTO_and_wait(0, gripper_socket)
+          elif(is_FLT_faulted(gFLT)):
+              rq_set_GTO_and_wait(0, gripper_socket)
+              rq_set_var("ACT", 1, gripper_socket)
+          end
+      elif(not rq_is_gripper_activated(gripper_socket)):
+          rq_set_GTO_and_wait(0, gripper_socket)
+          rq_set_var("ACT", 1, gripper_socket)
+      end
+  end
+  #################################################
+  # End - Vacuum general functions
+  #################################################
+  vacuumGripCheckWarningTitle = "Vacuum grip check"
+  vacuumGripCheckWarningMessage = "Vacuum gripper object lost"
+  vacuumGripTimeoutTitle = "Vacuum gripper fault"
+  vacuumGripTimeoutMessage = "Grip has timed out"
+  # end: URCap Installation Node
+  # begin: URCap Installation Node
+  #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+  #   Type: Gripper
+  rq_gripper_socket_ip_address = "127.0.0.1"
+  rq_gripper_socket_port = 63352
+  
+  rq_comm_check_fail_counter = [0, 0, 0, 0]
+  
+  rq_read_act = [-1, -1, -1, -1]
+  rq_read_gto = [-1, -1, -1, -1]
+  rq_read_for = [-1, -1, -1, -1]
+  rq_read_spe = [-1, -1, -1, -1]
+  rq_read_obj = [-1, -1, -1, -1]
+  rq_read_sta = [-1, -1, -1, -1]
+  rq_read_flt = [-1, -1, -1, -1]
+  rq_read_pos = [-1, -1, -1, -1]
+  rq_read_pre = [-1, -1, -1, -1]
+  rq_read_lbp = [-1, -1, -1, -1]
+  rq_read_lrd = [-1, -1, -1, -1]
+  rq_read_lbl = [-1, -1, -1, -1]
+  rq_read_lgn = [-1, -1, -1, -1]
+  rq_read_msc = [-1, -1, -1, -1]
+  rq_read_mod = [-1, -1, -1, -1]
+  rq_read_cou = [-1, -1, -1, -1]
+  rq_read_ncy = [-1, -1, -1, -1]
+  rq_read_dst = [-1, -1, -1, -1]
+  rq_read_pco = [-1, -1, -1, -1]
+  
+  rq_string_initial_value = "N/A"
+  
+  rq_read_snu_1 = rq_string_initial_value
+  rq_read_snu_2 = rq_string_initial_value
+  rq_read_snu_3 = rq_string_initial_value
+  rq_read_snu_4 = rq_string_initial_value
+  
+  rq_read_fwv_1 = rq_string_initial_value
+  rq_read_fwv_2 = rq_string_initial_value
+  rq_read_fwv_3 = rq_string_initial_value
+  rq_read_fwv_4 = rq_string_initial_value
+  
+  rq_read_ver_1 = rq_string_initial_value
+  rq_read_ver_2 = rq_string_initial_value
+  rq_read_ver_3 = rq_string_initial_value
+  rq_read_ver_4 = rq_string_initial_value
+  
+  rq_read_act_req = [True, True, True, True]
+  rq_read_gto_req = [True, True, True, True]
+  rq_read_for_req = [True, True, True, True]
+  rq_read_spe_req = [True, True, True, True]
+  rq_read_obj_req = [True, True, True, True]
+  rq_read_sta_req = [True, True, True, True]
+  rq_read_flt_req = [True, True, True, True]
+  rq_read_pos_req = [True, True, True, True]
+  rq_read_pre_req = [True, True, True, True]
+  rq_read_lbp_req = [True, True, True, True]
+  rq_read_lrd_req = [True, True, True, True]
+  rq_read_lbl_req = [True, True, True, True]
+  rq_read_lgn_req = [True, True, True, True]
+  rq_read_msc_req = [True, True, True, True]
+  rq_read_mod_req = [True, True, True, True]
+  rq_read_cou_req = [True, True, True, True]
+  rq_read_ncy_req = [True, True, True, True]
+  rq_read_dst_req = [True, True, True, True]
+  rq_read_pco_req = [True, True, True, True]
+  
+  rq_read_snu_1_req = False
+  rq_read_snu_2_req = False
+  rq_read_snu_3_req = False
+  rq_read_snu_4_req = False
+  
+  rq_read_fwv_1_req = False
+  rq_read_fwv_2_req = False
+  rq_read_fwv_3_req = False
+  rq_read_fwv_4_req = False
+  
+  rq_read_ver_1_req = False
+  rq_read_ver_2_req = False
+  rq_read_ver_3_req = False
+  rq_read_ver_4_req = False
+  
+  rq_write_act_request = [False, False, False, False]
+  rq_write_gto_request = [False, False, False, False]
+  rq_write_atr_request = [False, False, False, False]
+  rq_write_ard_request = [False, False, False, False]
+  rq_write_pos_request = [False, False, False, False]
+  rq_write_lbp_request = [False, False, False, False]
+  rq_write_lrd_request = [False, False, False, False]
+  rq_write_lbl_request = [False, False, False, False]
+  rq_write_lgn_request = [False, False, False, False]
+  rq_write_msc_request = [False, False, False, False]
+  rq_write_mod_request = [False, False, False, False]
+  
+  rq_write_act = [-1, -1, -1, -1]
+  rq_write_gto = [-1, -1, -1, -1]
+  rq_write_atr = [-1, -1, -1, -1]
+  rq_write_ard = [-1, -1, -1, -1]
+  rq_write_for = [-1, -1, -1, -1]
+  rq_write_spe = [-1, -1, -1, -1]
+  rq_write_pos = [-1, -1, -1, -1]
+  rq_write_lbp = [-1, -1, -1, -1]
+  rq_write_lrd = [-1, -1, -1, -1]
+  rq_write_lbl = [-1, -1, -1, -1]
+  rq_write_lgn = [-1, -1, -1, -1]
+  rq_write_msc = [-1, -1, -1, -1]
+  rq_write_mod = [-1, -1, -1, -1]
+  
+  rq_write_act_previous = rq_write_act
+  rq_write_gto_previous = rq_write_gto
+  rq_write_atr_previous = rq_write_atr
+  rq_write_ard_previous = rq_write_ard
+  rq_write_for_previous = rq_write_for
+  rq_write_spe_previous = rq_write_spe
+  rq_write_pos_previous = rq_write_pos
+  rq_write_lbp_previous = rq_write_lbp
+  rq_write_lrd_previous = rq_write_lrd
+  rq_write_lbl_previous = rq_write_lbl
+  rq_write_lgn_previous = rq_write_lgn
+  rq_write_msc_previous = rq_write_msc
+  rq_write_mod_previous = rq_write_mod
+  
+  gripper_connected = [False, False, False, False]
+  gripper_socket_open = [False, False, False, False]
+  rq_comm_clear_socket_buffer_enabled = [True, True, True, True]
+  rq_comm_check_counter = 0
+  rq_gripper_communication_thread_started = False
+  
+  thread rq_gripper_communication():
+      rq_comm_read_constants()
+      rq_comm_read_variables()
+      rq_comm_initialize_write_values()
+  
+      while(True):
+          rq_comm_clear_socket_buffer()
+          rq_comm_check()
+          rq_comm_read_variables()
+          rq_comm_write_variables()
+  
+          rq_gripper_communication_thread_started = True
+          sync()
+      end
+  end
+  
+  def rq_socket_to_index(gripper_socket="1"):
+      # Patch in case gripper_socket is an integer
+      gripper_socket_string = str_cat("", gripper_socket)
+  
+      if(gripper_socket_string == "1"):
+          return 0
+      elif(gripper_socket_string == "2"):
+          return 1
+      elif(gripper_socket_string == "3"):
+          return 2
+      elif(gripper_socket_string == "4"):
+          return 3
+      end
+      return 0
+  end
+  
+  def rq_index_to_socket(index=0):
+      if(index == 0):
+          return "1"
+      elif(index == 1):
+          return "2"
+      elif(index == 2):
+          return "3"
+      elif(index == 3):
+          return "4"
+      end
+      return "1"
+  end
+  
+  def rq_comm_check():
+      index = 0
+      rq_comm_check_fail_counter_max = 99999
+  
+      if(rq_comm_check_counter < 50):
+          rq_comm_check_counter = rq_comm_check_counter + 1
+      else:
+          rq_comm_check_counter = 0
+  
+          while(index <= 3):
+              socket = rq_index_to_socket(index)
+  
+              if(gripper_connected[index]):
+                  # Patch in case gripper_socket is an integer
+                  gripper_socket_string = str_cat("", socket)
+  
+                  sid_list = rq_get_sid(socket)
+                  is_gripper_in_sid_list = rq_is_gripper_in_sid_list(gripper_socket_string, sid_list)
+  
+                  if(is_gripper_in_sid_list):
+                      rq_comm_check_fail_counter[index] = 0
+                  else:
+                      rq_comm_check_fail_counter[index] = rq_comm_check_fail_counter[index] + 1
+                  end
+  
+                  if(rq_comm_check_fail_counter[index] > rq_comm_check_fail_counter_max):
+                      message = str_cat("Communication lost with Robotiq's Gripper Slave ID ", gripper_socket_string)
+                      popup(message, "Communication Error", False, True, True)
+                  end
+              end
+              index = index + 1
+          end
+      end
+  end
+  
+  def rq_init_comm_if_connected(gripper_sid=9, gripper_socket="1"):
+      if(not is_gripper_socket_open(gripper_socket)):
+        open_gripper_socket(gripper_socket)
+      end
+  
+      socket_sid_set = rq_set_sid(gripper_sid, gripper_socket)
+  
+      if(socket_sid_set):
+          # Patch in case gripper_socket is an integer
+          gripper_socket_string = str_cat("", gripper_socket)
+  
+          sid_list = rq_get_sid(gripper_socket)
+          is_gripper_in_sid_list = rq_is_gripper_in_sid_list(gripper_socket_string, sid_list)
+  
+          if(is_gripper_in_sid_list):
+              rq_set_gripper_connected(gripper_socket_string)
+              return True
+          end
+      end
+  
+      return False
+  end
+  
+  def open_gripper_socket(gripper_socket="1"):
+      is_open = socket_open(rq_gripper_socket_ip_address, rq_gripper_socket_port, gripper_socket)
+      set_gripper_socket_open(gripper_socket, is_open)
+  end
+  
+  def is_gripper_socket_open(gripper_socket="1"):
+      return gripper_socket_open[rq_socket_to_index(gripper_socket)]
+  end
+  
+  def set_gripper_socket_open(gripper_socket, is_open):
+      gripper_socket_open[rq_socket_to_index(gripper_socket)] = is_open
+  end
+  
+  def rq_set_gripper_connected(gripper_id="1"):
+      gripper_connected[rq_socket_to_index(gripper_id)] = True
+  end
+  
+  def rq_is_gripper_connected(gripper_id="1"):
+      return gripper_connected[rq_socket_to_index(gripper_id)]
+  end
+  
+  def rq_set_sid(gripper_sid=9, gripper_socket="1"):
+      socket_set_var("SID", gripper_sid,  gripper_socket)
+      ack = socket_read_byte_list(3, gripper_socket)
+      return is_ack(ack)
+  end
+  
+  def rq_get_sid(gripper_socket="1"):
+      socket_send_string("GET SID", gripper_socket)
+      sid_list = socket_read_byte_list(17, gripper_socket)
+      return sid_list
+  end
+  
+  def rq_wait_for_gripper_connected():
+      gripper_socket = "gripper_conn_socket"
+      socket_open(rq_gripper_socket_ip_address, rq_gripper_socket_port, gripper_socket)
+  
+      remainingRetries = 2000
+      sid_list = rq_get_sid(gripper_socket)
+      gripper_is_connected = rq_is_any_gripper_connected(sid_list)
+  
+      while(not gripper_is_connected and remainingRetries > 0):
+          remainingRetries = remainingRetries - 1
+          sid_list = rq_get_sid(gripper_socket)
+          gripper_is_connected = rq_is_any_gripper_connected(sid_list)
+      end
+  
+      socket_close(gripper_socket)
+  end
+  
+  def rq_is_any_gripper_connected(sid_list):
+      is_gripper_1_connected = rq_is_gripper1_in_sid_list(sid_list)
+      is_gripper_2_connected = rq_is_gripper2_in_sid_list(sid_list)
+      is_gripper_3_connected = rq_is_gripper3_in_sid_list(sid_list)
+      is_gripper_4_connected = rq_is_gripper4_in_sid_list(sid_list)
+  
+      return is_gripper_1_connected or is_gripper_2_connected or is_gripper_3_connected or is_gripper_4_connected
+  end
+  
+  def rq_is_gripper_ascii_in_sid_list(gripper_ascii_sid, sid_list):
+      sid_list_length = sid_list[0]
+      sid_list_empty_length = 2
+  
+      if (sid_list_length <= sid_list_empty_length):
+          return False
+      end
+  
+      sid1 = sid_list[2]
+      sid2 = sid_list[5]
+      sid3 = sid_list[8]
+      sid4 = sid_list[11]
+  
+      return sid1 == gripper_ascii_sid or sid2 == gripper_ascii_sid or sid3 == gripper_ascii_sid or sid4 == gripper_ascii_sid
+  end
+  
+  def rq_is_gripper_in_sid_list(gripper_socket_string, sid_list):
+      if(gripper_socket_string == "1"):
+          return rq_is_gripper1_in_sid_list(sid_list)
+      elif(gripper_socket_string == "2"):
+          return rq_is_gripper2_in_sid_list(sid_list)
+      elif(gripper_socket_string == "3"):
+          return rq_is_gripper3_in_sid_list(sid_list)
+      elif(gripper_socket_string == "4"):
+          return rq_is_gripper4_in_sid_list(sid_list)
+      end
+      return False
+  end
+  
+  def rq_is_gripper1_in_sid_list(sid_list):
+      gripper_1_sid_ascii = 57
+      return rq_is_gripper_ascii_in_sid_list(gripper_1_sid_ascii, sid_list)
+  end
+  
+  def rq_is_gripper2_in_sid_list(sid_list):
+      gripper_2_sid_ascii = 50
+      return rq_is_gripper_ascii_in_sid_list(gripper_2_sid_ascii, sid_list)
+  end
+  
+  def rq_is_gripper3_in_sid_list(sid_list):
+      gripper_3_sid_ascii = 51
+      return rq_is_gripper_ascii_in_sid_list(gripper_3_sid_ascii, sid_list)
+  end
+  
+  def rq_is_gripper4_in_sid_list(sid_list):
+      gripper_4_sid_ascii = 52
+      return rq_is_gripper_ascii_in_sid_list(gripper_4_sid_ascii, sid_list)
+  end
+  
+  def rq_comm_clear_socket_buffer():
+      index = 0
+  
+      while(index <= 3):
+          socket = rq_index_to_socket(index)
+  
+          if(gripper_connected[index] and rq_comm_clear_socket_buffer_enabled[index]):
+              byte_in_buffer = socket_read_byte_list(1, socket, 0.002)
+              while(byte_in_buffer[0] >= 1):
+                  byte_in_buffer = socket_read_byte_list(1, socket, 0.002)
+              end
+              rq_comm_clear_socket_buffer_enabled[index] = False
+          end
+          index = index + 1
+      end
+  end
+  
+  def rq_comm_initialize_write_values():
+      index = 0
+  
+      while(index <= 3):
+          socket = rq_index_to_socket(index)
+  
+          if(gripper_connected[index]):
+  
+              if(rq_write_act[index] == -1 and rq_read_act[index] != -1):
+                  rq_write_act[index] = rq_read_act[index]
+                  rq_write_act_previous[index] = rq_read_act[index]
+              elif(rq_write_act_previous[index] == -1 and rq_read_act[index] != -1):
+                  rq_write_act_previous[index] = rq_read_act[index]
+              end
+  
+              if(rq_write_gto[index] == -1 and rq_read_gto[index] != -1):
+                  rq_write_gto[index] = rq_read_gto[index]
+                  rq_write_gto_previous[index] = rq_read_gto[index]
+              elif(rq_write_gto_previous[index] == -1 and rq_read_gto[index] != -1):
+                  rq_write_gto_previous[index] = rq_read_gto[index]
+              end
+  
+              if(rq_write_for[index] == -1 and rq_read_for[index] != -1):
+                  rq_write_for[index] = rq_read_for[index]
+                  rq_write_for_previous[index] = rq_read_for[index]
+              elif(rq_write_for_previous[index] == -1 and rq_read_for[index] != -1):
+                  rq_write_for_previous[index] = rq_read_for[index]
+              end
+  
+              if(rq_write_spe[index] == -1 and rq_read_spe[index] != -1):
+                  rq_write_spe[index] = rq_read_spe[index]
+                  rq_write_spe_previous[index] = rq_read_spe[index]
+              elif(rq_write_spe_previous[index] == -1 and rq_read_spe[index] != -1):
+                  rq_write_spe_previous[index] = rq_read_spe[index]
+              end
+  
+              if(rq_write_pos[index] == -1 and rq_read_pos[index] != -1):
+                  rq_write_pos[index] = rq_read_pos[index]
+                  rq_write_pos_previous[index] = rq_read_pos[index]
+              elif(rq_write_pos_previous[index] == -1 and rq_read_pos[index] != -1):
+                  rq_write_pos_previous[index] = rq_read_pos[index]
+              end
+  
+              if(rq_write_lbp[index] == -1 and rq_read_lbp[index] != -1):
+                  rq_write_lbp[index] = rq_read_lbp[index]
+                  rq_write_lbp_previous[index] = rq_read_lbp[index]
+              elif(rq_write_lbp_previous[index] == -1 and rq_read_lbp[index] != -1):
+                  rq_write_lbp_previous[index] = rq_read_lbp[index]
+              end
+  
+              if(rq_write_lrd[index] == -1 and rq_read_lrd[index] != -1):
+                  rq_write_lrd[index] = rq_read_lrd[index]
+                  rq_write_lrd_previous[index] = rq_read_lrd[index]
+              elif(rq_write_lrd_previous[index] == -1 and rq_read_lrd[index] != -1):
+                  rq_write_lrd_previous[index] = rq_read_lrd[index]
+              end
+  
+              if(rq_write_lbl[index] == -1 and rq_read_lbl[index] != -1):
+                  rq_write_lbl[index] = rq_read_lbl[index]
+                  rq_write_lbl_previous[index] = rq_read_lbl[index]
+              elif(rq_write_lbl_previous[index] == -1 and rq_read_lbl[index] != -1):
+                  rq_write_lbl_previous[index] = rq_read_lbl[index]
+              end
+  
+              if(rq_write_lgn[index] == -1 and rq_read_lgn[index] != -1):
+                  rq_write_lgn[index] = rq_read_lgn[index]
+                  rq_write_lgn_previous[index] = rq_read_lgn[index]
+              elif(rq_write_lgn_previous[index] == -1 and rq_read_lgn[index] != -1):
+                  rq_write_lgn_previous[index] = rq_read_lgn[index]
+              end
+  
+              if(rq_write_msc[index] == -1 and rq_read_msc[index] != -1):
+                  rq_write_msc[index] = rq_read_msc[index]
+                  rq_write_msc_previous[index] = rq_read_msc[index]
+              elif(rq_write_msc_previous[index] == -1 and rq_read_msc[index] != -1):
+                  rq_write_msc_previous[index] = rq_read_msc[index]
+              end
+  
+              if(rq_write_mod[index] == -1 and rq_read_mod[index] != -1):
+                  rq_write_mod[index] = rq_read_mod[index]
+                  rq_write_mod_previous[index] = rq_read_mod[index]
+              elif(rq_write_mod_previous[index] == -1 and rq_read_mod[index] != -1):
+                  rq_write_mod_previous[index] = rq_read_mod[index]
+              end
+  
+          end
+          index = index + 1
+      end
+  end
+  
+  def rq_comm_set_var(var, value=0, gripper_socket="1"):
+      socket_set_var(var, value, gripper_socket)
+      return socket_read_byte_list(3, gripper_socket)
+  end
+  
+  def rq_comm_set_pos_spe_for(pos=0, speed=0, force=0, gripper_socket="1"):
+      socket_send_string("SET POS", gripper_socket)
+      socket_send_byte(32, gripper_socket)
+      socket_send_string(pos, gripper_socket)
+      socket_send_byte(32, gripper_socket)
+      socket_send_string("SPE", gripper_socket)
+      socket_send_byte(32, gripper_socket)
+      socket_send_string(speed, gripper_socket)
+      socket_send_byte(32, gripper_socket)
+      socket_send_string("FOR", gripper_socket)
+      socket_send_byte(32, gripper_socket)
+      socket_send_string(force, gripper_socket)
+      socket_send_byte(10, gripper_socket)
+      return socket_read_byte_list(3, gripper_socket)
+  end
+  
+  def rq_comm_read_variables():
+      index = 0
+  
+      while(index <= 3):
+          socket = rq_index_to_socket(index)
+  
+          if(gripper_connected[index]):
+  
+              if(rq_read_act_req[index]):
+                  rq_read_act[index] = socket_get_var("ACT", socket)
+                  rq_read_act_req[index] = False
+              end
+  
+              if(rq_read_gto_req[index]):
+                  rq_read_gto[index] = socket_get_var("GTO", socket)
+                  rq_read_gto_req[index] = False
+              end
+  
+              if(rq_read_pre_req[index]):
+                  rq_read_pre[index] = socket_get_var("PRE", socket)
+                  rq_read_pre_req[index] = False
+              end
+  
+              if(rq_read_pos_req[index]):
+                  rq_read_pos[index] = socket_get_var("POS", socket)
+                  rq_read_pos_req[index] = False
+              end
+  
+              if(rq_read_spe_req[index]):
+                  rq_read_spe[index] = socket_get_var("SPE", socket)
+                  rq_read_spe_req[index] = False
+              end
+  
+              if(rq_read_for_req[index]):
+                  rq_read_for[index] = socket_get_var("FOR", socket)
+                  rq_read_for_req[index] = False
+              end
+  
+              if(rq_read_obj_req[index]):
+                  rq_read_obj[index] = socket_get_var("OBJ", socket)
+                  rq_read_obj_req[index] = False
+              end
+  
+              if(rq_read_sta_req[index]):
+                  rq_read_sta[index] = socket_get_var("STA", socket)
+                  rq_read_sta_req[index] = False
+              end
+  
+              if(rq_read_mod_req[index]):
+                  rq_read_mod[index] = socket_get_var("MOD", socket)
+                  rq_read_mod_req[index] = False
+              end
+  
+              if(rq_read_flt_req[index]):
+                  rq_read_flt[index] = socket_get_var("FLT",socket)
+                  rq_read_flt_req[index] = False
+              end
+  
+              if(rq_read_lbp_req[index]):
+                  rq_read_lbp[index] = socket_get_var("LBP", socket)
+                  rq_read_lbp_req[index] = False
+              end
+  
+              if(rq_read_lrd_req[index]):
+                  rq_read_lrd[index] = socket_get_var("LRD", socket)
+                  rq_read_lrd_req[index] = False
+              end
+  
+              if(rq_read_lbl_req[index]):
+                  rq_read_lbl[index] = socket_get_var("LBL",socket)
+                  rq_read_lbl_req[index] = False
+              end
+  
+              if(rq_read_lgn_req[index]):
+                  rq_read_lgn[index] = socket_get_var("LGN", socket)
+                  rq_read_lgn_req[index] = False
+              end
+  
+              if(rq_read_msc_req[index]):
+                  rq_read_msc[index] = socket_get_var("MSC", socket)
+                  rq_read_msc_req[index] = False
+              end
+  
+              if(rq_read_cou_req[index]):
+                  rq_read_cou[index] = socket_get_var("COU", socket)
+                  rq_read_cou_req[index] = False
+              end
+  
+              if(rq_read_ncy_req[index]):
+                  rq_read_ncy[index] = socket_get_var("NCY", socket)
+                  rq_read_ncy_req[index] = False
+              end
+  
+              if(rq_read_dst_req[index]):
+                  rq_read_dst[index] = socket_get_var("DST", socket)
+                  rq_read_dst_req[index] = False
+              end
+  
+              if(rq_read_pco_req[index]):
+                  rq_read_pco[index] = socket_get_var("PCO", socket)
+                  rq_read_pco_req[index] = False
+              end
+          end
+          index = index + 1
+      end
+  end
+  
+  def rq_comm_read_constants():
+  
+      if(gripper_connected[0]):
+          while(rq_read_snu_1 == rq_string_initial_value):
+              socket_send_string("GET SNU", "1")
+              rq_read_snu_1 = socket_read_string("1")
+          end
+  
+          while(rq_read_fwv_1 == rq_string_initial_value):
+              socket_send_string("GET FWV", "1")
+              rq_read_fwv_1 = socket_read_string("1")
+          end
+  
+          while(rq_read_ver_1 == rq_string_initial_value):
+              socket_send_string("GET VER", "1")
+              rq_read_ver_1 = socket_read_string("1")
+          end
+      end
+  
+      if(gripper_connected[1]):
+          while(rq_read_snu_2 == rq_string_initial_value):
+              socket_send_string("GET SNU", "2")
+              rq_read_snu_2 = socket_read_string("2")
+          end
+  
+          while(rq_read_fwv_2 == rq_string_initial_value):
+              socket_send_string("GET FWV", "2")
+              rq_read_fwv_2 = socket_read_string("2")
+          end
+  
+          while(rq_read_ver_2 == rq_string_initial_value):
+              socket_send_string("GET VER", "2")
+              rq_read_ver_2 = socket_read_string("2")
+          end
+      end
+  
+      if(gripper_connected[2]):
+          while(rq_read_snu_3 == rq_string_initial_value):
+              socket_send_string("GET SNU", "3")
+              rq_read_snu_3 = socket_read_string("3")
+          end
+  
+          while(rq_read_fwv_3 == rq_string_initial_value):
+              socket_send_string("GET FWV", "3")
+              rq_read_fwv_3 = socket_read_string("3")
+          end
+  
+          while(rq_read_ver_3 == rq_string_initial_value):
+              socket_send_string("GET VER", "3")
+              rq_read_ver_3 = socket_read_string("3")
+          end
+      end
+  
+      if(gripper_connected[3]):
+          while(rq_read_snu_4 == rq_string_initial_value):
+              socket_send_string("GET SNU", "4")
+              rq_read_snu_4 = socket_read_string("4")
+          end
+  
+          while(rq_read_fwv_4 == rq_string_initial_value):
+              socket_send_string("GET FWV", "4")
+              rq_read_fwv_4 = socket_read_string("4")
+          end
+  
+          while(rq_read_ver_4 == rq_string_initial_value):
+              socket_send_string("GET VER", "4")
+              rq_read_ver_4 = socket_read_string("4")
+          end
+      end
+  end
+  
+  def rq_comm_write_variables():
+      index = 0
+  
+      while(index <= 3):
+          socket = rq_index_to_socket(index)
+  
+          if(gripper_connected[index]):
+  
+              if(rq_write_act_request[index]):
+                  if(is_ack(rq_comm_set_var("ACT", rq_write_act[index], socket))):
+                      rq_write_act_previous[index] = rq_write_act[index]
+                      rq_write_act_request[index] = False
+                  end
+              end
+  
+              if(rq_write_gto_request[index]):
+                  if(is_ack(rq_comm_set_var("GTO", rq_write_gto[index], socket))):
+                      rq_write_gto_previous[index] = rq_write_gto[index]
+                      rq_write_gto_request[index] = False
+                  end
+              end
+  
+              if(rq_write_atr_request[index]):
+                  if(is_ack(rq_comm_set_var("ATR", rq_write_atr[index], socket))):
+                      rq_write_atr_previous[index] = rq_write_atr[index]
+                      rq_write_atr_request[index] = False
+                  end
+              end
+  
+              if(rq_write_ard_request[index]):
+                  if(is_ack(rq_comm_set_var("ARD", rq_write_ard[index], socket))):
+                      rq_write_ard_previous[index] = rq_write_ard[index]
+                      rq_write_ard_request[index] = False
+                  end
+              end
+  
+              if(rq_write_pos_request[index]):
+                  if(is_ack(rq_comm_set_pos_spe_for(rq_write_pos[index], rq_write_spe[index], rq_write_for[index], socket))):
+                      rq_write_pos_previous[index] = rq_write_pos[index]
+                      rq_write_spe_previous[index] = rq_write_spe[index]
+                      rq_write_for_previous[index] = rq_write_for[index]
+                      rq_write_pos_request[index] = False
+                  end
+              end
+  
+              if(rq_write_lbp_request[index]):
+                  if(is_ack(rq_comm_set_var("LBP", rq_write_lbp[index], socket))):
+                      rq_write_lbp_previous[index] = rq_write_lbp[index]
+                      rq_write_lbp_request[index] = False
+                  end
+              end
+  
+              if(rq_write_lrd_request[index]):
+                  if(is_ack(rq_comm_set_var("LRD", rq_write_lrd[index], socket))):
+                      rq_write_lrd_previous[index] = rq_write_lrd[index]
+                      rq_write_lrd_request[index] = False
+                  end
+              end
+  
+              if(rq_write_lbl_request[index]):
+                  if(is_ack(rq_comm_set_var("LBL", rq_write_lbl[index], socket))):
+                      rq_write_lbl_previous[index] = rq_write_lbl[index]
+                      rq_write_lbl_request[index] = False
+                  end
+              end
+  
+              if(rq_write_lgn_request[index]):
+                  if(is_ack(rq_comm_set_var("LGN", rq_write_lgn[index], socket))):
+                      rq_write_lgn_previous[index] = rq_write_lgn[index]
+                      rq_write_lgn_request[index] = False
+                  end
+              end
+  
+              if(rq_write_msc_request[index]):
+                  if(is_ack(rq_comm_set_var("MSC", rq_write_msc[index], socket))):
+                      rq_write_msc_previous[index] = rq_write_msc[index]
+                      rq_write_msc_request[index] = False
+                  end
+              end
+  
+              if(rq_write_mod_request[index]):
+                  if(is_ack(rq_comm_set_var("MOD", rq_write_mod[index], socket))):
+                      rq_write_mod_previous[index] = rq_write_mod[index]
+                      rq_write_mod_request[index] = False
+                  end
+              end
+          end
+          index = index + 1
+      end
+  end
+  
+  def rq_activate(gripper_socket="1"):
+      if (not rq_is_gripper_activated(gripper_socket)):
+          rq_reset(gripper_socket)
+  
+          while(not rq_get_var("ACT", 1, gripper_socket) == 0 or not rq_get_var("STA", 1, gripper_socket) == 0):
+              rq_reset(gripper_socket)
+              sync()
+          end
+  
+          rq_set_var("ACT",1, gripper_socket)
+      end
+  end
+  
+  def rq_activate_and_wait(gripper_socket="1"):
+      if (not rq_is_gripper_activated(gripper_socket)):
+          rq_activate(gripper_socket)
+          sleep(1.0)
+  
+          while(not rq_get_var("ACT", 1, gripper_socket) == 1 or not rq_get_var("STA", 1, gripper_socket) == 3):
+              sleep(0.1)
+          end
+  
+          sleep(0.5)
+      end
+  end
+  
+  def rq_activate_all_grippers(reset=False):
+      if(gripper_connected[0]):
+          rq_reset_and_activate("1", reset)
+      end
+  
+      if(gripper_connected[1]):
+          rq_reset_and_activate("2", reset)
+      end
+  
+      if(gripper_connected[2]):
+          rq_reset_and_activate("3", reset)
+      end
+  
+      if(gripper_connected[3]):
+          rq_reset_and_activate("4", reset)
+      end
+  end
+  
+  def rq_reset_and_activate(gripper_socket="1", reset=False):
+      if(reset):
+          rq_reset(gripper_socket)
+          rq_activate_and_wait(gripper_socket)
+      elif(not rq_is_gripper_activated(gripper_socket)):
+          rq_activate_and_wait(gripper_socket)
+      end
+  end
+  
+  def rq_reset(gripper_socket="1"):
+      rq_set_var("ACT", 0, gripper_socket)
+      rq_set_var("ATR", 0, gripper_socket)
+  
+      while(not rq_get_var("ACT", 1, gripper_socket) == 0 or not rq_get_var("STA", 1, gripper_socket) == 0):
+          rq_set_var("ACT", 0, gripper_socket)
+          rq_set_var("ATR", 0, gripper_socket)
+          sync()
+      end
+  
+      sleep(0.5)
+  end
+  
+  def rq_auto_release_open_and_wait(gripper_socket="1"):
+      rq_set_var("ATR",0, gripper_socket)
+      rq_set_var("ARD",0, gripper_socket)
+      rq_set_var("ACT",1, gripper_socket)
+      sleep(0.1)
+      rq_set_var("ATR",1, gripper_socket)
+  
+      rq_wait_autorelease_completed(gripper_socket)
+  end
+  
+  def rq_auto_release_close_and_wait(gripper_socket="1"):
+      rq_set_var("ATR",0, gripper_socket)
+      rq_set_var("ARD",1, gripper_socket)
+      rq_set_var("ACT",1, gripper_socket)
+      sleep(0.1)
+      rq_set_var("ATR",1, gripper_socket)
+  
+      rq_wait_autorelease_completed(gripper_socket)
+  end
+  
+  def rq_wait_autorelease_completed(gripper_socket="1"):
+      remainingRetries = 20
+      gFLT = rq_get_var("FLT", 2, gripper_socket)
+  
+      while(not is_FLT_autorelease_in_progress(gFLT) and remainingRetries > 0):
+          remainingRetries = remainingRetries - 1
+          gFLT = rq_get_var("FLT", 2, gripper_socket)
+          sleep(0.1)
+      end
+  
+      remainingRetries = 100
+      gFLT = rq_get_var("FLT", 2, gripper_socket)
+  
+      while(not is_FLT_autorelease_completed(gFLT) and remainingRetries > 0):
+          remainingRetries = remainingRetries - 1
+          gFLT = rq_get_var("FLT", 2, gripper_socket)
+          sleep(0.1)
+      end
+  end
+  
+  def rq_set_force(force, gripper_socket="1"):
+      force = floor(scale(force, [0, 255], [0.0, 255.0]))
+      rq_set_var("FOR", force, gripper_socket)
+  end
+  
+  def rq_set_speed(speed, gripper_socket="1"):
+      speed = floor(scale(speed, [0, 255], [0.0, 255.0]))
+      rq_set_var("SPE", speed, gripper_socket)
+  end
+  
+  def rq_open(gripper_socket="1"):
+      rq_move(0, gripper_socket)
+  end
+  
+  def rq_close(gripper_socket="1"):
+      rq_move(255, gripper_socket)
+  end
+  
+  def rq_open_and_wait(gripper_socket="1"):
+      rq_move_and_wait(0, gripper_socket)
+  end
+  
+  def rq_close_and_wait(gripper_socket="1"):
+      rq_move_and_wait(255, gripper_socket)
+  end
+  
+  def rq_move(pos, gripper_socket="1"):
+      rq_set_pos(pos, gripper_socket)
+      rq_go_to(gripper_socket)
+  end
+  
+  def rq_move_and_wait(pos, gripper_socket="1"):
+      rq_move(pos, gripper_socket)
+  
+      while (not rq_is_motion_complete(gripper_socket)):
+          # wait for motion completed
+          sync()
+      end
+  end
+  
+  def rq_wait_for_pos_request(pos, gripper_socket="1"):
+      gPRE = rq_get_var("PRE", 3, gripper_socket)
+  
+      while (gPRE != pos):
+          rq_set_var("POS", pos, gripper_socket)
+          sync()
+          gPRE = rq_get_var("PRE", 3, gripper_socket)
+      end
+  end
+  
+  def rq_wait_pos_spe_for_request(pos, speed, force, gripper_socket="1"):
+      gPRE = rq_get_var("PRE", 3, gripper_socket)
+  
+      while (gPRE != pos):
+          rq_set_pos_spe_for_var(pos, speed, force, gripper_socket)
+          sync()
+          gPRE = rq_get_var("PRE", 3, gripper_socket)
+      end
+  end
+  
+  def rq_wait_for_pos(pos, gripper_socket="1"):
+      rq_wait_for_pos_request(pos, gripper_socket)
+  
+      # Wait for the gripper motion to complete
+      while (not rq_is_motion_complete(gripper_socket)):
+          # wait for motion completed
+          sync()
+          rq_set_var("GTO", 1, gripper_socket)
+      end
+  end
+  
+  def rq_wait(gripper_socket="1"):
+      # Wait for the gripper motion to complete
+      while (not rq_is_motion_complete(gripper_socket)):
+          sync()
+          # The following patch is for Robotiq's Camera issue when communication is lost, but not the activation
+          # the communication driver reset the GTO bit
+          rq_set_var("GTO", 1, gripper_socket)
+      end
+  end
+  
+  def rq_wait_for_object_detected(gripper_socket="1"):
+      # Wait the object detection
+      while (not rq_is_object_detected(gripper_socket)):
+          sync()
+      end
+  end
+  
+  # set the position
+  def rq_set_pos(pos, gripper_socket="1"):
+      pos = floor(scale(pos, [0, 255], [0.0, 255.0]))
+      rq_set_var("POS", pos, gripper_socket)
+      rq_wait_for_pos_request(pos, gripper_socket)
+  end
+  
+  def rq_set_pos_spd_for(pos, speed, force, gripper_socket="1"):
+      pos = floor(scale(pos, [0, 255], [0.0, 255.0]))
+      speed = floor(scale(speed, [0, 255], [0.0, 255.0]))
+      force = floor(scale(force, [0, 255], [0.0, 255.0]))
+  
+      rq_set_pos_spe_for_var(pos, speed, force, gripper_socket)
+  end
+  
+  def rq_set_gripper_max_current_mA(current_mA, gripper_socket="1"):
+      current = floor(current_mA / 10)
+  
+      rq_set_var("MSC", current, gripper_socket)
+      current_read = rq_get_var("MSC", 1, gripper_socket)
+  
+      while(current_read != current):
+          rq_set_var("MSC", current, gripper_socket)
+          current_read = rq_get_var("MSC", 1, gripper_socket)
+      end
+  end
+  
+  def rq_set_gripper_mode(mode, gripper_socket="1"):
+      rq_set_var("MOD", mode, gripper_socket)
+  end
+  
+  def rq_set_gripper_max_cur(current_mA, gripper_socket="1"):
+      rq_set_gripper_max_current_mA(current_mA, gripper_socket)
+  end
+  
+  def rq_get_gripper_max_current_mA(gripper_socket="1"):
+      current = rq_get_var("MSC", 1, gripper_socket)
+  
+      if(current == -1):
+          current_mA = current
+      else:
+          current_mA = current * 10
+      end
+  
+      return current_mA
+  end
+  
+  def rq_get_gripper_max_cur(gripper_socket="1"):
+      return rq_get_gripper_max_current_mA(gripper_socket)
+  end
+  
+  def rq_set_max_current_for_all_grippers():
+      current_mA = rq_get_max_current_mA()
+  
+      if(gripper_connected[0]):
+          rq_set_gripper_max_current_mA(current_mA, "1")
+      end
+  
+      if(gripper_connected[1]):
+          rq_set_gripper_max_current_mA(current_mA, "2")
+      end
+  
+      if(gripper_connected[2]):
+          rq_set_gripper_max_current_mA(current_mA, "3")
+      end
+  
+      if(gripper_connected[3]):
+          rq_set_gripper_max_current_mA(current_mA, "4")
+      end
+  end
+  
+  def rq_get_max_current_mA():
+      max_current_mA = 0
+  
+      if(rq_current_limit_enabled):
+          nb_connected_grippers = rq_get_nb_connected_grippers()
+  
+          if(nb_connected_grippers == 1):
+              max_current_mA = 600
+          elif(nb_connected_grippers > 1):
+              max_current_mA = 450
+          end
+      else:
+  
+      end
+  
+      return max_current_mA
+  end
+  
+  def rq_get_nb_connected_grippers():
+      nb_connected_grippers = 0
+  
+      if(gripper_connected[0]):
+          nb_connected_grippers = nb_connected_grippers + 1
+      end
+  
+      if(gripper_connected[1]):
+          nb_connected_grippers = nb_connected_grippers + 1
+      end
+  
+      if(gripper_connected[2]):
+          nb_connected_grippers = nb_connected_grippers + 1
+      end
+  
+      if(gripper_connected[3]):
+          nb_connected_grippers = nb_connected_grippers + 1
+      end
+  
+      return nb_connected_grippers
+  end
+  
+  def rq_list_of_bytes_to_value(list_of_bytes):
+      value = -1
+  
+      # response list length
+      if (list_of_bytes[0] == 1):
+          value = list_of_bytes[1] - 48
+      elif (list_of_bytes[0] == 2):
+          value = (list_of_bytes[1] - 48) * 10 + (list_of_bytes[2] - 48)
+      elif (list_of_bytes[0] == 3):
+          value = (list_of_bytes[1] - 48) * 100 + (list_of_bytes[2] - 48) * 10 + (list_of_bytes[3] - 48)
+      end
+  
+      return value
+  end
+  
+  def rq_is_motion_complete(gripper_socket="1"):
+      gOBJ = rq_get_var("OBJ", 1, gripper_socket)
+      sync()
+      return is_OBJ_gripper_at_position(gOBJ) or is_OBJ_object_detected(gOBJ)
+  end
+  
+  def rq_is_gripper_activated(gripper_socket="1"):
+      gSTA = rq_get_var("STA", 1, gripper_socket)
+      sync()
+      return is_STA_gripper_activated(gSTA)
+  end
+  
+  def rq_is_object_detected(gripper_socket="1"):
+      gOBJ = rq_get_var("OBJ", 1, gripper_socket)
+      sync()
+      return is_OBJ_object_detected(gOBJ)
+  end
+  
+  def rq_current_pos(gripper_socket="1"):
+      gPOS = rq_get_var("POS", 1, gripper_socket)
+      sync()
+      return gPOS
+  end
+  
+  def rq_motor_current(gripper_socket="1"):
+      rq_current = rq_get_var("COU", 1, gripper_socket)
+      sync()
+      return rq_current * 10
+  end
+  
+  def rq_print_connected_grippers():
+      if(gripper_connected[0]):
+          textmsg("Gripper 1 : ", "connected and socket open.")
+      end
+  
+      if (gripper_connected[1]):
+          textmsg("Gripper 2 : ", "connected and socket open.")
+      end
+  
+      if (gripper_connected[2]):
+          textmsg("Gripper 3 : ", "connected and socket open.")
+      end
+  
+      if (gripper_connected[3]):
+          textmsg("Gripper 4 : ", "connected and socket open.")
+      end
+  end
+  
+  def rq_print_gripper_fault_code(gripper_socket="1"):
+      gFLT = rq_get_var("FLT", 2, gripper_socket)
+  
+      if(is_FLT_no_fault(gFLT)):
+          textmsg("Gripper Fault : ", "No Fault (0x00)")
+      elif (is_FLT_action_delayed(gFLT)):
+          textmsg("Gripper Fault : ", "Priority Fault: Action delayed, initialization must be completed prior to action (0x05)")
+      elif (is_FLT_not_activated(gFLT)):
+          textmsg("Gripper Fault : ", "Priority Fault: The activation must be set prior to action (0x07)")
+      elif (is_FLT_autorelease_in_progress(gFLT)):
+          textmsg("Gripper Fault : ", "Minor Fault: Automatic release in progress (0x0B)")
+      elif (is_FLT_overcurrent(gFLT)):
+          textmsg("Gripper Fault : ", "Minor Fault: Overcurrent protection triggered (0x0E)")
+      elif (is_FLT_autorelease_completed(gFLT)):
+          textmsg("Gripper Fault : ", "Major Fault: Automatic release completed (0x0F)")
+      else:
+          textmsg("Gripper Fault : ", "Unknown Fault")
+      end
+  end
+  
+  def rq_print_gripper_num_cycles(gripper_socket="1"):
+      num_cycles = rq_get_var("NCY", 1, gripper_socket)
+  
+      if(num_cycles == -1):
+          textmsg("Gripper Cycle Number : ", "Number of cycles is unreachable.")
+      else:
+          textmsg("Gripper Cycle Number : ", num_cycles)
+      end
+  end
+  
+  def rq_print_gripper_driver_state(gripper_socket="1"):
+      driver_state = rq_get_var("DST", 1, gripper_socket)
+  
+      if(driver_state == 0):
+          textmsg("Gripper Driver State : ", "RQ_STATE_INIT")
+      elif(driver_state == 1):
+          textmsg("Gripper Driver State : ", "RQ_STATE_LISTEN")
+      elif(driver_state == 2):
+          textmsg("Gripper Driver State : ", "RQ_STATE_READ_INFO")
+      elif(driver_state == 3):
+          textmsg("Gripper Driver State : ", "RQ_STATE_ACTIVATION")
+      else:
+          textmsg("Gripper Driver State : ", "RQ_STATE_RUN")
+      end
+  end
+  
+  def rq_print_gripper_serial_number(gripper_socket="1"):
+      serial_number = rq_get_var_string("SNU", 1, gripper_socket)
+      textmsg("Gripper Serial Number : ", serial_number)
+  end
+  
+  def rq_print_gripper_firmware_version(gripper_socket="1"):
+      firmware_version = rq_get_var_string("FWV", 1, gripper_socket)
+      textmsg("Gripper Firmware Version : ", firmware_version)
+  end
+  
+  def rq_print_gripper_driver_version(gripper_socket="1"):
+      driver_version = rq_get_var_string("VER", 1, gripper_socket)
+      textmsg("Gripper Driver Version : ", driver_version)
+  end
+  
+  def rq_print_gripper_connection_state(gripper_socket="1"):
+      connection_state = rq_get_var("PCO", 1, gripper_socket)
+  
+      if (connection_state == 0):
+          textmsg("Gripper Connection State : ", "No connection problem detected")
+      else:
+          textmsg("Gripper Connection State : ", "Connection problem detected")
+      end
+  end
+  
+  # Returns True if list_of_bytes is [3, 'a', 'c', 'k']
+  def is_ack(list_of_bytes):
+  
+      # list length is not 3
+      if (list_of_bytes[0] != 3):
+          return False
+      end
+  
+      # first byte not is 'a'?
+      if (list_of_bytes[1] != 97):
+          return False
+      end
+  
+      # first byte not is 'c'?
+      if (list_of_bytes[2] != 99):
+          return False
+      end
+  
+      # first byte not is 'k'?
+      if (list_of_bytes[3] != 107):
+          return False
+      end
+  
+      return True
+  end
+  
+  # Returns True if list_of_bytes is not [3, 'a', 'c', 'k']
+  def is_not_ack(list_of_bytes):
+      if (is_ack(list_of_bytes)):
+          return False
+      else:
+          return True
+      end
+  end
+  
+  def is_STA_gripper_activated (gSTA):
+      if (gSTA == 3):
+          return True
+      end
+  
+      return False
+  end
+  
+  def is_OBJ_object_detected (gOBJ):
+      if (gOBJ == 1 or gOBJ == 2):
+          return True
+      end
+  
+      return False
+  end
+  
+  def is_OBJ_gripper_at_position (gOBJ):
+      if (gOBJ == 3):
+          return True
+      end
+  
+      return False
+  end
+  
+  def is_not_OBJ_gripper_at_position (gOBJ):
+      if (is_OBJ_gripper_at_position(gOBJ)):
+          return False
+      else:
+          return True
+      end
+  end
+  
+  #### GTO Section ####
+  def rq_stop(gripper_socket="1"):
+      rq_set_var("GTO", 0, gripper_socket)
+  end
+  
+  def rq_set_GTO_and_wait(value, gripper_socket="1"):
+      rq_set_var("GTO" ,value, gripper_socket)
+      while(not is_GTO(value, rq_get_var("GTO", 1, gripper_socket))):
+        sync()
+      end
+  end
+  
+  def rq_go_to(gripper_socket="1"):
+      rq_set_var("GTO", 1, gripper_socket)
+  end
+  
+  
+  def is_GTO(goto_value, rGTO):
+      return rGTO == goto_value
+  end
+  #### GTO Section ####
+  
+  def is_FLT_no_fault(gFLT):
+      return gFLT == 0
+  end
+  
+  def is_FLT_warning(gFLT):
+      return gFLT >= 1 and gFLT <= 7
+  end
+  
+  def is_FLT_faulted(gFLT):
+      return gFLT >= 8
+  end
+  
+  def is_FLT_action_delayed(gFLT):
+      return gFLT == 5
+  end
+  
+  def is_FLT_not_activated(gFLT):
+      return gFLT == 7
+  end
+  
+  def is_FLT_autorelease_in_progress(gFLT):
+      return gFLT == 11
+  end
+  
+  def is_FLT_overcurrent(gFLT):
+      return gFLT == 14
+  end
+  
+  def is_FLT_autorelease_completed(gFLT):
+      return gFLT == 15
+  end
+  
+  def rq_set_var(var_name, var_value, gripper_socket="1"):
+      index = rq_socket_to_index(gripper_socket)
+  
+      enter_critical
+  
+      if (var_name == "ACT"):
+          rq_write_act[index] = var_value
+          rq_write_act_request[index] = True
+      elif (var_name == "GTO"):
+          rq_write_gto[index] = var_value
+          rq_write_gto_request[index] = True
+      elif (var_name == "ATR"):
+          rq_write_atr[index] = var_value
+          rq_write_atr_request[index] = True
+      elif (var_name == "ARD"):
+          rq_write_ard[index] = var_value
+          rq_write_ard_request[index] = True
+      elif (var_name == "FOR"):
+          rq_write_for[index] = var_value
+          rq_write_pos_request[index] = True
+      elif (var_name == "SPE"):
+          rq_write_spe[index] = var_value
+          rq_write_pos_request[index] = True
+      elif (var_name == "POS"):
+          rq_write_pos[index] = var_value
+          rq_write_pos_request[index] = True
+      elif (var_name == "LBP"):
+          rq_write_lbp[index] = var_value
+          rq_write_lbp_request[index] = True
+      elif (var_name == "LRD"):
+          rq_write_lrd[index] = var_value
+          rq_write_lrd_request[index] = True
+      elif (var_name == "LBL"):
+          rq_write_lbl[index] = var_value
+          rq_write_lbl_request[index] = True
+      elif (var_name == "LGN"):
+          rq_write_lgn[index] = var_value
+          rq_write_lgn_request[index] = True
+      elif (var_name == "MSC"):
+          rq_write_msc[index] = var_value
+          rq_write_msc_request[index] = True
+      elif (var_name == "MOD"):
+          rq_write_mod[index] = var_value
+          rq_write_mod_request[index] = True
+      end
+  
+      exit_critical
+  
+      if (var_name == "ACT"):
+          while(rq_write_act_request[index]):
+              sync()
+          end
+      elif (var_name == "GTO"):
+          while(rq_write_gto_request[index]):
+              sync()
+          end
+      elif (var_name == "ATR"):
+          while(rq_write_atr_request[index]):
+              sync()
+          end
+      elif (var_name == "ARD"):
+          while(rq_write_ard_request[index]):
+              sync()
+          end
+      elif (var_name == "FOR"):
+          while(rq_write_pos_request[index]):
+              sync()
+          end
+      elif (var_name == "SPE"):
+          while(rq_write_pos_request[index]):
+              sync()
+          end
+      elif (var_name == "POS"):
+          while(rq_write_pos_request[index]):
+              sync()
+          end
+      elif (var_name == "LBP"):
+          while(rq_write_lbp_request[index]):
+              sync()
+          end
+      elif (var_name == "LRD"):
+          while(rq_write_lrd_request[index]):
+              sync()
+          end
+      elif (var_name == "LBL"):
+          while(rq_write_lbl_request[index]):
+              sync()
+          end
+      elif (var_name == "LGN"):
+          while(rq_write_lgn_request[index]):
+              sync()
+          end
+      elif (var_name == "MSC"):
+          while(rq_write_msc_request[index]):
+              sync()
+          end
+      elif (var_name == "MOD"):
+          while(rq_write_mod_request[index]):
+              sync()
+          end
+      end
+  end
+  
+  def rq_set_pos_spe_for_var(pos, speed, force, gripper_socket="1"):
+      index = rq_socket_to_index(gripper_socket)
+  
+      enter_critical
+  
+      rq_write_for[index] = force
+      rq_write_spe[index] = speed
+      rq_write_pos[index] = pos
+      rq_write_pos_request[index] = True
+  
+      exit_critical
+  end
+  
+  def rq_get_var(var_name, nbr_bytes, gripper_socket="1"):
+      index = rq_socket_to_index(gripper_socket)
+      var_value = -1
+  
+      if (var_name == "ACT"):
+          enter_critical
+          rq_read_act_req[index] = True
+          exit_critical
+          while(rq_read_act_req[index]):
+              sync()
+          end
+          var_value = rq_read_act[index]
+  
+      elif (var_name == "GTO"):
+          enter_critical
+          rq_read_gto_req[index] = True
+          exit_critical
+          while(rq_read_gto_req[index]):
+              sync()
+          end
+          var_value = rq_read_gto[index]
+  
+      elif (var_name == "FOR"):
+          enter_critical
+          rq_read_for_req[index] = True
+          exit_critical
+          while(rq_read_for_req[index]):
+              sync()
+          end
+          var_value = rq_read_for[index]
+  
+      elif (var_name == "SPE"):
+          enter_critical
+          rq_read_spe_req[index] = True
+          exit_critical
+          while(rq_read_spe_req[index]):
+              sync()
+          end
+          var_value = rq_read_spe[index]
+  
+      elif (var_name == "OBJ"):
+          enter_critical
+          rq_read_obj_req[index] = True
+          exit_critical
+          while(rq_read_obj_req[index]):
+              sync()
+          end
+          var_value = rq_read_obj[index]
+  
+      elif (var_name == "STA"):
+          enter_critical
+          rq_read_sta_req[index] = True
+          exit_critical
+          while(rq_read_sta_req[index]):
+              sync()
+          end
+          var_value = rq_read_sta[index]
+  
+      elif (var_name == "FLT"):
+          enter_critical
+          rq_read_flt_req[index] = True
+          exit_critical
+          while(rq_read_flt_req[index]):
+              sync()
+          end
+          var_value = rq_read_flt[index]
+  
+      elif (var_name == "POS"):
+          enter_critical
+          rq_read_pos_req[index] = True
+          exit_critical
+          while(rq_read_pos_req[index]):
+              sync()
+          end
+          var_value = rq_read_pos[index]
+  
+      elif (var_name == "PRE"):
+          enter_critical
+          rq_read_pre_req[index] = True
+          exit_critical
+          while(rq_read_pre_req[index]):
+              sync()
+          end
+          var_value = rq_read_pre[index]
+  
+      elif (var_name == "LBP"):
+          enter_critical
+          rq_read_lbp_req[index] = True
+          exit_critical
+          while(rq_read_lbp_req[index]):
+              sync()
+          end
+          var_value = rq_read_lbp[index]
+  
+      elif (var_name == "LRD"):
+          enter_critical
+          rq_read_lrd_req[index] = True
+          exit_critical
+          while(rq_read_lrd_req[index]):
+              sync()
+          end
+          var_value = rq_read_lrd[index]
+  
+      elif (var_name == "LBL"):
+          enter_critical
+          rq_read_lbl_req[index] = True
+          exit_critical
+          while(rq_read_lbl_req[index]):
+              sync()
+          end
+          var_value = rq_read_lbl[index]
+  
+      elif (var_name == "LGN"):
+          enter_critical
+          rq_read_lgn_req[index] = True
+          exit_critical
+          while(rq_read_lgn_req[index]):
+              sync()
+          end
+          var_value = rq_read_lgn[index]
+  
+      elif (var_name == "MSC"):
+          enter_critical
+          rq_read_msc_req[index] = True
+          exit_critical
+          while(rq_read_msc_req[index]):
+              sync()
+          end
+          var_value = rq_read_msc[index]
+  
+      elif (var_name == "MOD"):
+          enter_critical
+          rq_read_mod_req[index] = True
+          exit_critical
+          while(rq_read_mod_req[index]):
+              sync()
+          end
+          var_value = rq_read_mod[index]
+  
+      elif (var_name == "NCY"):
+          enter_critical
+          rq_read_ncy_req[index] = True
+          exit_critical
+          while(rq_read_ncy_req[index]):
+              sync()
+          end
+          var_value = rq_read_ncy[index]
+  
+      elif (var_name == "PCO"):
+          enter_critical
+          rq_read_pco_req[index] = True
+          exit_critical
+          while(rq_read_pco_req[index]):
+              sync()
+          end
+          var_value = rq_read_pco[index]
+  
+      elif (var_name == "DST"):
+          enter_critical
+          rq_read_dst_req[index] = True
+          exit_critical
+          while(rq_read_dst_req[index]):
+              sync()
+          end
+          var_value = rq_read_dst[index]
+  
+      end
+  
+      return var_value
+  end
+  
+  def rq_get_var_string(var_name, nbr_bytes, gripper_socket="1"):
+      index = rq_socket_to_index(gripper_socket)
+      var_value = ""
+  
+      enter_critical
+  
+      if (var_name == "SNU"):
+          if(gripper_socket == "1"):
+              var_value = rq_read_snu_1
+          elif(gripper_socket == "2"):
+              var_value = rq_read_snu_2
+          elif(gripper_socket == "3"):
+              var_value = rq_read_snu_3
+          elif(gripper_socket == "4"):
+              var_value = rq_read_snu_4
+          end
+      elif (var_name == "FWV"):
+          if(gripper_socket == "1"):
+              var_value = rq_read_fwv_1
+          elif(gripper_socket == "2"):
+              var_value = rq_read_fwv_2
+          elif(gripper_socket == "3"):
+              var_value = rq_read_fwv_3
+          elif(gripper_socket == "4"):
+              var_value = rq_read_fwv_4
+          end
+      elif (var_name == "VER"):
+          if(gripper_socket == "1"):
+              var_value = rq_read_ver_1
+          elif(gripper_socket == "2"):
+              var_value = rq_read_ver_2
+          elif(gripper_socket == "3"):
+              var_value = rq_read_ver_3
+          elif(gripper_socket == "4"):
+              var_value = rq_read_ver_4
+          end
+      end
+  
+      exit_critical
+  
+      return var_value
+  end
+  
+  def rq_is_object_validated(gripper_selected, gripper_socket="1"):
+      if(gripper_selected):
+          if(rq_is_object_detected(gripper_socket)):
+              return True
+          else:
+              return False
+          end
+      else:
+          return True
+      end
+  end
+  
+  ############################################
+  # normalized functions (maps 0-100 to 0-255)
+  ############################################
+  def rq_set_force_norm(force_norm, gripper_socket="1"):
+      force_gripper = norm_to_gripper(force_norm)
+      rq_set_force(force_gripper, gripper_socket)
+  end
+  
+  def rq_set_speed_norm(speed_norm, gripper_socket="1"):
+      speed_gripper = norm_to_gripper(speed_norm)
+      rq_set_speed(speed_gripper, gripper_socket)
+  end
+  
+  def rq_move_norm(pos_norm, gripper_socket="1"):
+      pos_gripper = norm_to_gripper(pos_norm)
+      rq_move(pos_gripper, gripper_socket)
+  end
+  
+  def rq_move_and_wait_norm(pos_norm, gripper_socket="1"):
+      pos_gripper = norm_to_gripper(pos_norm)
+      rq_move_and_wait(pos_gripper, gripper_socket)
+  end
+  
+  def rq_set_pos_norm(pos_norm, gripper_socket="1"):
+      pos_gripper = norm_to_gripper(pos_norm)
+      rq_set_pos(pos_gripper, gripper_socket)
+  end
+  
+  def rq_current_pos_norm(gripper_socket="1"):
+      pos_gripper = rq_current_pos(gripper_socket)
+      pos_norm = gripper_to_norm(pos_gripper)
+      return pos_norm
+  end
+  
+  def gripper_to_norm(value_gripper):
+      value_norm = (value_gripper / 255) * 100
+      return floor(value_norm)
+  end
+  
+  def norm_to_gripper(value_norm):
+      value_gripper = (value_norm / 100) * 255
+      return ceil(value_gripper)
+  end
+  
+  def rq_get_position():
+      return rq_current_pos_norm()
+  end
+  
+  def rq_gripper_led_on(gripper_socket="1"):
+      rq_set_var("LBP",0, gripper_socket)
+  end
+  
+  def rq_gripper_led_off(gripper_socket="1"):
+      rq_set_var("LBP",1, gripper_socket)
+      rq_set_var("LRD",0, gripper_socket)
+      rq_set_var("LBL",0, gripper_socket)
+      rq_set_var("LGN",0, gripper_socket)
+  end
+  
+  def rq_gripper_led_force_red(gripper_socket="1"):
+      rq_set_var("LBP",1, gripper_socket)
+      rq_set_var("LRD",1, gripper_socket)
+      rq_set_var("LBL",0, gripper_socket)
+      rq_set_var("LGN",0, gripper_socket)
+  end
+  
+  def rq_gripper_led_force_blue(gripper_socket="1"):
+      rq_set_var("LBP",1, gripper_socket)
+      rq_set_var("LRD",0, gripper_socket)
+      rq_set_var("LBL",1, gripper_socket)
+      rq_set_var("LGN",0, gripper_socket)
+  end
+  
+  def rq_gripper_led_force_green(gripper_socket="1"):
+      rq_set_var("LBP",1, gripper_socket)
+      rq_set_var("LRD",0, gripper_socket)
+      rq_set_var("LBL",0, gripper_socket)
+      rq_set_var("LGN",1, gripper_socket)
+  end
+  
+  def rq_gripper_led_force_purple(gripper_socket="1"):
+      rq_set_var("LBP",1, gripper_socket)
+      rq_set_var("LRD",1, gripper_socket)
+      rq_set_var("LBL",1, gripper_socket)
+      rq_set_var("LGN",0, gripper_socket)
+  end
+  
+  ############################################
+  # mm/inches functions
+  ############################################
+  gripper_closed_norm = [100, 100, 100, 100]
+  gripper_open_norm = [0, 0, 0, 0]
+  gripper_closed_mm = [0, 0, 0, 0]
+  gripper_open_mm = [50, 50, 50, 50]
+  
+  def rq_current_pos_mm(gripper_socket=1):
+      pos_gripper = rq_current_pos(gripper_socket)
+      pos_mm = gripper_to_mm(pos_gripper, gripper_socket)
+      return round_value_2_dec(pos_mm)
+  end
+  
+  def rq_current_pos_inches(gripper_socket=1):
+      pos_gripper = rq_current_pos(gripper_socket)
+      pos_mm = gripper_to_mm(pos_gripper, gripper_socket)
+      pos_in = pos_mm / 25.4
+      return round_value_2_dec(pos_in)
+  end
+  
+  def rq_move_mm(pos_mm, gripper_socket=1):
+      pos_gripper = mm_to_gripper(pos_mm, gripper_socket)
+      rq_move(pos_gripper, gripper_socket)
+  end
+  
+  def rq_move_and_wait_mm(pos_mm, gripper_socket=1):
+      pos_gripper = mm_to_gripper(pos_mm, gripper_socket)
+      rq_move_and_wait(pos_gripper, gripper_socket)
+  end
+  
+  def rq_move_inches(pos_in, gripper_socket=1):
+      pos_mm = pos_in * 25.4
+      rq_move_mm(pos_mm, gripper_socket)
+  end
+  
+  def rq_move_and_wait_inches(pos_in, gripper_socket=1):
+      pos_mm = pos_in * 25.4
+      rq_move_and_wait_mm(pos_mm, gripper_socket)
+  end
+  
+  def get_closed_norm(gripper_socket):
+      return gripper_closed_norm[gripper_socket - 1]
+  end
+  
+  def get_open_norm(gripper_socket):
+      return gripper_open_norm[gripper_socket - 1]
+  end
+  
+  def get_closed_mm(gripper_socket):
+      return gripper_closed_mm[gripper_socket - 1]
+  end
+  
+  def get_open_mm(gripper_socket):
+      return gripper_open_mm[gripper_socket - 1]
+  end
+  
+  def set_closed_norm(closed_norm, gripper_socket):
+      gripper_closed_norm[gripper_socket - 1] = closed_norm
+  end
+  
+  def set_open_norm(open_norm, gripper_socket):
+      gripper_open_norm[gripper_socket - 1] = open_norm
+  end
+  
+  def set_closed_mm(closed_mm, gripper_socket):
+      gripper_closed_mm[gripper_socket - 1] = closed_mm
+  end
+  
+  def set_open_mm(open_mm, gripper_socket):
+      gripper_open_mm[gripper_socket - 1] = open_mm
+  end
+  
+  def gripper_to_mm(value_gripper, gripper_socket):
+      closed_norm = get_closed_norm(gripper_socket)
+      open_norm = get_open_norm(gripper_socket)
+      closed_mm = get_closed_mm(gripper_socket)
+      open_mm = get_open_mm(gripper_socket)
+  
+      value_norm = (value_gripper / 255) * 100
+  
+      slope = (closed_mm - open_mm) / (closed_norm - open_norm)
+      value_mm = slope * (value_norm - closed_norm) + closed_mm
+  
+      if (value_mm > open_mm):
+          value_mm_limited = open_mm
+      elif (value_mm < closed_mm):
+          value_mm_limited = closed_mm
+      else:
+          value_mm_limited = value_mm
+      end
+  
+      return value_mm_limited
+  end
+  
+  def mm_to_gripper(value_mm, gripper_socket):
+      closed_norm = get_closed_norm(gripper_socket)
+      open_norm = get_open_norm(gripper_socket)
+      closed_mm = get_closed_mm(gripper_socket)
+      open_mm = get_open_mm(gripper_socket)
+  
+      slope = (closed_norm - open_norm) / (closed_mm - open_mm)
+      value_norm = (value_mm - closed_mm) * slope + closed_norm
+  
+      value_gripper = value_norm * 255 / 100
+  
+      if (value_gripper > 255):
+          value_gripper_limited = 255
+      elif (value_gripper < 0):
+          value_gripper_limited = 0
+      else:
+          value_gripper_limited = round_value(value_gripper)
+      end
+  
+      return value_gripper_limited
+  end
+  
+  def round_value(value):
+      value_mod = value % 1
+  
+      if(value_mod < 0.5):
+          return floor(value)
+      else:
+          return ceil(value)
+      end
+  end
+  
+  def round_value_2_dec(value):
+      value_x_100 = value * 100
+      value_x_100_rounded = round_value(value_x_100)
+      return value_x_100_rounded / 100
+  end
+  
+  def clear_socket_buffer(gripper_socket="1", read_timeout = 0.1):
+      rq_comm_clear_socket_buffer_enabled[rq_socket_to_index(gripper_socket)] = True
+  end
+  
+  def rq_gripper_id_to_ascii(gripper_id):
+      if(gripper_id == "1"):
+          return 57
+      elif(gripper_id == "2"):
+          return 50
+      elif(gripper_id == "3"):
+          return 51
+      elif(gripper_id == "4"):
+          return 52
+      end
+  end
+  
+  def scale(value, rawRange, scaledRange):
+      def computeSlope(inputRange, outputRange):
+          outputRangeDelta = outputRange[1] - outputRange[0]
+          inputRangeDelta = inputRange[1] - inputRange[0]
+  
+          if (inputRangeDelta == 0):
+              return 0
+          else:
+              return outputRangeDelta / inputRangeDelta
+          end
+      end
+  
+      def computeIntercept(slope, inputRange, outputRange):
+          return outputRange[0] - (slope * inputRange[0])
+      end
+  
+      def clipScaledValue(outputScaledValue, outputRange):
+          if (outputRange[0] < outputRange[1]):
+              return clipWhenLowerLimitIsLessThanHigher(outputScaledValue, outputRange)
+          else:
+              return clipWhenLowerLimitIsGreaterThanHigherLimit(outputScaledValue, outputRange)
+          end
+      end
+  
+      def clipWhenLowerLimitIsGreaterThanHigherLimit(outputScaledValue, outputRange):
+          if (outputScaledValue < outputRange[1]):
+              return outputRange[1]
+          elif (outputScaledValue > outputRange[0]):
+              return outputRange[0]
+          else:
+              return outputScaledValue
+          end
+      end
+  
+      def clipWhenLowerLimitIsLessThanHigher(outputScaledValue, outputRange):
+          if (outputScaledValue < outputRange[0]):
+              return outputRange[0]
+          elif (outputScaledValue > outputRange[1]):
+              return outputRange[1]
+          else:
+              return outputScaledValue
+          end
+      end
+  
+      slope = computeSlope(rawRange, scaledRange)
+      intercept = computeIntercept(slope, rawRange, scaledRange)
+      scaledValue = slope * value + intercept
+      return clipScaledValue(scaledValue, scaledRange)
+  end
+  
+  def limit(value, range):
+      return scale(value, range, range)
+  end
+  
+  
+  rq_init_comm_if_connected(9, "1")
+  rq_init_comm_if_connected(2, "2")
+  rq_init_comm_if_connected(3, "3")
+  rq_init_comm_if_connected(4, "4")
+  rq_print_connected_grippers()
+  rq_gripper_communication_thread = run rq_gripper_communication()
+  set_closed_norm(100.0, 1)
+  set_open_norm(0.0, 1)
+  set_closed_mm(0.0, 1)
+  set_open_mm(50.0, 1)
+  set_closed_norm(100.0, 2)
+  set_open_norm(0.0, 2)
+  set_closed_mm(0.0, 2)
+  set_open_mm(50.0, 2)
+  set_closed_norm(100.0, 3)
+  set_open_norm(0.0, 3)
+  set_closed_mm(0.0, 3)
+  set_open_mm(50.0, 3)
+  set_closed_norm(100.0, 4)
+  set_open_norm(0.0, 4)
+  set_closed_mm(0.0, 4)
+  set_open_mm(50.0, 4)
+  rq_current_limit_enabled = False
+  while(not rq_gripper_communication_thread_started):
+      sync()
+  end
+  # end: URCap Installation Node
+  global looking_at_belt_p=p[.162548144841, -.458763871551, .158730257349, -1.674535584683, -2.080489728579, .689656246324]
+  global looking_at_belt_q=[1.9573947191238403, -1.4005478930524369, 1.9289873282061976, -1.987467428246969, -2.1883609930621546, 1.777733325958252]
+  global Waypoint_6_p=p[.127080337947, -.413333654554, .291809623984, -.723175488874, -2.779773733637, .838510378196]
+  global Waypoint_6_q=[1.6299766580406816, -1.585288369949942, 2.313430339105375, -2.806503864610999, -1.8721815151571342, 0.4915000755485588]
+  global Waypoint_7_p=p[.029417670274, -.413333654383, .291809624122, -1.184835622430, -2.528930886770, .748042842502]
+  global Waypoint_7_q=[1.407834261487483, -1.6305700212439307, 2.3383544969053816, -2.7309724817327026, -1.9389311612142723, 0.6293738357934668]
+  global tension_at_ply_p=p[.054906852614, -.456541595022, .291809624322, -1.868339669979, -1.915418298486, .562339375577]
+  global tension_at_ply_q=[1.520749955347018, -1.5183061574824563, 2.099628487067273, -2.1905975468802374, -2.143144743418741, 1.484944398267221]
+  global pulley_east_p=p[.055997818734, -.418531223747, .290523106530, -1.827798982973, -1.874228477717, .614956800003]
+  global pulley_east_q=[1.5315149502302772, -1.596876408899945, 2.1939603661096894, -2.2034342365248225, -2.2080546777798986, 1.4950298459047149]
+  global pulley_seast_p=p[.033502447685, -.412204130486, .276545719630, -1.919203508428, -1.967074739306, .492521977085]
+  global pulley_seast_q=[1.4446675352809484, -1.6155667449603488, 2.2425715062948286, -2.2712490152332023, -2.0572266120490665, 1.4022795799103447]
+  global Waypoint_21_p=p[.044297946378, -.382864114780, .257805267902, -1.637061163308, -2.092928227512, .685016203549]
+  global Waypoint_21_q=[1.4882931463471663, -1.6204153523625768, 2.383362382646819, -2.555407871641546, -2.1708090425887256, 1.1776730222771095]
+  global Waypoint_18_p=p[.037054514497, -.382125875195, .257636934709, -1.629008393334, -2.102128714548, .687008745596]
+  global Waypoint_18_q=[1.467255745702106, -1.6227415587758927, 2.3926233770089005, -2.5818413879973168, -2.163111892449006, 1.1425808680823595]
+  global Waypoint_17_p=p[.037054514498, -.382125875180, .290532815514, -1.629008393676, -2.102128714705, .687008745374]
+  global Waypoint_17_q=[1.4675995281855276, -1.6950455722693683, 2.3452616120223624, -2.462377188003417, -2.1629394848032764, 1.1422207894570109]
+  global Waypoint_16_p=p[.041621976797, -.399959614237, .300438696554, -1.711792061564, -2.015147011106, .657820931952]
+  global Waypoint_16_q=[1.4886813305151914, -1.666224089712089, 2.266328864772177, -2.3368701794598725, -2.18532268718079, 1.2739721680756642]
+  global Waypoint_15_p=p[.040112510597, -.404528241089, .307021323493, -1.711792123279, -2.015147055968, .657820851582]
+  global Waypoint_15_q=[1.4858036087010946, -1.6661149408305835, 2.246655895829015, -2.3193841457038236, -2.1847879321801074, 1.2703933771952092]
+  global Waypoint_14_p=p[.037054514560, -.412060868196, .313945950407, -1.711792131026, -2.015147061667, .657820842286]
+  global Waypoint_14_q=[1.4797217898026103, -1.6589694724497956, 2.2206408322220064, -2.304815224380686, -2.183683782640305, 1.262978298568004]
+  global Waypoint_13_p=p[.039115141502, -.424305495049, .318143977171, -1.711792113653, -2.015147052014, .657820863975]
+  global Waypoint_13_q=[1.487550508205103, -1.6342057347324772, 2.184029889072157, -2.2874921661614835, -2.184925450889761, 1.272417442117436]
+  global Waypoint_12_p=p[.039115141502, -.456158121982, .318143977168, -1.711792113476, -2.015147052083, .657820864140]
+  global Waypoint_12_q=[1.4935420145612335, -1.5572748585907012, 2.1081848040082747, -2.28424342547202, -2.1857420421014275, 1.2798775569620102]
+  global after_pulley_p=p[.044329768444, -.474814986661, .308597350181, -1.711792093336, -2.015147036377, .657820892175]
+  global after_pulley_q=[1.5079615602164504, -1.4991115243327844, 2.0724882496617383, -2.2963722872081664, -2.1879515679860546, 1.2976280523367598]
+  global Waypoint_25_p=p[.061141714643, -.511385946774, .285958468842, -1.774558024103, -1.944401775122, .634104524862]
+  global Waypoint_25_q=[1.5473958880023313, -1.3810645915728177, 1.979327357093382, -2.241214456719442, -2.2003111255458396, 1.4335244737779682]
+  global Waypoint_26_p=p[.038979145323, -.543772867325, .267744689932, -1.774558073643, -1.944401813137, .634104461563]
+  global Waypoint_26_q=[1.5071541580141348, -1.2916221861834245, 1.9281481321394516, -2.3085026053321682, -2.196707079613738, 1.3845074713454677]
+  global Waypoint_27_p=p[.038979145324, -.562173494251, .259861436065, -1.774558074054, -1.944401813375, .634104461206]
+  global Waypoint_27_q=[1.5091989350923138, -1.2429261919505654, 1.8842824340699806, -2.3117329170195458, -2.1968494735058286, 1.3872163476771124]
+  global Waypoint_28_p=p[.038979145324, -.539174867314, .269332062998, -1.774558074895, -1.944401813751, .634104460483]
+  global Waypoint_28_q=[1.5066182189604747, -1.3033505481144196, 1.9392542079894, -2.308294869665946, -2.1966702237640225, 1.3838054943543323]
+  global above_tray_1_p=p[.266865858867, -.496011607624, .339710783308, -1.796494330540, -1.802621027860, .672264597199]
+  global above_tray_1_q=[1.9385147094726562, -1.2940040689757843, 1.621237579976217, -1.5871526203551234, -2.2268765608416956, 2.0403857231140137]
+  global drop_belt_p=p[.266870034428, -.496004351202, .339686186888, 2.041589439800, 2.081073474242, -.535109124948]
+  global drop_belt_q=[1.8684946298599243, -1.385519878273346, 1.866485897694723, -2.3863803348936976, -1.7937176863299769, 1.8125296831130981]
+  global look_at_result_p=p[.266865068288, -.496016684094, .308801298984, -1.796515476519, -1.802601968294, .672305195332]
+  global look_at_result_q=[1.9384160041809082, -1.2678858202746888, 1.6707223097430628, -1.6625033817686976, -2.226795021687643, 2.040841817855835]
+  global home_1_p=p[.130649315071, -.180735318564, .515944936221, -.011904141620, -3.140282836653, -.031779029209]
+  global home_1_q=[1.5699191093444824, -2.0999165974059046, 1.3999560515033167, -0.8500288289836426, -1.5699761549579065, 5.9604644775390625E-5]
+  global above_tool_1_p=p[.459162036872, -.210304370404, .204200915087, 1.746289903912, -1.730646652929, -.729047870182]
+  global above_tool_1_q=[2.534531999016338, -1.1982101810088324, 1.7961559816585861, -1.4668132023983578, -2.008949988225595, -0.45437501586286544]
+  global grasp_tool_1_p=p[.459162036954, -.210304370461, .112251855397, 1.746289902786, -1.730646652070, -.729047869434]
+  global grasp_tool_1_q=[2.534108235275429, -1.052344728769686, 1.8694364197099782, -1.6855003797547994, -2.008547655205186, -0.45329883263686455]
+  global before_tool_1_p=p[.486310883736, -.210304369973, .144710659707, 1.746289819535, -1.730646622196, -.729047937691]
+  global before_tool_1_q=[2.5609651290146314, -1.061283124060715, 1.7680068564359046, -1.5659106257780167, -1.9912396076520968, -0.43148126649865937]
+  global high_approach_1_p=p[.430517655658, -.210304370258, .259483933354, 2.070546354937, -2.063337776139, -.265204512751]
+  global high_approach_1_q=[2.4485092379921376, -1.4413039536248444, 2.001661001707641, -1.930081263128379, -1.7537079602876116, -0.678380411487205]
+  global wp_on_right_1_p=p[.247135810805, -.077743034127, .492156207270, -1.089260191054, 2.941141854347, .043723079322]
+  global wp_on_right_1_q=[2.2992806434631348, -2.218607564965719, 1.9803665320025843, -1.3077529531768342, -1.553016487752096, 0.01404145359992981]
+  global wait_w_tool_1_p=p[.101032507256, -.259473149436, .360486432647, .242312716273, 3.104340398085, -.045631365969]
+  global wait_w_tool_1_q=[1.4195195436477661, -2.178169389764303, 1.8925936857806605, -1.3117230397513886, -1.5379188696490687, -2.462068666631012E-5]
+  global wait_w_tool_p=p[.096883885745, -.254303635135, .525338758627, .242383833914, 3.104342837672, -.045618417679]
+  global wait_w_tool_q=[1.419498844840919, -2.178175391321119, 1.892632293985887, -1.311747949011428, -1.5379272788334548, -1.2434497875801753E-14]
+  global Waypoint_right_p=p[.247135810805, -.077743034127, .492156207270, -1.089260191054, 2.941141854347, .043723079322]
+  global Waypoint_right_q=[2.2992806434631348, -2.218607564965719, 1.9803665320025843, -1.3077529531768342, -1.553016487752096, 0.01404145359992981]
+  global high_approach_p=p[.430517655658, -.210304370258, .259483933354, 2.070546354937, -2.063337776139, -.265204512751]
+  global high_approach_q=[2.4485092379921376, -1.4413039536248444, 2.001661001707641, -1.930081263128379, -1.7537079602876116, -0.678380411487205]
+  global before_tool_p=p[.486310883736, -.210304369973, .144710659707, 1.746289819535, -1.730646622196, -.729047937691]
+  global before_tool_q=[2.5609651290146314, -1.061283124060715, 1.7680068564359046, -1.5659106257780167, -1.9912396076520968, -0.43148126649865937]
+  global grasp_tool_p=p[.459162036954, -.210304370461, .112251855397, 1.746289902786, -1.730646652070, -.729047869434]
+  global grasp_tool_q=[2.534108235275429, -1.052344728769686, 1.8694364197099782, -1.6855003797547994, -2.008547655205186, -0.45329883263686455]
+  global above_tool_p=p[.459162036872, -.210304370404, .204200915087, 1.746289903912, -1.730646652929, -.729047870182]
+  global above_tool_q=[2.534531999016338, -1.1982101810088324, 1.7961559816585861, -1.4668132023983578, -2.008949988225595, -0.45437501586286544]
+  global home_p=p[.130649315071, -.180735318564, .515944936221, -.011904141620, -3.140282836653, -.031779029209]
+  global home_q=[1.5699191093444824, -2.0999165974059046, 1.3999560515033167, -0.8500288289836426, -1.5699761549579065, 5.9604644775390625E-5]
+  def taskboard_pick_hook():
+    $ 42 "taskboard_pick_hook" "noBreak"
+    # begin: URCap Program Node
+    #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+    #   Type: Gripper
+    $ 43 "Gripper Open (1)"
+    if not(gripper_connected[0]):
+      popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+    end
+    if not(rq_is_gripper_activated("1")):
+      popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+    end
+    rq_set_pos_spd_for(0, 255, 255, "1")
+    rq_wait_pos_spe_for_request(0, 255, 255, "1")
+    rq_go_to("1")
+    # end: URCap Program Node
+    $ 44 "MoveJ"
+    $ 45 "currentpose≔get_actual_joint_positions()"
+    global currentpose= get_actual_joint_positions ()
+    $ 46 "currentpose" "breakAfter"
+    movej(currentpose, a=1.3962634015954636, v=1.0471975511965976)
+    $ 47 "MoveL"
+    $ 48 "home_1" "breakAfter"
+    set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+    movel(home_1_p, a=0.8, v=0.8)
+    $ 49 "above_tool_1" "breakAfter"
+    set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+    movel(above_tool_1_p, a=0.8, v=0.8)
+    $ 50 "grasp_tool_1" "breakAfter"
+    set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+    movel(grasp_tool_1_p, a=0.8, v=0.8)
+    # begin: URCap Program Node
+    #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+    #   Type: Gripper
+    $ 51 "Gripper Close (1)"
+    if not(gripper_connected[0]):
+      popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+    end
+    if not(rq_is_gripper_activated("1")):
+      popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+    end
+    rq_set_pos_spd_for(255, 255, 255, "1")
+    rq_wait_pos_spe_for_request(255, 255, 255, "1")
+    rq_go_to("1")
+    rq_wait("1")
+    # end: URCap Program Node
+    $ 52 "MoveL"
+    $ 53 "before_tool_1" "breakAfter"
+    set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+    movel(before_tool_1_p, a=0.8, v=0.8)
+    $ 54 "high_approach_1" "breakAfter"
+    set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+    movel(high_approach_1_p, a=0.8, v=0.8, r=0.05)
+    $ 55 "wp_on_right_1" "breakAfter"
+    set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+    movel(wp_on_right_1_p, a=0.8, v=0.8, r=0.05)
+    $ 56 "wait_w_tool_1" "breakAfter"
+    set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+    movel(wait_w_tool_1_p, a=0.8, v=0.8)
+  end
+  def taskboard_place_hook_1():
+    $ 57 "taskboard_place_hook_1" "noBreak"
+    $ 58 "MoveJ"
+    $ 59 "currentpose≔get_actual_joint_positions()"
+    global currentpose= get_actual_joint_positions ()
+    $ 60 "currentpose" "breakAfter"
+    movej(currentpose, a=1.3962634015954636, v=1.0471975511965976)
+    $ 61 "MoveL"
+    $ 62 "wait_w_tool" "breakAfter"
+    set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+    movel(wait_w_tool_p, a=0.8, v=0.8)
+    $ 63 "Waypoint_right" "breakAfter"
+    set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+    movel(Waypoint_right_p, a=0.8, v=0.8, r=0.05)
+    $ 64 "high_approach" "breakAfter"
+    set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+    movel(high_approach_p, a=0.8, v=0.8, r=0.05)
+    $ 65 "before_tool" "breakAfter"
+    set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+    movel(before_tool_p, a=0.8, v=0.8, r=0.005)
+    $ 66 "grasp_tool" "breakAfter"
+    set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+    movel(grasp_tool_p, a=0.8, v=0.8)
+    # begin: URCap Program Node
+    #   Source: Robotiq_Grippers, 1.8.1.2444, Robotiq Inc.
+    #   Type: Gripper
+    $ 67 "Gripper Open (1)"
+    if not(gripper_connected[0]):
+      popup("Gripper 1 must be connected to run this program.", "No connection", False, True, True)
+    end
+    if not(rq_is_gripper_activated("1")):
+      popup("Gripper 1 is not activated. Go to Installation tab > Gripper to activate it and run the program again.", "Not activated", False, True, True)
+    end
+    rq_set_pos_spd_for(0, 255, 255, "1")
+    rq_wait_pos_spe_for_request(0, 255, 255, "1")
+    rq_go_to("1")
+    rq_wait("1")
+    # end: URCap Program Node
+    $ 68 "above_tool" "breakAfter"
+    set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+    movel(above_tool_p, a=0.8, v=0.8)
+    $ 69 "home" "breakAfter"
+    set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+    movel(home_p, a=0.8, v=0.8)
+  end
+  $ 1 "Robot Program"
+  $ 3 "MoveJ"
+  $ 4 "currentpose≔get_actual_joint_positions()"
+  global currentpose= get_actual_joint_positions ()
+  $ 5 "currentpose" "breakAfter"
+  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
+  movej(currentpose, a=1.3962634015954636, v=1.0471975511965976)
+  $ 6 "looking_at_belt" "breakAfter"
+  set_tcp(p[0.0,0.0,0.165,0.0,0.0,0.0])
+  movej(get_inverse_kin(looking_at_belt_p, qnear=looking_at_belt_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 7 "Popup: start sequence with a_bot (simultaneous start)"
+  popup("start sequence with a_bot (simultaneous start)", "Message", False, False, blocking=True)
+  $ 8 "MoveJ"
+  $ 9 "Waypoint_6" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movej(get_inverse_kin(Waypoint_6_p, qnear=Waypoint_6_q), a=2.0943951023931953, v=2.6179938779914944)
+  $ 10 "Waypoint_7" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movej(get_inverse_kin(Waypoint_7_p, qnear=Waypoint_7_q), a=2.0943951023931953, v=2.6179938779914944)
+  $ 11 "Wait: 3.0"
+  sleep(3.0)
+  $ 12 "MoveJ"
+  $ 13 "tension_at_ply" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movej(get_inverse_kin(tension_at_ply_p, qnear=tension_at_ply_q), a=1.3962634015954636, v=1.0471975511965976)
+  $ 16 "Wait: 0"
+  $ 17 "MoveL"
+  $ 19 "MoveL"
+  $ 20 "pulley_east" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(pulley_east_p, a=1.2, v=0.25, r=0.026)
+  $ 21 "pulley_seast" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(pulley_seast_p, a=1.2, v=0.25)
+  $ 22 "Waypoint_21" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(Waypoint_21_p, a=1.2, v=0.25)
+  $ 23 "Waypoint_18" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(Waypoint_18_p, a=1.2, v=0.25, r=0.006)
+  $ 24 "Waypoint_17" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(Waypoint_17_p, a=1.2, v=0.25, r=0.005)
+  $ 25 "Waypoint_16" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(Waypoint_16_p, a=1.2, v=0.25, r=0.005)
+  $ 26 "Waypoint_15" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(Waypoint_15_p, a=1.2, v=0.25, r=0.002)
+  $ 27 "Waypoint_14" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(Waypoint_14_p, a=1.2, v=0.25, r=0.007)
+  $ 28 "Waypoint_13" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(Waypoint_13_p, a=1.2, v=0.25, r=0.005)
+  $ 29 "Waypoint_12" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(Waypoint_12_p, a=1.2, v=0.25)
+  $ 30 "MoveL"
+  $ 31 "after_pulley" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(after_pulley_p, a=1.2, v=0.25)
+  $ 32 "Waypoint_25" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(Waypoint_25_p, a=1.2, v=0.25)
+  $ 33 "Waypoint_26" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(Waypoint_26_p, a=1.2, v=0.25)
+  $ 34 "Waypoint_27" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(Waypoint_27_p, a=1.2, v=0.25)
+  $ 35 "Waypoint_28" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(Waypoint_28_p, a=1.2, v=0.25)
+  $ 36 "MoveL"
+  $ 37 "above_tray_1" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(above_tray_1_p, a=1.2, v=0.25)
+  $ 38 "drop_belt" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(drop_belt_p, a=1.2, v=0.25)
+  $ 39 "above_tray_1" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(above_tray_1_p, a=1.2, v=0.25)
+  $ 40 "look_at_result" "breakAfter"
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  movel(look_at_result_p, a=1.2, v=0.25)
+end

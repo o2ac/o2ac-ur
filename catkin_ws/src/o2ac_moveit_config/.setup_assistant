@@ -1,0 +1,11 @@
+moveit_setup_assistant_config:
+  URDF:
+    package: o2ac_scene_description
+    relative_path: urdf/base_scene.urdf.xacro
+    xacro_args: ""
+  SRDF:
+    relative_path: config/o2ac_base_scene.srdf
+  CONFIG:
+    author_name: Felix von Drigalski
+    author_email: FvDrigalski@gmail.com
+    generated_timestamp: 1625536040

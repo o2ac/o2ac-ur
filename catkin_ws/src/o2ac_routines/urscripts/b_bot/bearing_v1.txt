@@ -1,0 +1,103 @@
+ Program
+   Robot Program
+     MoveJ
+       home
+     Gripper Open (1)
+     MoveL
+       above
+       Waypoint_3
+     Gripper Close (1)
+     Gripper Open (1)
+     MoveL
+       Waypoint_2
+     Gripper Close (1)
+     Gripper Move14% (1)
+     MoveL
+       Waypoint_3
+       Waypoint_1
+     Gripper Close (1)
+     MoveL
+       above
+     'MoveJ'
+     'MoveJ'
+     'Force'
+     MoveJ
+       Waypoint_4
+       beforehole
+     MoveJ
+       athole
+     Force
+       MoveL
+         Direction: Base Y+
+           Until (distance)
+         Direction: Base Z-
+           Until (distance)
+         Direction: Base Y-
+           Until (distance)
+         Direction: Base Y-
+           Until (distance)
+         Direction: Base Z+
+           Until (distance)
+         Direction: Base Y+
+           Until (distance)
+         Direction: Base Y+
+           Until (distance)
+         Direction: Base Z+
+           Until (distance)
+         Direction: Base Y-
+           Until (distance)
+         Direction: Base Y-
+           Until (distance)
+         Direction: Base Z-
+           Until (distance)
+         Direction: Base Y+
+           Until (distance)
+     If pose_dist(get_actual_tcp_pose(), push_1_done) > .005
+       Force
+         MoveL
+           rightturn
+           leftturn
+           leftturn
+           rightturn
+     'If pose_dist(get_actual_tcp_pose(), athole) < .005'
+     Gripper Open (1)
+     MoveJ
+       Waypoint_6
+     Gripper Close (1)
+     If rq_current_pos_mm()<10
+       'Gripper fully closed = bearing not inserted!! Stopping.'
+       MoveL
+         Direction: Base X+
+           Until (distance)
+       Halt
+     Force
+       MoveL
+         rightturn
+         leftturn
+         leftturn
+         rightturn
+     Gripper Open (1)
+     MoveJ
+       Waypoint_7
+     Gripper Close (1)
+     Force
+       Wait: 5.0
+       MoveL
+         Direction: Tool X+
+           Until (distance)
+       Loop 12 times
+         If pose_dist(get_actual_tcp_pose(), push_3_done) > .005
+           MoveL
+             Direction: Tool
+               Until (distance)
+     MoveJ
+       a_bit_back
+     MoveL
+       above
+     If  False 
+       MoveJ
+         push_1_done
+         'Waypoint_5'
+         push_3_done
+     MoveJ
+       home

@@ -1,0 +1,193 @@
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="task_board">
+
+  <xacro:macro name="tray" params="trayname parent with_visual:=true with_collision_geometry:=true with_stoppers:=true *origin">
+  <xacro:property name="mesh_file" value="package://o2ac_scene_description/meshes/tray.stl" />
+
+  <xacro:property name="tray_l" value=".4" />
+  <xacro:property name="tray_w" value=".28" />
+
+  <link name="${trayname}">
+    <xacro:if value="${with_visual}">
+      <visual>
+        <origin rpy="${pi/2} 0 ${pi/2}" xyz="0 0 0.0"/>
+        <geometry>
+          <mesh filename="${mesh_file}" scale=".001 .001 .001"/>
+        </geometry>
+        <material name="blue">
+          <color rgba=".2 .2 1 1"/>
+        </material>
+      </visual>
+    </xacro:if>
+    <xacro:if value="${with_collision_geometry}">
+      <collision>
+        <origin rpy="${pi/2} 0 ${pi/2}" xyz="0 0 0.0"/>
+        <geometry>
+          <mesh filename="${mesh_file}" scale=".001 .001 .001"/>
+        </geometry>
+      </collision>
+    </xacro:if>
+  </link>
+  <joint name="${trayname}_joint" type="fixed" >
+    <parent link="${parent}" />
+    <child link = "${trayname}" />
+    <xacro:insert_block name="origin"/>
+  </joint>
+
+  <link name="${trayname}_center">
+    <xacro:if value="${with_visual}">
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 -0.001"/>
+        <geometry>
+          <box size="${tray_w-0.01} ${tray_l-0.01} 0.001"/>
+        </geometry>
+        <material name="black">
+          <color rgba="1 1 1 1"/>
+        </material>
+      </visual>
+    </xacro:if>
+    <xacro:if value="${with_collision_geometry}">
+      <collision>
+        <origin rpy="0 0 0" xyz="0 0 -0.002"/>
+        <geometry>
+          <box size="${tray_w-0.01} ${tray_l-0.01} 0.001"/> 
+        </geometry>
+      </collision>
+    </xacro:if>
+  </link>
+  <joint name="${trayname}_center_joint" type="fixed">
+    <parent link="${trayname}" />
+    <child link = "${trayname}_center" />
+    <origin rpy="0 0 0" xyz="${tray_w/2} ${tray_l/2} 0.010"/>
+  </joint>
+
+  <xacro:if value="${with_stoppers}">
+    <link name="${trayname}_left_stopper">
+      <visual>
+        <origin rpy="0 0 0" xyz="0.0 -0.01 0.01"/>
+        <geometry>
+          <box size="0.06 0.02 0.05"/>
+        </geometry>
+        <material name="white">
+          <color rgba="0 0 0 1"/>
+        </material>
+      </visual>
+      <!-- <collision>
+        <origin rpy="0 0 0" xyz="0.0 -0.01 0.01"/>
+        <geometry>
+          <box size="0.06 0.02 0.05"/> 
+        </geometry>
+      </collision> -->
+    </link>
+    <joint name="${trayname}_left_stopper_joint" type="fixed">
+      <parent link="${trayname}" />
+      <child link = "${trayname}_left_stopper" />
+      <origin rpy="0 0 0" xyz="0.08 ${tray_l+0.02} 0.0"/>
+    </joint>
+
+    <link name="${trayname}_left_stopper2">
+      <visual>
+        <origin rpy="0 0 0" xyz="0.0 -0.01 0.01"/>
+        <geometry>
+          <box size="0.06 0.02 0.05"/>
+        </geometry>
+        <material name="white">
+          <color rgba="0 0 0 1"/>
+        </material>
+      </visual>
+      <!-- <collision>
+        <origin rpy="0 0 0" xyz="0.0 -0.01 0.01"/>
+        <geometry>
+          <box size="0.06 0.02 0.05"/> 
+        </geometry>
+      </collision> -->
+    </link>
+    <joint name="${trayname}_left_stopper2_joint" type="fixed">
+      <parent link="${trayname}" />
+      <child link = "${trayname}_left_stopper2" />
+      <origin rpy="0 0 0" xyz="0.21 ${tray_l+0.02} 0.0"/>
+    </joint>
+
+    <link name="${trayname}_right_stopper">
+      <visual>
+        <origin rpy="0 0 0" xyz="0.0 -0.01 0.01"/>
+        <geometry>
+          <box size="0.06 0.02 0.05"/>
+        </geometry>
+        <material name="white">
+          <color rgba="0 0 0 1"/>
+        </material>
+      </visual>
+      <!-- <collision>
+        <origin rpy="0 0 0" xyz="0.0 -0.01 0.01"/>
+        <geometry>
+          <box size="0.06 0.02 0.05"/> 
+        </geometry>
+      </collision> -->
+    </link>
+    <joint name="${trayname}_right_stopper_joint" type="fixed">
+      <parent link="${trayname}" />
+      <child link = "${trayname}_right_stopper" />
+      <origin rpy="0 0 0" xyz="0.08 0.0 0.0"/>
+    </joint>
+
+    <link name="${trayname}_right_stopper2">
+      <visual>
+        <origin rpy="0 0 0" xyz="0.0 -0.01 0.01"/>
+        <geometry>
+          <box size="0.06 0.02 0.05"/>
+        </geometry>
+        <material name="white">
+          <color rgba="0 0 0 1"/>
+        </material>
+      </visual>
+      <!-- <collision>
+        <origin rpy="0 0 0" xyz="0.0 -0.01 0.01"/>
+        <geometry>
+          <box size="0.06 0.02 0.05"/> 
+        </geometry>
+      </collision> -->
+    </link>
+    <joint name="${trayname}_right_stopper2_joint" type="fixed">
+      <parent link="${trayname}" />
+      <child link = "${trayname}_right_stopper2" />
+      <origin rpy="0 0 0" xyz="0.21 0.0 0.0"/>
+    </joint>
+  </xacro:if>
+
+  <!-- Frames on top of corners -->
+  
+  <joint name="${trayname}corner_1_joint" type="fixed">
+    <parent link="${trayname}"/>
+    <child link="${trayname}corner_1_link"/>
+    <origin rpy="0.0 0 0" xyz="0.005 0.005 0.055"/>
+  </joint>
+  <link name="${trayname}corner_1_link"/>
+
+  <joint name="${trayname}corner_2_joint" type="fixed">
+    <parent link="${trayname}"/>
+    <child link="${trayname}corner_2_link"/>
+    <origin rpy="0.0 0 0" xyz="${tray_w-0.005} ${0.005} 0.055"/>
+  </joint>
+  <link name="${trayname}corner_2_link"/>
+
+  <joint name="${trayname}corner_3_joint" type="fixed">
+    <parent link="${trayname}"/>
+    <child link="${trayname}corner_3_link"/>
+    <origin rpy="0.0 0 0" xyz="${0.005} ${tray_l-0.005} 0.055"/>
+  </joint>
+  <link name="${trayname}corner_3_link"/>
+
+  <joint name="${trayname}corner_4_joint" type="fixed">
+    <parent link="${trayname}"/>
+    <child link="${trayname}corner_4_link"/>
+    <origin rpy="0.0 0 0" xyz="${tray_w-0.005} ${tray_l-0.005} 0.055"/>
+  </joint>
+  <link name="${trayname}corner_4_link"/>
+
+
+  </xacro:macro>
+  <!-- Add additional links for us to plan with.-->
+</robot>
+

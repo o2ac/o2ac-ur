@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<robot name="single_suction_gripper"
+       xmlns:xacro="http://wiki.ros.org/xacro">
+  <xacro:macro name="single_suction_gripper"
+	       params="prefix parent *origin">
+
+    <!-- A link representing the gripper and a joint attaching it to parnet -->
+    <link name="${prefix}single_suction_gripper_base_link">
+      <visual>
+        <origin xyz="0.1855 -0.035 -0.035" rpy="0 0 ${pi/2}"/>
+	<geometry>
+          <mesh filename="package://aist_scene_description/meshes/single_suction_gripper.stl" scale="0.001 0.001 0.001"/>
+	</geometry>
+	<material name="light_grey">
+	  <color rgba="0.8 0.8 0.8 1"/>
+	</material>
+      </visual>
+      <collision>
+      <!-- avoid collision -->
+        <!-- <origin xyz="0.188 -0.035 -0.035" rpy="0 0 ${pi/2}"/> -->
+	<origin xyz="0.1855 -0.035 -0.035" rpy="0 0 ${pi/2}"/>
+	<geometry>
+	  <mesh filename="package://aist_scene_description/meshes/single_suction_gripper.vhacd.dae" scale="0.001 0.001 0.001"/>
+	</geometry>
+      </collision>
+      <inertial>
+	  <mass value="0.3"/>
+	  <inertia ixx="0.4" ixy="0.0" ixz="0.0" iyy="0.4"
+		   iyz="0.0" izz ="0.2"/>
+      </inertial>
+    </link>
+    <joint name="${prefix}single_suction_gripper_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child  link="${prefix}single_suction_gripper_base_link"/>
+      <xacro:insert_block name="origin"/>
+    </joint>
+
+    <!-- A link representing the tip of the pad and a joint attaching
+	 it to the gripper -->
+    <link name="${prefix}single_suction_gripper_pad_link"/>
+    <joint name="${prefix}single_suction_gripper_pad_joint" type="fixed">
+      <parent link="${prefix}single_suction_gripper_base_link"/>
+      <child  link="${prefix}single_suction_gripper_pad_link"/>
+      <origin xyz="0.1855 0 0" rpy="0 0 0"/>
+    </joint>
+
+  </xacro:macro>
+</robot>

@@ -1,0 +1,10 @@
+<?xml version="1.0" ?>
+<launch>
+  <!-- Start up Rviz with the visualization that should go on the TV. -->
+
+  <!-- Spawn visualizer and parameter configurator -->
+  <node name="$(anon rviz)" pkg="rviz" type="rviz" output="screen" args="-d $(find o2ac_vision)/launch/tv_layout.rviz"/>
+
+  <node name="text_to_image_converter" pkg="o2ac_rviz" type="text_to_image.py" output="screen" args=""/>
+
+</launch>

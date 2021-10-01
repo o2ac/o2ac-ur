@@ -1,0 +1,65 @@
+a_bot:
+  scaled_pos_joint_traj_controller:
+    type: position_controllers/JointTrajectoryController
+    joints:
+      - a_bot_shoulder_pan_joint
+      - a_bot_shoulder_lift_joint
+      - a_bot_elbow_joint
+      - a_bot_wrist_1_joint
+      - a_bot_wrist_2_joint
+      - a_bot_wrist_3_joint
+    constraints:
+      goal_time: 0.6
+      stopped_velocity_tolerance: 0.05
+      shoulder_pan_joint: {trajectory: 0.1, goal: 0.1}
+      shoulder_lift_joint: {trajectory: 0.1, goal: 0.1}
+      elbow_joint: {trajectory: 0.1, goal: 0.1}
+      wrist_1_joint: {trajectory: 0.1, goal: 0.1}
+      wrist_2_joint: {trajectory: 0.1, goal: 0.1}
+      wrist_3_joint: {trajectory: 0.1, goal: 0.1}
+    stop_trajectory_duration: 0.5
+    state_publish_rate:  25
+    action_monitor_rate: 10
+
+  gripper_controller:
+    type: position_controllers/GripperActionController
+    gripper_type: '85'
+    joint: a_bot_finger_joint
+    action_monitor_rate: 20
+    goal_tolerance: 0.002
+    max_effort: 100
+    stall_velocity_threshold: 0.001
+    stall_timeout: 1.0
+
+b_bot:
+  scaled_pos_joint_traj_controller:
+    type: position_controllers/JointTrajectoryController
+    joints:
+      - b_bot_shoulder_pan_joint
+      - b_bot_shoulder_lift_joint
+      - b_bot_elbow_joint
+      - b_bot_wrist_1_joint
+      - b_bot_wrist_2_joint
+      - b_bot_wrist_3_joint
+    constraints:
+      goal_time: 0.6
+      stopped_velocity_tolerance: 0.05
+      shoulder_pan_joint: {trajectory: 0.1, goal: 0.1}
+      shoulder_lift_joint: {trajectory: 0.1, goal: 0.1}
+      elbow_joint: {trajectory: 0.1, goal: 0.1}
+      wrist_1_joint: {trajectory: 0.1, goal: 0.1}
+      wrist_2_joint: {trajectory: 0.1, goal: 0.1}
+      wrist_3_joint: {trajectory: 0.1, goal: 0.1}
+    stop_trajectory_duration: 0.5
+    state_publish_rate:  25
+    action_monitor_rate: 10
+
+  gripper_controller:
+    type: position_controllers/GripperActionController
+    gripper_type: '85'
+    joint: b_bot_finger_joint
+    action_monitor_rate: 20
+    goal_tolerance: 0.002
+    max_effort: 100
+    stall_velocity_threshold: 0.001
+    stall_timeout: 1.0

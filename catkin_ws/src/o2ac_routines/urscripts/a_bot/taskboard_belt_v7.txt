@@ -1,0 +1,24 @@
+ Program
+   Robot Program
+     MoveJ
+       currentpose≔get_actual_joint_positions()
+       currentpose
+     'pick blind'
+     MoveL
+       'above_tray'
+       wait_w_belt
+     Popup: start sequence together with b_bot (simultaneous start)
+     MoveL
+       'Waypoint_5'
+       Waypoint_3
+       Waypoint_4
+       Waypoint_9
+       'Waypoint_7'
+     Wait: 10.0
+     Gripper Move80% (1)
+     MoveL
+       Waypoint_10
+       Waypoint_6
+       Waypoint_11
+     MoveJ
+       home

@@ -1,0 +1,27 @@
+<?xml version="1.0" ?>
+<launch>
+
+  <arg name="camera_info_topic"	default="camera_info"/>
+  <arg name="image_topic"	default="texture"/>
+  <arg name="depth_topic"	default="depth_map"/>
+  <arg name="manager"		default=""/>
+
+  <node if="$(eval manager == '')"
+	name="visual_tracker"
+	pkg="aist_visual_tracker" type="aist_visual_tracker"
+  	output="screen">
+    <!-- <remap from="/camera_info"	to="$(arg camera_info_topic)"/> -->
+    <remap from="/image"	to="$(arg image_topic)"/>
+    <!-- <remap from="/depth"	to="$(arg depth_topic)"/> -->
+  </node>
+
+  <node unless="$(eval manager == '')"
+	name="visual_tracker" pkg="nodelet" type="nodelet" output="screen"
+  	args="load aist_visual_tracker/aist_visual_tracker_nodelet
+	      $(arg manager)">
+    <!-- <remap from="/camera_info"	to="$(arg camera_info_topic)"/> -->
+    <remap from="/image"	to="$(arg image_topic)"/>
+    <!-- <remap from="/depth"	to="$(arg depth_topic)"/> -->
+  </node>
+
+</launch>

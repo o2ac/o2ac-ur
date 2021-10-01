@@ -1,0 +1,93 @@
+ Program
+   Robot Program
+     MoveJ
+       home
+     Gripper Move40% (1)
+     MoveL
+       above
+       Waypoint_3
+     Gripper Close (1)
+     MoveL
+       above
+     MoveJ
+       beforehole
+     MoveL
+       'athole'
+       Direction: Tool Y-
+         Until (tool_contact_detection)
+     MoveL
+       Direction: Base Z+
+         Until (distance)
+     Force
+       Wait: 3.0
+       'Loop 10 times'
+       'spiral motion'
+       'Loop 30 times'
+       'grid motion'
+       var_1≔1
+       Loop ( pose_dist(get_actual_tcp_pose(), fully_inserted) > 0.005) and  (var_1 < 6)
+         MoveL
+           Direction: Tool X+
+             Until (distance)
+           Direction: Tool Z-
+             Until (distance)
+           Direction: Tool X-
+             Until (distance)
+           Direction: Tool X-
+             Until (distance)
+           Direction: Tool Z+
+             Until (distance)
+           Direction: Tool X+
+             Until (distance)
+           Direction: Tool X+
+             Until (distance)
+           Direction: Tool Z+
+             Until (distance)
+           Direction: Tool X-
+             Until (distance)
+           Direction: Tool X-
+             Until (distance)
+           Direction: Tool Z-
+             Until (distance)
+           Direction: Tool X+
+             Until (distance)
+         MoveL
+           Direction: Tool X+
+             Until (distance)
+           Direction: Tool Z-
+             Until (distance)
+           Direction: Tool X-
+             Until (distance)
+           Direction: Tool X-
+             Until (distance)
+           Direction: Tool Z+
+             Until (distance)
+           Direction: Tool X+
+             Until (distance)
+           Direction: Tool X+
+             Until (distance)
+           Direction: Tool Z+
+             Until (distance)
+           Direction: Tool X-
+             Until (distance)
+           Direction: Tool X-
+             Until (distance)
+           Direction: Tool Z-
+             Until (distance)
+           Direction: Tool X+
+             Until (distance)
+         var_1≔var_1+1
+     Gripper Open (1)
+     MoveJ
+       'ready_to_push'
+       push_shaft_rdy
+     'Gripper Move53% (1)'
+     Gripper Close (1)
+     'Force'
+     MoveL
+       push_shaft
+     MoveJ
+       home
+     Halt
+     MoveJ
+       fully_inserted

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+  <arg name="models"	default="01-BASE
+				 02-PANEL
+				 03-PANEL2
+				 04_37D-GEARMOTOR-50-70
+				 05_MBRFA30-2-P6
+				 06_MBT4-400
+				 07_SBARB6200ZZ_30
+				 08_KZAF1075NA4WA55GA20AA0
+				 09_EDCS10
+				 10_CLBPS10_17_4
+				 11_MBRAC60-2-10
+				 12_CLBUS6-9-9.5
+				 13_MBGA30-2
+				 14_BGPSL6-9-L30-F8
+				 15_SLBNR6
+				 16_SPWF6
+				 17_SCB4-10
+				 18_SCB3-10
+				 19_MSSFS3-6
+				 32_MBRFA40-2-P6
+				 33_MBRFA45-2-P6
+				 34_MBRFA48-2-P6
+				 35_MBRAC45-2-10
+				 36_MBRAC48-2-10
+				 37_MBRAC80-2-10
+				 50_MBGNA30-2
+				 51_MBGNA60-2"/>
+  <arg name="n_samples"	default="1000"/>
+  <arg name="leaf_size"	default="0.01"/>
+  <arg name="scale"	default="0.001"/>
+
+  <group if="$(eval models.strip() != '')">
+    <arg name="model"		value="$(eval models.split()[0].strip())"/>
+    <node name="$(anon mesh_sampler)"
+	  pkg="aist_new_localization" type="mesh_sampler"
+	  args="$(arg model).ply $(arg model).pcd
+		-n_samples $(arg n_samples) -leaf_size $(arg leaf_size)
+		-scale $(arg scale)"
+	  output="screen"/>
+
+    <arg name="remained_models"	value="$(eval ' '.join(models.split()[1:]))"/>
+    <include file="$(dirname)/mesh_sampler.launch">
+      <arg name="models"	value="$(arg remained_models)"/>
+      <arg name="n_samples"	value="$(arg n_samples)"/>
+      <arg name="leaf_size"	value="$(arg leaf_size)"/>
+      <arg name="scale"		value="$(arg scale)"/>
+    </include>
+  </group>
+
+</launch>

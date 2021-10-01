@@ -1,0 +1,64 @@
+<?xml version="1.0" ?>
+<launch>
+  <!-- Launch file for testing the recognition pipeline using only the annotation database (no camera or robot). -->
+
+  <arg name="use_nodelet"		default="true"/>
+
+  <arg  if="$(arg use_nodelet)"
+	name="manager"			value="camera_manager"/>
+  <node if="$(arg use_nodelet)"
+	name="$(arg manager)" pkg="nodelet" type="nodelet"
+	args="manager" output="screen" respawn="false"/>
+  <arg unless="$(arg use_nodelet)"
+       name="manager"			value=""/>
+
+  <!-- Mode of object detector -->
+  <arg name="continuous_streaming"	default="false"/>
+  <arg name="use_localization_sdk"	default="false"/>
+
+  <!-- Localization parameters -->
+  <arg name="nposes"		default="2"/>
+  <arg name="timeout"		default="10"/>
+  <arg name="mesh_dir"		default="$(find o2ac_parts_description
+					 )/meshes"/>
+  <arg name="urdf_dir"		default="$(find o2ac_parts_description
+					 )/urdf/generated"/>
+
+  <!-- Feeder parameters -->
+  <arg name="data_dir"		default="$(find wrs_dataset)"/>
+  <arg name="intrinsic"		default="realsense_intrinsic.json"/>
+  <arg name="camera_frame"	default="map"/>
+
+  <!-- Spawn feeder -->
+  <arg name="camera_name"	value="feeder"/>
+  <node name="$(arg camera_name)"
+	pkg="o2ac_vision" type="image_feeder.py" output="screen">
+    <param name="data_dir"	value="$(arg data_dir)"/>
+    <param name="intrinsic"	value="$(arg intrinsic)"/>
+    <param name="camera_frame"	value="$(arg camera_frame)"/>
+  </node>
+
+  <!-- Construct recognition pipeline -->
+  <include file="$(dirname)/recognition_pipeline.launch">
+    <arg name="manager"			value="$(arg manager)"/>
+    <arg name="continuous_streaming"	value="$(arg continuous_streaming)"/>
+    <arg name="use_localization_sdk"	value="$(arg use_localization_sdk)"/>
+    <arg name="nposes"			value="$(arg nposes)"/>
+    <arg name="timeout"			value="$(arg timeout)"/>
+    <arg name="mesh_dir"		value="$(arg mesh_dir)"/>
+    <arg name="urdf_dir"		value="$(arg urdf_dir)"/>
+
+    <!-- Topic names for feeder -->
+    <arg name="camera_info_topic" value="$(arg camera_name)/camera_info"/>
+    <arg name="image_topic"	  value="$(arg camera_name)/image"/>
+    <arg name="depth_topic"	  value="$(arg camera_name)/depth"/>
+  </include>
+
+  <node name="static_transform_publisher" pkg="tf"
+	type="static_transform_publisher" args="0 0 0 0 0 0 base_link map 10"/>
+
+  <!-- Spawn visualizer and parameter configurator -->
+  <node name="$(anon rviz)" pkg="rviz" type="rviz" output="screen"
+  	args="-d $(find o2ac_vision)/launch/image_feeder.rviz"/>
+
+</launch>

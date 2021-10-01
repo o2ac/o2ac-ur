@@ -1,0 +1,49 @@
+# The docker-compose file for the container running on the vision PC
+version: "2.4"
+
+################################################################################
+
+services:
+  o2ac-vision-pc:
+    hostname: o2ac-vision-pc
+    runtime: ${DOCKER_RUNTIME}
+    privileged: true
+    environment:
+      # Pass host user information.
+      - HOST_USER=${USER}
+      - HOST_UID=1000
+      - HOST_GID=1000
+      # Display X Server GUI.
+      - DISPLAY
+      - QT_X11_NO_MITSHM=1
+      # Configure Nvidia Docker interface.
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - NVIDIA_REQUIRE_CUDA=cuda>=9.0
+      - DOCKER_RUNTIME=${DOCKER_RUNTIME}
+      # ROS parameters
+      - ROS_HOSTNAME=o2ac-vision-pc
+      - ROS_MASTER_URI=http://o2ac-vision-pc:11311
+    image: registry.gitlab.com/o2ac/o2ac-ur/o2ac-dev:latest
+    build:
+      context: ../
+      dockerfile: ./docker/o2ac-dev/Dockerfile
+      args:
+        - DOCKERFILE_COMMIT_SHORT_SHA
+    volumes:
+      # Map ROS workspace folders.
+      - ../:/root/o2ac-ur/
+      # Grant display access to X Server.
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      # Grant bus access to FlexBE App.
+      - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket
+      # Grant access to serial usb ports for u2d2
+      - /dev/:/dev/
+    network_mode: host
+    extra_hosts:
+      - "o2ac-ur:192.168.2.5" # The host PC
+      - "o2ac-vision-pc:192.168.2.6" # The PC with the cameras and vision nodes
+      - "a_bot:192.168.1.41"
+      - "b_bot:192.168.1.42"
+    command: /root/o2ac-ur/docker/o2ac-dev/scripts/initialize-docker-vision-container.sh
+    shm_size: 1g # a PhoXi data size about 100MB.

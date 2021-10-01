@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<!--
+  This file launches the drivers of the real robots instead of the simulation.
+  The first section starts the robot drivers.
+  The second section starts cameras, grippers, tools etc.
+-->
+<launch>
+
+  <arg name="use_nodelet"	default="true"/>
+
+  <!-- This parameter enables/disables the usage of direct UR script commands in ur_routines/ur_skills. \
+       It cannot be used in simulation. -->
+  <param name="use_real_robot" type="bool" value="true" />
+
+  <!-- ======================================== -->
+
+  <include file="$(dirname)/osx_arms_bringup.launch"/>
+
+  <!-- ======================================== -->
+
+  <!-- <include file="$(find o2ac_scene_description)/launch/osx_bringup_cameras.launch"/> -->
+<!-- 
+  <include file="$(dirname)/osx_bringup_cameras_nodelet.launch">
+    <arg name="use_nodelet"	value="$(arg use_nodelet)"/>
+  </include> -->
+
+  <!-- ======================================== -->
+
+  <include file="$(find o2ac_fastening_tools)/launch/fastening_tools.launch">
+    <arg name="usb_port" default="/dev/for_docker/screw" />
+  </include>
+
+</launch>

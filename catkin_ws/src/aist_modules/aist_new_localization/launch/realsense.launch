@@ -1,0 +1,71 @@
+<?xml version="1.0" ?>
+<launch>
+
+  <!-- Localization parameters -->
+  <arg name="nposes"		default="2"/>
+  <arg name="timeout"		default="5"/>
+  <arg name="pcd_dir"		default="$(find o2ac_parts_description
+					 )/meshes"/>
+  <arg name="urdf_dir"		default="$(find o2ac_parts_description
+					 )/urdf/generated"/>
+
+  <!-- Camera parameters -->
+  <arg name="serial_no"		default=""/>
+  <arg name="camera_name"	default="a_bot_camera"/>
+  <arg name="camera_width"	default="640"/>
+  <arg name="camera_height"	default="480"/>
+  <arg name="enable_streaming"	default="true"/>
+  <arg name="manager"		default=""/>
+
+  <!-- Spawn camera -->
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <arg name="camera"			value="$(arg camera_name)"/>
+    <arg name="enable_depth"		value="true"/>
+    <arg name="enable_infra1"		value="false"/>
+    <arg name="enable_infra2"		value="false"/>
+    <arg name="enable_pointcloud"	value="false"/>
+    <arg name="align_depth"		value="true"/>
+    <arg name="depth_width"		value="$(arg camera_width)"/>
+    <arg name="depth_height"		value="$(arg camera_height)"/>
+    <arg name="infra_width"		value="$(arg camera_width)"/>
+    <arg name="infra_height"		value="$(arg camera_height)"/>
+    <arg name="color_width"		value="$(arg camera_width)"/>
+    <arg name="color_height"		value="$(arg camera_height)"/>
+    <arg name="enable_streaming"	value="$(arg enable_streaming)"/>
+    <arg name="manager"			value="$(arg manager)"
+	 unless="$(eval manager == '')"/>
+  </include>
+
+  <!-- Spawn depth_filter and localizer -->
+  <include file="$(dirname)/run.launch">
+    <arg name="camera_info_topic" value="$(arg camera_name
+					 )/color/camera_info"/>
+    <arg name="image_topic"	  value="$(arg camera_name)/color/image_raw"/>
+    <arg name="depth_topic"	  value="$(arg camera_name
+					 )/aligned_depth_to_color/image_raw"/>
+    <arg name="pcd_dir"		  value="$(arg pcd_dir)"/>
+    <arg name="manager"
+	 value="$(eval ''
+		if manager == 'realsense2_camera_manager' else manager)"/>
+  </include>
+
+  <!-- Spawn model_spawner -->
+  <include file="$(find aist_model_spawner)/launch/run.launch">
+    <arg name="urdf_dir"	value="$(arg urdf_dir)"/>
+  </include>
+
+  <!-- Spawn localization client -->
+  <!-- <node name="localize" -->
+  <!-- 	pkg="aist_new_localization" type="localize.py" output="screen"> -->
+  <!--   <param name="nposes"	value="$(arg nposes)"/> -->
+  <!--   <param name="timeout"	value="$(arg timeout)"/> -->
+  <!--   <rosparam file="$(find aist_new_localization)/config/models.yaml"/> -->
+  <!--   <rosparam file="$(find aist_new_localization)/config/settings.yaml"/> -->
+  <!-- </node> -->
+
+  <!-- Spawn visualizer and parameter configurator -->
+  <node name="$(anon rviz)" pkg="rviz" type="rviz" output="screen"
+	args="-d $(find aist_new_localization)/launch/realsense.rviz"/>
+  <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure"/>
+
+</launch>

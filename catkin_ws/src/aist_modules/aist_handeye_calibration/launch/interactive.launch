@@ -1,0 +1,16 @@
+<?xml version="1.0" ?>
+<launch>
+
+  <arg name="config"		default="o2ac"/>
+  <arg name="camera_name"	default="a_bot_inside_camera"/>
+  <arg name="speed"		default="0.1"/>
+
+  <!-- Start client -->
+  <node name="interactive"
+	pkg="aist_handeye_calibration" type="interactive.py" output="screen">
+    <rosparam file="$(find aist_handeye_calibration
+		    )/config/$(arg config)/$(arg camera_name).yaml"/>
+    <param name="speed"		value="$(arg speed)"/>
+  </node>
+
+</launch>

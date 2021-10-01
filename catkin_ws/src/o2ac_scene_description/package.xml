@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>o2ac_scene_description</name>
+  <version>0.1.0</version>
+  <description>The o2ac_scene_description package</description>
+
+  <maintainer email="FvDrigalski@gmail.com">Felix von Drigalski</maintainer>
+  <maintainer email="cristianbehe@gmail.com">Cristian C. Beltran-Hernandez</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>rospy</buildtool_depend>
+
+</package>

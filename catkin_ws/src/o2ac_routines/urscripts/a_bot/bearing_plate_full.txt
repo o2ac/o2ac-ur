@@ -1,0 +1,52 @@
+ Program
+   Robot Program
+     MoveJ
+       currentpose≔get_actual_tcp_pose()get_actual_joint_positions()
+       currentpose
+     'Hardcoded pick'
+     Rearrange
+       MoveJ
+         start
+       MoveL
+         start
+         above_repos
+         reposition_0
+         'Gripper Move73% (1)'
+         Gripper Move84% (1)
+         push_into_wall
+         Gripper Move73% (1)
+         regrasp1
+         Gripper Close (1)
+         above_repos
+         Gripper Close (1)
+     MoveL
+       above_drop_1
+       drop_1
+       Gripper Move73% (1)
+       above_drop_1
+       wp1
+       before_grasp
+       at_grasp
+       Gripper Close (1)
+       Direction: Base
+         Until (distance)
+       above_final_wp1
+       place
+       Gripper Move74% (1)
+       'align'
+       Gripper Close (1)
+       Gripper Move74% (1)
+     Call bearing_plate_positioning
+   bearing_plate_positioning
+     MoveL
+       before_push
+     Gripper Close (1)
+     MoveL
+       push_end
+       before_push
+     Gripper Move52% (1)
+     MoveL
+       'Waypoint_2'
+       final_grasp
+     Gripper Close (1)
+     Gripper Move82% (1)

@@ -1,0 +1,35 @@
+<?xml version="1.0" ?>
+<launch>
+
+  <arg name="camera_name" default="b_bot_outside_camera_throttled"/>
+
+  <arg name="image_decompressor"	value="image_decompressor"/>
+  <arg name="depth_decompressor"	value="depth_decompressor"/>
+
+  <node name="$(arg image_decompressor)" pkg="image_transport" type="republish"
+  	args="compressed raw">
+    <remap from="in"	to="$(arg camera_name)/color/image_raw"/>
+    <remap from="out"	to="$(arg image_decompressor)/image"/>
+  </node>
+
+  <node name="$(arg depth_decompressor)" pkg="image_transport" type="republish"
+  	args="compressedDepth raw">
+    <remap from="in"	to="$(arg camera_name
+  			    )/aligned_depth_to_color/image_raw"/>
+    <remap from="out"	to="$(arg depth_decompressor)/depth"/>
+  </node>
+
+  <include file="$(find aist_visual_tracker)/launch/run.launch">
+    <arg name="camera_info_topic" value="$(arg camera_name
+    					 )/color/camera_info"/>
+    <arg name="image_topic"	  value="$(arg image_decompressor)/image"/>
+    <arg name="depth_topic"	  value="$(arg depth_decompressor)/depth"/>
+  </include>
+
+  <node name="viewer" pkg="rqt_image_view" type="rqt_image_view">
+    <remap from="image"	to="/visual_tracker/result_image"/>
+  </node>
+
+  <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure"/>
+
+</launch>

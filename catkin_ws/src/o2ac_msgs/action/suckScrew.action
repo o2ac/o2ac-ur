@@ -1,0 +1,21 @@
+# [[deprecated]] Use pickScrewFromFeeder instead.
+# 
+# This action picks up a screw that is at screw_pose. Used in 2018 to pick up screws from the tray.
+#
+# It moves to above screw_pose, turns on vacuum, then moves up and down while slightly changing position.
+
+geometry_msgs/PoseStamped screw_pose # This is set at the very tip of the screw head, 
+                                    # with the x-axis pointing into the head.
+
+float64 z_axis_rotation             # If this is set, the orientation of the pose is ignored and set facing downward, rotated by this.
+
+string robot_name                   # "a_bot", "b_bot", "c_bot"
+string tool_name                    # "outer_gripper", "inner_gripper", "suction", "screw_tool" or empty
+
+uint8 screw_size                    # M3, M4, M6 (without the M)
+---
+# success
+bool success
+---
+# Feedback
+float32 progress 

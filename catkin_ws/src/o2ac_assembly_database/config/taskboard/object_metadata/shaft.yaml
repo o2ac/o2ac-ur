@@ -1,0 +1,18 @@
+subframes:
+- pose_xyzrpy:
+  - 0.075
+  - 0.0
+  - 0.0
+  - -pi/2
+  - 0.0
+  - 0.0
+  name: front_tip
+- pose_xyzrpy:
+  - 0.0
+  - 0.0
+  - 0.0
+  - pi/2
+  - 0.0
+  - pi
+  name: back_tip
+grasp_points: []

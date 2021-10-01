@@ -1,0 +1,166 @@
+# All parts in this list are made into xacro macros and URDF files.
+# id: Part number according to the manual. Is used to name the macro.
+# name: Used for the filename
+# cad: Used to find the mesh file
+# description: Comments
+parts_list:
+  - id: 1
+    name: base
+    type: 01-BASE
+    cad: 01-BASE.stl
+    description: Base Plate
+  - id: 2
+    name: l_plate_small
+    type: 02-PANEL
+    cad: 02-PANEL.stl
+    description: Output shaft fixing plate
+  - id: 61
+    name: base_2019
+    type: 01-base-01
+    cad: 01-base-01.stl
+    description: Base Plate
+  - id: 62
+    name: l_plate_small_2020
+    type: 02-panel-01
+    cad: 02-panel-01.stl
+    description: Output shaft fixing plate
+  - id: 3
+    name: l_plate_large
+    type: 03-PANEL2
+    cad: 03-PANEL2.stl
+    description: Motor fixing plate
+  - id: 4
+    name: motor
+    type: 04_37D-GEARMOTOR-50-70
+    cad: 04_37D-GEARMOTOR-50-70.stl
+    description: Geared motor (Gear ratio 1:70)
+  - id: 5
+    name: motor_pulley
+    type: 05_MBRFA30-2-P6
+    cad: 05_MBRFA30-2-P6.stl
+    description: Pulley for Round Belt (4mm) - Setscrew P.D. 30mm
+  - id: 6
+    name: belt
+    type: 06_MBT4-400
+    cad: 06_MBT4-400.stl
+    description: Polyurethane round belt (welded joint product) P.D. 4mm L=400mm
+  - id: 7
+    name: bearing_housing
+    type: 07_SBARB6200ZZ-30
+    cad: 07_SBARB6200ZZ_30.stl
+    description: Bearings with Housings (Double Bearings)
+  - id: 8
+    name: shaft
+    type: 08_KZAF1075NA4WA55GA20AA0
+    cad: 08_KZAF1075NA4WA55GA20AA0.stl
+    description: Drive shaft (Straight) D10h6
+  - id: 9
+    name: end_cap
+    type: 09_EDCS10
+    cad: 09_EDCS10.stl
+    description: End Cap for Shaft
+  - id: 10
+    name: bearing_spacer
+    type: 10_CLBPS10-17-4
+    cad: 10_CLBPS10_17_4.stl
+    description: Bearing Spacers For Inner Ring (output pulley)
+  - id: 11
+    name: output_pulley
+    type: 11_MBRAC60-2-10
+    cad: 11_MBRAC60-2-10.stl
+    description: Pulley for Round Belts Clamping Type P.D. 60mm
+  - id: 12
+    name: idler_spacer
+    type: 12_CLBUS6-9-9.5
+    cad: 12_CLBUS6-9-9.5.stl
+    description: Bearing Spacers For Inner Ring (tension pulley)
+  - id: 13
+    name: idler_pulley
+    type: 13_MBGA30-2
+    cad: 13_MBGA30-2.stl
+    description: Idler for Round Belt - Wide
+  - id: 14
+    name: idler_pin
+    type: 14_BGPSL6-9-L30-F8
+    cad: 14_BGPSL6-9-L30-F8.stl
+    description: Bearing Shaft Screw
+  - id: 15
+    name: m6_nut
+    type: 15_SLBNR6
+    cad: 15_SLBNR6.stl
+    description: M6 Hex Nut  (Fixing for idler shaft)
+  - id: 16
+    name: m6_washer
+    type: 16_SPWF6
+    cad: 16_SPWF6.stl
+    description: M6 Flat Washer  (Fixing for idler shaft)
+  - id: 17
+    name: m4_screw
+    type: 17_SCB4-10
+    cad: 17_SCB4-10.stl
+    description: 10mm M4 Socket Head Cap Screw  (metric coarse thread)
+  - id: 18
+    name: m3_screw_long
+    type: 18_SCB3
+    cad: 18_SCB3.stl
+    description: 10mm M3 Socket Head Cap Screw  (metric coarse thread)
+  - id: 19
+    name: m3_screw_short
+    type: 19_MSSFS3-6
+    cad: 19_MSSFS3-6.stl
+    description: 6mm M3 Hex Socket Set Screw  (metric coarse thread)
+  - id: 32
+    name: surprise_pulley_40mm
+    type: 32_MBRFA40-2-P6
+    cad: 32_MBRFA40-2-P6.stl
+    description: Pulley for Round Belt (4mm) - Setscrew P.D.40mm
+  - id: 33
+    name: surprise_pulley_45mm
+    type: 33_MBRFA45-2-P6
+    cad: 33_MBRFA45-2-P6.stl
+    description: Pulley for Round Belt (4mm) - Setscrew P.D.45mm
+  - id: 34
+    name: surprise_pulley_48mm
+    type: 34_MBRFA48-2-P6
+    cad: 34_MBRFA48-2-P6.stl
+    description: Pulley for Round Belt (4mm) - Setscrew P.D.48mm
+  - id: 35
+    name: surprise_pulley_CLAMPING_45mm
+    type: 35_MBRAC45-2-10
+    cad: 35_MBRAC45-2-10.stl
+    description: Pulley for Round Belts Clamping Type P.D.45mm
+  - id: 36
+    name: surprise_pulley_CLAMPING_48mm
+    type: 36_MBRAC48-2-10
+    cad: 36_MBRAC48-2-10.stl
+    description: Pulley for Round Belts Clamping Type P.D.48mm
+  - id: 37
+    name: surprise_pulley_CLAMPING_80mm
+    type: 37_MBRAC80-2-10
+    cad: 37_MBRAC80-2-10.stl
+    description: Pulley for Round Belts Clamping Type P.D.80mm
+  - id: 50
+    name: taskboard_idler_small
+    type: MBGNA30-2
+    cad: 50_MBGNA30-2.stl
+    description: Small idler pulley with integrated axis (for taskboard task)
+  - id: 51
+    name: taskboard_idler_large
+    type: MBGNA60-2
+    cad: 51_MBGNA60-2.stl
+    description: Small idler pulley with integrated axis (for taskboard task)
+  - id: 99
+    name: holder
+    type: 99_holder
+    cad: 99_holder.stl
+    description: Holder
+  - id: 100
+    name: robotiq_calib_marker
+    type: 100-ROBOTIQ_CALIB_MARKER
+    cad: 100-ROBOTIQ_CALIB_MARKER.stl
+    description: Calilbration marker for ROBOTIQ gripper
+  - id: 101
+    name: suction_calib_marker
+    type: 101-SUCTION_CALIB_MARKER
+    cad: 101-SUCTION_CALIB_MARKER.stl
+    description: Calilbration marker for suction gripper

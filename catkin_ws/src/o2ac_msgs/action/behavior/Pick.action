@@ -1,0 +1,9 @@
+# Request
+string robot_name
+string object_name
+---
+# Result
+bool success
+---
+# Feedback
+float32 progress

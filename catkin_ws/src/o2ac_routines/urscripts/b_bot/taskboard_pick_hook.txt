@@ -1,0 +1,17 @@
+ Program
+   Robot Program
+     Gripper Open (1)
+     MoveJ
+       currentpose≔get_actual_joint_positions()
+       currentpose
+     MoveL
+       home
+       Waypoint_right
+       above_tool
+       grasp_tool
+       Gripper Close (1)
+     MoveL
+       before_tool
+       high_approach
+       wp_on_right
+       wait_w_tool

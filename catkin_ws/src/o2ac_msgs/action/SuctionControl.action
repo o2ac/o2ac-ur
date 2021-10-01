@@ -1,0 +1,10 @@
+# Define the goal
+string fastening_tool_name     # 'name' in suction_control.yaml
+bool turn_suction_on           #  True: on, False: off
+bool eject_screw               #  True: expel air, False: do nothing 
+---
+# Define the result
+bool success
+---
+# Define a feedback message
+uint32 screw_suctioned         # digital_input of ur_control 

@@ -1,0 +1,22 @@
+# Add a place container to the task that is being constructed in the modules_server
+# Required fields:
+string robot_name  # Name of the robot for picking the object
+string object_name  # Name of the object to pick.
+geometry_msgs/PoseStamped object_target_pose  # The target pose that the object (or `object_subframe_to_place`) will be placed at
+
+# Optional fields: (If not set, the default values will be used. See README for more details)
+string object_subframe_to_place  # If defined, the target pose will be set for this subframe instead of the object's frame. Example: "object_name/subframe_name"
+geometry_msgs/Vector3Stamped approach_place_direction  # 3D vector for setting the direction of placing the object
+
+# Fields currently not in use (these have no effect yet)
+float64 approach_place_min_dist  # Minimum approach distance in the approach_place_direction when placing the object
+float64 approach_place_max_dist  # Maximum approach distance in the approach_place_direction when placing the object
+float64 retreat_min_dist  # Minimum lift distance in the retreat direction
+float64 retreat_max_dist  # Maximum lift distance in the retreat direction
+string surface_link  # name of link on which the object lies before picking
+---
+# Result
+bool success
+string task_state  # String representation of the current task hierarchy
+---
+# Feedback

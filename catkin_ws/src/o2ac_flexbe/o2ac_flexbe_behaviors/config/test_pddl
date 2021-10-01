@@ -1,0 +1,4 @@
+pick b_bot panel_bearing
+handover b_bot a_bot panel_bearing
+orient a_bot assembly panel_bearing
+fasten b_bot panel_bearing

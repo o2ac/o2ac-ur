@@ -1,0 +1,93 @@
+robot_name: b_bot
+waypoints:
+- pose: [-0.15, 0, 0.10, -90, 0, 0] # translation, orientation (degrees)
+  pose_type: task-space-in-frame
+  frame_id: right_centering_link
+  speed: 1.0
+  desc: Above tray edge
+- pose: [-0.05, 0, 0.0, -135, 0, 0] 
+  pose_type: task-space-in-frame
+  frame_id: right_centering_link
+  speed: 0.8
+  is_trajectory: True
+  blend: 0.01
+  desc: Above centering point
+- pose: [-0.017, 0, 0.0, -135, 0, 0] 
+  pose_type: task-space-in-frame
+  frame_id: right_centering_link
+  speed: 0.2
+  desc: dropping 
+- pose_type: gripper
+  gripper:
+    action: 'open'
+    open_width: 0.08
+    velocity: 0.1
+- pose: [-0.017, 0, 0.0, -45, 0, 0] 
+  pose_type: task-space-in-frame
+  frame_id: right_centering_link
+  speed: 1.0
+- pose_type: gripper
+  gripper:
+    action: 'close-open'
+    open_width: 0.09
+    velocity: 0.1
+  desc: Centering 
+- pose: [-0.005, 0, 0.0, -135, 0, 0] 
+  pose_type: task-space-in-frame
+  frame_id: right_centering_link
+  speed: 1.0
+- pose: [-0.0, 0, 0.01, 0, -35, 0] 
+  pose_type: relative-tcp
+  speed: 1.0
+- pose_type: gripper
+  gripper:
+    action: 'close'
+    velocity: 0.1
+    force: 60
+- pose: [0, 0, 0.06, 0, 0, 0] 
+  pose_type: relative-world
+  speed: 0.1
+- pose: [-0.15, 0, 0.10, -135, 0, 0] 
+  pose_type: task-space-in-frame
+  frame_id: right_centering_link
+  is_trajectory: True
+  blend: 0.005
+  speed: 1.0
+- pose: [-0.15, 0, 0.0, 0, -35, 0] 
+  pose_type: task-space-in-frame
+  frame_id: assembled_part_07_inserted
+  is_trajectory: True
+  blend: 0.01
+  speed: 0.8
+- pose: [-0.08, 0, 0.0, 0, -35, 0] 
+  pose_type: task-space-in-frame
+  frame_id: assembled_part_07_inserted
+  is_trajectory: True
+  blend: 0.005
+  speed: 0.3
+- pose: [-0.063, 0.000, 0.009, 0, -35, 0] 
+  pose_type: task-space-in-frame
+  frame_id: assembled_part_07_inserted
+  is_trajectory: True
+  blend: 0.005
+  speed: 0.05
+
+#   - pose: [-0.15, 0, 0.0, 110.257, -11.454, 27.736] 
+#   pose_type: task-space-in-frame
+#   frame_id: assembled_part_07_inserted
+#   is_trajectory: True
+#   blend: 0.005
+#   speed: 0.5
+# - pose: [-0.08, 0, 0.0, 110.257, -11.454, 27.736] 
+#   pose_type: task-space-in-frame
+#   frame_id: assembled_part_07_inserted
+#   is_trajectory: True
+#   blend: 0.005
+#   speed: 0.5
+# - pose: [-0.055, 0.010, 0.002, 110.257, -11.454, 27.736] 
+#   pose_type: task-space-in-frame
+#   frame_id: assembled_part_07_inserted
+#   is_trajectory: True
+#   blend: 0.005
+#   speed: 0.5
+

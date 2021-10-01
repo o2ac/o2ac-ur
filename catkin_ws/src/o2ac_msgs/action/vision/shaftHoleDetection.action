@@ -1,0 +1,13 @@
+# This action is called when b_bot placed the shaft in the jig and look at one of its tips to find the hole.
+# Returns the vision result for the current camera view.
+
+# Request
+# (empty, since we know which camera is used)
+
+---
+# Result
+
+bool has_hole
+
+---
+# Feedback (values that can be sent to the client while the action is running)

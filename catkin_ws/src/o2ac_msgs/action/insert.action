@@ -1,0 +1,22 @@
+# z-axis points into the hole. If not, the gripper simply moves forward.
+string active_robot_name                # 
+string passive_robot_name               # Set this if two robots are used (in-hand insertion)
+float64 starting_offset                 # The offset between the two robot fingertips (when closed)
+
+geometry_msgs/PoseStamped target_hole   # If 0, the insertion is started without moving to the target
+float64 max_approach_distance           # Max distance until part has to be touched
+float64 max_insertion_distance          # Insertion distance after part first touched
+float64 max_force                       # 
+float64 speed                           # Unit to be decided. For now: 1.0 = full speed, 0.0 = No movement.
+float64 max_radius                      # In m
+float64 radius_increment                # How fast the spiral increases in size. In m
+bool peck_mode                          # 
+string gripper                          # The gripper holding the part to be inserted
+string second_gripper                   # Optional: A second gripper holding another part that needs to be shifted around as well
+                                        # E.g. Gripper1 holding a screw, Gripper2 holding the plate to be fixed on the base.
+---
+# Result
+bool success
+---
+# Feedback
+float32 progress

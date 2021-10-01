@@ -1,0 +1,8 @@
+# This file contains metadata about the assembly.
+description: The "known" assembly set announced for the WRS2020 
+
+panel_bearing_facing_backward: False
+panel_motor_facing_backward: False
+switched_motor_and_bearing: False
+
+motor_shaft_down: False

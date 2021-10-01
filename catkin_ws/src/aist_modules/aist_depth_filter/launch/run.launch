@@ -1,0 +1,32 @@
+<?xml version="1.0" ?>
+<launch>
+
+  <arg name="camera_info_topic"	default="camera_info"/>
+  <arg name="image_topic"	default="texture"/>
+  <arg name="depth_topic"	default="depth_map"/>
+  <arg name="normal_topic"	default="normal_map"/>
+  <arg name="manager"		default=""/>
+
+  <node if="$(eval manager == '')"
+	name="depth_filter" pkg="aist_depth_filter" type="aist_depth_filter"
+  	output="screen">
+    <remap from="/camera_info"	to="$(arg camera_info_topic)"/>
+    <remap from="/image"	to="$(arg image_topic)"/>
+    <remap from="/depth"	to="$(arg depth_topic)"/>
+    <remap from="/normal"	to="$(arg normal_topic)"
+	   unless="$(eval normal_topic == '')"/>
+    <param name="subscribe_normal" value="$(eval normal_topic != '')"/>
+  </node>
+
+  <node unless="$(eval manager == '')"
+	name="depth_filter" pkg="nodelet" type="nodelet" output="screen"
+  	args="load aist_depth_filter/aist_depth_filter_nodelet $(arg manager)">
+    <remap from="/camera_info"	to="$(arg camera_info_topic)"/>
+    <remap from="/image"	to="$(arg image_topic)"/>
+    <remap from="/depth"	to="$(arg depth_topic)"/>
+    <remap from="/normal"	to="$(arg normal_topic)"
+    	   unless="$(eval normal_topic == '')"/>
+    <param name="subscribe_normal" value="$(eval normal_topic != '')"/>
+  </node>
+
+</launch>

@@ -1,0 +1,127 @@
+localization_parameters:
+  01-BASE:
+    aspect_ratio: 0.6
+    origin: [-0.100, 0.060, 0.0, 90.0, 0.0, 0.0]
+    rotation_range: [0.0, 360.0, 45.0]
+    refine_transform: true
+    check_borders: true
+  02-PANEL:
+    aspect_ratio: 0.8571
+    origin: [-0.035, -0.030, 0.0, 0.0, 0.0, 0.0]
+    rotation_range: [0.0, 360.0, 45.0]
+    refine_transform: true
+    check_borders: true
+  03-PANEL2:
+    aspect_ratio: 0.7758
+    origin: [-0.058, -0.045, 0.0, 0.0, 0.0, 0.0]
+    rotation_range: [0.0, 360.0, 45.0]
+    refine_transform: true
+    check_borders: true
+  04_37D-GEARMOTOR-50-70:
+    aspect_ratio: 0.685
+    origin: [-0.0185, 0.0, 0.0185, 90.0, 0.0, 0.0]
+    rotation_range: [-30.0, 30.0, 15.0]
+    refine_transform: true
+    check_borders: false
+  05_MBRFA30-2-P6:
+    aspect_ratio: 1.0
+    origin: [0.0, 0.0, 0.005, 0.0, 90.0, 0.0]
+    rotation_range: [0.0, 0.0, 0.0]
+    refine_transform: true
+    check_borders: true
+  06_MBT4-400:
+    aspect_ratio: 1.0
+    origin: [0.0, 0.0, 0.003, 0.0, 0.0, 0.0]
+    rotation_range: [0.0, 0.0, 0.0]
+    refine_transform: false
+    check_borders: false
+  07_SBARB6200ZZ_30:
+    aspect_ratio: 1.0
+    origin: [0.0, 0.0, 0.0, 0.0, 90.0, 0.0]
+    rotation_range: [0.0, 0.0, 0.0]
+    refine_transform: true
+    check_borders: true
+  08_KZAF1075NA4WA55GA20AA0:
+    aspect_ratio: 0.133
+    origin: [-0.0375, 0.0, 0.005, 0.0, 0.0, 0.0]
+    rotation_range: [0.0, 0.0, 0.0]
+    refine_transform: false
+    check_borders: false
+  09_EDCS10:
+    aspect_ratio: 1.0
+    origin: [0.0, 0.0, 0.0, 0.0, -90.0, 0.0]
+    rotation_range: [0.0, 0.0, 0.0]
+    refine_transform: false
+    check_borders: false
+  10_CLBPS10_17_4:
+    aspect_ratio: 1.0
+    origin: [0.0, 0.0, 0.0, 0.0, -90.0, 0.0]
+    rotation_range: [0.0, 0.0, 0.0]
+    refine_transform: false
+    check_borders: false
+  11_MBRAC60-2-10:
+    aspect_ratio: 1.0
+    origin: [0.0, 0.0, 0.005, 0.0, -90.0, 0.0]
+    rotation_range: [0.0, 0.0, 0.0]
+    refine_transform: true
+    check_borders: true
+  12_CLBUS6-9-9.5:
+    aspect_ratio: 1.0
+    origin: [0.0, 0.0, 0.0, 0.0, -90.0, 0.0]
+    rotation_range: [0.0, 0.0, 0.0]
+    refine_transform: false
+    check_borders: false
+  13_MBGA30-2:
+    aspect_ratio: 1.0
+    origin: [0.0, 0.0, 0.0, 0.0, -90.0, 0.0]
+    rotation_range: [0.0, 0.0, 0.0]
+    refine_transform: true
+    check_borders: true
+  14_BGPSL6-9-L30-F8:
+    aspect_ratio: 0.182
+    origin: [-0.016, 0.0, 0.003, 0.0, 0.0, 0.0]
+    rotation_range: [0.0, 0.0, 0.0]
+    refine_transform: true
+    check_borders: true
+  15_SLBNR6:
+    aspect_ratio: 1.0
+    origin: [0.0, 0.0, 0.0025, 0.0, 90.0, 0.0]
+    rotation_range: [0.0, 0.0, 0.0]
+    refine_transform: false
+    check_borders: false
+  32_MBRFA40-2-P6:
+    aspect_ratio: 1.0
+    origin: [0.0, 0.0, 0.005, 0.0, 90.0, 0.0]
+    rotation_range: [0.0, 0.0, 0.0]
+    refine_transform: true
+    check_borders: true
+  33_MBRFA45-2-P6:
+    aspect_ratio: 1.0
+    origin: [0.0, 0.0, 0.005, 0.0, 90.0, 0.0]
+    rotation_range: [0.0, 0.0, 0.0]
+    refine_transform: true
+    check_borders: true
+  34_MBRFA48-2-P6:
+    aspect_ratio: 1.0
+    origin: [0.0, 0.0, 0.005, 0.0, 90.0, 0.0]
+    rotation_range: [0.0, 0.0, 0.0]
+    refine_transform: true
+    check_borders: true
+  35_MBRAC45-2-10:
+    aspect_ratio: 1.0
+    origin: [0.0, 0.0, 0.005, 0.0, -90.0, 0.0]
+    rotation_range: [0.0, 0.0, 0.0]
+    refine_transform: true
+    check_borders: true
+  36_MBRAC48-2-10:
+    aspect_ratio: 1.0
+    origin: [0.0, 0.0, 0.005, 0.0, -90.0, 0.0]
+    rotation_range: [0.0, 0.0, 0.0]
+    refine_transform: true
+    check_borders: true
+  37_MBRAC80-2-10:
+    aspect_ratio: 1.0
+    origin: [0.0, 0.0, 0.005, 0.0, -90.0, 0.0]
+    rotation_range: [0.0, 0.0, 0.0]
+    refine_transform: true
+    check_borders: true

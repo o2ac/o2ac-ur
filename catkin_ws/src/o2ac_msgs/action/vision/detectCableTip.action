@@ -1,0 +1,14 @@
+# This action detects the 3D position of the cable tip in an area around expected_pose.
+
+# Request
+geometry_msgs/PointStamped expected_point
+string camera_id      # Which camera is looking at the cable
+
+---
+# Result
+bool succeeded
+float32 confidence
+geometry_msgs/PointStamped detected_point
+
+---
+# Feedback (values that can be sent to the client while the action is running)

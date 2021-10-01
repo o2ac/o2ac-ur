@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<!--
+  This file launches the drivers of the real robots instead of the simulation.
+  The first section starts the robot drivers.
+  The second section starts cameras, grippers, tools etc.
+-->
+<launch>
+
+  <!-- This parameter enables/disables the usage of direct UR script commands in ur_routines/ur_skills. \
+       It cannot be used in simulation. -->
+  <param name="use_real_robot" type="bool" value="true" />
+
+  <!-- ======================================== -->
+
+  <include file="$(dirname)/aist_arms_bringup.launch"/>
+
+  <!-- ======================================== -->
+
+  <include file="$(dirname)/aist_bringup_cameras.launch"/>
+
+  <!-- Launch fastening tools -->
+  <node name="suction_controller" pkg="o2ac_fastening_tools"
+	type="suction_controller.py" output="screen">
+    <param name="config_dir"		value="$(find o2ac_fastening_tools
+					       )/config"/>
+    <param name="suction_control"	value="suction_control"/>
+    <param name="operation_mode"	value="operation_mode"/>
+  </node>
+
+</launch>

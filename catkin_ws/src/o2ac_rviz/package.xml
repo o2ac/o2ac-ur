@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>o2ac_rviz</name>
+  <version>0.1.0</version>
+  <description>RViz plugin for Team O2AC</description>
+
+  <maintainer email="felix.drigalski@sinicx.com">Felix von Drigalski</maintainer>
+  <maintainer email="cristianbehe@gmail.com">Cristian C. Beltran-Hernandez</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>qtbase5-dev</build_depend>
+  
+  <exec_depend>libqt5-core</exec_depend>
+  <exec_depend>libqt5-gui</exec_depend>
+  <exec_depend>libqt5-widgets</exec_depend>
+
+  <depend>rviz</depend>
+  <depend>ur_msgs</depend>
+  <depend>o2ac_skills</depend>
+  <depend>std_msgs</depend>
+  
+  <export>
+    <rviz plugin="${prefix}/plugin_description.xml"/>
+  </export>
+</package>

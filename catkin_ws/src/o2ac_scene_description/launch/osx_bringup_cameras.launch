@@ -1,0 +1,196 @@
+<?xml version="1.0"?>
+<!--
+  This file launches the cameras, the multiplexer (to turn cameras on/off) and a watcher node
+  that restarts cameras when their depth stream has failed (firmware bugs).
+-->
+<launch>
+
+  <!-- WORKAROUND: Keep this block synced between the osx_bringup_camX/cameras files! -->
+  <!-- Synced block start -->
+  <!-- Camera parameters -->
+  <arg name="camera0_name"	value="a_bot_inside_camera"/>
+  <arg name="camera1_name"	value="a_bot_outside_camera"/>
+  <arg name="camera2_name"	value="b_bot_inside_camera"/>
+  <arg name="camera3_name"	value="b_bot_outside_camera"/>
+
+  <arg name="camera0_serial_no"	value="636201000324"/>
+  <arg name="camera1_serial_no"	value="636201001178"/>
+  <arg name="camera2_serial_no" value="634206004668"/>
+  <arg name="camera3_serial_no" value="635201000481"/>
+  <arg name="camera_fps"	default="10"/>
+  <arg name="camera_width"	default="640"/>
+  <arg name="camera_height"	default="480"/>
+  <arg name="initial_reset"	default="false"/>
+  <!-- Synced block end -->
+
+  <!-- Select the cameras to go into the multiplexer here -->
+  <arg name="camera_names" value="$(arg camera0_name), $(arg camera1_name), $(arg camera2_name), $(arg camera3_name)"/>
+  <!-- <arg name="camera_names" value="$(arg camera2_name), $(arg camera3_name)"/> -->
+  <!-- <arg name="camera_names" value="$(arg camera3_name)"/> -->
+  <!-- <arg name="camera_names" value="$(arg camera2_name)"/> -->
+
+
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <arg name="camera"		    value="$(arg camera0_name)"/>
+    <arg name="serial_no"	    value="$(arg camera0_serial_no)"/>
+    <arg name="publish_tf"	    value="false"/>
+    <arg name="tf_prefix"	    value="calibrated_$(arg camera0_name)"/>
+    <arg name="enable_pointcloud"   value="true"/>
+    <arg name="align_depth"         value="true"/>
+    <arg name="fisheye_fps"         value="$(arg camera_fps)"/>
+    <arg name="depth_fps"           value="$(arg camera_fps)"/>
+    <arg name="color_fps"           value="$(arg camera_fps)"/>
+    <arg name="color_width"         value="$(arg camera_width)"/>
+    <arg name="color_height"        value="$(arg camera_height)"/>
+    <arg name="enable_infra1"       value="false"/>
+    <arg name="enable_infra2"       value="false"/>
+  </include>
+  <include file="$(dirname)/publish_camera_calibration.launch">
+    <arg name="camera_name"	value="$(arg camera0_name)"/>
+  </include>
+
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <arg name="camera"		    value="$(arg camera1_name)"/>
+    <arg name="serial_no"	    value="$(arg camera1_serial_no)"/>
+    <arg name="publish_tf"	    value="false"/>
+    <arg name="tf_prefix"	    value="calibrated_$(arg camera1_name)"/>
+    <arg name="enable_pointcloud"   value="true"/>
+    <arg name="align_depth"         value="true"/>
+    <arg name="fisheye_fps"         value="$(arg camera_fps)"/>
+    <arg name="depth_fps"           value="$(arg camera_fps)"/>
+    <arg name="color_fps"           value="$(arg camera_fps)"/>
+    <arg name="color_width"         value="$(arg camera_width)"/>
+    <arg name="color_height"        value="$(arg camera_height)"/>
+    <arg name="enable_infra1"       value="false"/>
+    <arg name="enable_infra2"       value="false"/>
+  </include>
+  <include file="$(dirname)/publish_camera_calibration.launch">
+    <arg name="camera_name"	value="$(arg camera1_name)"/>
+  </include>
+
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <arg name="camera"		    value="$(arg camera2_name)"/>
+    <arg name="serial_no"           value="$(arg camera2_serial_no)"/>
+    <arg name="publish_tf"	    value="false"/>
+    <arg name="tf_prefix"	    value="calibrated_$(arg camera2_name)"/>
+    <arg name="enable_pointcloud"   value="true"/>
+    <arg name="align_depth"         value="true"/>
+    <arg name="fisheye_fps"         value="$(arg camera_fps)"/>
+    <arg name="depth_fps"           value="$(arg camera_fps)"/>
+    <arg name="color_fps"           value="$(arg camera_fps)"/>
+    <arg name="color_width"         value="$(arg camera_width)"/>
+    <arg name="color_height"        value="$(arg camera_height)"/>
+    <arg name="enable_infra1"       value="false"/>
+    <arg name="enable_infra2"       value="false"/>
+  </include>
+  <include file="$(dirname)/publish_camera_calibration.launch">
+    <arg name="camera_name"	value="$(arg camera2_name)"/>
+  </include>
+
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <arg name="camera"		    value="$(arg camera3_name)"/>
+    <arg name="serial_no"           value="$(arg camera3_serial_no)"/>
+    <arg name="publish_tf"	    value="false"/>
+    <arg name="tf_prefix"	    value="calibrated_$(arg camera3_name)"/>
+    <arg name="enable_pointcloud"   value="true"/>
+    <arg name="align_depth"         value="true"/>
+    <arg name="fisheye_fps"         value="$(arg camera_fps)"/>
+    <arg name="depth_fps"           value="$(arg camera_fps)"/>
+    <arg name="color_fps"           value="$(arg camera_fps)"/>
+    <arg name="color_width"         value="$(arg camera_width)"/>
+    <arg name="color_height"        value="$(arg camera_height)"/>
+    <arg name="enable_infra1"       value="false"/>
+    <arg name="enable_infra2"       value="false"/>
+  </include>
+  <include file="$(dirname)/publish_camera_calibration.launch">
+    <arg name="camera_name"	value="$(arg camera3_name)"/>
+  </include>
+
+  <param name="o2ac_vision_server/a_bot_inside_camera" type="bool" value="true" />
+  <param name="o2ac_vision_server/a_bot_outside_camera" type="bool" value="true" />
+  <param name="o2ac_vision_server/b_bot_inside_camera" type="bool" value="true" />
+  <param name="o2ac_vision_server/b_bot_outside_camera" type="bool" value="true" />
+
+  <!-- Launch camera multiplexer -->
+  <node name="camera_multiplexer"
+  	pkg="aist_camera_multiplexer" type="aist_camera_multiplexer"
+  	output="screen">
+    <rosparam param="camera_names" subst_value="true">
+      [$(arg camera_names)]
+    </rosparam>
+
+    <!-- ========================== -->
+
+
+    <!-- Use this block if only one camera is used -->
+    <!-- <remap from="/camera_info0"	to="$(arg camera3_name)/color/camera_info"/>
+    <remap from="/image0"	to="$(arg camera3_name)/color/image_raw"/>
+    <remap from="/depth0"	to="$(arg camera3_name)/aligned_depth_to_color/image_raw"/> -->
+
+    <!-- ========================== -->
+    <!-- Use both b_bot cameras -->
+    <!-- <remap from="/camera_info0"	to="$(arg camera2_name)/color/camera_info"/>
+    <remap from="/image0"	to="$(arg camera2_name)/color/image_raw"/>
+    <remap from="/depth0"	to="$(arg camera2_name)/aligned_depth_to_color/image_raw"/>
+
+    <remap from="/camera_info1"	to="$(arg camera3_name)/color/camera_info"/>
+    <remap from="/image1"	to="$(arg camera3_name)/color/image_raw"/>
+    <remap from="/depth1"	to="$(arg camera3_name)/aligned_depth_to_color/image_raw"/> -->
+
+    <!-- ========================== -->
+    <!-- The indexes correspond to the order in camera_names -->
+    <remap from="/camera_multiplexer/$(arg camera0_name)/camera_info"
+	   to="/$(arg camera0_name)/color/camera_info"/>
+    <remap from="/camera_multiplexer/$(arg camera0_name)/image"
+	   to="/$(arg camera0_name)/color/image_raw"/>
+    <remap from="/camera_multiplexer/$(arg camera0_name)/depth"
+	   to="/$(arg camera0_name)/aligned_depth_to_color/image_raw"/>
+
+    <remap from="/camera_multiplexer/$(arg camera1_name)/camera_info"
+	   to="/$(arg camera1_name)/color/camera_info"/>
+    <remap from="/camera_multiplexer/$(arg camera1_name)/image"
+	   to="/$(arg camera1_name)/color/image_raw"/>
+    <remap from="/camera_multiplexer/$(arg camera1_name)/depth"
+	   to="/$(arg camera1_name)/aligned_depth_to_color/image_raw"/>
+
+    <remap from="/camera_multiplexer/$(arg camera2_name)/camera_info"
+	   to="/$(arg camera2_name)/color/camera_info"/>
+    <remap from="/camera_multiplexer/$(arg camera2_name)/image"
+	   to="/$(arg camera2_name)/color/image_raw"/>
+    <remap from="/camera_multiplexer/$(arg camera2_name)/depth"
+	   to="/$(arg camera2_name)/aligned_depth_to_color/image_raw"/>
+
+    <remap from="/camera_multiplexer/$(arg camera3_name)/camera_info"
+	   to="/$(arg camera3_name)/color/camera_info"/>
+    <remap from="/camera_multiplexer/$(arg camera3_name)/image"
+	   to="/$(arg camera3_name)/color/image_raw"/>
+    <remap from="/camera_multiplexer/$(arg camera3_name)/depth"
+	   to="/$(arg camera3_name)/aligned_depth_to_color/image_raw"/>
+  </node>
+
+  <node name="camera_watcher" pkg="o2ac_vision" type="o2ac_camera_watcher.py" output="screen">
+  </node>
+    <!-- Not setting the camera_names parameter results in camera_multiplexer being tracked -->
+
+    <!-- <rosparam param="camera_names" subst_value="true">
+      [$(arg camera_names)]
+    </rosparam> -->
+
+  <!-- This is a scene-mounted camera that can be added for debugging or recording videos. -->
+  <!-- <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <arg name="camera" value="scene_camera"/><arg name="camera_names"	default="a_bot_inside_camera"/>
+  <arg name="serial_nos"	default="'636201000324'"/>
+    <arg name="serial_no" value="819312070094"/>
+    <arg name="enable_pointcloud" value="true"/>
+    <arg name="fisheye_fps"         value="15"/>
+    <arg name="depth_fps"           value="15"/>
+    <arg name="infra_fps"           value="15"/>
+    <arg name="color_fps"           value="15"/>
+    <arg name="color_width"         value="1920"/>
+    <arg name="color_height"        value="1080"/>
+    <arg name="enable_infra1"       value="false"/>
+    <arg name="enable_infra2"       value="false"/>
+    <arg name="enable_depth"       value="true"/>
+  </include> -->
+
+</launch>

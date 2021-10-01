@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<behavior name="Task Skeleton to Flexbe">
+
+	<executable package_path="o2ac_flexbe_behaviors.task_skeleton_to_flexbe_sm" class="TaskSkeletontoFlexbeSM" />
+	<tagstring>PDDL</tagstring>
+	<author>Cristian Beltran</author>
+	<date>1627969113236</date>
+	<description>
+		test
+	</description>
+
+
+	<!-- Contained Behaviors -->
+
+	<!-- Available Parameters -->
+
+</behavior>

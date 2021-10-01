@@ -1,0 +1,18 @@
+<?xml version="1.0" ?>
+<launch>
+
+  <arg name="camera_name"		default="a_bot_inside_camera"/>
+  <arg name="check"			default="false"/>
+  <arg name="use_dual_quaternion"	default="true"/>
+
+  <!-- Launch aruco marker detector and handeye calibrator -->
+  <include file="$(dirname)/include/handeye_calibration.launch">
+    <arg name="config"			value="aist"/>
+    <arg name="calib_dir"		value="$(find aist_scene_description
+					       )/config/camera_calibration"/>
+    <arg name="camera_name"		value="$(arg camera_name)"/>
+    <arg name="check"			value="$(arg check)"/>
+    <arg name="use_dual_quaternion"	value="$(arg use_dual_quaternion)"/>
+  </include>
+
+</launch>

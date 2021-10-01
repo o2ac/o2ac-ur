@@ -1,0 +1,60 @@
+robot_name: ab_bot
+waypoints:
+- pose: [0.3336210102656456, -1.2212752757631673, 1.390756988453352, -1.7398299425935961, -1.5677498860608459, 0.33467130425784236, 2.3873302857484973, -1.1822877673270211, 1.5278792749801327, -1.9162721854308435, -1.5648247978411534, -0.7532100284925907]
+  speed: 1.0
+  pose_type: joint-space
+- pose_type: gripper
+  gripper:
+    action: 'open'
+    velocity: 0.1
+    opening_width: 0.06
+- pose: [0.04, 0.190, 0.026, 0, 90, 0]
+  pose_type: master-slave
+  master_name: b_bot
+  slave_name: a_bot
+  slave_relation: [-5.91120138e-05, -3.81962857e-01, -4.47685932e-05,  6.82386130e-04, 4.27998130e-04,  3.59493792e-05,  9.99999675e-01]
+  frame_id: agv_tray_center
+  speed: 0.5
+- pose_type: gripper
+  gripper:
+    action: 'close'
+    velocity: 0.1
+    force: 80
+- pose: [0.04, 0.190, 0.126, 0, 90, 0]
+  pose_type: master-slave
+  master_name: b_bot
+  slave_name: a_bot
+  slave_relation: [-5.91120138e-05, -3.81962857e-01, -4.47685932e-05,  6.82386130e-04, 4.27998130e-04,  3.59493792e-05,  9.99999675e-01]
+  frame_id: agv_tray_center
+  blend: 0.06
+  is_trajectory: True
+  speed: 0.3
+- pose: [0, 0.190, 0.126, 0, 90, 0]
+  pose_type: master-slave
+  master_name: b_bot
+  slave_name: a_bot
+  slave_relation: [-5.91120138e-05, -3.81962857e-01, -4.47685932e-05,  6.82386130e-04, 4.27998130e-04,  3.59493792e-05,  9.99999675e-01]
+  frame_id: tray_center
+  blend: 0.06
+  is_trajectory: True
+  speed: 0.3
+- pose: [0, 0.190, 0.028, 0, 90, 0]
+  pose_type: master-slave
+  master_name: b_bot
+  slave_name: a_bot
+  slave_relation: [-5.91120138e-05, -3.81962857e-01, -4.47685932e-05,  6.82386130e-04, 4.27998130e-04,  3.59493792e-05,  9.99999675e-01]
+  frame_id: tray_center
+  blend: 0.06
+  is_trajectory: True
+  speed: 0.3
+- pose_type: gripper
+  gripper:
+    action: 'open'
+    velocity: 0.1
+- pose: [0, 0.190, 0.126, 0, 90, 0]
+  pose_type: master-slave
+  master_name: b_bot
+  slave_name: a_bot
+  slave_relation: [-5.91120138e-05, -3.81962857e-01, -4.47685932e-05,  6.82386130e-04, 4.27998130e-04,  3.59493792e-05,  9.99999675e-01]
+  frame_id: tray_center
+  speed: 0.5

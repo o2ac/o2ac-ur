@@ -1,0 +1,18 @@
+# Define the goal
+uint8 motor_id
+
+bool direction_open  # True: open, False: close (or reversed if the motor is configured othervise)
+bool is_grasping_operation  # True: the gripper is an outer gripper (grasping with close), False: the gripper is an inner gripper (grasping with open)
+
+# Values for direction:
+bool OPENING=True
+bool CLOSING=False
+
+# Values for gripper_type:
+bool IS_GRASP=True
+bool IS_NOT_GRASP=False
+---
+# Define the result
+bool success
+---
+# Define a feedback message

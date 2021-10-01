@@ -1,0 +1,22 @@
+<?xml version="1.0" ?>
+<launch>
+  <!-- Register models into parameter server -->
+  <param name="marker_description"
+         textfile="$(find o2ac_gazebo)/models/marker26_8cm_massless/marker26_8cm_massless.sdf"/>
+  <param name="d_bot_camera_description"
+         command="$(find xacro)/xacro --inorder '$(find o2ac_gazebo)/urdf/d_bot_camera.urdf.xacro'" />
+
+  <!-- Spawn the model -->
+  <node name="spawn_gazebo_model1" pkg="gazebo_ros" type="spawn_model"
+        args="-sdf -param marker_description -model o2ac_marker"/>
+  <node name="spawn_gazebo_model2" pkg="gazebo_ros" type="spawn_model"
+        args="-urdf -param d_bot_camera_description -model o2ac_d_bot
+               -unpause" respawn="false" output="screen"/>
+
+  <!-- Camera state publisher -->
+  <node pkg="robot_state_publisher" type="robot_state_publisher"
+        name="d_bot_st_pub">
+    <remap from="robot_description" to="d_bot_camera_description"/>
+  </node>
+
+</launch>

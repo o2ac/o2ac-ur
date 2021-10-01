@@ -1,0 +1,39 @@
+<?xml version="1.0" ?>
+<launch>
+
+  <arg name="camera_info_topic"	default="camera_info"/>
+  <arg name="image_topic"	default="texture"/>
+  <arg name="depth_topic"	default="depth_map"/>
+  <arg name="normal_topic"	default="normal_map"/>
+  <arg name="manager"		default=""/>
+  <arg name="ply_dir"		default="$(find o2ac_parts_description
+					 )/meshes"/>
+
+  <!-- Spawn depth_filter -->
+  <include file="$(find aist_depth_filter)/launch/run.launch">
+    <arg name="camera_info_topic"	value="$(arg camera_info_topic)"/>
+    <arg name="image_topic"		value="$(arg image_topic)"/>
+    <arg name="depth_topic"		value="$(arg depth_topic)"/>
+    <arg name="normal_topic"		value="$(arg normal_topic)"/>
+    <arg name="manager"			value="$(arg manager)"/>
+  </include>
+
+  <!-- Spawn localizer as a node unless manager name is specified -->
+  <node if="$(eval manager == '')"
+	name="localization" pkg="aist_localization" type="aist_localization"
+  	output="screen">
+    <remap from="/file_info"	to="depth_filter/file_info"/>
+    <remap from="/camera_info"	to="depth_filter/camera_info"/>
+    <param name="ply_dir"	value="$(arg ply_dir)"/>
+  </node>
+
+  <!-- Spawn localizer as a nodelet if manager name is specified -->
+  <node unless="$(eval manager == '')"
+	name="localization" pkg="nodelet" type="nodelet" output="screen"
+  	args="load aist_localization/aist_localization_nodelet $(arg manager)">
+    <remap from="/file_info"	to="depth_filter/file_info"/>
+    <remap from="/camera_info"	to="depth_filter/camera_info"/>
+    <param name="ply_dir"	value="$(arg ply_dir)"/>
+  </node>
+
+</launch>

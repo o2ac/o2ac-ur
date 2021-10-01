@@ -1,0 +1,16 @@
+# Goal definition
+
+string                         object_name  # mesh file: <object_name>.pcd
+aist_depth_filter/PlaneStamped plane
+geometry_msgs/Pose2D[]         poses2d
+geometry_msgs/Pose             origin       # URDF origin w.r.t object center
+bool                           refine_transform
+bool                           check_borders
+
+---
+# Result definition
+geometry_msgs/PoseArray poses
+float32                 error
+
+---
+# Feedback definition

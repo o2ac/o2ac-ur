@@ -1,0 +1,26 @@
+<?xml version="1.0" ?>
+<launch>
+
+  <arg name="data_dir"		default="$(find wrs_dataset)"/>
+  <arg name="intrinsic"		default="realsense_intrinsic.json"/>
+  <arg name="camera_name"	default="feeder"/>
+  <arg name="camera_frame"	default="map"/>
+
+  <node name="$(arg camera_name)"
+	pkg="aist_depth_filter" type="image_feeder.py" output="screen">
+    <param name="data_dir"	value="$(arg data_dir)"/>
+    <param name="intrinsic"	value="$(arg intrinsic)"/>
+    <param name="camera_frame"	value="$(arg camera_frame)"/>
+  </node>
+
+  <include file="$(find aist_depth_filter)/launch/run.launch">
+    <arg name="camera_info_topic"	value="$(arg camera_name)/camera_info"/>
+    <arg name="image_topic"		value="$(arg camera_name)/image"/>
+    <arg name="depth_topic"		value="$(arg camera_name)/depth"/>
+    <arg name="normal_topic"		value=""/>
+  </include>
+
+  <node name="$(anon rviz)" pkg="rviz" type="rviz" output="screen"
+	args="-d $(find aist_depth_filter)/launch/feeder.rviz"/>
+
+</launch>

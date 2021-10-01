@@ -1,0 +1,42 @@
+subframes:
+- pose_xyzrpy:
+  - 0.015
+  - 0.0
+  - 0.0
+  - pi/2
+  - 0.0
+  - pi
+  name: front_hole
+- pose_xyzrpy:
+  - -0.005
+  - 0.0
+  - 0.0
+  - -pi/2
+  - 0.0
+  - 0.0
+  name: back_hole
+- pose_xyzrpy:
+  - -0.005
+  - 0.0
+  - 0.0
+  - pi/2
+  - 0.0
+  - pi
+  name: back_tip
+- pose_xyzrpy:
+  - 0.01
+  - 0.01
+  - -0.00875
+  - 0.0
+  - pi/2
+  - 0.0
+  name: screw_head_1
+- pose_xyzrpy:
+  - 0.01
+  - 0.01
+  - 0.00875
+  - 0.0
+  - pi/2
+  - 0.0
+  name: screw_head_2
+grasp_points: []

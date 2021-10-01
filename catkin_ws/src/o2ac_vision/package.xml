@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<package>
+  <name>o2ac_vision</name>
+  <version>0.1.0</version>
+  <description>The o2ac_vision package</description>
+
+  <maintainer email="f.drigalski@sinicx.com">Felix von Drigalski</maintainer>
+
+  <license>BSD</license>
+
+  <build_depend>roscpp</build_depend>
+  <build_depend>rospy</build_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>rospy</run_depend>
+
+  <build_depend>std_msgs</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>geometry_msgs</run_depend>
+
+  <run_depend>cv_bridge</run_depend>
+  <build_depend>cv_bridge</build_depend>
+
+  <run_depend>tf</run_depend>
+  <run_depend>tf_conversions</run_depend>
+  <build_depend>tf</build_depend>
+  <build_depend>tf_conversions</build_depend>
+
+  <run_depend>o2ac_msgs</run_depend>
+  <build_depend>o2ac_msgs</build_depend>
+
+  <run_depend>o2ac_routines</run_depend>
+  <build_depend>o2ac_routines</build_depend>
+
+  <run_depend>actionlib_msgs</run_depend>
+  <build_depend>actionlib_msgs</build_depend>
+
+  <run_depend>aist_depth_filter</run_depend>
+  <build_depend>aist_depth_filter</build_depend>
+
+  <run_depend>aist_new_localization</run_depend>
+  <build_depend>aist_new_localization</build_depend>
+
+  <run_depend>aist_model_spawner</run_depend>
+  <build_depend>aist_model_spawner</build_depend>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+</package>

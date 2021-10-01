@@ -1,0 +1,12 @@
+# Request
+geometry_msgs/PoseStamped item_pose     # Target pose of the object
+string robot_name                       # "a_bot", "b_bot", "c_bot"
+string tool_name                        # "suction", "screw_tool" or empty
+string item_id                          # Optional
+int32 screw_size                        # 3, 4, or 6 (used as "screw_tool_m[screw_size]")
+---
+# Result
+bool success
+---
+# Feedback
+float32 progress

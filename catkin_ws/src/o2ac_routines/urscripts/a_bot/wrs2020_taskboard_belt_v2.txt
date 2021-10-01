@@ -1,0 +1,34 @@
+ Program
+   Robot Program
+     Set
+     MoveJ
+       Waypoint_12
+     Gripper Move48% (1)
+     MoveJ
+       Waypoint_1
+       MoveL
+         Waypoint_2
+     Gripper Close (1)
+     MoveL
+       Waypoint_3
+       MoveJ
+         wait_w_belt
+     Popup: wait for b_bot to move hook into belt (when b says 1)
+     MoveL
+       Waypoint_5
+     MoveJ
+       Waypoint_6
+     MoveL
+       Waypoint_13
+       Waypoint_7
+     Popup: wait for b_bot to tension
+     MoveL
+       Waypoint_8
+     MoveL
+       Waypoint_9
+     Popup: wait for b_bot to thread belt
+     Gripper Move80% (1)
+     MoveL
+       Waypoint_10
+     MoveJ
+       Waypoint_11

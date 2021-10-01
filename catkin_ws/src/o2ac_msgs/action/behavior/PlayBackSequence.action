@@ -1,0 +1,8 @@
+# Request
+string sequence_name
+---
+# Result
+bool success
+---
+# Feedback
+float32 progress

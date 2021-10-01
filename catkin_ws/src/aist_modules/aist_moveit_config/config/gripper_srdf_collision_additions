@@ -1,0 +1,17 @@
+    <!-- MANUALLY ADDED -->
+    <disable_collisions link1="a_bot_left_inner_finger" link2="a_bot_right_inner_finger" reason="Never" />
+    <disable_collisions link1="a_bot_left_inner_finger" link2="a_bot_right_inner_finger_pad" reason="Never" />
+    <disable_collisions link1="a_bot_left_inner_finger" link2="a_bot_right_inner_knuckle" reason="Never" />
+
+    <disable_collisions link1="a_bot_left_inner_finger_pad" link2="a_bot_right_inner_finger" reason="Never" />
+    <disable_collisions link1="a_bot_left_inner_finger_pad" link2="a_bot_right_inner_finger_pad" reason="Never" />
+    <disable_collisions link1="a_bot_left_inner_finger_pad" link2="a_bot_right_inner_knuckle" reason="Never" />
+    
+    <disable_collisions link1="a_bot_left_inner_knuckle" link2="a_bot_right_inner_finger" reason="Never" />
+    <disable_collisions link1="a_bot_left_inner_knuckle" link2="a_bot_right_inner_finger_pad" reason="Never" />
+    <disable_collisions link1="a_bot_left_inner_knuckle" link2="a_bot_right_inner_knuckle" reason="Never" />
+    
+    <disable_collisions link1="b_bot_left_inner_finger" link2="b_bot_right_inner_finger_pad" reason="Never" />
+    <disable_collisions link1="b_bot_left_inner_finger_pad" link2="b_bot_right_inner_finger" reason="Never" />
+    <disable_collisions link1="b_bot_left_inner_finger_pad" link2="b_bot_right_inner_finger_pad" reason="Never" />
+    <disable_collisions link1="b_bot_left_inner_knuckle" link2="b_bot_right_inner_knuckle" reason="Never" />

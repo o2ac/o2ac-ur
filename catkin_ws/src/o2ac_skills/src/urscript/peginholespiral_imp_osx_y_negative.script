@@ -1,0 +1,1327 @@
+def spiralSearchAndImpedanceInsert():
+  set_standard_analog_input_domain(0, 1)
+  set_standard_analog_input_domain(1, 1)
+  set_tool_analog_input_domain(0, 1)
+  set_tool_analog_input_domain(1, 1)
+  set_analog_outputdomain(0, 0)
+  set_analog_outputdomain(1, 0)
+  set_tool_voltage(0)
+  set_input_actions_to_default()
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  set_payload(0.0)
+  set_gravity([0.0, 0.0, 9.82])
+  # begin: URCap Installation Node
+  #   Source: Robotiq_Force_Torque_Sensor, 1.2.1, Robotiq Inc.
+  #   Type: FT Sensor
+  ###############################################################
+  # Script file used to communicate with Robotiq's ft sensor
+  # Version: 0.0.1
+  ###############################################################
+      
+  path_server = rpc_factory("xmlrpc","http://localhost:4251/path")
+  linalg = rpc_factory("xmlrpc","http://localhost:4251/linalg")
+  
+  global rq_from=0.0
+  global rq_path_id=0
+  global rq_timeof_path=-1
+  global rq_path_reference_frame = get_actual_tcp_pose()
+
+  global Fx = 0.0
+  global Fy = 0.0
+  global Fz = 0.0
+  global Mx = 0.0
+  global My = 0.0
+  global Mz = 0.0
+
+  def rq_move_relative(P_from, P_to, Pi):
+    return pose_trans(P_to, pose_trans(pose_inv(P_from), Pi))
+  end  
+
+  def poseToList(p):
+    return [p[0], p[1], p[2], p[3], p[4], p[5]]
+  end
+  
+  def listToPose(l):
+    return p[l[0], l[1], l[2], l[3], l[4], l[5]]
+  end
+
+  def rq_element_wise_substract(l1, l2):
+    global r = l1
+    i=0
+    while i<length(r):
+      r[i]=l1[i]-l2[i]
+      i=i+1
+    end
+    return r
+  end
+
+  def rq_element_wise_abs(val):
+      global rval = val
+      i=0
+      while i<length(rval):
+        rval[i]=norm(rval[i])
+        i=i+1
+      end
+      return rval
+  end
+
+  def rq_max(l):
+     global vmax = l[0]
+     i=1
+     while i<length(l):
+       if l[i] > vmax:
+          vmax = l[i]
+       end
+       i=i+1
+     end
+     return vmax
+  end
+
+  def rq_is_savate(j1, j2):
+      #calculer le deplacement articulaire maximale pour empecher les savates
+      max_joint_displacement = rq_max(rq_element_wise_abs(rq_element_wise_substract(j1, j2)))
+      if max_joint_displacement > d2r(45):
+        handleInitPathStatusCode(1)
+      end
+  end
+  
+  thread rq_getjointpositions():
+    textmsg("rq_getjointpositions from ", rq_from)
+    rq_jointpositions_buffer  = path_server.getjointpositions(rq_path_id, rq_from, rq_from + 1.9999, 0.008)
+    rq_tcppositions_buffer = path_server.gettcpposes(rq_path_id, rq_from, rq_from + 1.9999, 0.008)
+  end
+
+  def rqinitpath(pathId):
+    initPathAnswer = path_server.initpath(pathId)
+
+    rq_timeof_path = initPathAnswer[0]
+    initPathStatusCode = initPathAnswer[1]
+
+    textmsg("rq_timeof_path: ", rq_timeof_path)
+    textmsg("init path status code: ", initPathStatusCode)
+
+    handleInitPathStatusCode(initPathStatusCode)
+  end
+
+  def handleInitPathStatusCode(initPathStatusCode):
+    if initPathStatusCode == -1:
+      popup("Could not compute path with the selected options.", "Robotiq's FT Sensor", error=True)
+      rq_timeof_path = 0
+    elif initPathStatusCode == 1:
+      popup("Discontinuous path detected. Change your starting position.", "Robotiq's FT Sensor", error=True)
+      rq_timeof_path = 0
+    elif initPathStatusCode == 2:
+      popup("Joint solution impossible. Change your starting position.", "Robotiq's FT Sensor", error=True)
+      rq_timeof_path = 0
+    elif initPathStatusCode == 3:
+      popup("Path time limit has been reached. Increase the speed of your path or break it down in multiple shorter paths.", "Robotiq's FT Sensor", error=True)
+      rq_timeof_path = 0
+    elif initPathStatusCode == 4:
+      popup("Could not compute path with the selected options. Computing path timeout.", "Robotiq's FT Sensor", error=True)
+      rq_timeof_path = 0
+    end
+
+    if initPathStatusCode != 0:
+      halt
+    end
+  end
+
+  def rqpath(pathId):
+    rq_path_id = pathId
+
+    if rq_timeof_path == -1:
+       rqinitpath(pathId)
+    end
+
+    if rq_timeof_path != 0:
+
+        textmsg("starting path")
+        rq_path_starting_pose = rq_path_reference_frame
+
+        pathsize = rq_timeof_path * 125
+
+        global rq_tcppositions_buffer = path_server.gettcpposes(rq_path_id, 0.0, 1.9999, 0.008)
+        global rq_jointpositions_buffer  = path_server.getjointpositions(rq_path_id, 0.0, 1.9999, 0.008)
+
+        rq_tcp_path = rq_tcppositions_buffer[0]
+        rq_joint_path = get_inverse_kin(rq_tcp_path, poseToList(rq_jointpositions_buffer[0]))
+        rq_previous_joint_path = rq_joint_path
+
+        movej(rq_joint_path, a=0.4)
+        servoj(rq_joint_path, 0.1, 0.1, 0.000, 0.1, 500)#évite un "bang", bug UR dans le target pose des servoj semble-t-il...
+
+        rq_path_starting_pose = get_actual_tcp_pose()
+        rq_path_reference_frame = rq_path_starting_pose
+
+        textmsg("start")
+
+        i=0
+        while i < pathsize:
+          jointpositions = rq_jointpositions_buffer
+          tcppositions = rq_tcppositions_buffer
+          
+          if (i+250) < pathsize:
+            rq_from = (i+250)*0.008
+            thrd = run rq_getjointpositions()
+          end
+
+          j = 0
+          while (j < 250) and (i < pathsize) :
+            rq_tcp_path = tcppositions[j]
+            rq_joint_path = get_inverse_kin(rq_move_relative(rq_path_starting_pose, rq_path_reference_frame, rq_tcp_path))
+            rq_is_savate(rq_previous_joint_path, rq_joint_path)
+            rq_previous_joint_path = rq_joint_path
+
+            servoj(rq_joint_path, 0.1, 0.1, 0.008, 0.05, 500)
+            j = j+1
+            i = i+1
+          end
+
+          if i != pathsize:
+            join thrd
+          end
+
+        end
+
+        textmsg("path finished")
+
+    end
+      
+  end #rqpath
+
+  def rq_zero_sensor():
+    if (socket_open("127.0.0.1", 63350, "rq_ft_sensor_acc")):
+        socket_send_string("SET ZRO", "rq_ft_sensor_acc")
+        sleep(0.1)
+        socket_close("rq_ft_sensor_acc")
+    end
+  end
+
+  def get_sensor_fx():
+    return Fx
+  end
+
+  def get_sensor_fy():
+    return Fy
+  end
+
+  def get_sensor_fz():
+    return Fz
+  end
+
+  def get_sensor_mx():
+    return Mx
+  end
+
+  def get_sensor_my():
+    return My
+  end
+
+  def get_sensor_mz():
+    return Mz
+  end
+
+  thread read_force():
+    while True:
+        socket_send_string("READ DATA", "rq_ft_sensor_stream")
+        rq_sensor_data = socket_read_ascii_float(6, "rq_ft_sensor_stream")
+
+        if (rq_sensor_data[0] >= 6):
+            Fx = rq_sensor_data[1]
+            Fy = rq_sensor_data[2]
+            Fz = rq_sensor_data[3]
+            Mx = rq_sensor_data[4]
+            My = rq_sensor_data[5]
+            Mz = rq_sensor_data[6]
+        else:
+            Fx = 0.0
+            Fy = 0.0
+            Fz = 0.0
+            Mx = 0.0
+            My = 0.0
+            Mz = 0.0
+        end
+    end
+  end
+
+  ################################
+  # MAIN
+  ################################
+
+  if (not socket_open("127.0.0.1", 63351, "rq_ft_sensor_stream")):
+    popup("Can't connect to the FT Sensor driver", "Robotiq's FT Sensor", error=True)
+  end
+
+  socket_close("rq_ft_sensor_stream")
+  if (socket_open("127.0.0.1", 63350, "rq_ft_sensor_stream")):
+    run read_force()
+  else:
+    popup("Can't connect to the FT Sensor driver", "Robotiq's FT Sensor", error=True)
+  end
+rtde_set_watchdog("external_force_torque", 5, "ignore")
+enable_external_ft_sensor(False)
+textmsg("disable external sensor")  # end: URCap Installation Node
+  # begin: URCap Installation Node
+  #   Source: Robotiq_2-Finger_Adaptive_Gripper, 1.1.3, Robotiq Inc.
+  #   Type: Gripper
+  
+  ###########################################
+  #######Gripper URCap preamble start########
+  #######Version null########
+  
+  #aliases for the gripper variable names
+  ACT = 1
+  GTO = 2
+  ATR = 3
+  ARD = 4
+  FOR = 5
+  SPE = 6
+  OBJ = 7
+  STA = 8
+  FLT = 9
+  POS = 10
+  PRE = 11
+  
+  def rq_init_connection(gripper_sid=9, gripper_socket="1"):
+  	socket_open("127.0.0.1",63352, gripper_socket)
+  	socket_set_var("SID", gripper_sid,  gripper_socket)
+  	ack = socket_read_byte_list(3, gripper_socket)
+  end
+  
+  def rq_set_sid(gripper_sid=9, gripper_socket="1"):
+          socket_set_var("SID", gripper_sid,  gripper_socket)
+          sync()
+          return is_ack(socket_read_byte_list(3, gripper_socket))
+  end
+  
+  def rq_activate(gripper_socket="1"):
+  	rq_gripper_act = 0
+  
+          if (not rq_is_gripper_activated(gripper_socket)):
+              rq_reset(gripper_socket)
+          end
+  
+  	rq_set_var(ACT,1, gripper_socket)
+  end
+  
+  def rq_activate_and_wait(gripper_socket="1"):
+  	rq_activate(gripper_socket)
+  
+  	while(not rq_is_gripper_activated(gripper_socket)):
+  		# wait for activation completed
+  	end
+  end
+  
+  def rq_stop(gripper_socket="1"):
+  	rq_set_var(GTO,0, gripper_socket)
+  end
+  
+  def rq_reset(gripper_socket="1"):
+  	rq_gripper_act = 0
+  	rq_obj_detect = 0
+  	rq_mov_complete = 0
+  
+  	rq_set_var(ACT,0, gripper_socket)
+  	rq_set_var(ATR,0, gripper_socket)
+  end
+  
+  def rq_auto_release_open_and_wait(gripper_socket="1"):
+  
+  	rq_set_var(ARD,0, gripper_socket)
+  	rq_set_var(ACT,1, gripper_socket)
+  	rq_set_var(ATR,1, gripper_socket)
+  
+  	gFLT = rq_get_var(FLT, 2, gripper_socket)
+  
+  	while(not is_FLT_autorelease_completed(gFLT)):
+  		gFLT = rq_get_var(FLT, 2, gripper_socket)
+  	end
+  end
+  
+  def rq_auto_release_close_and_wait(gripper_socket="1"):
+  	rq_set_var(ARD,1, gripper_socket)
+  	rq_set_var(ACT,1, gripper_socket)
+  	rq_set_var(ATR,1, gripper_socket)
+  
+  	gFLT = rq_get_var(FLT, 2, gripper_socket)
+  
+  	while(not is_FLT_autorelease_completed(gFLT)):
+  		gFLT = rq_get_var(FLT, 2, gripper_socket)
+  	end
+  end
+  
+  def rq_set_force(force, gripper_socket="1"):
+  	rq_set_var(FOR,force, gripper_socket)
+  end
+  
+  def rq_set_speed(speed, gripper_socket="1"):
+  	rq_set_var(SPE,speed, gripper_socket)
+  end
+  
+  def rq_open(gripper_socket="1"):
+  	rq_move(0, gripper_socket)
+  end
+  
+  def rq_close(gripper_socket="1"):
+  	rq_move(255, gripper_socket)
+  end
+  
+  def rq_open_and_wait(gripper_socket="1"):
+  	rq_move_and_wait(0, gripper_socket)
+  end
+  
+  def rq_close_and_wait(gripper_socket="1"):
+  	rq_move_and_wait(255, gripper_socket)
+  end
+  
+  def rq_move(pos, gripper_socket="1"):
+  	rq_mov_complete = 0
+  	rq_obj_detect = 0
+  
+  	rq_set_pos(pos, gripper_socket)
+  	rq_go_to(gripper_socket)
+  end
+  
+  def rq_move_and_wait(pos, gripper_socket="1"):
+  	rq_move(pos, gripper_socket)
+  
+  	while (not rq_is_motion_complete(gripper_socket)):
+  		# wait for motion completed
+  		sleep(0.01)
+  		sync()
+  	end
+  
+  	# following code used for compatibility with previous versions
+  	rq_is_object_detected(gripper_socket)
+  
+  	if (rq_obj_detect != 1):
+  		rq_mov_complete = 1
+  	end
+  end
+  
+  def rq_wait(gripper_socket="1"):
+          # Wait for the gripper motion to complete
+          while (not rq_is_motion_complete(gripper_socket)):
+  		# wait for motion completed
+  		sleep(0.01)
+  		sync()
+  	end
+  
+  	# following code used for compatibility with previous versions
+  	rq_is_object_detected(gripper_socket)
+  
+  	if (rq_obj_detect != 1):
+  		rq_mov_complete = 1
+  	end
+  end
+  
+  def rq_go_to(gripper_socket="1"):
+  	rq_set_var(GTO,1, gripper_socket)
+  end
+  
+  # reset the rGTO to prevent movement and
+  # set the position
+  def rq_set_pos(pos, gripper_socket="1"):
+  	rq_set_var(GTO,0, gripper_socket)
+  
+  	rq_set_var(POS, pos, gripper_socket)
+  
+  	gPRE = rq_get_var(PRE, 3, gripper_socket)
+  	pre = (gPRE[1] - 48)*100 + (gPRE[2] -48)*10 + gPRE[3] - 48
+  	sync()
+  	while (pre != pos):
+          rq_set_var(POS, pos, gripper_socket)
+  		gPRE = rq_get_var(PRE, 3, gripper_socket)
+  		pre = (gPRE[1] - 48)*100 + (gPRE[2] -48)*10 + gPRE[3] - 48
+  		sync()
+  	end
+  end
+  
+  def rq_is_motion_complete(gripper_socket="1"):
+  	rq_mov_complete = 0
+  
+  	gOBJ = rq_get_var(OBJ, 1, gripper_socket)
+  	sleep(0.01)
+  
+  	if (is_OBJ_gripper_at_position(gOBJ)):
+  		rq_mov_complete = 1
+  		return True
+  	end
+  
+  	if (is_OBJ_object_detected(gOBJ)):
+  		rq_mov_complete = 1
+  		return True
+  	end
+  
+  	return False
+  
+  end
+  
+  def rq_is_gripper_activated(gripper_socket="1"):
+  	gSTA = rq_get_var(STA, 1, gripper_socket)
+  
+  	if(is_STA_gripper_activated(gSTA)):
+  		rq_gripper_act = 1
+  		return True
+  	else:
+  		rq_gripper_act = 0
+  		return False
+  	end
+  end
+  
+  def rq_is_object_detected(gripper_socket="1"):
+  	gOBJ = rq_get_var(OBJ, 1, gripper_socket)
+  
+  	if(is_OBJ_object_detected(gOBJ)):
+  		rq_obj_detect = 1
+  		return True
+  	else:
+  		rq_obj_detect = 0
+  		return False
+  	end
+  end
+  
+  def rq_current_pos(gripper_socket="1"):
+  	rq_pos = socket_get_var("POS",gripper_socket)
+  	sync()
+      return rq_pos
+  end
+  
+  def rq_print_gripper_fault_code(gripper_socket="1"):
+  	gFLT = rq_get_var(FLT, 2, gripper_socket)
+  
+  	if(is_FLT_no_fault(gFLT)):
+  		textmsg("Gripper Fault : ", "No Fault (0x00)")
+  	elif (is_FLT_action_delayed(gFLT)):
+  		textmsg("Gripper Fault : ", "Priority Fault: Action delayed, initialization must be completed prior to action (0x05)")
+  	elif (is_FLT_not_activated(gFLT)):
+  		textmsg("Gripper Fault : ", "Priority Fault: The activation must be set prior to action (0x07)")
+  	elif (is_FLT_autorelease_in_progress(gFLT)):
+  		textmsg("Gripper Fault : ", "Minor Fault: Automatic release in progress (0x0B)")
+  	elif (is_FLT_overcurrent(gFLT)):
+  		textmsg("Gripper Fault : ", "Minor Fault: Overcurrent protection tiggered (0x0E)")
+  	elif (is_FLT_autorelease_completed(gFLT)):
+  		textmsg("Gripper Fault : ", "Major Fault: Automatic release completed (0x0F)")
+  	else:
+  		textmsg("Gripper Fault : ", "Unkwown Fault")
+  	end
+  end
+  
+  def rq_print_gripper_num_cycles(gripper_socket="1"):
+  	socket_send_string("GET NCY",gripper_socket)
+  	sync()
+  	string_from_server = socket_read_string(gripper_socket)
+  	sync()
+  
+  	if(string_from_server == "0"):
+  		textmsg("Gripper Cycle Number : ", "Number of cycles is unreachable.")
+  	else:
+  		textmsg("Gripper Cycle Number : ", string_from_server)
+  	end
+  end
+  
+  def rq_print_gripper_driver_state(gripper_socket="1"):
+  	socket_send_string("GET DST",gripper_socket)
+  	sync()
+  	string_from_server = socket_read_string(gripper_socket)
+  	sync()
+  
+  	if(string_from_server == "0"):
+  		textmsg("Gripper Driver State : ", "RQ_STATE_INIT")
+  	elif(string_from_server == "1"):
+  		textmsg("Gripper Driver State : ", "RQ_STATE_LISTEN")
+  	elif(string_from_server == "2"):
+  		textmsg("Gripper Driver State : ", "RQ_STATE_READ_INFO")
+  	elif(string_from_server == "3"):
+  		textmsg("Gripper Driver State : ", "RQ_STATE_ACTIVATION")
+  	else:
+  		textmsg("Gripper Driver State : ", "RQ_STATE_RUN")
+  	end
+  end
+  
+  def rq_print_gripper_serial_number():
+  	#socket_send_string("GET SNU",gripper_socket)
+  	#sync()
+  	#string_from_server = socket_read_string(gripper_socket)
+  	#sync()
+  	#textmsg("Gripper Serial Number : ", string_from_server)
+  end
+  
+  def rq_print_gripper_firmware_version(gripper_socket="1"):
+  	socket_send_string("GET FWV",gripper_socket)
+  	sync()
+  	string_from_server = socket_read_string(gripper_socket)
+  	sync()
+  	textmsg("Gripper Firmware Version : ", string_from_server)
+  end
+  
+  def rq_print_gripper_driver_version(gripper_socket="1"):
+  	socket_send_string("GET VER",gripper_socket)
+  	sync()
+  	string_from_server = socket_read_string(gripper_socket)
+  	sync()
+  	textmsg("Gripper Driver Version : ", string_from_server)
+  end
+  
+  def rq_print_gripper_probleme_connection(gripper_socket="1"):
+  	socket_send_string("GET PCO",gripper_socket)
+  	sync()
+  	string_from_server = socket_read_string(gripper_socket)
+  	sync()
+  	if (string_from_server == "0"):
+  		textmsg("Gripper Connection State : ", "No connection problem detected")
+  	else:
+  		textmsg("Gripper Connection State : ", "Connection problem detected")
+  	end
+  end
+  
+  # Returns True if list_of_bytes is [3, 'a', 'c', 'k']
+  def is_ack(list_of_bytes):
+  
+  	# list length is not 3
+  	if (list_of_bytes[0] != 3):
+  		return False
+  	end
+  
+  	# first byte not is 'a'?
+  	if (list_of_bytes[1] != 97):
+  		return False
+  	end
+  
+  	# first byte not is 'c'?
+  	if (list_of_bytes[2] != 99):
+  		return False
+  	end
+  
+  	# first byte not is 'k'?
+  	if (list_of_bytes[3] != 107):
+  		return False
+  	end
+  
+  	return True
+  end
+  
+  # Returns True if list_of_bytes is not [3, 'a', 'c', 'k']
+  def is_not_ack(list_of_bytes):
+  	if (is_ack(list_of_bytes)):
+  		return False
+  	else:
+  		return True
+  	end
+  end
+  
+  def is_STA_gripper_activated (list_of_bytes):
+  
+  	# list length is not 1
+  	if (list_of_bytes[0] != 1):
+  		return False
+  	end
+  
+  	# byte is '3'?
+  	if (list_of_bytes[1] == 51):
+  		return True
+  	end
+  
+  	return False
+  end
+  
+  # Returns True if list_of_byte is [1, '1'] or [1, '2']
+  # Used to test OBJ = 0x1 or OBJ = 0x2
+  def is_OBJ_object_detected (list_of_bytes):
+  
+  	# list length is not 1
+  	if (list_of_bytes[0] != 1):
+  		return False
+  	end
+  
+  	# byte is '2'?
+  	if (list_of_bytes[1] == 50):
+  		return True
+  	end
+  
+  	# byte is '1'?
+  	if (list_of_bytes[1]  == 49):
+  		return True
+  	end
+  
+  	return False
+  
+  end
+  
+  # Returns True if list_of_byte is [1, '3']
+  # Used to test OBJ = 0x3
+  def is_OBJ_gripper_at_position (list_of_bytes):
+  
+  	# list length is not 1
+  	if (list_of_bytes[0] != 1):
+  		return False
+  	end
+  
+  	# byte is '3'?
+  	if (list_of_bytes[1] == 51):
+  		return True
+  	end
+  
+  	return False
+  end
+  
+  def is_not_OBJ_gripper_at_position (list_of_bytes):
+  
+  	if (is_OBJ_gripper_at_position(list_of_bytes)):
+  		return False
+  	else:
+  		return True
+  	end
+  end
+  
+  def is_FLT_no_fault(list_of_bytes):
+  
+  	# list length is not 2
+  	if (list_of_bytes[0] != 2):
+  		return False
+  	end
+  
+  	# first byte is '0'?
+  	if (list_of_bytes[1] != 48):
+  		return False
+  	end
+  
+  	# second byte is '0'?
+  	if (list_of_bytes[2] != 48):
+  		return False
+  	end
+  
+  	return True
+  
+  end
+  
+  def is_FLT_action_delayed(list_of_bytes):
+  
+  	# list length is not 2
+  	if (list_of_bytes[0] != 2):
+  		return False
+  	end
+  
+  	# first byte is '0'?
+  	if (list_of_bytes[1] != 48):
+  		return False
+  	end
+  
+  	# second byte is '5'?
+  	if (list_of_bytes[2] != 53):
+  		return False
+  	end
+  
+  	return True
+  end
+  
+  def is_FLT_not_activated(list_of_bytes):
+  
+  	# list length is not 2
+  	if (list_of_bytes[0] != 2):
+  		return False
+  	end
+  
+  	# first byte is '0'?
+  	if (list_of_bytes[1] != 48):
+  		return False
+  	end
+  
+  	# second byte is '7'?
+  	if (list_of_bytes[2] != 55):
+  		return False
+  	end
+  
+  	return True
+  end
+  
+  def is_FLT_autorelease_in_progress(list_of_bytes):
+  
+  	# list length is not 2
+  	if (list_of_bytes[0] != 2):
+  		return False
+  	end
+  
+  	# first byte is '1'?
+  	if (list_of_bytes[1] != 49):
+  		return False
+  	end
+  
+  	# second byte is '1'?
+  	if (list_of_bytes[2] != 49):
+  		return False
+  	end
+  
+  	return True
+  
+  end
+  
+  def is_FLT_overcurrent(list_of_bytes):
+  
+  	# list length is not 2
+  	if (list_of_bytes[0] != 2):
+  		return False
+  	end
+  
+  	# first byte is '1'?
+  	if (list_of_bytes[1] != 49):
+  		return False
+  	end
+  
+  	# second byte is '4'?
+  	if (list_of_bytes[2] != 52):
+  		return False
+  	end
+  
+  	return True
+  
+  end
+  
+  def is_FLT_autorelease_completed(list_of_bytes):
+  
+  	# list length is not 2
+  	if (list_of_bytes[0] != 2):
+  		return False
+  	end
+  
+  	# first byte is '1'?
+  	if (list_of_bytes[1] != 49):
+  		return False
+  	end
+  
+  	# second byte is '5'?
+  	if (list_of_bytes[2] != 53):
+  		return False
+  	end
+  
+  	return True
+  
+  end
+  
+  def rq_set_var(var_name, var_value, gripper_socket="1"):
+  
+  	sync()
+  	if (var_name == ACT):
+  		socket_set_var("ACT", var_value, gripper_socket)
+  	elif (var_name == GTO):
+  		socket_set_var("GTO", var_value, gripper_socket)
+  	elif (var_name == ATR):
+  		socket_set_var("ATR", var_value, gripper_socket)
+  	elif (var_name == ARD):
+  		socket_set_var("ARD", var_value, gripper_socket)
+  	elif (var_name == FOR):
+  		socket_set_var("FOR", var_value, gripper_socket)
+  	elif (var_name == SPE):
+  		socket_set_var("SPE", var_value, gripper_socket)
+  	elif (var_name == POS):
+  		socket_set_var("POS", var_value, gripper_socket)
+  	else:
+  	end
+  
+  	sync()
+  	ack = socket_read_byte_list(3, gripper_socket)
+  	sync()
+  
+  	while(is_not_ack(ack)):
+  
+  		textmsg("rq_set_var : retry", " ...")
+  		textmsg("rq_set_var : var_name = ", var_name)
+  		textmsg("rq_set_var : var_value = ", var_value)
+  
+  		if (ack[0] != 0):
+  			textmsg("rq_set_var : invalid ack value = ", ack)
+  		end
+  
+  		socket_set_var(var_name , var_value,gripper_socket)
+  		sync()
+  		ack = socket_read_byte_list(3, gripper_socket)
+  		sync()
+  	end
+  end
+  
+  
+  def rq_get_var(var_name, nbr_bytes, gripper_socket="1"):
+  
+  	if (var_name == FLT):
+  		socket_send_string("GET FLT",gripper_socket)
+  		sync()
+  	elif (var_name == OBJ):
+  		socket_send_string("GET OBJ",gripper_socket)
+  		sync()
+  	elif (var_name == STA):
+  		socket_send_string("GET STA",gripper_socket)
+  		sync()
+  	elif (var_name == PRE):
+  		socket_send_string("GET PRE",gripper_socket)
+  		sync()
+  	else:
+  	end
+  
+  	var_value = socket_read_byte_list(nbr_bytes, gripper_socket)
+  	sync()
+  
+  	return var_value
+  end
+  
+  ############################################
+  # normalized functions (maps 0-100 to 0-255)
+  ############################################
+  def rq_set_force_norm(force_norm, gripper_socket="1"):
+      force_gripper = norm_to_gripper(force_norm)
+      rq_set_force(force_gripper, gripper_socket)
+  end
+  
+  def rq_set_speed_norm(speed_norm, gripper_socket="1"):
+      speed_gripper = norm_to_gripper(speed_norm)
+      rq_set_speed(speed_gripper, gripper_socket)
+  end
+  
+  def rq_move_norm(pos_norm, gripper_socket="1"):
+      pos_gripper = norm_to_gripper(pos_norm)
+      rq_move(pos_gripper, gripper_socket)
+  end
+  
+  def rq_move_and_wait_norm(pos_norm, gripper_socket="1"):
+      pos_gripper = norm_to_gripper(pos_norm)
+      rq_move_and_wait(pos_gripper, gripper_socket)
+  end
+  
+  def rq_set_pos_norm(pos_norm, gripper_socket="1"):
+      pos_gripper = norm_to_gripper(pos_norm)
+      rq_set_pos(pos_gripper, gripper_socket)
+  end
+  
+  
+  def rq_current_pos_norm(gripper_socket="1"):
+      pos_gripper = rq_current_pos(gripper_socket)
+      pos_norm = gripper_to_norm(pos_gripper)
+      return pos_norm
+  end
+  
+  def gripper_to_norm(value_gripper):
+      value_norm = (value_gripper / 255) * 100
+      return floor(value_norm)
+  end
+  
+  def norm_to_gripper(value_norm):
+      value_gripper = (value_norm / 100) * 255
+      return ceil(value_gripper)
+  end
+  
+  def rq_get_position():
+      return rq_current_pos_norm()
+  end
+  #########################################
+  rq_obj_detect = 0
+  connectivity_checked = [-1,-1,-1,-1]
+  status_checked = [-1,-1,-1,-1]
+  current_speed = [-1,-1,-1,-1]
+  current_force = [-1,-1,-1,-1]
+  
+  #######Gripper URCap preamble end##########
+  ###########################################
+  
+  # end: URCap Installation Node
+
+    # Peg-in-hole motion
+    # begin: URCap Installation Node
+    #   Source: skills_imp, 1.0.0, Weiwei.
+    #   Type: Skills-Impedance
+    # Weiwei 2018
+    # Impedance Control Using FT300 Sensor
+
+    # begin: URCap Installation Node
+    #   Source: skills_Linear_Search, 1.0.0, Robotiq inc.
+    #   Type: skills-Linear Search
+    # Robotiq inc. 2017
+    # Linear search function with the force/torque sensor
+    #
+    # FUNCTION:  rq_linear_search(direction="Z+",force = 10, speed = 0.004, max_distance = 0.02 )
+    # Description: Move the robot on a tool axis until a force is detected within a specified range
+    #
+    #           The function will return True if the force is detected during the motion
+    #           The function will return False if the motion is completed without detecting the force
+    # PARAMETER:
+    #   Note:   All parameters are optional.
+    #   direction : direction of the motion in the tool reference frame   default "z+"
+    #   force:      in Newton, If the measured force exceed this value, the motion will be stopped
+    #   speed:      in m/s, robot motion speed
+    #   max_distance: in meters, define the maximum motion travel if no forces is detected
+    #
+    #       example:
+    #          rq_linear_search()
+    #              will move the robot in the Z+ axis of the tool
+    #              until the default force is measured by the sensor or default max distance is achieved
+    #
+    #          rq_linear_search("Y-", force = 20)
+    #              will move the robot in the Y- axis of the tool
+    #              until 20 Newtons are measured by the sensor or default max distance is achieved
+    #
+    #          if (not rq_linear_search("Z+", force = 10, speed = 0.010 , max_distance = 0.020)): popup
+    #              will move the robot at 10 mm/s in Z+ axis to find 10 Newtons
+    #              if the force is not measured within 20 mm, a popup will be shown
+
+    # This variable contains a found location
+    global find_location = p[0,0,0,0,0,0]
+    # This variable contains the distance value between current and previous found locations
+    global find_distance_from_last = 0.0
+    # This variable contains the mid point location between the current and previous found locations
+    global find_mid_location_from_last = p[0,0,0,0,0,0]
+    # This variable contains a measured dimension based on distance between last found location and adjustment variable below
+    global find_dimension = 0.0
+    # To evaluate the dimension, adjust this variable to subtract the distance between
+    # point of contact and TCP, normally 2x.
+    global find_dimension_adjust = 0.0268
+
+    #************************************************
+    #Function:  actual_force(direction)
+    #   Return the current force measured by the sensor in the specified axis
+    #************************************************
+    def actual_force(direction="X"):
+        if (direction == "X+") or (direction == "x+") or (direction == "X-") or (direction == "x-"):
+            return norm(Fx)
+        elif (direction == "Y+") or (direction == "y+") or (direction == "Y-") or (direction == "y-"):
+            return norm(Fy)
+        else:
+            return norm(Fz)
+        end
+    end
+
+    #************************************************
+    #Function:  rq_linear_search(direction="Z+", force[N] = 10, speed[m/s] = 0.004, max_distance[m] = 0.02)
+    #   Find a specific force in the direction of "direction".
+    #   Robot will move towards a max_distance from the current position in the tool frame
+    #   Return True if the force is detected during the robot motion
+    #************************************************
+    def rq_linear_search(direction="Z+",force = 10, speed = 0.004, max_distance = 0.02 ):
+        global pos_offset_setting = p[0,0,0,0,0,0]
+        if (direction == "X+") or (direction == "x+"):
+            pos_offset_setting = p[max_distance,0,0,0,0,0]
+        elif (direction == "X-") or (direction == "x-"):
+            pos_offset_setting = p[max_distance * -1,0,0,0,0,0]
+        elif (direction == "Y+") or (direction == "y+"):
+            pos_offset_setting = p[0,max_distance,0,0,0,0]
+        elif (direction == "Y-") or (direction == "y-"):
+            pos_offset_setting = p[0,max_distance * -1,0,0,0,0]
+        elif (direction == "Z+") or (direction == "z+"):
+            pos_offset_setting = p[0,0,max_distance,0,0,0]
+        elif (direction == "Z-") or (direction == "z-"):
+            pos_offset_setting = p[0,0,max_distance * -1,0,0,0]
+        else:
+            popup("direction parameter must be X+, X-, Y+, Y-, Z+ or Z-","ERROR rq_find")
+            halt
+        end
+        global speed_setting = speed
+        #The funtion will return the value True if the force is detected during the motion
+        global find_something = True
+        #Parameters validation
+        textmsg("linear_search parameters validated")
+        if (max_distance < 2):
+            if ((speed > 0) and (speed <= 0.1)):
+                if ((force > 0) and (force < 200)):
+                    #Define a thread to perform the robot motion.
+                    #this thread will be stopped if the force is reached
+                    global thread_find_flag = 0
+                    thread thread_find():
+                        #Calculate the position at the max distance to go
+                        pose_temp = get_actual_tcp_pose()
+                        pose_temp = pose_trans(pose_temp,pos_offset_setting)
+                        #Move the robot to that position
+                        movel(pose_temp,a=1.2,v=speed_setting)
+                        #If the program reaches this line, the force has not been detected during the motion
+                        #The function will return the value False
+                        find_something = False
+                        thread_find_flag = 1
+                    end
+                    #Set the sensor to zero
+                    #sleep(0.1)
+                    #rq_set_zero()
+                    #sleep(0.05)
+                    #Run the thread to move the robot and continuously check the force measured
+                    if (actual_force(direction)<force):
+                        thread_find_handler = run thread_find()
+                        #Loop as long as the force is not detected and thread is not finished
+                        while ((actual_force(direction)<force) and (thread_find_flag ==0)):
+                            sync()
+                        end
+                        #The force is detected or max distance is reached, kill the thread to stop the motion
+                        kill thread_find_handler
+                        if (find_something == True):
+                            textmsg("Found something with linear search")
+                            find_distance_from_last=point_dist(get_actual_tcp_pose(),find_location)
+                            find_dimension=find_distance_from_last - find_dimension_adjust
+                            find_mid_location_from_last=interpolate_pose(find_location,get_actual_tcp_pose(),0.5)
+                            find_location=get_actual_tcp_pose()
+                        end
+                        stopl(2.2)
+                    end
+                    #Error message for invalid parameters
+                else:
+                popup("Force parameter in Newtons must be between 0 and 200","ERROR rq_find")
+                halt
+                end
+            else:
+                popup("speed parameter in m/s must be between 0 and 0.1","ERROR rq_find")
+                halt
+            end
+        else:
+            popup("max_distance parameter in meters must be between 0 and 1.9","ERROR rq_find")
+            halt
+        end
+        #The function will return True if the force is detected during the motion
+        #The value returned will be False if the motion reaches the maximum distance without sensing the force
+        return find_something
+    end
+    # end: URCap Installation Node
+
+    #**************************************
+    # FUNCTION:    rq_spiral_search(force_threshold = 3, max_radius = 5.0, radius_incr=0.3, peck_mode = False)
+    # Description:
+    # PARAMETER:
+    #   force_threshold : If the force of contact drops below the force threshold, the hole has been found.
+    #   max_radius : Determines the maximum search radius.
+    #   radius_incr : Increases the trajectory of the search by a given radius per turn.
+    #   peck_mode : Enables the retreat of the tool in the z axis before moving to the next point.
+    #**************************************
+    def rq_spiral_search_new(stroke, force_threshold = 3, max_radius = 5.0, radius_incr=0.3, peck_mode = False):
+        if (force_threshold < 0) or (force_threshold > 40):
+            popup("force_threshold parameter in Newton must be between 0 and 40","ERROR rq_spiral_search")
+            halt
+        else:
+            if (max_radius < 0.5) or (max_radius > 10):
+                popup("max_radius parameter in mm must be between 0.5mm and 10mm","ERROR rq_spiral_search")
+                halt
+            else:
+                if (radius_incr < 0.01) or (radius_incr > 5.0):
+                    popup("radius_incr parameter in mm must be between 0.01mm and 5mm","ERROR rq_spiral_search")
+                    halt
+                else:
+                    global max_radius_set = max_radius / 1000
+                    global theta_incr=12.5
+                    global radius_inc_set = radius_incr / 1000 / (360 / theta_incr)
+                    global r=0.0003  #Start radius
+                    global y_insert_distance = 0.001  #in meter #Joshua changed this line
+                    global x=0
+                    global y=0
+                    global z=0
+                    global pos=p[0,0,0,0,0,0]
+                    global next_position=p[0,0,0,0,0,0]
+                    global y_Insert=p[0,1*y_insert_distance,0,0,0,0] #Joshua changed this line
+                    global current_pos=p[0,0,0,0,0,0]
+                    global theta=0
+                    global RealRadius=0
+                    global Search_result = False
+                    sync()
+                    #Find the bore of the part#
+                    current_pos=get_actual_tcp_pose()
+                    textmsg("Spiral search")
+                    sync()
+                    while ((RealRadius <= max_radius_set) and (norm(Fy) >= force_threshold)):
+                        #By default, the Spiral_Search function will maintain contact between both mating parts at all times
+                        if (peck_mode == False):
+                            # textmsg("norm Fx + norm Fz: ") #Joshua changed this line
+                            # textmsg(norm(Fx) + norm(Fz)) #Joshua changed this line
+                            #standard method
+                            theta=theta+theta_incr
+                            z=cos(d2r(theta))*r #Joshua changed this line
+                            x=sin(d2r(theta))*r #Joshua changed this line
+                            pos[2] = z #Joshua changed this line
+                            pos[0] = x #Joshua changed this line
+                            textmsg("pos is:")
+                            textmsg(pos)
+                            r=r + radius_inc_set
+                            RealRadius = sqrt(pow(norm(z),2)+pow(norm(x),2)) #Joshua changed this line
+                            next_pos=pose_trans(current_pos,pos)
+                            movep(next_pos, a=0.6, v=0.025, r=0.0)
+                            sleep(0.1)
+                            #Operator enables "Peck Mode", the robot will retreat in the Y axis before moving to the next point
+                        else:
+                            #Fragile mode, the robot rises between each new point
+                            #Retreat from position
+                            pos[1]= -0.002 #Joshua changed this line
+                            next_pos=pose_trans(current_pos,pos)
+                            movep(next_pos, a=0.6, v=0.025, r=0.0005)
+                            sleep(0.1)
+                            #move to a new coordinate
+                            theta=theta+theta_incr
+                            z=cos(d2r(theta))*r #Joshua changed this line
+                            x=sin(d2r(theta))*r #Joshua changed this line
+                            pos[2] = z #Joshua changed this line
+                            pos[0] = x #Joshua changed this line
+                            textmsg("pos is:")
+                            textmsg(pos)
+                            r=r + radius_inc_set
+                            RealRadius = sqrt(pow(norm(z),2)+pow(norm(x),2)) #Joshua changed this line
+                            next_pos=pose_trans(current_pos,pos)
+                            movep(next_pos, a=0.6, v=0.025, r=0.0005)
+                            sleep(0.1)
+                            #Re-establish contact with the part
+                            pos[1]= 0.0005 #Joshua changed this line
+                            next_pos=pose_trans(current_pos,pos)
+                            movep(next_pos, a=0.6, v=0.01, r=0.0)
+                            sleep(0.2)
+                        end
+                    end
+                    if (RealRadius <= max_radius_set):
+                        current_pos=get_actual_tcp_pose()
+                        next_position=pose_trans(current_pos,y_Insert) #Joshua changed this line
+                        movel(next_position, a=0.05, v=0.005)
+                        Search_result = True
+                    else:
+                        Search_result = False
+                    end
+                    return Search_result
+                end
+            end
+        end
+    end
+    # end: URCap Installation Node
+
+    #************************************************
+    #Function:  correct_force(current_force, force_threshold)
+    #   Return remaining force after removing noises
+    #************************************************
+
+    def correct_force(current_force=[0,0,0,0,0,0], force_threshold=[0,0,0,0,0,0]):
+        return_value = [0,0,0,0,0,0]
+        i = -1
+        while (i<5):
+            i = i+1
+            if ((norm(current_force[i])-force_threshold[i])<0):
+                return_value[i] = 0
+                continue
+            end
+            if (current_force[i] < 0):
+                return_value[i] = (current_force[i]+force_threshold[i])
+            else:
+                return_value[i] = (current_force[i]-force_threshold[i])
+            end
+        end
+        return return_value
+    end
+
+    #**************************************
+    # FUNCTION: rq_impedance(stroke, massm, force_threshold = [7,7,7,.1,.1,.1], dampc = [.1,.1,.1,.1,.1,.1], springk = [1,1,1,1,1,1])
+    # Description:
+    # PARAMETER:
+    #   massm: the mass of impedance control
+    #   force_threshold : If the maximum force that is counted as 0
+    #   dampc, springk : damper and spring coefficients.
+    #**************************************
+    def rq_impedance(stroke, massm, force_threshold = [3,3,5,.07,.07,.07], dampc = [50,50,50,1,1,1], springk = [100,100,100,100,100,100]):
+        i = 0
+        while (i<6):
+            if ((force_threshold[i]<0) or (force_threshold[i]>40)):
+                popup("force_threshold parameter in Newton must be between 0 and 40","ERROR rq_spiral_search")
+                halt
+            end
+            i = i+1
+        end
+        # prepare
+        starting_pos = get_actual_tcp_pose()
+        deltat = 0.008
+        goalp = p[0,0,0,0,0,0]
+        goalpp = p[0,0,0,0,0,0]
+        # suppose the object is a 10cm ball
+        massmi = [massm, massm, massm, massm/600, massm/600, massm/600]
+        while (True):
+            current_pos = get_actual_tcp_pose()
+            dist = pose_dist(current_pos, starting_pos)
+            textmsg("impedance dist")
+            textmsg(starting_pos)
+            textmsg(current_pos)
+            textmsg(norm(dist))
+            if (norm(dist) >= stroke):
+                textmsg("done")
+                textmsg("done")
+                textmsg("done")
+                textmsg("done")
+                textmsg("done")
+                textmsg("done")
+                halt
+            end
+            fp = correct_force([Fx,Fy,Fz,Mx,My,Mz],force_threshold)
+            fp[1] = fp[1] + 20 # Joshua changed this from fp[2] = fp[2] + 50
+            # fp[3] = fp[3] + 5 # Joshua added this to counteract the moment, but he is kind of doubtful whether it will work.
+
+            mdt2 = [0,0,0,0,0,0]
+            cdt = [0,0,0,0,0,0]
+            mck = [0,0,0,0,0,0]
+            ppmp = pose_sub(goalpp, goalp)
+            ppmpmp = pose_sub(ppmp, goalp)
+            goal = p[0,0,0,0,0,0]
+            # 0
+            mdt2[0] = massmi[0]/(deltat*deltat)
+            cdt[0] = dampc[0]/deltat
+            mck[0] = mdt2[0]+cdt[0]+springk[0]
+            goal[0] = (fp[0]-mdt2[0]*ppmpmp[0]+cdt[0]*goalp[0])/mck[0]
+            # 1
+            mdt2[1] = massmi[1]/(deltat*deltat)
+            cdt[1] = dampc[1]/deltat
+            mck[1] = mdt2[1]+cdt[1]+springk[1]
+            goal[1] = (fp[1]-mdt2[1]*ppmpmp[1]+cdt[1]*goalp[1])/mck[1]
+            # 2
+            mdt2[2] = massmi[2]/(deltat*deltat)
+            cdt[2] = dampc[2]/deltat
+            mck[2] = mdt2[2]+cdt[2]+springk[2]
+            goal[2] = (fp[2]-mdt2[2]*ppmpmp[2]+cdt[2]*goalp[2])/mck[2]
+            # 3
+            mdt2[3] = massmi[3]/(deltat*deltat)
+            cdt[3] = dampc[3]/deltat
+            mck[3] = mdt2[3]+cdt[3]+springk[3]
+            goal[3] = (fp[3]-mdt2[3]*ppmpmp[3]+cdt[3]*goalp[3])/mck[3]
+            # 4
+            mdt2[4] = massmi[4]/(deltat*deltat)
+            cdt[4] = dampc[4]/deltat
+            mck[4] = mdt2[4]+cdt[4]+springk[4]
+            goal[4] = (fp[4]-mdt2[4]*ppmpmp[4]+cdt[4]*goalp[4])/mck[4]
+            # 5
+            mdt2[5] = massmi[5]/(deltat*deltat)
+            cdt[5] = dampc[5]/deltat
+            mck[5] = mdt2[5]+cdt[5]+springk[5]
+            goal[5] = (fp[5]-mdt2[5]*ppmpmp[5]+cdt[5]*goalp[5])/mck[5]
+
+            rel_pos = pose_sub(goal, goalp)
+            rel_pos[1] = -rel_pos[1]
+            next_pos=pose_trans(current_pos,rel_pos)
+            movep(next_pos, a=0.4, v=.015, r=0.0)
+            goalpp[0] = goalp[0]
+            goalpp[1] = goalp[1]
+            goalpp[2] = goalp[2]
+            goalpp[3] = goalp[3]
+            goalpp[4] = goalp[4]
+            goalpp[5] = goalp[5]
+            goalp[0] = goal[0]
+            goalp[1] = goal[1]
+            goalp[2] = goal[2]
+            goalp[3] = goal[3]
+            goalp[4] = goal[4]
+            goalp[5] = goal[5]
+            textmsg("fp")
+            textmsg(fp)
+            textmsg("rel and goal")
+            textmsg(current_pos)
+            textmsg(rel_pos)
+            textmsg(next_pos)
+            # sleep(deltat)
+            sync()
+        end
+    end
+    # end: URCap Installation Node
+
+    # TODO: Zero the force sensor: rq_zero_sensor()
+    # TODO: Eliminate the while loop surrounding this comment?
+    # TODO: Eliminate the while loop below
+    # while (True):
+    #     textmsg("tst0")
+    #     rq_linear_search("Y-",10,0.02,0.2) # Joshua changed this from "Z+" to "Y-"
+    #     stroke = 0.035
+    #     if rq_spiral_search_new(stroke,10,7,.3,peck_mode=True):
+    #         #Insert the Part into the bore#
+    #         textmsg("Impedance insert")
+    #         massm = 10
+    #         rq_impedance(stroke, massm)
+    #     end
+    #     textmsg("running")
+    # end
+# end

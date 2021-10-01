@@ -1,0 +1,9 @@
+# Request
+string camera_id
+
+---
+# Result
+geometry_msgs/PoseStamped[] grasp_points   # The z-axis points into the table surface, the x-axis along the belt axis
+
+---
+# Feedback

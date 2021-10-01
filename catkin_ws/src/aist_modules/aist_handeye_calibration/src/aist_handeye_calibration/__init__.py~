@@ -1,0 +1,166 @@
+import rospy
+import dynamic_reconfigure.client
+import std_srvs.srv
+
+from geometry_msgs      import msg as gmsg
+from tf                 import transformations as tfs
+from math               import radians, degrees
+from o2ac_routines.base import O2ACBase
+
+######################################################################
+#  class HandEyeCalibrationBaseRoutines                              #
+######################################################################
+class HandEyeCalibrationBaseRoutines(O2ACBase):
+    def __init__(self):
+        super(HandEyeCalibrationBaseRoutines, self).__init__()
+
+        camera_name = rospy.get_param('~camera_name', 'a_phoxi_m_camera')
+        camera_type = rospy.get_param('~camera_type', 'PhoXiCamera')
+        self._camera         = DepthCamera.create(camera_name, camera_type)
+        self._robot_name     = rospy.get_param('~robot_name', 'b_bot')
+        self._base_frame     = rospy.get_param('~robot_base_frame',
+                                               'workspace_center')
+        self._effector_frame = rospy.get_param('~robot_effector_frame',
+                                               self._robot_name + '_ee_link')
+        self._speed          = rospy.get_param('~speed', 0.1)
+
+    # Robot stuffs
+    def get_current_pose_stamped(self):
+        return super(HandEyeCalibrationBaseRoutines,
+                     self).get_current_pose_stamped(self._robot_name)
+
+    def go_to_named_pose(self, named_pose):
+        return super(HandEyeCalibrationBaseRoutines,
+                     self).go_to_named_pose(named_pose, self._robot_name)
+
+    def move(self, pose, verbose=False):
+        target_pose = gmsg.PoseStamped()
+        target_pose.header.frame_id = self._base_frame
+        target_pose.pose = gmsg.Pose(gmsg.Point(*pose[0:3]),
+                                     gmsg.Quaternion(
+                                         *tfs.quaternion_from_euler(
+                                             *map(radians, pose[3:6]))))
+        if verbose:
+            print('  move to ' + self.format_pose(target_pose))
+        res = self.active_robots[self._robot_name].go_to_pose_goal(target_pose,
+                                   end_effector_link=self._effector_frame,
+                                   speed=self._speed)
+        if verbose:
+            print('  reached '
+                  + self.format_pose(self.get_current_pose_stamped()))
+        return res
+
+    # Camera stuffs
+    def continuous_shot(self, enable):
+        return self._camera.continuous_shot(enable)
+
+    def trigger_frame(self):
+        return self._camera.trigger_frame()
+
+    # Utility functions
+    def transform_pose_to_reference_frame(self, pose):
+        try:
+            pose.header.stamp = rospy.Time.now()
+            self.listener.waitForTransform(self._base_frame,
+                                           pose.header.frame_id,
+                                           pose.header.stamp,
+                                           rospy.Duration(10))
+            return self.listener.transformPose(self._base_frame, pose)
+        except Exception as e:
+            rospy.logerr('transform_pose_to_reference_frame(): {}'.format(e))
+            raise e
+
+    def xyz_rpy(self, pose):
+        transformed_pose = self.transform_pose_to_reference_frame(pose).pose
+        rpy = tfs.euler_from_quaternion([transformed_pose.orientation.x,
+                                         transformed_pose.orientation.y,
+                                         transformed_pose.orientation.z,
+                                         transformed_pose.orientation.w])
+        return [transformed_pose.position.x,
+                transformed_pose.position.y,
+                transformed_pose.position.z,
+                degrees(rpy[0]), degrees(rpy[1]), degrees(rpy[2])]
+
+    def format_pose(self, pose):
+        xyzrpy = self.xyz_rpy(pose)
+        return '[{:.4f}, {:.4f}, {:.4f}; {:.2f}, {:.2f}. {:.2f}]'.format(
+            *xyzrpy)
+
+######################################################################
+#  class DepthCamera                                                 #
+######################################################################
+class DepthCamera(object):
+    def __init__(self, name):
+        self._name = name
+
+    @staticmethod
+    def create(name, type_name):
+        ClientClass = globals()[type_name]
+        if rospy.get_param("use_real_robot", False):
+            return ClientClass(name)
+        else:
+            return ClientClass.base(name)
+
+    @staticmethod
+    def base(name):
+        return DepthCamera(name)
+
+    @property
+    def name(self):
+        return self._name
+
+    def continuous_shot(self, enabled):
+        return True
+
+    def trigger_frame(self):
+        return True
+
+######################################################################
+#  class RealSenseCamera                                             #
+######################################################################
+class RealSenseCamera(DepthCamera):
+    def __init__(self, name="a_bot_camera"):
+        super(RealSenseCamera, self).__init__(name)
+        self._dyn_camera = dynamic_reconfigure.client.Client(name, timeout=5.0)
+        self._dyn_sensor = dynamic_reconfigure.client.Client(
+                               name + "/coded_light_depth_sensor", timeout=5.0)
+        self._recent_laser_power = 16
+        self.laser_power = 0
+
+    @property
+    def laser_power(self):
+        ret = self._dyn_sensor.get_configuration()
+        return ret["laser_power"]
+
+    @laser_power.setter
+    def laser_power(self, value):
+        if value != 0:
+            self._recent_laser_power = value
+        self._dyn_sensor.update_configuration({"laser_power" : value})
+
+    def continuous_shot(self, enabled):
+        if enabled:
+            self.laser_power = self._recent_laser_power
+        else:
+            self.laser_power = 0
+        self._dyn_camera.update_configuration({"enable_streaming" : enabled})
+        rospy.sleep(0.2)
+        return True
+
+######################################################################
+#  class PhoXiCamera                                                 #
+######################################################################
+class PhoXiCamera(DepthCamera):
+    def __init__(self, name="a_phoxi_m_camera"):
+        super(PhoXiCamera, self).__init__(name)
+        self._dyn_reconf = dynamic_reconfigure.client.Client(name, timeout=5.0)
+        self._trigger_frame = rospy.ServiceProxy(name + "/trigger_frame",
+                                                 std_srvs.srv.Trigger)
+
+    def continuous_shot(self, enabled):
+        self._dyn_reconf.update_configuration({"trigger_mode" :
+                                               0 if enabled else 1})
+        return True
+
+    def trigger_frame(self):
+        return self._trigger_frame().success

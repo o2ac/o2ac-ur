@@ -1,0 +1,4 @@
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="full_assembly">
+  <xacro:include filename="$(find o2ac_parts_description)/urdf/assembly_parts_macros.urdf.xacro"/>
+  <xacro:macro name="full_assembly" params="prefix parent *origin">
+  

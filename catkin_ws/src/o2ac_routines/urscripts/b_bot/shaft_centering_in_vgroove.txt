@@ -1,0 +1,14 @@
+ Program
+   Robot Program
+     Gripper Open (1)
+     MoveL
+       at_shaft
+       above1
+       at_shaft_top
+       center_1
+     MoveL
+       back1
+       at_shaft_bottom
+       center2
+       back2
+       at_shaft

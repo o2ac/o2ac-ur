@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro"
+       name="o2ac_base_scene" >
+  <!-- This is the main file defining our robot arrangement and physical environment. -->
+  <!-- Calibration parameters -->
+  <xacro:property name="a_bot_x" value="-0.004"/>
+  <xacro:property name="a_bot_y" value="-0.525"/>
+  <xacro:property name="a_bot_theta" value="0.0"/>
+  <xacro:property name="b_bot_x" value="-0.0"/>
+  <xacro:property name="b_bot_y" value="0.525"/>
+  <xacro:property name="b_bot_theta" value="-3.141"/>
+
+  <xacro:property name="bots_z" value="0.75"/>
+
+  <!-- robots -->
+  <xacro:include filename="$(find ur_e_description)/urdf/ur5e.urdf.xacro" />
+
+  <xacro:ur5e_robot prefix="a_bot_" joint_limited="true"
+    shoulder_pan_lower_limit="${-pi}" shoulder_pan_upper_limit="${pi}"
+    shoulder_lift_lower_limit="${-pi}" shoulder_lift_upper_limit="${pi}"
+    elbow_joint_lower_limit="0.0" elbow_joint_upper_limit="${pi}"
+    wrist_1_lower_limit="${-pi*1.5}" wrist_1_upper_limit="${pi}"
+    wrist_2_lower_limit="${-pi*1.5}" wrist_2_upper_limit="${pi*1.5}"
+    wrist_3_lower_limit="${-2*pi}" wrist_3_upper_limit="${2*pi}"
+    transmission_hw_interface="hardware_interface/PositionJointInterface"
+    safety_limits="false" safety_pos_margin="0.15"
+    safety_k_position="20"
+    kinematics_file="${load_yaml('$(find o2ac_scene_description)/config/a_bot_calibration.yaml')}"
+  />
+
+  <joint name="world_a_bot_joint" type="fixed">
+    <parent link="world" />
+    <child link = "a_bot_base_link" />
+    <origin xyz="${a_bot_x} ${a_bot_y} ${bots_z}" rpy="0.0 0.0 ${a_bot_theta}" />
+  </joint>
+
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector_2F-140.urdf.xacro" />
+  <xacro:o2ac_end_effector prefix="a_bot_" use_soft_wrist="false" use_cameras="true" parent = "a_bot_ee_link" />
+
+  <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector.urdf.xacro" />
+  <xacro:o2ac_end_effector prefix="a_bot_" use_soft_wrist="false" use_cameras="true" parent = "a_bot_ee_link" /> -->
+
+  <!-- The "world" link definition should be removed, but apparently it is necessary for Gazebo -->
+  <link name="world" />
+  <joint name="world_o2ac_joint" type="fixed">
+    <parent link="world" />
+    <child link="o2ac_ground" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+
+</robot>

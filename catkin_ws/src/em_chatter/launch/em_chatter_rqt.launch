@@ -1,0 +1,7 @@
+<launch>
+  <node name="em_talker" pkg="em_chatter" type="em_talker" output="screen" />
+  <node name="em_listener" pkg="em_chatter" type="em_listener" output="screen" />
+
+  <node name="rqt_graph" pkg="rqt_graph" type="rqt_graph" />
+  <node name="rqt_topic" pkg="rqt_topic" type="rqt_topic" />
+</launch>

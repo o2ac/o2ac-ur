@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro" name="calibration_scene">
+  <!-- Add AR markers -->
+  <xacro:include filename="$(find o2ac_gazebo)/urdf/ar_markers.urdf.xacro"/>
+
+  <!-- <xacro:ar_marker_70_5 prefix="b_bot_" -->
+  <!-- 			parent="b_bot_gripper_tip_link" -->
+  <!-- 			marker_id="26" -->
+  <!-- 			thickness="0.005"> -->
+  <!--   <origin xyz="0.0 0.0 0.0185" rpy="0 0 0"/> -->
+  <!-- </xacro:ar_marker_70_5> -->
+
+  <xacro:ar_marker_70_5 prefix="base_"
+			parent="attached_base_origin_back_link"
+			marker_id="26"
+			thickness="0.001">
+    <origin xyz="0.06 0.06 0.0005" rpy="0 0 0"/>
+  </xacro:ar_marker_70_5>
+</robot>

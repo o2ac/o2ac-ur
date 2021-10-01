@@ -1,0 +1,74 @@
+ Program
+   Robot Program
+     Center grasp
+       MoveJ
+         Waypoint_1
+         Gripper Open (1)
+         Waypoint_2
+         Gripper Close (1)
+       MoveL
+         pass_tray
+         above
+         pick_1
+       Gripper Move27% (1)
+       MoveL
+         turn_left
+       Gripper Close (1)
+       Gripper Move36% (1)
+       MoveL
+         pick_1
+         incline
+       Gripper Close (1)
+     MoveL
+       above_inclined
+       Waypoint_4
+       beforehole
+     MoveL
+       athole
+     MoveL
+       Direction: Base X-
+         Until (tool_contact_detection)
+     twist onto pin
+       Force
+         MoveL
+           rightturn
+           leftturn
+           leftturn
+           rightturn
+       tcp_p≔get_actual_tcp_pose()
+       'If tcp_p[0] > -0.08'
+       tcp_p≔get_actual_tcp_pose()
+       If tcp_p[0] > -0.08
+         Force
+           MoveL
+             rightturn
+             leftturn
+             leftturn
+             rightturn
+     Gripper Open (1)
+     tcp_p≔get_actual_tcp_pose()
+     If tcp_p[0] > -0.09
+       MoveJ
+         beforehole
+         Gripper Move74% (1)
+         Waypoint_5
+         Waypoint_8
+       push onto pin
+         loop_1≔1
+         tcp_p≔get_actual_tcp_pose()
+         Force
+           Loop ( tcp_p[0] > -0.090) and  (loop_1 < 3) 
+             MoveL
+               right1
+               tcp_p≔get_actual_tcp_pose()
+               left1
+               tcp_p≔get_actual_tcp_pose()
+               left1
+               tcp_p≔get_actual_tcp_pose()
+               right1
+               tcp_p≔get_actual_tcp_pose()
+             loop_1≔loop_1+1
+     MoveJ
+       back
+     MoveJ
+       home

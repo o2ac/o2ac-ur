@@ -1,0 +1,24 @@
+<?xml version="1.0" ?>
+<launch>
+
+  <arg name="camera_names"		default="a_bot_inside_camera,
+						 a_bot_outside_camera"/>
+  <arg name="serial_nos"		default="636203005853, 636203005303"/>
+  <arg name="camera_width"		default="640"/>
+  <arg name="camera_height"		default="480"/>
+  <arg name="fps"			default="30"/>
+  <arg name="manager"			default="camera_manager"/>
+  <arg name="sim"			default="false"/>
+
+  <include file="$(find aist_camera_multiplexer)/launch/realsense.launch">
+    <arg name="camera_names"		value="$(arg camera_names)"/>
+    <arg name="serial_nos"		value="$(arg serial_nos)"/>
+    <arg name="publish_tf"		value="false"/>
+    <arg name="camera_width"		value="$(arg camera_width)"/>
+    <arg name="camera_height"		value="$(arg camera_height)"/>
+    <arg name="fps"			value="$(arg fps)"/>
+    <arg name="manager"			value="$(arg manager)"/>
+    <arg name="sim"			value="$(arg sim)"/>
+  </include>
+
+</launch>

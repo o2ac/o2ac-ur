@@ -1,0 +1,14 @@
+ Program
+   Robot Program
+     MoveL
+       before_push
+     Gripper Close (1)
+     MoveL
+       push_end
+       before_push
+     Gripper Move52% (1)
+     MoveL
+       'Waypoint_2'
+       final_grasp
+     Gripper Close (1)
+     Gripper Move82% (1)

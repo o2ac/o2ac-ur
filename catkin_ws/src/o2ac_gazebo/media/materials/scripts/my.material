@@ -1,0 +1,126 @@
+material MyOrange
+{
+  technique
+  {
+    pass ambient
+    {
+      lighting on
+
+      ambient 1 0.5088 0.0468 1
+      diffuse 1 0.5088 0.0468 1
+      specular 0.5 0.5 0.5 128
+    }
+  }
+}
+
+material Aruco/marker-17-70-5
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+	texture aruco-17-70-5.png
+      }
+    }
+  }
+}
+
+material Aruco/marker-17-80-10
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+	texture aruco-17-80-10.png
+      }
+    }
+  }
+}
+
+material Aruco/marker-26-70-5
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+	texture aruco-26-70-5.png
+      }
+    }
+  }
+}
+
+material Aruco/marker-32-70-5
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+	texture aruco-32-70-5.png
+      }
+    }
+  }
+}
+
+material Aruco/marker-32-80-10
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+	texture aruco-32-80-10.png
+      }
+    }
+  }
+}
+
+material Aruco/marker-32-160-10
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+	texture aruco-32-160-10.png
+      }
+    }
+  }
+}
+
+material Aruco/marker-256-70-5
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+	texture aruco-256-70-5.png
+      }
+    }
+  }
+}
+
+material Aruco/marker-256-80-10
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+	texture aruco-256-80-10.png
+      }
+    }
+  }
+}

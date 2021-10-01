@@ -1,0 +1,54 @@
+# This is just a wrapper around the move_group functionality
+
+# Request
+string robot_name       # "a_bot", "b_bot", "c_bot"
+string program_id       # "insertion", "lin_move", "lin_move_rel", "spiral_motion", "move_j", "linear_push"
+
+# Parameters for spiral_search, insertion, linear_search
+float64 max_force               # The force that spiral_search or linear_search applies, in N
+string force_direction          # The movement direction of the robot in spiral_search/linear_search as a string (usually X+ or Z-) (UNUSED if force_direction_vector is set)
+float64[] direction_vector      # The above, but as a direction vector [x, y, z] in the gripper TCP. ONLY WORKS FOR LINEAR_SEARCH
+float64 max_radius              # Size of the spiral. In m. Default: .0065
+float64 radius_increment        # How fast the spiral increases in size per rotation. In m. Default: .002
+float64 theta_increment         # The angle increment (in degrees!) each rotation is sliced into.
+geometry_msgs/Vector3 stiffness # For insertion and spiral_search. In N/m. The coordinate system is the ee link.
+float64 forward_speed           # The speed at which "insertion" and linear_search move forward. Slower probably improves precision.
+float64 max_approach_distance   # For the linear search approach, in m
+bool peck_mode                  # Used in original spiral search motion
+bool use_base_coords            # For linear_search
+
+# For spiral and helix motion
+string spiral_axis              # "X", "Y", "Z", "YZ"(45 degrees), "Y30Z60"(30 deg). In gripper CSYS.
+string helix_forward_axis       # "X", "Y", "Z". In gripper CSYS.
+float64 helix_forward_increment # How far the motion feeds forward per full rotation
+float64 helix_forward_limit     # When the motion forward ends
+
+float64 max_insertion_distance
+float64 impedance_mass          # Mass used for impedance control (default: 10 kg)
+
+# lin_move
+geometry_msgs/PoseStamped target_pose   # for lin_move
+float64 acceleration            # move_l param (default: .5)
+float64 velocity                # move_l param (default: .05)
+
+# lin_move_rel
+geometry_msgs/Point relative_translation  # for lin_translation. In EE coordinates (Z+ is forward)
+geometry_msgs/Point relative_rotation     # for lin_move_rel. In UR format (angle-axis)
+bool lin_move_rel_in_base_csys            # If false, TCP is used. If true, robot base.
+
+# Joint pose
+float64[] joint_positions
+
+# For force_push_move and adaptive insertion
+float64[] goal_force        # Goal force for force mode [x,y,z,r,p,y]
+float64[] goal_pose         # Goal pose for force mode [x,y,z,r,p,y]
+float64[] goal_speed        # Goal speed for force mode [x,y,z,r,p,y]
+float64[] desired_twist     # Motion for movel command on the robot [x,y,z,r,p,y]
+bool use_relative_pos           # Switches between using world or TCP frame to interpret the above values
+string compliant_axis           # The axis of alignment in UR force_mode. Can be X, Y, Z, R, P, yaw, XY, XZ... (see osx_insertion_script)
+
+# New TCP pose [x,y,z,r,p,y] 
+float64[] tcp_pose          # Sets the transformation from the output flange coordinate system to the TCP as a pose with the URscript command set_tcp(tcp_pose).
+---
+# Response
+bool success

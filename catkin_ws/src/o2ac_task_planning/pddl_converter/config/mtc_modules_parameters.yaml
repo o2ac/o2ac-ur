@@ -1,0 +1,10 @@
+arm_group_names: ["a_bot", "b_bot"]
+hand_group_names: ["a_bot_robotiq_85", "b_bot_robotiq_85"]
+grasp_parameter_location: "wrs_assembly_2020"
+lift_direction_reference_frame: "world"
+lift_direction: [0.0, 0.0, 1.0]
+approach_place_direction_reference_frame: "world"
+approach_place_direction: [0.0, 0.0, -1.0]
+retreat_direction_reference_frame: ""
+retreat_direction: [-1.0, 0.0, 0.0]
+support_surfaces: ["tray_center", "screw_tool_holder_long"]

@@ -1,0 +1,21 @@
+camera_type: DepthCamera
+camera_name: a_bot_inside_camera
+robot_name: a_bot
+eye_on_hand: true
+robot_base_frame: workspace_center
+robot_effector_frame: a_bot_ee_link
+camera_frame: calibrated_a_bot_inside_camera_color_optical_frame
+marker_id: 26
+marker_size: 0.083
+planarity_tolerance: 0.003
+initpose: [-0.14, 0.00, 0.35, -90, 90, 0]
+keyposes:
+  - [-0.30,  0.00, 0.35, -90,  60,  0]
+  - [-0.22,  0.00, 0.35, -90,  75,  0]
+  - [-0.14,  0.00, 0.35, -90,  90,  0]
+  - [-0.06,  0.00, 0.35, -90, 105,  0]
+  - [ 0.02,  0.00, 0.35, -90, 120,  0]
+  - [-0.14, -0.12, 0.35,   0,  60, 90]
+  - [-0.14, -0.05, 0.35,   0,  75, 90]
+  - [-0.14,  0.05, 0.35,   0, 100, 90]
+  - [-0.14,  0.10, 0.35,   0, 105, 90]

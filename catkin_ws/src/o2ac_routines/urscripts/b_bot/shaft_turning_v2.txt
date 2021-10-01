@@ -1,0 +1,19 @@
+ Program
+   Robot Program
+     Gripper Open (1)
+     MoveL
+       look_at_top
+       at_shaft
+     'Popup: ok to turn shaft'
+     'MoveJ'
+     MoveL
+       at_shaft_left
+     Gripper Close (1)
+     MoveL
+       at_left_up
+       at_right_up
+       at_right
+     Gripper Open (1)
+     MoveL
+       at_shaft
+       look_at_top

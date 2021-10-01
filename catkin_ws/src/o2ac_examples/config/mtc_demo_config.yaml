@@ -1,0 +1,42 @@
+# Total planning attempts
+planning_attempts: 10
+
+# Planning group and link names
+arm_group_name: "b_bot"
+eef_name: "b_bot_tip"
+hand_group_name: "b_bot_robotiq_85"
+hand_frame: "b_bot_gripper_tip_link"
+
+# Poses
+hand_open_pose: "open"
+hand_close_pose: "close"
+arm_home_pose: "home"
+
+# Scene frames
+world_frame: "world"
+surface_link: "tray_center"
+
+# Assembly name
+assembly_name: "wrs_assembly_2020"  # Name of the assembly in which the object belongs. This parameter is used to retrieve grasps
+#   from the parameter server, where it serves as a namespace for all the objects belonging to that assembly
+#   (The planner expects the grasps to be loaded to the parameter server under this namespace)
+
+# Collision object for picking
+object_name: "panel_bearing"
+subframe: "panel_bearing/bottom_screw_hole_aligner_1" # If defined, the target pose will be set for this subframe instead of the object's frame
+
+# Place pose [x,y,z,r,p,y]
+place_pose: [0, 0, 0, 0, 0, 0]   # The target pose that the object will be placed at
+place_pose_reference_frame: "move_group/base/screw_hole_panel2_1"  # The frame in which the place_pose is realized
+place_surface_offset: 0.0001 # place offset in the direction of negative 'x' in place_pose_reference_frame to avoid collision
+# (Usually, in case of mating two objects along holes, the place_pose_reference_frame is a subframe of the object which is already
+#  placed in its final pose. place_surface_offset is in the direction of negative 'x' because by convention the subframes' 'x' direction
+#  points along the axis of the whole towards the inside of the object)
+
+# Valid distance range when approaching an object for picking
+approach_object_min_dist: 0.1
+approach_object_max_dist: 0.15
+
+# Valid height range when lifting an object after pick
+lift_object_min_dist: 0.1
+lift_object_max_dist: 0.15

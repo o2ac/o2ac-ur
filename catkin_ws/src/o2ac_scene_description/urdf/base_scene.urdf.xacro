@@ -1,0 +1,158 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro"
+       name="o2ac_base_scene" >
+  <!-- This is the main file defining our robot arrangement and physical environment. -->
+  <xacro:arg name="taskboard" default="false"/>
+  <!-- Calibration parameters -->
+  <xacro:property name="a_bot_x" value="-0.005"/>     <!-- Positive moves back -->
+  <xacro:property name="a_bot_y" value="-0.527"/>     <!-- Positive moves left -->
+  <xacro:property name="a_bot_z" value="0.0005"/>     <!-- Positive moves down -->
+  <xacro:property name="a_bot_z_angle" value="0.0"/>
+  <xacro:property name="a_bot_y_angle" value="0.0"/>
+
+  <xacro:property name="b_bot_x" value="-0.002"/>
+  <xacro:property name="b_bot_y" value="0.529"/>
+  <xacro:property name="b_bot_z" value="-0.001"/>
+  <xacro:property name="b_bot_z_angle" value="${-3.1415926 + -0.001}"/> <!-- Mirror a_bot + calibration offset -->
+  <xacro:property name="b_bot_y_angle" value="0"/>
+
+  <xacro:property name="bots_z" value="0.75"/>
+
+  <!-- common stuff -->
+  <xacro:include filename="$(find ur_description)/urdf/common.gazebo.xacro" />
+  <!-- <xacro:include filename="$(find o2ac_gazebo)/urdf/o2ac_base_scene.gazebo" /> -->
+
+  <!-- robots -->
+  <xacro:include filename="$(find ur_e_description)/urdf/ur5e.urdf.xacro" />
+
+  <!-- Scene items (trays, columns, tools, jigs, feeders...) -->
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/o2ac_environment.xacro" />
+  <!-- <xacro:include filename="$(find flexwrist_experiment)/urdf/2020-01-experiment-scene.xacro" /> -->
+  <!-- This argument can be set in base_scene_upload.launch -->
+  <xacro:if value="$(arg taskboard)">
+    <xacro:include filename="$(find o2ac_scene_description)/urdf/taskboard_scene.xacro" />
+  </xacro:if>
+  <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/assembly_scene.xacro" /> -->
+  <!-- <xacro:include filename="$(find o2ac_scene_description)/urdf/camera_calibration_scene.xacro" /> -->
+
+  <!-- Robot bases -->
+  <!-- Putting these at height 0.0 makes them intersect with the ground, so they are elevated. -->
+  <!-- There are some instabilities in Gazebo when the box is big, for some reason. -->
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_base.xacro" />
+  <xacro:o2ac_base boxname="a_bot_base_smfl" parent="o2ac_ground">
+    <origin xyz="${a_bot_x-.65/2} ${a_bot_y-.65/2} ${bots_z-.05}" rpy="0 0 0" />
+  </xacro:o2ac_base>
+  <xacro:o2ac_base boxname="b_bot_base_smfl" parent="o2ac_ground">
+    <origin xyz="${b_bot_x-.65/2} ${b_bot_y-.65/2} ${bots_z-.05}" rpy="0 0 0" />
+  </xacro:o2ac_base>
+
+  <!-- Main workspace -->
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_box.xacro" />
+  <xacro:property name="workplate_w" value="0.65"/>
+  <xacro:property name="workplate_l" value="0.4"/>
+  <xacro:property name="workplate_h" value="0.02"/>
+  <xacro:property name="robot_mount_plate" value="0.005"/>  <!-- The plate holding the robots, resting on the alu frames -->
+  <xacro:o2ac_box boxname="workplate" box_w="${workplate_w}" box_l="${workplate_l}" box_h="${workplate_h}" parent="o2ac_ground">
+    <origin xyz="${-workplate_w/2} ${-(workplate_l/2)} ${bots_z-robot_mount_plate}" rpy="0 0 0" />
+  </xacro:o2ac_box>
+  <link name="workspace_center" />
+  <joint name="world_to_workspace" type="fixed">
+    <parent link="o2ac_ground" />
+    <child link="workspace_center" />
+    <origin xyz="0.0 0.0 ${bots_z-robot_mount_plate+workplate_h}" rpy="0.0 0.0 0.0" />
+  </joint>
+
+  <xacro:ur5e_robot prefix="a_bot_" joint_limited="true"
+    shoulder_pan_lower_limit="${-pi}" shoulder_pan_upper_limit="${pi}"
+    shoulder_lift_lower_limit="${-pi}" shoulder_lift_upper_limit="${pi}"
+    elbow_joint_lower_limit="0.0" elbow_joint_upper_limit="${pi}"
+    wrist_1_lower_limit="${-pi*1.5}" wrist_1_upper_limit="${pi}"
+    wrist_2_lower_limit="${-pi*1.5}" wrist_2_upper_limit="${pi*1.5}"
+    wrist_3_lower_limit="${-2*pi}" wrist_3_upper_limit="${2*pi}"
+    transmission_hw_interface="hardware_interface/PositionJointInterface"
+    safety_limits="false" safety_pos_margin="0.15"
+    safety_k_position="20"
+    kinematics_file="${load_yaml('$(find o2ac_scene_description)/config/a_bot_calibration.yaml')}"
+  />
+
+  <xacro:ur5e_robot prefix="b_bot_" joint_limited="true"
+    shoulder_pan_lower_limit="${-pi}" shoulder_pan_upper_limit="${pi}"
+    shoulder_lift_lower_limit="${-pi}" shoulder_lift_upper_limit="${pi}"
+    elbow_joint_lower_limit="0.0" elbow_joint_upper_limit="${pi}"
+    wrist_1_lower_limit="${-pi*1.5}" wrist_1_upper_limit="${pi}"
+    wrist_2_lower_limit="${-pi*1.5}" wrist_2_upper_limit="${pi*1.5}"
+    wrist_3_lower_limit="${-2*pi}" wrist_3_upper_limit="${2*pi}"
+    transmission_hw_interface="hardware_interface/PositionJointInterface"
+    safety_limits="false" safety_pos_margin="0.15"
+    safety_k_position="20"
+    kinematics_file="${load_yaml('$(find o2ac_scene_description)/config/b_bot_calibration.yaml')}"
+  />
+
+  <link name="o2ac_ground" />
+
+  <link name="a_bot_intermediate_link" />
+  <joint name="world_a_bot_intermediate_joint" type="fixed">
+    <parent link="o2ac_ground" />
+    <child link="a_bot_intermediate_link" />
+    <origin xyz="${a_bot_x} ${a_bot_y} ${bots_z+a_bot_z}" rpy="0.0 0.0 ${a_bot_z_angle}" />
+  </joint>
+
+  <joint name="world_a_bot_joint" type="fixed">
+    <parent link="a_bot_intermediate_link" />
+    <child link="a_bot_base_link" />
+    <origin xyz="0 0 0" rpy="${a_bot_y_angle} 0.0 0.0" />
+  </joint>
+
+  <link name="b_bot_intermediate_link" />
+  <joint name="world_b_bot_intermediate_joint" type="fixed">
+    <parent link="o2ac_ground" />
+    <child link="b_bot_intermediate_link" />
+    <origin xyz="${b_bot_x} ${b_bot_y} ${bots_z+b_bot_z}" rpy="0.0 0.0 ${b_bot_z_angle}" />
+  </joint>
+
+  <joint name="world_b_bot_joint" type="fixed">
+    <parent link="b_bot_intermediate_link" />
+    <child link="b_bot_base_link" />
+    <origin xyz="0 0 0" rpy="${-b_bot_y_angle} 0.0 0.0" />
+  </joint>
+
+  <!-- Spawn and attach robotiq 85 gripper (+ cameras) -->
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector_2F-140.urdf.xacro" />
+  <xacro:o2ac_end_effector prefix="a_bot_" use_soft_wrist="false" use_cameras="true" parent = "a_bot_ee_link" />
+
+  <gazebo reference="a_bot_wrist_3_joint">
+  <provideFeedback>true</provideFeedback>
+  </gazebo>
+  <gazebo>
+    <plugin name="ft_sensor" filename="libgazebo_ros_ft_sensor.so">
+      <updateRate>500.0</updateRate>
+      <topicName>a_bot/wrench</topicName>
+      <gaussianNoise>1.0</gaussianNoise>
+      <jointName>a_bot_wrist_3_joint</jointName>
+    </plugin>
+  </gazebo>
+
+  <xacro:include filename="$(find o2ac_scene_description)/urdf/components/o2ac_end_effector.urdf.xacro" />
+  <xacro:o2ac_end_effector prefix="b_bot_" use_soft_wrist="false" use_cameras="true" parent = "b_bot_ee_link" />
+
+  <gazebo reference="b_bot_wrist_3_joint">
+  <provideFeedback>true</provideFeedback>
+  </gazebo>
+  <gazebo>
+    <plugin name="ft_sensor" filename="libgazebo_ros_ft_sensor.so">
+      <updateRate>500.0</updateRate>
+      <topicName>b_bot/wrench</topicName>
+      <gaussianNoise>1.0</gaussianNoise>
+      <jointName>b_bot_wrist_3_joint</jointName>
+    </plugin>
+  </gazebo>
+
+  <!-- The "world" link definition should be removed, but apparently it is necessary for Gazebo -->
+  <link name="world" />
+  <joint name="world_o2ac_joint" type="fixed">
+    <parent link="world" />
+    <child link="o2ac_ground" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+
+</robot>

@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>aist_model_spawner</name>
+  <version>0.0.0</version>
+  <description>The aist_model_spawner package</description>
+
+  <maintainer email="t.ueshiba@aist.go.jp">Toshio UESHIBA</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>message_generation</build_depend>
+  <exec_depend>message_runtime</exec_depend>
+  <depend>geometry_msgs</depend>
+  <depend>rospy</depend>
+  <depend>tf</depend>
+
+  <build_depend>qtbase5-dev</build_depend>
+  <exec_depend>libqt5-core</exec_depend>
+  <exec_depend>libqt5-gui</exec_depend>
+  <exec_depend>libqt5-widgets</exec_depend>
+  <depend>rviz</depend>
+
+  <export>
+    <rviz plugin="${prefix}/plugin_description.xml"/>
+  </export>
+</package>

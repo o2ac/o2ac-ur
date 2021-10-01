@@ -1,0 +1,15 @@
+<launch>
+  <!-- Unused but kept for compatibility with fake controllers -->
+  <arg name="execution_type" default="" />
+  <!-- Load a different set of gripper controllers for Gazebo simulation -->
+  <arg name="sim" default="false" />
+
+  <!-- loads moveit_controller_manager on the parameter server which is taken as argument 
+    if no argument is passed, moveit_simple_controller_manager will be set -->
+  <arg name="moveit_controller_manager" default="moveit_simple_controller_manager/MoveItSimpleControllerManager" />
+  <param name="moveit_controller_manager" value="$(arg moveit_controller_manager)"/>
+
+  <!-- loads ros_controllers to the param server -->
+  <rosparam unless="$(arg sim)" subst_value="true" file="$(find o2ac_moveit_config)/config/ros_controllers.yaml"/>
+  <rosparam if="$(arg sim)" subst_value="true" file="$(find o2ac_moveit_config)/config/ros_controllers_gazebo.yaml"/>
+</launch>

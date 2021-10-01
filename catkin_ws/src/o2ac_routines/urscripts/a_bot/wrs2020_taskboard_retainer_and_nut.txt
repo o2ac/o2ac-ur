@@ -1,0 +1,47 @@
+ Program
+   Robot Program
+     MoveJ
+       Waypoint_12
+     Gripper Move45% (1)
+     MoveJ
+       above_idler
+     MoveL
+       at_pulley_1
+     Gripper Close (1)
+     Gripper Move45% (1)
+     MoveL
+       at_pulley_2
+     Gripper Close (1)
+     Gripper Move58% (1)
+     MoveL
+       at_pulley_1
+     MoveL
+       angled
+     Gripper Close (1)
+     MoveL
+       above_angled
+     MoveL
+       near_tb
+       in_ridge
+     Popup: wait for screw tool to hold
+     Gripper Move42% (1)
+     MoveL
+       away
+       far_above_nut
+     MoveL
+       above_nut
+       Gripper Move68% (1)
+       at_nut
+       Gripper Close (1)
+       above_nut
+     MoveJ
+       Waypoint_1
+       Waypoint_2
+       before_shaft
+     MoveL
+       at_shaft
+       Popup: wait for screw tool to hold
+       Gripper Move68% (1)
+       before_shaft
+       Waypoint_2
+       Waypoint_1

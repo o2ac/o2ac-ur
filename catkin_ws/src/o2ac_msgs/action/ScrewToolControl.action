@@ -1,0 +1,13 @@
+string fastening_tool_name  # "m3_tool", "m4_tool", "m5_tool", "nut_tool1" ... (see config file of package)
+uint32 speed                # 0 to 1023
+float32 duration            # in s
+string direction            # "tighten" or "loosen"
+
+bool skip_final_loosen_and_retighten  # By default, after tightening fully, the motor loosens the screw for
+                                      # one second and then tightens again. This can protect against some failures.
+                                      # Setting this bool to true skips the loosening (good for the idler pulley)
+---
+bool control_result         # True if the commands were sent successfully to the motor
+bool motor_stalled          # True if the motor stopped before the timeout
+---
+uint32 motor_speed

@@ -1,0 +1,27 @@
+parent_frame, child_frame, roll, pitch, yaw, x, y, z, notes
+# This file contains the matings between parts and their frames.
+# It defines the assembly tree. Each line defines one mating in the above format.
+# The rpy,xyz offset is defined in the parent_frame.
+
+# The panels
+part_01_screw_hole_panel2_1, part_02_bottom_screw_hole_aligner_1,   0, 0, 0,   0,0,0, Base + Panel1
+part_01_screw_hole_panel1_2, part_03_bottom_screw_hole_aligner_1,   pi, 0, 0,   0,0,0, Base + Panel2
+
+# The motor
+part_02_back_hole_bottom, part_04_inserted_02,   0, 0, 0,   0,0,0, Panel2 + Motor
+#part_02_back_hole, part_04_inserted_02,   pi, 0, 0,   0,0,0, Panel2 + Motor
+part_04_tip,       part_05_center,        0, 0, pi,   -0.005,0,0, Motor + Pulley
+
+# The bearing and output shaft
+part_03_back_hole,     part_07_inserted,      pi, 0, 0,   0,0,0, Panel2 + Bearing
+part_07_front_hole,    part_10_center,        0, 0, 0,    0.001,0,0, Bearing + Spacer
+part_10_center,        part_11_back_tip,      pi, 0, 0,   -0.002,0,0, Spacer + Pulley
+part_07_back_hole,     part_09_inner_surface, 0, 0, 0,    -0.001,0,0, Bearing + End Cap
+part_09_inner_surface, part_08_back_tip,      0, 0, pi,    0,0,0, End Cap + Rotary Shaft
+
+# The idler assembly in the middle
+part_03_pulley_ridge_middle, part_12_center,           0, 0, 0,   -0.00475+0.001,0,0, Panel2 + Spacer (1 mm accounts for washer that is not shown)
+part_12_center,              part_13_center,           0, 0, 0,   -(0.00475+0.009),0,0, Spacer + Pulley
+part_13_center,              part_14_screw_inserted,   0, 0, 0,   0.003,0,0, Pulley + Screw
+part_03_pulley_ridge_middle, part_16_center,           0, 0, 0,   -(0.005+.001),0,0, Panel2 + Washer
+part_16_center,              part_15_center,           0, 0, pi,   .001+.0025,0,0, Washer + Nut

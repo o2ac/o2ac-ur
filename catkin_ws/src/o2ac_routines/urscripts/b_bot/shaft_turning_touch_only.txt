@@ -1,0 +1,14 @@
+ Program
+   Robot Program
+     Gripper Open (1)
+     'Wait: 0.5'
+     MoveL
+       at_shaft
+     'Popup: ok to turn shaft'
+     'MoveJ'
+     MoveL
+       at_shaft_left
+       up
+       'at_right_up'
+       'at_right'
+       at_shaft

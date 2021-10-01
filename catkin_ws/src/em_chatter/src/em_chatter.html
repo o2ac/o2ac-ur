@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+
+<!-- http://wiki.ros.org/roslibjs/Tutorials/BasicRosFunctionality -->
+
+<html>
+
+	<head>
+		<meta charset="utf-8" />
+		<script type="text/javascript" src="http://static.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
+		<script type="text/javascript" src="http://static.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+		<script type="text/javascript" type="text/javascript">
+			// Connect to ROS.
+			var ros = new ROSLIB.Ros({
+				url : 'ws://localhost:9090'
+			});
+			ros.on('connection', function() {
+				console.log('Connected to websocket server.');
+			});
+			ros.on('error', function(error) {
+				console.log('Error connecting to websocket server: ', error);
+			});
+			ros.on('close', function() {
+				console.log('Connection to websocket server closed.');
+			});
+			// Subscribe to topic.
+			var listener = new ROSLIB.Topic({
+				ros : ros,
+				name : '/em_chatter',
+				messageType : 'std_msgs/String'
+			});
+			listener.subscribe(function(message) {
+				console.log('Received message on ' + listener.name + ': ' + message.data);
+				//listener.unsubscribe();
+			});
+		</script>
+	</head>
+
+	<body>
+		<h1>Simple Rosbridge Example</h1>
+		<p>Check the Web Console for output.</p>
+	</body>
+
+</html>

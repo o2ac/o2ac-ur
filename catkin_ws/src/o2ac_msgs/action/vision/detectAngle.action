@@ -1,0 +1,25 @@
+# This action will be called when the camera is looking at the bearing, large pulley or motor
+# from the front to check the angle difference to its target position.
+# Can also be called looking at the motor from the top
+
+# Request
+string item_id     # Name of the item ("bearing", "pulley" or the part name)
+bool get_motor_from_top  # Uses a separate pipeline for looking at the motor from the top. 
+                         # Returns the position of the cables.
+
+## Only used internally to pass to the Python3 node
+sensor_msgs/Image rgb_image
+
+---
+# Result
+
+bool succeeded
+float32 rotation_angle   # The angle by which the object needs to be turned
+                         # around its axis until it is in the target position.
+                         # (= screws pointing up, or the bearing holes aligned)
+                         # Negative angle = counter-clockwise turn is required
+float32 confidence
+
+---
+# Feedback (values that can be sent to the client while the action is running)
+

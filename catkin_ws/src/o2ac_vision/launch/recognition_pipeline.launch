@@ -1,0 +1,79 @@
+<?xml version="1.0" ?>
+<launch>
+  <!-- Launches the nodes required for the 3D recognition pipeline. -->
+
+  <!-- Name of nodelet manager (without nodelet if empty string is given) -->
+  <arg name="manager"			default=""/>
+
+  <arg name="surprise"			default="false"/>
+
+  <!-- Pytorch learning data file name -->
+  <arg name="pth_file_name"	default="WRS.pth"/>
+
+  <!-- Mode of object detector -->
+  <arg name="continuous_streaming"	default="false"/>
+
+  <!-- Localization parameters -->
+  <arg name="nposes"			default="2"/>
+  <arg name="timeout"			default="10"/>
+  <arg name="mesh_dir"			default="$(find o2ac_parts_description
+						 )/meshes"/>
+  <arg name="urdf_dir"			default="$(find o2ac_parts_description
+						 )/urdf/generated"/>
+  <arg name="use_localization_sdk"	default="false"/>
+
+  <!-- AIST depth_filter parameters -->
+  <arg name="camera_info_topic"	default="/camera_multiplexer/camera_info"/>
+  <arg name="image_topic"	default="/camera_multiplexer/image"/>
+  <arg name="depth_topic"	default="/camera_multiplexer/depth"/>
+  <arg name="normal_topic"	default=""/>
+
+  <!-- Spawn vision server -->
+  <node name="o2ac_vision_server"
+	pkg="o2ac_vision" type="o2ac_vision_server.py" output="screen">
+    <remap from="/camera_info"		to="$(arg camera_info_topic)"/>
+    <remap from="/image"		to="$(arg image_topic)"/>
+    <remap from="/depth"		to="$(arg depth_topic)"/>
+    <param name="continuous_streaming"	value="$(arg continuous_streaming)"/>
+    <param name="pth_file_name" value="$(arg pth_file_name)"/>
+    <param name="surprise"		value="$(arg surprise)"/>
+
+    <!-- Localization params -->
+    <param name="nposes"		value="$(arg nposes)"/>
+    <param name="timeout"		value="$(arg timeout)"/>
+    <rosparam if="$(arg use_localization_sdk)"
+	      file="$(find aist_localization)/config/settings.yaml"/>
+    <rosparam unless="$(arg use_localization_sdk)"
+	      file="$(find aist_new_localization)/config/settings.yaml"/>
+  </node>
+
+  <!-- Spawn depth_filter and localizer -->
+  <group unless="$(arg continuous_streaming)">
+
+    <include if="$(arg use_localization_sdk)"
+	     file="$(find aist_localization)/launch/run.launch">
+      <arg name="camera_info_topic"	value="$(arg camera_info_topic)"/>
+      <arg name="image_topic"		value="$(arg image_topic)"/>
+      <arg name="depth_topic"		value="$(arg depth_topic)"/>
+      <arg name="normal_topic"		value="$(arg normal_topic)"/>
+      <arg name="ply_dir"		value="$(arg mesh_dir)"/>
+      <arg name="manager"		value="$(arg manager)"/>
+    </include>
+
+    <include unless="$(arg use_localization_sdk)"
+	     file="$(find aist_new_localization)/launch/run.launch">
+      <arg name="camera_info_topic"	value="$(arg camera_info_topic)"/>
+      <arg name="image_topic"		value="$(arg image_topic)"/>
+      <arg name="depth_topic"		value="$(arg depth_topic)"/>
+      <arg name="pcd_dir"		value="$(arg mesh_dir)"/>
+      <arg name="manager"		value="$(arg manager)"/>
+    </include>
+
+    <!-- Spawn model_spawner -->
+    <include file="$(find aist_model_spawner)/launch/run.launch">
+      <arg name="urdf_dir"	value="$(arg urdf_dir)"/>
+    </include>
+
+  </group>
+
+</launch>

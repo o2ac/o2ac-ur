@@ -1,0 +1,147 @@
+screw_3:
+  id: 'screw_tool_m4'
+  frame_id: 'screw_tool_m4_link'
+  primitives:
+    [
+      { # The bit cushion and motor
+        type: 'BOX',
+        dimensions: [.026, .04, .055],
+        pose: [0.0, -0.009, 0.0275, 0.0, 0.0, 0.0]
+      },
+      { # The "shaft" + suction attachment
+        type: 'BOX',
+        dimensions: [.019, .03, .08],
+        pose: [0.0, -0.0055, -0.04, 0.0, 0.0, 0.0]
+      }, 
+      { # The cylinder representing the tip
+        type: 'CYLINDER',
+        dimensions: [.038, .0035],
+        pose: [0.0, 0.0, -0.099, 0.0, 0.0, 0.0]
+      },
+    ]
+  subframe:
+    name: 'screw_tool_m4_tip'
+    pose: [0.0, 0.0, -.12, 0.0, 0.0, 0.0]
+  mesh_url: 'package://o2ac_scene_description/meshes/screw_tool_m4_BC5-XL320-AY3.5-EH3R4.stl'
+screw_4:
+  id: 'screw_tool_m3'
+  frame_id: 'screw_tool_m3_link'
+  primitives:
+    [
+      { # The bit cushion and motor
+        type: 'BOX',
+        dimensions: [.026, .04, .055],
+        pose: [0.0, -0.009, 0.0275, 0.0, 0.0, 0.0]
+      },
+      { # The "shaft" + suction attachment
+        type: 'BOX',
+        dimensions: [.019, .03, .08],
+        pose: [0.0, -0.0055, -0.04, 0.0, 0.0, 0.0]
+      }, 
+      { # The cylinder representing the tip
+        type: 'CYLINDER',
+        dimensions: [.018, .0035],
+        pose: [0.0, 0.0, -0.089, 0.0, 0.0, 0.0]
+      },
+    ]
+  subframe:
+    name: 'screw_tool_m3_tip'
+    pose: [0.0, 0.0, -.11, 0.0, 1.5707, -1.5707]
+  mesh_url: 'package://o2ac_scene_description/meshes/screw_tool_m3_BC5-XL320-R-AY2.6-EH2.stl'
+screw_tool_padless:
+  id: 'padless_tool_m4'
+  frame_id: 'padless_tool_m4_link'
+  primitives:
+    [
+      { # The bit cushion and motor
+        type: 'BOX',
+        dimensions: [.026, .04, .055],
+        pose: [0.0, -0.009, 0.0275, 0.0, 0.0, 0.0]
+      },
+      { # The "shaft" + suction attachment
+        type: 'BOX',
+        dimensions: [.019, .03, .08],
+        pose: [0.0, -0.0055, -0.04, 0.0, 0.0, 0.0]
+      }, 
+      { # The cylinder representing the tip
+        type: 'CYLINDER',
+        dimensions: [.038, .0035],
+        pose: [0.0, 0.0, -0.099, 0.0, 0.0, 0.0]
+      },
+    ]
+  subframe:
+    name: 'padless_tool_m4_tip'
+    pose: [0.0, 0.0, -.12, 0.0, 0.0, 0.0]
+  mesh_url: 'package://o2ac_scene_description/meshes/screw_tool_m4_BC5-XL320-AY3.5-EH3R4.stl'
+set_screw_tool:
+  id: 'set_screw_tool'
+  frame_id: 'set_screw_tool_link'
+  primitives:
+    [
+      { # The upper box
+        type: 'BOX',
+        dimensions: [0.032, 0.058, 0.052],
+        pose: [0.0, -0.0115, 0.0275, 0.0, 0.0, 0.0]
+      },
+      { # The cylinder representing the tip
+        type: 'CYLINDER',
+        dimensions: [.025, .0075],
+        pose: [0.0, 0.0, -0.01, 0.0, 0.0, 0.0]
+      },
+    ]
+  subframe:
+    name: 'set_screw_tool_tip'
+    pose: [0.0, -.0015, -.028, 0.0, 1.5707, -1.5707]
+nut_holder1:
+  id: 'nut_holder1'
+  frame_id: 'nut_holder1_link'
+  primitives:
+    [
+      { # The upper box
+        type: 'BOX',
+        dimensions: [0.04, 0.04, 0.02],
+        pose: [0.0, -0.01, 0.02, 1.5707, 0.0, 0.0]
+      },
+    ]
+  subframe:
+    name: 'nut_holder_center'
+    pose: [0.02, 0.04, 0.01, 0.0, 0, 0]
+nut_holder2:
+  id: 'nut_holder2'
+  frame_id: 'nut_holder2_link'
+  primitives:
+    [
+      { # The upper box
+        type: 'BOX',
+        dimensions: [0.04, 0.04, 0.02],
+        pose: [0.0, -0.01, 0.02, 1.5707, 0.0, 0.0]
+      },
+    ]
+  subframe:
+    name: 'nut_holder_center'
+    pose: [0.02, 0.04, 0.01, 0.0, 0, 0]
+cable_tool:
+  id: 'cable_tool'
+  frame_id: 'cable_holder_pickup_link'
+  primitives:
+    [
+      { # The bit cushion and motor
+        type: 'BOX',
+        dimensions: [.056, .08, .081],
+        pose: [-0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      },
+      { # The bit cushion and motor
+        type: 'BOX',
+        dimensions: [.02, .05, .05],
+        pose: [0.036, 0.0, 0.0, 0.0, 0.0, 0.0]
+      },
+      { # The bit cushion and motor
+        type: 'BOX',
+        dimensions: [.02, .03, .03],
+        pose: [0.05, 0.0, 0.0, 0.0, 0.0, 0.0]
+      }
+    ]
+  subframe:
+    name: 'cable_tool_tip'
+    pose: [0.05, 0.0, 0.0, 0.0, 0.0, 0.0]
+  mesh_url: 'package://o2ac_scene_description/meshes/cable_tool.stl'

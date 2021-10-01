@@ -1,0 +1,10 @@
+robot_name: b_bot
+waypoints:
+- pose: [0.05,  0.05,  0.45, 180,  30 , -90]
+  pose_type: task-space-in-frame
+  frame_id: workspace_center
+  speed: 0.5
+- pose: [0.15, 0.0, 0.20, 50, 50, -140]
+  pose_type: task-space-in-frame
+  frame_id: workspace_center
+  speed: 0.5

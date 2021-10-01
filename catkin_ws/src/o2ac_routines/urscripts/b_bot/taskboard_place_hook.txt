@@ -1,0 +1,15 @@
+ Program
+   Robot Program
+     MoveJ
+       currentpose≔get_actual_joint_positions()
+       currentpose
+     MoveL
+       home_1
+       Waypoint_right
+       high_approach
+       before_tool
+       grasp_tool
+       Gripper Open (1)
+       above_tool
+       Waypoint_right
+       home

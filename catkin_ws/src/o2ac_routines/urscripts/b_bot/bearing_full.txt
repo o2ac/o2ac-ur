@@ -1,0 +1,133 @@
+ Program
+   Robot Program
+     MoveJ
+       Gripper Open (1)
+       above_grasp
+       at_grasp
+       Gripper Close (1)
+     Center grasp and turn over
+       MoveL
+         pass_tray
+         above
+         pick_1
+       Gripper Move15% (1)
+       MoveL
+         turn_left
+       Gripper Close (1)
+       Gripper Move16% (1)
+       MoveL
+         turn_left
+         'incline'
+         very_inclined
+       Gripper Close (1)
+     Turn over
+       MoveL
+         Waypoint_1
+         Waypoint_2
+         Waypoint_3
+         Gripper Move16% (1)
+         Waypoint_5
+         Gripper Close (1)
+         Waypoint_6
+     Center grasp and pick inclined
+       MoveL
+         'pass_tray'
+         above
+         pick_1
+       Gripper Move15% (1)
+       MoveL
+         turn_left
+         'turn_right'
+       Gripper Close (1)
+       Gripper Move16% (1)
+       MoveL
+         'pick_1'
+         turn_left
+         incline
+       Gripper Close (1)
+     MoveL
+       above
+     MoveJ
+       Waypoint_4
+       beforehole
+       athole
+     first insert
+       loop_1≔0
+       tcp_p≔get_actual_tcp_pose()
+       Force
+         Loop ( tcp_p[0] > -0.095) and  (loop_1 < 1) 
+           MoveL
+             Direction: Base Y+
+               Until (distance)
+             Direction: Base Z-
+               Until (distance)
+             tcp_p≔get_actual_tcp_pose()
+             Direction: Base Y-
+               Until (distance)
+             Direction: Base Y-
+               Until (distance)
+             tcp_p≔get_actual_tcp_pose()
+             Direction: Base Z+
+               Until (distance)
+             Direction: Base Y+
+               Until (distance)
+             tcp_p≔get_actual_tcp_pose()
+             Direction: Base Y+
+               Until (distance)
+             Direction: Base Z+
+               Until (distance)
+             tcp_p≔get_actual_tcp_pose()
+             Direction: Base Y-
+               Until (distance)
+             Direction: Base Y-
+               Until (distance)
+             tcp_p≔get_actual_tcp_pose()
+             Direction: Base Z-
+               Until (distance)
+             Direction: Base Y+
+               Until (distance)
+             tcp_p≔get_actual_tcp_pose()
+           MoveL
+             rightturn
+             tcp_p≔get_actual_tcp_pose()
+             leftturn
+             tcp_p≔get_actual_tcp_pose()
+             leftturn
+             tcp_p≔get_actual_tcp_pose()
+             rightturn
+             tcp_p≔get_actual_tcp_pose()
+           loop_1≔loop_1+1
+           tcp_p≔get_actual_tcp_pose()
+     Gripper Open (1)
+     MoveJ
+       regrasp_point
+     Gripper Close (1)
+     If rq_current_pos_mm()<10
+       'Gripper fully closed = bearing not inserted!! Stopping.'
+       MoveL
+         Direction: Base X+
+           Until (distance)
+       Halt
+     second insert
+       loop_1≔0
+       tcp_p≔get_actual_tcp_pose()
+       Force
+         Loop ( tcp_p[0] > -0.095) and  (loop_1 < 1) 
+           MoveL
+             rightturn
+             tcp_p≔get_actual_tcp_pose()
+             leftturn
+             tcp_p≔get_actual_tcp_pose()
+             leftturn
+             tcp_p≔get_actual_tcp_pose()
+             rightturn
+             tcp_p≔get_actual_tcp_pose()
+           loop_1≔loop_1+1
+           tcp_p≔get_actual_tcp_pose()
+     Gripper Open (1)
+     'MoveJ'
+     'Gripper Close (1)'
+     'spiral push until fully inserted'
+     MoveJ
+       a_bit_back
+     Gripper Open (1)

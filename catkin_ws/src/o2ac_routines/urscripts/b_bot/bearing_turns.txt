@@ -1,0 +1,16 @@
+ Program
+   Robot Program
+     Gripper Open (1)
+     MoveJ
+       athole
+       'At taskboard bearing'
+     Gripper Close (1)
+     Force
+       MoveL
+         rightturn_small
+         rightturn
+         leftturn_small
+         leftturn
+     Gripper Open (1)
+     MoveJ
+       athole

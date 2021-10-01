@@ -1,0 +1,233 @@
+collision_primitives:
+- type: BOX 
+  dimensions: [0.06, 0.06, 0.005]
+  pose: [0.03, 0.03, 0.0025, 0.0, 0.0, 0.0]
+- type: BOX 
+  dimensions: [0.06, 0.005, 0.025]
+  pose: [0.03, 0.0, 0.0125, 0.0, 0.0, 0.0]
+subframes:
+- pose_xyzrpy:
+  - 0.0
+  - 0.0
+  - 0.0
+  - -pi/2
+  - 0.0
+  - -pi/2
+  name: bottom_corner_1
+- pose_xyzrpy:
+  - 0.06
+  - 0.0
+  - 0.0
+  - -pi/2
+  - 0.0
+  - -pi/2
+  name: bottom_corner_2
+- pose_xyzrpy:
+  - 0.03
+  - 0.046
+  - 0.005
+  - -pi/2
+  - pi/2
+  - 0.0
+  name: back_hole
+- pose_xyzrpy:
+  - 0.03
+  - 0.034
+  - 0.005
+  - pi/2
+  - pi/2
+  - 0.0
+  name: back_hole_bottom
+- pose_xyzrpy:
+  - 0.03
+  - 0.03
+  - 0.0
+  - -pi/2
+  - -pi/2
+  - 0.0
+  name: center
+- pose_xyzrpy:
+  - 0.006
+  - 0.0
+  - 0.015
+  - -pi/2
+  - 0.0
+  - -pi/2
+  name: bottom_screw_hole_aligner_1
+- pose_xyzrpy:
+  - 0.054
+  - 0.0
+  - 0.015
+  - -pi/2
+  - 0.0
+  - -pi/2
+  name: bottom_screw_hole_aligner_2
+- pose_xyzrpy:
+  - 0.006
+  - 0.005
+  - 0.015
+  - -pi/2
+  - 0.0
+  - -pi/2
+  name: bottom_screw_hole_1
+- pose_xyzrpy:
+  - 0.054
+  - 0.005
+  - 0.015
+  - -pi/2
+  - 0.0
+  - -pi/2
+  name: bottom_screw_hole_2
+- pose_xyzrpy:
+  - 0.03775
+  - 0.051423
+  - 0.0
+  - pi/2
+  - -pi/2
+  - 0.0
+  name: motor_screw_hole_1
+- pose_xyzrpy:
+  - 0.0455
+  - 0.038
+  - 0.0
+  - pi/2
+  - -pi/2
+  - 0.0
+  name: motor_screw_hole_2
+- pose_xyzrpy:
+  - 0.03775
+  - 0.024577
+  - 0.0
+  - pi/2
+  - -pi/2
+  - 0.0
+  name: motor_screw_hole_3
+- pose_xyzrpy:
+  - 0.02225
+  - 0.024577
+  - 0.0
+  - pi/2
+  - -pi/2
+  - 0.0
+  name: motor_screw_hole_4
+- pose_xyzrpy:
+  - 0.01415
+  - 0.038
+  - 0.0
+  - pi/2
+  - -pi/2
+  - 0.0
+  name: motor_screw_hole_5
+- pose_xyzrpy:
+  - 0.02225
+  - 0.051423
+  - 0.0
+  - pi/2
+  - -pi/2
+  - 0.0
+  name: motor_screw_hole_6
+grasp_points:
+- grasp_name: default_grasp
+  pose_xyzrpy:
+  - 0.032
+  - 0.0025
+  - 0.01
+  - pi
+  - 1.5707963267948966
+  - 0.0
+- grasp_name: grasp_1
+  pose_xyzrpy:
+  - 0.032
+  - 0.0025
+  - 0.01
+  - 0.0
+  - 0.5235987755982988
+  - 0.0
+- grasp_name: grasp_2
+  pose_xyzrpy:
+  - 0.032
+  - 0.0025
+  - 0.01
+  - 0.0
+  - 1.0471975511965976
+  - 0.0
+- grasp_name: grasp_3
+  pose_xyzrpy:
+  - 0.032
+  - 0.0025
+  - 0.01
+  - 0.0
+  - 1.5707963267948966
+  - 0.0
+- grasp_name: grasp_4
+  pose_xyzrpy:
+  - 0.032
+  - 0.0025
+  - 0.01
+  - 0.0
+  - 2.0943951023931953
+  - 0.0
+- grasp_name: grasp_5
+  pose_xyzrpy:
+  - 0.032
+  - 0.0025
+  - 0.01
+  - 0.0
+  - 2.617993877991494
+  - 0.0
+- grasp_name: grasp_6
+  pose_xyzrpy:
+  - 0.033
+  - 0.04
+  - 0.0025
+  - 1.5707963267948966
+  - 0.0
+  - -3.141592653589793
+- grasp_name: grasp_7
+  pose_xyzrpy:
+  - 0.033
+  - 0.04
+  - 0.0025
+  - 1.5707963267948966
+  - 0.0
+  - -2.6179938779914944
+- grasp_name: grasp_8
+  pose_xyzrpy:
+  - 0.033
+  - 0.04
+  - 0.0025
+  - 1.5707963267948966
+  - 0.0
+  - -2.0943951023931957
+- grasp_name: grasp_9
+  pose_xyzrpy:
+  - 0.033
+  - 0.04
+  - 0.0025
+  - -1.5707963267948966
+  - 0.0
+  - -1.570796326794897
+- grasp_name: grasp_10
+  pose_xyzrpy:
+  - 0.033
+  - 0.04
+  - 0.0025
+  - 1.5707963267948966
+  - 0.0
+  - -1.0471975511965983
+- grasp_name: grasp_11
+  pose_xyzrpy:
+  - 0.033
+  - 0.04
+  - 0.0025
+  - 1.5707963267948966
+  - 0.0
+  - -0.5235987755982996
+- grasp_name: grasp_12
+  pose_xyzrpy:
+  - 0.033
+  - 0.04
+  - 0.0025
+  - 1.5707963267948966
+  - 0.0
+  - 0.0

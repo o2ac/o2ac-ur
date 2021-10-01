@@ -1,0 +1,76 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="scene" default=""/>
+  <arg name="limited" default="false"/>
+  <arg name="paused" default="true"/>
+  <arg name="gui" default="true"/>
+  <!-- Gazebo needs to start up paused in order for us to be able to set the initial joint configurations.
+       This is a known bug as of July 2018. -->
+
+  <!-- startup simulated world -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" default="worlds/empty.world"/>
+    <arg name="paused" value="$(arg paused)"/>
+    <arg name="gui" value="$(arg gui)"/>
+    <arg name="verbose" value="true"/>
+  </include>
+
+  <!-- send robot urdf to param server -->
+  <!-- In this case the "robot" is the ensemble of the 3 arms -->
+  <include file="$(find
+		 aist_scene_description)/launch/base_scene_upload.launch">
+    <arg name="scene" value="$(arg scene)"/>
+  </include>
+
+  <!-- push robot_description to factory and spawn robot in gazebo -->
+  <!-- Initial pose modified on 9 July 2018 -->
+  <!-- Do not change this without updating the home pose in aist_base_scene.srdf accordingly. -->
+  <node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model"
+        args="-urdf -param robot_description -model aist_bots
+        -J a_bot_elbow_joint 1.4      -J a_bot_shoulder_lift_joint -2.1  -J a_bot_shoulder_pan_joint 1.57
+        -J a_bot_wrist_1_joint -0.85  -J a_bot_wrist_2_joint -1.57       -J a_bot_wrist_3_joint 0
+        -J b_bot_elbow_joint 1.4      -J b_bot_shoulder_lift_joint -2.1  -J b_bot_shoulder_pan_joint 1.57
+        -J b_bot_wrist_1_joint -0.85  -J b_bot_wrist_2_joint -1.57       -J b_bot_wrist_3_joint 0
+        -unpause" respawn="false" output="screen" />
+  <include file="$(find o2ac_gazebo)/launch/controller_utils.launch"/>
+
+  <!-- spawn controllers -->
+  <rosparam file="$(find o2ac_gazebo)/controller/aist_controllers.yaml" command="load"/>
+  <node name="a_bot_controller_spawner" pkg="controller_manager"
+	type="controller_manager"
+	args="spawn a_bot/scaled_pos_joint_traj_controller a_bot/gripper_controller"
+	respawn="false" output="screen"/>
+  <node name="b_bot_controller_spawner" pkg="controller_manager"
+	type="controller_manager"
+	args="spawn b_bot/scaled_pos_joint_traj_controller b_bot/gripper_controller"
+	respawn="false" output="screen"/>
+
+  <!-- Set names of realsense cameras -->
+  <arg name="camera0_name"	value="a_bot_inside_camera"/>
+  <arg name="camera1_name"	value="a_bot_outside_camera"/>
+
+  <!-- Launch camera multiplexer -->
+  <arg name="multiplexer_name"	value="camera_multiplexer"/>
+  <node name="$(arg multiplexer_name)"
+  	pkg="aist_camera_multiplexer" type="aist_camera_multiplexer"
+  	output="screen">
+    <rosparam param="camera_names"
+	      subst_value="true">[$(arg camera0_name),
+                                  $(arg camera1_name)]</rosparam>
+
+    <remap from="$(arg multiplexer_name)/$(arg camera0_name)/camera_info"
+	   to="$(arg camera0_name)/color/camera_info"/>
+    <remap from="$(arg multiplexer_name)/$(arg camera0_name)/image"
+	   to="$(arg camera0_name)/color/image_raw"/>
+    <remap from="$(arg multiplexer_name)/$(arg camera0_name)/depth"
+	   to="$(arg camera0_name)/aligned_depth_to_color/image_raw"/>
+
+    <remap from="$(arg multiplexer_name)/$(arg camera1_name)/camera_info"
+	   to="$(arg camera1_name)/color/camera_info"/>
+    <remap from="$(arg multiplexer_name)/$(arg camera1_name)/image"
+	   to="$(arg camera1_name)/color/image_raw"/>
+    <remap from="$(arg multiplexer_name)/$(arg camera1_name)/depth"
+	   to="$(arg camera1_name)/aligned_depth_to_color/image_raw"/>
+  </node>
+
+</launch>

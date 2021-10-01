@@ -1,0 +1,256 @@
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="task_board">
+
+  <xacro:macro name="taskboard" params="boardname parent *origin">
+  <xacro:property name="mesh_file_base" value="package://o2ac_scene_description/meshes/taskboard_01_base.stl" />
+  <xacro:property name="mesh_file_plate" value="package://o2ac_scene_description/meshes/taskboard_02_plate.stl" />
+
+  <link name="${boardname}_base">
+    <inertial>
+      <origin rpy="${-pi/2} 0 ${pi/2}" xyz="0 0 0.01"/>
+      <mass value="1.0"/>
+      <inertia ixx="1.0" ixy="0" ixz="0" iyy="1.0" iyz="0" izz="1.0"/>
+    </inertial>
+    <visual>
+      <origin rpy="${-pi/2} 0 ${pi/2}" xyz=".12 0 0.01"/>
+      <geometry>
+        <mesh filename="${mesh_file_base}" scale=".001 .001 .001"/>
+      </geometry>
+      <material name="gray">
+        <color rgba=".5 .5 .5 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="${-pi/2} 0 ${pi/2}" xyz=".12 0 0.01"/>
+      <geometry>
+        <mesh filename="${mesh_file_base}" scale=".001 .001 .001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="${boardname}_base" type="fixed">
+    <parent link="${parent}" />
+    <child link = "${boardname}_base" />
+    <xacro:insert_block name="origin"/>
+  </joint>
+
+  <link name="${boardname}_plate">
+    <visual>
+      <origin rpy="${pi/2} 0 ${pi/2}" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="${mesh_file_plate}" scale=".001 .001 .001"/>
+      </geometry>
+      <material name="gray">
+        <color rgba=".5 .5 .5 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="${pi/2} 0 ${pi/2}" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="${mesh_file_plate}" scale=".001 .001 .001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="${boardname}_plate" type="fixed">
+    <parent link="${boardname}_base" />
+    <child link = "${boardname}_plate" />
+    <origin rpy="0 0 0" xyz="0.058 0.0 0.01"/>
+  </joint>
+  
+  <!-- ========== Shaft, pulleys, bearing -->
+
+  <joint name="${boardname}_small_shaft" type="fixed">
+    <parent link="${boardname}_plate" />
+    <child link = "${boardname}_small_shaft" />
+    <origin rpy="0 0 ${pi}" xyz="${.025+.025} 0.100 0.084"/>
+  </joint>
+  <link name="${boardname}_small_shaft">
+    <visual>
+      <origin rpy="0 ${pi/2} 0" xyz="0.0125 0 0"/>
+      <geometry>
+        <cylinder length="0.025" radius="0.003"/>
+      </geometry>
+      <material name="gray">
+        <color rgba=".5 .5 .5 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 ${pi/2} 0" xyz="0.0125 0 0"/>
+      <geometry>
+        <cylinder length="0.025" radius="0.003"/>
+      </geometry>
+    </collision>
+  </link>
+  
+  <!-- The bearing -->
+  <xacro:include filename="$(find o2ac_parts_description)/urdf/generated/07_SBARB6200ZZ_30_macro.urdf.xacro" />
+  <xacro:assy_part_07 prefix="${boardname}_" parent="${boardname}_plate" spawn_attached="true"> 
+    <origin rpy="${pi} 0 0" xyz="${0.025+.008} 0.164 0.118"/> 
+    <!-- I think this was always wrong in the original taskboard (z 0.12 instead of 0.119),
+         so I added 2 mm. -->
+  </xacro:assy_part_07> 
+  
+  <!-- The small pulley -->
+  <joint name="${boardname}_small_pulley" type="fixed">
+    <parent link="${boardname}_plate" />
+    <child link = "${boardname}_small_pulley" />
+    <origin rpy="0 0 ${pi}" xyz="${.025+.013} 0.028 0.034"/>
+  </joint>
+  <link name="${boardname}_small_pulley">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://o2ac_parts_description/meshes/50_MBGNA30-2.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="gray">
+        <color rgba=".5 .5 .5 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://o2ac_parts_description/meshes/50_MBGNA30-2.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- The large pulley -->
+  <joint name="${boardname}_large_pulley" type="fixed">
+    <parent link="${boardname}_plate" />
+    <child link = "${boardname}_large_pulley" />
+    <origin rpy="0 0 ${pi}" xyz="${.025+.0165} 0.158 0.041"/>
+  </joint>
+  <link name="${boardname}_large_pulley">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://o2ac_parts_description/meshes/51_MBGNA60-2.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="gray">
+        <color rgba=".5 .5 .5 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://o2ac_parts_description/meshes/51_MBGNA60-2.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- ========== Helper frames -->
+
+  <joint name="${boardname}_surface_joint" type="fixed">
+    <parent link="${boardname}_plate"/>
+    <child link="${boardname}_surface"/>
+    <origin rpy="0 0 ${pi}" xyz="0.025 0.1 0.05"/>
+  </joint>
+  <link name="${boardname}_surface"/>
+
+  <joint name="${boardname}_set_screw_joint" type="fixed">
+    <parent link="${boardname}_plate"/>
+    <child link="${boardname}_set_screw_link"/>
+    <origin rpy="${pi} 0 ${pi}" xyz=".025 0.054 0.074"/>
+  </joint>
+  <link name="${boardname}_set_screw_link"/>
+
+  <joint name="${boardname}_m3_screw_joint" type="fixed">
+    <parent link="${boardname}_plate"/>
+    <child link="${boardname}_m3_screw_link"/>
+    <origin rpy="${pi} 0 ${pi}" xyz=".025 0.073 0.035"/>
+  </joint>
+  <link name="${boardname}_m3_screw_link"/>
+
+  <joint name="${boardname}_m4_screw_joint" type="fixed">
+    <parent link="${boardname}_plate"/>
+    <child link="${boardname}_m4_screw_link"/>
+    <origin rpy="${pi} 0 ${pi}" xyz=".025 0.106 0.036"/>
+  </joint>
+  <link name="${boardname}_m4_screw_link"/>
+
+  <joint name="${boardname}_long_hole_middle_joint" type="fixed">
+    <parent link="${boardname}_plate"/>
+    <child link="${boardname}_long_hole_middle_link"/>
+    <origin rpy="${pi} 0 ${pi}" xyz=".025 0.101 0.125"/>
+  </joint>
+  <link name="${boardname}_long_hole_middle_link"/>
+
+  <joint name="${boardname}_long_hole_top_joint" type="fixed">
+    <parent link="${boardname}_long_hole_middle_link"/>
+    <child link="${boardname}_long_hole_top_link"/>
+    <origin rpy="0 0 0" xyz="0 0 -0.015"/>
+  </joint>
+  <link name="${boardname}_long_hole_top_link"/>
+
+  <joint name="${boardname}_bearing_target_joint" type="fixed">
+    <parent link="${boardname}_plate"/>
+    <child link="${boardname}_bearing_target_link"/>
+    <origin rpy="${pi} 0 ${pi}" xyz=".025 0.035 0.12"/>
+  </joint>
+  <link name="${boardname}_bearing_target_link"/>
+
+  <!-- The screw holes of the bearing -->
+  <joint name="${boardname}_bearing_target_screw_1_joint" type="fixed">
+    <parent link="${boardname}_bearing_target_link"/>
+    <child link="${boardname}_bearing_target_screw_1_link"/>
+    <origin rpy="0 0 0" xyz="-.004 .022 0"/>
+  </joint>
+  <link name="${boardname}_bearing_target_screw_1_link"/>
+
+  <joint name="${boardname}_bearing_target_screw_2_joint" type="fixed">
+    <parent link="${boardname}_bearing_target_link"/>
+    <child link="${boardname}_bearing_target_screw_2_link"/>
+    <origin rpy="0 0 0" xyz="-.004 0 .022"/>
+  </joint>
+  <link name="${boardname}_bearing_target_screw_2_link"/>
+
+  <joint name="${boardname}_bearing_target_screw_3_joint" type="fixed">
+    <parent link="${boardname}_bearing_target_link"/>
+    <child link="${boardname}_bearing_target_screw_3_link"/>
+    <origin rpy="0 0 0" xyz="-.004 -0.022 0"/>
+  </joint>
+  <link name="${boardname}_bearing_target_screw_3_link"/>
+
+  <joint name="${boardname}_bearing_target_screw_4_joint" type="fixed">
+    <parent link="${boardname}_bearing_target_link"/>
+    <child link="${boardname}_bearing_target_screw_4_link"/>
+    <origin rpy="0 0 0" xyz="-.004 0 -0.022"/>
+  </joint>
+  <link name="${boardname}_bearing_target_screw_4_link"/>
+
+  <!-- Screw positions of the base plate -->
+  <xacro:property name="base_l" value="0.2" />
+  <xacro:property name="base_w" value="0.12" />
+  <xacro:property name="d0" value="0.01" />
+  <joint name="${boardname}_base_screw_1_joint" type="fixed">
+    <parent link="${boardname}_base"/>
+    <child link="${boardname}_base_screw_1_link"/>
+    <origin rpy="0 ${pi/2} 0" xyz="${base_w-d0} ${base_l-d0} .01"/>
+  </joint>
+  <link name="${boardname}_base_screw_1_link"/>
+  
+  <joint name="${boardname}_base_screw_2_joint" type="fixed">
+    <parent link="${boardname}_base"/>
+    <child link="${boardname}_base_screw_2_link"/>
+    <origin rpy="0 ${pi/2} 0" xyz="${d0} ${base_l-d0} .01"/>
+  </joint>
+  <link name="${boardname}_base_screw_2_link"/>
+
+  <joint name="${boardname}_base_screw_3_joint" type="fixed">
+    <parent link="${boardname}_base"/>
+    <child link="${boardname}_base_screw_3_link"/>
+    <origin rpy="0 ${pi/2} 0" xyz="${base_w-d0} ${d0} .01"/>
+  </joint>
+  <link name="${boardname}_base_screw_3_link"/>
+
+  <joint name="${boardname}_base_screw_4_joint" type="fixed">
+    <parent link="${boardname}_base"/>
+    <child link="${boardname}_base_screw_4_link"/>
+    <origin rpy="0 ${pi/2} 0" xyz="${d0} ${d0} .01"/>
+  </joint>
+  <link name="${boardname}_base_screw_4_link"/>
+
+  </xacro:macro>
+  <!-- Add additional links for us to plan with.-->
+</robot>
+

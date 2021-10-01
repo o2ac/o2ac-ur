@@ -1,0 +1,27 @@
+<launch>
+    <arg name="num_controllers"           default="1"/>
+    <arg name="serial_port_1"        default="/dev/for_docker/fastener_gripper_1"/>
+    <arg name="serial_port_2"        default="/dev/for_docker/fastener_gripper_2"/>
+    <arg name="serial_port_3"        default="/dev/for_docker/fastener_gripper_3"/>
+    <arg name="serial_port_4"        default="/dev/for_docker/fastener_gripper_4"/>
+    <arg name="serial_port_5"        default="/dev/for_docker/fastener_gripper_5"/>
+    <arg name="config_dir"           default="$(find o2ac_fastening_tools)/config"/>
+    <arg name="fastening_tools"      default="fastening_tools"/>
+
+    <node name="dynamixel_controller" pkg="o2ac_fastening_tools" type="dynamixel_controller" output="screen">
+        <param name="num_controllers"      type="int"    value="$(arg num_controllers)"/>
+        <param name="serial_port_1"   type="string" value="$(arg serial_port_1)"/>
+        <param name="serial_port_2"   type="string" value="$(arg serial_port_2)"/>
+        <param name="serial_port_3"   type="string" value="$(arg serial_port_3)"/>
+        <param name="serial_port_4"   type="string" value="$(arg serial_port_4)"/>
+        <param name="serial_port_5"   type="string" value="$(arg serial_port_5)"/>
+    </node>
+
+    <node name="fastening_tool_action_server" pkg="o2ac_fastening_tools" type="fastening_tool_action_server.py" output="screen">
+        <param name="config_dir"      type="string" value="$(arg config_dir)"/>
+        <param name="fastening_tools" type="string" value="$(arg fastening_tools)"/>
+    </node>
+    
+    <node name="fastening_tool_action_client" pkg="o2ac_fastening_tools" type="fastening_tool_action_client.py" output="screen"/>
+    
+</launch>

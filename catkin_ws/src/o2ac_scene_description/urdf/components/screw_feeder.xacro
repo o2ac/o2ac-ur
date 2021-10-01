@@ -1,0 +1,98 @@
+<?xml version="1.0" ?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="screw_feeder">
+
+  <xacro:macro name="screw_feeder" params="feedername parent with_collision_geometry:=true *origin">
+  <!-- This creates a screw feeder (roughly) with the origin in the back right corner. -->
+  <!-- This is the feeder: https://www.monotaro.com/g/02001466/ -->
+
+  <!-- <xacro:property name="mesh_file" value="package://o2ac_scene_description/meshes/tray_PZ-0006-B.stl" /> -->
+  
+  <xacro:property name="height" value=".147" />
+  <xacro:property name="width"  value=".126" />
+  <xacro:property name="length" value=".182" />
+
+  <link name="${feedername}_link">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="1.0" ixy="0" ixz="0" iyy="1.0" iyz="0" izz="1.0"/>
+    </inertial>
+    <!-- Back side -->
+    <visual>
+      <origin rpy="0 0 0" xyz="${(length-.05)/2} ${width/2} ${height/2}"/>
+      <geometry>
+        <!-- <mesh filename="${mesh_file}" scale="0.001 0.001 0.001"/> -->
+        <box size="${length-.05} ${width} ${height}"/> 
+      </geometry>
+      <material name="black">
+        <color rgba=".2 .2 .2 1"/>
+      </material>
+    </visual>
+    <xacro:if value="${with_collision_geometry}">
+      <collision>
+        <origin rpy="0 0 0" xyz="${(length-.05)/2} ${width/2} ${height/2}"/>
+        <geometry>
+          <box size="${length-.05} ${width} ${height}"/> 
+        </geometry>
+      </collision>
+    </xacro:if>
+    <!-- Front side -->
+    <visual>
+      <origin rpy="0 0 0" xyz="${(length-.025)} ${width/2} ${height/4}"/>
+      <geometry>
+        <box size="${.05} ${width} ${height/2}"/> 
+      </geometry>
+      <material name="black">
+        <color rgba=".2 .2 .2 1"/>
+      </material>
+    </visual>
+    <xacro:if value="${with_collision_geometry}">
+      <collision>
+        <origin rpy="0 0 0" xyz="${(length-.025)} ${width/2} ${height/4}"/>
+        <geometry>
+          <box size="${.05} ${width} ${height/2}"/> 
+        </geometry>
+      </collision>
+    </xacro:if>
+
+    <!-- The screw output area -->
+    <visual>
+      <origin rpy="0 0 0" xyz="${(length-.025)} ${width/2} ${height/2}"/>
+      <geometry>
+        <box size="${.05} ${.02} ${.005}"/>
+      </geometry>
+      <material name="gray">
+        <color rgba=".6 .6 .6 1"/>
+      </material>
+    </visual>
+    <xacro:if value="${with_collision_geometry}">
+      <collision>
+        <origin rpy="0 0 0" xyz="${(length-.025)} ${width/2} ${height/2}"/>
+        <geometry>
+          <box size="${.05} ${.02} ${.005}"/>
+        </geometry>
+      </collision>
+    </xacro:if>
+  </link>
+
+  <joint name="${feedername}_joint" type="fixed">
+    <parent link="${parent}" />
+    <child link ="${feedername}_link" />
+    <xacro:insert_block name="origin"/>
+  </joint>
+
+  <joint name="${feedername}_outlet_joint" type="fixed">
+    <parent link="${feedername}_link"/>
+    <child link="${feedername}_outlet_link"/>
+    <origin rpy="0.0 ${pi/2} ${pi}" xyz="${length-.01} ${width/2} ${height/2}"/>
+  </joint>
+  <link name="${feedername}_outlet_link"/>
+
+  <joint name="${feedername}_inlet_joint" type="fixed">
+    <parent link="${feedername}_link"/>
+    <child link="${feedername}_inlet_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="${length/3} ${width/3} ${height}"/>
+  </joint>
+  <link name="${feedername}_inlet_link"/>
+  </xacro:macro>
+</robot>

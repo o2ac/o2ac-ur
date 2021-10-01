@@ -1,0 +1,14 @@
+ Program
+   Init Variables
+   Robot Program
+     Gripper Open (1)
+     MoveL
+       grasp_tool
+       Gripper Close (1)
+       'back_abit'
+       Direction: Base X+
+         Until (distance)
+     'att_threshold≔5'
+     'Force'
+     Gripper Open (1)
+     Halt

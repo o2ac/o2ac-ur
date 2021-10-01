@@ -1,0 +1,21 @@
+# Add a pick container to the task that is being constructed in the modules_server
+# Required fields:
+string robot_name  # Name of the robot picking the object
+string object_name  # Name of the object to pick.
+
+# Optional fields: (If not set, the default values will be used. See README for more details)
+string grasp_parameter_location  # The parameter under which grasp information is stored. See README for details on the parameter tree structure.
+geometry_msgs/Vector3Stamped lift_direction  # 3D vector for setting the direction of lifting the object
+bool disable_regrasp
+
+# Fields currently not in use (these have no effect yet)
+float64 lift_object_min_dist  # Minimum lift distance in the lift_direction
+float64 lift_object_max_dist  # Maximum lift distance in the lift_direction
+string surface_link  # name of link on which the object lies before picking
+# ToDo(karolyartur): ADD APPROACH DISTANCE
+---
+# Result
+bool success
+string task_state  # String representation of the current task hierarchy
+---
+# Feedback

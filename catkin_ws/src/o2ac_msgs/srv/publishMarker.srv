@@ -1,0 +1,3 @@
+geometry_msgs/PoseStamped marker_pose   # 
+string marker_type                      # "grasp_pose", "pick_pose", "place_pose" ...
+---

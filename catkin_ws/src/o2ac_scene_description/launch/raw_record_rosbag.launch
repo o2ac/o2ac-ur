@@ -1,0 +1,66 @@
+<launch>
+  <arg name="record_cameras_only" default="false" />
+  <arg name="record_robots_only" default="false" />
+
+  <arg name="record_all_throttled" default="true" />
+  <arg name="include_pointclouds" default="true" />
+
+  <arg name="file_dir" default="/$(find o2ac_scene_description)/../../bagfiles/" />
+
+ <node pkg="rosbag" type="record" name="rosbag_record_cams"
+       args="record -o $(arg file_dir)/cameras /joint_states -e '/._bot_(in|out)side_camera/(.*)'" 
+       if="$(arg record_cameras_only)" />
+
+ <node pkg="rosbag" type="record" name="rosbag_record_robots"
+       args="record -o $(arg file_dir)/robots /joint_states -e '/._bot/(.*)' -x '/._bot_(in|out)side_camera(.*)'"
+       if="$(arg record_robots_only)" />
+
+  <!-- publish RGB and D frames with 5Hz on /camera_throttled -->
+  <arg name="throttled_rate" default="2.0" />
+  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_1" args="messages /b_bot_outside_camera/aligned_depth_to_color/image_raw $(arg throttled_rate) /b_bot_outside_camera_throttled/aligned_depth_to_color/image_raw">
+  </node>
+  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_2" args="messages /b_bot_outside_camera/color/image_raw $(arg throttled_rate) /b_bot_outside_camera_throttled/color/image_raw">
+  </node>
+  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_3" args="messages /a_bot_outside_camera/aligned_depth_to_color/image_raw $(arg throttled_rate) /a_bot_outside_camera_throttled/aligned_depth_to_color/image_raw">
+  </node>
+  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_4" args="messages /a_bot_outside_camera/color/image_raw $(arg throttled_rate) /a_bot_outside_camera_throttled/color/image_raw">
+  </node>
+  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_5" args="messages /b_bot_inside_camera/aligned_depth_to_color/image_raw $(arg throttled_rate) /b_bot_inside_camera_throttled/aligned_depth_to_color/image_raw">
+  </node>
+  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_6" args="messages /b_bot_inside_camera/color/image_raw $(arg throttled_rate) /b_bot_inside_camera_throttled/color/image_raw">
+  </node>
+  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_7" args="messages /a_bot_inside_camera/aligned_depth_to_color/image_raw $(arg throttled_rate) /a_bot_inside_camera_throttled/aligned_depth_to_color/image_raw">
+  </node>
+  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_8" args="messages /a_bot_inside_camera/color/image_raw $(arg throttled_rate) /a_bot_inside_camera_throttled/color/image_raw">
+  </node>
+
+  <group if="$(arg include_pointclouds)">
+    <!-- publish point clouds throttled as well -->
+    <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_9" args="messages /b_bot_outside_camera/depth/color/points $(arg throttled_rate) /b_bot_outside_camera_throttled/depth/color/points">
+    </node>
+    <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_10" args="messages /a_bot_outside_camera/depth/color/points $(arg throttled_rate) /a_bot_outside_camera_throttled/depth/color/points">
+    </node>
+    <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_11" args="messages /b_bot_inside_camera/depth/color/points $(arg throttled_rate) /b_bot_inside_camera_throttled/depth/color/points">
+    </node>
+    <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_12" args="messages /a_bot_inside_camera/depth/color/points $(arg throttled_rate) /a_bot_inside_camera_throttled/depth/color/points">
+    </node>
+  </group>
+
+  <!-- Camera info topics -->
+  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_13" args="messages /b_bot_outside_camera/color/camera_info $(arg throttled_rate) /b_bot_outside_camera_throttled/color/camera_info">
+  </node>
+  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_14" args="messages /a_bot_outside_camera/color/camera_info $(arg throttled_rate) /a_bot_outside_camera_throttled/color/camera_info">
+  </node>
+  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_15" args="messages /b_bot_inside_camera/color/camera_info $(arg throttled_rate) /b_bot_inside_camera_throttled/color/camera_info">
+  </node>
+  <node pkg="topic_tools" type="throttle" name="topic_tools_throttle_16" args="messages /a_bot_inside_camera/color/camera_info $(arg throttled_rate) /a_bot_inside_camera_throttled/color/camera_info">
+  </node>
+  
+  <group if="$(arg record_all_throttled)">
+      <!-- Subscribe to joint states and compressed throttled cam images and point clouds -->
+      <node pkg="rosbag" type="record" name="rosbag_record_throttled"
+            args="record -o $(arg file_dir)/throttled /joint_states -e '/._bot_(in|out)side_camera_throttled/(.*)'"
+            if="$(arg record_all_throttled)" />
+  </group>
+
+</launch>

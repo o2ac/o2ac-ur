@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Run MTC pick and place -->
+
+  <rosparam command="load" file="$(find o2ac_examples)/config/mtc_demo_config.yaml" ns="mtc_pick_place_demo"/>
+
+  <node name="mtc_pick_place_demo" pkg="o2ac_examples" type="mtc_pick_place_demo" output="screen">
+    <param name="execute" value="false" />
+  </node>
+</launch>

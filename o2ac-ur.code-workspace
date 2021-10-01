@@ -1,0 +1,167 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		// Controls which editor is shown at startup, if none is restored from the previous session. Select 'none' to start without an editor, 'welcomePage' to open the Welcome page (default), 'newUntitledFile' to open a new untitled file (only opening an empty workspace).
+		"workbench.startupEditor": "newUntitledFile",
+		// If set to true, recommendations will not be fetched or shown unless specifically requested by the user.
+		"extensions.showRecommendationsOnlyOnDemand": false,
+		// If set to true, the notifications for extension recommendations will stop showing up.
+		"extensions.ignoreRecommendations": false,
+
+		// Controls how the editor should render whitespace characters, possibilities are 'none', 'boundary', and 'all'. The 'boundary' option does not render single spaces between words.
+		"editor.renderWhitespace": "all",
+		// When enabled, insert a final new line at the end of the file when saving it.
+		"files.insertFinalNewline": true,
+		
+		// Path to Python, you can use a custom version of Python by modifying this setting to include the full path.
+		"python.pythonPath": "/usr/bin/python",
+		// Provider for formatting. Possible options include 'autopep8', 'black', and 'yapf'.
+		"python.formatting.provider": "autopep8",
+
+		// ROS distro name to use (kinetic, jade, ...).
+		"ros.distro": "melodic",
+		"files.watcherExclude": {
+			"**/.git/objects/**": true,
+			"**/.git/subtree-cache/**": true,
+			"**/node_modules/**": true,
+			"**/.hg/store/**": true,
+			"**/catkin_ws/build/**": true,
+			"**/catkin_ws/devel/**": true,
+			"**/catkin_ws/logs/**": true,
+			"**/catkin_ws/.catkin_tools/**": true,
+			"**/underlay_ws/build/**": true,
+			"**/underlay_ws/devel/**": true,
+			"**/underlay_ws/logs/**": true,
+			"**/underlay_ws/.catkin_tools/**": true
+		},
+		"files.associations": {
+			"*.script": "python",
+			"*.ipp": "cpp",
+			"future": "cpp",
+			"*.txt": "shellscript",
+			"cctype": "cpp",
+			"clocale": "cpp",
+			"cmath": "cpp",
+			"csignal": "cpp",
+			"cstdarg": "cpp",
+			"cstddef": "cpp",
+			"cstdio": "cpp",
+			"cstdlib": "cpp",
+			"cstring": "cpp",
+			"ctime": "cpp",
+			"cwchar": "cpp",
+			"cwctype": "cpp",
+			"atomic": "cpp",
+			"strstream": "cpp",
+			"*.tcc": "cpp",
+			"chrono": "cpp",
+			"codecvt": "cpp",
+			"condition_variable": "cpp",
+			"cstdint": "cpp",
+			"initializer_list": "cpp",
+			"iosfwd": "cpp",
+			"mutex": "cpp",
+			"ratio": "cpp",
+			"system_error": "cpp",
+			"thread": "cpp",
+			"typeindex": "cpp",
+			"array": "cpp",
+			"bitset": "cpp",
+			"deque": "cpp",
+			"unordered_map": "cpp",
+			"vector": "cpp",
+			"exception": "cpp",
+			"fstream": "cpp",
+			"iomanip": "cpp",
+			"iostream": "cpp",
+			"istream": "cpp",
+			"limits": "cpp",
+			"memory": "cpp",
+			"new": "cpp",
+			"optional": "cpp",
+			"ostream": "cpp",
+			"sstream": "cpp",
+			"stdexcept": "cpp",
+			"streambuf": "cpp",
+			"string_view": "cpp",
+			"cinttypes": "cpp",
+			"type_traits": "cpp",
+			"tuple": "cpp",
+			"typeinfo": "cpp",
+			"utility": "cpp",
+			"algorithm": "cpp",
+			"map": "cpp",
+			"memory_resource": "cpp",
+			"set": "cpp",
+			"string": "cpp",
+			"functional": "cpp",
+			"hash_map": "cpp",
+			"hash_set": "cpp",
+			"complex": "cpp",
+			"forward_list": "cpp",
+			"list": "cpp",
+			"unordered_set": "cpp",
+			"iterator": "cpp",
+			"numeric": "cpp",
+			"random": "cpp",
+			"regex": "cpp",
+			"slist": "cpp",
+			"cfenv": "cpp",
+			"valarray": "cpp",
+			"shared_mutex": "cpp",
+			"variant": "cpp",
+			"*.inc": "cpp",
+			"bit": "cpp"
+		},
+		"python.autoComplete.extraPaths": [
+			"./catkin_ws/src/o2ac_assembly_database/src",
+			"./catkin_ws/src/o2ac_routines/src",
+			"./catkin_ws/src/o2ac_vision/src",
+			"./underlay_ws/src/downward/src",
+			"./underlay_ws/src/moveit/moveit_commander/src",
+			"./underlay_ws/src/ur_python_utilities/ur_control/src",
+		],
+		"files.exclude": {
+			"**/.catkin_tools": true,
+			"**/*.pyc": true,
+			"**/build": true,
+			"**/devel": true,
+			"**/logs": true
+		},
+		"python.formatting.autopep8Args": [
+			"--max-line-length",
+			"200",
+			"--experimental"
+		],
+		"python.analysis.extraPaths": [
+			"./catkin_ws/src/o2ac_assembly_database/src",
+			"./catkin_ws/src/o2ac_routines/src",
+			"./catkin_ws/src/o2ac_vision/src",
+			"./underlay_ws/src/downward/src",
+			"./underlay_ws/src/moveit/moveit_commander/src",
+			"./underlay_ws/src/ur_python_utilities/ur_control/src"
+		],
+		"cSpell.words": [
+			"commander",
+			"moveit",
+			"rospy",
+			"tolist"
+		]
+	},
+	"extensions": {
+		"recommendations": [
+			"ms-python.python",
+			"ms-vscode.cpptools",
+			"ms-azuretools.vscode-docker",
+			"ms-iot.vscode-ros",
+			"streetsidesoftware.code-spell-checker",
+			"eamodio.gitlens",
+			"mhutchie.git-graph"			
+		]
+	},
+	
+}

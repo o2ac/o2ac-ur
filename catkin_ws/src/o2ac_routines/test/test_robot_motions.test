@@ -1,0 +1,16 @@
+<launch>
+   <arg name="node_start_delay" default="2.0" />  
+
+   <!-- Load universal robot description format (URDF) -->
+   <param name="robot_description" 
+         command="xacro  '$(find o2ac_scene_description)/urdf/base_scene.urdf.xacro' taskboard:=false"/>
+
+	<include file="$(find o2ac_moveit_config)/launch/demo.launch" launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' " >
+		<arg name="use_rviz" value="false"/>
+		<arg name="load_robot_description" value="false" />
+		<arg name="execution_type" value="last point" />
+	</include>
+
+	<test test-name="simple_motions" pkg="o2ac_routines" type="test_robot_motions.py"
+	     time-limit="500.0" launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' " />
+</launch>

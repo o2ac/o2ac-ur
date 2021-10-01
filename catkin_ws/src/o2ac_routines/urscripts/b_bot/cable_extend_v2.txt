@@ -1,0 +1,25 @@
+ Program
+   Robot Program
+     Popup: wait for a_bot to prepare cable
+     Gripper Move72% (1)
+     MoveJ
+       high_back
+       above_cable
+     MoveL
+       at_cable
+     Gripper Move85% (1)
+     Popup: wait for a_bot to release
+     MoveL
+       Direction: Base X-
+         Until (distance)
+     Gripper Close (1)
+     MoveJ
+       hold_cable
+       'Waypoint_5'
+     'Gripper Move85% (1)'
+     Popup: wait for a_bot to grasp cable. press enter to go observe
+     Gripper Open (1)
+     MoveL
+       Waypoint_1
+       Waypoint_2
+       look_at_cable

@@ -1,0 +1,20 @@
+# This file matches the tool names with the Dynamixel motor ID and sets default motor settings
+
+screw_tool_m3:
+  ID: 5
+  Control_Mode: 1
+screw_tool_m4:
+  ID: 3
+  Control_Mode: 1
+# screw_tool_m6:
+#   ID: 1
+#   Control_Mode: 1
+# nut_tool_m6:
+#   ID: 4
+#   Control_Mode: 1
+set_screw_tool:
+  ID: 10
+  Control_Mode: 1
+padless_tool_m4:
+  ID: 7
+  Control_Mode: 1

@@ -1,0 +1,46 @@
+robot_name: a_bot
+waypoints:
+- pose: [-0.15, 0, -0.0, -180, 0, 0] # translation, orientation (degrees)
+  pose_type: task-space-in-frame
+  frame_id: left_centering_link
+  speed: 1.0
+  desc: Above tray edge
+- pose: [-0.05, 0, 0.0, -180, 0, 0] 
+  pose_type: task-space-in-frame
+  frame_id: left_centering_link
+  speed: 0.7
+  is_trajectory: True
+  blend: 0.005
+  desc: Above centering point
+- pose: [-0.005, 0, 0.0, -180, 0, 0] 
+  pose_type: task-space-in-frame
+  frame_id: left_centering_link
+  speed: 0.2
+  is_trajectory: True
+  blend: 0.0
+  desc: dropping 
+- pose_type: gripper
+  gripper:
+    action: 'open'
+    open_width: 0.04
+# - pose: [-0.005, 0, 0.0, -90, 0, 0] 
+#   pose_type: task-space-in-frame
+#   frame_id: left_centering_link
+#   speed: 1.0
+# - pose_type: gripper
+#   gripper:
+#     action: 'close-open'
+#     width: 0.04
+#   desc: Centering 
+# - pose: [-0.005, 0, 0.0, -180, 0, 0] 
+#   pose_type: task-space-in-frame
+#   frame_id: left_centering_link
+#   speed: 1.0
+# - pose_type: gripper
+#   gripper:
+#     action: 'close'
+# - pose: [-0.1, 0, 0.0, -180, 0, 0] 
+#   pose_type: task-space-in-frame
+#   frame_id: left_centering_link
+#   speed: 0.5
+#   desc: Above centering point

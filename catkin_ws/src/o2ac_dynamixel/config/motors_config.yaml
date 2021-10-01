@@ -1,0 +1,10 @@
+motor_1:
+  ID: 1
+  return_delay_time: 0
+  operating_mode: 5  # Current-based Position Control Mode
+  profile_acceleration: 0
+  profile_velocity: 0
+  current_limit: 20
+  velocity_limit: 10
+  max_position_limit: 3000
+  min_position_limit: 1068

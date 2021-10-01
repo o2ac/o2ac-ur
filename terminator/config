@@ -1,0 +1,565 @@
+[global_config]
+[keybindings]
+[profiles]
+  [[default]]
+    background_color = "#300a24"
+    background_darkness = 0.9
+    background_type = transparent
+    cursor_color = "#ffffff"
+    font = Ubuntu Mono 12
+    foreground_color = "#ffffff"
+    scrollback_lines = 5000
+    use_system_font = False
+[layouts]
+  [[default]]
+    [[[child1]]]
+      parent = window0
+      profile = default
+      type = Terminal
+    [[[window0]]]
+      parent = ""
+      type = Window
+  [[sinicx-v1]]
+    [[[child0]]]
+      fullscreen = False
+      last_active_window = True
+      maximised = True
+      order = 0
+      parent = ""
+      title = O2AC-UR
+      type = Window
+    [[[child1]]]
+      order = 0
+      parent = child0
+      position = 958
+      ratio = 0.500261096606
+      type = HPaned
+    [[[child11]]]
+      order = 1
+      parent = child1
+      position = 510
+      ratio = 0.5
+      type = VPaned
+    [[[child12]]]
+      order = 0
+      parent = child11
+      position = 478
+      ratio = 0.500523560209
+      type = HPaned
+    [[[child15]]]
+      order = 1
+      parent = child11
+      position = 478
+      ratio = 0.500523560209
+      type = HPaned
+    [[[child16]]]
+      order = 0
+      parent = child15
+      position = 254
+      ratio = 0.5
+      type = VPaned
+    [[[child19]]]
+      order = 1
+      parent = child15
+      position = 254
+      ratio = 0.5
+      type = VPaned
+    [[[child2]]]
+      order = 0
+      parent = child1
+      position = 510
+      ratio = 0.5
+      type = VPaned
+    [[[child4]]]
+      order = 1
+      parent = child2
+      position = 477
+      ratio = 0.500524658972
+      type = HPaned
+    [[[child5]]]
+      order = 0
+      parent = child4
+      position = 254
+      ratio = 0.5
+      type = VPaned
+    [[[child8]]]
+      order = 1
+      parent = child4
+      position = 254
+      ratio = 0.5
+      type = VPaned
+    [[[terminal10]]]
+      order = 1
+      parent = child8
+      profile = default
+      type = Terminal
+      command = sh ./RUN-DOCKER-CONTAINER.sh
+    [[[terminal13]]]
+      order = 0
+      parent = child12
+      profile = default
+      type = Terminal
+      command = sh ./RUN-DOCKER-CONTAINER.sh
+    [[[terminal14]]]
+      order = 1
+      parent = child12
+      profile = default
+      type = Terminal
+      command = sh ./RUN-DOCKER-CONTAINER.sh
+    [[[terminal17]]]
+      order = 0
+      parent = child16
+      profile = default
+      type = Terminal
+      command = sh ./RUN-DOCKER-CONTAINER.sh
+    [[[terminal18]]]
+      order = 1
+      parent = child16
+      profile = default
+      type = Terminal
+      command = sh ./RUN-DOCKER-CONTAINER.sh
+    [[[terminal20]]]
+      order = 0
+      parent = child19
+      profile = default
+      type = Terminal
+      command = sh ./RUN-DOCKER-CONTAINER.sh
+    [[[terminal21]]]
+      order = 1
+      parent = child19
+      profile = default
+      type = Terminal
+      command = sh ./RUN-DOCKER-CONTAINER.sh
+    [[[terminal3]]]
+      order = 0
+      parent = child2
+      profile = default
+      type = Terminal
+      command = sh ./RUN-DOCKER-CONTAINER.sh
+    [[[terminal6]]]
+      order = 0
+      parent = child5
+      profile = default
+      type = Terminal
+      command = sh ./RUN-DOCKER-CONTAINER.sh
+    [[[terminal7]]]
+      order = 1
+      parent = child5
+      profile = default
+      type = Terminal
+      command = sh ./RUN-DOCKER-CONTAINER.sh
+    [[[terminal9]]]
+      order = 0
+      parent = child8
+      profile = default
+      type = Terminal
+      command = sh ./RUN-DOCKER-CONTAINER.sh
+  [[sinicx-v2]]
+    [[[child0]]]
+      fullscreen = False
+      last_active_window = True
+      maximised = True
+      order = 0
+      parent = ""
+      title = O2AC-UR
+      type = Window
+    [[[child1]]]
+      order = 0
+      parent = child0
+      position = 958
+      ratio = 0.500261096606
+      type = HPaned
+    [[[child11]]]
+      order = 1
+      parent = child1
+      position = 510
+      ratio = 0.5
+      type = VPaned
+    [[[child12]]]
+      order = 0
+      parent = child11
+      position = 478
+      ratio = 0.500523560209
+      type = HPaned
+    [[[child15]]]
+      order = 1
+      parent = child11
+      position = 478
+      ratio = 0.500523560209
+      type = HPaned
+    [[[child16]]]
+      order = 0
+      parent = child15
+      position = 254
+      ratio = 0.5
+      type = VPaned
+    [[[child19]]]
+      order = 1
+      parent = child15
+      position = 254
+      ratio = 0.5
+      type = VPaned
+    [[[child2]]]
+      order = 0
+      parent = child1
+      position = 510
+      ratio = 0.5
+      type = VPaned
+    [[[child4]]]
+      order = 1
+      parent = child2
+      position = 477
+      ratio = 0.500524658972
+      type = HPaned
+    [[[child5]]]
+      order = 0
+      parent = child4
+      position = 254
+      ratio = 0.5
+      type = VPaned
+    [[[child8]]]
+      order = 1
+      parent = child4
+      position = 254
+      ratio = 0.5
+      type = VPaned
+    [[[terminal10]]]
+      order = 1
+      parent = child8
+      profile = default
+      type = Terminal
+      command = sh ./RUN-DOCKER-CONTAINER.sh
+    [[[terminal13]]]
+      order = 0
+      parent = child12
+      profile = default
+      type = Terminal
+      command = sh ./RUN-DOCKER-CONTAINER.sh
+    [[[terminal14]]]
+      order = 1
+      parent = child12
+      profile = default
+      type = Terminal
+      command = sh ./RUN-DOCKER-CONTAINER.sh
+    [[[terminal17]]]
+      order = 0
+      parent = child16
+      profile = default
+      type = Terminal
+      command = sh ./RUN-DOCKER-CONTAINER.sh
+    [[[terminal18]]]
+      order = 1
+      parent = child16
+      profile = default
+      type = Terminal
+      command = sh ./RUN-DOCKER-CONTAINER.sh
+    [[[terminal20]]]
+      order = 0
+      parent = child19
+      profile = default
+      type = Terminal
+      command = sh ./RUN-DOCKER-CONTAINER.sh
+    [[[terminal21]]]
+      order = 1
+      parent = child19
+      profile = default
+      type = Terminal
+      command = sh ./RUN-DOCKER-CONTAINER.sh
+    [[[terminal3]]]
+      order = 0
+      parent = child2
+      profile = default
+      type = Terminal
+      command = sh ./RUN-DOCKER-CONTAINER.sh
+    [[[terminal6]]]
+      order = 0
+      parent = child5
+      profile = default
+      type = Terminal
+      command = sh ./RUN-DOCKER-CONTAINER.sh
+    [[[terminal7]]]
+      order = 1
+      parent = child5
+      profile = default
+      type = Terminal
+      command = sh ./RUN-DOCKER-CONTAINER.sh
+    [[[terminal9]]]
+      order = 0
+      parent = child8
+      profile = default
+      type = Terminal
+      command = sh ./RUN-DOCKER-CONTAINER.sh
+  [[o2ac-autostart]]
+    [[[child0]]]
+      type = Window
+      parent = ""
+      order = 0
+      position = 72:27
+      maximised = True
+      fullscreen = False
+      size = 1848, 1016
+      title = O2AC-UR
+      last_active_term = 0ce4bbb6-4803-47f5-b773-4ebdcbce35b0
+      last_active_window = True
+    [[[child1]]]
+      type = HPaned
+      parent = child0
+      order = 0
+      position = 922
+      ratio = 0.5002712967986978
+    [[[child2]]]
+      type = VPaned
+      parent = child1
+      order = 0
+      position = 506
+      ratio = 0.5004945598417408
+    [[[terminal3]]]
+      type = Terminal
+      parent = child2
+      order = 0
+      profile = default
+      title = moveit/rviz
+      uuid = 6871bc70-992b-4b9f-bb38-601d7f9e565f
+      command = sh ./RUN-DOCKER-CONTAINER.sh ${USER} o2ac_moveit_config o2ac_moveit_planning_execution.launch
+    [[[child4]]]
+      type = HPaned
+      parent = child2
+      order = 1
+      position = 459
+      ratio = 0.5005452562704471
+    [[[child5]]]
+      type = VPaned
+      parent = child4
+      order = 0
+      position = 254
+      ratio = 0.503968253968254
+    [[[terminal6]]]
+      type = Terminal
+      parent = child5
+      order = 0
+      profile = default
+      uuid = 9f5fc32e-cbd5-4ffd-b4b6-6080ed02ca26
+      command = sh ./RUN-DOCKER-CONTAINER.sh
+    [[[terminal7]]]
+      type = Terminal
+      parent = child5
+      order = 1
+      profile = default
+      uuid = 7c8f4d45-3378-492f-8599-a66f8ce811e8
+      command = sh ./RUN-DOCKER-CONTAINER.sh ${USER} o2ac_scene_description osx_bringup_cameras.launch
+    [[[child8]]]
+      type = VPaned
+      parent = child4
+      order = 1
+      position = 254
+      ratio = 0.503968253968254
+    [[[terminal9]]]
+      type = Terminal
+      parent = child8
+      order = 0
+      profile = default
+      uuid = 67c44de9-a4a3-491c-b28e-9ee3e3cb5994
+      command = sh ./RUN-DOCKER-CONTAINER.sh
+    [[[terminal10]]]
+      type = Terminal
+      parent = child8
+      order = 1
+      profile = default
+      uuid = 7813ff76-fdaf-4590-92ba-78b6696ee52a
+      command = sh ./RUN-DOCKER-CONTAINER.sh ${USER} o2ac_vision show_tv_rviz.launch
+    [[[child11]]]
+      type = VPaned
+      parent = child1
+      order = 1
+      position = 760
+      ratio = 0.751730959446093
+    [[[child12]]]
+      type = HPaned
+      parent = child11
+      order = 0
+      position = 462
+      ratio = 0.5021739130434782
+    [[[terminal13]]]
+      type = Terminal
+      parent = child12
+      order = 0
+      profile = default
+      title = task
+      uuid = 0ce4bbb6-4803-47f5-b773-4ebdcbce35b0
+      command = 'sh ./RUN-DOCKER-CONTAINER.sh ${USER} "rosrun\ o2ac_routines\ taskboard.py"'
+    [[[terminal14]]]
+      type = Terminal
+      parent = child12
+      order = 1
+      profile = default
+      title = bring-up robots
+      uuid = e5626f93-c26f-4228-948c-70163803ba30
+      command = sh ./RUN-DOCKER-CONTAINER.sh ${USER} o2ac_scene_description connect_real_robots.launch
+    [[[child15]]]
+      type = HPaned
+      parent = child11
+      order = 1
+      position = 462
+      ratio = 0.5021739130434782
+    [[[terminal16]]]
+      type = Terminal
+      parent = child15
+      order = 0
+      profile = default
+      title = skill_server
+      uuid = 746a3b43-2ecb-4e49-89e3-90cf399c8ad5
+      command = sh ./RUN-DOCKER-CONTAINER.sh ${USER} o2ac_skills o2ac_skill_server.launch
+    [[[terminal17]]]
+      type = Terminal
+      parent = child15
+      order = 1
+      profile = default
+      title = roscore (NEEDS TO RUN FIRST)
+      uuid = 826f051d-3f33-4344-856b-c3d9d64caf34
+      command = sh ./RUN-DOCKER-CONTAINER.sh ${USER} roscore
+  [[o2ac-vision-autostart]]
+    [[[child0]]]
+      type = Window
+      parent = ""
+      order = 0
+      position = 1316:27
+      maximised = False
+      fullscreen = False
+      size = 1244, 1016
+      title = o2ac-vision
+      last_active_term = 7d57cdea-502c-4233-9897-ae372f87e682
+      last_active_window = True
+    [[[child1]]]
+      type = VPaned
+      parent = child0
+      order = 0
+      position = 506
+      ratio = 0.5004945598417408
+    [[[terminal2]]]
+      type = Terminal
+      parent = child1
+      order = 0
+      profile = default
+      uuid = 7d57cdea-502c-4233-9897-ae372f87e682
+      command = sh ./VISION-DOCKER-CONTAINER.sh ${USER} o2ac_scene_description osx_bringup_cameras.launch
+    [[[child3]]]
+      type = HPaned
+      parent = child1
+      order = 1
+      position = 620
+      ratio = 0.5004035512510089
+    [[[terminal4]]]
+      type = Terminal
+      parent = child3
+      order = 0
+      profile = default
+      uuid = 011eab32-ec87-4871-8d69-c6a768607454
+      command = sh ./VISION-DOCKER-CONTAINER.sh ${USER} o2ac_vision o2ac_vision.launch
+    [[[terminal5]]]
+      type = Terminal
+      parent = child3
+      order = 1
+      profile = default
+      uuid = 94508b42-7424-4433-bc56-6f4eb316d61d
+      command = sh ./VISION-DOCKER-CONTAINER.sh
+  [[o2ac-rt-pc]]
+    [[[child0]]]
+      type = Window
+      parent = ""
+      order = 0
+      position = 72:27
+      maximised = True
+      fullscreen = False
+      size = 1848, 1016
+      title = O2AC-UR
+      last_active_term = 0ce4bbb6-4803-47f5-b773-4ebdcbce35b0
+      last_active_window = True
+    [[[child1]]]
+      type = HPaned
+      parent = child0
+      order = 0
+      position = 410
+      ratio = 0.2224633749321758
+    [[[child2]]]
+      type = VPaned
+      parent = child1
+      order = 0
+      position = 211
+      ratio = 0.5
+    [[[child3]]]
+      type = VPaned
+      parent = child2
+      order = 0
+      position = 510
+      ratio = 0.5044510385756676
+    [[[terminal4]]]
+      type = Terminal
+      parent = child3
+      order = 0
+      profile = default
+      uuid = 9f5fc32e-cbd5-4ffd-b4b6-6080ed02ca26
+      command = sh ./REALTIME-DOCKER-CONTAINER.sh
+    [[[terminal5]]]
+      type = Terminal
+      parent = child3
+      order = 1
+      profile = default
+      uuid = 746a3b43-2ecb-4e49-89e3-90cf399c8ad5
+      command = sh ./REALTIME-DOCKER-CONTAINER.sh
+    [[[child6]]]
+      type = VPaned
+      parent = child2
+      order = 1
+      position = 510
+      ratio = 0.5044510385756676
+    [[[terminal7]]]
+      type = Terminal
+      parent = child6
+      order = 0
+      profile = default
+      uuid = 67c44de9-a4a3-491c-b28e-9ee3e3cb5994
+      command = sh ./REALTIME-DOCKER-CONTAINER.sh
+    [[[terminal8]]]
+      type = Terminal
+      parent = child6
+      order = 1
+      profile = default
+      uuid = 7813ff76-fdaf-4590-92ba-78b6696ee52a
+      command = sh ./REALTIME-DOCKER-CONTAINER.sh
+    [[[child9]]]
+      type = HPaned
+      parent = child1
+      order = 1
+      position = 720
+      ratio = 0.5027932960893855
+    [[[terminal10]]]
+      type = Terminal
+      parent = child9
+      order = 0
+      profile = default
+      title = task
+      uuid = 0ce4bbb6-4803-47f5-b773-4ebdcbce35b0
+      command = sh ./REALTIME-DOCKER-CONTAINER.sh ${USER} "rosrun\ o2ac_routines\ taskboard.py"
+    [[[child11]]]
+      type = VPaned
+      parent = child9
+      order = 1
+      position = 506
+      ratio = 0.5004945598417408
+    [[[terminal12]]]
+      type = Terminal
+      parent = child11
+      order = 0
+      profile = default
+      title = moveit/rviz
+      uuid = 6871bc70-992b-4b9f-bb38-601d7f9e565f
+      command = sh ./REALTIME-DOCKER-CONTAINER.sh ${USER} o2ac_moveit_config o2ac_moveit_planning_execution.launch
+    [[[terminal13]]]
+      type = Terminal
+      parent = child11
+      order = 1
+      profile = default
+      title = bring-up robots
+      uuid = e5626f93-c26f-4228-948c-70163803ba30
+      command = sh ./REALTIME-DOCKER-CONTAINER.sh ${USER} o2ac_scene_description connect_real_robots.launch
+[plugins]

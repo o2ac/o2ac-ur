@@ -1,0 +1,66 @@
+# macOS auto-generated files.
+
+*.DS_Store
+
+# ROS auto-generated files.
+
+catkin_ws/CMakeLists.txt
+catkin_ws/.catkin_tools/
+catkin_ws/build/
+catkin_ws/devel/
+catkin_ws/logs/
+
+underlay_ws/CMakeLists.txt
+underlay_ws/.catkin_tools/
+underlay_ws/build/
+underlay_ws/devel/
+underlay_ws/logs/
+
+# Experiment recordings and data
+
+catkin_ws/experiment*
+catkin_ws/bagfiles/
+*.bag
+catkin_ws/src/o2ac_routines/MP_solutions/*
+
+# URDF files that are generated from lists and CAD models
+catkin_ws/src/o2ac_parts_description/urdf/generated/
+
+# PLY files generated from STL
+catkin_ws/src/o2ac_parts_description/meshes/*.ply
+
+# Files generated during STAMP (symbolic plan and failed plans)
+catkin_ws/src/o2ac_task_planning/pddl_converter/symbolic/generated/
+
+# Python auto-generated files.
+*.pyc
+
+# PyCharm
+.idea
+
+# Temporary files
+*.csv#
+*.ods#
+
+# VSCode files
+*.bin
+*.ipch
+
+#Emacs auto-generated files
+*~
+
+# Modules we clone into the workspace using rosinstall / wstool
+underlay_ws/src/third_party/geometric_shapes
+underlay_ws/src/third_party/moveit_resources
+underlay_ws/src/third_party/moveit_visual_tools
+underlay_ws/src/third_party/rviz_visual_tools
+underlay_ws/src/rosparam_shortcuts
+underlay_ws/src/third_party/generic_flexbe_states
+underlay_ws/src/third_party/flexbe_app
+underlay_ws/src/third_party/Universal_Robots_Client_Library
+# underlay_ws/src/third_party/ur_drivers
+underlay_ws/src/third_party/robotiq
+underlay_ws/src/third_party/aruco_ros
+underlay_ws/src/third_party/gazebo_ros_link_attacher
+
+catkin_ws/src/o2ac_vision/log/

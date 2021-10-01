@@ -1,0 +1,14 @@
+# This should be called when the screw tool is ready to insert a screw somewhere.
+# Screws can be picked up via the pick action.
+
+# Request
+# z points out of the screw hole, to the top
+bool equip_the_tool          # Otherwise, it is "unequip"
+uint8 screw_size             # M3, M4, M6 (without the M), "50" for suction, "66" for nut tool m6, "1" for set screw, "100" for belt tool, "200" for plunger tool
+string robot_name            # b_bot, c_bot
+---
+# Result
+bool success
+---
+# Feedback
+float32 progress

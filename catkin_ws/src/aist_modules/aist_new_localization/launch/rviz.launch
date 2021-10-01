@@ -1,0 +1,15 @@
+<?xml version="1.0" ?>
+<launch>
+
+  <arg name="moveit_config"	default="$(find showcase_moveit_config)"/>
+  <arg name="rviz_config"	default="$(find toyota1_routines
+					 )/launch/showcase.rviz"/>
+
+  <node name="$(anon rviz)" pkg="rviz" type="rviz"
+	args="$(eval '-d ' + (moveit_config + '/launch/moveit.rviz'
+			      if rviz_config == '' else rviz_config))"
+	output="screen">
+    <rosparam file="$(arg moveit_config)/config/kinematics.yaml"/>
+  </node>
+
+</launch>
