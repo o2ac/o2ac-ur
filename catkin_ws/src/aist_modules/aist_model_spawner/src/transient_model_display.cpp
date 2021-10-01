@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2008, Willow Garage, Inc.
+ * Copyright (c) 2021, National Institute of Advanced Industrial Science and Technology (AIST)
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

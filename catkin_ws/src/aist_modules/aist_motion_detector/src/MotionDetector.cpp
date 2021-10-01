@@ -1,6 +1,41 @@
+// Software License Agreement (BSD License)
+//
+// Copyright (c) 2021, National Institute of Advanced Industrial Science and Technology (AIST)
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+//
+//  * Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+//  * Redistributions in binary form must reproduce the above
+//    copyright notice, this list of conditions and the following
+//    disclaimer in the documentation and/or other materials provided
+//    with the distribution.
+//  * Neither the name of National Institute of Advanced Industrial
+//    Science and Technology (AIST) nor the names of its contributors
+//    may be used to endorse or promote products derived from this software
+//    without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+// COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+// INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+// BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+// ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+//
+// Author: Toshio Ueshiba
+//
 /*!
  *  \file	MotionDetector.cpp
- *  \author	Toshio UESHIBA
+ *  \author	Toshio Ueshiba
  *  \brief	ROS node for tracking corners in 2D images
  */
 #include "MotionDetector.h"
@@ -96,7 +131,7 @@ crossPoint(const TU::Plane<T, 2>& l1, const TU::Plane<T, 2>& l2)
 
     return {p[0]/p[2], p[1]/p[2]};
 }
-    
+
 static std::ostream&
 operator <<(std::ostream& out, const tf::Vector3& v)
 {
@@ -176,7 +211,7 @@ MotionDetector::image_cb(const camera_info_cp& camera_info,
 			 const image_cp& image, const image_cp& depth)
 {
     const auto	cv_image = cv_bridge::toCvCopy(image);
-    
+
     if (_find_cabletip_srv.isActive())
     {
 	try
@@ -228,7 +263,7 @@ MotionDetector::find_cabletip(cv::Mat& image, cv::Mat& depth,
   // Create foregroud mask.
     cv::Mat	mask;
     _bgsub->apply(image, mask);
-    
+
   // Binarize mask image.
     for (int v = 0; v < mask.rows; ++v)
     {
@@ -238,7 +273,7 @@ MotionDetector::find_cabletip(cv::Mat& image, cv::Mat& depth,
 	    if (*p < 255)
 		*p = 0;
     }
-    
+
   // Get transform from the target frame to camera frame.
     tf::StampedTransform	Tct;
     _listener.waitForTransform(camera_info->header.frame_id, target_frame,
@@ -265,7 +300,7 @@ MotionDetector::find_cabletip(cv::Mat& image, cv::Mat& depth,
     cv::projectPoints(pt3s, zero, zero, K, D, pt2s);
     point_t		corners[] = {point_t(pt2s(0)), point_t(pt2s(1)),
 				     point_t(pt2s(2)), point_t(pt2s(3))};
-    
+
   // Confirm that all the projected corners are included within the image.
     if (!withinImage(corners[0], mask) || !withinImage(corners[1], mask) ||
 	!withinImage(corners[2], mask) || !withinImage(corners[3], mask))
@@ -302,7 +337,7 @@ MotionDetector::find_cabletip(cv::Mat& image, cv::Mat& depth,
 
   // Find a largest region close to the finger-tip border.
     const auto	lmax = findLargestRegion(labels, stats, nlabels, fingertip);
-    
+
   // Fit a line to the points in the region.
     std::vector<cv::Vec<value_t, 2> >	cable_points;
     for (int v = 0; v < labels.rows; ++v)
@@ -366,7 +401,7 @@ MotionDetector::find_cabletip(cv::Mat& image, cv::Mat& depth,
 	auto	p = mask.ptr<uint8_t>(v, 0);
 	auto	q = image.ptr<cv::Vec3b>(v, 0);
 	auto	r = depth.ptr<float>(v, 0);
-	
+
 	for (const auto pe = p + mask.cols; p < pe; ++p, ++q, ++r)
 	    if (*p)
 	    {
@@ -382,7 +417,7 @@ MotionDetector::find_cabletip(cv::Mat& image, cv::Mat& depth,
 		   cv::MARKER_CROSS, 20, 2);
     cv::drawMarker(image, point_t(cabletip), cv::Scalar(0, 255, 255),
 		   cv::MARKER_CROSS, 20, 2);
-    
+
     return tf::Transform({rx.x(), ry.x(), rz.x(),
 			  rx.y(), ry.y(), rz.y(),
 			  rx.z(), ry.z(), rz.z()},

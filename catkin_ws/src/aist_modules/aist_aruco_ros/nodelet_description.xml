@@ -1,8 +1,0 @@
-<library path="lib/libaist_aruco_detector_nodelet">
-  <class name="aist_aruco_ros/aist_aruco_detector_nodelet"
-	 type="aist_aruco_ros::DetectorNodelet"
-	 base_class_type="nodelet::Nodelet">
-    <description>
-    </description>
-  </class>
-</library>
