@@ -23,14 +23,36 @@ With this, you can:
 
 - Use two robot arms
 - Plan and execute motions simultaneously and independently on each arm, without risk of collision
+
+![](images/tray_carry.gif)
+
+- Perform insertions using impedance control 
+- Align parts 
+
+![](images/bearing_insertion.gif)
+
 - Execute motion sequences while subsequent motions are being planned, minimizing waiting times
 - Fasten screws
-- Build a screw tool 
+
+![](images/screwing.gif)
+
+- Use a 3D-printed screw tool (under $100 USD in parts) with compliance to find and fasten set screws
+
+![](images/screwtool.jpg)
+
+![](images/motor_pulley.gif)
+
 - Detect and pick parts from an unstructured tray
+
+![](images/ssd.gif)
+
 - Generate parts assemblies and use their TF frames
+
+![](images/assembly_tree.gif)
 
 - Complete the WRS2020 taskboard task
 - Complete the WRS2020 assembly task (with enough luck)
+
 
 ## QUICK START
 
