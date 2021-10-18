@@ -269,22 +269,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ################################################################################
 
-# Install the SSH deploy key of the repository hosted on GitLab.com.
-
-# Copy the SSH deploy key from the sources on the host to the container.
-COPY ./.ssh/. /root/.ssh/
-RUN chmod 700 /root/.ssh/ \
-	&& chmod 600 /root/.ssh/o2ac-ur-id_rsa
-
-# Add GitLab.com as a known host using the SSH deploy key.
-RUN echo "Host gitlab.com" > /root/.ssh/config \
-	&& echo "  Hostname gitlab.com" >> /root/.ssh/config \
-	&& echo "  IdentityFile /root/.ssh/o2ac-ur-id_rsa" >> /root/.ssh/config \
-	&& echo "  StrictHostKeyChecking no" >> /root/.ssh/config \
-	&& echo "  User git" >> /root/.ssh/config
-
-################################################################################
-
 # Install camera packages.
 
 # librealsense2
