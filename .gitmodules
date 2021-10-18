@@ -1,6 +1,6 @@
-[submodule "gitlab-wiki"]
-	path = gitlab-wiki
-	url = https://github.com/o2ac/o2ac-ur/wiki
+[submodule "github-wiki"]
+	path = github-wiki
+	url = https://github.com/o2ac/o2ac-ur.wiki.git
 [submodule "underlay_ws/src/moveit"]
 	path = underlay_ws/src/moveit
 	url = http://gitlab+deploy-token-440693:vMpkB_8thDeUCDa4oKNr@gitlab.com/o2ac/moveit.git
