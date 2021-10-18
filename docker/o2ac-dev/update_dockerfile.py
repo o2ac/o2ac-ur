@@ -82,7 +82,10 @@ def update_libraries_without_vars(dockerfile_path):
     # find the libraries to update
     libs_to_update = []
     for lib_name, docker_ver in zip(lib_names, lib_versions):
-        pkg = cache[lib_name]
+        pkg = cache.get(lib_name, None)
+        if not pkg:
+            print(bcolors.WARNING + "[%s] WARNING: Package not found in cache, ignoring it." % str(lib_name) + bcolors.ENDC)
+            continue
         if hasattr(pkg.installed, 'version'):
             if docker_ver != pkg.installed.version:
                 print(bcolors.WARNING + "[%s] WARNING: Dockerfile version and installed version are different!" % str(lib_name) + bcolors.ENDC)
@@ -202,6 +205,6 @@ def update_libraries(dockerfile_path):
 
 
 if __name__ == '__main__':
-    dockerfile_path = "/root/o2ac-ur/docker/o2ac-dev/Dockerfile"
+    dockerfile_path = "./Dockerfile"
     update_libraries(dockerfile_path)
     print("Finished")
