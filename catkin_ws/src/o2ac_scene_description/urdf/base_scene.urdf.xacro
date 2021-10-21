@@ -3,6 +3,8 @@
        name="o2ac_base_scene" >
   <!-- This is the main file defining our robot arrangement and physical environment. -->
   <xacro:arg name="taskboard" default="false"/>
+  <xacro:arg name="gazebo" default="false"/>
+
   <!-- Calibration parameters -->
   <xacro:property name="a_bot_x" value="-0.005"/>     <!-- Positive moves back -->
   <xacro:property name="a_bot_y" value="-0.527"/>     <!-- Positive moves left -->
@@ -19,11 +21,19 @@
   <xacro:property name="bots_z" value="0.75"/>
 
   <!-- common stuff -->
-  <xacro:include filename="$(find ur_description)/urdf/common.gazebo.xacro" />
+  <!-- <xacro:include filename="$(find ur_description)/urdf/common.gazebo.xacro" />
+  <xacro:include filename="$(find ur_e_description)/urdf/ur5e.urdf.xacro" /> -->
+  
+  <xacro:if value="$(arg gazebo)">
+    <xacro:include filename="$(find o2ac_scene_description)/urdf/ur_gazebo.xacro"/> 
+  </xacro:if>
+  <xacro:unless value="$(arg gazebo)">
+    <xacro:include filename="$(find ur_description)/urdf/inc/ur_macro.xacro"/>
+  </xacro:unless>
+  
   <!-- <xacro:include filename="$(find o2ac_gazebo)/urdf/o2ac_base_scene.gazebo" /> -->
 
   <!-- robots -->
-  <xacro:include filename="$(find ur_e_description)/urdf/ur5e.urdf.xacro" />
 
   <!-- Scene items (trays, columns, tools, jigs, feeders...) -->
   <xacro:include filename="$(find o2ac_scene_description)/urdf/o2ac_environment.xacro" />
@@ -62,31 +72,56 @@
     <origin xyz="0.0 0.0 ${bots_z-robot_mount_plate+workplate_h}" rpy="0.0 0.0 0.0" />
   </joint>
 
-  <xacro:ur5e_robot prefix="a_bot_" joint_limited="true"
-    shoulder_pan_lower_limit="${-pi}" shoulder_pan_upper_limit="${pi}"
-    shoulder_lift_lower_limit="${-pi}" shoulder_lift_upper_limit="${pi}"
-    elbow_joint_lower_limit="0.0" elbow_joint_upper_limit="${pi}"
-    wrist_1_lower_limit="${-pi*1.5}" wrist_1_upper_limit="${pi}"
-    wrist_2_lower_limit="${-pi*1.5}" wrist_2_upper_limit="${pi*1.5}"
-    wrist_3_lower_limit="${-2*pi}" wrist_3_upper_limit="${2*pi}"
-    transmission_hw_interface="hardware_interface/PositionJointInterface"
-    safety_limits="false" safety_pos_margin="0.15"
+  <xacro:ur_robot
+    prefix="a_bot_"
+    joint_limits_parameters_file='$(find o2ac_scene_description)/config/a_bot_joint_limits.yaml'
+    kinematics_parameters_file='$(find o2ac_scene_description)/config/a_bot_calibration.yaml'
+    physical_parameters_file='$(find ur_description)/config/ur5e/physical_parameters.yaml'
+    visual_parameters_file='$(find ur_description)/config/ur5e/visual_parameters.yaml'
+    transmission_hw_interface='hardware_interface/PositionJointInterface'
+    safety_limits="false"
+    safety_pos_margin="0.15"
     safety_k_position="20"
-    kinematics_file="${load_yaml('$(find o2ac_scene_description)/config/a_bot_calibration.yaml')}"
   />
+  <link name="a_bot_ee_link">
+    <collision>
+      <geometry>
+        <box size="0.01 0.01 0.01"/>
+      </geometry>
+      <origin rpy="0 0 0" xyz="-0.01 0 0"/>
+    </collision>
+  </link>
+  <joint name="a_bot_ee_fixed_joint" type="fixed">
+    <parent link="a_bot_wrist_3_link"/>
+    <child link="a_bot_ee_link"/>
+    <origin rpy="0.0 -1.57079632679 1.57079632679" xyz="0.0 0.0 0.0"/>
+  </joint>
 
-  <xacro:ur5e_robot prefix="b_bot_" joint_limited="true"
-    shoulder_pan_lower_limit="${-pi}" shoulder_pan_upper_limit="${pi}"
-    shoulder_lift_lower_limit="${-pi}" shoulder_lift_upper_limit="${pi}"
-    elbow_joint_lower_limit="0.0" elbow_joint_upper_limit="${pi}"
-    wrist_1_lower_limit="${-pi*1.5}" wrist_1_upper_limit="${pi}"
-    wrist_2_lower_limit="${-pi*1.5}" wrist_2_upper_limit="${pi*1.5}"
-    wrist_3_lower_limit="${-2*pi}" wrist_3_upper_limit="${2*pi}"
-    transmission_hw_interface="hardware_interface/PositionJointInterface"
-    safety_limits="false" safety_pos_margin="0.15"
+  <xacro:ur_robot
+    prefix="b_bot_"
+    joint_limits_parameters_file='$(find o2ac_scene_description)/config/b_bot_joint_limits.yaml'
+    kinematics_parameters_file='$(find o2ac_scene_description)/config/b_bot_calibration.yaml'
+    physical_parameters_file='$(find ur_description)/config/ur5e/physical_parameters.yaml'
+    visual_parameters_file='$(find ur_description)/config/ur5e/visual_parameters.yaml'
+    transmission_hw_interface='hardware_interface/PositionJointInterface'
+    safety_limits="false"
+    safety_pos_margin="0.15"
     safety_k_position="20"
-    kinematics_file="${load_yaml('$(find o2ac_scene_description)/config/b_bot_calibration.yaml')}"
   />
+  
+  <link name="b_bot_ee_link">
+    <collision>
+      <geometry>
+        <box size="0.01 0.01 0.01"/>
+      </geometry>
+      <origin rpy="0 0 0" xyz="-0.01 0 0"/>
+    </collision>
+  </link>
+  <joint name="b_bot_ee_fixed_joint" type="fixed">
+    <parent link="b_bot_wrist_3_link"/>
+    <child link="b_bot_ee_link"/>
+    <origin rpy="0.0 -1.57079632679 1.57079632679" xyz="0.0 0.0 0.0"/>
+  </joint>
 
   <link name="o2ac_ground" />
 

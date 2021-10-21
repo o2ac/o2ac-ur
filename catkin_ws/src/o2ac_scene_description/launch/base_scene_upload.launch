@@ -1,8 +1,13 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="taskboard" default="false"/>
+  <arg name="gazebo" default="false"/>
   <!-- This file is used by MoveIt. -->
-  <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find o2ac_scene_description)/urdf/base_scene.urdf.xacro' taskboard:=$(arg taskboard)" />
+  <param name="robot_description" command="$(find xacro)/xacro --inorder 
+                                          '$(find o2ac_scene_description)/urdf/base_scene.urdf.xacro'
+                                          taskboard:=$(arg taskboard)
+                                          gazebo:=$(arg gazebo)
+                                          " />
 
   <!-- These args are declared so the UR upload script does not complain. -->
   <arg name="limited" default=""/>
