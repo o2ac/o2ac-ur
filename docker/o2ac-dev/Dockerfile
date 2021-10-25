@@ -83,13 +83,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     net-tools=1.60+git20161116.90da8a0-1ubuntu1 \
     openssh-client=1:7.6p1-4ubuntu0.5 \
     python-catkin-tools=0.6.1-1 \
-    python-catkin-tools=0.6.1-1 \
-    python-catkin-tools=0.6.1-1 \
-    python-catkin-tools=0.6.1-1 \
-    python-catkin-tools=0.6.1-1 \
-    python-catkin-tools=0.6.1-1 \
-    python-catkin-tools=0.6.1-1 \
-    python-catkin-tools=0.6.1-1 \
     python-tk=2.7.17-1~18.04 \
     unzip=6.0-21ubuntu1.1 \
     vim=2:8.0.1453-1ubuntu1.6 \
@@ -119,14 +112,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install wstool to use .rosinstall file in the underlay workspace
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python-wstool=0.1.17-1 \
-    python-catkin-tools=0.6.1-1 \
-    python-catkin-tools=0.6.1-1 \
-    python-catkin-tools=0.6.1-1 \
-    python-catkin-tools=0.6.1-1 \
-    python-catkin-tools=0.6.1-1 \
-    python-catkin-tools=0.6.1-1 \
-    python-catkin-tools=0.6.1-1 \
-    python-catkin-tools=0.6.1-1 \
     clang-format-10=1:10.0.0-4ubuntu1~18.04.2 \
 	&& rm -rf /var/lib/apt/lists/*
 
