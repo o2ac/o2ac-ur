@@ -22,7 +22,9 @@
 
   <!-- send robot urdf to param server -->
   <!-- In this case the "robot" is the ensemble of the 2 arms -->
-  <include file="$(find o2ac_scene_description)/launch/base_scene_upload.launch" />
+  <include file="$(find o2ac_scene_description)/launch/base_scene_upload.launch">
+    <arg name="gazebo" value="true"/>
+  </include>
 
   <!-- push robot_description to factory and spawn robot in gazebo -->
   <!-- Initial pose modified on 9 July 2018 -->
