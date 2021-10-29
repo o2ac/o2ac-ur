@@ -296,61 +296,61 @@
     <!--VIRTUAL JOINT: Purpose: this element defines a virtual joint between a robot link and an external frame of reference (considered fixed with respect to the robot)-->
     <virtual_joint name="world_to_o2ac" type="fixed" parent_frame="world" child_link="o2ac_ground" />
     <!--DISABLE COLLISIONS: By default it is assumed that any link of the robot could potentially come into collision with any other link in the robot. This tag disables collision checking between a specified pair of links. -->
-    <disable_collisions link1="a_bot_base_link" link2="a_bot_base_smfl" reason="Adjacent" />
-    <disable_collisions link1="a_bot_base_link" link2="a_bot_shoulder_link" reason="Adjacent" />
-    <disable_collisions link1="a_bot_base_link" link2="agv_table" reason="Adjacent" />
-    <disable_collisions link1="a_bot_base_link" link2="b_bot_base_link" reason="Adjacent" />
-    <disable_collisions link1="a_bot_base_link" link2="b_bot_base_smfl" reason="Adjacent" />
-    <disable_collisions link1="a_bot_base_link" link2="b_bot_coupling" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="b_bot_ee_link" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="b_bot_forearm_link" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="b_bot_left_outer_knuckle" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="b_bot_right_inner_finger" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="b_bot_right_inner_finger_pad" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="b_bot_right_inner_knuckle" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="b_bot_right_outer_finger" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="b_bot_right_outer_knuckle" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="b_bot_robotiq_arg2f_base_link" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="b_bot_shoulder_link" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="b_bot_upper_arm_link" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="b_bot_wrist_1_link" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="b_bot_wrist_2_link" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="b_bot_wrist_3_link" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="back_bar" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="back_limit_a" reason="Adjacent" />
-    <disable_collisions link1="a_bot_base_link" link2="back_limit_b" reason="Adjacent" />
-    <disable_collisions link1="a_bot_base_link" link2="base_fixture_top" reason="Adjacent" />
-    <disable_collisions link1="a_bot_base_link" link2="belt_tool_holder" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="belt_tool_link" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="front_bar" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="horizontal_column_for_tools" reason="Adjacent" />
-    <disable_collisions link1="a_bot_base_link" link2="horizontal_column_top" reason="Adjacent" />
-    <disable_collisions link1="a_bot_base_link" link2="left_bar" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="plunger_tool_holder" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="plunger_tool_link" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="right_bar" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="side_limit_a" reason="Adjacent" />
-    <disable_collisions link1="a_bot_base_link" link2="side_limit_b" reason="Adjacent" />
-    <disable_collisions link1="a_bot_base_link" link2="taskboard_assy_part_07" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="taskboard_base" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="taskboard_large_pulley" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="taskboard_plate" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="taskboard_small_pulley" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="taskboard_small_shaft" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="tray" reason="Adjacent" />
-    <disable_collisions link1="a_bot_base_link" link2="tray_center" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="tv" reason="Adjacent" />
-    <disable_collisions link1="a_bot_base_link" link2="vertical_column_left" reason="Adjacent" />
-    <disable_collisions link1="a_bot_base_link" link2="vertical_column_right" reason="Adjacent" />
-    <disable_collisions link1="a_bot_base_link" link2="vgroove_aid_link" reason="Never" />
-    <disable_collisions link1="a_bot_base_link" link2="washer_holder1" reason="Adjacent" />
-    <disable_collisions link1="a_bot_base_link" link2="washer_holder2" reason="Adjacent" />
-    <disable_collisions link1="a_bot_base_link" link2="washer_holder3" reason="Adjacent" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="a_bot_base_smfl" reason="Adjacent" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="a_bot_shoulder_link" reason="Adjacent" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="agv_table" reason="Adjacent" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="b_bot_base_link_inertia" reason="Adjacent" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="b_bot_base_smfl" reason="Adjacent" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="b_bot_coupling" reason="Never" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="b_bot_ee_link" reason="Never" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="b_bot_forearm_link" reason="Never" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="b_bot_inside_camera_link" reason="Never" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="b_bot_left_inner_knuckle" reason="Never" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="b_bot_left_outer_finger" reason="Never" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="b_bot_left_outer_knuckle" reason="Never" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="b_bot_right_outer_finger" reason="Never" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="b_bot_right_outer_knuckle" reason="Never" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="b_bot_robotiq_arg2f_base_link" reason="Never" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="b_bot_shoulder_link" reason="Never" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="b_bot_upper_arm_link" reason="Never" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="b_bot_wrist_1_link" reason="Never" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="b_bot_wrist_2_link" reason="Never" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="b_bot_wrist_3_link" reason="Never" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="back_bar" reason="Never" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="back_limit_a" reason="Adjacent" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="back_limit_b" reason="Adjacent" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="base_fixture_top" reason="Adjacent" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="belt_tool_holder" reason="Adjacent" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="belt_tool_link" reason="Never" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="front_bar" reason="Never" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="horizontal_column_for_tools" reason="Adjacent" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="horizontal_column_top" reason="Adjacent" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="left_bar" reason="Never" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="plunger_tool_holder" reason="Adjacent" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="plunger_tool_link" reason="Never" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="right_bar" reason="Never" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="side_limit_a" reason="Adjacent" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="side_limit_b" reason="Adjacent" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="taskboard_assy_part_07" reason="Never" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="taskboard_base" reason="Never" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="taskboard_large_pulley" reason="Never" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="taskboard_plate" reason="Never" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="taskboard_small_pulley" reason="Never" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="taskboard_small_shaft" reason="Never" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="tray" reason="Adjacent" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="tray_center" reason="Never" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="tv" reason="Adjacent" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="vertical_column_left" reason="Adjacent" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="vertical_column_right" reason="Adjacent" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="vgroove_aid_link" reason="Adjacent" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="washer_holder1" reason="Adjacent" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="washer_holder2" reason="Adjacent" />
+    <disable_collisions link1="a_bot_base_link_inertia" link2="workplate" reason="Adjacent" />
     <disable_collisions link1="a_bot_base_link" link2="washer_holder4" reason="Adjacent" />
     <disable_collisions link1="a_bot_base_link" link2="workplate" reason="Adjacent" />
     <disable_collisions link1="a_bot_base_smfl" link2="a_bot_shoulder_link" reason="Never" />
     <disable_collisions link1="a_bot_base_smfl" link2="agv_table" reason="Adjacent" />
-    <disable_collisions link1="a_bot_base_smfl" link2="b_bot_base_link" reason="Adjacent" />
+    <disable_collisions link1="a_bot_base_smfl" link2="b_bot_base_link_inertia" reason="Adjacent" />
     <disable_collisions link1="a_bot_base_smfl" link2="b_bot_base_smfl" reason="Adjacent" />
     <disable_collisions link1="a_bot_base_smfl" link2="b_bot_shoulder_link" reason="Never" />
     <disable_collisions link1="a_bot_base_smfl" link2="b_bot_upper_arm_link" reason="Never" />
@@ -702,7 +702,7 @@
     <disable_collisions link1="a_bot_shoulder_link" link2="washer_holder3" reason="Never" />
     <disable_collisions link1="a_bot_shoulder_link" link2="washer_holder4" reason="Never" />
     <disable_collisions link1="a_bot_shoulder_link" link2="workplate" reason="Never" />
-    <disable_collisions link1="a_bot_upper_arm_link" link2="b_bot_base_link" reason="Never" />
+    <disable_collisions link1="a_bot_upper_arm_link" link2="b_bot_base_link_inertia" reason="Never" />
     <disable_collisions link1="a_bot_upper_arm_link" link2="b_bot_base_smfl" reason="Never" />
     <disable_collisions link1="a_bot_upper_arm_link" link2="b_bot_shoulder_link" reason="Never" />
     <disable_collisions link1="a_bot_upper_arm_link" link2="b_bot_upper_arm_link" reason="Never" />
@@ -725,7 +725,7 @@
     <disable_collisions link1="a_bot_upper_arm_link" link2="vgroove_aid_link" reason="Never" />
     <disable_collisions link1="a_bot_wrist_1_link" link2="a_bot_wrist_2_link" reason="Adjacent" />
     <disable_collisions link1="a_bot_wrist_1_link" link2="a_bot_wrist_3_link" reason="Never" />
-    <disable_collisions link1="a_bot_wrist_1_link" link2="b_bot_base_link" reason="Never" />
+    <disable_collisions link1="a_bot_wrist_1_link" link2="b_bot_base_link_inertia" reason="Never" />
     <disable_collisions link1="a_bot_wrist_1_link" link2="b_bot_shoulder_link" reason="Never" />
     <disable_collisions link1="a_bot_wrist_1_link" link2="back_limit_b" reason="Never" />
     <disable_collisions link1="a_bot_wrist_1_link" link2="belt_tool_holder" reason="Never" />
@@ -736,32 +736,32 @@
     <disable_collisions link1="a_bot_wrist_1_link" link2="side_limit_a" reason="Never" />
     <disable_collisions link1="a_bot_wrist_1_link" link2="vgroove_aid_link" reason="Never" />
     <disable_collisions link1="a_bot_wrist_2_link" link2="a_bot_wrist_3_link" reason="Adjacent" />
-    <disable_collisions link1="a_bot_wrist_2_link" link2="b_bot_base_link" reason="Never" />
-    <disable_collisions link1="a_bot_wrist_2_link" link2="b_bot_shoulder_link" reason="Never" />
+    <disable_collisions link1="a_bot_wrist_2_link" link2="b_bot_base_link_inertia" reason="Never" />
+    <disable_collisions link1="a_bot_wrist_2_link" link2="b_bot_ee_link" reason="Never" />
     <disable_collisions link1="a_bot_wrist_2_link" link2="horizontal_column_top" reason="Never" />
     <disable_collisions link1="a_bot_wrist_2_link" link2="plunger_tool_holder" reason="Never" />
     <disable_collisions link1="a_bot_wrist_2_link" link2="plunger_tool_link" reason="Never" />
     <disable_collisions link1="a_bot_wrist_2_link" link2="side_limit_a" reason="Never" />
-    <disable_collisions link1="a_bot_wrist_3_link" link2="b_bot_base_link" reason="Never" />
-    <disable_collisions link1="a_bot_wrist_3_link" link2="b_bot_shoulder_link" reason="Never" />
+    <disable_collisions link1="a_bot_wrist_3_link" link2="b_bot_base_link_inertia" reason="Never" />
+    <disable_collisions link1="a_bot_wrist_3_link" link2="b_bot_coupling" reason="Never" />
     <disable_collisions link1="a_bot_wrist_3_link" link2="horizontal_column_top" reason="Never" />
     <disable_collisions link1="a_bot_wrist_3_link" link2="plunger_tool_holder" reason="Never" />
     <disable_collisions link1="a_bot_wrist_3_link" link2="plunger_tool_link" reason="Never" />
     <disable_collisions link1="a_bot_wrist_3_link" link2="side_limit_a" reason="Never" />
-    <disable_collisions link1="agv_table" link2="b_bot_base_link" reason="Adjacent" />
+    <disable_collisions link1="agv_table" link2="b_bot_base_link_inertia" reason="Adjacent" />
     <disable_collisions link1="agv_table" link2="b_bot_base_smfl" reason="Adjacent" />
     <disable_collisions link1="agv_table" link2="b_bot_shoulder_link" reason="Never" />
     <disable_collisions link1="agv_table" link2="back_bar" reason="Never" />
     <disable_collisions link1="agv_table" link2="back_limit_a" reason="Adjacent" />
     <disable_collisions link1="agv_table" link2="back_limit_b" reason="Adjacent" />
     <disable_collisions link1="agv_table" link2="base_fixture_top" reason="Adjacent" />
-    <disable_collisions link1="agv_table" link2="belt_tool_holder" reason="Never" />
+    <disable_collisions link1="agv_table" link2="belt_tool_holder" reason="Adjacent" />
     <disable_collisions link1="agv_table" link2="belt_tool_link" reason="Never" />
     <disable_collisions link1="agv_table" link2="front_bar" reason="Never" />
     <disable_collisions link1="agv_table" link2="horizontal_column_for_tools" reason="Adjacent" />
     <disable_collisions link1="agv_table" link2="horizontal_column_top" reason="Adjacent" />
     <disable_collisions link1="agv_table" link2="left_bar" reason="Never" />
-    <disable_collisions link1="agv_table" link2="plunger_tool_holder" reason="Never" />
+    <disable_collisions link1="agv_table" link2="plunger_tool_holder" reason="Adjacent" />
     <disable_collisions link1="agv_table" link2="plunger_tool_link" reason="Never" />
     <disable_collisions link1="agv_table" link2="right_bar" reason="Never" />
     <disable_collisions link1="agv_table" link2="side_limit_a" reason="Adjacent" />
@@ -783,38 +783,38 @@
     <disable_collisions link1="agv_table" link2="washer_holder3" reason="Adjacent" />
     <disable_collisions link1="agv_table" link2="washer_holder4" reason="Adjacent" />
     <disable_collisions link1="agv_table" link2="workplate" reason="Adjacent" />
-    <disable_collisions link1="b_bot_base_link" link2="b_bot_base_smfl" reason="Adjacent" />
-    <disable_collisions link1="b_bot_base_link" link2="b_bot_shoulder_link" reason="Adjacent" />
-    <disable_collisions link1="b_bot_base_link" link2="back_bar" reason="Never" />
-    <disable_collisions link1="b_bot_base_link" link2="back_limit_a" reason="Adjacent" />
-    <disable_collisions link1="b_bot_base_link" link2="back_limit_b" reason="Adjacent" />
-    <disable_collisions link1="b_bot_base_link" link2="base_fixture_top" reason="Adjacent" />
-    <disable_collisions link1="b_bot_base_link" link2="belt_tool_holder" reason="Adjacent" />
-    <disable_collisions link1="b_bot_base_link" link2="belt_tool_link" reason="Never" />
-    <disable_collisions link1="b_bot_base_link" link2="front_bar" reason="Never" />
-    <disable_collisions link1="b_bot_base_link" link2="horizontal_column_for_tools" reason="Adjacent" />
-    <disable_collisions link1="b_bot_base_link" link2="horizontal_column_top" reason="Adjacent" />
-    <disable_collisions link1="b_bot_base_link" link2="left_bar" reason="Never" />
-    <disable_collisions link1="b_bot_base_link" link2="plunger_tool_holder" reason="Adjacent" />
-    <disable_collisions link1="b_bot_base_link" link2="plunger_tool_link" reason="Never" />
-    <disable_collisions link1="b_bot_base_link" link2="right_bar" reason="Never" />
-    <disable_collisions link1="b_bot_base_link" link2="side_limit_a" reason="Adjacent" />
-    <disable_collisions link1="b_bot_base_link" link2="side_limit_b" reason="Adjacent" />
-    <disable_collisions link1="b_bot_base_link" link2="taskboard_assy_part_07" reason="Never" />
-    <disable_collisions link1="b_bot_base_link" link2="taskboard_base" reason="Never" />
-    <disable_collisions link1="b_bot_base_link" link2="taskboard_large_pulley" reason="Never" />
-    <disable_collisions link1="b_bot_base_link" link2="taskboard_plate" reason="Never" />
-    <disable_collisions link1="b_bot_base_link" link2="taskboard_small_pulley" reason="Never" />
-    <disable_collisions link1="b_bot_base_link" link2="taskboard_small_shaft" reason="Never" />
-    <disable_collisions link1="b_bot_base_link" link2="tray" reason="Adjacent" />
-    <disable_collisions link1="b_bot_base_link" link2="tray_center" reason="Never" />
-    <disable_collisions link1="b_bot_base_link" link2="tv" reason="Adjacent" />
-    <disable_collisions link1="b_bot_base_link" link2="vertical_column_left" reason="Adjacent" />
-    <disable_collisions link1="b_bot_base_link" link2="vertical_column_right" reason="Adjacent" />
-    <disable_collisions link1="b_bot_base_link" link2="vgroove_aid_link" reason="Adjacent" />
-    <disable_collisions link1="b_bot_base_link" link2="washer_holder1" reason="Adjacent" />
-    <disable_collisions link1="b_bot_base_link" link2="washer_holder2" reason="Adjacent" />
-    <disable_collisions link1="b_bot_base_link" link2="washer_holder3" reason="Adjacent" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="b_bot_base_smfl" reason="Adjacent" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="b_bot_shoulder_link" reason="Adjacent" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="back_bar" reason="Never" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="back_limit_a" reason="Adjacent" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="back_limit_b" reason="Adjacent" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="base_fixture_top" reason="Adjacent" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="belt_tool_holder" reason="Adjacent" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="belt_tool_link" reason="Never" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="front_bar" reason="Never" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="horizontal_column_for_tools" reason="Adjacent" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="horizontal_column_top" reason="Adjacent" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="left_bar" reason="Never" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="plunger_tool_holder" reason="Adjacent" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="plunger_tool_link" reason="Never" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="right_bar" reason="Never" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="side_limit_a" reason="Adjacent" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="side_limit_b" reason="Adjacent" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="taskboard_assy_part_07" reason="Never" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="taskboard_base" reason="Never" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="taskboard_large_pulley" reason="Never" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="taskboard_plate" reason="Never" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="taskboard_small_pulley" reason="Never" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="taskboard_small_shaft" reason="Never" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="tray" reason="Adjacent" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="tray_center" reason="Never" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="tv" reason="Adjacent" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="vertical_column_left" reason="Adjacent" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="vertical_column_right" reason="Adjacent" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="vgroove_aid_link" reason="Adjacent" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="washer_holder1" reason="Adjacent" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="washer_holder2" reason="Adjacent" />
+    <disable_collisions link1="b_bot_base_link_inertia" link2="workplate" reason="Adjacent" />
     <disable_collisions link1="b_bot_base_link" link2="washer_holder4" reason="Adjacent" />
     <disable_collisions link1="b_bot_base_link" link2="workplate" reason="Adjacent" />
     <disable_collisions link1="b_bot_base_smfl" link2="b_bot_shoulder_link" reason="Never" />
