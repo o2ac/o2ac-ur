@@ -145,3 +145,19 @@ cable_tool:
     name: 'cable_tool_tip'
     pose: [0.05, 0.0, 0.0, 0.0, 0.0, 0.0]
   mesh_url: 'package://o2ac_scene_description/meshes/cable_tool.stl'
+knife:
+  id: 'knife'
+  pose: [0, 0, -0.03, pi, 0, pi/2]
+  frame_id: 'knife_pickup_link'
+  primitives:
+    [
+      { # The bit cushion and motor
+        type: 'BOX',
+        dimensions: [.02, .05, .25],
+        pose: [0.0, 0.0, -0.11, 0.0, 0.0, 0.0]
+      },
+    ]
+  subframe:
+    name: 'knife_tip'
+    pose: [0.08, 0.0, 0.0, 0.0, 0.0, 0.0]
+  mesh_url: 'package://o2ac_scene_description/meshes/kitchen_knife.stl'

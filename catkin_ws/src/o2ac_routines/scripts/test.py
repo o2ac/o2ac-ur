@@ -2,6 +2,7 @@
 
 import threading
 from o2ac_routines.common import O2ACCommon
+from o2ac_routines.cooking import Cooking
 from o2ac_routines.assembly import O2ACAssembly
 from o2ac_routines.taskboard import O2ACTaskboard
 from o2ac_routines.thread_with_trace import ThreadTrace
@@ -19,6 +20,9 @@ from math import pi, radians
 
 from ur_gazebo.gazebo_spawner import GazeboModels
 from ur_gazebo.model import Model
+
+import tf_conversions
+import copy
 
 tau = 2.0*pi  # Part of math from Python 3.6
 
@@ -44,16 +48,22 @@ def test_gazebo():
 def main():
     rospy.init_node("testscript")
     global c
-    c = O2ACCommon()
+    c = Cooking()
+    c.a_bot.move_lin_rel(relative_translation=[0.1, 0, 0.0], relative_to_tcp=True)
+    if not c.equip_knife():
+        return
+    c.unequip_knife()
+       
+    
     # c = O2ACAssembly()
 
-    a_bot_at_cable_end_joints = [1.5075, -1.7509, 2.4526, -2.9421, -1.1429, 4.6537]
-    c.a_bot.move_joints(a_bot_at_cable_end_joints)
-    c.a_bot.move_lin_rel([-0.002,0,0], relative_to_tcp=True)
+    # a_bot_at_cable_end_joints = [1.5075, -1.7509, 2.4526, -2.9421, -1.1429, 4.6537]
+    # c.a_bot.move_joints(a_bot_at_cable_end_joints)
+    # c.a_bot.move_lin_rel([-0.002,0,0], relative_to_tcp=True)
 
-    print("a_bot",np.round(c.a_bot.robot_group.get_current_joint_values(), 4).tolist())
-    # print("a_bot ps",np.round(conversions.from_pose_to_list(c.listener.transformPose("assembled_part_07_inserted", c.a_bot.get_current_pose_stamped()).pose), 4).tolist())
-    print("b_bot",np.round(c.b_bot.robot_group.get_current_joint_values(), 4).tolist())
+    # print("a_bot",np.round(c.a_bot.robot_group.get_current_joint_values(), 4).tolist())
+    # # print("a_bot ps",np.round(conversions.from_pose_to_list(c.listener.transformPose("assembled_part_07_inserted", c.a_bot.get_current_pose_stamped()).pose), 4).tolist())
+    # print("b_bot",np.round(c.b_bot.robot_group.get_current_joint_values(), 4).tolist())
 
     # approach_pose = conversions.to_pose_stamped("assembled_part_03_pulley_ridge_top", [0.1, 0.0, 0.0,0,0,0])
     # c.a_bot.go_to_pose_goal(approach_pose, speed=0.1, move_lin=True, end_effector_link="a_bot_nut_tool_m4_hole_link")
