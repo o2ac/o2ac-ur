@@ -62,5 +62,6 @@ underlay_ws/src/third_party/Universal_Robots_Client_Library
 underlay_ws/src/third_party/robotiq
 underlay_ws/src/third_party/aruco_ros
 underlay_ws/src/third_party/gazebo_ros_link_attacher
+underlay_ws/src/third_party/trac-ik
 
 catkin_ws/src/o2ac_vision/log/
