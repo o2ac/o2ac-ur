@@ -794,6 +794,8 @@ class O2ACBase(object):
             tool_co = moveit_msgs.msg.CollisionObject()
             tool_co.header.frame_id = tool["frame_id"]
             tool_co.id = tool["id"]
+            tool_pose = tool.get("pose", [0,0,0,0,0,0])
+            tool_co.pose = conversions.to_pose(conversions.to_float(tool_pose))
 
             tool_co.visual_geometry_mesh_url = tool.get("mesh_url", "")
 
