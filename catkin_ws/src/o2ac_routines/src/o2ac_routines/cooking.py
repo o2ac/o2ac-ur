@@ -1,8 +1,10 @@
 from o2ac_routines.base import *
+from o2ac_routines.common import O2ACCommon
 
-class Cooking(O2ACBase):
+class Cooking(O2ACCommon):
     def __init__(self):
         super(Cooking, self).__init__()
+        self.assembly_database.change_assembly("cooking")
 
     def equip_knife(self):
         self.spawn_tool("knife")
@@ -65,3 +67,24 @@ class Cooking(O2ACBase):
 
         self.allow_collisions_with_robot_hand("knife", "a_bot", allow=False)
         return True
+
+    def load_objects(self):
+        poses = [
+            [0.15, 0, 0.02, 0, 0, 0],
+            [0.15, 0.1, 0.02, 0, 0, 0]
+        ]
+        self.spawn_multiple_objects("cooking", ["cucumber", "tomato"], poses, "workspace_center")
+
+    def pick_tomato(self):
+        grasp_pose = self.get_transformed_grasp_pose("tomato", "grasp_2", target_frame="workspace_center")
+
+        grasp_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, tau/4, 0))
+
+        self.simple_pick("b_bot", grasp_pose, item_id_to_attach="tomato", 
+                         axis="z", sign=+1, attach_with_collisions=True,
+                         approach_height=0.1)
+
+        place_pose = copy.deepcopy(grasp_pose)
+        place_pose.pose.position.x += 0.1
+
+        self.simple_place("b_bot", place_pose, axis="z", sign=+1, place_height=0.01)

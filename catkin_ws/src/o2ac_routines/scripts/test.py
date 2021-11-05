@@ -49,10 +49,18 @@ def main():
     rospy.init_node("testscript")
     global c
     c = Cooking()
-    c.a_bot.move_lin_rel(relative_translation=[0.1, 0, 0.0], relative_to_tcp=True)
-    if not c.equip_knife():
-        return
-    c.unequip_knife()
+    c.reset_scene_and_robots()
+    c.ab_bot.go_to_named_pose("home")
+    c.load_objects()
+    c.planning_scene_interface.allow_collisions("bowl")
+    c.planning_scene_interface.allow_collisions("cucumber")
+    c.planning_scene_interface.allow_collisions("tomato")
+    c.planning_scene_interface.allow_collisions("cutting_board")
+    c.pick_tomato()
+    # c.a_bot.move_lin_rel(relative_translation=[0.1, 0, 0.0], relative_to_tcp=True)
+    # if not c.equip_knife():
+    #     return
+    # c.unequip_knife()
        
     
     # c = O2ACAssembly()

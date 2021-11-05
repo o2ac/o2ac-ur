@@ -1,0 +1,42 @@
+subframes:
+- pose_xyzrpy:
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  name: center
+- pose_xyzrpy:
+  - 0.04
+  - 0.04
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  name: tip1
+- pose_xyzrpy:
+  - -0.03
+  - -0.045
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  name: tip2
+grasp_points:
+- grasp_name: grasp_1
+  pose_xyzrpy:
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+- grasp_name: grasp_2
+  pose_xyzrpy:
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - pi/2
+  - pi/3

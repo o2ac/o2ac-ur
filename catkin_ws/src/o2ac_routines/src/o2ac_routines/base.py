@@ -295,7 +295,7 @@ class O2ACBase(object):
         rospy.sleep(0.5)  # Wait half a second for the detach to finish so that we can remove the object
         self.planning_scene_interface.remove_world_object()  # Clear all objects
         self.publish_robot_status()
-        self.reset_assembly_visualization()
+        # self.reset_assembly_visualization()
         self.markers_scene.delete_all()
         self.publish_status_text("")
 
@@ -463,10 +463,8 @@ class O2ACBase(object):
 
         # Spawn tools and objects
         self.define_tool_collision_objects()
-        screw_ids = ['m3', 'm4']
-        for screw_id in screw_ids:
-            self.spawn_tool('screw_tool_' + screw_id)
-            self.upload_tool_grasps_to_param_server(screw_id)
+        tools_id = 'knife'
+        self.spawn_tool(tools_id)
 
         for (object_name, pose) in zip(objects, poses):
             co = self.assembly_database.get_collision_object(object_name)
@@ -819,6 +817,8 @@ class O2ACBase(object):
             tool_co.subframe_names = [tool["subframe"]["name"]]
 
             self.screw_tools[tool["id"]] = tool_co
+        print("type tools", type(self.screw_tools))
+        print("tools", self.screw_tools)
 
     def pick_screw_from_feeder(self, robot_name, screw_size, realign_tool_upon_failure=True):
         return self.pick_screw_from_feeder_python(robot_name, screw_size, realign_tool_upon_failure)  # Python-only version

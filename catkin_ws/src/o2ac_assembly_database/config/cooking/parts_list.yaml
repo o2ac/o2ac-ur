@@ -1,0 +1,9 @@
+parts_list:
+  - id: 1
+    name: cucumber
+    cad: cucumber.stl
+    description: Cucumber
+  - id: 2
+    name: tomato
+    cad: tomato.stl
+    description: Tomato
