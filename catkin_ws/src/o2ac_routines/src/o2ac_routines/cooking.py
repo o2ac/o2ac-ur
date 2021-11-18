@@ -16,7 +16,7 @@ class Cooking(O2ACCommon):
         ps_approach = geometry_msgs.msg.PoseStamped()
         ps_approach.header.frame_id = "knife_pickup_link"
         ps_approach.pose.position.x = -.04
-        ps_approach.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, -pi/6, 0))
+        ps_approach.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(0, -pi/3, 0))
 
         # Define pickup pose
         ps_in_holder = copy.deepcopy(ps_approach)
@@ -84,7 +84,20 @@ class Cooking(O2ACCommon):
                          axis="z", sign=+1, attach_with_collisions=True,
                          approach_height=0.1)
 
-        place_pose = copy.deepcopy(grasp_pose)
-        place_pose.pose.position.x += 0.1
+        place_pose = conversions.to_pose_stamped("cooking_board_surface", [0,0,0.02,0,tau/4,0])
+        # place_pose = copy.deepcopy(grasp_pose)
+        # place_pose.pose.position.x += 0.1
 
         self.simple_place("b_bot", place_pose, axis="z", sign=+1, place_height=0.01)
+
+    def hold_cucumber(self):
+        grasp_pose = self.get_transformed_grasp_pose("cucumber", "grasp_tip2", target_frame="workspace_center")
+
+        ps = conversions.from_pose_to_list(grasp_pose.pose)
+        print(transformations.euler_from_quaternion(ps[3:]))
+        grasp_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(-3.142, 0.825, -2.093))
+
+
+        self.simple_pick("b_bot", grasp_pose, item_id_to_attach="cucumber", 
+                         axis="z", sign=+1, attach_with_collisions=True,
+                         approach_height=0.1, lift_up_after_pick=False)

@@ -40,3 +40,19 @@ grasp_points:
   - 0.0
   - pi/2
   - pi/3
+- grasp_name: grasp_tip
+  pose_xyzrpy:
+  - -0.03
+  - -0.045
+  - 0.0
+  - 0.0
+  - pi/2
+  - pi/3
+- grasp_name: grasp_tip2
+  pose_xyzrpy:
+  - 0.045
+  - 0.03
+  - 0.0
+  - 0.0
+  - pi/2
+  - pi/3

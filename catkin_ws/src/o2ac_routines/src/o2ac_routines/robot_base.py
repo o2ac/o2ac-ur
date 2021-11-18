@@ -207,7 +207,7 @@ class RobotBase():
         return (sp, acc)
 
     def check_goal_pose_reached(self, goal_pose):
-        current_pose = self.robot_group.get_current_pose()
+        current_pose = self.get_current_pose_stamped()
         if current_pose.header.frame_id != goal_pose.header.frame_id:
             gp = self.listener.transformPose(current_pose.header.frame_id, goal_pose)
         else:
@@ -240,10 +240,35 @@ class RobotBase():
             return True  # Joints change
 
     def get_current_pose_stamped(self):
-        return self.robot_group.get_current_pose()
+        empty_pose = conversions.to_pose_stamped("world", [0,0,0,0,0,0]).pose
+        end_effector_link = self.robot_group.get_end_effector_link()
+        current_pose = self.robot_group.get_current_pose()
+        if current_pose.pose == empty_pose:
+            rospy.logwarn("End effector '%s' is not part of the robot" % end_effector_link)
+            if self.listener.canTransform("world", end_effector_link, rospy.Time(0)):
+                eef = end_effector_link
+            elif self.listener.canTransform("world", "move_group/"+end_effector_link, rospy.Time(0)):
+                eef = "move_group/" + end_effector_link
+            else:
+                rospy.logerr("Unknown link %s" % end_effector_link)
+                return empty_pose
+                
+            current_pose.header.stamp = rospy.Time.now()
+            current_pose.header.frame_id = eef
+            # Workaround for TF lookup into the future error
+            tries = 0
+            while tries < 10:
+                try:
+                    self.listener.waitForTransform("world", eef, current_pose.header.stamp, rospy.Duration(1))
+                    current_pose = self.listener.transformPose("world", current_pose)
+                    break
+                except:
+                    tries += 1
+            print("fixed", current_pose)
+        return current_pose
 
     def get_current_pose(self):
-        return self.robot_group.get_current_pose().pose
+        return self.get_current_pose_stamped().pose
 
     def get_named_pose_target(self, name):
         return helpers.ordered_joint_values_from_dict(self.robot_group.get_named_target_values(name), self.robot_group.get_active_joints())
@@ -489,7 +514,7 @@ class RobotBase():
                 t_w2tcp = transformations.concatenate_matrices(t_w2b, t_b2tcp)
                 new_pose = conversions.to_pose_stamped("world", transformations.pose_quaternion_from_matrix(t_w2tcp))
         else:
-            new_pose = group.get_current_pose()
+            new_pose = self.get_current_pose_stamped()
 
             if relative_to_robot_base:
                 new_pose = self.listener.transformPose(self.ns + "_base_link", new_pose)

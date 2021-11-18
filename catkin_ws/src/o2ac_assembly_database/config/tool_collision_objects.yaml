@@ -159,5 +159,5 @@ knife:
     ]
   subframe:
     name: 'knife_tip'
-    pose: [0.08, 0.0, 0.0, 0.0, 0.0, 0.0]
+    pose: [0.0, 0.0, -0.22, 0.0, 0.0, pi]
   mesh_url: 'package://o2ac_scene_description/meshes/kitchen_knife.stl'
