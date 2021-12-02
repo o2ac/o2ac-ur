@@ -42,3 +42,7 @@
     local-name: third_party/gazebo_ros_link_attacher
     uri: https://github.com/pal-robotics/gazebo_ros_link_attacher.git
     version: melodic-devel
+- git:
+    local-name: third_party/trac-ik
+    uri: https://bitbucket.org/traclabs/trac_ik.git
+    version: master
