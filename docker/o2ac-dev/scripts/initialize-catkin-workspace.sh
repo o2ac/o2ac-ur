@@ -63,8 +63,6 @@ fi
 # Blacklist packages that we do not use but that are part of metapackages we need
 cd /root/o2ac-ur/underlay_ws/ && catkin config -init --blacklist robotiq_3f_gripper_articulated_gazebo robotiq_3f_gripper_articulated_gazebo_plugins robotiq_3f_rviz \
                           robotiq_3f_gripper_control robotiq_3f_gripper_rviz robotiq_3f_gripper_joint_state_publisher robotiq_3f_gripper_visualization \
-                          moveit_ros_warehouse moveit_ros_benchmarks moveit_servo moveit_resources_prbt_ikfast_manipulator_plugin \
-                          moveit_resources_fanuc_moveit_config moveit_resources_panda_moveit_config moveit_resources_pr2_moveit_config \
                           ur3_e_moveit_config ur10_e_moveit_config
 catkin build
 source /root/o2ac-ur/underlay_ws/devel/setup.bash
