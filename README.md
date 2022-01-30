@@ -58,18 +58,18 @@ With this, you can:
 2) Install the development environment (`SETUP-DEVEL-MACHINE.sh`, then `BUILD-DOCKER-IMAGE.sh`)
 3) Run `LAUNCH-TERMINATOR-TERMINAL.sh`
 4) Execute `roslaunch o2ac_moveit_config demo.launch` and `rosrun o2ac_routines assembly.py` (in separate terminals)
-5) Read the [documentation](https://gitlab.com/o2ac/o2ac-ur/wikis/home), check the [Troubleshooting page](https://gitlab.com/o2ac/o2ac-ur/wikis/troubleshooting) if you have any problems, and report an issue if you are still stuck afterwards.
+5) Read the [documentation](https://github.com/o2ac/o2ac-ur/wiki), check the [Troubleshooting page](https://github.com/o2ac/o2ac-ur/wiki/troubleshooting) if you have any problems, and report an issue if you are still stuck afterwards.
 
 
 ## Contribution Guidelines
 
 Please read the contribution guidelines before pushing code or requesting a merge. Details can be found in the wiki:  
-https://gitlab.com/o2ac/o2ac-ur/wikis/contribution-guidelines
+https://github.com/o2ac/o2ac-ur/blob/main/CONTRIBUTING.md
 
 ## Reporting Issues
 
 Minor compatibility issues are expected to arise. Please report any issue by using the issue tracker:
-https://gitlab.com/o2ac/o2ac-ur/issues
+https://github.com/o2ac/o2ac-ur/issues
 
 ## Citing
 
