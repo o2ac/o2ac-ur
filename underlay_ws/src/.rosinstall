@@ -2,10 +2,10 @@
     local-name: rosparam_shortcuts
     uri: https://github.com/PickNikRobotics/rosparam_shortcuts.git
     version: melodic-devel
-- git:
-    local-name: third_party/geometric_shapes
-    uri: https://github.com/ros-planning/geometric_shapes.git
-    version: noetic-devel
+# - git:
+#     local-name: third_party/geometric_shapes
+#     uri: https://github.com/ros-planning/geometric_shapes.git
+#     version: noetic-devel
 - git:
     local-name: third_party/moveit_resources
     uri: https://github.com/ros-planning/moveit_resources.git
@@ -18,14 +18,14 @@
     local-name: third_party/rviz_visual_tools
     uri: https://github.com/PickNikRobotics/rviz_visual_tools
     version: master
-- git:
-    local-name: third_party/flexbe_app
-    uri: https://github.com/cambel/flexbe_app.git
-    version: pddl-flexbe
-- git:
-    local-name: third_party/generic_flexbe_states
-    uri: https://github.com/FlexBE/generic_flexbe_states.git
-    version: master
+# - git:
+#     local-name: third_party/flexbe_app
+#     uri: https://github.com/cambel/flexbe_app.git
+#     version: pddl-flexbe
+# - git:
+#     local-name: third_party/generic_flexbe_states
+#     uri: https://github.com/FlexBE/generic_flexbe_states.git
+#     version: master
 - git:
     local-name: third_party/robotiq
     uri: https://github.com/ros-industrial/robotiq.git

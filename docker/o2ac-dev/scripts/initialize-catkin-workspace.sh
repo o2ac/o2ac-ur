@@ -41,7 +41,7 @@ apt-get update
 rosdep update
 
 # Source the updated ROS environment.
-source /opt/ros/melodic/setup.bash
+source /opt/ros/noetic/setup.bash
 
 # FIXME: Setting PhoLocalization env variable manually seems to be required for ci.
 #        Apparently it's not loaded correctly although the installation seems be complete.
@@ -64,7 +64,7 @@ fi
 cd /root/o2ac-ur/underlay_ws/ && catkin config -init --blacklist robotiq_3f_gripper_articulated_gazebo robotiq_3f_gripper_articulated_gazebo_plugins robotiq_3f_rviz \
                           robotiq_3f_gripper_control robotiq_3f_gripper_rviz robotiq_3f_gripper_joint_state_publisher robotiq_3f_gripper_visualization \
                           moveit_ros_warehouse moveit_ros_benchmarks moveit_servo moveit_resources_prbt_ikfast_manipulator_plugin \
-                          moveit_resources_fanuc_moveit_config moveit_resources_panda_moveit_config moveit_resources_pr2_moveit_config \
+catkin build -DPYTHON_EXECUTABLE=/usr/bin/python3 -DPYTHON_INCLUDE_DIR=/usr/include/python3.8
                           ur3_e_moveit_config ur10_e_moveit_config
 catkin build
 source /root/o2ac-ur/underlay_ws/devel/setup.bash
