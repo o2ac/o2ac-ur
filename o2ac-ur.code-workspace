@@ -23,7 +23,7 @@
 		"python.formatting.provider": "autopep8",
 
 		// ROS distro name to use (kinetic, jade, ...).
-		"ros.distro": "melodic",
+		"ros.distro": "noetic",
 		"files.watcherExclude": {
 			"**/.git/objects/**": true,
 			"**/.git/subtree-cache/**": true,
