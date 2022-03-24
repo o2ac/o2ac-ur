@@ -49,6 +49,7 @@
 #include <sensor_msgs/point_cloud2_iterator.h>
 #include <tf/tf.h>
 #include <opencv2/imgproc.hpp>
+#include <opencv2/calib3d.hpp>
 
 namespace aist_new_localization
 {
