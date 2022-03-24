@@ -21,8 +21,8 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 # Install Nvidia cuDNN library missing from parent image.
 # https://gitlab.com/nvidia/cuda/blob/ubuntu18.04/10.1/devel/cudnn7/Dockerfile
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libcudnn8=8.3.2.44-1+cuda11.5 \
-    libcudnn8-dev=8.3.2.44-1+cuda11.5 \
+    libcudnn8=8.3.3.40-1+cuda11.5 \
+    libcudnn8-dev=8.3.3.40-1+cuda11.5 \
     && rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -112,7 +112,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     nano=4.8-1ubuntu1 \
     net-tools=1.60+git20180626.aebd88e-1ubuntu1 \
     openssh-client=1:8.2p1-4ubuntu0.4 \
-    python3-catkin-tools=0.8.3-1 \
+    python3-catkin-tools=0.8.5-1 \
     python3-tk=3.8.10-0ubuntu1~20.04 \
     unzip=6.0-25ubuntu1 \
     vim=2:8.1.2269-1ubuntu5.7 \
@@ -149,7 +149,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-noetic-spacenav-node=1.15.1-1focal.20220107.001953 \
     ros-noetic-joy-teleop=0.4.0-1focal.20220107.002043 \
     ros-noetic-code-coverage=0.4.4-1focal.20210423.222045 \
-    ros-noetic-panda-moveit-config=0.7.5-1focal.20220226.075123 \
+    ros-noetic-panda-moveit-config=0.7.5-1focal.20220307.072215 \
     socat=1.7.3.3-2 \
     libqt5x11extras5-dev=5.12.8-0ubuntu1 \
 	&& rm -rf /var/lib/apt/lists/*	
@@ -188,7 +188,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Add industrial_core submodule
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-noetic-industrial-core=0.7.2-1focal.20220221.113322 \
+    ros-noetic-industrial-core=0.7.2-1focal.20220307.031804 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -371,11 +371,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     htop=2.2.0-2build1 \
     ros-noetic-rqt-multiplot=0.0.12-1focal.20220107.000756 \
     ros-noetic-trac-ik-python=1.6.6-1focal.20220107.012731 \
-    ros-noetic-trac-ik-kinematics-plugin=1.6.6-1focal.20220218.100538 \
+    ros-noetic-trac-ik-kinematics-plugin=1.6.6-1focal.20220307.024843 \
     ros-noetic-flexbe-behavior-engine=1.3.1-1focal.20220107.004342 \
     ros-noetic-gripper-action-controller=0.19.0-1focal.20220221.104848 \
     ros-noetic-jsk-rviz-plugins=2.1.8-1focal.20220221.111745 \
-    ros-noetic-ros-numpy \
+    ros-noetic-ros-numpy=0.0.5-2focal.20220107.003648 \
     python3-rosinstall=0.7.8-4 \
 	&& rm -rf /var/lib/apt/lists/*
 
@@ -388,7 +388,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && pip3 install dockerfile_parse
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    locate \
+    locate=4.7.0-1ubuntu1 \
+    python-is-python3=3.8.2-4 \
     && rm -rf /var/lib/apt/lists/* \
     && updatedb
 
