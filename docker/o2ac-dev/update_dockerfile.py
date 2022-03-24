@@ -56,7 +56,6 @@ def update_libraries_without_vars(dockerfile_path):
             print("Error while reading in lines. Are all libraries on their own line?")
             print("Failed on line:")
             print(line)
-    print('??????????', libraries)
 
     # split into library names and versions
     lib_names, lib_versions = [], []
