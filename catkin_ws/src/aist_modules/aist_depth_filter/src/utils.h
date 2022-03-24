@@ -13,6 +13,7 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/point_cloud2_iterator.h>
 #include <opencv2/imgproc.hpp>
+#include <opencv2/calib3d.hpp>
 
 namespace aist_depth_filter
 {
