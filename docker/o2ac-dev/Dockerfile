@@ -139,20 +139,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ################################################################################
 
 # Install other dependencies of our workspace
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-noetic-effort-controllers=0.19.0-1focal.20220221.104843 \
-    ros-noetic-industrial-robot-status-controller=0.1.2-1focal.20220107.004524 \
-    ros-noetic-socketcan-interface=0.8.5-1focal.20220106.233037 \
-    ros-noetic-industrial-robot-status-interface=0.1.2-1focal.20220107.004233 \
-    ros-noetic-soem=1.4.1003-1focal.20210423.224754 \
-    ros-noetic-graph-msgs=0.1.0-2focal.20210423.223901 \
-    ros-noetic-spacenav-node=1.15.1-1focal.20220107.001953 \
-    ros-noetic-joy-teleop=0.4.0-1focal.20220107.002043 \
-    ros-noetic-code-coverage=0.4.4-1focal.20210423.222045 \
-    ros-noetic-panda-moveit-config=0.7.5-1focal.20220307.072215 \
-    socat=1.7.3.3-2 \
-    libqt5x11extras5-dev=5.12.8-0ubuntu1 \
-	&& rm -rf /var/lib/apt/lists/*	
+# RUN apt-get update && apt-get install -y --no-install-recommends \
+#     ros-noetic-effort-controllers=0.19.0-1focal.20220221.104843 \
+#     ros-noetic-socketcan-interface=0.8.5-1focal.20220106.233037 \
+#     ros-noetic-soem=1.4.1003-1focal.20210423.224754 \
+#     ros-noetic-graph-msgs=0.1.0-2focal.20210423.223901 \
+#     ros-noetic-spacenav-node=1.15.1-1focal.20220107.001953 \
+#     ros-noetic-joy-teleop=0.4.0-1focal.20220107.002043 \
+#     ros-noetic-code-coverage=0.4.4-1focal.20210423.222045 \
+#     ros-noetic-industrial-robot-status-controller=0.1.2-1focal.20220107.004524 \
+#     ros-noetic-industrial-robot-status-interface=0.1.2-1focal.20220107.004233 \
+#     ros-noetic-panda-moveit-config=0.7.5-1focal.20220307.072215 \
+#     socat=1.7.3.3-2 \
+#     libqt5x11extras5-dev=5.12.8-0ubuntu1 \
+# 	&& rm -rf /var/lib/apt/lists/*	
 
 ################################################################################
 
@@ -187,14 +187,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ################################################################################
 
 # Add industrial_core submodule
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-noetic-industrial-core=0.7.2-1focal.20220307.031804 \
-	&& rm -rf /var/lib/apt/lists/*
+# RUN apt-get update && apt-get install -y --no-install-recommends \
+#     ros-noetic-industrial-core=0.7.2-1focal.20220307.031804 \
+# 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
 
 # Install dependencies for dynamixel and serial communication.
-# # ros-noetic-qt-build \
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-noetic-dynamixel-sdk=3.7.51-4focal.20220106.235702 \
@@ -369,12 +368,9 @@ RUN pip3 install pyquaternion==0.9.9
 # Utilities
 RUN apt-get update && apt-get install -y --no-install-recommends \
     htop=2.2.0-2build1 \
-    ros-noetic-rqt-multiplot=0.0.12-1focal.20220107.000756 \
-    ros-noetic-trac-ik-python=1.6.6-1focal.20220107.012731 \
-    ros-noetic-trac-ik-kinematics-plugin=1.6.6-1focal.20220307.024843 \
+    ros-noetic-rqt-multiplot=0.0.12-1focal.20220328.224855 \
     ros-noetic-flexbe-behavior-engine=1.3.1-1focal.20220107.004342 \
     ros-noetic-gripper-action-controller=0.19.0-1focal.20220221.104848 \
-    ros-noetic-jsk-rviz-plugins=2.1.8-1focal.20220221.111745 \
     ros-noetic-ros-numpy=0.0.5-2focal.20220107.003648 \
     python3-rosinstall=0.7.8-4 \
 	&& rm -rf /var/lib/apt/lists/*
@@ -428,3 +424,5 @@ ENTRYPOINT []
 
 # Enter the container with a Bash shell.
 CMD ["/bin/bash"]
+
+# RUN apt update && apt install -y aptitude

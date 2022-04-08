@@ -64,5 +64,6 @@ underlay_ws/src/third_party/robotiq
 underlay_ws/src/third_party/aruco_ros
 underlay_ws/src/third_party/gazebo_ros_link_attacher
 underlay_ws/src/third_party/trac-ik
+underlay_ws/third_party/jsk_visualization
 
 catkin_ws/src/o2ac_vision/log/
