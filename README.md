@@ -81,7 +81,7 @@ Felix von Drigalski, Chisato Nakashima, Yoshiya Shibata, Yoshinori Konishi, Josh
 Felix von Drigalski, Christian Schlette, Martin Rudorfer, Nikolaus Correll, Joshua C. Triyonoputro, Weiwei Wan, Tokuo Tsuji & Tetsuyou Watanabe (2020) Robots assembling machines: learning from the World Robot Summit 2018 Assembly Challenge, Advanced Robotics, 34:7-8, 408-421, DOI: 10.1080/01691864.2019.1705910  
 [arXiv](https://arxiv.org/abs/1911.05884)
 
-(WRS2020 versions to come)
+Felix von Drigalski, Cristian C. Beltran-Hernandez, Chisato Nakashima, Zhengtao Hu, Shuichi Akizuki, Toshio Ueshiba, Manabu Hashimoto, Kazumi Kasaura, Yukiyasu Domae, Weiwei Wan & Kensuke Harada (2022) Team O2AC at the world robot summit 2020: towards jigless, high-precision assembly, Advanced Robotics, DOI: 10.1080/01691864.2022.2138541
 
 ## Credits
 
