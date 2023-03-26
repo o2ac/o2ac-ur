@@ -58,9 +58,12 @@ underlay_ws/src/rosparam_shortcuts
 underlay_ws/src/third_party/generic_flexbe_states
 underlay_ws/src/third_party/flexbe_app
 underlay_ws/src/third_party/Universal_Robots_Client_Library
-# underlay_ws/src/third_party/ur_drivers
+underlay_ws/src/third_party/ur_robot_driver
+underlay_ws/src/third_party/universal_robot
 underlay_ws/src/third_party/robotiq
 underlay_ws/src/third_party/aruco_ros
 underlay_ws/src/third_party/gazebo_ros_link_attacher
+underlay_ws/src/third_party/trac-ik
+underlay_ws/third_party/jsk_visualization
 
 catkin_ws/src/o2ac_vision/log/

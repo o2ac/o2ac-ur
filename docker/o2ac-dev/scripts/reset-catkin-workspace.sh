@@ -11,7 +11,7 @@ rosdep update
 
 # TODO: Does this have any effect on the current shell?
 # Source the ROS environment.
-source /opt/ros/melodic/setup.bash
+source /opt/ros/noetic/setup.bash
 
 ################################################################################
 

@@ -4,6 +4,7 @@ import apt
 from pprint import pprint
 from dockerfile_parse import DockerfileParser
 from IPython.terminal.debugger import set_trace as keyboard
+import numpy as np
 
 # This script updates each library in the Dockerfile to the newest version.
 # Each `apt-get install` command needs to be formatted with one library per line.
@@ -59,16 +60,14 @@ def update_libraries_without_vars(dockerfile_path):
     # split into library names and versions
     lib_names, lib_versions = [], []
     for lib in libraries:
-        try:
+        if '=' in lib:
             lib_name_ver = lib.split('=')
             if lib_name_ver[1][0] != '$': # ignore variables for now
                 lib_names.append(lib_name_ver[0])
                 lib_versions.append(lib_name_ver[1])
-        except Exception as e:
-            print(e)
-            print("Error while reading in lines. Are all libraries on their own line?")
-            print("Failed on line:")
-            print(line)
+        else:
+            lib_names.append(lib)
+            lib_versions.append('no specified')
 
     # update and open apt cache
     cache = apt.cache.Cache()
@@ -80,9 +79,11 @@ def update_libraries_without_vars(dockerfile_path):
     print("Done")
 
     # find the libraries to update
-    libs_to_update = []
+    libs_to_update = dict()
     for lib_name, docker_ver in zip(lib_names, lib_versions):
         pkg = cache.get(lib_name, None)
+        if libs_to_update.get(lib_name):
+            continue
         if not pkg:
             print(bcolors.WARNING + "[%s] WARNING: Package not found in cache, ignoring it." % str(lib_name) + bcolors.ENDC)
             continue
@@ -91,20 +92,27 @@ def update_libraries_without_vars(dockerfile_path):
                 print(bcolors.WARNING + "[%s] WARNING: Dockerfile version and installed version are different!" % str(lib_name) + bcolors.ENDC)
         if docker_ver != pkg.candidate.version:
             print(bcolors.FAIL + "[%s] UPDATED (old: %s --> new: %s)" % (str(lib_name), str(docker_ver), str(pkg.candidate.version)) + bcolors.ENDC)
-            libs_to_update.append([lib_name, pkg.candidate.version])
+            libs_to_update.update({lib_name: pkg.candidate.version})
         else:
             print("[%s] Up to date (%s)" % (str(lib_name), str(docker_ver)))
 
+    # print('+++++',libs_to_update)
+
     # substitute the libraries versions
+
     newlines = []
     for line in lines:
         aux = False
-        for lib in libs_to_update:
-            if lib[0].replace(' ', '') == line.replace(' ', '').replace('\t', '').split('=')[0]:
+        for lib in libs_to_update.items():
+            old_line = str(line.replace(' ', '').replace('\\', '').replace('\t', '').strip())
+            # if lib[0] in old_line:
+            #     print('wdf', '|'+old_line+'|', 'lib', '|'+lib[0]+'|',lib[1],  '=' in old_line, lib[0] == old_line.split('=')[0], lib[0] == old_line )
+            if ('=' in old_line and lib[0] == old_line.split('=')[0]) \
+               or lib[0] == old_line:
                 newline = '    '+str(lib[0])+'='+str(lib[1])+' \\\n'
                 newlines.append(newline)
                 aux = True
-        if aux == False:
+        if not aux:
             newlines.append(line)
 
     # update dockerfile
@@ -143,12 +151,21 @@ def update_libraries_with_vars(dockerfile_path):
     # split into library names and versions
     lib_names, lib_versions, arg_names = [], [], []
     for lib in libraries:
-        lib_name_ver = lib.split('=')
-        if lib_name_ver[1][0] == '$': # TODO this fails when the version is not pinned (i.e., no equal symbol present)
-            lib_names.append(lib_name_ver[0])
-            env_var_version = dfp.envs[lib_name_ver[1].replace('$', '').replace('{', '').replace('}', '')]
+        if '=' in lib: 
+            lib_name_ver = lib.split('=')
+            if lib_name_ver[1][0] == '$': # TODO this fails when the version is not pinned (i.e., no equal symbol present)
+                lib_names.append(lib_name_ver[0])
+                env_var_version = dfp.envs[lib_name_ver[1].replace('$', '').replace('{', '').replace('}', '')]
+                lib_versions.append(env_var_version)
+                arg_name = lib_name_ver[1].replace('$', '').replace('{', '').replace('}', '').lower()
+                arg_names.append(arg_name)
+        else:
+            lib_names.append(lib)
+            # env_var_version = dfp.envs[lib[1].replace('$', '').replace('{', '').replace('}', '')]
+            env_var_version = 'None'
             lib_versions.append(env_var_version)
-            arg_name = lib_name_ver[1].replace('$', '').replace('{', '').replace('}', '').lower()
+            # arg_name = lib[1].replace('$', '').replace('{', '').replace('}', '').lower()
+            arg_name = 'None'
             arg_names.append(arg_name)
 
     # update and open apt cache
@@ -201,7 +218,7 @@ def update_libraries_with_vars(dockerfile_path):
 
 def update_libraries(dockerfile_path):
     update_libraries_without_vars(dockerfile_path)
-    update_libraries_with_vars(dockerfile_path)
+    # update_libraries_with_vars(dockerfile_path)
 
 
 if __name__ == '__main__':

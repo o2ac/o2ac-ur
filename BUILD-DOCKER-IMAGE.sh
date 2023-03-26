@@ -42,14 +42,14 @@ docker login registry.gitlab.com
 
 # If the script runs in CI mode, image builds directly.
 # Otherwise try to pull it from the server. If this fails, it has to be build locally.
-if [[ "$DOCKER_PROJECT" == "gitlab-ci" ]]; then
-  docker-compose -p ${DOCKER_PROJECT} -f ./docker/docker-compose.yml build
-else
-  # regular developer use case
-  docker-compose -p ${DOCKER_PROJECT} -f ./docker/docker-compose.yml pull
-  if [[ "$?" -ne "0" ]]; then
-    docker-compose -p ${DOCKER_PROJECT} -f ./docker/docker-compose.yml build
-  fi
-fi
+# if [[ "$DOCKER_PROJECT" == "gitlab-ci" ]]; then
+#   docker-compose -p ${DOCKER_PROJECT} -f ./docker/docker-compose.yml build
+# else
+#   # regular developer use case
+#   docker-compose -p ${DOCKER_PROJECT} -f ./docker/docker-compose.yml pull
+#   if [[ "$?" -ne "0" ]]; then
+#     docker-compose -p ${DOCKER_PROJECT} -f ./docker/docker-compose.yml build
+#   fi
+# fi
 
-# docker-compose -p ${DOCKER_PROJECT} -f ./docker/docker-compose.yml build
+docker-compose -p ${DOCKER_PROJECT} -f ./docker/docker-compose.yml build

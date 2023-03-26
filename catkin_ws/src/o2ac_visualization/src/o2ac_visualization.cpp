@@ -36,7 +36,7 @@ const int font_thick_ = 1;
 const int font_ltype_ = 4; // CV_AA;
 
 void check_window() {
-  if (!cvGetWindowHandle("Monitor")) {
+  if (!getWindowProperty("Monitor", cv::WND_PROP_AUTOSIZE) >= 0) {
     cv::namedWindow("Monitor", cv::WINDOW_NORMAL);
     cv::moveWindow("Monitor", 128, 128);
   }
@@ -45,7 +45,7 @@ void check_window() {
 void clear_buffer_rect(cv::Rect rect, const cv::Mat &monitor_) {
   cv::rectangle(monitor_, cv::Point(rect.x, rect.y),
                 cv::Point(rect.x + rect.width, rect.y + rect.height),
-                cv::Scalar(0, 0, 0), CV_FILLED);
+                cv::Scalar(0, 0, 0), cv::FILLED);
   cv::rectangle(monitor_, cv::Point(rect.x, rect.y),
                 cv::Point(rect.x + rect.width, rect.y + rect.height),
                 cv::Scalar(255, 255, 255), 1);
@@ -106,7 +106,7 @@ ImageCallback getCallbackForImage(cv::Rect rect, XmlRpc::XmlRpcValue &params,
   // This function returns callback function
   return [=](const sensor_msgs::ImageConstPtr &msg) {
     // Show window at the first time
-    if (!cvGetWindowHandle("Monitor")) {
+    if (!getWindowProperty("Monitor", cv::WND_PROP_AUTOSIZE) >= 0) {
       cv::namedWindow("Monitor", cv::WINDOW_NORMAL);
       cv::moveWindow("Monitor", 128, 128);
     }
