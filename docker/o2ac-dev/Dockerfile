@@ -37,7 +37,7 @@ RUN apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E
 
 # Install ROS-desktop-full packages (including ROS, rqt, rviz, and more).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-melodic-desktop-full=1.4.1-0bionic.20210921.232208 \
+    ros-melodic-desktop-full=1.4.1-0bionic.20211104.025752 \
     python-rosdep=0.21.0-1 \
 	&& rm -rf /var/lib/apt/lists/*
 
@@ -85,7 +85,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python-catkin-tools=0.6.1-1 \
     python-tk=2.7.17-1~18.04 \
     unzip=6.0-21ubuntu1.1 \
-    vim=2:8.0.1453-1ubuntu1.6 \
+    vim=2:8.0.1453-1ubuntu1.7 \
     less=487-0.1 \
     usbutils=1:007-4build1 \
 	&& rm -rf /var/lib/apt/lists/*
@@ -100,15 +100,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ################################################################################
 
-# Install MoveIt dependencies because we build it from source.
-# Also install the binaries to pull in the dependencies.
-RUN apt-get update && apt-get install -y --no-install-recommends \ 
-    ros-melodic-moveit-resources=0.7.3-1bionic.20210921.221050 \
-    ros-melodic-moveit=1.0.8-1bionic.20210922.000107 \
-	&& rm -rf /var/lib/apt/lists/*
-
-################################################################################
-
 # Install wstool to use .rosinstall file in the underlay workspace
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python-wstool=0.1.17-1 \
@@ -119,7 +110,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install other dependencies of our workspace
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-melodic-effort-controllers=0.17.2-1bionic.20210921.221828 \
+    ros-melodic-effort-controllers=0.17.2-1bionic.20211005.001446 \
     ros-melodic-industrial-robot-status-controller=0.1.2-1bionic.20210921.221524 \
     ros-melodic-socketcan-interface=0.8.5-1bionic.20210921.180404 \
     ros-melodic-industrial-robot-status-interface=0.1.2-1bionic.20210921.203234 \
@@ -128,7 +119,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-melodic-spacenav-node=1.14.0-1bionic.20210921.210836 \
     ros-melodic-joy-teleop=0.3.1-1bionic.20210921.205844 \
     ros-melodic-code-coverage=0.4.3-1bionic.20200803.132715 \
-    ros-melodic-panda-moveit-config=0.7.4-1bionic.20210921.234706 \
+    ros-melodic-panda-moveit-config=0.7.4-1bionic.20211104.025015 \
     socat=1.7.3.2-2ubuntu2 \
     libqt5x11extras5-dev=5.9.5-0ubuntu1 \
 	&& rm -rf /var/lib/apt/lists/*	
@@ -137,7 +128,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install JSK tools for visualization in Rviz
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-melodic-jsk-visualization=2.1.7-2bionic.20210922.000226 \
+    ros-melodic-jsk-visualization=2.1.7-2bionic.20211104.032006 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -159,7 +150,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-melodic-ros-control=0.18.4-1bionic.20210921.220930 \
     ros-melodic-robot-controllers=0.6.0-0bionic.20210921.222303 \
     ros-melodic-velocity-controllers=0.17.2-1bionic.20210921.221837 \
-    ros-melodic-joint-trajectory-controller=0.17.2-1bionic.20210921.220639 \
+    ros-melodic-joint-trajectory-controller=0.17.2-1bionic.20211005.001439 \
     ros-melodic-force-torque-sensor-controller=0.17.2-1bionic.20210921.221513 \
 	&& rm -rf /var/lib/apt/lists/*
 
@@ -167,7 +158,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Add industrial_core submodule
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-melodic-industrial-core=0.7.3-1bionic.20210921.231521 \
+    ros-melodic-industrial-core=0.7.3-1bionic.20211005.010652 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -208,7 +199,7 @@ RUN curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > mic
 
 # Update cache and install VS Code as a package.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    code=1.61.1-1634175470 \
+    code=1.62.3-1637137107 \
 	&& rm -rf /var/lib/apt/lists/*
 
 # Set VS Code as the default text editor.
@@ -262,8 +253,8 @@ RUN echo 'deb http://librealsense.intel.com/Debian/apt-repo bionic main' | tee /
 RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key C8B3A55A6F3EFCDE
 RUN apt-get update && apt-get install -y --no-install-recommends \
     librealsense2-dkms=1.3.18-0ubuntu1 \
-    librealsense2-utils=2.49.0-0~realsense0.5306 \
-    librealsense2-dev=2.49.0-0~realsense0.5306 \
+    librealsense2-utils=2.50.0-0~realsense0.6127 \
+    librealsense2-dev=2.50.0-0~realsense0.6127 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -294,7 +285,7 @@ RUN pip install gym
 
 # Install eigenpy 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-melodic-eigenpy=2.6.8-1bionic.20210907.141314 \
+    ros-melodic-eigenpy=2.6.9-1bionic.20211101.110130 \
 	&& rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -352,11 +343,9 @@ RUN pip2 install pyquaternion==0.9.9
 RUN apt-get update && apt-get install -y --no-install-recommends \
     htop=2.1.0-3 \
     ros-melodic-rqt-multiplot=0.0.10-0bionic.20210921.205109 \
-    ros-melodic-trac-ik-python=1.5.1-1bionic.20210921.222641 \
-    ros-melodic-trac-ik-kinematics-plugin=1.5.1-1bionic.20210921.224102 \
     ros-melodic-flexbe-behavior-engine=1.3.1-1bionic.20210921.221501 \
-    ros-melodic-gripper-action-controller=0.17.2-1bionic.20210921.220651 \
-    ros-melodic-jsk-rviz-plugins=2.1.7-2bionic.20210921.230839 \
+    ros-melodic-gripper-action-controller=0.17.2-1bionic.20211005.001411 \
+    ros-melodic-jsk-rviz-plugins=2.1.7-2bionic.20211104.020651 \
     python-rosinstall=0.7.8-1 \
 	&& rm -rf /var/lib/apt/lists/*
 
